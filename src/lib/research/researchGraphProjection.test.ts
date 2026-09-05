@@ -77,7 +77,7 @@ test('research graph is a canonical-only fail-closed projection with frozen rese
   assert.deepEqual(SFI_RESEARCH_PROJECTABLE_OBJECT_TYPES, [
     'METHOD', 'INSTRUMENT', 'DATASET', 'REPORT', 'PAPER', 'SOFTWARE', 'RELEASE', 'RETURN', 'PUBLICATION',
   ]);
-  assert.deepEqual(SFI_RESEARCH_RELATIONSHIP_TYPES, ['REFERENCES', 'DERIVED_FROM', 'IMPLEMENTS']);
+  assert.deepEqual(SFI_RESEARCH_RELATIONSHIP_TYPES, ['REFERENCES', 'IMPLEMENTS']);
 
   const records = [
     ...SFI_RESEARCH_PROJECTABLE_OBJECT_TYPES.map((objectType) => fixture(objectType)),
@@ -143,12 +143,12 @@ test('canonical ID, URL, type, version, publication, epistemic state, lineage, r
   assert.deepEqual(node.missing, record.missing);
   assert.equal(node.rights.state, 'OPEN');
   assert.equal(node.rights.license, record.license);
-  assert.equal(node.authorship.state, 'OBSERVED_IN_CANON');
+  assert.equal(node.authorship.state, 'CANONICAL_EXPLICIT');
   assert.deepEqual(node.authorship.authors, ['Aptymok']);
   assert.deepEqual(validateResearchGraphProjection(graph, [record]), []);
 });
 
-test('unknown or non-applicable authorship and rights remain fail closed instead of being inferred', () => {
+test('unknown authorship, contributors and rights remain fail closed instead of being inferred', () => {
   const record = fixture('INSTRUMENT', 'missing-authorship');
   record.authors = [];
   record.rights.state = 'NOT_APPLICABLE';
@@ -177,10 +177,10 @@ test('unknown or non-applicable authorship and rights remain fail closed instead
   });
 });
 
-test('typed relationships derive deterministically only from canonical fields and projected canonical targets', () => {
+test('typed relationships are emitted only when canonical fields prove the narrower semantics', () => {
   const method = fixture('METHOD', 'method-target');
   const dataset = fixture('DATASET', 'dataset-source');
-  const report = fixture('REPORT', 'report-reference');
+  const report = fixture('REPORT', 'report-related');
   const software = fixture('SOFTWARE', 'software-relations');
   software.methods = [method.id];
   software.sourceRefs = ['source:research:software-relations', dataset.canonicalUrl];
@@ -195,14 +195,28 @@ test('typed relationships derive deterministically only from canonical fields an
     relationship.targetCanonicalObjectId,
     relationship.evidenceField,
   ]), [
-    ['DERIVED_FROM', software.id, dataset.id, 'sourceRefs'],
     ['IMPLEMENTS', software.id, method.id, 'methods'],
-    ['REFERENCES', software.id, report.id, 'relatedObjects'],
+    ['REFERENCES', software.id, dataset.id, 'sourceRefs'],
   ]);
+  assert.deepEqual(graph.nodes.find((node) => node.canonicalObjectId === software.id)?.lineage.canonicalRelatedObjectRefs, [report.objectKey]);
   assert.deepEqual(validateResearchGraphProjection(graph, records), []);
 });
 
-test('untyped canonical refs are preserved as lineage but no relation to an ineligible/private target is emitted', () => {
+test('generic relatedObjects and non-software method associations remain lineage without typed semantic promotion', () => {
+  const method = fixture('METHOD', 'method-associated');
+  const report = fixture('REPORT', 'report-association');
+  const related = fixture('PAPER', 'related-paper');
+  report.methods = [method.id];
+  report.relatedObjects = [related.id];
+
+  const graph = projectResearchGraph([report, method, related]);
+  const reportNode = graph.nodes.find((node) => node.canonicalObjectId === report.id);
+  assert.deepEqual(reportNode?.lineage.methodRefs, [method.id]);
+  assert.deepEqual(reportNode?.lineage.canonicalRelatedObjectRefs, [related.id]);
+  assert.deepEqual(graph.relationships, []);
+});
+
+test('a canonical source reference does not create an edge to an ineligible/private target', () => {
   const publicRecord = fixture('PAPER', 'public-source');
   const privateTarget = fixture('DATASET', 'private-target');
   privateTarget.publicState = 'PRIVATE';
@@ -210,31 +224,31 @@ test('untyped canonical refs are preserved as lineage but no relation to an inel
   privateTarget.eligibility.privacyClass = 'PRIVATE';
   privateTarget.eligibility.publicEligible = false;
   privateTarget.eligibility.securityEligible = false;
-  publicRecord.relatedObjects = [privateTarget.id, 'external:untyped'];
+  publicRecord.sourceRefs = ['source:research:public-source', privateTarget.id];
 
   const graph = projectResearchGraph([publicRecord, privateTarget]);
   assert.equal(graph.nodes.length, 1);
-  assert.deepEqual(graph.nodes[0].lineage.canonicalRelatedObjectRefs, [privateTarget.id, 'external:untyped']);
+  assert.deepEqual(graph.nodes[0].lineage.sourceRefs, ['source:research:public-source', privateTarget.id]);
   assert.deepEqual(graph.relationships, []);
 });
 
 test('invalid or fabricated relationships are rejected by projection validation', () => {
   const first = fixture('REPORT', 'relationship-first');
   const second = fixture('DATASET', 'relationship-second');
-  first.relatedObjects = [second.id];
+  first.sourceRefs = ['source:research:relationship-first', second.id];
   const records = [first, second];
   const graph = projectResearchGraph(records);
   assert.equal(graph.relationships.length, 1);
 
-  const unsupported = clone(graph) as typeof graph & { relationships: Array<Record<string, unknown>> };
-  unsupported.relationships[0].type = 'CITES';
-  const unsupportedErrors = validateResearchGraphProjection(unsupported as never, records);
+  const unsupported: any = clone(graph);
+  unsupported.relationships[0].type = 'DERIVED_FROM';
+  const unsupportedErrors = validateResearchGraphProjection(unsupported, records);
   assert.ok(unsupportedErrors.some((error) => error.startsWith('RELATION_TYPE_UNSUPPORTED:')));
   assert.ok(unsupportedErrors.some((error) => error.startsWith('RELATION_PROJECTION_MISMATCH:')));
 
-  const inventedTarget = clone(graph) as typeof graph & { relationships: Array<Record<string, unknown>> };
+  const inventedTarget: any = clone(graph);
   inventedTarget.relationships[0].targetCanonicalObjectId = 'invented-canonical-object';
-  const targetErrors = validateResearchGraphProjection(inventedTarget as never, records);
+  const targetErrors = validateResearchGraphProjection(inventedTarget, records);
   assert.ok(targetErrors.some((error) => error.startsWith('RELATION_TARGET_NOT_PROJECTED:')));
   assert.ok(targetErrors.some((error) => error.startsWith('RELATION_PROJECTION_MISMATCH:')));
 });
@@ -247,13 +261,13 @@ test('canonical identity drift and fabricated scholarly metadata fail validation
   canonicalDrift.nodes[0].canonicalUrl = 'https://example.invalid/fake-canon';
   assert.ok(validateResearchGraphProjection(canonicalDrift, [record]).includes(`NODE_PROJECTION_MISMATCH:${record.id}`));
 
-  const identifierDrift = clone(graph) as typeof graph & { nodes: Array<Record<string, any>> };
+  const identifierDrift: any = clone(graph);
   identifierDrift.nodes[0].identifiers.doi = '10.1234/fabricated';
-  assert.ok(validateResearchGraphProjection(identifierDrift as never, [record]).includes(`FABRICATED_IDENTIFIER:${record.id}`));
+  assert.ok(validateResearchGraphProjection(identifierDrift, [record]).includes(`FABRICATED_IDENTIFIER:${record.id}`));
 
-  const affiliationDrift = clone(graph) as typeof graph & { nodes: Array<Record<string, any>> };
+  const affiliationDrift: any = clone(graph);
   affiliationDrift.nodes[0].scholarlyMetadata.affiliation = 'Fabricated University';
-  assert.ok(validateResearchGraphProjection(affiliationDrift as never, [record]).includes(`INFERRED_SCHOLARLY_METADATA:${record.id}`));
+  assert.ok(validateResearchGraphProjection(affiliationDrift, [record]).includes(`INFERRED_SCHOLARLY_METADATA:${record.id}`));
 });
 
 test('citation export is derived from the research node and never invents DOI, ORCID, ROR, affiliation or dates', () => {
