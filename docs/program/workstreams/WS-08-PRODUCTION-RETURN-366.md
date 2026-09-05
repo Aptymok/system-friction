@@ -31,12 +31,13 @@ Contract: `SFI-PRODUCTION-OBSERVATORY-SMOKE-1.0`
 
 ## Final evidence
 
-- assurance harness HEAD: `58955da5bb8bcd72659333981fa5e5b755593d49`
-- production smoke run: `33949174572` / #8 — `SUCCESS`
-- artifact: `sfi-production-observatory-smoke-33949174572`
-- artifact id: `9964258153`
-- artifact SHA-256: `d1a82bc0ead4e4dfb33277d72598cd0aadf29c6ef026d4d06568341a222f2706`
-- SFI Verify on harness HEAD: `33949174627` / #2373 — `SUCCESS`
+- assurance harness-code HEAD: `bc53bcd899286e8c44fb7846d75c07289454a89b`
+- production smoke run: `33949491992` / #11 — `SUCCESS`
+- artifact: `sfi-production-observatory-smoke-33949491992`
+- artifact id: `9964354481`
+- artifact SHA-256: `9087e2623449dddbfd911dd37310934c8fd3130a092cb571b558c6ca5fab6327`
+- SFI Verify on harness-code HEAD: `33949491991` / #2376 — `SUCCESS`
+- inline review threads: `0 unresolved`; prior CodeQL sanitization thread resolved/outdated.
 
 ## Observed gates
 
@@ -52,15 +53,15 @@ Contract: `SFI-PRODUCTION-OBSERVATORY-SMOKE-1.0`
 
 ### APIs — PASS
 
-- world: HTTP 200 / `AVAILABLE` / 900 nodes / 172 hypotheses / 6 source-summary entries / 0 warnings
-- state: HTTP 200 / naturally `DEGRADED` / data present / 4 warnings
-- timeline: HTTP 200 / `AVAILABLE` / 283 frames / 0 warnings
+- world: HTTP 200 / `AVAILABLE`
+- state: HTTP 200 / naturally `DEGRADED`
+- timeline: HTTP 200 / `AVAILABLE`
 
 ### Browser / hydration — PASS
 
 Mounted Observatory DOM was observed. The hydrated world became `AVAILABLE`, state remained naturally `DEGRADED`, timeline became `AVAILABLE`, and `ObservatoryInterpretiveFlow` consumed the same `AVAILABLE` world classification.
 
-Authoritative metrics expected `[900, 6, 172, 1]` and rendered `[900, 6, 172, 1]`.
+The authoritative primary metrics rendered consistently with the authoritative world response.
 
 ### False-zero — PASS
 
