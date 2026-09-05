@@ -1,3 +1,5 @@
+import type { SfiInstitutionalDomain, SfiInstitutionalRoleKey } from './institutionalRoles';
+
 export type SfiExternalScope =
   | 'observe'
   | 'propose'
@@ -16,6 +18,8 @@ export type SfiInstitutionalMember = {
   displayName: string;
   title: string;
   role: 'operator' | 'controller' | 'observer';
+  institutionalRole: SfiInstitutionalRoleKey;
+  institutionalDomain: SfiInstitutionalDomain;
   decisionAuthority?: 'controller';
   workspace: '/member' | '/root';
   modules: {
@@ -35,8 +39,10 @@ const MEMBERS: SfiInstitutionalMember[] = [
   {
     email: 'edwin.tzolkin@gmail.com',
     displayName: 'Edwing Peredo Guadarrama',
-    title: 'Director de Dominio — SFI Studio',
+    title: 'Director Institucional — System Friction Institute',
     role: 'controller',
+    institutionalRole: 'institutional_director',
+    institutionalDomain: 'institution',
     decisionAuthority: 'controller',
     workspace: '/root',
     modules: {
@@ -47,6 +53,8 @@ const MEMBERS: SfiInstitutionalMember[] = [
       root: true,
     },
     external: {
+      // External GPT authority deliberately remains an institutional operator.
+      // Human directorship does not delegate identity administration or sovereignty to an agent.
       role: 'institutional_operator',
       scopes: [
         'observe',
