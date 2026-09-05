@@ -399,6 +399,29 @@ No contract delta, authority expansion, migration, persistence owner, event owne
 
 This documentation-only durable handoff commit moves the PR HEAD after the proven corrected code HEAD. Re-run and observe exact-head CI. If the final HEAD remains green, PR #367 is ready for SFI-00 integration sequencing. WS-01 must not merge and must not start Slice B on this branch.
 
+## 12. Ronda 1 / Slice A — final owner and source-contract correction
+
+**Previous SFI-00 observed HEAD:** `f03b3032d9cc31ea91d31ec024db67f1e7ee27ec`  
+**Corrected code HEAD before this durable documentation commit:** `a2540544a802b06a9ca0a83ed3ca37c1f20b548a`  
+**Scope:** Slice A correction only; Capability Broker / Slice B remain explicitly unstarted.
+
+The final integration pass absorbed all current Slice A findings without adding authority, persistence, a second registry, or a second model-routing owner:
+
+1. **Canonical model-requirements owner consolidated.** `operationModelRequirementsForAgent()` is the complete canonical operation-requirements projection. `llmRequirementsForAgent()` derives the narrower provider-router shape from that same canonical object. `agentLlmClient.ts` consumes `llmRequirementsForAgent(agentId)` directly; the local `requirementsForAgent()` wrapper/owner was removed.
+2. **Complete output policy locked to source.** Source validation compares the full projected output block, including schema reference, allowed epistemic classes, confidence policy, missing-data policy, and contradiction policy. Stored/overridden passports cannot weaken `MISSING_REMAINS_MISSING` semantics or substitute an unrelated confidence policy.
+3. **Complete model-requirements projection locked.** Source validation rejects drift in reasoning, structured output, web, multimodal, computer, code, minimum context, latency, cost, privacy, provider allowlist, and provider denylist. Passport storage/override does not create model-routing authority.
+4. **Complete resource contract locked.** `allowedResources` must equal the source `readsMemory` projection; resources cannot be added or hidden. `forbiddenResources` must preserve the frozen prohibitions `service_role`, `raw_secrets`, and `unscoped_external_execution`.
+5. **Canonical source-policy set locked.** `input.sourcePolicies` must equal the frozen set `EVIDENCE_BEFORE_INFERENCE`, `MODEL_OUTPUT_NEVER_OBSERVATION_BY_INHERITANCE`, and `MISSING_REMAINS_MISSING`; empty, arbitrary, duplicate, or incomplete policy sets fail validation.
+6. **Prior source invariants retained.** EvidenceHunter remains non-observational; source-layer epistemic mode cannot drift; source-required inputs cannot be dropped; RETURN obligations cannot be weakened; required observed RETURN for reality calibration remains explicit; mandatory human confirmation remains source-derived and non-optional.
+
+Deterministic passport regressions now exercise the full output-policy block, every field of the canonical model-requirements object, exact allowed/forbidden resource sets, exact source-policy set, unsupported contract versions, source identity/purpose, accepted evidence vocabulary, EvidenceHunter epistemic boundary, RETURN, human confirmation, epistemic mode, and source-required inputs.
+
+A same-Slice-A QA regression was also absorbed: after removal of the local `requirementsForAgent()` wrapper, `qa-sfi-ai-governance.ts` still matched that obsolete symbol and caused SFI Verify to fail even though execution already consumed the canonical owner. The gate now verifies direct `llmRequirementsForAgent(agentId)` consumption, absence of a local `requirementsForAgent()` function, and derivation of LLM router requirements from `operationModelRequirementsForAgent(agentId)`.
+
+No contract delta was introduced. Authority ceilings remain unchanged; no grant, broker, external execution authority, migration, table, event owner, or persistence owner was added. SFI-00 remains sole integration authority.
+
+This documentation commit intentionally moves the branch HEAD after the corrected code head. Integration readiness must therefore be decided only from exact-head CI on the resulting documentation-adjusted HEAD plus a fresh review-thread check. WS-01 must not merge and must not start Slice B on this branch.
+
 ---
 
 # COPY-PASTE DISPATCH PROMPT
