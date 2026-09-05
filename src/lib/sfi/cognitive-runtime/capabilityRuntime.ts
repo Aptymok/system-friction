@@ -1,5 +1,3 @@
-import { appendEpistemicEvent, streamEpistemicEvents } from '@/lib/events/eventStore';
-import { runCognitiveAgent, type AgentExecutionResult } from './runtimeAgentExecutor';
 import {
   SFI_CAPABILITY_REQUEST_CONTRACT,
   evaluateCapabilityRequest,
@@ -23,10 +21,27 @@ export type SfiCapabilityRuntimeResult = {
   } | null;
 };
 
-type AppendEventInput = Parameters<typeof appendEpistemicEvent>[0];
+type CapabilityEventInput = {
+  eventName: string;
+  epistemicClass: 'observation' | 'derived' | 'simulation' | 'prediction' | 'return';
+  confidence: number;
+  occurredAt?: string;
+  source: { sourceId: string; sourceType?: string | null; uri?: string | null };
+  logbookId?: string | null;
+  lineage?: string[];
+  payload?: unknown;
+};
+
+type AgentExecutionResult = {
+  agentId: string;
+  executed: boolean;
+  context: KernelContext;
+  executedAt: string;
+};
+
 type CapabilityRuntimeDependencies = {
   readHistory: (context: KernelContext) => Promise<SfiCapabilityHistoryEntry[]>;
-  appendEvent: (input: AppendEventInput) => Promise<{ ok: true; eventId: string } | { ok: false; error: string }>;
+  appendEvent: (input: CapabilityEventInput) => Promise<{ ok: true; eventId: string } | { ok: false; error: string }>;
   executeAgent: (agentId: string, context: KernelContext) => Promise<AgentExecutionResult>;
 };
 
@@ -45,6 +60,7 @@ function row(value: unknown): Row {
 }
 
 async function readHistory(context: KernelContext): Promise<SfiCapabilityHistoryEntry[]> {
+  const { streamEpistemicEvents } = await import('@/lib/events/eventStore');
   const result = await streamEpistemicEvents(context.logbookId, 500);
   return (result.data ?? []).map((item) => ({
     eventId: typeof item.event_id === 'string' ? item.event_id : null,
@@ -53,16 +69,22 @@ async function readHistory(context: KernelContext): Promise<SfiCapabilityHistory
   }));
 }
 
-async function appendEvent(input: AppendEventInput) {
+async function appendEvent(input: CapabilityEventInput) {
+  const { appendEpistemicEvent } = await import('@/lib/events/eventStore');
   const result = await appendEpistemicEvent(input);
   if (!result.ok) return { ok: false as const, error: result.error };
   return { ok: true as const, eventId: String(result.data.event_id) };
 }
 
+async function executeAgent(agentId: string, context: KernelContext) {
+  const { runCognitiveAgent } = await import('./runtimeAgentExecutor');
+  return runCognitiveAgent(agentId, context);
+}
+
 const DEFAULT_DEPENDENCIES: CapabilityRuntimeDependencies = {
   readHistory,
   appendEvent,
-  executeAgent: runCognitiveAgent,
+  executeAgent,
 };
 
 function dispositionEventName(disposition: SfiCapabilityBrokerDecision['disposition']) {
@@ -73,7 +95,7 @@ function dispositionEventName(disposition: SfiCapabilityBrokerDecision['disposit
 
 async function requireEvent(
   deps: CapabilityRuntimeDependencies,
-  input: AppendEventInput,
+  input: CapabilityEventInput,
 ) {
   const result = await deps.appendEvent(input);
   if (!result.ok) throw new Error(`CAPABILITY_LINEAGE_PERSISTENCE_FAILED:${result.error}`);
