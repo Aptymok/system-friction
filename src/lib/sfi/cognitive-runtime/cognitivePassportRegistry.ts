@@ -253,6 +253,12 @@ export function validateCognitivePassport(passport: SfiCognitivePassport): strin
   if (!sameSortedStrings(passport.input.acceptedEvidenceClasses, ACCEPTED_EVIDENCE_CLASSES)) {
     push('ACCEPTED_EVIDENCE_CLASSES_CONTRACT_MISMATCH');
   }
+  if (!sameSortedStrings(passport.input.sourcePolicies, SOURCE_POLICIES)) {
+    push('SOURCE_POLICIES_CONTRACT_MISMATCH');
+  }
+  if (!sameSortedStrings(passport.tools.forbiddenResources, FORBIDDEN_RESOURCES)) {
+    push('FORBIDDEN_RESOURCES_CONTRACT_MISMATCH');
+  }
 
   for (const [field, values] of [
     ['INPUT_REQUIRED', passport.input.required],
@@ -292,6 +298,7 @@ export function validateCognitivePassportAgainstSource(
   const expectedRequiredInputs = uniqueSorted(source.sourceTables);
   const expectedOutput = outputContractFor(source);
   const expectedRequiredEvidence = requiredEvidenceClassesFor(source);
+  const expectedAllowedResources = uniqueSorted(source.readsMemory);
   const expectedModelRequirements = operationModelRequirementsForAgent(source.id);
   const expectedReturn = returnContractFor(source);
 
@@ -324,6 +331,9 @@ export function validateCognitivePassportAgainstSource(
   if (!sameSortedStrings(passport.input.requiredEvidenceClasses, expectedRequiredEvidence)) {
     errors.push(`${passport.id}:REQUIRED_EVIDENCE_CONTRACT_MISMATCH`);
   }
+  if (!sameSortedStrings(passport.tools.allowedResources, expectedAllowedResources)) {
+    errors.push(`${passport.id}:ALLOWED_RESOURCES_CONTRACT_MISMATCH`);
+  }
   if (!sameModelRequirements(passport.modelRequirements, expectedModelRequirements)) {
     errors.push(`${passport.id}:MODEL_REQUIREMENTS_CONTRACT_MISMATCH`);
   }
@@ -336,11 +346,6 @@ export function validateCognitivePassportAgainstSource(
   }
   if (passport.tools.allowedToolClasses.length > 0) errors.push(`${passport.id}:UNGRANTED_TOOL_AUTHORITY`);
   if (passport.orchestration.mayRequestCapabilities) errors.push(`${passport.id}:ADAPTIVE_REQUEST_AUTHORITY_PREMATURE`);
-
-  const sourceResources = new Set(source.readsMemory);
-  for (const resource of passport.tools.allowedResources) {
-    if (!sourceResources.has(resource)) errors.push(`${passport.id}:RESOURCE_NOT_IN_SOURCE_CONTRACT:${resource}`);
-  }
 
   return errors.sort();
 }
