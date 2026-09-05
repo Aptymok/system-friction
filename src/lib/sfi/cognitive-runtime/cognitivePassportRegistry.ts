@@ -1,4 +1,5 @@
 import type { SfiRegisteredCognitiveAgent } from './types';
+import { SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY } from './convergedRegistry';
 import { executionContractForAgent } from './executionContracts';
 import {
   operationModelRequirementsForAgent,
@@ -114,6 +115,12 @@ const FORBIDDEN_RESOURCES = [
 ];
 const MISSING_POLICY = 'PRESERVE_MISSING_AND_NOT_OBSERVED';
 const CONTRADICTION_POLICY = 'PRESERVE_AND_SURFACE_CONTRADICTIONS';
+const CAPABILITY_REQUEST_MAX_DEPTH = 2;
+const CAPABILITY_REQUEST_MAX_CHILDREN = 4;
+const CAPABILITY_REQUEST_STOP_CONDITIONS = [
+  'DUPLICATE_REQUEST_HASH_TERMINATES',
+  'NO_NEW_INFORMATION_AND_NO_NEW_STATE',
+];
 
 function uniqueSorted(values: string[]) {
   return [...new Set(values.filter((value) => value.trim().length > 0))].sort();
@@ -144,6 +151,19 @@ function returnContractFor(agent: SfiRegisteredCognitiveAgent): SfiCognitivePass
   };
 }
 
+function orchestrationContractFor(agent: SfiRegisteredCognitiveAgent): SfiCognitivePassport['orchestration'] {
+  return {
+    mayRequestCapabilities: true,
+    requestableCapabilityIds: uniqueSorted(
+      SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.map((candidate) => candidate.id).filter((id) => id !== agent.id),
+    ),
+    requestableCapabilityClasses: [],
+    maxDepth: CAPABILITY_REQUEST_MAX_DEPTH,
+    maxChildren: CAPABILITY_REQUEST_MAX_CHILDREN,
+    stopConditions: [...CAPABILITY_REQUEST_STOP_CONDITIONS],
+  };
+}
+
 function sameSortedStrings(actual: string[], expected: string[]) {
   return JSON.stringify([...actual].sort()) === JSON.stringify([...expected].sort());
 }
@@ -167,6 +187,15 @@ function normalizedModelRequirements(value: SfiOperationModelRequirements) {
 
 function sameModelRequirements(actual: SfiOperationModelRequirements, expected: SfiOperationModelRequirements) {
   return JSON.stringify(normalizedModelRequirements(actual)) === JSON.stringify(normalizedModelRequirements(expected));
+}
+
+function sameOrchestration(actual: SfiCognitivePassport['orchestration'], expected: SfiCognitivePassport['orchestration']) {
+  return actual.mayRequestCapabilities === expected.mayRequestCapabilities
+    && sameSortedStrings(actual.requestableCapabilityIds, expected.requestableCapabilityIds)
+    && sameSortedStrings(actual.requestableCapabilityClasses, expected.requestableCapabilityClasses)
+    && actual.maxDepth === expected.maxDepth
+    && actual.maxChildren === expected.maxChildren
+    && sameSortedStrings(actual.stopConditions, expected.stopConditions);
 }
 
 export function projectCognitivePassport(agent: SfiRegisteredCognitiveAgent): SfiCognitivePassport {
@@ -194,14 +223,7 @@ export function projectCognitivePassport(agent: SfiRegisteredCognitiveAgent): Sf
       ceiling: AUTHORITY_CEILING_BY_LEGACY_LEVEL[agent.authorityLevel],
       confirmationRequirement: agent.humanApprovalRequired ? 'HUMAN' : 'NONE',
     },
-    orchestration: {
-      mayRequestCapabilities: false,
-      requestableCapabilityIds: [],
-      requestableCapabilityClasses: [],
-      maxDepth: 0,
-      maxChildren: 0,
-      stopConditions: ['NO_NEW_INFORMATION_AND_NO_NEW_STATE'],
-    },
+    orchestration: orchestrationContractFor(agent),
     return: returnContractFor(agent),
     security: {
       defaultTtlSeconds: 600,
@@ -250,15 +272,9 @@ export function validateCognitivePassport(passport: SfiCognitivePassport): strin
   if (!passport.output.missingPolicy.trim()) push('MISSING_POLICY_REQUIRED');
   if (!passport.output.contradictionPolicy.trim()) push('CONTRADICTION_POLICY_REQUIRED');
   if (passport.output.allowedEpistemicClasses.length === 0) push('OUTPUT_EPISTEMIC_CLASSES_REQUIRED');
-  if (!sameSortedStrings(passport.input.acceptedEvidenceClasses, ACCEPTED_EVIDENCE_CLASSES)) {
-    push('ACCEPTED_EVIDENCE_CLASSES_CONTRACT_MISMATCH');
-  }
-  if (!sameSortedStrings(passport.input.sourcePolicies, SOURCE_POLICIES)) {
-    push('SOURCE_POLICIES_CONTRACT_MISMATCH');
-  }
-  if (!sameSortedStrings(passport.tools.forbiddenResources, FORBIDDEN_RESOURCES)) {
-    push('FORBIDDEN_RESOURCES_CONTRACT_MISMATCH');
-  }
+  if (!sameSortedStrings(passport.input.acceptedEvidenceClasses, ACCEPTED_EVIDENCE_CLASSES)) push('ACCEPTED_EVIDENCE_CLASSES_CONTRACT_MISMATCH');
+  if (!sameSortedStrings(passport.input.sourcePolicies, SOURCE_POLICIES)) push('SOURCE_POLICIES_CONTRACT_MISMATCH');
+  if (!sameSortedStrings(passport.tools.forbiddenResources, FORBIDDEN_RESOURCES)) push('FORBIDDEN_RESOURCES_CONTRACT_MISMATCH');
 
   for (const [field, values] of [
     ['INPUT_REQUIRED', passport.input.required],
@@ -277,7 +293,11 @@ export function validateCognitivePassport(passport: SfiCognitivePassport): strin
     for (const duplicate of duplicateValues(values)) push(`${field}_DUPLICATE:${duplicate}`);
   }
 
-  if (!passport.orchestration.mayRequestCapabilities) {
+  if (passport.orchestration.mayRequestCapabilities) {
+    if (passport.orchestration.maxDepth <= 0) push('MAX_DEPTH_REQUIRED_WHEN_REQUESTS_ENABLED');
+    if (passport.orchestration.maxChildren <= 0) push('MAX_CHILDREN_REQUIRED_WHEN_REQUESTS_ENABLED');
+    if (passport.orchestration.stopConditions.length === 0) push('STOP_CONDITIONS_REQUIRED_WHEN_REQUESTS_ENABLED');
+  } else {
     if (passport.orchestration.requestableCapabilityIds.length > 0) push('REQUEST_IDS_REQUIRE_CAPABILITY_REQUEST_AUTHORITY');
     if (passport.orchestration.requestableCapabilityClasses.length > 0) push('REQUEST_CLASSES_REQUIRE_CAPABILITY_REQUEST_AUTHORITY');
     if (passport.orchestration.maxDepth !== 0) push('MAX_DEPTH_MUST_BE_ZERO_WHEN_REQUESTS_DISABLED');
@@ -300,52 +320,33 @@ export function validateCognitivePassportAgainstSource(
   const expectedRequiredEvidence = requiredEvidenceClassesFor(source);
   const expectedAllowedResources = uniqueSorted(source.readsMemory);
   const expectedModelRequirements = operationModelRequirementsForAgent(source.id);
+  const expectedOrchestration = orchestrationContractFor(source);
   const expectedReturn = returnContractFor(source);
 
   if (passport.id !== source.id) errors.push(`${passport.id}:SOURCE_ID_MISMATCH:${source.id}`);
   if (passport.name !== source.name) errors.push(`${passport.id}:SOURCE_NAME_MISMATCH`);
   if (passport.purpose !== source.purpose) errors.push(`${passport.id}:SOURCE_PURPOSE_MISMATCH`);
-  if (passport.epistemicMode !== expectedEpistemicMode) {
-    errors.push(`${passport.id}:EPISTEMIC_MODE_MISMATCH:${passport.epistemicMode}:${expectedEpistemicMode}`);
-  }
-  if (passport.authority.ceiling !== expectedCeiling) {
-    errors.push(`${passport.id}:AUTHORITY_EXPANSION:${passport.authority.ceiling}:${expectedCeiling}`);
-  }
-  if (passport.authority.confirmationRequirement !== expectedConfirmation) {
-    errors.push(`${passport.id}:CONFIRMATION_REQUIREMENT_MISMATCH:${passport.authority.confirmationRequirement}:${expectedConfirmation}`);
-  }
-  if (!sameSortedStrings(passport.input.required, expectedRequiredInputs)) {
-    errors.push(`${passport.id}:INPUT_REQUIRED_CONTRACT_MISMATCH`);
-  }
-  if (!sameSortedStrings(passport.output.allowedEpistemicClasses, expectedOutput.allowedEpistemicClasses)) {
-    errors.push(`${passport.id}:OUTPUT_CONTRACT_MISMATCH`);
-  }
+  if (passport.epistemicMode !== expectedEpistemicMode) errors.push(`${passport.id}:EPISTEMIC_MODE_MISMATCH:${passport.epistemicMode}:${expectedEpistemicMode}`);
+  if (passport.authority.ceiling !== expectedCeiling) errors.push(`${passport.id}:AUTHORITY_EXPANSION:${passport.authority.ceiling}:${expectedCeiling}`);
+  if (passport.authority.confirmationRequirement !== expectedConfirmation) errors.push(`${passport.id}:CONFIRMATION_REQUIREMENT_MISMATCH:${passport.authority.confirmationRequirement}:${expectedConfirmation}`);
+  if (!sameSortedStrings(passport.input.required, expectedRequiredInputs)) errors.push(`${passport.id}:INPUT_REQUIRED_CONTRACT_MISMATCH`);
+  if (!sameSortedStrings(passport.output.allowedEpistemicClasses, expectedOutput.allowedEpistemicClasses)) errors.push(`${passport.id}:OUTPUT_CONTRACT_MISMATCH`);
   if (
     passport.output.schemaRef !== expectedOutput.schemaRef
     || passport.output.confidencePolicy !== expectedOutput.confidencePolicy
     || passport.output.missingPolicy !== expectedOutput.missingPolicy
     || passport.output.contradictionPolicy !== expectedOutput.contradictionPolicy
-  ) {
-    errors.push(`${passport.id}:OUTPUT_POLICY_CONTRACT_MISMATCH`);
-  }
-  if (!sameSortedStrings(passport.input.requiredEvidenceClasses, expectedRequiredEvidence)) {
-    errors.push(`${passport.id}:REQUIRED_EVIDENCE_CONTRACT_MISMATCH`);
-  }
-  if (!sameSortedStrings(passport.tools.allowedResources, expectedAllowedResources)) {
-    errors.push(`${passport.id}:ALLOWED_RESOURCES_CONTRACT_MISMATCH`);
-  }
-  if (!sameModelRequirements(passport.modelRequirements, expectedModelRequirements)) {
-    errors.push(`${passport.id}:MODEL_REQUIREMENTS_CONTRACT_MISMATCH`);
-  }
+  ) errors.push(`${passport.id}:OUTPUT_POLICY_CONTRACT_MISMATCH`);
+  if (!sameSortedStrings(passport.input.requiredEvidenceClasses, expectedRequiredEvidence)) errors.push(`${passport.id}:REQUIRED_EVIDENCE_CONTRACT_MISMATCH`);
+  if (!sameSortedStrings(passport.tools.allowedResources, expectedAllowedResources)) errors.push(`${passport.id}:ALLOWED_RESOURCES_CONTRACT_MISMATCH`);
+  if (!sameModelRequirements(passport.modelRequirements, expectedModelRequirements)) errors.push(`${passport.id}:MODEL_REQUIREMENTS_CONTRACT_MISMATCH`);
+  if (!sameOrchestration(passport.orchestration, expectedOrchestration)) errors.push(`${passport.id}:ORCHESTRATION_CONTRACT_MISMATCH`);
   if (
     passport.return.required !== expectedReturn.required
     || passport.return.condition !== expectedReturn.condition
     || passport.return.falsificationCondition !== expectedReturn.falsificationCondition
-  ) {
-    errors.push(`${passport.id}:RETURN_CONTRACT_MISMATCH`);
-  }
+  ) errors.push(`${passport.id}:RETURN_CONTRACT_MISMATCH`);
   if (passport.tools.allowedToolClasses.length > 0) errors.push(`${passport.id}:UNGRANTED_TOOL_AUTHORITY`);
-  if (passport.orchestration.mayRequestCapabilities) errors.push(`${passport.id}:ADAPTIVE_REQUEST_AUTHORITY_PREMATURE`);
 
   return errors.sort();
 }
@@ -359,9 +360,7 @@ export function validateCognitivePassportProjection(
   const passportIds = passports.map((passport) => passport.id);
   const sourceIds = sources.map((source) => source.id);
 
-  if (passportIds.length !== sourceIds.length) {
-    errors.push(`REGISTRY_COUNT_MISMATCH:${passportIds.length}:${sourceIds.length}`);
-  }
+  if (passportIds.length !== sourceIds.length) errors.push(`REGISTRY_COUNT_MISMATCH:${passportIds.length}:${sourceIds.length}`);
   for (const duplicate of duplicateValues(passportIds)) errors.push(`REGISTRY_DUPLICATE_ID:${duplicate}`);
 
   const passportSet = new Set(passportIds);

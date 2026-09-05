@@ -33,6 +33,7 @@ function compactExecutionMetadata(agentId: string, context: KernelContext) {
     'executionId',
     'executionContractVersion',
     'executionRequestSource',
+    'capabilityBroker',
     'actorId',
     'tenantId',
     'manualRootExecution',

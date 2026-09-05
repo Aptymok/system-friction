@@ -66,6 +66,9 @@ jobs:
       - name: Verify SFI cognitive passport registry
         run: node --import tsx --test src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts
 
+      - name: Verify governed adaptive capability and authority gates
+        run: node --import tsx --test src/lib/sfi/cognitive-runtime/capabilityBroker.test.ts
+
       - name: Verify AI governance and autonomous runtime
         run: npx tsx scripts/qa-sfi-ai-governance.ts
 

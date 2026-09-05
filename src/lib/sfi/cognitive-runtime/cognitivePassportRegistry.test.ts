@@ -45,10 +45,8 @@ const passportFor = (id: string) => byId.get(id) ?? null;
 
 test('SFI-COGNITIVE-PASSPORT-1.0 projects exactly the 21 historical runtime IDs', () => {
   assert.equal(SFI_COGNITIVE_PASSPORT_CONTRACT, 'SFI-COGNITIVE-PASSPORT-1.0');
-
   const sourceIds = SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.map((agent) => agent.id).sort();
   const passportIds = projected.map((passport) => passport.id).sort();
-
   assert.equal(sourceIds.length, 21);
   assert.deepEqual(sourceIds, HISTORICAL_IDS);
   assert.deepEqual(passportIds, HISTORICAL_IDS);
@@ -60,23 +58,30 @@ test('existing SFI-AGENT-PASSPORT owner absorbs the cognitive contract projectio
   const projectionPath = path.join(process.cwd(), 'src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.ts');
   const ownerSource = fs.readFileSync(ownerPath, 'utf8');
   const projectionSource = fs.readFileSync(projectionPath, 'utf8');
-
   assert.match(ownerSource, /cognitiveContract:\s*projectCognitivePassport\(contract\)/);
   assert.doesNotMatch(projectionSource, /SFI_COGNITIVE_PASSPORT_REGISTRY/);
   assert.doesNotMatch(projectionSource, /cognitivePassportFor\(/);
 });
 
-test('passport projection validates without creating a second authority surface', () => {
+test('passport projection enables bounded requests without minting execution authority', () => {
   assert.deepEqual(validateCognitivePassportProjection(projected, SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY), []);
-
   for (const passport of projected) {
     assert.deepEqual(validateCognitivePassport(passport), [], `${passport.id} passport invalid`);
     assert.equal(passport.tools.allowedToolClasses.length, 0, `${passport.id} minted tool authority`);
-    assert.equal(passport.orchestration.mayRequestCapabilities, false, `${passport.id} prematurely enabled adaptive requests`);
-    assert.equal(passport.orchestration.requestableCapabilityIds.length, 0);
-    assert.equal(passport.orchestration.requestableCapabilityClasses.length, 0);
-    assert.equal(passport.orchestration.maxDepth, 0);
-    assert.equal(passport.orchestration.maxChildren, 0);
+    assert.equal(passport.orchestration.mayRequestCapabilities, true);
+    assert.deepEqual(
+      passport.orchestration.requestableCapabilityIds,
+      HISTORICAL_IDS.filter((id) => id !== passport.id),
+      `${passport.id} request scope drift`,
+    );
+    assert.equal(passport.orchestration.requestableCapabilityIds.includes(passport.id), false);
+    assert.deepEqual(passport.orchestration.requestableCapabilityClasses, []);
+    assert.equal(passport.orchestration.maxDepth, 2);
+    assert.equal(passport.orchestration.maxChildren, 4);
+    assert.deepEqual(passport.orchestration.stopConditions, [
+      'DUPLICATE_REQUEST_HASH_TERMINATES',
+      'NO_NEW_INFORMATION_AND_NO_NEW_STATE',
+    ]);
     assert.ok(['READ', 'RECOMMEND'].includes(passport.authority.ceiling), `${passport.id} authority expanded`);
     assert.equal(passport.security.loggingRequired, true);
     assert.equal(passport.security.defaultTtlSeconds, 600);
@@ -109,10 +114,7 @@ test('epistemic outputs are constrained by each authoritative execution contract
   const evidenceHunter = passportFor('evidence_hunter');
   assert.ok(evidenceHunter);
   assert.equal(evidenceHunter.output.allowedEpistemicClasses.includes('OBSERVATION'), false);
-  assert.deepEqual(
-    evidenceHunter.output.allowedEpistemicClasses,
-    ['INFERENCE', 'NOT_EXECUTED', 'RECOMMENDATION'],
-  );
+  assert.deepEqual(evidenceHunter.output.allowedEpistemicClasses, ['INFERENCE', 'NOT_EXECUTED', 'RECOMMENDATION']);
 });
 
 test('reality calibration explicitly requires observed RETURN evidence', () => {
@@ -127,7 +129,6 @@ test('projected model requirements share one tier owner with the LLM execution c
   const field = passportFor('field_observer');
   const clientPath = path.join(process.cwd(), 'src/infrastructure/ai/agentLlmClient.ts');
   const clientSource = fs.readFileSync(clientPath, 'utf8');
-
   assert.ok(temporal);
   assert.ok(field);
   assert.deepEqual(temporal.modelRequirements, operationModelRequirementsForAgent('temporal_resolver'));
@@ -160,10 +161,8 @@ test('validator rejects removal of mandatory human confirmation', () => {
   const source = SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.find((agent) => agent.id === 'project_execution_manager');
   assert.ok(source);
   assert.equal(source.humanApprovalRequired, true);
-
   const passport = structuredClone(projectCognitivePassport(source)) as SfiCognitivePassport;
   passport.authority.confirmationRequirement = 'NONE';
-
   assert.deepEqual(validateCognitivePassportAgainstSource(passport, source), [
     'project_execution_manager:CONFIRMATION_REQUIREMENT_MISMATCH:NONE:HUMAN',
   ]);
@@ -172,11 +171,8 @@ test('validator rejects removal of mandatory human confirmation', () => {
 test('validator rejects epistemic mode drift from the canonical source layer', () => {
   const source = SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.find((agent) => agent.id === 'social_field_simulator');
   assert.ok(source);
-  assert.equal(source.layer, 'simulate');
-
   const passport = structuredClone(projectCognitivePassport(source)) as SfiCognitivePassport;
   passport.epistemicMode = 'OBSERVE';
-
   assert.deepEqual(validateCognitivePassportAgainstSource(passport, source), [
     'social_field_simulator:EPISTEMIC_MODE_MISMATCH:OBSERVE:SIMULATE',
   ]);
@@ -186,37 +182,26 @@ test('validator rejects weakening source-derived RETURN obligations', () => {
   for (const id of ['trajectory_agent', 'project_execution_manager']) {
     const source = SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.find((agent) => agent.id === id);
     assert.ok(source);
-
     const passport = structuredClone(projectCognitivePassport(source)) as SfiCognitivePassport;
     passport.return.required = false;
     passport.return.condition = null;
     passport.return.falsificationCondition = null;
-
-    assert.deepEqual(validateCognitivePassportAgainstSource(passport, source), [
-      `${id}:RETURN_CONTRACT_MISMATCH`,
-    ]);
+    assert.deepEqual(validateCognitivePassportAgainstSource(passport, source), [`${id}:RETURN_CONTRACT_MISMATCH`]);
   }
 
   const source = SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.find((agent) => agent.id === 'trajectory_agent');
   assert.ok(source);
   const conditionOnly = structuredClone(projectCognitivePassport(source)) as SfiCognitivePassport;
   conditionOnly.return.condition = null;
-  assert.deepEqual(validateCognitivePassportAgainstSource(conditionOnly, source), [
-    'trajectory_agent:RETURN_CONTRACT_MISMATCH',
-  ]);
+  assert.deepEqual(validateCognitivePassportAgainstSource(conditionOnly, source), ['trajectory_agent:RETURN_CONTRACT_MISMATCH']);
 });
 
 test('validator rejects passports that drop source-required inputs', () => {
   const source = SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.find((agent) => agent.id === 'field_observer');
   assert.ok(source);
-  assert.ok(source.sourceTables.length > 0);
-
   const passport = structuredClone(projectCognitivePassport(source)) as SfiCognitivePassport;
   passport.input.required = [];
-
-  assert.deepEqual(validateCognitivePassportAgainstSource(passport, source), [
-    'field_observer:INPUT_REQUIRED_CONTRACT_MISMATCH',
-  ]);
+  assert.deepEqual(validateCognitivePassportAgainstSource(passport, source), ['field_observer:INPUT_REQUIRED_CONTRACT_MISMATCH']);
 });
 
 test('validator rejects noncanonical accepted evidence classes', () => {
@@ -224,10 +209,7 @@ test('validator rejects noncanonical accepted evidence classes', () => {
   assert.ok(source);
   const passport = structuredClone(source) as SfiCognitivePassport;
   passport.input.acceptedEvidenceClasses = ['MODEL_OUTPUT'];
-
-  assert.deepEqual(validateCognitivePassport(passport), [
-    'field_observer:ACCEPTED_EVIDENCE_CLASSES_CONTRACT_MISMATCH',
-  ]);
+  assert.deepEqual(validateCognitivePassport(passport), ['field_observer:ACCEPTED_EVIDENCE_CLASSES_CONTRACT_MISMATCH']);
 });
 
 test('source validation rejects identity and purpose drift', () => {
@@ -236,7 +218,6 @@ test('source validation rejects identity and purpose drift', () => {
   const passport = structuredClone(projectCognitivePassport(source)) as SfiCognitivePassport;
   passport.name = 'Different Agent';
   passport.purpose = 'Different mandate';
-
   assert.deepEqual(validateCognitivePassportAgainstSource(passport, source), [
     'field_observer:SOURCE_NAME_MISMATCH',
     'field_observer:SOURCE_PURPOSE_MISMATCH',
@@ -248,36 +229,28 @@ test('validator rejects unsupported cognitive passport versions', () => {
   assert.ok(source);
   const passport = structuredClone(source) as SfiCognitivePassport;
   passport.version = '999';
-
-  assert.deepEqual(validateCognitivePassport(passport), [
-    'field_observer:VERSION_UNSUPPORTED:999',
-  ]);
+  assert.deepEqual(validateCognitivePassport(passport), ['field_observer:VERSION_UNSUPPORTED:999']);
 });
 
 test('source validation rejects every output policy drift from the canonical projection', () => {
   const source = SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.find((agent) => agent.id === 'field_observer');
   assert.ok(source);
-
   const mutations: Array<(passport: SfiCognitivePassport) => void> = [
     (passport) => { passport.output.schemaRef = 'schema:drift'; },
     (passport) => { passport.output.confidencePolicy = 'arbitrary-confidence'; },
     (passport) => { passport.output.missingPolicy = 'MISSING_IS_ZERO'; },
     (passport) => { passport.output.contradictionPolicy = 'DROP_CONTRADICTIONS'; },
   ];
-
   for (const mutate of mutations) {
     const passport = structuredClone(projectCognitivePassport(source)) as SfiCognitivePassport;
     mutate(passport);
-    assert.deepEqual(validateCognitivePassportAgainstSource(passport, source), [
-      'field_observer:OUTPUT_POLICY_CONTRACT_MISMATCH',
-    ]);
+    assert.deepEqual(validateCognitivePassportAgainstSource(passport, source), ['field_observer:OUTPUT_POLICY_CONTRACT_MISMATCH']);
   }
 });
 
 test('source validation rejects drift in every canonical model requirement field', () => {
   const source = SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.find((agent) => agent.id === 'field_observer');
   assert.ok(source);
-
   const mutations: Array<(passport: SfiCognitivePassport) => void> = [
     (passport) => { passport.modelRequirements.reasoning = 'FRONTIER'; },
     (passport) => { passport.modelRequirements.structuredOutput = false; },
@@ -292,13 +265,10 @@ test('source validation rejects drift in every canonical model requirement field
     (passport) => { passport.modelRequirements.providerAllowlist = ['unassigned-provider']; },
     (passport) => { passport.modelRequirements.providerDenylist = ['unassigned-provider']; },
   ];
-
   for (const mutate of mutations) {
     const passport = structuredClone(projectCognitivePassport(source)) as SfiCognitivePassport;
     mutate(passport);
-    assert.deepEqual(validateCognitivePassportAgainstSource(passport, source), [
-      'field_observer:MODEL_REQUIREMENTS_CONTRACT_MISMATCH',
-    ]);
+    assert.deepEqual(validateCognitivePassportAgainstSource(passport, source), ['field_observer:MODEL_REQUIREMENTS_CONTRACT_MISMATCH']);
   }
 });
 
@@ -311,17 +281,10 @@ test('validator requires the exact canonical source-policy set', () => {
     'MODEL_OUTPUT_NEVER_OBSERVATION_BY_INHERITANCE',
     'MISSING_REMAINS_MISSING',
   ]);
-
-  for (const policies of [
-    [],
-    ['ARBITRARY_POLICY'],
-    canonical.slice(0, 2),
-  ]) {
+  for (const policies of [[], ['ARBITRARY_POLICY'], canonical.slice(0, 2)]) {
     const passport = structuredClone(projectCognitivePassport(source)) as SfiCognitivePassport;
     passport.input.sourcePolicies = policies;
-    assert.deepEqual(validateCognitivePassportAgainstSource(passport, source), [
-      'field_observer:SOURCE_POLICIES_CONTRACT_MISMATCH',
-    ]);
+    assert.deepEqual(validateCognitivePassportAgainstSource(passport, source), ['field_observer:SOURCE_POLICIES_CONTRACT_MISMATCH']);
   }
 });
 
@@ -330,30 +293,45 @@ test('source validation enforces complete allowed and forbidden resource contrac
   assert.ok(source);
   const canonical = projectCognitivePassport(source);
   assert.ok(canonical.tools.allowedResources.length > 0);
-  assert.deepEqual(canonical.tools.forbiddenResources, [
-    'service_role',
-    'raw_secrets',
-    'unscoped_external_execution',
-  ]);
+  assert.deepEqual(canonical.tools.forbiddenResources, ['service_role', 'raw_secrets', 'unscoped_external_execution']);
 
   const droppedAllowed = structuredClone(canonical) as SfiCognitivePassport;
   droppedAllowed.tools.allowedResources = [];
-  assert.deepEqual(validateCognitivePassportAgainstSource(droppedAllowed, source), [
-    'field_observer:ALLOWED_RESOURCES_CONTRACT_MISMATCH',
-  ]);
+  assert.deepEqual(validateCognitivePassportAgainstSource(droppedAllowed, source), ['field_observer:ALLOWED_RESOURCES_CONTRACT_MISMATCH']);
 
   const addedAllowed = structuredClone(canonical) as SfiCognitivePassport;
   addedAllowed.tools.allowedResources.push('unassigned_resource');
-  assert.deepEqual(validateCognitivePassportAgainstSource(addedAllowed, source), [
-    'field_observer:ALLOWED_RESOURCES_CONTRACT_MISMATCH',
-  ]);
+  assert.deepEqual(validateCognitivePassportAgainstSource(addedAllowed, source), ['field_observer:ALLOWED_RESOURCES_CONTRACT_MISMATCH']);
 
   for (const forbidden of canonical.tools.forbiddenResources) {
     const droppedForbidden = structuredClone(canonical) as SfiCognitivePassport;
     droppedForbidden.tools.forbiddenResources = canonical.tools.forbiddenResources.filter((value) => value !== forbidden);
-    assert.deepEqual(validateCognitivePassportAgainstSource(droppedForbidden, source), [
-      'field_observer:FORBIDDEN_RESOURCES_CONTRACT_MISMATCH',
-    ]);
+    assert.deepEqual(validateCognitivePassportAgainstSource(droppedForbidden, source), ['field_observer:FORBIDDEN_RESOURCES_CONTRACT_MISMATCH']);
+  }
+});
+
+test('source validation locks the complete bounded orchestration projection', () => {
+  const source = SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.find((agent) => agent.id === 'evidence_hunter');
+  assert.ok(source);
+  const canonical = projectCognitivePassport(source);
+  assert.equal(canonical.orchestration.mayRequestCapabilities, true);
+  assert.equal(canonical.orchestration.requestableCapabilityIds.includes('evidence_hunter'), false);
+
+  const mutations: Array<(passport: SfiCognitivePassport) => void> = [
+    (passport) => { passport.orchestration.mayRequestCapabilities = false; },
+    (passport) => { passport.orchestration.requestableCapabilityIds = []; },
+    (passport) => { passport.orchestration.requestableCapabilityIds.push(passport.id); },
+    (passport) => { passport.orchestration.requestableCapabilityClasses = ['arbitrary']; },
+    (passport) => { passport.orchestration.maxDepth = 99; },
+    (passport) => { passport.orchestration.maxChildren = 99; },
+    (passport) => { passport.orchestration.stopConditions = []; },
+  ];
+
+  for (const mutate of mutations) {
+    const passport = structuredClone(canonical) as SfiCognitivePassport;
+    mutate(passport);
+    const errors = validateCognitivePassportAgainstSource(passport, source);
+    assert.ok(errors.includes('evidence_hunter:ORCHESTRATION_CONTRACT_MISMATCH'));
   }
 });
 
@@ -364,8 +342,11 @@ test('validator emits deterministic errors for malformed passports', () => {
   malformed.security.defaultTtlSeconds = 901;
   malformed.security.loggingRequired = false;
   malformed.input.sourcePolicies.push(malformed.input.sourcePolicies[0]);
+  malformed.orchestration.mayRequestCapabilities = false;
   malformed.orchestration.maxDepth = 1;
+  malformed.orchestration.maxChildren = 0;
   malformed.orchestration.requestableCapabilityIds = ['risk_agent'];
+  malformed.orchestration.requestableCapabilityClasses = [];
 
   assert.deepEqual(validateCognitivePassport(malformed), [
     'field_observer:DEFAULT_TTL_OUT_OF_RANGE',
