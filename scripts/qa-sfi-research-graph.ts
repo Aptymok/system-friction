@@ -50,7 +50,7 @@ assert.equal(SFI_RESEARCH_CANONICAL_LINEAGE_CONTRACT, 'SFI-RESEARCH-CANONICAL-LI
 assert.deepEqual(SFI_RESEARCH_PROJECTABLE_OBJECT_TYPES, [
   'METHOD', 'INSTRUMENT', 'DATASET', 'REPORT', 'PAPER', 'SOFTWARE', 'RELEASE', 'RETURN', 'PUBLICATION',
 ]);
-assert.deepEqual(SFI_RESEARCH_RELATIONSHIP_TYPES, ['REFERENCES', 'DERIVED_FROM', 'IMPLEMENTS']);
+assert.deepEqual(SFI_RESEARCH_RELATIONSHIP_TYPES, ['REFERENCES', 'IMPLEMENTS']);
 assert.equal(SFI_RESEARCH_PROJECTABLE_OBJECT_TYPES.includes('CONCEPT' as never), false, 'concept_not_yet_research_projectable');
 assert.equal(SFI_RESEARCH_PROJECTABLE_OBJECT_TYPES.includes('OBSERVATION' as never), false, 'observation_not_yet_research_projectable');
 
@@ -84,7 +84,7 @@ for (const forbidden of [
   'ZENODO_PUBLISH',
 ]) assert.equal(owner.includes(forbidden), false, `research_projection_must_remain_derived:${forbidden}`);
 
-assert.equal(walk('supabase/migrations').some((file) => /research.graph|research_graph/i.test(file)), false, 'research_graph_migration_not_allowed_in_r2b');
+assert.equal(walk('supabase/migrations').some((file) => /research[-_]?graph/i.test(file)), false, 'research_graph_migration_not_allowed_in_r2b');
 
 // Canonical publication/publicability remains fail-closed and external representation remains downstream.
 for (const token of [
@@ -94,6 +94,12 @@ for (const token of [
   'PUBLIC_RIGHTS_NOT_ELIGIBLE',
   'PUBLIC_LINEAGE_REQUIRED',
 ]) assert.ok(canonicalOwner.includes(token), `canonical_publication_boundary_missing:${token}`);
+
+// Relation semantics stay narrower than generic canonical association fields.
+assert.ok(owner.includes("for (const ref of record.sourceRefs) add('REFERENCES', 'sourceRefs', ref)"), 'source_reference_relation_missing');
+assert.ok(owner.includes("if (record.objectType === 'SOFTWARE')"), 'implements_relation_must_be_software_scoped');
+assert.equal(owner.includes("add('REFERENCES', 'relatedObjects'"), false, 'generic_related_objects_must_not_be_promoted_to_references');
+assert.equal(owner.includes("add('DERIVED_FROM'"), false, 'source_reference_must_not_be_promoted_to_derivation');
 
 // Metadata/citation owner remains Slice A CFF + its fail-closed QA. R2-B does not mutate or enrich it.
 let citation: Record<string, unknown>;
@@ -114,7 +120,8 @@ assert.ok(metadataQa.includes("!exists('.zenodo.json')"), 'zenodo_override_fail_
 for (const token of [
   'private, review-required and publication-gate failures never project',
   'canonical ID, URL, type, version, publication, epistemic state, lineage, rights, limitations and MISSING survive projection',
-  'typed relationships derive deterministically only from canonical fields and projected canonical targets',
+  'typed relationships are emitted only when canonical fields prove the narrower semantics',
+  'generic relatedObjects and non-software method associations remain lineage without typed semantic promotion',
   'invalid or fabricated relationships are rejected by projection validation',
   'citation export is derived from the research node and never invents DOI, ORCID, ROR, affiliation or dates',
 ]) assert.ok(tests.includes(token), `research_projection_regression_missing:${token}`);
