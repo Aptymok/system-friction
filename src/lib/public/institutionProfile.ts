@@ -5,6 +5,8 @@ export const SFI_PUBLIC_PROFILE = {
     name: 'System Friction Institute',
     abbreviation: 'SFI',
     canonicalUrl: 'https://systemfriction.org',
+    entityId: 'https://systemfriction.org/#sfi',
+    verifiedSameAs: [] as string[],
     type: 'independent structural-field research institute',
     primaryDefinition: 'System Friction Institute makes visible the friction that systems learn to normalize.',
     operationalDefinition: 'An evidence-governed instrument for observing a signal inside a changing field, proposing a minimal intervention and learning from the documented difference between prediction and outcome.',
