@@ -207,7 +207,7 @@ test('equivalent request hashing is order-insensitive for set-like fields and du
   assert.ok(duplicate.reasons.includes('DUPLICATE_ADMITTED_REQUEST_WITHOUT_EXECUTION_RECEIPT'));
 });
 
-test('a durable execution receipt makes an equivalent request ALREADY_SATISFIED', () => {
+test('the existing SFI_AGENT_EXECUTED receipt makes an equivalent request ALREADY_SATISFIED', () => {
   const first = request();
   const equivalent = request({ requestId: 'request-next' });
   const hash = capabilityRequestHash(first);
@@ -216,8 +216,18 @@ test('a durable execution receipt makes an equivalent request ALREADY_SATISFIED'
     { eventId: 'admit-event', eventName: 'SFI_CAPABILITY_ADMITTED', payload: { requestHash: hash, disposition: 'ADMIT' } },
     {
       eventId: 'receipt-event',
-      eventName: 'SFI_CAPABILITY_EXECUTION_RECEIPT',
-      payload: { requestHash: hash, executed: true, executionStatus: 'EXECUTED' },
+      eventName: 'SFI_AGENT_EXECUTED',
+      payload: {
+        metadata: {
+          refs: {
+            capabilityBroker: {
+              requestId: first.requestId,
+              requestHash: hash,
+              disposition: 'ADMIT',
+            },
+          },
+        },
+      },
     },
   ];
   const duplicate = evaluate(equivalent, { history });
@@ -251,6 +261,9 @@ test('runtime vertical persists request/disposition and calls the existing execu
   assert.equal(appended[1]?.eventName, 'SFI_CAPABILITY_ADMITTED');
   assert.equal((appended[0]?.payload as Record<string, unknown>).executionAllowed, false);
   assert.equal((appended[1]?.payload as Record<string, unknown>).executionAllowed, true);
+  const brokerRefs = runtime.context.metadata.capabilityBroker as Record<string, unknown>;
+  assert.equal(brokerRefs.requestHash, runtime.decision.requestHash);
+  assert.equal(brokerRefs.dispositionEventId, 'event-2');
   assert.deepEqual(runtime.executionReceipt, {
     eventName: 'SFI_AGENT_EXECUTED',
     executionId: 'request-1',
