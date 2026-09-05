@@ -6,8 +6,9 @@ import type { ReactNode } from 'react';
 import { AuthProvider } from '@/components/auth/AuthProvider';
 import { SfiConsentBanner } from '@/components/analytics/SfiConsentBanner';
 import { SfiLanguageProvider, SfiUiText } from '@/components/i18n/SfiLanguageProvider';
+import { SFI_PUBLIC_PROFILE } from '@/lib/public/institutionProfile';
 
-const BASE = 'https://systemfriction.org';
+const BASE = SFI_PUBLIC_PROFILE.institution.canonicalUrl;
 const GA_ID = 'G-P8G69HMYLM';
 
 export const viewport: Viewport = {
@@ -65,13 +66,15 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
+  const verifiedSameAs = SFI_PUBLIC_PROFILE.institution.verifiedSameAs;
   const structuredData = {
     '@context': 'https://schema.org',
     '@type': 'ResearchOrganization',
-    name: 'System Friction Institute',
+    '@id': SFI_PUBLIC_PROFILE.institution.entityId,
+    name: SFI_PUBLIC_PROFILE.institution.name,
     url: BASE,
     description: 'Research and observability environment for complex sociotechnical systems, evidence, falsification, governance and governed AI interaction.',
-    sameAs: ['https://github.com/Aptymok/system-friction'],
+    ...(verifiedSameAs.length ? { sameAs: verifiedSameAs } : {}),
     privacyPolicy: `${BASE}/privacy`,
   };
 
