@@ -136,7 +136,7 @@ test('SFI-INSTITUTIONAL-AUTHORITY-INTEGRITY-1.0 / Domain Director cannot inherit
   const appointment = domainDirectorAppointment();
   assert.equal(request(appointment).authorized, true);
   assert.deepEqual(
-    request(appointment, { requestedDomain: 'institution', requestedScope: 'studio:read' }),
+    request(appointment, { requestedDomain: 'institution', requestedScope: 'institution:operate', targetSurface: undefined }),
     { authorized: false, reason: 'DOMAIN_OUTSIDE_MANDATE' },
   );
 });
@@ -145,16 +145,121 @@ test('SFI-INSTITUTIONAL-AUTHORITY-INTEGRITY-1.0 / Institutional Director cannot 
   const appointment = institutionalDirectorAppointment();
   for (const surface of ['ROOT', 'ROOT_OBSERVATION', 'SOVEREIGN_ACTIONS', 'PERSONAL_CROSS_USER'] as const) {
     assert.equal(roleForbidsSurface('institutional_director', surface), true);
+    const scope = surface === 'ROOT_OBSERVATION'
+      ? 'root:observe'
+      : surface === 'ROOT'
+        ? 'root:execute'
+        : surface === 'SOVEREIGN_ACTIONS'
+          ? 'sovereign:act'
+          : 'personal:cross-user';
     assert.deepEqual(
-      request(appointment, { targetSurface: surface }),
+      request(appointment, { requestedScope: scope, targetSurface: surface }),
       { authorized: false, reason: 'PROTECTED_SURFACE_FORBIDDEN' },
     );
   }
   assert.equal(roleForbidsSurface('institutional_director', 'CANON'), true);
   assert.deepEqual(
-    request(appointment, { requestedAuthority: 'CANON' }),
-    { authorized: false, reason: 'AUTHORITY_EXCEEDS_ROLE_CEILING' },
+    request(appointment, { requestedScope: 'canon:promote', targetSurface: 'CANON' }),
+    { authorized: false, reason: 'PROTECTED_SURFACE_FORBIDDEN' },
   );
+});
+
+test('SFI-INSTITUTIONAL-AUTHORITY-INTEGRITY-1.0 / protected scope classification cannot be hidden by omitted or contradictory targetSurface', () => {
+  const appointment = institutionalDirectorAppointment();
+
+  assert.deepEqual(
+    request(appointment, { requestedScope: 'root:observe', targetSurface: undefined }),
+    { authorized: false, reason: 'PROTECTED_SURFACE_FORBIDDEN' },
+  );
+  assert.deepEqual(
+    request(appointment, { requestedScope: 'canon:promote', targetSurface: undefined }),
+    { authorized: false, reason: 'PROTECTED_SURFACE_FORBIDDEN' },
+  );
+  assert.deepEqual(
+    request(appointment, { requestedScope: 'personal:cross-user', targetSurface: undefined }),
+    { authorized: false, reason: 'PROTECTED_SURFACE_FORBIDDEN' },
+  );
+  assert.deepEqual(
+    request(appointment, { requestedScope: 'root:observe', targetSurface: 'INSTITUTIONAL' }),
+    { authorized: false, reason: 'SURFACE_SCOPE_MISMATCH' },
+  );
+  assert.deepEqual(
+    request(appointment, { requestedScope: 'root:observe', targetSurface: 'ROOT_OBSERVATION' }),
+    { authorized: false, reason: 'PROTECTED_SURFACE_FORBIDDEN' },
+  );
+});
+
+test('SFI-INSTITUTIONAL-AUTHORITY-INTEGRITY-1.0 / Domain Director cannot bypass protected or account-admin surfaces', () => {
+  const appointment = domainDirectorAppointment();
+
+  assert.deepEqual(
+    request(appointment, { requestedScope: 'accounts:subordinate-admin', targetSurface: undefined }),
+    { authorized: false, reason: 'ACCOUNT_ADMINISTRATION_FORBIDDEN' },
+  );
+  assert.deepEqual(
+    request(appointment, { requestedScope: 'root:observe', targetSurface: undefined }),
+    { authorized: false, reason: 'PROTECTED_SURFACE_FORBIDDEN' },
+  );
+  assert.deepEqual(
+    request(appointment, { requestedScope: 'personal:cross-user', targetSurface: undefined }),
+    { authorized: false, reason: 'PROTECTED_SURFACE_FORBIDDEN' },
+  );
+});
+
+test('SFI-INSTITUTIONAL-AUTHORITY-INTEGRITY-1.0 / account administration ceiling is enforced and dangerous account scopes fail closed', () => {
+  const institutional = institutionalDirectorAppointment();
+  assert.deepEqual(
+    request(institutional, { requestedScope: 'accounts:subordinate-admin', targetSurface: undefined }),
+    {
+      authorized: true,
+      roleId: 'institutional_director',
+      appointmentId: institutional.appointmentId,
+      mandateId: institutional.mandate.mandateId,
+      authorityCeiling: institutional.mandate.authorityCeiling,
+    },
+  );
+
+  for (const requestedScope of [
+    'accounts:create-founder',
+    'accounts:modify-founder',
+    'accounts:transfer-root',
+    'accounts:constitutional-succession',
+    'accounts:grant-canon',
+  ]) {
+    assert.deepEqual(
+      request(institutional, { requestedScope, targetSurface: undefined }),
+      { authorized: false, reason: 'SURFACE_CLASSIFICATION_FAILED' },
+    );
+  }
+});
+
+test('SFI-INSTITUTIONAL-AUTHORITY-INTEGRITY-1.0 / unknown scope never falls back to INSTITUTIONAL', () => {
+  assert.deepEqual(
+    request(institutionalDirectorAppointment(), { requestedScope: 'unknown:operation', targetSurface: undefined }),
+    { authorized: false, reason: 'SURFACE_CLASSIFICATION_FAILED' },
+  );
+});
+
+test('SFI-INSTITUTIONAL-AUTHORITY-INTEGRITY-1.0 / positive Institutional Director control remains authorized', () => {
+  const appointment = institutionalDirectorAppointment();
+  assert.deepEqual(request(appointment, { targetSurface: undefined }), {
+    authorized: true,
+    roleId: 'institutional_director',
+    appointmentId: appointment.appointmentId,
+    mandateId: appointment.mandate.mandateId,
+    authorityCeiling: appointment.mandate.authorityCeiling,
+  });
+});
+
+test('SFI-INSTITUTIONAL-AUTHORITY-INTEGRITY-1.0 / positive Domain Director control remains authorized', () => {
+  const appointment = domainDirectorAppointment();
+  assert.deepEqual(request(appointment, { targetSurface: undefined }), {
+    authorized: true,
+    roleId: 'domain_director',
+    appointmentId: appointment.appointmentId,
+    mandateId: appointment.mandate.mandateId,
+    authorityCeiling: appointment.mandate.authorityCeiling,
+  });
 });
 
 test('SFI-INSTITUTIONAL-AUTHORITY-INTEGRITY-1.0 / role, account, and authentication facts cannot create appointment', () => {
