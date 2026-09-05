@@ -275,7 +275,7 @@ This final exact-head record replaces the earlier active FAIL verdicts tied to `
 
 **PRE-MERGE PASS != DEPLOYED != OBSERVED_IN_PRODUCTION**
 
-PR #369 has not been merged or deployed. Issue #366 must not be closed as production-observed until the exact merge SHA is deployed and receives bounded production RETURN.
+PR #369 has not been merged or deployed at this pre-merge checkpoint. Issue #366 must not be closed as production-observed until the exact merge SHA is deployed and receives bounded production RETURN.
 
 ### 18.1 Exact-head CI and review state
 
@@ -294,7 +294,7 @@ External preview status is mixed: Vercel reports success while two Netlify deplo
 
 ### 18.2 False-zero assurance — PASS
 
-Independent exact-head assurance confirms the frozen `UNAVAILABLE != ZERO` invariant across the co-rendered public Observatory surface:
+Independent exact-head assurance confirms the frozen `UNAVAILABLE != ZERO` invariant across the co-rendered public Observatory surface in deterministic pre-merge QA:
 
 - `LOADING`, `DEGRADED`, `UNAVAILABLE`, and `ERROR` do not project numeric zero;
 - `AVAILABLE` with an authoritative actual zero may project numeric `0`;
@@ -302,11 +302,9 @@ Independent exact-head assurance confirms the frozen `UNAVAILABLE != ZERO` invar
 - hypothesis absence is asserted only when authoritative world availability is `AVAILABLE`;
 - stale world data may be cleared on non-available reads without converting that state into a false-zero or false-absence claim.
 
-The canonical temporal-surface regression gate covers both sides of the invariant rather than treating zero as universally invalid.
-
 ### 18.3 Read-plane assurance — PASS
 
-The exact reviewed implementation preserves the bounded read-plane topology:
+The exact reviewed implementation preserves the bounded read-plane topology in deterministic pre-merge QA:
 
 ```text
 ONE INTERACTIVE NEED
@@ -326,24 +324,20 @@ Observed/locked topology for the Observatory public read cycle:
 - zero equivalent duplicate reads introduced by the correction;
 - zero N+1 introduced by the correction.
 
-No endpoint, availability probe, persistence reader, or alternate public read owner was added.
-
 ### 18.4 Timeout / poll assurance — PASS
 
-The earlier unbounded-serialization defect is closed on the exact reviewed HEAD:
+The earlier unbounded-serialization defect is closed in deterministic pre-merge QA on the exact reviewed HEAD:
 
 - the existing poll cycle is serialized with the single `inFlight` guard;
 - concurrent refresh generations cannot race and restore stale `AVAILABLE` state;
 - the existing transport path has one 15-second bounded timeout;
-- `15s < 20s` refresh cadence, so a stalled read is forced into the existing non-available/error path before a later scheduled cycle;
+- `15s < 20s` refresh cadence;
 - `finally` can release the serialized generation after timeout/error;
 - no retry loop, second timer, abort loop, or parallel polling owner was introduced.
 
-This satisfies bounded recovery without retry amplification.
-
 ### 18.5 ObservatoryInterpretiveFlow assurance — PASS
 
-`ObservatoryInterpretiveFlow` no longer owns a transport lifecycle. On the exact reviewed HEAD it:
+On the exact reviewed source HEAD, `ObservatoryInterpretiveFlow`:
 
 - has zero world fetch owner;
 - has zero polling/timer owner;
@@ -351,8 +345,6 @@ This satisfies bounded recovery without retry amplification.
 - consumes the same canonical `availability.world` classification;
 - uses availability-aware metric projection so non-AVAILABLE states do not become numeric zero;
 - cannot emit the governed-hypothesis absence claim outside authoritative `AVAILABLE`.
-
-The interpretive flow therefore does not create a second reader, second poller, false-zero surface, or false-absence surface.
 
 ### 18.6 Contract / authority / persistence review
 
@@ -365,42 +357,76 @@ For this #366 slice:
 - RLS/secret changes: `NONE`;
 - production mutation by WS-08: `NONE`.
 
-Rollback remains a code revert with no data compensation.
+### 18.7 Pre-merge recommendation
 
-### 18.7 Current production state
+**RECOMMENDATION:** integrate PR #369 at exact HEAD `c2a0614568bd428da9374fe7f1eda0d572e9f8c6`, subject to SFI-00's integration sequencing and exact-head guard.
 
-Production does not yet contain PR #369. The prior functional deployment remains a pre-#369 baseline and historically reproduced #366 false-zero behavior during non-authoritative hydration/session state.
+## 19. Post-merge / post-deploy production assurance — 2026-09-04 · #366
 
-Therefore the current production disposition remains:
+**Source HEAD integrated:** `c2a0614568bd428da9374fe7f1eda0d572e9f8c6`  
+**Exact merge SHA / main:** `5ee9005d566a9f88d89b36976712294a73fbd833`  
+**Production workflow:** `SFI Vercel Prebuilt Production`  
+**Exact deployment run:** `33944928325`  
+**Workflow head SHA:** `5ee9005d566a9f88d89b36976712294a73fbd833`  
+**Deployment conclusion:** `SUCCESS`  
+**Exact production deployment:** `https://system-friction-d9c5hxi2f-systemfrictioninstitute.vercel.app`  
+**Canonical alias:** `https://www.systemfriction.org`
 
-- PR #369: `PRE-MERGE ASSURANCE PASS`;
-- merged state: `NOT MERGED`;
-- #369 production deployment: `NONE`;
-- #369 production observation: `NOT OBSERVED`;
-- issue #366: do not close as production-observed.
+The deployment identity chain is verified: the production workflow checked out `5ee9005d566a9f88d89b36976712294a73fbd833`, built the production artifact successfully, deployed the prebuilt output, emitted the exact production URL above, aliased it to `https://www.systemfriction.org`, and reached `Ready`.
 
-No pre-merge evidence is promoted to production RETURN.
+### 19.1 Public smoke observation state
 
-### 18.8 Formal recommendation to SFI-00
+**PRODUCTION RETURN: NOT_OBSERVED**  
+**#366 PRODUCTION ASSURANCE: NOT_OBSERVED**  
+**Release state:** `DEPLOYED`, not `OBSERVED_IN_PRODUCTION`.
 
-**RECOMMENDATION: integrate PR #369 at exact HEAD `c2a0614568bd428da9374fe7f1eda0d572e9f8c6`, subject to SFI-00's integration sequencing and exact-head guard.**
+A fresh controlled public smoke could not be completed with the available execution surfaces. This is a tooling/access limitation, not evidence of product success or failure:
 
-After merge, SFI-00 / WS-08 must execute the release chain without collapsing status stages:
+- the available public web fetch path did not return a fresh live canonical `/observatory` response;
+- search-indexed copies were crawled before this deployment and were explicitly excluded as stale evidence;
+- the container runtime could not resolve the public site for a direct HTTP smoke;
+- the connected Vercel read/fetch/project surfaces returned authorization/access failures for this deployment, so fresh runtime request logs could not be retrieved;
+- no browser automation runtime capable of observing initial DOM/hydration and subsequent client state was available.
 
-```text
-EXACT MERGE SHA
-→ EXACT PRODUCTION DEPLOYMENT
-→ BOUNDED PUBLIC SMOKE
-→ NO FALSE ZERO
-→ PRODUCTION RETURN
-```
+No forced failure was manufactured.
 
-The bounded public smoke must prove both:
+### 19.2 Evidence still missing for production RETURN
 
-- non-authoritative/loading/degraded/unavailable/error states remain non-numeric; and
-- an authoritative successful zero-valued state still renders `0`.
+The following production evidence remains required:
 
-Only after exact production deployment and observed RETURN may #366 be considered eligible for production-observed closure.
+1. fresh current SSR / initial hydration output for `https://www.systemfriction.org/observatory`;
+2. observed initial `LOADING` behavior and transition to the naturally occurring authoritative state;
+3. fresh current responses from `/api/observatory/world`, `/api/observatory/state`, and `/api/observatory/timeline`;
+4. confirmation that current non-authoritative states do not expose numeric false-zero counts;
+5. confirmation that an actual authoritative zero, if present naturally under `AVAILABLE`, renders `0`;
+6. confirmation that contract-incomplete HTTP 200 is not admitted as `AVAILABLE` in a naturally observed production response if such a state occurs; deterministic QA remains the negative-state evidence and no failure is to be induced;
+7. co-rendered `ObservatoryInterpretiveFlow` behavior during the same live session, including no false-zero and no false hypothesis-absence outside `AVAILABLE`;
+8. attributable request counts across initial load and a bounded polling window sufficient to assess duplicate fetch/poll behavior;
+9. attributable 5xx/timeout/retry evidence during that bounded smoke, or runtime logs sufficient to explain any such event.
+
+### 19.3 Current assurance boundaries
+
+Deterministic pre-merge assurance remains `PASS` for the source contract and topology, but it is not promoted into production RETURN.
+
+Accordingly:
+
+- `/observatory` production smoke: `NOT_OBSERVED`;
+- `world` API production smoke: `NOT_OBSERVED`;
+- `state` API production smoke: `NOT_OBSERVED`;
+- `timeline` API production smoke: `NOT_OBSERVED`;
+- false-zero in production: `NOT_OBSERVED`;
+- read-plane duplication/retry behavior in production: `NOT_OBSERVED`;
+- attributable 5xx/timeout/retry burst: `NOT_OBSERVED`; absence cannot be inferred from unavailable runtime evidence.
+
+Issue #366 was correctly reopened after merge and must remain open until a real live bounded production smoke yields `PRODUCTION RETURN: PASS`.
+
+### 19.4 Recommendation to SFI-00
+
+**KEEP #366 OPEN.** The merge and deployment stages are complete and verified; only observed production RETURN remains outstanding.
+
+Next safe action is to provide/obtain one execution surface capable of a fresh live canonical browser/HTTP smoke (or working Vercel runtime-read access), then rerun only this bounded WS-08 post-deploy assurance. If that live observation proves the frozen invariant and no attributable read-plane/runtime regression, WS-08 may persist `PRODUCTION RETURN: PASS` and return the close recommendation to SFI-00.
+
+No product change, merge, authority change, Slice B action, or issue closure is authorized by this record.
 
 ---
 
@@ -408,6 +434,6 @@ Only after exact production deployment and observed RETURN may #366 be considere
 
 You are **SFI-08 · ASSURANCE + RELEASE**.
 
-Continue only from fresh repository and release state. The current durable #366 pre-merge assurance record reviews PR #369 at exact HEAD `c2a0614568bd428da9374fe7f1eda0d572e9f8c6` as `PRE-MERGE ASSURANCE PASS`.
+Continue only from fresh repository and release state. PR #369 source HEAD `c2a0614568bd428da9374fe7f1eda0d572e9f8c6` is merged at `5ee9005d566a9f88d89b36976712294a73fbd833` and exact production deployment run `33944928325` succeeded. Durable status is `DEPLOYED / PRODUCTION RETURN NOT_OBSERVED` because a fresh canonical live smoke was not available to the assurance execution surface.
 
-Do not reuse this verdict if #369 moves. Do not merge from WS-08. After SFI-00 integrates #369, record the exact merge SHA and exact production deployment before any production claim. Then perform bounded public smoke for both `UNAVAILABLE != ZERO` and `AVAILABLE + real zero = 0`, inspect attributable runtime/read-plane evidence, and record production RETURN without collapsing `MERGED`, `DEPLOYED`, and `OBSERVED_IN_PRODUCTION`.
+Do not infer PASS from deployment success or stale indexed content. Do not force error states. Obtain a fresh bounded canonical `/observatory` + three API smoke and attributable request/runtime evidence. Only then may production RETURN change to PASS or FAIL. WS-08 does not merge or close #366.
