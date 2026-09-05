@@ -10,8 +10,17 @@ import {
   type MethodLabExperimentRun,
 } from './experimentContract';
 
+function canonicalize(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonicalize);
+  if (value && typeof value === 'object') {
+    const row = value as Record<string, unknown>;
+    return Object.fromEntries(Object.keys(row).sort().map((key) => [key, canonicalize(row[key])]));
+  }
+  return value;
+}
+
 function hash(value: unknown) {
-  return createHash('sha256').update(JSON.stringify(value)).digest('hex');
+  return createHash('sha256').update(JSON.stringify(canonicalize(value))).digest('hex');
 }
 
 function record(value: unknown): Record<string, unknown> {
