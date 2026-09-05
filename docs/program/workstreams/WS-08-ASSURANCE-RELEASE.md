@@ -10,43 +10,11 @@
 
 WS-08 may add or repair QA/assurance tooling, inspect CI/deployments/runtime evidence, record release receipts and request fixes from the owning workstream.
 
-WS-08 must not:
-
-- silently redesign another workstream's product domain;
-- make sovereign user decisions;
-- weaken a gate to obtain green CI;
-- mutate production to manufacture evidence;
-- create a second product read/poll/persistence owner;
-- merge its own work;
-- close program issues reserved to SFI-00.
+WS-08 must not silently redesign another workstream's product domain, make sovereign user decisions, weaken a gate to obtain green CI, mutate production to manufacture evidence, create a second product read/poll/persistence owner, merge its own work, or close program issues reserved to SFI-00.
 
 ## 2. Assurance matrix
 
-Relevant releases are evaluated against:
-
-```text
-CANONICAL PREFLIGHT
-OWNERSHIP / DUPLICATION
-EPISTEMIC BOUNDARY
-AUTHORITY BOUNDARY
-RLS / DATA ACCESS
-SECRET HANDLING
-PRIVACY
-LINEAGE
-READ-PLANE COST
-N+1 / DUPLICATE READS
-MIGRATION SAFETY
-BACKWARD COMPATIBILITY
-API CONTRACT
-TYPECHECK
-UNIT / INTEGRATION QA
-BUILD
-ROLLBACK
-DEPLOYMENT IDENTITY
-PRODUCTION RETURN
-```
-
-Skipped dimensions must be non-applicable for a stated reason.
+Relevant releases are evaluated against canonical preflight, ownership/duplication, epistemic boundary, authority boundary, RLS/data access, secret handling, privacy, lineage, read-plane cost, N+1/duplicate reads, migration safety, backward compatibility, API contract, typecheck, unit/integration QA, build, rollback, deployment identity and production RETURN.
 
 ## 3. Read-plane invariant
 
@@ -74,18 +42,7 @@ These states are never collapsed into `DONE` without context.
 
 ## 5. Production verification protocol
 
-After merge:
-
-1. record the exact merge SHA;
-2. identify the exact successful production deployment containing it;
-3. verify the canonical public target;
-4. perform a bounded, read-only smoke;
-5. observe SSR/initial hydration separately from hydrated state;
-6. observe authoritative APIs and availability classification;
-7. observe read multiplicity and request duration across a bounded poll window;
-8. never manufacture negative/error production state;
-9. persist logs/artifact with `PASS | FAIL | NOT_OBSERVED`;
-10. return closure authority to SFI-00.
+After merge: record exact merge SHA; identify exact successful production deployment containing it; verify canonical public target; perform bounded read-only smoke; observe SSR/initial hydration separately from hydrated state; observe authoritative APIs and availability classification; observe read multiplicity and request duration across a bounded poll window; never manufacture negative/error production state; persist logs/artifact with `PASS | FAIL | NOT_OBSERVED`; return closure authority to SFI-00.
 
 ## 6. #366 · PRE-MERGE ASSURANCE
 
@@ -109,17 +66,7 @@ UNAVAILABLE != 0
 ERROR != 0
 ```
 
-Deterministic assurance also locks:
-
-- contract-incomplete HTTP 200 does not become `AVAILABLE`;
-- hypothesis absence is not asserted outside authoritative `AVAILABLE`;
-- one world/state/timeline read owner;
-- one 20-second poll owner;
-- one 15-second product request timeout;
-- serialized `inFlight` cycle;
-- zero retry owner;
-- zero N+1;
-- `ObservatoryInterpretiveFlow` owns zero fetches and zero timers and consumes canonical world + availability.
+Deterministic assurance also locks contract-incomplete HTTP 200 not becoming `AVAILABLE`; hypothesis absence not asserted outside authoritative `AVAILABLE`; one world/state/timeline read owner; one 20-second poll owner; one 15-second product request timeout; serialized `inFlight` cycle; zero retry owner; zero N+1; and `ObservatoryInterpretiveFlow` owning zero fetches/timers while consuming canonical world + availability.
 
 ## 7. #366 · MERGE / DEPLOYMENT IDENTITY
 
@@ -142,33 +89,14 @@ Owners:
 
 - `.github/workflows/sfi-production-observatory-smoke.yml`
 - `scripts/qa-sfi-production-observatory-smoke.mjs`
-- this durable workstream record;
-- `docs/program/workstreams/WS-08-PRODUCTION-RETURN-366.md` as the focused receipt.
+- this durable workstream record
+- `docs/program/workstreams/WS-08-PRODUCTION-RETURN-366.md`
 
-The mechanism reuses GitHub-hosted Chrome and the existing Observatory product lifecycle. It creates no application authority or persistence owner.
-
-Bounds:
-
-- canonical target fixed to `https://www.systemfriction.org`;
-- HTTP timeout: `12s`;
-- browser observation window: `28s`;
-- product polling cadence observed: `20s`;
-- harness retries: `0`;
-- GitHub Actions artifact retention: `30 days`;
-- no secrets/private payloads persisted.
+Bounds: canonical target `https://www.systemfriction.org`; HTTP timeout `12s`; browser observation window `28s`; expected product poll `20s`; harness retries `0`; artifact retention `30 days`; no secrets/private payloads persisted.
 
 ### 8.1 CDP bootstrap
 
-The harness does not depend on `/json/list` spontaneously containing a page target. It:
-
-1. reads both `DevToolsActivePort` lines;
-2. uses the browser websocket path when present;
-3. falls back to `/json/version` browser websocket discovery;
-4. calls browser-level `Target.getTargets`;
-5. creates `about:blank` with `Target.createTarget` only when no page target exists;
-6. resolves the page websocket and attaches the bounded page CDP observer.
-
-This is assurance bootstrap only; no product semantics changed.
+The harness reads both `DevToolsActivePort` lines, uses the browser websocket path when present, falls back to `/json/version`, calls browser-level `Target.getTargets`, creates `about:blank` with `Target.createTarget` only when no page target exists, resolves the page websocket and attaches the bounded page observer. No product semantics changed.
 
 ## 9. Final production smoke receipt
 
@@ -178,79 +106,41 @@ This is assurance bootstrap only; no product semantics changed.
 **Artifact id:** `9964354481`  
 **Artifact SHA-256:** `9087e2623449dddbfd911dd37310934c8fd3130a092cb571b558c6ca5fab6327`  
 **SFI Verify on harness-code HEAD:** `33949491991` / #2376 — `SUCCESS`  
-**Inline review threads:** `0 unresolved` — the prior CodeQL sanitization thread is resolved/outdated on this HEAD.
+**Inline review threads:** `0 unresolved` — prior CodeQL sanitization thread resolved/outdated.
 
-This receipt supersedes the earlier `NOT_OBSERVED` production verdicts and the earlier apparent PASS whose aggregate omitted `actualZero`. The earlier runs remain historical evidence only and are not the active disposition.
+This receipt supersedes earlier `NOT_OBSERVED` verdicts and the earlier apparent PASS whose aggregate omitted `actualZero`.
 
 ### 9.1 SSR / initial hydration — PASS
 
-Canonical `/observatory` returned HTTP 200 and the SSR contract exposed:
-
-- `world = LOADING`;
-- `state = LOADING`;
-- `timeline = LOADING`;
-- all four primary counters = `LOADING`;
-- numeric false-zero during SSR = `NONE`.
+Canonical `/observatory` returned HTTP 200 with `world=LOADING`, `state=LOADING`, `timeline=LOADING`, all four primary counters `LOADING`, and no numeric false-zero.
 
 ### 9.2 Authoritative API observations — PASS
 
-- `/api/observatory/world`: HTTP `200`, `AVAILABLE`;
-- `/api/observatory/state`: HTTP `200`, naturally `DEGRADED`;
-- `/api/observatory/timeline`: HTTP `200`, `AVAILABLE`.
+- `/api/observatory/world`: HTTP `200`, `AVAILABLE`
+- `/api/observatory/state`: HTTP `200`, naturally `DEGRADED`
+- `/api/observatory/timeline`: HTTP `200`, `AVAILABLE`
 
-The naturally occurring degraded state was observed; no failure state was manufactured.
+No failure state was manufactured.
 
 ### 9.3 Hydrated browser — PASS
 
-Headless Chrome/CDP observed the mounted canonical Observatory DOM.
-
-Initial hydrated samples remained non-numeric while world availability was `LOADING`. By the bounded hydrated state:
-
-- `world = AVAILABLE`;
-- `state = DEGRADED`;
-- `timeline = AVAILABLE`;
-- `ObservatoryInterpretiveFlow = AVAILABLE` from the shared world availability;
-- authoritative primary metrics matched the authoritative world response.
+Headless Chrome/CDP observed mounted canonical Observatory DOM. Initial hydrated samples remained non-numeric while world was `LOADING`; bounded hydrated state reached `world=AVAILABLE`, `state=DEGRADED`, `timeline=AVAILABLE`, with `ObservatoryInterpretiveFlow=AVAILABLE` from shared world availability. Authoritative primary metrics matched the authoritative world response.
 
 ### 9.4 False-zero gate — PASS
 
-Across all observed non-AVAILABLE primary-metric samples, no numeric zero was emitted.
-
-`UNAVAILABLE != ZERO` remains satisfied in live production evidence; the naturally observed pre-availability state was `LOADING` and remained non-numeric.
+Across observed non-AVAILABLE primary-metric samples, no numeric zero was emitted.
 
 ### 9.5 AVAILABLE + actual zero — PASS
 
-The harness uses the existing client-side Observatory search filter after world is already `AVAILABLE`. It applies a guaranteed non-matching assurance query without changing server/product state and without issuing an additional authoritative read.
-
-Observed zero-filter sample:
-
-- world remains `AVAILABLE`;
-- all four primary metric elements remain `data-availability="AVAILABLE"`;
-- observations = `0`;
-- active sources = `0`;
-- hypotheses = `0`;
-- in return = `0`.
-
-Therefore live production proves `AVAILABLE + authoritative filtered empty set = 0` without manufacturing an error or mutating product data.
+After world was already `AVAILABLE`, the harness used the existing client-side Observatory search filter with a guaranteed no-match query. The filtered authoritative view remained `AVAILABLE` and rendered all four primary metrics as `0, 0, 0, 0`, without product/server mutation and without issuing an additional authoritative read.
 
 ### 9.6 Hypothesis-absence boundary — PASS
 
-No governed-hypothesis absence claim was observed outside `AVAILABLE`. The co-rendered interpretive flow followed the canonical world availability during the browser session.
+No governed-hypothesis absence claim was observed outside `AVAILABLE`. The co-rendered interpretive flow followed canonical world availability.
 
 ### 9.7 Bounded read plane — PASS
 
-Across the 28-second browser window:
-
-- world requests: `2`;
-- state requests: `2`;
-- timeline requests: `2`;
-- second cycle occurs on the expected ~20-second product poll;
-- harness retries: `0`;
-- no duplicate/retry amplification inside the protected interval;
-- no unexpected Observatory authoritative-read endpoint;
-- no 5xx/network failure;
-- no observed request exceeded the finite assurance guard;
-- the zero-filter observation issued no extra authoritative read.
+Across the 28-second browser window: world requests `2`; state requests `2`; timeline requests `2`; second cycle aligned with expected ~20-second product poll; harness retries `0`; no duplicate/retry amplification; no unexpected authoritative Observatory read; no 5xx/network failure; no observed request exceeded the finite guard; zero-filter observation issued no extra authoritative read.
 
 No second polling owner or N+1 behavior was introduced by assurance.
 
@@ -264,18 +154,20 @@ No second polling owner or N+1 behavior was introduced by assurance.
 
 `DEPLOYED + OBSERVED_IN_PRODUCTION`
 
-- product defect found by final smoke: `NONE`;
-- contract delta: `NONE`;
-- authority expansion: `NONE`;
-- product semantic change by WS-08: `NONE`;
-- production mutation by WS-08: `NONE`.
+- product defect found by final smoke: `NONE`
+- contract delta: `NONE`
+- authority expansion: `NONE`
+- product semantic change by WS-08: `NONE`
+- production mutation by WS-08: `NONE`
 
-## 11. Recommendation to SFI-00
+## 11. Integration gate
+
+Focused production-return receipt is synchronized to the final harness-code evidence. The final documentation-only PR HEAD must receive terminal exact-head `SFI Verify: SUCCESS`; this does not require another production smoke because no workflow/harness code changes after `bc53bcd899286e8c44fb7846d75c07289454a89b` are permitted in this closure step.
+
+## 12. Recommendation to SFI-00
 
 **SFI-00: CLOSE #366 after Control Room verifies this exact receipt.**
 
 WS-08 does not close #366 and does not merge PR #368.
-
-PR #368 may be integrated only after its final documentation HEAD receives terminal exact-head SFI Verify success and no new blocker appears.
 
 NO SLICE B / RONDA 2 is authorized by this record.
