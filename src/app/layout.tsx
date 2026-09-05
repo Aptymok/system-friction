@@ -9,6 +9,7 @@ import { SfiLanguageProvider, SfiUiText } from '@/components/i18n/SfiLanguagePro
 import { SFI_PUBLIC_PROFILE } from '@/lib/public/institutionProfile';
 
 const BASE = SFI_PUBLIC_PROFILE.institution.canonicalUrl;
+const INSTITUTION_NAME = SFI_PUBLIC_PROFILE.institution.name;
 const GA_ID = 'G-P8G69HMYLM';
 
 export const viewport: Viewport = {
@@ -20,11 +21,11 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL(BASE),
   title: {
-    default: 'System Friction Institute',
+    default: INSTITUTION_NAME,
     template: '%s | SFI',
   },
   description: 'Live institutional observability environment for complex sociotechnical systems: evidence, falsification, governance, agents, Cognitive Twin and governed AI interaction.',
-  applicationName: 'System Friction Institute',
+  applicationName: INSTITUTION_NAME,
   keywords: [
     'system friction',
     'complex systems',
@@ -55,8 +56,8 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     url: BASE,
-    siteName: 'System Friction Institute',
-    title: 'System Friction Institute',
+    siteName: INSTITUTION_NAME,
+    title: INSTITUTION_NAME,
     description: 'Live observability, evidence, falsification, governance and governed AI interaction for complex sociotechnical systems.',
   },
   robots: {
