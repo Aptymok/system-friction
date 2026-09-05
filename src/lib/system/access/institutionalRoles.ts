@@ -146,8 +146,10 @@ export function institutionalModuleAccessForRole(
     planner: flags.field,
     simulator: flags.studio,
     social: flags.world_field,
-    root: founder || director,
-    root_observe: founder || director,
+    // ROOT currently aggregates sovereign + Cognitive Twin/AMV state. Until
+    // readers are partitioned by PERSONAL/INSTITUTIONAL, only Founder may see it.
+    root: founder,
+    root_observe: founder,
     full_access: founder,
     executor: false,
     root_execution: founder,
@@ -169,6 +171,8 @@ export function institutionalModuleAccessForRole(
 
   // No non-Founder role may inherit sovereign authority from older profile state.
   if (!founder) {
+    next.root = false;
+    next.root_observe = false;
     next.full_access = false;
     next.root_execution = false;
     next.governance_write = false;
