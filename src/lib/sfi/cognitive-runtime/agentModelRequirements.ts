@@ -104,15 +104,22 @@ export function operationModelRequirementsForAgent(agentId: string): SfiOperatio
   }
 }
 
-export function requirementsForAgent(agentId: string): LlmRequirements {
-  switch (tierForAgent(agentId)) {
-    case 'QUALITY_LONG':
-      return { reasoning: true, structuredOutput: true, minContextTokens: 100_000, priority: 'quality' };
-    case 'STANDARD_LONG':
-      return { reasoning: true, structuredOutput: true, minContextTokens: 100_000, priority: 'balanced' };
-    case 'INTERACTIVE':
-      return { structuredOutput: true, priority: 'speed' };
-    case 'STANDARD':
-      return { reasoning: true, structuredOutput: true, priority: 'balanced' };
+function routerPriorityFor(requirements: SfiOperationModelRequirements): NonNullable<LlmRequirements['priority']> {
+  if (requirements.latencyClass === 'INTERACTIVE') return 'speed';
+  if (requirements.reasoning === 'FRONTIER' || requirements.costClass === 'QUALITY' || requirements.costClass === 'FRONTIER') {
+    return 'quality';
   }
+  return 'balanced';
+}
+
+export function llmRequirementsForAgent(agentId: string): LlmRequirements {
+  const requirements = operationModelRequirementsForAgent(agentId);
+  return {
+    ...(requirements.reasoning !== 'LOW' ? { reasoning: true } : {}),
+    ...(requirements.structuredOutput ? { structuredOutput: true } : {}),
+    ...(requirements.web ? { web: true } : {}),
+    ...(requirements.multimodal ? { multimodal: true } : {}),
+    ...(requirements.minContextTokens > 0 ? { minContextTokens: requirements.minContextTokens } : {}),
+    priority: routerPriorityFor(requirements),
+  };
 }
