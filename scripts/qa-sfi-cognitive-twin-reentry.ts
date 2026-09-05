@@ -1,11 +1,22 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
+import { createCognitiveTwinStateTransition } from '../src/core/cognitive-twin/stateContract';
+import {
+  COGNITIVE_TWIN_LEARNING_LINEAGE_CONTRACT_VERSION,
+  assertCognitiveTwinLearningCandidate,
+  assertCognitiveTwinLearningDecision,
+  assertCognitiveTwinLearningSupersession,
+} from '../src/core/cognitive-twin/learningContract';
 
 const root = process.cwd();
 const read = (file: string) => fs.readFileSync(path.join(root, file), 'utf8');
 
 const contract = read('src/core/cognitive-twin/contract.ts');
+const stateContract = read('src/core/cognitive-twin/stateContract.ts');
+const statePersistence = read('src/core/cognitive-twin/statePersistence.ts');
+const learningContract = read('src/core/cognitive-twin/learningContract.ts');
+const learningLineage = read('src/core/cognitive-twin/learningLineage.ts');
 const runtime = read('src/core/cognitive-twin/reentry/runtime.ts');
 const types = read('src/core/cognitive-twin/reentry/types.ts');
 const journal = read('src/core/cognitive-twin/reentry/journal.ts');
@@ -35,6 +46,125 @@ assert.match(contract, /WITHHOLD means do not interrupt the founder now/);
 assert.match(contract, /Learning does not imply authority expansion/);
 assert.match(contract, /propose_subject_mutation/);
 assert.match(contract, /apply_subject_mutation/);
+
+// SFI-TWIN-AMENDMENT-LINEAGE-1.0 — R3 state and learning lineage gate.
+assert.match(stateContract, /SFI-COGNITIVE-TWIN-STATE-1\.0/);
+for (const field of ['availableEvidence', 'attentionConfiguration', 'decision', 'prediction', 'worldVector', 'methodConfiguration', 'outcome', 'error', 'contradiction', 'deltaCognition']) {
+  assert.ok(stateContract.includes(field), `cognitive_twin_state_contract_missing:${field}`);
+}
+assert.match(stateContract, /MODEL_CONTEXT_IS_NOT_TWIN_MEMORY/);
+assert.match(stateContract, /COGNITIVE_TWIN_STATE_OUTCOME_REQUIRES_EVIDENCE/);
+assert.match(statePersistence, /emitEpistemicEvent/);
+assert.match(statePersistence, /cognitive_twin\.state\.transition_recorded/);
+assert.match(statePersistence, /canonicalMutation: false/);
+assert.doesNotMatch(statePersistence, /\.update\(|\.upsert\(|\.delete\(/, 'Twin state transition persistence must remain append-only.');
+
+const validTransition = createCognitiveTwinStateTransition({
+  transitionId: 'qa-transition-1',
+  subjectRef: 'qa-subject',
+  t0: {
+    at: '2026-09-05T12:00:00.000Z',
+    state: { mode: 'baseline' },
+    availableEvidence: [{ ref: 'evidence:t0:1', epistemicClass: 'OBSERVED', observedAt: '2026-09-05T11:00:00.000Z' }],
+    attentionConfiguration: { focus: ['evidence:t0:1'] },
+    decision: { action: 'WAIT' },
+    prediction: { expected: 'signal-a' },
+    worldVector: { institutional: 0.5 },
+    methodConfiguration: { method: 'qa' },
+  },
+  t1: {
+    at: '2026-09-06T12:00:00.000Z',
+    outcome: { observed: 'signal-b' },
+    outcomeEvidenceRefs: ['evidence:t1:1'],
+    error: { predictionMiss: true },
+    contradiction: { expected: 'signal-a', observed: 'signal-b' },
+    deltaCognition: { attention: 'reweighted' },
+    state: { mode: 'amended' },
+  },
+  lineageRefs: ['event:prior:1'],
+  createdAt: '2026-09-06T12:01:00.000Z',
+});
+assert.equal(validTransition.t0.prediction?.expected, 'signal-a');
+assert.equal(validTransition.t1?.outcomeEvidenceRefs[0], 'evidence:t1:1');
+assert.throws(() => createCognitiveTwinStateTransition({
+  ...validTransition,
+  transitionId: 'qa-transition-invalid-outcome',
+  t1: { ...validTransition.t1!, outcomeEvidenceRefs: [] },
+}), /COGNITIVE_TWIN_STATE_OUTCOME_REQUIRES_EVIDENCE/);
+
+assert.equal(COGNITIVE_TWIN_LEARNING_LINEAGE_CONTRACT_VERSION, 'SFI-COGNITIVE-TWIN-LEARNING-LINEAGE-1.0');
+assert.doesNotThrow(() => assertCognitiveTwinLearningCandidate({
+  contractVersion: COGNITIVE_TWIN_LEARNING_LINEAGE_CONTRACT_VERSION,
+  learningId: 'learning-a',
+  state: 'CANDIDATE',
+  statement: 'Candidate learning A',
+  evidenceRefs: ['evidence:a'],
+  sourceRefs: ['source:a'],
+  proposedBy: 'qa',
+  proposedAt: '2026-09-05T12:00:00.000Z',
+}));
+for (const decision of ['ACCEPTED', 'REJECTED'] as const) {
+  assert.doesNotThrow(() => assertCognitiveTwinLearningDecision({
+    contractVersion: COGNITIVE_TWIN_LEARNING_LINEAGE_CONTRACT_VERSION,
+    decisionId: `decision-${decision.toLowerCase()}`,
+    learningId: `learning-${decision.toLowerCase()}`,
+    decision,
+    authorityRef: 'authority:root:qa',
+    rationale: `QA ${decision}`,
+    evidenceRefs: ['evidence:decision'],
+    decidedBy: 'qa',
+    decidedAt: '2026-09-05T12:05:00.000Z',
+    canonicalMutation: false,
+  }));
+}
+assert.throws(() => assertCognitiveTwinLearningDecision({
+  contractVersion: COGNITIVE_TWIN_LEARNING_LINEAGE_CONTRACT_VERSION,
+  decisionId: 'decision-no-authority',
+  learningId: 'learning-no-authority',
+  decision: 'ACCEPTED',
+  authorityRef: '',
+  rationale: 'invalid',
+  evidenceRefs: [],
+  decidedBy: null,
+  decidedAt: '2026-09-05T12:05:00.000Z',
+  canonicalMutation: false,
+}), /COGNITIVE_TWIN_LEARNING_AUTHORITY_REQUIRED/);
+assert.doesNotThrow(() => assertCognitiveTwinLearningSupersession({
+  contractVersion: COGNITIVE_TWIN_LEARNING_LINEAGE_CONTRACT_VERSION,
+  relationId: 'supersession-a-b',
+  relation: 'SUPERSEDED_BY',
+  supersededLearningId: 'learning-a',
+  supersedingLearningId: 'learning-b',
+  authorityRef: 'authority:root:qa',
+  rationale: 'B corrects A while preserving A.',
+  evidenceRefs: ['evidence:b'],
+  recordedBy: 'qa',
+  recordedAt: '2026-09-05T12:10:00.000Z',
+  destructiveRewrite: false,
+}));
+assert.throws(() => assertCognitiveTwinLearningSupersession({
+  contractVersion: COGNITIVE_TWIN_LEARNING_LINEAGE_CONTRACT_VERSION,
+  relationId: 'supersession-self',
+  relation: 'SUPERSEDED_BY',
+  supersededLearningId: 'learning-a',
+  supersedingLearningId: 'learning-a',
+  authorityRef: 'authority:root:qa',
+  rationale: 'invalid',
+  evidenceRefs: [],
+  recordedBy: null,
+  recordedAt: '2026-09-05T12:10:00.000Z',
+  destructiveRewrite: false,
+}), /COGNITIVE_TWIN_LEARNING_CANNOT_SUPERSEDE_SELF/);
+assert.match(learningContract, /learningIsCanon|canonicalMutation|destructiveRewrite|SUPERSEDED_BY|ACCEPTED|REJECTED/);
+assert.match(learningLineage, /COGNITIVE_TWIN_LEARNING_CANDIDATE_REQUIRED/);
+assert.match(learningLineage, /COGNITIVE_TWIN_LEARNING_SUPERSEDED_MUST_BE_ACCEPTED/);
+assert.match(learningLineage, /COGNITIVE_TWIN_LEARNING_SUPERSEDING_MUST_BE_ACCEPTED/);
+assert.match(learningLineage, /learningIsCanon: false/);
+assert.match(learningLineage, /canonicalMutation: false/);
+assert.match(learningLineage, /emitEpistemicEvent/);
+assert.match(learningLineage, /\.from\('epistemic_events'\)/);
+assert.doesNotMatch(learningLineage, /\.update\(|\.upsert\(|\.delete\(/, 'Learning amendment lineage must never destructively rewrite history.');
+
 assert.match(types, /rootVisibility: 'ALWAYS_VISIBLE'/);
 assert.doesNotMatch(types, /privateReasoning|reasoningTrace|hiddenReasoning|rawChainOfThought/i);
 assert.doesNotMatch(runtime, /privateReasoning\s*:|reasoningTrace\s*:|hiddenReasoning\s*:|rawChainOfThought\s*:/i);
@@ -104,6 +234,7 @@ const cronCount = Array.isArray(vercel.crons) ? vercel.crons.length : 0;
 assert.equal(cronCount, 7, `Expected the existing 7 Vercel crons, found ${cronCount}`);
 
 console.log('SFI Cognitive Twin longitudinal completion QA: PASS');
+console.log('- SFI-TWIN-AMENDMENT-LINEAGE-1.0: external T0/T1 state contract + append-only ACCEPTED/REJECTED/SUPERSEDED_BY lineage are gated');
 console.log('- CT-A01 genesis + developmental heartbeat + root-visible state remain integrated beneath canonical ROOT + TWIN/SPINE surfaces');
 console.log('- legacy IDENTITY is explicitly absorbed rather than retained as a parallel sovereign scene');
 console.log('- snapshot/fork core contracts remain explicit; registered fork is never represented as executing');

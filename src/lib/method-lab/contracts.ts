@@ -53,3 +53,5 @@ export function assertMethodLabRunEnvelope(value: MethodLabRunEnvelope) {
   if (!value.labRunId || !value.protocolId || !value.protocolVersion || !value.startedAt) throw new Error('method_lab_run_identity_incomplete');
   return value;
 }
+
+export * from './experimentContract';
