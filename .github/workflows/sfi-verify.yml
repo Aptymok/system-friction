@@ -241,6 +241,9 @@ jobs:
             sleep $((attempt * 10))
           done
 
+      - name: SFI-AUDIO-RIGHTS-SEPARATION-1.0
+        run: node --import tsx --test src/lib/studio/audio/materialRegistryContract.test.ts && npx tsx scripts/qa-sfi-audio-rights-separation.ts
+
       - name: Verify Studio audio smoke path
         run: npm run qa:studio-audio
 
