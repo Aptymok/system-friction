@@ -1,12 +1,111 @@
+export const SFI_ENTITY_COHERENCE_CONTRACT = 'SFI-ENTITY-COHERENCE-1.0' as const;
+
+export const SFI_CANONICAL_IDENTITY_FINGERPRINT = Object.freeze({
+  name: 'System Friction Institute',
+  abbreviation: 'SFI',
+  canonicalUrl: 'https://systemfriction.org',
+  entityId: 'https://systemfriction.org/#sfi',
+  preferredHandle: 'systemfriction',
+  secondaryHandle: 'systemfrictioninstitute',
+  avoidName: 'Systemic Friction Institute',
+});
+
+export type SfiExternalIdentityState = 'UNCLAIMED' | 'CLAIMED' | 'VERIFIED' | 'DEGRADED' | 'LOST';
+export type SfiExternalIdentityClass = 'INSTITUTION_PROFILE' | 'CONTROLLED_ASSET' | 'RELATED_PERSON';
+
+export type SfiExternalIdentityNode = Readonly<{
+  key: string;
+  url: string;
+  state: SfiExternalIdentityState;
+  identityClass: SfiExternalIdentityClass;
+  relationship: string;
+}>;
+
+export const SFI_EXTERNAL_IDENTITY_NODES = Object.freeze([
+  {
+    key: 'github-repository',
+    url: 'https://github.com/Aptymok/system-friction',
+    state: 'VERIFIED',
+    identityClass: 'CONTROLLED_ASSET',
+    relationship: 'CONTROLLED_SOFTWARE_SOURCE_ASSET',
+  },
+  {
+    key: 'medium-profile',
+    url: 'https://medium.com/@systemfriction',
+    state: 'CLAIMED',
+    identityClass: 'INSTITUTION_PROFILE',
+    relationship: 'EXTERNAL_DISTRIBUTION_PROFILE',
+  },
+  {
+    key: 'linkedin-person-reference',
+    url: 'https://es.linkedin.com/posts/juanliera_en-febrero-escrib%C3%AD-que-la-resiliencia-real-activity-7462671453969104896-xsQt',
+    state: 'CLAIMED',
+    identityClass: 'RELATED_PERSON',
+    relationship: 'RELATED_PERSON_PUBLIC_REFERENCE',
+  },
+] satisfies readonly SfiExternalIdentityNode[]);
+
+export const SFI_DISAMBIGUATION_RISKS = Object.freeze([
+  {
+    key: 'systemic-friction-institute',
+    name: 'Systemic Friction Institute, Inc',
+    url: 'https://www.systemfrictioninstitute.com/',
+    classification: 'COLLISION_CANDIDATE / DISAMBIGUATION_RISK',
+    observedCollision: false,
+  },
+] as const);
+
+export type SfiSameAsDisposition = Readonly<{
+  eligible: boolean;
+  reason: 'ELIGIBLE' | 'STATE_NOT_VERIFIED' | 'NOT_ENTITY_EQUIVALENT' | 'INVALID_EXTERNAL_URL' | 'SELF_CANONICAL_URL';
+}>;
+
+function normalizedExternalUrl(value: string): string | null {
+  try {
+    const parsed = new URL(value);
+    if (parsed.protocol !== 'https:' || parsed.username || parsed.password) return null;
+    parsed.hash = '';
+    return parsed.toString().replace(/\/$/, '');
+  } catch {
+    return null;
+  }
+}
+
+export function institutionalSameAsDisposition(node: SfiExternalIdentityNode): SfiSameAsDisposition {
+  if (node.state !== 'VERIFIED') return { eligible: false, reason: 'STATE_NOT_VERIFIED' };
+  if (node.identityClass !== 'INSTITUTION_PROFILE') return { eligible: false, reason: 'NOT_ENTITY_EQUIVALENT' };
+
+  const normalized = normalizedExternalUrl(node.url);
+  if (!normalized) return { eligible: false, reason: 'INVALID_EXTERNAL_URL' };
+
+  const canonical = normalizedExternalUrl(SFI_CANONICAL_IDENTITY_FINGERPRINT.canonicalUrl);
+  if (normalized === canonical) return { eligible: false, reason: 'SELF_CANONICAL_URL' };
+
+  return { eligible: true, reason: 'ELIGIBLE' };
+}
+
+export function verifiedInstitutionSameAs(
+  nodes: readonly SfiExternalIdentityNode[] = SFI_EXTERNAL_IDENTITY_NODES,
+): readonly string[] {
+  const eligible = nodes
+    .filter((node) => institutionalSameAsDisposition(node).eligible)
+    .map((node) => normalizedExternalUrl(node.url))
+    .filter((value): value is string => Boolean(value));
+
+  return Object.freeze([...new Set(eligible)].sort());
+}
+
+const VERIFIED_INSTITUTION_SAME_AS = verifiedInstitutionSameAs();
+
 export const SFI_PUBLIC_PROFILE = {
   contract: 'SFI-PUBLIC-INSTITUTION-PROFILE-1.0',
   generatedFrom: ['README.md', 'public/ai-index.json', 'src/app/api/external/v1/manifest/route.ts', 'public GitHub history'],
   institution: {
-    name: 'System Friction Institute',
-    abbreviation: 'SFI',
-    canonicalUrl: 'https://systemfriction.org',
-    entityId: 'https://systemfriction.org/#sfi',
-    verifiedSameAs: [] as string[],
+    name: SFI_CANONICAL_IDENTITY_FINGERPRINT.name,
+    abbreviation: SFI_CANONICAL_IDENTITY_FINGERPRINT.abbreviation,
+    canonicalUrl: SFI_CANONICAL_IDENTITY_FINGERPRINT.canonicalUrl,
+    entityId: SFI_CANONICAL_IDENTITY_FINGERPRINT.entityId,
+    verifiedSameAs: VERIFIED_INSTITUTION_SAME_AS,
     type: 'independent structural-field research institute',
     primaryDefinition: 'System Friction Institute makes visible the friction that systems learn to normalize.',
     operationalDefinition: 'An evidence-governed instrument for observing a signal inside a changing field, proposing a minimal intervention and learning from the documented difference between prediction and outcome.',
