@@ -8,11 +8,12 @@ import {
   SfiAuthUnavailableError,
 } from '@/runtime/supabase/server';
 import { findInstitutionalMember } from './institutionalMembers';
+import { institutionalModuleAccessForRole, type SfiAccountAdminAuthority } from './institutionalRoles';
 
 export class AccessDeniedError extends Error {
   constructor(
     public readonly status: 401 | 403 | 404 | 503,
-    public readonly code: 'AUTH_REQUIRED' | 'AUTH_UNAVAILABLE' | 'FOUNDER_REQUIRED' | 'FIELD_USER_REQUIRED' | 'SFI_MEMBER_REQUIRED' | 'OWNER_REQUIRED' | 'NOT_FOUND',
+    public readonly code: 'AUTH_REQUIRED' | 'AUTH_UNAVAILABLE' | 'FOUNDER_REQUIRED' | 'FIELD_USER_REQUIRED' | 'SFI_MEMBER_REQUIRED' | 'ACCOUNT_ADMIN_REQUIRED' | 'OWNER_REQUIRED' | 'NOT_FOUND',
     message: string,
   ) {
     super(message);
@@ -20,7 +21,7 @@ export class AccessDeniedError extends Error {
   }
 }
 
-function record(value: unknown): Record<string, unknown> {
+export function accessRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? value as Record<string, unknown>
     : {};
@@ -47,35 +48,22 @@ function institutionalModuleAccess(
   member: NonNullable<ReturnType<typeof findInstitutionalMember>>,
   current?: unknown,
 ) {
-  return {
-    ...record(current),
-    display_title: member.title,
-    observatory: member.modules.observatory,
-    planner: member.modules.field,
-    simulator: member.modules.studio,
-    social: member.modules.worldField,
-    field: member.modules.field,
-    studio: member.modules.studio,
-    world_field: member.modules.worldField,
-    root: member.modules.root,
-    root_observe: member.modules.root,
-    full_access: false,
-    executor: false,
-    root_execution: false,
-    governance_write: false,
-    sovereign_actions: false,
-    canonical_promotion: false,
-  };
+  return institutionalModuleAccessForRole(
+    member.institutionalRole,
+    member.institutionalDomain,
+    accessRecord(current),
+  );
 }
 
 function personalModuleAccess(current?: unknown) {
   return {
-    ...record(current),
+    ...accessRecord(current),
     field: true,
     studio: true,
     personal_lab: true,
     personal_cognitive: true,
     external_agent: true,
+    institutional_member: false,
     root: false,
     root_observe: false,
     full_access: false,
@@ -84,6 +72,9 @@ function personalModuleAccess(current?: unknown) {
     governance_write: false,
     sovereign_actions: false,
     canonical_promotion: false,
+    account_provision: false,
+    account_manage: false,
+    personal_cross_user: false,
   };
 }
 
@@ -150,10 +141,13 @@ async function readOrProvisionUserProfile(user: { id: string; email?: string | n
 
   if (existing.data && member) {
     const desiredAccess = institutionalModuleAccess(member, existing.data.module_access);
-    const currentAccess = record(existing.data.module_access);
+    const currentAccess = accessRecord(existing.data.module_access);
     const accessKeys = [
-      'display_title','observatory','planner','simulator','social','field','studio','world_field','root','root_observe',
-      'full_access','executor','root_execution','governance_write','sovereign_actions','canonical_promotion',
+      'display_title','institutional_member','institutional_role','institutional_domain',
+      'institutional_read','institutional_write','institutional_execute','evidence_review',
+      'account_provision','account_manage','domain_role_assign','personal_cross_user',
+      'observatory','planner','simulator','social','field','studio','world_field','method_lab','governance','library','research_graph','machine_interfaces',
+      'root','root_observe','full_access','executor','root_execution','governance_write','sovereign_actions','canonical_promotion',
     ] as const;
     const requiresReconcile =
       existing.data.alias !== member.displayName ||
@@ -241,10 +235,29 @@ export async function requireUserProfile() {
   return { ...context, profile: resolved.profile, member: resolved.member };
 }
 
+function hasFounderAuthority(context: {
+  user: { id: string; email?: string | null };
+  profile: { role?: unknown; module_access?: unknown } | null | undefined;
+  member?: ReturnType<typeof findInstitutionalMember>;
+}) {
+  const email = context.user.email?.toLowerCase() || null;
+  const moduleAccess = accessRecord(context.profile?.module_access);
+  const institutionalMember = context.member ?? findInstitutionalMember(email);
+  const hasExplicitSovereignProfile =
+    !institutionalMember &&
+    (context.profile?.role === 'root' || context.profile?.role === 'system') &&
+    moduleAccess.full_access === true;
+
+  return founderIds().has(context.user.id) ||
+    Boolean(email && founderEmails().has(email)) ||
+    hasExplicitSovereignProfile;
+}
+
 export async function requireSfiMember() {
   const context = await requireUserProfile();
   const role = String(context.profile.role || '').toLowerCase();
-  const institutional = Boolean(context.member) || role === 'root' || role === 'system';
+  const moduleAccess = accessRecord(context.profile.module_access);
+  const institutional = Boolean(context.member) || moduleAccess.institutional_member === true || role === 'root' || role === 'system';
   if (!institutional) {
     throw new AccessDeniedError(403, 'SFI_MEMBER_REQUIRED', 'An active SFI institutional membership is required.');
   }
@@ -302,29 +315,45 @@ export async function requireFounder() {
     );
   }
 
-  const email = context.user.email?.toLowerCase() || null;
-  const institutionalMember = findInstitutionalMember(email);
-  const moduleAccess = record(profile?.module_access);
-  const hasExplicitSovereignProfile =
-    !institutionalMember &&
-    (profile?.role === 'root' || profile?.role === 'system') &&
-    moduleAccess.full_access === true;
-
-  const allowed =
-    founderIds().has(context.user.id) ||
-    Boolean(email && founderEmails().has(email)) ||
-    hasExplicitSovereignProfile;
-
-  if (!allowed) {
+  if (!hasFounderAuthority({ user: context.user, profile })) {
     throw new AccessDeniedError(403, 'FOUNDER_REQUIRED', 'Founder authorization is required.');
   }
 
   return { ...context, profile };
 }
 
+export async function requireInstitutionalAccountAdmin(): Promise<Awaited<ReturnType<typeof requireUserProfile>> & { accountAuthority: SfiAccountAdminAuthority }> {
+  const context = await requireUserProfile();
+  if (hasFounderAuthority(context)) return { ...context, accountAuthority: 'founder' };
+
+  const moduleAccess = accessRecord(context.profile.module_access);
+  const institutionalRole = String(moduleAccess.institutional_role || '');
+  if (
+    institutionalRole === 'institutional_director' &&
+    moduleAccess.institutional_member === true &&
+    moduleAccess.account_provision === true &&
+    moduleAccess.account_manage === true &&
+    moduleAccess.canonical_promotion !== true &&
+    moduleAccess.sovereign_actions !== true
+  ) {
+    return { ...context, accountAuthority: 'institutional_director' };
+  }
+
+  throw new AccessDeniedError(403, 'ACCOUNT_ADMIN_REQUIRED', 'Institutional account administration authority is required.');
+}
+
 export async function requireFounderPage(nextPath = '/root') {
   try {
     return await requireFounder();
+  } catch (error) {
+    if (error instanceof AccessDeniedError) authFailureRedirect(error, nextPath);
+    redirect('/unauthorized');
+  }
+}
+
+export async function requireInstitutionalAccountAdminPage(nextPath = '/institution/access') {
+  try {
+    return await requireInstitutionalAccountAdmin();
   } catch (error) {
     if (error instanceof AccessDeniedError) authFailureRedirect(error, nextPath);
     redirect('/unauthorized');
