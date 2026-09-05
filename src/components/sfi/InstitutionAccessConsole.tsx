@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type CSSProperties } from 'react';
 import Link from 'next/link';
 import {
   SFI_INSTITUTIONAL_DOMAIN_LABELS,
@@ -9,7 +9,20 @@ import {
   type SfiInstitutionalDomain,
   type SfiInstitutionalRoleKey,
 } from '@/lib/system/access/institutionalRoles';
-import type { InstitutionalAccountView } from '@/lib/system/access/accountAdmin';
+
+type InstitutionalAccountView = {
+  userId: string;
+  email: string | null;
+  alias: string;
+  displayTitle: string;
+  institutionalRole: SfiInstitutionalRoleKey;
+  domain: SfiInstitutionalDomain;
+  technicalRole: string;
+  status: 'ACTIVE' | 'INVITED' | 'SUSPENDED';
+  createdAt: string | null;
+  lastSignInAt: string | null;
+  editable: boolean;
+};
 
 type Props = {
   initialAccounts: InstitutionalAccountView[];
@@ -187,7 +200,7 @@ export default function InstitutionAccessConsole({ initialAccounts, authority, a
   );
 }
 
-const inputStyle: React.CSSProperties = {
+const inputStyle: CSSProperties = {
   width: '100%',
   boxSizing: 'border-box',
   background: '#0d0d0a',
@@ -198,7 +211,7 @@ const inputStyle: React.CSSProperties = {
   fontSize: 12,
 };
 
-const buttonStyle: React.CSSProperties = {
+const buttonStyle: CSSProperties = {
   background: '#15110d',
   color: '#e7c98b',
   border: '1px solid rgba(197,33,43,.65)',
