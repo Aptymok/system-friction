@@ -19,6 +19,8 @@ R3 reuses the owners already present in `main`:
 
 No second Twin memory store, second Method Lab event universe, second event writer or new database table is introduced.
 
+The PR conversation must retain the canonical P17 preflight fields `SFI PRECHECK`, `Owner:`, `Existing capability inspected:`, `Absorb vs create decision:`, `Authoritative writer:`, `Persistence/lineage impact:`, `Front delta:`, `Back delta:`, `DB delta:`, `Redundancy removed:`, `Execution/ROOT boundary:`, `Rollback:` and `Verification:`. This receipt records the same owner decision; PR metadata does not alter code authority or persistence semantics.
+
 ## 2. Twin state contract
 
 `SFI-COGNITIVE-TWIN-STATE-1.0` represents one explicit transition containing:
