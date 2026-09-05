@@ -15,6 +15,7 @@ const spine=read('src/lib/institution/cognitiveSpineRuntimeExecution.ts');
 const calibration=read('src/lib/sfi/cognitive-runtime/agents/realityCalibrationAgent.ts');
 const provider=read('src/lib/ai/providerRouter.ts');
 const agentLlm=read('src/infrastructure/ai/agentLlmClient.ts');
+const agentModelRequirements=read('src/lib/sfi/cognitive-runtime/agentModelRequirements.ts');
 const amv=read('src/app/api/amv/field-response/route.ts');
 const providerCanary=read('src/app/api/root/ai/providers/route.ts');
 const reports=read('src/lib/reports/scheduledAgentReports.ts');
@@ -161,7 +162,9 @@ assert.match(provider,/model\.contextTokens === null \|\| model\.contextTokens <
 for(const health of ['UNCONFIGURED','UNTESTED','HEALTHY','DEGRADED','BLOCKED']) assert.ok(provider.includes(`'${health}'`),`Provider health state missing: ${health}`);
 assert.doesNotMatch(provider,/\?\? 'gemini-1\.5-flash'/,'Retired Gemini 1.5 default must not survive.');
 
-assert.match(agentLlm,/requirementsForAgent/,'Agents must declare capabilities, not a hard-coded model.');
+assert.match(agentLlm,/llmRequirementsForAgent\(agentId\)/,'Agent execution must consume the canonical model-requirements projection.');
+assert.doesNotMatch(agentLlm,/function requirementsForAgent\(/,'Agent execution must not retain a local requirements owner.');
+assert.match(agentModelRequirements,/const requirements = operationModelRequirementsForAgent\(agentId\)/,'LLM router requirements must derive from the canonical operation profile.');
 assert.match(agentLlm,/modelRequirements: requirements/);
 assert.doesNotMatch(agentLlm,/providerPreference\(context\.metadata\?\.preferredLlmProvider\) \?\? 'groq'/,'Agents must not default-bind to Groq.');
 assert.match(amv,/runLlmTask/,'AMV must reuse canonical provider router.');

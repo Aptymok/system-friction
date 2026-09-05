@@ -1,11 +1,12 @@
 import 'server-only';
 
-import { runLlmTask, type LlmProviderId, type LlmRequirements } from '@/lib/ai/providerRouter';
+import { runLlmTask, type LlmProviderId } from '@/lib/ai/providerRouter';
 import { COGNITIVE_TWIN_CONTRACT_VERSION } from '@/core/cognitive-twin/contract';
 import type { StudioTwinContext } from '@/core/cognitive-twin/studioContext';
 import { readStudioTwinContext } from '@/core/cognitive-twin/studioContext';
 import { SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY } from '@/lib/sfi/cognitive-runtime/convergedRegistry';
 import { executionContractForAgent } from '@/lib/sfi/cognitive-runtime/executionContracts';
+import { llmRequirementsForAgent } from '@/lib/sfi/cognitive-runtime/agentModelRequirements';
 import { materialEvidenceView } from '@/lib/sfi/cognitive-runtime/materialEvidence';
 import {
   compactObservedGenAiTelemetry,
@@ -154,19 +155,6 @@ function providerPreference(value: unknown): LlmProviderId | undefined {
   return typeof value === 'string' && allowed.includes(value as LlmProviderId) ? value as LlmProviderId : undefined;
 }
 
-function requirementsForAgent(agentId: string): LlmRequirements {
-  if (['risk_agent', 'economic_field_simulator', 'cross_impact', 'trajectory_agent', 'reality_calibration', 'phenotype_resolver', 'friction_field_simulator', 'temporal_resolver'].includes(agentId)) {
-    return { reasoning: true, structuredOutput: true, minContextTokens: 100_000, priority: 'quality' };
-  }
-  if (['opportunity_agent', 'historical_scout', 'context_builder'].includes(agentId)) {
-    return { reasoning: true, structuredOutput: true, minContextTokens: 100_000, priority: 'balanced' };
-  }
-  if (['evidence_hunter', 'field_observer', 'project_execution_manager'].includes(agentId)) {
-    return { structuredOutput: true, priority: 'speed' };
-  }
-  return { reasoning: true, structuredOutput: true, priority: 'balanced' };
-}
-
 async function resolveTwinContextForExecution(context: KernelContext): Promise<StudioTwinContext> {
   const spine = record(context.metadata?.cognitiveSpine);
   const explicitConsumption = typeof spine.ctSnapshotConsumed === 'boolean';
@@ -282,7 +270,7 @@ export async function augmentAgentWithLlm(agentId: string, context: KernelContex
 
   const twin = TWIN_RELEVANT_AGENTS.has(agentId) ? await resolveTwinContextForExecution(context) : null;
   const requestedProvider = providerPreference(context.metadata?.preferredLlmProvider);
-  const requirements = requirementsForAgent(agentId);
+  const requirements = llmRequirementsForAgent(agentId);
   const existingInsights = record(context.metadata?.agentInsights);
   const material = materialEvidenceView(context);
 

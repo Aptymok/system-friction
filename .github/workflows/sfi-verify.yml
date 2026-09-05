@@ -63,6 +63,9 @@ jobs:
       - name: Verify cognitive agent convergence
         run: node --import tsx --test src/lib/sfi/cognitive-runtime/agentConvergence.test.ts
 
+      - name: Verify SFI cognitive passport registry
+        run: node --import tsx --test src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts
+
       - name: Verify AI governance and autonomous runtime
         run: npx tsx scripts/qa-sfi-ai-governance.ts
 

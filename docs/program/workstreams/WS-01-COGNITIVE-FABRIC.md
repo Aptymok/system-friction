@@ -258,6 +258,170 @@ PR
 NEXT SAFE ACTION
 ```
 
+## 10. Durable handoff — 2026-09-04 — Slice A
+
+**State:** `QA_PASS / PR_OPEN / REVIEW_FINDINGS_ABSORBED`  
+**Slice:** Cognitive Passport contract projection + validation  
+**Base SHA:** `1bd890c8a2ec784ad87d73eac6d19a294e050543`  
+**Branch:** `ws01/cognitive-passport-registry`  
+**PR:** `#367`
+
+### Fresh continuation reconstruction
+
+Fresh `main` remains `1bd890c8a2ec784ad87d73eac6d19a294e050543`; the branch is ahead and not behind. PR `#367` remains open and unmerged. No Slice B implementation is authorized while Slice A remains outside `main`.
+
+The continuation review identified an existing passport owner that the initial Slice A preflight had not absorbed: `src/lib/sfi/cognitive-runtime/agentPassports.ts`, which already projects `SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY` as `SFI-AGENT-PASSPORT-1.2` for ROOT/Studio consumers.
+
+The corrected ownership model is therefore:
+
+- `SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY`: sole cognitive execution/agent registry;
+- `agentPassports.ts`: sole runtime passport projection owner;
+- `cognitivePassportRegistry.ts`: pure `SFI-COGNITIVE-PASSPORT-1.0` projector/validator attached to the existing passport owner, not an independent registry;
+- `executionContracts.ts`: authoritative per-agent execution output/epistemic constraints;
+- `MetaOrchestratorAgent`: sole cognitive orchestrator;
+- `src/lib/ai/providerRouter.ts`: model/provider routing owner;
+- existing task-graph implementation: task-graph owner;
+- `epistemic_events`: transversal lineage/event owner.
+
+No second agent registry, passport owner, orchestrator, model router, event universe, task graph or persistence writer remains in Slice A.
+
+### Review findings corrected
+
+Four post-implementation review findings were treated as real integration defects and corrected without expanding scope:
+
+1. **P1 — duplicate passport owner:** the independent `SFI_COGNITIVE_PASSPORT_REGISTRY`/lookup owner was removed. `agentPassports.ts` now carries the cognitive contract projection as `cognitiveContract` for cognitive-runtime passports.
+2. **P1 — EvidenceHunter epistemic boundary:** passport outputs now derive from `executionContractForAgent()` rather than coarse runtime layer. `evidence_hunter` cannot inherit `OBSERVATION`; its allowed outputs remain `INFERENCE`, `RECOMMENDATION`, `NOT_EXECUTED`.
+3. **P1 — reality calibration RETURN:** `reality_calibration` now requires `RETURN` in `input.requiredEvidenceClasses`. This is an input evidence precondition and remains distinct from a future RETURN obligation.
+4. **P2 — human confirmation validation:** `validateCognitivePassportAgainstSource()` rejects a passport that weakens `source.humanApprovalRequired`, with deterministic `CONFIRMATION_REQUIREMENT_MISMATCH` output.
+
+### Implemented Slice A boundary
+
+- frozen `SFI-COGNITIVE-PASSPORT-1.0` shape projected for all 21 historical runtime IDs;
+- exact preservation of historical IDs;
+- deterministic passport/source validation;
+- output classes derived from existing execution contracts;
+- conservative authority ceilings limited to `READ` / `RECOMMEND`;
+- zero tool authority minted by passports;
+- adaptive capability requests explicitly disabled until Slice B;
+- provider/model-independent operation requirements metadata under the existing provider-router owner;
+- RETURN/security/orchestration fields from the frozen contract;
+- no capability grant semantics added;
+- no external execution authority added.
+
+### Persistence / events / routes
+
+- migrations: none;
+- tables: none;
+- events added: none;
+- routes added: none;
+- direct SQL: none;
+- new writer: none.
+
+### Contract delta
+
+None. The frozen contract is absorbable without fork.
+
+### QA closure before this documentation-only handoff commit
+
+Implementation HEAD `09056ad0070299b6557fef2ad228445c4ed931e7` completed `SFI Verify` run `33908757173` successfully in the primary `Verify SFI boundaries and build` job. Observed PASS includes:
+
+- verify parallel topology;
+- domain boundaries;
+- canonical architecture preflight;
+- institutional contracts;
+- cognitive agent convergence / 21 IDs;
+- `SFI cognitive passport registry` gate;
+- AI governance/autonomous runtime;
+- ROOT/runtime checks;
+- Studio cognitive/runtime checks;
+- runtime read-plane stability;
+- universal closure RETURN fallback;
+- typecheck;
+- full build.
+
+This workstream edit is documentation-only and moves the PR HEAD after the implementation QA above. SFI-00 must integrate only after the final PR HEAD's CI is observed green as well.
+
+### Known defects / dependencies
+
+- no remaining Slice A implementation defect is established after the four review corrections and successful implementation QA;
+- Netlify preview status is not used as a substitute for canonical SFI Verify; Vercel preview had independently reported ready on the earlier head;
+- baseline issue `#366` remains outside WS-01 ownership and under WS-03/WS-08 sequencing;
+- SFI-00 remains sole merge/integration authority;
+- Slice B remains blocked while `#367` is open; it must start only from a `main` containing admitted Slice A.
+
+### Next safe action
+
+Leave `#367` unmerged. Observe all CI on the final documentation-adjusted HEAD. If green and no new review finding appears, hand the PR to SFI-00 as integration-ready. Do not implement the Governed Capability Request Broker until Slice A is integrated into `main` or SFI-00 explicitly establishes an admitted stable dependency base.
+
+## 11. Final integration correction pass — 2026-09-04
+
+**State before final docs commit:** `QA_PASS / PR_OPEN / ALL_EXISTING_REVIEW_THREADS_RESOLVED`  
+**Previous SFI-00 observed HEAD:** `a056ac480b65858727869bc351e454387a6b80d6`  
+**Corrected code HEAD:** `3c1f162cb9e69699bba5de9ede802660e0b1d94e`
+
+Three additional integration findings on `a056ac480b...` were accepted as real Slice A defects and corrected without expanding scope:
+
+1. **P1 — source-layer epistemic mode:** source validation now requires `passport.epistemicMode === EPISTEMIC_MODE_BY_LAYER[source.layer]`; a simulation passport cannot be relabeled as observational.
+2. **P1 — source-derived RETURN block:** projection and validation share one `returnContractFor(source)` derivation; `required`, `condition`, and `falsificationCondition` cannot be weakened for RETURN-required agents.
+3. **P2 — source-required inputs:** `input.required` must match the normalized `source.sourceTables` dependency set; required dependencies cannot be hidden by passport mutation.
+
+Corrective commits:
+
+- `7c5b60556f96868afd6a3affd608cb47da702d72` — `fix(ws01): enforce passport source invariants`;
+- `3c1f162cb9e69699bba5de9ede802660e0b1d94e` — `test(ws01): lock source-derived passport invariants`.
+
+Deterministic regressions prove:
+
+- `social_field_simulator` mutated `SIMULATE -> OBSERVE` is rejected with `EPISTEMIC_MODE_MISMATCH`;
+- `trajectory_agent` and `project_execution_manager` cannot drop or weaken their RETURN block and produce `RETURN_CONTRACT_MISMATCH`;
+- `field_observer` cannot clear source-required inputs and produces `INPUT_REQUIRED_CONTRACT_MISMATCH`.
+
+Exact corrected code HEAD `3c1f162cb9e69699bba5de9ede802660e0b1d94e` completed:
+
+- `SFI Verify` #2331 / run `33922716236`: `SUCCESS`;
+- canonical development preflight: `PASS`;
+- cognitive agent convergence: `PASS`;
+- cognitive passport registry gate: `PASS`;
+- runtime read-plane stability: `PASS`;
+- typecheck: `PASS`;
+- build: `PASS`;
+- parallel Studio audio job: `PASS`;
+- `MIHM Contract Validation` #597: `SUCCESS`;
+- `SFI External OAuth` #330: `SUCCESS`.
+
+All seven existing inline review threads in PR #367 were replied to with evidence and formally resolved only after their fixes had demonstrated QA. A fresh `@codex review` was requested for corrected HEAD `3c1f162...`, but GitHub/Codex reported that code-review usage limits were exhausted. Therefore no additional review result or new finding was produced; this external reviewer limitation is not interpreted as product PASS or FAIL.
+
+Preview infrastructure remains non-authoritative for product readiness absent causality: Vercel reports success/Ready for the corrected code HEAD while both Netlify preview contexts report failure, consistent with the pre-existing preview pattern. No causal link from those Netlify failures to the Slice A correction has been demonstrated.
+
+No contract delta, authority expansion, migration, persistence owner, event owner, capability broker, grant, new orchestrator, new registry, model router or Slice B behavior was introduced.
+
+### Final next safe action
+
+This documentation-only durable handoff commit moves the PR HEAD after the proven corrected code HEAD. Re-run and observe exact-head CI. If the final HEAD remains green, PR #367 is ready for SFI-00 integration sequencing. WS-01 must not merge and must not start Slice B on this branch.
+
+## 12. Ronda 1 / Slice A — final owner and source-contract correction
+
+**Previous SFI-00 observed HEAD:** `f03b3032d9cc31ea91d31ec024db67f1e7ee27ec`  
+**Corrected code HEAD before this durable documentation commit:** `a2540544a802b06a9ca0a83ed3ca37c1f20b548a`  
+**Scope:** Slice A correction only; Capability Broker / Slice B remain explicitly unstarted.
+
+The final integration pass absorbed all current Slice A findings without adding authority, persistence, a second registry, or a second model-routing owner:
+
+1. **Canonical model-requirements owner consolidated.** `operationModelRequirementsForAgent()` is the complete canonical operation-requirements projection. `llmRequirementsForAgent()` derives the narrower provider-router shape from that same canonical object. `agentLlmClient.ts` consumes `llmRequirementsForAgent(agentId)` directly; the local `requirementsForAgent()` wrapper/owner was removed.
+2. **Complete output policy locked to source.** Source validation compares the full projected output block, including schema reference, allowed epistemic classes, confidence policy, missing-data policy, and contradiction policy. Stored/overridden passports cannot weaken `MISSING_REMAINS_MISSING` semantics or substitute an unrelated confidence policy.
+3. **Complete model-requirements projection locked.** Source validation rejects drift in reasoning, structured output, web, multimodal, computer, code, minimum context, latency, cost, privacy, provider allowlist, and provider denylist. Passport storage/override does not create model-routing authority.
+4. **Complete resource contract locked.** `allowedResources` must equal the source `readsMemory` projection; resources cannot be added or hidden. `forbiddenResources` must preserve the frozen prohibitions `service_role`, `raw_secrets`, and `unscoped_external_execution`.
+5. **Canonical source-policy set locked.** `input.sourcePolicies` must equal the frozen set `EVIDENCE_BEFORE_INFERENCE`, `MODEL_OUTPUT_NEVER_OBSERVATION_BY_INHERITANCE`, and `MISSING_REMAINS_MISSING`; empty, arbitrary, duplicate, or incomplete policy sets fail validation.
+6. **Prior source invariants retained.** EvidenceHunter remains non-observational; source-layer epistemic mode cannot drift; source-required inputs cannot be dropped; RETURN obligations cannot be weakened; required observed RETURN for reality calibration remains explicit; mandatory human confirmation remains source-derived and non-optional.
+
+Deterministic passport regressions now exercise the full output-policy block, every field of the canonical model-requirements object, exact allowed/forbidden resource sets, exact source-policy set, unsupported contract versions, source identity/purpose, accepted evidence vocabulary, EvidenceHunter epistemic boundary, RETURN, human confirmation, epistemic mode, and source-required inputs.
+
+A same-Slice-A QA regression was also absorbed: after removal of the local `requirementsForAgent()` wrapper, `qa-sfi-ai-governance.ts` still matched that obsolete symbol and caused SFI Verify to fail even though execution already consumed the canonical owner. The gate now verifies direct `llmRequirementsForAgent(agentId)` consumption, absence of a local `requirementsForAgent()` function, and derivation of LLM router requirements from `operationModelRequirementsForAgent(agentId)`.
+
+No contract delta was introduced. Authority ceilings remain unchanged; no grant, broker, external execution authority, migration, table, event owner, or persistence owner was added. SFI-00 remains sole integration authority.
+
+This documentation commit intentionally moves the branch HEAD after the corrected code head. Integration readiness must therefore be decided only from exact-head CI on the resulting documentation-adjusted HEAD plus a fresh review-thread check. WS-01 must not merge and must not start Slice B on this branch.
+
 ---
 
 # COPY-PASTE DISPATCH PROMPT
