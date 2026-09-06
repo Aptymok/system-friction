@@ -200,10 +200,15 @@ export function evidenceCapsuleDisposition(
   if (request.producedAt !== null && !isIsoDate(request.producedAt)) push('PRODUCED_AT_INVALID');
 
   if (request.origin === 'OBSERVATION' && !hasObservedAt) push('OBSERVATION_ORIGIN_REQUIRES_OBSERVED_AT');
+  if (request.origin === 'OBSERVATION' && record.epistemicState !== 'OBSERVED') push('OBSERVATION_ORIGIN_REQUIRES_OBSERVED_STATE');
   if (request.origin === 'MODEL_OUTPUT' && hasObservedAt) push('MODEL_OUTPUT_CANNOT_BE_OBSERVATION');
   if (request.origin === 'MODEL_OUTPUT' && record.epistemicState === 'OBSERVED') push('MODEL_OUTPUT_CANNOT_HAVE_OBSERVED_STATE');
   if (record.epistemicState === 'OBSERVED' && !hasObservedAt) push('OBSERVED_STATE_REQUIRES_OBSERVED_AT');
-  if (record.objectType === 'RETURN' && (request.origin !== 'OBSERVATION' || !hasObservedAt)) {
+  if (record.objectType === 'RETURN' && (
+    request.origin !== 'OBSERVATION'
+    || record.epistemicState !== 'OBSERVED'
+    || !hasObservedAt
+  )) {
     push('RETURN_REQUIRES_REALITY_OBSERVATION');
   }
 
