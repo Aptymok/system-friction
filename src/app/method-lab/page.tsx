@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { MethodLabEnvironment } from '@/components/sfi/MethodLabEnvironment';
 import { MethodLabNativeHub } from '@/components/sfi/MethodLabNativeHub';
 import { MethodLabResearchReview } from '@/components/sfi/MethodLabResearchReview';
+import { MethodLabExperimentWorkbench } from '@/components/sfi/MethodLabExperimentWorkbench';
 import { PersonalCognitiveLabWorkspace } from '@/components/sfi/PersonalCognitiveLabWorkspace';
 import { readMethodLabState } from '@/lib/method-lab/readModel';
 import { readMethodLabEvidenceOptions } from '@/lib/method-lab/readHubEvidence';
@@ -33,9 +34,15 @@ export default async function MethodLabPage() {
   const institutional = Boolean(account.member) || role === 'root' || role === 'system';
 
   // Normal accounts use the same Method Lab surface, but every case, evidence,
-  // cognitive run and simulation is bound to their auth user. They do not read
-  // the institutional Cognitive Spine, ROOT evidence or governance queue.
-  if (!institutional) return <PersonalCognitiveLabWorkspace />;
+  // cognitive run, Twin state selection and experiment row is bound to their
+  // auth user. They do not read the institutional Cognitive Spine, ROOT evidence
+  // or governance queue.
+  if (!institutional) return (
+    <>
+      <PersonalCognitiveLabWorkspace />
+      <MethodLabExperimentWorkbench />
+    </>
+  );
 
   // Institutional observers/controllers and ROOT retain the canonical SFI Lab.
   await requireRootObserverPage('/method-lab');
@@ -87,6 +94,7 @@ export default async function MethodLabPage() {
         researchWarningCount={research.warnings.length}
         decisionTransfer={{ status: state.decisionTransfer.status, totalEvaluations: state.decisionTransfer.totalEvaluations }}
       />
+      <MethodLabExperimentWorkbench />
       <MethodLabNativeHub
         initialState={state}
         initialSessions={sessionViews}
