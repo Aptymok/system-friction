@@ -15,6 +15,7 @@ const experimentContract = read('src/lib/method-lab/experimentContract.ts');
 const reentry = read('src/lib/method-lab/reentryEngine.ts');
 const personalWorkspace = read('src/lib/sfi/personal/cognitiveWorkspace.ts');
 const twinContract = read('src/core/cognitive-twin/contract.ts');
+const twinStateContract = read('src/core/cognitive-twin/stateContract.ts');
 const twinStatePersistence = read('src/core/cognitive-twin/statePersistence.ts');
 
 // Route authorization + canonical surface absorption.
@@ -24,7 +25,8 @@ assert.match(page, /MethodLabExperimentWorkbench/, 'Slice E must mount on the ex
 assert.doesNotMatch(page, /createServiceSupabaseClient|\.from\(/, 'Page rendering must not bypass server-owned persistence boundaries.');
 assert.match(route, /requireUserProfile\(\)/, 'Method Lab UI API must authenticate every read/write.');
 assert.match(route, /allowed: \['preregister', 'execute_simulation'\]/, 'UI API operation surface must stay explicitly bounded.');
-assert.doesNotMatch(route, /requireRootActor|auditRootAction|canonical.*promot/i, 'Owner-scoped UI API must not acquire ROOT/canonical mutation authority.');
+assert.doesNotMatch(route, /requireRootActor|auditRootAction/, 'Owner-scoped UI API must not acquire ROOT mutation authority.');
+assert.match(route, /canonicalPromotion: false/, 'UI route must expose the no-canonical-promotion boundary.');
 
 // Owner/private scope. Every private case/evidence/Twin/experiment read is constrained by owner_id.
 for (const table of ['field_cases', 'field_case_evidence', 'sfi_cognitive_twin_runs', 'sfi_lab_analyses']) {
@@ -88,9 +90,11 @@ assert.doesNotMatch(projection, /osf\.io|OSF registration exists|externalRegistr
 // No OBSERVED inheritance, CANON promotion, or Twin authority expansion.
 assert.match(experimentContract, /METHOD_LAB_EXPERIMENT_SIMULATION_CANNOT_BECOME_OBSERVED/);
 assert.match(experimentContract, /SIMULATION_NEVER_INHERITS_OBSERVED/);
-assert.match(twinStatePersistence, /MODEL_CONTEXT_IS_NOT_TWIN_MEMORY/);
+assert.match(twinStateContract, /MODEL_CONTEXT_IS_NOT_TWIN_MEMORY/);
 assert.match(twinStatePersistence, /canonicalMutation: false/);
 assert.ok(twinContract.includes('authority') || twinContract.includes('Authority'), 'Canonical Cognitive Twin authority contract must remain present.');
+assert.match(twinContract, /founderReservedActions/);
+assert.match(twinContract, /'mutate_canon'/);
 for (const source of [route, projection, execution, ui]) {
   assert.doesNotMatch(source, /canonicalMutation:\s*true|promotionAllowed:\s*true|EXECUTE_EXTERNAL|IRREVERSIBLE|\bCANON\b\s*:/, 'Slice E cannot expand canonical/external authority.');
 }
