@@ -130,6 +130,15 @@ async function requireEvent(
   return result.eventId;
 }
 
+function inheritedParentGrantForRequest(context: KernelContext, requestedByCapabilityId: string) {
+  const inherited = capabilityGrantParentFromContext(context);
+  return inherited
+    && inherited.principal === requestedByCapabilityId
+    && inherited.capabilityId === requestedByCapabilityId
+    ? inherited
+    : null;
+}
+
 function executionContext(
   context: KernelContext,
   request: SfiCapabilityRequest,
@@ -263,7 +272,8 @@ export async function requestCognitiveCapability(
     },
   });
 
-  const parentGrant = input.parentGrant ?? capabilityGrantParentFromContext(input.context);
+  const parentGrant = input.parentGrant
+    ?? inheritedParentGrantForRequest(input.context, request.requestedByCapabilityId);
   const grantIssue = decision.executionAllowed
     ? issueEphemeralCapabilityGrant({
       request,
