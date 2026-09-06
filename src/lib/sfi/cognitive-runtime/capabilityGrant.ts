@@ -306,7 +306,7 @@ export function issueEphemeralCapabilityGrant(input: SfiCapabilityGrantIssueInpu
     grantId: input.grantId ?? randomUUID(),
     principal: request.requestedCapabilityId,
     trajectoryId: request.trajectoryId,
-    stepId: request.parentStepId ?? input.context.taskId,
+    stepId: request.parentStepId ?? input.context.taskId ?? '',
     capabilityId: request.requestedCapabilityId,
     resource: `trajectory:${request.trajectoryId}`,
     allowedActions: requestedPassport.orchestration.mayRequestCapabilities
