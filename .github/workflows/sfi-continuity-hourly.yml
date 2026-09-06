@@ -191,7 +191,7 @@ jobs:
           if lane_failures:
               raise SystemExit(f"required continuity lane failed: {','.join(lane_failures)}")
           if payload.get('ok') is not True:
-              raise SystemExit('continuity receipt inconsistent: core and inspected lanes pass but overall ok=false')
+              raise SystemExit('continuity heartbeat reported ok=false: core and inspected lanes pass but overall receipt is false')
 
           if requested:
               if payload.get('requestedCycleId') != requested:
