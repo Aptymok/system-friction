@@ -19,6 +19,7 @@ import {
 
 function fixture(objectType: SfiCanonicalObjectType, suffix = objectType.toLowerCase()): SfiCanonicalObjectRecord {
   const slug = `research-${suffix.replace(/_/g, '-')}`;
+  const sourceRef = `source:fixture:${suffix}`;
   return {
     contract: SFI_CANONICAL_OBJECT_CONTRACT,
     id: `sfi-object-${suffix}`,
@@ -35,7 +36,7 @@ function fixture(objectType: SfiCanonicalObjectType, suffix = objectType.toLower
     authors: ['Aptymok'],
     methods: ['method:fixture'],
     relatedObjects: [],
-    sourceRefs: [`source:fixture:${suffix}`],
+    sourceRefs: [sourceRef],
     publicState: 'PUBLIC',
     license: 'CC BY 4.0',
     createdAt: '2026-09-05T00:00:00.000Z',
@@ -55,6 +56,10 @@ function fixture(objectType: SfiCanonicalObjectType, suffix = objectType.toLower
     },
     rights: {
       state: 'OPEN',
+    },
+    evidenceIdentity: {
+      state: 'VALID',
+      refs: [sourceRef],
     },
     limitations: [],
     missing: [],
@@ -114,6 +119,7 @@ test('canonical identity, URL, publication, epistemic state, lineage and missing
   record.epistemicState = 'MISSING';
   record.authors = ['Aptymok'];
   record.sourceRefs = ['source:paper:primary'];
+  record.evidenceIdentity.refs = ['source:paper:primary'];
   record.limitations = ['Sample size is not disclosed by the canonical source.'];
   record.missing = [{
     field: 'sample_size',

@@ -21,8 +21,21 @@ export type SfiCanonicalObjectType = (typeof SFI_CANONICAL_OBJECT_TYPES)[number]
 export type SfiCanonicalPublicState = 'PRIVATE' | 'REVIEW_REQUIRED' | 'PUBLIC';
 export type SfiCanonicalPrivacyClass = 'PUBLIC' | 'INTERNAL' | 'PRIVATE';
 export type SfiCanonicalRightsState = 'OPEN' | 'RESTRICTED' | 'UNKNOWN' | 'NOT_APPLICABLE';
+export type SfiCanonicalEvidenceIdentityState = 'VALID' | 'INVALID' | 'UNKNOWN';
 export type SfiCanonicalEntityRelation = 'DEFINED_BY' | 'OBSERVED_BY' | 'PUBLISHED_BY' | 'MAINTAINED_BY';
 export type SfiCanonicalPublicationDisposition = 'PUBLISH' | 'BLOCK';
+
+export type SfiCanonicalPublicabilityPrivacy = 'PUBLIC' | 'NOT_PUBLIC';
+export type SfiCanonicalPublicabilityRights = 'CLEARED' | 'NOT_CLEARED';
+export type SfiCanonicalPublicabilityGovernance = 'PUBLICABLE' | 'NOT_PUBLICABLE';
+export type SfiCanonicalPublicabilityEvidenceIdentity = 'VALID' | 'INVALID';
+
+export interface SfiCanonicalPublicabilityAssessment {
+  privacy: SfiCanonicalPublicabilityPrivacy;
+  rights: SfiCanonicalPublicabilityRights;
+  governance: SfiCanonicalPublicabilityGovernance;
+  evidenceIdentity: SfiCanonicalPublicabilityEvidenceIdentity;
+}
 
 export const SFI_CANONICAL_EPISTEMIC_STATES = [
   'OBSERVED',
@@ -84,6 +97,10 @@ export interface SfiCanonicalObjectRecord extends SfiCanonicalObject {
   rights: {
     state: SfiCanonicalRightsState;
   };
+  evidenceIdentity: {
+    state: SfiCanonicalEvidenceIdentityState;
+    refs: string[];
+  };
   limitations: string[];
   missing: SfiCanonicalMissingField[];
 }
@@ -110,6 +127,12 @@ export interface SfiCanonicalPublicProjection {
   license: string | null;
   limitations: string[];
   missing: SfiCanonicalMissingField[];
+  publicability: {
+    privacy: 'PUBLIC';
+    rights: 'CLEARED';
+    governance: 'PUBLICABLE';
+    evidenceIdentity: 'VALID';
+  };
 }
 
 const OBJECT_NAMESPACE: Record<SfiCanonicalObjectType, string> = {
@@ -166,6 +189,25 @@ export function canonicalUrlFor(objectType: SfiCanonicalObjectType, slug: string
   return `${BASE}${OBJECT_NAMESPACE[objectType]}/${slug}`;
 }
 
+export function canonicalPublicabilityAssessment(record: SfiCanonicalObjectRecord): SfiCanonicalPublicabilityAssessment {
+  const evidenceRefsValid = record.evidenceIdentity.refs.length > 0
+    && unique(record.evidenceIdentity.refs)
+    && record.evidenceIdentity.refs.every((ref) => clean(ref) && record.sourceRefs.includes(ref));
+
+  return {
+    privacy: record.eligibility.privacyClass === 'PUBLIC' ? 'PUBLIC' : 'NOT_PUBLIC',
+    rights: record.rights.state === 'OPEN' || record.rights.state === 'NOT_APPLICABLE' ? 'CLEARED' : 'NOT_CLEARED',
+    governance: record.publicState === 'PUBLIC'
+      && record.publication.state === 'PUBLISHED'
+      && record.publication.explicit === true
+      && record.eligibility.publicEligible
+      && record.eligibility.securityEligible
+      ? 'PUBLICABLE'
+      : 'NOT_PUBLICABLE',
+    evidenceIdentity: record.evidenceIdentity.state === 'VALID' && evidenceRefsValid ? 'VALID' : 'INVALID',
+  };
+}
+
 export function validateCanonicalObject(record: SfiCanonicalObjectRecord): string[] {
   const errors: string[] = [];
   const push = (code: string) => errors.push(code);
@@ -198,9 +240,15 @@ export function validateCanonicalObject(record: SfiCanonicalObjectRecord): strin
     ['RELATED_OBJECTS', record.relatedObjects],
     ['SOURCE_REFS', record.sourceRefs],
     ['LIMITATIONS', record.limitations],
+    ['EVIDENCE_IDENTITY_REFS', record.evidenceIdentity.refs],
   ] as const) {
     if (!unique(values)) push(`${name}_DUPLICATE`);
     if (values.some((value) => !clean(value))) push(`${name}_EMPTY_VALUE`);
+  }
+
+  if (!['VALID', 'INVALID', 'UNKNOWN'].includes(record.evidenceIdentity.state)) push('EVIDENCE_IDENTITY_STATE_UNSUPPORTED');
+  for (const evidenceRef of record.evidenceIdentity.refs) {
+    if (!record.sourceRefs.includes(evidenceRef)) push('EVIDENCE_IDENTITY_REF_NOT_IN_LINEAGE');
   }
 
   if (!isIsoDate(record.createdAt)) push('CREATED_AT_INVALID');
@@ -229,6 +277,8 @@ export function validateCanonicalObject(record: SfiCanonicalObjectRecord): strin
     if (record.sourceRefs.length === 0) push('PUBLIC_LINEAGE_REQUIRED');
     if (record.sourceRefs.length > 0 && record.sourceRefs.every(isInternalEventRef)) push('PUBLIC_CANNOT_DERIVE_ONLY_FROM_INTERNAL_EVENT');
     if (record.rights.state === 'RESTRICTED' || record.rights.state === 'UNKNOWN') push('PUBLIC_RIGHTS_NOT_ELIGIBLE');
+    if (record.evidenceIdentity.state !== 'VALID') push('PUBLIC_EVIDENCE_IDENTITY_REQUIRED');
+    if (record.evidenceIdentity.refs.length === 0) push('PUBLIC_EVIDENCE_IDENTITY_REFS_REQUIRED');
   } else if (record.publication.state === 'PUBLISHED') {
     push('PUBLISHED_REQUIRES_PUBLIC_STATE');
   }
@@ -247,9 +297,17 @@ export function canonicalPublicationDisposition(record: SfiCanonicalObjectRecord
 } {
   const reasons = validateCanonicalObject(record);
   if (reasons.length) return { disposition: 'BLOCK', reasons };
-  if (record.publicState !== 'PUBLIC') return { disposition: 'BLOCK', reasons: ['PUBLIC_STATE_NOT_PUBLIC'] };
-  if (record.publication.state !== 'PUBLISHED') return { disposition: 'BLOCK', reasons: ['PUBLICATION_NOT_PUBLISHED'] };
-  return { disposition: 'PUBLISH', reasons: [] };
+
+  const publicability = canonicalPublicabilityAssessment(record);
+  const publicabilityReasons: string[] = [];
+  if (publicability.privacy !== 'PUBLIC') publicabilityReasons.push('PUBLICABILITY_PRIVACY_NOT_PUBLIC');
+  if (publicability.rights !== 'CLEARED') publicabilityReasons.push('PUBLICABILITY_RIGHTS_NOT_CLEARED');
+  if (publicability.governance !== 'PUBLICABLE') publicabilityReasons.push('PUBLICABILITY_GOVERNANCE_NOT_PUBLICABLE');
+  if (publicability.evidenceIdentity !== 'VALID') publicabilityReasons.push('PUBLICABILITY_EVIDENCE_IDENTITY_INVALID');
+
+  return publicabilityReasons.length > 0
+    ? { disposition: 'BLOCK', reasons: publicabilityReasons }
+    : { disposition: 'PUBLISH', reasons: [] };
 }
 
 export function publicProjectionForCanonicalObject(record: SfiCanonicalObjectRecord): SfiCanonicalPublicProjection | null {
@@ -276,6 +334,12 @@ export function publicProjectionForCanonicalObject(record: SfiCanonicalObjectRec
     license: record.license,
     limitations: [...record.limitations],
     missing: record.missing.map((entry) => ({ ...entry })),
+    publicability: {
+      privacy: 'PUBLIC',
+      rights: 'CLEARED',
+      governance: 'PUBLICABLE',
+      evidenceIdentity: 'VALID',
+    },
   };
 }
 
