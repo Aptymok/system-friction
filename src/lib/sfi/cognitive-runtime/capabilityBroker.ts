@@ -37,6 +37,13 @@ export interface SfiCapabilityRequest {
   requestedAt: string;
 }
 
+export interface SfiHumanAuthorityReceipt {
+  requestId: string;
+  receiptId: string;
+  authorizedBy: string;
+  authorizedAt: string;
+}
+
 export interface SfiCapabilityHistoryEntry {
   eventId: string | null;
   eventName: string;
@@ -50,6 +57,10 @@ export interface SfiCapabilityBrokerInput {
   depth?: number;
   remainingInvocationBudget?: number;
   alreadySatisfiedCapabilityIds?: string[];
+  ancestorCapabilityIds?: string[];
+  pendingRequestHashes?: string[];
+  pendingCapabilityIds?: string[];
+  humanAuthorityReceipt?: SfiHumanAuthorityReceipt | null;
 }
 
 export interface SfiCapabilityBrokerDecision {
@@ -257,6 +268,14 @@ function validateRequestShape(request: SfiCapabilityRequest) {
   return errors;
 }
 
+function validHumanAuthorityReceipt(request: SfiCapabilityRequest, receipt: SfiHumanAuthorityReceipt | null | undefined) {
+  if (!receipt) return false;
+  return receipt.requestId === request.requestId
+    && Boolean(receipt.receiptId.trim())
+    && Boolean(receipt.authorizedBy.trim())
+    && Number.isFinite(new Date(receipt.authorizedAt).getTime());
+}
+
 export function evaluateCapabilityRequest(input: SfiCapabilityBrokerInput): SfiCapabilityBrokerDecision {
   const request = input.request;
   const requestHash = capabilityRequestHash(request);
@@ -265,6 +284,7 @@ export function evaluateCapabilityRequest(input: SfiCapabilityBrokerInput): SfiC
   const requestedSource = sourceFor(request.requestedCapabilityId);
   const requesterPassport = requesterSource ? projectCognitivePassport(requesterSource) : null;
   const requestedPassport = requestedSource ? projectCognitivePassport(requestedSource) : null;
+  const humanAuthorityVerified = validHumanAuthorityReceipt(request, input.humanAuthorityReceipt);
 
   const shapeErrors = validateRequestShape(request);
   if (shapeErrors.length > 0) {
@@ -301,6 +321,25 @@ export function evaluateCapabilityRequest(input: SfiCapabilityBrokerInput): SfiC
     return decision(input, 'DENY', ['REQUESTED_CAPABILITY_OUTSIDE_PASSPORT_SCOPE'], { requesterPassport, requestedPassport });
   }
 
+  if (new Set(input.ancestorCapabilityIds ?? []).has(request.requestedCapabilityId)) {
+    return decision(input, 'DENY', ['DENY_CYCLE:ANCESTOR_CAPABILITY_REPEAT'], { requesterPassport, requestedPassport });
+  }
+
+  if (new Set(input.pendingRequestHashes ?? []).has(requestHash)) {
+    return decision(input, 'DEFER', ['EQUIVALENT_PENDING_REQUEST_REUSED'], {
+      deduplicated: true,
+      requesterPassport,
+      requestedPassport,
+    });
+  }
+  if (new Set(input.pendingCapabilityIds ?? []).has(request.requestedCapabilityId)) {
+    return decision(input, 'DEFER', ['CAPABILITY_ALREADY_PENDING_IN_GRAPH'], {
+      deduplicated: true,
+      requesterPassport,
+      requestedPassport,
+    });
+  }
+
   const alreadySatisfied = new Set(input.alreadySatisfiedCapabilityIds ?? []);
   if (alreadySatisfied.has(request.requestedCapabilityId)) {
     return decision(input, 'ALREADY_SATISFIED', ['CAPABILITY_ALREADY_SATISFIED_IN_TRAJECTORY'], { requesterPassport, requestedPassport });
@@ -318,28 +357,31 @@ export function evaluateCapabilityRequest(input: SfiCapabilityBrokerInput): SfiC
   }
   if (prior.some((entry) => entry.eventName === 'SFI_CAPABILITY_REQUESTED')) {
     const previousDisposition = priorDisposition(prior);
-    if (!previousDisposition) {
-      return decision(input, 'DEFER', ['DUPLICATE_IN_FLIGHT_REQUEST_TERMINATED'], {
-        deduplicated: true,
-        requesterPassport,
-        requestedPassport,
-        lineage: prior.map((entry) => entry.eventId).filter((value): value is string => Boolean(value)),
-      });
-    }
-    if (previousDisposition.disposition === 'ADMIT') {
-      return decision(input, 'DEFER', ['DUPLICATE_ADMITTED_REQUEST_WITHOUT_EXECUTION_RECEIPT'], {
+    const authorityReentry = previousDisposition?.disposition === 'HUMAN_AUTHORITY_REQUIRED' && humanAuthorityVerified;
+    if (!authorityReentry) {
+      if (!previousDisposition) {
+        return decision(input, 'DEFER', ['DUPLICATE_IN_FLIGHT_REQUEST_TERMINATED'], {
+          deduplicated: true,
+          requesterPassport,
+          requestedPassport,
+          lineage: prior.map((entry) => entry.eventId).filter((value): value is string => Boolean(value)),
+        });
+      }
+      if (previousDisposition.disposition === 'ADMIT') {
+        return decision(input, 'DEFER', ['DUPLICATE_ADMITTED_REQUEST_WITHOUT_EXECUTION_RECEIPT'], {
+          deduplicated: true,
+          requesterPassport,
+          requestedPassport,
+          lineage: [previousDisposition.eventId].filter((value): value is string => Boolean(value)),
+        });
+      }
+      return decision(input, previousDisposition.disposition, ['EQUIVALENT_REQUEST_REUSES_PRIOR_DISPOSITION'], {
         deduplicated: true,
         requesterPassport,
         requestedPassport,
         lineage: [previousDisposition.eventId].filter((value): value is string => Boolean(value)),
       });
     }
-    return decision(input, previousDisposition.disposition, ['EQUIVALENT_REQUEST_REUSES_PRIOR_DISPOSITION'], {
-      deduplicated: true,
-      requesterPassport,
-      requestedPassport,
-      lineage: [previousDisposition.eventId].filter((value): value is string => Boolean(value)),
-    });
   }
 
   const scope = invalidScope(request, requestedPassport);
@@ -353,18 +395,6 @@ export function evaluateCapabilityRequest(input: SfiCapabilityBrokerInput): SfiC
   if (AUTHORITY_ORDER[requestedPassport.authority.ceiling] > AUTHORITY_ORDER[requesterPassport.authority.ceiling]) {
     return decision(input, 'DENY', [
       `AUTHORITY_CEILING_EXCEEDED:${requesterPassport.authority.ceiling}:${requestedPassport.authority.ceiling}`,
-    ], { requesterPassport, requestedPassport });
-  }
-
-  if (requestedPassport.authority.confirmationRequirement === 'HUMAN') {
-    return decision(input, 'HUMAN_AUTHORITY_REQUIRED', ['REQUESTED_CAPABILITY_REQUIRES_HUMAN_CONFIRMATION'], { requesterPassport, requestedPassport });
-  }
-
-  const evidence = missingEvidencePrerequisites(request, input.context, requestedPassport);
-  if (evidence.missingRefs.length > 0 || evidence.missingClasses.length > 0) {
-    return decision(input, 'EVIDENCE_REQUIRED', [
-      ...evidence.missingRefs.map((item) => `EVIDENCE_REF_NOT_AVAILABLE:${item}`),
-      ...evidence.missingClasses.map((item) => `REQUIRED_EVIDENCE_CLASS_MISSING:${item}`),
     ], { requesterPassport, requestedPassport });
   }
 
@@ -384,11 +414,24 @@ export function evaluateCapabilityRequest(input: SfiCapabilityBrokerInput): SfiC
     ], { requesterPassport, requestedPassport });
   }
 
+  if (requestedPassport.authority.confirmationRequirement === 'HUMAN' && !humanAuthorityVerified) {
+    return decision(input, 'HUMAN_AUTHORITY_REQUIRED', ['REQUESTED_CAPABILITY_REQUIRES_HUMAN_CONFIRMATION'], { requesterPassport, requestedPassport });
+  }
+
+  const evidence = missingEvidencePrerequisites(request, input.context, requestedPassport);
+  if (evidence.missingRefs.length > 0 || evidence.missingClasses.length > 0) {
+    return decision(input, 'EVIDENCE_REQUIRED', [
+      ...evidence.missingRefs.map((item) => `EVIDENCE_REF_NOT_AVAILABLE:${item}`),
+      ...evidence.missingClasses.map((item) => `REQUIRED_EVIDENCE_CLASS_MISSING:${item}`),
+    ], { requesterPassport, requestedPassport });
+  }
+
   return decision(input, 'ADMIT', [
     'CANONICAL_PASSPORT_VERIFIED',
     'SOURCE_CONTRACT_VERIFIED',
     'CAPABILITY_SCOPE_VERIFIED',
     'AUTHORITY_CEILING_VERIFIED',
+    ...(humanAuthorityVerified ? ['HUMAN_AUTHORITY_RECEIPT_VERIFIED'] : []),
     'EVIDENCE_PREREQUISITES_VERIFIED',
     'BOUNDED_REQUEST_VERIFIED',
   ], { requesterPassport, requestedPassport });

@@ -5,6 +5,7 @@ import {
   type SfiCapabilityBrokerDecision,
   type SfiCapabilityHistoryEntry,
   type SfiCapabilityRequest,
+  type SfiHumanAuthorityReceipt,
 } from './capabilityBroker';
 import type { KernelContext } from './kernelContext';
 
@@ -44,12 +45,26 @@ type CapabilityRuntimeDependencies = {
   executeAgent: (agentId: string, context: KernelContext) => Promise<AgentExecutionResult>;
 };
 
-type CapabilityRuntimeInput = {
+export type SfiCapabilityAdmissionLineage = {
+  requestEventId: string;
+  dispositionEventId: string;
+};
+
+export type SfiCapabilityRuntimeInput = {
   request: SfiCapabilityRequest;
   context: KernelContext;
   depth?: number;
   remainingInvocationBudget?: number;
   alreadySatisfiedCapabilityIds?: string[];
+  ancestorCapabilityIds?: string[];
+  pendingRequestHashes?: string[];
+  pendingCapabilityIds?: string[];
+  humanAuthorityReceipt?: SfiHumanAuthorityReceipt | null;
+  onAdmitted?: (
+    context: KernelContext,
+    decision: SfiCapabilityBrokerDecision,
+    lineage: SfiCapabilityAdmissionLineage,
+  ) => KernelContext | Promise<KernelContext>;
 };
 
 type Row = Record<string, unknown>;
@@ -106,6 +121,7 @@ function executionContext(
   request: SfiCapabilityRequest,
   decision: SfiCapabilityBrokerDecision,
   dispositionEventId: string,
+  humanAuthorityReceipt: SfiHumanAuthorityReceipt | null | undefined,
 ): KernelContext {
   return {
     ...context,
@@ -123,6 +139,7 @@ function executionContext(
         requestedCapabilityId: request.requestedCapabilityId,
         trajectoryId: request.trajectoryId,
         authorityBoundary: decision.authorityBoundary,
+        humanAuthorityReceiptRef: humanAuthorityReceipt?.receiptId ?? null,
       },
     },
   };
@@ -160,7 +177,7 @@ export function capabilityRequestsFromContext(
 }
 
 export async function requestCognitiveCapability(
-  input: CapabilityRuntimeInput,
+  input: SfiCapabilityRuntimeInput,
   dependencies: Partial<CapabilityRuntimeDependencies> = {},
 ): Promise<SfiCapabilityRuntimeResult> {
   const deps: CapabilityRuntimeDependencies = { ...DEFAULT_DEPENDENCIES, ...dependencies };
@@ -172,10 +189,12 @@ export async function requestCognitiveCapability(
     depth: input.depth,
     remainingInvocationBudget: input.remainingInvocationBudget,
     alreadySatisfiedCapabilityIds: input.alreadySatisfiedCapabilityIds,
+    ancestorCapabilityIds: input.ancestorCapabilityIds,
+    pendingRequestHashes: input.pendingRequestHashes,
+    pendingCapabilityIds: input.pendingCapabilityIds,
+    humanAuthorityReceipt: input.humanAuthorityReceipt,
   });
 
-  // Equivalent requests terminate against prior lineage. Do not append another
-  // request/disposition pair, which would turn deduplication into event amplification.
   if (decision.deduplicated) {
     return {
       request: input.request,
@@ -225,6 +244,7 @@ export async function requestCognitiveCapability(
       requestedByCapabilityId: input.request.requestedByCapabilityId,
       requestedCapabilityId: input.request.requestedCapabilityId,
       authorityBoundary: decision.authorityBoundary,
+      humanAuthorityReceiptRef: input.humanAuthorityReceipt?.receiptId ?? null,
       canonicalPromotionAllowed: false,
       ephemeralGrantCreated: false,
     },
@@ -242,7 +262,16 @@ export async function requestCognitiveCapability(
     };
   }
 
-  const governedContext = executionContext(input.context, input.request, decision, dispositionEventId);
+  let governedContext = executionContext(
+    input.context,
+    input.request,
+    decision,
+    dispositionEventId,
+    input.humanAuthorityReceipt,
+  );
+  if (input.onAdmitted) {
+    governedContext = await input.onAdmitted(governedContext, decision, { requestEventId, dispositionEventId });
+  }
   const execution = await deps.executeAgent(input.request.requestedCapabilityId, governedContext);
   return {
     request: input.request,
