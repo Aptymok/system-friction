@@ -78,7 +78,7 @@ test('stop invariant requires no information, no state mutation and no unresolve
 test('broker blocks equivalent pending work, ancestor recurrence and depth expansion without authority elevation', () => {
   const ctx = context();
   const req = request();
-  const base = { request: req, context: ctx, history: [], depth: 1, remainingInvocationBudget: 1 } as const;
+  const base = { request: req, context: ctx, history: [], depth: 1, remainingInvocationBudget: 1 };
   const pending = evaluateCapabilityRequest({ ...base, pendingCapabilityIds: ['risk_agent'] });
   assert.equal(pending.disposition, 'DEFER');
   assert.equal(pending.executionAllowed, false);
