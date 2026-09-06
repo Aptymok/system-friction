@@ -1,5 +1,6 @@
 name: SFI Continuity Ledger Read Hardening
 
+# Issue #385 corrective assurance; production ownership remains in Universal Cycle Continuation.
 on:
   pull_request:
     paths:
