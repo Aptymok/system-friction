@@ -1,0 +1,50 @@
+{
+  "contract": "SFI-ACOUSTIC-INSTRUMENT-PACKAGE-1.0",
+  "packageId": "sfi.fixture.qa-tone",
+  "packageVersion": "1.0.0",
+  "packageHash": "sha256:fa927a1a0c1128b0a0449ca178e8da39764603afe021dda71fcbcf567343ec21",
+  "packageHashAlgorithm": "sha256:path-sha256-v1",
+  "instrument": {
+    "instrumentRef": "00000000-0000-4000-8000-000000000601",
+    "name": "SFI QA Tone Instrument",
+    "family": "QA_SYNTHETIC_ACOUSTIC_FIXTURE",
+    "engine": "SFZ",
+    "rangeLow": 48,
+    "rangeHigh": 72
+  },
+  "mapping": {
+    "format": "SFZ",
+    "path": "instrument.sfz",
+    "sha256": "sha256:dcd75afdc23c8eb985af2071743eeeb38bc9b43fdae18560ec724981e090cbad",
+    "adapterMinimumVersion": "1.0.0"
+  },
+  "samples": [
+    {
+      "path": "samples/qa-tone.wav",
+      "sha256": "sha256:1369665855025b814537196b93da76d16609f9f1567e3976bd51bd41d93ba6b5",
+      "format": {
+        "container": "WAV",
+        "sampleRate": 48000,
+        "bitDepth": 24,
+        "channels": 1
+      },
+      "rightsAssertionRef": "fixture:rights:sfi-generated-qa-tone-v1"
+    }
+  ],
+  "roomIr": null,
+  "rights": {
+    "status": "EXECUTION_ALLOWED",
+    "assertionId": "fixture:rights:sfi-generated-qa-tone-v1",
+    "evidenceRefs": [
+      "repo:fixtures/audio/sfi-acoustic-instrument-package-1.0/samples/qa-tone.wav#generated-fixture"
+    ],
+    "publicAccessUsedAsRightsEvidence": false
+  },
+  "lineage": {
+    "sourceReferenceId": null,
+    "parentPackageRef": null,
+    "materializationRefs": [
+      "fixture:generator:sfi-qa-tone-v1"
+    ]
+  }
+}
