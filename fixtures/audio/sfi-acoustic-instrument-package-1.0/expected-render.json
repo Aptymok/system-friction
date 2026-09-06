@@ -1,0 +1,15 @@
+{
+  "contract": "SFI-AUDIO-REAL-SFZ-FIXTURE-1.0",
+  "adapter": "SFI-SFZ-ADAPTER@1.0.0",
+  "outputSha256": "sha256:7c18c7b9dd8914fce2d4b076252f3438dd9902ad8bc6d967d28534225686fbb8",
+  "metrics": {
+    "sampleRate": 48000,
+    "bitDepth": 24,
+    "channels": 1,
+    "frameCount": 29280,
+    "durationSeconds": 0.61,
+    "peak": 0.111566919,
+    "rms": 0.030751618,
+    "renderedEventCount": 3
+  }
+}

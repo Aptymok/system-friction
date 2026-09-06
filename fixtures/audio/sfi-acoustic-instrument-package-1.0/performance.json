@@ -1,0 +1,46 @@
+{
+  "contract": "SFI-AUDIO-PERFORMANCE-1.0",
+  "performanceId": "ws06-r4a-real-sfz-fixture",
+  "performanceVersion": "1.0.0",
+  "instrumentRef": "00000000-0000-4000-8000-000000000601",
+  "tempoBpm": 120,
+  "timeSignature": [4, 4],
+  "events": [
+    {
+      "eventId": "qa-e1",
+      "startSeconds": 0,
+      "durationSeconds": 0.18,
+      "note": 60,
+      "velocity": 96,
+      "articulation": "sustain",
+      "microtimingSeconds": 0,
+      "controls": { "gainDb": -1.5, "pitchBendCents": 0, "vibratoDepthCents": 0, "vibratoHz": 0 },
+      "roomSend": 0,
+      "provenance": { "sourceRef": "fixture:performance:qa-e1", "plannerRef": null }
+    },
+    {
+      "eventId": "qa-e2",
+      "startSeconds": 0.2,
+      "durationSeconds": 0.16,
+      "note": 64,
+      "velocity": 82,
+      "articulation": "sustain",
+      "microtimingSeconds": 0.001,
+      "controls": { "gainDb": -2, "pitchBendCents": 12, "vibratoDepthCents": 8, "vibratoHz": 5.2 },
+      "roomSend": 0,
+      "provenance": { "sourceRef": "fixture:performance:qa-e2", "plannerRef": "fixture:planner:deterministic-v1" }
+    },
+    {
+      "eventId": "qa-e3",
+      "startSeconds": 0.39,
+      "durationSeconds": 0.22,
+      "note": 67,
+      "velocity": 110,
+      "articulation": "sustain",
+      "microtimingSeconds": 0,
+      "controls": { "gainDb": -3, "pitchBendCents": -7, "vibratoDepthCents": 0, "vibratoHz": 0 },
+      "roomSend": 0,
+      "provenance": { "sourceRef": "fixture:performance:qa-e3", "plannerRef": "fixture:planner:deterministic-v1" }
+    }
+  ]
+}

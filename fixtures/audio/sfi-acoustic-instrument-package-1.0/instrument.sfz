@@ -1,0 +1,3 @@
+<global> volume=0
+<group> lovel=1 hivel=127
+<region> sample=samples/qa-tone.wav lokey=48 hikey=72 pitch_keycenter=60 volume=-6
