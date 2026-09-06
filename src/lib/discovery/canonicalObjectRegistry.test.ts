@@ -352,6 +352,47 @@ test('MISSING is metadata, never promoted into capsule evidence', () => {
   }), null);
 });
 
+test('OBSERVATION origin cannot override non-observed canonical RETURN state', () => {
+  const nonObservedStates = ['SIMULATED', 'DERIVED', 'PROJECTED', 'INFERRED', 'MISSING'] as const;
+
+  for (const epistemicState of nonObservedStates) {
+    const record = fixture('RETURN', `return-origin-bypass-${epistemicState.toLowerCase()}`);
+    record.epistemicState = epistemicState;
+    const sourceRef = record.sourceRefs[0]!;
+    if (epistemicState === 'MISSING') {
+      record.missing = [{
+        field: 'outcome',
+        reason: 'Reality observation is missing.',
+        sourceRef,
+      }];
+    }
+
+    const disposition = evidenceCapsuleDisposition(record, {
+      id: `capsule:return-origin-bypass:${epistemicState.toLowerCase()}`,
+      claim: 'Caller-supplied OBSERVATION origin cannot elevate canonical epistemic state.',
+      evidenceRefs: [sourceRef],
+      observedAt: '2026-09-05T01:00:00.000Z',
+      producedAt: null,
+      origin: 'OBSERVATION',
+    });
+
+    assert.equal(disposition.disposition, 'BLOCK', epistemicState);
+    assert.ok(disposition.reasons.includes('OBSERVATION_ORIGIN_REQUIRES_OBSERVED_STATE'), epistemicState);
+    assert.ok(disposition.reasons.includes('RETURN_REQUIRES_REALITY_OBSERVATION'), epistemicState);
+    if (epistemicState === 'MISSING') {
+      assert.ok(disposition.reasons.includes('MISSING_STATE_CANNOT_BE_EVIDENCE_CAPSULE'));
+    }
+    assert.equal(evidenceCapsuleForCanonicalObject(record, {
+      id: `capsule:return-origin-bypass:${epistemicState.toLowerCase()}`,
+      claim: 'Caller-supplied OBSERVATION origin cannot elevate canonical epistemic state.',
+      evidenceRefs: [sourceRef],
+      observedAt: '2026-09-05T01:00:00.000Z',
+      producedAt: null,
+      origin: 'OBSERVATION',
+    }), null, epistemicState);
+  }
+});
+
 test('MODEL OUTPUT != OBSERVATION and RETURN requires reality observation', () => {
   const observed = fixture('RETURN', 'return-boundary');
   const sourceRef = observed.sourceRefs[0]!;
