@@ -4,6 +4,18 @@ import { resolveUniversalReturnCapability, SFI_UNIVERSAL_RETURN_CAPABILITY_CONTR
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import type { KernelContext, KernelEvidence } from './kernelContext';
 import { runCognitiveAgent } from './runtimeAgentExecutor';
+import {
+  activeTaskGraphNodeForCapability,
+  contextWithTaskGraph,
+  evaluateAdaptiveStopInvariant,
+  executeAdaptiveCapabilityRequestsForNode,
+  finishRunningTaskGraphNode,
+  markAdaptiveStop,
+  resumeWaitingAdaptiveCapabilities,
+  startPlannedTaskGraphNode,
+  taskGraphFromContext,
+  unresolvedRequiredCapabilityCount,
+} from './adaptiveTaskGraphRuntime';
 
 export const SFI_UNIVERSAL_COGNITIVE_CHECKPOINT = 'SFI_UNIVERSAL_COGNITIVE_CHECKPOINT' as const;
 export const SFI_UNIVERSAL_RETURN_PLAN_RECORDED = 'SFI_UNIVERSAL_RETURN_PLAN_RECORDED' as const;
@@ -44,6 +56,20 @@ function stringList(value: unknown) {
   return Array.isArray(value)
     ? value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0).map((item) => item.trim())
     : [];
+}
+
+function signalSnapshot(context: KernelContext): KernelContext {
+  return {
+    ...context,
+    evidence: [...(context.evidence ?? [])],
+    hypotheses: [...(context.hypotheses ?? [])],
+    contradictions: [...(context.contradictions ?? [])],
+    simulations: [...(context.simulations ?? [])],
+    predictions: [...(context.predictions ?? [])],
+    risks: [...(context.risks ?? [])],
+    opportunities: [...(context.opportunities ?? [])],
+    metadata: { ...context.metadata },
+  };
 }
 
 async function ensureCognitiveSpineContext(context: KernelContext, source: string): Promise<KernelContext> {
@@ -111,8 +137,8 @@ function mergeEvidence(base: KernelEvidence[], checkpoint: KernelEvidence[]) {
   return [...merged.values()];
 }
 
-function mergeCheckpointContext(base: KernelContext, checkpoint: KernelContext): KernelContext {
-  return {
+export function mergeCheckpointContext(base: KernelContext, checkpoint: KernelContext): KernelContext {
+  const merged: KernelContext = {
     ...base,
     ...checkpoint,
     cycleId: base.cycleId,
@@ -135,9 +161,12 @@ function mergeCheckpointContext(base: KernelContext, checkpoint: KernelContext):
       },
     },
   };
+  taskGraphFromContext(merged);
+  return merged;
 }
 
-function checkpointContextProjection(context: KernelContext): KernelContext {
+export function checkpointContextProjection(context: KernelContext): KernelContext {
+  taskGraphFromContext(context);
   const signalType = text(context.metadata?.signalType)?.toLowerCase() ?? '';
   const tabular = ['dataset', 'csv'].includes(signalType);
   const evidence = (context.evidence ?? []).map((item) => {
@@ -231,17 +260,19 @@ function returnPlan(context: KernelContext) {
   };
 }
 
-async function persistCheckpoint(input: {
+export type CognitiveCheckpointWriteInput = {
   context: KernelContext;
   processedAgents: string[];
   executedAgents: string[];
   missingAgents: string[];
   completed: boolean;
   source: string;
-}) {
-  return appendEpistemicEvent({
+};
+
+export function cognitiveCheckpointEventInput(input: CognitiveCheckpointWriteInput) {
+  return {
     eventName: SFI_UNIVERSAL_COGNITIVE_CHECKPOINT,
-    epistemicClass: 'derived',
+    epistemicClass: 'derived' as const,
     confidence: 1,
     occurredAt: new Date().toISOString(),
     source: { sourceId: input.source, sourceType: 'cognitive_runtime_checkpoint' },
@@ -258,7 +289,11 @@ async function persistCheckpoint(input: {
       storagePolicy: 'DURABLE_COGNITIVE_STATE_NO_RAW_SOURCE_ROWS',
       epistemicBoundary: 'Checkpoint persistence preserves execution continuity only. It does not promote derived, inferred or simulated content to observed evidence.',
     },
-  });
+  };
+}
+
+async function persistCheckpoint(input: CognitiveCheckpointWriteInput) {
+  return appendEpistemicEvent(cognitiveCheckpointEventInput(input));
 }
 
 async function persistReturnPlan(context: KernelContext, source: string) {
@@ -329,10 +364,19 @@ export async function executeCognitiveCycle(
   const executedAgents: string[] = checkpoint ? [...checkpoint.executedAgents] : [];
   const processedAgents = new Set<string>(checkpoint?.processedAgents ?? []);
 
-  if (checkpoint?.completed) {
+  const restoredGraph = taskGraphFromContext(currentContext);
+  if (checkpoint?.completed && (!restoredGraph || unresolvedRequiredCapabilityCount(restoredGraph) === 0)) {
     const missingAgents = plannedAgents(currentContext).filter((agentId) => !executedAgents.includes(agentId));
     await persistReturnPlan(currentContext, source);
     return { context: currentContext, executedAgents, missingAgents, completed: missingAgents.length === 0 && executedAgents.includes('meta_orchestrator') };
+  }
+
+  if (restoredGraph && unresolvedRequiredCapabilityCount(restoredGraph) > 0) {
+    const resumed = await resumeWaitingAdaptiveCapabilities({ context: currentContext });
+    currentContext = resumed.context;
+    for (const capabilityId of resumed.executedCapabilityIds) {
+      if (!executedAgents.includes(capabilityId)) executedAgents.push(capabilityId);
+    }
   }
 
   const queue: string[] = processedAgents.has('meta_orchestrator')
@@ -349,12 +393,57 @@ export async function executeCognitiveCycle(
   while (queue.length > 0 && processedThisInvocation < maxAgents) {
     const agentId = queue.shift()!;
     if (processedAgents.has(agentId)) continue;
+
+    let graph = taskGraphFromContext(currentContext);
+    let graphNode = graph ? activeTaskGraphNodeForCapability(graph, agentId) : null;
+    if (graph && graphNode?.state === 'PLANNED') {
+      if (!startPlannedTaskGraphNode(graph, graphNode.nodeId)) {
+        currentContext = contextWithTaskGraph(currentContext, graph);
+        break;
+      }
+      currentContext = contextWithTaskGraph(currentContext, graph);
+    }
+
     processedAgents.add(agentId);
     processedThisInvocation += 1;
-
+    const beforeAgent = signalSnapshot(currentContext);
     const result = await runCognitiveAgent(agentId, currentContext);
     currentContext = result.context;
     if (result.executed && !executedAgents.includes(agentId)) executedAgents.push(agentId);
+
+    graph = taskGraphFromContext(currentContext);
+    graphNode = graph ? activeTaskGraphNodeForCapability(graph, agentId) : null;
+    if (graph && graphNode) {
+      if (graphNode.state === 'PLANNED') {
+        if (!startPlannedTaskGraphNode(graph, graphNode.nodeId)) {
+          currentContext = contextWithTaskGraph(currentContext, graph);
+          break;
+        }
+      }
+      if (graphNode.state === 'RUNNING') {
+        finishRunningTaskGraphNode({
+          graph,
+          nodeId: graphNode.nodeId,
+          before: beforeAgent,
+          after: currentContext,
+          executed: result.executed,
+        });
+      }
+      currentContext = contextWithTaskGraph(currentContext, graph);
+
+      if (result.executed) {
+        const adaptive = await executeAdaptiveCapabilityRequestsForNode({
+          context: currentContext,
+          parentNodeId: graphNode.nodeId,
+          parentCapabilityId: agentId,
+        });
+        currentContext = adaptive.context;
+        graph = adaptive.graph;
+        for (const capabilityId of adaptive.executedCapabilityIds) {
+          if (!executedAgents.includes(capabilityId)) executedAgents.push(capabilityId);
+        }
+      }
+    }
 
     const executionOrder = currentContext.metadata?.cognitivePlan?.executionOrder;
     if (Array.isArray(executionOrder)) {
@@ -373,29 +462,54 @@ export async function executeCognitiveCycle(
       completed: false,
       source,
     });
+
+    const currentGraph = taskGraphFromContext(currentContext);
+    if (currentGraph?.stop.stopped) break;
   }
 
   const requiredAgents = plannedAgents(currentContext);
   const missingAgents = requiredAgents.filter((agentId) => !executedAgents.includes(agentId));
   const metaExecuted = executedAgents.includes('meta_orchestrator');
   const queueExhausted = queue.length === 0;
-  const completed = metaExecuted && missingAgents.length === 0 && queueExhausted;
+  const graph = taskGraphFromContext(currentContext);
+  const unresolvedAdaptive = graph ? unresolvedRequiredCapabilityCount(graph) : 0;
+  const completed = metaExecuted && missingAgents.length === 0 && queueExhausted && unresolvedAdaptive === 0 && !graph?.stop.stopped;
   const paused = !completed && !queueExhausted && processedThisInvocation >= maxAgents;
-  const taskGraph = currentContext.metadata?.taskGraph;
 
   if (completed) {
     currentContext.metadata = { ...currentContext.metadata, returnPlan: returnPlan(currentContext) };
   }
+
+  if (graph) {
+    if (completed) {
+      const stop = evaluateAdaptiveStopInvariant({
+        informationChanged: false,
+        stateChanged: false,
+        unresolvedRequiredCapabilities: 0,
+      });
+      if (stop.stop && stop.reason) markAdaptiveStop(graph, stop.reason);
+      graph.status = 'completed';
+    } else if (graph.stop.stopped) {
+      graph.status = 'stopped';
+    } else if (unresolvedAdaptive > 0) {
+      graph.status = 'waiting';
+    } else if (paused) {
+      graph.status = 'paused';
+    } else {
+      graph.status = 'degraded';
+    }
+    currentContext = contextWithTaskGraph(currentContext, graph);
+  }
+
   currentContext.metadata = {
     ...currentContext.metadata,
-    taskGraph: taskGraph && typeof taskGraph === 'object' && !Array.isArray(taskGraph)
-      ? { ...taskGraph, status: completed ? 'completed' : paused ? 'paused' : 'degraded' }
-      : undefined,
     taskGraphExecution: {
-      status: completed ? 'completed' : paused ? 'paused' : 'degraded',
+      status: completed ? 'completed' : graph?.stop.stopped ? 'stopped' : unresolvedAdaptive > 0 ? 'waiting' : paused ? 'paused' : 'degraded',
       executedAgents,
       missingAgents,
       processedAgents: [...processedAgents],
+      unresolvedAdaptiveCapabilities: unresolvedAdaptive,
+      invocationBudget: graph?.invocationBudget ?? null,
       checkpointed: true,
       completedAt: completed ? new Date().toISOString() : null,
     },
@@ -405,6 +519,7 @@ export async function executeCognitiveCycle(
       executedAgents,
       missingAgents,
       processedAgents: [...processedAgents],
+      unresolvedAdaptiveCapabilities: unresolvedAdaptive,
       finishedAt: new Date().toISOString(),
     },
   };

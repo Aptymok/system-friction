@@ -50,6 +50,9 @@ export interface SfiCapabilityBrokerInput {
   depth?: number;
   remainingInvocationBudget?: number;
   alreadySatisfiedCapabilityIds?: string[];
+  ancestorCapabilityIds?: string[];
+  pendingRequestHashes?: string[];
+  pendingCapabilityIds?: string[];
 }
 
 export interface SfiCapabilityBrokerDecision {
@@ -301,6 +304,25 @@ export function evaluateCapabilityRequest(input: SfiCapabilityBrokerInput): SfiC
     return decision(input, 'DENY', ['REQUESTED_CAPABILITY_OUTSIDE_PASSPORT_SCOPE'], { requesterPassport, requestedPassport });
   }
 
+  if (new Set(input.ancestorCapabilityIds ?? []).has(request.requestedCapabilityId)) {
+    return decision(input, 'DENY', ['DENY_CYCLE:ANCESTOR_CAPABILITY_REPEAT'], { requesterPassport, requestedPassport });
+  }
+
+  if (new Set(input.pendingRequestHashes ?? []).has(requestHash)) {
+    return decision(input, 'DEFER', ['EQUIVALENT_PENDING_REQUEST_REUSED'], {
+      deduplicated: true,
+      requesterPassport,
+      requestedPassport,
+    });
+  }
+  if (new Set(input.pendingCapabilityIds ?? []).has(request.requestedCapabilityId)) {
+    return decision(input, 'DEFER', ['CAPABILITY_ALREADY_PENDING_IN_GRAPH'], {
+      deduplicated: true,
+      requesterPassport,
+      requestedPassport,
+    });
+  }
+
   const alreadySatisfied = new Set(input.alreadySatisfiedCapabilityIds ?? []);
   if (alreadySatisfied.has(request.requestedCapabilityId)) {
     return decision(input, 'ALREADY_SATISFIED', ['CAPABILITY_ALREADY_SATISFIED_IN_TRAJECTORY'], { requesterPassport, requestedPassport });
@@ -356,18 +378,6 @@ export function evaluateCapabilityRequest(input: SfiCapabilityBrokerInput): SfiC
     ], { requesterPassport, requestedPassport });
   }
 
-  if (requestedPassport.authority.confirmationRequirement === 'HUMAN') {
-    return decision(input, 'HUMAN_AUTHORITY_REQUIRED', ['REQUESTED_CAPABILITY_REQUIRES_HUMAN_CONFIRMATION'], { requesterPassport, requestedPassport });
-  }
-
-  const evidence = missingEvidencePrerequisites(request, input.context, requestedPassport);
-  if (evidence.missingRefs.length > 0 || evidence.missingClasses.length > 0) {
-    return decision(input, 'EVIDENCE_REQUIRED', [
-      ...evidence.missingRefs.map((item) => `EVIDENCE_REF_NOT_AVAILABLE:${item}`),
-      ...evidence.missingClasses.map((item) => `REQUIRED_EVIDENCE_CLASS_MISSING:${item}`),
-    ], { requesterPassport, requestedPassport });
-  }
-
   const depth = Math.max(0, Math.trunc(input.depth ?? 1));
   if (depth > requesterPassport.orchestration.maxDepth) {
     return decision(input, 'DEFER', [
@@ -381,6 +391,21 @@ export function evaluateCapabilityRequest(input: SfiCapabilityBrokerInput): SfiC
   if (priorChildren >= requesterPassport.orchestration.maxChildren) {
     return decision(input, 'DEFER', [
       `MAX_CHILDREN_REACHED:${priorChildren}:${requesterPassport.orchestration.maxChildren}`,
+    ], { requesterPassport, requestedPassport });
+  }
+
+  if (requestedPassport.authority.confirmationRequirement === 'HUMAN') {
+    return decision(input, 'HUMAN_AUTHORITY_REQUIRED', [
+      'REQUESTED_CAPABILITY_REQUIRES_HUMAN_CONFIRMATION',
+      'NO_AUTHORITATIVE_HUMAN_AUTHORITY_REENTRY_OWNER',
+    ], { requesterPassport, requestedPassport });
+  }
+
+  const evidence = missingEvidencePrerequisites(request, input.context, requestedPassport);
+  if (evidence.missingRefs.length > 0 || evidence.missingClasses.length > 0) {
+    return decision(input, 'EVIDENCE_REQUIRED', [
+      ...evidence.missingRefs.map((item) => `EVIDENCE_REF_NOT_AVAILABLE:${item}`),
+      ...evidence.missingClasses.map((item) => `REQUIRED_EVIDENCE_CLASS_MISSING:${item}`),
     ], { requesterPassport, requestedPassport });
   }
 

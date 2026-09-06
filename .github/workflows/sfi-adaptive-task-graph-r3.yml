@@ -1,0 +1,34 @@
+name: SFI Adaptive Task Graph R3
+
+on:
+  pull_request:
+    paths:
+      - 'src/lib/sfi/cognitive-runtime/**'
+      - '.github/workflows/sfi-adaptive-task-graph-r3.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  adaptive-task-graph:
+    name: SFI-RUNTIME-ADAPTIVE-CAPABILITY-1.0 + SFI-CAPABILITY-AUTHORITY-1.0
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Provide server-only sentinel for Node checkpoint tests
+        run: |
+          mkdir -p node_modules/server-only
+          printf '{"type":"module","exports":"./index.js"}\n' > node_modules/server-only/package.json
+          printf 'export {};\n' > node_modules/server-only/index.js
+      - name: SFI-CAPABILITY-AUTHORITY-1.0
+        run: node --import tsx --test src/lib/sfi/cognitive-runtime/capabilityBroker.test.ts
+      - name: SFI-RUNTIME-ADAPTIVE-CAPABILITY-1.0
+        run: node --import tsx --test src/lib/sfi/cognitive-runtime/adaptiveTaskGraphRuntime.test.ts

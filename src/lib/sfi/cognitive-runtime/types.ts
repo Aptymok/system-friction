@@ -64,30 +64,112 @@ export type SfiRuntimeModeState = {
   warning: string | null;
 };
 
+/** Whole-trajectory R3 capability invocation ceiling; persisted consumption cannot reset on checkpoint continuation. */
+export const SFI_ADAPTIVE_MAX_CAPABILITY_INVOCATIONS = 25 as const;
+
+export type SfiTaskGraphNodeState =
+  | 'PLANNED'
+  | 'ADMITTED'
+  | 'RUNNING'
+  | 'WAITING_EVIDENCE'
+  | 'WAITING_AUTHORITY'
+  | 'COMPLETED'
+  | 'SKIPPED'
+  | 'FAILED'
+  | 'SUPERSEDED';
+
+export type SfiTaskGraphEdgeRelation =
+  | 'REQUIRES'
+  | 'SUPPLIES'
+  | 'CONTRADICTS'
+  | 'CALIBRATES'
+  | 'GOVERNS'
+  | 'FALSIFIES';
+
 export type SfiTaskGraphNode = {
+  /** compatibility aliases retained for existing readers */
   id: string;
   agentId: string;
   label: string;
   requiresEvidence: string[];
   authorityLevel: SfiRegisteredCognitiveAgent['authorityLevel'];
   humanApprovalRequired: boolean;
+
+  /** SFI-PROGRAM-CONTRACT-LOCK-1.0 adaptive node contract */
+  nodeId: string;
+  capabilityId: string;
+  state: SfiTaskGraphNodeState;
+  prerequisites: string[];
+  reason: string;
+  requestedBy: string | null;
+  inputRefs: string[];
+  outputRefs: string[];
+  modelExecutionRef: string | null;
+
+  /** bounded lineage/runtime extension */
+  requestId: string | null;
+  requestHash: string | null;
+  requiredInputs: string[];
+  requestedOutputs: string[];
+  urgency: 'LOW' | 'NORMAL' | 'HIGH' | 'BLOCKING' | null;
+  parentNodeId: string | null;
+  ancestorNodeIds: string[];
+  brokerDisposition: string | null;
+  requestEventId: string | null;
+  dispositionEventId: string | null;
+  executionReceiptRef: string | null;
+  supersedesNodeId: string | null;
+  supersededByNodeId: string | null;
+  depth: number;
 };
 
 export type SfiTaskGraphEdge = {
   from: string;
   to: string;
-  relation: 'requires' | 'feeds' | 'calibrates' | 'governs';
+  relation: SfiTaskGraphEdgeRelation;
+};
+
+export type SfiTaskGraphMutationKind =
+  | 'NODE_ADDED'
+  | 'NODE_STATE_CHANGED'
+  | 'EDGE_ADDED'
+  | 'BROKER_DISPOSITION'
+  | 'REQUEST_REUSED'
+  | 'NODE_SUPERSEDED'
+  | 'LIMIT_BLOCKED'
+  | 'STOPPED';
+
+export type SfiTaskGraphMutation = {
+  mutationId: string;
+  occurredAt: string;
+  kind: SfiTaskGraphMutationKind;
+  nodeId: string | null;
+  requestId: string | null;
+  detail: Record<string, unknown>;
 };
 
 export type SfiTaskGraph = {
   id: string;
   question: string;
-  status: 'planned' | 'persisted' | 'blocked';
+  status: 'planned' | 'persisted' | 'blocked' | 'running' | 'waiting' | 'completed' | 'paused' | 'failed' | 'stopped' | 'degraded';
   eventName: 'SFI_TASK_CREATED';
+  mode: 'ADAPTIVE';
+  initialSelectionMode: 'explicit' | 'auto';
   nodes: SfiTaskGraphNode[];
   edges: SfiTaskGraphEdge[];
   minimumEvidence: string[];
   blockedReason: string | null;
+  invocationBudget: {
+    max: number;
+    used: number;
+    remaining: number;
+  };
+  stop: {
+    stopped: boolean;
+    reason: string | null;
+    evaluatedAt: string | null;
+  };
+  mutations: SfiTaskGraphMutation[];
 };
 
 export type SfiCognitiveRuntimeSnapshot = {
