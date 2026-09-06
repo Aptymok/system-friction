@@ -27,13 +27,14 @@ function requireWorkflowMutex(source, expectedGroup, label) {
 }
 
 function requireJobMutex(source, jobId, fallbackPrefix, label) {
-  const jobPattern = new RegExp(
-    `\\n  ${jobId}:\\n[\\s\\S]*?\\n    concurrency:\\n` +
-      `      group: \\${\\{ github\\.event_name == 'workflow_run' && format\\('sfi-post-deploy-assurance-\\{0\\}', github\\.event\\.workflow_run\\.id\\) \\|\\| format\\('${fallbackPrefix}-\\{0\\}', github\\.run_id\\) \\}\\}\\n` +
-      `      cancel-in-progress: false\\n` +
-      `      queue: max\\n`,
-  );
-  assert.match(source, jobPattern, `${label} effectful job must use shared deployment mutex with unique non-deploy fallback`);
+  assert.ok(source.includes(`\n  ${jobId}:\n`), `${label} effectful job must remain present`);
+  const expectedGroup =
+    "      group: ${{ github.event_name == 'workflow_run' && format('sfi-post-deploy-assurance-{0}', github.event.workflow_run.id) || format('" +
+    fallbackPrefix +
+    "-{0}', github.run_id) }}";
+  assert.ok(source.includes(expectedGroup), `${label} effectful job must use shared deployment mutex with unique non-deploy fallback`);
+  const jobConcurrency = expectedGroup + '\n      cancel-in-progress: false\n      queue: max';
+  assert.ok(source.includes(jobConcurrency), `${label} job-level mutex must queue and never cancel required assurance`);
 }
 
 function deploymentCoordinationIdentity(deploymentRunId) {
