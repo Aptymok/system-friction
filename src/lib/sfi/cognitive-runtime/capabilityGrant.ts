@@ -89,6 +89,7 @@ const SENSITIVITY_ORDER: Record<string, number> = {
 };
 
 const INVOKE_ACTION = 'INVOKE_CAPABILITY';
+const REQUEST_CHILD_ACTION = 'REQUEST_CHILD_CAPABILITY';
 const SECRET_MARKER = /(service[_-]?role|raw[_-]?secret|private[_-]?key|bearer\s+[a-z0-9._-]+)/i;
 
 function row(value: unknown): Row {
@@ -196,8 +197,9 @@ export function capabilityGrantParentFromContext(context: KernelContext): SfiPub
   const allowedActions = Array.isArray(candidate.allowedActions)
     ? candidate.allowedActions.filter((item): item is string => typeof item === 'string')
     : [];
+  const parentGrantValid = candidate.parentGrantId === null || text(candidate.parentGrantId) !== null;
   const parentGrantId = candidate.parentGrantId === null ? null : text(candidate.parentGrantId);
-  const grant: SfiPublicCapabilityGrant | null = authorityCeiling && state
+  const grant: SfiPublicCapabilityGrant | null = authorityCeiling && state && parentGrantValid
     && typeof candidate.confirmationRequired === 'boolean'
     && text(candidate.grantId)
     && text(candidate.principal)
@@ -254,6 +256,7 @@ function parentScopeErrors(
   if (parent.principal !== request.requestedByCapabilityId || parent.capabilityId !== request.requestedByCapabilityId) {
     errors.push('PARENT_GRANT_PRINCIPAL_MISMATCH');
   }
+  if (!parent.allowedActions.includes(REQUEST_CHILD_ACTION)) errors.push('PARENT_CHILD_REQUEST_NOT_ALLOWED');
   if (child.parentGrantId !== parent.grantId) errors.push('PARENT_GRANT_LINEAGE_MISMATCH');
   if (child.trajectoryId !== parent.trajectoryId) errors.push('CHILD_TRAJECTORY_EXPANSION');
   if (child.resource !== parent.resource) errors.push('CHILD_RESOURCE_EXPANSION');
@@ -306,7 +309,9 @@ export function issueEphemeralCapabilityGrant(input: SfiCapabilityGrantIssueInpu
     stepId: request.parentStepId ?? input.context.taskId,
     capabilityId: request.requestedCapabilityId,
     resource: `trajectory:${request.trajectoryId}`,
-    allowedActions: [INVOKE_ACTION],
+    allowedActions: requestedPassport.orchestration.mayRequestCapabilities
+      ? [INVOKE_ACTION, REQUEST_CHILD_ACTION]
+      : [INVOKE_ACTION],
     authorityCeiling: requestedPassport.authority.ceiling,
     issuedAt: now.toISOString(),
     expiresAt: new Date(expiresAtMs).toISOString(),
