@@ -111,6 +111,9 @@ jobs:
       - name: Verify Method Lab convergence
         run: npx tsx scripts/qa-sfi-method-lab-convergence.ts
 
+      - name: Verify Method Lab UI R4-B
+        run: npx tsx scripts/qa-sfi-method-lab-ui-r4b.ts
+
       - name: Verify Cognitive Twin reentry and longitudinal integration
         run: npx tsx scripts/qa-sfi-cognitive-twin-reentry.ts
 
