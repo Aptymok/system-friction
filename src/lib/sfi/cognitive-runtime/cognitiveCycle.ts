@@ -15,7 +15,6 @@ import {
   startPlannedTaskGraphNode,
   taskGraphFromContext,
   unresolvedRequiredCapabilityCount,
-  type AdaptiveAuthorityReceipt,
 } from './adaptiveTaskGraphRuntime';
 
 export const SFI_UNIVERSAL_COGNITIVE_CHECKPOINT = 'SFI_UNIVERSAL_COGNITIVE_CHECKPOINT' as const;
@@ -31,7 +30,6 @@ export interface CognitiveCycleResult {
 export interface CognitiveCycleOptions {
   maxAgentsPerInvocation?: number;
   continuationSource?: string;
-  authorityReceipts?: AdaptiveAuthorityReceipt[];
 }
 
 type Row = Record<string, unknown>;
@@ -139,8 +137,8 @@ function mergeEvidence(base: KernelEvidence[], checkpoint: KernelEvidence[]) {
   return [...merged.values()];
 }
 
-function mergeCheckpointContext(base: KernelContext, checkpoint: KernelContext): KernelContext {
-  return {
+export function mergeCheckpointContext(base: KernelContext, checkpoint: KernelContext): KernelContext {
+  const merged: KernelContext = {
     ...base,
     ...checkpoint,
     cycleId: base.cycleId,
@@ -163,9 +161,12 @@ function mergeCheckpointContext(base: KernelContext, checkpoint: KernelContext):
       },
     },
   };
+  taskGraphFromContext(merged);
+  return merged;
 }
 
-function checkpointContextProjection(context: KernelContext): KernelContext {
+export function checkpointContextProjection(context: KernelContext): KernelContext {
+  taskGraphFromContext(context);
   const signalType = text(context.metadata?.signalType)?.toLowerCase() ?? '';
   const tabular = ['dataset', 'csv'].includes(signalType);
   const evidence = (context.evidence ?? []).map((item) => {
@@ -259,17 +260,19 @@ function returnPlan(context: KernelContext) {
   };
 }
 
-async function persistCheckpoint(input: {
+export type CognitiveCheckpointWriteInput = {
   context: KernelContext;
   processedAgents: string[];
   executedAgents: string[];
   missingAgents: string[];
   completed: boolean;
   source: string;
-}) {
-  return appendEpistemicEvent({
+};
+
+export function cognitiveCheckpointEventInput(input: CognitiveCheckpointWriteInput) {
+  return {
     eventName: SFI_UNIVERSAL_COGNITIVE_CHECKPOINT,
-    epistemicClass: 'derived',
+    epistemicClass: 'derived' as const,
     confidence: 1,
     occurredAt: new Date().toISOString(),
     source: { sourceId: input.source, sourceType: 'cognitive_runtime_checkpoint' },
@@ -286,7 +289,11 @@ async function persistCheckpoint(input: {
       storagePolicy: 'DURABLE_COGNITIVE_STATE_NO_RAW_SOURCE_ROWS',
       epistemicBoundary: 'Checkpoint persistence preserves execution continuity only. It does not promote derived, inferred or simulated content to observed evidence.',
     },
-  });
+  };
+}
+
+async function persistCheckpoint(input: CognitiveCheckpointWriteInput) {
+  return appendEpistemicEvent(cognitiveCheckpointEventInput(input));
 }
 
 async function persistReturnPlan(context: KernelContext, source: string) {
@@ -365,10 +372,7 @@ export async function executeCognitiveCycle(
   }
 
   if (restoredGraph && unresolvedRequiredCapabilityCount(restoredGraph) > 0) {
-    const resumed = await resumeWaitingAdaptiveCapabilities({
-      context: currentContext,
-      authorityReceipts: options.authorityReceipts,
-    });
+    const resumed = await resumeWaitingAdaptiveCapabilities({ context: currentContext });
     currentContext = resumed.context;
     for (const capabilityId of resumed.executedCapabilityIds) {
       if (!executedAgents.includes(capabilityId)) executedAgents.push(capabilityId);
@@ -432,7 +436,6 @@ export async function executeCognitiveCycle(
           context: currentContext,
           parentNodeId: graphNode.nodeId,
           parentCapabilityId: agentId,
-          authorityReceipts: options.authorityReceipts,
         });
         currentContext = adaptive.context;
         graph = adaptive.graph;

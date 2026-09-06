@@ -37,20 +37,6 @@ export interface SfiCapabilityRequest {
   requestedAt: string;
 }
 
-/**
- * Compatibility-only shape from the failed #384 head. It is deliberately not
- * an authority source and is never sufficient to reenter HUMAN_AUTHORITY_REQUIRED.
- */
-export interface SfiHumanAuthorityReceipt {
-  requestId: string;
-  requestHash?: string;
-  trajectoryId?: string;
-  requestedCapabilityId?: string;
-  receiptId: string;
-  authorizedBy: string;
-  authorizedAt: string;
-}
-
 export interface SfiCapabilityHistoryEntry {
   eventId: string | null;
   eventName: string;
@@ -67,8 +53,6 @@ export interface SfiCapabilityBrokerInput {
   ancestorCapabilityIds?: string[];
   pendingRequestHashes?: string[];
   pendingCapabilityIds?: string[];
-  /** Compatibility input only; ignored until an authoritative decision-receipt owner exists. */
-  humanAuthorityReceipt?: SfiHumanAuthorityReceipt | null;
 }
 
 export interface SfiCapabilityBrokerDecision {
