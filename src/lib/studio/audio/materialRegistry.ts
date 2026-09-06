@@ -1,21 +1,37 @@
 import 'server-only';
-import { createServerSupabaseClient, getVerifiedServerUser } from '@/runtime/supabase/server';
+import { requireFounder } from '@/lib/system/access/server';
+import {
+  createServerSupabaseClient,
+  createServiceSupabaseClient,
+  getVerifiedServerUser,
+} from '@/runtime/supabase/server';
 import {
   assertCulturalReferenceInput,
+  assertCulturalReferenceRightsRevisionInput,
   assertInstrumentRegistryInput,
   assertReferenceMaterializationAllowed,
   type SfiCulturalReferenceInput,
+  type SfiCulturalReferenceRightsRevisionInput,
   type SfiCulturalReferenceSnapshot,
   type SfiInstrumentRegistryInput,
 } from './materialRegistryContract';
 
 type RegistryRow = Record<string, unknown>;
+type ServiceDb = ReturnType<typeof createServiceSupabaseClient>;
 
 async function authenticatedRegistryContext() {
   const db = await createServerSupabaseClient();
   const user = await getVerifiedServerUser(db);
   if (!user) throw new Error('SFI_AUDIO_REGISTRY_AUTH_REQUIRED');
   return { db, ownerId: user.id };
+}
+
+async function governedRegistryMutationContext() {
+  const founder = await requireFounder();
+  return {
+    db: createServiceSupabaseClient(),
+    ownerId: founder.user.id,
+  };
 }
 
 export async function listSfiInstruments(limit = 100): Promise<RegistryRow[]> {
@@ -43,6 +59,33 @@ export async function getSfiInstrument(instrumentId: string): Promise<RegistryRo
 
   if (error) throw new Error(`SFI_AUDIO_INSTRUMENT_READ_FAILED:${error.message}`);
   return (data as RegistryRow | null) ?? null;
+}
+
+export async function assertSfiInstrumentCurrentMaterialRightsEligible(instrumentId: string) {
+  const { db, ownerId } = await authenticatedRegistryContext();
+  const { data, error } = await db
+    .from('sfi_instruments')
+    .select('id,current_execution_rights_state,source_reference_id,source_rights_at_materialization,rights_checked_at')
+    .eq('owner_id', ownerId)
+    .eq('id', instrumentId)
+    .maybeSingle();
+
+  if (error) throw new Error(`SFI_AUDIO_INSTRUMENT_RIGHTS_READ_FAILED:${error.message}`);
+  if (!data) throw new Error('SFI_AUDIO_INSTRUMENT_NOT_FOUND');
+  if (data.current_execution_rights_state !== 'ELIGIBLE') {
+    throw new Error(`SFI_AUDIO_CURRENT_EXECUTION_RIGHTS_BLOCKED:${String(data.current_execution_rights_state)}`);
+  }
+
+  // This is only material-rights eligibility. Institutional execution authorization remains external and unchanged.
+  return {
+    instrumentId: String(data.id),
+    materialRightsEligibility: 'ELIGIBLE' as const,
+    sourceReferenceId: data.source_reference_id ? String(data.source_reference_id) : null,
+    sourceRightsAtMaterialization: data.source_rights_at_materialization
+      ? String(data.source_rights_at_materialization)
+      : null,
+    rightsCheckedAt: String(data.rights_checked_at),
+  };
 }
 
 export async function listSfiCulturalReferences(limit = 100): Promise<RegistryRow[]> {
@@ -74,7 +117,7 @@ export async function getSfiCulturalReference(referenceId: string): Promise<Regi
 
 export async function registerSfiCulturalReference(input: SfiCulturalReferenceInput): Promise<RegistryRow> {
   assertCulturalReferenceInput(input);
-  const { db, ownerId } = await authenticatedRegistryContext();
+  const { db, ownerId } = await governedRegistryMutationContext();
   const { data, error } = await db
     .from('sfi_cultural_references')
     .insert({
@@ -82,6 +125,7 @@ export async function registerSfiCulturalReference(input: SfiCulturalReferenceIn
       work_identifier: input.workIdentifier,
       source: input.source,
       rights_status: input.rightsStatus,
+      rights_evidence_ref: input.rightsEvidenceRef ?? null,
       external_asset_ref: input.externalAssetRef,
       reference_hash: input.referenceHash,
       feature_manifest: input.featureManifest,
@@ -104,13 +148,13 @@ export async function registerSfiCulturalReference(input: SfiCulturalReferenceIn
 }
 
 async function resolveMaterializationReference(
+  db: ServiceDb,
   sourceReferenceId: string,
   ownerId: string,
 ): Promise<SfiCulturalReferenceSnapshot> {
-  const db = await createServerSupabaseClient();
   const { data, error } = await db
     .from('sfi_cultural_references')
-    .select('id,rights_status')
+    .select('id,rights_status,version')
     .eq('owner_id', ownerId)
     .eq('id', sourceReferenceId)
     .maybeSingle();
@@ -120,15 +164,16 @@ async function resolveMaterializationReference(
   return {
     id: String(data.id),
     rightsStatus: String(data.rights_status) as SfiCulturalReferenceSnapshot['rightsStatus'],
+    version: Number(data.version),
   };
 }
 
 export async function registerSfiInstrument(input: SfiInstrumentRegistryInput): Promise<RegistryRow> {
   assertInstrumentRegistryInput(input);
-  const { db, ownerId } = await authenticatedRegistryContext();
+  const { db, ownerId } = await governedRegistryMutationContext();
 
   if (input.sourceReferenceId) {
-    const reference = await resolveMaterializationReference(input.sourceReferenceId, ownerId);
+    const reference = await resolveMaterializationReference(db, input.sourceReferenceId, ownerId);
     assertReferenceMaterializationAllowed(reference, input);
   }
 
@@ -163,6 +208,43 @@ export async function registerSfiInstrument(input: SfiInstrumentRegistryInput): 
 
   if (error || !data) {
     throw new Error(`SFI_AUDIO_INSTRUMENT_WRITE_FAILED:${error?.message ?? 'no_row_returned'}`);
+  }
+  return data as RegistryRow;
+}
+
+export async function reviseSfiCulturalReferenceRights(
+  input: SfiCulturalReferenceRightsRevisionInput,
+): Promise<RegistryRow> {
+  const revision = assertCulturalReferenceRightsRevisionInput(input);
+  const { db, ownerId } = await governedRegistryMutationContext();
+  const existing = await db
+    .from('sfi_cultural_references')
+    .select('id,rights_status,version')
+    .eq('owner_id', ownerId)
+    .eq('id', revision.referenceId)
+    .maybeSingle();
+
+  if (existing.error) throw new Error(`SFI_AUDIO_REFERENCE_READ_FAILED:${existing.error.message}`);
+  if (!existing.data) throw new Error('SFI_AUDIO_REFERENCE_NOT_AVAILABLE_TO_OWNER');
+  if (existing.data.rights_status === revision.rightsStatus) {
+    throw new Error('SFI_AUDIO_RIGHTS_REVISION_REQUIRES_STATE_CHANGE');
+  }
+
+  const { data, error } = await db
+    .from('sfi_cultural_references')
+    .update({
+      rights_status: revision.rightsStatus,
+      rights_evidence_ref: revision.rightsEvidenceRef,
+      version: Number(existing.data.version) + 1,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('owner_id', ownerId)
+    .eq('id', revision.referenceId)
+    .select('*')
+    .single();
+
+  if (error || !data) {
+    throw new Error(`SFI_AUDIO_REFERENCE_RIGHTS_REVISION_FAILED:${error?.message ?? 'no_row_returned'}`);
   }
   return data as RegistryRow;
 }
