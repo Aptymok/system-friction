@@ -172,8 +172,10 @@ test('unknown ledger errors are not retried until classification exists', async 
   } as any);
   assert.equal(reads, 1);
   assert.equal(result.ok, false);
-  assert.equal(result.error.class, 'UNCLASSIFIED_DATA_PLANE');
-  assert.equal(result.error.retryable, false);
+  const error = result.error;
+  assert.ok(error);
+  assert.equal(error.class, 'UNCLASSIFIED_DATA_PLANE');
+  assert.equal(error.retryable, false);
 });
 
 test('sanitizer preserves useful code/class while removing credential-like material', () => {
