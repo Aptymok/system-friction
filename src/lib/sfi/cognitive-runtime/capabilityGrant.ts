@@ -13,12 +13,9 @@ export const SFI_CAPABILITY_GRANT_CONTRACT = 'SFI-CAPABILITY-GRANT-1.0' as const
 export const SFI_CAPABILITY_GRANT_SCOPE_GATE = 'SFI-CAPABILITY-GRANT-SCOPE-1.0' as const;
 export const SFI_CAPABILITY_GRANT_EXPIRY_GATE = 'SFI-CAPABILITY-GRANT-EXPIRY-1.0' as const;
 export const SFI_CAPABILITY_GRANT_REPLAY_GATE = 'SFI-CAPABILITY-GRANT-REPLAY-1.0' as const;
+export const SFI_CAPABILITY_GRANT_REVOCATION_GATE = 'SFI-CAPABILITY-GRANT-REVOCATION-1.0' as const;
 
-export const SFI_CAPABILITY_GRANT_ISSUED = 'SFI_CAPABILITY_GRANT_ISSUED' as const;
-export const SFI_CAPABILITY_GRANT_USED = 'SFI_CAPABILITY_GRANT_USED' as const;
 export const SFI_CAPABILITY_GRANT_REVOKED = 'SFI_CAPABILITY_GRANT_REVOKED' as const;
-export const SFI_CAPABILITY_GRANT_EXPIRED = 'SFI_CAPABILITY_GRANT_EXPIRED' as const;
-export const SFI_CAPABILITY_GRANT_REJECTED = 'SFI_CAPABILITY_GRANT_REJECTED' as const;
 
 export type SfiCapabilityGrantState = 'ACTIVE' | 'REVOKED' | 'EXPIRED';
 
@@ -46,7 +43,7 @@ export type SfiCapabilityGrantIssueInput = {
   request: SfiCapabilityRequest;
   decision: SfiCapabilityBrokerDecision;
   context: KernelContext;
-  parentGrant?: SfiCapabilityGrant | null;
+  parentGrant?: SfiPublicCapabilityGrant | null;
   history?: SfiCapabilityHistoryEntry[];
   now?: Date;
   grantId?: string;
@@ -60,7 +57,7 @@ export type SfiCapabilityGrantIssueResult =
 export type SfiCapabilityGrantUseInput = {
   grant: SfiCapabilityGrant;
   request: SfiCapabilityRequest;
-  parentGrant?: SfiCapabilityGrant | null;
+  parentGrant?: SfiPublicCapabilityGrant | null;
   history?: SfiCapabilityHistoryEntry[];
   now?: Date;
 };
@@ -110,6 +107,14 @@ function validDate(value: string) {
   return Number.isFinite(new Date(value).getTime());
 }
 
+function authorityClass(value: unknown): SfiAuthorityClass | null {
+  return typeof value === 'string' && value in AUTHORITY_ORDER ? value as SfiAuthorityClass : null;
+}
+
+function grantState(value: unknown): SfiCapabilityGrantState | null {
+  return value === 'ACTIVE' || value === 'REVOKED' || value === 'EXPIRED' ? value : null;
+}
+
 function authorityAtOrBelow(actual: SfiAuthorityClass, ceiling: SfiAuthorityClass) {
   return AUTHORITY_ORDER[actual] <= AUTHORITY_ORDER[ceiling];
 }
@@ -129,12 +134,22 @@ function historyGrant(entry: SfiCapabilityHistoryEntry) {
   return row(historyPayload(entry).grant);
 }
 
+function executionGrantRefs(entry: SfiCapabilityHistoryEntry) {
+  const metadata = row(historyPayload(entry).metadata);
+  const refs = row(metadata.refs);
+  return row(refs.capabilityGrant);
+}
+
 function matchingGrantId(entry: SfiCapabilityHistoryEntry, grantId: string) {
-  return text(historyPayload(entry).grantId) === grantId || text(historyGrant(entry).grantId) === grantId;
+  return text(historyPayload(entry).grantId) === grantId
+    || text(historyGrant(entry).grantId) === grantId
+    || text(executionGrantRefs(entry).grantId) === grantId;
 }
 
 function matchingNonceHash(entry: SfiCapabilityHistoryEntry, nonceHash: string) {
-  return text(historyPayload(entry).nonceHash) === nonceHash;
+  return text(historyPayload(entry).nonceHash) === nonceHash
+    || text(historyGrant(entry).nonceHash) === nonceHash
+    || text(executionGrantRefs(entry).nonceHash) === nonceHash;
 }
 
 export function capabilityGrantNonceHash(nonce: string) {
@@ -146,7 +161,7 @@ export function publicCapabilityGrant(grant: SfiCapabilityGrant): SfiPublicCapab
   return publicGrant;
 }
 
-export function validateCapabilityGrantShape(grant: SfiCapabilityGrant): string[] {
+export function validatePublicCapabilityGrantShape(grant: SfiPublicCapabilityGrant): string[] {
   const errors: string[] = [];
   if (!grant.grantId.trim()) errors.push('GRANT_ID_REQUIRED');
   if (!grant.principal.trim()) errors.push('PRINCIPAL_REQUIRED');
@@ -163,15 +178,58 @@ export function validateCapabilityGrantShape(grant: SfiCapabilityGrant): string[
     errors.push('EXPIRY_NOT_AFTER_ISSUANCE');
   }
   if (!grant.sensitivity.trim()) errors.push('SENSITIVITY_REQUIRED');
-  if (!grant.nonce.trim()) errors.push('NONCE_REQUIRED');
   if (!['ACTIVE', 'REVOKED', 'EXPIRED'].includes(grant.state)) errors.push('STATE_INVALID');
-  const publicMaterial = JSON.stringify(publicCapabilityGrant(grant));
-  if (SECRET_MARKER.test(publicMaterial)) errors.push('SECRET_MARKER_FORBIDDEN_IN_GRANT_SCOPE');
+  if (SECRET_MARKER.test(JSON.stringify(grant))) errors.push('SECRET_MARKER_FORBIDDEN_IN_GRANT_SCOPE');
   return errors.sort();
 }
 
+export function validateCapabilityGrantShape(grant: SfiCapabilityGrant): string[] {
+  const errors = validatePublicCapabilityGrantShape(publicCapabilityGrant(grant));
+  if (!grant.nonce.trim()) errors.push('NONCE_REQUIRED');
+  return errors.sort();
+}
+
+export function capabilityGrantParentFromContext(context: KernelContext): SfiPublicCapabilityGrant | null {
+  const candidate = row(context.metadata?.capabilityGrant);
+  const authorityCeiling = authorityClass(candidate.authorityCeiling);
+  const state = grantState(candidate.state);
+  const allowedActions = Array.isArray(candidate.allowedActions)
+    ? candidate.allowedActions.filter((item): item is string => typeof item === 'string')
+    : [];
+  const parentGrantId = candidate.parentGrantId === null ? null : text(candidate.parentGrantId);
+  const grant: SfiPublicCapabilityGrant | null = authorityCeiling && state
+    && typeof candidate.confirmationRequired === 'boolean'
+    && text(candidate.grantId)
+    && text(candidate.principal)
+    && text(candidate.trajectoryId)
+    && text(candidate.stepId)
+    && text(candidate.capabilityId)
+    && text(candidate.resource)
+    && text(candidate.issuedAt)
+    && text(candidate.expiresAt)
+    && text(candidate.sensitivity)
+    ? {
+      grantId: text(candidate.grantId)!,
+      principal: text(candidate.principal)!,
+      trajectoryId: text(candidate.trajectoryId)!,
+      stepId: text(candidate.stepId)!,
+      capabilityId: text(candidate.capabilityId)!,
+      resource: text(candidate.resource)!,
+      allowedActions,
+      authorityCeiling,
+      issuedAt: text(candidate.issuedAt)!,
+      expiresAt: text(candidate.expiresAt)!,
+      confirmationRequired: candidate.confirmationRequired,
+      sensitivity: text(candidate.sensitivity)!,
+      parentGrantId,
+      state,
+    }
+    : null;
+  return grant && validatePublicCapabilityGrantShape(grant).length === 0 ? grant : null;
+}
+
 export function effectiveCapabilityGrantState(
-  grant: SfiCapabilityGrant,
+  grant: SfiPublicCapabilityGrant,
   now: Date = new Date(),
   history: SfiCapabilityHistoryEntry[] = [],
 ): SfiCapabilityGrantState {
@@ -180,20 +238,17 @@ export function effectiveCapabilityGrantState(
     return 'REVOKED';
   }
   if (grant.state === 'EXPIRED' || now.getTime() >= new Date(grant.expiresAt).getTime()) return 'EXPIRED';
-  if (history.some((entry) => entry.eventName === SFI_CAPABILITY_GRANT_EXPIRED && matchingGrantId(entry, grant.grantId))) {
-    return 'EXPIRED';
-  }
   return 'ACTIVE';
 }
 
 function parentScopeErrors(
   child: SfiCapabilityGrant,
   request: SfiCapabilityRequest,
-  parent: SfiCapabilityGrant,
+  parent: SfiPublicCapabilityGrant,
   history: SfiCapabilityHistoryEntry[],
   now: Date,
 ) {
-  const errors: string[] = [];
+  const errors = validatePublicCapabilityGrantShape(parent);
   const parentState = effectiveCapabilityGrantState(parent, now, history);
   if (parentState !== 'ACTIVE') errors.push(`PARENT_GRANT_NOT_ACTIVE:${parentState}`);
   if (parent.principal !== request.requestedByCapabilityId || parent.capabilityId !== request.requestedByCapabilityId) {
@@ -263,9 +318,7 @@ export function issueEphemeralCapabilityGrant(input: SfiCapabilityGrantIssueInpu
   };
 
   errors.push(...validateCapabilityGrantShape(grant));
-  if (input.parentGrant) {
-    errors.push(...parentScopeErrors(grant, request, input.parentGrant, input.history ?? [], now));
-  }
+  if (input.parentGrant) errors.push(...parentScopeErrors(grant, request, input.parentGrant, input.history ?? [], now));
   return errors.length > 0 ? { ok: false, reasons: unique(errors) } : { ok: true, grant };
 }
 
@@ -277,13 +330,13 @@ export function validateCapabilityGrantUse(input: SfiCapabilityGrantUseInput): S
   const errors = validateCapabilityGrantShape(grant);
   const requesterPassport = cognitivePassportForCapability(request.requestedByCapabilityId);
   const requestedPassport = cognitivePassportForCapability(request.requestedCapabilityId);
-  const effectiveState = effectiveCapabilityGrantState(grant, now, history);
+  const effectiveState = effectiveCapabilityGrantState(publicCapabilityGrant(grant), now, history);
 
   if (effectiveState !== 'ACTIVE') errors.push(`GRANT_NOT_ACTIVE:${effectiveState}`);
   if (grant.principal !== request.requestedCapabilityId) errors.push('GRANT_PRINCIPAL_MISMATCH');
   if (grant.trajectoryId !== request.trajectoryId) errors.push('GRANT_TRAJECTORY_MISMATCH');
   if (grant.capabilityId !== request.requestedCapabilityId) errors.push('GRANT_CAPABILITY_MISMATCH');
-  if (grant.stepId !== (request.parentStepId ?? grant.stepId)) errors.push('GRANT_STEP_MISMATCH');
+  if (request.parentStepId && grant.stepId !== request.parentStepId) errors.push('GRANT_STEP_MISMATCH');
   if (grant.resource !== `trajectory:${request.trajectoryId}`) errors.push('GRANT_RESOURCE_MISMATCH');
   if (!grant.allowedActions.includes(INVOKE_ACTION)) errors.push('GRANT_ACTION_NOT_ALLOWED');
   if (!requesterPassport || !requestedPassport) errors.push('PASSPORT_UNAVAILABLE_AT_GRANT_USE');
@@ -296,11 +349,35 @@ export function validateCapabilityGrantUse(input: SfiCapabilityGrantUseInput): S
   if (grant.confirmationRequired) errors.push('UNSATISFIED_GRANT_CONFIRMATION');
 
   const nonceHash = capabilityGrantNonceHash(grant.nonce);
-  if (history.some((entry) => entry.eventName === SFI_CAPABILITY_GRANT_USED
-    && (matchingGrantId(entry, grant.grantId) || matchingNonceHash(entry, nonceHash)))) {
+  if (history.some((entry) => (
+    entry.eventName === 'SFI_AGENT_EXECUTED'
+    || entry.eventName === 'SFI_AGENT_SKIPPED'
+  ) && (matchingGrantId(entry, grant.grantId) || matchingNonceHash(entry, nonceHash)))) {
     errors.push('GRANT_REPLAY_DETECTED');
   }
   if (input.parentGrant) errors.push(...parentScopeErrors(grant, request, input.parentGrant, history, now));
 
   return { ok: errors.length === 0, reasons: unique(errors), effectiveState };
+}
+
+export function capabilityGrantRevocationPayload(input: {
+  grantId: string;
+  reason: string;
+  revokedBy: string;
+  revokedAt?: string;
+}) {
+  if (!input.grantId.trim()) throw new Error('GRANT_ID_REQUIRED');
+  if (!input.reason.trim()) throw new Error('REVOCATION_REASON_REQUIRED');
+  if (!input.revokedBy.trim()) throw new Error('REVOKED_BY_REQUIRED');
+  const revokedAt = input.revokedAt ?? new Date().toISOString();
+  if (!validDate(revokedAt)) throw new Error('REVOKED_AT_INVALID');
+  return {
+    contract: SFI_CAPABILITY_GRANT_CONTRACT,
+    grantId: input.grantId,
+    reason: input.reason,
+    revokedBy: input.revokedBy,
+    revokedAt,
+    state: 'REVOKED' as const,
+    authorizationAllowed: false,
+  };
 }
