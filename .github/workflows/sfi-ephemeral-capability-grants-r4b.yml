@@ -1,0 +1,63 @@
+name: SFI Ephemeral Capability Grants R4-B
+
+on:
+  pull_request:
+    paths:
+      - 'src/lib/sfi/cognitive-runtime/capabilityGrant.ts'
+      - 'src/lib/sfi/cognitive-runtime/capabilityGrant.test.ts'
+      - 'src/lib/sfi/cognitive-runtime/capabilityRuntime.ts'
+      - 'src/lib/sfi/cognitive-runtime/runtimeAgentExecutor.ts'
+      - '.github/workflows/sfi-ephemeral-capability-grants-r4b.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/lib/sfi/cognitive-runtime/capabilityGrant.ts'
+      - 'src/lib/sfi/cognitive-runtime/capabilityGrant.test.ts'
+      - 'src/lib/sfi/cognitive-runtime/capabilityRuntime.ts'
+      - 'src/lib/sfi/cognitive-runtime/runtimeAgentExecutor.ts'
+      - '.github/workflows/sfi-ephemeral-capability-grants-r4b.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  ephemeral-capability-grants:
+    name: SFI-CAPABILITY-GRANT-1.0
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Provide server-only sentinel for model broker contract test
+        run: |
+          mkdir -p node_modules/server-only
+          printf '{"type":"module","exports":"./index.js"}\n' > node_modules/server-only/package.json
+          printf 'export {};\n' > node_modules/server-only/index.js
+
+      - name: SFI-CAPABILITY-GRANT-1.0 scope expiry revocation replay lineage
+        run: node --import tsx --test src/lib/sfi/cognitive-runtime/capabilityGrant.test.ts
+
+      - name: SFI-CAPABILITY-AUTHORITY-1.0
+        run: node --import tsx --test src/lib/sfi/cognitive-runtime/capabilityBroker.test.ts
+
+      - name: SFI-RUNTIME-ADAPTIVE-CAPABILITY-1.0
+        run: node --import tsx --test src/lib/sfi/cognitive-runtime/adaptiveTaskGraphRuntime.test.ts
+
+      - name: SFI-MODEL-INDEPENDENCE-1.0
+        run: node --import tsx --test src/lib/ai/providerRouter.operationBroker.test.ts
+
+      - name: Canonical architecture preflight
+        run: node scripts/qa-canonical-architecture.mjs
+
+      - name: Typecheck
+        run: npm run typecheck
