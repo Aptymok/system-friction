@@ -6,6 +6,17 @@ import {
   type SfiCapabilityHistoryEntry,
   type SfiCapabilityRequest,
 } from './capabilityBroker';
+import {
+  SFI_CAPABILITY_GRANT_CONTRACT,
+  SFI_CAPABILITY_GRANT_ISSUED,
+  SFI_CAPABILITY_GRANT_REJECTED,
+  SFI_CAPABILITY_GRANT_USED,
+  capabilityGrantNonceHash,
+  issueEphemeralCapabilityGrant,
+  publicCapabilityGrant,
+  validateCapabilityGrantUse,
+  type SfiCapabilityGrant,
+} from './capabilityGrant';
 import type { KernelContext } from './kernelContext';
 
 export type SfiCapabilityRuntimeResult = {
@@ -13,8 +24,12 @@ export type SfiCapabilityRuntimeResult = {
   decision: SfiCapabilityBrokerDecision;
   context: KernelContext;
   executed: boolean;
+  authorizationAllowed: boolean;
   requestEventId: string | null;
   dispositionEventId: string | null;
+  grant: SfiCapabilityGrant | null;
+  grantEventId: string | null;
+  grantUseEventId: string | null;
   executionReceipt: {
     eventName: 'SFI_AGENT_EXECUTED' | 'SFI_AGENT_SKIPPED';
     executionId: string;
@@ -42,11 +57,14 @@ type CapabilityRuntimeDependencies = {
   readHistory: (context: KernelContext) => Promise<SfiCapabilityHistoryEntry[]>;
   appendEvent: (input: CapabilityEventInput) => Promise<{ ok: true; eventId: string } | { ok: false; error: string }>;
   executeAgent: (agentId: string, context: KernelContext) => Promise<AgentExecutionResult>;
+  now: () => Date;
 };
 
 export type SfiCapabilityAdmissionLineage = {
   requestEventId: string;
   dispositionEventId: string;
+  grantEventId: string;
+  grantUseEventId: string;
 };
 
 export type SfiCapabilityRuntimeInput = {
@@ -58,6 +76,7 @@ export type SfiCapabilityRuntimeInput = {
   ancestorCapabilityIds?: string[];
   pendingRequestHashes?: string[];
   pendingCapabilityIds?: string[];
+  parentGrant?: SfiCapabilityGrant | null;
   onAdmitted?: (
     context: KernelContext,
     decision: SfiCapabilityBrokerDecision,
@@ -97,6 +116,7 @@ const DEFAULT_DEPENDENCIES: CapabilityRuntimeDependencies = {
   readHistory,
   appendEvent,
   executeAgent,
+  now: () => new Date(),
 };
 
 function dispositionEventName(disposition: SfiCapabilityBrokerDecision['disposition']) {
@@ -118,7 +138,10 @@ function executionContext(
   context: KernelContext,
   request: SfiCapabilityRequest,
   decision: SfiCapabilityBrokerDecision,
-  dispositionEventId: string
+  dispositionEventId: string,
+  grant: SfiCapabilityGrant,
+  grantEventId: string,
+  grantUseEventId: string,
 ): KernelContext {
   return {
     ...context,
@@ -136,6 +159,13 @@ function executionContext(
         requestedCapabilityId: request.requestedCapabilityId,
         trajectoryId: request.trajectoryId,
         authorityBoundary: decision.authorityBoundary,
+      },
+      capabilityGrant: {
+        contract: SFI_CAPABILITY_GRANT_CONTRACT,
+        ...publicCapabilityGrant(grant),
+        grantEventId,
+        grantUseEventId,
+        authorizationBoundary: 'EPHEMERAL_GRANT_AUTHORIZES_ONLY_SCOPED_CAPABILITY_INVOCATION',
       },
     },
   };
@@ -172,6 +202,28 @@ export function capabilityRequestsFromContext(
   return requests;
 }
 
+function emptyRuntimeResult(
+  request: SfiCapabilityRequest,
+  decision: SfiCapabilityBrokerDecision,
+  context: KernelContext,
+  requestEventId: string | null,
+  dispositionEventId: string | null,
+): SfiCapabilityRuntimeResult {
+  return {
+    request,
+    decision,
+    context,
+    executed: false,
+    authorizationAllowed: false,
+    requestEventId,
+    dispositionEventId,
+    grant: null,
+    grantEventId: null,
+    grantUseEventId: null,
+    executionReceipt: null,
+  };
+}
+
 export async function requestCognitiveCapability(
   input: SfiCapabilityRuntimeInput,
   dependencies: Partial<CapabilityRuntimeDependencies> = {},
@@ -192,18 +244,10 @@ export async function requestCognitiveCapability(
   });
 
   if (decision.deduplicated) {
-    return {
-      request,
-      decision,
-      context: input.context,
-      executed: false,
-      requestEventId: null,
-      dispositionEventId: null,
-      executionReceipt: null,
-    };
+    return emptyRuntimeResult(request, decision, input.context, null, null);
   }
 
-  const occurredAt = new Date().toISOString();
+  const occurredAt = deps.now().toISOString();
   const requestEventId = await requireEvent(deps, {
     eventName: 'SFI_CAPABILITY_REQUESTED',
     epistemicClass: CAPABILITY_LINEAGE_EPISTEMIC_CLASS,
@@ -226,7 +270,7 @@ export async function requestCognitiveCapability(
     eventName: dispositionEventName(decision.disposition),
     epistemicClass: CAPABILITY_LINEAGE_EPISTEMIC_CLASS,
     confidence: 1,
-    occurredAt: new Date().toISOString(),
+    occurredAt: deps.now().toISOString(),
     source: { sourceId: 'governed_capability_broker', sourceType: 'cognitive_runtime_governance' },
     logbookId: input.context.logbookId,
     lineage: [input.context.cycleId, requestEventId, ...decision.lineage],
@@ -240,31 +284,141 @@ export async function requestCognitiveCapability(
       requestedByCapabilityId: request.requestedByCapabilityId,
       requestedCapabilityId: request.requestedCapabilityId,
       authorityBoundary: decision.authorityBoundary,
+      authorizationBoundary: 'BROKER_ADMISSION_REQUIRES_EPHEMERAL_GRANT',
       canonicalPromotionAllowed: false,
       ephemeralGrantCreated: false,
     },
   });
 
   if (!decision.executionAllowed) {
-    return {
-      request,
-      decision,
-      context: input.context,
-      executed: false,
-      requestEventId,
+    return emptyRuntimeResult(request, decision, input.context, requestEventId, dispositionEventId);
+  }
+
+  const grantIssue = issueEphemeralCapabilityGrant({
+    request,
+    decision,
+    context: input.context,
+    parentGrant: input.parentGrant ?? null,
+    history,
+    now: deps.now(),
+  });
+  if (!grantIssue.ok) {
+    await requireEvent(deps, {
+      eventName: SFI_CAPABILITY_GRANT_REJECTED,
+      epistemicClass: CAPABILITY_LINEAGE_EPISTEMIC_CLASS,
+      confidence: 1,
+      occurredAt: deps.now().toISOString(),
+      source: { sourceId: 'ephemeral_capability_grant_runtime', sourceType: 'cognitive_runtime_governance' },
+      logbookId: input.context.logbookId,
+      lineage: [input.context.cycleId, requestEventId, dispositionEventId, input.parentGrant?.grantId]
+        .filter((value): value is string => Boolean(value)),
+      payload: {
+        contract: SFI_CAPABILITY_GRANT_CONTRACT,
+        requestId: request.requestId,
+        dispositionEventId,
+        reasons: grantIssue.reasons,
+        authorizationAllowed: false,
+      },
+    });
+    return emptyRuntimeResult(request, decision, input.context, requestEventId, dispositionEventId);
+  }
+
+  const grant = grantIssue.grant;
+  const nonceHash = capabilityGrantNonceHash(grant.nonce);
+  const grantEventId = await requireEvent(deps, {
+    eventName: SFI_CAPABILITY_GRANT_ISSUED,
+    epistemicClass: CAPABILITY_LINEAGE_EPISTEMIC_CLASS,
+    confidence: 1,
+    occurredAt: grant.issuedAt,
+    source: { sourceId: 'ephemeral_capability_grant_runtime', sourceType: 'cognitive_runtime_governance' },
+    logbookId: input.context.logbookId,
+    lineage: [input.context.cycleId, requestEventId, dispositionEventId, grant.parentGrantId]
+      .filter((value): value is string => Boolean(value)),
+    payload: {
+      contract: SFI_CAPABILITY_GRANT_CONTRACT,
+      grant: publicCapabilityGrant(grant),
+      grantId: grant.grantId,
+      nonceHash,
+      requestId: request.requestId,
       dispositionEventId,
-      executionReceipt: null,
+      authorizationAllowed: false,
+      secretBoundary: 'RAW_NONCE_AND_CREDENTIALS_NOT_PERSISTED_OR_EXPOSED_TO_MODEL_CONTEXT',
+    },
+  });
+
+  const authorizationHistory = await deps.readHistory(input.context);
+  const grantUse = validateCapabilityGrantUse({
+    grant,
+    request,
+    parentGrant: input.parentGrant ?? null,
+    history: authorizationHistory,
+    now: deps.now(),
+  });
+  if (!grantUse.ok) {
+    await requireEvent(deps, {
+      eventName: SFI_CAPABILITY_GRANT_REJECTED,
+      epistemicClass: CAPABILITY_LINEAGE_EPISTEMIC_CLASS,
+      confidence: 1,
+      occurredAt: deps.now().toISOString(),
+      source: { sourceId: 'ephemeral_capability_grant_runtime', sourceType: 'cognitive_runtime_governance' },
+      logbookId: input.context.logbookId,
+      lineage: [input.context.cycleId, requestEventId, dispositionEventId, grantEventId, grant.parentGrantId]
+        .filter((value): value is string => Boolean(value)),
+      payload: {
+        contract: SFI_CAPABILITY_GRANT_CONTRACT,
+        grantId: grant.grantId,
+        nonceHash,
+        requestId: request.requestId,
+        state: grantUse.effectiveState,
+        reasons: grantUse.reasons,
+        authorizationAllowed: false,
+      },
+    });
+    return {
+      ...emptyRuntimeResult(request, decision, input.context, requestEventId, dispositionEventId),
+      grant,
+      grantEventId,
     };
   }
+
+  const grantUseEventId = await requireEvent(deps, {
+    eventName: SFI_CAPABILITY_GRANT_USED,
+    epistemicClass: CAPABILITY_LINEAGE_EPISTEMIC_CLASS,
+    confidence: 1,
+    occurredAt: deps.now().toISOString(),
+    source: { sourceId: request.requestedCapabilityId, sourceType: 'cognitive_capability_execution' },
+    logbookId: input.context.logbookId,
+    lineage: [input.context.cycleId, requestEventId, dispositionEventId, grantEventId, grant.parentGrantId]
+      .filter((value): value is string => Boolean(value)),
+    payload: {
+      contract: SFI_CAPABILITY_GRANT_CONTRACT,
+      grantId: grant.grantId,
+      nonceHash,
+      requestId: request.requestId,
+      capabilityId: request.requestedCapabilityId,
+      resource: grant.resource,
+      allowedAction: 'INVOKE_CAPABILITY',
+      authorityCeiling: grant.authorityCeiling,
+      authorizationAllowed: true,
+    },
+  });
 
   let governedContext = executionContext(
     input.context,
     request,
     decision,
     dispositionEventId,
+    grant,
+    grantEventId,
+    grantUseEventId,
   );
   if (input.onAdmitted) {
-    governedContext = await input.onAdmitted(governedContext, decision, { requestEventId, dispositionEventId });
+    governedContext = await input.onAdmitted(governedContext, decision, {
+      requestEventId,
+      dispositionEventId,
+      grantEventId,
+      grantUseEventId,
+    });
   }
   const execution = await deps.executeAgent(request.requestedCapabilityId, governedContext);
   return {
@@ -272,8 +426,12 @@ export async function requestCognitiveCapability(
     decision,
     context: execution.context,
     executed: execution.executed,
+    authorizationAllowed: true,
     requestEventId,
     dispositionEventId,
+    grant,
+    grantEventId,
+    grantUseEventId,
     executionReceipt: {
       eventName: execution.executed ? 'SFI_AGENT_EXECUTED' : 'SFI_AGENT_SKIPPED',
       executionId: request.requestId,
