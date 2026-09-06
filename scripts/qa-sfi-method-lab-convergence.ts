@@ -1,5 +1,13 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import {
+  METHOD_LAB_EXPERIMENT_CONTRACT_VERSION,
+  METHOD_LAB_EXPERIMENT_TYPES,
+  assertMethodLabExperimentPreregistration,
+  assertMethodLabExperimentRun,
+  type MethodLabExperimentPreregistration,
+  type MethodLabExperimentRun,
+} from '../src/lib/method-lab/experimentContract';
 
 function read(path: string) { return readFileSync(path, 'utf8'); }
 
@@ -7,6 +15,106 @@ const contracts = read('src/lib/method-lab/contracts.ts');
 assert.match(contracts, /SFI-METHOD-LAB-RUN-1\.0/, 'Shared Method Lab contract version must remain explicit.');
 assert.match(contracts, /epistemicClass: 'SIMULATED'/, 'Method Lab run contract must remain SIMULATED.');
 assert.match(contracts, /promotionAllowed: false/, 'Method Lab runs must not self-promote.');
+assert.match(contracts, /export \* from '\.\/experimentContract'/, 'General experiment contract must be exposed through the existing Method Lab contract owner.');
+
+// SFI-METHOD-LAB-EXPERIMENT-CONTRACT-1.0 — R3 first-class experiment gate.
+const experimentContract = read('src/lib/method-lab/experimentContract.ts');
+const experimentPersistence = read('src/lib/method-lab/experimentPersistence.ts');
+assert.equal(METHOD_LAB_EXPERIMENT_CONTRACT_VERSION, 'SFI-METHOD-LAB-EXPERIMENT-1.0');
+for (const type of [
+  'SIMULATION',
+  'REPLAY',
+  'REENTRY',
+  'COUNTERFACTUAL',
+  'MODEL_COMPARISON',
+  'PASSPORT_COMPARISON',
+  'TWIN_COMPARISON',
+  'INTERVENTION_DESIGN',
+  'OBSERVATIONAL',
+] as const) assert.ok(METHOD_LAB_EXPERIMENT_TYPES.includes(type), `method_lab_experiment_type_missing:${type}`);
+for (const field of ['METHOD', 'HYPOTHESIS', 'T0', 'POPULATION_SYSTEM', 'INPUTS', 'CONTROL', 'VARIANTS', 'EXPECTED_SIGNAL', 'FALSIFICATION', 'STOPPING_RULE', 'RETURN_WINDOW']) {
+  assert.ok(experimentContract.includes(field), `method_lab_preregistration_field_missing:${field}`);
+}
+for (const artifact of ['PREREGISTERED', 'EXECUTED', 'RESULT', 'CONTRAST', 'LIMITATIONS', 'REPRODUCIBILITY_RECEIPT']) {
+  assert.ok(experimentContract.includes(artifact), `method_lab_run_artifact_missing:${artifact}`);
+}
+assert.match(experimentContract, /SIMULATION_NEVER_INHERITS_OBSERVED/);
+assert.match(experimentContract, /METHOD_LAB_EXPERIMENT_SIMULATION_CANNOT_BECOME_OBSERVED/);
+assert.match(experimentContract, /METHOD_LAB_EXPERIMENT_RETURN_MUST_COME_FROM_REALITY/);
+
+const qaPreregistration: MethodLabExperimentPreregistration = {
+  contractVersion: METHOD_LAB_EXPERIMENT_CONTRACT_VERSION,
+  experimentId: 'qa-experiment-1',
+  experimentType: 'SIMULATION',
+  METHOD: { methodId: 'qa-method', version: '1.0', description: 'Deterministic contract QA.' },
+  HYPOTHESIS: { statement: 'Variant A changes the declared signal.', nullStatement: 'Variant A does not change the declared signal.' },
+  T0: { cutoff: '2026-09-05T12:00:00.000Z', timezone: 'UTC', frozenInputRefs: ['evidence:t0:1'] },
+  POPULATION_SYSTEM: { kind: 'SYSTEM', ref: 'system:qa', description: 'QA system.' },
+  INPUTS: [{ ref: 'evidence:t0:1', role: 'EVIDENCE', epistemicClass: 'OBSERVED' }],
+  CONTROL: { kind: 'CONTROL', description: 'Baseline configuration.', inputRefs: ['evidence:t0:1'] },
+  VARIANTS: [{ variantId: 'variant-a', description: 'One bounded parameter change.', changes: { parameter: 1 } }],
+  EXPECTED_SIGNAL: { description: 'A bounded measurable delta.', measures: ['delta'] },
+  FALSIFICATION: { condition: 'No declared delta is observed in the return window.', requiredEvidence: ['return:delta'] },
+  STOPPING_RULE: { condition: 'One deterministic execution.', maxExecutions: 1 },
+  RETURN_WINDOW: { opensAt: '2026-09-06T00:00:00.000Z', closesAt: '2026-09-07T00:00:00.000Z', required: true },
+  preregisteredAt: '2026-09-05T11:59:00.000Z',
+  preregisteredBy: 'qa',
+  canonicalMutation: false,
+};
+assert.doesNotThrow(() => assertMethodLabExperimentPreregistration(qaPreregistration));
+
+const qaRun: MethodLabExperimentRun = {
+  contractVersion: METHOD_LAB_EXPERIMENT_CONTRACT_VERSION,
+  canonicalMutation: false,
+  observationBoundary: 'SIMULATION_NEVER_INHERITS_OBSERVED',
+  artifacts: {
+    PREREGISTERED: { preregistrationRef: 'method-lab:prereg:qa-experiment-1', preregistrationHash: 'prereg-hash' },
+    EXECUTED: {
+      runId: 'qa-run-1', experimentId: 'qa-experiment-1', experimentType: 'SIMULATION',
+      startedAt: '2026-09-05T12:01:00.000Z', finishedAt: '2026-09-05T12:02:00.000Z',
+      provider: 'deterministic:qa', model: 'qa-model', passportRef: null, twinStateRef: null, seed: 1,
+    },
+    RESULT: { epistemicClass: 'SIMULATED', payload: { delta: 0.2 }, evidenceRefs: ['evidence:t0:1'], resultHash: 'result-hash' },
+    CONTRAST: { status: 'PENDING_RETURN', payload: null, realityReturn: null },
+    LIMITATIONS: ['Simulation output is not observation.'],
+    REPRODUCIBILITY_RECEIPT: {
+      contractVersion: METHOD_LAB_EXPERIMENT_CONTRACT_VERSION,
+      codeRef: 'commit:qa', preregistrationHash: 'prereg-hash', inputHash: 'input-hash', resultHash: 'result-hash',
+      executorRefs: ['executor:qa'], createdAt: '2026-09-05T12:02:01.000Z',
+    },
+  },
+};
+assert.doesNotThrow(() => assertMethodLabExperimentRun(qaPreregistration, qaRun));
+const illegalObservedRun: MethodLabExperimentRun = {
+  ...qaRun,
+  artifacts: { ...qaRun.artifacts, RESULT: { ...qaRun.artifacts.RESULT, epistemicClass: 'OBSERVED' } },
+};
+assert.throws(() => assertMethodLabExperimentRun(qaPreregistration, illegalObservedRun), /METHOD_LAB_EXPERIMENT_SIMULATION_CANNOT_BECOME_OBSERVED/);
+const returnRun: MethodLabExperimentRun = {
+  ...qaRun,
+  artifacts: {
+    ...qaRun.artifacts,
+    CONTRAST: {
+      status: 'AVAILABLE',
+      payload: { delta: -0.1 },
+      realityReturn: { source: 'REALITY', observedAt: '2026-09-06T12:00:00.000Z', evidenceRefs: ['return:delta'], outcome: { delta: 0.1 } },
+    },
+  },
+};
+assert.doesNotThrow(() => assertMethodLabExperimentRun(qaPreregistration, returnRun));
+const missingRealityReturn: MethodLabExperimentRun = {
+  ...qaRun,
+  artifacts: { ...qaRun.artifacts, CONTRAST: { status: 'AVAILABLE', payload: {}, realityReturn: null } },
+};
+assert.throws(() => assertMethodLabExperimentRun(qaPreregistration, missingRealityReturn), /METHOD_LAB_EXPERIMENT_RETURN_REQUIRED_FOR_CONTRAST/);
+
+assert.match(experimentPersistence, /\.from\('sfi_lab_analyses'\)/, 'General experiments must reuse the converged Method Lab store.');
+assert.match(experimentPersistence, /\.insert\(/, 'Preregistrations and runs must append to the converged Method Lab store.');
+assert.doesNotMatch(experimentPersistence, /\.update\(|\.upsert\(|\.delete\(/, 'Experiment persistence must not silently rewrite preregistration or run history.');
+assert.match(experimentPersistence, /METHOD_LAB_PREREGISTRATION_IMMUTABILITY_CHECK_FAILED/);
+assert.match(experimentPersistence, /No OSF or other external registration receipt is claimed/);
+assert.match(experimentPersistence, /SIMULATION != OBSERVATION/);
+assert.match(experimentPersistence, /RETURN comes from observable reality/);
 
 const registry = read('src/lib/method-lab/registry.ts');
 for (const protocol of ['chronos_olympics', 'cognitive_relational_lab', 'ct_reentry', 'sociotechnical_simulation', 'economic_simulation']) {
@@ -98,8 +206,13 @@ assert.equal(vercel.crons?.filter((item) => item.path === '/api/cron/continuity-
 
 console.log(JSON.stringify({
   ok: true,
+  gates: ['SFI-METHOD-LAB-EXPERIMENT-CONTRACT-1.0'],
   invariants: [
     'one shared Method Lab contract',
+    'general experiment contract supports nine first-class types without replacing existing protocol implementations',
+    'preregistration is immutable and insert-only in the existing sfi_lab_analyses owner',
+    'non-observational runs cannot inherit OBSERVED and RETURN must originate from REALITY with evidence refs',
+    'every first-class run carries PREREGISTERED/EXECUTED/RESULT/CONTRAST/LIMITATIONS/REPRODUCIBILITY_RECEIPT artifacts',
     'CHRONOS and CRL are protocols, not parallel labs',
     'CT reentry implementation is distinct from Method Lab validation and individuation claims',
     'sociotechnical/economic runs use isolated executors',
