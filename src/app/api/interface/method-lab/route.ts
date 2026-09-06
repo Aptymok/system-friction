@@ -5,10 +5,12 @@ import {
   readMethodLabUiProjection,
   type MethodLabUiPreregistrationInput,
 } from '@/lib/method-lab/uiProjection';
+import { executeMethodLabUiSimulation, type MethodLabUiSimulationProtocol } from '@/lib/method-lab/uiExecution';
 import { METHOD_LAB_EXPERIMENT_TYPES, type MethodLabExperimentType } from '@/lib/method-lab/experimentContract';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
+export const maxDuration = 60;
 
 type Row = Record<string, unknown>;
 
@@ -36,11 +38,16 @@ function experimentType(value: unknown): MethodLabExperimentType | null {
     : null;
 }
 
+function simulationProtocol(value: unknown): MethodLabUiSimulationProtocol | null {
+  return value === 'sociotechnical_simulation' || value === 'economic_simulation' ? value : null;
+}
+
 function statusForError(error: unknown) {
   if (error instanceof AccessDeniedError) return error.status;
   const message = error instanceof Error ? error.message : String(error);
   if (message.includes('OWNER_SCOPE') || message.includes('NOT_FOUND')) return 404;
-  if (message.includes('REQUIRED') || message.includes('INVALID') || message.includes('FORBIDDEN') || message.includes('MISMATCH')) return 400;
+  if (message.includes('STOPPING_RULE_REACHED')) return 409;
+  if (message.includes('REQUIRED') || message.includes('INVALID') || message.includes('FORBIDDEN') || message.includes('MISMATCH') || message.includes('NOT_ALLOWED')) return 400;
   if (message.includes('PERSIST_FAILED') || message.includes('READ_FAILED')) return 503;
   return 500;
 }
@@ -72,12 +79,33 @@ export async function POST(request: Request) {
     const context = await requireUserProfile();
     const body = await request.json().catch(() => ({})) as Row;
     const operation = requiredText(body.operation);
+
+    if (operation === 'execute_simulation') {
+      const protocolId = simulationProtocol(body.protocolId);
+      if (!protocolId) return NextResponse.json({ ok: false, error: 'METHOD_LAB_UI_SIMULATION_PROTOCOL_INVALID' }, { status: 400 });
+      const result = await executeMethodLabUiSimulation({
+        ownerId: context.user.id,
+        experimentId: requiredText(body.experimentId),
+        protocolId,
+      });
+      return NextResponse.json({
+        ...result,
+        operation,
+        boundaries: {
+          ownerScoped: true,
+          externalExecution: false,
+          canonicalPromotion: false,
+          observationInheritance: false,
+        },
+      }, { status: result.ok ? 201 : 207 });
+    }
+
     if (operation !== 'preregister') {
       return NextResponse.json({
         ok: false,
         error: 'METHOD_LAB_UI_OPERATION_NOT_ALLOWED',
-        allowed: ['preregister'],
-        boundary: 'Execution remains owned by existing simulation/reentry runtime owners; this API does not create another experiment engine.',
+        allowed: ['preregister', 'execute_simulation'],
+        boundary: 'Execution remains owned by existing simulation runtime owners; this API does not create another experiment engine.',
       }, { status: 400 });
     }
 
