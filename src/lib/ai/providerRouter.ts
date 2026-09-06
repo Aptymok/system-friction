@@ -1,5 +1,8 @@
 import 'server-only';
 
+export const SFI_OPERATION_MODEL_BROKER_CONTRACT = 'SFI-OPERATION-MODEL-BROKER-1.0' as const;
+export const SFI_MODEL_INDEPENDENCE_GATE = 'SFI-MODEL-INDEPENDENCE-1.0' as const;
+
 export type LlmTask =
   | 'fast_classification'
   | 'deep_report'
@@ -14,14 +17,25 @@ export type LlmTask =
 
 export type LlmProviderId = 'openai' | 'anthropic' | 'gemini' | 'groq' | 'ollama' | 'huggingface' | 'degraded';
 export type LlmPriority = 'speed' | 'balanced' | 'quality';
+export type LlmReasoningClass = 'LOW' | 'MEDIUM' | 'HIGH' | 'FRONTIER';
+export type LlmLatencyClass = 'INTERACTIVE' | 'NORMAL' | 'BATCH';
+export type LlmCostClass = 'ECONOMY' | 'STANDARD' | 'QUALITY' | 'FRONTIER' | 'PRIVATE_LOCAL' | 'SPECIALIST';
 export type ProviderFailureReason = 'rate_limit' | 'auth' | 'quota' | 'billing' | 'model_invalid' | 'transient';
 
 export type LlmRequirements = {
   reasoning?: boolean;
+  reasoningClass?: LlmReasoningClass;
   structuredOutput?: boolean;
   web?: boolean;
   multimodal?: boolean;
+  computer?: boolean;
+  code?: boolean;
   minContextTokens?: number;
+  latencyClass?: LlmLatencyClass;
+  costClass?: LlmCostClass;
+  privacyClass?: string;
+  providerAllowlist?: string[];
+  providerDenylist?: string[];
   priority?: LlmPriority;
 };
 
@@ -31,11 +45,41 @@ export type LlmModelCapability = {
   role: string;
   contextTokens: number | null;
   reasoning: boolean;
+  reasoningClass: LlmReasoningClass;
   structuredOutput: boolean;
   web: boolean;
   multimodal: boolean;
+  computer: boolean;
+  code: boolean;
+  latencyClass: LlmLatencyClass;
+  costClass: LlmCostClass;
+  privacyClasses: string[];
   priority: LlmPriority;
   configuredBy: string[];
+};
+
+export type LlmCandidateHealth = 'HEALTHY' | 'UNTESTED' | 'RETRYABLE_DEGRADED';
+
+export type LlmOperationPlan = {
+  contract: typeof SFI_OPERATION_MODEL_BROKER_CONTRACT;
+  gate: typeof SFI_MODEL_INDEPENDENCE_GATE;
+  task: LlmTask;
+  requirements: LlmRequirements;
+  preferredProvider: Exclude<LlmProviderId, 'degraded'> | null;
+  state: 'ATTEMPTABLE' | 'DEGRADED';
+  candidates: Array<{
+    provider: Exclude<LlmProviderId, 'degraded'>;
+    model: string;
+    health: LlmCandidateHealth;
+    role: string;
+  }>;
+  rejections: string[];
+  boundaries: {
+    modelCapability: 'MODEL_CAPABILITY_NOT_AUTHORITY';
+    modelOutput: 'MODEL_OUTPUT_NOT_OBSERVATION';
+    availability: 'UNAVAILABLE_NOT_AVAILABLE';
+    providerPreference: 'REQUEST_NOT_AUTHORIZATION';
+  };
 };
 
 export type LlmProviderStatus = {
@@ -77,6 +121,7 @@ export type LlmRouterResult = {
   warnings: string[];
   usage: Record<string, unknown> | null;
   latency_ms: number;
+  operationPlan: LlmOperationPlan;
 };
 
 export type EmbeddingResult = {
@@ -117,6 +162,16 @@ const modelTelemetry = new Map<string, ModelTelemetry>();
 const HARD_BLOCK_MS = 15 * 60_000;
 const TRANSIENT_BLOCK_MS = 30_000;
 const RATE_LIMIT_BLOCK_MS = 20_000;
+const PROVIDERS: Array<Exclude<LlmProviderId, 'degraded'>> = ['openai', 'anthropic', 'gemini', 'groq', 'ollama', 'huggingface'];
+
+const REASONING_RANK: Record<LlmReasoningClass, number> = { LOW: 0, MEDIUM: 1, HIGH: 2, FRONTIER: 3 };
+const LATENCY_RANK: Record<LlmLatencyClass, number> = { INTERACTIVE: 0, NORMAL: 1, BATCH: 2 };
+const COST_RANK: Record<Exclude<LlmCostClass, 'PRIVATE_LOCAL' | 'SPECIALIST'>, number> = {
+  ECONOMY: 0,
+  STANDARD: 1,
+  QUALITY: 2,
+  FRONTIER: 3,
+};
 
 function envModel(...values: Array<string | undefined>) {
   return values.find((value) => typeof value === 'string' && value.trim().length > 0)?.trim() ?? null;
@@ -154,7 +209,7 @@ function providerConfigs(): ProviderConfig[] {
   return [
     { id: 'openai', configured: Boolean(openaiKey), apiKey: openaiKey, role: 'general hosted reasoning and embeddings', configuredBy: ['OPENAI_API_KEY', 'OPENAI_MODEL'] },
     { id: 'anthropic', configured: Boolean(anthropicKey), apiKey: anthropicKey, role: 'reasoning and long-context analysis', configuredBy: ['ANTHROPIC_API_KEY', 'CLAUDE_API_KEY', 'ANTHROPIC_MODEL'] },
-    { id: 'gemini', configured: Boolean(geminiKey), apiKey: geminiKey, role: 'long-context, multimodal and agentic analysis', configuredBy: ['GEMINI_API_KEY', 'GOOGLE_API_KEY', 'GOOGLE_GENERATIVE_AI_API_KEY', 'GEMINI_MODEL', 'GEMINI_FAST_MODEL'] },
+    { id: 'gemini', configured: Boolean(geminiKey), apiKey: geminiKey, role: 'long-context, multimodal-capable model family and agentic analysis', configuredBy: ['GEMINI_API_KEY', 'GOOGLE_API_KEY', 'GOOGLE_GENERATIVE_AI_API_KEY', 'GEMINI_MODEL', 'GEMINI_FAST_MODEL'] },
     { id: 'groq', configured: Boolean(groqKey), apiKey: groqKey, role: 'fast workers, open-weight reasoning and current-web compound systems', configuredBy: ['GROQ_API_KEY', 'GROQ_MODEL', 'GROQ_REASONING_MODEL', 'GROQ_WEB_MODEL', 'GROQ_WEB_FAST_MODEL'] },
     { id: 'ollama', configured: Boolean(ollamaBase), baseUrl: ollamaBase, role: 'local/private inference', configuredBy: ['OLLAMA_BASE_URL', 'OLLAMA_URL', 'OLLAMA_HOST', 'OLLAMA_MODEL'] },
     { id: 'huggingface', configured: Boolean(hfKey), apiKey: hfKey, role: 'Hugging Face Inference Providers router for open models plus HF inference embeddings', configuredBy: ['HUGGINGFACE_API_KEY', 'HF_TOKEN', 'HUGGINGFACE_TEXT_MODEL'] },
@@ -162,17 +217,19 @@ function providerConfigs(): ProviderConfig[] {
 }
 
 export function getLlmModelCatalog(): LlmModelCapability[] {
+  const hostedPrivacy = ['PUBLIC', 'INTERNAL'];
+  const localPrivacy = ['PUBLIC', 'INTERNAL', 'SENSITIVE', 'PRIVATE_LOCAL'];
   return [
-    { provider: 'openai', model: DEFAULTS.openai, role: 'general', contextTokens: null, reasoning: true, structuredOutput: true, web: false, multimodal: false, priority: 'balanced', configuredBy: ['OPENAI_MODEL'] },
-    { provider: 'anthropic', model: DEFAULTS.anthropic, role: 'quality reasoning / long context', contextTokens: null, reasoning: true, structuredOutput: false, web: false, multimodal: false, priority: 'quality', configuredBy: ['ANTHROPIC_MODEL', 'CLAUDE_MODEL'] },
-    { provider: 'gemini', model: DEFAULTS.gemini, role: 'quality multimodal / agentic / long context', contextTokens: 1_048_576, reasoning: true, structuredOutput: true, web: false, multimodal: true, priority: 'quality', configuredBy: ['GEMINI_MODEL', 'GOOGLE_MODEL'] },
-    { provider: 'gemini', model: DEFAULTS.geminiFast, role: 'high-throughput worker', contextTokens: null, reasoning: false, structuredOutput: true, web: false, multimodal: true, priority: 'speed', configuredBy: ['GEMINI_FAST_MODEL'] },
-    { provider: 'groq', model: DEFAULTS.groqFast, role: 'fast worker / classification / structured output', contextTokens: 131_072, reasoning: true, structuredOutput: true, web: false, multimodal: false, priority: 'speed', configuredBy: ['GROQ_MODEL', 'GROQ_FAST_MODEL'] },
-    { provider: 'groq', model: DEFAULTS.groqReasoning, role: 'open-weight high-quality reasoning', contextTokens: 131_072, reasoning: true, structuredOutput: true, web: false, multimodal: false, priority: 'quality', configuredBy: ['GROQ_REASONING_MODEL'] },
-    { provider: 'groq', model: DEFAULTS.groqWeb, role: 'current web research / multi-tool compound', contextTokens: 131_072, reasoning: true, structuredOutput: false, web: true, multimodal: false, priority: 'quality', configuredBy: ['GROQ_WEB_MODEL'] },
-    { provider: 'groq', model: DEFAULTS.groqWebFast, role: 'current web research / low-latency compound', contextTokens: 131_072, reasoning: true, structuredOutput: false, web: true, multimodal: false, priority: 'speed', configuredBy: ['GROQ_WEB_FAST_MODEL'] },
-    { provider: 'ollama', model: DEFAULTS.ollama, role: 'local/private model', contextTokens: null, reasoning: true, structuredOutput: false, web: false, multimodal: false, priority: 'balanced', configuredBy: ['OLLAMA_MODEL'] },
-    { provider: 'huggingface', model: DEFAULTS.huggingface, role: 'experimental open-model route via Inference Providers', contextTokens: null, reasoning: true, structuredOutput: false, web: false, multimodal: false, priority: 'balanced', configuredBy: ['HUGGINGFACE_TEXT_MODEL', 'HF_TEXT_MODEL'] },
+    { provider: 'openai', model: DEFAULTS.openai, role: 'general', contextTokens: null, reasoning: true, reasoningClass: 'MEDIUM', structuredOutput: true, web: false, multimodal: false, computer: false, code: true, latencyClass: 'NORMAL', costClass: 'STANDARD', privacyClasses: hostedPrivacy, priority: 'balanced', configuredBy: ['OPENAI_MODEL'] },
+    { provider: 'anthropic', model: DEFAULTS.anthropic, role: 'quality reasoning / long context', contextTokens: null, reasoning: true, reasoningClass: 'HIGH', structuredOutput: false, web: false, multimodal: false, computer: false, code: true, latencyClass: 'NORMAL', costClass: 'QUALITY', privacyClasses: hostedPrivacy, priority: 'quality', configuredBy: ['ANTHROPIC_MODEL', 'CLAUDE_MODEL'] },
+    { provider: 'gemini', model: DEFAULTS.gemini, role: 'quality reasoning / long context', contextTokens: 1_048_576, reasoning: true, reasoningClass: 'HIGH', structuredOutput: true, web: false, multimodal: false, computer: false, code: true, latencyClass: 'NORMAL', costClass: 'QUALITY', privacyClasses: hostedPrivacy, priority: 'quality', configuredBy: ['GEMINI_MODEL', 'GOOGLE_MODEL'] },
+    { provider: 'gemini', model: DEFAULTS.geminiFast, role: 'high-throughput worker', contextTokens: null, reasoning: false, reasoningClass: 'LOW', structuredOutput: true, web: false, multimodal: false, computer: false, code: false, latencyClass: 'INTERACTIVE', costClass: 'ECONOMY', privacyClasses: hostedPrivacy, priority: 'speed', configuredBy: ['GEMINI_FAST_MODEL'] },
+    { provider: 'groq', model: DEFAULTS.groqFast, role: 'fast worker / classification / structured output', contextTokens: 131_072, reasoning: true, reasoningClass: 'MEDIUM', structuredOutput: true, web: false, multimodal: false, computer: false, code: true, latencyClass: 'INTERACTIVE', costClass: 'ECONOMY', privacyClasses: hostedPrivacy, priority: 'speed', configuredBy: ['GROQ_MODEL', 'GROQ_FAST_MODEL'] },
+    { provider: 'groq', model: DEFAULTS.groqReasoning, role: 'open-weight high-quality reasoning', contextTokens: 131_072, reasoning: true, reasoningClass: 'HIGH', structuredOutput: true, web: false, multimodal: false, computer: false, code: true, latencyClass: 'NORMAL', costClass: 'QUALITY', privacyClasses: hostedPrivacy, priority: 'quality', configuredBy: ['GROQ_REASONING_MODEL'] },
+    { provider: 'groq', model: DEFAULTS.groqWeb, role: 'current web research / multi-tool compound', contextTokens: 131_072, reasoning: true, reasoningClass: 'HIGH', structuredOutput: false, web: true, multimodal: false, computer: false, code: false, latencyClass: 'NORMAL', costClass: 'QUALITY', privacyClasses: hostedPrivacy, priority: 'quality', configuredBy: ['GROQ_WEB_MODEL'] },
+    { provider: 'groq', model: DEFAULTS.groqWebFast, role: 'current web research / low-latency compound', contextTokens: 131_072, reasoning: true, reasoningClass: 'MEDIUM', structuredOutput: false, web: true, multimodal: false, computer: false, code: false, latencyClass: 'INTERACTIVE', costClass: 'ECONOMY', privacyClasses: hostedPrivacy, priority: 'speed', configuredBy: ['GROQ_WEB_FAST_MODEL'] },
+    { provider: 'ollama', model: DEFAULTS.ollama, role: 'local/private model', contextTokens: null, reasoning: true, reasoningClass: 'MEDIUM', structuredOutput: false, web: false, multimodal: false, computer: false, code: true, latencyClass: 'NORMAL', costClass: 'PRIVATE_LOCAL', privacyClasses: localPrivacy, priority: 'balanced', configuredBy: ['OLLAMA_MODEL'] },
+    { provider: 'huggingface', model: DEFAULTS.huggingface, role: 'experimental open-model route via Inference Providers', contextTokens: null, reasoning: true, reasoningClass: 'MEDIUM', structuredOutput: false, web: false, multimodal: false, computer: false, code: false, latencyClass: 'BATCH', costClass: 'ECONOMY', privacyClasses: hostedPrivacy, priority: 'balanced', configuredBy: ['HUGGINGFACE_TEXT_MODEL', 'HF_TEXT_MODEL'] },
   ];
 }
 
@@ -256,12 +313,26 @@ function markModelFailure(provider: LlmProviderId, model: string, message: strin
   return reason;
 }
 
+function costMatches(model: LlmModelCapability, required: LlmCostClass | undefined) {
+  if (!required) return true;
+  if (required === 'PRIVATE_LOCAL') return model.costClass === 'PRIVATE_LOCAL';
+  if (required === 'SPECIALIST') return model.costClass === 'SPECIALIST';
+  if (model.costClass === 'PRIVATE_LOCAL' || model.costClass === 'SPECIALIST') return false;
+  return COST_RANK[model.costClass] <= COST_RANK[required];
+}
+
 function capabilityMatches(model: LlmModelCapability, requirements: LlmRequirements) {
   if (requirements.web && !model.web) return false;
   if (requirements.multimodal && !model.multimodal) return false;
+  if (requirements.computer && !model.computer) return false;
+  if (requirements.code && !model.code) return false;
   if (requirements.reasoning && !model.reasoning) return false;
+  if (requirements.reasoningClass && REASONING_RANK[model.reasoningClass] < REASONING_RANK[requirements.reasoningClass]) return false;
   if (requirements.structuredOutput && !model.structuredOutput) return false;
   if (requirements.minContextTokens && (model.contextTokens === null || model.contextTokens < requirements.minContextTokens)) return false;
+  if (requirements.latencyClass && LATENCY_RANK[model.latencyClass] > LATENCY_RANK[requirements.latencyClass]) return false;
+  if (!costMatches(model, requirements.costClass)) return false;
+  if (requirements.privacyClass && !model.privacyClasses.includes(requirements.privacyClass)) return false;
   return true;
 }
 
@@ -280,23 +351,111 @@ function requirementsForTask(task: LlmTask, explicit: LlmRequirements = {}): Llm
   return { ...base, ...explicit };
 }
 
-function providerOrder(task: LlmTask, requirements: LlmRequirements): LlmProviderId[] {
-  if (requirements.web || task === 'web_research') return ['groq'];
-  if (task === 'fast_classification') return ['groq', 'gemini', 'openai', 'ollama', 'anthropic', 'huggingface'];
-  if (task === 'context_long') return ['gemini', 'anthropic', 'groq', 'openai', 'huggingface', 'ollama'];
-  if (task === 'draft') return ['groq', 'gemini', 'openai', 'anthropic', 'ollama', 'huggingface'];
-  if (task === 'moph_reading') return ['groq', 'gemini', 'openai', 'anthropic', 'huggingface', 'ollama'];
-  if (task === 'graph_interpretation') return ['groq', 'gemini', 'anthropic', 'openai', 'huggingface', 'ollama'];
-  return ['groq', 'gemini', 'anthropic', 'openai', 'huggingface', 'ollama'];
+function providerAllowed(provider: Exclude<LlmProviderId, 'degraded'>, requirements: LlmRequirements) {
+  const allowlist = requirements.providerAllowlist;
+  const denylist = requirements.providerDenylist ?? [];
+  if (Array.isArray(allowlist) && !allowlist.includes(provider)) return false;
+  if (denylist.includes(provider)) return false;
+  return true;
+}
+
+function providerOrder(task: LlmTask, requirements: LlmRequirements): Array<Exclude<LlmProviderId, 'degraded'>> {
+  const raw: Array<Exclude<LlmProviderId, 'degraded'>> = requirements.web || task === 'web_research'
+    ? ['groq', 'gemini', 'openai', 'anthropic', 'huggingface', 'ollama']
+    : task === 'fast_classification'
+      ? ['groq', 'gemini', 'openai', 'ollama', 'anthropic', 'huggingface']
+      : task === 'context_long'
+        ? ['gemini', 'anthropic', 'groq', 'openai', 'huggingface', 'ollama']
+        : task === 'draft'
+          ? ['groq', 'gemini', 'openai', 'anthropic', 'ollama', 'huggingface']
+          : task === 'moph_reading'
+            ? ['groq', 'gemini', 'openai', 'anthropic', 'huggingface', 'ollama']
+            : task === 'graph_interpretation'
+              ? ['groq', 'gemini', 'anthropic', 'openai', 'huggingface', 'ollama']
+              : ['groq', 'gemini', 'anthropic', 'openai', 'huggingface', 'ollama'];
+  return raw.filter((provider) => providerAllowed(provider, requirements));
 }
 
 function modelsForProvider(provider: Exclude<LlmProviderId, 'degraded'>, requirements: LlmRequirements) {
   const priority = requirements.priority ?? 'balanced';
   const catalog = getLlmModelCatalog().filter((item) => item.provider === provider && capabilityMatches(item, requirements));
   return catalog.sort((a, b) => {
-    const rank = (item: LlmModelCapability) => item.priority === priority ? 0 : item.priority === 'balanced' ? 1 : 2;
-    return rank(a) - rank(b);
+    const priorityRank = (item: LlmModelCapability) => item.priority === priority ? 0 : item.priority === 'balanced' ? 1 : 2;
+    const latencyRank = (item: LlmModelCapability) => requirements.latencyClass && item.latencyClass === requirements.latencyClass ? 0 : 1;
+    const costRank = (item: LlmModelCapability) => requirements.costClass && item.costClass === requirements.costClass ? 0 : 1;
+    return priorityRank(a) - priorityRank(b) || latencyRank(a) - latencyRank(b) || costRank(a) - costRank(b);
   });
+}
+
+function candidateHealth(provider: Exclude<LlmProviderId, 'degraded'>, model: string): LlmCandidateHealth {
+  const telemetry = telemetryFor(provider, model);
+  if (telemetry.lastSuccessAt && (!telemetry.lastFailureAt || telemetry.lastSuccessAt >= telemetry.lastFailureAt)) return 'HEALTHY';
+  if (telemetry.lastFailureAt) return 'RETRYABLE_DEGRADED';
+  return 'UNTESTED';
+}
+
+export function getLlmOperationPlan(input: {
+  task: LlmTask;
+  requirements?: LlmRequirements;
+  preferredProvider?: LlmProviderId;
+}): LlmOperationPlan {
+  const requirements = requirementsForTask(input.task, input.requirements);
+  const configs = providerConfigs();
+  const rejections: string[] = [];
+  const baseOrder = providerOrder(input.task, requirements);
+  const preferred = input.preferredProvider && input.preferredProvider !== 'degraded'
+    ? input.preferredProvider
+    : null;
+  if (preferred && !providerAllowed(preferred, requirements)) {
+    rejections.push(`preferred_provider_not_permitted:${preferred}`);
+  }
+  const order = preferred && providerAllowed(preferred, requirements)
+    ? [preferred, ...baseOrder.filter((provider) => provider !== preferred)]
+    : baseOrder;
+  const candidates: LlmOperationPlan['candidates'] = [];
+
+  for (const provider of order) {
+    const config = configs.find((item) => item.id === provider);
+    if (!config?.configured) {
+      rejections.push(`${provider}:unconfigured`);
+      continue;
+    }
+    const models = modelsForProvider(provider, requirements);
+    if (!models.length) {
+      rejections.push(`${provider}:no_model_matches_operation_requirements`);
+      continue;
+    }
+    for (const model of models) {
+      const circuit = activeCircuit(provider, model.model);
+      if (circuit) {
+        rejections.push(`${provider}:${model.model}:circuit_open:${circuit.reason}`);
+        continue;
+      }
+      candidates.push({
+        provider,
+        model: model.model,
+        health: candidateHealth(provider, model.model),
+        role: model.role,
+      });
+    }
+  }
+
+  return {
+    contract: SFI_OPERATION_MODEL_BROKER_CONTRACT,
+    gate: SFI_MODEL_INDEPENDENCE_GATE,
+    task: input.task,
+    requirements,
+    preferredProvider: preferred,
+    state: candidates.length ? 'ATTEMPTABLE' : 'DEGRADED',
+    candidates,
+    rejections,
+    boundaries: {
+      modelCapability: 'MODEL_CAPABILITY_NOT_AUTHORITY',
+      modelOutput: 'MODEL_OUTPUT_NOT_OBSERVATION',
+      availability: 'UNAVAILABLE_NOT_AVAILABLE',
+      providerPreference: 'REQUEST_NOT_AUTHORIZATION',
+    },
+  };
 }
 
 export function getLlmProviderStatus(): LlmProviderStatus[] {
@@ -511,73 +670,77 @@ export async function runLlmTask(input: {
   const configs = providerConfigs();
   const warnings: string[] = [];
   if (GEMINI_PRIMARY_MIGRATION) warnings.push(`gemini_model_migrated:${GEMINI_PRIMARY_MIGRATION}->${DEFAULTS.gemini}`);
-  const requirements = requirementsForTask(input.task, input.requirements);
-  const baseOrder = providerOrder(input.task, requirements);
-  const order = input.preferredProvider && input.preferredProvider !== 'degraded'
-    ? [input.preferredProvider, ...baseOrder.filter((id) => id !== input.preferredProvider)]
-    : baseOrder;
+  const operationPlan = getLlmOperationPlan({
+    task: input.task,
+    requirements: input.requirements,
+    preferredProvider: input.preferredProvider,
+  });
   const maxAttempts = Math.max(1, Math.min(10, input.maxProviderAttempts ?? 4));
   let attempts = 0;
 
-  for (const providerId of order) {
-    if (attempts >= maxAttempts || providerId === 'degraded') break;
-    const config = configs.find((item) => item.id === providerId && item.configured);
-    if (!config) continue;
-    const models = modelsForProvider(config.id, requirements);
-    if (!models.length) {
-      warnings.push(`${providerId}_no_model_matches_requirements`);
+  for (const candidate of operationPlan.candidates) {
+    if (attempts >= maxAttempts) break;
+    const config = configs.find((item) => item.id === candidate.provider && item.configured);
+    if (!config) {
+      warnings.push(`${candidate.provider}_became_unconfigured`);
       continue;
     }
-
-    for (const candidate of models) {
-      if (attempts >= maxAttempts) break;
-      const circuit = activeCircuit(providerId, candidate.model);
-      if (circuit) {
-        warnings.push(`${providerId}:${candidate.model}_circuit_open:${circuit.reason}`);
-        continue;
-      }
-      attempts += 1;
-      const attemptStarted = Date.now();
-      try {
-        const output = await callProvider(config, candidate.model, {
+    const circuit = activeCircuit(candidate.provider, candidate.model);
+    if (circuit) {
+      warnings.push(`${candidate.provider}:${candidate.model}_circuit_open:${circuit.reason}`);
+      continue;
+    }
+    attempts += 1;
+    const attemptStarted = Date.now();
+    try {
+      const output = await callProvider(config, candidate.model, {
+        task: input.task,
+        system: input.system ?? 'You are an SFI operational agent. Return concise, evidence-bound analysis. Do not claim external facts unless provided in context.',
+        prompt: input.prompt,
+        maxTokens: input.maxTokens ?? 700,
+      });
+      const latency = Date.now() - attemptStarted;
+      if (output.result.trim()) {
+        markModelSuccess(config.id, candidate.model, latency);
+        return {
+          ok: true,
+          provider: config.id,
+          model: candidate.model,
           task: input.task,
-          system: input.system ?? 'You are an SFI operational agent. Return concise, evidence-bound analysis. Do not claim external facts unless provided in context.',
-          prompt: input.prompt,
-          maxTokens: input.maxTokens ?? 700,
-        });
-        const latency = Date.now() - attemptStarted;
-        if (output.result.trim()) {
-          markModelSuccess(config.id, candidate.model, latency);
-          return {
-            ok: true,
-            provider: config.id,
-            model: candidate.model,
-            task: input.task,
-            result: output.result.trim(),
-            warnings,
-            usage: output.usage,
-            latency_ms: Date.now() - started,
-          };
-        }
-        const reason = markModelFailure(config.id, candidate.model, 'empty_result', latency);
-        warnings.push(`${config.id}:${candidate.model}_empty_result:${reason}`);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'unknown';
-        const reason = markModelFailure(config.id, candidate.model, message, Date.now() - attemptStarted);
-        warnings.push(`${config.id}:${candidate.model}_failed:${reason}`);
+          result: output.result.trim(),
+          warnings,
+          usage: output.usage,
+          latency_ms: Date.now() - started,
+          operationPlan,
+        };
       }
+      const reason = markModelFailure(config.id, candidate.model, 'empty_result', latency);
+      warnings.push(`${config.id}:${candidate.model}_empty_result:${reason}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'unknown';
+      const reason = markModelFailure(config.id, candidate.model, message, Date.now() - attemptStarted);
+      warnings.push(`${config.id}:${candidate.model}_failed:${reason}`);
     }
   }
 
+  const degradedPlan: LlmOperationPlan = {
+    ...operationPlan,
+    state: 'DEGRADED',
+    rejections: [
+      ...operationPlan.rejections,
+      ...(operationPlan.candidates.length ? ['all_attempted_or_eligible_candidates_unavailable'] : ['no_eligible_candidate']),
+    ],
+  };
   return {
     ok: false,
     provider: 'degraded',
     model: 'unavailable',
     task: input.task,
     result: '',
-    warnings: [...(warnings.length ? warnings : ['no_llm_provider_available']), 'synthetic_fallback_suppressed'],
+    warnings: [...(warnings.length ? warnings : operationPlan.rejections.length ? operationPlan.rejections : ['no_llm_provider_available']), 'synthetic_fallback_suppressed'],
     usage: null,
     latency_ms: Date.now() - started,
+    operationPlan: degradedPlan,
   };
 }
 

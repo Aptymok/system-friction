@@ -50,7 +50,8 @@ for (const token of [
 
 assert.ok(llmRouter.includes("provider: 'degraded'"), 'llm_degraded_provider_missing');
 assert.ok(llmRouter.includes("['no_llm_provider_available']"), 'llm_no_provider_warning_missing');
-assert.ok(llmRouter.includes('for (const providerId of order)'), 'llm_provider_fallback_chain_missing');
+assert.ok(llmRouter.includes('for (const candidate of operationPlan.candidates)'), 'llm_provider_fallback_chain_missing');
+assert.ok(llmRouter.includes('getLlmOperationPlan'), 'llm_operation_model_broker_missing');
 assert.ok(/Evidence before inference/i.test(runtime), 'llm_twin_grounding_missing');
 assert.ok(runtime.includes('LLM_PROVIDER_UNAVAILABLE'), 'llm_fail_closed_missing');
 assert.ok(twinContext.includes("status: 'CANDIDATE' as const"), 'candidate_memory_epistemic_boundary_missing');

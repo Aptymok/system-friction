@@ -115,11 +115,19 @@ function routerPriorityFor(requirements: SfiOperationModelRequirements): NonNull
 export function llmRequirementsForAgent(agentId: string): LlmRequirements {
   const requirements = operationModelRequirementsForAgent(agentId);
   return {
-    ...(requirements.reasoning !== 'LOW' ? { reasoning: true } : {}),
-    ...(requirements.structuredOutput ? { structuredOutput: true } : {}),
-    ...(requirements.web ? { web: true } : {}),
-    ...(requirements.multimodal ? { multimodal: true } : {}),
-    ...(requirements.minContextTokens > 0 ? { minContextTokens: requirements.minContextTokens } : {}),
+    reasoning: requirements.reasoning !== 'LOW',
+    reasoningClass: requirements.reasoning,
+    structuredOutput: requirements.structuredOutput,
+    web: requirements.web,
+    multimodal: requirements.multimodal,
+    computer: requirements.computer,
+    code: requirements.code,
+    minContextTokens: requirements.minContextTokens,
+    latencyClass: requirements.latencyClass,
+    costClass: requirements.costClass,
+    privacyClass: requirements.privacyClass,
+    ...(requirements.providerAllowlist ? { providerAllowlist: [...requirements.providerAllowlist] } : {}),
+    ...(requirements.providerDenylist ? { providerDenylist: [...requirements.providerDenylist] } : {}),
     priority: routerPriorityFor(requirements),
   };
 }

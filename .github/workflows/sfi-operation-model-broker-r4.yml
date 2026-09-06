@@ -1,0 +1,42 @@
+name: SFI Operation Model Broker R4
+
+on:
+  pull_request:
+    paths:
+      - 'src/lib/ai/providerRouter.ts'
+      - 'src/lib/ai/providerRouter.operationBroker.test.ts'
+      - 'src/lib/sfi/cognitive-runtime/agentModelRequirements.ts'
+      - 'src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'
+      - 'src/infrastructure/ai/agentLlmClient.ts'
+      - '.github/workflows/sfi-operation-model-broker-r4.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  operation-model-broker:
+    name: SFI-MODEL-INDEPENDENCE-1.0
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Provide server-only sentinel for Node contract tests
+        run: |
+          mkdir -p node_modules/server-only
+          printf '{"type":"module","exports":"./index.js"}\n' > node_modules/server-only/package.json
+          printf 'export {};\n' > node_modules/server-only/index.js
+      - name: SFI-MODEL-INDEPENDENCE-1.0
+        run: node --import tsx --test src/lib/ai/providerRouter.operationBroker.test.ts
+      - name: Preserve cognitive passport owner and operation requirement projection
+        run: node --import tsx --test src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts
+      - name: SFI-CAPABILITY-AUTHORITY-1.0
+        run: node --import tsx --test src/lib/sfi/cognitive-runtime/capabilityBroker.test.ts
+      - name: SFI-RUNTIME-ADAPTIVE-CAPABILITY-1.0
+        run: node --import tsx --test src/lib/sfi/cognitive-runtime/adaptiveTaskGraphRuntime.test.ts

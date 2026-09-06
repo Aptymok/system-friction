@@ -135,12 +135,30 @@ test('projected model requirements share one tier owner with the LLM execution c
   assert.deepEqual(field.modelRequirements, operationModelRequirementsForAgent('field_observer'));
   assert.deepEqual(llmRequirementsForAgent('temporal_resolver'), {
     reasoning: true,
+    reasoningClass: 'HIGH',
     structuredOutput: true,
+    web: false,
+    multimodal: false,
+    computer: false,
+    code: false,
     minContextTokens: 100_000,
+    latencyClass: 'NORMAL',
+    costClass: 'QUALITY',
+    privacyClass: 'INTERNAL',
     priority: 'quality',
   });
   assert.deepEqual(llmRequirementsForAgent('field_observer'), {
+    reasoning: false,
+    reasoningClass: 'LOW',
     structuredOutput: true,
+    web: false,
+    multimodal: false,
+    computer: false,
+    code: false,
+    minContextTokens: 0,
+    latencyClass: 'INTERACTIVE',
+    costClass: 'ECONOMY',
+    privacyClass: 'INTERNAL',
     priority: 'speed',
   });
   assert.match(clientSource, /const requirements = llmRequirementsForAgent\(agentId\);/);
@@ -182,6 +200,7 @@ test('validator rejects weakening source-derived RETURN obligations', () => {
   for (const id of ['trajectory_agent', 'project_execution_manager']) {
     const source = SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.find((agent) => agent.id === id);
     assert.ok(source);
+    assert.equal(source.humanApprovalRequired, id === 'project_execution_manager');
     const passport = structuredClone(projectCognitivePassport(source)) as SfiCognitivePassport;
     passport.return.required = false;
     passport.return.condition = null;
