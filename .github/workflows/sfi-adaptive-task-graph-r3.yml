@@ -23,6 +23,11 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm install --no-audit --no-fund
+      - name: Provide server-only sentinel for Node checkpoint tests
+        run: |
+          mkdir -p node_modules/server-only
+          printf '{"type":"module","exports":"./index.js"}\n' > node_modules/server-only/package.json
+          printf 'export {};\n' > node_modules/server-only/index.js
       - name: SFI-CAPABILITY-AUTHORITY-1.0
         run: node --import tsx --test src/lib/sfi/cognitive-runtime/capabilityBroker.test.ts
       - name: SFI-RUNTIME-ADAPTIVE-CAPABILITY-1.0
