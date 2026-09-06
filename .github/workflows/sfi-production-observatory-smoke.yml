@@ -19,8 +19,9 @@ permissions:
   actions: read
 
 concurrency:
-  group: sfi-production-observatory-smoke
+  group: ${{ github.event_name == 'workflow_run' && format('sfi-post-deploy-assurance-{0}', github.event.workflow_run.id) || 'sfi-production-observatory-smoke' }}
   cancel-in-progress: false
+  queue: max
 
 jobs:
   observatory-production-return:
