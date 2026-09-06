@@ -84,7 +84,6 @@ function issue(overrides: Parameters<typeof issueEphemeralCapabilityGrant>[0] = 
 }
 
 function requireGrant(result: ReturnType<typeof issueEphemeralCapabilityGrant>) {
-  assert.equal(result.ok, true);
   if (!result.ok) throw new Error(result.reasons.join('|'));
   return result.grant;
 }
