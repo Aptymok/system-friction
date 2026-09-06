@@ -95,6 +95,15 @@ test('provider allowlist and denylist are hard constraints; preference remains a
   assert.ok(denied.rejections.includes('preferred_provider_not_permitted:groq'));
 });
 
+test('empty provider allowlist fails closed', () => {
+  const plan = getLlmOperationPlan({
+    task: 'graph_interpretation',
+    requirements: { ...interactive, providerAllowlist: [] },
+  });
+  assert.equal(plan.state, 'DEGRADED');
+  assert.equal(plan.candidates.length, 0);
+});
+
 test('unsupported computer, multimodal and FRONTIER requirements degrade instead of inventing availability', () => {
   for (const requirements of [
     { ...interactive, computer: true },
