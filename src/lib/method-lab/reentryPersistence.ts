@@ -48,6 +48,7 @@ export async function persistMethodLabReentryRun(input: {
   });
 }
 
+// R4-A owner boundary: this is an adapter, not an additional persistence plane.
 // Persistence owner remains the converged Method Lab store (`sfi_lab_analyses`)
 // through experimentPersistence. Twin lineage remains in the existing Twin /
 // epistemic event owners; this adapter creates no table, event writer, ROOT
