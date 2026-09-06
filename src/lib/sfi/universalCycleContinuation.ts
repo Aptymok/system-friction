@@ -95,10 +95,20 @@ function numberValue(value: unknown) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function safeDiagnosticCode(value: unknown) {
+  const raw = text(value)?.toUpperCase();
+  if (!raw) return null;
+  if (/^PGRST\d{3}$/.test(raw)) return raw;
+  if (/^(?:00|01|02|03|08|09|0A|0B|0F|0L|0P|0Z|20|21|22|23|24|25|26|27|28|2B|2D|2F|34|38|39|3B|3D|3F|40|42|44|53|54|55|57|58|72|F0|HV|P0|XX)[0-9A-Z]{3}$/.test(raw)) return raw;
+  if (/^(?:ECONNRESET|ETIMEDOUT|EAI_AGAIN|ECONNREFUSED|ENOTFOUND|EHOSTUNREACH|ENETUNREACH|EPIPE)$/.test(raw)) return raw;
+  if (/^UND_ERR_[A-Z0-9_]{1,40}$/.test(raw)) return raw;
+  return null;
+}
+
 function errorCode(error: unknown) {
-  const direct = text(row(error).code);
-  if (direct) return direct.slice(0, 64);
-  return text(row(row(error).cause).code)?.slice(0, 64) ?? null;
+  const direct = safeDiagnosticCode(row(error).code);
+  if (direct) return direct;
+  return safeDiagnosticCode(row(row(error).cause).code);
 }
 
 function errorMessage(error: unknown) {
@@ -108,10 +118,12 @@ function errorMessage(error: unknown) {
 
 function sanitizeErrorMessage(value: string) {
   return value
-    .replace(/Bearer\s+[^\s,;]+/gi, 'Bearer [REDACTED]')
+    .replace(/\b(?:proxy-)?authorization\s*[:=]\s*[^\r\n]*/gi, 'Authorization: [REDACTED]')
+    .replace(/\bBearer\s+[^\s,;]+/gi, 'Bearer [REDACTED]')
     .replace(/\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/g, '[REDACTED_JWT]')
-    .replace(/\b(?:postgres(?:ql)?|https?):\/\/[^\s]+/gi, '[REDACTED_URL]')
-    .replace(/((?:token|secret|password|api[_-]?key|service[_-]?role[_-]?key|authorization)\s*[:=]\s*)[^\s,;]+/gi, '$1[REDACTED]')
+    .replace(/\bpostgres(?:ql)?:\/\/[^\s]+/gi, '[REDACTED_DATABASE_URL]')
+    .replace(/\bhttps?:\/\/[^\s]+/gi, '[REDACTED_URL]')
+    .replace(/(\b(?:(?:supabase[_-]?)?service[_-]?role(?:[_-]?key)?|api[_-]?key|token|secret|password)\b\s*[:=]\s*)(?:"[^"\r\n]*"|'[^'\r\n]*'|[^\s,;]+)/gi, '$1[REDACTED]')
     .replace(/[\r\n\t]+/g, ' ')
     .replace(/\s{2,}/g, ' ')
     .trim()
@@ -157,6 +169,27 @@ export function sanitizeUniversalContinuationError(
     class: retryable ? 'TRANSIENT_DATA_PLANE' : code ? 'NON_RETRYABLE_DATA_PLANE' : 'UNCLASSIFIED_DATA_PLANE',
     retryable,
     message,
+  };
+}
+
+export function deriveContinuityHeartbeatGateReceipt(input: {
+  runtimeStatus: string;
+  emergencyHalt: boolean;
+  requiredLaneFailed: boolean;
+  universalContinuationOk: boolean;
+}) {
+  const coreHeartbeat = input.runtimeStatus === 'COMPLETED'
+    ? { ok: true as const, receipt: 'CORE_HEARTBEAT_PASS' as const }
+    : input.runtimeStatus === 'HALTED' && input.emergencyHalt
+      ? { ok: false as const, receipt: 'CORE_HEARTBEAT_HALTED' as const }
+      : { ok: false as const, receipt: 'CORE_HEARTBEAT_FAIL' as const };
+  const universalContinuation = input.universalContinuationOk
+    ? input.emergencyHalt ? 'UNIVERSAL_CONTINUATION_HALTED' as const : 'UNIVERSAL_CONTINUATION_PASS' as const
+    : 'UNIVERSAL_CONTINUATION_FAIL' as const;
+  return {
+    coreHeartbeat,
+    universalContinuation,
+    overallOk: coreHeartbeat.ok && !input.requiredLaneFailed,
   };
 }
 
