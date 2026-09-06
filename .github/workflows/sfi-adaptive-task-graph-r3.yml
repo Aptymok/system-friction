@@ -26,4 +26,4 @@ jobs:
       - name: SFI-CAPABILITY-AUTHORITY-1.0
         run: node --import tsx --test src/lib/sfi/cognitive-runtime/capabilityBroker.test.ts
       - name: SFI-RUNTIME-ADAPTIVE-CAPABILITY-1.0
-        run: node --import tsx --test src/lib/sfi/cognitive-runtime/adaptiveTaskGraphRuntime.test.ts
+        run: node --import tsx --test src/lib/sfi/cognitive-runtime/adaptiveTaskGraphRuntime.test.ts src/lib/sfi/cognitive-runtime/adaptiveTaskGraphAssurance.test.ts
