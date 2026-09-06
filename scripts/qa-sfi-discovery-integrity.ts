@@ -8,6 +8,12 @@ import {
   SFI_CANONICAL_OBJECT_REGISTRY,
 } from '../src/lib/discovery/canonicalObjectRegistry';
 import {
+  SFI_EVIDENCE_CAPSULE_CONTRACT,
+  SFI_PUBLIC_SEMANTIC_OBJECT_TYPES,
+  SFI_PUBLIC_SEMANTIC_PROJECTION_CONTRACT,
+  publicSemanticProjectionsForCanonicalObjects,
+} from '../src/lib/discovery/publicSemanticProjection';
+import {
   SFI_CANONICAL_IDENTITY_FINGERPRINT,
   SFI_DISAMBIGUATION_RISKS,
   SFI_EXTERNAL_IDENTITY_NODES,
@@ -38,6 +44,7 @@ const source = sourceFiles.map((file) => ({ file, content: read(file) }));
 const occurrencesAcrossSource = (token: string) => source.reduce((sum, item) => sum + item.content.split(token).length - 1, 0);
 
 const canonicalOwner = read('src/lib/discovery/canonicalObjectRegistry.ts');
+const semanticProjectionOwner = read('src/lib/discovery/publicSemanticProjection.ts');
 const canonicalTests = read('src/lib/discovery/canonicalObjectRegistry.test.ts');
 const profile = read('src/lib/public/institutionProfile.ts');
 const sitemap = read('src/app/sitemap.ts');
@@ -60,9 +67,17 @@ assert.deepEqual(SFI_CANONICAL_OBJECT_TYPES, [
 ], 'frozen_canonical_object_taxonomy_drift');
 assert.deepEqual(validateCanonicalObjectRegistry(SFI_CANONICAL_OBJECT_REGISTRY), [], 'canonical_registry_invalid');
 assert.equal(canonicalUrlFor('METHOD', 'mihm'), 'https://systemfriction.org/methods/mihm', 'canonical_url_semantics_drift');
+assert.deepEqual(SFI_PUBLIC_SEMANTIC_OBJECT_TYPES, [
+  'CONCEPT', 'METHOD', 'INSTRUMENT', 'REPORT', 'PAPER', 'SOFTWARE', 'RELEASE', 'RETURN',
+], 'r3_public_semantic_object_taxonomy_drift');
+assert.deepEqual(publicSemanticProjectionsForCanonicalObjects(SFI_CANONICAL_OBJECT_REGISTRY), [], 'empty_registry_must_not_emit_semantic_objects');
+assert.equal(SFI_PUBLIC_SEMANTIC_PROJECTION_CONTRACT, 'SFI-PUBLIC-SEMANTIC-PROJECTION-1.0', 'semantic_projection_contract_drift');
+assert.equal(SFI_EVIDENCE_CAPSULE_CONTRACT, 'SFI-EVIDENCE-CAPSULE-1.0', 'evidence_capsule_contract_drift');
 
 // One semantic owner. Tests/consumers import it; they do not redeclare the contract or URL resolver.
 assert.equal(occurrencesAcrossSource("'SFI-CANONICAL-OBJECT-1.0'"), 1, 'duplicate_canonical_object_contract_owner');
+assert.equal(occurrencesAcrossSource("'SFI-PUBLIC-SEMANTIC-PROJECTION-1.0'"), 1, 'duplicate_public_semantic_projection_contract_owner');
+assert.equal(occurrencesAcrossSource("'SFI-EVIDENCE-CAPSULE-1.0'"), 1, 'duplicate_evidence_capsule_contract_owner');
 assert.equal(occurrencesAcrossSource('export function canonicalUrlFor('), 1, 'duplicate_canonical_url_resolver');
 assert.equal(occurrencesAcrossSource('export const SFI_CANONICAL_OBJECT_REGISTRY'), 1, 'duplicate_canonical_object_registry');
 assert.ok(canonicalOwner.includes("import type { PublicationStatus } from '../system/contracts'"), 'canonical_owner_must_reuse_publication_status_owner');
@@ -147,6 +162,11 @@ for (const token of [
   "publicState: SfiCanonicalPublicState",
   "publication: {",
   "explicit: true",
+  "evidenceIdentity: {",
+  "privacy: record.eligibility.privacyClass === 'PUBLIC' ? 'PUBLIC' : 'NOT_PUBLIC'",
+  "rights: record.rights.state === 'OPEN' || record.rights.state === 'NOT_APPLICABLE' ? 'CLEARED' : 'NOT_CLEARED'",
+  "? 'PUBLICABLE'",
+  "evidenceIdentity: record.evidenceIdentity.state === 'VALID' && evidenceRefsValid ? 'VALID' : 'INVALID'",
   "if (record.publicState === 'PUBLIC')",
   "PUBLIC_REQUIRES_PUBLISHED_STATE",
   "PUBLIC_REQUIRES_PUBLIC_PRIVACY",
@@ -155,6 +175,9 @@ for (const token of [
   "PUBLIC_LINEAGE_REQUIRED",
   "PUBLIC_CANNOT_DERIVE_ONLY_FROM_INTERNAL_EVENT",
   "PUBLIC_RIGHTS_NOT_ELIGIBLE",
+  "PUBLIC_EVIDENCE_IDENTITY_REQUIRED",
+  "PUBLIC_EVIDENCE_IDENTITY_REFS_REQUIRED",
+  "EVIDENCE_IDENTITY_REF_NOT_IN_LINEAGE",
   "PUBLISHED_REQUIRES_PUBLIC_STATE",
   "PRIVATE_CANNOT_BE_PUBLIC_ELIGIBLE",
   "MISSING_STATE_REQUIRES_LINEAGE",
@@ -170,11 +193,31 @@ for (const forbidden of [
   'supabase',
 ]) assert.equal(canonicalOwner.includes(forbidden), false, `canonical_owner_must_be_pure:${forbidden}`);
 
+// R3 semantic projection remains a pure adapter over canonical state; it owns no routes, writes, network calls or second registry.
+for (const token of [
+  "representationClass: 'EXTERNAL_REPRESENTATION'",
+  "SFI-PUBLIC-SEMANTIC-PROJECTION-1.0",
+  "SFI-EVIDENCE-CAPSULE-1.0",
+  "MISSING_REF_CANNOT_BE_EVIDENCE",
+  "MISSING_STATE_CANNOT_BE_EVIDENCE_CAPSULE",
+  "MODEL_OUTPUT_CANNOT_BE_OBSERVATION",
+  "MODEL_OUTPUT_CANNOT_HAVE_OBSERVED_STATE",
+  "RETURN_REQUIRES_REALITY_OBSERVATION",
+]) assert.ok(semanticProjectionOwner.includes(token), `semantic_projection_boundary_missing:${token}`);
+
+for (const forbidden of ['fetch(', 'supabase', '.from(', 'insert(', 'update(', 'delete(', 'sameAs:', 'doi:', 'orcid:', 'ror:']) {
+  assert.equal(semanticProjectionOwner.includes(forbidden), false, `semantic_projection_must_be_pure:${forbidden}`);
+}
+
 assert.ok(canonicalOwner.includes('Object.freeze([])'), 'canonical_registry_must_not_auto_publish_internal_state');
 assert.ok(canonicalTests.includes('internal event lineage alone cannot create a public object'), 'internal_event_publication_regression_missing');
 assert.ok(canonicalTests.includes('MISSING remains explicit and requires lineage instead of fabrication'), 'missing_regression_missing');
 assert.ok(canonicalTests.includes('canonical URL is deterministic and competing canon is rejected'), 'duplicate_canon_regression_missing');
 assert.ok(canonicalTests.includes('private state cannot become public by publication inheritance'), 'private_public_inheritance_regression_missing');
+assert.ok(canonicalTests.includes('rights privacy governance and evidence identity form a four-axis fail-closed gate'), 'four_axis_publicability_regression_missing');
+assert.ok(canonicalTests.includes('MISSING is metadata, never promoted into capsule evidence'), 'missing_capsule_boundary_regression_missing');
+assert.ok(canonicalTests.includes('MODEL OUTPUT != OBSERVATION and RETURN requires reality observation'), 'model_output_observation_boundary_regression_missing');
+assert.ok(canonicalTests.includes('object-specific JSON-LD is bounded and contains no fabricated identity identifiers'), 'object_specific_jsonld_regression_missing');
 
 // Existing #366 public availability/read-plane regression remains present and owned by its original gate.
 for (const token of [
@@ -191,8 +234,12 @@ console.log(JSON.stringify({
   publicEpistemicBoundary: 'SFI-PUBLIC-EPISTEMIC-BOUNDARY-1.0',
   noDuplicateCanon: 'SFI-DISCOVERY-NO-DUPLICATE-CANON-1.0',
   canonicalObjectContract: 'SFI-CANONICAL-OBJECT-1.0',
+  publicSemanticProjectionContract: SFI_PUBLIC_SEMANTIC_PROJECTION_CONTRACT,
+  evidenceCapsuleContract: SFI_EVIDENCE_CAPSULE_CONTRACT,
   objectTypes: SFI_CANONICAL_OBJECT_TYPES.length,
+  r3PublicSemanticObjectTypes: SFI_PUBLIC_SEMANTIC_OBJECT_TYPES.length,
   canonicalRegistryEntries: SFI_CANONICAL_OBJECT_REGISTRY.length,
+  emittedSemanticObjects: publicSemanticProjectionsForCanonicalObjects(SFI_CANONICAL_OBJECT_REGISTRY).length,
   observedExternalIdentityNodes: SFI_EXTERNAL_IDENTITY_NODES.length,
   disambiguationRisks: SFI_DISAMBIGUATION_RISKS.length,
   verifiedSameAs: SFI_PUBLIC_PROFILE.institution.verifiedSameAs.length,
