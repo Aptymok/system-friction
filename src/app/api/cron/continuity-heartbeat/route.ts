@@ -3,7 +3,11 @@ import { runContinuityHeartbeat, runOperationalTransitionWatchdog } from '@/lib/
 import { runStudioAutonomyContinuation } from '@/lib/continuity/studioAutonomy';
 import { verifyGitHubActionsOidcToken } from '@/lib/continuity/githubActionsOidc';
 import { runGovernedExecutionRouter } from '@/lib/execution/governedExecutionRouter';
-import { runUniversalCycleContinuation, sanitizeUniversalContinuationError } from '@/lib/sfi/universalCycleContinuation';
+import {
+  deriveContinuityHeartbeatGateReceipt,
+  runUniversalCycleContinuation,
+  sanitizeUniversalContinuationError,
+} from '@/lib/sfi/universalCycleContinuation';
 import { runUniversalEmpiricalContinuation } from '@/lib/sfi/universalEmpiricalContinuation';
 import { runUniversalReturnPlanUpgrade } from '@/lib/sfi/universalReturnPlanUpgrade';
 import { readUniversalCycleHistory } from '@/lib/sfi/universalSignalCycle';
@@ -244,7 +248,6 @@ export async function GET(request: NextRequest) {
         }))
       : null;
 
-    const coreHeartbeatOk = result.status !== 'FAILED';
     const laneFailure = transitionWatchdog.ok === false
       || governedExecution.ok === false
       || universalCycleContinuation.ok === false
@@ -253,18 +256,21 @@ export async function GET(request: NextRequest) {
       || universalEmpiricalContinuation.ok === false
       || targetCycleState?.ok === false
       || studioAutonomy.status === 'DEGRADED';
+    const gateReceipt = deriveContinuityHeartbeatGateReceipt({
+      runtimeStatus: result.status,
+      emergencyHalt,
+      requiredLaneFailed: laneFailure,
+      universalContinuationOk: universalCycleContinuation.ok !== false,
+    });
 
     const coreHeartbeat = {
-      ok: coreHeartbeatOk,
-      receipt: coreHeartbeatOk ? 'CORE_HEARTBEAT_PASS' as const : 'CORE_HEARTBEAT_FAIL' as const,
+      ...gateReceipt.coreHeartbeat,
       runtimeStatus: result.status,
       runId: result.runId,
     };
     const laneStatus = {
       returnPlanUpgradeBefore: returnPlanUpgradeBefore.ok === false ? 'RETURN_PLAN_UPGRADE_BEFORE_FAIL' : 'RETURN_PLAN_UPGRADE_BEFORE_PASS',
-      universalCycleContinuation: universalCycleContinuation.ok === false
-        ? 'UNIVERSAL_CONTINUATION_FAIL'
-        : emergencyHalt ? 'UNIVERSAL_CONTINUATION_HALTED' : 'UNIVERSAL_CONTINUATION_PASS',
+      universalCycleContinuation: gateReceipt.universalContinuation,
       returnPlanUpgradeAfter: returnPlanUpgradeAfter.ok === false ? 'RETURN_PLAN_UPGRADE_AFTER_FAIL' : 'RETURN_PLAN_UPGRADE_AFTER_PASS',
       universalEmpiricalContinuation: universalEmpiricalContinuation.ok === false ? 'UNIVERSAL_EMPIRICAL_CONTINUATION_FAIL' : 'UNIVERSAL_EMPIRICAL_CONTINUATION_PASS',
       transitionWatchdog: transitionWatchdog.ok === false ? 'TRANSITION_WATCHDOG_FAIL' : 'TRANSITION_WATCHDOG_PASS',
@@ -274,7 +280,7 @@ export async function GET(request: NextRequest) {
     };
 
     return NextResponse.json({
-      ok: coreHeartbeatOk && !laneFailure,
+      ok: gateReceipt.overallOk,
       trigger: authorization.trigger,
       requestedCycleId: requestedCycleId ?? null,
       ...result,
