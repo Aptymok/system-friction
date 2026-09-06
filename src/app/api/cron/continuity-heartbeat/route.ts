@@ -3,7 +3,11 @@ import { runContinuityHeartbeat, runOperationalTransitionWatchdog } from '@/lib/
 import { runStudioAutonomyContinuation } from '@/lib/continuity/studioAutonomy';
 import { verifyGitHubActionsOidcToken } from '@/lib/continuity/githubActionsOidc';
 import { runGovernedExecutionRouter } from '@/lib/execution/governedExecutionRouter';
-import { runUniversalCycleContinuation } from '@/lib/sfi/universalCycleContinuation';
+import {
+  deriveContinuityHeartbeatGateReceipt,
+  runUniversalCycleContinuation,
+  sanitizeUniversalContinuationError,
+} from '@/lib/sfi/universalCycleContinuation';
 import { runUniversalEmpiricalContinuation } from '@/lib/sfi/universalEmpiricalContinuation';
 import { runUniversalReturnPlanUpgrade } from '@/lib/sfi/universalReturnPlanUpgrade';
 import { readUniversalCycleHistory } from '@/lib/sfi/universalSignalCycle';
@@ -205,10 +209,13 @@ export async function GET(request: NextRequest) {
         ? Promise.resolve({ ok: true as const, halted: true as const, processed: 0, results: [] })
         : runUniversalCycleContinuation({ limit: 2, cycleId: requestedCycleId }).catch((error) => ({
             ok: false as const,
+            availability: 'UNAVAILABLE' as const,
             processed: 0,
             requestedCycleId: requestedCycleId ?? null,
             results: [],
-            error: error instanceof Error ? error.message : String(error),
+            schedulingPolicy: null,
+            readRecovery: null,
+            error: sanitizeUniversalContinuationError(error, 'CONTINUATION_EXECUTION'),
           })),
     ]);
 
@@ -249,12 +256,36 @@ export async function GET(request: NextRequest) {
       || universalEmpiricalContinuation.ok === false
       || targetCycleState?.ok === false
       || studioAutonomy.status === 'DEGRADED';
+    const gateReceipt = deriveContinuityHeartbeatGateReceipt({
+      runtimeStatus: result.status,
+      emergencyHalt,
+      requiredLaneFailed: laneFailure,
+      universalContinuationOk: universalCycleContinuation.ok !== false,
+    });
+
+    const coreHeartbeat = {
+      ...gateReceipt.coreHeartbeat,
+      runtimeStatus: result.status,
+      runId: result.runId,
+    };
+    const laneStatus = {
+      returnPlanUpgradeBefore: returnPlanUpgradeBefore.ok === false ? 'RETURN_PLAN_UPGRADE_BEFORE_FAIL' : 'RETURN_PLAN_UPGRADE_BEFORE_PASS',
+      universalCycleContinuation: gateReceipt.universalContinuation,
+      returnPlanUpgradeAfter: returnPlanUpgradeAfter.ok === false ? 'RETURN_PLAN_UPGRADE_AFTER_FAIL' : 'RETURN_PLAN_UPGRADE_AFTER_PASS',
+      universalEmpiricalContinuation: universalEmpiricalContinuation.ok === false ? 'UNIVERSAL_EMPIRICAL_CONTINUATION_FAIL' : 'UNIVERSAL_EMPIRICAL_CONTINUATION_PASS',
+      transitionWatchdog: transitionWatchdog.ok === false ? 'TRANSITION_WATCHDOG_FAIL' : 'TRANSITION_WATCHDOG_PASS',
+      governedExecution: governedExecution.ok === false ? 'GOVERNED_EXECUTION_FAIL' : 'GOVERNED_EXECUTION_PASS',
+      studioAutonomy: studioAutonomy.status === 'DEGRADED' ? 'STUDIO_AUTONOMY_FAIL' : 'STUDIO_AUTONOMY_PASS',
+      targetCycleState: targetCycleState?.ok === false ? 'TARGET_CYCLE_PROOF_FAIL' : 'TARGET_CYCLE_PROOF_PASS',
+    };
 
     return NextResponse.json({
-      ok: result.status !== 'FAILED' && !laneFailure,
+      ok: gateReceipt.overallOk,
       trigger: authorization.trigger,
       requestedCycleId: requestedCycleId ?? null,
       ...result,
+      coreHeartbeat,
+      laneStatus,
       studioAutonomy,
       transitionWatchdog,
       governedExecution,
@@ -268,7 +299,11 @@ export async function GET(request: NextRequest) {
         : 'One heartbeat owns the complete governed continuation path: legacy RETURN plans are upgraded to AI-governed capability routing, interrupted cognition resumes from durable checkpoints using a sealed Cognitive Twin context, real evidence-linked RETURNs advance through AI-assisted CONTRAST and existing empirical closure rules, and calibrated learning becomes adaptive non-canonical Twin context. A requested cycle also returns bounded read-only lifecycle proof even when no cognitive work is eligible. Missing evidence remains missing; no RETURN, canon mutation or irreversible external authority is fabricated.',
     });
   } catch (error) {
-    return NextResponse.json({ ok: false, error: 'continuity_heartbeat_failed', details: error instanceof Error ? error.message : String(error) }, { status: 500 });
+    return NextResponse.json({
+      ok: false,
+      error: 'continuity_heartbeat_failed',
+      details: sanitizeUniversalContinuationError(error, 'CONTINUATION_EXECUTION'),
+    }, { status: 500 });
   }
 }
 

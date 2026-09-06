@@ -16,6 +16,9 @@ const SYSTEM_ACTOR = 'sfi_universal_continuation';
 const EVENT_SCAN_LIMIT = 500;
 const CONTINUATION_AGENT_BUDGET = 8;
 const MAX_SYNTHESIS_ATTEMPTS_PER_COMPLETION = 3;
+const LEDGER_READ_MAX_ATTEMPTS = 2;
+const LEDGER_READ_BASE_DELAY_MS = 120;
+const LEDGER_READ_JITTER_MS = 80;
 
 type Row = Record<string, unknown>;
 
@@ -39,6 +42,40 @@ type CycleTrack = {
   closed: LifecycleEvent | null;
 };
 
+type TrackReadResult =
+  | { ok: true; tracks: CycleTrack[]; error: null }
+  | { ok: false; tracks: CycleTrack[]; error: unknown };
+
+type ContinuationErrorClass =
+  | 'TRANSIENT_DATA_PLANE'
+  | 'NON_RETRYABLE_DATA_PLANE'
+  | 'UNCLASSIFIED_DATA_PLANE'
+  | 'CONTINUATION_EXECUTION';
+
+export type UniversalContinuationErrorReceipt = {
+  stage: 'LEDGER_READ' | 'CONTINUATION_EXECUTION';
+  code: string | null;
+  class: ContinuationErrorClass;
+  retryable: boolean;
+  message: string;
+};
+
+type ReadRecovery = {
+  attempts: number;
+  maxAttempts: number;
+  retried: boolean;
+  recovered: boolean;
+  exhausted: boolean;
+  lastFailure: UniversalContinuationErrorReceipt | null;
+};
+
+type UniversalContinuationDependencies = {
+  readTracks?: () => Promise<TrackReadResult>;
+  continueCandidate?: (track: CycleTrack) => Promise<unknown>;
+  sleep?: (milliseconds: number) => Promise<void>;
+  random?: () => number;
+};
+
 function row(value: unknown): Row {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {};
 }
@@ -56,6 +93,104 @@ function stringList(value: unknown) {
 function numberValue(value: unknown) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function safeDiagnosticCode(value: unknown) {
+  const raw = text(value)?.toUpperCase();
+  if (!raw) return null;
+  if (/^PGRST\d{3}$/.test(raw)) return raw;
+  if (/^(?:00|01|02|03|08|09|0A|0B|0F|0L|0P|0Z|20|21|22|23|24|25|26|27|28|2B|2D|2F|34|38|39|3B|3D|3F|40|42|44|53|54|55|57|58|72|F0|HV|P0|XX)[0-9A-Z]{3}$/.test(raw)) return raw;
+  if (/^(?:ECONNRESET|ETIMEDOUT|EAI_AGAIN|ECONNREFUSED|ENOTFOUND|EHOSTUNREACH|ENETUNREACH|EPIPE)$/.test(raw)) return raw;
+  if (/^UND_ERR_[A-Z0-9_]{1,40}$/.test(raw)) return raw;
+  return null;
+}
+
+function errorCode(error: unknown) {
+  const direct = safeDiagnosticCode(row(error).code);
+  if (direct) return direct;
+  return safeDiagnosticCode(row(row(error).cause).code);
+}
+
+function errorMessage(error: unknown) {
+  if (error instanceof Error) return error.message;
+  return text(row(error).message) ?? String(error ?? 'unknown_continuation_error');
+}
+
+function sanitizeErrorMessage(value: string) {
+  return value
+    .replace(/\b(?:proxy-)?authorization\s*[:=]\s*[^\r\n]*/gi, 'Authorization: [REDACTED]')
+    .replace(/\bBearer\s+[^\s,;]+/gi, 'Bearer [REDACTED]')
+    .replace(/\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/g, '[REDACTED_JWT]')
+    .replace(/\bpostgres(?:ql)?:\/\/[^\s]+/gi, '[REDACTED_DATABASE_URL]')
+    .replace(/\bhttps?:\/\/[^\s]+/gi, '[REDACTED_URL]')
+    .replace(/(\b(?:(?:supabase[_-]?)?service[_-]?role(?:[_-]?key)?|api[_-]?key|token|secret|password)\b\s*[:=]\s*)(?:"[^"\r\n]*"|'[^'\r\n]*'|[^\s,;]+)/gi, '$1[REDACTED]')
+    .replace(/[\r\n\t]+/g, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+    .slice(0, 500) || 'continuation_error_without_safe_message';
+}
+
+function retryableLedgerReadError(code: string | null, message: string) {
+  const normalizedCode = code?.toUpperCase() ?? '';
+  if (/^08[A-Z0-9]{3}$/.test(normalizedCode)) return true;
+  if (['PGRST003', '40001', '40P01', '53300', '57P01', '57P02', '57P03'].includes(normalizedCode)) return true;
+  const normalized = message.toLowerCase();
+  return [
+    'timed out acquiring connection from connection pool',
+    'statement timeout',
+    'request_timeout',
+    'request timeout',
+    'context deadline exceeded',
+    'connection terminated due to connection timeout',
+    'connection reset',
+    'econnreset',
+    'etimedout',
+    'eai_again',
+    'socket hang up',
+    'fetch failed',
+    'network error',
+    'temporarily unavailable',
+  ].some((marker) => normalized.includes(marker));
+}
+
+export function sanitizeUniversalContinuationError(
+  error: unknown,
+  stage: UniversalContinuationErrorReceipt['stage'] = 'LEDGER_READ',
+): UniversalContinuationErrorReceipt {
+  const code = errorCode(error);
+  const message = sanitizeErrorMessage(errorMessage(error));
+  if (stage === 'CONTINUATION_EXECUTION') {
+    return { stage, code, class: 'CONTINUATION_EXECUTION', retryable: false, message };
+  }
+  const retryable = retryableLedgerReadError(code, message);
+  return {
+    stage,
+    code,
+    class: retryable ? 'TRANSIENT_DATA_PLANE' : code ? 'NON_RETRYABLE_DATA_PLANE' : 'UNCLASSIFIED_DATA_PLANE',
+    retryable,
+    message,
+  };
+}
+
+export function deriveContinuityHeartbeatGateReceipt(input: {
+  runtimeStatus: string;
+  emergencyHalt: boolean;
+  requiredLaneFailed: boolean;
+  universalContinuationOk: boolean;
+}) {
+  const coreHeartbeat = input.runtimeStatus === 'COMPLETED'
+    ? { ok: true as const, receipt: 'CORE_HEARTBEAT_PASS' as const }
+    : input.runtimeStatus === 'HALTED' && input.emergencyHalt
+      ? { ok: false as const, receipt: 'CORE_HEARTBEAT_HALTED' as const }
+      : { ok: false as const, receipt: 'CORE_HEARTBEAT_FAIL' as const };
+  const universalContinuation = input.universalContinuationOk
+    ? input.emergencyHalt ? 'UNIVERSAL_CONTINUATION_HALTED' as const : 'UNIVERSAL_CONTINUATION_PASS' as const
+    : 'UNIVERSAL_CONTINUATION_FAIL' as const;
+  return {
+    coreHeartbeat,
+    universalContinuation,
+    overallOk: coreHeartbeat.ok && !input.requiredLaneFailed,
+  };
 }
 
 function eventRow(value: unknown): LifecycleEvent | null {
@@ -121,53 +256,111 @@ function signalFromObjectKey(payload: Row): UniversalCycleInput['signal'] {
   return { kind, name, objectHash, content: null, extracted: {}, provenance: {} };
 }
 
-async function readTracks() {
-  const db = createServiceSupabaseClient();
-  const result = await db.from('epistemic_events')
-    .select('sequence,event_id,event_name,payload,logbook_id')
-    .in('event_name', [
-      'SFI_UNIVERSAL_CYCLE_RESUMED',
-      SFI_UNIVERSAL_COGNITIVE_CHECKPOINT,
-      'SFI_UNIVERSAL_COGNITIVE_CYCLE_EXECUTED',
-      'SFI_UNIVERSAL_AI_SYNTHESIS_COMPLETED',
-      SFI_UNIVERSAL_RETURN_PLAN_RECORDED,
-      'SFI_UNIVERSAL_RETURN_RECORDED',
-      'SFI_UNIVERSAL_CYCLE_CLOSED',
-    ])
-    .order('sequence', { ascending: false })
-    .limit(EVENT_SCAN_LIMIT);
-  if (result.error) return { ok: false as const, tracks: [] as CycleTrack[], error: result.error.message };
+async function readTracksOnce(): Promise<TrackReadResult> {
+  try {
+    const db = createServiceSupabaseClient();
+    const result = await db.from('epistemic_events')
+      .select('sequence,event_id,event_name,payload,logbook_id')
+      .in('event_name', [
+        'SFI_UNIVERSAL_CYCLE_RESUMED',
+        SFI_UNIVERSAL_COGNITIVE_CHECKPOINT,
+        'SFI_UNIVERSAL_COGNITIVE_CYCLE_EXECUTED',
+        'SFI_UNIVERSAL_AI_SYNTHESIS_COMPLETED',
+        SFI_UNIVERSAL_RETURN_PLAN_RECORDED,
+        'SFI_UNIVERSAL_RETURN_RECORDED',
+        'SFI_UNIVERSAL_CYCLE_CLOSED',
+      ])
+      .order('sequence', { ascending: false })
+      .limit(EVENT_SCAN_LIMIT);
+    if (result.error) return { ok: false, tracks: [], error: result.error };
 
-  const map = new Map<string, CycleTrack>();
-  for (const value of result.data ?? []) {
-    const event = eventRow(value);
-    if (!event) continue;
-    let track = map.get(text(event.payload.cycleId)!);
-    if (!track) {
-      track = {
-        cycleId: text(event.payload.cycleId)!,
-        resume: null,
-        checkpoint: null,
-        cognitive: null,
-        synthesis: null,
-        syntheses: [],
-        returnPlan: null,
-        returnEvent: null,
-        closed: null,
-      };
-      map.set(track.cycleId, track);
+    const map = new Map<string, CycleTrack>();
+    for (const value of result.data ?? []) {
+      const event = eventRow(value);
+      if (!event) continue;
+      let track = map.get(text(event.payload.cycleId)!);
+      if (!track) {
+        track = {
+          cycleId: text(event.payload.cycleId)!,
+          resume: null,
+          checkpoint: null,
+          cognitive: null,
+          synthesis: null,
+          syntheses: [],
+          returnPlan: null,
+          returnEvent: null,
+          closed: null,
+        };
+        map.set(track.cycleId, track);
+      }
+      if (event.eventName === 'SFI_UNIVERSAL_CYCLE_RESUMED' && !track.resume) track.resume = event;
+      else if (event.eventName === SFI_UNIVERSAL_COGNITIVE_CHECKPOINT && !track.checkpoint) track.checkpoint = event;
+      else if (event.eventName === 'SFI_UNIVERSAL_COGNITIVE_CYCLE_EXECUTED' && !track.cognitive) track.cognitive = event;
+      else if (event.eventName === 'SFI_UNIVERSAL_AI_SYNTHESIS_COMPLETED') {
+        track.syntheses.push(event);
+        if (!track.synthesis) track.synthesis = event;
+      } else if (event.eventName === SFI_UNIVERSAL_RETURN_PLAN_RECORDED && !track.returnPlan) track.returnPlan = event;
+      else if (event.eventName === 'SFI_UNIVERSAL_RETURN_RECORDED' && !track.returnEvent) track.returnEvent = event;
+      else if (event.eventName === 'SFI_UNIVERSAL_CYCLE_CLOSED' && !track.closed) track.closed = event;
     }
-    if (event.eventName === 'SFI_UNIVERSAL_CYCLE_RESUMED' && !track.resume) track.resume = event;
-    else if (event.eventName === SFI_UNIVERSAL_COGNITIVE_CHECKPOINT && !track.checkpoint) track.checkpoint = event;
-    else if (event.eventName === 'SFI_UNIVERSAL_COGNITIVE_CYCLE_EXECUTED' && !track.cognitive) track.cognitive = event;
-    else if (event.eventName === 'SFI_UNIVERSAL_AI_SYNTHESIS_COMPLETED') {
-      track.syntheses.push(event);
-      if (!track.synthesis) track.synthesis = event;
-    } else if (event.eventName === SFI_UNIVERSAL_RETURN_PLAN_RECORDED && !track.returnPlan) track.returnPlan = event;
-    else if (event.eventName === 'SFI_UNIVERSAL_RETURN_RECORDED' && !track.returnEvent) track.returnEvent = event;
-    else if (event.eventName === 'SFI_UNIVERSAL_CYCLE_CLOSED' && !track.closed) track.closed = event;
+    return { ok: true, tracks: [...map.values()], error: null };
+  } catch (error) {
+    return { ok: false, tracks: [], error };
   }
-  return { ok: true as const, tracks: [...map.values()], error: null as string | null };
+}
+
+async function readTracksWithRecovery(dependencies: UniversalContinuationDependencies) {
+  const readTracks = dependencies.readTracks ?? readTracksOnce;
+  const sleep = dependencies.sleep ?? ((milliseconds: number) => new Promise<void>((resolve) => setTimeout(resolve, milliseconds)));
+  const random = dependencies.random ?? Math.random;
+  let lastFailure: UniversalContinuationErrorReceipt | null = null;
+
+  for (let attempt = 1; attempt <= LEDGER_READ_MAX_ATTEMPTS; attempt += 1) {
+    const scan = await readTracks();
+    if (scan.ok) {
+      const recovery: ReadRecovery = {
+        attempts: attempt,
+        maxAttempts: LEDGER_READ_MAX_ATTEMPTS,
+        retried: attempt > 1,
+        recovered: attempt > 1,
+        exhausted: false,
+        lastFailure,
+      };
+      return { ok: true as const, tracks: scan.tracks, recovery };
+    }
+
+    lastFailure = sanitizeUniversalContinuationError(scan.error, 'LEDGER_READ');
+    const exhausted = attempt >= LEDGER_READ_MAX_ATTEMPTS;
+    if (!lastFailure.retryable || exhausted) {
+      const recovery: ReadRecovery = {
+        attempts: attempt,
+        maxAttempts: LEDGER_READ_MAX_ATTEMPTS,
+        retried: attempt > 1,
+        recovered: false,
+        exhausted: lastFailure.retryable && exhausted,
+        lastFailure,
+      };
+      return { ok: false as const, tracks: [] as CycleTrack[], error: lastFailure, recovery };
+    }
+
+    const jitter = Math.floor(Math.max(0, Math.min(1, random())) * LEDGER_READ_JITTER_MS);
+    await sleep(LEDGER_READ_BASE_DELAY_MS + jitter);
+  }
+
+  const fallback = lastFailure ?? sanitizeUniversalContinuationError('ledger_read_failed_without_error', 'LEDGER_READ');
+  return {
+    ok: false as const,
+    tracks: [] as CycleTrack[],
+    error: fallback,
+    recovery: {
+      attempts: LEDGER_READ_MAX_ATTEMPTS,
+      maxAttempts: LEDGER_READ_MAX_ATTEMPTS,
+      retried: LEDGER_READ_MAX_ATTEMPTS > 1,
+      recovered: false,
+      exhausted: true,
+      lastFailure: fallback,
+    } satisfies ReadRecovery,
+  };
 }
 
 function checkpointContext(event: LifecycleEvent | null): KernelContext | null {
@@ -572,11 +765,44 @@ function completedTrackNeedsWork(track: CycleTrack) {
   return Boolean(synthesisNeedsRetry || returnPlanNeedsResolution);
 }
 
-export async function runUniversalCycleContinuation(input: { limit?: number; cycleId?: string } = {}) {
-  const scan = await readTracks();
-  if (!scan.ok) return { ok: false as const, processed: 0, results: [], error: scan.error };
-  const limit = Math.max(1, Math.min(5, input.limit ?? 2));
+async function continueCandidate(track: CycleTrack) {
+  const checkpointIsUsable = track.checkpoint && (!track.resume || later(track.checkpoint, track.resume));
+  if (checkpointIsUsable && (!track.cognitive || !completedCognitive(track.cognitive) || later(track.checkpoint, track.cognitive))) {
+    return continueCheckpoint(track);
+  }
+  if (track.resume && (!track.cognitive || later(track.resume, track.cognitive)) && (!track.checkpoint || !later(track.checkpoint, track.resume))) {
+    return bootstrapLegacyResume(track);
+  }
+  if (track.cognitive && completedCognitive(track.cognitive)) {
+    return continueCompletedTrack(track);
+  }
+  return null;
+}
+
+export async function runUniversalCycleContinuation(
+  input: { limit?: number; cycleId?: string } = {},
+  dependencies: UniversalContinuationDependencies = {},
+) {
   const requestedCycleId = text(input.cycleId);
+  const schedulingPolicy = requestedCycleId
+    ? 'TARGETED_SAME_CYCLE_RECOVERY'
+    : 'FAIR_OLDEST_PROGRESS_FIRST_ROUND_ROBIN';
+  const scan = await readTracksWithRecovery(dependencies);
+  if (!scan.ok) {
+    return {
+      ok: false as const,
+      availability: 'UNAVAILABLE' as const,
+      processed: 0,
+      requestedCycleId: requestedCycleId ?? null,
+      results: [],
+      schedulingPolicy: null,
+      readRecovery: scan.recovery,
+      error: scan.error,
+      rule: 'Ledger acquisition failed before candidate selection. No cognitive completion, synthesis, RETURN plan, RETURN, closure or learning effect was retried or executed.',
+    };
+  }
+
+  const limit = Math.max(1, Math.min(5, input.limit ?? 2));
   const candidates = scan.tracks
     .filter((track) => !requestedCycleId || track.cycleId === requestedCycleId)
     .filter((track) => {
@@ -593,29 +819,29 @@ export async function runUniversalCycleContinuation(input: { limit?: number; cyc
     .slice(0, requestedCycleId ? 1 : limit);
 
   const results: unknown[] = [];
+  const executeCandidate = dependencies.continueCandidate ?? continueCandidate;
   for (const track of candidates) {
     try {
-      const checkpointIsUsable = track.checkpoint && (!track.resume || later(track.checkpoint, track.resume));
-      if (checkpointIsUsable && (!track.cognitive || !completedCognitive(track.cognitive) || later(track.checkpoint, track.cognitive))) {
-        results.push(await continueCheckpoint(track));
-      } else if (track.resume && (!track.cognitive || later(track.resume, track.cognitive)) && (!track.checkpoint || !later(track.checkpoint, track.resume))) {
-        results.push(await bootstrapLegacyResume(track));
-      } else if (track.cognitive && completedCognitive(track.cognitive)) {
-        results.push(await continueCompletedTrack(track));
-      }
+      const continuation = await executeCandidate(track);
+      if (continuation !== null && continuation !== undefined) results.push(continuation);
     } catch (error) {
-      results.push({ cycleId: track.cycleId, state: 'CONTINUATION_FAILED', error: error instanceof Error ? error.message : String(error) });
+      results.push({
+        cycleId: track.cycleId,
+        state: 'CONTINUATION_FAILED',
+        error: sanitizeUniversalContinuationError(error, 'CONTINUATION_EXECUTION'),
+      });
     }
   }
 
   return {
     ok: results.every((item) => row(item).state !== 'CONTINUATION_FAILED'),
+    availability: 'AVAILABLE' as const,
     processed: results.length,
     requestedCycleId: requestedCycleId ?? null,
     results,
-    schedulingPolicy: requestedCycleId
-      ? 'TARGETED_SAME_CYCLE_RECOVERY'
-      : 'FAIR_OLDEST_PROGRESS_FIRST_ROUND_ROBIN',
-    rule: 'Same-cycle cognition, bounded synthesis recovery and RETURN ownership resolution are continued from durable state. No new Case, raw source reprocessing, RETURN fabrication, closure or learning promotion is performed.',
+    schedulingPolicy,
+    readRecovery: scan.recovery,
+    error: null,
+    rule: 'Same-cycle cognition, bounded synthesis recovery and RETURN ownership resolution are continued from durable state. No new Case, raw source reprocessing, RETURN fabrication, closure or learning promotion is performed. Ledger read retries are bounded and occur only before candidate selection.',
   };
 }
