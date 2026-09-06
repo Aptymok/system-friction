@@ -14,6 +14,18 @@ export type SfiMaterialRightsStatus = (typeof SFI_MATERIAL_RIGHTS_STATES)[number
 export const SFI_INSTRUMENT_QUALITY_STATES = ['DRAFT', 'VERIFIED', 'PRODUCTION', 'REJECTED'] as const;
 export type SfiInstrumentQualityState = (typeof SFI_INSTRUMENT_QUALITY_STATES)[number];
 
+export const SFI_MATERIAL_EXECUTION_ELIGIBILITY_STATES = [
+  'ELIGIBLE',
+  'BLOCKED_SOURCE_RIGHTS',
+  'BLOCKED_TARGET_RIGHTS',
+  'BLOCKED_NOT_PRODUCTION',
+  'BLOCKED_PACKAGE_VERIFICATION',
+] as const;
+export type SfiMaterialExecutionEligibilityState = (typeof SFI_MATERIAL_EXECUTION_ELIGIBILITY_STATES)[number];
+
+// Material-rights eligibility is a technical rights check only. It never grants institutional execution authority.
+export const SFI_MATERIAL_RIGHTS_ELIGIBILITY_IS_NOT_AUTHORITY = true as const;
+
 export type SfiInstrumentRegistryInput = {
   name: string;
   family: string;
@@ -41,6 +53,7 @@ export type SfiCulturalReferenceInput = {
   workIdentifier: string;
   source: string;
   rightsStatus: SfiMaterialRightsStatus;
+  rightsEvidenceRef?: string | null;
   externalAssetRef: string | null;
   referenceHash: string | null;
   featureManifest: Record<string, unknown>;
@@ -53,8 +66,25 @@ export type SfiCulturalReferenceInput = {
   version: number;
 };
 
+export type SfiCulturalReferenceRightsRevisionInput = {
+  referenceId: string;
+  rightsStatus: SfiMaterialRightsStatus;
+  rightsEvidenceRef: string;
+};
+
 export type SfiCulturalReferenceSnapshot = Pick<SfiCulturalReferenceInput, 'rightsStatus'> & {
   id: string;
+  version: number;
+};
+
+export type SfiMaterialExecutionEligibilityInput = {
+  sourceReferenceId: string | null;
+  sourceRightsStatus: SfiMaterialRightsStatus | null;
+  instrumentRightsStatus: SfiMaterialRightsStatus;
+  qualityState: SfiInstrumentQualityState;
+  packageRef: string | null;
+  packageHash: string | null;
+  verifiedAt: string | null;
 };
 
 const RAW_AUDIO_KEYS = new Set([
@@ -82,6 +112,30 @@ function requirePositiveVersion(version: number) {
 
 export function rightsAllowExecutableMaterialization(rightsStatus: SfiMaterialRightsStatus) {
   return rightsStatus === 'EXECUTION_ALLOWED' || rightsStatus === 'DERIVATIVE_ALLOWED';
+}
+
+export function deriveCurrentMaterialExecutionEligibility(
+  input: SfiMaterialExecutionEligibilityInput,
+): SfiMaterialExecutionEligibilityState {
+  if (input.sourceReferenceId && (!input.sourceRightsStatus || !rightsAllowExecutableMaterialization(input.sourceRightsStatus))) {
+    return 'BLOCKED_SOURCE_RIGHTS';
+  }
+  if (!rightsAllowExecutableMaterialization(input.instrumentRightsStatus)) {
+    return 'BLOCKED_TARGET_RIGHTS';
+  }
+  if (input.qualityState !== 'PRODUCTION') {
+    return 'BLOCKED_NOT_PRODUCTION';
+  }
+  if (!input.packageRef || !input.packageHash || !input.verifiedAt) {
+    return 'BLOCKED_PACKAGE_VERIFICATION';
+  }
+  return 'ELIGIBLE';
+}
+
+export function assertCurrentMaterialExecutionEligible(input: SfiMaterialExecutionEligibilityInput) {
+  const state = deriveCurrentMaterialExecutionEligibility(input);
+  if (state !== 'ELIGIBLE') throw new Error(`SFI_AUDIO_CURRENT_EXECUTION_RIGHTS_BLOCKED:${state}`);
+  return state;
 }
 
 export function assertNoRawAudioPersistence(value: unknown) {
@@ -152,6 +206,13 @@ export function assertCulturalReferenceInput(input: SfiCulturalReferenceInput) {
   if (!input.externalAssetRef && !input.referenceHash) {
     throw new Error('SFI_AUDIO_REFERENCE_IDENTITY_REQUIRED');
   }
+}
+
+export function assertCulturalReferenceRightsRevisionInput(input: SfiCulturalReferenceRightsRevisionInput) {
+  requireText(input.referenceId, 'SFI_AUDIO_REFERENCE_ID_REQUIRED');
+  requireText(input.rightsStatus, 'SFI_AUDIO_RIGHTS_STATE_REQUIRED');
+  requireText(input.rightsEvidenceRef, 'SFI_AUDIO_RIGHTS_REVISION_EVIDENCE_REQUIRED');
+  return input;
 }
 
 export function assertReferenceMaterializationAllowed(
