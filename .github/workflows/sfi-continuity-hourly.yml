@@ -23,10 +23,15 @@ permissions:
 concurrency:
   group: sfi-continuity-hourly
   cancel-in-progress: false
+  queue: max
 
 jobs:
   heartbeat:
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    concurrency:
+      group: ${{ github.event_name == 'workflow_run' && format('sfi-post-deploy-assurance-{0}', github.event.workflow_run.id) || format('sfi-continuity-heartbeat-{0}', github.run_id) }}
+      cancel-in-progress: false
+      queue: max
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

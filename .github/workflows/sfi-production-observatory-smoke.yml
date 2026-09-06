@@ -21,10 +21,15 @@ permissions:
 concurrency:
   group: sfi-production-observatory-smoke
   cancel-in-progress: false
+  queue: max
 
 jobs:
   observatory-production-return:
     if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    concurrency:
+      group: ${{ github.event_name == 'workflow_run' && format('sfi-post-deploy-assurance-{0}', github.event.workflow_run.id) || format('sfi-observatory-return-{0}', github.run_id) }}
+      cancel-in-progress: false
+      queue: max
     runs-on: ubuntu-latest
     timeout-minutes: 8
 

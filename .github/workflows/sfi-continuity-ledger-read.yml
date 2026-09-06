@@ -8,7 +8,9 @@ on:
       - 'src/lib/sfi/universalCycleContinuation.test.ts'
       - 'src/app/api/cron/continuity-heartbeat/route.ts'
       - '.github/workflows/sfi-continuity-hourly.yml'
+      - '.github/workflows/sfi-production-observatory-smoke.yml'
       - '.github/workflows/sfi-continuity-ledger-read.yml'
+      - 'scripts/qa-sfi-post-deploy-assurance-coordination.mjs'
 
 permissions:
   contents: read
@@ -36,5 +38,7 @@ jobs:
           printf '%s\n' 'module.exports = {};' > node_modules/server-only/index.js
       - name: Test bounded universal ledger read recovery
         run: node --import tsx --test src/lib/sfi/universalCycleContinuation.test.ts
+      - name: Verify post-deploy assurance coordination
+        run: node scripts/qa-sfi-post-deploy-assurance-coordination.mjs
       - name: Verify existing universal continuation scheduling contract
         run: npx tsx scripts/qa-sfi-operational-next.ts
