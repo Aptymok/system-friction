@@ -21,8 +21,9 @@ permissions:
   id-token: write
 
 concurrency:
-  group: sfi-continuity-hourly
+  group: ${{ github.event_name == 'workflow_run' && format('sfi-post-deploy-assurance-{0}', github.event.workflow_run.id) || 'sfi-continuity-hourly' }}
   cancel-in-progress: false
+  queue: max
 
 jobs:
   heartbeat:
