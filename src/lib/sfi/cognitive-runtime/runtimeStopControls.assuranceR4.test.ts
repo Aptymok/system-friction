@@ -461,4 +461,4 @@ test('F-406-07 checkpoint continuity: restored STOP remains terminal and cannot 
   assert.ok(readBack?.stop.stopped);
   markAdaptiveStop(readBack!, 'ATTEMPTED_REOPEN_REASON');
   assert.equal(readBack?.stop.reason, 'PERSISTED_TERMINAL_STOP');
-}
+});
