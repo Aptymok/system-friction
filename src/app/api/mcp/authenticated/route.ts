@@ -6,6 +6,7 @@ import {
   type SfiAuthenticatedMachinePrincipal,
 } from '@/lib/mcp/authenticatedGovernedMachineAdapter';
 import { appendEpistemicEvent, streamRecentEpistemicEvents } from '@/lib/events/eventStore';
+import { capabilityGrantNonceHash } from '@/lib/sfi/cognitive-runtime/capabilityGrant';
 import { executeManualCognitiveAgent } from '@/lib/sfi/cognitive-runtime/manualExecution';
 import {
   authorizeExternalRequest,
@@ -17,6 +18,16 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 export const maxDuration = 300;
 
+type JsonObject = Record<string, unknown>;
+
+function row(value: unknown): JsonObject {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as JsonObject : {};
+}
+
+function text(value: unknown) {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
 function requestId(value: unknown): string | number | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const id = (value as Record<string, unknown>).id;
@@ -27,6 +38,12 @@ function method(value: unknown) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return '';
   const candidate = (value as Record<string, unknown>).method;
   return typeof candidate === 'string' ? candidate : '';
+}
+
+function requestedGrantId(value: unknown) {
+  const params = row(row(value).params);
+  const args = row(params.arguments);
+  return text(row(args.authorization).grantId);
 }
 
 function errorResponse(
@@ -88,14 +105,35 @@ export async function POST(request: Request) {
     authMethod: 'oauth',
   };
 
+  // The raw ephemeral grant nonce is accepted only as a transient machine header.
+  // Hash it immediately, never place it in the JSON envelope, event payload, browser
+  // state, execution context, or model context. If proof does not match the persisted
+  // nonceHash for the requested grant, that admission is invisible to authorization
+  // and the canonical adapter fails closed with its normal denial receipt.
+  const targetGrantId = method(payload) === 'tools/call' ? requestedGrantId(payload) : '';
+  const rawGrantNonce = method(payload) === 'tools/call'
+    ? request.headers.get('x-sfi-capability-grant-nonce')?.trim() ?? ''
+    : '';
+  const presentedGrantNonceHash = rawGrantNonce ? capabilityGrantNonceHash(rawGrantNonce) : null;
+
   const result = await dispatchAuthenticatedMachineRequest(payload, principal, {
     readHistory: async () => {
       const history = await streamRecentEpistemicEvents(500);
-      return (history.data ?? []).map((entry) => ({
+      const entries = (history.data ?? []).map((entry) => ({
         eventId: typeof entry.event_id === 'string' ? entry.event_id : null,
         eventName: typeof entry.event_name === 'string' ? entry.event_name : '',
         payload: entry.payload,
       }));
+
+      if (!targetGrantId) return entries;
+      return entries.filter((entry) => {
+        if (entry.eventName !== 'SFI_CAPABILITY_ADMITTED') return true;
+        const eventPayload = row(entry.payload);
+        const eventGrantId = text(row(eventPayload.grant).grantId);
+        if (eventGrantId !== targetGrantId) return true;
+        const persistedNonceHash = text(eventPayload.nonceHash);
+        return Boolean(presentedGrantNonceHash && persistedNonceHash && persistedNonceHash === presentedGrantNonceHash);
+      });
     },
     appendEvent: async (event: SfiAuthenticatedMachineEventInput) => {
       const persisted = await appendEpistemicEvent(event);
