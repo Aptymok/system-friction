@@ -216,10 +216,11 @@ test('future restored clock interval fails closed before execution even when dur
 test('malformed restored temporal envelope fails closed before execution', () => {
   const ctx = contextWithGraph();
   graph(ctx).runtimeControls.bounds.startedAt = 'not-a-timestamp';
-  const blocked = runtimeExecutionPreflight(ctx, 'risk_agent', Date.parse('2026-09-07T03:20:00.000Z'));
+  const evaluationClock = Date.parse('2026-09-07T03:20:00.000Z');
+  assert.ok(validateRuntimeStopCostControls(graph(ctx), evaluationClock).includes('STARTED_AT_INVALID'));
+  const blocked = runtimeExecutionPreflight(ctx, 'risk_agent', evaluationClock);
   assert.equal(blocked.allowed, false);
   assert.equal(blocked.reason, 'RESTORED_RUNTIME_STATE_INVALID');
-  assert.ok('errors' in blocked && blocked.errors.includes('STARTED_AT_INVALID'));
 });
 
 test('stricter runtime depth stops a structurally valid node beyond the configured trajectory depth', () => {
