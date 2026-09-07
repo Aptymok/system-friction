@@ -71,14 +71,60 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ ! -f artifacts/program-completion/completion.md ]; then
+          if [ ! -f artifacts/program-completion/completion.json ]; then
             echo 'Completion Controller artifact unavailable; skip canonical sweep comment here and fail closed in the integrity gate.'
             exit 0
           fi
-          {
-            cat artifacts/program-completion/completion.md
-            printf '\n\nRun: %s/%s/actions/runs/%s\n' "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID"
-          } > /tmp/sfi-program-completion-comment.md
+          python - <<'PY'
+          import json, os, pathlib
+          report=json.load(open('artifacts/program-completion/completion.json'))
+          counts=report.get('counts', {})
+          qa=report.get('qa', {})
+          defects=report.get('hardDefects', [])
+          requirements=report.get('requirements', [])
+          unresolved=[r for r in requirements if r.get('status') not in ('SATISFIED','EXTERNAL_ACTION','SUPERSEDED_BY_AUTHORIZED_DECISION')]
+          order={'MISSING':0,'PARTIAL':1,'IN_PROGRESS':2}
+          unresolved.sort(key=lambda r:(order.get(r.get('status'),9), str(r.get('owner','')), str(r.get('id',''))))
+          lines=[
+            '# SFI · Completion Controller checkpoint',
+            '',
+            f"**Contract:** {report.get('contract','UNKNOWN')}  ",
+            f"**HEAD:** `{report.get('head','UNKNOWN')}`  ",
+            f"**Requirements:** {len(requirements)}  ",
+            f"**Next:** {report.get('nextProgramAction','UNKNOWN')}",
+            '',
+            '## Counts',
+          ]
+          for key in ('SATISFIED','IN_PROGRESS','PARTIAL','MISSING','EXTERNAL_ACTION','SUPERSEDED_BY_AUTHORIZED_DECISION','UNCLASSIFIED'):
+            lines.append(f"- {key}: {counts.get(key,0)}")
+          lines += [
+            '',
+            '## Controller integrity',
+            f"- canonicalFilesPresent: {qa.get('canonicalFilesPresent')}",
+            f"- masterCriteriaExactly24: {qa.get('masterCriteriaExactly24')}",
+            f"- unclassifiedZero: {qa.get('unclassifiedZero')}",
+            f"- allIncompleteHaveTrajectory: {qa.get('allIncompleteHaveTrajectory')}",
+            f"- legacy154Included: {qa.get('legacy154Included')}",
+            f"- accepted405DirectiveIncluded: {qa.get('accepted405DirectiveIncluded')}",
+            f"- hardDefects: {len(defects)}",
+            '',
+            '## Highest-priority unresolved sample',
+          ]
+          for r in unresolved[:25]:
+            req=' '.join(str(r.get('requirement','')).split())
+            if len(req)>220: req=req[:217]+'...'
+            lines.append(f"- **{r.get('status')} · {r.get('owner')} · {r.get('id')}** — {req} — trajectory `{r.get('trajectoryRef','NONE')}`")
+          lines += [
+            '',
+            'Full immutable `completion.json` and `completion.md` are retained in the workflow artifact; the issue comment is intentionally bounded so ledger persistence cannot fail as the program grows.',
+            '',
+            f"Run: {os.environ.get('GITHUB_SERVER_URL')}/{os.environ.get('GITHUB_REPOSITORY')}/actions/runs/{os.environ.get('GITHUB_RUN_ID')}",
+          ]
+          body='\n'.join(lines)+'\n'
+          if len(body.encode('utf-8')) >= 60000:
+            raise SystemExit('SFI_COMPLETION_LEDGER_COMMENT_EXCEEDS_SAFE_BOUND')
+          pathlib.Path('/tmp/sfi-program-completion-comment.md').write_text(body)
+          PY
           gh issue comment 405 --repo "$GITHUB_REPOSITORY" --body-file /tmp/sfi-program-completion-comment.md
 
       - name: Render institutional PDF
