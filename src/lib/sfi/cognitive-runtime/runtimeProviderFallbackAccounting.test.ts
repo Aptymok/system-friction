@@ -83,11 +83,12 @@ function currentCallId(context: KernelContext) {
 }
 
 function providerFromUrl(url: string): Provider {
-  if (url.includes('api.openai.com')) return 'openai';
-  if (url.includes('api.anthropic.com')) return 'anthropic';
-  if (url.includes('generativelanguage.googleapis.com')) return 'gemini';
-  if (url.includes('api.groq.com')) return 'groq';
-  if (url.includes('router.huggingface.co')) return 'huggingface';
+  const hostname = new URL(url).hostname;
+  if (hostname === 'api.openai.com') return 'openai';
+  if (hostname === 'api.anthropic.com') return 'anthropic';
+  if (hostname === 'generativelanguage.googleapis.com') return 'gemini';
+  if (hostname === 'api.groq.com') return 'groq';
+  if (hostname === 'router.huggingface.co') return 'huggingface';
   throw new Error(`UNEXPECTED_PROVIDER_URL:${url}`);
 }
 
