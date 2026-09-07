@@ -13,8 +13,12 @@ async function routeId(ctx: RouteContext) { const params = await Promise.resolve
 export async function POST(req: Request, ctx: RouteContext) {
   const gate = await requireGovernedActor('acp.proposals.reject');
   if (!gate.ok) return NextResponse.json(gate.body, { status: gate.status });
-  const authority = resolveProposalReviewerAuthority(gate.ctx);
-  if (!authority) return NextResponse.json({ ok: false, error: 'proposal_reviewer_required' }, { status: 403 });
+
+  // Sovereign ROOT is resolved directly at the write boundary. A secondary
+  // reviewer projection must never be able to downgrade an already-verified
+  // ROOT session into proposal_reviewer_required.
+  const authority = gate.ctx.isRoot ? 'root' as const : resolveProposalReviewerAuthority(gate.ctx);
+  if (!authority) return NextResponse.json({ ok: false, error: 'proposal_reviewer_required', authenticated: true, isRoot: gate.ctx.isRoot }, { status: 403 });
 
   const proposalId = await routeId(ctx);
   if (!proposalId) return NextResponse.json({ ok: false, error: 'missing_proposal_id' }, { status: 400 });
