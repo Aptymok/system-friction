@@ -21,8 +21,10 @@ export interface AgentExecutionResult {
 
 export type RuntimeAgentExecutorDependencies = {
   nowMs?: () => number;
+  executeAgent?: typeof executeRegisteredAgent;
   augmentAgentWithLlm?: typeof augmentAgentWithLlm;
   emitGovernedProposals?: typeof emitGovernedProposalsFromAgentInsight;
+  recordExecutionEvent?: typeof recordAgentExecutionEvent;
 };
 
 function llmAugmentationEnabled(agentId: string, context: KernelContext) {
@@ -93,8 +95,10 @@ export async function runCognitiveAgent(
   dependencies: RuntimeAgentExecutorDependencies = {},
 ): Promise<AgentExecutionResult> {
   const nowMs = dependencies.nowMs ?? Date.now;
+  const executeAgent = dependencies.executeAgent ?? executeRegisteredAgent;
   const augment = dependencies.augmentAgentWithLlm ?? augmentAgentWithLlm;
   const emitProposals = dependencies.emitGovernedProposals ?? emitGovernedProposalsFromAgentInsight;
+  const recordExecution = dependencies.recordExecutionEvent ?? recordAgentExecutionEvent;
   const beforeEvidence = context.evidence.length;
   const beforeMetadataKeys = Object.keys(context.metadata ?? {}).length;
   let updatedContext: KernelContext = context;
@@ -109,7 +113,7 @@ export async function runCognitiveAgent(
     deterministicError = `RUNTIME_EXECUTION_BLOCKED:${runtimePreflight.reason}`;
   } else if (governance.disposition !== 'BLOCK') {
     try {
-      updatedContext = executeRegisteredAgent(agentId, context);
+      updatedContext = executeAgent(agentId, context);
       executed = Boolean(updatedContext);
     } catch (error) {
       deterministicError = error instanceof Error ? error.message : String(error);
@@ -222,7 +226,7 @@ export async function runCognitiveAgent(
     ? metadata.executionRequest as Record<string, unknown>
     : null;
 
-  await recordAgentExecutionEvent(
+  await recordExecution(
     agentId,
     executed ? 'SFI_AGENT_EXECUTED' : 'SFI_AGENT_SKIPPED',
     {
