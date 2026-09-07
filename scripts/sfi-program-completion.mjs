@@ -145,6 +145,8 @@ function issueMatch(requirement) {
   let best = null;
   let bestScore = 0;
   for (const issue of openIssues) {
+    // Parent/control ledgers are evidence sources and fallback queues, not owner-specific execution trajectories.
+    if (issue.number === 389 || issue.number === 405) continue;
     const hay = `${issue.title || ''} ${issue.body || ''}`.toLowerCase();
     let score = 0;
     if (sourceWs && hay.includes(`ws-${sourceWs}`)) score += 5;
@@ -181,7 +183,7 @@ function classify(requirement) {
       evidence: codeEvidence,
       trajectoryRef: '#405',
       trajectoryKind: 'CONTROL_ROOM_EXTERNAL_LEDGER',
-      nextAction: `Observe actual external state and record exact owner, next action and receipt required; do not fabricate completion.`,
+      nextAction: 'Observe actual external state and record exact owner, next action and receipt required; do not fabricate completion.',
       returnCondition: 'Real external receipt or explicit observed external state is durably recorded.',
     };
   }
@@ -191,7 +193,7 @@ function classify(requirement) {
       evidence: codeEvidence,
       trajectoryRef: `#${active.number}`,
       trajectoryKind: 'OPEN_GITHUB_ISSUE',
-      nextAction: `Continue bounded implementation/verification through ${requirement.owner}; update ${`#${active.number}`} with immutable evidence and RETURN state.`,
+      nextAction: `Continue bounded implementation/verification through ${requirement.owner}; update #${active.number} with immutable evidence and RETURN state.`,
       returnCondition: 'Exact-head QA plus execution/persistence/reentry/production/RETURN evidence required by the source contract.',
     };
   }
