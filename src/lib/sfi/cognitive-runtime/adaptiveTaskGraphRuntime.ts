@@ -103,6 +103,11 @@ function sameStrings(actual: string[], expected: string[]) {
   return actual.length === expected.length && actual.every((value, index) => value === expected[index]);
 }
 
+export function isTaskGraphStructuralAncestryEdge(graph: SfiTaskGraph, edge: SfiTaskGraphEdge) {
+  const child = graph.nodes.find((node) => node.nodeId === edge.to);
+  return Boolean(child && child.parentNodeId === edge.from);
+}
+
 export function validateTaskGraphStructure(graph: SfiTaskGraph): string[] {
   const errors: string[] = [];
   if (!Array.isArray(graph.nodes)) errors.push('NODES_REQUIRED');
@@ -126,6 +131,8 @@ export function validateTaskGraphStructure(graph: SfiTaskGraph): string[] {
     if (node.id !== node.nodeId) errors.push(`NODE_ALIAS_MISMATCH:${node.nodeId}`);
   }
 
+  // All six edge relations participate in the canonical global DAG integrity rule.
+  // They do not, by relation alone, define capability ancestry or trajectory depth.
   const adjacency = new Map<string, string[]>();
   const indegree = new Map<string, number>();
   for (const nodeId of nodeMap.keys()) {
@@ -148,13 +155,11 @@ export function validateTaskGraphStructure(graph: SfiTaskGraph): string[] {
   }
 
   const queue = [...nodeMap.keys()].filter((nodeId) => (indegree.get(nodeId) ?? 0) === 0);
-  const structuralDepth = new Map<string, number>([...nodeMap.keys()].map((nodeId) => [nodeId, 0]));
   let visited = 0;
   for (let cursor = 0; cursor < queue.length; cursor += 1) {
     const nodeId = queue[cursor];
     visited += 1;
     for (const childId of adjacency.get(nodeId) ?? []) {
-      structuralDepth.set(childId, Math.max(structuralDepth.get(childId) ?? 0, (structuralDepth.get(nodeId) ?? 0) + 1));
       const next = (indegree.get(childId) ?? 0) - 1;
       indegree.set(childId, next);
       if (next === 0) queue.push(childId);
@@ -222,9 +227,9 @@ export function validateTaskGraphStructure(graph: SfiTaskGraph): string[] {
       if (Array.isArray(node.prerequisites) && node.prerequisites.length) errors.push(`ROOT_HAS_PREREQUISITES:${node.nodeId}`);
     }
 
-    const lineageDepth = lineage?.length ?? 0;
-    const graphDepth = structuralDepth.get(node.nodeId) ?? 0;
-    const effectiveDepth = Math.max(lineageDepth, graphDepth);
+    // Capability depth is exclusively the explicit parent/ancestor trajectory lineage.
+    // Semantic cross-edges must never fabricate deeper capability ancestry.
+    const effectiveDepth = lineage?.length ?? 0;
     if (!Number.isSafeInteger(node.depth) || node.depth < 0 || node.depth !== effectiveDepth) {
       errors.push(`DEPTH_MISMATCH:${node.nodeId}:${String(node.depth)}:${effectiveDepth}`);
     }
@@ -303,18 +308,14 @@ export function transitionTaskGraphNode(
 export function reserveTaskGraphInvocation(graph: SfiTaskGraph, nodeId: string) {
   assertValidTaskGraphInvocationBudget(graph);
   assertValidTaskGraphStructure(graph);
+  if (graph.stop.stopped) return false;
   if (graph.invocationBudget.remaining <= 0 || graph.invocationBudget.used >= graph.invocationBudget.max) {
     mutation(graph, 'LIMIT_BLOCKED', nodeId, null, {
       limit: 'MAX_CAPABILITY_INVOCATIONS',
       max: graph.invocationBudget.max,
       used: graph.invocationBudget.used,
     });
-    graph.status = 'stopped';
-    graph.stop = {
-      stopped: true,
-      reason: 'MAX_CAPABILITY_INVOCATIONS_REACHED',
-      evaluatedAt: new Date().toISOString(),
-    };
+    markAdaptiveStop(graph, 'MAX_CAPABILITY_INVOCATIONS_REACHED');
     return false;
   }
   graph.invocationBudget.used += 1;
@@ -338,6 +339,12 @@ function pathExists(graph: SfiTaskGraph, from: string, target: string) {
 }
 
 export function addTaskGraphEdge(graph: SfiTaskGraph, edge: SfiTaskGraphEdge) {
+  if (graph.stop.stopped) throw new Error(`TASK_GRAPH_STOPPED:${graph.stop.reason ?? 'STOPPED'}`);
+  const fromExists = graph.nodes.some((node) => node.nodeId === edge.from);
+  const toExists = graph.nodes.some((node) => node.nodeId === edge.to);
+  if (!fromExists || !toExists) {
+    throw new Error(`TASK_GRAPH_EDGE_ENDPOINT_INVALID:${edge.from}:${edge.to}`);
+  }
   if (edge.from === edge.to || pathExists(graph, edge.to, edge.from)) {
     mutation(graph, 'LIMIT_BLOCKED', edge.to, null, {
       limit: 'DENY_CYCLE',
@@ -350,6 +357,11 @@ export function addTaskGraphEdge(graph: SfiTaskGraph, edge: SfiTaskGraphEdge) {
     return;
   }
   graph.edges.push(edge);
+  const errors = validateTaskGraphStructure(graph);
+  if (errors.length) {
+    graph.edges.pop();
+    throw new Error(`TASK_GRAPH_EDGE_INVALID:${edge.from}:${edge.to}:${errors.join('|')}`);
+  }
   mutation(graph, 'EDGE_ADDED', edge.to, null, { edge });
 }
 
@@ -596,8 +608,19 @@ type ProcessRequestOptions = {
   existingWaitingNodeId?: string | null;
 };
 
+function stoppedExecutionResult(context: KernelContext, graph: SfiTaskGraph): AdaptiveTaskGraphExecutionResult {
+  return {
+    context,
+    graph,
+    executedCapabilityIds: [],
+    informationChanged: false,
+    stateChanged: false,
+  };
+}
+
 async function processRequest(options: ProcessRequestOptions): Promise<AdaptiveTaskGraphExecutionResult> {
   let { context, graph } = options;
+  if (graph.stop.stopped) return stoppedExecutionResult(context, graph);
   const mutationCountBefore = graph.mutations.length;
   const before = signalSnapshot(context);
   const requestedDepth = Math.max(0, Math.trunc(options.depth));
@@ -614,8 +637,8 @@ async function processRequest(options: ProcessRequestOptions): Promise<AdaptiveT
     pendingCapabilityIds: pendingCapabilityIds(graph, options.existingWaitingNodeId ?? null),
     onAdmitted: async (governedContext, decision, lineage) => {
       graph = taskGraphFromContext(governedContext) ?? graph;
-      if (!reserveTaskGraphInvocation(graph, options.parentNodeId)) {
-        throw new Error('CAPABILITY_INVOCATION_BUDGET_EXHAUSTED_AFTER_ADMISSION');
+      if (graph.stop.stopped || !reserveTaskGraphInvocation(graph, options.parentNodeId)) {
+        throw new Error(graph.stop.stopped ? 'CAPABILITY_ADMISSION_BLOCKED_BY_TERMINAL_STOP' : 'CAPABILITY_INVOCATION_BUDGET_EXHAUSTED_AFTER_ADMISSION');
       }
       const node = createRequestedNode({
         graph,
@@ -637,9 +660,11 @@ async function processRequest(options: ProcessRequestOptions): Promise<AdaptiveT
   });
 
   graph = taskGraphFromContext(runtime.context) ?? graph;
-  recordBrokerMutation(graph, runtime, admittedNodeId ?? options.existingWaitingNodeId ?? null);
+  if (graph.stop.stopped && !admittedNodeId) return stoppedExecutionResult(runtime.context, graph);
+  if (!graph.stop.stopped) recordBrokerMutation(graph, runtime, admittedNodeId ?? options.existingWaitingNodeId ?? null);
 
   if (runtime.decision.disposition === 'EVIDENCE_REQUIRED' || runtime.decision.disposition === 'HUMAN_AUTHORITY_REQUIRED') {
+    if (graph.stop.stopped) return stoppedExecutionResult(runtime.context, graph);
     const waitingState: SfiTaskGraphNodeState = runtime.decision.disposition === 'EVIDENCE_REQUIRED'
       ? 'WAITING_EVIDENCE'
       : 'WAITING_AUTHORITY';
@@ -695,7 +720,7 @@ async function processRequest(options: ProcessRequestOptions): Promise<AdaptiveT
   let informationChanged = outputs.length > 0;
   let stateChanged = graph.mutations.length !== mutationCountBefore;
 
-  if (runtime.executed) {
+  if (runtime.executed && !graph.stop.stopped) {
     const nested = await executeAdaptiveCapabilityRequestsForNode({
       context: nextContext,
       parentNodeId: node.nodeId,
@@ -727,6 +752,7 @@ export async function executeAdaptiveCapabilityRequestsForNode(input: {
   let context = input.context;
   let graph = taskGraphFromContext(context);
   if (!graph) throw new Error('ADAPTIVE_TASK_GRAPH_REQUIRED');
+  if (graph.stop.stopped) return stoppedExecutionResult(context, graph);
   const parent = nodeById(graph, input.parentNodeId);
   if (!parent) throw new Error(`TASK_GRAPH_PARENT_NOT_FOUND:${input.parentNodeId}`);
   const requests = capabilityRequestsFromContext(context, input.parentCapabilityId);
@@ -736,6 +762,7 @@ export async function executeAdaptiveCapabilityRequestsForNode(input: {
   let stateChanged = false;
 
   for (const request of requests) {
+    if (graph.stop.stopped) break;
     const represented = graph.nodes.find((node) => node.requestId === request.requestId && node.state !== 'SUPERSEDED');
     if (represented) continue;
     const result = await processRequest({
@@ -772,6 +799,7 @@ export async function resumeWaitingAdaptiveCapabilities(input: {
   if (!graph) {
     throw new Error('ADAPTIVE_TASK_GRAPH_REQUIRED');
   }
+  if (graph.stop.stopped) return stoppedExecutionResult(context, graph);
   const requestCapability = input.requestCapability ?? ((runtimeInput) => requestCognitiveCapability(runtimeInput));
   const executedCapabilityIds: string[] = [];
   let informationChanged = false;
@@ -780,6 +808,7 @@ export async function resumeWaitingAdaptiveCapabilities(input: {
   const waitingNodes = graph.nodes.filter((node) => node.state === 'WAITING_EVIDENCE');
 
   for (const waiting of waitingNodes) {
+    if (graph.stop.stopped) break;
     const hasNewEvidence = currentEvidenceRefs.some((ref) => !waiting.inputRefs.includes(ref));
     if (!hasNewEvidence) continue;
     if (!waiting.requestId || !waiting.requestedBy || !waiting.parentNodeId || !waiting.urgency) continue;
@@ -851,9 +880,11 @@ export function evaluateAdaptiveStopInvariant(input: {
 }
 
 export function markAdaptiveStop(graph: SfiTaskGraph, reason: string) {
+  if (graph.stop.stopped) return graph.stop.reason ?? reason;
   graph.stop = { stopped: true, reason, evaluatedAt: new Date().toISOString() };
   graph.status = 'stopped';
   mutation(graph, 'STOPPED', null, null, { reason });
+  return reason;
 }
 
 export function pendingEquivalentRequestHash(graph: SfiTaskGraph, request: SfiCapabilityRequest) {
