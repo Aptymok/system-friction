@@ -2,6 +2,7 @@ import 'server-only';
 
 export const SFI_OPERATION_MODEL_BROKER_CONTRACT = 'SFI-OPERATION-MODEL-BROKER-1.0' as const;
 export const SFI_MODEL_INDEPENDENCE_GATE = 'SFI-MODEL-INDEPENDENCE-1.0' as const;
+export const SFI_TRAJECTORY_DEADLINE_ERROR = 'SFI_TRAJECTORY_DEADLINE_REACHED' as const;
 
 export type LlmTask =
   | 'fast_classification'
@@ -84,7 +85,6 @@ export type LlmOperationPlan = {
 
 export type LlmProviderStatus = {
   id: LlmProviderId;
-  /** Compatibility field. Means credential/config is present and no active circuit blocks the primary route. */
   available: boolean;
   configured: boolean;
   credentialPresent: boolean;
@@ -525,9 +525,23 @@ export function getLlmProviderStatus(): LlmProviderStatus[] {
   });
 }
 
-async function fetchJson(url: string, init: RequestInit, timeoutMs = 20_000) {
+export function boundedProviderTimeoutMs(providerTimeoutMs: number, deadlineAtMs?: number, nowMs = Date.now()) {
+  if (!Number.isFinite(providerTimeoutMs) || providerTimeoutMs <= 0) throw new Error('PROVIDER_TIMEOUT_INVALID');
+  if (deadlineAtMs === undefined) return Math.max(1, Math.trunc(providerTimeoutMs));
+  if (!Number.isFinite(deadlineAtMs)) throw new Error('TRAJECTORY_DEADLINE_INVALID');
+  const remainingMs = Math.trunc(deadlineAtMs - nowMs);
+  if (remainingMs <= 0) return 0;
+  return Math.max(1, Math.min(Math.trunc(providerTimeoutMs), remainingMs));
+}
+
+async function fetchJson(url: string, init: RequestInit, timeoutMs = 20_000, deadlineAtMs?: number) {
+  const boundedTimeout = boundedProviderTimeoutMs(timeoutMs, deadlineAtMs);
+  if (boundedTimeout <= 0) throw new Error(SFI_TRAJECTORY_DEADLINE_ERROR);
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  const timeout = setTimeout(
+    () => controller.abort(new Error(deadlineAtMs !== undefined && Date.now() >= deadlineAtMs ? SFI_TRAJECTORY_DEADLINE_ERROR : 'PROVIDER_TIMEOUT')),
+    boundedTimeout,
+  );
   try {
     const response = await fetch(url, { ...init, signal: controller.signal });
     const json = await response.json().catch(() => null);
@@ -548,6 +562,7 @@ async function callProvider(config: ProviderConfig, model: string, input: {
   system: string;
   prompt: string;
   maxTokens: number;
+  deadlineAtMs?: number;
 }): Promise<{ result: string; usage: Record<string, unknown> | null }> {
   if (config.id === 'openai') {
     const json = await fetchJson('https://api.openai.com/v1/chat/completions', {
@@ -559,7 +574,7 @@ async function callProvider(config: ProviderConfig, model: string, input: {
         temperature: 0.2,
         max_tokens: input.maxTokens,
       }),
-    });
+    }, 20_000, input.deadlineAtMs);
     const record = json as Record<string, unknown>;
     const choices = Array.isArray(record.choices) ? record.choices as Array<Record<string, unknown>> : [];
     const message = choices[0]?.message as Record<string, unknown> | undefined;
@@ -577,7 +592,7 @@ async function callProvider(config: ProviderConfig, model: string, input: {
         system: input.system,
         messages: [{ role: 'user', content: input.prompt }],
       }),
-    });
+    }, 20_000, input.deadlineAtMs);
     const record = json as Record<string, unknown>;
     const content = Array.isArray(record.content) ? record.content as Array<Record<string, unknown>> : [];
     return { result: content.map((item) => typeof item.text === 'string' ? item.text : '').join('\n').trim(), usage: record.usage as Record<string, unknown> | null ?? null };
@@ -595,7 +610,7 @@ async function callProvider(config: ProviderConfig, model: string, input: {
         contents: [{ role: 'user', parts: [{ text: input.prompt }] }],
         generationConfig,
       }),
-    });
+    }, 20_000, input.deadlineAtMs);
     const record = json as Record<string, unknown>;
     const candidates = Array.isArray(record.candidates) ? record.candidates as Array<Record<string, unknown>> : [];
     const content = candidates[0]?.content as Record<string, unknown> | undefined;
@@ -616,7 +631,7 @@ async function callProvider(config: ProviderConfig, model: string, input: {
         max_completion_tokens: Math.min(input.maxTokens, isCompound ? 8192 : 65_536),
         ...(isGptOss ? { include_reasoning: false, reasoning_effort: input.task === 'fast_classification' ? 'low' : 'medium' } : {}),
       }),
-    }, isCompound ? 30_000 : 15_000);
+    }, isCompound ? 30_000 : 15_000, input.deadlineAtMs);
     const record = json as Record<string, unknown>;
     const choices = Array.isArray(record.choices) ? record.choices as Array<Record<string, unknown>> : [];
     const message = choices[0]?.message as Record<string, unknown> | undefined;
@@ -629,7 +644,7 @@ async function callProvider(config: ProviderConfig, model: string, input: {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ model, stream: false, messages: [{ role: 'system', content: input.system }, { role: 'user', content: input.prompt }] }),
-    }, 18_000);
+    }, 18_000, input.deadlineAtMs);
     const record = json as Record<string, unknown>;
     const message = record.message as Record<string, unknown> | undefined;
     return { result: typeof message?.content === 'string' ? message.content : '', usage: { eval_count: record.eval_count, prompt_eval_count: record.prompt_eval_count } };
@@ -646,7 +661,7 @@ async function callProvider(config: ProviderConfig, model: string, input: {
         max_tokens: input.maxTokens,
         stream: false,
       }),
-    }, 25_000);
+    }, 25_000, input.deadlineAtMs);
     const record = json as Record<string, unknown>;
     const choices = Array.isArray(record.choices) ? record.choices as Array<Record<string, unknown>> : [];
     const message = choices[0]?.message as Record<string, unknown> | undefined;
@@ -665,6 +680,7 @@ export async function runLlmTask(input: {
   requirements?: LlmRequirements;
   maxTokens?: number;
   maxProviderAttempts?: number;
+  deadlineAtMs?: number;
 }): Promise<LlmRouterResult> {
   const started = Date.now();
   const configs = providerConfigs();
@@ -680,6 +696,10 @@ export async function runLlmTask(input: {
 
   for (const candidate of operationPlan.candidates) {
     if (attempts >= maxAttempts) break;
+    if (input.deadlineAtMs !== undefined && Date.now() >= input.deadlineAtMs) {
+      warnings.push('trajectory_deadline_reached');
+      break;
+    }
     const config = configs.find((item) => item.id === candidate.provider && item.configured);
     if (!config) {
       warnings.push(`${candidate.provider}_became_unconfigured`);
@@ -698,8 +718,13 @@ export async function runLlmTask(input: {
         system: input.system ?? 'You are an SFI operational agent. Return concise, evidence-bound analysis. Do not claim external facts unless provided in context.',
         prompt: input.prompt,
         maxTokens: input.maxTokens ?? 700,
+        deadlineAtMs: input.deadlineAtMs,
       });
       const latency = Date.now() - attemptStarted;
+      if (input.deadlineAtMs !== undefined && Date.now() >= input.deadlineAtMs) {
+        warnings.push('trajectory_deadline_reached');
+        break;
+      }
       if (output.result.trim()) {
         markModelSuccess(config.id, candidate.model, latency);
         return {
@@ -717,7 +742,15 @@ export async function runLlmTask(input: {
       const reason = markModelFailure(config.id, candidate.model, 'empty_result', latency);
       warnings.push(`${config.id}:${candidate.model}_empty_result:${reason}`);
     } catch (error) {
+      if (input.deadlineAtMs !== undefined && Date.now() >= input.deadlineAtMs) {
+        warnings.push('trajectory_deadline_reached');
+        break;
+      }
       const message = error instanceof Error ? error.message : 'unknown';
+      if (message.includes(SFI_TRAJECTORY_DEADLINE_ERROR)) {
+        warnings.push('trajectory_deadline_reached');
+        break;
+      }
       const reason = markModelFailure(config.id, candidate.model, message, Date.now() - attemptStarted);
       warnings.push(`${config.id}:${candidate.model}_failed:${reason}`);
     }
