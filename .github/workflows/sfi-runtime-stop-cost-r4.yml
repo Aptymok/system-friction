@@ -58,5 +58,6 @@ jobs:
         run: node --import tsx --test src/lib/sfi/cognitive-runtime/capabilityBroker.test.ts
       - name: Preserve ephemeral capability grants
         run: node --import tsx --test src/lib/sfi/cognitive-runtime/capabilityGrant.test.ts
+      # CI-only refresh after canonical P17 preflight metadata completion; no runtime command changed.
       - name: Typecheck
         run: npm run typecheck
