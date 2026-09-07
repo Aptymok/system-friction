@@ -68,8 +68,10 @@ assert.match(route, /persistedNonceHash === presentedGrantNonceHash/, 'persisted
 assert.match(route, /eventGrantId !== targetGrantId/, 'grant_proof_filter_must_only_apply_to_requested_grant');
 assert.doesNotMatch(adapter, /x-sfi-capability-grant-nonce/i, 'raw_nonce_must_not_enter_adapter_or_execution_envelope');
 
-// Secret/model boundary: credentials and raw grant nonce never enter the execution object.
-assert.doesNotMatch(`${adapter}\n${route}`, /SFI_EXTERNAL_SESSION_SECRET|client_secret_hash|service[_-]?role.*(key|secret|token)/i, 'machine_adapter_must_not_read_service_credentials');
+// Secret/model boundary: forbidden secret-shaped keys are explicitly rejected, while the adapter/route never read credential stores or secret env values.
+assert.match(adapter, /FORBIDDEN_SECRET_KEY/, 'secret_shaped_payload_keys_must_be_rejected');
+assert.doesNotMatch(adapter, /process\.env|createServiceSupabaseClient|client_secret_hash/i, 'adapter_must_not_read_service_credentials');
+assert.doesNotMatch(route, /process\.env|createServiceSupabaseClient|client_secret_hash|SFI_EXTERNAL_SESSION_SECRET/i, 'machine_route_must_not_read_service_credentials');
 assert.match(adapter, /rawNoncePersisted: false/g, 'receipts_must_state_raw_nonce_is_not_persisted');
 assert.doesNotMatch(adapter, /providerRouter|agentLlmClient|getLlmOperationPlan|operationModelBroker|modelBroker/i, 'model_selection_must_not_be_authority_owner');
 assert.match(adapter, /modelAuthorityExpansionAllowed: false/, 'model_capability_must_not_expand_authority');
@@ -87,6 +89,7 @@ assert.match(manifest, /SFI-AUTHENTICATED-GOVERNED-MACHINE-ADAPTER-1\.0/, 'manif
 assert.match(manifest, /externalRegistryReceipt: null/, 'manifest_must_not_fabricate_external_registry_receipt');
 assert.match(manifest, /claimedPublished: false/, 'manifest_must_not_claim_external_publication');
 assert.match(openapiMerge, /\/api\/mcp\/authenticated/, 'openapi_merge_must_add_authenticated_path');
+assert.match(openapiMerge, /X-SFI-Capability-Grant-Nonce/, 'openapi_must_describe_transient_grant_proof');
 assert.match(openapiMerge, /sfiOAuth: \['execute'\]/, 'openapi_must_reuse_existing_oauth_execute_scope');
 assert.match(openapiMerge, /externalPublicationReceipt: null/, 'openapi_must_not_fabricate_external_publication');
 assert.match(packageJson, /merge-openapi-authenticated-machine\.mjs/, 'production_build_must_materialize_authenticated_machine_openapi');
