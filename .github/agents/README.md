@@ -1,12 +1,17 @@
 ﻿# SFI Agent Architecture Map
 
-System Friction Institute agent registry.
+System Friction Institute repository operator/development agent map.
 
-This document defines the operational map of available agents.
+The `.github/agents/*.agent.md` files define bounded development/operator prompts. Their presence does **not** instantiate a Cognitive Runtime agent and does not prove runtime wiring.
 
-Agents are specialized capabilities.
+Runtime truth is owned by the typed Cognitive Runtime stack:
 
-They must operate within defined boundaries.
+- `src/lib/sfi/cognitive-runtime/registry.ts`;
+- `src/lib/sfi/cognitive-runtime/convergedRegistry.ts`;
+- `src/lib/sfi/cognitive-runtime/agentExecutionMap.ts`;
+- `src/lib/sfi/cognitive-runtime/agentPassports.ts`.
+
+A runtime capability is operational only when its typed registration, authority/passport projection, executor/trigger and observed execution state are evidenced. Documentation or prompt files alone are declaration evidence.
 
 ---
 
@@ -136,14 +141,18 @@ They collaborate through defined interfaces.
 
 # VALIDATION
 
-Before creating a new agent:
+Before creating a new runtime agent or capability:
 
-1. Search existing agents.
+1. Search the canonical Cognitive Runtime registry and execution map.
 2. Identify overlapping responsibilities.
-3. Define missing capability.
-4. Create typed contract.
-5. Register capability.
-6. Validate integration.
+3. Define the missing capability and authority ceiling.
+4. Create or extend the typed contract.
+5. Register the capability in the canonical runtime owner.
+6. Attach passport/authority projection.
+7. Wire an executor or explicit trigger.
+8. Validate execution and persisted/observable lineage.
+
+A new `.agent.md` prompt is not a substitute for these steps.
 
 ---
 
@@ -151,30 +160,34 @@ Before creating a new agent:
 
 Do not create:
 
-- duplicate agents,
+- duplicate runtime agents,
 - parallel runtimes,
 - parallel evidence systems,
 - duplicate governance layers,
-- agents without contracts.
+- runtime agents without contracts,
+- prompt files used as proof of runtime implementation.
 
 ---
 
 # CURRENT SYSTEM STATUS
 
-Agent files:
-Operational registry.
+Agent prompt files:
+Repository development/operator declarations.
 
-Runtime:
-Controlled through Cognitive Runtime.
+Runtime registry:
+Controlled through `SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY`.
 
-Authority:
-Managed through ROOT Governance.
+Execution:
+Controlled through `SFI_AGENT_EXECUTION_MAP` and the Cognitive Runtime.
+
+Passports / authority:
+Projected through `agentPassports.ts`, Cognitive Passport contracts and ROOT Governance boundaries.
 
 Memory:
 Protected through Evidence and Archive layers.
 
 Evolution:
-Controlled through Agent Lifecycle.
+Controlled through Agent Lifecycle and governed capability registration; prompt-file creation alone does not evolve the runtime.
 
 ---
 
