@@ -6,9 +6,16 @@ on:
       - main
     paths:
       - '.github/workflows/sfi-self-development.yml'
+      - '.github/agents/**'
       - 'scripts/sfi-self-development.mjs'
       - 'scripts/sfi-program-completion.mjs'
       - 'scripts/render-sfi-self-development-report.py'
+      - 'src/app/**/page.tsx'
+      - 'src/app/api/cases/**'
+      - 'src/app/api/observatory/world/**'
+      - 'src/components/sfi/**'
+      - 'src/lib/root/**'
+      - 'src/lib/sfi/cognitive-runtime/**'
   schedule:
     - cron: '23 3 * * *'
   workflow_dispatch:
