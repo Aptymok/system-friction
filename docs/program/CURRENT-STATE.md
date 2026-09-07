@@ -1,186 +1,160 @@
 # SFI PROGRAM CURRENT STATE
 
-**Updated:** 2026-09-05 UTC  
+**Updated:** 2026-09-07 UTC  
 **Authority:** SFI-00 · CONTROL ROOM  
-**Rule:** fresh repository/CI/production evidence overrides this summary.
+**Rule:** fresh repository, CI and production evidence override this summary.
 
-## 1. Ronda 1 — COMPLETE
-
-Integrated with exact-head guards:
-
-- #369 WS-03 → `5ee9005d566a9f88d89b36976712294a73fbd833`
-- #367 WS-01 → `06ae7b4c1beed5a0fe0a8f832831ff7c3a6d5522`
-- #371 WS-05 → `b3deadf51f4c1c3c1ff81234a52a4c9b7c2d3780`
-- #370 WS-07 → `f4f651d8b95aae7c2b9b49e6a88351d78658b6d4`
-- #368 WS-08 → `d10d3b6273a3f7275ce8c23d3c18a223d212679b`
-
-Ronda 1 contract delta: `NONE`.  
-Authority expansion: `NONE`.
-
-## 2. #366 production closure
-
-Issue #366 is `CLOSED / COMPLETED`.
-
-Correction deployment:
-
-- source #369 HEAD `c2a0614568bd428da9374fe7f1eda0d572e9f8c6`;
-- merge SHA `5ee9005d566a9f88d89b36976712294a73fbd833`;
-- `SFI Vercel Prebuilt Production` run `33944928325`: SUCCESS.
-
-Durable WS-08 production RETURN:
-
-- harness-code HEAD `bc53bcd899286e8c44fb7846d75c07289454a89b`;
-- smoke run `33949491992` / #11: SUCCESS;
-- artifact `9964354481 / sfi-production-observatory-smoke-33949491992`;
-- digest `sha256:9087e2623449dddbfd911dd37310934c8fd3130a092cb571b558c6ca5fab6327`;
-- SFI Verify `33949491991` / #2376: SUCCESS.
-
-Observed:
+## 1. Current integration baseline
 
 ```text
-SSR LOADING semantics PASS
-world AVAILABLE
-state DEGRADED
-timeline AVAILABLE
-hydrated browser PASS
-UNAVAILABLE != ZERO PASS
-AVAILABLE + authoritative empty filtered view = 0 PASS
-hypothesis absence boundary PASS
-bounded reads world/state/timeline = 2/2/2
-harness retries = 0
-retry amplification = NONE
-5xx/network failures attributable = NONE
-PRODUCTION RETURN = PASS
-OBSERVED_IN_PRODUCTION = YES
+main = 85fecb7da103da95fa0d07b5c859ce1266d82078
+R3 = RETURN COMPLETE
+R4 = ACTIVE · PROGRAM COMPLETION + INSTITUTIONAL OPERATIONS
 ```
 
-Durable assurance owner now lives in `main`:
+R4 does not erase unfinished Master Program obligations. Already-declared work remains program debt until `SATISFIED`, `SUPERSEDED_BY_AUTHORIZED_DECISION`, or `EXTERNAL_ACTION`.
 
 ```text
-.github/workflows/sfi-production-observatory-smoke.yml
-scripts/qa-sfi-production-observatory-smoke.mjs
-docs/program/workstreams/WS-08-ASSURANCE-RELEASE.md
-docs/program/workstreams/WS-08-PRODUCTION-RETURN-366.md
+DECLARED PROGRAM GAP != NEEDS NEW TRIGGER
+NEW UNPLANNED FEATURE == NEEDS EVIDENCE/TRIGGER
 ```
 
-## 3. Frozen contracts
+## 2. R4 integrated waves
+
+### R4-A · MERGED
+
+- WS-01 Slice D · Operation-Level Model Broker — #393.
+- WS-02 Slice D · Reentry Engine — #394.
+- WS-06 · Acoustic Instrument Package + real SFZ execution — #395.
+
+### R4-B · MERGED
+
+- WS-01 Slice E · Ephemeral Capability Grants / `SFI-CAPABILITY-GRANT-1.0` — #399.
+- WS-02 Slice E · Method Lab UI — #398.
+
+### R4-C · MERGED
+
+- WS-04 · Authenticated Governed Machine Adapter — #401.
+- Exact implementation head: `0534473e6ecb88ff869b8be9c97d746bb62fe250`.
+- Merge SHA: `85fecb7da103da95fa0d07b5c859ce1266d82078`.
+- Dedicated R4-C, SFI Verify, External OAuth, Public MCP Readonly, Universal Signal, Audio Material Execution and MIHM validation all passed on the exact implementation head.
+- Prior CodeQL clear-text logging finding was resolved and outdated before merge.
+- Issue #400 is CLOSED / COMPLETED.
+
+R4-C consumed the existing OAuth/scoped gateway, Cognitive Passport, Capability Broker, Adaptive Task Graph, Operation-Level Model Broker and ephemeral capability grants. It did not create a second execution plane, second OAuth owner, grant store, broker, router, task graph or event store.
+
+## 3. Known residual program-completion debt
+
+### WS-01 · Cognitive Fabric
+
+- Slice F — complete runtime stop/cost controls.
+- final workstream integration / production / RETURN proof against canonical Definition of Done.
+
+Slices A-E are integrated and must not be reimplemented.
+
+### WS-02 · Twin + Method Lab
+
+- Slice F — preregistration export.
+- final reproducibility / same-case comparison / RETURN proof.
+
+Slices A-E are integrated and must not be reimplemented.
+
+### WS-04 · Machine Interfaces
+
+Authenticated governed ingress is integrated. Remaining WS-04 requirements must be reconstructed against the canonical Definition of Done and classified before another implementation slice. Expected residual classes include:
+
+- publish-ready external registry/app/plugin artifacts where still unsatisfied;
+- final public/private/authenticated execution boundary proof;
+- deployment / observed-in-production / RETURN evidence where required;
+- actual external registry publication remains `EXTERNAL_ACTION` until observed; it must never be fabricated.
+
+### WS-06 · Material Audio
+
+Acoustic package, real SFZ execution, ephemeral workspace semantics and render receipt foundations are integrated. Remaining canonical debt includes the closed-loop vertical where still unsatisfied:
 
 ```text
-SFI-PROGRAM-CONTRACT-LOCK-1.0
-SFI-COGNITIVE-PASSPORT-1.0
-SFI-CAPABILITY-REQUEST-1.0
-SFI-CANONICAL-OBJECT-1.0
+observe
+→ plan
+→ render
+→ evaluate
+→ localized rerender
+→ RETURN
 ```
 
-Protected invariants remain unchanged, including:
+Final workstream Definition-of-Done evidence remains required.
+
+### WS-03 / WS-05 / WS-07 / WS-08
+
+Reconstruct current `main` against each canonical Definition of Done and classify each residual:
+
+```text
+SATISFIED
+PARTIAL
+MISSING
+EXTERNAL_ACTION
+SUPERSEDED_BY_AUTHORIZED_DECISION
+```
+
+Do not create code to simulate external receipts or reimplement completed R1-R3 work.
+
+## 4. Development autonomy
+
+R4 maintains two legitimate work inputs:
+
+```text
+A. PROGRAM COMPLETION QUEUE
+   unsatisfied canonical requirements already declared
+
+B. OBSERVED-TRIGGER QUEUE
+   defects, measured frictions, external cases, technology changes
+```
+
+Both must route through the same institutional path:
+
+```text
+RECONSTRUCT CURRENT STATE
+→ CLASSIFY GAP OR TRIGGER
+→ DETERMINE EXISTING OWNER
+→ CHECK EXISTING CAPABILITY
+→ PROPOSE BOUNDED DEVELOPMENT OR NON-CODE ACTION
+→ ASSURE AUTHORITY / EVIDENCE / COST / DEPENDENCIES
+→ EXECUTE THROUGH OWNER
+→ VERIFY
+→ RETURN
+→ UPDATE PROGRAM STATE
+```
+
+The founder must not be the memory bus or manual scheduler for this loop.
+
+## 5. Authority and invariant boundary
+
+SFI-00 remains integration authority. WS-08 remains independent assurance/release authority.
 
 ```text
 MODEL OUTPUT != OBSERVATION
+SIMULATION != OBSERVATION
+CONTEXT != EVIDENCE
 MISSING remains MISSING
 NOT_OBSERVED remains NOT_OBSERVED
 UNAVAILABLE != ZERO
-AUTHORITY NEVER EXPANDS from model capability/confidence
-EXTERNAL REPRESENTATION NEVER becomes CANON
+AUTHORITY NEVER EXPANDS FROM MODEL CAPABILITY OR CONFIDENCE
+PRIVATE STATE NEVER BECOMES PUBLIC BY INHERITANCE
+EXTERNAL REPRESENTATION NEVER BECOMES CANON
 DISCOVERY != EXECUTION
+INSTRUMENT BANK != CULTURAL REFERENCE BANK
 ONE INTERACTIVE NEED -> ONE AUTHORITATIVE READ PER DATA DOMAIN
 ```
 
-## 4. Ronda 2 — SEMANTIC CORE
+## 6. Current control-room action
 
-Ronda 2 is released from the fresh `main` containing this reconciliation commit.
+Before releasing the next implementation wave, SFI-00 must reconcile this control plane against the current baseline, then release only bounded residual slices whose dependencies and owners are already known.
 
-To reduce coordination cost, use staged concurrency.
+Current priority after R4-C:
 
-### R2-A — ACTIVE
-
-Only these implementation owners run in parallel:
-
-- WS-01 · Cognitive Fabric — Slice B: Capability Broker.
-- WS-03 · Discovery Mesh — Canonical Object Registry / canonical entity-object plane.
-
-WS-08 remains independently active only as assurance/release authority.
-
-### R2-B — WAITING
-
-Do not activate until SFI-00 integrates the relevant R2-A owner:
-
-- WS-05 · Research Graph — research/publication projection over canonical object plane.
-- WS-07 · External Identity — identity coherence over canonical entity/object plane.
-
-### Deferred
-
-Do not formally activate yet:
-
-- WS-02 · Twin + Method Lab;
-- WS-04 · Machine Interfaces;
-- WS-06 · Material Audio.
-
-## 5. R2-A scope
-
-### WS-01
-
-Implement one bounded complete Capability Broker PR:
-
-```text
-CAPABILITY_REQUEST
-→ governed disposition
-→ ADMIT | DENY | DEFER | ALREADY_SATISFIED | HUMAN_AUTHORITY_REQUIRED | EVIDENCE_REQUIRED
-→ execute only when admitted
-→ lineage receipt
-```
-
-Requirements:
-
-- request != authorization;
-- verify canonical passport/source contract;
-- deduplicate equivalent trajectory requests;
-- check scope, authority ceiling, evidence, budget and depth;
-- use existing lineage/event owner;
-- no self-grant;
-- no second orchestrator/registry/router/event store/task graph;
-- no Slice C/D/E/F expansion.
-
-### WS-03
-
-Implement one bounded complete Canonical Object Plane PR:
-
-- one `SFI-CANONICAL-OBJECT-1.0` owner;
-- explicit publication/publicability state;
-- frozen object taxonomy;
-- canonical entity/object relationship;
-- stable canonical URL semantics;
-- reuse existing institution profile, sitemap and machine-index owners;
-- no private/internal event auto-publication;
-- no fabricated `sameAs`;
-- no duplicate sitemap/AI-index/institution profile;
-- no broad semantic-page/SEO expansion in this slice.
-
-### WS-08
-
-Independently assure exact PR heads. Do not implement product semantics and do not merge.
-
-## 6. R2-A integration rule
-
-WS-01 and WS-03 branch independently from the same fresh R2 baseline and produce one vertical PR each. They stop at PR-ready.
-
-WS-08 assures exact heads. SFI-00 integrates green immutable heads. After both are stable in `main`, SFI-00 releases R2-B to WS-05 and WS-07.
-
-## 7. Current handoff
-
-```text
-RONDA 1 = COMPLETE
-#366 = CLOSED / COMPLETED
-PRODUCTION RETURN = PASS
-OBSERVED_IN_PRODUCTION = YES
-R1 FINAL ASSURANCE MERGE = d10d3b6273a3f7275ce8c23d3c18a223d212679b
-CONTRACT DELTA = NONE
-AUTHORITY EXPANSION = NONE
-HUMAN DECISIONS REQUIRED = NONE
-
-R2-A = RELEASED
-ACTIVE = WS-01, WS-03, WS-08
-WAITING = WS-05, WS-07
-DEFERRED = WS-02, WS-04, WS-06
-```
+1. reconcile R4 control plane;
+2. reconstruct residual DoD state;
+3. release next bounded wave from canonical debt;
+4. continue institutional operations in parallel;
+5. require deploy / observation / RETURN states where applicable before claiming full workstream completion.
 
 Fresh state always overrides this file.
