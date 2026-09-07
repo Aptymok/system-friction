@@ -24,11 +24,11 @@ import {
 } from './runtimeStopControls';
 import { buildTaskGraph } from './taskGraphBuilder';
 
-process.env.OPENAI_API_KEY = 'f09-openai';
-process.env.ANTHROPIC_API_KEY = 'f09-anthropic';
-process.env.GEMINI_API_KEY = 'f09-gemini';
-process.env.GROQ_API_KEY = 'f09-groq';
-process.env.HUGGINGFACE_API_KEY = 'f09-hf';
+process.env.OPENAI_API_KEY = crypto.randomUUID();
+process.env.ANTHROPIC_API_KEY = crypto.randomUUID();
+process.env.GEMINI_API_KEY = crypto.randomUUID();
+process.env.GROQ_API_KEY = crypto.randomUUID();
+process.env.HUGGINGFACE_API_KEY = crypto.randomUUID();
 
 type Provider = 'openai' | 'anthropic' | 'gemini' | 'groq' | 'huggingface';
 type AttemptSpec = {
