@@ -41,12 +41,33 @@ jobs:
         continue-on-error: true
         run: node scripts/sfi-self-development.mjs
 
+      - name: Reconstruct canonical Master Program and completion trajectories
+        id: completion
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/sfi-program-completion.mjs
+
+      - name: Persist Completion Controller state in canonical sweep
+        if: always() && hashFiles('artifacts/program-completion/completion.md') != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            cat artifacts/program-completion/completion.md
+            printf '\n\nRun: %s/%s/actions/runs/%s\n' "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID"
+          } > /tmp/sfi-program-completion-comment.md
+          gh issue comment 405 --repo "$GITHUB_REPOSITORY" --body-file /tmp/sfi-program-completion-comment.md
+
       - name: Render institutional PDF
         run: |
           python -m pip install --disable-pip-version-check reportlab
           python scripts/render-sfi-self-development-report.py
 
-      - name: Upload immutable observation artifacts
+      - name: Upload immutable observation and completion artifacts
         uses: actions/upload-artifact@v4
         with:
           name: sfi-self-development-${{ github.run_id }}
@@ -54,7 +75,16 @@ jobs:
             artifacts/self-development/report.json
             artifacts/self-development/report.md
             artifacts/self-development/SFI_SELF_DEVELOPMENT_REPORT.pdf
+            artifacts/program-completion/completion.json
+            artifacts/program-completion/completion.md
           retention-days: 90
+
+      - name: Fail closed if Completion Controller integrity failed
+        if: steps.completion.outcome != 'success'
+        shell: bash
+        run: |
+          echo 'SFI Completion Controller integrity failed. Artifacts and #405 comment were preserved.'
+          exit 1
 
       - name: Resolve repair need
         id: state
