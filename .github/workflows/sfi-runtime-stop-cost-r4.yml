@@ -1,15 +1,20 @@
 name: SFI Runtime Stop Cost Controls R4
 
-# Slice F corrective exact-head assurance trigger; no workflow semantic change.
 on:
   pull_request:
     paths:
       - 'src/lib/sfi/cognitive-runtime/types.ts'
       - 'src/lib/sfi/cognitive-runtime/taskGraphBuilder.ts'
+      - 'src/lib/sfi/cognitive-runtime/adaptiveTaskGraphRuntime.ts'
+      - 'src/lib/sfi/cognitive-runtime/cognitiveCycle.ts'
       - 'src/lib/sfi/cognitive-runtime/runtimeStopControls.ts'
       - 'src/lib/sfi/cognitive-runtime/runtimeStopControls.test.ts'
+      - 'src/lib/sfi/cognitive-runtime/runtimeStopControls.assuranceR4.test.ts'
       - 'src/lib/sfi/cognitive-runtime/runtimeAgentExecutor.ts'
       - 'src/lib/sfi/cognitive-runtime/agents/metaOrchestrator.ts'
+      - 'src/infrastructure/ai/agentLlmClient.ts'
+      - 'src/lib/ai/providerRouter.ts'
+      - 'src/lib/ai/providerRouter.deadline.test.ts'
       - '.github/workflows/sfi-runtime-stop-cost-r4.yml'
 
 permissions:
@@ -36,6 +41,10 @@ jobs:
           printf 'export {};\n' > node_modules/server-only/index.js
       - name: Runtime stop and observed-cost controls
         run: node --import tsx --test src/lib/sfi/cognitive-runtime/runtimeStopControls.test.ts
+      - name: F-406-05..07 assurance regression matrix
+        run: node --import tsx --test src/lib/sfi/cognitive-runtime/runtimeStopControls.assuranceR4.test.ts
+      - name: Operation-level wall-clock deadline
+        run: node --import tsx --test src/lib/ai/providerRouter.deadline.test.ts
       - name: Preserve adaptive graph, duplicate, cycle, depth and convergence contracts
         run: node --import tsx --test src/lib/sfi/cognitive-runtime/adaptiveTaskGraphRuntime.test.ts
       - name: Preserve capability authority and request lineage
