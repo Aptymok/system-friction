@@ -5,6 +5,7 @@ import { recordAgentExecutionEvent } from '@/infrastructure/events/cognitiveRunt
 import { augmentAgentWithLlm } from '@/infrastructure/ai/agentLlmClient';
 import { evaluateAgentAiGovernance, SFI_AI_GOVERNANCE_POLICY } from '@/lib/governance/aiGovernancePolicy';
 import {
+  clearRuntimeModelTelemetryObservation,
   observeRuntimeModelTelemetry,
   reserveRuntimeModelCall,
   runtimeControlSnapshot,
@@ -147,6 +148,7 @@ export async function runCognitiveAgent(
         observeRuntimeModelTelemetry(updatedContext, agentId);
       } catch (error) {
         llmError = error instanceof Error ? error.message : String(error);
+        clearRuntimeModelTelemetryObservation(updatedContext);
         updatedContext.metadata = {
           ...updatedContext.metadata,
           llmRuntime: {
