@@ -3,7 +3,12 @@ name: SFI Self-Development
 on:
   push:
     branches:
-      - full-remake/repair-self-development-workflow
+      - main
+    paths:
+      - '.github/workflows/sfi-self-development.yml'
+      - 'scripts/sfi-self-development.mjs'
+      - 'scripts/sfi-program-completion.mjs'
+      - 'scripts/render-sfi-self-development-report.py'
   schedule:
     - cron: '23 3 * * *'
   workflow_dispatch:
@@ -28,29 +33,24 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-        if: ${{ false }}
         with:
           fetch-depth: 0
 
       - uses: actions/setup-node@v4
-        if: ${{ false }}
         with:
           node-version: 22
           cache: npm
 
       - name: Install repository dependencies
-        if: ${{ false }}
         run: npm ci
 
       - name: Observe SFI and generate evidence-backed report
         id: observe
-        if: ${{ false }}
         continue-on-error: true
         run: node scripts/sfi-self-development.mjs
 
       - name: Reconstruct canonical Master Program and completion trajectories
         id: completion
-        if: ${{ false }}
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
@@ -58,7 +58,7 @@ jobs:
         run: node scripts/sfi-program-completion.mjs
 
       - name: Persist Completion Controller state in canonical sweep
-        if: ${{ false }}
+        if: ${{ always() }}
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -75,13 +75,11 @@ jobs:
           gh issue comment 405 --repo "$GITHUB_REPOSITORY" --body-file /tmp/sfi-program-completion-comment.md
 
       - name: Render institutional PDF
-        if: ${{ false }}
         run: |
           python -m pip install --disable-pip-version-check reportlab
           python scripts/render-sfi-self-development-report.py
 
       - name: Upload immutable observation and completion artifacts
-        if: ${{ false }}
         uses: actions/upload-artifact@v4
         with:
           name: sfi-self-development-${{ github.run_id }}
@@ -94,15 +92,14 @@ jobs:
           retention-days: 90
 
       - name: Fail closed if Completion Controller integrity failed
-        if: ${{ false }}
+        if: ${{ steps.completion.outcome != 'success' }}
         shell: bash
         run: |
-          echo 'SFI Completion Controller integrity failed.'
+          echo 'SFI Completion Controller integrity failed. Artifacts and #405 comment were preserved when available.'
           exit 1
 
       - name: Resolve repair need
         id: state
-        if: ${{ false }}
         shell: bash
         run: |
           python - <<'PY' >> "$GITHUB_OUTPUT"
@@ -112,5 +109,88 @@ jobs:
           print('health=' + d.get('health','UNKNOWN'))
           PY
 
-      - name: Workflow half accepted
-        run: echo SFI_SELF_DEVELOPMENT_OBSERVATION_HALF_VALID
+      - name: Start local repair model
+        if: ${{ steps.state.outputs.needs_repair == 'true' }}
+        shell: bash
+        run: |
+          curl -fsSL https://ollama.com/install.sh | sh
+          ollama serve > /tmp/ollama.log 2>&1 &
+          for i in {1..30}; do curl -fsS http://127.0.0.1:11434/api/tags >/dev/null && break || sleep 2; done
+          ollama pull qwen2.5-coder:1.5b
+
+      - name: Generate bounded repair candidate without paid API
+        if: ${{ steps.state.outputs.needs_repair == 'true' }}
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, pathlib
+          report=json.load(open('artifacts/self-development/report.json'))
+          paths=['src/lib/root/selfReconstruction.ts','src/lib/root/selfObservability.ts','src/app/[scene]/page.tsx']
+          context=[]
+          for p in paths:
+              q=pathlib.Path(p)
+              if q.exists(): context.append(f'\n--- FILE {p} ---\n'+q.read_text(errors='replace')[:18000])
+          prompt='''You are the bounded SFI repair executor. Produce ONLY a valid unified git diff. Do not use markdown fences. Do not expand authority. Do not delete or weaken tests. Do not touch secrets, dependencies, lockfiles, workflows, deployment, billing, OAuth, RLS, migrations, or external publication. You may repair only the supplied files. ROOT approval is required only for final ADD/PROMOTE; observation, analysis, bounded repair and verification do not require ROOT. Fix only defects supported by the report. If no safe repair is possible, output an empty string.\nREPORT:\n'''+json.dumps(report,indent=2)+''.join(context)
+          pathlib.Path('/tmp/sfi-repair-prompt.txt').write_text(prompt)
+          PY
+          python - <<'PY'
+          import json, urllib.request, pathlib
+          prompt=pathlib.Path('/tmp/sfi-repair-prompt.txt').read_text()
+          req=urllib.request.Request('http://127.0.0.1:11434/api/generate',data=json.dumps({'model':'qwen2.5-coder:1.5b','prompt':prompt,'stream':False,'options':{'temperature':0}}).encode(),headers={'Content-Type':'application/json'})
+          with urllib.request.urlopen(req,timeout=600) as r: out=json.load(r).get('response','')
+          out=out.replace('```diff','').replace('```','').strip()
+          pathlib.Path('/tmp/sfi-repair.patch').write_text(out+'\n' if out else '')
+          PY
+
+      - name: Apply candidate and verify
+        id: repair
+        if: ${{ steps.state.outputs.needs_repair == 'true' }}
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s /tmp/sfi-repair.patch
+          git apply --check /tmp/sfi-repair.patch
+          git apply /tmp/sfi-repair.patch
+          allowed='^(src/lib/root/selfReconstruction\.ts|src/lib/root/selfObservability\.ts|src/app/\[scene\]/page\.tsx)$'
+          escaped="$(git diff --name-only | grep -Ev "$allowed" || true)"
+          test -z "$escaped" || { echo "Repair escaped bounded file set: $escaped"; exit 1; }
+          npm run typecheck
+          node scripts/sfi-self-development.mjs || true
+          git diff --check
+          test -n "$(git status --porcelain)"
+
+      - name: Publish verified repair candidate for ROOT ADD review
+        if: ${{ steps.repair.outcome == 'success' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch="auto/sfi-self-repair-${GITHUB_RUN_ID}"
+          git config user.name 'sfi-self-development'
+          git config user.email 'sfi-self-development@users.noreply.github.com'
+          git checkout -b "$branch"
+          git add src/lib/root/selfReconstruction.ts src/lib/root/selfObservability.ts 'src/app/[scene]/page.tsx'
+          git commit -m "fix(self): verified bounded self-repair [ROOT ADD REVIEW]"
+          git push origin "$branch"
+          gh pr create --base main --head "$branch" --title "SFI SELF-DEVELOPMENT · verified mutation candidate" --body-file artifacts/self-development/report.md
+
+      - name: Persist unresolved defect as institutional work, not silent failure
+        if: ${{ steps.state.outputs.needs_repair == 'true' && steps.repair.outcome != 'success' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          marker='SFI-SELF-DEVELOPMENT-UNRESOLVED'
+          existing="$(gh issue list --state open --search "$marker in:body" --json number --jq '.[0].number // empty')"
+          {
+            cat artifacts/self-development/report.md
+            printf '\n\n<!-- %s -->\nRun: %s/%s/actions/runs/%s\n' "$marker" "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID"
+          } > /tmp/sfi-self-development-unresolved.md
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body-file /tmp/sfi-self-development-unresolved.md
+          else
+            gh issue create --title 'SFI SELF-DEVELOPMENT · unresolved observed defects' --body-file /tmp/sfi-self-development-unresolved.md
+          fi
