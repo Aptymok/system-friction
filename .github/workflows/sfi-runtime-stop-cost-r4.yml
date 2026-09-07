@@ -44,6 +44,7 @@ jobs:
         run: node --import tsx --test src/lib/sfi/cognitive-runtime/runtimeStopControls.test.ts
       - name: F-406-05..07 assurance regression matrix
         run: node --import tsx --test src/lib/sfi/cognitive-runtime/runtimeStopControls.assuranceR4.test.ts
+      # F-406-08 exact-head assurance gate; command remains behaviorally unchanged.
       - name: F-406-08 terminal telemetry accounting
         run: node --import tsx --test src/lib/sfi/cognitive-runtime/runtimeTelemetryAccounting.test.ts
       - name: Operation-level wall-clock deadline
