@@ -112,12 +112,22 @@ export type LlmProviderStatus = {
   }>;
 };
 
+export type LlmProviderAttemptTelemetry = {
+  provider: Exclude<LlmProviderId, 'degraded'>;
+  model: string;
+  usage: Record<string, unknown> | null;
+  latency_ms: number;
+  source: 'PROVIDER_RESPONSE' | 'PROVIDER_ATTEMPT';
+  semanticDisposition: 'ACCEPTED' | 'REJECTED_EMPTY' | 'FAILED' | 'DEADLINE_REJECTED';
+};
+
 export type LlmRouterTelemetry = {
   provider: Exclude<LlmProviderId, 'degraded'> | null;
   model: string | null;
   usage: Record<string, unknown> | null;
   latency_ms: number | null;
   source: 'PROVIDER_RESPONSE' | 'PROVIDER_ATTEMPT' | 'NOT_AVAILABLE';
+  attempts: LlmProviderAttemptTelemetry[];
 };
 
 export type LlmRouterResult = {
@@ -680,6 +690,40 @@ async function callProvider(config: ProviderConfig, model: string, input: {
   return { result: '', usage: null };
 }
 
+function operationTelemetry(attempts: LlmProviderAttemptTelemetry[]): LlmRouterTelemetry {
+  const last = attempts[attempts.length - 1];
+  if (!last) {
+    return {
+      provider: null,
+      model: null,
+      usage: null,
+      latency_ms: null,
+      source: 'NOT_AVAILABLE',
+      attempts: [],
+    };
+  }
+  const cumulativeUsage: Record<string, unknown> | null = attempts.length === 1
+    ? last.usage
+    : {
+        sfi_operation_provider_attempts: attempts.map((attempt) => ({
+          provider: attempt.provider,
+          model: attempt.model,
+          usage: attempt.usage,
+          latency_ms: attempt.latency_ms,
+          source: attempt.source,
+          semantic_disposition: attempt.semanticDisposition,
+        })),
+      };
+  return {
+    provider: last.provider,
+    model: last.model,
+    usage: cumulativeUsage,
+    latency_ms: attempts.reduce((sum, attempt) => sum + attempt.latency_ms, 0),
+    source: last.source,
+    attempts: attempts.map((attempt) => ({ ...attempt, usage: attempt.usage ? { ...attempt.usage } : null })),
+  };
+}
+
 export async function runLlmTask(input: {
   task: LlmTask;
   system?: string;
@@ -702,13 +746,8 @@ export async function runLlmTask(input: {
   });
   const maxAttempts = Math.max(1, Math.min(10, input.maxProviderAttempts ?? 4));
   let attempts = 0;
-  let terminalTelemetry: LlmRouterTelemetry = {
-    provider: null,
-    model: null,
-    usage: null,
-    latency_ms: null,
-    source: 'NOT_AVAILABLE',
-  };
+  const attemptTelemetry: LlmProviderAttemptTelemetry[] = [];
+  let terminalTelemetry = operationTelemetry(attemptTelemetry);
 
   for (const candidate of operationPlan.candidates) {
     if (attempts >= maxAttempts) break;
@@ -737,18 +776,22 @@ export async function runLlmTask(input: {
         deadlineAtMs: input.deadlineAtMs,
       });
       const latency = Date.now() - attemptStarted;
-      terminalTelemetry = {
+      const deadlineReached = input.deadlineAtMs !== undefined && Date.now() >= input.deadlineAtMs;
+      const semanticAccepted = Boolean(output.result.trim());
+      attemptTelemetry.push({
         provider: config.id,
         model: candidate.model,
         usage: output.usage,
         latency_ms: latency,
         source: 'PROVIDER_RESPONSE',
-      };
-      if (input.deadlineAtMs !== undefined && Date.now() >= input.deadlineAtMs) {
+        semanticDisposition: deadlineReached ? 'DEADLINE_REJECTED' : semanticAccepted ? 'ACCEPTED' : 'REJECTED_EMPTY',
+      });
+      terminalTelemetry = operationTelemetry(attemptTelemetry);
+      if (deadlineReached) {
         warnings.push('trajectory_deadline_reached');
         break;
       }
-      if (output.result.trim()) {
+      if (semanticAccepted) {
         markModelSuccess(config.id, candidate.model, latency);
         return {
           ok: true,
@@ -765,23 +808,26 @@ export async function runLlmTask(input: {
       }
       const reason = markModelFailure(config.id, candidate.model, 'empty_result', latency);
       warnings.push(`${config.id}:${candidate.model}_empty_result:${reason}`);
-      terminalTelemetry = { provider: null, model: null, usage: null, latency_ms: null, source: 'NOT_AVAILABLE' };
     } catch (error) {
       const latency = Date.now() - attemptStarted;
-      if (input.deadlineAtMs !== undefined && Date.now() >= input.deadlineAtMs) {
-        terminalTelemetry = { provider: config.id, model: candidate.model, usage: null, latency_ms: latency, source: 'PROVIDER_ATTEMPT' };
-        warnings.push('trajectory_deadline_reached');
-        break;
-      }
       const message = error instanceof Error ? error.message : 'unknown';
-      if (message.includes(SFI_TRAJECTORY_DEADLINE_ERROR)) {
-        terminalTelemetry = { provider: config.id, model: candidate.model, usage: null, latency_ms: latency, source: 'PROVIDER_ATTEMPT' };
+      const deadlineReached = (input.deadlineAtMs !== undefined && Date.now() >= input.deadlineAtMs)
+        || message.includes(SFI_TRAJECTORY_DEADLINE_ERROR);
+      attemptTelemetry.push({
+        provider: config.id,
+        model: candidate.model,
+        usage: null,
+        latency_ms: latency,
+        source: 'PROVIDER_ATTEMPT',
+        semanticDisposition: deadlineReached ? 'DEADLINE_REJECTED' : 'FAILED',
+      });
+      terminalTelemetry = operationTelemetry(attemptTelemetry);
+      if (deadlineReached) {
         warnings.push('trajectory_deadline_reached');
         break;
       }
       const reason = markModelFailure(config.id, candidate.model, message, latency);
       warnings.push(`${config.id}:${candidate.model}_failed:${reason}`);
-      terminalTelemetry = { provider: null, model: null, usage: null, latency_ms: null, source: 'NOT_AVAILABLE' };
     }
   }
 

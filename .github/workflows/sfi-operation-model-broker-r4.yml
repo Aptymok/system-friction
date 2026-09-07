@@ -6,6 +6,7 @@ on:
       - 'src/lib/ai/providerRouter.ts'
       - 'src/lib/ai/providerRouter.operationBroker.test.ts'
       - 'src/lib/ai/providerRouter.deadline.test.ts'
+      - 'src/lib/sfi/cognitive-runtime/runtimeProviderFallbackAccounting.test.ts'
       - 'src/lib/sfi/cognitive-runtime/agentModelRequirements.ts'
       - 'src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'
       - 'src/infrastructure/ai/agentLlmClient.ts'
@@ -38,6 +39,8 @@ jobs:
         run: node --import tsx --test src/lib/ai/providerRouter.operationBroker.test.ts
       - name: Trajectory wall-clock deadline remains broker-owned
         run: node --import tsx --test src/lib/ai/providerRouter.deadline.test.ts
+      - name: F-406-09 provider fallback usage accounting
+        run: node --import tsx --test src/lib/sfi/cognitive-runtime/runtimeProviderFallbackAccounting.test.ts
       - name: Preserve cognitive passport owner and operation requirement projection
         run: node --import tsx --test src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts
       - name: SFI-CAPABILITY-AUTHORITY-1.0

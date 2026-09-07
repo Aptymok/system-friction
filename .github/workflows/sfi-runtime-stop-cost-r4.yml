@@ -11,6 +11,7 @@ on:
       - 'src/lib/sfi/cognitive-runtime/runtimeStopControls.test.ts'
       - 'src/lib/sfi/cognitive-runtime/runtimeStopControls.assuranceR4.test.ts'
       - 'src/lib/sfi/cognitive-runtime/runtimeTelemetryAccounting.test.ts'
+      - 'src/lib/sfi/cognitive-runtime/runtimeProviderFallbackAccounting.test.ts'
       - 'src/lib/sfi/cognitive-runtime/runtimeAgentExecutor.ts'
       - 'src/lib/sfi/cognitive-runtime/agents/metaOrchestrator.ts'
       - 'src/infrastructure/ai/agentLlmClient.ts'
@@ -47,6 +48,8 @@ jobs:
       # F-406-08 exact-head assurance gate; command remains behaviorally unchanged.
       - name: F-406-08 terminal telemetry accounting
         run: node --import tsx --test src/lib/sfi/cognitive-runtime/runtimeTelemetryAccounting.test.ts
+      - name: F-406-09 provider fallback usage accounting
+        run: node --import tsx --test src/lib/sfi/cognitive-runtime/runtimeProviderFallbackAccounting.test.ts
       - name: Operation-level wall-clock deadline
         run: node --import tsx --test src/lib/ai/providerRouter.deadline.test.ts
       - name: Preserve adaptive graph, duplicate, cycle, depth and convergence contracts
