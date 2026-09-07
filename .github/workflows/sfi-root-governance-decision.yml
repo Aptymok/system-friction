@@ -1,0 +1,47 @@
+name: SFI ROOT Governance Decision Boundary
+
+on:
+  pull_request:
+    paths:
+      - 'src/lib/sfi/oauthConfig.ts'
+      - 'src/lib/sfi/externalAuth.ts'
+      - 'src/app/api/oauth/authorize/route.ts'
+      - 'src/app/api/external/v1/governance/proposals/**'
+      - 'scripts/qa-sfi-root-governance-decision.ts'
+      - '.github/workflows/sfi-root-governance-decision.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/lib/sfi/oauthConfig.ts'
+      - 'src/lib/sfi/externalAuth.ts'
+      - 'src/app/api/oauth/authorize/route.ts'
+      - 'src/app/api/external/v1/governance/proposals/**'
+      - 'scripts/qa-sfi-root-governance-decision.ts'
+      - '.github/workflows/sfi-root-governance-decision.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  boundary:
+    name: Verify ROOT decision authority boundary
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: SFI-ROOT-GOVERNANCE-DECISION-BOUNDARY-1.0
+        run: npx tsx scripts/qa-sfi-root-governance-decision.ts
+
+      - name: Typecheck authority surface
+        run: npm run typecheck
