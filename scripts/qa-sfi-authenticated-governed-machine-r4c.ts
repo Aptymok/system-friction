@@ -60,6 +60,14 @@ assert.match(externalAuth, /clientId: session\.clientId/, 'gateway_credential_mu
 assert.match(route, /credential\.authMethod !== 'oauth'/, 'authenticated_machine_must_reject_static_tokens');
 assert.match(route, /!credential\.clientId/, 'authenticated_machine_must_reject_unbound_legacy_tokens');
 
+// Ephemeral grant possession proof: raw nonce is transient header-only; persisted nonceHash is the comparison owner.
+assert.match(grantOwner, /capabilityGrantNonceHash\(nonce: string\)/, 'upstream_grant_hash_owner_required');
+assert.match(route, /x-sfi-capability-grant-nonce/i, 'machine_grant_nonce_header_required');
+assert.match(route, /capabilityGrantNonceHash\(rawGrantNonce\)/, 'raw_nonce_must_be_hashed_immediately');
+assert.match(route, /persistedNonceHash === presentedGrantNonceHash/, 'persisted_nonce_hash_must_match_presented_grant_proof');
+assert.match(route, /eventGrantId !== targetGrantId/, 'grant_proof_filter_must_only_apply_to_requested_grant');
+assert.doesNotMatch(adapter, /x-sfi-capability-grant-nonce/i, 'raw_nonce_must_not_enter_adapter_or_execution_envelope');
+
 // Secret/model boundary: credentials and raw grant nonce never enter the execution object.
 assert.doesNotMatch(`${adapter}\n${route}`, /SFI_EXTERNAL_SESSION_SECRET|client_secret_hash|service[_-]?role.*(key|secret|token)/i, 'machine_adapter_must_not_read_service_credentials');
 assert.match(adapter, /rawNoncePersisted: false/g, 'receipts_must_state_raw_nonce_is_not_persisted');
@@ -93,7 +101,7 @@ console.log(JSON.stringify({
   gate: 'SFI-AUTHENTICATED-GOVERNED-MACHINE-1.0',
   contract: 'SFI-AUTHENTICATED-GOVERNED-MACHINE-ADAPTER-1.0',
   oauthBinding: ['principal', 'client', 'scope', 'institutional_tenant'],
-  grantBinding: ['ACTIVE', 'resource', 'action', 'capability', 'authority', 'parent', 'ttl', 'confirmation', 'replay'],
+  grantBinding: ['ACTIVE', 'nonce_proof', 'resource', 'action', 'capability', 'authority', 'parent', 'ttl', 'confirmation', 'replay'],
   executionOwner: 'SFI-MANUAL-COGNITIVE-EXECUTION-1.1 -> runtimeAgentExecutor -> agentExecutionMap',
   eventOwner: 'epistemic_events',
   persistenceDelta: 'NONE',
