@@ -13,6 +13,7 @@ import { SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY } from './convergedRegistry';
 import type { KernelContext } from './kernelContext';
 import {
   SFI_ADAPTIVE_MAX_CAPABILITY_INVOCATIONS,
+  SFI_ADAPTIVE_MAX_TRAJECTORY_DEPTH,
   type SfiTaskGraph,
   type SfiTaskGraphEdge,
   type SfiTaskGraphMutationKind,
@@ -98,11 +99,164 @@ export function validateTaskGraphInvocationBudget(graph: SfiTaskGraph): string[]
   return errors;
 }
 
+function sameStrings(actual: string[], expected: string[]) {
+  return actual.length === expected.length && actual.every((value, index) => value === expected[index]);
+}
+
+export function validateTaskGraphStructure(graph: SfiTaskGraph): string[] {
+  const errors: string[] = [];
+  if (!Array.isArray(graph.nodes)) errors.push('NODES_REQUIRED');
+  if (!Array.isArray(graph.edges)) errors.push('EDGES_REQUIRED');
+  if (!Array.isArray(graph.mutations)) errors.push('MUTATIONS_REQUIRED');
+  if (errors.length) return errors;
+
+  const nodeMap = new Map<string, SfiTaskGraphNode>();
+  for (const candidate of graph.nodes as unknown[]) {
+    if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
+      errors.push('NODE_INVALID');
+      continue;
+    }
+    const node = candidate as SfiTaskGraphNode;
+    if (typeof node.nodeId !== 'string' || !node.nodeId.trim()) {
+      errors.push('NODE_ID_INVALID');
+      continue;
+    }
+    if (nodeMap.has(node.nodeId)) errors.push(`NODE_ID_DUPLICATE:${node.nodeId}`);
+    else nodeMap.set(node.nodeId, node);
+    if (node.id !== node.nodeId) errors.push(`NODE_ALIAS_MISMATCH:${node.nodeId}`);
+  }
+
+  const adjacency = new Map<string, string[]>();
+  const indegree = new Map<string, number>();
+  for (const nodeId of nodeMap.keys()) {
+    adjacency.set(nodeId, []);
+    indegree.set(nodeId, 0);
+  }
+
+  for (const candidate of graph.edges as unknown[]) {
+    if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
+      errors.push('EDGE_INVALID');
+      continue;
+    }
+    const edge = candidate as SfiTaskGraphEdge;
+    if (typeof edge.from !== 'string' || !nodeMap.has(edge.from)) errors.push(`EDGE_FROM_DANGLING:${String(edge.from)}`);
+    if (typeof edge.to !== 'string' || !nodeMap.has(edge.to)) errors.push(`EDGE_TO_DANGLING:${String(edge.to)}`);
+    if (!nodeMap.has(edge.from) || !nodeMap.has(edge.to)) continue;
+    if (edge.from === edge.to) errors.push(`EDGE_SELF_CYCLE:${edge.from}`);
+    adjacency.get(edge.from)!.push(edge.to);
+    indegree.set(edge.to, (indegree.get(edge.to) ?? 0) + 1);
+  }
+
+  const queue = [...nodeMap.keys()].filter((nodeId) => (indegree.get(nodeId) ?? 0) === 0);
+  const structuralDepth = new Map<string, number>([...nodeMap.keys()].map((nodeId) => [nodeId, 0]));
+  let visited = 0;
+  for (let cursor = 0; cursor < queue.length; cursor += 1) {
+    const nodeId = queue[cursor];
+    visited += 1;
+    for (const childId of adjacency.get(nodeId) ?? []) {
+      structuralDepth.set(childId, Math.max(structuralDepth.get(childId) ?? 0, (structuralDepth.get(nodeId) ?? 0) + 1));
+      const next = (indegree.get(childId) ?? 0) - 1;
+      indegree.set(childId, next);
+      if (next === 0) queue.push(childId);
+    }
+  }
+  if (visited !== nodeMap.size) errors.push('GRAPH_CYCLE_DETECTED');
+
+  const lineageCache = new Map<string, string[]>();
+  const resolving = new Set<string>();
+  const deriveLineage = (nodeId: string): string[] | null => {
+    if (lineageCache.has(nodeId)) return lineageCache.get(nodeId)!;
+    if (resolving.has(nodeId)) {
+      errors.push(`PARENT_CYCLE_DETECTED:${nodeId}`);
+      return null;
+    }
+    const node = nodeMap.get(nodeId);
+    if (!node) return null;
+    resolving.add(nodeId);
+    if (node.parentNodeId === null) {
+      resolving.delete(nodeId);
+      lineageCache.set(nodeId, []);
+      return [];
+    }
+    if (typeof node.parentNodeId !== 'string' || !nodeMap.has(node.parentNodeId)) {
+      errors.push(`PARENT_DANGLING:${nodeId}:${String(node.parentNodeId)}`);
+      resolving.delete(nodeId);
+      return null;
+    }
+    const parentLineage = deriveLineage(node.parentNodeId);
+    resolving.delete(nodeId);
+    if (!parentLineage) return null;
+    const lineage = [...parentLineage, node.parentNodeId];
+    lineageCache.set(nodeId, lineage);
+    return lineage;
+  };
+
+  for (const node of nodeMap.values()) {
+    if (!Array.isArray(node.prerequisites)) errors.push(`PREREQUISITES_INVALID:${node.nodeId}`);
+    else {
+      for (const prerequisite of node.prerequisites) {
+        if (!nodeMap.has(prerequisite)) errors.push(`PREREQUISITE_DANGLING:${node.nodeId}:${prerequisite}`);
+      }
+    }
+    if (!Array.isArray(node.ancestorNodeIds)) errors.push(`ANCESTORS_INVALID:${node.nodeId}`);
+    else {
+      if (new Set(node.ancestorNodeIds).size !== node.ancestorNodeIds.length) errors.push(`ANCESTOR_DUPLICATE:${node.nodeId}`);
+      for (const ancestorId of node.ancestorNodeIds) {
+        if (!nodeMap.has(ancestorId)) errors.push(`ANCESTOR_DANGLING:${node.nodeId}:${ancestorId}`);
+      }
+    }
+
+    const lineage = deriveLineage(node.nodeId);
+    if (lineage && Array.isArray(node.ancestorNodeIds) && !sameStrings(node.ancestorNodeIds, lineage)) {
+      errors.push(`ANCESTOR_CHAIN_MISMATCH:${node.nodeId}`);
+    }
+    if (node.parentNodeId !== null) {
+      if (Array.isArray(node.prerequisites) && !node.prerequisites.includes(node.parentNodeId)) {
+        errors.push(`PARENT_PREREQUISITE_MISSING:${node.nodeId}:${node.parentNodeId}`);
+      }
+      if (!graph.edges.some((edge) => edge.from === node.parentNodeId && edge.to === node.nodeId)) {
+        errors.push(`PARENT_EDGE_MISSING:${node.nodeId}:${node.parentNodeId}`);
+      }
+    } else {
+      if (Array.isArray(node.ancestorNodeIds) && node.ancestorNodeIds.length) errors.push(`ROOT_HAS_ANCESTORS:${node.nodeId}`);
+      if (Array.isArray(node.prerequisites) && node.prerequisites.length) errors.push(`ROOT_HAS_PREREQUISITES:${node.nodeId}`);
+    }
+
+    const lineageDepth = lineage?.length ?? 0;
+    const graphDepth = structuralDepth.get(node.nodeId) ?? 0;
+    const effectiveDepth = Math.max(lineageDepth, graphDepth);
+    if (!Number.isSafeInteger(node.depth) || node.depth < 0 || node.depth !== effectiveDepth) {
+      errors.push(`DEPTH_MISMATCH:${node.nodeId}:${String(node.depth)}:${effectiveDepth}`);
+    }
+    if (effectiveDepth > SFI_ADAPTIVE_MAX_TRAJECTORY_DEPTH) {
+      errors.push(`MAX_DEPTH_EXCEEDED:${node.nodeId}:${effectiveDepth}:${SFI_ADAPTIVE_MAX_TRAJECTORY_DEPTH}`);
+    }
+
+    if (node.supersedesNodeId !== null) {
+      const previous = typeof node.supersedesNodeId === 'string' ? nodeMap.get(node.supersedesNodeId) : null;
+      if (!previous) errors.push(`SUPERSEDES_DANGLING:${node.nodeId}:${String(node.supersedesNodeId)}`);
+      else if (previous.supersededByNodeId !== node.nodeId) errors.push(`SUPERSESSION_RECIPROCITY_INVALID:${node.nodeId}:${previous.nodeId}`);
+    }
+    if (node.supersededByNodeId !== null) {
+      const replacement = typeof node.supersededByNodeId === 'string' ? nodeMap.get(node.supersededByNodeId) : null;
+      if (!replacement) errors.push(`SUPERSEDED_BY_DANGLING:${node.nodeId}:${String(node.supersededByNodeId)}`);
+      else if (replacement.supersedesNodeId !== node.nodeId) errors.push(`SUPERSESSION_RECIPROCITY_INVALID:${replacement.nodeId}:${node.nodeId}`);
+    }
+  }
+
+  return [...new Set(errors)];
+}
+
 function assertValidTaskGraphInvocationBudget(graph: SfiTaskGraph) {
   const errors = validateTaskGraphInvocationBudget(graph);
   if (errors.length > 0) {
     throw new Error(`TASK_GRAPH_INVOCATION_BUDGET_INVALID:${errors.join('|')}`);
   }
+}
+
+function assertValidTaskGraphStructure(graph: SfiTaskGraph) {
+  const errors = validateTaskGraphStructure(graph);
+  if (errors.length > 0) throw new Error(`ADAPTIVE_TASK_GRAPH_STRUCTURE_INVALID:${errors.join('|')}`);
 }
 
 export function taskGraphFromContext(context: KernelContext): SfiTaskGraph | null {
@@ -114,11 +268,13 @@ export function taskGraphFromContext(context: KernelContext): SfiTaskGraph | nul
     throw new Error('ADAPTIVE_TASK_GRAPH_INVALID_SHAPE');
   }
   assertValidTaskGraphInvocationBudget(graph);
+  assertValidTaskGraphStructure(graph);
   return graph;
 }
 
 export function contextWithTaskGraph(context: KernelContext, graph: SfiTaskGraph): KernelContext {
   assertValidTaskGraphInvocationBudget(graph);
+  assertValidTaskGraphStructure(graph);
   return { ...context, metadata: { ...context.metadata, taskGraph: graph } };
 }
 
@@ -146,6 +302,7 @@ export function transitionTaskGraphNode(
 
 export function reserveTaskGraphInvocation(graph: SfiTaskGraph, nodeId: string) {
   assertValidTaskGraphInvocationBudget(graph);
+  assertValidTaskGraphStructure(graph);
   if (graph.invocationBudget.remaining <= 0 || graph.invocationBudget.used >= graph.invocationBudget.max) {
     mutation(graph, 'LIMIT_BLOCKED', nodeId, null, {
       limit: 'MAX_CAPABILITY_INVOCATIONS',
