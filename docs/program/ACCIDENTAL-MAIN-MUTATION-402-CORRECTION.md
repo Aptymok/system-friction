@@ -1,0 +1,1 @@
+Do not count documentation-only commits as implementation of #402. Actual code work must occur on a bounded branch and PR.
