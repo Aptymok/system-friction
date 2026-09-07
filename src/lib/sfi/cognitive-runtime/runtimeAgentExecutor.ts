@@ -4,12 +4,30 @@ import { emitGovernedProposalsFromAgentInsight } from './governedProposalEmitter
 import { recordAgentExecutionEvent } from '@/infrastructure/events/cognitiveRuntimeEventRepository';
 import { augmentAgentWithLlm } from '@/infrastructure/ai/agentLlmClient';
 import { evaluateAgentAiGovernance, SFI_AI_GOVERNANCE_POLICY } from '@/lib/governance/aiGovernancePolicy';
+import {
+  observeRuntimeModelTelemetry,
+  reserveRuntimeModelCall,
+  runtimeControlSnapshot,
+  runtimeExecutionPreflight,
+} from './runtimeStopControls';
 
 export interface AgentExecutionResult {
   agentId: string;
   executed: boolean;
   context: KernelContext;
   executedAt: string;
+}
+
+export type RuntimeAgentExecutorDependencies = {
+  nowMs?: () => number;
+  executeAgent?: typeof executeRegisteredAgent;
+  augmentAgentWithLlm?: typeof augmentAgentWithLlm;
+  emitGovernedProposals?: typeof emitGovernedProposalsFromAgentInsight;
+  recordExecutionEvent?: typeof recordAgentExecutionEvent;
+};
+
+function row(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
 
 function llmAugmentationEnabled(agentId: string, context: KernelContext) {
@@ -19,6 +37,22 @@ function llmAugmentationEnabled(agentId: string, context: KernelContext) {
   const allowlist = context.metadata?.llmAugmentationAgents;
   if (!Array.isArray(allowlist)) return true;
   return allowlist.includes(agentId);
+}
+
+function preserveRuntimeModelCallIdentity(context: KernelContext, callId: string | null) {
+  if (!callId) return context;
+  const llmRuntime = row(context.metadata?.llmRuntime);
+  context.metadata = {
+    ...context.metadata,
+    llmRuntime: {
+      ...llmRuntime,
+      runtimeModelCallId: typeof llmRuntime.runtimeModelCallId === 'string' ? llmRuntime.runtimeModelCallId : callId,
+      runtimeModelCallAccounting: llmRuntime.runtimeModelCallAccounting ?? 'PENDING',
+      runtimeModelCallUsageDisposition: llmRuntime.runtimeModelCallUsageDisposition ?? null,
+      runtimeModelCallAccountedId: llmRuntime.runtimeModelCallAccountedId ?? null,
+    },
+  };
+  return context;
 }
 
 function compactExecutionMetadata(agentId: string, context: KernelContext) {
@@ -66,6 +100,7 @@ function compactExecutionMetadata(agentId: string, context: KernelContext) {
     refs,
     aiGovernance: metadata.aiGovernance ?? null,
     llmRuntime: metadata.llmRuntime ?? null,
+    runtimeControls: runtimeControlSnapshot(context),
     agentInsight: selectedInsight,
     governedProposalEmitter: metadata.governedProposalEmitter ?? null,
     metadataKeyCount: Object.keys(metadata).length,
@@ -76,7 +111,13 @@ function compactExecutionMetadata(agentId: string, context: KernelContext) {
 export async function runCognitiveAgent(
   agentId: string,
   context: KernelContext,
+  dependencies: RuntimeAgentExecutorDependencies = {},
 ): Promise<AgentExecutionResult> {
+  const nowMs = dependencies.nowMs ?? Date.now;
+  const executeAgent = dependencies.executeAgent ?? executeRegisteredAgent;
+  const augment = dependencies.augmentAgentWithLlm ?? augmentAgentWithLlm;
+  const emitProposals = dependencies.emitGovernedProposals ?? emitGovernedProposalsFromAgentInsight;
+  const recordExecution = dependencies.recordExecutionEvent ?? recordAgentExecutionEvent;
   const beforeEvidence = context.evidence.length;
   const beforeMetadataKeys = Object.keys(context.metadata ?? {}).length;
   let updatedContext: KernelContext = context;
@@ -85,10 +126,13 @@ export async function runCognitiveAgent(
   let llmError: string | null = null;
   let proposalEmitterError: string | null = null;
   const governance = evaluateAgentAiGovernance(agentId, context);
+  const runtimePreflight = runtimeExecutionPreflight(context, agentId, nowMs());
 
-  if (governance.disposition !== 'BLOCK') {
+  if (!runtimePreflight.allowed) {
+    deterministicError = `RUNTIME_EXECUTION_BLOCKED:${runtimePreflight.reason}`;
+  } else if (governance.disposition !== 'BLOCK') {
     try {
-      updatedContext = executeRegisteredAgent(agentId, context);
+      updatedContext = executeAgent(agentId, context);
       executed = Boolean(updatedContext);
     } catch (error) {
       deterministicError = error instanceof Error ? error.message : String(error);
@@ -116,28 +160,63 @@ export async function runCognitiveAgent(
 
   const llmRequested = executed && llmAugmentationEnabled(agentId, updatedContext);
   if (llmRequested) {
-    try {
-      updatedContext = await augmentAgentWithLlm(agentId, updatedContext);
-    } catch (error) {
-      llmError = error instanceof Error ? error.message : String(error);
+    const reservation = reserveRuntimeModelCall(updatedContext, agentId, nowMs());
+    if (!reservation.allowed) {
+      llmError = `RUNTIME_MODEL_CALL_BLOCKED:${reservation.reason}`;
       updatedContext.metadata = {
         ...updatedContext.metadata,
         llmRuntime: {
-          ...((updatedContext.metadata?.llmRuntime && typeof updatedContext.metadata.llmRuntime === 'object')
-            ? updatedContext.metadata.llmRuntime as Record<string, unknown>
-            : {}),
+          ...row(updatedContext.metadata?.llmRuntime),
           lastAgentId: agentId,
-          lastStatus: 'FAILED',
+          lastStatus: 'BLOCKED',
           lastError: llmError,
           updatedAt: new Date().toISOString(),
         },
       };
+    } else {
+      const reservedCallId = typeof row(updatedContext.metadata?.llmRuntime).runtimeModelCallId === 'string'
+        ? String(row(updatedContext.metadata?.llmRuntime).runtimeModelCallId)
+        : null;
+      const preModelAgentInsights = updatedContext.metadata?.agentInsights;
+      try {
+        updatedContext = await augment(agentId, updatedContext);
+        preserveRuntimeModelCallIdentity(updatedContext, reservedCallId);
+        const postModelPreflight = runtimeExecutionPreflight(updatedContext, agentId, nowMs());
+        if (!postModelPreflight.allowed) {
+          llmError = `RUNTIME_MODEL_RESULT_REJECTED:${postModelPreflight.reason}`;
+          updatedContext.metadata = {
+            ...updatedContext.metadata,
+            agentInsights: preModelAgentInsights,
+          };
+          const observed = observeRuntimeModelTelemetry(updatedContext, agentId);
+          if (!postModelPreflight.reason && observed.stopped) llmError = `RUNTIME_MODEL_TELEMETRY_STOP:${observed.reason}`;
+        } else {
+          const observed = observeRuntimeModelTelemetry(updatedContext, agentId);
+          if (observed.stopped) llmError = `RUNTIME_MODEL_TELEMETRY_STOP:${observed.reason}`;
+        }
+      } catch (error) {
+        llmError = error instanceof Error ? error.message : String(error);
+        preserveRuntimeModelCallIdentity(updatedContext, reservedCallId);
+        const failurePreflight = runtimeExecutionPreflight(updatedContext, agentId, nowMs());
+        updatedContext.metadata = {
+          ...updatedContext.metadata,
+          llmRuntime: {
+            ...row(updatedContext.metadata?.llmRuntime),
+            lastAgentId: agentId,
+            lastStatus: 'FAILED',
+            lastError: llmError,
+            updatedAt: new Date().toISOString(),
+          },
+        };
+        const observed = observeRuntimeModelTelemetry(updatedContext, agentId);
+        if (failurePreflight.allowed && observed.stopped) llmError = `RUNTIME_MODEL_TELEMETRY_STOP:${observed.reason}`;
+      }
     }
   }
 
   if (llmRequested && !llmError) {
     try {
-      updatedContext = await emitGovernedProposalsFromAgentInsight(agentId, updatedContext);
+      updatedContext = await emitProposals(agentId, updatedContext);
     } catch (error) {
       proposalEmitterError = error instanceof Error ? error.message : String(error);
       updatedContext.metadata = {
@@ -170,7 +249,7 @@ export async function runCognitiveAgent(
     ? metadata.executionRequest as Record<string, unknown>
     : null;
 
-  await recordAgentExecutionEvent(
+  await recordExecution(
     agentId,
     executed ? 'SFI_AGENT_EXECUTED' : 'SFI_AGENT_SKIPPED',
     {
@@ -201,6 +280,7 @@ export async function runCognitiveAgent(
       llmError,
       proposalEmitterError,
       governedProposalEmitter: metadata.governedProposalEmitter ?? null,
+      runtimeControls: runtimeControlSnapshot(updatedContext),
       metadata: compactExecutionMetadata(agentId, updatedContext),
     },
   );

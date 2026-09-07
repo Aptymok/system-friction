@@ -1,6 +1,10 @@
 import 'server-only';
 
-import { runLlmTask, type LlmProviderId } from '@/lib/ai/providerRouter';
+import {
+  runLlmTask,
+  SFI_TRAJECTORY_DEADLINE_ERROR,
+  type LlmProviderId,
+} from '@/lib/ai/providerRouter';
 import { COGNITIVE_TWIN_CONTRACT_VERSION } from '@/core/cognitive-twin/contract';
 import type { StudioTwinContext } from '@/core/cognitive-twin/studioContext';
 import { readStudioTwinContext } from '@/core/cognitive-twin/studioContext';
@@ -153,6 +157,14 @@ function boundedPrompt(value: unknown) {
 function providerPreference(value: unknown): LlmProviderId | undefined {
   const allowed: LlmProviderId[] = ['openai', 'anthropic', 'gemini', 'groq', 'ollama', 'huggingface'];
   return typeof value === 'string' && allowed.includes(value as LlmProviderId) ? value as LlmProviderId : undefined;
+}
+
+function trajectoryDeadlineAtMs(context: KernelContext): number | undefined {
+  const graph = record(context.metadata?.taskGraph);
+  const controls = record(graph.runtimeControls);
+  const bounds = record(controls.bounds);
+  const raw = typeof bounds.deadlineAt === 'string' ? Date.parse(bounds.deadlineAt) : Number.NaN;
+  return Number.isFinite(raw) ? raw : undefined;
 }
 
 async function resolveTwinContextForExecution(context: KernelContext): Promise<StudioTwinContext> {
@@ -319,6 +331,7 @@ export async function augmentAgentWithLlm(agentId: string, context: KernelContex
   const promptSourceCharacters = JSON.stringify(promptValue).length;
   const prompt = boundedPrompt(promptValue);
   const promptBounded = promptSourceCharacters > MAX_PROMPT_CHARS;
+  const deadlineAtMs = trajectoryDeadlineAtMs(context);
 
   const result = await runLlmTask({
     task: 'graph_interpretation',
@@ -328,17 +341,46 @@ export async function augmentAgentWithLlm(agentId: string, context: KernelContex
     preferredProvider: requestedProvider,
     requirements,
     maxTokens: MAX_AGENT_OUTPUT_TOKENS,
+    deadlineAtMs,
   });
+
   const telemetry = normalizeObservedGenAiTelemetry({
-    ok: result.ok,
-    provider: result.provider,
-    model: result.model,
-    usage: result.usage,
-    latencyMs: result.latency_ms,
+    ok: result.telemetry.provider !== null,
+    provider: result.telemetry.provider ?? 'degraded',
+    model: result.telemetry.model ?? 'unavailable',
+    usage: result.telemetry.usage,
+    latencyMs: result.telemetry.latency_ms,
   });
   const telemetryOpenTelemetry = mapGenAiTelemetryToOpenTelemetry(telemetry);
-  const parsed = result.ok ? parseInsight(result.result) : null;
   const generatedAt = new Date().toISOString();
+  const priorLlmRuntime = record(context.metadata?.llmRuntime);
+  const runtimeModelCallId = typeof priorLlmRuntime.runtimeModelCallId === 'string' ? priorLlmRuntime.runtimeModelCallId : null;
+
+  context.metadata = {
+    ...context.metadata,
+    llmRuntime: {
+      ...priorLlmRuntime,
+      lastProvider: telemetry.provider.value,
+      lastModel: telemetry.model.value,
+      lastAgentId: agentId,
+      lastStatus: result.ok ? 'COMPLETE' : result.warnings.includes('trajectory_deadline_reached') ? 'DEADLINE_REJECTED' : 'DEGRADED',
+      modelRequirements: requirements,
+      explicitProviderOverride: requestedProvider ?? null,
+      maxOutputTokens: MAX_AGENT_OUTPUT_TOKENS,
+      ...compactObservedGenAiTelemetry(telemetry),
+      telemetryOpenTelemetry,
+      telemetryRuntimeModelCallId: runtimeModelCallId,
+      modelTelemetrySource: result.telemetry.source,
+      semanticModelOutputAccepted: result.ok,
+      updatedAt: generatedAt,
+    },
+  };
+
+  if (result.warnings.includes('trajectory_deadline_reached') || (deadlineAtMs !== undefined && Date.now() >= deadlineAtMs)) {
+    throw new Error(SFI_TRAJECTORY_DEADLINE_ERROR);
+  }
+
+  const parsed = result.ok ? parseInsight(result.result) : null;
   const insight: AgentInsight = parsed
     ? {
         status: 'COMPLETE',
@@ -409,6 +451,9 @@ export async function augmentAgentWithLlm(agentId: string, context: KernelContex
       maxOutputTokens: MAX_AGENT_OUTPUT_TOKENS,
       ...compactObservedGenAiTelemetry(telemetry),
       telemetryOpenTelemetry,
+      telemetryRuntimeModelCallId: runtimeModelCallId,
+      modelTelemetrySource: result.telemetry.source,
+      semanticModelOutputAccepted: result.ok,
       updatedAt: generatedAt,
     },
   };

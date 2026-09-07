@@ -5,9 +5,12 @@ on:
     paths:
       - 'src/lib/ai/providerRouter.ts'
       - 'src/lib/ai/providerRouter.operationBroker.test.ts'
+      - 'src/lib/ai/providerRouter.deadline.test.ts'
+      - 'src/lib/sfi/cognitive-runtime/runtimeProviderFallbackAccounting.test.ts'
       - 'src/lib/sfi/cognitive-runtime/agentModelRequirements.ts'
       - 'src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'
       - 'src/infrastructure/ai/agentLlmClient.ts'
+      - 'src/lib/sfi/cognitive-runtime/runtimeAgentExecutor.ts'
       - '.github/workflows/sfi-operation-model-broker-r4.yml'
 
 permissions:
@@ -34,9 +37,15 @@ jobs:
           printf 'export {};\n' > node_modules/server-only/index.js
       - name: SFI-MODEL-INDEPENDENCE-1.0
         run: node --import tsx --test src/lib/ai/providerRouter.operationBroker.test.ts
+      - name: Trajectory wall-clock deadline remains broker-owned
+        run: node --import tsx --test src/lib/ai/providerRouter.deadline.test.ts
+      - name: F-406-09 provider fallback usage accounting
+        run: node --import tsx --test src/lib/sfi/cognitive-runtime/runtimeProviderFallbackAccounting.test.ts
       - name: Preserve cognitive passport owner and operation requirement projection
         run: node --import tsx --test src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts
       - name: SFI-CAPABILITY-AUTHORITY-1.0
         run: node --import tsx --test src/lib/sfi/cognitive-runtime/capabilityBroker.test.ts
       - name: SFI-RUNTIME-ADAPTIVE-CAPABILITY-1.0
         run: node --import tsx --test src/lib/sfi/cognitive-runtime/adaptiveTaskGraphRuntime.test.ts
+      - name: Typecheck
+        run: npm run typecheck

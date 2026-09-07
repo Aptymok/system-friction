@@ -13,6 +13,7 @@ import { SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY } from './convergedRegistry';
 import type { KernelContext } from './kernelContext';
 import {
   SFI_ADAPTIVE_MAX_CAPABILITY_INVOCATIONS,
+  SFI_ADAPTIVE_MAX_TRAJECTORY_DEPTH,
   type SfiTaskGraph,
   type SfiTaskGraphEdge,
   type SfiTaskGraphMutationKind,
@@ -98,11 +99,169 @@ export function validateTaskGraphInvocationBudget(graph: SfiTaskGraph): string[]
   return errors;
 }
 
+function sameStrings(actual: string[], expected: string[]) {
+  return actual.length === expected.length && actual.every((value, index) => value === expected[index]);
+}
+
+export function isTaskGraphStructuralAncestryEdge(graph: SfiTaskGraph, edge: SfiTaskGraphEdge) {
+  const child = graph.nodes.find((node) => node.nodeId === edge.to);
+  return Boolean(child && child.parentNodeId === edge.from);
+}
+
+export function validateTaskGraphStructure(graph: SfiTaskGraph): string[] {
+  const errors: string[] = [];
+  if (!Array.isArray(graph.nodes)) errors.push('NODES_REQUIRED');
+  if (!Array.isArray(graph.edges)) errors.push('EDGES_REQUIRED');
+  if (!Array.isArray(graph.mutations)) errors.push('MUTATIONS_REQUIRED');
+  if (errors.length) return errors;
+
+  const nodeMap = new Map<string, SfiTaskGraphNode>();
+  for (const candidate of graph.nodes as unknown[]) {
+    if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
+      errors.push('NODE_INVALID');
+      continue;
+    }
+    const node = candidate as SfiTaskGraphNode;
+    if (typeof node.nodeId !== 'string' || !node.nodeId.trim()) {
+      errors.push('NODE_ID_INVALID');
+      continue;
+    }
+    if (nodeMap.has(node.nodeId)) errors.push(`NODE_ID_DUPLICATE:${node.nodeId}`);
+    else nodeMap.set(node.nodeId, node);
+    if (node.id !== node.nodeId) errors.push(`NODE_ALIAS_MISMATCH:${node.nodeId}`);
+  }
+
+  // All six edge relations participate in the canonical global DAG integrity rule.
+  // They do not, by relation alone, define capability ancestry or trajectory depth.
+  const adjacency = new Map<string, string[]>();
+  const indegree = new Map<string, number>();
+  for (const nodeId of nodeMap.keys()) {
+    adjacency.set(nodeId, []);
+    indegree.set(nodeId, 0);
+  }
+
+  for (const candidate of graph.edges as unknown[]) {
+    if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
+      errors.push('EDGE_INVALID');
+      continue;
+    }
+    const edge = candidate as SfiTaskGraphEdge;
+    if (typeof edge.from !== 'string' || !nodeMap.has(edge.from)) errors.push(`EDGE_FROM_DANGLING:${String(edge.from)}`);
+    if (typeof edge.to !== 'string' || !nodeMap.has(edge.to)) errors.push(`EDGE_TO_DANGLING:${String(edge.to)}`);
+    if (!nodeMap.has(edge.from) || !nodeMap.has(edge.to)) continue;
+    if (edge.from === edge.to) errors.push(`EDGE_SELF_CYCLE:${edge.from}`);
+    adjacency.get(edge.from)!.push(edge.to);
+    indegree.set(edge.to, (indegree.get(edge.to) ?? 0) + 1);
+  }
+
+  const queue = [...nodeMap.keys()].filter((nodeId) => (indegree.get(nodeId) ?? 0) === 0);
+  let visited = 0;
+  for (let cursor = 0; cursor < queue.length; cursor += 1) {
+    const nodeId = queue[cursor];
+    visited += 1;
+    for (const childId of adjacency.get(nodeId) ?? []) {
+      const next = (indegree.get(childId) ?? 0) - 1;
+      indegree.set(childId, next);
+      if (next === 0) queue.push(childId);
+    }
+  }
+  if (visited !== nodeMap.size) errors.push('GRAPH_CYCLE_DETECTED');
+
+  const lineageCache = new Map<string, string[]>();
+  const resolving = new Set<string>();
+  const deriveLineage = (nodeId: string): string[] | null => {
+    if (lineageCache.has(nodeId)) return lineageCache.get(nodeId)!;
+    if (resolving.has(nodeId)) {
+      errors.push(`PARENT_CYCLE_DETECTED:${nodeId}`);
+      return null;
+    }
+    const node = nodeMap.get(nodeId);
+    if (!node) return null;
+    resolving.add(nodeId);
+    if (node.parentNodeId === null) {
+      resolving.delete(nodeId);
+      lineageCache.set(nodeId, []);
+      return [];
+    }
+    if (typeof node.parentNodeId !== 'string' || !nodeMap.has(node.parentNodeId)) {
+      errors.push(`PARENT_DANGLING:${nodeId}:${String(node.parentNodeId)}`);
+      resolving.delete(nodeId);
+      return null;
+    }
+    const parentLineage = deriveLineage(node.parentNodeId);
+    resolving.delete(nodeId);
+    if (!parentLineage) return null;
+    const lineage = [...parentLineage, node.parentNodeId];
+    lineageCache.set(nodeId, lineage);
+    return lineage;
+  };
+
+  for (const node of nodeMap.values()) {
+    if (!Array.isArray(node.prerequisites)) errors.push(`PREREQUISITES_INVALID:${node.nodeId}`);
+    else {
+      for (const prerequisite of node.prerequisites) {
+        if (!nodeMap.has(prerequisite)) errors.push(`PREREQUISITE_DANGLING:${node.nodeId}:${prerequisite}`);
+      }
+    }
+    if (!Array.isArray(node.ancestorNodeIds)) errors.push(`ANCESTORS_INVALID:${node.nodeId}`);
+    else {
+      if (new Set(node.ancestorNodeIds).size !== node.ancestorNodeIds.length) errors.push(`ANCESTOR_DUPLICATE:${node.nodeId}`);
+      for (const ancestorId of node.ancestorNodeIds) {
+        if (!nodeMap.has(ancestorId)) errors.push(`ANCESTOR_DANGLING:${node.nodeId}:${ancestorId}`);
+      }
+    }
+
+    const lineage = deriveLineage(node.nodeId);
+    if (lineage && Array.isArray(node.ancestorNodeIds) && !sameStrings(node.ancestorNodeIds, lineage)) {
+      errors.push(`ANCESTOR_CHAIN_MISMATCH:${node.nodeId}`);
+    }
+    if (node.parentNodeId !== null) {
+      if (Array.isArray(node.prerequisites) && !node.prerequisites.includes(node.parentNodeId)) {
+        errors.push(`PARENT_PREREQUISITE_MISSING:${node.nodeId}:${node.parentNodeId}`);
+      }
+      if (!graph.edges.some((edge) => edge.from === node.parentNodeId && edge.to === node.nodeId)) {
+        errors.push(`PARENT_EDGE_MISSING:${node.nodeId}:${node.parentNodeId}`);
+      }
+    } else {
+      if (Array.isArray(node.ancestorNodeIds) && node.ancestorNodeIds.length) errors.push(`ROOT_HAS_ANCESTORS:${node.nodeId}`);
+      if (Array.isArray(node.prerequisites) && node.prerequisites.length) errors.push(`ROOT_HAS_PREREQUISITES:${node.nodeId}`);
+    }
+
+    // Capability depth is exclusively the explicit parent/ancestor trajectory lineage.
+    // Semantic cross-edges must never fabricate deeper capability ancestry.
+    const effectiveDepth = lineage?.length ?? 0;
+    if (!Number.isSafeInteger(node.depth) || node.depth < 0 || node.depth !== effectiveDepth) {
+      errors.push(`DEPTH_MISMATCH:${node.nodeId}:${String(node.depth)}:${effectiveDepth}`);
+    }
+    if (effectiveDepth > SFI_ADAPTIVE_MAX_TRAJECTORY_DEPTH) {
+      errors.push(`MAX_DEPTH_EXCEEDED:${node.nodeId}:${effectiveDepth}:${SFI_ADAPTIVE_MAX_TRAJECTORY_DEPTH}`);
+    }
+
+    if (node.supersedesNodeId !== null) {
+      const previous = typeof node.supersedesNodeId === 'string' ? nodeMap.get(node.supersedesNodeId) : null;
+      if (!previous) errors.push(`SUPERSEDES_DANGLING:${node.nodeId}:${String(node.supersedesNodeId)}`);
+      else if (previous.supersededByNodeId !== node.nodeId) errors.push(`SUPERSESSION_RECIPROCITY_INVALID:${node.nodeId}:${previous.nodeId}`);
+    }
+    if (node.supersededByNodeId !== null) {
+      const replacement = typeof node.supersededByNodeId === 'string' ? nodeMap.get(node.supersededByNodeId) : null;
+      if (!replacement) errors.push(`SUPERSEDED_BY_DANGLING:${node.nodeId}:${String(node.supersededByNodeId)}`);
+      else if (replacement.supersedesNodeId !== node.nodeId) errors.push(`SUPERSESSION_RECIPROCITY_INVALID:${replacement.nodeId}:${node.nodeId}`);
+    }
+  }
+
+  return [...new Set(errors)];
+}
+
 function assertValidTaskGraphInvocationBudget(graph: SfiTaskGraph) {
   const errors = validateTaskGraphInvocationBudget(graph);
   if (errors.length > 0) {
     throw new Error(`TASK_GRAPH_INVOCATION_BUDGET_INVALID:${errors.join('|')}`);
   }
+}
+
+function assertValidTaskGraphStructure(graph: SfiTaskGraph) {
+  const errors = validateTaskGraphStructure(graph);
+  if (errors.length > 0) throw new Error(`ADAPTIVE_TASK_GRAPH_STRUCTURE_INVALID:${errors.join('|')}`);
 }
 
 export function taskGraphFromContext(context: KernelContext): SfiTaskGraph | null {
@@ -114,11 +273,13 @@ export function taskGraphFromContext(context: KernelContext): SfiTaskGraph | nul
     throw new Error('ADAPTIVE_TASK_GRAPH_INVALID_SHAPE');
   }
   assertValidTaskGraphInvocationBudget(graph);
+  assertValidTaskGraphStructure(graph);
   return graph;
 }
 
 export function contextWithTaskGraph(context: KernelContext, graph: SfiTaskGraph): KernelContext {
   assertValidTaskGraphInvocationBudget(graph);
+  assertValidTaskGraphStructure(graph);
   return { ...context, metadata: { ...context.metadata, taskGraph: graph } };
 }
 
@@ -146,18 +307,15 @@ export function transitionTaskGraphNode(
 
 export function reserveTaskGraphInvocation(graph: SfiTaskGraph, nodeId: string) {
   assertValidTaskGraphInvocationBudget(graph);
+  assertValidTaskGraphStructure(graph);
+  if (graph.stop.stopped) return false;
   if (graph.invocationBudget.remaining <= 0 || graph.invocationBudget.used >= graph.invocationBudget.max) {
     mutation(graph, 'LIMIT_BLOCKED', nodeId, null, {
       limit: 'MAX_CAPABILITY_INVOCATIONS',
       max: graph.invocationBudget.max,
       used: graph.invocationBudget.used,
     });
-    graph.status = 'stopped';
-    graph.stop = {
-      stopped: true,
-      reason: 'MAX_CAPABILITY_INVOCATIONS_REACHED',
-      evaluatedAt: new Date().toISOString(),
-    };
+    markAdaptiveStop(graph, 'MAX_CAPABILITY_INVOCATIONS_REACHED');
     return false;
   }
   graph.invocationBudget.used += 1;
@@ -181,6 +339,12 @@ function pathExists(graph: SfiTaskGraph, from: string, target: string) {
 }
 
 export function addTaskGraphEdge(graph: SfiTaskGraph, edge: SfiTaskGraphEdge) {
+  if (graph.stop.stopped) throw new Error(`TASK_GRAPH_STOPPED:${graph.stop.reason ?? 'STOPPED'}`);
+  const fromExists = graph.nodes.some((node) => node.nodeId === edge.from);
+  const toExists = graph.nodes.some((node) => node.nodeId === edge.to);
+  if (!fromExists || !toExists) {
+    throw new Error(`TASK_GRAPH_EDGE_ENDPOINT_INVALID:${edge.from}:${edge.to}`);
+  }
   if (edge.from === edge.to || pathExists(graph, edge.to, edge.from)) {
     mutation(graph, 'LIMIT_BLOCKED', edge.to, null, {
       limit: 'DENY_CYCLE',
@@ -193,6 +357,11 @@ export function addTaskGraphEdge(graph: SfiTaskGraph, edge: SfiTaskGraphEdge) {
     return;
   }
   graph.edges.push(edge);
+  const errors = validateTaskGraphStructure(graph);
+  if (errors.length) {
+    graph.edges.pop();
+    throw new Error(`TASK_GRAPH_EDGE_INVALID:${edge.from}:${edge.to}:${errors.join('|')}`);
+  }
   mutation(graph, 'EDGE_ADDED', edge.to, null, { edge });
 }
 
@@ -439,8 +608,19 @@ type ProcessRequestOptions = {
   existingWaitingNodeId?: string | null;
 };
 
+function stoppedExecutionResult(context: KernelContext, graph: SfiTaskGraph): AdaptiveTaskGraphExecutionResult {
+  return {
+    context,
+    graph,
+    executedCapabilityIds: [],
+    informationChanged: false,
+    stateChanged: false,
+  };
+}
+
 async function processRequest(options: ProcessRequestOptions): Promise<AdaptiveTaskGraphExecutionResult> {
   let { context, graph } = options;
+  if (graph.stop.stopped) return stoppedExecutionResult(context, graph);
   const mutationCountBefore = graph.mutations.length;
   const before = signalSnapshot(context);
   const requestedDepth = Math.max(0, Math.trunc(options.depth));
@@ -457,8 +637,8 @@ async function processRequest(options: ProcessRequestOptions): Promise<AdaptiveT
     pendingCapabilityIds: pendingCapabilityIds(graph, options.existingWaitingNodeId ?? null),
     onAdmitted: async (governedContext, decision, lineage) => {
       graph = taskGraphFromContext(governedContext) ?? graph;
-      if (!reserveTaskGraphInvocation(graph, options.parentNodeId)) {
-        throw new Error('CAPABILITY_INVOCATION_BUDGET_EXHAUSTED_AFTER_ADMISSION');
+      if (graph.stop.stopped || !reserveTaskGraphInvocation(graph, options.parentNodeId)) {
+        throw new Error(graph.stop.stopped ? 'CAPABILITY_ADMISSION_BLOCKED_BY_TERMINAL_STOP' : 'CAPABILITY_INVOCATION_BUDGET_EXHAUSTED_AFTER_ADMISSION');
       }
       const node = createRequestedNode({
         graph,
@@ -480,9 +660,11 @@ async function processRequest(options: ProcessRequestOptions): Promise<AdaptiveT
   });
 
   graph = taskGraphFromContext(runtime.context) ?? graph;
-  recordBrokerMutation(graph, runtime, admittedNodeId ?? options.existingWaitingNodeId ?? null);
+  if (graph.stop.stopped && !admittedNodeId) return stoppedExecutionResult(runtime.context, graph);
+  if (!graph.stop.stopped) recordBrokerMutation(graph, runtime, admittedNodeId ?? options.existingWaitingNodeId ?? null);
 
   if (runtime.decision.disposition === 'EVIDENCE_REQUIRED' || runtime.decision.disposition === 'HUMAN_AUTHORITY_REQUIRED') {
+    if (graph.stop.stopped) return stoppedExecutionResult(runtime.context, graph);
     const waitingState: SfiTaskGraphNodeState = runtime.decision.disposition === 'EVIDENCE_REQUIRED'
       ? 'WAITING_EVIDENCE'
       : 'WAITING_AUTHORITY';
@@ -538,7 +720,7 @@ async function processRequest(options: ProcessRequestOptions): Promise<AdaptiveT
   let informationChanged = outputs.length > 0;
   let stateChanged = graph.mutations.length !== mutationCountBefore;
 
-  if (runtime.executed) {
+  if (runtime.executed && !graph.stop.stopped) {
     const nested = await executeAdaptiveCapabilityRequestsForNode({
       context: nextContext,
       parentNodeId: node.nodeId,
@@ -570,6 +752,7 @@ export async function executeAdaptiveCapabilityRequestsForNode(input: {
   let context = input.context;
   let graph = taskGraphFromContext(context);
   if (!graph) throw new Error('ADAPTIVE_TASK_GRAPH_REQUIRED');
+  if (graph.stop.stopped) return stoppedExecutionResult(context, graph);
   const parent = nodeById(graph, input.parentNodeId);
   if (!parent) throw new Error(`TASK_GRAPH_PARENT_NOT_FOUND:${input.parentNodeId}`);
   const requests = capabilityRequestsFromContext(context, input.parentCapabilityId);
@@ -579,6 +762,7 @@ export async function executeAdaptiveCapabilityRequestsForNode(input: {
   let stateChanged = false;
 
   for (const request of requests) {
+    if (graph.stop.stopped) break;
     const represented = graph.nodes.find((node) => node.requestId === request.requestId && node.state !== 'SUPERSEDED');
     if (represented) continue;
     const result = await processRequest({
@@ -615,6 +799,7 @@ export async function resumeWaitingAdaptiveCapabilities(input: {
   if (!graph) {
     throw new Error('ADAPTIVE_TASK_GRAPH_REQUIRED');
   }
+  if (graph.stop.stopped) return stoppedExecutionResult(context, graph);
   const requestCapability = input.requestCapability ?? ((runtimeInput) => requestCognitiveCapability(runtimeInput));
   const executedCapabilityIds: string[] = [];
   let informationChanged = false;
@@ -623,6 +808,7 @@ export async function resumeWaitingAdaptiveCapabilities(input: {
   const waitingNodes = graph.nodes.filter((node) => node.state === 'WAITING_EVIDENCE');
 
   for (const waiting of waitingNodes) {
+    if (graph.stop.stopped) break;
     const hasNewEvidence = currentEvidenceRefs.some((ref) => !waiting.inputRefs.includes(ref));
     if (!hasNewEvidence) continue;
     if (!waiting.requestId || !waiting.requestedBy || !waiting.parentNodeId || !waiting.urgency) continue;
@@ -694,9 +880,11 @@ export function evaluateAdaptiveStopInvariant(input: {
 }
 
 export function markAdaptiveStop(graph: SfiTaskGraph, reason: string) {
+  if (graph.stop.stopped) return graph.stop.reason ?? reason;
   graph.stop = { stopped: true, reason, evaluatedAt: new Date().toISOString() };
   graph.status = 'stopped';
   mutation(graph, 'STOPPED', null, null, { reason });
+  return reason;
 }
 
 export function pendingEquivalentRequestHash(graph: SfiTaskGraph, request: SfiCapabilityRequest) {
