@@ -1,3 +1,4 @@
+import { validateTaskGraphStructure } from './adaptiveTaskGraphRuntime';
 import type { KernelContext } from './kernelContext';
 import {
   SFI_ADAPTIVE_EXECUTION_DEADLINE_MS,
@@ -62,6 +63,7 @@ function nonNegativeInteger(value: unknown): number | null {
 }
 
 function mutation(graph: SfiTaskGraph, kind: 'LIMIT_BLOCKED' | 'STOPPED', nodeId: string | null, detail: Record<string, unknown>) {
+  if (!Array.isArray(graph.mutations)) return;
   graph.mutations.push({
     mutationId: crypto.randomUUID(),
     occurredAt: new Date().toISOString(),
@@ -73,7 +75,7 @@ function mutation(graph: SfiTaskGraph, kind: 'LIMIT_BLOCKED' | 'STOPPED', nodeId
 }
 
 function stopGraph(graph: SfiTaskGraph, reason: string, nodeId: string | null, detail: Record<string, unknown> = {}) {
-  if (graph.stop.stopped) return graph.stop.reason ?? reason;
+  if (graph.stop && typeof graph.stop === 'object' && graph.stop.stopped) return graph.stop.reason ?? reason;
   mutation(graph, 'LIMIT_BLOCKED', nodeId, { reason, ...detail });
   graph.stop = { stopped: true, reason, evaluatedAt: new Date().toISOString() };
   graph.status = 'stopped';
@@ -81,21 +83,33 @@ function stopGraph(graph: SfiTaskGraph, reason: string, nodeId: string | null, d
   return reason;
 }
 
-export function validateRuntimeStopCostControls(graph: SfiTaskGraph): string[] {
+export function validateRuntimeStopCostControls(graph: SfiTaskGraph, evaluationTimeMs = Date.now()): string[] {
   const controls = graph.runtimeControls;
   if (!controls || typeof controls !== 'object') return ['RUNTIME_CONTROLS_REQUIRED'];
+  if (!controls.bounds || typeof controls.bounds !== 'object') return ['RUNTIME_BOUNDS_REQUIRED'];
+  if (!controls.usage || typeof controls.usage !== 'object') return ['RUNTIME_USAGE_REQUIRED'];
+  if (!controls.usage.modelCalls || !controls.usage.tokens || !controls.usage.providerCost) return ['RUNTIME_USAGE_COMPONENT_REQUIRED'];
+
   const errors: string[] = [];
+  if (!Number.isFinite(evaluationTimeMs)) errors.push('EVALUATION_CLOCK_INVALID');
   if (controls.contract !== SFI_RUNTIME_STOP_COST_CONTROLS_CONTRACT) errors.push('RUNTIME_CONTROLS_CONTRACT_MISMATCH');
   if (controls.observabilityBoundary !== 'UNAVAILABLE_NOT_ZERO_NO_ESTIMATION') errors.push('OBSERVABILITY_BOUNDARY_MISMATCH');
   const bounds = controls.bounds;
   if (!Number.isSafeInteger(bounds.maxDepth) || bounds.maxDepth < 0 || bounds.maxDepth > SFI_ADAPTIVE_MAX_TRAJECTORY_DEPTH) errors.push('MAX_DEPTH_INVALID');
   if (!Number.isSafeInteger(bounds.maxCapabilityInvocations) || bounds.maxCapabilityInvocations <= 0 || bounds.maxCapabilityInvocations > SFI_ADAPTIVE_MAX_CAPABILITY_INVOCATIONS) errors.push('MAX_CAPABILITY_INVOCATIONS_INVALID');
-  if (bounds.maxCapabilityInvocations !== graph.invocationBudget.max) errors.push('CAPABILITY_INVOCATION_LIMIT_MISMATCH');
+  if (bounds.maxCapabilityInvocations !== graph.invocationBudget?.max) errors.push('CAPABILITY_INVOCATION_LIMIT_MISMATCH');
   if (!Number.isSafeInteger(bounds.maxModelCalls) || bounds.maxModelCalls <= 0 || bounds.maxModelCalls > SFI_ADAPTIVE_MAX_MODEL_CALLS) errors.push('MAX_MODEL_CALLS_INVALID');
   if (!Number.isSafeInteger(bounds.maxDurationMs) || bounds.maxDurationMs <= 0 || bounds.maxDurationMs > SFI_ADAPTIVE_EXECUTION_DEADLINE_MS) errors.push('DEADLINE_DURATION_INVALID');
   const startedAt = new Date(bounds.startedAt).getTime();
   const deadlineAt = new Date(bounds.deadlineAt).getTime();
-  if (!Number.isFinite(startedAt) || !Number.isFinite(deadlineAt) || deadlineAt - startedAt !== bounds.maxDurationMs) errors.push('DEADLINE_INVALID');
+  if (!Number.isFinite(startedAt)) errors.push('STARTED_AT_INVALID');
+  if (!Number.isFinite(deadlineAt)) errors.push('DEADLINE_AT_INVALID');
+  if (Number.isFinite(startedAt) && Number.isFinite(deadlineAt)) {
+    if (deadlineAt <= startedAt) errors.push('DEADLINE_ORDER_INVALID');
+    if (deadlineAt - startedAt !== bounds.maxDurationMs) errors.push('DEADLINE_INTERVAL_INVALID');
+    if (Number.isFinite(evaluationTimeMs) && startedAt > evaluationTimeMs) errors.push('STARTED_AT_IN_FUTURE');
+    if (Number.isFinite(evaluationTimeMs) && deadlineAt - evaluationTimeMs > bounds.maxDurationMs) errors.push('RESTORED_TIME_EXTENSION_INVALID');
+  }
   if (bounds.maxObservedTokens !== null && (!Number.isSafeInteger(bounds.maxObservedTokens) || bounds.maxObservedTokens <= 0)) errors.push('MAX_OBSERVED_TOKENS_INVALID');
   if (bounds.maxObservedProviderCost !== null && (!Number.isFinite(bounds.maxObservedProviderCost.amount) || bounds.maxObservedProviderCost.amount <= 0 || !bounds.maxObservedProviderCost.currency.trim())) errors.push('MAX_OBSERVED_PROVIDER_COST_INVALID');
 
@@ -112,19 +126,48 @@ export function validateRuntimeStopCostControls(graph: SfiTaskGraph): string[] {
   return errors;
 }
 
-function assertRuntimeControls(graph: SfiTaskGraph) {
-  const errors = validateRuntimeStopCostControls(graph);
+function assertRuntimeControls(graph: SfiTaskGraph, evaluationTimeMs = Date.now()) {
+  const errors = validateRuntimeStopCostControls(graph, evaluationTimeMs);
   if (errors.length) throw new Error(`RUNTIME_STOP_COST_CONTROLS_INVALID:${errors.join('|')}`);
 }
 
 function activeNode(graph: SfiTaskGraph, capabilityId: string) {
-  return [...graph.nodes].reverse().find((node) => node.capabilityId === capabilityId && node.state !== 'SUPERSEDED') ?? null;
+  return Array.isArray(graph.nodes)
+    ? [...graph.nodes].reverse().find((node) => node.capabilityId === capabilityId && node.state !== 'SUPERSEDED') ?? null
+    : null;
+}
+
+export function clearRuntimeModelTelemetryObservation(context: KernelContext) {
+  const prior = row(context.metadata?.llmRuntime);
+  context.metadata = {
+    ...context.metadata,
+    llmRuntime: {
+      ...prior,
+      observedProvider: null,
+      observedModel: null,
+      observedInputTokens: null,
+      observedOutputTokens: null,
+      observedProviderCost: null,
+      observedProviderCostCurrency: null,
+      observedLatencyMs: null,
+      telemetryOpenTelemetry: null,
+    },
+  };
+  return context;
 }
 
 export function runtimeExecutionPreflight(context: KernelContext, capabilityId: string, nowMs = Date.now()) {
   const graph = taskGraph(context);
   if (!graph) return { allowed: true, tracked: false, reason: null } as const;
-  assertRuntimeControls(graph);
+
+  const controlErrors = validateRuntimeStopCostControls(graph, nowMs);
+  const structureErrors = validateTaskGraphStructure(graph);
+  const restoredErrors = [...controlErrors, ...structureErrors];
+  if (restoredErrors.length) {
+    const reason = stopGraph(graph, 'RESTORED_RUNTIME_STATE_INVALID', null, { errors: restoredErrors });
+    return { allowed: false, tracked: true, reason, errors: restoredErrors } as const;
+  }
+
   if (graph.stop.stopped) return { allowed: false, tracked: true, reason: graph.stop.reason ?? 'RUNTIME_ALREADY_STOPPED' } as const;
   const node = activeNode(graph, capabilityId);
   if (node && node.depth > graph.runtimeControls.bounds.maxDepth) {
@@ -155,6 +198,7 @@ export function reserveRuntimeModelCall(context: KernelContext, capabilityId: st
   }
   usage.used += 1;
   usage.remaining = graph.runtimeControls.bounds.maxModelCalls - usage.used;
+  clearRuntimeModelTelemetryObservation(context);
   return { allowed: true, tracked: true, reason: null } as const;
 }
 
