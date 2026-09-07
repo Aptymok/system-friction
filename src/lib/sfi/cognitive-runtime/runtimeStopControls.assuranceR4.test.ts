@@ -124,6 +124,21 @@ function withRequests(context: KernelContext, requests: SfiCapabilityRequest[]) 
   return context;
 }
 
+function attachCurrentTelemetry(context: KernelContext, values: Record<string, unknown>) {
+  const prior = context.metadata?.llmRuntime && typeof context.metadata.llmRuntime === 'object' && !Array.isArray(context.metadata.llmRuntime)
+    ? context.metadata.llmRuntime as Record<string, unknown>
+    : {};
+  const callId = typeof prior.runtimeModelCallId === 'string' ? prior.runtimeModelCallId : null;
+  context.metadata = {
+    ...context.metadata,
+    llmRuntime: {
+      ...prior,
+      ...values,
+      telemetryRuntimeModelCallId: callId,
+    },
+  };
+}
+
 const semanticSiblingRelations: SfiTaskGraphEdgeRelation[] = ['CONTRADICTS', 'CALIBRATES', 'SUPPLIES'];
 const allRelations: SfiTaskGraphEdgeRelation[] = ['REQUIRES', 'SUPPLIES', 'CONTRADICTS', 'CALIBRATES', 'GOVERNS', 'FALSIFIES'];
 
@@ -255,7 +270,7 @@ test('F-406-07 interaction: token STOP with unresolved capability blocks negotia
   risk.state = 'WAITING_EVIDENCE';
   withRequests(ctx, [request('token-unresolved')]);
   assert.equal(reserveRuntimeModelCall(ctx, 'risk_agent', startMs(ctx) + 1).allowed, true);
-  ctx.metadata.llmRuntime = { observedInputTokens: null, observedOutputTokens: null, observedProviderCost: null, observedProviderCostCurrency: null };
+  attachCurrentTelemetry(ctx, { observedInputTokens: null, observedOutputTokens: null, observedProviderCost: null, observedProviderCostCurrency: null });
   const stopped = observeRuntimeModelTelemetry(ctx, 'risk_agent');
   assert.equal(stopped.reason, 'TOKEN_USAGE_NOT_OBSERVED_FOR_CONFIGURED_LIMIT');
   assert.equal(unresolvedRequiredCapabilityCount(g), 1);
@@ -274,7 +289,7 @@ test('F-406-07 interaction: cost STOP plus duplicate request remains terminal', 
   withRequests(ctx, [duplicate]);
   assert.equal(pendingEquivalentRequestHash(g, duplicate), risk.requestHash);
   assert.equal(reserveRuntimeModelCall(ctx, 'risk_agent', startMs(ctx) + 1).allowed, true);
-  ctx.metadata.llmRuntime = { observedInputTokens: 1, observedOutputTokens: 1, observedProviderCost: 0.1, observedProviderCostCurrency: 'EUR' };
+  attachCurrentTelemetry(ctx, { observedInputTokens: 1, observedOutputTokens: 1, observedProviderCost: 0.1, observedProviderCostCurrency: 'EUR' });
   const stopped = observeRuntimeModelTelemetry(ctx, 'risk_agent');
   assert.equal(stopped.reason, 'PROVIDER_COST_CURRENCY_MISMATCH');
   const mutations = g.mutations.length;
@@ -346,7 +361,8 @@ test('F-406-06 control: valid model completion before deadline can emit proposal
     executeAgent: (_agentId: string, current: KernelContext) => current,
     augmentAgentWithLlm: async (_agentId: string, current: KernelContext) => {
       now += 10;
-      current.metadata = { ...current.metadata, agentInsights: { risk_agent: { status: 'COMPLETE', provider: 'fake', model: 'fake', summary: 'on time' } }, llmRuntime: { observedInputTokens: 7, observedOutputTokens: 3, observedProviderCost: 0.2, observedProviderCostCurrency: 'USD' } };
+      attachCurrentTelemetry(current, { observedInputTokens: 7, observedOutputTokens: 3, observedProviderCost: 0.2, observedProviderCostCurrency: 'USD' });
+      current.metadata = { ...current.metadata, agentInsights: { risk_agent: { status: 'COMPLETE', provider: 'fake', model: 'fake', summary: 'on time' } } };
       return current;
     },
     emitGovernedProposals: async (_agentId: string, current: KernelContext) => { proposals += 1; return current; },
