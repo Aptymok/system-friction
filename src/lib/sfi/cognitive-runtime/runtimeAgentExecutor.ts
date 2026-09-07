@@ -5,7 +5,6 @@ import { recordAgentExecutionEvent } from '@/infrastructure/events/cognitiveRunt
 import { augmentAgentWithLlm } from '@/infrastructure/ai/agentLlmClient';
 import { evaluateAgentAiGovernance, SFI_AI_GOVERNANCE_POLICY } from '@/lib/governance/aiGovernancePolicy';
 import {
-  clearRuntimeModelTelemetryObservation,
   observeRuntimeModelTelemetry,
   reserveRuntimeModelCall,
   runtimeControlSnapshot,
@@ -27,6 +26,10 @@ export type RuntimeAgentExecutorDependencies = {
   recordExecutionEvent?: typeof recordAgentExecutionEvent;
 };
 
+function row(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
 function llmAugmentationEnabled(agentId: string, context: KernelContext) {
   const governedUniversalAi = context.metadata?.ctSnapshotConsumed === true
     && context.metadata?.aiGovernancePolicyId === 'SFI-AIMS-2026-08';
@@ -34,6 +37,22 @@ function llmAugmentationEnabled(agentId: string, context: KernelContext) {
   const allowlist = context.metadata?.llmAugmentationAgents;
   if (!Array.isArray(allowlist)) return true;
   return allowlist.includes(agentId);
+}
+
+function preserveRuntimeModelCallIdentity(context: KernelContext, callId: string | null) {
+  if (!callId) return context;
+  const llmRuntime = row(context.metadata?.llmRuntime);
+  context.metadata = {
+    ...context.metadata,
+    llmRuntime: {
+      ...llmRuntime,
+      runtimeModelCallId: typeof llmRuntime.runtimeModelCallId === 'string' ? llmRuntime.runtimeModelCallId : callId,
+      runtimeModelCallAccounting: llmRuntime.runtimeModelCallAccounting ?? 'PENDING',
+      runtimeModelCallUsageDisposition: llmRuntime.runtimeModelCallUsageDisposition ?? null,
+      runtimeModelCallAccountedId: llmRuntime.runtimeModelCallAccountedId ?? null,
+    },
+  };
+  return context;
 }
 
 function compactExecutionMetadata(agentId: string, context: KernelContext) {
@@ -147,9 +166,7 @@ export async function runCognitiveAgent(
       updatedContext.metadata = {
         ...updatedContext.metadata,
         llmRuntime: {
-          ...((updatedContext.metadata?.llmRuntime && typeof updatedContext.metadata.llmRuntime === 'object')
-            ? updatedContext.metadata.llmRuntime as Record<string, unknown>
-            : {}),
+          ...row(updatedContext.metadata?.llmRuntime),
           lastAgentId: agentId,
           lastStatus: 'BLOCKED',
           lastError: llmError,
@@ -157,43 +174,42 @@ export async function runCognitiveAgent(
         },
       };
     } else {
+      const reservedCallId = typeof row(updatedContext.metadata?.llmRuntime).runtimeModelCallId === 'string'
+        ? String(row(updatedContext.metadata?.llmRuntime).runtimeModelCallId)
+        : null;
       const preModelAgentInsights = updatedContext.metadata?.agentInsights;
-      const preModelLlmRuntime = updatedContext.metadata?.llmRuntime;
       try {
         updatedContext = await augment(agentId, updatedContext);
+        preserveRuntimeModelCallIdentity(updatedContext, reservedCallId);
         const postModelPreflight = runtimeExecutionPreflight(updatedContext, agentId, nowMs());
         if (!postModelPreflight.allowed) {
           llmError = `RUNTIME_MODEL_RESULT_REJECTED:${postModelPreflight.reason}`;
           updatedContext.metadata = {
             ...updatedContext.metadata,
             agentInsights: preModelAgentInsights,
-            llmRuntime: preModelLlmRuntime,
           };
-          clearRuntimeModelTelemetryObservation(updatedContext);
+          const observed = observeRuntimeModelTelemetry(updatedContext, agentId);
+          if (!postModelPreflight.reason && observed.stopped) llmError = `RUNTIME_MODEL_TELEMETRY_STOP:${observed.reason}`;
         } else {
           const observed = observeRuntimeModelTelemetry(updatedContext, agentId);
           if (observed.stopped) llmError = `RUNTIME_MODEL_TELEMETRY_STOP:${observed.reason}`;
         }
       } catch (error) {
         llmError = error instanceof Error ? error.message : String(error);
+        preserveRuntimeModelCallIdentity(updatedContext, reservedCallId);
         const failurePreflight = runtimeExecutionPreflight(updatedContext, agentId, nowMs());
-        clearRuntimeModelTelemetryObservation(updatedContext);
         updatedContext.metadata = {
           ...updatedContext.metadata,
           llmRuntime: {
-            ...((updatedContext.metadata?.llmRuntime && typeof updatedContext.metadata.llmRuntime === 'object')
-              ? updatedContext.metadata.llmRuntime as Record<string, unknown>
-              : {}),
+            ...row(updatedContext.metadata?.llmRuntime),
             lastAgentId: agentId,
             lastStatus: 'FAILED',
             lastError: llmError,
             updatedAt: new Date().toISOString(),
           },
         };
-        if (failurePreflight.allowed) {
-          const observed = observeRuntimeModelTelemetry(updatedContext, agentId);
-          if (observed.stopped) llmError = `RUNTIME_MODEL_TELEMETRY_STOP:${observed.reason}`;
-        }
+        const observed = observeRuntimeModelTelemetry(updatedContext, agentId);
+        if (failurePreflight.allowed && observed.stopped) llmError = `RUNTIME_MODEL_TELEMETRY_STOP:${observed.reason}`;
       }
     }
   }
