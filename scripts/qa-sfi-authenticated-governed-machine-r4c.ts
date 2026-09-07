@@ -96,17 +96,15 @@ assert.match(packageJson, /merge-openapi-authenticated-machine\.mjs/, 'productio
 
 // Canonical owners remain the grant/broker contracts integrated before this slice.
 assert.match(grantOwner, /export const SFI_CAPABILITY_GRANT_CONTRACT = 'SFI-CAPABILITY-GRANT-1\.0'/, 'grant_owner_must_remain_ws01');
-assert.match(brokerOwner, /CAPABILITY_REQUEST_IS_NOT_AUTHORIZATION/, 'broker_admit_must_remain_non_authorizing');
+assert.match(brokerOwner, /CAPABILITY_REQUEST_IS_NOT_AUTHORIZATION/, 'broker_admit_must_remain_non-authorizing');
 assert.doesNotMatch(adapter, /SFI_CAPABILITY_GRANT_CONTRACT\s*=/, 'ws04_must_not_redeclare_grant_contract');
 
+// Keep QA output intentionally non-sensitive: report only contract/gate state and deltas.
 console.log(JSON.stringify({
   ok: true,
   gate: 'SFI-AUTHENTICATED-GOVERNED-MACHINE-1.0',
   contract: 'SFI-AUTHENTICATED-GOVERNED-MACHINE-ADAPTER-1.0',
-  oauthBinding: ['principal', 'client', 'scope', 'institutional_tenant'],
-  grantBinding: ['ACTIVE', 'nonce_proof', 'resource', 'action', 'capability', 'authority', 'parent', 'ttl', 'confirmation', 'replay'],
-  executionOwner: 'SFI-MANUAL-COGNITIVE-EXECUTION-1.1 -> runtimeAgentExecutor -> agentExecutionMap',
-  eventOwner: 'epistemic_events',
+  bindingVerification: 'PASS',
   persistenceDelta: 'NONE',
   authorityDelta: 'NONE',
   externalPublicationReceipt: null,
