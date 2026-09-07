@@ -1,0 +1,65 @@
+name: SFI Program Completion Controller
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_run:
+    workflows:
+      - SFI Self-Development
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: sfi-program-completion-${{ github.event.pull_request.number || github.ref || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  completion-controller:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout authoritative revision
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Reconstruct and classify Master Program
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/sfi-program-completion.mjs
+
+      - name: Dispatch unresolved implementable gaps to durable owners
+        if: ${{ github.event_name != 'pull_request' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/sfi-program-dispatch.mjs
+
+      - name: Upload immutable controller evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sfi-program-completion-${{ github.run_id }}
+          path: |
+            artifacts/program-completion/completion.json
+            artifacts/program-completion/completion.md
+            artifacts/program-completion/dispatch.json
+          if-no-files-found: warn
+          retention-days: 90
