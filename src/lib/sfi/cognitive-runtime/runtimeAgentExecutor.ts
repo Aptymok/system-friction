@@ -157,11 +157,18 @@ export async function runCognitiveAgent(
         },
       };
     } else {
+      const preModelAgentInsights = updatedContext.metadata?.agentInsights;
+      const preModelLlmRuntime = updatedContext.metadata?.llmRuntime;
       try {
         updatedContext = await augment(agentId, updatedContext);
         const postModelPreflight = runtimeExecutionPreflight(updatedContext, agentId, nowMs());
         if (!postModelPreflight.allowed) {
           llmError = `RUNTIME_MODEL_RESULT_REJECTED:${postModelPreflight.reason}`;
+          updatedContext.metadata = {
+            ...updatedContext.metadata,
+            agentInsights: preModelAgentInsights,
+            llmRuntime: preModelLlmRuntime,
+          };
           clearRuntimeModelTelemetryObservation(updatedContext);
         } else {
           const observed = observeRuntimeModelTelemetry(updatedContext, agentId);
