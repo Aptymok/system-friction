@@ -1,17 +1,18 @@
 # SFI PROGRAM CONTROL PLANE
 
-This directory is the durable coordination surface for the distributed SFI implementation program. Chat sessions are replaceable; these contracts and repository/infrastructure state are not.
+This directory is the durable coordination surface for SFI institutional implementation and operation. Chat sessions are replaceable; repository state, contracts, persisted state, CI and production evidence are authoritative.
 
 ## Canonical files
 
-1. [`SFI-MASTER-PROGRAM.md`](./SFI-MASTER-PROGRAM.md) — full target architecture, program phases and definition of completion.
+1. [`SFI-MASTER-PROGRAM.md`](./SFI-MASTER-PROGRAM.md) — constitutional target architecture and completion criteria.
 2. [`SFI-CONTRACT-LOCK.md`](./SFI-CONTRACT-LOCK.md) — frozen shared schemas, authority classes, event taxonomy, namespaces and ownership rules.
-3. [`DEPENDENCY-GRAPH.md`](./DEPENDENCY-GRAPH.md) — parallelization, dependencies, shared-file conflict protocol and integration order.
-4. [`CURRENT-STATE.md`](./CURRENT-STATE.md) — reconstructable program state; update as actual state advances.
+3. [`DEPENDENCY-GRAPH.md`](./DEPENDENCY-GRAPH.md) — dependency and shared-owner rules.
+4. [`CURRENT-STATE.md`](./CURRENT-STATE.md) — fresh reconstructable state and current round.
 5. [`DECISIONS.md`](./DECISIONS.md) — canonical program decision ledger.
-6. [`SFI-00-CONTROL-ROOM.md`](./SFI-00-CONTROL-ROOM.md) — integration-authority contract and copy/paste dispatch prompt.
+6. [`SFI-00-CONTROL-ROOM.md`](./SFI-00-CONTROL-ROOM.md) — integration-authority contract.
+7. [`R4-INSTITUTIONAL-OPERATIONS.md`](./R4-INSTITUTIONAL-OPERATIONS.md) — R4 program-completion and founder-away operating regime.
 
-## Workstream cells
+## Canonical workstream ownership maps
 
 - [`WS-01 · Cognitive Fabric`](./workstreams/WS-01-COGNITIVE-FABRIC.md)
 - [`WS-02 · Twin + Method Lab`](./workstreams/WS-02-TWIN-METHOD-LAB.md)
@@ -22,44 +23,27 @@ This directory is the durable coordination surface for the distributed SFI imple
 - [`WS-07 · External Identity`](./workstreams/WS-07-EXTERNAL-IDENTITY.md)
 - [`WS-08 · Assurance + Release`](./workstreams/WS-08-ASSURANCE-RELEASE.md)
 
-Each workstream file contains its own copy/paste dispatch prompt for a new specialized chat.
+These files define ownership, invariant boundaries and Definitions of Done. They are not automatically active queues.
 
-## Launch order
+## Current operating mode
 
-### First
-
-Open `SFI-00 · CONTROL ROOM` using the prompt at the bottom of `SFI-00-CONTROL-ROOM.md`.
-
-SFI-00 must first reconstruct `main`, verify the bootstrap PR/control-plane is merged, and confirm the production state of the baseline merge.
-
-### Wave 1 — may run simultaneously after control-plane merge
+R1, R2 and R3 are complete. R3 has durable RETURN. R4 is active with two concurrent obligations:
 
 ```text
-SFI-01 · COGNITIVE FABRIC
-SFI-03 · DISCOVERY MESH
-SFI-05 · RESEARCH GRAPH
-SFI-07 · EXTERNAL IDENTITY
-SFI-08 · ASSURANCE + RELEASE
+PROGRAM COMPLETION
++ INSTITUTIONAL OPERATIONS
 ```
 
-### Wave 1B — may start inspection immediately; integrate against frozen dependencies
+Do not launch every workstream because a new round exists. SFI-00 reconstructs current state, classifies residual debt and triggers, and activates only bounded work for the existing owner.
 
 ```text
-SFI-02 · TWIN + METHOD LAB
-SFI-06 · MATERIAL AUDIO
+DECLARED PROGRAM GAP != NEEDS NEW TRIGGER
+NEW UNPLANNED FEATURE == NEEDS EVIDENCE/TRIGGER
 ```
 
-### Wave 2
+## Coordination rule
 
-```text
-SFI-04 · MACHINE INTERFACES
-```
-
-WS-04 may inspect/prepare immediately, but public machine publication consumes stable WS-03 semantic-object contracts and authenticated adaptive execution consumes stable WS-01 contracts.
-
-## Operational rule
-
-Do not coordinate cells by copying whole chat histories.
+Do not coordinate cells by copying whole chat histories or founder memory.
 
 Cross-cell state is communicated through:
 
@@ -67,12 +51,15 @@ Cross-cell state is communicated through:
 main
 branches
 PRs
+issues
 program documents
-workstream files
+canonical workstream files
 Supabase/migrations
 CI
-deployment receipts
+production and RETURN receipts
 ```
+
+The founder should not be the scheduling bus between these surfaces.
 
 ## Completion language
 
@@ -85,6 +72,7 @@ QA_PASS
 MERGED
 DEPLOYED
 OBSERVED_IN_PRODUCTION
+RETURN_PASS
 ```
 
-A workstream is not complete merely because a chat says it finished.
+No state advances merely because a chat says it did.
