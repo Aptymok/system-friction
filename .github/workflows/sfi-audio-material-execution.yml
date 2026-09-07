@@ -52,18 +52,22 @@ jobs:
       - name: Render real deterministic SFZ fixture
         run: npx tsx scripts/qa-sfi-sfz-real-render.ts
 
+      - name: Reobserve real rendered WAV with Studio acoustic engine
+        run: npx tsx scripts/qa-sfi-real-render-observation.ts
+
       - name: Verify governed evaluate/localized-rerender/RETURN loop
         run: node --import tsx --test src/lib/studio/audio/closedLoop.test.ts
 
       - name: Verify audio capability authority boundaries
         run: node --import tsx --test src/lib/studio/audio/audioCapabilityGovernance.test.ts
 
-      - name: Upload real SFZ QA artifact and receipt
+      - name: Upload real SFZ render, receipt and observation evidence
         uses: actions/upload-artifact@v4
         with:
           name: sfi-audio-real-sfz-render
           path: |
             build/sfi-audio/ws06-r4a/real-sfz-render.wav
             build/sfi-audio/ws06-r4a/real-sfz-render-receipt.json
+            build/sfi-audio/ws06-r4a/real-sfz-render-observation.json
           if-no-files-found: error
           retention-days: 14
