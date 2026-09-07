@@ -64,6 +64,26 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: node scripts/sfi-program-completion.mjs
 
+      - name: Render institutional PDF
+        if: ${{ always() }}
+        run: |
+          python -m pip install --disable-pip-version-check reportlab
+          python scripts/render-sfi-self-development-report.py
+
+      - name: Upload immutable observation and completion artifacts
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: sfi-self-development-${{ github.run_id }}
+          path: |
+            artifacts/self-development/report.json
+            artifacts/self-development/report.md
+            artifacts/self-development/SFI_SELF_DEVELOPMENT_REPORT.pdf
+            artifacts/program-completion/completion.json
+            artifacts/program-completion/completion.md
+          if-no-files-found: warn
+          retention-days: 90
+
       - name: Persist Completion Controller state in canonical sweep
         if: ${{ always() }}
         env:
@@ -127,28 +147,11 @@ jobs:
           PY
           gh issue comment 405 --repo "$GITHUB_REPOSITORY" --body-file /tmp/sfi-program-completion-comment.md
 
-      - name: Render institutional PDF
-        run: |
-          python -m pip install --disable-pip-version-check reportlab
-          python scripts/render-sfi-self-development-report.py
-
-      - name: Upload immutable observation and completion artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: sfi-self-development-${{ github.run_id }}
-          path: |
-            artifacts/self-development/report.json
-            artifacts/self-development/report.md
-            artifacts/self-development/SFI_SELF_DEVELOPMENT_REPORT.pdf
-            artifacts/program-completion/completion.json
-            artifacts/program-completion/completion.md
-          retention-days: 90
-
       - name: Fail closed if Completion Controller integrity failed
         if: ${{ steps.completion.outcome != 'success' }}
         shell: bash
         run: |
-          echo 'SFI Completion Controller integrity failed. Artifacts and #405 comment were preserved when available.'
+          echo 'SFI Completion Controller integrity failed. Immutable artifacts were preserved before this gate.'
           exit 1
 
       - name: Resolve repair need
