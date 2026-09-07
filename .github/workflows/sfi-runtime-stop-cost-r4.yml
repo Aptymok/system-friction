@@ -1,5 +1,6 @@
 name: SFI Runtime Stop Cost Controls R4
 
+# Slice F corrective exact-head assurance trigger; no workflow semantic change.
 on:
   pull_request:
     paths:
