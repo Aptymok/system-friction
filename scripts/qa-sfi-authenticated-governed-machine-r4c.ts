@@ -43,7 +43,6 @@ assert.match(adapter, /SFI_MACHINE_AUTHORIZATION_DENIED/, 'denial_receipt_requir
 assert.match(adapter, /canonicalPromotionAllowed: false/, 'machine_adapter_cannot_promote_canon');
 assert.match(adapter, /externalSideEffectExecuted: false/, 'current_adapter_must_not_expose_external_side_effects');
 
-// ABSORB > CREATE: OAuth, grant/broker/passport, execution and event persistence remain existing owners.
 assert.match(route, /authorizeExternalRequest/, 'must_absorb_existing_oauth_gateway');
 assert.match(route, /appendEpistemicEvent/, 'must_absorb_existing_event_owner');
 assert.match(route, /streamRecentEpistemicEvents/, 'must_read_existing_lineage_owner');
@@ -53,14 +52,12 @@ assert.doesNotMatch(adapter, /issueEphemeralCapabilityGrant|mintExternalAccessTo
 assert.doesNotMatch(adapter, /dispatchQueuedProposal|EXTERNAL_ACTION|EXECUTE_EXTERNAL.*decision/i, 'adapter_must_not_open_external_execution_plane');
 assert.match(manualExecution, /runCognitiveAgent\(agentId, context\)/, 'canonical_manual_execution_must_still_terminate_in_existing_runtime_owner');
 
-// OAuth client binding is retained by the existing signed token rather than trusted from caller input.
 assert.match(accessToken, /clientId\?: string/, 'oauth_access_token_claim_must_support_client_binding');
 assert.match(tokenRoute, /clientId,\n\s*label:/, 'oauth_token_exchange_must_bind_verified_client_id');
 assert.match(externalAuth, /clientId: session\.clientId/, 'gateway_credential_must_expose_verified_client_id');
 assert.match(route, /credential\.authMethod !== 'oauth'/, 'authenticated_machine_must_reject_static_tokens');
 assert.match(route, /!credential\.clientId/, 'authenticated_machine_must_reject_unbound_legacy_tokens');
 
-// Ephemeral grant possession proof: raw nonce is transient header-only; persisted nonceHash is the comparison owner.
 assert.match(grantOwner, /capabilityGrantNonceHash\(nonce: string\)/, 'upstream_grant_hash_owner_required');
 assert.match(route, /x-sfi-capability-grant-nonce/i, 'machine_grant_nonce_header_required');
 assert.match(route, /capabilityGrantNonceHash\(rawGrantNonce\)/, 'raw_nonce_must_be_hashed_immediately');
@@ -68,7 +65,6 @@ assert.match(route, /persistedNonceHash === presentedGrantNonceHash/, 'persisted
 assert.match(route, /eventGrantId !== targetGrantId/, 'grant_proof_filter_must_only_apply_to_requested_grant');
 assert.doesNotMatch(adapter, /x-sfi-capability-grant-nonce/i, 'raw_nonce_must_not_enter_adapter_or_execution_envelope');
 
-// Secret/model boundary: forbidden secret-shaped keys are explicitly rejected, while the adapter/route never read credential stores or secret env values.
 assert.match(adapter, /FORBIDDEN_SECRET_KEY/, 'secret_shaped_payload_keys_must_be_rejected');
 assert.doesNotMatch(adapter, /process\.env|createServiceSupabaseClient|client_secret_hash/i, 'adapter_must_not_read_service_credentials');
 assert.doesNotMatch(route, /process\.env|createServiceSupabaseClient|client_secret_hash|SFI_EXTERNAL_SESSION_SECRET/i, 'machine_route_must_not_read_service_credentials');
@@ -76,13 +72,11 @@ assert.match(adapter, /rawNoncePersisted: false/g, 'receipts_must_state_raw_nonc
 assert.doesNotMatch(adapter, /providerRouter|agentLlmClient|getLlmOperationPlan|operationModelBroker|modelBroker/i, 'model_selection_must_not_be_authority_owner');
 assert.match(adapter, /modelAuthorityExpansionAllowed: false/, 'model_capability_must_not_expand_authority');
 
-// Public read-only MCP remains a separate immutable authority surface.
 assert.match(publicServer, /SFI-PUBLIC-MCP-READONLY-1\.0/, 'public_mcp_contract_must_remain');
 assert.match(publicServer, /PUBLIC_READ_ONLY/, 'public_mcp_authority_must_remain_read_only');
 assert.doesNotMatch(publicRoute, /authenticatedGovernedMachineAdapter|authorizeExternalRequest|executeManualCognitiveAgent/, 'public_mcp_must_not_inherit_authenticated_execution');
 assert.doesNotMatch(publicServer, /invoke_cognitive_capability|SFI_MACHINE_AUTHORIZATION_RESERVED/, 'public_tool_catalog_must_not_gain_execution');
 
-// Manifest + generated OpenAPI describe capability without claiming external publication.
 assert.match(manifest, /version: '1\.13\.0'/, 'manifest_version_must_advance');
 assert.match(manifest, /authenticatedMcp: '\/api\/mcp\/authenticated'/, 'manifest_must_discover_authenticated_mcp');
 assert.match(manifest, /SFI-AUTHENTICATED-GOVERNED-MACHINE-ADAPTER-1\.0/, 'manifest_contract_required');
@@ -94,18 +88,6 @@ assert.match(openapiMerge, /sfiOAuth: \['execute'\]/, 'openapi_must_reuse_existi
 assert.match(openapiMerge, /externalPublicationReceipt: null/, 'openapi_must_not_fabricate_external_publication');
 assert.match(packageJson, /merge-openapi-authenticated-machine\.mjs/, 'production_build_must_materialize_authenticated_machine_openapi');
 
-// Canonical owners remain the grant/broker contracts integrated before this slice.
 assert.match(grantOwner, /export const SFI_CAPABILITY_GRANT_CONTRACT = 'SFI-CAPABILITY-GRANT-1\.0'/, 'grant_owner_must_remain_ws01');
 assert.match(brokerOwner, /CAPABILITY_REQUEST_IS_NOT_AUTHORIZATION/, 'broker_admit_must_remain_non-authorizing');
 assert.doesNotMatch(adapter, /SFI_CAPABILITY_GRANT_CONTRACT\s*=/, 'ws04_must_not_redeclare_grant_contract');
-
-// Keep QA output intentionally non-sensitive: report only contract/gate state and deltas.
-console.log(JSON.stringify({
-  ok: true,
-  gate: 'SFI-AUTHENTICATED-GOVERNED-MACHINE-1.0',
-  contract: 'SFI-AUTHENTICATED-GOVERNED-MACHINE-ADAPTER-1.0',
-  bindingVerification: 'PASS',
-  persistenceDelta: 'NONE',
-  authorityDelta: 'NONE',
-  externalPublicationReceipt: null,
-}, null, 2));
