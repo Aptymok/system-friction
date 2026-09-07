@@ -159,12 +159,16 @@ const telemetrySource = readFileSync('src/lib/sfi/cognitive-runtime/genAiTelemet
 const assuranceSource = readFileSync('src/lib/sfi/cognitive-runtime/genAiAssurance.ts', 'utf8');
 const dossierSource = readFileSync('src/lib/sfi/cognitive-runtime/agentDossierRead.ts', 'utf8');
 const agentClient = readFileSync('src/infrastructure/ai/agentLlmClient.ts', 'utf8');
+const providerRouter = readFileSync('src/lib/ai/providerRouter.ts', 'utf8');
 const runtimeWriter = readFileSync('src/lib/sfi/cognitive-runtime/runtimeAgentExecutor.ts', 'utf8');
 const recordsRoute = readFileSync('src/app/api/root/cognitive-runtime/records/route.ts', 'utf8');
 
 assert.match(agentClient, /normalizeObservedGenAiTelemetry/);
-assert.match(agentClient, /result\.usage/);
-assert.match(agentClient, /result\.latency_ms/);
+assert.match(agentClient, /result\.telemetry\.usage/);
+assert.match(agentClient, /result\.telemetry\.latency_ms/);
+assert.match(agentClient, /semanticModelOutputAccepted:\s*result\.ok/);
+assert.match(providerRouter, /telemetry:\s*terminalTelemetry/);
+assert.match(providerRouter, /source:\s*'PROVIDER_RESPONSE'/);
 assert.doesNotMatch(agentClient, /observedInputTokens:\s*null/);
 assert.doesNotMatch(agentClient, /observedOutputTokens:\s*null/);
 assert.doesNotMatch(agentClient, /observedProviderCost:\s*null/);
@@ -186,6 +190,7 @@ console.log(JSON.stringify({
   observedTokensNormalized: true,
   providerCostEstimated: false,
   failedRouteLatencyPromotedToProviderLatency: false,
+  semanticOutputSeparatedFromTerminalTelemetry: true,
   openTelemetryAuthority: 'INTEROPERABILITY_ONLY',
   promptOutputContentCaptured: false,
   falsePositiveWithoutExplicitObservation: 'NOT_OBSERVED',
