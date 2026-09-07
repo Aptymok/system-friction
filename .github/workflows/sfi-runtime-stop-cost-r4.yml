@@ -1,0 +1,45 @@
+name: SFI Runtime Stop Cost Controls R4
+
+on:
+  pull_request:
+    paths:
+      - 'src/lib/sfi/cognitive-runtime/types.ts'
+      - 'src/lib/sfi/cognitive-runtime/taskGraphBuilder.ts'
+      - 'src/lib/sfi/cognitive-runtime/runtimeStopControls.ts'
+      - 'src/lib/sfi/cognitive-runtime/runtimeStopControls.test.ts'
+      - 'src/lib/sfi/cognitive-runtime/runtimeAgentExecutor.ts'
+      - 'src/lib/sfi/cognitive-runtime/agents/metaOrchestrator.ts'
+      - '.github/workflows/sfi-runtime-stop-cost-r4.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  runtime-stop-cost:
+    name: SFI-RUNTIME-STOP-COST-CONTROLS-1.0
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Provide server-only sentinel for Node contract tests
+        run: |
+          mkdir -p node_modules/server-only
+          printf '{"type":"module","exports":"./index.js"}\n' > node_modules/server-only/package.json
+          printf 'export {};\n' > node_modules/server-only/index.js
+      - name: Runtime stop and observed-cost controls
+        run: node --import tsx --test src/lib/sfi/cognitive-runtime/runtimeStopControls.test.ts
+      - name: Preserve adaptive graph, duplicate, cycle, depth and convergence contracts
+        run: node --import tsx --test src/lib/sfi/cognitive-runtime/adaptiveTaskGraphRuntime.test.ts
+      - name: Preserve capability authority and request lineage
+        run: node --import tsx --test src/lib/sfi/cognitive-runtime/capabilityBroker.test.ts
+      - name: Preserve ephemeral capability grants
+        run: node --import tsx --test src/lib/sfi/cognitive-runtime/capabilityGrant.test.ts
+      - name: Typecheck
+        run: npm run typecheck

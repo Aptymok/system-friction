@@ -1,5 +1,6 @@
 import type { KernelContext } from '../kernelContext';
 import { buildTaskGraph } from '../taskGraphBuilder';
+import { runtimeBoundOverridesFromContext } from '../runtimeStopControls';
 import {
   selectCognitiveAutomations,
   type CognitiveAutomationSelectionMode,
@@ -92,7 +93,8 @@ export function MetaOrchestratorAgent(context: KernelContext): KernelContext {
   const readiness = Math.min(availableSignals / minimumSignalTarget, 1);
   plan.readiness = readiness;
 
-  const taskGraph = buildTaskGraph(plan);
+  const runtimeLimits = runtimeBoundOverridesFromContext(context);
+  const taskGraph = buildTaskGraph(plan, runtimeLimits);
   context.metadata = {
     ...context.metadata,
     cognitivePlan: plan,
@@ -109,6 +111,7 @@ export function MetaOrchestratorAgent(context: KernelContext): KernelContext {
       importedSourceClaimsMaterialized: importedSourceClaims,
       taskGraphNodes: taskGraph.nodes.length,
       taskGraphEdges: taskGraph.edges.length,
+      runtimeControlsContract: taskGraph.runtimeControls.contract,
       externalExecutionAllowed: false,
       authorityEscalationAllowed: false,
       orchestrationPlanAddedAsEvidence: false,

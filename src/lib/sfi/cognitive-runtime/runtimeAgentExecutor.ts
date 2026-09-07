@@ -4,6 +4,12 @@ import { emitGovernedProposalsFromAgentInsight } from './governedProposalEmitter
 import { recordAgentExecutionEvent } from '@/infrastructure/events/cognitiveRuntimeEventRepository';
 import { augmentAgentWithLlm } from '@/infrastructure/ai/agentLlmClient';
 import { evaluateAgentAiGovernance, SFI_AI_GOVERNANCE_POLICY } from '@/lib/governance/aiGovernancePolicy';
+import {
+  observeRuntimeModelTelemetry,
+  reserveRuntimeModelCall,
+  runtimeControlSnapshot,
+  runtimeExecutionPreflight,
+} from './runtimeStopControls';
 
 export interface AgentExecutionResult {
   agentId: string;
@@ -66,6 +72,7 @@ function compactExecutionMetadata(agentId: string, context: KernelContext) {
     refs,
     aiGovernance: metadata.aiGovernance ?? null,
     llmRuntime: metadata.llmRuntime ?? null,
+    runtimeControls: runtimeControlSnapshot(context),
     agentInsight: selectedInsight,
     governedProposalEmitter: metadata.governedProposalEmitter ?? null,
     metadataKeyCount: Object.keys(metadata).length,
@@ -85,8 +92,11 @@ export async function runCognitiveAgent(
   let llmError: string | null = null;
   let proposalEmitterError: string | null = null;
   const governance = evaluateAgentAiGovernance(agentId, context);
+  const runtimePreflight = runtimeExecutionPreflight(context, agentId);
 
-  if (governance.disposition !== 'BLOCK') {
+  if (!runtimePreflight.allowed) {
+    deterministicError = `RUNTIME_EXECUTION_BLOCKED:${runtimePreflight.reason}`;
+  } else if (governance.disposition !== 'BLOCK') {
     try {
       updatedContext = executeRegisteredAgent(agentId, context);
       executed = Boolean(updatedContext);
@@ -116,10 +126,9 @@ export async function runCognitiveAgent(
 
   const llmRequested = executed && llmAugmentationEnabled(agentId, updatedContext);
   if (llmRequested) {
-    try {
-      updatedContext = await augmentAgentWithLlm(agentId, updatedContext);
-    } catch (error) {
-      llmError = error instanceof Error ? error.message : String(error);
+    const reservation = reserveRuntimeModelCall(updatedContext, agentId);
+    if (!reservation.allowed) {
+      llmError = `RUNTIME_MODEL_CALL_BLOCKED:${reservation.reason}`;
       updatedContext.metadata = {
         ...updatedContext.metadata,
         llmRuntime: {
@@ -127,11 +136,31 @@ export async function runCognitiveAgent(
             ? updatedContext.metadata.llmRuntime as Record<string, unknown>
             : {}),
           lastAgentId: agentId,
-          lastStatus: 'FAILED',
+          lastStatus: 'BLOCKED',
           lastError: llmError,
           updatedAt: new Date().toISOString(),
         },
       };
+    } else {
+      try {
+        updatedContext = await augmentAgentWithLlm(agentId, updatedContext);
+        observeRuntimeModelTelemetry(updatedContext, agentId);
+      } catch (error) {
+        llmError = error instanceof Error ? error.message : String(error);
+        updatedContext.metadata = {
+          ...updatedContext.metadata,
+          llmRuntime: {
+            ...((updatedContext.metadata?.llmRuntime && typeof updatedContext.metadata.llmRuntime === 'object')
+              ? updatedContext.metadata.llmRuntime as Record<string, unknown>
+              : {}),
+            lastAgentId: agentId,
+            lastStatus: 'FAILED',
+            lastError: llmError,
+            updatedAt: new Date().toISOString(),
+          },
+        };
+        observeRuntimeModelTelemetry(updatedContext, agentId);
+      }
     }
   }
 
@@ -201,6 +230,7 @@ export async function runCognitiveAgent(
       llmError,
       proposalEmitterError,
       governedProposalEmitter: metadata.governedProposalEmitter ?? null,
+      runtimeControls: runtimeControlSnapshot(updatedContext),
       metadata: compactExecutionMetadata(agentId, updatedContext),
     },
   );

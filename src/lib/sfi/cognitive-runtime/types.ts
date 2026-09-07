@@ -64,8 +64,60 @@ export type SfiRuntimeModeState = {
   warning: string | null;
 };
 
-/** Whole-trajectory R3 capability invocation ceiling; persisted consumption cannot reset on checkpoint continuation. */
+/** Whole-trajectory capability invocation ceiling; persisted consumption cannot reset on checkpoint continuation. */
 export const SFI_ADAPTIVE_MAX_CAPABILITY_INVOCATIONS = 25 as const;
+/** Frozen Cognitive Passport depth ceiling. A runtime may tighten but never expand it. */
+export const SFI_ADAPTIVE_MAX_TRAJECTORY_DEPTH = 2 as const;
+/** Operation-level model-call ceiling for one adaptive trajectory. */
+export const SFI_ADAPTIVE_MAX_MODEL_CALLS = 25 as const;
+/** Maximum wall-clock execution window for newly created adaptive trajectory work. */
+export const SFI_ADAPTIVE_EXECUTION_DEADLINE_MS = 5 * 60_000;
+
+export type SfiRuntimeObservationState = 'OBSERVED' | 'NOT_OBSERVED';
+
+export type SfiRuntimeBoundOverrides = {
+  maxDepth?: number;
+  maxCapabilityInvocations?: number;
+  maxModelCalls?: number;
+  deadlineMs?: number;
+  maxObservedTokens?: number | null;
+  maxObservedProviderCost?: { amount: number; currency: string } | null;
+};
+
+export type SfiRuntimeStopCostControls = {
+  contract: 'SFI-RUNTIME-STOP-COST-CONTROLS-1.0';
+  bounds: {
+    maxDepth: number;
+    maxCapabilityInvocations: number;
+    maxModelCalls: number;
+    maxObservedTokens: number | null;
+    maxObservedProviderCost: { amount: number; currency: string } | null;
+    startedAt: string;
+    deadlineAt: string;
+    maxDurationMs: number;
+  };
+  usage: {
+    modelCalls: {
+      used: number;
+      remaining: number;
+      observation: 'OBSERVED';
+    };
+    tokens: {
+      used: number | null;
+      remaining: number | null;
+      observation: SfiRuntimeObservationState;
+      unobservedCalls: number;
+    };
+    providerCost: {
+      used: number | null;
+      remaining: number | null;
+      currency: string | null;
+      observation: SfiRuntimeObservationState;
+      unobservedCalls: number;
+    };
+  };
+  observabilityBoundary: 'UNAVAILABLE_NOT_ZERO_NO_ESTIMATION';
+};
 
 export type SfiTaskGraphNodeState =
   | 'PLANNED'
@@ -164,6 +216,7 @@ export type SfiTaskGraph = {
     used: number;
     remaining: number;
   };
+  runtimeControls: SfiRuntimeStopCostControls;
   stop: {
     stopped: boolean;
     reason: string | null;
