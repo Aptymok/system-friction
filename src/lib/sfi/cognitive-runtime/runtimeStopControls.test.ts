@@ -189,6 +189,30 @@ test('configured monetary bound fails closed on unavailable cost or currency mis
   assert.equal(observeRuntimeModelTelemetry(mismatch, 'risk_agent').reason, 'PROVIDER_COST_CURRENCY_MISMATCH');
 });
 
+test('limit interaction is monotonic: deadline blocks before model budget consumption and stop cannot be bypassed', () => {
+  const ctx = contextWithGraph({ maxModelCalls: 3, deadlineMs: 10_000, maxObservedTokens: 100 });
+  const deadline = new Date(graph(ctx).runtimeControls.bounds.deadlineAt).getTime();
+  const blocked = reserveRuntimeModelCall(ctx, 'risk_agent', deadline);
+  assert.equal(blocked.allowed, false);
+  assert.equal(blocked.reason, 'EXECUTION_DEADLINE_REACHED');
+  assert.equal(graph(ctx).runtimeControls.usage.modelCalls.used, 0);
+  assert.equal(graph(ctx).runtimeControls.usage.modelCalls.remaining, 3);
+  assert.equal(reserveRuntimeModelCall(ctx, 'risk_agent', deadline - 1).allowed, false);
+  assert.equal(graph(ctx).stop.reason, 'EXECUTION_DEADLINE_REACHED');
+});
+
+test('observability stop freezes later model reservations instead of consuming a second call after fail-closed', () => {
+  const ctx = contextWithGraph({ maxModelCalls: 3, maxObservedTokens: 100 });
+  assert.equal(reserveRuntimeModelCall(ctx, 'risk_agent').allowed, true);
+  setTelemetry(ctx, { observedInputTokens: null, observedOutputTokens: null, observedProviderCost: null, observedProviderCostCurrency: null });
+  assert.equal(observeRuntimeModelTelemetry(ctx, 'risk_agent').reason, 'TOKEN_USAGE_NOT_OBSERVED_FOR_CONFIGURED_LIMIT');
+  assert.equal(graph(ctx).runtimeControls.usage.modelCalls.used, 1);
+  const blocked = reserveRuntimeModelCall(ctx, 'risk_agent');
+  assert.equal(blocked.allowed, false);
+  assert.equal(blocked.reason, 'TOKEN_USAGE_NOT_OBSERVED_FOR_CONFIGURED_LIMIT');
+  assert.equal(graph(ctx).runtimeControls.usage.modelCalls.used, 1);
+});
+
 test('corrupt restored runtime counters fail closed at validation instead of resetting trajectory consumption', () => {
   const ctx = contextWithGraph();
   graph(ctx).runtimeControls.usage.modelCalls = { used: 4, remaining: 22, observation: 'OBSERVED' };
