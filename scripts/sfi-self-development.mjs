@@ -94,7 +94,7 @@ for (const [cmd, args] of commands) {
     commandResults.push({ command: `${cmd} ${args.join(' ')}`, ok: true, output: stdout.slice(-12000) });
   } catch (error) {
     const output = `${error.stdout || ''}\n${error.stderr || ''}`.slice(-12000);
-    commandResults.push({ command: `${cmd} ${args.join('-')}`, ok: false, output });
+    commandResults.push({ command: `${cmd} ${args.join(' ')}`, ok: false, output });
     add(`verification:${cmd}-${args.join('-')}`, 'critical', 'BROKEN', output || 'Verification failed', 'Repair until verification passes', false);
   }
 }
