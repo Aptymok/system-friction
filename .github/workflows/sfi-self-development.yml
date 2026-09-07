@@ -14,8 +14,6 @@ permissions:
   pull-requests: write
   issues: write
 
-actions:
-
 concurrency:
   group: sfi-self-development
   cancel-in-progress: false
@@ -69,8 +67,6 @@ jobs:
           print('health=' + d.get('health','UNKNOWN'))
           PY
 
-      # No paid model API. A small local coding model runs inside the GitHub-hosted runner.
-      # Its output has no authority: the patch must apply cleanly and pass verification.
       - name: Start local repair model
         if: steps.state.outputs.needs_repair == 'true'
         shell: bash
@@ -80,7 +76,7 @@ jobs:
           for i in {1..30}; do curl -fsS http://127.0.0.1:11434/api/tags >/dev/null && break || sleep 2; done
           ollama pull qwen2.5-coder:1.5b
 
-      - name: Generate bounded repair candidate
+      - name: Generate bounded repair candidate without paid API
         if: steps.state.outputs.needs_repair == 'true'
         shell: bash
         run: |
@@ -92,7 +88,7 @@ jobs:
           for p in paths:
               q=pathlib.Path(p)
               if q.exists(): context.append(f'\n--- FILE {p} ---\n'+q.read_text(errors='replace')[:18000])
-          prompt='''You are the bounded SFI repair executor. Produce ONLY a valid unified git diff. Do not use markdown fences. Do not edit governance to expand authority. Do not delete tests. Do not weaken assertions. Do not touch secrets, dependencies, lockfiles, workflows, deployment, billing, OAuth, RLS, migrations, or external publication. You may repair only the supplied files. ROOT approval is required only for final ADD/PROMOTE; observation, analysis, bounded repair and verification do not require ROOT. Fix only defects supported by the report. If no safe repair is possible, output an empty string.\nREPORT:\n'''+json.dumps(report,indent=2)+''.join(context)
+          prompt='''You are the bounded SFI repair executor. Produce ONLY a valid unified git diff. Do not use markdown fences. Do not expand authority. Do not delete or weaken tests. Do not touch secrets, dependencies, lockfiles, workflows, deployment, billing, OAuth, RLS, migrations, or external publication. You may repair only the supplied files. ROOT approval is required only for final ADD/PROMOTE; observation, analysis, bounded repair and verification do not require ROOT. Fix only defects supported by the report. If no safe repair is possible, output an empty string.\nREPORT:\n'''+json.dumps(report,indent=2)+''.join(context)
           pathlib.Path('/tmp/sfi-repair-prompt.txt').write_text(prompt)
           PY
           python - <<'PY'
@@ -114,9 +110,9 @@ jobs:
           test -s /tmp/sfi-repair.patch
           git apply --check /tmp/sfi-repair.patch
           git apply /tmp/sfi-repair.patch
-          # Fail closed if the local model escaped the bounded file set.
           allowed='^(src/lib/root/selfReconstruction\.ts|src/lib/root/selfObservability\.ts|src/app/\[scene\]/page\.tsx)$'
-          git diff --name-only | grep -Ev "$allowed" && { echo 'Repair escaped bounded file set'; exit 1; } || true
+          escaped="$(git diff --name-only | grep -Ev "$allowed" || true)"
+          test -z "$escaped" || { echo "Repair escaped bounded file set: $escaped"; exit 1; }
           npm run typecheck
           node scripts/sfi-self-development.mjs || true
           git diff --check
