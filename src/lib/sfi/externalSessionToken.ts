@@ -9,6 +9,7 @@ export type ExternalSessionClaims = {
   aud: 'sfi-external-v1';
   sub: string;
   actorId: string;
+  clientId?: string;
   label?: string;
   role: 'agent' | 'root_delegate' | string;
   tenantId: string;
@@ -42,6 +43,7 @@ function safeEqual(a: string, b: string) {
 export function mintExternalAccessToken(input: {
   subjectId: string;
   actorId: string;
+  clientId?: string;
   label?: string;
   role: 'agent' | 'root_delegate' | string;
   tenantId?: string;
@@ -59,6 +61,7 @@ export function mintExternalAccessToken(input: {
     aud: 'sfi-external-v1',
     sub: input.subjectId,
     actorId: input.actorId,
+    clientId: input.clientId,
     label: input.label,
     role: input.role,
     tenantId: input.tenantId || 'sfi',
@@ -94,6 +97,7 @@ export function verifyExternalAccessToken(token: string): ExternalSessionClaims 
       claims.aud !== 'sfi-external-v1' ||
       typeof claims.sub !== 'string' ||
       typeof claims.actorId !== 'string' ||
+      (claims.clientId !== undefined && (typeof claims.clientId !== 'string' || claims.clientId.trim().length === 0)) ||
       typeof claims.role !== 'string' ||
       typeof claims.tenantId !== 'string' ||
       !Array.isArray(claims.scopes) ||
