@@ -112,6 +112,14 @@ export type LlmProviderStatus = {
   }>;
 };
 
+export type LlmRouterTelemetry = {
+  provider: Exclude<LlmProviderId, 'degraded'> | null;
+  model: string | null;
+  usage: Record<string, unknown> | null;
+  latency_ms: number | null;
+  source: 'PROVIDER_RESPONSE' | 'PROVIDER_ATTEMPT' | 'NOT_AVAILABLE';
+};
+
 export type LlmRouterResult = {
   ok: boolean;
   provider: LlmProviderId;
@@ -121,6 +129,7 @@ export type LlmRouterResult = {
   warnings: string[];
   usage: Record<string, unknown> | null;
   latency_ms: number;
+  telemetry: LlmRouterTelemetry;
   operationPlan: LlmOperationPlan;
 };
 
@@ -468,7 +477,7 @@ export function getLlmProviderStatus(): LlmProviderStatus[] {
     const primaryCircuit = primary ? activeCircuit(config.id, primary.model) : null;
     const anySuccess = models.map((item) => telemetryFor(config.id, item.model)).find((item) => Boolean(item.lastSuccessAt)) ?? null;
     const latestFailure = models
-      .map((item) => telemetryFor(config.id, item.model))
+      .map((item) => telemetryFor(item.provider, item.model))
       .filter((item) => item.lastFailureAt)
       .sort((a, b) => String(b.lastFailureAt).localeCompare(String(a.lastFailureAt)))[0] ?? null;
     const anyCircuit = models.map((item) => activeCircuit(config.id, item.model)).find(Boolean) ?? null;
@@ -693,6 +702,13 @@ export async function runLlmTask(input: {
   });
   const maxAttempts = Math.max(1, Math.min(10, input.maxProviderAttempts ?? 4));
   let attempts = 0;
+  let terminalTelemetry: LlmRouterTelemetry = {
+    provider: null,
+    model: null,
+    usage: null,
+    latency_ms: null,
+    source: 'NOT_AVAILABLE',
+  };
 
   for (const candidate of operationPlan.candidates) {
     if (attempts >= maxAttempts) break;
@@ -721,6 +737,13 @@ export async function runLlmTask(input: {
         deadlineAtMs: input.deadlineAtMs,
       });
       const latency = Date.now() - attemptStarted;
+      terminalTelemetry = {
+        provider: config.id,
+        model: candidate.model,
+        usage: output.usage,
+        latency_ms: latency,
+        source: 'PROVIDER_RESPONSE',
+      };
       if (input.deadlineAtMs !== undefined && Date.now() >= input.deadlineAtMs) {
         warnings.push('trajectory_deadline_reached');
         break;
@@ -736,23 +759,29 @@ export async function runLlmTask(input: {
           warnings,
           usage: output.usage,
           latency_ms: Date.now() - started,
+          telemetry: terminalTelemetry,
           operationPlan,
         };
       }
       const reason = markModelFailure(config.id, candidate.model, 'empty_result', latency);
       warnings.push(`${config.id}:${candidate.model}_empty_result:${reason}`);
+      terminalTelemetry = { provider: null, model: null, usage: null, latency_ms: null, source: 'NOT_AVAILABLE' };
     } catch (error) {
+      const latency = Date.now() - attemptStarted;
       if (input.deadlineAtMs !== undefined && Date.now() >= input.deadlineAtMs) {
+        terminalTelemetry = { provider: config.id, model: candidate.model, usage: null, latency_ms: latency, source: 'PROVIDER_ATTEMPT' };
         warnings.push('trajectory_deadline_reached');
         break;
       }
       const message = error instanceof Error ? error.message : 'unknown';
       if (message.includes(SFI_TRAJECTORY_DEADLINE_ERROR)) {
+        terminalTelemetry = { provider: config.id, model: candidate.model, usage: null, latency_ms: latency, source: 'PROVIDER_ATTEMPT' };
         warnings.push('trajectory_deadline_reached');
         break;
       }
-      const reason = markModelFailure(config.id, candidate.model, message, Date.now() - attemptStarted);
+      const reason = markModelFailure(config.id, candidate.model, message, latency);
       warnings.push(`${config.id}:${candidate.model}_failed:${reason}`);
+      terminalTelemetry = { provider: null, model: null, usage: null, latency_ms: null, source: 'NOT_AVAILABLE' };
     }
   }
 
@@ -773,6 +802,7 @@ export async function runLlmTask(input: {
     warnings: [...(warnings.length ? warnings : operationPlan.rejections.length ? operationPlan.rejections : ['no_llm_provider_available']), 'synthetic_fallback_suppressed'],
     usage: null,
     latency_ms: Date.now() - started,
+    telemetry: terminalTelemetry,
     operationPlan: degradedPlan,
   };
 }
