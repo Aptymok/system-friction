@@ -10,6 +10,7 @@ on:
       - 'src/lib/sfi/cognitive-runtime/runtimeStopControls.ts'
       - 'src/lib/sfi/cognitive-runtime/runtimeStopControls.test.ts'
       - 'src/lib/sfi/cognitive-runtime/runtimeStopControls.assuranceR4.test.ts'
+      - 'src/lib/sfi/cognitive-runtime/runtimeTelemetryAccounting.test.ts'
       - 'src/lib/sfi/cognitive-runtime/runtimeAgentExecutor.ts'
       - 'src/lib/sfi/cognitive-runtime/agents/metaOrchestrator.ts'
       - 'src/infrastructure/ai/agentLlmClient.ts'
@@ -43,6 +44,8 @@ jobs:
         run: node --import tsx --test src/lib/sfi/cognitive-runtime/runtimeStopControls.test.ts
       - name: F-406-05..07 assurance regression matrix
         run: node --import tsx --test src/lib/sfi/cognitive-runtime/runtimeStopControls.assuranceR4.test.ts
+      - name: F-406-08 terminal model telemetry accounting
+        run: node --import tsx --test src/lib/sfi/cognitive-runtime/runtimeTelemetryAccounting.test.ts
       - name: Operation-level wall-clock deadline
         run: node --import tsx --test src/lib/ai/providerRouter.deadline.test.ts
       - name: Preserve adaptive graph, duplicate, cycle, depth and convergence contracts
