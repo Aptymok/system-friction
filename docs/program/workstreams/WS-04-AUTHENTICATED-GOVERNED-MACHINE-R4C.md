@@ -18,7 +18,7 @@ R4-C does not create a second OAuth server, Capability Broker, Cognitive Passpor
 | OAuth principal/scope | `src/lib/sfi/externalAuth.ts` + OAuth authorization-code flow | ABSORB; retain verified `client_id` in newly issued access-token claims so machine use can bind subject + client + scope |
 | OAuth client registry | `src/lib/sfi/oauthClientRegistry.ts` | ABSORB unchanged |
 | Capability request/Broker decision | `src/lib/sfi/cognitive-runtime/capabilityBroker.ts` | ABSORB persisted ADMIT lineage; request remains non-authorization |
-| Ephemeral grant | `src/lib/sfi/cognitive-runtime/capabilityGrant.ts` | ABSORB `SFI-CAPABILITY-GRANT-1.0`; ACTIVE/TTL/revocation/replay/passport/parent semantics are revalidated |
+| Ephemeral grant | `src/lib/sfi/cognitive-runtime/capabilityGrant.ts` | ABSORB `SFI-CAPABILITY-GRANT-1.0`; ACTIVE/TTL/revocation/replay/passport/parent semantics plus existing nonceHash proof are revalidated |
 | Cognitive Passport | `src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.ts` | ABSORB authority ceiling and RETURN expectation |
 | Cognitive execution | `executeManualCognitiveAgent -> runCognitiveAgent -> agentExecutionMap` | ABSORB; adapter exposes no new executor |
 | Event/lineage persistence | `epistemic_events` via `eventStore` | ABSORB; authorization reservation, denial and execution receipts use the existing owner |
@@ -38,6 +38,7 @@ Server:
 - protocol: `2026-07-28`
 - OAuth: existing SFI authorization-code/scoped gateway
 - `tools/call`: requires `execute`
+- grant proof for `tools/call`: `X-SFI-Capability-Grant-Nonce`, transient server-side only
 - static tokens: not accepted by this authenticated execution adapter
 - tenant: institutional `sfi`
 
@@ -58,6 +59,7 @@ Every executable call binds:
 - OAuth `execute` scope;
 - institutional tenant `sfi`;
 - `grantId`;
+- possession of the ephemeral grant via transient nonce proof against the already-persisted `nonceHash`;
 - grant capability principal (`grant.principal == grant.capabilityId` under the WS-01 grant contract);
 - requested capability / execution `agentId`;
 - trajectory + step lineage;
@@ -77,25 +79,27 @@ OAuth principal and grant principal are deliberately distinct coordinates. The f
 1. verify existing OAuth/scoped gateway credential;
 2. require user-bound OAuth plus verified client binding;
 3. require the route scope (`execute` for `tools/call`);
-4. load the persisted Broker request/admission/grant lineage from the existing event owner;
-5. require persisted `ADMIT`, `executionAllowed=true`, `authorizationAllowedAtIssue=true`, and `SFI-CAPABILITY-GRANT-1.0`;
-6. revalidate ACTIVE state, TTL and revocation;
-7. bind principal/client/scope/capability/resource/action/trajectory/step;
-8. revalidate grant authority against requester and requested Cognitive Passports;
-9. if a parent exists, require ACTIVE parent and child <= parent across trajectory/resource/actions/authority/expiry/confirmation/sensitivity;
-10. reject replay;
-11. satisfy confirmation when required;
-12. write a deterministic one-time authorization reservation into `epistemic_events`;
-13. only after successful reservation call the existing canonical cognitive execution owner;
-14. persist the execution receipt and preserve the Passport RETURN expectation without fabricating a RETURN.
+4. read the raw ephemeral grant nonce only from the machine header, hash it immediately with the existing WS-01 hash owner, and retain only the hash in route memory;
+5. load the persisted Broker request/admission/grant lineage from the existing event owner;
+6. make the requested grant admission usable only if the presented nonce hash matches the persisted `nonceHash`; no match is treated as no usable grant and fails closed through the normal denial path;
+7. require persisted `ADMIT`, `executionAllowed=true`, `authorizationAllowedAtIssue=true`, and `SFI-CAPABILITY-GRANT-1.0`;
+8. revalidate ACTIVE state, TTL and revocation;
+9. bind principal/client/scope/capability/resource/action/trajectory/step;
+10. revalidate grant authority against requester and requested Cognitive Passports;
+11. if a parent exists, require ACTIVE parent and child <= parent across trajectory/resource/actions/authority/expiry/confirmation/sensitivity;
+12. reject replay;
+13. satisfy confirmation when required;
+14. write a deterministic one-time authorization reservation into `epistemic_events`;
+15. only after successful reservation call the existing canonical cognitive execution owner;
+16. persist the execution receipt and preserve the Passport RETURN expectation without fabricating a RETURN.
 
-## Replay boundary
+## Grant proof and replay boundary
+
+The upstream grant already persists only `nonceHash`; the raw nonce is not persisted. R4-C does not add a nonce store. A trusted machine client may present the raw nonce only in `X-SFI-Capability-Grant-Nonce` for `tools/call`. The route hashes it immediately and compares only hashes. The raw value is never copied into JSON, events, browser state, execution context, model context, responses, or receipts.
 
 The authorization reservation uses a deterministic `event_id` derived from the adapter contract + `grantId`. Because the existing event owner owns event identity, concurrent/repeated use cannot create a second successful reservation. A persistence conflict or outage fails closed before execution.
 
 Existing `SFI_AGENT_EXECUTED` / `SFI_AGENT_SKIPPED` grant references and prior machine authorization/execution receipts are also treated as replay evidence.
-
-No raw nonce is required, accepted, persisted, returned, placed in browser state, or passed into execution/model context.
 
 ## Receipts and lineage
 
@@ -120,7 +124,7 @@ The authenticated adapter is a separate machine surface. No private state become
 Synchronized only inside repository/application surfaces:
 
 - external gateway manifest discovers `/api/mcp/authenticated` and records its authority boundary;
-- build-time OpenAPI merge adds `/api/mcp/authenticated` using the already-defined OAuth `execute` scope;
+- build-time OpenAPI merge adds `/api/mcp/authenticated` using the already-defined OAuth `execute` scope and documents the transient grant-proof header;
 - authenticated MCP tool/resource descriptions are defined by the WS-04 adapter;
 - public MCP descriptions/resources are not altered.
 
@@ -144,7 +148,7 @@ The adapter can only reduce/intersect authority already granted by OAuth + Broke
 
 **NONE.**
 
-No migration/table/RLS/storage owner is added. New receipt event names are records within the existing `epistemic_events` owner.
+No migration/table/RLS/storage owner is added. New receipt event names are records within the existing `epistemic_events` owner. The raw grant nonce is never persisted; the adapter reuses the upstream `nonceHash` already present in grant admission lineage.
 
 ### Public/private delta
 
@@ -174,7 +178,7 @@ The dedicated workflow checks:
 
 - canonical development preflight;
 - OAuth principal/client/scope binding;
-- active grant enforcement;
+- ACTIVE grant enforcement and transient nonce proof;
 - Passport/Broker/parent authority ceilings;
 - expiry/revocation;
 - replay and deterministic reservation;
