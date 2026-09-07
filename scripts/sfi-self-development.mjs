@@ -56,11 +56,30 @@ if (fs.existsSync(agentsDir)) {
   }
 }
 
-// Existing self-reconstruction must not universally require human approval; ROOT gates ADD only.
+// Self-reconstruction may observe, test and repair without ROOT, but ADD/PROMOTE remains sovereign.
 if (exists('src/lib/root/selfReconstruction.ts')) {
   const r = read('src/lib/root/selfReconstruction.ts');
-  if (r.includes('requires_human_approval: true') || r.includes('self_reconstruction_requires_human_control')) {
-    add('governance:universal-self-repair-gate', 'critical', 'AUTHORITY_FRICTION', 'Self reconstruction currently requires human control before bounded repair', 'Allow observe/analyze/test/repair without ROOT; gate only ADD/promotion', true);
+  const obsoleteUniversalGate = r.includes('requires_human_approval: true') || r.includes('self_reconstruction_requires_human_control');
+  const explicitBoundary = [
+    "SFI-SELF-RECONSTRUCTION-AUTHORITY-1.0",
+    'boundedRepairWithoutRoot: true',
+    'verifyWithoutRoot: true',
+    'addPromoteRequiresRoot: true',
+    'canonicalPromotionAllowedDuringRepair: false',
+    'root_add_required: true',
+    'canonical_promotion_allowed: false',
+  ].every((marker) => r.includes(marker));
+  if (obsoleteUniversalGate || !explicitBoundary) {
+    add(
+      'governance:universal-self-repair-gate',
+      'critical',
+      'AUTHORITY_FRICTION',
+      obsoleteUniversalGate
+        ? 'Self reconstruction currently requires human control before bounded repair'
+        : 'Self reconstruction does not expose the complete bounded-repair vs ROOT ADD/PROMOTE authority contract',
+      'Allow observe/analyze/test/repair without ROOT while preserving explicit ROOT-only ADD/promotion and no canonical promotion during repair',
+      true,
+    );
   }
 }
 
@@ -75,7 +94,7 @@ for (const [cmd, args] of commands) {
     commandResults.push({ command: `${cmd} ${args.join(' ')}`, ok: true, output: stdout.slice(-12000) });
   } catch (error) {
     const output = `${error.stdout || ''}\n${error.stderr || ''}`.slice(-12000);
-    commandResults.push({ command: `${cmd} ${args.join(' ')}`, ok: false, output });
+    commandResults.push({ command: `${cmd} ${args.join('-')}`, ok: false, output });
     add(`verification:${cmd}-${args.join('-')}`, 'critical', 'BROKEN', output || 'Verification failed', 'Repair until verification passes', false);
   }
 }
