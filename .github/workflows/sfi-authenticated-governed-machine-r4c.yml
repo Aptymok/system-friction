@@ -1,0 +1,87 @@
+name: SFI Authenticated Governed Machine R4-C
+
+on:
+  pull_request:
+    paths:
+      - 'src/lib/mcp/authenticatedGovernedMachineAdapter.ts'
+      - 'src/lib/mcp/authenticatedGovernedMachineAdapter.test.ts'
+      - 'src/app/api/mcp/authenticated/route.ts'
+      - 'src/lib/sfi/externalSessionToken.ts'
+      - 'src/lib/sfi/externalAuth.ts'
+      - 'src/app/api/oauth/token/route.ts'
+      - 'src/app/api/external/v1/manifest/route.ts'
+      - 'scripts/merge-openapi-authenticated-machine.mjs'
+      - 'scripts/qa-sfi-authenticated-governed-machine-r4c.ts'
+      - 'package.json'
+      - '.github/workflows/sfi-authenticated-governed-machine-r4c.yml'
+      - 'docs/program/workstreams/WS-04-AUTHENTICATED-GOVERNED-MACHINE-R4C.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify OAuth + grant + authority boundaries
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            if npm install --no-audit --no-fund; then
+              exit 0
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "Dependency installation failed after ${attempt} attempts."
+              exit 1
+            fi
+            rm -rf node_modules/ffmpeg-static
+            sleep $((attempt * 10))
+          done
+
+      - name: Canonical development preflight
+        run: node scripts/qa-canonical-architecture.mjs
+
+      - name: Authenticated governed machine exact-head QA
+        run: npm run qa:sfi-authenticated-machine
+
+      - name: Revalidate upstream Ephemeral Capability Grant contract
+        run: node --import tsx --test src/lib/sfi/cognitive-runtime/capabilityGrant.test.ts
+
+      - name: Revalidate existing OAuth scoped gateway
+        run: npx tsx scripts/qa-sfi-external-oauth.ts
+
+      - name: Revalidate public read-only MCP boundary
+        run: npx tsx scripts/qa-sfi-public-mcp-readonly.ts
+
+      - name: Materialize and inspect authenticated machine OpenAPI
+        shell: bash
+        run: |
+          node scripts/merge-openapi-authenticated-machine.mjs
+          node - <<'NODE'
+          const api = require('./public/openapi.json');
+          const op = api.paths?.['/api/mcp/authenticated']?.post;
+          if (!op) throw new Error('AUTHENTICATED_MACHINE_OPENAPI_PATH_MISSING');
+          if (op['x-sfi-contract'] !== 'SFI-AUTHENTICATED-GOVERNED-MACHINE-ADAPTER-1.0') throw new Error('AUTHENTICATED_MACHINE_OPENAPI_CONTRACT_MISMATCH');
+          if (api['x-sfi-governance']?.authenticatedMachineAdapter?.externalPublicationReceipt !== null) throw new Error('FABRICATED_EXTERNAL_PUBLICATION_RECEIPT');
+          NODE
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
