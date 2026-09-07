@@ -1,6 +1,14 @@
 name: SFI Self-Development
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/sfi-self-development.yml'
+      - 'scripts/sfi-self-development.mjs'
+      - 'scripts/sfi-program-completion.mjs'
+      - 'scripts/render-sfi-self-development-report.py'
   schedule:
     - cron: '23 3 * * *'
   workflow_dispatch:
@@ -50,12 +58,16 @@ jobs:
         run: node scripts/sfi-program-completion.mjs
 
       - name: Persist Completion Controller state in canonical sweep
-        if: always() && hashFiles('artifacts/program-completion/completion.md') != ''
+        if: ${{ always() }}
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
+          if [ ! -f artifacts/program-completion/completion.md ]; then
+            echo 'Completion Controller artifact unavailable; skip canonical sweep comment here and fail closed in the integrity gate.'
+            exit 0
+          fi
           {
             cat artifacts/program-completion/completion.md
             printf '\n\nRun: %s/%s/actions/runs/%s\n' "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID"
@@ -80,10 +92,10 @@ jobs:
           retention-days: 90
 
       - name: Fail closed if Completion Controller integrity failed
-        if: steps.completion.outcome != 'success'
+        if: ${{ steps.completion.outcome != 'success' }}
         shell: bash
         run: |
-          echo 'SFI Completion Controller integrity failed. Artifacts and #405 comment were preserved.'
+          echo 'SFI Completion Controller integrity failed. Artifacts and #405 comment were preserved when available.'
           exit 1
 
       - name: Resolve repair need
@@ -98,7 +110,7 @@ jobs:
           PY
 
       - name: Start local repair model
-        if: steps.state.outputs.needs_repair == 'true'
+        if: ${{ steps.state.outputs.needs_repair == 'true' }}
         shell: bash
         run: |
           curl -fsSL https://ollama.com/install.sh | sh
@@ -107,7 +119,7 @@ jobs:
           ollama pull qwen2.5-coder:1.5b
 
       - name: Generate bounded repair candidate without paid API
-        if: steps.state.outputs.needs_repair == 'true'
+        if: ${{ steps.state.outputs.needs_repair == 'true' }}
         shell: bash
         run: |
           python - <<'PY'
@@ -132,7 +144,7 @@ jobs:
 
       - name: Apply candidate and verify
         id: repair
-        if: steps.state.outputs.needs_repair == 'true'
+        if: ${{ steps.state.outputs.needs_repair == 'true' }}
         continue-on-error: true
         shell: bash
         run: |
@@ -149,7 +161,7 @@ jobs:
           test -n "$(git status --porcelain)"
 
       - name: Publish verified repair candidate for ROOT ADD review
-        if: steps.repair.outcome == 'success'
+        if: ${{ steps.repair.outcome == 'success' }}
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -165,20 +177,20 @@ jobs:
           gh pr create --base main --head "$branch" --title "SFI SELF-DEVELOPMENT · verified mutation candidate" --body-file artifacts/self-development/report.md
 
       - name: Persist unresolved defect as institutional work, not silent failure
-        if: steps.state.outputs.needs_repair == 'true' && steps.repair.outcome != 'success'
+        if: ${{ steps.state.outputs.needs_repair == 'true' && steps.repair.outcome != 'success' }}
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
+          set -euo pipefail
           marker='SFI-SELF-DEVELOPMENT-UNRESOLVED'
           existing="$(gh issue list --state open --search "$marker in:body" --json number --jq '.[0].number // empty')"
-          body="$(cat artifacts/self-development/report.md)"
-          body="$body
-
-<!-- $marker -->
-Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          {
+            cat artifacts/self-development/report.md
+            printf '\n\n<!-- %s -->\nRun: %s/%s/actions/runs/%s\n' "$marker" "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID"
+          } > /tmp/sfi-self-development-unresolved.md
           if [ -n "$existing" ]; then
-            gh issue comment "$existing" --body "$body"
+            gh issue comment "$existing" --body-file /tmp/sfi-self-development-unresolved.md
           else
-            gh issue create --title 'SFI SELF-DEVELOPMENT · unresolved observed defects' --body "$body"
+            gh issue create --title 'SFI SELF-DEVELOPMENT · unresolved observed defects' --body-file /tmp/sfi-self-development-unresolved.md
           fi
