@@ -4,6 +4,7 @@ export const SFI_ROOT_SCOPES = [
   'observe',
   'propose',
   'execute',
+  'governance:decide',
   'cases:read',
   'cases:write',
   'lab:read',
