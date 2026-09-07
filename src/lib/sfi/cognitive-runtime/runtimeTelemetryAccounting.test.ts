@@ -364,12 +364,12 @@ test('F-406-08: terminal accounting survives checkpoint/reentry and cannot be co
 });
 
 test('F-406-08 integration: agentLlmClient persists late provider telemetry before throwing deadline semantic rejection', async () => {
-  process.env.OPENAI_API_KEY = 'test-openai-f406-08';
+  process.env.GEMINI_API_KEY = 'test-gemini-f406-08';
   const context = contextWithGraph({ deadlineMs: 100 });
   context.metadata = {
     ...context.metadata,
     llmAugmentation: true,
-    preferredLlmProvider: 'openai',
+    preferredLlmProvider: 'gemini',
     cognitiveSpine: { ctSnapshotConsumed: false },
   };
   const start = startMs(context);
@@ -382,8 +382,8 @@ test('F-406-08 integration: agentLlmClient persists late provider telemetry befo
   globalThis.fetch = (async () => {
     Date.now = () => deadline + 1;
     return new Response(JSON.stringify({
-      choices: [{ message: { content: '{"summary":"late"}' } }],
-      usage: { prompt_tokens: 9, completion_tokens: 4, cost: 0.6, currency: 'USD' },
+      candidates: [{ content: { parts: [{ text: '{"summary":"late"}' }] } }],
+      usageMetadata: { promptTokenCount: 9, candidatesTokenCount: 4, cost: 0.6, currency: 'USD' },
     }), { status: 200, headers: { 'content-type': 'application/json' } });
   }) as typeof fetch;
   try {
@@ -394,6 +394,7 @@ test('F-406-08 integration: agentLlmClient persists late provider telemetry befo
   }
   const llm = row(context.metadata.llmRuntime);
   assert.equal(llm.telemetryRuntimeModelCallId, callId);
+  assert.equal(llm.observedProvider, 'gemini');
   assert.equal(llm.observedInputTokens, 9);
   assert.equal(llm.observedOutputTokens, 4);
   assert.equal(llm.observedProviderCost, 0.6);
