@@ -133,7 +133,6 @@ test('F-406-05: semantic sibling CONTRADICTS/CALIBRATES/SUPPLIES never fabricate
   const { risk, opportunity } = nodes(ctx);
   assert.equal(risk.depth, 1);
   assert.equal(opportunity.depth, 1);
-
   for (const relation of semanticSiblingRelations) {
     const edge = { from: risk.nodeId, to: opportunity.nodeId, relation } as const;
     addTaskGraphEdge(g, edge);
@@ -163,7 +162,6 @@ test('F-406-05: real parent-child lineage increments depth while forged structur
   addTaskGraphEdge(g, edge);
   assert.equal(isTaskGraphStructuralAncestryEdge(g, edge), true);
   assert.deepEqual(validateTaskGraphStructure(g), []);
-
   const forged = cloneGraph(ctx);
   const forgedParent = forged.nodes.find((node) => node.nodeId === risk.nodeId)!;
   const forgedChild = appendChild(forged, forgedParent, 'forged-level-2', 1);
@@ -184,12 +182,8 @@ test('F-406-05: parent ancestry cycles fail independently of semantic depth and 
   const errors = validateTaskGraphStructure(corrupt);
   assert.ok(errors.includes('GRAPH_CYCLE_DETECTED'));
   assert.ok(errors.some((error) => error.startsWith('PARENT_CYCLE_DETECTED:')));
-
   const valid = graph(ctx);
-  assert.throws(
-    () => addTaskGraphEdge(valid, { from: risk.nodeId, to: 'missing-semantic-node', relation: 'SUPPLIES' }),
-    /TASK_GRAPH_EDGE_ENDPOINT_INVALID/,
-  );
+  assert.throws(() => addTaskGraphEdge(valid, { from: risk.nodeId, to: 'missing-semantic-node', relation: 'SUPPLIES' }), /TASK_GRAPH_EDGE_ENDPOINT_INVALID/);
 });
 
 test('F-406-05 interaction: structural over-depth restore remains invalid even with valid semantic edges', () => {
@@ -214,15 +208,7 @@ test('F-406-07: an already-stopped graph performs zero capability negotiation or
   const mutationCount = g.mutations.length;
   const budget = { ...g.invocationBudget };
   let calls = 0;
-  const result = await executeAdaptiveCapabilityRequestsForNode({
-    context: ctx,
-    parentNodeId: risk.nodeId,
-    parentCapabilityId: 'risk_agent',
-    requestCapability: async () => {
-      calls += 1;
-      throw new Error('must not negotiate after STOP');
-    },
-  });
+  const result = await executeAdaptiveCapabilityRequestsForNode({ context: ctx, parentNodeId: risk.nodeId, parentCapabilityId: 'risk_agent', requestCapability: async () => { calls += 1; throw new Error('must not negotiate after STOP'); } });
   assert.equal(calls, 0);
   assert.equal(result.graph.mutations.length, mutationCount);
   assert.deepEqual(result.graph.invocationBudget, budget);
@@ -240,27 +226,7 @@ test('F-406-07: first request causing STOP leaves every later request untouched'
     requestCapability: async (input) => {
       calls += 1;
       markAdaptiveStop(graph(input.context), 'TEST_FIRST_REQUEST_STOP');
-      return {
-        request: input.request,
-        decision: {
-          contract: 'SFI-CAPABILITY-REQUEST-1.0',
-          disposition: 'DENY',
-          requestHash: capabilityRequestHash(input.request),
-          executionAllowed: false,
-          authorizationAllowed: false,
-          deduplicated: false,
-          reasons: ['test_stop'],
-          authorityBoundary: 'TEST',
-        },
-        context: input.context,
-        executed: false,
-        authorizationAllowed: false,
-        requestEventId: null,
-        dispositionEventId: null,
-        grant: null,
-        nonceHash: null,
-        executionReceipt: null,
-      } as never;
+      return { request: input.request, decision: { contract: 'SFI-CAPABILITY-REQUEST-1.0', disposition: 'DENY', requestHash: capabilityRequestHash(input.request), executionAllowed: false, authorizationAllowed: false, deduplicated: false, reasons: ['test_stop'], authorityBoundary: 'TEST' }, context: input.context, executed: false, authorizationAllowed: false, requestEventId: null, dispositionEventId: null, grant: null, nonceHash: null, executionReceipt: null } as never;
     },
   });
   assert.equal(calls, 1);
@@ -294,12 +260,7 @@ test('F-406-07 interaction: token STOP with unresolved capability blocks negotia
   assert.equal(stopped.reason, 'TOKEN_USAGE_NOT_OBSERVED_FOR_CONFIGURED_LIMIT');
   assert.equal(unresolvedRequiredCapabilityCount(g), 1);
   let calls = 0;
-  await executeAdaptiveCapabilityRequestsForNode({
-    context: ctx,
-    parentNodeId: risk.nodeId,
-    parentCapabilityId: 'risk_agent',
-    requestCapability: async () => { calls += 1; throw new Error('no post-stop negotiation'); },
-  });
+  await executeAdaptiveCapabilityRequestsForNode({ context: ctx, parentNodeId: risk.nodeId, parentCapabilityId: 'risk_agent', requestCapability: async () => { calls += 1; throw new Error('no post-stop negotiation'); } });
   assert.equal(calls, 0);
 });
 
@@ -318,12 +279,7 @@ test('F-406-07 interaction: cost STOP plus duplicate request remains terminal', 
   assert.equal(stopped.reason, 'PROVIDER_COST_CURRENCY_MISMATCH');
   const mutations = g.mutations.length;
   let calls = 0;
-  await executeAdaptiveCapabilityRequestsForNode({
-    context: ctx,
-    parentNodeId: risk.nodeId,
-    parentCapabilityId: 'risk_agent',
-    requestCapability: async () => { calls += 1; throw new Error('no post-stop duplicate processing'); },
-  });
+  await executeAdaptiveCapabilityRequestsForNode({ context: ctx, parentNodeId: risk.nodeId, parentCapabilityId: 'risk_agent', requestCapability: async () => { calls += 1; throw new Error('no post-stop duplicate processing'); } });
   assert.equal(calls, 0);
   assert.equal(g.mutations.length, mutations);
 });
@@ -342,12 +298,7 @@ test('F-406-07: deadline and max-model-call STOP both block capability negotiati
       assert.equal(reserveRuntimeModelCall(ctx, 'risk_agent', now).reason, 'MAX_MODEL_CALLS_REACHED');
     }
     let calls = 0;
-    await executeAdaptiveCapabilityRequestsForNode({
-      context: ctx,
-      parentNodeId: risk.nodeId,
-      parentCapabilityId: 'risk_agent',
-      requestCapability: async () => { calls += 1; throw new Error('terminal stop'); },
-    });
+    await executeAdaptiveCapabilityRequestsForNode({ context: ctx, parentNodeId: risk.nodeId, parentCapabilityId: 'risk_agent', requestCapability: async () => { calls += 1; throw new Error('terminal stop'); } });
     assert.equal(calls, 0);
   }
 });
@@ -362,17 +313,13 @@ test('F-406-06/07 interaction: a late model result is discarded, proposal is not
   let proposals = 0;
   const result = await runCognitiveAgent('risk_agent', ctx, {
     nowMs: () => now,
-    executeAgent: (_agentId, current) => current,
-    augmentAgentWithLlm: async (_agentId, current) => {
+    executeAgent: (_agentId: string, current: KernelContext) => current,
+    augmentAgentWithLlm: async (_agentId: string, current: KernelContext) => {
       now = deadline + 1;
-      current.metadata = {
-        ...current.metadata,
-        agentInsights: { risk_agent: { status: 'COMPLETE', provider: 'late', model: 'late', summary: 'must be discarded' } },
-        llmRuntime: { observedInputTokens: 7, observedOutputTokens: 3, observedProviderCost: 0.2, observedProviderCostCurrency: 'USD' },
-      };
+      current.metadata = { ...current.metadata, agentInsights: { risk_agent: { status: 'COMPLETE', provider: 'late', model: 'late', summary: 'must be discarded' } }, llmRuntime: { observedInputTokens: 7, observedOutputTokens: 3, observedProviderCost: 0.2, observedProviderCostCurrency: 'USD' } };
       return current;
     },
-    emitGovernedProposals: async (_agentId, current) => { proposals += 1; return current; },
+    emitGovernedProposals: async (_agentId: string, current: KernelContext) => { proposals += 1; return current; },
     recordExecutionEvent: async () => undefined,
   } as never);
   assert.equal(g.runtimeControls.usage.modelCalls.used, 1);
@@ -382,14 +329,8 @@ test('F-406-06/07 interaction: a late model result is discarded, proposal is not
   assert.equal((result.context.metadata.agentInsights as Record<string, unknown> | undefined)?.risk_agent, undefined);
   assert.equal(g.runtimeControls.usage.tokens.used, null);
   assert.equal(g.runtimeControls.usage.providerCost.used, null);
-
   let capabilityCalls = 0;
-  const after = await executeAdaptiveCapabilityRequestsForNode({
-    context: result.context,
-    parentNodeId: risk.nodeId,
-    parentCapabilityId: 'risk_agent',
-    requestCapability: async () => { capabilityCalls += 1; throw new Error('late result must not negotiate'); },
-  });
+  const after = await executeAdaptiveCapabilityRequestsForNode({ context: result.context, parentNodeId: risk.nodeId, parentCapabilityId: 'risk_agent', requestCapability: async () => { capabilityCalls += 1; throw new Error('late result must not negotiate'); } });
   assert.equal(capabilityCalls, 0);
   assert.equal(after.graph.stop.reason, 'EXECUTION_DEADLINE_REACHED');
 });
@@ -402,17 +343,13 @@ test('F-406-06 control: valid model completion before deadline can emit proposal
   let proposals = 0;
   const result = await runCognitiveAgent('risk_agent', ctx, {
     nowMs: () => now,
-    executeAgent: (_agentId, current) => current,
-    augmentAgentWithLlm: async (_agentId, current) => {
+    executeAgent: (_agentId: string, current: KernelContext) => current,
+    augmentAgentWithLlm: async (_agentId: string, current: KernelContext) => {
       now += 10;
-      current.metadata = {
-        ...current.metadata,
-        agentInsights: { risk_agent: { status: 'COMPLETE', provider: 'fake', model: 'fake', summary: 'on time' } },
-        llmRuntime: { observedInputTokens: 7, observedOutputTokens: 3, observedProviderCost: 0.2, observedProviderCostCurrency: 'USD' },
-      };
+      current.metadata = { ...current.metadata, agentInsights: { risk_agent: { status: 'COMPLETE', provider: 'fake', model: 'fake', summary: 'on time' } }, llmRuntime: { observedInputTokens: 7, observedOutputTokens: 3, observedProviderCost: 0.2, observedProviderCostCurrency: 'USD' } };
       return current;
     },
-    emitGovernedProposals: async (_agentId, current) => { proposals += 1; return current; },
+    emitGovernedProposals: async (_agentId: string, current: KernelContext) => { proposals += 1; return current; },
     recordExecutionEvent: async () => undefined,
   } as never);
   assert.equal(g.stop.stopped, false);
@@ -431,7 +368,7 @@ test('F-406-02 regression interaction: malformed graph blocks model execution be
   let executeCalls = 0;
   await runCognitiveAgent('risk_agent', ctx, {
     nowMs: () => startMs(ctx) + 1,
-    executeAgent: (_agentId, current) => { executeCalls += 1; return current; },
+    executeAgent: (_agentId: string, current: KernelContext) => { executeCalls += 1; return current; },
     recordExecutionEvent: async () => undefined,
   } as never);
   assert.equal(executeCalls, 0);
