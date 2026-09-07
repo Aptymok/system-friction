@@ -7,6 +7,7 @@ export type ExternalCredential = {
   actorId?: string;
   tenantId?: string;
   subjectId?: string;
+  clientId?: string;
   authMethod?: 'static_token' | 'oauth';
 };
 
@@ -66,7 +67,8 @@ export function authorizeExternalRequest(req: Request, scope: string): ExternalA
 
   // OAuth access tokens are short-lived, user-bound credentials issued by SFI
   // after authenticated account login. Institutional authority, when present,
-  // is derived separately from the SFI membership registry.
+  // is derived separately from the SFI membership registry. The verified OAuth
+  // client id is retained so machine adapters can bind principal + client + scope.
   const session = verifyExternalAccessToken(token);
   if (session) {
     const credential: ExternalCredential = {
@@ -76,6 +78,7 @@ export function authorizeExternalRequest(req: Request, scope: string): ExternalA
       actorId: session.actorId,
       tenantId: session.tenantId,
       subjectId: session.sub,
+      clientId: session.clientId,
       authMethod: 'oauth',
     };
     const scopeAllowed = credentialAllowsScope(credential, scope)
