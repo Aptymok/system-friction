@@ -137,6 +137,10 @@ function activeNode(graph: SfiTaskGraph, capabilityId: string) {
     : null;
 }
 
+function runtimeModelCallId(llm: Row) {
+  return typeof llm.runtimeModelCallId === 'string' && llm.runtimeModelCallId.trim() ? llm.runtimeModelCallId.trim() : null;
+}
+
 export function clearRuntimeModelTelemetryObservation(context: KernelContext) {
   const prior = row(context.metadata?.llmRuntime);
   context.metadata = {
@@ -150,7 +154,9 @@ export function clearRuntimeModelTelemetryObservation(context: KernelContext) {
       observedProviderCost: null,
       observedProviderCostCurrency: null,
       observedLatencyMs: null,
+      usageSourceFields: [],
       telemetryOpenTelemetry: null,
+      telemetryRuntimeModelCallId: null,
     },
   };
   return context;
@@ -199,7 +205,18 @@ export function reserveRuntimeModelCall(context: KernelContext, capabilityId: st
   usage.used += 1;
   usage.remaining = graph.runtimeControls.bounds.maxModelCalls - usage.used;
   clearRuntimeModelTelemetryObservation(context);
-  return { allowed: true, tracked: true, reason: null } as const;
+  const callId = crypto.randomUUID();
+  context.metadata = {
+    ...context.metadata,
+    llmRuntime: {
+      ...row(context.metadata?.llmRuntime),
+      runtimeModelCallId: callId,
+      runtimeModelCallAccounting: 'PENDING',
+      runtimeModelCallUsageDisposition: null,
+      runtimeModelCallAccountedId: null,
+    },
+  };
+  return { allowed: true, tracked: true, reason: null, callId } as const;
 }
 
 export function observeRuntimeModelTelemetry(context: KernelContext, capabilityId: string) {
@@ -207,10 +224,17 @@ export function observeRuntimeModelTelemetry(context: KernelContext, capabilityI
   if (!graph) return { tracked: false, stopped: false, reason: null } as const;
   assertRuntimeControls(graph);
   const llm = row(context.metadata?.llmRuntime);
-  const inputTokens = nonNegativeInteger(llm.observedInputTokens);
-  const outputTokens = nonNegativeInteger(llm.observedOutputTokens);
-  const costAmount = finiteNonNegative(llm.observedProviderCost);
-  const costCurrency = typeof llm.observedProviderCostCurrency === 'string' && llm.observedProviderCostCurrency.trim()
+  const callId = runtimeModelCallId(llm);
+  if (!callId) throw new Error('RUNTIME_MODEL_CALL_ID_REQUIRED_FOR_ACCOUNTING');
+  if (llm.runtimeModelCallAccounting === 'ACCOUNTED' && llm.runtimeModelCallAccountedId === callId) {
+    return { tracked: true, stopped: graph.stop.stopped, reason: graph.stop.reason, duplicate: true } as const;
+  }
+  const telemetryCallId = typeof llm.telemetryRuntimeModelCallId === 'string' ? llm.telemetryRuntimeModelCallId : null;
+  const telemetryIsCurrent = telemetryCallId === callId;
+  const inputTokens = telemetryIsCurrent ? nonNegativeInteger(llm.observedInputTokens) : null;
+  const outputTokens = telemetryIsCurrent ? nonNegativeInteger(llm.observedOutputTokens) : null;
+  const costAmount = telemetryIsCurrent ? finiteNonNegative(llm.observedProviderCost) : null;
+  const costCurrency = telemetryIsCurrent && typeof llm.observedProviderCostCurrency === 'string' && llm.observedProviderCostCurrency.trim()
     ? llm.observedProviderCostCurrency.trim().toUpperCase()
     : null;
   const node = activeNode(graph, capabilityId);
@@ -267,6 +291,17 @@ export function observeRuntimeModelTelemetry(context: KernelContext, capabilityI
       }
     }
   }
+
+  const usageObserved = (inputTokens !== null && outputTokens !== null) || (costAmount !== null && costCurrency !== null);
+  context.metadata = {
+    ...context.metadata,
+    llmRuntime: {
+      ...llm,
+      runtimeModelCallAccounting: 'ACCOUNTED',
+      runtimeModelCallAccountedId: callId,
+      runtimeModelCallUsageDisposition: usageObserved ? 'USAGE_OBSERVED' : 'USAGE_NOT_OBSERVED',
+    },
+  };
 
   if (pendingStop) {
     const reason = stopGraph(graph, pendingStop.reason, node?.nodeId ?? null, pendingStop.detail ?? {});
