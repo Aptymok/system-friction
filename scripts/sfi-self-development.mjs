@@ -21,6 +21,10 @@ for (const p of [
   'src/lib/root/selfReconstruction.ts',
   'src/app/api/cases/route.ts',
   'src/app/api/observatory/world/route.ts',
+  'src/lib/sfi/cognitive-runtime/registry.ts',
+  'src/lib/sfi/cognitive-runtime/convergedRegistry.ts',
+  'src/lib/sfi/cognitive-runtime/agentExecutionMap.ts',
+  'src/lib/sfi/cognitive-runtime/agentPassports.ts',
 ]) if (!exists(p)) add(`missing:${p}`, 'critical', 'KNOWN_INCOMPLETE', `Missing required artifact ${p}`, `Restore or implement ${p}`, true);
 
 // FIELD must be a real reachable projection, not an untested alias.
@@ -45,16 +49,50 @@ const uiText = appFiles.filter(p => !p.includes(`${path.sep}api${path.sep}`)).ma
 if (!/NEW CASE|Nuevo caso|Crear caso|new case/i.test(uiText)) add('human-ingress:new-case', 'high', 'KNOWN_INCOMPLETE', 'No explicit human NEW CASE affordance detected', 'Expose human case creation through the canonical case contract', true);
 if (!/NEW SIGNAL|Nueva señal|Crear señal|new signal/i.test(uiText)) add('human-ingress:new-signal', 'high', 'KNOWN_INCOMPLETE', 'No explicit human NEW SIGNAL affordance detected', 'Expose bounded signal ingress and qualification', true);
 
-// Agent declarations cannot count as operational unless referenced outside their declaration directory.
+// Runtime agent truth belongs to the canonical registry/passport/execution owners.
+// .github/agents/*.agent.md are repository operator/development declarations and do
+// not become Cognitive Runtime agents merely because a prompt file exists.
 const agentsDir = path.join(root, '.github', 'agents');
-if (fs.existsSync(agentsDir)) {
-  const agentFiles = fs.readdirSync(agentsDir).filter(f => f.endsWith('.agent.md'));
-  const sourceText = appFiles.map(p => { try { return fs.readFileSync(p, 'utf8'); } catch { return ''; } }).join('\n');
-  for (const f of agentFiles) {
-    const id = f.replace(/\.agent\.md$/, '');
-    if (!sourceText.includes(id)) add(`agent:${id}:unwired`, 'medium', 'IMPLEMENTED_NOT_WIRED', `${f} is declared but its id is not referenced by src/app or src/components`, 'Prove runtime registration/trigger or classify the declaration as non-operational', false);
-  }
+const declarationFiles = fs.existsSync(agentsDir)
+  ? fs.readdirSync(agentsDir).filter(f => f.endsWith('.agent.md')).sort()
+  : [];
+const declarationIds = declarationFiles.map(f => f.replace(/\.agent\.md$/, ''));
+const registryText = [
+  'src/lib/sfi/cognitive-runtime/registry.ts',
+  'src/lib/sfi/cognitive-runtime/convergedRegistry.ts',
+].filter(exists).map(read).join('\n');
+const executionText = exists('src/lib/sfi/cognitive-runtime/agentExecutionMap.ts')
+  ? read('src/lib/sfi/cognitive-runtime/agentExecutionMap.ts')
+  : '';
+const runtimeRegisteredIds = [...new Set([...registryText.matchAll(/\bid\s*:\s*['"]([a-z0-9_:-]+)['"]/g)].map(match => match[1]))].sort();
+const runtimeExecutableIds = [...new Set([...executionText.matchAll(/^\s*([a-z0-9_]+)\s*:\s*[A-Z][A-Za-z0-9_]*Agent\s*,?\s*$/gm)].map(match => match[1]))].sort();
+const runtimeExecutableSet = new Set(runtimeExecutableIds);
+const runtimeMissingExecutor = runtimeRegisteredIds.filter(id => !runtimeExecutableSet.has(id));
+for (const id of runtimeMissingExecutor) {
+  add(
+    `agent-runtime:${id}:executor-missing`,
+    'high',
+    'IMPLEMENTED_NOT_WIRED',
+    `${id} is present in the canonical Cognitive Runtime registry but has no executor in SFI_AGENT_EXECUTION_MAP`,
+    'Wire the registered runtime capability to the canonical execution map or explicitly remove/supersede the runtime registration with lineage',
+    false,
+  );
 }
+const normalizedRuntimeIds = new Set(runtimeRegisteredIds.map(id => id.replace(/_/g, '-')));
+const declarationOnlyIds = declarationIds.filter(id => !normalizedRuntimeIds.has(id));
+const agentAudit = {
+  contract: 'SFI-AGENT-RUNTIME-AUDIT-1.0',
+  declarationPlane: '.github/agents/*.agent.md',
+  runtimeRegistryOwner: 'SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY',
+  runtimeExecutionOwner: 'SFI_AGENT_EXECUTION_MAP',
+  runtimePassportOwner: 'agentPassports.ts',
+  declarationCount: declarationIds.length,
+  runtimeRegisteredIds,
+  runtimeExecutableIds,
+  runtimeMissingExecutor,
+  declarationOnlyIds,
+  declarationFilesDoNotImplyRuntimeRegistration: true,
+};
 
 // Self-reconstruction may observe, test and repair without ROOT, but ADD/PROMOTE remains sovereign.
 if (exists('src/lib/root/selfReconstruction.ts')) {
@@ -109,12 +147,13 @@ const report = {
   health: findings.some(f => f.severity === 'critical') ? 'CRITICAL' : findings.length ? 'DEGRADED' : 'PASS',
   findings,
   verification: commandResults,
+  agentAudit,
   mutationCandidates,
   nextAction: findings.length ? 'AUTONOMOUS_REPAIR_TRAJECTORY_REQUIRED' : 'CONTINUE_OBSERVATION',
 };
 fs.writeFileSync(path.join(outDir, 'report.json'), JSON.stringify(report, null, 2));
 
-const md = `# SFI · Institutional Self-Development Report\n\n**Contract:** SFI-SELF-DEVELOPMENT-1.0  \n**Generated:** ${now}  \n**State:** ${report.health}  \n**Epistemic class:** OBSERVED_REPOSITORY_STATE\n\n## OBSERVATION\n${findings.length ? findings.map(f => `- **${f.severity.toUpperCase()} · ${f.kind} · ${f.id}** — ${f.evidence}`).join('\n') : '- No deterministic defect was observed by this run.'}\n\n## EVIDENCE\n${commandResults.map(r => `- ${r.command}: ${r.ok ? 'PASS' : 'FAIL'}`).join('\n')}\n\n## HYPOTHESES / RIVAL / COUNTERFACTUAL\n- HYPOTHESIS: each finding represents a real implementation, wiring, operability, authority or assurance gap.\n- RIVAL: a finding may be a detector limitation; repair must prove the condition against executable state before mutation.\n- COUNTERFACTUAL: if the capability were fully operational, the corresponding deterministic detector and end-to-end assurance should pass without founder intervention.\n\n## ANALYSIS → RETURN → LEARN\n- Findings are candidates, never canon by inference.\n- A repair must be bounded, tested and independently observable.\n- Failed repair attempts remain evidence and must not be silently discarded.\n\n## ADD\n${mutationCandidates.length ? mutationCandidates.map(f => `- ROOT REVIEW REQUIRED AFTER VERIFIED REPAIR: ${f.id} — ${f.requiredAction}`).join('\n') : '- No institutional mutation is ready for ROOT.'}\n\n## AUTHORITY\nObservation, reconstruction, analysis, repair attempts, verification and report generation require **no ROOT gate**. Only verified **ADD/PROMOTE** mutations are presented to ROOT for ACCEPT / DENY / REQUIRE MORE EVIDENCE.\n`;
+const md = `# SFI · Institutional Self-Development Report\n\n**Contract:** SFI-SELF-DEVELOPMENT-1.0  \n**Generated:** ${now}  \n**State:** ${report.health}  \n**Epistemic class:** OBSERVED_REPOSITORY_STATE\n\n## OBSERVATION\n${findings.length ? findings.map(f => `- **${f.severity.toUpperCase()} · ${f.kind} · ${f.id}** — ${f.evidence}`).join('\n') : '- No deterministic defect was observed by this run.'}\n\n## AGENT RUNTIME AUDIT\n- Runtime registry owner: ${agentAudit.runtimeRegistryOwner}\n- Runtime execution owner: ${agentAudit.runtimeExecutionOwner}\n- Runtime passport owner: ${agentAudit.runtimePassportOwner}\n- Runtime registered: ${agentAudit.runtimeRegisteredIds.length}\n- Runtime executable: ${agentAudit.runtimeExecutableIds.length}\n- Runtime missing executor: ${agentAudit.runtimeMissingExecutor.length}\n- Repository operator/development declarations: ${agentAudit.declarationCount}\n- Declaration-only IDs: ${agentAudit.declarationOnlyIds.length}\n\n## EVIDENCE\n${commandResults.map(r => `- ${r.command}: ${r.ok ? 'PASS' : 'FAIL'}`).join('\n')}\n\n## HYPOTHESES / RIVAL / COUNTERFACTUAL\n- HYPOTHESIS: each finding represents a real implementation, wiring, operability, authority or assurance gap.\n- RIVAL: a finding may be a detector limitation; repair must prove the condition against executable state before mutation.\n- COUNTERFACTUAL: if the capability were fully operational, the corresponding deterministic detector and end-to-end assurance should pass without founder intervention.\n\n## ANALYSIS → RETURN → LEARN\n- Findings are candidates, never canon by inference.\n- A repair must be bounded, tested and independently observable.\n- Failed repair attempts remain evidence and must not be silently discarded.\n- Repository operator/development prompt files do not count as runtime implementation evidence.\n\n## ADD\n${mutationCandidates.length ? mutationCandidates.map(f => `- ROOT REVIEW REQUIRED AFTER VERIFIED REPAIR: ${f.id} — ${f.requiredAction}`).join('\n') : '- No institutional mutation is ready for ROOT.'}\n\n## AUTHORITY\nObservation, reconstruction, analysis, repair attempts, verification and report generation require **no ROOT gate**. Only verified **ADD/PROMOTE** mutations are presented to ROOT for ACCEPT / DENY / REQUIRE MORE EVIDENCE.\n`;
 fs.writeFileSync(path.join(outDir, 'report.md'), md);
-console.log(JSON.stringify({ ok: true, health: report.health, findings: findings.length, mutationCandidates: mutationCandidates.length, report: 'artifacts/self-development/report.json' }));
+console.log(JSON.stringify({ ok: true, health: report.health, findings: findings.length, mutationCandidates: mutationCandidates.length, runtimeRegistered: agentAudit.runtimeRegisteredIds.length, runtimeMissingExecutor: agentAudit.runtimeMissingExecutor.length, report: 'artifacts/self-development/report.json' }));
 process.exitCode = commandResults.some(r => !r.ok) ? 2 : 0;
