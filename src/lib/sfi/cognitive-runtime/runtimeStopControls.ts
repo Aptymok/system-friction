@@ -216,25 +216,20 @@ export function observeRuntimeModelTelemetry(context: KernelContext, capabilityI
   const node = activeNode(graph, capabilityId);
   const tokenUsage = graph.runtimeControls.usage.tokens;
   const tokenBound = graph.runtimeControls.bounds.maxObservedTokens;
+  let pendingStop: { reason: string; detail?: Record<string, unknown> } | null = null;
 
   if (inputTokens === null || outputTokens === null) {
     tokenUsage.unobservedCalls += 1;
     tokenUsage.observation = 'NOT_OBSERVED';
     tokenUsage.used = null;
     tokenUsage.remaining = null;
-    if (tokenBound !== null) {
-      const reason = stopGraph(graph, 'TOKEN_USAGE_NOT_OBSERVED_FOR_CONFIGURED_LIMIT', node?.nodeId ?? null, { maxObservedTokens: tokenBound });
-      return { tracked: true, stopped: true, reason } as const;
-    }
+    if (tokenBound !== null) pendingStop = { reason: 'TOKEN_USAGE_NOT_OBSERVED_FOR_CONFIGURED_LIMIT', detail: { maxObservedTokens: tokenBound } };
   } else if (tokenUsage.unobservedCalls === 0) {
     const next = (tokenUsage.used ?? 0) + inputTokens + outputTokens;
     tokenUsage.observation = 'OBSERVED';
     tokenUsage.used = next;
     tokenUsage.remaining = tokenBound === null ? null : Math.max(0, tokenBound - next);
-    if (tokenBound !== null && next >= tokenBound) {
-      const reason = stopGraph(graph, 'MAX_OBSERVED_TOKENS_REACHED', node?.nodeId ?? null, { used: next, max: tokenBound });
-      return { tracked: true, stopped: true, reason } as const;
-    }
+    if (tokenBound !== null && next >= tokenBound) pendingStop = { reason: 'MAX_OBSERVED_TOKENS_REACHED', detail: { used: next, max: tokenBound } };
   }
 
   const costUsage = graph.runtimeControls.usage.providerCost;
@@ -245,33 +240,37 @@ export function observeRuntimeModelTelemetry(context: KernelContext, capabilityI
     costUsage.used = null;
     costUsage.remaining = null;
     costUsage.currency = null;
-    if (costBound !== null) {
-      const reason = stopGraph(graph, 'PROVIDER_COST_NOT_OBSERVED_FOR_CONFIGURED_LIMIT', node?.nodeId ?? null, { maxObservedProviderCost: costBound });
-      return { tracked: true, stopped: true, reason } as const;
-    }
+    if (!pendingStop && costBound !== null) pendingStop = { reason: 'PROVIDER_COST_NOT_OBSERVED_FOR_CONFIGURED_LIMIT', detail: { maxObservedProviderCost: costBound } };
   } else if (costUsage.unobservedCalls === 0) {
     if (costBound !== null && costCurrency !== costBound.currency) {
-      const reason = stopGraph(graph, 'PROVIDER_COST_CURRENCY_MISMATCH', node?.nodeId ?? null, { observedCurrency: costCurrency, requiredCurrency: costBound.currency });
-      return { tracked: true, stopped: true, reason } as const;
-    }
-    if (costUsage.currency && costUsage.currency !== costCurrency) {
       costUsage.unobservedCalls += 1;
       costUsage.observation = 'NOT_OBSERVED';
       costUsage.used = null;
       costUsage.remaining = null;
       costUsage.currency = null;
-      const reason = stopGraph(graph, 'PROVIDER_COST_CURRENCY_CHANGED_WITHIN_TRAJECTORY', node?.nodeId ?? null);
-      return { tracked: true, stopped: true, reason } as const;
+      if (!pendingStop) pendingStop = { reason: 'PROVIDER_COST_CURRENCY_MISMATCH', detail: { observedCurrency: costCurrency, requiredCurrency: costBound.currency } };
+    } else if (costUsage.currency && costUsage.currency !== costCurrency) {
+      costUsage.unobservedCalls += 1;
+      costUsage.observation = 'NOT_OBSERVED';
+      costUsage.used = null;
+      costUsage.remaining = null;
+      costUsage.currency = null;
+      if (!pendingStop) pendingStop = { reason: 'PROVIDER_COST_CURRENCY_CHANGED_WITHIN_TRAJECTORY' };
+    } else {
+      const next = (costUsage.used ?? 0) + costAmount;
+      costUsage.observation = 'OBSERVED';
+      costUsage.used = next;
+      costUsage.currency = costCurrency;
+      costUsage.remaining = costBound === null ? null : Math.max(0, costBound.amount - next);
+      if (!pendingStop && costBound !== null && next >= costBound.amount) {
+        pendingStop = { reason: 'MAX_OBSERVED_PROVIDER_COST_REACHED', detail: { used: next, max: costBound.amount, currency: costBound.currency } };
+      }
     }
-    const next = (costUsage.used ?? 0) + costAmount;
-    costUsage.observation = 'OBSERVED';
-    costUsage.used = next;
-    costUsage.currency = costCurrency;
-    costUsage.remaining = costBound === null ? null : Math.max(0, costBound.amount - next);
-    if (costBound !== null && next >= costBound.amount) {
-      const reason = stopGraph(graph, 'MAX_OBSERVED_PROVIDER_COST_REACHED', node?.nodeId ?? null, { used: next, max: costBound.amount, currency: costBound.currency });
-      return { tracked: true, stopped: true, reason } as const;
-    }
+  }
+
+  if (pendingStop) {
+    const reason = stopGraph(graph, pendingStop.reason, node?.nodeId ?? null, pendingStop.detail ?? {});
+    return { tracked: true, stopped: true, reason } as const;
   }
 
   assertRuntimeControls(graph);
