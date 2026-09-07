@@ -431,7 +431,9 @@ export async function executeCognitiveCycle(
       }
       currentContext = contextWithTaskGraph(currentContext, graph);
 
-      if (result.executed) {
+      // STOP is terminal for new trajectory mutation. Finalize the already-started node,
+      // then never enter capability negotiation once a bound has stopped the graph.
+      if (result.executed && !graph.stop.stopped) {
         const adaptive = await executeAdaptiveCapabilityRequestsForNode({
           context: currentContext,
           parentNodeId: graphNode.nodeId,
