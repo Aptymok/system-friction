@@ -59,7 +59,18 @@ function graph(context: KernelContext) {
 }
 
 function setTelemetry(context: KernelContext, values: Record<string, unknown>) {
-  context.metadata = { ...context.metadata, llmRuntime: values };
+  const prior = context.metadata?.llmRuntime && typeof context.metadata.llmRuntime === 'object' && !Array.isArray(context.metadata.llmRuntime)
+    ? context.metadata.llmRuntime as Record<string, unknown>
+    : {};
+  const callId = typeof prior.runtimeModelCallId === 'string' ? prior.runtimeModelCallId : null;
+  context.metadata = {
+    ...context.metadata,
+    llmRuntime: {
+      ...prior,
+      ...values,
+      telemetryRuntimeModelCallId: callId,
+    },
+  };
 }
 
 function startMs(context: KernelContext) {
