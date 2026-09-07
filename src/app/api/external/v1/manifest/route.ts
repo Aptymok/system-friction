@@ -8,7 +8,7 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     name: 'SFI External Agent Gateway',
-    version: '1.12.0',
+    version: '1.13.0',
     auth: 'OAuth 2.0 authorization_code (user-bound) or X-SFI-Token/Bearer static token',
     base: '/api/external/v1',
     discovery: {
@@ -23,6 +23,8 @@ export async function GET() {
       privacy: '/privacy',
       oauthAuthorize: '/api/oauth/authorize',
       oauthToken: '/api/oauth/token',
+      publicMcp: '/api/mcp/public',
+      authenticatedMcp: '/api/mcp/authenticated',
     },
     oauth: {
       flow: 'authorization_code',
@@ -39,12 +41,14 @@ export async function GET() {
       scopeOmission: 'Scope omission defaults to the authenticated principal configured set.',
       studioIdentityBoundary: 'Studio operations require user-bound OAuth and resolve ownership from token subject_id; shared/static tokens cannot impersonate an owner.',
       cognitiveExecutionBoundary: 'Institutional cognitive-agent execution requires user-bound OAuth, execute scope and tenant sfi. Static tokens and personal user:<subject_id> tenants may not invoke this execution plane.',
+      machineAdapterBinding: 'New OAuth access tokens retain the verified client_id. The authenticated machine adapter requires the token-bound subject_id + client_id + scope and rejects static tokens or legacy OAuth tokens without a client binding.',
     },
     operations: [
       { id: 'bootstrap', method: 'GET', path: '/bootstrap', scope: 'observe', tenant: 'institutional', description: 'Hydrate an authorized AI client with a versioned SFI cognitive contract, sealed Cognitive Spine snapshot, bounded memory/decisions, promoted learning and current human/analysis policies.' },
       { id: 'console', method: 'GET', path: '/console', scope: 'observe', tenant: 'institutional', description: 'Read the compact governed machine console.' },
       { id: 'cognitive-runtime-read', method: 'GET', path: '/cognitive-runtime', scope: 'observe', tenant: 'institutional', contract: 'SFI-EXTERNAL-COGNITIVE-RUNTIME-1.0', description: 'Read versioned execution-centric agent passports, typed Execution Contracts, multidimensional state, exact execution history and bounded GenAI assurance from the canonical runtime/event plane.' },
       { id: 'cognitive-runtime-execute', method: 'POST', path: '/cognitive-runtime', scope: 'execute', tenant: 'institutional-user-bound-oauth', contract: 'SFI-MANUAL-COGNITIVE-EXECUTION-1.0', body: { operation: 'execute', required: ['agentId', 'purpose', 'anchors[]', 'targets[]'], legacyShapeAccepted: false }, description: 'Execute one typed cognitive-agent contract through the canonical runtime. Requires user-bound institutional OAuth and preserves target membership, evidence, authority and event-lineage boundaries.' },
+      { id: 'authenticated-governed-machine', method: 'POST', path: '/api/mcp/authenticated', scope: 'execute for tools/call; observe for discovery', tenant: 'institutional-user-bound-oauth', contract: 'SFI-AUTHENTICATED-GOVERNED-MACHINE-ADAPTER-1.0', grantContract: 'SFI-CAPABILITY-GRANT-1.0', description: 'Authenticated MCP/JSON-RPC projection over the existing OAuth gateway and canonical cognitive execution owner. Every adaptable/executable tools/call requires an ACTIVE ephemeral grant whose capability, resource, action, authority, TTL, parent lineage and confirmation policy are revalidated. No external side effect or canonical promotion is exposed.' },
       { id: 'execution-contract', method: 'POST', path: '/execution-contract', scope: 'observe', tenant: 'institutional', description: 'Describe an object and obtain the governed measurement contract without uploading raw content.' },
       { id: 'structured-result', method: 'POST', path: '/result', scope: 'lab:write', tenant: 'institutional', description: 'Return structured measurements and provenance without raw-object persistence.' },
       { id: 'signal-status', method: 'GET', path: '/signal', scope: 'observe', tenant: 'institutional', description: 'Read open cycles or one canonical cycle history.' },
@@ -72,6 +76,48 @@ export async function GET() {
       { id: 'studio-content', method: 'POST', path: '/studio', scope: 'studio:content', tenant: 'owner', body: { operation: 'content' }, description: 'Issue a short-lived signed URL for one owned object.' },
       { id: 'studio-analyze', method: 'POST', path: '/studio', scope: 'studio:run', tenant: 'owner', body: { operation: 'analyze' }, description: 'Run the existing server-side analyzer for owned audio/video.' },
     ],
+    machineInterfaces: {
+      public: {
+        contract: 'SFI-PUBLIC-MCP-READONLY-1.0',
+        serverId: 'org.systemfriction/public',
+        endpoint: '/api/mcp/public',
+        authority: 'PUBLIC_READ_ONLY',
+        authenticatedExecutionInherited: false,
+      },
+      authenticated: {
+        contract: 'SFI-AUTHENTICATED-GOVERNED-MACHINE-ADAPTER-1.0',
+        serverId: 'org.systemfriction/authenticated',
+        endpoint: '/api/mcp/authenticated',
+        protocolVersion: '2026-07-28',
+        oauth: {
+          userBoundRequired: true,
+          clientBindingRequired: true,
+          institutionalTenantRequired: true,
+          staticTokenAllowed: false,
+          executeScopeRequiredForToolsCall: true,
+        },
+        grant: {
+          contract: 'SFI-CAPABILITY-GRANT-1.0',
+          activeRequired: true,
+          parentCannotBeExpanded: true,
+          rawNonceAccepted: false,
+          rawNoncePersisted: false,
+          replayAllowed: false,
+        },
+        execution: {
+          owner: 'SFI-MANUAL-COGNITIVE-EXECUTION-1.1 -> runtimeAgentExecutor -> agentExecutionMap',
+          eventOwner: 'epistemic_events',
+          externalSideEffects: false,
+          canonicalPromotionAllowed: false,
+          modelCapabilityImpliesAuthority: false,
+          returnFabricationAllowed: false,
+        },
+        publication: {
+          externalRegistryReceipt: null,
+          claimedPublished: false,
+        },
+      },
+    },
     storage: {
       defaultObjectStorage: 'REFERENCE_ONLY',
       rawObjectPersistence: false,
