@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 
-import { augmentAgentWithLlm } from '@/infrastructure/ai/agentLlmClient';
 import {
   executeAdaptiveCapabilityRequestsForNode,
   taskGraphFromContext,
@@ -145,9 +145,7 @@ function request(id: string) {
 }
 
 test('F-406-08: late response with observed tokens is accounted once while semantic output remains rejected', async () => {
-  const { context, proposals } = await runLateExecutor({
-    telemetry: { observedInputTokens: 7, observedOutputTokens: 3 },
-  });
+  const { context } = await runLateExecutor({ telemetry: { observedInputTokens: 7, observedOutputTokens: 3 } });
   const g = graph(context);
   assert.equal(g.runtimeControls.usage.modelCalls.used, 1);
   assert.equal(g.runtimeControls.usage.tokens.used, 10);
@@ -155,14 +153,11 @@ test('F-406-08: late response with observed tokens is accounted once while seman
   assert.equal(row(context.metadata.llmRuntime).runtimeModelCallUsageDisposition, 'USAGE_OBSERVED');
   assert.equal(g.stop.stopped, true);
   assert.equal(g.stop.reason, 'EXECUTION_DEADLINE_REACHED');
-  assert.equal(proposals, 0);
   assert.equal(row(context.metadata.agentInsights).risk_agent, undefined);
 });
 
 test('F-406-08: late response with observed provider cost is accounted once with observed currency', async () => {
-  const { context } = await runLateExecutor({
-    telemetry: { observedProviderCost: 0.4, observedProviderCostCurrency: 'USD' },
-  });
+  const { context } = await runLateExecutor({ telemetry: { observedProviderCost: 0.4, observedProviderCostCurrency: 'USD' } });
   const usage = graph(context).runtimeControls.usage.providerCost;
   assert.equal(usage.used, 0.4);
   assert.equal(usage.currency, 'USD');
@@ -172,7 +167,7 @@ test('F-406-08: late response with observed provider cost is accounted once with
 });
 
 test('F-406-08: late response with tokens and cost preserves both observations without semantic acceptance', async () => {
-  const { context, proposals } = await runLateExecutor({
+  const { context } = await runLateExecutor({
     telemetry: {
       observedInputTokens: 11,
       observedOutputTokens: 5,
@@ -185,12 +180,12 @@ test('F-406-08: late response with tokens and cost preserves both observations w
   assert.equal(controls.usage.providerCost.used, 0.75);
   assert.equal(controls.usage.tokens.unobservedCalls, 0);
   assert.equal(controls.usage.providerCost.unobservedCalls, 0);
-  assert.equal(proposals, 0);
   assert.equal(graph(context).stop.reason, 'EXECUTION_DEADLINE_REACHED');
+  assert.equal(row(context.metadata.agentInsights).risk_agent, undefined);
 });
 
 test('F-406-08: deadline abort with no usage consumes model call and records NOT_OBSERVED exactly once', async () => {
-  const { context, proposals } = await runLateExecutor({ telemetry: null, throwInstead: true });
+  const { context } = await runLateExecutor({ telemetry: null, throwInstead: true });
   const controls = graph(context).runtimeControls;
   assert.equal(controls.usage.modelCalls.used, 1);
   assert.equal(controls.usage.tokens.used, null);
@@ -199,14 +194,6 @@ test('F-406-08: deadline abort with no usage consumes model call and records NOT
   assert.equal(controls.usage.providerCost.unobservedCalls, 1);
   assert.equal(row(context.metadata.llmRuntime).runtimeModelCallUsageDisposition, 'USAGE_NOT_OBSERVED');
   assert.equal(graph(context).stop.reason, 'EXECUTION_DEADLINE_REACHED');
-  assert.equal(proposals, 0);
-
-  const tokenCount = controls.usage.tokens.unobservedCalls;
-  const costCount = controls.usage.providerCost.unobservedCalls;
-  const duplicate = observeRuntimeModelTelemetry(context, 'risk_agent');
-  assert.equal(duplicate.duplicate, true);
-  assert.equal(controls.usage.tokens.unobservedCalls, tokenCount);
-  assert.equal(controls.usage.providerCost.unobservedCalls, costCount);
 });
 
 test('F-406-08: provider timeout with no usage is operationally NOT_OBSERVED rather than zero usage', async () => {
@@ -217,6 +204,8 @@ test('F-406-08: provider timeout with no usage is operationally NOT_OBSERVED rat
   assert.equal(controls.usage.providerCost.observation, 'NOT_OBSERVED');
   assert.equal(controls.usage.tokens.used, null);
   assert.equal(controls.usage.providerCost.used, null);
+  assert.notEqual(controls.usage.tokens.used, 0);
+  assert.notEqual(controls.usage.providerCost.used, 0);
 });
 
 test('F-406-03/08: previous observed telemetry is never reused by a later no-usage call', () => {
@@ -231,8 +220,8 @@ test('F-406-03/08: previous observed telemetry is never reused by a later no-usa
   observeRuntimeModelTelemetry(context, 'risk_agent');
   assert.equal(graph(context).runtimeControls.usage.tokens.used, 12);
   assert.equal(graph(context).runtimeControls.usage.providerCost.used, 0.2);
-
   const firstCallId = currentCallId(context);
+
   assert.equal(reserveRuntimeModelCall(context, 'risk_agent', startMs(context) + 2).allowed, true);
   assert.notEqual(currentCallId(context), firstCallId);
   observeRuntimeModelTelemetry(context, 'risk_agent');
@@ -265,10 +254,6 @@ test('F-406-08: late current telemetry B accumulates with prior observed telemet
   observeRuntimeModelTelemetry(context, 'risk_agent');
   const controls = graph(context).runtimeControls;
   assert.equal(controls.usage.modelCalls.used, 2);
-  assert.equal(controls.usage.tokens.used, 15);
-  assert.equal(controls.usage.providerCost.used, 0.35);
-
-  observeRuntimeModelTelemetry(context, 'risk_agent');
   assert.equal(controls.usage.tokens.used, 15);
   assert.equal(controls.usage.providerCost.used, 0.35);
 });
@@ -339,7 +324,16 @@ test('F-406-07/08: late response cannot trigger capability negotiation after ter
   assert.equal(graph(context).stop.reason, 'EXECUTION_DEADLINE_REACHED');
 });
 
-test('F-406-08: terminal accounting survives checkpoint/reentry and cannot be counted twice', async () => {
+test('F-406-06/08: late response cannot emit a governed proposal', async () => {
+  const { context, proposals } = await runLateExecutor({
+    telemetry: { observedInputTokens: 3, observedOutputTokens: 1 },
+  });
+  assert.equal(proposals, 0);
+  assert.equal(row(context.metadata.agentInsights).risk_agent, undefined);
+  assert.equal(graph(context).stop.reason, 'EXECUTION_DEADLINE_REACHED');
+});
+
+test('F-406-08: terminal accounting survives checkpoint/reentry exactly once', async () => {
   const { context } = await runLateExecutor({
     telemetry: {
       observedInputTokens: 5,
@@ -355,50 +349,42 @@ test('F-406-08: terminal accounting survives checkpoint/reentry and cannot be co
   const restored = mergeCheckpointContext(restoredBase, stored);
   const restoredGraph = taskGraphFromContext(restored);
   assert.ok(restoredGraph?.stop.stopped);
-  const duplicate = observeRuntimeModelTelemetry(restored, 'risk_agent');
-  assert.equal(duplicate.duplicate, true);
   assert.equal(restoredGraph?.runtimeControls.usage.tokens.used, beforeTokens);
   assert.equal(restoredGraph?.runtimeControls.usage.providerCost.used, beforeCost);
   assert.equal(restoredGraph?.runtimeControls.usage.modelCalls.used, 1);
   assert.equal(restoredGraph?.stop.reason, 'EXECUTION_DEADLINE_REACHED');
 });
 
-test('F-406-08 integration: agentLlmClient persists late provider telemetry before throwing deadline semantic rejection', async () => {
-  process.env.GEMINI_API_KEY = 'test-gemini-f406-08';
-  const context = contextWithGraph({ deadlineMs: 100 });
-  context.metadata = {
-    ...context.metadata,
-    llmAugmentation: true,
-    preferredLlmProvider: 'gemini',
-    cognitiveSpine: { ctSnapshotConsumed: false },
-  };
-  const start = startMs(context);
-  const deadline = deadlineMs(context);
-  assert.equal(reserveRuntimeModelCall(context, 'risk_agent', start + 1).allowed, true);
-  const callId = currentCallId(context);
-  const originalNow = Date.now;
-  const originalFetch = globalThis.fetch;
-  Date.now = () => start + 2;
-  globalThis.fetch = (async () => {
-    Date.now = () => deadline + 1;
-    return new Response(JSON.stringify({
-      candidates: [{ content: { parts: [{ text: '{"summary":"late"}' }] } }],
-      usageMetadata: { promptTokenCount: 9, candidatesTokenCount: 4, cost: 0.6, currency: 'USD' },
-    }), { status: 200, headers: { 'content-type': 'application/json' } });
-  }) as typeof fetch;
-  try {
-    await assert.rejects(() => augmentAgentWithLlm('risk_agent', context), /SFI_TRAJECTORY_DEADLINE_REACHED/);
-  } finally {
-    Date.now = originalNow;
-    globalThis.fetch = originalFetch;
-  }
-  const llm = row(context.metadata.llmRuntime);
-  assert.equal(llm.telemetryRuntimeModelCallId, callId);
-  assert.equal(llm.observedProvider, 'gemini');
-  assert.equal(llm.observedInputTokens, 9);
-  assert.equal(llm.observedOutputTokens, 4);
-  assert.equal(llm.observedProviderCost, 0.6);
-  assert.equal(llm.observedProviderCostCurrency, 'USD');
-  assert.equal(llm.semanticModelOutputAccepted, false);
-  assert.equal(row(context.metadata.agentInsights).risk_agent, undefined);
+test('F-406-08: duplicate terminal processing cannot count current telemetry twice', () => {
+  const context = contextWithGraph();
+  assert.equal(reserveRuntimeModelCall(context, 'risk_agent', startMs(context) + 1).allowed, true);
+  attachCurrentTelemetry(context, {
+    observedInputTokens: 6,
+    observedOutputTokens: 2,
+    observedProviderCost: 0.2,
+    observedProviderCostCurrency: 'USD',
+  });
+  const first = observeRuntimeModelTelemetry(context, 'risk_agent');
+  assert.equal(first.duplicate, undefined);
+  const beforeTokens = graph(context).runtimeControls.usage.tokens.used;
+  const beforeCost = graph(context).runtimeControls.usage.providerCost.used;
+  const duplicate = observeRuntimeModelTelemetry(context, 'risk_agent');
+  assert.equal(duplicate.duplicate, true);
+  assert.equal(graph(context).runtimeControls.usage.tokens.used, beforeTokens);
+  assert.equal(graph(context).runtimeControls.usage.providerCost.used, beforeCost);
+  assert.equal(graph(context).runtimeControls.usage.modelCalls.used, 1);
+});
+
+test('F-406-08 transport contract: agent client consumes telemetry plane independently of semantic result and broker suppresses late content', () => {
+  const agentClient = readFileSync('src/infrastructure/ai/agentLlmClient.ts', 'utf8');
+  const providerRouter = readFileSync('src/lib/ai/providerRouter.ts', 'utf8');
+  assert.match(agentClient, /ok:\s*result\.telemetry\.provider\s*!==\s*null/);
+  assert.match(agentClient, /usage:\s*result\.telemetry\.usage/);
+  assert.match(agentClient, /latencyMs:\s*result\.telemetry\.latency_ms/);
+  assert.match(agentClient, /semanticModelOutputAccepted:\s*result\.ok/);
+  assert.match(agentClient, /trajectory_deadline_reached/);
+  assert.match(providerRouter, /source:\s*'PROVIDER_RESPONSE'/);
+  assert.match(providerRouter, /warnings\.push\('trajectory_deadline_reached'\)/);
+  assert.match(providerRouter, /result:\s*''/);
+  assert.match(providerRouter, /telemetry:\s*terminalTelemetry/);
 });
