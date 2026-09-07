@@ -343,19 +343,44 @@ export async function augmentAgentWithLlm(agentId: string, context: KernelContex
     maxTokens: MAX_AGENT_OUTPUT_TOKENS,
     deadlineAtMs,
   });
+
+  const telemetry = normalizeObservedGenAiTelemetry({
+    ok: result.telemetry.provider !== null,
+    provider: result.telemetry.provider ?? 'degraded',
+    model: result.telemetry.model ?? 'unavailable',
+    usage: result.telemetry.usage,
+    latencyMs: result.telemetry.latency_ms,
+  });
+  const telemetryOpenTelemetry = mapGenAiTelemetryToOpenTelemetry(telemetry);
+  const generatedAt = new Date().toISOString();
+  const priorLlmRuntime = record(context.metadata?.llmRuntime);
+  const runtimeModelCallId = typeof priorLlmRuntime.runtimeModelCallId === 'string' ? priorLlmRuntime.runtimeModelCallId : null;
+
+  context.metadata = {
+    ...context.metadata,
+    llmRuntime: {
+      ...priorLlmRuntime,
+      lastProvider: telemetry.provider.value,
+      lastModel: telemetry.model.value,
+      lastAgentId: agentId,
+      lastStatus: result.ok ? 'COMPLETE' : result.warnings.includes('trajectory_deadline_reached') ? 'DEADLINE_REJECTED' : 'DEGRADED',
+      modelRequirements: requirements,
+      explicitProviderOverride: requestedProvider ?? null,
+      maxOutputTokens: MAX_AGENT_OUTPUT_TOKENS,
+      ...compactObservedGenAiTelemetry(telemetry),
+      telemetryOpenTelemetry,
+      telemetryRuntimeModelCallId: runtimeModelCallId,
+      modelTelemetrySource: result.telemetry.source,
+      semanticModelOutputAccepted: result.ok,
+      updatedAt: generatedAt,
+    },
+  };
+
   if (result.warnings.includes('trajectory_deadline_reached') || (deadlineAtMs !== undefined && Date.now() >= deadlineAtMs)) {
     throw new Error(SFI_TRAJECTORY_DEADLINE_ERROR);
   }
-  const telemetry = normalizeObservedGenAiTelemetry({
-    ok: result.ok,
-    provider: result.provider,
-    model: result.model,
-    usage: result.usage,
-    latencyMs: result.latency_ms,
-  });
-  const telemetryOpenTelemetry = mapGenAiTelemetryToOpenTelemetry(telemetry);
+
   const parsed = result.ok ? parseInsight(result.result) : null;
-  const generatedAt = new Date().toISOString();
   const insight: AgentInsight = parsed
     ? {
         status: 'COMPLETE',
@@ -426,6 +451,9 @@ export async function augmentAgentWithLlm(agentId: string, context: KernelContex
       maxOutputTokens: MAX_AGENT_OUTPUT_TOKENS,
       ...compactObservedGenAiTelemetry(telemetry),
       telemetryOpenTelemetry,
+      telemetryRuntimeModelCallId: runtimeModelCallId,
+      modelTelemetrySource: result.telemetry.source,
+      semanticModelOutputAccepted: result.ok,
       updatedAt: generatedAt,
     },
   };
