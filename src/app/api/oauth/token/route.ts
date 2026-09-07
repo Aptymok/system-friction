@@ -117,6 +117,7 @@ export async function POST(req: NextRequest) {
   const accessToken = mintExternalAccessToken({
     subjectId: String(found.data.subject_id),
     actorId: String(found.data.actor_id),
+    clientId,
     label: found.data.label ? String(found.data.label) : undefined,
     role: String(found.data.role || 'agent'),
     tenantId: String(found.data.tenant_id || 'sfi'),
