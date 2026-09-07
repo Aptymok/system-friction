@@ -5,17 +5,12 @@ on:
     branches:
       - main
     paths:
-      - .github/workflows/sfi-vercel-prebuilt-production.yml
-      - package.json
-      - package-lock.json
-      - next.config.*
-      - tsconfig.json
-      - vercel.json
-      - 'public/**'
-      - 'src/**'
-      - 'scripts/merge-openapi-*.mjs'
+      - .github/sfi-production-deploy-trigger
   workflow_dispatch:
 
+# Production deploy is deliberately decoupled from ordinary implementation merges.
+# A release is started only by explicit workflow dispatch or by changing the
+# dedicated deploy-trigger marker after SFI-00 has an exact clean canonical HEAD.
 permissions:
   contents: read
 
