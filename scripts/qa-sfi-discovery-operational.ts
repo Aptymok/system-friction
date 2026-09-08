@@ -13,6 +13,8 @@ async function main() {
   const contractLock = await text('docs/program/SFI-CONTRACT-LOCK.md');
   const worldCaseContract = await text('docs/ROOT_WORLD_CASE_AND_DISCOVERY_ENGINE.md');
   const worldSignalObserver = await text('src/lib/world-observatory/worldSignalObserverAgent.ts');
+  const worldSignalRunner = await text('scripts/run-world-signal-observer-agent.ts');
+  const worldSignalWorkflow = await text('.github/workflows/sfi-world-signal-observer.yml');
   const worldCycle = await text('src/lib/world-observatory/worldCycle.ts');
   const worldCron = await text('src/app/api/cron/world-observatory/route.ts');
   const worldReobserve = await text('src/app/api/field/map/world/reobserve/route.ts');
@@ -104,9 +106,38 @@ async function main() {
   assert(worldReobserve.includes('runWorldHypothesisCycle'), 'human reobserve hypothesis owner must remain explicit and separate');
   assert(worldReobserve.includes('runWorldCalibrationCycle'), 'human reobserve calibration owner must remain explicit and separate');
 
+  // Controlled executable proof: main-only explicit observation smoke, no hypothesis/case/canon writer.
+  for (const token of [
+    'executeWorldSignalObserverAgent',
+    "SFI-WORLD-SIGNAL-OBSERVER-EXECUTION-1.0",
+    "result.state === 'OBSERVED_WORLD'",
+    'observation.observed > 0',
+    'observation.persisted > 0',
+    'observation.activeSourceCount > 0',
+    'receipt.json',
+    'returnCondition',
+  ]) assert(worldSignalRunner.includes(token), `world_signal_observer_runner_missing:${token}`);
+  assert(!worldSignalRunner.includes('runWorldHypothesisCycle'), 'execution proof must not generate hypotheses');
+  assert(!worldSignalRunner.includes('runWorldCalibrationCycle'), 'execution proof must not calibrate hypotheses');
+
+  for (const token of [
+    'name: SFI World Signal Observer',
+    'workflow_dispatch:',
+    ".github/sfi-world-signal-observer-trigger",
+    'SFI_WORLD_SIGNAL_OBSERVER_REQUEST=ISSUE_154',
+    'SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}',
+    'npx tsx scripts/run-world-signal-observer-agent.ts',
+    'actions/upload-artifact@v4',
+    'Authority: `OBSERVE`',
+    'Hypothesis promotion: **NOT PERFORMED BY THIS AGENT**',
+  ]) assert(worldSignalWorkflow.includes(token), `world_signal_observer_workflow_missing:${token}`);
+  assert(!worldSignalWorkflow.includes('schedule:'), 'WorldSignalObserverAgent proof must not introduce a new autonomous timer');
+  assert(!worldSignalWorkflow.includes('pull_request:'), 'WorldSignalObserverAgent proof must not write live World data from PRs');
+  assert(!worldSignalWorkflow.includes('runWorldHypothesisCycle'), 'WorldSignalObserverAgent proof workflow must not own hypothesis generation');
+
   console.log(JSON.stringify({
     ok: true,
-    contract: 'SFI-DISCOVERY-INTEGRITY-1.1',
+    contract: 'SFI-DISCOVERY-INTEGRITY-1.2',
     modes: 3,
     metricFamilies: 7,
     falseZero: true,
@@ -120,8 +151,10 @@ async function main() {
     durableQueryRuns: true,
     worldSignalObserver: {
       implemented: true,
+      wired: true,
       canonicalWriterReused: true,
       cognitiveRegistryUnchanged: true,
+      controlledExecutionReceipt: true,
       automaticHypothesisPromotion: false,
       automaticCaseQualification: false,
       automaticPublication: false,
