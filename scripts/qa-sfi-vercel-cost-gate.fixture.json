@@ -1,0 +1,5 @@
+{
+  "contract": "SFI-VERCEL-COST-GATE-1.0",
+  "automaticGitDeployments": false,
+  "productionDeployment": "EXPLICIT_TRIGGER_ONLY"
+}
