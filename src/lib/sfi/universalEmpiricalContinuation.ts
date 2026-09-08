@@ -8,6 +8,7 @@ import {
   readUniversalLearningCycleState,
 } from '@/lib/sfi/universalLearningQuarantine';
 import {
+  closeUniversalCycle,
   readUniversalCycleHistory,
   type UniversalCycleHistory,
 } from '@/lib/sfi/universalSignalCycle';
@@ -429,61 +430,56 @@ async function continueOne(cycleId: string) {
     return { cycleId, state: 'CLOSURE_NOT_READY', missing: closureAssessment.missing, closureAssessment };
   }
 
-  const recommendation = latestNamed(history, 'SFI_UNIVERSAL_CLOSURE_RECOMMENDED');
-  const denial = latestNamed(history, 'SFI_UNIVERSAL_REPORT_DENIED_BY_USER');
-  const contrastSequence = sequence(latestContrast);
-  const recommendationSequence = sequence(recommendation);
-  const denialSequence = sequence(denial);
-
-  if (recommendationSequence > contrastSequence && recommendationSequence > denialSequence) {
-    return {
-      cycleId,
-      state: 'AWAITING_USER_CLOSE',
-      recommendationEventId: text(recommendation.event_id),
-      classification: text(contrastPayload.classification),
-      closureAssessment,
-    };
-  }
-
-  if (denialSequence > recommendationSequence && denialSequence > contrastSequence) {
-    return {
-      cycleId,
-      state: 'REPORT_DENIED_AWAITING_NEW_EVIDENCE',
-      denialEventId: text(denial.event_id),
-      classification: text(contrastPayload.classification),
-    };
-  }
-
   const evidenceRefs = strings(contrastPayload.returnEvidenceRefs);
-  const recommendationEvent = await appendEpistemicEvent({
-    eventName: 'SFI_UNIVERSAL_CLOSURE_RECOMMENDED',
-    epistemicClass: 'derived',
-    confidence: 1,
-    payload: {
-      cycleId,
-      actorId: 'sfi_empirical_continuation',
-      tenantId,
-      reason: 'EMPIRICAL_RETURN_CONTRAST_COMPLETE',
-      closure: closureAssessment.envelope,
-      reportState: 'READY_FOR_USER_DECISION',
-      finalClosureAuthority: 'AUTHENTICATED_USER',
-      autonomousContinuation: false,
-      epistemicBoundary: 'SFI may determine that the methodological work is ready for closure, but it cannot close the report/cycle. Final closure requires an explicit authenticated user decision. Closure still does not canonize the conclusion as permanent truth.',
-    },
-    occurredAt: new Date().toISOString(),
-    source: { sourceId: 'sfi_empirical_continuation', sourceType: 'empirical_closure_recommendation' },
-    logbookId: `universal-cycle:${cycleId}`,
-    lineage: [text(latestContrast.event_id), ...evidenceRefs].filter((item): item is string => Boolean(item)),
-  });
-  if (!recommendationEvent.ok) return { cycleId, state: 'CLOSURE_RECOMMENDATION_PERSIST_FAILED', error: recommendationEvent.error };
+  const recommendation = latestNamed(history, 'SFI_UNIVERSAL_CLOSURE_RECOMMENDED');
+  const contrastSequence = sequence(latestContrast);
+  let recommendationEventId = sequence(recommendation) > contrastSequence ? text(recommendation.event_id) : null;
 
+  if (!recommendationEventId) {
+    const recommendationEvent = await appendEpistemicEvent({
+      eventName: 'SFI_UNIVERSAL_CLOSURE_RECOMMENDED',
+      epistemicClass: 'derived',
+      confidence: 1,
+      payload: {
+        cycleId,
+        actorId: 'sfi_empirical_continuation',
+        tenantId,
+        reason: 'EMPIRICAL_RETURN_CONTRAST_COMPLETE',
+        closure: closureAssessment.envelope,
+        reportState: 'AUTO_CLOSE_READY',
+        finalClosureAuthority: 'SFI_EXISTING_AUTHORITY',
+        autonomousContinuation: true,
+        epistemicBoundary: 'SFI may close a methodologically complete cycle under existing authority. Closure records completion only; it does not publish, promote learning, canonize a conclusion, create a capability or expand authority.',
+      },
+      occurredAt: new Date().toISOString(),
+      source: { sourceId: 'sfi_empirical_continuation', sourceType: 'empirical_closure_recommendation' },
+      logbookId: `universal-cycle:${cycleId}`,
+      lineage: [text(latestContrast.event_id), ...evidenceRefs].filter((item): item is string => Boolean(item)),
+    });
+    if (!recommendationEvent.ok) return { cycleId, state: 'CLOSURE_RECOMMENDATION_PERSIST_FAILED', error: recommendationEvent.error };
+    recommendationEventId = String(recommendationEvent.data.event_id ?? '') || null;
+  }
+
+  const closed = await closeUniversalCycle({
+    cycleId,
+    reason: 'EMPIRICAL_RETURN_CONTRAST_COMPLETE_AUTO_CLOSE',
+    evidenceRefs: [recommendationEventId, text(latestContrast.event_id), ...evidenceRefs].filter((item): item is string => Boolean(item)),
+  }, 'sfi_empirical_continuation', tenantId);
+  if (!closed.ok) return { cycleId, state: 'CLOSURE_FAILED', error: closed.error, closureAssessment };
+
+  history = await readUniversalCycleHistory(cycleId);
+  if (!history.ok) return { cycleId, state: 'POST_CLOSE_HISTORY_UNAVAILABLE', error: history.error };
+  const learning = await finalizeLearningIfEligible(cycleId, tenantId, history);
   return {
     cycleId,
-    state: 'AWAITING_USER_CLOSE',
+    state: 'CLOSED_AUTONOMOUSLY',
     contrastEventId: text(latestContrast.event_id),
-    recommendationEventId: String(recommendationEvent.data.event_id ?? ''),
+    recommendationEventId,
+    closureEventId: String(closed.data.event_id ?? ''),
     classification: text(contrastPayload.classification),
     closureAssessment,
+    learning,
+    authorityBoundary: 'ROUTINE_CLOSE_WITHIN_EXISTING_AUTHORITY; LEARNING_PROMOTION_REMAINS_ROOT_GATED',
   };
 }
 
@@ -518,6 +514,6 @@ export async function runUniversalEmpiricalContinuation(input: { limit?: number;
     processed: results.length,
     requestedCycleId: requestedCycleId ?? null,
     results,
-    rule: 'A real evidence-linked RETURN may advance automatically through AI-assisted contrast and closure assessment. SFI may recommend closure but cannot close the cycle/report; an authenticated user must accept it. Learning remains quarantined and begins only after that explicit closure.',
+    rule: 'A real evidence-linked RETURN may advance automatically through governed contrast, closure assessment and routine closure. Closure is operational and does not promote learning/canon or expand authority. A learning candidate may be recorded after closure, but promotion remains a separate ROOT decision.',
   };
 }
