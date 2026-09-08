@@ -125,13 +125,22 @@ const openIssues = tryGhJson(['issue', 'list', '--repo', repo, '--state', 'open'
 const issue405 = tryGhJson(['issue', 'view', '405', '--repo', repo, '--json', 'number,title,body,comments,url']);
 const issue154 = tryGhJson(['issue', 'view', '154', '--repo', repo, '--json', 'number,title,body,url']);
 
+function isAcceptedRootDirectiveComment(body) {
+  return /^##\s+(?:ACCEPTED\s+)?ROOT DIRECTIVE\b/i.test(String(body || '').trimStart());
+}
+
+function isControllerEchoRequirement(text) {
+  return /\bCTRL405-\d+\b|SFI-PROGRAM-COMPLETION-CONTROLLER|SFI · Autonomous Program Completion Controller/i.test(String(text || ''));
+}
+
 function acceptedControlRequirements() {
   if (!issue405) return [];
   const texts = [issue405.body || ''];
   for (const comment of issue405.comments || []) {
-    if (/ROOT DIRECTIVE|accepted program authority|Autonomous Program Completion/i.test(comment.body || '')) texts.push(comment.body || '');
+    if (isAcceptedRootDirectiveComment(comment.body)) texts.push(comment.body || '');
   }
-  return extractNormativeLines('GitHub issue #405 accepted control directives', texts.join('\n'), 'CTRL405');
+  return extractNormativeLines('GitHub issue #405 accepted control directives', texts.join('\n'), 'CTRL405')
+    .filter(requirement => !isControllerEchoRequirement(requirement.requirement));
 }
 
 function legacyIssueRequirements() {
@@ -145,7 +154,6 @@ function issueMatch(requirement) {
   let best = null;
   let bestScore = 0;
   for (const issue of openIssues) {
-    // Parent/control ledgers are evidence sources and fallback queues, not owner-specific execution trajectories.
     if (issue.number === 389 || issue.number === 405) continue;
     const hay = `${issue.title || ''} ${issue.body || ''}`.toLowerCase();
     let score = 0;
@@ -237,6 +245,10 @@ const classified = unique.map(r => ({ ...r, ...classify(r) }));
 const counts = Object.fromEntries([...CANONICAL_STATUS].map(s => [s, classified.filter(r => r.status === s).length]));
 counts.UNCLASSIFIED = classified.filter(r => !CANONICAL_STATUS.has(r.status)).length;
 
+const controlDirectiveEchoes = classified.filter(r => r.source.includes('#405') && isControllerEchoRequirement(r.requirement));
+const acceptedDirectiveCommentCount = (issue405?.comments || []).filter(comment => isAcceptedRootDirectiveComment(comment.body)).length;
+const rejectedNonDirectiveCommentCount = (issue405?.comments || []).filter(comment => !isAcceptedRootDirectiveComment(comment.body)).length;
+
 const hardDefects = [];
 for (const r of classified) {
   if (!CANONICAL_STATUS.has(r.status)) hardDefects.push({ id: `${r.id}:unclassified`, rule: 'UNCLASSIFIED_REQUIREMENT', requirementId: r.id });
@@ -244,6 +256,7 @@ for (const r of classified) {
     hardDefects.push({ id: `${r.id}:no-trajectory`, rule: 'KNOWN_INCOMPLETE_AND_NO_ACTIVE_COMPLETION_TRAJECTORY', requirementId: r.id });
   }
 }
+for (const r of controlDirectiveEchoes) hardDefects.push({ id: `${r.id}:controller-echo`, rule: 'CONTROLLER_OUTPUT_REINGESTED_AS_AUTHORITY', requirementId: r.id, trajectoryRef: '#405' });
 for (const p of missingCanonicalFiles) hardDefects.push({ id: `missing-canonical:${p}`, rule: 'KNOWN_INCOMPLETE_AND_NO_ACTIVE_COMPLETION_TRAJECTORY', requirementId: p, trajectoryRef: '#405' });
 
 const masterCriteria = classified.filter(r => r.class === 'PROGRAM_CRITERION');
@@ -255,11 +268,14 @@ const qa = {
   allIncompleteHaveTrajectory: hardDefects.every(d => d.rule !== 'KNOWN_INCOMPLETE_AND_NO_ACTIVE_COMPLETION_TRAJECTORY' || Boolean(d.trajectoryRef)) && classified.every(r => ['SATISFIED','EXTERNAL_ACTION','SUPERSEDED_BY_AUTHORIZED_DECISION'].includes(r.status) || Boolean(r.owner && r.trajectoryRef && r.nextAction)),
   legacy154Included: classified.some(r => /154|ROOT_WORLD_CASE/.test(r.source)),
   accepted405DirectiveIncluded: classified.some(r => r.source.includes('#405')),
+  acceptedDirectiveCommentCount,
+  rejectedNonDirectiveCommentCount,
+  controllerOutputReingestionZero: controlDirectiveEchoes.length === 0,
   rootGateRule: 'ADD/PROMOTE institutional mutation only',
 };
 
 const report = {
-  contract: 'SFI-PROGRAM-COMPLETION-CONTROLLER-1.0',
+  contract: 'SFI-PROGRAM-COMPLETION-CONTROLLER-1.1',
   generatedAt: new Date().toISOString(),
   repository: repo,
   head: sha,
@@ -302,6 +318,6 @@ const md = [
 ].join('\n');
 fs.writeFileSync(path.join(outDir, 'completion.md'), md);
 
-const controllerPass = qa.canonicalFilesPresent && qa.masterCriteriaExactly24 && qa.unclassifiedZero && qa.allIncompleteHaveTrajectory && qa.legacy154Included && qa.accepted405DirectiveIncluded;
-console.log(JSON.stringify({ ok: controllerPass, head: sha, counts, hardDefects: hardDefects.length, requirements: classified.length, nextProgramAction: report.nextProgramAction }));
+const controllerPass = qa.canonicalFilesPresent && qa.masterCriteriaExactly24 && qa.unclassifiedZero && qa.allIncompleteHaveTrajectory && qa.legacy154Included && qa.accepted405DirectiveIncluded && qa.controllerOutputReingestionZero;
+console.log(JSON.stringify({ ok: controllerPass, head: sha, counts, hardDefects: hardDefects.length, requirements: classified.length, acceptedDirectiveCommentCount, rejectedNonDirectiveCommentCount, controllerOutputReingestion: controlDirectiveEchoes.length, nextProgramAction: report.nextProgramAction }));
 if (!controllerPass) process.exitCode = 2;
