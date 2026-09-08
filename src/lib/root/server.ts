@@ -47,12 +47,30 @@ export async function requireRootContributor(action: string) {
   return { ok: true as const, ctx, action };
 }
 
+const RETIRED_ROOT_APPROVAL_ACTIONS = new Set([
+  'root.workboard.decide',
+  'universal_report.accept_and_close',
+  'universal_report.deny',
+]);
+
 export async function requireRootActor(action: string) {
   const ctx = await getServerUserContext();
   const unavailable = unavailableGate(ctx);
   if (unavailable) return unavailable;
   if (!ctx.user) return { ok: false as const, status: 401, body: { ok: false, error: 'Unauthorized' } };
   if (!ctx.isRoot) return { ok: false as const, status: 403, body: { ok: false, error: 'root_required' } };
+  if (RETIRED_ROOT_APPROVAL_ACTIONS.has(action)) {
+    return {
+      ok: false as const,
+      status: 410,
+      body: {
+        ok: false,
+        error: 'routine_root_approval_action_retired',
+        action,
+        details: 'SFI now closes routine cases/cycles and processes reports within existing authority. ROOT is reserved for institutional change, material capability implementation/change, and learning promotion.',
+      },
+    };
+  }
   return { ok: true as const, ctx, action };
 }
 
