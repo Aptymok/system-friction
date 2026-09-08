@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { evaluateCompletionReceipt, loadCompletionReceiptLedger } from './lib/programCompletionReceipts.mjs';
@@ -16,13 +18,83 @@ const canonicalStatuses = ['SATISFIED','IN_PROGRESS','PARTIAL','MISSING','EXTERN
 const invalidReceipts = [];
 let promoted = 0;
 
+function externalRequirement(requirement) {
+  return /(external-only|external action|registry submission|directory submission|account ownership|platform acceptance|LinkedIn|Medium|YouTube|Bluesky|Mastodon|Hugging Face|Zenodo|ORCID|ROR|ResearchGate|Postman|OSF)/i.test(`${requirement?.source ?? ''} ${requirement?.requirement ?? ''}`);
+}
+
+function sha256File(filePath) {
+  return `sha256:${createHash('sha256').update(fs.readFileSync(filePath)).digest('hex')}`;
+}
+
+function safeRepositoryPath(value) {
+  const candidate = path.resolve(root, String(value || ''));
+  const relative = path.relative(root, candidate);
+  if (!relative || relative.startsWith('..') || path.isAbsolute(relative)) throw new Error('EVIDENCE_PATH_OUTSIDE_REPOSITORY');
+  return candidate;
+}
+
+function verifyObservedEvidence(evidence, context) {
+  const kind = String(evidence?.kind || '');
+  const ref = String(evidence?.ref || '').trim();
+  if (!ref) return { ok: false, error: 'EVIDENCE_REF_REQUIRED' };
+
+  if (kind === 'GIT_COMMIT') {
+    try {
+      execFileSync('git', ['cat-file', '-e', `${ref}^{commit}`], { cwd: root, stdio: 'ignore' });
+      return { ok: true, observed: `git:${ref}` };
+    } catch {
+      return { ok: false, error: 'GIT_COMMIT_NOT_OBSERVED' };
+    }
+  }
+
+  if (kind === 'WORKFLOW_RUN') {
+    if (!/^\d+$/.test(ref)) return { ok: false, error: 'WORKFLOW_RUN_ID_REQUIRED' };
+    try {
+      const repository = process.env.GITHUB_REPOSITORY || report.repository || 'Aptymok/system-friction';
+      const raw = execFileSync('gh', ['api', `repos/${repository}/actions/runs/${ref}`], {
+        cwd: root,
+        encoding: 'utf8',
+        env: { ...process.env, GH_TOKEN: process.env.GITHUB_TOKEN || process.env.GH_TOKEN || '' },
+        stdio: ['ignore', 'pipe', 'ignore'],
+        timeout: 30_000,
+      });
+      const run = JSON.parse(raw);
+      if (run.conclusion !== 'success') return { ok: false, error: 'WORKFLOW_RUN_NOT_SUCCESS' };
+      if (run.head_sha !== context.currentHead) return { ok: false, error: 'WORKFLOW_RUN_HEAD_MISMATCH' };
+      return { ok: true, observed: `workflow:${ref}@${run.head_sha}` };
+    } catch {
+      return { ok: false, error: 'WORKFLOW_RUN_NOT_OBSERVED' };
+    }
+  }
+
+  if (['RETURN_RECEIPT','PRODUCTION_OBSERVATION','EXTERNAL_RECEIPT'].includes(kind)) {
+    try {
+      const filePath = safeRepositoryPath(ref);
+      if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) return { ok: false, error: 'EVIDENCE_FILE_NOT_OBSERVED' };
+      if (typeof evidence.sha256 !== 'string' || !evidence.sha256.startsWith('sha256:')) return { ok: false, error: 'EVIDENCE_FILE_DIGEST_REQUIRED' };
+      const observedHash = sha256File(filePath);
+      if (observedHash !== evidence.sha256) return { ok: false, error: 'EVIDENCE_FILE_DIGEST_MISMATCH' };
+      return { ok: true, observed: `${kind}:${ref}:${observedHash}` };
+    } catch (error) {
+      return { ok: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  }
+
+  return { ok: false, error: `UNSUPPORTED_EVIDENCE_KIND:${kind}` };
+}
+
 for (const requirement of report.requirements ?? []) {
-  const external = requirement.status === 'EXTERNAL_ACTION';
-  const assessment = evaluateCompletionReceipt(requirement, ledger, { external });
+  const external = externalRequirement(requirement);
+  const assessment = evaluateCompletionReceipt(requirement, ledger, {
+    external,
+    currentHead: report.head,
+    verifyEvidence: verifyObservedEvidence,
+  });
   requirement.completionReceipt = {
     state: assessment.state,
     error: assessment.error ?? null,
     requirementHash: assessment.expectedHash ?? null,
+    externalRequirement: external,
   };
 
   if (assessment.state === 'INVALID') {
@@ -32,18 +104,19 @@ for (const requirement of report.requirements ?? []) {
   if (!assessment.satisfied) continue;
 
   requirement.status = 'SATISFIED';
-  requirement.evidence = [...new Set([...(requirement.evidence ?? []), ...(assessment.evidence ?? [])])];
+  requirement.evidence = [...new Set([...(requirement.evidence ?? []), ...(assessment.evidence ?? []).map((value) => `${value.kind}:${value.ref}`)])];
   requirement.trajectoryRef = `completion-receipt:${requirement.id}`;
   requirement.trajectoryKind = 'VERIFIED_COMPLETION_RECEIPT';
   requirement.nextAction = 'Preserve evidence and observe regression/RETURN conditions; reopen only on falsifying evidence.';
   requirement.returnCondition = 'Already met by the bound RETURN_PASS receipt; any later regression must create a new trajectory.';
   requirement.completionReceipt.receipt = assessment.receipt;
+  requirement.completionReceipt.evidenceResults = assessment.evidenceResults;
   promoted += 1;
 }
 
 report.counts = Object.fromEntries(canonicalStatuses.map((status) => [status, (report.requirements ?? []).filter((r) => r.status === status).length]));
 report.counts.UNCLASSIFIED = (report.requirements ?? []).filter((r) => !canonicalStatuses.includes(r.status)).length;
-report.contract = 'SFI-PROGRAM-COMPLETION-CONTROLLER-1.1';
+report.contract = 'SFI-PROGRAM-COMPLETION-CONTROLLER-1.2';
 report.completionReceiptContract = ledger.contract;
 report.completionReceiptState = {
   ledgerPath: 'docs/program/SFI-COMPLETION-RECEIPTS.json',
@@ -51,11 +124,16 @@ report.completionReceiptState = {
   promotedSatisfiedCount: promoted,
   invalidReceiptCount: invalidReceipts.length,
   invalidReceipts,
+  exactHead: report.head,
+  independentVerifier: 'SFI-08',
+  evidenceResolution: 'OBSERVED_REFERENCE_REQUIRED',
 };
 report.qa = {
   ...(report.qa ?? {}),
   satisfiedReachableThroughBoundReceipt: true,
   completionReceiptsFailClosed: invalidReceipts.length === 0,
+  externalClassificationIndependentOfMutableStatus: true,
+  selfAssertedEvidenceRejected: true,
 };
 
 for (const invalid of invalidReceipts) {
@@ -92,8 +170,11 @@ const md = [
   `- receipts: ${report.completionReceiptState.receiptCount}`,
   `- promoted SATISFIED: ${promoted}`,
   `- invalid receipts: ${invalidReceipts.length}`,
+  `- exact HEAD: ${report.head}`,
+  '- verifier: SFI-08 only',
   '- rule: code/file presence and green CI alone never promote SATISFIED',
-  '- external-only requirements require externalObserved=true in the bound receipt',
+  '- rule: every evidence reference must resolve to observed immutable state',
+  '- external-only requirements are detected from the requirement itself and require externalObserved=true',
   '',
   '## Hard defects',
   ...((report.hardDefects ?? []).length ? report.hardDefects.map((d) => `- ${d.rule}: ${d.requirementId}`) : ['- none']),
