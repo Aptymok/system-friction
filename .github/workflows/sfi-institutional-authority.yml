@@ -54,5 +54,8 @@ jobs:
       - name: SFI-INSTITUTIONAL-APPOINTMENT-SEPARATION-1.0
         run: node --import tsx --test src/lib/system/access/institutionalAppointmentSeparation.test.ts
 
+      - name: SFI-FOUNDER-AUTHORITY-CONVERGENCE-1.0
+        run: node --import tsx --test src/lib/system/access/founderAuthority.test.ts
+
       - name: Typecheck authority plane
         run: npm run typecheck
