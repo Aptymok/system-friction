@@ -13,6 +13,7 @@ import {
 import type { SfiProductionInstrumentRow } from './productionInstrumentResolver';
 
 type RemoteRegion = { sample: string; lokey: number; hikey: number; pitchKeycenter: number; lovel: number; hivel: number };
+type RequiredEvent = { note: number; velocity: number };
 const MAX_ASSET_BYTES = 80 * 1024 * 1024;
 
 function parseMidi(value: string | undefined, fallback: number) {
@@ -86,26 +87,36 @@ function runFfmpeg(args: string[]) {
   });
 }
 
-export async function materializeRemoteAcousticPackage(input: { instrument: SfiProductionInstrumentRow; requiredNotes: number[]; workspace: string }) {
+function regionIdentity(region: RemoteRegion) {
+  return `${region.sample}|${region.lokey}|${region.hikey}|${region.lovel}|${region.hivel}|${region.pitchKeycenter}`;
+}
+
+export async function materializeRemoteAcousticPackage(input: { instrument: SfiProductionInstrumentRow; requiredEvents: RequiredEvent[]; workspace: string }) {
   if (input.instrument.engine.toUpperCase() !== 'SFZ') throw new Error('SFI_AUDIO_PRODUCTION_ENGINE_MUST_BE_SFZ');
   const source = rawGitHubDescriptor(input.instrument.packageRef);
   if (input.instrument.packageHash !== `git:${source.commit}`) throw new Error('SFI_AUDIO_UPSTREAM_PACKAGE_HASH_MISMATCH');
   const sfzBytes = await boundedFetch(input.instrument.packageRef);
   const regions = parseRemoteRegions(sfzBytes.toString('utf8'));
-  const notes = [...new Set(input.requiredNotes)].sort((a, b) => a - b);
-  if (!notes.length) throw new Error('SFI_AUDIO_REQUIRED_NOTE_MISSING');
-  const selected = notes.map((note) => {
-    const region = regions.find((candidate) => note >= candidate.lokey && note <= candidate.hikey);
-    if (!region) throw new Error(`SFI_AUDIO_REMOTE_REGION_MISSING:${note}`);
-    return { note, region };
-  });
+  const requirements = [...new Map(input.requiredEvents.map((event) => [`${event.note}:${event.velocity}`, event])).values()]
+    .sort((a, b) => a.note - b.note || a.velocity - b.velocity);
+  if (!requirements.length) throw new Error('SFI_AUDIO_REQUIRED_EVENT_MISSING');
+
+  const selectedByIdentity = new Map<string, RemoteRegion>();
+  for (const event of requirements) {
+    const region = regions.find((candidate) =>
+      event.note >= candidate.lokey && event.note <= candidate.hikey &&
+      event.velocity >= candidate.lovel && event.velocity <= candidate.hivel);
+    if (!region) throw new Error(`SFI_AUDIO_REMOTE_REGION_MISSING:${event.note}:${event.velocity}`);
+    selectedByIdentity.set(regionIdentity(region), region);
+  }
+  const selected = [...selectedByIdentity.values()];
 
   const root = path.join(input.workspace, 'canonical-packages', input.instrument.id);
   const samplesDir = path.join(root, 'samples');
   await fs.mkdir(samplesDir, { recursive: true });
   const sampleBySource = new Map<string, { path: string; sha256: `sha256:${string}` }>();
 
-  for (const { region } of selected) {
+  for (const region of selected) {
     if (sampleBySource.has(region.sample)) continue;
     const sourceUrl = encodedRawUrl(source, region.sample);
     const sourceBytes = await boundedFetch(sourceUrl);
@@ -119,7 +130,7 @@ export async function materializeRemoteAcousticPackage(input: { instrument: SfiP
     sampleBySource.set(region.sample, { path: outputRel, sha256: sha256Bytes(wav) });
   }
 
-  const mappingLines = selected.map(({ region }) => {
+  const mappingLines = selected.map((region) => {
     const sample = sampleBySource.get(region.sample)!;
     return `<region> sample=${sample.path} lokey=${region.lokey} hikey=${region.hikey} lovel=${region.lovel} hivel=${region.hivel} pitch_keycenter=${region.pitchKeycenter}`;
   });
