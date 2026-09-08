@@ -26,13 +26,13 @@ async function readQueue(service: any) {
 
   const proposalRows = (proposals.data ?? []).filter((row: Row) => {
     const state = normalizeProposalState(row.status);
-    return ['proposed', 'waiting_evidence', 'conflicted'].includes(state)
+    return ['proposed', 'conflicted'].includes(state)
       && classifyProposalDecisionBoundary(row) !== 'OPERATIONAL_WORK';
   }).map((row: Row) => ({ ...row, rootDecisionClass: classifyProposalDecisionBoundary(row) }));
 
   const founderRules = (decisions.data ?? []).filter((row: Row) => {
     const state = text(row.status).toUpperCase();
-    return ['CANDIDATE', 'WAITING_EVIDENCE'].includes(state) && Boolean(founderRuleDecisionClass(row));
+    return state === 'CANDIDATE' && Boolean(founderRuleDecisionClass(row));
   }).map((row: Row) => ({ ...row, rootDecisionClass: founderRuleDecisionClass(row) }));
 
   return {
@@ -66,8 +66,13 @@ export async function POST(request: Request) {
   const id = text(body.id);
   const decision = text(body.decision).toLowerCase();
   const note = text(body.note) || null;
-  if (!kind || !id || !['accept','deny','request_evidence'].includes(decision)) {
-    return NextResponse.json({ ok: false, error: 'invalid_decision' }, { status: 400 });
+  if (!kind || !id || !['accept','deny'].includes(decision)) {
+    return NextResponse.json({
+      ok: false,
+      error: 'invalid_decision',
+      allowed: ['accept', 'deny'],
+      details: 'ROOT decides the institutional change. Evidence acquisition and classification remain SFI-owned work.',
+    }, { status: 400 });
   }
 
   let write: any = null;
@@ -87,7 +92,7 @@ export async function POST(request: Request) {
     write = await decideActionProposal({
       proposalId: id,
       actorId: gate.ctx.user.id,
-      decision: decision as 'accept' | 'deny' | 'request_evidence',
+      decision: decision as 'accept' | 'deny',
       note,
       currentRow: current.data as Row,
     });
@@ -99,7 +104,7 @@ export async function POST(request: Request) {
     if (!decisionClass) {
       return NextResponse.json({ ok: false, error: 'founder_rule_missing_sovereign_decision_class' }, { status: 409 });
     }
-    const status = decision === 'accept' ? 'APPROVED' : decision === 'deny' ? 'REJECTED' : 'WAITING_EVIDENCE';
+    const status = decision === 'accept' ? 'APPROVED' : 'REJECTED';
     write = await gate.ctx.service.from('sfi_cognitive_twin_decisions').update({
       status,
       approved_by: decision === 'accept' ? gate.ctx.user.id : null,
