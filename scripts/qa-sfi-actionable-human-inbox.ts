@@ -61,7 +61,7 @@ for (const label of ['Quién lo trae', 'Qué pasó', 'Por qué importa', 'Qué p
   assert.ok(root.includes(label), `human-language ROOT section missing: ${label}`);
 }
 assert.ok(root.includes('ACEPTAR') && root.includes('DENEGAR'), 'ROOT must expose binary sovereign decisions');
-assert.ok(root.includes('Los reportes existen para informar y reconstruir'), 'report archive must be explicitly observational/read-only');
+assert.ok(root.includes('Reportes institucionales · archivo de lectura') && root.includes('Los reportes informan y reconstruyen') && root.includes('No requieren ACCEPT/DENY'), 'report archive must be explicitly observational/read-only');
 assert.equal(root.includes('APROBAR PARA USO HUMANO'), false, 'ROOT must not expose report approval');
 assert.equal(root.includes('RECHAZAR REPORTE'), false, 'ROOT must not expose report rejection');
 assert.equal(root.includes('/request-evidence'), false, 'ROOT must not act as Evidence Hunter');
