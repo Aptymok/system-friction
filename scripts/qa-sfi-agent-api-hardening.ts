@@ -1,21 +1,82 @@
 import assert from 'node:assert/strict';
+import { performance } from 'node:perf_hooks';
 import { readFileSync } from 'node:fs';
+import { SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY } from '../src/lib/sfi/cognitive-runtime/convergedRegistry';
+import {
+  executionContractForAgent,
+  listExecutionContracts,
+  normalizeExecutionRequest,
+  validateExecutionRequest,
+} from '../src/lib/sfi/cognitive-runtime/executionContracts';
 
-const manifest = readFileSync('src/app/api/external/v1/manifest/route.ts', 'utf8');
-const externalAuth = readFileSync('src/lib/sfi/externalAuth.ts', 'utf8');
-const oauthConfig = readFileSync('src/lib/sfi/oauth/config.ts', 'utf8');
-const openapiMerge = readFileSync('scripts/merge-openapi-cases.mjs', 'utf8');
-const caseMigration = readFileSync('supabase/migrations/20260830010000_create_case_platform_v1.sql', 'utf8');
-const projectMigration = readFileSync('supabase/migrations/20260830110000_create_sfi_projects.sql', 'utf8');
-const actionMigration = readFileSync('supabase/migrations/20260830123000_create_case_action_v1.sql', 'utf8');
-const oauthClientsMigration = readFileSync('supabase/migrations/20260828010000_create_sfi_oauth_gateway.sql', 'utf8');
-const runtimeWriter = readFileSync('src/lib/sfi/cognitive-runtime/runtimeAgentExecutor.ts', 'utf8');
-const materialEvidence = readFileSync('src/lib/evidence/materialEvidence.ts', 'utf8');
-const evidenceHunterSource = readFileSync('src/lib/agents/evidenceHunter.ts', 'utf8');
-const temporalResolverSource = readFileSync('src/lib/agents/temporalResolver.ts', 'utf8');
-const agentLlmSource = readFileSync('src/lib/sfi/cognitive-runtime/agentLlm.ts', 'utf8');
-const proposalEmitterSource = readFileSync('src/lib/sfi/cognitive-runtime/proposalEmitter.ts', 'utf8');
+const read = (path: string) => readFileSync(path, 'utf8');
 
+const externalRoute = read('src/app/api/external/v1/cognitive-runtime/route.ts');
+const rootRoute = read('src/app/api/root/cognitive-runtime/route.ts');
+const dossierReader = read('src/lib/sfi/cognitive-runtime/agentDossierRead.ts');
+const sharedExecution = read('src/lib/sfi/cognitive-runtime/manualExecution.ts');
+const runtimeWriter = read('src/lib/sfi/cognitive-runtime/runtimeAgentExecutor.ts');
+const materialEvidence = read('src/lib/sfi/cognitive-runtime/materialEvidence.ts');
+const evidenceHunterSource = read('src/lib/sfi/cognitive-runtime/agents/evidenceHunter.ts');
+const temporalResolverSource = read('src/lib/sfi/cognitive-runtime/agents/temporalResolver.ts');
+const proposalEmitterSource = read('src/lib/sfi/cognitive-runtime/governedProposalEmitter.ts');
+const agentLlmSource = read('src/infrastructure/ai/agentLlmClient.ts');
+const externalAuth = read('src/lib/sfi/externalAuth.ts');
+const oauthConfig = read('src/lib/sfi/oauthConfig.ts');
+const manifest = read('src/app/api/external/v1/manifest/route.ts');
+const openapiMerge = read('scripts/merge-openapi-cases.mjs');
+const oauthClientsMigration = read('supabase/migrations/20260827220000_sfi_oauth_client_registry.sql');
+const oauthCodesMigration = read('supabase/migrations/20260822214500_create_sfi_oauth_authorization_codes.sql');
+const caseMigration = read('supabase/migrations/20260816124000_sfi_case_platform_operational_v1.sql');
+const projectMigration = read('supabase/migrations/20260902010000_sfi_final_operating_form.sql');
+const actionMigration = read('supabase/migrations/20260816140000_sfi_case_governed_action_v1.sql');
+const deploymentWorkflow = read('.github/workflows/sfi-vercel-prebuilt-production.yml');
+
+const contracts = listExecutionContracts();
+const agentIds = [...new Set(SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.map((agent) => agent.id))].sort();
+const contractIds = [...new Set(contracts.map((contract) => contract.agentId))].sort();
+assert.deepEqual(contractIds, agentIds, 'm6_every_agent_must_still_resolve_to_one_execution_contract');
+assert.equal(contracts.length, agentIds.length, 'm6_execution_contract_catalog_must_not_duplicate_agents');
+const crossImpact = executionContractForAgent('cross_impact');
+assert.ok(crossImpact, 'm6_cross_impact_contract_missing');
+assert.equal(crossImpact.minTargets, 2, 'm6_cross_impact_must_keep_two_target_minimum');
+
+assert.match(externalRoute, /SFI-EXTERNAL-COGNITIVE-RUNTIME-1\.0/);
+assert.match(externalRoute, /authorizeExternalRequest\(request, 'observe'\)/);
+assert.match(externalRoute, /authorizeExternalRequest\(request, 'execute'\)/);
+assert.match(externalRoute, /readAgentExecutionDossier/);
+assert.doesNotMatch(externalRoute, /readAgentExecutionStates|readExecutionRecords|readGenAiAssuranceMetrics/,'m6_external_observe_must_not_reintroduce_parallel_dossier_readers');
+assert.match(dossierReader, /executionEventReads:\s*1/);
+assert.match(dossierReader, /overlappingEventNames:\s*0/);
+assert.match(dossierReader, /duplicateEventReads:\s*0/);
+assert.match(externalRoute, /executeManualCognitiveAgent/);
+assert.match(externalRoute, /credential\.authMethod !== 'oauth'/, 'm6_execution_must_require_user_bound_oauth');
+assert.match(externalRoute, /credential\.tenantId !== 'sfi'/, 'm6_execution_must_require_institutional_tenant');
+assert.match(externalRoute, /allowLegacyCompatibility: false/, 'm6_external_execution_must_reject_legacy_shape');
+assert.match(externalRoute, /executionScopeImpliesApproval: false/);
+assert.match(externalRoute, /executionScopeImpliesCanonicalPromotion: false/);
+assert.doesNotMatch(externalRoute, /createServiceSupabaseClient|\.from\s*\(/, 'm6_external_adapter_must_not_own_database_reads_or_writes');
+assert.doesNotMatch(externalRoute, /recordAgentExecutionEvent|appendEpistemicEvent|persistSFIEvent/, 'm6_external_adapter_must_not_own_event_writes');
+
+assert.match(rootRoute, /executeManualCognitiveAgent/);
+assert.doesNotMatch(rootRoute, /runCognitiveAgent|createServiceSupabaseClient|\.from\s*\(/, 'm6_root_route_must_delegate_instead_of_duplicate_execution');
+assert.match(sharedExecution, /SFI-MANUAL-COGNITIVE-EXECUTION-1\.1/);
+assert.match(sharedExecution, /normalizeExecutionRequest/);
+assert.match(sharedExecution, /validateExecutionRequest/);
+assert.match(sharedExecution, /runCognitiveAgent/);
+assert.match(sharedExecution, /TARGET_CONTEXT_NOT_AUTOMATICALLY_ACCEPTED_EVIDENCE/);
+assert.match(sharedExecution, /SOURCE_CANDIDATE_NOT_ACCEPTED_EVIDENCE/);
+assert.match(sharedExecution, /materialEvidenceView/);
+assert.match(sharedExecution, /resolvedPersistedMaterialBeforeResearch/);
+assert.match(sharedExecution, /No se requiere volver a subir, ingerir ni aportar de nuevo el objeto ya procesado\./);
+assert.match(sharedExecution, /No reingestar ni volver a aportar el objeto base\./);
+assert.match(sharedExecution, /observedInputTokens/);
+assert.match(sharedExecution, /observedOutputTokens/);
+assert.match(sharedExecution, /observedProviderCost/);
+assert.match(sharedExecution, /observedLatencyMs/);
+assert.doesNotMatch(sharedExecution, /recordAgentExecutionEvent|appendEpistemicEvent|persistSFIEvent|create table/i, 'm6_shared_execution_must_reuse_canonical_writer_and_schema');
+assert.match(runtimeWriter, /executionRequestSource/);
+assert.match(runtimeWriter, /requestSource:\s*metadata\.executionRequestSource/);
 assert.match(runtimeWriter, /emitGovernedProposalsFromAgentInsight/);
 
 assert.match(materialEvidence, /REUSED_EXISTING_MATERIAL_EVIDENCE_WITHOUT_READMISSION_OR_DUPLICATION/);
@@ -70,5 +131,55 @@ assert.match(actionMigration, /alter table public\.sfi_case_action_decisions ena
 assert.match(oauthClientsMigration, /alter table public\.sfi_oauth_clients enable row level security/i);
 assert.match(oauthClientsMigration, /revoke all on table public\.sfi_oauth_clients from anon, authenticated/i);
 assert.match(oauthClientsMigration, /grant select, insert, update, delete on table public\.sfi_oauth_clients to service_role/i);
+assert.match(oauthCodesMigration, /alter table public\.sfi_oauth_authorization_codes enable row level security/i);
+assert.match(oauthCodesMigration, /Service-role access only; no RLS policies are intentionally granted/i);
 
-console.log(JSON.stringify({ ok: true, manifestVersion, canonicalOpenapiVersionSource: true }, null, 2));
+const benchmarkStart = performance.now();
+for (let i = 0; i < 5_000; i += 1) {
+  const contract = executionContractForAgent('cross_impact');
+  assert.ok(contract);
+  const request = normalizeExecutionRequest('cross_impact', {
+    purpose: 'Bounded M6 request-plane benchmark; no causal claim.',
+    anchors: [{ kind: 'ANALYSIS_SESSION', id: `analysis:m6:${i}` }],
+    targets: [{ kind: 'NODE', id: 'node-a' }, { kind: 'NODE', id: 'node-b' }],
+    direction: 'EXPLORE',
+  }, `m6-benchmark-${i}`);
+  const validation = validateExecutionRequest(contract, request);
+  assert.equal(validation.ok, true);
+}
+const requestPlaneMs = performance.now() - benchmarkStart;
+const deterministicBudgetMs = 2_500;
+assert.ok(requestPlaneMs < deterministicBudgetMs, `m6_request_plane_budget_exceeded:${requestPlaneMs.toFixed(1)}ms`);
+
+assert.match(deploymentWorkflow, /push:\n\s+branches:\n\s+- main/);
+assert.match(deploymentWorkflow, /Checkout canonical main/);
+assert.match(deploymentWorkflow, /Verify Vercel project scope/);
+assert.match(deploymentWorkflow, /Build production artifact in GitHub Actions/);
+assert.match(deploymentWorkflow, /Deploy prebuilt artifact to production/);
+assert.match(deploymentWorkflow, /vercel@latest deploy --prebuilt --prod/);
+assert.match(manifest, /deployment-provider workflow succeeds for the same canonical main SHA/);
+
+console.log(JSON.stringify({
+  ok: true,
+  gate: 'SFI_AGENT_API_INTEGRATIONS_HARDENING_M6',
+  apiContract: 'SFI-EXTERNAL-COGNITIVE-RUNTIME-1.0',
+  executionService: 'SFI-MANUAL-COGNITIVE-EXECUTION-1.1',
+  contractCatalogUnique: true,
+  canonicalWriterReused: true,
+  externalLegacyShapeAccepted: false,
+  userBoundOAuthRequiredForExecute: true,
+  institutionalTenantRequiredForExecute: true,
+  personalOAuthExecutionPlaneAccess: false,
+  persistedEvidenceReuseGated: true,
+  systemicInterventionLoopGated: true,
+  duplicateDossierReaders:0,
+  overlappingAgentEventReads:0,
+  rlsReview: 'PASS_STATIC_CONTRACT_REVIEW',
+  performanceScope: 'DETERMINISTIC_REQUEST_CONTRACT_PLANE_ONLY',
+  requestPlaneIterations: 5_000,
+  requestPlaneMs: Number(requestPlaneMs.toFixed(2)),
+  deterministicBudgetMs,
+  endToEndLatencyClaimed: false,
+  deploymentEvidenceLane: 'SFI Vercel Prebuilt Production',
+  dbDelta: 'NONE',
+}, null, 2));
