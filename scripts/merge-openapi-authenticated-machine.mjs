@@ -14,59 +14,32 @@ api.paths['/api/mcp/authenticated'] = {
     tags: ['Machine Interfaces'],
     security: [{ sfiOAuth: ['execute'] }],
     parameters: [{
-      name: 'X-SFI-Capability-Grant-Nonce',
-      in: 'header',
-      required: false,
+      name: 'X-SFI-Capability-Grant-Nonce', in: 'header', required: false,
       schema: { type: 'string', minLength: 1 },
       description: 'Transient possession proof for MCP tools/call. The runtime hashes it server-side; it is never persisted or returned.',
     }],
     requestBody: {
       required: true,
-      content: {
-        'application/json': {
-          schema: {
-            type: 'object',
-            required: ['jsonrpc', 'method'],
-            properties: {
-              jsonrpc: { type: 'string', const: '2.0' },
-              id: { oneOf: [{ type: 'string' }, { type: 'number' }, { type: 'null' }] },
-              method: {
-                type: 'string',
-                enum: ['initialize', 'tools/list', 'tools/call', 'resources/list', 'resources/read'],
-              },
-              params: { type: 'object', additionalProperties: true },
-            },
-            additionalProperties: false,
-          },
+      content: { 'application/json': { schema: {
+        type: 'object', required: ['jsonrpc', 'method'],
+        properties: {
+          jsonrpc: { type: 'string', const: '2.0' },
+          id: { oneOf: [{ type: 'string' }, { type: 'number' }, { type: 'null' }] },
+          method: { type: 'string', enum: ['initialize', 'tools/list', 'tools/call', 'resources/list', 'resources/read'] },
+          params: { type: 'object', additionalProperties: true },
         },
-      },
+        additionalProperties: false,
+      } } },
     },
     responses: {
-      '200': {
-        description: 'MCP JSON-RPC response with bounded result or error data.',
-        content: {
-          'application/json': {
-            schema: {
-              type: 'object',
-              properties: {
-                jsonrpc: { type: 'string' },
-                id: { oneOf: [{ type: 'string' }, { type: 'number' }, { type: 'null' }] },
-                result: { type: 'object', properties: {}, additionalProperties: true },
-                error: {
-                  type: 'object',
-                  properties: {
-                    code: { type: 'number' },
-                    message: { type: 'string' },
-                    data: { type: 'object', properties: {}, additionalProperties: true },
-                  },
-                  additionalProperties: true,
-                },
-              },
-              additionalProperties: false,
-            },
-          },
-        },
-      },
+      '200': { description: 'MCP JSON-RPC response with bounded result or error data.', content: { 'application/json': { schema: {
+        type: 'object', properties: {
+          jsonrpc: { type: 'string' },
+          id: { oneOf: [{ type: 'string' }, { type: 'number' }, { type: 'null' }] },
+          result: { type: 'object', properties: {}, additionalProperties: true },
+          error: { type: 'object', properties: { code: { type: 'number' }, message: { type: 'string' }, data: { type: 'object', properties: {}, additionalProperties: true } }, additionalProperties: true },
+        }, additionalProperties: false,
+      } } } },
       '401': { description: 'Missing or invalid OAuth/scoped gateway credential.' },
       '403': { description: 'OAuth, grant, possession proof, scope, resource, action or authority ceiling denied.' },
       '409': { description: 'Grant replay or one-time reservation conflict.' },
@@ -74,16 +47,10 @@ api.paths['/api/mcp/authenticated'] = {
     },
     'x-sfi-contract': 'SFI-AUTHENTICATED-GOVERNED-MACHINE-ADAPTER-1.0',
     'x-sfi-authority-boundary': {
-      discoveryIsExecution: false,
-      publicReadIsAuthenticatedExecution: false,
-      requestIsAuthorization: false,
-      brokerAdmitIsExecutionAuthorization: false,
-      modelCapabilityIsAuthority: false,
-      activeEphemeralGrantRequired: true,
-      grantPossessionProofRequired: true,
-      authorityExpansionAllowed: false,
-      canonicalPromotionAllowed: false,
-      externalSideEffectsExposed: false,
+      discoveryIsExecution: false, publicReadIsAuthenticatedExecution: false, requestIsAuthorization: false,
+      brokerAdmitIsExecutionAuthorization: false, modelCapabilityIsAuthority: false,
+      activeEphemeralGrantRequired: true, grantPossessionProofRequired: true, authorityExpansionAllowed: false,
+      canonicalPromotionAllowed: false, externalSideEffectsExposed: false,
     },
   },
 };
@@ -92,6 +59,8 @@ api['x-sfi-governance'] ||= {};
 api['x-sfi-governance'].authenticatedMachineAdapter = {
   contract: 'SFI-AUTHENTICATED-GOVERNED-MACHINE-ADAPTER-1.0',
   endpoint: '/api/mcp/authenticated',
+  canonicalOpenApi: '/openapi.json',
+  gptActionsProjection: '/openapi-actions.json',
   oauthClientBindingRequired: true,
   grantContract: 'SFI-CAPABILITY-GRANT-1.0',
   grantStateRequired: 'ACTIVE',
@@ -108,9 +77,8 @@ api['x-sfi-governance'].authenticatedMachineAdapter = {
 
 fs.writeFileSync(openapiPath, `${JSON.stringify(api, null, 2)}\n`);
 
-// This is the final projection step for the GPT Actions-facing OpenAPI. It
-// removes Action-unsupported header parameters and enforces parser limits
-// without changing the underlying MCP runtime authorization contract.
+// Generate a separate GPT Actions-facing projection. The canonical OpenAPI above
+// retains the MCP nonce header and is never rewritten by the compatibility pass.
 await import('./merge-openapi-actions-compat.mjs');
 
 console.log(JSON.stringify({
@@ -120,5 +88,6 @@ console.log(JSON.stringify({
   oauthScope: 'execute',
   grantContract: 'SFI-CAPABILITY-GRANT-1.0',
   grantProof: 'TRANSIENT_HEADER_HASHED_SERVER_SIDE',
-  actionsProjection: 'SFI-GPT-ACTIONS-OPENAPI-COMPAT-1.0',
+  canonicalOpenApi: '/openapi.json',
+  actionsProjection: '/openapi-actions.json',
 }, null, 2));
