@@ -121,6 +121,7 @@ jobs:
             echo "- Pre-reset proof artifact: \`${{ steps.proof.outputs.artifact-id }}\`"
             echo "- Pre-reset proof digest: \`${{ steps.proof.outputs.artifact-digest }}\`"
             echo "- Post-reset genesis artifact: \`${{ steps.genesis.outputs.artifact-id }}\`"
-            echo '- Legacy preservation: **World observations/frictions/hypotheses/outcomes only**'
-            echo '- Legacy learning/Twin/AMV/QA/governance telemetry: **not imported**'
+            echo '- Legacy preservation: **full longitudinal World corpus**'
+            echo '- Protected World plane: source observations, friction readings, hypotheses, outcomes, learning events, WorldSpect snapshots, World Vector cycles/observations/reports/alerts'
+            echo '- Twin/AMV/QA/governance/runtime learning outside the World corpus: **not imported**'
           } >> "$GITHUB_STEP_SUMMARY"
