@@ -169,17 +169,21 @@ export async function ingestAndAnalyzeChatGptAudioAttachment(input: {
   const ref = parseSingleChatGptFileRef(input.openaiFileIdRefs);
   const analysisAuthorization = parseAnalysisAuthorization(input.analysisAuthorization);
   const bytes = await downloadBoundedAttachment(ref);
+
+  // Detect from filename/MIME evidence first. This operation may not override a
+  // non-audio attachment into the music object class merely because the caller
+  // selected ingest_analyze.
   const descriptor = buildStudioUploadDescriptor({
     fileName: ref.name,
     mimeType: ref.mimeType,
     sizeBytes: bytes.byteLength,
     title: input.title,
-    requestedObjectType: 'audio',
   });
   if (descriptor.modality !== 'audio') {
     throw new StudioMultimodalError('AUDIO_ATTACHMENT_REQUIRED', 'This Studio operation accepts one audio file only.', 415, {
       fileName: descriptor.fileName,
       modality: descriptor.modality,
+      mimeType: descriptor.mimeType,
     });
   }
 
@@ -222,7 +226,19 @@ export async function ingestAndAnalyzeChatGptAudioAttachment(input: {
     .eq('id', prepared.objectId)
     .eq('owner_id', input.ownerId);
   if (metadataUpdate.error) {
-    throw new StudioMultimodalError('PERSISTENCE_FAILED', metadataUpdate.error.message, 503, { objectId: prepared.objectId });
+    // Provenance is part of admission, not optional decoration. If it cannot be
+    // persisted, make the materialized object unusable and remove its bytes so a
+    // later retry cannot leave an owner-visible attachment without intake lineage.
+    await Promise.allSettled([
+      db.storage.from(STUDIO_OBJECT_BUCKET).remove([prepared.storagePath]),
+      db.from('studio_uploads').update({ status: 'failed' }).eq('id', prepared.uploadId),
+      db.from('studio_objects').update({ status: 'failed', updated_at: new Date().toISOString() }).eq('id', prepared.objectId),
+    ]);
+    throw new StudioMultimodalError('PERSISTENCE_FAILED', metadataUpdate.error.message, 503, {
+      objectId: prepared.objectId,
+      provenancePersisted: false,
+      materializationUsable: false,
+    });
   }
 
   const analysis = await analyzeStudioAudioObject(prepared.objectId, {
