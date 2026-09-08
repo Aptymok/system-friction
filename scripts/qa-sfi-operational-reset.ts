@@ -17,6 +17,8 @@ const reset = read('scripts/db/reset-sfi-operational-tables.mjs');
 const snapshot = read('scripts/db/create-db-evidence-snapshot.mjs');
 const verifier = read('scripts/db/verify-db-evidence-snapshot.mjs');
 const legacySeed = read('scripts/db/seed-sfi-canonical-history.mjs');
+const snapshotWorkflow = read('.github/workflows/sfi-db-proof-snapshot.yml');
+const resetWorkflow = read('.github/workflows/sfi-db-canonical-reset.yml');
 const readiness = read('src/lib/root/closure/readInstitutionalReadiness.ts');
 const proof = read('src/lib/root/closure/fullCycleVerification.ts');
 
@@ -108,6 +110,34 @@ assert.match(legacySeed, /QA reports, operational patches and runtime events/);
 assert.match(legacySeed, /process\.exit\(1\)/);
 assert.doesNotMatch(legacySeed, /\.insert\(/, 'retired legacy seed must have zero DB write path');
 
+assert.match(snapshotWorkflow, /name: SFI DB Proof Snapshot/);
+assert.match(snapshotWorkflow, /workflow_dispatch:/);
+assert.match(snapshotWorkflow, /\.github\/sfi-db-snapshot-trigger/);
+assert.match(snapshotWorkflow, /SFI_DB_SNAPSHOT_REQUEST=ISSUE_430/);
+assert.match(snapshotWorkflow, /node scripts\/db\/create-db-evidence-snapshot\.mjs/);
+assert.match(snapshotWorkflow, /node scripts\/db\/verify-db-evidence-snapshot\.mjs/);
+assert.match(snapshotWorkflow, /actions\/upload-artifact@v4/);
+assert.match(snapshotWorkflow, /Destructive reset: \*\*NOT EXECUTED\*\*/);
+assert.doesNotMatch(snapshotWorkflow, /reset-sfi-operational-tables\.mjs/, 'proof-only workflow must have no destructive writer');
+assert.doesNotMatch(snapshotWorkflow, /schedule:/, 'proof workflow must not run on a timer');
+assert.doesNotMatch(snapshotWorkflow, /pull_request:/, 'proof workflow must not run on PRs');
+
+assert.match(resetWorkflow, /name: SFI DB Canonical Reset/);
+assert.match(resetWorkflow, /SFI_DB_CANONICAL_RESET=ISSUE_430/);
+assert.match(resetWorkflow, /RESET_SFI_CANONICAL/);
+assert.match(resetWorkflow, /Upload proof before any destructive statement/);
+assert.match(resetWorkflow, /Execute founder-authorized canonical reset/);
+assert.match(resetWorkflow, /steps\.proof\.outputs\.artifact-id/);
+assert.match(resetWorkflow, /steps\.proof\.outputs\.artifact-digest/);
+assert.match(resetWorkflow, /node scripts\/db\/reset-sfi-operational-tables\.mjs/);
+assert.ok(
+  resetWorkflow.indexOf('Upload proof before any destructive statement') < resetWorkflow.indexOf('Execute founder-authorized canonical reset'),
+  'external upload must complete before destructive reset step',
+);
+assert.doesNotMatch(resetWorkflow, /schedule:/, 'destructive reset must never run on a timer');
+assert.doesNotMatch(resetWorkflow, /pull_request:/, 'destructive reset must never run on PRs');
+assert.match(resetWorkflow, /cancel-in-progress: false/);
+
 assert.match(readiness, /EMPTY_READY:no_field_cycles_yet/);
 assert.match(readiness, /EMPTY_READY:no_studio_objects_yet/);
 assert.match(readiness, /EMPTY_READY:no_evidence_yet/);
@@ -126,6 +156,8 @@ console.log(JSON.stringify({
     'FULL_POSTGRES_SNAPSHOT_BEFORE_RESET',
     'SNAPSHOT_CONTAINS_HASHED_PUBLIC_TABLE_INVENTORY',
     'EXTERNAL_PROOF_ARTIFACT_REQUIRED_BEFORE_DESTRUCTION',
+    'PROOF_ONLY_WORKFLOW_CANNOT_DELETE',
+    'DESTRUCTIVE_WORKFLOW_UPLOADS_PROOF_BEFORE_RESET',
     'UNCLASSIFIED_PUBLIC_TABLE_BLOCKS_RESET',
     'ONLY_FOUR_WORLD_TABLES_PRESERVE_LEGACY_DATA',
     'MINIMAL_INFRASTRUCTURE_IS_RESEEDED_NOT_PRESERVED',
