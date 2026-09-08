@@ -1,3 +1,4 @@
+import './merge-openapi-studio-attachments.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 
