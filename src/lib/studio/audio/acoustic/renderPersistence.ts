@@ -4,16 +4,16 @@ import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { assertNoRawAudioPersistence } from '../materialRegistryContract';
 import { assertRenderReceipt, type SfiAudioRenderReceipt } from './acousticPackageContract';
 
-export async function persistSfiAudioRenderReceipt(receipt: SfiAudioRenderReceipt) {
+async function writeSfiAudioRenderReceipt(receipt: SfiAudioRenderReceipt, ownerId: string) {
   assertRenderReceipt(receipt);
   assertNoRawAudioPersistence(receipt);
-  const founder = await requireFounder();
+  if (!ownerId.trim()) throw new Error('SFI_AUDIO_RENDER_RECEIPT_OWNER_REQUIRED');
   const db = createServiceSupabaseClient();
 
   const { data, error } = await db
     .from('sfi_audio_render_runs')
     .insert({
-      owner_id: founder.user.id,
+      owner_id: ownerId,
       run_id: receipt.runId,
       receipt_contract: receipt.contract,
       instrument_id: receipt.instrumentRef,
@@ -52,4 +52,13 @@ export async function persistSfiAudioRenderReceipt(receipt: SfiAudioRenderReceip
 
   if (error || !data) throw new Error(`SFI_AUDIO_RENDER_RECEIPT_WRITE_FAILED:${error?.message ?? 'no_row_returned'}`);
   return data as Record<string, unknown>;
+}
+
+export async function persistSfiAudioRenderReceiptForOwner(receipt: SfiAudioRenderReceipt, ownerId: string) {
+  return writeSfiAudioRenderReceipt(receipt, ownerId);
+}
+
+export async function persistSfiAudioRenderReceipt(receipt: SfiAudioRenderReceipt) {
+  const founder = await requireFounder();
+  return writeSfiAudioRenderReceipt(receipt, founder.user.id);
 }
