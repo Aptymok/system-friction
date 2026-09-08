@@ -31,7 +31,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Validate controlled trigger and World persistence identity
         shell: bash
@@ -46,14 +46,19 @@ jobs:
             grep -Fx 'SFI_WORLD_SIGNAL_OBSERVER_REQUEST=ISSUE_154' .github/sfi-world-signal-observer-trigger
           fi
 
-      - name: Install dependencies
+      - name: Install dependencies and direct-server marker
+        shell: bash
         run: |
           set -euo pipefail
           npm ci
-          # `server-only` is a framework marker resolved by Next during bundled execution.
-          # This smoke invokes the same server module directly through tsx, so install the
-          # exact marker version transiently without changing the application lockfile.
-          npm install --no-save --package-lock=false server-only@0.0.1
+          # Next resolves `server-only` during bundled execution. The assurance runner
+          # imports the same server module directly, so materialize only this exact marker
+          # without asking npm to reconcile the installed application dependency graph.
+          SERVER_ONLY_ARCHIVE="$(npm pack server-only@0.0.1 --silent)"
+          mkdir -p node_modules/server-only
+          tar -xzf "$SERVER_ONLY_ARCHIVE" -C node_modules/server-only --strip-components=1
+          rm -f "$SERVER_ONLY_ARCHIVE"
+          test -f node_modules/server-only/package.json
 
       - name: Execute WorldSignalObserverAgent
         id: execute
