@@ -109,7 +109,9 @@ async function main() {
   // Controlled executable proof: main-only explicit observation smoke, no hypothesis/case/canon writer.
   for (const token of [
     'executeWorldSignalObserverAgent',
-    "SFI-WORLD-SIGNAL-OBSERVER-EXECUTION-1.0",
+    "SFI-WORLD-SIGNAL-OBSERVER-EXECUTION-1.1",
+    'process.env.GITHUB_SHA',
+    'gitCommit',
     "result.state === 'OBSERVED_WORLD'",
     'observation.observed > 0',
     'observation.persisted > 0',
@@ -137,7 +139,7 @@ async function main() {
 
   console.log(JSON.stringify({
     ok: true,
-    contract: 'SFI-DISCOVERY-INTEGRITY-1.2',
+    contract: 'SFI-DISCOVERY-INTEGRITY-1.3',
     modes: 3,
     metricFamilies: 7,
     falseZero: true,
@@ -155,6 +157,7 @@ async function main() {
       canonicalWriterReused: true,
       cognitiveRegistryUnchanged: true,
       controlledExecutionReceipt: true,
+      immutableCommitBinding: true,
       automaticHypothesisPromotion: false,
       automaticCaseQualification: false,
       automaticPublication: false,
