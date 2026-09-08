@@ -20,7 +20,11 @@ assert.deepEqual(
   ['main', '.github/sfi-production-deploy-trigger'],
   'production push trigger must contain only main plus the dedicated release marker path',
 );
-assert.match(pushSection, /^    paths:\n      - ['"]\.github\/sfi-production-deploy-trigger['"]$/m, 'production deployment must remain restricted to the dedicated marker path');
+assert.match(
+  pushSection,
+  /^    paths:\n      - ['"]?\.github\/sfi-production-deploy-trigger['"]?$/m,
+  'production deployment must remain restricted to the dedicated marker path',
+);
 
 console.log(JSON.stringify({
   ok: true,
