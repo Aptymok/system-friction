@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 
-export const COMPLETION_RECEIPT_CONTRACT = 'SFI-PROGRAM-COMPLETION-RECEIPTS-1.0';
+export const COMPLETION_RECEIPT_CONTRACT = 'SFI-PROGRAM-COMPLETION-RECEIPTS-1.1';
 
 export function requirementHash(requirement) {
   const source = String(requirement?.source ?? '').trim();
@@ -18,28 +18,40 @@ export function loadCompletionReceiptLedger(path) {
   return parsed;
 }
 
+function invalid(receipt, error, expectedHash) {
+  return { state: 'INVALID', satisfied: false, receipt, error, expectedHash };
+}
+
 export function evaluateCompletionReceipt(requirement, ledger, options = {}) {
   const receipt = ledger?.receipts?.[requirement.id];
   if (!receipt) return { state: 'ABSENT', satisfied: false, receipt: null, error: null };
 
   const expectedHash = requirementHash(requirement);
-  if (receipt.status !== 'SATISFIED') {
-    return { state: 'INVALID', satisfied: false, receipt, error: 'RECEIPT_STATUS_NOT_SATISFIED', expectedHash };
+  if (receipt.status !== 'SATISFIED') return invalid(receipt, 'RECEIPT_STATUS_NOT_SATISFIED', expectedHash);
+  if (receipt.requirementHash !== expectedHash) return invalid(receipt, 'REQUIREMENT_HASH_MISMATCH', expectedHash);
+  if (typeof options.currentHead !== 'string' || !options.currentHead.trim()) return invalid(receipt, 'CURRENT_HEAD_REQUIRED', expectedHash);
+  if (receipt.head !== options.currentHead) return invalid(receipt, 'RECEIPT_HEAD_MISMATCH', expectedHash);
+  if (receipt.verifiedBy !== 'SFI-08') return invalid(receipt, 'INDEPENDENT_VERIFIER_REQUIRED', expectedHash);
+  if (receipt.returnState !== 'RETURN_PASS') return invalid(receipt, 'RETURN_PASS_REQUIRED', expectedHash);
+  if (options.external === true && receipt.externalObserved !== true) return invalid(receipt, 'EXTERNAL_OBSERVATION_REQUIRED', expectedHash);
+
+  if (!Array.isArray(receipt.evidence) || receipt.evidence.length === 0) {
+    return invalid(receipt, 'COMPLETION_EVIDENCE_REQUIRED', expectedHash);
   }
-  if (receipt.requirementHash !== expectedHash) {
-    return { state: 'INVALID', satisfied: false, receipt, error: 'REQUIREMENT_HASH_MISMATCH', expectedHash };
+  if (receipt.evidence.some((value) => !value || typeof value !== 'object' || Array.isArray(value) || typeof value.kind !== 'string' || typeof value.ref !== 'string' || !value.ref.trim())) {
+    return invalid(receipt, 'STRUCTURED_EVIDENCE_REFERENCE_REQUIRED', expectedHash);
   }
-  if (!Array.isArray(receipt.evidence) || receipt.evidence.length === 0 || receipt.evidence.some((value) => typeof value !== 'string' || !value.trim())) {
-    return { state: 'INVALID', satisfied: false, receipt, error: 'COMPLETION_EVIDENCE_REQUIRED', expectedHash };
-  }
-  if (typeof receipt.verifiedBy !== 'string' || !receipt.verifiedBy.trim()) {
-    return { state: 'INVALID', satisfied: false, receipt, error: 'VERIFIER_REQUIRED', expectedHash };
-  }
-  if (receipt.returnState !== 'RETURN_PASS') {
-    return { state: 'INVALID', satisfied: false, receipt, error: 'RETURN_PASS_REQUIRED', expectedHash };
-  }
-  if (options.external === true && receipt.externalObserved !== true) {
-    return { state: 'INVALID', satisfied: false, receipt, error: 'EXTERNAL_OBSERVATION_REQUIRED', expectedHash };
+  if (typeof options.verifyEvidence !== 'function') return invalid(receipt, 'EVIDENCE_RESOLVER_REQUIRED', expectedHash);
+
+  const evidenceResults = receipt.evidence.map((evidence) => {
+    try {
+      return options.verifyEvidence(evidence, { receipt, requirement, currentHead: options.currentHead });
+    } catch (error) {
+      return { ok: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  });
+  if (evidenceResults.some((result) => result !== true && result?.ok !== true)) {
+    return invalid(receipt, 'OBSERVED_EVIDENCE_VERIFICATION_FAILED', expectedHash);
   }
 
   return {
@@ -49,5 +61,6 @@ export function evaluateCompletionReceipt(requirement, ledger, options = {}) {
     error: null,
     expectedHash,
     evidence: [...receipt.evidence],
+    evidenceResults,
   };
 }
