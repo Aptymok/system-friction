@@ -47,12 +47,20 @@ jobs:
           fi
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          set -euo pipefail
+          npm ci
+          # `server-only` is a framework marker resolved by Next during bundled execution.
+          # This smoke invokes the same server module directly through tsx, so install the
+          # exact marker version transiently without changing the application lockfile.
+          npm install --no-save --package-lock=false server-only@0.0.1
 
       - name: Execute WorldSignalObserverAgent
+        id: execute
         run: npx tsx scripts/run-world-signal-observer-agent.ts
 
       - name: Upload immutable observation receipt
+        if: ${{ always() }}
         id: evidence
         uses: actions/upload-artifact@v4
         with:
@@ -62,6 +70,7 @@ jobs:
           retention-days: 90
 
       - name: Record observation handoff
+        if: ${{ always() }}
         shell: bash
         run: |
           set -euo pipefail
@@ -69,6 +78,7 @@ jobs:
             echo '## WorldSignalObserverAgent execution'
             echo
             echo "- Git commit: \`${GITHUB_SHA}\`"
+            echo "- Execution outcome: \`${{ steps.execute.outcome }}\`"
             echo "- Artifact ID: \`${{ steps.evidence.outputs.artifact-id }}\`"
             echo "- Artifact digest: \`${{ steps.evidence.outputs.artifact-digest }}\`"
             echo '- Authority: `OBSERVE`'
