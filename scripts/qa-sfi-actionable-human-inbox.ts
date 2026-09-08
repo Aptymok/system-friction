@@ -1,67 +1,103 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-// This capability gate verifies runtime/UI invariants. The repository-level P17
-// canonical architecture gate independently verifies the exact PR preflight contract.
-const read=(path:string)=>fs.readFileSync(path,'utf8');
-const projection=read('src/lib/root/actionableHumanQueue.ts');
-const interactive=read('src/app/api/root/interactive/route.ts');
-const dossier=read('src/app/api/root/decision-dossier/route.ts');
-const reports=read('src/lib/root/interactiveReportApprovals.ts');
-const root=read('src/components/sfi/SfiRootWorkspace.tsx');
-const consoleUi=read('src/components/sfi/SfiConsole.tsx');
+const read = (path: string) => fs.readFileSync(path, 'utf8');
+const boundary = read('src/lib/governance/rootDecisionBoundary.ts');
+const projection = read('src/lib/root/actionableHumanQueue.ts');
+const interactive = read('src/app/api/root/interactive/route.ts');
+const dossier = read('src/app/api/root/decision-dossier/route.ts');
+const decisions = read('src/app/api/root/decisions/route.ts');
+const root = read('src/components/sfi/SfiRootWorkspace.tsx');
+const operating = read('src/components/sfi/SfiOperatingWorkspace.tsx');
+const cases = read('src/app/api/cases/[caseId]/route.ts');
+const caseOperational = read('src/core/case-platform/operational.ts');
+const empirical = read('src/lib/sfi/universalEmpiricalContinuation.ts');
+const learning = read('src/lib/sfi/universalLearningQuarantine.ts');
 
-assert.ok(projection.includes('HUMAN_ACTION_REQUIRED implies ACTIONABLE_DOSSIER_REQUIRED'),'human queue invariant must be explicit');
-assert.ok(projection.includes("status === 'proposed'")&&projection.includes("status === 'waiting_evidence'"),'proposal decision states must be explicit');
-assert.ok(projection.includes("kind: 'REVIEW_AVAILABLE_NOT_HUMAN_OBLIGATION'")&&projection.includes('const rootActionRequired = wasRequired && actionability.actionable'),'non-actionable proposal review states must leave human obligations');
-assert.ok(projection.includes('reportActionability')&&projection.includes('actionableReportDecisions'),'report approvals must participate in the sovereign human queue');
-assert.ok(projection.includes('reviewAvailableNotRequired'),'human count must distinguish optional review debt');
-assert.ok(projection.includes('`/cases?cycle=${'),'cycle human obligations must deep-link to their dossier');
+for (const decisionClass of ['INSTITUTIONAL_CHANGE', 'CAPABILITY_IMPLEMENTATION', 'LEARNING_PROMOTION']) {
+  assert.ok(boundary.includes(`'${decisionClass}'`), `missing sovereign decision class: ${decisionClass}`);
+}
+for (const nonDecision of [
+  'CASE_OR_CYCLE_CLOSE',
+  'REPORT_GENERATION_OR_USE',
+  'EVIDENCE_ACQUISITION_OR_CLASSIFICATION',
+  'BOUNDED_REPAIR_AND_REGRESSION',
+  'EXECUTION_WITHIN_EXISTING_AUTHORITY',
+  'RETURN_AND_REALITY_CALIBRATION',
+  'LEARNING_CANDIDATE_CAPTURE',
+]) {
+  assert.ok(boundary.includes(`'${nonDecision}'`), `missing explicit operational non-decision: ${nonDecision}`);
+}
+assert.ok(boundary.includes("return 'OPERATIONAL_WORK'"), 'generic work must remain operational instead of becoming ROOT work by inference');
 
-assert.ok(reports.includes(".eq('role', 'report_agent')")&&reports.includes("['queued_for_approval', 'waiting_evidence']"),'report queue must be a bounded report_agent read');
-assert.ok(reports.includes('reportApprovalReads: 1')&&reports.includes('reportApprovalNPlusOneReads: 0'),'report queue must declare bounded reads');
-assert.ok(interactive.includes('readInteractiveReportApprovals'),'ROOT bootstrap must hydrate pending report decisions');
-assert.ok(interactive.includes('projectActionableHumanQueue'),'interactive surfaces must consume the actionable projection');
-assert.ok(interactive.includes('actionableHumanProjection: true'),'ROOT bootstrap must declare actionable projection');
-assert.ok(interactive.includes('reportApprovalReads: 1')&&interactive.includes('reportApprovalNPlusOneReads: 0'),'ROOT polling must keep report approvals bounded');
-assert.equal(interactive.includes("service.from('action_proposals')"),false,'interactive route must not duplicate proposal reads');
+assert.ok(projection.includes("const ROOT_DECISION_CLASSES = new Set(['INSTITUTIONAL_CHANGE', 'CAPABILITY_IMPLEMENTATION', 'LEARNING_PROMOTION'])"), 'human queue must use the narrow sovereign classes');
+assert.ok(projection.includes("const reports: Row[] = []"), 'reports must not enter the sovereign queue');
+assert.ok(projection.includes('rootActionRequired: false') && projection.includes("kind: 'OPERATIONAL_CYCLE'"), 'routine cycles must remain observable without ROOT approval');
+assert.ok(projection.includes("allowed: ['accept', 'deny']"), 'sovereign actions must be binary ACCEPT/DENY');
+assert.doesNotMatch(projection, /request_evidence|accept_close|deny_close/, 'human queue must not turn evidence or closure into approval actions');
 
-assert.ok(dossier.includes("service.from('action_proposals').select('*').eq('id', id).maybeSingle()"),'proposal dossier must target one proposal');
-assert.ok(dossier.includes("service.from('sfi_cognitive_twin_runs')")&&dossier.includes(".eq('role', 'report_agent')"),'report dossier must target canonical report_agent runs');
-assert.ok(dossier.includes("kind: 'report'")&&dossier.includes('APROBAR PARA USO HUMANO'),'report dossier must expose the human-use decision');
-assert.ok(dossier.includes('approved_for_human_use')&&dossier.includes('truthAuthorizedByThisDecision: false'),'report approval must not imply truth');
-assert.ok(dossier.includes('executionAuthorizedByThisDecision: false'),'decision must not imply execution');
-assert.ok(dossier.includes('canonicalPromotionAuthorizedByThisDecision: false'),'decision must not imply canon');
-assert.ok(dossier.includes("status === 'waiting_evidence' && proposedCandidates.length"),'waiting evidence must surface candidate review when it exists');
-assert.ok(dossier.includes('Ya existe evidencia aceptada. SFI debe reconciliar readiness; no necesitas volver a pedir la misma evidencia.'),'waiting evidence must not ask the human for the same evidence again');
-assert.ok(dossier.includes('duplicateProposalReads: 0')&&dossier.includes('duplicateReportReads: 0'),'targeted dossier reads must prohibit duplicate decision reads');
+assert.equal(interactive.includes('readInteractiveReportApprovals'), false, 'ROOT bootstrap must not hydrate report approvals');
+assert.ok(interactive.includes('reportApprovalReads: 0') && interactive.includes('sovereignReports: false'), 'ROOT read plan must declare reports non-sovereign');
+assert.ok(interactive.includes('projectActionableHumanQueue'), 'interactive surfaces must consume the sovereign projection');
+assert.equal(interactive.includes("service.from('action_proposals')"), false, 'interactive route must not duplicate proposal reads');
 
-assert.ok(consoleUi.includes("current==='root'?<SfiRootWorkspace enabled/>"),'ROOT must render the sovereign inbox owner');
-assert.ok(root.includes("jsonFetch('/api/root/interactive?surface=root')"),'ROOT must use one base interactive bootstrap');
-assert.ok(root.includes('/api/root/decision-dossier?kind=${kind}&id='),'decision detail must be a kind-aware targeted dossier read');
-assert.ok(root.includes("jsonFetch('/api/root/decisions'"),'accept/deny decisions must use canonical ROOT queue writer');
-assert.ok(root.includes('/request-evidence')&&root.includes('Evidence Hunter es ahora dueño'),'request-evidence must create evidence work instead of only changing status');
-assert.ok(root.includes('APROBAR PARA USO HUMANO')&&root.includes('RECHAZAR REPORTE'),'ROOT must expose report decisions');
-assert.ok(root.includes('APROBAR DISEÑO')&&root.includes('PEDIR EVIDENCIA')&&root.includes('RECHAZAR'),'ROOT must expose state-valid proposal actions');
-assert.ok(root.includes('ABRIR EXPEDIENTE →')&&root.includes('/cases?cycle='),'cycle obligations must be navigable');
-assert.ok(root.includes('uso humano ≠ verdad ≠ publicación ≠ ejecución ≠ cierre ≠ canon'),'report authority boundary must be visible');
-assert.ok(root.includes('aprobar diseño ≠ ejecutar ≠ aceptar RETURN ≠ cerrar ≠ canonizar'),'proposal authority boundary must be visible');
-assert.ok(root.includes('Revisión disponible, no obligatoria'),'optional review must remain visible without inflating human debt');
-assert.ok(root.includes("href: '/library'")&&root.includes("href: '/method-lab'")&&root.includes("href: '/observatory'"),'ROOT must expose the canonical institutional surface map');
-assert.equal(root.includes("jsonFetch('/api/acp/proposals')"),false,'ROOT must not create a second proposal feed');
+assert.ok(dossier.includes("contract: 'SFI-SOVEREIGN-DECISION-DOSSIER-2.0'"), 'plain-language sovereign dossier contract missing');
+for (const key of ['who', 'whatHappened', 'whyItMatters', 'proposal', 'sfiGain', 'evidence', 'ifAccepted', 'ifDenied', 'whyRoot']) {
+  assert.ok(dossier.includes(`${key}:`), `plain-language dossier field missing: ${key}`);
+}
+assert.ok(dossier.includes("error: 'report_is_not_a_sovereign_decision'"), 'report dossier requests must fail as non-sovereign');
+assert.ok(dossier.includes('rootEvidenceApprovalRequired: false'), 'ROOT must never be required to approve evidence candidates');
+assert.ok(dossier.includes('technicalTrace'), 'technical lineage must remain available as drill-down');
+
+assert.ok(decisions.includes("allowed: ['accept', 'deny']"), 'ROOT decision writer must accept only binary decisions');
+assert.ok(decisions.includes("error: 'operational_work_is_not_a_root_decision'"), 'operational work must fail closed at ROOT writer');
+assert.ok(decisions.includes("error: 'report_is_not_a_sovereign_decision'"), 'report decisions must be rejected at the canonical writer');
+assert.ok(decisions.includes("error: 'candidate_capture_is_not_a_sovereign_decision'"), 'candidate capture must not become a sovereign decision');
+
+assert.ok(root.includes("jsonFetch('/api/root/interactive?surface=root')"), 'ROOT must use one base interactive bootstrap');
+assert.ok(root.includes('/api/root/decision-dossier?kind=proposal&id='), 'ROOT detail must use targeted proposal dossier reads');
+assert.ok(root.includes("jsonFetch('/api/root/decisions'"), 'sovereign ACCEPT/DENY must use the canonical ROOT writer');
+for (const label of ['Quién lo trae', 'Qué pasó', 'Por qué importa', 'Qué propone', 'Qué gana SFI', 'Qué evidencia hay', 'Si aceptas', 'Si deniegas', 'Por qué te corresponde decidir']) {
+  assert.ok(root.includes(label), `human-language ROOT section missing: ${label}`);
+}
+assert.ok(root.includes('ACEPTAR') && root.includes('DENEGAR'), 'ROOT must expose binary sovereign decisions');
+assert.ok(root.includes('Reportes institucionales · archivo de lectura') && root.includes('Los reportes informan y reconstruyen') && root.includes('No requieren ACCEPT/DENY'), 'report archive must be explicitly observational/read-only');
+assert.equal(root.includes('APROBAR PARA USO HUMANO'), false, 'ROOT must not expose report approval');
+assert.equal(root.includes('RECHAZAR REPORTE'), false, 'ROOT must not expose report rejection');
+assert.equal(root.includes('/request-evidence'), false, 'ROOT must not act as Evidence Hunter');
+assert.equal(root.includes('/evidence-candidates/'), false, 'ROOT must not accept/reject evidence candidates');
+assert.equal(root.includes('decisionKind=report'), false, 'reports must not deep-link into sovereign decisions');
+
+assert.equal(operating.includes('ACEPTAR Y CERRAR'), false, 'case/cycle workspace must not require approval to close');
+assert.equal(operating.includes('DENEGAR REPORTE'), false, 'case/cycle workspace must not gate reports on user denial');
+assert.equal(operating.includes('reportDecision'), false, 'case/cycle workspace must not retain legacy report-decision mutations');
+assert.ok(cases.includes("'AWAITING_USER_CLOSE'"), 'legacy close state must remain addressable for historical reconstruction');
+assert.ok(cases.includes("error: 'legacy_state_not_enterable'") && cases.includes('remains readable for historical reconstruction'), 'API must read legacy close state but reject new entry into it');
+assert.ok(caseOperational.includes("AWAITING_USER_CLOSE: ['ANALYZING', 'CLOSED']") && caseOperational.includes('Legacy reconstruction state only'), 'case state machine must preserve legacy reentry/close without generating the state');
+assert.ok(caseOperational.includes('awaitingUserCloseIsLegacyReadOnlyState: true'), 'legacy-state policy must be explicit');
+assert.ok(caseOperational.includes('closedRequiresAwaitingUserClose: false'), 'new case closure must not require the legacy user-close state');
+assert.ok(caseOperational.includes('finalClosureRequiresExplicitUserDecision: false'), 'new case closure must be autonomous when criteria are satisfied');
+assert.ok(empirical.includes('closeUniversalCycle('), 'empirical continuation must be able to close the same cycle after validated RETURN/contrast');
+assert.ok(empirical.includes('recordUniversalLearningCandidate'), 'autonomous close may create a learning candidate without promoting it');
+assert.ok(empirical.includes('LEARNING_PROMOTION_REMAINS_ROOT_GATED'), 'empirical close receipt must preserve the learning promotion boundary');
+assert.ok(learning.includes("'QUARANTINED'") && learning.includes("'ELIGIBLE_FOR_ROOT_PROMOTION'"), 'learning owner must distinguish candidate quarantine from promotion eligibility');
+assert.ok(learning.includes("eligibleForRootPromotion: promotionState === 'ELIGIBLE_FOR_ROOT_PROMOTION' && eligibility.eligible"), 'learning eligibility must be derived from calibrated-return requirements');
+assert.ok(learning.includes('eligibility is not promotion') && learning.includes('Candidate status does not make a hypothesis evidence, memory, canonical truth'), 'learning candidate must explicitly remain non-promoted/non-canonical');
+assert.ok(learning.includes("eventName: 'SFI_UNIVERSAL_LEARNING_CANDIDATE_RECORDED'"), 'closure path must record a candidate event, not a promotion event');
 
 console.log(JSON.stringify({
-  ok:true,
-  contract:'SFI-ACTIONABLE-SOVEREIGN-INBOX-1.2',
-  invariants:[
-    'HUMAN_ACTION_REQUIRED_IMPLIES_ACTIONABLE_DOSSIER',
-    'REPORT_APPROVALS_ARE_VISIBLE_AND_ACTIONABLE',
-    'REPORT_APPROVAL_NOT_TRUTH_NOT_EXECUTION_NOT_CANON',
-    'NO_ACTIONABLE_TRANSITION_NO_HUMAN_COUNT',
-    'PROPOSAL_DECISION_NOT_EXECUTION_NOT_CANON',
-    'REQUEST_EVIDENCE_CREATES_EVIDENCE_WORK',
-    'WAITING_EVIDENCE_DOES_NOT_REASK_SAME_EVIDENCE',
-    'CYCLE_HUMAN_ACTION_DEEP_LINKS_TO_DOSSIER',
+  ok: true,
+  contract: 'SFI-ACTIONABLE-SOVEREIGN-INBOX-2.0',
+  invariants: [
+    'ROOT_ONLY_INSTITUTIONAL_CHANGE_CAPABILITY_IMPLEMENTATION_LEARNING_PROMOTION',
+    'ROOT_ACCEPT_DENY_ONLY',
+    'REPORTS_ARE_OBSERVABLE_NOT_APPROVABLE',
+    'EVIDENCE_IS_SFI_OWNED_NOT_ROOT_APPROVED',
+    'ROUTINE_CLOSE_IS_AUTONOMOUS',
+    'LEGACY_AWAITING_USER_CLOSE_READABLE_NOT_ENTERABLE',
+    'CLOSURE_CREATES_CANDIDATE_NOT_PROMOTION',
+    'PLAIN_LANGUAGE_PRECEDES_TECHNICAL_TRACE',
+    'MISSING_PROVENANCE_IS_NOT_FABRICATED',
     'ZERO_DUPLICATE_PROPOSAL_FEEDS',
   ],
-},null,2));
+}, null, 2));
