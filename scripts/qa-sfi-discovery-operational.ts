@@ -60,6 +60,8 @@ async function main() {
     metricFamilies: 7,
     falseZero: true,
     candidatePromotion: false,
+    canonicalOwnerReused: true,
+    externalIdentityOwnerReused: true,
     duplicateCanonicalOwner: false,
     duplicateIdentityOwner: false,
     rlsForced: true,
