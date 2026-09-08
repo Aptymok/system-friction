@@ -79,9 +79,9 @@ async function resolveExistingIntake(ownerId: string, openaiFileId: string): Pro
   return { state: 'PENDING', ...common };
 }
 
-async function reuseOrConflict(existing: Exclude<IntakeIdentityState, { state: 'NONE' }>, ref: ChatGptFileRef, authorization: StudioAnalysisAuthorization, force: boolean) {
+async function reuseOrConflict(existing: Exclude<IntakeIdentityState, { state: 'NONE' }>, ref: ChatGptFileRef, authorization: StudioAnalysisAuthorization, force: boolean, ownerId: string) {
   if (existing.state === 'PENDING') throw new StudioMultimodalError('OPENAI_FILE_INTAKE_CONFLICT', 'This ChatGPT attachment already has an owner-scoped intake reservation but is not yet stored. Retry the same intake after the prior operation settles.', 409, { objectId: existing.objectId, openaiFileId: ref.id });
-  const analysis = await analyzeStudioAudioObject(existing.objectId, { force, requestedByUserId: undefined });
+  const analysis = await analyzeStudioAudioObject(existing.objectId, { force, requestedByUserId: ownerId });
   return {
     objectId: existing.objectId,
     sessionId: existing.sessionId,
@@ -116,7 +116,7 @@ export async function ingestAndAnalyzeChatGptAudioAttachment(input: { ownerId: s
   assertAudioEvidenceConsistent(ref);
 
   const existing = await resolveExistingIntake(input.ownerId, ref.id);
-  if (existing.state !== 'NONE') return reuseOrConflict(existing, ref, analysisAuthorization, input.force === true);
+  if (existing.state !== 'NONE') return reuseOrConflict(existing, ref, analysisAuthorization, input.force === true, input.ownerId);
 
   const bytes = await downloadBoundedAttachment(ref);
   const descriptor = buildStudioUploadDescriptor({ fileName: ref.name, mimeType: ref.mimeType, sizeBytes: bytes.byteLength, title: input.title });
@@ -133,7 +133,7 @@ export async function ingestAndAnalyzeChatGptAudioAttachment(input: { ownerId: s
     prepared = await prepareStudioSignedUpload({ descriptor, ownerId: input.ownerId, metadata: { externalIntake } });
   } catch (cause) {
     const raced = await resolveExistingIntake(input.ownerId, ref.id).catch(() => ({ state: 'NONE' as const }));
-    if (raced.state !== 'NONE') return reuseOrConflict(raced, ref, analysisAuthorization, input.force === true);
+    if (raced.state !== 'NONE') return reuseOrConflict(raced, ref, analysisAuthorization, input.force === true, input.ownerId);
     throw cause;
   }
 
