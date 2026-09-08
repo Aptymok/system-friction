@@ -12,6 +12,7 @@ type Db = ReturnType<typeof createServiceSupabaseClient>;
 
 function normalize(row: Record<string, unknown>): SfiProductionInstrumentRow {
   if (row.current_execution_rights_state !== 'ELIGIBLE' || row.quality_state !== 'PRODUCTION') throw new Error('SFI_AUDIO_INSTRUMENT_NOT_EXECUTION_ELIGIBLE');
+  if (String(row.engine).toUpperCase() !== 'SFZ') throw new Error('SFI_AUDIO_PRODUCTION_ENGINE_MUST_BE_SFZ');
   if (!['EXECUTION_ALLOWED', 'DERIVATIVE_ALLOWED'].includes(String(row.rights_status))) throw new Error('SFI_AUDIO_INSTRUMENT_EXECUTION_RIGHTS_REQUIRED');
   const required = ['id','name','family','engine','package_ref','package_hash','rights_evidence_ref','verified_at'] as const;
   for (const key of required) if (typeof row[key] !== 'string' || !String(row[key]).trim()) throw new Error(`SFI_AUDIO_INSTRUMENT_FIELD_REQUIRED:${key}`);
@@ -47,7 +48,10 @@ export async function resolveProductionInstrument(input: { culturalProfile: stri
   const { data, error } = await db.from('sfi_instruments')
     .select(SELECT)
     .in('owner_id', ownerIds)
-    .eq('current_execution_rights_state', 'ELIGIBLE').eq('quality_state', 'PRODUCTION').contains('cultural_profiles', [input.culturalProfile]);
+    .eq('engine', 'SFZ')
+    .eq('current_execution_rights_state', 'ELIGIBLE')
+    .eq('quality_state', 'PRODUCTION')
+    .contains('cultural_profiles', [input.culturalProfile]);
   if (error) throw new Error(`SFI_AUDIO_INSTRUMENT_RESOLUTION_FAILED:${error.message}`);
   const familySet = new Set(input.families.map((family) => family.toLowerCase()));
   const match = (data ?? []).find((item) => familySet.has(String(item.family).toLowerCase()));
@@ -61,7 +65,11 @@ export async function getProductionInstrumentById(instrumentId: string) {
   const { data, error } = await db.from('sfi_instruments')
     .select(SELECT)
     .in('owner_id', ownerIds)
-    .eq('id', instrumentId).eq('current_execution_rights_state', 'ELIGIBLE').eq('quality_state', 'PRODUCTION').maybeSingle();
+    .eq('engine', 'SFZ')
+    .eq('id', instrumentId)
+    .eq('current_execution_rights_state', 'ELIGIBLE')
+    .eq('quality_state', 'PRODUCTION')
+    .maybeSingle();
   if (error) throw new Error(`SFI_AUDIO_INSTRUMENT_RESOLUTION_FAILED:${error.message}`);
   if (!data) throw new Error('SFI_AUDIO_PRODUCTION_INSTRUMENT_NOT_FOUND');
   return normalize(data as Record<string, unknown>);
