@@ -132,6 +132,8 @@ export function SfiRootWorkspace({ enabled }: { enabled: boolean }) {
     () => cases.filter((item) => !['CLOSED', 'REJECTED'].includes(String(item.status).toUpperCase())),
     [cases],
   );
+  const readState = base ? (error ? 'DEGRADED' : 'OBSERVED') : (error ? 'DEGRADED' : 'MISSING');
+  const pulseValue = (value: number) => base ? value : 'MISSING';
 
   const decide = async (decision: 'accept' | 'deny') => {
     if (!dossier?.id || dossier?.actionability?.actionable !== true) return;
@@ -167,17 +169,17 @@ export function SfiRootWorkspace({ enabled }: { enabled: boolean }) {
         <p>SFI opera, busca evidencia, ejecuta capacidades ya autorizadas, registra RETURN y cierra trabajo rutinario sin pedir permiso. ROOT sólo interviene cuando algo pretende cambiar a la institución, cambiar materialmente una capacidad o promover un aprendizaje. MISSING y DEGRADED permanecen visibles: esta superficie no fabrica salud ni certeza.</p>
       </div>
       <div className="rootReadState">
-        <span>ÚLTIMA LECTURA OBSERVADA</span>
-        <b>{lastReadAt ? when(lastReadAt) : 'MISSING · leyendo'}</b>
+        <span>ESTADO DE LECTURA</span>
+        <b>{lastReadAt ? `${readState} · ${when(lastReadAt)}` : `${readState} · esperando primera observación`}</b>
         <button onClick={() => void loadBase()}>Actualizar</button>
       </div>
     </header>
 
     <section className="rootPulse" aria-label="Estado institucional observable">
-      <article><span>Decisiones ROOT</span><b>{actionable.length}</b><small>Sólo cambios soberanos.</small></article>
-      <article><span>Casos activos</span><b>{activeCases.length}</b><small>Se observan; no se aprueban.</small></article>
-      <article><span>Ciclos abiertos</span><b>{cycles.length}</b><small>Pueden cerrar autónomamente.</small></article>
-      <article><span>Trabajo observable</span><b>{observable.length}</b><small>SFI continúa dentro de su autoridad.</small></article>
+      <article data-epistemic-state={readState}><span>Decisiones ROOT</span><b>{pulseValue(actionable.length)}</b><small>Sólo cambios soberanos.</small></article>
+      <article data-epistemic-state={readState}><span>Casos activos</span><b>{pulseValue(activeCases.length)}</b><small>Se observan; no se aprueban.</small></article>
+      <article data-epistemic-state={readState}><span>Ciclos abiertos</span><b>{pulseValue(cycles.length)}</b><small>Pueden cerrar autónomamente.</small></article>
+      <article data-epistemic-state={readState}><span>Trabajo observable</span><b>{pulseValue(observable.length)}</b><small>SFI continúa dentro de su autoridad.</small></article>
     </section>
 
     <nav className="rootObserve" aria-label="Diez módulos institucionales ROOT">
@@ -192,14 +194,15 @@ export function SfiRootWorkspace({ enabled }: { enabled: boolean }) {
 
     <div className="rootDecisionLayout">
       <aside className="rootDecisionQueue">
-        <header><div><span>CAMBIOS QUE SÍ NECESITAN ROOT</span><b>{actionable.length}</b></div></header>
+        <header><div><span>CAMBIOS QUE SÍ NECESITAN ROOT</span><b>{base ? actionable.length : 'MISSING'}</b></div></header>
         {actionable.map((item) => <Link key={item.id} href={`/root?decision=${encodeURIComponent(String(item.id))}`} className={`rootDecisionCard ${selectedId === item.id ? 'selected' : ''}`}>
           <div><State value={item.rootDecisionClass ?? item.decisionClass}/><State value={item.riskLevel}/></div>
           <strong>{txt(item.title, 'Cambio institucional')}</strong>
           <p>{txt(item.actionability?.question, 'Abre el expediente para entender qué cambiaría y por qué.')}</p>
           <small>Abrir decisión →</small>
         </Link>)}
-        {!actionable.length && <div className="rootEmpty">No hay cambios institucionales esperando tu decisión.</div>}
+        {base && !actionable.length && <div className="rootEmpty">No hay cambios institucionales esperando tu decisión.</div>}
+        {!base && <div className="rootEmpty">{readState} · no se proyecta cero hasta observar el read contract.</div>}
         {!!observable.length && <details className="rootObservable"><summary>Trabajo que SFI está resolviendo · {observable.length}</summary>{observable.slice(0, 80).map((item) => <article key={item.id}><strong>{txt(item.title, 'Trabajo operativo')}</strong><p>{txt(item.actionability?.question, 'SFI continúa dentro de autoridad existente.')}</p></article>)}</details>}
       </aside>
 
@@ -237,6 +240,6 @@ export function SfiRootWorkspace({ enabled }: { enabled: boolean }) {
       </div>}
     </details>
 
-    <footer className="rootFooter"><span>PROYECTOS {projects.length}</span><span>CASOS {cases.length}</span><span>10 MÓDULOS · 3 TOPOLOGÍAS: OBSERVACIÓN / AUTORIDAD / RETURN</span><span>REGLA: ROOT ACEPTA O DENIEGA CAMBIOS; SFI HACE EL TRABAJO.</span></footer>
+    <footer className="rootFooter"><span>PROYECTOS {base ? projects.length : 'MISSING'}</span><span>CASOS {base ? cases.length : 'MISSING'}</span><span>10 MÓDULOS · 3 TOPOLOGÍAS: OBSERVACIÓN / AUTORIDAD / RETURN</span><span>REGLA: ROOT ACEPTA O DENIEGA CAMBIOS; SFI HACE EL TRABAJO.</span></footer>
   </div>;
 }
