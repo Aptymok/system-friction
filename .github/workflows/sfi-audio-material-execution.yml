@@ -61,6 +61,12 @@ jobs:
       - name: Verify audio capability authority boundaries
         run: node --import tsx --test src/lib/studio/audio/audioCapabilityGovernance.test.ts
 
+      - name: SFI-MATERIAL-AUDIO-PRODUCTION-GATE-1.0
+        run: npx tsx scripts/qa-sfi-material-production-contract.ts
+
+      - name: SFI-MATERIAL-PRODUCTION-REAL-1.0
+        run: npx tsx scripts/qa-sfi-material-production-real.ts
+
       - name: Upload real SFZ render, receipt and observation evidence
         uses: actions/upload-artifact@v4
         with:
@@ -69,5 +75,10 @@ jobs:
             build/sfi-audio/ws06-r4a/real-sfz-render.wav
             build/sfi-audio/ws06-r4a/real-sfz-render-receipt.json
             build/sfi-audio/ws06-r4a/real-sfz-render-observation.json
+            build/sfi-audio/material-production-real/guitar.wav
+            build/sfi-audio/material-production-real/bass.wav
+            build/sfi-audio/material-production-real/voice-plus-instruments.wav
+            build/sfi-audio/material-production-real/musicalized-master.wav
+            build/sfi-audio/material-production-real/material-production-real-receipt.json
           if-no-files-found: error
           retention-days: 14

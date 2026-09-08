@@ -14,7 +14,7 @@ const workflow = text('.github/workflows/sfi-external-oauth.yml');
 const idempotencyMigration = text('supabase/migrations/20260908094500_studio_external_intake_idempotency.sql');
 
 assert.match(route, /'ingest_analyze'/);
-assert.match(route, /operation === 'analyze' \|\| operation === 'ingest_analyze'\) return 'studio:run'/);
+assert.match(route, /operation === 'analyze' \|\| operation === 'ingest_analyze' \|\| operation === 'produce'\) return 'studio:run'/);
 assert.match(route, /const ownerId = cred\.subjectId/);
 assert.match(route, /DECLARED_ANALYSIS_PERMISSION_DOES_NOT_TRANSFER_RIGHTS_OR_PROMOTE_CANON/);
 
@@ -41,13 +41,16 @@ assert.match(storage, /\.eq\('status', 'stored'\)/);
 
 assert.match(manifest, /studio-ingest-analyze|ingest_analyze/);
 assert.match(manifest, /studioAttachmentPersistence|OWNER_SCOPED|owner-scoped/i);
-for (const token of ['openaiFileIdRefs','analysisAuthorization',"ingest_analyze: 'studio:run'",'rightsTransfer: false','SFI-CHATGPT-STUDIO-ATTACHMENT-1.1']) assert.ok(merge.includes(token));
+for (const token of ['openaiFileIdRefs','analysisAuthorization','SFI-CHATGPT-STUDIO-ATTACHMENT-1.1']) assert.ok(merge.includes(token));
+assert.match(merge, /ingest_analyze\s*:\s*'studio:run'/);
+assert.match(merge, /rightsTransfer\s*:\s*false/);
 assert.match(composedMerge, /import '\.\/merge-openapi-studio-attachments\.mjs'/);
 assert.match(composedMerge, /await import\('\.\/merge-openapi-actions-compat\.mjs'\)/);
 for (const token of ["const canonicalPath = path.join(process.cwd(), 'public', 'openapi.json')","const actionsPath = path.join(process.cwd(), 'public', 'openapi-actions.json')",'structuredClone(canonical)','maxOperationDescriptionChars: 300',"parameter?.in !== 'header'",'capabilityGrantNonceStillRequiredByMcpRuntimeForExecutableToolsCall: true','SFI_CANONICAL_OPENAPI_MCP_NONCE_PARAMETER_MISSING',"fs.writeFileSync(actionsPath"]) assert.ok(actionsCompat.includes(token));
 assert.doesNotMatch(actionsCompat, /fs\.writeFileSync\(canonicalPath/);
 assert.match(workflow, /qa-sfi-chatgpt-studio-attachment\.ts/);
 assert.match(workflow, /merge-openapi-authenticated-machine\.mjs/);
-assert.match(members, /'studio:read'/); assert.match(members, /'studio:content'/); assert.match(members, /'studio:run'/); assert.doesNotMatch(members, /'studio:write'/);
+for (const scope of ["'studio:read'", "'studio:content'", "'studio:run'"]) assert.ok(members.includes(scope), `institutional_member_scope_missing:${scope}`);
+assert.ok(!members.includes("'studio:write'"), 'institutional_member_scope_must_not_expand:studio:write');
 
-console.log(JSON.stringify({ ok: true, contract: 'SFI-CHATGPT-STUDIO-ATTACHMENT-1.1', operation: 'ingest_analyze', scope: 'studio:run', ownerBoundary: 'oauth.subjectId', attachmentCount: 1, modalityAdmission: 'CONSISTENT_EVIDENCE_FAIL_CLOSED', idempotency: 'OWNER_ID_PLUS_OPENAI_FILE_ID_UNIQUE', failedReservationRecovery: 'SAME_RESERVATION_RESUMABLE', activeAnalysisSerialization: 'QUEUED_OR_RUNNING_CONFLICT', retryAuthorizationLineage: 'DURABLE_HISTORY', canonicalPromotion: false, canonicalOpenApi: '/openapi.json', actionsOpenApi: '/openapi-actions.json', actionsCompatibility: 'SFI-GPT-ACTIONS-OPENAPI-COMPAT-1.0' }, null, 2));
+console.log(JSON.stringify({ ok: true, contract: 'SFI-CHATGPT-STUDIO-ATTACHMENT-1.1', operation: 'ingest_analyze', compatibleSiblingOperation: 'produce', scope: 'studio:run', ownerBoundary: 'oauth.subjectId', attachmentCount: 1, modalityAdmission: 'CONSISTENT_EVIDENCE_FAIL_CLOSED', idempotency: 'OWNER_ID_PLUS_OPENAI_FILE_ID_UNIQUE', failedReservationRecovery: 'SAME_RESERVATION_RESUMABLE', activeAnalysisSerialization: 'QUEUED_OR_RUNNING_CONFLICT', retryAuthorizationLineage: 'DURABLE_HISTORY', canonicalPromotion: false, canonicalOpenApi: '/openapi.json', actionsOpenApi: '/openapi-actions.json', actionsCompatibility: 'SFI-GPT-ACTIONS-OPENAPI-COMPAT-1.0' }, null, 2));
