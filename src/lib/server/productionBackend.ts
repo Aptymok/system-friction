@@ -6,6 +6,7 @@ import {
   SfiAuthUnavailableError,
 } from '@/runtime/supabase/server';
 import { findInstitutionalMember } from '@/lib/system/access/institutionalMembers';
+import { isConfiguredFounderIdentity, resolveFounderAuthority } from '@/lib/system/access/founderAuthority';
 
 export const PRODUCTION_APP_URL =
   process.env.NEXT_PUBLIC_APP_URL || 'https://systemfriction.org';
@@ -38,15 +39,9 @@ export function isRootUser(
   role?: string | null,
   email?: string | null
 ) {
-  const rootEmail = process.env.SYSTEM_ROOT_EMAIL;
-
   return (
     isRootRole(role) ||
-    Boolean(
-      rootEmail &&
-        email &&
-        email.toLowerCase() === rootEmail.toLowerCase()
-    )
+    isConfiguredFounderIdentity({ email })
   );
 }
 
@@ -56,32 +51,9 @@ function record(value: unknown): Record<string, unknown> {
     : {};
 }
 
-function isConfiguredRootEmail(email?: string | null) {
-  const rootEmail = process.env.SYSTEM_ROOT_EMAIL;
-  return Boolean(
-    rootEmail &&
-      email &&
-      email.toLowerCase() === rootEmail.toLowerCase()
-  );
-}
-
 function isRegisteredInstitutionalRootObserver(email?: string | null) {
   const member = findInstitutionalMember(email);
   return Boolean(member && member.modules.root === true);
-}
-
-function hasSovereignRootAuthority(
-  profile: Record<string, unknown> | null,
-  email?: string | null,
-) {
-  if (isConfiguredRootEmail(email)) return true;
-  if (!profile) return false;
-
-  const role = typeof profile.role === 'string' ? profile.role : null;
-  if (!isRootRole(role)) return false;
-
-  const moduleAccess = record(profile.module_access);
-  return moduleAccess.full_access === true;
 }
 
 export function canObserveRoot(
@@ -140,10 +112,8 @@ export async function getServerUserContext() {
   const profileReadError = profileRead.error;
 
   const institutionalMember = findInstitutionalMember(user.email);
+  const configuredFounder = isConfiguredFounderIdentity({ userId: user.id, email: user.email });
 
-  // A failed profile read is not evidence that the profile is absent. Never
-  // provision on top of an indeterminate read; that was the source of the
-  // duplicate profiles_pkey write storm observed during DB timeouts.
   if (profileReadError) {
     console.error('PROFILE READ ERROR', {
       userId: user.id,
@@ -151,14 +121,12 @@ export async function getServerUserContext() {
     });
   }
 
-  // Only explicitly recognized institutional identities may be provisioned here.
-  // Unknown authenticated users must never become ROOT observers by fallback.
-  if (!profile && !profileReadError && (isConfiguredRootEmail(user.email) || institutionalMember)) {
-    const role = isConfiguredRootEmail(user.email)
+  if (!profile && !profileReadError && (configuredFounder || institutionalMember)) {
+    const role = configuredFounder
       ? 'root'
       : institutionalMember?.role ?? 'observer';
 
-    const alias = isConfiguredRootEmail(user.email)
+    const alias = configuredFounder
       ? SFI_FOUNDER_IDENTITY.displayName
       : institutionalMember?.displayName ?? user.email?.split('@')[0] ?? 'observador';
     const moduleAccess = role === 'root'
@@ -204,7 +172,12 @@ export async function getServerUserContext() {
 
   const profileRecord = profile ? record(profile) : null;
   const role = typeof profile?.role === 'string' ? profile.role : null;
-  const isRoot = hasSovereignRootAuthority(profileRecord, user.email);
+  const founderAuthority = resolveFounderAuthority({
+    userId: user.id,
+    email: user.email,
+    profile: profileRecord,
+  });
+  const isRoot = founderAuthority.isFounder;
   const legacyRootWithoutAuthority = isRootRole(role) && !isRoot;
   const registeredObserver = isRegisteredInstitutionalRootObserver(user.email);
 
@@ -214,6 +187,7 @@ export async function getServerUserContext() {
     user,
     profile,
     isRoot,
+    founderAuthoritySource: founderAuthority.source,
     canObserveRoot:
       isRoot ||
       isInstitutionalObserverRole(role) ||
