@@ -7,7 +7,7 @@ import { analyzeStudioAudioObject } from '@/lib/studio/audio/analyzeStudioAudioO
 import { buildStudioUploadDescriptor } from '@/lib/studio/multimodal/detect';
 import { completeStudioSignedUpload, loadStudioObjectBytes, prepareStudioSignedUpload, STUDIO_OBJECT_BUCKET } from '@/lib/studio/multimodal/storage';
 import { cleanupMaterialProductionWorkspace, runMaterialProduction } from './productionLoop';
-import type { MaterialProductionMode } from './types';
+import type { MaterialProductionMode, MaterialProductionReceipt } from './types';
 
 type Row = Record<string, unknown>;
 export type MaterialProductionAuthorization = { authorizedForProduction: true; basis: 'operator_owned' | 'authorized_by_rightsholder' | 'session_specific_permission'; note?: string | null };
@@ -21,6 +21,29 @@ export function parseMaterialProductionAuthorization(value: unknown): MaterialPr
   return { authorizedForProduction: true, basis: basis as MaterialProductionAuthorization['basis'], note: typeof declaration.note === 'string' && declaration.note.trim() ? declaration.note.trim() : null };
 }
 
+function durableReceipt(receipt: MaterialProductionReceipt, objectId: string): MaterialProductionReceipt {
+  return {
+    ...receipt,
+    outputs: receipt.outputs.map((output) => output.kind === 'master' ? { ...output, ref: `studio:${objectId}` } : output),
+    lineage: [...receipt.lineage, `durable-output:studio:${objectId}`],
+  };
+}
+
+async function withdrawProducedObject(input: { objectId: string; uploadId: string; storagePath: string }) {
+  const db = createServiceSupabaseClient();
+  const [uploadState, objectState] = await Promise.all([
+    db.from('studio_uploads').update({ status: 'failed' }).eq('id', input.uploadId),
+    db.from('studio_objects').update({ status: 'failed', updated_at: new Date().toISOString() }).eq('id', input.objectId),
+  ]);
+  const removal = await db.storage.from(STUDIO_OBJECT_BUCKET).remove([input.storagePath]);
+  const failures = [
+    uploadState.error ? `upload:${uploadState.error.message}` : null,
+    objectState.error ? `object:${objectState.error.message}` : null,
+    removal.error ? `storage:${removal.error.message}` : null,
+  ].filter(Boolean);
+  if (failures.length) throw new Error(`SFI_AUDIO_MATERIAL_OUTPUT_WITHDRAWAL_FAILED:${failures.join('|')}`);
+}
+
 export async function produceStudioAudioObject(input: { ownerId: string; sourceObjectId: string; mode: MaterialProductionMode; productionAuthorization: unknown; bpm?: number; key?: string; culturalProfile?: string; instrumentIds?: { harmony?: string; bass?: string }; forceAnalysis?: boolean }) {
   const authorization = parseMaterialProductionAuthorization(input.productionAuthorization);
   const source = await loadStudioObjectBytes(input.sourceObjectId);
@@ -30,6 +53,8 @@ export async function produceStudioAudioObject(input: { ownerId: string; sourceO
 
   const workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'sfi-studio-production-')); const sourcePath = path.join(workspace, 'source.wav'); const outputDir = path.join(workspace, 'result'); fs.writeFileSync(sourcePath, source.bytes);
   let materialWorkspace: string | null = null;
+  let admitted: { objectId: string; uploadId: string; storagePath: string } | null = null;
+  let published = false;
   try {
     const beforeObservation = await analyzeStudioAudioObject(input.sourceObjectId, { force: input.forceAnalysis === true, requestedByUserId: input.ownerId });
     const produced = await runMaterialProduction({ mode: input.mode, sourcePath, sourceRef: `studio:${input.sourceObjectId}`, outputDirectory: outputDir, authorizationRef: `studio:run:${input.ownerId}:${input.sourceObjectId}`, bpm: input.bpm, key: input.key, culturalProfile: input.culturalProfile, instrumentIds: input.instrumentIds });
@@ -42,22 +67,42 @@ export async function produceStudioAudioObject(input: { ownerId: string; sourceO
     const descriptor = buildStudioUploadDescriptor({ fileName: finalName, mimeType: 'audio/wav', sizeBytes: finalBytes.byteLength, title: input.mode === 'VOICE_MUSICALIZE' ? 'SFI Musicalized Master' : 'SFI Adjusted Master' });
     const prepared = await prepareStudioSignedUpload({ descriptor, ownerId: input.ownerId, metadata: { materialProduction: {
       contract: 'SFI-MATERIAL-AUDIO-RETURN-1.0', mode: input.mode, sourceObjectId: input.sourceObjectId,
-      authorization: { ...authorization, epistemicClass: 'DECLARED', legalEffect: 'PROCESSING_PERMISSION_ONLY_NOT_RIGHTS_TRANSFER' }, receipt: produced.receipt,
+      authorization: { ...authorization, epistemicClass: 'DECLARED', legalEffect: 'PROCESSING_PERMISSION_ONLY_NOT_RIGHTS_TRANSFER' },
+      returnState: 'PENDING_REOBSERVATION', rightsTransfer: false, canonicalPromotion: false,
     } } });
+    admitted = { objectId: prepared.objectId, uploadId: prepared.uploadId, storagePath: prepared.storagePath };
 
     const db = createServiceSupabaseClient();
-    const uploaded = await db.storage.from(STUDIO_OBJECT_BUCKET).upload(prepared.storagePath, finalBytes, { contentType: 'audio/wav', upsert: false });
-    if (uploaded.error) { await Promise.allSettled([db.from('studio_uploads').update({ status: 'failed' }).eq('id', prepared.uploadId), db.from('studio_objects').update({ status: 'failed' }).eq('id', prepared.objectId)]); const error = new Error(uploaded.error.message); Object.assign(error, { code: 'MATERIAL_OUTPUT_PERSISTENCE_FAILED', status: 503 }); throw error; }
-    await completeStudioSignedUpload(prepared.objectId, input.ownerId);
-    const afterObservation = await analyzeStudioAudioObject(prepared.objectId, { force: true, requestedByUserId: input.ownerId });
+    const receipt = durableReceipt(produced.receipt, prepared.objectId);
+    const initialMetadataRead = await db.from('studio_objects').select('metadata').eq('id', prepared.objectId).eq('owner_id', input.ownerId).maybeSingle();
+    if (initialMetadataRead.error || !initialMetadataRead.data) { const error = new Error(initialMetadataRead.error?.message ?? 'Material output metadata could not be read before persistence.'); Object.assign(error, { code: 'MATERIAL_RETURN_LINEAGE_FAILED', status: 503 }); throw error; }
+    const initialMetadata = { ...row(initialMetadataRead.data.metadata), materialProduction: { ...row(row(initialMetadataRead.data.metadata).materialProduction), receipt } };
+    const lineageWrite = await db.from('studio_objects').update({ metadata: initialMetadata, updated_at: new Date().toISOString() }).eq('id', prepared.objectId).eq('owner_id', input.ownerId);
+    if (lineageWrite.error) { const error = new Error(lineageWrite.error.message); Object.assign(error, { code: 'MATERIAL_RETURN_LINEAGE_FAILED', status: 503 }); throw error; }
 
-    const metadataRead = await db.from('studio_objects').select('metadata').eq('id', prepared.objectId).maybeSingle();
+    const uploaded = await db.storage.from(STUDIO_OBJECT_BUCKET).upload(prepared.storagePath, finalBytes, { contentType: 'audio/wav', upsert: false });
+    if (uploaded.error) { const error = new Error(uploaded.error.message); Object.assign(error, { code: 'MATERIAL_OUTPUT_PERSISTENCE_FAILED', status: 503 }); throw error; }
+    await completeStudioSignedUpload(prepared.objectId, input.ownerId);
+    published = true;
+
+    const afterObservation = await analyzeStudioAudioObject(prepared.objectId, { force: true, requestedByUserId: input.ownerId });
+    const metadataRead = await db.from('studio_objects').select('metadata').eq('id', prepared.objectId).eq('owner_id', input.ownerId).maybeSingle();
     if (metadataRead.error || !metadataRead.data) { const error = new Error(metadataRead.error?.message ?? 'Material output metadata could not be read.'); Object.assign(error, { code: 'MATERIAL_RETURN_LINEAGE_FAILED', status: 503 }); throw error; }
-    const metadata = { ...row(metadataRead.data.metadata), materialProduction: { ...row(row(metadataRead.data.metadata).materialProduction), returnState: produced.receipt.returnState, sourceObservationObjectId: input.sourceObjectId, resultObservationObjectId: prepared.objectId, beforeObservationRecorded: true, afterObservationRecorded: true, rightsTransfer: false, canonicalPromotion: false } };
+    const metadata = { ...row(metadataRead.data.metadata), materialProduction: { ...row(row(metadataRead.data.metadata).materialProduction), receipt, returnState: receipt.returnState, sourceObservationObjectId: input.sourceObjectId, resultObservationObjectId: prepared.objectId, beforeObservationRecorded: true, afterObservationRecorded: true, rightsTransfer: false, canonicalPromotion: false } };
     const update = await db.from('studio_objects').update({ metadata, updated_at: new Date().toISOString() }).eq('id', prepared.objectId).eq('owner_id', input.ownerId);
     if (update.error) { const error = new Error(update.error.message); Object.assign(error, { code: 'MATERIAL_RETURN_LINEAGE_FAILED', status: 503 }); throw error; }
 
-    return { sourceObjectId: input.sourceObjectId, resultObjectId: prepared.objectId, mode: input.mode, authorization: { ...authorization, epistemicClass: 'DECLARED', rightsTransfer: false }, receipt: produced.receipt, renderReceipts: produced.renderReceipts, beforeObservation, afterObservation, canonicalPromotion: false };
+    return { sourceObjectId: input.sourceObjectId, resultObjectId: prepared.objectId, mode: input.mode, authorization: { ...authorization, epistemicClass: 'DECLARED', rightsTransfer: false }, receipt, renderReceipts: produced.renderReceipts, beforeObservation, afterObservation, canonicalPromotion: false };
+  } catch (error) {
+    if (admitted) {
+      try { await withdrawProducedObject(admitted); }
+      catch (withdrawalError) {
+        const combined = new Error(`${error instanceof Error ? error.message : String(error)}; ${withdrawalError instanceof Error ? withdrawalError.message : String(withdrawalError)}`);
+        Object.assign(combined, { code: 'MATERIAL_OUTPUT_WITHDRAWAL_FAILED', status: 503, publishedBeforeWithdrawal: published });
+        throw combined;
+      }
+    }
+    throw error;
   } finally {
     if (materialWorkspace) cleanupMaterialProductionWorkspace(materialWorkspace);
     fs.rmSync(workspace, { recursive: true, force: true });
