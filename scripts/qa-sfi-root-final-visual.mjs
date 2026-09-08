@@ -24,6 +24,11 @@ assert.match(workspace, /SIMULACIÓN ≠ OBSERVACIÓN/, 'root simulation boundar
 assert.match(workspace, /rootActionRequired === true/, 'root sovereign work queue semantics must remain data-driven');
 assert.match(workspace, /jsonFetch\('\/api\/root\/interactive\?surface=root'\)/, 'root must retain canonical live read contract');
 assert.match(workspace, /jsonFetch\('\/api\/root\/decisions'/, 'root decision writes must retain canonical writer');
+assert.match(workspace, /const readState = base \? \(error \? 'DEGRADED' : 'OBSERVED'\) : \(error \? 'DEGRADED' : 'MISSING'\)/, 'root must derive epistemic read state from actual read outcome');
+assert.match(workspace, /data-epistemic-state=\{readState\}/, 'pulse cards must carry observed read state');
+assert.match(workspace, /const pulseValue = \(value: number\) => base \? value : 'MISSING'/, 'absent reads must not project numeric zero');
+assert.match(css, /content:attr\(data-epistemic-state\)/, 'pulse label must render runtime epistemic state');
+assert.doesNotMatch(css, /content:"OBSERVED"/, 'CSS must not stamp unavailable pulse data as observed');
 assert.doesNotMatch(workspace, /Math\.random|mock|simulated|hardcodedHealthy/i, 'production root must not invent display state');
 
 for (const token of ['--root-gold:#c9a84b','--root-red:#b94a4a','SFI / ROOT / AUTHORITY FIELD','counter-reset:rootModule']) {
@@ -37,6 +42,7 @@ console.log(JSON.stringify({
   canonicalSurface: '/root -> SfiConsole -> SfiRootWorkspace',
   moduleCount: hrefs.length,
   topology: ['OBSERVATION','AUTHORITY','RETURN'],
+  unavailableState: 'MISSING_OR_DEGRADED_NOT_ZERO',
   simulatedMetrics: false,
   newWriter: false,
 }));
