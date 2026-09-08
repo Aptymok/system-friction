@@ -63,25 +63,30 @@ async function renderPart(input: { instrument: SfiProductionInstrumentRow; perfo
 
 export async function runMaterialProduction(input: { mode: MaterialProductionMode; sourcePath: string; sourceRef: string; outputDirectory: string; authorizationRef: string; bpm?: number; key?: string; culturalProfile?: string; instrumentIds?: { harmony?: string; bass?: string } }) {
   const startedAt = new Date().toISOString(); const runId = randomUUID(); const workspace = fs.mkdtempSync(path.join(os.tmpdir(), `sfi-material-${runId}-`));
-  fs.mkdirSync(input.outputDirectory, { recursive: true }); const sourceHash = sha256File(input.sourcePath);
-  const outputs: MaterialProductionReceipt['outputs'] = []; const instruments: MaterialProductionReceipt['instruments'] = []; const renderReceipts: SfiAudioRenderReceipt[] = [];
-  const lineage = [`source:${input.sourceRef}`, `run:${runId}`, `mode:${input.mode}`]; let finalPath = '';
-  if (input.mode === 'MASTER_ADJUST') {
-    finalPath = path.join(input.outputDirectory, `${runId}-adjusted-master.wav`); await masterFile(input.sourcePath, finalPath);
-    outputs.push({ kind: 'master', ref: finalPath, sha256: sha256File(finalPath) }); lineage.push('MASTER_ADJUST:bounded_dsp', 'NO_ARRANGEMENT_CHANGE_WITHOUT_EXPLICIT_STEMS_OR_PERFORMANCE');
-  } else {
-    const profile = input.culturalProfile || 'ranchero_pop'; const bpm = input.bpm ?? 112; if (bpm < 60 || bpm > 200) throw new Error('SFI_AUDIO_BPM_OUT_OF_RANGE');
-    const key = input.key || 'G'; const duration = probeDurationSeconds(input.sourcePath);
-    const harmony = input.instrumentIds?.harmony ? await getProductionInstrumentById(input.instrumentIds.harmony) : await resolveProductionInstrument({ culturalProfile: profile, families: ['acoustic_guitar', 'guitar', 'vihuela'] });
-    const bass = input.instrumentIds?.bass ? await getProductionInstrumentById(input.instrumentIds.bass) : await resolveProductionInstrument({ culturalProfile: profile, families: ['guitarron', 'upright_bass', 'bass'] });
-    const harmonyPerformance = createPerformance({ instrument: harmony, role: 'harmony', bpm, key, duration, sourceRef: input.sourceRef }); const bassPerformance = createPerformance({ instrument: bass, role: 'bass', bpm, key, duration, sourceRef: input.sourceRef });
-    const harmonyRender = await renderPart({ instrument: harmony, performance: harmonyPerformance, role: 'harmony', workspace, authorizationRef: input.authorizationRef }); const bassRender = await renderPart({ instrument: bass, performance: bassPerformance, role: 'bass', workspace, authorizationRef: input.authorizationRef });
-    renderReceipts.push(harmonyRender.receipt, bassRender.receipt);
-    for (const [instrument, render, role] of [[harmony, harmonyRender, 'harmony'], [bass, bassRender, 'bass']] as const) { instruments.push({ id: instrument.id, packageRef: instrument.packageRef, packageHash: instrument.packageHash, rightsStatus: instrument.rightsStatus }); outputs.push({ kind: 'stem', ref: role, sha256: render.receipt.output.sha256 }); lineage.push(`render:${role}:${render.receipt.runId}:${render.receipt.output.sha256}`); }
-    const mixPath = path.join(workspace, 'mix.wav'); await mixFiles([{ file: input.sourcePath, gainDb: -1.5 }, { file: harmonyRender.artifactPath, gainDb: -7 }, { file: bassRender.artifactPath, gainDb: -5 }], mixPath); outputs.push({ kind: 'mix', ref: 'ephemeral:mix', sha256: sha256File(mixPath) });
-    finalPath = path.join(input.outputDirectory, `${runId}-musicalized-master.wav`); await masterFile(mixPath, finalPath); outputs.push({ kind: 'master', ref: finalPath, sha256: sha256File(finalPath) }); lineage.push('MIX:authorized_source+canonical_real_sample_stems', 'MASTER:bounded_dsp');
+  try {
+    fs.mkdirSync(input.outputDirectory, { recursive: true }); const sourceHash = sha256File(input.sourcePath);
+    const outputs: MaterialProductionReceipt['outputs'] = []; const instruments: MaterialProductionReceipt['instruments'] = []; const renderReceipts: SfiAudioRenderReceipt[] = [];
+    const lineage = [`source:${input.sourceRef}`, `run:${runId}`, `mode:${input.mode}`]; let finalPath = '';
+    if (input.mode === 'MASTER_ADJUST') {
+      finalPath = path.join(input.outputDirectory, `${runId}-adjusted-master.wav`); await masterFile(input.sourcePath, finalPath);
+      outputs.push({ kind: 'master', ref: finalPath, sha256: sha256File(finalPath) }); lineage.push('MASTER_ADJUST:bounded_dsp', 'NO_ARRANGEMENT_CHANGE_WITHOUT_EXPLICIT_STEMS_OR_PERFORMANCE');
+    } else {
+      const profile = input.culturalProfile || 'ranchero_pop'; const bpm = input.bpm ?? 112; if (bpm < 60 || bpm > 200) throw new Error('SFI_AUDIO_BPM_OUT_OF_RANGE');
+      const key = input.key || 'G'; const duration = probeDurationSeconds(input.sourcePath);
+      const harmony = input.instrumentIds?.harmony ? await getProductionInstrumentById(input.instrumentIds.harmony) : await resolveProductionInstrument({ culturalProfile: profile, families: ['acoustic_guitar', 'guitar', 'vihuela'] });
+      const bass = input.instrumentIds?.bass ? await getProductionInstrumentById(input.instrumentIds.bass) : await resolveProductionInstrument({ culturalProfile: profile, families: ['guitarron', 'upright_bass', 'bass'] });
+      const harmonyPerformance = createPerformance({ instrument: harmony, role: 'harmony', bpm, key, duration, sourceRef: input.sourceRef }); const bassPerformance = createPerformance({ instrument: bass, role: 'bass', bpm, key, duration, sourceRef: input.sourceRef });
+      const harmonyRender = await renderPart({ instrument: harmony, performance: harmonyPerformance, role: 'harmony', workspace, authorizationRef: input.authorizationRef }); const bassRender = await renderPart({ instrument: bass, performance: bassPerformance, role: 'bass', workspace, authorizationRef: input.authorizationRef });
+      renderReceipts.push(harmonyRender.receipt, bassRender.receipt);
+      for (const [instrument, render, role] of [[harmony, harmonyRender, 'harmony'], [bass, bassRender, 'bass']] as const) { instruments.push({ id: instrument.id, packageRef: instrument.packageRef, packageHash: instrument.packageHash, rightsStatus: instrument.rightsStatus }); outputs.push({ kind: 'stem', ref: role, sha256: render.receipt.output.sha256 }); lineage.push(`render:${role}:${render.receipt.runId}:${render.receipt.output.sha256}`); }
+      const mixPath = path.join(workspace, 'mix.wav'); await mixFiles([{ file: input.sourcePath, gainDb: -1.5 }, { file: harmonyRender.artifactPath, gainDb: -7 }, { file: bassRender.artifactPath, gainDb: -5 }], mixPath); outputs.push({ kind: 'mix', ref: 'ephemeral:mix', sha256: sha256File(mixPath) });
+      finalPath = path.join(input.outputDirectory, `${runId}-musicalized-master.wav`); await masterFile(mixPath, finalPath); outputs.push({ kind: 'master', ref: finalPath, sha256: sha256File(finalPath) }); lineage.push('MIX:authorized_source+canonical_real_sample_stems', 'MASTER:bounded_dsp');
+    }
+    const receipt: MaterialProductionReceipt = { contract: 'SFI-MATERIAL-AUDIO-RETURN-1.0', runId, mode: input.mode, source: { ref: input.sourceRef, sha256: sourceHash }, instruments, performanceHash: renderReceipts.length ? `sha256:${createHash('sha256').update(renderReceipts.map((receipt) => receipt.performanceHash).join('\n')).digest('hex')}` : 'sha256:none', adapter: { id: 'SFI-SFZ-RENDER-1.0', ffmpeg: ffmpegPath || 'MISSING' }, outputs, startedAt, finishedAt: new Date().toISOString(), cleanupState: 'FAIL', rightsAssertions: input.mode === 'VOICE_MUSICALIZE' ? ['SOURCE_PROCESSING_AUTHORIZED_BY_CALLER', 'CANONICAL_INSTRUMENT_BANK_ELIGIBLE', 'SFI_RENDER_RIGHTS_BOUNDARY_PASS'] : ['SOURCE_PROCESSING_AUTHORIZED_BY_CALLER'], lineage, returnState: 'RETURN_PASS' };
+    return { receipt, finalPath, renderReceipts, workspace };
+  } catch (error) {
+    cleanupMaterialProductionWorkspace(workspace);
+    throw error;
   }
-  const receipt: MaterialProductionReceipt = { contract: 'SFI-MATERIAL-AUDIO-RETURN-1.0', runId, mode: input.mode, source: { ref: input.sourceRef, sha256: sourceHash }, instruments, performanceHash: renderReceipts.length ? `sha256:${createHash('sha256').update(renderReceipts.map((receipt) => receipt.performanceHash).join('\n')).digest('hex')}` : 'sha256:none', adapter: { id: 'SFI-SFZ-RENDER-1.0', ffmpeg: ffmpegPath || 'MISSING' }, outputs, startedAt, finishedAt: new Date().toISOString(), cleanupState: 'FAIL', rightsAssertions: input.mode === 'VOICE_MUSICALIZE' ? ['SOURCE_PROCESSING_AUTHORIZED_BY_CALLER', 'CANONICAL_INSTRUMENT_BANK_ELIGIBLE', 'SFI_RENDER_RIGHTS_BOUNDARY_PASS'] : ['SOURCE_PROCESSING_AUTHORIZED_BY_CALLER'], lineage, returnState: 'RETURN_PASS' };
-  return { receipt, finalPath, renderReceipts, workspace };
 }
 export function cleanupMaterialProductionWorkspace(workspace: string) { try { fs.rmSync(workspace, { recursive: true, force: true }); return 'PASS' as const; } catch { return 'FAIL' as const; } }
