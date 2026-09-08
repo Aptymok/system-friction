@@ -24,13 +24,12 @@ const aiSource = {
   independent: true,
 };
 
-test('query mode ranks public canonical objects but never promotes candidates to canon', () => {
+test('query mode does not fabricate canonical candidates while the public registry is empty', () => {
   const observed = observeDiscovery({ mode: 'query', query: 'friction evidence governed inference' });
   assert.equal(observed.contract, 'SFI-DISCOVERY-OBSERVATION-1.0');
-  assert(observed.candidates.length > 0);
-  assert(observed.candidates.every((candidate) => candidate.canonical === false));
-  assert(observed.externalRepresentations.length > 0);
-  assert(observed.externalRepresentations.every((representation) => representation.representationClass === 'EXTERNAL_REPRESENTATION'));
+  assert.equal(observed.candidates.length, 0);
+  assert.equal(observed.externalRepresentations.length, 0);
+  assert.equal(observed.epistemicBoundary.candidatesAreCanonical, false);
   assert.equal(observed.epistemicBoundary.automaticCanon, false);
   assert.equal(observed.epistemicBoundary.automaticPublication, false);
   assert.equal(observed.epistemicBoundary.automaticExecution, false);
