@@ -1,0 +1,96 @@
+name: SFI DB Proof Snapshot
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/sfi-db-snapshot-trigger'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sfi-db-proof-snapshot
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      DATABASE_URL: ${{ secrets.SFI_DATABASE_URL || secrets.DATABASE_URL || secrets.SUPABASE_DB_URL || secrets.POSTGRES_URL }}
+      SFI_DB_EVIDENCE_DIR: ${{ runner.temp }}/sfi-db-evidence
+      SFI_DB_REQUIRE_RESET_CLASSIFICATION: 'YES'
+      SFI_DB_SNAPSHOT_MAX_AGE_MINUTES: '180'
+    steps:
+      - name: Checkout exact main state
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Validate controlled trigger and database secret
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${DATABASE_URL:-}" ]]; then
+            echo 'No direct PostgreSQL secret is configured for the evidence workflow.' >&2
+            exit 1
+          fi
+          if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
+            test -f .github/sfi-db-snapshot-trigger
+            grep -Fx 'SFI_DB_SNAPSHOT_REQUEST=ISSUE_430' .github/sfi-db-snapshot-trigger
+          fi
+
+      - name: Install PostgreSQL client and ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -y
+          sudo apt-get install -y postgresql-client zip unzip
+
+      - name: Create full evidentiary PostgreSQL snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/db/create-db-evidence-snapshot.mjs
+
+      - name: Resolve and verify V2 receipt
+        id: receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          RECEIPT="$(cat "${SFI_DB_EVIDENCE_DIR}/LATEST_DB_EVIDENCE_RECEIPT.txt")"
+          test -f "${RECEIPT}"
+          SFI_DB_SNAPSHOT_RECEIPT="${RECEIPT}" node scripts/db/verify-db-evidence-snapshot.mjs
+          echo "path=${RECEIPT}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload immutable proof outside database
+        id: proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: sfi-db-proof-${{ github.run_id }}
+          path: ${{ runner.temp }}/sfi-db-evidence/
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
+
+      - name: Record proof handoff
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo '## SFI DB proof snapshot'
+            echo
+            echo "- Git commit: \`${GITHUB_SHA}\`"
+            echo "- Artifact ID: \`${{ steps.proof.outputs.artifact-id }}\`"
+            echo "- Artifact digest: \`${{ steps.proof.outputs.artifact-digest }}\`"
+            echo "- Artifact URL: ${{ steps.proof.outputs.artifact-url }}"
+            echo '- Destructive reset: **NOT EXECUTED**'
+          } >> "$GITHUB_STEP_SUMMARY"

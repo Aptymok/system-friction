@@ -1,0 +1,127 @@
+name: SFI DB Canonical Reset
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type RESET_SFI_CANONICAL to execute issue #430 reset.'
+        required: true
+        type: string
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/sfi-db-canonical-reset-trigger'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sfi-db-canonical-reset
+  cancel-in-progress: false
+
+jobs:
+  reset:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      DATABASE_URL: ${{ secrets.SFI_DATABASE_URL || secrets.DATABASE_URL || secrets.SUPABASE_DB_URL || secrets.POSTGRES_URL }}
+      SFI_DB_EVIDENCE_DIR: ${{ runner.temp }}/sfi-db-evidence
+      SFI_DB_REQUIRE_RESET_CLASSIFICATION: 'YES'
+      SFI_DB_SNAPSHOT_MAX_AGE_MINUTES: '180'
+    steps:
+      - name: Checkout exact main state
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Validate destructive trigger and database secret
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${DATABASE_URL:-}" ]]; then
+            echo 'No direct PostgreSQL secret is configured for canonical reset.' >&2
+            exit 1
+          fi
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            [[ "${{ inputs.confirm }}" == 'RESET_SFI_CANONICAL' ]]
+          else
+            test -f .github/sfi-db-canonical-reset-trigger
+            grep -Fx 'SFI_DB_CANONICAL_RESET=ISSUE_430' .github/sfi-db-canonical-reset-trigger
+          fi
+
+      - name: Install PostgreSQL client and ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -y
+          sudo apt-get install -y postgresql-client zip unzip
+
+      - name: Create fresh full evidentiary snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/db/create-db-evidence-snapshot.mjs
+
+      - name: Resolve and verify V2 snapshot receipt
+        id: receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          RECEIPT="$(cat "${SFI_DB_EVIDENCE_DIR}/LATEST_DB_EVIDENCE_RECEIPT.txt")"
+          test -f "${RECEIPT}"
+          SFI_DB_SNAPSHOT_RECEIPT="${RECEIPT}" node scripts/db/verify-db-evidence-snapshot.mjs
+          echo "path=${RECEIPT}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload proof before any destructive statement
+        id: proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: sfi-db-pre-reset-proof-${{ github.run_id }}
+          path: ${{ runner.temp }}/sfi-db-evidence/
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
+
+      - name: Execute founder-authorized canonical reset
+        shell: bash
+        env:
+          SFI_DB_SNAPSHOT_RECEIPT: ${{ steps.receipt.outputs.path }}
+          SFI_DB_RESET_CONFIRM: RESET_SFI_CANONICAL
+          SFI_DB_RESET_MODE: EVIDENCE_FIRST_CANONICAL_RESET
+          SFI_DB_EXTERNAL_ARTIFACT_ID: ${{ steps.proof.outputs.artifact-id }}
+          SFI_DB_EXTERNAL_ARTIFACT_DIGEST: ${{ steps.proof.outputs.artifact-digest }}
+          SFI_DB_EXTERNAL_ARTIFACT_URL: ${{ steps.proof.outputs.artifact-url }}
+        run: |
+          set -euo pipefail
+          node scripts/db/reset-sfi-operational-tables.mjs
+
+      - name: Upload post-reset genesis receipt
+        id: genesis
+        uses: actions/upload-artifact@v4
+        with:
+          name: sfi-db-post-reset-genesis-${{ github.run_id }}
+          path: docs/db/SFI_CANONICAL_RESET_REPORT_*.json
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Record canonical reset handoff
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo '## SFI canonical persistence reset'
+            echo
+            echo "- Git commit: \`${GITHUB_SHA}\`"
+            echo "- Pre-reset proof artifact: \`${{ steps.proof.outputs.artifact-id }}\`"
+            echo "- Pre-reset proof digest: \`${{ steps.proof.outputs.artifact-digest }}\`"
+            echo "- Post-reset genesis artifact: \`${{ steps.genesis.outputs.artifact-id }}\`"
+            echo '- Legacy preservation: **full longitudinal World corpus**'
+            echo '- Protected World plane: source observations, friction readings, hypotheses, outcomes, learning events, WorldSpect snapshots, World Vector cycles/observations/reports/alerts'
+            echo '- Twin/AMV/QA/governance/runtime learning outside the World corpus: **not imported**'
+          } >> "$GITHUB_STEP_SUMMARY"
