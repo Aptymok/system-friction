@@ -12,7 +12,8 @@ export type MaterialProductionMode = 'VOICE_MUSICALIZE' | 'MASTER_ADJUST';
 export type MaterialProductionReceipt = {
   contract: 'SFI-MATERIAL-AUDIO-RETURN-1.0'; runId: string; mode: MaterialProductionMode; source: { ref: string; sha256: string };
   instruments: Array<{ id: string; packageRef: string; packageHash: string; rightsStatus: AudioRightsState }>;
-  performanceHash: string; adapter: { id: 'SFI-SFZ-RENDER-1.0'; ffmpeg: string };
+  effectiveParameters: { bpm: number | null; key: string | null; culturalProfile: string | null };
+  performanceHash: string; adapter: { id: 'SFI-SFZ-RENDER-1.0' | 'SFI-FFMPEG-MASTER-1.0'; ffmpeg: string };
   outputs: Array<{ kind: 'stem' | 'mix' | 'master'; ref: string; sha256: string }>;
   startedAt: string; finishedAt: string; cleanupState: 'PASS' | 'FAIL'; rightsAssertions: string[]; lineage: string[]; returnState: 'RETURN_PASS' | 'RETURN_FAIL';
 };
