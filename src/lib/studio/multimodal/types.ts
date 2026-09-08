@@ -93,6 +93,8 @@ export class StudioMultimodalError extends Error {
       | 'OPENAI_FILE_URL_FORBIDDEN'
       | 'OPENAI_FILE_DOWNLOAD_FAILED'
       | 'OPENAI_FILE_DOWNLOAD_EMPTY'
+      | 'OPENAI_FILE_EVIDENCE_CONFLICT'
+      | 'OPENAI_FILE_INTAKE_CONFLICT'
       | 'ANALYSIS_AUTHORIZATION_REQUIRED'
       | 'AUDIO_ATTACHMENT_REQUIRED'
       | 'EXTRACTION_RUNTIME_UNAVAILABLE'
@@ -110,21 +112,4 @@ export class StudioMultimodalError extends Error {
     super(message);
     this.name = 'StudioMultimodalError';
   }
-}
-
-export function toStudioMultimodalApiError(error: unknown) {
-  if (error instanceof StudioMultimodalError) {
-    return {
-      ok: false,
-      error: error.code,
-      details: error.message,
-      context: error.details,
-    };
-  }
-
-  return {
-    ok: false,
-    error: 'ANALYSIS_FAILED',
-    details: error instanceof Error ? error.message : String(error),
-  };
 }
