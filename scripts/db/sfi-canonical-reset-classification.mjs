@@ -1,12 +1,22 @@
-export const SFI_CANONICAL_RESET_CONTRACT = 'SFI-CANONICAL-RESET-CLASSIFICATION-1.0';
+export const SFI_CANONICAL_RESET_CONTRACT = 'SFI-CANONICAL-RESET-CLASSIFICATION-1.1';
 
-// Founder-directed preservation boundary: only the longitudinal World observation /
-// friction / hypothesis / outcome corpus survives as legacy DATA.
+// Founder-directed preservation boundary (2026-09-07): World observation and
+// hypothesis history is institutional evidence and must never be discarded by
+// the canonical reset. Preserve the complete longitudinal World plane needed to
+// reconstruct observation -> friction -> hypothesis -> outcome -> learning and
+// WorldSpect / World Vector trajectories. Empty World tables remain protected so
+// later rows cannot be silently deleted by the same reset contract.
 export const PRESERVE_DATA_TABLES = [
   'world_source_observations',
   'world_friction_readings',
   'world_hypotheses',
   'world_hypothesis_outcomes',
+  'world_learning_events',
+  'worldspect_snapshots',
+  'world_vector_cycles',
+  'world_vector_observations',
+  'world_vector_reports',
+  'world_vector_alerts',
 ];
 
 // These rows do NOT survive as legacy data. They are cleared and deterministically
@@ -172,12 +182,6 @@ export const PURGE_DATA_TABLES = [
   'studio_uploads',
   'studio_video_features',
   'usage_ledger',
-  'world_learning_events',
-  'world_vector_alerts',
-  'world_vector_cycles',
-  'world_vector_observations',
-  'world_vector_reports',
-  'worldspect_snapshots',
 ];
 
 export const CLASSIFIED_PUBLIC_TABLES = [
