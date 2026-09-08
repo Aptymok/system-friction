@@ -8,17 +8,23 @@ export const runtime = 'nodejs';
 export async function GET(request: Request) {
   const gate = await requireRootActor('founder-state.read');
   if (!gate.ok) return NextResponse.json(gate.body, { status: gate.status });
+
   const state = await buildFounderConsoleState(request.url);
+  const profileRole = typeof gate.ctx.profile?.role === 'string' ? gate.ctx.profile.role : null;
 
-  if (!state.access.authenticated) {
-    return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
-  }
+  const verifiedState = {
+    ...state,
+    access: {
+      ...state.access,
+      authenticated: true,
+      authorized: true,
+      userId: gate.ctx.user.id,
+      email: gate.ctx.user.email ?? state.access.email ?? null,
+      role: state.access.role ?? profileRole,
+    },
+  };
 
-  if (!state.access.authorized) {
-    return NextResponse.json({ ok: false, error: 'root_required' }, { status: 403 });
-  }
-
-  return NextResponse.json(state, {
+  return NextResponse.json(verifiedState, {
     headers: {
       'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
       Pragma: 'no-cache',
