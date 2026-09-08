@@ -58,7 +58,7 @@ for (const token of [
   'MATERIAL_OUTPUT_WITHDRAWAL_FAILED', 'rightsTransfer: false', 'canonicalPromotion: false',
   'effectiveParameters: receipt.effectiveParameters', 'renderReceipts: produced.renderReceipts', 'outer-workspace-cleanup:PASS',
   'performanceArtifacts = produced.performances.map', 'sha256: hashPerformance(performance)',
-  'artifact.ref === renderReceipt.performanceRef', 'artifact.sha256 !== renderReceipt.performanceHash',
+  'candidate.ref === renderReceipt.performanceRef', 'artifact.sha256 !== renderReceipt.performanceHash',
   'MATERIAL_PERFORMANCE_LINEAGE_FAILED', 'performanceArtifacts,', 'performanceRefs:',
 ]) assert.ok(studioProduction.includes(token), `studio_production_missing:${token}`);
 const performanceValidationIndex = studioProduction.indexOf('const performanceArtifacts = produced.performances.map');
