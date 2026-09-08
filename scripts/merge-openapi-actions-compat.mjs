@@ -1,8 +1,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const openapiPath = path.join(process.cwd(), 'public', 'openapi.json');
-const api = JSON.parse(fs.readFileSync(openapiPath, 'utf8'));
+const canonicalPath = path.join(process.cwd(), 'public', 'openapi.json');
+const actionsPath = path.join(process.cwd(), 'public', 'openapi-actions.json');
+const canonical = JSON.parse(fs.readFileSync(canonicalPath, 'utf8'));
+const api = structuredClone(canonical);
 
 const conciseDescriptions = new Map([
   ['POST /api/external/v1/result', 'Persist a structured SFI analysis result without persisting raw binary content. Requires lab:write and preserves provenance/epistemic boundaries.'],
@@ -28,45 +30,25 @@ for (const [route, pathItem] of Object.entries(api.paths || {})) {
 
 const mcp = api.paths?.['/api/mcp/authenticated']?.post;
 if (mcp) {
-  // GPT Actions ignores caller-specified header parameters. The real MCP endpoint
-  // still enforces X-SFI-Capability-Grant-Nonce server-side for executable tools/call.
-  // Do not advertise an ignored header as an Action-provided capability.
   mcp.parameters = (mcp.parameters || []).filter((parameter) => parameter?.in !== 'header');
   mcp['x-sfi-actions-boundary'] = {
+    projection: '/openapi-actions.json',
+    canonicalOpenApi: '/openapi.json',
     customHeaderParametersExposed: false,
     capabilityGrantNonceStillRequiredByMcpRuntimeForExecutableToolsCall: true,
     actionProjectionDoesNotWeakenMcpAuthorization: true,
   };
-
   const response = mcp.responses?.['200']?.content?.['application/json'];
-  if (response) {
-    response.schema = {
-      type: 'object',
-      properties: {
-        jsonrpc: { type: 'string' },
-        id: { oneOf: [{ type: 'string' }, { type: 'number' }, { type: 'null' }] },
-        result: {
-          type: 'object',
-          properties: {
-            content: { type: 'array', items: { type: 'object', properties: {}, additionalProperties: true } },
-            structuredContent: { type: 'object', properties: {}, additionalProperties: true },
-            resources: { type: 'array', items: { type: 'object', properties: {}, additionalProperties: true } },
-          },
-          additionalProperties: true,
-        },
-        error: {
-          type: 'object',
-          properties: {
-            code: { type: 'number' },
-            message: { type: 'string' },
-            data: { type: 'object', properties: {}, additionalProperties: true },
-          },
-          additionalProperties: true,
-        },
-      },
-      additionalProperties: false,
-    };
-  }
+  if (response) response.schema = {
+    type: 'object',
+    properties: {
+      jsonrpc: { type: 'string' },
+      id: { oneOf: [{ type: 'string' }, { type: 'number' }, { type: 'null' }] },
+      result: { type: 'object', properties: { content: { type: 'array', items: { type: 'object', properties: {}, additionalProperties: true } }, structuredContent: { type: 'object', properties: {}, additionalProperties: true }, resources: { type: 'array', items: { type: 'object', properties: {}, additionalProperties: true } } }, additionalProperties: true },
+      error: { type: 'object', properties: { code: { type: 'number' }, message: { type: 'string' }, data: { type: 'object', properties: {}, additionalProperties: true } }, additionalProperties: true },
+    },
+    additionalProperties: false,
+  };
 }
 
 const violations = [];
@@ -74,25 +56,25 @@ for (const [route, pathItem] of Object.entries(api.paths || {})) {
   for (const method of ['get', 'post', 'put', 'patch', 'delete']) {
     const operation = pathItem?.[method];
     if (!operation) continue;
-    if (typeof operation.description === 'string' && operation.description.length > 300) {
-      violations.push(`${method.toUpperCase()} ${route}:description>${operation.description.length}`);
-    }
-    for (const parameter of operation.parameters || []) {
-      if (parameter?.in === 'header') violations.push(`${method.toUpperCase()} ${route}:header:${parameter.name || 'unnamed'}`);
-    }
+    if (typeof operation.description === 'string' && operation.description.length > 300) violations.push(`${method.toUpperCase()} ${route}:description>${operation.description.length}`);
+    for (const parameter of operation.parameters || []) if (parameter?.in === 'header') violations.push(`${method.toUpperCase()} ${route}:header:${parameter.name || 'unnamed'}`);
   }
 }
+if (violations.length) throw new Error(`SFI_ACTIONS_OPENAPI_COMPAT_FAILED:${violations.join(',')}`);
 
-if (violations.length) {
-  throw new Error(`SFI_ACTIONS_OPENAPI_COMPAT_FAILED:${violations.join(',')}`);
+const canonicalMcp = canonical.paths?.['/api/mcp/authenticated']?.post;
+if (!canonicalMcp?.parameters?.some((parameter) => parameter?.in === 'header' && parameter?.name === 'X-SFI-Capability-Grant-Nonce')) {
+  throw new Error('SFI_CANONICAL_OPENAPI_MCP_NONCE_PARAMETER_MISSING');
 }
 
 api['x-sfi-actions-compatibility'] = {
   contract: 'SFI-GPT-ACTIONS-OPENAPI-COMPAT-1.0',
+  canonicalSource: '/openapi.json',
+  projection: '/openapi-actions.json',
   maxOperationDescriptionChars: 300,
   customHeaderParametersExcluded: true,
   authenticatedMcpRuntimeAuthorizationUnchanged: true,
 };
 
-fs.writeFileSync(openapiPath, `${JSON.stringify(api, null, 2)}\n`);
-console.log(JSON.stringify({ ok: true, contract: 'SFI-GPT-ACTIONS-OPENAPI-COMPAT-1.0' }, null, 2));
+fs.writeFileSync(actionsPath, `${JSON.stringify(api, null, 2)}\n`);
+console.log(JSON.stringify({ ok: true, contract: 'SFI-GPT-ACTIONS-OPENAPI-COMPAT-1.0', canonical: 'public/openapi.json', projection: 'public/openapi-actions.json' }, null, 2));
