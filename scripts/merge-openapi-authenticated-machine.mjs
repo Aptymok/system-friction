@@ -10,7 +10,7 @@ api.paths['/api/mcp/authenticated'] = {
   post: {
     operationId: 'sfiAuthenticatedGovernedMachineAdapter',
     summary: 'Authenticated governed SFI machine adapter',
-    description: 'Authenticated MCP/JSON-RPC adapter over the existing SFI OAuth/scoped gateway and canonical cognitive execution owner. tools/call requires OAuth execute scope plus an ACTIVE SFI-CAPABILITY-GRANT-1.0 and transient proof of the grant nonce. Broker admission, model capability, or scope possession alone do not authorize execution. The adapter cannot promote canon or execute external side effects.',
+    description: 'Authenticated MCP/JSON-RPC adapter for governed SFI machine clients. Executable tools/call requires OAuth execute scope, an ACTIVE SFI-CAPABILITY-GRANT-1.0 and possession proof. The adapter cannot promote canon or execute external side effects.',
     tags: ['Machine Interfaces'],
     security: [{ sfiOAuth: ['execute'] }],
     parameters: [{
@@ -18,7 +18,7 @@ api.paths['/api/mcp/authenticated'] = {
       in: 'header',
       required: false,
       schema: { type: 'string', minLength: 1 },
-      description: 'Required for tools/call only. Trusted machine clients present the ephemeral grant nonce transiently; the server hashes it immediately against the persisted nonceHash and never places the raw nonce in JSON, persistence, browser state, execution context, or model context.',
+      description: 'Transient possession proof for MCP tools/call. The runtime hashes it server-side; it is never persisted or returned.',
     }],
     requestBody: {
       required: true,
@@ -43,11 +43,32 @@ api.paths['/api/mcp/authenticated'] = {
     },
     responses: {
       '200': {
-        description: 'MCP JSON-RPC response. Successful tools/call responses include grant and lineage receipts but never a raw nonce or OAuth credential.',
-        content: { 'application/json': { schema: { type: 'object', additionalProperties: true } } },
+        description: 'MCP JSON-RPC response with bounded result or error data.',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: {
+                jsonrpc: { type: 'string' },
+                id: { oneOf: [{ type: 'string' }, { type: 'number' }, { type: 'null' }] },
+                result: { type: 'object', properties: {}, additionalProperties: true },
+                error: {
+                  type: 'object',
+                  properties: {
+                    code: { type: 'number' },
+                    message: { type: 'string' },
+                    data: { type: 'object', properties: {}, additionalProperties: true },
+                  },
+                  additionalProperties: true,
+                },
+              },
+              additionalProperties: false,
+            },
+          },
+        },
       },
       '401': { description: 'Missing or invalid OAuth/scoped gateway credential.' },
-      '403': { description: 'OAuth binding, grant possession/state, scope, resource, action, authority ceiling, parent grant, or confirmation policy denied.' },
+      '403': { description: 'OAuth, grant, possession proof, scope, resource, action or authority ceiling denied.' },
       '409': { description: 'Grant replay or one-time reservation conflict.' },
       '503': { description: 'Required authorization/execution lineage receipt could not be persisted; operation fails closed.' },
     },
@@ -86,6 +107,12 @@ api['x-sfi-governance'].authenticatedMachineAdapter = {
 };
 
 fs.writeFileSync(openapiPath, `${JSON.stringify(api, null, 2)}\n`);
+
+// This is the final projection step for the GPT Actions-facing OpenAPI. It
+// removes Action-unsupported header parameters and enforces parser limits
+// without changing the underlying MCP runtime authorization contract.
+await import('./merge-openapi-actions-compat.mjs');
+
 console.log(JSON.stringify({
   ok: true,
   contract: 'SFI-AUTHENTICATED-GOVERNED-MACHINE-ADAPTER-1.0',
@@ -93,4 +120,5 @@ console.log(JSON.stringify({
   oauthScope: 'execute',
   grantContract: 'SFI-CAPABILITY-GRANT-1.0',
   grantProof: 'TRANSIENT_HEADER_HASHED_SERVER_SIDE',
+  actionsProjection: 'SFI-GPT-ACTIONS-OPENAPI-COMPAT-1.0',
 }, null, 2));
