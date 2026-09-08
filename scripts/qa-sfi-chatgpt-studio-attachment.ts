@@ -41,8 +41,9 @@ assert.match(storage, /\.eq\('status', 'stored'\)/);
 
 assert.match(manifest, /studio-ingest-analyze|ingest_analyze/);
 assert.match(manifest, /studioAttachmentPersistence|OWNER_SCOPED|owner-scoped/i);
-for (const token of ['openaiFileIdRefs','analysisAuthorization','rightsTransfer: false','SFI-CHATGPT-STUDIO-ATTACHMENT-1.1']) assert.ok(merge.includes(token));
+for (const token of ['openaiFileIdRefs','analysisAuthorization','SFI-CHATGPT-STUDIO-ATTACHMENT-1.1']) assert.ok(merge.includes(token));
 assert.match(merge, /ingest_analyze\s*:\s*'studio:run'/);
+assert.match(merge, /rightsTransfer\s*:\s*false/);
 assert.match(composedMerge, /import '\.\/merge-openapi-studio-attachments\.mjs'/);
 assert.match(composedMerge, /await import\('\.\/merge-openapi-actions-compat\.mjs'\)/);
 for (const token of ["const canonicalPath = path.join(process.cwd(), 'public', 'openapi.json')","const actionsPath = path.join(process.cwd(), 'public', 'openapi-actions.json')",'structuredClone(canonical)','maxOperationDescriptionChars: 300',"parameter?.in !== 'header'",'capabilityGrantNonceStillRequiredByMcpRuntimeForExecutableToolsCall: true','SFI_CANONICAL_OPENAPI_MCP_NONCE_PARAMETER_MISSING',"fs.writeFileSync(actionsPath"]) assert.ok(actionsCompat.includes(token));
