@@ -12,6 +12,7 @@ const operating = read('src/components/sfi/SfiOperatingWorkspace.tsx');
 const cases = read('src/app/api/cases/[caseId]/route.ts');
 const caseOperational = read('src/core/case-platform/operational.ts');
 const empirical = read('src/lib/sfi/universalEmpiricalContinuation.ts');
+const learning = read('src/lib/sfi/universalLearningQuarantine.ts');
 
 for (const decisionClass of ['INSTITUTIONAL_CHANGE', 'CAPABILITY_IMPLEMENTATION', 'LEARNING_PROMOTION']) {
   assert.ok(boundary.includes(`'${decisionClass}'`), `missing sovereign decision class: ${decisionClass}`);
@@ -78,7 +79,11 @@ assert.ok(caseOperational.includes('closedRequiresAwaitingUserClose: false'), 'n
 assert.ok(caseOperational.includes('finalClosureRequiresExplicitUserDecision: false'), 'new case closure must be autonomous when criteria are satisfied');
 assert.ok(empirical.includes('closeUniversalCycle('), 'empirical continuation must be able to close the same cycle after validated RETURN/contrast');
 assert.ok(empirical.includes('recordUniversalLearningCandidate'), 'autonomous close may create a learning candidate without promoting it');
-assert.ok(empirical.includes("canonicalPromotionAuthorized: false"), 'closure/learning-candidate capture must not silently promote canon');
+assert.ok(empirical.includes('LEARNING_PROMOTION_REMAINS_ROOT_GATED'), 'empirical close receipt must preserve the learning promotion boundary');
+assert.ok(learning.includes("'QUARANTINED'") && learning.includes("'ELIGIBLE_FOR_ROOT_PROMOTION'"), 'learning owner must distinguish candidate quarantine from promotion eligibility');
+assert.ok(learning.includes("eligibleForRootPromotion: promotionState === 'ELIGIBLE_FOR_ROOT_PROMOTION' && eligibility.eligible"), 'learning eligibility must be derived from calibrated-return requirements');
+assert.ok(learning.includes('eligibility is not promotion') && learning.includes('Candidate status does not make a hypothesis evidence, memory, canonical truth'), 'learning candidate must explicitly remain non-promoted/non-canonical');
+assert.ok(learning.includes("eventName: 'SFI_UNIVERSAL_LEARNING_CANDIDATE_RECORDED'"), 'closure path must record a candidate event, not a promotion event');
 
 console.log(JSON.stringify({
   ok: true,
@@ -90,7 +95,7 @@ console.log(JSON.stringify({
     'EVIDENCE_IS_SFI_OWNED_NOT_ROOT_APPROVED',
     'ROUTINE_CLOSE_IS_AUTONOMOUS',
     'LEGACY_AWAITING_USER_CLOSE_READABLE_NOT_ENTERABLE',
-    'CLOSURE_DOES_NOT_PROMOTE_LEARNING',
+    'CLOSURE_CREATES_CANDIDATE_NOT_PROMOTION',
     'PLAIN_LANGUAGE_PRECEDES_TECHNICAL_TRACE',
     'MISSING_PROVENANCE_IS_NOT_FABRICATED',
     'ZERO_DUPLICATE_PROPOSAL_FEEDS',
