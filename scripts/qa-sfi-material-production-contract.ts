@@ -4,6 +4,7 @@ const read = (path: string) => readFileSync(path, 'utf8');
 const route = read('src/app/api/external/v1/studio/route.ts');
 const production = read('src/lib/studio/material/productionLoop.ts');
 const studioProduction = read('src/lib/studio/material/studioProductionLoop.ts');
+const renderPersistence = read('src/lib/studio/audio/acoustic/renderPersistence.ts');
 const types = read('src/lib/studio/material/types.ts');
 const resolver = read('src/lib/studio/audio/acoustic/productionInstrumentResolver.ts');
 const materializer = read('src/lib/studio/audio/acoustic/remotePackageMaterializer.ts');
@@ -43,6 +44,11 @@ for (const token of [
   'event.velocity >= candidate.lovel', 'event.velocity <= candidate.hivel',
 ]) assert.ok(materializer.includes(token), `materializer_missing:${token}`);
 
+for (const token of [
+  'persistSfiAudioRenderReceiptForOwner', "from('sfi_audio_render_runs')", 'owner_id: ownerId',
+  'assertRenderReceipt(receipt)', 'assertNoRawAudioPersistence(receipt)', 'writeSfiAudioRenderReceipt',
+]) assert.ok(renderPersistence.includes(token), `render_persistence_missing:${token}`);
+
 const materialCleanupIndex = studioProduction.indexOf('cleanupMaterialProductionWorkspace(materialWorkspace)');
 const finalBytesIndex = studioProduction.indexOf('const finalBytes = fs.readFileSync(produced.finalPath)');
 const outerCleanupIndex = studioProduction.indexOf('const outerCleanupState = cleanupStudioProductionWorkspace(workspace)');
@@ -60,10 +66,14 @@ for (const token of [
   'performanceArtifacts = produced.performances.map', 'sha256: hashPerformance(performance)',
   'candidate.ref === renderReceipt.performanceRef', 'artifact.sha256 !== renderReceipt.performanceHash',
   'MATERIAL_PERFORMANCE_LINEAGE_FAILED', 'performanceArtifacts,', 'performanceRefs:',
+  'persistSfiAudioRenderReceiptForOwner(renderReceipt, input.ownerId)', 'canonicalRenderRunRefs', 'sfi_audio_render_runs:${renderReceipt.runId}',
 ]) assert.ok(studioProduction.includes(token), `studio_production_missing:${token}`);
 const performanceValidationIndex = studioProduction.indexOf('const performanceArtifacts = produced.performances.map');
+const canonicalReceiptWriteIndex = studioProduction.indexOf('await persistSfiAudioRenderReceiptForOwner(renderReceipt, input.ownerId)');
 const performancePersistenceIndex = studioProduction.indexOf('performanceArtifacts,', studioProduction.indexOf('const initialMetadata ='));
-assert.ok(performanceValidationIndex >= 0 && performancePersistenceIndex > performanceValidationIndex && performancePersistenceIndex < prepareIndex + 5000, 'canonical_performances_must_be_validated_and_persisted_before_publication');
+assert.ok(performanceValidationIndex >= 0 && canonicalReceiptWriteIndex > performanceValidationIndex, 'canonical_render_receipts_must_follow_performance_validation');
+assert.ok(canonicalReceiptWriteIndex < prepareIndex, 'canonical_render_receipts_must_be_written_before_output_publication');
+assert.ok(performancePersistenceIndex > performanceValidationIndex && performancePersistenceIndex < prepareIndex + 5000, 'canonical_performances_must_be_validated_and_persisted_before_publication');
 const completeIndex = studioProduction.indexOf('await completeStudioSignedUpload');
 const afterObservationIndex = studioProduction.indexOf('const afterObservation = await analyzeStudioAudioObject');
 const catchIndex = studioProduction.indexOf('} catch (error) {');
@@ -80,9 +90,10 @@ for (const removed of ['src/lib/studio/material/instrumentRegistry.ts', 'src/lib
 
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-MATERIAL-AUDIO-PRODUCTION-GATE-1.1',
+  contract: 'SFI-MATERIAL-AUDIO-PRODUCTION-GATE-1.2',
   modes: ['VOICE_MUSICALIZE', 'MASTER_ADJUST'],
   canonicalInstrumentOwner: 'CONFIGURED_FOUNDER_INSTRUMENT_BANK',
+  canonicalRenderReceiptOwner: 'public.sfi_audio_render_runs',
   canonicalEngine: 'SFZ',
   canonicalRenderer: 'executeSfzAcousticRender',
   scope: 'studio:run',
@@ -90,6 +101,7 @@ console.log(JSON.stringify({
   velocityAwareRemoteMaterialization: true,
   durableEffectiveParameters: true,
   durableRenderReceipts: true,
+  studioRenderReceiptsAreProjection: true,
   durableCanonicalPerformances: true,
   renderReceiptPerformanceRefsReconstructable: true,
   modeTruthfulAdapter: true,
