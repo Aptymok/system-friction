@@ -1,0 +1,1 @@
+This accepted decision supersedes any older rule that makes routine closure, report use, evidence acquisition/classification, ordinary RETURN, or already-authorized execution contingent on an explicit ROOT/user approval. Historical states remain reconstructable; they are not current authority.
