@@ -10,6 +10,7 @@ const decisions = read('src/app/api/root/decisions/route.ts');
 const root = read('src/components/sfi/SfiRootWorkspace.tsx');
 const operating = read('src/components/sfi/SfiOperatingWorkspace.tsx');
 const cases = read('src/app/api/cases/[caseId]/route.ts');
+const caseOperational = read('src/core/case-platform/operational.ts');
 const empirical = read('src/lib/sfi/universalEmpiricalContinuation.ts');
 
 for (const decisionClass of ['INSTITUTIONAL_CHANGE', 'CAPABILITY_IMPLEMENTATION', 'LEARNING_PROMOTION']) {
@@ -69,9 +70,12 @@ assert.equal(root.includes('decisionKind=report'), false, 'reports must not deep
 assert.equal(operating.includes('ACEPTAR Y CERRAR'), false, 'case/cycle workspace must not require approval to close');
 assert.equal(operating.includes('DENEGAR REPORTE'), false, 'case/cycle workspace must not gate reports on user denial');
 assert.equal(operating.includes('reportDecision'), false, 'case/cycle workspace must not retain legacy report-decision mutations');
-assert.ok(cases.includes("AWAITING_USER_CLOSE: 'LEGACY_READ_ONLY'"), 'legacy close state must remain reconstructable');
-assert.ok(cases.includes('closedRequiresAwaitingUserClose: false'), 'new case closure must not require the legacy user-close state');
-assert.ok(cases.includes('finalClosureRequiresExplicitUserDecision: false'), 'new case closure must be autonomous when criteria are satisfied');
+assert.ok(cases.includes("'AWAITING_USER_CLOSE'"), 'legacy close state must remain addressable for historical reconstruction');
+assert.ok(cases.includes("error: 'legacy_state_not_enterable'") && cases.includes('remains readable for historical reconstruction'), 'API must read legacy close state but reject new entry into it');
+assert.ok(caseOperational.includes("AWAITING_USER_CLOSE: ['ANALYZING', 'CLOSED']") && caseOperational.includes('Legacy reconstruction state only'), 'case state machine must preserve legacy reentry/close without generating the state');
+assert.ok(caseOperational.includes('awaitingUserCloseIsLegacyReadOnlyState: true'), 'legacy-state policy must be explicit');
+assert.ok(caseOperational.includes('closedRequiresAwaitingUserClose: false'), 'new case closure must not require the legacy user-close state');
+assert.ok(caseOperational.includes('finalClosureRequiresExplicitUserDecision: false'), 'new case closure must be autonomous when criteria are satisfied');
 assert.ok(empirical.includes('closeUniversalCycle('), 'empirical continuation must be able to close the same cycle after validated RETURN/contrast');
 assert.ok(empirical.includes('recordUniversalLearningCandidate'), 'autonomous close may create a learning candidate without promoting it');
 assert.ok(empirical.includes("canonicalPromotionAuthorized: false"), 'closure/learning-candidate capture must not silently promote canon');
@@ -85,6 +89,7 @@ console.log(JSON.stringify({
     'REPORTS_ARE_OBSERVABLE_NOT_APPROVABLE',
     'EVIDENCE_IS_SFI_OWNED_NOT_ROOT_APPROVED',
     'ROUTINE_CLOSE_IS_AUTONOMOUS',
+    'LEGACY_AWAITING_USER_CLOSE_READABLE_NOT_ENTERABLE',
     'CLOSURE_DOES_NOT_PROMOTE_LEARNING',
     'PLAIN_LANGUAGE_PRECEDES_TECHNICAL_TRACE',
     'MISSING_PROVENANCE_IS_NOT_FABRICATED',
