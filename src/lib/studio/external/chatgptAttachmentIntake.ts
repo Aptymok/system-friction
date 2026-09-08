@@ -187,59 +187,46 @@ export async function ingestAndAnalyzeChatGptAudioAttachment(input: {
     });
   }
 
-  const prepared = await prepareStudioSignedUpload({ descriptor, ownerId: input.ownerId });
+  // Provenance/authority is part of object admission. It is written with the
+  // object before any binary upload can become content-addressable. The raw
+  // temporary OpenAI URL is deliberately excluded.
+  const externalIntake = {
+    contract: 'SFI-CHATGPT-STUDIO-ATTACHMENT-1.1',
+    source: 'chatgpt_action_attachment',
+    openaiFileId: ref.id,
+    originalFileName: ref.name,
+    mimeType: ref.mimeType,
+    receivedAt: new Date().toISOString(),
+    temporaryDownloadUrlPersisted: false,
+    analysisAuthorization: {
+      ...analysisAuthorization,
+      epistemicClass: 'DECLARED',
+      legalEffect: 'ANALYSIS_PERMISSION_DECLARATION_ONLY_NOT_RIGHTS_TRANSFER',
+    },
+  };
+
+  const prepared = await prepareStudioSignedUpload({
+    descriptor,
+    ownerId: input.ownerId,
+    metadata: { externalIntake },
+  });
   const db = createServiceSupabaseClient();
   const uploaded = await db.storage.from(STUDIO_OBJECT_BUCKET).upload(prepared.storagePath, bytes, {
     contentType: descriptor.mimeType ?? 'application/octet-stream',
     upsert: false,
   });
   if (uploaded.error) {
-    await Promise.all([
+    await Promise.allSettled([
       db.from('studio_uploads').update({ status: 'failed' }).eq('id', prepared.uploadId),
       db.from('studio_objects').update({ status: 'failed' }).eq('id', prepared.objectId),
     ]);
     throw new StudioMultimodalError('PERSISTENCE_FAILED', uploaded.error.message, 503, { objectId: prepared.objectId });
   }
 
+  // `completeStudioSignedUpload` publishes upload.status=stored only after the
+  // object metadata/verification update succeeds. Content readers require stored,
+  // so an indeterminate completion remains inaccessible without relying on cleanup.
   await completeStudioSignedUpload(prepared.objectId, input.ownerId);
-
-  const current = await db.from('studio_objects').select('metadata').eq('id', prepared.objectId).maybeSingle();
-  const metadata = {
-    ...row(current.data?.metadata),
-    externalIntake: {
-      contract: 'SFI-CHATGPT-STUDIO-ATTACHMENT-1.0',
-      source: 'chatgpt_action_attachment',
-      openaiFileId: ref.id,
-      originalFileName: ref.name,
-      mimeType: ref.mimeType,
-      receivedAt: new Date().toISOString(),
-      temporaryDownloadUrlPersisted: false,
-      analysisAuthorization: {
-        ...analysisAuthorization,
-        epistemicClass: 'DECLARED',
-        legalEffect: 'ANALYSIS_PERMISSION_DECLARATION_ONLY_NOT_RIGHTS_TRANSFER',
-      },
-    },
-  };
-  const metadataUpdate = await db.from('studio_objects')
-    .update({ metadata, updated_at: new Date().toISOString() })
-    .eq('id', prepared.objectId)
-    .eq('owner_id', input.ownerId);
-  if (metadataUpdate.error) {
-    // Provenance is part of admission, not optional decoration. If it cannot be
-    // persisted, make the materialized object unusable and remove its bytes so a
-    // later retry cannot leave an owner-visible attachment without intake lineage.
-    await Promise.allSettled([
-      db.storage.from(STUDIO_OBJECT_BUCKET).remove([prepared.storagePath]),
-      db.from('studio_uploads').update({ status: 'failed' }).eq('id', prepared.uploadId),
-      db.from('studio_objects').update({ status: 'failed', updated_at: new Date().toISOString() }).eq('id', prepared.objectId),
-    ]);
-    throw new StudioMultimodalError('PERSISTENCE_FAILED', metadataUpdate.error.message, 503, {
-      objectId: prepared.objectId,
-      provenancePersisted: false,
-      materializationUsable: false,
-    });
-  }
 
   const analysis = await analyzeStudioAudioObject(prepared.objectId, {
     force: input.force === true,
