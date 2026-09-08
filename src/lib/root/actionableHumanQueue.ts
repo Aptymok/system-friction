@@ -35,13 +35,11 @@ function proposalActionability(item: Row): Row {
       actionable: true,
       kind: decisionClass,
       href: `/root?decisionKind=proposal&decision=${encodeURIComponent(id)}`,
-      allowed: ['accept', 'request_evidence', 'deny', 'defer'],
+      allowed: ['accept', 'deny'],
       question: plainQuestion,
       consequences: {
         accept: 'Autoriza únicamente el cambio institucional descrito en el expediente. No convierte inferencias en verdad ni amplía otras autoridades.',
-        request_evidence: 'Pospone la decisión y deja a SFI encargado de conseguir o declarar la evidencia faltante.',
         deny: 'Rechaza el cambio preservando su historia, evidencia y motivo.',
-        defer: 'No decide todavía; SFI conserva el expediente sin tratar la espera como aprobación.',
       },
     };
   }
@@ -101,8 +99,6 @@ export function projectActionableHumanQueue(value: Row) {
     };
   });
 
-  // Reports are operational artifacts. They remain visible in report/Observatory
-  // surfaces but never become sovereign accept/deny objects merely for existing.
   const reports: Row[] = [];
   const cycles: Row[] = rawCycles.map((item): Row => cycleActionability(item));
   const rootRequired = items.filter((item) => item.rootActionRequired === true);
@@ -110,7 +106,7 @@ export function projectActionableHumanQueue(value: Row) {
 
   return {
     ...value,
-    contract: 'SFI-ACTIONABLE-HUMAN-QUEUE-2.0',
+    contract: 'SFI-ACTIONABLE-HUMAN-QUEUE-2.1',
     sourceContract: value.contract ?? null,
     items,
     reports,
@@ -124,6 +120,6 @@ export function projectActionableHumanQueue(value: Row) {
       reviewAvailableNotRequired: items.filter((item) => item.reviewAvailable === true).length + cycles.length,
       blocked: blocked.length + cycles.filter((item) => Boolean(item.blocker)).length,
     },
-    invariant: 'ROOT is asked only for institutional change, material capability implementation/change, or learning promotion. Reports, evidence work, authorized execution, RETURN and routine closure remain observable operational state, never approval middleware.',
+    invariant: 'ROOT only accepts or denies institutional change, material capability implementation/change, or learning promotion. Evidence work is SFI-owned; reports, authorized execution, RETURN and routine closure remain observable operational state, never approval middleware.',
   };
 }
