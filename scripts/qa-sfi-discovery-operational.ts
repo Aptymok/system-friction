@@ -61,8 +61,6 @@ async function main() {
   assert(contractLock.includes('MPD — Multi-Platform Propagation Depth'), 'frozen MPD meaning missing');
   assert(contractLock.includes('ERR — Entity Reconstruction Rate'), 'frozen ERR meaning missing');
 
-  // #154: WorldSignalObserverAgent is a governed World/Discovery domain agent, not a second
-  // cognitive agent and not a second persistence owner. It must reuse the longitudinal World writer.
   assert(worldCaseContract.includes('### WorldSignalObserverAgent'), 'canonical WorldSignalObserverAgent requirement missing');
   for (const token of [
     "SFI-WORLD-SIGNAL-OBSERVER-1.0",
@@ -106,7 +104,6 @@ async function main() {
   assert(worldReobserve.includes('runWorldHypothesisCycle'), 'human reobserve hypothesis owner must remain explicit and separate');
   assert(worldReobserve.includes('runWorldCalibrationCycle'), 'human reobserve calibration owner must remain explicit and separate');
 
-  // Controlled executable proof: main-only explicit observation smoke, no hypothesis/case/canon writer.
   for (const token of [
     'executeWorldSignalObserverAgent',
     "SFI-WORLD-SIGNAL-OBSERVER-EXECUTION-1.1",
@@ -128,7 +125,9 @@ async function main() {
     ".github/sfi-world-signal-observer-trigger",
     'SFI_WORLD_SIGNAL_OBSERVER_REQUEST=ISSUE_154',
     'SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}',
-    'npm install --no-save --package-lock=false server-only@0.0.1',
+    'node-version: 22',
+    'npm pack server-only@0.0.1 --silent',
+    'node_modules/server-only/package.json',
     'id: execute',
     'npx tsx scripts/run-world-signal-observer-agent.ts',
     'if: ${{ always() }}',
@@ -137,13 +136,14 @@ async function main() {
     'Authority: `OBSERVE`',
     'Hypothesis promotion: **NOT PERFORMED BY THIS AGENT**',
   ]) assert(worldSignalWorkflow.includes(token), `world_signal_observer_workflow_missing:${token}`);
+  assert(!worldSignalWorkflow.includes('npm install --no-save'), 'WorldSignalObserverAgent smoke must not reconcile the installed application dependency graph');
   assert(!worldSignalWorkflow.includes('schedule:'), 'WorldSignalObserverAgent proof must not introduce a new autonomous timer');
   assert(!worldSignalWorkflow.includes('pull_request:'), 'WorldSignalObserverAgent proof must not write live World data from PRs');
   assert(!worldSignalWorkflow.includes('runWorldHypothesisCycle'), 'WorldSignalObserverAgent proof workflow must not own hypothesis generation');
 
   console.log(JSON.stringify({
     ok: true,
-    contract: 'SFI-DISCOVERY-INTEGRITY-1.4',
+    contract: 'SFI-DISCOVERY-INTEGRITY-1.5',
     modes: 3,
     metricFamilies: 7,
     falseZero: true,
@@ -163,7 +163,8 @@ async function main() {
       controlledExecutionReceipt: true,
       immutableCommitBinding: true,
       failureReceiptPreserved: true,
-      directTsxServerOnlyMarkerPinned: true,
+      nativeWebSocketRuntime: true,
+      isolatedServerOnlyMarker: true,
       automaticHypothesisPromotion: false,
       automaticCaseQualification: false,
       automaticPublication: false,
