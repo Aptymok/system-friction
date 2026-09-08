@@ -8,6 +8,8 @@ export type SfiProductionInstrumentRow = {
   sampleRate: number | null; culturalProfiles: string[]; verifiedAt: string;
 };
 
+type Db = ReturnType<typeof createServiceSupabaseClient>;
+
 function normalize(row: Record<string, unknown>): SfiProductionInstrumentRow {
   if (row.current_execution_rights_state !== 'ELIGIBLE' || row.quality_state !== 'PRODUCTION') throw new Error('SFI_AUDIO_INSTRUMENT_NOT_EXECUTION_ELIGIBLE');
   if (!['EXECUTION_ALLOWED', 'DERIVATIVE_ALLOWED'].includes(String(row.rights_status))) throw new Error('SFI_AUDIO_INSTRUMENT_EXECUTION_RIGHTS_REQUIRED');
@@ -23,10 +25,28 @@ function normalize(row: Record<string, unknown>): SfiProductionInstrumentRow {
   };
 }
 
+async function canonicalInstrumentOwnerIds(db: Db) {
+  const ids = new Set((process.env.SFI_FOUNDER_USER_IDS || '').split(',').map((value) => value.trim()).filter(Boolean));
+  const emails = [process.env.SYSTEM_ROOT_EMAIL, ...(process.env.SFI_FOUNDER_EMAILS || '').split(',')]
+    .map((value) => value?.trim().toLowerCase()).filter((value): value is string => Boolean(value));
+
+  if (emails.length) {
+    const profiles = await db.from('profiles').select('user_id,email').in('email', emails);
+    if (profiles.error) throw new Error(`SFI_AUDIO_CANONICAL_INSTRUMENT_OWNER_RESOLUTION_FAILED:${profiles.error.message}`);
+    for (const profile of profiles.data ?? []) if (profile.user_id) ids.add(String(profile.user_id));
+  }
+  if (!ids.size) throw new Error('SFI_AUDIO_CANONICAL_INSTRUMENT_OWNER_UNCONFIGURED');
+  return [...ids];
+}
+
+const SELECT = 'id,name,family,engine,package_ref,package_hash,license,rights_status,rights_evidence_ref,current_execution_rights_state,range_low,range_high,articulations,sample_rate,cultural_profiles,quality_state,verified_at';
+
 export async function resolveProductionInstrument(input: { culturalProfile: string; families: string[] }) {
   const db = createServiceSupabaseClient();
+  const ownerIds = await canonicalInstrumentOwnerIds(db);
   const { data, error } = await db.from('sfi_instruments')
-    .select('id,name,family,engine,package_ref,package_hash,license,rights_status,rights_evidence_ref,current_execution_rights_state,range_low,range_high,articulations,sample_rate,cultural_profiles,quality_state,verified_at')
+    .select(SELECT)
+    .in('owner_id', ownerIds)
     .eq('current_execution_rights_state', 'ELIGIBLE').eq('quality_state', 'PRODUCTION').contains('cultural_profiles', [input.culturalProfile]);
   if (error) throw new Error(`SFI_AUDIO_INSTRUMENT_RESOLUTION_FAILED:${error.message}`);
   const familySet = new Set(input.families.map((family) => family.toLowerCase()));
@@ -37,8 +57,10 @@ export async function resolveProductionInstrument(input: { culturalProfile: stri
 
 export async function getProductionInstrumentById(instrumentId: string) {
   const db = createServiceSupabaseClient();
+  const ownerIds = await canonicalInstrumentOwnerIds(db);
   const { data, error } = await db.from('sfi_instruments')
-    .select('id,name,family,engine,package_ref,package_hash,license,rights_status,rights_evidence_ref,current_execution_rights_state,range_low,range_high,articulations,sample_rate,cultural_profiles,quality_state,verified_at')
+    .select(SELECT)
+    .in('owner_id', ownerIds)
     .eq('id', instrumentId).eq('current_execution_rights_state', 'ELIGIBLE').eq('quality_state', 'PRODUCTION').maybeSingle();
   if (error) throw new Error(`SFI_AUDIO_INSTRUMENT_RESOLUTION_FAILED:${error.message}`);
   if (!data) throw new Error('SFI_AUDIO_PRODUCTION_INSTRUMENT_NOT_FOUND');
