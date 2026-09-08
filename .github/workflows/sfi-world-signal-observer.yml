@@ -1,0 +1,78 @@
+name: SFI World Signal Observer
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/sfi-world-signal-observer-trigger'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sfi-world-signal-observer
+  cancel-in-progress: false
+
+jobs:
+  observe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      SFI_WORLD_SIGNAL_OBSERVER_EVIDENCE_DIR: /tmp/sfi-world-signal-observer
+      NODE_OPTIONS: --conditions=react-server
+    steps:
+      - name: Checkout exact main state
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Validate controlled trigger and World persistence identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${NEXT_PUBLIC_SUPABASE_URL:-}" || -z "${SUPABASE_SERVICE_ROLE_KEY:-}" ]]; then
+            echo 'World observation service identity is not configured in GitHub Actions.' >&2
+            exit 1
+          fi
+          if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
+            test -f .github/sfi-world-signal-observer-trigger
+            grep -Fx 'SFI_WORLD_SIGNAL_OBSERVER_REQUEST=ISSUE_154' .github/sfi-world-signal-observer-trigger
+          fi
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Execute WorldSignalObserverAgent
+        run: npx tsx scripts/run-world-signal-observer-agent.ts
+
+      - name: Upload immutable observation receipt
+        id: evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: sfi-world-signal-observer-${{ github.run_id }}
+          path: /tmp/sfi-world-signal-observer/receipt.json
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Record observation handoff
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo '## WorldSignalObserverAgent execution'
+            echo
+            echo "- Git commit: \`${GITHUB_SHA}\`"
+            echo "- Artifact ID: \`${{ steps.evidence.outputs.artifact-id }}\`"
+            echo "- Artifact digest: \`${{ steps.evidence.outputs.artifact-digest }}\`"
+            echo '- Authority: `OBSERVE`'
+            echo '- Hypothesis promotion: **NOT PERFORMED BY THIS AGENT**'
+            echo '- Case qualification: **NOT PERFORMED BY THIS AGENT**'
+            echo '- Canon/publication mutation: **NOT PERFORMED BY THIS AGENT**'
+          } >> "$GITHUB_STEP_SUMMARY"

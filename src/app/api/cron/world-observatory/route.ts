@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { runWorldCalibrationCycle, runWorldObservationCycle } from '@/lib/world-observatory/worldCycle';
+import { runWorldCalibrationCycle } from '@/lib/world-observatory/worldCycle';
 import { runWorldHypothesisCycle } from '@/lib/world-observatory/hypothesisCycle';
+import { executeWorldSignalObserverAgent } from '@/lib/world-observatory/worldSignalObserverAgent';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -23,7 +24,8 @@ export async function POST(request: NextRequest) {
   if (!authorized(request)) return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 });
 
   const startedAt = new Date().toISOString();
-  const observation = await runWorldObservationCycle();
+  const worldSignalObserver = await executeWorldSignalObserverAgent();
+  const observation = worldSignalObserver.observation;
   const hypothesis = await runWorldHypothesisCycle();
   const calibration = await runWorldCalibrationCycle();
   const ok = observation.ok && hypothesis.ok && calibration.ok;
@@ -32,6 +34,7 @@ export async function POST(request: NextRequest) {
     ok,
     startedAt,
     completedAt: new Date().toISOString(),
+    worldSignalObserver,
     observation,
     hypothesis,
     calibration,
