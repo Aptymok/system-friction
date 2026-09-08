@@ -23,20 +23,102 @@ for (const item of dispatchable) {
   byOwner.set(item.owner, current);
 }
 
-function gh(args) {
-  return execFileSync('gh', args, {
-    encoding: 'utf8',
-    env: { ...process.env, GH_TOKEN: token },
-    stdio: ['ignore', 'pipe', 'pipe'],
-    timeout: 60_000,
-  }).trim();
+const TRANSIENT_GITHUB_ERROR = /(HTTP\s+(?:502|503|504)|Bad Gateway|Service Unavailable|Gateway Timeout|temporar(?:y|ily) unavailable|connection reset|ECONNRESET|ETIMEDOUT)/i;
+
+function sleep(milliseconds) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, milliseconds);
+}
+
+function errorText(error) {
+  return [error?.message, error?.stdout, error?.stderr]
+    .filter(Boolean)
+    .map(String)
+    .join('\n');
+}
+
+function isTransientGithubError(error) {
+  return TRANSIENT_GITHUB_ERROR.test(errorText(error));
+}
+
+function gh(args, { retries = 2 } = {}) {
+  let lastError;
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    try {
+      return execFileSync('gh', args, {
+        encoding: 'utf8',
+        env: { ...process.env, GH_TOKEN: token },
+        stdio: ['ignore', 'pipe', 'pipe'],
+        timeout: 60_000,
+      }).trim();
+    } catch (error) {
+      lastError = error;
+      if (!isTransientGithubError(error) || attempt === retries) throw error;
+      sleep(1_000 * (2 ** attempt));
+    }
+  }
+  throw lastError;
+}
+
+function ghApi(method, endpoint, fields = [], options = {}) {
+  const args = ['api', '--method', method, endpoint, '-H', 'Accept: application/vnd.github+json'];
+  for (const [key, value] of fields) args.push('-f', `${key}=${value}`);
+  return gh(args, options);
+}
+
+function findExistingIssue(marker) {
+  const query = `repo:${repo} is:issue is:open \"${marker}\" in:body`;
+  const raw = ghApi('GET', 'search/issues', [
+    ['q', query],
+    ['per_page', '20'],
+  ], { retries: 3 });
+  const payload = JSON.parse(raw || '{}');
+  return Array.isArray(payload.items) ? (payload.items[0] || null) : null;
+}
+
+function updateIssue(number, title, body) {
+  ghApi('PATCH', `repos/${repo}/issues/${number}`, [
+    ['title', title],
+    ['body', body],
+  ], { retries: 3 });
+}
+
+function createIssueWithRecovery(title, body, marker) {
+  const create = () => {
+    const raw = ghApi('POST', `repos/${repo}/issues`, [
+      ['title', title],
+      ['body', body],
+    ], { retries: 0 });
+    const payload = JSON.parse(raw || '{}');
+    if (!payload.number) throw new Error('SFI_PROGRAM_DISPATCH_CREATE_RECEIPT_MISSING');
+    return { number: Number(payload.number), recovered: false };
+  };
+
+  try {
+    return create();
+  } catch (error) {
+    if (!isTransientGithubError(error)) throw error;
+    let lastError = error;
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      sleep(1_000 * (2 ** attempt));
+      const existing = findExistingIssue(marker);
+      if (existing?.number) return { number: Number(existing.number), recovered: true };
+      try {
+        return create();
+      } catch (retryError) {
+        lastError = retryError;
+        if (!isTransientGithubError(retryError)) throw retryError;
+      }
+    }
+    const existing = findExistingIssue(marker);
+    if (existing?.number) return { number: Number(existing.number), recovered: true };
+    throw lastError;
+  }
 }
 
 const results = [];
 for (const [owner, items] of [...byOwner.entries()].sort(([a], [b]) => a.localeCompare(b))) {
   const marker = `SFI-PROGRAM-COMPLETION-OWNER:${owner}`;
-  const existingJson = gh(['issue', 'list', '--repo', repo, '--state', 'open', '--search', `${marker} in:body`, '--limit', '20', '--json', 'number,title']);
-  const existing = JSON.parse(existingJson || '[]')[0] || null;
+  const existing = findExistingIssue(marker);
   const body = [
     `Parent: #405 / #389`,
     `Owner: ${owner}`,
@@ -60,26 +142,27 @@ for (const [owner, items] of [...byOwner.entries()].sort(([a], [b]) => a.localeC
   let number;
   let action;
   if (existing) {
-    number = existing.number;
-    gh(['issue', 'edit', String(number), '--repo', repo, '--title', title, '--body', body]);
+    number = Number(existing.number);
+    updateIssue(number, title, body);
     action = 'UPDATED';
   } else {
-    const url = gh(['issue', 'create', '--repo', repo, '--title', title, '--body', body]);
-    const match = url.match(/\/(\d+)$/);
-    number = match ? Number(match[1]) : null;
-    action = 'CREATED';
+    const created = createIssueWithRecovery(title, body, marker);
+    number = created.number;
+    action = created.recovered ? 'RECOVERED_AFTER_TRANSIENT_CREATE' : 'CREATED';
   }
   results.push({ owner, issue: number, action, items: items.length });
 }
 
 const output = {
-  contract: 'SFI-PROGRAM-COMPLETION-DISPATCH-1.0',
+  contract: 'SFI-PROGRAM-COMPLETION-DISPATCH-1.1',
   generatedAt: new Date().toISOString(),
   sourceHead: report.head,
   parent: '#405',
   dispatchedOwners: results.length,
   dispatches: results,
   rootGateRequired: false,
+  transport: 'GITHUB_REST_WITH_BOUNDED_TRANSIENT_RETRY',
+  duplicateCreationGuard: 'SEARCH_MARKER_AFTER_TRANSIENT_CREATE_BEFORE_RETRY',
   reason: 'Routine program reconstruction and bounded owner routing do not mutate institutional canon or expand authority.',
 };
 fs.writeFileSync('artifacts/program-completion/dispatch.json', JSON.stringify(output, null, 2));
