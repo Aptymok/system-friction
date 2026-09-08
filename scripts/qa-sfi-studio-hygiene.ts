@@ -45,9 +45,8 @@ assert.ok(observatoryFeed.includes("visibility === 'VISIBLE_BY_DEFAULT'"), 'obse
 assert.ok(observatoryFeed.includes('WHY SHOWN'), 'observatory_reason_for_inclusion_not_visible');
 assert.ok(observatoryFeed.includes('SOURCE / PROVENANCE ≠ ACCEPTED EVIDENCE'), 'observatory_source_evidence_boundary_not_visible');
 
-const config = JSON.parse(vercel) as { git?: { deploymentEnabled?: Record<string, boolean> } };
-assert.equal(config.git?.deploymentEnabled?.main, false, 'studio_hygiene_pr_must_not_enable_vercel_main_deploy');
-assert.equal(config.git?.deploymentEnabled?.['*'], false, 'studio_hygiene_pr_must_not_enable_vercel_preview_deploy');
+const config = JSON.parse(vercel) as { git?: { deploymentEnabled?: boolean | Record<string, boolean> } };
+assert.equal(config.git?.deploymentEnabled, false, 'studio_hygiene_pr_must_keep_all_vercel_git_deployments_disabled');
 
 console.log(JSON.stringify({
   ok: true,

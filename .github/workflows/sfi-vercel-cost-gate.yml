@@ -1,0 +1,31 @@
+name: SFI Vercel Cost Gate
+
+on:
+  pull_request:
+    paths:
+      - 'vercel.json'
+      - '.github/workflows/sfi-vercel-prebuilt-production.yml'
+      - '.github/workflows/sfi-vercel-cost-gate.yml'
+      - 'scripts/qa-sfi-vercel-cost-gate.mjs'
+      - 'docs/program/decisions/D-2026-09-08-VERCEL-COST-GATE.md'
+  push:
+    branches:
+      - main
+    paths:
+      - 'vercel.json'
+      - '.github/workflows/sfi-vercel-prebuilt-production.yml'
+      - '.github/workflows/sfi-vercel-cost-gate.yml'
+      - 'scripts/qa-sfi-vercel-cost-gate.mjs'
+
+permissions:
+  contents: read
+
+jobs:
+  cost-gate:
+    name: Verify explicit-only Vercel deployment policy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Verify Vercel cost gate
+        run: node scripts/qa-sfi-vercel-cost-gate.mjs
