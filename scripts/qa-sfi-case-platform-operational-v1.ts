@@ -23,6 +23,12 @@ async function main() {
   const reportAssembler = await text('src/core/case-platform/reportAssembler.ts');
   const reportIntegrity = await text('src/lib/sfi/case-platform/integrity.ts');
   const executionRecords = await text('src/lib/sfi/cognitive-runtime/executionRecords.ts');
+  const humanSignalAdapter = await text('src/lib/sfi/humanUniversalSignal.ts');
+  const humanSignalRoute = await text('src/app/api/signal/route.ts');
+  const humanSignalPage = await text('src/app/signal/new/page.tsx');
+  const humanSignalComponent = await text('src/components/sfi/HumanSignalIngress.tsx');
+  const universalSignalCycle = await text('src/lib/sfi/universalSignalCycle.ts');
+  const selfDevelopment = await text('scripts/sfi-self-development.mjs');
 
   for (const table of ['sfi_tenants','sfi_tenant_members','sfi_cases','sfi_case_objects','sfi_case_reports','sfi_case_audit_events']) {
     assert(migration.includes(`public.${table}`), `missing operational table ${table}`);
@@ -46,6 +52,31 @@ async function main() {
   assert(objectsRoute.includes('cannot create EVIDENCE'), 'client epistemic boundary must be explicit');
   assert(reportsRoute.includes('requireSfiMember'), 'report generation must remain institutional in Operational V1');
   assert(reportsRoute.includes('executionAuthority: false'), 'report API must not expose action authority');
+
+  // Human Signal ingress is an authenticated adapter over the existing Universal Signal owner.
+  assert(humanSignalPage.includes('HumanSignalIngress'), 'human NEW SIGNAL page missing');
+  assert(humanSignalComponent.includes("fetch('/api/signal'"), 'human NEW SIGNAL component must use the internal signal adapter');
+  for (const operation of ["operation:'intake'", "operation:'evidence'", "operation:'run'", "operation:'return'"]) {
+    assert(humanSignalComponent.includes(operation), `human signal UI missing ${operation}`);
+  }
+  assert(humanSignalRoute.includes('requireAuthenticatedUser'), 'human signal route must use verified browser session auth');
+  assert(humanSignalRoute.includes('readOwnedHumanUniversalCycle'), 'human signal route must enforce cycle ownership on reentry');
+  assert(humanSignalRoute.includes('humanSignalTenantId(user.id)'), 'human signal route must derive tenant scope from authenticated subject');
+  assert(humanSignalAdapter.includes('persistUniversalSignal'), 'human signal adapter must reuse canonical signal persistence owner');
+  assert(humanSignalAdapter.includes('runUniversalCognitiveCycle'), 'human signal adapter must reuse canonical cognitive cycle owner');
+  assert(humanSignalAdapter.includes('recordUniversalReturn'), 'human signal adapter must reuse canonical RETURN owner');
+  assert(humanSignalAdapter.includes("logbookId = `universal-cycle:${cycleId}`"), 'human signal cycle must use canonical universal-cycle logbook identity');
+  assert(humanSignalAdapter.includes("eventName: 'SFI_UNIVERSAL_CYCLE_OPENED'"), 'human intake must open a reconstructable cycle before analysis');
+  assert(humanSignalAdapter.includes("eventName: 'SFI_UNIVERSAL_CYCLE_EVIDENCE_LINKED'"), 'human evidence must be linked into the same cycle');
+  assert(humanSignalAdapter.includes("epistemicClass: 'declared'"), 'human evidence attachment must not auto-promote to verified evidence');
+  assert(humanSignalAdapter.includes("resumeCycleId: cycleId"), 'human analysis must resume the same persisted cycle id');
+  assert(humanSignalAdapter.includes('SFI_HUMAN_SIGNAL_OWNER_REQUIRED'), 'cross-user human cycle reentry must fail closed');
+  assert(universalSignalCycle.includes('SFI_UNIVERSAL_SIGNAL_INGESTED'), 'canonical signal persistence contract missing');
+  assert(universalSignalCycle.includes('SFI_UNIVERSAL_COGNITIVE_CYCLE_EXECUTED'), 'canonical signal runtime completion event missing');
+  assert(selfDevelopment.includes("src/components/sfi/NewCaseIngress.tsx"), 'self-development must recognize the actual NEW CASE component');
+  assert(selfDevelopment.includes("src/components/sfi/HumanSignalIngress.tsx"), 'self-development must verify the human signal ingress contract');
+  assert(selfDevelopment.includes('createOperationalCase'), 'self-development NEW CASE detector must verify the canonical writer');
+  assert(selfDevelopment.includes('runUniversalCognitiveCycle'), 'self-development NEW SIGNAL detector must verify the canonical runtime owner');
 
   // M4: output relation vocabulary belongs to the canonical epistemic contract and
   // report lineage is enforced by the existing Case Platform owner, not a second graph/writer.
@@ -193,6 +224,12 @@ async function main() {
     reportExecutionAuthority: false,
     institutionalMemoryDirectWrite: false,
     requiredSourceGate: true,
+    humanSignalSessionAuth: true,
+    humanSignalOwnerReentry: true,
+    humanSignalCanonicalPersistenceOwner: true,
+    humanSignalCanonicalRuntimeOwner: true,
+    humanSignalDeclaredEvidenceBoundary: true,
+    humanSignalSameCycleResume: true,
     m4OutputRelationsTyped: true,
     m4UnsupportedClaimRendering: unsupportedReport.claims[0]?.lineage.support,
     m4EdgeEvidencePreserved: tracedLineage?.evidenceRefs.length === 1,

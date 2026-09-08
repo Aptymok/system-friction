@@ -18,6 +18,7 @@ const NAV: Array<{key:InternalSceneKey;href:string}> = [
 ];
 
 const SUPPORT_NAV = [
+  {href:'/signal/new',label:'NEW SIGNAL'},
   {href:'/cases/new',label:'NEW CASE'},
   {href:'/twin/learning',label:'LEARNING'},
   {href:'/method-lab',label:'METHOD LAB'},
