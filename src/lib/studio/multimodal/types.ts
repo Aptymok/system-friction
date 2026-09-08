@@ -113,3 +113,20 @@ export class StudioMultimodalError extends Error {
     this.name = 'StudioMultimodalError';
   }
 }
+
+export function toStudioMultimodalApiError(error: unknown) {
+  if (error instanceof StudioMultimodalError) {
+    return {
+      ok: false,
+      error: error.code,
+      details: error.message,
+      context: error.details,
+    };
+  }
+
+  return {
+    ok: false,
+    error: 'ANALYSIS_FAILED',
+    details: error instanceof Error ? error.message : String(error),
+  };
+}
