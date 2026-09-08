@@ -10,17 +10,18 @@ import { createStudioContentSignedUrl } from '@/lib/studio/multimodal/storage';
 import { resolveStudioObjectDescriptor, analyzeStudioModalityObject } from '@/lib/studio/multimodal/analyzeStudioModalityObject';
 import { analyzeStudioVideo } from '@/lib/studio/multimodal/videoAnalyzer';
 import { analyzeStudioAudioObject } from '@/lib/studio/audio/analyzeStudioAudioObject';
+import { ingestAndAnalyzeChatGptAudioAttachment } from '@/lib/studio/external/chatgptAttachmentIntake';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 export const maxDuration = 300;
 
-type StudioOperation = 'list' | 'inspect' | 'features' | 'content' | 'analyze';
+type StudioOperation = 'list' | 'inspect' | 'features' | 'content' | 'analyze' | 'ingest_analyze';
 type Row = Record<string, unknown>;
 
 function requiredScope(operation: StudioOperation) {
   if (operation === 'content') return 'studio:content';
-  if (operation === 'analyze') return 'studio:run';
+  if (operation === 'analyze' || operation === 'ingest_analyze') return 'studio:run';
   return 'studio:read';
 }
 
@@ -40,10 +41,21 @@ function repositoryResponse(result: Awaited<ReturnType<typeof getStudioObject>>,
   return NextResponse.json({ ok: true, actor, operation, object: projectStudioObjectForHumans(result.data) });
 }
 
+function studioError(error: unknown, fallback: string) {
+  const status = typeof (error as { status?: unknown })?.status === 'number'
+    ? Number((error as { status: number }).status)
+    : 500;
+  return NextResponse.json({
+    ok: false,
+    error: typeof (error as { code?: unknown })?.code === 'string' ? (error as { code: string }).code : fallback,
+    details: error instanceof Error ? error.message : String(error),
+  }, { status });
+}
+
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({})) as Row;
   const operation = String(body.operation || 'list') as StudioOperation;
-  if (!['list', 'inspect', 'features', 'content', 'analyze'].includes(operation)) {
+  if (!['list', 'inspect', 'features', 'content', 'analyze', 'ingest_analyze'].includes(operation)) {
     return NextResponse.json({ ok: false, error: 'unsupported_studio_operation' }, { status: 400 });
   }
 
@@ -85,6 +97,28 @@ export async function POST(req: Request) {
     });
   }
 
+  if (operation === 'ingest_analyze') {
+    try {
+      const result = await ingestAndAnalyzeChatGptAudioAttachment({
+        ownerId,
+        openaiFileIdRefs: body.openaiFileIdRefs,
+        analysisAuthorization: body.analysisAuthorization,
+        title: body.title,
+        force: body.force === true,
+      });
+      return NextResponse.json({
+        ok: true,
+        actor,
+        operation,
+        ownershipBoundary: 'oauth.subjectId = studio_objects.owner_id',
+        authorityBoundary: 'DECLARED_ANALYSIS_PERMISSION_DOES_NOT_TRANSFER_RIGHTS_OR_PROMOTE_CANON',
+        result,
+      }, { status: 202 });
+    } catch (error) {
+      return studioError(error, 'external_studio_attachment_analysis_failed');
+    }
+  }
+
   const objectId = objectIdFrom(body);
   if (!objectId) return NextResponse.json({ ok: false, error: 'objectId_required' }, { status: 400 });
 
@@ -123,14 +157,7 @@ export async function POST(req: Request) {
         ownershipBoundary: 'oauth.subjectId = studio_objects.owner_id',
       });
     } catch (error) {
-      const status = typeof (error as { status?: unknown })?.status === 'number'
-        ? Number((error as { status: number }).status)
-        : 500;
-      return NextResponse.json({
-        ok: false,
-        error: typeof (error as { code?: unknown })?.code === 'string' ? (error as { code: string }).code : 'studio_content_failed',
-        details: error instanceof Error ? error.message : String(error),
-      }, { status });
+      return studioError(error, 'studio_content_failed');
     }
   }
 
@@ -163,13 +190,6 @@ export async function POST(req: Request) {
     const reused = Boolean(result && typeof result === 'object' && !Array.isArray(result) && (result as Row).reused === true);
     return NextResponse.json({ ok: true, actor, operation, objectId, result }, { status: reused ? 200 : 202 });
   } catch (error) {
-    const status = typeof (error as { status?: unknown })?.status === 'number'
-      ? Number((error as { status: number }).status)
-      : 500;
-    return NextResponse.json({
-      ok: false,
-      error: typeof (error as { code?: unknown })?.code === 'string' ? (error as { code: string }).code : 'external_studio_analysis_failed',
-      details: error instanceof Error ? error.message : String(error),
-    }, { status });
+    return studioError(error, 'external_studio_analysis_failed');
   }
 }
