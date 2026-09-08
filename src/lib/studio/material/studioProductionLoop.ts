@@ -5,6 +5,7 @@ import path from 'node:path';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { analyzeStudioAudioObject } from '@/lib/studio/audio/analyzeStudioAudioObject';
 import { hashPerformance } from '@/lib/studio/audio/acoustic/acousticPackageContract';
+import { persistSfiAudioRenderReceiptForOwner } from '@/lib/studio/audio/acoustic/renderPersistence';
 import { buildStudioUploadDescriptor } from '@/lib/studio/multimodal/detect';
 import { completeStudioSignedUpload, loadStudioObjectBytes, prepareStudioSignedUpload, STUDIO_OBJECT_BUCKET } from '@/lib/studio/multimodal/storage';
 import { cleanupMaterialProductionWorkspace, runMaterialProduction } from './productionLoop';
@@ -110,6 +111,12 @@ export async function produceStudioAudioObject(input: { ownerId: string; sourceO
       }
     }
 
+    const canonicalRenderRunRefs: string[] = [];
+    for (const renderReceipt of produced.renderReceipts) {
+      await persistSfiAudioRenderReceiptForOwner(renderReceipt, input.ownerId);
+      canonicalRenderRunRefs.push(`sfi_audio_render_runs:${renderReceipt.runId}`);
+    }
+
     const cleanupState = cleanupMaterialProductionWorkspace(materialWorkspace);
     materialWorkspace = null;
     produced.receipt.cleanupState = cleanupState;
@@ -158,6 +165,7 @@ export async function produceStudioAudioObject(input: { ownerId: string; sourceO
         ...row(row(initialMetadataRead.data.metadata).materialProduction),
         receipt,
         effectiveParameters: receipt.effectiveParameters,
+        canonicalRenderRunRefs,
         renderReceipts: produced.renderReceipts,
         performanceArtifacts,
       },
@@ -191,6 +199,7 @@ export async function produceStudioAudioObject(input: { ownerId: string; sourceO
         ...row(row(metadataRead.data.metadata).materialProduction),
         receipt,
         effectiveParameters: receipt.effectiveParameters,
+        canonicalRenderRunRefs,
         renderReceipts: produced.renderReceipts,
         performanceArtifacts,
         returnState: receipt.returnState,
@@ -215,6 +224,7 @@ export async function produceStudioAudioObject(input: { ownerId: string; sourceO
       mode: input.mode,
       authorization: { ...authorization, epistemicClass: 'DECLARED', rightsTransfer: false },
       receipt,
+      canonicalRenderRunRefs,
       renderReceipts: produced.renderReceipts,
       performanceRefs: performanceArtifacts.map(({ ref, sha256 }) => ({ ref, sha256 })),
       beforeObservation,
