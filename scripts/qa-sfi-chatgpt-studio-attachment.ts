@@ -24,12 +24,17 @@ assert.match(intake, /files\.oaiusercontent\.com/, 'intake_must_allowlist_openai
 assert.match(intake, /url\.protocol !== 'https:'/, 'intake_must_require_https_attachment_url');
 assert.match(intake, /redirect: 'error'/, 'intake_must_reject_redirect_based_ssrf_expansion');
 assert.match(intake, /studioAnalysisLimitBytes\('audio'\)/, 'intake_must_enforce_existing_audio_analysis_limit');
+assert.match(intake, /descriptor\.modality !== 'audio'/, 'intake_must_detect_and_reject_non_audio_before_persistence');
+assert.doesNotMatch(intake, /requestedObjectType:\s*'audio'/, 'intake_must_not_force_non_audio_evidence_into_music');
 assert.match(intake, /prepareStudioSignedUpload/, 'intake_must_reuse_canonical_private_studio_storage');
 assert.match(intake, /completeStudioSignedUpload/, 'intake_must_verify_materialization_before_analysis');
 assert.match(intake, /analyzeStudioAudioObject/, 'intake_must_reuse_existing_audio_analyzer');
 assert.match(intake, /authorizedForAnalysis !== true/, 'intake_must_require_explicit_analysis_authorization');
 assert.match(intake, /DECLARATION_ONLY_NOT_RIGHTS_TRANSFER/, 'intake_must_not_convert_permission_declaration_into_rights_fact');
 assert.match(intake, /temporaryDownloadUrlPersisted: false/, 'temporary_openai_url_must_not_be_persisted');
+assert.match(intake, /db\.storage\.from\(STUDIO_OBJECT_BUCKET\)\.remove/, 'provenance_failure_must_remove_materialized_bytes');
+assert.match(intake, /status: 'failed'/, 'provenance_failure_must_mark_persisted_state_failed');
+assert.match(intake, /provenancePersisted: false/, 'provenance_failure_must_report_fail_closed_state');
 assert.match(intake, /rightsTransfer: false/, 'intake_must_not_transfer_rights');
 assert.match(intake, /canonicalPromotion: false/, 'intake_must_not_promote_canon');
 
@@ -55,11 +60,13 @@ assert.doesNotMatch(members, /'studio:write'/, 'attachment_fix_must_not_invent_n
 
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-CHATGPT-STUDIO-ATTACHMENT-1.1',
+  contract: 'SFI-CHATGPT-STUDIO-ATTACHMENT-1.2',
   operation: 'ingest_analyze',
   scope: 'studio:run',
   ownerBoundary: 'oauth.subjectId',
   attachmentCount: 1,
+  modalityAdmission: 'EVIDENCE_FIRST_FAIL_CLOSED',
+  provenanceFailure: 'REMOVE_BYTES_AND_MARK_FAILED',
   rightsState: 'DECLARED_ANALYSIS_PERMISSION_ONLY',
   canonicalPromotion: false,
   actionsCompatibility: 'SFI-GPT-ACTIONS-OPENAPI-COMPAT-1.0',
