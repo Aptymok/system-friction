@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient, createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { buildStudioEvaluationReport, type StudioEvaluateInput, type StudioObjectKind } from '@/lib/studio/evaluation';
+import { isConfiguredFounderIdentity } from '@/lib/system/access/founderAuthority';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -29,15 +30,14 @@ function isStudioKind(value: unknown): value is StudioObjectKind {
     || value === 'instagram_signal';
 }
 
-function isRootRouteUser(role?: string | null, email?: string | null) {
-  const rootEmail = process.env.SYSTEM_ROOT_EMAIL;
-  return role === 'root'
-    || role === 'system'
-    || Boolean(rootEmail && email && email.toLowerCase() === rootEmail.toLowerCase());
+function isRootRouteUser(userId?: string | null, role?: string | null, email?: string | null) {
+  return isConfiguredFounderIdentity({ userId, email })
+    || role === 'root'
+    || role === 'system';
 }
 
-function isStudioRouteUser(role?: string | null, email?: string | null) {
-  if (isRootRouteUser(role, email)) return true;
+function isStudioRouteUser(userId?: string | null, role?: string | null, email?: string | null) {
+  if (isRootRouteUser(userId, role, email)) return true;
   const allowed = (process.env.STUDIO_AUTHORIZED_EMAILS || '')
     .split(',')
     .map((item) => item.trim().toLowerCase())
@@ -63,7 +63,7 @@ async function authorizeStudio() {
     role = null;
   }
 
-  if (!isStudioRouteUser(role, user.email)) {
+  if (!isStudioRouteUser(user.id, role, user.email)) {
     return { ok: false as const, response: NextResponse.json({ ok: false, error: 'studio_forbidden' }, { status: 403 }) };
   }
 
