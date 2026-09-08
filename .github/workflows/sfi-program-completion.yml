@@ -45,6 +45,15 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: node scripts/sfi-program-completion.mjs
 
+      - name: Falsify completion receipt promotion
+        run: node scripts/qa-sfi-program-completion-receipts.mjs
+
+      - name: Reconcile evidence-backed SATISFIED receipts
+        run: node scripts/sfi-program-completion-reconcile.mjs
+
+      - name: Verify final ROOT visual and epistemic contract
+        run: node scripts/qa-sfi-root-final-visual.mjs
+
       - name: Dispatch unresolved implementable gaps to durable owners
         if: ${{ github.event_name != 'pull_request' }}
         env:
