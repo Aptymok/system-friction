@@ -5,9 +5,10 @@ import { executeWorldSignalObserverAgent } from '../src/lib/world-observatory/wo
 const outputDir = process.env.SFI_WORLD_SIGNAL_OBSERVER_EVIDENCE_DIR
   || path.join(process.cwd(), 'artifacts', 'world-signal-observer');
 const outputPath = path.join(outputDir, 'receipt.json');
+const startedAt = new Date().toISOString();
+const gitCommit = process.env.GITHUB_SHA?.trim() || null;
 
 async function main() {
-  const startedAt = new Date().toISOString();
   const result = await executeWorldSignalObserverAgent();
   const observation = result.observation;
   const pass = result.state === 'OBSERVED_WORLD'
@@ -17,7 +18,8 @@ async function main() {
     && observation.activeSourceCount > 0;
 
   const receipt = {
-    contract: 'SFI-WORLD-SIGNAL-OBSERVER-EXECUTION-1.0',
+    contract: 'SFI-WORLD-SIGNAL-OBSERVER-EXECUTION-1.1',
+    gitCommit,
     startedAt,
     completedAt: new Date().toISOString(),
     pass,
@@ -49,8 +51,9 @@ async function main() {
 main().catch((error) => {
   fs.mkdirSync(outputDir, { recursive: true });
   const receipt = {
-    contract: 'SFI-WORLD-SIGNAL-OBSERVER-EXECUTION-1.0',
-    startedAt: new Date().toISOString(),
+    contract: 'SFI-WORLD-SIGNAL-OBSERVER-EXECUTION-1.1',
+    gitCommit,
+    startedAt,
     completedAt: new Date().toISOString(),
     pass: false,
     error: error instanceof Error ? error.message : String(error),
