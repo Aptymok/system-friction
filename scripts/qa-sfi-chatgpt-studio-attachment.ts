@@ -7,6 +7,8 @@ function text(path: string) {
 
 const route = text('src/app/api/external/v1/studio/route.ts');
 const intake = text('src/lib/studio/external/chatgptAttachmentIntake.ts');
+const storage = text('src/lib/studio/multimodal/storage.ts');
+const manifest = text('src/app/api/external/v1/manifest/route.ts');
 const merge = text('scripts/merge-openapi-studio-attachments.mjs');
 const composedMerge = text('scripts/merge-openapi-authenticated-machine.mjs');
 const actionsCompat = text('scripts/merge-openapi-actions-compat.mjs');
@@ -26,17 +28,26 @@ assert.match(intake, /redirect: 'error'/, 'intake_must_reject_redirect_based_ssr
 assert.match(intake, /studioAnalysisLimitBytes\('audio'\)/, 'intake_must_enforce_existing_audio_analysis_limit');
 assert.match(intake, /descriptor\.modality !== 'audio'/, 'intake_must_detect_and_reject_non_audio_before_persistence');
 assert.doesNotMatch(intake, /requestedObjectType:\s*'audio'/, 'intake_must_not_force_non_audio_evidence_into_music');
-assert.match(intake, /prepareStudioSignedUpload/, 'intake_must_reuse_canonical_private_studio_storage');
+assert.match(intake, /metadata: \{ externalIntake \}/, 'intake_provenance_must_be_part_of_initial_object_admission');
+assert.match(intake, /SFI-CHATGPT-STUDIO-ATTACHMENT-1\.1/, 'intake_must_publish_current_attachment_contract');
 assert.match(intake, /completeStudioSignedUpload/, 'intake_must_verify_materialization_before_analysis');
 assert.match(intake, /analyzeStudioAudioObject/, 'intake_must_reuse_existing_audio_analyzer');
 assert.match(intake, /authorizedForAnalysis !== true/, 'intake_must_require_explicit_analysis_authorization');
 assert.match(intake, /DECLARATION_ONLY_NOT_RIGHTS_TRANSFER/, 'intake_must_not_convert_permission_declaration_into_rights_fact');
 assert.match(intake, /temporaryDownloadUrlPersisted: false/, 'temporary_openai_url_must_not_be_persisted');
-assert.match(intake, /db\.storage\.from\(STUDIO_OBJECT_BUCKET\)\.remove/, 'provenance_failure_must_remove_materialized_bytes');
-assert.match(intake, /status: 'failed'/, 'provenance_failure_must_mark_persisted_state_failed');
-assert.match(intake, /provenancePersisted: false/, 'provenance_failure_must_report_fail_closed_state');
+assert.doesNotMatch(intake, /provenancePersisted: false|materializationUsable: false/, 'intake_must_not_claim_cleanup_state_without_verified_cleanup');
 assert.match(intake, /rightsTransfer: false/, 'intake_must_not_transfer_rights');
 assert.match(intake, /canonicalPromotion: false/, 'intake_must_not_promote_canon');
+
+assert.match(storage, /metadata\?: Row/, 'canonical_storage_must_accept_initial_admission_metadata');
+assert.match(storage, /\.\.\.asRow\(input\.metadata\)/, 'initial_admission_metadata_must_be_merged_with_descriptor_lineage');
+const objectUpdateIndex = storage.indexOf("const objectUpdate = await supabase");
+const storedUpdateIndex = storage.indexOf(".update({ status: 'stored'");
+assert.ok(objectUpdateIndex >= 0 && storedUpdateIndex > objectUpdateIndex, 'object_lineage_must_be_durable_before_upload_becomes_stored');
+assert.match(storage, /\.eq\('status', 'stored'\)/, 'content_loaders_must_require_stored_publication_state');
+
+assert.match(manifest, /studio-ingest-analyze|ingest_analyze/, 'gateway_manifest_must_discover_attachment_intake');
+assert.match(manifest, /studioAttachmentPersistence|OWNER_SCOPED|owner-scoped/i, 'gateway_manifest_must_disclose_private_owner_scoped_raw_attachment_persistence');
 
 assert.match(merge, /openaiFileIdRefs/, 'generated_openapi_must_expose_chatgpt_file_parameter');
 assert.match(merge, /items: \{ type: 'string' \}/, 'openapi_must_follow_chatgpt_action_file_reference_schema');
@@ -60,13 +71,14 @@ assert.doesNotMatch(members, /'studio:write'/, 'attachment_fix_must_not_invent_n
 
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-CHATGPT-STUDIO-ATTACHMENT-1.2',
+  contract: 'SFI-CHATGPT-STUDIO-ATTACHMENT-1.3',
   operation: 'ingest_analyze',
   scope: 'studio:run',
   ownerBoundary: 'oauth.subjectId',
   attachmentCount: 1,
   modalityAdmission: 'EVIDENCE_FIRST_FAIL_CLOSED',
-  provenanceFailure: 'REMOVE_BYTES_AND_MARK_FAILED',
+  provenanceAdmission: 'PERSIST_BEFORE_BINARY_PUBLICATION',
+  storedPublicationOrder: 'OBJECT_LINEAGE_THEN_UPLOAD_STORED',
   rightsState: 'DECLARED_ANALYSIS_PERMISSION_ONLY',
   canonicalPromotion: false,
   actionsCompatibility: 'SFI-GPT-ACTIONS-OPENAPI-COMPAT-1.0',
