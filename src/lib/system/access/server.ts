@@ -8,6 +8,7 @@ import {
   SfiAuthUnavailableError,
 } from '@/runtime/supabase/server';
 import { findInstitutionalMember } from './institutionalMembers';
+import { resolveFounderAuthority } from './founderAuthority';
 
 export class AccessDeniedError extends Error {
   constructor(
@@ -24,23 +25,6 @@ function record(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? value as Record<string, unknown>
     : {};
-}
-
-function founderIds() {
-  return new Set(
-    (process.env.SFI_FOUNDER_USER_IDS || '')
-      .split(',')
-      .map((value) => value.trim())
-      .filter(Boolean),
-  );
-}
-
-function founderEmails() {
-  return new Set(
-    [process.env.SYSTEM_ROOT_EMAIL, ...(process.env.SFI_FOUNDER_EMAILS || '').split(',')]
-      .map((value) => value?.trim().toLowerCase())
-      .filter((value): value is string => Boolean(value)),
-  );
 }
 
 function institutionalModuleAccess(
@@ -213,9 +197,6 @@ async function readOrProvisionUserProfile(user: { id: string; email?: string | n
     return { profile: inserted.data, member };
   }
 
-  // A normal account receives a private, owner-scoped workspace. This does not
-  // make the user an institutional SFI member and cannot grant ROOT/canonical
-  // authority. Institutional membership remains an independent registry fact.
   const alias = defaultAlias(user);
   const inserted = await service
     .from('profiles')
@@ -287,6 +268,12 @@ export async function requireFieldUser() {
 
 export async function requireFounder() {
   const context = await requireAuthenticatedUser();
+  const configuredAuthority = resolveFounderAuthority({
+    userId: context.user.id,
+    email: context.user.email,
+    profile: null,
+  });
+
   const service = createServiceSupabaseClient();
   const { data: profile, error: profileError } = await service
     .from('profiles')
@@ -295,6 +282,9 @@ export async function requireFounder() {
     .maybeSingle();
 
   if (profileError) {
+    if (configuredAuthority.isFounder) {
+      return { ...context, profile: null, founderAuthoritySource: configuredAuthority.source };
+    }
     throw new AccessDeniedError(
       503,
       'AUTH_UNAVAILABLE',
@@ -302,24 +292,17 @@ export async function requireFounder() {
     );
   }
 
-  const email = context.user.email?.toLowerCase() || null;
-  const institutionalMember = findInstitutionalMember(email);
-  const moduleAccess = record(profile?.module_access);
-  const hasExplicitSovereignProfile =
-    !institutionalMember &&
-    (profile?.role === 'root' || profile?.role === 'system') &&
-    moduleAccess.full_access === true;
+  const authority = resolveFounderAuthority({
+    userId: context.user.id,
+    email: context.user.email,
+    profile,
+  });
 
-  const allowed =
-    founderIds().has(context.user.id) ||
-    Boolean(email && founderEmails().has(email)) ||
-    hasExplicitSovereignProfile;
-
-  if (!allowed) {
+  if (!authority.isFounder) {
     throw new AccessDeniedError(403, 'FOUNDER_REQUIRED', 'Founder authorization is required.');
   }
 
-  return { ...context, profile };
+  return { ...context, profile, founderAuthoritySource: authority.source };
 }
 
 export async function requireFounderPage(nextPath = '/root') {
