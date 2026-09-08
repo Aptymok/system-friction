@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { normalizeSupabaseUrl } from '@/runtime/supabase/url'
 import { findInstitutionalMember } from '@/lib/system/access/institutionalMembers'
+import { isConfiguredFounderIdentity } from '@/lib/system/access/founderAuthority'
 
 const AUTH_COOKIE_NAMES = ['sb-access-token', 'sb-refresh-token', 'supabase-auth-token']
 
@@ -53,24 +54,11 @@ function clearSupabaseAuthCookies(response: NextResponse, request: NextRequest) 
   names.forEach((name) => response.cookies.delete(name))
 }
 
-function configuredFounderIds() {
-  return new Set((process.env.SFI_FOUNDER_USER_IDS || '').split(',').map((value) => value.trim()).filter(Boolean))
-}
-
-function configuredFounderEmails() {
-  return new Set(
-    [process.env.SYSTEM_ROOT_EMAIL, ...(process.env.SFI_FOUNDER_EMAILS || '').split(',')]
-      .map((value) => value?.trim().toLowerCase())
-      .filter((value): value is string => Boolean(value)),
-  )
-}
-
 function isRootRouteUser(userId?: string | null, role?: string | null, email?: string | null) {
   return (
-    Boolean(userId && configuredFounderIds().has(userId)) ||
+    isConfiguredFounderIdentity({ userId, email }) ||
     role === 'root' ||
-    role === 'system' ||
-    Boolean(email && configuredFounderEmails().has(email.toLowerCase()))
+    role === 'system'
   )
 }
 
@@ -127,8 +115,6 @@ export async function proxy(request: NextRequest) {
   let response = NextResponse.next()
   const { pathname } = request.nextUrl
 
-  // SFI remains non-frameable by default. Only explicit owned surfaces used by
-  // ROOT's internal observation window may be embedded, and only by the same origin.
   response.headers.set('X-Frame-Options', permitsRootInternalFrame(pathname) ? 'SAMEORIGIN' : 'DENY')
   response.headers.set('X-Content-Type-Options', 'nosniff')
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
@@ -141,13 +127,9 @@ export async function proxy(request: NextRequest) {
     response.headers.set('Cache-Control', 'no-store, must-revalidate')
   }
 
-  // System agents authenticate at the API boundary with SFI_AGENT_SECRET.
-  // They must not enter browser Supabase session middleware.
   const isWorldVectorAgentRoute = pathname.startsWith('/api/world-vector')
   if (isWorldVectorAgentRoute) return response
 
-  // /field is the public live Observatory. It must not acquire a browser-session
-  // dependency: its public read models use service-backed, evidence-bounded APIs.
   const requiresSession = pathname.startsWith('/root') || pathname.startsWith('/studio')
   if (!requiresSession) return response
 
@@ -174,10 +156,6 @@ export async function proxy(request: NextRequest) {
     },
   })
 
-  // Do not call /auth/v1/user on every protected navigation. In production that
-  // endpoint has shown intermittent 500/504 responses and long latency. getClaims()
-  // verifies the signed access token (and refreshes only when actually necessary),
-  // reducing both remote verification pressure and false logout transitions.
   let identity: SessionIdentity | null = null
   let authUnavailable = false
   try {
@@ -201,16 +179,9 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  // A transport/backend outage is not a logout. Never send the user to the login
-  // form for a 5xx/timeout because that makes a healthy local session look invalid.
   if (authUnavailable) return redirectToAuthUnavailable(request)
   if (!identity) return redirectToLoginWithNext(request)
 
-  // ROOT authorization intentionally happens only in the server-side ROOT gates
-  // (requireRootObserverPage / requireRootViewer / requireRootActor), which use the
-  // authoritative service-backed profile. The proxy only verifies that a browser
-  // session exists. This prevents an RLS-filtered profile lookup here from denying
-  // a valid institutional observer before the authoritative gate runs.
   if (pathname.startsWith('/root')) return response
 
   if (pathname.startsWith('/studio')) {
