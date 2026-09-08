@@ -8,7 +8,7 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     name: 'SFI External Agent Gateway',
-    version: '1.13.0',
+    version: '1.14.0',
     auth: 'OAuth 2.0 authorization_code (user-bound) or X-SFI-Token/Bearer static token',
     base: '/api/external/v1',
     discovery: {
@@ -75,6 +75,7 @@ export async function GET() {
       { id: 'studio-inspect', method: 'POST', path: '/studio', scope: 'studio:read', tenant: 'owner', body: { operation: 'inspect' }, description: 'Inspect one owned Studio object.' },
       { id: 'studio-content', method: 'POST', path: '/studio', scope: 'studio:content', tenant: 'owner', body: { operation: 'content' }, description: 'Issue a short-lived signed URL for one owned object.' },
       { id: 'studio-analyze', method: 'POST', path: '/studio', scope: 'studio:run', tenant: 'owner', body: { operation: 'analyze' }, description: 'Run the existing server-side analyzer for owned audio/video.' },
+      { id: 'studio-ingest-analyze', method: 'POST', path: '/studio', scope: 'studio:run', tenant: 'owner', contract: 'SFI-CHATGPT-STUDIO-ATTACHMENT-1.1', body: { operation: 'ingest_analyze', attachment: 'exactly one ChatGPT openaiFileIdRefs item', analysisAuthorization: 'explicit declared permission' }, description: 'Ingest one ChatGPT audio attachment into private owner-scoped Studio storage and run the existing analyzer. Permission remains declared analysis authority only; rights transfer and canonical promotion are false.' },
     ],
     machineInterfaces: {
       public: {
@@ -124,7 +125,16 @@ export async function GET() {
     },
     storage: {
       defaultObjectStorage: 'REFERENCE_ONLY',
-      rawObjectPersistence: false,
+      rawObjectPersistence: 'OWNER_SCOPED_STUDIO_ATTACHMENT_INTAKE_ONLY',
+      studioAttachmentPersistence: {
+        operation: 'ingest_analyze',
+        private: true,
+        ownerScoped: true,
+        temporaryOpenAiDownloadUrlPersisted: false,
+        analysisPermissionEpistemicClass: 'DECLARED',
+        rightsTransfer: false,
+        canonicalPromotion: false,
+      },
       structuredResultPersistence: true,
     },
     cognitiveRuntime: {

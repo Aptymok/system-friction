@@ -17,14 +17,22 @@ on:
       - 'src/lib/sfi/oauthClientRegistry.ts'
       - 'src/lib/sfi/cognitive-runtime/**'
       - 'src/lib/sfi/personal/**'
+      - 'src/lib/studio/external/**'
+      - 'src/lib/studio/multimodal/**'
       - 'src/lib/system/access/**'
       - 'src/components/sfi/LoginSurface.tsx'
       - 'src/components/sfi/PersonalCognitiveLabWorkspace.tsx'
       - 'src/app/method-lab/page.tsx'
       - 'supabase/migrations/*oauth*'
       - 'supabase/migrations/*personal_cognitive*'
+      - 'supabase/migrations/*studio_external_intake*'
       - 'public/openapi.json'
+      - 'public/openapi-actions.json'
       - 'scripts/merge-openapi-cases.mjs'
+      - 'scripts/merge-openapi-studio-attachments.mjs'
+      - 'scripts/merge-openapi-authenticated-machine.mjs'
+      - 'scripts/merge-openapi-actions-compat.mjs'
+      - 'scripts/qa-sfi-chatgpt-studio-attachment.ts'
       - 'scripts/qa-sfi-external-oauth.ts'
       - 'scripts/qa-sfi-host-bound-openapi.ts'
       - 'scripts/qa-sfi-oauth-integrations.ts'
@@ -68,6 +76,9 @@ jobs:
 
       - name: Verify agent API integrations and hardening
         run: node scripts/merge-openapi-cases.mjs && npx tsx scripts/qa-sfi-agent-api-hardening.ts
+
+      - name: Verify ChatGPT Studio attachment intake and Action/MCP projection separation
+        run: node scripts/merge-openapi-authenticated-machine.mjs && npx tsx scripts/qa-sfi-chatgpt-studio-attachment.ts
 
       - name: Typecheck
         run: npm run typecheck

@@ -77,7 +77,10 @@ assert.match(publicServer, /PUBLIC_READ_ONLY/, 'public_mcp_authority_must_remain
 assert.doesNotMatch(publicRoute, /authenticatedGovernedMachineAdapter|authorizeExternalRequest|executeManualCognitiveAgent/, 'public_mcp_must_not_inherit_authenticated_execution');
 assert.doesNotMatch(publicServer, /invoke_cognitive_capability|SFI_MACHINE_AUTHORIZATION_RESERVED/, 'public_tool_catalog_must_not_gain_execution');
 
-assert.match(manifest, /version: '1\.13\.0'/, 'manifest_version_must_advance');
+const manifestVersion = manifest.match(/version:\s*'(\d+\.\d+\.\d+)'/)?.[1] ?? null;
+assert.ok(manifestVersion, 'manifest_semver_required');
+const [manifestMajor, manifestMinor] = manifestVersion.split('.').map(Number);
+assert.ok(manifestMajor > 1 || (manifestMajor === 1 && manifestMinor >= 13), 'manifest_version_must_not_regress_below_r4c');
 assert.match(manifest, /authenticatedMcp: '\/api\/mcp\/authenticated'/, 'manifest_must_discover_authenticated_mcp');
 assert.match(manifest, /SFI-AUTHENTICATED-GOVERNED-MACHINE-ADAPTER-1\.0/, 'manifest_contract_required');
 assert.match(manifest, /externalRegistryReceipt: null/, 'manifest_must_not_fabricate_external_registry_receipt');
@@ -91,3 +94,5 @@ assert.match(packageJson, /merge-openapi-authenticated-machine\.mjs/, 'productio
 assert.match(grantOwner, /export const SFI_CAPABILITY_GRANT_CONTRACT = 'SFI-CAPABILITY-GRANT-1\.0'/, 'grant_owner_must_remain_ws01');
 assert.match(brokerOwner, /CAPABILITY_REQUEST_IS_NOT_AUTHORIZATION/, 'broker_admit_must_remain_non-authorizing');
 assert.doesNotMatch(adapter, /SFI_CAPABILITY_GRANT_CONTRACT\s*=/, 'ws04_must_not_redeclare_grant_contract');
+
+console.log(JSON.stringify({ ok: true, gate: 'SFI_AUTHENTICATED_GOVERNED_MACHINE_R4C', manifestVersion }, null, 2));

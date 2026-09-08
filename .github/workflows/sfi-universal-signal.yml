@@ -130,8 +130,22 @@ jobs:
         run: node --import tsx scripts/qa-sfi-governed-execution-router.ts
       - name: Verify external OAuth execution boundary
         run: node --import tsx scripts/qa-sfi-external-oauth.ts
-      - name: Verify raw-object persistence is disabled in preferred flow
+      - name: Verify reference-only default and governed Studio raw-object exception
         run: |
-          node -e "const fs=require('fs'); const manifest=fs.readFileSync('src/app/api/external/v1/manifest/route.ts','utf8'); const result=fs.readFileSync('src/app/api/external/v1/result/route.ts','utf8'); if(!manifest.includes('rawObjectPersistence: false')||!result.includes('rawObjectPersisted:false')) process.exit(1); console.log('REFERENCE_ONLY contract ok')"
+          node - <<'NODE'
+          const fs=require('fs');
+          const manifest=fs.readFileSync('src/app/api/external/v1/manifest/route.ts','utf8');
+          const result=fs.readFileSync('src/app/api/external/v1/result/route.ts','utf8');
+          const required=[
+            "defaultObjectStorage: 'REFERENCE_ONLY'",
+            "rawObjectPersistence: 'OWNER_SCOPED_STUDIO_ATTACHMENT_INTAKE_ONLY'",
+            'temporaryOpenAiDownloadUrlPersisted: false',
+            'rightsTransfer: false',
+            'canonicalPromotion: false',
+          ];
+          if(required.some(token=>!manifest.includes(token))) throw new Error('SFI_RAW_OBJECT_EXCEPTION_BOUNDARY_MISSING');
+          if(!result.includes('rawObjectPersisted:false')) throw new Error('SFI_STRUCTURED_RESULT_RAW_OBJECT_PERSISTENCE_REGRESSION');
+          console.log('REFERENCE_ONLY default + owner-scoped Studio intake exception ok');
+          NODE
       - name: Build
         run: npm run build

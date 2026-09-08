@@ -103,7 +103,10 @@ assert.doesNotMatch(externalAuth, /pathname === ['"]\/api\/external\/v1\/cogniti
 const personalScopesBlock = oauthConfig.match(/SFI_PERSONAL_SCOPES\s*=\s*\[([\s\S]*?)\]\s*as const/)?.[1] ?? '';
 assert.doesNotMatch(personalScopesBlock, /'execute'|'observe'|'propose'/, 'm6_personal_scope_ceiling_must_remain_owner_workspace_only');
 
-assert.match(manifest, /version:\s*'1\.13\.0'/);
+const manifestVersion = manifest.match(/version:\s*'(\d+\.\d+\.\d+)'/)?.[1] ?? null;
+assert.ok(manifestVersion, 'external_manifest_semver_required');
+assert.match(openapiMerge, /const canonicalVersion = manifestSource\.match/);
+assert.match(openapiMerge, /api\.info\.version = canonicalVersion/);
 assert.match(manifest, /cognitive-runtime-read/);
 assert.match(manifest, /cognitive-runtime-execute/);
 assert.match(manifest, /user-bound institutional OAuth/);
