@@ -14,7 +14,7 @@ const workflow = text('.github/workflows/sfi-external-oauth.yml');
 const idempotencyMigration = text('supabase/migrations/20260908094500_studio_external_intake_idempotency.sql');
 
 assert.match(route, /'ingest_analyze'/);
-assert.match(route, /operation === 'analyze' \|\| operation === 'ingest_analyze'\) return 'studio:run'/);
+assert.match(route, /operation === 'analyze' \|\| operation === 'ingest_analyze' \|\| operation === 'produce'\) return 'studio:run'/);
 assert.match(route, /const ownerId = cred\.subjectId/);
 assert.match(route, /DECLARED_ANALYSIS_PERMISSION_DOES_NOT_TRANSFER_RIGHTS_OR_PROMOTE_CANON/);
 
