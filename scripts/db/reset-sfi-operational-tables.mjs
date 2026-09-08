@@ -15,6 +15,9 @@ const databaseUrl = process.env.DATABASE_URL || process.env.DIRECT_URL || proces
 const confirm = process.env.SFI_DB_RESET_CONFIRM;
 const resetMode = process.env.SFI_DB_RESET_MODE;
 const snapshotReceiptPath = process.env.SFI_DB_SNAPSHOT_RECEIPT;
+const externalArtifactId = process.env.SFI_DB_EXTERNAL_ARTIFACT_ID;
+const externalArtifactDigest = process.env.SFI_DB_EXTERNAL_ARTIFACT_DIGEST;
+const externalArtifactUrl = process.env.SFI_DB_EXTERNAL_ARTIFACT_URL || null;
 
 if (confirm !== 'RESET_SFI_CANONICAL' || resetMode !== 'EVIDENCE_FIRST_CANONICAL_RESET') {
   console.error(JSON.stringify({
@@ -26,6 +29,8 @@ if (confirm !== 'RESET_SFI_CANONICAL' || resetMode !== 'EVIDENCE_FIRST_CANONICAL
       'SFI_DB_RESET_CONFIRM=RESET_SFI_CANONICAL',
       'SFI_DB_RESET_MODE=EVIDENCE_FIRST_CANONICAL_RESET',
       'SFI_DB_SNAPSHOT_RECEIPT=<verified V2 receipt>',
+      'SFI_DB_EXTERNAL_ARTIFACT_ID=<already uploaded external proof artifact>',
+      'SFI_DB_EXTERNAL_ARTIFACT_DIGEST=<artifact digest>',
       'DATABASE_URL|DIRECT_URL|CONNECTION_STRING=<same PostgreSQL database>',
     ],
     preservesLegacyDataOnly: PRESERVE_DATA_TABLES,
@@ -35,6 +40,8 @@ if (confirm !== 'RESET_SFI_CANONICAL' || resetMode !== 'EVIDENCE_FIRST_CANONICAL
 }
 if (!databaseUrl) throw new Error('Canonical reset requires a direct PostgreSQL connection.');
 if (!snapshotReceiptPath) throw new Error('Canonical reset requires SFI_DB_SNAPSHOT_RECEIPT.');
+if (!externalArtifactId || !externalArtifactId.trim()) throw new Error('Canonical reset is blocked until the proof snapshot has been uploaded outside the database (missing SFI_DB_EXTERNAL_ARTIFACT_ID).');
+if (!externalArtifactDigest || !externalArtifactDigest.trim()) throw new Error('Canonical reset is blocked until the external proof artifact has a digest (missing SFI_DB_EXTERNAL_ARTIFACT_DIGEST).');
 
 function pgEnvironment(rawUrl) {
   const url = new URL(rawUrl);
@@ -68,6 +75,13 @@ function runPsql(sql, { capture = true } = {}) {
     const detail = `${result.stdout || ''}\n${result.stderr || ''}`.trim();
     throw new Error(`psql failed with exit code ${result.status}${detail ? `: ${detail}` : ''}`);
   }
+  return String(result.stdout || '').trim();
+}
+
+function runLocal(command, args) {
+  const result = spawnSync(command, args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  if (result.error) throw result.error;
+  if (result.status !== 0) throw new Error(`${command} failed: ${String(result.stderr || '').trim()}`);
   return String(result.stdout || '').trim();
 }
 
@@ -165,12 +179,12 @@ const preserveExpectedChecks = PRESERVE_DATA_TABLES.map((table) => `
 const snapshotSha = snapshot.zip_sha256;
 const snapshotCreatedAt = snapshot.created_at;
 const snapshotGit = snapshot.git_commit;
-const resetGit = process.env.GITHUB_SHA || runPsql("select 'NOT_PROVIDED'::text;");
+const resetGit = process.env.GITHUB_SHA || runLocal('git', ['rev-parse', 'HEAD']);
 const resetAt = new Date().toISOString();
 
-// One transaction owns the destructive phase. No CASCADE is used: if a preserved
-// table depends on a table to be reset, PostgreSQL or the explicit FK preflight
-// blocks instead of silently deleting the preserved World corpus.
+// One transaction owns the destructive phase. The truncate statement intentionally
+// omits dependency propagation: unexpected references to preserved World data cause
+// a hard failure instead of silently deleting it.
 const transactionSql = `
 begin;
 select pg_advisory_xact_lock(hashtext('SFI_CANONICAL_RESET_V1'));
@@ -285,6 +299,9 @@ select user_id,'SFI_CANONICAL_RESET_GENESIS','database',jsonb_build_object(
   'snapshot_sha256',${sqlLiteral(snapshotSha)},
   'snapshot_created_at',${sqlLiteral(snapshotCreatedAt)},
   'snapshot_git_commit',${sqlLiteral(snapshotGit)},
+  'external_artifact_id',${sqlLiteral(externalArtifactId)},
+  'external_artifact_digest',${sqlLiteral(externalArtifactDigest)},
+  'external_artifact_url',${sqlLiteral(externalArtifactUrl)},
   'reset_git_commit',${sqlLiteral(resetGit)},
   'reset_started_at',${sqlLiteral(resetAt)},
   'preserved_legacy_data',jsonb_build_array(${PRESERVE_DATA_TABLES.map(sqlLiteral).join(',')}),
@@ -347,6 +364,9 @@ const report = {
     created_at: snapshot.created_at,
     git_commit: snapshot.git_commit,
     classification_verified: snapshot.reset_classification_verified,
+    external_artifact_id: externalArtifactId,
+    external_artifact_digest: externalArtifactDigest,
+    external_artifact_url: externalArtifactUrl,
   },
   classification: {
     public_table_count: liveTables.length,
@@ -360,7 +380,8 @@ const report = {
   genesis_infrastructure_counts: postInfrastructureCounts,
   founder_oauth_clients_reseeded: currentFounderOauthCount,
   invariants: [
-    'NO_CASCADE',
+    'EXTERNAL_PROOF_UPLOADED_BEFORE_RESET',
+    'NO_DEPENDENCY_PROPAGATION',
     'LIVE_SCHEMA_EQUALS_SNAPSHOT',
     'UNCLASSIFIED_ZERO',
     'WORLD_COUNTS_UNCHANGED',
