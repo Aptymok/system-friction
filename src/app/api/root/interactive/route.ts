@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireRootViewer } from '@/lib/root/server';
 import { readInteractiveOperationalNext } from '@/lib/root/interactiveOperationalNext';
-import { readInteractiveReportApprovals } from '@/lib/root/interactiveReportApprovals';
 import { projectActionableHumanQueue } from '@/lib/root/actionableHumanQueue';
 import {
   readInteractiveCaseIndex,
@@ -142,38 +141,6 @@ export async function GET(request: Request) {
     }, { headers: { 'Cache-Control': 'private, no-store' } });
   }
 
-  if (surface === 'root') {
-    const [rawOperationalNext, caseIndex, reportApprovals] = await Promise.all([
-      readInteractiveOperationalNext(),
-      readInteractiveCaseIndex(gate.ctx.user.id),
-      readInteractiveReportApprovals(),
-    ]);
-    const raw = rawOperationalNext as Record<string, any>;
-    const operationalNext = projectActionableHumanQueue({
-      ...raw,
-      reports: reportApprovals.items,
-      warnings: [
-        ...(Array.isArray(raw.warnings) ? raw.warnings : []),
-        reportApprovals.warning,
-      ].filter(Boolean),
-    });
-    return NextResponse.json({
-      ok: true,
-      surface,
-      operationalNext,
-      caseIndex,
-      readPlan: {
-        authGates: 1,
-        duplicateBaseHttpReads: 0,
-        operationalNPlusOneReads: 0,
-        actionableHumanProjection: true,
-        reportApprovalReads: 1,
-        reportApprovalNPlusOneReads: 0,
-        reportApprovalSource: 'sfi_cognitive_twin_runs.report_agent',
-      },
-    }, { headers: { 'Cache-Control': 'private, no-store' } });
-  }
-
   const [rawOperationalNext, caseIndex] = await Promise.all([
     readInteractiveOperationalNext(),
     readInteractiveCaseIndex(gate.ctx.user.id),
@@ -184,6 +151,14 @@ export async function GET(request: Request) {
     surface,
     operationalNext,
     caseIndex,
-    readPlan: { authGates: 1, duplicateBaseHttpReads: 0, operationalNPlusOneReads: 0, actionableHumanProjection: true },
+    readPlan: {
+      authGates: 1,
+      duplicateBaseHttpReads: 0,
+      operationalNPlusOneReads: 0,
+      actionableHumanProjection: true,
+      reportApprovalReads: 0,
+      reportApprovalNPlusOneReads: 0,
+      sovereignReports: false,
+    },
   }, { headers: { 'Cache-Control': 'private, no-store' } });
 }
