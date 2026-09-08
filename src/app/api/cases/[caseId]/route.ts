@@ -10,10 +10,9 @@ export const runtime = 'nodejs';
 
 const statusSchema = z.enum(['DRAFT','OPEN','OBSERVING','ANALYZING','AWAITING_GOVERNANCE','INTERVENING','AWAITING_RETURN','AWAITING_USER_CLOSE','CLOSED','REJECTED']);
 const patchSchema = z.object({
-  status: statusSchema.optional(),
-  reportDecision: z.enum(['ACCEPT','DENY']).optional(),
+  status: statusSchema,
   note: z.string().trim().max(2000).optional(),
-}).strict().refine((value) => Boolean(value.status) !== Boolean(value.reportDecision), 'exactly_one_case_action_required');
+}).strict();
 
 type RouteContext = { params: Promise<{ caseId: string }> };
 
@@ -31,7 +30,7 @@ async function caseState(caseId: string) {
   return result.data as Row;
 }
 
-async function assertUserCanDecide(userId: string, tenantId: string) {
+async function assertUserCanWrite(userId: string, tenantId: string) {
   const db = createServiceSupabaseClient();
   const membership = await db.from('sfi_tenant_members')
     .select('role,status')
@@ -42,18 +41,6 @@ async function assertUserCanDecide(userId: string, tenantId: string) {
   if (!membership.data || membership.data.status !== 'ACTIVE' || !['OWNER','ADMIN','OPERATOR'].includes(String(membership.data.role))) {
     throw new Error('SFI_TENANT_WRITE_FORBIDDEN');
   }
-}
-
-async function latestReport(caseId: string) {
-  const db = createServiceSupabaseClient();
-  const result = await db.from('sfi_case_reports')
-    .select('id,generated_at,report_payload')
-    .eq('case_id', caseId)
-    .order('generated_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (result.error) throw new Error(`SFI_CASE_REPORT_READ_FAILED:${result.error.message}`);
-  return result.data as Row | null;
 }
 
 async function projectFor(projectId: unknown) {
@@ -80,7 +67,10 @@ async function envelope(caseId: string, userId: string) {
     closure: {
       status: String(state.status),
       closedAt: state.closed_at ? String(state.closed_at) : null,
-      requiresUserDecision: String(state.status) === 'AWAITING_USER_CLOSE',
+      requiresUserDecision: false,
+      mode: 'AUTONOMOUS_WHEN_CLOSURE_CONTRACT_IS_SATISFIED',
+      legacyAwaitingUserClose: String(state.status) === 'AWAITING_USER_CLOSE',
+      boundary: 'Closure records operational completion only; it does not promote learning/canon or expand authority.',
     },
   };
 }
@@ -102,55 +92,22 @@ export async function PATCH(request: Request, context: RouteContext) {
     const body = patchSchema.parse(await request.json());
     const state = await caseState(caseId);
     const tenantId = String(state.tenant_id);
-    await assertUserCanDecide(user.id, tenantId);
+    await assertUserCanWrite(user.id, tenantId);
 
-    if (body.reportDecision) {
-      if (String(state.status) !== 'AWAITING_USER_CLOSE') {
-        throw new Error('SFI_CASE_REPORT_DECISION_NOT_READY');
-      }
-      const report = await latestReport(caseId);
-      if (!report) throw new Error('SFI_CASE_REPORT_REQUIRED_FOR_USER_CLOSE');
-      const db = createServiceSupabaseClient();
-      const accepted = body.reportDecision === 'ACCEPT';
-      const now = new Date().toISOString();
-      const nextStatus = accepted ? 'CLOSED' : 'ANALYZING';
-      const updated = await db.from('sfi_cases').update({
-        status: nextStatus,
-        closed_at: accepted ? now : null,
-      }).eq('id', caseId).select('id').single();
-      if (updated.error) throw new Error(`SFI_CASE_USER_DECISION_FAILED:${updated.error.message}`);
-      const audit = await db.from('sfi_case_audit_events').insert({
-        case_id: caseId,
-        tenant_id: tenantId,
-        actor_id: user.id,
-        action: accepted ? 'CASE_REPORT_ACCEPTED_AND_CLOSED' : 'CASE_REPORT_DENIED_REOPENED',
-        before_state: { status: state.status },
-        after_state: { status: nextStatus },
-        context: {
-          reportId: String(report.id),
-          reportGeneratedAt: report.generated_at ?? null,
-          note: body.note ?? null,
-          finalClosureAuthority: 'AUTHENTICATED_USER',
-        },
-      });
-      if (audit.error) throw new Error(`SFI_CASE_AUDIT_FAILED:${audit.error.message}`);
-      return NextResponse.json({ ok: true, decision: body.reportDecision, ...(await envelope(caseId, user.id)) });
-    }
-
-    if (!body.status) throw new Error('SFI_CASE_STATUS_REQUIRED');
-    if (body.status === 'CLOSED') {
+    if (body.status === 'AWAITING_USER_CLOSE') {
       return NextResponse.json({
         ok: false,
-        error: 'user_report_decision_required',
-        message: 'El cierre final ocurre únicamente al aceptar el reporte desde la pantalla del caso.',
+        error: 'legacy_state_not_enterable',
+        message: 'AWAITING_USER_CLOSE remains readable for historical reconstruction but is no longer a routine lifecycle gate.',
       }, { status: 409 });
     }
-    if (body.status === 'AWAITING_USER_CLOSE') {
-      const report = await latestReport(caseId);
-      if (!report) throw new Error('SFI_CASE_REPORT_REQUIRED_BEFORE_USER_CLOSE');
-    }
+
     await transitionOperationalCase({ caseId, userId: user.id, status: body.status });
-    return NextResponse.json({ ok: true, ...(await envelope(caseId, user.id)) });
+    return NextResponse.json({
+      ok: true,
+      note: body.note ?? null,
+      ...(await envelope(caseId, user.id)),
+    });
   } catch (error) {
     return sfiCaseApiFailure(error);
   }
