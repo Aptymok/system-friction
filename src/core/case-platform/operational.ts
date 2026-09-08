@@ -40,12 +40,13 @@ export type SfiCaseObjectDraft = {
 
 const TRANSITIONS: Record<SfiCaseStatus, readonly SfiCaseStatus[]> = {
   DRAFT: ['OPEN', 'REJECTED'],
-  OPEN: ['OBSERVING', 'ANALYZING', 'REJECTED'],
-  OBSERVING: ['ANALYZING', 'AWAITING_GOVERNANCE', 'AWAITING_USER_CLOSE', 'REJECTED'],
-  ANALYZING: ['OBSERVING', 'AWAITING_GOVERNANCE', 'AWAITING_USER_CLOSE', 'REJECTED'],
-  AWAITING_GOVERNANCE: ['ANALYZING', 'INTERVENING', 'AWAITING_USER_CLOSE', 'REJECTED'],
+  OPEN: ['OBSERVING', 'ANALYZING', 'CLOSED', 'REJECTED'],
+  OBSERVING: ['ANALYZING', 'AWAITING_GOVERNANCE', 'CLOSED', 'REJECTED'],
+  ANALYZING: ['OBSERVING', 'AWAITING_GOVERNANCE', 'INTERVENING', 'CLOSED', 'REJECTED'],
+  AWAITING_GOVERNANCE: ['ANALYZING', 'INTERVENING', 'CLOSED', 'REJECTED'],
   INTERVENING: ['AWAITING_RETURN', 'ANALYZING'],
-  AWAITING_RETURN: ['ANALYZING', 'OBSERVING', 'AWAITING_USER_CLOSE'],
+  AWAITING_RETURN: ['ANALYZING', 'OBSERVING', 'CLOSED'],
+  // Legacy reconstruction state only. New routine flows must not enter it.
   AWAITING_USER_CLOSE: ['ANALYZING', 'CLOSED'],
   CLOSED: [],
   REJECTED: [],
@@ -143,6 +144,9 @@ export const SFI_CASE_OPERATIONAL_INVARIANTS = {
   tenantIsolationRequired: true,
   destructiveClientDelete: false,
   projectAggregatesCasesWithoutPromotingTruth: true,
-  closedRequiresAwaitingUserClose: true,
-  finalClosureRequiresExplicitUserDecision: true,
+  closedRequiresAwaitingUserClose: false,
+  finalClosureRequiresExplicitUserDecision: false,
+  routineClosureIsAutonomous: true,
+  closureDoesNotPromoteLearningOrCanon: true,
+  awaitingUserCloseIsLegacyReadOnlyState: true,
 } as const;
