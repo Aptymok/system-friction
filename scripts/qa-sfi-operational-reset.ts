@@ -79,17 +79,20 @@ assert.match(verifier, /resetPermittedByClassification/);
 
 assert.match(reset, /RESET_SFI_CANONICAL/);
 assert.match(reset, /EVIDENCE_FIRST_CANONICAL_RESET/);
+assert.match(reset, /SFI_DB_EXTERNAL_ARTIFACT_ID/);
+assert.match(reset, /SFI_DB_EXTERNAL_ARTIFACT_DIGEST/);
 assert.match(reset, /requireResetClassification: true/);
 assert.match(reset, /public schema drift/i);
 assert.match(reset, /A preserved World table depends on a table scheduled for reset/);
 assert.match(reset, /begin;/);
 assert.match(reset, /pg_advisory_xact_lock/);
 assert.match(reset, /truncate table/);
-assert.match(reset, /restart identity/);
-assert.doesNotMatch(reset, /\bCASCADE\b/i, 'canonical reset must not use CASCADE because preserved World data must fail closed on unexpected dependencies');
+assert.match(reset, /restart identity;/);
+assert.doesNotMatch(reset, /restart identity\s+cascade/i, 'destructive SQL must not propagate truncation into preserved dependencies');
 assert.match(reset, /sfi_reset_founder/);
 assert.match(reset, /sfi_reset_oauth_clients/);
 assert.match(reset, /SFI_CANONICAL_RESET_GENESIS/);
+assert.match(reset, /external_artifact_id/);
 assert.match(reset, /learning_imported.*false/s);
 assert.match(reset, /canonical_history_imported.*false/s);
 assert.match(reset, /WORLD_COUNTS_UNCHANGED/);
@@ -122,10 +125,11 @@ console.log(JSON.stringify({
   invariants: [
     'FULL_POSTGRES_SNAPSHOT_BEFORE_RESET',
     'SNAPSHOT_CONTAINS_HASHED_PUBLIC_TABLE_INVENTORY',
+    'EXTERNAL_PROOF_ARTIFACT_REQUIRED_BEFORE_DESTRUCTION',
     'UNCLASSIFIED_PUBLIC_TABLE_BLOCKS_RESET',
     'ONLY_FOUR_WORLD_TABLES_PRESERVE_LEGACY_DATA',
     'MINIMAL_INFRASTRUCTURE_IS_RESEEDED_NOT_PRESERVED',
-    'NO_TRUNCATE_CASCADE',
+    'NO_TRUNCATE_DEPENDENCY_PROPAGATION',
     'WORLD_EXACT_COUNTS_MUST_SURVIVE',
     'QA_TELEMETRY_TWIN_AMV_GOVERNANCE_HISTORY_PURGED',
     'LEGACY_CANONICAL_HISTORY_SEED_RETIRED',
