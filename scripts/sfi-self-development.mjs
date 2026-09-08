@@ -33,17 +33,21 @@ const workflowsDir = path.join(root, '.github', 'workflows');
 const workflowText = exists('.github/workflows') ? fs.readdirSync(workflowsDir).filter(f => f.endsWith('.yml') || f.endsWith('.yaml')).map(f => read(`.github/workflows/${f}`)).join('\n') : '';
 if (!workflowText.includes('/field')) add('field:not-assured', 'high', 'UNOBSERVED_CAPABILITY', 'No workflow contains an explicit /field production assertion', 'Add exact /field production assurance', true);
 
-// Human ingress is a reachable interaction contract, not the incidental appearance
-// of words such as "new signal" in explanatory UI copy.
-const humanCaseComponent = exists('src/components/sfi/HumanCaseIngress.tsx') ? read('src/components/sfi/HumanCaseIngress.tsx') : '';
+// Human ingress is a reachable interaction + authoritative writer contract.
+// Copy, labels or route presence alone are insufficient.
+const humanCaseComponentPath = ['src/components/sfi/NewCaseIngress.tsx', 'src/components/sfi/HumanCaseIngress.tsx'].find(exists) ?? null;
+const humanCaseComponent = humanCaseComponentPath ? read(humanCaseComponentPath) : '';
+const humanCaseApi = exists('src/app/api/cases/route.ts') ? read('src/app/api/cases/route.ts') : '';
 const humanCaseWired = exists('src/app/cases/new/page.tsx')
-  && humanCaseComponent.includes("fetch('/api/cases'")
-  && /resource\s*:\s*['"]CASE['"]/.test(humanCaseComponent);
+  && /fetch\(\s*['"]\/api\/cases['"]/.test(humanCaseComponent)
+  && /resource\s*:\s*['"]CASE['"]/.test(humanCaseComponent)
+  && humanCaseApi.includes('requireAuthenticatedUser')
+  && humanCaseApi.includes('createOperationalCase');
 if (!humanCaseWired) add(
   'human-ingress:new-case',
   'high',
   'KNOWN_INCOMPLETE',
-  'No reachable human NEW CASE route wired to the canonical /api/cases CASE writer was detected',
+  'No reachable human NEW CASE route wired to the canonical authenticated /api/cases writer was detected',
   'Expose human case creation through the canonical case contract and reenter the persisted CASE id',
   true,
 );
@@ -51,14 +55,25 @@ if (!humanCaseWired) add(
 const humanSignalRoutePaths = ['src/app/signals/new/page.tsx', 'src/app/signal/new/page.tsx'];
 const humanSignalRoutePresent = humanSignalRoutePaths.some(exists);
 const humanSignalComponent = exists('src/components/sfi/HumanSignalIngress.tsx') ? read('src/components/sfi/HumanSignalIngress.tsx') : '';
+const humanSignalApi = exists('src/app/api/signal/route.ts') ? read('src/app/api/signal/route.ts') : '';
+const humanSignalAdapter = exists('src/lib/sfi/humanUniversalSignal.ts') ? read('src/lib/sfi/humanUniversalSignal.ts') : '';
 const humanSignalWired = humanSignalRoutePresent
-  && /fetch\(\s*['"][^'"]*signal/i.test(humanSignalComponent)
-  && /intake|NEW_SIGNAL|Nueva señal|Crear señal/i.test(humanSignalComponent);
+  && /fetch\(\s*['"]\/api\/signal['"]/.test(humanSignalComponent)
+  && humanSignalComponent.includes("operation:'intake'")
+  && humanSignalComponent.includes("operation:'evidence'")
+  && humanSignalComponent.includes("operation:'run'")
+  && humanSignalComponent.includes("operation:'return'")
+  && humanSignalApi.includes('requireAuthenticatedUser')
+  && humanSignalApi.includes('readOwnedHumanUniversalCycle')
+  && humanSignalAdapter.includes('persistUniversalSignal')
+  && humanSignalAdapter.includes('runUniversalCognitiveCycle')
+  && humanSignalAdapter.includes('recordUniversalReturn')
+  && humanSignalAdapter.includes("eventName: 'SFI_UNIVERSAL_CYCLE_EVIDENCE_LINKED'");
 if (!humanSignalWired) add(
   'human-ingress:new-signal',
   'high',
   'KNOWN_INCOMPLETE',
-  'No reachable human NEW SIGNAL route wired to a signal intake endpoint was detected',
+  'No reachable authenticated human NEW SIGNAL route was proven to reuse the canonical Universal Signal persistence/run/RETURN owners',
   'Expose bounded human signal intake over the canonical Universal Signal cycle without creating a second signal engine',
   true,
 );
