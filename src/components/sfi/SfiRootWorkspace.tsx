@@ -11,11 +11,13 @@ const OBSERVE_LINKS = [
   { href: '/observatory', label: 'Observatorio', note: 'Actividad, ejecución, evidencia, salud y continuidad.' },
   { href: '/cases', label: 'Casos', note: 'Expedientes, evidencia, RETURN y cierres autónomos.' },
   { href: '/method-lab', label: 'Laboratorio', note: 'Experimentos, comparación, simulación y reentry.' },
-  { href: '/twin', label: 'Twin', note: 'Estado cognitivo y memoria no canónica.' },
-  { href: '/twin/learning', label: 'Aprendizajes', note: 'Candidatos y promociones institucionales.' },
-  { href: '/studio', label: 'Studio', note: 'Material, audio y ejecución de capacidades.' },
-  { href: '/library', label: 'Library', note: 'Corpus documental y catálogo metodológico.' },
-  { href: '/governance', label: 'Gobernanza', note: 'Actividad de gobierno y operación de agentes.' },
+  { href: '/twin', label: 'Twin / Spine', note: 'Estado cognitivo, lineage, contradicción y memoria no canónica.' },
+  { href: '/twin/learning', label: 'Aprendizajes', note: 'Candidatos y promociones institucionales gobernadas.' },
+  { href: '/studio', label: 'Studio', note: 'Material, audio y ejecución de capacidades specialist.' },
+  { href: '/library', label: 'Library / Atlas', note: 'Corpus documental, referencia longitudinal y catálogo metodológico.' },
+  { href: '/governance', label: 'Gobernanza', note: 'Actividad de gobierno, propuestas y operación de agentes.' },
+  { href: '/root/evidence-review', label: 'Evidence', note: 'Candidatos, procedencia y elegibilidad antes de aceptación.' },
+  { href: '/history/mutations', label: 'Audit / Return', note: 'Mutaciones, receipts y trazabilidad de cambio institucional.' },
 ] as const;
 
 function rows(value: unknown): Row[] {
@@ -44,9 +46,9 @@ async function jsonFetch(url: string, init?: RequestInit) {
 
 function State({ value }: { value: unknown }) {
   const raw = String(value ?? '').toUpperCase();
-  const attention = /HIGH|BLOCK|MISSING|REJECT|CONFLICT|LIMITATION|FAILED/.test(raw);
+  const attention = /HIGH|BLOCK|MISSING|REJECT|CONFLICT|LIMITATION|FAILED|DEGRADED/.test(raw);
   const sovereign = /PROPOSED|REQUIRED|LEARNING_PROMOTION|CAPABILITY_IMPLEMENTATION|INSTITUTIONAL_CHANGE/.test(raw);
-  return <span className={`rootState ${attention ? 'attention' : sovereign ? 'sovereign' : ''}`}>{raw.replaceAll('_', ' ') || 'UNKNOWN'}</span>;
+  return <span className={`rootState ${attention ? 'attention' : sovereign ? 'sovereign' : ''}`}>{raw.replaceAll('_', ' ') || 'MISSING'}</span>;
 }
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return <section className="rootDossierSection"><h3>{title}</h3>{children}</section>;
@@ -155,18 +157,18 @@ export function SfiRootWorkspace({ enabled }: { enabled: boolean }) {
   if (!enabled) return null;
   const plain = dossier?.plainLanguage ?? {};
 
-  return <div className="rootWorkspace">
+  return <div className="rootWorkspace" data-root-visual-contract="SFI-ROOT-VISUAL-2.0" data-root-module-count={OBSERVE_LINKS.length}>
     {(error || notice) && <div className={`rootToast ${error ? 'error' : ''}`}><span>{error || notice}</span><button onClick={() => { setError(null); setNotice(null); }}>×</button></div>}
 
     <header className="rootHeader">
       <div className="rootHeaderCopy">
-        <span>ROOT · SOBERANÍA INSTITUCIONAL</span>
+        <span>ROOT · SOBERANÍA INSTITUCIONAL · AUTHORITY / OBSERVATION / RETURN</span>
         <h1>Gobierna cambios. Observa el resto.</h1>
-        <p>SFI opera, busca evidencia, ejecuta capacidades ya autorizadas, registra RETURN y cierra trabajo rutinario sin pedir permiso. ROOT sólo interviene cuando algo pretende cambiar a la institución, cambiar materialmente una capacidad o promover un aprendizaje.</p>
+        <p>SFI opera, busca evidencia, ejecuta capacidades ya autorizadas, registra RETURN y cierra trabajo rutinario sin pedir permiso. ROOT sólo interviene cuando algo pretende cambiar a la institución, cambiar materialmente una capacidad o promover un aprendizaje. MISSING y DEGRADED permanecen visibles: esta superficie no fabrica salud ni certeza.</p>
       </div>
       <div className="rootReadState">
-        <span>ÚLTIMA LECTURA</span>
-        <b>{lastReadAt ? when(lastReadAt) : 'Leyendo…'}</b>
+        <span>ÚLTIMA LECTURA OBSERVADA</span>
+        <b>{lastReadAt ? when(lastReadAt) : 'MISSING · leyendo'}</b>
         <button onClick={() => void loadBase()}>Actualizar</button>
       </div>
     </header>
@@ -178,14 +180,14 @@ export function SfiRootWorkspace({ enabled }: { enabled: boolean }) {
       <article><span>Trabajo observable</span><b>{observable.length}</b><small>SFI continúa dentro de su autoridad.</small></article>
     </section>
 
-    <nav className="rootObserve" aria-label="Observar SFI">
-      <div className="rootObserveLead"><span>OBSERVAR SFI</span><p>No son subsistemas nuevos: son accesos a las superficies que ya poseen los objetos y capacidades institucionales.</p></div>
+    <nav className="rootObserve" aria-label="Diez módulos institucionales ROOT">
+      <div className="rootObserveLead"><span>10 MÓDULOS · TOPOLOGÍA DE OBSERVACIÓN</span><p>No son subsistemas nuevos: son lentes sobre las superficies y read contracts que ya poseen objetos, evidencia y capacidades. Ningún módulo adquiere escritor propio por aparecer aquí.</p></div>
       <div className="rootObserveLinks">{OBSERVE_LINKS.map((item) => <Link key={item.href} href={item.href}><strong>{item.label}</strong><span>{item.note}</span></Link>)}</div>
     </nav>
 
     <section className="rootRule">
       <strong>SFI OPERA SIN PEDIR PERMISO.</strong>
-      <span>Operar ≠ gobernar · cerrar ≠ aprender · evidencia ≠ aprobación · reporte ≠ decisión.</span>
+      <span>OBSERVACIÓN ≠ INFERENCIA · SIMULACIÓN ≠ OBSERVACIÓN · operar ≠ gobernar · cerrar ≠ aprender · evidencia ≠ aprobación · reporte ≠ decisión.</span>
     </section>
 
     <div className="rootDecisionLayout">
@@ -235,6 +237,6 @@ export function SfiRootWorkspace({ enabled }: { enabled: boolean }) {
       </div>}
     </details>
 
-    <footer className="rootFooter"><span>PROYECTOS {projects.length}</span><span>CASOS {cases.length}</span><span>REGLA: ROOT ACEPTA O DENIEGA CAMBIOS; SFI HACE EL TRABAJO.</span></footer>
+    <footer className="rootFooter"><span>PROYECTOS {projects.length}</span><span>CASOS {cases.length}</span><span>10 MÓDULOS · 3 TOPOLOGÍAS: OBSERVACIÓN / AUTORIDAD / RETURN</span><span>REGLA: ROOT ACEPTA O DENIEGA CAMBIOS; SFI HACE EL TRABAJO.</span></footer>
   </div>;
 }
