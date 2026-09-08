@@ -77,13 +77,14 @@ async function boundedFetch(raw: string) {
 }
 
 function runFfmpeg(args: string[]) {
-  if (!ffmpegPath) throw new Error('SFI_FFMPEG_UNAVAILABLE');
+  const executable = ffmpegPath;
+  if (!executable) throw new Error('SFI_FFMPEG_UNAVAILABLE');
   return new Promise<void>((resolve, reject) => {
-    const child = spawn(ffmpegPath, ['-hide_banner', '-loglevel', 'error', '-y', ...args], { stdio: ['ignore', 'ignore', 'pipe'] });
+    const child = spawn(executable, ['-hide_banner', '-loglevel', 'error', '-y', ...args], { stdio: ['ignore', 'ignore', 'pipe'] });
     let stderr = '';
-    child.stderr.on('data', (value) => { stderr += String(value); });
+    child.stderr.on('data', (value: Buffer | string) => { stderr += String(value); });
     child.on('error', reject);
-    child.on('close', (code) => code === 0 ? resolve() : reject(new Error(`SFI_AUDIO_FFMPEG_CONVERSION_FAILED:${code}:${stderr.slice(-1200)}`)));
+    child.on('close', (code: number | null) => code === 0 ? resolve() : reject(new Error(`SFI_AUDIO_FFMPEG_CONVERSION_FAILED:${code}:${stderr.slice(-1200)}`)));
   });
 }
 
