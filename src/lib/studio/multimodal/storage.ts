@@ -47,6 +47,7 @@ export async function prepareStudioSignedUpload(input: {
   descriptor: StudioUploadDescriptor;
   ownerId: string;
   sessionId?: string | null;
+  metadata?: Row;
 }): Promise<StudioPreparedUpload> {
   const supabase = createServiceSupabaseClient();
   await ensureStudioObjectBucket(supabase);
@@ -81,6 +82,7 @@ export async function prepareStudioSignedUpload(input: {
     extension: input.descriptor.extension,
     modality: input.descriptor.modality,
     uploadProtocol: 'signed-direct-v1',
+    ...asRow(input.metadata),
   };
 
   const { data: object, error: objectError } = await supabase
@@ -176,17 +178,20 @@ export async function completeStudioSignedUpload(objectId: string, ownerId: stri
     storedSizeBytes: Number.isFinite(actualSize) ? actualSize : null,
   };
 
-  const uploadUpdate = await supabase
-    .from('studio_uploads')
-    .update({ status: 'stored', size_bytes: Number.isFinite(actualSize) && actualSize > 0 ? actualSize : upload.size_bytes })
-    .eq('id', upload.id);
-  if (uploadUpdate.error) throw new StudioMultimodalError('PERSISTENCE_FAILED', uploadUpdate.error.message, 503, { objectId });
-
+  // Publication order is intentional: object lineage/verification must become durable
+  // before the upload row can transition to `stored`. All content readers require
+  // `studio_uploads.status = stored`, so any earlier failure remains fail-closed.
   const objectUpdate = await supabase
     .from('studio_objects')
     .update({ status: 'uploaded', size_bytes: Number.isFinite(actualSize) && actualSize > 0 ? actualSize : object.size_bytes, metadata, updated_at: new Date().toISOString() })
     .eq('id', objectId);
   if (objectUpdate.error) throw new StudioMultimodalError('PERSISTENCE_FAILED', objectUpdate.error.message, 503, { objectId });
+
+  const uploadUpdate = await supabase
+    .from('studio_uploads')
+    .update({ status: 'stored', size_bytes: Number.isFinite(actualSize) && actualSize > 0 ? actualSize : upload.size_bytes })
+    .eq('id', upload.id);
+  if (uploadUpdate.error) throw new StudioMultimodalError('PERSISTENCE_FAILED', uploadUpdate.error.message, 503, { objectId });
 
   return { objectId, storagePath, sizeBytes: actualSize };
 }
