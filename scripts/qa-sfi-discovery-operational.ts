@@ -11,6 +11,12 @@ async function main() {
   const canonical = await text('src/lib/discovery/canonicalObjectRegistry.ts');
   const identity = await text('src/lib/public/institutionProfile.ts');
   const contractLock = await text('docs/program/SFI-CONTRACT-LOCK.md');
+  const worldCaseContract = await text('docs/ROOT_WORLD_CASE_AND_DISCOVERY_ENGINE.md');
+  const worldSignalObserver = await text('src/lib/world-observatory/worldSignalObserverAgent.ts');
+  const worldCycle = await text('src/lib/world-observatory/worldCycle.ts');
+  const worldCron = await text('src/app/api/cron/world-observatory/route.ts');
+  const worldReobserve = await text('src/app/api/field/map/world/reobserve/route.ts');
+  const cognitiveRegistry = await text('src/lib/sfi/cognitive-runtime/convergedRegistry.ts');
 
   assert(mesh.includes("SFI-DISCOVERY-MESH-1.0"));
   assert(mesh.includes("SFI-DISCOVERY-OBSERVATION-1.0"));
@@ -53,9 +59,54 @@ async function main() {
   assert(contractLock.includes('MPD — Multi-Platform Propagation Depth'), 'frozen MPD meaning missing');
   assert(contractLock.includes('ERR — Entity Reconstruction Rate'), 'frozen ERR meaning missing');
 
+  // #154: WorldSignalObserverAgent is a governed World/Discovery domain agent, not a second
+  // cognitive agent and not a second persistence owner. It must reuse the longitudinal World writer.
+  assert(worldCaseContract.includes('### WorldSignalObserverAgent'), 'canonical WorldSignalObserverAgent requirement missing');
+  for (const token of [
+    "SFI-WORLD-SIGNAL-OBSERVER-1.0",
+    "WORLD_SIGNAL_OBSERVER_AGENT_ID = 'world_signal_observer'",
+    "name: 'WorldSignalObserverAgent'",
+    "authority: 'OBSERVE'",
+    "canonicalWriter: 'runWorldObservationCycle'",
+    "persistedSource: 'world_source_observations'",
+    "derivedDescriptorSource: 'world_friction_readings'",
+    'executeWorldSignalObserverAgent',
+    'runWorldObservationCycle()',
+    'sourceUrlPreserved: true',
+    'actorLineagePreservedWhenObserved: true',
+    'rawHashPreserved: true',
+    'automaticHypothesisPromotion: false',
+    'automaticCaseQualification: false',
+    'automaticCanonPromotion: false',
+    'automaticPublication: false',
+  ]) assert(worldSignalObserver.includes(token), `world_signal_observer_contract_missing:${token}`);
+  assert(!worldSignalObserver.includes("from('world_source_observations')"), 'WorldSignalObserverAgent must not create a second World writer');
+  assert(!worldSignalObserver.includes('runWorldHypothesisCycle'), 'WorldSignalObserverAgent must not promote/generate hypotheses');
+  assert(!worldSignalObserver.includes('runWorldCalibrationCycle'), 'WorldSignalObserverAgent must not own hypothesis calibration');
+  assert(!cognitiveRegistry.includes("id: 'world_signal_observer'"), 'WorldSignalObserverAgent must not mutate the 21-agent cognitive registry');
+
+  for (const token of [
+    "from('world_source_observations').upsert",
+    'actors: observation.actors',
+    'source_url: observation.sourceUrl',
+    'raw_hash: rawHash',
+    'collector_version: WORLD_COLLECTOR_VERSION',
+    'governed AI creates a traceable hypothesis',
+  ]) assert(worldCycle.includes(token), `canonical_world_writer_lineage_missing:${token}`);
+
+  for (const entrypoint of [worldCron, worldReobserve]) {
+    assert(entrypoint.includes('executeWorldSignalObserverAgent'), 'World observation entrypoint must invoke WorldSignalObserverAgent');
+    assert(entrypoint.includes('worldSignalObserver.observation'), 'World observation entrypoint must consume agent receipt');
+    assert(!entrypoint.includes('runWorldObservationCycle'), 'entrypoint must not bypass WorldSignalObserverAgent');
+  }
+  assert(worldCron.includes('runWorldHypothesisCycle'), 'scheduled hypothesis owner must remain explicit and separate');
+  assert(worldCron.includes('runWorldCalibrationCycle'), 'scheduled calibration owner must remain explicit and separate');
+  assert(worldReobserve.includes('runWorldHypothesisCycle'), 'human reobserve hypothesis owner must remain explicit and separate');
+  assert(worldReobserve.includes('runWorldCalibrationCycle'), 'human reobserve calibration owner must remain explicit and separate');
+
   console.log(JSON.stringify({
     ok: true,
-    contract: 'SFI-DISCOVERY-INTEGRITY-1.0',
+    contract: 'SFI-DISCOVERY-INTEGRITY-1.1',
     modes: 3,
     metricFamilies: 7,
     falseZero: true,
@@ -67,6 +118,14 @@ async function main() {
     rlsForced: true,
     directBrowserDataApi: false,
     durableQueryRuns: true,
+    worldSignalObserver: {
+      implemented: true,
+      canonicalWriterReused: true,
+      cognitiveRegistryUnchanged: true,
+      automaticHypothesisPromotion: false,
+      automaticCaseQualification: false,
+      automaticPublication: false,
+    },
   }, null, 2));
 }
 
