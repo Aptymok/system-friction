@@ -1,35 +1,135 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
-import { OPERATIONAL_DELETE_ORDER, PROTECTED_TABLES } from './db/sfi-operational-reset-inventory.mjs';
+import {
+  SFI_CANONICAL_RESET_CONTRACT,
+  PRESERVE_DATA_TABLES,
+  RESEED_MINIMAL_TABLES,
+  PURGE_DATA_TABLES,
+  CLASSIFIED_PUBLIC_TABLES,
+  classifyPublicTable,
+  auditPublicTableClassification,
+} from './db/sfi-canonical-reset-classification.mjs';
 
-const root=process.cwd();
-const read=(relative:string)=>fs.readFileSync(path.join(root,relative),'utf8');
-const reset=read('scripts/db/reset-sfi-operational-tables.mjs');
-const readiness=read('src/lib/root/closure/readInstitutionalReadiness.ts');
-const cycle=read('src/core/cognitive-twin/integratedInstitutionalCycle.ts');
-const field=read('src/lib/field/operationalCycle.ts');
-const studio=read('src/lib/studio/audio/analyzeStudioAudioObject.ts');
-const lab=read('src/lib/method-lab/simulationRun.ts');
-const proof=read('src/lib/root/closure/fullCycleVerification.ts');
+const root = process.cwd();
+const read = (relative: string) => fs.readFileSync(path.join(root, relative), 'utf8');
+const reset = read('scripts/db/reset-sfi-operational-tables.mjs');
+const snapshot = read('scripts/db/create-db-evidence-snapshot.mjs');
+const verifier = read('scripts/db/verify-db-evidence-snapshot.mjs');
+const legacySeed = read('scripts/db/seed-sfi-canonical-history.mjs');
+const readiness = read('src/lib/root/closure/readInstitutionalReadiness.ts');
+const proof = read('src/lib/root/closure/fullCycleVerification.ts');
 
-const requiredRuntimeTables=[
-  'root_evidence_entries','epistemic_events','sfi_evidence_ledger','graph_nodes','graph_edges',
-  'sfi_cognitive_twin_memory','sfi_cognitive_twin_decisions','sfi_cognitive_twin_evaluations','sfi_cognitive_twin_runs',
-  'sfi_operating_cycles','sfi_inference_traces','sfi_artifact_trajectory_events','sfi_lab_analyses',
-  'sfi_cases','sfi_case_objects','sfi_case_relations','sfi_case_reports','sfi_case_audit_events','sfi_case_action_proposals','sfi_case_action_decisions',
-  'field_cases','field_case_evidence','field_moph_runs','field_mihm_readings','field_hypotheses','field_interventions','field_returns','field_outcomes',
-  'studio_sessions','studio_objects','studio_uploads','studio_analysis_jobs','studio_audio_features','action_proposals','logbook_mutations',
-];
-for(const table of requiredRuntimeTables)assert.ok(OPERATIONAL_DELETE_ORDER.includes(table),`reset_inventory_missing_core_runtime_table:${table}`);
-for(const table of PROTECTED_TABLES)assert.ok(!OPERATIONAL_DELETE_ORDER.includes(table),`protected_table_in_reset:${table}`);
-for(const table of ['profiles','system_accounts','system_roles','system_permissions','system_access_grants','system_entitlements','sfi_tenants','sfi_tenant_members','worldspect_snapshots'])assert.ok(PROTECTED_TABLES.includes(table),`missing_protected_table:${table}`);
-assert.ok(!OPERATIONAL_DELETE_ORDER.includes('worldspect_snapshots'),'worldspect_longitudinal_corpus_must_survive_genesis');
-assert.ok(!OPERATIONAL_DELETE_ORDER.includes('sfi_tenants'),'tenant_identity_must_survive_runtime_reset');
-assert.ok(!OPERATIONAL_DELETE_ORDER.includes('sfi_tenant_members'),'tenant_membership_authority_must_survive_runtime_reset');
+assert.equal(SFI_CANONICAL_RESET_CONTRACT, 'SFI-CANONICAL-RESET-CLASSIFICATION-1.0');
+assert.deepEqual(PRESERVE_DATA_TABLES, [
+  'world_source_observations',
+  'world_friction_readings',
+  'world_hypotheses',
+  'world_hypothesis_outcomes',
+]);
+assert.deepEqual(RESEED_MINIMAL_TABLES, [
+  'profiles',
+  'sfi_tenants',
+  'sfi_tenant_members',
+  'sfi_oauth_clients',
+  'accounts',
+  'account_members',
+  'account_balance',
+]);
+assert.equal(PURGE_DATA_TABLES.length, 153, 'live reset baseline must explicitly classify all 153 non-World/non-genesis public tables');
+assert.equal(CLASSIFIED_PUBLIC_TABLES.length, 164, 'reset baseline must classify every public table observed after Discovery integration');
+assert.equal(new Set(CLASSIFIED_PUBLIC_TABLES).size, CLASSIFIED_PUBLIC_TABLES.length, 'reset classification must contain no duplicate table');
+for (const table of PRESERVE_DATA_TABLES) assert.equal(classifyPublicTable(table), 'PRESERVE_DATA');
+for (const table of RESEED_MINIMAL_TABLES) assert.equal(classifyPublicTable(table), 'RESEED_MINIMAL');
+for (const table of PURGE_DATA_TABLES) assert.equal(classifyPublicTable(table), 'PURGE_DATA');
+assert.equal(classifyPublicTable('future_new_table'), 'UNCLASSIFIED', 'new public tables must fail closed instead of being purged implicitly');
+const exactAudit = auditPublicTableClassification(CLASSIFIED_PUBLIC_TABLES);
+assert.equal(exactAudit.unclassified.length, 0);
+assert.equal(exactAudit.classifiedButNotObserved.length, 0);
+assert.equal(exactAudit.preserveData.length, 4);
+assert.equal(exactAudit.reseedMinimal.length, 7);
+assert.equal(exactAudit.purgeData.length, 153);
 
-assert.match(reset,/CLEAN_RUNTIME_AFTER_VERIFIED_PROOF/); assert.match(reset,/LATEST_EXPORT\.txt/); assert.match(reset,/SFI_CLEANUP_PLAN_/); assert.match(reset,/SFI_FULL_CYCLE_PROOF_/); assert.match(reset,/SKIPPED_NOT_PRESENT/); assert.match(reset,/protected_checks/); assert.match(reset,/countTable/); assert.doesNotMatch(reset,/DELETE_ORDER from '.\/sfi-db-tables\.mjs'/);
-assert.match(readiness,/EMPTY_READY:no_field_cycles_yet/); assert.match(readiness,/EMPTY_READY:no_studio_objects_yet/); assert.match(readiness,/EMPTY_READY:no_evidence_yet/); assert.match(readiness,/EMPTY_READY:no_relations_yet/); assert.match(proof,/REAL_PERSISTED_EVIDENCE_REPLAY/); assert.match(proof,/Field return is never fabricated/);
-for(const source of [cycle,field,studio,lab])assert.ok(source.length>100,'runtime_source_unexpectedly_empty');
+for (const table of ['epistemic_events','sfi_amv_memory','policy_decisions','action_proposals','sfi_cognitive_twin_memory','sfi_cognitive_twin_runs','world_learning_events','worldspect_snapshots','platform_metric_snapshots']) {
+  assert.ok(PURGE_DATA_TABLES.includes(table), `legacy/runtime table must be explicitly purged: ${table}`);
+}
+assert.ok(PURGE_DATA_TABLES.includes('root_audit_events'), 'pre-reset ROOT audit history must be purged before one new genesis receipt is inserted');
+assert.ok(PURGE_DATA_TABLES.includes('sfi_oauth_authorization_codes'), 'OAuth authorization-code history must not survive reset');
+assert.ok(PURGE_DATA_TABLES.includes('usage_ledger'), 'usage telemetry must not survive as legacy institutional state');
 
-console.log(JSON.stringify({ok:true,purgeTableCount:OPERATIONAL_DELETE_ORDER.length,protectedTableCount:PROTECTED_TABLES.length,invariants:['full-cycle proof/export precedes reset','runtime history is cleared child-first','identity/access/authority including tenant membership are protected','Case Platform actions, reports, relations, objects and cases are cleared while tenant identity survives','WorldSpect longitudinal observation corpus survives genesis','optional/missing tables are skipped instead of making the reset unsafe','empty post-reset organs report READY rather than DEGRADED']},null,2));
+assert.match(snapshot, /SFI_DB_EVIDENCE_SNAPSHOT_V2/);
+assert.match(snapshot, /SFI_DB_EVIDENCE_RECEIPT_V2/);
+assert.match(snapshot, /public-tables\.json/);
+assert.match(snapshot, /reset-classification\.json/);
+assert.match(snapshot, /preserve_exact_counts/);
+assert.match(snapshot, /classification\.unclassified\.length/);
+assert.match(snapshot, /missingRequired\.length/);
+assert.match(snapshot, /pg_dump/);
+assert.match(snapshot, /--format=custom/);
+assert.match(snapshot, /schema\.sql/);
+assert.match(snapshot, /SHA256SUMS/);
+
+assert.match(verifier, /requireResetClassification/);
+assert.match(verifier, /SFI_DB_EVIDENCE_RECEIPT_V2/);
+assert.match(verifier, /unzipEntry/);
+assert.match(verifier, /public_tables_sha256/);
+assert.match(verifier, /reset_classification_sha256/);
+assert.match(verifier, /classification\.unclassified/);
+assert.match(verifier, /resetPermittedByClassification/);
+
+assert.match(reset, /RESET_SFI_CANONICAL/);
+assert.match(reset, /EVIDENCE_FIRST_CANONICAL_RESET/);
+assert.match(reset, /requireResetClassification: true/);
+assert.match(reset, /public schema drift/i);
+assert.match(reset, /A preserved World table depends on a table scheduled for reset/);
+assert.match(reset, /begin;/);
+assert.match(reset, /pg_advisory_xact_lock/);
+assert.match(reset, /truncate table/);
+assert.match(reset, /restart identity/);
+assert.doesNotMatch(reset, /\bCASCADE\b/i, 'canonical reset must not use CASCADE because preserved World data must fail closed on unexpected dependencies');
+assert.match(reset, /sfi_reset_founder/);
+assert.match(reset, /sfi_reset_oauth_clients/);
+assert.match(reset, /SFI_CANONICAL_RESET_GENESIS/);
+assert.match(reset, /learning_imported.*false/s);
+assert.match(reset, /canonical_history_imported.*false/s);
+assert.match(reset, /WORLD_COUNTS_UNCHANGED/);
+assert.match(reset, /UNCLASSIFIED_ZERO/);
+assert.match(reset, /LEGACY_LEARNING_NOT_IMPORTED/);
+assert.doesNotMatch(reset, /LATEST_EXPORT\.txt/);
+assert.doesNotMatch(reset, /SFI_FULL_CYCLE_PROOF_/);
+assert.doesNotMatch(reset, /SFI_CLEANUP_PLAN_/);
+assert.doesNotMatch(reset, /deleteAllRowsByKnownColumns/);
+
+assert.match(legacySeed, /SFI-LEGACY-CANONICAL-HISTORY-SEED-RETIRED-1\.0/);
+assert.match(legacySeed, /QA reports, operational patches and runtime events/);
+assert.match(legacySeed, /process\.exit\(1\)/);
+assert.doesNotMatch(legacySeed, /\.insert\(/, 'retired legacy seed must have zero DB write path');
+
+assert.match(readiness, /EMPTY_READY:no_field_cycles_yet/);
+assert.match(readiness, /EMPTY_READY:no_studio_objects_yet/);
+assert.match(readiness, /EMPTY_READY:no_evidence_yet/);
+assert.match(readiness, /EMPTY_READY:no_relations_yet/);
+assert.match(proof, /REAL_PERSISTED_EVIDENCE_REPLAY/);
+assert.match(proof, /Field return is never fabricated/);
+
+console.log(JSON.stringify({
+  ok: true,
+  contract: SFI_CANONICAL_RESET_CONTRACT,
+  classifiedPublicTables: CLASSIFIED_PUBLIC_TABLES.length,
+  preserveDataTables: PRESERVE_DATA_TABLES.length,
+  reseedMinimalTables: RESEED_MINIMAL_TABLES.length,
+  purgeDataTables: PURGE_DATA_TABLES.length,
+  invariants: [
+    'FULL_POSTGRES_SNAPSHOT_BEFORE_RESET',
+    'SNAPSHOT_CONTAINS_HASHED_PUBLIC_TABLE_INVENTORY',
+    'UNCLASSIFIED_PUBLIC_TABLE_BLOCKS_RESET',
+    'ONLY_FOUR_WORLD_TABLES_PRESERVE_LEGACY_DATA',
+    'MINIMAL_INFRASTRUCTURE_IS_RESEEDED_NOT_PRESERVED',
+    'NO_TRUNCATE_CASCADE',
+    'WORLD_EXACT_COUNTS_MUST_SURVIVE',
+    'QA_TELEMETRY_TWIN_AMV_GOVERNANCE_HISTORY_PURGED',
+    'LEGACY_CANONICAL_HISTORY_SEED_RETIRED',
+    'ONE_HASH_LINKED_POST_RESET_GENESIS_EVENT',
+    'EMPTY_RUNTIME_IS_READY_NOT_DEGRADED',
+  ],
+}, null, 2));
