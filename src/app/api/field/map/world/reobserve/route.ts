@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabaseClient, createServiceSupabaseClient } from '@/runtime/supabase/server';
-import { runWorldObservationCycle, runWorldCalibrationCycle } from '@/lib/world-observatory/worldCycle';
+import { runWorldCalibrationCycle } from '@/lib/world-observatory/worldCycle';
 import { runWorldHypothesisCycle } from '@/lib/world-observatory/hypothesisCycle';
+import { executeWorldSignalObserverAgent } from '@/lib/world-observatory/worldSignalObserverAgent';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -53,7 +54,8 @@ async function execute() {
     }, { status: 503 });
   }
 
-  const observation = await runWorldObservationCycle();
+  const worldSignalObserver = await executeWorldSignalObserverAgent();
+  const observation = worldSignalObserver.observation;
   const hypothesis = await runWorldHypothesisCycle();
   const calibration = await runWorldCalibrationCycle();
 
@@ -67,8 +69,9 @@ async function execute() {
 
   return NextResponse.json({
     ok: observation.ok,
-    sourceState: observation.persisted > 0 ? 'OBSERVED_WORLD' : 'NO_NEW_WORLD_OBSERVATIONS',
+    sourceState: worldSignalObserver.state,
     supabaseProjectRef: ref,
+    worldSignalObserver,
     observation,
     hypothesis,
     calibration,
