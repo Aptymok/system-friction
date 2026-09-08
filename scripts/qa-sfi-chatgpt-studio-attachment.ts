@@ -9,6 +9,7 @@ const route = text('src/app/api/external/v1/studio/route.ts');
 const intake = text('src/lib/studio/external/chatgptAttachmentIntake.ts');
 const merge = text('scripts/merge-openapi-studio-attachments.mjs');
 const composedMerge = text('scripts/merge-openapi-authenticated-machine.mjs');
+const actionsCompat = text('scripts/merge-openapi-actions-compat.mjs');
 const members = text('src/lib/system/access/institutionalMembers.ts');
 
 assert.match(route, /'ingest_analyze'/, 'studio_route_must_expose_ingest_analyze');
@@ -38,6 +39,14 @@ assert.match(merge, /analysisAuthorization/, 'generated_openapi_must_request_dec
 assert.match(merge, /ingest_analyze: 'studio:run'/, 'generated_openapi_must_publish_scope_mapping');
 assert.match(merge, /rightsTransfer: false/, 'generated_openapi_must_publish_no_rights_transfer');
 assert.match(composedMerge, /import '\.\/merge-openapi-studio-attachments\.mjs'/, 'production_build_must_compose_attachment_openapi');
+assert.match(composedMerge, /await import\('\.\/merge-openapi-actions-compat\.mjs'\)/, 'actions_compat_projection_must_run_last');
+
+assert.match(actionsCompat, /maxOperationDescriptionChars: 300/, 'actions_projection_must_publish_description_limit');
+assert.match(actionsCompat, /operation\.description\.length > 300/, 'actions_projection_must_enforce_description_limit');
+assert.match(actionsCompat, /parameter\?\.in !== 'header'/, 'actions_projection_must_remove_unsupported_header_parameters');
+assert.match(actionsCompat, /capabilityGrantNonceStillRequiredByMcpRuntimeForExecutableToolsCall: true/, 'actions_projection_must_preserve_runtime_nonce_requirement');
+assert.match(actionsCompat, /properties:\s*\{[\s\S]*jsonrpc:/, 'mcp_actions_response_schema_must_have_properties');
+assert.match(actionsCompat, /SFI_ACTIONS_OPENAPI_COMPAT_FAILED/, 'actions_projection_must_fail_closed_on_remaining_parser_incompatibilities');
 
 assert.match(members, /'studio:read'/, 'institutional_operator_must_retain_studio_read');
 assert.match(members, /'studio:content'/, 'institutional_operator_must_retain_studio_content');
@@ -46,11 +55,12 @@ assert.doesNotMatch(members, /'studio:write'/, 'attachment_fix_must_not_invent_n
 
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-CHATGPT-STUDIO-ATTACHMENT-1.0',
+  contract: 'SFI-CHATGPT-STUDIO-ATTACHMENT-1.1',
   operation: 'ingest_analyze',
   scope: 'studio:run',
   ownerBoundary: 'oauth.subjectId',
   attachmentCount: 1,
   rightsState: 'DECLARED_ANALYSIS_PERMISSION_ONLY',
   canonicalPromotion: false,
+  actionsCompatibility: 'SFI-GPT-ACTIONS-OPENAPI-COMPAT-1.0',
 }, null, 2));
