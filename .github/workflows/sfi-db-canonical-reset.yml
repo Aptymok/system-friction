@@ -26,7 +26,7 @@ jobs:
     timeout-minutes: 45
     env:
       DATABASE_URL: ${{ secrets.SFI_DATABASE_URL || secrets.DATABASE_URL || secrets.SUPABASE_DB_URL || secrets.POSTGRES_URL }}
-      SFI_DB_EVIDENCE_DIR: ${{ runner.temp }}/sfi-db-evidence
+      SFI_DB_EVIDENCE_DIR: /tmp/sfi-db-evidence
       SFI_DB_REQUIRE_RESET_CLASSIFICATION: 'YES'
       SFI_DB_SNAPSHOT_MAX_AGE_MINUTES: '180'
     steps:
@@ -83,7 +83,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: sfi-db-pre-reset-proof-${{ github.run_id }}
-          path: ${{ runner.temp }}/sfi-db-evidence/
+          path: /tmp/sfi-db-evidence/
           if-no-files-found: error
           retention-days: 90
           compression-level: 0

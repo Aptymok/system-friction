@@ -127,6 +127,8 @@ assert.match(snapshotWorkflow, /name: SFI DB Proof Snapshot/);
 assert.match(snapshotWorkflow, /workflow_dispatch:/);
 assert.match(snapshotWorkflow, /\.github\/sfi-db-snapshot-trigger/);
 assert.match(snapshotWorkflow, /SFI_DB_SNAPSHOT_REQUEST=ISSUE_430/);
+assert.match(snapshotWorkflow, /SFI_DB_EVIDENCE_DIR: \/tmp\/sfi-db-evidence/);
+assert.doesNotMatch(snapshotWorkflow, /SFI_DB_EVIDENCE_DIR:.*runner\.temp/, 'runner context is unavailable in job-level env and would invalidate the workflow before jobs start');
 assert.match(snapshotWorkflow, /node scripts\/db\/create-db-evidence-snapshot\.mjs/);
 assert.match(snapshotWorkflow, /node scripts\/db\/verify-db-evidence-snapshot\.mjs/);
 assert.match(snapshotWorkflow, /actions\/upload-artifact@v4/);
@@ -138,6 +140,8 @@ assert.doesNotMatch(snapshotWorkflow, /pull_request:/, 'proof workflow must not 
 assert.match(resetWorkflow, /name: SFI DB Canonical Reset/);
 assert.match(resetWorkflow, /SFI_DB_CANONICAL_RESET=ISSUE_430/);
 assert.match(resetWorkflow, /RESET_SFI_CANONICAL/);
+assert.match(resetWorkflow, /SFI_DB_EVIDENCE_DIR: \/tmp\/sfi-db-evidence/);
+assert.doesNotMatch(resetWorkflow, /SFI_DB_EVIDENCE_DIR:.*runner\.temp/, 'runner context is unavailable in job-level env and would invalidate the destructive workflow before its guards can execute');
 assert.match(resetWorkflow, /Upload proof before any destructive statement/);
 assert.match(resetWorkflow, /Execute founder-authorized canonical reset/);
 assert.match(resetWorkflow, /steps\.proof\.outputs\.artifact-id/);
@@ -170,6 +174,7 @@ console.log(JSON.stringify({
     'SNAPSHOT_CONTAINS_HASHED_PUBLIC_TABLE_INVENTORY',
     'EXTERNAL_PROOF_ARTIFACT_REQUIRED_BEFORE_DESTRUCTION',
     'PROOF_ONLY_WORKFLOW_CANNOT_DELETE',
+    'DB_WORKFLOWS_VALIDATE_BEFORE_JOB_EXECUTION',
     'DESTRUCTIVE_WORKFLOW_UPLOADS_PROOF_BEFORE_RESET',
     'UNCLASSIFIED_PUBLIC_TABLE_BLOCKS_RESET',
     'FULL_WORLD_LONGITUDINAL_CORPUS_PRESERVED',
