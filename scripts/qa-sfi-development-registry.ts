@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import './qa-sfi-program-dispatch';
 import { SFI_DEVELOPMENT_REGISTRY, summarizeSfiDevelopmentRegistry } from '../src/lib/institutional/developmentRegistry';
 import { SFI_RESOLVED_DEVELOPMENT_REGISTRY, summarizeResolvedDevelopment } from '../src/lib/institutional/resolvedDevelopmentRegistry';
 
