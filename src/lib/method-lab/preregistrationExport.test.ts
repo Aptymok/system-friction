@@ -33,13 +33,19 @@ const preregistration: MethodLabExperimentPreregistration = {
 
 const definitionHash = 'a'.repeat(64);
 
-test('preregistration export is deterministic, registration-neutral, payload-private, and epistemically lossless', () => {
+test('preregistration export is deterministic, registration-neutral, payload-private, and reproducibility-complete', () => {
   const first = buildMethodLabPreregistrationExport({ preregistration, definitionHash });
   const second = buildMethodLabPreregistrationExport({ preregistration: structuredClone(preregistration), definitionHash });
   assert.equal(first.contractVersion, METHOD_LAB_PREREGISTRATION_EXPORT_CONTRACT_VERSION);
   assert.deepEqual(first, second);
   assert.match(first.exportHash, /^[a-f0-9]{64}$/);
   assert.equal(first.exportId, `method-lab:prereg-export:${preregistration.experimentId}:${definitionHash}`);
+
+  assert.deepEqual(first.POPULATION_SYSTEM, preregistration.POPULATION_SYSTEM);
+  assert.deepEqual(first.CONTROL, preregistration.CONTROL);
+  assert.deepEqual(first.VARIANTS, preregistration.VARIANTS);
+  assert.deepEqual(first.VARIANTS[0].changes, { model: 'alternate' });
+
   assert.deepEqual(first.REPRODUCIBILITY_REFS.evidenceRefs, [
     { ref: 'evidence:1', epistemicClass: 'OBSERVED' },
     { ref: 'evidence:simulated', epistemicClass: 'SIMULATED' },
@@ -54,6 +60,7 @@ test('preregistration export is deterministic, registration-neutral, payload-pri
   assert.ok(first.REPRODUCIBILITY_REFS.inputs.some((item) => item.ref === 'evidence:simulated' && item.role === 'EVIDENCE' && item.epistemicClass === 'SIMULATED'));
   assert.ok(first.REPRODUCIBILITY_REFS.inputs.some((item) => item.ref === 'context:missing' && item.role === 'CONTEXT' && item.epistemicClass === 'MISSING'));
   assert.equal(first.boundaries.epistemicClassesPreserved, true);
+  assert.equal(first.boundaries.frozenArmsPreserved, true);
   assert.equal(first.boundaries.externalRegistrationClaim, false);
   assert.equal(first.boundaries.registrationState, 'NOT_REGISTERED_EXTERNALLY');
   assert.equal(first.boundaries.privateTwinPayloadIncluded, false);
