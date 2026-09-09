@@ -4,6 +4,7 @@ import {
   institutionalSameAsDisposition,
   type SfiExternalIdentityNode,
 } from '@/lib/public/institutionProfile';
+import { SFI_CANONICAL_OBJECT_CONTRACT } from './canonicalObjectRegistry';
 import { discoveryEmissionEntries, discoveryMachineResources } from './discoveryEmitter';
 import { SFI_DISCOVERY_CRAWLER_POLICY } from './crawlerPolicy';
 
@@ -194,7 +195,7 @@ export function discoveryExposurePlan(
 
   return {
     contract: SFI_DISCOVERY_EXPOSURE_CONTRACT,
-    canonicalAuthority: 'SFI-CANONICAL-OBJECT-1.0',
+    canonicalAuthority: SFI_CANONICAL_OBJECT_CONTRACT,
     identityAuthority: SFI_PUBLIC_PROFILE.contract,
     crawlerPolicy: SFI_DISCOVERY_CRAWLER_POLICY,
     canonicalObjectCount: entries.length,
