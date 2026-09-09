@@ -5,16 +5,18 @@ import { SFI_DISCOVERY_CRAWLER_POLICY, sfiRobotsRules } from './crawlerPolicy';
 
 test('owned discovery surfaces are ready without claiming external publication', () => {
   const plan = discoveryExposurePlan();
-  assert.equal(plan.contract, 'SFI-DISCOVERY-EXPOSURE-1.1');
+  assert.equal(plan.contract, 'SFI-DISCOVERY-EXPOSURE-1.2');
   assert.equal(plan.boundary.automaticCanon, false);
   assert.equal(plan.boundary.automaticPublication, false);
   assert.equal(plan.boundary.automaticExternalAction, false);
   assert.equal(plan.boundary.externalPublicationLineageObjectScoped, true);
+  assert.equal(plan.boundary.externalIdentityUrlUsesOriginAndPathBoundary, true);
   assert.ok(plan.targets.some((target) => target.key === 'ai-index' && target.state === 'READY_OWNED_SURFACE'));
   assert.ok(plan.targets.some((target) => target.key === 'public-mcp' && target.state === 'READY_OWNED_SURFACE'));
   assert.ok(plan.packets.every((packet) => packet.boundary.exposureIsNotCanon
     && packet.boundary.exposureIsNotPublicationReceipt
-    && packet.boundary.publishedTargetsAreObjectScoped));
+    && packet.boundary.publishedTargetsAreObjectScoped
+    && packet.boundary.externalIdentityUrlUsesOriginAndPathBoundary));
 });
 
 test('claimed institution profiles require governed external action until an observed receipt exists', () => {
@@ -68,6 +70,22 @@ test('an observed external publication cannot leak into another canonical object
   assert.equal(correct.find((target) => target.key === 'medium-profile')?.state, 'OBSERVED_PUBLISHED');
   assert.equal(unrelated.find((target) => target.key === 'medium-profile')?.state, 'GOVERNED_EXTERNAL_ACTION_REQUIRED');
   assert.equal(unrelated.find((target) => target.key === 'medium-profile')?.observedAt, null);
+});
+
+test('external identity matching rejects same-origin path-prefix collisions', () => {
+  const collision = discoveryExposureTargets([{
+    canonical_object_key: 'concept:system-friction',
+    representation_kind: 'MEDIUM',
+    state: 'PUBLISHED',
+    external_url: 'https://medium.com/@systemfriction-fake/post',
+    content_hash: 'sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd',
+    observed_at: '2026-09-09T12:00:00.000Z',
+    created_at: '2026-09-09T12:00:00.000Z',
+  }], 'concept:system-friction');
+  const medium = collision.find((target) => target.key === 'medium-profile');
+  assert.ok(medium);
+  assert.equal(medium.state, 'GOVERNED_EXTERNAL_ACTION_REQUIRED');
+  assert.equal(medium.observedAt, null);
 });
 
 test('search discovery permission is distinct from model training/data reuse and API access is deny-by-default', () => {
