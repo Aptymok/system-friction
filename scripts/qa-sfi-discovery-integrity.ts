@@ -48,6 +48,7 @@ const semanticProjectionOwner = read('src/lib/discovery/publicSemanticProjection
 const canonicalTests = read('src/lib/discovery/canonicalObjectRegistry.test.ts');
 const profile = read('src/lib/public/institutionProfile.ts');
 const sitemap = read('src/app/sitemap.ts');
+const discoveryEmitter = read('src/lib/discovery/discoveryEmitter.ts');
 const robots = read('src/app/robots.ts');
 const layout = read('src/app/layout.tsx');
 const temporalQa = read('scripts/qa-sfi-temporal-surfaces.ts');
@@ -151,10 +152,14 @@ for (const forbidden of ['fetch(', 'supabase', '.from(', 'insert(', 'update(', '
   assert.equal(profile.includes(forbidden), false, `identity_profile_must_be_pure:${forbidden}`);
 }
 
-// Sitemap remains the single owner and consumes only explicitly public canonical-object URLs.
-assert.ok(sitemap.includes("import { publicCanonicalObjectUrls } from '@/lib/discovery/canonicalObjectRegistry'"), 'sitemap_must_consume_canonical_object_owner');
-assert.ok(sitemap.includes('const canonicalObjects = publicCanonicalObjectUrls().map'), 'sitemap_canonical_projection_missing');
-assert.ok(sitemap.includes('return [...scenes, ...machine, ...canonicalObjects]'), 'sitemap_canonical_projection_not_emitted');
+// Sitemap remains the single route owner. Its canonical-object projection is delegated to the Discovery Emitter,
+// and the emitter itself must consume the one canonical registry/publicability owner rather than redeclare canon.
+assert.ok(sitemap.includes("import { discoverySitemapEntries } from '@/lib/discovery/discoveryEmitter'"), 'sitemap_must_consume_discovery_emitter');
+assert.ok(sitemap.includes('...discoverySitemapEntries()'), 'sitemap_emitter_projection_missing');
+assert.ok(discoveryEmitter.includes('SFI_CANONICAL_OBJECT_REGISTRY'), 'emitter_must_consume_canonical_registry');
+assert.ok(discoveryEmitter.includes('canonicalPublicationDisposition'), 'emitter_must_consume_canonical_publicability_gate');
+assert.equal(discoveryEmitter.includes('export const SFI_CANONICAL_OBJECT_REGISTRY'), false, 'emitter_must_not_redeclare_canonical_registry');
+assert.equal(discoveryEmitter.includes('export function canonicalUrlFor('), false, 'emitter_must_not_redeclare_canonical_url_resolver');
 assert.ok(robots.includes("sitemap: `${BASE}/sitemap.xml`"), 'robots_must_keep_existing_sitemap_owner');
 
 // Publicability is explicit/fail-closed; no event listener or persistence side effect creates public objects.

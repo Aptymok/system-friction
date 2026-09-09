@@ -1,4 +1,5 @@
 import { publicAgentSummary } from '@/lib/agents/finalProductAgents';
+import { discoveryMachineResources } from '@/lib/discovery/discoveryEmitter';
 import { SCENE_KEYS, SCENES } from '@/components/sfi/scenes';
 
 export async function GET() {
@@ -56,6 +57,7 @@ export async function GET() {
       sitemap: `${baseUrl}/sitemap.xml`,
       robots: `${baseUrl}/robots.txt`,
     },
+    discovery: discoveryMachineResources(),
     governed_external_agent_api: {
       authentication: 'Bearer credential managed by SFI with scoped capabilities.',
       operations: {
