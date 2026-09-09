@@ -3,7 +3,7 @@ import 'server-only';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { projectInstitutionalDiscoveryMesh } from './institutionalDiscoveryMesh';
 
-export const SFI_INSTITUTIONAL_DISCOVERY_READ_CONTRACT = 'SFI-INSTITUTIONAL-DISCOVERY-READ-1.0' as const;
+export const SFI_INSTITUTIONAL_DISCOVERY_READ_CONTRACT = 'SFI-INSTITUTIONAL-DISCOVERY-READ-1.1' as const;
 
 const NODE_LIMIT = 200;
 const EDGE_LIMIT = 400;
@@ -45,14 +45,26 @@ export async function readInstitutionalDiscoveryMesh() {
   const nodes = result(nodesQuery.data, nodesQuery.error, NODE_LIMIT);
   const edges = result(edgesQuery.data, edgesQuery.error, EDGE_LIMIT);
   const trajectory = result(trajectoryQuery.data, trajectoryQuery.error, TRAJECTORY_LIMIT);
+  const sampleCompleteness = {
+    graphNodes: nodes.availability === 'AVAILABLE' && !nodes.sampleSaturated,
+    graphEdges: edges.availability === 'AVAILABLE' && !edges.sampleSaturated,
+    trajectoryEvents: trajectory.availability === 'AVAILABLE' && !trajectory.sampleSaturated,
+  };
+  const convergenceEvidenceSampleComplete = Object.values(sampleCompleteness).every(Boolean);
   const mesh = projectInstitutionalDiscoveryMesh({
     graphNodes: nodes.rows,
     graphEdges: edges.rows,
     trajectoryEvents: trajectory.rows,
+    sampleCompleteness,
   });
   const availability = [nodes.availability, edges.availability, trajectory.availability].includes('UNAVAILABLE')
     ? 'DEGRADED' as const
     : 'AVAILABLE' as const;
+  const saturationWarnings = [
+    nodes.sampleSaturated ? `graph_nodes_sample_saturated:${NODE_LIMIT}` : null,
+    edges.sampleSaturated ? `graph_edges_sample_saturated:${EDGE_LIMIT}` : null,
+    trajectory.sampleSaturated ? `trajectory_events_sample_saturated:${TRAJECTORY_LIMIT}` : null,
+  ].filter((value): value is string => Boolean(value));
 
   return {
     ok: availability === 'AVAILABLE',
@@ -64,13 +76,15 @@ export async function readInstitutionalDiscoveryMesh() {
       exactCountProbes: 0,
       pollingLoops: 0,
       nPlusOneReads: 0,
+      convergenceEvidenceSampleComplete,
       graphNodes: { sampled: nodes.rows.length, sampleLimit: nodes.sampleLimit, sampleSaturated: nodes.sampleSaturated, availability: nodes.availability },
       graphEdges: { sampled: edges.rows.length, sampleLimit: edges.sampleLimit, sampleSaturated: edges.sampleSaturated, availability: edges.availability },
       trajectoryEvents: { sampled: trajectory.rows.length, sampleLimit: trajectory.sampleLimit, sampleSaturated: trajectory.sampleSaturated, availability: trajectory.availability },
     },
-    warnings: [nodes.warning, edges.warning, trajectory.warning].filter((value): value is string => Boolean(value)),
+    warnings: [nodes.warning, edges.warning, trajectory.warning, ...saturationWarnings].filter((value): value is string => Boolean(value)),
     epistemicBoundary: {
       samplesAreNotTotals: true,
+      saturatedSamplesCannotProveInsufficiency: true,
       missingGraphRowsAreNotNegativeEvidence: true,
       unsupportedRelationsDoNotBecomeSemanticEdges: true,
       founderForcedOutreachDoesNotBecomePull: true,
