@@ -8,13 +8,14 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     name: 'SFI External Agent Gateway',
-    version: '1.15.0',
+    version: '1.16.0',
     auth: 'OAuth 2.0 authorization_code (user-bound) or X-SFI-Token/Bearer static token',
     base: '/api/external/v1',
     discovery: {
       openapi: '/openapi.json', llms: '/llms.txt', llmsFull: '/llms-full.txt', cognitiveBootstrap: '/api/external/v1/bootstrap',
       mutationEvidence: '/api/public/mutations', mutationHistory: '/history/mutations', aiIndex: '/ai-index.json', fieldSchema: '/field-schema.json', privacy: '/privacy',
       oauthAuthorize: '/api/oauth/authorize', oauthToken: '/api/oauth/token', publicMcp: '/api/mcp/public', authenticatedMcp: '/api/mcp/authenticated',
+      ownerStudioContext: { method: 'POST', path: '/api/external/v1/studio', operation: 'context', scope: 'studio:read', contract: 'SFI-STUDIO-OWNER-CONTEXT-1.0' },
     },
     oauth: {
       flow: 'authorization_code', authorizationUrl: '/api/oauth/authorize', tokenUrl: '/api/oauth/token', tokenType: 'Bearer', accessTokenTtlSeconds: 3600, authorizationCodeTtlSeconds: 120, pkce: 'S256 supported',
@@ -55,6 +56,7 @@ export async function GET() {
       { id: 'personal-lab-create-case', method: 'POST', path: '/personal-lab', scope: 'lab:write', tenant: 'owner', body: { operation: 'create_case' }, description: 'Create an owner-scoped personal Lab case.' },
       { id: 'personal-lab-persist', method: 'POST', path: '/personal-lab', scope: 'lab:write', tenant: 'owner', body: { operation: 'persist' }, description: 'Persist evidence only into an owned personal Lab case.' },
       { id: 'personal-lab-run', method: 'POST', path: '/personal-lab', scope: 'lab:run', tenant: 'owner', body: { operation: 'run' }, description: 'Run a supported personal Lab simulation using only owned case evidence.' },
+      { id: 'studio-context', method: 'POST', path: '/studio', scope: 'studio:read', tenant: 'owner', contract: 'SFI-STUDIO-OWNER-CONTEXT-1.0', body: { operation: 'context' }, description: 'Read the OAuth owner Studio sessions, objects, evidence traces, archive events and owner-attributed AMV memory as persisted context/provenance. No binary content, ROOT evidence or canon is included.' },
       { id: 'studio-list', method: 'POST', path: '/studio', scope: 'studio:read', tenant: 'owner', body: { operation: 'list' }, description: 'List only Studio objects owned by the OAuth principal.' },
       { id: 'studio-inspect', method: 'POST', path: '/studio', scope: 'studio:read', tenant: 'owner', body: { operation: 'inspect' }, description: 'Inspect one owned Studio object.' },
       { id: 'studio-content', method: 'POST', path: '/studio', scope: 'studio:content', tenant: 'owner', body: { operation: 'content' }, description: 'Issue a short-lived signed URL for one owned object.' },
@@ -74,6 +76,7 @@ export async function GET() {
     },
     storage: {
       defaultObjectStorage: 'REFERENCE_ONLY', rawObjectPersistence: 'OWNER_SCOPED_STUDIO_ATTACHMENT_INTAKE_ONLY',
+      studioOwnerContext: { operation: 'context', ownerScoped: true, sourceOfOwnership: 'oauth.subjectId', sources: ['studio_sessions', 'studio_objects', 'studio_evidence_traces', 'studio_archive_events', 'owner-attributed sfi_amv_memory'], binaryContentIncluded: false, rootEvidenceIncluded: false, institutionalCanonIncluded: false, metadataRestoreDoesNotImplyBinaryMaterialization: true },
       studioAttachmentPersistence: { operation: 'ingest_analyze', private: true, ownerScoped: true, temporaryOpenAiDownloadUrlPersisted: false, analysisPermissionEpistemicClass: 'DECLARED', rightsTransfer: false, canonicalPromotion: false },
       studioMaterialProduction: { operation: 'produce', sourceOwnerScoped: true, finalOutputOwnerScoped: true, renderWorkspaceEphemeral: true, productionInstrumentRegistry: 'public.sfi_instruments', productionInstrumentEligibilityRequired: true, realSampleSfzRequiredForVoiceMusicalize: true, midiUsedAsSoundSource: false, processingPermissionEpistemicClass: 'DECLARED', rightsTransfer: false, canonicalPromotion: false },
       structuredResultPersistence: true,
