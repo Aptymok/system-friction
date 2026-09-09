@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireRootViewer } from '@/lib/root/server';
 import { readDiscoveryControlPlane } from '@/lib/discovery/discoveryControlPlane';
+import { readInstitutionalDiscoveryMesh } from '@/lib/discovery/institutionalDiscoveryReadModel';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -10,11 +11,15 @@ export async function GET() {
   if (!gate.ok) return NextResponse.json(gate.body, { status: gate.status });
 
   try {
-    const controlPlane = await readDiscoveryControlPlane();
+    const [controlPlane, institutionalMesh] = await Promise.all([
+      readDiscoveryControlPlane(),
+      readInstitutionalDiscoveryMesh(),
+    ]);
     return NextResponse.json({
       ok: true,
       authority: gate.ctx.isRoot ? 'ROOT' : 'ROOT_OBSERVER',
       controlPlane,
+      institutionalMesh,
     }, {
       headers: {
         'Cache-Control': 'private, no-store',
