@@ -26,6 +26,7 @@ jobs:
     timeout-minutes: 45
     env:
       DATABASE_URL: ${{ secrets.SFI_DATABASE_URL || secrets.DATABASE_URL || secrets.SUPABASE_DB_URL || secrets.POSTGRES_URL }}
+      SFI_SUPABASE_REGION: us-west-1
       SFI_DB_EVIDENCE_DIR: /tmp/sfi-db-evidence
       SFI_DB_REQUIRE_RESET_CLASSIFICATION: 'YES'
       SFI_DB_SNAPSHOT_MAX_AGE_MINUTES: '180'
@@ -47,7 +48,7 @@ jobs:
         run: |
           set -euo pipefail
           if [[ -z "${DATABASE_URL:-}" ]]; then
-            echo 'No direct PostgreSQL secret is configured for canonical reset.' >&2
+            echo 'No PostgreSQL secret is configured for canonical reset.' >&2
             exit 1
           fi
           if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
@@ -57,13 +58,28 @@ jobs:
             grep -Fx 'SFI_DB_CANONICAL_RESET=ISSUE_430' .github/sfi-db-canonical-reset-trigger
           fi
 
-      - name: Install reset dependencies
+      - name: Install PostgreSQL 17 reset dependencies
         shell: bash
         run: |
           set -euo pipefail
           sudo apt-get update -y
-          sudo apt-get install -y postgresql-client zip unzip
+          sudo apt-get install -y ca-certificates curl gnupg zip unzip
+          sudo install -d -m 0755 /usr/share/postgresql-common/pgdg
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+            | sudo gpg --dearmor --yes -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.gpg
+          . /etc/os-release
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.gpg] https://apt.postgresql.org/pub/repos/apt ${VERSION_CODENAME}-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
+          sudo apt-get update -y
+          sudo apt-get install -y postgresql-client-17
+          pg_dump --version | grep -E '17\.'
           npm ci
+
+      - name: Resolve IPv4 session pooler and verify PostgreSQL connectivity
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/db/resolve-reset-database-url.mjs
 
       - name: Export and validate canonical genesis configuration
         shell: bash
@@ -144,6 +160,7 @@ jobs:
             echo "- Pre-reset proof artifact: \`${{ steps.proof.outputs.artifact-id }}\`"
             echo "- Pre-reset proof digest: \`${{ steps.proof.outputs.artifact-digest }}\`"
             echo "- Post-reset genesis artifact: \`${{ steps.genesis.outputs.artifact-id }}\`"
+            echo '- Database route: **Supavisor session mode / IPv4 / SSL required**'
             echo '- Legacy preservation: **full longitudinal World corpus**'
             echo '- Protected World plane: source observations, friction readings, hypotheses, outcomes, learning events, WorldSpect snapshots, World Vector cycles/observations/reports/alerts'
             echo '- Registered institutional identities/OAuth configuration: **reseeded from canonical registry; no authority expansion; no usage history restored**'
