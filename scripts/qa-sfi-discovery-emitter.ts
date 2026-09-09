@@ -6,6 +6,7 @@ async function text(path: string) { return readFile(path, 'utf8'); }
 async function main() {
   const emitter = await text('src/lib/discovery/discoveryEmitter.ts');
   const repository = await text('src/lib/discovery/discoveryEmitterRepository.ts');
+  const migration = await text('supabase/migrations/20260909093000_discovery_emission_identity.sql');
   const rss = await text('src/app/feed.xml/route.ts');
   const atom = await text('src/app/feed.atom/route.ts');
   const jsonFeed = await text('src/app/feed.json/route.ts');
@@ -15,7 +16,12 @@ async function main() {
 
   assert.match(emitter, /SFI-DISCOVERY-EMITTER-1\.0/);
   assert.match(emitter, /SFI-DISCOVERY-EMISSION-RECEIPT-1\.0/);
-  assert.match(emitter, /canonicalPublicationDisposition/);
+  assert.match(emitter, /SFI-DISCOVERY-FEED-METADATA-1\.0/);
+  assert.match(emitter, /validateCanonicalObjectRegistry/);
+  assert.match(emitter, /SFI_DISCOVERY_REGISTRY_INVALID/);
+  assert.match(emitter, /epistemicState/);
+  assert.match(emitter, /feedUpdatedEpistemicClass/);
+  assert.doesNotMatch(emitter, /1970-01-01/);
   assert.match(emitter, /discoveryRssXml/);
   assert.match(emitter, /discoveryAtomXml/);
   assert.match(emitter, /discoveryJsonFeed/);
@@ -29,7 +35,12 @@ async function main() {
   assert.match(repository, /state: 'READY'/);
   assert.match(repository, /external_url: null/);
   assert.match(repository, /observed_at: null/);
-  assert.doesNotMatch(repository, /state: 'PUBLISHED'/);
+  assert.match(repository, /inserted\.error\.code === '23505'/);
+  assert.doesNotMatch(repository, /\.eq\('state',\s*'READY'\)/);
+
+  assert.match(migration, /create unique index if not exists sfi_external_representations_discovery_identity_uidx/i);
+  assert.match(migration, /canonical_object_key[\s\S]*representation_kind[\s\S]*content_hash/);
+  assert.match(migration, /representation_kind = 'DISCOVERY_EMISSION'/);
 
   assert.match(rss, /discoveryRssXml/);
   assert.match(atom, /discoveryAtomXml/);
@@ -47,6 +58,11 @@ async function main() {
     ok: true,
     contract: 'SFI-DISCOVERY-EMITTER-1.0',
     canonicalOwnerReused: true,
+    registryWideValidation: true,
+    epistemicStatePreserved: true,
+    lifecycleIndependentIdempotency: true,
+    atomAuthorMetadata: true,
+    emptyFeedSyntheticEpoch: false,
     externalRepresentationOwnerReused: true,
     feeds: ['RSS', 'ATOM', 'JSON_FEED'],
     sitemapSynchronized: true,
