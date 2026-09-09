@@ -1,7 +1,7 @@
 import type { SfiAudioRenderReceipt } from './acoustic/acousticPackageContract';
 
-export const SFI_GOVERNED_AUDIO_CLOSED_LOOP_CONTRACT = 'SFI-GOVERNED-AUDIO-CLOSED-LOOP-1.0' as const;
-export const SFI_AUDIO_RESULT_RECEIPT_CONTRACT = 'SFI-AUDIO-RESULT-RECEIPT-1.0' as const;
+export const SFI_GOVERNED_AUDIO_CLOSED_LOOP_CONTRACT = 'SFI-GOVERNED-AUDIO-CLOSED-LOOP-1.1' as const;
+export const SFI_AUDIO_RESULT_RECEIPT_CONTRACT = 'SFI-AUDIO-RESULT-RECEIPT-1.1' as const;
 
 export const SFI_AUDIO_CAPABILITIES = Object.freeze([
   'audio_observer',
@@ -19,6 +19,16 @@ export const SFI_AUDIO_CAPABILITIES = Object.freeze([
 
 export type SfiAudioCapability = (typeof SFI_AUDIO_CAPABILITIES)[number];
 export type SfiAudioMetricKey = 'fad' | 'wsv' | 'mihm' | 'cvf';
+export type SfiAudioMetricOwner = 'FAD' | 'WORLDSPECT' | 'MIHM' | 'SCOREFRICTION';
+export type SfiAudioMetricEpistemicClass = 'OBSERVED' | 'DERIVED';
+
+export type SfiAudioMetricEvidence = {
+  owner: SfiAudioMetricOwner;
+  epistemicClass: SfiAudioMetricEpistemicClass;
+  methodRef: string;
+  sourceRef: string;
+  evidenceRefs: string[];
+};
 
 export type SfiAudioObservation = {
   observationId: string;
@@ -26,6 +36,7 @@ export type SfiAudioObservation = {
   observedAt: string;
   sourceRef: string;
   metrics: Partial<Record<SfiAudioMetricKey, number>>;
+  metricEvidence?: Partial<Record<SfiAudioMetricKey, SfiAudioMetricEvidence>>;
   limitations: string[];
 };
 
@@ -53,7 +64,7 @@ export type SfiAudioFailure = {
   metric: SfiAudioMetricKey;
   observed: number | null;
   target: SfiAudioTargetMetric;
-  reason: 'MISSING_OBSERVATION' | 'BELOW_TARGET' | 'ABOVE_TARGET';
+  reason: 'MISSING_OBSERVATION' | 'UNBOUND_MEASUREMENT' | 'BELOW_TARGET' | 'ABOVE_TARGET';
   affectedStemIds: string[];
 };
 
@@ -88,9 +99,17 @@ export type SfiAudioResultReceipt = {
   evaluationBefore: SfiAudioEvaluation;
   evaluationAfter: SfiAudioEvaluation;
   generatedOutputRemainsNonObservation: true;
+  metricProvenanceRequired: true;
   unaffectedStemPreservationVerified: boolean;
   state: 'RETURN_PASS' | 'RETURN_FAIL';
   limitations: string[];
+};
+
+const EXPECTED_OWNER: Record<SfiAudioMetricKey, SfiAudioMetricOwner> = {
+  fad: 'FAD',
+  wsv: 'WORLDSPECT',
+  mihm: 'MIHM',
+  cvf: 'SCOREFRICTION',
 };
 
 function requireObservation(observation: SfiAudioObservation) {
@@ -98,6 +117,16 @@ function requireObservation(observation: SfiAudioObservation) {
   if (!observation.observationId.trim() || !observation.sourceRef.trim() || !observation.observedAt.trim()) {
     throw new Error('SFI_AUDIO_OBSERVATION_IDENTITY_REQUIRED');
   }
+}
+
+function validMetricEvidence(metric: SfiAudioMetricKey, observation: SfiAudioObservation) {
+  const evidence = observation.metricEvidence?.[metric];
+  if (!evidence) return false;
+  if (evidence.owner !== EXPECTED_OWNER[metric]) return false;
+  if (evidence.epistemicClass !== 'OBSERVED' && evidence.epistemicClass !== 'DERIVED') return false;
+  if (!evidence.methodRef.trim() || !evidence.sourceRef.trim()) return false;
+  if (!evidence.evidenceRefs.length || evidence.evidenceRefs.some((ref) => !ref.trim())) return false;
+  return true;
 }
 
 export function evaluateAudioCandidate(
@@ -114,6 +143,10 @@ export function evaluateAudioCandidate(
     const affectedStemIds = stems.filter((stem) => stem.metricOwnership.includes(metric)).map((stem) => stem.stemId);
     if (observed === undefined || !Number.isFinite(observed)) {
       failures.push({ metric, observed: null, target: rule, reason: 'MISSING_OBSERVATION', affectedStemIds });
+      continue;
+    }
+    if (!validMetricEvidence(metric, observation)) {
+      failures.push({ metric, observed, target: rule, reason: 'UNBOUND_MEASUREMENT', affectedStemIds });
       continue;
     }
     if (rule.min !== undefined && observed < rule.min) {
@@ -204,6 +237,7 @@ export function createAudioResultReceipt(input: {
     evaluationBefore,
     evaluationAfter,
     generatedOutputRemainsNonObservation: true,
+    metricProvenanceRequired: true,
     unaffectedStemPreservationVerified,
     state,
     limitations: [...(input.limitations ?? [])],
