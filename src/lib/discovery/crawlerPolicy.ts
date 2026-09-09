@@ -1,4 +1,4 @@
-export const SFI_DISCOVERY_CRAWLER_POLICY_CONTRACT = 'SFI-DISCOVERY-CRAWLER-POLICY-1.0' as const;
+export const SFI_DISCOVERY_CRAWLER_POLICY_CONTRACT = 'SFI-DISCOVERY-CRAWLER-POLICY-1.1' as const;
 
 export const SFI_PUBLIC_DISCOVERY_PATHS = Object.freeze([
   '/',
@@ -30,9 +30,15 @@ export const SFI_PUBLIC_DISCOVERY_PATHS = Object.freeze([
   '/api/public/history',
 ] as const);
 
+export const SFI_PUBLIC_DISCOVERY_API_PATHS = Object.freeze([
+  '/api/external/v1/manifest',
+  '/api/public/history',
+] as const);
+
 export const SFI_PRIVATE_DISCOVERY_PREFIXES = Object.freeze([
   '/root',
   '/login',
+  '/api/',
   '/api/root',
   '/api/oauth',
   '/api/external/v1/observe',
@@ -64,8 +70,9 @@ export const SFI_DISCOVERY_CRAWLER_POLICY = Object.freeze({
     state: 'ALLOWED_PUBLIC_ONLY' as const,
     bots: SFI_SEARCH_DISCOVERY_BOTS,
     allow: SFI_PUBLIC_DISCOVERY_PATHS,
+    publicApiAllowlist: SFI_PUBLIC_DISCOVERY_API_PATHS,
     disallow: SFI_PRIVATE_DISCOVERY_PREFIXES,
-    purpose: 'Permit search/retrieval discovery of already-public SFI canonical representations.',
+    purpose: 'Permit search/retrieval discovery of already-public SFI canonical representations while keeping the API surface deny-by-default.',
   },
   modelTrainingDataReuse: {
     state: 'DISALLOWED_BY_POLICY' as const,
@@ -81,6 +88,7 @@ export const SFI_DISCOVERY_CRAWLER_POLICY = Object.freeze({
     crawlerAccessIsNotPublicationAuthority: true,
     crawlerAccessIsNotCanon: true,
     crawlerAccessIsNotTrainingConsent: true,
+    apiDiscoveryIsAllowlistedOnly: true,
     privateMaterialNeverPromotedByCrawlerPolicy: true,
   },
 });
