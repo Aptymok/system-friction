@@ -1,7 +1,7 @@
-export const SFI_INSTITUTIONAL_DISCOVERY_MESH_CONTRACT = 'SFI-INSTITUTIONAL-DISCOVERY-MESH-1.0' as const;
+export const SFI_INSTITUTIONAL_DISCOVERY_MESH_CONTRACT = 'SFI-INSTITUTIONAL-DISCOVERY-MESH-1.1' as const;
 export const SFI_EXTERNAL_REALITY_GRAPH_CONTRACT = 'SFI-EXTERNAL-REALITY-GRAPH-1.0' as const;
-export const SFI_PROPAGATION_GRAPH_CONTRACT = 'SFI-PROPAGATION-GRAPH-1.0' as const;
-export const SFI_CONVERGENCE_GRAPH_CONTRACT = 'SFI-CONVERGENCE-GRAPH-1.0' as const;
+export const SFI_PROPAGATION_GRAPH_CONTRACT = 'SFI-PROPAGATION-GRAPH-1.1' as const;
+export const SFI_CONVERGENCE_GRAPH_CONTRACT = 'SFI-CONVERGENCE-GRAPH-1.1' as const;
 export const SFI_DISCOVERY_LIFECYCLE_CONTRACT = 'SFI-DISCOVERY-LIFECYCLE-1.0' as const;
 
 export const SFI_DISCOVERY_LENSES = Object.freeze([
@@ -157,6 +157,12 @@ export const SFI_PUBLICATION_MESH = Object.freeze({
 
 type Row = Record<string, unknown>;
 
+type SfiDiscoverySampleCompleteness = {
+  graphNodes: boolean;
+  graphEdges: boolean;
+  trajectoryEvents: boolean;
+};
+
 function record(value: unknown): Row {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {};
 }
@@ -311,13 +317,17 @@ export function projectPropagationGraph(trajectoryRows: readonly Row[]) {
     const explicitStage = oneOf(semantic.discoveryStage ?? semantic.discovery_stage, SFI_DISCOVERY_STAGES);
     const relation = normalized(row.relation) || 'UNKNOWN';
     const evidenceRefs = stringList(row.evidence_refs);
-    let stage: SfiDiscoveryStage | null = explicitStage;
-    let stageSource: SfiPropagationEventProjection['stageSource'] = explicitStage ? 'EXPLICIT_SEMANTIC_STATE' : 'UNCLASSIFIED';
-    if (!stage && relation === 'PUBLICATION' && evidenceRefs.length) {
+    const epistemicState = normalized(
+      semantic.epistemicState ?? semantic.epistemic_state ?? payload.epistemicState ?? payload.epistemic_state,
+    ) || 'UNKNOWN';
+    const stageEvidenceAdmissible = evidenceRefs.length > 0 && observedEpistemic(epistemicState);
+    let stage: SfiDiscoveryStage | null = explicitStage && stageEvidenceAdmissible ? explicitStage : null;
+    let stageSource: SfiPropagationEventProjection['stageSource'] = stage ? 'EXPLICIT_SEMANTIC_STATE' : 'UNCLASSIFIED';
+    if (!stage && relation === 'PUBLICATION' && stageEvidenceAdmissible) {
       stage = 'EXPOSURE';
       stageSource = 'EVIDENCE_BACKED_PUBLICATION_EVENT';
     }
-    if (!stage && relation === 'RETURN' && evidenceRefs.length) {
+    if (!stage && relation === 'RETURN' && stageEvidenceAdmissible) {
       stage = 'RETURN';
       stageSource = 'EVIDENCE_BACKED_RETURN_EVENT';
     }
@@ -332,7 +342,7 @@ export function projectPropagationGraph(trajectoryRows: readonly Row[]) {
       externalNodeId: text(semantic.externalNodeId ?? semantic.external_node_id ?? payload.externalNodeId),
       observedAt: text(row.observed_at),
       evidenceRefs,
-      epistemicState: normalized(semantic.epistemicState ?? payload.epistemicState) || (evidenceRefs.length ? 'OBSERVED_EVENT' : 'UNKNOWN'),
+      epistemicState,
     }];
   });
   const stageRank = new Map(SFI_DISCOVERY_STAGES.map((stage, index) => [stage, index]));
@@ -358,6 +368,7 @@ export function projectPropagationGraph(trajectoryRows: readonly Row[]) {
       publicationDoesNotImplyDiscovery: true,
       copyDoesNotImplyPropagation: true,
       laterStageDoesNotBackfillMissingEarlierStage: true,
+      semanticStageRequiresEvidenceAndObservedEpistemicState: true,
       returnRequiresEvidenceBackedEvent: true,
     },
   };
@@ -403,15 +414,21 @@ export function boundedNodesOfNodes(
 export function projectConvergenceGraph(
   reality: ReturnType<typeof projectExternalRealityGraph>,
   propagation: ReturnType<typeof projectPropagationGraph>,
+  evidenceSampleComplete = true,
 ) {
   const nycNodes = reality.nodes.filter((node) => includesNyc(node.geography));
   const nycIds = new Set(nycNodes.map((node) => node.nodeId));
   const activeNycRelationships = nycNodes.filter((node) => ['ACTIVE', 'PULLING'].includes(node.relationState));
   const observedEdges = reality.edges.filter((edge) => observedEpistemic(edge.epistemicState) || edge.evidenceRefs.length > 0);
   const requests = observedEdges.filter((edge) => edge.relation === 'REQUESTED' && nycIds.has(edge.sourceNodeId));
-  const introductions = observedEdges.filter((edge) => edge.relation === 'INTRODUCED_SFI_TO' && edge.founderForced !== true && (nycIds.has(edge.sourceNodeId) || nycIds.has(edge.targetNodeId)));
+  const introductions = observedEdges.filter((edge) => edge.relation === 'INTRODUCED_SFI_TO'
+    && edge.founderForced === false
+    && (nycIds.has(edge.sourceNodeId) || nycIds.has(edge.targetNodeId)));
   const pullEdges = observedEdges.filter((edge) => ['REQUESTED', 'INTRODUCED_SFI_TO'].includes(edge.relation) && edge.founderForced === false);
-  const returnNodeIds = new Set(propagation.events.filter((event) => event.stage === 'RETURN' && event.evidenceRefs.length).map((event) => event.externalNodeId).filter((id): id is string => Boolean(id)));
+  const returnNodeIds = new Set(propagation.events
+    .filter((event) => event.stage === 'RETURN')
+    .map((event) => event.externalNodeId)
+    .filter((id): id is string => Boolean(id)));
   const realCasesWithObservedReturn = [...returnNodeIds].filter((id) => nycIds.has(id)).length;
   const gate = SFI_MANHATTAN_ATTRACTOR.minimumEvidenceGate;
   const evidence = {
@@ -426,26 +443,40 @@ export function projectConvergenceGraph(
     && evidence.realCasesWithObservedReturn >= gate.realCasesWithObservedReturn;
   const pullingNodes = nycNodes.filter((node) => node.relationState === 'PULLING');
   const routes = activeNycRelationships.map((node) => boundedNodesOfNodes(reality, node.nodeId));
+  const minimumEvidenceGateSatisfied = gateSatisfied ? true : evidenceSampleComplete ? false : null;
+  const disposition = gateSatisfied
+    ? 'MANHATTAN_LESS_INADEQUATE_BY_MINIMUM_GATE' as const
+    : evidenceSampleComplete
+      ? 'INSUFFICIENT_EVIDENCE_FOR_MINIMUM_GATE' as const
+      : 'BOUNDED_SAMPLE_CANNOT_FALSIFY_MINIMUM_GATE' as const;
+  const state = reality.state === 'NOT_OBSERVED'
+    ? 'NOT_OBSERVED' as const
+    : gateSatisfied || evidenceSampleComplete
+      ? 'EVIDENCE_EVALUATED' as const
+      : 'BOUNDED_SAMPLE_EVALUATED' as const;
 
   return {
     contract: SFI_CONVERGENCE_GRAPH_CONTRACT,
     attractor: SFI_MANHATTAN_ATTRACTOR,
-    state: reality.state === 'NOT_OBSERVED' ? 'NOT_OBSERVED' as const : 'EVIDENCE_EVALUATED' as const,
+    state,
     geographyLens: 'NYC',
+    evidenceSampleComplete,
     nycNodes,
     activeNycRelationships,
     pullingNodes,
     pullEdges,
     routes,
     evidence,
-    minimumEvidenceGateSatisfied: gateSatisfied,
-    disposition: gateSatisfied ? 'MANHATTAN_LESS_INADEQUATE_BY_MINIMUM_GATE' as const : 'INSUFFICIENT_EVIDENCE_FOR_MINIMUM_GATE' as const,
+    minimumEvidenceGateSatisfied,
+    disposition,
     boundary: {
       gateIsNotAttainment: true,
       pathIsNotAccess: true,
       relevanceIsNotRelationship: true,
       publicationIsNotPull: true,
       founderForcedOutreachCannotCountAsPull: true,
+      unknownIntroductionOriginCannotCountAsThirdParty: true,
+      saturatedSampleCannotProveInsufficiency: true,
       missingEvidenceRemainsMissing: true,
     },
   };
@@ -455,10 +486,13 @@ export function projectInstitutionalDiscoveryMesh(input: {
   graphNodes: readonly Row[];
   graphEdges: readonly Row[];
   trajectoryEvents: readonly Row[];
+  sampleCompleteness?: SfiDiscoverySampleCompleteness;
 }) {
   const reality = projectExternalRealityGraph(input.graphNodes, input.graphEdges);
   const propagation = projectPropagationGraph(input.trajectoryEvents);
-  const convergence = projectConvergenceGraph(reality, propagation);
+  const completeness = input.sampleCompleteness ?? { graphNodes: true, graphEdges: true, trajectoryEvents: true };
+  const evidenceSampleComplete = completeness.graphNodes && completeness.graphEdges && completeness.trajectoryEvents;
+  const convergence = projectConvergenceGraph(reality, propagation, evidenceSampleComplete);
   return {
     contract: SFI_INSTITUTIONAL_DISCOVERY_MESH_CONTRACT,
     lenses: SFI_DISCOVERY_LENSES,
@@ -473,6 +507,7 @@ export function projectInstitutionalDiscoveryMesh(input: {
       secondCanonCreated: false,
       secondPublicationReceiptOwnerCreated: false,
       attractorIsLensNotOntology: true,
+      boundedSamplesCannotCreateNegativeEvidence: true,
     },
   };
 }
