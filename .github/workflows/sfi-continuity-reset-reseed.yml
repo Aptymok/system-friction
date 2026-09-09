@@ -5,6 +5,7 @@ on:
     paths:
       - 'scripts/db/sfi-canonical-reset-classification.mjs'
       - 'scripts/db/reset-sfi-operational-tables.mjs'
+      - 'scripts/db/continuity-reseed-gate.mjs'
       - 'scripts/db/verify-continuity-reseed-ready.mjs'
       - 'scripts/db/preserve-institutional-integrations.ts'
       - 'scripts/qa-sfi-continuity-reset-reseed.mjs'
@@ -16,6 +17,7 @@ on:
     paths:
       - 'scripts/db/sfi-canonical-reset-classification.mjs'
       - 'scripts/db/reset-sfi-operational-tables.mjs'
+      - 'scripts/db/continuity-reseed-gate.mjs'
       - 'scripts/db/verify-continuity-reseed-ready.mjs'
       - 'scripts/db/preserve-institutional-integrations.ts'
       - 'scripts/qa-sfi-continuity-reset-reseed.mjs'
