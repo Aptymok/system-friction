@@ -41,7 +41,9 @@ function verifyReceiptHead(verifiedHead, currentHead, receipt) {
   try {
     execFileSync('git', ['cat-file', '-e', `${verifiedHead}^{commit}`], { cwd: root, stdio: 'ignore' });
     execFileSync('git', ['merge-base', '--is-ancestor', verifiedHead, currentHead], { cwd: root, stdio: 'ignore' });
-    const changed = execFileSync('git', ['diff', '--name-only', verifiedHead, currentHead], { cwd: root, encoding: 'utf8' })
+    // Disable rename collapsing so moving an in-scope file out of its scope is observed as
+    // an in-scope deletion plus an out-of-scope addition rather than a single destination path.
+    const changed = execFileSync('git', ['diff', '--no-renames', '--name-only', verifiedHead, currentHead], { cwd: root, encoding: 'utf8' })
       .split('\n').map((value) => value.trim()).filter(Boolean);
     const scopePaths = Array.isArray(receipt?.scopePaths) ? receipt.scopePaths.map(normalizeRepoPath).filter(Boolean) : [];
     if (!scopePaths.length) return { ok: false, error: 'RECEIPT_REGRESSION_SCOPE_REQUIRED' };
@@ -116,7 +118,7 @@ report.completionReceiptState = {
 };
 report.qa = { ...(report.qa ?? {}), satisfiedReachableThroughBoundReceipt: true, completionReceiptsFailClosed: invalidReceipts.length === 0,
   externalClassificationIndependentOfMutableStatus: true, selfAssertedEvidenceRejected: true, unrelatedCodeDoesNotInvalidateScopedReceipt: true,
-  scopedRegressionInvalidatesReceipt: true };
+  scopedRegressionInvalidatesReceipt: true, scopeRenameCannotBypassInvalidation: true };
 for (const invalid of invalidReceipts) {
   report.hardDefects ??= [];
   report.hardDefects.push({ id: `${invalid.requirementId}:invalid-completion-receipt`, rule: 'INVALID_COMPLETION_RECEIPT', requirementId: invalid.requirementId, receiptError: invalid.error, trajectoryRef: '#405' });
