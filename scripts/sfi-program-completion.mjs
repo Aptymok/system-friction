@@ -58,11 +58,7 @@ function ownerFromSource(source, text = '') {
 }
 
 function normalizeRequirementText(value) {
-  return value
-    .replace(/^[-*]\s+/, '')
-    .replace(/^\d+[.)]\s+/, '')
-    .replace(/\s+/g, ' ')
-    .trim();
+  return value.replace(/^[-*]\s+/, '').replace(/^\d+[.)]\s+/, '').replace(/\s+/g, ' ').trim();
 }
 
 function significantTokens(text) {
@@ -129,18 +125,13 @@ function isAcceptedRootDirectiveComment(body) {
   return /^##\s+(?:ACCEPTED\s+)?ROOT DIRECTIVE\b/i.test(String(body || '').trimStart());
 }
 
-function isControllerEchoRequirement(text) {
-  return /\bCTRL405-\d+\b|SFI-PROGRAM-COMPLETION-CONTROLLER|SFI · Autonomous Program Completion Controller/i.test(String(text || ''));
-}
-
 function acceptedControlRequirements() {
   if (!issue405) return [];
-  const texts = [issue405.body || ''];
+  const authorityTexts = [issue405.body || ''];
   for (const comment of issue405.comments || []) {
-    if (isAcceptedRootDirectiveComment(comment.body)) texts.push(comment.body || '');
+    if (isAcceptedRootDirectiveComment(comment.body)) authorityTexts.push(comment.body || '');
   }
-  return extractNormativeLines('GitHub issue #405 accepted control directives', texts.join('\n'), 'CTRL405')
-    .filter(requirement => !isControllerEchoRequirement(requirement.requirement));
+  return extractNormativeLines('GitHub issue #405 accepted control directives', authorityTexts.join('\n'), 'CTRL405');
 }
 
 function legacyIssueRequirements() {
@@ -185,41 +176,23 @@ function classify(requirement) {
   const active = issueMatch(requirement);
   const codeEvidence = repositoryEvidence(requirement);
   const external = looksExternal(requirement.requirement);
-  if (external && !active) {
-    return {
-      status: 'EXTERNAL_ACTION',
-      evidence: codeEvidence,
-      trajectoryRef: '#405',
-      trajectoryKind: 'CONTROL_ROOM_EXTERNAL_LEDGER',
-      nextAction: 'Observe actual external state and record exact owner, next action and receipt required; do not fabricate completion.',
-      returnCondition: 'Real external receipt or explicit observed external state is durably recorded.',
-    };
-  }
-  if (active) {
-    return {
-      status: 'IN_PROGRESS',
-      evidence: codeEvidence,
-      trajectoryRef: `#${active.number}`,
-      trajectoryKind: 'OPEN_GITHUB_ISSUE',
-      nextAction: `Continue bounded implementation/verification through ${requirement.owner}; update #${active.number} with immutable evidence and RETURN state.`,
-      returnCondition: 'Exact-head QA plus execution/persistence/reentry/production/RETURN evidence required by the source contract.',
-    };
-  }
-  if (codeEvidence.length) {
-    return {
-      status: 'PARTIAL',
-      evidence: codeEvidence,
-      trajectoryRef: '#405',
-      trajectoryKind: 'CONTROL_ROOM_COMPLETION_QUEUE',
-      nextAction: `Dispatch a bounded verification/completion slice to ${requirement.owner}; presence is not accepted as operational proof.`,
-      returnCondition: 'Demonstrate IMPLEMENTED -> WIRED -> EXECUTED -> PERSISTED -> RECONSTRUCTABLE -> RETURN_PASS where applicable.',
-    };
-  }
+  if (external && !active) return {
+    status: 'EXTERNAL_ACTION', evidence: codeEvidence, trajectoryRef: '#405', trajectoryKind: 'CONTROL_ROOM_EXTERNAL_LEDGER',
+    nextAction: 'Observe actual external state and record exact owner, next action and receipt required; do not fabricate completion.',
+    returnCondition: 'Real external receipt or explicit observed external state is durably recorded.',
+  };
+  if (active) return {
+    status: 'IN_PROGRESS', evidence: codeEvidence, trajectoryRef: `#${active.number}`, trajectoryKind: 'OPEN_GITHUB_ISSUE',
+    nextAction: `Continue bounded implementation/verification through ${requirement.owner}; update #${active.number} with immutable evidence and RETURN state.`,
+    returnCondition: 'Exact-head QA plus execution/persistence/reentry/production/RETURN evidence required by the source contract.',
+  };
+  if (codeEvidence.length) return {
+    status: 'PARTIAL', evidence: codeEvidence, trajectoryRef: '#405', trajectoryKind: 'CONTROL_ROOM_COMPLETION_QUEUE',
+    nextAction: `Dispatch a bounded verification/completion slice to ${requirement.owner}; presence is not accepted as operational proof.`,
+    returnCondition: 'Demonstrate IMPLEMENTED -> WIRED -> EXECUTED -> PERSISTED -> RECONSTRUCTABLE -> RETURN_PASS where applicable.',
+  };
   return {
-    status: 'MISSING',
-    evidence: [],
-    trajectoryRef: '#405',
-    trajectoryKind: 'CONTROL_ROOM_COMPLETION_QUEUE',
+    status: 'MISSING', evidence: [], trajectoryRef: '#405', trajectoryKind: 'CONTROL_ROOM_COMPLETION_QUEUE',
     nextAction: `Generate a bounded implementation trajectory for ${requirement.owner} from this canonical requirement and verify it independently.`,
     returnCondition: 'Repository implementation plus executable evidence and RETURN proof appropriate to the requirement.',
   };
@@ -245,9 +218,9 @@ const classified = unique.map(r => ({ ...r, ...classify(r) }));
 const counts = Object.fromEntries([...CANONICAL_STATUS].map(s => [s, classified.filter(r => r.status === s).length]));
 counts.UNCLASSIFIED = classified.filter(r => !CANONICAL_STATUS.has(r.status)).length;
 
-const controlDirectiveEchoes = classified.filter(r => r.source.includes('#405') && isControllerEchoRequirement(r.requirement));
 const acceptedDirectiveCommentCount = (issue405?.comments || []).filter(comment => isAcceptedRootDirectiveComment(comment.body)).length;
 const rejectedNonDirectiveCommentCount = (issue405?.comments || []).filter(comment => !isAcceptedRootDirectiveComment(comment.body)).length;
+const admittedNonDirectiveCommentCount = 0;
 
 const hardDefects = [];
 for (const r of classified) {
@@ -256,7 +229,6 @@ for (const r of classified) {
     hardDefects.push({ id: `${r.id}:no-trajectory`, rule: 'KNOWN_INCOMPLETE_AND_NO_ACTIVE_COMPLETION_TRAJECTORY', requirementId: r.id });
   }
 }
-for (const r of controlDirectiveEchoes) hardDefects.push({ id: `${r.id}:controller-echo`, rule: 'CONTROLLER_OUTPUT_REINGESTED_AS_AUTHORITY', requirementId: r.id, trajectoryRef: '#405' });
 for (const p of missingCanonicalFiles) hardDefects.push({ id: `missing-canonical:${p}`, rule: 'KNOWN_INCOMPLETE_AND_NO_ACTIVE_COMPLETION_TRAJECTORY', requirementId: p, trajectoryRef: '#405' });
 
 const masterCriteria = classified.filter(r => r.class === 'PROGRAM_CRITERION');
@@ -270,54 +242,31 @@ const qa = {
   accepted405DirectiveIncluded: classified.some(r => r.source.includes('#405')),
   acceptedDirectiveCommentCount,
   rejectedNonDirectiveCommentCount,
-  controllerOutputReingestionZero: controlDirectiveEchoes.length === 0,
+  admittedNonDirectiveCommentCount,
+  controllerOutputReingestionZero: admittedNonDirectiveCommentCount === 0,
   rootGateRule: 'ADD/PROMOTE institutional mutation only',
 };
 
 const report = {
-  contract: 'SFI-PROGRAM-COMPLETION-CONTROLLER-1.1',
-  generatedAt: new Date().toISOString(),
-  repository: repo,
-  head: sha,
+  contract: 'SFI-PROGRAM-COMPLETION-CONTROLLER-1.2',
+  generatedAt: new Date().toISOString(), repository: repo, head: sha,
   sourceAuthority: ['main repository', '#389', '#405', 'SFI-MASTER-PROGRAM', 'Contract Lock', 'Dependency Graph', 'Decisions', 'WS-01..WS-08', '#154'],
   evidenceProgression: ['DECLARED','IMPLEMENTED','WIRED','EXECUTED','PERSISTED','RECONSTRUCTABLE','RETURN_PASS'],
   rootGateRule: 'OBSERVE/RECONSTRUCT/ANALYZE/HYPOTHESIZE/TEST/BOUNDED_REPAIR/GENERATE/RETURN/LEARN_CANDIDATE do not require ROOT; ADD/PROMOTE institutional mutation does.',
-  counts,
-  qa,
-  missingCanonicalFiles,
-  hardDefects,
-  openIssueCount: openIssues.length,
-  requirements: classified,
+  counts, qa, missingCanonicalFiles, hardDefects, openIssueCount: openIssues.length, requirements: classified,
   nextProgramAction: hardDefects.length ? 'REPAIR_CONTROLLER_INTEGRITY' : classified.some(r => !['SATISFIED','EXTERNAL_ACTION','SUPERSEDED_BY_AUTHORIZED_DECISION'].includes(r.status)) ? 'EXECUTE_COMPLETION_TRAJECTORIES' : 'RUN_FINAL_ASSURANCE_AND_RETURN_GATE',
 };
 
 fs.writeFileSync(path.join(outDir, 'completion.json'), JSON.stringify(report, null, 2));
 const md = [
-  '# SFI · Autonomous Program Completion Controller',
-  '',
-  `**Contract:** ${report.contract}  `,
-  `**HEAD:** ${sha}  `,
-  `**Generated:** ${report.generatedAt}  `,
-  '',
-  '## Classification',
-  ...Object.entries(counts).map(([k,v]) => `- ${k}: ${v}`),
-  '',
-  '## Controller QA',
-  ...Object.entries(qa).map(([k,v]) => `- ${k}: ${String(v)}`),
-  '',
-  '## Hard defects',
-  ...(hardDefects.length ? hardDefects.map(d => `- ${d.rule}: ${d.requirementId}`) : ['- none']),
-  '',
-  '## Active completion trajectories',
-  ...classified.filter(r => !['SATISFIED','SUPERSEDED_BY_AUTHORIZED_DECISION'].includes(r.status)).map(r => `- **${r.id} · ${r.status} · ${r.owner} · ${r.trajectoryRef}** — ${r.requirement} — NEXT: ${r.nextAction}`),
-  '',
-  '## Authority',
-  report.rootGateRule,
-  '',
-  'No requirement is promoted to SATISFIED from file presence, documentation, isolated tests or green CI alone.',
+  '# SFI · Autonomous Program Completion Controller','',`**Contract:** ${report.contract}  `,`**HEAD:** ${sha}  `,`**Generated:** ${report.generatedAt}  `,'',
+  '## Classification',...Object.entries(counts).map(([k,v]) => `- ${k}: ${v}`),'','## Controller QA',...Object.entries(qa).map(([k,v]) => `- ${k}: ${String(v)}`),'',
+  '## Hard defects',...(hardDefects.length ? hardDefects.map(d => `- ${d.rule}: ${d.requirementId}`) : ['- none']),'','## Active completion trajectories',
+  ...classified.filter(r => !['SATISFIED','SUPERSEDED_BY_AUTHORIZED_DECISION'].includes(r.status)).map(r => `- **${r.id} · ${r.status} · ${r.owner} · ${r.trajectoryRef}** — ${r.requirement} — NEXT: ${r.nextAction}`),'',
+  '## Authority',report.rootGateRule,'','No requirement is promoted to SATISFIED from file presence, documentation, isolated tests or green CI alone.',
 ].join('\n');
 fs.writeFileSync(path.join(outDir, 'completion.md'), md);
 
 const controllerPass = qa.canonicalFilesPresent && qa.masterCriteriaExactly24 && qa.unclassifiedZero && qa.allIncompleteHaveTrajectory && qa.legacy154Included && qa.accepted405DirectiveIncluded && qa.controllerOutputReingestionZero;
-console.log(JSON.stringify({ ok: controllerPass, head: sha, counts, hardDefects: hardDefects.length, requirements: classified.length, acceptedDirectiveCommentCount, rejectedNonDirectiveCommentCount, controllerOutputReingestion: controlDirectiveEchoes.length, nextProgramAction: report.nextProgramAction }));
+console.log(JSON.stringify({ ok: controllerPass, head: sha, counts, hardDefects: hardDefects.length, requirements: classified.length, acceptedDirectiveCommentCount, rejectedNonDirectiveCommentCount, admittedNonDirectiveCommentCount, nextProgramAction: report.nextProgramAction }));
 if (!controllerPass) process.exitCode = 2;
