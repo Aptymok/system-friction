@@ -29,6 +29,7 @@ export type SfiAudioObservation = {
   epistemicClass: 'OBSERVATION';
   observedAt: string;
   sourceRef: string;
+  ownerId?: string | null;
   metrics: Partial<Record<SfiAudioMetricKey, number>>;
   metricEvidence?: Partial<Record<SfiAudioMetricKey, SfiAudioMetricEvidence>>;
   limitations: string[];
@@ -110,7 +111,13 @@ export async function evaluateAudioCandidate(target: SfiAudioCulturalTarget, obs
       failures.push({ metric, observed: null, target: rule, reason: 'MISSING_OBSERVATION', affectedStemIds: [] });
       continue;
     }
-    const verified = await verifyCanonicalAudioMetric({ metric, value: observed, requiredMethodRef: rule.methodRef, evidence: observation.metricEvidence?.[metric] });
+    const verified = await verifyCanonicalAudioMetric({
+      metric,
+      value: observed,
+      requiredMethodRef: rule.methodRef,
+      evidence: observation.metricEvidence?.[metric],
+      ownerId: observation.ownerId,
+    });
     if (!verified) {
       failures.push({ metric, observed, target: rule, reason: 'UNVERIFIED_MEASUREMENT', affectedStemIds: [] });
       continue;
