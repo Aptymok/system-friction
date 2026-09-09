@@ -9,8 +9,13 @@ on:
       - 'src/app/feed.json/**'
       - 'src/app/sitemap.ts'
       - 'src/app/ai-index.json/**'
-      - 'src/app/api/root/discovery/emission/**'
+      - 'src/app/ai-policy/**'
+      - 'src/app/robots.ts'
+      - 'src/app/root/discovery/**'
+      - 'src/app/api/root/discovery/**'
+      - 'scripts/qa-sfi-discovery-operational.ts'
       - 'scripts/qa-sfi-discovery-emitter.ts'
+      - 'scripts/qa-sfi-discovery-exposure.ts'
       - 'supabase/migrations/*discovery_emission_identity.sql'
       - '.github/workflows/sfi-discovery-emitter.yml'
   push:
@@ -23,8 +28,13 @@ on:
       - 'src/app/feed.json/**'
       - 'src/app/sitemap.ts'
       - 'src/app/ai-index.json/**'
-      - 'src/app/api/root/discovery/emission/**'
+      - 'src/app/ai-policy/**'
+      - 'src/app/robots.ts'
+      - 'src/app/root/discovery/**'
+      - 'src/app/api/root/discovery/**'
+      - 'scripts/qa-sfi-discovery-operational.ts'
       - 'scripts/qa-sfi-discovery-emitter.ts'
+      - 'scripts/qa-sfi-discovery-exposure.ts'
       - 'supabase/migrations/*discovery_emission_identity.sql'
       - '.github/workflows/sfi-discovery-emitter.yml'
 
@@ -41,9 +51,9 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Verify canonical registry, query mesh and discovery emitter
-        run: node --import tsx --test src/lib/discovery/canonicalObjectRegistry.test.ts src/lib/discovery/discoveryMesh.test.ts src/lib/discovery/discoveryEmitter.test.ts
-      - name: Verify durable discovery authority and observation boundaries
-        run: npx tsx scripts/qa-sfi-discovery-operational.ts && npx tsx scripts/qa-sfi-discovery-emitter.ts
+      - name: Verify canonical registry, query mesh, emitter and exposure
+        run: node --import tsx --test src/lib/discovery/canonicalObjectRegistry.test.ts src/lib/discovery/discoveryMesh.test.ts src/lib/discovery/discoveryEmitter.test.ts src/lib/discovery/exposureProjection.test.ts
+      - name: Verify durable discovery, exposure and authority boundaries
+        run: npx tsx scripts/qa-sfi-discovery-operational.ts && npx tsx scripts/qa-sfi-discovery-emitter.ts && npx tsx scripts/qa-sfi-discovery-exposure.ts
       - name: Typecheck
         run: npm run typecheck
