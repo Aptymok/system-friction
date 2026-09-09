@@ -1,6 +1,7 @@
 SFI-00 CONTROLLED PRODUCTION RELEASE
 requested_at=2026-09-09
-release_reason=Founder requested current usable SFI production while FULL REMAKE continues
-source_main=6b7e5866a15ff5797ffb233011f8edb64b1dacb1
+release_reason=Controlled release after #466 discovery emitter, #468 owner Studio context, #467 private brief assurance repair, and #469 main-only convergence closure
+source_main=824f68f3cb4e0dce3020192a8853fbd9bdf7beb6
+release_basis=sfi_verify_2846+program_completion_321+audio_370+main_only_convergence_756
 openapi_materialization=vercel_build_prod
 cost_gate=single_bounded_release
