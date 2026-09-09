@@ -39,6 +39,41 @@ export function hashMethodLabPreregistration(value: MethodLabExperimentPreregist
   return hash(assertMethodLabExperimentPreregistration(value));
 }
 
+export async function readOwnedMethodLabExperimentPreregistration(input: {
+  experimentId: string;
+  ownerId: string;
+}) {
+  const experimentId = input.experimentId.trim();
+  const ownerId = input.ownerId.trim();
+  if (!experimentId || !ownerId) throw new Error('METHOD_LAB_PREREGISTRATION_OWNER_AND_EXPERIMENT_REQUIRED');
+
+  const preregistrationRef = methodLabPreregistrationId(experimentId);
+  const db = createServiceSupabaseClient();
+  const existing = await db.from('sfi_lab_analyses')
+    .select('id,owner_id,raw_analysis,created_at')
+    .eq('id', preregistrationRef)
+    .eq('owner_id', ownerId)
+    .maybeSingle();
+  if (existing.error) throw new Error(`METHOD_LAB_PREREGISTRATION_READ_FAILED:${existing.error.message}`);
+  if (!existing.data) throw new Error('METHOD_LAB_PREREGISTRATION_OWNER_SCOPE_REQUIRED');
+
+  const raw = record(existing.data.raw_analysis);
+  if (raw.phase !== 'PREREGISTERED' || raw.contractVersion !== METHOD_LAB_EXPERIMENT_CONTRACT_VERSION) {
+    throw new Error('METHOD_LAB_PREREGISTRATION_PERSISTED_CONTRACT_INVALID');
+  }
+  const preregistration = assertMethodLabExperimentPreregistration(raw.preregistration as MethodLabExperimentPreregistration);
+  if (preregistration.experimentId !== experimentId) throw new Error('METHOD_LAB_PREREGISTRATION_EXPERIMENT_ID_MISMATCH');
+  const definitionHash = hashMethodLabPreregistration(preregistration);
+  if (raw.definitionHash !== definitionHash) throw new Error('METHOD_LAB_PREREGISTRATION_IMMUTABILITY_CHECK_FAILED');
+
+  return {
+    preregistrationRef,
+    definitionHash,
+    preregistration,
+    createdAt: String(existing.data.created_at ?? preregistration.preregisteredAt),
+  };
+}
+
 export async function persistMethodLabExperimentPreregistration(input: {
   preregistration: MethodLabExperimentPreregistration;
   ownerId?: string | null;
