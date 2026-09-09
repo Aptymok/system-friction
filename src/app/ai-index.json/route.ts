@@ -1,9 +1,12 @@
 import { publicAgentSummary } from '@/lib/agents/finalProductAgents';
 import { discoveryMachineResources } from '@/lib/discovery/discoveryEmitter';
+import { discoveryExposurePlan } from '@/lib/discovery/exposureProjection';
+import { SFI_DISCOVERY_CRAWLER_POLICY } from '@/lib/discovery/crawlerPolicy';
 import { SCENE_KEYS, SCENES } from '@/components/sfi/scenes';
 
 export async function GET() {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://systemfriction.org';
+  const exposure = discoveryExposurePlan();
   return Response.json({
     name: 'System Friction Institute',
     canonical_hub: baseUrl,
@@ -58,6 +61,14 @@ export async function GET() {
       robots: `${baseUrl}/robots.txt`,
     },
     discovery: discoveryMachineResources(),
+    exposure: {
+      contract: exposure.contract,
+      meaning: 'Governed projection/distribution readiness for already-public canonical objects. Exposure is never a second canon or proof that an external publication occurred.',
+      targets: exposure.targets,
+      nextActions: exposure.nextActions,
+      crawlerPolicy: SFI_DISCOVERY_CRAWLER_POLICY,
+      boundary: exposure.boundary,
+    },
     governed_external_agent_api: {
       authentication: 'Bearer credential managed by SFI with scoped capabilities.',
       operations: {
@@ -94,6 +105,7 @@ export async function GET() {
       'Do not treat queued as executed until an observed execution receipt exists.',
       'Do not fabricate or infer an execution adapter that is not persisted.',
       'External agents do not bypass governed authorization or ROOT canonical promotion.',
+      'Exposure/discovery does not imply publication, validation, authority or model-training permission.',
     ],
     agents: publicAgentSummary(),
     updated_at: new Date().toISOString(),
