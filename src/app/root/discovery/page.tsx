@@ -43,8 +43,8 @@ export default async function RootDiscoveryPage() {
     <section className="discoveryMetricsGrid" aria-label="Discovery summary">
       <Metric label="Canonical objects" value={data.entityHealth.canonicalObjectCount} />
       <Metric label="Publicables" value={data.entityHealth.publicableObjectCount} />
-      <Metric label="Discovery runs" value={data.searchHealth.totalRuns} detail={data.searchHealth.availability} />
-      <Metric label="Representations" value={data.propagations.total} detail={data.propagations.availability} />
+      <Metric label="Discovery runs · sample" value={data.searchHealth.sampledRuns} detail={data.searchHealth.sampleSaturated ? `≥ ${data.searchHealth.sampleLimit}` : data.searchHealth.availability} />
+      <Metric label="Representations · sample" value={data.propagations.sampled} detail={data.propagations.sampleSaturated ? `≥ ${data.propagations.sampleLimit}` : data.propagations.availability} />
       <Metric label="Published observed" value={observedPublishedTargets.length} />
       <Metric label="External actions" value={externalActionTargets.length} />
     </section>
@@ -116,26 +116,27 @@ export default async function RootDiscoveryPage() {
       <article className="discoveryPanel">
         <h2>Propagation receipts</h2>
         <p className={statusClass(data.propagations.availability)}>{data.propagations.availability}</p>
-        <pre>{JSON.stringify(data.propagations.byState, null, 2)}</pre>
+        <p>{data.propagations.total === null ? `Total no consultado · muestra ${data.propagations.sampled}/${data.propagations.sampleLimit}` : data.propagations.total}</p>
+        <pre>{JSON.stringify(data.propagations.byStateInSample, null, 2)}</pre>
       </article>
 
       <article className="discoveryPanel">
         <h2>Collisions</h2>
         <p className={statusClass(data.collisions.availability)}>{data.collisions.availability}</p>
-        <p>{data.collisions.total === null ? 'MISSING' : `${data.collisions.total} pruebas registradas`}</p>
-        <p>{data.collisions.observed.length} colisiones observadas en la muestra actual.</p>
+        <p>{data.collisions.total === null ? `Total no consultado · muestra ${data.collisions.sampled}/${data.collisions.sampleLimit}` : `${data.collisions.total} pruebas registradas`}</p>
+        <p>{data.collisions.observedInSample.length} colisiones observadas en la muestra actual.</p>
       </article>
 
       <article className="discoveryPanel">
         <h2>Failed publications</h2>
-        <strong>{data.failedPublications.length}</strong>
-        <p>No se infiere éxito externo cuando no existe receipt observado.</p>
+        <strong>{data.failedPublicationsInSample.length}</strong>
+        <p>Fallos en la muestra actual. No se infiere éxito externo cuando no existe receipt observado.</p>
       </article>
     </section>
 
     <footer className="discoveryFooter">
       <span>{data.contract}</span>
-      <span>DB reads: {data.readPlan.dbQueries} · polling: {data.readPlan.pollingLoops} · N+1: {data.readPlan.nPlusOneReads}</span>
+      <span>DB reads: {data.readPlan.dbQueries} · exact counts: {data.readPlan.exactCountProbes} · polling: {data.readPlan.pollingLoops} · N+1: {data.readPlan.nPlusOneReads}</span>
       <span>Observed: {data.observedAt}</span>
     </footer>
   </main>;
