@@ -28,16 +28,26 @@ function safeRepositoryPath(value) {
   if (!relative || relative.startsWith('..') || path.isAbsolute(relative)) throw new Error('EVIDENCE_PATH_OUTSIDE_REPOSITORY');
   return candidate;
 }
+function normalizeRepoPath(value) { return String(value || '').trim().replaceAll('\\', '/').replace(/^\.\//, ''); }
+function pathWithinScope(file, scope) {
+  const normalizedFile = normalizeRepoPath(file);
+  const normalizedScope = normalizeRepoPath(scope).replace(/\/\*\*$/, '/').replace(/\/\*$/, '/');
+  if (!normalizedFile || !normalizedScope) return false;
+  if (normalizedScope.endsWith('/')) return normalizedFile.startsWith(normalizedScope);
+  return normalizedFile === normalizedScope;
+}
 
-function verifyReceiptHead(verifiedHead, currentHead) {
+function verifyReceiptHead(verifiedHead, currentHead, receipt) {
   try {
     execFileSync('git', ['cat-file', '-e', `${verifiedHead}^{commit}`], { cwd: root, stdio: 'ignore' });
     execFileSync('git', ['merge-base', '--is-ancestor', verifiedHead, currentHead], { cwd: root, stdio: 'ignore' });
     const changed = execFileSync('git', ['diff', '--name-only', verifiedHead, currentHead], { cwd: root, encoding: 'utf8' })
       .split('\n').map((value) => value.trim()).filter(Boolean);
-    const disallowed = changed.filter((file) => file !== LEDGER_REPOSITORY_PATH);
-    if (disallowed.length) return { ok: false, error: `RECEIPT_HEAD_INVALIDATED_BY_CODE_CHANGE:${disallowed.join(',')}` };
-    return { ok: true, verifiedHead, currentHead, changed };
+    const scopePaths = Array.isArray(receipt?.scopePaths) ? receipt.scopePaths.map(normalizeRepoPath).filter(Boolean) : [];
+    if (!scopePaths.length) return { ok: false, error: 'RECEIPT_REGRESSION_SCOPE_REQUIRED' };
+    const touchedScope = changed.filter((file) => file !== LEDGER_REPOSITORY_PATH && scopePaths.some((scope) => pathWithinScope(file, scope)));
+    if (touchedScope.length) return { ok: false, error: `RECEIPT_SCOPE_INVALIDATED_BY_CHANGE:${touchedScope.join(',')}` };
+    return { ok: true, verifiedHead, currentHead, changed, scopePaths, touchedScope: [] };
   } catch { return { ok: false, error: 'RECEIPT_VERIFIED_HEAD_NOT_ANCESTOR' }; }
 }
 
@@ -88,8 +98,8 @@ for (const requirement of report.requirements ?? []) {
   requirement.evidence = [...new Set([...(requirement.evidence ?? []), ...(assessment.evidence ?? []).map((value) => `${value.kind}:${value.ref}`)])];
   requirement.trajectoryRef = `completion-receipt:${requirement.id}`;
   requirement.trajectoryKind = 'VERIFIED_COMPLETION_RECEIPT';
-  requirement.nextAction = 'Preserve evidence and observe regression/RETURN conditions; reopen only on falsifying evidence.';
-  requirement.returnCondition = 'Already met by the bound RETURN_PASS receipt; any later regression must create a new trajectory.';
+  requirement.nextAction = 'Preserve evidence and observe scoped regression/RETURN conditions; reopen only on falsifying evidence.';
+  requirement.returnCondition = 'Already met by the bound RETURN_PASS receipt; changes inside its declared regression scope invalidate it.';
   requirement.completionReceipt.receipt = assessment.receipt;
   requirement.completionReceipt.evidenceResults = assessment.evidenceResults;
   promoted += 1;
@@ -97,15 +107,16 @@ for (const requirement of report.requirements ?? []) {
 
 report.counts = Object.fromEntries(canonicalStatuses.map((status) => [status, (report.requirements ?? []).filter((r) => r.status === status).length]));
 report.counts.UNCLASSIFIED = (report.requirements ?? []).filter((r) => !canonicalStatuses.includes(r.status)).length;
-report.contract = 'SFI-PROGRAM-COMPLETION-CONTROLLER-1.3';
+report.contract = 'SFI-PROGRAM-COMPLETION-CONTROLLER-1.4';
 report.completionReceiptContract = ledger.contract;
 report.completionReceiptState = {
   ledgerPath: LEDGER_REPOSITORY_PATH, receiptCount: Object.keys(ledger.receipts ?? {}).length, promotedSatisfiedCount: promoted,
   invalidReceiptCount: invalidReceipts.length, invalidReceipts, currentHead: report.head, independentVerifier: 'SFI-08',
-  evidenceResolution: 'OBSERVED_REFERENCE_REQUIRED', verifiedHeadRule: 'EXACT_OR_LEDGER_ONLY_DESCENDANT',
+  evidenceResolution: 'OBSERVED_REFERENCE_REQUIRED', verifiedHeadRule: 'EXACT_OR_ANCESTOR_WITH_UNTOUCHED_DECLARED_REGRESSION_SCOPE',
 };
 report.qa = { ...(report.qa ?? {}), satisfiedReachableThroughBoundReceipt: true, completionReceiptsFailClosed: invalidReceipts.length === 0,
-  externalClassificationIndependentOfMutableStatus: true, selfAssertedEvidenceRejected: true, ledgerCommitDoesNotSelfInvalidateReceipt: true };
+  externalClassificationIndependentOfMutableStatus: true, selfAssertedEvidenceRejected: true, unrelatedCodeDoesNotInvalidateScopedReceipt: true,
+  scopedRegressionInvalidatesReceipt: true };
 for (const invalid of invalidReceipts) {
   report.hardDefects ??= [];
   report.hardDefects.push({ id: `${invalid.requirementId}:invalid-completion-receipt`, rule: 'INVALID_COMPLETION_RECEIPT', requirementId: invalid.requirementId, receiptError: invalid.error, trajectoryRef: '#405' });
@@ -117,8 +128,8 @@ const md = [
   '# SFI · Autonomous Program Completion Controller','',`**Contract:** ${report.contract}  `,`**HEAD:** ${report.head}  `,`**Generated:** ${report.generatedAt}  `,`**Receipt contract:** ${ledger.contract}  `,'',
   '## Classification',...Object.entries(report.counts).map(([key,value]) => `- ${key}: ${value}`),'','## Completion receipt assurance',
   `- receipts: ${report.completionReceiptState.receiptCount}`,`- promoted SATISFIED: ${promoted}`,`- invalid receipts: ${invalidReceipts.length}`,
-  `- current HEAD: ${report.head}`,'- verifier: SFI-08 only','- verified head: exact current HEAD or an ancestor separated only by the completion receipt ledger file',
-  '- rule: any intervening code/runtime/QA change invalidates the receipt','- rule: code/file presence and green CI alone never promote SATISFIED',
+  `- current HEAD: ${report.head}`,'- verifier: SFI-08 only','- verified head: exact current HEAD or an ancestor whose declared regression scope has not changed',
+  '- rule: a changed path inside receipt.scopePaths invalidates that receipt; unrelated changes do not','- rule: code/file presence and green CI alone never promote SATISFIED',
   '- rule: every evidence reference must resolve to observed immutable state','- external-only requirements require externalObserved=true','',
   '## Hard defects',...((report.hardDefects ?? []).length ? report.hardDefects.map((d) => `- ${d.rule}: ${d.requirementId}`) : ['- none']),'',
   '## Active completion trajectories',...(report.requirements ?? []).filter((r) => !['SATISFIED','SUPERSEDED_BY_AUTHORIZED_DECISION'].includes(r.status)).map((r) => `- **${r.id} · ${r.status} · ${r.owner} · ${r.trajectoryRef}** — ${r.requirement} — NEXT: ${r.nextAction}`),'',
