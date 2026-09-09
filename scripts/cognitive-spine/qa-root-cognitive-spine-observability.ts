@@ -35,11 +35,19 @@ assert.ok(reader.includes('available: false as const'), 'root_ct_status_unavaila
 assert.ok(route.includes("requireRootViewer('root.cognitive-spine.status')"), 'root_ct_status_endpoint_not_root_gated');
 assert.ok(route.includes("'Cache-Control': 'no-store'"), 'root_ct_status_endpoint_cache_boundary_missing');
 
-// ROOT stays the sovereign live-scene owner. Observatory is a separate canonical
-// surface; Cognitive Twin remains visible from ROOT without becoming ROOT itself.
+// ROOT stays the sovereign live-scene owner, but #431 narrowed sovereign decisions
+// to institutional change/capability implementation/learning promotion. Routine
+// operation stays autonomous and the ten modules are observational lenses, not
+// second writers or approval middleware.
 assert.ok(scenes.includes("root:{key:'root'"), 'root_live_scene_missing');
 assert.ok(scenes.includes("title:'ROOT · Operación soberana'"), 'root_live_scene_semantics_missing');
-assert.ok(rootUi.includes('ROOT · SOBERANÍA OPERATIVA') && rootUi.includes('MAPA OPERATIVO · SUPERFICIES SFI'), 'root_sovereign_workspace_semantics_missing');
+assert.ok(
+  rootUi.includes('ROOT · SOBERANÍA INSTITUCIONAL · AUTHORITY / OBSERVATION / RETURN')
+    && rootUi.includes('10 MÓDULOS · TOPOLOGÍA DE OBSERVACIÓN')
+    && rootUi.includes('SFI OPERA SIN PEDIR PERMISO.'),
+  'root_sovereign_workspace_semantics_missing',
+);
+assert.ok(rootUi.includes('No son subsistemas nuevos') && rootUi.includes('Ningún módulo adquiere escritor propio'), 'root_observation_topology_boundary_missing');
 assert.ok(rootUi.includes("href: '/twin'") && rootUi.includes("href: '/twin/learning'"), 'root_twin_navigation_missing');
 assert.ok(liveUi.includes('COGNITIVE TWIN') || scenes.includes("title:'Cognitive Twin / Spine'"), 'root_live_scene_twin_observability_missing');
 assert.ok(operatingUi.includes('SfiGovernanceWorkspace'), 'root_operating_workspace_governance_delegate_missing');
@@ -114,7 +122,9 @@ console.log(JSON.stringify({
   canonicalWrite: false,
   internalRefsExposed: false,
   rootDependsOnCtAvailability: false,
-  rootSurface: 'ROOT_SOVEREIGN_LIVE_SCENE',
+  rootSurface: 'ROOT_INSTITUTIONAL_SOVEREIGN_LIVE_SCENE',
+  autonomousRoutineOperation: true,
+  observationTopologyModules: 10,
   observatoryIsSeparateCanonicalSurface: true,
   cognitiveSpinePark: 'APPROVED_ARTWORK_PARENT_PROJECTED_ZERO_DUPLICATE',
   observationFocusPreserved: true,
