@@ -7,8 +7,8 @@ import {
 import { discoveryEmissionEntries, discoveryMachineResources } from './discoveryEmitter';
 import { SFI_DISCOVERY_CRAWLER_POLICY } from './crawlerPolicy';
 
-export const SFI_DISCOVERY_EXPOSURE_CONTRACT = 'SFI-DISCOVERY-EXPOSURE-1.0' as const;
-export const SFI_EXPOSURE_PACKET_CONTRACT = 'SFI-EXPOSURE-PACKET-1.0' as const;
+export const SFI_DISCOVERY_EXPOSURE_CONTRACT = 'SFI-DISCOVERY-EXPOSURE-1.1' as const;
+export const SFI_EXPOSURE_PACKET_CONTRACT = 'SFI-EXPOSURE-PACKET-1.1' as const;
 
 export type SfiObservedExternalRepresentation = {
   canonical_object_key: string;
@@ -34,6 +34,10 @@ export type SfiExposureTarget = {
   state: SfiExposureTargetState;
   url: string | null;
   reason: string;
+  canonicalObjectKey: string | null;
+  representationKind: string | null;
+  contentHash: string | null;
+  observedAt: string | null;
   automaticPublication: false;
   automaticCanon: false;
 };
@@ -61,6 +65,10 @@ function ownedTargets(): SfiExposureTarget[] {
     state: 'READY_OWNED_SURFACE' as const,
     url,
     reason: 'Owned SFI projection of already-public canonical state.',
+    canonicalObjectKey: null,
+    representationKind: null,
+    contentHash: null,
+    observedAt: null,
     automaticPublication: false as const,
     automaticCanon: false as const,
   }));
@@ -69,9 +77,11 @@ function ownedTargets(): SfiExposureTarget[] {
 function observedPublicationForNode(
   node: SfiExternalIdentityNode,
   representations: readonly SfiObservedExternalRepresentation[],
+  canonicalObjectKey?: string | null,
 ) {
   const normalizedNode = node.url.replace(/\/$/, '');
   return representations.find((row) => row.state === 'PUBLISHED'
+    && (!canonicalObjectKey || row.canonical_object_key === canonicalObjectKey)
     && Boolean(row.external_url)
     && row.external_url!.replace(/\/$/, '').startsWith(normalizedNode));
 }
@@ -79,19 +89,33 @@ function observedPublicationForNode(
 function externalNodeTarget(
   node: SfiExternalIdentityNode,
   representations: readonly SfiObservedExternalRepresentation[],
+  canonicalObjectKey?: string | null,
 ): SfiExposureTarget {
-  const published = observedPublicationForNode(node, representations);
+  const published = observedPublicationForNode(node, representations, canonicalObjectKey);
   if (published?.external_url && published.observed_at) {
     return {
       key: node.key,
       targetClass: 'EXTERNAL_IDENTITY_NODE',
       state: 'OBSERVED_PUBLISHED',
       url: published.external_url,
-      reason: `Observed PUBLISHED representation receipt at ${published.observed_at}.`,
+      reason: `Observed PUBLISHED representation receipt for ${published.canonical_object_key} at ${published.observed_at}.`,
+      canonicalObjectKey: published.canonical_object_key,
+      representationKind: published.representation_kind,
+      contentHash: published.content_hash,
+      observedAt: published.observed_at,
       automaticPublication: false,
       automaticCanon: false,
     };
   }
+
+  const common = {
+    canonicalObjectKey: canonicalObjectKey ?? null,
+    representationKind: null,
+    contentHash: null,
+    observedAt: null,
+    automaticPublication: false as const,
+    automaticCanon: false as const,
+  };
 
   if (node.identityClass === 'RELATED_PERSON') {
     return {
@@ -100,8 +124,7 @@ function externalNodeTarget(
       state: 'REFERENCE_ONLY',
       url: node.url,
       reason: 'Related-person reference may support lineage but is not an institutional distribution target.',
-      automaticPublication: false,
-      automaticCanon: false,
+      ...common,
     };
   }
 
@@ -111,9 +134,8 @@ function externalNodeTarget(
       targetClass: 'EXTERNAL_IDENTITY_NODE',
       state: 'CONTROLLED_REFERENCE',
       url: node.url,
-      reason: 'Verified controlled asset is a reference surface; publication state still requires a representation receipt.',
-      automaticPublication: false,
-      automaticCanon: false,
+      reason: 'Verified controlled asset is a reference surface; publication state still requires an object-specific representation receipt.',
+      ...common,
     };
   }
 
@@ -124,10 +146,9 @@ function externalNodeTarget(
       state: 'GOVERNED_EXTERNAL_ACTION_REQUIRED',
       url: node.url,
       reason: node.state === 'VERIFIED'
-        ? 'Institution profile is verified, but distribution still requires a governed external action and observed receipt.'
+        ? 'Institution profile is verified, but object-specific distribution still requires a governed external action and observed receipt.'
         : 'Institution profile is claimed but not independently verified; prepare draft only and require external verification/action.',
-      automaticPublication: false,
-      automaticCanon: false,
+      ...common,
     };
   }
 
@@ -137,17 +158,17 @@ function externalNodeTarget(
     state: 'NOT_ELIGIBLE',
     url: node.url,
     reason: `External node state ${node.state} is not eligible for distribution projection.`,
-    automaticPublication: false,
-    automaticCanon: false,
+    ...common,
   };
 }
 
 export function discoveryExposureTargets(
   representations: readonly SfiObservedExternalRepresentation[] = [],
+  canonicalObjectKey?: string | null,
 ): SfiExposureTarget[] {
   return [
     ...ownedTargets(),
-    ...SFI_EXTERNAL_IDENTITY_NODES.map((node) => externalNodeTarget(node, representations)),
+    ...SFI_EXTERNAL_IDENTITY_NODES.map((node) => externalNodeTarget(node, representations, canonicalObjectKey)),
   ];
 }
 
@@ -157,7 +178,6 @@ export function discoveryExposurePlan(
   const entries = discoveryEmissionEntries();
   const targets = discoveryExposureTargets(representations);
   const governedExternalTargets = targets.filter((target) => target.state === 'GOVERNED_EXTERNAL_ACTION_REQUIRED');
-  const observedPublishedTargets = targets.filter((target) => target.state === 'OBSERVED_PUBLISHED');
 
   return {
     contract: SFI_DISCOVERY_EXPOSURE_CONTRACT,
@@ -166,25 +186,41 @@ export function discoveryExposurePlan(
     crawlerPolicy: SFI_DISCOVERY_CRAWLER_POLICY,
     canonicalObjectCount: entries.length,
     targets,
-    packets: entries.map((entry) => ({
-      contract: SFI_EXPOSURE_PACKET_CONTRACT,
-      canonicalObjectKey: entry.objectKey,
-      canonicalUrl: entry.canonicalUrl,
-      epistemicState: entry.epistemicState,
-      version: entry.version,
-      sourceRefs: entry.sourceRefs,
-      ownedMachineSurfaces: targets
-        .filter((target) => target.state === 'READY_OWNED_SURFACE')
-        .map(({ key, url, state }) => ({ key, url, state })),
-      externalDistributionDraftTargets: governedExternalTargets.map(({ key, url, state, reason }) => ({ key, url, state, reason })),
-      observedPublishedTargets: observedPublishedTargets.map(({ key, url, state, reason }) => ({ key, url, state, reason })),
-      boundary: {
-        exposureIsRepresentation: true,
-        exposureIsNotCanon: true,
-        exposureIsNotPublicationReceipt: true,
-        externalActionRequiresGovernedAdapterOrHuman: true,
-      },
-    })),
+    packets: entries.map((entry) => {
+      const entryTargets = discoveryExposureTargets(representations, entry.objectKey);
+      const observedPublishedTargets = entryTargets.filter((target) => target.state === 'OBSERVED_PUBLISHED');
+      return {
+        contract: SFI_EXPOSURE_PACKET_CONTRACT,
+        canonicalObjectKey: entry.objectKey,
+        canonicalUrl: entry.canonicalUrl,
+        epistemicState: entry.epistemicState,
+        version: entry.version,
+        sourceRefs: entry.sourceRefs,
+        ownedMachineSurfaces: entryTargets
+          .filter((target) => target.state === 'READY_OWNED_SURFACE')
+          .map(({ key, url, state }) => ({ key, url, state })),
+        externalDistributionDraftTargets: entryTargets
+          .filter((target) => target.state === 'GOVERNED_EXTERNAL_ACTION_REQUIRED')
+          .map(({ key, url, state, reason, canonicalObjectKey }) => ({ key, url, state, reason, canonicalObjectKey })),
+        observedPublishedTargets: observedPublishedTargets.map(({ key, url, state, reason, canonicalObjectKey, representationKind, contentHash, observedAt }) => ({
+          key,
+          url,
+          state,
+          reason,
+          canonicalObjectKey,
+          representationKind,
+          contentHash,
+          observedAt,
+        })),
+        boundary: {
+          exposureIsRepresentation: true,
+          exposureIsNotCanon: true,
+          exposureIsNotPublicationReceipt: true,
+          publishedTargetsAreObjectScoped: true,
+          externalActionRequiresGovernedAdapterOrHuman: true,
+        },
+      };
+    }),
     externalIdentity: SFI_EXTERNAL_IDENTITY_NODES.map((node) => ({
       ...node,
       sameAs: institutionalSameAsDisposition(node),
@@ -200,6 +236,7 @@ export function discoveryExposurePlan(
       automaticPublication: false,
       automaticExternalAction: false,
       fabricatedExternalReceipt: false,
+      externalPublicationLineageObjectScoped: true,
       modelCapabilityDoesNotExpandAuthority: true,
     },
   };
