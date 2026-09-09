@@ -10,6 +10,10 @@ import {
   CLASSIFIED_PUBLIC_TABLES,
   auditPublicTableClassification,
 } from './sfi-canonical-reset-classification.mjs';
+import {
+  SFI_CONTINUITY_RESEED_CONTRACT,
+  verifyContinuityReseedReady,
+} from './continuity-reseed-gate.mjs';
 
 const databaseUrl = process.env.DATABASE_URL || process.env.DIRECT_URL || process.env.CONNECTION_STRING;
 const confirm = process.env.SFI_DB_RESET_CONFIRM;
@@ -109,6 +113,8 @@ function jsonObjectFromPairs(output) {
   }
   return result;
 }
+
+const continuityPreflight = verifyContinuityReseedReady(databaseUrl, 'pre');
 
 const snapshot = await verifyDbEvidenceReceipt(snapshotReceiptPath, {
   maxAgeMinutes: Number(process.env.SFI_DB_SNAPSHOT_MAX_AGE_MINUTES || 180),
@@ -285,6 +291,16 @@ ${preserveExpectedChecks}
     execute format('select count(*) from public.%I',table_name) into observed_count;
     if observed_count <> 0 then raise exception 'Purge table % is not empty after canonical reset: %',table_name,observed_count; end if;
   end loop;
+  select count(*) into observed_count from public.sfi_continuity_state;
+  if observed_count <> 1 then raise exception 'Expected exactly one post-reset continuity singleton, found %',observed_count; end if;
+  select count(*) into observed_count
+  from public.sfi_continuity_state
+  where id='institution'
+    and mode='NORMAL'
+    and founder_available=true
+    and metadata->>'contract'='${SFI_CONTINUITY_RESEED_CONTRACT}'
+    and metadata->>'reseededBy'='SFI_CONTINUITY_STATE_TRUNCATE_TRIGGER';
+  if observed_count <> 1 then raise exception 'Continuity singleton was not reseeded with canonical provenance before commit'; end if;
   select count(*) into observed_count from public.root_audit_events where action='SFI_CANONICAL_RESET_GENESIS';
   if observed_count <> 1 then raise exception 'Expected exactly one post-reset genesis audit event, found %',observed_count; end if;
   select count(*) into observed_count from public.profiles;
@@ -306,6 +322,7 @@ commit;
 `;
 
 runPsql(transactionSql, { capture: true });
+const continuityPostflight = verifyContinuityReseedReady(databaseUrl, 'post');
 
 const postPreserveCounts = jsonObjectFromPairs(runPsql(PRESERVE_DATA_TABLES.map((table) => `select ${sqlLiteral(table)}||'|'||count(*)::text from public.${ident(table)};`).join('\n')));
 const postInfrastructureCounts = jsonObjectFromPairs(runPsql([
@@ -317,10 +334,12 @@ const postInfrastructureCounts = jsonObjectFromPairs(runPsql([
   "select 'account_members|'||count(*)::text from public.account_members;",
   "select 'account_balance|'||count(*)::text from public.account_balance;",
   "select 'root_audit_events|'||count(*)::text from public.root_audit_events;",
+  "select 'sfi_continuity_state|'||count(*)::text from public.sfi_continuity_state;",
 ].join('\n')));
 
 const report = {
-  ok: PRESERVE_DATA_TABLES.every((table) => postPreserveCounts[table] === Number(preserveCounts[table])),
+  ok: continuityPostflight.ok === true
+    && PRESERVE_DATA_TABLES.every((table) => postPreserveCounts[table] === Number(preserveCounts[table])),
   contract: SFI_CANONICAL_RESET_CONTRACT,
   reset_at: new Date().toISOString(),
   snapshot: {
@@ -333,13 +352,18 @@ const report = {
     reseed_minimal: RESEED_MINIMAL_TABLES, purge_data_count: PURGE_DATA_TABLES.length,
     unclassified: liveClassification.unclassified,
   },
+  continuity_reseed: {
+    preflight: continuityPreflight,
+    postflight: continuityPostflight,
+  },
   preserved_counts_before: preserveCounts,
   preserved_counts_after: postPreserveCounts,
   genesis_infrastructure_counts: postInfrastructureCounts,
   founder_oauth_clients_reseeded: currentFounderOauthCount,
   invariants: [
     'EXTERNAL_PROOF_UPLOADED_BEFORE_RESET','NO_DEPENDENCY_PROPAGATION','LIVE_SCHEMA_EQUALS_SNAPSHOT','UNCLASSIFIED_ZERO',
-    'WORLD_COUNTS_UNCHANGED','LEGACY_LEARNING_NOT_IMPORTED','LEGACY_CANONICAL_HISTORY_NOT_IMPORTED','ONE_POST_RESET_GENESIS_EVENT',
+    'WORLD_COUNTS_UNCHANGED','CONTINUITY_RESEED_TRIGGER_BOUND','CONTINUITY_SINGLETON_VERIFIED_BEFORE_COMMIT',
+    'LEGACY_LEARNING_NOT_IMPORTED','LEGACY_CANONICAL_HISTORY_NOT_IMPORTED','ONE_POST_RESET_GENESIS_EVENT',
   ],
 };
 
