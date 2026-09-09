@@ -51,8 +51,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Verify canonical registry, query mesh, emitter and exposure
-        run: node --import tsx --test src/lib/discovery/canonicalObjectRegistry.test.ts src/lib/discovery/discoveryMesh.test.ts src/lib/discovery/discoveryEmitter.test.ts src/lib/discovery/exposureProjection.test.ts
+      - name: Verify canonical registry, query mesh, emitter, exposure and institutional lenses
+        run: node --import tsx --test src/lib/discovery/canonicalObjectRegistry.test.ts src/lib/discovery/discoveryMesh.test.ts src/lib/discovery/discoveryEmitter.test.ts src/lib/discovery/exposureProjection.test.ts src/lib/discovery/institutionalDiscoveryMesh.test.ts
       - name: Verify durable discovery, exposure and authority boundaries
         run: npx tsx scripts/qa-sfi-discovery-operational.ts && npx tsx scripts/qa-sfi-discovery-emitter.ts && npx tsx scripts/qa-sfi-discovery-exposure.ts
       - name: Typecheck
