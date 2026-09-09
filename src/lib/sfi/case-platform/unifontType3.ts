@@ -1,5 +1,3 @@
-import 'server-only';
-
 import { gunzipSync } from 'node:zlib';
 
 export const SFI_UNIFONT_VERSION = '16.0.04' as const;
