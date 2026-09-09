@@ -9,7 +9,7 @@
         {
           "kind": "RETURN_RECEIPT",
           "ref": "docs/program/evidence/ISSUE154-001-world-signal-observer-return.json",
-          "sha256": "sha256:bc43792ecaf069ead4094ba7674560617fb03d1938a892e55ed5ed2930775b48"
+          "sha256": "sha256:4d0ee52b8e1466e3415cccaa6e357eeb972c9a3e6c0bbe85fe6a91549167412e"
         },
         {
           "kind": "GIT_COMMIT",
