@@ -4,7 +4,7 @@ import {
   type MethodLabExperimentPreregistration,
 } from './experimentContract';
 
-export const METHOD_LAB_PREREGISTRATION_EXPORT_CONTRACT_VERSION = 'SFI-METHOD-LAB-PREREGISTRATION-EXPORT-1.1' as const;
+export const METHOD_LAB_PREREGISTRATION_EXPORT_CONTRACT_VERSION = 'SFI-METHOD-LAB-PREREGISTRATION-EXPORT-1.2' as const;
 
 type PreregistrationInput = MethodLabExperimentPreregistration['INPUTS'][number];
 type ReproducibilityRef = Pick<PreregistrationInput, 'ref' | 'role' | 'epistemicClass'>;
@@ -20,6 +20,9 @@ export type MethodLabPreregistrationExport = {
   HYPOTHESIS: MethodLabExperimentPreregistration['HYPOTHESIS'];
   T0: MethodLabExperimentPreregistration['T0'];
   METHOD: MethodLabExperimentPreregistration['METHOD'];
+  POPULATION_SYSTEM: MethodLabExperimentPreregistration['POPULATION_SYSTEM'];
+  CONTROL: MethodLabExperimentPreregistration['CONTROL'];
+  VARIANTS: MethodLabExperimentPreregistration['VARIANTS'];
   STOPPING_TERMS: MethodLabExperimentPreregistration['STOPPING_RULE'];
   EXPECTED_SIGNAL: MethodLabExperimentPreregistration['EXPECTED_SIGNAL'];
   RETURN_CRITERIA: {
@@ -42,6 +45,7 @@ export type MethodLabPreregistrationExport = {
     privateTwinPayloadIncluded: false;
     simulationBecomesObservation: false;
     epistemicClassesPreserved: true;
+    frozenArmsPreserved: true;
   };
 };
 
@@ -86,6 +90,9 @@ export function buildMethodLabPreregistrationExport(input: {
     HYPOTHESIS: preregistration.HYPOTHESIS,
     T0: preregistration.T0,
     METHOD: preregistration.METHOD,
+    POPULATION_SYSTEM: preregistration.POPULATION_SYSTEM,
+    CONTROL: preregistration.CONTROL,
+    VARIANTS: preregistration.VARIANTS,
     STOPPING_TERMS: preregistration.STOPPING_RULE,
     EXPECTED_SIGNAL: preregistration.EXPECTED_SIGNAL,
     RETURN_CRITERIA: {
@@ -116,6 +123,7 @@ export function buildMethodLabPreregistrationExport(input: {
       privateTwinPayloadIncluded: false,
       simulationBecomesObservation: false,
       epistemicClassesPreserved: true,
+      frozenArmsPreserved: true,
     },
   };
 }
