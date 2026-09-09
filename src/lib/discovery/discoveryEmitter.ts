@@ -3,6 +3,8 @@ import {
   SFI_CANONICAL_OBJECT_CONTRACT,
   SFI_CANONICAL_OBJECT_REGISTRY,
   canonicalPublicationDisposition,
+  validateCanonicalObjectRegistry,
+  type SfiCanonicalEpistemicState,
   type SfiCanonicalObjectRecord,
 } from './canonicalObjectRegistry';
 import { SFI_PUBLIC_PROFILE } from '@/lib/public/institutionProfile';
@@ -11,8 +13,15 @@ import { SFI_PUBLIC_MCP_ENDPOINT } from '@/lib/mcp/publicMcpServer';
 export const SFI_DISCOVERY_EMITTER_CONTRACT = 'SFI-DISCOVERY-EMITTER-1.0' as const;
 export const SFI_DISCOVERY_FEED_CONTRACT = 'SFI-DISCOVERY-FEED-1.0' as const;
 export const SFI_DISCOVERY_EMISSION_RECEIPT_CONTRACT = 'SFI-DISCOVERY-EMISSION-RECEIPT-1.0' as const;
+export const SFI_DISCOVERY_FEED_METADATA = Object.freeze({
+  contract: 'SFI-DISCOVERY-FEED-METADATA-1.0',
+  updatedAt: '2026-09-09T00:00:00.000Z',
+  epistemicClass: 'DECLARED' as const,
+  basis: 'WS-03 Discovery Emitter contract version timestamp; not an observed canonical-object update.',
+});
 
 const BASE = SFI_PUBLIC_PROFILE.institution.canonicalUrl.replace(/\/$/, '');
+const SFI_DISCOVERY_XML_NS = 'https://systemfriction.org/ns/discovery';
 
 export type SfiDiscoveryEmissionEntry = {
   objectKey: string;
@@ -20,6 +29,7 @@ export type SfiDiscoveryEmissionEntry = {
   canonicalUrl: string;
   title: string;
   summary: string;
+  epistemicState: SfiCanonicalEpistemicState;
   version: string;
   language: string;
   updatedAt: string;
@@ -41,6 +51,11 @@ function sha256(value: unknown) {
 }
 
 function eligibleRecords(records: readonly SfiCanonicalObjectRecord[] = SFI_CANONICAL_OBJECT_REGISTRY) {
+  const registryErrors = validateCanonicalObjectRegistry(records);
+  if (registryErrors.length > 0) {
+    throw new Error(`SFI_DISCOVERY_REGISTRY_INVALID:${registryErrors.join('|')}`);
+  }
+
   return records
     .filter((record) => canonicalPublicationDisposition(record).disposition === 'PUBLISH')
     .sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt) || left.canonicalUrl.localeCompare(right.canonicalUrl));
@@ -53,6 +68,7 @@ export function discoveryEmissionEntries(records: readonly SfiCanonicalObjectRec
     canonicalUrl: record.canonicalUrl,
     title: record.title,
     summary: record.summary,
+    epistemicState: record.epistemicState,
     version: record.version,
     language: record.language,
     updatedAt: record.updatedAt,
@@ -105,6 +121,7 @@ export function discoveryJsonFeed(records: readonly SfiCanonicalObjectRecord[] =
     _sfi: {
       contract: SFI_DISCOVERY_FEED_CONTRACT,
       canonicalAuthority: SFI_CANONICAL_OBJECT_CONTRACT,
+      feedMetadata: SFI_DISCOVERY_FEED_METADATA,
       automaticCanon: false,
       automaticPublication: false,
     },
@@ -118,6 +135,7 @@ export function discoveryJsonFeed(records: readonly SfiCanonicalObjectRecord[] =
       authors: entry.authors.map((name) => ({ name })),
       _sfi: {
         objectType: entry.objectType,
+        epistemicState: entry.epistemicState,
         version: entry.version,
         sourceRefs: entry.sourceRefs,
       },
@@ -127,7 +145,9 @@ export function discoveryJsonFeed(records: readonly SfiCanonicalObjectRecord[] =
 
 export function discoveryRssXml(records: readonly SfiCanonicalObjectRecord[] = SFI_CANONICAL_OBJECT_REGISTRY) {
   const entries = discoveryEmissionEntries(records);
-  const updated = entries[0]?.updatedAt ?? '1970-01-01T00:00:00.000Z';
+  const lastBuildDate = entries[0]?.updatedAt
+    ? `<lastBuildDate>${new Date(entries[0].updatedAt).toUTCString()}</lastBuildDate>`
+    : '';
   const items = entries.map((entry) => [
     '<item>',
     `<title>${escapeXml(entry.title)}</title>`,
@@ -137,26 +157,36 @@ export function discoveryRssXml(records: readonly SfiCanonicalObjectRecord[] = S
     `<pubDate>${new Date(entry.updatedAt).toUTCString()}</pubDate>`,
     `<sfi:objectKey>${escapeXml(entry.objectKey)}</sfi:objectKey>`,
     `<sfi:objectType>${escapeXml(entry.objectType)}</sfi:objectType>`,
+    `<sfi:epistemicState>${escapeXml(entry.epistemicState)}</sfi:epistemicState>`,
     `<sfi:version>${escapeXml(entry.version)}</sfi:version>`,
     '</item>',
   ].join('')).join('');
-  return `<?xml version="1.0" encoding="UTF-8"?><rss version="2.0" xmlns:sfi="https://systemfriction.org/ns/discovery"><channel><title>${escapeXml(SFI_PUBLIC_PROFILE.institution.name)} · Canonical Objects</title><link>${escapeXml(BASE)}</link><description>Evidence-governed public canonical objects emitted from the SFI canonical object registry.</description><lastBuildDate>${new Date(updated).toUTCString()}</lastBuildDate>${items}</channel></rss>`;
+  return `<?xml version="1.0" encoding="UTF-8"?><rss version="2.0" xmlns:sfi="${SFI_DISCOVERY_XML_NS}"><channel><title>${escapeXml(SFI_PUBLIC_PROFILE.institution.name)} · Canonical Objects</title><link>${escapeXml(BASE)}</link><description>Evidence-governed public canonical objects emitted from the SFI canonical object registry.</description>${lastBuildDate}${items}</channel></rss>`;
 }
 
 export function discoveryAtomXml(records: readonly SfiCanonicalObjectRecord[] = SFI_CANONICAL_OBJECT_REGISTRY) {
   const entries = discoveryEmissionEntries(records);
-  const updated = entries[0]?.updatedAt ?? '1970-01-01T00:00:00.000Z';
-  const items = entries.map((entry) => [
-    '<entry>',
-    `<id>${escapeXml(entry.canonicalUrl)}</id>`,
-    `<title>${escapeXml(entry.title)}</title>`,
-    `<link href="${escapeXml(entry.canonicalUrl)}"/>`,
-    `<updated>${escapeXml(entry.updatedAt)}</updated>`,
-    `<summary>${escapeXml(entry.summary)}</summary>`,
-    `<category term="${escapeXml(entry.objectType)}"/>`,
-    '</entry>',
-  ].join('')).join('');
-  return `<?xml version="1.0" encoding="UTF-8"?><feed xmlns="http://www.w3.org/2005/Atom"><id>${escapeXml(`${BASE}/feed.atom`)}</id><title>${escapeXml(SFI_PUBLIC_PROFILE.institution.name)} · Canonical Objects</title><link href="${escapeXml(`${BASE}/feed.atom`)}" rel="self"/><link href="${escapeXml(BASE)}"/><updated>${escapeXml(updated)}</updated>${items}</feed>`;
+  const updated = entries[0]?.updatedAt ?? SFI_DISCOVERY_FEED_METADATA.updatedAt;
+  const feedAuthor = `<author><name>${escapeXml(SFI_PUBLIC_PROFILE.institution.name)}</name></author>`;
+  const items = entries.map((entry) => {
+    const authors = entry.authors.map((name) => `<author><name>${escapeXml(name)}</name></author>`).join('');
+    return [
+      '<entry>',
+      `<id>${escapeXml(entry.canonicalUrl)}</id>`,
+      `<title>${escapeXml(entry.title)}</title>`,
+      `<link href="${escapeXml(entry.canonicalUrl)}"/>`,
+      `<updated>${escapeXml(entry.updatedAt)}</updated>`,
+      `<summary>${escapeXml(entry.summary)}</summary>`,
+      `<category term="${escapeXml(entry.objectType)}"/>`,
+      `<sfi:epistemicState>${escapeXml(entry.epistemicState)}</sfi:epistemicState>`,
+      authors,
+      '</entry>',
+    ].join('');
+  }).join('');
+  const feedMetadata = entries.length === 0
+    ? `<sfi:feedUpdatedEpistemicClass>${SFI_DISCOVERY_FEED_METADATA.epistemicClass}</sfi:feedUpdatedEpistemicClass><sfi:feedUpdatedBasis>${escapeXml(SFI_DISCOVERY_FEED_METADATA.basis)}</sfi:feedUpdatedBasis>`
+    : '';
+  return `<?xml version="1.0" encoding="UTF-8"?><feed xmlns="http://www.w3.org/2005/Atom" xmlns:sfi="${SFI_DISCOVERY_XML_NS}"><id>${escapeXml(`${BASE}/feed.atom`)}</id><title>${escapeXml(SFI_PUBLIC_PROFILE.institution.name)} · Canonical Objects</title><link href="${escapeXml(`${BASE}/feed.atom`)}" rel="self"/><link href="${escapeXml(BASE)}"/><updated>${escapeXml(updated)}</updated>${feedAuthor}${feedMetadata}${items}</feed>`;
 }
 
 export function discoveryEmissionReceipt(objectKey: string, records: readonly SfiCanonicalObjectRecord[] = SFI_CANONICAL_OBJECT_REGISTRY) {
@@ -181,6 +211,7 @@ export function discoveryEmissionReceipt(objectKey: string, records: readonly Sf
     canonicalAuthority: SFI_CANONICAL_OBJECT_CONTRACT,
     objectKey: entry.objectKey,
     canonicalUrl: entry.canonicalUrl,
+    epistemicState: entry.epistemicState,
     contentHash: sha256(representation),
     state: 'READY' as const,
     representation,
