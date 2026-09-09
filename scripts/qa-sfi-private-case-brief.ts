@@ -74,7 +74,8 @@ assert.match(atomicMigration, /'atomic',true/);
 assert.match(atomicMigration, /grant execute on function public\.sfi_record_case_object_atomic_v1[\s\S]*service_role/);
 assert.doesNotMatch(atomicMigration, /grant execute[\s\S]*authenticated/);
 
-assert.match(route, /requireRootViewer\('root\.private_case_brief\.read'\)/);
+assert.match(route, /requireRootActor\('root\.private_case_brief\.read_private'\)/, 'private brief reads require ROOT actor authority');
+assert.doesNotMatch(route, /requireRootViewer\(/, 'private case brief must not use observer/viewer authority for service-role asset reads');
 assert.match(route, /requireRootActor\('root\.private_case_brief\.generate'\)/);
 assert.match(route, /autoPublication: false/);
 assert.match(route, /humanApprovalRequired: true/);
@@ -94,6 +95,7 @@ console.log(JSON.stringify({
   canonicalWriter: 'sfi_record_case_object_atomic_v1',
   privateStorage: 'sfi-case-assets',
   rootOnly: true,
+  privateReadAuthority: 'ROOT_ACTOR_ONLY',
   pdfAssembly: 'REAL_BYTES_PAGINATED_TYPE3_UNICODE',
   unicodePolicy: 'GNU_UNIFONT_TYPE3_PLUS_TOUNICODE_FAIL_CLOSED',
   lineage: 'FULL_CANONICAL_REF',
