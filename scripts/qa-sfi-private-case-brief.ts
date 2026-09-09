@@ -44,6 +44,10 @@ assert.ok(
 );
 assert.match(runtime, /safeVersion\(generatedAt, objectId\)/, 'version identity must include collision-safe nonce');
 assert.match(runtime, /loadUnifontGlyphs\(requiredPrivateCaseBriefCodePoints\(renderInput\)\)/);
+assert.ok(
+  runtime.indexOf('loadUnifontGlyphs(requiredPrivateCaseBriefCodePoints(renderInput))') < runtime.indexOf('.upload(storagePath, pdf'),
+  'external glyph source must resolve before durable mutation',
+);
 assert.match(runtime, /recordCanonicalCaseObjectAtomic\(/, 'private brief must use the canonical atomic writer');
 assert.doesNotMatch(runtime, /\.from\('sfi_case_objects'\)\.insert\(/, 'private brief must not maintain a second manifest writer');
 assert.doesNotMatch(runtime, /\.from\('sfi_case_audit_events'\)\.insert\(/, 'private brief audit must be inside the database transaction');
