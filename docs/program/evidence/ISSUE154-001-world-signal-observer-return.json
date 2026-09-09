@@ -1,0 +1,53 @@
+{
+  "contract": "SFI-WORLD-SIGNAL-OBSERVER-EXECUTION-1.1",
+  "gitCommit": "4f5660ad236246d25c8c695c324f20d6ae9d50df",
+  "startedAt": "2026-09-09T06:32:25.477Z",
+  "completedAt": "2026-09-09T06:33:30.256Z",
+  "pass": true,
+  "agent": {
+    "contract": "SFI-WORLD-SIGNAL-OBSERVER-1.0",
+    "id": "world_signal_observer",
+    "name": "WorldSignalObserverAgent",
+    "authority": "OBSERVE",
+    "state": "OBSERVED_WORLD"
+  },
+  "execution": {
+    "observed": 259,
+    "persisted": 259,
+    "activeSourceCount": 9,
+    "sourceCounts": {
+      "usgs-earthquakes": 13,
+      "nasa-eonet": 100,
+      "faa-asws": 8,
+      "bbc-world-rss": 30,
+      "aljazeera-rss": 25,
+      "hackernews-live": 80,
+      "worldbank-ny-gdp-mktp-kd-zg": 1,
+      "worldbank-fp-cpi-totl-zg": 1,
+      "worldbank-sl-uem-totl-zs": 1
+    },
+    "collectorFailures": [
+      {
+        "collector": "collectWorldMonitor",
+        "error": "Error: WORLDMONITOR_API_KEY_MISSING"
+      }
+    ]
+  },
+  "lineage": {
+    "persistedSource": "world_source_observations",
+    "sourceUrlPreserved": true,
+    "sourceIdentityPreserved": true,
+    "actorLineagePreservedWhenObserved": true,
+    "rawHashPreserved": true,
+    "collectorVersionPreserved": true
+  },
+  "epistemicBoundary": {
+    "sourceRecordsAreObservations": true,
+    "frictionReadingsAreDerivedDescriptors": true,
+    "automaticHypothesisPromotion": false,
+    "automaticCaseQualification": false,
+    "automaticCanonPromotion": false,
+    "automaticPublication": false
+  },
+  "returnCondition": "At least one authorized World source is observed and persisted through the canonical World writer with source lineage; no hypothesis/case/canon/publication promotion is performed by this agent."
+}
