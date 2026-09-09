@@ -182,9 +182,6 @@ const snapshotGit = snapshot.git_commit;
 const resetGit = process.env.GITHUB_SHA || runLocal('git', ['rev-parse', 'HEAD']);
 const resetAt = new Date().toISOString();
 
-// One transaction owns the destructive phase. The truncate statement intentionally
-// omits dependency propagation: unexpected references to preserved World data cause
-// a hard failure instead of silently deleting it.
 const transactionSql = `
 begin;
 select pg_advisory_xact_lock(hashtext('SFI_CANONICAL_RESET_V1'));
@@ -195,49 +192,32 @@ insert into sfi_expected_public_tables(table_name) values ${allExpectedValues};
 do $$
 begin
   if exists (
-    select c.relname
-    from pg_class c join pg_namespace n on n.oid=c.relnamespace
+    select c.relname from pg_class c join pg_namespace n on n.oid=c.relnamespace
     where n.nspname='public' and c.relkind='r'
     except select table_name from sfi_expected_public_tables
   ) or exists (
     select table_name from sfi_expected_public_tables
-    except select c.relname
-    from pg_class c join pg_namespace n on n.oid=c.relnamespace
+    except select c.relname from pg_class c join pg_namespace n on n.oid=c.relnamespace
     where n.nspname='public' and c.relkind='r'
-  ) then
-    raise exception 'Public schema drift detected inside reset transaction';
-  end if;
-
+  ) then raise exception 'Public schema drift detected inside reset transaction'; end if;
   if exists (
-    select 1
-    from information_schema.table_constraints tc
-    join information_schema.key_column_usage kcu
-      on tc.constraint_name=kcu.constraint_name and tc.table_schema=kcu.table_schema
-    join information_schema.constraint_column_usage ccu
-      on ccu.constraint_name=tc.constraint_name and ccu.table_schema=tc.table_schema
-    where tc.constraint_type='FOREIGN KEY'
-      and tc.table_schema='public'
-      and tc.table_name in (${preservedSetSql})
-      and ccu.table_name not in (${preservedSetSql})
-  ) then
-    raise exception 'A preserved World table depends on a table scheduled for reset';
-  end if;
+    select 1 from information_schema.table_constraints tc
+    join information_schema.key_column_usage kcu on tc.constraint_name=kcu.constraint_name and tc.table_schema=kcu.table_schema
+    join information_schema.constraint_column_usage ccu on ccu.constraint_name=tc.constraint_name and ccu.table_schema=tc.table_schema
+    where tc.constraint_type='FOREIGN KEY' and tc.table_schema='public'
+      and tc.table_name in (${preservedSetSql}) and ccu.table_name not in (${preservedSetSql})
+  ) then raise exception 'A preserved World table depends on a table scheduled for reset'; end if;
 end $$;
 
 lock table ${PRESERVE_DATA_TABLES.map((table) => `public.${ident(table)}`).join(', ')} in share mode;
 
 create temp table sfi_reset_founder on commit drop as
-select u.id as user_id,
-       u.email,
+select u.id as user_id,u.email,
        coalesce(nullif(u.raw_user_meta_data->>'full_name',''), nullif(u.raw_user_meta_data->>'name',''), split_part(u.email,'@',1), 'Founder') as alias
-from auth.users u
-join public.profiles p on p.user_id=u.id
-where p.role in ('root','system')
-  and coalesce((p.module_access->>'full_access')::boolean,false)=true;
+from auth.users u join public.profiles p on p.user_id=u.id
+where p.role in ('root','system') and coalesce((p.module_access->>'full_access')::boolean,false)=true;
 
-do $$ begin
-  if (select count(*) from sfi_reset_founder) <> 1 then raise exception 'Sovereign founder identity became ambiguous inside reset transaction'; end if;
-end $$;
+do $$ begin if (select count(*) from sfi_reset_founder) <> 1 then raise exception 'Sovereign founder identity became ambiguous inside reset transaction'; end if; end $$;
 
 create temp table sfi_reset_oauth_clients on commit drop as
 select c.* from public.sfi_oauth_clients c join sfi_reset_founder f on f.user_id=c.created_by where c.status='ACTIVE';
@@ -248,68 +228,54 @@ truncate table
 restart identity;
 
 insert into public.profiles(user_id,email,alias,role,subscription_tier,module_access,last_seen_at,created_at,updated_at)
-select user_id,email,alias,'root','founder',
-  jsonb_build_object(
+select user_id,email,alias,'root','founder',jsonb_build_object(
     'root',true,'root_observe',true,'full_access',true,
     'observatory',true,'field',true,'studio',true,'world_field',true,
     'planner',true,'simulator',true,'social',true,
     'executor',false,'root_execution',false,
     'governance_write',true,'sovereign_actions',true,'canonical_promotion',true,
-    'display_title','Founder — System Friction Institute',
-    'genesis_contract','${SFI_CANONICAL_RESET_CONTRACT}'
+    'display_title','Founder — System Friction Institute','genesis_contract','${SFI_CANONICAL_RESET_CONTRACT}'
   ), now(), now(), now()
 from sfi_reset_founder;
 
 create temp table sfi_genesis_account(id uuid primary key) on commit drop;
 with inserted as (
   insert into public.accounts(slug,name,status,metadata)
-  values ('system-friction-institute','System Friction Institute','active',jsonb_build_object('genesis',true,'reset_contract','${SFI_CANONICAL_RESET_CONTRACT}'))
-  returning id
+  values ('system-friction-institute','System Friction Institute','active',jsonb_build_object('genesis',true,'reset_contract','${SFI_CANONICAL_RESET_CONTRACT}')) returning id
 )
 insert into sfi_genesis_account select id from inserted;
 insert into public.account_members(account_id,user_id,role)
 select a.id,f.user_id,'root' from sfi_genesis_account a cross join sfi_reset_founder f;
-insert into public.account_balance(account_id,balance,reserved)
-select id,0,0 from sfi_genesis_account;
+insert into public.account_balance(account_id,balance,reserved) select id,0,0 from sfi_genesis_account;
 
 create temp table sfi_genesis_tenant(id uuid primary key) on commit drop;
 with inserted as (
   insert into public.sfi_tenants(tenant_key,name,tenant_type,status,created_by,metadata)
   select 'personal:'||user_id::text, coalesce(email,'Personal SFI Workspace'), 'PERSONAL','ACTIVE',user_id,
-    jsonb_build_object('genesis',true,'provisionedBy','SFI_CANONICAL_RESET')
-  from sfi_reset_founder
-  returning id
+    jsonb_build_object('genesis',true,'provisionedBy','SFI_CANONICAL_RESET') from sfi_reset_founder returning id
 )
 insert into sfi_genesis_tenant select id from inserted;
 insert into public.sfi_tenant_members(tenant_id,user_id,role,status)
-select t.id,f.user_id,'OWNER','ACTIVE' from sfi_genesis_tenant t cross join sfi_reset_founder f;
+select t.id,f.user_id,'OWNER','ACTIVE' from sfi_genesis_tenant t cross join sfi_reset_founder f
+on conflict (tenant_id,user_id) do update set role='OWNER',status='ACTIVE',updated_at=now();
 
 insert into public.sfi_oauth_clients(
   id,client_id,client_secret_hash,name,created_by,redirect_uris,allowed_scopes,audience,status,metadata,last_used_at,created_at,updated_at
 )
 select id,client_id,client_secret_hash,name,created_by,redirect_uris,allowed_scopes,audience,'ACTIVE',
-  jsonb_build_object('genesis',true,'reseededBy','SFI_CANONICAL_RESET','configurationIdentityPreserved',true),
-  null,now(),now()
+  jsonb_build_object('genesis',true,'reseededBy','SFI_CANONICAL_RESET','configurationIdentityPreserved',true),null,now(),now()
 from sfi_reset_oauth_clients;
 
 insert into public.root_audit_events(actor_id,action,target,payload,created_at)
 select user_id,'SFI_CANONICAL_RESET_GENESIS','database',jsonb_build_object(
-  'contract','${SFI_CANONICAL_RESET_CONTRACT}',
-  'epoch','POST_RESET_GENESIS_1',
-  'snapshot_sha256',${sqlLiteral(snapshotSha)},
-  'snapshot_created_at',${sqlLiteral(snapshotCreatedAt)},
-  'snapshot_git_commit',${sqlLiteral(snapshotGit)},
-  'external_artifact_id',${sqlLiteral(externalArtifactId)},
-  'external_artifact_digest',${sqlLiteral(externalArtifactDigest)},
-  'external_artifact_url',${sqlLiteral(externalArtifactUrl)},
-  'reset_git_commit',${sqlLiteral(resetGit)},
-  'reset_started_at',${sqlLiteral(resetAt)},
+  'contract','${SFI_CANONICAL_RESET_CONTRACT}','epoch','POST_RESET_GENESIS_1',
+  'snapshot_sha256',${sqlLiteral(snapshotSha)},'snapshot_created_at',${sqlLiteral(snapshotCreatedAt)},
+  'snapshot_git_commit',${sqlLiteral(snapshotGit)},'external_artifact_id',${sqlLiteral(externalArtifactId)},
+  'external_artifact_digest',${sqlLiteral(externalArtifactDigest)},'external_artifact_url',${sqlLiteral(externalArtifactUrl)},
+  'reset_git_commit',${sqlLiteral(resetGit)},'reset_started_at',${sqlLiteral(resetAt)},
   'preserved_legacy_data',jsonb_build_array(${PRESERVE_DATA_TABLES.map(sqlLiteral).join(',')}),
-  'legacy_data_discarded_by_default',true,
-  'learning_imported',false,
-  'canonical_history_imported',false
-),now()
-from sfi_reset_founder;
+  'legacy_data_discarded_by_default',true,'learning_imported',false,'canonical_history_imported',false
+),now() from sfi_reset_founder;
 
 do $$
 declare observed_count bigint; table_name text;
@@ -336,7 +302,6 @@ ${preserveExpectedChecks}
   select count(*) into observed_count from public.sfi_oauth_clients;
   if observed_count <> ${currentFounderOauthCount} then raise exception 'OAuth genesis count mismatch: expected ${currentFounderOauthCount}, found %',observed_count; end if;
 end $$;
-
 commit;
 `;
 
@@ -359,20 +324,13 @@ const report = {
   contract: SFI_CANONICAL_RESET_CONTRACT,
   reset_at: new Date().toISOString(),
   snapshot: {
-    receipt: snapshot.receipt,
-    sha256: snapshot.zip_sha256,
-    created_at: snapshot.created_at,
-    git_commit: snapshot.git_commit,
-    classification_verified: snapshot.reset_classification_verified,
-    external_artifact_id: externalArtifactId,
-    external_artifact_digest: externalArtifactDigest,
-    external_artifact_url: externalArtifactUrl,
+    receipt: snapshot.receipt, sha256: snapshot.zip_sha256, created_at: snapshot.created_at,
+    git_commit: snapshot.git_commit, classification_verified: snapshot.reset_classification_verified,
+    external_artifact_id: externalArtifactId, external_artifact_digest: externalArtifactDigest, external_artifact_url: externalArtifactUrl,
   },
   classification: {
-    public_table_count: liveTables.length,
-    preserve_data: PRESERVE_DATA_TABLES,
-    reseed_minimal: RESEED_MINIMAL_TABLES,
-    purge_data_count: PURGE_DATA_TABLES.length,
+    public_table_count: liveTables.length, preserve_data: PRESERVE_DATA_TABLES,
+    reseed_minimal: RESEED_MINIMAL_TABLES, purge_data_count: PURGE_DATA_TABLES.length,
     unclassified: liveClassification.unclassified,
   },
   preserved_counts_before: preserveCounts,
@@ -380,14 +338,8 @@ const report = {
   genesis_infrastructure_counts: postInfrastructureCounts,
   founder_oauth_clients_reseeded: currentFounderOauthCount,
   invariants: [
-    'EXTERNAL_PROOF_UPLOADED_BEFORE_RESET',
-    'NO_DEPENDENCY_PROPAGATION',
-    'LIVE_SCHEMA_EQUALS_SNAPSHOT',
-    'UNCLASSIFIED_ZERO',
-    'WORLD_COUNTS_UNCHANGED',
-    'LEGACY_LEARNING_NOT_IMPORTED',
-    'LEGACY_CANONICAL_HISTORY_NOT_IMPORTED',
-    'ONE_POST_RESET_GENESIS_EVENT',
+    'EXTERNAL_PROOF_UPLOADED_BEFORE_RESET','NO_DEPENDENCY_PROPAGATION','LIVE_SCHEMA_EQUALS_SNAPSHOT','UNCLASSIFIED_ZERO',
+    'WORLD_COUNTS_UNCHANGED','LEGACY_LEARNING_NOT_IMPORTED','LEGACY_CANONICAL_HISTORY_NOT_IMPORTED','ONE_POST_RESET_GENESIS_EVENT',
   ],
 };
 
