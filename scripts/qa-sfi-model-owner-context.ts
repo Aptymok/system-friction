@@ -7,6 +7,7 @@ async function main() {
   const route = await text('src/app/api/external/v1/studio/route.ts');
   const context = await text('src/lib/studio/external/ownerContext.ts');
   const bootstrap = await text('src/app/api/external/v1/bootstrap/route.ts');
+  const manifest = await text('src/app/api/external/v1/manifest/route.ts');
   const openapi = await text('scripts/merge-openapi-studio-attachments.mjs');
   const actionsCompat = await text('scripts/merge-openapi-actions-compat.mjs');
 
@@ -36,6 +37,14 @@ async function main() {
   assert.match(bootstrap, /credential\.authMethod === 'oauth' && credential\.subjectId/);
   assert.match(bootstrap, /read that governed context before concluding that owner data is absent/);
 
+  assert.match(manifest, /version: '1\.16\.0'/);
+  assert.match(manifest, /id: 'studio-context'/);
+  assert.match(manifest, /contract: 'SFI-STUDIO-OWNER-CONTEXT-1\.0'/);
+  assert.match(manifest, /ownerStudioContext/);
+  assert.match(manifest, /binaryContentIncluded: false/);
+  assert.match(manifest, /rootEvidenceIncluded: false/);
+  assert.match(manifest, /institutionalCanonIncluded: false/);
+
   assert.match(openapi, /\['context','ingest_analyze','produce'\]/);
   assert.match(openapi, /context:'studio:read'/);
   assert.match(openapi, /SFI-STUDIO-OWNER-CONTEXT-1\.0/);
@@ -44,8 +53,6 @@ async function main() {
   assert.match(openapi, /institutionalCanonIncluded:false/);
   assert.match(openapi, /api\.info\.version = '1\.16\.0'/);
 
-  // The ChatGPT Actions projection remains derived from canonical OpenAPI and
-  // keeps its compatibility constraints instead of creating a model-specific API.
   assert.match(actionsCompat, /canonicalSource:\s*'\/openapi\.json'/);
   assert.match(actionsCompat, /projection:\s*'\/openapi-actions\.json'/);
   assert.match(actionsCompat, /maxOperationDescriptionChars:\s*300/);
@@ -55,6 +62,7 @@ async function main() {
     contract: 'SFI-STUDIO-OWNER-CONTEXT-1.0',
     oauthSubjectBound: true,
     bootstrapDiscoverable: true,
+    manifestDiscoverable: true,
     contextSources: ['studio_sessions','studio_objects','studio_evidence_traces','studio_archive_events','owner-attributed sfi_amv_memory'],
     binaryContentIncluded: false,
     rootEvidenceIncluded: false,
