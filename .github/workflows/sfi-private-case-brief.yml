@@ -1,0 +1,39 @@
+name: SFI Private Case Brief
+
+on:
+  pull_request:
+    paths:
+      - 'src/lib/sfi/case-platform/privateCaseBrief*.ts'
+      - 'src/app/api/root/private-case-brief/**'
+      - 'supabase/migrations/*private_case_assets*'
+      - 'scripts/qa-sfi-private-case-brief.ts'
+      - '.github/workflows/sfi-private-case-brief.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/lib/sfi/case-platform/privateCaseBrief*.ts'
+      - 'src/app/api/root/private-case-brief/**'
+      - 'supabase/migrations/*private_case_assets*'
+      - 'scripts/qa-sfi-private-case-brief.ts'
+      - '.github/workflows/sfi-private-case-brief.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Verify deterministic PDF, pagination, Unicode and cover lineage
+        run: node --import tsx --test src/lib/sfi/case-platform/privateCaseBriefContract.test.ts
+      - name: Verify ROOT/private/storage/state/rollback boundaries
+        run: npx tsx scripts/qa-sfi-private-case-brief.ts
+      - name: Typecheck
+        run: npm run typecheck
