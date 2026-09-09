@@ -21,19 +21,21 @@ async function main() {
   const trajectoryMigration = await text('supabase/migrations/20260811214500_sfi_inference_and_artifact_trajectory.sql');
   const attractorOwner = await text('src/lib/institution/institutionalAttractor.ts');
 
-  assert.match(exposure, /SFI-DISCOVERY-EXPOSURE-1\.1/);
-  assert.match(exposure, /SFI-EXPOSURE-PACKET-1\.1/);
+  assert.match(exposure, /SFI-DISCOVERY-EXPOSURE-1\.2/);
+  assert.match(exposure, /SFI-EXPOSURE-PACKET-1\.2/);
   assert.match(exposure, /discoveryEmissionEntries/);
   assert.match(exposure, /SFI_EXTERNAL_IDENTITY_NODES/);
   assert.match(exposure, /exposureIsNotCanon: true/);
   assert.match(exposure, /exposureIsNotPublicationReceipt: true/);
   assert.match(exposure, /publishedTargetsAreObjectScoped: true/);
   assert.match(exposure, /externalPublicationLineageObjectScoped: true/);
+  assert.match(exposure, /externalIdentityUrlUsesOriginAndPathBoundary: true/);
   assert.match(exposure, /automaticExternalAction: false/);
   assert.match(exposure, /externalActionRequiresGovernedAdapterOrHuman: true/);
   assert.match(exposure, /row\.state === 'PUBLISHED'/);
   assert.match(exposure, /row\.canonical_object_key === canonicalObjectKey/);
-  assert.match(exposure, /row\.external_url/);
+  assert.match(exposure, /external\.origin !== node\.origin/);
+  assert.match(exposure, /candidatePath === basePath \|\| candidatePath\.startsWith\(`\$\{basePath\}\/`\)/);
   assert.match(exposure, /published\?\.external_url && published\.observed_at/, 'OBSERVED_PUBLISHED must require both external URL and observed time from the selected persisted representation');
   assert.match(exposure, /canonicalObjectKey: published\.canonical_object_key/);
   assert.doesNotMatch(exposure, /\.insert\(|\.upsert\(|\.update\(/, 'Exposure projection must not become a persistence writer');
@@ -67,10 +69,10 @@ async function main() {
   assert.doesNotMatch(control, /head\s*:\s*true/, 'ROOT Discovery interactive read may not use HEAD health probes');
   assert.doesNotMatch(control, /setInterval|setTimeout\(|fetch\(/, 'ROOT Discovery read plane must not create polling/fanout HTTP owners');
 
-  assert.match(institutionalMesh, /SFI-INSTITUTIONAL-DISCOVERY-MESH-1\.0/);
+  assert.match(institutionalMesh, /SFI-INSTITUTIONAL-DISCOVERY-MESH-1\.1/);
   assert.match(institutionalMesh, /SFI-EXTERNAL-REALITY-GRAPH-1\.0/);
-  assert.match(institutionalMesh, /SFI-PROPAGATION-GRAPH-1\.0/);
-  assert.match(institutionalMesh, /SFI-CONVERGENCE-GRAPH-1\.0/);
+  assert.match(institutionalMesh, /SFI-PROPAGATION-GRAPH-1\.1/);
+  assert.match(institutionalMesh, /SFI-CONVERGENCE-GRAPH-1\.1/);
   for (const lens of ['KNOWLEDGE', 'REALITY', 'PROPAGATION', 'CONVERGENCE']) assert.match(institutionalMesh, new RegExp(`'${lens}'`));
   for (const stage of ['EXPOSURE', 'DISCOVERY', 'RECOGNITION', 'INTERACTION', 'RELATION', 'PROPAGATION', 'PULL', 'RETURN']) assert.match(institutionalMesh, new RegExp(`'${stage}'`));
   for (const relation of ['AFFILIATED_WITH', 'CONTROLS_ACCESS_TO', 'INTRODUCED_SFI_TO', 'REQUESTED', 'RETRIEVED', 'CITES']) assert.match(institutionalMesh, new RegExp(`'${relation}'`));
@@ -79,14 +81,26 @@ async function main() {
   assert.match(institutionalMesh, /concreteSfiObjectRequests: 1/);
   assert.match(institutionalMesh, /thirdPartyIntroductions: 1/);
   assert.match(institutionalMesh, /realCasesWithObservedReturn: 1/);
+  assert.match(institutionalMesh, /edge\.founderForced === false/);
+  assert.match(institutionalMesh, /unknownIntroductionOriginCannotCountAsThirdParty: true/);
+  assert.match(institutionalMesh, /stageEvidenceAdmissible = evidenceRefs\.length > 0 && observedEpistemic\(epistemicState\)/);
+  assert.match(institutionalMesh, /semanticStageRequiresEvidenceAndObservedEpistemicState: true/);
+  assert.match(institutionalMesh, /BOUNDED_SAMPLE_CANNOT_FALSIFY_MINIMUM_GATE/);
+  assert.match(institutionalMesh, /saturatedSampleCannotProveInsufficiency: true/);
+  assert.match(institutionalMesh, /boundedSamplesCannotCreateNegativeEvidence: true/);
   assert.match(institutionalMesh, /founderForcedOutreachCannotCountAsPull: true/);
   assert.match(institutionalMesh, /attractorIsLensNotOntology: true/);
   assert.match(institutionalMesh, /CANONICAL_NAMESPACE_CHANGE_SEPARATE_GATE/);
   assert.doesNotMatch(institutionalMesh, /create table|\.from\(|\.insert\(|\.upsert\(|\.update\(/, 'Institutional mesh must remain a projection and not become another DB owner');
 
+  assert.match(institutionalRead, /SFI-INSTITUTIONAL-DISCOVERY-READ-1\.1/);
   assert.match(institutionalRead, /from\('graph_nodes'\)/);
   assert.match(institutionalRead, /from\('graph_edges'\)/);
   assert.match(institutionalRead, /from\('sfi_artifact_trajectory_events'\)/);
+  assert.match(institutionalRead, /sampleCompleteness/);
+  assert.match(institutionalRead, /convergenceEvidenceSampleComplete/);
+  assert.match(institutionalRead, /sampleSaturated/);
+  assert.match(institutionalRead, /saturatedSamplesCannotProveInsufficiency: true/);
   assert.match(institutionalRead, /dbQueries: 3/);
   assert.match(institutionalRead, /exactCountProbes: 0/);
   assert.match(institutionalRead, /pollingLoops: 0/);
@@ -122,7 +136,7 @@ async function main() {
 
   console.log(JSON.stringify({
     ok: true,
-    contract: 'SFI-DISCOVERY-EXPOSURE-QA-1.4',
+    contract: 'SFI-DISCOVERY-EXPOSURE-QA-1.5',
     canonicalOwnerReused: true,
     canonicalGraphReused: true,
     artifactTrajectoryOwnerReused: true,
@@ -136,6 +150,10 @@ async function main() {
     trainingReuseSeparatedFromSearchDiscovery: true,
     publicApiCrawlerAccessAllowlistedOnly: true,
     externalPublicationLineageObjectScoped: true,
+    externalIdentityUrlBoundaryStrict: true,
+    semanticStagesEvidenceBound: true,
+    unknownIntroductionOriginRejected: true,
+    boundedSamplesCannotProveInsufficiency: true,
     realityGraphIsLens: true,
     propagationGraphIsLens: true,
     ManhattanIsAttractor: true,
