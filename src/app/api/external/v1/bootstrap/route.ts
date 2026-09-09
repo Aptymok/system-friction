@@ -30,7 +30,7 @@ export async function GET(req: Request) {
           path: '/api/external/v1/studio',
           body: { operation: 'context' },
           requiredScope: 'studio:read',
-          availability: credential.scopes.includes('studio:read') ? 'AUTHORIZED' : 'REQUIRES_SCOPE',
+          availability: (credential.scopes ?? []).includes('studio:read') ? 'AUTHORIZED' : 'REQUIRES_SCOPE',
           instruction: 'Use this surface when persisted owner Studio/KXTXR lineage or owner-attributed AMV memory is relevant. Returned metadata is context/provenance, not a new observation or proof of binary materialization.',
         }
       : null;
