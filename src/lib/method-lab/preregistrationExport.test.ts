@@ -13,7 +13,9 @@ const preregistration: MethodLabExperimentPreregistration = {
   POPULATION_SYSTEM: { kind: 'SYSTEM', ref: 'case:1', description: 'Owner-scoped case.' },
   INPUTS: [
     { ref: 'case:1', role: 'CONTEXT', epistemicClass: 'DECLARED' },
+    { ref: 'context:missing', role: 'CONTEXT', epistemicClass: 'MISSING' },
     { ref: 'evidence:1', role: 'EVIDENCE', epistemicClass: 'OBSERVED' },
+    { ref: 'evidence:simulated', role: 'EVIDENCE', epistemicClass: 'SIMULATED' },
     { ref: 'model:gpt', role: 'MODEL', epistemicClass: 'DECLARED' },
     { ref: 'passport:bounded', role: 'PASSPORT', epistemicClass: 'DECLARED' },
     { ref: 'twin:private-ref', role: 'TWIN_STATE', epistemicClass: 'DERIVED' },
@@ -31,17 +33,27 @@ const preregistration: MethodLabExperimentPreregistration = {
 
 const definitionHash = 'a'.repeat(64);
 
-test('preregistration export is deterministic, registration-neutral, and payload-private', () => {
+test('preregistration export is deterministic, registration-neutral, payload-private, and epistemically lossless', () => {
   const first = buildMethodLabPreregistrationExport({ preregistration, definitionHash });
   const second = buildMethodLabPreregistrationExport({ preregistration: structuredClone(preregistration), definitionHash });
   assert.equal(first.contractVersion, METHOD_LAB_PREREGISTRATION_EXPORT_CONTRACT_VERSION);
   assert.deepEqual(first, second);
   assert.match(first.exportHash, /^[a-f0-9]{64}$/);
   assert.equal(first.exportId, `method-lab:prereg-export:${preregistration.experimentId}:${definitionHash}`);
-  assert.deepEqual(first.REPRODUCIBILITY_REFS.evidenceRefs, ['evidence:1']);
-  assert.deepEqual(first.REPRODUCIBILITY_REFS.modelRefs, ['model:gpt']);
-  assert.deepEqual(first.REPRODUCIBILITY_REFS.passportRefs, ['passport:bounded']);
-  assert.deepEqual(first.REPRODUCIBILITY_REFS.twinStateRefs, ['twin:private-ref']);
+  assert.deepEqual(first.REPRODUCIBILITY_REFS.evidenceRefs, [
+    { ref: 'evidence:1', epistemicClass: 'OBSERVED' },
+    { ref: 'evidence:simulated', epistemicClass: 'SIMULATED' },
+  ]);
+  assert.deepEqual(first.REPRODUCIBILITY_REFS.modelRefs, [{ ref: 'model:gpt', epistemicClass: 'DECLARED' }]);
+  assert.deepEqual(first.REPRODUCIBILITY_REFS.passportRefs, [{ ref: 'passport:bounded', epistemicClass: 'DECLARED' }]);
+  assert.deepEqual(first.REPRODUCIBILITY_REFS.twinStateRefs, [{ ref: 'twin:private-ref', epistemicClass: 'DERIVED' }]);
+  assert.deepEqual(first.REPRODUCIBILITY_REFS.contextRefs, [
+    { ref: 'case:1', epistemicClass: 'DECLARED' },
+    { ref: 'context:missing', epistemicClass: 'MISSING' },
+  ]);
+  assert.ok(first.REPRODUCIBILITY_REFS.inputs.some((item) => item.ref === 'evidence:simulated' && item.role === 'EVIDENCE' && item.epistemicClass === 'SIMULATED'));
+  assert.ok(first.REPRODUCIBILITY_REFS.inputs.some((item) => item.ref === 'context:missing' && item.role === 'CONTEXT' && item.epistemicClass === 'MISSING'));
+  assert.equal(first.boundaries.epistemicClassesPreserved, true);
   assert.equal(first.boundaries.externalRegistrationClaim, false);
   assert.equal(first.boundaries.registrationState, 'NOT_REGISTERED_EXTERNALLY');
   assert.equal(first.boundaries.privateTwinPayloadIncluded, false);
