@@ -1,0 +1,45 @@
+name: SFI Discovery Emitter
+
+on:
+  pull_request:
+    paths:
+      - 'src/lib/discovery/**'
+      - 'src/app/feed.xml/**'
+      - 'src/app/feed.atom/**'
+      - 'src/app/feed.json/**'
+      - 'src/app/sitemap.ts'
+      - 'src/app/ai-index.json/**'
+      - 'src/app/api/root/discovery/emission/**'
+      - '.github/workflows/sfi-discovery-emitter.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/lib/discovery/**'
+      - 'src/app/feed.xml/**'
+      - 'src/app/feed.atom/**'
+      - 'src/app/feed.json/**'
+      - 'src/app/sitemap.ts'
+      - 'src/app/ai-index.json/**'
+      - 'src/app/api/root/discovery/emission/**'
+      - '.github/workflows/sfi-discovery-emitter.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Verify canonical registry, query mesh and discovery emitter
+        run: node --import tsx --test src/lib/discovery/canonicalObjectRegistry.test.ts src/lib/discovery/discoveryMesh.test.ts src/lib/discovery/discoveryEmitter.test.ts
+      - name: Verify durable discovery authority and observation boundaries
+        run: npx tsx scripts/qa-sfi-discovery-operational.ts
+      - name: Typecheck
+        run: npm run typecheck
