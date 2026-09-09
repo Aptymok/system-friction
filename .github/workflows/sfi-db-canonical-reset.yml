@@ -29,6 +29,7 @@ jobs:
       SFI_DB_EVIDENCE_DIR: /tmp/sfi-db-evidence
       SFI_DB_REQUIRE_RESET_CLASSIFICATION: 'YES'
       SFI_DB_SNAPSHOT_MAX_AGE_MINUTES: '180'
+      SFI_INSTITUTIONAL_INTEGRATION_STATE: /tmp/sfi-institutional-integrations.json
     steps:
       - name: Checkout exact main state
         uses: actions/checkout@v4
@@ -55,12 +56,22 @@ jobs:
             grep -Fx 'SFI_DB_CANONICAL_RESET=ISSUE_430' .github/sfi-db-canonical-reset-trigger
           fi
 
-      - name: Install PostgreSQL client and ZIP
+      - name: Install reset dependencies
         shell: bash
         run: |
           set -euo pipefail
           sudo apt-get update -y
           sudo apt-get install -y postgresql-client zip unzip
+          npm ci
+
+      - name: Export and validate canonical institutional integrations
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --import tsx scripts/db/preserve-institutional-integrations.ts export
+          node --import tsx scripts/db/preserve-institutional-integrations.ts verify
+          test -s "$SFI_INSTITUTIONAL_INTEGRATION_STATE"
+          chmod 600 "$SFI_INSTITUTIONAL_INTEGRATION_STATE"
 
       - name: Create fresh full evidentiary snapshot
         shell: bash
@@ -88,7 +99,7 @@ jobs:
           retention-days: 90
           compression-level: 0
 
-      - name: Execute founder-authorized canonical reset
+      - name: Execute canonical reset and restore registered institutional integrations
         shell: bash
         env:
           SFI_DB_SNAPSHOT_RECEIPT: ${{ steps.receipt.outputs.path }}
@@ -100,13 +111,18 @@ jobs:
         run: |
           set -euo pipefail
           node scripts/db/reset-sfi-operational-tables.mjs
+          node --import tsx scripts/db/preserve-institutional-integrations.ts restore | tee /tmp/sfi-institutional-restore.json
+          node --import tsx scripts/db/preserve-institutional-integrations.ts verify
+          rm -f "$SFI_INSTITUTIONAL_INTEGRATION_STATE"
 
-      - name: Upload post-reset genesis receipt
+      - name: Upload post-reset genesis receipts
         id: genesis
         uses: actions/upload-artifact@v4
         with:
           name: sfi-db-post-reset-genesis-${{ github.run_id }}
-          path: docs/db/SFI_CANONICAL_RESET_REPORT_*.json
+          path: |
+            docs/db/SFI_CANONICAL_RESET_REPORT_*.json
+            /tmp/sfi-institutional-restore.json
           if-no-files-found: error
           retention-days: 90
 
@@ -123,5 +139,6 @@ jobs:
             echo "- Post-reset genesis artifact: \`${{ steps.genesis.outputs.artifact-id }}\`"
             echo '- Legacy preservation: **full longitudinal World corpus**'
             echo '- Protected World plane: source observations, friction readings, hypotheses, outcomes, learning events, WorldSpect snapshots, World Vector cycles/observations/reports/alerts'
+            echo '- Registered institutional identities/OAuth configuration: **reseeded from canonical registry; no authority expansion; no usage history restored**'
             echo '- Twin/AMV/QA/governance/runtime learning outside the World corpus: **not imported**'
           } >> "$GITHUB_STEP_SUMMARY"
