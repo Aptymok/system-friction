@@ -11,6 +11,7 @@ on:
       - 'src/app/ai-index.json/**'
       - 'src/app/api/root/discovery/emission/**'
       - 'scripts/qa-sfi-discovery-emitter.ts'
+      - 'supabase/migrations/*discovery_emission_identity.sql'
       - '.github/workflows/sfi-discovery-emitter.yml'
   push:
     branches:
@@ -24,6 +25,7 @@ on:
       - 'src/app/ai-index.json/**'
       - 'src/app/api/root/discovery/emission/**'
       - 'scripts/qa-sfi-discovery-emitter.ts'
+      - 'supabase/migrations/*discovery_emission_identity.sql'
       - '.github/workflows/sfi-discovery-emitter.yml'
 
 permissions:
