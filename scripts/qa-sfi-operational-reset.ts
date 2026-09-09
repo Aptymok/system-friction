@@ -21,6 +21,7 @@ const snapshotWorkflow = read('.github/workflows/sfi-db-proof-snapshot.yml');
 const resetWorkflow = read('.github/workflows/sfi-db-canonical-reset.yml');
 const readiness = read('src/lib/root/closure/readInstitutionalReadiness.ts');
 const proof = read('src/lib/root/closure/fullCycleVerification.ts');
+const continuityReseed = read('supabase/migrations/20260909154500_continuity_state_singleton_reseed.sql');
 
 const WORLD_LONGITUDINAL_TABLES = [
   'world_source_observations',
@@ -35,7 +36,7 @@ const WORLD_LONGITUDINAL_TABLES = [
   'world_vector_alerts',
 ] as const;
 
-assert.equal(SFI_CANONICAL_RESET_CONTRACT, 'SFI-CANONICAL-RESET-CLASSIFICATION-1.1');
+assert.equal(SFI_CANONICAL_RESET_CONTRACT, 'SFI-CANONICAL-RESET-CLASSIFICATION-1.2');
 assert.deepEqual(PRESERVE_DATA_TABLES, WORLD_LONGITUDINAL_TABLES);
 assert.deepEqual(RESEED_MINIMAL_TABLES, [
   'profiles',
@@ -45,8 +46,9 @@ assert.deepEqual(RESEED_MINIMAL_TABLES, [
   'accounts',
   'account_members',
   'account_balance',
+  'sfi_continuity_state',
 ]);
-assert.equal(PURGE_DATA_TABLES.length, 147, 'live reset baseline must explicitly classify all 147 non-World/non-genesis public tables');
+assert.equal(PURGE_DATA_TABLES.length, 146, 'live reset baseline must explicitly classify all 146 non-World/non-genesis public tables');
 assert.equal(CLASSIFIED_PUBLIC_TABLES.length, 164, 'reset baseline must classify every public table observed after Discovery integration');
 assert.equal(new Set(CLASSIFIED_PUBLIC_TABLES).size, CLASSIFIED_PUBLIC_TABLES.length, 'reset classification must contain no duplicate table');
 for (const table of PRESERVE_DATA_TABLES) assert.equal(classifyPublicTable(table), 'PRESERVE_DATA');
@@ -60,8 +62,8 @@ const exactAudit = auditPublicTableClassification(CLASSIFIED_PUBLIC_TABLES);
 assert.equal(exactAudit.unclassified.length, 0);
 assert.equal(exactAudit.classifiedButNotObserved.length, 0);
 assert.equal(exactAudit.preserveData.length, 10);
-assert.equal(exactAudit.reseedMinimal.length, 7);
-assert.equal(exactAudit.purgeData.length, 147);
+assert.equal(exactAudit.reseedMinimal.length, 8);
+assert.equal(exactAudit.purgeData.length, 146);
 
 for (const table of ['epistemic_events','sfi_amv_memory','policy_decisions','action_proposals','sfi_cognitive_twin_memory','sfi_cognitive_twin_runs','platform_metric_snapshots']) {
   assert.ok(PURGE_DATA_TABLES.includes(table), `non-World legacy/runtime table must be explicitly purged: ${table}`);
@@ -69,6 +71,8 @@ for (const table of ['epistemic_events','sfi_amv_memory','policy_decisions','act
 assert.ok(PURGE_DATA_TABLES.includes('root_audit_events'), 'pre-reset ROOT audit history must be purged before one new genesis receipt is inserted');
 assert.ok(PURGE_DATA_TABLES.includes('sfi_oauth_authorization_codes'), 'OAuth authorization-code history must not survive reset');
 assert.ok(PURGE_DATA_TABLES.includes('usage_ledger'), 'usage telemetry must not survive as legacy institutional state');
+assert.ok(RESEED_MINIMAL_TABLES.includes('sfi_continuity_state'), 'continuity singleton is required infrastructure and must be reseeded');
+assert.ok(!PURGE_DATA_TABLES.includes('sfi_continuity_state'), 'continuity singleton may not be validated as a permanently empty purge table');
 
 assert.match(snapshot, /SFI_DB_EVIDENCE_SNAPSHOT_V2/);
 assert.match(snapshot, /SFI_DB_EVIDENCE_RECEIPT_V2/);
@@ -117,6 +121,14 @@ assert.doesNotMatch(reset, /LATEST_EXPORT\.txt/);
 assert.doesNotMatch(reset, /SFI_FULL_CYCLE_PROOF_/);
 assert.doesNotMatch(reset, /SFI_CLEANUP_PLAN_/);
 assert.doesNotMatch(reset, /deleteAllRowsByKnownColumns/);
+
+assert.match(continuityReseed, /SFI-CONTINUITY-STATE-SINGLETON-RESEED-1\.0/);
+assert.match(continuityReseed, /after truncate on public\.sfi_continuity_state/i);
+assert.match(continuityReseed, /insert into public\.sfi_continuity_state/i);
+assert.match(continuityReseed, /'institution'/);
+assert.match(continuityReseed, /'NORMAL'/);
+assert.match(continuityReseed, /on conflict \(id\) do nothing/i);
+assert.doesNotMatch(continuityReseed, /delete from public\.sfi_continuity_state/i);
 
 assert.match(legacySeed, /SFI-LEGACY-CANONICAL-HISTORY-SEED-RETIRED-1\.0/);
 assert.match(legacySeed, /QA reports, operational patches and runtime events/);
@@ -181,6 +193,7 @@ console.log(JSON.stringify({
     'WORLD_OBSERVATIONS_HYPOTHESES_OUTCOMES_LEARNING_NEVER_PURGED',
     'WORLDSPECT_AND_WORLD_VECTOR_HISTORY_NEVER_PURGED',
     'MINIMAL_INFRASTRUCTURE_IS_RESEEDED_NOT_PRESERVED',
+    'CONTINUITY_SINGLETON_RESEEDED_AFTER_TRUNCATE',
     'NO_TRUNCATE_DEPENDENCY_PROPAGATION',
     'WORLD_EXACT_COUNTS_MUST_SURVIVE',
     'TWIN_AMV_QA_GOVERNANCE_RUNTIME_HISTORY_PURGED',
