@@ -1,0 +1,36 @@
+name: SFI Continuity Reset Reseed
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/db/sfi-canonical-reset-classification.mjs'
+      - 'scripts/db/reset-sfi-operational-tables.mjs'
+      - 'scripts/qa-sfi-continuity-reset-reseed.mjs'
+      - 'supabase/migrations/20260909154500_continuity_state_singleton_reseed.sql'
+      - '.github/workflows/sfi-continuity-reset-reseed.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/db/sfi-canonical-reset-classification.mjs'
+      - 'scripts/db/reset-sfi-operational-tables.mjs'
+      - 'scripts/qa-sfi-continuity-reset-reseed.mjs'
+      - 'supabase/migrations/20260909154500_continuity_state_singleton_reseed.sql'
+      - '.github/workflows/sfi-continuity-reset-reseed.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  continuity-reset-reseed:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Falsify canonical-reset continuity singleton regression
+        run: node scripts/qa-sfi-continuity-reset-reseed.mjs
+      - name: Typecheck
+        run: npm run typecheck
