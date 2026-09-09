@@ -7,6 +7,8 @@ async function main() {
   const exposure = await text('src/lib/discovery/exposureProjection.ts');
   const crawlers = await text('src/lib/discovery/crawlerPolicy.ts');
   const control = await text('src/lib/discovery/discoveryControlPlane.ts');
+  const institutionalMesh = await text('src/lib/discovery/institutionalDiscoveryMesh.ts');
+  const institutionalRead = await text('src/lib/discovery/institutionalDiscoveryReadModel.ts');
   const api = await text('src/app/api/root/discovery/route.ts');
   const page = await text('src/app/root/discovery/page.tsx');
   const robots = await text('src/app/robots.ts');
@@ -15,6 +17,9 @@ async function main() {
   const emitter = await text('src/lib/discovery/discoveryEmitter.ts');
   const identity = await text('src/lib/public/institutionProfile.ts');
   const migration = await text('supabase/migrations/20260908004000_create_sfi_discovery_observation_plane.sql');
+  const graphMigration = await text('supabase/migrations/20260527083000_create_graph_nodes_edges.sql');
+  const trajectoryMigration = await text('supabase/migrations/20260811214500_sfi_inference_and_artifact_trajectory.sql');
+  const attractorOwner = await text('src/lib/institution/institutionalAttractor.ts');
 
   assert.match(exposure, /SFI-DISCOVERY-EXPOSURE-1\.0/);
   assert.match(exposure, /SFI-EXPOSURE-PACKET-1\.0/);
@@ -54,16 +59,52 @@ async function main() {
   assert.doesNotMatch(control, /head\s*:\s*true/, 'ROOT Discovery interactive read may not use HEAD health probes');
   assert.doesNotMatch(control, /setInterval|setTimeout\(|fetch\(/, 'ROOT Discovery read plane must not create polling/fanout HTTP owners');
 
+  assert.match(institutionalMesh, /SFI-INSTITUTIONAL-DISCOVERY-MESH-1\.0/);
+  assert.match(institutionalMesh, /SFI-EXTERNAL-REALITY-GRAPH-1\.0/);
+  assert.match(institutionalMesh, /SFI-PROPAGATION-GRAPH-1\.0/);
+  assert.match(institutionalMesh, /SFI-CONVERGENCE-GRAPH-1\.0/);
+  for (const lens of ['KNOWLEDGE', 'REALITY', 'PROPAGATION', 'CONVERGENCE']) assert.match(institutionalMesh, new RegExp(`'${lens}'`));
+  for (const stage of ['EXPOSURE', 'DISCOVERY', 'RECOGNITION', 'INTERACTION', 'RELATION', 'PROPAGATION', 'PULL', 'RETURN']) assert.match(institutionalMesh, new RegExp(`'${stage}'`));
+  for (const relation of ['AFFILIATED_WITH', 'CONTROLS_ACCESS_TO', 'INTRODUCED_SFI_TO', 'REQUESTED', 'RETRIEVED', 'CITES']) assert.match(institutionalMesh, new RegExp(`'${relation}'`));
+  assert.match(institutionalMesh, /MANHATTAN_OBJECTIVE/);
+  assert.match(institutionalMesh, /independentNycRelationships: 3/);
+  assert.match(institutionalMesh, /concreteSfiObjectRequests: 1/);
+  assert.match(institutionalMesh, /thirdPartyIntroductions: 1/);
+  assert.match(institutionalMesh, /realCasesWithObservedReturn: 1/);
+  assert.match(institutionalMesh, /founderForcedOutreachCannotCountAsPull: true/);
+  assert.match(institutionalMesh, /attractorIsLensNotOntology: true/);
+  assert.match(institutionalMesh, /CANONICAL_NAMESPACE_CHANGE_SEPARATE_GATE/);
+  assert.doesNotMatch(institutionalMesh, /create table|\.from\(|\.insert\(|\.upsert\(|\.update\(/, 'Institutional mesh must remain a projection and not become another DB owner');
+
+  assert.match(institutionalRead, /from\('graph_nodes'\)/);
+  assert.match(institutionalRead, /from\('graph_edges'\)/);
+  assert.match(institutionalRead, /from\('sfi_artifact_trajectory_events'\)/);
+  assert.match(institutionalRead, /dbQueries: 3/);
+  assert.match(institutionalRead, /exactCountProbes: 0/);
+  assert.match(institutionalRead, /pollingLoops: 0/);
+  assert.match(institutionalRead, /nPlusOneReads: 0/);
+  assert.doesNotMatch(institutionalRead, /count\s*:\s*['"]exact['"]|head\s*:\s*true|setInterval|setTimeout\(|fetch\(/, 'Institutional Discovery read model must stay bounded');
+  assert.match(graphMigration, /create table if not exists public\.graph_nodes/);
+  assert.match(graphMigration, /create table if not exists public\.graph_edges/);
+  assert.match(trajectoryMigration, /create table if not exists public\.sfi_artifact_trajectory_events/);
+  assert.match(trajectoryMigration, /does not prove causality, semantic drift or propagation without supporting evidence/);
+  assert.match(attractorOwner, /sfi_attractors/);
+  assert.match(attractorOwner, /sfi_attractor_trajectory_snapshots/);
+
   assert.match(api, /requireRootViewer\('root\.discovery\.read'\)/);
   assert.match(api, /readDiscoveryControlPlane/);
+  assert.match(api, /readInstitutionalDiscoveryMesh/);
+  assert.match(api, /Promise\.all/);
   assert.match(api, /private, no-store/);
   assert.match(page, /requireRootObserverPage\('\/root\/discovery'\)/);
   assert.match(page, /Discovery \+ Exposure/);
   assert.match(page, /exact counts:/);
-  for (const section of ['Entity health', 'AI discovery', 'Crawlers', 'Academic graph', 'Propagation receipts', 'Collisions', 'Failed publications']) assert.match(page, new RegExp(section));
+  for (const section of ['Knowledge graph', 'AI discovery', 'Crawlers', 'Academic graph', 'EXTERNAL REALITY GRAPH', 'Propagation graph', 'Discovery lifecycle', 'Manhattan attractor', 'Minimum convergence gate', 'Propagation receipts', 'Collisions', 'Publication mesh']) assert.match(page, new RegExp(section));
 
   assert.match(aiIndex, /discoveryExposurePlan/);
-  assert.match(aiIndex, /exposure:/);
+  assert.match(aiIndex, /institutional_discovery_mesh:/);
+  assert.match(aiIndex, /SFI_MANHATTAN_ATTRACTOR/);
+  assert.match(aiIndex, /founderForcedMovementCannotBecomePull: true/);
   assert.match(aiIndex, /Exposure\/discovery does not imply publication, validation, authority or model-training permission/);
 
   assert.match(emitter, /SFI-DISCOVERY-EMITTER-1\.0/);
@@ -73,15 +114,22 @@ async function main() {
 
   console.log(JSON.stringify({
     ok: true,
-    contract: 'SFI-DISCOVERY-EXPOSURE-QA-1.1',
+    contract: 'SFI-DISCOVERY-EXPOSURE-QA-1.2',
     canonicalOwnerReused: true,
+    canonicalGraphReused: true,
+    artifactTrajectoryOwnerReused: true,
+    attractorOwnerReused: true,
     externalIdentityOwnerReused: true,
     externalRepresentationOwnerReused: true,
     rootControlPlane: true,
-    dbQueries: 3,
+    interactiveDbQueries: 6,
     exactCountProbes: 0,
     pollingLoops: 0,
     trainingReuseSeparatedFromSearchDiscovery: true,
+    realityGraphIsLens: true,
+    propagationGraphIsLens: true,
+    ManhattanIsAttractor: true,
+    publicationNamespaceSeparateCanonicalGate: true,
     automaticPublication: false,
     automaticCanon: false,
     automaticExternalAction: false,
