@@ -4,7 +4,11 @@ import {
   type MethodLabExperimentPreregistration,
 } from './experimentContract';
 
-export const METHOD_LAB_PREREGISTRATION_EXPORT_CONTRACT_VERSION = 'SFI-METHOD-LAB-PREREGISTRATION-EXPORT-1.0' as const;
+export const METHOD_LAB_PREREGISTRATION_EXPORT_CONTRACT_VERSION = 'SFI-METHOD-LAB-PREREGISTRATION-EXPORT-1.1' as const;
+
+type PreregistrationInput = MethodLabExperimentPreregistration['INPUTS'][number];
+type ReproducibilityRef = Pick<PreregistrationInput, 'ref' | 'role' | 'epistemicClass'>;
+type RoleRef = Pick<PreregistrationInput, 'ref' | 'epistemicClass'>;
 
 export type MethodLabPreregistrationExport = {
   contractVersion: typeof METHOD_LAB_PREREGISTRATION_EXPORT_CONTRACT_VERSION;
@@ -23,12 +27,13 @@ export type MethodLabPreregistrationExport = {
     falsification: MethodLabExperimentPreregistration['FALSIFICATION'];
   };
   REPRODUCIBILITY_REFS: {
-    evidenceRefs: string[];
-    modelRefs: string[];
-    passportRefs: string[];
-    twinStateRefs: string[];
-    parameterRefs: string[];
-    contextRefs: string[];
+    inputs: ReproducibilityRef[];
+    evidenceRefs: RoleRef[];
+    modelRefs: RoleRef[];
+    passportRefs: RoleRef[];
+    twinStateRefs: RoleRef[];
+    parameterRefs: RoleRef[];
+    contextRefs: RoleRef[];
   };
   boundaries: {
     externalRegistrationClaim: false;
@@ -36,6 +41,7 @@ export type MethodLabPreregistrationExport = {
     canonicalMutation: false;
     privateTwinPayloadIncluded: false;
     simulationBecomesObservation: false;
+    epistemicClassesPreserved: true;
   };
 };
 
@@ -52,8 +58,17 @@ function sha256(value: unknown) {
   return createHash('sha256').update(JSON.stringify(canonicalize(value))).digest('hex');
 }
 
-function refsByRole(preregistration: MethodLabExperimentPreregistration, role: MethodLabExperimentPreregistration['INPUTS'][number]['role']) {
-  return [...new Set(preregistration.INPUTS.filter((input) => input.role === role).map((input) => input.ref))].sort();
+function refsByRole(preregistration: MethodLabExperimentPreregistration, role: PreregistrationInput['role']): RoleRef[] {
+  return preregistration.INPUTS
+    .filter((item) => item.role === role)
+    .map((item) => ({ ref: item.ref, epistemicClass: item.epistemicClass }))
+    .sort((left, right) => left.ref.localeCompare(right.ref) || left.epistemicClass.localeCompare(right.epistemicClass));
+}
+
+function allInputRefs(preregistration: MethodLabExperimentPreregistration): ReproducibilityRef[] {
+  return preregistration.INPUTS
+    .map((item) => ({ ref: item.ref, role: item.role, epistemicClass: item.epistemicClass }))
+    .sort((left, right) => left.ref.localeCompare(right.ref) || left.role.localeCompare(right.role) || left.epistemicClass.localeCompare(right.epistemicClass));
 }
 
 export function buildMethodLabPreregistrationExport(input: {
@@ -78,6 +93,7 @@ export function buildMethodLabPreregistrationExport(input: {
       falsification: preregistration.FALSIFICATION,
     },
     REPRODUCIBILITY_REFS: {
+      inputs: allInputRefs(preregistration),
       evidenceRefs: refsByRole(preregistration, 'EVIDENCE'),
       modelRefs: refsByRole(preregistration, 'MODEL'),
       passportRefs: refsByRole(preregistration, 'PASSPORT'),
@@ -99,6 +115,7 @@ export function buildMethodLabPreregistrationExport(input: {
       canonicalMutation: false,
       privateTwinPayloadIncluded: false,
       simulationBecomesObservation: false,
+      epistemicClassesPreserved: true,
     },
   };
 }
