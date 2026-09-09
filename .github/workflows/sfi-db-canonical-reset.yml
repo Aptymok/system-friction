@@ -84,6 +84,12 @@ jobs:
           set -euo pipefail
           node scripts/db/resolve-reset-database-url.mjs
 
+      - name: Fail closed unless continuity reseed trigger is live
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/db/verify-continuity-reseed-ready.mjs pre
+
       - name: Export and validate canonical genesis configuration
         shell: bash
         run: |
@@ -134,6 +140,7 @@ jobs:
         run: |
           set -euo pipefail
           node scripts/db/reset-sfi-operational-tables.mjs
+          node scripts/db/verify-continuity-reseed-ready.mjs post | tee /tmp/sfi-continuity-reseed.json
           node --import tsx scripts/db/preserve-institutional-integrations.ts restore | tee /tmp/sfi-institutional-restore.json
           node --import tsx scripts/db/preserve-production-instrument-bank.ts restore | tee /tmp/sfi-instrument-restore.json
           node --import tsx scripts/db/preserve-institutional-integrations.ts verify
@@ -147,6 +154,7 @@ jobs:
           name: sfi-db-post-reset-genesis-${{ github.run_id }}
           path: |
             docs/db/SFI_CANONICAL_RESET_REPORT_*.json
+            /tmp/sfi-continuity-reseed.json
             /tmp/sfi-institutional-restore.json
             /tmp/sfi-instrument-restore.json
           if-no-files-found: error
@@ -166,6 +174,7 @@ jobs:
             echo '- Database route: **Supavisor session mode / IPv4 / SSL required**'
             echo '- Legacy preservation: **full longitudinal World corpus**'
             echo '- Protected World plane: source observations, friction readings, hypotheses, outcomes, learning events, WorldSpect snapshots, World Vector cycles/observations/reports/alerts'
+            echo '- Continuity singleton: **RESEED_MINIMAL; live AFTER TRUNCATE trigger required before destructive reset and post-reset singleton verified**'
             echo '- Registered institutional identities/OAuth configuration: **reseeded from canonical registry; no authority expansion; no usage history restored**'
             echo '- Production Instrument Bank configuration: **PRODUCTION + ELIGIBLE SFZ packages and rights evidence reseeded; render history not restored**'
             echo '- Twin/AMV/QA/governance/runtime learning outside the World corpus: **not imported**'
