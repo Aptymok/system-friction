@@ -6,10 +6,21 @@ const repo = process.env.GITHUB_REPOSITORY || 'Aptymok/system-friction';
 const token = process.env.GITHUB_TOKEN || '';
 const convergenceBranch = process.env.SFI_CONVERGENCE_BRANCH || process.env.GITHUB_HEAD_REF || '';
 const manifestPath = '.github/sfi-main-convergence-20260827.json';
+const supplementalReviewPaths = ['.github/sfi-main-convergence-reviews-20260909.json'];
 const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
-const reviewedDeltas = manifest?.reviewedDeltas && typeof manifest.reviewedDeltas === 'object'
-  ? manifest.reviewedDeltas
-  : {};
+const reviewedDeltas = {};
+for (const [sourcePath, source] of [
+  [manifestPath, manifest],
+  ...supplementalReviewPaths.map((path) => [path, JSON.parse(readFileSync(path, 'utf8'))]),
+]) {
+  const entries = source?.reviewedDeltas && typeof source.reviewedDeltas === 'object'
+    ? source.reviewedDeltas
+    : {};
+  for (const [reviewKey, review] of Object.entries(entries)) {
+    if (reviewedDeltas[reviewKey]) throw new Error(`DUPLICATE_REVIEW_KEY:${reviewKey}:${sourcePath}`);
+    reviewedDeltas[reviewKey] = review;
+  }
+}
 const allowedDecisions = new Set([
   'ABSORBED_BY_MERGED_MAIN',
   'SUPERSEDED_BY_LATER_MAIN',
@@ -228,6 +239,7 @@ const result = {
   repo,
   manifestId: manifest.id ?? null,
   mainOnlyTarget: manifest.target === 'main-only',
+  reviewSources: [manifestPath, ...supplementalReviewPaths],
   totalNonMainBranches: branches.length,
   automaticallyAbsorbedCount: automaticallyAbsorbed.length,
   candidateBranchCount,

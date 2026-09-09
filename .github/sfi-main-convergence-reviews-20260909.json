@@ -1,0 +1,36 @@
+{
+  "contract": "SFI-MAIN-CONVERGENCE-REVIEW-LEDGER-1.0",
+  "observedAgainstMain": "c12f28c38d81e228e29e0e31aea93019248bf8e0",
+  "reviewedDeltas": {
+    "4ef7801c4803bd7d": {
+      "decision": "SUPERSEDED_BY_LATER_MAIN",
+      "branches": ["ws02/preregistration-export-slice-f"],
+      "evidence": [
+        "PR #458 merged the governed preregistration export on current main as the canonical WS-02 Slice F implementation",
+        "PR #459 subsequently merged SFI-METHOD-LAB-PREREGISTRATION-EXPORT-1.2, preserving epistemic classes plus frozen POPULATION_SYSTEM, CONTROL and VARIANTS",
+        "the stale slice-f branch predates those merged assurance repairs and is far behind current main"
+      ],
+      "reason": "The draft Slice F delta is superseded by the later merged and assurance-repaired preregistration export. Reintroducing it would regress the canonical 1.2 reproducibility semantics."
+    },
+    "be45eb9b8bc2055b": {
+      "decision": "SUPERSEDED_BY_LATER_MAIN",
+      "branches": ["ws02/preregistration-export-slice-f-clean"],
+      "evidence": [
+        "PR #458 merged the current-main preregistration export and dedicated exact-head workflow",
+        "PR #459 merged the later reproducibility corrections required by independent assurance",
+        "current main retains the owner-scoped read-only export while the clean draft remains an older divergent implementation"
+      ],
+      "reason": "The clean draft is historical implementation provenance only. Its valid intent was carried into #458 and then corrected by #459; the branch must not overwrite the later canonical Method Lab contract."
+    },
+    "49138b59bf1c3114": {
+      "decision": "REJECTED_ALTERNATE_IMPLEMENTATION",
+      "branches": ["ws06/governed-audio-return-final"],
+      "evidence": [
+        "the branch projects a LAB_ONLY MIHM_F_S formal proxy into metrics.fad and marks that proxy OBSERVED when enough acoustic inputs exist",
+        "merged PR #460 explicitly established that FAD has no canonical persisted measurement receipt owner and therefore must remain unavailable rather than inferred or substituted",
+        "PR #460 passed exact-head SFI-08 assurance and current main preserves the canonical metric-owner verifier and MISSING-remains-MISSING boundary"
+      ],
+      "reason": "This alternate FAD projection conflicts with the later epistemic decision in canonical main. A generated-waveform formal proxy cannot become the institutional FAD observation. The branch is rejected rather than silently resurrected."
+    }
+  }
+}

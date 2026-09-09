@@ -7,6 +7,7 @@ on:
   pull_request:
     paths:
       - '.github/sfi-main-convergence-20260827.json'
+      - '.github/sfi-main-convergence-reviews-*.json'
       - '.github/workflows/sfi-main-only-convergence.yml'
       - 'scripts/qa-main-only-branch-convergence.mjs'
       - 'src/lib/execution/**'
