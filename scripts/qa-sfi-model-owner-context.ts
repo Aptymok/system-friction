@@ -6,6 +6,7 @@ async function text(path: string) { return readFile(path, 'utf8'); }
 async function main() {
   const route = await text('src/app/api/external/v1/studio/route.ts');
   const context = await text('src/lib/studio/external/ownerContext.ts');
+  const bootstrap = await text('src/app/api/external/v1/bootstrap/route.ts');
   const openapi = await text('scripts/merge-openapi-studio-attachments.mjs');
   const actionsCompat = await text('scripts/merge-openapi-actions-compat.mjs');
 
@@ -28,6 +29,13 @@ async function main() {
   assert.match(route, /operation === 'context'/);
   assert.match(route, /METADATA_ONLY_HISTORICAL_RESTORE does not imply binary materialization/);
 
+  assert.match(bootstrap, /ownerStudioContext/);
+  assert.match(bootstrap, /SFI-STUDIO-OWNER-CONTEXT-1\.0/);
+  assert.match(bootstrap, /body: \{ operation: 'context' \}/);
+  assert.match(bootstrap, /requiredScope: 'studio:read'/);
+  assert.match(bootstrap, /credential\.authMethod === 'oauth' && credential\.subjectId/);
+  assert.match(bootstrap, /read that governed context before concluding that owner data is absent/);
+
   assert.match(openapi, /\['context','ingest_analyze','produce'\]/);
   assert.match(openapi, /context:'studio:read'/);
   assert.match(openapi, /SFI-STUDIO-OWNER-CONTEXT-1\.0/);
@@ -46,6 +54,7 @@ async function main() {
     ok: true,
     contract: 'SFI-STUDIO-OWNER-CONTEXT-1.0',
     oauthSubjectBound: true,
+    bootstrapDiscoverable: true,
     contextSources: ['studio_sessions','studio_objects','studio_evidence_traces','studio_archive_events','owner-attributed sfi_amv_memory'],
     binaryContentIncluded: false,
     rootEvidenceIncluded: false,
