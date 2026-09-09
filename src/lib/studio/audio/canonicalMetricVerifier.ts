@@ -81,7 +81,7 @@ async function verifyScoreFriction(value: number, evidence: SfiAudioMetricEviden
   const evaluated = await evaluateScoreFrictionCase(caseId);
   if (!evaluated) return false;
   const persisted = finite(evaluated.cultural_vector.cvphi);
-  const latestHash = evaluated.evidence.latest_hash;
+  const latestHash = evaluated.evidence?.latest_hash;
   if (persisted === null || !latestHash) return false;
   if (evidence.sourceRef !== `scorefriction_case:${caseId}`) return false;
   if (!evidence.evidenceRefs.includes(latestHash)) return false;
@@ -100,9 +100,7 @@ export async function verifyCanonicalAudioMetric(input: {
   if (!evidence.receiptRef.trim() || !evidence.sourceRef.trim() || !evidence.evidenceRefs.length) return false;
 
   try {
-    if (input.metric === 'fad') {
-      return false;
-    }
+    if (input.metric === 'fad') return false;
     if (input.metric === 'mihm') {
       if (evidence.owner !== 'MIHM' || evidence.epistemicClass !== 'DERIVED') return false;
       return await verifyMihm(input.value, evidence, input.ownerId?.trim() || null);
