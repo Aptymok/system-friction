@@ -12,6 +12,7 @@ const projection = read('src/lib/method-lab/uiProjection.ts');
 const execution = read('src/lib/method-lab/uiExecution.ts');
 const experimentPersistence = read('src/lib/method-lab/experimentPersistence.ts');
 const experimentContract = read('src/lib/method-lab/experimentContract.ts');
+const preregistrationExport = read('src/lib/method-lab/preregistrationExport.ts');
 const reentry = read('src/lib/method-lab/reentryEngine.ts');
 const personalWorkspace = read('src/lib/sfi/personal/cognitiveWorkspace.ts');
 const twinContract = read('src/core/cognitive-twin/contract.ts');
@@ -24,7 +25,7 @@ assert.match(page, /requireRootObserverPage\('\/method-lab'\)/, 'Institutional M
 assert.match(page, /MethodLabExperimentWorkbench/, 'Slice E must mount on the existing canonical /method-lab route.');
 assert.doesNotMatch(page, /createServiceSupabaseClient|\.from\(/, 'Page rendering must not bypass server-owned persistence boundaries.');
 assert.match(route, /requireUserProfile\(\)/, 'Method Lab UI API must authenticate every read/write.');
-assert.match(route, /allowed: \['preregister', 'execute_simulation'\]/, 'UI API operation surface must stay explicitly bounded.');
+assert.match(route, /allowed: \['preregister', 'export_preregistration', 'execute_simulation'\]/, 'UI API operation surface must stay explicitly bounded.');
 assert.doesNotMatch(route, /requireRootActor|auditRootAction/, 'Owner-scoped UI API must not acquire ROOT mutation authority.');
 assert.match(route, /canonicalPromotion: false/, 'UI route must expose the no-canonical-promotion boundary.');
 
@@ -81,11 +82,15 @@ assert.match(ui, /lineageRefs/);
 assert.match(reentry, /REENTRY_NEVER_INHERITS_OBSERVED/);
 assert.match(reentry, /authorityCeiling: 'RECOMMEND'/);
 
-// Slice F metadata is visible but no external preregistration claim is fabricated.
+// Slice F export is a bounded representation of persisted preregistration, never an external registration claim.
 assert.match(ui, /SLICE F PREREGISTRATION METADATA PREVIEW/);
 assert.match(ui, /externalRegistrationClaim: false/);
 assert.match(projection, /externalRegistrationClaim: false/);
-assert.doesNotMatch(projection, /osf\.io|OSF registration exists|externalRegistrationClaim: true/i);
+assert.match(route, /operation === 'export_preregistration'/);
+assert.match(route, /readOwnedMethodLabExperimentPreregistration/);
+assert.match(preregistrationExport, /NOT_REGISTERED_EXTERNALLY/);
+assert.match(preregistrationExport, /privateTwinPayloadIncluded: false/);
+assert.doesNotMatch(`${projection}\n${route}\n${preregistrationExport}`, /osf\.io|OSF registration exists|externalRegistrationClaim: true/i);
 
 // No OBSERVED inheritance, CANON promotion, or Twin authority expansion.
 assert.match(experimentContract, /METHOD_LAB_EXPERIMENT_SIMULATION_CANNOT_BECOME_OBSERVED/);
@@ -95,15 +100,16 @@ assert.match(twinStatePersistence, /canonicalMutation: false/);
 assert.ok(twinContract.includes('authority') || twinContract.includes('Authority'), 'Canonical Cognitive Twin authority contract must remain present.');
 assert.match(twinContract, /founderReservedActions/);
 assert.match(twinContract, /'mutate_canon'/);
-for (const source of [route, projection, execution, ui]) {
-  assert.doesNotMatch(source, /canonicalMutation:\s*true|promotionAllowed:\s*true|EXECUTE_EXTERNAL|IRREVERSIBLE|\bCANON\b\s*:/, 'Slice E cannot expand canonical/external authority.');
+for (const source of [route, projection, execution, ui, preregistrationExport]) {
+  assert.doesNotMatch(source, /canonicalMutation:\s*true|promotionAllowed:\s*true|EXECUTE_EXTERNAL|IRREVERSIBLE|\bCANON\b\s*:/, 'Method Lab UI/export cannot expand canonical/external authority.');
 }
 
-// Persistence owner remains converged; no schema/migration ownership is introduced by Slice E.
+// Persistence owner remains converged; no schema/migration ownership is introduced by Slice E/F.
 assert.match(experimentPersistence, /\.from\('sfi_lab_analyses'\)/);
 assert.match(execution, /\.from\('sfi_lab_analyses'\)/);
 assert.match(projection, /\.from\('sfi_lab_analyses'\)/);
 assert.doesNotMatch(projection, /create table|alter table|migration/i);
 assert.doesNotMatch(execution, /create table|alter table|migration/i);
+assert.doesNotMatch(preregistrationExport, /createServiceSupabaseClient|\.from\(|create table|alter table|migration/i);
 
 console.log('SFI-METHOD-LAB-UI-R4B PASS');
