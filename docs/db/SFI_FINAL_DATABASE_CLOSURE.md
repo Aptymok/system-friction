@@ -1,8 +1,8 @@
 # SFI FINAL DATABASE CLOSURE
 
 Status: **EVIDENCE_FIRST_PRE_ASSURANCE_RESET**  
-Contract: `SFI-FINAL-DATABASE-CLOSURE-1.1`  
-Reset classification: `SFI-CANONICAL-RESET-CLASSIFICATION-1.1`  
+Contract: `SFI-FINAL-DATABASE-CLOSURE-1.2`  
+Reset classification: `SFI-CANONICAL-RESET-CLASSIFICATION-1.2`  
 Supersedes implementation intent of PR #210 and the former terminal-only reset order.
 
 ## Decision
@@ -26,7 +26,7 @@ The accumulated World observations and hypotheses are not cleanup residue. They 
 - `world_vector_reports`
 - `world_vector_alerts`
 
-All ten are `PRESERVE_DATA` under `SFI-CANONICAL-RESET-CLASSIFICATION-1.1`. Their exact row counts are captured in the V2 evidence snapshot and must be identical after reset. Moving any of these tables into purge is a new preservation-boundary decision requiring explicit sovereign authorization.
+All ten are `PRESERVE_DATA` under `SFI-CANONICAL-RESET-CLASSIFICATION-1.2`. Their exact row counts are captured in the V2 evidence snapshot and must be identical after reset. Moving any of these tables into purge is a new preservation-boundary decision requiring explicit sovereign authorization.
 
 ## Reset prerequisites
 
@@ -65,8 +65,8 @@ The reset does not use dependency-propagating truncation. The protected World pl
 At the current 164-table baseline:
 
 - `PRESERVE_DATA`: 10 tables — full World longitudinal corpus;
-- `RESEED_MINIMAL`: 7 tables — minimal profile/tenant/OAuth/account infrastructure;
-- `PURGE_DATA`: 147 tables — non-World QA, telemetry, runtime memory, Twin/AMV, governance residue and other operational history selected by the issue #430 policy;
+- `RESEED_MINIMAL`: 8 tables — minimal profile/tenant/OAuth/account infrastructure plus the required institutional continuity singleton;
+- `PURGE_DATA`: 146 tables — non-World QA, telemetry, runtime memory, Twin/AMV, governance residue and other operational history selected by the issue #430 policy;
 - `UNCLASSIFIED`: must be zero.
 
 A newly appearing public table is never deleted implicitly. It becomes `UNCLASSIFIED` and blocks the reset until intentionally classified.
@@ -79,7 +79,10 @@ After the purge, SFI reconstructs only the minimum current operating identity/co
 - one SFI account and founder membership/balance;
 - one personal tenant and founder ownership membership;
 - active founder OAuth client configuration required for the current integration, without authorization-code or usage history;
+- one required `sfi_continuity_state` singleton with `id=institution`, default `mode=NORMAL` and no inherited pre-reset runtime history;
 - one `SFI_CANONICAL_RESET_GENESIS` audit event bound to snapshot hash, external artifact and reset commit.
+
+The continuity singleton is schema-owned minimum infrastructure. Its disposition is `CONTINUITY_SINGLETON = RESEED_MINIMAL`: it is reconstructed after a bounded reset and is not treated as preserved historical operational state.
 
 The retired `seed-sfi-canonical-history.mjs` must not import QA reports, operational patches or runtime events as institutional history.
 
@@ -106,7 +109,7 @@ transactional purge + minimal genesis
    ↓
 verify all 10 World counts unchanged
    ↓
-verify non-World purge / Auth / ROOT / tenant / OAuth / RLS
+verify non-World purge / Auth / ROOT / tenant / OAuth / continuity singleton / RLS
    ↓
 Human E2E + GPT E2E + API/MCP E2E + persistence/reentry
    ↓
@@ -132,6 +135,7 @@ A clean database is an operational hygiene state. It does not validate historica
 ```text
 DATABASE_CLEANUP = EVIDENCE_FIRST_PRE_ASSURANCE_RESET
 WORLD_LONGITUDINAL_CORPUS = PRESERVE_DATA
+CONTINUITY_SINGLETON = RESEED_MINIMAL
 FINAL_E2E = AFTER_CLEAN_GENESIS
 RESET_EXECUTED = NO
 PR_210_IMPLEMENTATION = SUPERSEDED_BY_CURRENT_ARCHITECTURE
