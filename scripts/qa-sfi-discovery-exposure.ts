@@ -29,9 +29,9 @@ async function main() {
   assert.match(exposure, /exposureIsNotPublicationReceipt: true/);
   assert.match(exposure, /automaticExternalAction: false/);
   assert.match(exposure, /externalActionRequiresGovernedAdapterOrHuman: true/);
-  assert.match(exposure, /state === 'PUBLISHED'/);
+  assert.match(exposure, /row\.state === 'PUBLISHED'/);
   assert.match(exposure, /row\.external_url/);
-  assert.match(exposure, /row\.observed_at/);
+  assert.match(exposure, /published\?\.external_url && published\.observed_at/, 'OBSERVED_PUBLISHED must require both external URL and observed time from the selected persisted representation');
   assert.doesNotMatch(exposure, /\.insert\(|\.upsert\(|\.update\(/, 'Exposure projection must not become a persistence writer');
 
   for (const bot of ['Googlebot', 'Bingbot', 'OAI-SearchBot', 'PerplexityBot']) assert.match(crawlers, new RegExp(bot));
@@ -114,7 +114,7 @@ async function main() {
 
   console.log(JSON.stringify({
     ok: true,
-    contract: 'SFI-DISCOVERY-EXPOSURE-QA-1.2',
+    contract: 'SFI-DISCOVERY-EXPOSURE-QA-1.3',
     canonicalOwnerReused: true,
     canonicalGraphReused: true,
     artifactTrajectoryOwnerReused: true,
