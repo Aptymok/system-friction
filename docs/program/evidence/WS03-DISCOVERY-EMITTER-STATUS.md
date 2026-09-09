@@ -1,3 +1,0 @@
-# WS-03 Discovery Emitter · Status
-
-State before PR assurance: IMPLEMENTED / NOT YET QA_PASS / NOT MERGED / NOT DEPLOYED / NOT OBSERVED_IN_PRODUCTION.
