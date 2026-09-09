@@ -99,7 +99,7 @@ jobs:
           retention-days: 90
           compression-level: 0
 
-      - name: Execute canonical reset and restore registered institutional integrations
+      - name: Execute founder-authorized canonical reset and restore registered institutional integrations
         shell: bash
         env:
           SFI_DB_SNAPSHOT_RECEIPT: ${{ steps.receipt.outputs.path }}
