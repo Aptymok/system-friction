@@ -10,20 +10,10 @@ if (!['export','verify','restore'].includes(mode || '')) throw new Error('Usage:
 
 function pgEnvironment(rawUrl: string) {
   const url = new URL(rawUrl);
-  return {
-    ...process.env,
-    PGHOST: url.hostname,
-    PGPORT: url.port || '5432',
-    PGUSER: decodeURIComponent(url.username),
-    PGPASSWORD: decodeURIComponent(url.password),
-    PGDATABASE: decodeURIComponent(url.pathname.replace(/^\//, '')),
-    PGSSLMODE: process.env.PGSSLMODE || 'require',
-  };
+  return { ...process.env, PGHOST:url.hostname, PGPORT:url.port || '5432', PGUSER:decodeURIComponent(url.username), PGPASSWORD:decodeURIComponent(url.password), PGDATABASE:decodeURIComponent(url.pathname.replace(/^\//,'')), PGSSLMODE:process.env.PGSSLMODE || 'require' };
 }
 function runPsql(sql: string) {
-  const result = spawnSync('psql', ['--no-psqlrc','--set','ON_ERROR_STOP=1','--tuples-only','--no-align','--command',sql], {
-    env: pgEnvironment(databaseUrl!), encoding: 'utf8', stdio: ['ignore','pipe','pipe'], maxBuffer: 16 * 1024 * 1024,
-  });
+  const result = spawnSync('psql', ['--no-psqlrc','--set','ON_ERROR_STOP=1','--tuples-only','--no-align','--command',sql], { env:pgEnvironment(databaseUrl!), encoding:'utf8', stdio:['ignore','pipe','pipe'], maxBuffer:16*1024*1024 });
   if (result.error) throw result.error;
   if (result.status !== 0) throw new Error(`psql failed: ${String(result.stderr || result.stdout).trim()}`);
   return String(result.stdout || '').trim();
@@ -44,8 +34,7 @@ async function loadState(): Promise<State> {
   const seen = new Set<string>();
   for (const item of parsed.members) {
     const email = String(item.email || '').toLowerCase();
-    const member = registryByEmail.get(email);
-    if (!member) throw new Error(`SFI_INSTITUTIONAL_MEMBER_NO_LONGER_REGISTERED:${email}`);
+    if (!registryByEmail.has(email)) throw new Error(`SFI_INSTITUTIONAL_MEMBER_NO_LONGER_REGISTERED:${email}`);
     if (seen.has(email)) throw new Error(`SFI_INSTITUTIONAL_MEMBER_DUPLICATE:${email}`);
     seen.add(email);
     if (!item.user_id || !Array.isArray(item.clients)) throw new Error(`SFI_INSTITUTIONAL_MEMBER_STATE_INVALID:${email}`);
@@ -71,9 +60,7 @@ if (mode === 'verify') {
   for (const item of state.members) {
     const member = registryByEmail.get(item.email.toLowerCase())!;
     if ((member.role as string) === 'root' || (member.role as string) === 'system') throw new Error('SFI_INSTITUTIONAL_GENESIS_SOVEREIGN_ROLE_FORBIDDEN');
-    for (const client of item.clients) {
-      if (!client.client_id || !client.client_secret_hash || !client.redirect_uris?.length) throw new Error(`SFI_INSTITUTIONAL_OAUTH_CONFIG_INCOMPLETE:${item.email}`);
-    }
+    for (const client of item.clients) if (!client.client_id || !client.client_secret_hash || !client.redirect_uris?.length) throw new Error(`SFI_INSTITUTIONAL_OAUTH_CONFIG_INCOMPLETE:${item.email}`);
   }
   console.log(JSON.stringify({ ok:true, contract:state.contract, authorityExpansion:false, registeredMembersOnly:true }));
 }
@@ -83,40 +70,17 @@ if (mode === 'restore') {
   const accountId = runPsql("select id::text from public.accounts where slug='system-friction-institute' limit 1;");
   const tenantId = runPsql("select id::text from public.sfi_tenants where tenant_key like 'personal:%' order by created_at limit 1;");
   if (!accountId || !tenantId) throw new Error('SFI_GENESIS_ACCOUNT_OR_TENANT_MISSING');
-
   const statements: string[] = ['begin;'];
   for (const item of state.members) {
     const member = registryByEmail.get(item.email.toLowerCase())!;
-    const access = {
-      display_title: member.title,
-      observatory: member.modules.observatory,
-      planner: member.modules.field,
-      simulator: member.modules.studio,
-      social: member.modules.worldField,
-      field: member.modules.field,
-      studio: member.modules.studio,
-      world_field: member.modules.worldField,
-      root: member.modules.root,
-      root_observe: member.modules.root,
-      full_access: false, executor: false, root_execution: false,
-      governance_write: false, sovereign_actions: false, canonical_promotion: false,
-      external_agent: true, external_role: member.external.role,
-      external_scopes: member.external.scopes,
-      external_oauth_role: member.external.role,
-      external_oauth_scopes: member.external.scopes,
-      external_studio_owner_scoped: true,
-      genesis_contract: 'SFI-CANONICAL-RESET-CLASSIFICATION-1.1',
-    };
+    const access = { display_title:member.title, observatory:member.modules.observatory, planner:member.modules.field, simulator:member.modules.studio, social:member.modules.worldField, field:member.modules.field, studio:member.modules.studio, world_field:member.modules.worldField, root:member.modules.root, root_observe:member.modules.root, full_access:false, executor:false, root_execution:false, governance_write:false, sovereign_actions:false, canonical_promotion:false, external_agent:true, external_role:member.external.role, external_scopes:member.external.scopes, external_oauth_role:member.external.role, external_oauth_scopes:member.external.scopes, external_studio_owner_scoped:true, genesis_contract:'SFI-CANONICAL-RESET-CLASSIFICATION-1.1' };
     statements.push(`insert into public.profiles(user_id,email,alias,role,subscription_tier,module_access,last_seen_at,created_at,updated_at) values (${q(item.user_id)}::uuid,${q(member.email)},${q(member.displayName)},${q(member.role)},'enterprise',${q(JSON.stringify(access))}::jsonb,now(),now(),now()) on conflict (user_id) do update set email=excluded.email,alias=excluded.alias,role=excluded.role,subscription_tier=excluded.subscription_tier,module_access=excluded.module_access,last_seen_at=now(),updated_at=now();`);
     statements.push(`insert into public.account_members(account_id,user_id,role) values (${q(accountId)}::uuid,${q(item.user_id)}::uuid,${q(member.role)}) on conflict (account_id,user_id) do update set role=excluded.role;`);
     statements.push(`insert into public.sfi_tenant_members(tenant_id,user_id,role,status) values (${q(tenantId)}::uuid,${q(item.user_id)}::uuid,'OPERATOR','ACTIVE') on conflict (tenant_id,user_id) do update set role='OPERATOR',status='ACTIVE';`);
-    for (const client of item.clients) {
-      statements.push(`insert into public.sfi_oauth_clients(id,client_id,client_secret_hash,name,created_by,redirect_uris,allowed_scopes,audience,status,metadata,last_used_at,created_at,updated_at) values (${q(client.id)}::uuid,${q(client.client_id)},${q(client.client_secret_hash)},${q(client.name)},${q(item.user_id)}::uuid,${arr(client.redirect_uris || [])},${arr([...member.external.scopes])},${q(client.audience)},'ACTIVE',jsonb_build_object('genesis',true,'reseededBy','SFI_CANONICAL_RESET','institutionalRegistryBound',true),null,now(),now()) on conflict (id) do update set client_id=excluded.client_id,client_secret_hash=excluded.client_secret_hash,name=excluded.name,created_by=excluded.created_by,redirect_uris=excluded.redirect_uris,allowed_scopes=excluded.allowed_scopes,audience=excluded.audience,status='ACTIVE',metadata=excluded.metadata,last_used_at=null,updated_at=now();`);
-    }
+    for (const client of item.clients) statements.push(`insert into public.sfi_oauth_clients(id,client_id,client_secret_hash,name,created_by,redirect_uris,allowed_scopes,audience,status,metadata,last_used_at,created_at,updated_at) values (${q(client.id)}::uuid,${q(client.client_id)},${q(client.client_secret_hash)},${q(client.name)},${q(item.user_id)}::uuid,${arr(client.redirect_uris || [])},${arr([...member.external.scopes])},${q(client.audience)},'ACTIVE',jsonb_build_object('genesis',true,'reseededBy','SFI_CANONICAL_RESET','institutionalRegistryBound',true),null,now(),now()) on conflict (id) do update set client_id=excluded.client_id,client_secret_hash=excluded.client_secret_hash,name=excluded.name,created_by=excluded.created_by,redirect_uris=excluded.redirect_uris,allowed_scopes=excluded.allowed_scopes,audience=excluded.audience,status='ACTIVE',metadata=excluded.metadata,last_used_at=null,updated_at=now();`);
   }
   statements.push('commit;');
   runPsql(statements.join('\n'));
-
   const expectedProfiles = 1 + state.members.length;
   const observedProfiles = Number(runPsql('select count(*)::text from public.profiles;'));
   if (observedProfiles !== expectedProfiles) throw new Error(`SFI_GENESIS_PROFILE_COUNT_MISMATCH:${observedProfiles}:${expectedProfiles}`);
@@ -126,6 +90,12 @@ if (mode === 'restore') {
     if (row.role !== member.role || row.full_access || row.governance_write || row.sovereign_actions || row.canonical_promotion) throw new Error(`SFI_INSTITUTIONAL_AUTHORITY_EXPANDED:${item.email}`);
     if (row.account_role !== member.role || row.tenant_role !== 'OPERATOR') throw new Error(`SFI_INSTITUTIONAL_MEMBERSHIP_MISMATCH:${item.email}`);
     if (Number(row.oauth) !== item.clients.length) throw new Error(`SFI_INSTITUTIONAL_OAUTH_COUNT_MISMATCH:${item.email}`);
+    const expectedScopes = [...member.external.scopes].sort();
+    const scopeRows = runPsql(`select allowed_scopes::text from public.sfi_oauth_clients where created_by=${q(item.user_id)}::uuid and status='ACTIVE' order by id;`).split(/\r?\n/).filter(Boolean);
+    for (const value of scopeRows) {
+      const observed = value.replace(/^\{|\}$/g,'').split(',').filter(Boolean).map((s)=>s.replace(/^"|"$/g,'')).sort();
+      if (JSON.stringify(observed) !== JSON.stringify(expectedScopes)) throw new Error(`SFI_INSTITUTIONAL_OAUTH_SCOPE_MISMATCH:${item.email}`);
+    }
   }
   console.log(JSON.stringify({ ok:true, contract:state.contract, institutionalMembersRestored:state.members.length, authorityExpansion:false, historicalUsageRestored:false }));
 }
