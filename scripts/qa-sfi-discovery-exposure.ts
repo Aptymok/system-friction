@@ -21,23 +21,31 @@ async function main() {
   const trajectoryMigration = await text('supabase/migrations/20260811214500_sfi_inference_and_artifact_trajectory.sql');
   const attractorOwner = await text('src/lib/institution/institutionalAttractor.ts');
 
-  assert.match(exposure, /SFI-DISCOVERY-EXPOSURE-1\.0/);
-  assert.match(exposure, /SFI-EXPOSURE-PACKET-1\.0/);
+  assert.match(exposure, /SFI-DISCOVERY-EXPOSURE-1\.1/);
+  assert.match(exposure, /SFI-EXPOSURE-PACKET-1\.1/);
   assert.match(exposure, /discoveryEmissionEntries/);
   assert.match(exposure, /SFI_EXTERNAL_IDENTITY_NODES/);
   assert.match(exposure, /exposureIsNotCanon: true/);
   assert.match(exposure, /exposureIsNotPublicationReceipt: true/);
+  assert.match(exposure, /publishedTargetsAreObjectScoped: true/);
+  assert.match(exposure, /externalPublicationLineageObjectScoped: true/);
   assert.match(exposure, /automaticExternalAction: false/);
   assert.match(exposure, /externalActionRequiresGovernedAdapterOrHuman: true/);
   assert.match(exposure, /row\.state === 'PUBLISHED'/);
+  assert.match(exposure, /row\.canonical_object_key === canonicalObjectKey/);
   assert.match(exposure, /row\.external_url/);
   assert.match(exposure, /published\?\.external_url && published\.observed_at/, 'OBSERVED_PUBLISHED must require both external URL and observed time from the selected persisted representation');
+  assert.match(exposure, /canonicalObjectKey: published\.canonical_object_key/);
   assert.doesNotMatch(exposure, /\.insert\(|\.upsert\(|\.update\(/, 'Exposure projection must not become a persistence writer');
 
+  assert.match(crawlers, /SFI-DISCOVERY-CRAWLER-POLICY-1\.1/);
   for (const bot of ['Googlebot', 'Bingbot', 'OAI-SearchBot', 'PerplexityBot']) assert.match(crawlers, new RegExp(bot));
   for (const bot of ['GPTBot', 'CCBot', 'ClaudeBot', 'Google-Extended']) assert.match(crawlers, new RegExp(bot));
   assert.match(crawlers, /ALLOWED_PUBLIC_ONLY/);
   assert.match(crawlers, /DISALLOWED_BY_POLICY/);
+  assert.match(crawlers, /publicApiAllowlist: SFI_PUBLIC_DISCOVERY_API_PATHS/);
+  assert.match(crawlers, /'\/api\/'/);
+  assert.match(crawlers, /apiDiscoveryIsAllowlistedOnly: true/);
   assert.match(crawlers, /crawlerAccessIsNotTrainingConsent: true/);
   assert.match(crawlers, /privateMaterialNeverPromotedByCrawlerPolicy: true/);
   assert.match(robots, /sfiRobotsRules/);
@@ -114,7 +122,7 @@ async function main() {
 
   console.log(JSON.stringify({
     ok: true,
-    contract: 'SFI-DISCOVERY-EXPOSURE-QA-1.3',
+    contract: 'SFI-DISCOVERY-EXPOSURE-QA-1.4',
     canonicalOwnerReused: true,
     canonicalGraphReused: true,
     artifactTrajectoryOwnerReused: true,
@@ -126,6 +134,8 @@ async function main() {
     exactCountProbes: 0,
     pollingLoops: 0,
     trainingReuseSeparatedFromSearchDiscovery: true,
+    publicApiCrawlerAccessAllowlistedOnly: true,
+    externalPublicationLineageObjectScoped: true,
     realityGraphIsLens: true,
     propagationGraphIsLens: true,
     ManhattanIsAttractor: true,
