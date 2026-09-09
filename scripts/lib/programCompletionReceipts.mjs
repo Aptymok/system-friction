@@ -25,8 +25,12 @@ function invalid(receipt, error, expectedHash) {
 function validScopePath(value) {
   if (typeof value !== 'string') return false;
   const candidate = value.trim().replaceAll('\\', '/');
-  if (!candidate || candidate.startsWith('/') || candidate.includes('../') || candidate === '..') return false;
-  return !candidate.includes('\0');
+  if (!candidate || candidate.startsWith('/') || candidate.includes('../') || candidate === '..' || candidate.includes('\0')) return false;
+  const wildcardIndex = candidate.indexOf('*');
+  if (wildcardIndex < 0) return true;
+  return candidate.endsWith('/*') || candidate.endsWith('/**')
+    ? !candidate.slice(0, candidate.endsWith('/**') ? -3 : -2).includes('*')
+    : false;
 }
 
 export function evaluateCompletionReceipt(requirement, ledger, options = {}) {
