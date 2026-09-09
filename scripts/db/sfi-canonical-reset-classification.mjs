@@ -1,4 +1,4 @@
-export const SFI_CANONICAL_RESET_CONTRACT = 'SFI-CANONICAL-RESET-CLASSIFICATION-1.1';
+export const SFI_CANONICAL_RESET_CONTRACT = 'SFI-CANONICAL-RESET-CLASSIFICATION-1.2';
 
 // Founder-directed preservation boundary (2026-09-07): World observation and
 // hypothesis history is institutional evidence and must never be discarded by
@@ -20,7 +20,8 @@ export const PRESERVE_DATA_TABLES = [
 ];
 
 // These rows do NOT survive as legacy data. They are cleared and deterministically
-// re-created from auth/current configuration after the reset so SFI can operate.
+// re-created from auth/current configuration or schema-owned singleton defaults
+// after the reset so SFI can operate.
 export const RESEED_MINIMAL_TABLES = [
   'profiles',
   'sfi_tenants',
@@ -29,6 +30,7 @@ export const RESEED_MINIMAL_TABLES = [
   'accounts',
   'account_members',
   'account_balance',
+  'sfi_continuity_state',
 ];
 
 // Explicit snapshot of every other public table observed live at the reset-design
@@ -114,7 +116,6 @@ export const PURGE_DATA_TABLES = [
   'sfi_cognitive_twin_runs',
   'sfi_continuity_reports',
   'sfi_continuity_runs',
-  'sfi_continuity_state',
   'sfi_cultural_references',
   'sfi_discovery_queries',
   'sfi_discovery_query_runs',

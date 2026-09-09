@@ -90,7 +90,7 @@ assert.ok(snapshotSource.includes('reset-classification.json'), 'database_snapsh
 assert.ok(snapshotSource.includes('preserve_exact_counts'), 'database_snapshot_missing_preserve_counts');
 assert.ok(snapshotVerifier.includes('SFI_DB_EVIDENCE_RECEIPT_V2'), 'database_snapshot_verifier_not_v2');
 assert.ok(snapshotVerifier.includes('reset_classification_sha256'), 'database_snapshot_verifier_missing_classification_hash');
-assert.ok(resetClassification.includes('SFI-CANONICAL-RESET-CLASSIFICATION-1.1'), 'database_reset_missing_world_preservation_amendment');
+assert.ok(resetClassification.includes('SFI-CANONICAL-RESET-CLASSIFICATION-1.2'), 'database_reset_missing_continuity_reseed_amendment');
 for (const worldTable of [
   'world_source_observations',
   'world_friction_readings',
@@ -105,6 +105,7 @@ for (const worldTable of [
 ]) {
   assert.ok(resetClassification.includes(`'${worldTable}'`), `database_reset_missing_protected_world_table:${worldTable}`);
 }
+assert.ok(resetClassification.includes("'sfi_continuity_state'"), 'database_reset_missing_continuity_singleton_reseed_classification');
 assert.ok(
   resetWorkflow.indexOf('Upload proof before any destructive statement') < resetWorkflow.indexOf('Execute founder-authorized canonical reset'),
   'database_reset_external_proof_must_precede_destruction',
@@ -113,12 +114,13 @@ assert.ok(
 const databaseClosure = read('docs/db/SFI_FINAL_DATABASE_CLOSURE.md');
 assert.ok(databaseClosure.includes('EVIDENCE_FIRST_PRE_ASSURANCE_RESET'), 'database_cleanup_missing_current_execution_order');
 assert.ok(databaseClosure.includes('FINAL_E2E_AFTER_CLEAN_GENESIS'), 'database_cleanup_missing_post_reset_assurance_order');
-assert.ok(databaseClosure.includes('SFI-CANONICAL-RESET-CLASSIFICATION-1.1'), 'database_cleanup_missing_world_preservation_contract');
+assert.ok(databaseClosure.includes('SFI-CANONICAL-RESET-CLASSIFICATION-1.2'), 'database_cleanup_missing_continuity_reseed_contract');
+assert.ok(databaseClosure.includes('CONTINUITY_SINGLETON = RESEED_MINIMAL'), 'database_cleanup_missing_continuity_singleton_disposition');
 assert.ok(databaseClosure.includes('PR_210_IMPLEMENTATION = SUPERSEDED_BY_CURRENT_ARCHITECTURE'), 'database_cleanup_missing_legacy_disposition');
 
 console.log(JSON.stringify({
   ok: true,
-  debtClosure: 'SFI-FINAL-DEBT-CLOSURE-1.1',
+  debtClosure: 'SFI-FINAL-DEBT-CLOSURE-1.2',
   decisionTransfer: {
     protocol: SFI_DT_EXP_001_FREEZE.protocol,
     status: SFI_DT_EXP_001_FREEZE.status,
@@ -136,6 +138,7 @@ console.log(JSON.stringify({
     externalProofArtifactRequired: true,
     exactTargetBindingRequired: true,
     protectedWorldTables: 10,
+    continuitySingleton: 'RESEED_MINIMAL',
     legacyPr210: 'SUPERSEDED_BY_CURRENT_ARCHITECTURE',
   },
 }, null, 2));
