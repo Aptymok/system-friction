@@ -1,6 +1,7 @@
 import { chmod, readFile, writeFile } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { SFI_INSTITUTIONAL_MEMBERS } from '../../src/lib/system/access/institutionalMembers';
+import { SFI_CANONICAL_RESET_CONTRACT } from './sfi-canonical-reset-classification.mjs';
 
 const databaseUrl = process.env.DATABASE_URL || process.env.DIRECT_URL || process.env.CONNECTION_STRING;
 const statePath = process.env.SFI_INSTITUTIONAL_INTEGRATION_STATE || '/tmp/sfi-institutional-integrations.json';
@@ -62,7 +63,7 @@ if (mode === 'verify') {
     if ((member.role as string) === 'root' || (member.role as string) === 'system') throw new Error('SFI_INSTITUTIONAL_GENESIS_SOVEREIGN_ROLE_FORBIDDEN');
     for (const client of item.clients) if (!client.client_id || !client.client_secret_hash || !client.redirect_uris?.length) throw new Error(`SFI_INSTITUTIONAL_OAUTH_CONFIG_INCOMPLETE:${item.email}`);
   }
-  console.log(JSON.stringify({ ok:true, contract:state.contract, authorityExpansion:false, registeredMembersOnly:true }));
+  console.log(JSON.stringify({ ok:true, contract:state.contract, authorityExpansion:false, registeredMembersOnly:true, resetContract:SFI_CANONICAL_RESET_CONTRACT }));
 }
 
 if (mode === 'restore') {
@@ -73,11 +74,11 @@ if (mode === 'restore') {
   const statements: string[] = ['begin;'];
   for (const item of state.members) {
     const member = registryByEmail.get(item.email.toLowerCase())!;
-    const access = { display_title:member.title, observatory:member.modules.observatory, planner:member.modules.field, simulator:member.modules.studio, social:member.modules.worldField, field:member.modules.field, studio:member.modules.studio, world_field:member.modules.worldField, root:member.modules.root, root_observe:member.modules.root, full_access:false, executor:false, root_execution:false, governance_write:false, sovereign_actions:false, canonical_promotion:false, external_agent:true, external_role:member.external.role, external_scopes:member.external.scopes, external_oauth_role:member.external.role, external_oauth_scopes:member.external.scopes, external_studio_owner_scoped:true, genesis_contract:'SFI-CANONICAL-RESET-CLASSIFICATION-1.1' };
+    const access = { display_title:member.title, observatory:member.modules.observatory, planner:member.modules.field, simulator:member.modules.studio, social:member.modules.worldField, field:member.modules.field, studio:member.modules.studio, world_field:member.modules.worldField, root:member.modules.root, root_observe:member.modules.root, full_access:false, executor:false, root_execution:false, governance_write:false, sovereign_actions:false, canonical_promotion:false, external_agent:true, external_role:member.external.role, external_scopes:member.external.scopes, external_oauth_role:member.external.role, external_oauth_scopes:member.external.scopes, external_studio_owner_scoped:true, genesis_contract:SFI_CANONICAL_RESET_CONTRACT };
     statements.push(`insert into public.profiles(user_id,email,alias,role,subscription_tier,module_access,last_seen_at,created_at,updated_at) values (${q(item.user_id)}::uuid,${q(member.email)},${q(member.displayName)},${q(member.role)},'enterprise',${q(JSON.stringify(access))}::jsonb,now(),now(),now()) on conflict (user_id) do update set email=excluded.email,alias=excluded.alias,role=excluded.role,subscription_tier=excluded.subscription_tier,module_access=excluded.module_access,last_seen_at=now(),updated_at=now();`);
     statements.push(`insert into public.account_members(account_id,user_id,role) values (${q(accountId)}::uuid,${q(item.user_id)}::uuid,${q(member.role)}) on conflict (account_id,user_id) do update set role=excluded.role;`);
     statements.push(`insert into public.sfi_tenant_members(tenant_id,user_id,role,status) values (${q(tenantId)}::uuid,${q(item.user_id)}::uuid,'OPERATOR','ACTIVE') on conflict (tenant_id,user_id) do update set role='OPERATOR',status='ACTIVE';`);
-    for (const client of item.clients) statements.push(`insert into public.sfi_oauth_clients(id,client_id,client_secret_hash,name,created_by,redirect_uris,allowed_scopes,audience,status,metadata,last_used_at,created_at,updated_at) values (${q(client.id)}::uuid,${q(client.client_id)},${q(client.client_secret_hash)},${q(client.name)},${q(item.user_id)}::uuid,${arr(client.redirect_uris || [])},${arr([...member.external.scopes])},${q(client.audience)},'ACTIVE',jsonb_build_object('genesis',true,'reseededBy','SFI_CANONICAL_RESET','institutionalRegistryBound',true),null,now(),now()) on conflict (id) do update set client_id=excluded.client_id,client_secret_hash=excluded.client_secret_hash,name=excluded.name,created_by=excluded.created_by,redirect_uris=excluded.redirect_uris,allowed_scopes=excluded.allowed_scopes,audience=excluded.audience,status='ACTIVE',metadata=excluded.metadata,last_used_at=null,updated_at=now();`);
+    for (const client of item.clients) statements.push(`insert into public.sfi_oauth_clients(id,client_id,client_secret_hash,name,created_by,redirect_uris,allowed_scopes,audience,status,metadata,last_used_at,created_at,updated_at) values (${q(client.id)}::uuid,${q(client.client_id)},${q(client.client_secret_hash)},${q(client.name)},${q(item.user_id)}::uuid,${arr(client.redirect_uris || [])},${arr([...member.external.scopes])},${q(client.audience)},'ACTIVE',jsonb_build_object('genesis',true,'reseededBy','SFI_CANONICAL_RESET','resetContract',${q(SFI_CANONICAL_RESET_CONTRACT)},'institutionalRegistryBound',true),null,now(),now()) on conflict (id) do update set client_id=excluded.client_id,client_secret_hash=excluded.client_secret_hash,name=excluded.name,created_by=excluded.created_by,redirect_uris=excluded.redirect_uris,allowed_scopes=excluded.allowed_scopes,audience=excluded.audience,status='ACTIVE',metadata=excluded.metadata,last_used_at=null,updated_at=now();`);
   }
   statements.push('commit;');
   runPsql(statements.join('\n'));
@@ -85,9 +86,10 @@ if (mode === 'restore') {
   const observedProfiles = Number(runPsql('select count(*)::text from public.profiles;'));
   if (observedProfiles !== expectedProfiles) throw new Error(`SFI_GENESIS_PROFILE_COUNT_MISMATCH:${observedProfiles}:${expectedProfiles}`);
   for (const item of state.members) {
-    const row = JSON.parse(runPsql(`select json_build_object('role',role,'full_access',coalesce((module_access->>'full_access')::boolean,false),'governance_write',coalesce((module_access->>'governance_write')::boolean,false),'sovereign_actions',coalesce((module_access->>'sovereign_actions')::boolean,false),'canonical_promotion',coalesce((module_access->>'canonical_promotion')::boolean,false),'account_role',(select role from public.account_members am where am.user_id=profiles.user_id limit 1),'tenant_role',(select role from public.sfi_tenant_members tm where tm.user_id=profiles.user_id limit 1),'oauth',(select count(*) from public.sfi_oauth_clients c where c.created_by=profiles.user_id and c.status='ACTIVE'))::text from public.profiles where user_id=${q(item.user_id)}::uuid;`));
+    const row = JSON.parse(runPsql(`select json_build_object('role',role,'full_access',coalesce((module_access->>'full_access')::boolean,false),'governance_write',coalesce((module_access->>'governance_write')::boolean,false),'sovereign_actions',coalesce((module_access->>'sovereign_actions')::boolean,false),'canonical_promotion',coalesce((module_access->>'canonical_promotion')::boolean,false),'genesis_contract',module_access->>'genesis_contract','account_role',(select role from public.account_members am where am.user_id=profiles.user_id limit 1),'tenant_role',(select role from public.sfi_tenant_members tm where tm.user_id=profiles.user_id limit 1),'oauth',(select count(*) from public.sfi_oauth_clients c where c.created_by=profiles.user_id and c.status='ACTIVE'))::text from public.profiles where user_id=${q(item.user_id)}::uuid;`));
     const member = registryByEmail.get(item.email.toLowerCase())!;
     if (row.role !== member.role || row.full_access || row.governance_write || row.sovereign_actions || row.canonical_promotion) throw new Error(`SFI_INSTITUTIONAL_AUTHORITY_EXPANDED:${item.email}`);
+    if (row.genesis_contract !== SFI_CANONICAL_RESET_CONTRACT) throw new Error(`SFI_INSTITUTIONAL_RESET_PROVENANCE_MISMATCH:${item.email}:${row.genesis_contract}`);
     if (row.account_role !== member.role || row.tenant_role !== 'OPERATOR') throw new Error(`SFI_INSTITUTIONAL_MEMBERSHIP_MISMATCH:${item.email}`);
     if (Number(row.oauth) !== item.clients.length) throw new Error(`SFI_INSTITUTIONAL_OAUTH_COUNT_MISMATCH:${item.email}`);
     const expectedScopes = [...member.external.scopes].sort();
@@ -97,5 +99,5 @@ if (mode === 'restore') {
       if (JSON.stringify(observed) !== JSON.stringify(expectedScopes)) throw new Error(`SFI_INSTITUTIONAL_OAUTH_SCOPE_MISMATCH:${item.email}`);
     }
   }
-  console.log(JSON.stringify({ ok:true, contract:state.contract, institutionalMembersRestored:state.members.length, authorityExpansion:false, historicalUsageRestored:false }));
+  console.log(JSON.stringify({ ok:true, contract:state.contract, resetContract:SFI_CANONICAL_RESET_CONTRACT, institutionalMembersRestored:state.members.length, authorityExpansion:false, historicalUsageRestored:false }));
 }
