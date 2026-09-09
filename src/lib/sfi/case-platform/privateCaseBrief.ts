@@ -4,14 +4,17 @@ import { randomUUID } from 'node:crypto';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { validateSfiCaseObjectDraft, type SfiCaseObjectDraft } from '@/core/case-platform';
 import type { SfiCanonicalRef } from '@/core/contracts/sfi';
+import { recordCanonicalCaseObjectAtomic } from './canonicalCaseObjectWriter';
 import {
   SFI_CASE_ASSET_BUCKET,
   SFI_PRIVATE_CASE_BRIEF_ASSET_CONTRACT,
   buildSfiCaseCoverBrief,
   formatCanonicalRef,
   renderPrivateCaseBriefPdf,
+  requiredPrivateCaseBriefCodePoints,
   sha256Hex,
 } from './privateCaseBriefContract';
+import { loadUnifontGlyphs, SFI_UNIFONT_SOURCE, SFI_UNIFONT_VERSION } from './unifontType3';
 
 type Row = Record<string, unknown>;
 
@@ -92,7 +95,7 @@ export async function createRootPrivateCaseBrief(input: {
   const objectId = randomUUID();
   const version = safeVersion(generatedAt, objectId);
   const coverBrief = buildSfiCaseCoverBrief({ caseId, sourceEvidenceRefs: evidenceRefs });
-  const pdf = renderPrivateCaseBriefPdf({
+  const renderInput = {
     caseId,
     version,
     subject: text(caseRead.data.subject),
@@ -100,7 +103,9 @@ export async function createRootPrivateCaseBrief(input: {
     generatedAt: generatedAt.toISOString(),
     evidenceRefs,
     coverBrief,
-  });
+  };
+  const unicodeGlyphs = await loadUnifontGlyphs(requiredPrivateCaseBriefCodePoints(renderInput));
+  const pdf = renderPrivateCaseBriefPdf(renderInput, unicodeGlyphs);
   const pdfSha256 = sha256Hex(pdf);
   const storagePath = `${caseRead.data.tenant_id}/${caseId}/${version}/case-brief-${pdfSha256.slice(0, 12)}.pdf`;
   const briefRef: SfiCanonicalRef = {
@@ -123,6 +128,15 @@ export async function createRootPrivateCaseBrief(input: {
     sourceEvidenceIds: evidenceRefs.map((ref) => ref.id),
     sourceEvidenceLabels: evidenceRefs.map(formatCanonicalRef),
     coverBrief,
+    unicodeFont: {
+      state: 'EMBEDDED_TYPE3',
+      family: 'GNU Unifont',
+      version: SFI_UNIFONT_VERSION,
+      source: SFI_UNIFONT_SOURCE,
+      authoredCodePointsPreserved: true,
+      toUnicodeCMap: true,
+      sourceFetchedBeforeMutation: true,
+    },
     imageProvider: {
       state: 'NOT_CONFIGURED',
       provider: null,
@@ -158,47 +172,45 @@ export async function createRootPrivateCaseBrief(input: {
   });
   if (upload.error) throw new Error(`SFI_PRIVATE_CASE_BRIEF_UPLOAD_FAILED:${upload.error.message}`);
 
-  const inserted = await input.service.from('sfi_case_objects').insert({
-    id: objectId,
-    case_id: caseId,
-    owner_id: caseRead.data.owner_id,
-    tenant_id: caseRead.data.tenant_id,
-    object_kind: 'REPORT',
-    epistemic_role: 'PROJECTION',
-    canonical_ref: briefRef,
-    source_refs: [],
-    record_refs: [],
-    evidence_refs: evidenceRefs,
-    payload,
-    observed_at: null,
-  }).select('id,created_at').single();
-  if (inserted.error || !inserted.data) {
+  let persisted: Record<string, unknown>;
+  try {
+    persisted = await recordCanonicalCaseObjectAtomic({
+      service: input.service,
+      actorId: input.actorId,
+      object: {
+        id: objectId,
+        caseId,
+        kind: 'REPORT',
+        epistemicRole: 'PROJECTION',
+        canonicalRef: briefRef,
+        sourceRefs: [],
+        recordRefs: [],
+        evidenceRefs,
+        payload,
+        observedAt: null,
+      },
+      auditAction: 'case.private_brief.generated',
+      auditContext: { storagePath, pdfSha256, evidenceRefs, publicationState: 'PRIVATE_DRAFT' },
+    });
+  } catch (error) {
     const storageRollbackError = await removeStoredAsset(input.service, storagePath);
+    const reason = error instanceof Error ? error.message : String(error);
     if (storageRollbackError) {
-      throw new Error(`SFI_PRIVATE_CASE_BRIEF_PERSIST_FAILED_ROLLBACK_FAILED:${inserted.error?.message ?? 'unknown'}:${storageRollbackError}`);
+      throw new Error(`SFI_PRIVATE_CASE_BRIEF_ATOMIC_PERSIST_FAILED_STORAGE_ROLLBACK_FAILED:${reason}:${storageRollbackError}`);
     }
-    throw new Error(`SFI_PRIVATE_CASE_BRIEF_PERSIST_FAILED:${inserted.error?.message ?? 'unknown'}`);
+    throw new Error(`SFI_PRIVATE_CASE_BRIEF_ATOMIC_PERSIST_FAILED:${reason}`);
   }
 
-  const audit = await input.service.from('sfi_case_audit_events').insert({
-    case_id: caseId,
-    tenant_id: caseRead.data.tenant_id,
-    actor_id: input.actorId,
-    action: 'case.private_brief.generated',
-    before_state: null,
-    after_state: { objectId, canonicalRef: briefRef, publicationState: 'PRIVATE_DRAFT' },
-    context: { storagePath, pdfSha256, evidenceRefs },
-  });
-  if (audit.error) {
-    const objectRollback = await input.service.from('sfi_case_objects').delete().eq('id', objectId);
-    const storageRollbackError = await removeStoredAsset(input.service, storagePath);
-    if (objectRollback.error || storageRollbackError) {
-      throw new Error(`SFI_PRIVATE_CASE_BRIEF_AUDIT_FAILED_ROLLBACK_FAILED:${audit.error.message}:${objectRollback.error?.message ?? 'object_rollback_ok'}:${storageRollbackError ?? 'storage_rollback_ok'}`);
-    }
-    throw new Error(`SFI_PRIVATE_CASE_BRIEF_AUDIT_FAILED:${audit.error.message}`);
-  }
-
-  return { ok: true as const, objectId, canonicalRef: briefRef, payload, createdAt: inserted.data.created_at };
+  const persistedObject = record(persisted.object);
+  if (text(persistedObject.id) !== objectId) throw new Error('SFI_PRIVATE_CASE_BRIEF_ATOMIC_WRITER_ID_MISMATCH');
+  return {
+    ok: true as const,
+    objectId,
+    canonicalRef: briefRef,
+    payload,
+    createdAt: text(persistedObject.created_at) || generatedAt.toISOString(),
+    atomic: persisted.atomic === true,
+  };
 }
 
 export async function readRootPrivateCaseBrief(input: {
