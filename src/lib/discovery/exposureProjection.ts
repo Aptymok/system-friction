@@ -7,8 +7,8 @@ import {
 import { discoveryEmissionEntries, discoveryMachineResources } from './discoveryEmitter';
 import { SFI_DISCOVERY_CRAWLER_POLICY } from './crawlerPolicy';
 
-export const SFI_DISCOVERY_EXPOSURE_CONTRACT = 'SFI-DISCOVERY-EXPOSURE-1.1' as const;
-export const SFI_EXPOSURE_PACKET_CONTRACT = 'SFI-EXPOSURE-PACKET-1.1' as const;
+export const SFI_DISCOVERY_EXPOSURE_CONTRACT = 'SFI-DISCOVERY-EXPOSURE-1.2' as const;
+export const SFI_EXPOSURE_PACKET_CONTRACT = 'SFI-EXPOSURE-PACKET-1.2' as const;
 
 export type SfiObservedExternalRepresentation = {
   canonical_object_key: string;
@@ -74,16 +74,29 @@ function ownedTargets(): SfiExposureTarget[] {
   }));
 }
 
+function urlBelongsToIdentityNode(candidate: string, nodeUrl: string) {
+  try {
+    const external = new URL(candidate);
+    const node = new URL(nodeUrl);
+    if (external.origin !== node.origin) return false;
+    const basePath = node.pathname.replace(/\/+$/, '') || '/';
+    const candidatePath = external.pathname.replace(/\/+$/, '') || '/';
+    if (basePath === '/') return true;
+    return candidatePath === basePath || candidatePath.startsWith(`${basePath}/`);
+  } catch {
+    return false;
+  }
+}
+
 function observedPublicationForNode(
   node: SfiExternalIdentityNode,
   representations: readonly SfiObservedExternalRepresentation[],
   canonicalObjectKey?: string | null,
 ) {
-  const normalizedNode = node.url.replace(/\/$/, '');
   return representations.find((row) => row.state === 'PUBLISHED'
     && (!canonicalObjectKey || row.canonical_object_key === canonicalObjectKey)
     && Boolean(row.external_url)
-    && row.external_url!.replace(/\/$/, '').startsWith(normalizedNode));
+    && urlBelongsToIdentityNode(row.external_url!, node.url));
 }
 
 function externalNodeTarget(
@@ -217,6 +230,7 @@ export function discoveryExposurePlan(
           exposureIsNotCanon: true,
           exposureIsNotPublicationReceipt: true,
           publishedTargetsAreObjectScoped: true,
+          externalIdentityUrlUsesOriginAndPathBoundary: true,
           externalActionRequiresGovernedAdapterOrHuman: true,
         },
       };
@@ -237,6 +251,7 @@ export function discoveryExposurePlan(
       automaticExternalAction: false,
       fabricatedExternalReceipt: false,
       externalPublicationLineageObjectScoped: true,
+      externalIdentityUrlUsesOriginAndPathBoundary: true,
       modelCapabilityDoesNotExpandAuthority: true,
     },
   };
