@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 
-export const COMPLETION_RECEIPT_CONTRACT = 'SFI-PROGRAM-COMPLETION-RECEIPTS-1.1';
+export const COMPLETION_RECEIPT_CONTRACT = 'SFI-PROGRAM-COMPLETION-RECEIPTS-1.2';
 
 export function requirementHash(requirement) {
   const source = String(requirement?.source ?? '').trim();
@@ -30,37 +30,28 @@ export function evaluateCompletionReceipt(requirement, ledger, options = {}) {
   if (receipt.status !== 'SATISFIED') return invalid(receipt, 'RECEIPT_STATUS_NOT_SATISFIED', expectedHash);
   if (receipt.requirementHash !== expectedHash) return invalid(receipt, 'REQUIREMENT_HASH_MISMATCH', expectedHash);
   if (typeof options.currentHead !== 'string' || !options.currentHead.trim()) return invalid(receipt, 'CURRENT_HEAD_REQUIRED', expectedHash);
-  if (receipt.head !== options.currentHead) return invalid(receipt, 'RECEIPT_HEAD_MISMATCH', expectedHash);
+  if (typeof receipt.head !== 'string' || !receipt.head.trim()) return invalid(receipt, 'VERIFIED_HEAD_REQUIRED', expectedHash);
+  if (receipt.head !== options.currentHead) {
+    if (typeof options.verifyReceiptHead !== 'function') return invalid(receipt, 'VERIFIED_HEAD_RESOLVER_REQUIRED', expectedHash);
+    let relation;
+    try { relation = options.verifyReceiptHead(receipt.head, options.currentHead, receipt); }
+    catch (error) { relation = { ok: false, error: error instanceof Error ? error.message : String(error) }; }
+    if (relation !== true && relation?.ok !== true) return invalid(receipt, relation?.error || 'RECEIPT_HEAD_NOT_ADMISSIBLE', expectedHash);
+  }
   if (receipt.verifiedBy !== 'SFI-08') return invalid(receipt, 'INDEPENDENT_VERIFIER_REQUIRED', expectedHash);
   if (receipt.returnState !== 'RETURN_PASS') return invalid(receipt, 'RETURN_PASS_REQUIRED', expectedHash);
   if (options.external === true && receipt.externalObserved !== true) return invalid(receipt, 'EXTERNAL_OBSERVATION_REQUIRED', expectedHash);
-
-  if (!Array.isArray(receipt.evidence) || receipt.evidence.length === 0) {
-    return invalid(receipt, 'COMPLETION_EVIDENCE_REQUIRED', expectedHash);
-  }
+  if (!Array.isArray(receipt.evidence) || receipt.evidence.length === 0) return invalid(receipt, 'COMPLETION_EVIDENCE_REQUIRED', expectedHash);
   if (receipt.evidence.some((value) => !value || typeof value !== 'object' || Array.isArray(value) || typeof value.kind !== 'string' || typeof value.ref !== 'string' || !value.ref.trim())) {
     return invalid(receipt, 'STRUCTURED_EVIDENCE_REFERENCE_REQUIRED', expectedHash);
   }
   if (typeof options.verifyEvidence !== 'function') return invalid(receipt, 'EVIDENCE_RESOLVER_REQUIRED', expectedHash);
 
   const evidenceResults = receipt.evidence.map((evidence) => {
-    try {
-      return options.verifyEvidence(evidence, { receipt, requirement, currentHead: options.currentHead });
-    } catch (error) {
-      return { ok: false, error: error instanceof Error ? error.message : String(error) };
-    }
+    try { return options.verifyEvidence(evidence, { receipt, requirement, currentHead: options.currentHead }); }
+    catch (error) { return { ok: false, error: error instanceof Error ? error.message : String(error) }; }
   });
-  if (evidenceResults.some((result) => result !== true && result?.ok !== true)) {
-    return invalid(receipt, 'OBSERVED_EVIDENCE_VERIFICATION_FAILED', expectedHash);
-  }
+  if (evidenceResults.some((result) => result !== true && result?.ok !== true)) return invalid(receipt, 'OBSERVED_EVIDENCE_VERIFICATION_FAILED', expectedHash);
 
-  return {
-    state: 'VALID',
-    satisfied: true,
-    receipt,
-    error: null,
-    expectedHash,
-    evidence: [...receipt.evidence],
-    evidenceResults,
-  };
+  return { state: 'VALID', satisfied: true, receipt, error: null, expectedHash, evidence: [...receipt.evidence], evidenceResults };
 }
