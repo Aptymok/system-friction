@@ -5,16 +5,22 @@ on:
     paths:
       - 'scripts/db/sfi-canonical-reset-classification.mjs'
       - 'scripts/db/reset-sfi-operational-tables.mjs'
+      - 'scripts/db/verify-continuity-reseed-ready.mjs'
+      - 'scripts/db/preserve-institutional-integrations.ts'
       - 'scripts/qa-sfi-continuity-reset-reseed.mjs'
       - 'supabase/migrations/20260909154500_continuity_state_singleton_reseed.sql'
+      - '.github/workflows/sfi-db-canonical-reset.yml'
       - '.github/workflows/sfi-continuity-reset-reseed.yml'
   push:
     branches: [main]
     paths:
       - 'scripts/db/sfi-canonical-reset-classification.mjs'
       - 'scripts/db/reset-sfi-operational-tables.mjs'
+      - 'scripts/db/verify-continuity-reseed-ready.mjs'
+      - 'scripts/db/preserve-institutional-integrations.ts'
       - 'scripts/qa-sfi-continuity-reset-reseed.mjs'
       - 'supabase/migrations/20260909154500_continuity_state_singleton_reseed.sql'
+      - '.github/workflows/sfi-db-canonical-reset.yml'
       - '.github/workflows/sfi-continuity-reset-reseed.yml'
 
 permissions:
