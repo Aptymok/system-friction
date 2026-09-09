@@ -84,7 +84,8 @@ test('search discovery permission is distinct from model training/data reuse and
   assert.equal(SFI_DISCOVERY_CRAWLER_POLICY.modelTrainingDataReuse.state, 'DISALLOWED_BY_POLICY');
   assert.equal(SFI_DISCOVERY_CRAWLER_POLICY.authorityBoundary.crawlerAccessIsNotTrainingConsent, true);
   assert.equal(SFI_DISCOVERY_CRAWLER_POLICY.authorityBoundary.apiDiscoveryIsAllowlistedOnly, true);
-  const searchBotRule = sfiRobotsRules().find((rule) => Array.isArray(rule.userAgent) && rule.userAgent.includes('OAI-SearchBot'));
+  const searchBotRule = sfiRobotsRules().find((rule) => Array.isArray(rule.userAgent)
+    && (rule.userAgent as readonly string[]).includes('OAI-SearchBot'));
   assert.ok(searchBotRule);
   assert.ok(searchBotRule.disallow?.includes('/api/'));
 });
