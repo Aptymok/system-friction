@@ -1,0 +1,40 @@
+name: SFI Method Lab Preregistration Export
+
+on:
+  pull_request:
+    paths:
+      - 'src/lib/method-lab/preregistrationExport.ts'
+      - 'src/lib/method-lab/preregistrationExport.test.ts'
+      - 'src/lib/method-lab/experimentPersistence.ts'
+      - 'src/app/api/interface/method-lab/route.ts'
+      - '.github/workflows/sfi-method-lab-preregistration-export.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/lib/method-lab/preregistrationExport.ts'
+      - 'src/lib/method-lab/preregistrationExport.test.ts'
+      - 'src/lib/method-lab/experimentPersistence.ts'
+      - 'src/app/api/interface/method-lab/route.ts'
+      - '.github/workflows/sfi-method-lab-preregistration-export.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Verify deterministic preregistration export
+        run: node --import tsx --test src/lib/method-lab/preregistrationExport.test.ts
+      - name: Verify Method Lab convergence
+        run: npx tsx scripts/qa-sfi-method-lab-convergence.ts && npx tsx scripts/qa-sfi-method-lab-ui-r4b.ts
+      - name: Typecheck
+        run: npm run typecheck
