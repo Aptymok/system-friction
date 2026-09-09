@@ -1,10 +1,17 @@
 {
-  "contract": "SFI-PROGRAM-COMPLETION-RECEIPTS-1.2",
+  "contract": "SFI-PROGRAM-COMPLETION-RECEIPTS-1.3",
   "receipts": {
     "ISSUE154-001": {
       "status": "SATISFIED",
       "requirementHash": "sha256:b322414306b65e8e31cded71f49bbb1bf06e25089576a444a6061022b53e2d94",
       "head": "8f7cd40441770aed275bf8797dac1333126c8707",
+      "scopePaths": [
+        "src/lib/world-observatory/",
+        "src/app/api/field/map/world/",
+        "scripts/run-world-signal-observer-agent.ts",
+        "scripts/qa-sfi-discovery-operational.ts",
+        ".github/workflows/sfi-world-signal-observer.yml"
+      ],
       "evidence": [
         {
           "kind": "RETURN_RECEIPT",
