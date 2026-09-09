@@ -10,6 +10,7 @@ import {
   type SfiCanonicalObjectRecord,
 } from './canonicalObjectRegistry';
 import {
+  SFI_DISCOVERY_FEED_METADATA,
   discoveryAtomXml,
   discoveryEmissionEntries,
   discoveryEmissionReceipt,
@@ -76,25 +77,27 @@ test('discovery emitter preserves an authoritative empty public registry without
   assert.equal(json._sfi.automaticCanon, false);
   assert.equal(json._sfi.automaticPublication, false);
 
-  const rss = discoveryRssXml();
-  const atom = discoveryAtomXml();
-  assert.match(rss, /<rss version="2\.0"/);
-  assert.match(atom, /<feed xmlns="http:\/\/www\.w3\.org\/2005\/Atom">/);
-
-  if (entries.length === 0) {
-    assert.deepEqual(sitemap, []);
-    assert.deepEqual(json.items, []);
-    assert.doesNotMatch(rss, /<item>/);
-    assert.doesNotMatch(atom, /<entry>/);
-  }
+  const emptyRss = discoveryRssXml([]);
+  const emptyAtom = discoveryAtomXml([]);
+  assert.match(emptyRss, /<rss version="2\.0"/);
+  assert.match(emptyAtom, /<feed xmlns="http:\/\/www\.w3\.org\/2005\/Atom"/);
+  assert.doesNotMatch(emptyRss, /<item>/);
+  assert.doesNotMatch(emptyAtom, /<entry>/);
+  assert.doesNotMatch(emptyRss, /1970-01-01|Thu, 01 Jan 1970/i);
+  assert.doesNotMatch(emptyAtom, /1970-01-01/i);
+  assert.doesNotMatch(emptyRss, /<lastBuildDate>/);
+  assert.match(emptyAtom, new RegExp(`<updated>${SFI_DISCOVERY_FEED_METADATA.updatedAt.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}</updated>`));
+  assert.match(emptyAtom, /<sfi:feedUpdatedEpistemicClass>DECLARED<\/sfi:feedUpdatedEpistemicClass>/);
+  assert.match(emptyAtom, /<author><name>System Friction Institute<\/name><\/author>/);
 });
 
-test('publicable fixture is synchronized across feed, sitemap and receipt projections', () => {
+test('publicable fixture preserves identity and epistemic state across every discovery projection', () => {
   const fixture = publicFixture();
   const records = [fixture];
   const entries = discoveryEmissionEntries(records);
   assert.equal(entries.length, 1);
   assert.equal(entries[0]?.objectKey, fixture.objectKey);
+  assert.equal(entries[0]?.epistemicState, 'DECLARED');
 
   const sitemap = discoverySitemapEntries(records);
   assert.deepEqual(sitemap.map((entry) => entry.url), [fixture.canonicalUrl]);
@@ -102,22 +105,46 @@ test('publicable fixture is synchronized across feed, sitemap and receipt projec
   const json = discoveryJsonFeed(records);
   assert.equal(json.items[0]?.id, fixture.objectKey);
   assert.equal(json.items[0]?.url, fixture.canonicalUrl);
+  assert.equal(json.items[0]?._sfi.epistemicState, 'DECLARED');
 
   const rss = discoveryRssXml(records);
   const atom = discoveryAtomXml(records);
   assert.match(rss, new RegExp(fixture.objectKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   assert.match(atom, new RegExp(fixture.canonicalUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  assert.match(rss, /<sfi:epistemicState>DECLARED<\/sfi:epistemicState>/);
+  assert.match(atom, /<sfi:epistemicState>DECLARED<\/sfi:epistemicState>/);
+  assert.match(atom, /<author><name>System Friction Institute<\/name><\/author>/);
 
   const first = discoveryEmissionReceipt(fixture.objectKey, records);
   const second = discoveryEmissionReceipt(fixture.objectKey, records);
   assert.equal(first.contentHash, second.contentHash);
   assert.equal(first.state, 'READY');
+  assert.equal(first.epistemicState, 'DECLARED');
   assert.equal(first.epistemicBoundary.externalRepresentationIsNotCanon, true);
   assert.equal(first.epistemicBoundary.automaticCanon, false);
   assert.equal(first.epistemicBoundary.automaticPublication, false);
   assert.equal(first.indexNow.state, 'NOT_CONFIGURED');
   assert.equal(first.indexNow.automaticNotification, false);
   assert.equal(first.lineage[0], fixture.objectKey);
+});
+
+test('registry-wide identity collisions fail closed before any feed or sitemap emission', () => {
+  const fixture = publicFixture();
+  assert.throws(
+    () => discoveryEmissionEntries([fixture, { ...fixture }]),
+    /SFI_DISCOVERY_REGISTRY_INVALID:.*DUPLICATE_(ID|OBJECT_KEY|CANONICAL_URL)/,
+  );
+  assert.throws(
+    () => discoveryJsonFeed([fixture, { ...fixture }]),
+    /SFI_DISCOVERY_REGISTRY_INVALID/,
+  );
+});
+
+test('Atom remains standards-authorable even when a canonical entry has no explicit authors', () => {
+  const fixture = publicFixture();
+  const atom = discoveryAtomXml([{ ...fixture, authors: [] }]);
+  assert.match(atom, /<feed[^>]*>/);
+  assert.match(atom, /<author><name>System Friction Institute<\/name><\/author>/);
 });
 
 test('machine-resource map reuses public MCP and keeps IndexNow fail closed', () => {
