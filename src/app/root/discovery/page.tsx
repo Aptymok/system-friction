@@ -1,14 +1,15 @@
 import Link from 'next/link';
 import { requireRootObserverPage } from '@/lib/root/server';
 import { readDiscoveryControlPlane } from '@/lib/discovery/discoveryControlPlane';
+import { readInstitutionalDiscoveryMesh } from '@/lib/discovery/institutionalDiscoveryReadModel';
 import './discovery.css';
 
 export const dynamic = 'force-dynamic';
 
 function statusClass(value: string) {
-  return value === 'AVAILABLE' || value === 'READY_OWNED_SURFACE' || value === 'OBSERVED_PUBLISHED'
+  return value === 'AVAILABLE' || value === 'READY_OWNED_SURFACE' || value === 'OBSERVED_PUBLISHED' || value === 'OBSERVED_SAMPLE'
     ? 'discoveryStatus discoveryStatusOk'
-    : value === 'DEGRADED' || value === 'GOVERNED_EXTERNAL_ACTION_REQUIRED'
+    : value === 'DEGRADED' || value === 'GOVERNED_EXTERNAL_ACTION_REQUIRED' || value === 'INSUFFICIENT_EVIDENCE_FOR_MINIMUM_GATE'
       ? 'discoveryStatus discoveryStatusWarn'
       : 'discoveryStatus';
 }
@@ -23,16 +24,21 @@ function Metric({ label, value, detail }: { label: string; value: string | numbe
 
 export default async function RootDiscoveryPage() {
   await requireRootObserverPage('/root/discovery');
-  const data = await readDiscoveryControlPlane();
+  const [data, institutional] = await Promise.all([
+    readDiscoveryControlPlane(),
+    readInstitutionalDiscoveryMesh(),
+  ]);
+  const mesh = institutional.mesh;
   const externalActionTargets = data.exposure.targets.filter((target) => target.state === 'GOVERNED_EXTERNAL_ACTION_REQUIRED');
   const observedPublishedTargets = data.exposure.targets.filter((target) => target.state === 'OBSERVED_PUBLISHED');
+  const convergence = mesh.convergence;
 
   return <main className="discoveryRoot">
     <header className="discoveryHeader">
       <div>
         <p className="discoveryKicker">SFI-03 · DISCOVERY MESH</p>
         <h1>Discovery + Exposure</h1>
-        <p>Estado de descubribilidad, identidad externa y proyección distribuida. Exposure es representación; nunca canon ni evidencia de publicación por sí misma.</p>
+        <p>Una malla institucional: qué sabe SFI, qué existe fuera, qué sale de SFI, quién lo encuentra y si esas cadenas producen RETURN o convergencia externa. Exposure es representación; nunca canon ni publicación observada por sí misma.</p>
       </div>
       <div className="discoveryHeaderActions">
         <span className={statusClass(data.availability)}>{data.availability}</span>
@@ -42,21 +48,21 @@ export default async function RootDiscoveryPage() {
 
     <section className="discoveryMetricsGrid" aria-label="Discovery summary">
       <Metric label="Canonical objects" value={data.entityHealth.canonicalObjectCount} />
-      <Metric label="Publicables" value={data.entityHealth.publicableObjectCount} />
-      <Metric label="Discovery runs · sample" value={data.searchHealth.sampledRuns} detail={data.searchHealth.sampleSaturated ? `≥ ${data.searchHealth.sampleLimit}` : data.searchHealth.availability} />
-      <Metric label="Representations · sample" value={data.propagations.sampled} detail={data.propagations.sampleSaturated ? `≥ ${data.propagations.sampleLimit}` : data.propagations.availability} />
+      <Metric label="Reality nodes · sample" value={mesh.reality.nodes.length} detail={mesh.reality.state} />
+      <Metric label="Propagation trajectories" value={mesh.propagation.trajectories.length} detail={mesh.propagation.state} />
+      <Metric label="NYC active relations" value={convergence.activeNycRelationships.length} />
       <Metric label="Published observed" value={observedPublishedTargets.length} />
       <Metric label="External actions" value={externalActionTargets.length} />
     </section>
 
     <section className="discoveryGrid">
       <article className="discoveryPanel">
-        <h2>Entity health</h2>
+        <h2>Knowledge graph</h2>
         <dl>
           <div><dt>Canonical identity</dt><dd className={statusClass(data.entityHealth.canonicalIdentity)}>{data.entityHealth.canonicalIdentity}</dd></div>
-          <div><dt>Blocked canonical objects</dt><dd>{data.entityHealth.blockedObjectCount}</dd></div>
+          <div><dt>Publicable objects</dt><dd>{data.entityHealth.publicableObjectCount}</dd></div>
+          <div><dt>Blocked objects</dt><dd>{data.entityHealth.blockedObjectCount}</dd></div>
           <div><dt>Registry defects</dt><dd>{data.entityHealth.registryErrors.length}</dd></div>
-          <div><dt>Collision risks declared</dt><dd>{data.externalNodes.disambiguationRisks.length}</dd></div>
         </dl>
       </article>
 
@@ -83,6 +89,59 @@ export default async function RootDiscoveryPage() {
         <p>{data.academicGraph.eligibleCanonicalObjectKeys.length} objetos elegibles para representación académica.</p>
         <p><strong>DOI:</strong> {data.dois.state}</p>
         <p className="discoveryBoundary">{data.dois.boundary}</p>
+      </article>
+    </section>
+
+    <section className="discoveryPanel discoveryWide">
+      <div className="discoverySectionHead">
+        <div>
+          <p className="discoveryKicker">EXTERNAL REALITY GRAPH</p>
+          <h2>Entidades reales + relaciones semánticas</h2>
+        </div>
+        <span className={statusClass(mesh.reality.state)}>{mesh.reality.state}</span>
+      </div>
+      <div className="discoveryTable" role="table">
+        {mesh.reality.nodes.length ? mesh.reality.nodes.map((node) => <div className="discoveryRow" role="row" key={node.nodeId}>
+          <div><strong>{node.label}</strong><small>{node.nodeClass} · {node.nodeId}</small></div>
+          <span className={statusClass(node.relationState)}>{node.relationState}</span>
+          <div className="discoveryUrl">{node.geography.length ? node.geography.join(' / ') : 'GEOGRAPHY UNKNOWN'}</div>
+          <div className="discoveryReason">{node.capabilityControlled.length ? `Controls: ${node.capabilityControlled.join(', ')}` : 'Controlled capability UNKNOWN'} · RETURN {node.returnState}</div>
+        </div>) : <p className="discoveryBoundary">No external Reality nodes are currently observed in the bounded canonical-graph sample. SFI does not invent them from outreach narratives.</p>}
+      </div>
+    </section>
+
+    <section className="discoveryGrid">
+      <article className="discoveryPanel">
+        <h2>Propagation graph</h2>
+        <p className={statusClass(mesh.propagation.state)}>{mesh.propagation.state}</p>
+        <p>{mesh.propagation.events.length} trajectory events in bounded sample.</p>
+        <p>{mesh.propagation.trajectories.length} object trajectories.</p>
+        <p className="discoveryBoundary">Publication does not backfill discovery. Copy/remix does not prove propagation.</p>
+      </article>
+
+      <article className="discoveryPanel">
+        <h2>Discovery lifecycle</h2>
+        <div className="discoveryTagCloud">
+          {mesh.lifecycle.stages.map((stage) => <span key={stage.id}>{stage.id}</span>)}
+        </div>
+        <p className="discoveryBoundary">EXPOSURE → DISCOVERY → RECOGNITION → INTERACTION → RELATION → PROPAGATION → PULL → RETURN. Missing transitions remain missing.</p>
+      </article>
+
+      <article className="discoveryPanel">
+        <h2>Manhattan attractor</h2>
+        <p className={statusClass(convergence.disposition)}>{convergence.disposition}</p>
+        <p>NYC nodes: {convergence.nycNodes.length} · ACTIVE/PULLING: {convergence.activeNycRelationships.length} · PULL edges: {convergence.pullEdges.length}</p>
+        <p className="discoveryBoundary">Attractor is a lens over the global graph. It is not a Manhattan-specific ontology or a relocation claim.</p>
+      </article>
+
+      <article className="discoveryPanel">
+        <h2>Minimum convergence gate</h2>
+        <dl>
+          <div><dt>Independent NYC relations</dt><dd>{convergence.evidence.independentNycRelationships}/3</dd></div>
+          <div><dt>SFI object requests</dt><dd>{convergence.evidence.concreteSfiObjectRequests}/1</dd></div>
+          <div><dt>Third-party introductions</dt><dd>{convergence.evidence.thirdPartyIntroductions}/1</dd></div>
+          <div><dt>Real case RETURN</dt><dd>{convergence.evidence.realCasesWithObservedReturn}/1</dd></div>
+        </dl>
       </article>
     </section>
 
@@ -128,15 +187,16 @@ export default async function RootDiscoveryPage() {
       </article>
 
       <article className="discoveryPanel">
-        <h2>Failed publications</h2>
-        <strong>{data.failedPublicationsInSample.length}</strong>
-        <p>Fallos en la muestra actual. No se infiere éxito externo cuando no existe receipt observado.</p>
+        <h2>Publication mesh</h2>
+        <p className={statusClass(mesh.publicationMesh.state)}>{mesh.publicationMesh.state}</p>
+        <p>{mesh.publicationMesh.proposedKinds.length} editorial kinds proposed beneath one PUBLICATION object type.</p>
+        <p className="discoveryBoundary">Namespace migration to {mesh.publicationMesh.proposedNamespace} is intentionally a separate canonical gate.</p>
       </article>
     </section>
 
     <footer className="discoveryFooter">
-      <span>{data.contract}</span>
-      <span>DB reads: {data.readPlan.dbQueries} · exact counts: {data.readPlan.exactCountProbes} · polling: {data.readPlan.pollingLoops} · N+1: {data.readPlan.nPlusOneReads}</span>
+      <span>{data.contract} · {institutional.contract}</span>
+      <span>DB reads: {data.readPlan.dbQueries + institutional.readPlan.dbQueries} · exact counts: 0 · polling: 0 · N+1: 0</span>
       <span>Observed: {data.observedAt}</span>
     </footer>
   </main>;
