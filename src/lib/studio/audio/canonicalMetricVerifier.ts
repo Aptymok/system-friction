@@ -1,17 +1,13 @@
-import 'server-only';
-
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { STUDIO_OBJECT_SYNTHESIS_SOURCE, type StudioObjectContextSynthesis } from '@/lib/studio/production/objectContextSynthesis';
 import { evaluateScoreFrictionCase } from '@/lib/scorefriction/store';
 import type { SfiAudioMetricEvidence, SfiAudioMetricKey } from './closedLoop';
 
-export const SFI_AUDIO_CANONICAL_METRIC_VERIFIER = 'SFI-AUDIO-CANONICAL-METRIC-VERIFIER-1.0' as const;
-
-function record(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
-}
+export const SFI_AUDIO_CANONICAL_METRIC_VERIFIER = 'SFI-AUDIO-CANONICAL-METRIC-VERIFIER-1.1' as const;
 
 function finite(value: unknown): number | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value === 'string' && !value.trim()) return null;
   const parsed = typeof value === 'number' ? value : Number(value);
   return Number.isFinite(parsed) ? parsed : null;
 }
@@ -24,17 +20,19 @@ function parseRef(ref: string, prefix: string) {
   return ref.startsWith(prefix) ? ref.slice(prefix.length) : null;
 }
 
-async function verifyMihm(value: number, evidence: SfiAudioMetricEvidence) {
+async function verifyMihm(value: number, evidence: SfiAudioMetricEvidence, ownerId: string | null) {
+  if (!ownerId) return false;
   const traceId = parseRef(evidence.receiptRef, 'studio_evidence_trace:');
   const variableKey = parseRef(evidence.methodRef, 'MIHM:');
   if (!traceId || !variableKey) return false;
   const db = createServiceSupabaseClient();
   const row = await db.from('studio_evidence_traces')
-    .select('id,object_id,source,payload')
+    .select('id,object_id,owner_id,source,payload')
     .eq('id', traceId)
+    .eq('owner_id', ownerId)
     .eq('source', STUDIO_OBJECT_SYNTHESIS_SOURCE)
     .maybeSingle();
-  if (row.error || !row.data) return false;
+  if (row.error || !row.data || String(row.data.owner_id) !== ownerId) return false;
   const payload = row.data.payload as StudioObjectContextSynthesis | null;
   if (!payload || payload.objectId !== String(row.data.object_id)) return false;
   if (evidence.sourceRef !== `studio_object:${payload.objectId}`) return false;
@@ -86,6 +84,7 @@ export async function verifyCanonicalAudioMetric(input: {
   value: number;
   requiredMethodRef: string;
   evidence: SfiAudioMetricEvidence | undefined;
+  ownerId?: string | null;
 }) {
   const evidence = input.evidence;
   if (!evidence || evidence.methodRef !== input.requiredMethodRef) return false;
@@ -97,9 +96,18 @@ export async function verifyCanonicalAudioMetric(input: {
       // receipt yet. It must remain unavailable rather than accepting caller metadata.
       return false;
     }
-    if (input.metric === 'mihm' && evidence.owner === 'MIHM') return await verifyMihm(input.value, evidence);
-    if (input.metric === 'wsv' && evidence.owner === 'WORLDSPECT') return await verifyWorldSpect(input.value, evidence);
-    if (input.metric === 'cvf' && evidence.owner === 'SCOREFRICTION') return await verifyScoreFriction(input.value, evidence);
+    if (input.metric === 'mihm') {
+      if (evidence.owner !== 'MIHM' || evidence.epistemicClass !== 'DERIVED') return false;
+      return await verifyMihm(input.value, evidence, input.ownerId?.trim() || null);
+    }
+    if (input.metric === 'wsv') {
+      if (evidence.owner !== 'WORLDSPECT' || evidence.epistemicClass !== 'DERIVED') return false;
+      return await verifyWorldSpect(input.value, evidence);
+    }
+    if (input.metric === 'cvf') {
+      if (evidence.owner !== 'SCOREFRICTION' || evidence.epistemicClass !== 'DERIVED') return false;
+      return await verifyScoreFriction(input.value, evidence);
+    }
     return false;
   } catch {
     return false;
