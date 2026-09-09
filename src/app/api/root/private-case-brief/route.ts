@@ -1,12 +1,15 @@
 import { NextResponse } from 'next/server';
-import { requireRootActor, requireRootViewer } from '@/lib/root/server';
+import { requireRootActor } from '@/lib/root/server';
 import { createRootPrivateCaseBrief, readRootPrivateCaseBrief } from '@/lib/sfi/case-platform/privateCaseBrief';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 export async function GET(request: Request) {
-  const gate = await requireRootViewer('root.private_case_brief.read');
+  // Private case assets are sovereign material. An institutional observer is
+  // intentionally insufficient here because the downstream service-role read
+  // bypasses RLS; ROOT authority is the tenant-isolation boundary.
+  const gate = await requireRootActor('root.private_case_brief.read_private');
   if (!gate.ok) return NextResponse.json(gate.body, { status: gate.status });
   const caseId = new URL(request.url).searchParams.get('caseId')?.trim() || '';
   if (!caseId) return NextResponse.json({ ok: false, error: 'case_id_required' }, { status: 400 });
