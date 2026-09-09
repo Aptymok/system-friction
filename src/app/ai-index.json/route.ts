@@ -1,9 +1,20 @@
 import { publicAgentSummary } from '@/lib/agents/finalProductAgents';
 import { discoveryMachineResources } from '@/lib/discovery/discoveryEmitter';
+import { discoveryExposurePlan } from '@/lib/discovery/exposureProjection';
+import { SFI_DISCOVERY_CRAWLER_POLICY } from '@/lib/discovery/crawlerPolicy';
+import {
+  SFI_DISCOVERY_LENSES,
+  SFI_DISCOVERY_LIFECYCLE,
+  SFI_MANHATTAN_ATTRACTOR,
+  SFI_PUBLICATION_MESH,
+  SFI_REALITY_NODE_CLASSES,
+  SFI_REALITY_RELATIONS,
+} from '@/lib/discovery/institutionalDiscoveryMesh';
 import { SCENE_KEYS, SCENES } from '@/components/sfi/scenes';
 
 export async function GET() {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://systemfriction.org';
+  const exposure = discoveryExposurePlan();
   return Response.json({
     name: 'System Friction Institute',
     canonical_hub: baseUrl,
@@ -58,6 +69,36 @@ export async function GET() {
       robots: `${baseUrl}/robots.txt`,
     },
     discovery: discoveryMachineResources(),
+    institutional_discovery_mesh: {
+      lenses: SFI_DISCOVERY_LENSES,
+      lifecycle: SFI_DISCOVERY_LIFECYCLE,
+      externalReality: {
+        nodeClasses: SFI_REALITY_NODE_CLASSES,
+        semanticRelations: SFI_REALITY_RELATIONS,
+        meaning: 'External entities and semantic relations are projections of the existing canonical graph. Generic connected-to edges are not sufficient evidence.',
+      },
+      attractors: {
+        manhattanObjective: SFI_MANHATTAN_ATTRACTOR,
+        meaning: 'An attractor is a query/evaluation lens over the global graph; it does not create a Manhattan-specific ontology or prove attainment.',
+      },
+      publicationMesh: SFI_PUBLICATION_MESH,
+      boundary: {
+        oneCanonicalGraph: true,
+        realityGraphIsNotCRM: true,
+        pathIsNotAccess: true,
+        publicationIsNotDiscovery: true,
+        exposureIsNotPull: true,
+        founderForcedMovementCannotBecomePull: true,
+      },
+    },
+    exposure: {
+      contract: exposure.contract,
+      meaning: 'Governed projection/distribution readiness for already-public canonical objects. Exposure is never a second canon or proof that an external publication occurred.',
+      targets: exposure.targets,
+      nextActions: exposure.nextActions,
+      crawlerPolicy: SFI_DISCOVERY_CRAWLER_POLICY,
+      boundary: exposure.boundary,
+    },
     governed_external_agent_api: {
       authentication: 'Bearer credential managed by SFI with scoped capabilities.',
       operations: {
@@ -94,6 +135,9 @@ export async function GET() {
       'Do not treat queued as executed until an observed execution receipt exists.',
       'Do not fabricate or infer an execution adapter that is not persisted.',
       'External agents do not bypass governed authorization or ROOT canonical promotion.',
+      'Exposure/discovery does not imply publication, validation, authority or model-training permission.',
+      'A graph path does not prove access, influence, collaboration or willingness to introduce SFI.',
+      'PULL requires observed outside-initiated movement and cannot be inferred from founder-forced outreach.',
     ],
     agents: publicAgentSummary(),
     updated_at: new Date().toISOString(),
