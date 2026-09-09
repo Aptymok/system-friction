@@ -58,21 +58,39 @@ test('nodes-of-nodes exposes observed reachability without converting paths into
   assert.match(paths.boundary, /does not imply access/i);
 });
 
-test('publication is exposure only; later discovery stages require explicit semantic state', () => {
+test('publication is exposure only; later discovery stages require evidence-backed observed semantic state', () => {
   const propagation = projectPropagationGraph([
     {
       id: 't1', object_ref: 'publication:note-001', relation: 'PUBLICATION', platform: 'systemfriction.org', source_uri: 'https://systemfriction.org/publications/note-001',
-      observed_at: '2026-09-09T12:00:00.000Z', evidence_refs: ['evidence:publish'], semantic_state: {}, payload: {},
+      observed_at: '2026-09-09T12:00:00.000Z', evidence_refs: ['evidence:publish'], semantic_state: { epistemicState: 'OBSERVED' }, payload: {},
     },
     {
       id: 't2', object_ref: 'publication:note-001', relation: 'OBSERVED_STATE', platform: 'external-search', source_uri: null,
-      observed_at: '2026-09-09T13:00:00.000Z', evidence_refs: ['evidence:retrieval'], semantic_state: { discoveryStage: 'DISCOVERY', externalNodeId: 'institution:b' }, payload: {},
+      observed_at: '2026-09-09T13:00:00.000Z', evidence_refs: ['evidence:retrieval'], semantic_state: { discoveryStage: 'DISCOVERY', epistemicState: 'OBSERVED', externalNodeId: 'institution:b' }, payload: {},
     },
   ]);
   assert.equal(propagation.events[0].stage, 'EXPOSURE');
   assert.equal(propagation.events[1].stage, 'DISCOVERY');
   assert.equal(propagation.trajectories[0].highestObservedStage, 'DISCOVERY');
   assert.equal(propagation.boundary.publicationDoesNotImplyDiscovery, true);
+  assert.equal(propagation.boundary.semanticStageRequiresEvidenceAndObservedEpistemicState, true);
+});
+
+test('semantic stage metadata without evidence cannot manufacture PULL or RETURN', () => {
+  const propagation = projectPropagationGraph([
+    {
+      id: 'u1', object_ref: 'publication:unbacked', relation: 'OBSERVED_STATE', observed_at: '2026-09-09T14:00:00.000Z',
+      evidence_refs: [], semantic_state: { discoveryStage: 'PULL', externalNodeId: 'institution:b' }, payload: {},
+    },
+    {
+      id: 'u2', object_ref: 'publication:declared-only', relation: 'RETURN', observed_at: '2026-09-09T15:00:00.000Z',
+      evidence_refs: ['evidence:declared'], semantic_state: { discoveryStage: 'RETURN', epistemicState: 'DECLARED', externalNodeId: 'institution:b' }, payload: {},
+    },
+  ]);
+  assert.equal(propagation.events[0].stage, null);
+  assert.equal(propagation.events[1].stage, null);
+  assert.equal(propagation.trajectories[0].highestObservedStage, null);
+  assert.equal(propagation.trajectories[1].highestObservedStage, null);
 });
 
 test('founder-forced introductions cannot satisfy PULL', () => {
@@ -85,10 +103,33 @@ test('founder-forced introductions cannot satisfy PULL', () => {
   assert.equal(mesh.convergence.boundary.founderForcedOutreachCannotCountAsPull, true);
 });
 
-test('Manhattan remains an attractor lens and an unsatisfied gate is not promoted', () => {
+test('unknown introduction origin cannot count as a third-party introduction', () => {
+  const unknownOriginEdges = edges.map((edge) => edge.edge_id === 'person:a->institution:b'
+    ? { ...edge, attributes: { epistemicClass: 'OBSERVED', evidenceRefs: ['evidence:intro'] } }
+    : edge);
+  const mesh = projectInstitutionalDiscoveryMesh({ graphNodes: nodes, graphEdges: unknownOriginEdges, trajectoryEvents: [] });
+  assert.equal(mesh.convergence.evidence.thirdPartyIntroductions, 0);
+  assert.equal(mesh.convergence.boundary.unknownIntroductionOriginCannotCountAsThirdParty, true);
+});
+
+test('Manhattan remains an attractor lens and a complete unsatisfied sample is not promoted', () => {
   const mesh = projectInstitutionalDiscoveryMesh({ graphNodes: nodes, graphEdges: edges, trajectoryEvents: [] });
   assert.equal(mesh.boundary.attractorIsLensNotOntology, true);
   assert.equal(mesh.convergence.attractor.key, 'MANHATTAN_OBJECTIVE');
   assert.equal(mesh.convergence.minimumEvidenceGateSatisfied, false);
   assert.equal(mesh.convergence.disposition, 'INSUFFICIENT_EVIDENCE_FOR_MINIMUM_GATE');
+});
+
+test('a saturated bounded sample cannot prove Manhattan evidence insufficiency', () => {
+  const mesh = projectInstitutionalDiscoveryMesh({
+    graphNodes: nodes,
+    graphEdges: edges,
+    trajectoryEvents: [],
+    sampleCompleteness: { graphNodes: false, graphEdges: true, trajectoryEvents: true },
+  });
+  assert.equal(mesh.convergence.evidenceSampleComplete, false);
+  assert.equal(mesh.convergence.minimumEvidenceGateSatisfied, null);
+  assert.equal(mesh.convergence.disposition, 'BOUNDED_SAMPLE_CANNOT_FALSIFY_MINIMUM_GATE');
+  assert.equal(mesh.convergence.boundary.saturatedSampleCannotProveInsufficiency, true);
+  assert.equal(mesh.boundary.boundedSamplesCannotCreateNegativeEvidence, true);
 });
