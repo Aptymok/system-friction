@@ -23,11 +23,28 @@ export async function GET(req: Request) {
       scopes: credential.scopes ?? [],
       caseId,
     });
+    const ownerStudioContext = credential.authMethod === 'oauth' && credential.subjectId
+      ? {
+          contract: 'SFI-STUDIO-OWNER-CONTEXT-1.0',
+          method: 'POST',
+          path: '/api/external/v1/studio',
+          body: { operation: 'context' },
+          requiredScope: 'studio:read',
+          availability: credential.scopes.includes('studio:read') ? 'AUTHORIZED' : 'REQUIRES_SCOPE',
+          instruction: 'Use this surface when persisted owner Studio/KXTXR lineage or owner-attributed AMV memory is relevant. Returned metadata is context/provenance, not a new observation or proof of binary materialization.',
+        }
+      : null;
     return NextResponse.json({
       ...bootstrap,
       interactionPolicy: SFI_HUMAN_INTERACTION_POLICY,
       analysisLearningPolicy: SFI_ANALYSIS_LEARNING_POLICY,
-      useInstruction: `${bootstrap.useInstruction} Human-facing interaction must follow interactionPolicy: explain meaning, authority, options, consequences and next event before implementation detail. Apply analysisLearningPolicy when choosing what evidence to request and when interpreting process/data contradictions. Explicit owner requests to learn/remember/apply a personal interaction rule may use the governed PERSON_CT learn_declared_pattern operation.`,
+      modelInteroperability: {
+        canonicalOpenApi: '/openapi.json',
+        gptActionsProjection: '/openapi-actions.json',
+        ownerStudioContext,
+        modelCapabilityImpliesAuthority: false,
+      },
+      useInstruction: `${bootstrap.useInstruction} Human-facing interaction must follow interactionPolicy: explain meaning, authority, options, consequences and next event before implementation detail. Apply analysisLearningPolicy when choosing what evidence to request and when interpreting process/data contradictions. Explicit owner requests to learn/remember/apply a personal interaction rule may use the governed PERSON_CT learn_declared_pattern operation. When ownerStudioContext is available and owner Studio/KXTXR lineage is relevant, read that governed context before concluding that owner data is absent.`,
     }, {
       status: 200,
       headers: {
