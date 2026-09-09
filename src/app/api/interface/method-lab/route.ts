@@ -7,6 +7,8 @@ import {
 } from '@/lib/method-lab/uiProjection';
 import { executeMethodLabUiSimulation, type MethodLabUiSimulationProtocol } from '@/lib/method-lab/uiExecution';
 import { METHOD_LAB_EXPERIMENT_TYPES, type MethodLabExperimentType } from '@/lib/method-lab/experimentContract';
+import { readOwnedMethodLabExperimentPreregistration } from '@/lib/method-lab/experimentPersistence';
+import { buildMethodLabPreregistrationExport } from '@/lib/method-lab/preregistrationExport';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -80,6 +82,31 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => ({})) as Row;
     const operation = requiredText(body.operation);
 
+    if (operation === 'export_preregistration') {
+      const persisted = await readOwnedMethodLabExperimentPreregistration({
+        ownerId: context.user.id,
+        experimentId: requiredText(body.experimentId),
+      });
+      const exportArtifact = buildMethodLabPreregistrationExport({
+        preregistration: persisted.preregistration,
+        definitionHash: persisted.definitionHash,
+      });
+      return NextResponse.json({
+        ok: true,
+        operation,
+        preregistrationRef: persisted.preregistrationRef,
+        export: exportArtifact,
+        boundaries: {
+          ownerScoped: true,
+          externalRegistrationClaim: false,
+          externalExecution: false,
+          canonicalPromotion: false,
+          privateTwinPayloadIncluded: false,
+          observationInheritance: false,
+        },
+      }, { status: 200 });
+    }
+
     if (operation === 'execute_simulation') {
       const protocolId = simulationProtocol(body.protocolId);
       if (!protocolId) return NextResponse.json({ ok: false, error: 'METHOD_LAB_UI_SIMULATION_PROTOCOL_INVALID' }, { status: 400 });
@@ -104,8 +131,8 @@ export async function POST(request: Request) {
       return NextResponse.json({
         ok: false,
         error: 'METHOD_LAB_UI_OPERATION_NOT_ALLOWED',
-        allowed: ['preregister', 'execute_simulation'],
-        boundary: 'Execution remains owned by existing simulation runtime owners; this API does not create another experiment engine.',
+        allowed: ['preregister', 'export_preregistration', 'execute_simulation'],
+        boundary: 'Execution remains owned by existing simulation runtime owners; export is a representation of persisted preregistration and is not external registration.',
       }, { status: 400 });
     }
 
