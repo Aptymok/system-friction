@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { authorizeExternalRequest, externalActor, externalAuthError } from '@/lib/sfi/externalAuth';
 import { getStudioObject, getStudioObjectFeatures, listStudioObjects } from '@/lib/studio/production/studioProductionRepository';
+import { readOwnerStudioContext } from '@/lib/studio/external/ownerContext';
 import { projectStudioObjectForHumans } from '@/lib/studio/hygiene/studioObjectHygiene';
 import { createStudioContentSignedUrl } from '@/lib/studio/multimodal/storage';
 import { resolveStudioObjectDescriptor, analyzeStudioModalityObject } from '@/lib/studio/multimodal/analyzeStudioModalityObject';
@@ -14,7 +15,7 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 export const maxDuration = 300;
 
-type StudioOperation = 'list' | 'inspect' | 'features' | 'content' | 'analyze' | 'ingest_analyze' | 'produce';
+type StudioOperation = 'context' | 'list' | 'inspect' | 'features' | 'content' | 'analyze' | 'ingest_analyze' | 'produce';
 type Row = Record<string, unknown>;
 
 function requiredScope(operation: StudioOperation) {
@@ -44,7 +45,7 @@ function instrumentIds(value: unknown) {
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({})) as Row;
   const operation = String(body.operation || 'list') as StudioOperation;
-  if (!['list','inspect','features','content','analyze','ingest_analyze','produce'].includes(operation)) return NextResponse.json({ ok: false, error: 'unsupported_studio_operation' }, { status: 400 });
+  if (!['context','list','inspect','features','content','analyze','ingest_analyze','produce'].includes(operation)) return NextResponse.json({ ok: false, error: 'unsupported_studio_operation' }, { status: 400 });
 
   const scope = requiredScope(operation);
   const auth = authorizeExternalRequest(req, scope);
@@ -54,6 +55,19 @@ export async function POST(req: Request) {
 
   const ownerId = cred.subjectId;
   const actor = externalActor(cred);
+
+  if (operation === 'context') {
+    const result = await readOwnerStudioContext(ownerId, boundedLimit(body.limit));
+    if (!result.ok) return NextResponse.json({ ok: false, error: result.error, details: result.details }, { status: result.status });
+    return NextResponse.json({
+      ok: true,
+      actor,
+      operation,
+      ownershipBoundary: 'oauth.subjectId binds Studio owner_id and owner-attributed AMV memory',
+      context: result.data,
+      instruction: 'Use this owner context as persisted lineage/context, not as a new observation. METADATA_ONLY_HISTORICAL_RESTORE does not imply binary materialization.',
+    }, { headers: { 'Cache-Control': 'private, no-store' } });
+  }
 
   if (operation === 'list') {
     const includeArchived = body.includeArchived === true;
