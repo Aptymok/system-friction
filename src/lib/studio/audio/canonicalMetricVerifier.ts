@@ -1,9 +1,18 @@
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
-import { STUDIO_OBJECT_SYNTHESIS_SOURCE, type StudioObjectContextSynthesis } from '@/lib/studio/production/objectContextSynthesis';
+import { STUDIO_OBJECT_SYNTHESIS_SOURCE } from '@/lib/studio/production/objectContextSynthesisContract';
 import { evaluateScoreFrictionCase } from '@/lib/scorefriction/store';
 import type { SfiAudioMetricEvidence, SfiAudioMetricKey } from './closedLoop';
 
 export const SFI_AUDIO_CANONICAL_METRIC_VERIFIER = 'SFI-AUDIO-CANONICAL-METRIC-VERIFIER-1.1' as const;
+
+type MihmPayload = {
+  objectId?: unknown;
+  mihm?: {
+    ihg?: unknown;
+    weightedSum?: unknown;
+    variables?: Array<{ key?: unknown; value?: unknown }>;
+  };
+};
 
 function finite(value: unknown): number | null {
   if (value === null || value === undefined) return null;
@@ -33,7 +42,7 @@ async function verifyMihm(value: number, evidence: SfiAudioMetricEvidence, owner
     .eq('source', STUDIO_OBJECT_SYNTHESIS_SOURCE)
     .maybeSingle();
   if (row.error || !row.data || String(row.data.owner_id) !== ownerId) return false;
-  const payload = row.data.payload as StudioObjectContextSynthesis | null;
+  const payload = row.data.payload as MihmPayload | null;
   if (!payload || payload.objectId !== String(row.data.object_id)) return false;
   if (evidence.sourceRef !== `studio_object:${payload.objectId}`) return false;
   if (!evidence.evidenceRefs.includes(`studio_evidence_trace:${traceId}`)) return false;
@@ -92,8 +101,6 @@ export async function verifyCanonicalAudioMetric(input: {
 
   try {
     if (input.metric === 'fad') {
-      // FAD remains LAB_ONLY/EXPERIMENTAL and has no canonical persisted measurement
-      // receipt yet. It must remain unavailable rather than accepting caller metadata.
       return false;
     }
     if (input.metric === 'mihm') {
