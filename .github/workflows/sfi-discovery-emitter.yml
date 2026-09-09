@@ -10,6 +10,7 @@ on:
       - 'src/app/sitemap.ts'
       - 'src/app/ai-index.json/**'
       - 'src/app/api/root/discovery/emission/**'
+      - 'scripts/qa-sfi-discovery-emitter.ts'
       - '.github/workflows/sfi-discovery-emitter.yml'
   push:
     branches:
@@ -22,6 +23,7 @@ on:
       - 'src/app/sitemap.ts'
       - 'src/app/ai-index.json/**'
       - 'src/app/api/root/discovery/emission/**'
+      - 'scripts/qa-sfi-discovery-emitter.ts'
       - '.github/workflows/sfi-discovery-emitter.yml'
 
 permissions:
@@ -40,6 +42,6 @@ jobs:
       - name: Verify canonical registry, query mesh and discovery emitter
         run: node --import tsx --test src/lib/discovery/canonicalObjectRegistry.test.ts src/lib/discovery/discoveryMesh.test.ts src/lib/discovery/discoveryEmitter.test.ts
       - name: Verify durable discovery authority and observation boundaries
-        run: npx tsx scripts/qa-sfi-discovery-operational.ts
+        run: npx tsx scripts/qa-sfi-discovery-operational.ts && npx tsx scripts/qa-sfi-discovery-emitter.ts
       - name: Typecheck
         run: npm run typecheck
