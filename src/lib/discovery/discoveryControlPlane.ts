@@ -18,16 +18,45 @@ import {
 } from './exposureProjection';
 import { SFI_DISCOVERY_CRAWLER_POLICY } from './crawlerPolicy';
 
-export const SFI_DISCOVERY_CONTROL_PLANE_CONTRACT = 'SFI-DISCOVERY-CONTROL-PLANE-1.0' as const;
+export const SFI_DISCOVERY_CONTROL_PLANE_CONTRACT = 'SFI-DISCOVERY-CONTROL-PLANE-1.1' as const;
 
 type QueryAvailability = 'AVAILABLE' | 'DEGRADED' | 'UNAVAILABLE';
 
 type ReadResult<T> = {
   availability: QueryAvailability;
-  count: number | null;
+  total: null;
+  sampled: number;
+  sampleLimit: number;
+  sampleSaturated: boolean;
   rows: T[];
   warning: string | null;
 };
+
+const SAMPLE_LIMIT = 100;
+
+function boundedRead<T>(rows: T[] | null | undefined, error?: { message?: string } | null): ReadResult<T> {
+  if (error) {
+    return {
+      availability: 'UNAVAILABLE',
+      total: null,
+      sampled: 0,
+      sampleLimit: SAMPLE_LIMIT,
+      sampleSaturated: false,
+      rows: [],
+      warning: error.message || 'discovery_read_unavailable',
+    };
+  }
+  const data = rows ?? [];
+  return {
+    availability: 'AVAILABLE',
+    total: null,
+    sampled: data.length,
+    sampleLimit: SAMPLE_LIMIT,
+    sampleSaturated: data.length >= SAMPLE_LIMIT,
+    rows: data,
+    warning: null,
+  };
+}
 
 function stateCounts(rows: Array<{ state?: string | null }>) {
   return rows.reduce<Record<string, number>>((acc, row) => {
@@ -55,50 +84,38 @@ function doiRefs() {
 export async function readDiscoveryControlPlane() {
   const service = createServiceSupabaseClient();
 
+  // Interactive ROOT reads are intentionally bounded samples. Exhaustive counts
+  // belong to explicit diagnostics/assurance, never ordinary page refreshes.
   const [representationsQuery, runsQuery, collisionsQuery] = await Promise.all([
     service
       .from('sfi_external_representations')
-      .select('canonical_object_key,representation_kind,state,external_url,content_hash,observed_at,created_at', { count: 'exact' })
+      .select('canonical_object_key,representation_kind,state,external_url,content_hash,observed_at,created_at')
       .order('created_at', { ascending: false })
-      .limit(100),
+      .limit(SAMPLE_LIMIT),
     service
       .from('sfi_discovery_query_runs')
-      .select('id,run_id,query_id,availability,metrics,provenance,observed_at,created_at,sfi_discovery_queries(query_text,mode,intent,unbranded)', { count: 'exact' })
+      .select('id,run_id,query_id,availability,metrics,provenance,observed_at,created_at,sfi_discovery_queries(query_text,mode,intent,unbranded)')
       .order('observed_at', { ascending: false })
-      .limit(100),
+      .limit(SAMPLE_LIMIT),
     service
       .from('sfi_entity_collisions')
-      .select('id,run_id,dimension,collision_observed,observed_value,source_identity,observed_at,created_at', { count: 'exact' })
+      .select('id,run_id,dimension,collision_observed,observed_value,source_identity,observed_at,created_at')
       .order('observed_at', { ascending: false })
-      .limit(100),
+      .limit(SAMPLE_LIMIT),
   ]);
 
-  const representationRead: ReadResult<SfiObservedExternalRepresentation> = representationsQuery.error
-    ? { availability: 'UNAVAILABLE', count: null, rows: [], warning: representationsQuery.error.message }
-    : {
-      availability: 'AVAILABLE',
-      count: representationsQuery.count ?? 0,
-      rows: (representationsQuery.data ?? []) as SfiObservedExternalRepresentation[],
-      warning: null,
-    };
-
-  const runsRead: ReadResult<Record<string, unknown>> = runsQuery.error
-    ? { availability: 'UNAVAILABLE', count: null, rows: [], warning: runsQuery.error.message }
-    : {
-      availability: 'AVAILABLE',
-      count: runsQuery.count ?? 0,
-      rows: (runsQuery.data ?? []) as unknown as Record<string, unknown>[],
-      warning: null,
-    };
-
-  const collisionsRead: ReadResult<Record<string, unknown>> = collisionsQuery.error
-    ? { availability: 'UNAVAILABLE', count: null, rows: [], warning: collisionsQuery.error.message }
-    : {
-      availability: 'AVAILABLE',
-      count: collisionsQuery.count ?? 0,
-      rows: (collisionsQuery.data ?? []) as unknown as Record<string, unknown>[],
-      warning: null,
-    };
+  const representationRead = boundedRead<SfiObservedExternalRepresentation>(
+    (representationsQuery.data ?? []) as SfiObservedExternalRepresentation[],
+    representationsQuery.error,
+  );
+  const runsRead = boundedRead<Record<string, unknown>>(
+    (runsQuery.data ?? []) as unknown as Record<string, unknown>[],
+    runsQuery.error,
+  );
+  const collisionsRead = boundedRead<Record<string, unknown>>(
+    (collisionsQuery.data ?? []) as unknown as Record<string, unknown>[],
+    collisionsQuery.error,
+  );
 
   const registryErrors = validateCanonicalObjectRegistry(SFI_CANONICAL_OBJECT_REGISTRY);
   const emissions = discoveryEmissionEntries();
@@ -136,17 +153,21 @@ export async function readDiscoveryControlPlane() {
     },
     propagations: {
       availability: representationRead.availability,
-      total: representationRead.count,
-      sampled: representationRead.rows.length,
-      byState: stateCounts(representationRead.rows),
-      observedPublished: publishedRepresentations,
+      total: representationRead.total,
+      sampled: representationRead.sampled,
+      sampleLimit: representationRead.sampleLimit,
+      sampleSaturated: representationRead.sampleSaturated,
+      byStateInSample: stateCounts(representationRead.rows),
+      observedPublishedInSample: publishedRepresentations,
       warning: representationRead.warning,
     },
     searchHealth: {
       availability: runsRead.availability,
-      totalRuns: runsRead.count,
-      sampledRuns: runsRead.rows.length,
-      byAvailability: availabilityCounts(runsRead.rows as Array<{ availability?: string | null }>),
+      totalRuns: runsRead.total,
+      sampledRuns: runsRead.sampled,
+      sampleLimit: runsRead.sampleLimit,
+      sampleSaturated: runsRead.sampleSaturated,
+      byAvailabilityInSample: availabilityCounts(runsRead.rows as Array<{ availability?: string | null }>),
       latestRun,
       warning: runsRead.warning,
     },
@@ -165,9 +186,11 @@ export async function readDiscoveryControlPlane() {
     },
     collisions: {
       availability: collisionsRead.availability,
-      total: collisionsRead.count,
-      sampled: collisionsRead.rows.length,
-      observed: collisionsRead.rows.filter((row) => row.collision_observed === true),
+      total: collisionsRead.total,
+      sampled: collisionsRead.sampled,
+      sampleLimit: collisionsRead.sampleLimit,
+      sampleSaturated: collisionsRead.sampleSaturated,
+      observedInSample: collisionsRead.rows.filter((row) => row.collision_observed === true),
       warning: collisionsRead.warning,
     },
     crawlers: SFI_DISCOVERY_CRAWLER_POLICY,
@@ -186,21 +209,23 @@ export async function readDiscoveryControlPlane() {
       llmsFull: machineResources.llmsFull,
     },
     mcp: machineResources.mcp,
-    failedPublications: failedRepresentations,
+    failedPublicationsInSample: failedRepresentations,
     exposure,
     readPlan: {
       dbQueries: 3,
+      exactCountProbes: 0,
       pollingLoops: 0,
       nPlusOneReads: 0,
       canonicalRegistryReads: 1,
       externalIdentityRegistryReads: 1,
-      boundedRowsPerDbOwner: 100,
+      boundedRowsPerDbOwner: SAMPLE_LIMIT,
       directBrowserDataApi: false,
     },
     epistemicBoundary: {
       discoveryCandidateIsNotCanon: true,
       exposureIsNotPublication: true,
       externalRepresentationIsNotCanon: true,
+      totalCountUnknownOnInteractiveRead: true,
       unavailableIsNotZero: true,
       externalActionRequiresObservedReceipt: true,
     },
