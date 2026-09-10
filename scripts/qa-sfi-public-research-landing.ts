@@ -37,6 +37,15 @@ async function main() {
   assert.match(publicationRoute, /if \(!landing\) notFound\(\)/);
   assert.match(researchRoute, /alternates: \{ canonical: landing\.canonicalUrl \}/);
   assert.match(publicationRoute, /alternates: \{ canonical: landing\.canonicalUrl \}/);
+  for (const route of [researchRoute, publicationRoute]) {
+    assert.match(route, /openGraph:\s*\{/);
+    assert.match(route, /type: 'article'/);
+    assert.match(route, /url: landing\.canonicalUrl/);
+    assert.match(route, /title,/);
+    assert.match(route, /description: landing\.node\.summary/);
+    assert.match(route, /siteName: 'System Friction Institute'/);
+  }
+  assert.doesNotMatch(`${researchRoute}\n${publicationRoute}`, /openGraph:\s*\{[^}]*url:\s*['"]https:\/\/systemfriction\.org['"]/, 'object landing Open Graph URL must never fall back to homepage');
   assert.doesNotMatch(`${researchRoute}\n${publicationRoute}`, /redirect\(|createServiceSupabaseClient|fetch\(/, 'public landing routes may not invent compatibility redirects or bypass the canonical projection');
 
   assert.match(view, /type="application\/ld\+json"/);
@@ -50,7 +59,7 @@ async function main() {
 
   console.log(JSON.stringify({
     ok: true,
-    contract: 'SFI-PUBLIC-RESEARCH-LANDING-QA-1.1',
+    contract: 'SFI-PUBLIC-RESEARCH-LANDING-QA-1.2',
     singleResearchProjectionOwnerReused: true,
     semanticJsonLdOwnerReused: true,
     publicationJsonLdSchemaType: 'CreativeWork',
@@ -58,6 +67,7 @@ async function main() {
     publicationRoute: '/publications/[slug]',
     missingCanonicalObjectReturns404: true,
     safeJsonLdSerialization: true,
+    pageSpecificOpenGraphIdentity: true,
     directDatabaseReads: 0,
     externalActions: 0,
     syntheticRedirects: 0,
