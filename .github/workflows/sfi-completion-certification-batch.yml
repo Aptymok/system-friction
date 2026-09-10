@@ -3,22 +3,30 @@ name: SFI-08 Completion Certification Batch
 on:
   pull_request:
     paths:
-      - '.github/workflows/sfi-completion-certification-batch.yml'
-      - 'scripts/sfi-program-certification-batch.mjs'
-      - 'scripts/qa-sfi-program-certification-batch.mjs'
-      - 'scripts/lib/programCompletionReceipts.mjs'
-      - 'scripts/lib/programCompletionDiagnostics.mjs'
-      - 'docs/program/SFI-COMPLETION-RECEIPTS.json'
+      - 'src/**'
+      - 'scripts/**'
+      - 'packages/**'
+      - 'services/**'
+      - '.github/workflows/**'
+      - 'public/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'docs/program/**'
+      - 'docs/ROOT_WORLD_CASE_AND_DISCOVERY_ENGINE.md'
   push:
     branches:
       - main
     paths:
-      - '.github/workflows/sfi-completion-certification-batch.yml'
-      - 'scripts/sfi-program-certification-batch.mjs'
-      - 'scripts/qa-sfi-program-certification-batch.mjs'
-      - 'scripts/lib/programCompletionReceipts.mjs'
-      - 'scripts/lib/programCompletionDiagnostics.mjs'
-      - 'docs/program/SFI-COMPLETION-RECEIPTS.json'
+      - 'src/**'
+      - 'scripts/**'
+      - 'packages/**'
+      - 'services/**'
+      - '.github/workflows/**'
+      - 'public/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'docs/program/**'
+      - 'docs/ROOT_WORLD_CASE_AND_DISCOVERY_ENGINE.md'
   workflow_dispatch:
     inputs:
       batch_limit:
@@ -28,6 +36,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
   issues: read
 
 concurrency:
