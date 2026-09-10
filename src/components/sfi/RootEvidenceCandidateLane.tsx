@@ -32,9 +32,10 @@ type Candidate = {
 type EvidenceReadiness = {
   state: 'MISSING' | 'REVIEW_REQUIRED' | 'SATISFIED';
   jobId: string;
-  owner: 'evidence_hunter' | 'ROOT';
+  owner: 'evidence_hunter' | 'evidence_assessment';
   nextExpectedEvent: string;
-  rootActionRequired: boolean;
+  rootActionRequired: false;
+  basis?: 'NONE' | 'WORKING_SOURCES' | 'ACCEPTED_EVIDENCE' | 'MIXED';
   slots: Array<{
     key: string;
     label: string;
@@ -42,7 +43,7 @@ type EvidenceReadiness = {
     candidateIds: string[];
     acceptedEvidenceIds: string[];
   }>;
-  counts: { required: number; accepted: number; candidate: number; missing: number; rejectedCandidates: number };
+  counts: { required: number; accepted: number; candidate: number; missing: number; rejectedCandidates: number; usable?: number };
 };
 
 type Props = { proposals: ProposalRef[] };
@@ -86,7 +87,7 @@ export function RootEvidenceCandidateLane({ proposals }: Props) {
   useEffect(() => { void load(proposalId); }, [proposalId]);
 
   const counts = useMemo(() => ({
-    proposed: candidates.filter((candidate) => candidate.status === 'proposed').length,
+    working: candidates.filter((candidate) => candidate.status === 'proposed').length,
     accepted: candidates.filter((candidate) => candidate.status === 'accepted').length,
     rejected: candidates.filter((candidate) => candidate.status === 'rejected').length,
   }), [candidates]);
@@ -101,8 +102,8 @@ export function RootEvidenceCandidateLane({ proposals }: Props) {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(action === 'search'
-          ? { action: 'search', request_note: 'Buscar candidatos suficientes para resolver el gate de evidencia de esta propuesta.' }
-          : { action: 'add_url', url: url.trim(), request_note: 'URL agregada por ROOT para revisión como evidencia candidata.' }),
+          ? { action: 'search', request_note: 'Buscar fuentes suficientes para completar el análisis de esta propuesta.' }
+          : { action: 'add_url', url: url.trim(), request_note: 'URL agregada como fuente de trabajo trazable.' }),
       });
       const json = await response.json().catch(() => null);
       if (!response.ok && response.status !== 207) throw new Error(`${response.status}: ${json?.error ?? 'evidence_candidate_acquisition_failed'}`);
@@ -116,35 +117,15 @@ export function RootEvidenceCandidateLane({ proposals }: Props) {
     }
   };
 
-  const decide = async (candidate: Candidate, decision: 'accept' | 'reject') => {
-    if (!proposalId || busy) return;
-    setBusy(candidate.id);
-    setError(null);
-    try {
-      const response = await fetch(`/api/sfi/proposals/${proposalId}/evidence-candidates/${candidate.id}/${decision}`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: decision === 'reject' ? JSON.stringify({ reason: 'Rejected by ROOT during source eligibility review.' }) : '{}',
-      });
-      const json = await response.json().catch(() => null);
-      if (!response.ok || json?.ok === false) throw new Error(`${response.status}: ${json?.error ?? `evidence_candidate_${decision}_failed`}`);
-      await load(proposalId);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
-    } finally {
-      setBusy(null);
-    }
-  };
-
   if (!proposals.length) return null;
 
-  return <section className="rootEvidenceCandidates" aria-label="Evidence candidate review">
+  return <section className="rootEvidenceCandidates" aria-label="Working evidence sources">
     <header>
       <div>
-        <small>EVIDENCE SEARCH / ROOT REVIEW</small>
-        <strong>LA MÁQUINA BUSCA · ROOT DECIDE QUÉ ENTRA</strong>
+        <small>FUENTES / TRABAJO OPERATIVO</small>
+        <strong>SFI BUSCA, CLASIFICA Y CONTINÚA · ROOT NO APRUEBA FUENTES</strong>
       </div>
-      <span>{counts.accepted} aceptadas · {counts.proposed} por revisar · {counts.rejected} rechazadas</span>
+      <span>{counts.working} de trabajo · {counts.accepted} ya persistidas · {counts.rejected} descartadas</span>
     </header>
 
     <div className="rootEvidenceProposalTabs">
@@ -155,35 +136,39 @@ export function RootEvidenceCandidateLane({ proposals }: Props) {
 
     {readiness && <div className="rootEvidenceControls" aria-label="Evidence readiness">
       <div>
-        <span>EVIDENCE GATE</span>
+        <span>ESTADO PARA TRABAJAR</span>
         <b>{readiness.state}</b>
-        <small>{readiness.counts.accepted}/{readiness.counts.required} slots aceptados · owner {readiness.owner}</small>
+        <small>{readiness.counts.usable ?? readiness.counts.accepted + readiness.counts.candidate}/{readiness.counts.required} necesidades cubiertas · {readiness.basis ?? '—'}</small>
       </div>
       <div>
-        <span>NEXT EXPECTED EVENT</span>
+        <span>QUÉ SIGUE</span>
         <b>{readiness.nextExpectedEvent}</b>
-        <small>ROOT: {readiness.rootActionRequired ? 'ACCIÓN REQUERIDA' : 'ninguna acción ahora'}</small>
+        <small>Tu intervención: ninguna por revisión de fuentes</small>
       </div>
       <div>
-        <span>JOB</span>
-        <b>{readiness.jobId}</b>
+        <span>RESPONSABLE</span>
+        <b>{readiness.owner}</b>
       </div>
     </div>}
 
     {readiness?.slots?.length ? <div className="rootEvidenceCandidateList" aria-label="Evidence slots">
       {readiness.slots.map((slot) => <article key={slot.key} data-status={slot.status === 'ACCEPTED' ? 'accepted' : slot.status === 'CANDIDATE' ? 'proposed' : 'missing'}>
         <div className="rootEvidenceCandidateHead">
-          <div><small>EVIDENCE SLOT</small><b>{slot.label}</b></div>
+          <div><small>NECESIDAD DE EVIDENCIA</small><b>{slot.label}</b></div>
           <strong>{slot.status}</strong>
         </div>
-        <p>{slot.status === 'ACCEPTED' ? 'Persistida y aceptada por ROOT.' : slot.status === 'CANDIDATE' ? 'Existe fuente candidata; ROOT debe decidir elegibilidad.' : 'Falta candidato elegible; evidence_hunter conserva el siguiente trabajo.'}</p>
+        <p>{slot.status === 'ACCEPTED'
+          ? 'Existe evidencia persistida; SFI puede usarla conservando su trazabilidad.'
+          : slot.status === 'CANDIDATE'
+            ? 'Existe una fuente de trabajo trazable. SFI puede analizarla sin pedir aprobación; eso no la vuelve verdad institucional.'
+            : 'Falta una fuente adecuada; SFI conserva la búsqueda como siguiente trabajo.'}</p>
       </article>)}
     </div> : null}
 
     {selectedProposal && <div className="rootEvidenceControls">
       <button disabled={Boolean(busy)} onClick={() => void acquire('search')}>{busy === 'search' ? 'BUSCANDO…' : 'BUSCAR / REINTENTAR'}</button>
       <label>
-        <span>AGREGAR URL COMO CANDIDATO</span>
+        <span>APORTAR URL COMO FUENTE</span>
         <input value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://www.inegi.org.mx/..." />
       </label>
       <button disabled={Boolean(busy) || !url.trim()} onClick={() => void acquire('add_url')}>{busy === 'add_url' ? 'REGISTRANDO…' : 'AGREGAR URL'}</button>
@@ -195,9 +180,9 @@ export function RootEvidenceCandidateLane({ proposals }: Props) {
       {candidates.map((candidate) => <article key={candidate.id} data-status={candidate.status}>
         <div className="rootEvidenceCandidateHead">
           <div><small>{candidate.source.sourceType.toUpperCase()} · {candidate.acquisitionOrigin.replaceAll('_', ' ').toUpperCase()}</small><b>{candidate.source.title}</b></div>
-          <strong>{candidate.status.toUpperCase()}</strong>
+          <strong>{candidate.status === 'proposed' ? 'FUENTE DE TRABAJO' : candidate.status.toUpperCase()}</strong>
         </div>
-        <p>{candidate.source.snippet || 'Sin extracto; revisar la fuente original.'}</p>
+        <p>{candidate.source.snippet || 'Sin extracto; SFI conserva la referencia y sus límites.'}</p>
         <dl>
           <div><dt>Publisher</dt><dd>{candidate.source.publisher ?? '—'}</dd></div>
           <div><dt>Publicado</dt><dd>{candidate.source.publishedAt ?? '—'}</dd></div>
@@ -208,14 +193,10 @@ export function RootEvidenceCandidateLane({ proposals }: Props) {
         </dl>
         <div className="rootEvidenceCandidateActions">
           <a href={candidate.source.url} target="_blank" rel="noreferrer">VER FUENTE ↗</a>
-          {candidate.status === 'proposed' && <>
-            <button disabled={Boolean(busy)} onClick={() => void decide(candidate, 'accept')}>{busy === candidate.id ? 'PERSISTIENDO…' : 'ACEPTAR COMO EVIDENCIA'}</button>
-            <button disabled={Boolean(busy)} onClick={() => void decide(candidate, 'reject')}>RECHAZAR</button>
-          </>}
         </div>
-        {candidate.status === 'accepted' && <small className="rootEvidenceBoundary">PERSISTIDA POR EL WRITER CANÓNICO · aceptación de elegibilidad ≠ verificación automática de todas las afirmaciones de la fuente.</small>}
+        <small className="rootEvidenceBoundary">USO OPERATIVO ≠ VERIFICACIÓN DE TODAS LAS AFIRMACIONES ≠ CANON. Si después se pretende cambiar SFI con esta información, esa decisión aparece separadamente.</small>
       </article>)}
-      {!candidates.length && !error && <em>No hay candidatos todavía. “PEDIR EVIDENCIA” inicia adquisición; el watchdog reintenta y también puedes agregar una URL.</em>}
+      {!candidates.length && !error && <em>No hay fuentes todavía. SFI inicia o reintenta la adquisición automáticamente; también puedes aportar una URL si ya la tienes.</em>}
     </div>
   </section>;
 }
