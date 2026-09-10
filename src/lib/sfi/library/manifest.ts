@@ -1,4 +1,4 @@
-import type { SfiLibraryCanonicalAdmission, SfiLibraryManifest } from './types';
+import type { SfiLibraryCanonicalAdmission, SfiLibraryDocument, SfiLibraryManifest } from './types';
 
 export const SFI_LIBRARY_BASE_PATH = '/library';
 
@@ -37,23 +37,27 @@ const SFI_DT_001_CANONICAL_ADMISSION: SfiLibraryCanonicalAdmission = Object.free
   ]),
 });
 
+const SFI_DT_001_LIBRARY_DOCUMENT: SfiLibraryDocument = {
+  id: 'SFI-DT-001',
+  title: 'Longitudinal Observation Framework',
+  function: 'Public technical constitution for observation, minimal perturbation, evidence states, Atlas architecture and prediction-before-intervention rules.',
+  audience: ['public', 'technical', 'operator', 'root'],
+  status: 'published_static',
+  kind: 'html',
+  publicPath: '/library/SFI-DT-001_Longitudinal_Observation_Framework.html',
+  staticFilePath: 'public/library/SFI-DT-001_Longitudinal_Observation_Framework.html',
+  canonicalAdmission: SFI_DT_001_CANONICAL_ADMISSION,
+};
+Object.freeze(SFI_DT_001_LIBRARY_DOCUMENT.audience);
+Object.freeze(SFI_DT_001_LIBRARY_DOCUMENT);
+
 export const SFI_LIBRARY_MANIFEST: SfiLibraryManifest = {
   packageName: 'SFI Foundational Editorial Package',
   version: '1.0',
   createdAt: '2026-06-28T21:59:20.715630+00:00',
   basePath: SFI_LIBRARY_BASE_PATH,
   documents: [
-    Object.freeze({
-      id: 'SFI-DT-001',
-      title: 'Longitudinal Observation Framework',
-      function: 'Public technical constitution for observation, minimal perturbation, evidence states, Atlas architecture and prediction-before-intervention rules.',
-      audience: ['public', 'technical', 'operator', 'root'],
-      status: 'published_static',
-      kind: 'html',
-      publicPath: '/library/SFI-DT-001_Longitudinal_Observation_Framework.html',
-      staticFilePath: 'public/library/SFI-DT-001_Longitudinal_Observation_Framework.html',
-      canonicalAdmission: SFI_DT_001_CANONICAL_ADMISSION,
-    }),
+    SFI_DT_001_LIBRARY_DOCUMENT,
     {
       id: 'SFI-WB-001',
       title: 'Operator Workbook',
@@ -97,7 +101,7 @@ export const SFI_LIBRARY_MANIFEST: SfiLibraryManifest = {
     {
       id: 'SFI-LIBRARY-README',
       title: 'Package README',
-      function: 'Package inventory and handling notes for the static editorial library.',
+      function: 'Package inventory and handling notes for the static editorial library package.',
       audience: ['public', 'technical'],
       status: 'reference_static',
       kind: 'markdown',
