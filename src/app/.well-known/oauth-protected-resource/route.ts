@@ -1,12 +1,11 @@
 export const dynamic = 'force-dynamic';
 
-const ISSUER = 'https://www.systemfriction.org';
-const RESOURCE = `${ISSUER}/api/mcp/authenticated`;
-
-export async function GET() {
+export async function GET(request: Request) {
+  const issuer = new URL(request.url).origin;
+  const resource = `${issuer}/api/mcp/authenticated`;
   return Response.json({
-    resource: RESOURCE,
-    authorization_servers: [ISSUER],
+    resource,
+    authorization_servers: [issuer],
     bearer_methods_supported: ['header'],
     scopes_supported: ['observe', 'execute'],
   }, {
