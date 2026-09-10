@@ -1,0 +1,100 @@
+name: SFI-08 Completion Certification Batch
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/sfi-completion-certification-batch.yml'
+      - 'scripts/sfi-program-certification-batch.mjs'
+      - 'scripts/qa-sfi-program-certification-batch.mjs'
+      - 'scripts/lib/programCompletionReceipts.mjs'
+      - 'scripts/lib/programCompletionDiagnostics.mjs'
+      - 'docs/program/SFI-COMPLETION-RECEIPTS.json'
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/sfi-completion-certification-batch.yml'
+      - 'scripts/sfi-program-certification-batch.mjs'
+      - 'scripts/qa-sfi-program-certification-batch.mjs'
+      - 'scripts/lib/programCompletionReceipts.mjs'
+      - 'scripts/lib/programCompletionDiagnostics.mjs'
+      - 'docs/program/SFI-COMPLETION-RECEIPTS.json'
+  workflow_dispatch:
+    inputs:
+      batch_limit:
+        description: 'Maximum completion requirements to certify in this bounded batch'
+        required: false
+        default: '20'
+
+permissions:
+  contents: read
+  issues: read
+
+concurrency:
+  group: sfi08-completion-certification-${{ github.event.pull_request.number || github.ref || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  certify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SFI_CERTIFICATION_BATCH_LIMIT: ${{ inputs.batch_limit || '20' }}
+      SFI_EXPECTED_HEAD: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Assert exact certification head
+        shell: bash
+        run: |
+          set -euo pipefail
+          observed="$(git rev-parse HEAD)"
+          test "$observed" = "$SFI_EXPECTED_HEAD"
+          echo "SFI-08 exact head: $observed"
+
+      - name: Reconstruct canonical completion matrix
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/sfi-program-completion.mjs
+
+      - name: Falsify existing receipt promotion
+        run: node scripts/qa-sfi-program-completion-receipts.mjs
+
+      - name: Reconcile existing SFI-08 receipts
+        run: node scripts/sfi-program-completion-reconcile.mjs
+
+      - name: Enrich non-authoritative diagnostic lanes
+        run: node scripts/sfi-program-completion-diagnostics.mjs
+
+      - name: Execute bounded SFI-08 certification proofs
+        run: node scripts/sfi-program-certification-batch.mjs
+
+      - name: Falsify certification authority expansion
+        run: node scripts/qa-sfi-program-certification-batch.mjs
+
+      - name: Upload immutable certification RETURN
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sfi08-completion-certification-${{ github.run_id }}
+          path: |
+            artifacts/program-completion/completion.json
+            artifacts/program-completion/completion.md
+            artifacts/program-completion/certification-return.json
+          if-no-files-found: error
+          retention-days: 90
