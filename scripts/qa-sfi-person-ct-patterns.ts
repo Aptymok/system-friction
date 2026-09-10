@@ -50,8 +50,9 @@ async function main() {
   assert(route.includes("operation === 'confirm_pattern' || operation === 'reject_pattern'"));
   assert(route.includes('A run does not automatically create a PERSON_CT pattern'));
 
-  assert(interactionPolicy.includes("contract: 'SFI-HUMAN-INTERACTION-POLICY-1.0'"));
+  assert(interactionPolicy.includes("contract: 'SFI-HUMAN-INTERACTION-POLICY-1.1'"));
   assert(interactionPolicy.includes("defaultAudience: 'HUMAN'"));
+  assert(interactionPolicy.includes("defaultTechnicalAssumption: 'DO_NOT_ASSUME_PROGRAMMING_OR_DATABASE_LITERACY'"));
   assert(interactionPolicy.includes("'WHAT_IS_HAPPENING'"));
   assert(interactionPolicy.includes("'WHY_IT_MATTERS'"));
   assert(interactionPolicy.includes("'WHO_MUST_ACT'"));
@@ -59,7 +60,9 @@ async function main() {
   assert(interactionPolicy.includes("'CONSEQUENCES'"));
   assert(interactionPolicy.includes("'WHAT_HAPPENS_NEXT'"));
   assert(interactionPolicy.includes("'backend implementation jargon'"));
-  assert(interactionPolicy.includes('Technical implementation detail is secondary'));
+  assert(interactionPolicy.includes("'unexplained acronyms or epistemic labels'"));
+  assert.match(interactionPolicy, /plainLanguageRule:\s*'Use ordinary language first\./);
+  assert.match(interactionPolicy, /technicalDetailRule:\s*'Technical implementation detail is secondary/);
   assert(interactionPolicy.includes('A human cannot exercise meaningful authority over a system state they cannot interpret.'));
   assert(interactionPolicy.includes('explicit request to remember/learn/apply an interaction rule'));
   assert(interactionPolicy.includes('PERSON_CT and is private to the authenticated owner'));
@@ -116,7 +119,7 @@ async function main() {
 
   console.log(JSON.stringify({
     ok: true,
-    contract: 'SFI-PERSON-CT-PATTERN-QA-1.5',
+    contract: 'SFI-PERSON-CT-PATTERN-QA-1.6',
     invariants: {
       cognitionObservationSeparated: true,
       inferredPatternNeedsRecurrence: true,
@@ -126,6 +129,9 @@ async function main() {
       userResolutionRequiredForInference: true,
       humanFirstInteractionPolicy: true,
       technicalDetailSecondaryByDefault: true,
+      programmingLiteracyAssumed: false,
+      databaseLiteracyAssumed: false,
+      unexplainedEpistemicLabelsAllowedByDefault: false,
       conversationMethodLearningPreserved: true,
       sameSourceNotIndependentEvidence: true,
       materialHashNotSemanticIndependence: true,
