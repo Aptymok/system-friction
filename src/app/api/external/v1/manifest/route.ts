@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
+import { SFI_ROOT_DECISION_BOUNDARY } from '@/lib/governance/rootDecisionBoundary';
 import { SFI_HUMAN_INTERACTION_POLICY } from '@/lib/sfi/humanInteractionPolicy';
 import { SFI_ANALYSIS_LEARNING_POLICY } from '@/lib/sfi/analysisLearningPolicy';
+import { SFI_CASE_EXECUTION_POLICY } from '@/lib/sfi/caseExecutionPolicy';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,7 +10,7 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     name: 'SFI External Agent Gateway',
-    version: '1.16.0',
+    version: '1.17.0',
     auth: 'OAuth 2.0 authorization_code (user-bound) or X-SFI-Token/Bearer static token',
     base: '/api/external/v1',
     discovery: {
@@ -29,7 +31,7 @@ export async function GET() {
       machineAdapterBinding: 'New OAuth access tokens retain the verified client_id. The authenticated machine adapter requires token-bound subject_id + client_id + scope plus possession proof of the ACTIVE ephemeral grant. The raw grant nonce is accepted only as a transient machine header and is immediately hashed against the persisted nonceHash; it never enters JSON, persistence, browser state, execution context or model context.',
     },
     operations: [
-      { id: 'bootstrap', method: 'GET', path: '/bootstrap', scope: 'observe', tenant: 'institutional', description: 'Hydrate an authorized AI client with a versioned SFI cognitive contract, sealed Cognitive Spine snapshot, bounded memory/decisions, promoted learning and current human/analysis policies.' },
+      { id: 'bootstrap', method: 'GET', path: '/bootstrap', scope: 'observe', tenant: 'institutional', description: 'Hydrate an authorized AI client with the current SFI cognitive contract, human interaction policy, analysis policy, decision boundary and autonomous case-execution policy.' },
       { id: 'console', method: 'GET', path: '/console', scope: 'observe', tenant: 'institutional', description: 'Read the compact governed machine console.' },
       { id: 'cognitive-runtime-read', method: 'GET', path: '/cognitive-runtime', scope: 'observe', tenant: 'institutional', contract: 'SFI-EXTERNAL-COGNITIVE-RUNTIME-1.0', description: 'Read versioned execution-centric agent passports, typed Execution Contracts, multidimensional state, exact execution history and bounded GenAI assurance from the canonical runtime/event plane.' },
       { id: 'cognitive-runtime-execute', method: 'POST', path: '/cognitive-runtime', scope: 'execute', tenant: 'institutional-user-bound-oauth', contract: 'SFI-MANUAL-COGNITIVE-EXECUTION-1.0', body: { operation: 'execute', required: ['agentId', 'purpose', 'anchors[]', 'targets[]'], legacyShapeAccepted: false }, description: 'Execute one typed cognitive-agent contract through the canonical runtime. Requires user-bound institutional OAuth and preserves target membership, evidence, authority and event-lineage boundaries.' },
@@ -40,15 +42,15 @@ export async function GET() {
       { id: 'signal-cycle', method: 'POST', path: '/signal', scope: 'lab:write', tenant: 'institutional', description: 'Run governed institutional signal-cycle operations, including same-cycle resume, RETURN contrast and closure gates.' },
       { id: 'observe', method: 'POST', path: '/observe', scope: 'observe', tenant: 'institutional', description: 'Read allowlisted proposal/evidence surfaces.' },
       { id: 'case-read', method: 'POST', path: '/cases', scope: 'cases:read', tenant: 'owner/member', body: { operation: 'list | read | reports | intake_plan' }, description: 'Read Case Platform state and unresolved pre-case intake questions available to the OAuth subject.' },
-      { id: 'case-write', method: 'POST', path: '/cases', scope: 'cases:write', tenant: 'owner/member', body: { operation: 'create | add_source | add_object | transition' }, description: 'Create/populate bounded Case Platform records. Cannot mint accepted evidence, governance authority, intervention, observed RETURN or truth claims.' },
-      { id: 'propose', method: 'POST', path: '/propose', scope: 'propose', tenant: 'institutional', description: 'Submit a governed action proposal. ROOT authorization remains separate.' },
-      { id: 'evidence-candidate', method: 'POST', path: '/evidence-candidates', scope: 'propose', tenant: 'institutional', description: 'Submit an evidence candidate. It is not accepted evidence until ROOT accept/reject review; external principals cannot accept it themselves.' },
-      { id: 'execute', method: 'POST', path: '/execute', scope: 'execute', tenant: 'institutional', description: 'Dispatch only an already-authorized queued proposal. Cannot self-approve or promote canon.' },
+      { id: 'case-write', method: 'POST', path: '/cases', scope: 'cases:write', tenant: 'owner/member', body: { operation: 'create | add_source | add_object | transition' }, description: 'Create/populate bounded Case Platform records. Cannot mint governance authority, intervention, observed RETURN or truth claims.' },
+      { id: 'propose', method: 'POST', path: '/propose', scope: 'propose', tenant: 'institutional', description: 'Submit a governed proposal only when work crosses an institutional or reserved-action decision boundary. Routine case analysis should continue under existing authority instead of creating an approval request.' },
+      { id: 'evidence-candidate', method: 'POST', path: '/evidence-candidates', scope: 'propose', tenant: 'institutional', description: 'Register a traceable source candidate for case work. SFI may classify and use working sources without ROOT source approval; use does not automatically verify every claim or promote the source into institutional canon.' },
+      { id: 'execute', method: 'POST', path: '/execute', scope: 'execute', tenant: 'institutional', description: 'Dispatch an already-authorized queued proposal. Existing queue authorization plus execute scope is sufficient; no duplicate human confirmation is required and canonical promotion remains separate.' },
       { id: 'proposal-return', method: 'POST', path: '/proposal-return', scope: 'execute', tenant: 'institutional', description: 'Record an evidence-linked observed return for one queued proposal.' },
       { id: 'lab-state', method: 'POST', path: '/lab', scope: 'lab:read', tenant: 'institutional', body: { operation: 'state' }, description: 'Read institutional Method Lab state.' },
       { id: 'lab-report', method: 'POST', path: '/lab', scope: 'lab:read', tenant: 'institutional', body: { operation: 'report' }, description: 'Read institutional Method Lab analyses/evaluations.' },
       { id: 'lab-persist', method: 'POST', path: '/lab', scope: 'lab:write', tenant: 'institutional', body: { operation: 'persist' }, description: 'Persist an institutional laboratory observation.' },
-      { id: 'lab-run', method: 'POST', path: '/lab', scope: 'lab:run', tenant: 'institutional', body: { operation: 'run', confirm: true }, description: 'Execute a supported institutional Method Lab runtime with explicit lab:run scope, confirmation and persisted evidence.' },
+      { id: 'lab-run', method: 'POST', path: '/lab', scope: 'lab:run', tenant: 'institutional', body: { operation: 'run' }, description: 'Execute a supported institutional Method Lab runtime when lab:run scope is already granted. Routine internal experimentation does not require a second human confirmation.' },
       { id: 'personal-cognitive-state', method: 'POST', path: '/cognitive', scope: 'lab:read', tenant: 'owner', body: { operation: 'state | patterns' }, description: 'Read only the OAuth subject personal Cognitive workspace and owner-scoped cognition/observation pattern ledger.' },
       { id: 'personal-cognitive-pattern-write', method: 'POST', path: '/cognitive', scope: 'lab:write', tenant: 'owner', body: { operation: 'propose_pattern | learn_declared_pattern | confirm_pattern | reject_pattern' }, description: 'Govern PERSON_CT representations. Explicit owner requests to learn/remember/apply a personal interaction rule may be recorded and confirmed in one governed operation; inferred candidates still require recurrent owned support and person confirmation.' },
       { id: 'personal-cognitive-run', method: 'POST', path: '/cognitive', scope: 'lab:run', tenant: 'owner', body: { operation: 'run' }, description: 'Auto-select and execute the minimum relevant bounded cognitive automations against owner-scoped evidence. A run never auto-creates a PERSON_CT pattern.' },
@@ -90,7 +92,9 @@ export async function GET() {
     },
     interactionPolicy: SFI_HUMAN_INTERACTION_POLICY,
     analysisLearningPolicy: SFI_ANALYSIS_LEARNING_POLICY,
+    decisionBoundary: SFI_ROOT_DECISION_BOUNDARY,
+    caseExecutionPolicy: SFI_CASE_EXECUTION_POLICY,
     mutationEvidence: { publicSurface: '/history/mutations', machineSurface: '/api/public/mutations', chain: ['CODE_RECORDED', 'QA_VERIFIED', 'DEPLOYMENT_EVIDENCE_RECORDED', 'EXERCISED', 'CALIBRATED_LEARNING_LINKED'], deploymentProviderLane: 'SFI Vercel Prebuilt Production', rule: 'A GitHub commit proves repository mutation only. Deployment is verified only when the deployment-provider workflow succeeds for the same canonical main SHA; QA, exercise and calibrated-learning evidence remain distinct later stages.' },
-    governance: 'Observation, source registration, record/inference creation, evidence candidacy, evidence acceptance, proposal authorization, execution, return, calibration, learning candidacy and canonical promotion remain distinct governed states.',
+    governance: 'Operational case work proceeds under existing authority without initial, source, report or closure approval. ROOT is interrupted only for institutional/canonical decisions, material capability changes, learning promotion, or reserved external/irreversible operations. Working sources remain distinct from verified claims and canon.',
   });
 }
