@@ -1,7 +1,9 @@
 SFI-00 CONTROLLED PRODUCTION RELEASE
-requested_at=2026-09-09
-release_reason=Controlled release after #466 discovery emitter, #468 owner Studio context, #467 private brief assurance repair, and #469 main-only convergence closure
-source_main=824f68f3cb4e0dce3020192a8853fbd9bdf7beb6
-release_basis=sfi_verify_2846+program_completion_321+audio_370+main_only_convergence_756
+requested_at=2026-09-10
+release_reason=Operational closure release: align production with current canonical main after #476 bounded completion certification, preserve explicit finite cycles, and stop feature expansion absent observed production failure or authorized institutional change
+source_main=69448d9e843f41243f902a0d47f0837b2a208e68
+release_basis=main_build_pass+program_completion_pass+sfi08_batch_1_return_pass+sfi08_batch_2_return_pass
 openapi_materialization=vercel_build_prod
+development_mode=FROZEN_AFTER_SUCCESSFUL_RELEASE
+reopen_condition=OBSERVED_PRODUCTION_FAILURE_OR_AUTHORIZED_INSTITUTIONAL_CHANGE
 cost_gate=single_bounded_release
