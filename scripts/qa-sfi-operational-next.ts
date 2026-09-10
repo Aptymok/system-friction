@@ -21,11 +21,11 @@ const workboardRoute = read('src/app/api/root/workboard/route.ts');
 assert.match(lifecycle, /canonical_promotion_allowed:\s*false/, 'ordinary governance decisions must never grant canonical promotion');
 assert.match(lifecycle, /canonicalPromotionAllowed:\s*false/, 'proposal outcome must keep canonical promotion closed');
 
-for (const decisionClass of ['INSTITUTIONAL_CHANGE','CAPABILITY_IMPLEMENTATION','LEARNING_PROMOTION']) {
+for (const decisionClass of ['INSTITUTIONAL_CHANGE','CAPABILITY_IMPLEMENTATION','LEARNING_PROMOTION','RESERVED_EXTERNAL_OPERATION']) {
   assert.ok(boundary.includes(`'${decisionClass}'`), `missing sovereign decision class: ${decisionClass}`);
 }
 assert.match(boundary, /OPERATIONAL_WORK/, 'routine work must have a non-sovereign class');
-assert.match(boundary, /Generic external\/twin\/evidence/, 'generic proposal text must not infer sovereign authority');
+assert.match(boundary, /isMaterialExternalAction/, 'material external effects must use the same execution classifier as the router');
 assert.match(boundary, /LEARNING_CANDIDATE_CAPTURE/, 'learning capture must remain non-sovereign until promotion');
 
 assert.match(externalPropose, /human_approval_required: humanApprovalRequired/, 'external proposals must not force human approval globally');
@@ -88,10 +88,10 @@ assert.match(rootServer, /routine_root_approval_action_retired/, 'retired gate m
 
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-AUTONOMOUS-OPERATION-ROOT-BOUNDARY-2.0',
+  contract: 'SFI-AUTONOMOUS-OPERATION-ROOT-BOUNDARY-2.1',
   invariants: {
     rootIsNotWorkflowMiddleware: true,
-    onlyThreeSovereignDecisionClasses: true,
+    sovereignDecisionClasses: ['INSTITUTIONAL_CHANGE','CAPABILITY_IMPLEMENTATION','LEARNING_PROMOTION','RESERVED_EXTERNAL_OPERATION'],
     evidenceWorkIsOperational: true,
     reportUseIsOperational: true,
     routineCaseCloseIsAutonomous: true,
@@ -100,6 +100,7 @@ console.log(JSON.stringify({
     learningPromotionRemainsRootGated: true,
     capabilityMaterialChangeRemainsRootGated: true,
     institutionalChangeRemainsRootGated: true,
+    reservedExternalOperationsRemainRootGated: true,
     legacyManualCloseRouteIsAuthorityRetired: true,
     observatoryRemainsReadableWithoutBecomingScheduler: true,
   },
