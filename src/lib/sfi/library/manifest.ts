@@ -1,6 +1,41 @@
-import type { SfiLibraryManifest } from './types';
+import type { SfiLibraryCanonicalAdmission, SfiLibraryManifest } from './types';
 
 export const SFI_LIBRARY_BASE_PATH = '/library';
+
+const SFI_DT_001_CANONICAL_ADMISSION: SfiLibraryCanonicalAdmission = Object.freeze({
+  contract: 'SFI-LIBRARY-CANONICAL-ADMISSION-1.0',
+  objectType: 'PUBLICATION',
+  slug: 'sfi-dt-001-longitudinal-observation-framework',
+  state: 'REVIEW_REQUIRED',
+  publicationState: 'DRAFT',
+  staticAvailabilityState: 'PUBLICLY_ACCESSIBLE_NOT_CANONICALLY_PUBLISHED',
+  version: '1.0',
+  language: 'es',
+  authors: Object.freeze([]),
+  rightsState: 'UNKNOWN',
+  license: null,
+  evidenceIdentityState: 'UNKNOWN',
+  declaredPublicationLabel: 'PROPOSED · ACTIVE / Official Technical Proposal',
+  firstObservedAt: '2026-06-29T15:45:09Z',
+  firstObservedRef: 'https://github.com/Aptymok/system-friction/commit/9c782ad85e3c185372d6a91ecb59374d4bf80386',
+  lastObservedAt: '2026-08-01T11:50:08Z',
+  lastObservedRef: 'https://github.com/Aptymok/system-friction/commit/ee3a6d23b026b7ac894e77f496a2a5c8e9491fde',
+  sourceRefs: Object.freeze([
+    'https://github.com/Aptymok/system-friction/blob/8669bc326f4124bc269445aa9104e9c2a839ff7f/public/library/SFI-DT-001_Longitudinal_Observation_Framework.html',
+    'https://github.com/Aptymok/system-friction/blob/8669bc326f4124bc269445aa9104e9c2a839ff7f/public/library/README.md',
+    'https://github.com/Aptymok/system-friction/blob/8669bc326f4124bc269445aa9104e9c2a839ff7f/public/library/manifest.json',
+    'https://github.com/Aptymok/system-friction/blob/8669bc326f4124bc269445aa9104e9c2a839ff7f/public/library/pdf/SFI-DT-001_Longitudinal_Observation_Framework.pdf',
+    'https://github.com/Aptymok/system-friction/commit/9c782ad85e3c185372d6a91ecb59374d4bf80386',
+    'https://github.com/Aptymok/system-friction/commit/ee3a6d23b026b7ac894e77f496a2a5c8e9491fde',
+  ]),
+  limitations: Object.freeze([
+    'Library status published_static means only that the static file is publicly reachable; it is not canonical publication approval.',
+    'The source calls itself an official publication while simultaneously declaring PROPOSED · ACTIVE and Official Technical Proposal; canonical admission remains REVIEW_REQUIRED.',
+    'The HTML declares lang="es" while substantial body content is English; language metadata requires editorial review before publication approval.',
+    'No human work author, work-specific license, DOI, ORCID or ROR identifier is admitted by this metadata.',
+    'firstObservedAt is the first repository commit observed to add the document; it is not an inferred authoring timestamp.',
+  ]),
+});
 
 export const SFI_LIBRARY_MANIFEST: SfiLibraryManifest = {
   packageName: 'SFI Foundational Editorial Package',
@@ -8,7 +43,7 @@ export const SFI_LIBRARY_MANIFEST: SfiLibraryManifest = {
   createdAt: '2026-06-28T21:59:20.715630+00:00',
   basePath: SFI_LIBRARY_BASE_PATH,
   documents: [
-    {
+    Object.freeze({
       id: 'SFI-DT-001',
       title: 'Longitudinal Observation Framework',
       function: 'Public technical constitution for observation, minimal perturbation, evidence states, Atlas architecture and prediction-before-intervention rules.',
@@ -17,7 +52,8 @@ export const SFI_LIBRARY_MANIFEST: SfiLibraryManifest = {
       kind: 'html',
       publicPath: '/library/SFI-DT-001_Longitudinal_Observation_Framework.html',
       staticFilePath: 'public/library/SFI-DT-001_Longitudinal_Observation_Framework.html',
-    },
+      canonicalAdmission: SFI_DT_001_CANONICAL_ADMISSION,
+    }),
     {
       id: 'SFI-WB-001',
       title: 'Operator Workbook',
