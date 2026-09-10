@@ -2,8 +2,9 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 
-const SFI_COMPLETION_CERTIFICATION_BATCH_CONTRACT = 'SFI-SFI08-COMPLETION-CERTIFICATION-BATCH-1.0';
+const SFI_COMPLETION_CERTIFICATION_BATCH_CONTRACT = 'SFI-SFI08-COMPLETION-CERTIFICATION-BATCH-1.1';
 const GLOBAL_REGRESSION_SCOPE = [
   'src/**',
   'scripts/**',
@@ -26,10 +27,13 @@ assert.equal(fs.existsSync(returnPath), true, 'certification return required');
 
 const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
 const certification = JSON.parse(fs.readFileSync(returnPath, 'utf8'));
+const actualHead = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim();
 
 assert.equal(certification.contract, SFI_COMPLETION_CERTIFICATION_BATCH_CONTRACT);
 assert.equal(certification.verifier, 'SFI-08');
 assert.equal(certification.authority, 'ASSURANCE_ONLY');
+assert.equal(certification.head, actualHead);
+assert.equal(certification.expectedHead, actualHead);
 assert.equal(certification.head, report.head);
 assert.equal(certification.canonicalStatusMutation, false);
 assert.equal(certification.autoReceiptWrite, false);
@@ -53,11 +57,21 @@ for (const item of certification.requirements) {
   assert.equal(item.diagnosticState, source.diagnostic.state);
   assert.ok(Array.isArray(item.proofPaths) && item.proofPaths.length > 0, `proof path required: ${item.id}`);
   assert.equal(item.proofPass, true, `proof must pass: ${item.id}`);
+  assert.equal(item.semanticSupport.length, item.proofPaths.length, `semantic support required per proof: ${item.id}`);
   for (const proofPath of item.proofPaths) {
-    assert.ok(certification.proofCatalog.includes(proofPath), `proof must come from SFI Verify catalog: ${item.id}:${proofPath}`);
+    assert.ok(certification.proofCatalog.includes(proofPath), `proof must come from SFI Verify run commands: ${item.id}:${proofPath}`);
     assert.ok(item.evidencePaths.includes(proofPath), `proof must be declared by requirement evidence: ${item.id}:${proofPath}`);
     assert.equal(fs.existsSync(path.join(root, proofPath)), true, `proof file missing: ${proofPath}`);
+    const support = item.semanticSupport.find((entry) => entry.path === proofPath);
+    assert.ok(support?.supported, `semantic proof linkage required: ${item.id}:${proofPath}`);
+    assert.ok((support.matchedIdentifiers?.length || 0) >= 1 || (support.matchedTerms?.length || 0) >= 2,
+      `semantic evidence threshold not met: ${item.id}:${proofPath}`);
   }
+}
+
+for (const rejected of certification.rejectedSemanticLinks || []) {
+  assert.ok(Array.isArray(rejected.declaredProofs) && rejected.declaredProofs.length > 0);
+  assert.ok((rejected.support || []).every((entry) => entry.supported === false), `rejected item contains supported proof: ${rejected.id}`);
 }
 
 for (const execution of certification.proofExecutions || []) {
@@ -71,8 +85,10 @@ assert.ok(!certification.requirements.some((item) => item.diagnosticState === 'E
 
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-SFI08-COMPLETION-CERTIFICATION-BATCH-QA-1.0',
+  contract: 'SFI-SFI08-COMPLETION-CERTIFICATION-BATCH-QA-1.1',
+  head: actualHead,
   selectedCount: certification.selectedCount,
+  semanticRejectedCount: certification.semanticRejectedCount,
   proofExecutionCount: certification.proofExecutions.length,
   canonicalStatusMutation: false,
   autoReceiptWrite: false,
