@@ -42,11 +42,12 @@ export type EvidenceSlot = {
 export type EvidenceReadiness = {
   state: 'MISSING' | 'REVIEW_REQUIRED' | 'SATISFIED';
   jobId: string;
-  owner: 'evidence_hunter' | 'ROOT';
-  nextExpectedEvent: 'EVIDENCE_CANDIDATE_ACQUIRED' | 'ROOT_EVIDENCE_DECISION' | 'ROOT_ACCEPT_OR_REJECT_PROPOSAL';
-  rootActionRequired: boolean;
+  owner: 'evidence_hunter' | 'evidence_assessment';
+  nextExpectedEvent: 'EVIDENCE_CANDIDATE_ACQUIRED' | 'EVIDENCE_CLASSIFIED_OR_PARENT_CONTINUES' | 'PARENT_PROPOSAL_CONTINUES_OR_SOVEREIGN_DECISION';
+  rootActionRequired: false;
+  basis: 'NONE' | 'WORKING_SOURCES' | 'ACCEPTED_EVIDENCE' | 'MIXED';
   slots: EvidenceSlot[];
-  counts: { required: number; accepted: number; candidate: number; missing: number; rejectedCandidates: number };
+  counts: { required: number; accepted: number; candidate: number; missing: number; rejectedCandidates: number; usable: number };
 };
 
 type Row = Record<string, unknown>;
@@ -224,7 +225,7 @@ function inferredSlotDefinitions(parent: Row) {
   ];
   const matched = known.filter((slot) => slot.aliases.some((alias) => blob.includes(alias)));
   if (matched.length) return matched;
-  return [{ key: 'PERSISTED_EVIDENCE', label: 'Evidencia persistida vinculada', aliases: ['evidence', 'evidencia'] }];
+  return [{ key: 'PERSISTED_EVIDENCE', label: 'Fuente/evidencia vinculada', aliases: ['evidence', 'evidencia'] }];
 }
 
 function candidateBlob(candidate: EvidenceCandidateView) {
@@ -280,24 +281,37 @@ export async function readEvidenceReadiness(parentProposalId: string): Promise<{
   const accepted = slots.filter((slot) => slot.status === 'ACCEPTED').length;
   const candidate = slots.filter((slot) => slot.status === 'CANDIDATE').length;
   const missing = slots.filter((slot) => slot.status === 'MISSING').length;
+  const usable = accepted + candidate;
   const rejectedCandidates = candidates.candidates.filter((item) => item.status === 'rejected').length;
-  const state: EvidenceReadiness['state'] = accepted === slots.length
+
+  // Operational case work may proceed once every required slot has a traceable
+  // working source. That does not promote the source into canonical evidence.
+  // Accepted evidence remains a stronger provenance state when it already exists.
+  const state: EvidenceReadiness['state'] = usable === slots.length
     ? 'SATISFIED'
     : candidate > 0
       ? 'REVIEW_REQUIRED'
       : 'MISSING';
+  const basis: EvidenceReadiness['basis'] = usable === 0
+    ? 'NONE'
+    : accepted === slots.length
+      ? 'ACCEPTED_EVIDENCE'
+      : accepted > 0
+        ? 'MIXED'
+        : 'WORKING_SOURCES';
   const readiness: EvidenceReadiness = {
     state,
     jobId: `evidence-acquisition:${parentProposalId}`,
-    owner: state === 'MISSING' ? 'evidence_hunter' : 'ROOT',
+    owner: state === 'MISSING' ? 'evidence_hunter' : 'evidence_assessment',
     nextExpectedEvent: state === 'MISSING'
       ? 'EVIDENCE_CANDIDATE_ACQUIRED'
       : state === 'REVIEW_REQUIRED'
-        ? 'ROOT_EVIDENCE_DECISION'
-        : 'ROOT_ACCEPT_OR_REJECT_PROPOSAL',
-    rootActionRequired: state !== 'MISSING',
+        ? 'EVIDENCE_CLASSIFIED_OR_PARENT_CONTINUES'
+        : 'PARENT_PROPOSAL_CONTINUES_OR_SOVEREIGN_DECISION',
+    rootActionRequired: false,
+    basis,
     slots,
-    counts: { required: slots.length, accepted, candidate, missing, rejectedCandidates },
+    counts: { required: slots.length, accepted, candidate, missing, rejectedCandidates, usable },
   };
   return { ok: !acceptedEvidence.error, readiness, ...(acceptedEvidence.error ? { error: acceptedEvidence.error } : {}) };
 }
@@ -329,7 +343,7 @@ export async function createEvidenceCandidate(input: {
     proposalType: 'evidence_candidate',
     actorId: input.actorId,
     title: `EVIDENCE · ${input.source.title}`.slice(0, 240),
-    objective: `Review this source candidate before persisting it as governed evidence for proposal ${input.parentProposalId}.`,
+    objective: `Stage this traceable source as a working case input for proposal ${input.parentProposalId}; no human source approval is required for ordinary analysis.`,
     status: 'proposed',
     inputVectorHash: input.source.referenceHash,
     contentHash: null,
@@ -341,9 +355,11 @@ export async function createEvidenceCandidate(input: {
       acquisitionOrigin: input.acquisitionOrigin,
       queries: input.queries ?? [],
       warnings: input.warnings ?? [],
-      decision_authority: 'root_only',
-      human_approval_required: true,
-      epistemicBoundary: 'CANDIDATE_ONLY: source retrieval is not evidence acceptance. ROOT must accept before the canonical evidence writer is invoked.',
+      decision_authority: 'controller',
+      human_approval_required: false,
+      operational_use_allowed: true,
+      canonical_promotion_allowed: false,
+      epistemicBoundary: 'WORKING_SOURCE_ONLY: retrieval supplies a traceable case input. Use does not verify every claim, create institutional truth, or promote canon.',
       identityBoundary: 'referenceHash identifies the source reference envelope; contentHash remains null until byte/content identity is actually observed.',
     },
   });
@@ -384,7 +400,7 @@ export async function searchEvidenceCandidates(input: {
     `REQUEST=${input.requestNote}`,
     'Prefer primary official/regulator sources, datasets, methodological notes and dated publications.',
     'Return/retrieve candidates only. Do not treat search results, snippets or titles as verified institutional facts.',
-    'ROOT will separately accept or reject every candidate before persistence as evidence.',
+    'Working sources may be ranked, classified and used for ordinary case analysis without human approval. Canonical promotion remains separate.',
   ].join('\n');
 
   const research = await runPublicResearch({
@@ -449,7 +465,7 @@ export async function inspectUrlCandidate(input: {
     url: parsed.toString(),
     title: input.title?.trim() || parsed.hostname,
     publisher: parsed.hostname.replace(/^www\./, ''),
-    snippet: 'URL supplied for governed evidence review. SFI has not fetched, preserved, accepted or verified the referenced content at candidate-intake time.',
+    snippet: 'URL supplied as a working source reference. SFI has not fetched, preserved or verified the referenced content at candidate-intake time.',
     publishedAt: null,
     retrievedAt: new Date().toISOString(),
     sourceType,
@@ -465,6 +481,6 @@ export async function inspectUrlCandidate(input: {
     requestNote: input.requestNote ?? null,
     acquisitionProvider: input.acquisitionProvider ?? 'manual_url_reference',
     acquisitionOrigin: input.acquisitionOrigin ?? 'manual_url',
-    warnings: ['REFERENCE_ONLY: candidate URL was staged without server-side retrieval; ROOT must inspect the source before acceptance.'],
+    warnings: ['REFERENCE_ONLY: URL staged without server-side content retrieval. It may support working analysis but must not be represented as verified content or canon.'],
   });
 }
