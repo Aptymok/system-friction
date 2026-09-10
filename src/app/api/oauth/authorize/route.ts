@@ -33,10 +33,11 @@ function actorSlug(value: string) {
     .slice(0, 48);
 }
 
-function redirectOAuthError(redirectUri: string, state: string | null, error: string, description: string) {
+function redirectOAuthError(redirectUri: string, state: string | null, error: string, description: string, issuer: string) {
   const url = new URL(redirectUri);
   url.searchParams.set('error', error);
   url.searchParams.set('error_description', description);
+  url.searchParams.set('iss', issuer);
   if (state) url.searchParams.set('state', state);
   return NextResponse.redirect(url);
 }
@@ -46,6 +47,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'oauth_not_configured' }, { status: 503 });
   }
 
+  const issuer = req.nextUrl.origin;
   const clientId = req.nextUrl.searchParams.get('client_id')?.trim() || '';
   const redirectUri = req.nextUrl.searchParams.get('redirect_uri')?.trim() || '';
   const responseType = req.nextUrl.searchParams.get('response_type')?.trim() || '';
@@ -95,7 +97,7 @@ export async function GET(req: NextRequest) {
       if (!redirectAlreadyAllowed) {
         return NextResponse.json({ ok: false, error: 'access_denied' }, { status: 403 });
       }
-      return redirectOAuthError(redirectUri, state, 'access_denied', 'An active SFI account is required.');
+      return redirectOAuthError(redirectUri, state, 'access_denied', 'An active SFI account is required.', issuer);
     }
     throw error;
   }
@@ -109,6 +111,7 @@ export async function GET(req: NextRequest) {
       state,
       'access_denied',
       'This self-service OAuth client is bound to a different SFI account.',
+      issuer,
     );
   }
 
@@ -129,21 +132,21 @@ export async function GET(req: NextRequest) {
   }
 
   if (responseType !== 'code') {
-    return redirectOAuthError(redirectUri, state, 'unsupported_response_type', 'SFI supports OAuth authorization_code only.');
+    return redirectOAuthError(redirectUri, state, 'unsupported_response_type', 'SFI supports OAuth authorization_code only.', issuer);
   }
   if (codeChallenge && codeChallengeMethod !== 'S256') {
-    return redirectOAuthError(redirectUri, state, 'invalid_request', 'Only PKCE S256 is supported.');
+    return redirectOAuthError(redirectUri, state, 'invalid_request', 'Only PKCE S256 is supported.', issuer);
   }
 
   const explicitlyRequestedScopes = rawScope
     ? [...new Set<string>(rawScope.split(/\s+/).filter(Boolean))]
     : null;
   if (explicitlyRequestedScopes?.some((scope) => !SFI_SUPPORTED_SCOPES.has(scope))) {
-    return redirectOAuthError(redirectUri, state, 'invalid_scope', 'One or more requested SFI scopes are not supported.');
+    return redirectOAuthError(redirectUri, state, 'invalid_scope', 'One or more requested SFI scopes are not supported.', issuer);
   }
   const clientScopes = new Set(client.allowedScopes);
   if (explicitlyRequestedScopes?.some((scope) => !clientScopes.has(scope))) {
-    return redirectOAuthError(redirectUri, state, 'invalid_scope', 'The OAuth client is not registered for one or more requested SFI scopes.');
+    return redirectOAuthError(redirectUri, state, 'invalid_scope', 'The OAuth client is not registered for one or more requested SFI scopes.', issuer);
   }
 
   const profileRole = String(context.profile.role || 'operator').toLowerCase();
@@ -166,11 +169,11 @@ export async function GET(req: NextRequest) {
   if (personalPrincipal) {
     grantedScopes = requestedScopes.filter((scope) => principalScopes.has(scope) && clientScopes.has(scope));
     if (!grantedScopes.length) {
-      return redirectOAuthError(redirectUri, state, 'invalid_scope', 'The requested scopes do not include a personal workspace capability.');
+      return redirectOAuthError(redirectUri, state, 'invalid_scope', 'The requested scopes do not include a personal workspace capability.', issuer);
     }
   } else {
     if (requestedScopes.some((scope) => !principalScopes.has(scope) || !clientScopes.has(scope))) {
-      return redirectOAuthError(redirectUri, state, 'invalid_scope', 'The authenticated SFI principal or OAuth client is not allowed to receive one or more requested scopes.');
+      return redirectOAuthError(redirectUri, state, 'invalid_scope', 'The authenticated SFI principal or OAuth client is not allowed to receive one or more requested scopes.', issuer);
     }
     grantedScopes = requestedScopes;
   }
@@ -202,11 +205,12 @@ export async function GET(req: NextRequest) {
   });
 
   if (stored.error) {
-    return redirectOAuthError(redirectUri, state, 'server_error', 'SFI could not issue an authorization code.');
+    return redirectOAuthError(redirectUri, state, 'server_error', 'SFI could not issue an authorization code.', issuer);
   }
 
   const callback = new URL(redirectUri);
   callback.searchParams.set('code', code);
+  callback.searchParams.set('iss', issuer);
   if (state) callback.searchParams.set('state', state);
   return NextResponse.redirect(callback);
 }
