@@ -1,7 +1,10 @@
+import { isMaterialExternalAction } from '@/lib/execution/governedExecutionClassification';
+
 export const SFI_ROOT_DECISION_CLASSES = [
   'INSTITUTIONAL_CHANGE',
   'CAPABILITY_IMPLEMENTATION',
   'LEARNING_PROMOTION',
+  'RESERVED_EXTERNAL_OPERATION',
 ] as const;
 
 export type SfiRootDecisionClass = (typeof SFI_ROOT_DECISION_CLASSES)[number];
@@ -19,6 +22,42 @@ function text(value: unknown) {
 
 function normalized(value: unknown) {
   return text(value)?.toUpperCase().replaceAll('-', '_').replaceAll(' ', '_') ?? null;
+}
+
+function proposalActionType(value: Row) {
+  const expected = row(value.expected_field_delta);
+  const payload = row(expected.payload);
+  const requested = row(payload.requested_action ?? payload.requestedAction);
+  const proportionality = row(value.proportionality_check);
+  return text(
+    requested.type
+      ?? requested.actionType
+      ?? requested.action_type
+      ?? payload.actionType
+      ?? payload.action_type
+      ?? payload.operation
+      ?? expected.actionType
+      ?? expected.action_type
+      ?? proportionality.actionType
+      ?? proportionality.action_type
+      ?? value.proposal_type,
+  );
+}
+
+function proposalDescription(value: Row) {
+  const expected = row(value.expected_field_delta);
+  const payload = row(expected.payload);
+  const requested = row(payload.requested_action ?? payload.requestedAction);
+  return [
+    value.title,
+    value.description,
+    expected.objective,
+    payload.objective,
+    payload.action,
+    payload.target,
+    requested.description,
+    requested.action,
+  ].map((item) => text(item)).filter((item): item is string => Boolean(item)).join(' | ');
 }
 
 export function isRootDecisionClass(value: unknown): value is SfiRootDecisionClass {
@@ -68,9 +107,8 @@ export function classifyProposalDecisionBoundary(value: Row): SfiDecisionBoundar
       ?? proportionality.proposal_type,
   );
 
-  // Only old proposal types whose semantics are intrinsically institutional
-  // retain an implicit ROOT classification. Generic external/twin/evidence/
-  // defect/report/work objects never become sovereign work by free-text inference.
+  // Intrinsically institutional changes remain sovereign even when their
+  // implementation is technically reversible.
   if (proposalType === 'MUTATION') return 'INSTITUTIONAL_CHANGE';
   if (proposalType === 'CAPABILITY_IMPLEMENTATION' || proposalType === 'CAPABILITY_ADD' || proposalType === 'CAPABILITY_CHANGE') {
     return 'CAPABILITY_IMPLEMENTATION';
@@ -78,6 +116,14 @@ export function classifyProposalDecisionBoundary(value: Row): SfiDecisionBoundar
   if (proposalType === 'LEARNING_PROMOTION' || proposalType === 'INSTITUTIONAL_LEARNING_PROMOTION') {
     return 'LEARNING_PROMOTION';
   }
+
+  // External material effects are also sovereign. This check intentionally
+  // uses the same classifier as the execution router so a generic "action"
+  // cannot bypass the human boundary merely because its proposal type is vague.
+  if (isMaterialExternalAction(proposalActionType(value), proposalDescription(value))) {
+    return 'RESERVED_EXTERNAL_OPERATION';
+  }
+
   return 'OPERATIONAL_WORK';
 }
 
@@ -86,7 +132,7 @@ export function rootDecisionRequired(value: Row) {
 }
 
 export const SFI_ROOT_DECISION_BOUNDARY = {
-  contract: 'SFI-ROOT-DECISION-BOUNDARY-2.0',
+  contract: 'SFI-ROOT-DECISION-BOUNDARY-2.1',
   rootDecisionClasses: SFI_ROOT_DECISION_CLASSES,
   operationalNonDecisions: [
     'CASE_OR_CYCLE_CLOSE',
@@ -101,5 +147,5 @@ export const SFI_ROOT_DECISION_BOUNDARY = {
     'RETURN_AND_REALITY_CALIBRATION',
     'LEARNING_CANDIDATE_CAPTURE',
   ],
-  rule: 'ROOT decides only institutional change, material capability implementation/change, and learning promotion. Operational work proceeds under existing authority and remains observable.',
+  rule: 'ROOT decides only institutional change, material capability implementation/change, institutional learning promotion, and reserved material external/irreversible operations. Ordinary case work proceeds under existing authority and remains observable.',
 } as const;
