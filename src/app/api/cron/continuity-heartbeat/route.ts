@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { runContinuityHeartbeat, runOperationalTransitionWatchdog } from '@/lib/continuity/runtime';
+import { runOperationalAutoAdvance } from '@/lib/continuity/operationalAutoAdvance';
 import { runStudioAutonomyContinuation } from '@/lib/continuity/studioAutonomy';
 import { verifyGitHubActionsOidcToken } from '@/lib/continuity/githubActionsOidc';
 import { runGovernedExecutionRouter } from '@/lib/execution/governedExecutionRouter';
@@ -219,6 +220,18 @@ export async function GET(request: NextRequest) {
           })),
     ]);
 
+    // Evidence acquisition and risk assessment above may make routine proposals
+    // eligible. Advance those now, without inventing a ROOT approval. Sovereign
+    // or material external operations remain stopped by the decision boundary.
+    const operationalAutoAdvance = emergencyHalt
+      ? { ok: true as const, halted: true as const, processed: 0, results: [] }
+      : await runOperationalAutoAdvance({ limit: 10 }).catch((error) => ({
+          ok: false as const,
+          processed: 0,
+          results: [],
+          error: error instanceof Error ? error.message : String(error),
+        }));
+
     const returnPlanUpgradeAfter = emergencyHalt
       ? { ok: true as const, halted: true as const, processed: 0, results: [] }
       : await runUniversalReturnPlanUpgrade({ limit: 4, cycleId: requestedCycleId }).catch((error) => ({
@@ -249,6 +262,7 @@ export async function GET(request: NextRequest) {
       : null;
 
     const laneFailure = transitionWatchdog.ok === false
+      || operationalAutoAdvance.ok === false
       || governedExecution.ok === false
       || universalCycleContinuation.ok === false
       || returnPlanUpgradeBefore.ok === false
@@ -274,6 +288,7 @@ export async function GET(request: NextRequest) {
       returnPlanUpgradeAfter: returnPlanUpgradeAfter.ok === false ? 'RETURN_PLAN_UPGRADE_AFTER_FAIL' : 'RETURN_PLAN_UPGRADE_AFTER_PASS',
       universalEmpiricalContinuation: universalEmpiricalContinuation.ok === false ? 'UNIVERSAL_EMPIRICAL_CONTINUATION_FAIL' : 'UNIVERSAL_EMPIRICAL_CONTINUATION_PASS',
       transitionWatchdog: transitionWatchdog.ok === false ? 'TRANSITION_WATCHDOG_FAIL' : 'TRANSITION_WATCHDOG_PASS',
+      operationalAutoAdvance: operationalAutoAdvance.ok === false ? 'OPERATIONAL_AUTO_ADVANCE_FAIL' : 'OPERATIONAL_AUTO_ADVANCE_PASS',
       governedExecution: governedExecution.ok === false ? 'GOVERNED_EXECUTION_FAIL' : 'GOVERNED_EXECUTION_PASS',
       studioAutonomy: studioAutonomy.status === 'DEGRADED' ? 'STUDIO_AUTONOMY_FAIL' : 'STUDIO_AUTONOMY_PASS',
       targetCycleState: targetCycleState?.ok === false ? 'TARGET_CYCLE_PROOF_FAIL' : 'TARGET_CYCLE_PROOF_PASS',
@@ -288,6 +303,7 @@ export async function GET(request: NextRequest) {
       laneStatus,
       studioAutonomy,
       transitionWatchdog,
+      operationalAutoAdvance,
       governedExecution,
       returnPlanUpgradeBefore,
       universalCycleContinuation,
@@ -295,8 +311,8 @@ export async function GET(request: NextRequest) {
       universalEmpiricalContinuation,
       targetCycleState,
       executionRule: emergencyHalt
-        ? 'EMERGENCY_HALT suppresses transition writes, governed execution dispatch, universal cognitive continuation, empirical continuation and learning writes. Continuity probes may record the halted heartbeat only.'
-        : 'One heartbeat owns the complete governed continuation path: legacy RETURN plans are upgraded to AI-governed capability routing, interrupted cognition resumes from durable checkpoints using a sealed Cognitive Twin context, real evidence-linked RETURNs advance through AI-assisted CONTRAST and existing empirical closure rules, and calibrated learning becomes adaptive non-canonical Twin context. A requested cycle also returns bounded read-only lifecycle proof even when no cognitive work is eligible. Missing evidence remains missing; no RETURN, canon mutation or irreversible external authority is fabricated.',
+        ? 'EMERGENCY_HALT suppresses transition writes, operational auto-advance, governed execution dispatch, universal cognitive continuation, empirical continuation and learning writes. Continuity probes may record the halted heartbeat only.'
+        : 'One heartbeat owns the complete governed continuation path. Routine evidence review, risk assessment, operational authorization, execution, RETURN, calibration and methodological closure proceed without founder approval while remaining inside existing authority. Institutional/canonical change, material capability change, learning promotion and reserved material external/irreversible operations stop at the sovereign boundary. Missing evidence remains missing; no RETURN, canon mutation or external authority is fabricated.',
     });
   } catch (error) {
     return NextResponse.json({
