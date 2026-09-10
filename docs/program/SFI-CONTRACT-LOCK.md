@@ -415,6 +415,8 @@ REMOVED
 
 ## 12. Public URL namespaces
 
+Canonical namespace contract: `SFI-CANONICAL-NAMESPACE-1.0`.
+
 Reserved canonical namespaces:
 
 ```text
@@ -422,7 +424,8 @@ Reserved canonical namespaces:
 /concepts/[slug]
 /methods/[slug]
 /instruments/[slug]
-/research/[slug]
+/research/[slug]        REPORT, PAPER
+/publications/[slug]    PUBLICATION
 /datasets/[slug]
 /software/[slug]
 /observations/[id]
@@ -432,6 +435,10 @@ Reserved canonical namespaces:
 /press
 /root/discovery
 ```
+
+`PUBLICATION` is a distinct canonical object type and does not share the `REPORT`/`PAPER` research namespace. Namespace resolution is owned by `src/lib/discovery/canonicalObjectRegistry.ts`; projections must consume that owner rather than repeat namespace literals.
+
+No compatibility redirect is created unless an observed pre-existing canonical `PUBLICATION` URL requires one. At activation baseline `a419b5463d8d4149487012abbb280ee10f690783`, the canonical registry contained no `PUBLICATION` objects, so no legacy canonical URL was rewritten.
 
 Existing canonical routes remain valid. New code must inspect/absorb before creating parallel routes.
 
