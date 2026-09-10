@@ -196,6 +196,10 @@ function envModel(...values: Array<string | undefined>) {
   return values.find((value) => typeof value === 'string' && value.trim().length > 0)?.trim() ?? null;
 }
 
+const RAW_ANTHROPIC_MODEL = envModel(process.env.ANTHROPIC_MODEL, process.env.CLAUDE_MODEL);
+const ANTHROPIC_PRIMARY_MIGRATION = RAW_ANTHROPIC_MODEL && /^(?:claude-3(?:[-.]|$)|claude-sonnet-4-20250514$|claude-opus-4-20250514$|claude-opus-4-1-20250805$)/i.test(RAW_ANTHROPIC_MODEL)
+  ? RAW_ANTHROPIC_MODEL
+  : null;
 const RAW_GEMINI_MODEL = envModel(process.env.GEMINI_MODEL, process.env.GOOGLE_MODEL);
 const GEMINI_PRIMARY_MIGRATION = RAW_GEMINI_MODEL && /^gemini-1\.5(?:-|$)/i.test(RAW_GEMINI_MODEL)
   ? RAW_GEMINI_MODEL
@@ -203,8 +207,8 @@ const GEMINI_PRIMARY_MIGRATION = RAW_GEMINI_MODEL && /^gemini-1\.5(?:-|$)/i.test
 
 const DEFAULTS = {
   openai: envModel(process.env.OPENAI_MODEL) ?? 'gpt-4o-mini',
-  anthropic: envModel(process.env.ANTHROPIC_MODEL, process.env.CLAUDE_MODEL) ?? 'claude-3-5-sonnet-latest',
-  gemini: GEMINI_PRIMARY_MIGRATION ? 'gemini-3.7-flash' : RAW_GEMINI_MODEL ?? 'gemini-3.7-flash',
+  anthropic: ANTHROPIC_PRIMARY_MIGRATION ? 'claude-sonnet-5' : RAW_ANTHROPIC_MODEL ?? 'claude-sonnet-5',
+  gemini: GEMINI_PRIMARY_MIGRATION ? 'gemini-3.8-flash' : RAW_GEMINI_MODEL ?? 'gemini-3.8-flash',
   geminiFast: envModel(process.env.GEMINI_FAST_MODEL) ?? 'gemini-3.5-flash-lite',
   groqFast: envModel(process.env.GROQ_MODEL, process.env.GROQ_FAST_MODEL) ?? 'openai/gpt-oss-20b',
   groqReasoning: envModel(process.env.GROQ_REASONING_MODEL) ?? 'openai/gpt-oss-120b',
@@ -240,7 +244,7 @@ export function getLlmModelCatalog(): LlmModelCapability[] {
   const localPrivacy = ['PUBLIC', 'INTERNAL', 'SENSITIVE', 'PRIVATE_LOCAL'];
   return [
     { provider: 'openai', model: DEFAULTS.openai, role: 'general', contextTokens: null, reasoning: true, reasoningClass: 'MEDIUM', structuredOutput: true, web: false, multimodal: false, computer: false, code: true, latencyClass: 'NORMAL', costClass: 'STANDARD', privacyClasses: hostedPrivacy, priority: 'balanced', configuredBy: ['OPENAI_MODEL'] },
-    { provider: 'anthropic', model: DEFAULTS.anthropic, role: 'quality reasoning / long context', contextTokens: null, reasoning: true, reasoningClass: 'HIGH', structuredOutput: false, web: false, multimodal: false, computer: false, code: true, latencyClass: 'NORMAL', costClass: 'QUALITY', privacyClasses: hostedPrivacy, priority: 'quality', configuredBy: ['ANTHROPIC_MODEL', 'CLAUDE_MODEL'] },
+    { provider: 'anthropic', model: DEFAULTS.anthropic, role: 'quality reasoning / long context', contextTokens: 1_000_000, reasoning: true, reasoningClass: 'HIGH', structuredOutput: false, web: false, multimodal: false, computer: false, code: true, latencyClass: 'NORMAL', costClass: 'QUALITY', privacyClasses: hostedPrivacy, priority: 'quality', configuredBy: ['ANTHROPIC_MODEL', 'CLAUDE_MODEL'] },
     { provider: 'gemini', model: DEFAULTS.gemini, role: 'quality reasoning / long context', contextTokens: 1_048_576, reasoning: true, reasoningClass: 'HIGH', structuredOutput: true, web: false, multimodal: false, computer: false, code: true, latencyClass: 'NORMAL', costClass: 'QUALITY', privacyClasses: hostedPrivacy, priority: 'quality', configuredBy: ['GEMINI_MODEL', 'GOOGLE_MODEL'] },
     { provider: 'gemini', model: DEFAULTS.geminiFast, role: 'high-throughput worker', contextTokens: null, reasoning: false, reasoningClass: 'LOW', structuredOutput: true, web: false, multimodal: false, computer: false, code: false, latencyClass: 'INTERACTIVE', costClass: 'ECONOMY', privacyClasses: hostedPrivacy, priority: 'speed', configuredBy: ['GEMINI_FAST_MODEL'] },
     { provider: 'groq', model: DEFAULTS.groqFast, role: 'fast worker / classification / structured output', contextTokens: 131_072, reasoning: true, reasoningClass: 'MEDIUM', structuredOutput: true, web: false, multimodal: false, computer: false, code: true, latencyClass: 'INTERACTIVE', costClass: 'ECONOMY', privacyClasses: hostedPrivacy, priority: 'speed', configuredBy: ['GROQ_MODEL', 'GROQ_FAST_MODEL'] },
@@ -522,7 +526,11 @@ export function getLlmProviderStatus(): LlmProviderStatus[] {
       lastErrorClass: latestFailure?.lastErrorClass ?? null,
       circuitOpen: Boolean(anyCircuit),
       circuitReason: anyCircuit?.reason ?? null,
-      migratedModelFrom: config.id === 'gemini' ? GEMINI_PRIMARY_MIGRATION : null,
+      migratedModelFrom: config.id === 'gemini'
+        ? GEMINI_PRIMARY_MIGRATION
+        : config.id === 'anthropic'
+          ? ANTHROPIC_PRIMARY_MIGRATION
+          : null,
       models: models.map((item, index) => {
         const telemetry = telemetryFor(config.id, item.model);
         const circuit = activeCircuit(config.id, item.model);
@@ -607,7 +615,6 @@ async function callProvider(config: ProviderConfig, model: string, input: {
       body: JSON.stringify({
         model,
         max_tokens: input.maxTokens,
-        temperature: 0.2,
         system: input.system,
         messages: [{ role: 'user', content: input.prompt }],
       }),
@@ -620,7 +627,6 @@ async function callProvider(config: ProviderConfig, model: string, input: {
   if (config.id === 'gemini') {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(String(config.apiKey))}`;
     const generationConfig: Record<string, unknown> = { maxOutputTokens: input.maxTokens };
-    if (!/^gemini-3\.7(?:-|$)/i.test(model)) generationConfig.temperature = 0.2;
     const json = await fetchJson(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -738,6 +744,7 @@ export async function runLlmTask(input: {
   const started = Date.now();
   const configs = providerConfigs();
   const warnings: string[] = [];
+  if (ANTHROPIC_PRIMARY_MIGRATION) warnings.push(`anthropic_model_migrated:${ANTHROPIC_PRIMARY_MIGRATION}->${DEFAULTS.anthropic}`);
   if (GEMINI_PRIMARY_MIGRATION) warnings.push(`gemini_model_migrated:${GEMINI_PRIMARY_MIGRATION}->${DEFAULTS.gemini}`);
   const operationPlan = getLlmOperationPlan({
     task: input.task,

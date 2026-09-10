@@ -148,7 +148,9 @@ assert.match(spine,/cognitiveTwinContext: materialized\.runtimeProjection\.cogni
 
 assert.match(provider,/synthetic_fallback_suppressed/);
 assert.match(provider,/provider: 'degraded'/);
-assert.match(provider,/gemini-3\.7-flash/,'Gemini primary must not fall back to retired 1.5 defaults.');
+assert.match(provider,/claude-sonnet-5/,'Anthropic primary must not fall back to retired Claude 3 defaults.');
+assert.doesNotMatch(provider,/\?\? 'claude-3-5-sonnet-latest'/,'Retired Claude 3.5 default must not survive.');
+assert.match(provider,/gemini-3\.8-flash/,'Gemini primary must not fall back to retired 1.5 defaults.');
 assert.match(provider,/gemini-3\.5-flash-lite/,'Gemini fast lane missing.');
 for(const model of ['openai/gpt-oss-20b','openai/gpt-oss-120b','groq/compound','groq/compound-mini']) assert.ok(provider.includes(model),`Groq model lane missing: ${model}`);
 assert.match(provider,/router\.huggingface\.co\/v1\/chat\/completions/,'HF text generation must use Inference Providers router.');
