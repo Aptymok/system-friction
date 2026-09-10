@@ -16,6 +16,9 @@ on:
       - 'scripts/qa-sfi-discovery-operational.ts'
       - 'scripts/qa-sfi-discovery-emitter.ts'
       - 'scripts/qa-sfi-discovery-exposure.ts'
+      - 'scripts/qa-sfi-publication-namespace.ts'
+      - 'docs/program/SFI-CONTRACT-LOCK.md'
+      - 'docs/program/decisions/*PUBLICATION-NAMESPACE*.md'
       - 'supabase/migrations/*discovery_emission_identity.sql'
       - '.github/workflows/sfi-discovery-emitter.yml'
   push:
@@ -35,6 +38,9 @@ on:
       - 'scripts/qa-sfi-discovery-operational.ts'
       - 'scripts/qa-sfi-discovery-emitter.ts'
       - 'scripts/qa-sfi-discovery-exposure.ts'
+      - 'scripts/qa-sfi-publication-namespace.ts'
+      - 'docs/program/SFI-CONTRACT-LOCK.md'
+      - 'docs/program/decisions/*PUBLICATION-NAMESPACE*.md'
       - 'supabase/migrations/*discovery_emission_identity.sql'
       - '.github/workflows/sfi-discovery-emitter.yml'
 
@@ -55,5 +61,7 @@ jobs:
         run: node --import tsx --test src/lib/discovery/canonicalObjectRegistry.test.ts src/lib/discovery/discoveryMesh.test.ts src/lib/discovery/discoveryEmitter.test.ts src/lib/discovery/exposureProjection.test.ts src/lib/discovery/institutionalDiscoveryMesh.test.ts
       - name: Verify durable discovery, exposure and authority boundaries
         run: npx tsx scripts/qa-sfi-discovery-operational.ts && npx tsx scripts/qa-sfi-discovery-emitter.ts && npx tsx scripts/qa-sfi-discovery-exposure.ts
+      - name: Verify canonical publication namespace gate
+        run: npx tsx scripts/qa-sfi-publication-namespace.ts
       - name: Typecheck
         run: npm run typecheck

@@ -90,7 +90,10 @@ async function main() {
   assert.match(institutionalMesh, /boundedSamplesCannotCreateNegativeEvidence: true/);
   assert.match(institutionalMesh, /founderForcedOutreachCannotCountAsPull: true/);
   assert.match(institutionalMesh, /attractorIsLensNotOntology: true/);
-  assert.match(institutionalMesh, /CANONICAL_NAMESPACE_CHANGE_SEPARATE_GATE/);
+  assert.match(institutionalMesh, /CANONICAL_NAMESPACE_ACTIVE/);
+  assert.match(institutionalMesh, /SFI_CANONICAL_NAMESPACE_CONTRACT/);
+  assert.match(institutionalMesh, /canonicalNamespaceFor\('PUBLICATION'\)/);
+  assert.doesNotMatch(institutionalMesh, /CANONICAL_NAMESPACE_CHANGE_SEPARATE_GATE/);
   assert.doesNotMatch(institutionalMesh, /create table|\.from\(|\.insert\(|\.upsert\(|\.update\(/, 'Institutional mesh must remain a projection and not become another DB owner');
 
   assert.match(institutionalRead, /SFI-INSTITUTIONAL-DISCOVERY-READ-1\.1/);
@@ -121,6 +124,7 @@ async function main() {
   assert.match(page, /requireRootObserverPage\('\/root\/discovery'\)/);
   assert.match(page, /Discovery \+ Exposure/);
   assert.match(page, /exact counts:/);
+  assert.match(page, /CANONICAL_NAMESPACE_ACTIVE|canonicalNamespace/, 'ROOT Discovery must project the active publication namespace state');
   for (const section of ['Knowledge graph', 'AI discovery', 'Crawlers', 'Academic graph', 'EXTERNAL REALITY GRAPH', 'Propagation graph', 'Discovery lifecycle', 'Manhattan attractor', 'Minimum convergence gate', 'Propagation receipts', 'Collisions', 'Publication mesh']) assert.match(page, new RegExp(section));
 
   assert.match(aiIndex, /discoveryExposurePlan/);
@@ -136,7 +140,7 @@ async function main() {
 
   console.log(JSON.stringify({
     ok: true,
-    contract: 'SFI-DISCOVERY-EXPOSURE-QA-1.5',
+    contract: 'SFI-DISCOVERY-EXPOSURE-QA-1.6',
     canonicalOwnerReused: true,
     canonicalGraphReused: true,
     artifactTrajectoryOwnerReused: true,
@@ -157,7 +161,7 @@ async function main() {
     realityGraphIsLens: true,
     propagationGraphIsLens: true,
     ManhattanIsAttractor: true,
-    publicationNamespaceSeparateCanonicalGate: true,
+    publicationNamespaceCanonicalGateActive: true,
     automaticPublication: false,
     automaticCanon: false,
     automaticExternalAction: false,
