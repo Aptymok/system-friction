@@ -2,6 +2,7 @@ import type { PublicationStatus } from '../system/contracts';
 import { SFI_PUBLIC_PROFILE } from '../public/institutionProfile';
 
 export const SFI_CANONICAL_OBJECT_CONTRACT = 'SFI-CANONICAL-OBJECT-1.0' as const;
+export const SFI_CANONICAL_NAMESPACE_CONTRACT = 'SFI-CANONICAL-NAMESPACE-1.0' as const;
 
 export const SFI_CANONICAL_OBJECT_TYPES = [
   'CONCEPT',
@@ -146,7 +147,7 @@ const OBJECT_NAMESPACE: Record<SfiCanonicalObjectType, string> = {
   SOFTWARE: '/software',
   RELEASE: '/releases',
   RETURN: '/returns',
-  PUBLICATION: '/research',
+  PUBLICATION: '/publications',
 };
 
 const PUBLICATION_STATES: readonly PublicationStatus[] = [
@@ -184,9 +185,14 @@ export function canonicalObjectKey(objectType: SfiCanonicalObjectType, slug: str
   return `${objectType.toLowerCase()}:${slug}`;
 }
 
+export function canonicalNamespaceFor(objectType: SfiCanonicalObjectType): string {
+  if (!SFI_CANONICAL_OBJECT_TYPES.includes(objectType)) throw new Error(`unsupported_object_type:${objectType}`);
+  return OBJECT_NAMESPACE[objectType];
+}
+
 export function canonicalUrlFor(objectType: SfiCanonicalObjectType, slug: string): string {
   canonicalObjectKey(objectType, slug);
-  return `${BASE}${OBJECT_NAMESPACE[objectType]}/${slug}`;
+  return `${BASE}${canonicalNamespaceFor(objectType)}/${slug}`;
 }
 
 export function canonicalPublicabilityAssessment(record: SfiCanonicalObjectRecord): SfiCanonicalPublicabilityAssessment {
