@@ -132,7 +132,9 @@ function semanticSupport(requirementText, repoPath) {
   const identifiers = strongIdentifiers(requirementText);
   const matchedTerms = terms.filter((token) => proofText.includes(token));
   const matchedIdentifiers = identifiers.filter((token) => proofText.includes(token));
-  const supported = matchedIdentifiers.length >= 1 || matchedTerms.length >= 2;
+  const supported = matchedIdentifiers.length >= 2
+    || (matchedIdentifiers.length >= 1 && matchedTerms.length >= 2)
+    || matchedTerms.length >= 3;
   return { supported, terms, identifiers, matchedTerms, matchedIdentifiers };
 }
 
