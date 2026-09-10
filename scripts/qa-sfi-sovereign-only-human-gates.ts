@@ -12,6 +12,7 @@ const evidenceUi = read('src/components/sfi/RootEvidenceCandidateLane.tsx');
 const execute = read('src/app/api/external/v1/execute/route.ts');
 const lab = read('src/app/api/external/v1/lab/route.ts');
 const autoAdvance = read('src/lib/continuity/operationalAutoAdvance.ts');
+const continuityRuntime = read('src/lib/continuity/runtime.ts');
 const operationalNext = read('src/lib/root/interactiveOperationalNext.ts');
 const heartbeat = read('src/app/api/cron/continuity-heartbeat/route.ts');
 const bootstrap = read('src/app/api/external/v1/bootstrap/route.ts');
@@ -71,6 +72,14 @@ assert.match(autoAdvance, /queueApprovedProposal/);
 assert.match(autoAdvance, /dispatchQueuedProposal/);
 assert.match(autoAdvance, /canonicalPromotionAllowed: false/);
 
+assert.doesNotMatch(continuityRuntime, /ROOT must review candidates before persistence/);
+assert.doesNotMatch(continuityRuntime, /evidence_accept_reject/);
+assert.doesNotMatch(continuityRuntime, /proposal_accept_reject/);
+assert.match(continuityRuntime, /evidence_classification_for_working_use/);
+assert.match(continuityRuntime, /operational_authorization_and_queue/);
+assert.match(continuityRuntime, /reserved_external_operation/);
+assert.match(continuityRuntime, /owner: 'transition_watchdog'.*RETURN_RECONCILIATION/);
+
 assert.doesNotMatch(operationalNext, /ROOT_EVIDENCE_DECISION/);
 assert.doesNotMatch(operationalNext, /ROOT_CLOSE_OR_CANON_REVIEW/);
 assert.match(operationalNext, /READY_TO_CLOSE/);
@@ -91,11 +100,12 @@ assert.match(openapiMerge, /required\.filter\(\(name\) => name !== 'confirm'\)/)
 
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-SOVEREIGN-ONLY-HUMAN-GATES-1.0',
+  contract: 'SFI-SOVEREIGN-ONLY-HUMAN-GATES-1.1',
   humanApprovalRequiredForRoutineCaseWork: false,
   humanApprovalRequiredForWorkingSources: false,
   humanApprovalRequiredForRoutineLabRun: false,
   duplicateExecutionConfirmationRequired: false,
+  obsoleteRoutineHumanGatesPresent: false,
   sovereignBoundary: ['INSTITUTIONAL_CHANGE', 'CAPABILITY_IMPLEMENTATION', 'LEARNING_PROMOTION', 'RESERVED_EXTERNAL_OPERATION'],
   plainLanguageDefault: true,
   canonicalPromotionAutomatic: false,
