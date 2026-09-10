@@ -4,6 +4,10 @@ on:
   pull_request:
     paths:
       - 'src/lib/discovery/**'
+      - 'src/lib/research/**'
+      - 'src/components/research/**'
+      - 'src/app/research/**'
+      - 'src/app/publications/**'
       - 'src/app/feed.xml/**'
       - 'src/app/feed.atom/**'
       - 'src/app/feed.json/**'
@@ -17,6 +21,7 @@ on:
       - 'scripts/qa-sfi-discovery-emitter.ts'
       - 'scripts/qa-sfi-discovery-exposure.ts'
       - 'scripts/qa-sfi-publication-namespace.ts'
+      - 'scripts/qa-sfi-public-research-landing.ts'
       - 'docs/program/SFI-CONTRACT-LOCK.md'
       - 'docs/program/decisions/*PUBLICATION-NAMESPACE*.md'
       - 'supabase/migrations/*discovery_emission_identity.sql'
@@ -26,6 +31,10 @@ on:
       - main
     paths:
       - 'src/lib/discovery/**'
+      - 'src/lib/research/**'
+      - 'src/components/research/**'
+      - 'src/app/research/**'
+      - 'src/app/publications/**'
       - 'src/app/feed.xml/**'
       - 'src/app/feed.atom/**'
       - 'src/app/feed.json/**'
@@ -39,6 +48,7 @@ on:
       - 'scripts/qa-sfi-discovery-emitter.ts'
       - 'scripts/qa-sfi-discovery-exposure.ts'
       - 'scripts/qa-sfi-publication-namespace.ts'
+      - 'scripts/qa-sfi-public-research-landing.ts'
       - 'docs/program/SFI-CONTRACT-LOCK.md'
       - 'docs/program/decisions/*PUBLICATION-NAMESPACE*.md'
       - 'supabase/migrations/*discovery_emission_identity.sql'
@@ -63,5 +73,7 @@ jobs:
         run: npx tsx scripts/qa-sfi-discovery-operational.ts && npx tsx scripts/qa-sfi-discovery-emitter.ts && npx tsx scripts/qa-sfi-discovery-exposure.ts
       - name: Verify canonical publication namespace gate
         run: npx tsx scripts/qa-sfi-publication-namespace.ts
+      - name: Verify canonical public research landing pages
+        run: node --import tsx --test src/lib/research/publicResearchLanding.test.ts && npx tsx scripts/qa-sfi-public-research-landing.ts
       - name: Typecheck
         run: npm run typecheck
