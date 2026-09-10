@@ -7,7 +7,7 @@ import './discovery.css';
 export const dynamic = 'force-dynamic';
 
 function statusClass(value: string) {
-  return value === 'AVAILABLE' || value === 'READY_OWNED_SURFACE' || value === 'OBSERVED_PUBLISHED' || value === 'OBSERVED_SAMPLE'
+  return value === 'AVAILABLE' || value === 'READY_OWNED_SURFACE' || value === 'OBSERVED_PUBLISHED' || value === 'OBSERVED_SAMPLE' || value === 'CANONICAL_NAMESPACE_ACTIVE'
     ? 'discoveryStatus discoveryStatusOk'
     : value === 'DEGRADED' || value === 'GOVERNED_EXTERNAL_ACTION_REQUIRED' || value === 'INSUFFICIENT_EVIDENCE_FOR_MINIMUM_GATE'
       ? 'discoveryStatus discoveryStatusWarn'
@@ -189,8 +189,8 @@ export default async function RootDiscoveryPage() {
       <article className="discoveryPanel">
         <h2>Publication mesh</h2>
         <p className={statusClass(mesh.publicationMesh.state)}>{mesh.publicationMesh.state}</p>
-        <p>{mesh.publicationMesh.proposedKinds.length} editorial kinds proposed beneath one PUBLICATION object type.</p>
-        <p className="discoveryBoundary">Namespace migration to {mesh.publicationMesh.proposedNamespace} is intentionally a separate canonical gate.</p>
+        <p>{mesh.publicationMesh.editorialKinds.length} editorial kinds governed beneath one PUBLICATION object type.</p>
+        <p className="discoveryBoundary">Canonical namespace {mesh.publicationMesh.canonicalNamespace} is active through {mesh.publicationMesh.namespaceContract}. REPORT/PAPER remain under /research.</p>
       </article>
     </section>
 
