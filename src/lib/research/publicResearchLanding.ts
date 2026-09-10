@@ -5,6 +5,10 @@ import {
   type SfiCanonicalObjectRecord,
 } from '../discovery/canonicalObjectRegistry';
 import {
+  publicSemanticJsonLdForCanonicalObject,
+  type SfiPublicSemanticJsonLd,
+} from '../discovery/publicSemanticProjection';
+import {
   researchCitationExportForNode,
   researchGraphProjectionForCanonicalObjects,
   type SfiResearchCitationExport,
@@ -22,10 +26,12 @@ export interface SfiPublicResearchLanding {
   canonicalUrl: string;
   node: SfiResearchGraphNode;
   citation: SfiResearchCitationExport;
+  jsonLd: SfiPublicSemanticJsonLd;
   boundary: {
     landingIsProjectionNotCanon: true;
     landingDoesNotCreatePublicationState: true;
     landingDoesNotCreateEvidence: true;
+    semanticIdentityReusesDiscoveryOwner: true;
     missingObjectReturnsNotFound: true;
     invalidCanonicalRegistryFailsClosed: true;
   };
@@ -64,6 +70,11 @@ export function publicResearchLandingForSlug(
 
   if (canonicalNamespace !== expectedNamespace) return null;
 
+  const sourceRecord = records.find((record) => record.id === node.canonicalObjectId);
+  if (!sourceRecord) return null;
+  const jsonLd = publicSemanticJsonLdForCanonicalObject(sourceRecord);
+  if (!jsonLd || jsonLd['@id'] !== node.canonicalUrl) return null;
+
   return {
     contract: SFI_PUBLIC_RESEARCH_LANDING_CONTRACT,
     namespace,
@@ -71,10 +82,12 @@ export function publicResearchLandingForSlug(
     canonicalUrl: node.canonicalUrl,
     node,
     citation: researchCitationExportForNode(node),
+    jsonLd,
     boundary: {
       landingIsProjectionNotCanon: true,
       landingDoesNotCreatePublicationState: true,
       landingDoesNotCreateEvidence: true,
+      semanticIdentityReusesDiscoveryOwner: true,
       missingObjectReturnsNotFound: true,
       invalidCanonicalRegistryFailsClosed: true,
     },
