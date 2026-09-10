@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     title: typeof body.title === 'string' ? body.title : null,
     requestNote: typeof body.evidence_note === 'string' && body.evidence_note.trim()
       ? body.evidence_note.trim()
-      : 'Evidence candidate proposed by an authorized external agent for ROOT review.',
+      : 'Traceable working source supplied by an authorized external agent for bounded case analysis.',
     acquisitionOrigin: 'external_agent',
     acquisitionProvider: credential.label || 'external_agent_gateway',
   });
@@ -46,8 +46,10 @@ export async function POST(request: Request) {
     ok: true,
     data: result.data,
     duplicate: result.duplicate ?? false,
-    humanApprovalRequired: true,
+    humanApprovalRequired: false,
+    operationalUseAllowed: true,
     executionAllowed: false,
-    message: 'Evidence candidate registered for ROOT review. It has not been accepted as evidence.',
+    canonicalPromotionAllowed: false,
+    message: 'Working source registered. SFI may classify and use it for ordinary case analysis without human approval; source use does not verify its claims or make it institutional canon.',
   }, { status: result.duplicate ? 200 : 201 });
 }
