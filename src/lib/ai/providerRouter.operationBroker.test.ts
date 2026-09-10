@@ -75,6 +75,30 @@ test('selection is per operation requirements rather than a permanent agent-to-m
   assert.notEqual(fast.candidates[0]?.model, deep.candidates[0]?.model);
 });
 
+test('current Anthropic and Gemini routes are eligible for governed long-context operations', () => {
+  const anthropic = getLlmOperationPlan({
+    task: 'context_long',
+    requirements: {
+      ...qualityLong,
+      structuredOutput: false,
+      providerAllowlist: ['anthropic'],
+    },
+  });
+  assert.equal(anthropic.state, 'ATTEMPTABLE');
+  assert.ok(anthropic.candidates.length > 0);
+  assert.ok(anthropic.candidates.every((candidate) => candidate.provider === 'anthropic'));
+  assert.ok(anthropic.candidates.every((candidate) => !/^claude-3(?:[-.]|$)/i.test(candidate.model)));
+
+  const gemini = getLlmOperationPlan({
+    task: 'context_long',
+    requirements: { ...qualityLong, providerAllowlist: ['gemini'] },
+  });
+  assert.equal(gemini.state, 'ATTEMPTABLE');
+  assert.ok(gemini.candidates.length > 0);
+  assert.ok(gemini.candidates.every((candidate) => candidate.provider === 'gemini'));
+  assert.ok(gemini.candidates.every((candidate) => !/^gemini-1\.5(?:-|$)/i.test(candidate.model)));
+});
+
 test('provider allowlist and denylist are hard constraints; preference remains a request', () => {
   const allowed = getLlmOperationPlan({
     task: 'graph_interpretation',
