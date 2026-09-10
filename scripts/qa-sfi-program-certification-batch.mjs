@@ -2,10 +2,20 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import {
-  GLOBAL_REGRESSION_SCOPE,
-  SFI_COMPLETION_CERTIFICATION_BATCH_CONTRACT,
-} from './sfi-program-certification-batch.mjs';
+
+const SFI_COMPLETION_CERTIFICATION_BATCH_CONTRACT = 'SFI-SFI08-COMPLETION-CERTIFICATION-BATCH-1.0';
+const GLOBAL_REGRESSION_SCOPE = [
+  'src/**',
+  'scripts/**',
+  'packages/**',
+  'services/**',
+  '.github/workflows/**',
+  'public/**',
+  'package.json',
+  'package-lock.json',
+  'docs/program/**',
+  'docs/ROOT_WORLD_CASE_AND_DISCOVERY_ENGINE.md',
+];
 
 const root = process.cwd();
 const reportPath = path.join(root, 'artifacts', 'program-completion', 'completion.json');
@@ -23,7 +33,7 @@ assert.equal(certification.authority, 'ASSURANCE_ONLY');
 assert.equal(certification.head, report.head);
 assert.equal(certification.canonicalStatusMutation, false);
 assert.equal(certification.autoReceiptWrite, false);
-assert.deepEqual(certification.regressionScope, [...GLOBAL_REGRESSION_SCOPE]);
+assert.deepEqual(certification.regressionScope, GLOBAL_REGRESSION_SCOPE);
 assert.ok(certification.selectedCount <= certification.batchLimit);
 assert.equal(certification.selectedCount, certification.requirements.length);
 assert.equal(certification.failedProofCount, 0);
