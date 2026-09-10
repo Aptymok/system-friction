@@ -27,7 +27,7 @@ studioPost['x-sfi-authority-boundary'] = { ownerBound:true,ownerContextContract:
 
 api.info ||= {};
 const [major=1,minor=8] = String(api.info.version||'1.8.0').split('.').map(Number);
-if (major < 1 || (major === 1 && minor < 16)) api.info.version = '1.16.0';
+if (major < 1 || (major === 1 && minor < 17)) api.info.version = '1.17.0';
 api['x-sfi-governance'] ||= {};
 api['x-sfi-governance'].ownerStudioContext = { contract:'SFI-STUDIO-OWNER-CONTEXT-1.0',operation:'context',scope:'studio:read',tenant:'oauth.subjectId owner only',sources:['studio_sessions','studio_objects','studio_evidence_traces','studio_archive_events','owner-attributed sfi_amv_memory'],studioPredicate:'owner_id = oauth.subjectId',amvPredicate:'memory_delta.raw.ownerId = oauth.subjectId',binaryContentIncluded:false,rootEvidenceIncluded:false,institutionalCanonIncluded:false,metadataRestoreDoesNotImplyBinaryMaterialization:true };
 api['x-sfi-governance'].chatgptStudioAttachmentIntake = { contract:'SFI-CHATGPT-STUDIO-ATTACHMENT-1.1',operation:'ingest_analyze',parameter:'openaiFileIdRefs',count:1,modality:'audio',scope:'studio:run',tenant:'oauth.subjectId owner only',idempotency:'public.studio_objects unique(owner_id, metadata.externalIntake.openaiFileId)',acceptedTemporaryHost:'files.oaiusercontent.com',temporaryUrlPersisted:false,explicitAnalysisAuthorizationRequired:true,rightsTransfer:false,canonicalPromotionAllowed:false };
