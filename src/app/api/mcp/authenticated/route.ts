@@ -18,6 +18,8 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 export const maxDuration = 300;
 
+const LEGACY_MCP_PROTOCOL_VERSIONS = new Set(['2025-11-25', '2025-06-18', '2025-03-26']);
+
 type JsonObject = Record<string, unknown>;
 
 function row(value: unknown): JsonObject {
@@ -40,10 +42,23 @@ function method(value: unknown) {
   return typeof candidate === 'string' ? candidate : '';
 }
 
+function requestedProtocol(value: unknown): string {
+  const candidate = text(row(row(value).params).protocolVersion);
+  return LEGACY_MCP_PROTOCOL_VERSIONS.has(candidate) ? candidate : SFI_AUTHENTICATED_MACHINE_PROTOCOL_VERSION;
+}
+
 function requestedGrantId(value: unknown) {
   const params = row(row(value).params);
   const args = row(params.arguments);
   return text(row(args.authorization).grantId);
+}
+
+function responseHeaders(protocolVersion: string = SFI_AUTHENTICATED_MACHINE_PROTOCOL_VERSION) {
+  return {
+    'Cache-Control': 'no-store',
+    'X-SFI-MCP-Server': SFI_AUTHENTICATED_MACHINE_SERVER_ID,
+    'X-SFI-MCP-Protocol': protocolVersion,
+  };
 }
 
 function errorResponse(
@@ -55,10 +70,27 @@ function errorResponse(
 ) {
   return Response.json({ jsonrpc: '2.0', id, error: { code, message, data } }, {
     status,
+    headers: responseHeaders(),
+  });
+}
+
+function oauthChallenge(request: Request, scope: string) {
+  const origin = new URL(request.url).origin;
+  return `Bearer resource_metadata="${origin}/.well-known/oauth-protected-resource", scope="${scope}"`;
+}
+
+function negotiateLegacyInitialize(body: JsonObject, protocolVersion: string) {
+  const result = row(body.result);
+  if (!Object.keys(result).length) return body;
+  return { ...body, result: { ...result, protocolVersion } };
+}
+
+export async function GET(request: Request) {
+  return new Response(null, {
+    status: 401,
     headers: {
-      'Cache-Control': 'no-store',
-      'X-SFI-MCP-Server': SFI_AUTHENTICATED_MACHINE_SERVER_ID,
-      'X-SFI-MCP-Protocol': SFI_AUTHENTICATED_MACHINE_PROTOCOL_VERSION,
+      ...responseHeaders(),
+      'WWW-Authenticate': oauthChallenge(request, 'observe'),
     },
   });
 }
@@ -75,13 +107,17 @@ export async function POST(request: Request) {
     return errorResponse(null, -32700, 'Parse error', { reason: 'INVALID_JSON' }, 400);
   }
 
-  const requiredScope = method(payload) === 'tools/call' ? 'execute' : 'observe';
+  const requestMethod = method(payload);
+  const requiredScope = requestMethod === 'tools/call' ? 'execute' : 'observe';
   const auth = authorizeExternalRequest(request, requiredScope);
   const credential = auth.credential;
   if (!credential) {
     return Response.json(externalAuthError(auth, requiredScope), {
       status: 401,
-      headers: { 'Cache-Control': 'no-store' },
+      headers: {
+        'Cache-Control': 'no-store',
+        'WWW-Authenticate': oauthChallenge(request, requiredScope),
+      },
     });
   }
 
@@ -94,6 +130,16 @@ export async function POST(request: Request) {
       reason: 'USER_BOUND_OAUTH_WITH_CLIENT_ID_REQUIRED',
       staticTokenExecutionAllowed: false,
     }, 403);
+  }
+
+  if (requestMethod === 'notifications/initialized') {
+    return new Response(null, { status: 202, headers: responseHeaders(requestedProtocol(payload)) });
+  }
+  if (requestMethod === 'ping') {
+    return Response.json({ jsonrpc: '2.0', id: requestId(payload), result: {} }, {
+      status: 200,
+      headers: responseHeaders(requestedProtocol(payload)),
+    });
   }
 
   const principal: SfiAuthenticatedMachinePrincipal = {
@@ -110,8 +156,8 @@ export async function POST(request: Request) {
   // state, execution context, or model context. If proof does not match the persisted
   // nonceHash for the requested grant, that admission is invisible to authorization
   // and the canonical adapter fails closed with its normal denial receipt.
-  const targetGrantId = method(payload) === 'tools/call' ? requestedGrantId(payload) : '';
-  const rawGrantNonce = method(payload) === 'tools/call'
+  const targetGrantId = requestMethod === 'tools/call' ? requestedGrantId(payload) : '';
+  const rawGrantNonce = requestMethod === 'tools/call'
     ? request.headers.get('x-sfi-capability-grant-nonce')?.trim() ?? ''
     : '';
   const presentedGrantNonceHash = rawGrantNonce ? capabilityGrantNonceHash(rawGrantNonce) : null;
@@ -150,12 +196,15 @@ export async function POST(request: Request) {
     now: () => new Date(),
   });
 
-  return Response.json(result.body, {
+  const protocolVersion: string = requestMethod === 'initialize'
+    ? requestedProtocol(payload)
+    : SFI_AUTHENTICATED_MACHINE_PROTOCOL_VERSION;
+  const body = requestMethod === 'initialize'
+    ? negotiateLegacyInitialize(result.body, protocolVersion)
+    : result.body;
+
+  return Response.json(body, {
     status: result.status,
-    headers: {
-      'Cache-Control': 'no-store',
-      'X-SFI-MCP-Server': SFI_AUTHENTICATED_MACHINE_SERVER_ID,
-      'X-SFI-MCP-Protocol': SFI_AUTHENTICATED_MACHINE_PROTOCOL_VERSION,
-    },
+    headers: responseHeaders(protocolVersion),
   });
 }
