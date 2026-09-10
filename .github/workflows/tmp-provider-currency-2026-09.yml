@@ -1,4 +1,5 @@
 name: TEMP Provider Currency Patch
+# Registered on canonical main; this branch push executes the one-shot bounded patch.
 
 on:
   push:
