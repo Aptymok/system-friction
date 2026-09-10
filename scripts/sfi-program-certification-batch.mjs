@@ -10,7 +10,7 @@ const outPath = path.join(root, 'artifacts', 'program-completion', 'certificatio
 const verifyWorkflowPath = path.join(root, '.github', 'workflows', 'sfi-verify.yml');
 const packagePath = path.join(root, 'package.json');
 
-export const SFI_COMPLETION_CERTIFICATION_BATCH_CONTRACT = 'SFI-SFI08-COMPLETION-CERTIFICATION-BATCH-1.1';
+export const SFI_COMPLETION_CERTIFICATION_BATCH_CONTRACT = 'SFI-SFI08-COMPLETION-CERTIFICATION-BATCH-1.2';
 export const GLOBAL_REGRESSION_SCOPE = Object.freeze([
   'src/**',
   'scripts/**',
@@ -189,19 +189,25 @@ function main() {
   const rejectedSemanticLinks = [];
   for (const requirement of report.requirements || []) {
     if (requirement?.diagnostic?.state !== 'IMPLEMENTATION_EVIDENCE_PRESENT_UNCERTIFIED') continue;
-    if (requirement?.completionReceipt?.state && requirement.completionReceipt.state !== 'ABSENT') continue;
+    const previousReceiptState = requirement?.completionReceipt?.state || 'ABSENT';
+    if (!['ABSENT', 'INVALID'].includes(previousReceiptState)) continue;
     const declaredProofs = [...new Set((requirement.evidence || []).map(normalizeRepoPath).filter((repoPath) => proofSet.has(repoPath)))];
     if (!declaredProofs.length) continue;
     const support = declaredProofs.map((repoPath) => ({ path: repoPath, ...semanticSupport(requirement.requirement, repoPath) }));
     const proofPaths = support.filter((entry) => entry.supported).map((entry) => entry.path);
     if (!proofPaths.length) {
-      rejectedSemanticLinks.push({ id: requirement.id, requirement: requirement.requirement, declaredProofs, support });
+      rejectedSemanticLinks.push({ id: requirement.id, requirement: requirement.requirement, previousReceiptState, declaredProofs, support });
       continue;
     }
-    eligible.push({ requirement, proofPaths, support });
+    eligible.push({ requirement, proofPaths, support, previousReceiptState });
   }
 
-  const selected = eligible.slice(0, batchLimit);
+  const orderedEligible = [...eligible].sort((a, b) => {
+    const aInvalid = a.previousReceiptState === 'INVALID' ? 1 : 0;
+    const bInvalid = b.previousReceiptState === 'INVALID' ? 1 : 0;
+    return bInvalid - aInvalid;
+  });
+  const selected = orderedEligible.slice(0, batchLimit);
   const uniqueProofPaths = [...new Set(selected.flatMap((item) => item.proofPaths))].sort();
   const proofExecutions = uniqueProofPaths.map(executeProof);
   const failed = proofExecutions.filter((result) => !result.ok);
@@ -218,9 +224,11 @@ function main() {
     diagnosticContract: report.diagnosticContract || null,
     batchLimit,
     eligibleCount: eligible.length,
+    invalidReceiptEligibleCount: eligible.filter((item) => item.previousReceiptState === 'INVALID').length,
     semanticRejectedCount: rejectedSemanticLinks.length,
     rejectedSemanticLinks,
     selectedCount: selected.length,
+    selectedInvalidReceiptCount: selected.filter((item) => item.previousReceiptState === 'INVALID').length,
     remainingEligibleAfterBatch: Math.max(0, eligible.length - selected.length),
     canonicalCountsBefore: report.counts,
     canonicalStatusMutation: false,
@@ -228,7 +236,7 @@ function main() {
     regressionScope: [...GLOBAL_REGRESSION_SCOPE],
     proofCatalog,
     proofExecutions,
-    requirements: selected.map(({ requirement, proofPaths, support }) => ({
+    requirements: selected.map(({ requirement, proofPaths, support, previousReceiptState }) => ({
       id: requirement.id,
       owner: requirement.owner,
       source: requirement.source,
@@ -236,6 +244,7 @@ function main() {
       requirementHash: requirementHash(requirement),
       canonicalStatus: requirement.status,
       diagnosticState: requirement.diagnostic.state,
+      previousReceiptState,
       evidencePaths: [...(requirement.evidence || [])],
       proofPaths,
       semanticSupport: support.filter((entry) => proofPaths.includes(entry.path)),
@@ -252,8 +261,10 @@ function main() {
     contract: certification.contract,
     head: certification.head,
     eligibleCount: certification.eligibleCount,
+    invalidReceiptEligibleCount: certification.invalidReceiptEligibleCount,
     semanticRejectedCount: certification.semanticRejectedCount,
     selectedCount: certification.selectedCount,
+    selectedInvalidReceiptCount: certification.selectedInvalidReceiptCount,
     remainingEligibleAfterBatch: certification.remainingEligibleAfterBatch,
     uniqueProofCount: uniqueProofPaths.length,
     failedProofCount: failed.length,
