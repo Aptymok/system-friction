@@ -42,7 +42,7 @@ function method(value: unknown) {
   return typeof candidate === 'string' ? candidate : '';
 }
 
-function requestedProtocol(value: unknown) {
+function requestedProtocol(value: unknown): string {
   const candidate = text(row(row(value).params).protocolVersion);
   return LEGACY_MCP_PROTOCOL_VERSIONS.has(candidate) ? candidate : SFI_AUTHENTICATED_MACHINE_PROTOCOL_VERSION;
 }
@@ -53,7 +53,7 @@ function requestedGrantId(value: unknown) {
   return text(row(args.authorization).grantId);
 }
 
-function responseHeaders(protocolVersion = SFI_AUTHENTICATED_MACHINE_PROTOCOL_VERSION) {
+function responseHeaders(protocolVersion: string = SFI_AUTHENTICATED_MACHINE_PROTOCOL_VERSION) {
   return {
     'Cache-Control': 'no-store',
     'X-SFI-MCP-Server': SFI_AUTHENTICATED_MACHINE_SERVER_ID,
@@ -196,7 +196,9 @@ export async function POST(request: Request) {
     now: () => new Date(),
   });
 
-  const protocolVersion = requestMethod === 'initialize' ? requestedProtocol(payload) : SFI_AUTHENTICATED_MACHINE_PROTOCOL_VERSION;
+  const protocolVersion: string = requestMethod === 'initialize'
+    ? requestedProtocol(payload)
+    : SFI_AUTHENTICATED_MACHINE_PROTOCOL_VERSION;
   const body = requestMethod === 'initialize'
     ? negotiateLegacyInitialize(result.body, protocolVersion)
     : result.body;
