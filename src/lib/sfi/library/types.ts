@@ -12,6 +12,34 @@ export type SfiLibraryDocumentStatus =
   | 'reference_static'
   | 'phase_01_registry';
 
+/**
+ * Optional canonical-admission metadata belongs to the Library document that owns
+ * the static asset. `published_static` means only that the Library file is publicly
+ * reachable; it never means the object has been admitted as a canonical PUBLISHED
+ * research/publication object.
+ */
+export interface SfiLibraryCanonicalAdmission {
+  readonly contract: 'SFI-LIBRARY-CANONICAL-ADMISSION-1.0';
+  readonly objectType: 'REPORT' | 'PAPER' | 'PUBLICATION';
+  readonly slug: string;
+  readonly state: 'REVIEW_REQUIRED';
+  readonly publicationState: 'DRAFT';
+  readonly staticAvailabilityState: 'PUBLICLY_ACCESSIBLE_NOT_CANONICALLY_PUBLISHED';
+  readonly version: string;
+  readonly language: string;
+  readonly authors: readonly string[];
+  readonly rightsState: 'OPEN' | 'RESTRICTED' | 'UNKNOWN';
+  readonly license: string | null;
+  readonly evidenceIdentityState: 'VALID' | 'INVALID' | 'UNKNOWN';
+  readonly declaredPublicationLabel: string;
+  readonly firstObservedAt: string;
+  readonly firstObservedRef: string;
+  readonly lastObservedAt: string;
+  readonly lastObservedRef: string;
+  readonly sourceRefs: readonly string[];
+  readonly limitations: readonly string[];
+}
+
 export interface SfiLibraryDocument {
   id: string;
   title: string;
@@ -21,6 +49,7 @@ export interface SfiLibraryDocument {
   kind: SfiLibraryDocumentKind;
   publicPath: string;
   staticFilePath: string | null;
+  canonicalAdmission?: SfiLibraryCanonicalAdmission;
 }
 
 export interface SfiLibraryManifest {
