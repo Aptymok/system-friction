@@ -107,11 +107,15 @@ assert.match(personalLab, /return 'lab:write'/, 'personal_lab_writes_must_requir
 assert.match(studio, /const ownerId = cred\.subjectId/, 'studio_owner_must_derive_from_oauth_subject');
 assert.match(studio, /getStudioObject\(objectId, ownerId\)/, 'studio_object_operations_must_be_owner_scoped');
 
-// Institutional gates remain fail-closed.
+// Institutional operations remain fail-closed by scope and proposal state, but
+// an already-authorized operation must not require a second human confirmation.
 assert.match(institutionalLab, /authorizeExternalRequest\(req, operationScope\(operation\)\)/, 'institutional_lab_must_still_authorize_by_scope');
-assert.match(institutionalLab, /explicit_runtime_confirmation_required/, 'institutional_lab_run_must_require_confirmation');
+assert.doesNotMatch(institutionalLab, /explicit_runtime_confirmation_required/, 'institutional_lab_run_must_not_duplicate_human_authorization');
+assert.match(institutionalLab, /duplicateHumanConfirmationRequired: false/, 'institutional_lab_must_publish_no_duplicate_confirmation_boundary');
 assert.match(execute, /authorizeExternalRequest\(req, 'execute'\)/, 'institutional_execute_must_keep_execute_scope');
-assert.match(execute, /body\.confirm !== true/, 'institutional_execute_must_require_confirmation');
+assert.doesNotMatch(execute, /body\.confirm !== true/, 'institutional_execute_must_not_duplicate_human_authorization');
+assert.match(execute, /proposalMustAlreadyBeQueued: true/, 'institutional_execute_must_require_prior_queue_authorization');
+assert.match(execute, /duplicateHumanConfirmationRequired: false/, 'institutional_execute_must_publish_no_duplicate_confirmation_boundary');
 assert.match(execute, /canonicalPromotionAllowed: false/, 'generic_execute_must_not_promote_canon');
 
 // Persistence ownership contract.
@@ -158,7 +162,7 @@ for (const path of [
 
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-EXTERNAL-OAUTH-1.11',
+  contract: 'SFI-EXTERNAL-OAUTH-1.12',
   flow: 'authorization_code',
   pkce: 'S256',
   clientRegistry: 'PERSISTENT_SELF_SERVICE',
@@ -170,6 +174,7 @@ console.log(JSON.stringify({
   personalScopes: ['cases:read', 'cases:write', 'lab:read', 'lab:write', 'lab:run', 'studio:read', 'studio:content', 'studio:run'],
   personalRoutes: ['/api/external/v1/cases', '/api/external/v1/cognitive', '/api/external/v1/personal-lab', '/api/external/v1/studio'],
   explicitOwnerLearning: 'learn_declared_pattern',
-  institutionalSovereignty: ['proposal_authorization', 'root_evidence', 'canonical_promotion'],
+  institutionalSovereignty: ['institutional_change', 'material_capability_change', 'learning_promotion', 'reserved_external_irreversible_action'],
+  duplicateHumanConfirmation: false,
   runtime: 'runtimeAgentExecutor -> agentExecutionMap',
 }, null, 2));
