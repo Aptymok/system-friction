@@ -51,6 +51,12 @@ jobs:
       - name: Reconcile evidence-backed SATISFIED receipts
         run: node scripts/sfi-program-completion-reconcile.mjs
 
+      - name: Enrich non-authoritative sequencing diagnostics
+        run: node scripts/sfi-program-completion-diagnostics.mjs
+
+      - name: Falsify diagnostic authority expansion
+        run: node scripts/qa-sfi-program-completion-diagnostics.mjs
+
       - name: Verify final ROOT visual and epistemic contract
         run: node scripts/qa-sfi-root-final-visual.mjs
 
