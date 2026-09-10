@@ -1,3 +1,8 @@
+import {
+  SFI_CANONICAL_NAMESPACE_CONTRACT,
+  canonicalNamespaceFor,
+} from './canonicalObjectRegistry';
+
 export const SFI_INSTITUTIONAL_DISCOVERY_MESH_CONTRACT = 'SFI-INSTITUTIONAL-DISCOVERY-MESH-1.1' as const;
 export const SFI_EXTERNAL_REALITY_GRAPH_CONTRACT = 'SFI-EXTERNAL-REALITY-GRAPH-1.0' as const;
 export const SFI_PROPAGATION_GRAPH_CONTRACT = 'SFI-PROPAGATION-GRAPH-1.1' as const;
@@ -139,10 +144,11 @@ export const SFI_MANHATTAN_ATTRACTOR = Object.freeze({
 });
 
 export const SFI_PUBLICATION_MESH = Object.freeze({
-  state: 'CANONICAL_NAMESPACE_CHANGE_SEPARATE_GATE' as const,
-  currentCanonicalObjectType: 'PUBLICATION' as const,
-  proposedNamespace: '/publications',
-  proposedKinds: [
+  state: 'CANONICAL_NAMESPACE_ACTIVE' as const,
+  namespaceContract: SFI_CANONICAL_NAMESPACE_CONTRACT,
+  canonicalObjectType: 'PUBLICATION' as const,
+  canonicalNamespace: canonicalNamespaceFor('PUBLICATION'),
+  editorialKinds: [
     'BOOK',
     'TEMPORAL_NOTE',
     'FOUNDER_LETTER',
@@ -152,7 +158,8 @@ export const SFI_PUBLICATION_MESH = Object.freeze({
     'PUBLIC_SIGNAL_BRIEF',
     'INSTITUTIONAL_ESSAY',
   ],
-  boundary: 'Publication kind/series/issue are editorial dimensions. They must not create dozens of canonical object types or silently rewrite existing canonical URLs.',
+  legacyRedirectPolicy: 'NO_SYNTHETIC_REDIRECT_WITHOUT_OBSERVED_LEGACY_CANONICAL_OBJECT' as const,
+  boundary: 'Publication kind/series/issue are editorial dimensions. They do not create new canonical object types. REPORT and PAPER remain under /research; PUBLICATION consumes the single canonical namespace owner.',
 });
 
 type Row = Record<string, unknown>;
