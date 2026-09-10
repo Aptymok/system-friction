@@ -1,5 +1,6 @@
 import { SFI_PUBLIC_PROFILE } from '../public/institutionProfile';
-import { getSfiLibraryDocuments, type SfiLibraryDocument } from '../sfi/library';
+import { getSfiLibraryDocuments } from '../sfi/library/manifest';
+import type { SfiLibraryDocument } from '../sfi/library/types';
 import {
   SFI_CANONICAL_OBJECT_CONTRACT,
   canonicalObjectKey,
