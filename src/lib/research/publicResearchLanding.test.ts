@@ -56,7 +56,7 @@ function fixture(objectType: SfiCanonicalObjectType, slug: string): SfiCanonical
   };
 }
 
-test('PUBLICATION resolves only through /publications canonical landing', () => {
+test('PUBLICATION resolves only through /publications canonical landing with canonical semantic JSON-LD', () => {
   const record = fixture('PUBLICATION', 'fixture-publication');
   const landing = publicResearchLandingForSlug('PUBLICATION', record.slug, [record]);
   assert.ok(landing);
@@ -64,16 +64,22 @@ test('PUBLICATION resolves only through /publications canonical landing', () => 
   assert.equal(landing?.canonicalNamespace, '/publications');
   assert.equal(landing?.canonicalUrl, 'https://systemfriction.org/publications/fixture-publication');
   assert.equal(landing?.node.objectType, 'PUBLICATION');
+  assert.equal(landing?.jsonLd['@type'], 'CreativeWork');
+  assert.equal(landing?.jsonLd['@id'], record.canonicalUrl);
+  assert.equal(landing?.jsonLd.identifier, record.id);
   assert.equal(publicResearchLandingForSlug('RESEARCH', record.slug, [record]), null);
 });
 
 test('REPORT and PAPER resolve through /research without crossing into publications', () => {
+  const schemaTypes = { REPORT: 'Report', PAPER: 'ScholarlyArticle' } as const;
   for (const objectType of ['REPORT', 'PAPER'] as const) {
     const record = fixture(objectType, `fixture-${objectType.toLowerCase()}`);
     const landing = publicResearchLandingForSlug('RESEARCH', record.slug, [record]);
     assert.ok(landing, objectType);
     assert.equal(landing?.canonicalNamespace, '/research', objectType);
     assert.equal(landing?.node.objectType, objectType, objectType);
+    assert.equal(landing?.jsonLd['@type'], schemaTypes[objectType], objectType);
+    assert.equal(landing?.jsonLd['@id'], record.canonicalUrl, objectType);
     assert.equal(publicResearchLandingForSlug('PUBLICATION', record.slug, [record]), null, objectType);
   }
 });
@@ -102,7 +108,7 @@ test('invalid slug and absent object return not found without inference', () => 
   assert.equal(publicResearchLandingForSlug('PUBLICATION', 'not-observed', []), null);
 });
 
-test('landing preserves citation and epistemic boundaries from the research graph', () => {
+test('landing preserves citation, semantic identity and epistemic boundaries from canonical owners', () => {
   const record = fixture('PUBLICATION', 'citation-lineage');
   record.methods = ['MIHM'];
   record.limitations = ['Fixture limitation.'];
@@ -111,10 +117,13 @@ test('landing preserves citation and epistemic boundaries from the research grap
   assert.deepEqual(landing?.citation.sourceRefs, record.sourceRefs);
   assert.deepEqual(landing?.citation.limitations, record.limitations);
   assert.deepEqual(landing?.node.methods, ['MIHM']);
+  assert.equal(landing?.jsonLd.url, record.canonicalUrl);
+  assert.deepEqual(landing?.jsonLd.author, record.authors);
   assert.deepEqual(landing?.boundary, {
     landingIsProjectionNotCanon: true,
     landingDoesNotCreatePublicationState: true,
     landingDoesNotCreateEvidence: true,
+    semanticIdentityReusesDiscoveryOwner: true,
     missingObjectReturnsNotFound: true,
     invalidCanonicalRegistryFailsClosed: true,
   });
