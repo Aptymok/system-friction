@@ -164,7 +164,7 @@ export async function runOperationalAutoAdvance(input: { limit?: number } = {}) 
     results.push(await advanceOne(row).catch((error) => ({
       ok: false as const,
       stage: 'exception',
-      proposalId: stringValue(row.id) ?? null,
+      proposalId: stringValue(row.id) ?? 'unknown',
       error: error instanceof Error ? error.message : String(error),
     })));
   }
