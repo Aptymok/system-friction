@@ -64,8 +64,10 @@ for (const item of certification.requirements) {
     assert.equal(fs.existsSync(path.join(root, proofPath)), true, `proof file missing: ${proofPath}`);
     const support = item.semanticSupport.find((entry) => entry.path === proofPath);
     assert.ok(support?.supported, `semantic proof linkage required: ${item.id}:${proofPath}`);
-    assert.ok((support.matchedIdentifiers?.length || 0) >= 1 || (support.matchedTerms?.length || 0) >= 2,
-      `semantic evidence threshold not met: ${item.id}:${proofPath}`);
+    const idCount = support.matchedIdentifiers?.length || 0;
+    const termCount = support.matchedTerms?.length || 0;
+    assert.ok(idCount >= 2 || (idCount >= 1 && termCount >= 2) || termCount >= 3,
+      `tight semantic evidence threshold not met: ${item.id}:${proofPath}`);
   }
 }
 
