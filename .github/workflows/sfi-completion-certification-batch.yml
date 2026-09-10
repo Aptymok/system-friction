@@ -86,6 +86,9 @@ jobs:
 
       - name: Reconcile existing SFI-08 receipts without suppressing invalidation
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           set +e
           node scripts/sfi-program-completion-reconcile.mjs
