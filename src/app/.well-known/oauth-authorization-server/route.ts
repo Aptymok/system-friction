@@ -2,13 +2,12 @@ import { SFI_ROOT_SCOPES } from '@/lib/sfi/oauthConfig';
 
 export const dynamic = 'force-dynamic';
 
-const ISSUER = 'https://www.systemfriction.org';
-
-export async function GET() {
+export async function GET(request: Request) {
+  const issuer = new URL(request.url).origin;
   return Response.json({
-    issuer: ISSUER,
-    authorization_endpoint: `${ISSUER}/api/oauth/authorize`,
-    token_endpoint: `${ISSUER}/api/oauth/token`,
+    issuer,
+    authorization_endpoint: `${issuer}/api/oauth/authorize`,
+    token_endpoint: `${issuer}/api/oauth/token`,
     response_types_supported: ['code'],
     grant_types_supported: ['authorization_code'],
     token_endpoint_auth_methods_supported: ['client_secret_basic', 'client_secret_post'],
