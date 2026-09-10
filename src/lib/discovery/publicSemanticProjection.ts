@@ -20,13 +20,13 @@ export const SFI_PUBLIC_SEMANTIC_OBJECT_TYPES = [
   'INSTRUMENT',
   'REPORT',
   'PAPER',
-  'PUBLICATION',
   'SOFTWARE',
   'RELEASE',
   'RETURN',
 ] as const satisfies readonly SfiCanonicalObjectType[];
 
 export type SfiPublicSemanticObjectType = (typeof SFI_PUBLIC_SEMANTIC_OBJECT_TYPES)[number];
+export type SfiPublicSemanticJsonLdObjectType = SfiPublicSemanticObjectType | 'PUBLICATION';
 export type SfiPublicSemanticSchemaType =
   | 'DefinedTerm'
   | 'CreativeWork'
@@ -92,7 +92,7 @@ export interface SfiEvidenceCapsule {
   origin: SfiEvidenceCapsuleOrigin;
 }
 
-const JSON_LD_TYPE_BY_OBJECT: Record<SfiPublicSemanticObjectType, SfiPublicSemanticSchemaType> = {
+const JSON_LD_TYPE_BY_OBJECT: Record<SfiPublicSemanticJsonLdObjectType, SfiPublicSemanticSchemaType> = {
   CONCEPT: 'DefinedTerm',
   METHOD: 'CreativeWork',
   INSTRUMENT: 'CreativeWork',
@@ -120,12 +120,16 @@ function isPublicSemanticObjectType(value: SfiCanonicalObjectType): value is Sfi
   return (SFI_PUBLIC_SEMANTIC_OBJECT_TYPES as readonly SfiCanonicalObjectType[]).includes(value);
 }
 
+function isPublicSemanticJsonLdObjectType(value: SfiCanonicalObjectType): value is SfiPublicSemanticJsonLdObjectType {
+  return value === 'PUBLICATION' || isPublicSemanticObjectType(value);
+}
+
 function cloneMissing(entries: readonly SfiCanonicalMissingField[]): SfiCanonicalMissingField[] {
   return entries.map((entry) => ({ ...entry }));
 }
 
 export function publicSemanticJsonLdForCanonicalObject(record: SfiCanonicalObjectRecord): SfiPublicSemanticJsonLd | null {
-  if (!isPublicSemanticObjectType(record.objectType)) return null;
+  if (!isPublicSemanticJsonLdObjectType(record.objectType)) return null;
   const projection = publicProjectionForCanonicalObject(record);
   if (!projection) return null;
 
