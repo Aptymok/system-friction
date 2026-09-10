@@ -50,6 +50,9 @@ jobs:
         run: node scripts/qa-sfi-program-completion-receipts.mjs
 
       - name: Reconcile evidence-backed SATISFIED receipts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: node scripts/sfi-program-completion-reconcile.mjs
 
       - name: Enrich non-authoritative sequencing diagnostics
