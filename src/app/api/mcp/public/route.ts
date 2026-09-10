@@ -43,7 +43,7 @@ function errorResponse(
   message: string,
   data: Record<string, unknown>,
   status: number,
-  protocolVersion = SFI_PUBLIC_MCP_PROTOCOL_VERSION,
+  protocolVersion: string = SFI_PUBLIC_MCP_PROTOCOL_VERSION,
 ) {
   return Response.json({
     jsonrpc: '2.0',
@@ -72,17 +72,6 @@ function legacyInitialize(payload: unknown) {
       instructions: 'Public authoritative reads only. Missing and unavailable states remain explicit. This endpoint does not mutate institutional state.',
     },
   }, { status: 200, headers: responseHeaders(protocolVersion) });
-}
-
-export async function GET() {
-  return new Response(null, {
-    status: 405,
-    headers: {
-      Allow: 'POST',
-      'Cache-Control': 'no-store',
-      'X-SFI-MCP-Server': SFI_PUBLIC_MCP_SERVER_ID,
-    },
-  });
 }
 
 export async function POST(request: Request) {
