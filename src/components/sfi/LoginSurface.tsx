@@ -73,8 +73,9 @@ export function LoginSurface() {
         <input name="password" type="password" placeholder="contraseña" autoComplete="current-password" required />
         <button disabled={busy}>{busy ? 'VERIFICANDO…' : 'ENTRAR'}</button>
         {error && <small>{error}</small>}
+        <small><a href="/forgot">¿Olvidaste tu contraseña? Restablece el acceso por correo.</a></small>
         <small>
-          Juan Antonio Marín Liera · Founder — acceso ROOT soberano. Edwing Peredo Guadarrama · Director de Dominio — SFI Studio — acceso institucional a Studio y observación ROOT; las acciones soberanas permanecen reservadas al Founder.
+          Las cuentas invitadas definen su propia contraseña. Una cuenta de acceso no concede por sí sola autoridad ROOT ni capacidad para modificar el canon institucional.
         </small>
         <small><a href="/field">FIELD es público y no requiere iniciar sesión.</a></small>
       </form>
