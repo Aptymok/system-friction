@@ -1,0 +1,51 @@
+name: SFI Account Invitation Lifecycle
+
+on:
+  pull_request:
+    paths:
+      - 'src/lib/auth/**'
+      - 'src/lib/system/access/server.ts'
+      - 'src/app/root/access/**'
+      - 'src/app/forgot/**'
+      - 'src/app/reset/**'
+      - 'src/app/api/account/**'
+      - 'src/components/sfi/LoginSurface.tsx'
+      - 'src/components/sfi/PasswordResetSurface.tsx'
+      - 'supabase/migrations/20260911013000_sfi_account_access_grants.sql'
+      - 'scripts/qa-sfi-account-invitation.ts'
+      - '.github/workflows/sfi-account-invitation.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/lib/auth/**'
+      - 'src/lib/system/access/server.ts'
+      - 'src/app/root/access/**'
+      - 'src/app/forgot/**'
+      - 'src/app/reset/**'
+      - 'src/app/api/account/**'
+      - 'src/components/sfi/LoginSurface.tsx'
+      - 'src/components/sfi/PasswordResetSurface.tsx'
+      - 'supabase/migrations/20260911013000_sfi_account_access_grants.sql'
+      - 'scripts/qa-sfi-account-invitation.ts'
+      - '.github/workflows/sfi-account-invitation.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Verify invitation and authority boundaries
+        run: npx tsx scripts/qa-sfi-account-invitation.ts
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Production build
+        run: npm run build

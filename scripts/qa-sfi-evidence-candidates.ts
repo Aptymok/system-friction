@@ -10,6 +10,8 @@ const acceptRoute = read('src/app/api/sfi/proposals/[id]/evidence-candidates/[ca
 const rejectRoute = read('src/app/api/sfi/proposals/[id]/evidence-candidates/[candidateId]/reject/route.ts');
 const externalRoute = read('src/app/api/external/v1/evidence-candidates/route.ts');
 const manifest = read('src/app/api/external/v1/manifest/route.ts');
+const passportRegistry = read('src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.ts');
+const passportRegistryTest = read('src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts');
 const openapi = JSON.parse(read('public/openapi.json')) as Record<string, any>;
 const reviewPage = read('src/app/root/evidence-review/page.tsx');
 const reviewConsole = read('src/components/sfi/RootEvidenceCandidateLane.tsx');
@@ -36,6 +38,16 @@ for (const source of ['ENOE', 'DENUE', 'EMEC', 'INPC']) assert.ok(workflow.inclu
 for (const state of ['MISSING', 'CANDIDATE', 'ACCEPTED']) assert.ok(workflow.includes(`'${state}'`), `evidence slot state missing: ${state}`);
 assert.match(workflow, /usable === slots\.length/, 'all traceable working-source slots must be able to satisfy operational readiness');
 assert.match(workflow, /expected_field_delta->payload->>parentProposalId/, 'evidence candidate lookup must scope by parent');
+
+// Passport confirmation requirements remain source-derived. The new sovereign-only
+// human-gate policy removes routine duplicate approvals, but it must never let a
+// generated passport weaken a source capability that genuinely requires HUMAN.
+assert.match(passportRegistry, /validateCognitivePassportAgainstSource/, 'passport validation must remain source-bound');
+assert.match(passportRegistry, /humanApprovalRequired/, 'source human approval requirement must remain represented');
+assert.match(passportRegistry, /CONFIRMATION_REQUIREMENT_MISMATCH/, 'weakened confirmation must fail deterministically');
+assert.match(passportRegistryTest, /validateCognitivePassportAgainstSource/, 'passport confirmation boundary must be directly tested');
+assert.match(passportRegistryTest, /humanApprovalRequired/, 'passport test must exercise a source requiring human approval');
+assert.match(passportRegistryTest, /CONFIRMATION_REQUIREMENT_MISMATCH/, 'passport test must verify deterministic confirmation mismatch output');
 
 assert.match(candidateRoute, /action === 'search'/, 'candidate route must support governed search/retry');
 assert.match(candidateRoute, /action === 'add_url'/, 'candidate route must support manual URL staging');
@@ -78,6 +90,7 @@ console.log(JSON.stringify({
     evidenceSlotsVisible: true,
     sourceReviewHumanApprovalRequired: false,
     canonicalEvidenceAdmissionStillRootOnly: true,
+    passportHumanConfirmationCannotBeWeakened: true,
     manualUrlReferenceOnly: true,
     externalAgentCanRegisterWorkingSource: true,
     externalAgentCanPromoteCanon: false,
