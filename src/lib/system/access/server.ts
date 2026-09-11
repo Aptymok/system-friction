@@ -225,9 +225,10 @@ export async function requireUserProfile() {
 export async function requireSfiMember() {
   const context = await requireUserProfile();
   const role = String(context.profile.role || '').toLowerCase();
-  const institutional = Boolean(context.member) || role === 'root' || role === 'system';
+  const access = record(context.profile.module_access);
+  const institutional = Boolean(context.member) || role === 'root' || role === 'system' || access.institutional_account === true;
   if (!institutional) {
-    throw new AccessDeniedError(403, 'SFI_MEMBER_REQUIRED', 'An active SFI institutional membership is required.');
+    throw new AccessDeniedError(403, 'SFI_MEMBER_REQUIRED', 'An active SFI institutional membership or governed institutional account access grant is required.');
   }
   return context;
 }
