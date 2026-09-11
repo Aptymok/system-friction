@@ -2,8 +2,9 @@ import { SFI_ROOT_SCOPES } from '@/lib/sfi/oauthConfig';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: Request) {
-  const issuer = new URL(request.url).origin;
+const issuer = 'https://system-friction.vercel.app';
+
+export async function GET() {
   return Response.json({
     issuer,
     authorization_endpoint: `${issuer}/api/oauth/authorize`,
