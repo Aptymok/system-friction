@@ -58,6 +58,19 @@ if (evidencePost) {
 }
 
 api['x-sfi-governance'] ||= {};
+api['x-sfi-governance'].evidenceCandidateFlow = [
+  'request_evidence',
+  'search/manual/external candidate',
+  'classify and use as a working source without ROOT approval',
+  'canonical evidence admission only when an explicit governed promotion boundary is crossed',
+];
+api['x-sfi-governance'].rootReserved = [
+  'institutional change',
+  'capability implementation or authority expansion',
+  'learning or canonical promotion',
+  'reserved external or irreversible operation',
+  'preserve-evidence exception',
+];
 api['x-sfi-governance'].caseExecution = {
   contract: 'SFI-CASE-EXECUTION-POLICY-1.0',
   defaultMode: 'AUTONOMOUS_UNTIL_SOVEREIGN_BOUNDARY',
@@ -85,9 +98,10 @@ api['x-sfi-governance'].humanInteraction = {
 fs.writeFileSync(openapiPath, `${JSON.stringify(api, null, 2)}\n`);
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-SOVEREIGN-ONLY-HUMAN-GATES-1.0',
+  contract: 'SFI-SOVEREIGN-ONLY-HUMAN-GATES-1.1',
   duplicateExecutionConfirmationRemoved: true,
   duplicateLabConfirmationRemoved: true,
   evidenceSourceApprovalRequired: false,
+  workingSourceRootApprovalRemoved: true,
   canonicalPromotionAutomatic: false,
 }, null, 2));
