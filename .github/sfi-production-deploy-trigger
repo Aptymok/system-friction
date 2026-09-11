@@ -1,9 +1,11 @@
 SFI-00 CONTROLLED PRODUCTION RELEASE
 requested_at=2026-09-11
-release_reason=Deploy corrected canonical GPT Actions projection with systemfriction.org OAuth/server identity, autonomous working-source use without routine ROOT approval, governed account invitation/password recovery, permissions, and current operational SFI capabilities.
-source_main=918cf00f768244874665e72b7619be55d93b4fe0
-release_basis=sfi_verify_pass+sovereign_gate_regression_guard+accounts_permissions_integrated+audio_material_execution_pass
+release_reason=Restore ChatGPT SFI OAuth connectivity with one stable OAuth issuer on system-friction.vercel.app while keeping the institutional API and GPT Actions server on systemfriction.org.
+source_main=e440d08fc661941bf824e269c591206329e4fb27
+release_basis=oauth_boundaries_pass+host_bound_openapi_pass+integrations_pass+typecheck_pass+production_build_pass
 openapi_materialization=vercel_build_prod
-account_database_migration=sfi_account_access_grants_applied
+oauth_issuer=https://system-friction.vercel.app
+api_origin=https://systemfriction.org
+client_secret_rotation=preserve_current_rotated_secret
 cost_gate=single_bounded_release
-post_release_tests=openapi_actions+canonical_origin+autonomy_boundary+oauth
+post_release_tests=openapi_actions+oauth_metadata+authorization_code_consumption
