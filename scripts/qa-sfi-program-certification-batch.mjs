@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 
-const SFI_COMPLETION_CERTIFICATION_BATCH_CONTRACT = 'SFI-SFI08-COMPLETION-CERTIFICATION-BATCH-1.1';
+const SFI_COMPLETION_CERTIFICATION_BATCH_CONTRACT = 'SFI-SFI08-COMPLETION-CERTIFICATION-BATCH-1.2';
 const GLOBAL_REGRESSION_SCOPE = [
   'src/**',
   'scripts/**',
@@ -43,9 +43,11 @@ assert.equal(certification.selectedCount, certification.requirements.length);
 assert.equal(certification.failedProofCount, 0);
 assert.equal(certification.returnState, 'RETURN_PASS');
 assert.deepEqual(certification.canonicalCountsBefore, report.counts);
+assert.equal(certification.invalidReceiptEligibleCount >= certification.selectedInvalidReceiptCount, true);
 
 const requirementById = new Map((report.requirements || []).map((item) => [item.id, item]));
 const seen = new Set();
+let seenAbsent = false;
 for (const item of certification.requirements) {
   assert.equal(seen.has(item.id), false, `duplicate certification id: ${item.id}`);
   seen.add(item.id);
@@ -53,7 +55,10 @@ for (const item of certification.requirements) {
   assert.ok(source, `unknown completion requirement: ${item.id}`);
   assert.equal(source.status, item.canonicalStatus, `canonical status mutated: ${item.id}`);
   assert.equal(source.diagnostic?.state, 'IMPLEMENTATION_EVIDENCE_PRESENT_UNCERTIFIED');
-  assert.equal(source.completionReceipt?.state, 'ABSENT');
+  assert.ok(['ABSENT', 'INVALID'].includes(source.completionReceipt?.state), `unsupported prior receipt state: ${item.id}`);
+  assert.equal(item.previousReceiptState, source.completionReceipt.state);
+  if (item.previousReceiptState === 'ABSENT') seenAbsent = true;
+  if (seenAbsent) assert.notEqual(item.previousReceiptState, 'INVALID', `invalid receipts must be prioritized before absent receipts: ${item.id}`);
   assert.equal(item.diagnosticState, source.diagnostic.state);
   assert.ok(Array.isArray(item.proofPaths) && item.proofPaths.length > 0, `proof path required: ${item.id}`);
   assert.equal(item.proofPass, true, `proof must pass: ${item.id}`);
@@ -73,6 +78,7 @@ for (const item of certification.requirements) {
 
 for (const rejected of certification.rejectedSemanticLinks || []) {
   assert.ok(Array.isArray(rejected.declaredProofs) && rejected.declaredProofs.length > 0);
+  assert.ok(['ABSENT', 'INVALID'].includes(rejected.previousReceiptState));
   assert.ok((rejected.support || []).every((entry) => entry.supported === false), `rejected item contains supported proof: ${rejected.id}`);
 }
 
@@ -87,9 +93,10 @@ assert.ok(!certification.requirements.some((item) => item.diagnosticState === 'E
 
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-SFI08-COMPLETION-CERTIFICATION-BATCH-QA-1.1',
+  contract: 'SFI-SFI08-COMPLETION-CERTIFICATION-BATCH-QA-1.2',
   head: actualHead,
   selectedCount: certification.selectedCount,
+  selectedInvalidReceiptCount: certification.selectedInvalidReceiptCount,
   semanticRejectedCount: certification.semanticRejectedCount,
   proofExecutionCount: certification.proofExecutions.length,
   canonicalStatusMutation: false,

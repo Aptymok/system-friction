@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { runOperationalAutoAdvance } from '@/lib/continuity/operationalAutoAdvance';
 import { runGovernedExecutionRouter } from '@/lib/execution/governedExecutionRouter';
 import { requireGovernedActor } from '@/lib/operational/common';
 import { buildSfiWorldInterfaceState } from '@/lib/sfi/worldInterfaceState';
@@ -60,6 +61,7 @@ export async function runRootObservationJob(job: RootObservationJob) {
     result.daily = await runDailyObservationAgent({ persist: true });
     result.indicators = await persistInstitutionalIndicatorSnapshot();
     result.institutional_cycle = await runInstitutionalCycle('root_manual_observation');
+    result.operational_auto_advance = await runOperationalAutoAdvance({ limit: 10 });
     result.governed_execution = await runGovernedExecutionRouter({ limit: 10 });
   }
 

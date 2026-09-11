@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { classifyGovernedProposalWork, SFI_GOVERNED_EXECUTION_ADAPTERS } from '@/lib/execution/governedExecutionRouter';
+import { classifyProposalDecisionBoundary } from '@/lib/governance/rootDecisionBoundary';
 import { normalizeProposalState } from '@/lib/governance/proposalLifecycle';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 
@@ -68,10 +69,10 @@ function queuedState(value: Row) {
     : null;
   const materialMissing = classification.executionClass === 'EXTERNAL_ACTION' && !adapter;
   return {
-    owner: materialMissing ? 'ROOT_OR_AUTHORIZED_CONTROLLER' : 'project_execution_manager',
-    nextExpectedEvent: materialMissing ? 'EXECUTION_CAPABILITY_REMEDIATED' : 'SFI_PROPOSAL_RETURN_RECORDED',
+    owner: materialMissing ? 'capability_broker' : 'project_execution_manager',
+    nextExpectedEvent: materialMissing ? 'EXECUTION_CAPABILITY_REMEDIATED_OR_SEPARATE_CAPABILITY_CHANGE_PROPOSED' : 'SFI_PROPOSAL_RETURN_RECORDED',
     blocker: materialMissing ? `MISSING_EXECUTION_ADAPTER:${classification.adapterId ?? 'undeclared'}` : null,
-    rootActionRequired: materialMissing,
+    rootActionRequired: false,
     executionClass: classification.executionClass,
     adapterId: classification.adapterId,
   };
@@ -83,10 +84,13 @@ function proposalState(value: Row, children: Row[], staleAfterHours: number) {
   const risk = text(value.risk_level)?.toLowerCase() ?? 'unknown';
   const age = ageHours(value.updated_at ?? value.approved_at ?? value.created_at);
   const stale = age !== null && age >= staleAfterHours;
+  const decisionClass = classifyProposalDecisionBoundary(value);
+  const sovereign = decisionClass !== 'OPERATIONAL_WORK';
   const base = {
     id,
     title: text(value.title) ?? proposalType(value),
     proposalType: proposalType(value),
+    decisionClass,
     status,
     riskLevel: risk,
     ageHours: age,
@@ -94,31 +98,59 @@ function proposalState(value: Row, children: Row[], staleAfterHours: number) {
   };
 
   if (status === 'proposed') {
-    if (risk === 'unknown') return { ...base, owner: 'risk_agent', nextExpectedEvent: 'SFI_RISK_DECLARED', blocker: null, rootActionRequired: false, actionLabel: 'SFI evalúa riesgo automáticamente' };
-    if (risk === 'unassessable' || risk === 'missing_input_for_risk') return { ...base, owner: 'ROOT', nextExpectedEvent: 'RISK_INPUT_SUPPLIED_OR_PROPOSAL_REJECTED', blocker: 'MISSING_INPUT_FOR_RISK', rootActionRequired: true, actionLabel: 'Completar input o rechazar' };
-    return { ...base, owner: 'ROOT_OR_AUTHORIZED_CONTROLLER', nextExpectedEvent: 'ROOT_ACCEPT_OR_REJECT_OR_REQUEST_EVIDENCE', blocker: null, rootActionRequired: true, actionLabel: 'Decidir' };
+    if (risk === 'unknown') return { ...base, owner: 'risk_agent', nextExpectedEvent: 'SFI_RISK_DECLARED', blocker: null, rootActionRequired: false, actionLabel: 'SFI evalúa riesgo; no requiere decisión humana todavía' };
+    if (risk === 'unassessable' || risk === 'missing_input_for_risk') return {
+      ...base,
+      owner: 'risk_agent',
+      nextExpectedEvent: 'RISK_INPUT_ACQUIRED_OR_LIMITATION_RECORDED',
+      blocker: 'MISSING_INPUT_FOR_RISK',
+      rootActionRequired: false,
+      actionLabel: 'Falta información para evaluar riesgo; SFI la busca o declara la limitación',
+    };
+    if (!sovereign) return {
+      ...base,
+      owner: 'project_execution_manager',
+      nextExpectedEvent: 'OPERATIONAL_WORK_ROUTED_OR_EXECUTED',
+      blocker: null,
+      rootActionRequired: false,
+      actionLabel: 'Ninguna · SFI continúa dentro de la autoridad existente',
+    };
+    return {
+      ...base,
+      owner: 'ROOT',
+      nextExpectedEvent: 'ROOT_ACCEPT_OR_DENY_OR_REQUIRE_MORE_EVIDENCE',
+      blocker: null,
+      rootActionRequired: true,
+      actionLabel: decisionClass === 'LEARNING_PROMOTION'
+        ? 'Decidir si este aprendizaje se vuelve institucional'
+        : decisionClass === 'CAPABILITY_IMPLEMENTATION'
+          ? 'Decidir si SFI incorpora o cambia esta capacidad'
+          : decisionClass === 'RESERVED_EXTERNAL_OPERATION'
+            ? 'Decidir si SFI ejecuta esta acción externa/material'
+            : 'Decidir este cambio institucional',
+    };
   }
 
   if (status === 'waiting_evidence') {
-    const proposedCandidates = children.filter((candidate) => normalizeProposalState(candidate.status) === 'proposed');
+    const workingCandidates = children.filter((candidate) => normalizeProposalState(candidate.status) === 'proposed');
     const acceptedCandidates = children.filter((candidate) => normalizeProposalState(candidate.status) === 'accepted');
-    if (proposedCandidates.length) return {
+    if (workingCandidates.length) return {
       ...base,
-      owner: 'ROOT',
-      nextExpectedEvent: 'ROOT_EVIDENCE_DECISION',
+      owner: 'evidence_assessment',
+      nextExpectedEvent: sovereign ? 'EVIDENCE_CLASSIFIED_THEN_SOVEREIGN_DECISION' : 'EVIDENCE_CLASSIFIED_THEN_OPERATIONAL_CONTINUATION',
       blocker: null,
-      rootActionRequired: true,
-      actionLabel: `Revisar ${proposedCandidates.length} evidencia${proposedCandidates.length === 1 ? '' : 's'} candidata${proposedCandidates.length === 1 ? '' : 's'}`,
-      evidenceReadiness: { state: 'REVIEW_REQUIRED', candidateCount: proposedCandidates.length, exhaustive: false },
+      rootActionRequired: false,
+      actionLabel: `Ninguna · SFI clasifica ${workingCandidates.length} fuente${workingCandidates.length === 1 ? '' : 's'} de trabajo`,
+      evidenceReadiness: { state: 'WORKING_SOURCES_AVAILABLE', candidateCount: workingCandidates.length, exhaustive: false },
     };
     if (acceptedCandidates.length) return {
       ...base,
-      owner: 'transition_watchdog',
-      nextExpectedEvent: 'EVIDENCE_READINESS_RECONCILIATION',
-      blocker: stale ? 'WAITING_EVIDENCE_RECONCILIATION_STALE' : null,
-      rootActionRequired: false,
-      actionLabel: 'Ninguna · SFI reconcilia evidencia ya aceptada',
-      evidenceReadiness: { state: 'PARTIALLY_OBSERVED_ACCEPTED_CANDIDATE', candidateCount: acceptedCandidates.length, exhaustive: false },
+      owner: sovereign ? 'ROOT' : 'transition_watchdog',
+      nextExpectedEvent: sovereign ? 'ROOT_ACCEPT_OR_DENY_OR_REQUIRE_MORE_EVIDENCE' : 'OPERATIONAL_WORK_ROUTED_OR_EXECUTED',
+      blocker: null,
+      rootActionRequired: sovereign,
+      actionLabel: sovereign ? 'Evidencia disponible · decidir únicamente la acción soberana' : 'Ninguna · SFI continúa',
+      evidenceReadiness: { state: 'ACCEPTED_EVIDENCE_AVAILABLE', candidateCount: acceptedCandidates.length, exhaustive: false },
     };
     return {
       ...base,
@@ -126,23 +158,23 @@ function proposalState(value: Row, children: Row[], staleAfterHours: number) {
       nextExpectedEvent: 'EVIDENCE_CANDIDATE_ACQUIRED',
       blocker: stale ? 'WAITING_EVIDENCE_STALE' : null,
       rootActionRequired: false,
-      actionLabel: 'Ninguna · SFI busca',
+      actionLabel: 'Ninguna · SFI busca fuentes',
       evidenceReadiness: { state: 'NOT_HYDRATED_IN_OVERVIEW', candidateCount: 0, exhaustive: false },
     };
   }
 
   if (status === 'design_approved') return {
     ...base,
-    owner: 'project_execution_manager',
-    nextExpectedEvent: 'QUEUED',
+    owner: stale ? 'transition_watchdog' : 'project_execution_manager',
+    nextExpectedEvent: stale ? 'LEGACY_APPROVAL_RECONCILED' : 'QUEUED',
     blocker: stale ? 'LEGACY_APPROVED_NOT_QUEUED' : null,
-    rootActionRequired: stale,
-    actionLabel: stale ? 'Reconciliar autorización legacy' : 'Ninguna · auto-route esperado',
+    rootActionRequired: false,
+    actionLabel: stale ? 'SFI reconcilia una autorización antigua' : 'Ninguna · SFI enruta el trabajo',
   };
 
   if (status === 'queued') {
     const queued = queuedState(value);
-    return { ...base, ...queued, actionLabel: queued.rootActionRequired ? 'Autorizar/remediar capacidad faltante' : 'Ninguna · executor trabaja' };
+    return { ...base, ...queued, actionLabel: queued.blocker ? 'SFI remedia la capacidad faltante o genera una propuesta separada si debe ampliar capacidad' : 'Ninguna · el ejecutor trabaja' };
   }
 
   if (status === 'accepted') {
@@ -153,7 +185,7 @@ function proposalState(value: Row, children: Row[], staleAfterHours: number) {
       nextExpectedEvent: 'RETURN_RECONCILIATION',
       blocker: 'LEGACY_ACCEPTED_WITHOUT_OBSERVED_RETURN',
       rootActionRequired: false,
-      actionLabel: 'Ninguna inicialmente · reconciliación automática/diagnóstico',
+      actionLabel: 'SFI reconcilia el resultado; no requiere cierre humano',
     };
     if (outcome.calibrationState === 'PENDING_REALITY_CALIBRATION') return {
       ...base,
@@ -161,15 +193,15 @@ function proposalState(value: Row, children: Row[], staleAfterHours: number) {
       nextExpectedEvent: 'SFI_REALITY_CALIBRATED',
       blocker: null,
       rootActionRequired: false,
-      actionLabel: 'Ninguna · calibración',
+      actionLabel: 'Ninguna · SFI calibra contra lo ocurrido',
     };
     return {
       ...base,
-      owner: 'ROOT',
-      nextExpectedEvent: 'ROOT_CLOSE_OR_CANON_REVIEW',
+      owner: 'sfi_universal_continuation',
+      nextExpectedEvent: 'OPERATIONAL_CLOSURE_OR_SEPARATE_LEARNING_PROMOTION',
       blocker: null,
-      rootActionRequired: true,
-      actionLabel: 'Cerrar o revisar canon por decisión separada',
+      rootActionRequired: false,
+      actionLabel: 'SFI cierra el trabajo; si hay aprendizaje institucional, aparece como una decisión separada',
     };
   }
 
@@ -204,13 +236,13 @@ function cycleState(cycleId: string, events: Row[], staleAfterHours: number) {
   const denial = latest(events, 'SFI_UNIVERSAL_REPORT_DENIED_BY_USER');
   if (recommendation && sequence(recommendation) > sequence(denial)) return {
     ...base,
-    state: 'AWAITING_USER_CLOSE',
+    state: 'READY_TO_CLOSE',
     stale: false,
-    owner: 'ROOT',
-    nextExpectedEvent: 'ROOT_ACCEPT_OR_DENY_UNIVERSAL_REPORT',
+    owner: 'sfi_universal_closure_assessor',
+    nextExpectedEvent: 'SFI_UNIVERSAL_CYCLE_CLOSED_OR_CONTINUED',
     blocker: null,
-    rootActionRequired: true,
-    actionLabel: 'Revisar reporte y decidir cierre',
+    rootActionRequired: false,
+    actionLabel: 'Ninguna · el cierre metodológico es trabajo operativo; canon permanece separado',
   };
 
   const contrast = latest(events, 'SFI_UNIVERSAL_RETURN_CONTRASTED');
@@ -234,7 +266,7 @@ function cycleState(cycleId: string, events: Row[], staleAfterHours: number) {
     nextExpectedEvent: 'SFI_UNIVERSAL_RETURN_CONTRASTED',
     blocker: null,
     rootActionRequired: false,
-    actionLabel: 'Ninguna · SFI contrasta RETURN',
+    actionLabel: 'Ninguna · SFI contrasta el resultado',
   };
 
   const completedRuns = events.filter((event) => text(event.event_name) === 'SFI_UNIVERSAL_COGNITIVE_CYCLE_EXECUTED' && payload(event).completed === true);
@@ -290,13 +322,13 @@ function cycleState(cycleId: string, events: Row[], staleAfterHours: number) {
   const plan = row(planBody.plan);
   if (plan.humanInputRequired === true) return {
     ...base,
-    state: 'HUMAN_INPUT_REQUIRED',
+    state: 'HUMAN_INPUT_AVAILABLE_OR_REQUIRED',
     stale: false,
-    owner: 'ROOT',
-    nextExpectedEvent: 'REQUIRED_RETURN_SOURCE_OR_AUTHORIZATION_SUPPLIED',
-    blocker: text(plan.acquisitionState) ?? 'HUMAN_INPUT_REQUIRED',
-    rootActionRequired: true,
-    actionLabel: 'Aportar evidencia o autorización indicada',
+    owner: 'case_user_or_evidence_hunter',
+    nextExpectedEvent: 'REQUIRED_RETURN_SOURCE_OR_INPUT_SUPPLIED_OR_LIMITATION_RECORDED',
+    blocker: text(plan.acquisitionState) ?? 'INPUT_OR_EVIDENCE_MISSING',
+    rootActionRequired: false,
+    actionLabel: 'Falta un dato o fuente · puedes aportarlo; no es una aprobación',
     returnPlan: plan,
   };
   return {
@@ -307,7 +339,7 @@ function cycleState(cycleId: string, events: Row[], staleAfterHours: number) {
     nextExpectedEvent: 'SFI_UNIVERSAL_RETURN_RECORDED',
     blocker: null,
     rootActionRequired: false,
-    actionLabel: 'Ninguna · SFI adquiere RETURN',
+    actionLabel: 'Ninguna · SFI adquiere el resultado',
     returnPlan: plan,
   };
 }
@@ -378,7 +410,7 @@ export async function readInteractiveOperationalNext(staleAfterHours = 24, cycle
 
   return {
     generatedAt: new Date().toISOString(),
-    contract: 'SFI-INTERACTIVE-NEXT-EXPECTED-EVENT-1.0',
+    contract: 'SFI-INTERACTIVE-NEXT-EXPECTED-EVENT-1.1',
     items,
     cycles,
     summary: {
@@ -397,6 +429,6 @@ export async function readInteractiveOperationalNext(staleAfterHours = 24, cycle
       duplicateActionProposalReads: 0,
       nPlusOneReads: 0,
     },
-    rule: 'Interactive overview uses one proposal read and one paged operational event stream. Per-proposal evidence hydration and per-cycle history reconstruction are deferred to explicit dossiers.',
+    rule: 'The human queue contains sovereign decisions only. Evidence review, routine execution, RETURN, calibration and methodological closure remain operational work. This overview uses one proposal read and one paged operational event stream; detailed evidence/cycle reconstruction is deferred to dossiers.',
   };
 }

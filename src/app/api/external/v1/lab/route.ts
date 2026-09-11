@@ -200,20 +200,19 @@ export async function POST(req: Request) {
   }
 
   // Reaching this branch already proves the presented credential carries
-  // `lab:run`. Runtime authority therefore follows the explicit OAuth/static
-  // scope instead of a second hidden role gate.
+  // `lab:run`. That scope is the run authorization. Requiring a second boolean
+  // would make the human approve routine internal experimentation twice.
   const protocolId = body.protocolId === 'sociotechnical_simulation' || body.protocolId === 'economic_simulation' ? body.protocolId : null;
   const evidenceIds = Array.isArray(body.evidenceIds) ? body.evidenceIds.filter((value): value is string => typeof value === 'string' && value.trim().length > 0) : [];
   if (!protocolId || !evidenceIds.length) return NextResponse.json({ ok: false, error: 'protocolId_and_persisted_evidenceIds_required' }, { status: 400 });
-  if (body.confirm !== true) return NextResponse.json({ ok: false, error: 'explicit_runtime_confirmation_required' }, { status: 400 });
 
   const parameters = body.parameters && typeof body.parameters === 'object' && !Array.isArray(body.parameters) ? body.parameters as Record<string, unknown> : {};
   const cognitiveSpineContextRefs = Array.isArray(body.cognitiveSpineContextRefs) ? body.cognitiveSpineContextRefs.filter((value): value is string => typeof value === 'string' && value.trim().length > 0) : [];
 
   try {
     const result = await runMethodLabSimulation({ protocolId, evidenceIds, actorId, parameters: { ...parameters, externalLabBridge: true, credentialLabel: cred.label ?? null }, cognitiveSpineContextRefs });
-    const trace = await appendOperationalEvent({ eventName: 'external.method_lab.runtime.executed', actorId, confidence: 1, payload: { labAnalysisId: result.labAnalysisId, labRunId: result.run.labRunId, resultHash: result.run.resultHash, protocolId, evidenceIds, credentialLabel: cred.label ?? null, delegatedRole: cred.role }, lineage: [result.labAnalysisId, ...evidenceIds] });
-    return NextResponse.json({ ok: true, operation, actor: actorId, result, trace: trace.ok ? trace.data : trace });
+    const trace = await appendOperationalEvent({ eventName: 'external.method_lab.runtime.executed', actorId, confidence: 1, payload: { labAnalysisId: result.labAnalysisId, labRunId: result.run.labRunId, resultHash: result.run.resultHash, protocolId, evidenceIds, credentialLabel: cred.label ?? null, delegatedRole: cred.role, duplicateHumanConfirmationRequired: false }, lineage: [result.labAnalysisId, ...evidenceIds] });
+    return NextResponse.json({ ok: true, operation, actor: actorId, result, trace: trace.ok ? trace.data : trace, authorityBoundary: { labRunScopeRequired: true, duplicateHumanConfirmationRequired: false, canonicalPromotionAllowed: false } });
   } catch (error) {
     return NextResponse.json({ ok: false, error: 'external_method_lab_runtime_failed', details: error instanceof Error ? error.message : String(error) }, { status: 503 });
   }

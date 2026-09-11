@@ -23,8 +23,11 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => ({})) as Record<string, unknown>;
   const proposalId = String(body.proposal_id || '').trim();
   if (!proposalId) return NextResponse.json({ ok: false, error: 'proposal_id_required' }, { status: 400 });
-  if (body.confirm !== true) return NextResponse.json({ ok: false, error: 'explicit_confirmation_required' }, { status: 400 });
 
+  // The execute scope proves this client may invoke the execution plane, while
+  // dispatchQueuedProposal independently requires the proposal to have already
+  // crossed its applicable authority gate. A second boolean confirmation here
+  // would only make the human re-authorize work that is already authorized.
   const actor = externalActor(cred);
   const execution = await dispatchQueuedProposal(proposalId);
 
@@ -40,6 +43,7 @@ export async function POST(req: Request) {
       authorityBoundary: {
         proposalMustAlreadyBeQueued: true,
         executeScopeRequired: true,
+        duplicateHumanConfirmationRequired: false,
         scopeExpansionAllowed: false,
         canonicalPromotionAllowed: false,
       },
@@ -54,6 +58,7 @@ export async function POST(req: Request) {
     authorityBoundary: {
       proposalWasAlreadyQueued: true,
       executeScopeRequired: true,
+      duplicateHumanConfirmationRequired: false,
       scopeExpansionAllowed: false,
       canonicalPromotionAllowed: false,
     },

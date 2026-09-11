@@ -1,7 +1,8 @@
 export const SFI_HUMAN_INTERACTION_POLICY = {
-  contract: 'SFI-HUMAN-INTERACTION-POLICY-1.0',
+  contract: 'SFI-HUMAN-INTERACTION-POLICY-1.1',
   purpose: 'Keep machine precision internally while making governed decisions legible to humans by default.',
   defaultAudience: 'HUMAN',
+  defaultTechnicalAssumption: 'DO_NOT_ASSUME_PROGRAMMING_OR_DATABASE_LITERACY',
   humanFirst: {
     requiredOrder: [
       'WHAT_IS_HAPPENING',
@@ -20,10 +21,14 @@ export const SFI_HUMAN_INTERACTION_POLICY = {
       'internal state-machine identifiers',
       'adapter names',
       'backend implementation jargon',
+      'unexplained acronyms or epistemic labels',
+      'raw identifiers, hashes or machine status names as the primary explanation',
     ],
+    plainLanguageRule: 'Use ordinary language first. If a technical or epistemic term is necessary, translate it immediately into what it means for the person before using the term as shorthand.',
     technicalDetailRule: 'Technical implementation detail is secondary and may be shown only when the human explicitly asks for it or when omission would make a safety/authority decision materially misleading.',
     technicalDisclosureRule: 'Machine-facing detail must remain available for audit and expert inspection through an explicit secondary disclosure, never as the default decision surface.',
     translationRule: 'Every machine state shown to a human must be translated into the decision it represents, the responsible actor, the blocker if any, and the next observable event.',
+    statusRule: 'Prefer statements such as "SFI todavía necesita una fuente", "SFI puede continuar sin ti" or "necesitas decidir si esto se vuelve oficial" over exposing database fields or internal enum names.',
   },
   governance: {
     authorityRule: 'A human cannot exercise meaningful authority over a system state they cannot interpret.',

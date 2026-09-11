@@ -81,9 +81,10 @@ requireText(hourlyWorkflow, 'workflow_dispatch:', 'existing-hourly-manual-trigge
 requireText(rootRunner, 'runGovernedExecutionRouter({ limit: 10 })', 'root-full-cycle-router');
 
 requireText(externalExecute, "authorizeExternalRequest(req, 'execute')", 'external-execute-scope-gate');
-requireText(externalExecute, 'body.confirm !== true', 'external-execute-explicit-confirmation');
+forbid(externalExecute, 'body.confirm !== true', 'external-execute-duplicate-human-confirmation');
 requireText(externalExecute, 'dispatchQueuedProposal(proposalId)', 'external-execute-canonical-dispatcher');
 requireText(externalExecute, 'proposalMustAlreadyBeQueued: true', 'external-execute-governance-boundary');
+requireText(externalExecute, 'duplicateHumanConfirmationRequired: false', 'external-execute-no-duplicate-confirmation-boundary');
 requireText(externalExecute, 'scopeExpansionAllowed: false', 'external-execute-no-scope-expansion');
 requireText(externalExecute, 'canonicalPromotionAllowed: false', 'external-execute-no-auto-canon');
 forbid(externalExecute, ".from('action_proposals').update", 'external-execute-no-direct-proposal-mutation');

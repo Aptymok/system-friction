@@ -125,7 +125,7 @@ async function assessUnknownProposalRisk(row: Row) {
       riskCount: executed.context.risks.length,
       executionAllowed: false,
       canonicalPromotionAllowed: false,
-      nextExpectedEvent: 'GOVERNANCE_REVIEW_OR_EVIDENCE_REQUEST',
+      nextExpectedEvent: 'OPERATIONAL_CONTINUATION_OR_SOVEREIGN_DECISION',
     },
     lineage: [proposalId],
   });
@@ -174,7 +174,7 @@ export async function runOperationalTransitionWatchdog(input: { evidenceLimit?: 
     const acquisition = await searchEvidenceCandidates({
       parentProposalId: proposalId,
       actorId: WATCHDOG_ACTOR,
-      requestNote: 'Continuity watchdog: acquire missing evidence candidates for a waiting_evidence proposal. ROOT must review candidates before persistence.',
+      requestNote: 'Continuity watchdog: acquire missing traceable working sources. SFI may classify and use them for ordinary case analysis without ROOT source approval; canonical admission remains separate.',
     }).catch((error) => ({ ok: false as const, candidates: [], warnings: [error instanceof Error ? error.message : String(error)] }));
     const after = await readEvidenceReadiness(proposalId);
     evidenceJobs.push({ proposalId, action: 'acquire', acquisition, readiness: after.readiness });
@@ -199,7 +199,7 @@ export async function runOperationalTransitionWatchdog(input: { evidenceLimit?: 
     if (status === 'design_approved') return [{ proposalId: row.id, status, ageHours, blocker: 'LEGACY_APPROVED_NOT_QUEUED', owner: 'project_execution_manager', nextExpectedEvent: 'QUEUED' }];
     if (status === 'queued') return [{ proposalId: row.id, status, ageHours, blocker: 'QUEUED_WITHOUT_RETURN', owner: 'project_execution_manager', nextExpectedEvent: 'SFI_PROPOSAL_RETURN_RECORDED' }];
     if (status === 'accepted' && patch.outcomeRecorded !== true && outcome.outcomeRecorded !== true) {
-      return [{ proposalId: row.id, status, ageHours, blocker: 'LEGACY_ACCEPTED_WITHOUT_OBSERVED_RETURN', owner: 'ROOT', nextExpectedEvent: 'RETURN_RECONCILIATION' }];
+      return [{ proposalId: row.id, status, ageHours, blocker: 'LEGACY_ACCEPTED_WITHOUT_OBSERVED_RETURN', owner: 'transition_watchdog', nextExpectedEvent: 'RETURN_RECONCILIATION' }];
     }
     return [];
   });
@@ -211,8 +211,8 @@ export async function runOperationalTransitionWatchdog(input: { evidenceLimit?: 
     riskAssessments,
     stale,
     policy: {
-      automatic: ['evidence_candidate_acquisition', 'risk_assessment', 'queued_execution_retry_elsewhere_in_same_heartbeat'],
-      humanGate: ['evidence_accept_reject', 'proposal_accept_reject', 'external_scope_expansion', 'canonical_promotion'],
+      automatic: ['evidence_candidate_acquisition', 'evidence_classification_for_working_use', 'risk_assessment', 'operational_authorization_and_queue', 'queued_execution_retry_elsewhere_in_same_heartbeat'],
+      humanGate: ['institutional_change', 'material_capability_change', 'learning_promotion', 'reserved_external_operation'],
       nextStateRule: 'Every non-terminal object should expose nextExpectedEvent, owner, blocker and rootActionRequired.',
     },
   };

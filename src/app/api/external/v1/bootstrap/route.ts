@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
+import { SFI_ROOT_DECISION_BOUNDARY } from '@/lib/governance/rootDecisionBoundary';
 import { authorizeExternalRequest, externalActor, externalAuthError } from '@/lib/sfi/externalAuth';
 import { buildSfiCognitiveBootstrap } from '@/lib/sfi/cognitiveBootstrap';
+import { SFI_CASE_EXECUTION_POLICY } from '@/lib/sfi/caseExecutionPolicy';
 import { SFI_HUMAN_INTERACTION_POLICY } from '@/lib/sfi/humanInteractionPolicy';
 import { SFI_ANALYSIS_LEARNING_POLICY } from '@/lib/sfi/analysisLearningPolicy';
 
@@ -38,13 +40,15 @@ export async function GET(req: Request) {
       ...bootstrap,
       interactionPolicy: SFI_HUMAN_INTERACTION_POLICY,
       analysisLearningPolicy: SFI_ANALYSIS_LEARNING_POLICY,
+      decisionBoundary: SFI_ROOT_DECISION_BOUNDARY,
+      caseExecutionPolicy: SFI_CASE_EXECUTION_POLICY,
       modelInteroperability: {
         canonicalOpenApi: '/openapi.json',
         gptActionsProjection: '/openapi-actions.json',
         ownerStudioContext,
         modelCapabilityImpliesAuthority: false,
       },
-      useInstruction: `${bootstrap.useInstruction} Human-facing interaction must follow interactionPolicy: explain meaning, authority, options, consequences and next event before implementation detail. Apply analysisLearningPolicy when choosing what evidence to request and when interpreting process/data contradictions. Explicit owner requests to learn/remember/apply a personal interaction rule may use the governed PERSON_CT learn_declared_pattern operation. When ownerStudioContext is available and owner Studio/KXTXR lineage is relevant, read that governed context before concluding that owner data is absent.`,
+      useInstruction: `${bootstrap.useInstruction} Human-facing interaction must follow interactionPolicy: explain meaning, authority, options, consequences and next event before implementation detail. For case work, follow caseExecutionPolicy and decisionBoundary. Do not ask the human for initial approval, evidence-source approval, routine execution approval, report approval or case-closure approval. Continue operational work autonomously while it remains inside already granted authority. Ask only for genuinely missing factual input that cannot be acquired safely, and describe it as missing information rather than permission. Interrupt ROOT only when the next step is explicitly classified as an institutional/canonical decision, a material capability implementation/change, a learning promotion, or a reserved external/irreversible operation. Working sources may be used and classified without ROOT acceptance but never become verified claims or canon merely by use. Apply analysisLearningPolicy when choosing what evidence to request and when interpreting process/data contradictions. Explicit owner requests to learn/remember/apply a personal interaction rule may use the governed PERSON_CT learn_declared_pattern operation. When ownerStudioContext is available and owner Studio/KXTXR lineage is relevant, read that governed context before concluding that owner data is absent.`,
     }, {
       status: 200,
       headers: {
@@ -53,6 +57,8 @@ export async function GET(req: Request) {
         'X-SFI-Capsule-Hash': bootstrap.capsuleHash,
         'X-SFI-Human-Interaction': SFI_HUMAN_INTERACTION_POLICY.contract,
         'X-SFI-Analysis-Learning': SFI_ANALYSIS_LEARNING_POLICY.contract,
+        'X-SFI-Case-Execution': SFI_CASE_EXECUTION_POLICY.contract,
+        'X-SFI-Decision-Boundary': SFI_ROOT_DECISION_BOUNDARY.contract,
       },
     });
   } catch (error) {
