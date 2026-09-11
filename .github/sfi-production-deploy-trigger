@@ -1,9 +1,9 @@
 SFI-00 CONTROLLED PRODUCTION RELEASE
-requested_at=2026-09-10
-release_reason=Operational closure release: align production with current canonical main after #476 bounded completion certification, preserve explicit finite cycles, and stop feature expansion absent observed production failure or authorized institutional change
-source_main=69448d9e843f41243f902a0d47f0837b2a208e68
-release_basis=main_build_pass+program_completion_pass+sfi08_batch_1_return_pass+sfi08_batch_2_return_pass
+requested_at=2026-09-11
+release_reason=Deploy the integrated operational release containing autonomous routine case work until sovereign boundary, current OAuth/OpenAPI Actions, governed account invitation and password recovery, and existing Studio material audio production.
+source_main=308574b4dd268fc53a844a1098a223e1d0bb7842
+release_basis=sfi_verify_pass+external_oauth_pass+institutional_authority_pass+account_invitation_lifecycle_pass+audio_material_execution_pass+sfi08_return_pass
 openapi_materialization=vercel_build_prod
-development_mode=FROZEN_AFTER_SUCCESSFUL_RELEASE
-reopen_condition=OBSERVED_PRODUCTION_FAILURE_OR_AUTHORIZED_INSTITUTIONAL_CHANGE
+account_database_migration=sfi_account_access_grants_applied
 cost_gate=single_bounded_release
+post_release_tests=manifest+openapi_actions+oauth+case_cycle+studio_audio
