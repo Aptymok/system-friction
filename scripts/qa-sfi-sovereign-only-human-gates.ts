@@ -18,6 +18,7 @@ const heartbeat = read('src/app/api/cron/continuity-heartbeat/route.ts');
 const bootstrap = read('src/app/api/external/v1/bootstrap/route.ts');
 const manifest = read('src/app/api/external/v1/manifest/route.ts');
 const openapiMerge = read('scripts/merge-openapi-sovereign-gates.mjs');
+const actionsProjection = read('scripts/merge-openapi-actions-compat.mjs');
 
 for (const invariant of [
   'initialApprovalRequired: false',
@@ -97,15 +98,22 @@ assert.match(manifest, /working sources without ROOT source approval/);
 assert.match(manifest, /no duplicate human confirmation is required/);
 assert.match(openapiMerge, /AUTONOMOUS_UNTIL_SOVEREIGN_BOUNDARY/);
 assert.match(openapiMerge, /required\.filter\(\(name\) => name !== 'confirm'\)/);
+assert.match(openapiMerge, /classify and use as a working source without ROOT approval/);
+assert.match(openapiMerge, /canonical evidence admission only when an explicit governed promotion boundary is crossed/);
+assert.doesNotMatch(openapiMerge, /ROOT accept\/reject/);
+assert.match(actionsProjection, /https:\/\/systemfriction\.org/);
+assert.match(actionsProjection, /authorizationUrl = `\$\{canonicalOrigin\}\/api\/oauth\/authorize`/);
+assert.match(actionsProjection, /tokenUrl = `\$\{canonicalOrigin\}\/api\/oauth\/token`/);
 
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-SOVEREIGN-ONLY-HUMAN-GATES-1.1',
+  contract: 'SFI-SOVEREIGN-ONLY-HUMAN-GATES-1.2',
   humanApprovalRequiredForRoutineCaseWork: false,
   humanApprovalRequiredForWorkingSources: false,
   humanApprovalRequiredForRoutineLabRun: false,
   duplicateExecutionConfirmationRequired: false,
   obsoleteRoutineHumanGatesPresent: false,
+  actionsCanonicalOriginEnforced: true,
   sovereignBoundary: ['INSTITUTIONAL_CHANGE', 'CAPABILITY_IMPLEMENTATION', 'LEARNING_PROMOTION', 'RESERVED_EXTERNAL_OPERATION'],
   plainLanguageDefault: true,
   canonicalPromotionAutomatic: false,
