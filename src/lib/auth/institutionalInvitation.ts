@@ -12,6 +12,17 @@ const invitationSchema = z.object({
   accessClass: z.enum(['INSTITUTIONAL_OBSERVER', 'INSTITUTIONAL_OPERATOR']),
 });
 
+export type InstitutionalAccountAccessView = {
+  id: string;
+  email: string;
+  displayName: string;
+  title: string;
+  accessClass: 'INSTITUTIONAL_OBSERVER' | 'INSTITUTIONAL_OPERATOR';
+  status: 'PENDING' | 'INVITED' | 'ACTIVE' | 'SUSPENDED' | 'INVITE_FAILED';
+  invitedAt: string | null;
+  activatedAt: string | null;
+};
+
 function accessProfile(accessClass: 'INSTITUTIONAL_OBSERVER' | 'INSTITUTIONAL_OPERATOR', title: string) {
   const observer = accessClass === 'INSTITUTIONAL_OBSERVER';
   return {
@@ -38,6 +49,42 @@ function accessProfile(accessClass: 'INSTITUTIONAL_OBSERVER' | 'INSTITUTIONAL_OP
 
 function accessStatePath(state: string) {
   return `/root/access?state=${encodeURIComponent(state)}`;
+}
+
+export async function listInstitutionalAccountAccessGrants(): Promise<{
+  available: boolean;
+  grants: InstitutionalAccountAccessView[];
+}> {
+  await requireFounder();
+  const service = createServiceSupabaseClient();
+  const read = await service
+    .from('sfi_account_access_grants')
+    .select('id,email,display_name,title,access_class,status,invited_at,activated_at')
+    .order('created_at', { ascending: false })
+    .limit(50);
+
+  if (read.error) {
+    if (/does not exist|schema cache/i.test(read.error.message)) return { available: false, grants: [] };
+    throw read.error;
+  }
+
+  const grants = (read.data ?? []).flatMap((row) => {
+    const accessClass = String(row.access_class || '');
+    const status = String(row.status || '');
+    if (!['INSTITUTIONAL_OBSERVER', 'INSTITUTIONAL_OPERATOR'].includes(accessClass)) return [];
+    if (!['PENDING', 'INVITED', 'ACTIVE', 'SUSPENDED', 'INVITE_FAILED'].includes(status)) return [];
+    return [{
+      id: String(row.id),
+      email: String(row.email),
+      displayName: String(row.display_name),
+      title: String(row.title),
+      accessClass: accessClass as InstitutionalAccountAccessView['accessClass'],
+      status: status as InstitutionalAccountAccessView['status'],
+      invitedAt: row.invited_at ? String(row.invited_at) : null,
+      activatedAt: row.activated_at ? String(row.activated_at) : null,
+    }];
+  });
+  return { available: true, grants };
 }
 
 export async function inviteInstitutionalAccountAction(formData: FormData) {
