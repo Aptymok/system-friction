@@ -19,6 +19,8 @@ assert.match(migration, /not an institutional appointment/i);
 
 assert.match(invite, /requireFounder\(\)/);
 assert.match(invite, /auth\.admin\.inviteUserByEmail/);
+assert.match(invite, /listInstitutionalAccountAccessGrants/);
+assert.match(invite, /\.from\('sfi_account_access_grants'\)/);
 assert.doesNotMatch(invite, /password\s*:/i, 'invitation must never generate or transmit a temporary password');
 assert.match(invite, /INSTITUTIONAL_OBSERVER/);
 assert.match(invite, /INSTITUTIONAL_OPERATOR/);
@@ -33,6 +35,9 @@ for (const invariant of [
 ]) assert.ok(invite.includes(invariant), `missing bounded-access invariant: ${invariant}`);
 
 assert.match(rootAccess, /inviteInstitutionalAccountAction/);
+assert.match(rootAccess, /listInstitutionalAccountAccessGrants/);
+assert.doesNotMatch(rootAccess, /createServiceSupabaseClient/);
+assert.doesNotMatch(rootAccess, /\.from\(/, 'human interface must not own raw persistence access');
 assert.match(rootAccess, /Observador — puede consultar/);
 assert.match(rootAccess, /Operador — puede trabajar/);
 assert.match(rootAccess, /no autoridad soberana/i);
@@ -49,7 +54,7 @@ assert.equal(existsSync('src/app/signup/page.tsx'), false, 'public signup surfac
 
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-ACCOUNT-INVITATION-LIFECYCLE-1.0',
+  contract: 'SFI-ACCOUNT-INVITATION-LIFECYCLE-1.1',
   invitationOnly: true,
   temporaryPasswordGenerated: false,
   founderAdminRequired: true,
@@ -57,4 +62,5 @@ console.log(JSON.stringify({
   sovereignAuthorityGrantedByInvite: false,
   publicSignupEnabled: false,
   verifiedPasswordResetAvailable: true,
+  humanInterfaceOwnsPersistence: false,
 }, null, 2));
