@@ -1,6 +1,8 @@
-import { inviteInstitutionalAccountAction } from '@/lib/auth/institutionalInvitation';
+import {
+  inviteInstitutionalAccountAction,
+  listInstitutionalAccountAccessGrants,
+} from '@/lib/auth/institutionalInvitation';
 import { requireFounderPage } from '@/lib/system/access/server';
-import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,13 +32,7 @@ export default async function RootAccessPage({
   await requireFounderPage('/root/access');
   const params = await searchParams;
   const state = Array.isArray(params.state) ? params.state[0] : params.state;
-  const service = createServiceSupabaseClient();
-  const read = await service
-    .from('sfi_account_access_grants')
-    .select('id,email,display_name,title,access_class,status,invited_at,activated_at')
-    .order('created_at', { ascending: false })
-    .limit(50);
-  const grants = read.error && /does not exist|schema cache/i.test(read.error.message) ? [] : (read.data ?? []);
+  const access = await listInstitutionalAccountAccessGrants();
 
   return (
     <main style={{ maxWidth: 960, margin: '0 auto', padding: '48px 24px 80px' }}>
@@ -77,14 +73,14 @@ export default async function RootAccessPage({
 
       <section style={{ marginTop: 56 }}>
         <h2>Accesos administrados</h2>
-        {read.error && grants.length === 0 ? <p>El registro nuevo se habilitará con la siguiente migración de producción.</p> : null}
-        {grants.length === 0 ? <p>No hay invitaciones registradas todavía.</p> : (
+        {!access.available ? <p>El registro nuevo se habilitará con la siguiente migración de producción.</p> : null}
+        {access.grants.length === 0 ? <p>No hay invitaciones registradas todavía.</p> : (
           <div style={{ display: 'grid', gap: 12 }}>
-            {grants.map((grant) => (
-              <article key={String(grant.id)} style={{ borderTop: '1px solid currentColor', paddingTop: 12 }}>
-                <strong>{String(grant.display_name)}</strong>
-                <div>{String(grant.title)} · {String(grant.email)}</div>
-                <small>{statusText(String(grant.status))} · {grant.access_class === 'INSTITUTIONAL_OBSERVER' ? 'Observador' : 'Operador'}</small>
+            {access.grants.map((grant) => (
+              <article key={grant.id} style={{ borderTop: '1px solid currentColor', paddingTop: 12 }}>
+                <strong>{grant.displayName}</strong>
+                <div>{grant.title} · {grant.email}</div>
+                <small>{statusText(grant.status)} · {grant.accessClass === 'INSTITUTIONAL_OBSERVER' ? 'Observador' : 'Operador'}</small>
               </article>
             ))}
           </div>
