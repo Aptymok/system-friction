@@ -1,11 +1,12 @@
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: Request) {
-  const issuer = new URL(request.url).origin;
-  const resource = `${issuer}/api/mcp/authenticated`;
+const oauthIssuer = 'https://system-friction.vercel.app';
+const resourceOrigin = 'https://systemfriction.org';
+
+export async function GET() {
   return Response.json({
-    resource,
-    authorization_servers: [issuer],
+    resource: `${resourceOrigin}/api/mcp/authenticated`,
+    authorization_servers: [oauthIssuer],
     bearer_methods_supported: ['header'],
     scopes_supported: ['observe', 'execute'],
   }, {

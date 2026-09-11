@@ -19,6 +19,8 @@ const bootstrap = read('src/app/api/external/v1/bootstrap/route.ts');
 const manifest = read('src/app/api/external/v1/manifest/route.ts');
 const openapiMerge = read('scripts/merge-openapi-sovereign-gates.mjs');
 const actionsProjection = read('scripts/merge-openapi-actions-compat.mjs');
+const oauthMetadata = read('src/app/.well-known/oauth-authorization-server/route.ts');
+const protectedResourceMetadata = read('src/app/.well-known/oauth-protected-resource/route.ts');
 
 for (const invariant of [
   'initialApprovalRequired: false',
@@ -101,19 +103,27 @@ assert.match(openapiMerge, /required\.filter\(\(name\) => name !== 'confirm'\)/)
 assert.match(openapiMerge, /classify and use as a working source without ROOT approval/);
 assert.match(openapiMerge, /canonical evidence admission only when an explicit governed promotion boundary is crossed/);
 assert.doesNotMatch(openapiMerge, /ROOT accept\/reject/);
-assert.match(actionsProjection, /https:\/\/systemfriction\.org/);
-assert.match(actionsProjection, /authorizationUrl = `\$\{canonicalOrigin\}\/api\/oauth\/authorize`/);
-assert.match(actionsProjection, /tokenUrl = `\$\{canonicalOrigin\}\/api\/oauth\/token`/);
+
+// GPT Actions use the institutional domain for API calls but keep OAuth on the
+// stable Vercel project hostname already registered by the existing GPT client.
+assert.match(actionsProjection, /const apiOrigin = 'https:\/\/systemfriction\.org'/);
+assert.match(actionsProjection, /const oauthOrigin = 'https:\/\/system-friction\.vercel\.app'/);
+assert.match(actionsProjection, /authorizationUrl = `\$\{oauthOrigin\}\/api\/oauth\/authorize`/);
+assert.match(actionsProjection, /tokenUrl = `\$\{oauthOrigin\}\/api\/oauth\/token`/);
+assert.match(oauthMetadata, /const issuer = 'https:\/\/system-friction\.vercel\.app'/);
+assert.match(protectedResourceMetadata, /const oauthIssuer = 'https:\/\/system-friction\.vercel\.app'/);
+assert.match(protectedResourceMetadata, /const resourceOrigin = 'https:\/\/systemfriction\.org'/);
 
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-SOVEREIGN-ONLY-HUMAN-GATES-1.2',
+  contract: 'SFI-SOVEREIGN-ONLY-HUMAN-GATES-1.3',
   humanApprovalRequiredForRoutineCaseWork: false,
   humanApprovalRequiredForWorkingSources: false,
   humanApprovalRequiredForRoutineLabRun: false,
   duplicateExecutionConfirmationRequired: false,
   obsoleteRoutineHumanGatesPresent: false,
-  actionsCanonicalOriginEnforced: true,
+  actionsApiOrigin: 'https://systemfriction.org',
+  oauthIssuer: 'https://system-friction.vercel.app',
   sovereignBoundary: ['INSTITUTIONAL_CHANGE', 'CAPABILITY_IMPLEMENTATION', 'LEARNING_PROMOTION', 'RESERVED_EXTERNAL_OPERATION'],
   plainLanguageDefault: true,
   canonicalPromotionAutomatic: false,

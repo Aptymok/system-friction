@@ -5,19 +5,22 @@ const canonicalPath = path.join(process.cwd(), 'public', 'openapi.json');
 const actionsPath = path.join(process.cwd(), 'public', 'openapi-actions.json');
 const canonical = JSON.parse(fs.readFileSync(canonicalPath, 'utf8'));
 const api = structuredClone(canonical);
-const canonicalOrigin = 'https://systemfriction.org';
+const apiOrigin = 'https://systemfriction.org';
+const oauthOrigin = 'https://system-friction.vercel.app';
 
-// GPT Actions must always use the institutional canonical origin even if an older
-// deployment/preview URL survives in a checked-in or intermediate projection.
-api.servers = [{ url: canonicalOrigin }];
-if (api.info) api.info.termsOfService = `${canonicalOrigin}/privacy`;
-if (api.externalDocs) api.externalDocs.url = `${canonicalOrigin}/privacy`;
+// The public institutional/API surface remains on systemfriction.org. OAuth for
+// ChatGPT Actions stays on the stable Vercel project hostname already registered
+// by the existing GPT client so authorization, issuer and token exchange use one
+// origin end-to-end.
+api.servers = [{ url: apiOrigin }];
+if (api.info) api.info.termsOfService = `${apiOrigin}/privacy`;
+if (api.externalDocs) api.externalDocs.url = `${apiOrigin}/privacy`;
 const oauthFlow = api.components?.securitySchemes?.sfiOAuth?.flows?.authorizationCode;
 if (oauthFlow) {
-  oauthFlow.authorizationUrl = `${canonicalOrigin}/api/oauth/authorize`;
-  oauthFlow.tokenUrl = `${canonicalOrigin}/api/oauth/token`;
+  oauthFlow.authorizationUrl = `${oauthOrigin}/api/oauth/authorize`;
+  oauthFlow.tokenUrl = `${oauthOrigin}/api/oauth/token`;
 }
-if (api['x-sfi-governance']) api['x-sfi-governance'].privacyPolicy = `${canonicalOrigin}/privacy`;
+if (api['x-sfi-governance']) api['x-sfi-governance'].privacyPolicy = `${apiOrigin}/privacy`;
 
 const conciseDescriptions = new Map([
   ['POST /api/external/v1/result', 'Persist a structured SFI analysis result without persisting raw binary content. Requires lab:write and preserves provenance/epistemic boundaries.'],
@@ -84,11 +87,12 @@ api['x-sfi-actions-compatibility'] = {
   contract: 'SFI-GPT-ACTIONS-OPENAPI-COMPAT-1.0',
   canonicalSource: '/openapi.json',
   projection: '/openapi-actions.json',
-  canonicalOrigin,
+  apiOrigin,
+  oauthOrigin,
   maxOperationDescriptionChars: 300,
   customHeaderParametersExcluded: true,
   authenticatedMcpRuntimeAuthorizationUnchanged: true,
 };
 
 fs.writeFileSync(actionsPath, `${JSON.stringify(api, null, 2)}\n`);
-console.log(JSON.stringify({ ok: true, contract: 'SFI-GPT-ACTIONS-OPENAPI-COMPAT-1.0', canonical: 'public/openapi.json', projection: 'public/openapi-actions.json', canonicalOrigin }, null, 2));
+console.log(JSON.stringify({ ok: true, contract: 'SFI-GPT-ACTIONS-OPENAPI-COMPAT-1.0', canonical: 'public/openapi.json', projection: 'public/openapi-actions.json', apiOrigin, oauthOrigin }, null, 2));
