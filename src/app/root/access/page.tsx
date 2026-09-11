@@ -43,6 +43,10 @@ export default async function RootAccessPage({
         Esta operación concede acceso, no autoridad soberana: nunca crea ROOT, un nombramiento institucional
         ni permiso para modificar el canon.
       </p>
+      <p style={{ maxWidth: 760 }}>
+        ROOT nunca asigna, conoce ni comparte la contraseña de otra persona. Si alguien pierde el acceso,
+        utiliza el restablecimiento verificado por correo.
+      </p>
 
       {state && STATES[state] ? (
         <p role="status" style={{ padding: 16, border: '1px solid currentColor', margin: '24px 0' }}>{STATES[state]}</p>
