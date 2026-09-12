@@ -19,10 +19,6 @@ on:
   schedule:
     - cron: '23 3 * * *'
   workflow_dispatch:
-  workflow_run:
-    workflows:
-      - SFI Continuity Hourly
-    types: [completed]
 
 permissions:
   contents: write
@@ -35,7 +31,6 @@ concurrency:
 
 jobs:
   observe-repair-return:
-    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
