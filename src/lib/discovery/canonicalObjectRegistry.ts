@@ -368,7 +368,58 @@ export function validateCanonicalObjectRegistry(records: readonly SfiCanonicalOb
   return [...new Set(errors)].sort();
 }
 
-export const SFI_CANONICAL_OBJECT_REGISTRY: readonly SfiCanonicalObjectRecord[] = Object.freeze([]);
+const NOTAS_TEMPORALES_SOURCE = 'https://github.com/Aptymok/system-friction/blob/main/src/lib/publications/editorialContent.ts';
+
+export const SFI_CANONICAL_OBJECT_REGISTRY: readonly SfiCanonicalObjectRecord[] = Object.freeze([
+  {
+    contract: SFI_CANONICAL_OBJECT_CONTRACT,
+    id: 'SFI-PUB-NT-001',
+    objectKey: canonicalObjectKey('PUBLICATION', 'notas-temporales-v1'),
+    objectType: 'PUBLICATION',
+    slug: 'notas-temporales-v1',
+    canonicalUrl: canonicalUrlFor('PUBLICATION', 'notas-temporales-v1'),
+    title: 'Notas Temporales',
+    summary: 'Observación sistémica para un mundo en transición: una publicación periódica de SFI para registrar señales, evidencia, convergencias y preguntas sin confundir observación con predicción.',
+    bodyRef: 'src/lib/publications/editorialContent.ts#SFI_NOTAS_TEMPORALES_V1',
+    epistemicState: 'DECLARED',
+    version: '1.0',
+    language: 'es',
+    authors: ['System Friction Institute'],
+    methods: ['World Spector Vector 16x16', 'Discovery Mesh'],
+    relatedObjects: [],
+    sourceRefs: [NOTAS_TEMPORALES_SOURCE],
+    publicState: 'PUBLIC',
+    license: 'CC BY 4.0',
+    createdAt: '2026-09-12T00:00:00-06:00',
+    updatedAt: '2026-09-12T00:00:00-06:00',
+    entity: {
+      entityId: SFI_ENTITY_ID,
+      relation: 'PUBLISHED_BY',
+    },
+    publication: {
+      state: 'PUBLISHED',
+      explicit: true,
+    },
+    eligibility: {
+      privacyClass: 'PUBLIC',
+      publicEligible: true,
+      securityEligible: true,
+    },
+    rights: {
+      state: 'OPEN',
+    },
+    evidenceIdentity: {
+      state: 'VALID',
+      refs: [NOTAS_TEMPORALES_SOURCE],
+    },
+    limitations: [
+      'The publication defines an observation and editorial method; it does not assert that every signal named by the method has already been observed.',
+      'Publication establishes EXPOSURE only. Discovery, Recognition, Interaction, PULL and RETURN require independent evidence.',
+      'Derived relationships and model output remain distinct from observed external evidence.',
+    ],
+    missing: [],
+  },
+]);
 
 export function publicCanonicalObjectUrls(records: readonly SfiCanonicalObjectRecord[] = SFI_CANONICAL_OBJECT_REGISTRY): string[] {
   if (validateCanonicalObjectRegistry(records).length) return [];
