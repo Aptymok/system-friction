@@ -32,8 +32,15 @@ const publications: LibraryPublication[] = SFI_CANONICAL_OBJECT_REGISTRY
       issue: editorial?.issue ?? null,
       subtitle: editorial?.subtitle ?? null,
       editorialKind: editorial?.editorialKind ?? null,
+      collection: editorial?.collection ?? null,
+      observationKind: editorial?.observationKind ?? null,
+      publishedAt: editorial?.publishedAt ?? record.createdAt,
+      mediumUrl: editorial?.mediumUrl ?? null,
+      contentState: editorial?.contentState ?? null,
+      coverImage: editorial?.coverImage ?? null,
     };
-  });
+  })
+  .sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt));
 
 export default function LibraryPage() {
   return <LibraryClient publications={publications} corpus={corpus} surfaceContract={surfaceContract} />;
