@@ -370,6 +370,10 @@ export function validateCanonicalObjectRegistry(records: readonly SfiCanonicalOb
 
 const NOTAS_TEMPORALES_SOURCE = 'https://github.com/Aptymok/system-friction/blob/main/src/lib/publications/editorialContent.ts';
 
+// Runtime/event/database-derived objects have no automatic path into canon.
+// This collection intentionally remains empty; explicit repository admission is the only publication source.
+export const SFI_RUNTIME_DERIVED_CANONICAL_OBJECTS: readonly SfiCanonicalObjectRecord[] = Object.freeze([]);
+
 export const SFI_CANONICAL_OBJECT_REGISTRY: readonly SfiCanonicalObjectRecord[] = Object.freeze([
   {
     contract: SFI_CANONICAL_OBJECT_CONTRACT,
