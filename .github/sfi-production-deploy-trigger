@@ -1,12 +1,16 @@
 SFI-00 CONTROLLED PRODUCTION RELEASE
 requested_at=2026-09-12
-release_reason=Restore autonomous SFI continuity at :15 and :45 plus post-deploy while preventing frequent idle heartbeat runs from executing heavy read/write lanes.
-source_main=b20027bbe9945b0982034ed144793d13b06fd18c
-release_basis=sfi_verify_pass+continuity_ledger_pass+sfi08_certification_pass+codeql_pass+vercel_cost_gate_pass
-continuity_wakeup=read_only_actionable_work_gate
-idle_expected=IDLE_NO_ACTIONABLE_WORK
-full_heartbeat_condition=targeted_cycle_or_actionable_pending_work_or_non_normal_continuity
-vercel_daily_fallback=retained
-reset_qa_baseline=165_public_10_preserve_8_reseed_147_purge
-cost_intent=eliminate_twice_hourly_idle_heavy_runtime_execution
-post_release_tests=deployed_sha+idle_wakeup+db_before_after+automatic_schedule
+release_reason=Route GPT Actions OpenAPI through the existing host-safe projection and pin API plus OAuth endpoints to the canonical production origin so Bearer tokens are not described across an apex-to-www host boundary.
+source_main=297cfd866111a63d9dd5bcd190bc621db5f04379
+release_basis=sfi_external_oauth_pass+sfi_verify_pass+sfi08_certification_pass+vercel_cost_gate_pass
+openapi_actions_route=/api/external/openapi
+legacy_openapi_route=/openapi.json
+legacy_openapi_behavior=rewrite_to_actions_projection
+canonical_actions_origin=https://www.systemfriction.org
+oauth_identity_change=none
+oauth_scope_change=none
+oauth_client_change=none
+expected_schema_server=https://www.systemfriction.org
+expected_authorization_url=https://www.systemfriction.org/api/oauth/authorize
+expected_token_url=https://www.systemfriction.org/api/oauth/token
+post_release_tests=deployed_sha+live_openapi_origin+legacy_openapi_rewrite+oauth_code_exchange+authenticated_console_bearer
