@@ -2,8 +2,9 @@ import 'server-only';
 
 import { runAmvRuntime } from '@/lib/amv/core/amvRuntime';
 import { getPredictiveEngineHealth } from '@/lib/predictive-engine/service';
-import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { persistWorldVectorReport } from '@/lib/world-vector/persistence';
 import type { WorldVectorReport } from '@/lib/world-vector/types';
+import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 
 type Row = Record<string, unknown>;
 
@@ -148,36 +149,6 @@ function bodyFor(input: {
   return lines.join('\n');
 }
 
-async function persistMonthlyCandidate(report: WorldVectorReport) {
-  const db = createServiceSupabaseClient();
-  const existing = await db
-    .from('world_vector_reports')
-    .select('*')
-    .eq('report_type', report.report_type)
-    .eq('target_audience', report.target_audience)
-    .eq('period_start', report.period_start)
-    .eq('period_end', report.period_end)
-    .eq('status', 'draft')
-    .limit(1)
-    .maybeSingle();
-  if (existing.error) return { ok: false as const, error: existing.error.message };
-  if (existing.data) return { ok: true as const, persisted: true as const, existing: true as const, data: existing.data as Row };
-
-  const inserted = await db.from('world_vector_reports').insert({
-    cycle_id: null,
-    report_type: report.report_type,
-    target_audience: report.target_audience,
-    period_start: report.period_start,
-    period_end: report.period_end,
-    title: report.title,
-    body: report.body,
-    json_payload: report.json_payload,
-    status: 'draft',
-  }).select('*').single();
-  if (inserted.error || !inserted.data) return { ok: false as const, error: inserted.error?.message ?? 'temporal_issue_insert_failed' };
-  return { ok: true as const, persisted: true as const, existing: false as const, data: inserted.data as Row };
-}
-
 export async function runTemporalIssueRoutine(reference = new Date()) {
   const db = createServiceSupabaseClient();
   const window = previousCalendarMonth(reference);
@@ -271,7 +242,7 @@ export async function runTemporalIssueRoutine(reference = new Date()) {
     },
   };
 
-  const persistence = await persistMonthlyCandidate(report);
+  const persistence = await persistWorldVectorReport({ report });
   return {
     ok: persistence.ok && !observationsResult.error,
     contract: 'SFI-AUTONOMOUS-EDITORIAL-ROUTINE-1.0',
