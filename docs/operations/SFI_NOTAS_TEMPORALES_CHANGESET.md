@@ -1,1 +1,0 @@
-Changeset summary: autonomous read-only instrument sweep, monthly temporal issue candidate generation, canonical report persistence reuse, bounded schema extension, repository-backed cover bindings, cron scheduling, and QA. Publication authority remains unchanged.
