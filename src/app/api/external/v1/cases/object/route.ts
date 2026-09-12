@@ -39,12 +39,16 @@ function nullableText(value: unknown): string | null {
   return valueText || null;
 }
 
-function refsFromIds(value: unknown): SfiCanonicalRef[] {
-  if (!Array.isArray(value)) return [];
-  return value
-    .map((item) => text(item))
-    .filter(Boolean)
-    .map((id) => ({ id, version: null, hash: null }));
+function optionalRefsFromIds(value: unknown, field: 'SOURCE_REF_IDS' | 'RECORD_REF_IDS'): SfiCanonicalRef[] {
+  if (value === undefined || value === null) return [];
+  if (!Array.isArray(value)) throw new Error(`SFI_CASE_${field}_INVALID`);
+
+  const ids = value.map((item) => text(item));
+  if (ids.some((id) => !id) || ids.length !== new Set(ids).size) {
+    throw new Error(`SFI_CASE_${field}_INVALID`);
+  }
+
+  return ids.map((id) => ({ id, version: null, hash: null }));
 }
 
 function epistemicRoleFor(kind: SfiCaseObjectKind): SfiEpistemicClass {
@@ -86,8 +90,8 @@ export async function POST(request: Request) {
     if (!isRow(body.payload)) throw new Error('SFI_CASE_PAYLOAD_REQUIRED');
     const payload = row(body.payload);
 
-    const sourceRefs = refsFromIds(body.sourceRefIds);
-    const recordRefs = refsFromIds(body.recordRefIds);
+    const sourceRefs = optionalRefsFromIds(body.sourceRefIds, 'SOURCE_REF_IDS');
+    const recordRefs = optionalRefsFromIds(body.recordRefIds, 'RECORD_REF_IDS');
     const object = await recordOperationalCaseObject({
       caseId,
       userId: auth.credential.subjectId,
