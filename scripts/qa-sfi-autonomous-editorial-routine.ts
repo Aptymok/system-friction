@@ -6,6 +6,7 @@ const vercel = read('vercel.json');
 const routine = read('src/lib/publications/temporalIssueRoutine.ts');
 const route = read('src/app/api/cron/notas-temporales/route.ts');
 const types = read('src/lib/world-vector/types.ts');
+const persistence = read('src/lib/world-vector/persistence.ts');
 const worldRoute = read('src/app/api/cron/world-observatory/route.ts');
 const sweep = read('src/lib/world-observatory/instrumentSweep.ts');
 const migration = read('supabase/migrations/20260912213500_extend_world_vector_reports_temporal_issue.sql');
@@ -16,10 +17,14 @@ assert.ok(routine.includes('getPredictiveEngineHealth'), 'monthly_routine_must_o
 assert.ok(routine.includes("from('world_hypotheses')"), 'monthly_routine_must_include_world_hypotheses');
 assert.ok(routine.includes("from('world_hypothesis_outcomes')"), 'monthly_routine_must_include_hypothesis_outcomes');
 assert.ok(routine.includes("from('sfi_lab_analyses')"), 'monthly_routine_must_include_method_lab_investigations');
-assert.ok(routine.includes("from('world_vector_reports')"), 'monthly_routine_must_reuse_existing_world_vector_report_plane');
+assert.ok(routine.includes('persistWorldVectorReport({ report })'), 'monthly_routine_must_reuse_canonical_world_vector_report_writer');
+assert.equal(routine.includes("from('world_vector_reports')"), false, 'monthly_routine_must_not_create_a_second_world_vector_report_writer');
 assert.ok(routine.includes("report_type: 'temporal_issue_monthly'"), 'monthly_routine_must_persist_bounded_temporal_issue_type');
 assert.ok(routine.includes("target_audience: 'repository'"), 'monthly_routine_must_remain_repository_bounded');
-assert.ok(routine.includes('cycle_id: null'), 'monthly_issue_must_not_fabricate_world_vector_cycle_identity');
+assert.ok(persistence.includes('cycleRange?: WorldVectorCycleRange'), 'canonical_report_writer_must_allow_cycleless_monthly_candidates');
+assert.ok(persistence.includes('let cycleId: string | null = null'), 'canonical_report_writer_must_preserve_null_cycle_identity_when_cycle_absent');
+assert.ok(persistence.includes('cycle_id: cycleId'), 'canonical_report_writer_must_own_cycle_id_assignment');
+assert.equal(routine.includes('cycle_id: null'), false, 'monthly_routine_must_not_write_cycle_identity_directly');
 assert.equal(routine.includes('SFI_CANONICAL_OBJECT_REGISTRY'), false, 'cron_must_not_mutate_canonical_registry');
 assert.equal(routine.includes('studio_objects'), false, 'monthly_routine_must_not_create_studio_noise');
 assert.ok(types.includes("'temporal_issue_monthly'"), 'world_vector_report_type_must_include_monthly_temporal_issue');
@@ -42,7 +47,7 @@ console.log(JSON.stringify({
   dailyWorldSweep: ['signal-vane', 'cluster-atlas', 'predictive-health'],
   monthlyIssue: 'Notas Temporales',
   monthlyInputs: ['world observations', 'world hypotheses', 'hypothesis outcomes', 'Method Lab investigations', 'Predictive health'],
-  persistence: 'world_vector_reports / temporal_issue_monthly',
+  persistence: 'canonical persistWorldVectorReport -> world_vector_reports / temporal_issue_monthly',
   canonicalMutation: false,
   founderInterruption: 'SOVEREIGN_BOUNDARY_ONLY',
 }, null, 2));
