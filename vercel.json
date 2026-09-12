@@ -3,6 +3,12 @@
   "git": {
     "deploymentEnabled": false
   },
+  "rewrites": [
+    {
+      "source": "/openapi.json",
+      "destination": "/api/external/openapi"
+    }
+  ],
   "crons": [
     {
       "path": "/api/cron/worldspect",
