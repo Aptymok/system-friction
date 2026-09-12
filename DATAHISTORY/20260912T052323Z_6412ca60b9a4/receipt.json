@@ -1,0 +1,27 @@
+{
+  "contract": "SFI_DB_EVIDENCE_RECEIPT_V2",
+  "created_at": "2026-09-12T05:23:23.133Z",
+  "git_commit": "6412ca60b9a4fc6302878834224c48fcf453de9a",
+  "database_host": "aws-1-us-west-1.pooler.supabase.com",
+  "database_name": "postgres",
+  "snapshot_file": "SFI_DB_SNAPSHOT_20260912T052323Z_6412ca60b9a4.zip",
+  "zip_sha256": "c42910b64abf28186477eb28d6df0fa47274f70bf7e446c4f24eb56490f04e76",
+  "zip_bytes": 6399170,
+  "manifest_sha256": "0382466a6b78813a0be0de92b7054f3359d4c89856621879ee48a2443bf0c288",
+  "public_tables_sha256": "46e7796527d0991164df64b518981ee797e9f05839f5ec8efb3c48075c4458e9",
+  "reset_classification_sha256": "c5b4f959ae267b26ec184721c98c0c7059d79887a2181bbf96f562f1c6b59606",
+  "public_table_count": 165,
+  "preserve_exact_counts": {
+    "world_source_observations": 6326,
+    "world_friction_readings": 6460,
+    "world_hypotheses": 303,
+    "world_hypothesis_outcomes": 299,
+    "world_learning_events": 278,
+    "worldspect_snapshots": 322,
+    "world_vector_cycles": 11,
+    "world_vector_observations": 62,
+    "world_vector_reports": 22,
+    "world_vector_alerts": 0
+  },
+  "reset_classification_contract": "SFI-CANONICAL-RESET-CLASSIFICATION-1.2"
+}
