@@ -42,29 +42,36 @@ export function buildDegradedAmvScopeState(scope: string, warning?: string): Amv
 async function buildPredictiveEngineScopeState(): Promise<AmvScopeState> {
   try {
     const health = await getPredictiveEngineHealth()
-    const modelCoverage = health.models > 0 ? Math.min(1, health.activeModels / health.models) : 0
+    if (!health.ok) {
+      return buildDegradedAmvScopeState('predictive-engine', 'PREDICTIVE_ENGINE_HEALTH_DEGRADED')
+    }
+
     return {
       ok: true,
       scope: 'predictive-engine',
       label: 'SFI Predictive Learning Engine',
-      state: health.ok ? 'live' : 'degraded',
+      state: 'live',
       dashboardSpec: getAmvDashboardByScope('predictive-engine'),
       latestReading: {
-        label: 'Predictive engine health',
-        summary: `${health.runs} run(s); ${health.openRuns} open; ${health.dueRuns} due; ${health.verifiedOutcomes} verified outcome(s); ${health.appliedLearningEvents} applied learning event(s).`,
-        trust: health.ok ? 'audit' : 'unknown',
-        source: 'sfi_predictive_models|sfi_predictive_runs|sfi_predictive_outcomes|sfi_predictive_learning_events',
-        payload: health,
+        label: 'Predictive engine availability',
+        summary: 'Persisted predictive subsystem reported AVAILABLE through its governed health contract.',
+        trust: 'audit',
+        source: 'predictive-engine-health-contract',
+        payload: {
+          availability: 'AVAILABLE',
+          persistedSubsystem: true,
+          publicProjection: 'SANITIZED',
+        },
       },
-      sourceTrust: health.ok ? 'observed' : 'degraded',
+      sourceTrust: 'observed',
       evidenceSummary: {
-        count: health.verifiedOutcomes,
-        verified: health.verifiedOutcomes,
+        count: 0,
+        verified: 0,
         declared: 0,
         derived: 0,
-        degraded: health.ok ? 0 : 1,
+        degraded: 0,
         sandbox: 0,
-        sourceCoverage: modelCoverage,
+        sourceCoverage: 1,
       },
       recentEvents: [],
       archiveLayerSummary: [
@@ -72,7 +79,7 @@ async function buildPredictiveEngineScopeState(): Promise<AmvScopeState> {
         { layer: 'living_observatory', count: 0, canFeedRegime: false },
         { layer: 'sandbox', count: 0, canFeedRegime: false },
       ],
-      warnings: health.warnings,
+      warnings: [],
       canFeedRegime: false,
       canSupportAttractor: false,
     }
