@@ -180,6 +180,10 @@ export async function persistWorldVectorReport(input: {
   const readiness = await getWorldVectorPersistenceStatus();
   if (!readiness.enabled) return blocked(readiness.reason, readiness.details);
 
+  if (!input.cycleRange && input.report.report_type !== 'temporal_issue_monthly') {
+    throw new Error(`world_vector_cycle_required_for_report_type:${input.report.report_type}`);
+  }
+
   const service = createServiceSupabaseClient();
   let cycleId: string | null = null;
   if (input.cycleRange) {
