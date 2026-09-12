@@ -9,6 +9,7 @@ type JsonRecord = Record<string, any>;
 const ACTION_DESCRIPTION_LIMIT = 300;
 const OPENAPI_METHODS = new Set(['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace']);
 const SFI_ACTIONS_ORIGIN = 'https://www.systemfriction.org';
+const EXTERNAL_ACTION_PREFIX = '/api/external/v1/';
 
 function clipActionDescription(value: string) {
   if (value.length <= ACTION_DESCRIPTION_LIMIT) return value;
@@ -16,6 +17,30 @@ function clipActionDescription(value: string) {
   const breakAt = head.lastIndexOf(' ');
   const clipped = (breakAt >= 220 ? head.slice(0, breakAt) : head).trimEnd();
   return `${clipped}...`;
+}
+
+function enforceGptActionsBoundary(document: JsonRecord) {
+  const paths = document.paths;
+  if (!paths || typeof paths !== 'object') return;
+
+  for (const route of Object.keys(paths)) {
+    if (!route.startsWith(EXTERNAL_ACTION_PREFIX)) {
+      delete paths[route];
+      continue;
+    }
+
+    const pathItem = paths[route];
+    if (!pathItem || typeof pathItem !== 'object' || Array.isArray(pathItem)) continue;
+    for (const [method, operation] of Object.entries(pathItem as JsonRecord)) {
+      if (!OPENAPI_METHODS.has(method.toLowerCase())) continue;
+      if (!operation || typeof operation !== 'object' || Array.isArray(operation)) continue;
+      const op = operation as JsonRecord;
+      if (Array.isArray(op.parameters)) {
+        op.parameters = op.parameters.filter((parameter: JsonRecord) => parameter?.in !== 'header');
+        if (op.parameters.length === 0) delete op.parameters;
+      }
+    }
+  }
 }
 
 function enforceActionDescriptionLimits(document: JsonRecord) {
@@ -55,12 +80,20 @@ export async function GET() {
     authorizationCode.tokenUrl = `${origin}/api/oauth/token`;
   }
 
-  if (document['x-sfi-governance'] && typeof document['x-sfi-governance'] === 'object') {
-    document['x-sfi-governance'].privacyPolicy = `${origin}/privacy`;
-    document['x-sfi-governance'].schemaBinding = 'CANONICAL_PRODUCTION_ORIGIN';
-    document['x-sfi-governance'].actionDescriptionLimit = ACTION_DESCRIPTION_LIMIT;
-  }
+  document['x-sfi-governance'] ||= {};
+  document['x-sfi-governance'].privacyPolicy = `${origin}/privacy`;
+  document['x-sfi-governance'].schemaBinding = 'CANONICAL_PRODUCTION_ORIGIN';
+  document['x-sfi-governance'].actionDescriptionLimit = ACTION_DESCRIPTION_LIMIT;
+  document['x-sfi-governance'].gptActions = {
+    schema: '/openapi.json',
+    oauthSecurityDeclared: Boolean(document.components?.securitySchemes?.sfiOAuth),
+    externalGatewayOnly: true,
+    mcpExcluded: true,
+    customHeaderParametersExcluded: true,
+    separateActionsProjection: false,
+  };
 
+  enforceGptActionsBoundary(document);
   enforceActionDescriptionLimits(document);
 
   return NextResponse.json(document, {
