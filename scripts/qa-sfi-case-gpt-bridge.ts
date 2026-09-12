@@ -56,6 +56,10 @@ assert.ok(objectRoute.includes("authorizeExternalRequest(request, 'cases:write')
 assert.ok(objectRoute.includes('canonicalRefId'), 'case_object_action_flat_ref_missing');
 assert.ok(objectRoute.includes('recordOperationalCaseObject'), 'case_object_action_must_reuse_canonical_writer');
 assert.ok(objectRoute.includes("if (!isRow(body.payload)) throw new Error('SFI_CASE_PAYLOAD_REQUIRED')"), 'case_object_action_must_reject_missing_or_non_object_payload');
+assert.ok(objectRoute.includes("optionalRefsFromIds(body.sourceRefIds, 'SOURCE_REF_IDS')"), 'case_object_action_source_refs_must_be_strict');
+assert.ok(objectRoute.includes("optionalRefsFromIds(body.recordRefIds, 'RECORD_REF_IDS')"), 'case_object_action_record_refs_must_be_strict');
+assert.ok(objectRoute.includes("if (!Array.isArray(value)) throw new Error(`SFI_CASE_${field}_INVALID`)"), 'case_object_action_ref_arrays_must_reject_non_arrays');
+assert.ok(objectRoute.includes("ids.some((id) => !id) || ids.length !== new Set(ids).size"), 'case_object_action_ref_arrays_must_reject_empty_or_duplicate_ids');
 
 for (const pathname of [
   '/api/external/v1/cases',
@@ -98,12 +102,13 @@ assert.match(String(openapi['x-sfi-governance']?.caseWorkspaceBoundary ?? ''), /
 
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-GPT-CASE-BRIDGE-1.1',
+  contract: 'SFI-GPT-CASE-BRIDGE-1.2',
   route: '/api/external/v1/cases',
   objectAction: '/api/external/v1/cases/object',
   objectOperationId: 'addSfiCaseObject',
   flatCanonicalRefRequired: true,
   payloadRequiredAtRuntime: true,
+  lineageRefArraysStrict: true,
   personalCaseRoutes: [
     '/api/external/v1/cases',
     '/api/external/v1/cases/intake',
