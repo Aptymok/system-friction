@@ -143,7 +143,7 @@ export function OAuthIntegrationsSurface() {
       setNotice('Callback actualizada sin tocar Vercel ni redeployar SFI.');
       await reload();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause)));
+      setError(cause instanceof Error ? cause.message : String(cause));
     } finally {
       setBusy(false);
     }
@@ -167,7 +167,7 @@ export function OAuthIntegrationsSurface() {
       setNotice('Client Secret rotado. Sustituye el anterior en el GPT; este valor se muestra una sola vez.');
       await reload();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause)));
+      setError(cause instanceof Error ? cause.message : String(cause));
     } finally {
       setBusy(false);
     }
@@ -186,7 +186,7 @@ export function OAuthIntegrationsSurface() {
       if (disclosure?.client.client_id === clientId) setDisclosure(null);
       await reload();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause)));
+      setError(cause instanceof Error ? cause.message : String(cause));
     } finally {
       setBusy(false);
     }
