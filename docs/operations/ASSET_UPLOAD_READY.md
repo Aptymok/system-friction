@@ -1,1 +1,0 @@
-Binary asset admission is ready through Git data blob/tree commits; source files have been recovered and optimized for web delivery.

@@ -1,1 +1,0 @@
-Binary assets are attached in the same branch through Git data.
