@@ -368,7 +368,7 @@ export function validateCanonicalObjectRegistry(records: readonly SfiCanonicalOb
   return [...new Set(errors)].sort();
 }
 
-const NOTAS_TEMPORALES_SOURCE = 'https://github.com/Aptymok/system-friction/blob/main/src/lib/publications/editorialContent.ts';
+const NOTAS_TEMPORALES_SOURCE = 'https://github.com/Aptymok/system-friction/blob/8343c847be2a15099cb1f3af66439c20f5b1494a/src/lib/publications/editorialContent.ts';
 
 // Runtime/event/database-derived objects have no automatic path into canon.
 // This collection intentionally remains empty; explicit repository admission is the only publication source.
