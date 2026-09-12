@@ -46,11 +46,44 @@ assert.match(merge, /ingest_analyze\s*:\s*'studio:run'/);
 assert.match(merge, /rightsTransfer\s*:\s*false/);
 assert.match(composedMerge, /import '\.\/merge-openapi-studio-attachments\.mjs'/);
 assert.match(composedMerge, /await import\('\.\/merge-openapi-actions-compat\.mjs'\)/);
-for (const token of ["const canonicalPath = path.join(process.cwd(), 'public', 'openapi.json')","const actionsPath = path.join(process.cwd(), 'public', 'openapi-actions.json')",'structuredClone(canonical)','maxOperationDescriptionChars: 300',"parameter?.in !== 'header'",'capabilityGrantNonceStillRequiredByMcpRuntimeForExecutableToolsCall: true','SFI_CANONICAL_OPENAPI_MCP_NONCE_PARAMETER_MISSING',"fs.writeFileSync(actionsPath"]) assert.ok(actionsCompat.includes(token));
+for (const token of [
+  "const canonicalPath = path.join(process.cwd(), 'public', 'openapi.json')",
+  "const actionsPath = path.join(process.cwd(), 'public', 'openapi-actions.json')",
+  'structuredClone(canonical)',
+  'maxOperationDescriptionChars: 300',
+  "delete api.security",
+  "delete api.components.securitySchemes.sfiOAuth",
+  "if (!route.startsWith('/api/external/v1/')) delete api.paths[route]",
+  "delete operation.security",
+  "authTransportOwner: 'GPT_ACTION_EDITOR_OAUTH'",
+  'openApiOAuthDeclarationsExcluded: true',
+  'mcpExcluded: true',
+  'SFI_CANONICAL_OPENAPI_MCP_NONCE_PARAMETER_MISSING',
+  'SFI_CANONICAL_OPENAPI_OAUTH_SCHEME_MISSING',
+  "fs.writeFileSync(actionsPath",
+]) assert.ok(actionsCompat.includes(token), `actions_projection_contract_missing:${token}`);
 assert.doesNotMatch(actionsCompat, /fs\.writeFileSync\(canonicalPath/);
 assert.match(workflow, /qa-sfi-chatgpt-studio-attachment\.ts/);
 assert.match(workflow, /merge-openapi-authenticated-machine\.mjs/);
 for (const scope of ["'studio:read'", "'studio:content'", "'studio:run'"]) assert.ok(members.includes(scope), `institutional_member_scope_missing:${scope}`);
 assert.ok(!members.includes("'studio:write'"), 'institutional_member_scope_must_not_expand:studio:write');
 
-console.log(JSON.stringify({ ok: true, contract: 'SFI-CHATGPT-STUDIO-ATTACHMENT-1.1', operation: 'ingest_analyze', compatibleSiblingOperation: 'produce', scope: 'studio:run', ownerBoundary: 'oauth.subjectId', attachmentCount: 1, modalityAdmission: 'CONSISTENT_EVIDENCE_FAIL_CLOSED', idempotency: 'OWNER_ID_PLUS_OPENAI_FILE_ID_UNIQUE', failedReservationRecovery: 'SAME_RESERVATION_RESUMABLE', activeAnalysisSerialization: 'QUEUED_OR_RUNNING_CONFLICT', retryAuthorizationLineage: 'DURABLE_HISTORY', canonicalPromotion: false, canonicalOpenApi: '/openapi.json', actionsOpenApi: '/openapi-actions.json', actionsCompatibility: 'SFI-GPT-ACTIONS-OPENAPI-COMPAT-1.0' }, null, 2));
+console.log(JSON.stringify({
+  ok: true,
+  contract: 'SFI-CHATGPT-STUDIO-ATTACHMENT-1.2',
+  operation: 'ingest_analyze',
+  compatibleSiblingOperation: 'produce',
+  scope: 'studio:run',
+  ownerBoundary: 'oauth.subjectId',
+  attachmentCount: 1,
+  modalityAdmission: 'CONSISTENT_EVIDENCE_FAIL_CLOSED',
+  idempotency: 'OWNER_ID_PLUS_OPENAI_FILE_ID_UNIQUE',
+  failedReservationRecovery: 'SAME_RESERVATION_RESUMABLE',
+  activeAnalysisSerialization: 'QUEUED_OR_RUNNING_CONFLICT',
+  retryAuthorizationLineage: 'DURABLE_HISTORY',
+  canonicalPromotion: false,
+  canonicalOpenApi: '/openapi.json',
+  actionsOpenApi: '/openapi-actions.json',
+  actionsAuthTransportOwner: 'GPT_ACTION_EDITOR_OAUTH',
+  actionsCompatibility: 'SFI-GPT-ACTIONS-OPENAPI-COMPAT-1.2',
+}, null, 2));

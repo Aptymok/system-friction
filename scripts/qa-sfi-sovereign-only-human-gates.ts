@@ -104,30 +104,35 @@ assert.match(openapiMerge, /classify and use as a working source without ROOT ap
 assert.match(openapiMerge, /canonical evidence admission only when an explicit governed promotion boundary is crossed/);
 assert.doesNotMatch(openapiMerge, /ROOT accept\/reject/);
 
-// GPT Actions, OAuth metadata and protected-resource metadata must stay on one
-// canonical production origin. Canonical machine OpenAPI/runtime still owns the
-// capability-grant nonce boundary; the Actions projection only removes a header
-// that ChatGPT Actions cannot supply.
+// GPT Actions uses OAuth configured in the GPT editor. The Actions OpenAPI is a
+// transport-neutral projection of the External Agent Gateway only; canonical
+// OpenAPI/runtime retains OAuth declarations and the MCP nonce boundary.
 assert.match(actionsProjection, /const canonicalOrigin = 'https:\/\/www\.systemfriction\.org'/);
 assert.match(actionsProjection, /const apiOrigin = canonicalOrigin/);
-assert.match(actionsProjection, /const oauthOrigin = canonicalOrigin/);
-assert.match(actionsProjection, /authorizationUrl = `\$\{oauthOrigin\}\/api\/oauth\/authorize`/);
-assert.match(actionsProjection, /tokenUrl = `\$\{oauthOrigin\}\/api\/oauth\/token`/);
-assert.match(actionsProjection, /filter\(\(parameter\) => parameter\?\.in !== 'header'\)/);
-assert.match(actionsProjection, /capabilityGrantNonceStillRequiredByMcpRuntimeForExecutableToolsCall: true/);
+assert.match(actionsProjection, /delete api\.security/);
+assert.match(actionsProjection, /delete api\.components\.securitySchemes\.sfiOAuth/);
+assert.match(actionsProjection, /delete operation\.security/);
+assert.match(actionsProjection, /if \(!route\.startsWith\('\/api\/external\/v1\/'\)\) delete api\.paths\[route\]/);
+assert.match(actionsProjection, /authTransportOwner: 'GPT_ACTION_EDITOR_OAUTH'/);
+assert.match(actionsProjection, /openApiOAuthDeclarationsExcluded: true/);
+assert.match(actionsProjection, /mcpExcluded: true/);
+assert.match(actionsProjection, /SFI_CANONICAL_OPENAPI_OAUTH_SCHEME_MISSING/);
+assert.match(actionsProjection, /SFI_CANONICAL_OPENAPI_MCP_NONCE_PARAMETER_MISSING/);
 assert.match(oauthMetadata, /const issuer = 'https:\/\/www\.systemfriction\.org'/);
 assert.match(protectedResourceMetadata, /const oauthIssuer = 'https:\/\/www\.systemfriction\.org'/);
 assert.match(protectedResourceMetadata, /const resourceOrigin = 'https:\/\/www\.systemfriction\.org'/);
 
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-SOVEREIGN-ONLY-HUMAN-GATES-1.4',
+  contract: 'SFI-SOVEREIGN-ONLY-HUMAN-GATES-1.5',
   humanApprovalRequiredForRoutineCaseWork: false,
   humanApprovalRequiredForWorkingSources: false,
   humanApprovalRequiredForRoutineLabRun: false,
   duplicateExecutionConfirmationRequired: false,
   obsoleteRoutineHumanGatesPresent: false,
   actionsApiOrigin: 'https://www.systemfriction.org',
+  actionsAuthTransportOwner: 'GPT_ACTION_EDITOR_OAUTH',
+  actionsMcpExposed: false,
   oauthIssuer: 'https://www.systemfriction.org',
   protectedResourceOrigin: 'https://www.systemfriction.org',
   sovereignBoundary: ['INSTITUTIONAL_CHANGE', 'CAPABILITY_IMPLEMENTATION', 'LEARNING_PROMOTION', 'RESERVED_EXTERNAL_OPERATION'],
