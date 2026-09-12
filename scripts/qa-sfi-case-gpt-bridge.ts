@@ -55,8 +55,17 @@ assert.equal(objectRoute.includes("epistemicRole: 'GOVERNANCE_DECISION'"), false
 assert.ok(objectRoute.includes("authorizeExternalRequest(request, 'cases:write')"), 'case_object_action_scope_missing');
 assert.ok(objectRoute.includes('canonicalRefId'), 'case_object_action_flat_ref_missing');
 assert.ok(objectRoute.includes('recordOperationalCaseObject'), 'case_object_action_must_reuse_canonical_writer');
+assert.ok(objectRoute.includes("if (!isRow(body.payload)) throw new Error('SFI_CASE_PAYLOAD_REQUIRED')"), 'case_object_action_must_reject_missing_or_non_object_payload');
 
-assert.match(auth, /scope\.startsWith\('cases:'\).*\/api\/external\/v1\/cases/s, 'personal_case_scope_must_be_route_bound');
+for (const pathname of [
+  '/api/external/v1/cases',
+  '/api/external/v1/cases/intake',
+  '/api/external/v1/cases/create',
+  '/api/external/v1/cases/object',
+]) {
+  assert.ok(auth.includes(`'${pathname}'`), `personal_case_route_missing:${pathname}`);
+}
+assert.match(auth, /scope\.startsWith\('cases:'\)[\s\S]*new Set\(\[/, 'personal_case_scope_must_use_explicit_owner_scoped_allowlist');
 assert.match(authorize, /SFI_ROOT_SCOPES/, 'oauth_authorize_must_use_central_scope_registry');
 assert.match(authorize, /SFI_PERSONAL_SCOPES/, 'oauth_authorize_must_use_personal_scope_registry');
 for (const scope of ['cases:read', 'cases:write']) {
@@ -94,6 +103,13 @@ console.log(JSON.stringify({
   objectAction: '/api/external/v1/cases/object',
   objectOperationId: 'addSfiCaseObject',
   flatCanonicalRefRequired: true,
+  payloadRequiredAtRuntime: true,
+  personalCaseRoutes: [
+    '/api/external/v1/cases',
+    '/api/external/v1/cases/intake',
+    '/api/external/v1/cases/create',
+    '/api/external/v1/cases/object',
+  ],
   scopes: ['cases:read', 'cases:write'],
   userBoundOAuth: true,
   tenantIsolation: true,
