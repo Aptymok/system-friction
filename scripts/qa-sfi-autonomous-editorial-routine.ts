@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 
 const read = (path: string) => readFileSync(path, 'utf8');
 const vercel = read('vercel.json');
@@ -7,6 +7,7 @@ const routine = read('src/lib/publications/temporalIssueRoutine.ts');
 const route = read('src/app/api/cron/notas-temporales/route.ts');
 const types = read('src/lib/world-vector/types.ts');
 const persistence = read('src/lib/world-vector/persistence.ts');
+const editorial = read('src/lib/publications/editorialContent.ts');
 const worldRoute = read('src/app/api/cron/world-observatory/route.ts');
 const sweep = read('src/lib/world-observatory/instrumentSweep.ts');
 const migration = read('supabase/migrations/20260912213500_extend_world_vector_reports_temporal_issue.sql');
@@ -34,6 +35,11 @@ assert.ok(route.includes('runTemporalIssueRoutine'), 'monthly_cron_must_call_bou
 assert.ok(vercel.includes('/api/cron/notas-temporales'), 'monthly_cron_must_be_scheduled');
 assert.ok(vercel.includes('15 14 1 * *'), 'monthly_cron_must_run_once_per_month');
 
+assert.ok(editorial.includes("coverImage: '/images/editorial/notas-temporales-septiembre-2026.webp'"), 'notas_temporales_cover_must_be_bound');
+assert.ok(editorial.includes("coverImage: '/images/editorial/notas-de-caso.webp'"), 'kavak_case_cover_must_be_bound');
+assert.ok(existsSync('public/images/editorial/notas-temporales-septiembre-2026.webp'), 'notas_temporales_cover_asset_missing');
+assert.ok(existsSync('public/images/editorial/notas-de-caso.webp'), 'notas_de_caso_cover_asset_missing');
+
 assert.ok(worldRoute.includes('runWorldInstrumentSweep'), 'daily_world_cron_must_run_instrument_sweep');
 assert.ok(sweep.includes("scope: 'signal-vane'"), 'daily_sweep_must_read_signal_vane');
 assert.ok(sweep.includes("scope: 'cluster-atlas'"), 'daily_sweep_must_read_cluster_atlas');
@@ -48,6 +54,7 @@ console.log(JSON.stringify({
   monthlyIssue: 'Notas Temporales',
   monthlyInputs: ['world observations', 'world hypotheses', 'hypothesis outcomes', 'Method Lab investigations', 'Predictive health'],
   persistence: 'canonical persistWorldVectorReport -> world_vector_reports / temporal_issue_monthly',
+  editorialCovers: ['notas-temporales-septiembre-2026.webp', 'notas-de-caso.webp'],
   canonicalMutation: false,
   founderInterruption: 'SOVEREIGN_BOUNDARY_ONLY',
 }, null, 2));
