@@ -86,6 +86,7 @@ jobs:
           echo "SFI_PRODUCTION_RECEIPT run=$run_id sha=$head_sha url=$run_url"
 
       - name: Verify GPT Actions OAuth/OpenAPI production origin
+        if: github.event_name == 'workflow_run' || github.event_name == 'workflow_dispatch'
         shell: bash
         env:
           SFI_PRODUCTION_SMOKE_TARGET: https://www.systemfriction.org
