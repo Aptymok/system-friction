@@ -13,6 +13,7 @@ on:
       - 'src/lib/execution/governedExecutionRouter.ts'
       - 'src/app/api/external/openapi/**'
       - 'src/app/api/external/v1/signal/**'
+      - 'src/app/api/external/v1/cases/**'
       - 'src/app/api/external/v1/execution-contract/**'
       - 'src/app/api/external/v1/result/**'
       - 'src/app/api/external/v1/execute/**'
@@ -27,6 +28,7 @@ on:
       - 'docs/canon/SFI_COMMUNICATION_PROTOCOL_1.0.json'
       - 'scripts/merge-openapi-universal-cycle.mjs'
       - 'scripts/qa-sfi-universal-full-cycle.ts'
+      - 'scripts/qa-sfi-case-intake-action-binding.ts'
       - 'scripts/qa-sfi-human-communication.ts'
       - 'scripts/qa-sfi-governed-execution-router.ts'
       - 'scripts/qa-sfi-external-oauth.ts'
@@ -45,6 +47,7 @@ on:
       - 'src/lib/execution/governedExecutionRouter.ts'
       - 'src/app/api/external/openapi/**'
       - 'src/app/api/external/v1/signal/**'
+      - 'src/app/api/external/v1/cases/**'
       - 'src/app/api/external/v1/execution-contract/**'
       - 'src/app/api/external/v1/result/**'
       - 'src/app/api/external/v1/execute/**'
@@ -59,6 +62,7 @@ on:
       - 'docs/canon/SFI_COMMUNICATION_PROTOCOL_1.0.json'
       - 'scripts/merge-openapi-universal-cycle.mjs'
       - 'scripts/qa-sfi-universal-full-cycle.ts'
+      - 'scripts/qa-sfi-case-intake-action-binding.ts'
       - 'scripts/qa-sfi-human-communication.ts'
       - 'scripts/qa-sfi-governed-execution-router.ts'
       - 'scripts/qa-sfi-external-oauth.ts'
@@ -124,6 +128,8 @@ jobs:
           node --import tsx -e "import { SFI_AGENT_EXECUTION_MAP } from './src/lib/sfi/cognitive-runtime/agentExecutionMap.ts'; const ids=Object.keys(SFI_AGENT_EXECUTION_MAP); console.log(ids.length, ids); if(ids.length!==21) process.exit(1);"
       - name: Verify universal full-cycle invariants
         run: node --import tsx scripts/qa-sfi-universal-full-cycle.ts
+      - name: Verify Case Platform Action intake binding
+        run: node --import tsx scripts/qa-sfi-case-intake-action-binding.ts
       - name: Verify human communication contract
         run: node --import tsx scripts/qa-sfi-human-communication.ts
       - name: Verify governed execution router
