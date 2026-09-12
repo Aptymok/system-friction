@@ -50,7 +50,8 @@ export async function readContinuityActionableWorkGate(input?: { requestedCycleI
   ]);
 
   const readError = state.error ?? proposals.error ?? cases.error ?? lifecycle.error ?? studio.error;
-  const missingContinuityState = !state.error && !state.data;
+  const continuityState = state.data;
+  const missingContinuityState = !state.error && !continuityState;
   if (readError || missingContinuityState) {
     return {
       shouldRun: true as const,
@@ -63,7 +64,11 @@ export async function readContinuityActionableWorkGate(input?: { requestedCycleI
     };
   }
 
-  const continuityMode = typeof state.data.mode === 'string' ? state.data.mode : 'NORMAL';
+  if (!continuityState) {
+    throw new Error('CONTINUITY_STATE_UNREACHABLE_AFTER_GUARD');
+  }
+
+  const continuityMode = typeof continuityState.mode === 'string' ? continuityState.mode : 'NORMAL';
   const activeProposal = (proposals.data ?? []).length > 0;
   const activeCase = ((cases.data ?? []) as Row[]).some((item) => {
     const status = typeof item.status === 'string' ? item.status.toLowerCase() : '';
