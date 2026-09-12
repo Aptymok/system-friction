@@ -16,18 +16,21 @@ assert.match(route, /schemaBinding = 'CANONICAL_PRODUCTION_ORIGIN'/, 'actions_sc
 assert.match(route, /'X-SFI-OpenAPI-Origin': origin/, 'actions_schema_must_expose_origin_receipt');
 assert.match(route, /'Cache-Control': 'no-store, max-age=0'/, 'actions_schema_must_not_cache_stale_binding');
 
-const openapiRewrite = Array.isArray(vercel.rewrites)
-  ? vercel.rewrites.find((entry: any) => entry?.source === '/openapi.json')
+const openapiRedirect = Array.isArray(vercel.redirects)
+  ? vercel.redirects.find((entry: any) => entry?.source === '/openapi.json')
   : null;
-assert.equal(openapiRewrite?.destination, '/api/external/openapi', 'legacy_openapi_url_must_route_through_actions_schema');
+assert.equal(openapiRedirect?.destination, '/api/external/openapi', 'legacy_openapi_url_must_redirect_to_actions_schema_before_filesystem');
+assert.equal(openapiRedirect?.permanent, false, 'legacy_openapi_redirect_must_be_temporary_307');
+assert.ok(!Array.isArray(vercel.rewrites) || !vercel.rewrites.some((entry: any) => entry?.source === '/openapi.json'), 'legacy_openapi_must_not_use_filesystem_losing_rewrite');
 
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-HOST-BOUND-OPENAPI-1.1',
+  contract: 'SFI-HOST-BOUND-OPENAPI-1.2',
   canonicalOrigin: 'https://www.systemfriction.org',
   route: '/api/external/openapi',
   legacyRoute: '/openapi.json',
-  legacyRouteRewritten: true,
+  legacyRouteRedirectedBeforeFilesystem: true,
+  redirectStatus: 307,
   binding: 'CANONICAL_PRODUCTION_ORIGIN',
   canonicalDocumentReused: true,
   oauthUrlsRewritten: true,
