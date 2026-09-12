@@ -18,6 +18,7 @@ assert.ok(routine.includes('getPredictiveEngineHealth'), 'monthly_routine_must_o
 assert.ok(routine.includes("from('world_hypotheses')"), 'monthly_routine_must_include_world_hypotheses');
 assert.ok(routine.includes("from('world_hypothesis_outcomes')"), 'monthly_routine_must_include_hypothesis_outcomes');
 assert.ok(routine.includes("from('sfi_lab_analyses')"), 'monthly_routine_must_include_method_lab_investigations');
+assert.ok(routine.includes(".is('owner_id', null)"), 'monthly_routine_must_exclude_personal_method_lab_rows');
 assert.ok(routine.includes('persistWorldVectorReport({ report })'), 'monthly_routine_must_reuse_canonical_world_vector_report_writer');
 assert.equal(routine.includes("from('world_vector_reports')"), false, 'monthly_routine_must_not_create_a_second_world_vector_report_writer');
 assert.ok(routine.includes("report_type: 'temporal_issue_monthly'"), 'monthly_routine_must_persist_bounded_temporal_issue_type');
@@ -54,9 +55,10 @@ console.log(JSON.stringify({
   contract: 'SFI-AUTONOMOUS-EDITORIAL-ROUTINE-1.0',
   dailyWorldSweep: ['signal-vane', 'cluster-atlas', 'predictive-health'],
   monthlyIssue: 'Notas Temporales',
-  monthlyInputs: ['world observations', 'world hypotheses', 'hypothesis outcomes', 'Method Lab investigations', 'Predictive health'],
+  monthlyInputs: ['world observations', 'world hypotheses', 'institutional Method Lab investigations', 'Predictive health'],
   persistence: 'canonical persistWorldVectorReport -> world_vector_reports / temporal_issue_monthly only when cycleless',
   editorialCovers: ['notas-temporales-septiembre-2026.webp', 'notas-de-caso.webp'],
+  personalMethodLabRows: 'EXCLUDED',
   canonicalMutation: false,
   founderInterruption: 'SOVEREIGN_BOUNDARY_ONLY',
 }, null, 2));
