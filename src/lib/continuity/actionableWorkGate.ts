@@ -50,17 +50,20 @@ export async function readContinuityActionableWorkGate(input?: { requestedCycleI
   ]);
 
   const readError = state.error ?? proposals.error ?? cases.error ?? lifecycle.error ?? studio.error;
-  if (readError) {
+  const missingContinuityState = !state.error && !state.data;
+  if (readError || missingContinuityState) {
     return {
       shouldRun: true as const,
       reason: 'WORK_GATE_READ_FAILED_FAIL_OPEN' as const,
       requestedCycleId: null,
       state: null,
-      diagnostic: { code: readError.code ?? null, message: readError.message },
+      diagnostic: readError
+        ? { code: readError.code ?? null, message: readError.message }
+        : { code: 'CONTINUITY_STATE_MISSING', message: 'Required sfi_continuity_state institution row is absent.' },
     };
   }
 
-  const continuityMode = typeof state.data?.mode === 'string' ? state.data.mode : 'NORMAL';
+  const continuityMode = typeof state.data.mode === 'string' ? state.data.mode : 'NORMAL';
   const activeProposal = (proposals.data ?? []).length > 0;
   const activeCase = ((cases.data ?? []) as Row[]).some((item) => {
     const status = typeof item.status === 'string' ? item.status.toLowerCase() : '';
