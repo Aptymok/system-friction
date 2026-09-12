@@ -1,9 +1,19 @@
+import docs from '../../../data/sfi/sf_docs_frontmatter.json';
 import { SFI_CANONICAL_OBJECT_REGISTRY, canonicalPublicationDisposition } from '@/lib/discovery/canonicalObjectRegistry';
 import { editorialPublicationForSlug } from '@/lib/publications/editorialContent';
-import LibraryClient, { type LibraryPublication } from './LibraryClient';
+import LibraryClient, { type LibraryDoc, type LibraryPublication, type LibrarySurfaceContract } from './LibraryClient';
 import './library.css';
 
 export const dynamic = 'force-static';
+
+const corpus = docs as LibraryDoc[];
+
+const surfaceContract: LibrarySurfaceContract = {
+  surfaceLabel: 'LIBRARY · DOCUMENTARY CORPUS',
+  catalogLabel: 'CATÁLOGO DOCUMENTAL CANÓNICO',
+  compactBodyBoundary: 'El catálogo preserva metadata compacta; no afirma que los cuerpos completos estén materializados.',
+  fullBodyReaderBoundary: 'FULL DOCUMENT BODY READER = NOT MATERIALIZED',
+};
 
 const publications: LibraryPublication[] = SFI_CANONICAL_OBJECT_REGISTRY
   .filter((record) => record.objectType === 'PUBLICATION' && canonicalPublicationDisposition(record).disposition === 'PUBLISH')
@@ -26,5 +36,5 @@ const publications: LibraryPublication[] = SFI_CANONICAL_OBJECT_REGISTRY
   });
 
 export default function LibraryPage() {
-  return <LibraryClient publications={publications} />;
+  return <LibraryClient publications={publications} corpus={corpus} surfaceContract={surfaceContract} />;
 }
