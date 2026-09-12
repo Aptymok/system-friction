@@ -167,6 +167,7 @@ export async function runTemporalIssueRoutine(reference = new Date()) {
       .order('evaluated_at', { ascending: false }).limit(200),
     db.from('sfi_lab_analyses')
       .select('id,mode,source,data_mode,systems,variables,limitations,recommendations,created_at')
+      .is('owner_id', null)
       .gte('created_at', window.startIso).lt('created_at', window.endExclusiveIso)
       .order('created_at', { ascending: false }).limit(120),
     getPredictiveEngineHealth().catch(() => null),
@@ -193,7 +194,7 @@ export async function runTemporalIssueRoutine(reference = new Date()) {
     outcomes: outcomes.slice(0, 60),
     investigations: investigations.slice(0, 40),
     predictiveHealth: predictiveResult,
-    epistemicBoundary: 'Context contains source records, governed hypotheses/outcomes, bounded Method Lab records and Predictive health. Instrument readings remain DERIVED/INFERRED and cannot become observed fact by composition.',
+    epistemicBoundary: 'Context contains source records, governed hypotheses/outcomes, institutional Method Lab records and Predictive health. Personal owner-scoped Method Lab rows are excluded before composition. Instrument readings remain DERIVED/INFERRED and cannot become observed fact by composition.',
   };
 
   const [vane, atlas] = await Promise.all([
