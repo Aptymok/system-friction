@@ -48,8 +48,8 @@ assert.deepEqual(RESEED_MINIMAL_TABLES, [
   'account_balance',
   'sfi_continuity_state',
 ]);
-assert.equal(PURGE_DATA_TABLES.length, 146, 'live reset baseline must explicitly classify all 146 non-World/non-genesis public tables');
-assert.equal(CLASSIFIED_PUBLIC_TABLES.length, 164, 'reset baseline must classify every public table observed after Discovery integration');
+assert.equal(PURGE_DATA_TABLES.length, 147, 'live reset baseline must explicitly classify all 147 non-World/non-genesis public tables');
+assert.equal(CLASSIFIED_PUBLIC_TABLES.length, 165, 'reset baseline must classify every public table observed after Discovery integration');
 assert.equal(new Set(CLASSIFIED_PUBLIC_TABLES).size, CLASSIFIED_PUBLIC_TABLES.length, 'reset classification must contain no duplicate table');
 for (const table of PRESERVE_DATA_TABLES) assert.equal(classifyPublicTable(table), 'PRESERVE_DATA');
 for (const table of RESEED_MINIMAL_TABLES) assert.equal(classifyPublicTable(table), 'RESEED_MINIMAL');
@@ -63,7 +63,7 @@ assert.equal(exactAudit.unclassified.length, 0);
 assert.equal(exactAudit.classifiedButNotObserved.length, 0);
 assert.equal(exactAudit.preserveData.length, 10);
 assert.equal(exactAudit.reseedMinimal.length, 8);
-assert.equal(exactAudit.purgeData.length, 146);
+assert.equal(exactAudit.purgeData.length, 147);
 
 for (const table of ['epistemic_events','sfi_amv_memory','policy_decisions','action_proposals','sfi_cognitive_twin_memory','sfi_cognitive_twin_runs','platform_metric_snapshots']) {
   assert.ok(PURGE_DATA_TABLES.includes(table), `non-World legacy/runtime table must be explicitly purged: ${table}`);
