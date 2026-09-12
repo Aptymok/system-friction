@@ -7,11 +7,6 @@ on:
         description: 'Optional existing universal cycleId to recover without opening a new cycle'
         required: false
         type: string
-  workflow_run:
-    workflows:
-      - SFI Vercel Prebuilt Production
-    types:
-      - completed
 
 permissions:
   contents: read
@@ -24,9 +19,8 @@ concurrency:
 
 jobs:
   heartbeat:
-    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     concurrency:
-      group: ${{ github.event_name == 'workflow_run' && format('sfi-post-deploy-assurance-{0}', github.event.workflow_run.id) || format('sfi-continuity-heartbeat-{0}', github.run_id) }}
+      group: ${{ format('sfi-continuity-heartbeat-{0}', github.run_id) }}
       cancel-in-progress: false
       queue: max
     runs-on: ubuntu-latest
@@ -37,31 +31,11 @@ jobs:
         shell: bash
         env:
           MANUAL_CYCLE_ID: ${{ inputs.cycle_id || '' }}
-          UPSTREAM_SHA: ${{ github.event.workflow_run.head_sha || '' }}
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           cycle_id="$MANUAL_CYCLE_ID"
           source="workflow_dispatch"
-
-          if [ -z "$cycle_id" ] && [ "${GITHUB_EVENT_NAME}" = "workflow_run" ] && [ -n "$UPSTREAM_SHA" ]; then
-            source="deployment_commit_marker"
-            commit_file="$RUNNER_TEMP/sfi-deployed-commit.json"
-            curl --fail-with-body --silent --show-error \
-              -H "Authorization: Bearer ${GH_TOKEN}" \
-              -H "Accept: application/vnd.github+json" \
-              "https://api.github.com/repos/${GITHUB_REPOSITORY}/commits/${UPSTREAM_SHA}" > "$commit_file"
-            cycle_id="$(python - "$commit_file" <<'PY'
-          import json, re, sys
-          with open(sys.argv[1], encoding='utf-8') as handle:
-              payload = json.load(handle)
-          message = ((payload.get('commit') or {}).get('message') or '')
-          match = re.search(r'\[sfi-cycle-proof:([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})\]', message)
-          print(match.group(1).lower() if match else '')
-          PY
-            )"
-          fi
-
           if [ -z "$cycle_id" ]; then
             source="none"
           fi
@@ -98,9 +72,6 @@ jobs:
           fi
 
           response_file="$RUNNER_TEMP/sfi-continuity-response.json"
-          # Do not client-retry the whole heartbeat. This endpoint may already have
-          # committed governed effects before a transport failure is observed.
-          # Bounded retry is owned only by the pre-candidate ledger READ path.
           curl --fail-with-body --silent --show-error \
             --connect-timeout 15 \
             --max-time 300 \
@@ -116,7 +87,6 @@ jobs:
               payload = json.load(handle)
 
           core = payload.get('coreHeartbeat') or {}
-          lane_status = payload.get('laneStatus') or {}
           universal = payload.get('universalCycleContinuation') or {}
           before = payload.get('returnPlanUpgradeBefore') or {}
           after = payload.get('returnPlanUpgradeAfter') or {}
@@ -131,12 +101,7 @@ jobs:
               'requestedCycleId': payload.get('requestedCycleId'),
               'targetSource': target_source,
               'coreHeartbeat': core,
-              'laneStatus': lane_status,
-              'returnPlanUpgradeBefore': {
-                  'ok': before.get('ok'),
-                  'processed': before.get('processed'),
-                  'results': before.get('results', []),
-              },
+              'returnPlanUpgradeBefore': {'ok': before.get('ok'), 'processed': before.get('processed'), 'results': before.get('results', [])},
               'universal': {
                   'ok': universal.get('ok'),
                   'availability': universal.get('availability'),
@@ -147,20 +112,11 @@ jobs:
                   'error': universal.get('error'),
                   'results': universal.get('results', []),
               },
-              'returnPlanUpgradeAfter': {
-                  'ok': after.get('ok'),
-                  'processed': after.get('processed'),
-                  'results': after.get('results', []),
-              },
-              'empirical': {
-                  'ok': empirical.get('ok'),
-                  'processed': empirical.get('processed'),
-                  'results': empirical.get('results', []),
-              },
+              'returnPlanUpgradeAfter': {'ok': after.get('ok'), 'processed': after.get('processed'), 'results': after.get('results', [])},
+              'empirical': {'ok': empirical.get('ok'), 'processed': empirical.get('processed'), 'results': empirical.get('results', [])},
               'targetCycleState': target,
           }
-          compact = json.dumps(summary, ensure_ascii=False, separators=(',', ':'))
-          print(compact)
+          print(json.dumps(summary, ensure_ascii=False, separators=(',', ':')))
 
           summary_path = os.environ.get('GITHUB_STEP_SUMMARY')
           if summary_path:
