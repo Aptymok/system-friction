@@ -87,6 +87,12 @@ api.components.schemas.CaseWorkspaceRequest = {
     },
     source: { type: 'object', additionalProperties: true },
     kind: { type: 'string' },
+    canonicalRefId: {
+      type: 'string',
+      description: 'Preferred GPT Action transport field for canonicalRef.id when operation=add_object.',
+    },
+    canonicalRefVersion: { type: ['string', 'null'] },
+    canonicalRefHash: { type: ['string', 'null'] },
     canonicalRef: { type: 'object', additionalProperties: true },
     sourceRefs: { type: 'array', items: { type: 'object', additionalProperties: true } },
     recordRefs: { type: 'array', items: { type: 'object', additionalProperties: true } },
@@ -120,11 +126,31 @@ api.components.schemas.CaseResolvedTransportRequest = {
   },
 };
 
+api.components.schemas.CaseObjectTransportRequest = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['caseId', 'kind', 'canonicalRefId', 'payload'],
+  properties: {
+    caseId: { type: 'string' },
+    kind: {
+      type: 'string',
+      enum: ['RECORD', 'OBSERVATION', 'SYSTEM_MODEL', 'HYPOTHESIS', 'ANALYSIS', 'RECOMMENDATION', 'REPORT', 'UNRESOLVED_QUESTION', 'CONTRADICTION'],
+    },
+    canonicalRefId: { type: 'string' },
+    canonicalRefVersion: { type: ['string', 'null'] },
+    canonicalRefHash: { type: ['string', 'null'] },
+    sourceRefIds: { type: 'array', items: { type: 'string' } },
+    recordRefIds: { type: 'array', items: { type: 'string' } },
+    payload: { type: 'object', additionalProperties: true },
+    observedAt: { type: ['string', 'null'] },
+  },
+};
+
 api.paths['/api/external/v1/cases'] = {
   post: {
     operationId: 'operateSfiCaseWorkspace',
     summary: 'Plan, read, create and populate tenant-scoped SFI Case Platform cases',
-    description: 'OAuth Case Platform adapter. Prefer flat systemBoundary* and temporal* fields in GPT Actions; SFI reconstructs canonical nested contracts internally. Cannot admit evidence, make governance decisions, authorize interventions, record RETURN, or create truth claims.',
+    description: 'OAuth Case Platform adapter. Prefer flat systemBoundary*, temporal* and canonicalRef* transport fields. Cannot admit evidence, govern, intervene, record RETURN, or create truth claims.',
     security: [{ sfiOAuth: [] }],
     requestBody: {
       required: true,
@@ -189,6 +215,30 @@ api.paths['/api/external/v1/cases/create'] = {
       '409': { description: 'Required intake context remains incomplete' },
       '401': { description: 'Missing or insufficient cases:write scope' },
       '403': { description: 'User-bound OAuth required or tenant access forbidden' },
+    },
+  },
+};
+
+api.paths['/api/external/v1/cases/object'] = {
+  post: {
+    operationId: 'addSfiCaseObject',
+    summary: 'Persist one bounded Case object through required flat transport',
+    description: 'Dedicated GPT Action for Case objects. canonicalRefId is required and reconstructed inside SFI. Cannot create accepted evidence, governance, intervention, RETURN or truth claims.',
+    security: [{ sfiOAuth: ['cases:write'] }],
+    requestBody: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: { $ref: '#/components/schemas/CaseObjectTransportRequest' },
+        },
+      },
+    },
+    responses: {
+      '201': { description: 'Bounded Case object persisted' },
+      '400': { description: 'Invalid or authority-forbidden object request' },
+      '401': { description: 'Missing or insufficient cases:write scope' },
+      '403': { description: 'User-bound OAuth required or tenant access forbidden' },
+      '404': { description: 'Case not found in an accessible tenant' },
     },
   },
 };
@@ -282,6 +332,7 @@ console.log(JSON.stringify({
   intakePlan: true,
   flatCaseTransportAliases: true,
   dedicatedRequiredCaseActions: true,
+  dedicatedRequiredCaseObjectAction: true,
   actionRevision: api.info?.['x-sfi-action-revision'] ?? null,
   cognitiveRuntime: true,
   cognitiveRuntimeContract: 'SFI-EXTERNAL-COGNITIVE-RUNTIME-1.0',
