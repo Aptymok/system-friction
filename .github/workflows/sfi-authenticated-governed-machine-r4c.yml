@@ -10,6 +10,7 @@ on:
       - 'src/lib/sfi/externalAuth.ts'
       - 'src/app/api/oauth/token/route.ts'
       - 'src/app/api/external/v1/manifest/route.ts'
+      - 'src/app/api/external/openapi/route.ts'
       - 'scripts/merge-openapi-authenticated-machine.mjs'
       - 'scripts/qa-sfi-authenticated-governed-machine-r4c.ts'
       - 'package.json'
@@ -68,15 +69,17 @@ jobs:
       - name: Revalidate public read-only MCP boundary
         run: npx tsx scripts/qa-sfi-public-mcp-readonly.ts
 
-      - name: Materialize and inspect authenticated machine OpenAPI
+      - name: Materialize and inspect canonical GPT Actions OpenAPI boundary
         shell: bash
         run: |
           node scripts/merge-openapi-authenticated-machine.mjs
           node - <<'NODE'
           const api = require('./public/openapi.json');
-          const op = api.paths?.['/api/mcp/authenticated']?.post;
-          if (!op) throw new Error('AUTHENTICATED_MACHINE_OPENAPI_PATH_MISSING');
-          if (op['x-sfi-contract'] !== 'SFI-AUTHENTICATED-GOVERNED-MACHINE-ADAPTER-1.0') throw new Error('AUTHENTICATED_MACHINE_OPENAPI_CONTRACT_MISMATCH');
+          if (api.paths?.['/api/mcp/authenticated']) throw new Error('AUTHENTICATED_MCP_MUST_BE_OUT_OF_BAND_FROM_GPT_OPENAPI');
+          if (!api.components?.securitySchemes?.sfiOAuth) throw new Error('GPT_OPENAPI_OAUTH_SCHEME_MISSING');
+          if (api['x-sfi-governance']?.gptActions?.schema !== '/openapi.json') throw new Error('CANONICAL_GPT_ACTIONS_SCHEMA_MISMATCH');
+          if (api['x-sfi-governance']?.gptActions?.separateActionsProjection !== false) throw new Error('LEGACY_ACTIONS_PROJECTION_STILL_ENABLED');
+          if (api['x-sfi-governance']?.authenticatedMachineAdapter?.openApiExposure !== 'OUT_OF_BAND_MCP') throw new Error('MCP_OPENAPI_BOUNDARY_MISSING');
           if (api['x-sfi-governance']?.authenticatedMachineAdapter?.externalPublicationReceipt !== null) throw new Error('FABRICATED_EXTERNAL_PUBLICATION_RECEIPT');
           NODE
 
