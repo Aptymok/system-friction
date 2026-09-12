@@ -1,5 +1,6 @@
 import type { PublicationStatus } from '../system/contracts';
 import { SFI_PUBLIC_PROFILE } from '../public/institutionProfile';
+import { SFI_EDITORIAL_OBSERVATIONS } from '../publications/editorialContent';
 
 export const SFI_CANONICAL_OBJECT_CONTRACT = 'SFI-CANONICAL-OBJECT-1.0' as const;
 export const SFI_CANONICAL_NAMESPACE_CONTRACT = 'SFI-CANONICAL-NAMESPACE-1.0' as const;
@@ -368,7 +369,67 @@ export function validateCanonicalObjectRegistry(records: readonly SfiCanonicalOb
   return [...new Set(errors)].sort();
 }
 
-const NOTAS_TEMPORALES_SOURCE = 'https://github.com/Aptymok/system-friction/blob/8343c847be2a15099cb1f3af66439c20f5b1494a/src/lib/publications/editorialContent.ts';
+const EDITORIAL_PUBLICATIONS_SOURCE = 'https://github.com/Aptymok/system-friction/blob/a419070288fa28bd67b982472aaad4e4cadd5c04/src/lib/publications/editorialContent.ts';
+const NOTAS_TEMPORALES_SOURCE = EDITORIAL_PUBLICATIONS_SOURCE;
+
+function canonicalObservationPublication(publication: (typeof SFI_EDITORIAL_OBSERVATIONS)[number]): SfiCanonicalObjectRecord {
+  const sourceRefs = publication.mediumUrl
+    ? [EDITORIAL_PUBLICATIONS_SOURCE, publication.mediumUrl]
+    : [EDITORIAL_PUBLICATIONS_SOURCE];
+
+  return {
+    contract: SFI_CANONICAL_OBJECT_CONTRACT,
+    id: publication.canonicalId,
+    objectKey: canonicalObjectKey('PUBLICATION', publication.slug),
+    objectType: 'PUBLICATION',
+    slug: publication.slug,
+    canonicalUrl: canonicalUrlFor('PUBLICATION', publication.slug),
+    title: publication.title,
+    summary: publication.deck,
+    bodyRef: `src/lib/publications/editorialContent.ts#${publication.canonicalId}`,
+    epistemicState: 'DECLARED',
+    version: '1.0',
+    language: 'es',
+    authors: ['System Friction Institute'],
+    methods: ['Discovery Mesh', 'Longitudinal observation'],
+    relatedObjects: [],
+    sourceRefs,
+    publicState: 'PUBLIC',
+    license: 'CC BY 4.0',
+    createdAt: publication.publishedAt,
+    updatedAt: '2026-09-12T15:00:00-06:00',
+    entity: {
+      entityId: SFI_ENTITY_ID,
+      relation: 'PUBLISHED_BY',
+    },
+    publication: {
+      state: 'PUBLISHED',
+      explicit: true,
+    },
+    eligibility: {
+      privacyClass: 'PUBLIC',
+      publicEligible: true,
+      securityEligible: true,
+    },
+    rights: {
+      state: 'OPEN',
+    },
+    evidenceIdentity: {
+      state: 'VALID',
+      refs: [EDITORIAL_PUBLICATIONS_SOURCE],
+    },
+    limitations: [
+      'Editorial observation is not accepted evidence merely because it is published.',
+      'Publication establishes EXPOSURE only. Discovery, Recognition, Interaction, PULL and RETURN require independent evidence.',
+      'Where a Medium URL exists it is preserved as distribution/origin lineage; the SFI canonical URL remains the institutional discovery target.',
+    ],
+    missing: publication.coverImage ? [] : [{
+      field: 'coverImage',
+      reason: 'No repository-backed cover asset is materialized for this publication yet.',
+      sourceRef: EDITORIAL_PUBLICATIONS_SOURCE,
+    }],
+  };
+}
 
 // Runtime/event/database-derived objects have no automatic path into canon.
 // This collection intentionally remains empty; explicit repository admission is the only publication source.
@@ -383,7 +444,7 @@ export const SFI_CANONICAL_OBJECT_REGISTRY: readonly SfiCanonicalObjectRecord[] 
     slug: 'notas-temporales-v1',
     canonicalUrl: canonicalUrlFor('PUBLICATION', 'notas-temporales-v1'),
     title: 'Notas Temporales',
-    summary: 'Observación sistémica para un mundo en transición: una publicación periódica de SFI para registrar señales, evidencia, convergencias y preguntas sin confundir observación con predicción.',
+    summary: 'Publicación institucional mensual de SFI para fijar un corte temporal de señales, evidencia, convergencias, contradicciones y preguntas sin confundir observación con predicción.',
     bodyRef: 'src/lib/publications/editorialContent.ts#SFI_NOTAS_TEMPORALES_V1',
     epistemicState: 'DECLARED',
     version: '1.0',
@@ -395,7 +456,7 @@ export const SFI_CANONICAL_OBJECT_REGISTRY: readonly SfiCanonicalObjectRecord[] 
     publicState: 'PUBLIC',
     license: 'CC BY 4.0',
     createdAt: '2026-09-12T00:00:00-06:00',
-    updatedAt: '2026-09-12T00:00:00-06:00',
+    updatedAt: '2026-09-12T15:00:00-06:00',
     entity: {
       entityId: SFI_ENTITY_ID,
       relation: 'PUBLISHED_BY',
@@ -417,12 +478,13 @@ export const SFI_CANONICAL_OBJECT_REGISTRY: readonly SfiCanonicalObjectRecord[] 
       refs: [NOTAS_TEMPORALES_SOURCE],
     },
     limitations: [
-      'The publication defines an observation and editorial method; it does not assert that every signal named by the method has already been observed.',
+      'Notas Temporales is a monthly institutional PDF series; individual web essays are classified separately as Observaciones.',
       'Publication establishes EXPOSURE only. Discovery, Recognition, Interaction, PULL and RETURN require independent evidence.',
       'Derived relationships and model output remain distinct from observed external evidence.',
     ],
     missing: [],
   },
+  ...SFI_EDITORIAL_OBSERVATIONS.map(canonicalObservationPublication),
 ]);
 
 export function publicCanonicalObjectUrls(records: readonly SfiCanonicalObjectRecord[] = SFI_CANONICAL_OBJECT_REGISTRY): string[] {
