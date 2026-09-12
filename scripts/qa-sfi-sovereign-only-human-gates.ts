@@ -104,26 +104,32 @@ assert.match(openapiMerge, /classify and use as a working source without ROOT ap
 assert.match(openapiMerge, /canonical evidence admission only when an explicit governed promotion boundary is crossed/);
 assert.doesNotMatch(openapiMerge, /ROOT accept\/reject/);
 
-// GPT Actions use the institutional domain for API calls but keep OAuth on the
-// stable Vercel project hostname already registered by the existing GPT client.
-assert.match(actionsProjection, /const apiOrigin = 'https:\/\/systemfriction\.org'/);
-assert.match(actionsProjection, /const oauthOrigin = 'https:\/\/system-friction\.vercel\.app'/);
+// GPT Actions, OAuth metadata and protected-resource metadata must stay on one
+// canonical production origin. Canonical machine OpenAPI/runtime still owns the
+// capability-grant nonce boundary; the Actions projection only removes a header
+// that ChatGPT Actions cannot supply.
+assert.match(actionsProjection, /const canonicalOrigin = 'https:\/\/www\.systemfriction\.org'/);
+assert.match(actionsProjection, /const apiOrigin = canonicalOrigin/);
+assert.match(actionsProjection, /const oauthOrigin = canonicalOrigin/);
 assert.match(actionsProjection, /authorizationUrl = `\$\{oauthOrigin\}\/api\/oauth\/authorize`/);
 assert.match(actionsProjection, /tokenUrl = `\$\{oauthOrigin\}\/api\/oauth\/token`/);
-assert.match(oauthMetadata, /const issuer = 'https:\/\/system-friction\.vercel\.app'/);
-assert.match(protectedResourceMetadata, /const oauthIssuer = 'https:\/\/system-friction\.vercel\.app'/);
-assert.match(protectedResourceMetadata, /const resourceOrigin = 'https:\/\/systemfriction\.org'/);
+assert.match(actionsProjection, /filter\(\(parameter\) => parameter\?\.in !== 'header'\)/);
+assert.match(actionsProjection, /capabilityGrantNonceStillRequiredByMcpRuntimeForExecutableToolsCall: true/);
+assert.match(oauthMetadata, /const issuer = 'https:\/\/www\.systemfriction\.org'/);
+assert.match(protectedResourceMetadata, /const oauthIssuer = 'https:\/\/www\.systemfriction\.org'/);
+assert.match(protectedResourceMetadata, /const resourceOrigin = 'https:\/\/www\.systemfriction\.org'/);
 
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-SOVEREIGN-ONLY-HUMAN-GATES-1.3',
+  contract: 'SFI-SOVEREIGN-ONLY-HUMAN-GATES-1.4',
   humanApprovalRequiredForRoutineCaseWork: false,
   humanApprovalRequiredForWorkingSources: false,
   humanApprovalRequiredForRoutineLabRun: false,
   duplicateExecutionConfirmationRequired: false,
   obsoleteRoutineHumanGatesPresent: false,
-  actionsApiOrigin: 'https://systemfriction.org',
-  oauthIssuer: 'https://system-friction.vercel.app',
+  actionsApiOrigin: 'https://www.systemfriction.org',
+  oauthIssuer: 'https://www.systemfriction.org',
+  protectedResourceOrigin: 'https://www.systemfriction.org',
   sovereignBoundary: ['INSTITUTIONAL_CHANGE', 'CAPABILITY_IMPLEMENTATION', 'LEARNING_PROMOTION', 'RESERVED_EXTERNAL_OPERATION'],
   plainLanguageDefault: true,
   canonicalPromotionAutomatic: false,
