@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { runWorldCalibrationCycle } from '@/lib/world-observatory/worldCycle';
 import { runWorldHypothesisCycle } from '@/lib/world-observatory/hypothesisCycle';
+import { runWorldInstrumentSweep } from '@/lib/world-observatory/instrumentSweep';
 import { executeWorldSignalObserverAgent } from '@/lib/world-observatory/worldSignalObserverAgent';
 
 export const runtime = 'nodejs';
@@ -28,6 +29,22 @@ export async function POST(request: NextRequest) {
   const observation = worldSignalObserver.observation;
   const hypothesis = await runWorldHypothesisCycle();
   const calibration = await runWorldCalibrationCycle();
+  const instrumentSweep = await runWorldInstrumentSweep({
+    observedAt: startedAt,
+    worldSignalObserver,
+    hypothesis,
+    calibration,
+  }).catch((error) => ({
+    ok: false as const,
+    contract: 'SFI-WORLD-INSTRUMENT-SWEEP-1.0',
+    generatedAt: new Date().toISOString(),
+    signalVane: null,
+    clusterAtlas: null,
+    predictiveHealth: null,
+    warnings: [error instanceof Error ? error.message : String(error)],
+    writesPerformed: false,
+    boundary: 'Instrument sweep degraded without changing World observation/hypothesis/calibration authority.',
+  }));
   const ok = observation.ok && hypothesis.ok && calibration.ok;
 
   return NextResponse.json({
@@ -38,11 +55,13 @@ export async function POST(request: NextRequest) {
     observation,
     hypothesis,
     calibration,
+    instrumentSweep,
     freshness: {
       observed: observation.observed,
       persisted: observation.persisted,
       collectorFailures: observation.failures.length,
     },
+    executionRule: 'World observation, hypothesis generation and calibration remain authoritative for this cron. Signal Vane, Cluster Atlas and Predictive health are a read-only daily instrumentation sweep; their failure does not fabricate evidence or block the observed World cycle.',
   });
 }
 
