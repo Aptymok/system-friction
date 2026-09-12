@@ -7,6 +7,16 @@ export type SfiEditorialPublicationSection = {
   items?: readonly string[];
 };
 
+export type SfiEditorialPublicationRendition = {
+  kind: 'PDF';
+  mediaType: 'application/pdf';
+  filename: string;
+  byteLength: number;
+  sha256: string;
+  publicUrl: string | null;
+  state: 'IDENTIFIED' | 'PUBLIC';
+};
+
 export type SfiEditorialPublication = {
   contract: typeof SFI_EDITORIAL_PUBLICATION_CONTENT_CONTRACT;
   slug: string;
@@ -18,6 +28,7 @@ export type SfiEditorialPublication = {
   motto: string;
   deck: string;
   publishedAt: string;
+  renditions: readonly SfiEditorialPublicationRendition[];
   sections: readonly SfiEditorialPublicationSection[];
   cadence: readonly { interval: string; name: string; scope: string }[];
   domains: readonly string[];
@@ -35,6 +46,17 @@ export const SFI_NOTAS_TEMPORALES_V1: SfiEditorialPublication = Object.freeze({
   motto: 'El futuro no se adivina, se observa a tiempo.',
   deck: 'Una serie documental periódica para registrar, relacionar y traducir señales relevantes del entorno sin confundir observación con predicción. Las Notas Temporales conectan evidencia pública, cambios externos, memoria institucional y el World Spector Vector 16×16 para hacer visibles fricciones, convergencias y preguntas que merecen seguimiento.',
   publishedAt: '2026-09-12T00:00:00-06:00',
+  renditions: Object.freeze([
+    {
+      kind: 'PDF',
+      mediaType: 'application/pdf',
+      filename: 'SFI_Notas_Temporales_Mexico_Septiembre_2026_FINAL.pdf',
+      byteLength: 23085591,
+      sha256: 'bbc7c9df27b6f7295f9919a707f5adab3f25ddd44fee194812c8d38259135103',
+      publicUrl: null,
+      state: 'IDENTIFIED',
+    },
+  ]),
   sections: Object.freeze([
     {
       id: 'que-son',
