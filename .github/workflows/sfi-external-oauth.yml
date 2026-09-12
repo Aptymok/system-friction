@@ -27,11 +27,9 @@ on:
       - 'supabase/migrations/*personal_cognitive*'
       - 'supabase/migrations/*studio_external_intake*'
       - 'public/openapi.json'
-      - 'public/openapi-actions.json'
       - 'scripts/merge-openapi-cases.mjs'
       - 'scripts/merge-openapi-studio-attachments.mjs'
       - 'scripts/merge-openapi-authenticated-machine.mjs'
-      - 'scripts/merge-openapi-actions-compat.mjs'
       - 'scripts/qa-sfi-chatgpt-studio-attachment.ts'
       - 'scripts/qa-sfi-model-owner-context.ts'
       - 'scripts/qa-sfi-external-oauth.ts'
@@ -66,7 +64,7 @@ jobs:
       - name: Verify OAuth governance contract
         run: npx tsx scripts/qa-sfi-external-oauth.ts
 
-      - name: Verify host-bound external OpenAPI
+      - name: Verify host-bound canonical OpenAPI
         run: npx tsx scripts/qa-sfi-host-bound-openapi.ts
 
       - name: Verify OAuth integrations self-service
@@ -78,7 +76,7 @@ jobs:
       - name: Verify agent API integrations and hardening
         run: node scripts/merge-openapi-cases.mjs && npx tsx scripts/qa-sfi-agent-api-hardening.ts
 
-      - name: Verify ChatGPT Studio attachment intake and Action/MCP projection separation
+      - name: Verify ChatGPT Studio attachment intake and canonical Action/MCP separation
         run: node scripts/merge-openapi-authenticated-machine.mjs && npx tsx scripts/qa-sfi-chatgpt-studio-attachment.ts
 
       - name: Verify owner-scoped Studio context for authorized model clients
