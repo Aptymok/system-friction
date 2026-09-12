@@ -23,6 +23,8 @@ assert.equal(routine.includes("from('world_vector_reports')"), false, 'monthly_r
 assert.ok(routine.includes("report_type: 'temporal_issue_monthly'"), 'monthly_routine_must_persist_bounded_temporal_issue_type');
 assert.ok(routine.includes("target_audience: 'repository'"), 'monthly_routine_must_remain_repository_bounded');
 assert.ok(persistence.includes('cycleRange?: WorldVectorCycleRange'), 'canonical_report_writer_must_allow_cycleless_monthly_candidates');
+assert.ok(persistence.includes("input.report.report_type !== 'temporal_issue_monthly'"), 'cycleless_report_persistence_must_be_monthly_only');
+assert.ok(persistence.includes('world_vector_cycle_required_for_report_type'), 'non_monthly_cycleless_reports_must_fail_closed');
 assert.ok(persistence.includes('let cycleId: string | null = null'), 'canonical_report_writer_must_preserve_null_cycle_identity_when_cycle_absent');
 assert.ok(persistence.includes('cycle_id: cycleId'), 'canonical_report_writer_must_own_cycle_id_assignment');
 assert.equal(routine.includes('cycle_id: null'), false, 'monthly_routine_must_not_write_cycle_identity_directly');
@@ -53,7 +55,7 @@ console.log(JSON.stringify({
   dailyWorldSweep: ['signal-vane', 'cluster-atlas', 'predictive-health'],
   monthlyIssue: 'Notas Temporales',
   monthlyInputs: ['world observations', 'world hypotheses', 'hypothesis outcomes', 'Method Lab investigations', 'Predictive health'],
-  persistence: 'canonical persistWorldVectorReport -> world_vector_reports / temporal_issue_monthly',
+  persistence: 'canonical persistWorldVectorReport -> world_vector_reports / temporal_issue_monthly only when cycleless',
   editorialCovers: ['notas-temporales-septiembre-2026.webp', 'notas-de-caso.webp'],
   canonicalMutation: false,
   founderInterruption: 'SOVEREIGN_BOUNDARY_ONLY',
