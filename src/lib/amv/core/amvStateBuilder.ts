@@ -43,6 +43,12 @@ export async function buildAmvScopeState(scopeInput: string): Promise<AmvScopeSt
   if (!scope) return { ok: false, error: 'missing_scope', availableScopes: listAmvScopes() }
   if (!getAmvScope(scope)) return { ok: false, error: 'unknown_scope', availableScopes: listAmvScopes() }
   if (scope === 'scorefriction') return buildScoreFrictionScopeState()
+  if (scope === 'predictive-engine') {
+    return buildDegradedAmvScopeState(
+      scope,
+      'Predictive Engine has a persisted governed runtime, but its service-role health is not projected through the unauthenticated AMV state surface.',
+    )
+  }
   return buildDegradedAmvScopeState(scope)
 }
 

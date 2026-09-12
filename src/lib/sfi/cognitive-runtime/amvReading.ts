@@ -8,17 +8,23 @@ import type { AmvGraphState } from '@/lib/amv/core/amvGraphTypes';
  * types (AmvEvidenceAgentResult, AmvGraphState) — it wraps them as-is with common
  * fields PhenomenonRelay needs to translate a reading into a CognitiveEvent.
  *
- * Scope, per ADR-001/IMPLEMENTATION-NOTES: limited to the two Understanding Layer
- * modules confirmed live today (exported via src/lib/amv/agents/index.ts or with
- * their own route). `cluster-atlasAgent` and `signal-vaneAgent` are real files with
- * a defined conceptual role (evidence clustering / signal-gradient detection) but
- * are not exported by the barrel and have no callers — not included here. Adding
- * them is a matter of extending this union, once someone wires them into a live
- * path; it does not require reopening ADR-001/004.
+ * Runtime boundary:
+ * - Signal Vane and Cluster Atlas are live registered AMV scopes and can produce
+ *   bounded scoped decisions through amvRuntime.
+ * - Their `*-agent` files are non-executing instrument descriptors, not structured
+ *   reading producers. Their standalone ContextBuilder wrappers are not the owner
+ *   of the live path; createEcosystemScope/buildEcosystemContext is.
+ * - Predictive Engine is a separate persisted learning subsystem with its own
+ *   governed models/runs/outcomes and an AMV observational scope. It must not be
+ *   collapsed into the stochastic-projection sandbox operator.
+ *
+ * Therefore this union contains only structured Understanding Layer outputs that
+ * currently cross PhenomenonRelay. A registered scope does not automatically earn
+ * a CognitiveEvent shape or write authority.
  *
  * AMVReading never carries authority. Per ADR-002, nothing in this type is ever
- * written to institutional memory directly by AMV — only PhenomenonRelay, on the
- * Runtime side, decides what becomes a CognitiveEvent.
+ * written to institutional memory directly by AMV — only the Runtime-side bridge
+ * decides what becomes a CognitiveEvent.
  */
 export type AMVReadingKind = 'evidence_assessment' | 'graph_state';
 
@@ -47,4 +53,3 @@ export function wrapEvidenceReading(scope: string, result: AmvEvidenceAgentResul
 export function wrapGraphReading(scope: string, result: AmvGraphState): AMVGraphStateReading {
   return { kind: 'graph_state', scope, producedAt: new Date().toISOString(), producedBy: 'amvGraphBuilder', result };
 }
-
