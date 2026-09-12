@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 
-const oauthIssuer = 'https://system-friction.vercel.app';
-const resourceOrigin = 'https://systemfriction.org';
+const oauthIssuer = 'https://www.systemfriction.org';
+const resourceOrigin = 'https://www.systemfriction.org';
 
 export async function GET() {
   return Response.json({
