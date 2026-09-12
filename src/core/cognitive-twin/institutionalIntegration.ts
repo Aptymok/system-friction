@@ -96,13 +96,44 @@ async function syncMethodLabRuns(limit = 100): Promise<SyncResult> {
   return { source:'method_lab', ok:failed===0, observed:rows.length, synced, failed, warning:failed ? `${failed}_method_lab_runs_failed` : null };
 }
 
+async function existingWorldSpectTwinExperienceRefs(limit = 1000) {
+  const db = createServiceSupabaseClient();
+  const existing = await db.from('epistemic_events')
+    .select('source')
+    .eq('event_name', 'cognitive_twin.experience.recorded')
+    .order('sequence', { ascending: false })
+    .limit(limit);
+  if (existing.error) return { ok:false as const, refs:new Set<string>(), error:existing.error.message };
+
+  const refs = new Set<string>();
+  for (const item of (existing.data ?? []) as Row[]) {
+    const source = record(item.source);
+    if (text(source.sourceType) !== 'worldspect_snapshots') continue;
+    const sourceId = text(source.sourceId);
+    if (sourceId) refs.add(sourceId);
+  }
+  return { ok:true as const, refs, error:null };
+}
+
 async function syncObservatoryState(limit = 60): Promise<SyncResult> {
   const db = createServiceSupabaseClient();
-  const result = await db.from('worldspect_snapshots').select('id,observed_at,created_at,source_state,confidence,wsi,nti,ingest_mode,sources').order('observed_at', { ascending: false }).limit(limit);
+  const [result, existing] = await Promise.all([
+    db.from('worldspect_snapshots').select('id,observed_at,created_at,source_state,confidence,wsi,nti,ingest_mode,sources').order('observed_at', { ascending: false }).limit(limit),
+    existingWorldSpectTwinExperienceRefs(),
+  ]);
   if (result.error) return { source:'observatory', ok:false, observed:0, synced:0, failed:0, warning:result.error.message };
+  if (!existing.ok) return { source:'observatory', ok:false, observed:0, synced:0, failed:0, warning:`observatory_sync_identity_read_failed:${existing.error}` };
+
   const rows = (result.data ?? []) as Row[];
+  const candidates = existing.refs.size === 0
+    ? rows.slice(0, 1)
+    : rows.filter((row) => {
+        const id = text(row.id) ?? text(row.observed_at);
+        return Boolean(id) && !existing.refs.has(String(id));
+      });
+
   let synced = 0; let failed = 0;
-  for (const row of rows) {
+  for (const row of candidates) {
     const id = text(row.id) ?? text(row.observed_at);
     if (!id) { failed += 1; continue; }
     const sources = Array.isArray(row.sources) ? row.sources.map(record) : [];
@@ -114,12 +145,20 @@ async function syncObservatoryState(limit = 60): Promise<SyncResult> {
         epistemicClass:simulatedSources === sources.length && sources.length ? 'SIMULATED' : 'DERIVED_FROM_OBSERVATIONS',
         observedAt:text(row.observed_at) ?? text(row.created_at), sourceState:text(row.source_state), confidence:number(row.confidence),
         wsi:number(row.wsi), nti:number(row.nti), ingestMode:text(row.ingest_mode), sourceCount:sources.length, simulatedSourceCount:simulatedSources,
-        rule:'Observatory snapshots enter candidate Twin memory with their original epistemic boundary and require verification/promotion before canonical consumption.',
+        rule:'Only previously unsynchronized WorldSpect snapshots may enter candidate Twin memory. On a clean memory baseline, only the latest persisted snapshot is admitted; historical World state is not replayed as new institutional experience. Candidate memory retains the original epistemic boundary and requires verification/promotion before canonical consumption.',
       },
     });
     if (persisted.ok) synced += 1; else failed += 1;
   }
-  return { source:'observatory', ok:failed===0, observed:rows.length, synced, failed, warning:failed ? `${failed}_observatory_snapshots_failed` : null };
+  const bootstrapBounded = existing.refs.size === 0 && rows.length > 1;
+  return {
+    source:'observatory',
+    ok:failed===0,
+    observed:rows.length,
+    synced,
+    failed,
+    warning:failed ? `${failed}_observatory_snapshots_failed` : bootstrapBounded ? 'observatory_clean_baseline_bootstrap_latest_only' : null,
+  };
 }
 
 async function probe(input: IntegrationOrgan) {
