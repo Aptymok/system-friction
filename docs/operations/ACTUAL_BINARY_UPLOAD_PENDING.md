@@ -1,0 +1,1 @@
+The recovered editorial image bytes are available in the working container and their stable public paths are reserved. This marker exists only to distinguish source recovery from repository binary admission during CI work.
