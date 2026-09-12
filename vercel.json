@@ -38,6 +38,10 @@
     {
       "path": "/api/cron/continuity-report",
       "schedule": "45 8 * * *"
+    },
+    {
+      "path": "/api/cron/notas-temporales",
+      "schedule": "15 14 1 * *"
     }
   ]
 }
