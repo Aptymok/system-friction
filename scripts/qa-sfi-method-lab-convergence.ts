@@ -201,7 +201,8 @@ for (const path of [
 }
 
 const vercel = JSON.parse(read('vercel.json')) as { crons?: Array<{ path?: string }> };
-assert.equal(vercel.crons?.length, 7, 'Method Lab convergence must not add Vercel cron jobs.');
+const methodLabCrons = (vercel.crons ?? []).filter((item) => item.path?.includes('method-lab'));
+assert.equal(methodLabCrons.length, 0, 'Method Lab convergence must not own or add Vercel cron jobs.');
 assert.equal(vercel.crons?.filter((item) => item.path === '/api/cron/continuity-report').length, 1, 'Existing continuity cron must remain singular.');
 
 console.log(JSON.stringify({
@@ -221,6 +222,6 @@ console.log(JSON.stringify({
     'Method Lab protocol controls use governed APIs and server-owned evidence readers rather than direct interface persistence',
     'GitHub Method Lab branch PRs are read-only; write-triggered pushes execute only on main',
     'external Method Lab persist is idempotent by commandId and database-unique deterministic event id',
-    'no additional Vercel cron',
+    'Method Lab owns no Vercel cron',
   ],
 }, null, 2));
