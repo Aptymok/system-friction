@@ -1,7 +1,6 @@
 import { getAmvDashboardByScope, listAmvDashboards } from '../registry/dashboardRegistry'
 import { getAmvScope, listAmvScopes } from '../registry/scopeRegistry'
 import { buildScoreFrictionScopeState } from '../scopes/scorefriction/scorefrictionStateConnector'
-import { getPredictiveEngineHealth } from '@/lib/predictive-engine/service'
 import type { AmvScopeState, AmvScopeStateError } from './amvScopeStateTypes'
 
 function labelForScope(scope: string) {
@@ -39,64 +38,17 @@ export function buildDegradedAmvScopeState(scope: string, warning?: string): Amv
   }
 }
 
-async function buildPredictiveEngineScopeState(): Promise<AmvScopeState> {
-  try {
-    const health = await getPredictiveEngineHealth()
-    if (!health.ok) {
-      return buildDegradedAmvScopeState('predictive-engine', 'PREDICTIVE_ENGINE_HEALTH_DEGRADED')
-    }
-
-    return {
-      ok: true,
-      scope: 'predictive-engine',
-      label: 'SFI Predictive Learning Engine',
-      state: 'live',
-      dashboardSpec: getAmvDashboardByScope('predictive-engine'),
-      latestReading: {
-        label: 'Predictive engine availability',
-        summary: 'Persisted predictive subsystem reported AVAILABLE through its governed health contract.',
-        trust: 'audit',
-        source: 'predictive-engine-health-contract',
-        payload: {
-          availability: 'AVAILABLE',
-          persistedSubsystem: true,
-          publicProjection: 'SANITIZED',
-        },
-      },
-      sourceTrust: 'observed',
-      evidenceSummary: {
-        count: 0,
-        verified: 0,
-        declared: 0,
-        derived: 0,
-        degraded: 0,
-        sandbox: 0,
-        sourceCoverage: 1,
-      },
-      recentEvents: [],
-      archiveLayerSummary: [
-        { layer: 'technical_audit', count: 1, canFeedRegime: false },
-        { layer: 'living_observatory', count: 0, canFeedRegime: false },
-        { layer: 'sandbox', count: 0, canFeedRegime: false },
-      ],
-      warnings: [],
-      canFeedRegime: false,
-      canSupportAttractor: false,
-    }
-  } catch (error) {
-    return buildDegradedAmvScopeState(
-      'predictive-engine',
-      `PREDICTIVE_ENGINE_STATE_UNAVAILABLE:${error instanceof Error ? error.message : String(error)}`,
-    )
-  }
-}
-
 export async function buildAmvScopeState(scopeInput: string): Promise<AmvScopeState | AmvScopeStateError> {
   const scope = scopeInput.trim().toLowerCase()
   if (!scope) return { ok: false, error: 'missing_scope', availableScopes: listAmvScopes() }
   if (!getAmvScope(scope)) return { ok: false, error: 'unknown_scope', availableScopes: listAmvScopes() }
   if (scope === 'scorefriction') return buildScoreFrictionScopeState()
-  if (scope === 'predictive-engine') return buildPredictiveEngineScopeState()
+  if (scope === 'predictive-engine') {
+    return buildDegradedAmvScopeState(
+      scope,
+      'Predictive Engine has a persisted governed runtime, but its service-role health is not projected through the unauthenticated AMV state surface.',
+    )
+  }
   return buildDegradedAmvScopeState(scope)
 }
 
