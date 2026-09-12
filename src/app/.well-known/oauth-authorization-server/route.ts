@@ -2,7 +2,7 @@ import { SFI_ROOT_SCOPES } from '@/lib/sfi/oauthConfig';
 
 export const dynamic = 'force-dynamic';
 
-const issuer = 'https://system-friction.vercel.app';
+const issuer = 'https://www.systemfriction.org';
 
 export async function GET() {
   return Response.json({
