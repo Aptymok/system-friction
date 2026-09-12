@@ -1,0 +1,1 @@
+Binary editorial assets recovered from the user-owned ChatGPT Library are intentionally materialized and compressed as WEBP before repository admission. The source identity is preserved in the conversation/library evidence; public paths are versioned with the SFI repository.
