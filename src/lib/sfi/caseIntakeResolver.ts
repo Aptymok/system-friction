@@ -42,6 +42,16 @@ function privacyRelevant(kind: string) {
   return ['dataset', 'csv', 'json', 'document', 'conversation', 'email', 'person', 'audio', 'video', 'image'].includes(kind);
 }
 
+function consistentText(label: string, values: unknown[]) {
+  const present = [...new Set(values.map(text).filter((value): value is string => Boolean(value)))];
+  if (present.length > 1) throw new Error(`SFI_CASE_ACTION_${label}_CONFLICT`);
+  return present[0] ?? null;
+}
+
+function assignIfPresent(target: Row, key: string, value: string | null) {
+  if (value !== null) target[key] = value;
+}
+
 export function resolveUniversalCaseIntake(inputValue: unknown) {
   const input = row(inputValue);
   const signal = row(input.signal);
@@ -116,20 +126,63 @@ export function resolveCasePlatformCreationIntake(inputValue: unknown) {
   };
 }
 
-export function resolveCasePlatformCreationIntakeFromAction(inputValue: unknown) {
+export function normalizeCasePlatformActionInput(inputValue: unknown): Row {
   const input = row(inputValue);
   const draft = row(input.draft);
-  const merged: Row = {
+  const inputBoundary = row(input.systemBoundaryRef);
+  const draftBoundary = row(draft.systemBoundaryRef);
+  const inputTemporal = row(input.temporalWindow);
+  const draftTemporal = row(draft.temporalWindow);
+
+  const systemBoundaryRef: Row = {
+    ...inputBoundary,
+    ...draftBoundary,
+  };
+  assignIfPresent(systemBoundaryRef, 'id', consistentText('SYSTEM_BOUNDARY_ID', [
+    inputBoundary.id,
+    draftBoundary.id,
+    input.systemBoundaryId,
+    draft.systemBoundaryId,
+  ]));
+  assignIfPresent(systemBoundaryRef, 'version', consistentText('SYSTEM_BOUNDARY_VERSION', [
+    inputBoundary.version,
+    draftBoundary.version,
+    input.systemBoundaryVersion,
+    draft.systemBoundaryVersion,
+  ]));
+  assignIfPresent(systemBoundaryRef, 'hash', consistentText('SYSTEM_BOUNDARY_HASH', [
+    inputBoundary.hash,
+    draftBoundary.hash,
+    input.systemBoundaryHash,
+    draft.systemBoundaryHash,
+  ]));
+
+  const temporalWindow: Row = {
+    ...inputTemporal,
+    ...draftTemporal,
+  };
+  const temporalAliases: Array<[string, string, unknown[]]> = [
+    ['mode', 'TEMPORAL_MODE', [inputTemporal.mode, draftTemporal.mode, input.temporalMode, draft.temporalMode]],
+    ['basis', 'TEMPORAL_BASIS', [inputTemporal.basis, draftTemporal.basis, input.temporalBasis, draft.temporalBasis]],
+    ['start', 'TEMPORAL_START', [inputTemporal.start, draftTemporal.start, input.temporalStart, draft.temporalStart]],
+    ['end', 'TEMPORAL_END', [inputTemporal.end, draftTemporal.end, input.temporalEnd, draft.temporalEnd]],
+    ['cutoff', 'TEMPORAL_CUTOFF', [inputTemporal.cutoff, draftTemporal.cutoff, input.temporalCutoff, draft.temporalCutoff]],
+    ['timezone', 'TEMPORAL_TIMEZONE', [inputTemporal.timezone, draftTemporal.timezone, input.temporalTimezone, draft.temporalTimezone]],
+    ['reconstructionAsOf', 'TEMPORAL_RECONSTRUCTION_AS_OF', [inputTemporal.reconstructionAsOf, draftTemporal.reconstructionAsOf, input.temporalReconstructionAsOf, draft.temporalReconstructionAsOf]],
+    ['horizon', 'TEMPORAL_HORIZON', [inputTemporal.horizon, draftTemporal.horizon, input.temporalHorizon, draft.temporalHorizon]],
+  ];
+  for (const [key, label, values] of temporalAliases) {
+    assignIfPresent(temporalWindow, key, consistentText(label, values));
+  }
+
+  return {
     ...input,
     ...draft,
-    systemBoundaryRef: {
-      ...row(input.systemBoundaryRef),
-      ...row(draft.systemBoundaryRef),
-    },
-    temporalWindow: {
-      ...row(input.temporalWindow),
-      ...row(draft.temporalWindow),
-    },
+    systemBoundaryRef,
+    temporalWindow,
   };
-  return resolveCasePlatformCreationIntake(merged);
+}
+
+export function resolveCasePlatformCreationIntakeFromAction(inputValue: unknown) {
+  return resolveCasePlatformCreationIntake(normalizeCasePlatformActionInput(inputValue));
 }

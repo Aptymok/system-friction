@@ -1,17 +1,18 @@
 SFI-00 CONTROLLED PRODUCTION RELEASE
 requested_at=2026-09-12
-release_reason=Fix Case Platform intake_plan so fields exposed by the GPT Action schema reach the intake resolver whether sent top-level, inside draft, or split across both shapes.
-source_main=be8c8482158e717fa1bbc6455249d0b3c9904ea6
-release_basis=case_intake_action_binding_qa+sfi_universal_signal_pass+typecheck+build
+release_reason=Expose transport-safe flat Case intake fields for GPT Actions and reconstruct the canonical nested systemBoundaryRef/temporalWindow inside SFI for both intake_plan and create.
+source_main=e850258b7337a0807f508dc8399f74724385a387
+release_basis=case_intake_flat_transport_qa+sfi_universal_signal_pass+typecheck+build
 canonical_openapi=/openapi.json
 gpt_actions_openapi=/openapi.json
 separate_actions_projection=false
 canonical_actions_origin=https://www.systemfriction.org
 case_intake_contract=SFI-CASE-INTAKE-RESOLVER-1.0
-case_intake_top_level_fields=serviceProfileId,subject,scope,systemBoundaryRef,temporalWindow
-case_intake_draft_compatibility=preserved
-case_intake_fail_closed_on_missing_context=preserved
+case_transport_flat_fields=systemBoundaryId,systemBoundaryVersion,systemBoundaryHash,temporalMode,temporalBasis,temporalStart,temporalEnd,temporalCutoff,temporalTimezone,temporalReconstructionAsOf,temporalHorizon
+case_transport_nested_compatibility=preserved
+case_transport_conflicts=fail_closed
+case_intake_create_normalization=shared
 case_creation_authority_change=none
 evidence_authority_change=none
 governance_authority_change=none
-post_release_tests=deployed_sha+real_gpt_intake_plan_readyForCreate+case_create+case_readback
+post_release_tests=deployed_sha+real_gpt_flat_intake_plan_readyForCreate+case_create+case_readback
