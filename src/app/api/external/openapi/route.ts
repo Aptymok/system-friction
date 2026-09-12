@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import sourceDocument from '../../../../../public/openapi.json';
 
 export const dynamic = 'force-dynamic';
@@ -8,6 +8,7 @@ type JsonRecord = Record<string, any>;
 
 const ACTION_DESCRIPTION_LIMIT = 300;
 const OPENAPI_METHODS = new Set(['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace']);
+const SFI_ACTIONS_ORIGIN = 'https://www.systemfriction.org';
 
 function clipActionDescription(value: string) {
   if (value.length <= ACTION_DESCRIPTION_LIMIT) return value;
@@ -34,8 +35,8 @@ function enforceActionDescriptionLimits(document: JsonRecord) {
   }
 }
 
-export async function GET(request: NextRequest) {
-  const origin = request.nextUrl.origin.replace(/\/$/, '');
+export async function GET() {
+  const origin = SFI_ACTIONS_ORIGIN;
   const document = structuredClone(sourceDocument) as JsonRecord;
 
   document.servers = [{ url: origin }];
@@ -56,7 +57,7 @@ export async function GET(request: NextRequest) {
 
   if (document['x-sfi-governance'] && typeof document['x-sfi-governance'] === 'object') {
     document['x-sfi-governance'].privacyPolicy = `${origin}/privacy`;
-    document['x-sfi-governance'].schemaBinding = 'REQUEST_ORIGIN';
+    document['x-sfi-governance'].schemaBinding = 'CANONICAL_PRODUCTION_ORIGIN';
     document['x-sfi-governance'].actionDescriptionLimit = ACTION_DESCRIPTION_LIMIT;
   }
 
@@ -66,6 +67,7 @@ export async function GET(request: NextRequest) {
     headers: {
       'Cache-Control': 'no-store, max-age=0',
       'Access-Control-Allow-Origin': '*',
+      'X-SFI-OpenAPI-Origin': origin,
     },
   });
 }
