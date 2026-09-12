@@ -115,3 +115,21 @@ export function resolveCasePlatformCreationIntake(inputValue: unknown) {
     principle: 'Operational Case creation is downstream of universal observation/classification. Create the Case only when its service contract is resolvable; do not use Case creation as the universal ingestion gate.',
   };
 }
+
+export function resolveCasePlatformCreationIntakeFromAction(inputValue: unknown) {
+  const input = row(inputValue);
+  const draft = row(input.draft);
+  const merged: Row = {
+    ...input,
+    ...draft,
+    systemBoundaryRef: {
+      ...row(input.systemBoundaryRef),
+      ...row(draft.systemBoundaryRef),
+    },
+    temporalWindow: {
+      ...row(input.temporalWindow),
+      ...row(draft.temporalWindow),
+    },
+  };
+  return resolveCasePlatformCreationIntake(merged);
+}

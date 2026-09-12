@@ -1,7 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { authorizeExternalRequest, externalAuthError } from '@/lib/sfi/externalAuth';
-import { resolveCasePlatformCreationIntake } from '@/lib/sfi/caseIntakeResolver';
+import {
+  resolveCasePlatformCreationIntake,
+  resolveCasePlatformCreationIntakeFromAction,
+} from '@/lib/sfi/caseIntakeResolver';
 import {
   createOperationalCase,
   listOperationalCases,
@@ -133,16 +136,15 @@ export async function POST(request: Request) {
     }
 
     if (operation === 'intake_plan') {
-      const draft = row(body.draft);
-      const intakePlan = resolveCasePlatformCreationIntake(draft);
+      const intakePlan = resolveCasePlatformCreationIntakeFromAction(body);
       return NextResponse.json({
         ok: true,
         operation,
         intakePlan,
         readyForCreate: intakePlan.readyForCreate,
         next: intakePlan.readyForCreate
-          ? 'Submit the same resolved draft using operation=create.'
-          : 'Ask only intakePlan.questions that remain unresolved, merge the answers into draft, then call intake_plan again.',
+          ? 'Submit the same resolved fields using operation=create.'
+          : 'Ask only intakePlan.questions that remain unresolved, merge the answers into the Action request, then call intake_plan again.',
         epistemicBoundary: 'Pre-case intake resolves missing context only. It creates no case, evidence, memory, proposal, intervention or truth claim.',
       });
     }
