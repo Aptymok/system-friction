@@ -1,11 +1,12 @@
 SFI-00 CONTROLLED PRODUCTION RELEASE
-requested_at=2026-09-11
-release_reason=Restore ChatGPT SFI OAuth connectivity with one stable OAuth issuer on system-friction.vercel.app while keeping the institutional API and GPT Actions server on systemfriction.org.
-source_main=e440d08fc661941bf824e269c591206329e4fb27
-release_basis=oauth_boundaries_pass+host_bound_openapi_pass+integrations_pass+typecheck_pass+production_build_pass
-openapi_materialization=vercel_build_prod
-oauth_issuer=https://system-friction.vercel.app
-api_origin=https://systemfriction.org
-client_secret_rotation=preserve_current_rotated_secret
-cost_gate=single_bounded_release
-post_release_tests=openapi_actions+oauth_metadata+authorization_code_consumption
+requested_at=2026-09-12
+release_reason=Restore autonomous SFI continuity at :15 and :45 plus post-deploy while preventing frequent idle heartbeat runs from executing heavy read/write lanes.
+source_main=b20027bbe9945b0982034ed144793d13b06fd18c
+release_basis=sfi_verify_pass+continuity_ledger_pass+sfi08_certification_pass+codeql_pass+vercel_cost_gate_pass
+continuity_wakeup=read_only_actionable_work_gate
+idle_expected=IDLE_NO_ACTIONABLE_WORK
+full_heartbeat_condition=targeted_cycle_or_actionable_pending_work_or_non_normal_continuity
+vercel_daily_fallback=retained
+reset_qa_baseline=165_public_10_preserve_8_reseed_147_purge
+cost_intent=eliminate_twice_hourly_idle_heavy_runtime_execution
+post_release_tests=deployed_sha+idle_wakeup+db_before_after+automatic_schedule
