@@ -1,0 +1,23 @@
+{
+  "contract": "SFI_DATAHISTORY_ARCHIVE_V1",
+  "created_at": "2026-09-12T05:23:23.133Z",
+  "source_git_commit": "6412ca60b9a4fc6302878834224c48fcf453de9a",
+  "source_snapshot_file": "SFI_DB_SNAPSHOT_20260912T052323Z_6412ca60b9a4.zip",
+  "source_snapshot_sha256": "c42910b64abf28186477eb28d6df0fa47274f70bf7e446c4f24eb56490f04e76",
+  "source_snapshot_bytes": 6399170,
+  "encrypted_archive_sha256": "945647fd91165c6a5ab813053b75d81e4559bacc6a0a07c244ab00b2c23d55cf",
+  "encrypted_archive_bytes": 6399912,
+  "encryption": "CMS enveloped-data / AES-256 / RSA recipient certificate",
+  "recipient_certificate": "docs/db/SFI_DATAHISTORY_ARCHIVE_RECIPIENT_CERT.pem",
+  "recipient_cert_sha256": "829c19736bed59481103f1ddabf7c7c4c77632a4466ddbe2edf3334ccbd38417",
+  "github_actions_run_id": 34675397416,
+  "github_actions_pre_reset_artifact_id": 10292027350,
+  "github_actions_pre_reset_artifact_digest": "sha256:e68273d5b62b69d5e9d2902c478125a1c0c5cb6ee1d5f254626ebdcc7e39fcb9",
+  "github_actions_post_reset_artifact_id": 10291743393,
+  "github_actions_post_reset_artifact_digest": "sha256:78812aee033798bfd4f149351306dd23261ec2c5bd71126c0ef168192f2ebe3a",
+  "reset_at": "2026-09-12T05:23:54.734Z",
+  "public_table_count": 165,
+  "purge_data_table_count": 147,
+  "unclassified_table_count": 0,
+  "reason": "Founder-directed evidence-first cleanup: preserve a recoverable historical snapshot, purge development-generated persistence, retain the longitudinal World plane, and repopulate operational storage only with real evidence/data."
+}
