@@ -5,9 +5,11 @@ on:
     paths:
       - 'src/lib/discovery/**'
       - 'src/lib/research/**'
+      - 'src/lib/publications/**'
       - 'src/components/research/**'
       - 'src/app/research/**'
       - 'src/app/publications/**'
+      - 'src/app/library/**'
       - 'public/library/**'
       - 'src/app/feed.xml/**'
       - 'src/app/feed.atom/**'
@@ -34,9 +36,11 @@ on:
     paths:
       - 'src/lib/discovery/**'
       - 'src/lib/research/**'
+      - 'src/lib/publications/**'
       - 'src/components/research/**'
       - 'src/app/research/**'
       - 'src/app/publications/**'
+      - 'src/app/library/**'
       - 'public/library/**'
       - 'src/app/feed.xml/**'
       - 'src/app/feed.atom/**'
