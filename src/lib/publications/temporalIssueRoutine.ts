@@ -173,13 +173,31 @@ export async function runTemporalIssueRoutine(reference = new Date()) {
     getPredictiveEngineHealth().catch(() => null),
   ]);
 
-  const warnings = [
+  const requiredReadErrors = [
     observationsResult.error && `world_observations:${observationsResult.error.message}`,
     hypothesesResult.error && `world_hypotheses:${hypothesesResult.error.message}`,
     outcomesResult.error && `world_hypothesis_outcomes:${outcomesResult.error.message}`,
     investigationsResult.error && `method_lab:${investigationsResult.error.message}`,
+  ].filter((value): value is string => Boolean(value));
+  const warnings = [
+    ...requiredReadErrors,
     !predictiveResult && 'predictive_health_unavailable',
   ].filter((value): value is string => Boolean(value));
+
+  if (requiredReadErrors.length) {
+    return {
+      ok: false as const,
+      contract: 'SFI-AUTONOMOUS-EDITORIAL-ROUTINE-1.0',
+      window,
+      report: null,
+      persistence: null,
+      vane: null,
+      atlas: null,
+      predictiveHealth: predictiveResult,
+      warnings,
+      boundary: 'Required monthly input read failed. No AMV reading was composed and no monthly draft was persisted; a healthy same-period retry can reconstruct the complete candidate.',
+    };
+  }
 
   const observations = rows(observationsResult.data).map(compactObservation);
   const hypotheses = rows(hypothesesResult.data).map(compactHypothesis);
@@ -245,7 +263,7 @@ export async function runTemporalIssueRoutine(reference = new Date()) {
 
   const persistence = await persistWorldVectorReport({ report });
   return {
-    ok: persistence.ok && !observationsResult.error,
+    ok: persistence.ok,
     contract: 'SFI-AUTONOMOUS-EDITORIAL-ROUTINE-1.0',
     window,
     report,
