@@ -89,6 +89,7 @@ export const PURGE_DATA_TABLES = [
   'scorefriction_sources',
   'scorefriction_vectors',
   'scorefriction_verifications',
+  'sfi_account_access_grants',
   'sfi_amv_memory',
   'sfi_artifact_trajectory_events',
   'sfi_attractor_evidence_links',
