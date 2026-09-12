@@ -1,4 +1,5 @@
 import { strict as assert } from 'node:assert';
+import { readFileSync } from 'node:fs';
 import {
   normalizeCasePlatformActionInput,
   resolveCasePlatformCreationIntakeFromAction,
@@ -78,13 +79,29 @@ assert.throws(() => resolveCasePlatformCreationIntakeFromAction({
   systemBoundaryRef: { id: 'DIFFERENT-BOUNDARY' },
 }), /SFI_CASE_ACTION_SYSTEM_BOUNDARY_ID_CONFLICT/);
 
+const openapi = JSON.parse(readFileSync('public/openapi.json', 'utf8')) as Record<string, any>;
+const requiredSchema = openapi.components?.schemas?.CaseResolvedTransportRequest;
+assert(requiredSchema, 'CaseResolvedTransportRequest must be materialized in OpenAPI');
+assert.deepEqual(
+  requiredSchema.required,
+  ['serviceProfileId', 'subject', 'scope', 'systemBoundaryId', 'temporalCutoff'],
+  'Dedicated Case intake/create Actions must require the five blocking intake fields at the tool-schema layer',
+);
+assert.equal(openapi.paths?.['/api/external/v1/cases/intake']?.post?.operationId, 'planSfiCaseIntake');
+assert.equal(openapi.paths?.['/api/external/v1/cases/create']?.post?.operationId, 'createSfiCaseFromResolvedIntake');
+assert.equal(openapi.info?.['x-sfi-action-revision'], 'case-intake-required-v2');
+
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-CASE-INTAKE-ACTION-BINDING-1.1',
+  contract: 'SFI-CASE-INTAKE-ACTION-BINDING-1.2',
   nestedActionFieldsAccepted: true,
   flatTransportAliasesAccepted: true,
   flatTransportReconstructsCanonicalNestedContract: true,
   mixedDraftTopLevelFlatAccepted: true,
   conflictingTransportFailsClosed: true,
   unresolvedFieldsStillFailClosed: true,
+  dedicatedIntakeActionRequiredFields: requiredSchema.required,
+  dedicatedIntakeOperationId: 'planSfiCaseIntake',
+  dedicatedCreateOperationId: 'createSfiCaseFromResolvedIntake',
+  actionRevision: 'case-intake-required-v2',
 }, null, 2));

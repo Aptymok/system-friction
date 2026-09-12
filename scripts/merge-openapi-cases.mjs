@@ -10,6 +10,7 @@ if (!canonicalVersion || !/^\d+\.\d+\.\d+$/.test(canonicalVersion)) {
 }
 api.info ??= {};
 api.info.version = canonicalVersion;
+api.info['x-sfi-action-revision'] = 'case-intake-required-v2';
 const oauth = api.components?.securitySchemes?.sfiOAuth?.flows?.authorizationCode;
 if (!oauth?.scopes) throw new Error('SFI_OPENAPI_OAUTH_SCOPES_MISSING');
 api.components ??= {};
@@ -95,6 +96,30 @@ api.components.schemas.CaseWorkspaceRequest = {
   },
 };
 
+api.components.schemas.CaseResolvedTransportRequest = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['serviceProfileId', 'subject', 'scope', 'systemBoundaryId', 'temporalCutoff'],
+  properties: {
+    tenantId: { type: ['string', 'null'] },
+    clientId: { type: ['string', 'null'] },
+    serviceProfileId: { type: 'string' },
+    subject: { type: 'string' },
+    scope: { type: 'string' },
+    systemBoundaryId: { type: 'string' },
+    systemBoundaryVersion: { type: ['string', 'null'] },
+    systemBoundaryHash: { type: ['string', 'null'] },
+    temporalMode: { type: ['string', 'null'] },
+    temporalBasis: { type: ['string', 'null'] },
+    temporalStart: { type: ['string', 'null'] },
+    temporalEnd: { type: ['string', 'null'] },
+    temporalCutoff: { type: 'string' },
+    temporalTimezone: { type: ['string', 'null'] },
+    temporalReconstructionAsOf: { type: ['string', 'null'] },
+    temporalHorizon: { type: ['string', 'null'] },
+  },
+};
+
 api.paths['/api/external/v1/cases'] = {
   post: {
     operationId: 'operateSfiCaseWorkspace',
@@ -117,6 +142,53 @@ api.paths['/api/external/v1/cases'] = {
       '401': { description: 'Missing or insufficient cases scope' },
       '403': { description: 'User-bound OAuth required or tenant access forbidden' },
       '404': { description: 'Case not found in an accessible tenant' },
+    },
+  },
+};
+
+api.paths['/api/external/v1/cases/intake'] = {
+  post: {
+    operationId: 'planSfiCaseIntake',
+    summary: 'Resolve required Case Platform intake before creation',
+    description: 'Dedicated GPT Action with required boundary and cutoff transport fields. Returns intake readiness plus safe transport diagnostics. Creates no case, evidence, intervention, RETURN or truth claim.',
+    security: [{ sfiOAuth: ['cases:read'] }],
+    requestBody: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: { $ref: '#/components/schemas/CaseResolvedTransportRequest' },
+        },
+      },
+    },
+    responses: {
+      '200': { description: 'Resolved intake plan and transport diagnostics' },
+      '400': { description: 'Conflicting or invalid transport fields' },
+      '401': { description: 'Missing or insufficient cases:read scope' },
+      '403': { description: 'User-bound OAuth required' },
+    },
+  },
+};
+
+api.paths['/api/external/v1/cases/create'] = {
+  post: {
+    operationId: 'createSfiCaseFromResolvedIntake',
+    summary: 'Create one Case Platform case from resolved required intake',
+    description: 'Dedicated GPT Action for case creation after intake readiness. Reconstructs canonical boundary and temporal contracts from required flat fields. Does not create accepted evidence, intervention, RETURN or truth.',
+    security: [{ sfiOAuth: ['cases:write'] }],
+    requestBody: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: { $ref: '#/components/schemas/CaseResolvedTransportRequest' },
+        },
+      },
+    },
+    responses: {
+      '201': { description: 'Case created from resolved intake' },
+      '400': { description: 'Conflicting or invalid transport fields' },
+      '409': { description: 'Required intake context remains incomplete' },
+      '401': { description: 'Missing or insufficient cases:write scope' },
+      '403': { description: 'User-bound OAuth required or tenant access forbidden' },
     },
   },
 };
@@ -209,6 +281,8 @@ console.log(JSON.stringify({
   caseWorkspace: true,
   intakePlan: true,
   flatCaseTransportAliases: true,
+  dedicatedRequiredCaseActions: true,
+  actionRevision: api.info?.['x-sfi-action-revision'] ?? null,
   cognitiveRuntime: true,
   cognitiveRuntimeContract: 'SFI-EXTERNAL-COGNITIVE-RUNTIME-1.0',
   version: api.info?.version ?? null,
