@@ -5,13 +5,13 @@ const canonicalPath = path.join(process.cwd(), 'public', 'openapi.json');
 const actionsPath = path.join(process.cwd(), 'public', 'openapi-actions.json');
 const canonical = JSON.parse(fs.readFileSync(canonicalPath, 'utf8'));
 const api = structuredClone(canonical);
-const apiOrigin = 'https://systemfriction.org';
-const oauthOrigin = 'https://system-friction.vercel.app';
+const canonicalOrigin = 'https://www.systemfriction.org';
+const apiOrigin = canonicalOrigin;
+const oauthOrigin = canonicalOrigin;
 
-// The public institutional/API surface remains on systemfriction.org. OAuth for
-// ChatGPT Actions stays on the stable Vercel project hostname already registered
-// by the existing GPT client so authorization, issuer and token exchange use one
-// origin end-to-end.
+// GPT Actions must use one canonical host for API calls and OAuth. Crossing from
+// the public apex or a Vercel project hostname to www can detach Authorization
+// from the subsequent Action request even after a successful token exchange.
 api.servers = [{ url: apiOrigin }];
 if (api.info) api.info.termsOfService = `${apiOrigin}/privacy`;
 if (api.externalDocs) api.externalDocs.url = `${apiOrigin}/privacy`;
@@ -20,7 +20,9 @@ if (oauthFlow) {
   oauthFlow.authorizationUrl = `${oauthOrigin}/api/oauth/authorize`;
   oauthFlow.tokenUrl = `${oauthOrigin}/api/oauth/token`;
 }
-if (api['x-sfi-governance']) api['x-sfi-governance'].privacyPolicy = `${apiOrigin}/privacy`;
+api['x-sfi-governance'] ||= {};
+api['x-sfi-governance'].privacyPolicy = `${apiOrigin}/privacy`;
+api['x-sfi-governance'].schemaBinding = 'GPT_ACTIONS_CANONICAL_PRODUCTION_ORIGIN';
 
 const conciseDescriptions = new Map([
   ['POST /api/external/v1/result', 'Persist a structured SFI analysis result without persisting raw binary content. Requires lab:write and preserves provenance/epistemic boundaries.'],
@@ -46,6 +48,10 @@ for (const [route, pathItem] of Object.entries(api.paths || {})) {
 
 const mcp = api.paths?.['/api/mcp/authenticated']?.post;
 if (mcp) {
+  // ChatGPT Actions ignores custom header parameters. Preserve the nonce boundary
+  // in canonical OpenAPI/runtime, but never advertise the unsupported header in
+  // the Actions projection. Executable MCP tools/call therefore remains a
+  // machine-client capability, not something this Action projection can weaken.
   mcp.parameters = (mcp.parameters || []).filter((parameter) => parameter?.in !== 'header');
   mcp['x-sfi-actions-boundary'] = {
     projection: '/openapi-actions.json',
@@ -84,9 +90,10 @@ if (!canonicalMcp?.parameters?.some((parameter) => parameter?.in === 'header' &&
 }
 
 api['x-sfi-actions-compatibility'] = {
-  contract: 'SFI-GPT-ACTIONS-OPENAPI-COMPAT-1.0',
+  contract: 'SFI-GPT-ACTIONS-OPENAPI-COMPAT-1.1',
   canonicalSource: '/openapi.json',
   projection: '/openapi-actions.json',
+  canonicalOrigin,
   apiOrigin,
   oauthOrigin,
   maxOperationDescriptionChars: 300,
@@ -95,4 +102,4 @@ api['x-sfi-actions-compatibility'] = {
 };
 
 fs.writeFileSync(actionsPath, `${JSON.stringify(api, null, 2)}\n`);
-console.log(JSON.stringify({ ok: true, contract: 'SFI-GPT-ACTIONS-OPENAPI-COMPAT-1.0', canonical: 'public/openapi.json', projection: 'public/openapi-actions.json', apiOrigin, oauthOrigin }, null, 2));
+console.log(JSON.stringify({ ok: true, contract: 'SFI-GPT-ACTIONS-OPENAPI-COMPAT-1.1', canonical: 'public/openapi.json', projection: 'public/openapi-actions.json', canonicalOrigin, apiOrigin, oauthOrigin }, null, 2));
