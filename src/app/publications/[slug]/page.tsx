@@ -10,18 +10,17 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug } = await params;
   const landing = publicResearchLandingForSlug('PUBLICATION', slug);
   if (!landing) return {};
-  const publication = editorialPublicationForSlug(slug);
   const title = `${landing.node.title} · System Friction Institute`;
   return {
     title,
-    description: publication?.deck ?? landing.node.summary,
+    description: landing.node.summary,
     alternates: { canonical: landing.canonicalUrl },
     openGraph: {
       type: 'article',
       url: landing.canonicalUrl,
       siteName: 'System Friction Institute',
       title,
-      description: publication?.deck ?? landing.node.summary,
+      description: landing.node.summary,
     },
     other: {
       'sfi-canonical-object': landing.node.canonicalObjectId,
