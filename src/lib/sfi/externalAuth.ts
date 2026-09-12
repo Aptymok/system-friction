@@ -42,9 +42,8 @@ function routeAllowsPersonalScope(req: Request, credential: ExternalCredential, 
   if (!isPersonalOAuthCredential(credential)) return true;
   const pathname = new URL(req.url).pathname;
 
-  // A personal token can use the same capability names as institutional OAuth,
-  // but only on APIs whose implementation is owner-scoped. Scope possession
-  // never opens the institutional Method Lab, proposal queue or execution plane.
+  // Personal OAuth is admitted only through explicit owner-scoped route allowlists.
+  // Scope possession never opens institutional Method Lab, proposal queue or execution plane.
   if (scope.startsWith('studio:')) return pathname === '/api/external/v1/studio';
   if (scope.startsWith('cases:')) {
     return new Set([
