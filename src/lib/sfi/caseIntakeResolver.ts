@@ -50,6 +50,9 @@ export function resolveUniversalCaseIntake(inputValue: unknown) {
   const questions: SfiIntakeQuestion[] = [];
   const caseClass = inferCaseClass(input);
 
+  // Intent is the only pre-observation question that can block a universal cycle.
+  // Everything else should first be inferred from the material object when possible,
+  // then surfaced as an unresolved question only if it still matters to analysis/action.
   if (!text(input.question) && !text(input.objective)) {
     questions.push({ key: 'INTENT', question: '¿Qué quieres entender, decidir o cambiar a partir de esta señal?', reason: 'A cycle needs an explicit intent to determine what question it is trying to resolve.', blocking: true });
   }
