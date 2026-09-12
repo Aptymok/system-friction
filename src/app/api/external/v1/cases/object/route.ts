@@ -40,7 +40,7 @@ function nullableText(value: unknown): string | null {
 }
 
 function optionalRefsFromIds(value: unknown, field: 'SOURCE_REF_IDS' | 'RECORD_REF_IDS'): SfiCanonicalRef[] {
-  if (value === undefined || value === null) return [];
+  if (value === undefined) return [];
   if (!Array.isArray(value)) throw new Error(`SFI_CASE_${field}_INVALID`);
 
   const ids = value.map((item) => text(item));
