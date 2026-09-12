@@ -3,6 +3,7 @@ name: SFI Continuity Hourly
 on:
   schedule:
     - cron: '15 * * * *'
+    - cron: '45 * * * *'
   workflow_dispatch:
     inputs:
       cycle_id:
