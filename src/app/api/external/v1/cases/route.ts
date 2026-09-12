@@ -80,6 +80,28 @@ function canonicalRef(value: unknown): SfiCanonicalRef {
   };
 }
 
+function canonicalRefFromAction(body: Row): SfiCanonicalRef {
+  const nested = row(body.canonicalRef);
+  const flatId = text(body.canonicalRefId);
+  const nestedId = text(nested.id);
+  const flatVersion = nullableText(body.canonicalRefVersion);
+  const nestedVersion = nullableText(nested.version);
+  const flatHash = nullableText(body.canonicalRefHash);
+  const nestedHash = nullableText(nested.hash);
+
+  if (flatId && nestedId && flatId !== nestedId) throw new Error('SFI_CASE_REF_CONFLICT');
+  if (flatVersion && nestedVersion && flatVersion !== nestedVersion) throw new Error('SFI_CASE_REF_VERSION_CONFLICT');
+  if (flatHash && nestedHash && flatHash !== nestedHash) throw new Error('SFI_CASE_REF_HASH_CONFLICT');
+
+  const id = flatId || nestedId;
+  if (!id) throw new Error('SFI_CASE_REF_REQUIRED');
+  return {
+    id,
+    version: flatVersion ?? nestedVersion,
+    hash: flatHash ?? nestedHash,
+  };
+}
+
 function canonicalRefs(value: unknown): SfiCanonicalRef[] {
   return Array.isArray(value) ? value.map(canonicalRef) : [];
 }
@@ -247,7 +269,7 @@ export async function POST(request: Request) {
         userId,
         kind,
         epistemicRole: epistemicRoleFor(kind),
-        canonicalRef: canonicalRef(body.canonicalRef),
+        canonicalRef: canonicalRefFromAction(body),
         sourceRefs: canonicalRefs(body.sourceRefs),
         recordRefs: canonicalRefs(body.recordRefs),
         evidenceRefs: [],
@@ -258,6 +280,10 @@ export async function POST(request: Request) {
         ok: true,
         operation,
         object,
+        transportDiagnostics: {
+          canonicalRefTransport: text(body.canonicalRefId) ? 'FLAT' : 'NESTED',
+          canonicalRefId: object.canonicalRef.id,
+        },
         epistemicBoundary: 'External case objects preserve assigned epistemic role and cannot create accepted evidence, governance authority, intervention authority, observed return or truth claims.',
       }, { status: 201 });
     }
