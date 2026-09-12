@@ -1,5 +1,5 @@
 -- SFI Notas Temporales monthly publication candidate.
--- Reuses the existing world_vector_reports persistence owner; no new report table.
+-- Reuses the existing world_vector_reports persistence plane; no new report table.
 
 alter table public.world_vector_reports
   drop constraint if exists world_vector_reports_report_type_check;
@@ -10,3 +10,7 @@ alter table public.world_vector_reports
 
 comment on constraint world_vector_reports_report_type_check on public.world_vector_reports is
   'Bounded report classes. temporal_issue_monthly stores a governed Notas Temporales candidate; it does not itself publish or mutate canonical registry state.';
+
+create unique index if not exists world_vector_reports_temporal_issue_monthly_draft_uidx
+  on public.world_vector_reports (report_type, target_audience, period_start, period_end, status)
+  where report_type = 'temporal_issue_monthly' and status = 'draft';
