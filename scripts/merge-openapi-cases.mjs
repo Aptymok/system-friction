@@ -99,7 +99,7 @@ api.paths['/api/external/v1/cases'] = {
   post: {
     operationId: 'operateSfiCaseWorkspace',
     summary: 'Plan, read, create and populate tenant-scoped SFI Case Platform cases',
-    description: 'User-bound OAuth adapter over the existing Case Platform. For GPT Actions, prefer flat systemBoundary* and temporal* transport fields; SFI reconstructs canonical nested contracts internally. This route cannot accept evidence, make governance decisions, authorize intervention, record observed RETURN, or create truth claims.',
+    description: 'OAuth Case Platform adapter. Prefer flat systemBoundary* and temporal* fields in GPT Actions; SFI reconstructs canonical nested contracts internally. Cannot admit evidence, make governance decisions, authorize interventions, record RETURN, or create truth claims.',
     security: [{ sfiOAuth: [] }],
     requestBody: {
       required: true,
