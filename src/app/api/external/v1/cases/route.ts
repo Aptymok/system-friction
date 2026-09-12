@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { authorizeExternalRequest, externalAuthError } from '@/lib/sfi/externalAuth';
 import {
+  normalizeCasePlatformActionInput,
   resolveCasePlatformCreationIntake,
   resolveCasePlatformCreationIntakeFromAction,
 } from '@/lib/sfi/caseIntakeResolver';
@@ -160,7 +161,8 @@ export async function POST(request: Request) {
     }
 
     if (operation === 'create') {
-      const intakePlan = resolveCasePlatformCreationIntake(body);
+      const actionInput = normalizeCasePlatformActionInput(body);
+      const intakePlan = resolveCasePlatformCreationIntake(actionInput);
       if (!intakePlan.readyForCreate) {
         return NextResponse.json({
           ok: false,
@@ -169,19 +171,19 @@ export async function POST(request: Request) {
           instruction: 'Resolve only the missing fields returned by intakePlan before creating the case.',
         }, { status: 409 });
       }
-      const serviceProfileId = text(body.serviceProfileId) as SfiServiceProfileId;
-      const subject = text(body.subject);
-      const scopeText = text(body.scope);
-      const temporal = row(body.temporalWindow);
+      const serviceProfileId = text(actionInput.serviceProfileId) as SfiServiceProfileId;
+      const subject = text(actionInput.subject);
+      const scopeText = text(actionInput.scope);
+      const temporal = row(actionInput.temporalWindow);
       const cutoff = text(temporal.cutoff);
       const caseRecord = await createOperationalCase({
         userId,
-        tenantId: nullableText(body.tenantId),
-        clientId: nullableText(body.clientId),
+        tenantId: nullableText(actionInput.tenantId),
+        clientId: nullableText(actionInput.clientId),
         serviceProfileId,
         subject,
         scope: scopeText,
-        systemBoundaryRef: canonicalRef(body.systemBoundaryRef),
+        systemBoundaryRef: canonicalRef(actionInput.systemBoundaryRef),
         temporalWindow: {
           mode: text(temporal.mode),
           basis: text(temporal.basis),
