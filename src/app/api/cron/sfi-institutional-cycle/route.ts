@@ -26,8 +26,11 @@ async function readScheduledCycleGate() {
     readInstitutionalAttractor(),
   ]);
 
-  const readErrors = [rootEvidence.error?.message, evidenceLedger.error?.message]
-    .filter((value): value is string => Boolean(value));
+  const readErrors = [
+    rootEvidence.error?.message,
+    evidenceLedger.error?.message,
+    ...attractorState.warnings,
+  ].filter((value): value is string => Boolean(value));
   if (readErrors.length) {
     return {
       shouldRun: false as const,
