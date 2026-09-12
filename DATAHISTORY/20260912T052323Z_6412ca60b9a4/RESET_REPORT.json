@@ -1,0 +1,90 @@
+{
+  "ok": true,
+  "contract": "SFI-CANONICAL-RESET-CLASSIFICATION-1.2",
+  "reset_at": "2026-09-12T05:23:54.734Z",
+  "snapshot": {
+    "sha256": "c42910b64abf28186477eb28d6df0fa47274f70bf7e446c4f24eb56490f04e76",
+    "created_at": "2026-09-12T05:23:23.133Z",
+    "git_commit": "6412ca60b9a4fc6302878834224c48fcf453de9a",
+    "classification_verified": true,
+    "external_artifact_id": "10292027350",
+    "external_artifact_digest": "e68273d5b62b69d5e9d2902c478125a1c0c5cb6ee1d5f254626ebdcc7e39fcb9"
+  },
+  "classification": {
+    "public_table_count": 165,
+    "preserve_data": [
+      "world_source_observations",
+      "world_friction_readings",
+      "world_hypotheses",
+      "world_hypothesis_outcomes",
+      "world_learning_events",
+      "worldspect_snapshots",
+      "world_vector_cycles",
+      "world_vector_observations",
+      "world_vector_reports",
+      "world_vector_alerts"
+    ],
+    "reseed_minimal": [
+      "profiles",
+      "sfi_tenants",
+      "sfi_tenant_members",
+      "sfi_oauth_clients",
+      "accounts",
+      "account_members",
+      "account_balance",
+      "sfi_continuity_state"
+    ],
+    "purge_data_count": 147,
+    "unclassified": []
+  },
+  "preserved_counts_before": {
+    "world_source_observations": 6326,
+    "world_friction_readings": 6460,
+    "world_hypotheses": 303,
+    "world_hypothesis_outcomes": 299,
+    "world_learning_events": 278,
+    "worldspect_snapshots": 322,
+    "world_vector_cycles": 11,
+    "world_vector_observations": 62,
+    "world_vector_reports": 22,
+    "world_vector_alerts": 0
+  },
+  "preserved_counts_after": {
+    "world_source_observations": 6326,
+    "world_friction_readings": 6460,
+    "world_hypotheses": 303,
+    "world_hypothesis_outcomes": 299,
+    "world_learning_events": 278,
+    "worldspect_snapshots": 322,
+    "world_vector_cycles": 11,
+    "world_vector_observations": 62,
+    "world_vector_reports": 22,
+    "world_vector_alerts": 0
+  },
+  "continuity_reseed": {
+    "postflight_ok": true,
+    "singleton_rows": 1,
+    "institution_mode": "NORMAL",
+    "contract": "SFI-CONTINUITY-STATE-SINGLETON-RESEED-1.0"
+  },
+  "institutional_restore": {
+    "institutional_members_restored": 1,
+    "authority_expansion": false,
+    "historical_usage_restored": false
+  },
+  "instrument_restore": {
+    "production_eligible_instruments_restored": 2,
+    "authority_expansion": false,
+    "render_history_restored": false
+  },
+  "invariants": [
+    "EXTERNAL_PROOF_UPLOADED_BEFORE_RESET",
+    "LIVE_SCHEMA_EQUALS_SNAPSHOT",
+    "UNCLASSIFIED_ZERO",
+    "WORLD_COUNTS_UNCHANGED",
+    "CONTINUITY_RESEED_TRIGGER_BOUND",
+    "LEGACY_LEARNING_NOT_IMPORTED",
+    "LEGACY_CANONICAL_HISTORY_NOT_IMPORTED",
+    "ONE_POST_RESET_GENESIS_EVENT"
+  ]
+}
