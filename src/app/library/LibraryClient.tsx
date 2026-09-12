@@ -2,9 +2,8 @@
 
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import docs from '../../../data/sfi/sf_docs_frontmatter.json';
 
-type Doc = {
+export type LibraryDoc = {
   id: string;
   type?: string;
   nodeId?: string;
@@ -40,16 +39,29 @@ export type LibraryPublication = {
   editorialKind: string | null;
 };
 
-const corpus = docs as Doc[];
+export type LibrarySurfaceContract = {
+  surfaceLabel: string;
+  catalogLabel: string;
+  compactBodyBoundary: string;
+  fullBodyReaderBoundary: string;
+};
 
-export default function LibraryClient({ publications }: { publications: LibraryPublication[] }) {
+export default function LibraryClient({
+  publications,
+  corpus,
+  surfaceContract,
+}: {
+  publications: LibraryPublication[];
+  corpus: LibraryDoc[];
+  surfaceContract: LibrarySurfaceContract;
+}) {
   const [query, setQuery] = useState('');
   const normalized = query.trim().toLowerCase();
   const filtered = useMemo(() => corpus.filter((doc) => {
     if (!normalized) return true;
     const haystack = [doc.title, doc.doc_id, doc.series, doc.summary, doc.mihm_variable, doc.mihm_equation, doc.sf_pattern, ...(doc.patterns ?? [])].filter(Boolean).join(' ').toLowerCase();
     return haystack.includes(normalized);
-  }), [normalized]);
+  }), [corpus, normalized]);
   const hashed = corpus.filter((doc) => doc.contentHash).length;
 
   return <main className="sfiLibrary">
@@ -82,7 +94,12 @@ export default function LibraryClient({ publications }: { publications: LibraryP
 
     <section className="libraryBoundary"><b>BOUNDARY</b><span>PUBLICATION = CANONICAL OBJECT</span><span>EXPOSURE ≠ DISCOVERY ≠ PULL ≠ RETURN</span><span>TECHNICAL CORPUS ≠ PUBLICATION BY DEFAULT</span></section>
 
-    <section style={{ paddingTop: 30 }}><span style={{ letterSpacing: '.18em', fontSize: 11, color: '#a98954' }}>CORPUS TÉCNICO</span><h2 style={{ margin: '7px 0 4px', fontSize: 'clamp(28px,4vw,44px)', fontWeight: 400 }}>Métodos, fórmulas y documentos</h2><p style={{ maxWidth: 820, lineHeight: 1.7 }}>Este plano conserva el catálogo técnico preexistente: identidad documental, series, variables MIHM, patrones, hashes y referencias. Una pieza técnica puede ser públicamente accesible sin quedar admitida automáticamente como publicación canónica.</p></section>
+    <section style={{ paddingTop: 30 }}>
+      <span style={{ letterSpacing: '.18em', fontSize: 11, color: '#a98954' }}>{surfaceContract.catalogLabel}</span>
+      <h2 style={{ margin: '7px 0 4px', fontSize: 'clamp(28px,4vw,44px)', fontWeight: 400 }}>Métodos, fórmulas y documentos</h2>
+      <p style={{ maxWidth: 820, lineHeight: 1.7 }}>Este plano conserva el catálogo técnico preexistente: identidad documental, series, variables MIHM, patrones, hashes y referencias. Es un catálogo compacto; no afirma que los cuerpos completos de cada documento estén materializados en esta superficie. Una pieza técnica puede ser públicamente accesible sin quedar admitida automáticamente como publicación canónica.</p>
+      <p style={{ fontSize: 11, letterSpacing: '.08em', color: '#9f845b' }}>{surfaceContract.fullBodyReaderBoundary}</p>
+    </section>
 
     <section className="librarySearch"><label>BUSCAR EN EL CORPUS TÉCNICO<input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="fricción, MIHM, observador, coordinación, SF_P_…"/></label><span>{filtered.length} / {corpus.length}</span></section>
 
