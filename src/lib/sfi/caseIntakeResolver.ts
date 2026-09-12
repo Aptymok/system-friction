@@ -50,9 +50,6 @@ export function resolveUniversalCaseIntake(inputValue: unknown) {
   const questions: SfiIntakeQuestion[] = [];
   const caseClass = inferCaseClass(input);
 
-  // Intent is the only pre-observation question that can block a universal cycle.
-  // Everything else should first be inferred from the material object when possible,
-  // then surfaced as an unresolved question only if it still matters to analysis/action.
   if (!text(input.question) && !text(input.objective)) {
     questions.push({ key: 'INTENT', question: '¿Qué quieres entender, decidir o cambiar a partir de esta señal?', reason: 'A cycle needs an explicit intent to determine what question it is trying to resolve.', blocking: true });
   }
@@ -114,4 +111,22 @@ export function resolveCasePlatformCreationIntake(inputValue: unknown) {
     readyForCreate: questions.length === 0,
     principle: 'Operational Case creation is downstream of universal observation/classification. Create the Case only when its service contract is resolvable; do not use Case creation as the universal ingestion gate.',
   };
+}
+
+export function resolveCasePlatformCreationIntakeFromAction(inputValue: unknown) {
+  const input = row(inputValue);
+  const draft = row(input.draft);
+  const merged: Row = {
+    ...input,
+    ...draft,
+    systemBoundaryRef: {
+      ...row(input.systemBoundaryRef),
+      ...row(draft.systemBoundaryRef),
+    },
+    temporalWindow: {
+      ...row(input.temporalWindow),
+      ...row(draft.temporalWindow),
+    },
+  };
+  return resolveCasePlatformCreationIntake(merged);
 }
