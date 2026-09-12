@@ -14,6 +14,7 @@ import {
   isAllowedSfiOAuthRedirect,
   normalizeSfiOAuthRedirectUri,
   resolveSfiOAuthClient,
+  updateOwnedSfiOAuthClient,
 } from '@/lib/sfi/oauthClientRegistry';
 
 export const dynamic = 'force-dynamic';
@@ -31,6 +32,20 @@ function actorSlug(value: string) {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .slice(0, 48);
+}
+
+function isTrustedChatGptOwnerRedirect(value: string) {
+  try {
+    const parsed = new URL(value);
+    const hostname = parsed.hostname.toLowerCase();
+    const trustedHost = hostname === 'chat.openai.com' || hostname === 'chatgpt.com';
+    if (parsed.protocol !== 'https:' || !trustedHost || parsed.hash || parsed.search) return false;
+    const segments = parsed.pathname.split('/').filter(Boolean);
+    const hasGptId = segments.some((segment) => /^g-[a-z0-9_-]+$/i.test(segment));
+    return hasGptId && parsed.pathname.endsWith('/oauth/callback');
+  } catch {
+    return false;
+  }
 }
 
 function redirectOAuthError(redirectUri: string, state: string | null, error: string, description: string, issuer: string) {
@@ -72,8 +87,13 @@ export async function GET(req: NextRequest) {
     && client.source === 'registry'
     && client.audience === 'OWNER_ONLY'
     && client.redirectUris.length === 0;
+  const mayRefreshOwnerChatGptRedirect = !redirectAlreadyAllowed
+    && client.source === 'registry'
+    && client.audience === 'OWNER_ONLY'
+    && client.redirectUris.length > 0
+    && isTrustedChatGptOwnerRedirect(redirectUri);
 
-  if (!redirectAlreadyAllowed && !mayBindFirstOwnerRedirect) {
+  if (!redirectAlreadyAllowed && !mayBindFirstOwnerRedirect && !mayRefreshOwnerChatGptRedirect) {
     return NextResponse.json({ ok: false, error: 'invalid_client_or_redirect' }, { status: 400 });
   }
 
@@ -128,6 +148,19 @@ export async function GET(req: NextRequest) {
       client = { ...client, redirectUris: [redirectUri] };
     } catch {
       return NextResponse.json({ ok: false, error: 'oauth_redirect_bind_failed' }, { status: 503 });
+    }
+  } else if (mayRefreshOwnerChatGptRedirect) {
+    const nextRedirectUris = [...client.redirectUris.filter((value) => value !== redirectUri).slice(-9), redirectUri];
+    try {
+      await updateOwnedSfiOAuthClient({
+        userId: context.user.id,
+        clientId: client.clientId,
+        redirectUris: nextRedirectUris,
+        scopeCeiling: client.allowedScopes,
+      });
+      client = { ...client, redirectUris: nextRedirectUris };
+    } catch {
+      return NextResponse.json({ ok: false, error: 'oauth_redirect_refresh_failed' }, { status: 503 });
     }
   }
 
