@@ -18,7 +18,8 @@ assert.match(surface, /method: 'PATCH'/, 'surface_must_update_callbacks_or_rotat
 assert.match(surface, /method: 'DELETE'/, 'surface_must_revoke_clients');
 assert.match(surface, /\/api\/oauth\/authorize/, 'surface_must_emit_authorization_url');
 assert.match(surface, /\/api\/oauth\/token/, 'surface_must_emit_token_url');
-assert.match(surface, /\/api\/external\/openapi/, 'surface_must_emit_host_bound_schema_url');
+assert.match(surface, /\/openapi-actions\.json/, 'surface_must_emit_gpt_actions_compatibility_schema_url');
+assert.doesNotMatch(surface, /Schema URL: \$\{origin\}\/api\/external\/openapi/, 'surface_must_not_configure_gpt_with_machine_openapi');
 assert.match(surface, /ONE TIME ONLY/, 'surface_must_warn_that_client_secret_is_one_time_only');
 assert.match(surface, /No pegues callback/, 'normal_onboarding_must_not_require_callback_round_trip');
 assert.match(surface, /PENDING · AUTO-BIND EN PRIMERA AUTORIZACIÓN/, 'surface_must_explain_pending_first_redirect_state');
@@ -45,8 +46,10 @@ assert.match(session, /href="\/integrations"/, 'authenticated_session_controls_m
 
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-OAUTH-INTEGRATIONS-1.1',
-  userFlow: 'generate_client -> copy_gpt_config -> first_authorize_auto_binds_exact_redirect -> token -> use',
+  contract: 'SFI-OAUTH-INTEGRATIONS-1.2',
+  userFlow: 'generate_client -> copy_gpt_actions_config -> first_authorize_auto_binds_exact_redirect -> token -> use',
+  gptActionsSchema: '/openapi-actions.json',
+  machineOpenApiUsedForGptActions: false,
   callbackPasteRequiredForNormalOnboarding: false,
   vercelEditRequired: false,
   databaseEditRequired: false,
