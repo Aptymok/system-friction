@@ -39,6 +39,15 @@ assert.match(authorize, /client\.audience === 'OWNER_ONLY'/, 'auto_bind_must_be_
 assert.match(authorize, /client\.redirectUris\.length === 0/, 'auto_bind_must_require_empty_redirect_allowlist');
 assert.match(authorize, /canSfiOAuthClientAuthorizeSubject\(client, context\.user\.id\)/, 'auto_bind_must_authenticate_same_owner_before_binding');
 assert.match(authorize, /bindInitialOwnedSfiOAuthRedirect/, 'authorize_must_persist_first_exact_redirect');
+
+assert.match(authorize, /function isTrustedChatGptOwnerRedirect/, 'chatgpt_callback_self_heal_must_have_explicit_validator');
+assert.match(authorize, /hostname === 'chat\.openai\.com' \|\| hostname === 'chatgpt\.com'/, 'callback_self_heal_must_be_limited_to_openai_hosts');
+assert.match(authorize, /\^g-\[a-z0-9_-\]\+\$/i, 'callback_self_heal_must_require_gpt_id_segment');
+assert.match(authorize, /parsed\.pathname\.endsWith\('\/oauth\/callback'\)/, 'callback_self_heal_must_require_oauth_callback_suffix');
+assert.match(authorize, /mayRefreshOwnerChatGptRedirect/, 'authorize_must_detect_owner_chatgpt_callback_rotation');
+assert.match(authorize, /client\.redirectUris\.length > 0/, 'callback_rotation_must_only_apply_after_initial_binding');
+assert.match(authorize, /updateOwnedSfiOAuthClient/, 'callback_rotation_must_persist_through_owned_registry_writer');
+assert.match(authorize, /client\.redirectUris\.filter\(\(value\) => value !== redirectUri\)\.slice\(-9\)/, 'callback_rotation_must_preserve_bounded_history');
 assert.doesNotMatch(authorize, /chatgpt\.com\/\*/, 'authorize_must_not_use_wildcard_openai_callbacks');
 
 assert.match(migration, /audience = 'OWNER_ONLY'[\s\S]*cardinality\(redirect_uris\) between 0 and 10/, 'owner_only_registry_must_allow_pending_redirect');
@@ -47,13 +56,14 @@ assert.match(session, /href="\/integrations"/, 'authenticated_session_controls_m
 
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-OAUTH-INTEGRATIONS-1.3',
-  userFlow: 'generate_client -> copy_gpt_actions_config -> first_authorize_auto_binds_exact_redirect -> token -> use',
+  contract: 'SFI-OAUTH-INTEGRATIONS-1.4',
+  userFlow: 'generate_client -> first_authorize_auto_binds -> owner ChatGPT callback may rotate on trusted OpenAI host -> token -> use',
   gptActionsSchema: '/openapi.json',
   separateActionsProjection: false,
   callbackPasteRequiredForNormalOnboarding: false,
   vercelEditRequired: false,
   databaseEditRequired: false,
-  callbackExactMatch: true,
-  autoBindBoundary: 'OWNER_ONLY + authenticated owner + empty redirect allowlist only',
+  callbackExactMatchAtTokenExchange: true,
+  autoBindBoundary: 'OWNER_ONLY + authenticated owner',
+  autoRefreshBoundary: 'OWNER_ONLY + authenticated owner + official OpenAI/ChatGPT host + g-* path + /oauth/callback',
 }, null, 2));
