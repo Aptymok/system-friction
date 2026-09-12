@@ -1,0 +1,1 @@
+This branch coordinates the existing autonomous observation, AMV instrumentation, Predictive Engine and monthly editorial routine. It intentionally avoids creating a parallel micro-agent system.
