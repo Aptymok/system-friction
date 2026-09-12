@@ -14,6 +14,7 @@ const accessToken = text('src/lib/sfi/externalSessionToken.ts');
 const tokenRoute = text('src/app/api/oauth/token/route.ts');
 const manifest = text('src/app/api/external/v1/manifest/route.ts');
 const openapiMerge = text('scripts/merge-openapi-authenticated-machine.mjs');
+const hostBoundOpenapi = text('src/app/api/external/openapi/route.ts');
 const packageJson = text('package.json');
 const grantOwner = text('src/lib/sfi/cognitive-runtime/capabilityGrant.ts');
 const brokerOwner = text('src/lib/sfi/cognitive-runtime/capabilityBroker.ts');
@@ -85,14 +86,27 @@ assert.match(manifest, /authenticatedMcp: '\/api\/mcp\/authenticated'/, 'manifes
 assert.match(manifest, /SFI-AUTHENTICATED-GOVERNED-MACHINE-ADAPTER-1\.0/, 'manifest_contract_required');
 assert.match(manifest, /externalRegistryReceipt: null/, 'manifest_must_not_fabricate_external_registry_receipt');
 assert.match(manifest, /claimedPublished: false/, 'manifest_must_not_claim_external_publication');
-assert.match(openapiMerge, /\/api\/mcp\/authenticated/, 'openapi_merge_must_add_authenticated_path');
-assert.match(openapiMerge, /X-SFI-Capability-Grant-Nonce/, 'openapi_must_describe_transient_grant_proof');
-assert.match(openapiMerge, /sfiOAuth: \['execute'\]/, 'openapi_must_reuse_existing_oauth_execute_scope');
+
+// MCP remains live, but it is not part of the GPT Actions OpenAPI contract.
+assert.match(openapiMerge, /delete api\.paths\['\/api\/mcp\/authenticated'\]/, 'gpt_actions_openapi_must_exclude_authenticated_mcp');
+assert.match(openapiMerge, /openApiExposure: 'OUT_OF_BAND_MCP'/, 'mcp_must_be_documented_as_out_of_band');
+assert.match(openapiMerge, /gptActionsSchema: '\/openapi\.json'/, 'canonical_openapi_must_be_gpt_actions_schema');
+assert.match(openapiMerge, /oauthSecurityDeclared/, 'canonical_openapi_must_keep_oauth_declaration');
+assert.match(openapiMerge, /parameter\?\.in !== 'header'/, 'gpt_actions_openapi_must_exclude_custom_header_parameters');
 assert.match(openapiMerge, /externalPublicationReceipt: null/, 'openapi_must_not_fabricate_external_publication');
-assert.match(packageJson, /merge-openapi-authenticated-machine\.mjs/, 'production_build_must_materialize_authenticated_machine_openapi');
+assert.doesNotMatch(openapiMerge, /openapi-actions\.json/, 'second_actions_projection_must_not_exist');
+assert.match(hostBoundOpenapi, /authorizationCode\.authorizationUrl/, 'host_bound_openapi_must_bind_oauth_authorization_url');
+assert.match(hostBoundOpenapi, /authorizationCode\.tokenUrl/, 'host_bound_openapi_must_bind_oauth_token_url');
+assert.match(packageJson, /merge-openapi-authenticated-machine\.mjs/, 'production_build_must_finalize_canonical_actions_openapi');
 
 assert.match(grantOwner, /export const SFI_CAPABILITY_GRANT_CONTRACT = 'SFI-CAPABILITY-GRANT-1\.0'/, 'grant_owner_must_remain_ws01');
 assert.match(brokerOwner, /CAPABILITY_REQUEST_IS_NOT_AUTHORIZATION/, 'broker_admit_must_remain_non-authorizing');
 assert.doesNotMatch(adapter, /SFI_CAPABILITY_GRANT_CONTRACT\s*=/, 'ws04_must_not_redeclare_grant_contract');
 
-console.log(JSON.stringify({ ok: true, gate: 'SFI_AUTHENTICATED_GOVERNED_MACHINE_R4C', manifestVersion }, null, 2));
+console.log(JSON.stringify({
+  ok: true,
+  gate: 'SFI_AUTHENTICATED_GOVERNED_MACHINE_R4C',
+  manifestVersion,
+  gptActionsOpenApi: '/openapi.json',
+  authenticatedMcpOpenApiExposure: 'OUT_OF_BAND_MCP',
+}, null, 2));

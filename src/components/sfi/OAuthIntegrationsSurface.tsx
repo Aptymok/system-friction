@@ -57,7 +57,7 @@ function configText(client: OAuthClient, secret: string, origin: string) {
     `Token URL: ${origin}/api/oauth/token`,
     `Scope: ${client.allowed_scopes.join(' ')}`,
     'Token exchange method: Basic Authorization Header',
-    `Schema URL: ${origin}/openapi-actions.json`,
+    `Schema URL: ${origin}/openapi.json`,
   ].join('\n');
 }
 
@@ -243,7 +243,7 @@ export function OAuthIntegrationsSurface() {
               <h2>Copiar al editor del GPT</h2>
               <div className="oauthSecretWarning">CLIENT SECRET · ONE TIME ONLY</div>
               <pre>{configText(disclosure.client, disclosure.clientSecret, origin)}</pre>
-              <p className="oauthMuted">Después de guardar esto en ChatGPT, prueba una Action. Usa el schema específico de GPT Actions; el OpenAPI canónico de máquina conserva cabeceras avanzadas que ChatGPT no admite.</p>
+              <p className="oauthMuted">Después de guardar esto en ChatGPT, prueba una Action. Usa /openapi.json como único schema. OAuth permanece declarado en OpenAPI y MCP autenticado conserva su contrato separado fuera de GPT Actions.</p>
               <div className="oauthActions">
                 <button type="button" onClick={() => copy(configText(disclosure.client, disclosure.clientSecret, origin))}>COPIAR TODO</button>
                 <button type="button" onClick={() => copy(disclosure.client.client_id)}>COPIAR CLIENT ID</button>
@@ -256,7 +256,7 @@ export function OAuthIntegrationsSurface() {
               <p className="oauthMuted">Al crear o rotar una integración, el secreto aparecerá aquí una sola vez. SFI persiste únicamente su hash.</p>
               <dl className="oauthContract">
                 <dt>AUTH</dt><dd>OAuth Authorization Code</dd>
-                <dt>SCHEMA</dt><dd>{origin ? `${origin}/openapi-actions.json` : '/openapi-actions.json'}</dd>
+                <dt>SCHEMA</dt><dd>{origin ? `${origin}/openapi.json` : '/openapi.json'}</dd>
                 <dt>CALLBACK</dt><dd>Auto-bind first authorization → exact match</dd>
                 <dt>OWNER</dt><dd>Authenticated SFI account</dd>
               </dl>

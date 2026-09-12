@@ -44,7 +44,9 @@ export async function GET(req: Request) {
       caseExecutionPolicy: SFI_CASE_EXECUTION_POLICY,
       modelInteroperability: {
         canonicalOpenApi: '/openapi.json',
-        gptActionsProjection: '/openapi-actions.json',
+        gptActionsOpenApi: '/openapi.json',
+        separateActionsProjection: false,
+        authenticatedMcpOpenApiExposure: 'OUT_OF_BAND_MCP',
         ownerStudioContext,
         modelCapabilityImpliesAuthority: false,
       },

@@ -18,7 +18,8 @@ const heartbeat = read('src/app/api/cron/continuity-heartbeat/route.ts');
 const bootstrap = read('src/app/api/external/v1/bootstrap/route.ts');
 const manifest = read('src/app/api/external/v1/manifest/route.ts');
 const openapiMerge = read('scripts/merge-openapi-sovereign-gates.mjs');
-const actionsProjection = read('scripts/merge-openapi-actions-compat.mjs');
+const finalOpenapiMerge = read('scripts/merge-openapi-authenticated-machine.mjs');
+const hostBoundOpenapi = read('src/app/api/external/openapi/route.ts');
 const oauthMetadata = read('src/app/.well-known/oauth-authorization-server/route.ts');
 const protectedResourceMetadata = read('src/app/.well-known/oauth-protected-resource/route.ts');
 
@@ -96,6 +97,8 @@ assert.match(heartbeat, /Routine evidence review, risk assessment, operational a
 assert.match(bootstrap, /caseExecutionPolicy: SFI_CASE_EXECUTION_POLICY/);
 assert.match(bootstrap, /decisionBoundary: SFI_ROOT_DECISION_BOUNDARY/);
 assert.match(bootstrap, /Do not ask the human for initial approval/);
+assert.match(bootstrap, /gptActionsOpenApi: '\/openapi\.json'/);
+assert.match(bootstrap, /separateActionsProjection: false/);
 assert.match(manifest, /working sources without ROOT source approval/);
 assert.match(manifest, /no duplicate human confirmation is required/);
 assert.match(openapiMerge, /AUTONOMOUS_UNTIL_SOVEREIGN_BOUNDARY/);
@@ -104,34 +107,34 @@ assert.match(openapiMerge, /classify and use as a working source without ROOT ap
 assert.match(openapiMerge, /canonical evidence admission only when an explicit governed promotion boundary is crossed/);
 assert.doesNotMatch(openapiMerge, /ROOT accept\/reject/);
 
-// GPT Actions uses OAuth configured in the GPT editor. The Actions OpenAPI is a
-// transport-neutral projection of the External Agent Gateway only; canonical
-// OpenAPI/runtime retains OAuth declarations and the MCP nonce boundary.
-assert.match(actionsProjection, /const canonicalOrigin = 'https:\/\/www\.systemfriction\.org'/);
-assert.match(actionsProjection, /const apiOrigin = canonicalOrigin/);
-assert.match(actionsProjection, /delete api\.security/);
-assert.match(actionsProjection, /delete api\.components\.securitySchemes\.sfiOAuth/);
-assert.match(actionsProjection, /delete operation\.security/);
-assert.match(actionsProjection, /if \(!route\.startsWith\('\/api\/external\/v1\/'\)\) delete api\.paths\[route\]/);
-assert.match(actionsProjection, /authTransportOwner: 'GPT_ACTION_EDITOR_OAUTH'/);
-assert.match(actionsProjection, /openApiOAuthDeclarationsExcluded: true/);
-assert.match(actionsProjection, /mcpExcluded: true/);
-assert.match(actionsProjection, /SFI_CANONICAL_OPENAPI_OAUTH_SCHEME_MISSING/);
-assert.match(actionsProjection, /SFI_CANONICAL_OPENAPI_MCP_NONCE_PARAMETER_MISSING/);
+// GPT Actions consumes one canonical OpenAPI document. OAuth stays declared in
+// that document; authenticated MCP remains a separate protocol surface.
+assert.match(finalOpenapiMerge, /const canonicalOrigin = 'https:\/\/www\.systemfriction\.org'/);
+assert.match(finalOpenapiMerge, /gptActionsSchema: '\/openapi\.json'/);
+assert.match(finalOpenapiMerge, /delete api\.paths\['\/api\/mcp\/authenticated'\]/);
+assert.match(finalOpenapiMerge, /parameter\?\.in !== 'header'/);
+assert.match(finalOpenapiMerge, /oauthSecurityDeclared/);
+assert.match(finalOpenapiMerge, /separateActionsProjection: false/);
+assert.doesNotMatch(finalOpenapiMerge, /openapi-actions\.json/);
+assert.match(hostBoundOpenapi, /const SFI_ACTIONS_ORIGIN = 'https:\/\/www\.systemfriction\.org'/);
+assert.match(hostBoundOpenapi, /authorizationCode\.authorizationUrl/);
+assert.match(hostBoundOpenapi, /authorizationCode\.tokenUrl/);
+assert.doesNotMatch(hostBoundOpenapi, /delete document\.components\.securitySchemes\.sfiOAuth/);
 assert.match(oauthMetadata, /const issuer = 'https:\/\/www\.systemfriction\.org'/);
 assert.match(protectedResourceMetadata, /const oauthIssuer = 'https:\/\/www\.systemfriction\.org'/);
 assert.match(protectedResourceMetadata, /const resourceOrigin = 'https:\/\/www\.systemfriction\.org'/);
 
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-SOVEREIGN-ONLY-HUMAN-GATES-1.5',
+  contract: 'SFI-SOVEREIGN-ONLY-HUMAN-GATES-1.6',
   humanApprovalRequiredForRoutineCaseWork: false,
   humanApprovalRequiredForWorkingSources: false,
   humanApprovalRequiredForRoutineLabRun: false,
   duplicateExecutionConfirmationRequired: false,
   obsoleteRoutineHumanGatesPresent: false,
+  gptActionsSchema: '/openapi.json',
   actionsApiOrigin: 'https://www.systemfriction.org',
-  actionsAuthTransportOwner: 'GPT_ACTION_EDITOR_OAUTH',
+  actionsOAuthDeclaredInOpenApi: true,
   actionsMcpExposed: false,
   oauthIssuer: 'https://www.systemfriction.org',
   protectedResourceOrigin: 'https://www.systemfriction.org',

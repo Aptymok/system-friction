@@ -9,7 +9,8 @@ async function main() {
   const bootstrap = await text('src/app/api/external/v1/bootstrap/route.ts');
   const manifest = await text('src/app/api/external/v1/manifest/route.ts');
   const openapi = await text('scripts/merge-openapi-studio-attachments.mjs');
-  const actionsCompat = await text('scripts/merge-openapi-actions-compat.mjs');
+  const composedOpenapi = await text('scripts/merge-openapi-authenticated-machine.mjs');
+  const hostBoundOpenapi = await text('src/app/api/external/openapi/route.ts');
 
   assert.match(context, /SFI-STUDIO-OWNER-CONTEXT-1\.0/);
   assert.match(context, /from\('studio_evidence_traces'\)/);
@@ -36,6 +37,8 @@ async function main() {
   assert.match(bootstrap, /requiredScope: 'studio:read'/);
   assert.match(bootstrap, /credential\.authMethod === 'oauth' && credential\.subjectId/);
   assert.match(bootstrap, /read that governed context before concluding that owner data is absent/);
+  assert.match(bootstrap, /gptActionsOpenApi: '\/openapi\.json'/);
+  assert.match(bootstrap, /separateActionsProjection: false/);
 
   assert.match(manifest, /version: '1\.17\.0'/);
   assert.match(manifest, /id: 'studio-context'/);
@@ -53,13 +56,17 @@ async function main() {
   assert.match(openapi, /institutionalCanonIncluded:false/);
   assert.match(openapi, /api\.info\.version = '1\.17\.0'/);
 
-  assert.match(actionsCompat, /canonicalSource:\s*'\/openapi\.json'/);
-  assert.match(actionsCompat, /projection:\s*'\/openapi-actions\.json'/);
-  assert.match(actionsCompat, /maxOperationDescriptionChars:\s*300/);
+  assert.match(composedOpenapi, /gptActionsSchema: '\/openapi\.json'/);
+  assert.match(composedOpenapi, /separateActionsProjection: false/);
+  assert.match(composedOpenapi, /delete api\.paths\['\/api\/mcp\/authenticated'\]/);
+  assert.match(composedOpenapi, /actionDescriptionLimit = 300/);
+  assert.match(hostBoundOpenapi, /ACTION_DESCRIPTION_LIMIT = 300/);
+  assert.match(hostBoundOpenapi, /authorizationCode\.authorizationUrl/);
+  assert.doesNotMatch(composedOpenapi, /openapi-actions\.json/);
 
   console.log(JSON.stringify({
     ok: true,
-    contract: 'SFI-STUDIO-OWNER-CONTEXT-1.0',
+    contract: 'SFI-STUDIO-OWNER-CONTEXT-1.1',
     oauthSubjectBound: true,
     bootstrapDiscoverable: true,
     manifestDiscoverable: true,
@@ -68,7 +75,8 @@ async function main() {
     binaryContentIncluded: false,
     rootEvidenceIncluded: false,
     institutionalCanonIncluded: false,
-    actionProjectionDerivedFromCanonicalOpenApi: true,
+    gptActionsOpenApi: '/openapi.json',
+    separateActionsProjection: false,
     status: 'PASS',
   }, null, 2));
 }
