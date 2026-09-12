@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import type { SourceObservation } from '@/lib/worldspect/source-adapter-contract'
 import { buildCulturalSourceObservation } from '@/lib/worldspect/cultural-vector'
 import { persistWorldSpectObservations, runWorldSpectAdapters } from '@/lib/worldspect/runAdapters'
@@ -13,6 +13,49 @@ function record(value: unknown): Record<string, unknown> {
 function num(value: unknown, fallback = 0) {
   const parsed = Number(value ?? fallback)
   return Number.isFinite(parsed) ? parsed : fallback
+}
+
+function ingestSecret() {
+  return process.env.WORLDSPECT_INGEST_SECRET
+    || process.env.WORLDSPECT_CRON_SECRET
+    || process.env.CRON_SECRET
+    || ''
+}
+
+function bearerToken(request: NextRequest) {
+  const authorization = request.headers.get('authorization') ?? ''
+  const match = authorization.match(/^Bearer\s+(.+)$/i)
+  return match?.[1]?.trim() ?? ''
+}
+
+function authorizeIngest(request: NextRequest) {
+  const secret = ingestSecret()
+  const token = bearerToken(request)
+  const production = process.env.NODE_ENV === 'production'
+
+  if (!secret && production) {
+    return {
+      ok: false as const,
+      response: NextResponse.json({
+        ok: false,
+        error: 'worldspect_ingest_secret_missing',
+        message: 'WORLDSPECT_INGEST_SECRET, WORLDSPECT_CRON_SECRET or CRON_SECRET must be configured in production.',
+      }, { status: 503 }),
+    }
+  }
+
+  if (!secret && !production) {
+    return { ok: true as const, warnings: ['worldspect_ingest_secret_missing_local_dev_allowed'] }
+  }
+
+  if (!token || token !== secret) {
+    return {
+      ok: false as const,
+      response: NextResponse.json({ ok: false, error: 'unauthorized_worldspect_ingest' }, { status: 401 }),
+    }
+  }
+
+  return { ok: true as const, warnings: [] }
 }
 
 function manualCulturalObservation(body: Record<string, unknown>): SourceObservation[] {
@@ -34,7 +77,10 @@ function manualCulturalObservation(body: Record<string, unknown>): SourceObserva
   return observations
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const authorization = authorizeIngest(request)
+  if (!authorization.ok) return authorization.response
+
   const observationStartedAt = new Date().toISOString()
   const body = record(await request.json().catch(() => ({})))
   const observations = manualCulturalObservation(body)
@@ -51,6 +97,7 @@ export async function POST(request: Request) {
       degraded_sources: result.degraded_sources,
       cognitiveSpineContrast: result.cognitiveSpineContrast,
       cognitiveSpineContrastWarning: result.cognitiveSpineContrastWarning,
+      warnings: authorization.warnings,
     })
   }
 
@@ -70,5 +117,6 @@ export async function POST(request: Request) {
     degraded_sources: result.degraded_sources,
     cognitiveSpineContrast: result.cognitiveSpineContrast,
     cognitiveSpineContrastWarning: result.cognitiveSpineContrastWarning,
+    warnings: authorization.warnings,
   })
 }

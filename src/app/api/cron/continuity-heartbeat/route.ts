@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { readContinuityActionableWorkGate } from '@/lib/continuity/actionableWorkGate';
 import { runContinuityHeartbeat, runOperationalTransitionWatchdog } from '@/lib/continuity/runtime';
 import { runOperationalAutoAdvance } from '@/lib/continuity/operationalAutoAdvance';
 import { runStudioAutonomyContinuation } from '@/lib/continuity/studioAutonomy';
@@ -158,6 +159,21 @@ export async function GET(request: NextRequest) {
   if (!authorization.ok) return NextResponse.json({ ok: false, error: 'unauthorized_continuity_cron' }, { status: 401 });
 
   const requestedCycleId = request.nextUrl.searchParams.get('cycleId')?.trim() || undefined;
+  const actionableGate = await readContinuityActionableWorkGate({ requestedCycleId });
+
+  if (!actionableGate.shouldRun) {
+    return NextResponse.json({
+      ok: true,
+      trigger: authorization.trigger,
+      requestedCycleId: requestedCycleId ?? null,
+      mode: actionableGate.state?.continuityMode ?? 'NORMAL',
+      status: 'IDLE',
+      reason: actionableGate.reason,
+      actionableGate,
+      writesPerformed: false,
+      executionRule: 'Idle heartbeat exits before continuity probes or governed continuation lanes. No continuity run, health check, evidence, memory, RETURN, learning, canon or external action is created.',
+    }, { headers: { 'Cache-Control': 'no-store' } });
+  }
 
   try {
     const result = await runContinuityHeartbeat(authorization.trigger);
@@ -220,9 +236,6 @@ export async function GET(request: NextRequest) {
           })),
     ]);
 
-    // Evidence acquisition and risk assessment above may make routine proposals
-    // eligible. Advance those now, without inventing a ROOT approval. Sovereign
-    // or material external operations remain stopped by the decision boundary.
     const operationalAutoAdvance = emergencyHalt
       ? { ok: true as const, halted: true as const, processed: 0, results: [] }
       : await runOperationalAutoAdvance({ limit: 10 }).catch((error) => ({
@@ -298,6 +311,7 @@ export async function GET(request: NextRequest) {
       ok: gateReceipt.overallOk,
       trigger: authorization.trigger,
       requestedCycleId: requestedCycleId ?? null,
+      actionableGate,
       ...result,
       coreHeartbeat,
       laneStatus,
@@ -312,7 +326,7 @@ export async function GET(request: NextRequest) {
       targetCycleState,
       executionRule: emergencyHalt
         ? 'EMERGENCY_HALT suppresses transition writes, operational auto-advance, governed execution dispatch, universal cognitive continuation, empirical continuation and learning writes. Continuity probes may record the halted heartbeat only.'
-        : 'One heartbeat owns the complete governed continuation path. Routine evidence review, risk assessment, operational authorization, execution, RETURN, calibration and methodological closure proceed without founder approval while remaining inside existing authority. Institutional/canonical change, material capability change, learning promotion and reserved material external/irreversible operations stop at the sovereign boundary. Missing evidence remains missing; no RETURN, canon mutation or external authority is fabricated.',
+        : 'One heartbeat owns the complete governed continuation path only after the read-only actionable-work gate admits real pending work. Routine evidence review, risk assessment, operational authorization, execution, RETURN, calibration and methodological closure proceed without founder approval while remaining inside existing authority. Institutional/canonical change, material capability change, learning promotion and reserved material external/irreversible operations stop at the sovereign boundary. Missing evidence remains missing; no RETURN, canon mutation or external authority is fabricated.',
     });
   } catch (error) {
     return NextResponse.json({
