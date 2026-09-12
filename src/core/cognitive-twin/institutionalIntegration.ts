@@ -96,10 +96,46 @@ async function syncMethodLabRuns(limit = 100): Promise<SyncResult> {
   return { source:'method_lab', ok:failed===0, observed:rows.length, synced, failed, warning:failed ? `${failed}_method_lab_runs_failed` : null };
 }
 
+async function latestWorldSpectTwinExperienceRef() {
+  const db = createServiceSupabaseClient();
+  const existing = await db.from('epistemic_events')
+    .select('source')
+    .eq('event_name', 'cognitive_twin.experience.recorded')
+    .eq('source->>sourceType', 'worldspect_snapshots')
+    .order('sequence', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (existing.error) return { ok:false as const, sourceRef:null, observedAt:null, error:existing.error.message };
+  if (!existing.data) return { ok:true as const, sourceRef:null, observedAt:null, error:null };
+
+  const sourceRef = text(record(existing.data.source).sourceId);
+  if (!sourceRef) return { ok:false as const, sourceRef:null, observedAt:null, error:'worldspect_experience_source_ref_missing' };
+
+  const marker = await db.from('worldspect_snapshots')
+    .select('id,observed_at')
+    .eq('id', sourceRef)
+    .maybeSingle();
+  if (marker.error) return { ok:false as const, sourceRef, observedAt:null, error:marker.error.message };
+  const observedAt = text(marker.data?.observed_at);
+  if (!marker.data || !observedAt) return { ok:false as const, sourceRef, observedAt:null, error:'worldspect_experience_watermark_snapshot_missing' };
+
+  return { ok:true as const, sourceRef, observedAt, error:null };
+}
+
 async function syncObservatoryState(limit = 60): Promise<SyncResult> {
   const db = createServiceSupabaseClient();
-  const result = await db.from('worldspect_snapshots').select('id,observed_at,created_at,source_state,confidence,wsi,nti,ingest_mode,sources').order('observed_at', { ascending: false }).limit(limit);
+  const marker = await latestWorldSpectTwinExperienceRef();
+  if (!marker.ok) return { source:'observatory', ok:false, observed:0, synced:0, failed:0, warning:`observatory_sync_identity_read_failed:${marker.error}` };
+
+  let query = db.from('worldspect_snapshots')
+    .select('id,observed_at,created_at,source_state,confidence,wsi,nti,ingest_mode,sources');
+  query = marker.observedAt
+    ? query.gt('observed_at', marker.observedAt).order('observed_at', { ascending: true }).limit(limit)
+    : query.order('observed_at', { ascending: false }).limit(1);
+
+  const result = await query;
   if (result.error) return { source:'observatory', ok:false, observed:0, synced:0, failed:0, warning:result.error.message };
+
   const rows = (result.data ?? []) as Row[];
   let synced = 0; let failed = 0;
   for (const row of rows) {
@@ -114,12 +150,20 @@ async function syncObservatoryState(limit = 60): Promise<SyncResult> {
         epistemicClass:simulatedSources === sources.length && sources.length ? 'SIMULATED' : 'DERIVED_FROM_OBSERVATIONS',
         observedAt:text(row.observed_at) ?? text(row.created_at), sourceState:text(row.source_state), confidence:number(row.confidence),
         wsi:number(row.wsi), nti:number(row.nti), ingestMode:text(row.ingest_mode), sourceCount:sources.length, simulatedSourceCount:simulatedSources,
-        rule:'Observatory snapshots enter candidate Twin memory with their original epistemic boundary and require verification/promotion before canonical consumption.',
+        rule:'WorldSpect synchronization is watermark-bound. A clean baseline admits only the latest persisted snapshot; later cycles admit only snapshots observed after the last WorldSpect experience already recorded by the Twin. Candidate memory retains the original epistemic boundary and requires verification/promotion before canonical consumption.',
       },
     });
     if (persisted.ok) synced += 1; else failed += 1;
   }
-  return { source:'observatory', ok:failed===0, observed:rows.length, synced, failed, warning:failed ? `${failed}_observatory_snapshots_failed` : null };
+
+  return {
+    source:'observatory',
+    ok:failed===0,
+    observed:rows.length,
+    synced,
+    failed,
+    warning:failed ? `${failed}_observatory_snapshots_failed` : !marker.sourceRef && rows.length ? 'observatory_clean_baseline_bootstrap_latest_only' : null,
+  };
 }
 
 async function probe(input: IntegrationOrgan) {
