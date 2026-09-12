@@ -8,4 +8,6 @@ The repository-backed cover `/images/editorial/notas-de-caso.webp` is bound to `
 
 These bindings alter presentation/discovery metadata only. They do not promote evidence, create RETURN, modify publication authority, or make the identified PDF rendition public.
 
-The monthly Notas Temporales routine persists its candidate through the canonical `persistWorldVectorReport` writer. Monthly candidates intentionally remain cycleless (`cycle_id = null`) unless a real World Vector cycle is supplied by the caller. The routine does not create an alternate report persistence owner.
+The monthly Notas Temporales routine persists its candidate through the canonical `persistWorldVectorReport` writer. A cycleless report (`cycle_id = null`) is admitted only for `temporal_issue_monthly`; other World Vector report types still require a real cycle. The routine does not create an alternate report persistence owner.
+
+Method Lab composition is institutional-only. Because the monthly routine uses the service client, it explicitly constrains `sfi_lab_analyses.owner_id IS NULL` before any analysis is supplied to Signal Vane, Cluster Atlas, or the repository-targeted candidate. Personal owner-scoped analyses are outside this editorial boundary.
