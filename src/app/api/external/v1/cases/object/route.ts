@@ -22,8 +22,12 @@ const SAFE_OBJECT_KINDS = new Set<SfiCaseObjectKind>([
   'CONTRADICTION',
 ]);
 
+function isRow(value: unknown): value is Row {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
 function row(value: unknown): Row {
-  return value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {};
+  return isRow(value) ? value : {};
 }
 
 function text(value: unknown): string {
@@ -79,6 +83,11 @@ export async function POST(request: Request) {
     const canonicalRefId = text(body.canonicalRefId);
     if (!canonicalRefId) throw new Error('SFI_CASE_REF_REQUIRED');
 
+    if (!isRow(body.payload)) throw new Error('SFI_CASE_PAYLOAD_REQUIRED');
+    const payload = row(body.payload);
+
+    const sourceRefs = refsFromIds(body.sourceRefIds);
+    const recordRefs = refsFromIds(body.recordRefIds);
     const object = await recordOperationalCaseObject({
       caseId,
       userId: auth.credential.subjectId,
@@ -89,10 +98,10 @@ export async function POST(request: Request) {
         version: nullableText(body.canonicalRefVersion),
         hash: nullableText(body.canonicalRefHash),
       },
-      sourceRefs: refsFromIds(body.sourceRefIds),
-      recordRefs: refsFromIds(body.recordRefIds),
+      sourceRefs,
+      recordRefs,
       evidenceRefs: [],
-      payload: row(body.payload),
+      payload,
       observedAt: nullableText(body.observedAt),
     });
 
@@ -103,8 +112,8 @@ export async function POST(request: Request) {
       transportDiagnostics: {
         canonicalRefTransport: 'FLAT_REQUIRED',
         canonicalRefId,
-        sourceRefCount: refsFromIds(body.sourceRefIds).length,
-        recordRefCount: refsFromIds(body.recordRefIds).length,
+        sourceRefCount: sourceRefs.length,
+        recordRefCount: recordRefs.length,
       },
       epistemicBoundary: 'This Action persists only bounded Case objects. It cannot create accepted evidence, governance authority, intervention authority, observed RETURN or truth claims.',
     }, { status: 201 });
