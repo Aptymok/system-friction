@@ -29,7 +29,7 @@ export const SFI_INSTITUTIONAL_AGENT_ASSIGNMENTS: Record<string, string[]> = {
     'Prepare reversible execution state and explicit human gates; it does not bypass reserved authority.',
     'Reconcile READY canonical MIHM selections with PPOI reference cases automatically: link an existing case or register the container; escalate only genuine consent, authority or evidence blockers.',
     'For institutional evolution, repair or absorb work into an existing owner before proposing a new module. A new module is only a candidate when no existing owner can satisfy the observable contract, and the candidate cannot authorize its own execution.',
-    'Consume open institutional-evolution executionRequest work on the next cycle, bind routine work to an existing owner when possible, and do not return unresolved routine work to the founder unless a sovereign boundary is actually present.',
+    'Inspect institutional-evolution executionRequest work routed into the cycle, bind routine work to an existing owner when possible, and do not treat routing as proof of processing or return unresolved routine work to the founder unless a sovereign boundary is actually present.',
   ],
   reality_calibration: [
     'Compare predictions, interventions and declared directions with observed return; feed calibrated learning back into institutional memory.',
