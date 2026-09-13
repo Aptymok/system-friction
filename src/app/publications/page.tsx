@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { SFI_NOTAS_TEMPORALES_V1 } from '@/lib/publications/editorialContent';
-import { SFI_NOTAS_TEMPORALES_SEPTEMBER_2026_SOURCE } from '@/lib/publications/notasTemporalesSeptember2026';
+import { SFI_NOTAS_TEMPORALES_SEPTEMBER_2026_CONTENT } from '@/lib/publications/notasTemporalesSeptember2026';
 import {
   SFI_EDITORIAL_FAMILIES,
   SFI_PUBLICATIONS_BANNER,
@@ -41,7 +41,8 @@ function formatDate(value: string) {
 
 export default function PublicationsPage() {
   const monthly = SFI_NOTAS_TEMPORALES_V1;
-  const september = SFI_NOTAS_TEMPORALES_SEPTEMBER_2026_SOURCE;
+  const september = SFI_NOTAS_TEMPORALES_SEPTEMBER_2026_CONTENT;
+  const pdf = monthly.renditions.find((rendition) => rendition.kind === 'PDF') ?? null;
 
   return <main className="publicationsHub">
     <header className="pubTopbar">
@@ -92,11 +93,11 @@ export default function PublicationsPage() {
             <div><dt>CADENCIA</dt><dd>Una edición institucional por mes</dd></div>
             <div><dt>ESTADO</dt><dd>As-of state / retorno abierto</dd></div>
             <div><dt>FUNCIÓN</dt><dd>Qué cambió · qué persiste · qué expiró · qué sigue</dd></div>
-            <div><dt>PDF FUENTE</dt><dd>{september.sourceOfRecord.filename} · {(september.sourceOfRecord.byteLength / 1_000_000).toFixed(1)} MB · SHA-256 verificado</dd></div>
+            {pdf ? <div><dt>PDF FUENTE</dt><dd>{pdf.filename} · {(pdf.byteLength / 1_000_000).toFixed(1)} MB · SHA-256 verificado</dd></div> : null}
           </dl>
           <div className="pubActions">
             <Link href={`/publications/${monthly.slug}`}>ABRIR EDICIÓN →</Link>
-            {september.sourceOfRecord.publicUrl ? <a href={september.sourceOfRecord.publicUrl}>ABRIR PDF ↗</a> : null}
+            {pdf?.publicUrl ? <a href={pdf.publicUrl}>ABRIR PDF ↗</a> : null}
             <Link href="/library#notas-temporales">VER ARCHIVO MENSUAL</Link>
           </div>
         </article>
