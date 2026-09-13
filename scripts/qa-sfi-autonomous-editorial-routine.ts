@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
+import { buildBoundedContextReading } from '../src/lib/amv/core/boundedContextReading';
 
 const read = (path: string) => readFileSync(path, 'utf8');
 const vercel = read('vercel.json');
@@ -10,6 +11,8 @@ const persistence = read('src/lib/world-vector/persistence.ts');
 const editorial = read('src/lib/publications/editorialContent.ts');
 const worldRoute = read('src/app/api/cron/world-observatory/route.ts');
 const sweep = read('src/lib/world-observatory/instrumentSweep.ts');
+const signalScope = read('src/lib/amv/scopes/signal-vane/signal-vaneScope.ts');
+const clusterScope = read('src/lib/amv/scopes/cluster-atlas/cluster-atlasScope.ts');
 const migration = read('supabase/migrations/20260912213500_extend_world_vector_reports_temporal_issue.sql');
 
 assert.ok(routine.includes("scope: 'signal-vane'"), 'monthly_routine_must_read_signal_vane');
@@ -38,6 +41,43 @@ assert.ok(route.includes('runTemporalIssueRoutine'), 'monthly_cron_must_call_bou
 assert.ok(vercel.includes('/api/cron/notas-temporales'), 'monthly_cron_must_be_scheduled');
 assert.ok(vercel.includes('15 14 1 * *'), 'monthly_cron_must_run_once_per_month');
 
+const requiredReadGuard = routine.indexOf('if (requiredReadErrors.length)');
+const persistenceCall = routine.indexOf('const persistence = await persistWorldVectorReport({ report })');
+assert.ok(requiredReadGuard >= 0 && persistenceCall > requiredReadGuard, 'required_input_fail_closed_guard_must_precede_monthly_persistence');
+assert.ok(routine.includes('report: null') && routine.includes('persistence: null'), 'failed_required_reads_must_not_materialize_or_persist_partial_candidate');
+assert.ok(routine.includes('No AMV reading was composed and no monthly draft was persisted'), 'retry_boundary_must_state_no_partial_draft');
+
+assert.ok(signalScope.includes("buildBoundedContextReading('signal-vane'"), 'signal_vane_scope_must_consume_selected_context');
+assert.ok(clusterScope.includes("buildBoundedContextReading('cluster-atlas'"), 'cluster_atlas_scope_must_consume_selected_context');
+
+const contextA = {
+  observations: [{ affectedSystems: ['GRID', 'GRID'], actors: ['OPERATOR_A'], sourceFamily: 'PUBLIC', confidence: 0.8 }],
+  hypotheses: [{ status: 'ACTIVE', expectedSignals: ['LOAD_RISE'], contradictionSignals: ['LOAD_DROP'] }],
+  outcomes: [{ classification: 'SUPPORTED' }],
+  investigations: [{ systems: ['GRID'], variables: ['LATENCY', 'LATENCY'] }],
+};
+const contextB = {
+  observations: [{ affectedSystems: ['MOBILITY', 'MOBILITY'], actors: ['OPERATOR_B'], sourceFamily: 'PUBLIC', confidence: 0.8 }],
+  hypotheses: [{ status: 'ACTIVE', expectedSignals: ['DEMAND_RISE'], contradictionSignals: [] }],
+  outcomes: [{ classification: 'CONTRADICTED' }],
+  investigations: [{ systems: ['MOBILITY'], variables: ['ACCESS', 'ACCESS'] }],
+};
+
+const vaneA = buildBoundedContextReading('signal-vane', contextA);
+const vaneB = buildBoundedContextReading('signal-vane', contextB);
+const atlasA = buildBoundedContextReading('cluster-atlas', contextA);
+const atlasB = buildBoundedContextReading('cluster-atlas', contextB);
+assert.ok(vaneA && vaneB && atlasA && atlasB, 'bounded_context_readings_must_materialize_for_object_context');
+assert.notEqual(vaneA.digest, vaneB.digest, 'signal_vane_digest_must_change_when_context_content_changes');
+assert.notEqual(vaneA.summary, vaneB.summary, 'signal_vane_reading_must_change_when_context_content_changes');
+assert.notEqual(atlasA.summary, atlasB.summary, 'cluster_atlas_reading_must_change_when_context_content_changes');
+assert.match(vaneA.summary, /GRID×3/);
+assert.match(vaneB.summary, /MOBILITY×3/);
+assert.match(atlasA.summary, /LATENCY×2|GRID×3/);
+assert.match(atlasB.summary, /ACCESS×2|MOBILITY×3/);
+assert.match(vaneA.summary, /DERIVED/);
+assert.match(atlasA.summary, /no implican causalidad/);
+
 assert.ok(editorial.includes("coverImage: '/images/editorial/notas-temporales-septiembre-2026.webp'"), 'notas_temporales_cover_must_be_bound');
 assert.ok(editorial.includes("coverImage: '/images/editorial/notas-de-caso.webp'"), 'kavak_case_cover_must_be_bound');
 assert.ok(existsSync('public/images/editorial/notas-temporales-septiembre-2026.webp'), 'notas_temporales_cover_asset_missing');
@@ -56,6 +96,8 @@ console.log(JSON.stringify({
   dailyWorldSweep: ['signal-vane', 'cluster-atlas', 'predictive-health'],
   monthlyIssue: 'Notas Temporales',
   monthlyInputs: ['world observations', 'world hypotheses', 'institutional Method Lab investigations', 'Predictive health'],
+  contextualReadings: 'CONTENT_DEPENDENT_DERIVED',
+  partialReadPersistence: 'FAIL_CLOSED_NO_DRAFT',
   persistence: 'canonical persistWorldVectorReport -> world_vector_reports / temporal_issue_monthly only when cycleless',
   editorialCovers: ['notas-temporales-septiembre-2026.webp', 'notas-de-caso.webp'],
   personalMethodLabRows: 'EXCLUDED',
