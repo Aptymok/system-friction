@@ -69,7 +69,7 @@ export type WorldVectorPersistedObservation = WorldVectorObservation & {
   created_at: string;
 };
 
-export type WorldVectorReportType = 'internal_daily' | 'public_weekly' | 'cycle_close';
+export type WorldVectorReportType = 'internal_daily' | 'public_weekly' | 'cycle_close' | 'temporal_issue_monthly';
 export type WorldVectorReportAudience = 'founder' | 'linkedin' | 'repository';
 
 export type WorldVectorReport = {

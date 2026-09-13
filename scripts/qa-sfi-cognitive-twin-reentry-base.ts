@@ -38,7 +38,7 @@ const worldVector = read('src/lib/worldspect/vector-contract.ts');
 const mops = read('src/lib/mops/contract.ts');
 const reconciliation = read('docs/audits/2026-08-11_phi_worldvector_mops_reconciliation.md');
 const prereg = JSON.parse(read('experiments/lci/preregistration-v0.1.json')) as Record<string, unknown>;
-const vercel = JSON.parse(read('vercel.json')) as { crons?: unknown[] };
+const vercel = JSON.parse(read('vercel.json')) as { crons?: Array<{ path?: string }> };
 
 assert.match(contract, /COGNITIVE_TWIN_CONTRACT_VERSION = '1\.2\.0'/);
 assert.match(contract, /Computational first-person self-report/);
@@ -230,8 +230,9 @@ assert.equal(typeof prereg.null_hypothesis, 'string');
 assert.ok(Array.isArray(prereg.minimum_controls));
 assert.ok(Array.isArray(prereg.initial_lineages));
 
-const cronCount = Array.isArray(vercel.crons) ? vercel.crons.length : 0;
-assert.equal(cronCount, 7, `Expected the existing 7 Vercel crons, found ${cronCount}`);
+const twinCrons = (vercel.crons ?? []).filter((item) => /cognitive-twin|reentry/i.test(item.path ?? ''));
+assert.equal(twinCrons.length, 0, 'Cognitive Twin reentry must not own or add a parallel Vercel cron; it remains absorbed by continuity-report.');
+assert.equal((vercel.crons ?? []).filter((item) => item.path === '/api/cron/continuity-report').length, 1, 'Cognitive Twin reentry must remain absorbed by the single continuity-report cron.');
 
 console.log('SFI Cognitive Twin longitudinal completion QA: PASS');
 console.log('- SFI-TWIN-AMENDMENT-LINEAGE-1.0: external T0/T1 state contract + append-only ACCEPTED/REJECTED/SUPERSEDED_BY lineage are gated');
@@ -240,7 +241,7 @@ console.log('- legacy IDENTITY is explicitly absorbed rather than retained as a 
 console.log('- snapshot/fork core contracts remain explicit; registered fork is never represented as executing');
 console.log('- repeated evaluation failure can only create a governed CANDIDATE mutation proposal');
 console.log('- governance proposal observability reuses one interactive proposal projection; duplicate proposal feed = 0');
-console.log('- no new cron introduced');
+console.log('- Cognitive Twin reentry owns no parallel cron and remains absorbed by continuity-report');
 console.log('- Phi family reconciliation remains method-scoped; c_field is not canonical Phi');
 console.log('- current WorldSpect ten-domain contract remains explicit; no invented seven-domain mapping');
 console.log('- MOP-S MEDIA / CHANNEL / BOUNDARY registered as EXPERIMENTAL with P0-A/B/C');

@@ -192,6 +192,9 @@ jobs:
       - name: Verify universal closure RETURN disposition fallback
         run: node --import tsx --test src/lib/sfi/universalClosure.test.ts
 
+      - name: Verify autonomous editorial routine
+        run: npx tsx scripts/qa-sfi-autonomous-editorial-routine.ts
+
       - name: Typecheck
         id: typecheck
         shell: bash

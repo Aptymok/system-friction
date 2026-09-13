@@ -83,7 +83,7 @@ export const SFI_NOTAS_TEMPORALES_V1: SfiEditorialPublication = Object.freeze({
   deck: 'Publicación institucional mensual de SFI. Cada edición fija un corte temporal del campo observado: señales, evidencia pública, convergencias, contradicciones y preguntas que merecen seguimiento. No es una colección de artículos individuales ni una categoría para publicaciones de Medium.',
   publishedAt: '2026-09-12T00:00:00-06:00',
   mediumUrl: null,
-  coverImage: null,
+  coverImage: '/images/editorial/notas-temporales-septiembre-2026.webp',
   contentState: 'MATERIALIZED',
   renditions: SFI_NOTAS_TEMPORALES_V1_RENDITIONS,
   sections: Object.freeze([
@@ -468,7 +468,7 @@ export const SFI_OBSERVATION_KAVAK: SfiEditorialPublication = Object.freeze({
   deck: 'Un caso de fricción externa observado desde la distancia entre conversación, estado comunicado, autoridad operativa y ejecución material. La pieza no convierte experiencia en causalidad; conserva aquello que puede ser reconstruido y posteriormente contrastado.',
   publishedAt: '2026-09-12T00:00:00-06:00',
   mediumUrl: null,
-  coverImage: null,
+  coverImage: '/images/editorial/notas-de-caso.webp',
   contentState: 'MATERIALIZED',
   renditions: Object.freeze([]),
   sections: Object.freeze([

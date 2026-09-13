@@ -34,7 +34,7 @@ const home=read('src/app/page.tsx');
 const publicEntry=read('src/components/sfi/PublicEntryGateway.tsx');
 const llms=read('src/app/llms.txt/route.ts');
 const aiIndex=read('src/app/ai-index.json/route.ts');
-const vercel=JSON.parse(read('vercel.json')) as {crons?:unknown[]};
+const vercel=JSON.parse(read('vercel.json')) as {crons?:Array<{path:string;schedule:string}>};
 
 for(const state of ['draft','proposed','waiting_evidence','design_approved','queued','accepted','rejected','conflicted','frozen','superseded']) assert.ok(lifecycle.includes(`'${state}'`),`missing_lifecycle_state:${state}`);
 assert.match(lifecycle,/raw === 'approved'\) return 'design_approved'/);
@@ -132,8 +132,17 @@ assert.match(checkpointRoute,/requireRootActor\('root\.cognitive-twin\.checkpoin
 assert.match(snapshotRoute,/createCognitiveTwinSnapshot/);
 assert.match(forkRoute,/registerCognitiveTwinFork/);
 
-const cronCount=Array.isArray(vercel.crons)?vercel.crons.length:0;
-assert.equal(cronCount,7,`Expected unchanged 7 Vercel crons, found ${cronCount}`);
+const expectedCrons = [
+  { path: '/api/cron/worldspect', schedule: '20 7 * * *' },
+  { path: '/api/cron/world-observatory', schedule: '25 7 * * *' },
+  { path: '/api/cron/continuity-heartbeat', schedule: '15 7 * * *' },
+  { path: '/api/cron/sfi-institutional-cycle', schedule: '35 7 * * *' },
+  { path: '/api/cron/sfi-indicators', schedule: '0 8 * * *' },
+  { path: '/api/cron/predictive-engine', schedule: '30 8 * * *' },
+  { path: '/api/cron/continuity-report', schedule: '45 8 * * *' },
+  { path: '/api/cron/notas-temporales', schedule: '15 14 1 * *' },
+];
+assert.deepEqual(vercel.crons ?? [], expectedCrons, 'Vercel cron set must match the explicitly governed schedule exactly');
 
 console.log(JSON.stringify({ok:true,invariants:[
   'ROOT and ACP share one canonical action_proposals lifecycle',
@@ -154,5 +163,5 @@ console.log(JSON.stringify({ok:true,invariants:[
   'CT mutation state remains candidate until governed',
   'CT snapshot/checkpoint/fork routes remain governed and reachable by API',
   'CT checkpoint is exportable but explicitly pending independent external anchoring',
-  'no new Vercel cron introduced',
+  'Vercel cron set is exact and includes bounded monthly Notas Temporales candidate generation',
 ]},null,2));

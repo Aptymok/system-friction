@@ -174,15 +174,23 @@ export async function persistWorldVectorObservation(input: {
 
 export async function persistWorldVectorReport(input: {
   report: WorldVectorReport;
-  cycleRange: WorldVectorCycleRange;
+  cycleRange?: WorldVectorCycleRange;
   observation?: WorldVectorObservation;
 }): Promise<WorldVectorPersistenceResult<ReportRow>> {
   const readiness = await getWorldVectorPersistenceStatus();
   if (!readiness.enabled) return blocked(readiness.reason, readiness.details);
 
+  if (!input.cycleRange && input.report.report_type !== 'temporal_issue_monthly') {
+    throw new Error(`world_vector_cycle_required_for_report_type:${input.report.report_type}`);
+  }
+
   const service = createServiceSupabaseClient();
-  const cycle = await ensureCycle(input.cycleRange, input.observation);
-  if (!cycle.ok) return blocked('world_vector_table_read_failed', cycle.error);
+  let cycleId: string | null = null;
+  if (input.cycleRange) {
+    const cycle = await ensureCycle(input.cycleRange, input.observation);
+    if (!cycle.ok) return blocked('world_vector_table_read_failed', cycle.error);
+    cycleId = cycle.data.id;
+  }
 
   const { data: existing, error: selectError } = await service
     .from('world_vector_reports')
@@ -201,7 +209,7 @@ export async function persistWorldVectorReport(input: {
   const { data, error } = await service
     .from('world_vector_reports')
     .insert({
-      cycle_id: cycle.data.id,
+      cycle_id: cycleId,
       report_type: input.report.report_type,
       target_audience: input.report.target_audience,
       period_start: input.report.period_start,
