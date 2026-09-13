@@ -15,6 +15,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: path ? 0.9 : 1,
   }));
 
+  const editorial = [{
+    url: `${BASE}/publications`,
+    lastModified: new Date(),
+    changeFrequency: 'weekly' as const,
+    priority: 0.9,
+  }];
+
   const machine = ['llms.txt','llms-full.txt','ai-index.json','ai-policy','field-schema.json','feed.xml','feed.atom','feed.json'].map((path) => ({
     url: `${BASE}/${path}`,
     lastModified: new Date(),
@@ -22,5 +29,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.7,
   }));
 
-  return [...scenes, ...machine, ...discoverySitemapEntries()];
+  return [...scenes, ...editorial, ...machine, ...discoverySitemapEntries()];
 }
