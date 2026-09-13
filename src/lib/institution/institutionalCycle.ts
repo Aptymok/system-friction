@@ -127,7 +127,7 @@ export async function runInstitutionalCycle(trigger = 'scheduled') {
   const [cycleEvidence, attractorState, evolutionWork] = await Promise.all([
     readCycleEvidence(),
     readInstitutionalAttractor(),
-    readOpenInstitutionalEvolutionWork(12),
+    readOpenInstitutionalEvolutionWork(12, startedAt),
   ]);
 
   const vector = record(attractorState.attractor?.vector);
@@ -158,7 +158,7 @@ export async function runInstitutionalCycle(trigger = 'scheduled') {
       executionRequest: {
         contract: evolutionWork.contract,
         authority: evolutionWork.authority,
-        sourceCutoff: startedAt,
+        sourceCutoff: evolutionWork.sourceCutoff,
         mode: 'ROUTINE_OWNER_RECONCILIATION',
         proposals: evolutionWork.work,
         proposalRefs: evolutionWork.proposalRefs,
@@ -319,6 +319,7 @@ export async function runInstitutionalCycle(trigger = 'scheduled') {
       institutionalEvolutionWork: {
         proposalRefs: evolutionWork.proposalRefs,
         authority: evolutionWork.authority,
+        sourceCutoff: evolutionWork.sourceCutoff,
       },
       cognitiveSpine: {
         snapshot: cognitiveSpine.snapshot,
