@@ -15,7 +15,7 @@ export type SfiEditorialFamily = {
   slugs: readonly string[];
 };
 
-const GENERATED_IMAGE_PROVENANCE = 'GENERADA (IA) · SFI / OpenAI · 2026-09-12 · identidad editorial institucional · uso web';
+const GENERATED_IMAGE_PROVENANCE = 'Tipo: GENERADA (IA) · Autor: SFI / OpenAI · Procedencia: ChatGPT ImageGen · Fecha: 2026-09-12 · Contexto: identidad editorial institucional · Uso: web';
 
 export const SFI_EDITORIAL_FAMILIES: readonly SfiEditorialFamily[] = Object.freeze([
   {
