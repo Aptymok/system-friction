@@ -1,10 +1,11 @@
 import 'server-only';
 
 import { readContinuityDashboard } from '@/lib/continuity/runtime';
-import { createActionProposal, latestActionProposals, recordValue, sha256, stringValue } from '@/lib/operational/common';
+import { createActionProposal, recordValue, sha256, stringValue } from '@/lib/operational/common';
 import { getPredictiveEngineHealth } from '@/lib/predictive-engine/service';
 import { readObservedSfiCognitiveRuntime } from '@/lib/sfi/cognitive-runtime/observedRuntime';
 import { buildWorldVectorOperationalState } from '@/lib/world-vector/operationalState';
+import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import type { refreshInstitutionalAttractorTrajectory } from './institutionalAttractor';
 
 export const SFI_INSTITUTIONAL_EVOLUTION_CONTRACT = 'SFI-INSTITUTIONAL-EVOLUTION-1.1' as const;
@@ -12,7 +13,9 @@ export const SFI_INSTITUTIONAL_MUTATION_PROPOSAL_TYPE = 'institutional_mutation_
 
 const SYSTEM_ACTOR = 'SYSTEM_FRICTION_INSTITUTE';
 const MAX_NEW_PROPOSALS_PER_CYCLE = 4;
-const OPEN_PROPOSAL_STATUSES = new Set(['draft', 'proposed', 'waiting_evidence', 'design_approved', 'queued', 'conflicted', 'frozen']);
+const CANDIDATE_FINGERPRINT_CONTRACT = 'SFI-INSTITUTIONAL-EVOLUTION-CANDIDATE-1.0';
+const DEDUP_PROPOSAL_STATUSES = new Set(['draft', 'proposed', 'waiting_evidence', 'design_approved', 'queued', 'conflicted', 'frozen']);
+const REENTRY_PROPOSAL_STATUSES = new Set(['draft', 'proposed', 'waiting_evidence', 'design_approved', 'queued', 'conflicted']);
 
 type AttractorRefresh = Awaited<ReturnType<typeof refreshInstitutionalAttractorTrajectory>>;
 type EvolutionKind =
@@ -73,14 +76,37 @@ function strings(value: unknown) {
     : [];
 }
 
-function proposalFingerprint(candidate: EvolutionCandidate) {
-  return sha256({
-    contract: SFI_INSTITUTIONAL_EVOLUTION_CONTRACT,
+function fingerprintPayload(candidate: EvolutionCandidate, contract: string) {
+  return {
+    contract,
     kind: candidate.kind,
     target: candidate.target,
     reasons: [...candidate.reasons].sort(),
     ownerResolution: candidate.ownerResolution,
-  });
+  };
+}
+
+function proposalFingerprint(candidate: EvolutionCandidate) {
+  return sha256(fingerprintPayload(candidate, CANDIDATE_FINGERPRINT_CONTRACT));
+}
+
+function legacyProposalFingerprints(candidate: EvolutionCandidate) {
+  return [
+    sha256(fingerprintPayload(candidate, 'SFI-INSTITUTIONAL-EVOLUTION-1.0')),
+    sha256(fingerprintPayload(candidate, 'SFI-INSTITUTIONAL-EVOLUTION-1.1')),
+  ];
+}
+
+async function queryEvolutionProposals(limit: number, sourceCutoff?: string) {
+  const service = createServiceSupabaseClient();
+  let query = service
+    .from('action_proposals')
+    .select('*')
+    .eq('expected_field_delta->>proposalType', SFI_INSTITUTIONAL_MUTATION_PROPOSAL_TYPE)
+    .order('created_at', { ascending: false });
+  if (sourceCutoff) query = query.lte('created_at', sourceCutoff);
+  const { data, error } = await query.limit(limit);
+  return { data: data ?? [], error: error?.message ?? null };
 }
 
 function existingEvolutionProposals(value: unknown[]): PersistedProposal[] {
@@ -91,7 +117,7 @@ function existingEvolutionProposals(value: unknown[]): PersistedProposal[] {
     const fingerprint = stringValue(payload.fingerprint);
     const id = stringValue(row.id);
     const status = stringValue(row.status);
-    if (!fingerprint || !id || !status || !OPEN_PROPOSAL_STATUSES.has(status)) return [];
+    if (!fingerprint || !id || !status || !DEDUP_PROPOSAL_STATUSES.has(status)) return [];
     return [{ id, fingerprint, status }];
   });
 }
@@ -111,7 +137,7 @@ function openEvolutionWorkFromRows(value: unknown, limit: number): OpenInstituti
     const priority = Number(payload.priority);
     if (!id || !title || !status || !kind || !target || !ownerResolution) return [];
     if (contract !== SFI_INSTITUTIONAL_EVOLUTION_CONTRACT && contract !== 'SFI-INSTITUTIONAL-EVOLUTION-1.0') return [];
-    if (!OPEN_PROPOSAL_STATUSES.has(status)) return [];
+    if (!REENTRY_PROPOSAL_STATUSES.has(status)) return [];
     if (!['REPAIR_EXISTING_OWNER', 'ABSORB_IN_EXISTING_OWNER', 'NO_EXISTING_OWNER'].includes(ownerResolution)) return [];
     return [{
       proposalId: id,
@@ -131,18 +157,19 @@ function openEvolutionWorkFromRows(value: unknown, limit: number): OpenInstituti
   }).sort((a, b) => b.priority - a.priority || a.proposalId.localeCompare(b.proposalId)).slice(0, limit);
 }
 
-export async function readOpenInstitutionalEvolutionWork(limit = 12) {
+export async function readOpenInstitutionalEvolutionWork(limit = 12, sourceCutoff = new Date().toISOString()) {
   const boundedLimit = Math.max(1, Math.min(24, limit));
-  const current = await latestActionProposals([SFI_INSTITUTIONAL_MUTATION_PROPOSAL_TYPE], Math.max(50, boundedLimit * 4));
+  const current = await queryEvolutionProposals(Math.max(50, boundedLimit * 4), sourceCutoff);
   const work = openEvolutionWorkFromRows(current.data, boundedLimit);
   return {
     ok: !current.error,
     contract: SFI_INSTITUTIONAL_EVOLUTION_CONTRACT,
     authority: 'PROPOSED_NON_EXECUTING' as const,
+    sourceCutoff,
     work,
     proposalRefs: work.map((item) => item.proposalId),
     warning: current.error ?? null,
-    boundary: 'Open evolution work may be consumed by the next institutional cycle for owner reconciliation. Consumption does not approve execution, canon change or external effects.',
+    boundary: 'Eligible non-frozen evolution work recorded at or before the declared source cutoff may be consumed by the next institutional cycle for owner reconciliation. Consumption does not approve execution, canon change or external effects.',
   };
 }
 
@@ -272,7 +299,7 @@ function worldContext(world: Awaited<ReturnType<typeof buildWorldVectorOperation
 }
 
 async function persistCandidates(candidates: EvolutionCandidate[], context: Record<string, unknown>) {
-  const current = await latestActionProposals([SFI_INSTITUTIONAL_MUTATION_PROPOSAL_TYPE], 150);
+  const current = await queryEvolutionProposals(150);
   const open = existingEvolutionProposals(current.data as unknown[]);
   const openByFingerprint = new Map(open.map((item) => [item.fingerprint, item]));
   const ordered = [...candidates].sort((a, b) => b.priority - a.priority || a.title.localeCompare(b.title));
@@ -281,9 +308,10 @@ async function persistCandidates(candidates: EvolutionCandidate[], context: Reco
 
   for (const candidate of ordered) {
     const fingerprint = proposalFingerprint(candidate);
-    const existing = openByFingerprint.get(fingerprint);
+    const candidateFingerprints = [fingerprint, ...legacyProposalFingerprints(candidate)];
+    const existing = candidateFingerprints.map((item) => openByFingerprint.get(item)).find(Boolean);
     if (existing) {
-      results.push({ proposalId: existing.id, fingerprint, created: false, kind: candidate.kind, target: candidate.target });
+      results.push({ proposalId: existing.id, fingerprint: existing.fingerprint, created: false, kind: candidate.kind, target: candidate.target });
       continue;
     }
     if (newCount >= MAX_NEW_PROPOSALS_PER_CYCLE) continue;
@@ -298,6 +326,7 @@ async function persistCandidates(candidates: EvolutionCandidate[], context: Reco
       payload: {
         contract: SFI_INSTITUTIONAL_EVOLUTION_CONTRACT,
         fingerprint,
+        candidateFingerprintContract: CANDIDATE_FINGERPRINT_CONTRACT,
         kind: candidate.kind,
         target: candidate.target,
         priority: candidate.priority,
@@ -404,6 +433,6 @@ export async function runInstitutionalEvolutionObservation(input: {
       ...world.agent_audit.warnings,
       persistence.lookupError,
     ]),
-    boundary: 'Evolution proposals are DERIVED work objects. They may re-enter the next cycle as bounded execution requests for owner reconciliation; they do not execute themselves, change canon, publish, spend, grant access or create external effects.',
+    boundary: 'Evolution proposals are DERIVED work objects. Eligible non-frozen proposals may re-enter the next cycle as bounded execution requests for owner reconciliation; they do not execute themselves, change canon, publish, spend, grant access or create external effects.',
   };
 }
