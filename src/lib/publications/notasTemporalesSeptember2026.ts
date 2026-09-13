@@ -5,7 +5,6 @@ export const SFI_NOTAS_TEMPORALES_SEPTEMBER_2026_CONTENT = Object.freeze({
   issue: 'Septiembre 2026',
   subtitle: 'México · corte de septiembre de 2026',
   coverStatement: 'Señales, relojes externos, vectores y observaciones públicas para leer el presente antes de que se convierta en costo.',
-  provenance: 'USER_SUPPLIED_VERIFIED',
   pages: Object.freeze([
     { page: 1, label: 'Portada', title: 'Notas Temporales · México, corte de septiembre de 2026' },
     { page: 2, label: 'Editorial', title: 'Nota Editorial' },
@@ -19,7 +18,7 @@ export const SFI_NOTAS_TEMPORALES_SEPTEMBER_2026_CONTENT = Object.freeze({
     { page: 10, label: 'Derivación', title: 'Observación derivada 01 · lectura pública de SFI' },
   ]),
   nextWindow: 'Octubre de 2026: seguimiento a líneas móviles, integración regional, economía circular y capacidad de adaptación.',
-  transportBoundary: 'El PDF suministrado por el fundador es la fuente de registro verificada de esta edición. Su identidad criptográfica pertenece a la rendition PDF del objeto canónico SFI_NOTAS_TEMPORALES_V1. El binario público permanece pendiente de un host público controlado; no se sustituye silenciosamente por otra edición ni por un PDF regenerado.',
+  transportBoundary: 'El PDF suministrado por el fundador es la fuente de registro verificada de esta edición. Su identidad criptográfica, número de páginas y procedencia pertenecen a la rendition PDF del objeto canónico SFI_NOTAS_TEMPORALES_V1. El binario público permanece pendiente de un host público controlado; no se sustituye silenciosamente por otra edición ni por un PDF regenerado.',
 });
 
 export type SfiNotasTemporalesSeptember2026Content = typeof SFI_NOTAS_TEMPORALES_SEPTEMBER_2026_CONTENT;
