@@ -13,6 +13,7 @@ on:
       - .github/workflows/sfi-production-observatory-smoke.yml
       - scripts/qa-sfi-production-observatory-smoke.mjs
       - scripts/qa-sfi-production-oauth-openapi-smoke.mjs
+      - scripts/qa-sfi-live-publication-case-surface.mjs
   workflow_dispatch:
 
 permissions:
@@ -84,6 +85,12 @@ jobs:
           echo "head_sha=$head_sha" >> "$GITHUB_OUTPUT"
           echo "run_url=$run_url" >> "$GITHUB_OUTPUT"
           echo "SFI_PRODUCTION_RECEIPT run=$run_id sha=$head_sha url=$run_url"
+
+      - name: Verify live Case action and editorial publication surfaces
+        shell: bash
+        env:
+          SFI_PRODUCTION_SMOKE_TARGET: https://www.systemfriction.org
+        run: node scripts/qa-sfi-live-publication-case-surface.mjs
 
       - name: Verify GPT Actions OAuth/OpenAPI production origin
         if: github.event_name == 'workflow_run' || github.event_name == 'workflow_dispatch'
