@@ -1,4 +1,5 @@
 export const SFI_NOTAS_TEMPORALES_SEPTEMBER_2026_SOURCE = Object.freeze({
+  sourceIdentityContract: 'SFI-PUBLICATION-RENDITION-SOURCE-1.0',
   canonicalId: 'SFI-PUB-NT-001',
   slug: 'notas-temporales-v1',
   issue: 'Septiembre 2026',
