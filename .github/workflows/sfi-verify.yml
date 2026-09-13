@@ -195,6 +195,12 @@ jobs:
       - name: Verify autonomous editorial routine
         run: npx tsx scripts/qa-sfi-autonomous-editorial-routine.ts
 
+      - name: Verify publications hub and visual identity boundary
+        run: npx tsx scripts/qa-sfi-publications-hub.ts
+
+      - name: Verify bounded institutional evolution observer
+        run: npx tsx scripts/qa-sfi-institutional-evolution.ts
+
       - name: Typecheck
         id: typecheck
         shell: bash

@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { PublicResearchLandingView } from '@/components/research/PublicResearchLandingView';
 import { editorialPublicationForSlug, relatedEditorialObservations } from '@/lib/publications/editorialContent';
+import { editorialFamilyForSlug } from '@/lib/publications/editorialFamilies';
 import { publicResearchLandingForSlug } from '@/lib/research/publicResearchLanding';
 
 type PageProps = { params: Promise<{ slug: string }> };
@@ -50,6 +51,7 @@ export default async function PublicationLandingPage({ params }: PageProps) {
   const landing = publicResearchLandingForSlug('PUBLICATION', slug);
   if (!landing) notFound();
   const publication = editorialPublicationForSlug(slug);
+  const family = publication?.editorialKind === 'OBSERVATION' ? editorialFamilyForSlug(slug) : null;
   const related = publication?.editorialKind === 'OBSERVATION' ? relatedEditorialObservations(slug, 8) : [];
 
   return <>
@@ -57,12 +59,13 @@ export default async function PublicationLandingPage({ params }: PageProps) {
     {publication ? <section style={{ background: '#0d0d09', color: '#d8c6a0', padding: '64px 28px 96px', fontFamily: 'Georgia, serif' }}>
       <article style={{ maxWidth: 980, margin: '0 auto' }}>
         <header style={{ borderBottom: '1px solid rgba(202,160,92,.25)', paddingBottom: 32 }}>
-          <small style={{ letterSpacing: '.2em', color: '#b78d50' }}>{publication.collection.toUpperCase()} · {publication.editorialKind === 'OBSERVATION' ? OBSERVATION_LABELS[publication.observationKind ?? ''] ?? publication.observationKind : publication.issue}</small>
+          <small style={{ letterSpacing: '.2em', color: '#b78d50' }}>{publication.collection.toUpperCase()} · {family?.label.toUpperCase() ?? (publication.editorialKind === 'OBSERVATION' ? OBSERVATION_LABELS[publication.observationKind ?? ''] ?? publication.observationKind : publication.issue)}</small>
           <h2 style={{ fontSize: 'clamp(38px,5vw,68px)', fontWeight: 400, margin: '16px 0 10px', color: '#ead5aa' }}>{publication.subtitle}</h2>
           <p style={{ fontSize: 21, lineHeight: 1.7, color: '#c9b993', maxWidth: 860 }}>{publication.deck}</p>
           <blockquote style={{ margin: '30px 0 0', padding: '18px 22px', borderLeft: '2px solid #b78d50', color: '#e1c995', fontSize: 22 }}>{publication.motto}</blockquote>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', marginTop: 26, fontFamily: 'Inter,ui-sans-serif,system-ui,sans-serif' }}>
-            <Link href="/library#observaciones" style={{ fontSize: 10, letterSpacing: '.13em', color: '#d5ad69', textDecoration: 'none', borderBottom: '1px solid rgba(213,173,105,.35)', paddingBottom: 4 }}>{publication.editorialKind === 'OBSERVATION' ? 'VER TODAS LAS OBSERVACIONES' : 'VOLVER A LIBRARY'}</Link>
+            <Link href="/publications" style={{ fontSize: 10, letterSpacing: '.13em', color: '#d5ad69', textDecoration: 'none', borderBottom: '1px solid rgba(213,173,105,.35)', paddingBottom: 4 }}>VOLVER A PUBLICACIONES</Link>
+            <Link href="/library" style={{ fontSize: 10, letterSpacing: '.13em', color: '#8e806a', textDecoration: 'none' }}>LIBRARY</Link>
             {publication.mediumUrl ? <a href={publication.mediumUrl} target="_blank" rel="noreferrer" style={{ fontSize: 10, letterSpacing: '.13em', color: '#8e806a', textDecoration: 'none' }}>VERSIÓN EN MEDIUM ↗</a> : null}
           </div>
         </header>
