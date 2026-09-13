@@ -1,0 +1,33 @@
+export const SFI_SEPTEMBER_2026_TEMPORAL_ISSUE = Object.freeze({
+  contract: 'SFI-TEMPORAL-ISSUE-MANIFEST-1.0',
+  canonicalId: 'SFI-PUB-NT-001',
+  issue: 'Septiembre 2026',
+  country: 'México',
+  coverLine: 'México · corte de septiembre de 2026',
+  proposition: 'Señales, relojes externos, vectores y observaciones públicas para leer el presente antes de que se convierta en costo.',
+  artifact: Object.freeze({
+    filename: 'SFI_Notas_Temporales_Mexico_Septiembre_2026_FINAL.pdf',
+    mediaType: 'application/pdf',
+    pageCount: 10,
+    byteLength: 23085591,
+    sha256: 'bbc7c9df27b6f7295f9919a707f5adab3f25ddd44fee194812c8d38259135103',
+    verification: 'BYTE_IDENTICAL_USER_SUPPLIED_2026-09-13',
+    publicUrl: null as string | null,
+  }),
+  contents: Object.freeze([
+    Object.freeze({ page: 2, label: 'Nota editorial', function: 'Explica el corte mensual y la separación entre hechos, hipótesis, presión emergente y desplazamiento verificable.' }),
+    Object.freeze({ page: 3, label: 'Cómo leer estas notas', function: 'Define cinco capas de lectura: Instituto, Nota del Fundador, Emisión de una Frecuencia, Observación Derivada y Qué verificamos.' }),
+    Object.freeze({ page: 4, label: 'Nota del Fundador', function: 'Lectura situada de México y del costo institucional de no observar desplazamientos a tiempo.' }),
+    Object.freeze({ page: 5, label: 'Estado del entorno', function: 'Corte de trabajo, telefonía, identidad, cumplimiento financiero, integración regional y materia/biosfera.' }),
+    Object.freeze({ page: 6, label: 'Reloj externo 01', function: 'Jornada laboral 2027 y capacidad operativa.' }),
+    Object.freeze({ page: 7, label: 'Reloj externo 02', function: 'Vinculación de líneas móviles y continuidad operativa.' }),
+    Object.freeze({ page: 8, label: 'Reloj externo 03', function: 'Trazabilidad financiera y cumplimiento reforzado.' }),
+    Object.freeze({ page: 9, label: 'Emisión de una frecuencia 01', function: 'Lectura cultural firmada por Edwing Peredo sobre señales que atraviesan presencia, ciudad, cultura y tecnología.' }),
+    Object.freeze({ page: 10, label: 'Observación derivada 01', function: 'Integra señales del corte, conserva hipótesis abiertas y fija la próxima ventana de observación para octubre de 2026.' }),
+  ]),
+  epistemicBoundary: Object.freeze([
+    'El PDF es la edición mensual canónica suministrada por el fundador; su hash confirma identidad binaria con el artefacto ya registrado por SFI.',
+    'Las páginas contienen observación editorial y referencias públicas; publicación no convierte inferencias o hipótesis en hechos.',
+    'El estado PUBLIC del binario sólo puede declararse cuando exista una URL pública verificable del PDF exacto.',
+  ]),
+});
