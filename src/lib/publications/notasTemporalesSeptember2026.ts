@@ -1,22 +1,12 @@
-export const SFI_NOTAS_TEMPORALES_SEPTEMBER_2026_SOURCE = Object.freeze({
-  sourceIdentityContract: 'SFI-PUBLICATION-RENDITION-SOURCE-1.0',
-  canonicalId: 'SFI-PUB-NT-001',
-  slug: 'notas-temporales-v1',
+export const SFI_NOTAS_TEMPORALES_SEPTEMBER_2026_CONTENT_CONTRACT = 'SFI-NOTAS-TEMPORALES-SEPTEMBER-CONTENT-1.0' as const;
+
+export const SFI_NOTAS_TEMPORALES_SEPTEMBER_2026_CONTENT = Object.freeze({
+  contract: SFI_NOTAS_TEMPORALES_SEPTEMBER_2026_CONTENT_CONTRACT,
   issue: 'Septiembre 2026',
-  title: 'Notas Temporales',
   subtitle: 'México · corte de septiembre de 2026',
   coverStatement: 'Señales, relojes externos, vectores y observaciones públicas para leer el presente antes de que se convierta en costo.',
-  sourceOfRecord: Object.freeze({
-    filename: 'SFI_Notas_Temporales_Mexico_Septiembre_2026_FINAL.pdf',
-    mediaType: 'application/pdf',
-    byteLength: 23085591,
-    sha256: 'bbc7c9df27b6f7295f9919a707f5adab3f25ddd44fee194812c8d38259135103',
-    pages: 10,
-    verifiedAt: '2026-09-13T03:37:48-06:00',
-    provenance: 'USER_SUPPLIED_VERIFIED',
-    publicUrl: null,
-  }),
-  contents: Object.freeze([
+  provenance: 'USER_SUPPLIED_VERIFIED',
+  pages: Object.freeze([
     { page: 1, label: 'Portada', title: 'Notas Temporales · México, corte de septiembre de 2026' },
     { page: 2, label: 'Editorial', title: 'Nota Editorial' },
     { page: 3, label: 'Método', title: 'Cómo leer estas notas' },
@@ -29,7 +19,7 @@ export const SFI_NOTAS_TEMPORALES_SEPTEMBER_2026_SOURCE = Object.freeze({
     { page: 10, label: 'Derivación', title: 'Observación derivada 01 · lectura pública de SFI' },
   ]),
   nextWindow: 'Octubre de 2026: seguimiento a líneas móviles, integración regional, economía circular y capacidad de adaptación.',
-  transportBoundary: 'El PDF suministrado por el fundador es la fuente de registro verificada de esta edición. Su identidad criptográfica queda fijada aunque el binario público permanezca pendiente de un host público controlado. No se sustituye silenciosamente por otra edición ni por un PDF regenerado.',
+  transportBoundary: 'El PDF suministrado por el fundador es la fuente de registro verificada de esta edición. Su identidad criptográfica pertenece a la rendition PDF del objeto canónico SFI_NOTAS_TEMPORALES_V1. El binario público permanece pendiente de un host público controlado; no se sustituye silenciosamente por otra edición ni por un PDF regenerado.',
 });
 
-export type SfiNotasTemporalesSeptember2026Source = typeof SFI_NOTAS_TEMPORALES_SEPTEMBER_2026_SOURCE;
+export type SfiNotasTemporalesSeptember2026Content = typeof SFI_NOTAS_TEMPORALES_SEPTEMBER_2026_CONTENT;
