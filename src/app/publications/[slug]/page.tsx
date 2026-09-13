@@ -84,9 +84,9 @@ export default async function PublicationLandingPage({ params }: PageProps) {
           <p style={{ fontSize: 18, lineHeight: 1.85, color: '#bdb09a' }}>{temporalContent.transportBoundary}</p>
           <dl style={{ border: '1px solid rgba(202,160,92,.22)', padding: 22, display: 'grid', gap: 12, fontFamily: 'Inter,ui-sans-serif,system-ui,sans-serif' }}>
             <div><dt style={{ color: '#9f845b', fontSize: 10, letterSpacing: '.12em' }}>ARCHIVO</dt><dd style={{ margin: '4px 0 0', color: '#d8c6a0' }}>{pdf.filename}</dd></div>
-            <div><dt style={{ color: '#9f845b', fontSize: 10, letterSpacing: '.12em' }}>TAMAÑO / PÁGINAS</dt><dd style={{ margin: '4px 0 0', color: '#d8c6a0' }}>{pdf.byteLength.toLocaleString('es-MX')} bytes · {temporalContent.pages.length} páginas</dd></div>
+            <div><dt style={{ color: '#9f845b', fontSize: 10, letterSpacing: '.12em' }}>TAMAÑO / PÁGINAS</dt><dd style={{ margin: '4px 0 0', color: '#d8c6a0' }}>{pdf.byteLength.toLocaleString('es-MX')} bytes · {pdf.pageCount} páginas</dd></div>
             <div><dt style={{ color: '#9f845b', fontSize: 10, letterSpacing: '.12em' }}>SHA-256</dt><dd style={{ margin: '4px 0 0', color: '#d8c6a0', overflowWrap: 'anywhere' }}>{pdf.sha256}</dd></div>
-            <div><dt style={{ color: '#9f845b', fontSize: 10, letterSpacing: '.12em' }}>PROCEDENCIA</dt><dd style={{ margin: '4px 0 0', color: '#d8c6a0' }}>{temporalContent.provenance}</dd></div>
+            <div><dt style={{ color: '#9f845b', fontSize: 10, letterSpacing: '.12em' }}>PROCEDENCIA</dt><dd style={{ margin: '4px 0 0', color: '#d8c6a0' }}>{pdf.provenance}</dd></div>
             <div><dt style={{ color: '#9f845b', fontSize: 10, letterSpacing: '.12em' }}>BINARIO PÚBLICO</dt><dd style={{ margin: '4px 0 0', color: pdf.publicUrl ? '#d5ad69' : '#8e806a' }}>{pdf.publicUrl ? 'PUBLIC' : 'PENDIENTE DE HOST PÚBLICO CONTROLADO'}</dd></div>
           </dl>
           <h4 style={{ margin: '34px 0 16px', color: '#e5ce9d', fontSize: 25, fontWeight: 400 }}>Contenido de la edición</h4>
