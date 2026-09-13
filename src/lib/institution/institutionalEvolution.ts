@@ -7,7 +7,7 @@ import { readObservedSfiCognitiveRuntime } from '@/lib/sfi/cognitive-runtime/obs
 import { buildWorldVectorOperationalState } from '@/lib/world-vector/operationalState';
 import type { refreshInstitutionalAttractorTrajectory } from './institutionalAttractor';
 
-export const SFI_INSTITUTIONAL_EVOLUTION_CONTRACT = 'SFI-INSTITUTIONAL-EVOLUTION-1.0' as const;
+export const SFI_INSTITUTIONAL_EVOLUTION_CONTRACT = 'SFI-INSTITUTIONAL-EVOLUTION-1.1' as const;
 export const SFI_INSTITUTIONAL_MUTATION_PROPOSAL_TYPE = 'institutional_mutation_candidate' as const;
 
 const SYSTEM_ACTOR = 'SYSTEM_FRICTION_INSTITUTE';
@@ -41,6 +41,22 @@ type PersistedProposal = {
   status: string;
 };
 
+export type OpenInstitutionalEvolutionWork = {
+  proposalId: string;
+  title: string;
+  objective: string;
+  kind: EvolutionKind;
+  target: string;
+  priority: number;
+  ownerResolution: EvolutionCandidate['ownerResolution'];
+  status: string;
+  reasons: string[];
+  evidenceRefs: string[];
+  executionAuthorized: false;
+  externalEffectAllowed: false;
+  founderInterruption: 'ONLY_IF_SOVEREIGN_BOUNDARY';
+};
+
 function rows(value: unknown): Array<Record<string, unknown>> {
   return Array.isArray(value)
     ? value.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object' && !Array.isArray(item))
@@ -49,6 +65,12 @@ function rows(value: unknown): Array<Record<string, unknown>> {
 
 function unique(values: Array<string | null | undefined>) {
   return [...new Set(values.filter((value): value is string => Boolean(value && value.trim())))];
+}
+
+function strings(value: unknown) {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+    : [];
 }
 
 function proposalFingerprint(candidate: EvolutionCandidate) {
@@ -72,6 +94,56 @@ function existingEvolutionProposals(value: unknown[]): PersistedProposal[] {
     if (!fingerprint || !id || !status || !OPEN_PROPOSAL_STATUSES.has(status)) return [];
     return [{ id, fingerprint, status }];
   });
+}
+
+function openEvolutionWorkFromRows(value: unknown, limit: number): OpenInstitutionalEvolutionWork[] {
+  return rows(value).flatMap((row) => {
+    const id = stringValue(row.id);
+    const title = stringValue(row.title);
+    const status = stringValue(row.status);
+    const expected = recordValue(row.expected_field_delta);
+    const payload = recordValue(expected.payload);
+    const contract = stringValue(payload.contract);
+    const kind = stringValue(payload.kind) as EvolutionKind | null;
+    const target = stringValue(payload.target);
+    const objective = stringValue(expected.objective) ?? stringValue(row.description) ?? title;
+    const ownerResolution = stringValue(payload.ownerResolution) as EvolutionCandidate['ownerResolution'] | null;
+    const priority = Number(payload.priority);
+    if (!id || !title || !status || !kind || !target || !ownerResolution) return [];
+    if (contract !== SFI_INSTITUTIONAL_EVOLUTION_CONTRACT && contract !== 'SFI-INSTITUTIONAL-EVOLUTION-1.0') return [];
+    if (!OPEN_PROPOSAL_STATUSES.has(status)) return [];
+    if (!['REPAIR_EXISTING_OWNER', 'ABSORB_IN_EXISTING_OWNER', 'NO_EXISTING_OWNER'].includes(ownerResolution)) return [];
+    return [{
+      proposalId: id,
+      title,
+      objective: objective ?? title,
+      kind,
+      target,
+      priority: Number.isFinite(priority) ? Math.max(0, Math.min(1, priority)) : 0.5,
+      ownerResolution,
+      status,
+      reasons: strings(payload.reasons),
+      evidenceRefs: strings(payload.evidenceRefs),
+      executionAuthorized: false as const,
+      externalEffectAllowed: false as const,
+      founderInterruption: 'ONLY_IF_SOVEREIGN_BOUNDARY' as const,
+    }];
+  }).sort((a, b) => b.priority - a.priority || a.proposalId.localeCompare(b.proposalId)).slice(0, limit);
+}
+
+export async function readOpenInstitutionalEvolutionWork(limit = 12) {
+  const boundedLimit = Math.max(1, Math.min(24, limit));
+  const current = await latestActionProposals([SFI_INSTITUTIONAL_MUTATION_PROPOSAL_TYPE], Math.max(50, boundedLimit * 4));
+  const work = openEvolutionWorkFromRows(current.data, boundedLimit);
+  return {
+    ok: !current.error,
+    contract: SFI_INSTITUTIONAL_EVOLUTION_CONTRACT,
+    authority: 'PROPOSED_NON_EXECUTING' as const,
+    work,
+    proposalRefs: work.map((item) => item.proposalId),
+    warning: current.error ?? null,
+    boundary: 'Open evolution work may be consumed by the next institutional cycle for owner reconciliation. Consumption does not approve execution, canon change or external effects.',
+  };
 }
 
 function runtimeCandidates(runtime: Awaited<ReturnType<typeof readObservedSfiCognitiveRuntime>>): EvolutionCandidate[] {
@@ -254,6 +326,7 @@ async function persistCandidates(candidates: EvolutionCandidate[], context: Reco
 export async function runInstitutionalEvolutionObservation(input: {
   attractorRefresh: AttractorRefresh;
   observedAt?: string;
+  declaredTarget?: unknown;
 }) {
   const observedAt = input.observedAt ?? new Date().toISOString();
   const [runtime, continuity, predictive, world] = await Promise.all([
@@ -275,10 +348,12 @@ export async function runInstitutionalEvolutionObservation(input: {
     world: worldContext(world),
     attractor: {
       key: input.attractorRefresh.attractorKey,
+      declaredTarget: input.declaredTarget ?? null,
       evidenceCoverage: input.attractorRefresh.evidenceCoverage,
       supportedDimensions: input.attractorRefresh.supportedDimensions,
       contradictedDimensions: input.attractorRefresh.contradictedDimensions,
       missingDimensions: input.attractorRefresh.missingDimensions,
+      targetRule: 'Declared convergence target is strategic context, not evidence of attainment. Evidence coverage remains distinct from geographic or institutional readiness.',
     },
     runtime: {
       status: runtime.status,
@@ -320,7 +395,7 @@ export async function runInstitutionalEvolutionObservation(input: {
     founderDependency: {
       pendingSovereignDecisions: founderRequiredOnly,
       routineWorkRequiresFounder: false,
-      rule: 'Routine observation, evidence acquisition, calibration and proposal formation continue autonomously. Founder interruption is reserved for explicit sovereign boundaries.',
+      rule: 'Routine observation, evidence acquisition, calibration, owner reconciliation and proposal formation continue autonomously. Founder interruption is reserved for explicit sovereign boundaries.',
     },
     warnings: unique([
       ...runtime.eventGraph.warnings,
@@ -329,6 +404,6 @@ export async function runInstitutionalEvolutionObservation(input: {
       ...world.agent_audit.warnings,
       persistence.lookupError,
     ]),
-    boundary: 'Evolution proposals are DERIVED work objects. They do not execute themselves, change canon, publish, spend, grant access or create external effects.',
+    boundary: 'Evolution proposals are DERIVED work objects. They may re-enter the next cycle as bounded execution requests for owner reconciliation; they do not execute themselves, change canon, publish, spend, grant access or create external effects.',
   };
 }
