@@ -9,10 +9,11 @@ export async function runIntegratedInstitutionalCycle(trigger = 'scheduled') {
   const cycle = await runInstitutionalCycle(trigger);
   const evolution = await runInstitutionalEvolutionObservation({
     attractorRefresh: cycle.attractor,
+    declaredTarget: cycle.declaredTarget,
     observedAt: cycle.completedAt,
   }).catch((error) => ({
     ok: false as const,
-    contract: 'SFI-INSTITUTIONAL-EVOLUTION-1.0',
+    contract: 'SFI-INSTITUTIONAL-EVOLUTION-1.1',
     observedAt: new Date().toISOString(),
     candidates: [],
     proposals: [],
