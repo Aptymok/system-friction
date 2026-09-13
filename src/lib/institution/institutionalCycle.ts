@@ -5,7 +5,9 @@ import type { KernelContext, KernelEvidence } from '@/lib/sfi/cognitive-runtime/
 import { createCognitiveTwinEnvelope } from '@/core/cognitive-twin/contract';
 import { syncRecentInstitutionalEvidenceToCognitiveTwin } from '@/core/cognitive-twin/evidenceIngestion';
 import { reconcileAutomaticPpoi } from '@/lib/mihm/automaticPpoiReconciliation';
+import { ensureInstitutionalAttractorDeclaration } from './ensureInstitutionalAttractor';
 import { readInstitutionalAttractor, refreshInstitutionalAttractorTrajectory, SFI_INSTITUTIONAL_ATTRACTOR_KEY } from './institutionalAttractor';
+import { readOpenInstitutionalEvolutionWork } from './institutionalEvolution';
 import { refreshPhenomenonTrajectoriesAndPpoi } from './phenomenonTrajectory';
 import { executeInstitutionalRuntimeWithCognitiveSpine } from './cognitiveSpineRuntimeExecution';
 
@@ -111,6 +113,10 @@ export async function runInstitutionalCycle(trigger = 'scheduled') {
   const cycleId = crypto.randomUUID();
   const logbookId = `institutional-cycle:${taskId}`;
 
+  // Declaration reconciliation is idempotent. It persists strategic direction
+  // without changing evidence-derived trajectory fields or claiming attainment.
+  const attractorDeclaration = await ensureInstitutionalAttractorDeclaration();
+
   const [memorySync, phenomenonRefresh, automaticPpoi] = await Promise.all([
     syncRecentInstitutionalEvidenceToCognitiveTwin(250),
     refreshPhenomenonTrajectoriesAndPpoi(),
@@ -118,13 +124,16 @@ export async function runInstitutionalCycle(trigger = 'scheduled') {
   ]);
   const attractorRefresh = await refreshInstitutionalAttractorTrajectory();
 
-  const [cycleEvidence, attractorState] = await Promise.all([
+  const [cycleEvidence, attractorState, evolutionWork] = await Promise.all([
     readCycleEvidence(),
     readInstitutionalAttractor(),
+    readOpenInstitutionalEvolutionWork(12),
   ]);
 
   const vector = record(attractorState.attractor?.vector);
   const desiredState = text(vector.desiredState) ?? 'Institutional attractor declaration unavailable.';
+  const declaredTargetRecord = record(vector.convergenceTarget);
+  const declaredTarget = Object.keys(declaredTargetRecord).length ? declaredTargetRecord : null;
   const context: KernelContext = {
     cycleId,
     logbookId,
@@ -145,13 +154,30 @@ export async function runInstitutionalCycle(trigger = 'scheduled') {
       trigger,
       attractorKey: SFI_INSTITUTIONAL_ATTRACTOR_KEY,
       attractorEpistemicClass: 'DECLARED',
+      declaredTarget,
+      executionRequest: {
+        contract: evolutionWork.contract,
+        authority: evolutionWork.authority,
+        sourceCutoff: startedAt,
+        mode: 'ROUTINE_OWNER_RECONCILIATION',
+        proposals: evolutionWork.work,
+        proposalRefs: evolutionWork.proposalRefs,
+        rule: 'Consume open institutional-evolution work as proposed non-executing work. Repair or absorb an existing owner first. Routine work must not be returned to the founder merely because it is unresolved. Sovereign authority remains gated.',
+      },
+      invariants: [
+        'MANHATTAN_TARGET_IS_DECLARED_NOT_ATTAINED',
+        'EVIDENCE_COVERAGE_IS_NOT_ALIGNMENT',
+        'ROUTINE_EVOLUTION_WORK_REENTERS_NEXT_CYCLE',
+        'EXISTING_OWNER_BEFORE_NEW_MODULE',
+        'FOUNDER_ONLY_FOR_SOVEREIGN_BOUNDARY',
+      ],
       automaticPpoi: {
         created: automaticPpoi.created,
         linked: automaticPpoi.linked,
         blocked: automaticPpoi.blocked,
       },
       evidenceCountAtStart: cycleEvidence.evidence.length,
-      rule: 'This cycle may observe, extract, derive, simulate and propose. It cannot publish, claim attainment, spend, grant access, change canon or execute irreversible external action.',
+      rule: 'This cycle may observe, extract, derive, simulate, propose, reconcile routine owners and calibrate. It cannot publish, claim attainment, spend, grant access, change canon or execute irreversible external action.',
     },
   };
 
@@ -171,7 +197,11 @@ export async function runInstitutionalCycle(trigger = 'scheduled') {
   const phenomenonWarnings = 'warnings' in phenomenonRefresh && Array.isArray(phenomenonRefresh.warnings) ? phenomenonRefresh.warnings : [];
   const ppoiWarnings = automaticPpoi.warnings;
   const spineWarnings = cognitiveSpine.warnings;
-  const criticalSubstepsOk = memorySync.ok
+  const declarationWarnings = attractorDeclaration.ok ? [] : [attractorDeclaration.error];
+  const evolutionWorkWarnings = evolutionWork.warning ? [`institutional_evolution_work:${evolutionWork.warning}`] : [];
+  const criticalSubstepsOk = attractorDeclaration.ok
+    && evolutionWork.ok
+    && memorySync.ok
     && phenomenonRefresh.ok
     && automaticPpoi.ok
     && attractorRefresh.ok
@@ -207,10 +237,18 @@ export async function runInstitutionalCycle(trigger = 'scheduled') {
       },
       attractor: {
         key: SFI_INSTITUTIONAL_ATTRACTOR_KEY,
+        declaredTarget,
         evidenceCoverage: attractorRefresh.evidenceCoverage,
         supportedDimensions: attractorRefresh.supportedDimensions,
         contradictedDimensions: attractorRefresh.contradictedDimensions,
         missingDimensions: attractorRefresh.missingDimensions,
+      },
+      institutionalEvolutionWork: {
+        authority: evolutionWork.authority,
+        proposalRefs: evolutionWork.proposalRefs,
+        workCount: evolutionWork.work.length,
+        consumedAsExecutionRequest: true,
+        externalExecutionAuthorized: false,
       },
       ppoi: {
         phenomenonTrajectory: phenomenonRefresh,
@@ -231,16 +269,19 @@ export async function runInstitutionalCycle(trigger = 'scheduled') {
     }],
     assumptions: [],
     limitations: [
-      'Attractor direction is founder-declared; attainment is evidence-dependent.',
+      'Attractor direction and Manhattan convergence coordinate are founder-declared; attainment is evidence-dependent and remains unresolved without a canonical threshold.',
       'Agent execution does not constitute external execution or independent validation.',
+      'Open institutional-evolution proposals are proposed work context, not approved actions or evidence.',
       'Cognitive Spine memory and approved decisions are contextual state and are not promoted into observed evidence by consumption.',
       'The consumed Cognitive Spine snapshot is sealed at the cycle-start cutoff; agents may not enrich the same run from live Twin state.',
       'Automatic PPOI registration is workflow state only; it does not constitute evidence, approval, intervention or outcome.',
-      'Evidence coverage measures whether a dimension is evidenced or contradicted; it is not an attainment percentage.',
+      'Evidence coverage measures whether a dimension is evidenced or contradicted; it is not an attainment percentage or Manhattan-alignment score.',
       ...cycleEvidence.warnings,
       ...memoryWarnings,
       ...phenomenonWarnings,
       ...ppoiWarnings,
+      ...declarationWarnings,
+      ...evolutionWorkWarnings,
       ...spineWarnings,
       ...cognitiveSpine.decisionProvenance.provenanceGaps.map((gap) => `cprt_b_gap:${gap}`),
     ],
@@ -252,6 +293,7 @@ export async function runInstitutionalCycle(trigger = 'scheduled') {
     actionsExecuted: [
       ...result.executedAgents.map((agent) => `cognitive:${agent}`),
       `cognitive_spine:consumed:${cognitiveSpine.snapshot.snapshotId}`,
+      `institutional_evolution_work:consumed:${evolutionWork.work.length}`,
       `ppoi:auto_created:${automaticPpoi.created}`,
       `ppoi:auto_linked:${automaticPpoi.linked}`,
     ],
@@ -266,13 +308,18 @@ export async function runInstitutionalCycle(trigger = 'scheduled') {
     model: null,
     role: 'institutional_cycle',
     status: runStatus,
-    objective: 'Contrast persisted institutional evidence and phenomena against the declared SFI attractor, reconcile eligible PPOI containers automatically, then execute the governed cognitive topology through one sealed Cognitive Spine context.',
+    objective: 'Contrast persisted institutional evidence and phenomena against the declared SFI attractor and Manhattan convergence coordinate, reconcile eligible PPOI containers and open institutional-evolution work, then execute the governed cognitive topology through one sealed Cognitive Spine context.',
     input_snapshot: {
       trigger,
       cycleId,
       logbookId,
       evidenceRefs: cycleEvidence.refs,
       attractorKey: SFI_INSTITUTIONAL_ATTRACTOR_KEY,
+      declaredTarget,
+      institutionalEvolutionWork: {
+        proposalRefs: evolutionWork.proposalRefs,
+        authority: evolutionWork.authority,
+      },
       cognitiveSpine: {
         snapshot: cognitiveSpine.snapshot,
         consumptionTrace: cognitiveSpine.trace,
@@ -293,6 +340,8 @@ export async function runInstitutionalCycle(trigger = 'scheduled') {
     ...memoryWarnings,
     ...phenomenonWarnings,
     ...ppoiWarnings,
+    ...declarationWarnings,
+    ...evolutionWorkWarnings,
     ...attractorRefresh.warnings,
     ...spineWarnings,
     ...(runInsert.error ? [`cognitive_twin_run:${runInsert.error.message}`] : []),
@@ -320,7 +369,10 @@ export async function runInstitutionalCycle(trigger = 'scheduled') {
       profileVersion: cognitiveSpine.trace.profileVersion,
       decisionProvenance: cognitiveSpine.decisionProvenance,
     },
+    attractorDeclaration,
+    declaredTarget,
     attractor: attractorRefresh,
+    institutionalEvolutionWork: evolutionWork,
     phenomenaPpoi: phenomenonRefresh,
     automaticPpoi,
     run: runInsert.data ?? null,
