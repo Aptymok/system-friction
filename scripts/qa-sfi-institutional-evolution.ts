@@ -64,7 +64,8 @@ assert.ok(cycle.includes('externalExecutionAuthorized: false'), 'reentered_work_
 assert.ok(integrated.includes('runInstitutionalEvolutionObservation'), 'scheduled_institutional_cycle_must_run_evolution_observer');
 assert.ok(integrated.includes('declaredTarget: cycle.declaredTarget'), 'evolution_observer_must_receive_declared_target');
 assert.ok(assignments.includes('repair or absorb work into an existing owner before proposing a new module'), 'project_manager_absorption_rule_missing');
-assert.ok(assignments.includes('Consume open institutional-evolution executionRequest work on the next cycle'), 'project_manager_reentry_assignment_missing');
+assert.ok(assignments.includes('Inspect institutional-evolution executionRequest work routed into the cycle'), 'project_manager_routing_assignment_missing');
+assert.ok(assignments.includes('do not treat routing as proof of processing'), 'project_manager_processing_nonclaim_missing');
 assert.ok(assignments.includes('Manhattan Observatory convergence coordinate as DECLARED strategic direction only'), 'meta_orchestrator_manhattan_boundary_missing');
 
 // Evolution is absorbed by the existing institutional-cycle cron. It must not create a scheduler or direct mutation writer of its own.
