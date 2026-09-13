@@ -162,7 +162,7 @@ export async function runInstitutionalCycle(trigger = 'scheduled') {
         mode: 'ROUTINE_OWNER_RECONCILIATION',
         proposals: evolutionWork.work,
         proposalRefs: evolutionWork.proposalRefs,
-        rule: 'Consume open institutional-evolution work as proposed non-executing work. Repair or absorb an existing owner first. Routine work must not be returned to the founder merely because it is unresolved. Sovereign authority remains gated.',
+        rule: 'Route eligible institutional-evolution work as proposed non-executing context. Repair or absorb an existing owner first. Routine work must not be returned to the founder merely because it is unresolved. Sovereign authority remains gated. Routing alone does not prove proposal processing.',
       },
       invariants: [
         'MANHATTAN_TARGET_IS_DECLARED_NOT_ATTAINED',
@@ -177,7 +177,7 @@ export async function runInstitutionalCycle(trigger = 'scheduled') {
         blocked: automaticPpoi.blocked,
       },
       evidenceCountAtStart: cycleEvidence.evidence.length,
-      rule: 'This cycle may observe, extract, derive, simulate, propose, reconcile routine owners and calibrate. It cannot publish, claim attainment, spend, grant access, change canon or execute irreversible external action.',
+      rule: 'This cycle may observe, extract, derive, simulate, propose, route routine owner-reconciliation work and calibrate. It cannot publish, claim attainment, spend, grant access, change canon or execute irreversible external action.',
     },
   };
 
@@ -247,7 +247,8 @@ export async function runInstitutionalCycle(trigger = 'scheduled') {
         authority: evolutionWork.authority,
         proposalRefs: evolutionWork.proposalRefs,
         workCount: evolutionWork.work.length,
-        consumedAsExecutionRequest: true,
+        routedAsExecutionRequest: true,
+        proposalConsumptionObserved: false,
         externalExecutionAuthorized: false,
       },
       ppoi: {
@@ -271,7 +272,7 @@ export async function runInstitutionalCycle(trigger = 'scheduled') {
     limitations: [
       'Attractor direction and Manhattan convergence coordinate are founder-declared; attainment is evidence-dependent and remains unresolved without a canonical threshold.',
       'Agent execution does not constitute external execution or independent validation.',
-      'Open institutional-evolution proposals are proposed work context, not approved actions or evidence.',
+      'Open institutional-evolution proposals are proposed work context, not approved actions or evidence; routing them into the cycle does not prove per-proposal processing.',
       'Cognitive Spine memory and approved decisions are contextual state and are not promoted into observed evidence by consumption.',
       'The consumed Cognitive Spine snapshot is sealed at the cycle-start cutoff; agents may not enrich the same run from live Twin state.',
       'Automatic PPOI registration is workflow state only; it does not constitute evidence, approval, intervention or outcome.',
@@ -293,7 +294,7 @@ export async function runInstitutionalCycle(trigger = 'scheduled') {
     actionsExecuted: [
       ...result.executedAgents.map((agent) => `cognitive:${agent}`),
       `cognitive_spine:consumed:${cognitiveSpine.snapshot.snapshotId}`,
-      `institutional_evolution_work:consumed:${evolutionWork.work.length}`,
+      `institutional_evolution_work:routed:${evolutionWork.work.length}`,
       `ppoi:auto_created:${automaticPpoi.created}`,
       `ppoi:auto_linked:${automaticPpoi.linked}`,
     ],
@@ -308,7 +309,7 @@ export async function runInstitutionalCycle(trigger = 'scheduled') {
     model: null,
     role: 'institutional_cycle',
     status: runStatus,
-    objective: 'Contrast persisted institutional evidence and phenomena against the declared SFI attractor and Manhattan convergence coordinate, reconcile eligible PPOI containers and open institutional-evolution work, then execute the governed cognitive topology through one sealed Cognitive Spine context.',
+    objective: 'Contrast persisted institutional evidence and phenomena against the declared SFI attractor and Manhattan convergence coordinate, reconcile eligible PPOI containers and route open institutional-evolution work into the governed cognitive topology through one sealed Cognitive Spine context.',
     input_snapshot: {
       trigger,
       cycleId,
@@ -320,6 +321,8 @@ export async function runInstitutionalCycle(trigger = 'scheduled') {
         proposalRefs: evolutionWork.proposalRefs,
         authority: evolutionWork.authority,
         sourceCutoff: evolutionWork.sourceCutoff,
+        routedAsExecutionRequest: true,
+        proposalConsumptionObserved: false,
       },
       cognitiveSpine: {
         snapshot: cognitiveSpine.snapshot,
