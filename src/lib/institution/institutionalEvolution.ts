@@ -97,12 +97,13 @@ function legacyProposalFingerprints(candidate: EvolutionCandidate) {
   ];
 }
 
-async function queryEvolutionProposals(limit: number, sourceCutoff?: string) {
+async function queryEvolutionProposals(limit: number, statuses: ReadonlySet<string>, sourceCutoff?: string) {
   const service = createServiceSupabaseClient();
   let query = service
     .from('action_proposals')
     .select('*')
     .eq('expected_field_delta->>proposalType', SFI_INSTITUTIONAL_MUTATION_PROPOSAL_TYPE)
+    .in('status', [...statuses])
     .order('created_at', { ascending: false });
   if (sourceCutoff) query = query.lte('created_at', sourceCutoff);
   const { data, error } = await query.limit(limit);
@@ -159,7 +160,7 @@ function openEvolutionWorkFromRows(value: unknown, limit: number): OpenInstituti
 
 export async function readOpenInstitutionalEvolutionWork(limit = 12, sourceCutoff = new Date().toISOString()) {
   const boundedLimit = Math.max(1, Math.min(24, limit));
-  const current = await queryEvolutionProposals(Math.max(50, boundedLimit * 4), sourceCutoff);
+  const current = await queryEvolutionProposals(Math.max(50, boundedLimit * 4), REENTRY_PROPOSAL_STATUSES, sourceCutoff);
   const work = openEvolutionWorkFromRows(current.data, boundedLimit);
   return {
     ok: !current.error,
@@ -169,7 +170,7 @@ export async function readOpenInstitutionalEvolutionWork(limit = 12, sourceCutof
     work,
     proposalRefs: work.map((item) => item.proposalId),
     warning: current.error ?? null,
-    boundary: 'Eligible non-frozen evolution work recorded at or before the declared source cutoff may be consumed by the next institutional cycle for owner reconciliation. Consumption does not approve execution, canon change or external effects.',
+    boundary: 'Eligible non-frozen evolution work recorded at or before the declared source cutoff may be routed into the next institutional cycle for owner reconciliation. Routing does not prove per-proposal processing and does not approve execution, canon change or external effects.',
   };
 }
 
@@ -299,7 +300,7 @@ function worldContext(world: Awaited<ReturnType<typeof buildWorldVectorOperation
 }
 
 async function persistCandidates(candidates: EvolutionCandidate[], context: Record<string, unknown>) {
-  const current = await queryEvolutionProposals(150);
+  const current = await queryEvolutionProposals(150, DEDUP_PROPOSAL_STATUSES);
   const open = existingEvolutionProposals(current.data as unknown[]);
   const openByFingerprint = new Map(open.map((item) => [item.fingerprint, item]));
   const ordered = [...candidates].sort((a, b) => b.priority - a.priority || a.title.localeCompare(b.title));
@@ -433,6 +434,6 @@ export async function runInstitutionalEvolutionObservation(input: {
       ...world.agent_audit.warnings,
       persistence.lookupError,
     ]),
-    boundary: 'Evolution proposals are DERIVED work objects. Eligible non-frozen proposals may re-enter the next cycle as bounded execution requests for owner reconciliation; they do not execute themselves, change canon, publish, spend, grant access or create external effects.',
+    boundary: 'Evolution proposals are DERIVED work objects. Eligible non-frozen proposals may be routed into the next cycle as bounded execution requests for owner reconciliation; routing does not establish per-proposal processing and they do not execute themselves, change canon, publish, spend, grant access or create external effects.',
   };
 }
