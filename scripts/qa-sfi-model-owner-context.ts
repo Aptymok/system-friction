@@ -41,7 +41,7 @@ async function main() {
   assert.match(bootstrap, /gptActionsOpenApi: '\/openapi\.json'/);
   assert.match(bootstrap, /separateActionsProjection: false/);
 
-  assert.match(manifest, /version: '1\.17\.3'/);
+  assert.match(manifest, /version: '1\.17\.4'/);
   assert.match(manifest, /id: 'studio-context'/);
   assert.match(manifest, /contract: 'SFI-STUDIO-OWNER-CONTEXT-1\.0'/);
   assert.match(manifest, /ownerStudioContext/);
@@ -74,7 +74,7 @@ async function main() {
     oauthSubjectBound: true,
     bootstrapDiscoverable: true,
     manifestDiscoverable: true,
-    externalGatewayVersion: '1.17.3',
+    externalGatewayVersion: '1.17.4',
     downstreamOpenApiVersionRegressionGuard: true,
     contextSources: ['studio_sessions','studio_objects','studio_evidence_traces','studio_archive_events','owner-attributed sfi_amv_memory'],
     binaryContentIncluded: false,
