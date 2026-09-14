@@ -93,7 +93,7 @@ assert.equal(openapi.paths?.['/api/external/v1/cases/create']?.post?.operationId
 // The lifecycle revision extends the Case Action surface but MUST NOT weaken
 // intake/create requirements. It also makes the exact read/transition intents
 // explicit for CASE-0001 and future governed cases.
-assert.equal(openapi.info?.['x-sfi-action-revision'], 'case-lifecycle-actions-v4');
+assert.equal(openapi.info?.['x-sfi-action-revision'], 'case-lifecycle-actions-v5');
 assert.equal(openapi.paths?.['/api/external/v1/cases/read']?.post?.operationId, 'readSfiCase');
 assert.equal(openapi.paths?.['/api/external/v1/cases/transition']?.post?.operationId, 'transitionSfiCase');
 assert.deepEqual(openapi.components?.schemas?.CaseReadRequest?.required, ['caseId']);
@@ -137,5 +137,5 @@ console.log(JSON.stringify({
   awaitingReturnTransitionAllowed: false,
   invalidLifecycleTransitionHttpStatus: 409,
   authorizationForbiddenHttpStatus: 403,
-  actionRevision: 'case-lifecycle-actions-v4',
+  actionRevision: 'case-lifecycle-actions-v5',
 }, null, 2));
