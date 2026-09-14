@@ -10,7 +10,7 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     name: 'SFI External Agent Gateway',
-    version: '1.17.3',
+    version: '1.17.4',
     auth: 'OAuth 2.0 authorization_code (user-bound) or X-SFI-Token/Bearer static token',
     base: '/api/external/v1',
     discovery: {
@@ -45,7 +45,7 @@ export async function GET() {
       { id: 'case-write', method: 'POST', path: '/cases', scope: 'cases:write', tenant: 'owner/member', body: { operation: 'create | add_source | add_object | transition' }, description: 'Create/populate bounded Case Platform records. Cannot mint governance authority, intervention, observed RETURN or truth claims.' },
       { id: 'case-object-dedicated', method: 'POST', path: '/cases/object', scope: 'cases:write', tenant: 'owner/member', operationId: 'addSfiCaseObjectJson', body: { required: ['caseId', 'kind', 'canonicalRefId', 'payloadJson'] }, description: 'Persist one bounded Case object through transport-safe flat canonicalRef fields plus JSON-string payload transport using the canonical Case writer. Cannot mint accepted evidence, governance, intervention, RETURN or truth claims.' },
       { id: 'case-read-dedicated', method: 'POST', path: '/cases/read', scope: 'cases:read', tenant: 'owner/member', operationId: 'readSfiCase', body: { required: ['caseId'] }, description: 'Read one owner-visible Case through the canonical Case reader using a transport-safe flat caseId.' },
-      { id: 'case-transition-dedicated', method: 'POST', path: '/cases/transition', scope: 'cases:write', tenant: 'owner/member', operationId: 'transitionSfiCase', body: { required: ['caseId', 'status'] }, description: 'Request one bounded Case lifecycle transition through the canonical state machine. INTERVENING and AWAITING_RETURN remain excluded.' },
+      { id: 'case-transition-dedicated', method: 'POST', path: '/cases/transition', scope: 'cases:write', tenant: 'owner/member', operationId: 'transitionSfiCaseV2', body: { required: ['caseId', 'status'] }, description: 'Request one bounded Case lifecycle transition through the canonical state machine. INTERVENING and AWAITING_RETURN remain excluded.' },
       { id: 'propose', method: 'POST', path: '/propose', scope: 'propose', tenant: 'institutional', description: 'Submit a governed proposal only when work crosses an institutional or reserved-action decision boundary. Routine case analysis should continue under existing authority instead of creating an approval request.' },
       { id: 'evidence-candidate', method: 'POST', path: '/evidence-candidates', scope: 'propose', tenant: 'institutional', description: 'Register a traceable source candidate for case work. SFI may classify and use working sources without ROOT source approval; use does not automatically verify every claim or promote the source into institutional canon.' },
       { id: 'execute', method: 'POST', path: '/execute', scope: 'execute', tenant: 'institutional', description: 'Dispatch an already-authorized queued proposal. Existing queue authorization plus execute scope is sufficient; no duplicate human confirmation is required and canonical promotion remains separate.' },
