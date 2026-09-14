@@ -16,6 +16,11 @@ import {
   transitionOperationalCase,
 } from '@/lib/sfi/case-platform/repository';
 import { sfiCaseApiFailure } from '@/lib/sfi/case-platform/http';
+import {
+  SFI_EXTERNAL_CASE_RESERVED_TRANSITIONS,
+  SFI_EXTERNAL_CASE_TRANSITION_SET,
+  SFI_EXTERNAL_CASE_TRANSITIONS,
+} from '@/lib/sfi/case-platform/externalPolicy';
 import type {
   SfiCanonicalRef,
   SfiCaseStatus,
@@ -45,15 +50,6 @@ const SAFE_OBJECT_KINDS = new Set<SfiCaseObjectKind>([
   'REPORT',
   'UNRESOLVED_QUESTION',
   'CONTRADICTION',
-]);
-const SAFE_TRANSITIONS = new Set<SfiCaseStatus>([
-  'DRAFT',
-  'OPEN',
-  'OBSERVING',
-  'ANALYZING',
-  'AWAITING_GOVERNANCE',
-  'CLOSED',
-  'REJECTED',
 ]);
 
 function row(value: unknown): Row {
@@ -291,12 +287,12 @@ export async function POST(request: Request) {
     if (operation === 'transition') {
       const caseId = requireCaseId(body);
       const status = text(body.status) as SfiCaseStatus;
-      if (!SAFE_TRANSITIONS.has(status)) {
+      if (!SFI_EXTERNAL_CASE_TRANSITION_SET.has(status)) {
         return NextResponse.json({
           ok: false,
           error: 'case_transition_not_allowed_for_external_agent',
-          allowed: [...SAFE_TRANSITIONS],
-          excluded: ['INTERVENING', 'AWAITING_RETURN'],
+          allowed: [...SFI_EXTERNAL_CASE_TRANSITIONS],
+          excluded: [...SFI_EXTERNAL_CASE_RESERVED_TRANSITIONS],
         }, { status: 400 });
       }
       const envelope = await transitionOperationalCase({ caseId, userId, status });

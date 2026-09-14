@@ -51,6 +51,8 @@ function routeAllowsPersonalScope(req: Request, credential: ExternalCredential, 
       '/api/external/v1/cases/intake',
       '/api/external/v1/cases/create',
       '/api/external/v1/cases/object',
+      '/api/external/v1/cases/read',
+      '/api/external/v1/cases/transition',
     ]).has(pathname);
   }
   if (scope.startsWith('lab:')) {

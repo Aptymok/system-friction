@@ -10,7 +10,7 @@ if (!canonicalVersion || !/^\d+\.\d+\.\d+$/.test(canonicalVersion)) {
 }
 api.info ??= {};
 api.info.version = canonicalVersion;
-api.info['x-sfi-action-revision'] = 'case-intake-required-v2';
+api.info['x-sfi-action-revision'] = 'case-lifecycle-actions-v3';
 const oauth = api.components?.securitySchemes?.sfiOAuth?.flows?.authorizationCode;
 if (!oauth?.scopes) throw new Error('SFI_OPENAPI_OAUTH_SCOPES_MISSING');
 api.components ??= {};
@@ -146,6 +146,37 @@ api.components.schemas.CaseObjectTransportRequest = {
   },
 };
 
+api.components.schemas.CaseReadRequest = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['caseId'],
+  properties: {
+    caseId: {
+      type: 'string',
+      minLength: 1,
+      description: 'Exact Case Platform case id visible to the authenticated OAuth subject.',
+    },
+  },
+};
+
+api.components.schemas.CaseTransitionRequest = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['caseId', 'status'],
+  properties: {
+    caseId: {
+      type: 'string',
+      minLength: 1,
+      description: 'Exact Case Platform case id visible to the authenticated OAuth subject.',
+    },
+    status: {
+      type: 'string',
+      enum: ['DRAFT', 'OPEN', 'OBSERVING', 'ANALYZING', 'AWAITING_GOVERNANCE', 'CLOSED', 'REJECTED'],
+      description: 'Bounded external Case status. INTERVENING and AWAITING_RETURN are intentionally unavailable through this Action.',
+    },
+  },
+};
+
 api.paths['/api/external/v1/cases'] = {
   post: {
     operationId: 'operateSfiCaseWorkspace',
@@ -243,6 +274,57 @@ api.paths['/api/external/v1/cases/object'] = {
   },
 };
 
+api.paths['/api/external/v1/cases/read'] = {
+  post: {
+    operationId: 'readSfiCase',
+    summary: 'Read one tenant-scoped SFI Case Platform case',
+    description: 'Dedicated read-only GPT Action for one Case. Ownership and tenant visibility are resolved from OAuth subject_id. This Action cannot mutate the case, admit evidence, govern, intervene, record RETURN or create truth claims.',
+    'x-sfi-scope': 'cases:read',
+    security: [{ sfiOAuth: ['cases:read'] }],
+    requestBody: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: { $ref: '#/components/schemas/CaseReadRequest' },
+        },
+      },
+    },
+    responses: {
+      '200': { description: 'Accessible Case dossier' },
+      '400': { description: 'caseId is missing or invalid' },
+      '401': { description: 'Missing or insufficient cases:read scope' },
+      '403': { description: 'User-bound OAuth required or tenant access forbidden' },
+      '404': { description: 'Case not found in an accessible tenant' },
+    },
+  },
+};
+
+api.paths['/api/external/v1/cases/transition'] = {
+  post: {
+    operationId: 'transitionSfiCase',
+    summary: 'Apply one bounded non-intervention Case status transition',
+    description: 'Dedicated GPT Action for Case lifecycle state. REJECTED is available when valid in the canonical state machine. INTERVENING and AWAITING_RETURN remain unavailable because intervention and observed RETURN require governed flows outside this adapter.',
+    'x-sfi-scope': 'cases:write',
+    security: [{ sfiOAuth: ['cases:write'] }],
+    requestBody: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: { $ref: '#/components/schemas/CaseTransitionRequest' },
+        },
+      },
+    },
+    responses: {
+      '200': { description: 'Bounded Case transition result' },
+      '400': { description: 'Invalid or authority-forbidden status request' },
+      '401': { description: 'Missing or insufficient cases:write scope' },
+      '403': { description: 'User-bound OAuth required or tenant access forbidden' },
+      '404': { description: 'Case not found in an accessible tenant' },
+      '409': { description: 'Transition is not valid from the current canonical Case state' },
+    },
+  },
+};
+
 api.components.schemas.CognitiveRuntimeObjectRef = {
   type: 'object',
   additionalProperties: false,
@@ -320,7 +402,7 @@ api.paths['/api/external/v1/cognitive-runtime'] = {
 
 api['x-sfi-governance'] ??= {};
 api['x-sfi-governance'].caseWorkspaceBoundary =
-  'Case Platform access is subject-bound and tenant-scoped. intake_plan creates no case. cases:write can create SOURCE/RECORD/INFERENCE/EPISTEMIC_ASSESSMENT objects only within the adapter allowlist; it cannot mint accepted EVIDENCE, GOVERNANCE_DECISION, INTERVENTION, RETURN or TRUTH_CLAIM authority.';
+  'Case Platform access is subject-bound and tenant-scoped. intake_plan creates no case. cases:write can create SOURCE/RECORD/INFERENCE/EPISTEMIC_ASSESSMENT objects only within the adapter allowlist; dedicated read and lifecycle Actions reuse the same canonical Case owner; REJECTED is a bounded lifecycle status, while INTERVENING and AWAITING_RETURN remain reserved. This interface cannot mint accepted EVIDENCE, GOVERNANCE_DECISION, INTERVENTION, RETURN or TRUTH_CLAIM authority.';
 api['x-sfi-governance'].cognitiveRuntimeBoundary =
   'The cognitive runtime API reuses canonical Execution Contracts and the existing execution event writer. observe is read-only; execute requires user-bound institutional OAuth. Context is not evidence, inference is not observation, model capability does not expand authority, and execution cannot imply approval, RETURN, learning or canon.';
 
@@ -333,6 +415,8 @@ console.log(JSON.stringify({
   flatCaseTransportAliases: true,
   dedicatedRequiredCaseActions: true,
   dedicatedRequiredCaseObjectAction: true,
+  dedicatedCaseReadAction: true,
+  dedicatedCaseTransitionAction: true,
   actionRevision: api.info?.['x-sfi-action-revision'] ?? null,
   cognitiveRuntime: true,
   cognitiveRuntimeContract: 'SFI-EXTERNAL-COGNITIVE-RUNTIME-1.0',
