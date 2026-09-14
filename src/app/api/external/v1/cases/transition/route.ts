@@ -2,22 +2,17 @@ import { NextResponse } from 'next/server';
 import { authorizeExternalRequest, externalAuthError } from '@/lib/sfi/externalAuth';
 import { transitionOperationalCase } from '@/lib/sfi/case-platform/repository';
 import { sfiCaseApiFailure } from '@/lib/sfi/case-platform/http';
+import {
+  SFI_EXTERNAL_CASE_RESERVED_TRANSITIONS,
+  SFI_EXTERNAL_CASE_TRANSITION_SET,
+  SFI_EXTERNAL_CASE_TRANSITIONS,
+} from '@/lib/sfi/case-platform/externalPolicy';
 import type { SfiCaseStatus } from '@/core/contracts/sfi';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 type Row = Record<string, unknown>;
-
-const SAFE_TRANSITIONS = new Set<SfiCaseStatus>([
-  'DRAFT',
-  'OPEN',
-  'OBSERVING',
-  'ANALYZING',
-  'AWAITING_GOVERNANCE',
-  'CLOSED',
-  'REJECTED',
-]);
 
 function text(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
@@ -40,12 +35,12 @@ export async function POST(request: Request) {
     const caseId = text(body.caseId);
     if (!caseId) throw new Error('SFI_CASE_ID_REQUIRED');
     const status = text(body.status) as SfiCaseStatus;
-    if (!SAFE_TRANSITIONS.has(status)) {
+    if (!SFI_EXTERNAL_CASE_TRANSITION_SET.has(status)) {
       return NextResponse.json({
         ok: false,
         error: 'case_transition_not_allowed_for_external_agent',
-        allowed: [...SAFE_TRANSITIONS],
-        excluded: ['INTERVENING', 'AWAITING_RETURN'],
+        allowed: [...SFI_EXTERNAL_CASE_TRANSITIONS],
+        excluded: [...SFI_EXTERNAL_CASE_RESERVED_TRANSITIONS],
       }, { status: 400 });
     }
 
