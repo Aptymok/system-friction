@@ -60,7 +60,11 @@ assert.equal(objectRoute.includes("epistemicRole: 'GOVERNANCE_DECISION'"), false
 assert.ok(objectRoute.includes("authorizeExternalRequest(request, 'cases:write')"), 'case_object_action_scope_missing');
 assert.ok(objectRoute.includes('canonicalRefId'), 'case_object_action_flat_ref_missing');
 assert.ok(objectRoute.includes('recordOperationalCaseObject'), 'case_object_action_must_reuse_canonical_writer');
-assert.ok(objectRoute.includes("if (!isRow(body.payload)) throw new Error('SFI_CASE_PAYLOAD_REQUIRED')"), 'case_object_action_must_reject_missing_or_non_object_payload');
+assert.ok(objectRoute.includes('payloadFromTransport(body)'), 'case_object_action_must_reconstruct_transport_payload');
+assert.ok(objectRoute.includes("SFI_CASE_PAYLOAD_JSON_INVALID"), 'case_object_action_must_reject_invalid_payload_json');
+assert.ok(objectRoute.includes("SFI_CASE_PAYLOAD_JSON_OBJECT_REQUIRED"), 'case_object_action_must_require_object_payload_json');
+assert.ok(objectRoute.includes("SFI_CASE_PAYLOAD_TRANSPORT_CONFLICT"), 'case_object_action_must_fail_closed_on_payload_conflict');
+assert.ok(objectRoute.includes('isDeepStrictEqual'), 'case_object_action_must_compare_dual_payloads_structurally');
 assert.ok(objectRoute.includes("optionalRefsFromIds(body.sourceRefIds, 'SOURCE_REF_IDS')"), 'case_object_action_source_refs_must_be_strict');
 assert.ok(objectRoute.includes("optionalRefsFromIds(body.recordRefIds, 'RECORD_REF_IDS')"), 'case_object_action_record_refs_must_be_strict');
 assert.ok(objectRoute.includes("if (!Array.isArray(value)) throw new Error(`SFI_CASE_${field}_INVALID`)"), 'case_object_action_ref_arrays_must_reject_non_arrays');
@@ -112,7 +116,7 @@ for (const scope of ['cases:read', 'cases:write']) {
 
 assert.ok(manifest.includes("path: '/cases/object'"), 'manifest_dedicated_case_object_missing');
 assert.ok(manifest.includes("operationId: 'addSfiCaseObject'"), 'manifest_dedicated_case_object_operation_id_missing');
-assert.ok(manifest.includes("body: { required: ['caseId', 'kind', 'canonicalRefId', 'payload'] }"), 'manifest_dedicated_case_object_required_fields_missing');
+assert.ok(manifest.includes("body: { required: ['caseId', 'kind', 'canonicalRefId', 'payloadJson'] }"), 'manifest_dedicated_case_object_required_fields_missing');
 assert.ok(manifest.includes("path: '/cases/read'"), 'manifest_dedicated_case_read_missing');
 assert.ok(manifest.includes("operationId: 'readSfiCase'"), 'manifest_dedicated_case_read_operation_id_missing');
 assert.ok(manifest.includes("path: '/cases/transition'"), 'manifest_dedicated_case_transition_missing');
@@ -145,10 +149,12 @@ assert.equal(openapi.paths?.['/api/external/v1/cases/create']?.post?.operationId
 
 const objectSchema = openapi.components?.schemas?.CaseObjectTransportRequest ?? {};
 assert.ok(Array.isArray(objectSchema.required), 'case_object_transport_required_fields_missing');
-for (const field of ['caseId', 'kind', 'canonicalRefId', 'payload']) {
+for (const field of ['caseId', 'kind', 'canonicalRefId', 'payloadJson']) {
   assert.ok(objectSchema.required.includes(field), `case_object_transport_required_field_missing:${field}`);
 }
 assert.equal(objectSchema.properties?.canonicalRefId?.type, 'string', 'case_object_transport_flat_ref_id_missing');
+assert.equal(objectSchema.properties?.payloadJson?.type, 'string', 'case_object_transport_payload_json_missing');
+assert.equal(objectSchema.properties?.payload?.type, 'object', 'case_object_transport_legacy_payload_compatibility_missing');
 assert.ok(objectSchema.properties?.kind?.enum?.includes('CONTRADICTION'), 'case_object_transport_contradiction_kind_missing');
 
 const readSchema = openapi.components?.schemas?.CaseReadRequest ?? {};
@@ -186,7 +192,8 @@ console.log(JSON.stringify({
   transitionOperationId: 'transitionSfiCase',
   createOperationId: 'createSfiCaseFromResolvedIntake',
   flatCanonicalRefRequired: true,
-  payloadRequiredAtRuntime: true,
+  payloadJsonRequiredForGptTransport: true,
+  legacyPayloadObjectAcceptedAtRuntime: true,
   lineageRefArraysStrict: true,
   contradictionObjectAllowed: true,
   sharedLifecyclePolicy: true,
