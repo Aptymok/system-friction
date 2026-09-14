@@ -41,7 +41,7 @@ async function main() {
   assert.match(bootstrap, /gptActionsOpenApi: '\/openapi\.json'/);
   assert.match(bootstrap, /separateActionsProjection: false/);
 
-  assert.match(manifest, /version: '1\.17\.1'/);
+  assert.match(manifest, /version: '1\.17\.2'/);
   assert.match(manifest, /id: 'studio-context'/);
   assert.match(manifest, /contract: 'SFI-STUDIO-OWNER-CONTEXT-1\.0'/);
   assert.match(manifest, /ownerStudioContext/);
@@ -55,7 +55,7 @@ async function main() {
   assert.match(openapi, /binaryContentIncluded:false/);
   assert.match(openapi, /rootEvidenceIncluded:false/);
   assert.match(openapi, /institutionalCanonIncluded:false/);
-  assert.match(openapi, /versionBelow\(api\.info\.version, '1\.17\.1'\)/);
+  assert.match(openapi, /versionBelow\(api\.info\.version, '1\.17\.2'\)/);
   assert.doesNotMatch(openapi, /^\s*api\.info\.version = '1\.17\.0';?\s*$/m);
   assert.match(personCtOpenapi, /versionBelow\(api\.info\.version, '1\.11\.0'\)/);
   assert.doesNotMatch(personCtOpenapi, /^\s*api\.info\.version = '1\.11\.0';?\s*$/m);
