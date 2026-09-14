@@ -6,6 +6,8 @@ const route = read('src/app/api/external/v1/cases/route.ts');
 const objectRoute = read('src/app/api/external/v1/cases/object/route.ts');
 const readRoute = read('src/app/api/external/v1/cases/read/route.ts');
 const transitionRoute = read('src/app/api/external/v1/cases/transition/route.ts');
+const transitionPolicy = read('src/lib/sfi/case-platform/externalPolicy.ts');
+const manifest = read('src/app/api/external/v1/manifest/route.ts');
 const auth = read('src/lib/sfi/externalAuth.ts');
 const authorize = read('src/app/api/oauth/authorize/route.ts');
 const oauthConfig = read('src/lib/sfi/oauthConfig.ts');
@@ -48,7 +50,8 @@ for (const allowed of [
 
 assert.ok(route.includes("forbiddenAuthority: ['EVIDENCE', 'GOVERNANCE_DECISION', 'INTERVENTION', 'RETURN', 'TRUTH_CLAIM']"), 'case_forbidden_authority_boundary_missing');
 assert.ok(objectRoute.includes("forbiddenAuthority: ['EVIDENCE', 'GOVERNANCE_DECISION', 'INTERVENTION', 'RETURN', 'TRUTH_CLAIM']"), 'case_object_action_forbidden_authority_boundary_missing');
-assert.ok(route.includes("excluded: ['INTERVENING', 'AWAITING_RETURN']"), 'case_external_intervention_return_transition_must_remain_blocked');
+assert.ok(route.includes('SFI_EXTERNAL_CASE_TRANSITION_SET'), 'generic_case_transition_must_use_shared_policy');
+assert.ok(route.includes('SFI_EXTERNAL_CASE_RESERVED_TRANSITIONS'), 'generic_case_reserved_transitions_must_use_shared_policy');
 assert.equal(route.includes('generateOperationalReport'), false, 'external_case_bridge_must_not_generate_governed_report_claims');
 assert.equal(route.includes("epistemicRole: 'EVIDENCE'"), false, 'external_case_bridge_must_not_mint_evidence');
 assert.equal(route.includes("epistemicRole: 'GOVERNANCE_DECISION'"), false, 'external_case_bridge_must_not_mint_governance');
@@ -73,14 +76,21 @@ assert.ok(transitionRoute.includes("authorizeExternalRequest(request, 'cases:wri
 assert.ok(transitionRoute.includes("auth.credential.authMethod !== 'oauth'"), 'case_transition_action_must_require_oauth');
 assert.ok(transitionRoute.includes('auth.credential.subjectId'), 'case_transition_action_must_require_subject');
 assert.ok(transitionRoute.includes('transitionOperationalCase'), 'case_transition_action_must_reuse_canonical_state_machine');
-assert.ok(transitionRoute.includes("'REJECTED'"), 'case_transition_action_rejected_missing');
-assert.ok(transitionRoute.includes("excluded: ['INTERVENING', 'AWAITING_RETURN']"), 'case_transition_action_reserved_states_boundary_missing');
-const transitionAllowedSection = transitionRoute.slice(
-  transitionRoute.indexOf('const SAFE_TRANSITIONS'),
-  transitionRoute.indexOf('function text'),
+assert.ok(transitionRoute.includes('SFI_EXTERNAL_CASE_TRANSITION_SET'), 'case_transition_action_must_use_shared_policy');
+assert.ok(transitionRoute.includes('SFI_EXTERNAL_CASE_RESERVED_TRANSITIONS'), 'case_transition_action_reserved_states_must_use_shared_policy');
+
+for (const allowed of ['DRAFT', 'OPEN', 'OBSERVING', 'ANALYZING', 'AWAITING_GOVERNANCE', 'CLOSED', 'REJECTED']) {
+  assert.ok(transitionPolicy.includes(`'${allowed}'`), `shared_case_transition_missing:${allowed}`);
+}
+for (const reserved of ['INTERVENING', 'AWAITING_RETURN']) {
+  assert.ok(transitionPolicy.includes(`'${reserved}'`), `shared_case_reserved_transition_missing:${reserved}`);
+}
+const allowedPolicySection = transitionPolicy.slice(
+  transitionPolicy.indexOf('SFI_EXTERNAL_CASE_TRANSITIONS'),
+  transitionPolicy.indexOf('SFI_EXTERNAL_CASE_TRANSITION_SET'),
 );
-assert.equal(transitionAllowedSection.includes("'INTERVENING'"), false, 'case_transition_action_must_not_allow_intervening');
-assert.equal(transitionAllowedSection.includes("'AWAITING_RETURN'"), false, 'case_transition_action_must_not_allow_awaiting_return');
+assert.equal(allowedPolicySection.includes("'INTERVENING'"), false, 'shared_case_policy_must_not_allow_intervening');
+assert.equal(allowedPolicySection.includes("'AWAITING_RETURN'"), false, 'shared_case_policy_must_not_allow_awaiting_return');
 
 for (const pathname of [
   '/api/external/v1/cases',
@@ -99,6 +109,13 @@ for (const scope of ['cases:read', 'cases:write']) {
   assert.ok(oauthConfig.includes(`'${scope}'`), `oauth_case_scope_missing:${scope}`);
   assert.ok(merge.includes(`oauth.scopes['${scope}']`), `openapi_merge_scope_missing:${scope}`);
 }
+
+assert.ok(manifest.includes("path: '/cases/read'"), 'manifest_dedicated_case_read_missing');
+assert.ok(manifest.includes("operationId: 'readSfiCase'"), 'manifest_dedicated_case_read_operation_id_missing');
+assert.ok(manifest.includes("path: '/cases/transition'"), 'manifest_dedicated_case_transition_missing');
+assert.ok(manifest.includes("operationId: 'transitionSfiCase'"), 'manifest_dedicated_case_transition_operation_id_missing');
+assert.ok(manifest.includes("scope: 'cases:read'"), 'manifest_case_read_scope_missing');
+assert.ok(manifest.includes("scope: 'cases:write'"), 'manifest_case_write_scope_missing');
 
 assert.ok(observatoryApi.includes('source_url,payload'), 'observatory_public_provenance_fields_missing');
 assert.ok(observatoryApi.includes('provenance:'), 'observatory_public_provenance_projection_missing');
@@ -156,7 +173,7 @@ assert.match(String(openapi['x-sfi-governance']?.caseWorkspaceBoundary ?? ''), /
 
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-GPT-CASE-BRIDGE-1.3',
+  contract: 'SFI-GPT-CASE-BRIDGE-1.4',
   route: '/api/external/v1/cases',
   readAction: '/api/external/v1/cases/read',
   readOperationId: 'readSfiCase',
@@ -169,6 +186,8 @@ console.log(JSON.stringify({
   payloadRequiredAtRuntime: true,
   lineageRefArraysStrict: true,
   contradictionObjectAllowed: true,
+  sharedLifecyclePolicy: true,
+  manifestDiscovery: true,
   rejectedTransitionAllowed: true,
   interventionTransitionAllowed: false,
   awaitingReturnTransitionAllowed: false,
