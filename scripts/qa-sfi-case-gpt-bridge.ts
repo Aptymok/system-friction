@@ -64,6 +64,8 @@ assert.ok(objectRoute.includes('payloadFromTransport(body)'), 'case_object_actio
 assert.ok(objectRoute.includes("SFI_CASE_PAYLOAD_JSON_INVALID"), 'case_object_action_must_reject_invalid_payload_json');
 assert.ok(objectRoute.includes("SFI_CASE_PAYLOAD_JSON_OBJECT_REQUIRED"), 'case_object_action_must_require_object_payload_json');
 assert.ok(objectRoute.includes("SFI_CASE_PAYLOAD_TRANSPORT_CONFLICT"), 'case_object_action_must_fail_closed_on_payload_conflict');
+assert.ok(objectRoute.includes("Object.prototype.hasOwnProperty.call(body, 'payload')"), 'case_object_action_must_track_direct_payload_presence');
+assert.ok(objectRoute.includes("SFI_CASE_PAYLOAD_OBJECT_REQUIRED"), 'case_object_action_must_reject_malformed_direct_payload_even_with_payload_json');
 assert.ok(objectRoute.includes('isDeepStrictEqual'), 'case_object_action_must_compare_dual_payloads_structurally');
 assert.ok(objectRoute.includes("optionalRefsFromIds(body.sourceRefIds, 'SOURCE_REF_IDS')"), 'case_object_action_source_refs_must_be_strict');
 assert.ok(objectRoute.includes("optionalRefsFromIds(body.recordRefIds, 'RECORD_REF_IDS')"), 'case_object_action_record_refs_must_be_strict');
