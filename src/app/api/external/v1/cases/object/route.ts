@@ -41,7 +41,9 @@ function nullableText(value: unknown): string | null {
 }
 
 function payloadFromTransport(body: Row): Row {
-  const directPayload = isRow(body.payload) ? row(body.payload) : null;
+  const hasDirectPayload = Object.prototype.hasOwnProperty.call(body, 'payload');
+  if (hasDirectPayload && !isRow(body.payload)) throw new Error('SFI_CASE_PAYLOAD_OBJECT_REQUIRED');
+  const directPayload = hasDirectPayload ? row(body.payload) : null;
   const hasPayloadJson = body.payloadJson !== undefined && body.payloadJson !== null;
   let jsonPayload: Row | null = null;
 
