@@ -110,6 +110,9 @@ for (const scope of ['cases:read', 'cases:write']) {
   assert.ok(merge.includes(`oauth.scopes['${scope}']`), `openapi_merge_scope_missing:${scope}`);
 }
 
+assert.ok(manifest.includes("path: '/cases/object'"), 'manifest_dedicated_case_object_missing');
+assert.ok(manifest.includes("operationId: 'addSfiCaseObject'"), 'manifest_dedicated_case_object_operation_id_missing');
+assert.ok(manifest.includes("body: { required: ['caseId', 'kind', 'canonicalRefId', 'payload'] }"), 'manifest_dedicated_case_object_required_fields_missing');
 assert.ok(manifest.includes("path: '/cases/read'"), 'manifest_dedicated_case_read_missing');
 assert.ok(manifest.includes("operationId: 'readSfiCase'"), 'manifest_dedicated_case_read_operation_id_missing');
 assert.ok(manifest.includes("path: '/cases/transition'"), 'manifest_dedicated_case_transition_missing');
@@ -173,7 +176,7 @@ assert.match(String(openapi['x-sfi-governance']?.caseWorkspaceBoundary ?? ''), /
 
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-GPT-CASE-BRIDGE-1.4',
+  contract: 'SFI-GPT-CASE-BRIDGE-1.5',
   route: '/api/external/v1/cases',
   readAction: '/api/external/v1/cases/read',
   readOperationId: 'readSfiCase',

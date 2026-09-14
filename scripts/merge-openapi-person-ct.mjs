@@ -3,7 +3,18 @@ import { readFileSync, writeFileSync } from 'node:fs';
 const path = 'public/openapi.json';
 const api = JSON.parse(readFileSync(path, 'utf8'));
 api.info ??= {};
-api.info.version = '1.11.0';
+const versionParts = (value) => String(value ?? '0.0.0').split('.').map((part) => Number.parseInt(part, 10) || 0);
+const versionBelow = (current, floor) => {
+  const a = versionParts(current);
+  const b = versionParts(floor);
+  for (let i = 0; i < Math.max(a.length, b.length); i += 1) {
+    const left = a[i] ?? 0;
+    const right = b[i] ?? 0;
+    if (left !== right) return left < right;
+  }
+  return false;
+};
+if (versionBelow(api.info.version, '1.11.0')) api.info.version = '1.11.0';
 api.components ??= {};
 api.components.schemas ??= {};
 api.paths ??= {};

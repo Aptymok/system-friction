@@ -1,13 +1,17 @@
 SFI-00 CONTROLLED PRODUCTION RELEASE
 requested_at=2026-09-13
-release_reason=Deploy transport-safe dedicated Case read and bounded lifecycle transition Actions required to continue CASE-0001.
-source_main=db3b0670ee4b4dd04eecf9731f23889a0c63630e
-release_basis=pr504_merged+sfi_verify_success+universal_signal_success+external_oauth_success+r4c_success+case_gpt_bridge_qa+typecheck+build+all_review_threads_resolved+program_completion_receipt_debt_preexisting
+release_reason=Align manifest discovery with the already-canonical transport-safe dedicated Case object/read/transition GPT Actions and publish gateway patch v1.17.1 for a clean GPT schema re-import.
+source_main=081b0b100134965e4491d84cfb7f4cdadeb23982
+release_basis=case_object_route_already_canonical+openapi_addSfiCaseObject_already_present+manifest_alignment+case_gpt_bridge_regression_guard+gateway_patch_version
 canonical_openapi=/openapi.json
 gpt_actions_openapi=/openapi.json
 separate_actions_projection=false
 canonical_actions_origin=https://www.systemfriction.org
+gateway_version=1.17.1
 action_revision=case-lifecycle-actions-v3
+case_object_action=addSfiCaseObject
+case_object_path=/api/external/v1/cases/object
+case_object_required=caseId,kind,canonicalRefId,payload
 case_read_action=readSfiCase
 case_read_path=/api/external/v1/cases/read
 case_transition_action=transitionSfiCase
@@ -22,4 +26,4 @@ governance_decision_authority=false
 intervention_authority=false
 return_authority=false
 truth_claim_authority=false
-post_release_tests=deployed_sha+live_openapi+readSfiCase+transitionSfiCase+oauth_scopes+case_manifest+case_0001_untouched
+post_release_tests=deployed_sha+live_openapi_version_1.17.1+addSfiCaseObject+readSfiCase+transitionSfiCase+oauth_scopes+case_manifest_alignment+case_0001_untouched
