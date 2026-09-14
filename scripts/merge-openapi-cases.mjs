@@ -10,7 +10,7 @@ if (!canonicalVersion || !/^\d+\.\d+\.\d+$/.test(canonicalVersion)) {
 }
 api.info ??= {};
 api.info.version = canonicalVersion;
-api.info['x-sfi-action-revision'] = 'case-lifecycle-actions-v4';
+api.info['x-sfi-action-revision'] = 'case-lifecycle-actions-v5';
 const oauth = api.components?.securitySchemes?.sfiOAuth?.flows?.authorizationCode;
 if (!oauth?.scopes) throw new Error('SFI_OPENAPI_OAUTH_SCOPES_MISSING');
 api.components ??= {};
@@ -261,7 +261,7 @@ api.paths['/api/external/v1/cases/create'] = {
 
 api.paths['/api/external/v1/cases/object'] = {
   post: {
-    operationId: 'addSfiCaseObject',
+    operationId: 'addSfiCaseObjectJson',
     summary: 'Persist one bounded Case object through required flat transport',
     description: 'Dedicated GPT Action for Case objects. canonicalRefId and payloadJson are transport-safe required fields reconstructed inside SFI. Cannot create accepted evidence, governance, intervention, RETURN or truth claims.',
     security: [{ sfiOAuth: ['cases:write'] }],

@@ -117,7 +117,7 @@ for (const scope of ['cases:read', 'cases:write']) {
 }
 
 assert.ok(manifest.includes("path: '/cases/object'"), 'manifest_dedicated_case_object_missing');
-assert.ok(manifest.includes("operationId: 'addSfiCaseObject'"), 'manifest_dedicated_case_object_operation_id_missing');
+assert.ok(manifest.includes("operationId: 'addSfiCaseObjectJson'"), 'manifest_dedicated_case_object_operation_id_missing');
 assert.ok(manifest.includes("body: { required: ['caseId', 'kind', 'canonicalRefId', 'payloadJson'] }"), 'manifest_dedicated_case_object_required_fields_missing');
 assert.ok(manifest.includes("path: '/cases/read'"), 'manifest_dedicated_case_read_missing');
 assert.ok(manifest.includes("operationId: 'readSfiCase'"), 'manifest_dedicated_case_read_operation_id_missing');
@@ -144,7 +144,7 @@ assert.ok(merge.includes("'REJECTED'"), 'openapi_merge_rejected_transition_missi
 assert.ok(merge.includes('INTERVENING and AWAITING_RETURN remain unavailable'), 'openapi_merge_reserved_transition_boundary_missing');
 
 assert.ok(openapi.paths?.['/api/external/v1/cases']?.post, 'openapi_case_workspace_path_missing_after_merge');
-assert.equal(openapi.paths?.['/api/external/v1/cases/object']?.post?.operationId, 'addSfiCaseObject', 'openapi_case_object_action_missing_after_merge');
+assert.equal(openapi.paths?.['/api/external/v1/cases/object']?.post?.operationId, 'addSfiCaseObjectJson', 'openapi_case_object_action_missing_after_merge');
 assert.equal(openapi.paths?.['/api/external/v1/cases/read']?.post?.operationId, 'readSfiCase', 'openapi_case_read_action_missing_after_merge');
 assert.equal(openapi.paths?.['/api/external/v1/cases/transition']?.post?.operationId, 'transitionSfiCase', 'openapi_case_transition_action_missing_after_merge');
 assert.equal(openapi.paths?.['/api/external/v1/cases/create']?.post?.operationId, 'createSfiCaseFromResolvedIntake', 'openapi_case_create_action_missing_after_merge');
@@ -189,7 +189,7 @@ console.log(JSON.stringify({
   readAction: '/api/external/v1/cases/read',
   readOperationId: 'readSfiCase',
   objectAction: '/api/external/v1/cases/object',
-  objectOperationId: 'addSfiCaseObject',
+  objectOperationId: 'addSfiCaseObjectJson',
   transitionAction: '/api/external/v1/cases/transition',
   transitionOperationId: 'transitionSfiCase',
   createOperationId: 'createSfiCaseFromResolvedIntake',
