@@ -1,0 +1,90 @@
+name: Temporary Case Action Identity Refresh
+
+on:
+  push:
+    branches:
+      - fix/case-object-action-identity-refresh
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/case-object-action-identity-refresh
+      - name: Apply exact transport identity patch
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_exact(path, old, new, expected=None):
+              p = Path(path)
+              text = p.read_text()
+              count = text.count(old)
+              if expected is not None and count != expected:
+                  raise SystemExit(f'{path}: expected {expected} occurrences of {old!r}, found {count}')
+              if count == 0:
+                  raise SystemExit(f'{path}: missing {old!r}')
+              p.write_text(text.replace(old, new))
+
+          replace_exact('src/app/api/external/v1/manifest/route.ts', "version: '1.17.2'", "version: '1.17.3'", 1)
+          replace_exact('src/app/api/external/v1/manifest/route.ts', "operationId: 'addSfiCaseObject'", "operationId: 'addSfiCaseObjectJson'", 1)
+
+          replace_exact('scripts/merge-openapi-cases.mjs', "case-lifecycle-actions-v4", "case-lifecycle-actions-v5", 1)
+          replace_exact('scripts/merge-openapi-cases.mjs', "operationId: 'addSfiCaseObject'", "operationId: 'addSfiCaseObjectJson'", 1)
+
+          replace_exact('scripts/qa-sfi-case-gpt-bridge.ts', 'addSfiCaseObject', 'addSfiCaseObjectJson')
+          replace_exact('scripts/qa-sfi-case-intake-action-binding.ts', 'case-lifecycle-actions-v4', 'case-lifecycle-actions-v5')
+          replace_exact('scripts/qa-sfi-model-owner-context.ts', '1.17.2', '1.17.3')
+          replace_exact('scripts/merge-openapi-studio-attachments.mjs', '1.17.2', '1.17.3')
+
+          marker = Path('.github/sfi-production-deploy-trigger')
+          text = marker.read_text()
+          lines = []
+          replacements = {
+              'release_reason=': 'release_reason=Force a fresh GPT Action tool identity for the transport-safe Case object operation so stale addSfiCaseObject wrappers cannot reject payloadJson before HTTP dispatch.',
+              'source_main=': 'source_main=1e893ef9f1110d0df14f8bffcd49841edfb302a5',
+              'release_basis=': 'release_basis=observed_client_unrecognized_kwargs_payloadJson+live_openapi_payloadJson_confirmed+fresh_operation_id+canonical_writer_unchanged+case_0001_untouched',
+              'gateway_version=': 'gateway_version=1.17.3',
+              'action_revision=': 'action_revision=case-lifecycle-actions-v5',
+              'case_object_action=': 'case_object_action=addSfiCaseObjectJson',
+              'post_release_tests=': 'post_release_tests=deployed_sha+live_openapi_version_1.17.3+live_action_revision_v5+live_addSfiCaseObjectJson+live_payloadJson_required+synthetic_addSfiCaseObjectJson_returns_case_not_found+readSfiCase+transitionSfiCase+oauth_scopes+case_manifest_alignment+case_0001_untouched',
+          }
+          seen = {k: 0 for k in replacements}
+          for line in text.splitlines():
+              replaced = False
+              for prefix, new_line in replacements.items():
+                  if line.startswith(prefix):
+                      lines.append(new_line)
+                      seen[prefix] += 1
+                      replaced = True
+                      break
+              if not replaced:
+                  lines.append(line)
+          missing = [k for k, v in seen.items() if v != 1]
+          if missing:
+              raise SystemExit(f'release marker prefixes invalid: {missing} / {seen}')
+          marker.write_text('\n'.join(lines) + '\n')
+
+          # Explicit regression guards for the intended client-visible identity.
+          manifest = Path('src/app/api/external/v1/manifest/route.ts').read_text()
+          merge = Path('scripts/merge-openapi-cases.mjs').read_text()
+          qa = Path('scripts/qa-sfi-case-gpt-bridge.ts').read_text()
+          assert "operationId: 'addSfiCaseObjectJson'" in manifest
+          assert "operationId: 'addSfiCaseObjectJson'" in merge
+          assert "'addSfiCaseObjectJson'" in qa
+          assert "required: ['caseId', 'kind', 'canonicalRefId', 'payloadJson']" in merge
+          assert "required: ['caseId', 'kind', 'canonicalRefId', 'payloadJson']" in manifest
+          PY
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/app/api/external/v1/manifest/route.ts scripts/merge-openapi-cases.mjs scripts/qa-sfi-case-gpt-bridge.ts scripts/qa-sfi-case-intake-action-binding.ts scripts/qa-sfi-model-owner-context.ts scripts/merge-openapi-studio-attachments.mjs .github/sfi-production-deploy-trigger
+          git diff --cached --check
+          git commit -m "fix(cases): refresh Case object Action identity"
+          git push origin HEAD:fix/case-object-action-identity-refresh
