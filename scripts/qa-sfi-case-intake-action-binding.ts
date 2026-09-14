@@ -89,11 +89,23 @@ assert.deepEqual(
 );
 assert.equal(openapi.paths?.['/api/external/v1/cases/intake']?.post?.operationId, 'planSfiCaseIntake');
 assert.equal(openapi.paths?.['/api/external/v1/cases/create']?.post?.operationId, 'createSfiCaseFromResolvedIntake');
-assert.equal(openapi.info?.['x-sfi-action-revision'], 'case-intake-required-v2');
+
+// The lifecycle revision extends the Case Action surface but MUST NOT weaken
+// intake/create requirements. It also makes the exact read/transition intents
+// explicit for CASE-0001 and future governed cases.
+assert.equal(openapi.info?.['x-sfi-action-revision'], 'case-lifecycle-actions-v3');
+assert.equal(openapi.paths?.['/api/external/v1/cases/read']?.post?.operationId, 'readSfiCase');
+assert.equal(openapi.paths?.['/api/external/v1/cases/transition']?.post?.operationId, 'transitionSfiCase');
+assert.deepEqual(openapi.components?.schemas?.CaseReadRequest?.required, ['caseId']);
+assert.deepEqual(openapi.components?.schemas?.CaseTransitionRequest?.required, ['caseId', 'status']);
+const transitionStatuses = openapi.components?.schemas?.CaseTransitionRequest?.properties?.status?.enum ?? [];
+assert(transitionStatuses.includes('REJECTED'), 'REJECTED must remain available as a bounded lifecycle state');
+assert.equal(transitionStatuses.includes('INTERVENING'), false, 'INTERVENING must remain outside the external transition Action');
+assert.equal(transitionStatuses.includes('AWAITING_RETURN'), false, 'AWAITING_RETURN must remain outside the external transition Action');
 
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-CASE-INTAKE-ACTION-BINDING-1.2',
+  contract: 'SFI-CASE-INTAKE-ACTION-BINDING-1.3',
   nestedActionFieldsAccepted: true,
   flatTransportAliasesAccepted: true,
   flatTransportReconstructsCanonicalNestedContract: true,
@@ -103,5 +115,10 @@ console.log(JSON.stringify({
   dedicatedIntakeActionRequiredFields: requiredSchema.required,
   dedicatedIntakeOperationId: 'planSfiCaseIntake',
   dedicatedCreateOperationId: 'createSfiCaseFromResolvedIntake',
-  actionRevision: 'case-intake-required-v2',
+  dedicatedReadOperationId: 'readSfiCase',
+  dedicatedTransitionOperationId: 'transitionSfiCase',
+  rejectedTransitionAllowed: true,
+  interventionTransitionAllowed: false,
+  awaitingReturnTransitionAllowed: false,
+  actionRevision: 'case-lifecycle-actions-v3',
 }, null, 2));
