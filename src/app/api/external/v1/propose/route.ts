@@ -12,6 +12,12 @@ function normalizeDecisionClass(value: unknown): SfiRootDecisionClass | null {
   return isRootDecisionClass(candidate) ? candidate : null;
 }
 
+function decisionClassFromAction(value: unknown): SfiRootDecisionClass | null {
+  const action = typeof value === 'string' ? value.trim() : '';
+  const match = action.match(/^\[ROOT_DECISION_CLASS:([A-Z0-9_ -]+)\](?:\s+|$)/i);
+  return normalizeDecisionClass(match?.[1]);
+}
+
 export async function POST(req: Request) {
   const auth = authorizeExternalRequest(req, 'propose');
   const cred = auth.credential;
@@ -24,7 +30,8 @@ export async function POST(req: Request) {
   if (!title || !summary) return NextResponse.json({ ok: false, error: 'title_and_summary_required' }, { status: 400 });
 
   const actor = externalActor(cred);
-  const rootDecisionClass = normalizeDecisionClass(body.rootDecisionClass ?? body.decisionClass);
+  const rootDecisionClass = normalizeDecisionClass(body.rootDecisionClass ?? body.decisionClass)
+    ?? decisionClassFromAction(body.action);
   const humanApprovalRequired = Boolean(rootDecisionClass);
   const result = await createActionProposal({
     proposalType: 'external_agent_proposal',
