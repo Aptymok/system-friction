@@ -10,7 +10,7 @@ if (!canonicalVersion || !/^\d+\.\d+\.\d+$/.test(canonicalVersion)) {
 }
 api.info ??= {};
 api.info.version = canonicalVersion;
-api.info['x-sfi-action-revision'] = 'case-lifecycle-actions-v5';
+api.info['x-sfi-action-revision'] = 'case-lifecycle-actions-v6';
 const oauth = api.components?.securitySchemes?.sfiOAuth?.flows?.authorizationCode;
 if (!oauth?.scopes) throw new Error('SFI_OPENAPI_OAUTH_SCOPES_MISSING');
 api.components ??= {};
@@ -310,7 +310,7 @@ api.paths['/api/external/v1/cases/read'] = {
 
 api.paths['/api/external/v1/cases/transition'] = {
   post: {
-    operationId: 'transitionSfiCase',
+    operationId: 'transitionSfiCaseV2',
     summary: 'Apply one bounded non-intervention Case status transition',
     description: 'Dedicated GPT Action for Case lifecycle state. REJECTED is available when valid in the canonical state machine. INTERVENING and AWAITING_RETURN remain unavailable because intervention and observed RETURN require governed flows outside this adapter.',
     'x-sfi-scope': 'cases:write',

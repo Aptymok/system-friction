@@ -122,7 +122,8 @@ assert.ok(manifest.includes("body: { required: ['caseId', 'kind', 'canonicalRefI
 assert.ok(manifest.includes("path: '/cases/read'"), 'manifest_dedicated_case_read_missing');
 assert.ok(manifest.includes("operationId: 'readSfiCase'"), 'manifest_dedicated_case_read_operation_id_missing');
 assert.ok(manifest.includes("path: '/cases/transition'"), 'manifest_dedicated_case_transition_missing');
-assert.ok(manifest.includes("operationId: 'transitionSfiCase'"), 'manifest_dedicated_case_transition_operation_id_missing');
+assert.ok(manifest.includes("operationId: 'transitionSfiCaseV2'"), 'manifest_dedicated_case_transition_operation_id_missing');
+assert.equal(manifest.includes("operationId: 'transitionSfiCase'"), false, 'manifest_stale_case_transition_operation_id_present');
 assert.ok(manifest.includes("scope: 'cases:read'"), 'manifest_case_read_scope_missing');
 assert.ok(manifest.includes("scope: 'cases:write'"), 'manifest_case_write_scope_missing');
 
@@ -137,16 +138,20 @@ for (const token of ['sourceRole','verificationState','FRONTERA EPISTÉMICA','IN
 }
 
 assert.ok(merge.includes("operationId: 'readSfiCase'"), 'openapi_merge_read_case_action_missing');
-assert.ok(merge.includes("operationId: 'transitionSfiCase'"), 'openapi_merge_transition_case_action_missing');
+assert.ok(merge.includes("operationId: 'transitionSfiCaseV2'"), 'openapi_merge_transition_case_action_missing');
+assert.equal(merge.includes("operationId: 'transitionSfiCase'"), false, 'openapi_merge_stale_transition_action_present');
 assert.ok(merge.includes('api.components.schemas.CaseReadRequest'), 'openapi_merge_case_read_schema_missing');
 assert.ok(merge.includes('api.components.schemas.CaseTransitionRequest'), 'openapi_merge_case_transition_schema_missing');
 assert.ok(merge.includes("'REJECTED'"), 'openapi_merge_rejected_transition_missing');
 assert.ok(merge.includes('INTERVENING and AWAITING_RETURN remain unavailable'), 'openapi_merge_reserved_transition_boundary_missing');
 
+assert.equal(openapi.info?.version, '1.17.4', 'openapi_gateway_version_invalid');
+assert.equal(openapi.info?.['x-sfi-action-revision'], 'case-lifecycle-actions-v6', 'openapi_case_action_revision_invalid');
 assert.ok(openapi.paths?.['/api/external/v1/cases']?.post, 'openapi_case_workspace_path_missing_after_merge');
 assert.equal(openapi.paths?.['/api/external/v1/cases/object']?.post?.operationId, 'addSfiCaseObjectJson', 'openapi_case_object_action_missing_after_merge');
 assert.equal(openapi.paths?.['/api/external/v1/cases/read']?.post?.operationId, 'readSfiCase', 'openapi_case_read_action_missing_after_merge');
-assert.equal(openapi.paths?.['/api/external/v1/cases/transition']?.post?.operationId, 'transitionSfiCase', 'openapi_case_transition_action_missing_after_merge');
+assert.equal(openapi.paths?.['/api/external/v1/cases/transition']?.post?.operationId, 'transitionSfiCaseV2', 'openapi_case_transition_action_missing_after_merge');
+assert.notEqual(openapi.paths?.['/api/external/v1/cases/transition']?.post?.operationId, 'transitionSfiCase', 'openapi_stale_case_transition_operation_id_present');
 assert.equal(openapi.paths?.['/api/external/v1/cases/create']?.post?.operationId, 'createSfiCaseFromResolvedIntake', 'openapi_case_create_action_missing_after_merge');
 
 const objectSchema = openapi.components?.schemas?.CaseObjectTransportRequest ?? {};
@@ -165,11 +170,9 @@ assert.equal(readSchema.properties?.caseId?.type, 'string', 'case_read_transport
 
 const transitionSchema = openapi.components?.schemas?.CaseTransitionRequest ?? {};
 assert.ok(Array.isArray(transitionSchema.required), 'case_transition_transport_required_fields_missing');
-for (const field of ['caseId', 'status']) {
-  assert.ok(transitionSchema.required.includes(field), `case_transition_transport_required_field_missing:${field}`);
-}
+assert.deepEqual(transitionSchema.required, ['caseId', 'status'], 'case_transition_transport_required_fields_invalid');
 const transitionEnum = transitionSchema.properties?.status?.enum ?? [];
-assert.ok(transitionEnum.includes('REJECTED'), 'openapi_case_transition_rejected_missing');
+assert.deepEqual(transitionEnum, ['DRAFT', 'OPEN', 'OBSERVING', 'ANALYZING', 'AWAITING_GOVERNANCE', 'CLOSED', 'REJECTED'], 'openapi_case_transition_status_enum_invalid');
 assert.equal(transitionEnum.includes('INTERVENING'), false, 'openapi_case_transition_must_not_allow_intervening');
 assert.equal(transitionEnum.includes('AWAITING_RETURN'), false, 'openapi_case_transition_must_not_allow_awaiting_return');
 
@@ -184,14 +187,14 @@ assert.match(String(openapi['x-sfi-governance']?.caseWorkspaceBoundary ?? ''), /
 
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-GPT-CASE-BRIDGE-1.5',
+  contract: 'SFI-GPT-CASE-BRIDGE-1.6',
   route: '/api/external/v1/cases',
   readAction: '/api/external/v1/cases/read',
   readOperationId: 'readSfiCase',
   objectAction: '/api/external/v1/cases/object',
   objectOperationId: 'addSfiCaseObjectJson',
   transitionAction: '/api/external/v1/cases/transition',
-  transitionOperationId: 'transitionSfiCase',
+  transitionOperationId: 'transitionSfiCaseV2',
   createOperationId: 'createSfiCaseFromResolvedIntake',
   flatCanonicalRefRequired: true,
   payloadJsonRequiredForGptTransport: true,
