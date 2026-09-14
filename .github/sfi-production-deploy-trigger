@@ -1,7 +1,7 @@
 SFI-00 CONTROLLED PRODUCTION RELEASE
-requested_at=2026-09-13
+requested_at=2026-09-14
 release_reason=Force a fresh GPT Action tool identity for the transport-safe Case object operation so stale addSfiCaseObject wrappers cannot reject payloadJson before HTTP dispatch.
-source_main=1e893ef9f1110d0df14f8bffcd49841edfb302a5
+source_main=d5c49f55c466fae81655173bc0e759d4a4a39319
 release_basis=observed_client_unrecognized_kwargs_payloadJson+live_openapi_payloadJson_confirmed+fresh_operation_id+canonical_writer_unchanged+case_0001_untouched
 canonical_openapi=/openapi.json
 gpt_actions_openapi=/openapi.json
