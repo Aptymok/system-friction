@@ -1,0 +1,48 @@
+name: Temporary Case Payload Malformed QA Guard
+
+on:
+  push:
+    branches:
+      - fix/case-object-payload-transport
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/case-object-payload-transport
+          fetch-depth: 0
+
+      - name: Add fail-closed QA assertions
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('scripts/qa-sfi-case-gpt-bridge.ts')
+          text = p.read_text(encoding='utf-8')
+          anchor = "assert.ok(objectRoute.includes(\"SFI_CASE_PAYLOAD_TRANSPORT_CONFLICT\"), 'case_object_action_must_fail_closed_on_payload_conflict');\nassert.ok(objectRoute.includes('isDeepStrictEqual'), 'case_object_action_must_compare_dual_payloads_structurally');"
+          replacement = "assert.ok(objectRoute.includes(\"SFI_CASE_PAYLOAD_TRANSPORT_CONFLICT\"), 'case_object_action_must_fail_closed_on_payload_conflict');\nassert.ok(objectRoute.includes(\"Object.prototype.hasOwnProperty.call(body, 'payload')\"), 'case_object_action_must_track_direct_payload_presence');\nassert.ok(objectRoute.includes(\"SFI_CASE_PAYLOAD_OBJECT_REQUIRED\"), 'case_object_action_must_reject_malformed_direct_payload_even_with_payload_json');\nassert.ok(objectRoute.includes('isDeepStrictEqual'), 'case_object_action_must_compare_dual_payloads_structurally');"
+          if text.count(anchor) != 1:
+              raise SystemExit('expected exactly one payload QA anchor')
+          p.write_text(text.replace(anchor, replacement, 1), encoding='utf-8')
+
+      - name: Verify exact fail-closed markers
+        run: |
+          grep -q "Object.prototype.hasOwnProperty.call(body, 'payload')" src/app/api/external/v1/cases/object/route.ts
+          grep -q "SFI_CASE_PAYLOAD_OBJECT_REQUIRED" src/app/api/external/v1/cases/object/route.ts
+          grep -q "case_object_action_must_reject_malformed_direct_payload_even_with_payload_json" scripts/qa-sfi-case-gpt-bridge.ts
+
+      - name: Remove temporary workflow and commit QA guard
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/tmp-case-payload-malformed-qa.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts/qa-sfi-case-gpt-bridge.ts .github/workflows/tmp-case-payload-malformed-qa.yml
+          git commit -m "test(cases): guard malformed dual payload transport"
+          git push origin HEAD:fix/case-object-payload-transport
