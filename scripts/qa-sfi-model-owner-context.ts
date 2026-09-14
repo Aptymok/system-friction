@@ -9,6 +9,7 @@ async function main() {
   const bootstrap = await text('src/app/api/external/v1/bootstrap/route.ts');
   const manifest = await text('src/app/api/external/v1/manifest/route.ts');
   const openapi = await text('scripts/merge-openapi-studio-attachments.mjs');
+  const personCtOpenapi = await text('scripts/merge-openapi-person-ct.mjs');
   const composedOpenapi = await text('scripts/merge-openapi-authenticated-machine.mjs');
   const hostBoundOpenapi = await text('src/app/api/external/openapi/route.ts');
 
@@ -54,7 +55,10 @@ async function main() {
   assert.match(openapi, /binaryContentIncluded:false/);
   assert.match(openapi, /rootEvidenceIncluded:false/);
   assert.match(openapi, /institutionalCanonIncluded:false/);
-  assert.match(openapi, /api\.info\.version = '1\.17\.0'/);
+  assert.match(openapi, /versionBelow\(api\.info\.version, '1\.17\.1'\)/);
+  assert.doesNotMatch(openapi, /api\.info\.version = '1\.17\.0'/);
+  assert.match(personCtOpenapi, /versionBelow\(api\.info\.version, '1\.11\.0'\)/);
+  assert.doesNotMatch(personCtOpenapi, /api\.info\.version = '1\.11\.0';/);
 
   assert.match(composedOpenapi, /gptActionsSchema: '\/openapi\.json'/);
   assert.match(composedOpenapi, /separateActionsProjection: false/);
@@ -71,6 +75,7 @@ async function main() {
     bootstrapDiscoverable: true,
     manifestDiscoverable: true,
     externalGatewayVersion: '1.17.1',
+    downstreamOpenApiVersionRegressionGuard: true,
     contextSources: ['studio_sessions','studio_objects','studio_evidence_traces','studio_archive_events','owner-attributed sfi_amv_memory'],
     binaryContentIncluded: false,
     rootEvidenceIncluded: false,
