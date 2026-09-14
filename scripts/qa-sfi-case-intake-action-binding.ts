@@ -103,6 +103,21 @@ assert(transitionStatuses.includes('REJECTED'), 'REJECTED must remain available 
 assert.equal(transitionStatuses.includes('INTERVENING'), false, 'INTERVENING must remain outside the external transition Action');
 assert.equal(transitionStatuses.includes('AWAITING_RETURN'), false, 'AWAITING_RETURN must remain outside the external transition Action');
 
+const caseHttp = readFileSync('src/lib/sfi/case-platform/http.ts', 'utf8');
+const transitionConflictMatcher = caseHttp.indexOf('/SFI_CASE_TRANSITION_FORBIDDEN/');
+const genericForbiddenMatcher = caseHttp.indexOf('/FORBIDDEN/');
+assert(transitionConflictMatcher >= 0, 'Case HTTP failure mapper must recognize canonical transition conflicts explicitly');
+assert(genericForbiddenMatcher >= 0, 'Case HTTP failure mapper must retain generic forbidden authorization mapping');
+assert(
+  transitionConflictMatcher < genericForbiddenMatcher,
+  'Canonical transition conflicts must be classified before generic FORBIDDEN so state conflicts remain HTTP 409 instead of authorization 403',
+);
+assert.match(
+  caseHttp.slice(transitionConflictMatcher, genericForbiddenMatcher),
+  /\? 409/,
+  'SFI_CASE_TRANSITION_FORBIDDEN must map to HTTP 409 Conflict',
+);
+
 console.log(JSON.stringify({
   ok: true,
   contract: 'SFI-CASE-INTAKE-ACTION-BINDING-1.3',
@@ -120,5 +135,7 @@ console.log(JSON.stringify({
   rejectedTransitionAllowed: true,
   interventionTransitionAllowed: false,
   awaitingReturnTransitionAllowed: false,
+  invalidLifecycleTransitionHttpStatus: 409,
+  authorizationForbiddenHttpStatus: 403,
   actionRevision: 'case-lifecycle-actions-v3',
 }, null, 2));
