@@ -26,12 +26,22 @@ studioPost['x-sfi-operation-scopes'] = { context:'studio:read',list:'studio:read
 studioPost['x-sfi-authority-boundary'] = { ownerBound:true,ownerContextContract:'SFI-STUDIO-OWNER-CONTEXT-1.0',ownerContextBinaryContentIncluded:false,ownerContextRootEvidenceIncluded:false,ownerContextInstitutionalCanonIncluded:false,rawAttachmentPersistence:'PRIVATE_OWNER_SCOPED_STUDIO_ONLY',intakeIdempotency:'owner_id + openaiFileId',materialExecutionWorkspace:'EPHEMERAL',analysisAuthorizationEpistemicClass:'DECLARED',productionAuthorizationEpistemicClass:'DECLARED',rightsTransfer:false,canonicalPromotionAllowed:false,externalPublicationAllowed:false };
 
 api.info ||= {};
-const [major=1,minor=8] = String(api.info.version||'1.8.0').split('.').map(Number);
-if (major < 1 || (major === 1 && minor < 17)) api.info.version = '1.17.0';
+const versionParts = (value) => String(value ?? '0.0.0').split('.').map((part) => Number.parseInt(part, 10) || 0);
+const versionBelow = (current, floor) => {
+  const a = versionParts(current);
+  const b = versionParts(floor);
+  for (let i = 0; i < Math.max(a.length, b.length); i += 1) {
+    const left = a[i] ?? 0;
+    const right = b[i] ?? 0;
+    if (left !== right) return left < right;
+  }
+  return false;
+};
+if (versionBelow(api.info.version, '1.17.1')) api.info.version = '1.17.1';
 api['x-sfi-governance'] ||= {};
 api['x-sfi-governance'].ownerStudioContext = { contract:'SFI-STUDIO-OWNER-CONTEXT-1.0',operation:'context',scope:'studio:read',tenant:'oauth.subjectId owner only',sources:['studio_sessions','studio_objects','studio_evidence_traces','studio_archive_events','owner-attributed sfi_amv_memory'],studioPredicate:'owner_id = oauth.subjectId',amvPredicate:'memory_delta.raw.ownerId = oauth.subjectId',binaryContentIncluded:false,rootEvidenceIncluded:false,institutionalCanonIncluded:false,metadataRestoreDoesNotImplyBinaryMaterialization:true };
 api['x-sfi-governance'].chatgptStudioAttachmentIntake = { contract:'SFI-CHATGPT-STUDIO-ATTACHMENT-1.1',operation:'ingest_analyze',parameter:'openaiFileIdRefs',count:1,modality:'audio',scope:'studio:run',tenant:'oauth.subjectId owner only',idempotency:'public.studio_objects unique(owner_id, metadata.externalIntake.openaiFileId)',acceptedTemporaryHost:'files.oaiusercontent.com',temporaryUrlPersisted:false,explicitAnalysisAuthorizationRequired:true,rightsTransfer:false,canonicalPromotionAllowed:false };
 api['x-sfi-governance'].materialAudioProduction = { contract:'SFI-MATERIAL-AUDIO-RETURN-1.0',operation:'produce',modes:['VOICE_MUSICALIZE','MASTER_ADJUST'],scope:'studio:run',sourceTenant:'oauth.subjectId owner only',outputTenant:'oauth.subjectId owner only',acousticPackage:'SFI-ACOUSTIC-INSTRUMENT-PACKAGE-1.0',canonicalRenderAdapter:'SFI-SFZ-RENDER-1.0',performanceContract:'SFI-AUDIO-PERFORMANCE-1.0',midiIsSoundSource:false,realSamplePackagesRequiredForMusicalize:true,rightsAwareInstrumentRegistry:'public.sfi_instruments',ephemeralWorkspace:true,finalOutputPersistedToStudio:true,rightsTransfer:false,canonicalPromotionAllowed:false };
 
 fs.writeFileSync(openapiPath, `${JSON.stringify(api,null,2)}\n`);
-console.log(JSON.stringify({ok:true,contract:'SFI-STUDIO-AUDIO-ACTIONS-1.1',operations:['context','ingest_analyze','produce'],ownerContextScope:'studio:read',productionScope:'studio:run'},null,2));
+console.log(JSON.stringify({ok:true,contract:'SFI-STUDIO-AUDIO-ACTIONS-1.1',operations:['context','ingest_analyze','produce'],ownerContextScope:'studio:read',productionScope:'studio:run',version:api.info?.version??null},null,2));
