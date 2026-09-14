@@ -10,7 +10,7 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     name: 'SFI External Agent Gateway',
-    version: '1.17.1',
+    version: '1.17.2',
     auth: 'OAuth 2.0 authorization_code (user-bound) or X-SFI-Token/Bearer static token',
     base: '/api/external/v1',
     discovery: {
@@ -43,7 +43,7 @@ export async function GET() {
       { id: 'observe', method: 'POST', path: '/observe', scope: 'observe', tenant: 'institutional', description: 'Read allowlisted proposal/evidence surfaces.' },
       { id: 'case-read', method: 'POST', path: '/cases', scope: 'cases:read', tenant: 'owner/member', body: { operation: 'list | read | reports | intake_plan' }, description: 'Read Case Platform state and unresolved pre-case intake questions available to the OAuth subject.' },
       { id: 'case-write', method: 'POST', path: '/cases', scope: 'cases:write', tenant: 'owner/member', body: { operation: 'create | add_source | add_object | transition' }, description: 'Create/populate bounded Case Platform records. Cannot mint governance authority, intervention, observed RETURN or truth claims.' },
-      { id: 'case-object-dedicated', method: 'POST', path: '/cases/object', scope: 'cases:write', tenant: 'owner/member', operationId: 'addSfiCaseObject', body: { required: ['caseId', 'kind', 'canonicalRefId', 'payload'] }, description: 'Persist one bounded Case object through transport-safe flat canonicalRef fields using the canonical Case writer. Cannot mint accepted evidence, governance, intervention, RETURN or truth claims.' },
+      { id: 'case-object-dedicated', method: 'POST', path: '/cases/object', scope: 'cases:write', tenant: 'owner/member', operationId: 'addSfiCaseObject', body: { required: ['caseId', 'kind', 'canonicalRefId', 'payloadJson'] }, description: 'Persist one bounded Case object through transport-safe flat canonicalRef fields plus JSON-string payload transport using the canonical Case writer. Cannot mint accepted evidence, governance, intervention, RETURN or truth claims.' },
       { id: 'case-read-dedicated', method: 'POST', path: '/cases/read', scope: 'cases:read', tenant: 'owner/member', operationId: 'readSfiCase', body: { required: ['caseId'] }, description: 'Read one owner-visible Case through the canonical Case reader using a transport-safe flat caseId.' },
       { id: 'case-transition-dedicated', method: 'POST', path: '/cases/transition', scope: 'cases:write', tenant: 'owner/member', operationId: 'transitionSfiCase', body: { required: ['caseId', 'status'] }, description: 'Request one bounded Case lifecycle transition through the canonical state machine. INTERVENING and AWAITING_RETURN remain excluded.' },
       { id: 'propose', method: 'POST', path: '/propose', scope: 'propose', tenant: 'institutional', description: 'Submit a governed proposal only when work crosses an institutional or reserved-action decision boundary. Routine case analysis should continue under existing authority instead of creating an approval request.' },

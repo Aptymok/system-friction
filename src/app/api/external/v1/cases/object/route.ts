@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from 'node:util';
 import { NextResponse } from 'next/server';
 import { authorizeExternalRequest, externalAuthError } from '@/lib/sfi/externalAuth';
 import { recordOperationalCaseObject } from '@/lib/sfi/case-platform/repository';
@@ -37,6 +38,35 @@ function text(value: unknown): string {
 function nullableText(value: unknown): string | null {
   const valueText = text(value);
   return valueText || null;
+}
+
+function payloadFromTransport(body: Row): Row {
+  const hasDirectPayload = Object.prototype.hasOwnProperty.call(body, 'payload');
+  if (hasDirectPayload && !isRow(body.payload)) throw new Error('SFI_CASE_PAYLOAD_OBJECT_REQUIRED');
+  const directPayload = hasDirectPayload ? row(body.payload) : null;
+  const hasPayloadJson = body.payloadJson !== undefined && body.payloadJson !== null;
+  let jsonPayload: Row | null = null;
+
+  if (hasPayloadJson) {
+    const rawPayloadJson = text(body.payloadJson);
+    if (!rawPayloadJson) throw new Error('SFI_CASE_PAYLOAD_JSON_REQUIRED');
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(rawPayloadJson);
+    } catch {
+      throw new Error('SFI_CASE_PAYLOAD_JSON_INVALID');
+    }
+    if (!isRow(parsed)) throw new Error('SFI_CASE_PAYLOAD_JSON_OBJECT_REQUIRED');
+    jsonPayload = parsed;
+  }
+
+  if (directPayload && jsonPayload && !isDeepStrictEqual(directPayload, jsonPayload)) {
+    throw new Error('SFI_CASE_PAYLOAD_TRANSPORT_CONFLICT');
+  }
+
+  const payload = jsonPayload ?? directPayload;
+  if (!payload) throw new Error('SFI_CASE_PAYLOAD_REQUIRED');
+  return payload;
 }
 
 function optionalRefsFromIds(value: unknown, field: 'SOURCE_REF_IDS' | 'RECORD_REF_IDS'): SfiCanonicalRef[] {
@@ -87,8 +117,7 @@ export async function POST(request: Request) {
     const canonicalRefId = text(body.canonicalRefId);
     if (!canonicalRefId) throw new Error('SFI_CASE_REF_REQUIRED');
 
-    if (!isRow(body.payload)) throw new Error('SFI_CASE_PAYLOAD_REQUIRED');
-    const payload = row(body.payload);
+    const payload = payloadFromTransport(body);
 
     const sourceRefs = optionalRefsFromIds(body.sourceRefIds, 'SOURCE_REF_IDS');
     const recordRefs = optionalRefsFromIds(body.recordRefIds, 'RECORD_REF_IDS');
@@ -115,6 +144,7 @@ export async function POST(request: Request) {
       object,
       transportDiagnostics: {
         canonicalRefTransport: 'FLAT_REQUIRED',
+        payloadTransport: body.payloadJson !== undefined ? 'JSON_STRING' : 'LEGACY_OBJECT',
         canonicalRefId,
         sourceRefCount: sourceRefs.length,
         recordRefCount: recordRefs.length,

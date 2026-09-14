@@ -10,7 +10,7 @@ if (!canonicalVersion || !/^\d+\.\d+\.\d+$/.test(canonicalVersion)) {
 }
 api.info ??= {};
 api.info.version = canonicalVersion;
-api.info['x-sfi-action-revision'] = 'case-lifecycle-actions-v3';
+api.info['x-sfi-action-revision'] = 'case-lifecycle-actions-v4';
 const oauth = api.components?.securitySchemes?.sfiOAuth?.flows?.authorizationCode;
 if (!oauth?.scopes) throw new Error('SFI_OPENAPI_OAUTH_SCOPES_MISSING');
 api.components ??= {};
@@ -129,7 +129,7 @@ api.components.schemas.CaseResolvedTransportRequest = {
 api.components.schemas.CaseObjectTransportRequest = {
   type: 'object',
   additionalProperties: false,
-  required: ['caseId', 'kind', 'canonicalRefId', 'payload'],
+  required: ['caseId', 'kind', 'canonicalRefId', 'payloadJson'],
   properties: {
     caseId: { type: 'string' },
     kind: {
@@ -141,7 +141,16 @@ api.components.schemas.CaseObjectTransportRequest = {
     canonicalRefHash: { type: ['string', 'null'] },
     sourceRefIds: { type: 'array', items: { type: 'string' } },
     recordRefIds: { type: 'array', items: { type: 'string' } },
-    payload: { type: 'object', additionalProperties: true },
+    payloadJson: {
+      type: 'string',
+      minLength: 2,
+      description: 'Required GPT Action transport field. JSON string that must parse to one object; SFI reconstructs the canonical payload before calling the existing Case writer.',
+    },
+    payload: {
+      type: 'object',
+      additionalProperties: true,
+      description: 'Legacy direct-client compatibility only. When payloadJson is also present both representations must be structurally equivalent.',
+    },
     observedAt: { type: ['string', 'null'] },
   },
 };
@@ -254,7 +263,7 @@ api.paths['/api/external/v1/cases/object'] = {
   post: {
     operationId: 'addSfiCaseObject',
     summary: 'Persist one bounded Case object through required flat transport',
-    description: 'Dedicated GPT Action for Case objects. canonicalRefId is required and reconstructed inside SFI. Cannot create accepted evidence, governance, intervention, RETURN or truth claims.',
+    description: 'Dedicated GPT Action for Case objects. canonicalRefId and payloadJson are transport-safe required fields reconstructed inside SFI. Cannot create accepted evidence, governance, intervention, RETURN or truth claims.',
     security: [{ sfiOAuth: ['cases:write'] }],
     requestBody: {
       required: true,
