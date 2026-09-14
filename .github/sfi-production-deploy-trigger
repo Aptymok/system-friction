@@ -13,6 +13,7 @@ case_object_action=addSfiCaseObject
 case_object_path=/api/external/v1/cases/object
 case_object_required=caseId,kind,canonicalRefId,payloadJson
 case_object_legacy_payload_object=true
+case_object_malformed_direct_payload=reject
 case_object_dual_payload_conflict=fail_closed
 case_read_action=readSfiCase
 case_read_path=/api/external/v1/cases/read
