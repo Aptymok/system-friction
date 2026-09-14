@@ -93,9 +93,11 @@ assert.equal(openapi.paths?.['/api/external/v1/cases/create']?.post?.operationId
 // The lifecycle revision extends the Case Action surface but MUST NOT weaken
 // intake/create requirements. It also makes the exact read/transition intents
 // explicit for CASE-0001 and future governed cases.
-assert.equal(openapi.info?.['x-sfi-action-revision'], 'case-lifecycle-actions-v5');
+assert.equal(openapi.info?.version, '1.17.4');
+assert.equal(openapi.info?.['x-sfi-action-revision'], 'case-lifecycle-actions-v6');
 assert.equal(openapi.paths?.['/api/external/v1/cases/read']?.post?.operationId, 'readSfiCase');
-assert.equal(openapi.paths?.['/api/external/v1/cases/transition']?.post?.operationId, 'transitionSfiCase');
+assert.equal(openapi.paths?.['/api/external/v1/cases/transition']?.post?.operationId, 'transitionSfiCaseV2');
+assert.notEqual(openapi.paths?.['/api/external/v1/cases/transition']?.post?.operationId, 'transitionSfiCase');
 assert.deepEqual(openapi.components?.schemas?.CaseReadRequest?.required, ['caseId']);
 assert.deepEqual(openapi.components?.schemas?.CaseTransitionRequest?.required, ['caseId', 'status']);
 const transitionStatuses = openapi.components?.schemas?.CaseTransitionRequest?.properties?.status?.enum ?? [];
@@ -120,7 +122,7 @@ assert.match(
 
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-CASE-INTAKE-ACTION-BINDING-1.3',
+  contract: 'SFI-CASE-INTAKE-ACTION-BINDING-1.4',
   nestedActionFieldsAccepted: true,
   flatTransportAliasesAccepted: true,
   flatTransportReconstructsCanonicalNestedContract: true,
@@ -131,11 +133,11 @@ console.log(JSON.stringify({
   dedicatedIntakeOperationId: 'planSfiCaseIntake',
   dedicatedCreateOperationId: 'createSfiCaseFromResolvedIntake',
   dedicatedReadOperationId: 'readSfiCase',
-  dedicatedTransitionOperationId: 'transitionSfiCase',
+  dedicatedTransitionOperationId: 'transitionSfiCaseV2',
   rejectedTransitionAllowed: true,
   interventionTransitionAllowed: false,
   awaitingReturnTransitionAllowed: false,
   invalidLifecycleTransitionHttpStatus: 409,
   authorizationForbiddenHttpStatus: 403,
-  actionRevision: 'case-lifecycle-actions-v5',
+  actionRevision: 'case-lifecycle-actions-v6',
 }, null, 2));
