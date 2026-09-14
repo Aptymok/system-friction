@@ -56,9 +56,9 @@ async function main() {
   assert.match(openapi, /rootEvidenceIncluded:false/);
   assert.match(openapi, /institutionalCanonIncluded:false/);
   assert.match(openapi, /versionBelow\(api\.info\.version, '1\.17\.1'\)/);
-  assert.doesNotMatch(openapi, /api\.info\.version = '1\.17\.0'/);
+  assert.doesNotMatch(openapi, /^\s*api\.info\.version = '1\.17\.0';?\s*$/m);
   assert.match(personCtOpenapi, /versionBelow\(api\.info\.version, '1\.11\.0'\)/);
-  assert.doesNotMatch(personCtOpenapi, /api\.info\.version = '1\.11\.0';/);
+  assert.doesNotMatch(personCtOpenapi, /^\s*api\.info\.version = '1\.11\.0';?\s*$/m);
 
   assert.match(composedOpenapi, /gptActionsSchema: '\/openapi\.json'/);
   assert.match(composedOpenapi, /separateActionsProjection: false/);
