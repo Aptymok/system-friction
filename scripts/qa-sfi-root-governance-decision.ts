@@ -5,6 +5,7 @@ const oauthConfig = readFileSync('src/lib/sfi/oauthConfig.ts', 'utf8');
 const authorize = readFileSync('src/app/api/oauth/authorize/route.ts', 'utf8');
 const externalAuth = readFileSync('src/lib/sfi/externalAuth.ts', 'utf8');
 const decisionRoute = readFileSync('src/app/api/external/v1/governance/proposals/[id]/decision/route.ts', 'utf8');
+const proposeRoute = readFileSync('src/app/api/external/v1/propose/route.ts', 'utf8');
 
 assert.match(oauthConfig, /SFI_ROOT_SCOPES[\s\S]*'governance:decide'/, 'root scope registry must expose governance:decide');
 const personalBlock = oauthConfig.match(/export const SFI_PERSONAL_SCOPES = \[([\s\S]*?)\] as const;/)?.[1] ?? '';
@@ -18,6 +19,10 @@ assert.match(authorize, /const tenantId = personalPrincipal \? `user:\$\{context
 assert.match(externalAuth, /credential\.authMethod === 'oauth'/, 'external auth must preserve OAuth identity metadata');
 assert.match(externalAuth, /scope\.startsWith\('cases:'\)/, 'personal scope routing must remain explicitly bounded');
 assert.equal(externalAuth.includes("scope === 'governance:decide'"), false, 'personal route allowlist must not open governance:decide');
+
+assert.match(proposeRoute, /ROOT_DECISION_CLASS:/, 'legacy propose transport must support an explicit ROOT decision-class marker in the existing action field');
+assert.match(proposeRoute, /normalizeDecisionClass\(body\.rootDecisionClass \?\? body\.decisionClass\)[\s\S]*\?\? decisionClassFromAction\(body\.action\)/, 'propose route must preserve explicit structured decision class first and fall back only to the transport marker');
+assert.match(proposeRoute, /humanApprovalRequired = Boolean\(rootDecisionClass\)/, 'transport marker may classify a proposal for ROOT review but must not approve it');
 
 assert.match(decisionRoute, /const REQUIRED_SCOPE = 'governance:decide'/, 'decision endpoint must require governance:decide');
 assert.match(decisionRoute, /credential\.authMethod !== 'oauth'/, 'static tokens must be rejected for sovereign decision');
@@ -40,6 +45,7 @@ console.log(JSON.stringify({
     'scope possession is not sovereign authority',
     'static tokens cannot decide',
     'live ROOT profile is revalidated',
+    'proposal transport can preserve explicit ROOT decision class without granting approval',
     'decision uses canonical lifecycle and governed execution',
   ],
 }, null, 2));
