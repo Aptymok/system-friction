@@ -415,8 +415,7 @@ api['x-sfi-governance'].caseWorkspaceBoundary =
 api['x-sfi-governance'].cognitiveRuntimeBoundary =
   'The cognitive runtime API reuses canonical Execution Contracts and the existing execution event writer. observe is read-only; execute requires user-bound institutional OAuth. Context is not evidence, inference is not observation, model capability does not expand authority, and execution cannot imply approval, RETURN, learning or canon.';
 
-writeFileSync(path, `${JSON.stringify(api, null, 2)}\
-`);
+writeFileSync(path, `${JSON.stringify(api, null, 2)}\n`);
 console.log(JSON.stringify({
   ok: true,
   openapi: path,
