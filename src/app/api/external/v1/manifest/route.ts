@@ -10,7 +10,7 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     name: 'SFI External Agent Gateway',
-    version: '1.18.0',
+    version: '1.17.0',
     auth: 'OAuth 2.0 authorization_code (user-bound) or X-SFI-Token/Bearer static token',
     base: '/api/external/v1',
     discovery: {
