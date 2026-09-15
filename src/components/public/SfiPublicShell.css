@@ -1,0 +1,26 @@
+:root{
+  --sfi-ink:#050504;
+  --sfi-panel:#0a0a08;
+  --sfi-ivory:#f0eadf;
+  --sfi-muted:#a79d8c;
+  --sfi-gold:#d6aa57;
+  --sfi-gold-soft:rgba(214,170,87,.28);
+  --sfi-rule:1px solid var(--sfi-gold-soft);
+  --sfi-page-gutter:clamp(18px,3vw,44px);
+  --sfi-section-gap:clamp(30px,5vw,72px);
+  --sfi-grid-gap:clamp(10px,1.2vw,18px);
+}
+
+.sfiPublicShell{min-height:100vh;background:var(--sfi-ink);color:var(--sfi-ivory)}
+.sfiPublicHeader{position:sticky;top:0;z-index:80;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:24px;padding:14px var(--sfi-page-gutter);border-bottom:var(--sfi-rule);background:rgba(5,5,4,.94);backdrop-filter:blur(18px)}
+.sfiPublicBrand{display:flex;align-items:center;gap:10px;min-width:max-content}
+.sfiPublicBrand strong{font:700 18px/1 ui-sans-serif,system-ui;color:var(--sfi-gold)}
+.sfiPublicBrand small{font:10px/1 ui-monospace,monospace;letter-spacing:.24em;color:#d8d1c5}
+.sfiPublicMark{display:grid;place-items:center;width:24px;height:24px;border:1px solid var(--sfi-gold);transform:rotate(45deg);color:var(--sfi-gold)}
+.sfiPublicHeader nav{display:flex;justify-content:center;gap:clamp(14px,2vw,30px)}
+.sfiPublicHeader nav a,.sfiPublicSignIn{font:10px/1 ui-monospace,monospace;letter-spacing:.16em;color:#cfc7ba;padding:8px 0;border-bottom:1px solid transparent}
+.sfiPublicHeader nav a[data-active='true'],.sfiPublicHeader nav a:hover,.sfiPublicSignIn:hover{color:var(--sfi-gold);border-bottom-color:var(--sfi-gold)}
+.sfiPublicSignIn{justify-self:end}
+.sfiPublicFooter{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:20px;margin-top:var(--sfi-section-gap);padding:22px var(--sfi-page-gutter);border-top:var(--sfi-rule);color:#bdb4a5}
+.sfiPublicFooter>div{display:flex;gap:12px;align-items:center}.sfiPublicFooter strong{color:var(--sfi-gold)}.sfiPublicFooter span,.sfiPublicFooter a{font:9px ui-monospace,monospace;letter-spacing:.17em}.sfiPublicFooter nav{display:flex;justify-content:center;gap:20px}
+@media(max-width:920px){.sfiPublicHeader{grid-template-columns:1fr auto}.sfiPublicHeader nav{grid-column:1/-1;justify-content:flex-start;overflow:auto;padding-top:4px}.sfiPublicBrand small{display:none}.sfiPublicFooter{grid-template-columns:1fr}.sfiPublicFooter nav{justify-content:flex-start;flex-wrap:wrap}}
