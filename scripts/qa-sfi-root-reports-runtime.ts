@@ -50,7 +50,7 @@ assert.ok(scenes.includes("root:{key:'root'") && scenes.includes("governance:{ke
 assert.ok(operatingUi.includes('SfiGovernanceWorkspace'), 'canonical operating workspace must delegate governance');
 assert.ok(governanceUi.includes('AGENTES') && governanceUi.includes('/api/root/cognitive-runtime/records?agentId='), 'governance agent runtime dossier missing');
 assert.ok(governanceUi.includes("jsonFetch('/api/root/interactive?surface=governance')") && governanceUi.includes('setProposals(arr(operationalNext.items))'), 'governed proposal feed must reuse interactive operational-next projection');
-assert.ok(interactiveApi.includes("proposalQueueSource: 'operationalNext.items'") && interactiveApi.includes('separateProposalListRead: false'), 'interactive governance must not fetch a second proposal queue');
+assert.ok(interactiveApi.includes("proposalQueueSource: 'operationalNext.items(rootActionRequired=true)'") && interactiveApi.includes('separateProposalListRead: false'), 'interactive governance must use one sovereign-filtered proposal queue without a second proposal read');
 assert.ok(shellUi.includes('GOVERNANCE QUEUE'), 'governance queue observability missing');
 assert.ok(governanceUi.includes('ACEPTAR') && governanceUi.includes('DENEGAR'), 'plain-language decision controls missing');
 assert.ok(governanceUi.includes('PEDIR EVIDENCIA'), 'reviewers must be able to defer a decision for evidence');
