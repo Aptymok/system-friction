@@ -81,7 +81,11 @@ export async function GET(request: Request) {
       readInteractiveCaseIndex(gate.ctx.user.id),
       readInteractiveOperationalNext(),
     ]);
-    const operationalNext = projectActionableHumanQueue(rawOperationalNext as Record<string, any>);
+    const projectedOperationalNext = projectActionableHumanQueue(rawOperationalNext as Record<string, any>);
+    const operationalNext = {
+      ...projectedOperationalNext,
+      items: projectedOperationalNext.items.filter((item: Record<string, any>) => item.rootActionRequired === true && item.actionability?.actionable === true),
+    };
     return NextResponse.json({
       ok: true,
       surface,
@@ -95,7 +99,7 @@ export async function GET(request: Request) {
       readPlan: {
         authGates: 1,
         duplicateBaseHttpReads: 0,
-        proposalQueueSource: 'operationalNext.items',
+        proposalQueueSource: 'operationalNext.items(rootActionRequired=true)',
         separateProposalListRead: false,
         fullRootConsoleRead: false,
         liveCognitiveEventRead: false,
