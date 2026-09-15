@@ -40,6 +40,8 @@ assert.equal(interactive.includes('readInteractiveReportApprovals'), false, 'ROO
 assert.ok(interactive.includes('reportApprovalReads: 0') && interactive.includes('sovereignReports: false'), 'ROOT read plan must declare reports non-sovereign');
 assert.ok(interactive.includes('projectActionableHumanQueue'), 'interactive surfaces must consume the sovereign projection');
 assert.equal(interactive.includes("service.from('action_proposals')"), false, 'interactive route must not duplicate proposal reads');
+assert.ok(interactive.includes('item.rootActionRequired === true && item.actionability?.actionable === true'), 'governance surface must expose decision controls only for currently actionable ROOT decisions');
+assert.ok(interactive.includes("proposalQueueSource: 'operationalNext.items(rootActionRequired=true)'"), 'governance read plan must declare sovereign-only decision projection');
 
 assert.ok(dossier.includes("contract: 'SFI-SOVEREIGN-DECISION-DOSSIER-2.0'"), 'plain-language sovereign dossier contract missing');
 for (const key of ['who', 'whatHappened', 'whyItMatters', 'proposal', 'sfiGain', 'evidence', 'ifAccepted', 'ifDenied', 'whyRoot']) {
@@ -99,5 +101,6 @@ console.log(JSON.stringify({
     'PLAIN_LANGUAGE_PRECEDES_TECHNICAL_TRACE',
     'MISSING_PROVENANCE_IS_NOT_FABRICATED',
     'ZERO_DUPLICATE_PROPOSAL_FEEDS',
+    'GOVERNANCE_CONTROLS_REQUIRE_ACTIONABLE_ROOT_DECISION',
   ],
 }, null, 2));
