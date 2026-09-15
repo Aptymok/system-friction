@@ -13,6 +13,8 @@ export type SfiEditorialPublicationRendition = {
   filename: string;
   byteLength: number;
   sha256: string;
+  pageCount: number;
+  provenance: 'USER_SUPPLIED_VERIFIED' | 'SFI_GENERATED_VERIFIED';
   publicUrl: string | null;
   state: 'IDENTIFIED' | 'PUBLIC';
 };
@@ -63,6 +65,8 @@ const SFI_NOTAS_TEMPORALES_V1_RENDITIONS: readonly SfiEditorialPublicationRendit
     filename: 'SFI_Notas_Temporales_Mexico_Septiembre_2026_FINAL.pdf',
     byteLength: 23085591,
     sha256: 'bbc7c9df27b6f7295f9919a707f5adab3f25ddd44fee194812c8d38259135103',
+    pageCount: 10,
+    provenance: 'USER_SUPPLIED_VERIFIED',
     publicUrl: null,
     state: 'IDENTIFIED',
   },

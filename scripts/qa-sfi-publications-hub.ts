@@ -3,10 +3,12 @@ import { existsSync, readFileSync } from 'node:fs';
 
 const read = (path: string) => readFileSync(path, 'utf8');
 const page = read('src/app/publications/page.tsx');
+const publicationPage = read('src/app/publications/[slug]/page.tsx');
 const css = read('src/app/publications/publications.css');
 const families = read('src/lib/publications/editorialFamilies.ts');
 const sitemap = read('src/app/sitemap.ts');
 const editorial = read('src/lib/publications/editorialContent.ts');
+const september = read('src/lib/publications/notasTemporalesSeptember2026.ts');
 
 for (const asset of [
   'public/images/editorial/notas-temporales-septiembre-2026.webp',
@@ -20,11 +22,34 @@ for (const asset of [
 ]) assert.ok(existsSync(asset), `missing_editorial_asset:${asset}`);
 
 assert.ok(page.includes('SFI_NOTAS_TEMPORALES_V1'), 'monthly_temporal_issue_not_projected');
+assert.ok(page.includes('SFI_NOTAS_TEMPORALES_SEPTEMBER_2026_CONTENT'), 'september_temporal_content_not_projected');
+assert.ok(page.includes("monthly.renditions.find((rendition) => rendition.kind === 'PDF')"), 'hub_must_read_pdf_from_canonical_publication');
+assert.ok(publicationPage.includes("publication?.renditions.find((rendition) => rendition.kind === 'PDF')"), 'publication_page_must_read_pdf_from_canonical_publication');
+assert.ok(publicationPage.includes('PDF DE LA EDICIÓN · SOURCE OF RECORD'), 'temporal_source_of_record_panel_missing');
+assert.ok(publicationPage.includes('{pdf.pageCount} páginas'), 'publication_page_must_render_page_count_from_canonical_rendition');
+assert.ok(publicationPage.includes('{pdf.provenance}'), 'publication_page_must_render_provenance_from_canonical_rendition');
 assert.ok(page.includes('SFI_EDITORIAL_FAMILIES'), 'editorial_families_not_projected');
 assert.ok(page.includes('<picture>') && page.includes('SFI_PUBLICATIONS_BANNER.mobile'), 'responsive_editorial_banner_missing');
 assert.ok(page.includes('GENERADA (IA)') || families.includes('GENERADA (IA)'), 'generated_image_provenance_missing');
 assert.equal(page.includes('Notas de Tiempo'), false, 'monthly_temporal_notes_must_not_be_reclassified_as_notas_de_tiempo');
 assert.ok(editorial.includes("editorialKind: 'TEMPORAL_ISSUE'") && editorial.includes("collection: 'Notas Temporales'"), 'monthly_notes_canonical_boundary_missing');
+
+// The canonical publication rendition owns all source identity and source-of-record metadata.
+assert.ok(editorial.includes("filename: 'SFI_Notas_Temporales_Mexico_Septiembre_2026_FINAL.pdf'"), 'september_source_filename_mismatch');
+assert.ok(editorial.includes('byteLength: 23085591'), 'september_source_size_mismatch');
+assert.ok(editorial.includes("sha256: 'bbc7c9df27b6f7295f9919a707f5adab3f25ddd44fee194812c8d38259135103'"), 'september_source_sha256_mismatch');
+assert.ok(editorial.includes('pageCount: 10'), 'september_source_page_count_mismatch');
+assert.ok(editorial.includes("provenance: 'USER_SUPPLIED_VERIFIED'"), 'september_source_provenance_mismatch');
+assert.ok(editorial.includes("publicUrl: null") && editorial.includes("state: 'IDENTIFIED'"), 'public_binary_must_fail_closed_until_hosted');
+assert.equal(september.includes('canonicalId:'), false, 'parallel_publication_identity_forbidden');
+assert.equal(september.includes('slug:'), false, 'parallel_publication_slug_forbidden');
+assert.equal(september.includes('sourceOfRecord:'), false, 'parallel_source_of_record_forbidden');
+assert.equal(september.includes("provenance: 'USER_SUPPLIED_VERIFIED'"), false, 'parallel_source_provenance_forbidden');
+assert.ok(september.includes('SFI-NOTAS-TEMPORALES-SEPTEMBER-CONTENT-1.0'), 'september_content_contract_missing');
+for (const heading of ['Nota Editorial', 'Cómo leer estas notas', 'Nota del Fundador', 'Estado del entorno', 'Jornada laboral 2027', 'Vinculación de líneas móviles', 'Trazabilidad financiera', 'Emisión de una frecuencia 01', 'Observación derivada 01']) {
+  assert.ok(september.includes(heading), `september_issue_content_missing:${heading}`);
+}
+assert.ok(september.includes('host público controlado'), 'public_binary_transport_boundary_missing');
 
 for (const family of ['SIGNAL', 'CASE', 'FIELD', 'RETURN', 'LAB']) assert.ok(families.includes(`key: '${family}'`), `missing_editorial_family:${family}`);
 assert.equal(families.includes('SFI_CANONICAL_OBJECT_REGISTRY'), false, 'presentation_family_must_not_mutate_canonical_registry');
@@ -39,8 +64,17 @@ assert.ok(sitemap.includes("`${BASE}/publications`"), 'publications_hub_missing_
 
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-PUBLICATIONS-HUB-IDENTITY-1.0',
+  contract: 'SFI-PUBLICATIONS-HUB-IDENTITY-1.2',
   monthly: 'Notas Temporales remains one monthly institutional issue series',
+  septemberSourceOfRecord: {
+    owner: 'SFI_NOTAS_TEMPORALES_V1.renditions',
+    filename: 'SFI_Notas_Temporales_Mexico_Septiembre_2026_FINAL.pdf',
+    bytes: 23085591,
+    pages: 10,
+    provenance: 'USER_SUPPLIED_VERIFIED',
+    sha256: 'bbc7c9df27b6f7295f9919a707f5adab3f25ddd44fee194812c8d38259135103',
+    publicBinary: false,
+  },
   families: ['Notas de Señal', 'Notas de Caso', 'Notas de Campo', 'Notas de Retorno', 'Notas de Laboratorio'],
   identityManual: 'SFI-ID-003 / MASTER EDITION V4.0',
   generatedImageProvenance: true,
