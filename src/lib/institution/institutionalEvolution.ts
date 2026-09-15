@@ -1,18 +1,21 @@
 import 'server-only';
 
 import { readContinuityDashboard } from '@/lib/continuity/runtime';
-import { createActionProposal, latestActionProposals, recordValue, sha256, stringValue } from '@/lib/operational/common';
+import { createActionProposal, recordValue, sha256, stringValue } from '@/lib/operational/common';
 import { getPredictiveEngineHealth } from '@/lib/predictive-engine/service';
 import { readObservedSfiCognitiveRuntime } from '@/lib/sfi/cognitive-runtime/observedRuntime';
 import { buildWorldVectorOperationalState } from '@/lib/world-vector/operationalState';
+import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import type { refreshInstitutionalAttractorTrajectory } from './institutionalAttractor';
 
-export const SFI_INSTITUTIONAL_EVOLUTION_CONTRACT = 'SFI-INSTITUTIONAL-EVOLUTION-1.0' as const;
+export const SFI_INSTITUTIONAL_EVOLUTION_CONTRACT = 'SFI-INSTITUTIONAL-EVOLUTION-1.1' as const;
 export const SFI_INSTITUTIONAL_MUTATION_PROPOSAL_TYPE = 'institutional_mutation_candidate' as const;
 
 const SYSTEM_ACTOR = 'SYSTEM_FRICTION_INSTITUTE';
 const MAX_NEW_PROPOSALS_PER_CYCLE = 4;
-const OPEN_PROPOSAL_STATUSES = new Set(['draft', 'proposed', 'waiting_evidence', 'design_approved', 'queued', 'conflicted', 'frozen']);
+const CANDIDATE_FINGERPRINT_CONTRACT = 'SFI-INSTITUTIONAL-EVOLUTION-CANDIDATE-1.0';
+const DEDUP_PROPOSAL_STATUSES = new Set(['draft', 'proposed', 'waiting_evidence', 'design_approved', 'queued', 'conflicted', 'frozen']);
+const REENTRY_PROPOSAL_STATUSES = new Set(['draft', 'proposed', 'waiting_evidence', 'design_approved', 'queued', 'conflicted']);
 
 type AttractorRefresh = Awaited<ReturnType<typeof refreshInstitutionalAttractorTrajectory>>;
 type EvolutionKind =
@@ -41,6 +44,22 @@ type PersistedProposal = {
   status: string;
 };
 
+export type OpenInstitutionalEvolutionWork = {
+  proposalId: string;
+  title: string;
+  objective: string;
+  kind: EvolutionKind;
+  target: string;
+  priority: number;
+  ownerResolution: EvolutionCandidate['ownerResolution'];
+  status: string;
+  reasons: string[];
+  evidenceRefs: string[];
+  executionAuthorized: false;
+  externalEffectAllowed: false;
+  founderInterruption: 'ONLY_IF_SOVEREIGN_BOUNDARY';
+};
+
 function rows(value: unknown): Array<Record<string, unknown>> {
   return Array.isArray(value)
     ? value.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object' && !Array.isArray(item))
@@ -51,14 +70,44 @@ function unique(values: Array<string | null | undefined>) {
   return [...new Set(values.filter((value): value is string => Boolean(value && value.trim())))];
 }
 
-function proposalFingerprint(candidate: EvolutionCandidate) {
-  return sha256({
-    contract: SFI_INSTITUTIONAL_EVOLUTION_CONTRACT,
+function strings(value: unknown) {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+    : [];
+}
+
+function fingerprintPayload(candidate: EvolutionCandidate, contract: string) {
+  return {
+    contract,
     kind: candidate.kind,
     target: candidate.target,
     reasons: [...candidate.reasons].sort(),
     ownerResolution: candidate.ownerResolution,
-  });
+  };
+}
+
+function proposalFingerprint(candidate: EvolutionCandidate) {
+  return sha256(fingerprintPayload(candidate, CANDIDATE_FINGERPRINT_CONTRACT));
+}
+
+function legacyProposalFingerprints(candidate: EvolutionCandidate) {
+  return [
+    sha256(fingerprintPayload(candidate, 'SFI-INSTITUTIONAL-EVOLUTION-1.0')),
+    sha256(fingerprintPayload(candidate, 'SFI-INSTITUTIONAL-EVOLUTION-1.1')),
+  ];
+}
+
+async function queryEvolutionProposals(limit: number, statuses: ReadonlySet<string>, sourceCutoff?: string) {
+  const service = createServiceSupabaseClient();
+  let query = service
+    .from('action_proposals')
+    .select('*')
+    .eq('expected_field_delta->>proposalType', SFI_INSTITUTIONAL_MUTATION_PROPOSAL_TYPE)
+    .in('status', [...statuses])
+    .order('created_at', { ascending: false });
+  if (sourceCutoff) query = query.lte('created_at', sourceCutoff);
+  const { data, error } = await query.limit(limit);
+  return { data: data ?? [], error: error?.message ?? null };
 }
 
 function existingEvolutionProposals(value: unknown[]): PersistedProposal[] {
@@ -69,9 +118,60 @@ function existingEvolutionProposals(value: unknown[]): PersistedProposal[] {
     const fingerprint = stringValue(payload.fingerprint);
     const id = stringValue(row.id);
     const status = stringValue(row.status);
-    if (!fingerprint || !id || !status || !OPEN_PROPOSAL_STATUSES.has(status)) return [];
+    if (!fingerprint || !id || !status || !DEDUP_PROPOSAL_STATUSES.has(status)) return [];
     return [{ id, fingerprint, status }];
   });
+}
+
+function openEvolutionWorkFromRows(value: unknown, limit: number): OpenInstitutionalEvolutionWork[] {
+  return rows(value).flatMap((row) => {
+    const id = stringValue(row.id);
+    const title = stringValue(row.title);
+    const status = stringValue(row.status);
+    const expected = recordValue(row.expected_field_delta);
+    const payload = recordValue(expected.payload);
+    const contract = stringValue(payload.contract);
+    const kind = stringValue(payload.kind) as EvolutionKind | null;
+    const target = stringValue(payload.target);
+    const objective = stringValue(expected.objective) ?? stringValue(row.description) ?? title;
+    const ownerResolution = stringValue(payload.ownerResolution) as EvolutionCandidate['ownerResolution'] | null;
+    const priority = Number(payload.priority);
+    if (!id || !title || !status || !kind || !target || !ownerResolution) return [];
+    if (contract !== SFI_INSTITUTIONAL_EVOLUTION_CONTRACT && contract !== 'SFI-INSTITUTIONAL-EVOLUTION-1.0') return [];
+    if (!REENTRY_PROPOSAL_STATUSES.has(status)) return [];
+    if (!['REPAIR_EXISTING_OWNER', 'ABSORB_IN_EXISTING_OWNER', 'NO_EXISTING_OWNER'].includes(ownerResolution)) return [];
+    return [{
+      proposalId: id,
+      title,
+      objective: objective ?? title,
+      kind,
+      target,
+      priority: Number.isFinite(priority) ? Math.max(0, Math.min(1, priority)) : 0.5,
+      ownerResolution,
+      status,
+      reasons: strings(payload.reasons),
+      evidenceRefs: strings(payload.evidenceRefs),
+      executionAuthorized: false as const,
+      externalEffectAllowed: false as const,
+      founderInterruption: 'ONLY_IF_SOVEREIGN_BOUNDARY' as const,
+    }];
+  }).sort((a, b) => b.priority - a.priority || a.proposalId.localeCompare(b.proposalId)).slice(0, limit);
+}
+
+export async function readOpenInstitutionalEvolutionWork(limit = 12, sourceCutoff = new Date().toISOString()) {
+  const boundedLimit = Math.max(1, Math.min(24, limit));
+  const current = await queryEvolutionProposals(Math.max(50, boundedLimit * 4), REENTRY_PROPOSAL_STATUSES, sourceCutoff);
+  const work = openEvolutionWorkFromRows(current.data, boundedLimit);
+  return {
+    ok: !current.error,
+    contract: SFI_INSTITUTIONAL_EVOLUTION_CONTRACT,
+    authority: 'PROPOSED_NON_EXECUTING' as const,
+    sourceCutoff,
+    work,
+    proposalRefs: work.map((item) => item.proposalId),
+    warning: current.error ?? null,
+    boundary: 'Eligible non-frozen evolution work recorded at or before the declared source cutoff may be routed into the next institutional cycle for owner reconciliation. Routing does not prove per-proposal processing and does not approve execution, canon change or external effects.',
+  };
 }
 
 function runtimeCandidates(runtime: Awaited<ReturnType<typeof readObservedSfiCognitiveRuntime>>): EvolutionCandidate[] {
@@ -200,7 +300,7 @@ function worldContext(world: Awaited<ReturnType<typeof buildWorldVectorOperation
 }
 
 async function persistCandidates(candidates: EvolutionCandidate[], context: Record<string, unknown>) {
-  const current = await latestActionProposals([SFI_INSTITUTIONAL_MUTATION_PROPOSAL_TYPE], 150);
+  const current = await queryEvolutionProposals(150, DEDUP_PROPOSAL_STATUSES);
   const open = existingEvolutionProposals(current.data as unknown[]);
   const openByFingerprint = new Map(open.map((item) => [item.fingerprint, item]));
   const ordered = [...candidates].sort((a, b) => b.priority - a.priority || a.title.localeCompare(b.title));
@@ -209,9 +309,10 @@ async function persistCandidates(candidates: EvolutionCandidate[], context: Reco
 
   for (const candidate of ordered) {
     const fingerprint = proposalFingerprint(candidate);
-    const existing = openByFingerprint.get(fingerprint);
+    const candidateFingerprints = [fingerprint, ...legacyProposalFingerprints(candidate)];
+    const existing = candidateFingerprints.map((item) => openByFingerprint.get(item)).find(Boolean);
     if (existing) {
-      results.push({ proposalId: existing.id, fingerprint, created: false, kind: candidate.kind, target: candidate.target });
+      results.push({ proposalId: existing.id, fingerprint: existing.fingerprint, created: false, kind: candidate.kind, target: candidate.target });
       continue;
     }
     if (newCount >= MAX_NEW_PROPOSALS_PER_CYCLE) continue;
@@ -226,6 +327,7 @@ async function persistCandidates(candidates: EvolutionCandidate[], context: Reco
       payload: {
         contract: SFI_INSTITUTIONAL_EVOLUTION_CONTRACT,
         fingerprint,
+        candidateFingerprintContract: CANDIDATE_FINGERPRINT_CONTRACT,
         kind: candidate.kind,
         target: candidate.target,
         priority: candidate.priority,
@@ -254,6 +356,7 @@ async function persistCandidates(candidates: EvolutionCandidate[], context: Reco
 export async function runInstitutionalEvolutionObservation(input: {
   attractorRefresh: AttractorRefresh;
   observedAt?: string;
+  declaredTarget?: unknown;
 }) {
   const observedAt = input.observedAt ?? new Date().toISOString();
   const [runtime, continuity, predictive, world] = await Promise.all([
@@ -275,10 +378,12 @@ export async function runInstitutionalEvolutionObservation(input: {
     world: worldContext(world),
     attractor: {
       key: input.attractorRefresh.attractorKey,
+      declaredTarget: input.declaredTarget ?? null,
       evidenceCoverage: input.attractorRefresh.evidenceCoverage,
       supportedDimensions: input.attractorRefresh.supportedDimensions,
       contradictedDimensions: input.attractorRefresh.contradictedDimensions,
       missingDimensions: input.attractorRefresh.missingDimensions,
+      targetRule: 'Declared convergence target is strategic context, not evidence of attainment. Evidence coverage remains distinct from geographic or institutional readiness.',
     },
     runtime: {
       status: runtime.status,
@@ -320,7 +425,7 @@ export async function runInstitutionalEvolutionObservation(input: {
     founderDependency: {
       pendingSovereignDecisions: founderRequiredOnly,
       routineWorkRequiresFounder: false,
-      rule: 'Routine observation, evidence acquisition, calibration and proposal formation continue autonomously. Founder interruption is reserved for explicit sovereign boundaries.',
+      rule: 'Routine observation, evidence acquisition, calibration, owner reconciliation and proposal formation continue autonomously. Founder interruption is reserved for explicit sovereign boundaries.',
     },
     warnings: unique([
       ...runtime.eventGraph.warnings,
@@ -329,6 +434,6 @@ export async function runInstitutionalEvolutionObservation(input: {
       ...world.agent_audit.warnings,
       persistence.lookupError,
     ]),
-    boundary: 'Evolution proposals are DERIVED work objects. They do not execute themselves, change canon, publish, spend, grant access or create external effects.',
+    boundary: 'Evolution proposals are DERIVED work objects. Eligible non-frozen proposals may be routed into the next cycle as bounded execution requests for owner reconciliation; routing does not establish per-proposal processing and they do not execute themselves, change canon, publish, spend, grant access or create external effects.',
   };
 }
