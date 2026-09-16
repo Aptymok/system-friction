@@ -152,7 +152,7 @@ assert.match(scenes, /LEGACY_INTERNAL_SCENES=.*'models','genai'/, 'MODELS and GE
 assert.match(rootWorkboard, /getLlmProviderStatus/, 'Converged ROOT workboard must preserve model/provider observability.');
 assert.match(rootWorkboard, /providerHealthBoundary/, 'Converged ROOT workboard must preserve the configured-vs-healthy model boundary.');
 assert.ok(operatingUi.includes("surface==='twin'") && operatingUi.includes('CognitiveSpineAnatomy'), 'Twin proposals/state must remain observable through the canonical Twin operating scene.');
-assert.ok(liveUi.includes("href:'/root'") && liveUi.includes("href:'/governance'"), 'Canonical shell must route sovereign decisions to ROOT and runtime operation to Governance.');
+assert.ok(liveUi.includes("href:'/root'") && liveUi.includes('href="/governance"'), 'Canonical shell must route sovereign decisions to ROOT and runtime operation to Governance.');
 assert.ok(rootUi.includes('ACEPTAR') && rootUi.includes('DENEGAR') && rootUi.includes('SOLICITAR EVIDENCIA'), 'ROOT must retain sovereign decision and non-terminal evidence-defer controls.');
 assert.doesNotMatch(governanceUi, /ACEPTAR|DENEGAR|PEDIR EVIDENCIA|SOLICITAR EVIDENCIA/, 'Governance runtime must not duplicate sovereign decision controls.');
 
