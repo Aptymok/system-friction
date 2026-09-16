@@ -18,6 +18,13 @@ function Metric({ label, value, detail }: { label: string; value: string | numbe
   return <article className="discoveryMetric"><span>{label}</span><strong>{value === null ? 'MISSING' : value}</strong>{detail ? <small>{detail}</small> : null}</article>;
 }
 
+function proposalKey(proposal: Record<string, unknown>) {
+  const delta = proposal.expected_field_delta && typeof proposal.expected_field_delta === 'object' && !Array.isArray(proposal.expected_field_delta)
+    ? proposal.expected_field_delta as Record<string, unknown>
+    : {};
+  return typeof delta.recommendationKey === 'string' ? delta.recommendationKey : 'UNKEYED_PROPOSAL';
+}
+
 export default async function RootDiscoveryPage() {
   await requireRootObserverPage('/root/discovery');
   const [data, institutional] = await Promise.all([readDiscoveryControlPlane(), readInstitutionalDiscoveryMesh()]);
@@ -25,6 +32,7 @@ export default async function RootDiscoveryPage() {
   const convergence = mesh.convergence;
   const published = data.exposure.targets.filter((target) => target.state === 'OBSERVED_PUBLISHED');
   const externalActionTargets = data.exposure.targets.filter((target) => target.state === 'GOVERNED_EXTERNAL_ACTION_REQUIRED');
+  const latestDiscoveryRun = data.searchHealth.latestRun;
 
   return <main className="discoveryRoot">
     <header className="discoveryHeader">
@@ -37,8 +45,18 @@ export default async function RootDiscoveryPage() {
       <Metric label="Expuestos / publicados" value={published.length} />
       <Metric label="Entidades externas observadas" value={mesh.reality.nodes.length} detail={mesh.reality.state} />
       <Metric label="Trayectorias observadas" value={mesh.propagation.trajectories.length} detail={mesh.propagation.state} />
-      <Metric label="Relaciones NYC activas" value={convergence.activeNycRelationships.length} />
-      <Metric label="Acciones externas pendientes" value={externalActionTargets.length} />
+      <Metric label="Propuestas de desarrollo" value={data.autonomy.openDevelopmentProposals} detail={data.autonomy.availability} />
+      <Metric label="Candidatos editoriales" value={data.autonomy.openEditorialProposals} />
+    </section>
+
+    <section className="discoveryPanel discoveryWide">
+      <div className="discoverySectionHead"><div><p className="discoveryKicker">AUTO-OBSERVACIÓN / DEVELOPMENT</p><h2>El Mesh puede observarse y proponer; no puede aprobarse.</h2></div><span className={statusClass(data.autonomy.availability)}>{data.autonomy.availability}</span></div>
+      <p>{latestDiscoveryRun ? 'Existe una ejecución Discovery persistida en la muestra actual.' : 'Todavía no existe una ejecución Discovery persistida en la muestra actual.'} Las degradaciones y métricas observadas pueden convertirse en propuestas reversibles dentro de <code>action_proposals</code>; no adquieren autoridad de ejecución ni cambian canon.</p>
+      <div className="discoveryGrid">
+        <article className="discoveryPanel"><h2>Desarrollo propuesto</h2>{data.autonomy.developmentProposals.length ? <div className="discoveryTable" role="table">{data.autonomy.developmentProposals.slice(0, 8).map((proposal) => <div className="discoveryRow" role="row" key={String(proposal.id)}><div><strong>{String(proposal.title ?? 'Propuesta')}</strong><small>{proposalKey(proposal)}</small></div><span className={statusClass(String(proposal.status ?? 'UNKNOWN'))}>{String(proposal.status ?? 'UNKNOWN')}</span><div className="discoveryReason">{String(proposal.objective ?? proposal.description ?? '')}</div></div>)}</div> : <p className="discoveryBoundary">Sin propuestas todavía. La ausencia no se interpreta como salud ni como cero.</p>}</article>
+        <article className="discoveryPanel"><h2>Editorial derivado</h2>{data.autonomy.editorialProposals.length ? <div className="discoveryTable" role="table">{data.autonomy.editorialProposals.slice(0, 4).map((proposal) => <div className="discoveryRow" role="row" key={String(proposal.id)}><div><strong>{String(proposal.title ?? 'Candidato editorial')}</strong><small>{proposalKey(proposal)}</small></div><span className={statusClass(String(proposal.status ?? 'UNKNOWN'))}>{String(proposal.status ?? 'UNKNOWN')}</span><div className="discoveryReason">{String(proposal.objective ?? proposal.description ?? '')}</div></div>)}</div> : <p className="discoveryBoundary">El siguiente ciclo puede proponer una nota a partir de una observación persistida. Candidato ≠ publicación.</p>}<p><Link href="/publications/discovery-mesh-publicar-no-es-ser-encontrado">ABRIR NOTA DE LABORATORIO AUTORIZADA →</Link></p></article>
+      </div>
+      <p className="discoveryBoundary">{data.autonomy.boundary}</p>
     </section>
 
     <section className="discoveryPanel discoveryWide">
@@ -69,7 +87,7 @@ export default async function RootDiscoveryPage() {
     <details className="discoveryPanel discoveryWide">
       <summary>TRAZABILIDAD TÉCNICA / EXPOSURE TARGETS</summary>
       <div className="discoveryTable" role="table">{data.exposure.targets.map((target) => <div className="discoveryRow" role="row" key={target.key}><div><strong>{target.key}</strong><small>{target.targetClass}</small></div><span className={statusClass(target.state)}>{target.state}</span><div className="discoveryUrl">{target.url ?? 'MISSING'}</div><div className="discoveryReason">{target.reason}</div></div>)}</div>
-      <pre>{JSON.stringify({ propagations: data.propagations, collisions: data.collisions, readPlan: { controlPlane: data.readPlan, institutional: institutional.readPlan } }, null, 2)}</pre>
+      <pre>{JSON.stringify({ propagations: data.propagations, collisions: data.collisions, autonomy: data.autonomy, readPlan: { controlPlane: data.readPlan, institutional: institutional.readPlan } }, null, 2)}</pre>
     </details>
 
     <footer className="discoveryFooter"><span>{data.contract} · {institutional.contract}</span><span>Observed: {data.observedAt}</span><span>PUBLICATION ≠ DISCOVERY ≠ PULL ≠ RETURN</span></footer>
