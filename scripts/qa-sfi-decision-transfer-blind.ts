@@ -15,12 +15,13 @@ const blindRoutePath = 'src/app/api/root/method-lab/decision-transfer/blind/rout
 const revealRoutePath = 'src/app/api/root/method-lab/decision-transfer/reveal/route.ts';
 const scenesPath = 'src/components/sfi/scenes.ts';
 const liveUiPath = 'src/components/sfi/SfiConsole.tsx';
+const rootUiPath = 'src/components/sfi/SfiRootWorkspace.tsx';
 const operatingUiPath = 'src/components/sfi/SfiOperatingWorkspace.tsx';
 const governanceUiPath = 'src/components/sfi/SfiGovernanceWorkspace.tsx';
 const methodLabPagePath = 'src/app/method-lab/page.tsx';
 const methodLabHubPath = 'src/components/sfi/MethodLabNativeHub.tsx';
 
-for (const file of [runtimePath, commitmentPath, integrityPath, blindRoutePath, revealRoutePath, scenesPath, liveUiPath, operatingUiPath, governanceUiPath, methodLabPagePath, methodLabHubPath]) {
+for (const file of [runtimePath, commitmentPath, integrityPath, blindRoutePath, revealRoutePath, scenesPath, liveUiPath, rootUiPath, operatingUiPath, governanceUiPath, methodLabPagePath, methodLabHubPath]) {
   assert(fs.existsSync(path.join(process.cwd(), file)), `missing:${file}`);
 }
 
@@ -31,6 +32,7 @@ const blindRoute = read(blindRoutePath);
 const revealRoute = read(revealRoutePath);
 const scenes = read(scenesPath);
 const liveUi = read(liveUiPath);
+const rootUi = read(rootUiPath);
 const operatingUi = read(operatingUiPath);
 const governanceUi = read(governanceUiPath);
 const methodLabPage = read(methodLabPagePath);
@@ -82,14 +84,15 @@ for (const forbidden of ["from('sfi_amv_memory')", "from('sfi_cognitive_twin_mem
 }
 
 // FALSIFICATION/MODELS are absorbed legacy scenes. The blind protocol remains
-// executable only through Method Lab and observable/governed through ROOT + TWIN/SPINE.
+// executable only through Method Lab and observable through ROOT + TWIN/SPINE.
 assert(scenes.includes("root:{key:'root'"), 'blind_experiment_root_scene_missing');
 assert(scenes.includes("twin:{key:'twin'"), 'blind_experiment_twin_scene_missing');
 assert(/LEGACY_INTERNAL_SCENES=.*'falsification'.*'models'/s.test(scenes), 'blind_experiment_legacy_surface_absorption_missing');
-assert(liveUi.includes('COGNITIVE TWIN'), 'blind_experiment_twin_observability_missing');
+assert(scenes.includes("twin:{label:'TWIN / SPINE',title:'Cognitive Twin / Spine'") && liveUi.includes('SfiOperatingWorkspace') && liveUi.includes('surface={current}'), 'blind_experiment_twin_observability_missing');
 assert(operatingUi.includes('SfiGovernanceWorkspace'), 'blind_experiment_governance_delegation_missing');
-assert(governanceUi.includes('ACEPTAR') && governanceUi.includes('DENEGAR'), 'blind_experiment_root_authority_missing');
-assert(governanceUi.includes('PEDIR EVIDENCIA'), 'blind_experiment_evidence_deferral_missing');
+assert(governanceUi.includes("jsonFetch('/api/root/interactive?surface=governance')"), 'blind_experiment_runtime_observability_missing');
+assert(rootUi.includes("jsonFetch('/api/root/decisions'") && rootUi.includes('ACEPTAR') && rootUi.includes('DENEGAR'), 'blind_experiment_root_authority_missing');
+assert(rootUi.includes('/request-evidence') && rootUi.includes('SOLICITAR EVIDENCIA'), 'blind_experiment_evidence_deferral_missing');
 assert(methodLabPage.includes('MethodLabNativeHub'), 'blind_experiment_method_lab_surface_missing');
 assert(methodLabHub.includes('/blind') && methodLabHub.includes('/contrast'), 'blind_experiment_native_controls_missing');
 
