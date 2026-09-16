@@ -224,12 +224,15 @@ assert.ok(canonicalTests.includes('MISSING is metadata, never promoted into caps
 assert.ok(canonicalTests.includes('MODEL OUTPUT != OBSERVATION and RETURN requires reality observation'), 'model_output_observation_boundary_regression_missing');
 assert.ok(canonicalTests.includes('object-specific JSON-LD is bounded and contains no fabricated identity identifiers'), 'object_specific_jsonld_regression_missing');
 
-// Existing #366 public availability/read-plane regression remains present and owned by its original gate.
+// Public availability/read-plane regression stays owned by the temporal gate. The
+// current invariant is no periodic data polling: one bounded read owner, snapshot reuse,
+// explicit manual refresh, and no false-zero projection when a source is unavailable.
 for (const token of [
   "observableMetricValue('UNAVAILABLE', 0)",
   "observableMetricValue('AVAILABLE', 0)",
   "observatory_duplicate_equivalent_read",
-  "observatory_polling_topology_amplified",
+  "observatory_data_polling_must_not_return",
+  "observatorySnapshotReuse",
   "interpretive_flow_must_not_fetch_world",
 ]) assert.ok(temporalQa.includes(token), `false_zero_read_plane_regression_missing:${token}`);
 
