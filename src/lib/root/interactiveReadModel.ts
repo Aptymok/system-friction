@@ -15,25 +15,27 @@ function transientWarnings(...values: Array<string | null>) {
 export async function readInteractiveCaseIndex(userId: string) {
   const db = createServiceSupabaseClient();
   const memberships = await db.from('sfi_tenant_members')
-    .select('tenant_id,role,status')
+    .select('tenant_id')
     .eq('user_id', userId)
     .eq('status', 'ACTIVE');
   if (memberships.error) throw new Error(`SFI_TENANT_MEMBERSHIP_READ_FAILED:${memberships.error.message}`);
   const tenantIds = [...new Set((memberships.data ?? []).map((row) => String(row.tenant_id)).filter(Boolean))];
   if (!tenantIds.length) {
-    return { projects: [], cases: [], warnings: [], readPlan: { membershipReads: 1, caseReads: 0, projectReads: 0 } };
+    return { projects: [], cases: [], warnings: [], readPlan: { membershipReads: 1, caseReads: 0, projectReads: 0, compactIndex: true } };
   }
 
   const [caseRows, projectRows] = await Promise.all([
     db.from('sfi_cases')
-      .select('id,tenant_id,project_id,client_id,service_profile_id,subject,scope,system_boundary_ref,temporal_window,lineage,uncertainty,governance,status,created_at,updated_at,closed_at')
+      .select('id,tenant_id,project_id,subject,status,updated_at')
       .in('tenant_id', tenantIds)
       .is('deleted_at', null)
-      .order('updated_at', { ascending: false }),
+      .order('updated_at', { ascending: false })
+      .limit(250),
     db.from('sfi_projects')
-      .select('id,tenant_id,project_key,name,description,attractor_ref,trajectory_ref,status,created_at,updated_at')
+      .select('id,tenant_id,project_key,name,attractor_ref,trajectory_ref,status,updated_at')
       .in('tenant_id', tenantIds)
-      .order('updated_at', { ascending: false }),
+      .order('updated_at', { ascending: false })
+      .limit(120),
   ]);
   if (caseRows.error) throw new Error(`SFI_CASE_LIST_FAILED:${caseRows.error.message}`);
   if (projectRows.error) throw new Error(`SFI_PROJECT_LIST_FAILED:${projectRows.error.message}`);
@@ -42,43 +44,43 @@ export async function readInteractiveCaseIndex(userId: string) {
     id: String(row.id),
     tenantId: String(row.tenant_id),
     projectId: row.project_id ? String(row.project_id) : null,
-    clientId: text(row.client_id),
-    serviceProfileId: String(row.service_profile_id ?? ''),
     subject: String(row.subject ?? ''),
-    scope: String(row.scope ?? ''),
-    systemBoundaryRef: row.system_boundary_ref ?? null,
-    temporalWindow: row.temporal_window ?? null,
-    lineage: Array.isArray(row.lineage) ? row.lineage : [],
-    uncertainty: row.uncertainty ?? null,
-    governance: row.governance ?? null,
     status: String(row.status ?? ''),
-    createdAt: text(row.created_at),
     updatedAt: text(row.updated_at),
-    closedAt: text(row.closed_at),
   }));
+
+  const caseCounts = new Map<string, number>();
+  for (const item of cases) {
+    if (!item.projectId) continue;
+    caseCounts.set(item.projectId, (caseCounts.get(item.projectId) ?? 0) + 1);
+  }
 
   const projects = ((projectRows.data ?? []) as Row[]).map((row) => ({
     id: String(row.id),
     tenantId: String(row.tenant_id),
     key: String(row.project_key ?? ''),
     name: String(row.name ?? ''),
-    description: String(row.description ?? ''),
     attractorRef: row.attractor_ref ?? null,
     trajectoryRef: row.trajectory_ref ?? null,
     status: String(row.status ?? ''),
-    createdAt: text(row.created_at),
     updatedAt: text(row.updated_at),
-    caseCount: cases.filter((item) => item.projectId === String(row.id)).length,
+    caseCount: caseCounts.get(String(row.id)) ?? 0,
   }));
 
   return {
     projects,
     cases,
-    warnings: [],
+    warnings: [
+      caseRows.data?.length === 250 ? 'sfi_cases:INTERACTIVE_INDEX_LIMIT_REACHED' : null,
+      projectRows.data?.length === 120 ? 'sfi_projects:INTERACTIVE_INDEX_LIMIT_REACHED' : null,
+    ].filter((value): value is string => Boolean(value)),
     readPlan: {
       membershipReads: 1,
       caseReads: 1,
       projectReads: 1,
+      compactIndex: true,
+      caseLimit: 250,
+      projectLimit: 120,
       duplicateTenantMembershipReads: 0,
       duplicateCaseTableReads: 0,
     },
@@ -89,13 +91,13 @@ export async function readInteractiveEvidenceTargetIndex() {
   const db = createServiceSupabaseClient();
   const [entries, nodes] = await Promise.all([
     db.from('root_evidence_entries')
-      .select('id,evidence_hash,title,evidence_type,target_node_id,payload,epistemic_event_id,created_at')
+      .select('id,title,evidence_type,target_node_id,created_at')
       .order('created_at', { ascending: false })
-      .limit(100),
+      .limit(60),
     db.from('graph_nodes')
-      .select('id,node_id,node_key,label,node_type,ontology_type,origin,epistemic_class,confidence,created_at,updated_at')
+      .select('id,node_id,label,node_type,epistemic_class,updated_at')
       .order('updated_at', { ascending: false })
-      .limit(120),
+      .limit(80),
   ]);
   const warnings = transientWarnings(
     entries.error ? `root_evidence_entries:${entries.error.message}` : null,
@@ -106,8 +108,8 @@ export async function readInteractiveEvidenceTargetIndex() {
     entries: entries.data ?? [],
     nodes: nodes.data ?? [],
     exhaustive: false,
-    readLimits: { entries: 100, nodes: 120 },
+    readLimits: { entries: 60, nodes: 80 },
     warnings,
-    readPlan: { evidenceEntryReads: 1, graphNodeReads: 1, fullRootConsoleReads: 0 },
+    readPlan: { evidenceEntryReads: 1, graphNodeReads: 1, fullRootConsoleReads: 0, compactTargetIndex: true },
   };
 }

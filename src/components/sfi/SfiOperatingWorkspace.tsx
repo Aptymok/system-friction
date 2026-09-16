@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useAuthState } from '@/components/auth/AuthProvider';
 import { CognitiveSpineAnatomy } from '@/components/root/cognitive-spine/CognitiveSpineAnatomy';
 import { SfiGovernanceWorkspace } from './SfiGovernanceWorkspace';
 import type { InternalSceneKey } from './scenes';
@@ -11,6 +12,12 @@ import './SfiOperatingWorkspace.css';
 type Row = Record<string, any>;
 type Props = { enabled:boolean; surface:InternalSceneKey };
 type Selection = { kind:'CASE'|'CYCLE'; id:string };
+type CacheEntry = { at:number; data:Row };
+
+const BASE_CACHE_TTL_MS=120_000;
+const DOSSIER_CACHE_TTL_MS=300_000;
+const baseCache=new Map<string,CacheEntry>();
+const dossierCache=new Map<string,CacheEntry>();
 
 const OBJECT_ORDER=['SYSTEM_MODEL','FRICTION','OBSERVATION','HYPOTHESIS','PERTURBATION','EVIDENCE','INTERVENTION','RETURN','ANALYSIS','REPORT'] as const;
 const OBJECT_LABEL:Record<string,string>={
@@ -27,6 +34,7 @@ function humanState(value:unknown){const state=String(value??'').toUpperCase();c
 function statement(value:unknown){if(typeof value==='string')return value;const item=payload(value);return txt(item.statement??item.hypothesis??item.claim??item.description??item.summary??item.title??item.name??item.label??item.value??item.result??item.canonicalRef?.id,'—')}
 function objectTitle(item:Row){const body=payload(item.payload);return txt(body.title??body.name??body.label??body.summary??item.canonicalRef?.id??item.kind??item.objectKind,'Objeto')}
 function objectKind(item:Row){return String(item.kind??item.objectKind??item.object_kind??'').toUpperCase()}
+function cacheFresh(entry:CacheEntry|undefined,ttl:number){return Boolean(entry&&Date.now()-entry.at<ttl)}
 async function jsonFetch(url:string,init?:RequestInit){const response=await fetch(url,{cache:'no-store',...init});const json=await response.json().catch(()=>null);if(!response.ok||!json?.ok)throw new Error(json?.message||json?.details||json?.error||`${response.status}`);return json}
 
 function StatusPill({value}:{value:unknown}){return <span className={`sfiStatus ${tone(value)}`}>{humanState(value)}</span>}
@@ -46,6 +54,8 @@ function ProjectGraph({projects,cases,cycles}:{projects:Row[];cases:Row[];cycles
 
 export function SfiOperatingWorkspace({enabled,surface}:Props){
   const search=useSearchParams();
+  const auth=useAuthState();
+  const userKey=auth.identity?.userId??'unknown';
   const [workboard,setWorkboard]=useState<Row|null>(null);
   const [caseIndex,setCaseIndex]=useState<Row>({projects:[],cases:[]});
   const [learning,setLearning]=useState<Row|null>(null);
@@ -59,26 +69,30 @@ export function SfiOperatingWorkspace({enabled,surface}:Props){
   const [error,setError]=useState<string|null>(null);
   const [notice,setNotice]=useState<string|null>(null);
 
-  const loadBase=useCallback(async()=>{if(!enabled||surface==='governance')return;try{
-    const data=await jsonFetch(`/api/root/interactive?surface=${encodeURIComponent(surface)}`);
+  const applyBase=useCallback((data:Row)=>{
     setWorkboard({operationalNext:data.operationalNext??{}});
     if(surface==='twin'){
       setLearning(data.learning??null);setCaseIndex({projects:[],cases:[]});setTwinProjection(data.twinProjection??{});setTwinAuthority(data.authority==='root'?'root':'observer');
     }else{
       setCaseIndex({projects:data.caseIndex?.projects??[],cases:data.caseIndex?.cases??[]});setLearning(null);setTwinProjection({});setTwinAuthority('observer');
     }
-    setError(null);
-  }catch(cause){setError(cause instanceof Error?cause.message:String(cause))}},[enabled,surface]);
-  useEffect(()=>{void loadBase();const timer=window.setInterval(()=>void loadBase(),30000);return()=>window.clearInterval(timer)},[loadBase]);
+  },[surface]);
+
+  const loadBase=useCallback(async(force=false)=>{if(!enabled||surface==='governance')return;const key=`${userKey}:${surface}`;const cached=baseCache.get(key);if(!force&&userKey!=='unknown'&&cacheFresh(cached,BASE_CACHE_TTL_MS)){applyBase(cached!.data);setError(null);return}try{
+    const data=await jsonFetch(`/api/root/interactive?surface=${encodeURIComponent(surface)}`);
+    if(userKey!=='unknown')baseCache.set(key,{at:Date.now(),data});
+    applyBase(data);setError(null);
+  }catch(cause){setError(cause instanceof Error?cause.message:String(cause))}},[enabled,surface,userKey,applyBase]);
+  useEffect(()=>{void loadBase(false)},[loadBase]);
 
   const projects=arr(caseIndex.projects);const cases=arr(caseIndex.cases);const cycles=arr(workboard?.operationalNext?.cycles);
   const activeCases=useMemo(()=>cases.filter(item=>!['CLOSED','REJECTED'].includes(String(item.status))),[cases]);
 
-  const openCase=useCallback(async(id:string)=>{setSelection({kind:'CASE',id});setBusy('case');setCycleDetail(null);try{const data=await jsonFetch(`/api/root/interactive?surface=cases&caseId=${encodeURIComponent(id)}`);setCaseDetail(data.dossier??null);setReports(data.dossier?.reports??[]);setError(null)}catch(cause){setError(cause instanceof Error?cause.message:String(cause))}finally{setBusy(null)}},[]);
-  const openCycle=useCallback(async(id:string)=>{setSelection({kind:'CYCLE',id});setBusy('cycle');setCaseDetail(null);setReports([]);try{const data=await jsonFetch(`/api/root/interactive?surface=cases&cycleId=${encodeURIComponent(id)}`);setCycleDetail(data.dossier??null);setError(null)}catch(cause){setError(cause instanceof Error?cause.message:String(cause))}finally{setBusy(null)}},[]);
-  useEffect(()=>{if(surface!=='cases')return;const caseId=search.get('case');const cycleId=search.get('cycle');if(caseId&&selection?.id!==caseId)void openCase(caseId);else if(cycleId&&selection?.id!==cycleId)void openCycle(cycleId)},[surface,search,selection?.id,openCase,openCycle]);
+  const openCase=useCallback(async(id:string,force=false)=>{const key=`${userKey}:case:${id}`;const cached=dossierCache.get(key);setSelection({kind:'CASE',id});setCycleDetail(null);if(!force&&userKey!=='unknown'&&cacheFresh(cached,DOSSIER_CACHE_TTL_MS)){setCaseDetail(cached!.data.dossier??null);setReports(cached!.data.dossier?.reports??[]);setError(null);return}setBusy('case');try{const data=await jsonFetch(`/api/root/interactive?surface=cases&caseId=${encodeURIComponent(id)}`);if(userKey!=='unknown')dossierCache.set(key,{at:Date.now(),data});setCaseDetail(data.dossier??null);setReports(data.dossier?.reports??[]);setError(null)}catch(cause){setError(cause instanceof Error?cause.message:String(cause))}finally{setBusy(null)}},[userKey]);
+  const openCycle=useCallback(async(id:string,force=false)=>{const key=`${userKey}:cycle:${id}`;const cached=dossierCache.get(key);setSelection({kind:'CYCLE',id});setCaseDetail(null);setReports([]);if(!force&&userKey!=='unknown'&&cacheFresh(cached,DOSSIER_CACHE_TTL_MS)){setCycleDetail(cached!.data.dossier??null);setError(null);return}setBusy('cycle');try{const data=await jsonFetch(`/api/root/interactive?surface=cases&cycleId=${encodeURIComponent(id)}`);if(userKey!=='unknown')dossierCache.set(key,{at:Date.now(),data});setCycleDetail(data.dossier??null);setError(null)}catch(cause){setError(cause instanceof Error?cause.message:String(cause))}finally{setBusy(null)}},[userKey]);
+  useEffect(()=>{if(surface!=='cases')return;const caseId=search.get('case');const cycleId=search.get('cycle');if(caseId&&(selection?.kind!=='CASE'||selection.id!==caseId))void openCase(caseId);else if(cycleId&&(selection?.kind!=='CYCLE'||selection.id!==cycleId))void openCycle(cycleId)},[surface,search,selection?.kind,selection?.id,openCase,openCycle]);
 
-  const learnAction=async(action:'promote'|'reject',candidate:Row)=>{const id=String(candidate.event_id??candidate.eventId??'');if(!id)return;setBusy(`learning:${id}`);try{await jsonFetch('/api/root/learning',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(action==='promote'?{action,candidateEventId:id,reviewNote:'Revisado desde Twin / Spine.'}:{action,candidateEventId:id,reason:'Retirado de consideración por decisión del usuario.'})});setNotice(action==='promote'?'Aprendizaje promovido para uso institucional.':'Aprendizaje rechazado y retirado de consideración.');await loadBase()}catch(cause){setError(cause instanceof Error?cause.message:String(cause))}finally{setBusy(null)}};
+  const learnAction=async(action:'promote'|'reject',candidate:Row)=>{const id=String(candidate.event_id??candidate.eventId??'');if(!id)return;setBusy(`learning:${id}`);try{await jsonFetch('/api/root/learning',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(action==='promote'?{action,candidateEventId:id,reviewNote:'Revisado desde Twin / Spine.'}:{action,candidateEventId:id,reason:'Retirado de consideración por decisión del usuario.'})});setNotice(action==='promote'?'Aprendizaje promovido para uso institucional.':'Aprendizaje rechazado y retirado de consideración.');await loadBase(true)}catch(cause){setError(cause instanceof Error?cause.message:String(cause))}finally{setBusy(null)}};
 
   if(!enabled)return null;
   if(surface==='governance')return <SfiGovernanceWorkspace enabled={enabled}/>;
@@ -89,7 +103,7 @@ export function SfiOperatingWorkspace({enabled,surface}:Props){
 
     {surface==='cases'&&<div className="sfiCaseLayout"><aside className="sfiCaseRail"><header><span>CASOS ACTIVOS</span><b>{activeCases.length+cycles.length}</b></header>{activeCases.map(item=><button className={selection?.id===item.id?'selected':''} key={item.id} onClick={()=>void openCase(item.id)}><small>{projects.find(p=>p.id===item.projectId)?.name??'Sin proyecto'}</small><strong>{item.subject}</strong><StatusPill value={item.status}/></button>)}{cycles.map(item=><button className={selection?.id===item.cycleId?'selected':''} key={item.cycleId} onClick={()=>void openCycle(item.cycleId)}><small>Ciclo universal</small><strong>{item.title}</strong><StatusPill value={item.state}/></button>)}<details className="sfiHistory"><summary>Historial cerrado</summary>{cases.filter(item=>['CLOSED','REJECTED'].includes(String(item.status))).map(item=><button key={item.id} onClick={()=>void openCase(item.id)}><strong>{item.subject}</strong><StatusPill value={item.status}/></button>)}</details></aside><main className="sfiDossierScroll">{busy==='case'||busy==='cycle'?<Empty>Cargando expediente…</Empty>:caseDetail?<CaseDossier detail={caseDetail} reports={reports}/>:cycleDetail?<CycleDossier dossier={cycleDetail}/>:<Empty>Selecciona un caso o ciclo para abrir su expediente completo.</Empty>}</main></div>}
 
-    {surface==='twin'&&<div className="sfiTwinLayout"><section className="sfiTwinAnatomy"><CognitiveSpineAnatomy enabled canOperate={twinAuthority==='root'} focusOptions={[]} twinOpenCount={cycles.length} projection={twinProjection} onRefresh={loadBase}/></section><aside className="sfiLearningRail"><header><span>APRENDIZAJES</span><div><b>{learning?.summary?.quarantined??0}</b> pendientes · <b>{learning?.summary?.promoted??0}</b> activos</div></header><div className="sfiLearningList">{arr(learning?.candidates).map(item=>{const body=payload(item.payload);const learn=payload(body.learning);return <article key={item.event_id}><StatusPill value={body.eligibleForRootPromotion?'ready':'review'}/><strong>{txt(learn.summary??learn.statement??body.classification,'Aprendizaje candidato')}</strong><p>{short(learn.rationale??learn.contrast?.classificationReason??'Resultado de un ciclo cerrado y contrastado.',320)}</p><div><button disabled={!body.eligibleForRootPromotion||busy===`learning:${item.event_id}`} onClick={()=>void learnAction('promote',item)}>ACEPTAR APRENDIZAJE</button><button className="deny" disabled={busy===`learning:${item.event_id}`} onClick={()=>void learnAction('reject',item)}>RECHAZAR</button></div><Trace value={item}/></article>})}{arr(learning?.promotions).map(item=>{const body=payload(item.payload);const learn=payload(body.learning);return <article className="promoted" key={item.event_id}><StatusPill value="ready"/><strong>{txt(learn.summary??learn.statement??body.classification,'Aprendizaje activo')}</strong><p>Activo para uso institucional desde {date(body.promotedAt??item.occurred_at)}.</p><Trace value={item}/></article>})}{!(arr(learning?.candidates).length||arr(learning?.promotions).length)&&<Empty>Todavía no hay aprendizaje gobernado que mostrar.</Empty>}</div></aside></div>}
+    {surface==='twin'&&<div className="sfiTwinLayout"><section className="sfiTwinAnatomy"><CognitiveSpineAnatomy enabled canOperate={twinAuthority==='root'} focusOptions={[]} twinOpenCount={cycles.length} projection={twinProjection} onRefresh={()=>loadBase(true)}/></section><aside className="sfiLearningRail"><header><span>APRENDIZAJES</span><div><b>{learning?.summary?.quarantined??0}</b> pendientes · <b>{learning?.summary?.promoted??0}</b> activos</div></header><div className="sfiLearningList">{arr(learning?.candidates).map(item=>{const body=payload(item.payload);const learn=payload(body.learning);return <article key={item.event_id}><StatusPill value={body.eligibleForRootPromotion?'ready':'review'}/><strong>{txt(learn.summary??learn.statement??body.classification,'Aprendizaje candidato')}</strong><p>{short(learn.rationale??learn.contrast?.classificationReason??'Resultado de un ciclo cerrado y contrastado.',320)}</p><div><button disabled={!body.eligibleForRootPromotion||busy===`learning:${item.event_id}`} onClick={()=>void learnAction('promote',item)}>ACEPTAR APRENDIZAJE</button><button className="deny" disabled={busy===`learning:${item.event_id}`} onClick={()=>void learnAction('reject',item)}>RECHAZAR</button></div><Trace value={item}/></article>})}{arr(learning?.promotions).map(item=>{const body=payload(item.payload);const learn=payload(body.learning);return <article className="promoted" key={item.event_id}><StatusPill value="ready"/><strong>{txt(learn.summary??learn.statement??body.classification,'Aprendizaje activo')}</strong><p>Activo para uso institucional desde {date(body.promotedAt??item.occurred_at)}.</p><Trace value={item}/></article>})}{!(arr(learning?.candidates).length||arr(learning?.promotions).length)&&<Empty>Todavía no hay aprendizaje gobernado que mostrar.</Empty>}</div></aside></div>}
   </div>;
 }
 

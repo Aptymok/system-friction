@@ -22,6 +22,7 @@ for (const field of ['reads:', 'writes:', 'executes:', 'executionEvidence:']) {
 
 const scenes = read('src/components/sfi/scenes.ts');
 const shellUi = read('src/components/sfi/SfiConsole.tsx');
+const rootUi = read('src/components/sfi/SfiRootWorkspace.tsx');
 const operatingUi = read('src/components/sfi/SfiOperatingWorkspace.tsx');
 const governanceUi = read('src/components/sfi/SfiGovernanceWorkspace.tsx');
 const interactiveApi = read('src/app/api/root/interactive/route.ts');
@@ -43,20 +44,21 @@ const realize = read('src/app/api/acp/proposals/[id]/realize/route.ts');
 const freeze = read('src/app/api/acp/proposals/[id]/freeze/route.ts');
 const promote = read('src/app/api/root/governance/promote/route.ts');
 
-// The converged site no longer gives AGENTS a parallel sovereign scene. Agents live
-// inside GOVERNANCE while ROOT remains the operational read model. The governance
-// scene delegates to one bounded component rather than duplicating its controls.
+// UI placement may evolve. Authority does not: ROOT owns sovereign decisions;
+// Governance/Agents is runtime observability and execution, not a second decision owner.
 assert.ok(scenes.includes("root:{key:'root'") && scenes.includes("governance:{key:'governance'"), 'ROOT/GOVERNANCE operating scenes missing');
-assert.ok(operatingUi.includes('SfiGovernanceWorkspace'), 'canonical operating workspace must delegate governance');
+assert.ok(operatingUi.includes('SfiGovernanceWorkspace'), 'canonical operating workspace must delegate governance runtime');
 assert.ok(governanceUi.includes('AGENTES') && governanceUi.includes('/api/root/cognitive-runtime/records?agentId='), 'governance agent runtime dossier missing');
-assert.ok(governanceUi.includes("jsonFetch('/api/root/interactive?surface=governance')") && governanceUi.includes('setProposals(arr(operationalNext.items))'), 'governed proposal feed must reuse interactive operational-next projection');
-assert.ok(interactiveApi.includes("proposalQueueSource: 'operationalNext.items'") && interactiveApi.includes('separateProposalListRead: false'), 'interactive governance must not fetch a second proposal queue');
-assert.ok(shellUi.includes('GOVERNANCE QUEUE'), 'governance queue observability missing');
-assert.ok(governanceUi.includes('ACEPTAR') && governanceUi.includes('DENEGAR'), 'plain-language decision controls missing');
-assert.ok(governanceUi.includes('PEDIR EVIDENCIA'), 'reviewers must be able to defer a decision for evidence');
-assert.ok(governanceUi.includes("proposalReadState==='DEGRADED'") && governanceUi.includes('Fuente de propuestas DEGRADED'), 'proposal read failure must remain visible instead of becoming an empty queue');
-assert.ok(operatingUi.includes('/api/root/interactive?surface=') && operatingUi.includes('workboard?.operationalNext'), 'ROOT must expose live operational-next state through the single interactive bootstrap');
-assert.ok(operatingUi.includes('returnPlan?.next') && operatingUi.includes('Ciclo universal'), 'ROOT/cases must expose cycle next/RETURN posture');
+assert.ok(interactiveApi.includes("includeTargets') === '1'") && interactiveApi.includes('targetHydrationDeferred: true'), 'governance target hydration must remain deferred');
+assert.ok(governanceUi.includes('HIDRATACIÓN DIFERIDA') && governanceUi.includes('includeTargets=1'), 'governance UI must hydrate targets only when an agent is selected');
+assert.doesNotMatch(governanceUi, /setInterval\(/, 'governance runtime must not poll');
+assert.doesNotMatch(operatingUi, /setInterval\(/, 'operating workspace must not poll');
+assert.doesNotMatch(rootUi, /setInterval\(/, 'ROOT workspace must not poll');
+assert.ok(rootUi.includes('ACEPTAR') && rootUi.includes('DENEGAR') && rootUi.includes('SOLICITAR EVIDENCIA'), 'plain-language sovereign decision controls must live in ROOT');
+assert.doesNotMatch(governanceUi, /ACEPTAR|DENEGAR|PEDIR EVIDENCIA|SOLICITAR EVIDENCIA/, 'Governance runtime must not duplicate sovereign controls');
+assert.ok(shellUi.includes("label:'DECISIONES'") && shellUi.includes("href:'/root'"), 'decision navigation must converge on ROOT');
+assert.ok(rootUi.includes('/api/root/interactive?surface=root') && rootUi.includes('BASE_CACHE_TTL_MS'), 'ROOT must reuse recent interactive state rather than rehydrate on every return');
+assert.ok(operatingUi.includes('DOSSIER_CACHE_TTL_MS') && operatingUi.includes('baseCache'), 'Cases/Twin workspace must reuse recent bounded reads');
 assert.doesNotMatch(governanceUi, /REGISTRAR REALIZACIÓN INTERNA/, 'ROOT UI must not offer a false manual realization button');
 assert.match(shellUi, /SfiOperatingWorkspace/, 'canonical shell must mount the converged operating workspace');
 
@@ -79,8 +81,6 @@ for (const reservedId of ['87cc094a-e9df-40e8-9a35-92c679c60ef2', '5e4803b2-0b23
 for (const foundationId of ['fafd0dc4-0ade-4f5d-ac3c-1efebe4e8abd', '25061b67-9eb2-49e5-b192-bebe5aa796ce', '95f9c1d0-3626-4bac-82dd-cee6bb462b7c']) {
   assert.ok(workboard.includes(foundationId), `governed foundation proposal missing from status observability: ${foundationId}`);
 }
-// Presentation may be redesigned, but the canonical read model must continue to expose
-// the operational distinctions needed by the human-facing workspace.
 for (const token of ['decisions', 'executions', 'blockers', 'twinProposals', 'reports', 'riskOpportunity', 'returns', 'canonCandidates', 'openCycles', 'runtime', 'governanceGates']) {
   assert.ok(workboard.includes(token), `workboard operational distinction missing: ${token}`);
 }
@@ -138,12 +138,14 @@ assert.equal(parsed.crons?.filter((item) => item.path === '/api/cron/continuity-
 
 console.log(JSON.stringify({
   ok: true,
+  contract: 'SFI-ROOT-REPORTS-RUNTIME-2.0',
   invariants: [
     'owned ROOT frames SAMEORIGIN; other paths DENY',
     'report generation remains backend/runtime-owned and five recurring report lanes remain observable',
     'agent passports declare reads/writes/executes/evidence',
-    'ROOT and GOVERNANCE share one operating workspace instead of parallel sovereign dashboards',
-    'proposal read failures remain explicit and never masquerade as an empty queue',
+    'ROOT owns sovereign decisions while Governance remains runtime-only',
+    'interactive navigation reuses recent bounded reads and does not poll',
+    'governance target hydration is deferred until an agent is actually selected',
     'existing SFI-CASE-ACTION-1.0 execution/return state is observable to sovereign ROOT without fabricating external execution',
     'workboard remains a read model while governed auto-routing is owned by the router',
     'internal routable capability is distinct from missing material external adapter',

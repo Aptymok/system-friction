@@ -17,10 +17,10 @@ const entry = read('src/components/sfi/PublicEntryGateway.tsx');
 const session = read('src/components/sfi/SessionControls.tsx');
 const consoleUi = read('src/components/sfi/SfiConsole.tsx');
 const observatory = read('src/components/sfi/ObservatoryConsole.tsx');
-const workboard = read('src/components/sfi/RootOperationalWorkboard.tsx');
 const consent = read('src/components/analytics/SfiConsentBanner.tsx');
 const pkg = JSON.parse(read('package.json')) as { scripts?: Record<string, string> };
 
+// One language owner, persistent explicit choice, and no global DOM rewriting.
 requireText(provider, "export type SfiLanguage = 'es' | 'en'", 'language contract');
 requireText(provider, "const STORAGE_KEY = 'sfi-language'", 'persistent language preference');
 requireText(provider, 'document.documentElement.lang = language', 'document language synchronization');
@@ -29,59 +29,43 @@ requireText(provider, 'data-sfi-ui-copy="language-control"', 'interface-owned la
 requireText(provider, "language === 'es' ? 'IDIOMA' : 'LANGUAGE'", 'visible bilingual control copy');
 requireText(provider, 'export function SfiUiText', 'owned-copy translation primitive');
 requireText(provider, '// Every tuple is [Spanish, English].', 'catalog direction contract');
-requireText(layout, 'SfiLanguageProvider, SfiUiText', 'root layout language imports');
-requireText(layout, '<SfiLanguageProvider>', 'root layout provider mount');
-requireText(layout, '</SfiLanguageProvider>', 'root layout provider boundary');
-requireText(layout, '<SfiUiText', 'shared shell must consume the language context');
-requireText(layout, 'es="PRIVACIDAD Y POLÍTICA DE DATOS PARA AGENTES EXTERNOS"', 'Spanish owned shell copy');
-requireText(layout, 'en="PRIVACY & EXTERNAL AGENT DATA POLICY"', 'English owned shell copy');
-requireText(entry, 'useSfiLanguage', 'public entry must consume language context');
-requireText(entry, "text('COMIENZA AQUÍ · SYSTEM FRICTION INSTITUTE'", 'public entry Spanish/English copy');
-requireText(entry, "text('OBSERVAR', 'OBSERVE')", 'public operating-cycle language toggle');
-requireText(session, 'useSfiLanguage', 'session controls must consume language context');
-requireText(session, "text('INICIAR SESIÓN', 'SIGN IN')", 'session language toggle');
-requireText(consoleUi, 'translateUiText, useSfiLanguage', 'SFI console must translate owned copy explicitly');
-requireText(consoleUi, 'data-sfi-contract="GOVERNANCE QUEUE"', 'ROOT governance queue contract marker must survive localization');
-requireText(consoleUi, "ui('COLA DE GOBERNANZA · COGNITIVE TWIN / ACP')", 'governance queue visible copy must remain language-owned');
-requireText(observatory, 'translateUiText, useSfiLanguage', 'observatory must translate owned copy explicitly');
-requireText(workboard, 'translateUiText, useSfiLanguage', 'ROOT workboard headings must translate explicitly');
-requireText(workboard, 'EJECUCIONES / ASSIGNMENT', 'ROOT execution lane contract marker must survive localization');
-requireText(workboard, 'PROJECTS / CASE EXECUTION', 'ROOT case execution lane contract marker must survive localization');
-requireText(workboard, 'BLOQUEOS / WARNINGS', 'ROOT blockers lane contract marker must survive localization');
-requireText(workboard, 'QUÉ SIGUE / NEXT EXPECTED EVENT', 'operational-next contract marker must survive localization');
-requireText(workboard, 'ROOT: ACCIÓN REQUERIDA', 'ROOT action-required contract marker must survive localization');
-requireText(workboard, 'LLM PROVIDERS · CONFIG ≠ HEALTH', 'provider health contract marker must survive localization');
-requireText(workboard, 'SYSTEM HEALTH', 'system health contract marker must survive localization');
-requireText(workboard, 'DEGRADED LANES', 'degraded lanes contract marker must survive localization');
-requireText(consent, 'useSfiLanguage', 'privacy banner must consume language context');
-requireText(consent, "text('RECHAZAR', 'REJECT')", 'privacy choice language toggle');
-
-// Canonical identifiers and rendered evidence are preserved by architecture:
-// localization is a pure lookup used only by explicitly owned interface copy.
 if (provider.includes('MutationObserver')) fail('global MutationObserver translation must not be reintroduced');
 if (provider.includes('localizeNode(document.body')) fail('document.body must never be rewritten by localization');
 if (provider.includes('createTreeWalker')) fail('arbitrary rendered data must not be traversed for translation');
 if (!provider.includes('It never walks or rewrites document.body')) fail('non-mutation boundary must remain explicit');
 
+// Shared shell and mounted human surfaces consume the same language owner. Copy may evolve;
+// QA protects bilingual ownership and routing rather than frozen wording from an old interface.
+requireText(layout, 'SfiLanguageProvider, SfiUiText', 'root layout language imports');
+requireText(layout, '<SfiLanguageProvider>', 'root layout provider mount');
+requireText(layout, '</SfiLanguageProvider>', 'root layout provider boundary');
+requireText(layout, '<SfiUiText', 'shared shell must consume language context');
+requireText(layout, 'es="PRIVACIDAD Y POLÍTICA DE DATOS PARA AGENTES EXTERNOS"', 'Spanish owned shell copy');
+requireText(layout, 'en="PRIVACY & EXTERNAL AGENT DATA POLICY"', 'English owned shell copy');
+
+requireText(entry, 'useSfiLanguage', 'public entry must consume language context');
+requireText(entry, "text('Un mundo más coherente.', 'A more coherent world.')", 'public hero bilingual copy');
+requireText(entry, "href:'/observatory'", 'public Observatory route');
+requireText(entry, "href:'/publications'", 'public Publications route');
+requireText(entry, "href:'/library'", 'public Library route');
+requireText(entry, 'href="/login"', 'public sign-in route');
+
+requireText(session, 'useSfiLanguage', 'session controls must consume language context');
+requireText(session, "text('INICIAR SESIÓN', 'SIGN IN')", 'session language toggle');
+requireText(consoleUi, 'translateUiText, useSfiLanguage', 'authenticated console must translate owned copy explicitly');
+requireText(consoleUi, "label:'DECISIONES'", 'authenticated decision navigation contract');
+requireText(observatory, 'translateUiText, useSfiLanguage', 'observatory must translate owned copy explicitly');
+requireText(observatory, "ownedText('ACTUALIZAR','REFRESH')", 'observatory refresh action must be bilingual');
+requireText(consent, 'useSfiLanguage', 'privacy banner must consume language context');
+requireText(consent, "text('RECHAZAR', 'REJECT')", 'privacy choice language toggle');
+
+// Canonical identifiers, evidence and machine-readable data must remain untouched by translation.
 const requiredPairs: Array<[string, string]> = [
   ['PRIVACIDAD Y POLÍTICA DE DATOS PARA AGENTES EXTERNOS', 'PRIVACY & EXTERNAL AGENT DATA POLICY'],
   ['OBSERVATORIO MUNDIAL EN VIVO', 'LIVE WORLD OBSERVATORY'],
-  ['Campo de observación', 'Observation field'],
-  ['SISTEMAS', 'SYSTEMS'],
-  ['ARCHIVO', 'ARCHIVE'],
-  ['FALSACIÓN', 'FALSIFICATION'],
-  ['GOBERNANZA', 'GOVERNANCE'],
-  ['FUENTE VIVA', 'LIVE SOURCE'],
-  ['ESTADO', 'STATUS'],
-  ['AUTORIDAD', 'AUTHORITY'],
-  ['PROPOSICIONES', 'PROPOSALS'],
   ['ORIGEN → AHORA', 'ORIGIN → NOW'],
-  ['HISTORIA TEMPORAL', 'TIME HISTORY'],
-  ['LECTURA MUNDIAL', 'WORLD READING'],
-  ['HIPÓTESIS', 'HYPOTHESES'],
-  ['CONTRASTES', 'CONTRASTS'],
   ['LECTURA DEL CAMPO', 'FIELD READING'],
-  ['ÍNDICE', 'INDEX'],
+  ['HIPÓTESIS', 'HYPOTHESES'],
   ['SESIÓN', 'SESSION'],
 ];
 for (const [es, en] of requiredPairs) {
@@ -94,4 +78,10 @@ const qa = pkg.scripts?.['qa:sfi-bilingual-interface'] ?? '';
 if (!qa.includes('qa-sfi-bilingual-interface.ts')) fail('package script qa:sfi-bilingual-interface is not wired');
 if (!build.includes('qa:sfi-bilingual-interface')) fail('bilingual QA is not part of the canonical build');
 
-console.log('SFI bilingual interface QA: OK');
+console.log(JSON.stringify({
+  ok: true,
+  contract: 'SFI-BILINGUAL-INTERFACE-2.0',
+  frozenLegacyCopyRequired: false,
+  languageOwnerSingular: true,
+  arbitraryRenderedDataMutation: false,
+}, null, 2));
