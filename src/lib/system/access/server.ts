@@ -76,6 +76,27 @@ function defaultAlias(user: { email?: string | null }) {
   return local || 'member';
 }
 
+export async function requireAuthenticatedUser() {
+  const supabase = await createServerSupabaseClient();
+  try {
+    const user = await getVerifiedServerUser(supabase);
+    if (!user) {
+      throw new AccessDeniedError(401, 'AUTH_REQUIRED', 'Authentication is required.');
+    }
+    return { supabase, user };
+  } catch (error) {
+    if (error instanceof AccessDeniedError) throw error;
+    if (error instanceof SfiAuthUnavailableError) {
+      throw new AccessDeniedError(
+        503,
+        'AUTH_UNAVAILABLE',
+        'Authentication is temporarily unavailable. The session was not reclassified as anonymous.',
+      );
+    }
+    throw error;
+  }
+}
+
 export async function hasActiveInstitutionalAccountGrant(user: { id: string; email?: string | null }) {
   const email = user.email?.trim().toLowerCase();
   if (!email) return false;
