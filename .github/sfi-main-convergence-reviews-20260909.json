@@ -31,6 +31,56 @@
         "PR #460 passed exact-head SFI-08 assurance and current main preserves the canonical metric-owner verifier and MISSING-remains-MISSING boundary"
       ],
       "reason": "This alternate FAD projection conflicts with the later epistemic decision in canonical main. A generated-waveform formal proxy cannot become the institutional FAD observation. The branch is rejected rather than silently resurrected."
+    },
+    "daac0ab92b867780": {
+      "decision": "ARCHIVED",
+      "branches": ["feat/manhattan-attractor-founder-away-loop-20260913"],
+      "evidence": [
+        "the branch contains 14 unique commits across institutional evolution, institutional cycle, attractor handling and institutional assignment semantics rather than an interface-only patch",
+        "PR #511 exact-head SFI Verify passed the bounded institutional evolution observer and the complete 54-gate boundary suite without this divergent implementation",
+        "the branch remains strategically relevant provenance for founder-away and Manhattan work but has not been independently revalidated against the converged ownership model"
+      ],
+      "reason": "Preserve the founder-away/Manhattan implementation as non-main provenance instead of smuggling a separate institutional-evolution redesign into the interface convergence. Any revival should be a fresh scoped workstream against the post-#511 architecture."
+    },
+    "348832f3c1ab10c1": {
+      "decision": "DUPLICATE_ALTERNATE",
+      "branches": ["feat/notas-temporales-september-pdf-20260913"],
+      "evidence": [
+        "canonical editorialContent already owns SFI-PUB-NT-001 as the September 2026 temporal issue and records the exact PDF filename, byte length and SHA-256",
+        "the branch adds a second September-specific content contract and modifies publication rendering around the same institutional object",
+        "PR #511 exact-head SFI Verify passed the publications hub and visual identity boundary on the unified editorial owner"
+      ],
+      "reason": "The branch is an alternate representation of an already canonical publication object. Keeping a second September-specific content owner would split identity and provenance; useful historical detail remains available in branch history."
+    },
+    "f9f58a6683aab8fd": {
+      "decision": "DUPLICATE_ALTERNATE",
+      "branches": ["feat/september-temporal-issue-20260913"],
+      "evidence": [
+        "the branch declares SFI-PUB-NT-001 again in a standalone temporal-issue manifest",
+        "the canonical editorial model already declares SFI-PUB-NT-001, September 2026, the exact PDF filename, 23085591-byte length and SHA-256 bbc7c9df27b6f7295f9919a707f5adab3f25ddd44fee194812c8d38259135103",
+        "parallel manifests for one canonical publication would create two competing owners for publication identity"
+      ],
+      "reason": "Retain one publication owner. The standalone manifest duplicates identity already carried by the canonical editorial model and is therefore not merged as a second source of truth."
+    },
+    "0d76eb92ab82ead8": {
+      "decision": "EXPLICITLY_SUPERSEDED",
+      "branches": ["fix/governance-hide-nonroot-actions"],
+      "evidence": [
+        "the branch filters the Governance projection to rootActionRequired=true and its QA still expects ACCEPT/DENY decision controls in Governance",
+        "PR #511 explicitly moves human decisions to ROOT while Governance remains agent/runtime infrastructure and keeps evidence deferral on the ROOT surface",
+        "PR #511 exact-head SFI Verify, Cognitive Spine, CT Institutional Integration and External OAuth all pass under the converged ROOT-decision/Governance-runtime ownership"
+      ],
+      "reason": "The branch addressed a real sovereignty concern using an intermediate UI ownership model. PR #511 resolves the concern more completely by removing sovereign human decision controls from Governance rather than filtering which sovereign proposals Governance may decide."
+    },
+    "c458578b394ed023": {
+      "decision": "TEMPORARY_QA_ONLY",
+      "branches": ["qa/live-publication-case-surface-20260913"],
+      "evidence": [
+        "the branch changes only the production Observatory smoke workflow and adds a bounded live publication/Case QA probe",
+        "its head commit is explicitly test(prod): wire bounded live publication and Case probe",
+        "it introduces no product owner, persistence model, canonical publication object or Case implementation"
+      ],
+      "reason": "This branch is diagnostic QA provenance, not a product implementation branch. It is recorded as temporary QA rather than merged into the interface convergence merely to satisfy branch topology."
     }
   }
 }
