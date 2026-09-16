@@ -21,6 +21,7 @@ export type InstitutionalAccountAccessView = {
   status: 'PENDING' | 'INVITED' | 'ACTIVE' | 'SUSPENDED' | 'INVITE_FAILED';
   invitedAt: string | null;
   activatedAt: string | null;
+  lastInviteError: string | null;
 };
 
 function accessProfile(accessClass: 'INSTITUTIONAL_OBSERVER' | 'INSTITUTIONAL_OPERATOR', title: string) {
@@ -59,7 +60,7 @@ export async function listInstitutionalAccountAccessGrants(): Promise<{
   const service = createServiceSupabaseClient();
   const read = await service
     .from('sfi_account_access_grants')
-    .select('id,email,display_name,title,access_class,status,invited_at,activated_at')
+    .select('id,email,display_name,title,access_class,status,invited_at,activated_at,last_invite_error')
     .order('created_at', { ascending: false })
     .limit(50);
 
@@ -82,6 +83,7 @@ export async function listInstitutionalAccountAccessGrants(): Promise<{
       status: status as InstitutionalAccountAccessView['status'],
       invitedAt: row.invited_at ? String(row.invited_at) : null,
       activatedAt: row.activated_at ? String(row.activated_at) : null,
+      lastInviteError: row.last_invite_error ? String(row.last_invite_error) : null,
     }];
   });
   return { available: true, grants };
@@ -110,21 +112,44 @@ export async function inviteInstitutionalAccountAction(formData: FormData) {
   if (existingGrant.data?.status === 'ACTIVE') redirect(accessStatePath('ya_activa'));
   if (existingGrant.data?.status === 'SUSPENDED') redirect(accessStatePath('suspendida'));
 
-  const pending = await service
-    .from('sfi_account_access_grants')
-    .upsert({
-      email,
-      display_name: displayName,
-      title,
-      access_class: accessClass,
-      status: 'PENDING',
-      invited_by: founder.user.id,
-      updated_at: new Date().toISOString(),
-      last_invite_error: null,
-    }, { onConflict: 'email' })
-    .select('id')
-    .single();
-  if (pending.error || !pending.data) redirect(accessStatePath('registro_no_disponible'));
+  const now = new Date().toISOString();
+  const previousStatus = existingGrant.data?.status ?? null;
+  let grantId: string;
+
+  if (existingGrant.data) {
+    const prepared = await service
+      .from('sfi_account_access_grants')
+      .update({
+        display_name: displayName,
+        title,
+        access_class: accessClass,
+        invited_by: founder.user.id,
+        updated_at: now,
+        last_invite_error: null,
+      })
+      .eq('id', existingGrant.data.id)
+      .select('id')
+      .single();
+    if (prepared.error || !prepared.data) redirect(accessStatePath('registro_no_disponible'));
+    grantId = String(prepared.data.id);
+  } else {
+    const prepared = await service
+      .from('sfi_account_access_grants')
+      .insert({
+        email,
+        display_name: displayName,
+        title,
+        access_class: accessClass,
+        status: 'PENDING',
+        invited_by: founder.user.id,
+        updated_at: now,
+        last_invite_error: null,
+      })
+      .select('id')
+      .single();
+    if (prepared.error || !prepared.data) redirect(accessStatePath('registro_no_disponible'));
+    grantId = String(prepared.data.id);
+  }
 
   const origin = process.env.NEXT_PUBLIC_APP_URL || 'https://www.systemfriction.org';
   const invitation = await service.auth.admin.inviteUserByEmail(email, {
@@ -137,12 +162,13 @@ export async function inviteInstitutionalAccountAction(formData: FormData) {
   });
 
   if (invitation.error || !invitation.data.user) {
+    const inviteError = invitation.error?.message ?? 'invite_user_missing';
     await service.from('sfi_account_access_grants').update({
-      status: 'INVITE_FAILED',
-      last_invite_error: invitation.error?.message ?? 'invite_user_missing',
+      status: previousStatus === 'INVITED' ? 'INVITED' : 'INVITE_FAILED',
+      last_invite_error: inviteError,
       updated_at: new Date().toISOString(),
-    }).eq('id', pending.data.id);
-    redirect(accessStatePath('invitacion_no_enviada'));
+    }).eq('id', grantId);
+    redirect(accessStatePath(/rate limit|too many requests/i.test(inviteError) ? 'limite_correo' : 'invitacion_no_enviada'));
   }
 
   const profile = accessProfile(accessClass, title);
@@ -163,24 +189,24 @@ export async function inviteInstitutionalAccountAction(formData: FormData) {
       user_id: invitation.data.user.id,
       last_invite_error: 'profile_provision_failed',
       updated_at: new Date().toISOString(),
-    }).eq('id', pending.data.id);
+    }).eq('id', grantId);
     redirect(accessStatePath('perfil_no_creado'));
   }
 
-  const now = new Date().toISOString();
+  const invitedAt = new Date().toISOString();
   await service.from('sfi_account_access_grants').update({
     user_id: invitation.data.user.id,
     status: 'INVITED',
-    invited_at: now,
-    updated_at: now,
+    invited_at: invitedAt,
+    updated_at: invitedAt,
     last_invite_error: null,
-  }).eq('id', pending.data.id);
+  }).eq('id', grantId);
 
   await service.from('sfi_audit_events').insert({
     actor_id: founder.user.id,
     action: 'ACCOUNT_INVITATION_SENT',
     target_type: 'sfi_account_access_grant',
-    target_id: String(pending.data.id),
+    target_id: grantId,
     after_state: { email, displayName, title, accessClass, authorityGranted: false },
     context: {
       source: 'root_access_surface',
