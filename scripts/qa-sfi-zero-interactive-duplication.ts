@@ -83,10 +83,12 @@ assert.doesNotMatch(rootRecords,/readAgentExecutionStates|readExecutionRecords|r
 assert.match(externalRuntime,/readAgentExecutionDossier/);
 assert.doesNotMatch(externalRuntime,/readAgentExecutionStates|readExecutionRecords|readGenAiAssuranceMetrics/);
 
-// Governance dossier refresh is event-driven by agent selection/execution, not another timer.
-const dossierEffect=governance.match(/useEffect\(\(\)=>\{const initial=window\.setTimeout\(\(\)=>void loadDossier[\s\S]*?\},\[agentId,loadDossier\]\);/)?.[0]??'';
-assert.ok(dossierEffect,'agent dossier effect missing');
-assert.doesNotMatch(dossierEffect,/setInterval/,'agent dossier must not have periodic duplicate polling');
+// Governance hydration is event-driven by explicit agent selection/execution. Selecting
+// an agent reads only its bounded targets + dossier once; no timer or periodic poll owner.
+assert.match(governance,/if\(!agentId\)\{setDossier\(null\);setEvidenceTargets\(null\);setCaseIndex\(\{projects:\[\],cases:\[\]\}\);setWorkboard\(null\);return\}/,'governance must stay unhydrated until an agent is selected');
+assert.match(governance,/Promise\.all\(\[loadTargets\(false\),loadDossier\(agentId,false\)\]\)/,'agent selection must hydrate targets and dossier once in parallel');
+assert.doesNotMatch(governance,/setTimeout\([^\n]*loadDossier/,'legacy delayed dossier hydration must not return');
+assert.doesNotMatch(governance,/setInterval/,'governance must not poll');
 
 // Mounted interactive workspaces may not reintroduce periodic database hydration.
 assert.doesNotMatch(operating,/setInterval\(/,'operating workspace must remain event/manual-refresh driven');
@@ -94,7 +96,7 @@ assert.doesNotMatch(governance,/setInterval\(/,'governance workspace must remain
 
 console.log(JSON.stringify({
   ok:true,
-  contract:'SFI-ZERO-INTERACTIVE-DUPLICATION-1.2',
+  contract:'SFI-ZERO-INTERACTIVE-DUPLICATION-1.3',
   scope:'ROOT/CASES/TWIN/GOVERNANCE interactive read path',
   invariants:[
     'ONE_BASE_HTTP_AUTH_READ_PER_SCENE_REFRESH',
@@ -105,6 +107,7 @@ console.log(JSON.stringify({
     'ONE_CASE_DOSSIER_READ',
     'ONE_CYCLE_HISTORY_READ_PER_EXPLICIT_DOSSIER',
     'NO_OVERLAPPING_AGENT_EVENT_READS',
+    'AGENT_SELECTION_BOUNDED_HYDRATION',
     'NO_PERIODIC_AGENT_DOSSIER_POLL',
     'NO_NESTED_TWIN_HTTP_READS',
     'NO_NESTED_TWIN_POLLING_LOOP',
