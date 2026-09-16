@@ -33,8 +33,8 @@ assert.ok(boundary.includes("return 'OPERATIONAL_WORK'"), 'generic work must rem
 assert.ok(projection.includes("const ROOT_DECISION_CLASSES = new Set(['INSTITUTIONAL_CHANGE', 'CAPABILITY_IMPLEMENTATION', 'LEARNING_PROMOTION'])"), 'human queue must use the narrow sovereign classes');
 assert.ok(projection.includes("const reports: Row[] = []"), 'reports must not enter the sovereign queue');
 assert.ok(projection.includes('rootActionRequired: false') && projection.includes("kind: 'OPERATIONAL_CYCLE'"), 'routine cycles must remain observable without ROOT approval');
-assert.ok(projection.includes("allowed: ['accept', 'deny']"), 'sovereign actions must be binary ACCEPT/DENY');
-assert.doesNotMatch(projection, /request_evidence|accept_close|deny_close/, 'human queue must not turn evidence or closure into approval actions');
+assert.ok(projection.includes("allowed: ['accept', 'deny']"), 'sovereign decision writer actions must remain ACCEPT/DENY');
+assert.doesNotMatch(projection, /accept_close|deny_close/, 'human queue must not turn closure into approval actions');
 
 assert.equal(interactive.includes('readInteractiveReportApprovals'), false, 'ROOT bootstrap must not hydrate report approvals');
 assert.ok(interactive.includes('reportApprovalReads: 0') && interactive.includes('sovereignReports: false'), 'ROOT read plan must declare reports non-sovereign');
@@ -49,7 +49,7 @@ assert.ok(dossier.includes("error: 'report_is_not_a_sovereign_decision'"), 'repo
 assert.ok(dossier.includes('rootEvidenceApprovalRequired: false'), 'ROOT must never be required to approve evidence candidates');
 assert.ok(dossier.includes('technicalTrace'), 'technical lineage must remain available as drill-down');
 
-assert.ok(decisions.includes("allowed: ['accept', 'deny']"), 'ROOT decision writer must accept only binary decisions');
+assert.ok(decisions.includes("allowed: ['accept', 'deny']"), 'ROOT decision writer must accept only binary terminal decisions');
 assert.ok(decisions.includes("error: 'operational_work_is_not_a_root_decision'"), 'operational work must fail closed at ROOT writer');
 assert.ok(decisions.includes("error: 'report_is_not_a_sovereign_decision'"), 'report decisions must be rejected at the canonical writer');
 assert.ok(decisions.includes("error: 'candidate_capture_is_not_a_sovereign_decision'"), 'candidate capture must not become a sovereign decision');
@@ -60,13 +60,16 @@ assert.ok(root.includes("jsonFetch('/api/root/decisions'"), 'sovereign ACCEPT/DE
 for (const label of ['Quién lo trae', 'Qué pasó', 'Por qué importa', 'Qué propone', 'Qué gana SFI', 'Qué evidencia hay', 'Si aceptas', 'Si deniegas', 'Por qué te corresponde decidir']) {
   assert.ok(root.includes(label), `human-language ROOT section missing: ${label}`);
 }
-assert.ok(root.includes('ACEPTAR') && root.includes('DENEGAR'), 'ROOT must expose binary sovereign decisions');
-assert.ok(root.includes('Reportes institucionales · archivo de lectura') && root.includes('Los reportes informan y reconstruyen') && root.includes('No requieren ACCEPT/DENY'), 'report archive must be explicitly observational/read-only');
+assert.ok(root.includes('ACEPTAR') && root.includes('DENEGAR'), 'ROOT must expose binary terminal sovereign decisions');
+assert.ok(root.includes('SOLICITAR EVIDENCIA'), 'ROOT must be able to defer a sovereign decision and ask SFI to acquire more evidence');
+assert.ok(root.includes('/request-evidence'), 'evidence defer must use the existing governed request-evidence owner');
+assert.ok(root.includes('Solicitud de evidencia registrada') && root.includes('la decisión permanece abierta'), 'requesting evidence must not masquerade as a decision');
+assert.ok(root.includes('no convierte una fuente en evidencia aceptada'), 'ROOT UI must state that requesting/reviewing does not promote a source to accepted evidence');
 assert.equal(root.includes('APROBAR PARA USO HUMANO'), false, 'ROOT must not expose report approval');
 assert.equal(root.includes('RECHAZAR REPORTE'), false, 'ROOT must not expose report rejection');
-assert.equal(root.includes('/request-evidence'), false, 'ROOT must not act as Evidence Hunter');
-assert.equal(root.includes('/evidence-candidates/'), false, 'ROOT must not accept/reject evidence candidates');
+assert.equal(root.includes('/evidence-candidates/'), false, 'ROOT workspace must not directly accept/reject evidence candidates');
 assert.equal(root.includes('decisionKind=report'), false, 'reports must not deep-link into sovereign decisions');
+assert.ok(root.includes('Los reportes se leen completos aquí') && root.includes('no requieren ACCEPT/DENY'), 'report archive must be explicitly observational/read-only');
 
 assert.equal(operating.includes('ACEPTAR Y CERRAR'), false, 'case/cycle workspace must not require approval to close');
 assert.equal(operating.includes('DENEGAR REPORTE'), false, 'case/cycle workspace must not gate reports on user denial');
@@ -87,12 +90,14 @@ assert.ok(learning.includes("eventName: 'SFI_UNIVERSAL_LEARNING_CANDIDATE_RECORD
 
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-ACTIONABLE-SOVEREIGN-INBOX-2.0',
+  contract: 'SFI-ACTIONABLE-SOVEREIGN-INBOX-2.1',
   invariants: [
     'ROOT_ONLY_INSTITUTIONAL_CHANGE_CAPABILITY_IMPLEMENTATION_LEARNING_PROMOTION',
-    'ROOT_ACCEPT_DENY_ONLY',
+    'ROOT_TERMINAL_DECISION_ACCEPT_DENY',
+    'ROOT_MAY_DEFER_AND_REQUEST_MORE_EVIDENCE',
+    'REQUEST_EVIDENCE_DOES_NOT_ACCEPT_EVIDENCE',
     'REPORTS_ARE_OBSERVABLE_NOT_APPROVABLE',
-    'EVIDENCE_IS_SFI_OWNED_NOT_ROOT_APPROVED',
+    'EVIDENCE_CLASSIFICATION_REMAINS_SFI_OWNED',
     'ROUTINE_CLOSE_IS_AUTONOMOUS',
     'LEGACY_AWAITING_USER_CLOSE_READABLE_NOT_ENTERABLE',
     'CLOSURE_CREATES_CANDIDATE_NOT_PROMOTION',
