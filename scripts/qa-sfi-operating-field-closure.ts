@@ -17,6 +17,7 @@ const proofRoute=read('src/app/api/pipeline/verify/route.ts');
 const readiness=read('src/lib/root/closure/readInstitutionalReadiness.ts');
 const scenes=read('src/components/sfi/scenes.ts');
 const shellUi=read('src/components/sfi/SfiConsole.tsx');
+const rootUi=read('src/components/sfi/SfiRootWorkspace.tsx');
 const operatingUi=read('src/components/sfi/SfiOperatingWorkspace.tsx');
 const governanceUi=read('src/components/sfi/SfiGovernanceWorkspace.tsx');
 const interactiveApi=read('src/app/api/root/interactive/route.ts');
@@ -83,11 +84,14 @@ assert.ok(shellUi.includes('ObservatoryConsole') && shellUi.includes('SfiOperati
 assert.ok(observatoryUi.includes("type Lens='field'|'hypotheses'|'trajectory'|'sources'"), 'field_must_expose_observation_hypothesis_trajectory_source_lenses');
 assert.ok(observatoryUi.includes('MÉTRICAS DERIVADAS') && observatoryUi.includes('TRAZA DE CONSECUENCIAS'), 'field_must_expose_metrics_and_traceable_hypothesis_meaning');
 assert.ok(operatingUi.includes('SfiGovernanceWorkspace'), 'governance_scene_must_delegate_to_canonical_workspace');
-assert.ok(governanceUi.includes("jsonFetch('/api/root/interactive?surface=governance')") && governanceUi.includes('setProposals(arr(operationalNext.items))'), 'governed_proposal_feed_missing_from_interactive_projection');
-assert.ok(interactiveApi.includes("proposalQueueSource: 'operationalNext.items'") && interactiveApi.includes('separateProposalListRead: false'), 'governance proposal projection must remain singular');
+assert.ok(governanceUi.includes("jsonFetch('/api/root/interactive?surface=governance')") && governanceUi.includes('includeTargets=1'), 'governance_runtime_must_use_deferred_interactive_projection');
+assert.ok(interactiveApi.includes('targetHydrationDeferred: true') && interactiveApi.includes('separateProposalListRead: false'), 'governance projection must remain singular and defer heavy targets');
 assert.ok(governanceUi.includes('AGENTES') && governanceUi.includes('/api/root/cognitive-runtime/records?agentId='), 'governance_must_surface_selected_agent_runtime_without_duplicate_base_runtime_read');
+assert.doesNotMatch(governanceUi,/setInterval\(/,'governance_must_not_poll');
+assert.doesNotMatch(operatingUi,/setInterval\(/,'operating_workspace_must_not_poll');
 assert.ok(operatingUi.includes("surface==='twin'") && operatingUi.includes('CognitiveSpineAnatomy'), 'cognitive_twin_operating_surface_missing');
-assert.ok(governanceUi.includes('ACEPTAR') && governanceUi.includes('DENEGAR') && governanceUi.includes('PEDIR EVIDENCIA'), 'decision_authority_controls_missing');
+assert.ok(rootUi.includes('ACEPTAR') && rootUi.includes('DENEGAR') && rootUi.includes('SOLICITAR EVIDENCIA'), 'decision_authority_controls_must_live_in_root');
+assert.doesNotMatch(governanceUi,/ACEPTAR|DENEGAR|PEDIR EVIDENCIA|SOLICITAR EVIDENCIA/,'runtime_must_not_duplicate_sovereign_controls');
 
 assert.match(readiness,/EMPTY_READY/);
 assert.match(readiness,/resolvedStudioCapabilityMatrix/);
@@ -108,6 +112,7 @@ console.log(JSON.stringify({
     'full-cycle proof replays only real persisted material and blocks instead of mocking missing organs',
     'operating APIs are surfaced through FIELD plus ROOT/CASES/GOVERNANCE/TWIN instead of parallel legacy dashboards',
     'field keeps metrics separate from AI-inferred meaning and exposes consequence lineage',
+    'ROOT owns sovereign decisions while Governance remains a selectively hydrated runtime surface',
     'clean empty runtime may be READY while scientific validation remains separate',
   ],
 },null,2));
