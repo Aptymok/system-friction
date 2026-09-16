@@ -183,7 +183,8 @@ assert.doesNotMatch(journal, /reasoningTrace\s*:|hiddenReasoning\s*:|rawChainOfT
 assert.ok(scenes.includes("root:{key:'root'"), 'root_live_scene_missing');
 assert.ok(scenes.includes("twin:{key:'twin'"), 'twin_spine_live_scene_missing');
 assert.match(scenes, /LEGACY_INTERNAL_SCENES=.*'identity'/, 'identity_legacy_absorption_must_be_explicit');
-assert.ok(liveUi.includes('COGNITIVE TWIN'), 'cognitive_twin_live_observability_missing');
+assert.ok(scenes.includes("twin:{label:'TWIN / SPINE',title:'Cognitive Twin / Spine'"), 'cognitive_twin_spine_operator_label_missing');
+assert.ok(liveUi.includes('SfiOperatingWorkspace') && liveUi.includes('surface={current}'), 'cognitive_twin_live_surface_dispatch_missing');
 assert.ok(operatingUi.includes('SfiGovernanceWorkspace'), 'cognitive_twin_governance_delegation_missing');
 assert.ok(governanceUi.includes("jsonFetch('/api/root/interactive?surface=governance')") && governanceUi.includes('setProposals(arr(operationalNext.items))'), 'cognitive_twin_proposals_not_governed');
 assert.ok(interactiveApi.includes("proposalQueueSource: 'operationalNext.items'") && interactiveApi.includes('separateProposalListRead: false'), 'cognitive_twin_governance_must_not_duplicate_proposal_feed');
