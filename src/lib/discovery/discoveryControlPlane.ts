@@ -18,7 +18,7 @@ import {
 } from './exposureProjection';
 import { SFI_DISCOVERY_CRAWLER_POLICY } from './crawlerPolicy';
 
-export const SFI_DISCOVERY_CONTROL_PLANE_CONTRACT = 'SFI-DISCOVERY-CONTROL-PLANE-1.1' as const;
+export const SFI_DISCOVERY_CONTROL_PLANE_CONTRACT = 'SFI-DISCOVERY-CONTROL-PLANE-1.2' as const;
 
 type QueryAvailability = 'AVAILABLE' | 'DEGRADED' | 'UNAVAILABLE';
 
@@ -86,7 +86,7 @@ export async function readDiscoveryControlPlane() {
 
   // Interactive ROOT reads are intentionally bounded samples. Exhaustive counts
   // belong to explicit diagnostics/assurance, never ordinary page refreshes.
-  const [representationsQuery, runsQuery, collisionsQuery] = await Promise.all([
+  const [representationsQuery, runsQuery, collisionsQuery, proposalsQuery] = await Promise.all([
     service
       .from('sfi_external_representations')
       .select('canonical_object_key,representation_kind,state,external_url,content_hash,observed_at,created_at')
@@ -102,6 +102,12 @@ export async function readDiscoveryControlPlane() {
       .select('id,run_id,dimension,collision_observed,observed_value,source_identity,observed_at,created_at')
       .order('observed_at', { ascending: false })
       .limit(SAMPLE_LIMIT),
+    service
+      .from('action_proposals')
+      .select('id,status,title,description,proposal_type,objective,risk_level,expected_field_delta,approval_required,created_at,updated_at')
+      .in('proposal_type', ['discovery_mesh_development', 'discovery_mesh_editorial'])
+      .order('created_at', { ascending: false })
+      .limit(50),
   ]);
 
   const representationRead = boundedRead<SfiObservedExternalRepresentation>(
@@ -116,6 +122,10 @@ export async function readDiscoveryControlPlane() {
     (collisionsQuery.data ?? []) as unknown as Record<string, unknown>[],
     collisionsQuery.error,
   );
+  const proposalsRead = boundedRead<Record<string, unknown>>(
+    (proposalsQuery.data ?? []) as unknown as Record<string, unknown>[],
+    proposalsQuery.error,
+  );
 
   const registryErrors = validateCanonicalObjectRegistry(SFI_CANONICAL_OBJECT_REGISTRY);
   const emissions = discoveryEmissionEntries();
@@ -124,8 +134,10 @@ export async function readDiscoveryControlPlane() {
   const publishedRepresentations = representationRead.rows.filter((row) => row.state === 'PUBLISHED' && row.external_url && row.observed_at);
   const failedRepresentations = representationRead.rows.filter((row) => row.state === 'FAILED');
   const latestRun = runsRead.rows[0] ?? null;
+  const developmentProposals = proposalsRead.rows.filter((row) => row.proposal_type === 'discovery_mesh_development');
+  const editorialProposals = proposalsRead.rows.filter((row) => row.proposal_type === 'discovery_mesh_editorial');
   const discoveredDois = doiRefs();
-  const readAvailability = [representationRead.availability, runsRead.availability, collisionsRead.availability];
+  const readAvailability = [representationRead.availability, runsRead.availability, collisionsRead.availability, proposalsRead.availability];
   const overallAvailability: QueryAvailability = registryErrors.length > 0 || readAvailability.includes('UNAVAILABLE')
     ? 'DEGRADED'
     : 'AVAILABLE';
@@ -177,6 +189,16 @@ export async function readDiscoveryControlPlane() {
       metricContract: ['UDR', 'EIC', 'IRD', 'ACR-R', 'ACR-A', 'ACR-C', 'ECR-NAME', 'ECR-DOMAIN', 'ECR-METHOD', 'ECR-ENTITY', 'MPD', 'ERR'],
       falseZero: 'Unavailable/not-observed measurements remain null, never synthetic zero.',
     },
+    autonomy: {
+      contract: 'SFI-DISCOVERY-AUTONOMY-1.0',
+      availability: proposalsRead.availability,
+      developmentProposals,
+      editorialProposals,
+      openDevelopmentProposals: developmentProposals.filter((row) => ['draft', 'proposed'].includes(String(row.status ?? ''))).length,
+      openEditorialProposals: editorialProposals.filter((row) => ['draft', 'proposed'].includes(String(row.status ?? ''))).length,
+      warning: proposalsRead.warning,
+      boundary: 'Discovery Mesh observes and proposes. Approval, execution, canonical mutation and external publication remain governed separately.',
+    },
     academicGraph: {
       state: 'NOT_OBSERVED',
       eligibleCanonicalObjectKeys: emissions
@@ -212,7 +234,7 @@ export async function readDiscoveryControlPlane() {
     failedPublicationsInSample: failedRepresentations,
     exposure,
     readPlan: {
-      dbQueries: 3,
+      dbQueries: 4,
       exactCountProbes: 0,
       pollingLoops: 0,
       nPlusOneReads: 0,
@@ -225,6 +247,8 @@ export async function readDiscoveryControlPlane() {
       discoveryCandidateIsNotCanon: true,
       exposureIsNotPublication: true,
       externalRepresentationIsNotCanon: true,
+      developmentProposalIsNotApproval: true,
+      editorialProposalIsNotPublication: true,
       totalCountUnknownOnInteractiveRead: true,
       unavailableIsNotZero: true,
       externalActionRequiresObservedReceipt: true,
