@@ -37,6 +37,13 @@ function compactAgent(agent: (typeof SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY)[num
   };
 }
 
+function runtimeProjection() {
+  return {
+    agents: SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.map(compactAgent),
+    executionContracts: listExecutionContracts().map(compactExecutionContract),
+  };
+}
+
 export async function GET(request: Request) {
   const gate = await requireRootViewer('root.interactive.read');
   if (!gate.ok) return NextResponse.json(gate.body, { status: gate.status });
@@ -76,6 +83,25 @@ export async function GET(request: Request) {
   }
 
   if (surface === 'governance') {
+    const includeTargets = url.searchParams.get('includeTargets') === '1';
+    if (!includeTargets) {
+      return NextResponse.json({
+        ok: true,
+        surface,
+        runtime: runtimeProjection(),
+        evidence: null,
+        caseIndex: { projects: [], cases: [] },
+        operationalNext: null,
+        readPlan: {
+          authGates: 1,
+          selectiveHydration: true,
+          targetHydrationDeferred: true,
+          databaseReads: 0,
+          agentEventReadDeferredToSelectedDossier: true,
+        },
+      }, { headers: { 'Cache-Control': 'private, no-store' } });
+    }
+
     const [evidence, caseIndex, rawOperationalNext] = await Promise.all([
       readInteractiveEvidenceTargetIndex(),
       readInteractiveCaseIndex(gate.ctx.user.id),
@@ -85,15 +111,14 @@ export async function GET(request: Request) {
     return NextResponse.json({
       ok: true,
       surface,
-      runtime: {
-        agents: SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.map(compactAgent),
-        executionContracts: listExecutionContracts().map(compactExecutionContract),
-      },
+      runtime: runtimeProjection(),
       evidence: { evidence },
       caseIndex,
       operationalNext,
       readPlan: {
         authGates: 1,
+        selectiveHydration: true,
+        targetHydrationDeferred: false,
         duplicateBaseHttpReads: 0,
         proposalQueueSource: 'operationalNext.items',
         separateProposalListRead: false,
@@ -156,6 +181,7 @@ export async function GET(request: Request) {
       duplicateBaseHttpReads: 0,
       operationalNPlusOneReads: 0,
       actionableHumanProjection: true,
+      compactCaseIndex: true,
       reportApprovalReads: 0,
       reportApprovalNPlusOneReads: 0,
       sovereignReports: false,
