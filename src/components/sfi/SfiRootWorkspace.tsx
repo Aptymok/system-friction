@@ -3,9 +3,18 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useAuthState } from '@/components/auth/AuthProvider';
 import './SfiRootWorkspace.css';
 
 type Row = Record<string, any>;
+type CacheEntry = { at:number; data:Row };
+
+const BASE_CACHE_TTL_MS=120_000;
+const DOSSIER_CACHE_TTL_MS=300_000;
+const REPORT_CACHE_TTL_MS=300_000;
+const baseCache=new Map<string,CacheEntry>();
+const dossierCache=new Map<string,CacheEntry>();
+const reportCache=new Map<string,CacheEntry>();
 
 const OBSERVE_LINKS = [
   { href: '/observatory', label: 'Observatorio', note: 'Actividad, ejecución, evidencia, salud y continuidad.' },
@@ -25,6 +34,7 @@ function rows(value: unknown): Row[] {
 }
 function txt(value: unknown, fallback = '—') { return typeof value === 'string' && value.trim() ? value.trim() : fallback; }
 function when(value: unknown) { if (typeof value !== 'string' || !value) return '—'; const parsed = new Date(value); return Number.isNaN(parsed.valueOf()) ? value : parsed.toLocaleString('es-MX'); }
+function cacheFresh(entry:CacheEntry|undefined,ttl:number){return Boolean(entry&&Date.now()-entry.at<ttl)}
 async function jsonFetch(url: string, init?: RequestInit) {
   const response = await fetch(url, { cache: 'no-store', ...init });
   const json = await response.json().catch(() => null);
@@ -52,6 +62,8 @@ function HumanReportBody({ value }: { value: unknown }) {
 
 export function SfiRootWorkspace({ enabled }: { enabled: boolean }) {
   const search = useSearchParams();
+  const auth=useAuthState();
+  const userKey=auth.identity?.userId??'unknown';
   const selectedId = search.get('decision');
   const [base, setBase] = useState<Row | null>(null);
   const [dossier, setDossier] = useState<Row | null>(null);
@@ -64,29 +76,41 @@ export function SfiRootWorkspace({ enabled }: { enabled: boolean }) {
   const [note, setNote] = useState('');
   const [lastReadAt, setLastReadAt] = useState<string | null>(null);
 
-  const loadBase = useCallback(async () => {
+  const loadBase = useCallback(async (force=false) => {
     if (!enabled) return;
-    try { setBase(await jsonFetch('/api/root/interactive?surface=root')); setLastReadAt(new Date().toISOString()); setError(null); }
+    const key=`${userKey}:root`;
+    const cached=baseCache.get(key);
+    if(!force&&userKey!=='unknown'&&cacheFresh(cached,BASE_CACHE_TTL_MS)){
+      setBase(cached!.data);setLastReadAt(new Date(cached!.at).toISOString());setError(null);return;
+    }
+    try { const data=await jsonFetch('/api/root/interactive?surface=root'); if(userKey!=='unknown')baseCache.set(key,{at:Date.now(),data});setBase(data);setLastReadAt(new Date().toISOString());setError(null); }
     catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
-  }, [enabled]);
+  }, [enabled,userKey]);
 
-  const loadDossier = useCallback(async (id: string) => {
+  const loadDossier = useCallback(async (id: string,force=false) => {
+    const key=`${userKey}:decision:${id}`;
+    const cached=dossierCache.get(key);
+    if(!force&&userKey!=='unknown'&&cacheFresh(cached,DOSSIER_CACHE_TTL_MS)){setDossier(cached!.data.dossier??null);setError(null);return;}
     setLoading(true);
-    try { const data = await jsonFetch(`/api/root/decision-dossier?kind=proposal&id=${encodeURIComponent(id)}`); setDossier(data.dossier ?? null); setError(null); }
+    try { const data = await jsonFetch(`/api/root/decision-dossier?kind=proposal&id=${encodeURIComponent(id)}`); if(userKey!=='unknown')dossierCache.set(key,{at:Date.now(),data});setDossier(data.dossier ?? null); setError(null); }
     catch (cause) { setDossier(null); setError(cause instanceof Error ? cause.message : String(cause)); }
     finally { setLoading(false); }
-  }, []);
+  }, [userKey]);
 
-  const loadReportArchive = useCallback(async () => {
-    if (reportArchive || reportArchiveLoading) return;
+  const loadReportArchive = useCallback(async (force=false) => {
+    if (reportArchiveLoading) return;
+    const key=`${userKey}:reports`;
+    const cached=reportCache.get(key);
+    if(!force&&userKey!=='unknown'&&cacheFresh(cached,REPORT_CACHE_TTL_MS)){setReportArchive(cached!.data);setError(null);return;}
+    if(reportArchive&&!force)return;
     setReportArchiveLoading(true);
-    try { setReportArchive(await jsonFetch('/api/root/reports')); setError(null); }
+    try { const data=await jsonFetch('/api/root/reports');if(userKey!=='unknown')reportCache.set(key,{at:Date.now(),data});setReportArchive(data);setError(null); }
     catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
     finally { setReportArchiveLoading(false); }
-  }, [reportArchive, reportArchiveLoading]);
+  }, [reportArchive, reportArchiveLoading,userKey]);
 
-  useEffect(() => { void loadBase(); const timer = window.setInterval(() => void loadBase(), 60000); return () => window.clearInterval(timer); }, [loadBase]);
-  useEffect(() => { if (selectedId) void loadDossier(selectedId); else setDossier(null); setNote(''); }, [selectedId, loadDossier]);
+  useEffect(() => { void loadBase(false); }, [loadBase]);
+  useEffect(() => { if (selectedId) void loadDossier(selectedId,false); else setDossier(null); setNote(''); }, [selectedId, loadDossier]);
 
   const operational = base?.operationalNext ?? {};
   const items = rows(operational.items);
@@ -106,7 +130,7 @@ export function SfiRootWorkspace({ enabled }: { enabled: boolean }) {
       await jsonFetch('/api/root/decisions', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'proposal', id: dossier.id, decision, note: note.trim() || null }) });
       setNotice(decision === 'accept' ? 'Cambio aceptado. La ejecución posterior conserva sus propios límites, evidencia y RETURN.' : 'Cambio denegado. El expediente y su trazabilidad permanecen disponibles.');
       setNote('');
-      await Promise.all([loadBase(), loadDossier(dossier.id)]);
+      await Promise.all([loadBase(true), loadDossier(dossier.id,true)]);
     } catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
     finally { setBusy(null); }
   };
@@ -118,7 +142,7 @@ export function SfiRootWorkspace({ enabled }: { enabled: boolean }) {
       await jsonFetch(`/api/sfi/proposals/${dossier.id}/request-evidence`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ evidence_required: note.trim() || 'Busca evidencia suficiente para sostener, contradecir o volver indeterminada esta propuesta antes de decidir.' }) });
       setNotice('Solicitud de evidencia registrada. SFI inició adquisición gobernada y la decisión permanece abierta.');
       setNote('');
-      await Promise.all([loadBase(), loadDossier(dossier.id)]);
+      await Promise.all([loadBase(true), loadDossier(dossier.id,true)]);
     } catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
     finally { setBusy(null); }
   };
@@ -131,7 +155,7 @@ export function SfiRootWorkspace({ enabled }: { enabled: boolean }) {
   return <div className="rootWorkspace" data-root-visual-contract="SFI-ROOT-VISUAL-2.0" data-root-module-count={OBSERVE_LINKS.length}>
     {(error || notice) && <div className={`rootToast ${error ? 'error' : ''}`}><span>{error || notice}</span><button onClick={() => { setError(null); setNotice(null); }}>×</button></div>}
 
-    <header className="rootHeader"><div className="rootHeaderCopy"><span>ROOT · SOBERANÍA INSTITUCIONAL · AUTHORITY / OBSERVATION / RETURN</span><h1>Decide lo soberano. Observa y lee el resto.</h1><p>SFI opera, busca evidencia, ejecuta capacidades ya autorizadas, registra RETURN y cierra trabajo rutinario sin pedir permiso. ROOT interviene cuando existe una decisión real de autoridad y conserva lectura completa de reportes, casos, aprendizaje y RETURN.</p></div><div className="rootReadState"><span>ESTADO DE LECTURA</span><b>{lastReadAt ? `${readState} · ${when(lastReadAt)}` : `${readState} · esperando primera observación`}</b><button onClick={() => void loadBase()}>Actualizar</button></div></header>
+    <header className="rootHeader"><div className="rootHeaderCopy"><span>ROOT · SOBERANÍA INSTITUCIONAL · AUTHORITY / OBSERVATION / RETURN</span><h1>Decide lo soberano. Observa y lee el resto.</h1><p>SFI opera, busca evidencia, ejecuta capacidades ya autorizadas, registra RETURN y cierra trabajo rutinario sin pedir permiso. ROOT interviene cuando existe una decisión real de autoridad y conserva lectura completa de reportes, casos, aprendizaje y RETURN.</p></div><div className="rootReadState"><span>ESTADO DE LECTURA</span><b>{lastReadAt ? `${readState} · ${when(lastReadAt)}` : `${readState} · esperando primera observación`}</b><button onClick={() => void loadBase(true)}>Actualizar</button></div></header>
 
     <section className="rootPulse" aria-label="Estado institucional observable"><article data-epistemic-state={readState}><span>Decisiones ROOT</span><b>{pulseValue(actionable.length)}</b><small>Sólo cambios soberanos.</small></article><article data-epistemic-state={readState}><span>Casos activos</span><b>{pulseValue(activeCases.length)}</b><small>Se observan; no se aprueban.</small></article><article data-epistemic-state={readState}><span>Ciclos abiertos</span><b>{pulseValue(cycles.length)}</b><small>Pueden cerrar autónomamente.</small></article><article data-epistemic-state={readState}><span>Trabajo observable</span><b>{pulseValue(observable.length)}</b><small>SFI continúa dentro de su autoridad.</small></article></section>
 
@@ -153,7 +177,7 @@ export function SfiRootWorkspace({ enabled }: { enabled: boolean }) {
       </main>
     </div>
 
-    <details className="rootReports" onToggle={(event) => { if (event.currentTarget.open) void loadReportArchive(); }}>
+    <details className="rootReports" onToggle={(event) => { if (event.currentTarget.open) void loadReportArchive(false); }}>
       <summary>REPORTES · OBSERVACIONES · HIPÓTESIS · APRENDIZAJE · RETURN</summary>
       {reportArchiveLoading && <div className="rootEmpty">Leyendo reportes…</div>}
       {reportArchive && <div className="rootReportList">
