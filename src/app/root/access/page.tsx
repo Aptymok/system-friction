@@ -13,8 +13,7 @@ const STATES: Record<string, string> = {
   suspendida: 'Esa cuenta está suspendida. No se reactivó automáticamente.',
   registro_no_disponible: 'El registro de accesos no está disponible todavía.',
   invitacion_no_enviada: 'No se pudo enviar la invitación. No se otorgó acceso.',
-  limite_correo: 'El proveedor de autenticación alcanzó un límite temporal de envío. No se otorgó acceso nuevo; espera a que el proveedor permita otro envío o usa el SMTP institucional configurado.',
-  perfil_no_creado: 'La invitación no se activó porque SFI no pudo preparar el perfil de acceso.',
+  limite_correo: 'El proveedor de autenticación alcanzó un límite temporal de envío. No se otorgó acceso nuevo; vuelve a intentar cuando el límite se libere o configura un proveedor SMTP propio antes de reintentar.',
 };
 
 function statusText(value: string) {
