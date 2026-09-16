@@ -51,10 +51,15 @@ assert.doesNotMatch(reset, /fetch\('\/api\/account\/activate'[\s\S]*?\.catch\(\(
 
 assert.match(activate, /requireAuthenticatedUser\(\)/);
 assert.match(activate, /\.eq\('email', email\)/);
-assert.match(activate, /display_name,title,access_class/);
+assert.match(activate, /display_name,title,access_class,last_invite_error/);
 assert.match(activate, /institutional_account: true/);
 assert.match(activate, /profileWrite/);
 assert.match(activate, /activation_profile_provision_failed/);
+assert.match(activate, /found\.data\.status === 'INVITED'/, 'activation requires a delivered/accepted invitation state');
+assert.match(activate, /found\.data\.status === 'ACTIVE'/, 'active access may be reconciled idempotently');
+assert.match(activate, /retryingVerifiedProfileProvision/, 'only verified profile-provision failures may retry from INVITE_FAILED');
+assert.match(activate, /last_invite_error === 'activation_profile_provision_failed'/);
+assert.doesNotMatch(activate, /\.in\('status', \['PENDING'/, 'PENDING grants must never be promotable by activation');
 assert.match(activate, /status: 'ACTIVE'/);
 assert.match(activate, /\.select\('id,status,activated_at'\)/, 'activation must verify that the grant actually became ACTIVE');
 assert.match(activate, /ACCOUNT_INVITATION_ACTIVATED/);
@@ -92,5 +97,8 @@ console.log(JSON.stringify({
   activationFailureCanBeSilent: false,
   activationRequiresInstitutionalProfile: true,
   activeGrantRequiredForInstitutionalAccount: true,
+  pendingGrantCanActivate: false,
+  deliveryFailedGrantCanActivate: false,
+  verifiedProfileProvisionFailureCanRetry: true,
   failedResendPreservesExistingInvite: true,
 }, null, 2));
