@@ -24,30 +24,6 @@ export type InstitutionalAccountAccessView = {
   lastInviteError: string | null;
 };
 
-function accessProfile(accessClass: 'INSTITUTIONAL_OBSERVER' | 'INSTITUTIONAL_OPERATOR', title: string) {
-  const observer = accessClass === 'INSTITUTIONAL_OBSERVER';
-  return {
-    role: observer ? 'observer' : 'operator',
-    modules: {
-      institutional_account: true,
-      display_title: title,
-      field: true,
-      studio: !observer,
-      observatory: true,
-      world_field: true,
-      root: observer,
-      root_observe: observer,
-      full_access: false,
-      executor: false,
-      root_execution: false,
-      governance_write: false,
-      sovereign_actions: false,
-      canonical_promotion: false,
-      institutional_appointment: false,
-    },
-  } as const;
-}
-
 function accessStatePath(state: string) {
   return `/root/access?state=${encodeURIComponent(state)}`;
 }
@@ -171,33 +147,12 @@ export async function inviteInstitutionalAccountAction(formData: FormData) {
     redirect(accessStatePath(/rate limit|too many requests/i.test(inviteError) ? 'limite_correo' : 'invitacion_no_enviada'));
   }
 
-  const profile = accessProfile(accessClass, title);
-  const profileWrite = await service.from('profiles').upsert({
-    user_id: invitation.data.user.id,
-    email,
-    alias: displayName,
-    role: profile.role,
-    subscription_tier: 'enterprise',
-    module_access: profile.modules,
-    last_seen_at: null,
-    updated_at: new Date().toISOString(),
-  }, { onConflict: 'user_id' });
-
-  if (profileWrite.error) {
-    await service.from('sfi_account_access_grants').update({
-      status: 'INVITE_FAILED',
-      user_id: invitation.data.user.id,
-      last_invite_error: 'profile_provision_failed',
-      updated_at: new Date().toISOString(),
-    }).eq('id', grantId);
-    redirect(accessStatePath('perfil_no_creado'));
-  }
-
   const invitedAt = new Date().toISOString();
   await service.from('sfi_account_access_grants').update({
     user_id: invitation.data.user.id,
     status: 'INVITED',
     invited_at: invitedAt,
+    activated_at: null,
     updated_at: invitedAt,
     last_invite_error: null,
   }).eq('id', grantId);
@@ -207,9 +162,18 @@ export async function inviteInstitutionalAccountAction(formData: FormData) {
     action: 'ACCOUNT_INVITATION_SENT',
     target_type: 'sfi_account_access_grant',
     target_id: grantId,
-    after_state: { email, displayName, title, accessClass, authorityGranted: false },
+    after_state: {
+      email,
+      displayName,
+      title,
+      accessClass,
+      status: 'INVITED',
+      profileProvisioned: false,
+      authorityGranted: false,
+    },
     context: {
       source: 'root_access_surface',
+      profileProvisioningOwner: 'account_activation_route',
       accountAccessIsInstitutionalAppointment: false,
       sovereignAuthorityGranted: false,
       canonicalPromotionAllowed: false,
