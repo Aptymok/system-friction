@@ -93,8 +93,8 @@ assert.ok(masterRoute.includes('requireObjectOwner'), 'master_analysis_owner_gat
 assert.ok(masterRoute.includes('runStudioMasterAnalysisLoop'), 'master_analysis_route_not_wired');
 
 // Studio authority lives in owner-scoped backend runtimes. MODELS/GENAI/AGENTS were
-// absorbed as parallel scenes; their observability survives in ROOT/GOVERNANCE and
-// the provider workboard without becoming a permission bridge for Studio.
+// absorbed as parallel scenes; their observability survives in ROOT/GOVERNANCE/TWIN
+// without becoming a permission bridge for Studio.
 assert.equal(studioPage.includes("redirect('/models')"), false, 'studio_entry_must_not_alias_to_models');
 assert.ok(studioPage.includes('listStudioObjects(user.id)'), 'studio_entry_must_preserve_owner_scope');
 assert.ok(studioPage.includes('getStudioObjectFeatures(activeId, user.id)'), 'studio_entry_must_use_owner_scoped_features');
@@ -102,7 +102,7 @@ assert.ok(scenes.includes("root:{key:'root'"), 'root_scene_missing');
 assert.ok(scenes.includes("governance:{key:'governance'"), 'governance_scene_missing');
 assert.ok(scenes.includes("twin:{key:'twin'"), 'twin_scene_missing');
 assert.ok(/LEGACY_INTERNAL_SCENES=.*'agents'.*'models'.*'genai'/s.test(scenes), 'absorbed_cognitive_observability_scenes_missing');
-assert.ok(liveUi.includes('COGNITIVE TWIN'), 'studio_twin_observability_missing');
+assert.ok(scenes.includes("twin:{label:'TWIN / SPINE',title:'Cognitive Twin / Spine'") && liveUi.includes('SfiOperatingWorkspace') && liveUi.includes('surface={current}'), 'studio_twin_observability_missing');
 assert.ok(operatingUi.includes('SfiGovernanceWorkspace') && governanceUi.includes('AGENTES'), 'studio_agent_observability_missing');
 assert.ok(rootWorkboard.includes('getLlmProviderStatus') && rootWorkboard.includes('providerHealthBoundary'), 'studio_model_provider_observability_missing');
 assert.ok(rootWorkboard.includes('readContinuityDashboard') && rootWorkboard.includes('heartbeatAgeMinutes') && rootWorkboard.includes('latestRun'), 'studio_runtime_telemetry_missing');
