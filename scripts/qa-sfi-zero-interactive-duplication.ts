@@ -13,12 +13,13 @@ const agentDossier=read('src/lib/sfi/cognitive-runtime/agentDossierRead.ts');
 const rootRecords=read('src/app/api/root/cognitive-runtime/records/route.ts');
 const externalRuntime=read('src/app/api/external/v1/cognitive-runtime/route.ts');
 
-// One base HTTP/auth read per interactive scene.
+// One base HTTP/auth read per interactive scene. Recent reads may be reused in-memory;
+// explicit mutations force a single parent refresh instead of reviving polling.
 assert.match(operating,/jsonFetch\(`\/api\/root\/interactive\?surface=\$\{encodeURIComponent\(surface\)\}`\)/);
 assert.doesNotMatch(operating,/jsonFetch\('\/api\/root\/operational-next'\)/);
 assert.doesNotMatch(operating,/jsonFetch\('\/api\/cases'\)/);
 assert.doesNotMatch(operating,/jsonFetch\('\/api\/root\/learning'\)/);
-assert.match(governance,/jsonFetch\('\/api\/root\/interactive\?surface=governance'\)/);
+assert.match(governance,/jsonFetch\('\/api\/root\/interactive\?surface=governance/);
 for(const forbidden of ['/api/root/console','/api/root/evidence/targets',"jsonFetch('/api/cases')","jsonFetch('/api/root/operational-next')","jsonFetch('/api/acp/proposals')"]){
   assert.equal(governance.includes(forbidden),false,`governance_duplicate_base_read:${forbidden}`);
 }
@@ -27,7 +28,7 @@ for(const forbidden of ['/api/root/console','/api/root/evidence/targets',"jsonFe
 // compatibility fallback for dormant legacy owners, but the canonical operating
 // scene always supplies projection and therefore cannot start a second polling loop.
 assert.match(operating,/projection=\{twinProjection\}/,'canonical Twin must pass the already-loaded projection to anatomy');
-assert.match(operating,/onRefresh=\{loadBase\}/,'Twin mutations must return through the parent refresh instead of nested reloads');
+assert.match(operating,/onRefresh=\{\(\)=>loadBase\(true\)\}/,'Twin mutations must force exactly one parent refresh instead of nested reloads or stale-cache reuse');
 assert.match(operating,/canOperate=\{twinAuthority==='root'\}/,'Twin sovereign controls must use server-derived authority');
 assert.match(interactiveRoute,/nestedTwinHttpReads:\s*0/);
 assert.match(interactiveRoute,/nestedTwinPollingLoops:\s*0/);
@@ -87,12 +88,17 @@ const dossierEffect=governance.match(/useEffect\(\(\)=>\{const initial=window\.s
 assert.ok(dossierEffect,'agent dossier effect missing');
 assert.doesNotMatch(dossierEffect,/setInterval/,'agent dossier must not have periodic duplicate polling');
 
+// Mounted interactive workspaces may not reintroduce periodic database hydration.
+assert.doesNotMatch(operating,/setInterval\(/,'operating workspace must remain event/manual-refresh driven');
+assert.doesNotMatch(governance,/setInterval\(/,'governance workspace must remain event/manual-refresh driven');
+
 console.log(JSON.stringify({
   ok:true,
-  contract:'SFI-ZERO-INTERACTIVE-DUPLICATION-1.1',
+  contract:'SFI-ZERO-INTERACTIVE-DUPLICATION-1.2',
   scope:'ROOT/CASES/TWIN/GOVERNANCE interactive read path',
   invariants:[
     'ONE_BASE_HTTP_AUTH_READ_PER_SCENE_REFRESH',
+    'RECENT_READ_REUSE_WITH_FORCED_POST_MUTATION_REFRESH',
     'NO_DUPLICATE_PROPOSAL_FEED',
     'NO_N_PLUS_ONE_EVIDENCE_READINESS',
     'NO_N_PLUS_ONE_CYCLE_HISTORY',
@@ -102,5 +108,6 @@ console.log(JSON.stringify({
     'NO_PERIODIC_AGENT_DOSSIER_POLL',
     'NO_NESTED_TWIN_HTTP_READS',
     'NO_NESTED_TWIN_POLLING_LOOP',
+    'NO_PERIODIC_INTERACTIVE_DB_HYDRATION',
   ],
 },null,2));
