@@ -7,6 +7,7 @@ import {
 } from '@/runtime/supabase/server';
 import { findInstitutionalMember } from '@/lib/system/access/institutionalMembers';
 import { isConfiguredFounderIdentity, resolveFounderAuthority } from '@/lib/system/access/founderAuthority';
+import { hasActiveInstitutionalAccountGrant } from '@/lib/system/access/server';
 
 export const PRODUCTION_APP_URL =
   process.env.NEXT_PUBLIC_APP_URL || 'https://systemfriction.org';
@@ -180,6 +181,23 @@ export async function getServerUserContext() {
   const isRoot = founderAuthority.isFounder;
   const legacyRootWithoutAuthority = isRootRole(role) && !isRoot;
   const registeredObserver = isRegisteredInstitutionalRootObserver(user.email);
+  const profileAccess = profile ? record(profile.module_access) : {};
+  let activeInstitutionalAccount = false;
+
+  if (profileAccess.institutional_account === true) {
+    try {
+      activeInstitutionalAccount = await hasActiveInstitutionalAccountGrant(user);
+    } catch (error) {
+      console.error('INSTITUTIONAL ACCOUNT GRANT READ ERROR', {
+        userId: user.id,
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  const observerRoleAuthorized = isInstitutionalObserverRole(role) && (
+    Boolean(institutionalMember) || activeInstitutionalAccount
+  );
 
   return {
     supabase,
@@ -190,7 +208,7 @@ export async function getServerUserContext() {
     founderAuthoritySource: founderAuthority.source,
     canObserveRoot:
       isRoot ||
-      isInstitutionalObserverRole(role) ||
+      observerRoleAuthorized ||
       legacyRootWithoutAuthority ||
       registeredObserver,
     authState: 'authenticated' as const,
