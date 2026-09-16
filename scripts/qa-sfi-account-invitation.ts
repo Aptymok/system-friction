@@ -9,6 +9,7 @@ const forgot = read('src/app/forgot/page.tsx');
 const reset = read('src/components/sfi/PasswordResetSurface.tsx');
 const activate = read('src/app/api/account/activate/route.ts');
 const accessServer = read('src/lib/system/access/server.ts');
+const productionBackend = read('src/lib/server/productionBackend.ts');
 const login = read('src/components/sfi/LoginSurface.tsx');
 
 assert.match(migration, /sfi_account_access_grants/);
@@ -26,15 +27,8 @@ assert.match(invite, /INSTITUTIONAL_OBSERVER/);
 assert.match(invite, /INSTITUTIONAL_OPERATOR/);
 assert.match(invite, /previousStatus === 'INVITED'/, 'a failed resend must not erase an already-sent invitation state');
 assert.match(invite, /limite_correo/, 'mail-provider rate limits must be represented explicitly');
-for (const invariant of [
-  'full_access: false',
-  'executor: false',
-  'root_execution: false',
-  'governance_write: false',
-  'sovereign_actions: false',
-  'canonical_promotion: false',
-  'institutional_appointment: false',
-]) assert.ok(invite.includes(invariant), `missing bounded-access invariant: ${invariant}`);
+assert.doesNotMatch(invite, /from\('profiles'\)/, 'INVITE must not provision institutional authorization profile before activation');
+assert.match(invite, /profileProvisioned: false/);
 
 assert.match(rootAccess, /inviteInstitutionalAccountAction/);
 assert.match(rootAccess, /listInstitutionalAccountAccessGrants/);
@@ -64,14 +58,29 @@ assert.match(activate, /activation_profile_provision_failed/);
 assert.match(activate, /status: 'ACTIVE'/);
 assert.match(activate, /\.select\('id,status,activated_at'\)/, 'activation must verify that the grant actually became ACTIVE');
 assert.match(activate, /ACCOUNT_INVITATION_ACTIVATED/);
+for (const invariant of [
+  'full_access: false',
+  'executor: false',
+  'root_execution: false',
+  'governance_write: false',
+  'sovereign_actions: false',
+  'canonical_promotion: false',
+  'institutional_appointment: false',
+]) assert.ok(activate.includes(invariant), `missing bounded-access invariant at activation: ${invariant}`);
 
-assert.match(accessServer, /access\.institutional_account === true/);
+assert.match(accessServer, /hasActiveInstitutionalAccountGrant/);
+assert.match(accessServer, /grant\.data\.status === 'ACTIVE'/);
+assert.match(accessServer, /access\.institutional_account === true[\s\S]*?hasActiveInstitutionalAccountGrant\(context\.user\)/);
+assert.match(productionBackend, /hasActiveInstitutionalAccountGrant/);
+assert.match(productionBackend, /observerRoleAuthorized/);
+assert.match(productionBackend, /Boolean\(institutionalMember\) \|\| activeInstitutionalAccount/);
+
 assert.match(login, /\/forgot/);
 assert.equal(existsSync('src/app/signup/page.tsx'), false, 'public signup surface must remain absent');
 
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-ACCOUNT-INVITATION-LIFECYCLE-1.2',
+  contract: 'SFI-ACCOUNT-INVITATION-LIFECYCLE-1.3',
   invitationOnly: true,
   temporaryPasswordGenerated: false,
   founderAdminRequired: true,
@@ -82,5 +91,6 @@ console.log(JSON.stringify({
   humanInterfaceOwnsPersistence: false,
   activationFailureCanBeSilent: false,
   activationRequiresInstitutionalProfile: true,
+  activeGrantRequiredForInstitutionalAccount: true,
   failedResendPreservesExistingInvite: true,
 }, null, 2));
