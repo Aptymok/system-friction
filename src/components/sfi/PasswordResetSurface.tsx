@@ -3,6 +3,13 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { createBrowserSupabaseClient } from '@/runtime/supabase/client';
 
+type ActivationResponse = {
+  ok?: boolean;
+  activated?: boolean;
+  passwordAccepted?: boolean;
+  message?: string;
+};
+
 export function PasswordResetSurface({ mode }: { mode: 'invite' | 'recovery' }) {
   const sb = useMemo(() => createBrowserSupabaseClient(), []);
   const [ready, setReady] = useState(false);
@@ -59,7 +66,35 @@ export function PasswordResetSurface({ mode }: { mode: 'invite' | 'recovery' }) 
       setBusy(false);
       return;
     }
-    await fetch('/api/account/activate', { method: 'POST', credentials: 'same-origin' }).catch(() => null);
+
+    if (mode === 'invite') {
+      let activation: Response;
+      try {
+        activation = await fetch('/api/account/activate', { method: 'POST', credentials: 'same-origin' });
+      } catch {
+        setMessage('La contraseña quedó guardada, pero SFI no pudo confirmar el acceso institucional. Solicita revisión antes de continuar.');
+        setBusy(false);
+        return;
+      }
+
+      let activationBody: ActivationResponse = {};
+      try {
+        activationBody = await activation.json() as ActivationResponse;
+      } catch {
+        activationBody = {};
+      }
+
+      if (!activation.ok || activationBody.ok !== true || activationBody.activated !== true) {
+        setMessage(
+          activationBody.message
+            ? `${activationBody.message} La contraseña ya quedó guardada; no necesitas volver a definirla.`
+            : 'La contraseña quedó guardada, pero SFI no confirmó el acceso institucional. Solicita revisión antes de continuar.',
+        );
+        setBusy(false);
+        return;
+      }
+    }
+
     window.location.href = '/entry';
   };
 
