@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200" role="img" aria-labelledby="title desc">
+  <title id="title">System Friction Institute · Discovery Mesh</title>
+  <desc id="desc">Diagrama institucional de la trayectoria Exposure, Discovery, Recognition, Interaction, Relation, Propagation, Pull y Return. Publicar no equivale a ser encontrado.</desc>
+  <rect width="1200" height="1200" fill="#0b0c0e"/>
+  <rect x="42" y="42" width="1116" height="1116" fill="none" stroke="#e8e6df" stroke-width="2"/>
+  <g fill="#e8e6df" font-family="Arial, Helvetica, sans-serif">
+    <text x="82" y="112" font-size="26" letter-spacing="5">SYSTEM FRICTION INSTITUTE</text>
+    <text x="82" y="170" font-size="56" font-weight="700" letter-spacing="1">DISCOVERY MESH</text>
+    <text x="82" y="212" font-size="20" letter-spacing="3">OBSERVAR · CONTRASTAR · RETORNAR</text>
+  </g>
+  <line x1="82" y1="258" x2="1118" y2="258" stroke="#e8e6df" stroke-width="1" opacity="0.55"/>
+
+  <g stroke="#e8e6df" fill="none" stroke-width="2">
+    <line x1="125" y1="568" x2="1075" y2="568"/>
+    <line x1="125" y1="568" x2="125" y2="530"/>
+    <line x1="260" y1="568" x2="260" y2="606"/>
+    <line x1="395" y1="568" x2="395" y2="530"/>
+    <line x1="530" y1="568" x2="530" y2="606"/>
+    <line x1="665" y1="568" x2="665" y2="530"/>
+    <line x1="800" y1="568" x2="800" y2="606"/>
+    <line x1="935" y1="568" x2="935" y2="530"/>
+    <line x1="1075" y1="568" x2="1075" y2="606"/>
+  </g>
+
+  <g fill="#0b0c0e" stroke="#e8e6df" stroke-width="2">
+    <circle cx="125" cy="568" r="13"/><circle cx="260" cy="568" r="13"/><circle cx="395" cy="568" r="13"/><circle cx="530" cy="568" r="13"/>
+    <circle cx="665" cy="568" r="13"/><circle cx="800" cy="568" r="13"/><circle cx="935" cy="568" r="13"/><circle cx="1075" cy="568" r="13"/>
+  </g>
+
+  <g fill="#e8e6df" font-family="Arial, Helvetica, sans-serif" font-size="17" letter-spacing="1.5">
+    <text x="82" y="500">01 · EXPOSURE</text>
+    <text x="213" y="646">02 · DISCOVERY</text>
+    <text x="334" y="500">03 · RECOGNITION</text>
+    <text x="477" y="646">04 · INTERACTION</text>
+    <text x="615" y="500">05 · RELATION</text>
+    <text x="741" y="646">06 · PROPAGATION</text>
+    <text x="902" y="500">07 · PULL</text>
+    <text x="1020" y="646">08 · RETURN</text>
+  </g>
+
+  <g fill="#e8e6df" font-family="Arial, Helvetica, sans-serif">
+    <text x="82" y="770" font-size="28" font-weight="700" letter-spacing="2">PUBLICAR ≠ SER ENCONTRADO</text>
+    <text x="82" y="814" font-size="20">El Mesh no completa trayectorias por narrativa.</text>
+    <text x="82" y="845" font-size="20">Un estado sólo avanza cuando existe observación elegible.</text>
+  </g>
+
+  <g fill="#e8e6df" font-family="Arial, Helvetica, sans-serif" font-size="18" letter-spacing="1.2">
+    <text x="82" y="940">UDR</text><text x="178" y="940">EIC</text><text x="274" y="940">IRD</text><text x="370" y="940">ACR</text>
+    <text x="466" y="940">ECR</text><text x="562" y="940">MPD</text><text x="658" y="940">ERR</text>
+  </g>
+  <line x1="82" y1="965" x2="760" y2="965" stroke="#e8e6df" opacity="0.45"/>
+  <g fill="#e8e6df" font-family="Arial, Helvetica, sans-serif" font-size="15" opacity="0.72">
+    <text x="82" y="1002">NOT_OBSERVED permanece NOT_OBSERVED.</text>
+    <text x="82" y="1029">NULL no se convierte en cero.</text>
+    <text x="82" y="1056">PROPUESTA no equivale a APROBACIÓN.</text>
+  </g>
+
+  <g transform="translate(905 878)">
+    <rect width="170" height="170" fill="none" stroke="#e8e6df" stroke-width="2"/>
+    <text x="22" y="64" fill="#e8e6df" font-family="Arial, Helvetica, sans-serif" font-size="44" font-weight="700">SFI</text>
+    <text x="22" y="95" fill="#e8e6df" font-family="Arial, Helvetica, sans-serif" font-size="14" letter-spacing="2">MESH / 2026</text>
+    <line x1="22" y1="118" x2="148" y2="118" stroke="#e8e6df"/>
+    <text x="22" y="144" fill="#e8e6df" font-family="Arial, Helvetica, sans-serif" font-size="12">METHOD NOTE 014</text>
+  </g>
+</svg>
