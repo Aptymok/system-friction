@@ -24,9 +24,6 @@ export function SfiGovernanceWorkspace({enabled}:{enabled:boolean}){
   const [evidenceTargets,setEvidenceTargets]=useState<Row|null>(null);
   const [caseIndex,setCaseIndex]=useState<Row>({projects:[],cases:[]});
   const [workboard,setWorkboard]=useState<Row|null>(null);
-  const [proposals,setProposals]=useState<Row[]>([]);
-  const [proposalReadState,setProposalReadState]=useState<'READY'|'DEGRADED'>('READY');
-  const [proposalReadError,setProposalReadError]=useState<string|null>(null);
   const [agentId,setAgentId]=useState('evidence_hunter');
   const [dossier,setDossier]=useState<Row|null>(null);
   const [selectedExecutionId,setSelectedExecutionId]=useState<string|null>(null);
@@ -53,15 +50,10 @@ export function SfiGovernanceWorkspace({enabled}:{enabled:boolean}){
 
   const loadBase=useCallback(async()=>{if(!enabled)return;try{
     const data=await jsonFetch('/api/root/interactive?surface=governance');
-    const operationalNext=data.operationalNext??{};
-    const proposalWarnings=strings(operationalNext.warnings).filter(warning=>warning.startsWith('action_proposals:'));
     setRuntime(data.runtime??null);
     setEvidenceTargets(data.evidence??null);
     setCaseIndex({projects:data.caseIndex?.projects??[],cases:data.caseIndex?.cases??[]});
-    setWorkboard({operationalNext});
-    setProposals(arr(operationalNext.items));
-    setProposalReadState(proposalWarnings.length?'DEGRADED':'READY');
-    setProposalReadError(proposalWarnings.length?proposalWarnings.join(' · '):null);
+    setWorkboard({operationalNext:data.operationalNext??{}});
     setError(null);
   }catch(cause){setError(cause instanceof Error?cause.message:String(cause))}},[enabled]);
 
@@ -123,8 +115,6 @@ export function SfiGovernanceWorkspace({enabled}:{enabled:boolean}){
   const canExecute=Boolean(agentId&&contract&&purpose.trim()&&targetCountValid&&!missingRequiredParameters.length&&busy!=='agent');
 
   const heartbeat=async()=>{setBusy('heartbeat');try{const result=await jsonFetch('/api/root/continuity',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'heartbeat'})});setNotice(result.result?.humanSummary?.message??'Ronda de continuidad ejecutada.');await loadBase()}catch(cause){setError(cause instanceof Error?cause.message:String(cause))}finally{setBusy(null)}};
-  const decideProposal=async(item:Row,decision:'approve'|'reject')=>{setBusy(`proposal:${item.id}`);try{await jsonFetch(`/api/acp/proposals/${item.id}/${decision}`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({note:decision==='approve'?'Autorizado desde Gobernanza IA.':'Denegado desde Gobernanza IA.'})});setNotice(decision==='approve'?'Propuesta autorizada.':'Propuesta denegada.');await loadBase()}catch(cause){setError(cause instanceof Error?cause.message:String(cause))}finally{setBusy(null)}};
-  const requestEvidence=async(item:Row)=>{setBusy(`proposal:${item.id}`);try{await jsonFetch(`/api/sfi/proposals/${item.id}/request-evidence`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({evidence_required:'Busca evidencia suficiente para sostener, contradecir o volver indeterminada esta propuesta antes de decidir.'})});setNotice('Solicitud de evidencia registrada. SFI inició adquisición gobernada.');await loadBase()}catch(cause){setError(cause instanceof Error?cause.message:String(cause))}finally{setBusy(null)}};
 
   const runAgent=async()=>{if(!canExecute||!contract)return;setBusy('agent');setAgentResult(null);try{
     let uploadedEvidenceId:string|undefined;
@@ -139,14 +129,13 @@ export function SfiGovernanceWorkspace({enabled}:{enabled:boolean}){
   }catch(cause){setError(cause instanceof Error?cause.message:String(cause))}finally{setBusy(null)}};
 
   if(!enabled)return null;
-  const openProposals=proposals.filter(item=>['proposed','waiting_evidence','needs_evidence'].includes(String(item.status)));
   const parameterKeys=[...new Set([...requiredParameters,...optionalParameters])];
 
   return <div className="sfiGovernanceLayout">
     {(error||notice)&&<div className={`sfiToast ${error?'error':''}`}><span>{error||notice}</span><button onClick={()=>{setError(null);setNotice(null)}}>×</button></div>}
-    <section className="sfiGovernancePanel agentPanel"><header><span>AGENTES · PASSPORT</span><b>{agents.length}</b></header><div className="sfiAgentList">{agents.map(agent=><button key={agent.id} className={agentId===agent.id?'selected':''} onClick={()=>setAgentId(agent.id)}><small>{agent.layer} · {agent.domain}</small><strong>{agent.name}</strong><p>{agent.purpose}</p><em>{agent.humanApprovalRequired?'Autoridad humana requerida donde aplique':'Autoridad no expandida por el modelo'}</em></button>)}</div></section>
+    <section className="sfiGovernancePanel agentPanel"><header><span>AGENTES · PASSPORT</span><b>{agents.length}</b></header><div className="sfiAgentList">{agents.map(agent=><button key={agent.id} className={agentId===agent.id?'selected':''} onClick={()=>setAgentId(agent.id)}><small>{agent.layer} · {agent.domain}</small><strong>{agent.name}</strong><p>{agent.purpose}</p><em>{agent.humanApprovalRequired?'La autoridad humana se resuelve en ROOT cuando aplique':'Autoridad no expandida por el modelo'}</em></button>)}</div></section>
 
-    <section className="sfiGovernancePanel operatorPanel"><header><span>DOSSIER OPERACIONAL · {selectedAgent?.name??agentId}</span><button className="heartbeat" disabled={busy==='heartbeat'} onClick={()=>void heartbeat()}>{busy==='heartbeat'?'Ejecutando…':'Ejecutar heartbeat ahora'}</button></header><div className="sfiOperatorForm">
+    <section className="sfiGovernancePanel operatorPanel"><header><span>RUNTIME / AGENTES · {selectedAgent?.name??agentId}</span><button className="heartbeat" disabled={busy==='heartbeat'} onClick={()=>void heartbeat()}>{busy==='heartbeat'?'Ejecutando…':'Ejecutar heartbeat ahora'}</button></header><div className="sfiOperatorForm">
       <div className="sfiMetaGrid"><span>Infraestructura: <Status value={state?.infrastructure}/></span><span>Trabajo: <Status value={state?.work}/></span><span>Epistemología: <Status value={state?.epistemic}/></span><span>Autoridad: <Status value={state?.authority}/></span><span>Última ejecución: {date(state?.latestExecutionAt)}</span><span>Última inferencia: {date(state?.latestInferenceAt)}</span><span>Interacción genérica: {state?.latestInteractionObservation==='OBSERVED'?date(state?.latestInteractionAt):'NO OBSERVADA'}</span><span>Contrato: {contract?.version??'—'}</span></div>
       <p>{dossier?.passport?.purpose??selectedAgent?.purpose}</p>
       <div className="sfiMetaGrid"><span>LEE: {arr(dossier?.passport?.reads).map(item=>txt(item.memory??item)).join(', ')||'—'}</span><span>ESCRIBE: {arr(dossier?.passport?.writes).map(item=>txt(item.memory??item)).join(', ')||'—'}</span><span>EMITE: {strings(dossier?.passport?.emits).join(', ')||'—'}</span><span>Perfil: {contract?.governanceProfile??'—'}</span></div>
@@ -171,7 +160,5 @@ export function SfiGovernanceWorkspace({enabled}:{enabled:boolean}){
       {selectedExecution&&<div className="sfiAgentResult"><h3>LINEAGE DE EJECUCIÓN</h3><div className="sfiMetaGrid"><span>Solicitud: {selectedExecution.requestSource??'N/O'}</span><span>Actor: {selectedExecution.requestedBy??'N/O'}</span><span>Contrato: {selectedExecution.contractVersion??'N/O'}</span><span>Autoridad: {humanState(selectedExecution.authority)}</span><span>Gobernanza: {selectedExecution.governance?.disposition??'N/O'}</span><span>Proveedor/modelo: {selectedExecution.telemetry?.provider?.value??'N/O'} / {selectedExecution.telemetry?.model?.value??'N/O'}</span><span>Tokens entrada: {selectedExecution.telemetry?.inputTokens?.observation==='OBSERVED'?selectedExecution.telemetry.inputTokens.value:'NOT_OBSERVED'}</span><span>Coste: {selectedExecution.telemetry?.providerCost?.observation==='OBSERVED'?selectedExecution.telemetry.providerCost.value:'NOT_OBSERVED'}</span></div><p>{selectedExecution.interpretation?.summary??'No existe inferencia observada para esta ejecución.'}</p><p>Contexto ≠ evidencia · evidencia antes/después: {selectedExecution.evidence?.before??'N/O'} → {selectedExecution.evidence?.after??'N/O'} · cobertura parcial: {String(selectedExecution.contextCoverage?.partial??'N/O')}</p><Trace value={selectedExecution}/></div>}
       {dossier?.historyRead&&<p>{strings(dossier.historyRead.warnings).join(' · ')}</p>}
     </div></section>
-
-    <section className="sfiGovernancePanel decisionPanel"><header><span>DECISIONES</span><b>{openProposals.length}</b></header>{proposalReadState==='DEGRADED'&&<div className="sfiToast error"><span>Fuente de propuestas DEGRADED · se conserva la última cola visible. {proposalReadError}</span></div>}<div className="sfiDecisionList">{openProposals.map(item=><article key={item.id}><Status value={item.status}/><strong>{item.title||item.proposalType||'Propuesta'}</strong><p>{short(item.actionLabel??item.objective??item.expected_field_delta?.objective??'SFI solicita una decisión gobernada.',260)}</p><div><button onClick={()=>void decideProposal(item,'approve')} disabled={busy===`proposal:${item.id}`}>ACEPTAR</button><button onClick={()=>void requestEvidence(item)} disabled={busy===`proposal:${item.id}`}>PEDIR EVIDENCIA</button><button className="deny" onClick={()=>void decideProposal(item,'reject')} disabled={busy===`proposal:${item.id}`}>DENEGAR</button></div></article>)}{proposalReadState==='READY'&&openProposals.length===0&&<p>No hay decisiones abiertas.</p>}</div></section>
   </div>;
 }
