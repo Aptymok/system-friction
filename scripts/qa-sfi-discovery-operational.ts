@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 
 async function text(path: string) { return readFile(path, 'utf8'); }
@@ -6,6 +7,12 @@ async function text(path: string) { return readFile(path, 'utf8'); }
 async function main() {
   const mesh = await text('src/lib/discovery/discoveryMesh.ts');
   const repository = await text('src/lib/discovery/discoveryRepository.ts');
+  const autonomy = await text('src/lib/discovery/discoveryAutonomy.ts');
+  const controlPlane = await text('src/lib/discovery/discoveryControlPlane.ts');
+  const rootPage = await text('src/app/root/discovery/page.tsx');
+  const continuityRoute = await text('src/app/api/cron/continuity-report/route.ts');
+  const notePage = await text('src/app/publications/discovery-mesh-publicar-no-es-ser-encontrado/page.tsx');
+  const publicationsHub = await text('src/app/publications/page.tsx');
   const route = await text('src/app/api/discovery/observe/route.ts');
   const migration = await text('supabase/migrations/20260908004000_create_sfi_discovery_observation_plane.sql');
   const canonical = await text('src/lib/discovery/canonicalObjectRegistry.ts');
@@ -44,6 +51,38 @@ async function main() {
   assert(repository.includes("from('sfi_entity_collisions')"), 'collision persistence owner missing');
   assert(repository.includes("run_id: result.observationId"), 'deterministic replay identity missing');
   assert(repository.includes("code === '23505'"), 'idempotent replay handling missing');
+  assert(repository.includes('runAutomaticDiscoveryObservationCycle'), 'automatic bounded observation cycle missing');
+
+  // Discovery self-observation may propose its own development, but never approve or execute it.
+  assert(autonomy.includes("SFI-DISCOVERY-AUTONOMY-1.0"), 'discovery autonomy contract missing');
+  assert(autonomy.includes('runAutomaticDiscoveryObservationCycle'), 'autonomy must reuse canonical automatic observation cycle');
+  assert(autonomy.includes('readDiscoveryRun'), 'autonomy must read persisted observation rather than invent metrics');
+  assert(autonomy.includes("from('action_proposals')"), 'autonomy must reuse governed proposal owner');
+  assert(autonomy.includes("proposal_type: 'discovery_mesh_development'"), 'development proposal class missing');
+  assert(autonomy.includes("proposal_type: 'discovery_mesh_editorial'"), 'editorial proposal class missing');
+  assert(autonomy.includes('approval_required: true'), 'autonomy proposals must require approval');
+  assert(autonomy.includes('automaticExecution: false'), 'autonomy must not self-execute development');
+  assert(autonomy.includes('automaticPublication: false'), 'autonomy must not self-publish future notes');
+  assert(autonomy.includes('canonicalMutation: false'), 'autonomy must not mutate canon');
+  assert(autonomy.includes("eventName: 'discovery.autonomy.proposals.generated'"), 'autonomy epistemic trace missing');
+  for (const key of ['DISCOVERY_UNBRANDED_RETRIEVAL_COVERAGE','DISCOVERY_AI_RETRIEVAL_COVERAGE','DISCOVERY_ENTITY_RECONSTRUCTION_COVERAGE','DISCOVERY_REFERENCE_DENSITY_COVERAGE','DISCOVERY_PROPAGATION_COVERAGE']) {
+    assert(autonomy.includes(key), `development recommendation missing:${key}`);
+  }
+  assert(continuityRoute.includes('runDiscoveryAutonomyCycle'), 'existing continuity cron must own discovery autonomy cadence');
+  assert(!continuityRoute.includes('runAutomaticDiscoveryObservationCycle'), 'continuity route must not bypass autonomy wrapper');
+  assert(continuityRoute.includes('No additional Vercel cron invocation'), 'autonomy must not create timer proliferation');
+  assert(controlPlane.includes("from('action_proposals')"), 'ROOT discovery must expose governed autonomy proposals');
+  assert(controlPlane.includes('developmentProposalIsNotApproval: true'), 'ROOT proposal boundary missing');
+  assert(rootPage.includes('AUTO-OBSERVACIÓN / DEVELOPMENT'), 'ROOT discovery autonomy panel missing');
+  assert(rootPage.includes('ABRIR NOTA DE LABORATORIO AUTORIZADA'), 'ROOT discovery editorial bridge missing');
+
+  // The first method note is explicitly founder-authorized in this change; future autonomous notes remain proposals.
+  assert(notePage.includes("'SFI-PUB-OBS-014'"), 'Discovery Mesh method note canonical editorial id missing');
+  assert(notePage.includes('Publicar no es ser encontrado'), 'Discovery Mesh method note title missing');
+  assert(notePage.includes('/images/editorial/discovery-mesh-observation.svg'), 'Discovery Mesh method note graphic missing');
+  assert(notePage.includes('NULL no se convierte en cero'), 'method note false-zero boundary missing');
+  assert(publicationsHub.includes('SFI-PUB-OBS-014'), 'publications hub must expose Discovery Mesh method note');
+  assert(existsSync('public/images/editorial/discovery-mesh-observation.svg'), 'Discovery Mesh visual asset missing');
 
   for (const table of ['sfi_discovery_queries','sfi_discovery_query_runs','sfi_entity_collisions','sfi_external_representations']) {
     assert(migration.includes(`public.${table}`), `migration missing ${table}`);
@@ -143,7 +182,7 @@ async function main() {
 
   console.log(JSON.stringify({
     ok: true,
-    contract: 'SFI-DISCOVERY-INTEGRITY-1.5',
+    contract: 'SFI-DISCOVERY-INTEGRITY-1.6',
     modes: 3,
     metricFamilies: 7,
     falseZero: true,
@@ -155,6 +194,22 @@ async function main() {
     rlsForced: true,
     directBrowserDataApi: false,
     durableQueryRuns: true,
+    discoveryAutonomy: {
+      selfObservation: true,
+      proposalOwner: 'action_proposals',
+      developmentProposal: true,
+      editorialProposal: true,
+      deduplicatedOpenWork: true,
+      automaticExecution: false,
+      automaticPublication: false,
+      founderLeadRequiredForRoutine: false,
+      founderApprovalBoundaryPreserved: true,
+    },
+    editorial: {
+      founderAuthorizedMethodNote: 'SFI-PUB-OBS-014',
+      visualAsset: 'public/images/editorial/discovery-mesh-observation.svg',
+      futureNotesRemainGovernedProposals: true,
+    },
     worldSignalObserver: {
       implemented: true,
       wired: true,
