@@ -141,17 +141,20 @@ assert.match(crlContrast, /METHOD_LAB_CONTRACT_VERSION/, 'CRL summary must carry
 
 const scenes = read('src/components/sfi/scenes.ts');
 const liveUi = read('src/components/sfi/SfiConsole.tsx');
+const rootUi = read('src/components/sfi/SfiRootWorkspace.tsx');
 const operatingUi = read('src/components/sfi/SfiOperatingWorkspace.tsx');
 const governanceUi = read('src/components/sfi/SfiGovernanceWorkspace.tsx');
 const rootWorkboard = read('src/app/api/root/workboard/route.ts');
 assert.ok(scenes.includes("root:{key:'root'"), 'ROOT live scene must remain canonical.');
 assert.ok(scenes.includes("governance:{key:'governance'"), 'GOVERNANCE live scene must remain canonical.');
+assert.ok(scenes.includes("twin:{key:'twin'"), 'TWIN live scene must remain canonical and independently observable.');
 assert.match(scenes, /LEGACY_INTERNAL_SCENES=.*'models','genai'/, 'MODELS and GENAI must remain explicitly absorbed legacy surfaces, not disappear silently.');
 assert.match(rootWorkboard, /getLlmProviderStatus/, 'Converged ROOT workboard must preserve model/provider observability.');
 assert.match(rootWorkboard, /providerHealthBoundary/, 'Converged ROOT workboard must preserve the configured-vs-healthy model boundary.');
-assert.ok(liveUi.includes('COGNITIVE TWIN'), 'ROOT live scene must expose Twin proposals.');
-assert.ok(operatingUi.includes('SfiGovernanceWorkspace') && governanceUi.includes('ACEPTAR') && governanceUi.includes('DENEGAR'), 'Converged governance workspace must retain governed decisions without duplicating them in ROOT.');
-assert.ok(governanceUi.includes('PEDIR EVIDENCIA'), 'Converged governance workspace must retain governed evidence deferral.');
+assert.ok(operatingUi.includes("surface==='twin'") && operatingUi.includes('CognitiveSpineAnatomy'), 'Twin proposals/state must remain observable through the canonical Twin operating scene.');
+assert.ok(liveUi.includes("href:'/root'") && liveUi.includes("href:'/governance'"), 'Canonical shell must route sovereign decisions to ROOT and runtime operation to Governance.');
+assert.ok(rootUi.includes('ACEPTAR') && rootUi.includes('DENEGAR') && rootUi.includes('SOLICITAR EVIDENCIA'), 'ROOT must retain sovereign decision and non-terminal evidence-defer controls.');
+assert.doesNotMatch(governanceUi, /ACEPTAR|DENEGAR|PEDIR EVIDENCIA|SOLICITAR EVIDENCIA/, 'Governance runtime must not duplicate sovereign decision controls.');
 
 const methodLabPage = read('src/app/method-lab/page.tsx');
 const methodLabHub = read('src/components/sfi/MethodLabNativeHub.tsx');
@@ -218,7 +221,7 @@ console.log(JSON.stringify({
     'CT reentry implementation is distinct from Method Lab validation and individuation claims',
     'sociotechnical/economic runs use isolated executors',
     'simulators cannot append SIMULATED output to observed evidence',
-    'ROOT/Governance remain canonical live navigation; MODELS/GENAI are explicitly absorbed while provider/model observability survives in the workboard',
+    'ROOT owns sovereign decisions, Governance remains runtime-only, and Twin remains independently observable',
     'Method Lab protocol controls use governed APIs and server-owned evidence readers rather than direct interface persistence',
     'GitHub Method Lab branch PRs are read-only; write-triggered pushes execute only on main',
     'external Method Lab persist is idempotent by commandId and database-unique deterministic event id',
