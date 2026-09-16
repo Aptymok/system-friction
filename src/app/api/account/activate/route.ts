@@ -44,7 +44,7 @@ export async function POST() {
   const service = createServiceSupabaseClient();
   const found = await service
     .from('sfi_account_access_grants')
-    .select('id,user_id,status,display_name,title,access_class')
+    .select('id,user_id,status,display_name,title,access_class,last_invite_error')
     .eq('email', email)
     .maybeSingle();
 
@@ -71,6 +71,26 @@ export async function POST() {
     return NextResponse.json(
       { ok: false, activated: false, message: 'Este acceso está suspendido y requiere una decisión administrativa.' },
       { status: 403 },
+    );
+  }
+
+  const retryingVerifiedProfileProvision =
+    found.data.status === 'INVITE_FAILED' &&
+    found.data.last_invite_error === 'activation_profile_provision_failed' &&
+    found.data.user_id === context.user.id;
+  const activationAllowed =
+    found.data.status === 'INVITED' ||
+    found.data.status === 'ACTIVE' ||
+    retryingVerifiedProfileProvision;
+
+  if (!activationAllowed) {
+    return NextResponse.json(
+      {
+        ok: false,
+        activated: false,
+        message: 'La invitación todavía no está en un estado verificable para activación.',
+      },
+      { status: 409 },
     );
   }
 
@@ -114,6 +134,9 @@ export async function POST() {
     );
   }
 
+  const allowedUpdateStates = retryingVerifiedProfileProvision
+    ? ['INVITE_FAILED']
+    : ['INVITED', 'ACTIVE'];
   const updated = await service
     .from('sfi_account_access_grants')
     .update({
@@ -124,7 +147,7 @@ export async function POST() {
       last_invite_error: null,
     })
     .eq('id', found.data.id)
-    .in('status', ['PENDING', 'INVITED', 'ACTIVE', 'INVITE_FAILED'])
+    .in('status', allowedUpdateStates)
     .select('id,status,activated_at')
     .maybeSingle();
 
