@@ -24,6 +24,8 @@ assert.match(invite, /\.from\('sfi_account_access_grants'\)/);
 assert.doesNotMatch(invite, /password\s*:/i, 'invitation must never generate or transmit a temporary password');
 assert.match(invite, /INSTITUTIONAL_OBSERVER/);
 assert.match(invite, /INSTITUTIONAL_OPERATOR/);
+assert.match(invite, /previousStatus === 'INVITED'/, 'a failed resend must not erase an already-sent invitation state');
+assert.match(invite, /limite_correo/, 'mail-provider rate limits must be represented explicitly');
 for (const invariant of [
   'full_access: false',
   'executor: false',
@@ -41,20 +43,35 @@ assert.doesNotMatch(rootAccess, /\.from\(/, 'human interface must not own raw pe
 assert.match(rootAccess, /Observador — puede consultar/);
 assert.match(rootAccess, /Operador — puede trabajar/);
 assert.match(rootAccess, /no autoridad soberana/i);
+assert.match(rootAccess, /limite_correo/);
+assert.match(rootAccess, /lastInviteError/);
+
 assert.match(forgot, /forgotPasswordAction/);
 assert.match(reset, /updateUser\(\{ password \}\)/);
 assert.match(reset, /password\.length < 12/);
 assert.match(reset, /SFI nunca necesita enviarte una contraseña temporal/);
+assert.match(reset, /mode === 'invite'/, 'institutional activation must be required only for invite completion');
+assert.match(reset, /activationBody\.activated !== true/, 'invite UI must not redirect before institutional activation is confirmed');
+assert.match(reset, /La contraseña quedó guardada, pero SFI no confirmó el acceso institucional/);
+assert.doesNotMatch(reset, /fetch\('\/api\/account\/activate'[\s\S]*?\.catch\(\(\) => null\)/, 'activation failure must never be swallowed');
+
 assert.match(activate, /requireAuthenticatedUser\(\)/);
 assert.match(activate, /\.eq\('email', email\)/);
+assert.match(activate, /display_name,title,access_class/);
+assert.match(activate, /institutional_account: true/);
+assert.match(activate, /profileWrite/);
+assert.match(activate, /activation_profile_provision_failed/);
 assert.match(activate, /status: 'ACTIVE'/);
+assert.match(activate, /\.select\('id,status,activated_at'\)/, 'activation must verify that the grant actually became ACTIVE');
+assert.match(activate, /ACCOUNT_INVITATION_ACTIVATED/);
+
 assert.match(accessServer, /access\.institutional_account === true/);
 assert.match(login, /\/forgot/);
 assert.equal(existsSync('src/app/signup/page.tsx'), false, 'public signup surface must remain absent');
 
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-ACCOUNT-INVITATION-LIFECYCLE-1.1',
+  contract: 'SFI-ACCOUNT-INVITATION-LIFECYCLE-1.2',
   invitationOnly: true,
   temporaryPasswordGenerated: false,
   founderAdminRequired: true,
@@ -63,4 +80,7 @@ console.log(JSON.stringify({
   publicSignupEnabled: false,
   verifiedPasswordResetAvailable: true,
   humanInterfaceOwnsPersistence: false,
+  activationFailureCanBeSilent: false,
+  activationRequiresInstitutionalProfile: true,
+  failedResendPreservesExistingInvite: true,
 }, null, 2));
