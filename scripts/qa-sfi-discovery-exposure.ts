@@ -122,10 +122,12 @@ async function main() {
   assert.match(api, /Promise\.all/);
   assert.match(api, /private, no-store/);
   assert.match(page, /requireRootObserverPage\('\/root\/discovery'\)/);
-  assert.match(page, /Discovery \+ Exposure/);
-  assert.match(page, /exact counts:/);
-  assert.match(page, /CANONICAL_NAMESPACE_ACTIVE|canonicalNamespace/, 'ROOT Discovery must project the active publication namespace state');
-  for (const section of ['Knowledge graph', 'AI discovery', 'Crawlers', 'Academic graph', 'EXTERNAL REALITY GRAPH', 'Propagation graph', 'Discovery lifecycle', 'Manhattan attractor', 'Minimum convergence gate', 'Propagation receipts', 'Collisions', 'Publication mesh']) assert.match(page, new RegExp(section));
+  assert.match(page, /Hasta dónde llegó\./, 'ROOT Discovery must lead with the human trajectory rather than an obsolete subsystem label');
+  assert.match(page, /PUBLICATION ≠ DISCOVERY ≠ PULL ≠ RETURN/, 'ROOT Discovery must preserve the epistemic lifecycle boundary in the human view');
+  assert.match(page, /EXPOSURE → DISCOVERY → RECOGNITION → INTERACTION → RELATION → PROPAGATION → PULL → RETURN/);
+  assert.match(page, /canonicalNamespace|CANONICAL_NAMESPACE_ACTIVE/, 'ROOT Discovery must still project the active publication namespace state');
+  for (const section of ['Qué salió de SFI', 'Qué fue encontrado', 'Qué se propagó', 'Qué retornó', 'Atractor Manhattan', 'Gate mínimo de convergencia', 'Representación para máquinas', 'Colisiones de identidad']) assert.match(page, new RegExp(section));
+  assert.doesNotMatch(page, /setInterval|setTimeout\(/, 'ROOT Discovery page must not poll');
 
   assert.match(aiIndex, /discoveryExposurePlan/);
   assert.match(aiIndex, /institutional_discovery_mesh:/);
@@ -140,7 +142,7 @@ async function main() {
 
   console.log(JSON.stringify({
     ok: true,
-    contract: 'SFI-DISCOVERY-EXPOSURE-QA-1.6',
+    contract: 'SFI-DISCOVERY-EXPOSURE-QA-1.7',
     canonicalOwnerReused: true,
     canonicalGraphReused: true,
     artifactTrajectoryOwnerReused: true,
