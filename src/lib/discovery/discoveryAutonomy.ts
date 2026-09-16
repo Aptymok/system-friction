@@ -36,6 +36,7 @@ function text(value: unknown, fallback = '') {
 }
 
 function numberOrNull(value: unknown) {
+  if (value === null || value === undefined || value === '') return null;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
 }
@@ -276,9 +277,9 @@ export async function runDiscoveryAutonomyCycle(now = new Date()) {
     };
   }
 
-  const run = await readDiscoveryRun(observation.runId);
-  const result = record(run.result);
-  const metrics = metricMap(result.metrics);
+  const persisted = await readDiscoveryRun(observation.runId);
+  const run = record(persisted.run);
+  const metrics = metricMap(run.metrics);
   const open = await openDiscoveryProposals();
   const selected = recommendations(metrics);
   const developmentProposals = [];
