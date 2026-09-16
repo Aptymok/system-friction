@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { useAuthState } from '@/components/auth/AuthProvider';
 import { SessionControls } from './SessionControls';
 import { ObservatoryInterpretiveFlow } from './ObservatoryInterpretiveFlow';
@@ -28,6 +28,7 @@ type Hypothesis=Row&{
 type TimelineFrame={observedAt:string;wsi:number|null;nti:number|null;confidence:number|null;sourceState:string;ingestMode:string;vectors:Array<{id:string;label:string;value:number|null;sourceCount:number;trust:number|null}>};
 type Position={x:number;y:number;geo:boolean};
 type ObservatoryAvailability={world:ObservatoryReadAvailability;state:ObservatoryReadAvailability;timeline:ObservatoryReadAvailability};
+type ObservatorySnapshot={at:number;world:Row|null;obs:Row|null;timeline:TimelineFrame[];availability:ObservatoryAvailability};
 
 const arr=(v:unknown):unknown[]=>Array.isArray(v)?v:[];
 const row=(v:unknown):Row|null=>v&&typeof v==='object'&&!Array.isArray(v)?v as Row:null;
@@ -46,7 +47,9 @@ function mean(values:Array<number|null>){const valid=values.filter((v):v is numb
 function pct(value:number|null){return value==null?'—':`${Math.round(value*100)}%`}
 
 const OBSERVATORY_REQUEST_TIMEOUT_MS=15000;
+const OBSERVATORY_CACHE_TTL_MS=120_000;
 const INITIAL_AVAILABILITY:ObservatoryAvailability={world:'LOADING',state:'LOADING',timeline:'LOADING'};
+let observatorySnapshotCache:ObservatorySnapshot|null=null;
 const panel:CSSProperties={position:'absolute',zIndex:25,background:'rgba(4,6,7,.88)',backdropFilter:'blur(18px)',border:'1px solid rgba(214,180,120,.22)',boxShadow:'0 22px 70px rgba(0,0,0,.45)',borderRadius:14,color:'#e7dfd2'};
 const micro:CSSProperties={fontSize:10,letterSpacing:'.12em',textTransform:'uppercase',opacity:.58};
 const chip:CSSProperties={fontSize:10,padding:'5px 8px',border:'1px solid rgba(214,180,120,.2)',borderRadius:999,background:'rgba(214,180,120,.055)',whiteSpace:'nowrap'};
@@ -62,20 +65,27 @@ export function ObservatoryConsole(){
   const ui=(value:string)=>translateUiText(value,language);
   const[world,setWorld]=useState<Row|null>(null),[obs,setObs]=useState<Row|null>(null),[timeline,setTimeline]=useState<TimelineFrame[]>([]);
   const[availability,setAvailability]=useState<ObservatoryAvailability>(INITIAL_AVAILABILITY);
+  const[refreshing,setRefreshing]=useState(false),[lastReadAt,setLastReadAt]=useState<string|null>(null);
   const[lens,setLens]=useState<Lens>('field'),[satelliteOpen,setSatelliteOpen]=useState(true),[selectedNodeId,setSelectedNodeId]=useState<string|null>(null),[selectedHypothesisId,setSelectedHypothesisId]=useState<string|null>(null);
   const[sourceFamily,setSourceFamily]=useState('ALL'),[systemFilter,setSystemFilter]=useState('ALL'),[statusFilter,setStatusFilter]=useState('ALL'),[windowHours,setWindowHours]=useState(168),[minConfidence,setMinConfidence]=useState(0),[query,setQuery]=useState('');
   const[time,setTime]=useState(100),[clock,setClock]=useState('');
 
+  const applySnapshot=useCallback((snapshot:ObservatorySnapshot)=>{
+    setAvailability(snapshot.availability);setWorld(snapshot.world);setObs(snapshot.obs);setTimeline(snapshot.timeline);setLastReadAt(new Date(snapshot.at).toISOString());
+  },[]);
+  const pull=useCallback(async(force=false)=>{
+    if(!force&&observatorySnapshotCache&&Date.now()-observatorySnapshotCache.at<OBSERVATORY_CACHE_TTL_MS){applySnapshot(observatorySnapshotCache);return;}
+    setRefreshing(true);
+    try{
+      const[worldR,obsR,timeR]=await Promise.all([fetchJson('/api/observatory/world'),fetchJson('/api/observatory/state'),fetchJson('/api/observatory/timeline')]);
+      const nextAvailability:ObservatoryAvailability={world:classifyObservatoryRead(worldR,'WORLD'),state:classifyObservatoryRead(obsR,'STATE'),timeline:classifyObservatoryRead(timeR,'TIMELINE')};
+      const snapshot:ObservatorySnapshot={at:Date.now(),availability:nextAvailability,world:nextAvailability.world==='AVAILABLE'?row(worldR.data):null,obs:nextAvailability.state==='AVAILABLE'?row(obsR.data):null,timeline:nextAvailability.timeline==='AVAILABLE'&&Array.isArray(timeR.data?.frames)?timeR.data.frames:[]};
+      observatorySnapshotCache=snapshot;applySnapshot(snapshot);
+    }finally{setRefreshing(false)}
+  },[applySnapshot]);
+
   useEffect(()=>{const tick=()=>setClock(new Date().toISOString());tick();const t=setInterval(tick,1000);return()=>clearInterval(t)},[]);
-  useEffect(()=>{let stop=false;let inFlight=false;const pull=async()=>{if(inFlight)return;inFlight=true;try{
-    const[worldR,obsR,timeR]=await Promise.all([fetchJson('/api/observatory/world'),fetchJson('/api/observatory/state'),fetchJson('/api/observatory/timeline')]);
-    if(stop)return;
-    const nextAvailability:ObservatoryAvailability={world:classifyObservatoryRead(worldR,'WORLD'),state:classifyObservatoryRead(obsR,'STATE'),timeline:classifyObservatoryRead(timeR,'TIMELINE')};
-    setAvailability(nextAvailability);
-    setWorld(nextAvailability.world==='AVAILABLE'?row(worldR.data):null);
-    setObs(nextAvailability.state==='AVAILABLE'?row(obsR.data):null);
-    setTimeline(nextAvailability.timeline==='AVAILABLE'&&Array.isArray(timeR.data?.frames)?timeR.data.frames:[]);
-  }finally{inFlight=false}};void pull();const t=setInterval(pull,20000);return()=>{stop=true;clearInterval(t)}},[]);
+  useEffect(()=>{void pull(false)},[pull]);
 
   const allNodes=useMemo<WorldNode[]>(()=>rows(world?.nodes).map((o)=>({
     id:String(o.id),kind:String(o.kind||'observed'),sourceId:String(o.sourceId||'unknown'),sourceFamily:String(o.sourceFamily||'unknown'),publisher:String(o.publisher||'unknown'),observationKind:String(o.observationKind||'unknown'),title:String(o.title||'Untitled observation'),summary:typeof o.summary==='string'?o.summary:null,observedAt:String(o.observedAt||''),fetchedAt:String(o.fetchedAt||o.observedAt||''),lat:num(o.lat),lng:num(o.lng),countryCodes:arr(o.countryCodes).filter((v):v is string=>typeof v==='string'),affectedSystems:arr(o.affectedSystems).filter((v):v is string=>typeof v==='string'),actors:arr(o.actors).filter((v):v is string=>typeof v==='string'),confidence:num(o.confidence),reading:o.reading&&typeof o.reading==='object'?o.reading:null,provenance:o.provenance&&typeof o.provenance==='object'?o.provenance:null,
@@ -158,8 +168,8 @@ export function ObservatoryConsole(){
     </svg></div>
 
     <header className="obsTop"><div className="obsBrand"><strong>SFI</strong><span>{ui('FIELD · SYSTEM FRICTION INSTITUTE')}</span><small>{ui('OBSERVATORIO MUNDIAL EN VIVO')}</small></div>
-      <nav>{(['field','hypotheses','trajectory','sources'] as Lens[]).map(k=><button key={k} className={lens===k?'active':''} onClick={()=>{setLens(k);setSatelliteOpen(true)}}>{k==='hypotheses'?ownedText('HIPÓTESIS','HYPOTHESES'):k==='trajectory'?ownedText('TRAYECTORIA','TRAJECTORY'):k==='sources'?ownedText('FUENTES','SOURCES'):ownedText('CAMPO','FIELD')}</button>)}<Link href="/history">{ui('ORIGEN → AHORA')}</Link>{auth.status==='authenticated'&&<Link href="/cases">{ui('CASOS')}</Link>}</nav>
-      <div className="obsIdentity"><b>{auth.identity?.alias||'PUBLIC'}</b><span>{auth.identity?.role||auth.status}</span></div><SessionControls className="obsSessionControls"/></header>
+      <nav>{(['field','hypotheses','trajectory','sources'] as Lens[]).map(k=><button key={k} className={lens===k?'active':''} onClick={()=>{setLens(k);setSatelliteOpen(true)}}>{k==='hypotheses'?ownedText('HIPÓTESIS','HYPOTHESES'):k==='trajectory'?ownedText('TRAYECTORIA','TRAJECTORY'):k==='sources'?ownedText('FUENTES','SOURCES'):ownedText('CAMPO','FIELD')}</button>)}<button onClick={()=>void pull(true)} disabled={refreshing}>{refreshing?ownedText('LEYENDO…','READING…'):ownedText('ACTUALIZAR','REFRESH')}</button><Link href="/history">{ui('ORIGEN → AHORA')}</Link>{auth.status==='authenticated'&&<Link href="/cases">{ui('CASOS')}</Link>}</nav>
+      <div className="obsIdentity"><b>{auth.identity?.alias||'PUBLIC'}</b><span>{lastReadAt?`${ownedText('LEÍDO','READ')} ${lastReadAt.slice(11,19)} UTC`:auth.identity?.role||auth.status}</span></div><SessionControls className="obsSessionControls"/></header>
 
     <aside className="hud hudLeft"><section><small>SFI-OBS-LIVE</small><h3>{ownedText('CAMPO VIVO','LIVE FIELD')}</h3><p className="good">● {clock.slice(11,19)} UTC</p><dl><dt>{ui('OBSERVACIONES')}</dt><dd data-availability={availability.world}>{worldMetric(nodes.length)}</dd><dt>{ui('FUENTES ACTIVAS')}</dt><dd data-availability={availability.world}>{worldMetric(sourceIds.length)}</dd><dt>{ui('HIPÓTESIS')}</dt><dd data-availability={availability.world}>{worldMetric(filteredHypotheses.length)}</dd><dt>{ui('EN RETORNO')}</dt><dd data-availability={availability.world}>{worldMetric(openHypotheses)}</dd></dl><button onClick={()=>setSatelliteOpen(true)}>{ui('ABRIR SATÉLITE')}</button></section>
       <section><small>{ownedText('MÉTRICAS DERIVADAS','DERIVED METRICS')}</small><dl><dt>Fₛ</dt><dd data-availability={availability.world}>{avgFs==null?'—':avgFs.toFixed(3)}</dd><dt>NTI</dt><dd data-availability={availability.world}>{avgNti==null?'—':avgNti.toFixed(3)}</dd><dt>Φ</dt><dd data-availability={availability.world}>{avgPhi==null?'—':avgPhi.toFixed(3)}</dd></dl><p style={{fontSize:11,opacity:.62,lineHeight:1.5}}>{ownedText('Los números describen estructura observada/derivada. El significado, mecanismo y consecuencias se muestran sólo como hipótesis trazables.','Numbers describe observed/derived structure. Meaning, mechanism and consequences are shown only as traceable hypotheses.')}</p></section>
