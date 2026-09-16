@@ -7,6 +7,7 @@ const interactive=text('src/app/api/root/interactive/route.ts');
 const operationalNext=text('src/lib/root/interactiveOperationalNext.ts');
 const operatingUi=text('src/components/sfi/SfiOperatingWorkspace.tsx');
 const governanceUi=text('src/components/sfi/SfiGovernanceWorkspace.tsx');
+const rootUi=text('src/components/sfi/SfiRootWorkspace.tsx');
 const selector=text('src/lib/sfi/cognitive-runtime/automationSelector.ts');
 const meta=text('src/lib/sfi/cognitive-runtime/agents/metaOrchestrator.ts');
 const access=text('src/lib/system/access/server.ts');
@@ -20,15 +21,17 @@ assert.match(proposals,/source:\{table:'action_proposals'\}/,'canonical proposal
 
 assert.match(operatingUi,/SfiGovernanceWorkspace/,'operating workspace must delegate governance without a parallel surface');
 assert.ok(governanceUi.includes("jsonFetch('/api/root/interactive?surface=governance')"),'governance must use the single authenticated interactive bootstrap');
-assert.ok(governanceUi.includes('setProposals(arr(operationalNext.items))'),'governance queue must reuse operationalNext.items instead of a second proposal feed');
-assert.ok(governanceUi.includes("warning.startsWith('action_proposals:')") && governanceUi.includes("setProposalReadState(proposalWarnings.length?'DEGRADED':'READY')"),'proposal source degradation must remain visible through the shared bootstrap');
-assert.match(governanceUi,/Fuente de propuestas DEGRADED/,'root UI must distinguish proposal read failure from an empty queue');
-assert.match(governanceUi,/PEDIR EVIDENCIA/,'root UI must expose evidence request');
+assert.ok(governanceUi.includes('surface=governance&includeTargets=1'),'governance target hydration must remain selection-bound');
 assert.doesNotMatch(governanceUi,/jsonFetch\('\/api\/acp\/proposals'\)/,'governance must not reintroduce the duplicate proposal HTTP feed');
 assert.match(interactive,/proposalQueueSource: 'operationalNext\.items'/,'interactive contract must name the reused proposal source');
 assert.match(interactive,/separateProposalListRead: false/,'interactive contract must forbid a separate proposal read');
+assert.match(interactive,/targetHydrationDeferred: true/,'governance base load must defer evidence and case hydration until an agent is selected');
 assert.match(operationalNext,/action_proposals/,'interactive operational-next must read the canonical proposal table');
 assert.match(operationalNext,/action_proposal_reads: 1|actionProposalReads:\s*1/,'interactive operational-next must bound proposal retrieval to one read');
+assert.ok(rootUi.includes("jsonFetch('/api/root/interactive?surface=root')"),'ROOT must own the authenticated human-decision projection');
+assert.ok(rootUi.includes("jsonFetch('/api/root/decisions'"),'ROOT must own accept/deny decisions');
+assert.ok(rootUi.includes('/request-evidence'),'ROOT must own evidence deferral for human decisions');
+assert.ok(rootUi.includes('DECISIONES QUE SÍ NECESITAN ROOT'),'ROOT must expose the bounded sovereign decision queue');
 
 assert.match(selector,/reasons:\s*Record<string,\s*string\[\]>/,'automation selector must expose selection reasons');
 assert.match(selector,/reasons:\s*Object\.fromEntries/,'automation selector must materialize selection reasons');
@@ -59,8 +62,9 @@ for(const path of [
 console.log(JSON.stringify({
   ok:true,
   contract:'SFI-COGNITIVE-AUTOMATION-WORKSPACES-1.1',
-  proposalRead:'shared_interactive_bootstrap_with_explicit_degraded_state',
+  proposalRead:'shared_interactive_projection_with_root_decision_ownership',
   duplicateProposalHttpReads:0,
   runtime:'single_canonical_executor',
   personalWorkspace:'owner_scoped',
+  humanDecisionSurface:'ROOT',
 },null,2));

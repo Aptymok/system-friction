@@ -14,12 +14,13 @@ const routePath = 'src/app/api/root/method-lab/decision-transfer/route.ts';
 const readModelPath = 'src/lib/method-lab/readModel.ts';
 const scenesPath = 'src/components/sfi/scenes.ts';
 const liveUiPath = 'src/components/sfi/SfiConsole.tsx';
+const rootUiPath = 'src/components/sfi/SfiRootWorkspace.tsx';
 const operatingUiPath = 'src/components/sfi/SfiOperatingWorkspace.tsx';
 const governanceUiPath = 'src/components/sfi/SfiGovernanceWorkspace.tsx';
 const methodLabPagePath = 'src/app/method-lab/page.tsx';
 const methodLabHubPath = 'src/components/sfi/MethodLabNativeHub.tsx';
 
-for (const file of [runPath, routePath, readModelPath, scenesPath, liveUiPath, operatingUiPath, governanceUiPath, methodLabPagePath, methodLabHubPath]) {
+for (const file of [runPath, routePath, readModelPath, scenesPath, liveUiPath, rootUiPath, operatingUiPath, governanceUiPath, methodLabPagePath, methodLabHubPath]) {
   assert(fs.existsSync(path.join(process.cwd(), file)), `missing:${file}`);
 }
 
@@ -28,6 +29,7 @@ const route = read(routePath);
 const readModel = read(readModelPath);
 const scenes = read(scenesPath);
 const liveUi = read(liveUiPath);
+const rootUi = read(rootUiPath);
 const operatingUi = read(operatingUiPath);
 const governanceUi = read(governanceUiPath);
 const methodLabPage = read(methodLabPagePath);
@@ -59,14 +61,15 @@ assert(readModel.includes('validatedDecisionAccuracy'), 'validated_holdout_metri
 assert(readModel.includes('validatedTargetDispositionAccuracy'), 'validated_counterfactual_metric_missing');
 
 // FALSIFICATION and MODELS were absorbed as parallel scenes. Decision Transfer remains
-// a governed Method Lab instrument, observable through ROOT + TWIN/SPINE and the native Lab.
+// a ROOT-gated Method Lab instrument, observable through ROOT + TWIN/SPINE and the native Lab.
 assert(scenes.includes("root:{key:'root'"), 'root_scene_missing');
 assert(scenes.includes("twin:{key:'twin'"), 'twin_scene_missing');
 assert(/LEGACY_INTERNAL_SCENES=.*'falsification'.*'models'/s.test(scenes), 'legacy_falsification_models_absorption_missing');
-assert(liveUi.includes('COGNITIVE TWIN'), 'decision_transfer_twin_observability_missing');
+assert(scenes.includes("twin:{label:'TWIN / SPINE',title:'Cognitive Twin / Spine'") && liveUi.includes('SfiOperatingWorkspace') && liveUi.includes('surface={current}'), 'decision_transfer_twin_observability_missing');
 assert(operatingUi.includes('SfiGovernanceWorkspace'), 'decision_transfer_governance_delegation_missing');
-assert(governanceUi.includes('ACEPTAR') && governanceUi.includes('DENEGAR'), 'decision_transfer_authority_boundary_missing');
-assert(governanceUi.includes('PEDIR EVIDENCIA'), 'decision_transfer_evidence_boundary_missing');
+assert(governanceUi.includes("jsonFetch('/api/root/interactive?surface=governance')"), 'decision_transfer_runtime_observability_missing');
+assert(rootUi.includes("jsonFetch('/api/root/decisions'") && rootUi.includes('ACEPTAR') && rootUi.includes('DENEGAR'), 'decision_transfer_authority_boundary_missing');
+assert(rootUi.includes('/request-evidence') && rootUi.includes('SOLICITAR EVIDENCIA'), 'decision_transfer_evidence_boundary_missing');
 assert(methodLabPage.includes('MethodLabNativeHub'), 'decision_transfer_method_lab_surface_missing');
 assert(methodLabHub.includes('DECISION TRANSFER'), 'decision_transfer_native_observability_missing');
 

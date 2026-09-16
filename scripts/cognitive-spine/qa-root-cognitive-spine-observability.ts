@@ -35,10 +35,9 @@ assert.ok(reader.includes('available: false as const'), 'root_ct_status_unavaila
 assert.ok(route.includes("requireRootViewer('root.cognitive-spine.status')"), 'root_ct_status_endpoint_not_root_gated');
 assert.ok(route.includes("'Cache-Control': 'no-store'"), 'root_ct_status_endpoint_cache_boundary_missing');
 
-// ROOT stays the sovereign live-scene owner, but #431 narrowed sovereign decisions
-// to institutional change/capability implementation/learning promotion. Routine
-// operation stays autonomous and the ten modules are observational lenses, not
-// second writers or approval middleware.
+// ROOT stays the sovereign live-scene owner. Routine operation remains autonomous;
+// the observation modules are lenses over existing owners, while agent/runtime
+// operation remains delegated to Governance and human decisions remain in ROOT.
 assert.ok(scenes.includes("root:{key:'root'"), 'root_live_scene_missing');
 assert.ok(scenes.includes("title:'ROOT · Operación soberana'"), 'root_live_scene_semantics_missing');
 assert.ok(
@@ -47,12 +46,15 @@ assert.ok(
     && rootUi.includes('SFI OPERA SIN PEDIR PERMISO.'),
   'root_sovereign_workspace_semantics_missing',
 );
-assert.ok(rootUi.includes('No son subsistemas nuevos') && rootUi.includes('Ningún módulo adquiere escritor propio'), 'root_observation_topology_boundary_missing');
+assert.ok(rootUi.includes('Son lentes sobre owners existentes.') && rootUi.includes('Ninguno adquiere escritor, memoria o autoridad nueva'), 'root_observation_topology_boundary_missing');
 assert.ok(rootUi.includes("href: '/twin'") && rootUi.includes("href: '/twin/learning'"), 'root_twin_navigation_missing');
-assert.ok(liveUi.includes('COGNITIVE TWIN') || scenes.includes("title:'Cognitive Twin / Spine'"), 'root_live_scene_twin_observability_missing');
+assert.ok(scenes.includes("twin:{label:'TWIN / SPINE',title:'Cognitive Twin / Spine'"), 'root_live_scene_twin_observability_missing');
+assert.ok(liveUi.includes('SfiOperatingWorkspace') && liveUi.includes('surface={current}'), 'root_live_scene_dispatch_missing');
 assert.ok(operatingUi.includes('SfiGovernanceWorkspace'), 'root_operating_workspace_governance_delegate_missing');
-assert.ok(governanceUi.includes("jsonFetch('/api/root/interactive?surface=governance')") && governanceUi.includes('setProposals(arr(operationalNext.items))'), 'root_governance_workspace_proposal_projection_missing');
-assert.ok(governanceUi.includes('ACEPTAR') && governanceUi.includes('DENEGAR') && governanceUi.includes('PEDIR EVIDENCIA'), 'root_governance_workspace_controls_missing');
+assert.ok(governanceUi.includes("jsonFetch('/api/root/interactive?surface=governance')") && governanceUi.includes('surface=governance&includeTargets=1'), 'root_governance_runtime_projection_missing');
+assert.equal(governanceUi.includes("jsonFetch('/api/acp/proposals')"), false, 'governance_must_not_restore_parallel_proposal_feed');
+assert.ok(rootUi.includes("jsonFetch('/api/root/decisions'") && rootUi.includes('/request-evidence'), 'root_human_decision_ownership_missing');
+assert.ok(rootUi.includes('ACEPTAR') && rootUi.includes('DENEGAR') && rootUi.includes('SOLICITAR EVIDENCIA'), 'root_human_decision_controls_missing');
 assert.ok(scenePage.includes('SCENE_KEYS.includes'), 'dynamic_scene_gate_missing');
 assert.ok(scenePage.includes('<SfiConsole') && scenePage.includes('scene={scene as SceneKey}'), 'dynamic_scene_runtime_missing');
 

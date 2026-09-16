@@ -1,9 +1,17 @@
 import 'server-only';
 
 import { createHash } from 'node:crypto';
+import { runPublicResearch } from '@/lib/agents/publicResearch';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import type { SfiDiscoveryObservationInput, SfiDiscoveryRetrievalObservation } from './discoveryMesh';
 import { observeDiscovery } from './discoveryMesh';
+
+const AUTO_DISCOVERY_QUERIES = [
+  { query: 'evidence authority return AI governance institutions', intent: 'Can SFI be retrieved without naming the institution when the problem is operational AI governance?' },
+  { query: 'institutional friction evidence complex systems method', intent: 'Can SFI be retrieved from its problem and method vocabulary rather than its brand?' },
+  { query: 'System Friction Institute evidence governance RETURN', intent: 'Is the canonical SFI identity retrieved and attributed coherently when named?' },
+  { query: 'MIHM institutional friction method', intent: 'Are SFI methods or method vocabulary independently retrievable?' },
+] as const;
 
 function normalize(value: string) {
   return value.toLowerCase().normalize('NFKD').replace(/[^a-z0-9\s-]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -22,7 +30,21 @@ function provenance(observations: readonly SfiDiscoveryRetrievalObservation[]) {
   }));
 }
 
-export async function persistDiscoveryObservation(input: SfiDiscoveryObservationInput, actorId: string) {
+function canonicalSfiUrl(url: string) {
+  try {
+    const parsed = new URL(url);
+    return parsed.hostname.replace(/^www\./, '') === 'systemfriction.org' ? parsed.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
+function automaticQueryFor(date = new Date()) {
+  const dayIndex = Math.floor(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()) / 86_400_000);
+  return AUTO_DISCOVERY_QUERIES[Math.abs(dayIndex) % AUTO_DISCOVERY_QUERIES.length];
+}
+
+export async function persistDiscoveryObservation(input: SfiDiscoveryObservationInput, actorId: string | null) {
   const result = observeDiscovery(input);
   const service = createServiceSupabaseClient();
   const normalizedQuery = normalize(result.query);
@@ -85,6 +107,64 @@ export async function persistDiscoveryObservation(input: SfiDiscoveryObservation
   }
 
   return { result, queryId: String(queryRow.data.id), runId: String(runRow.data.id), replay: false };
+}
+
+export async function runAutomaticDiscoveryObservationCycle(now = new Date()) {
+  const selected = automaticQueryFor(now);
+  const unbranded = !/\b(system friction institute|systemfriction|\bsfi\b)/i.test(selected.query);
+  const research = await runPublicResearch({
+    prompt: `Observe public retrieval for System Friction Institute without manufacturing discovery. Query: ${selected.query}. Return sources only as search/retrieval observations. A source result is not recognition, relation, PULL or RETURN.`,
+    queries: [selected.query],
+    country: 'US',
+    searchLang: 'en',
+    timezone: 'America/New_York',
+  });
+  const own = research.sources.map((source) => ({ source, canonicalUrl: canonicalSfiUrl(source.url) })).find((item) => item.canonicalUrl) ?? null;
+  const observedAt = now.toISOString();
+  const externalReferences = research.sources
+    .filter((source) => !canonicalSfiUrl(source.url))
+    .map((source) => ({ url: source.url, independent: true }));
+  const observation: SfiDiscoveryRetrievalObservation = {
+    observationId: `AUTO-DISCOVERY-${observedAt.slice(0, 10)}-${sha256(selected.query).slice(7, 15)}`,
+    source: {
+      sourceId: `PUBLIC-RESEARCH:${research.provider}`,
+      sourceUrl: null,
+      publisher: research.provider,
+      platform: research.provider,
+      providerClass: 'SEARCH',
+      independent: true,
+    },
+    observedAt,
+    query: selected.query,
+    unbranded,
+    retrieved: own ? true : research.ok ? false : null,
+    attributedEntityName: own ? 'System Friction Institute' : null,
+    attributedDomain: own ? 'systemfriction.org' : null,
+    citedCanonicalUrl: own?.canonicalUrl ?? null,
+    references: externalReferences,
+    collisions: [],
+    propagationPlatforms: [],
+    status: research.ok ? 'AVAILABLE' : research.provider === 'unavailable' ? 'UNAVAILABLE' : 'DEGRADED',
+  };
+  const persisted = await persistDiscoveryObservation({
+    mode: 'distinct_intent',
+    query: selected.query,
+    intent: selected.intent,
+    retrievalObservations: [observation],
+  }, null);
+  return {
+    ok: research.ok,
+    query: selected.query,
+    intent: selected.intent,
+    provider: research.provider,
+    sourcesObserved: research.sources.length,
+    sfiRetrieved: observation.retrieved,
+    canonicalUrl: observation.citedCanonicalUrl,
+    runId: persisted.runId,
+    replay: persisted.replay,
+    warnings: research.warnings,
+    epistemicBoundary: 'RETRIEVAL_OBSERVATION_ONLY: does not imply recognition, relation, propagation, PULL, RETURN or canonical promotion.',
+  };
 }
 
 export async function readDiscoveryRun(runId: string) {

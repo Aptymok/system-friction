@@ -27,6 +27,7 @@ const snapshotRoute=read('src/app/api/root/cognitive-twin/snapshot/route.ts');
 const forkRoute=read('src/app/api/root/cognitive-twin/fork/route.ts');
 const scenes=read('src/components/sfi/scenes.ts');
 const shellUi=read('src/components/sfi/SfiConsole.tsx');
+const rootUi=read('src/components/sfi/SfiRootWorkspace.tsx');
 const operatingUi=read('src/components/sfi/SfiOperatingWorkspace.tsx');
 const governanceUi=read('src/components/sfi/SfiGovernanceWorkspace.tsx');
 const interactiveApi=read('src/app/api/root/interactive/route.ts');
@@ -85,20 +86,22 @@ assert.match(readiness,/EMPTY_READY/);
 assert.match(readiness,/scientificComplete:false/);
 assert.match(readiness,/externalGateBoundary/);
 
-// ROOT and GOVERNANCE are the canonical institutional scenes. Agents are not a
-// parallel sovereign scene: their observed runtime is operated inside GOVERNANCE.
+// ROOT is the single sovereign human decision surface. GOVERNANCE exposes agents/runtime only.
 assert.ok(scenes.includes("governance:{key:'governance'"), 'governance_live_scene_missing');
 assert.ok(scenes.includes("root:{key:'root'"), 'root_live_scene_missing');
 assert.ok(!scenes.includes("agents:{key:'agents'"), 'agents_must_not_reappear_as_parallel_sovereign_scene');
 assert.ok(operatingUi.includes('SfiGovernanceWorkspace'), 'governance_workspace_delegation_missing');
 assert.ok(governanceUi.includes('AGENTES'), 'governance_workspace_must_expose_agents');
-assert.ok(governanceUi.includes("jsonFetch('/api/root/interactive?surface=governance')") && governanceUi.includes('/api/root/cognitive-runtime/records?agentId='), 'governance_workspace_must_use_single_bootstrap_plus_selected_agent_dossier');
-assert.ok(governanceUi.includes('setProposals(arr(operationalNext.items))') && interactiveApi.includes("proposalQueueSource: 'operationalNext.items'"), 'canonical_proposal_feed_not_wired_to_interactive_governance_projection');
-assert.ok(interactiveApi.includes('separateProposalListRead: false'), 'governance_must_not_duplicate_proposal_list_read');
-assert.ok(governanceUi.includes('Fuente de propuestas DEGRADED'), 'proposal_source_failure_must_not_collapse_to_empty_success');
-assert.ok(governanceUi.includes('ACEPTAR') && governanceUi.includes('DENEGAR') && governanceUi.includes('PEDIR EVIDENCIA'), 'plain_language_governance_decisions_missing');
-assert.ok(shellUi.includes('GOVERNANCE QUEUE'), 'governance_queue_contract_marker_missing');
-assert.ok(shellUi.includes('COGNITIVE TWIN / ACP'), 'twin_acp_governance_identity_missing');
+assert.ok(governanceUi.includes("jsonFetch('/api/root/interactive?surface=governance')") && governanceUi.includes('/api/root/cognitive-runtime/records?agentId='), 'governance_workspace_must_use_bootstrap_plus_selected_agent_dossier');
+assert.ok(interactiveApi.includes("includeTargets') === '1'") && interactiveApi.includes('targetHydrationDeferred: true'), 'runtime targets must not hydrate until explicitly needed');
+assert.ok(governanceUi.includes('HIDRATACIÓN DIFERIDA') && governanceUi.includes('includeTargets=1'), 'runtime UI must disclose and use selective hydration');
+assert.doesNotMatch(governanceUi,/setInterval\(/,'governance_runtime_must_not_poll');
+assert.doesNotMatch(operatingUi,/setInterval\(/,'operating_workspace_must_not_poll');
+assert.doesNotMatch(rootUi,/setInterval\(/,'root_workspace_must_not_poll');
+assert.ok(rootUi.includes('ACEPTAR') && rootUi.includes('DENEGAR') && rootUi.includes('SOLICITAR EVIDENCIA'), 'plain_language_sovereign_decisions_missing_from_root');
+assert.doesNotMatch(governanceUi,/ACEPTAR|DENEGAR|PEDIR EVIDENCIA|SOLICITAR EVIDENCIA/,'governance_runtime_must_not_duplicate_root_decisions');
+assert.ok(shellUi.includes("label:'DECISIONES'") && shellUi.includes("href:'/root'"), 'decision_navigation_must_point_to_root');
+assert.ok(interactiveApi.includes('separateProposalListRead: false'), 'hydrated governance mode must not duplicate proposal list reads');
 
 // ACP presence remains an explicit governed mutation when needed, but it is not a
 // prerequisite for merely reading the recovery/proposal queue.
@@ -109,10 +112,12 @@ assert.match(acpSeenRoute,/export async function POST/,'acp_presence_mutation_mu
 assert.match(acpSeenRoute,/requireRootActor\('governance\.acp\.presence'\)/,'acp_presence_post_must_remain_root_governed');
 assert.doesNotMatch(`${operatingUi}\n${governanceUi}`,/rootPresenceReady|confirmRootPresence|HACERME VISTO · CONFIRMAR PRESENCIA ACP/,'proposal observability must not depend on a manual presence ritual');
 
-// The canonical public entry must tell both humans and agents what SFI is and what to do first.
+// The canonical public entry must route humans and agents into existing owners without adding a parallel institution shell.
 assert.match(home,/PublicEntryGateway/,'canonical_home_missing_public_entry_gateway');
-for(const phrase of ['IF YOU ARE A PERSON','IF YOU ARE AN AI / AGENT','OBSERVE','EVIDENCE','HYPOTHESIS','PROPOSE','ROOT','RETURN']) assert.ok(publicEntry.includes(phrase),`public_entry_missing:${phrase}`);
 for(const p of ['/institution','/login','/llms.txt','/ai-index.json','/api/external/v1/manifest']) assert.ok(publicEntry.includes(p),`public_entry_missing_path:${p}`);
+assert.match(publicEntry,/Observatory/,'public_entry_missing_observatory');
+assert.match(publicEntry,/Publications/,'public_entry_missing_publications');
+assert.match(publicEntry,/Library/,'public_entry_missing_library');
 assert.match(llms,/## WHAT TO DO FIRST/,'llms_missing_first_action_sequence');
 assert.match(llms,/execution-contract → perform requested measurements locally → \/result/,'llms_missing_universal_cycle');
 assert.match(aiIndex,/start_here/,'ai_index_missing_start_here');
@@ -151,10 +156,11 @@ console.log(JSON.stringify({ok:true,invariants:[
   'CONFLICTED has declare and governed resolve paths',
   'canonical promotion requires accepted realization + observed return + complete receipt contract',
   'CRL governance alternatives remain reviewable while active persistence has converged to the canonical governed institutional pipeline',
-  'ROOT and GOVERNANCE are canonical scenes; agents operate inside governance rather than a parallel sovereign surface',
+  'ROOT is the sole sovereign human decision surface; agents/runtime stay non-sovereign',
+  'runtime target hydration is deferred and recurring UI polling is absent',
   'proposal observability is identity-authorized and independent from ACP runtime presence health',
   'ACP presence remains an explicit POST mutation but is not a prerequisite for reading governance recovery state',
-  'canonical public entry explains SFI and routes humans and agents to actionable first steps',
+  'canonical public entry routes into existing public institutional owners',
   'machine discovery exposes governed authorization, bounded internal dispatch, external fail-closed behavior and ROOT-only canon',
   'readiness separates Evidence Ledger from Knowledge Graph',
   'readiness uses planned health counts rather than expensive exact dashboard counts',
