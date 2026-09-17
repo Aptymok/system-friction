@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 
 async function text(path: string) { return readFile(path, 'utf8'); }
@@ -6,6 +7,12 @@ async function text(path: string) { return readFile(path, 'utf8'); }
 async function main() {
   const mesh = await text('src/lib/discovery/discoveryMesh.ts');
   const repository = await text('src/lib/discovery/discoveryRepository.ts');
+  const autonomy = await text('src/lib/discovery/discoveryAutonomy.ts');
+  const controlPlane = await text('src/lib/discovery/discoveryControlPlane.ts');
+  const rootPage = await text('src/app/root/discovery/page.tsx');
+  const continuityRoute = await text('src/app/api/cron/continuity-report/route.ts');
+  const notePage = await text('src/app/publications/discovery-mesh-publicar-no-es-ser-encontrado/page.tsx');
+  const publicationsHub = await text('src/app/publications/page.tsx');
   const route = await text('src/app/api/discovery/observe/route.ts');
   const migration = await text('supabase/migrations/20260908004000_create_sfi_discovery_observation_plane.sql');
   const canonical = await text('src/lib/discovery/canonicalObjectRegistry.ts');
@@ -44,6 +51,44 @@ async function main() {
   assert(repository.includes("from('sfi_entity_collisions')"), 'collision persistence owner missing');
   assert(repository.includes("run_id: result.observationId"), 'deterministic replay identity missing');
   assert(repository.includes("code === '23505'"), 'idempotent replay handling missing');
+  assert(repository.includes('runAutomaticDiscoveryObservationCycle'), 'automatic bounded observation cycle missing');
+
+  // Discovery may self-observe and formulate bounded candidates, but it must reuse the
+  // canonical proposal writer/lifecycle and may not manufacture a second governance path.
+  assert(autonomy.includes("SFI-DISCOVERY-AUTONOMY-1.1"), 'discovery autonomy convergence contract missing');
+  assert(autonomy.includes('runAutomaticDiscoveryObservationCycle'), 'autonomy must reuse canonical automatic observation cycle');
+  assert(autonomy.includes('readDiscoveryRun'), 'autonomy must read persisted observation rather than invent metrics');
+  assert(autonomy.includes('createActionProposal'), 'autonomy must reuse canonical proposal writer');
+  assert(autonomy.includes('latestActionProposals'), 'autonomy must reuse canonical proposal reader for deduplication');
+  assert(autonomy.includes('SFI_INSTITUTIONAL_MUTATION_PROPOSAL_TYPE'), 'Discovery development must enter institutional evolution proposal class');
+  assert.doesNotMatch(autonomy, /\.from\(\s*['"]action_proposals['"]\s*\)[\s\S]{0,300}\.(?:insert|upsert|update|delete)\s*\(/, 'Discovery must not write action_proposals directly');
+  assert(autonomy.includes("developmentStage: 'BLOCKED_MISSING_EXECUTOR'"), 'material Discovery development must expose missing executor instead of requesting false authority');
+  assert(autonomy.includes("missingExecutorDisposition: 'BLOCKED_NOT_AUTHORITY_REQUEST'"), 'executor absence must not be converted into a ROOT development permission request');
+  assert(autonomy.includes("adoptionAuthority: 'ROOT_ONLY_AFTER_RETURN'"), 'institutional adoption must remain ROOT-only after RETURN');
+  assert(autonomy.includes('returnRequiredBeforeAdoption: true'), 'Discovery candidate adoption requires RETURN');
+  assert(autonomy.includes('automaticExecution: false'), 'autonomy must not self-execute material development');
+  assert(autonomy.includes('automaticPublication: false'), 'autonomy must not self-publish future notes');
+  assert(autonomy.includes('canonicalMutation: false'), 'autonomy must not mutate canon');
+  assert(autonomy.includes("eventName: 'discovery.autonomy.candidates.generated'"), 'autonomy epistemic trace missing');
+  for (const key of ['DISCOVERY_UNBRANDED_RETRIEVAL_COVERAGE','DISCOVERY_AI_RETRIEVAL_COVERAGE','DISCOVERY_ENTITY_RECONSTRUCTION_COVERAGE','DISCOVERY_REFERENCE_DENSITY_COVERAGE','DISCOVERY_PROPAGATION_COVERAGE']) {
+    assert(autonomy.includes(key), `development recommendation missing:${key}`);
+  }
+  assert(continuityRoute.includes('runDiscoveryAutonomyCycle'), 'existing continuity cron must own discovery autonomy cadence');
+  assert(!continuityRoute.includes('runAutomaticDiscoveryObservationCycle'), 'continuity route must not bypass autonomy wrapper');
+  assert(continuityRoute.includes('No additional Vercel cron invocation'), 'autonomy must not create timer proliferation');
+  assert(controlPlane.includes("from('action_proposals')"), 'ROOT Discovery may read governed candidates from canonical proposal persistence');
+  assert(controlPlane.includes('developmentProposalIsNotApproval: true'), 'ROOT proposal boundary missing');
+  assert(rootPage.includes('AUTO-OBSERVACIÓN / DEVELOPMENT'), 'ROOT discovery autonomy panel missing');
+  assert(rootPage.includes('ABRIR NOTA DE LABORATORIO AUTORIZADA'), 'ROOT discovery editorial bridge missing');
+
+  // The first method note is an explicitly bounded public artifact in this convergence;
+  // future notes remain governed candidates and never auto-publish.
+  assert(notePage.includes("'SFI-PUB-OBS-014'"), 'Discovery Mesh method note canonical editorial id missing');
+  assert(notePage.includes('Publicar no es ser encontrado'), 'Discovery Mesh method note title missing');
+  assert(notePage.includes('/images/editorial/discovery-mesh-observation.svg'), 'Discovery Mesh method note graphic missing');
+  assert(notePage.includes('NULL no se convierte en cero'), 'method note false-zero boundary missing');
+  assert(publicationsHub.includes('SFI-PUB-OBS-014'), 'publications hub must expose Discovery Mesh method note');
+  assert(existsSync('public/images/editorial/discovery-mesh-observation.svg'), 'Discovery Mesh visual asset missing');
 
   for (const table of ['sfi_discovery_queries','sfi_discovery_query_runs','sfi_entity_collisions','sfi_external_representations']) {
     assert(migration.includes(`public.${table}`), `migration missing ${table}`);
@@ -138,12 +183,12 @@ async function main() {
   ]) assert(worldSignalWorkflow.includes(token), `world_signal_observer_workflow_missing:${token}`);
   assert(!worldSignalWorkflow.includes('npm install --no-save'), 'WorldSignalObserverAgent smoke must not reconcile the installed application dependency graph');
   assert(!worldSignalWorkflow.includes('schedule:'), 'WorldSignalObserverAgent proof must not introduce a new autonomous timer');
-  assert(!worldSignalWorkflow.includes('pull_request:'), 'WorldSignalObserverAgent proof must not write live World data from PRs');
+  assert(!worldSignalWorkflow.includes('pull_request:'), 'WorldSignalObserverAgent proof workflow must not write live World data from PRs');
   assert(!worldSignalWorkflow.includes('runWorldHypothesisCycle'), 'WorldSignalObserverAgent proof workflow must not own hypothesis generation');
 
   console.log(JSON.stringify({
     ok: true,
-    contract: 'SFI-DISCOVERY-INTEGRITY-1.5',
+    contract: 'SFI-DISCOVERY-INTEGRITY-1.7',
     modes: 3,
     metricFamilies: 7,
     falseZero: true,
@@ -155,6 +200,24 @@ async function main() {
     rlsForced: true,
     directBrowserDataApi: false,
     durableQueryRuns: true,
+    discoveryAutonomy: {
+      selfObservation: true,
+      proposalWriter: 'createActionProposal',
+      proposalType: 'institutional_mutation_candidate',
+      developmentCandidate: true,
+      editorialCandidate: true,
+      deduplicatedOpenWork: true,
+      automaticExecution: false,
+      automaticPublication: false,
+      missingMaterialExecutorFailsClosed: true,
+      adoptionRootOnlyAfterReturn: true,
+      canonicalMutation: false,
+    },
+    editorial: {
+      boundedMethodNote: 'SFI-PUB-OBS-014',
+      visualAsset: 'public/images/editorial/discovery-mesh-observation.svg',
+      futureNotesRemainGovernedCandidates: true,
+    },
     worldSignalObserver: {
       implemented: true,
       wired: true,

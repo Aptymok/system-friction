@@ -81,6 +81,26 @@
         "it introduces no product owner, persistence model, canonical publication object or Case implementation"
       ],
       "reason": "This branch is diagnostic QA provenance, not a product implementation branch. It is recorded as temporary QA rather than merged into the interface convergence merely to satisfy branch topology."
+    },
+    "72fdb2b7439babe3": {
+      "decision": "EXPLICITLY_SUPERSEDED",
+      "branches": ["fix/sfi-hypothesis-learning-convergence"],
+      "evidence": [
+        "PR #513 head 9bcf0cc9bcd7936de32b628f949bee1c525466ba is the exact merge-base and direct ancestor of PR #514 head 0961377dfc7ca8ffc185279f319626730973386e (compare: ahead_by 44, behind_by 0)",
+        "PR #514 preserves the PR #513 World hypothesis/calibration, proposal lifecycle and bounded Institutional Evolution owners and extends them through the existing governed material self-development executor rather than replacing them",
+        "PR #514 SFI Verify #3263 completed SUCCESS including Governed Execution Router, bounded Institutional Evolution, typecheck, build and audio"
+      ],
+      "reason": "PR #513 is not an alternate unresolved implementation anymore: its exact commit lineage is contained in the convergence branch and its lifecycle remains the baseline that #514 extends. Retain branch history as provenance; do not merge it separately after #514."
+    },
+    "a6833dc764403942": {
+      "decision": "EXPLICITLY_SUPERSEDED",
+      "branches": ["fix/third-party-readiness-v1"],
+      "evidence": [
+        "PR #512 changed 21 files; PR #514 contains all 17 AUTH/Discovery/publication/access files while deliberately excluding the four completion-certification/receipt files from #512",
+        "the excluded files are .github/workflows/sfi-completion-certification-batch.yml, docs/program/SFI-COMPLETION-RECEIPTS.json, scripts/qa-sfi-program-certification-batch.mjs and scripts/sfi-program-certification-batch.mjs because completion evidence and canonical receipt persistence remain separate governed concerns",
+        "at PR #514 head 0961377dfc7ca8ffc185279f319626730973386e, SFI Account Invitation Lifecycle #72, Discovery Emitter #206, Institutional Authority #83 and SFI Verify #3263 completed SUCCESS while SFI-08 Completion Certification Batch #302 also passed without inferred receipt promotion"
+      ],
+      "reason": "The useful third-party readiness and Discovery behavior from #512 has been selectively absorbed into #514's canonical owners and verified. The receipt-writing/certification delta was intentionally not absorbed because proof execution is not authority to mutate completion status. The source branch is therefore superseded as an integration candidate, not silently merged wholesale."
     }
   }
 }

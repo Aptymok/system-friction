@@ -9,6 +9,7 @@ import {
 } from '../../../packages/graph/src';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { executeAbortableQuery } from '@/lib/supabase/abortableQuery';
+import { buildLibraryCorpusGraphProjection } from './libraryCorpusProjection';
 
 type Row = Record<string, unknown>;
 
@@ -32,6 +33,27 @@ function stringValue(...values: unknown[]) {
 
 function profileFromAttributes(attributes: Record<string, unknown>) {
   return isGraphProfile(attributes.profile) ? attributes.profile : 'shared';
+}
+
+function visibleInProfile(itemProfile: GraphProfile, profile: GraphProfile) {
+  return profile === 'shared' || itemProfile === profile || itemProfile === 'shared';
+}
+
+function stateFromProjection(profile: GraphProfile, reason: string, projection = buildLibraryCorpusGraphProjection()): CanonicalGraphState {
+  const nodes = projection.nodes.filter((node) => visibleInProfile(node.profile, profile));
+  const nodeIds = new Set(nodes.map((node) => node.nodeId));
+  const edges = projection.edges
+    .filter((edge) => visibleInProfile(edge.profile, profile))
+    .filter((edge) => nodeIds.has(edge.sourceNodeId) && nodeIds.has(edge.targetNodeId));
+  return {
+    profile,
+    sourceState: 'degraded',
+    degradedReason: reason,
+    nodes,
+    edges,
+    schemas: { node: graphNodeJsonSchema, edge: graphEdgeJsonSchema },
+    loadedAt: now(),
+  };
 }
 
 export function emptyCanonicalGraph(profile: GraphProfile, reason: string): CanonicalGraphState {
@@ -94,12 +116,17 @@ function edgeFromRow(row: Row, nodeIdByStoredId: Map<string, string>): Canonical
 }
 
 export async function readCanonicalGraphState(profile: GraphProfile): Promise<CanonicalGraphState> {
+  const libraryProjection = buildLibraryCorpusGraphProjection();
   let service;
 
   try {
     service = createServiceSupabaseClient();
   } catch (error) {
-    return emptyCanonicalGraph(profile, error instanceof Error ? error.message : 'graph_store_not_ready');
+    return stateFromProjection(
+      profile,
+      `graph_store_not_ready;library_projection_available;${error instanceof Error ? error.message : 'unknown'}`,
+      libraryProjection,
+    );
   }
 
   const [nodesResult, edgesResult] = await Promise.all([
@@ -108,39 +135,65 @@ export async function readCanonicalGraphState(profile: GraphProfile): Promise<Ca
   ]);
 
   if (nodesResult.error || edgesResult.error) {
-    return emptyCanonicalGraph(profile, nodesResult.error?.message ?? edgesResult.error?.message ?? 'graph_store_read_failed');
+    return stateFromProjection(
+      profile,
+      `graph_store_read_failed;library_projection_available;${nodesResult.error?.message ?? edgesResult.error?.message ?? 'unknown'}`,
+      libraryProjection,
+    );
   }
 
-  const nodes = (Array.isArray(nodesResult.data) ? nodesResult.data : [])
-    .map((row) => nodeFromRow(row as Row))
-    .filter((node) => profile === 'shared' || node.profile === profile || node.profile === 'shared');
+  const persistedNodes = (Array.isArray(nodesResult.data) ? nodesResult.data : [])
+    .map((row) => nodeFromRow(row as Row));
   const nodeIdByStoredId = new Map<string, string>();
   for (const rawNode of Array.isArray(nodesResult.data) ? nodesResult.data : []) {
     const node = nodeFromRow(rawNode as Row);
     for (const storedId of [rawNode.id, rawNode.node_id, rawNode.node_key, rawNode.key]) {
       const normalizedId = stringValue(storedId);
-      if (normalizedId) {
-        nodeIdByStoredId.set(normalizedId, node.nodeId);
-      }
+      if (normalizedId) nodeIdByStoredId.set(normalizedId, node.nodeId);
     }
   }
+  const persistedEdges = (Array.isArray(edgesResult.data) ? edgesResult.data : [])
+    .map((row) => edgeFromRow(row as Row, nodeIdByStoredId));
+
+  const mergedNodes = new Map<string, CanonicalGraphNode>();
+  for (const node of libraryProjection.nodes) mergedNodes.set(node.nodeId, node);
+  for (const node of persistedNodes) mergedNodes.set(node.nodeId, node);
+
+  const mergedEdges = new Map<string, CanonicalGraphEdge>();
+  for (const edge of libraryProjection.edges) mergedEdges.set(edge.edgeId, edge);
+  for (const edge of persistedEdges) mergedEdges.set(edge.edgeId, edge);
+
+  const nodes = [...mergedNodes.values()].filter((node) => visibleInProfile(node.profile, profile));
   const nodeIds = new Set(nodes.map((node) => node.nodeId));
-  const edges = (Array.isArray(edgesResult.data) ? edgesResult.data : [])
-    .map((row) => edgeFromRow(row as Row, nodeIdByStoredId))
-    .filter((edge) => nodeIds.has(edge.sourceNodeId) && nodeIds.has(edge.targetNodeId))
-    .filter((edge) => profile === 'shared' || edge.profile === profile || edge.profile === 'shared');
+  const edges = [...mergedEdges.values()]
+    .filter((edge) => visibleInProfile(edge.profile, profile))
+    .filter((edge) => nodeIds.has(edge.sourceNodeId) && nodeIds.has(edge.targetNodeId));
 
-  if (nodes.length === 0) {
-    return emptyCanonicalGraph(profile, 'graph_store_empty_repair_required');
-  }
+  const persistedVisibleNodes = persistedNodes.filter((node) => visibleInProfile(node.profile, profile));
+  const persistedVisibleNodeIds = new Set(persistedVisibleNodes.map((node) => node.nodeId));
+  const persistedVisibleEdges = persistedEdges
+    .filter((edge) => visibleInProfile(edge.profile, profile))
+    .filter((edge) => persistedVisibleNodeIds.has(edge.sourceNodeId) && persistedVisibleNodeIds.has(edge.targetNodeId));
 
-  if (edges.length === 0) {
+  if (persistedVisibleNodes.length === 0) {
     return {
       profile,
       sourceState: 'degraded',
-      degradedReason: 'graph_edges_empty_repair_required',
+      degradedReason: 'graph_store_empty;declared_library_projection_available;persisted_graph_reconciliation_still_required',
       nodes,
-      edges: [],
+      edges,
+      schemas: { node: graphNodeJsonSchema, edge: graphEdgeJsonSchema },
+      loadedAt: now(),
+    };
+  }
+
+  if (persistedVisibleEdges.length === 0) {
+    return {
+      profile,
+      sourceState: 'degraded',
+      degradedReason: 'graph_edges_empty;declared_library_projection_available;persisted_graph_reconciliation_still_required',
+      nodes,
+      edges,
       schemas: { node: graphNodeJsonSchema, edge: graphEdgeJsonSchema },
       loadedAt: now(),
     };

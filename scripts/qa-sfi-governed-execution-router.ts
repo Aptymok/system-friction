@@ -17,12 +17,16 @@ const approve = read('src/app/api/acp/proposals/[id]/approve/route.ts');
 const dailyCron = read('src/app/api/cron/continuity-report/route.ts');
 const hourlyCron = read('src/app/api/cron/continuity-heartbeat/route.ts');
 const hourlyWorkflow = read('.github/workflows/sfi-continuity-hourly.yml');
+const selfDevelopmentWorkflow = read('.github/workflows/sfi-self-development.yml');
+const selfDevelopmentRoute = read('src/app/api/cron/self-development/route.ts');
+const oidcPolicy = read('src/lib/continuity/githubActionsOidcPolicy.ts');
 const rootRunner = read('src/lib/root/rootObservationRunner.ts');
 const externalExecute = read('src/app/api/external/v1/execute/route.ts');
 
 requireText(router, "AI_EXECUTION_ROUTER_PROPOSAL_ID = '87cc094a-e9df-40e8-9a35-92c679c60ef2'", 'authorized-router-proposal');
 requireText(router, "SELF_HEALING_BOOTSTRAP_PROPOSAL_ID = '5e4803b2-0b23-4047-9ba3-38a588c78f82'", 'authorized-self-healing-proposal');
 requireText(router, "'COGNITIVE_INTERNAL'", 'internal-class');
+requireText(router, "'MATERIAL_INTERNAL'", 'material-internal-class');
 requireText(router, "'EXTERNAL_ACTION'", 'external-class');
 requireText(router, 'runCognitiveAgent', 'reuse-cognitive-runtime');
 requireText(router, 'MAX_RETRIES_PER_AGENT = 1', 'bounded-retry');
@@ -34,6 +38,11 @@ requireText(router, 'canonicalPromotionAllowed: false', 'no-auto-canon');
 requireText(router, "type: 'build_execution_adapter'", 'missing-adapter-request');
 requireText(router, "state: 'BLOCKED_EXECUTOR_CAPABILITY'", 'fail-closed-missing-adapter');
 requireText(router, 'SFI_GOVERNED_EXECUTION_ADAPTERS', 'adapter-contract');
+requireText(router, "capabilityId: 'sfi_self_development_v1'", 'self-development-adapter');
+requireText(router, "executorRef: 'github-actions:sfi-self-development'", 'self-development-executor-ref');
+requireText(router, "domain: 'repository_self_development'", 'self-development-domain');
+requireText(router, "state: 'ASSIGNED'", 'scheduled-material-assignment-state');
+requireText(router, 'AWAIT_SCHEDULED_SELF_DEVELOPMENT_EXECUTOR', 'scheduled-material-executor-handoff');
 requireText(router, 'persistExecutionState', 'persist-assignment-state');
 requireText(router, "state: 'RUNNING'", 'running-state-distinct-from-queued');
 requireText(router, "state: 'REMEDIATION_REQUIRED'", 'explicit-remediation-state');
@@ -79,6 +88,29 @@ requireText(hourlyCron, 'verifyGitHubActionsOidcToken', 'hourly-router-auth-rema
 requireText(hourlyWorkflow, "cron: '15 * * * *'", 'reuse-existing-hourly-scheduler');
 requireText(hourlyWorkflow, 'workflow_dispatch:', 'existing-hourly-manual-trigger-retained');
 requireText(rootRunner, 'runGovernedExecutionRouter({ limit: 10 })', 'root-full-cycle-router');
+
+// Existing SFI Self-Development becomes the bounded material executor. It may write only a review branch/PR,
+// never main/canon, and its live SFI bridge is authenticated by exact-workflow GitHub OIDC.
+requireText(selfDevelopmentWorkflow, 'id-token: write', 'self-development-oidc-permission');
+requireText(selfDevelopmentWorkflow, 'contents: write', 'self-development-branch-write-permission');
+requireText(selfDevelopmentWorkflow, 'pull-requests: write', 'self-development-pr-write-permission');
+requireText(selfDevelopmentWorkflow, 'audience=sfi-self-development', 'self-development-oidc-audience');
+requireText(selfDevelopmentWorkflow, '/api/cron/self-development', 'self-development-live-bridge');
+requireText(selfDevelopmentWorkflow, 'auto/sfi-self-repair-', 'self-development-review-branch');
+requireText(selfDevelopmentWorkflow, 'gh pr create', 'self-development-review-pr');
+forbid(selfDevelopmentWorkflow, 'gh pr merge', 'self-development-auto-merge-forbidden');
+forbid(selfDevelopmentWorkflow, 'git push origin main', 'self-development-main-push-forbidden');
+requireText(oidcPolicy, "SFI_SELF_DEVELOPMENT_OIDC_AUDIENCE = 'sfi-self-development'", 'self-development-exact-audience');
+requireText(oidcPolicy, "SFI_SELF_DEVELOPMENT_WORKFLOW_REF = 'Aptymok/system-friction/.github/workflows/sfi-self-development.yml@refs/heads/main'", 'self-development-exact-workflow-ref');
+requireText(selfDevelopmentRoute, "verifyGitHubActionsOidcToken(token, 'self-development')", 'self-development-route-oidc');
+requireText(selfDevelopmentRoute, "const PROPOSAL_TYPE = 'institutional_mutation_candidate'", 'self-development-candidate-type-constant');
+requireText(selfDevelopmentRoute, 'const proposalTypeMatches = proposalKind === PROPOSAL_TYPE', 'self-development-candidate-type-gate');
+requireText(selfDevelopmentRoute, 'const eligible = proposalTypeMatches', 'self-development-candidate-type-gate-enforced');
+requireText(selfDevelopmentRoute, 'requiredExecutor === EXECUTOR', 'self-development-executor-gate');
+requireText(selfDevelopmentRoute, 'recordProposalOutcomeFromObservedReturn', 'self-development-return-reuses-canonical-outcome-writer');
+requireText(selfDevelopmentRoute, "eventName: 'SFI_SELF_DEVELOPMENT_RETURN_RECORDED'", 'self-development-observed-return');
+requireText(selfDevelopmentRoute, 'canonicalPromotionAllowed: false', 'self-development-no-auto-canon');
+forbid(selfDevelopmentRoute, "status: 'accepted'", 'self-development-route-cannot-adopt');
 
 requireText(externalExecute, "authorizeExternalRequest(req, 'execute')", 'external-execute-scope-gate');
 forbid(externalExecute, 'body.confirm !== true', 'external-execute-duplicate-human-confirmation');

@@ -111,9 +111,11 @@ export async function createActionProposal(input: {
   proposalType: string; actorId: string; title?: string | null; objective?: string | null; seed?: string | null;
   worldspectSnapshotId?: string | null; graphNodeCount?: number; graphEdgeCount?: number; inputVectorHash?: string | null;
   specHash?: string | null; contentHash?: string | null; promptHash?: string | null; status?: ProposalStatus;
+  approvalRequired?: boolean;
   eventId?: string | null; payload: Record<string, unknown>;
 }) {
   const service = createServiceSupabaseClient();
+  const approvalRequired = input.approvalRequired ?? true;
   const expectedFieldDelta = {
     proposalType: input.proposalType,
     objective: input.objective ?? null,
@@ -136,11 +138,11 @@ export async function createActionProposal(input: {
     risk_level: 'unknown',
     proportionality_check: {
       proposalType: input.proposalType,
-      approvalRequired: true,
+      approvalRequired,
       riskAssessmentState: 'UNASSESSED',
       objectiveHash: input.objective ? sha256(input.objective) : null,
     },
-    approval_required: true,
+    approval_required: approvalRequired,
     event_id: input.eventId && UUID_RE.test(input.eventId) ? input.eventId : null,
   }).select('*').single();
   if (error) return { ok: false as const, error: 'action_proposal_insert_failed', details: error.message };

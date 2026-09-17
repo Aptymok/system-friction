@@ -97,6 +97,32 @@ export async function requireAuthenticatedUser() {
   }
 }
 
+export async function hasActiveInstitutionalAccountGrant(user: { id: string; email?: string | null }) {
+  const email = user.email?.trim().toLowerCase();
+  if (!email) return false;
+
+  const service = createServiceSupabaseClient();
+  const grant = await service
+    .from('sfi_account_access_grants')
+    .select('user_id,status')
+    .eq('email', email)
+    .maybeSingle();
+
+  if (grant.error) {
+    throw new AccessDeniedError(
+      503,
+      'AUTH_UNAVAILABLE',
+      `Institutional account grant state is temporarily unavailable: ${grant.error.message}`,
+    );
+  }
+
+  return Boolean(
+    grant.data &&
+    grant.data.status === 'ACTIVE' &&
+    grant.data.user_id === user.id
+  );
+}
+
 async function ensureFieldProfile(user: { id: string; email?: string | null }, displayName: string) {
   const service = createServiceSupabaseClient();
   const existing = await service
@@ -226,7 +252,10 @@ export async function requireSfiMember() {
   const context = await requireUserProfile();
   const role = String(context.profile.role || '').toLowerCase();
   const access = record(context.profile.module_access);
-  const institutional = Boolean(context.member) || role === 'root' || role === 'system' || access.institutional_account === true;
+  const activeInstitutionalAccount = access.institutional_account === true
+    ? await hasActiveInstitutionalAccountGrant(context.user)
+    : false;
+  const institutional = Boolean(context.member) || role === 'root' || role === 'system' || activeInstitutionalAccount;
   if (!institutional) {
     throw new AccessDeniedError(403, 'SFI_MEMBER_REQUIRED', 'An active SFI institutional membership or governed institutional account access grant is required.');
   }

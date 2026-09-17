@@ -18,7 +18,6 @@ for (const href of ['/observatory','/cases','/method-lab','/twin','/studio','/li
   assert.ok(hrefs.includes(href), `root canonical module missing:${href}`);
 }
 
-assert.match(workspace, /MISSING y DEGRADED permanecen visibles/, 'root must state missing/degraded boundary');
 assert.match(workspace, /OBSERVACIÓN ≠ INFERENCIA/, 'root epistemic distinction missing');
 assert.match(workspace, /SIMULACIÓN ≠ OBSERVACIÓN/, 'root simulation boundary missing');
 assert.match(workspace, /rootActionRequired === true/, 'root sovereign work queue semantics must remain data-driven');
@@ -27,6 +26,7 @@ assert.match(workspace, /jsonFetch\('\/api\/root\/decisions'/, 'root decision wr
 assert.match(workspace, /const readState = base \? \(error \? 'DEGRADED' : 'OBSERVED'\) : \(error \? 'DEGRADED' : 'MISSING'\)/, 'root must derive epistemic read state from actual read outcome');
 assert.match(workspace, /data-epistemic-state=\{readState\}/, 'pulse cards must carry observed read state');
 assert.match(workspace, /const pulseValue = \(value: number\) => base \? value : 'MISSING'/, 'absent reads must not project numeric zero');
+assert.match(workspace, /HIGH\|BLOCK\|MISSING\|REJECT\|CONFLICT\|LIMITATION\|FAILED\|DEGRADED/, 'root attention state must preserve missing/degraded visibility');
 assert.match(css, /content:attr\(data-epistemic-state\)/, 'pulse label must render runtime epistemic state');
 assert.doesNotMatch(css, /content:"OBSERVED"/, 'CSS must not stamp unavailable pulse data as observed');
 assert.doesNotMatch(workspace, /Math\.random|mock|simulated|hardcodedHealthy/i, 'production root must not invent display state');

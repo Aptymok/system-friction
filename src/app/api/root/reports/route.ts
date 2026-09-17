@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 
 import { requireRootViewer } from '@/lib/root/server';
+import { humanReportText } from '@/lib/reports/humanReport';
 import { readRootReportHealth, readRootReportInbox } from '@/lib/reports/rootReportInbox';
 
 export const dynamic = 'force-dynamic';
@@ -11,8 +12,15 @@ export async function GET() {
   if (!gate.ok) return NextResponse.json(gate.body, { status: gate.status });
 
   try {
-    const inbox = await readRootReportInbox();
-    const health = await readRootReportHealth(inbox);
+    const rawInbox = await readRootReportInbox();
+    const inbox = {
+      ...rawInbox,
+      items: rawInbox.items.map((item) => ({
+        ...item,
+        body: humanReportText(item.body),
+      })),
+    };
+    const health = await readRootReportHealth(rawInbox);
     return NextResponse.json({ ok: true, inbox, health }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
     return NextResponse.json({

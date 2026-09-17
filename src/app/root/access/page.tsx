@@ -13,7 +13,7 @@ const STATES: Record<string, string> = {
   suspendida: 'Esa cuenta está suspendida. No se reactivó automáticamente.',
   registro_no_disponible: 'El registro de accesos no está disponible todavía.',
   invitacion_no_enviada: 'No se pudo enviar la invitación. No se otorgó acceso.',
-  perfil_no_creado: 'La invitación no se activó porque SFI no pudo preparar el perfil de acceso.',
+  limite_correo: 'El proveedor de autenticación alcanzó un límite temporal de envío. No se otorgó acceso nuevo; vuelve a intentar cuando el límite se libere o configura un proveedor SMTP propio antes de reintentar.',
 };
 
 function statusText(value: string) {
@@ -22,6 +22,13 @@ function statusText(value: string) {
   if (value === 'SUSPENDED') return 'Suspendida';
   if (value === 'INVITE_FAILED') return 'Invitación fallida';
   return 'Preparando invitación';
+}
+
+function deliveryDetail(error: string | null) {
+  if (!error) return null;
+  if (/rate limit|too many requests/i.test(error)) return 'Último reintento bloqueado temporalmente por el proveedor de correo.';
+  if (error === 'profile_provision_failed' || error === 'activation_profile_provision_failed') return 'El envío o la identidad existieron, pero el perfil institucional requiere revisión.';
+  return 'El último intento de entrega o preparación requiere revisión.';
 }
 
 export default async function RootAccessPage({
@@ -80,13 +87,17 @@ export default async function RootAccessPage({
         {!access.available ? <p>El registro nuevo se habilitará con la siguiente migración de producción.</p> : null}
         {access.grants.length === 0 ? <p>No hay invitaciones registradas todavía.</p> : (
           <div style={{ display: 'grid', gap: 12 }}>
-            {access.grants.map((grant) => (
-              <article key={grant.id} style={{ borderTop: '1px solid currentColor', paddingTop: 12 }}>
-                <strong>{grant.displayName}</strong>
-                <div>{grant.title} · {grant.email}</div>
-                <small>{statusText(grant.status)} · {grant.accessClass === 'INSTITUTIONAL_OBSERVER' ? 'Observador' : 'Operador'}</small>
-              </article>
-            ))}
+            {access.grants.map((grant) => {
+              const detail = deliveryDetail(grant.lastInviteError);
+              return (
+                <article key={grant.id} style={{ borderTop: '1px solid currentColor', paddingTop: 12 }}>
+                  <strong>{grant.displayName}</strong>
+                  <div>{grant.title} · {grant.email}</div>
+                  <small>{statusText(grant.status)} · {grant.accessClass === 'INSTITUTIONAL_OBSERVER' ? 'Observador' : 'Operador'}</small>
+                  {detail ? <div><small>{detail}</small></div> : null}
+                </article>
+              );
+            })}
           </div>
         )}
       </section>

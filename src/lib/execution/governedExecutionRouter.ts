@@ -18,7 +18,7 @@ const MAX_RETRIES_PER_AGENT = 1;
 type Row = Record<string, unknown>;
 type PersistedExecutionState = 'ASSIGNED' | 'RUNNING' | 'REMEDIATION_REQUIRED' | 'NO_EXECUTOR';
 
-export type GovernedExecutionClass = 'COGNITIVE_INTERNAL' | 'INTERNAL_PLATFORM' | 'EXTERNAL_ACTION';
+export type GovernedExecutionClass = 'COGNITIVE_INTERNAL' | 'MATERIAL_INTERNAL' | 'INTERNAL_PLATFORM' | 'EXTERNAL_ACTION';
 
 export type GovernedExecutionAdapter = {
   capabilityId: string;
@@ -78,6 +78,20 @@ export const SFI_GOVERNED_EXECUTION_ADAPTERS: GovernedExecutionAdapter[] = [
     executorRef: 'openRemediationChild',
     healthStatus: 'AVAILABLE',
   },
+  {
+    capabilityId: 'sfi_self_development_v1',
+    name: 'SFI Self-Development · bounded repository repair',
+    domain: 'repository_self_development',
+    actionsSupported: ['inspect_declared_scope', 'generate_patch', 'verify_patch', 'open_review_branch', 'open_review_pr', 'record_return'],
+    inputContract: 'queued institutional_mutation_candidate + explicit developmentScope + developmentExecutionAuthorized=true',
+    outputContract: 'verified bounded patch on auto/sfi-self-repair-* branch + PR + observed proposal RETURN',
+    requiredScopes: [],
+    authorityBoundary: 'May modify only the proposal-declared bounded repository scope on a review branch. Never merges main, adopts the mutation, changes canon, expands scope, publishes externally, spends or changes access.',
+    riskClass: 'MEDIUM',
+    reversibility: 'BOUNDED',
+    executorRef: 'github-actions:sfi-self-development',
+    healthStatus: 'AVAILABLE',
+  },
 ];
 
 function proposalPayload(row: Row) {
@@ -109,14 +123,23 @@ function proposalText(row: Row) {
 }
 
 function declaredAdapter(row: Row) {
+  const payload = proposalPayload(row);
   const outcome = recordValue(row.outcome);
   const patch = recordValue(outcome.payloadPatch);
   const plan = recordValue(patch.executionPlan);
   const assignment = recordValue(patch.assignment);
   return stringValue(
     assignment.adapterId ?? assignment.adapter ?? assignment.executorRoute ?? assignment.executor_route
-      ?? plan.adapterId ?? plan.adapter ?? plan.executorRoute ?? plan.executor_route,
+      ?? plan.adapterId ?? plan.adapter ?? plan.executorRoute ?? plan.executor_route
+      ?? payload.requiredExecutor,
   );
+}
+
+function declaredDevelopmentScope(row: Row) {
+  const scope = proposalPayload(row).developmentScope;
+  return Array.isArray(scope)
+    ? [...new Set(scope.filter((item): item is string => typeof item === 'string' && item.trim().length > 0).map((item) => item.trim()))]
+    : [];
 }
 
 export function classifyGovernedProposalWork(row: Row) {
@@ -128,13 +151,22 @@ export function classifyGovernedProposalWork(row: Row) {
     return { executionClass: 'INTERNAL_PLATFORM' as const, adapterId: 'self_healing_bootstrap_v1', reason: 'The deployed remediation path is the bounded internal capability being verified.' };
   }
 
+  const adapterId = declaredAdapter(row);
+  if (adapterId === 'sfi_self_development_v1') {
+    return {
+      executionClass: 'MATERIAL_INTERNAL' as const,
+      adapterId,
+      reason: 'The proposal declares the existing bounded repository self-development executor. Material repair remains branch/PR-only and cannot adopt or merge itself.',
+    };
+  }
+
   const text = proposalText(row);
   const actionType = stringValue(requestedAction(row).type)?.toLowerCase() ?? '';
   const materialExternal = isMaterialExternalAction(actionType, text);
   if (materialExternal) {
     return {
       executionClass: 'EXTERNAL_ACTION' as const,
-      adapterId: declaredAdapter(row),
+      adapterId,
       reason: 'The requested action type or explicit operative wording declares a material external side effect and therefore requires a verified governed adapter.',
     };
   }
@@ -503,6 +535,16 @@ export async function dispatchQueuedProposal(proposalId: string) {
 
   const row = read.data as Row;
   const classification = classifyGovernedProposalWork(row);
+  const priorAssignment = recordValue(recordValue(recordValue(row.outcome).payloadPatch).assignment);
+  if (
+    classification.executionClass === 'MATERIAL_INTERNAL'
+    && classification.adapterId === 'sfi_self_development_v1'
+    && stringValue(priorAssignment.adapterId) === 'sfi_self_development_v1'
+    && stringValue(priorAssignment.state) === 'ASSIGNED'
+  ) {
+    return { ok: true as const, state: 'ALREADY_ASSIGNED_SCHEDULED_EXECUTOR', proposalId, adapterId: 'sfi_self_development_v1' };
+  }
+
   const routed = await appendOperationalEvent({
     eventName: 'execution.router.routed',
     actorId: SYSTEM_ACTOR,
@@ -512,13 +554,70 @@ export async function dispatchQueuedProposal(proposalId: string) {
       executionClass: classification.executionClass,
       adapterId: classification.adapterId,
       reason: classification.reason,
-      nextActor: classification.executionClass === 'EXTERNAL_ACTION' ? 'EXECUTION_ADAPTER' : 'SFI_RUNTIME',
-      nextGate: classification.executionClass === 'EXTERNAL_ACTION' ? 'ADAPTER_HEALTH' : 'EXECUTE_BOUNDED_SCOPE',
+      nextActor: classification.executionClass === 'EXTERNAL_ACTION'
+        ? 'EXECUTION_ADAPTER'
+        : classification.executionClass === 'MATERIAL_INTERNAL'
+          ? 'GITHUB_ACTIONS_SELF_DEVELOPMENT'
+          : 'SFI_RUNTIME',
+      nextGate: classification.executionClass === 'EXTERNAL_ACTION'
+        ? 'ADAPTER_HEALTH'
+        : classification.executionClass === 'MATERIAL_INTERNAL'
+          ? 'BOUNDED_REPOSITORY_SCOPE'
+          : 'EXECUTE_BOUNDED_SCOPE',
       canonicalPromotionAllowed: false,
     },
     lineage: [proposalId],
   });
   const routeEventId = routed.ok ? String(routed.data.id ?? '') : null;
+
+  if (classification.executionClass === 'MATERIAL_INTERNAL' && classification.adapterId === 'sfi_self_development_v1') {
+    const adapter = SFI_GOVERNED_EXECUTION_ADAPTERS.find((candidate) => candidate.capabilityId === classification.adapterId && candidate.healthStatus === 'AVAILABLE') ?? null;
+    const scope = declaredDevelopmentScope(row);
+    const payload = proposalPayload(row);
+    const authorized = payload.developmentExecutionAuthorized === true;
+    if (!adapter || !authorized || !scope.length || proposalTypeOf(row) !== 'institutional_mutation_candidate') {
+      const missingCapability = !adapter ? 'sfi_self_development_v1' : 'bounded_repository_development_scope';
+      const remediation = await openRemediationChild(row, missingCapability, 'Material repository repair requires the verified self-development adapter, institutional mutation candidate type, explicit authorization and a non-empty bounded file scope.');
+      await persistExecutionState(row, {
+        executionClass: 'MATERIAL_INTERNAL',
+        adapterId: classification.adapterId,
+        executorId: adapter?.executorRef ?? null,
+        state: 'REMEDIATION_REQUIRED',
+        eventId: routeEventId,
+        missingCapability,
+        blocker: 'MATERIAL_DEVELOPMENT_SCOPE_OR_AUTHORITY_MISSING',
+        blockerOwner: 'SFI_INSTITUTIONAL_EVOLUTION',
+        systemNextAction: 'REPAIR_BOUNDED_DEVELOPMENT_CONTRACT',
+      });
+      return { ok: false as const, state: 'BLOCKED_EXECUTOR_CAPABILITY', proposalId, missingCapability, remediation };
+    }
+    const assignment = await persistExecutionState(row, {
+      executionClass: 'MATERIAL_INTERNAL',
+      adapterId: adapter.capabilityId,
+      executorId: adapter.executorRef,
+      state: 'ASSIGNED',
+      eventId: routeEventId,
+      systemNextAction: 'AWAIT_SCHEDULED_SELF_DEVELOPMENT_EXECUTOR',
+    });
+    if (!assignment.ok) return { ok: false as const, state: 'ASSIGNMENT_PERSIST_FAILED', proposalId, details: assignment };
+    await appendOperationalEvent({
+      eventName: 'execution.router.assigned_scheduled',
+      actorId: SYSTEM_ACTOR,
+      confidence: 1,
+      payload: {
+        proposalId,
+        executionClass: 'MATERIAL_INTERNAL',
+        adapterId: adapter.capabilityId,
+        executorRef: adapter.executorRef,
+        developmentScope: scope,
+        state: 'ASSIGNED',
+        canonicalPromotionAllowed: false,
+        automaticMergeAllowed: false,
+      },
+      lineage: [proposalId],
+    });
+    return { ok: true as const, state: 'ASSIGNED_SCHEDULED_EXECUTOR', proposalId, adapterId: adapter.capabilityId, developmentScope: scope };
+  }
 
   if (classification.executionClass === 'INTERNAL_PLATFORM' && classification.adapterId) {
     const adapter = SFI_GOVERNED_EXECUTION_ADAPTERS.find((candidate) => candidate.capabilityId === classification.adapterId) ?? null;
@@ -547,7 +646,7 @@ export async function dispatchQueuedProposal(proposalId: string) {
   const adapter = classification.adapterId
     ? SFI_GOVERNED_EXECUTION_ADAPTERS.find((candidate) => candidate.capabilityId === classification.adapterId && candidate.healthStatus === 'AVAILABLE')
     : null;
-  if (adapter && adapter.domain !== 'internal_cognition' && adapter.domain !== 'internal_execution_control' && adapter.domain !== 'execution_remediation') {
+  if (adapter && adapter.domain !== 'internal_cognition' && adapter.domain !== 'internal_execution_control' && adapter.domain !== 'execution_remediation' && adapter.domain !== 'repository_self_development') {
     const missingCapability = `dispatcher:${adapter.capabilityId}`;
     const remediation = await openRemediationChild(row, missingCapability, 'The governed adapter is registered but no dispatcher implementation is available for this external domain.');
     await persistExecutionState(row, {

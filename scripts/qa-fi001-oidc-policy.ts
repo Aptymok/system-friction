@@ -6,6 +6,8 @@ import {
   SFI_CONTINUITY_REPOSITORY,
   SFI_CONTINUITY_REPOSITORY_ID,
   SFI_CONTINUITY_WORKFLOW_REF,
+  SFI_SELF_DEVELOPMENT_OIDC_AUDIENCE,
+  SFI_SELF_DEVELOPMENT_WORKFLOW_REF,
   validateGitHubActionsOidcClaims,
 } from '../src/lib/continuity/githubActionsOidcPolicy';
 
@@ -36,5 +38,18 @@ assert.equal(validateGitHubActionsOidcClaims({ ...valid, aud: 'wrong-audience' }
 assert.equal(validateGitHubActionsOidcClaims({ ...valid, exp: now - 31 }, now).reason, 'OIDC_TOKEN_EXPIRED');
 assert.equal(validateGitHubActionsOidcClaims({ ...valid, nbf: now + 31 }, now).reason, 'OIDC_TOKEN_NOT_YET_VALID');
 assert.equal(validateGitHubActionsOidcClaims({ ...valid, iat: now - 901 }, now).reason, 'OIDC_TOKEN_AGE_INVALID');
+
+const selfDevelopment = {
+  ...valid,
+  aud: SFI_SELF_DEVELOPMENT_OIDC_AUDIENCE,
+  workflow_ref: SFI_SELF_DEVELOPMENT_WORKFLOW_REF,
+  event_name: 'schedule',
+};
+assert.equal(validateGitHubActionsOidcClaims(selfDevelopment, now, 'self-development').ok, true);
+assert.equal(validateGitHubActionsOidcClaims({ ...selfDevelopment, event_name: 'workflow_dispatch' }, now, 'self-development').ok, true);
+assert.equal(validateGitHubActionsOidcClaims({ ...selfDevelopment, event_name: 'push' }, now, 'self-development').ok, true);
+assert.equal(validateGitHubActionsOidcClaims({ ...selfDevelopment, workflow_ref: SFI_CONTINUITY_WORKFLOW_REF }, now, 'self-development').reason, 'OIDC_WORKFLOW_REF_MISMATCH');
+assert.equal(validateGitHubActionsOidcClaims({ ...selfDevelopment, aud: SFI_CONTINUITY_OIDC_AUDIENCE }, now, 'self-development').reason, 'OIDC_AUDIENCE_MISMATCH');
+assert.equal(validateGitHubActionsOidcClaims(selfDevelopment, now, 'continuity').reason, 'OIDC_AUDIENCE_MISMATCH');
 
 console.log('FI-001 GitHub OIDC policy QA: PASS');
