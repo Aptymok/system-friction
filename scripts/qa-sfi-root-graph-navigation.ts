@@ -13,6 +13,7 @@ const predictionReader = read('src/lib/root/sovereign/readers/readRootPrediction
 const systemReader = read('src/lib/root/sovereign/readers/readRootSystemState.ts');
 const readerSupport = read('src/lib/root/sovereign/readers/readerSupport.ts');
 const reconcileRoute = read('src/app/api/root/evidence/reconcile/route.ts');
+const reportsRoute = read('src/app/api/root/reports/route.ts');
 const scenes = read('src/components/sfi/scenes.ts');
 const shellUi = read('src/components/sfi/SfiConsole.tsx');
 const rootUi = read('src/components/sfi/SfiRootWorkspace.tsx');
@@ -40,9 +41,10 @@ check('ROOT is regenerated as a thin sovereign projection over existing owners',
 check('ROOT exposes observation links without inventing a second subsystem map', rootUi.includes("href: '/observatory'") && rootUi.includes("href: '/cases'") && rootUi.includes("href: '/method-lab'") && !rootUi.includes('MAPA OPERATIVO · SUPERFICIES SFI'));
 check('ROOT preserves binary terminal decisions while evidence request remains a non-terminal defer', rootUi.includes('ACEPTAR') && rootUi.includes('DENEGAR') && rootUi.includes('SOLICITAR EVIDENCIA') && rootUi.includes('no convierte una fuente en evidencia aceptada') && rootUi.includes('la decisión permanece abierta'));
 check('ROOT report archive is observational rather than approvable', rootUi.includes("jsonFetch('/api/root/reports')") && rootUi.includes('no requieren ACCEPT/DENY') && !rootUi.includes('DENEGAR REPORTE'));
-check('ROOT report body uses one deterministic human normalizer', rootUi.includes("normalizeHumanReport") && rootUi.includes("from '@/lib/reports/humanReport'"));
+check('ROOT report route normalizes every report body before presentation', reportsRoute.includes("humanReportText") && reportsRoute.includes("from '@/lib/reports/humanReport'") && reportsRoute.includes('body: humanReportText(item.body)'));
 check('human report normalizer supports headings, lists and markdown tables', humanReport.includes("kind: 'heading'") && humanReport.includes("kind: 'list'") && humanReport.includes("kind: 'table'") && humanReport.includes('normalizeHumanReport'));
 check('human report normalizer removes presentational markdown tokens', humanReport.includes('stripInlineMarkdown') && humanReport.includes('replace(/\\*\\*([^*]+)\\*\\*/g') && humanReport.includes('replace(/`([^`]+)`/g'));
+check('human report text materializes tables without markdown pipe syntax', humanReport.includes('tableRowText') && humanReport.includes("join(' · ')") && humanReport.includes('humanReportText'));
 check('technical JSON remains behind trace disclosure', rootUi.includes('Ver trazabilidad técnica') && rootUi.includes('JSON.stringify(value, null, 2)'));
 check('ROOT operating workspace delegates governance to one canonical workspace', operatingUi.includes('SfiGovernanceWorkspace') && operatingUi.includes("if(surface==='governance')return <SfiGovernanceWorkspace enabled={enabled}/>"));
 check('ROOT governance workspace defers governed proposal hydration to the canonical interactive projection', governanceUi.includes("jsonFetch('/api/root/interactive?surface=governance')") && governanceUi.includes('includeTargets=1') && governanceUi.includes('setWorkboard(data.operationalNext?{operationalNext:data.operationalNext}') && interactiveRoute.includes("proposalQueueSource: 'operationalNext.items'") && interactiveRoute.includes('targetHydrationDeferred: true'));
