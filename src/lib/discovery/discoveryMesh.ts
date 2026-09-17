@@ -147,6 +147,11 @@ function unavailable(basis: string, reason: string, availability: SfiDiscoveryAv
 function eligible(observation: SfiDiscoveryRetrievalObservation) {
   return (observation.status ?? 'AVAILABLE') === 'AVAILABLE';
 }
+function aggregateSourceAvailability(states: readonly SfiDiscoveryAvailability[]): SfiDiscoveryAvailability {
+  if (!states.length) return 'NOT_OBSERVED';
+  const first = states[0] ?? 'NOT_OBSERVED';
+  return states.every((state) => state === first) ? first : 'DEGRADED';
+}
 function validHttpUrl(value: string | null | undefined) {
   try { const url = new URL(clean(value)); return ['http:', 'https:'].includes(url.protocol); } catch { return false; }
 }
@@ -330,6 +335,10 @@ export function observeDiscovery(input: SfiDiscoveryObservationInput) {
   if (input.mode === 'distinct_intent' && !intent) throw new Error('SFI_DISCOVERY_DISTINCT_INTENT_REQUIRED');
   const canonical = canonicalDiscoveryCandidates(query, intent);
   const openSource = input.mode === 'open_source' ? (input.feedItems ?? []).map(normalizeOpenSourceFeedItem) : [];
+  const sourceAvailability: SfiDiscoveryAvailability[] = [
+    ...(input.retrievalObservations ?? []).map((item) => item.status ?? 'AVAILABLE'),
+    ...openSource.map((item) => item.availability),
+  ];
   const candidates = [...canonical, ...openSource].sort((a, b) => b.score - a.score || a.candidateId.localeCompare(b.candidateId));
   const metrics = discoveryMetrics(input.retrievalObservations ?? []);
   return {
@@ -339,7 +348,7 @@ export function observeDiscovery(input: SfiDiscoveryObservationInput) {
     mode: input.mode,
     query,
     intent: intent || null,
-    state: candidates.some((item) => item.availability === 'DEGRADED') ? 'DEGRADED' as const : 'AVAILABLE' as const,
+    state: aggregateSourceAvailability(sourceAvailability),
     candidates,
     externalRepresentations: externalRepresentationsForCandidates(candidates),
     metrics,
