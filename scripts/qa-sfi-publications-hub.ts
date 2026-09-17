@@ -5,6 +5,8 @@ import sitemapProjection from '../src/app/sitemap';
 const read = (path: string) => readFileSync(path, 'utf8');
 const page = read('src/app/publications/page.tsx');
 const css = read('src/app/publications/publications.css');
+const entryCss = read('src/components/sfi/PublicEntryGateway.css');
+const institutionCss = read('src/app/institution/institution.css');
 const families = read('src/lib/publications/editorialFamilies.ts');
 const editorial = read('src/lib/publications/editorialContent.ts');
 
@@ -33,6 +35,12 @@ for (const token of ['--void:#060605', '--gold:#c8a951', '--cream:#e8ddc3', '--s
   assert.ok(css.toLowerCase().includes(token), `identity_manual_palette_missing:${token}`);
 }
 assert.ok(css.includes('Noto Serif Display') && css.includes('EB Garamond') && css.includes('Liberation Mono') && css.includes('Noto Sans'), 'identity_manual_typography_roles_missing');
+for (const [surface, surfaceCss] of [['entry', entryCss], ['institution', institutionCss]] as const) {
+  for (const family of ['Noto Serif Display', 'EB Garamond', 'Liberation Mono', 'Noto Sans']) {
+    assert.ok(surfaceCss.includes(family), `identity_manual_typography_missing:${surface}:${family}`);
+  }
+  assert.equal(/Space Grotesk|\bInter\b/.test(surfaceCss), false, `noncanonical_public_typography:${surface}`);
+}
 assert.ok(css.includes(':focus-visible'), 'keyboard_focus_visibility_missing');
 assert.ok(css.includes('prefers-reduced-motion'), 'reduced_motion_boundary_missing');
 
@@ -41,10 +49,11 @@ assert.ok(sitemapUrls.includes('https://systemfriction.org/publications'), 'publ
 
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-PUBLICATIONS-HUB-IDENTITY-1.1',
+  contract: 'SFI-PUBLICATIONS-HUB-IDENTITY-1.2',
   monthly: 'Notas Temporales remains one monthly institutional issue series',
   families: ['Notas de Señal', 'Notas de Caso', 'Notas de Campo', 'Notas de Retorno', 'Notas de Laboratorio'],
   identityManual: 'SFI-ID-003 / MASTER EDITION V4.0',
+  publicTypography: 'CANONICAL_ROLES_ENFORCED',
   generatedImageProvenance: true,
   canonicalMutation: false,
   publicationsSitemapProjection: true,
