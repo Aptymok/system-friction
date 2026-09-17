@@ -45,6 +45,29 @@ export async function POST(req: Request, ctx: RouteContext) {
   });
   if (!decision.ok) return NextResponse.json(decision, { status: 409 });
 
+  // A bounded institutional candidate that already persisted OBSERVED RETURN is
+  // now being adopted, not authorized for another development run. The lifecycle
+  // writer moves it directly to accepted; do not queue or dispatch it again.
+  if (String((decision.data as Record<string, unknown>).status ?? '') === 'accepted') {
+    return NextResponse.json({
+      ok: true,
+      data: decision.data,
+      decision: {
+        decision: 'accept',
+        authority,
+        actorId: gate.ctx.user.id,
+        actorLabel: gate.ctx.user.email ?? null,
+      },
+      execution: {
+        ok: true,
+        state: 'NOT_REDISPATCHED_ADOPTION_COMPLETE',
+        proposalId,
+        canonicalPromotionAllowed: false,
+      },
+      next: 'institutional_candidate_adopted_without_redispatch',
+    });
+  }
+
   const queued = await queueApprovedProposal({
     proposalId,
     actorId: gate.ctx.user.id,
