@@ -20,6 +20,7 @@ const operatingUi = read('src/components/sfi/SfiOperatingWorkspace.tsx');
 const governanceUi = read('src/components/sfi/SfiGovernanceWorkspace.tsx');
 const interactiveRoute = read('src/app/api/root/interactive/route.ts');
 const scenePage = read('src/app/[scene]/page.tsx');
+const humanReport = read('src/lib/reports/humanReport.ts');
 
 check('legacy graph node storage remains compatible', reconcile.includes("LEGACY_NODE_STORAGE_TYPE = 'INF'") && !reconcile.includes("node_type: 'SRC'") && !reconcile.includes("node_type: 'ATR'"));
 check('legacy graph edge storage remains compatible', reconcile.includes("LEGACY_EDGE_STORAGE_TYPE = 'structural_inferred'") && reconcile.includes('relation_type: LEGACY_EDGE_STORAGE_TYPE'));
@@ -39,6 +40,10 @@ check('ROOT is regenerated as a thin sovereign projection over existing owners',
 check('ROOT exposes observation links without inventing a second subsystem map', rootUi.includes("href: '/observatory'") && rootUi.includes("href: '/cases'") && rootUi.includes("href: '/method-lab'") && !rootUi.includes('MAPA OPERATIVO · SUPERFICIES SFI'));
 check('ROOT preserves binary terminal decisions while evidence request remains a non-terminal defer', rootUi.includes('ACEPTAR') && rootUi.includes('DENEGAR') && rootUi.includes('SOLICITAR EVIDENCIA') && rootUi.includes('no convierte una fuente en evidencia aceptada') && rootUi.includes('la decisión permanece abierta'));
 check('ROOT report archive is observational rather than approvable', rootUi.includes("jsonFetch('/api/root/reports')") && rootUi.includes('no requieren ACCEPT/DENY') && !rootUi.includes('DENEGAR REPORTE'));
+check('ROOT report body uses one deterministic human normalizer', rootUi.includes("normalizeHumanReport") && rootUi.includes("from '@/lib/reports/humanReport'"));
+check('human report normalizer supports headings, lists and markdown tables', humanReport.includes("kind: 'heading'") && humanReport.includes("kind: 'list'") && humanReport.includes("kind: 'table'") && humanReport.includes('normalizeHumanReport'));
+check('human report normalizer removes presentational markdown tokens', humanReport.includes('stripInlineMarkdown') && humanReport.includes('replace(/\\*\\*([^*]+)\\*\\*/g') && humanReport.includes('replace(/`([^`]+)`/g'));
+check('technical JSON remains behind trace disclosure', rootUi.includes('Ver trazabilidad técnica') && rootUi.includes('JSON.stringify(value, null, 2)'));
 check('ROOT operating workspace delegates governance to one canonical workspace', operatingUi.includes('SfiGovernanceWorkspace') && operatingUi.includes("if(surface==='governance')return <SfiGovernanceWorkspace enabled={enabled}/>"));
 check('ROOT governance workspace defers governed proposal hydration to the canonical interactive projection', governanceUi.includes("jsonFetch('/api/root/interactive?surface=governance')") && governanceUi.includes('includeTargets=1') && governanceUi.includes('setWorkboard(data.operationalNext?{operationalNext:data.operationalNext}') && interactiveRoute.includes("proposalQueueSource: 'operationalNext.items'") && interactiveRoute.includes('targetHydrationDeferred: true'));
 check('ROOT governance workspace exposes live operational telemetry without duplicate base feeds', governanceUi.includes("jsonFetch('/api/root/interactive?surface=governance')") && governanceUi.includes('/api/root/cognitive-runtime/records?agentId=') && governanceUi.includes('workboard?.operationalNext') && governanceUi.includes('latestExecutionAt'));
