@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabaseClient, createServiceSupabaseClient } from '@/runtime/supabase/server';
-import { runWorldCalibrationCycle } from '@/lib/world-observatory/worldCycle';
+import { runWorldCalibrationCycle } from '@/lib/world-observatory/hypothesisCalibration';
 import { runWorldHypothesisCycle } from '@/lib/world-observatory/hypothesisCycle';
 import { executeWorldSignalObserverAgent } from '@/lib/world-observatory/worldSignalObserverAgent';
 
