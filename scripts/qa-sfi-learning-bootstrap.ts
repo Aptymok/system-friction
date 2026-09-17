@@ -16,6 +16,8 @@ async function main() {
     bootstrapRoute,
     manifest,
     openapiMerge,
+    worldHypotheses,
+    worldCycle,
   ] = await Promise.all([
     text('src/lib/sfi/universalLearningQuarantine.ts'),
     text('src/lib/sfi/universalClosure.ts'),
@@ -26,6 +28,8 @@ async function main() {
     text('src/app/api/external/v1/bootstrap/route.ts'),
     text('src/app/api/external/v1/manifest/route.ts'),
     text('scripts/merge-openapi-universal-cycle.mjs'),
+    text('src/lib/world-observatory/hypothesisCycle.ts'),
+    text('src/lib/world-observatory/worldCycle.ts'),
   ]);
 
   assert(learning.includes("SFI-UNIVERSAL-LEARNING-QUARANTINE-1.1"));
@@ -36,6 +40,24 @@ async function main() {
   assert(learning.includes("eventName: 'SFI_UNIVERSAL_LEARNING_CANDIDATE_RECORDED'"));
   assert(learning.includes("eventName: 'SFI_UNIVERSAL_LEARNING_PROMOTED'"));
   assert(learning.includes("eventName: 'SFI_UNIVERSAL_LEARNING_REJECTED'"));
+
+  // World hypotheses must preregister a discriminating test contract before observing RETURN.
+  assert(worldHypotheses.includes("SFI-HYPOTHESIS-TEST-1.0"), 'world_hypothesis_test_contract_missing');
+  assert(worldHypotheses.includes('testContract'), 'world_hypothesis_test_contract_not_persisted');
+  assert(worldHypotheses.includes('minimumEvidenceCount'), 'world_hypothesis_minimum_evidence_missing');
+  assert(worldHypotheses.includes('minimumSourceFamilies'), 'world_hypothesis_source_diversity_missing');
+  assert(worldHypotheses.includes('expectedCriteria'), 'world_hypothesis_expected_criteria_missing');
+  assert(worldHypotheses.includes('contradictionCriteria'), 'world_hypothesis_contradiction_criteria_missing');
+  assert(worldHypotheses.includes('horizonBasis'), 'world_hypothesis_horizon_basis_missing');
+  assert(!worldHypotheses.includes('Math.min(720'), 'world_hypothesis_horizon_must_not_be_silently_truncated');
+
+  // The model may assess criterion evidence, but deterministic code owns final classification.
+  assert(worldCycle.includes('classifyHypothesisTestContract'), 'world_hypothesis_deterministic_classifier_missing');
+  assert(worldCycle.includes('criterionResults'), 'world_hypothesis_criterion_results_missing');
+  assert(worldCycle.includes("classification === 'VALIDATED' || classification === 'CONTRADICTED'"), 'world_learning_must_require_decisive_outcome');
+  assert(worldCycle.includes('minimumSourceFamilies'), 'world_calibration_source_diversity_gate_missing');
+  assert(worldCycle.includes('minimumEvidenceCount'), 'world_calibration_evidence_count_gate_missing');
+  assert(!worldCycle.includes("'Return ONLY JSON: {\"classification\":\"VALIDATED|PARTIALLY_VALIDATED|CONTRADICTED|INCONCLUSIVE\""), 'model_must_not_own_final_hypothesis_classification');
 
   // CALIBRATED_RETURN is evidence-complete and must derive from canonical persisted contrast.
   assert(learning.includes('calibratedReturnEligibility'));
@@ -144,7 +166,7 @@ async function main() {
 
   console.log(JSON.stringify({
     ok: true,
-    contract: 'SFI-LEARNING-BOOTSTRAP-QA-1.5',
+    contract: 'SFI-LEARNING-BOOTSTRAP-QA-1.6',
     manifestVersion,
     invariants: {
       calibratedReturnCannotBeForced: true,
@@ -153,6 +175,10 @@ async function main() {
       closureNarrativeCannotReplaceCanonicalContrast: true,
       unlinkedReturnEligibleForLearning: false,
       discriminatingSignalsRequired: true,
+      worldHypothesesPreregisterThresholds: true,
+      worldHypothesisHorizonNotSilentlyTruncated: true,
+      modelCannotOwnFinalWorldClassification: true,
+      decisiveWorldOutcomeRequiredForLearning: true,
       promotionRechecksPersistedCalibration: true,
       rootPromotionRequired: true,
       singleTerminalLearningState: true,
