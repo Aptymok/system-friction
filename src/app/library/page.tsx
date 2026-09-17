@@ -74,8 +74,8 @@ export default async function LibraryPage() {
   });
 
   const surfaceContract: LibrarySurfaceContract = {
-    surfaceLabel: 'LIBRARY · DOCUMENTARY NEURAL GRAPH',
-    catalogLabel: 'CATÁLOGO DOCUMENTAL · NODOS / RELACIONES',
+    surfaceLabel: 'LIBRARY · DOCUMENTARY CORPUS · NEURAL GRAPH',
+    catalogLabel: 'CATÁLOGO DOCUMENTAL CANÓNICO · NODOS / RELACIONES',
     compactBodyBoundary: 'El catálogo conserva metadata compacta y relaciones documentales declaradas; no convierte relación en validación.',
     fullBodyReaderBoundary: 'FULL DOCUMENT BODY READER = NOT MATERIALIZED',
     graphState: graph.sourceState,
