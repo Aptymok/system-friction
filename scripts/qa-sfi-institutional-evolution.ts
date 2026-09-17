@@ -5,7 +5,9 @@ const read = (path: string) => readFileSync(path, 'utf8');
 const evolution = read('src/lib/institution/institutionalEvolution.ts');
 const integrated = read('src/core/cognitive-twin/integratedInstitutionalCycle.ts');
 const assignments = read('src/lib/sfi/cognitive-runtime/institutionalAssignments.ts');
-const execution = read('src/lib/execution/governedExecutionRouter.ts');
+const outcome = read('src/lib/governance/proposalOutcome.ts');
+const lifecycle = read('src/lib/governance/proposalLifecycle.ts');
+const approve = read('src/app/api/acp/proposals/[id]/approve/route.ts');
 const operational = read('src/lib/operational/common.ts');
 const vercel = read('vercel.json');
 
@@ -35,11 +37,21 @@ assert.ok(evolution.includes('returnRequiredBeforeAdoption: true'), 'candidate_r
 assert.ok(evolution.includes("missingExecutorDisposition: 'BLOCKED_NOT_AUTHORITY_REQUEST'"), 'missing_executor_must_not_be_reframed_as_root_development_approval');
 assert.ok(evolution.includes("status: development.queueForDevelopment ? 'queued' : 'waiting_evidence'"), 'bounded_candidate_must_enter_existing_execution_queue_without_root_adoption');
 assert.ok(evolution.includes('approvalRequired: development.approvalRequired'), 'candidate_development_approval_boundary_not_persisted');
-assert.ok(execution.includes("proposalTypeOf(row) === 'institutional_mutation_candidate'"), 'execution_router_must_recognize_institutional_candidate');
-assert.ok(execution.includes("nextState: institutionalCandidate ? 'proposed' : undefined"), 'candidate_return_must_not_auto_accept_institutional_adoption');
-assert.ok(execution.includes("developmentStage: 'READY_FOR_ADOPTION'"), 'candidate_ready_for_adoption_state_missing');
-assert.ok(execution.includes("adoptionAuthority: 'ROOT_ONLY_AFTER_RETURN'"), 'execution_return_must_preserve_root_adoption_boundary');
-assert.ok(execution.includes("missingExecutorDisposition: 'BLOCKED_NOT_AUTHORITY_REQUEST'"), 'execution_block_must_distinguish_missing_executor_from_missing_authority');
+
+// The canonical outcome writer, not the executor, owns the transition from completed development to ROOT adoption review.
+assert.ok(outcome.includes("proposalTypeOf(proposal.data as Row) === 'institutional_mutation_candidate'"), 'outcome_writer_must_recognize_institutional_candidate');
+assert.ok(outcome.includes("const nextState = input.nextState ?? (institutionalCandidate ? 'proposed' : 'accepted')"), 'candidate_return_must_not_auto_accept_institutional_adoption');
+assert.ok(outcome.includes("developmentStage: institutionalCandidate ? 'READY_FOR_ADOPTION'"), 'candidate_ready_for_adoption_state_missing');
+assert.ok(outcome.includes("adoptionAuthority: institutionalCandidate ? 'ROOT_ONLY_AFTER_RETURN'"), 'candidate_return_must_preserve_root_adoption_boundary');
+assert.ok(outcome.includes('returnRequiredBeforeAdoption: institutionalCandidate ? true : undefined'), 'candidate_adoption_must_require_return');
+
+// ROOT acceptance after RETURN adopts the candidate without running the development executor twice.
+assert.ok(lifecycle.includes('isReadyForInstitutionalAdoption'), 'root_lifecycle_must_recognize_ready_candidate');
+assert.ok(lifecycle.includes("developmentStage) === 'READY_FOR_ADOPTION'"), 'ready_candidate_stage_check_missing');
+assert.ok(lifecycle.includes("returnEventId"), 'ready_candidate_must_retain_observed_return_lineage');
+assert.ok(lifecycle.includes("const next = readyForAdoption && input.decision === 'accept' ? 'accepted'"), 'root_accept_must_adopt_ready_candidate_directly');
+assert.ok(approve.includes("if (String((decision.data as Record<string, unknown>).status ?? '') === 'accepted')"), 'approve_route_must_detect_direct_adoption');
+assert.ok(approve.includes("next: 'institutional_candidate_adopted_without_redispatch'"), 'approve_route_must_not_redispatch_adopted_candidate');
 
 assert.ok(integrated.includes('runInstitutionalEvolutionObservation'), 'scheduled_institutional_cycle_must_run_evolution_observer');
 assert.ok(assignments.includes('repair or absorb work into an existing owner before proposing a new module'), 'project_manager_absorption_rule_missing');
