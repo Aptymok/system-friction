@@ -4,6 +4,11 @@ import { runLlmTask } from '@/lib/ai/providerRouter';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { clamp01 } from '@/lib/sfi/math';
 import { WORLD_METHODOLOGY_VERSION } from './worldCycle';
+import {
+  SFI_HYPOTHESIS_TEST_CONTRACT,
+  parseHypothesisTestContract,
+  type HypothesisTestContract,
+} from './hypothesisTestContract';
 
 type Row = Record<string, unknown>;
 type ReadingRow = Row & {
@@ -49,7 +54,7 @@ type AiProposal = {
   affectedSystems: string[];
   expectedSignals: string[];
   contradictionSignals: string[];
-  horizonHours: number;
+  testContract: HypothesisTestContract | null;
   consequenceChain: Array<{ from: string; to: string; relation: string; basisEvidenceIds: string[] }>;
   rivalHypotheses: string[];
   uncertainties: string[];
@@ -135,6 +140,10 @@ function parseProposal(value: string): AiProposal | null {
           return [{ from, to, relation, basisEvidenceIds: strings(item.basisEvidenceIds, 20) }];
         })
       : [];
+    const testContract = parseHypothesisTestContract(parsed.testContract);
+    if (decision === 'PROPOSE' && !testContract) return null;
+    const expectedSignals = testContract?.expectedCriteria.map((criterion) => criterion.signal) ?? strings(parsed.expectedSignals, 20);
+    const contradictionSignals = testContract?.contradictionCriteria.map((criterion) => criterion.signal) ?? strings(parsed.contradictionSignals, 20);
     return {
       decision: decision as AiProposal['decision'],
       statement: text(parsed.statement, 5000),
@@ -142,9 +151,9 @@ function parseProposal(value: string): AiProposal | null {
       mechanism: text(parsed.mechanism, 5000),
       affectedObservationIds: strings(parsed.affectedObservationIds, 30),
       affectedSystems: strings(parsed.affectedSystems, 30),
-      expectedSignals: strings(parsed.expectedSignals, 20),
-      contradictionSignals: strings(parsed.contradictionSignals, 20),
-      horizonHours: Math.max(6, Math.min(720, Number(parsed.horizonHours) || 48)),
+      expectedSignals,
+      contradictionSignals,
+      testContract,
       consequenceChain,
       rivalHypotheses: strings(parsed.rivalHypotheses, 10),
       uncertainties: strings(parsed.uncertainties, 20),
@@ -203,26 +212,30 @@ async function inferHypothesis(cluster: ClusterItem[]) {
       'You are the governed hypothesis generator for the System Friction Institute World Observatory.',
       'Use ONLY the supplied observations, source metadata, derived SFI metrics, and structural relations.',
       'Do not turn source claims into facts. Do not infer causality merely from temporal order, shared topic, geography, or correlation.',
-      'A hypothesis is useful only if it creates a discriminating future test with both expected and contradiction signals.',
+      'A hypothesis is useful only if it preregisters a discriminating future test before observing the RETURN.',
+      'Every PROPOSE result MUST include testContract.contract = SFI-HYPOTHESIS-TEST-1.0, an explicit horizonBasis, minimum evidence/source diversity, expectedCriteria and contradictionCriteria.',
+      'Each criterion must identify a signal, operator and, for numeric operators, a numeric threshold. PRESENCE/ABSENCE may use threshold null.',
+      'The validation horizon must follow the claim. Do not shorten a long-horizon claim merely to fit a software default.',
       'Trace how hypothesis A could affect observation/system nodes B, F, etc. Every inferred consequence edge must name the evidence ids that motivated it.',
-      'If the supplied material is insufficient for a non-trivial falsifiable hypothesis, return NO_HYPOTHESIS.',
+      'If the supplied material is insufficient for a non-trivial falsifiable hypothesis or measurable criteria, return NO_HYPOTHESIS.',
       'Write statements and explanations in Spanish, concise but substantive.',
-      'Return ONLY JSON with this schema: {"decision":"PROPOSE|NO_HYPOTHESIS","statement":string|null,"relationClass":"CAUSAL_CANDIDATE|COUPLING|COMMON_CAUSE|SEQUENCE|CORRELATION|UNKNOWN","mechanism":string|null,"affectedObservationIds":string[],"affectedSystems":string[],"expectedSignals":string[],"contradictionSignals":string[],"horizonHours":number,"consequenceChain":[{"from":string,"to":string,"relation":string,"basisEvidenceIds":string[]}],"rivalHypotheses":string[],"uncertainties":string[],"confidence":number,"reason":string}.',
+      'Return ONLY JSON with this schema: {"decision":"PROPOSE|NO_HYPOTHESIS","statement":string|null,"relationClass":"CAUSAL_CANDIDATE|COUPLING|COMMON_CAUSE|SEQUENCE|CORRELATION|UNKNOWN","mechanism":string|null,"affectedObservationIds":string[],"affectedSystems":string[],"testContract":{"contract":"SFI-HYPOTHESIS-TEST-1.0","horizonHours":number,"horizonBasis":string,"minimumEvidenceCount":number,"minimumSourceFamilies":number,"expectedCriteria":[{"id":string,"signal":string,"metric":string|null,"operator":"GT|GTE|LT|LTE|EQ|DELTA_GTE|DELTA_LTE|COUNT_GTE|PRESENCE|ABSENCE","threshold":number|null,"unit":string|null,"required":boolean,"minimumObservations":number,"sourceFamilies":string[]}],"contradictionCriteria":[{"id":string,"signal":string,"metric":string|null,"operator":"GT|GTE|LT|LTE|EQ|DELTA_GTE|DELTA_LTE|COUNT_GTE|PRESENCE|ABSENCE","threshold":number|null,"unit":string|null,"required":boolean,"minimumObservations":number,"sourceFamilies":string[]}],"passRule":string,"failRule":string,"inconclusiveRule":string},"consequenceChain":[{"from":string,"to":string,"relation":string,"basisEvidenceIds":string[]}],"rivalHypotheses":string[],"uncertainties":string[],"confidence":number,"reason":string}.',
     ].join('\n'),
     prompt: JSON.stringify({
       methodology: WORLD_METHODOLOGY_VERSION,
+      testContract: SFI_HYPOTHESIS_TEST_CONTRACT,
       observations,
       derivedRelations,
       epistemicBoundary: 'OBSERVATIONS are source records; SFI metrics/relations are DERIVED; the model output is INFERENCE only.',
     }).slice(0, 30000),
-    fallbackResult: '{"decision":"NO_HYPOTHESIS","statement":null,"relationClass":"UNKNOWN","mechanism":null,"affectedObservationIds":[],"affectedSystems":[],"expectedSignals":[],"contradictionSignals":[],"horizonHours":48,"consequenceChain":[],"rivalHypotheses":[],"uncertainties":["governed_model_unavailable"],"confidence":0,"reason":"No governed model produced a hypothesis."}',
+    fallbackResult: '{"decision":"NO_HYPOTHESIS","statement":null,"relationClass":"UNKNOWN","mechanism":null,"affectedObservationIds":[],"affectedSystems":[],"testContract":null,"consequenceChain":[],"rivalHypotheses":[],"uncertainties":["governed_model_unavailable"],"confidence":0,"reason":"No governed model produced a hypothesis."}',
     requirements: { reasoning: true, structuredOutput: true, priority: 'quality' },
-    maxTokens: 1800,
+    maxTokens: 2600,
   });
 
   if (!llm.ok) return { ok: false as const, proposal: null, warning: llm.warnings.join('; ') || 'governed_model_unavailable', provider: null, model: null, derivedRelations };
   const proposal = parseProposal(llm.result);
-  if (!proposal) return { ok: false as const, proposal: null, warning: 'invalid_ai_hypothesis_schema', provider: llm.provider, model: llm.model, derivedRelations };
+  if (!proposal) return { ok: false as const, proposal: null, warning: 'invalid_or_non_discriminating_ai_hypothesis_schema', provider: llm.provider, model: llm.model, derivedRelations };
   return { ok: true as const, proposal, warning: null, provider: llm.provider, model: llm.model, derivedRelations };
 }
 
@@ -275,7 +288,7 @@ export async function runWorldHypothesisCycle() {
       continue;
     }
     const proposal = inferred.proposal;
-    if (!proposal.statement || !proposal.expectedSignals.length || !proposal.contradictionSignals.length) {
+    if (!proposal.statement || !proposal.testContract || !proposal.expectedSignals.length || !proposal.contradictionSignals.length) {
       results.push({ phenomenonKey, state: 'INSUFFICIENT_DISCRIMINATION' });
       continue;
     }
@@ -284,7 +297,7 @@ export async function runWorldHypothesisCycle() {
     const affectedObservationIds = proposal.affectedObservationIds.filter((id) => allowedEvidence.has(id));
     const cutoff = new Date();
     const validationStartsAt = new Date(cutoff.getTime() + 60 * 60 * 1000);
-    const validationEndsAt = new Date(cutoff.getTime() + proposal.horizonHours * 60 * 60 * 1000);
+    const validationEndsAt = new Date(cutoff.getTime() + proposal.testContract.horizonHours * 60 * 60 * 1000);
     const graphNodes = cluster.map(({ observation }) => ({
       id: observation.id,
       kind: 'OBSERVATION',
@@ -321,6 +334,7 @@ export async function runWorldHypothesisCycle() {
           rivalHypotheses: proposal.rivalHypotheses,
           uncertainties: proposal.uncertainties,
           reason: proposal.reason,
+          testContract: proposal.testContract,
           authority: 'INFERENCE_ONLY',
         },
         epistemicBoundary: 'Source records remain distinct from derived structural relations and AI-inferred mechanism/consequence edges.',
@@ -335,7 +349,13 @@ export async function runWorldHypothesisCycle() {
         consequenceChain: inferredEdges,
         rivalHypotheses: proposal.rivalHypotheses,
         uncertainties: proposal.uncertainties,
-        horizonHours: proposal.horizonHours,
+        horizonHours: proposal.testContract.horizonHours,
+        horizonBasis: proposal.testContract.horizonBasis,
+        minimumEvidenceCount: proposal.testContract.minimumEvidenceCount,
+        minimumSourceFamilies: proposal.testContract.minimumSourceFamilies,
+        expectedCriteria: proposal.testContract.expectedCriteria,
+        contradictionCriteria: proposal.testContract.contradictionCriteria,
+        testContract: proposal.testContract,
       },
       expected_signals: proposal.expectedSignals,
       contradiction_signals: proposal.contradictionSignals,
@@ -353,7 +373,17 @@ export async function runWorldHypothesisCycle() {
       continue;
     }
     created += 1;
-    results.push({ hypothesisId: inserted.id, phenomenonKey, state: 'CREATED', evidenceCount: evidenceIds.length, affectedObservationIds, affectedSystems: proposal.affectedSystems, provider: inferred.provider, model: inferred.model });
+    results.push({
+      hypothesisId: inserted.id,
+      phenomenonKey,
+      state: 'CREATED',
+      evidenceCount: evidenceIds.length,
+      affectedObservationIds,
+      affectedSystems: proposal.affectedSystems,
+      testContract: proposal.testContract,
+      provider: inferred.provider,
+      model: inferred.model,
+    });
   }
 
   return {
@@ -364,6 +394,6 @@ export async function runWorldHypothesisCycle() {
     warnings: [...new Set(warnings)].slice(0, 20),
     results,
     generatedAt: new Date().toISOString(),
-    rule: 'New world hypotheses are governed AI inferences over persisted source records and derived structural relations. No canned directional statement or friction threshold creates a hypothesis.',
+    rule: 'New world hypotheses are governed AI inferences over persisted source records and derived structural relations. A PROPOSE result must preregister measurable expected/contradiction criteria, evidence coverage and a claim-derived validation horizon before RETURN is observed.',
   };
 }
