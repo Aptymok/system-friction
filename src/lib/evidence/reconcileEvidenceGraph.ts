@@ -2,6 +2,7 @@ import 'server-only';
 
 import { createHash } from 'node:crypto';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { buildLibraryCorpusGraphProjection } from '@/lib/graph/libraryCorpusProjection';
 import { canonicalizeEvidenceRows, type CanonicalEvidenceObject, type EvidenceRow } from './canonicalEvidence';
 
 type Row = Record<string, unknown>;
@@ -20,6 +21,7 @@ const MANAGED_NODE_ORIGINS = [
   'evidence_canonical',
   'evidence_context',
   'evidence_context_attractor',
+  'library_corpus',
 ];
 
 function rows(value: unknown): Row[] {
@@ -65,8 +67,8 @@ function compactWarnings(input: string[]) {
   const buckets = new Map<string, { count: number; sample: string }>();
   for (const warning of unique) {
     const constraint = warning.match(/(?:violates|unique constraint) "([^"]+)"/)?.[1];
-    const family = warning.startsWith('evidence_edge:') ? 'graph_edges'
-      : warning.startsWith('evidence_node:') || warning.startsWith('context_node:') || warning.startsWith('attractor_node:') ? 'graph_nodes'
+    const family = warning.startsWith('evidence_edge:') || warning.startsWith('library_edge:') ? 'graph_edges'
+      : warning.startsWith('evidence_node:') || warning.startsWith('context_node:') || warning.startsWith('attractor_node:') || warning.startsWith('library_node:') ? 'graph_nodes'
         : warning.split(':', 1)[0] || 'graph';
     const key = constraint ? `${family}:${constraint}` : warning;
     const current = buckets.get(key);
@@ -158,8 +160,11 @@ export async function reconcilePersistedEvidenceGraph() {
     weight?: number;
     evidenceIds?: string[];
     attributes?: Row;
+    reconstructedFromPersistedEvidence?: boolean;
+    warningPrefix?: string;
   }) {
     if (!input.from || !input.to || input.from === input.to) return;
+    const warningPrefix = input.warningPrefix ?? 'evidence_edge';
 
     const existing = await db.from('graph_edges')
       .select('id,edge_id,relation,attributes,payload,lineage,weight,w_ij,confidence')
@@ -167,7 +172,7 @@ export async function reconcilePersistedEvidenceGraph() {
       .eq('target_node_key', input.to)
       .eq('relation_type', LEGACY_EDGE_STORAGE_TYPE)
       .maybeSingle();
-    if (existing.error) warnings.push(`evidence_edge:${input.from}->${input.to}:lookup:${existing.error.message}`);
+    if (existing.error) warnings.push(`${warningPrefix}:${input.from}->${input.to}:lookup:${existing.error.message}`);
 
     const prior = record(existing.data?.attributes ?? existing.data?.payload);
     const declaredRelations = uniqueStrings(
@@ -196,7 +201,7 @@ export async function reconcilePersistedEvidenceGraph() {
       semanticRelationTypes,
       storageRelationType: LEGACY_EDGE_STORAGE_TYPE,
       observedAt,
-      reconstructedFromPersistedEvidence: true,
+      reconstructedFromPersistedEvidence: input.reconstructedFromPersistedEvidence ?? true,
     };
 
     const edge = await db.from('graph_edges').upsert({
@@ -215,7 +220,7 @@ export async function reconcilePersistedEvidenceGraph() {
       attributes,
       updated_at: new Date().toISOString(),
     }, { onConflict: EDGE_CONFLICT });
-    if (edge.error) warnings.push(`evidence_edge:${edgeId}:${edge.error.message}`);
+    if (edge.error) warnings.push(`${warningPrefix}:${edgeId}:${edge.error.message}`);
     else if (!existing.data) edgesCreated += 1;
   }
 
@@ -246,6 +251,62 @@ export async function reconcilePersistedEvidenceGraph() {
       updated_at: new Date().toISOString(),
     }, `context_node:${kind}:${value}`);
     return ok ? nodeId : null;
+  }
+
+  const libraryProjection = buildLibraryCorpusGraphProjection();
+  for (const node of libraryProjection.nodes) {
+    const sourceAttributes = record(node.attributes);
+    const payload = {
+      ...sourceAttributes,
+      managedBy: 'canonical_evidence_reconciler',
+      projectionVersion: PROJECTION_VERSION,
+      persistedProjection: 'library_corpus',
+      documentaryProjection: true,
+      epistemicClass: 'DECLARED',
+      doesNotImplyValidation: true,
+      canonicalProfile: node.profile,
+      canonicalOrigin: node.origin,
+      source: node.provenance ?? libraryProjection.source,
+      sourceProjectionTimestamp: node.updatedAt,
+      storageNodeType: LEGACY_NODE_STORAGE_TYPE,
+      claimBoundary: libraryProjection.claimBoundary,
+    };
+    await upsertNode(node.nodeId, {
+      node_id: node.nodeId,
+      node_key: node.nodeId,
+      label: node.label,
+      node_type: LEGACY_NODE_STORAGE_TYPE,
+      ontology_type: node.ontologyType,
+      origin: 'library_corpus',
+      epistemic_class: 'declared',
+      confidence: 1,
+      payload,
+      attributes: payload,
+      lineage: node.lineage ?? [],
+      updated_at: new Date().toISOString(),
+    }, `library_node:${node.nodeId}`);
+  }
+
+  for (const edge of libraryProjection.edges) {
+    await upsertEdge({
+      from: edge.sourceNodeId,
+      to: edge.targetNodeId,
+      relation: edge.relation,
+      relationType: 'documentary_declared',
+      confidence: 1,
+      weight: edge.weight,
+      evidenceIds: edge.lineage ?? [],
+      reconstructedFromPersistedEvidence: false,
+      warningPrefix: 'library_edge',
+      attributes: {
+        ...record(edge.attributes),
+        origin: 'library_corpus',
+        source: edge.provenance ?? libraryProjection.source,
+        documentaryProjection: true,
+        doesNotImplyValidation: true,
+        claimBoundary: libraryProjection.claimBoundary,
+      },
+    });
   }
 
   const byReference = new Map<string, CanonicalEvidenceObject>();
@@ -405,6 +466,8 @@ export async function reconcilePersistedEvidenceGraph() {
     ledgerRows: ledger.data.length,
     canonicalEvidenceObjects: canonicalObjects.length,
     evidenceDescriptors: canonicalObjects.length,
+    libraryProjectionNodes: libraryProjection.nodes.length,
+    libraryProjectionEdges: libraryProjection.edges.length,
     nodesRemoved,
     edgesRemoved,
     nodesCreated,
