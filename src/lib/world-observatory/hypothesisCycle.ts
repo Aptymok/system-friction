@@ -9,6 +9,10 @@ import {
   parseHypothesisTestContract,
   type HypothesisTestContract,
 } from './hypothesisTestContract';
+import {
+  readWorldHypothesisLearningProfile,
+  type WorldHypothesisLearningProfile,
+} from './hypothesisLearningProfile';
 
 type Row = Record<string, unknown>;
 type ReadingRow = Row & {
@@ -165,7 +169,7 @@ function parseProposal(value: string): AiProposal | null {
   }
 }
 
-async function inferHypothesis(cluster: ClusterItem[]) {
+async function inferHypothesis(cluster: ClusterItem[], learningProfile: WorldHypothesisLearningProfile) {
   const observations = cluster.map(({ observation, reading }) => ({
     id: observation.id,
     sourceId: observation.source_id,
@@ -210,12 +214,14 @@ async function inferHypothesis(cluster: ClusterItem[]) {
     task: 'deep_report',
     system: [
       'You are the governed hypothesis generator for the System Friction Institute World Observatory.',
-      'Use ONLY the supplied observations, source metadata, derived SFI metrics, and structural relations.',
-      'Do not turn source claims into facts. Do not infer causality merely from temporal order, shared topic, geography, or correlation.',
+      'Use ONLY the supplied observations, source metadata, derived SFI metrics, structural relations and bounded method-feedback profile.',
+      'Do not turn source claims into facts. Do not infer causality merely from temporal order, shared topic, geography, correlation or prior model outcomes.',
       'A hypothesis is useful only if it preregisters a discriminating future test before observing the RETURN.',
       'Every PROPOSE result MUST include testContract.contract = SFI-HYPOTHESIS-TEST-1.0, an explicit horizonBasis, minimum evidence/source diversity, expectedCriteria and contradictionCriteria.',
       'Each criterion must identify a signal, operator and, for numeric operators, a numeric threshold. PRESENCE/ABSENCE may use threshold null.',
       'The validation horizon must follow the claim. Do not shorten a long-horizon claim merely to fit a software default.',
+      'Meta-learning may tighten future test discrimination, but it cannot change attractors, create evidence, promote truth/canon, or make prior hypotheses newly true.',
+      'When learningProfile.tightenDiscrimination is true, prefer fewer hypotheses, sharper expected-versus-contradiction separation, stronger source diversity and NO_HYPOTHESIS over vague partial testability.',
       'Trace how hypothesis A could affect observation/system nodes B, F, etc. Every inferred consequence edge must name the evidence ids that motivated it.',
       'If the supplied material is insufficient for a non-trivial falsifiable hypothesis or measurable criteria, return NO_HYPOTHESIS.',
       'Write statements and explanations in Spanish, concise but substantive.',
@@ -224,9 +230,20 @@ async function inferHypothesis(cluster: ClusterItem[]) {
     prompt: JSON.stringify({
       methodology: WORLD_METHODOLOGY_VERSION,
       testContract: SFI_HYPOTHESIS_TEST_CONTRACT,
+      learningProfile: {
+        sampleSize: learningProfile.sampleSize,
+        classificationCounts: learningProfile.classificationCounts,
+        partialValidationRate: learningProfile.partialValidationRate,
+        decisiveRate: learningProfile.decisiveRate,
+        inconclusiveRate: learningProfile.inconclusiveRate,
+        tightenDiscrimination: learningProfile.tightenDiscrimination,
+        topMissingVariables: learningProfile.topMissingVariables,
+        generationGuidance: learningProfile.generationGuidance,
+        boundaries: learningProfile.boundaries,
+      },
       observations,
       derivedRelations,
-      epistemicBoundary: 'OBSERVATIONS are source records; SFI metrics/relations are DERIVED; the model output is INFERENCE only.',
+      epistemicBoundary: 'OBSERVATIONS are source records; SFI metrics/relations and historical method feedback are DERIVED; model output is INFERENCE only.',
     }).slice(0, 30000),
     fallbackResult: '{"decision":"NO_HYPOTHESIS","statement":null,"relationClass":"UNKNOWN","mechanism":null,"affectedObservationIds":[],"affectedSystems":[],"testContract":null,"consequenceChain":[],"rivalHypotheses":[],"uncertainties":["governed_model_unavailable"],"confidence":0,"reason":"No governed model produced a hypothesis."}',
     requirements: { reasoning: true, structuredOutput: true, priority: 'quality' },
@@ -241,6 +258,7 @@ async function inferHypothesis(cluster: ClusterItem[]) {
 
 export async function runWorldHypothesisCycle() {
   const db = createServiceSupabaseClient();
+  const learningProfile = await readWorldHypothesisLearningProfile();
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
   const { data: readings, error } = await db
     .from('world_friction_readings')
@@ -249,16 +267,24 @@ export async function runWorldHypothesisCycle() {
     .order('created_at', { ascending: false })
     .limit(160);
 
-  if (error) return { ok: false, created: 0, considered: 0, error: error.message };
+  if (error) return { ok: false, created: 0, considered: 0, error: error.message, metaLearning: learningProfile };
   const readingRows = (readings ?? []) as ReadingRow[];
   const observationIds = [...new Set(readingRows.map((reading) => reading.observation_id).filter(Boolean))];
-  if (!observationIds.length) return { ok: true, created: 0, considered: 0, clusters: 0, warnings: ['no_recent_observations'], generatedAt: new Date().toISOString() };
+  if (!observationIds.length) return {
+    ok: true,
+    created: 0,
+    considered: 0,
+    clusters: 0,
+    warnings: ['no_recent_observations', ...learningProfile.warnings],
+    metaLearning: learningProfile,
+    generatedAt: new Date().toISOString(),
+  };
 
   const observationsResult = await db
     .from('world_source_observations')
     .select('id,source_id,source_family,publisher,title,summary,observed_at,latitude,longitude,affected_systems,actors,confidence,source_url,payload')
     .in('id', observationIds);
-  if (observationsResult.error) return { ok: false, created: 0, considered: readingRows.length, error: observationsResult.error.message };
+  if (observationsResult.error) return { ok: false, created: 0, considered: readingRows.length, error: observationsResult.error.message, metaLearning: learningProfile };
 
   const observations = new Map(((observationsResult.data ?? []) as ObservationRow[]).map((item) => [item.id, item]));
   const items = readingRows.flatMap((reading) => {
@@ -267,7 +293,7 @@ export async function runWorldHypothesisCycle() {
   });
   const clusters = buildClusters(items);
   let created = 0;
-  const warnings: string[] = [];
+  const warnings: string[] = [...learningProfile.warnings];
   const results: Row[] = [];
 
   for (const cluster of clusters) {
@@ -281,7 +307,7 @@ export async function runWorldHypothesisCycle() {
       .maybeSingle();
     if (existing) continue;
 
-    const inferred = await inferHypothesis(cluster);
+    const inferred = await inferHypothesis(cluster, learningProfile);
     if (!inferred.ok || !inferred.proposal || inferred.proposal.decision !== 'PROPOSE') {
       if (inferred.warning) warnings.push(inferred.warning);
       results.push({ phenomenonKey, state: 'NO_HYPOTHESIS', warning: inferred.warning ?? null });
@@ -335,9 +361,15 @@ export async function runWorldHypothesisCycle() {
           uncertainties: proposal.uncertainties,
           reason: proposal.reason,
           testContract: proposal.testContract,
+          methodFeedback: {
+            sampleSize: learningProfile.sampleSize,
+            partialValidationRate: learningProfile.partialValidationRate,
+            decisiveRate: learningProfile.decisiveRate,
+            tightenDiscrimination: learningProfile.tightenDiscrimination,
+          },
           authority: 'INFERENCE_ONLY',
         },
-        epistemicBoundary: 'Source records remain distinct from derived structural relations and AI-inferred mechanism/consequence edges.',
+        epistemicBoundary: 'Source records remain distinct from derived structural relations, historical method feedback and AI-inferred mechanism/consequence edges.',
       },
       cutoff_at: cutoff.toISOString(),
       statement: proposal.statement,
@@ -381,6 +413,7 @@ export async function runWorldHypothesisCycle() {
       affectedObservationIds,
       affectedSystems: proposal.affectedSystems,
       testContract: proposal.testContract,
+      methodFeedbackApplied: learningProfile.tightenDiscrimination,
       provider: inferred.provider,
       model: inferred.model,
     });
@@ -393,7 +426,17 @@ export async function runWorldHypothesisCycle() {
     clusters: clusters.length,
     warnings: [...new Set(warnings)].slice(0, 20),
     results,
+    metaLearning: {
+      sampleSize: learningProfile.sampleSize,
+      classificationCounts: learningProfile.classificationCounts,
+      partialValidationRate: learningProfile.partialValidationRate,
+      decisiveRate: learningProfile.decisiveRate,
+      inconclusiveRate: learningProfile.inconclusiveRate,
+      tightenDiscrimination: learningProfile.tightenDiscrimination,
+      topMissingVariables: learningProfile.topMissingVariables,
+      boundaries: learningProfile.boundaries,
+    },
     generatedAt: new Date().toISOString(),
-    rule: 'New world hypotheses are governed AI inferences over persisted source records and derived structural relations. A PROPOSE result must preregister measurable expected/contradiction criteria, evidence coverage and a claim-derived validation horizon before RETURN is observed.',
+    rule: 'New world hypotheses are governed AI inferences over persisted source records and derived structural relations. A PROPOSE result must preregister measurable expected/contradiction criteria, evidence coverage and a claim-derived validation horizon before RETURN is observed. Historical outcomes may tighten future test discrimination but cannot change attractors or promote truth.',
   };
 }
