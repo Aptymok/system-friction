@@ -9,6 +9,9 @@ const outcome = read('src/lib/governance/proposalOutcome.ts');
 const lifecycle = read('src/lib/governance/proposalLifecycle.ts');
 const approve = read('src/app/api/acp/proposals/[id]/approve/route.ts');
 const operational = read('src/lib/operational/common.ts');
+const selfDevelopmentWorkflow = read('.github/workflows/sfi-self-development.yml');
+const selfDevelopmentRoute = read('src/app/api/cron/self-development/route.ts');
+const router = read('src/lib/execution/governedExecutionRouter.ts');
 const vercel = read('vercel.json');
 
 assert.ok(evolution.includes('readObservedSfiCognitiveRuntime'), 'self_observation_must_read_cognitive_runtime');
@@ -38,6 +41,23 @@ assert.ok(evolution.includes("missingExecutorDisposition: 'BLOCKED_NOT_AUTHORITY
 assert.ok(evolution.includes("status: development.queueForDevelopment ? 'queued' : 'waiting_evidence'"), 'bounded_candidate_must_enter_existing_execution_queue_without_root_adoption');
 assert.ok(evolution.includes('approvalRequired: development.approvalRequired'), 'candidate_development_approval_boundary_not_persisted');
 
+// Existing SFI Self-Development is reused as the material executor only for explicit bounded existing-owner scopes.
+assert.ok(evolution.includes("requiredExecutor: material\n      ? 'sfi_self_development_v1'"), 'material_candidate_must_use_existing_self_development_executor');
+assert.ok(evolution.includes("developmentMode: 'COGNITIVE_INTERNAL' | 'MATERIAL_REPOSITORY' | 'BLOCKED'"), 'material_development_mode_missing');
+assert.ok(evolution.includes('MATERIAL_SELF_DEVELOPMENT_SCOPES'), 'bounded_material_scope_registry_missing');
+assert.ok(evolution.includes("candidate.ownerResolution === 'NO_EXISTING_OWNER'"), 'no_owner_module_candidate_must_fail_closed');
+assert.ok(evolution.includes("'src/lib/sfi/cognitive-runtime/agentExecutionMap.ts'"), 'cognitive_runtime_material_scope_missing');
+assert.ok(evolution.includes("'src/lib/continuity/operationalAutoAdvance.ts'"), 'continuity_material_scope_missing');
+assert.ok(router.includes("capabilityId: 'sfi_self_development_v1'"), 'material_executor_must_be_registered_in_existing_router');
+assert.ok(router.includes("executionClass: 'MATERIAL_INTERNAL'"), 'material_executor_must_remain_distinct_from_external_action');
+assert.ok(router.includes('AWAIT_SCHEDULED_SELF_DEVELOPMENT_EXECUTOR'), 'router_must_assign_not_fake_execute_scheduled_material_work');
+assert.ok(selfDevelopmentWorkflow.includes('auto/sfi-self-repair-'), 'material_executor_must_use_review_branch');
+assert.ok(selfDevelopmentWorkflow.includes('gh pr create'), 'material_executor_must_open_review_pr');
+assert.equal(selfDevelopmentWorkflow.includes('gh pr merge'), false, 'material_executor_must_not_merge_itself');
+assert.ok(selfDevelopmentRoute.includes('recordProposalOutcomeFromObservedReturn'), 'material_return_must_reuse_canonical_outcome_writer');
+assert.ok(selfDevelopmentRoute.includes("developmentStage: 'READY_FOR_ADOPTION'"), 'material_return_must_expose_ready_for_adoption_only_after_return');
+assert.ok(selfDevelopmentRoute.includes('canonicalPromotionAllowed: false'), 'material_return_must_not_promote_canon');
+
 // The canonical outcome writer, not the executor, owns the transition from completed development to ROOT adoption review.
 assert.ok(outcome.includes("proposalTypeOf(proposal.data as Row) === 'institutional_mutation_candidate'"), 'outcome_writer_must_recognize_institutional_candidate');
 assert.ok(outcome.includes("const nextState = input.nextState ?? (institutionalCandidate ? 'proposed' : 'accepted')"), 'candidate_return_must_not_auto_accept_institutional_adoption');
@@ -56,17 +76,19 @@ assert.ok(approve.includes("next: 'institutional_candidate_adopted_without_redis
 assert.ok(integrated.includes('runInstitutionalEvolutionObservation'), 'scheduled_institutional_cycle_must_run_evolution_observer');
 assert.ok(assignments.includes('repair or absorb work into an existing owner before proposing a new module'), 'project_manager_absorption_rule_missing');
 
-// Evolution is absorbed by the existing institutional-cycle cron. It must not create a scheduler of its own.
+// Evolution is absorbed by existing schedulers/workflows. It must not create a parallel institutional-evolution cron.
 assert.equal(vercel.includes('/api/cron/institutional-evolution'), false, 'parallel_evolution_cron_forbidden');
 assert.equal(evolution.includes("from('"), false, 'evolution_observer_must_not_create_direct_table_writer');
 
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-INSTITUTIONAL-EVOLUTION-1.1',
+  contract: 'SFI-INSTITUTIONAL-EVOLUTION-1.2',
   inputs: ['cognitive-runtime', 'continuity', 'predictive-engine', 'world-vector', 'institutional-attractor'],
   outputOwner: 'action_proposals',
   maxNewProposalsPerCycle: 4,
   candidateDevelopmentAuthority: 'REVERSIBLE_INTERNAL_AUTONOMY',
+  materialExecutor: 'sfi_self_development_v1',
+  materialSurface: 'BOUNDED_REPOSITORY_BRANCH_PR_ONLY',
   adoptionAuthority: 'ROOT_ONLY_AFTER_RETURN',
   missingExecutorDisposition: 'BLOCKED_NOT_AUTHORITY_REQUEST',
   founderInterruption: 'SOVEREIGN_BOUNDARY_ONLY',
