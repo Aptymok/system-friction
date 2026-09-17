@@ -1,6 +1,7 @@
 import 'server-only';
 
-import { runWorldObservationCycle, runWorldCalibrationCycle } from '@/lib/world-observatory/worldCycle';
+import { runWorldObservationCycle } from '@/lib/world-observatory/worldCycle';
+import { runWorldCalibrationCycle } from '@/lib/world-observatory/hypothesisCalibration';
 import { runWorldHypothesisCycle } from '@/lib/world-observatory/hypothesisCycle';
 
 let inFlight: Promise<{
