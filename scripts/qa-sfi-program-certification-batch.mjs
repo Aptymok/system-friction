@@ -94,7 +94,14 @@ for (const item of certification.requirements) {
 }
 
 for (const targetedId of Object.keys(TARGETED_CANONICAL_PROOFS)) {
-  assert.ok(certification.requirements.some((item) => item.id === targetedId && item.targetedProofBinding === true), `targeted canonical proof was not exercised: ${targetedId}`);
+  const source = requirementById.get(targetedId);
+  assert.ok(source, `targeted canonical requirement missing: ${targetedId}`);
+  const selected = certification.requirements.some((item) => item.id === targetedId && item.targetedProofBinding === true);
+  if (source.status === 'SATISFIED' && source.completionReceipt?.state === 'VALID') {
+    assert.equal(selected, false, `already valid targeted receipt must not be recertified: ${targetedId}`);
+  } else {
+    assert.equal(selected, true, `targeted canonical proof was not exercised: ${targetedId}`);
+  }
 }
 
 for (const rejected of certification.rejectedSemanticLinks || []) {
@@ -112,6 +119,7 @@ assert.ok(!certification.requirements.some((item) => item.canonicalStatus === 'S
 assert.ok(!certification.requirements.some((item) => item.diagnosticState === 'PRODUCTION_RETURN_PENDING'), 'production RETURN cannot be certified from repository QA');
 assert.ok(!certification.requirements.some((item) => item.diagnosticState === 'EXTERNAL_ACTION_PENDING'), 'external action cannot be certified from repository QA');
 
+const exercisedTargetedProofs = certification.requirements.filter((item) => item.targetedProofBinding === true).map((item) => item.id);
 console.log(JSON.stringify({
   ok: true,
   contract: 'SFI-SFI08-COMPLETION-CERTIFICATION-BATCH-QA-1.3',
@@ -119,7 +127,7 @@ console.log(JSON.stringify({
   selectedCount: certification.selectedCount,
   selectedInvalidReceiptCount: certification.selectedInvalidReceiptCount,
   semanticRejectedCount: certification.semanticRejectedCount,
-  targetedProofBindings: Object.keys(TARGETED_CANONICAL_PROOFS),
+  targetedProofBindings: exercisedTargetedProofs,
   proofExecutionCount: certification.proofExecutions.length,
   canonicalStatusMutation: false,
   autoReceiptWrite: false,
