@@ -17,7 +17,10 @@ async function main() {
     manifest,
     openapiMerge,
     worldHypotheses,
-    worldCycle,
+    worldCalibration,
+    worldCron,
+    worldReobserve,
+    worldBootstrap,
   ] = await Promise.all([
     text('src/lib/sfi/universalLearningQuarantine.ts'),
     text('src/lib/sfi/universalClosure.ts'),
@@ -29,7 +32,10 @@ async function main() {
     text('src/app/api/external/v1/manifest/route.ts'),
     text('scripts/merge-openapi-universal-cycle.mjs'),
     text('src/lib/world-observatory/hypothesisCycle.ts'),
-    text('src/lib/world-observatory/worldCycle.ts'),
+    text('src/lib/world-observatory/hypothesisCalibration.ts'),
+    text('src/app/api/cron/world-observatory/route.ts'),
+    text('src/app/api/field/map/world/reobserve/route.ts'),
+    text('src/app/api/field/map/world/bootstrap.ts'),
   ]);
 
   assert(learning.includes("SFI-UNIVERSAL-LEARNING-QUARANTINE-1.1"));
@@ -52,12 +58,16 @@ async function main() {
   assert(!worldHypotheses.includes('Math.min(720'), 'world_hypothesis_horizon_must_not_be_silently_truncated');
 
   // The model may assess criterion evidence, but deterministic code owns final classification.
-  assert(worldCycle.includes('classifyHypothesisTestContract'), 'world_hypothesis_deterministic_classifier_missing');
-  assert(worldCycle.includes('criterionResults'), 'world_hypothesis_criterion_results_missing');
-  assert(worldCycle.includes("classification === 'VALIDATED' || classification === 'CONTRADICTED'"), 'world_learning_must_require_decisive_outcome');
-  assert(worldCycle.includes('minimumSourceFamilies'), 'world_calibration_source_diversity_gate_missing');
-  assert(worldCycle.includes('minimumEvidenceCount'), 'world_calibration_evidence_count_gate_missing');
-  assert(!worldCycle.includes("'Return ONLY JSON: {\"classification\":\"VALIDATED|PARTIALLY_VALIDATED|CONTRADICTED|INCONCLUSIVE\""), 'model_must_not_own_final_hypothesis_classification');
+  assert(worldCalibration.includes('classifyHypothesisTestContract'), 'world_hypothesis_deterministic_classifier_missing');
+  assert(worldCalibration.includes('criterionResults'), 'world_hypothesis_criterion_results_missing');
+  assert(worldCalibration.includes("classification === 'VALIDATED' || classification === 'CONTRADICTED'"), 'world_learning_must_require_decisive_outcome');
+  assert(worldCalibration.includes('minimumSourceFamilies'), 'world_calibration_source_diversity_gate_missing');
+  assert(worldCalibration.includes('minimumEvidenceCount'), 'world_calibration_evidence_count_gate_missing');
+  assert(worldCalibration.includes('LEGACY_HYPOTHESIS_WITHOUT_PREREGISTERED_TEST_CONTRACT'), 'legacy_hypotheses_must_not_be_retroactively_upgraded');
+  assert(!worldCalibration.includes('"classification":"VALIDATED|PARTIALLY_VALIDATED|CONTRADICTED|INCONCLUSIVE"'), 'model_must_not_own_final_hypothesis_classification');
+  for (const liveCaller of [worldCron, worldReobserve, worldBootstrap]) {
+    assert(liveCaller.includes("@/lib/world-observatory/hypothesisCalibration"), 'live_world_surface_not_using_strict_calibration_owner');
+  }
 
   // CALIBRATED_RETURN is evidence-complete and must derive from canonical persisted contrast.
   assert(learning.includes('calibratedReturnEligibility'));
@@ -179,6 +189,8 @@ async function main() {
       worldHypothesisHorizonNotSilentlyTruncated: true,
       modelCannotOwnFinalWorldClassification: true,
       decisiveWorldOutcomeRequiredForLearning: true,
+      strictCalibrationOwnsLiveWorldSurfaces: true,
+      legacyHypothesesCannotBeRetroactivelyUpgraded: true,
       promotionRechecksPersistedCalibration: true,
       rootPromotionRequired: true,
       singleTerminalLearningState: true,
