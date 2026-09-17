@@ -5,11 +5,10 @@ import { useSfiLanguage } from '@/components/i18n/SfiLanguageProvider';
 import './PublicEntryGateway.css';
 
 const PUBLIC_ROUTES = [
-  { n:'01', href:'/observatory', title:'Observatory', note:'Qué está observando SFI ahora.', visual:'world' },
+  { n:'01', href:'/observatory', title:'Observatory', note:'Qué está observando SFI ahora. FIELD es la lectura situada por defecto dentro de esta superficie.', visual:'world' },
   { n:'02', href:'/publications', title:'Publications', note:'Notas, casos, investigación y RETURN publicados.', visual:'publication' },
   { n:'03', href:'/library', title:'Library', note:'Conocimiento conectado, métodos y evidencia.', visual:'library' },
-  { n:'04', href:'/field', title:'FIELD', note:'Observación situada y trabajo fuera del documento.', visual:'field' },
-  { n:'05', href:'/institution', title:'Institute', note:'Qué institución afirma todo esto y bajo qué límites.', visual:'institute' },
+  { n:'04', href:'/institution', title:'Institute', note:'Qué institución afirma todo esto y bajo qué límites.', visual:'institute' },
 ] as const;
 
 export function PublicEntryGateway() {

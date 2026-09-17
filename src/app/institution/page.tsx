@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { SFI_PUBLIC_PROFILE } from '@/lib/public/institutionProfile';
+import './institution.css';
 
 export const dynamic = 'force-dynamic';
 
