@@ -103,8 +103,10 @@ forbid(selfDevelopmentWorkflow, 'git push origin main', 'self-development-main-p
 requireText(oidcPolicy, "SFI_SELF_DEVELOPMENT_OIDC_AUDIENCE = 'sfi-self-development'", 'self-development-exact-audience');
 requireText(oidcPolicy, "SFI_SELF_DEVELOPMENT_WORKFLOW_REF = 'Aptymok/system-friction/.github/workflows/sfi-self-development.yml@refs/heads/main'", 'self-development-exact-workflow-ref');
 requireText(selfDevelopmentRoute, "verifyGitHubActionsOidcToken(token, 'self-development')", 'self-development-route-oidc');
-requireText(selfDevelopmentRoute, "proposalType === 'institutional_mutation_candidate'", 'self-development-candidate-type-gate');
-requireText(selfDevelopmentRoute, "requiredExecutor === 'sfi_self_development_v1'", 'self-development-executor-gate');
+requireText(selfDevelopmentRoute, "const PROPOSAL_TYPE = 'institutional_mutation_candidate'", 'self-development-candidate-type-constant');
+requireText(selfDevelopmentRoute, 'const proposalTypeMatches = proposalKind === PROPOSAL_TYPE', 'self-development-candidate-type-gate');
+requireText(selfDevelopmentRoute, 'const eligible = proposalTypeMatches', 'self-development-candidate-type-gate-enforced');
+requireText(selfDevelopmentRoute, 'requiredExecutor === EXECUTOR', 'self-development-executor-gate');
 requireText(selfDevelopmentRoute, 'recordProposalOutcomeFromObservedReturn', 'self-development-return-reuses-canonical-outcome-writer');
 requireText(selfDevelopmentRoute, "eventName: 'SFI_SELF_DEVELOPMENT_RETURN_RECORDED'", 'self-development-observed-return');
 requireText(selfDevelopmentRoute, 'canonicalPromotionAllowed: false', 'self-development-no-auto-canon');
