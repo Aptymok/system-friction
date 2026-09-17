@@ -7,6 +7,7 @@ const PUBLIC_NAV = [
   ['/observatory','OBSERVATORY'],
   ['/publications','PUBLICATIONS'],
   ['/library','LIBRARY'],
+  ['/field','FIELD'],
   ['/institution','INSTITUTE'],
 ] as const;
 
