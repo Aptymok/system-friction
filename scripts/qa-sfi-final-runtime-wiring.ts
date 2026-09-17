@@ -34,9 +34,10 @@ assert.match(files.governedReturn,/frozenRivalHypothesis/);
 assert.match(files.fieldReturn,/submitGovernedFieldReturn/);
 assert.match(files.governedObservatory,/observatoryPublicationDisposition/);
 
-// The converged frontend no longer keeps governance decisions inside the visual
-// scene shell. SfiConsole routes to one canonical operating workspace; that
-// workspace owns accept/deny actions and the Cognitive Twin/Spine instrument.
+// The converged frontend keeps routine operation inside existing authority.
+// SfiConsole dispatches one canonical operating workspace; that workspace
+// delegates governance, preserves the Cognitive Twin/Spine instrument, and
+// exposes human decisions only where authority actually requires them.
 assert.match(files.scene,/SfiOperatingWorkspace/);
 assert.match(files.scene,/ObservatoryConsole/);
 assert.doesNotMatch(files.scene,/ObservatoryInterpretiveFlow/);
@@ -45,9 +46,12 @@ assert.match(files.observatoryConsole,/<ObservatoryInterpretiveFlow world=\{worl
 assert.doesNotMatch(files.interpretiveFlow,/fetch\('\/api\/observatory\/world'/);
 assert.doesNotMatch(files.interpretiveFlow,/setInterval\(/);
 assert.match(files.operatingWorkspace,/CognitiveSpineAnatomy/);
-assert.match(files.operatingWorkspace,/ACEPTAR Y CERRAR/);
-assert.match(files.operatingWorkspace,/DENEGAR REPORTE/);
-assert.match(files.operatingWorkspace,/\/api\/acp\/proposals/);
+assert.match(files.operatingWorkspace,/SfiGovernanceWorkspace/);
+assert.doesNotMatch(files.operatingWorkspace,/ACEPTAR Y CERRAR/);
+assert.doesNotMatch(files.operatingWorkspace,/DENEGAR REPORTE/);
+assert.doesNotMatch(files.operatingWorkspace,/reportDecision|decideCase|decideCycle/);
+assert.match(files.operatingWorkspace,/SFI trabaja de forma autónoma dentro de su autoridad/);
+assert.match(files.operatingWorkspace,/ACEPTAR APRENDIZAJE/);
 assert.match(files.interpretiveFlow,/INFERENCE_ONLY/);
 assert.match(files.interpretiveFlow,/RETURN \/ CONTRAST/);
 
@@ -57,4 +61,4 @@ assert.match(files.sceneRegistry,/twin/);
 assert.match(files.sceneRegistry,/LEGACY_INTERNAL_SCENES=.*falsification/s);
 assert.equal(/falsification:\{key:'falsification'/.test(files.sceneRegistry),false,'falsification_must_not_return_as_parallel_sovereign_scene');
 assert.match(files.externalManifest,/SFI External Agent Gateway/);
-console.log(JSON.stringify({ok:true,contract:'SFI-FINAL-CLOSURE-RUNTIME-WIRING-2.1',studioFieldIdentity:'VERIFIED',returnContrast:'T0_FROZEN_AND_REQUIRED',observatoryPublicationGate:'WIRED',apexPilotRegistry:'PRESERVED_WITHOUT_HARDCODED_UI_STATE',frontend:'CONVERGED_OPERATING_WORKSPACE',fieldInterpretation:'SHARED_AUTHORITATIVE_READ_MODEL',legacyFalsification:'ABSORBED_NOT_SOVEREIGN',externalAgentGateway:'GOVERNED'},null,2));
+console.log(JSON.stringify({ok:true,contract:'SFI-FINAL-CLOSURE-RUNTIME-WIRING-2.2',studioFieldIdentity:'VERIFIED',returnContrast:'T0_FROZEN_AND_REQUIRED',observatoryPublicationGate:'WIRED',apexPilotRegistry:'PRESERVED_WITHOUT_HARDCODED_UI_STATE',frontend:'CONVERGED_OPERATING_WORKSPACE',routineClosure:'AUTONOMOUS_WITHIN_EXISTING_AUTHORITY',learningPromotion:'ROOT_GATED',fieldInterpretation:'SHARED_AUTHORITATIVE_READ_MODEL',legacyFalsification:'ABSORBED_NOT_SOVEREIGN',externalAgentGateway:'GOVERNED'},null,2));
