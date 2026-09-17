@@ -58,11 +58,12 @@ async function main() {
   assert(!worldHypotheses.includes('Math.min(720'), 'world_hypothesis_horizon_must_not_be_silently_truncated');
 
   // The model may assess criterion evidence, but deterministic code owns final classification.
+  // Calibration owns the observed coverage inputs; the deterministic test contract owns the preregistered minima.
   assert(worldCalibration.includes('classifyHypothesisTestContract'), 'world_hypothesis_deterministic_classifier_missing');
   assert(worldCalibration.includes('criterionResults'), 'world_hypothesis_criterion_results_missing');
   assert(worldCalibration.includes("classification === 'VALIDATED' || classification === 'CONTRADICTED'"), 'world_learning_must_require_decisive_outcome');
-  assert(worldCalibration.includes('minimumSourceFamilies'), 'world_calibration_source_diversity_gate_missing');
-  assert(worldCalibration.includes('minimumEvidenceCount'), 'world_calibration_evidence_count_gate_missing');
+  assert(worldCalibration.includes('linkedSourceFamilies'), 'world_calibration_source_diversity_gate_missing');
+  assert(worldCalibration.includes('linkedEvidenceCount'), 'world_calibration_evidence_count_gate_missing');
   assert(worldCalibration.includes('LEGACY_HYPOTHESIS_WITHOUT_PREREGISTERED_TEST_CONTRACT'), 'legacy_hypotheses_must_not_be_retroactively_upgraded');
   assert(!worldCalibration.includes('"classification":"VALIDATED|PARTIALLY_VALIDATED|CONTRADICTED|INCONCLUSIVE"'), 'model_must_not_own_final_hypothesis_classification');
   for (const liveCaller of [worldCron, worldReobserve, worldBootstrap]) {
