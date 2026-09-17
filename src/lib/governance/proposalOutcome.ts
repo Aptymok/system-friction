@@ -73,14 +73,19 @@ export async function recordProposalOutcomeFromObservedReturn(input: {
   const evidenceRefs = [...new Set(input.evidenceRefs.filter((value) => typeof value === 'string' && value.trim()).map((value) => value.trim()))];
   if (!evidenceRefs.length) return { ok: false as const, error: 'evidence_refs_required' };
 
+  const proposalType = proposalTypeOf(proposal.data as Row);
+  const institutionalCandidate = proposalTypeOf(proposal.data as Row) === 'institutional_mutation_candidate';
   const outcomeStatus = input.outcomeStatus?.trim() || 'observed_effect';
-  const nextState = input.nextState ?? 'accepted';
+  const nextState = input.nextState ?? (institutionalCandidate ? 'proposed' : 'accepted');
   const fieldEffect = input.fieldEffect ?? {};
   const notes = input.notes?.trim() || null;
   const observedExecutionAt = stringValue(returnEvent.data.occurred_at) ?? new Date().toISOString();
   const priorOutcome = recordValue(proposal.data.outcome);
   const priorPatch = recordValue(priorOutcome.payloadPatch);
   const priorAssignment = recordValue(priorPatch.assignment);
+  const developmentStage = institutionalCandidate ? 'READY_FOR_ADOPTION' : stringValue(priorPatch.developmentStage);
+  const adoptionAuthority = institutionalCandidate ? 'ROOT_ONLY_AFTER_RETURN' : stringValue(priorPatch.adoptionAuthority);
+  const returnRequiredBeforeAdoption = institutionalCandidate ? true : undefined;
 
   const event = await appendOperationalEvent({
     eventName: 'acp.proposal.outcome_recorded',
@@ -88,6 +93,7 @@ export async function recordProposalOutcomeFromObservedReturn(input: {
     confidence: 0.88,
     payload: {
       proposal_id: input.proposalId,
+      proposal_type: proposalType,
       outcome_status: outcomeStatus,
       next_state: nextState,
       field_effect: fieldEffect,
@@ -99,6 +105,10 @@ export async function recordProposalOutcomeFromObservedReturn(input: {
       observed_execution_at: observedExecutionAt,
       calibration_state: 'PENDING_REALITY_CALIBRATION',
       learning_state: 'CANDIDATE_UNTIL_CALIBRATED',
+      development_stage: developmentStage,
+      adoption_authority: adoptionAuthority,
+      return_required_before_adoption: returnRequiredBeforeAdoption,
+      institutional_adoption_recorded: false,
       canonical_promotion_allowed: false,
       outcome_only: true,
     },
@@ -111,7 +121,7 @@ export async function recordProposalOutcomeFromObservedReturn(input: {
     status: nextState,
     actorId: input.actorId,
     isRoot: true,
-    proposalType: proposalTypeOf(proposal.data as Row),
+    proposalType,
     expectedStatuses: ['queued'],
     eventId: event.data.id,
     executedAt: observedExecutionAt,
@@ -134,6 +144,10 @@ export async function recordProposalOutcomeFromObservedReturn(input: {
       evidenceRefs,
       calibrationState: 'PENDING_REALITY_CALIBRATION',
       learningState: 'CANDIDATE_UNTIL_CALIBRATED',
+      developmentStage: institutionalCandidate ? 'READY_FOR_ADOPTION' : developmentStage,
+      adoptionAuthority: institutionalCandidate ? 'ROOT_ONLY_AFTER_RETURN' : adoptionAuthority,
+      returnRequiredBeforeAdoption: institutionalCandidate ? true : undefined,
+      institutionalAdoptionRecorded: false,
       canonicalPromotionAllowed: false,
       executionAllowed: false,
       outcomeRecordedBy: input.actorId,
@@ -147,5 +161,8 @@ export async function recordProposalOutcomeFromObservedReturn(input: {
     observedReturnEventId: input.returnEventId,
     executedAt: observedExecutionAt,
     executedAtSource: 'OBSERVED_RETURN_OCCURRED_AT',
+    institutionalCandidate,
+    developmentStage,
+    adoptionAuthority,
   };
 }
