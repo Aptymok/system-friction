@@ -7,6 +7,10 @@ const checks: Array<{ name: string; ok: boolean }> = [];
 const check = (name: string, ok: boolean) => checks.push({ name, ok });
 
 const reconcile = read('src/lib/evidence/reconcileEvidenceGraph.ts');
+const canonicalGraph = read('src/lib/graph/canonicalGraph.ts');
+const libraryProjection = read('src/lib/graph/libraryCorpusProjection.ts');
+const libraryPage = read('src/app/library/page.tsx');
+const libraryClient = read('src/app/library/LibraryClient.tsx');
 const reader = read('src/lib/root/sovereign/readers/readRootEvidenceGraph.ts');
 const amvReader = read('src/lib/root/sovereign/readers/readRootAmv.ts');
 const predictionReader = read('src/lib/root/sovereign/readers/readRootPredictions.ts');
@@ -35,6 +39,12 @@ check('Supabase reads are abortable', readerSupport.includes('executeAbortableQu
 check('evidence reader does not require missing graph_nodes.evidence_ids column', !reader.includes("lineage,evidence_ids,payload,attributes") && reader.includes("lineage,payload,attributes"));
 check('evidence reader exposes semantic and temporal edge metadata', reader.includes('declaredRelations.join') && reader.includes('relationClass:') && reader.includes('observedAt: dateValue(attributes.observedAt'));
 check('explicit graph maintenance is sovereign and audited', reconcileRoute.includes("requireRootActor('evidence.graph.reconcile')") && reconcileRoute.includes("action: 'evidence.graph.reconcile'"));
+
+check('Library corpus projects into canonical graph types without a second graph store', libraryProjection.includes('buildLibraryCorpusGraphProjection') && libraryProjection.includes('CanonicalGraphNode') && libraryProjection.includes('CanonicalGraphEdge') && libraryProjection.includes('sf_docs_frontmatter.json') && !libraryProjection.includes("from('graph_nodes')") && !libraryProjection.includes("from('graph_edges')"));
+check('canonical graph reader merges shared Library projection without write side effects', canonicalGraph.includes('buildLibraryCorpusGraphProjection') && canonicalGraph.includes('libraryProjection') && !canonicalGraph.includes('.upsert(') && !canonicalGraph.includes('.insert('));
+check('Library reads the canonical graph owner instead of static metadata alone', libraryPage.includes("readCanonicalGraphState('shared')") && libraryPage.includes('graphRelations') && libraryPage.includes("dynamic = 'force-dynamic'"));
+check('Library search and cards consume graph relations', libraryClient.includes('graphRelations?:string[]') && libraryClient.includes('...(doc.graphRelations??[])') && libraryClient.includes('RELACIONES'));
+check('Library graph remains documentary relation rather than validation claim', libraryProjection.includes('doesNotImplyValidation: true') && libraryProjection.includes("epistemicClass: 'DECLARED'"));
 
 check('ROOT remains the canonical sovereign operating scene', scenes.includes("root:{key:'root'") && scenes.includes("title:'ROOT · Operación soberana'") && scenes.includes("liveSource:'/api/root/workboard'"));
 check('ROOT is regenerated as a thin sovereign projection over existing owners', rootUi.includes('ROOT · SOBERANÍA INSTITUCIONAL') && rootUi.includes('Decide lo soberano. Observa y lee el resto.') && rootUi.includes("jsonFetch('/api/root/interactive?surface=root')") && rootUi.includes("jsonFetch('/api/root/decisions'"));
