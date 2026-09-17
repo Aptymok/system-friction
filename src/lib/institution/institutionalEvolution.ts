@@ -7,12 +7,21 @@ import { readObservedSfiCognitiveRuntime } from '@/lib/sfi/cognitive-runtime/obs
 import { buildWorldVectorOperationalState } from '@/lib/world-vector/operationalState';
 import type { refreshInstitutionalAttractorTrajectory } from './institutionalAttractor';
 
-export const SFI_INSTITUTIONAL_EVOLUTION_CONTRACT = 'SFI-INSTITUTIONAL-EVOLUTION-1.0' as const;
+export const SFI_INSTITUTIONAL_EVOLUTION_CONTRACT = 'SFI-INSTITUTIONAL-EVOLUTION-1.1' as const;
 export const SFI_INSTITUTIONAL_MUTATION_PROPOSAL_TYPE = 'institutional_mutation_candidate' as const;
 
 const SYSTEM_ACTOR = 'SYSTEM_FRICTION_INSTITUTE';
 const MAX_NEW_PROPOSALS_PER_CYCLE = 4;
 const OPEN_PROPOSAL_STATUSES = new Set(['draft', 'proposed', 'waiting_evidence', 'design_approved', 'queued', 'conflicted', 'frozen']);
+
+// Only work that can be completed as bounded observation/research/reconstruction through
+// the existing cognitive runtime enters the queue automatically. Material implementation,
+// routine mutation and code/module construction remain blocked until a real executor exists.
+const REVERSIBLE_INTERNAL_DEVELOPMENT_KINDS = new Set<EvolutionKind>([
+  'EVIDENCE_ACQUISITION',
+  'GOVERNANCE_REVIEW',
+  'PREDICTIVE_RETURN_RECONCILIATION',
+]);
 
 type AttractorRefresh = Awaited<ReturnType<typeof refreshInstitutionalAttractorTrajectory>>;
 type EvolutionKind =
@@ -41,6 +50,18 @@ type PersistedProposal = {
   status: string;
 };
 
+type CandidateDevelopmentPolicy = {
+  queueForDevelopment: boolean;
+  approvalRequired: boolean;
+  developmentAuthority: 'REVERSIBLE_INTERNAL_AUTONOMY';
+  adoptionAuthority: 'ROOT_ONLY_AFTER_RETURN';
+  returnRequiredBeforeAdoption: true;
+  missingExecutorDisposition: 'BLOCKED_NOT_AUTHORITY_REQUEST';
+  developmentStage: 'READY_FOR_REVERSIBLE_DEVELOPMENT' | 'BLOCKED_MISSING_EXECUTOR';
+  requiredExecutor: string;
+  boundary: string;
+};
+
 function rows(value: unknown): Array<Record<string, unknown>> {
   return Array.isArray(value)
     ? value.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object' && !Array.isArray(item))
@@ -49,6 +70,24 @@ function rows(value: unknown): Array<Record<string, unknown>> {
 
 function unique(values: Array<string | null | undefined>) {
   return [...new Set(values.filter((value): value is string => Boolean(value && value.trim())))];
+}
+
+function candidateDevelopmentPolicy(candidate: EvolutionCandidate): CandidateDevelopmentPolicy {
+  const queueForDevelopment = REVERSIBLE_INTERNAL_DEVELOPMENT_KINDS.has(candidate.kind)
+    && candidate.ownerResolution !== 'NO_EXISTING_OWNER';
+  return {
+    queueForDevelopment,
+    approvalRequired: false,
+    developmentAuthority: 'REVERSIBLE_INTERNAL_AUTONOMY',
+    adoptionAuthority: 'ROOT_ONLY_AFTER_RETURN',
+    returnRequiredBeforeAdoption: true,
+    missingExecutorDisposition: 'BLOCKED_NOT_AUTHORITY_REQUEST',
+    developmentStage: queueForDevelopment ? 'READY_FOR_REVERSIBLE_DEVELOPMENT' : 'BLOCKED_MISSING_EXECUTOR',
+    requiredExecutor: queueForDevelopment ? 'cognitive_runtime_v1' : 'material_implementation_or_module_builder',
+    boundary: queueForDevelopment
+      ? 'May perform bounded internal cognition/research only. This is development evidence, not institutional adoption or material implementation.'
+      : 'A real material implementation/code/module executor is not available. Remain blocked without converting executor absence into a ROOT request to authorize development.',
+  };
 }
 
 function proposalFingerprint(candidate: EvolutionCandidate) {
@@ -216,12 +255,14 @@ async function persistCandidates(candidates: EvolutionCandidate[], context: Reco
     }
     if (newCount >= MAX_NEW_PROPOSALS_PER_CYCLE) continue;
 
+    const development = candidateDevelopmentPolicy(candidate);
     const inserted = await createActionProposal({
       proposalType: SFI_INSTITUTIONAL_MUTATION_PROPOSAL_TYPE,
       actorId: SYSTEM_ACTOR,
       title: candidate.title,
       objective: candidate.objective,
-      status: 'proposed',
+      status: development.queueForDevelopment ? 'queued' : 'waiting_evidence',
+      approvalRequired: development.approvalRequired,
       seed: fingerprint,
       payload: {
         contract: SFI_INSTITUTIONAL_EVOLUTION_CONTRACT,
@@ -233,11 +274,20 @@ async function persistCandidates(candidates: EvolutionCandidate[], context: Reco
         evidenceRefs: candidate.evidenceRefs,
         ownerResolution: candidate.ownerResolution,
         moduleCandidateAllowed: candidate.ownerResolution === 'NO_EXISTING_OWNER',
+        developmentAuthority: development.developmentAuthority,
+        developmentExecutionAuthorized: development.queueForDevelopment,
+        developmentStage: development.developmentStage,
+        requiredExecutor: development.requiredExecutor,
+        approvalRequired: development.approvalRequired,
+        adoptionAuthority: development.adoptionAuthority,
+        returnRequiredBeforeAdoption: true,
+        missingExecutorDisposition: 'BLOCKED_NOT_AUTHORITY_REQUEST',
         executionAuthorized: false,
         canonicalPromotionAllowed: false,
         externalEffectAllowed: false,
         founderInterruption: 'ONLY_IF_SOVEREIGN_BOUNDARY',
         evolutionRule: 'ABSORB_OR_REPAIR_EXISTING_OWNER_FIRST',
+        developmentBoundary: development.boundary,
         context,
       },
     });
@@ -320,7 +370,7 @@ export async function runInstitutionalEvolutionObservation(input: {
     founderDependency: {
       pendingSovereignDecisions: founderRequiredOnly,
       routineWorkRequiresFounder: false,
-      rule: 'Routine observation, evidence acquisition, calibration and proposal formation continue autonomously. Founder interruption is reserved for explicit sovereign boundaries.',
+      rule: 'Routine observation, evidence acquisition, calibration and proposal formation continue autonomously. Reversible internal development may execute only through an existing executor; ROOT remains required for material implementation and adoption/use.',
     },
     warnings: unique([
       ...runtime.eventGraph.warnings,
@@ -329,6 +379,6 @@ export async function runInstitutionalEvolutionObservation(input: {
       ...world.agent_audit.warnings,
       persistence.lookupError,
     ]),
-    boundary: 'Evolution proposals are DERIVED work objects. They do not execute themselves, change canon, publish, spend, grant access or create external effects.',
+    boundary: 'Evolution proposals are DERIVED work objects. Reversible internal development may run without founder interruption through existing executors; material implementation, institutional adoption, canon, publication, spending, access changes and external effects remain ROOT-governed.',
   };
 }
