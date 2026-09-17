@@ -18,7 +18,7 @@ import {
 } from './exposureProjection';
 import { SFI_DISCOVERY_CRAWLER_POLICY } from './crawlerPolicy';
 
-export const SFI_DISCOVERY_CONTROL_PLANE_CONTRACT = 'SFI-DISCOVERY-CONTROL-PLANE-1.3' as const;
+export const SFI_DISCOVERY_CONTROL_PLANE_CONTRACT = 'SFI-DISCOVERY-CONTROL-PLANE-1.2' as const;
 
 type QueryAvailability = 'AVAILABLE' | 'DEGRADED' | 'UNAVAILABLE';
 type ReadResult<T> = {
