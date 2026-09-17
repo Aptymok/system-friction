@@ -66,8 +66,8 @@ async function main() {
   assert.match(control, /nPlusOneReads:0/);
   assert.match(control, /totalCountUnknownOnInteractiveRead:true/);
   assert.match(control, /unavailableIsNotZero:true/);
-  assert.match(control, /developmentProposalIsNotApproval:true/);
-  assert.match(control, /editorialProposalIsNotPublication:true/);
+  assert.match(control, /developmentProposalIsNotApproval\s*:\s*true/);
+  assert.match(control, /editorialProposalIsNotPublication\s*:\s*true/);
   assert.doesNotMatch(control, /count\s*:\s*['"]exact['"]/, 'ROOT Discovery interactive read may not exact-count tables');
   assert.doesNotMatch(control, /head\s*:\s*true/, 'ROOT Discovery interactive read may not use HEAD health probes');
   assert.doesNotMatch(control, /setInterval|setTimeout\(|fetch\(/, 'ROOT Discovery read plane must not create polling/fanout HTTP owners');
