@@ -4,6 +4,7 @@ import { webcrypto } from 'node:crypto';
 import {
   GITHUB_OIDC_ISSUER,
   type GitHubActionsOidcClaims,
+  type GitHubActionsOidcPurpose,
   validateGitHubActionsOidcClaims,
 } from './githubActionsOidcPolicy';
 
@@ -66,7 +67,10 @@ async function verifySignature(token: string, header: JwtHeader) {
   );
 }
 
-export async function verifyGitHubActionsOidcToken(token: string) {
+export async function verifyGitHubActionsOidcToken(
+  token: string,
+  purpose: GitHubActionsOidcPurpose = 'continuity',
+) {
   const segments = token.split('.');
   if (segments.length !== 3) return { ok: false as const, reason: 'OIDC_TOKEN_MALFORMED' };
   const header = decodeJson<JwtHeader>(segments[0]);
@@ -77,5 +81,5 @@ export async function verifyGitHubActionsOidcToken(token: string) {
   } catch (error) {
     return { ok: false as const, reason: error instanceof Error ? error.message : 'OIDC_SIGNATURE_VERIFICATION_FAILED' };
   }
-  return validateGitHubActionsOidcClaims(claims);
+  return validateGitHubActionsOidcClaims(claims, Math.floor(Date.now() / 1000), purpose);
 }
