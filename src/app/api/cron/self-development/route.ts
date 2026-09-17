@@ -51,21 +51,19 @@ function candidate(row: Row) {
   const patch = recordValue(recordValue(row.outcome).payloadPatch);
   const assignment = recordValue(patch.assignment);
   const scope = strings(payload.developmentScope, 12);
-  const type = proposalType(row);
+  const proposalKind = proposalType(row);
   const requiredExecutor = stringValue(payload.requiredExecutor);
-  const proposalTypeMatches = type === PROPOSAL_TYPE;
-  const proposalType = type;
+  const proposalTypeMatches = proposalKind === PROPOSAL_TYPE;
   const scopeSafe = scope.length > 0 && scope.every((path) => SAFE_PATHS.has(path));
-  const eligible = proposalType === 'institutional_mutation_candidate'
-    && proposalTypeMatches
-    && requiredExecutor === 'sfi_self_development_v1'
+  const eligible = proposalTypeMatches
+    && requiredExecutor === EXECUTOR
     && payload.developmentExecutionAuthorized === true
     && stringValue(payload.developmentMode) === 'MATERIAL_REPOSITORY'
     && scopeSafe
     && String(row.status ?? '').toLowerCase() === 'queued';
   return {
     eligible,
-    proposalType,
+    proposalType: proposalKind,
     requiredExecutor,
     scope,
     scopeSafe,
