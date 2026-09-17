@@ -113,6 +113,6 @@ export async function readDiscoveryControlPlane() {
     failedPublicationsInSample:failedRepresentations,
     exposure,
     readPlan:{ dbQueries:4,exactCountProbes:0,pollingLoops:0,nPlusOneReads:0,canonicalRegistryReads:1,externalIdentityRegistryReads:1,boundedRowsPerDbOwner:SAMPLE_LIMIT,directBrowserDataApi:false },
-    epistemicBoundary:{ discoveryCandidateIsNotCanon:true,exposureIsNotPublication:true,externalRepresentationIsNotCanon:true,developmentProposalIsNotApproval:true,editorialProposalIsNotPublication:true,totalCountUnknownOnInteractiveRead:true,unavailableIsNotZero:true,externalActionRequiresObservedReceipt:true },
+    epistemicBoundary:{ discoveryCandidateIsNotCanon:true, exposureIsNotPublication:true, externalRepresentationIsNotCanon:true, developmentProposalIsNotApproval: true, editorialProposalIsNotPublication: true, totalCountUnknownOnInteractiveRead:true, unavailableIsNotZero:true, externalActionRequiresObservedReceipt:true },
   };
 }
