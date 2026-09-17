@@ -111,3 +111,29 @@ export function normalizeHumanReport(value: unknown): HumanReportBlock[] {
   flushList();
   return blocks;
 }
+
+function tableRowText(headers: string[], row: string[]) {
+  return headers
+    .map((header, index) => {
+      const value = row[index] ?? '';
+      return value ? `${header}: ${value}` : null;
+    })
+    .filter((value): value is string => Boolean(value))
+    .join(' · ');
+}
+
+export function humanReportText(value: unknown) {
+  return normalizeHumanReport(value)
+    .flatMap((block) => {
+      if (block.kind === 'heading') return [block.text.toUpperCase()];
+      if (block.kind === 'paragraph') return [block.text];
+      if (block.kind === 'list') return block.items.map((item) => `• ${item}`);
+      if (block.kind === 'table') {
+        const rows = block.rows.map((row) => tableRowText(block.headers, row)).filter(Boolean);
+        return rows.length ? rows : [block.headers.join(' · ')];
+      }
+      return [];
+    })
+    .filter(Boolean)
+    .join('\n\n');
+}
