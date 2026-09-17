@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { runWorldCalibrationCycle } from '@/lib/world-observatory/worldCycle';
+import { runWorldCalibrationCycle } from '@/lib/world-observatory/hypothesisCalibration';
 import { runWorldHypothesisCycle } from '@/lib/world-observatory/hypothesisCycle';
 import { runWorldInstrumentSweep } from '@/lib/world-observatory/instrumentSweep';
 import { executeWorldSignalObserverAgent } from '@/lib/world-observatory/worldSignalObserverAgent';
@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
       persisted: observation.persisted,
       collectorFailures: observation.failures.length,
     },
-    executionRule: 'World observation, hypothesis generation and calibration remain authoritative for this cron. Signal Vane, Cluster Atlas and Predictive health are a read-only daily instrumentation sweep; their failure does not fabricate evidence or block the observed World cycle.',
+    executionRule: 'World observation, hypothesis generation and deterministic calibration remain authoritative for this cron. Signal Vane, Cluster Atlas and Predictive health are a read-only daily instrumentation sweep; their failure does not fabricate evidence or block the observed World cycle.',
   });
 }
 
