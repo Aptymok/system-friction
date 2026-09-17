@@ -162,3 +162,24 @@ test('open_source mode retains feed provenance and degradation alongside canonic
   assert(external.some((candidate) => candidate.availability === 'DEGRADED'));
   assert.equal(observed.state, 'DEGRADED');
 });
+
+test('provider unavailable with zero candidates preserves UNAVAILABLE top-level observation state', () => {
+  const query = 'zzzxqv qqqdiscoveryfixture';
+  const observed = observeDiscovery({
+    mode: 'query',
+    query,
+    retrievalObservations: [{
+      observationId: 'obs-provider-unavailable',
+      source: canonicalSource,
+      observedAt: '2026-09-17T00:00:00Z',
+      query,
+      unbranded: true,
+      retrieved: null,
+      status: 'UNAVAILABLE',
+    }],
+  });
+  assert.equal(observed.candidates.length, 0);
+  assert.equal(observed.state, 'UNAVAILABLE');
+  assert.equal(observed.metrics.UDR.availability, 'NOT_OBSERVED');
+  assert.equal(observed.metrics.UDR.value, null);
+});
