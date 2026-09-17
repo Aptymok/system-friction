@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createDailyContinuityReport } from '@/lib/continuity/runtime';
-import { runAutomaticDiscoveryObservationCycle } from '@/lib/discovery/discoveryRepository';
+import { runDiscoveryAutonomyCycle } from '@/lib/discovery/discoveryAutonomy';
 import { runGovernedExecutionRouter } from '@/lib/execution/governedExecutionRouter';
 import { runScheduledAgentReportCycle } from '@/lib/reports/scheduledAgentReports';
 import { runCognitiveTwinDevelopmentalHeartbeat } from '@/core/cognitive-twin/reentry/runtime';
@@ -24,68 +24,39 @@ export async function GET(request: NextRequest) {
   try {
     const report = await createDailyContinuityReport();
     const cognitiveTwinInstitutionalSync = await syncSfiInstitutionalStateToCognitiveTwin().catch((error) => ({
-      ok:false,
-      synced:0,
-      failed:1,
-      sources:[],
-      integration:null,
+      ok:false, synced:0, failed:1, sources:[], integration:null,
       error:error instanceof Error ? error.message : String(error),
     }));
-    const [scheduledReports, discoveryObservation, cognitiveTwinHeartbeat, cognitiveTwinMutation, governedExecution] = await Promise.all([
-      runScheduledAgentReportCycle().catch((error) => ({
-        ok: false,
-        generated: 0,
-        skipped: 0,
-        failed: 1,
-        results: [],
-        error: error instanceof Error ? error.message : String(error),
+    const [scheduledReports, discoveryAutonomy, cognitiveTwinHeartbeat, cognitiveTwinMutation, governedExecution] = await Promise.all([
+      runScheduledAgentReportCycle().catch((error) => ({ ok:false, generated:0, skipped:0, failed:1, results:[], error:error instanceof Error ? error.message : String(error) })),
+      runDiscoveryAutonomyCycle().catch((error) => ({
+        ok:false,
+        contract:'SFI-DISCOVERY-AUTONOMY-1.1',
+        observation:null,
+        developmentCandidates:[],
+        editorialCandidate:null,
+        error:error instanceof Error ? error.message : String(error),
+        boundary:'DISCOVERY_AUTONOMY_FAILED: no candidate, publication, discovery, recognition, PULL or RETURN may be inferred.',
       })),
-      runAutomaticDiscoveryObservationCycle().catch((error) => ({
-        ok: false,
-        query: null,
-        intent: null,
-        provider: 'unavailable',
-        sourcesObserved: 0,
-        sfiRetrieved: null,
-        canonicalUrl: null,
-        runId: null,
-        replay: false,
-        warnings: [error instanceof Error ? error.message : String(error)],
-        epistemicBoundary: 'DISCOVERY_OBSERVATION_FAILED: no discovery, recognition, PULL or RETURN may be inferred.',
-      })),
-      runCognitiveTwinDevelopmentalHeartbeat().catch((error) => ({
-        ok: false,
-        skipped: false,
-        error: error instanceof Error ? error.message : String(error),
-      })),
-      considerCognitiveTwinMutationProposal().catch((error) => ({
-        considered: false,
-        proposed: false,
-        error: error instanceof Error ? error.message : String(error),
-      })),
-      runGovernedExecutionRouter({ limit: 10 }).catch((error) => ({
-        ok: false,
-        processed: 0,
-        results: [],
-        error: error instanceof Error ? error.message : String(error),
-      })),
+      runCognitiveTwinDevelopmentalHeartbeat().catch((error) => ({ ok:false, skipped:false, error:error instanceof Error ? error.message : String(error) })),
+      considerCognitiveTwinMutationProposal().catch((error) => ({ considered:false, proposed:false, error:error instanceof Error ? error.message : String(error) })),
+      runGovernedExecutionRouter({ limit: 10 }).catch((error) => ({ ok:false, processed:0, results:[], error:error instanceof Error ? error.message : String(error) })),
     ]);
     return NextResponse.json({
-      ok: true,
+      ok:true,
       report,
       cognitiveTwinInstitutionalSync,
       scheduledReports,
-      discoveryObservation,
+      discoveryObservation: discoveryAutonomy.observation,
+      discoveryAutonomy,
       cognitiveTwinHeartbeat,
       cognitiveTwinMutation,
       governedExecution,
-      schedulingRule: 'No additional Vercel cron invocation. Uses the existing continuity-report cron; one bounded Discovery retrieval observation is attempted per cycle, SFI organ sync occurs before CT heartbeat, and queued governed work is retried/rerouted here.',
+      schedulingRule:'No additional Vercel cron invocation. Uses the existing continuity-report cron; one bounded Discovery self-observation is attempted per cycle, candidates use the canonical governed proposal lifecycle, material work without a real executor remains blocked, SFI organ sync occurs before CT heartbeat, and queued governed work is retried/rerouted here.',
     });
   } catch (error) {
-    return NextResponse.json({ ok: false, error: 'continuity_report_failed', details: error instanceof Error ? error.message : String(error) }, { status: 500 });
+    return NextResponse.json({ ok:false, error:'continuity_report_failed', details:error instanceof Error ? error.message : String(error) }, { status:500 });
   }
 }
 
-export async function POST(request: NextRequest) {
-  return GET(request);
-}
+export async function POST(request: NextRequest) { return GET(request); }
