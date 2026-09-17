@@ -18,7 +18,7 @@ export function PublicEntryGateway() {
     <header className="sfiPublicTopbar">
       <Link href="/" className="sfiPublicBrand"><strong>SFI</strong><span>SYSTEM FRICTION INSTITUTE</span></Link>
       <nav aria-label="SFI public navigation">
-        <Link href="/observatory">OBSERVATORY</Link><Link href="/publications">PUBLICATIONS</Link><Link href="/library">LIBRARY</Link><Link href="/institution">INSTITUTE</Link>
+        <Link href="/observatory">OBSERVATORY</Link><Link href="/publications">PUBLICATIONS</Link><Link href="/library">LIBRARY</Link><Link href="/field">FIELD</Link><Link href="/institution">INSTITUTE</Link>
       </nav>
       <Link href="/login" className="sfiPublicAccess">SIGN IN</Link>
     </header>
