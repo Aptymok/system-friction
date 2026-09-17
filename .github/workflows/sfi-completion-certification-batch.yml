@@ -32,7 +32,7 @@ on:
       batch_limit:
         description: 'Maximum completion requirements to certify in this bounded batch'
         required: false
-        default: '20'
+        default: '50'
 
 permissions:
   contents: read
@@ -48,7 +48,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      SFI_CERTIFICATION_BATCH_LIMIT: ${{ inputs.batch_limit || '20' }}
+      SFI_CERTIFICATION_BATCH_LIMIT: ${{ inputs.batch_limit || '50' }}
       SFI_EXPECTED_HEAD: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
 
     steps:
