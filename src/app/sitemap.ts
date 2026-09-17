@@ -5,22 +5,20 @@ import { SFI_PUBLIC_PROFILE } from '@/lib/public/institutionProfile';
 const BASE = SFI_PUBLIC_PROFILE.institution.canonicalUrl;
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const scenes = [
-    '', 'field', 'systems', 'archive', 'falsification', 'optionality',
-    'governance', 'authority', 'agents', 'identity', 'models', 'genai',
+  const publicSurfaces = [
+    '',
+    'observatory',
+    'publications',
+    'library',
+    'institution',
+    'history',
+    'privacy',
   ].map((path) => ({
     url: `${BASE}/${path}`.replace(/\/$/, ''),
     lastModified: new Date(),
-    changeFrequency: 'daily' as const,
+    changeFrequency: path === 'publications' ? 'weekly' as const : 'daily' as const,
     priority: path ? 0.9 : 1,
   }));
-
-  const editorial = [{
-    url: `${BASE}/publications`,
-    lastModified: new Date(),
-    changeFrequency: 'weekly' as const,
-    priority: 0.9,
-  }];
 
   const machine = ['llms.txt','llms-full.txt','ai-index.json','ai-policy','field-schema.json','feed.xml','feed.atom','feed.json'].map((path) => ({
     url: `${BASE}/${path}`,
@@ -29,5 +27,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.7,
   }));
 
-  return [...scenes, ...editorial, ...machine, ...discoverySitemapEntries()];
+  return [...publicSurfaces, ...machine, ...discoverySitemapEntries()];
 }
