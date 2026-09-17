@@ -7,8 +7,16 @@ const PUBLIC_NAV = [
   ['/observatory','OBSERVATORY'],
   ['/publications','PUBLICATIONS'],
   ['/library','LIBRARY'],
-  ['/field','FIELD'],
   ['/institution','INSTITUTE'],
+] as const;
+
+const CURRENT_PUBLIC_SURFACES = [
+  { path: '/observatory', role: 'Observación viva del campo, fuentes, hipótesis, trayectoria y contraste.' },
+  { path: '/publications', role: 'Archivo editorial: notas, casos, métodos y RETURN publicados.' },
+  { path: '/library', role: 'Conocimiento conectado, métodos, instrumentos y procedencia.' },
+  { path: '/institution', role: 'Identidad, autoridad, límites e invariantes institucionales.' },
+  { path: '/history', role: 'Historia institucional observada con procedencia.' },
+  { path: '/privacy', role: 'Política de privacidad y tratamiento de datos para agentes externos.' },
 ] as const;
 
 export default function InstitutionPage() {
@@ -58,7 +66,7 @@ export default function InstitutionPage() {
 
     <section className="institutionSection">
       <header><span>04 · SUPERFICIES PÚBLICAS</span><b>Una institución, distintas profundidades.</b></header>
-      <div className="institutionLinks">{p.publicSurfaces.map((surface) => <Link key={surface.path} href={surface.path}><code>{surface.path}</code><span>{surface.role}</span></Link>)}</div>
+      <div className="institutionLinks">{CURRENT_PUBLIC_SURFACES.map((surface) => <Link key={surface.path} href={surface.path}><code>{surface.path}</code><span>{surface.role}</span></Link>)}</div>
     </section>
   </main>;
 }
