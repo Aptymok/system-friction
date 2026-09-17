@@ -5,11 +5,10 @@ import { useSfiLanguage } from '@/components/i18n/SfiLanguageProvider';
 import './PublicEntryGateway.css';
 
 const PUBLIC_ROUTES = [
-  { n:'01', href:'/observatory', title:'Observatory', note:'Qué está observando SFI ahora.', visual:'world' },
+  { n:'01', href:'/observatory', title:'Observatory', note:'Qué está observando SFI ahora. FIELD es la lectura situada por defecto dentro de esta superficie.', visual:'world' },
   { n:'02', href:'/publications', title:'Publications', note:'Notas, casos, investigación y RETURN publicados.', visual:'publication' },
   { n:'03', href:'/library', title:'Library', note:'Conocimiento conectado, métodos y evidencia.', visual:'library' },
-  { n:'04', href:'/field', title:'FIELD', note:'Observación situada y trabajo fuera del documento.', visual:'field' },
-  { n:'05', href:'/institution', title:'Institute', note:'Qué institución afirma todo esto y bajo qué límites.', visual:'institute' },
+  { n:'04', href:'/institution', title:'Institute', note:'Qué institución afirma todo esto y bajo qué límites.', visual:'institute' },
 ] as const;
 
 export function PublicEntryGateway() {
@@ -19,7 +18,7 @@ export function PublicEntryGateway() {
     <header className="sfiPublicTopbar">
       <Link href="/" className="sfiPublicBrand"><strong>SFI</strong><span>SYSTEM FRICTION INSTITUTE</span></Link>
       <nav aria-label="SFI public navigation">
-        <Link href="/observatory">OBSERVATORY</Link><Link href="/publications">PUBLICATIONS</Link><Link href="/library">LIBRARY</Link><Link href="/field">FIELD</Link><Link href="/institution">INSTITUTE</Link>
+        <Link href="/observatory">OBSERVATORY</Link><Link href="/publications">PUBLICATIONS</Link><Link href="/library">LIBRARY</Link><Link href="/institution">INSTITUTE</Link>
       </nav>
       <Link href="/login" className="sfiPublicAccess">SIGN IN</Link>
     </header>
