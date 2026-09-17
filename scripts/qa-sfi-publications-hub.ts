@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
+import sitemapProjection from '../src/app/sitemap';
 
 const read = (path: string) => readFileSync(path, 'utf8');
 const page = read('src/app/publications/page.tsx');
 const css = read('src/app/publications/publications.css');
 const families = read('src/lib/publications/editorialFamilies.ts');
-const sitemap = read('src/app/sitemap.ts');
 const editorial = read('src/lib/publications/editorialContent.ts');
 
 for (const asset of [
@@ -35,14 +35,17 @@ for (const token of ['--void:#060605', '--gold:#c8a951', '--cream:#e8ddc3', '--s
 assert.ok(css.includes('Noto Serif Display') && css.includes('EB Garamond') && css.includes('Liberation Mono') && css.includes('Noto Sans'), 'identity_manual_typography_roles_missing');
 assert.ok(css.includes(':focus-visible'), 'keyboard_focus_visibility_missing');
 assert.ok(css.includes('prefers-reduced-motion'), 'reduced_motion_boundary_missing');
-assert.ok(sitemap.includes("`${BASE}/publications`"), 'publications_hub_missing_from_sitemap');
+
+const sitemapUrls = sitemapProjection().map((entry) => entry.url);
+assert.ok(sitemapUrls.includes('https://systemfriction.org/publications'), 'publications_hub_missing_from_sitemap');
 
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-PUBLICATIONS-HUB-IDENTITY-1.0',
+  contract: 'SFI-PUBLICATIONS-HUB-IDENTITY-1.1',
   monthly: 'Notas Temporales remains one monthly institutional issue series',
   families: ['Notas de Señal', 'Notas de Caso', 'Notas de Campo', 'Notas de Retorno', 'Notas de Laboratorio'],
   identityManual: 'SFI-ID-003 / MASTER EDITION V4.0',
   generatedImageProvenance: true,
   canonicalMutation: false,
+  publicationsSitemapProjection: true,
 }, null, 2));
