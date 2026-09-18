@@ -77,6 +77,8 @@ assert.match(oauthRegistry, /continuity_registry/, 'oauth_registry_must_have_bou
 assert.match(oauthRegistry, /readContinuityOAuthClient/, 'oauth_registry_must_fail_over_reads_to_continuity_store');
 assert.match(authorize, /readContinuityProfile/, 'oauth_authorization_must_recover_profile_from_continuity_store_when_primary_data_is_unavailable');
 assert.match(authorize, /issueSfiOAuthAuthorizationCode/, 'oauth_authorization_code_issue_must_use_failover_store');
+assert.match(authorize, /client\.source === 'registry'[\s\S]*client\.redirectUris\.length === 0/, 'continuity_registry_must_not_bind_new_redirects');
+assert.match(authorize, /client\.source === 'registry'[\s\S]*isTrustedChatGptOwnerRedirect\(redirectUri\)/, 'continuity_registry_must_not_rotate_redirects');
 assert.match(token, /findSfiOAuthAuthorizationCode/, 'oauth_token_exchange_must_read_from_failover_store');
 assert.match(token, /consumeSfiOAuthAuthorizationCode/, 'oauth_token_exchange_must_consume_from_origin_store');
 assert.match(continuityStore, /SFI_CONTINUITY_DATABASE_URL/, 'continuity_database_must_be_runtime_secret_configured');
