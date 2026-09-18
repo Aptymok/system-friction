@@ -21,7 +21,6 @@ export type ContinuityCapability = {
 
 export const CONTINUITY_CAPABILITIES: ContinuityCapability[] = [
   { id: 'world_vector', name: 'World Vector', autonomyLevel: 'A0', probePath: '/api/worldspect/state', timeoutMs: 8000, critical: true, allowedInFounderAbsence: true },
-  { id: 'scorefriction', name: 'ScoreFriction', autonomyLevel: 'A0', probePath: '/api/scorefriction/state', timeoutMs: 8000, critical: true, allowedInFounderAbsence: true },
   { id: 'mihm', name: 'MIHM', autonomyLevel: 'A0', probePath: '/api/mihm', timeoutMs: 8000, critical: true, allowedInFounderAbsence: true },
   { id: 'cognitive_runtime', name: 'Cognitive Runtime', autonomyLevel: 'A1', probePath: '/api/root/cognitive-runtime', timeoutMs: 10000, critical: true, allowedInFounderAbsence: true },
   { id: 'evidence', name: 'Evidence Ledger', autonomyLevel: 'A1', probePath: '/api/root/evidence', timeoutMs: 8000, critical: true, allowedInFounderAbsence: true },
