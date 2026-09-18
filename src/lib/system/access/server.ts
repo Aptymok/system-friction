@@ -10,6 +10,7 @@ import {
 } from '@/runtime/supabase/server';
 import { findInstitutionalMember } from './institutionalMembers';
 import { resolveFounderAuthority } from './founderAuthority';
+import { readContinuityProfile, readContinuityProfileByEmail } from '@/lib/sfi/continuityPostgres';
 
 export class AccessDeniedError extends Error {
   constructor(
@@ -176,7 +177,14 @@ async function readOrProvisionUserProfile(user: { id: string; email?: string | n
     .eq('user_id', user.id)
     .maybeSingle();
 
-  if (existing.error) throw existing.error;
+  if (existing.error) {
+    const continuityProfile =
+      await readContinuityProfile(user.id).catch(() => null)
+      ?? (user.email ? await readContinuityProfileByEmail(user.email).catch(() => null) : null);
+
+    if (!continuityProfile) throw existing.error;
+    return { profile: continuityProfile, member };
+  }
 
   if (existing.data && member) {
     const desiredAccess = institutionalModuleAccess(member, existing.data.module_access);
