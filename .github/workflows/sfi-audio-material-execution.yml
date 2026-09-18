@@ -2,9 +2,29 @@ name: SFI Audio Material Execution
 
 on:
   pull_request:
+    paths:
+      - 'src/lib/studio/audio/**'
+      - 'src/app/api/studio/**'
+      - 'scripts/qa-sfi-audio*.ts'
+      - 'scripts/qa-sfi-sfz*.ts'
+      - 'scripts/qa-sfi-real-render*.ts'
+      - 'scripts/qa-sfi-material-production*.ts'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/sfi-audio-material-execution.yml'
   push:
     branches:
       - main
+    paths:
+      - 'src/lib/studio/audio/**'
+      - 'src/app/api/studio/**'
+      - 'scripts/qa-sfi-audio*.ts'
+      - 'scripts/qa-sfi-sfz*.ts'
+      - 'scripts/qa-sfi-real-render*.ts'
+      - 'scripts/qa-sfi-material-production*.ts'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/sfi-audio-material-execution.yml'
 
 permissions:
   contents: read
