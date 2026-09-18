@@ -4,7 +4,9 @@
   "reviewedDeltas": {
     "4ef7801c4803bd7d": {
       "decision": "SUPERSEDED_BY_LATER_MAIN",
-      "branches": ["ws02/preregistration-export-slice-f"],
+      "branches": [
+        "ws02/preregistration-export-slice-f"
+      ],
       "evidence": [
         "PR #458 merged the governed preregistration export on current main as the canonical WS-02 Slice F implementation",
         "PR #459 subsequently merged SFI-METHOD-LAB-PREREGISTRATION-EXPORT-1.2, preserving epistemic classes plus frozen POPULATION_SYSTEM, CONTROL and VARIANTS",
@@ -14,7 +16,9 @@
     },
     "be45eb9b8bc2055b": {
       "decision": "SUPERSEDED_BY_LATER_MAIN",
-      "branches": ["ws02/preregistration-export-slice-f-clean"],
+      "branches": [
+        "ws02/preregistration-export-slice-f-clean"
+      ],
       "evidence": [
         "PR #458 merged the current-main preregistration export and dedicated exact-head workflow",
         "PR #459 merged the later reproducibility corrections required by independent assurance",
@@ -24,7 +28,9 @@
     },
     "49138b59bf1c3114": {
       "decision": "REJECTED_ALTERNATE_IMPLEMENTATION",
-      "branches": ["ws06/governed-audio-return-final"],
+      "branches": [
+        "ws06/governed-audio-return-final"
+      ],
       "evidence": [
         "the branch projects a LAB_ONLY MIHM_F_S formal proxy into metrics.fad and marks that proxy OBSERVED when enough acoustic inputs exist",
         "merged PR #460 explicitly established that FAD has no canonical persisted measurement receipt owner and therefore must remain unavailable rather than inferred or substituted",
@@ -34,7 +40,9 @@
     },
     "daac0ab92b867780": {
       "decision": "ARCHIVED",
-      "branches": ["feat/manhattan-attractor-founder-away-loop-20260913"],
+      "branches": [
+        "feat/manhattan-attractor-founder-away-loop-20260913"
+      ],
       "evidence": [
         "the branch contains 14 unique commits across institutional evolution, institutional cycle, attractor handling and institutional assignment semantics rather than an interface-only patch",
         "PR #511 exact-head SFI Verify passed the bounded institutional evolution observer and the complete 54-gate boundary suite without this divergent implementation",
@@ -44,7 +52,9 @@
     },
     "348832f3c1ab10c1": {
       "decision": "DUPLICATE_ALTERNATE",
-      "branches": ["feat/notas-temporales-september-pdf-20260913"],
+      "branches": [
+        "feat/notas-temporales-september-pdf-20260913"
+      ],
       "evidence": [
         "canonical editorialContent already owns SFI-PUB-NT-001 as the September 2026 temporal issue and records the exact PDF filename, byte length and SHA-256",
         "the branch adds a second September-specific content contract and modifies publication rendering around the same institutional object",
@@ -54,7 +64,9 @@
     },
     "f9f58a6683aab8fd": {
       "decision": "DUPLICATE_ALTERNATE",
-      "branches": ["feat/september-temporal-issue-20260913"],
+      "branches": [
+        "feat/september-temporal-issue-20260913"
+      ],
       "evidence": [
         "the branch declares SFI-PUB-NT-001 again in a standalone temporal-issue manifest",
         "the canonical editorial model already declares SFI-PUB-NT-001, September 2026, the exact PDF filename, 23085591-byte length and SHA-256 bbc7c9df27b6f7295f9919a707f5adab3f25ddd44fee194812c8d38259135103",
@@ -64,7 +76,9 @@
     },
     "0d76eb92ab82ead8": {
       "decision": "EXPLICITLY_SUPERSEDED",
-      "branches": ["fix/governance-hide-nonroot-actions"],
+      "branches": [
+        "fix/governance-hide-nonroot-actions"
+      ],
       "evidence": [
         "the branch filters the Governance projection to rootActionRequired=true and its QA still expects ACCEPT/DENY decision controls in Governance",
         "PR #511 explicitly moves human decisions to ROOT while Governance remains agent/runtime infrastructure and keeps evidence deferral on the ROOT surface",
@@ -74,7 +88,9 @@
     },
     "c458578b394ed023": {
       "decision": "TEMPORARY_QA_ONLY",
-      "branches": ["qa/live-publication-case-surface-20260913"],
+      "branches": [
+        "qa/live-publication-case-surface-20260913"
+      ],
       "evidence": [
         "the branch changes only the production Observatory smoke workflow and adds a bounded live publication/Case QA probe",
         "its head commit is explicitly test(prod): wire bounded live publication and Case probe",
@@ -84,7 +100,9 @@
     },
     "72fdb2b7439babe3": {
       "decision": "EXPLICITLY_SUPERSEDED",
-      "branches": ["fix/sfi-hypothesis-learning-convergence"],
+      "branches": [
+        "fix/sfi-hypothesis-learning-convergence"
+      ],
       "evidence": [
         "PR #513 head 9bcf0cc9bcd7936de32b628f949bee1c525466ba is the exact merge-base and direct ancestor of PR #514 head 0961377dfc7ca8ffc185279f319626730973386e (compare: ahead_by 44, behind_by 0)",
         "PR #514 preserves the PR #513 World hypothesis/calibration, proposal lifecycle and bounded Institutional Evolution owners and extends them through the existing governed material self-development executor rather than replacing them",
@@ -94,13 +112,27 @@
     },
     "a6833dc764403942": {
       "decision": "EXPLICITLY_SUPERSEDED",
-      "branches": ["fix/third-party-readiness-v1"],
+      "branches": [
+        "fix/third-party-readiness-v1"
+      ],
       "evidence": [
         "PR #512 changed 21 files; PR #514 contains all 17 AUTH/Discovery/publication/access files while deliberately excluding the four completion-certification/receipt files from #512",
         "the excluded files are .github/workflows/sfi-completion-certification-batch.yml, docs/program/SFI-COMPLETION-RECEIPTS.json, scripts/qa-sfi-program-certification-batch.mjs and scripts/sfi-program-certification-batch.mjs because completion evidence and canonical receipt persistence remain separate governed concerns",
         "at PR #514 head 0961377dfc7ca8ffc185279f319626730973386e, SFI Account Invitation Lifecycle #72, Discovery Emitter #206, Institutional Authority #83 and SFI Verify #3263 completed SUCCESS while SFI-08 Completion Certification Batch #302 also passed without inferred receipt promotion"
       ],
       "reason": "The useful third-party readiness and Discovery behavior from #512 has been selectively absorbed into #514's canonical owners and verified. The receipt-writing/certification delta was intentionally not absorbed because proof execution is not authority to mutate completion status. The source branch is therefore superseded as an integration candidate, not silently merged wholesale."
+    },
+    "3d6287e37abfcd4e": {
+      "decision": "EXPLICITLY_SUPERSEDED",
+      "branches": [
+        "fix/public-machine-surface-coherence"
+      ],
+      "evidence": [
+        "PR #519 was closed without merge after its public-machine coherence delta was absorbed into the broader operational-legacy cleanup PR #520",
+        "PR #520 carries the same four public-machine files and additionally removes stale legacy owners that caused the contradiction",
+        "the old branch is not an independent integration candidate and must not block main-only convergence"
+      ],
+      "reason": "The branch is superseded by PR #520 and retained only as transient Git provenance until branch cleanup removes it."
     }
   }
 }
