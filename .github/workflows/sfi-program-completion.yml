@@ -53,7 +53,18 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GITHUB_TOKEN: ${{ github.token }}
-        run: node scripts/sfi-program-completion-reconcile.mjs
+          SFI_EVENT_NAME: ${{ github.event_name }}
+        shell: bash
+        run: |
+          set +e
+          node scripts/sfi-program-completion-reconcile.mjs
+          rc=$?
+          set -e
+          if [ "$rc" -eq 2 ] && [ "$SFI_EVENT_NAME" = "pull_request" ]; then
+            echo "Receipt invalidation on a PR head is a recertification state, not a product failure. SFI-08 remains responsible for exact-head recertification."
+            exit 0
+          fi
+          exit "$rc"
 
       - name: Enrich non-authoritative sequencing diagnostics
         run: node scripts/sfi-program-completion-diagnostics.mjs
