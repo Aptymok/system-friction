@@ -14,6 +14,8 @@ const authorize = text('src/app/api/oauth/authorize/route.ts');
 const token = text('src/app/api/oauth/token/route.ts');
 const oauthConfig = text('src/lib/sfi/oauthConfig.ts');
 const oauthRegistry = text('src/lib/sfi/oauthClientRegistry.ts');
+const oauthCodeStore = text('src/lib/sfi/oauthAuthorizationCodeStore.ts');
+const continuityStore = text('src/lib/sfi/continuityPostgres.ts');
 const oauthClients = text('src/app/api/oauth/clients/route.ts');
 const oauthRegistryMigration = text('supabase/migrations/20260827220000_sfi_oauth_client_registry.sql');
 const externalAuth = text('src/lib/sfi/externalAuth.ts');
@@ -49,7 +51,8 @@ for (const scope of ['observe', 'propose', 'execute', 'cases:read', 'cases:write
 }
 
 assert.match(token, /grantType !== 'authorization_code'/, 'token_endpoint_must_reject_other_grants');
-assert.match(token, /is\('consumed_at', null\)/, 'authorization_code_must_be_single_use');
+assert.match(oauthCodeStore, /is\('consumed_at', null\)/, 'authorization_code_primary_store_must_be_single_use');
+assert.match(continuityStore, /consumed_at is null/i, 'authorization_code_continuity_store_must_be_single_use');
 assert.match(token, /PKCE verification failed/, 'token_exchange_must_verify_pkce_when_present');
 assert.match(token, /mintExternalAccessToken/, 'token_exchange_must_issue_signed_sfi_access_token');
 assert.match(token, /validateSfiOAuthClientSecret\(client, clientSecret\)/, 'token_exchange_must_validate_registry_client_secret');
@@ -70,6 +73,14 @@ assert.match(oauthRegistry, /hashSfiOAuthClientSecret/, 'oauth_client_secret_mus
 assert.match(oauthRegistry, /audience: 'OWNER_ONLY'/, 'new_self_service_clients_must_be_owner_only');
 assert.match(oauthRegistry, /audience: 'TRUSTED_MULTI_USER'/, 'legacy_institutional_client_must_be_explicitly_trusted_multi_user');
 assert.match(oauthRegistry, /source: 'legacy_env'/, 'legacy_env_client_must_remain_backward_compatible');
+assert.match(oauthRegistry, /continuity_registry/, 'oauth_registry_must_have_bounded_continuity_source');
+assert.match(oauthRegistry, /readContinuityOAuthClient/, 'oauth_registry_must_fail_over_reads_to_continuity_store');
+assert.match(authorize, /readContinuityProfile/, 'oauth_authorization_must_recover_profile_from_continuity_store_when_primary_data_is_unavailable');
+assert.match(authorize, /issueSfiOAuthAuthorizationCode/, 'oauth_authorization_code_issue_must_use_failover_store');
+assert.match(token, /findSfiOAuthAuthorizationCode/, 'oauth_token_exchange_must_read_from_failover_store');
+assert.match(token, /consumeSfiOAuthAuthorizationCode/, 'oauth_token_exchange_must_consume_from_origin_store');
+assert.match(continuityStore, /SFI_CONTINUITY_DATABASE_URL/, 'continuity_database_must_be_runtime_secret_configured');
+assert.match(oauthCodeStore, /SFI_OAUTH_CODE_ALL_STORES_FAILED/, 'oauth_code_issue_must_fail_closed_when_both_stores_fail');
 assert.match(oauthRegistry, /adoptLegacySfiOAuthClient/, 'root_must_be_able_to_adopt_bootstrap_client_into_registry');
 assert.match(oauthClients, /requireUserProfile\(\)/, 'oauth_client_registration_must_require_authenticated_sfi_account');
 assert.match(oauthClients, /ROOT_REQUIRED_FOR_LEGACY_ADOPTION/, 'legacy_adoption_must_be_root_only');
@@ -162,7 +173,7 @@ for (const path of [
 
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-EXTERNAL-OAUTH-1.12',
+  contract: 'SFI-EXTERNAL-OAUTH-1.13',
   flow: 'authorization_code',
   pkce: 'S256',
   clientRegistry: 'PERSISTENT_SELF_SERVICE',
