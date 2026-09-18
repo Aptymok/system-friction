@@ -62,13 +62,14 @@ export function PasswordResetSurface({
   token?: string;
   error?: string;
 }) {
+  const inviteMode = mode === 'invite';
   const sb = useMemo(() => createBrowserSupabaseClient(), []);
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('Verificando el enlace seguro…');
 
   useEffect(() => {
-    if (mode !== 'invite') return;
+    if (!inviteMode) return;
     if (!sb) {
       setMessage('El servicio de activación de invitaciones no está disponible.');
       return;
@@ -96,9 +97,9 @@ export function PasswordResetSurface({
       active = false;
       listener.subscription.unsubscribe();
     };
-  }, [mode, sb]);
+  }, [inviteMode, sb]);
 
-  if (mode !== 'invite') {
+  if (!inviteMode) {
     return <ContinuityRecovery token={token} error={error} />;
   }
 
