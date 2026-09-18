@@ -3,11 +3,17 @@ import { SFI_CANONICAL_OBJECT_REGISTRY, canonicalPublicationDisposition } from '
 import { readCanonicalGraphState } from '@/lib/graph/canonicalGraph';
 import { libraryDocumentGraphId } from '@/lib/graph/libraryCorpusProjection';
 import { editorialPublicationForSlug } from '@/lib/publications/editorialContent';
+import { unstable_cache } from 'next/cache';
 import LibraryClient, { type LibraryDoc, type LibraryPublication, type LibrarySurfaceContract } from './LibraryClient';
 import './library.css';
 
-export const dynamic = 'force-static';
-export const revalidate = 900;
+export const dynamic = 'force-dynamic';
+
+const readPublicLibraryGraph = unstable_cache(
+  async () => readCanonicalGraphState('sfi'),
+  ['public-library-canonical-graph-v1'],
+  { revalidate: 900 },
+);
 
 const baseCorpus = docs as LibraryDoc[];
 
@@ -43,7 +49,7 @@ function unique(values: string[]) {
 }
 
 export default async function LibraryPage() {
-  const graph = await readCanonicalGraphState('sfi');
+  const graph = await readPublicLibraryGraph();
   const nodeById = new Map(graph.nodes.map((node) => [node.nodeId, node]));
   const libraryEdges = graph.edges.filter((edge) => edge.origin === 'library_corpus');
   const incomingByTarget = new Map<string, string[]>();
