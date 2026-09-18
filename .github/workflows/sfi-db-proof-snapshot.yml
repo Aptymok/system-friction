@@ -21,6 +21,7 @@ jobs:
     timeout-minutes: 30
     env:
       DATABASE_URL: ${{ secrets.SFI_DATABASE_URL || secrets.DATABASE_URL || secrets.SUPABASE_DB_URL || secrets.POSTGRES_URL }}
+      SFI_SUPABASE_REGION: us-west-1
       SFI_DB_EVIDENCE_DIR: /tmp/sfi-db-evidence
       SFI_DB_REQUIRE_RESET_CLASSIFICATION: 'YES'
       SFI_DB_SNAPSHOT_MAX_AGE_MINUTES: '180'
@@ -40,7 +41,7 @@ jobs:
         run: |
           set -euo pipefail
           if [[ -z "${DATABASE_URL:-}" ]]; then
-            echo 'No direct PostgreSQL secret is configured for the evidence workflow.' >&2
+            echo 'No PostgreSQL secret is configured for the evidence workflow.' >&2
             exit 1
           fi
           if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
@@ -48,12 +49,30 @@ jobs:
             grep -Fx 'SFI_DB_SNAPSHOT_REQUEST=ISSUE_430' .github/sfi-db-snapshot-trigger
           fi
 
-      - name: Install PostgreSQL client and ZIP
+      - name: Install PostgreSQL 17 snapshot dependencies
         shell: bash
         run: |
           set -euo pipefail
           sudo apt-get update -y
-          sudo apt-get install -y postgresql-client zip unzip
+          sudo apt-get install -y ca-certificates curl gnupg zip unzip
+          sudo install -d -m 0755 /usr/share/postgresql-common/pgdg
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+            | sudo gpg --dearmor --yes -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.gpg
+          . /etc/os-release
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.gpg] https://apt.postgresql.org/pub/repos/apt ${VERSION_CODENAME}-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
+          sudo apt-get update -y
+          sudo apt-get install -y postgresql-client-17
+          /usr/lib/postgresql/17/bin/pg_dump --version | grep -E '17\.'
+          echo '/usr/lib/postgresql/17/bin' >> "$GITHUB_PATH"
+          export PATH="/usr/lib/postgresql/17/bin:$PATH"
+          pg_dump --version | grep -E '17\.'
+
+      - name: Resolve IPv4 session pooler and verify PostgreSQL connectivity
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/db/resolve-reset-database-url.mjs
 
       - name: Create full evidentiary PostgreSQL snapshot
         shell: bash
