@@ -107,6 +107,18 @@ export async function getServerUserContext() {
   }
 
   if (!user) {
+    if (primaryAuthError) {
+      return {
+        supabase,
+        service,
+        user: null,
+        profile: null,
+        isRoot: false,
+        canObserveRoot: false,
+        authState: 'unavailable' as const,
+        authError: primaryAuthError,
+      };
+    }
     return {
       supabase,
       service,
