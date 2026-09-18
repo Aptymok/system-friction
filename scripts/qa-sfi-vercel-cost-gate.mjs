@@ -26,10 +26,38 @@ assert.match(
   'production deployment must remain restricted to the dedicated marker path',
 );
 
+
+const publicWorld = fs.readFileSync('src/app/api/observatory/world/route.ts', 'utf8');
+const publicState = fs.readFileSync('src/app/api/observatory/state/route.ts', 'utf8');
+const publicTimelineRoute = fs.readFileSync('src/app/api/observatory/timeline/route.ts', 'utf8');
+const publicTimelineReader = fs.readFileSync('src/lib/observatory/public/worldSnapshotTimeline.ts', 'utf8');
+const publicLibrary = fs.readFileSync('src/app/library/page.tsx', 'utf8');
+const publicObservatoryClient = fs.readFileSync('src/components/sfi/ObservatoryConsole.tsx', 'utf8');
+
+for (const [name, source] of [
+  ['observatory/world', publicWorld],
+  ['observatory/state', publicState],
+  ['observatory/timeline', publicTimelineRoute],
+  ['library', publicLibrary],
+]) {
+  assert.match(source, /force-static/, `${name} must not fan out to Supabase on every public request`);
+  assert.doesNotMatch(source, /force-dynamic/, `${name} must not bypass the public cache`);
+}
+
+assert.match(publicWorld, /export const revalidate=300;/, 'public world read must use bounded ISR');
+assert.match(publicWorld, /const LIMIT=240;/, 'public world database fanout must remain row-bounded');
+assert.match(publicState, /export const revalidate = 300;/, 'public state read must use bounded ISR');
+assert.match(publicTimelineRoute, /export const revalidate = 900;/, 'public timeline read must use bounded ISR');
+assert.match(publicLibrary, /export const revalidate = 900;/, 'public Library graph projection must use bounded ISR');
+assert.match(publicTimelineReader, /const MAX_FRAMES = 180;/, 'public timeline must have a hard persisted-frame cap');
+assert.doesNotMatch(publicTimelineReader, /for \(;;\)/, 'public timeline may not page through the full persisted history');
+assert.doesNotMatch(publicObservatoryClient, /cache:\s*['"]no-store['"]/, 'public Observatory client may not force cache bypass');
+
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-VERCEL-COST-GATE-1.1',
+  contract: 'SFI-VERCEL-COST-GATE-1.2',
   automaticGitDeployments: false,
   productionDeployment: 'EXPLICIT_TRIGGER_ONLY',
   productionPushPath: '.github/sfi-production-deploy-trigger',
+  publicSupabaseReadPolicy: 'CACHED_AND_BOUNDED',
 }, null, 2));
