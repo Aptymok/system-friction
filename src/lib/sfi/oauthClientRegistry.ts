@@ -2,6 +2,7 @@ import 'server-only';
 
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { readContinuityOAuthClient, touchContinuityOAuthClient } from '@/lib/sfi/continuityPostgres';
 import {
   readSfiOAuthConfig,
   SFI_ROOT_SCOPES,
@@ -17,7 +18,7 @@ export type ResolvedSfiOAuthClient = {
   allowedScopes: string[];
   audience: 'OWNER_ONLY' | 'TRUSTED_MULTI_USER';
   ownerId: string | null;
-  source: 'registry' | 'legacy_env';
+  source: 'registry' | 'continuity_registry' | 'legacy_env';
   secretHash?: string;
   legacySecret?: string;
 };
@@ -90,6 +91,22 @@ export function normalizeSfiOAuthScopes(values: unknown, ceiling: readonly strin
   return requested;
 }
 
+function resolvedRegisteredClient(
+  row: Row,
+  source: 'registry' | 'continuity_registry',
+): ResolvedSfiOAuthClient {
+  return {
+    clientId: text(row.client_id),
+    name: text(row.name) || text(row.client_id),
+    redirectUris: stringArray(row.redirect_uris),
+    allowedScopes: stringArray(row.allowed_scopes),
+    audience: text(row.audience) === 'TRUSTED_MULTI_USER' ? 'TRUSTED_MULTI_USER' : 'OWNER_ONLY',
+    ownerId: text(row.created_by) || null,
+    source,
+    secretHash: text(row.client_secret_hash),
+  };
+}
+
 async function readRegisteredClient(clientId: string): Promise<ResolvedSfiOAuthClient | null> {
   const db = createServiceSupabaseClient();
   const result = await db
@@ -101,17 +118,12 @@ async function readRegisteredClient(clientId: string): Promise<ResolvedSfiOAuthC
 
   if (result.error) throw new Error(`SFI_OAUTH_CLIENT_REGISTRY_READ_FAILED:${result.error.message}`);
   if (!result.data) return null;
-  const row = result.data as Row;
-  return {
-    clientId: text(row.client_id),
-    name: text(row.name) || text(row.client_id),
-    redirectUris: stringArray(row.redirect_uris),
-    allowedScopes: stringArray(row.allowed_scopes),
-    audience: text(row.audience) === 'TRUSTED_MULTI_USER' ? 'TRUSTED_MULTI_USER' : 'OWNER_ONLY',
-    ownerId: text(row.created_by) || null,
-    source: 'registry',
-    secretHash: text(row.client_secret_hash),
-  };
+  return resolvedRegisteredClient(result.data as Row, 'registry');
+}
+
+async function readContinuityRegisteredClient(clientId: string): Promise<ResolvedSfiOAuthClient | null> {
+  const row = await readContinuityOAuthClient(clientId);
+  return row ? resolvedRegisteredClient(row, 'continuity_registry') : null;
 }
 
 export async function resolveSfiOAuthClient(clientId: string): Promise<ResolvedSfiOAuthClient | null> {
@@ -125,6 +137,15 @@ export async function resolveSfiOAuthClient(clientId: string): Promise<ResolvedS
     if (registered) return registered;
     return legacyMatch;
   } catch (error) {
+    try {
+      const continuity = await readContinuityRegisteredClient(clientId);
+      if (continuity) return continuity;
+    } catch (continuityError) {
+      if (legacyMatch) return legacyMatch;
+      throw new Error(
+        `SFI_OAUTH_CLIENT_REGISTRY_ALL_STORES_UNAVAILABLE:primary=${error instanceof Error ? error.message : String(error)};continuity=${continuityError instanceof Error ? continuityError.message : String(continuityError)}`,
+      );
+    }
     if (legacyMatch) return legacyMatch;
     throw error;
   }
@@ -293,6 +314,10 @@ export async function revokeOwnedSfiOAuthClient(userId: string, clientId: string
 }
 
 export async function touchSfiOAuthClient(client: ResolvedSfiOAuthClient) {
+  if (client.source === 'continuity_registry') {
+    await touchContinuityOAuthClient(client.clientId);
+    return;
+  }
   if (client.source !== 'registry') return;
   const db = createServiceSupabaseClient();
   await db.from('sfi_oauth_clients')
