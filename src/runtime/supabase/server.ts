@@ -139,6 +139,80 @@ export async function getVerifiedNeonServerUser(): Promise<User | null> {
   } as User;
 }
 
+
+type NeonAuthErrorBody = {
+  message?: string;
+  code?: string;
+};
+
+async function neonAuthJson(path: string, body: Record<string, unknown>, sessionCookie?: string | null) {
+  let response: Response;
+  try {
+    response = await fetch(`${neonAuthBaseUrl()}/${path.replace(/^\//, '')}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Origin: appOrigin(),
+        ...(sessionCookie ? { Cookie: sessionCookie } : {}),
+      },
+      body: JSON.stringify(body),
+      cache: 'no-store',
+    });
+  } catch (error) {
+    throw new SfiAuthUnavailableError(`neon_auth_request_failed:${authErrorText(error)}`);
+  }
+  return response;
+}
+
+export async function signInWithNeonAuth(email: string, password: string) {
+  const response = await neonAuthJson('sign-in/email', {
+    email,
+    password,
+    rememberMe: true,
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({})) as NeonAuthErrorBody;
+    return {
+      ok: false as const,
+      status: response.status,
+      message: body.message || body.code || 'NEON_AUTH_SIGN_IN_FAILED',
+    };
+  }
+  await persistNeonAuthSession(response);
+  return { ok: true as const };
+}
+
+export async function requestNeonPasswordReset(email: string, redirectTo: string) {
+  const response = await neonAuthJson('request-password-reset', { email, redirectTo });
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({})) as NeonAuthErrorBody;
+    throw new SfiAuthUnavailableError(
+      `neon_auth_password_reset_request_failed:${body.message || body.code || response.status}`,
+    );
+  }
+}
+
+export async function resetNeonPassword(newPassword: string, token: string) {
+  const response = await neonAuthJson('reset-password', { newPassword, token });
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({})) as NeonAuthErrorBody;
+    return {
+      ok: false as const,
+      status: response.status,
+      message: body.message || body.code || 'NEON_AUTH_RESET_FAILED',
+    };
+  }
+  return { ok: true as const };
+}
+
+export async function signOutNeonAuth() {
+  const sessionCookie = await neonSessionCookiePair();
+  if (sessionCookie) {
+    await neonAuthJson('sign-out', {}, sessionCookie).catch(() => null);
+  }
+  await clearNeonAuthSession();
+}
+
 /**
  * Resolve the browser identity without turning a transient GoTrue outage into
  * a false anonymous session. getClaims() verifies the JWT; getSession() then
