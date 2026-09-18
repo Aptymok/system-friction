@@ -12,8 +12,9 @@ import { buildMihmRuntimeMatrix } from '@/observatory/field/catalog/mihmRuntimeM
 import { buildNodeCatalog } from '@/observatory/field/catalog/sfNodeCatalog';
 import { buildPatternCatalog } from '@/observatory/field/catalog/patternCatalog';
 
-export const dynamic = 'force-static';
-export const revalidate = 300;
+export const dynamic = 'force-dynamic';
+
+const PUBLIC_CDN_CACHE = { 'Vercel-CDN-Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' } as const;
 
 export async function GET() {
   const [
@@ -105,5 +106,5 @@ export async function GET() {
       loadedAt: new Date().toISOString(),
       warnings,
     },
-  });
+  }, { headers: PUBLIC_CDN_CACHE });
 }
