@@ -2,11 +2,11 @@ import { NextResponse } from 'next/server';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 
 export const runtime='nodejs';
-export const dynamic='force-dynamic';
-export const revalidate=120;
+export const dynamic='force-static';
+export const revalidate=300;
 
 const HORIZON_DAYS=30;
-const LIMIT=900;
+const LIMIT=240;
 type Row=Record<string,unknown>;
 type HypothesisView=Row&{graphSnapshot:Row;aiInference:Row};
 const rows=(v:unknown):Row[]=>Array.isArray(v)?v.filter((x):x is Row=>Boolean(x)&&typeof x==='object'&&!Array.isArray(x)):[];
