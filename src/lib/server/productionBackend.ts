@@ -3,11 +3,13 @@ import {
   createServerSupabaseClient,
   createServiceSupabaseClient,
   getVerifiedServerUser,
+  getVerifiedNeonServerUser,
   SfiAuthUnavailableError,
 } from '@/runtime/supabase/server';
 import { findInstitutionalMember } from '@/lib/system/access/institutionalMembers';
 import { isConfiguredFounderIdentity, resolveFounderAuthority } from '@/lib/system/access/founderAuthority';
 import { hasActiveInstitutionalAccountGrant } from '@/lib/system/access/server';
+import { readContinuityProfile, readContinuityProfileByEmail } from '@/lib/sfi/continuityPostgres';
 
 export const PRODUCTION_APP_URL =
   process.env.NEXT_PUBLIC_APP_URL || 'https://systemfriction.org';
@@ -73,22 +75,35 @@ export async function getServerUserContext() {
   const service = createServiceSupabaseClient();
 
   let user = null;
+  let primaryAuthError: string | null = null;
   try {
     user = await getVerifiedServerUser(supabase);
   } catch (error) {
     if (error instanceof SfiAuthUnavailableError) {
-      return {
-        supabase,
-        service,
-        user: null,
-        profile: null,
-        isRoot: false,
-        canObserveRoot: false,
-        authState: 'unavailable' as const,
-        authError: error.message,
-      };
+      primaryAuthError = error.message;
+    } else {
+      throw error;
     }
-    throw error;
+  }
+
+  if (!user) {
+    try {
+      user = await getVerifiedNeonServerUser();
+    } catch (error) {
+      if (error instanceof SfiAuthUnavailableError) {
+        return {
+          supabase,
+          service,
+          user: null,
+          profile: null,
+          isRoot: false,
+          canObserveRoot: false,
+          authState: 'unavailable' as const,
+          authError: error.message,
+        };
+      }
+      throw error;
+    }
   }
 
   if (!user) {
@@ -111,6 +126,12 @@ export async function getServerUserContext() {
     .maybeSingle();
   let profile = profileRead.data;
   const profileReadError = profileRead.error;
+
+  if (!profile && profileReadError) {
+    profile =
+      await readContinuityProfile(user.id).catch(() => null)
+      ?? (user.email ? await readContinuityProfileByEmail(user.email).catch(() => null) : null);
+  }
 
   const institutionalMember = findInstitutionalMember(user.email);
   const configuredFounder = isConfiguredFounderIdentity({ userId: user.id, email: user.email });
@@ -212,7 +233,7 @@ export async function getServerUserContext() {
       legacyRootWithoutAuthority ||
       registeredObserver,
     authState: 'authenticated' as const,
-    authError: profileReadError?.message ?? null,
+    authError: profileReadError?.message ?? primaryAuthError ?? null,
   };
 }
 
