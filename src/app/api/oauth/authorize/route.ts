@@ -1,7 +1,9 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
-import { AccessDeniedError, requireUserProfile } from '@/lib/system/access/server';
-import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { AccessDeniedError, requireAuthenticatedUser, requireUserProfile } from '@/lib/system/access/server';
+import { findInstitutionalMember } from '@/lib/system/access/institutionalMembers';
+import { readContinuityProfile, recordContinuityEvent } from '@/lib/sfi/continuityPostgres';
+import { issueSfiOAuthAuthorizationCode } from '@/lib/sfi/oauthAuthorizationCodeStore';
 import {
   isSfiOAuthServerConfigured,
   SFI_PERSONAL_SCOPES,
@@ -32,6 +34,33 @@ function actorSlug(value: string) {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .slice(0, 48);
+}
+
+async function requireOAuthUserProfile(): Promise<Awaited<ReturnType<typeof requireUserProfile>>> {
+  try {
+    return await requireUserProfile();
+  } catch (error) {
+    if (error instanceof AccessDeniedError) throw error;
+
+    const auth = await requireAuthenticatedUser();
+    const profile = await readContinuityProfile(auth.user.id);
+    if (!profile) throw error;
+
+    await recordContinuityEvent({
+      eventType: 'OAUTH_CONTINUITY_PROFILE_READ',
+      entityType: 'PROFILE',
+      entityId: auth.user.id,
+      operation: 'READ',
+      status: 'COMPLETED',
+      details: { reason: 'primary_profile_store_unavailable' },
+    }).catch(() => undefined);
+
+    return {
+      ...auth,
+      profile,
+      member: findInstitutionalMember(auth.user.email),
+    } as Awaited<ReturnType<typeof requireUserProfile>>;
+  }
 }
 
 function isTrustedChatGptOwnerRedirect(value: string) {
@@ -107,7 +136,7 @@ export async function GET(req: NextRequest) {
 
   let context: Awaited<ReturnType<typeof requireUserProfile>>;
   try {
-    context = await requireUserProfile();
+    context = await requireOAuthUserProfile();
   } catch (error) {
     if (error instanceof AccessDeniedError && error.status === 401) {
       const next = `${req.nextUrl.pathname}${req.nextUrl.search}`;
@@ -221,23 +250,22 @@ export async function GET(req: NextRequest) {
   const code = randomBytes(32).toString('base64url');
   const expiresAt = new Date(Date.now() + 2 * 60 * 1000).toISOString();
 
-  const db = createServiceSupabaseClient();
-  const stored = await db.from('sfi_oauth_authorization_codes').insert({
-    code_hash: codeHash(code),
-    client_id: clientId,
-    redirect_uri: redirectUri,
-    subject_id: context.user.id,
-    actor_id: actorId,
-    label,
-    role: delegatedRole,
-    tenant_id: tenantId,
-    scopes: grantedScopes,
-    code_challenge: codeChallenge,
-    code_challenge_method: codeChallenge ? 'S256' : null,
-    expires_at: expiresAt,
-  });
-
-  if (stored.error) {
+  try {
+    await issueSfiOAuthAuthorizationCode({
+      code_hash: codeHash(code),
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      subject_id: context.user.id,
+      actor_id: actorId,
+      label,
+      role: delegatedRole,
+      tenant_id: tenantId,
+      scopes: grantedScopes,
+      code_challenge: codeChallenge,
+      code_challenge_method: codeChallenge ? 'S256' : null,
+      expires_at: expiresAt,
+    });
+  } catch {
     return redirectOAuthError(redirectUri, state, 'server_error', 'SFI could not issue an authorization code.', issuer);
   }
 

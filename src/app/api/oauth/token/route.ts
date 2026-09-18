@@ -1,6 +1,5 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
-import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { mintExternalAccessToken } from '@/lib/sfi/externalSessionToken';
 import { isSfiOAuthServerConfigured } from '@/lib/sfi/oauthConfig';
 import {
@@ -9,6 +8,10 @@ import {
   touchSfiOAuthClient,
   validateSfiOAuthClientSecret,
 } from '@/lib/sfi/oauthClientRegistry';
+import {
+  consumeSfiOAuthAuthorizationCode,
+  findSfiOAuthAuthorizationCode,
+} from '@/lib/sfi/oauthAuthorizationCodeStore';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -72,55 +75,53 @@ export async function POST(req: NextRequest) {
     return oauthError('invalid_grant', 'Authorization code or redirect URI is invalid.');
   }
 
-  const db = createServiceSupabaseClient();
   const now = new Date().toISOString();
-  const found = await db
-    .from('sfi_oauth_authorization_codes')
-    .select('id,subject_id,actor_id,label,role,tenant_id,scopes,code_challenge,code_challenge_method')
-    .eq('code_hash', codeHash(code))
-    .eq('client_id', clientId)
-    .eq('redirect_uri', redirectUri)
-    .is('consumed_at', null)
-    .gt('expires_at', now)
-    .maybeSingle();
+  let found: Awaited<ReturnType<typeof findSfiOAuthAuthorizationCode>>;
+  try {
+    found = await findSfiOAuthAuthorizationCode({
+      codeHash: codeHash(code),
+      clientId,
+      redirectUri,
+      now,
+    });
+  } catch {
+    return oauthError('temporarily_unavailable', 'SFI OAuth authorization-code storage is unavailable.', 503);
+  }
 
-  if (found.error || !found.data) {
+  if (!found) {
     return oauthError('invalid_grant', 'Authorization code is invalid, expired, or already consumed.');
   }
 
-  if (found.data.code_challenge) {
+  if (found.record.code_challenge) {
     if (!codeVerifier) return oauthError('invalid_grant', 'PKCE code_verifier is required.');
     const calculated = createHash('sha256').update(codeVerifier).digest('base64url');
-    if (!safeEqual(calculated, String(found.data.code_challenge))) {
+    if (!safeEqual(calculated, String(found.record.code_challenge))) {
       return oauthError('invalid_grant', 'PKCE verification failed.');
     }
   }
 
-  // Mark the code consumed only after client and optional PKCE verification. The
-  // conditional update keeps the code single-use if two exchanges race.
-  const consumed = await db
-    .from('sfi_oauth_authorization_codes')
-    .update({ consumed_at: now })
-    .eq('id', found.data.id)
-    .is('consumed_at', null)
-    .select('id')
-    .maybeSingle();
+  // Consume only after client and optional PKCE verification. Both stores use
+  // a consumed_at IS NULL guard so the code remains single-use under races.
+  let consumed = false;
+  try {
+    consumed = await consumeSfiOAuthAuthorizationCode(found.store, found.record.id, now);
+  } catch {
+    return oauthError('temporarily_unavailable', 'SFI OAuth authorization-code storage is unavailable.', 503);
+  }
 
-  if (consumed.error || !consumed.data) {
+  if (!consumed) {
     return oauthError('invalid_grant', 'Authorization code was already consumed.');
   }
 
-  const scopes = Array.isArray(found.data.scopes)
-    ? found.data.scopes.filter((value): value is string => typeof value === 'string')
-    : [];
+  const scopes = found.record.scopes;
 
   const accessToken = mintExternalAccessToken({
-    subjectId: String(found.data.subject_id),
-    actorId: String(found.data.actor_id),
+    subjectId: found.record.subject_id,
+    actorId: found.record.actor_id,
     clientId,
-    label: found.data.label ? String(found.data.label) : undefined,
-    role: String(found.data.role || 'agent'),
-    tenantId: String(found.data.tenant_id || 'sfi'),
+    label: found.record.label || undefined,
+    role: found.record.role || 'agent',
+    tenantId: found.record.tenant_id || 'sfi',
     scopes,
     ttlSeconds: 3600,
   });
