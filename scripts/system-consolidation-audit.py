@@ -9,7 +9,6 @@ ROOT = Path('.')
 EXTENSIONS = {'.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.sql', '.md', '.json', '.yml', '.yaml'}
 DB_IDENTIFIER = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*$')
 SURFACE_CONFIG = ROOT / 'config' / 'sfi-surfaces.json'
-LEGACY_SCHEMA_CONFIG = ROOT / 'config' / 'sfi-legacy-live-schema.json'
 RETIRED_SCHEMA_CONFIG = ROOT / 'config' / 'sfi-retired-schema.json'
 
 
@@ -26,8 +25,6 @@ CANONICAL_PAGES = {
     item.get('path') for item in SURFACES.get('public', []) if isinstance(item, dict) and isinstance(item.get('path'), str)
 } | {item for item in SURFACES.get('rootOrgans', []) if isinstance(item, str)}
 ABSORBED_ROUTES = SURFACES.get('absorbedRoutes', {}) if isinstance(SURFACES.get('absorbedRoutes'), dict) else {}
-LEGACY_SCHEMA = load_json(LEGACY_SCHEMA_CONFIG, {'objects': []})
-LEGACY_LIVE_OBJECTS = {item for item in LEGACY_SCHEMA.get('objects', []) if isinstance(item, str)}
 RETIRED_SCHEMA = load_json(RETIRED_SCHEMA_CONFIG, {'objects': []})
 RETIRED_SCHEMA_OBJECTS = {item for item in RETIRED_SCHEMA.get('objects', []) if isinstance(item, str)}
 
@@ -165,12 +162,11 @@ def main() -> None:
         matrix.append({**item, 'destination': destination, 'reason': reason, 'note': note})
 
     tables: list[dict] = []
-    table_universe = set(table_refs) | created_tables | set(schema_refs) | LEGACY_LIVE_OBJECTS | RETIRED_SCHEMA_OBJECTS
+    table_universe = set(table_refs) | created_tables | set(schema_refs) | RETIRED_SCHEMA_OBJECTS
     for table in sorted(table_universe):
         references = sorted(table_refs.get(table, set()))
         schema_references = sorted(schema_refs.get(table, set()))
         has_migration = table in created_tables
-        legacy_contract = table in LEGACY_LIVE_OBJECTS
         retired_contract = table in RETIRED_SCHEMA_OBJECTS
 
         if retired_contract and references:
@@ -181,16 +177,12 @@ def main() -> None:
             destination, reason = 'RETIRED_CANDIDATE', 'RATIFIED_RETIREMENT_CANDIDATE'
         elif references and has_migration:
             destination, reason = 'KEEP', 'CODE_AND_MIGRATION'
-        elif references and legacy_contract:
-            destination, reason = 'KEEP', 'CODE_AND_LIVE_SCHEMA_CONTRACT'
         elif references and not has_migration:
             destination, reason = 'RECONCILE', 'CODE_WITHOUT_TRACKED_CREATE'
         elif has_migration and schema_references:
             destination, reason = 'KEEP', 'SCHEMA_DEPENDENCY'
         elif has_migration:
             destination, reason = 'REVIEW_DELETE_OR_ABSORB', 'MIGRATION_WITHOUT_CODE_OR_SCHEMA_CONSUMER'
-        elif legacy_contract:
-            destination, reason = 'KEEP', 'LIVE_SCHEMA_CONTRACT'
         else:
             destination, reason = 'REVIEW', 'SCHEMA_REFERENCE_WITHOUT_TRACKED_CREATE'
         tables.append({
@@ -200,7 +192,6 @@ def main() -> None:
             'schema_reference_count': len(schema_references),
             'schema_references': schema_references,
             'has_migration': has_migration,
-            'legacy_live_schema_contract': legacy_contract,
             'retired_schema_contract': retired_contract,
             'destination': destination,
             'reason': reason,
@@ -222,7 +213,6 @@ def main() -> None:
         'tables_reconcile': len(reconcile_tables),
         'tables_review_delete_or_absorb': len(review_delete_tables),
         'tables_kept_by_schema_dependency': sum(1 for item in tables if item['reason'] == 'SCHEMA_DEPENDENCY'),
-        'legacy_live_schema_contracts': sum(1 for item in tables if item['legacy_live_schema_contract']),
         'retired_schema_objects': len(RETIRED_SCHEMA_OBJECTS),
         'retired_schema_consumed': len(retired_consumed),
         'retired_schema_depended_on': len(retired_depended),
@@ -239,7 +229,7 @@ def main() -> None:
             writer.writerow({key: item.get(key, '') for key in fields})
 
     with (output / 'tables.csv').open('w', newline='') as handle:
-        fields = ['table', 'reference_count', 'schema_reference_count', 'has_migration', 'legacy_live_schema_contract', 'retired_schema_contract', 'destination', 'reason']
+        fields = ['table', 'reference_count', 'schema_reference_count', 'has_migration', 'retired_schema_contract', 'destination', 'reason']
         writer = csv.DictWriter(handle, fieldnames=fields)
         writer.writeheader()
         for item in tables:
