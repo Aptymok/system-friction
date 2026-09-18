@@ -1,19 +1,21 @@
-import { SCENE_KEYS, SCENES } from '@/components/sfi/scenes';
+import { SFI_PUBLIC_PROFILE } from '@/lib/public/institutionProfile';
 
 export async function GET() {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://systemfriction.org';
   const today = new Date().toISOString().split('T')[0];
-  const scenes = SCENE_KEYS.map((key) => `- ${baseUrl}/${key} — ${SCENES[key].title}: ${SCENES[key].subtitle}`).join('\n');
+  const surfaces = SFI_PUBLIC_PROFILE.publicSurfaces
+    .map(({ path, role }) => `- ${baseUrl}${path === '/' ? '' : path} — ${role}`)
+    .join('\n');
   const content = `
 # SYSTEM FRICTION INSTITUTE — MACHINE-READABLE ARCHITECTURE
 
-System Friction Institute (SFI) is a live institutional observability environment for complex sociotechnical systems. The current interface is a family of live scenes in which evidence, provenance, trajectories, governance, agent authority and temporal state are rendered as observable structures.
+System Friction Institute (SFI) is a live institutional observability environment for complex sociotechnical systems. Its public membrane exposes only the canonical public surfaces; governed operational workspaces remain separate from public discovery.
 
 ## CANONICAL HOST
 ${baseUrl}
 
-## LIVE PUBLIC SCENES
-${scenes}
+## CANONICAL PUBLIC SURFACES
+${surfaces}
 
 ## MACHINE DISCOVERY
 - ${baseUrl}/llms.txt — compact AI orientation
