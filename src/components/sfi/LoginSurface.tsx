@@ -1,81 +1,48 @@
-'use client';
+import { loginAction } from '@/lib/auth/actions';
 
-import { FormEvent, useMemo, useState } from 'react';
-import { createBrowserSupabaseClient } from '@/runtime/supabase/client';
-
-function requestedNextPath() {
-  const candidate = new URLSearchParams(window.location.search).get('next') || '';
-  return candidate.startsWith('/') && !candidate.startsWith('//') ? candidate : '';
-}
-
-function postLoginPath() {
-  const next = requestedNextPath();
-  return next ? `/entry?next=${encodeURIComponent(next)}` : '/entry';
-}
-
-function readableAuthError(message: string) {
-  const normalized = message.toLowerCase();
-  if (
-    normalized.includes('timeout') ||
-    normalized.includes('deadline') ||
-    normalized.includes('temporarily unavailable') ||
-    normalized.includes('failed to fetch') ||
-    normalized.includes('context canceled')
-  ) {
-    return 'El servicio de acceso tardó demasiado. No significa que tu cuenta o contraseña sean incorrectas. Reintenta en unos segundos.';
+function readableAuthError(error?: string) {
+  if (!error) return '';
+  const normalized = error.toLowerCase();
+  if (normalized.includes('invalid') || normalized.includes('credential') || normalized.includes('password')) {
+    return 'El correo o la contraseña no coinciden con una cuenta de acceso.';
   }
-  if (normalized.includes('invalid login credentials')) {
-    return 'El correo o la contraseña no coinciden con una cuenta registrada.';
+  if (normalized.includes('continuity_profile_missing')) {
+    return 'La identidad fue reconocida, pero no existe un perfil institucional de continuidad asociado.';
   }
-  return message;
+  if (normalized.includes('rate_limit')) {
+    return 'Hubo demasiados intentos seguidos. Inténtalo nuevamente más tarde.';
+  }
+  if (normalized.includes('unavailable') || normalized.includes('failed')) {
+    return 'El servicio de acceso de continuidad no está disponible en este momento.';
+  }
+  return error;
 }
 
-export function LoginSurface() {
-  const sb = useMemo(() => createBrowserSupabaseClient(), []);
-  const [error, setError] = useState('');
-  const [busy, setBusy] = useState(false);
-
-  const submit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (busy) return;
-    if (!sb) return setError('Supabase no configurado');
-
-    setBusy(true);
-    setError('');
-    const form = new FormData(event.currentTarget);
-
-    try {
-      const { error: signInError } = await sb.auth.signInWithPassword({
-        email: String(form.get('email') || ''),
-        password: String(form.get('password') || ''),
-      });
-
-      if (signInError) {
-        setError(readableAuthError(signInError.message));
-        setBusy(false);
-        return;
-      }
-
-      window.location.href = postLoginPath();
-    } catch (cause) {
-      setError(readableAuthError(cause instanceof Error ? cause.message : 'No fue posible verificar el acceso.'));
-      setBusy(false);
-    }
-  };
-
+export function LoginSurface({
+  error,
+  next = '/entry',
+  state,
+}: {
+  error?: string;
+  next?: string;
+  state?: string;
+}) {
+  const readable = readableAuthError(error);
   return (
     <main className="login">
-      <form onSubmit={submit}>
+      <form action={loginAction}>
         <div className="sigil">SFI.</div>
         <h1>Acceso al instituto</h1>
-        <p>Acceso institucional mediante correo y contraseña. Esta superficie no usa Google, Apple ni otro inicio de sesión social.</p>
+        <p>Acceso institucional mediante correo y contraseña. La identidad se verifica en la capa de continuidad; la autoridad permanece en el perfil institucional de SFI.</p>
+        <input type="hidden" name="next" value={next} />
         <input name="email" type="email" placeholder="correo" autoComplete="username" required />
         <input name="password" type="password" placeholder="contraseña" autoComplete="current-password" required />
-        <button disabled={busy}>{busy ? 'VERIFICANDO…' : 'ENTRAR'}</button>
-        {error && <small>{error}</small>}
-        <small><a href="/forgot">¿Olvidaste tu contraseña? Restablece el acceso por correo.</a></small>
+        <button>ENTRAR</button>
+        {state === 'password_reset' ? <small>Contraseña actualizada. Ya puedes ingresar.</small> : null}
+        {readable ? <small>{readable}</small> : null}
+        <small><a href="/forgot">¿Primera vez en la continuidad o olvidaste tu contraseña? Define el acceso por correo.</a></small>
         <small>
-          Las cuentas invitadas definen su propia contraseña. Una cuenta de acceso no concede por sí sola autoridad ROOT ni capacidad para modificar el canon institucional.
+          La autenticación no concede por sí sola autoridad ROOT ni capacidad para modificar el canon institucional.
         </small>
         <small><a href="/field">FIELD es público y no requiere iniciar sesión.</a></small>
       </form>

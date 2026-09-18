@@ -5,10 +5,12 @@ import {
   createServerSupabaseClient,
   createServiceSupabaseClient,
   getVerifiedServerUser,
+  getVerifiedNeonServerUser,
   SfiAuthUnavailableError,
 } from '@/runtime/supabase/server';
 import { findInstitutionalMember } from './institutionalMembers';
 import { resolveFounderAuthority } from './founderAuthority';
+import { readContinuityProfile, readContinuityProfileByEmail } from '@/lib/sfi/continuityPostgres';
 
 export class AccessDeniedError extends Error {
   constructor(
@@ -78,23 +80,42 @@ function defaultAlias(user: { email?: string | null }) {
 
 export async function requireAuthenticatedUser() {
   const supabase = await createServerSupabaseClient();
+  let primaryUnavailable: SfiAuthUnavailableError | null = null;
+
   try {
     const user = await getVerifiedServerUser(supabase);
-    if (!user) {
-      throw new AccessDeniedError(401, 'AUTH_REQUIRED', 'Authentication is required.');
-    }
-    return { supabase, user };
+    if (user) return { supabase, user, authProvider: 'supabase' as const };
   } catch (error) {
-    if (error instanceof AccessDeniedError) throw error;
+    if (error instanceof SfiAuthUnavailableError) {
+      primaryUnavailable = error;
+    } else {
+      throw error;
+    }
+  }
+
+  try {
+    const user = await getVerifiedNeonServerUser();
+    if (user) return { supabase, user, authProvider: 'neon' as const };
+  } catch (error) {
     if (error instanceof SfiAuthUnavailableError) {
       throw new AccessDeniedError(
         503,
         'AUTH_UNAVAILABLE',
-        'Authentication is temporarily unavailable. The session was not reclassified as anonymous.',
+        `Authentication providers are temporarily unavailable: ${error.message}`,
       );
     }
     throw error;
   }
+
+  if (primaryUnavailable) {
+    throw new AccessDeniedError(
+      503,
+      'AUTH_UNAVAILABLE',
+      'Primary authentication is unavailable and no valid continuity session was found.',
+    );
+  }
+
+  throw new AccessDeniedError(401, 'AUTH_REQUIRED', 'Authentication is required.');
 }
 
 export async function hasActiveInstitutionalAccountGrant(user: { id: string; email?: string | null }) {
@@ -156,7 +177,14 @@ async function readOrProvisionUserProfile(user: { id: string; email?: string | n
     .eq('user_id', user.id)
     .maybeSingle();
 
-  if (existing.error) throw existing.error;
+  if (existing.error) {
+    const continuityProfile =
+      await readContinuityProfile(user.id).catch(() => null)
+      ?? (user.email ? await readContinuityProfileByEmail(user.email).catch(() => null) : null);
+
+    if (!continuityProfile) throw existing.error;
+    return { profile: continuityProfile, member };
+  }
 
   if (existing.data && member) {
     const desiredAccess = institutionalModuleAccess(member, existing.data.module_access);

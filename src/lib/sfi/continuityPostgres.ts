@@ -1,5 +1,3 @@
-import 'server-only';
-
 import postgres from 'postgres';
 
 type JsonRecord = Record<string, unknown>;
@@ -130,6 +128,17 @@ export async function readContinuityProfile(userId: string) {
     select user_id, alias, email, role, module_access, subscription_tier
       from profiles
      where user_id = ${userId}::uuid
+     limit 1
+  `;
+  return (rows[0] as JsonRecord | undefined) ?? null;
+}
+
+export async function readContinuityProfileByEmail(email: string) {
+  const sql = db();
+  const rows = await sql`
+    select user_id, alias, email, role, module_access, subscription_tier
+      from profiles
+     where lower(email) = lower(${email})
      limit 1
   `;
   return (rows[0] as JsonRecord | undefined) ?? null;

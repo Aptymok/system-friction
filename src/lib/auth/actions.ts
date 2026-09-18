@@ -2,7 +2,15 @@
 
 import { redirect } from 'next/navigation'
 import { checkRateLimit, rateLimitKey } from '@/lib/auth/rateLimit'
-import { createServerSupabaseClient, createServiceSupabaseClient } from '@/runtime/supabase/server'
+import {
+  createServerSupabaseClient,
+  createServiceSupabaseClient,
+  requestNeonPasswordReset,
+  resetNeonPassword,
+  signInWithNeonAuth,
+  signOutNeonAuth,
+} from '@/runtime/supabase/server'
+import { readContinuityProfile, readContinuityProfileByEmail } from '@/lib/sfi/continuityPostgres'
 import { authSchema } from '@/lib/validation/schemas'
 
 function formValue(formData: FormData, key: string) {
@@ -26,14 +34,17 @@ function record(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
 }
 
+
 async function resolvePostLoginPath(userId: string, requestedNext: string) {
   if (requestedNext !== '/entry') return requestedNext
   const service = createServiceSupabaseClient()
-  const { data: profile } = await service
+  const primary = await service
     .from('profiles')
     .select('role,module_access')
     .eq('user_id', userId)
     .maybeSingle()
+  const continuity = primary.error ? await readContinuityProfile(userId).catch(() => null) : null
+  const profile = primary.data ?? continuity
   const role = typeof profile?.role === 'string' ? profile.role : null
   const access = record(profile?.module_access)
   const rootObserverRole = role === 'root' || role === 'system' || role === 'observer' || role === 'controller'
@@ -69,38 +80,49 @@ export async function loginAction(formData: FormData) {
   const limit = checkRateLimit(rateLimitKey('login', input.email), 8, 60_000)
   if (!limit.allowed) redirect(`/login?error=rate_limit&next=${encodeURIComponent(next)}`)
 
-  const supabase = await createServerSupabaseClient()
-  if (!supabase) redirect(`/login?error=supabase_no_configurado&next=${encodeURIComponent(next)}`)
-  const { data, error } = await supabase.auth.signInWithPassword(parsed.data)
-  if (error || !data.user) redirect(`/login?error=${encodeURIComponent(error?.message ?? 'auth_user_missing')}&next=${encodeURIComponent(next)}`)
+  const neon = await signInWithNeonAuth(parsed.data.email, parsed.data.password)
+  if (!neon.ok) {
+    redirect(`/login?error=${encodeURIComponent(neon.message)}&next=${encodeURIComponent(next)}`)
+  }
 
-  redirect(await resolvePostLoginPath(data.user.id, next))
+  const profile = await readContinuityProfileByEmail(parsed.data.email)
+  if (!profile?.user_id || typeof profile.user_id !== 'string') {
+    await signOutNeonAuth()
+    redirect(`/login?error=continuity_profile_missing&next=${encodeURIComponent(next)}`)
+  }
+
+  redirect(await resolvePostLoginPath(profile.user_id, next))
 }
 
 export async function forgotPasswordAction(formData: FormData) {
   const email = formValue(formData, 'email')
   const limit = checkRateLimit(rateLimitKey('forgot', email), 4, 60_000)
   if (!limit.allowed) redirect('/forgot?error=rate_limit')
-  const supabase = await createServerSupabaseClient()
-  if (!supabase) redirect('/forgot?error=supabase_no_configurado')
-  const origin = process.env.NEXT_PUBLIC_APP_URL || 'https://www.systemfriction.org'
-  await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${origin}/reset` })
+  const origin = process.env.NEXT_PUBLIC_APP_URL || 'https://systemfriction.org'
+  try {
+    await requestNeonPasswordReset(email, `${origin}/reset`)
+  } catch {
+    redirect('/forgot?error=auth_unavailable')
+  }
   redirect('/forgot?state=sent')
 }
 
 export async function resetPasswordAction(formData: FormData) {
   const password = formValue(formData, 'password')
+  const confirmation = formValue(formData, 'confirmation')
+  const token = formValue(formData, 'token')
   const parsed = authSchema.shape.password.safeParse(password)
-  if (!parsed.success) redirect('/reset?error=entrada_invalida')
-  const supabase = await createServerSupabaseClient()
-  if (!supabase) redirect('/reset?error=supabase_no_configurado')
-  const { error } = await supabase.auth.updateUser({ password })
-  if (error) redirect(`/reset?error=${encodeURIComponent(error.message)}`)
-  redirect('/entry')
+  if (!parsed.success || password !== confirmation || !token) {
+    redirect(`/reset?error=entrada_invalida${token ? `&token=${encodeURIComponent(token)}` : ''}`)
+  }
+  const result = await resetNeonPassword(parsed.data, token)
+  if (!result.ok) redirect(`/reset?error=${encodeURIComponent(result.message)}`)
+  redirect('/login?state=password_reset')
 }
 
 export async function logoutAction() {
+  await signOutNeonAuth().catch(() => null)
   const supabase = await createServerSupabaseClient()
-  if (supabase) await supabase.auth.signOut()
+  if (supabase) await supabase.auth.signOut().catch(() => null)
   redirect('/')
 }
