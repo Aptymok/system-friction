@@ -38,17 +38,16 @@ for (const [name, source] of [
   ['observatory/world', publicWorld],
   ['observatory/state', publicState],
   ['observatory/timeline', publicTimelineRoute],
-  ['library', publicLibrary],
 ]) {
-  assert.match(source, /force-static/, `${name} must not fan out to Supabase on every public request`);
-  assert.doesNotMatch(source, /force-dynamic/, `${name} must not bypass the public cache`);
+  assert.match(source, /force-dynamic/, `${name} must avoid build-time Supabase reads`);
+  assert.match(source, /Vercel-CDN-Cache-Control/, `${name} must explicitly cache successful public responses at the CDN`);
 }
-
-assert.match(publicWorld, /export const revalidate=300;/, 'public world read must use bounded ISR');
+assert.match(publicWorld, /s-maxage=300/, 'public world response must have a five-minute CDN cache');
 assert.match(publicWorld, /const LIMIT=240;/, 'public world database fanout must remain row-bounded');
-assert.match(publicState, /export const revalidate = 300;/, 'public state read must use bounded ISR');
-assert.match(publicTimelineRoute, /export const revalidate = 900;/, 'public timeline read must use bounded ISR');
-assert.match(publicLibrary, /export const revalidate = 900;/, 'public Library graph projection must use bounded ISR');
+assert.match(publicState, /s-maxage=300/, 'public state response must have a five-minute CDN cache');
+assert.match(publicTimelineRoute, /s-maxage=900/, 'public timeline response must have a fifteen-minute CDN cache');
+assert.match(publicLibrary, /unstable_cache/, 'public Library graph projection must use the Next data cache');
+assert.match(publicLibrary, /revalidate:\s*900/, 'public Library graph data cache must revalidate at fifteen minutes');
 assert.match(publicTimelineReader, /const MAX_FRAMES = 180;/, 'public timeline must have a hard persisted-frame cap');
 assert.doesNotMatch(publicTimelineReader, /for \(;;\)/, 'public timeline may not page through the full persisted history');
 assert.doesNotMatch(publicObservatoryClient, /cache:\s*['"]no-store['"]/, 'public Observatory client may not force cache bypass');
