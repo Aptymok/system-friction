@@ -12,7 +12,8 @@ import { buildMihmRuntimeMatrix } from '@/observatory/field/catalog/mihmRuntimeM
 import { buildNodeCatalog } from '@/observatory/field/catalog/sfNodeCatalog';
 import { buildPatternCatalog } from '@/observatory/field/catalog/patternCatalog';
 
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-static';
+export const revalidate = 300;
 
 export async function GET() {
   const [
