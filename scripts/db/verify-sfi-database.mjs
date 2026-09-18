@@ -32,11 +32,6 @@ const CANONICAL_OBJECTS = [
   { name: 'scorefriction_proposal_verifications', kind: 'table', required: true },
 ];
 
-const LEGACY_OBJECTS = [
-  { name: 'audits', kind: 'table' },
-  { name: 'external_reality_weights', kind: 'table' },
-  { name: 'systemic_patterns', kind: 'table' },
-];
 
 function connectionFailure(error) {
   return {
@@ -118,19 +113,14 @@ try {
 }
 
 const canonical_objects = [];
-const legacy_objects = [];
 
 if (!supabase) {
   canonical_objects.push(connectionFailure(connection.error ?? 'client_create_failed'));
 } else {
   for (const object of CANONICAL_OBJECTS) canonical_objects.push(await probeObject(supabase, object));
-  for (const object of LEGACY_OBJECTS) legacy_objects.push(await probeObject(supabase, object));
 }
 
 for (const item of canonical_objects) {
-  if (item.status === 'MISSING_IN_DB') item.status = 'MIGRATION_REQUIRED';
-}
-for (const item of legacy_objects) {
   if (item.status === 'MISSING_IN_DB') item.status = 'MIGRATION_REQUIRED';
 }
 
@@ -149,7 +139,6 @@ const report = {
   connection,
   failures,
   canonical_objects,
-  legacy_objects,
   classification_contract: [
     'CONFIRMED_IN_DB',
     'MISSING_IN_DB',
