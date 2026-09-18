@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { runIntegratedInstitutionalCycle } from '@/core/cognitive-twin/integratedInstitutionalCycle';
 import { readInstitutionalAttractor } from '@/lib/institution/institutionalAttractor';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { scheduledEgressGuardResponse } from '@/lib/continuity/scheduledEgressGuard';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -58,6 +59,8 @@ async function readScheduledCycleGate() {
 
 export async function POST(request: NextRequest) {
   if (!authorized(request)) return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 });
+  const egressGuard = scheduledEgressGuardResponse();
+  if (egressGuard) return egressGuard;
 
   const gate = await readScheduledCycleGate();
   if (!gate.shouldRun) {

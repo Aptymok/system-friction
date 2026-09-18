@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { runTemporalIssueRoutine } from '@/lib/publications/temporalIssueRoutine';
+import { scheduledEgressGuardResponse } from '@/lib/continuity/scheduledEgressGuard';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -21,6 +22,8 @@ function authorized(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   if (!authorized(request)) return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 });
+  const egressGuard = scheduledEgressGuardResponse();
+  if (egressGuard) return egressGuard;
 
   try {
     const result = await runTemporalIssueRoutine();

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { readContinuityActionableWorkGate } from '@/lib/continuity/actionableWorkGate';
+import { scheduledEgressGuardResponse } from '@/lib/continuity/scheduledEgressGuard';
 import { runContinuityHeartbeat, runOperationalTransitionWatchdog } from '@/lib/continuity/runtime';
 import { runOperationalAutoAdvance } from '@/lib/continuity/operationalAutoAdvance';
 import { runStudioAutonomyContinuation } from '@/lib/continuity/studioAutonomy';
@@ -157,6 +158,8 @@ async function authorize(request: NextRequest): Promise<{ ok: true; trigger: Aut
 export async function GET(request: NextRequest) {
   const authorization = await authorize(request);
   if (!authorization.ok) return NextResponse.json({ ok: false, error: 'unauthorized_continuity_cron' }, { status: 401 });
+  const egressGuard = scheduledEgressGuardResponse();
+  if (egressGuard) return egressGuard;
 
   const requestedCycleId = request.nextUrl.searchParams.get('cycleId')?.trim() || undefined;
   const actionableGate = await readContinuityActionableWorkGate({ requestedCycleId });

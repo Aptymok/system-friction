@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { runWorldSpectAdapters } from '@/lib/worldspect/runAdapters'
+import { scheduledEgressGuardResponse } from '@/lib/continuity/scheduledEgressGuard'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -69,6 +70,8 @@ function ingestModeFromRequest(request: NextRequest): CronIngestMode {
 export async function GET(request: NextRequest) {
   const auth = authorizeCron(request)
   if (!auth.ok) return auth.response
+  const egressGuard = scheduledEgressGuardResponse()
+  if (egressGuard) return egressGuard
 
   const ingestMode = ingestModeFromRequest(request)
   const result = await runWorldSpectAdapters(ingestMode)

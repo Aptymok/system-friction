@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { reconcilePredictiveRuns } from '@/lib/predictive-engine/service';
+import { scheduledEgressGuardResponse } from '@/lib/continuity/scheduledEgressGuard';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -28,6 +29,8 @@ function authorize(request: NextRequest) {
 export async function GET(request: NextRequest) {
   const denied = authorize(request);
   if (denied) return denied;
+  const egressGuard = scheduledEgressGuardResponse();
+  if (egressGuard) return egressGuard;
   try {
     const result = await reconcilePredictiveRuns();
     return NextResponse.json(result);

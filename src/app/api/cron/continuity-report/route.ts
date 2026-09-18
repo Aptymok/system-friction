@@ -6,6 +6,7 @@ import { runScheduledAgentReportCycle } from '@/lib/reports/scheduledAgentReport
 import { runCognitiveTwinDevelopmentalHeartbeat } from '@/core/cognitive-twin/reentry/runtime';
 import { considerCognitiveTwinMutationProposal } from '@/core/cognitive-twin/reentry/experiments';
 import { syncSfiInstitutionalStateToCognitiveTwin } from '@/core/cognitive-twin/institutionalIntegration';
+import { scheduledEgressGuardResponse } from '@/lib/continuity/scheduledEgressGuard';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -21,6 +22,8 @@ export async function GET(request: NextRequest) {
   if ((process.env.NODE_ENV === 'production' && !secret) || (secret && bearer(request) !== secret)) {
     return NextResponse.json({ ok: false, error: 'unauthorized_continuity_report' }, { status: 401 });
   }
+  const egressGuard = scheduledEgressGuardResponse();
+  if (egressGuard) return egressGuard;
   try {
     const report = await createDailyContinuityReport();
     const cognitiveTwinInstitutionalSync = await syncSfiInstitutionalStateToCognitiveTwin().catch((error) => ({

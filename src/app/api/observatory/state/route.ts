@@ -14,6 +14,8 @@ import { buildPatternCatalog } from '@/observatory/field/catalog/patternCatalog'
 
 export const dynamic = 'force-dynamic';
 
+const PUBLIC_CDN_CACHE = { 'Vercel-CDN-Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' } as const;
+
 export async function GET() {
   const [
     worldspect,
@@ -104,5 +106,5 @@ export async function GET() {
       loadedAt: new Date().toISOString(),
       warnings,
     },
-  });
+  }, { headers: PUBLIC_CDN_CACHE });
 }

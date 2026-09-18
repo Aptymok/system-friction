@@ -3,10 +3,10 @@ import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 
 export const runtime='nodejs';
 export const dynamic='force-dynamic';
-export const revalidate=120;
 
 const HORIZON_DAYS=30;
-const LIMIT=900;
+const LIMIT=240;
+const PUBLIC_CDN_CACHE = {'Vercel-CDN-Cache-Control':'public, s-maxage=300, stale-while-revalidate=600'} as const;
 type Row=Record<string,unknown>;
 type HypothesisView=Row&{graphSnapshot:Row;aiInference:Row};
 const rows=(v:unknown):Row[]=>Array.isArray(v)?v.filter((x):x is Row=>Boolean(x)&&typeof x==='object'&&!Array.isArray(x)):[];
@@ -158,5 +158,5 @@ export async function GET(){
     learning:learningRows,
     graph:{nodes:graphNodes,edges:graphEdges,boundary:'Edges are explicitly typed as lineage, derived collector assignments or AI inference. No edge is rendered as observed causality unless a future evidence contract establishes it.'},
     warnings:errors,
-  });
+  }, { headers: PUBLIC_CDN_CACHE });
 }
