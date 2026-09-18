@@ -10,7 +10,7 @@ import {
   signInWithNeonAuth,
   signOutNeonAuth,
 } from '@/runtime/supabase/server'
-import { readContinuityProfile } from '@/lib/sfi/continuityPostgres'
+import { readContinuityProfile, readContinuityProfileByEmail } from '@/lib/sfi/continuityPostgres'
 import { authSchema } from '@/lib/validation/schemas'
 
 function formValue(formData: FormData, key: string) {
@@ -34,10 +34,6 @@ function record(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
 }
 
-async function readContinuityProfileByEmailForLogin(email: string) {
-  const { readContinuityProfileByEmail } = await import('@/lib/sfi/continuityPostgres')
-  return readContinuityProfileByEmail(email)
-}
 
 async function resolvePostLoginPath(userId: string, requestedNext: string) {
   if (requestedNext !== '/entry') return requestedNext
@@ -89,7 +85,7 @@ export async function loginAction(formData: FormData) {
     redirect(`/login?error=${encodeURIComponent(neon.message)}&next=${encodeURIComponent(next)}`)
   }
 
-  const profile = await readContinuityProfileByEmailForLogin(parsed.data.email)
+  const profile = await readContinuityProfileByEmail(parsed.data.email)
   if (!profile?.user_id || typeof profile.user_id !== 'string') {
     await signOutNeonAuth()
     redirect(`/login?error=continuity_profile_missing&next=${encodeURIComponent(next)}`)
