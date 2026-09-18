@@ -52,6 +52,24 @@ assert.match(publicTimelineReader, /const MAX_FRAMES = 180;/, 'public timeline m
 assert.doesNotMatch(publicTimelineReader, /for \(;;\)/, 'public timeline may not page through the full persisted history');
 assert.doesNotMatch(publicObservatoryClient, /cache:\s*['"]no-store['"]/, 'public Observatory client may not force cache bypass');
 
+const scheduledEgressGuard = fs.readFileSync('src/lib/continuity/scheduledEgressGuard.ts', 'utf8');
+assert.match(scheduledEgressGuard, /SFI_SCHEDULED_EGRESS_MODE/, 'scheduled Supabase egress must require an explicit runtime enablement');
+assert.match(scheduledEgressGuard, /\?\? 'restricted'/, 'scheduled egress must fail closed by default');
+
+for (const path of [
+  'src/app/api/cron/worldspect/route.ts',
+  'src/app/api/cron/world-observatory/route.ts',
+  'src/app/api/cron/continuity-heartbeat/route.ts',
+  'src/app/api/cron/sfi-institutional-cycle/route.ts',
+  'src/app/api/cron/sfi-indicators/route.ts',
+  'src/app/api/cron/predictive-engine/route.ts',
+  'src/app/api/cron/continuity-report/route.ts',
+  'src/app/api/cron/notas-temporales/route.ts',
+]) {
+  const source = fs.readFileSync(path, 'utf8');
+  assert.match(source, /scheduledEgressGuardResponse/, `${path} must honor the scheduled egress circuit breaker`);
+}
+
 console.log(JSON.stringify({
   ok: true,
   contract: 'SFI-VERCEL-COST-GATE-1.2',
@@ -59,4 +77,5 @@ console.log(JSON.stringify({
   productionDeployment: 'EXPLICIT_TRIGGER_ONLY',
   productionPushPath: '.github/sfi-production-deploy-trigger',
   publicSupabaseReadPolicy: 'CACHED_AND_BOUNDED',
+  scheduledSupabaseAutomation: 'FAIL_CLOSED_EXPLICIT_ENABLE_ONLY',
 }, null, 2));
