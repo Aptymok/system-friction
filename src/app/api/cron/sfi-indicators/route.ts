@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { buildSfiWorldInterfaceState } from '@/lib/sfi/worldInterfaceState';
 import { persistIndicatorSnapshot } from '@/lib/sfi/indicatorSnapshot';
 import { buildWorldVectorOperationalState } from '@/lib/world-vector/operationalState';
+import { scheduledEgressGuardResponse } from '@/lib/continuity/scheduledEgressGuard';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -52,6 +53,8 @@ function authorizeCron(request: NextRequest) {
 export async function GET(request: NextRequest) {
   const auth = authorizeCron(request);
   if (!auth.ok) return auth.response;
+  const egressGuard = scheduledEgressGuardResponse();
+  if (egressGuard) return egressGuard;
 
   const [state, worldVector] = await Promise.all([
     buildSfiWorldInterfaceState(),
