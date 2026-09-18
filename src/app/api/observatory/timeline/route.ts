@@ -2,13 +2,14 @@ import { NextResponse } from 'next/server';
 import { readPublicWorldSnapshotTimeline } from '@/lib/observatory/public/worldSnapshotTimeline';
 
 export const runtime = 'nodejs';
-export const dynamic = 'force-static';
-export const revalidate = 900;
+export const dynamic = 'force-dynamic';
+
+const PUBLIC_CDN_CACHE = { 'Vercel-CDN-Cache-Control': 'public, s-maxage=900, stale-while-revalidate=1800' } as const;
 
 export async function GET() {
   try {
     const state = await readPublicWorldSnapshotTimeline();
-    return NextResponse.json({ ok: true, ...state });
+    return NextResponse.json({ ok: true, ...state }, { headers: PUBLIC_CDN_CACHE });
   } catch (error) {
     return NextResponse.json({
       ok: false,
