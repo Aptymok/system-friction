@@ -8,20 +8,17 @@ Canonical host: `https://systemfriction.org`
 
 The operating principle is simple: observation, evidence, inference, authorization, execution, return and memory must remain distinguishable and traceable.
 
-## Public live scenes
+## Canonical public surfaces
 
-- `/field` — geospatial and multiscale observation field.
-- `/systems` — system boundaries, relations, exchange, state and persistence.
-- `/archive` — source, archive, indexing, provenance and context loss.
-- `/falsification` — hypotheses, instruments, longitudinal series, thresholds and rival explanations.
-- `/optionality` — reserve, memory, redundancy, reversibility and open futures.
-- `/governance` — canonical governance cycle from observation to memory.
-- `/authority` — authority, evidence and recovery as longitudinal variables.
-- `/agents` — agentic authority envelope: identity, scope, tools, time, consequence and return.
-- `/identity` — task, profession, identity, machine capability and context.
-- `/models` — observable generative-model processes.
-- `/genai` — operational anatomy of a governed GenAI application.
-- `/root` — governed operator surface; authorization required.
+- `/` — institutional public threshold and entry membrane.
+- `/observatory` — live field observation, sources, hypotheses, trajectory and contrast.
+- `/publications` — editorial archive for notes, cases, methods and published RETURN.
+- `/library` — connected knowledge, methods, instruments and provenance.
+- `/institution` — institutional identity, authority, limits and invariants.
+- `/history` — observed institutional history with provenance.
+- `/privacy` — privacy and external-agent data policy.
+
+`/field` remains a compatibility alias of the Observatory. Governed operational workspaces such as ROOT, Cases, Governance and Twin are not canonical public surfaces and must not be advertised as part of the public membrane.
 
 The visual runtime is designed so that ambient motion, system motion and operator interaction remain distinct. Movement is not only decorative: live events, persistence, decay, execution and return can alter the scene.
 
