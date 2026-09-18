@@ -24,3 +24,5 @@ post_release_tests=deployment_ready+runtime_error_scan+forgot_surface+recovery_r
 
 release_pr=522
 release_commit=932f2370b67574bbfb45efec11afccee993170f1
+release_retry=1
+release_retry_reason=workflow_not_observed_after_initial_trigger
