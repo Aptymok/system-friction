@@ -6,7 +6,8 @@ import { editorialPublicationForSlug } from '@/lib/publications/editorialContent
 import LibraryClient, { type LibraryDoc, type LibraryPublication, type LibrarySurfaceContract } from './LibraryClient';
 import './library.css';
 
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-static';
+export const revalidate = 900;
 
 const baseCorpus = docs as LibraryDoc[];
 
