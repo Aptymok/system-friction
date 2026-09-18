@@ -5,7 +5,7 @@ type Row = Record<string, unknown>;
 type DomainDefinition = { id: string; label: string; domains: string[] };
 
 const HORIZON_DAYS = 90;
-const PAGE_SIZE = 250;
+const MAX_FRAMES = 180;
 
 const VECTOR_DEFINITIONS: DomainDefinition[] = [
   { id: 'cultural', label: 'Cultural', domains: ['CULTURAL'] },
@@ -92,21 +92,13 @@ export type PublicWorldTemporalFrame = {
 export async function readPublicWorldSnapshotTimeline() {
   const db = createServiceSupabaseClient();
   const since = new Date(Date.now() - HORIZON_DAYS * 86400000).toISOString();
-  const snapshots: Row[] = [];
-  let from = 0;
-
-  for (;;) {
-    const result = await db.from('worldspect_snapshots')
-      .select('observed_at,created_at,source_state,confidence,wsi,nti,ingest_mode,sources')
-      .gte('observed_at', since)
-      .order('observed_at', { ascending: true })
-      .range(from, from + PAGE_SIZE - 1);
-    if (result.error) throw new Error(`worldspect_public_timeline_failed:${result.error.message}`);
-    const page = rows(result.data);
-    snapshots.push(...page);
-    if (page.length < PAGE_SIZE) break;
-    from += PAGE_SIZE;
-  }
+  const result = await db.from('worldspect_snapshots')
+    .select('observed_at,created_at,source_state,confidence,wsi,nti,ingest_mode,sources')
+    .gte('observed_at', since)
+    .order('observed_at', { ascending: false })
+    .limit(MAX_FRAMES);
+  if (result.error) throw new Error(`worldspect_public_timeline_failed:${result.error.message}`);
+  const snapshots = rows(result.data).reverse();
 
   const frames: PublicWorldTemporalFrame[] = snapshots.map((snapshot) => {
     const snapshotSources = rows(snapshot.sources);
@@ -126,7 +118,7 @@ export async function readPublicWorldSnapshotTimeline() {
     generatedAt: new Date().toISOString(),
     frames,
     limits: [
-      'Historical frames are reconstructed only from persisted WorldSpect snapshots.',
+      `Historical frames are reconstructed only from the most recent ${MAX_FRAMES} persisted WorldSpect snapshots inside the horizon.`,
       'Vector values are aggregate readings of sources present in that snapshot; missing domains remain null.',
       'Moving the timeline changes the historical frame only; it does not rewrite the current Observatory state.',
     ],
