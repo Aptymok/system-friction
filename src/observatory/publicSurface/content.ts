@@ -3,8 +3,7 @@ export type EvidenceState =
   | 'ARCHIVO INTERNO'
   | 'EN REVISION'
   | 'PENDIENTE DE PUBLICACION'
-  | 'PILOTO ACTIVO'
-  | 'LEGACY / HISTORICO';
+  | 'PILOTO ACTIVO';
 
 export type DocumentaryEvidence = {
   evidenceId: string;
@@ -45,14 +44,8 @@ export const publicEvidenceStates: Array<{
   {
     title: 'Unipres Mexicana S.A. de C.V.',
     state: 'PILOTO ACTIVO',
-    description: 'Caso ancla para observabilidad organizacional en manufactura: DIOL-SF, SFI-QOM, ScoreFriction y MIHM Engine.',
+    description: 'Caso ancla para observabilidad organizacional en manufactura: DIOL-SF, MIHM, evidencia trazable y RETURN.',
     limit: 'No se presenta como resultado validado hasta cierre documental.',
-  },
-  {
-    title: 'GitHub Pages · Netlify v1',
-    state: 'LEGACY / HISTORICO',
-    description: 'Superficies historicas de publicacion y experimentacion del marco.',
-    limit: 'Archivo historico; no autoridad canonica vigente.',
   },
 ];
 
