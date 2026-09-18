@@ -10,7 +10,7 @@ import {
   SFI_REALITY_NODE_CLASSES,
   SFI_REALITY_RELATIONS,
 } from '@/lib/discovery/institutionalDiscoveryMesh';
-import { SCENE_KEYS, SCENES } from '@/components/sfi/scenes';
+import { SFI_PUBLIC_PROFILE } from '@/lib/public/institutionProfile';
 
 export async function GET() {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://systemfriction.org';
@@ -53,11 +53,9 @@ export async function GET() {
       governed_action_rule: 'Authorization and execution remain distinct. A queued proposal may be dispatched only within its already-approved scope. Internal bounded work may auto-dispatch; material external work without a real adapter fails closed. Canon remains ROOT-only.',
     },
     epistemic_boundary: 'OBSERVED, DECLARED, DERIVED, INFERRED, PROJECTED, SIMULATED, MISSING and canonical states are not interchangeable; runtime capability is not external validation.',
-    public_scenes: Object.fromEntries(SCENE_KEYS.map((key) => [key, {
-      url: `${baseUrl}/${key}`,
-      title: SCENES[key].title,
-      description: SCENES[key].subtitle,
-      markers: SCENES[key].markers,
+    public_scenes: Object.fromEntries(SFI_PUBLIC_PROFILE.publicSurfaces.map((surface) => [surface.path, {
+      url: `${baseUrl}${surface.path === '/' ? '' : surface.path}`,
+      description: surface.role,
     }])),
     machine_interfaces: {
       llms: `${baseUrl}/llms.txt`,
