@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server';
 import { readPublicWorldSnapshotTimeline } from '@/lib/observatory/public/worldSnapshotTimeline';
 
 export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
-export const revalidate = 300;
+export const dynamic = 'force-static';
+export const revalidate = 900;
 
 export async function GET() {
   try {
