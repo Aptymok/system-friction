@@ -11,10 +11,10 @@ export default async function ContinuityAccessPage({
     ? 'Hubo demasiados intentos seguidos. Inténtalo nuevamente más tarde.'
     : rawError === 'auth_unavailable'
       ? 'La activación de continuidad no está disponible en este momento.'
-      : rawError === 'retry'
-        ? 'La credencial cambió durante la activación. Reintenta una vez.'
+      : rawError === 'invalid_or_expired'
+        ? 'El código de activación no es válido, ya expiró o ya fue utilizado.'
         : rawError
-          ? 'El correo o la contraseña no son válidos para una credencial preparada para migración.'
+          ? 'Revisa el código y confirma que las dos contraseñas coincidan.'
           : '';
 
   return (
@@ -23,14 +23,15 @@ export default async function ContinuityAccessPage({
         <div className="sigil">SFI.</div>
         <h1>Activar continuidad</h1>
         <p>
-          Usa esta vía sólo si tu identidad ya fue migrada a Neon y el correo de recuperación no está disponible.
-          La contraseña se verifica contra la credencial preparada y se convierte una sola vez al formato nativo de Neon.
+          Define directamente tu credencial de Neon con el código temporal de activación.
+          El código se consume una sola vez y no crea una cuenta nueva ni modifica tu autoridad institucional.
         </p>
-        <input name="email" type="email" placeholder="correo" autoComplete="username" required />
-        <input name="password" type="password" placeholder="contraseña actual" autoComplete="current-password" required />
+        <input name="code" type="text" placeholder="código temporal SFI-…" autoComplete="one-time-code" required />
+        <input name="password" type="password" placeholder="nueva contraseña" autoComplete="new-password" minLength={12} required />
+        <input name="confirmation" type="password" placeholder="repite la contraseña" autoComplete="new-password" minLength={12} required />
         <button>ACTIVAR EN NEON</button>
         {error ? <small>{error}</small> : null}
-        <small>Esta operación no crea cuentas, perfiles ni autoridad. Sólo migra una credencial previamente preparada.</small>
+        <small>La activación sólo inicializa la credencial del usuario Neon ya existente. No cambia user_id, perfil, rol ROOT ni permisos.</small>
         <small><a href="/login">Volver al acceso</a></small>
       </form>
     </main>
