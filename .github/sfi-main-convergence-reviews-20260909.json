@@ -1,6 +1,6 @@
 {
   "contract": "SFI-MAIN-CONVERGENCE-REVIEW-LEDGER-1.0",
-  "observedAgainstMain": "82403abe04f05a3dac032686f7a19e4fca72d256",
+  "observedAgainstMain": "63e40478176a4baf62e8b1ac272997490b166179",
   "reviewedDeltas": {
     "4ef7801c4803bd7d": {
       "decision": "SUPERSEDED_BY_LATER_MAIN",
@@ -200,6 +200,20 @@
         "Fresh convergence audit on PR #548 recalculated this branch to reviewKey c46917e90dfbce8c after one additional assurance commit; disposition is unchanged."
       ],
       "reason": "Archive prototype branch as design provenance. Reimplement the valid bundle-owner idea fresh on current main only after the bounded CDN layer is measured in production; do not keep a live divergent implementation."
+    },
+    "c2c48ece0ceabd6c": {
+      "decision": "REJECTED_ALTERNATE_IMPLEMENTATION",
+      "branches": [
+        "feat/549-worldspect-vector-persistence-20260919"
+      ],
+      "evidence": [
+        "Branch changes only src/lib/worldspect/snapshotStore.ts and adds vectors: input.vectors to the canonical upsert row.",
+        "Current WorldSpectSnapshotInput does not define vectors.",
+        "Canonical persistWorldSpectObservations derives snapshot.vectors but does not pass vectors to upsertWorldSpectSnapshot.",
+        "Therefore the branch is incomplete and must not be merged as a production optimization.",
+        "Issue #539 retains the valid future direction: persist semantically equivalent derived vectors at canonical measurement time, but only through a complete typed writer/caller/QA slice."
+      ],
+      "reason": "Reject this incomplete alternate implementation. Preserve the vector-persistence design direction in #539, but require a fresh complete slice that adds the typed input, canonical caller wiring, deterministic equivalence checks, and writer-only authority proof."
     }
   }
 }
