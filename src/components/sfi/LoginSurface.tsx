@@ -45,8 +45,10 @@ export function LoginSurface({
         <input name="password" type="password" placeholder="contraseña" autoComplete="current-password" required />
         <button>ENTRAR</button>
         {state === 'password_reset' ? <small>Contraseña actualizada. Ya puedes ingresar.</small> : null}
+        {state === 'continuity_activated' ? <small>Acceso de continuidad activado. Ya puedes ingresar por Neon.</small> : null}
         {readable ? <small>{readable}</small> : null}
-        <small><a href="/forgot">¿Primera vez en la continuidad o olvidaste tu contraseña? Define el acceso por correo.</a></small>
+        <small><a href="/continuity-access">¿Tu identidad fue migrada y no puedes recibir correo? Activa el acceso de continuidad.</a></small>
+        <small><a href="/forgot">¿Olvidaste tu contraseña y sí puedes recibir correo? Solicita un enlace.</a></small>
         <small>
           La autenticación no concede por sí sola autoridad ROOT ni capacidad para modificar el canon institucional.
         </small>
