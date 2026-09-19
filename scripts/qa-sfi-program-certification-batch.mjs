@@ -5,18 +5,7 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 
 const SFI_COMPLETION_CERTIFICATION_BATCH_CONTRACT = 'SFI-SFI08-COMPLETION-CERTIFICATION-BATCH-1.4';
-const GLOBAL_REGRESSION_SCOPE = [
-  'src/**',
-  'scripts/**',
-  'packages/**',
-  'services/**',
-  '.github/workflows/**',
-  'public/**',
-  'package.json',
-  'package-lock.json',
-  'docs/program/**',
-  'docs/ROOT_WORLD_CASE_AND_DISCOVERY_ENGINE.md',
-];
+const REGRESSION_SCOPE_STRATEGY = 'REQUIREMENT_PROOF_PATHS';
 const TARGETED_CANONICAL_PROOFS = {
   'MASTER-03': ['src/lib/sfi/cognitive-runtime/capabilityBroker.test.ts'],
   'WS-01-029': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
