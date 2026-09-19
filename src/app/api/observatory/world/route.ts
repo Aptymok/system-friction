@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { isSfiContinuityConfigured, readContinuityPublicWorldBundle } from '@/lib/sfi/continuityPostgres';
 
 export const runtime='nodejs';
 export const dynamic='force-dynamic';
@@ -36,11 +37,46 @@ export async function GET(){
     db.from('world_hypothesis_outcomes').select('id,hypothesis_id,classification,observed_outcome,directional_accuracy,temporal_accuracy,actor_accuracy,mechanism_accuracy,source_coverage,evidence_ids,evaluator_version,evaluated_at').gte('evaluated_at',since).order('evaluated_at',{ascending:false}).limit(LIMIT),
     db.from('world_learning_events').select('id,hypothesis_id,outcome_id,retained_assumptions,rejected_assumptions,missing_variables,graph_adjustments,confidence_before,confidence_after,created_at').gte('created_at',since).order('created_at',{ascending:false}).limit(LIMIT),
   ]);
-  const errors=[observations.error&&`observations:${observations.error.message}`,readings.error&&`readings:${readings.error.message}`,hypotheses.error&&`hypotheses:${hypotheses.error.message}`,outcomes.error&&`outcomes:${outcomes.error.message}`,learning.error&&`learning:${learning.error.message}`].filter(Boolean);
-  if(observations.error)return NextResponse.json({ok:false,error:'PUBLIC_WORLD_OBSERVATIONS_FAILED',details:observations.error.message,nodes:[],hypotheses:[],outcomes:[],learning:[],graph:{nodes:[],edges:[]}},{status:503});
 
-  const byObservation=new Map(rows(readings.data).map(r=>[String(r.observation_id),r]));
-  const nodes=rows(observations.data).map(r=>{
+  let readPlane: 'SUPABASE' | 'NEON' = 'SUPABASE';
+  let observationsData: unknown = observations.data;
+  let readingsData: unknown = readings.data;
+  let hypothesesData: unknown = hypotheses.data;
+  let outcomesData: unknown = outcomes.data;
+  let learningData: unknown = learning.data;
+  let errors=[observations.error&&`observations:${observations.error.message}`,readings.error&&`readings:${readings.error.message}`,hypotheses.error&&`hypotheses:${hypotheses.error.message}`,outcomes.error&&`outcomes:${outcomes.error.message}`,learning.error&&`learning:${learning.error.message}`].filter(Boolean) as string[];
+  let fallbackError: string | null = null;
+
+  if(errors.length && isSfiContinuityConfigured()){
+    try{
+      const fallback=await readContinuityPublicWorldBundle({since,limit:LIMIT});
+      observationsData=fallback.observations;
+      readingsData=fallback.readings;
+      hypothesesData=fallback.hypotheses;
+      outcomesData=fallback.outcomes;
+      learningData=fallback.learning;
+      errors=[];
+      readPlane='NEON';
+    }catch(error){
+      fallbackError=error instanceof Error?error.message:String(error);
+    }
+  }
+
+  if(observations.error&&readPlane==='SUPABASE')return NextResponse.json({
+    ok:false,
+    error:'PUBLIC_WORLD_OBSERVATIONS_FAILED',
+    details:observations.error.message,
+    continuityFallbackError:fallbackError,
+    readPlane,
+    nodes:[],
+    hypotheses:[],
+    outcomes:[],
+    learning:[],
+    graph:{nodes:[],edges:[]},
+  },{status:503});
+
+  const byObservation=new Map(rows(readingsData).map(r=>[String(r.observation_id),r]));
+  const nodes=rows(observationsData).map(r=>{
     const payload=record(r.payload);
     const attention=provenanceAttention(payload);
     const independentlyVerified=typeof payload.independentlyVerified==='boolean'?payload.independentlyVerified:null;
@@ -81,7 +117,7 @@ export async function GET(){
     };
   });
 
-  const hypothesisRows:HypothesisView[]=rows(hypotheses.data).map((h):HypothesisView=>{
+  const hypothesisRows:HypothesisView[]=rows(hypothesesData).map((h):HypothesisView=>{
     const graphSnapshot=record(h.graph_snapshot);
     const aiInference=record(graphSnapshot.aiInference);
     return {
@@ -102,8 +138,8 @@ export async function GET(){
       },
     };
   });
-  const outcomeRows=rows(outcomes.data);
-  const learningRows=rows(learning.data);
+  const outcomeRows=rows(outcomesData);
+  const learningRows=rows(learningData);
   const outcomeByHypothesis=new Map(outcomeRows.map(o=>[String(o.hypothesis_id),o]));
   const learningByHypothesis=new Map(learningRows.map(l=>[String(l.hypothesis_id),l]));
 
@@ -147,6 +183,7 @@ export async function GET(){
 
   return NextResponse.json({
     ok:errors.length===0,
+    readPlane,
     generatedAt:new Date().toISOString(),
     horizonDays:HORIZON_DAYS,
     nodes,

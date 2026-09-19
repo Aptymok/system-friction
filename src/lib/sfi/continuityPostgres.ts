@@ -193,6 +193,66 @@ export async function readContinuityStudioObjectOwner(objectId: string) {
   return (rows[0] as JsonRecord | undefined) ?? null;
 }
 
+export async function readContinuityPublicWorldBundle(input: { since: string; limit: number }) {
+  const sql = db();
+  const [observations, readings, hypotheses, outcomes, learning] = await Promise.all([
+    sql`
+      select id,source_id,source_family,publisher,observation_kind,title,summary,observed_at,fetched_at,
+             latitude,longitude,country_codes,affected_systems,actors,confidence,source_url,payload
+      from world_source_observations
+      where fetched_at >= ${input.since}::timestamptz
+      order by fetched_at desc
+      limit ${input.limit}
+    `,
+    sql`
+      select observation_id,systemic_friction,interaction_density,friction_gradient,systemic_coherence,
+             tension,pain_map,field_drivers,permissions,trajectory,minimum_viable_perturbation,created_at
+      from world_friction_readings
+      where created_at >= ${input.since}::timestamptz
+      order by created_at desc
+      limit ${input.limit}
+    `,
+    sql`
+      select id,phenomenon_key,graph_snapshot,cutoff_at,statement,predicted_trajectory,expected_signals,
+             contradiction_signals,validation_starts_at,validation_ends_at,initial_confidence,current_confidence,
+             evidence_ids,status,methodology_version,created_at
+      from world_hypotheses
+      where cutoff_at >= ${input.since}::timestamptz
+      order by cutoff_at desc
+      limit ${input.limit}
+    `,
+    sql`
+      select id,hypothesis_id,classification,observed_outcome,directional_accuracy,temporal_accuracy,
+             actor_accuracy,mechanism_accuracy,source_coverage,evidence_ids,evaluator_version,evaluated_at
+      from world_hypothesis_outcomes
+      where evaluated_at >= ${input.since}::timestamptz
+      order by evaluated_at desc
+      limit ${input.limit}
+    `,
+    sql`
+      select id,hypothesis_id,outcome_id,retained_assumptions,rejected_assumptions,missing_variables,
+             graph_adjustments,confidence_before,confidence_after,created_at
+      from world_learning_events
+      where created_at >= ${input.since}::timestamptz
+      order by created_at desc
+      limit ${input.limit}
+    `,
+  ]);
+  return { observations, readings, hypotheses, outcomes, learning };
+}
+
+export async function readContinuityWorldSnapshotTimeline(input: { since: string; limit: number }) {
+  const sql = db();
+  return sql`
+    select observed_at,created_at,source_state,confidence,wsi,nti,ingest_mode,sources
+    from worldspect_snapshots
+    where observed_at >= ${input.since}::timestamptz
+    order by observed_at desc
+    limit ${input.limit}
+  `;
+}
+
+
 export async function recordContinuityEvent(input: {
   eventType: string;
   entityType?: string;

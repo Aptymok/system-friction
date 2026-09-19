@@ -1,5 +1,6 @@
 import 'server-only';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { isSfiContinuityConfigured, readContinuityWorldSnapshotTimeline } from '@/lib/sfi/continuityPostgres';
 
 type Row = Record<string, unknown>;
 type DomainDefinition = { id: string; label: string; domains: string[] };
@@ -97,8 +98,19 @@ export async function readPublicWorldSnapshotTimeline() {
     .gte('observed_at', since)
     .order('observed_at', { ascending: false })
     .limit(MAX_FRAMES);
-  if (result.error) throw new Error(`worldspect_public_timeline_failed:${result.error.message}`);
-  const snapshots = rows(result.data).reverse();
+
+  let readPlane: 'SUPABASE' | 'NEON' = 'SUPABASE';
+  let snapshotData: unknown = result.data;
+  if (result.error) {
+    if (!isSfiContinuityConfigured()) throw new Error(`worldspect_public_timeline_failed:${result.error.message}`);
+    try {
+      snapshotData = await readContinuityWorldSnapshotTimeline({ since, limit: MAX_FRAMES });
+      readPlane = 'NEON';
+    } catch (error) {
+      throw new Error(`worldspect_public_timeline_failed:primary=${result.error.message};neon=${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+  const snapshots = rows(snapshotData).reverse();
 
   const frames: PublicWorldTemporalFrame[] = snapshots.map((snapshot) => {
     const snapshotSources = rows(snapshot.sources);
@@ -115,6 +127,7 @@ export async function readPublicWorldSnapshotTimeline() {
 
   return {
     horizonDays: HORIZON_DAYS,
+    readPlane,
     generatedAt: new Date().toISOString(),
     frames,
     limits: [
