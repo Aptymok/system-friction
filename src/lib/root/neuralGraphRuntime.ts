@@ -66,12 +66,12 @@ async function queryRows(table: string, selectFields: string, orderBy?: { column
     let query = service.from(table).select(selectFields).limit(limit);
     if (orderBy) query = query.order(orderBy.column, { ascending: orderBy.ascending });
     const result = await query;
-    if (result.error) return [];
+    if (result.error) return { rows: [] as Record<string, unknown>[], failed: true };
     const data = result.data as unknown;
-    if (!Array.isArray(data)) return [];
-    return data as Record<string, unknown>[];
+    if (!Array.isArray(data)) return { rows: [] as Record<string, unknown>[], failed: false };
+    return { rows: data as Record<string, unknown>[], failed: false };
   } catch {
-    return [];
+    return { rows: [] as Record<string, unknown>[], failed: true };
   }
 }
 
@@ -107,7 +107,7 @@ export async function readRootNeuralGraphRuntime(): Promise<RootNeuralGraphRunti
       primaryDiagnostic = `supabase_root_graph_read_unavailable; continuity=${error instanceof Error ? error.message : 'continuity_read_failed'}`;
     }
   } else if (nodeCount !== null) {
-    [edgeCount, attractorRows, ejectorRows, scorefrictionObservationCount, scorefrictionVectorCount, worldspectSnapshot] = await Promise.all([
+    const [edgeCountRead, attractorRead, ejectorRead, scoreObservationRead, scoreVectorRead, worldspectRead] = await Promise.all([
       queryCount('graph_edges'),
       queryRows('sfi_attractors', 'attractor_key,label,confidence,persistence,status,updated_at', { column: 'weight', ascending: false }, 5),
       queryRows('sfi_ejectors', 'ejector_key,label,contradiction,decay,status,updated_at', { column: 'weight', ascending: false }, 5),
@@ -130,7 +130,18 @@ export async function readRootNeuralGraphRuntime(): Promise<RootNeuralGraphRunti
       })(),
     ]);
 
-    if ([edgeCount, scorefrictionObservationCount, scorefrictionVectorCount].some((value) => value === null) && isSfiContinuityConfigured()) {
+    edgeCount = edgeCountRead;
+    attractorRows = attractorRead.rows;
+    ejectorRows = ejectorRead.rows;
+    scorefrictionObservationCount = scoreObservationRead;
+    scorefrictionVectorCount = scoreVectorRead;
+    worldspectSnapshot = worldspectRead;
+
+    const primaryPartialRead = [edgeCount, scorefrictionObservationCount, scorefrictionVectorCount].some((value) => value === null)
+      || attractorRead.failed
+      || ejectorRead.failed;
+
+    if (primaryPartialRead && isSfiContinuityConfigured()) {
       primaryDiagnostic = 'supabase_root_graph_partial_read_unavailable';
       try {
         const fallback = await readContinuityRootNeuralGraphRuntime();
@@ -145,7 +156,7 @@ export async function readRootNeuralGraphRuntime(): Promise<RootNeuralGraphRunti
           readPlane = 'NEON';
         }
       } catch (error) {
-        readPlane = 'UNAVAILABLE';
+        readPlane = 'SUPABASE';
         primaryDiagnostic = `supabase_root_graph_partial_read_unavailable; continuity=${error instanceof Error ? error.message : 'continuity_read_failed'}`;
       }
     }
@@ -181,7 +192,7 @@ export async function readRootNeuralGraphRuntime(): Promise<RootNeuralGraphRunti
   let summary = `No hay grafo ROOT disponible en ${storeLabel}.`;
 
   if (hasGraph) {
-    if (!hasEdges || !hasAttractors || !hasEjectors) {
+    if (!hasEdges || !hasAttractors || !hasEjectors || (readPlane === 'SUPABASE' && primaryDiagnostic?.startsWith('supabase_root_graph_partial_read_unavailable'))) {
       status = 'degraded';
       summary = `El grafo ROOT existe en ${storeLabel}, pero no cuenta con suficientes conexiones, atractores o eyectores para una convergencia robusta.`;
     } else {
