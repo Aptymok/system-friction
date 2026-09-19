@@ -96,7 +96,7 @@ export async function GET() {
     const continuityRead = healthRead.readPlane === 'NEON'
     const latest = recent90d[recent90d.length - 1] ?? null
 
-    const alertWarnings = await alertTableWarnings()
+    const alertWarnings = healthRead.readPlane === 'SUPABASE' ? await alertTableWarnings() : []
 
     if (!latest || recent90d.length === 0) {
       return NextResponse.json({
@@ -115,7 +115,7 @@ export async function GET() {
         latest_error: 'worldspect_snapshot_missing',
         warnings: ['no_snapshots', ...alertWarnings],
         read_plane: healthRead.readPlane,
-        continuity_state: continuityRead ? 'DEGRADED_CONTINUITY' : 'PRIMARY',
+        continuity_state: continuityRead ? 'DEGRADED_CONTINUITY' : healthRead.readPlane === 'UNAVAILABLE' ? 'FAILED' : 'PRIMARY',
         primary_diagnostic: healthRead.primaryDiagnostic,
         next_expected_measurement_slot_utc: nextSlotUtc(),
       })
