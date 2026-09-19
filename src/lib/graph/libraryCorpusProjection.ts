@@ -35,6 +35,10 @@ function slug(value: string) {
     .slice(0, 120) || 'unknown';
 }
 
+function documentLabel(doc: LibraryDocRecord) {
+  return doc.title?.trim() || doc.doc_id?.trim() || doc.nodeId?.trim() || doc.id;
+}
+
 function sharedAttributes(extra: Record<string, unknown> = {}) {
   return {
     profile: 'shared',
@@ -118,7 +122,7 @@ export function buildLibraryCorpusGraphProjection() {
     const lineage = doc.contentHash ? [`content-hash:${doc.contentHash}`] : [];
     nodes.set(docNodeId, node({
       nodeId: docNodeId,
-      label: doc.title,
+      label: documentLabel(doc),
       ontologyType: 'document',
       lineage,
       attributes: {
