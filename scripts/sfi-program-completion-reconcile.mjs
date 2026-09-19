@@ -18,7 +18,7 @@ const canonicalStatuses = ['SATISFIED','IN_PROGRESS','PARTIAL','MISSING','EXTERN
 const invalidReceipts = [];
 let promoted = 0;
 
-const SFI08_CERTIFICATION_CONTRACT = 'SFI-SFI08-COMPLETION-CERTIFICATION-BATCH-1.3';
+const SFI08_CERTIFICATION_CONTRACT = 'SFI-SFI08-COMPLETION-CERTIFICATION-BATCH-1.4';
 const SFI08_WORKFLOW_NAME = 'SFI-08 Completion Certification Batch';
 
 function loadSfi08CertificationOverlay() {
@@ -66,11 +66,17 @@ function loadSfi08CertificationOverlay() {
     if (!Array.isArray(certified.proofPaths) || certified.proofPaths.length === 0) {
       throw new Error(`SFI08_CERTIFICATION_PROOF_PATH_REQUIRED:${id}`);
     }
+    if (!Array.isArray(certified.scopePaths) || certified.scopePaths.length === 0) {
+      throw new Error(`SFI08_CERTIFICATION_SCOPE_PATH_REQUIRED:${id}`);
+    }
+    if (JSON.stringify([...certified.scopePaths].sort()) !== JSON.stringify([...certified.proofPaths].sort())) {
+      throw new Error(`SFI08_CERTIFICATION_SCOPE_PROOF_MISMATCH:${id}`);
+    }
     overlay[id] = {
       status: 'SATISFIED',
       requirementHash: expectedHash,
       head: certification.head,
-      scopePaths: [...certification.regressionScope],
+      scopePaths: [...certified.scopePaths],
       evidence: [
         { kind: 'WORKFLOW_RUN', ref: runId },
         { kind: 'GIT_COMMIT', ref: certification.head },
