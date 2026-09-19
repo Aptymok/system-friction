@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import type { CSSProperties } from 'react';
 import type { SfiEditorialPublication } from '@/lib/publications/editorialContent';
 import type { SfiPublicResearchLanding } from '@/lib/research/publicResearchLanding';
 
@@ -21,7 +22,7 @@ function TemporalDial({ month }: { month: number }) {
       return <span
         className={`tnDialMonth ${index + 1 === normalized ? 'isActive' : ''}`}
         key={label}
-        style={{ '--angle': `${angle}deg` } as React.CSSProperties}
+        style={{ '--angle': `${angle}deg` } as CSSProperties}
       >{label}</span>;
     })}
   </div>;
