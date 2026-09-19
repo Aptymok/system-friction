@@ -23,6 +23,7 @@ const readiness = read('src/lib/root/closure/readInstitutionalReadiness.ts');
 const proof = read('src/lib/root/closure/fullCycleVerification.ts');
 const continuityReseed = read('supabase/migrations/20260909154500_continuity_state_singleton_reseed.sql');
 const platformMetricRls = read('supabase/migrations/20260919022500_enable_platform_metric_snapshots_rls.sql');
+const caseTriggerHardening = read('supabase/migrations/20260919023000_harden_case_trigger_functions.sql');
 
 const WORLD_LONGITUDINAL_TABLES = [
   'world_source_observations',
@@ -125,6 +126,12 @@ assert.doesNotMatch(reset, /deleteAllRowsByKnownColumns/);
 
 assert.match(platformMetricRls, /alter table public\.platform_metric_snapshots\s+enable row level security/i);
 assert.doesNotMatch(platformMetricRls, /create\s+policy/i, 'internal table must remain fail-closed for client roles; no anonymous/authenticated policy is authorized');
+for (const fn of ['sfi_seed_tenant_owner','sfi_case_platform_touch_updated_at','sfi_case_action_touch_updated_at']) {
+  assert.match(caseTriggerHardening, new RegExp(`revoke execute on function public\\.${fn}\\(\\) from public`, 'i'), `PUBLIC EXECUTE must be revoked from internal trigger function: ${fn}`);
+}
+assert.match(caseTriggerHardening, /alter function public\.sfi_case_platform_touch_updated_at\(\)\s+set search_path = pg_catalog/i);
+assert.match(caseTriggerHardening, /alter function public\.sfi_case_action_touch_updated_at\(\)\s+set search_path = pg_catalog/i);
+assert.doesNotMatch(caseTriggerHardening, /sfi_tenant_can_(read|write)/, 'RLS helper execution contract must not be altered by trigger hardening');
 
 assert.match(continuityReseed, /SFI-CONTINUITY-STATE-SINGLETON-RESEED-1\.0/);
 assert.match(continuityReseed, /after truncate on public\.sfi_continuity_state/i);
