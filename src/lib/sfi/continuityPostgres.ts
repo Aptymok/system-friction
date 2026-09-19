@@ -144,6 +144,55 @@ export async function readContinuityProfileByEmail(email: string) {
   return (rows[0] as JsonRecord | undefined) ?? null;
 }
 
+export async function readContinuityInstitutionalAccountGrantByEmail(email: string) {
+  const sql = db();
+  const rows = await sql`
+    select user_id, status
+      from sfi_account_access_grants
+     where lower(email) = lower(${email})
+     limit 1
+  `;
+  return (rows[0] as JsonRecord | undefined) ?? null;
+}
+
+export async function readContinuityMemberWorkspaceCounts(userId: string) {
+  const sql = db();
+  const rows = await sql`
+    select
+      (select count(*)::int from field_cases where owner_id = ${userId}::uuid and deleted_at is null) as case_count,
+      (select count(*)::int from studio_objects where owner_id = ${userId}::uuid) as object_count,
+      (select count(*)::int from field_returns where owner_id = ${userId}::uuid and returned_at is null) as pending_return_count
+  `;
+  const row = (rows[0] as JsonRecord | undefined) ?? {};
+  return {
+    caseCount: Number(row.case_count ?? 0),
+    objectCount: Number(row.object_count ?? 0),
+    pendingReturnCount: Number(row.pending_return_count ?? 0),
+  };
+}
+
+export async function readContinuityFieldCaseOwner(caseId: string) {
+  const sql = db();
+  const rows = await sql`
+    select id, owner_id
+      from field_cases
+     where id = ${caseId}::uuid
+     limit 1
+  `;
+  return (rows[0] as JsonRecord | undefined) ?? null;
+}
+
+export async function readContinuityStudioObjectOwner(objectId: string) {
+  const sql = db();
+  const rows = await sql`
+    select id, owner_id
+      from studio_objects
+     where id = ${objectId}::uuid
+     limit 1
+  `;
+  return (rows[0] as JsonRecord | undefined) ?? null;
+}
+
 export async function recordContinuityEvent(input: {
   eventType: string;
   entityType?: string;
