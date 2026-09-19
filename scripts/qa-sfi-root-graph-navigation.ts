@@ -28,6 +28,9 @@ const scenePage = read('src/app/[scene]/page.tsx');
 const humanReport = read('src/lib/reports/humanReport.ts');
 const neuralGraphRuntime = read('src/lib/root/neuralGraphRuntime.ts');
 const continuityStore = read('src/lib/sfi/continuityPostgres.ts');
+const canonicalGraphRuntime = read('src/lib/graph/canonicalGraph.ts');
+const neuralGraphPage = read('src/app/root/neural-graph/page.tsx');
+const neuralGraphView = read('src/components/sfi/RootNeuralGraphView.tsx');
 
 check('legacy graph node storage remains compatible', reconcile.includes("LEGACY_NODE_STORAGE_TYPE = 'INF'") && !reconcile.includes("node_type: 'SRC'") && !reconcile.includes("node_type: 'ATR'"));
 check('legacy graph edge storage remains compatible', reconcile.includes("LEGACY_EDGE_STORAGE_TYPE = 'structural_inferred'") && reconcile.includes('relation_type: LEGACY_EDGE_STORAGE_TYPE'));
@@ -71,6 +74,11 @@ check('ROOT graph runtime exposes active read plane and diagnostic', neuralGraph
 check('Neon ROOT graph fallback is one aggregate continuity query', continuityStore.includes('readContinuityRootNeuralGraphRuntime') && continuityStore.includes('(select count(*)::int from graph_nodes)') && continuityStore.includes('top_attractors') && continuityStore.includes('top_ejectors'));
 check('ROOT graph row-read failures remain distinguishable from legitimate empty rows', neuralGraphRuntime.includes("failed: true") && neuralGraphRuntime.includes("attractorRead.failed") && neuralGraphRuntime.includes("ejectorRead.failed"));
 check('partial primary graph data keeps Supabase provenance if Neon fallback fails', neuralGraphRuntime.includes("readPlane = 'SUPABASE'") && neuralGraphRuntime.includes("supabase_root_graph_partial_read_unavailable; continuity="));
+check('canonical graph full-state read reuses one Neon aggregate fallback', canonicalGraphRuntime.includes('readContinuityCanonicalGraphRows') && continuityStore.includes('readContinuityCanonicalGraphRows') && continuityStore.includes('jsonb_agg(row_to_json(n)') && continuityStore.includes('jsonb_agg(row_to_json(e)'));
+check('canonical graph marks primary failure when continuity served', canonicalGraphRuntime.includes('primary_graph_read_unavailable_continuity_served') && canonicalGraphRuntime.includes('continuityServed'));
+check('ROOT Neural Graph page is founder-gated and reads existing canonical owners', neuralGraphPage.includes("requireFounderPage('/root/neural-graph')") && neuralGraphPage.includes("readCanonicalGraphState('sfi')") && neuralGraphPage.includes('readRootNeuralGraphRuntime()'));
+check('ROOT Neural Graph view renders topology without owning persistence', neuralGraphView.includes('SFI-ROOT-NEURAL-GRAPH-1.0') && neuralGraphView.includes('RELACIÓN ≠ CAUSALIDAD') && neuralGraphView.includes('<svg') && !neuralGraphView.includes("from('graph_nodes')") && !neuralGraphView.includes("from('graph_edges')"));
+check('canonical navigation exposes Neural Graph without creating a new scene', shellUi.includes("href:'/root/neural-graph'") && shellUi.includes("label:'NEURAL GRAPH'") && !scenes.includes("key:'neural-graph'"));
 
 const failed = checks.filter((item) => !item.ok);
 for (const item of checks) console.log(`${item.ok ? 'PASS' : 'FAIL'} · ${item.name}`);
