@@ -50,10 +50,11 @@ assert.ok(!worldCycle.includes(".gt('observed_at', hypothesis.cutoff_at)"), 'wor
 assert.ok(worldCycle.includes('governed AI comparison against post-cutoff persisted source records'), 'world_calibration_must_be_governed_ai_not_keyword_overlap');
 
 for (const token of [
-  "from('worldspect_snapshots')",
+  'getWorldSpectPublicHistoryRead',
   'readPublicWorldSnapshotTimeline',
   'VECTOR_DEFINITIONS',
 ]) assert.ok(publicTimeline.includes(token), `public_timeline_source_contract_missing:${token}`);
+assert.ok(!publicTimeline.includes("from('worldspect_snapshots')"), 'public_timeline_must_not_own_persistence_query');
 assert.match(
   publicTimeline,
   /Historical frames are reconstructed only from[\s\S]*persisted WorldSpect snapshots/,
