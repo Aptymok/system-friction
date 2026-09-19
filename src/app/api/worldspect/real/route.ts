@@ -19,13 +19,13 @@ export async function GET() {
     return apiOk(
       snapshotRowToApiData(latest),
       latestRead.primaryDiagnostic ? ['primary_read_unavailable_continuity_served'] : undefined,
-      { readPlane: latestRead.readPlane, primaryDiagnostic: latestRead.primaryDiagnostic },
+      { readPlane: latestRead.readPlane, primaryDiagnostic: latestRead.primaryDiagnostic, readCache: latestRead.cache },
     );
   }
 
   return apiOk<WorldSpectResponse>(
     missingWorldSpectResponse(),
     ['worldspect_snapshot_missing'],
-    { readPlane: latestRead.readPlane, primaryDiagnostic: latestRead.primaryDiagnostic },
+    { readPlane: latestRead.readPlane, primaryDiagnostic: latestRead.primaryDiagnostic, readCache: latestRead.cache },
   );
 }
