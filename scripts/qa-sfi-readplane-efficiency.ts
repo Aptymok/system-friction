@@ -45,6 +45,7 @@ for (const [surface, source] of [
 ] as const) {
   assert.doesNotMatch(source, /Vercel-CDN-Cache-Control/, `${surface} must not depend on the previously falsified provider-specific header`);
   assert.match(source, /Cache-Control': 'public, max-age=0, s-maxage=30, must-revalidate'/, `${surface} must use the documented shared-cache directive while keeping browser max-age at zero`);
+  assert.doesNotMatch(source, /export const dynamic = ['"]force-dynamic['"]/, `${surface} must not force per-request dynamic rendering because it defeats shared route/data caching`);
 }
 
 async function main() {
