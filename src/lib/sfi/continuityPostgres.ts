@@ -387,7 +387,7 @@ export async function readContinuityCanonicalGraphRows() {
       coalesce((
         select jsonb_agg(row_to_json(n) order by n.created_at asc)
           from (
-            select *
+            select id,node_id,node_key,label,node_type,ontology_type,origin,attributes,lineage,created_at,updated_at
               from graph_nodes
              order by created_at asc
           ) n
@@ -395,7 +395,8 @@ export async function readContinuityCanonicalGraphRows() {
       coalesce((
         select jsonb_agg(row_to_json(e) order by e.created_at asc)
           from (
-            select *
+            select id,edge_id,source_node_id,target_node_id,source_node_key,target_node_key,
+                   relation,relation_type,weight,w_ij,attributes,lineage,created_at,updated_at
               from graph_edges
              order by created_at asc
           ) e
