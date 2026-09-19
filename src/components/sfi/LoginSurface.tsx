@@ -3,8 +3,14 @@ import { loginAction } from '@/lib/auth/actions';
 function readableAuthError(error?: string) {
   if (!error) return '';
   const normalized = error.toLowerCase();
-  if (normalized.includes('invalid') || normalized.includes('credential') || normalized.includes('password')) {
-    return 'El correo o la contraseña no coinciden con una cuenta de acceso.';
+  if (
+    normalized.includes('invalid') ||
+    normalized.includes('credential') ||
+    normalized.includes('password') ||
+    normalized.includes('not found') ||
+    normalized.includes('user not found')
+  ) {
+    return 'El correo o la contraseña no son válidos.';
   }
   if (normalized.includes('continuity_profile_missing')) {
     return 'La identidad fue reconocida, pero no existe un perfil institucional de continuidad asociado.';
