@@ -186,6 +186,20 @@
         "Merged PR #545 provides the next production falsation surface through x-vercel-cache MISS/HIT."
       ],
       "reason": "Archive the consumed test branch. Its evidence is persisted in #539 and the next assay is attached to the merged current-main CDN implementation."
+    },
+    "c46917e90dfbce8c": {
+      "decision": "ARCHIVED",
+      "branches": [
+        "feat/539-worldspect-read-bundle-20260919"
+      ],
+      "evidence": [
+        "Branch contains a useful cross-consumer WorldSpect bundle prototype but has no open PR and predates merged PR #545 CDN response caching.",
+        "Prototype caches its bundle error response at the CDN and therefore must not be merged unchanged.",
+        "Its semantic trend derivation preserves the existing full-row aggregation approach, so the architectural idea is retained for a fresh current-main slice after production CDN cache RETURN.",
+        "Issue #539 remains open and explicitly tracks cross-consumer/cache reuse; Git history preserves this implementation provenance.",
+        "Fresh convergence audit on PR #548 recalculated this branch to reviewKey c46917e90dfbce8c after one additional assurance commit; disposition is unchanged."
+      ],
+      "reason": "Archive prototype branch as design provenance. Reimplement the valid bundle-owner idea fresh on current main only after the bounded CDN layer is measured in production; do not keep a live divergent implementation."
     }
   }
 }
