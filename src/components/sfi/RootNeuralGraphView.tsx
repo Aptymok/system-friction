@@ -25,21 +25,11 @@ type GraphEdge = {
 type GraphPayload = {
   sourceState: 'observed' | 'degraded' | 'missing';
   degradedReason: string | null;
+  readPlane: 'SUPABASE' | 'NEON' | 'PROJECTION' | 'UNAVAILABLE';
+  primaryDiagnostic: string | null;
   loadedAt: string;
   nodes: GraphNode[];
   edges: GraphEdge[];
-};
-
-type RuntimePayload = {
-  nodeCount: number;
-  edgeCount: number;
-  status: 'operational' | 'degraded' | 'latent' | 'missing';
-  summary: string;
-  readPlane: 'SUPABASE' | 'NEON' | 'UNAVAILABLE';
-  primaryDiagnostic: string | null;
-  latestWorldSpectObservedAt: string | null;
-  scorefrictionObservationCount: number | null;
-  scorefrictionVectorCount: number | null;
 };
 
 type Position = { x: number; y: number };
@@ -98,13 +88,7 @@ function buildPositions(nodes: GraphNode[]) {
   return { positions, types, width, height };
 }
 
-export function RootNeuralGraphView({
-  graph,
-  runtime,
-}: {
-  graph: GraphPayload;
-  runtime: RuntimePayload;
-}) {
+export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
   const [query, setQuery] = useState('');
   const [activeType, setActiveType] = useState('ALL');
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -159,8 +143,9 @@ export function RootNeuralGraphView({
     return new Set(candidates);
   }, [degree, selectedId, visibleNodes]);
 
-  const continuity = runtime.readPlane === 'NEON';
+  const continuity = graph.readPlane === 'NEON';
   const graphObserved = graph.sourceState === 'observed';
+  const typeCount = allTypes.length;
 
   return (
     <main className="neuralGraphShell" data-neural-graph-contract="SFI-ROOT-NEURAL-GRAPH-1.0">
@@ -180,11 +165,11 @@ export function RootNeuralGraphView({
       </header>
 
       <section className="neuralGraphPulse" aria-label="Estado del Neural Graph">
-        <article><span>NODOS</span><strong>{graph.nodes.length}</strong><small>{runtime.nodeCount} persistidos observados</small></article>
-        <article><span>RELACIONES</span><strong>{graph.edges.length}</strong><small>{runtime.edgeCount} persistidas observadas</small></article>
-        <article data-state={runtime.readPlane}><span>READ PLANE</span><strong>{runtime.readPlane}</strong><small>{continuity ? 'Continuidad activa' : 'Primario activo'}</small></article>
-        <article data-state={graph.sourceState}><span>GRAPH STATE</span><strong>{graph.sourceState.toUpperCase()}</strong><small>{runtime.status.toUpperCase()}</small></article>
-        <article><span>WORLDSPECT</span><strong>{runtime.latestWorldSpectObservedAt ? 'OBSERVED' : 'MISSING'}</strong><small>{date(runtime.latestWorldSpectObservedAt)}</small></article>
+        <article><span>NODOS</span><strong>{graph.nodes.length}</strong><small>persistidos + proyección canónica</small></article>
+        <article><span>RELACIONES</span><strong>{graph.edges.length}</strong><small>aristas visibles en perfil SFI</small></article>
+        <article data-state={graph.readPlane}><span>READ PLANE</span><strong>{graph.readPlane}</strong><small>{continuity ? 'Continuidad activa' : graph.readPlane === 'SUPABASE' ? 'Primario activo' : 'Proyección / no disponible'}</small></article>
+        <article data-state={graph.sourceState}><span>GRAPH STATE</span><strong>{graph.sourceState.toUpperCase()}</strong><small>{graphObserved ? 'persisted graph observed' : 'degraded projection'}</small></article>
+        <article><span>ONTOLOGY TYPES</span><strong>{typeCount}</strong><small>{allTypes.slice(0, 3).join(' · ') || 'MISSING'}</small></article>
       </section>
 
       <section className="neuralGraphBoundary">
@@ -321,11 +306,11 @@ export function RootNeuralGraphView({
       <footer className="neuralGraphFooter">
         <div>
           <span>RUNTIME</span>
-          <p>{runtime.summary}</p>
+          <p>{graphObserved ? 'Grafo canónico persistido disponible.' : 'Vista degradada: la proyección documental conserva observabilidad sin fingir persistencia.'}</p>
         </div>
         <div>
           <span>PRIMARY DIAGNOSTIC</span>
-          <p>{runtime.primaryDiagnostic ?? 'PRIMARY READ AVAILABLE'}</p>
+          <p>{graph.primaryDiagnostic ?? 'PRIMARY READ AVAILABLE'}</p>
         </div>
         <div>
           <span>CANONICAL GRAPH</span>
