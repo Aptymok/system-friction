@@ -3,7 +3,7 @@ import { continuityDatabase } from '@/lib/sfi/continuityPostgres';
 
 type StagedCredentialMigrationResult =
   | { status: 'UPGRADED' }
-  | { status: 'NOT_staged' }
+  | { status: 'NOT_STAGED' }
   | { status: 'INVALID_CREDENTIALS' }
   | { status: 'MISSING_CREDENTIAL' }
   | { status: 'RACE_LOST' };
@@ -40,12 +40,12 @@ export async function hashBetterAuthPassword(password: string) {
 }
 
 /**
- * One-time continuity bridge for identities migrated from Supabase Auth without
+ * One-time continuity credential migration for identities imported without
  * a native Better Auth password credential.
  *
  * The submitted password is verified by pgcrypto inside Neon. On success the
  * credential is atomically upgraded to Better Auth scrypt format. Plaintext is
- * never persisted and Supabase is not called at runtime.
+ * never persisted and no upstream identity provider is called at runtime.
  */
 export async function migrateStagedNeonPasswordCredential(
   email: string,
