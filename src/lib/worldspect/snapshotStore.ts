@@ -115,10 +115,11 @@ function normalizeWorldSpectSnapshotRow(data: Record<string, any>): WorldSpectSn
 }
 
 async function loadLatestWorldSpectSnapshotRead() {
+  const sourceReadAt = new Date().toISOString();
   const service = createServiceSupabaseClient();
   const { data, error } = await executeAbortableQuery(service.from('worldspect_snapshots').select('*').order('observed_at', { ascending: false }).limit(1).maybeSingle());
   if (!error && data) {
-    return { data: normalizeWorldSpectSnapshotRow(data), readPlane: 'SUPABASE' as const, primaryDiagnostic: null };
+    return { data: normalizeWorldSpectSnapshotRow(data), readPlane: 'SUPABASE' as const, primaryDiagnostic: null, sourceReadAt };
   }
   if (error && isSfiContinuityConfigured()) {
     try {
@@ -128,6 +129,7 @@ async function loadLatestWorldSpectSnapshotRead() {
           data: normalizeWorldSpectSnapshotRow(fallback),
           readPlane: 'NEON' as const,
           primaryDiagnostic: error.message || 'supabase_worldspect_latest_read_failed',
+          sourceReadAt,
         };
       }
     } catch (continuityError) {
@@ -135,10 +137,11 @@ async function loadLatestWorldSpectSnapshotRead() {
         data: null,
         readPlane: 'UNAVAILABLE' as const,
         primaryDiagnostic: `${error.message || 'supabase_worldspect_latest_read_failed'}; continuity=${continuityError instanceof Error ? continuityError.message : 'continuity_read_failed'}`,
+        sourceReadAt,
       };
     }
   }
-  return { data: null, readPlane: error ? 'UNAVAILABLE' as const : 'SUPABASE' as const, primaryDiagnostic: error?.message ?? null };
+  return { data: null, readPlane: error ? 'UNAVAILABLE' as const : 'SUPABASE' as const, primaryDiagnostic: error?.message ?? null, sourceReadAt };
 }
 
 export async function getWorldSpectSnapshotAtOrBefore(observedAt: string) {
@@ -162,6 +165,7 @@ export async function getWorldSpectSnapshotAtOrBefore(observedAt: string) {
 }
 
 async function loadRecentWorldSpectSnapshotsRead(days: number, ingestMode: RecentWorldSpectIngestMode, limit: number) {
+  const sourceReadAt = new Date().toISOString();
   const service = createServiceSupabaseClient();
   const observedSince = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
   let query = service.from('worldspect_snapshots').select('*').gte('observed_at', observedSince);
@@ -172,6 +176,7 @@ async function loadRecentWorldSpectSnapshotsRead(days: number, ingestMode: Recen
       data: data.slice().reverse().map((row) => normalizeWorldSpectSnapshotRow(row)),
       readPlane: 'SUPABASE' as const,
       primaryDiagnostic: null,
+      sourceReadAt,
     };
   }
   if (error && isSfiContinuityConfigured()) {
@@ -185,16 +190,18 @@ async function loadRecentWorldSpectSnapshotsRead(days: number, ingestMode: Recen
         data: Array.isArray(fallback) ? fallback.map((row) => normalizeWorldSpectSnapshotRow(row as Record<string, any>)) : [],
         readPlane: 'NEON' as const,
         primaryDiagnostic: error.message || 'supabase_worldspect_recent_read_failed',
+        sourceReadAt,
       };
     } catch (continuityError) {
       return {
         data: [] as WorldSpectSnapshotRow[],
         readPlane: 'UNAVAILABLE' as const,
         primaryDiagnostic: `${error.message || 'supabase_worldspect_recent_read_failed'}; continuity=${continuityError instanceof Error ? continuityError.message : 'continuity_read_failed'}`,
+        sourceReadAt,
       };
     }
   }
-  return { data: [] as WorldSpectSnapshotRow[], readPlane: error ? 'UNAVAILABLE' as const : 'SUPABASE' as const, primaryDiagnostic: error?.message ?? null };
+  return { data: [] as WorldSpectSnapshotRow[], readPlane: error ? 'UNAVAILABLE' as const : 'SUPABASE' as const, primaryDiagnostic: error?.message ?? null, sourceReadAt };
 }
 
 const cachedLatestWorldSpectSnapshotRead = unstable_cache(
@@ -223,7 +230,8 @@ const recentReadCoalescer = createReadPlaneCoalescer({
 
 export async function getLatestWorldSpectSnapshotRead() {
   const read = await latestReadCoalescer.read();
-  return { ...read.value, cache: read.cache };
+  const { sourceReadAt, ...value } = read.value;
+  return { ...value, cache: { ...read.cache, source_read_at: sourceReadAt } };
 }
 
 export async function getLatestWorldSpectSnapshot() {
@@ -235,7 +243,8 @@ export async function getRecentWorldSpectSnapshotsRead(input?: { days?: number; 
   const ingestMode = input?.ingestMode ?? 'all';
   const limit = Number.isFinite(input?.limit) ? Math.max(1, Number(input?.limit)) : 120;
   const read = await recentReadCoalescer.read(days, ingestMode, limit);
-  return { ...read.value, cache: read.cache };
+  const { sourceReadAt, ...value } = read.value;
+  return { ...value, cache: { ...read.cache, source_read_at: sourceReadAt } };
 }
 
 export async function getRecentWorldSpectSnapshots(input?: { days?: number; ingestMode?: RecentWorldSpectIngestMode; limit?: number }) {
