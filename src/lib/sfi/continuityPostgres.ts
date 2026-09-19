@@ -390,7 +390,11 @@ export async function readContinuityCanonicalGraphRows() {
             (to_jsonb(n) - 'payload' - 'q_n' - 'd_n' - 'co_n' - 'u_n' - 'epistemic_class' - 'confidence')
             || jsonb_build_object(
               'attributes',
-              coalesce(nullif(to_jsonb(n)->'attributes', '{}'::jsonb), to_jsonb(n)->'payload', '{}'::jsonb)
+              coalesce(
+                nullif(nullif(to_jsonb(n)->'attributes', 'null'::jsonb), '{}'::jsonb),
+                nullif(to_jsonb(n)->'payload', 'null'::jsonb),
+                '{}'::jsonb
+              )
             )
           )
           order by n.created_at asc
@@ -403,7 +407,17 @@ export async function readContinuityCanonicalGraphRows() {
             (to_jsonb(e) - 'payload' - 'evidence_ids' - 'confidence')
             || jsonb_build_object(
               'attributes',
-              coalesce(nullif(to_jsonb(e)->'attributes', '{}'::jsonb), to_jsonb(e)->'payload', '{}'::jsonb)
+              coalesce(
+                nullif(nullif(to_jsonb(e)->'attributes', 'null'::jsonb), '{}'::jsonb),
+                nullif(to_jsonb(e)->'payload', 'null'::jsonb),
+                '{}'::jsonb
+              ),
+              'lineage',
+              coalesce(
+                nullif(nullif(to_jsonb(e)->'lineage', 'null'::jsonb), '[]'::jsonb),
+                nullif(nullif(to_jsonb(e)->'evidence_ids', 'null'::jsonb), '[]'::jsonb),
+                '[]'::jsonb
+              )
             )
           )
           order by e.created_at asc
