@@ -188,6 +188,11 @@ function edgeFromRow(row: Row, nodeIdByStoredId: Map<string, string>): Canonical
   const sourceNodeId = rawSourceNodeId ? nodeIdByStoredId.get(rawSourceNodeId) ?? rawSourceNodeId : '';
   const targetNodeId = rawTargetNodeId ? nodeIdByStoredId.get(rawTargetNodeId) ?? rawTargetNodeId : '';
   const weightValue = row.w_ij ?? row.weight ?? 0;
+  const lineageSource = Array.isArray(row.lineage)
+    ? row.lineage
+    : Array.isArray(row.evidence_ids)
+      ? row.evidence_ids
+      : [];
 
   return {
     edgeId: stringValue(row.edge_id, row.edge_key, row.key, row.id) ?? `${sourceNodeId}:${targetNodeId}:${relation}`,
@@ -198,7 +203,7 @@ function edgeFromRow(row: Row, nodeIdByStoredId: Map<string, string>): Canonical
     profile: isGraphProfile(row.profile) ? row.profile : profileFromAttributes(attributes),
     origin: stringValue(row.origin, attributes.origin) ?? 'database',
     provenance: stringValue(row.provenance, attributes.provenance) ?? 'graph_edges',
-    lineage: Array.isArray(row.lineage) ? row.lineage.filter((item): item is string => typeof item === 'string') : [],
+    lineage: lineageSource.filter((item): item is string => typeof item === 'string'),
     attributes,
     createdAt,
     updatedAt,
