@@ -20,6 +20,8 @@ type GraphEdge = {
   relation: string;
   weight: number;
   origin: string;
+  provenance: string;
+  lineage: string[];
 };
 
 type GraphPayload = {
@@ -59,7 +61,9 @@ function short(value: string, max = 34) {
 function date(value: string | null) {
   if (!value) return 'MISSING';
   const parsed = new Date(value);
-  return Number.isNaN(parsed.valueOf()) ? value : parsed.toLocaleString('es-MX');
+  return Number.isNaN(parsed.valueOf())
+    ? value
+    : parsed.toLocaleString('es-MX', { timeZone: 'America/Mexico_City', hour12: false });
 }
 
 function buildPositions(nodes: GraphNode[]) {
@@ -292,6 +296,7 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
                     >
                       <small>{outbound ? '→' : '←'} {edge.relation}</small>
                       <strong>{other?.label ?? (outbound ? edge.target : edge.source)}</strong>
+                      <small>{edge.origin} · {edge.provenance}{edge.lineage.length ? ` · lineage ${edge.lineage.length}` : ''}</small>
                     </button>
                   );
                 }) : <p>Sin relaciones visibles.</p>}
