@@ -38,14 +38,24 @@ function record(value: unknown): Record<string, unknown> {
 
 async function resolvePostLoginPath(userId: string, requestedNext: string) {
   if (requestedNext !== '/entry') return requestedNext
-  const service = createServiceSupabaseClient()
-  const primary = await service
-    .from('profiles')
-    .select('role,module_access')
-    .eq('user_id', userId)
-    .maybeSingle()
-  const continuity = primary.error ? await readContinuityProfile(userId).catch(() => null) : null
-  const profile = primary.data ?? continuity
+
+  let primaryProfile: { role?: unknown; module_access?: unknown } | null = null
+  try {
+    const service = createServiceSupabaseClient()
+    const primary = await service
+      .from('profiles')
+      .select('role,module_access')
+      .eq('user_id', userId)
+      .maybeSingle()
+    if (!primary.error) primaryProfile = primary.data
+  } catch {
+    primaryProfile = null
+  }
+
+  const continuityProfile = primaryProfile
+    ? null
+    : await readContinuityProfile(userId).catch(() => null)
+  const profile = primaryProfile ?? continuityProfile
   const role = typeof profile?.role === 'string' ? profile.role : null
   const access = record(profile?.module_access)
   const rootObserverRole = role === 'root' || role === 'system' || role === 'observer' || role === 'controller'
