@@ -17,6 +17,21 @@ export type SfiEditorialPublicationRendition = {
   state: 'IDENTIFIED' | 'PUBLIC';
 };
 
+export type SfiEditorialTemporalProfile = {
+  code: string;
+  coordinate: string;
+  year: number;
+  month: number;
+  phase: 'BASELINE' | 'ACTIVE' | 'CLOSURE';
+  state: 'OPEN' | 'ACTIVE' | 'CLOSED';
+  returnState: 'OPEN' | 'PENDING' | 'CLOSED';
+  cutoffLabel: string;
+  scopeLabel: string;
+  authorityLabel: string;
+  nextAuthority: string;
+  followUpPrompts: readonly string[];
+};
+
 export type SfiEditorialObservationKind =
   | 'SIGNAL'
   | 'TRAJECTORY'
@@ -48,6 +63,7 @@ export type SfiEditorialPublication = {
   cadence: readonly { interval: string; name: string; scope: string }[];
   domains: readonly string[];
   epistemicBoundary: readonly string[];
+  temporalProfile?: SfiEditorialTemporalProfile | null;
 };
 
 const SHARED_OBSERVATION_BOUNDARY = Object.freeze([
@@ -63,8 +79,8 @@ const SFI_NOTAS_TEMPORALES_V1_RENDITIONS: readonly SfiEditorialPublicationRendit
     filename: 'SFI_Notas_Temporales_Mexico_Septiembre_2026_FINAL.pdf',
     byteLength: 23085591,
     sha256: 'bbc7c9df27b6f7295f9919a707f5adab3f25ddd44fee194812c8d38259135103',
-    publicUrl: null,
-    state: 'IDENTIFIED',
+    publicUrl: 'https://drive.google.com/file/d/1LFQkhEtcilXQ6IgeUwIflDcj-MAJVSvE/view?usp=drivesdk',
+    state: 'PUBLIC',
   },
 ]);
 
@@ -86,6 +102,26 @@ export const SFI_NOTAS_TEMPORALES_V1: SfiEditorialPublication = Object.freeze({
   coverImage: '/images/editorial/notas-temporales-septiembre-2026.webp',
   contentState: 'MATERIALIZED',
   renditions: SFI_NOTAS_TEMPORALES_V1_RENDITIONS,
+  temporalProfile: Object.freeze({
+    code: 'SFI-TN-M / 2026-09',
+    coordinate: '2026 / 09',
+    year: 2026,
+    month: 9,
+    phase: 'ACTIVE',
+    state: 'ACTIVE',
+    returnState: 'OPEN',
+    cutoffLabel: '12 SEP 2026',
+    scopeLabel: 'MÉXICO · CORTE MENSUAL',
+    authorityLabel: 'SFI · PUBLICACIÓN INSTITUCIONAL',
+    nextAuthority: 'RETURN / OPEN',
+    followUpPrompts: Object.freeze([
+      'Qué cambió desde el corte de septiembre.',
+      'Qué señales recibieron evidencia suficiente para cambiar de estado.',
+      'Qué contradicciones permanecen abiertas o requieren corrección.',
+      'Qué hipótesis expiraron o perdieron soporte observable.',
+      'Qué resultados deben regresar al siguiente corte mediante RETURN.',
+    ]),
+  }),
   sections: Object.freeze([
     {
       id: 'que-son',
