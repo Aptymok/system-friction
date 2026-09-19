@@ -11,6 +11,7 @@ const activate = read('src/app/api/account/activate/route.ts');
 const accessServer = read('src/lib/system/access/server.ts');
 const productionBackend = read('src/lib/server/productionBackend.ts');
 const login = read('src/components/sfi/LoginSurface.tsx');
+const authActions = read('src/lib/auth/actions.ts');
 
 assert.match(migration, /sfi_account_access_grants/);
 assert.match(migration, /INSTITUTIONAL_OBSERVER/);
@@ -81,6 +82,13 @@ assert.match(productionBackend, /observerRoleAuthorized/);
 assert.match(productionBackend, /Boolean\(institutionalMember\) \|\| activeInstitutionalAccount/);
 
 assert.match(login, /\/forgot/);
+const primaryLogin = authActions.indexOf('supabase.auth.signInWithPassword');
+const continuityLogin = authActions.indexOf('await signInWithNeonAuth(parsed.data.email');
+assert.ok(primaryLogin >= 0, 'login must attempt Supabase Auth as the primary identity provider');
+assert.ok(continuityLogin > primaryLogin, 'Neon Auth must remain a secondary continuity login path');
+assert.match(authActions, /error=invalid_credentials/, 'provider-specific credential failures must collapse to a generic login error');
+assert.doesNotMatch(authActions, /encodeURIComponent\(neon\.message\)/, 'raw Neon credential errors must not leak account existence');
+assert.match(login, /correo o la contraseña no son válidos/i, 'login UI must not claim that a specific account does or does not exist');
 assert.equal(existsSync('src/app/signup/page.tsx'), false, 'public signup surface must remain absent');
 
 console.log(JSON.stringify({
