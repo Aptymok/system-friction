@@ -69,6 +69,8 @@ check('deleted sovereign workspace is not required for graph truth', !shellUi.in
 check('ROOT graph runtime uses one primary sentinel before Neon fallback', neuralGraphRuntime.includes("let nodeCount = await queryCount('graph_nodes')") && neuralGraphRuntime.includes("if (nodeCount === null && isSfiContinuityConfigured())"));
 check('ROOT graph runtime exposes active read plane and diagnostic', neuralGraphRuntime.includes("readPlane: 'SUPABASE' | 'NEON' | 'UNAVAILABLE'") && neuralGraphRuntime.includes('primaryDiagnostic'));
 check('Neon ROOT graph fallback is one aggregate continuity query', continuityStore.includes('readContinuityRootNeuralGraphRuntime') && continuityStore.includes('(select count(*)::int from graph_nodes)') && continuityStore.includes('top_attractors') && continuityStore.includes('top_ejectors'));
+check('ROOT graph row-read failures remain distinguishable from legitimate empty rows', neuralGraphRuntime.includes("failed: true") && neuralGraphRuntime.includes("attractorRead.failed") && neuralGraphRuntime.includes("ejectorRead.failed"));
+check('partial primary graph data keeps Supabase provenance if Neon fallback fails', neuralGraphRuntime.includes("readPlane = 'SUPABASE'") && neuralGraphRuntime.includes("supabase_root_graph_partial_read_unavailable; continuity="));
 
 const failed = checks.filter((item) => !item.ok);
 for (const item of checks) console.log(`${item.ok ? 'PASS' : 'FAIL'} · ${item.name}`);
