@@ -133,7 +133,7 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
   const selected = selectedId ? nodeById.get(selectedId) ?? null : null;
   const selectedEdges = useMemo(
     () => selected
-      ? graph.edges.filter((edge) => edge.source === selected.id || edge.target === selected.id).slice(0, 40)
+      ? graph.edges.filter((edge) => edge.source === selected.id || edge.target === selected.id)
       : [],
     [graph.edges, selected],
   );
@@ -280,7 +280,7 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
               <section>
                 <span>LINEAGE</span>
                 {selected.lineage.length
-                  ? selected.lineage.slice(0, 12).map((item) => <code key={item}>{item}</code>)
+                  ? selected.lineage.map((item) => <code key={item}>{item}</code>)
                   : <p>MISSING · no lineage adicional declarado.</p>}
               </section>
               <section>
