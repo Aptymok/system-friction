@@ -62,7 +62,7 @@ export async function migrateStagedNeonPasswordCredential(
   `;
   const row = rows[0] as { id?: string; password?: string | null } | undefined;
   if (!row?.id || !row.password) return { status: 'MISSING_CREDENTIAL' };
-  if (!isStagedBcrypt(row.password)) return { status: 'NOT_staged' };
+  if (!isStagedBcrypt(row.password)) return { status: 'NOT_STAGED' };
 
   const stagedHash = row.password;
   const verified = await sql`
