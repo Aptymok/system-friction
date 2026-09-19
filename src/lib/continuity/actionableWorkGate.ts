@@ -1,4 +1,6 @@
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { isSfiContinuityConfigured } from '@/lib/sfi/continuityPostgres';
+import { readNeonActionableWorkSnapshot } from './neonHeartbeatStore';
 
 type Row = Record<string, unknown>;
 
@@ -53,6 +55,52 @@ export async function readContinuityActionableWorkGate(input?: { requestedCycleI
   const continuityState = state.data;
   const missingContinuityState = !state.error && !continuityState;
   if (readError || missingContinuityState) {
+    if (isSfiContinuityConfigured()) {
+      try {
+        const fallback = await readNeonActionableWorkSnapshot();
+        const continuityMode = typeof fallback?.continuity_mode === 'string' ? fallback.continuity_mode : null;
+        if (continuityMode) {
+          const activeProposal = fallback?.active_proposal === true;
+          const activeCase = fallback?.active_case === true;
+          const openUniversalCycle = fallback?.open_universal_cycle === true;
+          const activeStudioExperiment = fallback?.active_studio_experiment === true;
+          const nonNormalContinuityMode = continuityMode !== 'NORMAL';
+          const shouldRun = activeProposal || activeCase || openUniversalCycle || activeStudioExperiment || nonNormalContinuityMode;
+          return {
+            shouldRun,
+            reason: shouldRun
+              ? 'ACTIONABLE_CONTINUITY_WORK_NEON_FALLBACK' as const
+              : 'IDLE_NO_ACTIONABLE_WORK_NEON_FALLBACK' as const,
+            requestedCycleId: null,
+            dataPlane: 'NEON' as const,
+            state: {
+              continuityMode,
+              activeProposal,
+              activeCase,
+              openUniversalCycle,
+              activeStudioExperiment,
+            },
+            primaryDiagnostic: readError
+              ? { code: readError.code ?? null, message: readError.message }
+              : { code: 'CONTINUITY_STATE_MISSING', message: 'Primary continuity state row is absent.' },
+          };
+        }
+      } catch (fallbackError) {
+        return {
+          shouldRun: true as const,
+          reason: 'WORK_GATE_READ_FAILED_FAIL_OPEN' as const,
+          requestedCycleId: null,
+          state: null,
+          diagnostic: {
+            primary: readError
+              ? { code: readError.code ?? null, message: readError.message }
+              : { code: 'CONTINUITY_STATE_MISSING', message: 'Required sfi_continuity_state institution row is absent.' },
+            continuity: fallbackError instanceof Error ? fallbackError.message : String(fallbackError),
+          },
+        };
+      }
+    }
+
     return {
       shouldRun: true as const,
       reason: 'WORK_GATE_READ_FAILED_FAIL_OPEN' as const,
