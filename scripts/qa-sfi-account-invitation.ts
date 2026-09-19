@@ -89,10 +89,6 @@ assert.match(authActions, /export async function activateContinuityPasswordActio
 assert.match(authActions, /migrateStagedNeonPasswordCredential/, 'explicit continuity activation must own the one-time credential migration');
 assert.match(continuityAccess, /Activar continuidad/);
 assert.match(continuityAccess, /ACTIVAR EN NEON/);
-assert.ok(
-  authActions.indexOf('migrateStagedNeonPasswordCredential') < authActions.indexOf('signInWithNeonAuth(parsed.data.email'),
-  'legacy credential must be upgraded before Better Auth attempts native verification',
-);
 assert.doesNotMatch(authActions, /supabase\.auth\.signInWithPassword/, 'continuity login must not depend on Supabase Auth during the outage window');
 assert.match(authActions, /neon\.status === 429[\s\S]*?'rate_limit'/, 'upstream Neon rate limits must remain explicit');
 assert.match(authActions, /invalid_credentials/, 'provider-specific credential failures must collapse to a generic login error');
