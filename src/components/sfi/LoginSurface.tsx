@@ -3,8 +3,14 @@ import { loginAction } from '@/lib/auth/actions';
 function readableAuthError(error?: string) {
   if (!error) return '';
   const normalized = error.toLowerCase();
-  if (normalized.includes('invalid') || normalized.includes('credential') || normalized.includes('password')) {
-    return 'El correo o la contraseña no coinciden con una cuenta de acceso.';
+  if (
+    normalized.includes('invalid') ||
+    normalized.includes('credential') ||
+    normalized.includes('password') ||
+    normalized.includes('not found') ||
+    normalized.includes('user not found')
+  ) {
+    return 'El correo o la contraseña no son válidos.';
   }
   if (normalized.includes('continuity_profile_missing')) {
     return 'La identidad fue reconocida, pero no existe un perfil institucional de continuidad asociado.';
@@ -39,8 +45,10 @@ export function LoginSurface({
         <input name="password" type="password" placeholder="contraseña" autoComplete="current-password" required />
         <button>ENTRAR</button>
         {state === 'password_reset' ? <small>Contraseña actualizada. Ya puedes ingresar.</small> : null}
+        {state === 'continuity_activated' ? <small>Acceso de continuidad activado. Ya puedes ingresar por Neon.</small> : null}
         {readable ? <small>{readable}</small> : null}
-        <small><a href="/forgot">¿Primera vez en la continuidad o olvidaste tu contraseña? Define el acceso por correo.</a></small>
+        <small><a href="/continuity-access">¿Tu identidad fue migrada y no puedes recibir correo? Activa el acceso de continuidad.</a></small>
+        <small><a href="/forgot">¿Olvidaste tu contraseña y sí puedes recibir correo? Solicita un enlace.</a></small>
         <small>
           La autenticación no concede por sí sola autoridad ROOT ni capacidad para modificar el canon institucional.
         </small>

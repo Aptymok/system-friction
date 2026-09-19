@@ -11,6 +11,9 @@ const activate = read('src/app/api/account/activate/route.ts');
 const accessServer = read('src/lib/system/access/server.ts');
 const productionBackend = read('src/lib/server/productionBackend.ts');
 const login = read('src/components/sfi/LoginSurface.tsx');
+const continuityAccess = read('src/app/continuity-access/page.tsx');
+const authActions = read('src/lib/auth/actions.ts');
+const neonPasswordMigration = read('src/lib/auth/neonPasswordCredentialMigration.ts');
 
 assert.match(migration, /sfi_account_access_grants/);
 assert.match(migration, /INSTITUTIONAL_OBSERVER/);
@@ -81,6 +84,24 @@ assert.match(productionBackend, /observerRoleAuthorized/);
 assert.match(productionBackend, /Boolean\(institutionalMember\) \|\| activeInstitutionalAccount/);
 
 assert.match(login, /\/forgot/);
+assert.doesNotMatch(authActions.match(/export async function loginAction[\s\S]*?export async function activateContinuityPasswordAction/)?.[0] ?? '', /migrateStagedNeonPasswordCredential/, 'normal login must never mutate credentials');
+assert.match(authActions, /export async function activateContinuityPasswordAction/);
+assert.match(authActions, /migrateStagedNeonPasswordCredential/, 'explicit continuity activation must own the one-time credential migration');
+assert.match(continuityAccess, /Activar continuidad/);
+assert.match(continuityAccess, /ACTIVAR EN NEON/);
+assert.doesNotMatch(authActions, /supabase\.auth\.signInWithPassword/, 'continuity login must not depend on Supabase Auth during the outage window');
+assert.match(authActions, /neon\.status === 429[\s\S]*?'rate_limit'/, 'upstream Neon rate limits must remain explicit');
+assert.match(authActions, /const email = parsed\.data\.email\.trim\(\)\.toLowerCase\(\)[\s\S]*?rateLimitKey\('continuity-activate', email\)/, 'continuity activation must normalize email before rate-limit bucketing');
+assert.doesNotMatch(authActions, /result\.status === 'UPGRADED' \|\| result\.status === 'RACE_LOST'/, 'lost compare-and-swap race must not be reported as activation success');
+assert.match(authActions, /result\.status === 'RACE_LOST'[\s\S]*?error=retry/, 'lost compare-and-swap race must request a retry');
+assert.match(authActions, /invalid_credentials/, 'provider-specific credential failures must collapse to a generic login error');
+assert.match(neonPasswordMigration, /crypt\(\$\{password\}, \$\{stagedHash\}\) = \$\{stagedHash\}/, 'staged bcrypt verification must occur inside Neon pgcrypto');
+assert.match(neonPasswordMigration, /SCRYPT_N = 16384/);
+assert.match(neonPasswordMigration, /SCRYPT_R = 16/);
+assert.match(neonPasswordMigration, /SCRYPT_P = 1/);
+assert.match(neonPasswordMigration, /SCRYPT_DK_LEN = 64/);
+assert.match(neonPasswordMigration, /password\.normalize\('NFKC'\)/);
+assert.match(neonPasswordMigration, /where id = \$\{row\.id\}::uuid[\s\S]*and password = \$\{stagedHash\}/, 'credential upgrade must be compare-and-swap');
 assert.equal(existsSync('src/app/signup/page.tsx'), false, 'public signup surface must remain absent');
 
 console.log(JSON.stringify({

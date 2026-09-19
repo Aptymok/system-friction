@@ -11,6 +11,7 @@ import {
   signOutNeonAuth,
 } from '@/runtime/supabase/server'
 import { readContinuityProfile, readContinuityProfileByEmail } from '@/lib/sfi/continuityPostgres'
+import { migrateStagedNeonPasswordCredential } from '@/lib/auth/neonPasswordCredentialMigration'
 import { authSchema } from '@/lib/validation/schemas'
 
 function formValue(formData: FormData, key: string) {
@@ -77,21 +78,47 @@ export async function loginAction(formData: FormData) {
   const next = safeInternalRedirect(formValue(formData, 'next'))
   const parsed = authSchema.safeParse(input)
   if (!parsed.success) redirect(`/login?error=entrada_invalida&next=${encodeURIComponent(next)}`)
-  const limit = checkRateLimit(rateLimitKey('login', input.email), 8, 60_000)
+  const email = parsed.data.email.trim().toLowerCase()
+  const limit = checkRateLimit(rateLimitKey('login', email), 8, 60_000)
   if (!limit.allowed) redirect(`/login?error=rate_limit&next=${encodeURIComponent(next)}`)
 
-  const neon = await signInWithNeonAuth(parsed.data.email, parsed.data.password)
+  const neon = await signInWithNeonAuth(email, parsed.data.password)
   if (!neon.ok) {
-    redirect(`/login?error=${encodeURIComponent(neon.message)}&next=${encodeURIComponent(next)}`)
+    const errorCode = neon.status === 429
+      ? 'rate_limit'
+      : neon.status >= 500
+        ? 'auth_unavailable'
+        : 'invalid_credentials'
+    redirect(`/login?error=${errorCode}&next=${encodeURIComponent(next)}`)
   }
 
-  const profile = await readContinuityProfileByEmail(parsed.data.email)
+  const profile = await readContinuityProfileByEmail(email)
   if (!profile?.user_id || typeof profile.user_id !== 'string') {
     await signOutNeonAuth()
     redirect(`/login?error=continuity_profile_missing&next=${encodeURIComponent(next)}`)
   }
 
   redirect(await resolvePostLoginPath(profile.user_id, next))
+}
+
+export async function activateContinuityPasswordAction(formData: FormData) {
+  const input = { email: formValue(formData, 'email'), password: formValue(formData, 'password') }
+  const parsed = authSchema.safeParse(input)
+  if (!parsed.success) redirect('/continuity-access?error=entrada_invalida')
+
+  const email = parsed.data.email.trim().toLowerCase()
+  const limit = checkRateLimit(rateLimitKey('continuity-activate', email), 4, 60_000)
+  if (!limit.allowed) redirect('/continuity-access?error=rate_limit')
+
+  const result = await migrateStagedNeonPasswordCredential(
+    email,
+    parsed.data.password,
+  ).catch(() => null)
+
+  if (!result) redirect('/continuity-access?error=auth_unavailable')
+  if (result.status === 'UPGRADED') redirect('/login?state=continuity_activated')
+  if (result.status === 'RACE_LOST') redirect('/continuity-access?error=retry')
+  redirect('/continuity-access?error=invalid_credentials')
 }
 
 export async function forgotPasswordAction(formData: FormData) {
