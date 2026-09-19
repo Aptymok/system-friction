@@ -56,7 +56,7 @@ for (const token of [
 ]) assert.ok(publicTimeline.includes(token), `public_timeline_source_contract_missing:${token}`);
 assert.match(
   publicTimeline,
-  /Historical frames are reconstructed only from[\\s\\S]*persisted WorldSpect snapshots/,
+  /Historical frames are reconstructed only from[\s\S]*persisted WorldSpect snapshots/,
   'public_timeline_persisted_snapshot_boundary_missing',
 );
 
