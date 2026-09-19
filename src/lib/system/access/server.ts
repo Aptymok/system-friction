@@ -10,7 +10,14 @@ import {
 } from '@/runtime/supabase/server';
 import { findInstitutionalMember } from './institutionalMembers';
 import { resolveFounderAuthority } from './founderAuthority';
-import { readContinuityProfile, readContinuityProfileByEmail } from '@/lib/sfi/continuityPostgres';
+import {
+  readContinuityFieldCaseOwner,
+  readContinuityInstitutionalAccountGrantByEmail,
+  readContinuityMemberWorkspaceCounts,
+  readContinuityProfile,
+  readContinuityProfileByEmail,
+  readContinuityStudioObjectOwner,
+} from '@/lib/sfi/continuityPostgres';
 
 export class AccessDeniedError extends Error {
   constructor(
@@ -130,6 +137,13 @@ export async function hasActiveInstitutionalAccountGrant(user: { id: string; ema
     .maybeSingle();
 
   if (grant.error) {
+    const continuityGrant = await readContinuityInstitutionalAccountGrantByEmail(email).catch(() => null);
+    if (continuityGrant) {
+      return Boolean(
+        continuityGrant.status === 'ACTIVE' &&
+        continuityGrant.user_id === user.id
+      );
+    }
     throw new AccessDeniedError(
       503,
       'AUTH_UNAVAILABLE',
@@ -296,7 +310,21 @@ async function readMemberWorkspaceCounts(supabase: Awaited<ReturnType<typeof cre
     supabase.from('studio_objects').select('id', { count: 'exact', head: true }).eq('owner_id', userId),
     supabase.from('field_returns').select('id', { count: 'exact', head: true }).eq('owner_id', userId).is('returned_at', null),
   ]);
-  return { caseCount: cases.count ?? 0, objectCount: objects.count ?? 0, pendingReturnCount: returns.count ?? 0, warnings: [cases.error?.message, objects.error?.message, returns.error?.message].filter((v): v is string => Boolean(v)) };
+  const primaryWarnings = [cases.error?.message, objects.error?.message, returns.error?.message].filter((v): v is string => Boolean(v));
+  if (primaryWarnings.length === 0) {
+    return { caseCount: cases.count ?? 0, objectCount: objects.count ?? 0, pendingReturnCount: returns.count ?? 0, warnings: [] };
+  }
+  try {
+    const continuity = await readContinuityMemberWorkspaceCounts(userId);
+    return { ...continuity, warnings: primaryWarnings };
+  } catch (error) {
+    return {
+      caseCount: cases.count ?? 0,
+      objectCount: objects.count ?? 0,
+      pendingReturnCount: returns.count ?? 0,
+      warnings: [...primaryWarnings, `continuity_read_failed:${error instanceof Error ? error.message : String(error)}`],
+    };
+  }
 }
 
 function authFailureRedirect(error: AccessDeniedError, nextPath: string) {
@@ -333,21 +361,25 @@ export async function requireFounder() {
   });
 
   const service = createServiceSupabaseClient();
-  const { data: profile, error: profileError } = await service
+  const { data: primaryProfile, error: profileError } = await service
     .from('profiles')
     .select('role,module_access')
     .eq('user_id', context.user.id)
     .maybeSingle();
 
+  let profile = primaryProfile;
   if (profileError) {
-    if (configuredAuthority.isFounder) {
+    profile = await readContinuityProfile(context.user.id).catch(() => null) as typeof primaryProfile;
+    if (!profile && configuredAuthority.isFounder) {
       return { ...context, profile: null, founderAuthoritySource: configuredAuthority.source };
     }
-    throw new AccessDeniedError(
-      503,
-      'AUTH_UNAVAILABLE',
-      `Founder authorization context is temporarily unavailable: ${profileError.message}`,
-    );
+    if (!profile) {
+      throw new AccessDeniedError(
+        503,
+        'AUTH_UNAVAILABLE',
+        `Founder authorization context is temporarily unavailable: ${profileError.message}`,
+      );
+    }
   }
 
   const authority = resolveFounderAuthority({
@@ -380,13 +412,20 @@ export async function requireCaseOwner(caseId: string) {
     .eq('id', caseId)
     .maybeSingle();
 
-  if (error || !fieldCase) {
+  let resolvedFieldCase = fieldCase as { id: string; owner_id: string } | null;
+  if (error) {
+    const continuityCase = await readContinuityFieldCaseOwner(caseId).catch(() => null);
+    resolvedFieldCase = continuityCase
+      ? { id: String(continuityCase.id), owner_id: String(continuityCase.owner_id) }
+      : null;
+  }
+  if (!resolvedFieldCase) {
     throw new AccessDeniedError(404, 'NOT_FOUND', 'FIELD case not found.');
   }
-  if (fieldCase.owner_id !== context.user.id) {
+  if (resolvedFieldCase.owner_id !== context.user.id) {
     throw new AccessDeniedError(403, 'OWNER_REQUIRED', 'Case ownership is required.');
   }
-  return { ...context, fieldCase };
+  return { ...context, fieldCase: resolvedFieldCase };
 }
 
 export async function requireObjectOwner(objectId: string) {
@@ -398,17 +437,24 @@ export async function requireObjectOwner(objectId: string) {
     .eq('id', objectId)
     .maybeSingle();
 
-  if (error || !object) {
+  let resolvedObject = object as { id: string; owner_id: string | null } | null;
+  if (error) {
+    const continuityObject = await readContinuityStudioObjectOwner(objectId).catch(() => null);
+    resolvedObject = continuityObject
+      ? { id: String(continuityObject.id), owner_id: continuityObject.owner_id ? String(continuityObject.owner_id) : null }
+      : null;
+  }
+  if (!resolvedObject) {
     throw new AccessDeniedError(404, 'NOT_FOUND', 'Studio object not found.');
   }
-  if (!object.owner_id || object.owner_id !== context.user.id) {
+  if (!resolvedObject.owner_id || resolvedObject.owner_id !== context.user.id) {
     try {
       await requireFounder();
     } catch {
       throw new AccessDeniedError(403, 'OWNER_REQUIRED', 'Object ownership is required.');
     }
   }
-  return { ...context, object };
+  return { ...context, object: resolvedObject };
 }
 
 export async function requirePublicationAuthority() {
