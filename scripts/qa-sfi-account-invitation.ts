@@ -11,6 +11,8 @@ const activate = read('src/app/api/account/activate/route.ts');
 const accessServer = read('src/lib/system/access/server.ts');
 const productionBackend = read('src/lib/server/productionBackend.ts');
 const login = read('src/components/sfi/LoginSurface.tsx');
+const authActions = read('src/lib/auth/actions.ts');
+const neonPasswordBridge = read('src/lib/auth/neonLegacyPasswordBridge.ts');
 
 assert.match(migration, /sfi_account_access_grants/);
 assert.match(migration, /INSTITUTIONAL_OBSERVER/);
@@ -81,6 +83,16 @@ assert.match(productionBackend, /observerRoleAuthorized/);
 assert.match(productionBackend, /Boolean\(institutionalMember\) \|\| activeInstitutionalAccount/);
 
 assert.match(login, /\/forgot/);
+assert.match(authActions, /upgradeLegacyNeonPasswordCredential/, 'login must support one-time Neon-native credential upgrade');
+assert.doesNotMatch(authActions, /supabase\.auth\.signInWithPassword/, 'continuity login must not depend on Supabase Auth during the outage window');
+assert.match(authActions, /invalid_credentials/, 'provider-specific credential failures must collapse to a generic login error');
+assert.match(neonPasswordBridge, /crypt\(\$\{password\}, \$\{legacyHash\}\) = \$\{legacyHash\}/, 'legacy bcrypt verification must occur inside Neon pgcrypto');
+assert.match(neonPasswordBridge, /SCRYPT_N = 16384/);
+assert.match(neonPasswordBridge, /SCRYPT_R = 16/);
+assert.match(neonPasswordBridge, /SCRYPT_P = 1/);
+assert.match(neonPasswordBridge, /SCRYPT_DK_LEN = 64/);
+assert.match(neonPasswordBridge, /password\.normalize\('NFKC'\)/);
+assert.match(neonPasswordBridge, /where id = \$\{row\.id\}::uuid[\s\S]*and password = \$\{legacyHash\}/, 'credential upgrade must be compare-and-swap');
 assert.equal(existsSync('src/app/signup/page.tsx'), false, 'public signup surface must remain absent');
 
 console.log(JSON.stringify({
