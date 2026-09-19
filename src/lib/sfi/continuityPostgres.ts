@@ -285,20 +285,28 @@ export async function readContinuityRecentWorldSpectSnapshots(input: {
   if (input.ingestMode && input.ingestMode !== 'all') {
     return sql`
       select *
-        from worldspect_snapshots
-       where observed_at >= ${input.since}::timestamptz
-         and ingest_mode = ${input.ingestMode}
+        from (
+          select *
+            from worldspect_snapshots
+           where observed_at >= ${input.since}::timestamptz
+             and ingest_mode = ${input.ingestMode}
+           order by observed_at desc
+           limit ${input.limit}
+        ) recent
        order by observed_at asc
-       limit ${input.limit}
     `;
   }
 
   return sql`
     select *
-      from worldspect_snapshots
-     where observed_at >= ${input.since}::timestamptz
+      from (
+        select *
+          from worldspect_snapshots
+         where observed_at >= ${input.since}::timestamptz
+         order by observed_at desc
+         limit ${input.limit}
+      ) recent
      order by observed_at asc
-     limit ${input.limit}
   `;
 }
 

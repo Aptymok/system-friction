@@ -12,10 +12,13 @@ const pulse = fs.readFileSync('scripts/qa-world-vector-pulse.mjs', 'utf8');
 assert.match(continuity, /readContinuityLatestWorldSpectSnapshot/, 'latest snapshot continuity reader missing');
 assert.match(continuity, /readContinuityWorldSpectSnapshotAtOrBefore/, 'historical snapshot continuity reader missing');
 assert.match(continuity, /readContinuityRecentWorldSpectSnapshots/, 'recent snapshot continuity reader missing');
+assert.match(continuity, /order by observed_at desc[\s\S]*limit \$\{input\.limit\}[\s\S]*\) recent[\s\S]*order by observed_at asc/, 'continuity recent snapshot read must select newest bounded window and return chronological order');
 
 assert.match(store, /readPlane: 'NEON'/, 'snapshot store must expose Neon fallback');
 assert.match(store, /if \(error && isSfiContinuityConfigured\(\)\)/, 'snapshot reads must fall back only after a primary error');
 assert.match(store, /readPlane: 'UNAVAILABLE'/, 'snapshot reads must expose unavailable continuity instead of throwing');
+assert.match(store, /order\('observed_at', \{ ascending: false \}\)\.limit\(limit\)/, 'primary recent snapshot read must select newest bounded window');
+assert.match(store, /data\.slice\(\)\.reverse\(\)\.map/, 'primary newest window must be restored to chronological order');
 assert.match(store, /continuity_read_failed/, 'snapshot reads must retain continuity failure diagnostics');
 
 const upsertStart = store.indexOf('export async function upsertWorldSpectSnapshot');
