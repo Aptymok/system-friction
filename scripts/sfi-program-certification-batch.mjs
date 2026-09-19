@@ -10,7 +10,7 @@ const outPath = path.join(root, 'artifacts', 'program-completion', 'certificatio
 const verifyWorkflowPath = path.join(root, '.github', 'workflows', 'sfi-verify.yml');
 const packagePath = path.join(root, 'package.json');
 
-export const SFI_COMPLETION_CERTIFICATION_BATCH_CONTRACT = 'SFI-SFI08-COMPLETION-CERTIFICATION-BATCH-1.3';
+export const SFI_COMPLETION_CERTIFICATION_BATCH_CONTRACT = 'SFI-SFI08-COMPLETION-CERTIFICATION-BATCH-1.4';
 export const GLOBAL_REGRESSION_SCOPE = Object.freeze([
   'src/**',
   'scripts/**',
@@ -257,7 +257,8 @@ function main() {
     canonicalCountsBefore: report.counts,
     canonicalStatusMutation: false,
     autoReceiptWrite: false,
-    regressionScope: [...GLOBAL_REGRESSION_SCOPE],
+    regressionScopeStrategy: REGRESSION_SCOPE_STRATEGY,
+    regressionScope: [...new Set(selected.flatMap((item) => item.proofPaths))].sort(),
     targetedCanonicalProofs: TARGETED_CANONICAL_PROOFS,
     proofCatalog,
     proofExecutions,
@@ -272,6 +273,7 @@ function main() {
       previousReceiptState,
       evidencePaths: [...new Set([...(requirement.evidence || []), ...targetedPaths])],
       proofPaths,
+      scopePaths: [...proofPaths],
       semanticSupport: support.filter((entry) => proofPaths.includes(entry.path)),
       proofPass: proofPaths.every((repoPath) => executionByPath.get(repoPath)?.ok === true),
       targetedProofBinding: targetedPaths.length > 0,
