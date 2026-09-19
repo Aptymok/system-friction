@@ -1,3 +1,4 @@
+import { isSfiContinuityConfigured } from '@/lib/sfi/continuityPostgres';
 import { NextResponse } from 'next/server';
 
 export const SFI_SCHEDULED_EGRESS_GUARD_CONTRACT = 'SFI-SCHEDULED-EGRESS-GUARD-1.0' as const;
@@ -6,8 +7,9 @@ export function scheduledEgressEnabled() {
   return (process.env.SFI_SCHEDULED_EGRESS_MODE ?? 'restricted').trim().toLowerCase() === 'enabled';
 }
 
-export function scheduledEgressGuardResponse() {
+export function scheduledEgressGuardResponse(input: { allowContinuityFallback?: boolean } = {}) {
   if (scheduledEgressEnabled()) return null;
+  if (input.allowContinuityFallback && isSfiContinuityConfigured()) return null;
   return NextResponse.json({
     ok: true,
     status: 'EGRESS_RESTRICTED',
