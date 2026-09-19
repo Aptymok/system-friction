@@ -386,14 +386,26 @@ export async function readContinuityCanonicalGraphRows() {
     select
       coalesce((
         select jsonb_agg(
-          (to_jsonb(n) - 'payload' - 'q_n' - 'd_n' - 'co_n' - 'u_n' - 'epistemic_class' - 'confidence')
+          (
+            (to_jsonb(n) - 'payload' - 'q_n' - 'd_n' - 'co_n' - 'u_n' - 'epistemic_class' - 'confidence')
+            || jsonb_build_object(
+              'attributes',
+              coalesce(nullif(to_jsonb(n)->'attributes', '{}'::jsonb), to_jsonb(n)->'payload', '{}'::jsonb)
+            )
+          )
           order by n.created_at asc
         )
           from graph_nodes n
       ), '[]'::jsonb) as nodes,
       coalesce((
         select jsonb_agg(
-          (to_jsonb(e) - 'payload' - 'evidence_ids' - 'confidence')
+          (
+            (to_jsonb(e) - 'payload' - 'evidence_ids' - 'confidence')
+            || jsonb_build_object(
+              'attributes',
+              coalesce(nullif(to_jsonb(e)->'attributes', '{}'::jsonb), to_jsonb(e)->'payload', '{}'::jsonb)
+            )
+          )
           order by e.created_at asc
         )
           from graph_edges e
