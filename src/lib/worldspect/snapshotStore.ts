@@ -167,10 +167,10 @@ export async function getRecentWorldSpectSnapshotsRead(input?: { days?: number; 
   const observedSince = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
   let query = service.from('worldspect_snapshots').select('*').gte('observed_at', observedSince);
   if (ingestMode !== 'all' && isWorldSpectIngestMode(ingestMode)) query = query.eq('ingest_mode', ingestMode);
-  const { data, error } = await executeAbortableQuery(query.order('observed_at', { ascending: true }).limit(limit));
+  const { data, error } = await executeAbortableQuery(query.order('observed_at', { ascending: false }).limit(limit));
   if (!error && Array.isArray(data)) {
     return {
-      data: data.map((row) => normalizeWorldSpectSnapshotRow(row)),
+      data: data.slice().reverse().map((row) => normalizeWorldSpectSnapshotRow(row)),
       readPlane: 'SUPABASE' as const,
       primaryDiagnostic: null,
     };
