@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function RootNeuralGraphPage() {
   await requireFounderPage('/root/neural-graph');
-  const graph = await readCanonicalGraphState('sfi');
+  const graph = await readCanonicalGraphState('sfi', { allowContinuity: true });
 
   return (
     <RootNeuralGraphView
