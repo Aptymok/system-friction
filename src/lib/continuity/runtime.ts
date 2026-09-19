@@ -4,6 +4,15 @@ import { appendOperationalEvent, recordValue, stringValue, updateActionProposalR
 import { createKernelContext } from '@/lib/sfi/cognitive-runtime/createKernelContext';
 import { runCognitiveAgent } from '@/lib/sfi/cognitive-runtime/runtimeAgentExecutor';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { isSfiContinuityConfigured } from '@/lib/sfi/continuityPostgres';
+import {
+  createNeonContinuityRun,
+  finalizeNeonContinuityRun,
+  insertNeonContinuityHealthChecks,
+  insertNeonContinuityIncidents,
+  readNeonContinuityHeartbeatState,
+  updateNeonContinuityState,
+} from './neonHeartbeatStore';
 import {
   CONTINUITY_CAPABILITIES,
   type CapabilityHealth,
@@ -237,7 +246,18 @@ async function probeCapability(capability: ContinuityCapability, mode: Continuit
       headers: { 'x-sfi-continuity-probe': '1' },
     });
     const latencyMs = Date.now() - started;
-    if (response.ok) return { capability, status: 'OPERATIONAL' as CapabilityHealth, latencyMs };
+    if (response.ok) {
+      const payload = await response.clone().json().catch(() => null) as { status?: unknown } | null;
+      if (payload?.status === 'EGRESS_RESTRICTED') {
+        return {
+          capability,
+          status: 'DEGRADED' as CapabilityHealth,
+          latencyMs,
+          errorCode: 'scheduled_egress_restricted',
+        };
+      }
+      return { capability, status: 'OPERATIONAL' as CapabilityHealth, latencyMs };
+    }
     if (response.status === 401 || response.status === 403) {
       return {
         capability,
@@ -260,25 +280,52 @@ async function probeCapability(capability: ContinuityCapability, mode: Continuit
 }
 
 export async function runContinuityHeartbeat(trigger = 'scheduled') {
-  const db = createServiceSupabaseClient();
-  const { data: stateRow, error: stateError } = await db
+  const primaryDb = createServiceSupabaseClient();
+  const primaryState = await primaryDb
     .from('sfi_continuity_state')
     .select('*')
     .eq('id', 'institution')
     .single();
-  if (stateError) throw new Error(`continuity_state_unavailable:${stateError.message}`);
+
+  let dataPlane: 'SUPABASE' | 'NEON' = 'SUPABASE';
+  let stateRow: Row;
+  let primaryDiagnostic: string | null = null;
+
+  if (!primaryState.error && primaryState.data) {
+    stateRow = primaryState.data as Row;
+  } else {
+    primaryDiagnostic = primaryState.error?.message ?? 'primary_continuity_state_missing';
+    if (!isSfiContinuityConfigured()) {
+      throw new Error('continuity_state_unavailable:' + primaryDiagnostic);
+    }
+    const fallbackState = await readNeonContinuityHeartbeatState();
+    if (!fallbackState) {
+      throw new Error('continuity_state_unavailable:primary=' + primaryDiagnostic + ';neon=missing');
+    }
+    dataPlane = 'NEON';
+    stateRow = fallbackState;
+  }
 
   const mode = stateRow.mode as ContinuityMode;
-  const { data: run, error: runError } = await db
-    .from('sfi_continuity_runs')
-    .insert({ trigger, mode, status: 'RUNNING' })
-    .select('id')
-    .single();
-  if (runError || !run) throw new Error(`continuity_run_create_failed:${runError?.message ?? 'unknown'}`);
+  let runId: string;
+
+  if (dataPlane === 'SUPABASE') {
+    const { data: run, error: runError } = await primaryDb
+      .from('sfi_continuity_runs')
+      .insert({ trigger, mode, status: 'RUNNING' })
+      .select('id')
+      .single();
+    if (runError || !run) throw new Error('continuity_run_create_failed:' + (runError?.message ?? 'unknown'));
+    runId = String(run.id);
+  } else {
+    const run = await createNeonContinuityRun({ trigger, mode });
+    if (!run?.id) throw new Error('continuity_run_create_failed:neon_no_run_id');
+    runId = String(run.id);
+  }
 
   const results = await Promise.all(CONTINUITY_CAPABILITIES.map((capability) => probeCapability(capability, mode)));
   const checks = results.map((result) => ({
-    run_id: run.id,
+    run_id: runId,
     capability_id: result.capability.id,
     autonomy_level: result.capability.autonomyLevel,
     status: result.status,
@@ -289,10 +336,16 @@ export async function runContinuityHeartbeat(trigger = 'scheduled') {
       probePath: result.capability.probePath,
       critical: result.capability.critical,
       allowedInFounderAbsence: result.capability.allowedInFounderAbsence,
+      dataPlane,
     },
   }));
-  const { error: checksError } = await db.from('sfi_capability_health_checks').insert(checks);
-  if (checksError) throw new Error(`continuity_checks_persist_failed:${checksError.message}`);
+
+  if (dataPlane === 'SUPABASE') {
+    const { error: checksError } = await primaryDb.from('sfi_capability_health_checks').insert(checks);
+    if (checksError) throw new Error('continuity_checks_persist_failed:' + checksError.message);
+  } else {
+    await insertNeonContinuityHealthChecks(checks);
+  }
 
   const healthy = results.filter((item) => item.status === 'OPERATIONAL').length;
   const degraded = results.filter((item) => item.status === 'DEGRADED' || item.status === 'BLOCKED').length;
@@ -300,37 +353,78 @@ export async function runContinuityHeartbeat(trigger = 'scheduled') {
   const criticalFailures = results.filter((item) => item.status === 'FAILED' && item.capability.critical);
   const finalStatus = mode === 'EMERGENCY_HALT' ? 'HALTED' : criticalFailures.length ? 'DEGRADED' : failed ? 'DEGRADED' : 'COMPLETED';
 
-  if (criticalFailures.length) {
-    await db.from('sfi_institutional_incidents').insert(
-      criticalFailures.map((item) => ({
-        severity: 'P1',
-        capability_id: item.capability.id,
-        title: `${item.capability.name} failed its continuity probe`,
-        error_code: item.errorCode ?? 'continuity_probe_failed',
-        evidence: [{ runId: run.id, latencyMs: item.latencyMs, probePath: item.capability.probePath }],
-        requires_founder: false,
-      })),
-    );
+  const incidents = criticalFailures.map((item) => ({
+    severity: 'P1',
+    capability_id: item.capability.id,
+    title: item.capability.name + ' failed its continuity probe',
+    error_code: item.errorCode ?? 'continuity_probe_failed',
+    evidence: [{ runId, latencyMs: item.latencyMs, probePath: item.capability.probePath, dataPlane }],
+    requires_founder: false,
+  }));
+
+  if (incidents.length) {
+    if (dataPlane === 'SUPABASE') {
+      await primaryDb.from('sfi_institutional_incidents').insert(incidents);
+    } else {
+      await insertNeonContinuityIncidents(incidents);
+    }
   }
 
-  await db.from('sfi_continuity_runs').update({
+  const evidence = results.map((item) => ({
+    capabilityId: item.capability.id,
+    status: item.status,
+    latencyMs: item.latencyMs,
+    dataPlane,
+  }));
+  const errors = results
+    .filter((item) => item.errorCode)
+    .map((item) => ({ capabilityId: item.capability.id, code: item.errorCode, dataPlane }));
+
+  if (dataPlane === 'SUPABASE') {
+    await primaryDb.from('sfi_continuity_runs').update({
+      status: finalStatus,
+      completed_at: new Date().toISOString(),
+      capability_count: results.length,
+      healthy_count: healthy,
+      degraded_count: degraded,
+      failed_count: failed,
+      evidence,
+      errors,
+    }).eq('id', runId);
+
+    await primaryDb.from('sfi_continuity_state').update({
+      last_heartbeat_at: new Date().toISOString(),
+      last_successful_run_at: criticalFailures.length ? stateRow.last_successful_run_at : new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }).eq('id', 'institution');
+  } else {
+    await finalizeNeonContinuityRun({
+      runId,
+      status: finalStatus,
+      capabilityCount: results.length,
+      healthyCount: healthy,
+      degradedCount: degraded,
+      failedCount: failed,
+      evidence,
+      errors,
+    });
+    await updateNeonContinuityState({
+      heartbeatSucceeded: criticalFailures.length === 0,
+      lastSuccessfulRunAt: stringValue(stateRow.last_successful_run_at),
+    });
+  }
+
+  return {
+    runId,
+    mode,
     status: finalStatus,
-    completed_at: new Date().toISOString(),
-    capability_count: results.length,
-    healthy_count: healthy,
-    degraded_count: degraded,
-    failed_count: failed,
-    evidence: results.map((item) => ({ capabilityId: item.capability.id, status: item.status, latencyMs: item.latencyMs })),
-    errors: results.filter((item) => item.errorCode).map((item) => ({ capabilityId: item.capability.id, code: item.errorCode })),
-  }).eq('id', run.id);
-
-  await db.from('sfi_continuity_state').update({
-    last_heartbeat_at: new Date().toISOString(),
-    last_successful_run_at: criticalFailures.length ? stateRow.last_successful_run_at : new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  }).eq('id', 'institution');
-
-  return { runId: run.id, mode, status: finalStatus, healthy, degraded, failed, results };
+    healthy,
+    degraded,
+    failed,
+    results,
+    dataPlane,
+    primaryDiagnostic,
+  };
 }
 
 export async function readContinuityDashboard() {
