@@ -11,7 +11,7 @@ import {
   signOutNeonAuth,
 } from '@/runtime/supabase/server'
 import { readContinuityProfile, readContinuityProfileByEmail } from '@/lib/sfi/continuityPostgres'
-import { migrateStagedNeonPasswordCredential } from '@/lib/auth/neonPasswordCredentialMigration'
+import { activateNeonPasswordWithBootstrap } from '@/lib/auth/neonPasswordBootstrap'
 import { authSchema } from '@/lib/validation/schemas'
 
 function formValue(formData: FormData, key: string) {
@@ -102,23 +102,27 @@ export async function loginAction(formData: FormData) {
 }
 
 export async function activateContinuityPasswordAction(formData: FormData) {
-  const input = { email: formValue(formData, 'email'), password: formValue(formData, 'password') }
-  const parsed = authSchema.safeParse(input)
-  if (!parsed.success) redirect('/continuity-access?error=entrada_invalida')
+  const code = formValue(formData, 'code').trim()
+  const password = formValue(formData, 'password')
+  const confirmation = formValue(formData, 'confirmation')
+  const parsedPassword = authSchema.shape.password.safeParse(password)
+  const codeValid = /^SFI-[A-Za-z0-9_-]{24,64}$/.test(code)
 
-  const email = parsed.data.email.trim().toLowerCase()
-  const limit = checkRateLimit(rateLimitKey('continuity-activate', email), 4, 60_000)
+  if (!codeValid || !parsedPassword.success || password !== confirmation) {
+    redirect('/continuity-access?error=entrada_invalida')
+  }
+
+  const limit = checkRateLimit(rateLimitKey('continuity-bootstrap', 'founder'), 6, 5 * 60_000)
   if (!limit.allowed) redirect('/continuity-access?error=rate_limit')
 
-  const result = await migrateStagedNeonPasswordCredential(
-    email,
-    parsed.data.password,
+  const result = await activateNeonPasswordWithBootstrap(
+    code,
+    parsedPassword.data,
   ).catch(() => null)
 
   if (!result) redirect('/continuity-access?error=auth_unavailable')
-  if (result.status === 'UPGRADED') redirect('/login?state=continuity_activated')
-  if (result.status === 'RACE_LOST') redirect('/continuity-access?error=retry')
-  redirect('/continuity-access?error=invalid_credentials')
+  if (result.status !== 'ACTIVATED') redirect('/continuity-access?error=invalid_or_expired')
+  redirect('/login?state=continuity_activated')
 }
 
 export async function forgotPasswordAction(formData: FormData) {
