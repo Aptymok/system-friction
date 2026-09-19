@@ -8,8 +8,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const PUBLIC_WORLDSPECT_CDN_CACHE = {
-  'Cache-Control': 'public, max-age=0, must-revalidate',
-  'Vercel-CDN-Cache-Control': 'public, s-maxage=30, stale-while-revalidate=30',
+  'Cache-Control': 'public, max-age=0, s-maxage=30, must-revalidate',
 } as const;
 
 type TrendQuality = 'missing' | 'thin' | 'usable';
