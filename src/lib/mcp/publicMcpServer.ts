@@ -19,6 +19,7 @@ import {
   researchGraphProjectionForCanonicalObjects,
   type SfiResearchProjectableObjectType,
 } from '../research/researchGraphProjection';
+import { publicCapabilityPackageProjection } from '../products/capabilityPackageCatalog';
 
 export const SFI_PUBLIC_MCP_GATE = 'SFI-PUBLIC-MCP-READONLY-1.0' as const;
 export const SFI_PUBLIC_MCP_SERVER_ID = 'org.systemfriction/public' as const;
@@ -56,13 +57,7 @@ export type SfiPublicMcpDeferredTool = Readonly<{
   reason: string;
 }>;
 
-export const SFI_PUBLIC_MCP_DEFERRED_TOOLS: readonly SfiPublicMcpDeferredTool[] = Object.freeze([
-  {
-    name: 'get_public_capabilities',
-    state: 'UNAVAILABLE',
-    reason: 'NO_AUTHORITATIVE_PUBLIC_CAPABILITY_PROJECTION',
-  },
-]);
+export const SFI_PUBLIC_MCP_DEFERRED_TOOLS: readonly SfiPublicMcpDeferredTool[] = Object.freeze([]);
 
 const EMPTY_INPUT_SCHEMA = Object.freeze({
   type: 'object',
@@ -112,6 +107,11 @@ export const SFI_PUBLIC_MCP_TOOLS = Object.freeze([
   {
     name: 'get_institution',
     description: 'Read the canonical public System Friction Institute profile projection.',
+    inputSchema: EMPTY_INPUT_SCHEMA,
+  },
+  {
+    name: 'get_public_capabilities',
+    description: 'Read the public SFI capability-package catalog, distribution surfaces and authority boundaries.',
     inputSchema: EMPTY_INPUT_SCHEMA,
   },
   {
@@ -185,6 +185,12 @@ export const SFI_PUBLIC_MCP_RESOURCES = Object.freeze([
     name: 'System Friction Institute public profile',
     mimeType: 'application/json',
     description: 'Canonical public institution profile projection.',
+  },
+  {
+    uri: 'sfi://capabilities',
+    name: 'SFI capability packages',
+    mimeType: 'application/json',
+    description: 'Public package catalog for separately distributable SFI capabilities; pricing and plugin listing claims remain unset until observed.',
   },
   {
     uri: 'sfi://epistemic-contract',
@@ -518,6 +524,8 @@ async function callTool(
   switch (name as SfiPublicMcpToolName) {
     case 'get_institution':
       return toolResult({ available: true, institution: publicInstitutionProjection() });
+    case 'get_public_capabilities':
+      return toolResult({ available: true, state: 'AVAILABLE', capabilities: publicCapabilityPackageProjection() });
     case 'search_concepts':
       return toolResult(searchResult('CONCEPT', args));
     case 'get_concept': {
@@ -565,6 +573,8 @@ async function resourcePayload(uri: string, dependencies: SfiPublicMcpDependenci
   switch (uri) {
     case 'sfi://institution':
       return { available: true, institution: publicInstitutionProjection() };
+    case 'sfi://capabilities':
+      return { available: true, state: 'AVAILABLE', capabilities: publicCapabilityPackageProjection() };
     case 'sfi://epistemic-contract':
       return { available: true, epistemicContract: publicEpistemicProjection() };
     case 'sfi://canonical/objects': {
