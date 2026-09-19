@@ -349,6 +349,37 @@ export async function recordContinuityEvent(input: {
 }
 
 
+export async function readContinuityRootNeuralGraphRuntime() {
+  const sql = db();
+  const rows = await sql`
+    select
+      (select count(*)::int from graph_nodes) as node_count,
+      (select count(*)::int from graph_edges) as edge_count,
+      (select count(*)::int from scorefriction_observations) as scorefriction_observation_count,
+      (select count(*)::int from scorefriction_vectors) as scorefriction_vector_count,
+      (select max(observed_at)::text from worldspect_snapshots) as latest_worldspect_observed_at,
+      coalesce((
+        select jsonb_agg(row_to_json(a) order by a.weight desc)
+          from (
+            select attractor_key,label,confidence,persistence,status,updated_at,weight
+              from sfi_attractors
+             order by weight desc
+             limit 5
+          ) a
+      ), '[]'::jsonb) as top_attractors,
+      coalesce((
+        select jsonb_agg(row_to_json(e) order by e.weight desc)
+          from (
+            select ejector_key,label,contradiction,decay,status,updated_at,weight
+              from sfi_ejectors
+             order by weight desc
+             limit 5
+          ) e
+      ), '[]'::jsonb) as top_ejectors
+  `;
+  return (rows[0] as JsonRecord | undefined) ?? null;
+}
+
 export function continuityDatabase() {
   return db();
 }
