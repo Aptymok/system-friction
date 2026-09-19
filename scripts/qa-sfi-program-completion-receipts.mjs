@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import { evaluateCompletionReceipt, requirementHash } from './lib/programCompletionReceipts.mjs';
 
 const requirement = { id: 'QA-REQUIREMENT-001', source: 'QA canonical source', requirement: 'A bounded internal capability must preserve evidence and return proof.' };
@@ -55,6 +56,36 @@ assert.equal(evaluateCompletionReceipt(requirement, externalWithoutObservation, 
 externalWithoutObservation.receipts[requirement.id].externalObserved = true;
 assert.equal(evaluateCompletionReceipt(requirement, externalWithoutObservation, { currentHead: verifiedHead, verifyEvidence, external: true }).satisfied, true);
 assert.equal(evaluateCompletionReceipt(requirement, { receipts: {} }, { currentHead: verifiedHead, verifyEvidence }).state, 'ABSENT');
+
+const controllerWorkflow = fs.readFileSync('.github/workflows/sfi-program-completion.yml', 'utf8');
+const reconcileSource = fs.readFileSync('scripts/sfi-program-completion-reconcile.mjs', 'utf8');
+
+assert.match(controllerWorkflow, /workflows:\s*\n\s*- SFI-08 Completion Certification Batch/, 'controller must be sequenced after SFI-08');
+assert.doesNotMatch(controllerWorkflow, /^\s*pull_request:/m, 'controller must not race SFI-08 on pull requests');
+assert.doesNotMatch(controllerWorkflow, /^\s*push:/m, 'controller must not race SFI-08 on main pushes');
+assert.match(controllerWorkflow, /github\.event\.workflow_run\.head_branch == 'main'/, 'workflow_run controller must be restricted to canonical main');
+assert.match(controllerWorkflow, /ref: \$\{\{ github\.event_name == 'workflow_run' && github\.event\.workflow_run\.head_sha \|\| github\.sha \}\}/, 'controller must checkout certified exact head');
+assert.match(controllerWorkflow, /uses: actions\/download-artifact@v5/, 'controller must use immutable workflow artifact handoff');
+assert.match(controllerWorkflow, /run-id: \$\{\{ github\.event\.workflow_run\.id \}\}/, 'artifact must come from triggering SFI-08 run');
+assert.match(controllerWorkflow, /github-token: \$\{\{ github\.token \}\}/, 'cross-run artifact download must use bounded actions-read token');
+assert.match(controllerWorkflow, /SFI08_CERTIFICATION_RETURN_PATH:/, 'controller must pass certification artifact path to reconciler');
+assert.match(controllerWorkflow, /SFI08_CERTIFICATION_RUN_ID:/, 'controller must bind certification evidence to exact workflow run');
+
+for (const token of [
+  'SFI08_CERTIFICATION_CONTRACT',
+  "authority !== 'ASSURANCE_ONLY'",
+  "returnState !== 'RETURN_PASS'",
+  'failedProofCount !== 0',
+  'canonicalStatusMutation !== false',
+  'autoReceiptWrite !== false',
+  'certification.head !== report.head',
+  'certified.requirementHash !== expectedHash',
+  'certified.proofPass !== true',
+  "source: 'IMMUTABLE_EXACT_HEAD_SFI08_ARTIFACT'",
+  'canonicalLedgerMutation: false',
+  'verificationWorkflow: SFI08_WORKFLOW_NAME',
+]) assert.ok(reconcileSource.includes(token), `SFI-08 handoff invariant missing: ${token}`);
+assert.equal(reconcileSource.includes('fs.writeFileSync(ledgerPath'), false, 'SFI-08 handoff must not rewrite canonical receipt ledger');
 
 console.log(JSON.stringify({ ok: true, contract: 'SFI-PROGRAM-COMPLETION-RECEIPTS-1.3', exactHeadValid: true,
   unrelatedDescendantChangePreservesScopedReceipt: true, scopedRegressionFailsClosed: true, regressionScopeRequired: true,

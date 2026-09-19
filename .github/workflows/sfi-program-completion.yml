@@ -1,13 +1,9 @@
 name: SFI Program Completion Controller
 
 on:
-  pull_request:
-  push:
-    branches:
-      - main
   workflow_run:
     workflows:
-      - SFI Self-Development
+      - SFI-08 Completion Certification Batch
     types: [completed]
   workflow_dispatch:
 
@@ -17,12 +13,12 @@ permissions:
   issues: write
 
 concurrency:
-  group: sfi-program-completion-${{ github.event.pull_request.number || github.ref || github.run_id }}
+  group: sfi-program-completion-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.run_id }}
   cancel-in-progress: false
 
 jobs:
   completion-controller:
-    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -30,6 +26,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -39,6 +36,15 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Download exact-head SFI-08 certification RETURN
+        if: ${{ github.event_name == 'workflow_run' }}
+        uses: actions/download-artifact@v5
+        with:
+          name: sfi08-completion-certification-${{ github.event.workflow_run.id }}
+          path: ${{ runner.temp }}/sfi08-certification
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
 
       - name: Reconstruct and classify Master Program
         env:
@@ -53,6 +59,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GITHUB_TOKEN: ${{ github.token }}
+          SFI08_CERTIFICATION_RETURN_PATH: ${{ github.event_name == 'workflow_run' && format('{0}/sfi08-certification/certification-return.json', runner.temp) || '' }}
+          SFI08_CERTIFICATION_RUN_ID: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || '' }}
         run: node scripts/sfi-program-completion-reconcile.mjs
 
       - name: Enrich non-authoritative sequencing diagnostics
@@ -65,7 +73,7 @@ jobs:
         run: node scripts/qa-sfi-root-final-visual.mjs
 
       - name: Dispatch unresolved implementable gaps to durable owners
-        if: ${{ github.event_name != 'pull_request' }}
+        if: ${{ github.event_name == 'workflow_run' }}
         env:
           GH_TOKEN: ${{ github.token }}
           GITHUB_TOKEN: ${{ github.token }}
