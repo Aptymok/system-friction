@@ -33,6 +33,16 @@ assert.match(health, /read_cache: healthRead\.cache/, 'health must expose read-c
 assert.match(trend, /read_cache: snapshotRead\.cache/, 'trend must expose read-cache diagnostics');
 assert.match(real, /readCache: latestRead\.cache/, 'real snapshot must expose read-cache diagnostics');
 
+for (const [surface, source] of [
+  ['health', health],
+  ['trend', trend],
+  ['real', real],
+] as const) {
+  assert.match(source, /Vercel-CDN-Cache-Control/, `${surface} must use Vercel edge caching for public WorldSpect reads`);
+  assert.match(source, /s-maxage=30, stale-while-revalidate=30/, `${surface} WorldSpect edge cache must remain bounded to 30 seconds`);
+  assert.match(source, /Cache-Control': 'public, max-age=0, must-revalidate'/, `${surface} browser cache must revalidate on every request`);
+}
+
 async function main() {
   let sourceCalls = 0;
   const coalescer = createReadPlaneCoalescer<[number, string, number], number>({
@@ -76,6 +86,8 @@ async function main() {
       measuredEgressReductionPercent: 76.08,
       sharedCacheTtlSeconds: 30,
       processCoalescingTtlSeconds: 2,
+      publicWorldSpectEdgeCacheTtlSeconds: 30,
+      browserCacheMaxAgeSeconds: 0,
     },
     proof: diagnostics,
   }));
