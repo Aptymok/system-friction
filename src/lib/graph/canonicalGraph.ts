@@ -33,6 +33,14 @@ function rowsFromUnknown(value: unknown): Row[] {
     : [];
 }
 
+function attributesFromRow(row: Row) {
+  const attributes = asRecord(row.attributes);
+  if (Object.keys(attributes).length) return attributes;
+  const payload = asRecord(row.payload);
+  if (Object.keys(payload).length) return payload;
+  return asRecord(row.metadata);
+}
+
 function stringValue(...values: unknown[]) {
   for (const value of values) {
     if (typeof value === 'string' && value.length > 0) {
@@ -91,10 +99,26 @@ async function readSupabaseGraphRows() {
     };
   };
 
+  const readSupabaseGraphRowsWide = async () => {
+    const [nodesResult, edgesResult] = await Promise.all([
+      executeAbortableQuery(service.from('graph_nodes').select('*').order('created_at', { ascending: true })),
+      executeAbortableQuery(service.from('graph_edges').select('*').order('created_at', { ascending: true })),
+    ]);
+    const error = nodesResult.error ?? edgesResult.error ?? null;
+    return {
+      nodes: !nodesResult.error ? rowsFromUnknown(nodesResult.data) : [],
+      edges: !edgesResult.error ? rowsFromUnknown(edgesResult.data) : [],
+      error,
+    };
+  };
+
   const hybrid = await read(GRAPH_NODE_HYBRID_READ_FIELDS, GRAPH_EDGE_HYBRID_READ_FIELDS);
   if (!hybrid.error || !isMissingGraphColumn(hybrid.error)) return hybrid;
 
-  return read(GRAPH_NODE_CANONICAL_READ_FIELDS, GRAPH_EDGE_CANONICAL_READ_FIELDS);
+  const canonical = await read(GRAPH_NODE_CANONICAL_READ_FIELDS, GRAPH_EDGE_CANONICAL_READ_FIELDS);
+  if (!canonical.error || !isMissingGraphColumn(canonical.error)) return canonical;
+
+  return readSupabaseGraphRowsWide();
 }
 
 function stateFromProjection(profile: GraphProfile, reason: string, projection = buildLibraryCorpusGraphProjection()): CanonicalGraphState {
@@ -131,7 +155,7 @@ export function emptyCanonicalGraph(profile: GraphProfile, reason: string): Cano
 }
 
 function nodeFromRow(row: Row): CanonicalGraphNode {
-  const attributes = asRecord(row.attributes ?? row.payload ?? row.metadata);
+  const attributes = attributesFromRow(row);
   const createdAt = typeof row.created_at === 'string' ? row.created_at : now();
   const updatedAt = typeof row.updated_at === 'string' ? row.updated_at : createdAt;
   const nodeId = stringValue(row.node_id, row.node_key, row.key, row.id) ?? 'unknown';
@@ -151,7 +175,7 @@ function nodeFromRow(row: Row): CanonicalGraphNode {
 }
 
 function edgeFromRow(row: Row, nodeIdByStoredId: Map<string, string>): CanonicalGraphEdge {
-  const attributes = asRecord(row.attributes ?? row.payload ?? row.metadata);
+  const attributes = attributesFromRow(row);
   const createdAt = typeof row.created_at === 'string' ? row.created_at : now();
   const updatedAt = typeof row.updated_at === 'string' ? row.updated_at : createdAt;
   const relation = semanticRelation(row, attributes);
