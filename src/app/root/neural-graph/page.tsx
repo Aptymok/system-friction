@@ -1,23 +1,20 @@
 import { RootNeuralGraphView } from '@/components/sfi/RootNeuralGraphView';
 import { readCanonicalGraphState } from '@/lib/graph/canonicalGraph';
-import { readRootNeuralGraphRuntime } from '@/lib/root/neuralGraphRuntime';
 import { requireFounderPage } from '@/lib/system/access/server';
 
 export const dynamic = 'force-dynamic';
 
 export default async function RootNeuralGraphPage() {
   await requireFounderPage('/root/neural-graph');
-
-  const [graph, runtime] = await Promise.all([
-    readCanonicalGraphState('sfi'),
-    readRootNeuralGraphRuntime(),
-  ]);
+  const graph = await readCanonicalGraphState('sfi');
 
   return (
     <RootNeuralGraphView
       graph={{
         sourceState: graph.sourceState,
         degradedReason: graph.degradedReason,
+        readPlane: graph.readPlane ?? 'UNAVAILABLE',
+        primaryDiagnostic: graph.primaryDiagnostic ?? null,
         loadedAt: graph.loadedAt,
         nodes: graph.nodes.map((node) => ({
           id: node.nodeId,
@@ -35,17 +32,6 @@ export default async function RootNeuralGraphPage() {
           weight: edge.weight,
           origin: edge.origin,
         })),
-      }}
-      runtime={{
-        nodeCount: runtime.nodeCount,
-        edgeCount: runtime.edgeCount,
-        status: runtime.status,
-        summary: runtime.summary,
-        readPlane: runtime.readPlane,
-        primaryDiagnostic: runtime.primaryDiagnostic,
-        latestWorldSpectObservedAt: runtime.latestWorldSpectObservedAt,
-        scorefrictionObservationCount: runtime.scorefrictionObservationCount,
-        scorefrictionVectorCount: runtime.scorefrictionVectorCount,
       }}
     />
   );
