@@ -3,8 +3,14 @@ import { loginAction } from '@/lib/auth/actions';
 function readableAuthError(error?: string) {
   if (!error) return '';
   const normalized = error.toLowerCase();
-  if (normalized.includes('invalid') || normalized.includes('credential') || normalized.includes('password')) {
-    return 'El correo o la contraseña no coinciden con una cuenta de acceso.';
+  if (
+    normalized.includes('invalid') ||
+    normalized.includes('credential') ||
+    normalized.includes('password') ||
+    normalized.includes('not found') ||
+    normalized.includes('user not found')
+  ) {
+    return 'El correo o la contraseña no son válidos.';
   }
   if (normalized.includes('continuity_profile_missing')) {
     return 'La identidad fue reconocida, pero no existe un perfil institucional de continuidad asociado.';
@@ -33,7 +39,7 @@ export function LoginSurface({
       <form action={loginAction}>
         <div className="sigil">SFI.</div>
         <h1>Acceso al instituto</h1>
-        <p>Acceso institucional mediante correo y contraseña. La identidad se verifica en la capa de continuidad; la autoridad permanece en el perfil institucional de SFI.</p>
+        <p>Acceso institucional mediante correo y contraseña. SFI verifica primero la identidad primaria y utiliza la capa de continuidad como respaldo; la autoridad permanece en el perfil institucional de SFI.</p>
         <input type="hidden" name="next" value={next} />
         <input name="email" type="email" placeholder="correo" autoComplete="username" required />
         <input name="password" type="password" placeholder="contraseña" autoComplete="current-password" required />
