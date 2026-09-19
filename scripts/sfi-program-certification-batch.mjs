@@ -11,18 +11,7 @@ const verifyWorkflowPath = path.join(root, '.github', 'workflows', 'sfi-verify.y
 const packagePath = path.join(root, 'package.json');
 
 export const SFI_COMPLETION_CERTIFICATION_BATCH_CONTRACT = 'SFI-SFI08-COMPLETION-CERTIFICATION-BATCH-1.4';
-export const GLOBAL_REGRESSION_SCOPE = Object.freeze([
-  'src/**',
-  'scripts/**',
-  'packages/**',
-  'services/**',
-  '.github/workflows/**',
-  'public/**',
-  'package.json',
-  'package-lock.json',
-  'docs/program/**',
-  'docs/ROOT_WORLD_CASE_AND_DISCOVERY_ENGINE.md',
-]);
+export const REGRESSION_SCOPE_STRATEGY = 'REQUIREMENT_PROOF_PATHS';
 
 // These three requirements predate the current completion classifier and their
 // repository evidence lists do not name the exact proof that already exists in
