@@ -1,9 +1,9 @@
 import { randomBytes, scrypt } from 'node:crypto';
 import { continuityDatabase } from '@/lib/sfi/continuityPostgres';
 
-type LegacyBridgeResult =
+type StagedCredentialMigrationResult =
   | { status: 'UPGRADED' }
-  | { status: 'NOT_LEGACY' }
+  | { status: 'NOT_staged' }
   | { status: 'INVALID_CREDENTIALS' }
   | { status: 'MISSING_CREDENTIAL' }
   | { status: 'RACE_LOST' };
@@ -14,7 +14,7 @@ const SCRYPT_P = 1;
 const SCRYPT_DK_LEN = 64;
 const SCRYPT_MAXMEM = 128 * SCRYPT_N * SCRYPT_R * 2;
 
-function isLegacyBcrypt(hash: unknown): hash is string {
+function isStagedBcrypt(hash: unknown): hash is string {
   return typeof hash === 'string' && /^\$2[aby]\$\d{2}\$/.test(hash);
 }
 
@@ -47,10 +47,10 @@ export async function hashBetterAuthPassword(password: string) {
  * credential is atomically upgraded to Better Auth scrypt format. Plaintext is
  * never persisted and Supabase is not called at runtime.
  */
-export async function upgradeLegacyNeonPasswordCredential(
+export async function migrateStagedNeonPasswordCredential(
   email: string,
   password: string,
-): Promise<LegacyBridgeResult> {
+): Promise<StagedCredentialMigrationResult> {
   const sql = continuityDatabase();
   const rows = await sql`
     select a.id, a.password
@@ -62,11 +62,11 @@ export async function upgradeLegacyNeonPasswordCredential(
   `;
   const row = rows[0] as { id?: string; password?: string | null } | undefined;
   if (!row?.id || !row.password) return { status: 'MISSING_CREDENTIAL' };
-  if (!isLegacyBcrypt(row.password)) return { status: 'NOT_LEGACY' };
+  if (!isStagedBcrypt(row.password)) return { status: 'NOT_staged' };
 
-  const legacyHash = row.password;
+  const stagedHash = row.password;
   const verified = await sql`
-    select crypt(${password}, ${legacyHash}) = ${legacyHash} as valid
+    select crypt(${password}, ${stagedHash}) = ${stagedHash} as valid
   `;
   if (verified[0]?.valid !== true) return { status: 'INVALID_CREDENTIALS' };
 
@@ -76,7 +76,7 @@ export async function upgradeLegacyNeonPasswordCredential(
        set password = ${nativeHash},
            "updatedAt" = now()
      where id = ${row.id}::uuid
-       and password = ${legacyHash}
+       and password = ${stagedHash}
     returning id
   `;
 
