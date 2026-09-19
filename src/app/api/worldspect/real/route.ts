@@ -6,9 +6,14 @@ import { getLatestWorldSpectSnapshotRead, snapshotRowToApiData } from '@/lib/wor
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+const PUBLIC_WORLDSPECT_CDN_CACHE = {
+  'Cache-Control': 'public, max-age=0, must-revalidate',
+  'Vercel-CDN-Cache-Control': 'public, s-maxage=30, stale-while-revalidate=30',
+} as const;
+
 function apiOk<TData>(data: TData, warnings?: string[], meta?: Record<string, unknown>) {
   const result: ApiResult<TData> & Record<string, unknown> = { ok: true, data, warnings, ...(meta ?? {}) };
-  return NextResponse.json(result);
+  return NextResponse.json(result, { headers: PUBLIC_WORLDSPECT_CDN_CACHE });
 }
 
 export async function GET() {

@@ -7,6 +7,11 @@ import type { WorldSpectIngestMode } from '../../../../../packages/api-contracts
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+const PUBLIC_WORLDSPECT_CDN_CACHE = {
+  'Cache-Control': 'public, max-age=0, must-revalidate',
+  'Vercel-CDN-Cache-Control': 'public, s-maxage=30, stale-while-revalidate=30',
+} as const;
+
 type TrendQuality = 'missing' | 'thin' | 'usable';
 type TrendDirection = 'rising' | 'falling' | 'stable' | 'unknown';
 type DomainTrendStatus = 'missing' | 'thin' | 'usable';
@@ -287,11 +292,7 @@ export async function GET(request: Request) {
     };
 
     return NextResponse.json(response, {
-      headers: {
-        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
-      },
+      headers: PUBLIC_WORLDSPECT_CDN_CACHE,
     });
   } catch (error) {
     return NextResponse.json({

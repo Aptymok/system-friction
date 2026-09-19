@@ -16,6 +16,10 @@ type HealthSnapshotRow = {
 
 const EXPECTED_MEASUREMENTS_TODAY = 4
 const SLOT_HOURS = [0, 6, 12, 18]
+const PUBLIC_WORLDSPECT_CDN_CACHE = {
+  'Cache-Control': 'public, max-age=0, must-revalidate',
+  'Vercel-CDN-Cache-Control': 'public, s-maxage=30, stale-while-revalidate=30',
+} as const
 
 function minutesSince(value: string | null) {
   if (!value) return null
@@ -120,7 +124,7 @@ export async function GET() {
         primary_diagnostic: healthRead.primaryDiagnostic,
         read_cache: healthRead.cache,
         next_expected_measurement_slot_utc: nextSlotUtc(),
-      })
+      }, { headers: PUBLIC_WORLDSPECT_CDN_CACHE })
     }
 
     const today = currentUtcDate()
@@ -203,7 +207,7 @@ export async function GET() {
       primary_diagnostic: healthRead.primaryDiagnostic,
       read_cache: healthRead.cache,
       next_expected_measurement_slot_utc: nextSlotUtc(),
-    })
+    }, { headers: PUBLIC_WORLDSPECT_CDN_CACHE })
   } catch (error) {
     return NextResponse.json({
       ok: true,
