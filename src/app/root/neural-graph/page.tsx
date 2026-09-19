@@ -31,6 +31,8 @@ export default async function RootNeuralGraphPage() {
           relation: edge.relation,
           weight: edge.weight,
           origin: edge.origin,
+          provenance: edge.provenance,
+          lineage: edge.lineage,
         })),
       }}
     />
