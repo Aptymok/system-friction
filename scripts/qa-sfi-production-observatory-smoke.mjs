@@ -10,6 +10,7 @@ const API = ['/api/observatory/world', '/api/observatory/state', '/api/observato
 const VALID = new Set(['LOADING', 'AVAILABLE', 'DEGRADED', 'UNAVAILABLE', 'ERROR']);
 const HTTP_MS = 12000;
 const WINDOW_MS = 28000;
+const CACHE_REUSE_PROBE_DELAY_MS = 3000;
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const iso = () => new Date().toISOString();
@@ -23,6 +24,120 @@ function warnings(payload) {
     ...(Array.isArray(payload?.warnings) ? payload.warnings : []),
     ...(Array.isArray(rec(payload?.data)?.warnings) ? rec(payload.data).warnings : []),
   ].filter(Boolean);
+}
+
+function cacheMarker(payload) {
+  const value = rec(payload);
+  const cache = rec(value?.read_cache) || rec(value?.readCache);
+  return {
+    namespace: String(cache?.namespace || ''),
+    status: String(cache?.status || ''),
+    sourceReadAt: String(cache?.source_read_at || ''),
+  };
+}
+
+function latestTimelineObservedAt(payload) {
+  const frames = Array.isArray(payload?.frames) ? payload.frames : [];
+  const last = frames.at(-1);
+  return String(last?.observedAt || last?.observed_at || '');
+}
+
+async function readCacheReuseProbe() {
+  const firstWave = await Promise.all([
+    get(`${TARGET}/api/worldspect/health`, true),
+    get(`${TARGET}/api/worldspect/real`, true),
+    get(`${TARGET}/api/observatory/timeline`, true),
+  ]);
+
+  await sleep(CACHE_REUSE_PROBE_DELAY_MS);
+
+  const secondWave = await Promise.all([
+    get(`${TARGET}/api/worldspect/trend?days=90`, true),
+    get(`${TARGET}/api/worldspect/real`, true),
+    get(`${TARGET}/api/observatory/timeline`, true),
+  ]);
+
+  const [health, realFirst, timelineFirst] = firstWave;
+  const [trend, realSecond, timelineSecond] = secondWave;
+  const observations = { health, trend, realFirst, realSecond, timelineFirst, timelineSecond };
+
+  const unavailable = Object.entries(observations)
+    .filter(([, observation]) => observation.error || observation.status !== 200 || !rec(observation.json))
+    .map(([name, observation]) => ({
+      name,
+      status: observation.status,
+      error: observation.error,
+      jsonError: observation.jsonError,
+    }));
+  if (unavailable.length) {
+    return { gate: gate('NOT_OBSERVED', { reason: 'cache_probe_unavailable', unavailable }), observations };
+  }
+
+  const recentFirst = cacheMarker(health.json);
+  const recentSecond = cacheMarker(trend.json);
+  const latestFirst = cacheMarker(realFirst.json);
+  const latestSecond = cacheMarker(realSecond.json);
+  const historyFirst = cacheMarker(timelineFirst.json);
+  const historySecond = cacheMarker(timelineSecond.json);
+
+  const missingMarkers = [
+    ['recent-first', recentFirst],
+    ['recent-second', recentSecond],
+    ['latest-first', latestFirst],
+    ['latest-second', latestSecond],
+    ['history-first', historyFirst],
+    ['history-second', historySecond],
+  ].filter(([, marker]) => !marker.sourceReadAt || !marker.namespace);
+  if (missingMarkers.length) {
+    return {
+      gate: gate('NOT_OBSERVED', { reason: 'source_read_at_marker_missing', missingMarkers }),
+      observations,
+    };
+  }
+
+  const snapshotChanged = String(health.json?.last_observed_at || '') !== String(trend.json?.observed_to || '')
+    || String(realFirst.json?.data?.ts || '') !== String(realSecond.json?.data?.ts || '')
+    || latestTimelineObservedAt(timelineFirst.json) !== latestTimelineObservedAt(timelineSecond.json);
+  if (snapshotChanged) {
+    return {
+      gate: gate('NOT_OBSERVED', {
+        reason: 'canonical_snapshot_changed_during_cache_probe',
+        recentObserved: [health.json?.last_observed_at || null, trend.json?.observed_to || null],
+        latestObserved: [realFirst.json?.data?.ts || null, realSecond.json?.data?.ts || null],
+        timelineObserved: [latestTimelineObservedAt(timelineFirst.json) || null, latestTimelineObservedAt(timelineSecond.json) || null],
+      }),
+      observations,
+    };
+  }
+
+  const comparisons = {
+    recent: {
+      namespace: [recentFirst.namespace, recentSecond.namespace],
+      sourceReadAt: [recentFirst.sourceReadAt, recentSecond.sourceReadAt],
+      status: [recentFirst.status, recentSecond.status],
+      reused: recentFirst.namespace === recentSecond.namespace && recentFirst.sourceReadAt === recentSecond.sourceReadAt,
+    },
+    latest: {
+      namespace: [latestFirst.namespace, latestSecond.namespace],
+      sourceReadAt: [latestFirst.sourceReadAt, latestSecond.sourceReadAt],
+      status: [latestFirst.status, latestSecond.status],
+      reused: latestFirst.namespace === latestSecond.namespace && latestFirst.sourceReadAt === latestSecond.sourceReadAt,
+    },
+    publicHistory: {
+      namespace: [historyFirst.namespace, historySecond.namespace],
+      sourceReadAt: [historyFirst.sourceReadAt, historySecond.sourceReadAt],
+      status: [historyFirst.status, historySecond.status],
+      reused: historyFirst.namespace === historySecond.namespace && historyFirst.sourceReadAt === historySecond.sourceReadAt,
+    },
+  };
+
+  const failed = Object.entries(comparisons).filter(([, value]) => !value.reused);
+  return {
+    gate: failed.length
+      ? gate('FAIL', { reason: 'shared_cache_source_read_reexecuted_inside_ttl', delayMs: CACHE_REUSE_PROBE_DELAY_MS, comparisons, failed: failed.map(([name]) => name) })
+      : gate('PASS', { delayMs: CACHE_REUSE_PROBE_DELAY_MS, comparisons }),
+    observations,
+  };
 }
 
 function classify(domain, observation) {
@@ -408,7 +523,7 @@ async function main() {
       headSha: process.env.SFI_RELATED_DEPLOYMENT_SHA || 'UNKNOWN',
       runUrl: process.env.SFI_RELATED_DEPLOYMENT_URL || 'UNKNOWN',
     },
-    bounds: { httpTimeoutMs: HTTP_MS, browserWindowMs: WINDOW_MS, retriesByHarness: 0, expectedProductPollMs: 20000 },
+    bounds: { httpTimeoutMs: HTTP_MS, browserWindowMs: WINDOW_MS, cacheReuseProbeDelayMs: CACHE_REUSE_PROBE_DELAY_MS, retriesByHarness: 0, expectedProductPollMs: 20000 },
     surfaces: {},
     gates: {},
     productionReturn: 'NOT_OBSERVED',
@@ -471,6 +586,19 @@ async function main() {
           naturalNegativeStates: API.filter((route) => report.surfaces.apis[route].availability !== 'AVAILABLE'),
         });
 
+  const cacheProbe = await readCacheReuseProbe();
+  report.surfaces.readCacheProbe = {
+    delayMs: CACHE_REUSE_PROBE_DELAY_MS,
+    observations: Object.fromEntries(Object.entries(cacheProbe.observations).map(([name, observation]) => [name, {
+      status: observation.status,
+      durationMs: observation.durationMs,
+      error: observation.error,
+      jsonError: observation.jsonError,
+      cache: cacheMarker(observation.json),
+    }])),
+  };
+  report.gates.readCacheReuse = cacheProbe.gate;
+
   const expectedMetrics = report.surfaces.apis[API[0]].availability === 'AVAILABLE' ? expected(observations[0].json) : null;
   const browser = await browserSmoke(`${TARGET}/observatory`);
   const browserGate = analyze(browser, expectedMetrics);
@@ -491,7 +619,7 @@ async function main() {
     ? gate('PASS', { requestCounts: browserGate.requestCounts, finiteTimeout: true, retriesByHarness: 0 })
     : gate(browserGate.status);
 
-  const required = ['canonicalTarget', 'domain', 'ssr', 'apis', 'browser', 'falseZero', 'actualZero', 'hypothesisAbsence', 'readPlane'].map((key) => report.gates[key]);
+  const required = ['canonicalTarget', 'domain', 'ssr', 'apis', 'readCacheReuse', 'browser', 'falseZero', 'actualZero', 'hypothesisAbsence', 'readPlane'].map((key) => report.gates[key]);
   report.productionReturn = required.some((item) => item.status === 'FAIL')
     ? 'FAIL'
     : required.some((item) => item.status === 'NOT_OBSERVED')
