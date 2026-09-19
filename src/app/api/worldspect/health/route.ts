@@ -3,7 +3,6 @@ import { createServiceSupabaseClient } from '@/runtime/supabase/server'
 import { getWorldSpectPublicHistoryRead } from '@/lib/worldspect/snapshotStore'
 
 export const runtime = 'nodejs'
-export const dynamic = 'force-dynamic'
 
 type HealthStatus = 'healthy' | 'degraded' | 'failed'
 type TrendQuality = 'missing' | 'thin' | 'usable'

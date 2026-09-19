@@ -4,7 +4,6 @@ import { missingWorldSpectResponse } from '@/lib/worldspect/contract';
 import { getLatestWorldSpectSnapshotRead, snapshotRowToApiData } from '@/lib/worldspect/snapshotStore';
 
 export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
 
 const PUBLIC_WORLDSPECT_CDN_CACHE = {
   'Cache-Control': 'public, max-age=0, s-maxage=30, must-revalidate',
