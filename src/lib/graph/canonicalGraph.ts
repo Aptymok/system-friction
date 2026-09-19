@@ -9,6 +9,7 @@ import {
 } from '../../../packages/graph/src';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { executeAbortableQuery } from '@/lib/supabase/abortableQuery';
+import { isSfiContinuityConfigured, readContinuityCanonicalGraphRows } from '@/lib/sfi/continuityPostgres';
 import { buildLibraryCorpusGraphProjection } from './libraryCorpusProjection';
 
 type Row = Record<string, unknown>;
@@ -117,43 +118,59 @@ function edgeFromRow(row: Row, nodeIdByStoredId: Map<string, string>): Canonical
 
 export async function readCanonicalGraphState(profile: GraphProfile): Promise<CanonicalGraphState> {
   const libraryProjection = buildLibraryCorpusGraphProjection();
-  let service;
+  let rawNodeRows: Row[] = [];
+  let rawEdgeRows: Row[] = [];
+  let continuityServed = false;
+  let primaryDiagnostic: string | null = null;
 
   try {
-    service = createServiceSupabaseClient();
+    const service = createServiceSupabaseClient();
+    const [nodesResult, edgesResult] = await Promise.all([
+      executeAbortableQuery(service.from('graph_nodes').select('*').order('created_at', { ascending: true })),
+      executeAbortableQuery(service.from('graph_edges').select('*').order('created_at', { ascending: true })),
+    ]);
+
+    if (!nodesResult.error && !edgesResult.error) {
+      rawNodeRows = Array.isArray(nodesResult.data) ? nodesResult.data as Row[] : [];
+      rawEdgeRows = Array.isArray(edgesResult.data) ? edgesResult.data as Row[] : [];
+    } else {
+      primaryDiagnostic = nodesResult.error?.message ?? edgesResult.error?.message ?? 'graph_store_read_failed';
+    }
   } catch (error) {
+    primaryDiagnostic = error instanceof Error ? error.message : 'graph_store_not_ready';
+  }
+
+  if (primaryDiagnostic && isSfiContinuityConfigured()) {
+    try {
+      const fallback = await readContinuityCanonicalGraphRows();
+      if (fallback) {
+        rawNodeRows = fallback.nodes as Row[];
+        rawEdgeRows = fallback.edges as Row[];
+        continuityServed = true;
+      }
+    } catch (error) {
+      primaryDiagnostic = `${primaryDiagnostic};continuity=${error instanceof Error ? error.message : 'continuity_graph_read_failed'}`;
+    }
+  }
+
+  if (primaryDiagnostic && !continuityServed && rawNodeRows.length === 0 && rawEdgeRows.length === 0) {
     return stateFromProjection(
       profile,
-      `graph_store_not_ready;library_projection_available;${error instanceof Error ? error.message : 'unknown'}`,
+      `graph_store_read_failed;library_projection_available;${primaryDiagnostic}`,
       libraryProjection,
     );
   }
 
-  const [nodesResult, edgesResult] = await Promise.all([
-    executeAbortableQuery(service.from('graph_nodes').select('*').order('created_at', { ascending: true })),
-    executeAbortableQuery(service.from('graph_edges').select('*').order('created_at', { ascending: true })),
-  ]);
-
-  if (nodesResult.error || edgesResult.error) {
-    return stateFromProjection(
-      profile,
-      `graph_store_read_failed;library_projection_available;${nodesResult.error?.message ?? edgesResult.error?.message ?? 'unknown'}`,
-      libraryProjection,
-    );
-  }
-
-  const persistedNodes = (Array.isArray(nodesResult.data) ? nodesResult.data : [])
-    .map((row) => nodeFromRow(row as Row));
+  const persistedNodes = rawNodeRows.map((row) => nodeFromRow(row));
   const nodeIdByStoredId = new Map<string, string>();
-  for (const rawNode of Array.isArray(nodesResult.data) ? nodesResult.data : []) {
+  for (const rawNode of rawNodeRows) {
     const node = nodeFromRow(rawNode as Row);
     for (const storedId of [rawNode.id, rawNode.node_id, rawNode.node_key, rawNode.key]) {
       const normalizedId = stringValue(storedId);
       if (normalizedId) nodeIdByStoredId.set(normalizedId, node.nodeId);
     }
   }
-  const persistedEdges = (Array.isArray(edgesResult.data) ? edgesResult.data : [])
-    .map((row) => edgeFromRow(row as Row, nodeIdByStoredId));
+  const persistedEdges = rawEdgeRows.map((row) => edgeFromRow(row, nodeIdByStoredId));
 
   const mergedNodes = new Map<string, CanonicalGraphNode>();
   for (const node of libraryProjection.nodes) mergedNodes.set(node.nodeId, node);
@@ -202,7 +219,9 @@ export async function readCanonicalGraphState(profile: GraphProfile): Promise<Ca
   return {
     profile,
     sourceState: 'observed',
-    degradedReason: null,
+    degradedReason: continuityServed
+      ? `primary_graph_read_unavailable_continuity_served;${primaryDiagnostic ?? 'unknown'}`
+      : null,
     nodes,
     edges,
     schemas: { node: graphNodeJsonSchema, edge: graphEdgeJsonSchema },
