@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 
-const SFI_COMPLETION_CERTIFICATION_BATCH_CONTRACT = 'SFI-SFI08-COMPLETION-CERTIFICATION-BATCH-1.3';
+const SFI_COMPLETION_CERTIFICATION_BATCH_CONTRACT = 'SFI-SFI08-COMPLETION-CERTIFICATION-BATCH-1.4';
 const GLOBAL_REGRESSION_SCOPE = [
   'src/**',
   'scripts/**',
@@ -42,7 +42,9 @@ assert.equal(certification.expectedHead, actualHead);
 assert.equal(certification.head, report.head);
 assert.equal(certification.canonicalStatusMutation, false);
 assert.equal(certification.autoReceiptWrite, false);
-assert.deepEqual(certification.regressionScope, GLOBAL_REGRESSION_SCOPE);
+assert.equal(certification.regressionScopeStrategy, REGRESSION_SCOPE_STRATEGY);
+const expectedRegressionScope = [...new Set(certification.requirements.flatMap((item) => item.proofPaths))].sort();
+assert.deepEqual(certification.regressionScope, expectedRegressionScope);
 assert.deepEqual(certification.targetedCanonicalProofs, TARGETED_CANONICAL_PROOFS);
 assert.deepEqual(Object.keys(certification.targetedCanonicalProofs).sort(), ['ISSUE154-001','MASTER-03','WS-01-029']);
 assert.ok(certification.selectedCount <= certification.batchLimit);
@@ -72,6 +74,7 @@ for (const item of certification.requirements) {
   assert.equal(item.diagnosticState, source.diagnostic.state);
   assert.equal(item.targetedProofBinding, targeted);
   assert.ok(Array.isArray(item.proofPaths) && item.proofPaths.length > 0, `proof path required: ${item.id}`);
+  assert.deepEqual(item.scopePaths, item.proofPaths, `receipt regression scope must equal certified proofs: ${item.id}`);
   assert.equal(item.proofPass, true, `proof must pass: ${item.id}`);
   assert.equal(item.semanticSupport.length, item.proofPaths.length, `semantic support required per proof: ${item.id}`);
   for (const proofPath of item.proofPaths) {
@@ -122,7 +125,7 @@ assert.ok(!certification.requirements.some((item) => item.diagnosticState === 'E
 const exercisedTargetedProofs = certification.requirements.filter((item) => item.targetedProofBinding === true).map((item) => item.id);
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-SFI08-COMPLETION-CERTIFICATION-BATCH-QA-1.3',
+  contract: 'SFI-SFI08-COMPLETION-CERTIFICATION-BATCH-QA-1.4',
   head: actualHead,
   selectedCount: certification.selectedCount,
   selectedInvalidReceiptCount: certification.selectedInvalidReceiptCount,
