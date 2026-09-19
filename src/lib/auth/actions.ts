@@ -11,7 +11,7 @@ import {
   signOutNeonAuth,
 } from '@/runtime/supabase/server'
 import { readContinuityProfile, readContinuityProfileByEmail } from '@/lib/sfi/continuityPostgres'
-import { upgradeLegacyNeonPasswordCredential } from '@/lib/auth/neonLegacyPasswordBridge'
+import { upgradeLegacyNeonPasswordCredential } from '@/lib/auth/neonPasswordCredentialMigration'
 import { authSchema } from '@/lib/validation/schemas'
 
 function formValue(formData: FormData, key: string) {
