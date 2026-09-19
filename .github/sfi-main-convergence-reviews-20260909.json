@@ -1,6 +1,6 @@
 {
   "contract": "SFI-MAIN-CONVERGENCE-REVIEW-LEDGER-1.0",
-  "observedAgainstMain": "48a04788bc850298591e41cd2f747c3790abfaee",
+  "observedAgainstMain": "82403abe04f05a3dac032686f7a19e4fca72d256",
   "reviewedDeltas": {
     "4ef7801c4803bd7d": {
       "decision": "SUPERSEDED_BY_LATER_MAIN",
@@ -160,6 +160,32 @@
         "historical PR #519 retains the rationale and diff for provenance without requiring the branch to remain live"
       ],
       "reason": "The machine-surface coherence intent is historical provenance, but its /field ownership assumption and public membrane are superseded by the later canonical public/navigation model."
+    },
+    "12ce8bf34bf18ac6": {
+      "decision": "ARCHIVED",
+      "branches": [
+        "feat/539-worldspect-read-bundle-20260919"
+      ],
+      "evidence": [
+        "Branch contains a useful cross-consumer WorldSpect bundle prototype but has no open PR and predates merged PR #545 CDN response caching.",
+        "Prototype caches its bundle error response at the CDN and therefore must not be merged unchanged.",
+        "Its semantic trend derivation preserves the existing full-row aggregation approach, so the architectural idea is retained for a fresh current-main slice after production CDN cache RETURN.",
+        "Issue #539 remains open and explicitly tracks cross-consumer/cache reuse; Git history preserves this implementation provenance."
+      ],
+      "reason": "Archive prototype branch as design provenance. Reimplement the valid bundle-owner idea fresh on current main only after the bounded CDN layer is measured in production; do not keep a live divergent implementation."
+    },
+    "99ca3f5696c6cc63": {
+      "decision": "ARCHIVED",
+      "branches": [
+        "test/539-production-cache-reuse-20260919"
+      ],
+      "evidence": [
+        "Branch is assurance-only and contains no product owner.",
+        "Its source_read_at production measurements were persisted to issue #539 comment 5740246732.",
+        "Those measurements established that process-local coalescing works while cross-invocation shared-cache reuse remained unproven.",
+        "Merged PR #545 provides the next production falsation surface through x-vercel-cache MISS/HIT."
+      ],
+      "reason": "Archive the consumed test branch. Its evidence is persisted in #539 and the next assay is attached to the merged current-main CDN implementation."
     }
   }
 }
