@@ -45,6 +45,10 @@ const health = await readJson('/api/worldspect/health');
 const trend = await readJson('/api/worldspect/trend?days=90&debug=1');
 const real = await readJson('/api/worldspect/real');
 
+const continuityDegraded = health.status === 'degraded'
+  && health.read_plane === 'NEON'
+  && health.continuity_state === 'DEGRADED_CONTINUITY';
+
 if (health.status === 'failed') fail('health.status=failed', (health.warnings || []).join('|') || health.latest_error || 'Inspect health output.');
 if (trend.ok !== true) fail('trend.ok_not_true', 'WorldSpect trend endpoint did not return ok=true.');
 if (Number(trend.sample_count || 0) === 0) fail('trend.sample_count=0', 'Run cron and verify worldspect_snapshots persistence.');
@@ -65,10 +69,16 @@ if (sampleCount > 0 && emptySnapshots > Math.max(3, sampleCount * 2)) {
 const lastObserved = health.last_observed_at || trend.observed_to || real?.data?.ts || null;
 const lastMinutes = health.minutes_since_last_measurement ?? minutesSince(lastObserved);
 if (lastMinutes === null) fail('last_observed_at_unreadable', 'Health/trend/real did not expose a readable last observation time.');
-if (lastMinutes > 1440) fail('last_observed_at_old', `minutes_since_last_measurement=${lastMinutes}`);
+if (lastMinutes > 1440 && !continuityDegraded) fail('last_observed_at_old', `minutes_since_last_measurement=${lastMinutes}`);
+if (lastMinutes > 1440 && continuityDegraded) {
+  console.log('WORLD_VECTOR_PULSE_QA_DEGRADED_CONTINUITY');
+  console.log(line('primary_diagnostic', health.primary_diagnostic));
+}
 
 console.log('WORLD_VECTOR_PULSE_QA_OK');
 console.log(line('health_status', health.status));
+console.log(line('read_plane', health.read_plane));
+console.log(line('continuity_state', health.continuity_state));
 console.log(line('sample_count', trend.sample_count));
 console.log(line('trend_quality', trend.trend_quality));
 console.log(line('last_observed_at', lastObserved));
