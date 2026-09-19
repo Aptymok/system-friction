@@ -5,7 +5,6 @@ import { WORLDSPECT_DOMAINS, type WorldSpectDomain } from '@/lib/worldspect/vect
 import type { WorldSpectIngestMode } from '../../../../../packages/api-contracts/src';
 
 export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
 
 const PUBLIC_WORLDSPECT_CDN_CACHE = {
   'Cache-Control': 'public, max-age=0, s-maxage=30, must-revalidate',
