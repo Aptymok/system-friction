@@ -198,6 +198,9 @@ jobs:
       - name: Verify Neon read-plane continuity and deferred effectful lanes
         run: node scripts/qa-sfi-neon-readplane-deferred-lanes.mjs
 
+      - name: Verify WorldSpect Neon read-plane continuity
+        run: node scripts/qa-sfi-worldspect-neon-readplane.mjs
+
       - name: Verify universal closure RETURN disposition fallback
         run: node --import tsx --test src/lib/sfi/universalClosure.test.ts
 
