@@ -1,0 +1,278 @@
+.neuralGraphShell{
+  min-height:100vh;
+  background:
+    radial-gradient(circle at 72% 12%,rgba(197,156,87,.07),transparent 29%),
+    linear-gradient(180deg,#070705 0%,#0b0a07 55%,#060604 100%);
+  color:#c9b994;
+  padding:34px clamp(18px,3vw,48px) 72px;
+  font-family:Inter,ui-sans-serif,system-ui,sans-serif;
+}
+.neuralGraphHeader{
+  max-width:1500px;
+  margin:0 auto;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:32px;
+  border-bottom:1px solid rgba(211,175,108,.2);
+  padding:22px 0 32px;
+}
+.neuralGraphEyebrow,.neuralGraphInspectorHead span,.neuralGraphBoundary span,.neuralGraphControls label span,.neuralGraphCanvasMeta,.neuralGraphInspector section>span,.neuralGraphFooter span{
+  font:500 10px/1.4 "JetBrains Mono",ui-monospace,SFMono-Regular,monospace;
+  letter-spacing:.17em;
+  color:#a98953;
+}
+.neuralGraphHeader h1{
+  max-width:920px;
+  margin:12px 0 14px;
+  color:#ead6aa;
+  font-family:Georgia,"Times New Roman",serif;
+  font-size:clamp(40px,5.8vw,86px);
+  font-weight:400;
+  line-height:.96;
+}
+.neuralGraphHeader p{
+  max-width:850px;
+  margin:0;
+  color:#948a74;
+  font-family:Georgia,"Times New Roman",serif;
+  font-size:17px;
+  line-height:1.7;
+}
+.neuralGraphHeaderActions{
+  display:flex;
+  gap:16px;
+  align-items:flex-start;
+  padding-top:5px;
+}
+.neuralGraphHeaderActions a{
+  color:#caa667;
+  font-size:10px;
+  letter-spacing:.14em;
+  text-decoration:none;
+  border-bottom:1px solid rgba(202,166,103,.32);
+  padding-bottom:5px;
+}
+.neuralGraphPulse{
+  max-width:1500px;
+  margin:18px auto 0;
+  display:grid;
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  border:1px solid rgba(211,175,108,.14);
+}
+.neuralGraphPulse article{
+  min-height:112px;
+  padding:18px;
+  border-right:1px solid rgba(211,175,108,.12);
+}
+.neuralGraphPulse article:last-child{border-right:0}
+.neuralGraphPulse span,.neuralGraphPulse small{
+  display:block;
+  font:500 9px/1.45 "JetBrains Mono",ui-monospace,monospace;
+  letter-spacing:.14em;
+  color:#746c5a;
+}
+.neuralGraphPulse strong{
+  display:block;
+  margin:12px 0 7px;
+  color:#d9bd82;
+  font-family:Georgia,"Times New Roman",serif;
+  font-size:24px;
+  font-weight:400;
+}
+.neuralGraphPulse article[data-state="NEON"] strong,
+.neuralGraphPulse article[data-state="degraded"] strong{color:#c87959}
+.neuralGraphBoundary{
+  max-width:1500px;
+  margin:16px auto 0;
+  display:flex;
+  gap:18px;
+  align-items:baseline;
+  border-left:2px solid #a54d3c;
+  padding:12px 16px;
+  background:rgba(154,63,47,.055);
+}
+.neuralGraphBoundary strong{
+  color:#d0aa6a;
+  font-family:Georgia,"Times New Roman",serif;
+  font-size:16px;
+  font-weight:400;
+}
+.neuralGraphBoundary span{color:#826e59}
+.neuralGraphControls{
+  max-width:1500px;
+  margin:22px auto;
+  display:grid;
+  grid-template-columns:minmax(220px,360px) 1fr;
+  gap:16px 24px;
+  align-items:end;
+}
+.neuralGraphControls label span{display:block;margin-bottom:8px}
+.neuralGraphControls input{
+  width:100%;
+  box-sizing:border-box;
+  background:#090906;
+  color:#d7c6a3;
+  border:1px solid rgba(211,175,108,.2);
+  padding:11px 13px;
+  outline:none;
+}
+.neuralGraphControls input:focus{border-color:rgba(211,175,108,.58)}
+.neuralGraphFilters{
+  display:flex;
+  flex-wrap:wrap;
+  gap:7px;
+}
+.neuralGraphFilters button{
+  background:transparent;
+  color:#706858;
+  border:1px solid rgba(211,175,108,.13);
+  padding:8px 9px;
+  font:500 8px/1.2 "JetBrains Mono",ui-monospace,monospace;
+  letter-spacing:.08em;
+  cursor:pointer;
+}
+.neuralGraphFilters button:hover,.neuralGraphFilters button.active{
+  color:#d5b36f;
+  border-color:rgba(211,175,108,.42);
+  background:rgba(211,175,108,.05);
+}
+.neuralGraphLayout{
+  max-width:1500px;
+  margin:0 auto;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(280px,360px);
+  gap:14px;
+}
+.neuralGraphCanvas{
+  position:relative;
+  min-height:680px;
+  overflow:hidden;
+  border:1px solid rgba(211,175,108,.16);
+  background:
+    linear-gradient(rgba(211,175,108,.028) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(211,175,108,.028) 1px,transparent 1px),
+    #070705;
+  background-size:38px 38px;
+}
+.neuralGraphCanvasMeta{
+  position:absolute;
+  z-index:2;
+  inset:12px 14px auto;
+  display:flex;
+  justify-content:space-between;
+  pointer-events:none;
+}
+.neuralGraphCanvas svg{display:block;width:100%;height:auto;min-height:680px}
+.graphEdge{
+  stroke:#7d6842;
+  opacity:.17;
+  vector-effect:non-scaling-stroke;
+}
+.graphEdge.selected{stroke:#d6aa65;opacity:.64}
+.graphNode{cursor:pointer;outline:none}
+.graphNodeHalo{fill:transparent;stroke:rgba(211,175,108,.05);stroke-width:1}
+.graphNode:hover .graphNodeHalo,.graphNode:focus .graphNodeHalo{fill:rgba(211,175,108,.08);stroke:rgba(211,175,108,.32)}
+.graphNode.selected .graphNodeHalo{fill:rgba(211,175,108,.1);stroke:#d2aa67;stroke-width:1.4}
+.graphLabel{
+  fill:#8f8066;
+  font:500 8.5px/1 "JetBrains Mono",ui-monospace,monospace;
+  letter-spacing:.025em;
+  paint-order:stroke;
+  stroke:#070705;
+  stroke-width:3px;
+  stroke-linejoin:round;
+}
+.graphNode.selected .graphLabel{fill:#e0c58c}
+.neuralGraphEmpty{
+  position:absolute;
+  inset:45% 20%;
+  text-align:center;
+  color:#877a63;
+  font:500 11px/1.6 "JetBrains Mono",ui-monospace,monospace;
+}
+.neuralGraphInspector{
+  border:1px solid rgba(211,175,108,.16);
+  background:#090806;
+  min-height:680px;
+  padding:20px;
+  overflow:auto;
+}
+.neuralGraphInspectorHead{
+  border-bottom:1px solid rgba(211,175,108,.15);
+  padding-bottom:18px;
+}
+.neuralGraphInspectorHead span{display:block;margin-bottom:9px}
+.neuralGraphInspectorHead strong{
+  color:#dec38b;
+  font-family:Georgia,"Times New Roman",serif;
+  font-size:27px;
+  font-weight:400;
+  line-height:1.05;
+}
+.neuralGraphInspector dl{margin:18px 0 0}
+.neuralGraphInspector dl div{
+  display:grid;
+  grid-template-columns:86px minmax(0,1fr);
+  gap:10px;
+  border-bottom:1px solid rgba(211,175,108,.08);
+  padding:9px 0;
+}
+.neuralGraphInspector dt,.neuralGraphInspector dd{
+  margin:0;
+  font:500 9px/1.45 "JetBrains Mono",ui-monospace,monospace;
+}
+.neuralGraphInspector dt{color:#766951;letter-spacing:.1em}
+.neuralGraphInspector dd{color:#ada088;overflow-wrap:anywhere}
+.neuralGraphInspector section{margin-top:24px}
+.neuralGraphInspector section>span{display:block;margin-bottom:10px}
+.neuralGraphInspector section code{
+  display:block;
+  margin:6px 0;
+  color:#9f8f72;
+  font:500 9px/1.4 "JetBrains Mono",ui-monospace,monospace;
+  overflow-wrap:anywhere;
+}
+.neuralGraphInspector p{color:#8c806b;font:14px/1.65 Georgia,serif}
+.neuralGraphRelation{
+  width:100%;
+  text-align:left;
+  background:transparent;
+  border:0;
+  border-top:1px solid rgba(211,175,108,.09);
+  color:#c5b28c;
+  padding:10px 0;
+  cursor:pointer;
+}
+.neuralGraphRelation small{
+  display:block;
+  color:#816f54;
+  font:500 8px/1.3 "JetBrains Mono",ui-monospace,monospace;
+  letter-spacing:.07em;
+}
+.neuralGraphRelation strong{font-family:Georgia,serif;font-size:14px;font-weight:400}
+.neuralGraphRelation:hover strong{color:#dfbd78}
+.neuralGraphFooter{
+  max-width:1500px;
+  margin:14px auto 0;
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:1px;
+  background:rgba(211,175,108,.1);
+  border:1px solid rgba(211,175,108,.1);
+}
+.neuralGraphFooter>div{background:#080705;padding:18px}
+.neuralGraphFooter span{display:block;margin-bottom:8px}
+.neuralGraphFooter p{margin:0;color:#807562;font:13px/1.55 Georgia,serif;overflow-wrap:anywhere}
+@media(max-width:980px){
+  .neuralGraphHeader,.neuralGraphControls,.neuralGraphLayout{grid-template-columns:1fr}
+  .neuralGraphPulse{grid-template-columns:repeat(2,1fr)}
+  .neuralGraphPulse article{border-bottom:1px solid rgba(211,175,108,.12)}
+  .neuralGraphInspector{min-height:auto}
+  .neuralGraphFooter{grid-template-columns:1fr}
+}
+@media(max-width:560px){
+  .neuralGraphShell{padding-left:12px;padding-right:12px}
+  .neuralGraphPulse{grid-template-columns:1fr}
+  .neuralGraphBoundary{align-items:flex-start;flex-direction:column;gap:4px}
+  .neuralGraphCanvas,.neuralGraphCanvas svg{min-height:520px}
+}

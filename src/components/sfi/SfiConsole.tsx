@@ -16,6 +16,7 @@ const HUMAN_NAV = [
   { href:'/root#decisions', label:'DECISIONES', scene:null },
   { href:'/root#reports', label:'REPORTES', scene:null },
   { href:'/observatory', label:'OBSERVATORY', scene:null },
+  { href:'/root/neural-graph', label:'NEURAL GRAPH', scene:null },
   { href:'/library', label:'LIBRARY', scene:null },
 ] as const;
 

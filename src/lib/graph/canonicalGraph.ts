@@ -9,9 +9,19 @@ import {
 } from '../../../packages/graph/src';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { executeAbortableQuery } from '@/lib/supabase/abortableQuery';
+import { isSfiContinuityConfigured, readContinuityCanonicalGraphRows } from '@/lib/sfi/continuityPostgres';
 import { buildLibraryCorpusGraphProjection } from './libraryCorpusProjection';
 
 type Row = Record<string, unknown>;
+
+export type CanonicalGraphReadOptions = {
+  allowContinuity?: boolean;
+};
+
+const GRAPH_NODE_HYBRID_READ_FIELDS = 'id,node_id,node_key,label,node_type,ontology_type,profile,origin,attributes,lineage,created_at,updated_at';
+const GRAPH_EDGE_HYBRID_READ_FIELDS = 'id,edge_id,source_node_id,target_node_id,source_node_key,target_node_key,relation,relation_type,weight,w_ij,attributes,lineage,created_at,updated_at';
+const GRAPH_NODE_CANONICAL_READ_FIELDS = 'id,node_id,label,ontology_type,attributes,lineage,created_at,updated_at';
+const GRAPH_EDGE_CANONICAL_READ_FIELDS = 'id,edge_id,source_node_id,target_node_id,relation,weight,attributes,lineage,created_at,updated_at';
 
 function now() {
   return new Date().toISOString();
@@ -19,6 +29,20 @@ function now() {
 
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function rowsFromUnknown(value: unknown): Row[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is Row => Boolean(item) && typeof item === 'object' && !Array.isArray(item))
+    : [];
+}
+
+function attributesFromRow(row: Row) {
+  const attributes = asRecord(row.attributes);
+  if (Object.keys(attributes).length) return attributes;
+  const payload = asRecord(row.payload);
+  if (Object.keys(payload).length) return payload;
+  return asRecord(row.metadata);
 }
 
 function stringValue(...values: unknown[]) {
@@ -31,12 +55,74 @@ function stringValue(...values: unknown[]) {
   return null;
 }
 
+function stringValues(value: unknown) {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string' && Boolean(item.trim()))
+    : [];
+}
+
+function semanticRelation(row: Row, attributes: Record<string, unknown>) {
+  const declaredRelations = stringValues(attributes.declaredRelations);
+  if (declaredRelations.length) return declaredRelations.join(' · ');
+  return stringValue(
+    row.relation,
+    attributes.declaredRelation,
+    attributes.semanticRelationType,
+    row.relation_type,
+    row.edge_type,
+    row.type,
+  ) ?? 'related_to';
+}
+
 function profileFromAttributes(attributes: Record<string, unknown>) {
   return isGraphProfile(attributes.profile) ? attributes.profile : 'shared';
 }
 
 function visibleInProfile(itemProfile: GraphProfile, profile: GraphProfile) {
   return profile === 'shared' || itemProfile === profile || itemProfile === 'shared';
+}
+
+function isMissingGraphColumn(value: unknown) {
+  const error = asRecord(value);
+  return error.code === '42703' || error.code === 'PGRST204';
+}
+
+async function readSupabaseGraphRows() {
+  const service = createServiceSupabaseClient();
+
+  const read = async (nodeFields: string, edgeFields: string) => {
+    const [nodesResult, edgesResult] = await Promise.all([
+      executeAbortableQuery(service.from('graph_nodes').select(nodeFields).order('created_at', { ascending: true })),
+      executeAbortableQuery(service.from('graph_edges').select(edgeFields).order('created_at', { ascending: true })),
+    ]);
+    const error = nodesResult.error ?? edgesResult.error ?? null;
+    return {
+      nodes: !nodesResult.error ? rowsFromUnknown(nodesResult.data) : [],
+      edges: !edgesResult.error ? rowsFromUnknown(edgesResult.data) : [],
+      error,
+    };
+  };
+
+  const readSupabaseGraphRowsWide = async () => {
+    const [nodesResult, edgesResult] = await Promise.all([
+      executeAbortableQuery(service.from('graph_nodes').select('*').order('created_at', { ascending: true })),
+      executeAbortableQuery(service.from('graph_edges').select('*').order('created_at', { ascending: true })),
+    ]);
+    const error = nodesResult.error ?? edgesResult.error ?? null;
+    return {
+      nodes: !nodesResult.error ? rowsFromUnknown(nodesResult.data) : [],
+      edges: !edgesResult.error ? rowsFromUnknown(edgesResult.data) : [],
+      error,
+    };
+  };
+
+  const hybrid = await read(GRAPH_NODE_HYBRID_READ_FIELDS, GRAPH_EDGE_HYBRID_READ_FIELDS);
+  if (!hybrid.error || !isMissingGraphColumn(hybrid.error)) return hybrid;
+
+  const canonical = await read(GRAPH_NODE_CANONICAL_READ_FIELDS, GRAPH_EDGE_CANONICAL_READ_FIELDS);
+  if (!canonical.error || !isMissingGraphColumn(canonical.error)) return canonical;
+
+  return readSupabaseGraphRowsWide();
 }
 
 function stateFromProjection(profile: GraphProfile, reason: string, projection = buildLibraryCorpusGraphProjection()): CanonicalGraphState {
@@ -49,6 +135,8 @@ function stateFromProjection(profile: GraphProfile, reason: string, projection =
     profile,
     sourceState: 'degraded',
     degradedReason: reason,
+    readPlane: 'PROJECTION',
+    primaryDiagnostic: reason,
     nodes,
     edges,
     schemas: { node: graphNodeJsonSchema, edge: graphEdgeJsonSchema },
@@ -61,6 +149,8 @@ export function emptyCanonicalGraph(profile: GraphProfile, reason: string): Cano
     profile,
     sourceState: 'degraded',
     degradedReason: reason,
+    readPlane: 'UNAVAILABLE',
+    primaryDiagnostic: reason,
     nodes: [],
     edges: [],
     schemas: { node: graphNodeJsonSchema, edge: graphEdgeJsonSchema },
@@ -69,7 +159,7 @@ export function emptyCanonicalGraph(profile: GraphProfile, reason: string): Cano
 }
 
 function nodeFromRow(row: Row): CanonicalGraphNode {
-  const attributes = asRecord(row.attributes ?? row.payload ?? row.metadata);
+  const attributes = attributesFromRow(row);
   const createdAt = typeof row.created_at === 'string' ? row.created_at : now();
   const updatedAt = typeof row.updated_at === 'string' ? row.updated_at : createdAt;
   const nodeId = stringValue(row.node_id, row.node_key, row.key, row.id) ?? 'unknown';
@@ -89,15 +179,20 @@ function nodeFromRow(row: Row): CanonicalGraphNode {
 }
 
 function edgeFromRow(row: Row, nodeIdByStoredId: Map<string, string>): CanonicalGraphEdge {
-  const attributes = asRecord(row.attributes ?? row.payload ?? row.metadata);
+  const attributes = attributesFromRow(row);
   const createdAt = typeof row.created_at === 'string' ? row.created_at : now();
   const updatedAt = typeof row.updated_at === 'string' ? row.updated_at : createdAt;
-  const relation = stringValue(row.relation_type, row.relation, row.edge_type, row.type) ?? 'related_to';
+  const relation = semanticRelation(row, attributes);
   const rawSourceNodeId = stringValue(row.source_node_key, row.source_node_id, row.source_id, row.from_node_id, row.from_id, row.source, row.from);
   const rawTargetNodeId = stringValue(row.target_node_key, row.target_node_id, row.target_id, row.to_node_id, row.to_id, row.target, row.to);
   const sourceNodeId = rawSourceNodeId ? nodeIdByStoredId.get(rawSourceNodeId) ?? rawSourceNodeId : '';
   const targetNodeId = rawTargetNodeId ? nodeIdByStoredId.get(rawTargetNodeId) ?? rawTargetNodeId : '';
   const weightValue = row.w_ij ?? row.weight ?? 0;
+  const lineageSource = Array.isArray(row.lineage)
+    ? row.lineage
+    : Array.isArray(row.evidence_ids)
+      ? row.evidence_ids
+      : [];
 
   return {
     edgeId: stringValue(row.edge_id, row.edge_key, row.key, row.id) ?? `${sourceNodeId}:${targetNodeId}:${relation}`,
@@ -108,52 +203,67 @@ function edgeFromRow(row: Row, nodeIdByStoredId: Map<string, string>): Canonical
     profile: isGraphProfile(row.profile) ? row.profile : profileFromAttributes(attributes),
     origin: stringValue(row.origin, attributes.origin) ?? 'database',
     provenance: stringValue(row.provenance, attributes.provenance) ?? 'graph_edges',
-    lineage: Array.isArray(row.lineage) ? row.lineage.filter((item): item is string => typeof item === 'string') : [],
+    lineage: lineageSource.filter((item): item is string => typeof item === 'string'),
     attributes,
     createdAt,
     updatedAt,
   };
 }
 
-export async function readCanonicalGraphState(profile: GraphProfile): Promise<CanonicalGraphState> {
+export async function readCanonicalGraphState(
+  profile: GraphProfile,
+  options: CanonicalGraphReadOptions = {},
+): Promise<CanonicalGraphState> {
+  const allowContinuity = options.allowContinuity === true;
   const libraryProjection = buildLibraryCorpusGraphProjection();
-  let service;
+  let rawNodeRows: Row[] = [];
+  let rawEdgeRows: Row[] = [];
+  let continuityServed = false;
+  let primaryDiagnostic: string | null = null;
 
   try {
-    service = createServiceSupabaseClient();
+    const primary = await readSupabaseGraphRows();
+    if (!primary.error) {
+      rawNodeRows = primary.nodes;
+      rawEdgeRows = primary.edges;
+    } else {
+      primaryDiagnostic = primary.error.message ?? 'graph_store_read_failed';
+    }
   } catch (error) {
+    primaryDiagnostic = error instanceof Error ? error.message : 'graph_store_not_ready';
+  }
+
+  if (primaryDiagnostic && allowContinuity && isSfiContinuityConfigured()) {
+    try {
+      const fallback = await readContinuityCanonicalGraphRows();
+      if (fallback) {
+        rawNodeRows = fallback.nodes as Row[];
+        rawEdgeRows = fallback.edges as Row[];
+        continuityServed = true;
+      }
+    } catch (error) {
+      primaryDiagnostic = `${primaryDiagnostic};continuity=${error instanceof Error ? error.message : 'continuity_graph_read_failed'}`;
+    }
+  }
+
+  if (primaryDiagnostic && !continuityServed && rawNodeRows.length === 0 && rawEdgeRows.length === 0) {
     return stateFromProjection(
       profile,
-      `graph_store_not_ready;library_projection_available;${error instanceof Error ? error.message : 'unknown'}`,
+      `graph_store_read_failed;library_projection_available;${primaryDiagnostic}`,
       libraryProjection,
     );
   }
 
-  const [nodesResult, edgesResult] = await Promise.all([
-    executeAbortableQuery(service.from('graph_nodes').select('*').order('created_at', { ascending: true })),
-    executeAbortableQuery(service.from('graph_edges').select('*').order('created_at', { ascending: true })),
-  ]);
-
-  if (nodesResult.error || edgesResult.error) {
-    return stateFromProjection(
-      profile,
-      `graph_store_read_failed;library_projection_available;${nodesResult.error?.message ?? edgesResult.error?.message ?? 'unknown'}`,
-      libraryProjection,
-    );
-  }
-
-  const persistedNodes = (Array.isArray(nodesResult.data) ? nodesResult.data : [])
-    .map((row) => nodeFromRow(row as Row));
+  const persistedNodes = rawNodeRows.map((row) => nodeFromRow(row));
   const nodeIdByStoredId = new Map<string, string>();
-  for (const rawNode of Array.isArray(nodesResult.data) ? nodesResult.data : []) {
+  for (const rawNode of rawNodeRows) {
     const node = nodeFromRow(rawNode as Row);
     for (const storedId of [rawNode.id, rawNode.node_id, rawNode.node_key, rawNode.key]) {
       const normalizedId = stringValue(storedId);
       if (normalizedId) nodeIdByStoredId.set(normalizedId, node.nodeId);
     }
   }
-  const persistedEdges = (Array.isArray(edgesResult.data) ? edgesResult.data : [])
-    .map((row) => edgeFromRow(row as Row, nodeIdByStoredId));
+  const persistedEdges = rawEdgeRows.map((row) => edgeFromRow(row, nodeIdByStoredId));
 
   const mergedNodes = new Map<string, CanonicalGraphNode>();
   for (const node of libraryProjection.nodes) mergedNodes.set(node.nodeId, node);
@@ -180,6 +290,8 @@ export async function readCanonicalGraphState(profile: GraphProfile): Promise<Ca
       profile,
       sourceState: 'degraded',
       degradedReason: 'graph_store_empty;declared_library_projection_available;persisted_graph_reconciliation_still_required',
+      readPlane: continuityServed ? 'NEON' : 'SUPABASE',
+      primaryDiagnostic,
       nodes,
       edges,
       schemas: { node: graphNodeJsonSchema, edge: graphEdgeJsonSchema },
@@ -192,6 +304,8 @@ export async function readCanonicalGraphState(profile: GraphProfile): Promise<Ca
       profile,
       sourceState: 'degraded',
       degradedReason: 'graph_edges_empty;declared_library_projection_available;persisted_graph_reconciliation_still_required',
+      readPlane: continuityServed ? 'NEON' : 'SUPABASE',
+      primaryDiagnostic,
       nodes,
       edges,
       schemas: { node: graphNodeJsonSchema, edge: graphEdgeJsonSchema },
@@ -202,7 +316,11 @@ export async function readCanonicalGraphState(profile: GraphProfile): Promise<Ca
   return {
     profile,
     sourceState: 'observed',
-    degradedReason: null,
+    degradedReason: continuityServed
+      ? `primary_graph_read_unavailable_continuity_served;${primaryDiagnostic ?? 'unknown'}`
+      : null,
+    readPlane: continuityServed ? 'NEON' : 'SUPABASE',
+    primaryDiagnostic,
     nodes,
     edges,
     schemas: { node: graphNodeJsonSchema, edge: graphEdgeJsonSchema },

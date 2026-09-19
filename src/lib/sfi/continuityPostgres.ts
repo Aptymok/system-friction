@@ -380,6 +380,60 @@ export async function readContinuityRootNeuralGraphRuntime() {
   return (rows[0] as JsonRecord | undefined) ?? null;
 }
 
+export async function readContinuityCanonicalGraphRows() {
+  const sql = db();
+  const rows = await sql`
+    select
+      coalesce((
+        select jsonb_agg(
+          (
+            (to_jsonb(n) - 'payload' - 'q_n' - 'd_n' - 'co_n' - 'u_n' - 'epistemic_class' - 'confidence')
+            || jsonb_build_object(
+              'attributes',
+              coalesce(
+                nullif(nullif(to_jsonb(n)->'attributes', 'null'::jsonb), '{}'::jsonb),
+                nullif(to_jsonb(n)->'payload', 'null'::jsonb),
+                '{}'::jsonb
+              )
+            )
+          )
+          order by n.created_at asc
+        )
+          from graph_nodes n
+      ), '[]'::jsonb) as nodes,
+      coalesce((
+        select jsonb_agg(
+          (
+            (to_jsonb(e) - 'payload' - 'evidence_ids' - 'confidence')
+            || jsonb_build_object(
+              'attributes',
+              coalesce(
+                nullif(nullif(to_jsonb(e)->'attributes', 'null'::jsonb), '{}'::jsonb),
+                nullif(to_jsonb(e)->'payload', 'null'::jsonb),
+                '{}'::jsonb
+              ),
+              'lineage',
+              coalesce(
+                nullif(nullif(to_jsonb(e)->'lineage', 'null'::jsonb), '[]'::jsonb),
+                nullif(nullif(to_jsonb(e)->'evidence_ids', 'null'::jsonb), '[]'::jsonb),
+                '[]'::jsonb
+              )
+            )
+          )
+          order by e.created_at asc
+        )
+          from graph_edges e
+      ), '[]'::jsonb) as edges
+  `;
+  const row = (rows[0] as JsonRecord | undefined) ?? null;
+  return row
+    ? {
+        nodes: Array.isArray(row.nodes) ? row.nodes as JsonRecord[] : [],
+        edges: Array.isArray(row.edges) ? row.edges as JsonRecord[] : [],
+      }
+    : null;
+}
+
 export function continuityDatabase() {
   return db();
 }
