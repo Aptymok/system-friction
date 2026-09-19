@@ -15,6 +15,8 @@ assert.match(continuity, /readContinuityRecentWorldSpectSnapshots/, 'recent snap
 
 assert.match(store, /readPlane: 'NEON'/, 'snapshot store must expose Neon fallback');
 assert.match(store, /if \(error && isSfiContinuityConfigured\(\)\)/, 'snapshot reads must fall back only after a primary error');
+assert.match(store, /readPlane: 'UNAVAILABLE'/, 'snapshot reads must expose unavailable continuity instead of throwing');
+assert.match(store, /continuity_read_failed/, 'snapshot reads must retain continuity failure diagnostics');
 
 const upsertStart = store.indexOf('export async function upsertWorldSpectSnapshot');
 assert.ok(upsertStart >= 0, 'canonical WorldSpect upsert missing');
@@ -23,6 +25,7 @@ assert.doesNotMatch(upsertBlock, /continuity|NEON|readContinuity/i, 'canonical W
 
 assert.match(health, /DEGRADED_CONTINUITY/, 'health must expose controlled continuity degradation');
 assert.match(health, /read_plane/, 'health must expose read plane');
+assert.match(health, /healthRead\.readPlane === 'SUPABASE' \? await alertTableWarnings\(\) : \[\]/, 'health must not re-enter Supabase-only alert reads after continuity fallback');
 assert.match(trend, /getRecentWorldSpectSnapshotsRead/, 'trend must use read-plane-aware snapshot reader');
 assert.match(trend, /read_plane/, 'trend must expose read plane');
 assert.match(real, /getLatestWorldSpectSnapshotRead/, 'real snapshot must use read-plane-aware reader');
