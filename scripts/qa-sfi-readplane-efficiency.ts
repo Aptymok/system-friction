@@ -22,14 +22,19 @@ assert.match(store, /latestReadCoalescer\.clear\(\)/, 'successful canonical writ
 assert.match(store, /recentReadCoalescer\.clear\(\)/, 'successful canonical writes must clear process recent cache');
 assert.match(store, /publicHistoryReadCoalescer\.clear\(\)/, 'successful canonical writes must clear process public-history cache');
 assert.match(store, /worldspect-public-history/, 'lightweight public history must have a dedicated shared cache namespace');
-assert.match(store, /select\('observed_at,created_at,source_state,confidence,wsi,nti,ingest_mode,sources'\)/, 'public history must use the lightweight projection');
+assert.match(store, /select\('observed_at,created_at,source_state,confidence,wsi,nti,ingest_mode,sources,degraded_sources,adapter_error'\)/, 'public history must use the lightweight health/trend projection');
 assert.doesNotMatch(gold, /getRecentWorldSpectSnapshots/, 'Observatory Gold must not pull full WorldSpect rows for public history');
 assert.match(gold, /getWorldSpectPublicHistory/, 'Observatory Gold must use shared lightweight public history');
 assert.doesNotMatch(publicObservatory, /createServiceSupabaseClient|from\('worldspect_snapshots'\)/, 'Public Observatory must not own an independent WorldSpect persistence query');
 assert.match(publicObservatory, /getWorldSpectPublicHistoryRead/, 'Public Observatory must use shared public-history owner');
 assert.doesNotMatch(publicTimeline, /createServiceSupabaseClient|from\('worldspect_snapshots'\)|readContinuityWorldSnapshotTimeline/, 'Timeline must not own persistence or failover logic');
 assert.match(publicTimeline, /getWorldSpectPublicHistoryRead/, 'Timeline must use shared public-history owner');
+assert.match(health, /getWorldSpectPublicHistoryRead/, 'health must use shared lightweight public history');
+assert.doesNotMatch(health, /getRecentWorldSpectSnapshotsRead/, 'health must not pull full snapshot history');
 assert.match(health, /read_cache: healthRead\.cache/, 'health must expose read-cache diagnostics');
+assert.match(trend, /getWorldSpectPublicHistoryRead/, 'trend must use shared lightweight public history');
+assert.doesNotMatch(trend, /getRecentWorldSpectSnapshotsRead/, 'trend must not pull full snapshot history');
+assert.match(trend, /source\.domain \?\? source\.mihm_var/, 'trend must recover canonical domain identity from persisted lightweight sources');
 assert.match(trend, /read_cache: snapshotRead\.cache/, 'trend must expose read-cache diagnostics');
 assert.match(real, /readCache: latestRead\.cache/, 'real snapshot must expose read-cache diagnostics');
 
@@ -74,6 +79,8 @@ async function main() {
       measuredFullRowBytes120: 7703905,
       measuredLightweightBytes120: 1842916,
       measuredEgressReductionPercent: 76.08,
+      measuredHealthTrendProjectionBytes120: 1745492,
+      measuredHealthTrendReductionPercent: 75.89,
       sharedCacheTtlSeconds: 30,
       processCoalescingTtlSeconds: 2,
     },
