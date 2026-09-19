@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServiceSupabaseClient } from '@/runtime/supabase/server'
+import { getRecentWorldSpectSnapshotsRead } from '@/lib/worldspect/snapshotStore'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -73,39 +74,26 @@ async function alertTableWarnings() {
 }
 
 async function readHealthSnapshots() {
-  const service = createServiceSupabaseClient()
-  const observedSince = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString()
-  const { data, error } = await service
-    .from('worldspect_snapshots')
-    .select('observed_at,sources,degraded_sources,adapter_error')
-    .gte('observed_at', observedSince)
-    .order('observed_at', { ascending: true })
-    .limit(120)
-
-  if (error) throw error
-
-  return Array.isArray(data)
-    ? data
-      .map((row) => {
-        const record = row as Record<string, unknown>
-        return {
-          observed_at: typeof record.observed_at === 'string' ? record.observed_at : '',
-          sources: Array.isArray(record.sources) ? record.sources : [],
-          degraded_sources: Array.isArray(record.degraded_sources)
-            ? record.degraded_sources.filter((source): source is string => typeof source === 'string')
-            : [],
-          adapter_error: typeof record.adapter_error === 'string' ? record.adapter_error : null,
-        } satisfies HealthSnapshotRow
-      })
-      .filter((row) => row.observed_at)
-    : []
+  const read = await getRecentWorldSpectSnapshotsRead({ days: 90, limit: 120 })
+  return {
+    rows: read.data.map((row) => ({
+      observed_at: row.observed_at,
+      sources: Array.isArray(row.sources) ? row.sources : [],
+      degraded_sources: Array.isArray(row.degraded_sources) ? row.degraded_sources : [],
+      adapter_error: row.adapter_error,
+    } satisfies HealthSnapshotRow)),
+    readPlane: read.readPlane,
+    primaryDiagnostic: read.primaryDiagnostic,
+  }
 }
 
 export async function GET() {
   const generatedAt = new Date().toISOString()
 
   try {
-    const recent90d = await readHealthSnapshots()
+    const healthRead = await readHealthSnapshots()
+    const recent90d = healthRead.rows
+    const continuityRead = healthRead.readPlane === 'NEON'
     const latest = recent90d[recent90d.length - 1] ?? null
 
     const alertWarnings = await alertTableWarnings()
@@ -126,6 +114,9 @@ export async function GET() {
         empty_snapshots_90d: 0,
         latest_error: 'worldspect_snapshot_missing',
         warnings: ['no_snapshots', ...alertWarnings],
+        read_plane: healthRead.readPlane,
+        continuity_state: continuityRead ? 'DEGRADED_CONTINUITY' : 'PRIMARY',
+        primary_diagnostic: healthRead.primaryDiagnostic,
         next_expected_measurement_slot_utc: nextSlotUtc(),
       })
     }
@@ -155,8 +146,8 @@ export async function GET() {
     }
 
     if (minutes !== null && minutes > 1440) {
-      status = 'failed'
-      warnings.push('world_vector_silent_over_24h')
+      status = continuityRead ? 'degraded' : 'failed'
+      warnings.push(continuityRead ? 'world_vector_stale_during_primary_restriction' : 'world_vector_silent_over_24h')
     } else if (minutes !== null && minutes > 390 && status !== 'failed') {
       status = 'degraded'
       warnings.push('latest_measurement_stale')
@@ -205,6 +196,9 @@ export async function GET() {
       empty_snapshots_90d: emptySnapshots90d,
       latest_error: latestError,
       warnings,
+      read_plane: healthRead.readPlane,
+      continuity_state: continuityRead ? 'DEGRADED_CONTINUITY' : 'PRIMARY',
+      primary_diagnostic: healthRead.primaryDiagnostic,
       next_expected_measurement_slot_utc: nextSlotUtc(),
     })
   } catch (error) {
@@ -223,6 +217,9 @@ export async function GET() {
       empty_snapshots_90d: 0,
       latest_error: error instanceof Error ? error.message : 'worldspect_health_failed',
       warnings: ['persistence_read_exception'],
+      read_plane: 'UNAVAILABLE',
+      continuity_state: 'FAILED',
+      primary_diagnostic: null,
       next_expected_measurement_slot_utc: nextSlotUtc(),
     })
   }
