@@ -385,21 +385,18 @@ export async function readContinuityCanonicalGraphRows() {
   const rows = await sql`
     select
       coalesce((
-        select jsonb_agg(row_to_json(n) order by n.created_at asc)
-          from (
-            select id,node_id,node_key,label,node_type,ontology_type,origin,attributes,lineage,created_at,updated_at
-              from graph_nodes
-             order by created_at asc
-          ) n
+        select jsonb_agg(
+          (to_jsonb(n) - 'payload' - 'q_n' - 'd_n' - 'co_n' - 'u_n' - 'epistemic_class' - 'confidence')
+          order by n.created_at asc
+        )
+          from graph_nodes n
       ), '[]'::jsonb) as nodes,
       coalesce((
-        select jsonb_agg(row_to_json(e) order by e.created_at asc)
-          from (
-            select id,edge_id,source_node_id,target_node_id,source_node_key,target_node_key,
-                   relation,relation_type,weight,w_ij,attributes,lineage,created_at,updated_at
-              from graph_edges
-             order by created_at asc
-          ) e
+        select jsonb_agg(
+          (to_jsonb(e) - 'payload' - 'evidence_ids' - 'confidence')
+          order by e.created_at asc
+        )
+          from graph_edges e
       ), '[]'::jsonb) as edges
   `;
   const row = (rows[0] as JsonRecord | undefined) ?? null;
