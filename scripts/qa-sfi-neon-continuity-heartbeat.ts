@@ -26,7 +26,7 @@ check('shared continuity SQL handle exists without second connector',
 check('actionable work gate reads Neon only after primary failure',
   gate.includes('readNeonActionableWorkSnapshot')
   && gate.includes("dataPlane: 'NEON'")
-  && gate.indexOf('if (readError || missingContinuityState)') < gate.indexOf('readNeonActionableWorkSnapshot'));
+  && gate.indexOf('if (readError || missingContinuityState)') < gate.indexOf('const fallback = await readNeonActionableWorkSnapshot()'));
 
 check('heartbeat persists run/check/incident/state to Neon fallback',
   store.includes('createNeonContinuityRun')
@@ -34,7 +34,7 @@ check('heartbeat persists run/check/incident/state to Neon fallback',
   && store.includes('insertNeonContinuityIncidents')
   && store.includes('finalizeNeonContinuityRun')
   && store.includes('updateNeonContinuityState')
-  && runtime.includes("dataPlane: 'NEON'")
+  && runtime.includes("dataPlane = 'NEON'")
   && runtime.includes('readNeonContinuityHeartbeatState'));
 
 check('scheduled egress guard requires explicit continuity opt-in',
