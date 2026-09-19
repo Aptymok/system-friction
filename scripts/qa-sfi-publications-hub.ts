@@ -9,6 +9,9 @@ const entryCss = read('src/components/sfi/PublicEntryGateway.css');
 const institutionCss = read('src/app/institution/institution.css');
 const families = read('src/lib/publications/editorialFamilies.ts');
 const editorial = read('src/lib/publications/editorialContent.ts');
+const publicationEntry = read('src/app/publications/[slug]/page.tsx');
+const temporalCss = read('src/app/publications/[slug]/temporalIssue.css');
+const temporalView = read('src/components/publications/TemporalIssueView.tsx');
 
 for (const asset of [
   'public/images/editorial/notas-temporales-septiembre-2026.webp',
@@ -27,6 +30,10 @@ assert.ok(page.includes('<picture>') && page.includes('SFI_PUBLICATIONS_BANNER.m
 assert.ok(page.includes('GENERADA (IA)') || families.includes('GENERADA (IA)'), 'generated_image_provenance_missing');
 assert.equal(page.includes('Notas de Tiempo'), false, 'monthly_temporal_notes_must_not_be_reclassified_as_notas_de_tiempo');
 assert.ok(editorial.includes("editorialKind: 'TEMPORAL_ISSUE'") && editorial.includes("collection: 'Notas Temporales'"), 'monthly_notes_canonical_boundary_missing');
+assert.ok(editorial.includes("code: 'SFI-TN-M / 2026-09'") && editorial.includes("coordinate: '2026 / 09'"), 'temporal_coordinate_contract_missing');
+assert.ok(editorial.includes("state: 'PUBLIC'") && editorial.includes('1LFQkhEtcilXQ6IgeUwIflDcj-MAJVSvE'), 'temporal_pdf_public_rendition_missing');
+assert.ok(publicationEntry.includes('TemporalIssueView') && temporalView.includes('QUÉ OBSERVAR DESPUÉS'), 'canonical_temporal_surface_missing');
+assert.ok(temporalView.includes('DESCARGAR / ABRIR PDF') && temporalView.includes('SEMÁNTICA TEMPORAL'), 'temporal_download_or_semantics_missing');
 
 for (const family of ['SIGNAL', 'CASE', 'FIELD', 'RETURN', 'LAB']) assert.ok(families.includes(`key: '${family}'`), `missing_editorial_family:${family}`);
 assert.equal(families.includes('SFI_CANONICAL_OBJECT_REGISTRY'), false, 'presentation_family_must_not_mutate_canonical_registry');
@@ -35,6 +42,13 @@ for (const token of ['--void:#060605', '--gold:#c8a951', '--cream:#e8ddc3', '--s
   assert.ok(css.toLowerCase().includes(token), `identity_manual_palette_missing:${token}`);
 }
 assert.ok(css.includes('Noto Serif Display') && css.includes('EB Garamond') && css.includes('Liberation Mono') && css.includes('Noto Sans'), 'identity_manual_typography_roles_missing');
+for (const family of ['Noto Serif Display', 'EB Garamond', 'Liberation Mono', 'Noto Sans']) {
+  assert.ok(temporalCss.includes(family), `temporal_identity_typography_missing:${family}`);
+}
+for (const token of ['--void:#060605', '--gold:#c8a951', '--cream:#e8ddc3', '--signal:#4a7aaa', '--critical:#b85050']) {
+  assert.ok(temporalCss.toLowerCase().includes(token), `temporal_identity_palette_missing:${token}`);
+}
+assert.ok(temporalCss.includes(':focus-visible') && temporalCss.includes('prefers-reduced-motion'), 'temporal_accessibility_boundary_missing');
 for (const [surface, surfaceCss] of [['entry', entryCss], ['institution', institutionCss]] as const) {
   for (const family of ['Noto Serif Display', 'EB Garamond', 'Liberation Mono', 'Noto Sans']) {
     assert.ok(surfaceCss.includes(family), `identity_manual_typography_missing:${surface}:${family}`);

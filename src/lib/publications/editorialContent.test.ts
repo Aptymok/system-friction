@@ -22,6 +22,13 @@ test('Notas Temporales is one monthly PDF issue, not the umbrella for individual
   assert.equal(SFI_NOTAS_TEMPORALES_V1.renditions[0]?.kind, 'PDF');
   assert.equal(SFI_NOTAS_TEMPORALES_V1.renditions[0]?.byteLength, 23085591);
   assert.equal(SFI_NOTAS_TEMPORALES_V1.renditions[0]?.sha256, 'bbc7c9df27b6f7295f9919a707f5adab3f25ddd44fee194812c8d38259135103');
+  assert.equal(SFI_NOTAS_TEMPORALES_V1.renditions[0]?.state, 'PUBLIC');
+  assert.equal(SFI_NOTAS_TEMPORALES_V1.renditions[0]?.publicUrl, 'https://drive.google.com/file/d/1LFQkhEtcilXQ6IgeUwIflDcj-MAJVSvE/view?usp=drivesdk');
+  assert.equal(SFI_NOTAS_TEMPORALES_V1.temporalProfile?.code, 'SFI-TN-M / 2026-09');
+  assert.equal(SFI_NOTAS_TEMPORALES_V1.temporalProfile?.coordinate, '2026 / 09');
+  assert.equal(SFI_NOTAS_TEMPORALES_V1.temporalProfile?.state, 'ACTIVE');
+  assert.equal(SFI_NOTAS_TEMPORALES_V1.temporalProfile?.returnState, 'OPEN');
+  assert.ok((SFI_NOTAS_TEMPORALES_V1.temporalProfile?.followUpPrompts.length ?? 0) >= 5);
   assert.equal(SFI_NOTAS_TEMPORALES_V1.domains.length, 16);
 });
 

@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { PublicResearchLandingView } from '@/components/research/PublicResearchLandingView';
+import { TemporalIssueView } from '@/components/publications/TemporalIssueView';
+import './temporalIssue.css';
 import { editorialPublicationForSlug, relatedEditorialObservations } from '@/lib/publications/editorialContent';
 import { editorialFamilyForSlug } from '@/lib/publications/editorialFamilies';
 import { publicResearchLandingForSlug } from '@/lib/research/publicResearchLanding';
@@ -53,6 +55,10 @@ export default async function PublicationLandingPage({ params }: PageProps) {
   const publication = editorialPublicationForSlug(slug);
   const family = publication?.editorialKind === 'OBSERVATION' ? editorialFamilyForSlug(slug) : null;
   const related = publication?.editorialKind === 'OBSERVATION' ? relatedEditorialObservations(slug, 8) : [];
+
+  if (publication?.editorialKind === 'TEMPORAL_ISSUE') {
+    return <TemporalIssueView publication={publication} landing={landing} />;
+  }
 
   return <>
     <PublicResearchLandingView landing={landing} />
