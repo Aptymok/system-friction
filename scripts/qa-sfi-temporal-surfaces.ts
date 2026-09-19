@@ -53,8 +53,12 @@ for (const token of [
   "from('worldspect_snapshots')",
   'readPublicWorldSnapshotTimeline',
   'VECTOR_DEFINITIONS',
-  'Historical frames are reconstructed only from persisted WorldSpect snapshots.',
 ]) assert.ok(publicTimeline.includes(token), `public_timeline_source_contract_missing:${token}`);
+assert.match(
+  publicTimeline,
+  /Historical frames are reconstructed only from[\\s\\S]*persisted WorldSpect snapshots/,
+  'public_timeline_persisted_snapshot_boundary_missing',
+);
 
 // FIELD remains one canonical Observatory surface; interpretive flow is a projection, not another reader.
 for (const token of [
