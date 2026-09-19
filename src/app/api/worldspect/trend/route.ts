@@ -125,7 +125,7 @@ function historicalVectorContainers(payload: Record<string, unknown>) {
   ];
 }
 
-function samplesFromHistoricalVectors(row: { observed_at: string; raw_payload: unknown }): VectorSample[] {
+function samplesFromHistoricalVectors(row: { observed_at: string; raw_payload?: unknown }): VectorSample[] {
   const payload = record(row.raw_payload);
   const vectors = historicalVectorContainers(payload).flatMap(vectorRows);
 
@@ -167,7 +167,7 @@ function samplesFromPersistedSources(row: { observed_at: string; sources?: unkno
   }));
 }
 
-function samplesFromSnapshot(row: { observed_at: string; raw_payload: unknown }): VectorSample[] {
+function samplesFromSnapshot(row: { observed_at: string; raw_payload?: unknown }): VectorSample[] {
   const observations = record(row.raw_payload).observations;
   if (!Array.isArray(observations) || observations.length === 0) return [];
 
