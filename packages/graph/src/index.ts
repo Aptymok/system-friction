@@ -60,6 +60,8 @@ export type CanonicalGraphState = {
   profile: GraphProfile;
   sourceState: 'observed' | 'degraded' | 'missing';
   degradedReason: string | null;
+  readPlane?: 'SUPABASE' | 'NEON' | 'PROJECTION' | 'UNAVAILABLE';
+  primaryDiagnostic?: string | null;
   nodes: CanonicalGraphNode[];
   edges: CanonicalGraphEdge[];
   schemas: {
