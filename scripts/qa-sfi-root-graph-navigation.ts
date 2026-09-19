@@ -26,6 +26,8 @@ const governanceUi = read('src/components/sfi/SfiGovernanceWorkspace.tsx');
 const interactiveRoute = read('src/app/api/root/interactive/route.ts');
 const scenePage = read('src/app/[scene]/page.tsx');
 const humanReport = read('src/lib/reports/humanReport.ts');
+const neuralGraphRuntime = read('src/lib/root/neuralGraphRuntime.ts');
+const continuityStore = read('src/lib/sfi/continuityPostgres.ts');
 
 check('legacy graph node storage remains compatible', reconcile.includes("LEGACY_NODE_STORAGE_TYPE = 'INF'") && !reconcile.includes("node_type: 'SRC'") && !reconcile.includes("node_type: 'ATR'"));
 check('legacy graph edge storage remains compatible', reconcile.includes("LEGACY_EDGE_STORAGE_TYPE = 'structural_inferred'") && reconcile.includes('relation_type: LEGACY_EDGE_STORAGE_TYPE'));
@@ -64,6 +66,11 @@ check('ROOT governance workspace defers governed proposal hydration to the canon
 check('ROOT governance workspace exposes live operational telemetry without duplicate base feeds', governanceUi.includes("jsonFetch('/api/root/interactive?surface=governance')") && governanceUi.includes('/api/root/cognitive-runtime/records?agentId=') && governanceUi.includes('workboard?.operationalNext') && governanceUi.includes('latestExecutionAt'));
 check('live scene runtime is gated by canonical scene registry', scenePage.includes('SCENE_KEYS.includes') && scenePage.includes('scene={scene as SceneKey}'));
 check('deleted sovereign workspace is not required for graph truth', !shellUi.includes('RootObservatoryWorkspace') && !operatingUi.includes('RootObservatoryWorkspace') && !scenePage.includes('RootObservatoryWorkspace'));
+check('ROOT graph runtime uses one primary sentinel before Neon fallback', neuralGraphRuntime.includes("let nodeCount = await queryCount('graph_nodes')") && neuralGraphRuntime.includes("if (nodeCount === null && isSfiContinuityConfigured())"));
+check('ROOT graph runtime exposes active read plane and diagnostic', neuralGraphRuntime.includes("readPlane: 'SUPABASE' | 'NEON' | 'UNAVAILABLE'") && neuralGraphRuntime.includes('primaryDiagnostic'));
+check('Neon ROOT graph fallback is one aggregate continuity query', continuityStore.includes('readContinuityRootNeuralGraphRuntime') && continuityStore.includes('(select count(*)::int from graph_nodes)') && continuityStore.includes('top_attractors') && continuityStore.includes('top_ejectors'));
+check('ROOT graph row-read failures remain distinguishable from legitimate empty rows', neuralGraphRuntime.includes("failed: true") && neuralGraphRuntime.includes("attractorRead.failed") && neuralGraphRuntime.includes("ejectorRead.failed"));
+check('partial primary graph data keeps Supabase provenance if Neon fallback fails', neuralGraphRuntime.includes("readPlane = 'SUPABASE'") && neuralGraphRuntime.includes("supabase_root_graph_partial_read_unavailable; continuity="));
 
 const failed = checks.filter((item) => !item.ok);
 for (const item of checks) console.log(`${item.ok ? 'PASS' : 'FAIL'} · ${item.name}`);
