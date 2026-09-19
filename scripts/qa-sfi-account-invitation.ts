@@ -95,6 +95,8 @@ assert.match(continuityAccess, /Activar continuidad/);
 assert.match(continuityAccess, /código temporal SFI/);
 assert.match(continuityAccess, /repite la contraseña/);
 assert.doesNotMatch(authActions, /supabase\.auth\.signInWithPassword/, 'continuity login must not depend on Supabase Auth during the outage window');
+assert.match(authActions, /try \{[\s\S]*?createServiceSupabaseClient\(\)[\s\S]*?\} catch \{[\s\S]*?primaryProfile = null/, 'post-login routing must degrade cleanly when the primary profile plane is unavailable');
+assert.match(authActions, /await readContinuityProfile\(userId\)\.catch\(\(\) => null\)/, 'post-login routing must use the Neon continuity profile when the primary profile plane is unavailable');
 assert.match(authActions, /neon\.status === 429[\s\S]*?'rate_limit'/, 'upstream Neon rate limits must remain explicit');
 assert.match(authActions, /rateLimitKey\('continuity-bootstrap', 'founder'\)/, 'bootstrap activation must use a single bounded rate-limit bucket');
 assert.match(authActions, /\^SFI-\[A-Za-z0-9_-\]\{24,64\}\$/, 'bootstrap code format must be bounded');
