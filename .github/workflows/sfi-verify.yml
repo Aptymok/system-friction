@@ -201,6 +201,9 @@ jobs:
       - name: Verify WorldSpect Neon read-plane continuity
         run: node scripts/qa-sfi-worldspect-neon-readplane.mjs
 
+      - name: Verify read-plane efficiency and query coalescing
+        run: node --import tsx --test src/lib/sfi/readPlaneCache.test.ts && npx tsx scripts/qa-sfi-readplane-efficiency.ts
+
       - name: Verify universal closure RETURN disposition fallback
         run: node --import tsx --test src/lib/sfi/universalClosure.test.ts
 
