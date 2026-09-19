@@ -14,8 +14,10 @@ import { buildLibraryCorpusGraphProjection } from './libraryCorpusProjection';
 
 type Row = Record<string, unknown>;
 
-const GRAPH_NODE_READ_FIELDS = 'id,node_id,node_key,label,node_type,ontology_type,origin,attributes,lineage,created_at,updated_at';
-const GRAPH_EDGE_READ_FIELDS = 'id,edge_id,source_node_id,target_node_id,source_node_key,target_node_key,relation,relation_type,weight,w_ij,attributes,lineage,created_at,updated_at';
+const GRAPH_NODE_HYBRID_READ_FIELDS = 'id,node_id,node_key,label,node_type,ontology_type,profile,origin,attributes,lineage,created_at,updated_at';
+const GRAPH_EDGE_HYBRID_READ_FIELDS = 'id,edge_id,source_node_id,target_node_id,source_node_key,target_node_key,relation,relation_type,weight,w_ij,attributes,lineage,created_at,updated_at';
+const GRAPH_NODE_CANONICAL_READ_FIELDS = 'id,node_id,label,ontology_type,attributes,lineage,created_at,updated_at';
+const GRAPH_EDGE_CANONICAL_READ_FIELDS = 'id,edge_id,source_node_id,target_node_id,relation,weight,attributes,lineage,created_at,updated_at';
 
 function now() {
   return new Date().toISOString();
@@ -60,6 +62,33 @@ function profileFromAttributes(attributes: Record<string, unknown>) {
 
 function visibleInProfile(itemProfile: GraphProfile, profile: GraphProfile) {
   return profile === 'shared' || itemProfile === profile || itemProfile === 'shared';
+}
+
+function isMissingGraphColumn(value: unknown) {
+  const error = asRecord(value);
+  return error.code === '42703' || error.code === 'PGRST204';
+}
+
+async function readSupabaseGraphRows() {
+  const service = createServiceSupabaseClient();
+
+  const read = async (nodeFields: string, edgeFields: string) => {
+    const [nodesResult, edgesResult] = await Promise.all([
+      executeAbortableQuery(service.from('graph_nodes').select(nodeFields).order('created_at', { ascending: true })),
+      executeAbortableQuery(service.from('graph_edges').select(edgeFields).order('created_at', { ascending: true })),
+    ]);
+    const error = nodesResult.error ?? edgesResult.error ?? null;
+    return {
+      nodes: !nodesResult.error && Array.isArray(nodesResult.data) ? nodesResult.data as Row[] : [],
+      edges: !edgesResult.error && Array.isArray(edgesResult.data) ? edgesResult.data as Row[] : [],
+      error,
+    };
+  };
+
+  const hybrid = await read(GRAPH_NODE_HYBRID_READ_FIELDS, GRAPH_EDGE_HYBRID_READ_FIELDS);
+  if (!hybrid.error || !isMissingGraphColumn(hybrid.error)) return hybrid;
+
+  return read(GRAPH_NODE_CANONICAL_READ_FIELDS, GRAPH_EDGE_CANONICAL_READ_FIELDS);
 }
 
 function stateFromProjection(profile: GraphProfile, reason: string, projection = buildLibraryCorpusGraphProjection()): CanonicalGraphState {
@@ -150,17 +179,12 @@ export async function readCanonicalGraphState(profile: GraphProfile): Promise<Ca
   let primaryDiagnostic: string | null = null;
 
   try {
-    const service = createServiceSupabaseClient();
-    const [nodesResult, edgesResult] = await Promise.all([
-      executeAbortableQuery(service.from('graph_nodes').select(GRAPH_NODE_READ_FIELDS).order('created_at', { ascending: true })),
-      executeAbortableQuery(service.from('graph_edges').select(GRAPH_EDGE_READ_FIELDS).order('created_at', { ascending: true })),
-    ]);
-
-    if (!nodesResult.error && !edgesResult.error) {
-      rawNodeRows = Array.isArray(nodesResult.data) ? nodesResult.data as Row[] : [];
-      rawEdgeRows = Array.isArray(edgesResult.data) ? edgesResult.data as Row[] : [];
+    const primary = await readSupabaseGraphRows();
+    if (!primary.error) {
+      rawNodeRows = primary.nodes;
+      rawEdgeRows = primary.edges;
     } else {
-      primaryDiagnostic = nodesResult.error?.message ?? edgesResult.error?.message ?? 'graph_store_read_failed';
+      primaryDiagnostic = primary.error.message ?? 'graph_store_read_failed';
     }
   } catch (error) {
     primaryDiagnostic = error instanceof Error ? error.message : 'graph_store_not_ready';
