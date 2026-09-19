@@ -155,6 +155,40 @@ async function authorize(request: NextRequest): Promise<{ ok: true; trigger: Aut
   return { ok: false };
 }
 
+function deferredEffectfulLane(lane: string, requestedCycleId?: string) {
+  return {
+    ok: true as const,
+    deferred: true as const,
+    state: 'DEFERRED_PRIMARY_WRITE_REQUIRED' as const,
+    reason: 'DEFERRED_PRIMARY_WRITE_REQUIRED' as const,
+    lane,
+    dataPlane: 'NEON' as const,
+    processed: 0,
+    requestedCycleId: requestedCycleId ?? null,
+    results: [] as unknown[],
+    writesPerformed: false as const,
+    pendingWorkPreserved: true as const,
+    canonicalPromotionAllowed: false as const,
+  };
+}
+
+function deferredStudioLane() {
+  return {
+    status: 'DEFERRED' as const,
+    deferred: true as const,
+    reason: 'DEFERRED_PRIMARY_WRITE_REQUIRED' as const,
+    dataPlane: 'NEON' as const,
+    targets: 0,
+    outcomes: [] as unknown[],
+    writesPerformed: false as const,
+    pendingWorkPreserved: true as const,
+  };
+}
+
+function isDeferred(value: unknown) {
+  return row(value).deferred === true;
+}
+
 export async function GET(request: NextRequest) {
   const authorization = await authorize(request);
   if (!authorization.ok) return NextResponse.json({ ok: false, error: 'unauthorized_continuity_cron' }, { status: 401 });
@@ -181,100 +215,124 @@ export async function GET(request: NextRequest) {
   try {
     const result = await runContinuityHeartbeat(authorization.trigger);
     const emergencyHalt = result.mode === 'EMERGENCY_HALT';
+    const neonCoreOnly = result.dataPlane === 'NEON';
 
     const returnPlanUpgradeBefore = emergencyHalt
       ? { ok: true as const, halted: true as const, processed: 0, results: [] }
-      : await runUniversalReturnPlanUpgrade({ limit: 4, cycleId: requestedCycleId }).catch((error) => ({
-          ok: false as const,
-          processed: 0,
-          requestedCycleId: requestedCycleId ?? null,
-          results: [],
-          error: error instanceof Error ? error.message : String(error),
-        }));
-
-    const [studioAutonomy, transitionWatchdog, governedExecution, universalCycleContinuation] = await Promise.all([
-      runStudioAutonomyContinuation({
-        mode: result.mode,
-        continuityRunId: result.runId,
-        observations: result.results.map((item) => ({
-          capabilityId: item.capability.id,
-          status: item.status,
-          latencyMs: item.latencyMs,
-          errorCode: item.errorCode ?? null,
-        })),
-      }).catch((error) => ({
-        status: 'DEGRADED' as const,
-        reason: error instanceof Error ? error.message : String(error),
-        targets: 0,
-        outcomes: [] as [],
-      })),
-      emergencyHalt
-        ? Promise.resolve({ ok: true as const, halted: true as const, evidenceJobs: [], riskAssessments: [], stale: [] })
-        : runOperationalTransitionWatchdog().catch((error) => ({
+      : neonCoreOnly
+        ? deferredEffectfulLane('returnPlanUpgradeBefore', requestedCycleId)
+        : await runUniversalReturnPlanUpgrade({ limit: 4, cycleId: requestedCycleId }).catch((error) => ({
             ok: false as const,
-            error: error instanceof Error ? error.message : String(error),
-            evidenceJobs: [],
-            riskAssessments: [],
-            stale: [],
-          })),
-      emergencyHalt
-        ? Promise.resolve({ ok: true as const, halted: true as const, processed: 0, results: [] })
-        : runGovernedExecutionRouter({ limit: 10 }).catch((error) => ({
-            ok: false as const,
-            processed: 0,
-            results: [],
-            error: error instanceof Error ? error.message : String(error),
-          })),
-      emergencyHalt
-        ? Promise.resolve({ ok: true as const, halted: true as const, processed: 0, results: [] })
-        : runUniversalCycleContinuation({ limit: 2, cycleId: requestedCycleId }).catch((error) => ({
-            ok: false as const,
-            availability: 'UNAVAILABLE' as const,
             processed: 0,
             requestedCycleId: requestedCycleId ?? null,
             results: [],
-            schedulingPolicy: null,
-            readRecovery: null,
-            error: sanitizeUniversalContinuationError(error, 'CONTINUATION_EXECUTION'),
+            error: error instanceof Error ? error.message : String(error),
+          }));
+
+    const [studioAutonomy, transitionWatchdog, governedExecution, universalCycleContinuation] = await Promise.all([
+      neonCoreOnly
+        ? Promise.resolve(deferredStudioLane())
+        : runStudioAutonomyContinuation({
+            mode: result.mode,
+            continuityRunId: result.runId,
+            observations: result.results.map((item) => ({
+              capabilityId: item.capability.id,
+              status: item.status,
+              latencyMs: item.latencyMs,
+              errorCode: item.errorCode ?? null,
+            })),
+          }).catch((error) => ({
+            status: 'DEGRADED' as const,
+            reason: error instanceof Error ? error.message : String(error),
+            targets: 0,
+            outcomes: [] as [],
           })),
+      emergencyHalt
+        ? Promise.resolve({ ok: true as const, halted: true as const, evidenceJobs: [], riskAssessments: [], stale: [] })
+        : neonCoreOnly
+          ? Promise.resolve({ ...deferredEffectfulLane('transitionWatchdog', requestedCycleId), evidenceJobs: [], riskAssessments: [], stale: [] })
+          : runOperationalTransitionWatchdog().catch((error) => ({
+              ok: false as const,
+              error: error instanceof Error ? error.message : String(error),
+              evidenceJobs: [],
+              riskAssessments: [],
+              stale: [],
+            })),
+      emergencyHalt
+        ? Promise.resolve({ ok: true as const, halted: true as const, processed: 0, results: [] })
+        : neonCoreOnly
+          ? Promise.resolve(deferredEffectfulLane('governedExecution', requestedCycleId))
+          : runGovernedExecutionRouter({ limit: 10 }).catch((error) => ({
+              ok: false as const,
+              processed: 0,
+              results: [],
+              error: error instanceof Error ? error.message : String(error),
+            })),
+      emergencyHalt
+        ? Promise.resolve({ ok: true as const, halted: true as const, processed: 0, results: [] })
+        : neonCoreOnly
+          ? Promise.resolve({
+              ...deferredEffectfulLane('universalCycleContinuation', requestedCycleId),
+              availability: 'DEFERRED' as const,
+              schedulingPolicy: 'PRIMARY_WRITE_REQUIRED' as const,
+              readRecovery: null,
+            })
+          : runUniversalCycleContinuation({ limit: 2, cycleId: requestedCycleId }).catch((error) => ({
+              ok: false as const,
+              availability: 'UNAVAILABLE' as const,
+              processed: 0,
+              requestedCycleId: requestedCycleId ?? null,
+              results: [],
+              schedulingPolicy: null,
+              readRecovery: null,
+              error: sanitizeUniversalContinuationError(error, 'CONTINUATION_EXECUTION'),
+            })),
     ]);
 
     const operationalAutoAdvance = emergencyHalt
       ? { ok: true as const, halted: true as const, processed: 0, results: [] }
-      : await runOperationalAutoAdvance({ limit: 10 }).catch((error) => ({
-          ok: false as const,
-          processed: 0,
-          results: [],
-          error: error instanceof Error ? error.message : String(error),
-        }));
+      : neonCoreOnly
+        ? deferredEffectfulLane('operationalAutoAdvance', requestedCycleId)
+        : await runOperationalAutoAdvance({ limit: 10 }).catch((error) => ({
+            ok: false as const,
+            processed: 0,
+            results: [],
+            error: error instanceof Error ? error.message : String(error),
+          }));
 
     const returnPlanUpgradeAfter = emergencyHalt
       ? { ok: true as const, halted: true as const, processed: 0, results: [] }
-      : await runUniversalReturnPlanUpgrade({ limit: 4, cycleId: requestedCycleId }).catch((error) => ({
-          ok: false as const,
-          processed: 0,
-          requestedCycleId: requestedCycleId ?? null,
-          results: [],
-          error: error instanceof Error ? error.message : String(error),
-        }));
+      : neonCoreOnly
+        ? deferredEffectfulLane('returnPlanUpgradeAfter', requestedCycleId)
+        : await runUniversalReturnPlanUpgrade({ limit: 4, cycleId: requestedCycleId }).catch((error) => ({
+            ok: false as const,
+            processed: 0,
+            requestedCycleId: requestedCycleId ?? null,
+            results: [],
+            error: error instanceof Error ? error.message : String(error),
+          }));
 
     const universalEmpiricalContinuation = emergencyHalt
       ? { ok: true as const, halted: true as const, processed: 0, results: [] }
-      : await runUniversalEmpiricalContinuation({ limit: 3, cycleId: requestedCycleId }).catch((error) => ({
-          ok: false as const,
-          processed: 0,
-          requestedCycleId: requestedCycleId ?? null,
-          results: [],
-          error: error instanceof Error ? error.message : String(error),
-        }));
+      : neonCoreOnly
+        ? deferredEffectfulLane('universalEmpiricalContinuation', requestedCycleId)
+        : await runUniversalEmpiricalContinuation({ limit: 3, cycleId: requestedCycleId }).catch((error) => ({
+            ok: false as const,
+            processed: 0,
+            requestedCycleId: requestedCycleId ?? null,
+            results: [],
+            error: error instanceof Error ? error.message : String(error),
+          }));
 
     const targetCycleState = requestedCycleId
-      ? await readTargetCycleProof(requestedCycleId).catch((error) => ({
-          ok: false as const,
-          cycleId: requestedCycleId,
-          state: null,
-          error: error instanceof Error ? error.message : String(error),
-        }))
+      ? neonCoreOnly
+        ? { ...deferredEffectfulLane('targetCycleState', requestedCycleId), cycleId: requestedCycleId, state: null }
+        : await readTargetCycleProof(requestedCycleId).catch((error) => ({
+            ok: false as const,
+            cycleId: requestedCycleId,
+            state: null,
+            error: error instanceof Error ? error.message : String(error),
+          }))
       : null;
 
     const laneFailure = transitionWatchdog.ok === false
@@ -299,15 +357,15 @@ export async function GET(request: NextRequest) {
       runId: result.runId,
     };
     const laneStatus = {
-      returnPlanUpgradeBefore: returnPlanUpgradeBefore.ok === false ? 'RETURN_PLAN_UPGRADE_BEFORE_FAIL' : 'RETURN_PLAN_UPGRADE_BEFORE_PASS',
-      universalCycleContinuation: gateReceipt.universalContinuation,
-      returnPlanUpgradeAfter: returnPlanUpgradeAfter.ok === false ? 'RETURN_PLAN_UPGRADE_AFTER_FAIL' : 'RETURN_PLAN_UPGRADE_AFTER_PASS',
-      universalEmpiricalContinuation: universalEmpiricalContinuation.ok === false ? 'UNIVERSAL_EMPIRICAL_CONTINUATION_FAIL' : 'UNIVERSAL_EMPIRICAL_CONTINUATION_PASS',
-      transitionWatchdog: transitionWatchdog.ok === false ? 'TRANSITION_WATCHDOG_FAIL' : 'TRANSITION_WATCHDOG_PASS',
-      operationalAutoAdvance: operationalAutoAdvance.ok === false ? 'OPERATIONAL_AUTO_ADVANCE_FAIL' : 'OPERATIONAL_AUTO_ADVANCE_PASS',
-      governedExecution: governedExecution.ok === false ? 'GOVERNED_EXECUTION_FAIL' : 'GOVERNED_EXECUTION_PASS',
-      studioAutonomy: studioAutonomy.status === 'DEGRADED' ? 'STUDIO_AUTONOMY_FAIL' : 'STUDIO_AUTONOMY_PASS',
-      targetCycleState: targetCycleState?.ok === false ? 'TARGET_CYCLE_PROOF_FAIL' : 'TARGET_CYCLE_PROOF_PASS',
+      returnPlanUpgradeBefore: isDeferred(returnPlanUpgradeBefore) ? 'RETURN_PLAN_UPGRADE_BEFORE_DEFERRED_PRIMARY_WRITE_REQUIRED' : returnPlanUpgradeBefore.ok === false ? 'RETURN_PLAN_UPGRADE_BEFORE_FAIL' : 'RETURN_PLAN_UPGRADE_BEFORE_PASS',
+      universalCycleContinuation: isDeferred(universalCycleContinuation) ? 'UNIVERSAL_CONTINUATION_DEFERRED_PRIMARY_WRITE_REQUIRED' : gateReceipt.universalContinuation,
+      returnPlanUpgradeAfter: isDeferred(returnPlanUpgradeAfter) ? 'RETURN_PLAN_UPGRADE_AFTER_DEFERRED_PRIMARY_WRITE_REQUIRED' : returnPlanUpgradeAfter.ok === false ? 'RETURN_PLAN_UPGRADE_AFTER_FAIL' : 'RETURN_PLAN_UPGRADE_AFTER_PASS',
+      universalEmpiricalContinuation: isDeferred(universalEmpiricalContinuation) ? 'UNIVERSAL_EMPIRICAL_CONTINUATION_DEFERRED_PRIMARY_WRITE_REQUIRED' : universalEmpiricalContinuation.ok === false ? 'UNIVERSAL_EMPIRICAL_CONTINUATION_FAIL' : 'UNIVERSAL_EMPIRICAL_CONTINUATION_PASS',
+      transitionWatchdog: isDeferred(transitionWatchdog) ? 'TRANSITION_WATCHDOG_DEFERRED_PRIMARY_WRITE_REQUIRED' : transitionWatchdog.ok === false ? 'TRANSITION_WATCHDOG_FAIL' : 'TRANSITION_WATCHDOG_PASS',
+      operationalAutoAdvance: isDeferred(operationalAutoAdvance) ? 'OPERATIONAL_AUTO_ADVANCE_DEFERRED_PRIMARY_WRITE_REQUIRED' : operationalAutoAdvance.ok === false ? 'OPERATIONAL_AUTO_ADVANCE_FAIL' : 'OPERATIONAL_AUTO_ADVANCE_PASS',
+      governedExecution: isDeferred(governedExecution) ? 'GOVERNED_EXECUTION_DEFERRED_PRIMARY_WRITE_REQUIRED' : governedExecution.ok === false ? 'GOVERNED_EXECUTION_FAIL' : 'GOVERNED_EXECUTION_PASS',
+      studioAutonomy: isDeferred(studioAutonomy) ? 'STUDIO_AUTONOMY_DEFERRED_PRIMARY_WRITE_REQUIRED' : studioAutonomy.status === 'DEGRADED' ? 'STUDIO_AUTONOMY_FAIL' : 'STUDIO_AUTONOMY_PASS',
+      targetCycleState: isDeferred(targetCycleState) ? 'TARGET_CYCLE_PROOF_DEFERRED_PRIMARY_WRITE_REQUIRED' : targetCycleState?.ok === false ? 'TARGET_CYCLE_PROOF_FAIL' : 'TARGET_CYCLE_PROOF_PASS',
     };
 
     return NextResponse.json({
@@ -317,6 +375,9 @@ export async function GET(request: NextRequest) {
       actionableGate,
       ...result,
       coreHeartbeat,
+      continuityScope: neonCoreOnly ? 'CORE_ONLY_NEON' : 'FULL_PRIMARY',
+      pendingWorkPreserved: neonCoreOnly,
+      effectfulLanePolicy: neonCoreOnly ? 'DEFERRED_PRIMARY_WRITE_REQUIRED' : 'EXECUTE_WITHIN_EXISTING_AUTHORITY',
       laneStatus,
       studioAutonomy,
       transitionWatchdog,
@@ -329,7 +390,9 @@ export async function GET(request: NextRequest) {
       targetCycleState,
       executionRule: emergencyHalt
         ? 'EMERGENCY_HALT suppresses transition writes, operational auto-advance, governed execution dispatch, universal cognitive continuation, empirical continuation and learning writes. Continuity probes may record the halted heartbeat only.'
-        : 'One heartbeat owns the complete governed continuation path only after the read-only actionable-work gate admits real pending work. Routine evidence review, risk assessment, operational authorization, execution, RETURN, calibration and methodological closure proceed without founder approval while remaining inside existing authority. Institutional/canonical change, material capability change, learning promotion and reserved material external/irreversible operations stop at the sovereign boundary. Missing evidence remains missing; no RETURN, canon mutation or external authority is fabricated.',
+        : neonCoreOnly
+          ? 'Neon continuity keeps the core heartbeat and mirrored read plane observable while the canonical primary write plane is unavailable. Effectful continuation lanes remain explicitly pending and are not executed, promoted, closed or fabricated until Supabase returns or a separately governed contingency writer/reconciliation path is certified.'
+          : 'One heartbeat owns the complete governed continuation path only after the read-only actionable-work gate admits real pending work. Routine evidence review, risk assessment, operational authorization, execution, RETURN, calibration and methodological closure proceed without founder approval while remaining inside existing authority. Institutional/canonical change, material capability change, learning promotion and reserved material external/irreversible operations stop at the sovereign boundary. Missing evidence remains missing; no RETURN, canon mutation or external authority is fabricated.',
     });
   } catch (error) {
     return NextResponse.json({
