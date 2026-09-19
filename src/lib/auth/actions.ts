@@ -81,19 +81,16 @@ export async function loginAction(formData: FormData) {
   const limit = checkRateLimit(rateLimitKey('login', input.email), 8, 60_000)
   if (!limit.allowed) redirect(`/login?error=rate_limit&next=${encodeURIComponent(next)}`)
 
-  let neon = await signInWithNeonAuth(parsed.data.email, parsed.data.password)
+  const bridge = await upgradeLegacyNeonPasswordCredential(
+    parsed.data.email,
+    parsed.data.password,
+  ).catch(() => null)
 
-  if (!neon.ok && neon.status < 500) {
-    const bridge = await upgradeLegacyNeonPasswordCredential(
-      parsed.data.email,
-      parsed.data.password,
-    ).catch(() => null)
-
-    if (bridge?.status === 'UPGRADED' || bridge?.status === 'RACE_LOST') {
-      neon = await signInWithNeonAuth(parsed.data.email, parsed.data.password)
-    }
+  if (bridge?.status === 'INVALID_CREDENTIALS') {
+    redirect(`/login?error=invalid_credentials&next=${encodeURIComponent(next)}`)
   }
 
+  const neon = await signInWithNeonAuth(parsed.data.email, parsed.data.password)
   if (!neon.ok) {
     const errorCode = neon.status >= 500 ? 'auth_unavailable' : 'invalid_credentials'
     redirect(`/login?error=${errorCode}&next=${encodeURIComponent(next)}`)
