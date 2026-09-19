@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import { evaluateCompletionReceipt, loadCompletionReceiptLedger } from './lib/programCompletionReceipts.mjs';
+import { evaluateCompletionReceipt, loadCompletionReceiptLedger, requirementHash } from './lib/programCompletionReceipts.mjs';
 
 const root = process.cwd();
 const artifactPath = path.join(root, 'artifacts/program-completion/completion.json');
@@ -17,6 +17,87 @@ const ledger = loadCompletionReceiptLedger(ledgerPath);
 const canonicalStatuses = ['SATISFIED','IN_PROGRESS','PARTIAL','MISSING','EXTERNAL_ACTION','SUPERSEDED_BY_AUTHORIZED_DECISION'];
 const invalidReceipts = [];
 let promoted = 0;
+
+const SFI08_CERTIFICATION_CONTRACT = 'SFI-SFI08-COMPLETION-CERTIFICATION-BATCH-1.3';
+const SFI08_WORKFLOW_NAME = 'SFI-08 Completion Certification Batch';
+
+function loadSfi08CertificationOverlay() {
+  const artifactRef = String(process.env.SFI08_CERTIFICATION_RETURN_PATH || '').trim();
+  const runId = String(process.env.SFI08_CERTIFICATION_RUN_ID || '').trim();
+  if (!artifactRef && !runId) return { effectiveLedger: ledger, state: null };
+  if (!artifactRef || !runId) throw new Error('SFI08_CERTIFICATION_HANDOFF_INCOMPLETE');
+  if (!/^\d+$/.test(runId)) throw new Error('SFI08_CERTIFICATION_RUN_ID_INVALID');
+
+  const artifactFile = path.resolve(artifactRef);
+  if (!fs.existsSync(artifactFile) || !fs.statSync(artifactFile).isFile()) {
+    throw new Error('SFI08_CERTIFICATION_RETURN_NOT_OBSERVED');
+  }
+  const certification = JSON.parse(fs.readFileSync(artifactFile, 'utf8'));
+  if (certification.contract !== SFI08_CERTIFICATION_CONTRACT) throw new Error('SFI08_CERTIFICATION_CONTRACT_INVALID');
+  if (certification.verifier !== 'SFI-08') throw new Error('SFI08_CERTIFICATION_VERIFIER_INVALID');
+  if (certification.authority !== 'ASSURANCE_ONLY') throw new Error('SFI08_CERTIFICATION_AUTHORITY_EXPANDED');
+  if (certification.returnState !== 'RETURN_PASS') throw new Error('SFI08_CERTIFICATION_RETURN_NOT_PASS');
+  if (certification.failedProofCount !== 0) throw new Error('SFI08_CERTIFICATION_FAILED_PROOFS_PRESENT');
+  if (certification.canonicalStatusMutation !== false) throw new Error('SFI08_CERTIFICATION_CANONICAL_MUTATION_FORBIDDEN');
+  if (certification.autoReceiptWrite !== false) throw new Error('SFI08_CERTIFICATION_AUTO_RECEIPT_WRITE_FORBIDDEN');
+  if (certification.head !== report.head || certification.expectedHead !== report.head) {
+    throw new Error('SFI08_CERTIFICATION_HEAD_MISMATCH');
+  }
+  if (!Array.isArray(certification.regressionScope) || certification.regressionScope.length === 0) {
+    throw new Error('SFI08_CERTIFICATION_REGRESSION_SCOPE_REQUIRED');
+  }
+  if (!Array.isArray(certification.requirements)) throw new Error('SFI08_CERTIFICATION_REQUIREMENTS_REQUIRED');
+  if (certification.selectedCount !== certification.requirements.length) {
+    throw new Error('SFI08_CERTIFICATION_SELECTED_COUNT_MISMATCH');
+  }
+
+  const reportRequirements = new Map((report.requirements ?? []).map((requirement) => [requirement.id, requirement]));
+  const overlay = {};
+  const ids = new Set();
+  for (const certified of certification.requirements) {
+    const id = String(certified?.id || '').trim();
+    if (!id || ids.has(id)) throw new Error('SFI08_CERTIFICATION_REQUIREMENT_ID_INVALID');
+    ids.add(id);
+    const requirement = reportRequirements.get(id);
+    if (!requirement) throw new Error(`SFI08_CERTIFICATION_UNKNOWN_REQUIREMENT:${id}`);
+    const expectedHash = requirementHash(requirement);
+    if (certified.requirementHash !== expectedHash) throw new Error(`SFI08_CERTIFICATION_REQUIREMENT_HASH_MISMATCH:${id}`);
+    if (certified.proofPass !== true) throw new Error(`SFI08_CERTIFICATION_PROOF_NOT_PASS:${id}`);
+    if (!Array.isArray(certified.proofPaths) || certified.proofPaths.length === 0) {
+      throw new Error(`SFI08_CERTIFICATION_PROOF_PATH_REQUIRED:${id}`);
+    }
+    overlay[id] = {
+      status: 'SATISFIED',
+      requirementHash: expectedHash,
+      head: certification.head,
+      scopePaths: [...certification.regressionScope],
+      evidence: [
+        { kind: 'WORKFLOW_RUN', ref: runId },
+        { kind: 'GIT_COMMIT', ref: certification.head },
+      ],
+      verifiedBy: 'SFI-08',
+      verificationWorkflow: SFI08_WORKFLOW_NAME,
+      returnState: 'RETURN_PASS',
+    };
+  }
+
+  return {
+    effectiveLedger: {
+      ...ledger,
+      receipts: { ...(ledger.receipts ?? {}), ...overlay },
+    },
+    state: {
+      source: 'IMMUTABLE_EXACT_HEAD_SFI08_ARTIFACT',
+      workflow: SFI08_WORKFLOW_NAME,
+      workflowRunId: runId,
+      head: certification.head,
+      returnState: certification.returnState,
+      overlayReceiptCount: Object.keys(overlay).length,
+      canonicalLedgerMutation: false,
+      verifierAuthority: certification.authority,
+    },
+  };
+}
 
 function externalRequirement(requirement) {
   return /(external-only|external action|registry submission|directory submission|account ownership|platform acceptance|LinkedIn|Medium|YouTube|Bluesky|Mastodon|Hugging Face|Zenodo|ORCID|ROR|ResearchGate|Postman|OSF)/i.test(`${requirement?.source ?? ''} ${requirement?.requirement ?? ''}`);
@@ -72,6 +153,9 @@ function verifyObservedEvidence(evidence, context) {
       const run = JSON.parse(raw);
       if (run.conclusion !== 'success') return { ok: false, error: 'WORKFLOW_RUN_NOT_SUCCESS' };
       if (run.head_sha !== context.receipt.head) return { ok: false, error: 'WORKFLOW_RUN_VERIFIED_HEAD_MISMATCH' };
+      if (context.receipt?.verificationWorkflow && run.name !== context.receipt.verificationWorkflow) {
+        return { ok: false, error: 'WORKFLOW_RUN_VERIFIER_MISMATCH' };
+      }
       return { ok: true, observed: `workflow:${ref}@${run.head_sha}` };
     } catch { return { ok: false, error: 'WORKFLOW_RUN_NOT_OBSERVED' }; }
   }
@@ -88,9 +172,11 @@ function verifyObservedEvidence(evidence, context) {
   return { ok: false, error: `UNSUPPORTED_EVIDENCE_KIND:${kind}` };
 }
 
+const { effectiveLedger, state: certificationOverlay } = loadSfi08CertificationOverlay();
+
 for (const requirement of report.requirements ?? []) {
   const external = externalRequirement(requirement);
-  const assessment = evaluateCompletionReceipt(requirement, ledger, {
+  const assessment = evaluateCompletionReceipt(requirement, effectiveLedger, {
     external, currentHead: report.head, verifyReceiptHead, verifyEvidence: verifyObservedEvidence,
   });
   requirement.completionReceipt = { state: assessment.state, error: assessment.error ?? null, requirementHash: assessment.expectedHash ?? null, externalRequirement: external };
@@ -112,9 +198,17 @@ report.counts.UNCLASSIFIED = (report.requirements ?? []).filter((r) => !canonica
 report.contract = 'SFI-PROGRAM-COMPLETION-CONTROLLER-1.4';
 report.completionReceiptContract = ledger.contract;
 report.completionReceiptState = {
-  ledgerPath: LEDGER_REPOSITORY_PATH, receiptCount: Object.keys(ledger.receipts ?? {}).length, promotedSatisfiedCount: promoted,
-  invalidReceiptCount: invalidReceipts.length, invalidReceipts, currentHead: report.head, independentVerifier: 'SFI-08',
-  evidenceResolution: 'OBSERVED_REFERENCE_REQUIRED', verifiedHeadRule: 'EXACT_OR_ANCESTOR_WITH_UNTOUCHED_DECLARED_REGRESSION_SCOPE',
+  ledgerPath: LEDGER_REPOSITORY_PATH,
+  receiptCount: Object.keys(effectiveLedger.receipts ?? {}).length,
+  canonicalReceiptCount: Object.keys(ledger.receipts ?? {}).length,
+  promotedSatisfiedCount: promoted,
+  invalidReceiptCount: invalidReceipts.length,
+  invalidReceipts,
+  currentHead: report.head,
+  independentVerifier: 'SFI-08',
+  certificationOverlay,
+  evidenceResolution: 'OBSERVED_REFERENCE_REQUIRED',
+  verifiedHeadRule: 'EXACT_OR_ANCESTOR_WITH_UNTOUCHED_DECLARED_REGRESSION_SCOPE',
 };
 report.qa = { ...(report.qa ?? {}), satisfiedReachableThroughBoundReceipt: true, completionReceiptsFailClosed: invalidReceipts.length === 0,
   externalClassificationIndependentOfMutableStatus: true, selfAssertedEvidenceRejected: true, unrelatedCodeDoesNotInvalidateScopedReceipt: true,
@@ -132,7 +226,9 @@ const md = [
   `- receipts: ${report.completionReceiptState.receiptCount}`,`- promoted SATISFIED: ${promoted}`,`- invalid receipts: ${invalidReceipts.length}`,
   `- current HEAD: ${report.head}`,'- verifier: SFI-08 only','- verified head: exact current HEAD or an ancestor whose declared regression scope has not changed',
   '- rule: a changed path inside receipt.scopePaths invalidates that receipt; unrelated changes do not','- rule: code/file presence and green CI alone never promote SATISFIED',
-  '- rule: every evidence reference must resolve to observed immutable state','- external-only requirements require externalObserved=true','',
+  '- rule: every evidence reference must resolve to observed immutable state',
+  '- rule: exact-head SFI-08 certification may be consumed ephemerally; it never rewrites the canonical receipt ledger',
+  '- external-only requirements require externalObserved=true','',
   '## Hard defects',...((report.hardDefects ?? []).length ? report.hardDefects.map((d) => `- ${d.rule}: ${d.requirementId}`) : ['- none']),'',
   '## Active completion trajectories',...(report.requirements ?? []).filter((r) => !['SATISFIED','SUPERSEDED_BY_AUTHORIZED_DECISION'].includes(r.status)).map((r) => `- **${r.id} · ${r.status} · ${r.owner} · ${r.trajectoryRef}** — ${r.requirement} — NEXT: ${r.nextAction}`),'',
   '## Authority',report.rootGateRule,
