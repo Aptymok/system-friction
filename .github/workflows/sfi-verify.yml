@@ -69,6 +69,9 @@ jobs:
       - name: Verify governed adaptive capability and authority gates
         run: node --import tsx --test src/lib/sfi/cognitive-runtime/capabilityBroker.test.ts
 
+      - name: Verify SFI-08 completion handoff
+        run: node scripts/qa-sfi-program-completion-receipts.mjs
+
       - name: Verify AI governance and autonomous runtime
         run: npx tsx scripts/qa-sfi-ai-governance.ts
 
