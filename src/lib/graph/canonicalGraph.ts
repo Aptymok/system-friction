@@ -14,6 +14,9 @@ import { buildLibraryCorpusGraphProjection } from './libraryCorpusProjection';
 
 type Row = Record<string, unknown>;
 
+const GRAPH_NODE_READ_FIELDS = 'id,node_id,node_key,label,node_type,ontology_type,origin,attributes,lineage,created_at,updated_at';
+const GRAPH_EDGE_READ_FIELDS = 'id,edge_id,source_node_id,target_node_id,source_node_key,target_node_key,relation,relation_type,weight,w_ij,attributes,lineage,created_at,updated_at';
+
 function now() {
   return new Date().toISOString();
 }
@@ -130,8 +133,8 @@ export async function readCanonicalGraphState(profile: GraphProfile): Promise<Ca
   try {
     const service = createServiceSupabaseClient();
     const [nodesResult, edgesResult] = await Promise.all([
-      executeAbortableQuery(service.from('graph_nodes').select('*').order('created_at', { ascending: true })),
-      executeAbortableQuery(service.from('graph_edges').select('*').order('created_at', { ascending: true })),
+      executeAbortableQuery(service.from('graph_nodes').select(GRAPH_NODE_READ_FIELDS).order('created_at', { ascending: true })),
+      executeAbortableQuery(service.from('graph_edges').select(GRAPH_EDGE_READ_FIELDS).order('created_at', { ascending: true })),
     ]);
 
     if (!nodesResult.error && !edgesResult.error) {
