@@ -27,6 +27,12 @@ function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
 
+function rowsFromUnknown(value: unknown): Row[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is Row => Boolean(item) && typeof item === 'object' && !Array.isArray(item))
+    : [];
+}
+
 function stringValue(...values: unknown[]) {
   for (const value of values) {
     if (typeof value === 'string' && value.length > 0) {
@@ -79,8 +85,8 @@ async function readSupabaseGraphRows() {
     ]);
     const error = nodesResult.error ?? edgesResult.error ?? null;
     return {
-      nodes: !nodesResult.error && Array.isArray(nodesResult.data) ? nodesResult.data as Row[] : [],
-      edges: !edgesResult.error && Array.isArray(edgesResult.data) ? edgesResult.data as Row[] : [],
+      nodes: !nodesResult.error ? rowsFromUnknown(nodesResult.data) : [],
+      edges: !edgesResult.error ? rowsFromUnknown(edgesResult.data) : [],
       error,
     };
   };
