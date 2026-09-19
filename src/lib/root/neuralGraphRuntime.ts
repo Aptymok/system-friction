@@ -76,106 +76,124 @@ async function queryRows(table: string, selectFields: string, orderBy?: { column
 }
 
 export async function readRootNeuralGraphRuntime(): Promise<RootNeuralGraphRuntime> {
-  const [nodeCount, edgeCount, attractorRows, ejectorRows, scorefrictionObservationCount, scorefrictionVectorCount, worldspectSnapshot] = await Promise.all([
-    queryCount('graph_nodes'),
-    queryCount('graph_edges'),
-    queryRows('sfi_attractors', 'attractor_key,label,confidence,persistence,status,updated_at', { column: 'weight', ascending: false }, 5),
-    queryRows('sfi_ejectors', 'ejector_key,label,contradiction,decay,status,updated_at', { column: 'weight', ascending: false }, 5),
-    queryCount('scorefriction_observations'),
-    queryCount('scorefriction_vectors'),
-    (async () => {
-      try {
-        const service = createServiceSupabaseClient();
-        const snapshot = await service
-          .from('worldspect_snapshots')
-          .select('observed_at')
-          .order('observed_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        if (snapshot.error || !snapshot.data) return null;
-        return stringOrNull((snapshot.data as Record<string, unknown>).observed_at);
-      } catch {
-        return null;
-      }
-    })(),
-  ]);
-
+  let nodeCount = await queryCount('graph_nodes');
+  let edgeCount: number | null = null;
+  let attractorRows: Record<string, unknown>[] = [];
+  let ejectorRows: Record<string, unknown>[] = [];
+  let scorefrictionObservationCount: number | null = null;
+  let scorefrictionVectorCount: number | null = null;
+  let worldspectSnapshot: string | null = null;
   let readPlane: RootNeuralGraphRuntime['readPlane'] = 'SUPABASE';
   let primaryDiagnostic: string | null = null;
-  let effectiveNodeCount = nodeCount;
-  let effectiveEdgeCount = edgeCount;
-  let effectiveAttractorRows = attractorRows;
-  let effectiveEjectorRows = ejectorRows;
-  let effectiveScorefrictionObservationCount = scorefrictionObservationCount;
-  let effectiveScorefrictionVectorCount = scorefrictionVectorCount;
-  let effectiveWorldspectSnapshot = worldspectSnapshot;
 
-  const primaryUnavailable = [nodeCount, edgeCount, scorefrictionObservationCount, scorefrictionVectorCount].some((value) => value === null);
-  if (primaryUnavailable) {
+  if (nodeCount === null && isSfiContinuityConfigured()) {
     primaryDiagnostic = 'supabase_root_graph_read_unavailable';
-    if (isSfiContinuityConfigured()) {
+    try {
+      const fallback = await readContinuityRootNeuralGraphRuntime();
+      if (fallback) {
+        nodeCount = numberOrZero(fallback.node_count);
+        edgeCount = numberOrZero(fallback.edge_count);
+        scorefrictionObservationCount = numberOrZero(fallback.scorefriction_observation_count);
+        scorefrictionVectorCount = numberOrZero(fallback.scorefriction_vector_count);
+        worldspectSnapshot = stringOrNull(fallback.latest_worldspect_observed_at);
+        attractorRows = Array.isArray(fallback.top_attractors) ? fallback.top_attractors as Record<string, unknown>[] : [];
+        ejectorRows = Array.isArray(fallback.top_ejectors) ? fallback.top_ejectors as Record<string, unknown>[] : [];
+        readPlane = 'NEON';
+      } else {
+        readPlane = 'UNAVAILABLE';
+      }
+    } catch (error) {
+      readPlane = 'UNAVAILABLE';
+      primaryDiagnostic = `supabase_root_graph_read_unavailable; continuity=${error instanceof Error ? error.message : 'continuity_read_failed'}`;
+    }
+  } else if (nodeCount !== null) {
+    [edgeCount, attractorRows, ejectorRows, scorefrictionObservationCount, scorefrictionVectorCount, worldspectSnapshot] = await Promise.all([
+      queryCount('graph_edges'),
+      queryRows('sfi_attractors', 'attractor_key,label,confidence,persistence,status,updated_at', { column: 'weight', ascending: false }, 5),
+      queryRows('sfi_ejectors', 'ejector_key,label,contradiction,decay,status,updated_at', { column: 'weight', ascending: false }, 5),
+      queryCount('scorefriction_observations'),
+      queryCount('scorefriction_vectors'),
+      (async () => {
+        try {
+          const service = createServiceSupabaseClient();
+          const snapshot = await service
+            .from('worldspect_snapshots')
+            .select('observed_at')
+            .order('observed_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (snapshot.error || !snapshot.data) return null;
+          return stringOrNull((snapshot.data as Record<string, unknown>).observed_at);
+        } catch {
+          return null;
+        }
+      })(),
+    ]);
+
+    if ([edgeCount, scorefrictionObservationCount, scorefrictionVectorCount].some((value) => value === null) && isSfiContinuityConfigured()) {
+      primaryDiagnostic = 'supabase_root_graph_partial_read_unavailable';
       try {
         const fallback = await readContinuityRootNeuralGraphRuntime();
         if (fallback) {
-          effectiveNodeCount = numberOrZero(fallback.node_count);
-          effectiveEdgeCount = numberOrZero(fallback.edge_count);
-          effectiveScorefrictionObservationCount = numberOrZero(fallback.scorefriction_observation_count);
-          effectiveScorefrictionVectorCount = numberOrZero(fallback.scorefriction_vector_count);
-          effectiveWorldspectSnapshot = stringOrNull(fallback.latest_worldspect_observed_at);
-          effectiveAttractorRows = Array.isArray(fallback.top_attractors) ? fallback.top_attractors as Record<string, unknown>[] : [];
-          effectiveEjectorRows = Array.isArray(fallback.top_ejectors) ? fallback.top_ejectors as Record<string, unknown>[] : [];
+          nodeCount = numberOrZero(fallback.node_count);
+          edgeCount = numberOrZero(fallback.edge_count);
+          scorefrictionObservationCount = numberOrZero(fallback.scorefriction_observation_count);
+          scorefrictionVectorCount = numberOrZero(fallback.scorefriction_vector_count);
+          worldspectSnapshot = stringOrNull(fallback.latest_worldspect_observed_at);
+          attractorRows = Array.isArray(fallback.top_attractors) ? fallback.top_attractors as Record<string, unknown>[] : [];
+          ejectorRows = Array.isArray(fallback.top_ejectors) ? fallback.top_ejectors as Record<string, unknown>[] : [];
           readPlane = 'NEON';
-        } else {
-          readPlane = 'UNAVAILABLE';
         }
       } catch (error) {
         readPlane = 'UNAVAILABLE';
-        primaryDiagnostic = `supabase_root_graph_read_unavailable; continuity=${error instanceof Error ? error.message : 'continuity_read_failed'}`;
+        primaryDiagnostic = `supabase_root_graph_partial_read_unavailable; continuity=${error instanceof Error ? error.message : 'continuity_read_failed'}`;
       }
-    } else {
-      readPlane = 'UNAVAILABLE';
     }
+  } else {
+    readPlane = 'UNAVAILABLE';
+    primaryDiagnostic = 'supabase_root_graph_read_unavailable';
   }
 
-  const nodes = effectiveNodeCount ?? 0;
-  const edges = effectiveEdgeCount ?? 0;
-  const attractors = effectiveAttractorRows.length;
-  const ejectors = effectiveEjectorRows.length;
+  const nodes = nodeCount ?? 0;
+  const edges = edgeCount ?? 0;
+  const attractors = attractorRows.length;
+  const ejectors = ejectorRows.length;
   const density = normalize01(edges / Math.max(1, nodes * 2));
   const coverage = normalize01(attractors / Math.max(1, nodes));
   const ejectorPressure = normalize01(
-    effectiveEjectorRows.length
-      ? effectiveEjectorRows.reduce((sum, row) => sum + (numberOrZero(row.contradiction) + numberOrZero(row.decay)) / 2, 0) / effectiveEjectorRows.length
+    ejectorRows.length
+      ? ejectorRows.reduce((sum, row) => sum + (numberOrZero(row.contradiction) + numberOrZero(row.decay)) / 2, 0) / ejectorRows.length
       : 0,
   );
   const latestUpdate = latestTimestamp([
-    ...effectiveAttractorRows.map((row) => stringOrNull(row.updated_at)),
-    ...effectiveEjectorRows.map((row) => stringOrNull(row.updated_at)),
+    ...attractorRows.map((row) => stringOrNull(row.updated_at)),
+    ...ejectorRows.map((row) => stringOrNull(row.updated_at)),
   ]);
 
   const hasGraph = nodes > 0;
   const hasEdges = edges > 0;
   const hasAttractors = attractors > 0;
   const hasEjectors = ejectors > 0;
-  const hasScoreFrictionEvidence = (effectiveScorefrictionObservationCount ?? 0) > 0 && (effectiveScorefrictionVectorCount ?? 0) > 0;
+  const hasScoreFrictionEvidence = (scorefrictionObservationCount ?? 0) > 0 && (scorefrictionVectorCount ?? 0) > 0;
+  const storeLabel = readPlane === 'NEON' ? 'Neon de continuidad' : readPlane === 'SUPABASE' ? 'Supabase' : 'ningún plano disponible';
 
   let status: RootNeuralGraphRuntime['status'] = 'missing';
-  let summary = 'No hay grafo ROOT persistido en Supabase.';
+  let summary = `No hay grafo ROOT disponible en ${storeLabel}.`;
 
   if (hasGraph) {
     if (!hasEdges || !hasAttractors || !hasEjectors) {
       status = 'degraded';
-      summary = 'El grafo ROOT existe pero no cuenta con suficientes conexiones, atractores o eyectores para una convergencia robusta.';
+      summary = `El grafo ROOT existe en ${storeLabel}, pero no cuenta con suficientes conexiones, atractores o eyectores para una convergencia robusta.`;
     } else {
       status = 'operational';
-      summary = 'Grafo ROOT operativo en Supabase. Los elementos de convergencia están presentes y listos para integrarse con ScoreFriction y WorldSpect.';
+      summary = `Grafo ROOT operativo desde ${storeLabel}. Los elementos de convergencia están presentes y listos para integrarse con ScoreFriction y WorldSpect.`;
       if (!hasScoreFrictionEvidence) {
-        summary = 'Grafo ROOT operativo, pero falta evidencia ScoreFriction persistida para alimentar el razonador cultural y el sistema de convergencia.';
+        summary = `Grafo ROOT operativo desde ${storeLabel}, pero falta evidencia ScoreFriction persistida para alimentar el razonador cultural y el sistema de convergencia.`;
       }
     }
   } else if (hasEdges || hasAttractors || hasEjectors) {
     status = 'degraded';
-    summary = 'Hay fragmentos del grafo ROOT pero falta el conjunto mínimo de nodos para declarar una topología funcional.';
+    summary = `Hay fragmentos del grafo ROOT en ${storeLabel}, pero falta el conjunto mínimo de nodos para declarar una topología funcional.`;
   }
 
   return {
@@ -183,9 +201,9 @@ export async function readRootNeuralGraphRuntime(): Promise<RootNeuralGraphRunti
     edgeCount: edges,
     attractorCount: attractors,
     ejectorCount: ejectors,
-    scorefrictionObservationCount: effectiveScorefrictionObservationCount,
-    scorefrictionVectorCount: effectiveScorefrictionVectorCount,
-    latestWorldSpectObservedAt: effectiveWorldspectSnapshot ?? null,
+    scorefrictionObservationCount,
+    scorefrictionVectorCount,
+    latestWorldSpectObservedAt: worldspectSnapshot,
     latestUpdate,
     graphDensity: density,
     attractorCoverage: coverage,
@@ -194,14 +212,14 @@ export async function readRootNeuralGraphRuntime(): Promise<RootNeuralGraphRunti
     summary,
     readPlane,
     primaryDiagnostic,
-    topAttractors: effectiveAttractorRows.map((row) => ({
+    topAttractors: attractorRows.map((row) => ({
       attractor_key: stringOrNull(row.attractor_key) ?? 'unknown',
       label: stringOrNull(row.label) ?? 'unknown',
       confidence: normalize01(numberOrZero(row.confidence)),
       persistence: normalize01(numberOrZero(row.persistence)),
       status: stringOrNull(row.status) ?? 'unknown',
     })),
-    topEjectors: effectiveEjectorRows.map((row) => ({
+    topEjectors: ejectorRows.map((row) => ({
       ejector_key: stringOrNull(row.ejector_key) ?? 'unknown',
       label: stringOrNull(row.label) ?? 'unknown',
       contradiction: normalize01(numberOrZero(row.contradiction)),
