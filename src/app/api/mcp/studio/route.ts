@@ -26,7 +26,7 @@ function responseHeaders() {
 
 function oauthChallenge(request: Request, scope: string) {
   const origin = new URL(request.url).origin;
-  return `Bearer resource_metadata="${origin}/.well-known/oauth-protected-resource", scope="${scope}"`;
+  return `Bearer resource_metadata="${origin}/.well-known/oauth-protected-resource/api/mcp/studio", scope="${scope}"`;
 }
 
 function forwardedStudioHeaders(request: Request) {
