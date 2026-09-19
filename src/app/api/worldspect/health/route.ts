@@ -84,6 +84,7 @@ async function readHealthSnapshots() {
     } satisfies HealthSnapshotRow)),
     readPlane: read.readPlane,
     primaryDiagnostic: read.primaryDiagnostic,
+    cache: read.cache,
   }
 }
 
@@ -117,6 +118,7 @@ export async function GET() {
         read_plane: healthRead.readPlane,
         continuity_state: continuityRead ? 'DEGRADED_CONTINUITY' : healthRead.readPlane === 'UNAVAILABLE' ? 'FAILED' : 'PRIMARY',
         primary_diagnostic: healthRead.primaryDiagnostic,
+        read_cache: healthRead.cache,
         next_expected_measurement_slot_utc: nextSlotUtc(),
       })
     }
@@ -199,6 +201,7 @@ export async function GET() {
       read_plane: healthRead.readPlane,
       continuity_state: continuityRead ? 'DEGRADED_CONTINUITY' : 'PRIMARY',
       primary_diagnostic: healthRead.primaryDiagnostic,
+      read_cache: healthRead.cache,
       next_expected_measurement_slot_utc: nextSlotUtc(),
     })
   } catch (error) {
