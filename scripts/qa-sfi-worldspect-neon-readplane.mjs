@@ -26,10 +26,11 @@ assert.ok(upsertStart >= 0, 'canonical WorldSpect upsert missing');
 const upsertBlock = store.slice(upsertStart, store.indexOf('export function snapshotRowToApiData', upsertStart));
 assert.doesNotMatch(upsertBlock, /continuity|NEON|readContinuity/i, 'canonical WorldSpect writer must not be redirected to Neon');
 
+assert.match(health, /getWorldSpectPublicHistoryRead/, 'health must use lightweight shared history reader');
 assert.match(health, /DEGRADED_CONTINUITY/, 'health must expose controlled continuity degradation');
 assert.match(health, /read_plane/, 'health must expose read plane');
 assert.match(health, /healthRead\.readPlane === 'SUPABASE' \? await alertTableWarnings\(\) : \[\]/, 'health must not re-enter Supabase-only alert reads after continuity fallback');
-assert.match(trend, /getRecentWorldSpectSnapshotsRead/, 'trend must use read-plane-aware snapshot reader');
+assert.match(trend, /getWorldSpectPublicHistoryRead/, 'trend must use read-plane-aware lightweight history reader');
 assert.match(trend, /read_plane/, 'trend must expose read plane');
 assert.match(real, /getLatestWorldSpectSnapshotRead/, 'real snapshot must use read-plane-aware reader');
 assert.match(real, /readPlane/, 'real snapshot must expose read plane');

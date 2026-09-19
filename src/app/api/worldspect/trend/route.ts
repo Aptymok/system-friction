@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getRecentWorldSpectSnapshotsRead } from '@/lib/worldspect/snapshotStore';
+import { getWorldSpectPublicHistoryRead } from '@/lib/worldspect/snapshotStore';
 import { aggregateWorldSpect } from '@/lib/worldspect/vector-aggregator';
 import { WORLDSPECT_DOMAINS, type WorldSpectDomain } from '@/lib/worldspect/vector-contract';
 import type { WorldSpectIngestMode } from '../../../../../packages/api-contracts/src';
@@ -125,7 +125,7 @@ function historicalVectorContainers(payload: Record<string, unknown>) {
   ];
 }
 
-function samplesFromHistoricalVectors(row: { observed_at: string; raw_payload: unknown }): VectorSample[] {
+function samplesFromHistoricalVectors(row: { observed_at: string; raw_payload?: unknown }): VectorSample[] {
   const payload = record(row.raw_payload);
   const vectors = historicalVectorContainers(payload).flatMap(vectorRows);
 
@@ -148,7 +148,7 @@ function samplesFromPersistedSources(row: { observed_at: string; sources?: unkno
   const byDomain = new Map<WorldSpectDomain, number[]>();
 
   for (const source of vectorRows(row.sources)) {
-    const domain = normalizeDomain(source.domain);
+    const domain = normalizeDomain(source.domain ?? source.mihm_var);
     if (!domain) continue;
 
     const signal = record(source.signal);
@@ -167,7 +167,7 @@ function samplesFromPersistedSources(row: { observed_at: string; sources?: unkno
   }));
 }
 
-function samplesFromSnapshot(row: { observed_at: string; raw_payload: unknown }): VectorSample[] {
+function samplesFromSnapshot(row: { observed_at: string; raw_payload?: unknown }): VectorSample[] {
   const observations = record(row.raw_payload).observations;
   if (!Array.isArray(observations) || observations.length === 0) return [];
 
@@ -185,7 +185,7 @@ function samplesFromSnapshot(row: { observed_at: string; raw_payload: unknown })
   }
 }
 
-function compatibleSamplesFromSnapshot(row: { observed_at: string; raw_payload: unknown; sources?: unknown[] }): ExtractionResult {
+function compatibleSamplesFromSnapshot(row: { observed_at: string; raw_payload?: unknown; sources?: unknown[] }): ExtractionResult {
   const observationSamples = samplesFromSnapshot(row);
   if (observationSamples.length > 0) {
     return { method: 'observations', samples: observationSamples };
@@ -212,7 +212,7 @@ export async function GET(request: Request) {
   const debug = url.searchParams.get('debug') === '1';
 
   try {
-    const snapshotRead = await getRecentWorldSpectSnapshotsRead({
+    const snapshotRead = await getWorldSpectPublicHistoryRead({
       days,
       ingestMode,
       limit: 120,

@@ -241,10 +241,20 @@ export async function readContinuityPublicWorldBundle(input: { since: string; li
   return { observations, readings, hypotheses, outcomes, learning };
 }
 
-export async function readContinuityWorldSnapshotTimeline(input: { since: string; limit: number }) {
+export async function readContinuityWorldSnapshotTimeline(input: { since: string; ingestMode?: string; limit: number }) {
   const sql = db();
+  if (input.ingestMode && input.ingestMode !== 'all') {
+    return sql`
+      select observed_at,created_at,source_state,confidence,wsi,nti,ingest_mode,sources,degraded_sources,adapter_error
+      from worldspect_snapshots
+      where observed_at >= ${input.since}::timestamptz
+        and ingest_mode = ${input.ingestMode}
+      order by observed_at desc
+      limit ${input.limit}
+    `;
+  }
   return sql`
-    select observed_at,created_at,source_state,confidence,wsi,nti,ingest_mode,sources
+    select observed_at,created_at,source_state,confidence,wsi,nti,ingest_mode,sources,degraded_sources,adapter_error
     from worldspect_snapshots
     where observed_at >= ${input.since}::timestamptz
     order by observed_at desc

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServiceSupabaseClient } from '@/runtime/supabase/server'
-import { getRecentWorldSpectSnapshotsRead } from '@/lib/worldspect/snapshotStore'
+import { getWorldSpectPublicHistoryRead } from '@/lib/worldspect/snapshotStore'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -74,7 +74,7 @@ async function alertTableWarnings() {
 }
 
 async function readHealthSnapshots() {
-  const read = await getRecentWorldSpectSnapshotsRead({ days: 90, limit: 120 })
+  const read = await getWorldSpectPublicHistoryRead({ days: 90, limit: 120 })
   return {
     rows: read.data.map((row) => ({
       observed_at: row.observed_at,
