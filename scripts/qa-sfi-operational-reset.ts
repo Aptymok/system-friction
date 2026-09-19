@@ -22,6 +22,7 @@ const resetWorkflow = read('.github/workflows/sfi-db-canonical-reset.yml');
 const readiness = read('src/lib/root/closure/readInstitutionalReadiness.ts');
 const proof = read('src/lib/root/closure/fullCycleVerification.ts');
 const continuityReseed = read('supabase/migrations/20260909154500_continuity_state_singleton_reseed.sql');
+const platformMetricRls = read('supabase/migrations/20260919022500_enable_platform_metric_snapshots_rls.sql');
 
 const WORLD_LONGITUDINAL_TABLES = [
   'world_source_observations',
@@ -121,6 +122,9 @@ assert.doesNotMatch(reset, /LATEST_EXPORT\.txt/);
 assert.doesNotMatch(reset, /SFI_FULL_CYCLE_PROOF_/);
 assert.doesNotMatch(reset, /SFI_CLEANUP_PLAN_/);
 assert.doesNotMatch(reset, /deleteAllRowsByKnownColumns/);
+
+assert.match(platformMetricRls, /alter table public\.platform_metric_snapshots\s+enable row level security/i);
+assert.doesNotMatch(platformMetricRls, /create\s+policy/i, 'internal table must remain fail-closed for client roles; no anonymous/authenticated policy is authorized');
 
 assert.match(continuityReseed, /SFI-CONTINUITY-STATE-SINGLETON-RESEED-1\.0/);
 assert.match(continuityReseed, /after truncate on public\.sfi_continuity_state/i);
