@@ -17,8 +17,7 @@ type HealthSnapshotRow = {
 const EXPECTED_MEASUREMENTS_TODAY = 4
 const SLOT_HOURS = [0, 6, 12, 18]
 const PUBLIC_WORLDSPECT_CDN_CACHE = {
-  'Cache-Control': 'public, max-age=0, must-revalidate',
-  'Vercel-CDN-Cache-Control': 'public, s-maxage=30, stale-while-revalidate=30',
+  'Cache-Control': 'public, max-age=0, s-maxage=30, must-revalidate',
 } as const
 
 function minutesSince(value: string | null) {

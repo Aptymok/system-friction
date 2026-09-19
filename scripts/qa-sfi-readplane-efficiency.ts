@@ -43,9 +43,8 @@ for (const [surface, source] of [
   ['trend', trend],
   ['real', real],
 ] as const) {
-  assert.match(source, /Vercel-CDN-Cache-Control/, `${surface} must use Vercel edge caching for public WorldSpect reads`);
-  assert.match(source, /s-maxage=30, stale-while-revalidate=30/, `${surface} WorldSpect edge cache must remain bounded to 30 seconds`);
-  assert.match(source, /Cache-Control': 'public, max-age=0, must-revalidate'/, `${surface} browser cache must revalidate on every request`);
+  assert.doesNotMatch(source, /Vercel-CDN-Cache-Control/, `${surface} must not depend on the previously falsified provider-specific header`);
+  assert.match(source, /Cache-Control': 'public, max-age=0, s-maxage=30, must-revalidate'/, `${surface} must use the documented shared-cache directive while keeping browser max-age at zero`);
 }
 
 async function main() {
