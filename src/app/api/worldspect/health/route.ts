@@ -1,21 +1,16 @@
 import { NextResponse } from 'next/server'
 import { createServiceSupabaseClient } from '@/runtime/supabase/server'
-import { getRecentWorldSpectSnapshotsRead } from '@/lib/worldspect/snapshotStore'
+import { fetchWorldSpectReadBundle } from '@/lib/worldspect/readBundleClient'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 type HealthStatus = 'healthy' | 'degraded' | 'failed'
 type TrendQuality = 'missing' | 'thin' | 'usable'
-type HealthSnapshotRow = {
-  observed_at: string
-  sources: unknown[]
-  degraded_sources: string[]
-  adapter_error: string | null
-}
 
 const EXPECTED_MEASUREMENTS_TODAY = 4
 const SLOT_HOURS = [0, 6, 12, 18]
+const PUBLIC_CDN_CACHE = { 'Vercel-CDN-Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60' } as const
 
 function minutesSince(value: string | null) {
   if (!value) return null
@@ -39,21 +34,6 @@ function expectedMeasurementsSoFar(value = new Date()) {
   return SLOT_HOURS.filter((slot) => slot <= hour).length || 1
 }
 
-function trendQuality(sampleCount: number): TrendQuality {
-  if (sampleCount === 0) return 'missing'
-  if (sampleCount < 3) return 'thin'
-  return 'usable'
-}
-
-function activeSourceCount(sources: unknown[]) {
-  return sources.filter((source) => {
-    if (!source || typeof source !== 'object' || Array.isArray(source)) return false
-    const record = source as Record<string, unknown>
-    const status = String(record.status ?? record.sourceState ?? record.state ?? '').toLowerCase()
-    return status === '' || status === 'active' || status === 'observed' || status === 'healthy'
-  }).length
-}
-
 async function alertTableWarnings() {
   try {
     const service = createServiceSupabaseClient()
@@ -73,33 +53,17 @@ async function alertTableWarnings() {
   }
 }
 
-async function readHealthSnapshots() {
-  const read = await getRecentWorldSpectSnapshotsRead({ days: 90, limit: 120 })
-  return {
-    rows: read.data.map((row) => ({
-      observed_at: row.observed_at,
-      sources: Array.isArray(row.sources) ? row.sources : [],
-      degraded_sources: Array.isArray(row.degraded_sources) ? row.degraded_sources : [],
-      adapter_error: row.adapter_error,
-    } satisfies HealthSnapshotRow)),
-    readPlane: read.readPlane,
-    primaryDiagnostic: read.primaryDiagnostic,
-    cache: read.cache,
-  }
-}
-
-export async function GET() {
+export async function GET(request: Request) {
   const generatedAt = new Date().toISOString()
 
   try {
-    const healthRead = await readHealthSnapshots()
-    const recent90d = healthRead.rows
-    const continuityRead = healthRead.readPlane === 'NEON'
-    const latest = recent90d[recent90d.length - 1] ?? null
+    const bundle = await fetchWorldSpectReadBundle(request, { days: 90, ingestMode: 'all', limit: 120 })
+    const continuityRead = bundle.read_plane === 'NEON'
+    const latestObservedAt = bundle.observed_to
 
-    const alertWarnings = healthRead.readPlane === 'SUPABASE' ? await alertTableWarnings() : []
+    const alertWarnings = bundle.read_plane === 'SUPABASE' ? await alertTableWarnings() : []
 
-    if (!latest || recent90d.length === 0) {
+    if (!latestObservedAt || bundle.sample_count === 0) {
       return NextResponse.json({
         ok: true,
         status: 'failed' satisfies HealthStatus,
@@ -115,26 +79,24 @@ export async function GET() {
         empty_snapshots_90d: 0,
         latest_error: 'worldspect_snapshot_missing',
         warnings: ['no_snapshots', ...alertWarnings],
-        read_plane: healthRead.readPlane,
-        continuity_state: continuityRead ? 'DEGRADED_CONTINUITY' : healthRead.readPlane === 'UNAVAILABLE' ? 'FAILED' : 'PRIMARY',
-        primary_diagnostic: healthRead.primaryDiagnostic,
-        read_cache: healthRead.cache,
+        read_plane: bundle.read_plane,
+        continuity_state: continuityRead ? 'DEGRADED_CONTINUITY' : bundle.read_plane === 'UNAVAILABLE' ? 'FAILED' : 'PRIMARY',
+        primary_diagnostic: bundle.primary_diagnostic,
+        read_cache: bundle.read_cache,
         next_expected_measurement_slot_utc: nextSlotUtc(),
-      })
+      }, { headers: PUBLIC_CDN_CACHE })
     }
 
     const today = currentUtcDate()
-    const measurementsToday = recent90d.filter((snapshot) => snapshot.observed_at.slice(0, 10) === today).length
-    const emptySnapshots90d = recent90d.filter((snapshot) => snapshot.sources.length === 0).length
-    const minutes = minutesSince(latest.observed_at)
-    const activeSources = activeSourceCount(latest.sources)
-    const sourceCoverage = latest.sources.length > 0
-      ? Number((activeSources / latest.sources.length).toFixed(4))
-      : 0
-    const quality = trendQuality(recent90d.length)
+    const measurementsToday = bundle.health.observed_ats.filter((observedAt) => observedAt.slice(0, 10) === today).length
+    const emptySnapshots90d = bundle.health.empty_snapshots
+    const minutes = minutesSince(latestObservedAt)
+    const activeSources = bundle.health.active_sources
+    const sourceCoverage = bundle.health.source_coverage
+    const quality = bundle.health.trend_quality
     const warnings: string[] = [...alertWarnings]
     let status: HealthStatus = 'healthy'
-    let latestError: string | null = latest.adapter_error ?? null
+    let latestError: string | null = bundle.health.latest_error
 
     if (minutes === null) {
       status = 'failed'
@@ -173,12 +135,12 @@ export async function GET() {
       warnings.push('low_active_source_coverage')
     }
 
-    if (latest.degraded_sources.length > 0 && status !== 'failed') {
+    if (bundle.health.degraded_sources.length > 0 && status !== 'failed') {
       status = 'degraded'
       warnings.push('degraded_sources_present')
     }
 
-    if (emptySnapshots90d > Math.max(2, Math.ceil(recent90d.length * 0.25)) && status !== 'failed') {
+    if (emptySnapshots90d > Math.max(2, Math.ceil(bundle.sample_count * 0.25)) && status !== 'failed') {
       status = 'degraded'
       warnings.push('high_empty_snapshots_90d')
     }
@@ -187,23 +149,23 @@ export async function GET() {
       ok: true,
       status,
       generated_at: generatedAt,
-      last_observed_at: latest.observed_at,
+      last_observed_at: latestObservedAt,
       minutes_since_last_measurement: minutes,
       measurements_today: measurementsToday,
       expected_measurements_today: EXPECTED_MEASUREMENTS_TODAY,
       trend_quality: quality,
       source_coverage: sourceCoverage,
       active_sources: activeSources,
-      degraded_sources: latest.degraded_sources,
+      degraded_sources: bundle.health.degraded_sources,
       empty_snapshots_90d: emptySnapshots90d,
       latest_error: latestError,
       warnings,
-      read_plane: healthRead.readPlane,
+      read_plane: bundle.read_plane,
       continuity_state: continuityRead ? 'DEGRADED_CONTINUITY' : 'PRIMARY',
-      primary_diagnostic: healthRead.primaryDiagnostic,
-      read_cache: healthRead.cache,
+      primary_diagnostic: bundle.primary_diagnostic,
+      read_cache: bundle.read_cache,
       next_expected_measurement_slot_utc: nextSlotUtc(),
-    })
+    }, { headers: PUBLIC_CDN_CACHE })
   } catch (error) {
     return NextResponse.json({
       ok: true,
@@ -224,6 +186,6 @@ export async function GET() {
       continuity_state: 'FAILED',
       primary_diagnostic: null,
       next_expected_measurement_slot_utc: nextSlotUtc(),
-    })
+    }, { headers: PUBLIC_CDN_CACHE })
   }
 }
