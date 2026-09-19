@@ -10,6 +10,7 @@ const real = fs.readFileSync('src/app/api/worldspect/real/route.ts', 'utf8');
 const gold = fs.readFileSync('src/lib/observatory/gold/observatoryGoldAdapter.ts', 'utf8');
 const publicObservatory = fs.readFileSync('src/lib/observatory/public/readPublicObservatoryState.ts', 'utf8');
 const publicTimeline = fs.readFileSync('src/lib/observatory/public/worldSnapshotTimeline.ts', 'utf8');
+const productionSmoke = fs.readFileSync('scripts/qa-sfi-production-observatory-smoke.mjs', 'utf8');
 
 assert.match(store, /unstable_cache/, 'WorldSpect reads must use the shared Next data cache');
 assert.match(store, /WORLDSPECT_SHARED_CACHE_TTL_SECONDS = 30/, 'shared cache TTL must remain explicitly bounded');
@@ -32,6 +33,10 @@ assert.match(publicTimeline, /getWorldSpectPublicHistoryRead/, 'Timeline must us
 assert.match(health, /read_cache: healthRead\.cache/, 'health must expose read-cache diagnostics');
 assert.match(trend, /read_cache: snapshotRead\.cache/, 'trend must expose read-cache diagnostics');
 assert.match(real, /readCache: latestRead\.cache/, 'real snapshot must expose read-cache diagnostics');
+assert.match(productionSmoke, /CACHE_REUSE_PROBE_DELAY_MS = 3000/, 'production smoke must probe beyond process-cache TTL');
+assert.match(productionSmoke, /source_read_at/, 'production smoke must compare source-read execution markers');
+assert.match(productionSmoke, /shared_cache_source_read_reexecuted_inside_ttl/, 'production smoke must fail when shared cache re-executes source reads inside TTL');
+assert.match(productionSmoke, /readCacheReuse/, 'production smoke must gate shared-cache reuse');
 
 async function main() {
   let sourceCalls = 0;
