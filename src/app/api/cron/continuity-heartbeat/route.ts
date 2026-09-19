@@ -158,7 +158,7 @@ async function authorize(request: NextRequest): Promise<{ ok: true; trigger: Aut
 export async function GET(request: NextRequest) {
   const authorization = await authorize(request);
   if (!authorization.ok) return NextResponse.json({ ok: false, error: 'unauthorized_continuity_cron' }, { status: 401 });
-  const egressGuard = scheduledEgressGuardResponse();
+  const egressGuard = scheduledEgressGuardResponse({ allowContinuityFallback: true });
   if (egressGuard) return egressGuard;
 
   const requestedCycleId = request.nextUrl.searchParams.get('cycleId')?.trim() || undefined;

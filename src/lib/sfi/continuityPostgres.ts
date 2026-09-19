@@ -219,3 +219,8 @@ export async function recordContinuityEvent(input: {
     )
   `;
 }
+
+
+export function continuityDatabase() {
+  return db();
+}

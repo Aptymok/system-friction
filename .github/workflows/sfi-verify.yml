@@ -192,6 +192,9 @@ jobs:
       - name: Verify runtime read-plane stability
         run: npx tsx scripts/qa-sfi-runtime-readplane-stability.ts
 
+      - name: Verify bounded Neon continuity heartbeat fallback
+        run: npx tsx scripts/qa-sfi-neon-continuity-heartbeat.ts
+
       - name: Verify universal closure RETURN disposition fallback
         run: node --import tsx --test src/lib/sfi/universalClosure.test.ts
 
