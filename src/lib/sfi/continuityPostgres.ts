@@ -253,6 +253,56 @@ export async function readContinuityWorldSnapshotTimeline(input: { since: string
 }
 
 
+export async function readContinuityLatestWorldSpectSnapshot() {
+  const sql = db();
+  const rows = await sql`
+    select *
+      from worldspect_snapshots
+     order by observed_at desc
+     limit 1
+  `;
+  return (rows[0] as JsonRecord | undefined) ?? null;
+}
+
+export async function readContinuityWorldSpectSnapshotAtOrBefore(observedAt: string) {
+  const sql = db();
+  const rows = await sql`
+    select *
+      from worldspect_snapshots
+     where observed_at <= ${observedAt}::timestamptz
+     order by observed_at desc
+     limit 1
+  `;
+  return (rows[0] as JsonRecord | undefined) ?? null;
+}
+
+export async function readContinuityRecentWorldSpectSnapshots(input: {
+  since: string;
+  ingestMode?: string;
+  limit: number;
+}) {
+  const sql = db();
+  if (input.ingestMode && input.ingestMode !== 'all') {
+    return sql`
+      select *
+        from worldspect_snapshots
+       where observed_at >= ${input.since}::timestamptz
+         and ingest_mode = ${input.ingestMode}
+       order by observed_at asc
+       limit ${input.limit}
+    `;
+  }
+
+  return sql`
+    select *
+      from worldspect_snapshots
+     where observed_at >= ${input.since}::timestamptz
+     order by observed_at asc
+     limit ${input.limit}
+  `;
+}
+
+
 export async function recordContinuityEvent(input: {
   eventType: string;
   entityType?: string;
