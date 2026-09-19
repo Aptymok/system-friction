@@ -108,6 +108,7 @@ async function main() {
   const toolNames = SFI_PUBLIC_MCP_TOOLS.map((tool) => tool.name);
   assert.deepEqual(toolNames, [
     'get_institution',
+    'get_public_capabilities',
     'search_concepts',
     'get_concept',
     'search_methods',
@@ -125,11 +126,8 @@ async function main() {
     assert.equal(forbiddenCapabilityPattern.test(tool.name), false, `forbidden_public_tool:${tool.name}`);
   }
 
-  assert.deepEqual(SFI_PUBLIC_MCP_DEFERRED_TOOLS.map((tool) => tool.name), [
-    'get_public_capabilities',
-  ], 'deferred_tool_contract_drift');
-  assert.ok(SFI_PUBLIC_MCP_DEFERRED_TOOLS.every((tool) => tool.state === 'UNAVAILABLE'), 'deferred_tools_must_be_unavailable');
-  assert.equal(toolNames.includes('get_public_capabilities' as never), false, 'unavailable_capability_tool_must_not_be_listed');
+  assert.deepEqual(SFI_PUBLIC_MCP_DEFERRED_TOOLS, [], 'all_authoritative_public_tools_should_be_available');
+  assert.ok(toolNames.includes('get_public_capabilities'), 'public_capability_tool_must_be_listed');
   assert.ok(toolNames.includes('get_public_evidence'), 'integrated_evidence_tool_must_be_listed');
 
   const publicConcept = fixture('CONCEPT', 'public-concept');
@@ -251,14 +249,16 @@ async function main() {
   assert.ok(emptyEvidenceViaMcpText.includes('"found":false'), 'mcp_empty_evidence_found_drift');
   assert.equal(emptyEvidenceViaMcpText.includes('UNAVAILABLE'), false, 'mcp_empty_evidence_false_unavailable');
 
-  const deferredCapabilities = await dispatchPublicMcpRequest(request('tools/call', {
+  const publicCapabilities = await dispatchPublicMcpRequest(request('tools/call', {
     name: 'get_public_capabilities',
     arguments: {},
   }), dependencies);
-  const deferredCapabilitiesText = JSON.stringify(deferredCapabilities);
-  assert.ok(deferredCapabilitiesText.includes('UNAVAILABLE'), 'public_capability_projection_must_remain_unavailable');
-  assert.ok(deferredCapabilitiesText.includes('NO_AUTHORITATIVE_PUBLIC_CAPABILITY_PROJECTION'), 'public_capability_unavailable_reason_drift');
-  assert.equal(deferredCapabilitiesText.includes('"count":0'), false, 'unavailable_capability_projection_must_not_be_false_zero');
+  const publicCapabilitiesText = JSON.stringify(publicCapabilities);
+  assert.ok(publicCapabilitiesText.includes('"state":"AVAILABLE"'), 'public_capability_projection_must_be_available');
+  assert.ok(publicCapabilitiesText.includes('sfi-studio'), 'studio_package_missing_from_public_capability_projection');
+  assert.ok(publicCapabilitiesText.includes('/api/mcp/studio'), 'studio_mcp_endpoint_missing_from_package_projection');
+  assert.ok(publicCapabilitiesText.includes('"rootIsProduct":false'), 'root_must_not_be_productized');
+  assert.ok(publicCapabilitiesText.includes('"canonAuthorityForSale":false'), 'canon_authority_must_not_be_for_sale');
 
   const blockedExecution = await dispatchPublicMcpRequest(request('tools/call', {
     name: 'execute',
@@ -294,6 +294,7 @@ async function main() {
 
   assert.deepEqual(SFI_PUBLIC_MCP_RESOURCES.map((resource) => resource.uri), [
     'sfi://institution',
+    'sfi://capabilities',
     'sfi://epistemic-contract',
     'sfi://canonical/objects',
     'sfi://research',
