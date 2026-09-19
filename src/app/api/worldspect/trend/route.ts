@@ -281,6 +281,7 @@ export async function GET(request: Request) {
       trend_quality: trendQuality(snapshots.length),
       read_plane: snapshotRead.readPlane,
       primary_diagnostic: snapshotRead.primaryDiagnostic,
+      read_cache: snapshotRead.cache,
       domains,
       ...(debug ? { debug: extractionCounts } : {}),
     };
