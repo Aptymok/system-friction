@@ -2,12 +2,10 @@ import 'server-only';
 
 import { readObservatoryGoldState } from '@/lib/observatory/gold/observatoryGoldAdapter';
 import type { ObservatoryGoldState, ObservatoryGoldTrend } from '@/lib/observatory/gold/observatoryGoldState';
-import { executeAbortableQuery } from '@/lib/supabase/abortableQuery';
-import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { getWorldSpectPublicHistoryRead } from '@/lib/worldspect/snapshotStore';
 
 const HORIZON_DAYS = 90;
 const HISTORY_LIMIT = 120;
-const HISTORY_TIMEOUT_MS = 6000;
 
 const DOMAIN_LABELS: Record<string, string> = {
   CULTURAL: 'cultural',
@@ -183,23 +181,12 @@ function goldDomain(domainKey: string): ObservatoryGoldState['highlightedSignals
 }
 
 async function readLightweightHistory(): Promise<PublicHistoryRow[]> {
-  const service = createServiceSupabaseClient();
-  const observedSince = new Date(Date.now() - HORIZON_DAYS * 86400000).toISOString();
-  const { data, error } = await executeAbortableQuery(
-    service
-      .from('worldspect_snapshots')
-      .select('observed_at,created_at,source_state,confidence,wsi,nti,ingest_mode,sources')
-      .gte('observed_at', observedSince)
-      .order('observed_at', { ascending: true })
-      .limit(HISTORY_LIMIT),
-    HISTORY_TIMEOUT_MS,
-  );
+  const read = await getWorldSpectPublicHistoryRead({ days: HORIZON_DAYS, limit: HISTORY_LIMIT });
+  if (read.readPlane === 'UNAVAILABLE') {
+    throw new Error(`worldspect_public_history_failed:${read.primaryDiagnostic ?? 'read_plane_unavailable'}`);
+  }
 
-  if (error) throw new Error(`worldspect_public_history_failed:${error.message}`);
-  if (!Array.isArray(data)) return [];
-
-  return data
-    .map((item) => record(item))
+  return read.data
     .map((item): PublicHistoryRow => ({
       observedAt: text(item.observed_at ?? item.created_at),
       createdAt: text(item.created_at),
@@ -295,10 +282,10 @@ export async function readPublicObservatoryState(): Promise<ObservatoryGoldState
     })),
     provenance: {
       ...baseState.provenance,
-      basedOn: Array.from(new Set([...baseState.provenance.basedOn, 'worldspect_snapshots:lightweight_public_history'])),
+      basedOn: Array.from(new Set([...baseState.provenance.basedOn, 'worldspect_snapshots:shared_cached_lightweight_public_history'])),
       degradedSources: historyResult.error
         ? Array.from(new Set([...baseState.provenance.degradedSources, 'worldspect_public_history']))
-        : baseState.provenance.degradedSources.filter((item) => item !== 'getRecentWorldSpectSnapshots'),
+        : baseState.provenance.degradedSources.filter((item) => item !== 'getWorldSpectPublicHistory'),
       limits: Array.from(new Set([
         ...baseState.provenance.limits.filter((item) => item !== 'worldspect_recent_snapshots_unavailable'),
         ...(historyResult.error ? [`La serie longitudinal no pudo recuperarse en esta ejecución: ${historyResult.error}`] : []),
