@@ -11,6 +11,7 @@ import {
   signOutNeonAuth,
 } from '@/runtime/supabase/server'
 import { readContinuityProfile, readContinuityProfileByEmail } from '@/lib/sfi/continuityPostgres'
+import { upgradeLegacyNeonPasswordCredential } from '@/lib/auth/neonLegacyPasswordBridge'
 import { authSchema } from '@/lib/validation/schemas'
 
 function formValue(formData: FormData, key: string) {
@@ -80,9 +81,22 @@ export async function loginAction(formData: FormData) {
   const limit = checkRateLimit(rateLimitKey('login', input.email), 8, 60_000)
   if (!limit.allowed) redirect(`/login?error=rate_limit&next=${encodeURIComponent(next)}`)
 
-  const neon = await signInWithNeonAuth(parsed.data.email, parsed.data.password)
+  let neon = await signInWithNeonAuth(parsed.data.email, parsed.data.password)
+
+  if (!neon.ok && neon.status < 500) {
+    const bridge = await upgradeLegacyNeonPasswordCredential(
+      parsed.data.email,
+      parsed.data.password,
+    ).catch(() => null)
+
+    if (bridge?.status === 'UPGRADED' || bridge?.status === 'RACE_LOST') {
+      neon = await signInWithNeonAuth(parsed.data.email, parsed.data.password)
+    }
+  }
+
   if (!neon.ok) {
-    redirect(`/login?error=${encodeURIComponent(neon.message)}&next=${encodeURIComponent(next)}`)
+    const errorCode = neon.status >= 500 ? 'auth_unavailable' : 'invalid_credentials'
+    redirect(`/login?error=${errorCode}&next=${encodeURIComponent(next)}`)
   }
 
   const profile = await readContinuityProfileByEmail(parsed.data.email)
