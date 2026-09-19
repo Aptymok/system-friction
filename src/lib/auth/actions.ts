@@ -80,9 +80,42 @@ export async function loginAction(formData: FormData) {
   const limit = checkRateLimit(rateLimitKey('login', input.email), 8, 60_000)
   if (!limit.allowed) redirect(`/login?error=rate_limit&next=${encodeURIComponent(next)}`)
 
-  const neon = await signInWithNeonAuth(parsed.data.email, parsed.data.password)
+  let primaryUserId: string | null = null
+  let primaryUnavailable = false
+
+  try {
+    const supabase = await createServerSupabaseClient()
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: parsed.data.email,
+      password: parsed.data.password,
+    })
+    if (!error && data.user?.id) {
+      primaryUserId = data.user.id
+    }
+  } catch {
+    primaryUnavailable = true
+  }
+
+  if (primaryUserId) {
+    redirect(await resolvePostLoginPath(primaryUserId, next))
+  }
+
+  let neon: Awaited<ReturnType<typeof signInWithNeonAuth>>
+  try {
+    neon = await signInWithNeonAuth(parsed.data.email, parsed.data.password)
+  } catch {
+    if (primaryUnavailable) {
+      redirect(`/login?error=auth_unavailable&next=${encodeURIComponent(next)}`)
+    }
+    redirect(`/login?error=invalid_credentials&next=${encodeURIComponent(next)}`)
+  }
+
   if (!neon.ok) {
-    redirect(`/login?error=${encodeURIComponent(neon.message)}&next=${encodeURIComponent(next)}`)
+    const providerUnavailable = neon.status >= 500
+    if (primaryUnavailable && providerUnavailable) {
+      redirect(`/login?error=auth_unavailable&next=${encodeURIComponent(next)}`)
+    }
+    redirect(`/login?error=invalid_credentials&next=${encodeURIComponent(next)}`)
   }
 
   const profile = await readContinuityProfileByEmail(parsed.data.email)
