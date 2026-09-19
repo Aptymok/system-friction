@@ -1,5 +1,5 @@
 import { spawn, spawnSync } from 'node:child_process';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -238,7 +238,7 @@ async function browserSmoke(url) {
     '--no-sandbox',
     '--disable-dev-shm-usage',
     '--disable-background-networking',
-    '--remote-debugging-port=0',
+    '--remote-debugging-port=9222',
     `--user-data-dir=${dir}`,
     'about:blank',
   ], { stdio: ['ignore', 'ignore', 'pipe'] });
@@ -247,18 +247,15 @@ async function browserSmoke(url) {
   proc.stderr.on('data', (data) => { stderr = (stderr + String(data)).slice(-4000); });
 
   try {
-    let port = null;
-    let activeLines = [];
-    for (let attempt = 0; attempt < 40 && !port; attempt += 1) {
+    const port = 9222;
+    let target = { ws: null, reason: 'cdp_target_unavailable' };
+    for (let attempt = 0; attempt < 40 && !target.ws; attempt += 1) {
       await sleep(200);
-      try {
-        activeLines = (await readFile(path.join(dir, 'DevToolsActivePort'), 'utf8')).split(/\r?\n/).filter(Boolean);
-        port = Number(activeLines[0]) || null;
-      } catch {}
+      if (proc.exitCode !== null) {
+        return { status: 'NOT_OBSERVED', reason: `chrome_exited:${proc.exitCode}`, stderr };
+      }
+      target = await browserTarget(port, []);
     }
-    if (!port) return { status: 'NOT_OBSERVED', reason: 'devtools_port_unavailable', stderr };
-
-    const target = await browserTarget(port, activeLines);
     if (!target.ws) return { status: 'NOT_OBSERVED', reason: target.reason || 'cdp_target_unavailable', stderr };
 
     const cdp = new CDP(target.ws);
