@@ -84,6 +84,10 @@ assert.match(productionBackend, /Boolean\(institutionalMember\) \|\| activeInsti
 
 assert.match(login, /\/forgot/);
 assert.match(authActions, /upgradeLegacyNeonPasswordCredential/, 'login must support one-time Neon-native credential upgrade');
+assert.ok(
+  authActions.indexOf('upgradeLegacyNeonPasswordCredential') < authActions.indexOf('signInWithNeonAuth(parsed.data.email'),
+  'legacy credential must be upgraded before Better Auth attempts native verification',
+);
 assert.doesNotMatch(authActions, /supabase\.auth\.signInWithPassword/, 'continuity login must not depend on Supabase Auth during the outage window');
 assert.match(authActions, /invalid_credentials/, 'provider-specific credential failures must collapse to a generic login error');
 assert.match(neonPasswordMigration, /crypt\(\$\{password\}, \$\{legacyHash\}\) = \$\{legacyHash\}/, 'legacy bcrypt verification must occur inside Neon pgcrypto');
