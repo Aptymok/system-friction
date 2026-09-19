@@ -1,6 +1,6 @@
 import { buildWorldInterpretation } from '@/lib/sfi/observatory/worldInterpretation';
 import { buildSfiWorldInterfaceState } from '@/lib/sfi/worldInterfaceState';
-import { getRecentWorldSpectSnapshots } from '@/lib/worldspect/snapshotStore';
+import { getWorldSpectPublicHistory } from '@/lib/worldspect/snapshotStore';
 import { buildWorldSpectState } from '@/lib/worldspect/worldspectStateBuilder';
 import { readWorldSpectVectorSnapshot } from '@/lib/worldspect/vector-store';
 import type { ObservatoryGoldState, ObservatoryGoldTrend } from './observatoryGoldState';
@@ -260,9 +260,9 @@ export async function readObservatoryGoldState(): Promise<ObservatoryGoldState> 
         limits.push(error instanceof Error ? error.message : 'readWorldSpectVectorSnapshot_failed');
         return null;
       }),
-      withSourceTimeout('getRecentWorldSpectSnapshots', getRecentWorldSpectSnapshots({ days: PUBLIC_HORIZON_DAYS, limit: 120 })).catch((error) => {
-        degradedSources.push('getRecentWorldSpectSnapshots');
-        limits.push(error instanceof Error ? error.message : 'getRecentWorldSpectSnapshots_failed');
+      withSourceTimeout('getWorldSpectPublicHistory', getWorldSpectPublicHistory({ days: PUBLIC_HORIZON_DAYS, limit: 120 })).catch((error) => {
+        degradedSources.push('getWorldSpectPublicHistory');
+        limits.push(error instanceof Error ? error.message : 'getWorldSpectPublicHistory_failed');
         return [];
       }),
     ]);
@@ -466,7 +466,7 @@ export async function readObservatoryGoldState(): Promise<ObservatoryGoldState> 
           'buildWorldInterpretation',
           'buildWorldSpectState',
           'readWorldSpectVectorSnapshot',
-          'getRecentWorldSpectSnapshots',
+          'getWorldSpectPublicHistory',
         ],
         degradedSources: Array.from(new Set(degradedSources)),
         limits: Array.from(new Set(limits)),

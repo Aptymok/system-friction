@@ -7,6 +7,7 @@ import {
   isSfiContinuityConfigured,
   readContinuityLatestWorldSpectSnapshot,
   readContinuityRecentWorldSpectSnapshots,
+  readContinuityWorldSnapshotTimeline,
   readContinuityWorldSpectSnapshotAtOrBefore,
 } from '@/lib/sfi/continuityPostgres';
 import type {
@@ -42,6 +43,17 @@ export type WorldSpectSnapshotInput = {
   adapterStatus: 'observed' | 'degraded' | 'failed';
   adapterError?: string | null;
   ingestMode: WorldSpectIngestMode;
+};
+
+export type WorldSpectPublicHistoryRow = {
+  observed_at: string;
+  created_at: string;
+  source_state: PersistedWorldSpectSourceState;
+  confidence: number;
+  wsi: number | null;
+  nti: number | null;
+  ingest_mode: WorldSpectIngestMode;
+  sources: WorldSpectSource[];
 };
 
 export type WorldSpectSnapshotRow = {
@@ -113,6 +125,22 @@ function normalizeWorldSpectSnapshotRow(data: Record<string, any>): WorldSpectSn
     ingest_mode: ingestMode, snapshot_hash: String(data.snapshot_hash ?? ''),
   } satisfies WorldSpectSnapshotRow;
 }
+
+function normalizeWorldSpectPublicHistoryRow(data: Record<string, any>): WorldSpectPublicHistoryRow {
+  const sourceState = isWorldSpectSourceState(data.source_state) ? data.source_state : 'degraded';
+  const ingestMode = isWorldSpectIngestMode(data.ingest_mode) ? data.ingest_mode : 'manual';
+  return {
+    observed_at: String(data.observed_at ?? data.created_at ?? ''),
+    created_at: String(data.created_at ?? data.observed_at ?? ''),
+    source_state: sourceState,
+    confidence: clamp01(Number(data.confidence ?? 0)),
+    wsi: numberOrNull(data.wsi),
+    nti: numberOrNull(data.nti),
+    ingest_mode: ingestMode,
+    sources: Array.isArray(data.sources) ? data.sources as WorldSpectSource[] : [],
+  };
+}
+
 
 async function loadLatestWorldSpectSnapshotRead() {
   const sourceReadAt = new Date().toISOString();
@@ -204,6 +232,57 @@ async function loadRecentWorldSpectSnapshotsRead(days: number, ingestMode: Recen
   return { data: [] as WorldSpectSnapshotRow[], readPlane: error ? 'UNAVAILABLE' as const : 'SUPABASE' as const, primaryDiagnostic: error?.message ?? null, sourceReadAt };
 }
 
+async function loadWorldSpectPublicHistoryRead(days: number, limit: number) {
+  const sourceReadAt = new Date().toISOString();
+  const service = createServiceSupabaseClient();
+  const observedSince = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+  const { data, error } = await executeAbortableQuery(
+    service
+      .from('worldspect_snapshots')
+      .select('observed_at,created_at,source_state,confidence,wsi,nti,ingest_mode,sources')
+      .gte('observed_at', observedSince)
+      .order('observed_at', { ascending: false })
+      .limit(limit),
+  );
+
+  if (!error && Array.isArray(data)) {
+    return {
+      data: data.slice().reverse().map((row) => normalizeWorldSpectPublicHistoryRow(row)),
+      readPlane: 'SUPABASE' as const,
+      primaryDiagnostic: null,
+      sourceReadAt,
+    };
+  }
+
+  if (error && isSfiContinuityConfigured()) {
+    try {
+      const fallback = await readContinuityWorldSnapshotTimeline({ since: observedSince, limit });
+      return {
+        data: Array.isArray(fallback)
+          ? fallback.slice().reverse().map((row) => normalizeWorldSpectPublicHistoryRow(row as Record<string, any>))
+          : [],
+        readPlane: 'NEON' as const,
+        primaryDiagnostic: error.message || 'supabase_worldspect_public_history_read_failed',
+        sourceReadAt,
+      };
+    } catch (continuityError) {
+      return {
+        data: [] as WorldSpectPublicHistoryRow[],
+        readPlane: 'UNAVAILABLE' as const,
+        primaryDiagnostic: `${error.message || 'supabase_worldspect_public_history_read_failed'}; continuity=${continuityError instanceof Error ? continuityError.message : 'continuity_read_failed'}`,
+        sourceReadAt,
+      };
+    }
+  }
+
+  return {
+    data: [] as WorldSpectPublicHistoryRow[],
+    readPlane: error ? 'UNAVAILABLE' as const : 'SUPABASE' as const,
+    primaryDiagnostic: error?.message ?? null,
+    sourceReadAt,
+  };
+}
+
 const cachedLatestWorldSpectSnapshotRead = unstable_cache(
   loadLatestWorldSpectSnapshotRead,
   ['sfi-worldspect-latest-read-v1'],
@@ -213,6 +292,12 @@ const cachedLatestWorldSpectSnapshotRead = unstable_cache(
 const cachedRecentWorldSpectSnapshotsRead = unstable_cache(
   loadRecentWorldSpectSnapshotsRead,
   ['sfi-worldspect-recent-read-v1'],
+  { revalidate: WORLDSPECT_SHARED_CACHE_TTL_SECONDS, tags: [WORLDSPECT_READ_CACHE_TAG] },
+);
+
+const cachedWorldSpectPublicHistoryRead = unstable_cache(
+  loadWorldSpectPublicHistoryRead,
+  ['sfi-worldspect-public-history-read-v1'],
   { revalidate: WORLDSPECT_SHARED_CACHE_TTL_SECONDS, tags: [WORLDSPECT_READ_CACHE_TAG] },
 );
 
@@ -226,6 +311,12 @@ const recentReadCoalescer = createReadPlaneCoalescer({
   namespace: 'worldspect-recent',
   ttlSeconds: WORLDSPECT_PROCESS_CACHE_TTL_SECONDS,
   loader: cachedRecentWorldSpectSnapshotsRead,
+});
+
+const publicHistoryReadCoalescer = createReadPlaneCoalescer({
+  namespace: 'worldspect-public-history',
+  ttlSeconds: WORLDSPECT_PROCESS_CACHE_TTL_SECONDS,
+  loader: cachedWorldSpectPublicHistoryRead,
 });
 
 export async function getLatestWorldSpectSnapshotRead() {
@@ -251,6 +342,18 @@ export async function getRecentWorldSpectSnapshots(input?: { days?: number; inge
   return (await getRecentWorldSpectSnapshotsRead(input)).data;
 }
 
+export async function getWorldSpectPublicHistoryRead(input?: { days?: number; limit?: number }) {
+  const days = Number.isFinite(input?.days) ? Math.max(1, Number(input?.days)) : 90;
+  const limit = Number.isFinite(input?.limit) ? Math.max(1, Number(input?.limit)) : 120;
+  const read = await publicHistoryReadCoalescer.read(days, limit);
+  const { sourceReadAt, ...value } = read.value;
+  return { ...value, cache: { ...read.cache, source_read_at: sourceReadAt } };
+}
+
+export async function getWorldSpectPublicHistory(input?: { days?: number; limit?: number }) {
+  return (await getWorldSpectPublicHistoryRead(input)).data;
+}
+
 export async function upsertWorldSpectSnapshot(input: WorldSpectSnapshotInput) {
   const service = createServiceSupabaseClient();
   const observedAt = new Date(input.ts || Date.now()).toISOString();
@@ -259,6 +362,7 @@ export async function upsertWorldSpectSnapshot(input: WorldSpectSnapshotInput) {
   if (error) return { ok: false as const, error: 'worldspect_snapshot_persist_failed', details: error.message };
   latestReadCoalescer.clear();
   recentReadCoalescer.clear();
+  publicHistoryReadCoalescer.clear();
   revalidateTag(WORLDSPECT_READ_CACHE_TAG, { expire: 0 });
   return { ok: true as const, data };
 }

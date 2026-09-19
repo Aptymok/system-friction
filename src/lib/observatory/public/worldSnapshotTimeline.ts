@@ -1,6 +1,5 @@
 import 'server-only';
-import { createServiceSupabaseClient } from '@/runtime/supabase/server';
-import { isSfiContinuityConfigured, readContinuityWorldSnapshotTimeline } from '@/lib/sfi/continuityPostgres';
+import { getWorldSpectPublicHistoryRead } from '@/lib/worldspect/snapshotStore';
 
 type Row = Record<string, unknown>;
 type DomainDefinition = { id: string; label: string; domains: string[] };
@@ -91,26 +90,12 @@ export type PublicWorldTemporalFrame = {
 };
 
 export async function readPublicWorldSnapshotTimeline() {
-  const db = createServiceSupabaseClient();
-  const since = new Date(Date.now() - HORIZON_DAYS * 86400000).toISOString();
-  const result = await db.from('worldspect_snapshots')
-    .select('observed_at,created_at,source_state,confidence,wsi,nti,ingest_mode,sources')
-    .gte('observed_at', since)
-    .order('observed_at', { ascending: false })
-    .limit(MAX_FRAMES);
-
-  let readPlane: 'SUPABASE' | 'NEON' = 'SUPABASE';
-  let snapshotData: unknown = result.data;
-  if (result.error) {
-    if (!isSfiContinuityConfigured()) throw new Error(`worldspect_public_timeline_failed:${result.error.message}`);
-    try {
-      snapshotData = await readContinuityWorldSnapshotTimeline({ since, limit: MAX_FRAMES });
-      readPlane = 'NEON';
-    } catch (error) {
-      throw new Error(`worldspect_public_timeline_failed:primary=${result.error.message};neon=${error instanceof Error ? error.message : String(error)}`);
-    }
+  const read = await getWorldSpectPublicHistoryRead({ days: HORIZON_DAYS, limit: MAX_FRAMES });
+  if (read.readPlane === 'UNAVAILABLE') {
+    throw new Error(`worldspect_public_timeline_failed:${read.primaryDiagnostic ?? 'read_plane_unavailable'}`);
   }
-  const snapshots = rows(snapshotData).reverse();
+  const readPlane = read.readPlane;
+  const snapshots = rows(read.data);
 
   const frames: PublicWorldTemporalFrame[] = snapshots.map((snapshot) => {
     const snapshotSources = rows(snapshot.sources);
@@ -129,6 +114,7 @@ export async function readPublicWorldSnapshotTimeline() {
     horizonDays: HORIZON_DAYS,
     readPlane,
     generatedAt: new Date().toISOString(),
+    readCache: read.cache,
     frames,
     limits: [
       `Historical frames are reconstructed only from the most recent ${MAX_FRAMES} persisted WorldSpect snapshots inside the horizon.`,
