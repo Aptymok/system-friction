@@ -1,4 +1,5 @@
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { isSfiContinuityConfigured, readContinuityRootNeuralGraphRuntime } from '@/lib/sfi/continuityPostgres';
 
 function stringOrNull(value: unknown): string | null {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
@@ -30,6 +31,8 @@ export type RootNeuralGraphRuntime = {
   ejectorPressure: number;
   status: 'operational' | 'degraded' | 'latent' | 'missing';
   summary: string;
+  readPlane: 'SUPABASE' | 'NEON' | 'UNAVAILABLE';
+  primaryDiagnostic: string | null;
   topAttractors: Array<{
     attractor_key: string;
     label: string;
@@ -97,27 +100,64 @@ export async function readRootNeuralGraphRuntime(): Promise<RootNeuralGraphRunti
     })(),
   ]);
 
-  const nodes = nodeCount ?? 0;
-  const edges = edgeCount ?? 0;
-  const attractors = attractorRows.length;
-  const ejectors = ejectorRows.length;
+  let readPlane: RootNeuralGraphRuntime['readPlane'] = 'SUPABASE';
+  let primaryDiagnostic: string | null = null;
+  let effectiveNodeCount = nodeCount;
+  let effectiveEdgeCount = edgeCount;
+  let effectiveAttractorRows = attractorRows;
+  let effectiveEjectorRows = ejectorRows;
+  let effectiveScorefrictionObservationCount = scorefrictionObservationCount;
+  let effectiveScorefrictionVectorCount = scorefrictionVectorCount;
+  let effectiveWorldspectSnapshot = worldspectSnapshot;
+
+  const primaryUnavailable = [nodeCount, edgeCount, scorefrictionObservationCount, scorefrictionVectorCount].some((value) => value === null);
+  if (primaryUnavailable) {
+    primaryDiagnostic = 'supabase_root_graph_read_unavailable';
+    if (isSfiContinuityConfigured()) {
+      try {
+        const fallback = await readContinuityRootNeuralGraphRuntime();
+        if (fallback) {
+          effectiveNodeCount = numberOrZero(fallback.node_count);
+          effectiveEdgeCount = numberOrZero(fallback.edge_count);
+          effectiveScorefrictionObservationCount = numberOrZero(fallback.scorefriction_observation_count);
+          effectiveScorefrictionVectorCount = numberOrZero(fallback.scorefriction_vector_count);
+          effectiveWorldspectSnapshot = stringOrNull(fallback.latest_worldspect_observed_at);
+          effectiveAttractorRows = Array.isArray(fallback.top_attractors) ? fallback.top_attractors as Record<string, unknown>[] : [];
+          effectiveEjectorRows = Array.isArray(fallback.top_ejectors) ? fallback.top_ejectors as Record<string, unknown>[] : [];
+          readPlane = 'NEON';
+        } else {
+          readPlane = 'UNAVAILABLE';
+        }
+      } catch (error) {
+        readPlane = 'UNAVAILABLE';
+        primaryDiagnostic = `supabase_root_graph_read_unavailable; continuity=${error instanceof Error ? error.message : 'continuity_read_failed'}`;
+      }
+    } else {
+      readPlane = 'UNAVAILABLE';
+    }
+  }
+
+  const nodes = effectiveNodeCount ?? 0;
+  const edges = effectiveEdgeCount ?? 0;
+  const attractors = effectiveAttractorRows.length;
+  const ejectors = effectiveEjectorRows.length;
   const density = normalize01(edges / Math.max(1, nodes * 2));
   const coverage = normalize01(attractors / Math.max(1, nodes));
   const ejectorPressure = normalize01(
-    ejectorRows.length
-      ? ejectorRows.reduce((sum, row) => sum + (numberOrZero(row.contradiction) + numberOrZero(row.decay)) / 2, 0) / ejectorRows.length
+    effectiveEjectorRows.length
+      ? effectiveEjectorRows.reduce((sum, row) => sum + (numberOrZero(row.contradiction) + numberOrZero(row.decay)) / 2, 0) / effectiveEjectorRows.length
       : 0,
   );
   const latestUpdate = latestTimestamp([
-    ...attractorRows.map((row) => stringOrNull(row.updated_at)),
-    ...ejectorRows.map((row) => stringOrNull(row.updated_at)),
+    ...effectiveAttractorRows.map((row) => stringOrNull(row.updated_at)),
+    ...effectiveEjectorRows.map((row) => stringOrNull(row.updated_at)),
   ]);
 
   const hasGraph = nodes > 0;
   const hasEdges = edges > 0;
   const hasAttractors = attractors > 0;
   const hasEjectors = ejectors > 0;
-  const hasScoreFrictionEvidence = (scorefrictionObservationCount ?? 0) > 0 && (scorefrictionVectorCount ?? 0) > 0;
+  const hasScoreFrictionEvidence = (effectiveScorefrictionObservationCount ?? 0) > 0 && (effectiveScorefrictionVectorCount ?? 0) > 0;
 
   let status: RootNeuralGraphRuntime['status'] = 'missing';
   let summary = 'No hay grafo ROOT persistido en Supabase.';
@@ -143,23 +183,25 @@ export async function readRootNeuralGraphRuntime(): Promise<RootNeuralGraphRunti
     edgeCount: edges,
     attractorCount: attractors,
     ejectorCount: ejectors,
-    scorefrictionObservationCount,
-    scorefrictionVectorCount,
-    latestWorldSpectObservedAt: worldspectSnapshot ?? null,
+    scorefrictionObservationCount: effectiveScorefrictionObservationCount,
+    scorefrictionVectorCount: effectiveScorefrictionVectorCount,
+    latestWorldSpectObservedAt: effectiveWorldspectSnapshot ?? null,
     latestUpdate,
     graphDensity: density,
     attractorCoverage: coverage,
     ejectorPressure,
     status,
     summary,
-    topAttractors: attractorRows.map((row) => ({
+    readPlane,
+    primaryDiagnostic,
+    topAttractors: effectiveAttractorRows.map((row) => ({
       attractor_key: stringOrNull(row.attractor_key) ?? 'unknown',
       label: stringOrNull(row.label) ?? 'unknown',
       confidence: normalize01(numberOrZero(row.confidence)),
       persistence: normalize01(numberOrZero(row.persistence)),
       status: stringOrNull(row.status) ?? 'unknown',
     })),
-    topEjectors: ejectorRows.map((row) => ({
+    topEjectors: effectiveEjectorRows.map((row) => ({
       ejector_key: stringOrNull(row.ejector_key) ?? 'unknown',
       label: stringOrNull(row.label) ?? 'unknown',
       contradiction: normalize01(numberOrZero(row.contradiction)),
