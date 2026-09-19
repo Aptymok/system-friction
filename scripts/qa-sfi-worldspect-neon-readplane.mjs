@@ -28,10 +28,12 @@ assert.doesNotMatch(upsertBlock, /continuity|NEON|readContinuity/i, 'canonical W
 
 assert.match(health, /DEGRADED_CONTINUITY/, 'health must expose controlled continuity degradation');
 assert.match(health, /read_plane/, 'health must expose read plane');
-assert.match(health, /healthRead\.readPlane === 'SUPABASE' \? await alertTableWarnings\(\) : \[\]/, 'health must not re-enter Supabase-only alert reads after continuity fallback');
-assert.match(trend, /getRecentWorldSpectSnapshotsRead/, 'trend must use read-plane-aware snapshot reader');
+assert.match(health, /bundle\.read_plane === 'SUPABASE' \? await alertTableWarnings\(\) : \[\]/, 'health must not re-enter Supabase-only alert reads after continuity fallback');
+assert.match(health, /fetchWorldSpectReadBundle/, 'health must consume the shared read-plane bundle');
+assert.match(trend, /fetchWorldSpectReadBundle/, 'trend must consume the shared read-plane bundle');
 assert.match(trend, /read_plane/, 'trend must expose read plane');
-assert.match(real, /getLatestWorldSpectSnapshotRead/, 'real snapshot must use read-plane-aware reader');
+assert.match(real, /fetchWorldSpectReadBundle/, 'real must consume the shared read-plane bundle on the common path');
+assert.match(real, /getLatestWorldSpectSnapshotRead/, 'real must retain a direct read-plane-aware latest fallback');
 assert.match(real, /readPlane/, 'real snapshot must expose read plane');
 assert.match(pulse, /WORLD_VECTOR_PULSE_QA_DEGRADED_CONTINUITY/, 'pulse QA must distinguish controlled continuity degradation');
 
