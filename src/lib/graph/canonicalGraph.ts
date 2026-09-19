@@ -14,6 +14,10 @@ import { buildLibraryCorpusGraphProjection } from './libraryCorpusProjection';
 
 type Row = Record<string, unknown>;
 
+export type CanonicalGraphReadOptions = {
+  allowContinuity?: boolean;
+};
+
 const GRAPH_NODE_HYBRID_READ_FIELDS = 'id,node_id,node_key,label,node_type,ontology_type,profile,origin,attributes,lineage,created_at,updated_at';
 const GRAPH_EDGE_HYBRID_READ_FIELDS = 'id,edge_id,source_node_id,target_node_id,source_node_key,target_node_key,relation,relation_type,weight,w_ij,attributes,lineage,created_at,updated_at';
 const GRAPH_NODE_CANONICAL_READ_FIELDS = 'id,node_id,label,ontology_type,attributes,lineage,created_at,updated_at';
@@ -201,7 +205,11 @@ function edgeFromRow(row: Row, nodeIdByStoredId: Map<string, string>): Canonical
   };
 }
 
-export async function readCanonicalGraphState(profile: GraphProfile): Promise<CanonicalGraphState> {
+export async function readCanonicalGraphState(
+  profile: GraphProfile,
+  options: CanonicalGraphReadOptions = {},
+): Promise<CanonicalGraphState> {
+  const allowContinuity = options.allowContinuity === true;
   const libraryProjection = buildLibraryCorpusGraphProjection();
   let rawNodeRows: Row[] = [];
   let rawEdgeRows: Row[] = [];
@@ -220,7 +228,7 @@ export async function readCanonicalGraphState(profile: GraphProfile): Promise<Ca
     primaryDiagnostic = error instanceof Error ? error.message : 'graph_store_not_ready';
   }
 
-  if (primaryDiagnostic && isSfiContinuityConfigured()) {
+  if (primaryDiagnostic && allowContinuity && isSfiContinuityConfigured()) {
     try {
       const fallback = await readContinuityCanonicalGraphRows();
       if (fallback) {
