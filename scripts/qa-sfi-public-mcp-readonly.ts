@@ -11,6 +11,10 @@ import {
 import { SFI_EVIDENCE_CAPSULE_CONTRACT } from '../src/lib/discovery/publicSemanticProjection';
 import { SFI_PUBLIC_PROFILE } from '../src/lib/public/institutionProfile';
 import {
+  SFI_CAPABILITY_PACKAGE_CATALOG_CONTRACT,
+  SFI_CAPABILITY_PACKAGES,
+} from '../src/lib/products/capabilityPackageCatalog';
+import {
   SFI_PUBLIC_MCP_AUTHORITY,
   SFI_PUBLIC_MCP_DEFERRED_TOOLS,
   SFI_PUBLIC_MCP_GATE,
@@ -104,6 +108,19 @@ async function main() {
   assert.equal(SFI_PUBLIC_MCP_PROTOCOL_VERSION, '2026-07-28', 'protocol_version_drift');
   assert.equal(SFI_PUBLIC_MCP_AUTHORITY, 'PUBLIC_READ_ONLY', 'public_authority_drift');
   assert.equal(SFI_EVIDENCE_CAPSULE_CONTRACT, 'SFI-EVIDENCE-CAPSULE-1.0', 'upstream_evidence_contract_drift');
+  assert.equal(SFI_CAPABILITY_PACKAGE_CATALOG_CONTRACT, 'SFI-CAPABILITY-PACKAGE-CATALOG-1.0', 'capability_package_catalog_contract_drift');
+  assert.equal(new Set(SFI_CAPABILITY_PACKAGES.map((pkg) => pkg.id)).size, SFI_CAPABILITY_PACKAGES.length, 'capability_package_ids_must_be_unique');
+  const studioPackage = SFI_CAPABILITY_PACKAGES.find((pkg) => pkg.id === 'sfi-studio');
+  assert.ok(studioPackage, 'studio_package_required');
+  assert.equal(studioPackage?.distributionState, 'LIVE_MCP', 'studio_package_must_publish_live_mcp_state');
+  assert.equal(studioPackage?.pluginPackageId, 'sfi-studio', 'studio_plugin_package_id_drift');
+  assert.deepEqual(studioPackage?.oauthScopes, ['studio:read', 'studio:content', 'studio:run'], 'studio_package_scope_boundary_drift');
+  const governedExecutionPackage = SFI_CAPABILITY_PACKAGES.find((pkg) => pkg.id === 'sfi-governed-execution');
+  assert.equal(governedExecutionPackage?.distributionState, 'INSTITUTIONAL_ONLY', 'governed_execution_must_remain_institutional_only');
+  assert.equal(governedExecutionPackage?.separatelyPackageable, false, 'governed_execution_must_not_be_separately_packageable');
+  assert.equal(governedExecutionPackage?.pluginPackageId, null, 'governed_execution_must_not_claim_plugin_package');
+  assert.ok(SFI_CAPABILITY_PACKAGES.every((pkg) => pkg.commercialization.pricing === 'UNSET'), 'pricing_must_not_be_fabricated');
+  assert.ok(SFI_CAPABILITY_PACKAGES.every((pkg) => pkg.commercialization.listingState === 'NOT_SUBMITTED'), 'plugin_listing_must_not_be_claimed');
 
   const toolNames = SFI_PUBLIC_MCP_TOOLS.map((tool) => tool.name);
   assert.deepEqual(toolNames, [
