@@ -11,9 +11,11 @@ export default async function ContinuityAccessPage({
     ? 'Hubo demasiados intentos seguidos. Inténtalo nuevamente más tarde.'
     : rawError === 'auth_unavailable'
       ? 'La activación de continuidad no está disponible en este momento.'
-      : rawError
-        ? 'El correo o la contraseña no son válidos para una credencial preparada para migración.'
-        : '';
+      : rawError === 'retry'
+        ? 'La credencial cambió durante la activación. Reintenta una vez.'
+        : rawError
+          ? 'El correo o la contraseña no son válidos para una credencial preparada para migración.'
+          : '';
 
   return (
     <main className="login">
