@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getRecentWorldSpectSnapshots } from '@/lib/worldspect/snapshotStore';
+import { getRecentWorldSpectSnapshotsRead } from '@/lib/worldspect/snapshotStore';
 import { aggregateWorldSpect } from '@/lib/worldspect/vector-aggregator';
 import { WORLDSPECT_DOMAINS, type WorldSpectDomain } from '@/lib/worldspect/vector-contract';
 import type { WorldSpectIngestMode } from '../../../../../packages/api-contracts/src';
@@ -212,11 +212,12 @@ export async function GET(request: Request) {
   const debug = url.searchParams.get('debug') === '1';
 
   try {
-    const snapshots = await getRecentWorldSpectSnapshots({
+    const snapshotRead = await getRecentWorldSpectSnapshotsRead({
       days,
       ingestMode,
       limit: 120,
     });
+    const snapshots = snapshotRead.data;
 
     const domainSamples = new Map<string, DomainSample[]>(
       WORLDSPECT_DOMAINS.map((domain) => [domain, []]),
@@ -278,6 +279,8 @@ export async function GET(request: Request) {
       observed_from: snapshots[0]?.observed_at ?? null,
       observed_to: snapshots[snapshots.length - 1]?.observed_at ?? null,
       trend_quality: trendQuality(snapshots.length),
+      read_plane: snapshotRead.readPlane,
+      primary_diagnostic: snapshotRead.primaryDiagnostic,
       domains,
       ...(debug ? { debug: extractionCounts } : {}),
     };
@@ -299,6 +302,8 @@ export async function GET(request: Request) {
       observed_from: null,
       observed_to: null,
       trend_quality: 'missing',
+      read_plane: 'UNAVAILABLE',
+      primary_diagnostic: null,
       domains: WORLDSPECT_DOMAINS.map((domain) => ({
         domain,
         sample_count: 0,
