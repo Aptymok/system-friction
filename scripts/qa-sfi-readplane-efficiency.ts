@@ -13,6 +13,8 @@ assert.match(store, /WORLDSPECT_SHARED_CACHE_TTL_SECONDS = 30/, 'shared cache TT
 assert.match(store, /WORLDSPECT_PROCESS_CACHE_TTL_SECONDS = 2/, 'process coalescing TTL must remain explicitly bounded');
 assert.match(store, /createReadPlaneCoalescer/, 'WorldSpect reads must coalesce simultaneous misses');
 assert.match(store, /revalidateTag\(WORLDSPECT_READ_CACHE_TAG, \{ expire: 0 \}\)/, 'successful canonical writes must invalidate shared reads immediately');
+assert.match(store, /const sourceReadAt = new Date\(\)\.toISOString\(\)/, 'cached source reads must carry a production-observable execution marker');
+assert.match(store, /source_read_at: sourceReadAt/, 'public cache diagnostics must expose the cached source execution marker');
 assert.match(store, /latestReadCoalescer\.clear\(\)/, 'successful canonical writes must clear process latest cache');
 assert.match(store, /recentReadCoalescer\.clear\(\)/, 'successful canonical writes must clear process recent cache');
 assert.match(health, /read_cache: healthRead\.cache/, 'health must expose read-cache diagnostics');
