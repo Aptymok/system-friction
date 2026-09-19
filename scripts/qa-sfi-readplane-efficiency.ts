@@ -19,44 +19,52 @@ assert.match(health, /read_cache: healthRead\.cache/, 'health must expose read-c
 assert.match(trend, /read_cache: snapshotRead\.cache/, 'trend must expose read-cache diagnostics');
 assert.match(real, /readCache: latestRead\.cache/, 'real snapshot must expose read-cache diagnostics');
 
-let sourceCalls = 0;
-const coalescer = createReadPlaneCoalescer<[number, string, number], number>({
-  namespace: 'qa-worldspect-recent',
-  ttlSeconds: 2,
-  loader: async () => {
-    sourceCalls += 1;
-    await new Promise((resolve) => setTimeout(resolve, 15));
-    return sourceCalls;
-  },
+async function main() {
+  let sourceCalls = 0;
+  const coalescer = createReadPlaneCoalescer<[number, string, number], number>({
+    namespace: 'qa-worldspect-recent',
+    ttlSeconds: 2,
+    loader: async () => {
+      sourceCalls += 1;
+      await new Promise((resolve) => setTimeout(resolve, 15));
+      return sourceCalls;
+    },
+  });
+  
+  const burst = await Promise.all([
+    coalescer.read(90, 'all', 120),
+    coalescer.read(90, 'all', 120),
+    coalescer.read(90, 'all', 120),
+  ]);
+  assert.equal(sourceCalls, 1, 'three simultaneous identical reads must execute one source load');
+  assert.equal(burst.filter((entry) => entry.cache.status === 'COALESCED').length, 2);
+  
+  await coalescer.read(90, 'all', 120);
+  assert.equal(sourceCalls, 1, 'warm identical read must not execute a second source load');
+  
+  const diagnostics = coalescer.diagnostics();
+  assert.equal(diagnostics.loader_calls, 1);
+  assert.equal(diagnostics.coalesced_reads, 2);
+  assert.equal(diagnostics.memory_hits, 1);
+  
+  console.log(JSON.stringify({
+    ok: true,
+    contract: 'SFI-READ-PLANE-EFFICIENCY-1.0',
+    worldSpect: {
+      legacyRepresentativeColdBurstSourceReads: 3,
+      boundedColdBurstSourceReads: 2,
+      warmBurstAdditionalSourceReads: 0,
+      recentWindowConsumers: ['health', 'trend'],
+      latestWindowConsumers: ['real'],
+      sharedCacheTtlSeconds: 30,
+      processCoalescingTtlSeconds: 2,
+    },
+    proof: diagnostics,
+  }));
+  
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exit(1);
 });
-
-const burst = await Promise.all([
-  coalescer.read(90, 'all', 120),
-  coalescer.read(90, 'all', 120),
-  coalescer.read(90, 'all', 120),
-]);
-assert.equal(sourceCalls, 1, 'three simultaneous identical reads must execute one source load');
-assert.equal(burst.filter((entry) => entry.cache.status === 'COALESCED').length, 2);
-
-await coalescer.read(90, 'all', 120);
-assert.equal(sourceCalls, 1, 'warm identical read must not execute a second source load');
-
-const diagnostics = coalescer.diagnostics();
-assert.equal(diagnostics.loader_calls, 1);
-assert.equal(diagnostics.coalesced_reads, 2);
-assert.equal(diagnostics.memory_hits, 1);
-
-console.log(JSON.stringify({
-  ok: true,
-  contract: 'SFI-READ-PLANE-EFFICIENCY-1.0',
-  worldSpect: {
-    legacyRepresentativeColdBurstSourceReads: 3,
-    boundedColdBurstSourceReads: 2,
-    warmBurstAdditionalSourceReads: 0,
-    recentWindowConsumers: ['health', 'trend'],
-    latestWindowConsumers: ['real'],
-    sharedCacheTtlSeconds: 30,
-    processCoalescingTtlSeconds: 2,
-  },
-  proof: diagnostics,
-}));
