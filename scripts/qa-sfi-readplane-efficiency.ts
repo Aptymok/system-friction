@@ -7,6 +7,9 @@ const store = fs.readFileSync('src/lib/worldspect/snapshotStore.ts', 'utf8');
 const health = fs.readFileSync('src/app/api/worldspect/health/route.ts', 'utf8');
 const trend = fs.readFileSync('src/app/api/worldspect/trend/route.ts', 'utf8');
 const real = fs.readFileSync('src/app/api/worldspect/real/route.ts', 'utf8');
+const readBundle = fs.readFileSync('src/lib/worldspect/readBundle.ts', 'utf8');
+const readBundleClient = fs.readFileSync('src/lib/worldspect/readBundleClient.ts', 'utf8');
+const readBundleRoute = fs.readFileSync('src/app/api/worldspect/read-bundle/route.ts', 'utf8');
 const gold = fs.readFileSync('src/lib/observatory/gold/observatoryGoldAdapter.ts', 'utf8');
 const publicObservatory = fs.readFileSync('src/lib/observatory/public/readPublicObservatoryState.ts', 'utf8');
 const publicTimeline = fs.readFileSync('src/lib/observatory/public/worldSnapshotTimeline.ts', 'utf8');
@@ -31,7 +34,16 @@ assert.doesNotMatch(publicTimeline, /createServiceSupabaseClient|from\('worldspe
 assert.match(publicTimeline, /getWorldSpectPublicHistoryRead/, 'Timeline must use shared public-history owner');
 assert.match(health, /read_cache: healthRead\.cache/, 'health must expose read-cache diagnostics');
 assert.match(trend, /read_cache: snapshotRead\.cache/, 'trend must expose read-cache diagnostics');
-assert.match(real, /readCache: latestRead\.cache/, 'real snapshot must expose read-cache diagnostics');
+assert.match(real, /readCache:/, 'real snapshot must expose read-cache diagnostics');
+assert.match(readBundleRoute, /Vercel-CDN-Cache-Control.*s-maxage=30/, 'WorldSpect bundle must have a bounded shared CDN TTL');
+assert.match(readBundleClient, /\/api\/worldspect\/read-bundle/, 'WorldSpect consumers must use the canonical bundle endpoint');
+assert.match(health, /fetchWorldSpectReadBundle/, 'health must consume the shared WorldSpect bundle');
+assert.match(trend, /fetchWorldSpectReadBundle/, 'trend must consume the shared WorldSpect bundle');
+assert.match(real, /fetchWorldSpectReadBundle/, 'real must consume the shared WorldSpect bundle on the common path');
+assert.doesNotMatch(health, /getRecentWorldSpectSnapshotsRead/, 'health must not own an independent recent-window DB read');
+assert.doesNotMatch(trend, /getRecentWorldSpectSnapshotsRead/, 'trend must not own an independent recent-window DB read');
+assert.match(readBundle, /getRecentWorldSpectSnapshotsRead/, 'the bundle must remain the single recent-window source owner');
+assert.match(readBundle, /snapshotRowToApiData/, 'the bundle must derive latest public state from the same recent source read');
 
 async function main() {
   let sourceCalls = 0;
@@ -68,8 +80,9 @@ async function main() {
       legacyRepresentativeColdBurstSourceReads: 3,
       boundedColdBurstSourceReads: 2,
       warmBurstAdditionalSourceReads: 0,
-      recentWindowConsumers: ['health', 'trend'],
-      latestWindowConsumers: ['real'],
+      recentWindowConsumers: ['read-bundle'],
+      derivedBundleConsumers: ['health', 'trend', 'real'],
+      latestDirectRead: 'fallback_only',
       lightweightPublicHistoryConsumers: ['observatory-gold', 'public-observatory', 'timeline'],
       measuredFullRowBytes120: 7703905,
       measuredLightweightBytes120: 1842916,
