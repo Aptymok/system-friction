@@ -45,6 +45,7 @@ check('canonical graph reader merges shared Library projection without write sid
 check('Library reads only the SFI canonical graph profile instead of broad shared/private state', libraryPage.includes("readCanonicalGraphState('sfi')") && libraryPage.includes('graphRelations') && libraryPage.includes("dynamic = 'force-dynamic'"));
 check('Library search and cards consume graph relations', libraryClient.includes('graphRelations?:string[]') && libraryClient.includes('...(doc.graphRelations??[])') && libraryClient.includes('RELACIONES'));
 check('Library graph remains documentary relation rather than validation claim', libraryProjection.includes('doesNotImplyValidation: true') && libraryProjection.includes("epistemicClass: 'DECLARED'"));
+check('Library graph supplies a stable non-empty label when source title is absent', libraryProjection.includes('function documentLabel') && libraryProjection.includes('doc.title?.trim()') && libraryProjection.includes('doc.nodeId?.trim()') && libraryProjection.includes('label: documentLabel(doc)'));
 check('ROOT graph reconciliation materializes Library through the existing canonical store', reconcile.includes('buildLibraryCorpusGraphProjection') && reconcile.includes('libraryProjection.nodes') && reconcile.includes('libraryProjection.edges') && reconcile.includes("'library_corpus'"));
 check('persisted Library materialization preserves the documentary non-validation boundary', reconcile.includes('doesNotImplyValidation') && reconcile.includes("epistemic_class: 'declared'") && reconcile.includes('library_corpus'));
 
