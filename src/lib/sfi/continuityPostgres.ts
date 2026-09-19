@@ -380,6 +380,36 @@ export async function readContinuityRootNeuralGraphRuntime() {
   return (rows[0] as JsonRecord | undefined) ?? null;
 }
 
+export async function readContinuityCanonicalGraphRows() {
+  const sql = db();
+  const rows = await sql`
+    select
+      coalesce((
+        select jsonb_agg(row_to_json(n) order by n.created_at asc)
+          from (
+            select *
+              from graph_nodes
+             order by created_at asc
+          ) n
+      ), '[]'::jsonb) as nodes,
+      coalesce((
+        select jsonb_agg(row_to_json(e) order by e.created_at asc)
+          from (
+            select *
+              from graph_edges
+             order by created_at asc
+          ) e
+      ), '[]'::jsonb) as edges
+  `;
+  const row = (rows[0] as JsonRecord | undefined) ?? null;
+  return row
+    ? {
+        nodes: Array.isArray(row.nodes) ? row.nodes as JsonRecord[] : [],
+        edges: Array.isArray(row.edges) ? row.edges as JsonRecord[] : [],
+      }
+    : null;
+}
+
 export function continuityDatabase() {
   return db();
 }
