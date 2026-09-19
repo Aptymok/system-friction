@@ -115,16 +115,24 @@ export async function getLatestWorldSpectSnapshotRead() {
     return { data: normalizeWorldSpectSnapshotRow(data), readPlane: 'SUPABASE' as const, primaryDiagnostic: null };
   }
   if (error && isSfiContinuityConfigured()) {
-    const fallback = await readContinuityLatestWorldSpectSnapshot();
-    if (fallback) {
+    try {
+      const fallback = await readContinuityLatestWorldSpectSnapshot();
+      if (fallback) {
+        return {
+          data: normalizeWorldSpectSnapshotRow(fallback),
+          readPlane: 'NEON' as const,
+          primaryDiagnostic: error.message || 'supabase_worldspect_latest_read_failed',
+        };
+      }
+    } catch (continuityError) {
       return {
-        data: normalizeWorldSpectSnapshotRow(fallback),
-        readPlane: 'NEON' as const,
-        primaryDiagnostic: error.message || 'supabase_worldspect_latest_read_failed',
+        data: null,
+        readPlane: 'UNAVAILABLE' as const,
+        primaryDiagnostic: `${error.message || 'supabase_worldspect_latest_read_failed'}; continuity=${continuityError instanceof Error ? continuityError.message : 'continuity_read_failed'}`,
       };
     }
   }
-  return { data: null, readPlane: 'SUPABASE' as const, primaryDiagnostic: error?.message ?? null };
+  return { data: null, readPlane: error ? 'UNAVAILABLE' as const : 'SUPABASE' as const, primaryDiagnostic: error?.message ?? null };
 }
 
 export async function getLatestWorldSpectSnapshot() {
@@ -168,18 +176,26 @@ export async function getRecentWorldSpectSnapshotsRead(input?: { days?: number; 
     };
   }
   if (error && isSfiContinuityConfigured()) {
-    const fallback = await readContinuityRecentWorldSpectSnapshots({
-      since: observedSince,
-      ingestMode,
-      limit,
-    });
-    return {
-      data: Array.isArray(fallback) ? fallback.map((row) => normalizeWorldSpectSnapshotRow(row as Record<string, any>)) : [],
-      readPlane: 'NEON' as const,
-      primaryDiagnostic: error.message || 'supabase_worldspect_recent_read_failed',
-    };
+    try {
+      const fallback = await readContinuityRecentWorldSpectSnapshots({
+        since: observedSince,
+        ingestMode,
+        limit,
+      });
+      return {
+        data: Array.isArray(fallback) ? fallback.map((row) => normalizeWorldSpectSnapshotRow(row as Record<string, any>)) : [],
+        readPlane: 'NEON' as const,
+        primaryDiagnostic: error.message || 'supabase_worldspect_recent_read_failed',
+      };
+    } catch (continuityError) {
+      return {
+        data: [] as WorldSpectSnapshotRow[],
+        readPlane: 'UNAVAILABLE' as const,
+        primaryDiagnostic: `${error.message || 'supabase_worldspect_recent_read_failed'}; continuity=${continuityError instanceof Error ? continuityError.message : 'continuity_read_failed'}`,
+      };
+    }
   }
-  return { data: [] as WorldSpectSnapshotRow[], readPlane: 'SUPABASE' as const, primaryDiagnostic: error?.message ?? null };
+  return { data: [] as WorldSpectSnapshotRow[], readPlane: error ? 'UNAVAILABLE' as const : 'SUPABASE' as const, primaryDiagnostic: error?.message ?? null };
 }
 
 export async function getRecentWorldSpectSnapshots(input?: { days?: number; ingestMode?: RecentWorldSpectIngestMode; limit?: number }) {
