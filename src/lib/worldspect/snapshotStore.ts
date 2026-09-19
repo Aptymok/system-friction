@@ -54,6 +54,8 @@ export type WorldSpectPublicHistoryRow = {
   nti: number | null;
   ingest_mode: WorldSpectIngestMode;
   sources: WorldSpectSource[];
+  degraded_sources: string[];
+  adapter_error: string | null;
 };
 
 export type WorldSpectSnapshotRow = {
@@ -138,6 +140,8 @@ function normalizeWorldSpectPublicHistoryRow(data: Record<string, any>): WorldSp
     nti: numberOrNull(data.nti),
     ingest_mode: ingestMode,
     sources: Array.isArray(data.sources) ? data.sources as WorldSpectSource[] : [],
+    degraded_sources: Array.isArray(data.degraded_sources) ? data.degraded_sources.filter((source: unknown): source is string => typeof source === 'string') : [],
+    adapter_error: typeof data.adapter_error === 'string' ? data.adapter_error : null,
   };
 }
 
@@ -232,17 +236,17 @@ async function loadRecentWorldSpectSnapshotsRead(days: number, ingestMode: Recen
   return { data: [] as WorldSpectSnapshotRow[], readPlane: error ? 'UNAVAILABLE' as const : 'SUPABASE' as const, primaryDiagnostic: error?.message ?? null, sourceReadAt };
 }
 
-async function loadWorldSpectPublicHistoryRead(days: number, limit: number) {
+async function loadWorldSpectPublicHistoryRead(days: number, ingestMode: RecentWorldSpectIngestMode, limit: number) {
   const sourceReadAt = new Date().toISOString();
   const service = createServiceSupabaseClient();
   const observedSince = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+  let query = service
+    .from('worldspect_snapshots')
+    .select('observed_at,created_at,source_state,confidence,wsi,nti,ingest_mode,sources,degraded_sources,adapter_error')
+    .gte('observed_at', observedSince);
+  if (ingestMode !== 'all' && isWorldSpectIngestMode(ingestMode)) query = query.eq('ingest_mode', ingestMode);
   const { data, error } = await executeAbortableQuery(
-    service
-      .from('worldspect_snapshots')
-      .select('observed_at,created_at,source_state,confidence,wsi,nti,ingest_mode,sources')
-      .gte('observed_at', observedSince)
-      .order('observed_at', { ascending: false })
-      .limit(limit),
+    query.order('observed_at', { ascending: false }).limit(limit),
   );
 
   if (!error && Array.isArray(data)) {
@@ -256,7 +260,7 @@ async function loadWorldSpectPublicHistoryRead(days: number, limit: number) {
 
   if (error && isSfiContinuityConfigured()) {
     try {
-      const fallback = await readContinuityWorldSnapshotTimeline({ since: observedSince, limit });
+      const fallback = await readContinuityWorldSnapshotTimeline({ since: observedSince, ingestMode, limit });
       return {
         data: Array.isArray(fallback)
           ? fallback.slice().reverse().map((row) => normalizeWorldSpectPublicHistoryRow(row as Record<string, any>))
@@ -342,15 +346,16 @@ export async function getRecentWorldSpectSnapshots(input?: { days?: number; inge
   return (await getRecentWorldSpectSnapshotsRead(input)).data;
 }
 
-export async function getWorldSpectPublicHistoryRead(input?: { days?: number; limit?: number }) {
+export async function getWorldSpectPublicHistoryRead(input?: { days?: number; ingestMode?: RecentWorldSpectIngestMode; limit?: number }) {
   const days = Number.isFinite(input?.days) ? Math.max(1, Number(input?.days)) : 90;
+  const ingestMode = input?.ingestMode ?? 'all';
   const limit = Number.isFinite(input?.limit) ? Math.max(1, Number(input?.limit)) : 120;
-  const read = await publicHistoryReadCoalescer.read(days, limit);
+  const read = await publicHistoryReadCoalescer.read(days, ingestMode, limit);
   const { sourceReadAt, ...value } = read.value;
   return { ...value, cache: { ...read.cache, source_read_at: sourceReadAt } };
 }
 
-export async function getWorldSpectPublicHistory(input?: { days?: number; limit?: number }) {
+export async function getWorldSpectPublicHistory(input?: { days?: number; ingestMode?: RecentWorldSpectIngestMode; limit?: number }) {
   return (await getWorldSpectPublicHistoryRead(input)).data;
 }
 
