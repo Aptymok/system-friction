@@ -18,6 +18,21 @@ async function readAccountIdentity(){
   return {response,json};
 }
 
+function accountIdentity(json:any):Identity|null{
+  if(!json?.ok||!json.data?.user?.id)return null;
+  const role=json.data?.isRoot?'root':json.data?.role||json.data?.profile?.role||'observer';
+  const alias=json.data?.profile?.alias||json.data?.user?.email?.split('@')?.[0]||null;
+  const title=json.data?.profile?.module_access?.display_title;
+  const displayTitle=typeof title==='string'&&title.trim()?title.trim():((role==='root'||role==='system')?'Founder — System Friction Institute':null);
+  return {
+    userId:String(json.data.user.id),
+    email:typeof json.data.user.email==='string'?json.data.user.email:null,
+    alias:typeof alias==='string'?alias:null,
+    role:String(role),
+    displayTitle,
+  };
+}
+
 function metadataIdentity(session:Session):Identity{
   const metadata=session.user.user_metadata??{};
   const alias=typeof metadata.full_name==='string'&&metadata.full_name.trim()?metadata.full_name.trim():typeof metadata.name==='string'&&metadata.name.trim()?metadata.name.trim():session.user.email?.split('@')[0]||null;
@@ -31,24 +46,34 @@ export function AuthProvider({children}:{children:React.ReactNode}){
  useEffect(()=>{ if(!supabase)return; let live=true; const identityCache=new Map<string,Identity>();
    const commit=async(session:Session|null)=>{
      if(!live)return;
-     if(!session){setState({session:null,status:'anonymous',identity:null});return;}
+     if(!session){
+       try{
+         const {response,json}=await readAccountIdentity();
+         const identity=accountIdentity(json);
+         if(response.ok&&identity){
+           if(!live)return;
+           identityCache.set(identity.userId,identity);
+           setState({session:null,status:'authenticated',identity});
+           return;
+         }
+       }catch{}
+       if(live)setState({session:null,status:'anonymous',identity:null});
+       return;
+     }
      const cached=identityCache.get(session.user.id);
      if(cached){setState({session,status:'authenticated',identity:{...cached,email:session.user.email||cached.email}});return;}
      const base=metadataIdentity(session);
      let identity=base;
      try{
        const {json}=await readAccountIdentity();
-       if(json?.ok){
-         const role=json.data?.isRoot?'root':json.data?.role||json.data?.profile?.role||base.role;
-         const alias=json.data?.profile?.alias||base.alias;
-         const title=json.data?.profile?.module_access?.display_title;
-         const displayTitle=typeof title==='string'&&title.trim()?title.trim():base.displayTitle||((role==='root'||role==='system')?'Founder — System Friction Institute':null);
-         identity={...base,role,alias,displayTitle};
+       const serverIdentity=accountIdentity(json);
+       if(serverIdentity){
+         identity={...serverIdentity,email:serverIdentity.email||base.email,alias:serverIdentity.alias||base.alias,displayTitle:serverIdentity.displayTitle||base.displayTitle};
        }
      }catch{}
      if(!identity.displayTitle&&(identity.role==='root'||identity.role==='system'))identity={...identity,displayTitle:'Founder — System Friction Institute'};
      if(!live)return;
-     identityCache.set(session.user.id,identity);
+     identityCache.set(identity.userId,identity);
      setState({session,status:'authenticated',identity});
    };
    void supabase.auth.getSession().then(({data})=>commit(data.session));
