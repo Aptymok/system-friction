@@ -2,10 +2,18 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { normalizeSupabaseUrl } from '@/runtime/supabase/url'
+import { readContinuityProfileByEmail } from '@/lib/sfi/continuityPostgres'
 import { findInstitutionalMember } from '@/lib/system/access/institutionalMembers'
 import { isConfiguredFounderIdentity } from '@/lib/system/access/founderAuthority'
 
 const AUTH_COOKIE_NAMES = ['sb-access-token', 'sb-refresh-token', 'supabase-auth-token']
+const SFI_NEON_SESSION_COOKIE = 'sfi_neon_auth_session'
+const DEFAULT_NEON_AUTH_BASE_URL =
+  'https://ep-aged-fog-awnq9sns.neonauth.c-12.us-east-1.aws.neon.tech/sfi_continuity/auth'
+const SFI_NEON_TRUSTED_ORIGINS = new Set([
+  'https://systemfriction.org',
+  'https://www.systemfriction.org',
+])
 
 const ROOT_INTERNAL_FRAME_PREFIXES = [
   '/root/institutionalization',
@@ -84,6 +92,59 @@ function isStudioRouteUser(
   return Boolean(email && allowed.includes(email.toLowerCase()))
 }
 
+function neonAuthBaseUrl() {
+  return (process.env.NEON_AUTH_BASE_URL || DEFAULT_NEON_AUTH_BASE_URL).replace(/\/$/, '')
+}
+
+function neonRequestOrigin(request: NextRequest) {
+  const origin = request.nextUrl.origin.replace(/\/$/, '')
+  return SFI_NEON_TRUSTED_ORIGINS.has(origin)
+    ? origin
+    : 'https://systemfriction.org'
+}
+
+function decodeNeonSessionCookie(encoded: string) {
+  try {
+    return Buffer.from(encoded, 'base64url').toString('utf8')
+  } catch {
+    return null
+  }
+}
+
+async function readNeonProxyIdentity(request: NextRequest): Promise<SessionIdentity | null> {
+  const encoded = request.cookies.get(SFI_NEON_SESSION_COOKIE)?.value
+  if (!encoded) return null
+
+  const sessionCookie = decodeNeonSessionCookie(encoded)
+  if (!sessionCookie) return null
+
+  const authResponse = await fetch(`${neonAuthBaseUrl()}/get-session`, {
+    method: 'GET',
+    headers: {
+      Cookie: sessionCookie,
+      Origin: neonRequestOrigin(request),
+    },
+    cache: 'no-store',
+  })
+
+  if (authResponse.status === 401 || authResponse.status === 403) return null
+  if (!authResponse.ok) {
+    throw new Error(`neon_proxy_session_read_failed:${authResponse.status}`)
+  }
+
+  const body = await authResponse.json().catch(() => null) as
+    | { user?: { id?: string; email?: string } | null }
+    | null
+  const email = body?.user?.email?.trim().toLowerCase()
+  if (!email) return null
+
+  const profile = await readContinuityProfileByEmail(email).catch(() => null)
+  const canonicalUserId = typeof profile?.user_id === 'string' ? profile.user_id : null
+  if (!canonicalUserId) return null
+
+  return { id: canonicalUserId, email }
+}
+
 function requestedPath(request: NextRequest) {
   return `${request.nextUrl.pathname}${request.nextUrl.search}`
 }
@@ -157,7 +218,8 @@ export async function proxy(request: NextRequest) {
   })
 
   let identity: SessionIdentity | null = null
-  let authUnavailable = false
+  let primaryAuthUnavailable = false
+  let continuityAuthUnavailable = false
   try {
     const result = await supabase.auth.getClaims()
     const claims = result.data?.claims as Record<string, unknown> | undefined
@@ -167,7 +229,7 @@ export async function proxy(request: NextRequest) {
     if (result.error && isMissingSessionError(result.error)) {
       clearSupabaseAuthCookies(response, request)
     } else if (result.error) {
-      authUnavailable = true
+      primaryAuthUnavailable = true
     } else if (subject) {
       identity = { id: subject, email }
     }
@@ -175,11 +237,21 @@ export async function proxy(request: NextRequest) {
     if (isMissingSessionError(error)) {
       clearSupabaseAuthCookies(response, request)
     } else {
-      authUnavailable = true
+      primaryAuthUnavailable = true
     }
   }
 
-  if (authUnavailable) return redirectToAuthUnavailable(request)
+  if (!identity) {
+    try {
+      identity = await readNeonProxyIdentity(request)
+    } catch {
+      continuityAuthUnavailable = true
+    }
+  }
+
+  if (!identity && (primaryAuthUnavailable || continuityAuthUnavailable)) {
+    return redirectToAuthUnavailable(request)
+  }
   if (!identity) return redirectToLoginWithNext(request)
 
   if (pathname.startsWith('/root')) return response
