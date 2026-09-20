@@ -101,19 +101,18 @@ assert.match(authActions, /neon\.status === 429[\s\S]*?'rate_limit'/, 'upstream 
 assert.match(authActions, /rateLimitKey\('continuity-bootstrap', 'founder'\)/, 'bootstrap activation must use a single bounded rate-limit bucket');
 assert.match(authActions, /\^SFI-\[A-Za-z0-9_-\]\{24,64\}\$/, 'bootstrap code format must be bounded');
 assert.match(neonPasswordBootstrap, /createHash\('sha256'\)/, 'bootstrap code must be represented by a digest in persistence');
-assert.match(neonPasswordBootstrap, /delete from neon_auth\.verification/, 'bootstrap verification must be consumed on use');
 assert.match(neonPasswordBootstrap, /v\."expiresAt" > now\(\)/, 'expired bootstrap verifications must fail');
-assert.match(neonPasswordBootstrap, /a\.password is null/, 'bootstrap must not overwrite an already initialized credential');
+assert.match(neonPasswordBootstrap, /a\.password is null/, 'ordinary bootstrap must not overwrite an initialized credential');
+assert.ok(neonPasswordBootstrap.includes('reset-password:'), 'credential recovery must use managed reset-token semantics');
+assert.match(neonPasswordBootstrap, /resetNeonPassword\(password, resetToken\)/, 'managed Neon Auth must own final password hashing');
+assert.match(neonPasswordBootstrap, /insert into neon_auth\.verification/, 'managed reset token must be materialized only for the bounded recovery');
 assert.match(neonPasswordBootstrap, /FOUNDER_RECOVERY_IDENTIFIER/, 'founder recovery must be digest-bound');
 assert.match(neonPasswordBootstrap, /FOUNDER_RECOVERY_AUTH_USER_ID/, 'founder recovery must be bound to one existing auth user');
 assert.match(neonPasswordBootstrap, /FOUNDER_RECOVERY_EMAIL/, 'founder recovery must be bound to the institutional email');
+assert.match(neonPasswordBootstrap, /FOUNDER_SUPERSEDED_CREDENTIAL_DIGEST/, 'founder repair must target only the exact superseded credential state');
+assert.match(neonPasswordBootstrap, /managedHash === existingHash/, 'activation must verify that Neon actually replaced the credential hash');
 assert.match(neonPasswordBootstrap, /Remove this seal after observed login RETURN/, 'recovery seal must be explicitly temporary');
-assert.doesNotMatch(neonPasswordBootstrap, /SFI-HZuwr7GmfyrO-Vd2KxD4t-aZqieTeXUZ/, 'raw founder recovery code must never be committed');
-assert.match(neonPasswordBootstrap, /SCRYPT_N = 16384/);
-assert.match(neonPasswordBootstrap, /SCRYPT_R = 16/);
-assert.match(neonPasswordBootstrap, /SCRYPT_P = 1/);
-assert.match(neonPasswordBootstrap, /SCRYPT_DK_LEN = 64/);
-assert.match(neonPasswordBootstrap, /password\.normalize\('NFKC'\)/);
+assert.doesNotMatch(neonPasswordBootstrap, /scrypt|SCRYPT_N|hashBetterAuthPassword/, 'SFI must not implement password hashing locally');
 assert.equal(existsSync('src/app/signup/page.tsx'), false, 'public signup surface must remain absent');
 
 console.log(JSON.stringify({
