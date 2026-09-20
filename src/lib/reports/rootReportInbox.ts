@@ -2,6 +2,7 @@ import 'server-only';
 
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { getLlmProviderStatus } from '@/lib/ai/providerRouter';
+import { readContinuityRootReportSources } from '@/lib/sfi/continuityPostgres';
 
 export type RootReportCategory = 'world' | 'internal' | 'prospects' | 'attractor' | 'evidence' | 'drafts' | 'other';
 export type RootReportCadence = 'daily' | 'weekly' | 'event' | 'manual' | 'unknown';
@@ -242,19 +243,24 @@ export async function readRootReportInbox(limit = 240): Promise<RootReportInbox>
       .limit(30),
   ]);
 
-  const warnings = unique([
+  const sourceWarnings = unique([
     agentRuns.error ? `sfi_cognitive_twin_runs:${agentRuns.error.message}` : null,
     prospectReports.error ? `prospect_opportunity_reports:${prospectReports.error.message}` : null,
     prospectSources.error ? `prospect_research_sources:${prospectSources.error.message}` : null,
     prospectRuns.error ? `prospect_research_runs:${prospectRuns.error.message}` : null,
     continuityReports.error ? `sfi_continuity_reports:${continuityReports.error.message}` : null,
   ]);
-  const sourceRows = rows(prospectSources.data);
-  const runRows = rows(prospectRuns.data);
+  const continuity = sourceWarnings.length ? await readContinuityRootReportSources(limit) : null;
+  const warnings = continuity ? unique(['read_plane:NEON_CONTINUITY', ...sourceWarnings]) : sourceWarnings;
+  const agentRunRows = rows(continuity?.agentRuns ?? agentRuns.data);
+  const prospectReportRows = rows(continuity?.prospectReports ?? prospectReports.data);
+  const sourceRows = rows(continuity?.prospectSources ?? prospectSources.data);
+  const runRows = rows(continuity?.prospectRuns ?? prospectRuns.data);
+  const continuityRows = rows(continuity?.continuityReports ?? continuityReports.data);
   const items = [
-    ...rows(agentRuns.data).map(normalizeAgentRun),
-    ...rows(prospectReports.data).map((item) => normalizeProspect(item, sourceRows, runRows)),
-    ...rows(continuityReports.data).map(normalizeContinuity),
+    ...agentRunRows.map(normalizeAgentRun),
+    ...prospectReportRows.map((item) => normalizeProspect(item, sourceRows, runRows)),
+    ...continuityRows.map(normalizeContinuity),
   ]
     .sort((a, b) => Date.parse(b.createdAt ?? '') - Date.parse(a.createdAt ?? ''))
     .slice(0, limit);

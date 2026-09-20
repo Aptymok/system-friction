@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
-import { readContinuityInteractiveCaseIndex } from '@/lib/sfi/continuityPostgres';
+import { readContinuityEvidenceTargetIndex, readContinuityInteractiveCaseIndex } from '@/lib/sfi/continuityPostgres';
 
 type Row = Record<string, unknown>;
 
@@ -122,7 +122,17 @@ export async function readInteractiveEvidenceTargetIndex() {
     entries.error ? `root_evidence_entries:${entries.error.message}` : null,
     nodes.error ? `graph_nodes:${nodes.error.message}` : null,
   );
-  if (entries.error && nodes.error) throw new Error(`SFI_EVIDENCE_TARGET_INDEX_UNAVAILABLE:${warnings.join('|')}`);
+  if (entries.error || nodes.error) {
+    const continuity = await readContinuityEvidenceTargetIndex();
+    return {
+      entries: continuity.entries,
+      nodes: continuity.nodes,
+      exhaustive: false,
+      readLimits: { entries: 60, nodes: 80 },
+      warnings: ['read_plane:NEON_CONTINUITY', ...warnings],
+      readPlan: { evidenceEntryReads: 1, graphNodeReads: 1, fullRootConsoleReads: 0, compactTargetIndex: true },
+    };
+  }
   return {
     entries: entries.data ?? [],
     nodes: nodes.data ?? [],

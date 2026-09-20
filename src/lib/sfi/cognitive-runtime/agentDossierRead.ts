@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { readContinuityEpistemicEvents } from '@/lib/sfi/continuityPostgres';
 import { SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY } from './convergedRegistry';
 import { SFI_AGENT_EXECUTION_MAP } from './agentExecutionMap';
 import {
@@ -85,8 +86,10 @@ export async function readAgentExecutionDossier(input: {
     .in('event_name', [...EXECUTION_EVENT_NAMES])
     .order('sequence', { ascending: false })
     .limit(eventReadLimit);
-  const executionWarnings = executionRead.error ? [`epistemic_events:execution:${executionRead.error.message}`] : [];
-  const executionEvents = (executionRead.data ?? []) as Row[];
+  const executionWarnings = executionRead.error ? [`epistemic_events:execution:${executionRead.error.message}`, 'read_plane:NEON_CONTINUITY'] : [];
+  const executionEvents = executionRead.error
+    ? await readContinuityEpistemicEvents([...EXECUTION_EVENT_NAMES], eventReadLimit) as Row[]
+    : (executionRead.data ?? []) as Row[];
   const allRecords = executionEvents
     .map(projectExecutionRecordFromEvent)
     .filter((record): record is SfiExecutionRecord => Boolean(record));
@@ -106,14 +109,17 @@ export async function readAgentExecutionDossier(input: {
       .order('sequence', { ascending: false })
       .limit(eventReadLimit);
     assuranceReadCount = 1;
-    assuranceWarnings = assuranceRead.error ? [`epistemic_events:assurance:${assuranceRead.error.message}`] : [];
-    assurance = deriveGenAiAssuranceMetrics(agentRecords, assuranceRead.data ?? [], { agentId: input.agentId });
+    assuranceWarnings = assuranceRead.error ? [`epistemic_events:assurance:${assuranceRead.error.message}`, 'read_plane:NEON_CONTINUITY'] : [];
+    const assuranceEvents = assuranceRead.error
+      ? await readContinuityEpistemicEvents([...ASSURANCE_EVENT_NAMES], eventReadLimit)
+      : (assuranceRead.data ?? []);
+    assurance = deriveGenAiAssuranceMetrics(agentRecords, assuranceEvents, { agentId: input.agentId });
   }
 
   return {
     contractVersion: SFI_AGENT_DOSSIER_READ_CONTRACT,
     generatedAt: new Date().toISOString(),
-    source: 'epistemic_events',
+    source: executionRead.error ? 'NEON_CONTINUITY:epistemic_events' : 'epistemic_events',
     eventReadLimit,
     historyLimit,
     exhaustive: false as const,
