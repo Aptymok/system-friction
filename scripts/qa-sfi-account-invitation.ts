@@ -104,6 +104,11 @@ assert.match(neonPasswordBootstrap, /createHash\('sha256'\)/, 'bootstrap code mu
 assert.match(neonPasswordBootstrap, /delete from neon_auth\.verification/, 'bootstrap verification must be consumed on use');
 assert.match(neonPasswordBootstrap, /v\."expiresAt" > now\(\)/, 'expired bootstrap verifications must fail');
 assert.match(neonPasswordBootstrap, /a\.password is null/, 'bootstrap must not overwrite an already initialized credential');
+assert.match(neonPasswordBootstrap, /FOUNDER_RECOVERY_IDENTIFIER/, 'founder recovery must be digest-bound');
+assert.match(neonPasswordBootstrap, /FOUNDER_RECOVERY_AUTH_USER_ID/, 'founder recovery must be bound to one existing auth user');
+assert.match(neonPasswordBootstrap, /FOUNDER_RECOVERY_EMAIL/, 'founder recovery must be bound to the institutional email');
+assert.match(neonPasswordBootstrap, /Remove this seal after observed login RETURN/, 'recovery seal must be explicitly temporary');
+assert.doesNotMatch(neonPasswordBootstrap, /SFI-HZuwr7GmfyrO-Vd2KxD4t-aZqieTeXUZ/, 'raw founder recovery code must never be committed');
 assert.match(neonPasswordBootstrap, /SCRYPT_N = 16384/);
 assert.match(neonPasswordBootstrap, /SCRYPT_R = 16/);
 assert.match(neonPasswordBootstrap, /SCRYPT_P = 1/);
