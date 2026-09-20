@@ -172,6 +172,14 @@ export async function signInWithNeonAuth(email: string, password: string) {
   });
   if (!response.ok) {
     const body = await response.json().catch(() => ({})) as NeonAuthErrorBody;
+    console.warn('SFI_NEON_AUTH_SIGN_IN_REJECTED', {
+      status: response.status,
+      code: body.code || null,
+      message: body.message || null,
+      authHost: (() => {
+        try { return new URL(neonAuthBaseUrl()).host; } catch { return 'invalid-auth-base-url'; }
+      })(),
+    });
     return {
       ok: false as const,
       status: response.status,
