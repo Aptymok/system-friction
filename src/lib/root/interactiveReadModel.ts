@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { readContinuityInteractiveCaseIndex } from '@/lib/sfi/continuityPostgres';
 
 type Row = Record<string, unknown>;
 
@@ -18,7 +19,16 @@ export async function readInteractiveCaseIndex(userId: string) {
     .select('tenant_id')
     .eq('user_id', userId)
     .eq('status', 'ACTIVE');
-  if (memberships.error) throw new Error(`SFI_TENANT_MEMBERSHIP_READ_FAILED:${memberships.error.message}`);
+  if (memberships.error) {
+    const continuity = await readContinuityInteractiveCaseIndex(userId);
+    return {
+      ...continuity,
+      warnings: [
+        `supabase:sfi_tenant_members:${memberships.error.message}`,
+        ...continuity.warnings,
+      ],
+    };
+  }
   const tenantIds = [...new Set((memberships.data ?? []).map((row) => String(row.tenant_id)).filter(Boolean))];
   if (!tenantIds.length) {
     return { projects: [], cases: [], warnings: [], readPlan: { membershipReads: 1, caseReads: 0, projectReads: 0, compactIndex: true } };
@@ -37,8 +47,17 @@ export async function readInteractiveCaseIndex(userId: string) {
       .order('updated_at', { ascending: false })
       .limit(120),
   ]);
-  if (caseRows.error) throw new Error(`SFI_CASE_LIST_FAILED:${caseRows.error.message}`);
-  if (projectRows.error) throw new Error(`SFI_PROJECT_LIST_FAILED:${projectRows.error.message}`);
+  if (caseRows.error || projectRows.error) {
+    const continuity = await readContinuityInteractiveCaseIndex(userId);
+    return {
+      ...continuity,
+      warnings: [
+        caseRows.error ? `supabase:sfi_cases:${caseRows.error.message}` : null,
+        projectRows.error ? `supabase:sfi_projects:${projectRows.error.message}` : null,
+        ...continuity.warnings,
+      ].filter((value): value is string => Boolean(value)),
+    };
+  }
 
   const cases = ((caseRows.data ?? []) as Row[]).map((row) => ({
     id: String(row.id),

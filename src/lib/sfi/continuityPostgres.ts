@@ -171,6 +171,110 @@ export async function readContinuityMemberWorkspaceCounts(userId: string) {
   };
 }
 
+export async function readContinuityInteractiveCaseIndex(userId: string) {
+  const sql = db();
+
+  const memberships = await sql`
+    select tenant_id
+      from sfi_tenant_members
+     where user_id = ${userId}::uuid
+       and status = 'ACTIVE'
+  `;
+
+  const tenantIds = [...new Set(
+    memberships
+      .map((row) => String((row as JsonRecord).tenant_id ?? ''))
+      .filter(Boolean)
+  )];
+
+  if (!tenantIds.length) {
+    return {
+      projects: [],
+      cases: [],
+      warnings: [] as string[],
+      readPlan: {
+        source: 'NEON_CONTINUITY',
+        membershipReads: 1,
+        caseReads: 0,
+        projectReads: 0,
+        compactIndex: true,
+      },
+    };
+  }
+
+  const [caseRows, projectRows] = await Promise.all([
+    sql`
+      select id,tenant_id,project_id,subject,status,updated_at
+        from sfi_cases
+       where tenant_id = any(${tenantIds}::uuid[])
+         and deleted_at is null
+       order by updated_at desc
+       limit 250
+    `,
+    sql`
+      select id,tenant_id,project_key,name,attractor_ref,trajectory_ref,status,updated_at
+        from sfi_projects
+       where tenant_id = any(${tenantIds}::uuid[])
+       order by updated_at desc
+       limit 120
+    `,
+  ]);
+
+  const cases = caseRows.map((raw) => {
+    const row = raw as JsonRecord;
+    return {
+      id: String(row.id),
+      tenantId: String(row.tenant_id),
+      projectId: row.project_id ? String(row.project_id) : null,
+      subject: String(row.subject ?? ''),
+      status: String(row.status ?? ''),
+      updatedAt: row.updated_at ? String(row.updated_at) : null,
+    };
+  });
+
+  const caseCounts = new Map<string, number>();
+  for (const item of cases) {
+    if (!item.projectId) continue;
+    caseCounts.set(item.projectId, (caseCounts.get(item.projectId) ?? 0) + 1);
+  }
+
+  const projects = projectRows.map((raw) => {
+    const row = raw as JsonRecord;
+    const id = String(row.id);
+    return {
+      id,
+      tenantId: String(row.tenant_id),
+      key: String(row.project_key ?? ''),
+      name: String(row.name ?? ''),
+      attractorRef: row.attractor_ref ?? null,
+      trajectoryRef: row.trajectory_ref ?? null,
+      status: String(row.status ?? ''),
+      updatedAt: row.updated_at ? String(row.updated_at) : null,
+      caseCount: caseCounts.get(id) ?? 0,
+    };
+  });
+
+  return {
+    projects,
+    cases,
+    warnings: [
+      caseRows.length === 250 ? 'sfi_cases:INTERACTIVE_INDEX_LIMIT_REACHED' : null,
+      projectRows.length === 120 ? 'sfi_projects:INTERACTIVE_INDEX_LIMIT_REACHED' : null,
+    ].filter((value): value is string => Boolean(value)),
+    readPlan: {
+      source: 'NEON_CONTINUITY',
+      membershipReads: 1,
+      caseReads: 1,
+      projectReads: 1,
+      compactIndex: true,
+      caseLimit: 250,
+      projectLimit: 120,
+      duplicateTenantMembershipReads: 0,
+      duplicateCaseTableReads: 0,
+    },
+  };
+}
+
 export async function readContinuityFieldCaseOwner(caseId: string) {
   const sql = db();
   const rows = await sql`
