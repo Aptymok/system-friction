@@ -38,8 +38,16 @@ export function neonAuthBaseUrl() {
   return (process.env.NEON_AUTH_BASE_URL || DEFAULT_NEON_AUTH_BASE_URL).replace(/\/$/, '');
 }
 
+const SFI_NEON_TRUSTED_ORIGINS = new Set([
+  'https://systemfriction.org',
+  'https://www.systemfriction.org',
+]);
+
 function appOrigin() {
-  return (process.env.NEXT_PUBLIC_APP_URL || 'https://systemfriction.org').replace(/\/$/, '');
+  const configured = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, '');
+  return SFI_NEON_TRUSTED_ORIGINS.has(configured)
+    ? configured
+    : 'https://systemfriction.org';
 }
 
 function responseSessionCookie(response: Response) {
