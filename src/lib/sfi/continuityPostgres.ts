@@ -275,6 +275,89 @@ export async function readContinuityInteractiveCaseIndex(userId: string) {
   };
 }
 
+export async function readContinuityEvidenceTargetIndex() {
+  const sql = db();
+  const [entries, nodes] = await Promise.all([
+    sql`
+      select id,title,evidence_type,target_node_id,created_at
+        from root_evidence_entries
+       order by created_at desc
+       limit 60
+    `,
+    sql`
+      select id,node_id,label,node_type,epistemic_class,updated_at
+        from graph_nodes
+       order by updated_at desc
+       limit 80
+    `,
+  ]);
+  return {
+    entries,
+    nodes,
+    source: 'NEON_CONTINUITY' as const,
+  };
+}
+
+export async function readContinuityEpistemicEvents(eventNames: string[], limit = 500) {
+  const sql = db();
+  const boundedLimit = Math.max(1, Math.min(5000, limit));
+  return sql`
+    select sequence,event_id,event_name,epistemic_class,confidence,payload,occurred_at,source
+      from epistemic_events
+     where event_name = any(${eventNames}::text[])
+     order by sequence desc
+     limit ${boundedLimit}
+  `;
+}
+
+export async function readContinuityRootReportSources(limit = 240) {
+  const sql = db();
+  const boundedLimit = Math.max(1, Math.min(500, limit));
+  const [agentRuns, prospectReports, prospectSources, prospectRuns, continuityReports] = await Promise.all([
+    sql`
+      select id,task_id,role,status,objective,input_snapshot,output_envelope,evidence_refs,limitations,
+             provider,model,started_at,finished_at,created_at
+        from sfi_cognitive_twin_runs
+       where role = any(${['report_agent','report_scheduler']}::text[])
+       order by created_at desc
+       limit ${boundedLimit}
+    `,
+    sql`
+      select id,run_id,company_name,sector,region,pain_statement,critical_window,sfi_fit,contact,
+             proposal_document,confidence,epistemic_status,payload,created_at
+        from prospect_opportunity_reports
+       order by created_at desc
+       limit 80
+    `,
+    sql`
+      select run_id,url,title,publisher,reliability,created_at
+        from prospect_research_sources
+       order by created_at desc
+       limit 400
+    `,
+    sql`
+      select id,mode,status,search_provider,query_plan,warnings,created_at,completed_at
+        from prospect_research_runs
+       order by created_at desc
+       limit 100
+    `,
+    sql`
+      select id,period_start,period_end,mode,summary,content,created_at
+        from sfi_continuity_reports
+       order by created_at desc
+       limit 30
+    `,
+  ]);
+  return {
+    agentRuns,
+    prospectReports,
+    prospectSources,
+    prospectRuns,
+    continuityReports,
+    source: 'NEON_CONTINUITY' as const,
+  };
+}
+
 export async function readContinuityFieldCaseOwner(caseId: string) {
   const sql = db();
   const rows = await sql`
