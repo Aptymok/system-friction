@@ -28,6 +28,7 @@ const worldReobserveRoute = read('src/app/api/field/map/world/reobserve/route.ts
 const ingestReadRoute = read('src/app/api/ingest/read/route.ts');
 const signalsReadRoute = read('src/app/api/signals/read/route.ts');
 const operationalSnapshotRoute = read('src/app/api/sfi/operational-snapshot/route.ts');
+const mophSessionStore = read('src/lib/moph/session-store.ts');
 const scorefrictionMeasurementRoute = read('src/app/api/scorefriction/assets/[asset_id]/measurements/route.ts');
 const cognitiveLabService = read('src/lib/cognitive-lab/service.ts');
 const sfiAssetsService = read('src/lib/server/sfiAssets.ts');
@@ -79,6 +80,10 @@ check('node bootstrap requests asset summaries without four historical child col
 check('ScoreFriction measurement mutation returns an explicit DTO instead of the full database row',
   scorefrictionMeasurementRoute.includes(".select('id,asset_id,ihg,nti_obs,ldi_hours,xi_noise,phi_sf,regime,runway_days,measured_at,created_at')")
   && !scorefrictionMeasurementRoute.includes(".insert(measurement).select('*')"));
+
+check('MOPH session persistence projects exactly the rowToSession contract on write-return and read',
+  (mophSessionStore.match(/\.select\('id,session_key,consent_state,movement_trace_digest,choices,texts,behavioral_nodes,metrics,public_summary,created_at'\)/g) || []).length === 2
+  && !mophSessionStore.includes(".select('*')"));
 
 check('current-main access-critical Neon readers are preserved',
   postgres.includes('readContinuityInstitutionalAccountGrantByEmail')
