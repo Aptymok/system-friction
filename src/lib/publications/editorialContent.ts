@@ -578,7 +578,7 @@ export const SFI_REALITY_CHAIN_BRIEF: SfiEditorialPublication = Object.freeze({
       kind: 'PDF',
       mediaType: 'application/pdf',
       filename: 'SFI-FB-PS-2026-09-002-PUB-V1.0_THE_REALITY_CHAIN_EN.pdf',
-      byteLength: 10138728,
+      byteLength: 10174948,
       sha256: 'c169d7674b2934083c26e1fd1b7f33eaecf13fbd3ab1588f068471c9a3cbacae',
       publicUrl: 'https://drive.google.com/file/d/1JVhlwdjyagNCx5UhUVmRMFQXsQPTmeyc/view?usp=drivesdk',
       state: 'PUBLIC',
