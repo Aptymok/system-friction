@@ -35,6 +35,7 @@ const sfiAssetsService = read('src/lib/server/sfiAssets.ts');
 const nodeBootstrapRoute = read('src/app/api/node/bootstrap/route.ts');
 const mutationProposeRoute = fs.readFileSync(path.join(process.cwd(), 'src/app/api/mutations/propose/route.ts'), 'utf8');
 const mutationCloseRoute = fs.readFileSync(path.join(process.cwd(), 'src/app/api/root/mutations/[id]/close/route.ts'), 'utf8');
+const rootContinuityRoute = fs.readFileSync(path.join(process.cwd(), 'src/app/api/root/continuity/route.ts'), 'utf8');
 const operationalCommon = read('src/lib/operational/common.ts');
 const rootServer = read('src/lib/root/server.ts');
 
@@ -115,6 +116,11 @@ check('mutation write returns use the explicit mutation DTO instead of wildcard 
   && mutationCloseRoute.includes(".select('id,event_id,mutation_key,target,current_state,proposed_state,coherence_delta,status,proposal_id,actor_id,mutation_type,payload,created_at,updated_at')")
   && !mutationProposeRoute.includes(".select('*')")
   && !mutationCloseRoute.includes(".select('*')"));
+
+check('ROOT continuity state uses the schema-backed singleton DTO',
+  rootContinuityRoute.includes(".select('id,mode,founder_available,activated_at,expected_return_at,last_heartbeat_at,last_successful_run_at,last_report_at,halt_reason,metadata,updated_at')")
+  && !rootContinuityRoute.includes("sfi_continuity_state').select('*')
+  && !rootContinuityRoute.includes("sfi_continuity_state').update(patch).eq('id', 'institution').select('*')");
 
 check('current-main access-critical Neon readers are preserved',
   postgres.includes('readContinuityInstitutionalAccountGrantByEmail')
