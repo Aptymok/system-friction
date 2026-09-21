@@ -330,9 +330,6 @@ export function createServiceSupabaseClient() {
       autoRefreshToken: false,
       detectSessionInUrl: false,
     },
-    db: {
-      retry: false,
-    },
     global: {
       fetch: createSfiDataPlaneFetch(normalizedUrl),
       headers: {
