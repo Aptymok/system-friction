@@ -1,6 +1,6 @@
 import type { PublicationStatus } from '../system/contracts';
 import { SFI_PUBLIC_PROFILE } from '../public/institutionProfile';
-import { SFI_EDITORIAL_OBSERVATIONS } from '../publications/editorialContent';
+import { SFI_EDITORIAL_OBSERVATIONS, SFI_REALITY_CHAIN_BRIEF } from '../publications/editorialContent';
 
 export const SFI_CANONICAL_OBJECT_CONTRACT = 'SFI-CANONICAL-OBJECT-1.0' as const;
 export const SFI_CANONICAL_NAMESPACE_CONTRACT = 'SFI-CANONICAL-NAMESPACE-1.0' as const;
@@ -371,6 +371,8 @@ export function validateCanonicalObjectRegistry(records: readonly SfiCanonicalOb
 
 const EDITORIAL_PUBLICATIONS_SOURCE = 'https://github.com/Aptymok/system-friction/blob/a419070288fa28bd67b982472aaad4e4cadd5c04/src/lib/publications/editorialContent.ts';
 const NOTAS_TEMPORALES_SOURCE = EDITORIAL_PUBLICATIONS_SOURCE;
+const REALITY_CHAIN_EDITORIAL_SOURCE = 'https://github.com/Aptymok/system-friction/blob/main/src/lib/publications/editorialContent.ts';
+const REALITY_CHAIN_PDF_SOURCE = 'https://drive.google.com/file/d/1JVhlwdjyagNCx5UhUVmRMFQXsQPTmeyc/view?usp=drivesdk';
 
 function canonicalObservationPublication(publication: (typeof SFI_EDITORIAL_OBSERVATIONS)[number]): SfiCanonicalObjectRecord {
   const sourceRefs = publication.mediumUrl
@@ -389,7 +391,7 @@ function canonicalObservationPublication(publication: (typeof SFI_EDITORIAL_OBSE
     bodyRef: `src/lib/publications/editorialContent.ts#${publication.canonicalId}`,
     epistemicState: 'DECLARED',
     version: '1.0',
-    language: 'es',
+    language: publication.language,
     authors: ['System Friction Institute'],
     methods: ['Discovery Mesh', 'Longitudinal observation'],
     relatedObjects: [],
@@ -481,6 +483,54 @@ export const SFI_CANONICAL_OBJECT_REGISTRY: readonly SfiCanonicalObjectRecord[] 
       'Notas Temporales is a monthly institutional PDF series; individual web essays are classified separately as Observaciones.',
       'Publication establishes EXPOSURE only. Discovery, Recognition, Interaction, PULL and RETURN require independent evidence.',
       'Derived relationships and model output remain distinct from observed external evidence.',
+    ],
+    missing: [],
+  },
+  {
+    contract: SFI_CANONICAL_OBJECT_CONTRACT,
+    id: SFI_REALITY_CHAIN_BRIEF.canonicalId,
+    objectKey: canonicalObjectKey('PUBLICATION', SFI_REALITY_CHAIN_BRIEF.slug),
+    objectType: 'PUBLICATION',
+    slug: SFI_REALITY_CHAIN_BRIEF.slug,
+    canonicalUrl: canonicalUrlFor('PUBLICATION', SFI_REALITY_CHAIN_BRIEF.slug),
+    title: SFI_REALITY_CHAIN_BRIEF.title,
+    summary: SFI_REALITY_CHAIN_BRIEF.deck,
+    bodyRef: 'src/lib/publications/editorialContent.ts#SFI_REALITY_CHAIN_BRIEF',
+    epistemicState: 'DERIVED',
+    version: '1.0',
+    language: SFI_REALITY_CHAIN_BRIEF.language,
+    authors: ['System Friction Institute'],
+    methods: ['Public-source friction analysis', 'Comparative case audit', 'Benchmark triangulation'],
+    relatedObjects: [],
+    sourceRefs: [REALITY_CHAIN_EDITORIAL_SOURCE, REALITY_CHAIN_PDF_SOURCE],
+    publicState: 'PUBLIC',
+    license: 'CC BY 4.0',
+    createdAt: SFI_REALITY_CHAIN_BRIEF.publishedAt,
+    updatedAt: SFI_REALITY_CHAIN_BRIEF.publishedAt,
+    entity: {
+      entityId: SFI_ENTITY_ID,
+      relation: 'PUBLISHED_BY',
+    },
+    publication: {
+      state: 'PUBLISHED',
+      explicit: true,
+    },
+    eligibility: {
+      privacyClass: 'PUBLIC',
+      publicEligible: true,
+      securityEligible: true,
+    },
+    rights: {
+      state: 'OPEN',
+    },
+    evidenceIdentity: {
+      state: 'VALID',
+      refs: [REALITY_CHAIN_EDITORIAL_SOURCE, REALITY_CHAIN_PDF_SOURCE],
+    },
+    limitations: [
+      'The brief does not establish extraterrestrial origin for any UAP case.',
+      'The documentary audit supports a derived hypothesis, not a universal causal law.',
+      'Reality Chain Benchmark v0 is designed but has not yet completed an independent multi-model SFI execution.',
     ],
     missing: [],
   },
