@@ -32,7 +32,10 @@ export function SfiFriccionautaPanel() {
   const retrievalWarnings = Array.isArray(result?.retrievalWarnings) ? result.retrievalWarnings.map(String) : [];
   const runId = typeof result?.run?.id === 'string' ? result.run.id : null;
   const execution = String(result?.cognitiveExecution ?? 'NOT_EXECUTED');
-  const continuityPlane = typeof result?.continuity?.readPlane === 'string' ? result.continuity.readPlane : 'MISSING';
+  const continuityPlane = typeof result?.observationPlanes?.continuity === 'string' ? result.observationPlanes.continuity : typeof result?.continuity?.readPlane === 'string' ? result.continuity.readPlane : 'MISSING';
+  const twinMemoryPlane = typeof result?.observationPlanes?.cognitiveTwin?.memory === 'string' ? result.observationPlanes.cognitiveTwin.memory : 'MISSING';
+  const twinRuntimePlane = typeof result?.observationPlanes?.cognitiveTwin?.runtime === 'string' ? result.observationPlanes.cognitiveTwin.runtime : 'MISSING';
+  const amvPlane = typeof result?.observationPlanes?.amv === 'string' ? result.observationPlanes.amv : 'MISSING';
   const continuityDivergence = result?.continuity?.planeComparison?.resolved?.divergenceObserved === true;
   const statusClass = execution === 'EXECUTED' ? 'ok' : 'degraded';
   const conversation = useMemo(() => history.slice(-8), [history]);
@@ -119,6 +122,9 @@ export function SfiFriccionautaPanel() {
         <span>{String(result?.model ?? 'model missing')}</span>
         <span>EVIDENCE {evidenceRefs.length}</span>
         <span>WARNINGS {warnings.length}</span>
+        <span>TWIN M {twinMemoryPlane}</span>
+        <span>TWIN R {twinRuntimePlane}</span>
+        <span>AMV {amvPlane}</span>
         <span>CONTINUITY {continuityPlane}{continuityDivergence ? ' · DIVERGENCE OBSERVED' : ''}</span>
         {runId ? <span>RUN {runId.slice(0, 8)}</span> : null}
       </div>
