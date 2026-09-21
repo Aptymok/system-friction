@@ -8,7 +8,8 @@ Full custom MCP inside ChatGPT is not a viable baseline dependency for SFI becau
 
 For the founder's current ChatGPT account, the practical bridge is the already-connected standard providers:
 
-- Supabase: persisted institutional state, events, cases, RETURN, continuity, Twin and Lab.
+- Supabase: primary/canonical persisted institutional state when available.
+- Neon: continuity/second-read plane and bounded continuity-write fallback where already authorized.
 - GitHub: canonical implementation state, PRs, releases and code lineage.
 - Vercel: deployed production state and runtime evidence.
 
@@ -24,12 +25,14 @@ The query returns enough high-signal state to decide what must be inspected next
 
 For substantive SFI work from ChatGPT:
 
-1. Read/execute the canonical observation query against the connected SFI Supabase project.
-2. Inspect referenced canonical rows when the decision depends on them.
-3. Contrast repository state from `Aptymok/system-friction` `main`.
-4. Contrast latest production deployment/runtime state in Vercel when implementation or production behavior matters.
-5. Keep `implemented`, `merged`, `deployed`, `observed` and `RETURN` distinct.
-6. Use existing governed execution owners for mutations. Observation itself grants no authority.
+1. Execute the canonical observation query independently against connected SFI Supabase and Neon when both are available.
+2. Compare the two snapshots before interpreting freshness. A divergence is itself OBSERVED state and must be explained by owner semantics; never choose a database merely because one timestamp is newer.
+3. Supabase remains primary/canonical when available. Neon may be fresher specifically in continuity where bounded fallback writes are already authorized. Other domains must retain their existing owner rules.
+4. Inspect referenced canonical rows when the decision depends on detail.
+5. Contrast repository state from `Aptymok/system-friction` `main`.
+6. Contrast latest production deployment/runtime state in Vercel when implementation or production behavior matters.
+7. Keep `implemented`, `merged`, `deployed`, `observed` and `RETURN` distinct.
+8. Use existing governed execution owners for mutations. Observation itself grants no authority.
 
 ## Commercial boundary
 
@@ -38,3 +41,7 @@ SFI remains a standalone product and API. ChatGPT is one possible client, not a 
 ## Falsification
 
 This approach fails if the connected providers cannot retrieve the canonical state needed for a decision, if it silently becomes a second persistence owner, or if SFI starts depending on ChatGPT-specific product availability for core operation.
+
+## First live falsification / validation
+
+On 2026-09-21 the same query was executed against both planes. Proposals, Cases, `epistemic_events` (888 / max sequence 888) and Cognitive Twin runs (63) matched. Supabase continuity remained at the 2026-09-17 heartbeat, while Neon continuity showed a successful 2026-09-21 heartbeat with 148 continuity runs. This demonstrates why cross-plane comparison is required and why freshness cannot be treated as a global authority rule.
