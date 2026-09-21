@@ -271,8 +271,34 @@ export async function updateActionProposalRisk(input: {
   return { ...updated, riskAssessment };
 }
 
-export async function latestRows(table: string, limit = 10) {
+const OPERATIONAL_READ_PROJECTIONS = {
+  logbook_mutations: 'id,event_id,mutation_key,target,current_state,proposed_state,coherence_delta,status,proposal_id,actor_id,mutation_type,payload,created_at,updated_at',
+  logbook_knowledge: 'id,knowledge_key,verified,pattern_type,confidence,payload,created_at',
+  logbook_signals: 'id,event_id,signal_key,source_id,plane,node_type,raw_signal,recurrence_count,status,created_at',
+  mihm_analyses: 'id,event_id,actor_id,input_hash,detected_dimensions,claims,evidence,tensions,risks,confidence,homeostatic_vector,payload,created_at',
+} as const;
+
+type OperationalReadTable = keyof typeof OPERATIONAL_READ_PROJECTIONS;
+
+export async function latestRows(table: OperationalReadTable, limit = 10) {
   const service = createServiceSupabaseClient();
-  const { data, error } = await service.from(table).select('*').order('created_at', { ascending: false }).limit(limit);
-  return { data: error ? [] : data ?? [], error: error?.message ?? null };
+  // Supabase's generated generic union becomes intractable when both table and
+  // projection are unions. Narrow each table before select while keeping the
+  // public contract closed and explicit.
+  let result: { data: unknown[] | null; error: { message: string } | null };
+  switch (table) {
+    case 'logbook_mutations':
+      result = await service.from('logbook_mutations').select(OPERATIONAL_READ_PROJECTIONS.logbook_mutations).order('created_at', { ascending: false }).limit(limit);
+      break;
+    case 'logbook_knowledge':
+      result = await service.from('logbook_knowledge').select(OPERATIONAL_READ_PROJECTIONS.logbook_knowledge).order('created_at', { ascending: false }).limit(limit);
+      break;
+    case 'logbook_signals':
+      result = await service.from('logbook_signals').select(OPERATIONAL_READ_PROJECTIONS.logbook_signals).order('created_at', { ascending: false }).limit(limit);
+      break;
+    case 'mihm_analyses':
+      result = await service.from('mihm_analyses').select(OPERATIONAL_READ_PROJECTIONS.mihm_analyses).order('created_at', { ascending: false }).limit(limit);
+      break;
+  }
+  return { data: result.error ? [] : result.data ?? [], error: result.error?.message ?? null };
 }

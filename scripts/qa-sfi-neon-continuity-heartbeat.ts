@@ -99,6 +99,15 @@ check('node bootstrap uses explicit consumer DTOs instead of wildcard row hydrat
   && nodeBootstrapRoute.includes(".select('id,node_id,audit_id,fact_type,label,value,confidence,first_seen_at,last_seen_at,recurrence_count')")
   && nodeBootstrapRoute.includes(".select('id,node_id,audit_id,description,verification_criterion,due_at,completed_at,status,action_type,metadata,created_at')"));
 
+check('operational latest-row reads are table-typed and explicitly projected',
+  operationalCommon.includes("const OPERATIONAL_READ_PROJECTIONS = {")
+  && operationalCommon.includes("type OperationalReadTable = keyof typeof OPERATIONAL_READ_PROJECTIONS")
+  && operationalCommon.includes("service.from('logbook_mutations').select(OPERATIONAL_READ_PROJECTIONS.logbook_mutations)")
+  && operationalCommon.includes("service.from('logbook_knowledge').select(OPERATIONAL_READ_PROJECTIONS.logbook_knowledge)")
+  && operationalCommon.includes("service.from('logbook_signals').select(OPERATIONAL_READ_PROJECTIONS.logbook_signals)")
+  && operationalCommon.includes("service.from('mihm_analyses').select(OPERATIONAL_READ_PROJECTIONS.mihm_analyses)")
+  && !operationalCommon.includes("service.from(table).select('*')"));
+
 check('current-main access-critical Neon readers are preserved',
   postgres.includes('readContinuityInstitutionalAccountGrantByEmail')
   && postgres.includes('readContinuityMemberWorkspaceCounts')
