@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
         persisted: false,
         degraded: true,
         persistenceSource: "memory_fallback",
-        supabase_error: {
+        data_plane_error: {
           code: error.code ?? null,
           message: error.message ?? String(error),
           details: error.details ?? null,
@@ -107,7 +107,7 @@ export async function POST(req: NextRequest) {
       ...analysis,
       persisted: true,
       degraded: false,
-      persistenceSource: "supabase",
+      persistenceSource: "systemic_data_plane",
       record,
     });
   } catch (error: any) {
