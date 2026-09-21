@@ -12,6 +12,8 @@ const runtime = read('src/lib/continuity/runtime.ts');
 const store = read('src/lib/continuity/neonHeartbeatStore.ts');
 const guard = read('src/lib/continuity/scheduledEgressGuard.ts');
 const heartbeat = read('src/app/api/cron/continuity-heartbeat/route.ts');
+const primaryMirror = read('src/lib/persistence/primaryMirror.ts');
+const hourlyContinuity = read('.github/workflows/sfi-continuity-hourly.yml');
 const canonicalTwinMemory = read('src/core/cognitive-twin/canonicalMemoryView.ts');
 const twinState = read('src/core/cognitive-twin/readState.ts');
 const amvAgent = read('src/lib/agents/amvAgent.ts');
@@ -70,6 +72,22 @@ check('AMV operational memory falls back to bounded Neon memory after primary re
 check('scheduled egress guard requires explicit continuity opt-in',
   guard.includes('allowContinuityFallback?: boolean')
   && guard.includes('input.allowContinuityFallback && isSfiContinuityConfigured()'));
+
+
+check('primary mirror maintenance is owned by the existing continuity heartbeat',
+  primaryMirror.includes('export async function flushPrimaryMirror')
+  && runtime.includes("import('@/lib/persistence/primaryMirror')")
+  && runtime.includes('flushPrimaryMirror')
+  && runtime.includes('primaryMirror'));
+
+check('idle wakeup cannot suppress required data-plane mirror certification maintenance',
+  gate.includes("import('@/lib/persistence/dataPlaneContinuityStore')")
+  && gate.includes('mirrorMaintenanceRequired')
+  && gate.includes('DATA_PLANE_MIRROR_MAINTENANCE_REQUIRED'));
+
+check('existing half-hour continuity scheduler is sufficient for the two-hour mirror freshness gate',
+  hourlyContinuity.includes("cron: '15 * * * *'")
+  && hourlyContinuity.includes("cron: '45 * * * *'"));
 
 check('continuity heartbeat is the explicit scheduled fallback caller',
   heartbeat.includes('scheduledEgressGuardResponse({ allowContinuityFallback: true })'));
