@@ -85,6 +85,12 @@ check('MOPH session persistence projects exactly the rowToSession contract on wr
   (mophSessionStore.match(/\.select\('id,session_key,consent_state,movement_trace_digest,choices,texts,behavioral_nodes,metrics,public_summary,created_at'\)/g) || []).length === 2
   && !mophSessionStore.includes(".select('*')"));
 
+check('action proposal type contract normalizes new writes without hiding legacy nested proposal types',
+  operationalCommon.includes("proposal_type: input.proposalType")
+  && operationalCommon.includes("const candidateLimit = proposalTypes?.length ? Math.max(limit * 4, 80) : limit")
+  && operationalCommon.includes("const proposalType = proposalTypeFrom(row)")
+  && !operationalCommon.includes("query = query.in('proposal_type', proposalTypes)"));
+
 check('current-main access-critical Neon readers are preserved',
   postgres.includes('readContinuityInstitutionalAccountGrantByEmail')
   && postgres.includes('readContinuityMemberWorkspaceCounts')
