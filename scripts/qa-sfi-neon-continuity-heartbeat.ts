@@ -28,6 +28,7 @@ const worldReobserveRoute = read('src/app/api/field/map/world/reobserve/route.ts
 const ingestReadRoute = read('src/app/api/ingest/read/route.ts');
 const signalsReadRoute = read('src/app/api/signals/read/route.ts');
 const operationalSnapshotRoute = read('src/app/api/sfi/operational-snapshot/route.ts');
+const cognitiveLabService = read('src/lib/cognitive-lab/service.ts');
 
 check('Scorefriction lab persistence uses the canonical systemic data-plane client and does not claim Supabase provenance',
   scorefrictionLab.includes("createServiceSupabaseClient")
