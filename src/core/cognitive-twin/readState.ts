@@ -2,6 +2,7 @@ import 'server-only';
 
 import { getLlmProviderStatus } from '@/lib/ai/providerRouter';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { isSfiContinuityConfigured, readContinuityCognitiveTwinStateSnapshot } from '@/lib/sfi/continuityPostgres';
 import { SFI_COGNITIVE_TWIN_CONTRACT } from './contract';
 import { readCanonicalCognitiveTwinMemory } from './canonicalMemoryView';
 import { readCognitiveTwinSfiIntegration } from './institutionalIntegration';
@@ -38,7 +39,7 @@ function providerExecutionSucceeded(value: unknown) {
 
 async function buildCognitiveTwinState() {
   const db = createServiceSupabaseClient();
-  const [canonicalMemory, integration, recentDecisions, recentRuns, recentEvaluations, approvedDecisionProbe, approvedModelProbe] = await Promise.all([
+  const [canonicalMemory, integration, recentDecisionsPrimary, recentRunsPrimary, recentEvaluationsPrimary, approvedDecisionProbe, approvedModelProbe] = await Promise.all([
     readCanonicalCognitiveTwinMemory(24),
     readCognitiveTwinSfiIntegration(),
     db.from('sfi_cognitive_twin_decisions').select('*').order('created_at', { ascending: false }).limit(12),
@@ -48,28 +49,79 @@ async function buildCognitiveTwinState() {
     db.from('sfi_cognitive_twin_model_registry').select('id,status').in('status', ['APPROVED', 'APPROVED_WITH_LIMITS']).limit(1),
   ]);
 
+  const primaryRuntimeErrors = [
+    recentDecisionsPrimary.error?.message,
+    recentRunsPrimary.error?.message,
+    recentEvaluationsPrimary.error?.message,
+    approvedDecisionProbe.error?.message,
+    approvedModelProbe.error?.message,
+  ].filter((value): value is string => Boolean(value));
+
+  let runtimeReadPlane: 'SUPABASE' | 'NEON' | 'UNAVAILABLE' = primaryRuntimeErrors.length ? 'UNAVAILABLE' : 'SUPABASE';
+  let runtimeDiagnostic: string | null = primaryRuntimeErrors.length ? primaryRuntimeErrors.join(' | ') : null;
+  let recentDecisions = (recentDecisionsPrimary.data ?? []) as Row[];
+  let recentRuns = (recentRunsPrimary.data ?? []) as Row[];
+  let recentEvaluations = (recentEvaluationsPrimary.data ?? []) as Row[];
+  let approvedDecisionCorpusReady = !approvedDecisionProbe.error && (approvedDecisionProbe.data?.length ?? 0) > 0;
+  let approvedModelRegistryReady = !approvedModelProbe.error && (approvedModelProbe.data?.length ?? 0) > 0;
+
+  if (primaryRuntimeErrors.length && isSfiContinuityConfigured()) {
+    try {
+      const fallback = await readContinuityCognitiveTwinStateSnapshot({
+        decisionLimit: 12,
+        runLimit: 24,
+        evaluationLimit: 20,
+      });
+      recentDecisions = fallback.recentDecisions;
+      recentRuns = fallback.recentRuns;
+      recentEvaluations = fallback.recentEvaluations;
+      approvedDecisionCorpusReady = fallback.approvedDecisionExists;
+      approvedModelRegistryReady = fallback.approvedModelExists;
+      runtimeReadPlane = 'NEON';
+    } catch (continuityError) {
+      runtimeReadPlane = 'UNAVAILABLE';
+      runtimeDiagnostic = `${runtimeDiagnostic ?? 'supabase_cognitive_twin_runtime_read_failed'}; continuity=${continuityError instanceof Error ? continuityError.message : 'continuity_read_failed'}`;
+    }
+  }
+
+  const runtimeAvailable = runtimeReadPlane !== 'UNAVAILABLE';
   const storage = [
     { table:'sfi_amv_memory', available:!canonicalMemory.error, count:null, error:canonicalMemory.error ?? null },
-    { table:'sfi_cognitive_twin_decisions', available:!recentDecisions.error, count:null, error:recentDecisions.error?.message ?? null },
-    { table:'sfi_cognitive_twin_model_registry', available:!approvedModelProbe.error, count:null, error:approvedModelProbe.error?.message ?? null },
-    { table:'sfi_cognitive_twin_evaluations', available:!recentEvaluations.error, count:null, error:recentEvaluations.error?.message ?? null },
-    { table:'sfi_cognitive_twin_runs', available:!recentRuns.error, count:null, error:recentRuns.error?.message ?? null },
+    { table:'sfi_cognitive_twin_decisions', available:runtimeAvailable, count:null, error:runtimeAvailable ? null : runtimeDiagnostic },
+    { table:'sfi_cognitive_twin_model_registry', available:runtimeAvailable, count:null, error:runtimeAvailable ? null : runtimeDiagnostic },
+    { table:'sfi_cognitive_twin_evaluations', available:runtimeAvailable, count:null, error:runtimeAvailable ? null : runtimeDiagnostic },
+    { table:'sfi_cognitive_twin_runs', available:runtimeAvailable, count:null, error:runtimeAvailable ? null : runtimeDiagnostic },
   ];
-  const databaseReady = storage.every((item) => item.available) && !approvedDecisionProbe.error;
+  const databaseReady = storage.every((item) => item.available);
 
   const providers = getLlmProviderStatus();
   const configuredProviders = providers.filter((item) => item.configured);
   const healthyProviders = providers.filter((item) => item.state === 'HEALTHY');
-  const approvedDecisionCorpusReady = (approvedDecisionProbe.data?.length ?? 0) > 0;
-  const approvedModelRegistryReady = (approvedModelProbe.data?.length ?? 0) > 0;
-  const providerExecutionObserved = (recentRuns.data ?? []).some(providerExecutionSucceeded);
+  const providerExecutionObserved = recentRuns.some(providerExecutionSucceeded);
   const providerConfigured = configuredProviders.length > 0;
   const providerRouterReady = providerConfigured && providerExecutionObserved;
+
+  const warnings = [
+    canonicalMemory.primaryDiagnostic
+      ? `cognitive_memory_primary_read_degraded:${canonicalMemory.primaryDiagnostic};served=${canonicalMemory.readPlane}`
+      : null,
+    runtimeDiagnostic && runtimeReadPlane === 'NEON'
+      ? `cognitive_runtime_primary_read_degraded:${runtimeDiagnostic};served=NEON`
+      : null,
+  ].filter((value): value is string => Boolean(value));
 
   return {
     generatedAt: new Date().toISOString(),
     contract: SFI_COGNITIVE_TWIN_CONTRACT,
     integration,
+    readPlanes: {
+      memory: canonicalMemory.readPlane,
+      runtime: runtimeReadPlane,
+    },
+    primaryDiagnostics: {
+      memory: canonicalMemory.primaryDiagnostic,
+      runtime: runtimeDiagnostic,
+    },
     implementation: {
       contractImplemented: true,
       databaseReady,
@@ -97,12 +149,12 @@ async function buildCognitiveTwinState() {
       countSemantics: 'Totals are intentionally not COUNT(*)-probed on interactive reads. 1/0 approval values mean existence/non-existence in a bounded probe, not total cardinality.',
     },
     recentMemory: canonicalMemory.rows.slice(0, 24),
-    recentDecisions: recentDecisions.data ?? [],
-    recentRuns: recentRuns.data ?? [],
-    recentEvaluations: recentEvaluations.data ?? [],
+    recentDecisions,
+    recentRuns,
+    recentEvaluations,
+    warnings,
     errors: [
       ...storage.filter((item) => item.error).map((item) => `${item.table}: ${item.error}`),
-      ...(approvedDecisionProbe.error ? [`approved decisions: ${approvedDecisionProbe.error.message}`] : []),
       ...integration.organs.filter((item)=>item.error).map((item)=>`${item.organ}: ${item.error}`),
     ],
   };
