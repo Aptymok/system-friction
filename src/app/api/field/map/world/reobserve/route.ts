@@ -37,35 +37,10 @@ async function execute() {
     }, { status: 503 });
   }
 
-  const probe = await service
-    .from('world_source_observations')
-    .select('id', { count: 'exact', head: true });
-
-  if (probe.error) {
-    return NextResponse.json({
-      ok: false,
-      error: 'world_schema_probe_failed',
-      details: probe.error.message,
-      code: probe.error.code,
-      hint: probe.error.hint,
-      supabaseProjectRef: ref,
-      requiredMigration: 'supabase/migrations/20260802214000_world_observatory_learning.sql',
-      nextSql: "NOTIFY pgrst, 'reload schema';",
-    }, { status: 503 });
-  }
-
   const worldSignalObserver = await executeWorldSignalObserverAgent();
   const observation = worldSignalObserver.observation;
   const hypothesis = await runWorldHypothesisCycle();
   const calibration = await runWorldCalibrationCycle();
-
-  const [{ count: observations }, { count: readings }, { count: hypotheses }, { count: outcomes }, { count: learning }] = await Promise.all([
-    service.from('world_source_observations').select('id', { count: 'exact', head: true }),
-    service.from('world_friction_readings').select('id', { count: 'exact', head: true }),
-    service.from('world_hypotheses').select('id', { count: 'exact', head: true }),
-    service.from('world_hypothesis_outcomes').select('id', { count: 'exact', head: true }),
-    service.from('world_learning_events').select('id', { count: 'exact', head: true }),
-  ]);
 
   return NextResponse.json({
     ok: observation.ok,
@@ -76,11 +51,10 @@ async function execute() {
     hypothesis,
     calibration,
     persisted: {
-      observations: observations ?? 0,
-      readings: readings ?? 0,
-      hypotheses: hypotheses ?? 0,
-      outcomes: outcomes ?? 0,
-      learning: learning ?? 0,
+      observation: observation.ok,
+      hypothesis: Boolean(hypothesis),
+      calibration: Boolean(calibration),
+      accounting: 'operation_receipts_not_full_table_counts',
     },
     generatedAt: new Date().toISOString(),
   }, { status: observation.ok ? 200 : 502 });
