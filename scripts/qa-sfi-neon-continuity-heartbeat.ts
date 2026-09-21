@@ -38,6 +38,7 @@ const mutationCloseRoute = fs.readFileSync(path.join(process.cwd(), 'src/app/api
 const rootContinuityRoute = fs.readFileSync(path.join(process.cwd(), 'src/app/api/root/continuity/route.ts'), 'utf8');
 const rootDecisionsRoute = fs.readFileSync(path.join(process.cwd(), 'src/app/api/root/decisions/route.ts'), 'utf8');
 const rootCognitiveTwinRoute = fs.readFileSync(path.join(process.cwd(), 'src/app/api/root/cognitive-twin/route.ts'), 'utf8');
+const rootEvidenceRoute = fs.readFileSync(path.join(process.cwd(), 'src/app/api/root/evidence/route.ts'), 'utf8');
 const operationalCommon = read('src/lib/operational/common.ts');
 const rootServer = read('src/lib/root/server.ts');
 
@@ -130,6 +131,12 @@ check('ROOT sovereign decision queue uses explicit authority-preserving DTOs',
   && !rootDecisionsRoute.includes(".select('*')")
   && rootCognitiveTwinRoute.includes(".select('id,decision_id,situation,rejected_condition,correct_state,general_rule,required_evidence,evidence_refs,status,approved_by,approved_at,created_by,decision_kind,created_at,updated_at')")
   && !rootCognitiveTwinRoute.includes(".select('*')"));
+
+check('ROOT evidence uses schema-backed evidence and mutation DTOs without erasing graph compatibility',
+  rootEvidenceRoute.includes(".select('id,evidence_hash,actor_id,title,content,evidence_type,target_node_id,payload,epistemic_event_id,created_at')")
+  && rootEvidenceRoute.includes(".select('id,event_id,mutation_key,target,current_state,proposed_state,coherence_delta,status,proposal_id,actor_id,mutation_type,payload,created_at,updated_at')")
+  && rootEvidenceRoute.includes("from('graph_nodes').upsert")
+  && rootEvidenceRoute.includes("from('graph_edges').upsert"));
 
 check('current-main access-critical Neon readers are preserved',
   postgres.includes('readContinuityInstitutionalAccountGrantByEmail')
