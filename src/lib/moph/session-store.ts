@@ -50,7 +50,7 @@ export async function saveMophSession(payload: MophSessionPayload): Promise<Stor
         public_summary: payload.publicSummary,
         observed_at: new Date().toISOString(),
       }, { onConflict: 'session_key' })
-      .select('*')
+      .select('id,session_key,consent_state,movement_trace_digest,choices,texts,behavioral_nodes,metrics,public_summary,created_at')
       .single()
 
     if (error) {
@@ -78,7 +78,7 @@ export async function getMophSession(sessionKey: string): Promise<StoredMophSess
     const service = createServiceSupabaseClient()
     const { data, error } = await service
       .from('sfi_moph_sessions')
-      .select('*')
+      .select('id,session_key,consent_state,movement_trace_digest,choices,texts,behavioral_nodes,metrics,public_summary,created_at')
       .eq('session_key', sessionKey)
       .maybeSingle()
 
