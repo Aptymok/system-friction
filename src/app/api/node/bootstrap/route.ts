@@ -63,7 +63,7 @@ export async function GET() {
     : [null, null, null, null];
 
   const entitlements = ctx.isRoot ? ROOT_ENTITLEMENTS : await getEntitlements(ctx.user.id);
-  const sfiAssets = await loadSfiAssets(ctx);
+  const sfiAssets = await loadSfiAssets(ctx, { includeHistory: false });
 
   return NextResponse.json({
     node,
