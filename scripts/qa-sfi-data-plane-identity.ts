@@ -1,5 +1,7 @@
 import fs from 'node:fs';
 
+// Structural preflight: provider-neutral identity only; no data-plane routing in this phase.
+
 const identity = fs.readFileSync('src/lib/persistence/dataPlaneIdentity.ts', 'utf8');
 const route = fs.readFileSync('src/app/api/system/data-plane/jwks/route.ts', 'utf8');
 
