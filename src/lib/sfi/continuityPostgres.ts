@@ -144,6 +144,37 @@ export async function readContinuityProfileByEmail(email: string) {
   return (rows[0] as JsonRecord | undefined) ?? null;
 }
 
+export async function readContinuityAuthCredentialStateByEmail(email: string) {
+  const sql = db();
+  const rows = await sql`
+    select
+      u.id::text as auth_user_id,
+      exists (
+        select 1
+          from neon_auth.account a
+         where a."userId" = u.id
+           and a."providerId" = 'credential'
+      ) as credential_account_exists,
+      exists (
+        select 1
+          from neon_auth.account a
+         where a."userId" = u.id
+           and a."providerId" = 'credential'
+           and nullif(a.password, '') is not null
+      ) as password_initialized
+      from neon_auth."user" u
+     where lower(u.email) = lower(${email})
+     limit 1
+  `;
+  const row = rows[0] as JsonRecord | undefined;
+  if (!row) return null;
+  return {
+    authUserId: typeof row.auth_user_id === 'string' ? row.auth_user_id : null,
+    credentialAccountExists: row.credential_account_exists === true,
+    passwordInitialized: row.password_initialized === true,
+  };
+}
+
 export async function readContinuityInstitutionalAccountGrantByEmail(email: string) {
   const sql = db();
   const rows = await sql`
