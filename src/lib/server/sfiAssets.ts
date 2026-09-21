@@ -25,7 +25,7 @@ export function hashPayload(payload: unknown) {
   return createHash('sha256').update(JSON.stringify(payload)).digest('hex').slice(0, 12);
 }
 
-export async function loadSfiAssets(ctx: UserContext) {
+export async function loadSfiAssets(ctx: UserContext, options: { includeHistory?: boolean } = {}) {
   if (!ctx.user) return { assets: [] as SfiAsset[], error: 'Unauthorized' };
 
   const assetQuery = ctx.service
@@ -44,7 +44,7 @@ export async function loadSfiAssets(ctx: UserContext) {
 
   const assets = (assetRows || []) as SfiAsset[];
   const assetIds = assets.map((asset) => asset.asset_id);
-  if (!assetIds.length) return { assets, error: null };
+  if (!assetIds.length || options.includeHistory === false) return { assets, error: null };
 
   const [measurements, interventions, outputs, logbook] = await Promise.all([
     ctx.service.from('sfi_measurements').select('*').in('asset_id', assetIds).order('measured_at', { ascending: false }).limit(100),
