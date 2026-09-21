@@ -28,6 +28,8 @@ const worldReobserveRoute = read('src/app/api/field/map/world/reobserve/route.ts
 const ingestReadRoute = read('src/app/api/ingest/read/route.ts');
 const signalsReadRoute = read('src/app/api/signals/read/route.ts');
 const operationalSnapshotRoute = read('src/app/api/sfi/operational-snapshot/route.ts');
+const operationalCommon = read('src/lib/operational/common.ts');
+const rootServer = read('src/lib/root/server.ts');
 
 check('Scorefriction lab persistence uses the canonical systemic data-plane client and does not claim Supabase provenance',
   scorefrictionLab.includes("createServiceSupabaseClient")
@@ -52,6 +54,14 @@ check('bounded read models project only fields they consume on high-frequency in
 
 check('operational snapshot write-return avoids wildcard row transfer',
   !operationalSnapshotRoute.includes(".select('*')"));
+
+check('proposal type filtering is pushed into the data plane instead of over-fetching then filtering in memory',
+  operationalCommon.includes("query.in('proposal_type', proposalTypes)")
+  && !operationalCommon.includes("rows.filter((row)"));
+
+check('root audit mutation returns only the identifier required for epistemic lineage',
+  rootServer.includes(".from('root_audit_events')")
+  && rootServer.includes(".select('id')"));
 
 check('current-main access-critical Neon readers are preserved',
   postgres.includes('readContinuityInstitutionalAccountGrantByEmail')
