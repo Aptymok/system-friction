@@ -24,6 +24,7 @@ const amvAgent = read('src/lib/agents/amvAgent.ts');
 const scorefrictionLab = read('src/app/api/scorefriction/lab/analyze/route.ts');
 const runtimeObserver = read('src/runtime/layers/Observer.ts');
 const runtimeIntentLayer = read('src/runtime/layers/IntentLayer.ts');
+const worldReobserveRoute = read('src/app/api/field/map/world/reobserve/route.ts');
 
 check('Scorefriction lab persistence uses the canonical systemic data-plane client and does not claim Supabase provenance',
   scorefrictionLab.includes("createServiceSupabaseClient")
@@ -36,6 +37,9 @@ check('runtime Observer and IntentLayer reuse the canonical systemic service cli
   && runtimeIntentLayer.includes("createServiceSupabaseClient")
   && !runtimeObserver.includes("from '@supabase/supabase-js'")
   && !runtimeIntentLayer.includes("from '@supabase/supabase-js'"));
+
+check('world reobserve does not spend five count-only data-plane queries after executing its cycles',
+  !worldReobserveRoute.includes("count: 'exact', head: true"));
 
 check('current-main access-critical Neon readers are preserved',
   postgres.includes('readContinuityInstitutionalAccountGrantByEmail')
