@@ -59,6 +59,31 @@ export async function readNeonContinuityHeartbeatState() {
   return (rows[0] as JsonRecord | undefined) ?? null;
 }
 
+
+export async function readNeonContinuityObservation() {
+  const sql = continuityDatabase();
+  const [stateRows, runRows] = await Promise.all([
+    sql`
+      select *
+      from sfi_continuity_state
+      where id = 'institution'
+      limit 1
+    `,
+    sql`
+      select id, trigger, mode, status, started_at, completed_at,
+             capability_count, healthy_count, degraded_count, failed_count,
+             evidence, errors
+      from sfi_continuity_runs
+      order by started_at desc
+      limit 1
+    `,
+  ]);
+  return {
+    state: (stateRows[0] as JsonRecord | undefined) ?? null,
+    latestRun: (runRows[0] as JsonRecord | undefined) ?? null,
+  };
+}
+
 export async function createNeonContinuityRun(input: { trigger: string; mode: string }) {
   const sql = continuityDatabase();
   const rows = await sql`
