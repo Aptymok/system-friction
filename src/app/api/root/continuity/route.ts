@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
   }
 
   const db = createServiceSupabaseClient();
-  const { data: current, error } = await db.from('sfi_continuity_state').select('*').eq('id', 'institution').single();
+  const { data: current, error } = await db.from('sfi_continuity_state').select('id,mode,founder_available,activated_at,expected_return_at,last_heartbeat_at,last_successful_run_at,last_report_at,halt_reason,metadata,updated_at').eq('id', 'institution').single();
   if (error || !current) return NextResponse.json({ ok: false, error: 'continuity_state_unavailable', details: error?.message }, { status: 503 });
 
   const nextMode: ContinuityMode = parsed.data.action === 'emergency_halt' ? 'EMERGENCY_HALT' : (parsed.data.mode as ContinuityMode);
@@ -164,7 +164,7 @@ export async function POST(request: NextRequest) {
     halt_reason: nextMode === 'EMERGENCY_HALT' ? (parsed.data.reason ?? 'Founder emergency halt') : null,
     updated_at: now,
   };
-  const update = await db.from('sfi_continuity_state').update(patch).eq('id', 'institution').select('*').single();
+  const update = await db.from('sfi_continuity_state').update(patch).eq('id', 'institution').select('id,mode,founder_available,activated_at,expected_return_at,last_heartbeat_at,last_successful_run_at,last_report_at,halt_reason,metadata,updated_at').single();
   if (update.error) return NextResponse.json({ ok: false, error: 'continuity_transition_failed', details: update.error.message }, { status: 500 });
 
   await auditRootAction({
