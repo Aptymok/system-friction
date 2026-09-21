@@ -508,6 +508,84 @@ export async function readContinuityRecentWorldSpectSnapshots(input: {
 }
 
 
+
+export async function readContinuityAmvMemory(limit = 35) {
+  const sql = db();
+  const boundedLimit = Math.max(1, Math.min(80, limit));
+  return sql`
+    select *
+      from sfi_amv_memory
+     order by created_at desc
+     limit ${boundedLimit}
+  `;
+}
+
+export async function readContinuityCanonicalCognitiveTwinMemoryRows(input: { offset: number; limit: number }) {
+  const sql = db();
+  const offset = Math.max(0, input.offset);
+  const limit = Math.max(1, Math.min(256, input.limit));
+  return sql`
+    select id,module,input_summary,memory_delta,source_trust,requires_human_validation,created_at
+      from sfi_amv_memory
+     where module = 'institutionalEventPipeline'
+       and memory_delta->'raw'->>'memoryKey' is not null
+     order by created_at desc
+     offset ${offset}
+     limit ${limit}
+  `;
+}
+
+export async function readContinuityCognitiveTwinStateSnapshot(input: {
+  decisionLimit?: number;
+  runLimit?: number;
+  evaluationLimit?: number;
+} = {}) {
+  const sql = db();
+  const decisionLimit = Math.max(1, Math.min(50, input.decisionLimit ?? 12));
+  const runLimit = Math.max(1, Math.min(80, input.runLimit ?? 24));
+  const evaluationLimit = Math.max(1, Math.min(80, input.evaluationLimit ?? 20));
+  const [recentDecisions, recentRuns, recentEvaluations, approvedDecision, approvedModel] = await Promise.all([
+    sql`
+      select *
+        from sfi_cognitive_twin_decisions
+       order by created_at desc
+       limit ${decisionLimit}
+    `,
+    sql`
+      select *
+        from sfi_cognitive_twin_runs
+       order by created_at desc
+       limit ${runLimit}
+    `,
+    sql`
+      select *
+        from sfi_cognitive_twin_evaluations
+       order by executed_at desc
+       limit ${evaluationLimit}
+    `,
+    sql`
+      select id
+        from sfi_cognitive_twin_decisions
+       where status = 'APPROVED'
+       limit 1
+    `,
+    sql`
+      select id,status
+        from sfi_cognitive_twin_model_registry
+       where status in ('APPROVED', 'APPROVED_WITH_LIMITS')
+       limit 1
+    `,
+  ]);
+  return {
+    recentDecisions: recentDecisions as JsonRecord[],
+    recentRuns: recentRuns as JsonRecord[],
+    recentEvaluations: recentEvaluations as JsonRecord[],
+    approvedDecisionExists: approvedDecision.length > 0,
+    approvedModelExists: approvedModel.length > 0,
+    source: 'NEON_CONTINUITY' as const,
+  };
+}
+
 export async function recordContinuityEvent(input: {
   eventType: string;
   entityType?: string;
