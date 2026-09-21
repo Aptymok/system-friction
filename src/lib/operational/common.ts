@@ -282,7 +282,23 @@ type OperationalReadTable = keyof typeof OPERATIONAL_READ_PROJECTIONS;
 
 export async function latestRows(table: OperationalReadTable, limit = 10) {
   const service = createServiceSupabaseClient();
-  const projection = OPERATIONAL_READ_PROJECTIONS[table];
-  const { data, error } = await service.from(table).select(projection).order('created_at', { ascending: false }).limit(limit);
-  return { data: error ? [] : data ?? [], error: error?.message ?? null };
+  // Supabase's generated generic union becomes intractable when both table and
+  // projection are unions. Narrow each table before select while keeping the
+  // public contract closed and explicit.
+  let result: { data: unknown[] | null; error: { message: string } | null };
+  switch (table) {
+    case 'logbook_mutations':
+      result = await service.from('logbook_mutations').select(OPERATIONAL_READ_PROJECTIONS.logbook_mutations).order('created_at', { ascending: false }).limit(limit);
+      break;
+    case 'logbook_knowledge':
+      result = await service.from('logbook_knowledge').select(OPERATIONAL_READ_PROJECTIONS.logbook_knowledge).order('created_at', { ascending: false }).limit(limit);
+      break;
+    case 'logbook_signals':
+      result = await service.from('logbook_signals').select(OPERATIONAL_READ_PROJECTIONS.logbook_signals).order('created_at', { ascending: false }).limit(limit);
+      break;
+    case 'mihm_analyses':
+      result = await service.from('mihm_analyses').select(OPERATIONAL_READ_PROJECTIONS.mihm_analyses).order('created_at', { ascending: false }).limit(limit);
+      break;
+  }
+  return { data: result.error ? [] : result.data ?? [], error: result.error?.message ?? null };
 }
