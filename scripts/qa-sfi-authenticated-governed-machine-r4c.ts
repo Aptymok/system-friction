@@ -48,6 +48,12 @@ assert.match(route, /authorizeExternalRequest/, 'must_absorb_existing_oauth_gate
 assert.match(route, /appendEpistemicEvent/, 'must_absorb_existing_event_owner');
 assert.match(route, /streamRecentEpistemicEvents/, 'must_read_existing_lineage_owner');
 assert.match(route, /executeManualCognitiveAgent/, 'must_absorb_existing_cognitive_execution_owner');
+assert.match(adapter, /sfi:\/\/institutional\/context/, 'authenticated_machine_must_expose_compact_institutional_context_resource');
+assert.match(adapter, /readInstitutionalContext/, 'institutional_context_resource_must_delegate_to_bound_reader');
+assert.match(route, /readContinuityDashboard/, 'institutional_context_must_reuse_continuity_owner');
+assert.match(route, /readObservedSfiCognitiveRuntime/, 'institutional_context_must_reuse_observed_cognitive_runtime_owner');
+assert.match(route, /readUniversalOpenCycles/, 'institutional_context_must_reuse_universal_cycle_owner');
+assert.match(route, /SFI-CHATGPT-INSTITUTIONAL-CONTEXT-1\.0/, 'institutional_context_contract_required');
 assert.doesNotMatch(`${adapter}\n${route}`, /createServiceSupabaseClient|create table|sfi_capability_grants/i, 'no_new_grant_or_event_persistence_owner');
 assert.doesNotMatch(adapter, /issueEphemeralCapabilityGrant|mintExternalAccessToken|resolveSfiOAuthClient/, 'adapter_must_not_mint_grants_or_oauth_authority');
 assert.doesNotMatch(adapter, /dispatchQueuedProposal|EXTERNAL_ACTION|EXECUTE_EXTERNAL.*decision/i, 'adapter_must_not_open_external_execution_plane');
@@ -84,6 +90,7 @@ const [manifestMajor, manifestMinor] = manifestVersion.split('.').map(Number);
 assert.ok(manifestMajor > 1 || (manifestMajor === 1 && manifestMinor >= 13), 'manifest_version_must_not_regress_below_r4c');
 assert.match(manifest, /authenticatedMcp: '\/api\/mcp\/authenticated'/, 'manifest_must_discover_authenticated_mcp');
 assert.match(manifest, /SFI-AUTHENTICATED-GOVERNED-MACHINE-ADAPTER-1\.0/, 'manifest_contract_required');
+assert.match(manifest, /SFI-CHATGPT-INSTITUTIONAL-CONTEXT-1\.0/, 'manifest_must_declare_institutional_context_resource');
 assert.match(manifest, /externalRegistryReceipt: null/, 'manifest_must_not_fabricate_external_registry_receipt');
 assert.match(manifest, /claimedPublished: false/, 'manifest_must_not_claim_external_publication');
 

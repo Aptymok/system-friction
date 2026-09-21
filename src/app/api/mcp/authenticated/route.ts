@@ -8,6 +8,9 @@ import {
 import { appendEpistemicEvent, streamRecentEpistemicEvents } from '@/lib/events/eventStore';
 import { capabilityGrantNonceHash } from '@/lib/sfi/cognitive-runtime/capabilityGrant';
 import { executeManualCognitiveAgent } from '@/lib/sfi/cognitive-runtime/manualExecution';
+import { readObservedSfiCognitiveRuntime } from '@/lib/sfi/cognitive-runtime/observedRuntime';
+import { readUniversalOpenCycles } from '@/lib/sfi/universalSignalCycle';
+import { readContinuityDashboard } from '@/lib/continuity/runtime';
 import {
   authorizeExternalRequest,
   externalActor,
@@ -193,6 +196,85 @@ export async function POST(request: Request) {
       requestSource: 'EXTERNAL_API',
       allowLegacyCompatibility: false,
     }),
+    readInstitutionalContext: async () => {
+      const [continuity, cognitive, cycles, recent] = await Promise.all([
+        readContinuityDashboard(),
+        readObservedSfiCognitiveRuntime(),
+        readUniversalOpenCycles(24),
+        streamRecentEpistemicEvents(80),
+      ]);
+      const recentRows = (recent.data ?? []) as Array<Record<string, unknown>>;
+      const compactEvent = (entry: Record<string, unknown>) => ({
+        eventId: typeof entry.event_id === 'string' ? entry.event_id : null,
+        eventName: typeof entry.event_name === 'string' ? entry.event_name : null,
+        epistemicClass: typeof entry.epistemic_class === 'string' ? entry.epistemic_class : null,
+        occurredAt: typeof entry.occurred_at === 'string' ? entry.occurred_at : null,
+        source: entry.source && typeof entry.source === 'object' && !Array.isArray(entry.source) ? entry.source : null,
+      });
+      const state = row(continuity.state);
+      const latestRun = row(Array.isArray(continuity.runs) ? continuity.runs[0] : null);
+      const universalCycles = Array.isArray(cycles.universal) ? cycles.universal : [];
+      return {
+        generatedAt: new Date().toISOString(),
+        contract: 'SFI-CHATGPT-INSTITUTIONAL-CONTEXT-1.0',
+        source: 'PERSISTED_SFI_STATE',
+        principal: {
+          subjectId: principal.subjectId,
+          actorId: principal.actorId,
+          clientId: principal.clientId,
+          tenantId: principal.tenantId,
+          scopes: principal.scopes,
+        },
+        continuity: {
+          mode: state.mode ?? null,
+          lastHeartbeatAt: state.last_heartbeat_at ?? null,
+          lastSuccessfulRunAt: state.last_successful_run_at ?? null,
+          latestRun: Object.keys(latestRun).length ? {
+            id: latestRun.id ?? null,
+            status: latestRun.status ?? null,
+            startedAt: latestRun.started_at ?? null,
+            completedAt: latestRun.completed_at ?? null,
+            healthyCount: latestRun.healthy_count ?? null,
+            degradedCount: latestRun.degraded_count ?? null,
+            failedCount: latestRun.failed_count ?? null,
+          } : null,
+          openIncidentCount: Array.isArray(continuity.incidents) ? continuity.incidents.length : 0,
+          pendingFounderDecisionCount: Array.isArray(continuity.decisions) ? continuity.decisions.length : 0,
+          errors: Array.isArray(continuity.errors) ? continuity.errors : [],
+        },
+        cognitiveRuntime: {
+          status: cognitive.status,
+          summary: cognitive.summary,
+          contract: cognitive.contract,
+          layers: cognitive.layers.map((layer) => ({ id: layer.id, status: layer.status, agents: layer.agents })),
+          agents: cognitive.agents.map((agent) => ({ id: agent.id, layer: agent.layer, status: agent.status, authorityLevel: agent.authorityLevel })),
+        },
+        cycles: {
+          universalCount: universalCycles.length,
+          pendingProposalCount: Array.isArray(cycles.pendingProposals) ? cycles.pendingProposals.length : 0,
+          worldHypothesisCount: Array.isArray(cycles.worldHypotheses) ? cycles.worldHypotheses.length : 0,
+          recent: universalCycles.slice(0, 8).map((cycle) => {
+            const item = row(cycle);
+            return {
+              cycleId: item.cycleId ?? item.id ?? item.logbookId ?? null,
+              objectKey: item.objectKey ?? null,
+              status: item.status ?? null,
+              nextExpectedEvent: item.nextExpectedEvent ?? null,
+              updatedAt: item.updatedAt ?? item.occurredAt ?? null,
+            };
+          }),
+        },
+        recentReturns: recentRows
+          .filter((entry) => typeof entry.event_name === 'string' && entry.event_name.includes('RETURN_RECORDED'))
+          .slice(0, 12)
+          .map(compactEvent),
+        recentMachineExecutions: recentRows
+          .filter((entry) => entry.event_name === 'SFI_MACHINE_EXECUTION_OBSERVED' || entry.event_name === 'SFI_AGENT_EXECUTED')
+          .slice(0, 12)
+          .map(compactEvent),
+        epistemicBoundary: 'Persisted operational state and observed event receipts are exposed as context. A resource read grants no new authority, does not fabricate RETURN, and does not promote institutional learning or canon.',
+      };
+    },
     now: () => new Date(),
   });
 
