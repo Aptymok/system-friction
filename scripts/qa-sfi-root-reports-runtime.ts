@@ -62,6 +62,7 @@ assert.ok(shellUi.includes("label:'DECISIONES'") && shellUi.includes("href:'/roo
 assert.ok(rootUi.includes('/api/root/interactive?surface=root') && rootUi.includes('BASE_CACHE_TTL_MS'), 'ROOT must reuse recent interactive state rather than rehydrate on every return');
 assert.ok(rootUi.includes('SfiFriccionautaPanel'), 'ROOT must mount the existing Friccionauta conversational owner');
 assert.ok(friccionautaUi.includes('/api/root/friccionauta') && friccionautaUi.includes('NO CANON · NO PUBLICATION · NO SILENT EXECUTION'), 'Friccionauta UI must reuse the existing endpoint and show its authority boundary');
+assert.ok(friccionautaUi.includes('continuityPlane') && friccionautaUi.includes('DIVERGENCE OBSERVED'), 'Friccionauta must make the resolved continuity read plane and observed divergence visible to ROOT');
 assert.match(friccionautaApi, /readContinuityDashboard/, 'Friccionauta must consume dual-plane continuity observation');
 assert.match(friccionautaApi, /Never equate newest timestamp with global authority/, 'Friccionauta must preserve continuity owner semantics');
 assert.match(friccionautaApi, /epistemicClass:'INFERRED'/, 'Founder-selected Friccionauta findings must remain inferred');
