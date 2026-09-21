@@ -5,6 +5,7 @@ import { appendAmvLearning, readAmvThoughts } from '@/lib/amv/learning';
 import { createEmbedding } from '@/lib/ai/providerRouter';
 import { compactText, createTrace, text, textScore, tokenize, unique, type AgentTrace } from './utils';
 import { writeInstitutionalMemory } from '@/core/memory/InstitutionalMemoryWriter';
+import { isSfiContinuityConfigured, readContinuityAmvMemory } from '@/lib/sfi/continuityPostgres';
 
 export type AmvOperationalItem = {
   id: string;
@@ -31,6 +32,8 @@ export type AmvOperationalMemory = {
   warnings: string[];
   embedding: { ok: boolean; provider: string; model: string; latency_ms: number } | null;
   trace: AgentTrace;
+  read_plane: 'SUPABASE' | 'NEON' | 'UNAVAILABLE';
+  primary_diagnostic: string | null;
 };
 
 function itemFromRow(row: Record<string, unknown>, index: number): AmvOperationalItem {
@@ -57,7 +60,6 @@ function itemFromRow(row: Record<string, unknown>, index: number): AmvOperationa
 
 async function readDbMemory(limit: number) {
   try {
-
     const service = await import('@/runtime/supabase/server')
       .then((mod) => mod.createServiceSupabaseClient());
 
@@ -71,17 +73,37 @@ async function readDbMemory(limit: number) {
 
     return {
       rows: (Array.isArray(data) ? data : []) as Record<string, unknown>[],
-      warning: null as string | null
+      warning: null as string | null,
+      readPlane: 'SUPABASE' as const,
+      primaryDiagnostic: null as string | null,
     };
-
   } catch (error) {
+    const primaryDiagnostic = error instanceof Error ? error.message : 'unknown';
+    if (isSfiContinuityConfigured()) {
+      try {
+        const continuityRows = await readContinuityAmvMemory(limit);
+        return {
+          rows: (Array.isArray(continuityRows) ? continuityRows : []) as Record<string, unknown>[],
+          warning: null as string | null,
+          readPlane: 'NEON' as const,
+          primaryDiagnostic,
+        };
+      } catch (continuityError) {
+        return {
+          rows: [],
+          warning: `sfi_amv_memory_read_failed:${primaryDiagnostic}; continuity=${continuityError instanceof Error ? continuityError.message : 'continuity_read_failed'}`,
+          readPlane: 'UNAVAILABLE' as const,
+          primaryDiagnostic,
+        };
+      }
+    }
 
     return {
       rows: [],
-      warning:
-        `sfi_amv_memory_read_failed:${error instanceof Error ? error.message : 'unknown'}`
+      warning: `sfi_amv_memory_read_failed:${primaryDiagnostic}`,
+      readPlane: 'UNAVAILABLE' as const,
+      primaryDiagnostic,
     };
-
   }
 }
 
@@ -195,7 +217,7 @@ export async function readAmvOperationalMemory(options: { query?: string | null;
   const trace = createTrace({
     prefix: 'amv',
     sourceInputs: [query ?? 'latest_memory'],
-    toolsUsed: ['sfi_amv_memory', 'amv-local-memory', 'amv-learning', embedding?.ok ? 'embedding-provider' : 'text-search'],
+    toolsUsed: [`sfi_amv_memory:${db.readPlane}`, 'amv-local-memory', 'amv-learning', embedding?.ok ? 'embedding-provider' : 'text-search'],
     providerUsed: embedding?.provider ?? 'degraded',
     evidenceUsed: items.flatMap((item) => item.evidence.length ? item.evidence : [item.id]),
     confidence: items.length ? 0.58 : 0.24,
@@ -223,6 +245,8 @@ export async function readAmvOperationalMemory(options: { query?: string | null;
     warnings: unique(warnings),
     embedding,
     trace,
+    read_plane: db.readPlane,
+    primary_diagnostic: db.primaryDiagnostic,
   };
 }
 
