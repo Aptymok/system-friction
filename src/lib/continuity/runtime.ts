@@ -281,6 +281,12 @@ async function probeCapability(capability: ContinuityCapability, mode: Continuit
 }
 
 export async function runContinuityHeartbeat(trigger = 'scheduled') {
+  const { probePrimaryDataPlane } = await import('@/lib/persistence/dataPlaneRpc');
+  const primaryPhysicalProbe = await probePrimaryDataPlane().catch((error) => ({
+    ok: false as const,
+    status: 0,
+    error: error instanceof Error ? error.message : String(error),
+  }));
   const primaryDb = createServiceSupabaseClient();
   const primaryState = await primaryDb
     .from('sfi_continuity_state')
@@ -292,14 +298,18 @@ export async function runContinuityHeartbeat(trigger = 'scheduled') {
   let stateRow: Row;
   let primaryDiagnostic: string | null = null;
 
-  if (!primaryState.error && primaryState.data) {
+  if (primaryPhysicalProbe.ok && !primaryState.error && primaryState.data) {
     stateRow = primaryState.data as Row;
   } else {
-    primaryDiagnostic = primaryState.error?.message ?? 'primary_continuity_state_missing';
+    primaryDiagnostic = primaryPhysicalProbe.ok
+      ? (primaryState.error?.message ?? 'primary_continuity_state_missing')
+      : `physical_primary_unavailable:status=${primaryPhysicalProbe.status}:error=${primaryPhysicalProbe.error || 'unknown'}`;
     if (!isSfiContinuityConfigured()) {
       throw new Error('continuity_state_unavailable:' + primaryDiagnostic);
     }
-    const fallbackState = await readNeonContinuityHeartbeatState();
+    const fallbackState = !primaryPhysicalProbe.ok && !primaryState.error && primaryState.data
+      ? primaryState.data as Row
+      : await readNeonContinuityHeartbeatState();
     if (!fallbackState) {
       throw new Error('continuity_state_unavailable:primary=' + primaryDiagnostic + ';neon=missing');
     }
@@ -453,6 +463,7 @@ export async function runContinuityHeartbeat(trigger = 'scheduled') {
     results,
     dataPlane,
     primaryDiagnostic,
+    primaryPhysicalProbe,
     primaryMirror,
   };
 }
