@@ -21,6 +21,13 @@ const hourlyContinuity = read('.github/workflows/sfi-continuity-hourly.yml');
 const canonicalTwinMemory = read('src/core/cognitive-twin/canonicalMemoryView.ts');
 const twinState = read('src/core/cognitive-twin/readState.ts');
 const amvAgent = read('src/lib/agents/amvAgent.ts');
+const scorefrictionLab = read('src/app/api/scorefriction/lab/analyze/route.ts');
+
+check('Scorefriction lab persistence uses the canonical systemic data-plane client and does not claim Supabase provenance',
+  scorefrictionLab.includes("createServiceSupabaseClient")
+  && !scorefrictionLab.includes('from "@supabase/supabase-js"')
+  && scorefrictionLab.includes('persistenceSource: "systemic_data_plane"')
+  && !scorefrictionLab.includes('persistenceSource: "supabase"'));
 
 check('current-main access-critical Neon readers are preserved',
   postgres.includes('readContinuityInstitutionalAccountGrantByEmail')
