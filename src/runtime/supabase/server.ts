@@ -3,6 +3,7 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { createClient, type SupabaseClient, type User } from '@supabase/supabase-js';
 import { normalizeSupabaseUrl } from '@/runtime/supabase/url';
 import { readContinuityProfileByEmail } from '@/lib/sfi/continuityPostgres';
+import { createSfiDataPlaneFetch } from '@/lib/persistence/dataPlaneFetch';
 
 export class SfiAuthUnavailableError extends Error {
   constructor(message = 'Supabase Auth is temporarily unavailable.') {
@@ -322,13 +323,15 @@ export function createServiceSupabaseClient() {
     throw new Error('Missing Supabase environment variables for service client');
   }
 
-  return createClient(normalizeSupabaseUrl(supabaseUrl), serviceRoleKey, {
+  const normalizedUrl = normalizeSupabaseUrl(supabaseUrl);
+  return createClient(normalizedUrl, serviceRoleKey, {
     auth: {
       persistSession: false,
       autoRefreshToken: false,
       detectSessionInUrl: false,
     },
     global: {
+      fetch: createSfiDataPlaneFetch(normalizedUrl),
       headers: {
         'X-Client-Info': 'sfi-service-role',
       },

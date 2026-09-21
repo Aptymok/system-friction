@@ -308,6 +308,18 @@ export async function runContinuityHeartbeat(trigger = 'scheduled') {
   }
 
   const mode = stateRow.mode as ContinuityMode;
+  let primaryMirror: { ok: boolean; skipped?: boolean; reason?: string; [key: string]: unknown } = {
+    ok: true,
+    skipped: true,
+    reason: dataPlane === 'NEON' ? 'PRIMARY_UNAVAILABLE' : 'CONTINUITY_NOT_CONFIGURED',
+  };
+
+  if (dataPlane === 'SUPABASE' && mode !== 'EMERGENCY_HALT' && isSfiContinuityConfigured()) {
+    const { flushPrimaryMirror } = await import('@/lib/persistence/primaryMirror');
+    primaryMirror = await flushPrimaryMirror({ maxTransactions: 8 });
+  }
+
+  const primaryMirrorFailed = dataPlane === 'SUPABASE' && primaryMirror.ok !== true;
   let runId: string;
 
   if (dataPlane === 'SUPABASE') {
@@ -352,9 +364,9 @@ export async function runContinuityHeartbeat(trigger = 'scheduled') {
   const degraded = results.filter((item) => item.status === 'DEGRADED' || item.status === 'BLOCKED').length;
   const failed = results.filter((item) => item.status === 'FAILED').length;
   const criticalFailures = results.filter((item) => item.status === 'FAILED' && item.capability.critical);
-  const finalStatus = mode === 'EMERGENCY_HALT' ? 'HALTED' : criticalFailures.length ? 'DEGRADED' : failed ? 'DEGRADED' : 'COMPLETED';
+  const finalStatus = mode === 'EMERGENCY_HALT' ? 'HALTED' : primaryMirrorFailed || criticalFailures.length ? 'DEGRADED' : failed ? 'DEGRADED' : 'COMPLETED';
 
-  const incidents = criticalFailures.map((item) => ({
+  const incidents: Array<{ severity: string; capability_id: string | null; title: string; error_code: string; evidence: unknown[]; requires_founder: boolean }> = criticalFailures.map((item) => ({
     severity: 'P1',
     capability_id: item.capability.id,
     title: item.capability.name + ' failed its continuity probe',
@@ -362,6 +374,16 @@ export async function runContinuityHeartbeat(trigger = 'scheduled') {
     evidence: [{ runId, latencyMs: item.latencyMs, probePath: item.capability.probePath, dataPlane }],
     requires_founder: false,
   }));
+  if (primaryMirrorFailed) {
+    incidents.push({
+      severity: 'P1',
+      capability_id: null,
+      title: 'Systemic data-plane primary mirror is not certified',
+      error_code: typeof primaryMirror.error === 'string' ? primaryMirror.error : 'primary_mirror_not_certified',
+      evidence: [{ runId, dataPlane, primaryMirror }],
+      requires_founder: false,
+    });
+  }
 
   if (incidents.length) {
     if (dataPlane === 'SUPABASE') {
@@ -371,15 +393,21 @@ export async function runContinuityHeartbeat(trigger = 'scheduled') {
     }
   }
 
-  const evidence = results.map((item) => ({
-    capabilityId: item.capability.id,
-    status: item.status,
-    latencyMs: item.latencyMs,
-    dataPlane,
-  }));
-  const errors = results
-    .filter((item) => item.errorCode)
-    .map((item) => ({ capabilityId: item.capability.id, code: item.errorCode, dataPlane }));
+  const evidence = [
+    ...results.map((item) => ({
+      capabilityId: item.capability.id,
+      status: item.status,
+      latencyMs: item.latencyMs,
+      dataPlane,
+    })),
+    { capabilityId: 'systemic_data_plane_primary_mirror', status: primaryMirrorFailed ? 'FAILED' : 'OPERATIONAL', dataPlane, primaryMirror },
+  ];
+  const errors = [
+    ...results
+      .filter((item) => item.errorCode)
+      .map((item) => ({ capabilityId: item.capability.id, code: item.errorCode, dataPlane })),
+    ...(primaryMirrorFailed ? [{ capabilityId: 'systemic_data_plane_primary_mirror', code: typeof primaryMirror.error === 'string' ? primaryMirror.error : 'primary_mirror_not_certified', dataPlane }] : []),
+  ];
 
   if (dataPlane === 'SUPABASE') {
     await primaryDb.from('sfi_continuity_runs').update({
@@ -395,7 +423,7 @@ export async function runContinuityHeartbeat(trigger = 'scheduled') {
 
     await primaryDb.from('sfi_continuity_state').update({
       last_heartbeat_at: new Date().toISOString(),
-      last_successful_run_at: criticalFailures.length ? stateRow.last_successful_run_at : new Date().toISOString(),
+      last_successful_run_at: criticalFailures.length || primaryMirrorFailed ? stateRow.last_successful_run_at : new Date().toISOString(),
       updated_at: new Date().toISOString(),
     }).eq('id', 'institution');
   } else {
@@ -425,6 +453,7 @@ export async function runContinuityHeartbeat(trigger = 'scheduled') {
     results,
     dataPlane,
     primaryDiagnostic,
+    primaryMirror,
   };
 }
 

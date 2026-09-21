@@ -27,6 +27,43 @@ function hasOpenUniversalCycle(events: Row[]) {
   return [...latestByLogbook.values()].some((eventName) => eventName !== 'SFI_UNIVERSAL_CYCLE_CLOSED');
 }
 
+async function readMirrorMaintenanceRequirement() {
+  if (!isSfiContinuityConfigured()) {
+    return { required: false as const, configured: false as const, state: null, diagnostic: null };
+  }
+
+  try {
+    const { readDataPlaneState } = await import('@/lib/persistence/dataPlaneContinuityStore');
+    const state = await readDataPlaneState();
+    const verifiedAt = state.primary_mirror_verified_at ? Date.parse(state.primary_mirror_verified_at) : Number.NaN;
+    const stale = !Number.isFinite(verifiedAt) || (Date.now() - verifiedAt) > 60 * 60 * 1000;
+    const required = state.mode === 'PRIMARY' && (
+      state.primary_mirror_certified !== true
+      || Number(state.primary_mirror_backlog ?? 0) > 0
+      || stale
+    );
+    return {
+      required,
+      configured: true as const,
+      state: {
+        mode: state.mode,
+        certified: state.primary_mirror_certified,
+        verifiedAt: state.primary_mirror_verified_at,
+        backlog: Number(state.primary_mirror_backlog ?? 0),
+        stale,
+      },
+      diagnostic: null,
+    };
+  } catch (error) {
+    return {
+      required: true as const,
+      configured: true as const,
+      state: null,
+      diagnostic: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
 export async function readContinuityActionableWorkGate(input?: { requestedCycleId?: string | null }) {
   const requestedCycleId = input?.requestedCycleId?.trim() || null;
   if (requestedCycleId) {
@@ -38,6 +75,7 @@ export async function readContinuityActionableWorkGate(input?: { requestedCycleI
     };
   }
 
+  const mirrorMaintenance = await readMirrorMaintenanceRequirement();
   const db = createServiceSupabaseClient();
   const [state, proposals, cases, lifecycle, studio] = await Promise.all([
     db.from('sfi_continuity_state').select('mode').eq('id', 'institution').maybeSingle(),
@@ -65,12 +103,15 @@ export async function readContinuityActionableWorkGate(input?: { requestedCycleI
           const openUniversalCycle = fallback?.open_universal_cycle === true;
           const activeStudioExperiment = fallback?.active_studio_experiment === true;
           const nonNormalContinuityMode = continuityMode !== 'NORMAL';
-          const shouldRun = activeProposal || activeCase || openUniversalCycle || activeStudioExperiment || nonNormalContinuityMode;
+          const mirrorMaintenanceRequired = mirrorMaintenance.required;
+          const shouldRun = activeProposal || activeCase || openUniversalCycle || activeStudioExperiment || nonNormalContinuityMode || mirrorMaintenanceRequired;
           return {
             shouldRun,
-            reason: shouldRun
-              ? 'ACTIONABLE_CONTINUITY_WORK_NEON_FALLBACK' as const
-              : 'IDLE_NO_ACTIONABLE_WORK_NEON_FALLBACK' as const,
+            reason: mirrorMaintenanceRequired
+              ? 'DATA_PLANE_MIRROR_MAINTENANCE_REQUIRED' as const
+              : shouldRun
+                ? 'ACTIONABLE_CONTINUITY_WORK_NEON_FALLBACK' as const
+                : 'IDLE_NO_ACTIONABLE_WORK_NEON_FALLBACK' as const,
             requestedCycleId: null,
             dataPlane: 'NEON' as const,
             state: {
@@ -79,6 +120,8 @@ export async function readContinuityActionableWorkGate(input?: { requestedCycleI
               activeCase,
               openUniversalCycle,
               activeStudioExperiment,
+              mirrorMaintenanceRequired,
+              mirrorMaintenance,
             },
             primaryDiagnostic: readError
               ? { code: readError.code ?? null, message: readError.message }
@@ -125,11 +168,14 @@ export async function readContinuityActionableWorkGate(input?: { requestedCycleI
   const openUniversalCycle = hasOpenUniversalCycle(((lifecycle.data ?? []) as Row[]));
   const activeStudioExperiment = (studio.data ?? []).length > 0;
   const nonNormalContinuityMode = continuityMode !== 'NORMAL';
-  const shouldRun = activeProposal || activeCase || openUniversalCycle || activeStudioExperiment || nonNormalContinuityMode;
+  const mirrorMaintenanceRequired = mirrorMaintenance.required;
+  const shouldRun = activeProposal || activeCase || openUniversalCycle || activeStudioExperiment || nonNormalContinuityMode || mirrorMaintenanceRequired;
 
   return {
     shouldRun,
-    reason: shouldRun ? 'ACTIONABLE_CONTINUITY_WORK' as const : 'IDLE_NO_ACTIONABLE_WORK' as const,
+    reason: mirrorMaintenanceRequired
+      ? 'DATA_PLANE_MIRROR_MAINTENANCE_REQUIRED' as const
+      : shouldRun ? 'ACTIONABLE_CONTINUITY_WORK' as const : 'IDLE_NO_ACTIONABLE_WORK' as const,
     requestedCycleId: null,
     state: {
       continuityMode,
@@ -137,6 +183,8 @@ export async function readContinuityActionableWorkGate(input?: { requestedCycleI
       activeCase,
       openUniversalCycle,
       activeStudioExperiment,
+      mirrorMaintenanceRequired,
+      mirrorMaintenance,
     },
   };
 }
