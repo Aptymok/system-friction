@@ -548,6 +548,18 @@ export const SFI_OBSERVATION_KAVAK: SfiEditorialPublication = Object.freeze({
   epistemicBoundary: SHARED_OBSERVATION_BOUNDARY,
 });
 
+const SFI_REALITY_CHAIN_RENDITIONS: readonly SfiEditorialPublicationRendition[] = Object.freeze([
+  {
+    kind: 'PDF',
+    mediaType: 'application/pdf',
+    filename: 'SFI-FB-PS-2026-09-002-PUB-V1.0_THE_REALITY_CHAIN_EN.pdf',
+    byteLength: 10174948,
+    sha256: 'c169d7674b2934083c26e1fd1b7f33eaecf13fbd3ab1588f068471c9a3cbacae',
+    publicUrl: null,
+    state: 'IDENTIFIED',
+  },
+]);
+
 export const SFI_REALITY_CHAIN_BRIEF: SfiEditorialPublication = Object.freeze({
   contract: SFI_EDITORIAL_PUBLICATION_CONTENT_CONTRACT,
   canonicalId: 'SFI-PUB-FB-002',
@@ -573,17 +585,7 @@ export const SFI_REALITY_CHAIN_BRIEF: SfiEditorialPublication = Object.freeze({
     { id: 'six-integrities', src: '/images/editorial/reality-chain/reality-chain-six-integrities.svg', alt: 'Six integrities of institutional evidence: capture, transformation, context, inference, authority and RETURN.', caption: 'SIX INTEGRITIES · A reconstructable chain from reality to accountability.' },
   ]),
   contentState: 'MATERIALIZED',
-  renditions: Object.freeze([
-    {
-      kind: 'PDF',
-      mediaType: 'application/pdf',
-      filename: 'SFI-FB-PS-2026-09-002-PUB-V1.0_THE_REALITY_CHAIN_EN.pdf',
-      byteLength: 10174948,
-      sha256: 'c169d7674b2934083c26e1fd1b7f33eaecf13fbd3ab1588f068471c9a3cbacae',
-      publicUrl: null,
-      state: 'IDENTIFIED',
-    },
-  ]),
+  renditions: SFI_REALITY_CHAIN_RENDITIONS,
   sections: Object.freeze([
     {
       id: 'abstract',
