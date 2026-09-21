@@ -28,6 +28,9 @@ const worldReobserveRoute = read('src/app/api/field/map/world/reobserve/route.ts
 const ingestReadRoute = read('src/app/api/ingest/read/route.ts');
 const signalsReadRoute = read('src/app/api/signals/read/route.ts');
 const operationalSnapshotRoute = read('src/app/api/sfi/operational-snapshot/route.ts');
+const cognitiveLabService = read('src/lib/cognitive-lab/service.ts');
+const sfiAssetsService = read('src/lib/server/sfiAssets.ts');
+const nodeBootstrapRoute = read('src/app/api/node/bootstrap/route.ts');
 const operationalCommon = read('src/lib/operational/common.ts');
 const rootServer = read('src/lib/root/server.ts');
 
@@ -62,6 +65,15 @@ check('proposal type filtering is pushed into the data plane instead of over-fet
 check('root audit mutation returns only the identifier required for epistemic lineage',
   rootServer.includes(".from('root_audit_events')")
   && rootServer.includes(".select('id')"));
+
+check('Cognitive Lab execution reads use explicit semantic contracts even when up to 500 events are required',
+  cognitiveLabService.includes(".select('id,session_key,title,objective,condition,status,technology_nodes,human_nodes,baseline_session_id,metadata,created_by,started_at,ended_at,created_at,updated_at')")
+  && cognitiveLabService.includes(".select('id,session_id,event_kind,provenance,actor_key,relation_from,relation_to,payload,evidence_refs,source_ref,occurred_at,created_by,created_at')"));
+
+check('node bootstrap requests asset summaries without four historical child collections',
+  sfiAssetsService.includes("options: { includeHistory?: boolean } = {}")
+  && sfiAssetsService.includes("options.includeHistory === false")
+  && nodeBootstrapRoute.includes("loadSfiAssets(ctx, { includeHistory: false })"));
 
 check('current-main access-critical Neon readers are preserved',
   postgres.includes('readContinuityInstitutionalAccountGrantByEmail')
