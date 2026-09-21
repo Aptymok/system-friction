@@ -64,9 +64,12 @@ assert.ok(rootUi.includes('SfiFriccionautaPanel'), 'ROOT must mount the existing
 assert.ok(friccionautaUi.includes('/api/root/friccionauta') && friccionautaUi.includes('NO CANON · NO PUBLICATION · NO SILENT EXECUTION'), 'Friccionauta UI must reuse the existing endpoint and show its authority boundary');
 assert.ok(friccionautaUi.includes('continuityPlane') && friccionautaUi.includes('DIVERGENCE OBSERVED'), 'Friccionauta must make the resolved continuity read plane and observed divergence visible to ROOT');
 assert.ok(friccionautaUi.includes('twinMemoryPlane') && friccionautaUi.includes('twinRuntimePlane') && friccionautaUi.includes('amvPlane'), 'Friccionauta must expose Twin memory/runtime and AMV read planes');
+assert.ok(friccionautaUi.includes('worldLatestPlane') && friccionautaUi.includes('worldHistoryPlane'), 'Friccionauta must expose World Vector latest/history read planes separately');
 assert.match(friccionautaApi, /observationPlanes/, 'Friccionauta must persist and return observation-plane receipts');
 assert.match(friccionautaApi, /read_cognitive_twin:memory=/, 'Friccionauta envelope must record Cognitive Twin read planes');
 assert.match(friccionautaApi, /read_amv:\$\{observationPlanes\.amv\}/, 'Friccionauta envelope must record AMV read plane');
+assert.match(friccionautaApi, /read_world_vector:latest=\$\{observationPlanes\.worldVector\.latest\.plane\}:history=\$\{observationPlanes\.worldVector\.history\.plane\}/, 'Friccionauta envelope must record separate World Vector latest/history planes');
+assert.match(friccionautaApi, /Latest snapshot and history may come from different planes/, 'Friccionauta must not collapse mixed World Vector provenance into one authority claim');
 assert.match(friccionautaApi, /readContinuityDashboard/, 'Friccionauta must consume dual-plane continuity observation');
 assert.match(friccionautaApi, /Never equate newest timestamp with global authority/, 'Friccionauta must preserve continuity owner semantics');
 assert.match(friccionautaApi, /epistemicClass:'INFERRED'/, 'Founder-selected Friccionauta findings must remain inferred');
