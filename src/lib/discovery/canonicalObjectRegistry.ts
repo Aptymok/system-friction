@@ -1,6 +1,6 @@
 import type { PublicationStatus } from '../system/contracts';
 import { SFI_PUBLIC_PROFILE } from '../public/institutionProfile';
-import { SFI_EDITORIAL_OBSERVATIONS, SFI_REALITY_CHAIN_BRIEF } from '../publications/editorialContent';
+import { SFI_EDITORIAL_OBSERVATIONS, SFI_REALITY_CHAIN_BRIEF, SFI_YEARS_THAT_DID_EXIST_LAB_NOTE } from '../publications/editorialContent';
 
 export const SFI_CANONICAL_OBJECT_CONTRACT = 'SFI-CANONICAL-OBJECT-1.0' as const;
 export const SFI_CANONICAL_NAMESPACE_CONTRACT = 'SFI-CANONICAL-NAMESPACE-1.0' as const;
@@ -373,6 +373,7 @@ const EDITORIAL_PUBLICATIONS_SOURCE = 'https://github.com/Aptymok/system-frictio
 const NOTAS_TEMPORALES_SOURCE = EDITORIAL_PUBLICATIONS_SOURCE;
 const REALITY_CHAIN_EDITORIAL_SOURCE = 'https://github.com/Aptymok/system-friction/blob/main/src/lib/publications/editorialContent.ts';
 const REALITY_CHAIN_PDF_SOURCE = 'https://drive.google.com/file/d/1JVhlwdjyagNCx5UhUVmRMFQXsQPTmeyc/view?usp=drivesdk';
+const YEARS_THAT_DID_EXIST_PDF_SOURCE = 'https://drive.google.com/file/d/1QX1ulmXiWJFZU6GDVdeDxUsf0_PanCa3/view?usp=drivesdk';
 
 function canonicalObservationPublication(publication: (typeof SFI_EDITORIAL_OBSERVATIONS)[number]): SfiCanonicalObjectRecord {
   const sourceRefs = publication.mediumUrl
@@ -534,6 +535,55 @@ export const SFI_CANONICAL_OBJECT_REGISTRY: readonly SfiCanonicalObjectRecord[] 
     ],
     missing: [],
   },
+  {
+    contract: SFI_CANONICAL_OBJECT_CONTRACT,
+    id: SFI_YEARS_THAT_DID_EXIST_LAB_NOTE.canonicalId,
+    objectKey: canonicalObjectKey('PUBLICATION', SFI_YEARS_THAT_DID_EXIST_LAB_NOTE.slug),
+    objectType: 'PUBLICATION',
+    slug: SFI_YEARS_THAT_DID_EXIST_LAB_NOTE.slug,
+    canonicalUrl: canonicalUrlFor('PUBLICATION', SFI_YEARS_THAT_DID_EXIST_LAB_NOTE.slug),
+    title: SFI_YEARS_THAT_DID_EXIST_LAB_NOTE.title,
+    summary: SFI_YEARS_THAT_DID_EXIST_LAB_NOTE.deck,
+    bodyRef: 'src/lib/publications/editorialContent.ts#SFI_YEARS_THAT_DID_EXIST_LAB_NOTE',
+    epistemicState: 'DERIVED',
+    version: '1.0',
+    language: SFI_YEARS_THAT_DID_EXIST_LAB_NOTE.language,
+    authors: ['System Friction Institute'],
+    methods: ['Public-source historical synthesis', 'Falsification', 'Comparative case audit', 'Holdout stress testing'],
+    relatedObjects: [],
+    sourceRefs: [REALITY_CHAIN_EDITORIAL_SOURCE, YEARS_THAT_DID_EXIST_PDF_SOURCE],
+    publicState: 'PUBLIC',
+    license: 'CC BY 4.0',
+    createdAt: SFI_YEARS_THAT_DID_EXIST_LAB_NOTE.publishedAt,
+    updatedAt: SFI_YEARS_THAT_DID_EXIST_LAB_NOTE.publishedAt,
+    entity: {
+      entityId: SFI_ENTITY_ID,
+      relation: 'PUBLISHED_BY',
+    },
+    publication: {
+      state: 'PUBLISHED',
+      explicit: true,
+    },
+    eligibility: {
+      privacyClass: 'PUBLIC',
+      publicEligible: true,
+      securityEligible: true,
+    },
+    rights: {
+      state: 'OPEN',
+    },
+    evidenceIdentity: {
+      state: 'VALID',
+      refs: [REALITY_CHAIN_EDITORIAL_SOURCE, YEARS_THAT_DID_EXIST_PDF_SOURCE],
+    },
+    limitations: [
+      'The strong literal Phantom Time chronology claim is rejected; the paper does not validate every medieval documentary attribution.',
+      'CH-EW, RCF and ASC are analytical constructs developed during the investigation and are not validated predictive instruments.',
+      'The comparative sample is retrospective and the framework requires independent coding and preregistered validation before predictive use.',
+    ],
+    missing: [],
+  },
+
   ...SFI_EDITORIAL_OBSERVATIONS.map(canonicalObservationPublication),
 ]);
 
