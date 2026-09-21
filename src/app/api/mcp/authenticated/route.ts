@@ -247,7 +247,7 @@ export async function POST(request: Request) {
           summary: cognitive.summary,
           contract: cognitive.contract,
           layers: cognitive.layers.map((layer) => ({ id: layer.id, status: layer.status, agents: layer.agents })),
-          agents: cognitive.agents.map((agent) => ({ id: agent.id, layer: agent.layer, status: agent.status, authorityLevel: agent.authorityLevel, lastExecutedAt: agent.lastExecutedAt ?? null })),
+          agents: cognitive.agents.map((agent) => ({ id: agent.id, layer: agent.layer, status: agent.status, authorityLevel: agent.authorityLevel })),
         },
         cycles: {
           universalCount: universalCycles.length,
