@@ -11,7 +11,7 @@ export async function GET() {
   let nodeError = null;
   const { data: nodes, error: selectNodeError } = await ctx.service
     .from('nodes')
-    .select('*')
+    .select('id,source,user_id,alias,objective,current_ihg,current_nti,current_ldi,current_severity,active_pattern,created_at,updated_at,last_sync')
     .eq('user_id', ctx.user.id)
     .order('created_at', { ascending: false })
     .limit(1);
@@ -23,7 +23,7 @@ export async function GET() {
     const { data, error } = await ctx.service
       .from('nodes')
       .insert({ user_id: ctx.user.id, source: 'web', current_ihg: 0.52, current_nti: 0.48, current_ldi: 1.12 })
-      .select('*')
+      .select('id,source,user_id,alias,objective,current_ihg,current_nti,current_ldi,current_severity,active_pattern,created_at,updated_at,last_sync')
       .single();
     node = data;
     nodeError = error;
@@ -37,25 +37,25 @@ export async function GET() {
     ? await Promise.all([
         ctx.service
           .from('audits')
-          .select('*')
+          .select('id,node_id,source,narrative,ihg,nti,ldi,verdict,diagnosis,loop_score,divergence,pattern,hard_stop,proposed_action,created_at,whatsapp_session_id')
           .eq('node_id', node.id)
           .order('created_at', { ascending: false })
           .limit(20),
         ctx.service
           .from('memory_facts')
-          .select('*')
+          .select('id,node_id,audit_id,fact_type,label,value,confidence,first_seen_at,last_seen_at,recurrence_count')
           .eq('node_id', node.id)
           .order('last_seen_at', { ascending: false })
           .limit(30),
         ctx.service
           .from('actions')
-          .select('*')
+          .select('id,node_id,audit_id,description,verification_criterion,due_at,completed_at,status,action_type,metadata,created_at')
           .eq('node_id', node.id)
           .order('created_at', { ascending: false })
           .limit(30),
         ctx.service
           .from('licenses')
-          .select('*')
+          .select('status,product_key')
           .eq('user_id', ctx.user.id)
           .order('created_at', { ascending: false })
           .limit(1),
