@@ -36,6 +36,8 @@ const nodeBootstrapRoute = read('src/app/api/node/bootstrap/route.ts');
 const mutationProposeRoute = fs.readFileSync(path.join(process.cwd(), 'src/app/api/mutations/propose/route.ts'), 'utf8');
 const mutationCloseRoute = fs.readFileSync(path.join(process.cwd(), 'src/app/api/root/mutations/[id]/close/route.ts'), 'utf8');
 const rootContinuityRoute = fs.readFileSync(path.join(process.cwd(), 'src/app/api/root/continuity/route.ts'), 'utf8');
+const rootDecisionsRoute = fs.readFileSync(path.join(process.cwd(), 'src/app/api/root/decisions/route.ts'), 'utf8');
+const rootCognitiveTwinRoute = fs.readFileSync(path.join(process.cwd(), 'src/app/api/root/cognitive-twin/route.ts'), 'utf8');
 const operationalCommon = read('src/lib/operational/common.ts');
 const rootServer = read('src/lib/root/server.ts');
 
@@ -121,6 +123,13 @@ check('ROOT continuity state uses the schema-backed singleton DTO',
   rootContinuityRoute.includes(".select('id,mode,founder_available,activated_at,expected_return_at,last_heartbeat_at,last_successful_run_at,last_report_at,halt_reason,metadata,updated_at')")
   && !rootContinuityRoute.includes("sfi_continuity_state').select('*')")
   && !rootContinuityRoute.includes("sfi_continuity_state').update(patch).eq('id', 'institution').select('*')"));
+
+check('ROOT sovereign decision queue uses explicit authority-preserving DTOs',
+  rootDecisionsRoute.includes(".select('id,proposal_type,title,description,status,expected_field_delta,proportionality_check,outcome,created_at')")
+  && rootDecisionsRoute.includes(".select('id,decision_id,situation,rejected_condition,correct_state,general_rule,required_evidence,evidence_refs,status,approved_by,approved_at,created_by,decision_kind,created_at,updated_at')")
+  && !rootDecisionsRoute.includes(".select('*')")
+  && rootCognitiveTwinRoute.includes(".select('id,decision_id,situation,rejected_condition,correct_state,general_rule,required_evidence,evidence_refs,status,approved_by,approved_at,created_by,decision_kind,created_at,updated_at')")
+  && !rootCognitiveTwinRoute.includes(".select('*')"));
 
 check('current-main access-critical Neon readers are preserved',
   postgres.includes('readContinuityInstitutionalAccountGrantByEmail')

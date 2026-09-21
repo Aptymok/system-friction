@@ -20,8 +20,8 @@ function founderRuleDecisionClass(row: Row) {
 
 async function readQueue(service: any) {
   const [proposals, decisions] = await Promise.all([
-    service.from('action_proposals').select('*').order('created_at', { ascending: false }).limit(160),
-    service.from('sfi_cognitive_twin_decisions').select('*').order('created_at', { ascending: false }).limit(100),
+    service.from('action_proposals').select('id,proposal_type,title,description,status,expected_field_delta,proportionality_check,outcome,created_at').order('created_at', { ascending: false }).limit(160),
+    service.from('sfi_cognitive_twin_decisions').select('id,decision_id,situation,rejected_condition,correct_state,general_rule,required_evidence,evidence_refs,status,approved_by,approved_at,created_by,decision_kind,created_at,updated_at').order('created_at', { ascending: false }).limit(100),
   ]);
 
   const proposalRows = (proposals.data ?? []).filter((row: Row) => {
@@ -79,7 +79,7 @@ export async function POST(request: Request) {
   let decisionClass: string | null = null;
 
   if (kind === 'proposal') {
-    const current = await gate.ctx.service.from('action_proposals').select('*').eq('id', id).single();
+    const current = await gate.ctx.service.from('action_proposals').select('id,proposal_type,title,description,status,expected_field_delta,proportionality_check,outcome,created_at').eq('id', id).single();
     if (current.error || !current.data) return NextResponse.json({ ok: false, error: current.error?.message ?? 'proposal_not_found' }, { status: 404 });
     decisionClass = classifyProposalDecisionBoundary(current.data as Row);
     if (decisionClass === 'OPERATIONAL_WORK') {
@@ -98,7 +98,7 @@ export async function POST(request: Request) {
     });
     if (!write.ok) return NextResponse.json(write, { status: 409 });
   } else if (kind === 'founder_rule') {
-    const current = await gate.ctx.service.from('sfi_cognitive_twin_decisions').select('*').eq('id', id).single();
+    const current = await gate.ctx.service.from('sfi_cognitive_twin_decisions').select('id,decision_id,situation,rejected_condition,correct_state,general_rule,required_evidence,evidence_refs,status,approved_by,approved_at,created_by,decision_kind,created_at,updated_at').eq('id', id).single();
     if (current.error || !current.data) return NextResponse.json({ ok: false, error: current.error?.message ?? 'founder_rule_not_found' }, { status: 404 });
     decisionClass = founderRuleDecisionClass(current.data as Row);
     if (!decisionClass) {
@@ -110,7 +110,7 @@ export async function POST(request: Request) {
       approved_by: decision === 'accept' ? gate.ctx.user.id : null,
       approved_at: decision === 'accept' ? new Date().toISOString() : null,
       updated_at: new Date().toISOString(),
-    }).eq('id', id).select('*').single();
+    }).eq('id', id).select('id,decision_id,situation,rejected_condition,correct_state,general_rule,required_evidence,evidence_refs,status,approved_by,approved_at,created_by,decision_kind,created_at,updated_at').single();
   } else if (kind === 'report') {
     return NextResponse.json({
       ok: false,
