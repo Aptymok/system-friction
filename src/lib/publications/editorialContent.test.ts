@@ -41,8 +41,8 @@ test('The Reality Chain is a public English Friction Brief with a complete visua
   assert.equal(SFI_REALITY_CHAIN_BRIEF.coverImage, '/images/editorial/reality-chain/reality-chain-cover.svg');
   assert.equal(SFI_REALITY_CHAIN_BRIEF.visuals.length, 5);
   assert.equal(SFI_REALITY_CHAIN_BRIEF.renditions[0]?.kind, 'PDF');
-  assert.equal(SFI_REALITY_CHAIN_BRIEF.renditions[0]?.state, 'PUBLIC');
-  assert.equal(SFI_REALITY_CHAIN_BRIEF.renditions[0]?.publicUrl, 'https://drive.google.com/file/d/1JVhlwdjyagNCx5UhUVmRMFQXsQPTmeyc/view?usp=drivesdk');
+  assert.equal(SFI_REALITY_CHAIN_BRIEF.renditions[0]?.state, 'IDENTIFIED');
+  assert.equal(SFI_REALITY_CHAIN_BRIEF.renditions[0]?.publicUrl, null);
   assert.ok(SFI_REALITY_CHAIN_BRIEF.sections.length >= 8);
   assert.ok(SFI_REALITY_CHAIN_BRIEF.epistemicBoundary.some((item) => /extraterrestrial/i.test(item)));
 });
