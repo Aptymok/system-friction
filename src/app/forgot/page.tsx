@@ -13,14 +13,19 @@ export default async function ForgotPasswordPage({
     <main className="login">
       <form action={forgotPasswordAction}>
         <div className="sigil">SFI.</div>
-        <h1>Restablecer acceso</h1>
-        <p>Escribe el correo de tu cuenta institucional. Si existe en la capa de continuidad, recibirás un enlace seguro para definir una contraseña.</p>
+        <h1>Recuperar acceso</h1>
+        <p className="loginLead">Escribe el correo de tu cuenta SFI. Si la cuenta puede recibir correo, enviaremos un enlace seguro para definir una contraseña válida.</p>
         <input name="email" type="email" placeholder="correo" autoComplete="email" required />
         <button>ENVIAR ENLACE</button>
-        {state === 'sent' ? <small>Si la cuenta existe, el enlace fue solicitado. Revisa tu correo.</small> : null}
-        {error === 'rate_limit' ? <small>Hubo demasiados intentos seguidos. Inténtalo nuevamente más tarde.</small> : null}
-        {error === 'auth_unavailable' ? <small>El servicio de acceso de continuidad no está disponible en este momento.</small> : null}
-        <small><a href="/login">Volver al acceso</a></small>
+
+        {state === 'sent' ? <div className="authNotice">Si la cuenta existe, el enlace fue solicitado. Revisa tu correo.</div> : null}
+        {error === 'rate_limit' ? <div className="authMessage">Hubo demasiados intentos seguidos. Inténtalo nuevamente más tarde.</div> : null}
+        {error === 'auth_unavailable' ? <div className="authMessage">El sistema de acceso no pudo procesar la recuperación en este momento.</div> : null}
+
+        <div className="loginSupport">
+          <a href="/login">Volver al acceso</a>
+          <a className="loginSupportSecondary" href="/continuity-access">No tengo acceso al correo institucional</a>
+        </div>
       </form>
     </main>
   );
