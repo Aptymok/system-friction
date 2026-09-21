@@ -39,7 +39,7 @@ export async function POST() {
           ? `${stability.stability_regime}: ${pipeline.interpretation ?? 'not enough trace'}`
           : 'not enough trace',
       })
-      .select('*')
+      .select('id,created_at,signal_events,technical_events,signal_ratio,technical_ratio,operational_regime,worldspect_snapshots,scorefriction_observations,scorefriction_vectors,proposals_approved,executions_prepared,outcomes_recorded,internal_evidence_count,external_evidence_count,interpretation')
       .single();
     if (error) throw error;
     return NextResponse.json({ ok: true, data });
