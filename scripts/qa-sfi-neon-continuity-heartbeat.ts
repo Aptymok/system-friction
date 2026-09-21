@@ -60,9 +60,11 @@ check('bounded read models project only fields they consume on high-frequency in
 check('operational snapshot write-return avoids wildcard row transfer',
   !operationalSnapshotRoute.includes(".select('*')"));
 
-check('proposal type filtering is pushed into the data plane instead of over-fetching then filtering in memory',
-  operationalCommon.includes("query.in('proposal_type', proposalTypes)")
-  && !operationalCommon.includes("rows.filter((row)"));
+check('proposal type filtering remains bounded while preserving legacy nested proposal-type compatibility',
+  operationalCommon.includes("const candidateLimit = proposalTypes?.length ? Math.max(limit * 4, 80) : limit")
+  && operationalCommon.includes("const proposalType = proposalTypeFrom(row)")
+  && operationalCommon.includes("return { data: filtered.slice(0, limit), error: null }")
+  && !operationalCommon.includes("query.in('proposal_type', proposalTypes)"));
 
 check('root audit mutation returns only the identifier required for epistemic lineage',
   rootServer.includes(".from('root_audit_events')")
