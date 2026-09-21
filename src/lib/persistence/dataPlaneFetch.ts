@@ -4,9 +4,15 @@ const FAILOVER_STATUSES = new Set([502, 503, 504, 521, 522, 523, 524]);
 const READ_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 let cachedState: { value: SfiDataPlaneState; expiresAt: number } | null = null;
 
-function continuityDataApiUrl() {
-  const value = (process.env.SFI_NEON_DATA_API_URL || '').trim().replace(/\/$/, '');
-  return value || null;
+async function continuityDataApiUrl() {
+  const explicit = process.env.SFI_NEON_DATA_API_URL?.trim().replace(/\/$/, '') || null;
+  if (explicit) return explicit;
+  try {
+    const { sfiNeonDataApiUrl } = await import('@/lib/persistence/dataPlaneConfig');
+    return sfiNeonDataApiUrl();
+  } catch {
+    return null;
+  }
 }
 
 function normalizedOrigin(value: string) {
@@ -49,7 +55,7 @@ async function restrictedPrimary(response: Response) {
 }
 
 async function continuityFetch(request: Request, state: SfiDataPlaneState) {
-  const base = continuityDataApiUrl();
+  const base = await continuityDataApiUrl();
   if (!base) throw new Error('SFI_NEON_DATA_API_URL_NOT_CONFIGURED');
 
   const source = new URL(request.url);
@@ -97,7 +103,7 @@ export function createSfiDataPlaneFetch(primarySupabaseUrl: string): typeof fetc
       return fetch(request);
     }
 
-    const continuityUrl = continuityDataApiUrl();
+    const continuityUrl = await continuityDataApiUrl();
     const snapshot = continuityUrl ? await stateSnapshot() : null;
     if (snapshot && snapshot.mode !== 'PRIMARY') {
       return continuityFetch(request, snapshot);
