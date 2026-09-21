@@ -1,6 +1,5 @@
 // src/runtime/layers/IntentLayer.ts
-import { createClient } from '@supabase/supabase-js';
-import { normalizeSupabaseUrl } from '@/runtime/supabase/url';
+import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { emitEpistemicEvent } from '@/core/memory/epistemicEventWriter';
 import { processEpistemicEvent } from '@/core/memory/institutionalEventPipeline';
 
@@ -12,20 +11,9 @@ export type Intent = {
   isActive: boolean;
 };
 
-function runtimeServiceClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
-  return createClient(normalizeSupabaseUrl(supabaseUrl), supabaseKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  });
-}
-
 // Solo lectura de intenciones activas
 export async function getActiveIntent(nodeId: string): Promise<Intent | null> {
-  const supabase = runtimeServiceClient();
+  const supabase = createServiceSupabaseClient();
   const { data, error } = await supabase
     .from('intents')
     .select('*')
@@ -49,7 +37,7 @@ export async function createIntent(
   objective: string,
   successCriteria: Record<string, any>
 ): Promise<string> {
-  const supabase = runtimeServiceClient();
+  const supabase = createServiceSupabaseClient();
   const { data, error } = await supabase
     .from('intents')
     .insert({
@@ -93,7 +81,7 @@ export async function updateIntent(
   reason: string,
   userId: string
 ) {
-  const supabase = runtimeServiceClient();
+  const supabase = createServiceSupabaseClient();
   // Obtener versión actual
   const { data: current } = await supabase
     .from('intents')
