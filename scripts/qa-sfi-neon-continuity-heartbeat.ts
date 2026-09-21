@@ -119,8 +119,8 @@ check('mutation write returns use the explicit mutation DTO instead of wildcard 
 
 check('ROOT continuity state uses the schema-backed singleton DTO',
   rootContinuityRoute.includes(".select('id,mode,founder_available,activated_at,expected_return_at,last_heartbeat_at,last_successful_run_at,last_report_at,halt_reason,metadata,updated_at')")
-  && !rootContinuityRoute.includes("sfi_continuity_state').select('*')
-  && !rootContinuityRoute.includes("sfi_continuity_state').update(patch).eq('id', 'institution').select('*')");
+  && !rootContinuityRoute.includes("sfi_continuity_state').select('*')")
+  && !rootContinuityRoute.includes("sfi_continuity_state').update(patch).eq('id', 'institution').select('*')"));
 
 check('current-main access-critical Neon readers are preserved',
   postgres.includes('readContinuityInstitutionalAccountGrantByEmail')
