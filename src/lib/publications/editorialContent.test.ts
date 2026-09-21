@@ -6,6 +6,7 @@ import {
   SFI_EDITORIAL_PUBLICATIONS,
   SFI_NOTAS_TEMPORALES_V1,
   SFI_REALITY_CHAIN_BRIEF,
+  SFI_YEARS_THAT_DID_EXIST_LAB_NOTE,
   SFI_OBSERVATION_KAVAK,
   SFI_OBSERVATION_T_PLUS_72,
   editorialPublicationForSlug,
@@ -47,6 +48,18 @@ test('The Reality Chain is a public English Friction Brief with a complete visua
   assert.ok(SFI_REALITY_CHAIN_BRIEF.epistemicBoundary.some((item) => /extraterrestrial/i.test(item)));
 });
 
+test('The Years That Did Exist is a bounded English research lab note registered as a public-source Friction Brief', () => {
+  assert.equal(SFI_YEARS_THAT_DID_EXIST_LAB_NOTE.editorialKind, 'FRICTION_BRIEF');
+  assert.equal(SFI_YEARS_THAT_DID_EXIST_LAB_NOTE.language, 'en');
+  assert.equal(SFI_YEARS_THAT_DID_EXIST_LAB_NOTE.slug, 'the-years-that-did-exist');
+  assert.equal(SFI_YEARS_THAT_DID_EXIST_LAB_NOTE.renditions[0]?.byteLength, 6686076);
+  assert.equal(SFI_YEARS_THAT_DID_EXIST_LAB_NOTE.renditions[0]?.sha256, 'bdcfaf3b3282ca0d579ff72ae3c74f75d63a20a85098818b70ab5e666abbdcef');
+  assert.equal(SFI_YEARS_THAT_DID_EXIST_LAB_NOTE.renditions[0]?.state, 'IDENTIFIED');
+  assert.equal(SFI_YEARS_THAT_DID_EXIST_LAB_NOTE.renditions[0]?.publicUrl, null);
+  assert.ok(SFI_YEARS_THAT_DID_EXIST_LAB_NOTE.sections.length >= 7);
+  assert.ok(SFI_YEARS_THAT_DID_EXIST_LAB_NOTE.epistemicBoundary.some((item) => /not validated/i.test(item)));
+});
+
 test('individual web pieces live under Observaciones with typed editorial lenses', () => {
   assert.ok(SFI_EDITORIAL_OBSERVATIONS.length >= 13);
   assert.ok(SFI_EDITORIAL_OBSERVATIONS.every((item) => item.editorialKind === 'OBSERVATION'));
@@ -73,7 +86,7 @@ test('editorial bodies cannot collapse publication exposure into Discovery or RE
 });
 
 test('editorial lookup and related navigation are deterministic', () => {
-  assert.equal(SFI_EDITORIAL_PUBLICATIONS.length, 2 + SFI_EDITORIAL_OBSERVATIONS.length);
+  assert.equal(SFI_EDITORIAL_PUBLICATIONS.length, 3 + SFI_EDITORIAL_OBSERVATIONS.length);
   assert.equal(editorialPublicationForSlug('notas-temporales-v1')?.title, 'Notas Temporales');
   assert.equal(editorialPublicationForSlug('kavak-estado-autoridad-ejecucion')?.observationKind, 'CASE');
   assert.equal(editorialPublicationForSlug('notas-inexistentes'), null);
