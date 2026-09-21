@@ -11,6 +11,7 @@ import {
   insertNeonContinuityHealthChecks,
   insertNeonContinuityIncidents,
   readNeonContinuityHeartbeatState,
+  readNeonContinuityObservation,
   updateNeonContinuityState,
 } from './neonHeartbeatStore';
 import {
@@ -429,7 +430,7 @@ export async function runContinuityHeartbeat(trigger = 'scheduled') {
 
 export async function readContinuityDashboard() {
   const db = createServiceSupabaseClient();
-  const [state, runs, checks, incidents, decisions, reports] = await Promise.all([
+  const primaryPromise = Promise.all([
     db.from('sfi_continuity_state').select('*').eq('id', 'institution').single(),
     db.from('sfi_continuity_runs').select('*').order('started_at', { ascending: false }).limit(20),
     db.from('sfi_capability_health_checks').select('*').order('checked_at', { ascending: false }).limit(80),
@@ -437,14 +438,73 @@ export async function readContinuityDashboard() {
     db.from('sfi_founder_decision_queue').select('*').in('status', ['PENDING', 'DEFERRED']).order('created_at', { ascending: false }).limit(50),
     db.from('sfi_continuity_reports').select('*').order('created_at', { ascending: false }).limit(7),
   ]);
+  const continuityPromise = isSfiContinuityConfigured()
+    ? readNeonContinuityObservation().then((value) => ({ ok: true as const, value })).catch((error) => ({ ok: false as const, error: error instanceof Error ? error.message : String(error) }))
+    : Promise.resolve({ ok: false as const, error: 'continuity_not_configured' });
+
+  const [[state, runs, checks, incidents, decisions, reports], continuity] = await Promise.all([primaryPromise, continuityPromise]);
+  const primaryErrors = [state.error, runs.error, checks.error, incidents.error, decisions.error, reports.error]
+    .filter(Boolean)
+    .map((error) => error?.message ?? 'unknown_primary_read_error');
+  const primaryState = (state.data ?? null) as Row | null;
+  const continuityState = continuity.ok ? continuity.value.state as Row | null : null;
+  const timestamp = (value: unknown) => {
+    const raw = stringValue(value);
+    const parsed = raw ? Date.parse(raw) : Number.NaN;
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+  const primaryHeartbeat = timestamp(primaryState?.last_heartbeat_at ?? primaryState?.updated_at);
+  const continuityHeartbeat = timestamp(continuityState?.last_heartbeat_at ?? continuityState?.updated_at);
+  const useContinuity = Boolean(
+    continuity.ok
+    && continuityState
+    && (
+      !primaryState
+      || primaryErrors.length > 0
+      || (continuityHeartbeat !== null && (primaryHeartbeat === null || continuityHeartbeat > primaryHeartbeat))
+    )
+  );
+  const selectedPlane = useContinuity ? 'NEON' : primaryState ? 'SUPABASE' : continuity.ok && continuityState ? 'NEON' : 'UNAVAILABLE';
+  const selected = useContinuity && continuity.ok ? continuity.value : null;
+
   return {
-    state: state.data,
-    runs: runs.data ?? [],
-    checks: checks.data ?? [],
-    incidents: incidents.data ?? [],
-    decisions: decisions.data ?? [],
-    reports: reports.data ?? [],
-    errors: [state.error, runs.error, checks.error, incidents.error, decisions.error, reports.error].filter(Boolean).map((error) => error?.message),
+    state: selected?.state ?? primaryState,
+    runs: selected?.runs ?? runs.data ?? [],
+    checks: selected?.checks ?? checks.data ?? [],
+    incidents: selected?.incidents ?? incidents.data ?? [],
+    decisions: selected?.decisions ?? decisions.data ?? [],
+    reports: selected?.reports ?? reports.data ?? [],
+    readPlane: selectedPlane,
+    planeComparison: {
+      primary: {
+        plane: 'SUPABASE',
+        available: Boolean(primaryState) && primaryErrors.length === 0,
+        heartbeatAt: stringValue(primaryState?.last_heartbeat_at),
+        updatedAt: stringValue(primaryState?.updated_at),
+        errors: primaryErrors,
+      },
+      continuity: {
+        plane: 'NEON',
+        configured: isSfiContinuityConfigured(),
+        available: Boolean(continuityState) && continuity.ok,
+        heartbeatAt: stringValue(continuityState?.last_heartbeat_at),
+        updatedAt: stringValue(continuityState?.updated_at),
+        error: continuity.ok ? null : continuity.error,
+      },
+      resolved: {
+        plane: selectedPlane,
+        rule: useContinuity
+          ? 'AUTHORIZED_CONTINUITY_PLANE_SELECTED_BECAUSE_PRIMARY_IS_UNAVAILABLE_DEGRADED_OR_OLDER'
+          : selectedPlane === 'SUPABASE'
+            ? 'PRIMARY_CANONICAL_CONTINUITY_STATE_SELECTED'
+            : 'NO_CONTINUITY_STATE_AVAILABLE',
+        divergenceObserved: Boolean(primaryState && continuityState && primaryHeartbeat !== continuityHeartbeat),
+      },
+    },
+    errors: [
+      ...primaryErrors,
+      ...(continuity.ok || continuity.error === 'continuity_not_configured' ? [] : [`neon_continuity_read_failed:${continuity.error}`]),
+    ],
   };
 }
 

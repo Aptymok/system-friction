@@ -8,6 +8,7 @@ import { readAmvOperationalMemory } from '@/lib/agents/amvAgent';
 import { buildWorldVectorOperationalState } from '@/lib/world-vector/operationalState';
 import { readRootSovereignState } from '@/lib/root/sovereign/rootSovereignAdapter';
 import { auditRootAction, requireRootActor } from '@/lib/root/server';
+import { readContinuityDashboard } from '@/lib/continuity/runtime';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -44,12 +45,13 @@ async function ask(request: Request, gate: RootActorGate, body: Row) {
 
   // A conversational surface must not collapse because one observational reader is degraded.
   // Each source is independently optional; the LLM still receives the context that is actually available.
-  const [rootResult, twinResult, worldResult, graphResult, amvResult] = await Promise.allSettled([
+  const [rootResult, twinResult, worldResult, graphResult, amvResult, continuityResult] = await Promise.allSettled([
     readRootSovereignState(),
     readCognitiveTwinState(),
     buildWorldVectorOperationalState(),
     runNeuralGraphAgent({ query: question, filters: ['evidence', 'amv', 'prediction', 'world_vector', 'prospect', 'report'] }),
     readAmvOperationalMemory({ query: question, limit: 14 }),
+    readContinuityDashboard(),
   ]);
 
   const root = rootResult.status === 'fulfilled' ? rootResult.value : null;
@@ -57,12 +59,14 @@ async function ask(request: Request, gate: RootActorGate, body: Row) {
   const world = worldResult.status === 'fulfilled' ? worldResult.value : null;
   const graph = graphResult.status === 'fulfilled' ? graphResult.value : null;
   const amv = amvResult.status === 'fulfilled' ? amvResult.value : null;
+  const continuity = continuityResult.status === 'fulfilled' ? continuityResult.value : null;
   const retrievalWarnings = [
     rejectedWarning('root', rootResult),
     rejectedWarning('cognitive_twin', twinResult),
     rejectedWarning('world_vector', worldResult),
     rejectedWarning('neural_graph', graphResult),
     rejectedWarning('amv', amvResult),
+    rejectedWarning('continuity', continuityResult),
   ].filter((item): item is string => Boolean(item));
 
   const evidenceRefs = Array.from(new Set([
@@ -116,6 +120,15 @@ async function ask(request: Request, gate: RootActorGate, body: Row) {
       recurrentPatterns: amv.recurrent_patterns,
       warnings: amv.warnings,
     } : null,
+    continuity: continuity ? {
+      state: continuity.state,
+      latestRun: continuity.runs[0] ?? null,
+      openIncidents: continuity.incidents.slice(0, 12),
+      pendingFounderDecisions: continuity.decisions.slice(0, 12),
+      readPlane: continuity.readPlane,
+      planeComparison: continuity.planeComparison,
+      errors: continuity.errors,
+    } : null,
     conversation: recentConversation(body.history),
   };
 
@@ -135,6 +148,7 @@ async function ask(request: Request, gate: RootActorGate, body: Row) {
       'You operate through the Cognitive Twin contract. You are not the Cognitive Twin itself and you do not own institutional memory.',
       'Answer questions about SFI using the supplied current institutional state and targeted retrieval.',
       'Some readers may be explicitly unavailable. Missing readers are not a reason to refuse the whole conversation; name the missing context and continue with what is available.',
+      'Continuity may be observed across Supabase primary and authorized Neon continuity planes. Never equate newest timestamp with global authority; use the supplied resolved plane and comparison rule for the continuity domain only.',
       'You may interpret, compare, diagnose gaps and propose next observations. You may NOT execute endpoints, approve, publish, mutate canon, alter formulas, grant access, contact anyone or represent a proposal as executed.',
       'Evidence before inference. Distinguish OBSERVED, IMPORTED, DERIVED, INFERRED, PROPOSED and MISSING.',
       'When asked what something means, explain the operational consequence rather than restating database fields.',
@@ -180,6 +194,7 @@ async function ask(request: Request, gate: RootActorGate, body: Row) {
       world ? 'read_world_vector' : 'read_world_vector_failed',
       graph ? 'retrieve_neural_graph' : 'retrieve_neural_graph_failed',
       amv ? 'read_amv' : 'read_amv_failed',
+      continuity ? `read_continuity:${continuity.readPlane}` : 'read_continuity_failed',
       llm.ok ? 'llm_synthesis' : 'llm_synthesis_failed',
     ],
     recommendedTransition: llm.ok ? 'VERIFYING' : 'BLOCKED',
@@ -234,6 +249,12 @@ async function ask(request: Request, gate: RootActorGate, body: Row) {
     evidenceRefs,
     warnings: envelope.limitations,
     retrievalWarnings,
+    continuity: continuity ? {
+      readPlane: continuity.readPlane,
+      planeComparison: continuity.planeComparison,
+      state: continuity.state,
+      latestRun: continuity.runs[0] ?? null,
+    } : null,
     run: persisted.data,
     envelope,
     audit,

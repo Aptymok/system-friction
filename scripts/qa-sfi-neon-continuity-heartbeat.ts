@@ -37,6 +37,14 @@ check('heartbeat persists run/check/incident/state to Neon fallback',
   && runtime.includes("dataPlane = 'NEON'")
   && runtime.includes('readNeonContinuityHeartbeatState'));
 
+check('continuity dashboard observes and resolves primary plus authorized Neon continuity plane',
+  store.includes('readNeonContinuityObservation')
+  && runtime.includes('readNeonContinuityObservation')
+  && runtime.includes('planeComparison')
+  && runtime.includes('divergenceObserved')
+  && runtime.includes('PRIMARY_CANONICAL_CONTINUITY_STATE_SELECTED')
+  && runtime.includes('AUTHORIZED_CONTINUITY_PLANE_SELECTED_BECAUSE_PRIMARY_IS_UNAVAILABLE_DEGRADED_OR_OLDER'));
+
 check('scheduled egress guard requires explicit continuity opt-in',
   guard.includes('allowContinuityFallback?: boolean')
   && guard.includes('input.allowContinuityFallback && isSfiContinuityConfigured()'));
