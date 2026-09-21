@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { isSfiContinuityConfigured, readContinuityCanonicalCognitiveTwinMemoryRows } from '@/lib/sfi/continuityPostgres';
 
 const CANONICAL_MEMORY_MODULE = 'institutionalEventPipeline';
 const PAGE_SIZE = 128;
@@ -78,16 +79,45 @@ export async function readCanonicalCognitiveTwinMemory(limit = 64) {
   let offset = 0;
   let rowsError: string | null = null;
   let scannedRows = 0;
+  let readPlane: 'SUPABASE' | 'NEON' | 'UNAVAILABLE' = 'SUPABASE';
+  let primaryDiagnostic: string | null = null;
 
   while (latestByKey.size < requested) {
-    const page = await db.from('sfi_amv_memory')
-      .select('id,module,input_summary,memory_delta,source_trust,requires_human_validation,created_at')
-      .eq('module', CANONICAL_MEMORY_MODULE)
-      .not('memory_delta->raw->>memoryKey', 'is', null)
-      .order('created_at', { ascending: false })
-      .range(offset, offset + PAGE_SIZE - 1);
-    if (page.error) { rowsError = page.error.message; break; }
-    const rows = page.data ?? [];
+    let rows: unknown[] = [];
+
+    if (readPlane === 'NEON') {
+      try {
+        rows = await readContinuityCanonicalCognitiveTwinMemoryRows({ offset, limit: PAGE_SIZE });
+      } catch (continuityError) {
+        rowsError = `${primaryDiagnostic ?? 'supabase_cognitive_memory_read_failed'}; continuity=${continuityError instanceof Error ? continuityError.message : 'continuity_read_failed'}`;
+        readPlane = 'UNAVAILABLE';
+        break;
+      }
+    } else {
+      const page = await db.from('sfi_amv_memory')
+        .select('id,module,input_summary,memory_delta,source_trust,requires_human_validation,created_at')
+        .eq('module', CANONICAL_MEMORY_MODULE)
+        .not('memory_delta->raw->>memoryKey', 'is', null)
+        .order('created_at', { ascending: false })
+        .range(offset, offset + PAGE_SIZE - 1);
+
+      if (page.error) {
+        primaryDiagnostic = page.error.message;
+        if (!isSfiContinuityConfigured()) {
+          rowsError = page.error.message;
+          readPlane = 'UNAVAILABLE';
+          break;
+        }
+        latestByKey.clear();
+        seenKeys.clear();
+        scannedRows = 0;
+        offset = 0;
+        readPlane = 'NEON';
+        continue;
+      }
+      rows = page.data ?? [];
+    }
+
     scannedRows += rows.length;
     for (const item of rows) {
       const memory = fromAmvRow(item);
@@ -107,6 +137,8 @@ export async function readCanonicalCognitiveTwinMemory(limit = 64) {
     eventCountExact: scannedRows < PAGE_SIZE && !rowsError,
     scannedRows,
     error: rowsError,
+    readPlane,
+    primaryDiagnostic,
     policy: 'VERIFIED_OR_CANONICAL_ONLY' as const,
     boundary: 'eventCount is the number of distinct memory keys observed in the bounded scan, not a COUNT(*) of the full table unless eventCountExact=true.',
   };

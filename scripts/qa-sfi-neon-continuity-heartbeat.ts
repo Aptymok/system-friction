@@ -12,6 +12,9 @@ const runtime = read('src/lib/continuity/runtime.ts');
 const store = read('src/lib/continuity/neonHeartbeatStore.ts');
 const guard = read('src/lib/continuity/scheduledEgressGuard.ts');
 const heartbeat = read('src/app/api/cron/continuity-heartbeat/route.ts');
+const canonicalTwinMemory = read('src/core/cognitive-twin/canonicalMemoryView.ts');
+const twinState = read('src/core/cognitive-twin/readState.ts');
+const amvAgent = read('src/lib/agents/amvAgent.ts');
 
 check('current-main access-critical Neon readers are preserved',
   postgres.includes('readContinuityInstitutionalAccountGrantByEmail')
@@ -44,6 +47,25 @@ check('continuity dashboard observes and resolves primary plus authorized Neon c
   && runtime.includes('divergenceObserved')
   && runtime.includes('PRIMARY_CANONICAL_CONTINUITY_STATE_SELECTED')
   && runtime.includes('AUTHORIZED_CONTINUITY_PLANE_SELECTED_BECAUSE_PRIMARY_IS_UNAVAILABLE_DEGRADED_OR_OLDER'));
+
+check('Cognitive Twin canonical memory falls back to Neon only after primary read failure and restarts on one plane',
+  postgres.includes('readContinuityCanonicalCognitiveTwinMemoryRows')
+  && canonicalTwinMemory.includes('readContinuityCanonicalCognitiveTwinMemoryRows')
+  && canonicalTwinMemory.includes("readPlane = 'NEON'")
+  && canonicalTwinMemory.includes('latestByKey.clear()')
+  && canonicalTwinMemory.includes('seenKeys.clear()'));
+
+check('Cognitive Twin runtime state falls back to bounded Neon snapshot after primary read failure',
+  postgres.includes('readContinuityCognitiveTwinStateSnapshot')
+  && twinState.includes('readContinuityCognitiveTwinStateSnapshot')
+  && twinState.includes("runtimeReadPlane = 'NEON'")
+  && twinState.includes('primaryRuntimeErrors.length && isSfiContinuityConfigured()'));
+
+check('AMV operational memory falls back to bounded Neon memory after primary read failure',
+  postgres.includes('readContinuityAmvMemory')
+  && amvAgent.includes('readContinuityAmvMemory')
+  && amvAgent.includes("readPlane: 'NEON' as const")
+  && amvAgent.includes('primary_diagnostic'));
 
 check('scheduled egress guard requires explicit continuity opt-in',
   guard.includes('allowContinuityFallback?: boolean')
