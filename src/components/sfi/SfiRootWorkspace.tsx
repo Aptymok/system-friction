@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAuthState } from '@/components/auth/AuthProvider';
+import { SfiFriccionautaPanel } from './SfiFriccionautaPanel';
 import './SfiRootWorkspace.css';
 
 type Row = Record<string, any>;
@@ -162,6 +163,8 @@ export function SfiRootWorkspace({ enabled }: { enabled: boolean }) {
     <nav className="rootObserve" aria-label="Diez módulos institucionales ROOT"><div className="rootObserveLead"><span>10 MÓDULOS · TOPOLOGÍA DE OBSERVACIÓN</span><p>Son lentes sobre owners existentes. Ninguno adquiere escritor, memoria o autoridad nueva por aparecer aquí.</p></div><div className="rootObserveLinks">{OBSERVE_LINKS.map((item) => <Link key={item.href} href={item.href}><strong>{item.label}</strong><span>{item.note}</span></Link>)}</div></nav>
 
     <section className="rootRule"><strong>SFI OPERA SIN PEDIR PERMISO.</strong><span>OBSERVACIÓN ≠ INFERENCIA · SIMULACIÓN ≠ OBSERVACIÓN · operar ≠ gobernar · cerrar ≠ aprender · evidencia ≠ aprobación · reporte ≠ decisión.</span></section>
+
+    <SfiFriccionautaPanel />
 
     <div className="rootDecisionLayout">
       <aside className="rootDecisionQueue"><header><div><span>DECISIONES QUE SÍ NECESITAN ROOT</span><b>{base ? actionable.length : 'MISSING'}</b></div></header>{actionable.map((item) => <Link key={item.id} href={`/root?decision=${encodeURIComponent(String(item.id))}`} className={`rootDecisionCard ${selectedId === item.id ? 'selected' : ''}`}><div><State value={item.rootDecisionClass ?? item.decisionClass}/><State value={item.riskLevel}/></div><strong>{txt(item.title, 'Cambio institucional')}</strong><p>{txt(item.actionability?.question, 'Abre el expediente para entender qué cambiaría y por qué.')}</p><small>Abrir decisión →</small></Link>)}{base && !actionable.length && <div className="rootEmpty">No hay cambios institucionales esperando tu decisión.</div>}{!base && <div className="rootEmpty">{readState} · no se proyecta cero hasta observar el read contract.</div>}{!!observable.length && <details className="rootObservable"><summary>Trabajo que SFI está resolviendo · {observable.length}</summary>{observable.slice(0, 80).map((item) => <article key={item.id}><strong>{txt(item.title, 'Trabajo operativo')}</strong><p>{txt(item.actionability?.question, 'SFI continúa dentro de autoridad existente.')}</p></article>)}</details>}</aside>
