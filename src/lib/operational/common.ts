@@ -131,6 +131,7 @@ export async function createActionProposal(input: {
     payload: input.payload,
   };
   const { data, error } = await service.from('action_proposals').insert({
+    proposal_type: input.proposalType,
     title: input.title ?? input.proposalType,
     description: input.objective ?? null,
     status: input.status ?? 'draft',
@@ -151,13 +152,20 @@ export async function createActionProposal(input: {
 
 export async function latestActionProposals(proposalTypes?: string[], limit = 20) {
   const service = createServiceSupabaseClient();
-  let query = service.from('action_proposals').select('*').order('created_at', { ascending: false });
-  if (proposalTypes?.length) {
-    query = query.in('proposal_type', proposalTypes);
-  }
-  const { data, error } = await query.limit(limit);
+  // Legacy proposals may predate canonical top-level proposal_type population.
+  // Read a bounded candidate window, then use the canonical compatibility resolver
+  // so filtering does not silently erase valid historical proposals.
+  const candidateLimit = proposalTypes?.length ? Math.max(limit * 4, 80) : limit;
+  const { data, error } = await service.from('action_proposals').select('*').order('created_at', { ascending: false }).limit(candidateLimit);
   if (error) return { data: [], error: error.message };
-  return { data: data ?? [], error: null };
+  const rows = (data ?? []) as Record<string, unknown>[];
+  const filtered = proposalTypes?.length
+    ? rows.filter((row) => {
+        const proposalType = proposalTypeFrom(row);
+        return proposalType ? proposalTypes.includes(proposalType) : false;
+      })
+    : rows;
+  return { data: filtered.slice(0, limit), error: null };
 }
 
 export async function readOperationalContext() {
