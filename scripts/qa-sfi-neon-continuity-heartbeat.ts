@@ -22,12 +22,20 @@ const canonicalTwinMemory = read('src/core/cognitive-twin/canonicalMemoryView.ts
 const twinState = read('src/core/cognitive-twin/readState.ts');
 const amvAgent = read('src/lib/agents/amvAgent.ts');
 const scorefrictionLab = read('src/app/api/scorefriction/lab/analyze/route.ts');
+const runtimeObserver = read('src/runtime/layers/Observer.ts');
+const runtimeIntentLayer = read('src/runtime/layers/IntentLayer.ts');
 
 check('Scorefriction lab persistence uses the canonical systemic data-plane client and does not claim Supabase provenance',
   scorefrictionLab.includes("createServiceSupabaseClient")
   && !scorefrictionLab.includes('from "@supabase/supabase-js"')
   && scorefrictionLab.includes('persistenceSource: "systemic_data_plane"')
   && !scorefrictionLab.includes('persistenceSource: "supabase"'));
+
+check('runtime Observer and IntentLayer reuse the canonical systemic service client instead of parallel Supabase clients',
+  runtimeObserver.includes("createServiceSupabaseClient")
+  && runtimeIntentLayer.includes("createServiceSupabaseClient")
+  && !runtimeObserver.includes("from '@supabase/supabase-js'")
+  && !runtimeIntentLayer.includes("from '@supabase/supabase-js'"));
 
 check('current-main access-critical Neon readers are preserved',
   postgres.includes('readContinuityInstitutionalAccountGrantByEmail')
