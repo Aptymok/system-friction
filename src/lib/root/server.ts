@@ -139,7 +139,7 @@ export async function auditRootAction(input: {
       ip_address: input.request?.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? null,
       user_agent: input.request?.headers.get('user-agent') ?? null,
     })
-    .select('*')
+    .select('id')
     .single();
 
   if (auditInsert.error) {
