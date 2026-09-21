@@ -74,7 +74,7 @@ function eventEvidenceRefs(events: Row[]) {
 async function requireSession(sessionId: string) {
   const db = createServiceSupabaseClient();
   const result = await db.from('sfi_cognitive_lab_sessions')
-    .select('*')
+    .select('id,session_key,title,objective,condition,status,technology_nodes,human_nodes,baseline_session_id,metadata,created_by,started_at,ended_at,created_at,updated_at')
     .eq('id', sessionId)
     .single();
   if (result.error || !result.data) throw new Error('COGNITIVE_LAB_SESSION_NOT_FOUND');
@@ -84,7 +84,7 @@ async function requireSession(sessionId: string) {
 async function readSessionEvents(sessionId: string) {
   const db = createServiceSupabaseClient();
   const result = await db.from('sfi_cognitive_lab_events')
-    .select('*')
+    .select('id,session_id,event_kind,provenance,actor_key,relation_from,relation_to,payload,evidence_refs,source_ref,occurred_at,created_by,created_at')
     .eq('session_id', sessionId)
     .order('occurred_at', { ascending: true })
     .order('created_at', { ascending: true })
