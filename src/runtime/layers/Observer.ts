@@ -1,20 +1,8 @@
 // src/runtime/layers/Observer.ts
-import { createClient } from '@supabase/supabase-js';
+import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { GateDecision } from './Gate';
-import { normalizeSupabaseUrl } from '@/runtime/supabase/url';
 import { emitEpistemicEvent } from '@/core/memory/epistemicEventWriter';
 import { processEpistemicEvent } from '@/core/memory/institutionalEventPipeline';
-
-function runtimeServiceClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
-  return createClient(normalizeSupabaseUrl(supabaseUrl), supabaseKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  });
-}
 
 export async function recordAction(
   nodeId: string,
@@ -23,7 +11,7 @@ export async function recordAction(
   executionResult: any,
   gateDecision: GateDecision
 ) {
-  const supabase = runtimeServiceClient();
+  const supabase = createServiceSupabaseClient();
   // Guardar en la tabla de eventos (ya existente)
   await supabase.from('events').insert({
     node_id: nodeId,
@@ -65,7 +53,7 @@ export async function recordAction(
 }
 
 export async function recordObservation(nodeId: string, metricType: string, value: number) {
-  const supabase = runtimeServiceClient();
+  const supabase = createServiceSupabaseClient();
   await supabase.from('structured_observations').insert({
     node_id: nodeId,
     observation_type: metricType,
