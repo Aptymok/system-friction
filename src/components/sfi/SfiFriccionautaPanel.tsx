@@ -47,7 +47,14 @@ export function SfiFriccionautaPanel() {
       const data = await post({ action: 'ask', question: prompt, history: conversation });
       const responseText = typeof data.answer === 'string' ? data.answer : 'MISSING · Friccionauta no devolvió cuerpo legible.';
       setResult(data);
-      setHistory((current) => [...current, { role: 'user', content: prompt }, { role: 'assistant', content: responseText }].slice(-8));
+      setHistory((current) => {
+        const next: Message[] = [
+          ...current,
+          { role: 'user', content: prompt },
+          { role: 'assistant', content: responseText },
+        ];
+        return next.slice(-8);
+      });
       setQuestion('');
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
