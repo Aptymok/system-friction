@@ -271,8 +271,18 @@ export async function updateActionProposalRisk(input: {
   return { ...updated, riskAssessment };
 }
 
-export async function latestRows(table: string, limit = 10) {
+const OPERATIONAL_READ_PROJECTIONS = {
+  logbook_mutations: 'id,event_id,mutation_key,target,current_state,proposed_state,coherence_delta,status,proposal_id,actor_id,mutation_type,payload,created_at,updated_at',
+  logbook_knowledge: 'id,knowledge_key,verified,pattern_type,confidence,payload,created_at',
+  logbook_signals: 'id,event_id,signal_key,source_id,plane,node_type,raw_signal,recurrence_count,status,created_at',
+  mihm_analyses: 'id,event_id,actor_id,input_hash,detected_dimensions,claims,evidence,tensions,risks,confidence,homeostatic_vector,payload,created_at',
+} as const;
+
+type OperationalReadTable = keyof typeof OPERATIONAL_READ_PROJECTIONS;
+
+export async function latestRows(table: OperationalReadTable, limit = 10) {
   const service = createServiceSupabaseClient();
-  const { data, error } = await service.from(table).select('*').order('created_at', { ascending: false }).limit(limit);
+  const projection = OPERATIONAL_READ_PROJECTIONS[table];
+  const { data, error } = await service.from(table).select(projection).order('created_at', { ascending: false }).limit(limit);
   return { data: error ? [] : data ?? [], error: error?.message ?? null };
 }
