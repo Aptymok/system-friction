@@ -15,7 +15,7 @@ import type { SfiAuthorityClass } from '../sfi/cognitive-runtime/cognitivePasspo
 
 export const SFI_AUTHENTICATED_MACHINE_ADAPTER_CONTRACT = 'SFI-AUTHENTICATED-GOVERNED-MACHINE-ADAPTER-1.0' as const;
 export const SFI_AUTHENTICATED_MACHINE_SERVER_ID = 'org.systemfriction/authenticated' as const;
-export const SFI_AUTHENTICATED_MACHINE_SERVER_VERSION = '1.0.0' as const;
+export const SFI_AUTHENTICATED_MACHINE_SERVER_VERSION = '1.1.0' as const;
 export const SFI_AUTHENTICATED_MACHINE_PROTOCOL_VERSION = '2026-07-28' as const;
 export const SFI_AUTHENTICATED_MACHINE_ENDPOINT = '/api/mcp/authenticated' as const;
 export const SFI_AUTHENTICATED_MACHINE_GATE = 'SFI-AUTHENTICATED-GOVERNED-MACHINE-1.0' as const;
@@ -85,6 +85,7 @@ export type SfiAuthenticatedMachineDependencies = {
     execution: JsonObject,
     principal: SfiAuthenticatedMachinePrincipal,
   ) => Promise<{ status: number; body: JsonObject }>;
+  readInstitutionalContext?: () => Promise<JsonObject>;
   now: () => Date;
 };
 
@@ -180,6 +181,12 @@ export const SFI_AUTHENTICATED_MACHINE_RESOURCES = Object.freeze([
     name: 'SFI authenticated governed machine adapter status',
     mimeType: 'application/json',
     description: 'Contract and authority boundary only. It exposes no grants, private state, credentials, ROOT data, or canonical promotion surface.',
+  },
+  {
+    uri: 'sfi://institutional/context',
+    name: 'SFI compact institutional context',
+    mimeType: 'application/json',
+    description: 'Authenticated, observe-scoped projection of compact persisted institutional state: continuity, cognitive runtime, open-cycle counts and recent RETURN/execution receipts. It does not mint authority or expose credentials, raw media, grant nonces or canonical promotion.',
   },
 ] as const);
 
@@ -500,6 +507,11 @@ function adapterStatus() {
       authorityExpansionAllowed: false,
       parentExpansionAllowed: false,
     },
+    observation: {
+      availableResources: SFI_AUTHENTICATED_MACHINE_RESOURCES.map((resource) => resource.uri),
+      institutionalContext: 'PERSISTED_COMPACT_PROJECTION',
+      authorityExpansion: false,
+    },
     execution: {
       plane: 'EXISTING_CANONICAL_COGNITIVE_RUNTIME',
       availableTools: SFI_AUTHENTICATED_MACHINE_TOOLS.map((tool) => tool.name),
@@ -602,13 +614,37 @@ export async function dispatchAuthenticatedMachineRequest(
   }
   if (payload.method === 'resources/read') {
     const uri = text(row(payload.params).uri);
-    if (uri !== 'sfi://authenticated-machine/status') return { status: 404, body: error(id, -32004, 'ResourceNotFound', { uri }) };
-    return {
-      status: 200,
-      body: response(id, {
-        contents: [{ uri, mimeType: 'application/json', text: JSON.stringify(adapterStatus()) }],
-      }),
-    };
+    if (uri === 'sfi://authenticated-machine/status') {
+      return {
+        status: 200,
+        body: response(id, {
+          contents: [{ uri, mimeType: 'application/json', text: JSON.stringify(adapterStatus()) }],
+        }),
+      };
+    }
+    if (uri === 'sfi://institutional/context') {
+      if (!deps.readInstitutionalContext) {
+        return { status: 503, body: error(id, -32053, 'InstitutionalContextUnavailable', { uri, reason: 'CONTEXT_READER_NOT_BOUND' }) };
+      }
+      try {
+        const context = await deps.readInstitutionalContext();
+        return {
+          status: 200,
+          body: response(id, {
+            contents: [{ uri, mimeType: 'application/json', text: JSON.stringify(context) }],
+          }),
+        };
+      } catch (contextError) {
+        return {
+          status: 503,
+          body: error(id, -32053, 'InstitutionalContextUnavailable', {
+            uri,
+            reason: contextError instanceof Error ? contextError.message : String(contextError),
+          }),
+        };
+      }
+    }
+    return { status: 404, body: error(id, -32004, 'ResourceNotFound', { uri }) };
   }
   if (payload.method !== 'tools/call') return { status: 404, body: error(id, -32601, 'Method not found', { method: payload.method }) };
 
