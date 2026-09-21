@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" role="img" aria-labelledby="t d">
+<title id="t">THE TRANSPARENCY PARADOX</title><desc id="d">More disclosure does not automatically produce more knowledge</desc>
+<defs><linearGradient id="g" x1="0" x2="1"><stop stop-color="#d4af37"/><stop offset="1" stop-color="#f7f4ea"/></linearGradient><filter id="gl"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+<rect width="100%" height="100%" fill="#0b0b0a"/><rect x="28" y="28" width="1544" height="944" fill="none" stroke="#d4af37" stroke-width="1"/>
+<style>.ser{font-family:Georgia,'Times New Roman',serif;fill:#f7f4ea}.mono{font-family:ui-monospace,Menlo,monospace;fill:#c8a951;letter-spacing:3px}.mut{fill:#9d927e;font-family:ui-monospace,Menlo,monospace}.gold{stroke:#d4af37;fill:none}.cream{stroke:#f7f4ea;fill:none}.thin{stroke-width:1}.med{stroke-width:2}.node{fill:#d4af37;stroke:#f7f4ea;stroke-width:1}</style>
+<text x="70" y="78" class="mono" font-size="18">SYSTEM FRICTION INSTITUTE</text>
+<text x="70" y="140" class="ser" font-size="68" font-weight="700">THE TRANSPARENCY PARADOX</text>
+<text x="70" y="188" class="ser" font-size="27">More disclosure does not automatically produce more knowledge</text>
+<line x1="70" y1="218" x2="1530" y2="218" class="gold thin"/>
+
+<g transform="translate(80 290)">
+<rect x="0" y="0" width="680" height="510" fill="#10100d" stroke="#6f5f2c"/><rect x="760" y="0" width="680" height="510" fill="#10100d" stroke="#6f5f2c"/>
+<text x="25" y="45" class="mono" font-size="18">DISCLOSURE FLOW</text><text x="785" y="45" class="mono" font-size="18">EVIDENTIARY FLOW</text>
+<text x="45" y="115" class="ser" font-size="28">ACCESS ↑</text><line x1="260" y1="107" x2="620" y2="107" class="gold med"/><text x="45" y="200" class="ser" font-size="28">VOLUME ↑</text><line x1="260" y1="192" x2="565" y2="192" class="gold med"/><text x="45" y="285" class="ser" font-size="28">INTERPRETATIONS ↑</text><line x1="260" y1="277" x2="510" y2="277" class="gold thin"/><text x="45" y="370" class="ser" font-size="28">RELEASE VELOCITY ↑</text><line x1="260" y1="362" x2="455" y2="362" class="gold thin"/>
+<rect x="805" y="390" width="120" height="60" fill="#151510" stroke="#d4af37"/><text x="865" y="427" class="mono" font-size="12" text-anchor="middle">PROVENANCE</text><rect x="950" y="310" width="120" height="60" fill="#151510" stroke="#d4af37"/><text x="1010" y="347" class="mono" font-size="12" text-anchor="middle">METADATA</text><rect x="1095" y="230" width="120" height="60" fill="#151510" stroke="#d4af37"/><text x="1155" y="267" class="mono" font-size="12" text-anchor="middle">CONTEXT</text><rect x="1240" y="150" width="120" height="60" fill="#151510" stroke="#d4af37"/><text x="1300" y="187" class="mono" font-size="12" text-anchor="middle">ADJUDICATION</text>
+<text x="1100" y="105" class="ser" font-size="31" text-anchor="middle">Knowledge depends on</text><text x="1100" y="145" class="ser" font-size="31" text-anchor="middle">context + custody + adjudication.</text>
+<path d="M30 470 C220 410 420 300 640 150" class="cream med"/><path d="M790 470 C980 445 1190 410 1410 350" class="gold med"/>
+</g>
+<text x="70" y="950" class="mono" font-size="15">SFI.ORG · EVIDENCE ENDURES</text>
+</svg>
