@@ -14,6 +14,8 @@ const guard = read('src/lib/continuity/scheduledEgressGuard.ts');
 const heartbeat = read('src/app/api/cron/continuity-heartbeat/route.ts');
 const primaryMirror = read('src/lib/persistence/primaryMirror.ts');
 const dataPlaneRpc = read('src/lib/persistence/dataPlaneRpc.ts');
+const dataPlaneFetch = read('src/lib/persistence/dataPlaneFetch.ts');
+const dataPlaneConfig = read('src/lib/persistence/dataPlaneConfig.ts');
 const hourlyContinuity = read('.github/workflows/sfi-continuity-hourly.yml');
 const canonicalTwinMemory = read('src/core/cognitive-twin/canonicalMemoryView.ts');
 const twinState = read('src/core/cognitive-twin/readState.ts');
@@ -33,6 +35,12 @@ check('actionable work gate reads Neon only after primary failure',
   gate.includes('readNeonActionableWorkSnapshot')
   && gate.includes("dataPlane: 'NEON'")
   && gate.indexOf('if (readError || missingContinuityState)') < gate.indexOf('const fallback = await readNeonActionableWorkSnapshot()'));
+
+check('transparent failover resolves the canonical Neon Data API endpoint instead of requiring a duplicate environment variable',
+  dataPlaneConfig.includes('DEFAULT_SFI_NEON_DATA_API_URL')
+  && dataPlaneFetch.includes("import('@/lib/persistence/dataPlaneConfig')")
+  && dataPlaneFetch.includes('sfiNeonDataApiUrl')
+  && !dataPlaneFetch.includes("(process.env.SFI_NEON_DATA_API_URL || '').trim()"));
 
 check('heartbeat determines physical primary provenance with a direct non-fallback probe before trusting transparent client results',
   dataPlaneRpc.includes('export async function probePrimaryDataPlane')
