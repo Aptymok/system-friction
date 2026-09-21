@@ -249,6 +249,12 @@ async function ask(request: Request, gate: RootActorGate, body: Row) {
     evidenceRefs,
     warnings: envelope.limitations,
     retrievalWarnings,
+    continuity: continuity ? {
+      readPlane: continuity.readPlane,
+      planeComparison: continuity.planeComparison,
+      state: continuity.state,
+      latestRun: continuity.runs[0] ?? null,
+    } : null,
     run: persisted.data,
     envelope,
     audit,
