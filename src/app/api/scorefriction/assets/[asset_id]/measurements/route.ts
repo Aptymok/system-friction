@@ -27,7 +27,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ ass
     regime: typeof body?.regime === 'string' ? body.regime : null,
     runway_days: numeric(body?.runway_days),
   };
-  const { data, error } = await ctx.service.from('sfi_measurements').insert(measurement).select('*').single();
+  const { data, error } = await ctx.service.from('sfi_measurements').insert(measurement).select('id,asset_id,ihg,nti_obs,ldi_hours,xi_noise,phi_sf,regime,runway_days,measured_at,created_at').single();
   if (error) return NextResponse.json({ error: error.message, details: error.details, hint: error.hint, code: error.code }, { status: 500 });
 
   await ctx.service.from('sfi_assets').update({
