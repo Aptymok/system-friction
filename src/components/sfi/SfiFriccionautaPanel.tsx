@@ -32,6 +32,8 @@ export function SfiFriccionautaPanel() {
   const retrievalWarnings = Array.isArray(result?.retrievalWarnings) ? result.retrievalWarnings.map(String) : [];
   const runId = typeof result?.run?.id === 'string' ? result.run.id : null;
   const execution = String(result?.cognitiveExecution ?? 'NOT_EXECUTED');
+  const continuityPlane = typeof result?.continuity?.readPlane === 'string' ? result.continuity.readPlane : 'MISSING';
+  const continuityDivergence = result?.continuity?.planeComparison?.resolved?.divergenceObserved === true;
   const statusClass = execution === 'EXECUTED' ? 'ok' : 'degraded';
   const conversation = useMemo(() => history.slice(-8), [history]);
 
@@ -110,6 +112,7 @@ export function SfiFriccionautaPanel() {
         <span>{String(result?.model ?? 'model missing')}</span>
         <span>EVIDENCE {evidenceRefs.length}</span>
         <span>WARNINGS {warnings.length}</span>
+        <span>CONTINUITY {continuityPlane}{continuityDivergence ? ' · DIVERGENCE OBSERVED' : ''}</span>
         {runId ? <span>RUN {runId.slice(0, 8)}</span> : null}
       </div>
       <div className="friccionautaText">{answer}</div>
