@@ -53,7 +53,7 @@ export async function POST(req: Request) {
       coherenceDelta: typeof body.coherenceDelta === 'number' ? body.coherenceDelta : 0,
       payload,
     }))
-    .select('*')
+    .select('id,event_id,mutation_key,target,current_state,proposed_state,coherence_delta,status,proposal_id,actor_id,mutation_type,payload,created_at,updated_at')
     .single();
 
   if (error) return NextResponse.json({ ok: false, error: 'logbook_mutation_insert_failed', details: error.message }, { status: 400 });
