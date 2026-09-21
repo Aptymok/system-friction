@@ -49,7 +49,7 @@ export async function POST(request: Request) {
     evidence_refs: evidenceRefs,
     status: 'CANDIDATE',
     created_by: gate.ctx.user.id,
-  }).select('*').single();
+  }).select('id,decision_id,situation,rejected_condition,correct_state,general_rule,required_evidence,evidence_refs,status,approved_by,approved_at,created_by,decision_kind,created_at,updated_at').single();
 
   if (result.error) return NextResponse.json({ ok: false, error: 'decision_candidate_insert_failed', details: result.error.message }, { status: 503 });
 
