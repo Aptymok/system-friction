@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
 
     const { data, error } = await ctx.service
       .from('cognitive_event_stream')
-      .select('*')
+      .select('id,created_at,payload')
       .eq('node_id', ctx.node.id)
       .eq('stream_type', 'signal')
       .eq('event_name', 'SIGNAL_DECLARED')
