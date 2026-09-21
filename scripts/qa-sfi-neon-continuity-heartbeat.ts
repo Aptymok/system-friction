@@ -53,6 +53,11 @@ check('bounded read models project only fields they consume on high-frequency in
 check('operational snapshot write-return avoids wildcard row transfer',
   !operationalSnapshotRoute.includes(".select('*')"));
 
+check('node bootstrap requests asset summaries without four historical child collections',
+  sfiAssetsService.includes("options: { includeHistory?: boolean } = {}")
+  && sfiAssetsService.includes("options.includeHistory === false")
+  && nodeBootstrapRoute.includes("loadSfiAssets(ctx, { includeHistory: false })"));
+
 check('current-main access-critical Neon readers are preserved',
   postgres.includes('readContinuityInstitutionalAccountGrantByEmail')
   && postgres.includes('readContinuityMemberWorkspaceCounts')
