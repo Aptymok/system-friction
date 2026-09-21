@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1414" role="img" aria-labelledby="t d">
+<title id="t">THE REALITY CHAIN</title><desc id="d">Evidence, AI and the distance between observation and claim</desc>
+<defs><linearGradient id="g" x1="0" x2="1"><stop stop-color="#d4af37"/><stop offset="1" stop-color="#f7f4ea"/></linearGradient><filter id="gl"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+<rect width="100%" height="100%" fill="#0b0b0a"/><rect x="28" y="28" width="944" height="1358" fill="none" stroke="#d4af37" stroke-width="1"/>
+<style>.ser{font-family:Georgia,'Times New Roman',serif;fill:#f7f4ea}.mono{font-family:ui-monospace,Menlo,monospace;fill:#c8a951;letter-spacing:3px}.mut{fill:#9d927e;font-family:ui-monospace,Menlo,monospace}.gold{stroke:#d4af37;fill:none}.cream{stroke:#f7f4ea;fill:none}.thin{stroke-width:1}.med{stroke-width:2}.node{fill:#d4af37;stroke:#f7f4ea;stroke-width:1}</style>
+<text x="70" y="78" class="mono" font-size="18">SYSTEM FRICTION INSTITUTE</text>
+<text x="70" y="140" class="ser" font-size="58" font-weight="700">THE REALITY CHAIN</text>
+<text x="70" y="188" class="ser" font-size="27">Evidence, AI and the distance between observation and claim</text>
+<line x1="70" y1="218" x2="930" y2="218" class="gold thin"/>
+
+<text x="70" y="280" class="mono" font-size="18">PUBLIC-SOURCE FRICTION BRIEF · 20 SEP 2026</text>
+<text x="70" y="360" class="ser" font-size="37">The last trustworthy image will not be an image.</text>
+<text x="70" y="407" class="ser" font-size="37">It will be a reconstructable chain.</text>
+<g transform="translate(95 520)">
+<circle cx="400" cy="280" r="235" class="gold thin" opacity=".55"/><circle cx="400" cy="280" r="160" class="gold thin" opacity=".35"/>
+<path d="M0 280 H800" class="gold med"/>
+<circle cx="0" cy="280" r="10" class="node"/><circle cx="160" cy="280" r="10" class="node"/><circle cx="320" cy="280" r="10" class="node"/><circle cx="480" cy="280" r="10" class="node"/><circle cx="640" cy="280" r="10" class="node"/><circle cx="800" cy="280" r="10" class="node"/>
+<text x="-10" y="340" class="mono" font-size="15">WORLD</text><text x="128" y="340" class="mono" font-size="15">SENSOR</text><text x="282" y="340" class="mono" font-size="15">ARTIFACT</text><text x="443" y="340" class="mono" font-size="15">CONTEXT</text><text x="599" y="340" class="mono" font-size="15">INFERENCE</text><text x="760" y="340" class="mono" font-size="15">CLAIM</text>
+<g transform="translate(850 65)"><path d="M0 0 L280 90 L240 390 L30 420 Z" fill="#151510" stroke="#d4af37"/><path d="M50 65 H230 M50 120 H210 M50 175 H235 M50 230 H190 M50 285 H220" class="cream thin"/><text x="55" y="355" class="ser" font-size="31">TRUTH</text><text x="55" y="389" class="ser" font-size="31">IN THE OPEN</text></g>
+</g>
+<text x="70" y="1360" class="mono" font-size="15">SFI.ORG · EVIDENCE ENDURES</text>
+</svg>
