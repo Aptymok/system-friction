@@ -25,6 +25,9 @@ const scorefrictionLab = read('src/app/api/scorefriction/lab/analyze/route.ts');
 const runtimeObserver = read('src/runtime/layers/Observer.ts');
 const runtimeIntentLayer = read('src/runtime/layers/IntentLayer.ts');
 const worldReobserveRoute = read('src/app/api/field/map/world/reobserve/route.ts');
+const ingestReadRoute = read('src/app/api/ingest/read/route.ts');
+const signalsReadRoute = read('src/app/api/signals/read/route.ts');
+const operationalSnapshotRoute = read('src/app/api/sfi/operational-snapshot/route.ts');
 
 check('Scorefriction lab persistence uses the canonical systemic data-plane client and does not claim Supabase provenance',
   scorefrictionLab.includes("createServiceSupabaseClient")
@@ -40,6 +43,15 @@ check('runtime Observer and IntentLayer reuse the canonical systemic service cli
 
 check('world reobserve does not spend five count-only data-plane queries after executing its cycles',
   !worldReobserveRoute.includes("count: 'exact', head: true"));
+
+check('bounded read models project only fields they consume on high-frequency ingest and signal routes',
+  ingestReadRoute.includes(".select('id,created_at,payload')")
+  && signalsReadRoute.includes(".select('id,created_at,payload')")
+  && !ingestReadRoute.includes(".select('*')")
+  && !signalsReadRoute.includes(".select('*')"));
+
+check('operational snapshot write-return avoids wildcard row transfer',
+  !operationalSnapshotRoute.includes(".select('*')"));
 
 check('current-main access-critical Neon readers are preserved',
   postgres.includes('readContinuityInstitutionalAccountGrantByEmail')
