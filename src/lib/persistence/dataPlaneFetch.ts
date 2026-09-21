@@ -1,11 +1,4 @@
-import 'server-only';
-
-import { mintSfiDataPlaneServiceJwt } from '@/lib/persistence/dataPlaneIdentity';
-import {
-  enterContinuityMode,
-  readDataPlaneState,
-  type SfiDataPlaneState,
-} from '@/lib/persistence/dataPlaneContinuityStore';
+import type { SfiDataPlaneState } from '@/lib/persistence/dataPlaneContinuityStore';
 
 const FAILOVER_STATUSES = new Set([502, 503, 504, 521, 522, 523, 524]);
 const READ_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
@@ -23,6 +16,7 @@ function normalizedOrigin(value: string) {
 async function stateSnapshot() {
   if (cachedState && cachedState.expiresAt > Date.now()) return cachedState.value;
   try {
+    const { readDataPlaneState } = await import('@/lib/persistence/dataPlaneContinuityStore');
     const value = await readDataPlaneState();
     cachedState = { value, expiresAt: Date.now() + 1500 };
     return value;
@@ -66,6 +60,7 @@ async function continuityFetch(request: Request, state: SfiDataPlaneState) {
   const headers = new Headers(request.headers);
   headers.delete('apikey');
   headers.delete('authorization');
+  const { mintSfiDataPlaneServiceJwt } = await import('@/lib/persistence/dataPlaneIdentity');
   headers.set('Authorization', `Bearer ${mintSfiDataPlaneServiceJwt()}`);
   headers.set('X-SFI-Data-Plane', state.mode);
   headers.set('X-SFI-Data-Plane-Epoch', state.epoch);
@@ -113,6 +108,7 @@ export function createSfiDataPlaneFetch(primarySupabaseUrl: string): typeof fetc
       primaryResponse = await fetch(request.clone());
     } catch (error) {
       if (!continuityUrl) throw error;
+      const { enterContinuityMode } = await import('@/lib/persistence/dataPlaneContinuityStore');
       const transition = await enterContinuityMode('SUPABASE_TRANSPORT_UNAVAILABLE');
       cacheState(transition);
 
@@ -125,6 +121,7 @@ export function createSfiDataPlaneFetch(primarySupabaseUrl: string): typeof fetc
     const failure = await restrictedPrimary(primaryResponse);
     if (!failure.unavailable || !continuityUrl) return primaryResponse;
 
+    const { enterContinuityMode } = await import('@/lib/persistence/dataPlaneContinuityStore');
     const transition = await enterContinuityMode(failure.code || 'SUPABASE_PRIMARY_UNAVAILABLE');
     cacheState(transition);
 
