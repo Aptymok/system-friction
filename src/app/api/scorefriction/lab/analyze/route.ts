@@ -1,23 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createServiceSupabaseClient } from "@/runtime/supabase/server";
 import { analyzeSfiLabInput } from "@/lib/sfi-psi/analyzer";
 import type { SfiLabAnalyzeInput } from "@/lib/sfi-psi/types";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-
-function getSupabaseClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
-  const key =
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!url || !key) return null;
-
-  return createClient(url, key, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-}
 
 function normalizeInput(body: any): SfiLabAnalyzeInput & {
   case_id: string;
@@ -75,19 +62,20 @@ export async function POST(req: NextRequest) {
       tags: normalized.tags,
     });
 
-    const supabase = getSupabaseClient();
-
-    if (!supabase) {
+    let dataPlane;
+    try {
+      dataPlane = createServiceSupabaseClient();
+    } catch (error) {
       return NextResponse.json({
         ...analysis,
         persisted: false,
         degraded: true,
         persistenceSource: "memory_fallback",
-        persistenceReason: "supabase_client_unavailable",
+        persistenceReason: error instanceof Error ? error.message : "systemic_data_plane_client_unavailable",
       });
     }
 
-    const { data: record, error } = await supabase
+    const { data: record, error } = await dataPlane
       .from("sfi_lab_analyses")
       .insert({
         case_id: normalized.case_id,
@@ -99,7 +87,7 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (error) {
-      console.error("[sfi-lab] supabase persistence unavailable; returning analysis without persistence", error);
+      console.error("[sfi-lab] systemic data-plane persistence unavailable; returning analysis without persistence", error);
 
       return NextResponse.json({
         ...analysis,
