@@ -13,6 +13,7 @@ const store = read('src/lib/continuity/neonHeartbeatStore.ts');
 const guard = read('src/lib/continuity/scheduledEgressGuard.ts');
 const heartbeat = read('src/app/api/cron/continuity-heartbeat/route.ts');
 const primaryMirror = read('src/lib/persistence/primaryMirror.ts');
+const dataPlaneRpc = read('src/lib/persistence/dataPlaneRpc.ts');
 const hourlyContinuity = read('.github/workflows/sfi-continuity-hourly.yml');
 const canonicalTwinMemory = read('src/core/cognitive-twin/canonicalMemoryView.ts');
 const twinState = read('src/core/cognitive-twin/readState.ts');
@@ -32,6 +33,13 @@ check('actionable work gate reads Neon only after primary failure',
   gate.includes('readNeonActionableWorkSnapshot')
   && gate.includes("dataPlane: 'NEON'")
   && gate.indexOf('if (readError || missingContinuityState)') < gate.indexOf('const fallback = await readNeonActionableWorkSnapshot()'));
+
+check('heartbeat determines physical primary provenance with a direct non-fallback probe before trusting transparent client results',
+  dataPlaneRpc.includes('export async function probePrimaryDataPlane')
+  && runtime.includes("import('@/lib/persistence/dataPlaneRpc')")
+  && runtime.includes('probePrimaryDataPlane')
+  && runtime.includes('primaryPhysicalProbe')
+  && runtime.includes("dataPlane = 'NEON'"));
 
 check('heartbeat persists run/check/incident/state to Neon fallback',
   store.includes('createNeonContinuityRun')
