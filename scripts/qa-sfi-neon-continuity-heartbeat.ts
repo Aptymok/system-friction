@@ -60,9 +60,11 @@ check('bounded read models project only fields they consume on high-frequency in
 check('operational snapshot write-return avoids wildcard row transfer',
   !operationalSnapshotRoute.includes(".select('*')"));
 
-check('proposal type filtering is pushed into the data plane instead of over-fetching then filtering in memory',
-  operationalCommon.includes("query.in('proposal_type', proposalTypes)")
-  && !operationalCommon.includes("rows.filter((row)"));
+check('proposal type filtering remains bounded while preserving legacy nested proposal-type compatibility',
+  operationalCommon.includes("const candidateLimit = proposalTypes?.length ? Math.max(limit * 4, 80) : limit")
+  && operationalCommon.includes("const proposalType = proposalTypeFrom(row)")
+  && operationalCommon.includes("return { data: filtered.slice(0, limit), error: null }")
+  && !operationalCommon.includes("query.in('proposal_type', proposalTypes)"));
 
 check('root audit mutation returns only the identifier required for epistemic lineage',
   rootServer.includes(".from('root_audit_events')")
@@ -84,6 +86,12 @@ check('ScoreFriction measurement mutation returns an explicit DTO instead of the
 check('MOPH session persistence projects exactly the rowToSession contract on write-return and read',
   (mophSessionStore.match(/\.select\('id,session_key,consent_state,movement_trace_digest,choices,texts,behavioral_nodes,metrics,public_summary,created_at'\)/g) || []).length === 2
   && !mophSessionStore.includes(".select('*')"));
+
+check('action proposal type contract normalizes new writes without hiding legacy nested proposal types',
+  operationalCommon.includes("proposal_type: input.proposalType")
+  && operationalCommon.includes("const candidateLimit = proposalTypes?.length ? Math.max(limit * 4, 80) : limit")
+  && operationalCommon.includes("const proposalType = proposalTypeFrom(row)")
+  && !operationalCommon.includes("query = query.in('proposal_type', proposalTypes)"));
 
 check('current-main access-critical Neon readers are preserved',
   postgres.includes('readContinuityInstitutionalAccountGrantByEmail')
