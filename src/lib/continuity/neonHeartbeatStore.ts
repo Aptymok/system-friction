@@ -62,7 +62,7 @@ export async function readNeonContinuityHeartbeatState() {
 
 export async function readNeonContinuityObservation() {
   const sql = continuityDatabase();
-  const [stateRows, runRows] = await Promise.all([
+  const [stateRows, runs, checks, incidents, decisions, reports] = await Promise.all([
     sql`
       select *
       from sfi_continuity_state
@@ -70,17 +70,45 @@ export async function readNeonContinuityObservation() {
       limit 1
     `,
     sql`
-      select id, trigger, mode, status, started_at, completed_at,
-             capability_count, healthy_count, degraded_count, failed_count,
-             evidence, errors
+      select *
       from sfi_continuity_runs
       order by started_at desc
-      limit 1
+      limit 20
+    `,
+    sql`
+      select *
+      from sfi_capability_health_checks
+      order by checked_at desc
+      limit 80
+    `,
+    sql`
+      select *
+      from sfi_institutional_incidents
+      where status <> 'RESOLVED'
+      order by opened_at desc
+      limit 50
+    `,
+    sql`
+      select *
+      from sfi_founder_decision_queue
+      where status in ('PENDING', 'DEFERRED')
+      order by created_at desc
+      limit 50
+    `,
+    sql`
+      select *
+      from sfi_continuity_reports
+      order by created_at desc
+      limit 7
     `,
   ]);
   return {
     state: (stateRows[0] as JsonRecord | undefined) ?? null,
-    latestRun: (runRows[0] as JsonRecord | undefined) ?? null,
+    runs: runs as JsonRecord[],
+    checks: checks as JsonRecord[],
+    incidents: incidents as JsonRecord[],
+    decisions: decisions as JsonRecord[],
+    reports: reports as JsonRecord[],
   };
 }
 
