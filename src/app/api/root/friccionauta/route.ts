@@ -60,6 +60,11 @@ async function ask(request: Request, gate: RootActorGate, body: Row) {
   const graph = graphResult.status === 'fulfilled' ? graphResult.value : null;
   const amv = amvResult.status === 'fulfilled' ? amvResult.value : null;
   const continuity = continuityResult.status === 'fulfilled' ? continuityResult.value : null;
+  const observationPlanes = {
+    continuity: continuity?.readPlane ?? 'UNAVAILABLE',
+    cognitiveTwin: twin?.readPlanes ?? { memory: 'UNAVAILABLE', runtime: 'UNAVAILABLE' },
+    amv: amv?.read_plane ?? 'UNAVAILABLE',
+  };
   const retrievalWarnings = [
     rejectedWarning('root', rootResult),
     rejectedWarning('cognitive_twin', twinResult),
@@ -101,10 +106,13 @@ async function ask(request: Request, gate: RootActorGate, body: Row) {
     executionCapabilities: root?.execution.data.capabilities ?? [],
     worldVector: world?.today.observation ?? null,
     cognitiveTwin: twin ? {
+      readPlanes: twin.readPlanes,
+      primaryDiagnostics: twin.primaryDiagnostics,
       implementation: twin.implementation,
       counts: twin.counts,
       recentDecisions: twin.recentDecisions.slice(0, 12),
       recentRuns: twin.recentRuns.slice(0, 12),
+      warnings: twin.warnings,
       errors: twin.errors,
     } : null,
     targetedRetrieval: graph ? {
@@ -116,10 +124,13 @@ async function ask(request: Request, gate: RootActorGate, body: Row) {
       missingContext: graph.missing_context,
     } : null,
     amv: amv ? {
+      readPlane: amv.read_plane,
+      primaryDiagnostic: amv.primary_diagnostic,
       items: amv.items.slice(0, 14),
       recurrentPatterns: amv.recurrent_patterns,
       warnings: amv.warnings,
     } : null,
+    observationPlanes,
     continuity: continuity ? {
       state: continuity.state,
       latestRun: continuity.runs[0] ?? null,
@@ -149,6 +160,7 @@ async function ask(request: Request, gate: RootActorGate, body: Row) {
       'Answer questions about SFI using the supplied current institutional state and targeted retrieval.',
       'Some readers may be explicitly unavailable. Missing readers are not a reason to refuse the whole conversation; name the missing context and continue with what is available.',
       'Continuity may be observed across Supabase primary and authorized Neon continuity planes. Never equate newest timestamp with global authority; use the supplied resolved plane and comparison rule for the continuity domain only.',
+      'Cognitive Twin and AMV may fall back to Neon only when their Supabase read fails. Use observationPlanes and primary diagnostics to disclose fallback provenance when it materially affects the answer.',
       'You may interpret, compare, diagnose gaps and propose next observations. You may NOT execute endpoints, approve, publish, mutate canon, alter formulas, grant access, contact anyone or represent a proposal as executed.',
       'Evidence before inference. Distinguish OBSERVED, IMPORTED, DERIVED, INFERRED, PROPOSED and MISSING.',
       'When asked what something means, explain the operational consequence rather than restating database fields.',
@@ -190,10 +202,10 @@ async function ask(request: Request, gate: RootActorGate, body: Row) {
     missingEvidence,
     actionsExecuted: [
       root ? 'read_root_state' : 'read_root_state_failed',
-      twin ? 'read_cognitive_twin' : 'read_cognitive_twin_failed',
+      twin ? `read_cognitive_twin:memory=${observationPlanes.cognitiveTwin.memory}:runtime=${observationPlanes.cognitiveTwin.runtime}` : 'read_cognitive_twin_failed',
       world ? 'read_world_vector' : 'read_world_vector_failed',
       graph ? 'retrieve_neural_graph' : 'retrieve_neural_graph_failed',
-      amv ? 'read_amv' : 'read_amv_failed',
+      amv ? `read_amv:${observationPlanes.amv}` : 'read_amv_failed',
       continuity ? `read_continuity:${continuity.readPlane}` : 'read_continuity_failed',
       llm.ok ? 'llm_synthesis' : 'llm_synthesis_failed',
     ],
@@ -214,6 +226,7 @@ async function ask(request: Request, gate: RootActorGate, body: Row) {
       requestedBy: gate.ctx.user.id,
       rootGeneratedAt: root?.generatedAt ?? null,
       retrievalWarnings,
+      observationPlanes,
       providerExecutionSucceeded: llm.ok,
     },
     output_envelope: envelope,
@@ -235,6 +248,7 @@ async function ask(request: Request, gate: RootActorGate, body: Row) {
       providerExecutionSucceeded: llm.ok,
       evidenceRefs: evidenceRefs.length,
       retrievalDegradationCount: retrievalWarnings.length,
+      observationPlanes,
     },
     request,
   });
@@ -249,6 +263,7 @@ async function ask(request: Request, gate: RootActorGate, body: Row) {
     evidenceRefs,
     warnings: envelope.limitations,
     retrievalWarnings,
+    observationPlanes,
     continuity: continuity ? {
       readPlane: continuity.readPlane,
       planeComparison: continuity.planeComparison,
