@@ -151,11 +151,13 @@ export async function createActionProposal(input: {
 
 export async function latestActionProposals(proposalTypes?: string[], limit = 20) {
   const service = createServiceSupabaseClient();
-  const { data, error } = await service.from('action_proposals').select('*').order('created_at', { ascending: false }).limit(limit);
+  let query = service.from('action_proposals').select('*').order('created_at', { ascending: false });
+  if (proposalTypes?.length) {
+    query = query.in('proposal_type', proposalTypes);
+  }
+  const { data, error } = await query.limit(limit);
   if (error) return { data: [], error: error.message };
-  const rows = data ?? [];
-  if (!proposalTypes?.length) return { data: rows, error: null };
-  return { data: rows.filter((row) => { const proposalType = proposalTypeFrom(recordValue(row)); return proposalType ? proposalTypes.includes(proposalType) : false; }), error: null };
+  return { data: data ?? [], error: null };
 }
 
 export async function readOperationalContext() {
