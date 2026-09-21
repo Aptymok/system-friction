@@ -192,6 +192,9 @@ jobs:
       - name: Verify runtime read-plane stability
         run: npx tsx scripts/qa-sfi-runtime-readplane-stability.ts
 
+      - name: Verify systemic data-plane identity
+        run: npx tsx scripts/qa-sfi-data-plane-identity.ts
+
       - name: Verify bounded Neon continuity heartbeat fallback
         run: npx tsx scripts/qa-sfi-neon-continuity-heartbeat.ts
 
