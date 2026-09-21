@@ -37,7 +37,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       },
     })
     .eq('id', id)
-    .select('*')
+    .select('id,event_id,mutation_key,target,current_state,proposed_state,coherence_delta,status,proposal_id,actor_id,mutation_type,payload,created_at,updated_at')
     .single();
 
   if (error) return NextResponse.json({ ok: false, error: 'mutation_close_failed', details: error.message }, { status: 400 });

@@ -33,6 +33,8 @@ const scorefrictionMeasurementRoute = read('src/app/api/scorefriction/assets/[as
 const cognitiveLabService = read('src/lib/cognitive-lab/service.ts');
 const sfiAssetsService = read('src/lib/server/sfiAssets.ts');
 const nodeBootstrapRoute = read('src/app/api/node/bootstrap/route.ts');
+const mutationProposeRoute = fs.readFileSync(path.join(process.cwd(), 'src/app/api/mutations/propose/route.ts'), 'utf8');
+const mutationCloseRoute = fs.readFileSync(path.join(process.cwd(), 'src/app/api/root/mutations/[id]/close/route.ts'), 'utf8');
 const operationalCommon = read('src/lib/operational/common.ts');
 const rootServer = read('src/lib/root/server.ts');
 
@@ -107,6 +109,12 @@ check('operational latest-row reads are table-typed and explicitly projected',
   && operationalCommon.includes("service.from('logbook_signals').select(OPERATIONAL_READ_PROJECTIONS.logbook_signals)")
   && operationalCommon.includes("service.from('mihm_analyses').select(OPERATIONAL_READ_PROJECTIONS.mihm_analyses)")
   && !operationalCommon.includes("service.from(table).select('*')"));
+
+check('mutation write returns use the explicit mutation DTO instead of wildcard hydration',
+  mutationProposeRoute.includes(".select('id,event_id,mutation_key,target,current_state,proposed_state,coherence_delta,status,proposal_id,actor_id,mutation_type,payload,created_at,updated_at')")
+  && mutationCloseRoute.includes(".select('id,event_id,mutation_key,target,current_state,proposed_state,coherence_delta,status,proposal_id,actor_id,mutation_type,payload,created_at,updated_at')")
+  && !mutationProposeRoute.includes(".select('*')")
+  && !mutationCloseRoute.includes(".select('*')"));
 
 check('current-main access-critical Neon readers are preserved',
   postgres.includes('readContinuityInstitutionalAccountGrantByEmail')
