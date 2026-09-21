@@ -679,8 +679,110 @@ export const SFI_REALITY_CHAIN_BRIEF: SfiEditorialPublication = Object.freeze({
   ]),
 });
 
+const SFI_YEARS_THAT_DID_EXIST_RENDITIONS: readonly SfiEditorialPublicationRendition[] = Object.freeze([
+  {
+    kind: 'PDF',
+    mediaType: 'application/pdf',
+    filename: 'SFI_LAB_NOTE_THE_YEARS_THAT_DID_EXIST_EN_V1.0.pdf',
+    byteLength: 6686076,
+    sha256: 'bdcfaf3b3282ca0d579ff72ae3c74f75d63a20a85098818b70ab5e666abbdcef',
+    publicUrl: null,
+    state: 'IDENTIFIED',
+  },
+]);
+
+export const SFI_YEARS_THAT_DID_EXIST_LAB_NOTE: SfiEditorialPublication = Object.freeze({
+  contract: SFI_EDITORIAL_PUBLICATION_CONTENT_CONTRACT,
+  canonicalId: 'SFI-PUB-LN-001',
+  slug: 'the-years-that-did-exist',
+  editorialKind: 'FRICTION_BRIEF',
+  collection: 'Friction Briefs',
+  observationKind: 'METHOD',
+  language: 'en',
+  series: 'SFI · Research Lab Notes',
+  issue: 'LAB NOTE / PUBLIC-SOURCE SYNTHESIS',
+  title: 'The Years That Did Exist',
+  subtitle: 'From phantom time to a comparative anatomy of civilizational capacity',
+  motto: 'The years did exist. What changed was the capacity.',
+  deck: 'A falsifiable public-source investigation that rejects a literal chronological hole across the early medieval interval and then asks the harder question: why did some complex systems lose the ability to reproduce high-order capabilities at scale? The note develops a bounded comparative framework around reproductive-capacity stress, rapid coordination fracture and adaptive substitution, while retaining failures, rival explanations and validation limits.',
+  publishedAt: '2026-09-20T22:36:00-06:00',
+  mediumUrl: null,
+  coverImage: '/images/editorial/years-that-did-exist/cover.svg',
+  visuals: Object.freeze([]),
+  contentState: 'MATERIALIZED',
+  renditions: SFI_YEARS_THAT_DID_EXIST_RENDITIONS,
+  sections: Object.freeze([
+    {
+      id: 'abstract',
+      title: 'Executive abstract',
+      paragraphs: Object.freeze([
+        'The literal missing-time claim fails against independent physical chronologies. Annual tree-ring sequences, cosmogenic radiocarbon markers and environmental archives cross the alleged interval. The anomaly therefore shifts from chronology to reproducibility: what collective functions can a complex society continue to produce, at what spatial scale and over what time horizon?',
+        'The central synthesis is deliberately bounded. It does not establish a universal law of collapse. It identifies recurring patterns worth testing: slow reproductive erosion, rapid coordination fracture, and the possibility that adaptive substitution separates severe stress from terminal loss of function.',
+      ]),
+    },
+    {
+      id: 'method',
+      title: 'Method and epistemic contract',
+      paragraphs: Object.freeze([
+        'The investigation prioritizes physical clocks and material systems where possible: tree rings, radiocarbon excursions, ice-core pollution, pollen, mining, coinage, built infrastructure, settlement, water systems and urbanism. Regional controls prevent a Western-European pattern from being mislabeled as a universal Dark Age.',
+        'Comparative scores used for CH-EW, RCF and ASC are SFI analytical coding created during this inquiry. They are not published historical metrics, have not been independently replicated, and never upgrade a weak source.',
+      ]),
+    },
+    {
+      id: 'continuity',
+      title: 'Finding 01 · The years are physically present',
+      paragraphs: Object.freeze([
+        'The 774/775 cosmogenic radiocarbon event is embedded in annually formed tree rings and appears across geographically distant chronologies. That physical continuity makes a literal insertion of roughly three centuries extraordinarily difficult to sustain.',
+        'This finding does not certify every medieval narrative, date or attribution. It narrows the uncertainty: an archival gap and a physical gap are different claims.',
+      ]),
+    },
+    {
+      id: 'capacity',
+      title: 'Finding 02 · Material capacity can contract without time disappearing',
+      paragraphs: Object.freeze([
+        'Mining and lead-pollution proxies, monetary evidence, changing urban systems, hydraulic maintenance and regional landscape records show prolonged material reconfiguration across the late Roman and early medieval worlds. The political date 476 sits inside slower processes rather than acting as a universal switch.',
+        'Post-Roman monumental construction did not vanish everywhere. Longobard Italy, Aachen and Reccopolis falsify a simple story of technological amnesia. The sharper question is where, how often and at what scale complex construction could be repeated.',
+      ]),
+    },
+    {
+      id: 'comparative-model',
+      title: 'Finding 03 · At least two failure regimes appear in the comparative sample',
+      paragraphs: Object.freeze([
+        'CH-EW is most sensitive to slow loss of reproductive capacity: maintenance deferral, resource-margin erosion, inherited-capital consumption, network contraction and reduced ability to replace what the system uses. It is not a general collapse detector.',
+        'RCF captures a different regime: succession breakdown, elite fracture, peripheral defection, fragmented command and rapid loss of coalition integrity. ASC then asks whether a failing function can be substituted, modularized or relocated before dependent functions fail.',
+      ]),
+    },
+    {
+      id: 'limits',
+      title: 'Limits and falsifiers',
+      paragraphs: Object.freeze([
+        'The sample is retrospective; the coding is analytical; system boundaries are historically contestable; source quality is heterogeneous; and the framework was revised while cases were being examined. Those conditions prevent a claim of predictive validation.',
+        'The framework should be weakened if independent coders cannot reproduce the classifications, if high reproductive stress plus low substitution repeatedly produces stable continuity without reconfiguration, or if rapid coordination fracture plus low substitution repeatedly resolves without loss of the tracked system.',
+      ]),
+    },
+    {
+      id: 'conclusion',
+      title: 'Conclusion',
+      paragraphs: Object.freeze([
+        'The investigation began by asking whether centuries were missing. Independent physical records reject the strong chronological version of that idea. What remains is more useful: complex societies can preserve people, knowledge and artifacts while losing the capacity to reproduce the coordinated functions that once made high-order outcomes routine.',
+        'The working proposition is therefore not that civilizations simply collapse. Systems can erode slowly, fracture quickly, or transform by substitution. The visible ruin is often a late artifact of a deeper question: can the system still produce its own tomorrow?',
+      ]),
+    },
+  ]),
+  cadence: Object.freeze([]),
+  domains: Object.freeze(['Historical systems', 'Civilizational capacity', 'Institutional resilience', 'Archaeology', 'Complex systems']),
+  epistemicBoundary: Object.freeze([
+    'The Phantom Time Hypothesis is treated as falsified only in its strong literal chronology form; this does not validate every medieval documentary claim.',
+    'CH-EW, RCF and ASC are analytical constructs developed during this investigation and are not validated predictive instruments.',
+    'Historical sequence and association do not by themselves establish causality.',
+    'System boundaries must be declared before classifying survival, substitution, inheritance or termination.',
+    'Publication establishes EXPOSURE only. Discovery, Recognition, Interaction, PULL and RETURN require independent evidence.',
+  ]),
+});
+
 export const SFI_EDITORIAL_FRICTION_BRIEFS: readonly SfiEditorialPublication[] = Object.freeze([
   SFI_REALITY_CHAIN_BRIEF,
+  SFI_YEARS_THAT_DID_EXIST_LAB_NOTE,
 ]);
 
 export const SFI_EDITORIAL_OBSERVATIONS: readonly SfiEditorialPublication[] = Object.freeze([
