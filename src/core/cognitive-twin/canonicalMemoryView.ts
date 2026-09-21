@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { isSfiContinuityConfigured, readContinuityCanonicalCognitiveTwinMemoryRows } from '@/lib/sfi/continuityPostgres';
 
 const CANONICAL_MEMORY_MODULE = 'institutionalEventPipeline';
 const PAGE_SIZE = 128;
@@ -78,6 +79,8 @@ export async function readCanonicalCognitiveTwinMemory(limit = 64) {
   let offset = 0;
   let rowsError: string | null = null;
   let scannedRows = 0;
+  let readPlane: 'SUPABASE' | 'NEON' | 'UNAVAILABLE' = 'SUPABASE';
+  let primaryDiagnostic: string | null = null;
 
   while (latestByKey.size < requested) {
     const page = await db.from('sfi_amv_memory')
@@ -86,8 +89,24 @@ export async function readCanonicalCognitiveTwinMemory(limit = 64) {
       .not('memory_delta->raw->>memoryKey', 'is', null)
       .order('created_at', { ascending: false })
       .range(offset, offset + PAGE_SIZE - 1);
-    if (page.error) { rowsError = page.error.message; break; }
-    const rows = page.data ?? [];
+
+    let rows: unknown[] = page.data ?? [];
+    if (page.error) {
+      primaryDiagnostic = page.error.message;
+      if (!isSfiContinuityConfigured()) {
+        rowsError = page.error.message;
+        readPlane = 'UNAVAILABLE';
+        break;
+      }
+      try {
+        rows = await readContinuityCanonicalCognitiveTwinMemoryRows({ offset, limit: PAGE_SIZE });
+        readPlane = 'NEON';
+      } catch (continuityError) {
+        rowsError = `${page.error.message}; continuity=${continuityError instanceof Error ? continuityError.message : 'continuity_read_failed'}`;
+        readPlane = 'UNAVAILABLE';
+        break;
+      }
+    }
     scannedRows += rows.length;
     for (const item of rows) {
       const memory = fromAmvRow(item);
@@ -107,6 +126,8 @@ export async function readCanonicalCognitiveTwinMemory(limit = 64) {
     eventCountExact: scannedRows < PAGE_SIZE && !rowsError,
     scannedRows,
     error: rowsError,
+    readPlane,
+    primaryDiagnostic,
     policy: 'VERIFIED_OR_CANONICAL_ONLY' as const,
     boundary: 'eventCount is the number of distinct memory keys observed in the bounded scan, not a COUNT(*) of the full table unless eventCountExact=true.',
   };
