@@ -1,6 +1,8 @@
 -- SFI ChatGPT Plus Observation Plane
 -- Contract: SFI-CHATGPT-PLUS-OBSERVATION-1.0
 -- Purpose: one compact, read-only snapshot over existing canonical owners.
+-- Execute the same query independently against Supabase and Neon when both are available.
+-- Cross-plane divergence is an observation signal; do not resolve it by blindly selecting the newest database.
 -- This query creates no authority, no persistence owner, no RETURN, and no canon.
 -- It intentionally excludes auth/OAuth secrets, raw media, passwords, tokens, and private binary content.
 
