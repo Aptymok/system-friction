@@ -14,6 +14,7 @@ const guard = read('src/lib/continuity/scheduledEgressGuard.ts');
 const heartbeat = read('src/app/api/cron/continuity-heartbeat/route.ts');
 const primaryMirror = read('src/lib/persistence/primaryMirror.ts');
 const dataPlaneRpc = read('src/lib/persistence/dataPlaneRpc.ts');
+const continuityRecovery = read('src/lib/persistence/continuityRecovery.ts');
 const dataPlaneFetch = read('src/lib/persistence/dataPlaneFetch.ts');
 const dataPlaneConfig = read('src/lib/persistence/dataPlaneConfig.ts');
 const hourlyContinuity = read('.github/workflows/sfi-continuity-hourly.yml');
@@ -48,6 +49,13 @@ check('heartbeat determines physical primary provenance with a direct non-fallba
   && runtime.includes('probePrimaryDataPlane')
   && runtime.includes('primaryPhysicalProbe')
   && runtime.includes("dataPlane = 'NEON'"));
+
+check('continuity recovery is owned by the existing heartbeat and only attempted after a direct healthy primary probe',
+  continuityRecovery.includes('export async function recoverPrimaryDataPlane')
+  && runtime.includes("import('@/lib/persistence/continuityRecovery')")
+  && runtime.includes('recoverPrimaryDataPlane')
+  && runtime.includes('primaryPhysicalProbe.ok')
+  && runtime.includes('recoveryAttempt'));
 
 check('heartbeat persists run/check/incident/state to Neon fallback',
   store.includes('createNeonContinuityRun')

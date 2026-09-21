@@ -287,6 +287,13 @@ export async function runContinuityHeartbeat(trigger = 'scheduled') {
     status: 0,
     error: error instanceof Error ? error.message : String(error),
   }));
+
+  let systemicDataPlaneState: Awaited<ReturnType<typeof import('@/lib/persistence/dataPlaneContinuityStore')['readDataPlaneState']>> | null = null;
+  if (isSfiContinuityConfigured()) {
+    const { readDataPlaneState } = await import('@/lib/persistence/dataPlaneContinuityStore');
+    systemicDataPlaneState = await readDataPlaneState().catch(() => null);
+  }
+
   const primaryDb = createServiceSupabaseClient();
   const primaryState = await primaryDb
     .from('sfi_continuity_state')
@@ -294,11 +301,24 @@ export async function runContinuityHeartbeat(trigger = 'scheduled') {
     .eq('id', 'institution')
     .single();
 
-  let dataPlane: 'SUPABASE' | 'NEON' = 'SUPABASE';
+  let dataPlane: 'SUPABASE' | 'NEON' = systemicDataPlaneState && systemicDataPlaneState.mode !== 'PRIMARY'
+    ? 'NEON'
+    : 'SUPABASE';
   let stateRow: Row;
   let primaryDiagnostic: string | null = null;
 
-  if (primaryPhysicalProbe.ok && !primaryState.error && primaryState.data) {
+  if (dataPlane === 'NEON') {
+    primaryDiagnostic = primaryPhysicalProbe.ok
+      ? 'physical_primary_healthy_recovery_pending'
+      : `physical_primary_unavailable:status=${primaryPhysicalProbe.status}:error=${primaryPhysicalProbe.error || 'unknown'}`;
+    const continuityState = !primaryState.error && primaryState.data
+      ? primaryState.data as Row
+      : await readNeonContinuityHeartbeatState();
+    if (!continuityState) {
+      throw new Error('continuity_state_unavailable:neon=missing');
+    }
+    stateRow = continuityState;
+  } else if (primaryPhysicalProbe.ok && !primaryState.error && primaryState.data) {
     stateRow = primaryState.data as Row;
   } else {
     primaryDiagnostic = primaryPhysicalProbe.ok
@@ -307,7 +327,7 @@ export async function runContinuityHeartbeat(trigger = 'scheduled') {
     if (!isSfiContinuityConfigured()) {
       throw new Error('continuity_state_unavailable:' + primaryDiagnostic);
     }
-    const fallbackState = !primaryPhysicalProbe.ok && !primaryState.error && primaryState.data
+    const fallbackState = !primaryState.error && primaryState.data
       ? primaryState.data as Row
       : await readNeonContinuityHeartbeatState();
     if (!fallbackState) {
@@ -453,6 +473,30 @@ export async function runContinuityHeartbeat(trigger = 'scheduled') {
     });
   }
 
+  let recoveryAttempt: Record<string, unknown> = {
+    attempted: false,
+    reason: dataPlane !== 'NEON'
+      ? 'PRIMARY_PLANE_ACTIVE'
+      : !primaryPhysicalProbe.ok
+        ? 'PRIMARY_STILL_UNAVAILABLE'
+        : mode === 'EMERGENCY_HALT'
+          ? 'EMERGENCY_HALT'
+          : 'NOT_REQUIRED',
+  };
+
+  if (dataPlane === 'NEON' && primaryPhysicalProbe.ok && mode !== 'EMERGENCY_HALT') {
+    const { recoverPrimaryDataPlane } = await import('@/lib/persistence/continuityRecovery');
+    recoveryAttempt = {
+      attempted: true,
+      ...await recoverPrimaryDataPlane({ maxTransactions: 16 }).catch((error) => ({
+        ok: false,
+        recovered: false,
+        reason: 'RECOVERY_ATTEMPT_FAILED',
+        error: error instanceof Error ? error.message : String(error),
+      })),
+    };
+  }
+
   return {
     runId,
     mode,
@@ -465,6 +509,7 @@ export async function runContinuityHeartbeat(trigger = 'scheduled') {
     primaryDiagnostic,
     primaryPhysicalProbe,
     primaryMirror,
+    recoveryAttempt,
   };
 }
 
