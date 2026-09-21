@@ -83,30 +83,41 @@ export async function readCanonicalCognitiveTwinMemory(limit = 64) {
   let primaryDiagnostic: string | null = null;
 
   while (latestByKey.size < requested) {
-    const page = await db.from('sfi_amv_memory')
-      .select('id,module,input_summary,memory_delta,source_trust,requires_human_validation,created_at')
-      .eq('module', CANONICAL_MEMORY_MODULE)
-      .not('memory_delta->raw->>memoryKey', 'is', null)
-      .order('created_at', { ascending: false })
-      .range(offset, offset + PAGE_SIZE - 1);
+    let rows: unknown[] = [];
 
-    let rows: unknown[] = page.data ?? [];
-    if (page.error) {
-      primaryDiagnostic = page.error.message;
-      if (!isSfiContinuityConfigured()) {
-        rowsError = page.error.message;
-        readPlane = 'UNAVAILABLE';
-        break;
-      }
+    if (readPlane === 'NEON') {
       try {
         rows = await readContinuityCanonicalCognitiveTwinMemoryRows({ offset, limit: PAGE_SIZE });
-        readPlane = 'NEON';
       } catch (continuityError) {
-        rowsError = `${page.error.message}; continuity=${continuityError instanceof Error ? continuityError.message : 'continuity_read_failed'}`;
+        rowsError = `${primaryDiagnostic ?? 'supabase_cognitive_memory_read_failed'}; continuity=${continuityError instanceof Error ? continuityError.message : 'continuity_read_failed'}`;
         readPlane = 'UNAVAILABLE';
         break;
       }
+    } else {
+      const page = await db.from('sfi_amv_memory')
+        .select('id,module,input_summary,memory_delta,source_trust,requires_human_validation,created_at')
+        .eq('module', CANONICAL_MEMORY_MODULE)
+        .not('memory_delta->raw->>memoryKey', 'is', null)
+        .order('created_at', { ascending: false })
+        .range(offset, offset + PAGE_SIZE - 1);
+
+      if (page.error) {
+        primaryDiagnostic = page.error.message;
+        if (!isSfiContinuityConfigured()) {
+          rowsError = page.error.message;
+          readPlane = 'UNAVAILABLE';
+          break;
+        }
+        latestByKey.clear();
+        seenKeys.clear();
+        scannedRows = 0;
+        offset = 0;
+        readPlane = 'NEON';
+        continue;
+      }
+      rows = page.data ?? [];
     }
+
     scannedRows += rows.length;
     for (const item of rows) {
       const memory = fromAmvRow(item);
