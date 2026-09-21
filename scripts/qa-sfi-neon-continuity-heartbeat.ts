@@ -93,6 +93,12 @@ check('action proposal type contract normalizes new writes without hiding legacy
   && operationalCommon.includes("const proposalType = proposalTypeFrom(row)")
   && !operationalCommon.includes("query = query.in('proposal_type', proposalTypes)"));
 
+check('node bootstrap uses explicit consumer DTOs instead of wildcard row hydration',
+  !nodeBootstrapRoute.includes(".select('*')")
+  && nodeBootstrapRoute.includes(".select('id,node_id,source,narrative,ihg,nti,ldi,verdict,diagnosis,loop_score,divergence,pattern,hard_stop,proposed_action,created_at,whatsapp_session_id')")
+  && nodeBootstrapRoute.includes(".select('id,node_id,audit_id,fact_type,label,value,confidence,first_seen_at,last_seen_at,recurrence_count')")
+  && nodeBootstrapRoute.includes(".select('id,node_id,audit_id,description,verification_criterion,due_at,completed_at,status,action_type,metadata,created_at')"));
+
 check('current-main access-critical Neon readers are preserved',
   postgres.includes('readContinuityInstitutionalAccountGrantByEmail')
   && postgres.includes('readContinuityMemberWorkspaceCounts')
