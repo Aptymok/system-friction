@@ -7,6 +7,13 @@ export type SfiEditorialPublicationSection = {
   items?: readonly string[];
 };
 
+export type SfiEditorialPublicationVisual = {
+  id: string;
+  src: string;
+  alt: string;
+  caption: string;
+};
+
 export type SfiEditorialPublicationRendition = {
   kind: 'PDF';
   mediaType: 'application/pdf';
@@ -45,9 +52,10 @@ export type SfiEditorialPublication = {
   contract: typeof SFI_EDITORIAL_PUBLICATION_CONTENT_CONTRACT;
   canonicalId: string;
   slug: string;
-  editorialKind: 'TEMPORAL_ISSUE' | 'OBSERVATION';
-  collection: 'Notas Temporales' | 'Observaciones';
+  editorialKind: 'TEMPORAL_ISSUE' | 'OBSERVATION' | 'FRICTION_BRIEF';
+  collection: 'Notas Temporales' | 'Observaciones' | 'Friction Briefs';
   observationKind: SfiEditorialObservationKind | null;
+  language: 'es' | 'en';
   series: string;
   issue: string;
   title: string;
@@ -57,6 +65,7 @@ export type SfiEditorialPublication = {
   publishedAt: string;
   mediumUrl: string | null;
   coverImage: string | null;
+  visuals: readonly SfiEditorialPublicationVisual[];
   contentState: 'MATERIALIZED' | 'INDEXED_EXTERNAL';
   renditions: readonly SfiEditorialPublicationRendition[];
   sections: readonly SfiEditorialPublicationSection[];
@@ -91,6 +100,7 @@ export const SFI_NOTAS_TEMPORALES_V1: SfiEditorialPublication = Object.freeze({
   editorialKind: 'TEMPORAL_ISSUE',
   collection: 'Notas Temporales',
   observationKind: null,
+  language: 'es',
   series: 'SFI · Notas Temporales',
   issue: 'Septiembre 2026',
   title: 'Notas Temporales',
@@ -100,6 +110,7 @@ export const SFI_NOTAS_TEMPORALES_V1: SfiEditorialPublication = Object.freeze({
   publishedAt: '2026-09-12T00:00:00-06:00',
   mediumUrl: null,
   coverImage: '/images/editorial/notas-temporales-septiembre-2026.webp',
+  visuals: Object.freeze([]),
   contentState: 'MATERIALIZED',
   renditions: SFI_NOTAS_TEMPORALES_V1_RENDITIONS,
   temporalProfile: Object.freeze({
@@ -202,6 +213,7 @@ function indexedObservation(input: {
     editorialKind: 'OBSERVATION',
     collection: 'Observaciones',
     observationKind: input.observationKind,
+    language: 'es',
     series: 'SFI · Observaciones',
     issue: input.observationKind,
     title: input.title,
@@ -211,6 +223,7 @@ function indexedObservation(input: {
     publishedAt: input.publishedAt,
     mediumUrl: input.mediumUrl,
     coverImage: null,
+    visuals: Object.freeze([]),
     contentState: 'INDEXED_EXTERNAL',
     renditions: Object.freeze([]),
     sections: Object.freeze([]),
@@ -337,6 +350,7 @@ export const SFI_OBSERVATION_T_PLUS_72: SfiEditorialPublication = Object.freeze(
   editorialKind: 'OBSERVATION',
   collection: 'Observaciones',
   observationKind: 'TRAJECTORY',
+  language: 'es',
   series: 'SFI · Observaciones',
   issue: 'TRAJECTORY',
   title: 'T+72 horas: la señal no era la canción',
@@ -346,6 +360,7 @@ export const SFI_OBSERVATION_T_PLUS_72: SfiEditorialPublication = Object.freeze(
   publishedAt: '2026-09-12T00:00:00-06:00',
   mediumUrl: null,
   coverImage: null,
+  visuals: Object.freeze([]),
   contentState: 'MATERIALIZED',
   renditions: Object.freeze([]),
   sections: Object.freeze([
@@ -496,6 +511,7 @@ export const SFI_OBSERVATION_KAVAK: SfiEditorialPublication = Object.freeze({
   editorialKind: 'OBSERVATION',
   collection: 'Observaciones',
   observationKind: 'CASE',
+  language: 'es',
   series: 'SFI · Observaciones',
   issue: 'CASE',
   title: 'KAVAK / ESTADO / AUTORIDAD / EJECUCIÓN',
@@ -505,6 +521,7 @@ export const SFI_OBSERVATION_KAVAK: SfiEditorialPublication = Object.freeze({
   publishedAt: '2026-09-12T00:00:00-06:00',
   mediumUrl: null,
   coverImage: '/images/editorial/notas-de-caso.webp',
+  visuals: Object.freeze([]),
   contentState: 'MATERIALIZED',
   renditions: Object.freeze([]),
   sections: Object.freeze([
@@ -531,6 +548,141 @@ export const SFI_OBSERVATION_KAVAK: SfiEditorialPublication = Object.freeze({
   epistemicBoundary: SHARED_OBSERVATION_BOUNDARY,
 });
 
+const SFI_REALITY_CHAIN_RENDITIONS: readonly SfiEditorialPublicationRendition[] = Object.freeze([
+  {
+    kind: 'PDF',
+    mediaType: 'application/pdf',
+    filename: 'SFI-FB-PS-2026-09-002-PUB-V1.0_THE_REALITY_CHAIN_EN.pdf',
+    byteLength: 10174948,
+    sha256: 'c169d7674b2934083c26e1fd1b7f33eaecf13fbd3ab1588f068471c9a3cbacae',
+    publicUrl: null,
+    state: 'IDENTIFIED',
+  },
+]);
+
+export const SFI_REALITY_CHAIN_BRIEF: SfiEditorialPublication = Object.freeze({
+  contract: SFI_EDITORIAL_PUBLICATION_CONTENT_CONTRACT,
+  canonicalId: 'SFI-PUB-FB-002',
+  slug: 'the-reality-chain',
+  editorialKind: 'FRICTION_BRIEF',
+  collection: 'Friction Briefs',
+  observationKind: 'METHOD',
+  language: 'en',
+  series: 'SFI · Public-Source Friction Briefs',
+  issue: 'PUBLIC-SOURCE FRICTION BRIEF',
+  title: 'The Reality Chain',
+  subtitle: 'Evidence, Artificial Intelligence and the Collapse of the Distance Between Observation and Claim',
+  motto: 'The last trustworthy image will not be an image. It will be a reconstructable chain.',
+  deck: 'A public-source investigation into what institutions must preserve when machines increasingly participate in observing, interpreting and acting on the world. UAP material from AARO/PURSUE is used as Case Zero because it combines sensor data, missing context, uncertain attribution, chain-of-custody problems and high-pressure interpretation.',
+  publishedAt: '2026-09-20T19:16:00-06:00',
+  mediumUrl: null,
+  coverImage: '/images/editorial/reality-chain/reality-chain-cover.svg',
+  visuals: Object.freeze([
+    { id: 'world-to-claim', src: '/images/editorial/reality-chain/reality-chain-world-to-claim.svg', alt: 'World-to-Claim Traceability from physical event through sensor, artifact, context, inference, authority, claim and RETURN.', caption: 'WORLD-TO-CLAIM TRACEABILITY · Authenticity does not by itself establish the truth of an institutional claim.' },
+    { id: 'transparency-paradox', src: '/images/editorial/reality-chain/reality-chain-transparency-paradox.svg', alt: 'Transparency Paradox comparing disclosure volume with evidentiary power.', caption: 'THE TRANSPARENCY PARADOX · More disclosure can increase access without increasing adjudicative capacity.' },
+    { id: 'epistemic-overproduction', src: '/images/editorial/reality-chain/reality-chain-epistemic-overproduction.svg', alt: 'Epistemic Overproduction showing observation and generation scaling faster than verification.', caption: 'EPISTEMIC OVERPRODUCTION · Verification capacity becomes the scarce institutional resource.' },
+    { id: 'benchmark-v0', src: '/images/editorial/reality-chain/reality-chain-benchmark-v0.svg', alt: 'Reality Chain Benchmark v0 with layered evidence from observation through corroboration.', caption: 'REALITY CHAIN BENCHMARK v0 · Evidence is revealed in layers to measure justified claims, abstention and narrative inflation.' },
+    { id: 'six-integrities', src: '/images/editorial/reality-chain/reality-chain-six-integrities.svg', alt: 'Six integrities of institutional evidence: capture, transformation, context, inference, authority and RETURN.', caption: 'SIX INTEGRITIES · A reconstructable chain from reality to accountability.' },
+  ]),
+  contentState: 'MATERIALIZED',
+  renditions: SFI_REALITY_CHAIN_RENDITIONS,
+  sections: Object.freeze([
+    {
+      id: 'abstract',
+      title: 'Abstract',
+      paragraphs: Object.freeze([
+        'Artificial intelligence changes the evidence problem in two opposite directions at once. Machines can detect rare patterns across enormous multimodal datasets, while generative systems can create persuasive synthetic evidence at negligible marginal cost. The institutional bottleneck therefore shifts from obtaining information to establishing when an observation, inference or action was sufficiently warranted by reality.',
+        'This brief audits public AARO/PURSUE material, resolved and unresolved UAP cases, NASA recommendations on data quality and anomaly analysis, C2PA limits on content provenance, NIST work on synthetic media and traceability, and contemporary benchmarks on abstention, multimodal conflict and verification cost. The investigation does not establish extraterrestrial origin. It uses UAP as a stress test for evidence under uncertainty.',
+      ]),
+    },
+    {
+      id: 'method',
+      title: 'Method and evidence boundary',
+      paragraphs: Object.freeze([
+        'The study is a retrospective public-source audit, not a randomized experiment. Resolved AARO cases were examined for the information that materially enabled adjudication; unresolved cases were examined as negative controls for what remained unavailable. Those patterns were then triangulated against external benchmark evidence on multimodal uncertainty, abstention, provenance and verification cost.',
+        'The result is classified as a supported derived hypothesis, not a validated universal law. The proposed Reality Chain Benchmark remains a designed but not yet independently executed SFI benchmark.',
+      ]),
+    },
+    {
+      id: 'information-state',
+      title: 'Finding 01 · Unidentified is an information state',
+      paragraphs: Object.freeze([
+        'A file can be authentic while the observed object remains unidentified. A physical object can be established while its identity remains unresolved. An object can remain unidentified while a specific extraordinary interpretation is rejected. These are different epistemic states and should not be collapsed into one label.',
+        'The central distinction is: authentic artifact ≠ physical object ≠ identified object ≠ anomalous behavior ≠ extraordinary origin.',
+      ]),
+    },
+    {
+      id: 'context',
+      title: 'Finding 02 · The decisive information often sits outside the image',
+      paragraphs: Object.freeze([
+        'Across the intentionally selected resolved AARO cases audited in this project, resolution depended on material context beyond visual inspection alone: geometry, wind, traffic data, sensor behavior, later imagery, metadata, reconstruction or corroborating records.',
+        'This does not prove that every UAP case has a conventional explanation. It does support a narrower claim: evidentiary power frequently increases when the observation is connected to its measurement conditions and external context.',
+      ]),
+    },
+    {
+      id: 'transparency',
+      title: 'Finding 03 · The Transparency Paradox',
+      paragraphs: Object.freeze([
+        'Disclosure increases access to artifacts. It does not automatically increase the power to adjudicate what those artifacts mean. PURSUE contains material for which AARO itself notes incomplete or unsupported chain of custody and, in some instances, prior digital modification.',
+        'More evidence objects can therefore coexist with more possible narratives. Transparency without provenance, metadata, contextual reconstruction and adjudication can increase interpretive surface faster than knowledge.',
+      ]),
+    },
+    {
+      id: 'ai',
+      title: 'Finding 04 · AI creates an asymmetry between inference and verification',
+      paragraphs: Object.freeze([
+        'External benchmarks converge on a consistent weakness: stronger inference does not guarantee correct abstention. Models can remain confident under contradictory multimodal evidence, reasoning fine-tuning can reduce abstention performance, and agentic systems can be materially better at acting than at recognizing when action is insufficiently justified.',
+        'The relevant scarcity is therefore verification capacity. Generation, perception, detection and interpretation can scale rapidly; institutional verification does not necessarily scale at the same rate.',
+      ]),
+    },
+    {
+      id: 'reality-chain',
+      title: 'The Reality Chain',
+      paragraphs: Object.freeze([
+        'The proposed institutional unit is not merely the authenticated file. It is the reconstructable path by which a physical event becomes an authorized claim: WORLD → SENSOR → SIGNAL → ARTIFACT → CONTEXT → INFERENCE → AUTHORITY → CLAIM → ACTION → RETURN.',
+        'The chain matters because provenance can authenticate the history of an artifact without establishing the truth of the interpretation attached to it. Institutions therefore need claim provenance in addition to file provenance.',
+      ]),
+    },
+    {
+      id: 'integrities',
+      title: 'Six integrities of institutional evidence',
+      paragraphs: Object.freeze([
+        'Capture integrity asks what the sensor could and could not observe. Transformation integrity records what happened to the data. Context integrity preserves corroborating and constraining information. Inference integrity preserves hypotheses, uncertainty and reasons. Authority integrity identifies who could convert an inference into an institutional claim. RETURN integrity records what later confirmed, contradicted or revised that claim.',
+        'These layers are separable. A chain can be strong in one and weak in another. That is precisely why a single authenticity score is insufficient.',
+      ]),
+    },
+    {
+      id: 'benchmark',
+      title: 'Reality Chain Benchmark v0',
+      paragraphs: Object.freeze([
+        'The proposed benchmark reveals evidence in four layers: L0 observation only; L1 instrument context; L2 external context; L3 corroboration or contradiction. At every layer the model must classify the claim state, state its confidence, preserve rival hypotheses, identify missing critical evidence, and choose among claim, investigate or abstain.',
+        'Primary metrics are Claim Justification, Abstention Calibration, Evidence Responsiveness, Narrative Inflation, Traceability and Verification Cost. The benchmark is designed to test whether additional reality produces better adjudication rather than merely more elaborate narrative.',
+      ]),
+    },
+    {
+      id: 'conclusion',
+      title: 'Conclusion',
+      paragraphs: Object.freeze([
+        'The investigation supports a bounded hypothesis: machine intelligence is increasing the capacity to perceive, infer and act faster than the capacity to establish when perception, inference and action are epistemically justified.',
+        'The infrastructure missing from the AI era is therefore not only another detector. It is the chain that proves when a machine had enough reality to speak.',
+      ]),
+    },
+  ]),
+  cadence: Object.freeze([]),
+  domains: Object.freeze(['Artificial intelligence', 'Evidence', 'Institutional governance', 'Synthetic media', 'UAP / anomaly adjudication']),
+  epistemicBoundary: Object.freeze([
+    'This brief does not establish extraterrestrial origin for any UAP case.',
+    'Unresolved does not mean extraterrestrial, anomalous propulsion, or non-human technology.',
+    'The timing of government disclosure and the rise of generative AI is not presented as evidence of a hidden causal relationship.',
+    'The documentary audit supports a derived hypothesis; it does not establish a universal causal law.',
+    'Reality Chain Benchmark v0 is designed but has not yet completed an independent multi-model SFI execution.',
+  ]),
+});
+
+export const SFI_EDITORIAL_FRICTION_BRIEFS: readonly SfiEditorialPublication[] = Object.freeze([
+  SFI_REALITY_CHAIN_BRIEF,
+]);
+
 export const SFI_EDITORIAL_OBSERVATIONS: readonly SfiEditorialPublication[] = Object.freeze([
   SFI_OBSERVATION_CRISIS_STATE,
   SFI_OBSERVATION_SIGNAL_NAMING,
@@ -549,6 +701,7 @@ export const SFI_EDITORIAL_OBSERVATIONS: readonly SfiEditorialPublication[] = Ob
 
 export const SFI_EDITORIAL_PUBLICATIONS: readonly SfiEditorialPublication[] = Object.freeze([
   SFI_NOTAS_TEMPORALES_V1,
+  ...SFI_EDITORIAL_FRICTION_BRIEFS,
   ...SFI_EDITORIAL_OBSERVATIONS,
 ]);
 

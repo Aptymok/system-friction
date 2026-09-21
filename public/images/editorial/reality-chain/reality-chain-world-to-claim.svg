@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" role="img" aria-labelledby="t d">
+<title id="t">WORLD-TO-CLAIM TRACEABILITY</title><desc id="d">A defensible path from physical event to institutional statement</desc>
+<defs><linearGradient id="g" x1="0" x2="1"><stop stop-color="#d4af37"/><stop offset="1" stop-color="#f7f4ea"/></linearGradient><filter id="gl"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+<rect width="100%" height="100%" fill="#0b0b0a"/><rect x="28" y="28" width="1544" height="944" fill="none" stroke="#d4af37" stroke-width="1"/>
+<style>.ser{font-family:Georgia,'Times New Roman',serif;fill:#f7f4ea}.mono{font-family:ui-monospace,Menlo,monospace;fill:#c8a951;letter-spacing:3px}.mut{fill:#9d927e;font-family:ui-monospace,Menlo,monospace}.gold{stroke:#d4af37;fill:none}.cream{stroke:#f7f4ea;fill:none}.thin{stroke-width:1}.med{stroke-width:2}.node{fill:#d4af37;stroke:#f7f4ea;stroke-width:1}</style>
+<text x="70" y="78" class="mono" font-size="18">SYSTEM FRICTION INSTITUTE</text>
+<text x="70" y="140" class="ser" font-size="68" font-weight="700">WORLD-TO-CLAIM TRACEABILITY</text>
+<text x="70" y="188" class="ser" font-size="27">A defensible path from physical event to institutional statement</text>
+<line x1="70" y1="218" x2="1530" y2="218" class="gold thin"/>
+
+<g transform="translate(85 330)">
+<path d="M0 180 H1415" class="gold med"/>
+<circle cx="0" cy="180" r="9" class="node"/><circle cx="205" cy="180" r="9" class="node"/><circle cx="410" cy="180" r="9" class="node"/><circle cx="615" cy="180" r="9" class="node"/><circle cx="820" cy="180" r="9" class="node"/><circle cx="1025" cy="180" r="9" class="node"/><circle cx="1230" cy="180" r="9" class="node"/><circle cx="1415" cy="180" r="9" class="node"/>
+<text x="0" y="135" class="mono" font-size="15" text-anchor="middle">1 · WORLD</text><text x="0" y="235" class="mut" font-size="13" text-anchor="middle">event / state / phenomenon</text><text x="205" y="135" class="mono" font-size="15" text-anchor="middle">2 · SENSOR</text><text x="205" y="235" class="mut" font-size="13" text-anchor="middle">capture / calibration / blind spots</text><text x="410" y="135" class="mono" font-size="15" text-anchor="middle">3 · ARTIFACT</text><text x="410" y="235" class="mut" font-size="13" text-anchor="middle">file / signal / custody</text><text x="615" y="135" class="mono" font-size="15" text-anchor="middle">4 · CONTEXT</text><text x="615" y="235" class="mut" font-size="13" text-anchor="middle">corroboration / geometry / metadata</text><text x="820" y="135" class="mono" font-size="15" text-anchor="middle">5 · INFERENCE</text><text x="820" y="235" class="mut" font-size="13" text-anchor="middle">hypotheses / uncertainty / model</text><text x="1025" y="135" class="mono" font-size="15" text-anchor="middle">6 · AUTHORITY</text><text x="1025" y="235" class="mut" font-size="13" text-anchor="middle">review / decision / authorization</text><text x="1230" y="135" class="mono" font-size="15" text-anchor="middle">7 · CLAIM</text><text x="1230" y="235" class="mut" font-size="13" text-anchor="middle">record / publication / action</text><text x="1415" y="135" class="mono" font-size="15" text-anchor="middle">RETURN</text><text x="1415" y="235" class="mut" font-size="13" text-anchor="middle">policy / behavior / outcomes</text>
+<path d="M1415 180 C1415 420 0 420 0 180" class="gold thin"/>
+<text x="707" y="465" class="ser" font-size="31" text-anchor="middle">Authenticity is insufficient without reconstructable context, inference and authority.</text>
+</g>
+<text x="70" y="950" class="mono" font-size="15">SFI.ORG · EVIDENCE ENDURES</text>
+</svg>

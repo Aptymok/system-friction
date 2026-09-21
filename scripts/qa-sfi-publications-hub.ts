@@ -22,9 +22,18 @@ for (const asset of [
   'public/images/editorial/notas-de-laboratorio.webp',
   'public/images/editorial/publications-banner-web.webp',
   'public/images/editorial/publications-banner-mobile.webp',
+  'public/images/editorial/reality-chain/reality-chain-cover.svg',
+  'public/images/editorial/reality-chain/reality-chain-world-to-claim.svg',
+  'public/images/editorial/reality-chain/reality-chain-transparency-paradox.svg',
+  'public/images/editorial/reality-chain/reality-chain-epistemic-overproduction.svg',
+  'public/images/editorial/reality-chain/reality-chain-benchmark-v0.svg',
+  'public/images/editorial/reality-chain/reality-chain-six-integrities.svg',
 ]) assert.ok(existsSync(asset), `missing_editorial_asset:${asset}`);
 
 assert.ok(page.includes('SFI_NOTAS_TEMPORALES_V1'), 'monthly_temporal_issue_not_projected');
+assert.ok(page.includes('SFI_REALITY_CHAIN_BRIEF') && page.includes('PUBLIC-SOURCE FRICTION BRIEF'), 'reality_chain_brief_not_projected');
+assert.ok(editorial.includes("slug: 'the-reality-chain'") && editorial.includes("language: 'en'") && editorial.includes("editorialKind: 'FRICTION_BRIEF'"), 'reality_chain_editorial_contract_missing');
+assert.ok(publicationEntry.includes('publication.visuals.map') && publicationEntry.includes('OPEN PDF'), 'reality_chain_visual_or_pdf_surface_missing');
 assert.ok(page.includes('SFI_EDITORIAL_FAMILIES'), 'editorial_families_not_projected');
 assert.ok(page.includes('<picture>') && page.includes('SFI_PUBLICATIONS_BANNER.mobile'), 'responsive_editorial_banner_missing');
 assert.ok(page.includes('GENERADA (IA)') || families.includes('GENERADA (IA)'), 'generated_image_provenance_missing');
@@ -69,6 +78,7 @@ console.log(JSON.stringify({
   identityManual: 'SFI-ID-003 / MASTER EDITION V4.0',
   publicTypography: 'CANONICAL_ROLES_ENFORCED',
   generatedImageProvenance: true,
+  realityChain: 'PUBLIC_SOURCE_FRICTION_BRIEF_EN',
   canonicalMutation: false,
   publicationsSitemapProjection: true,
 }, null, 2));
