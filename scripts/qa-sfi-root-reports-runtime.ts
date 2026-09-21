@@ -23,6 +23,8 @@ for (const field of ['reads:', 'writes:', 'executes:', 'executionEvidence:']) {
 const scenes = read('src/components/sfi/scenes.ts');
 const shellUi = read('src/components/sfi/SfiConsole.tsx');
 const rootUi = read('src/components/sfi/SfiRootWorkspace.tsx');
+const friccionautaUi = read('src/components/sfi/SfiFriccionautaPanel.tsx');
+const friccionautaApi = read('src/app/api/root/friccionauta/route.ts');
 const operatingUi = read('src/components/sfi/SfiOperatingWorkspace.tsx');
 const governanceUi = read('src/components/sfi/SfiGovernanceWorkspace.tsx');
 const interactiveApi = read('src/app/api/root/interactive/route.ts');
@@ -58,6 +60,13 @@ assert.ok(rootUi.includes('ACEPTAR') && rootUi.includes('DENEGAR') && rootUi.inc
 assert.doesNotMatch(governanceUi, /ACEPTAR|DENEGAR|PEDIR EVIDENCIA|SOLICITAR EVIDENCIA/, 'Governance runtime must not duplicate sovereign controls');
 assert.ok(shellUi.includes("label:'DECISIONES'") && shellUi.includes("href:'/root'"), 'decision navigation must converge on ROOT');
 assert.ok(rootUi.includes('/api/root/interactive?surface=root') && rootUi.includes('BASE_CACHE_TTL_MS'), 'ROOT must reuse recent interactive state rather than rehydrate on every return');
+assert.ok(rootUi.includes('SfiFriccionautaPanel'), 'ROOT must mount the existing Friccionauta conversational owner');
+assert.ok(friccionautaUi.includes('/api/root/friccionauta') && friccionautaUi.includes('NO CANON · NO PUBLICATION · NO SILENT EXECUTION'), 'Friccionauta UI must reuse the existing endpoint and show its authority boundary');
+assert.match(friccionautaApi, /readContinuityDashboard/, 'Friccionauta must consume dual-plane continuity observation');
+assert.match(friccionautaApi, /Never equate newest timestamp with global authority/, 'Friccionauta must preserve continuity owner semantics');
+assert.match(friccionautaApi, /epistemicClass:'INFERRED'/, 'Founder-selected Friccionauta findings must remain inferred');
+assert.match(friccionautaApi, /does not make the finding verified or canonical/, 'Saving a Friccionauta finding must not promote evidence or canon');
+assert.doesNotMatch(friccionautaApi, /executeManualCognitiveAgent|createActionProposal|canonicalPromotionAllowed:\s*true/, 'Friccionauta must not acquire silent execution or canonical promotion');
 assert.ok(operatingUi.includes('DOSSIER_CACHE_TTL_MS') && operatingUi.includes('baseCache'), 'Cases/Twin workspace must reuse recent bounded reads');
 assert.doesNotMatch(governanceUi, /REGISTRAR REALIZACIÓN INTERNA/, 'ROOT UI must not offer a false manual realization button');
 assert.match(shellUi, /SfiOperatingWorkspace/, 'canonical shell must mount the converged operating workspace');
@@ -157,5 +166,6 @@ console.log(JSON.stringify({
     'ACCEPT is one human decision, queues work and immediately hands it to the governed router',
     'ROOT can freeze/cancel without erasing lineage',
     'legacy realization remains internal_record_only and hidden from the normal UI',
+    'Friccionauta is mounted as a read/interpret/propose ROOT surface with explicit evidence and no silent execution or canon promotion',
   ],
 }, null, 2));
