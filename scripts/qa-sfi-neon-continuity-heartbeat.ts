@@ -53,6 +53,10 @@ check('bounded read models project only fields they consume on high-frequency in
 check('operational snapshot write-return avoids wildcard row transfer',
   !operationalSnapshotRoute.includes(".select('*')"));
 
+check('Cognitive Lab execution reads use explicit semantic contracts even when up to 500 events are required',
+  cognitiveLabService.includes(".select('id,session_key,title,objective,condition,status,technology_nodes,human_nodes,baseline_session_id,metadata,created_by,started_at,ended_at,created_at,updated_at')")
+  && cognitiveLabService.includes(".select('id,session_id,event_kind,provenance,actor_key,relation_from,relation_to,payload,evidence_refs,source_ref,occurred_at,created_by,created_at')"));
+
 check('current-main access-critical Neon readers are preserved',
   postgres.includes('readContinuityInstitutionalAccountGrantByEmail')
   && postgres.includes('readContinuityMemberWorkspaceCounts')
