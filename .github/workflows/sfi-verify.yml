@@ -195,6 +195,9 @@ jobs:
       - name: Verify bounded Neon continuity heartbeat fallback
         run: npx tsx scripts/qa-sfi-neon-continuity-heartbeat.ts
 
+      - name: Verify SFI native intelligence observation surface
+        run: npx tsx scripts/qa-sfi-native-intelligence-surface.ts
+
       - name: Verify Neon read-plane continuity and deferred effectful lanes
         run: node scripts/qa-sfi-neon-readplane-deferred-lanes.mjs
 
