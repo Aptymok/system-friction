@@ -102,7 +102,10 @@ check('node bootstrap uses explicit consumer DTOs instead of wildcard row hydrat
 check('operational latest-row reads are table-typed and explicitly projected',
   operationalCommon.includes("const OPERATIONAL_READ_PROJECTIONS = {")
   && operationalCommon.includes("type OperationalReadTable = keyof typeof OPERATIONAL_READ_PROJECTIONS")
-  && operationalCommon.includes("service.from(table).select(projection)")
+  && operationalCommon.includes("service.from('logbook_mutations').select(OPERATIONAL_READ_PROJECTIONS.logbook_mutations)")
+  && operationalCommon.includes("service.from('logbook_knowledge').select(OPERATIONAL_READ_PROJECTIONS.logbook_knowledge)")
+  && operationalCommon.includes("service.from('logbook_signals').select(OPERATIONAL_READ_PROJECTIONS.logbook_signals)")
+  && operationalCommon.includes("service.from('mihm_analyses').select(OPERATIONAL_READ_PROJECTIONS.mihm_analyses)")
   && !operationalCommon.includes("service.from(table).select('*')"));
 
 check('current-main access-critical Neon readers are preserved',
