@@ -38,7 +38,7 @@ const falseExternalErrorFixture = {
   evidence: ['scripts/qa-sfi-production-observatory-smoke.mjs'],
   requirement: '`LOADING`, `DEGRADED`, `UNAVAILABLE`, and `ERROR` never map to numeric zero;',
   source: 'docs/program/workstreams/WS-03-DISCOVERY-MESH.md',
-  returnCondition: 'Exact-head QA plus production RETURN evidence required by the source contract.',
+  returnCondition: 'Exact-head QA evidence required by the source contract.',
 };
 const falseExternalAssessment = completionDiagnosticFor(falseExternalErrorFixture);
 assert.equal(falseExternalAssessment.state, 'IMPLEMENTATION_EVIDENCE_PRESENT_UNCERTIFIED', 'ERROR must not be misclassified as the ROR external identity');
