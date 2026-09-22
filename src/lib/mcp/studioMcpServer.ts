@@ -267,7 +267,16 @@ export async function dispatchStudioMcpRequest(
     return {
       status: 200,
       body: jsonRpcResult(id, {
-        tools: SFI_STUDIO_MCP_TOOLS.map(({ name, description, inputSchema }) => ({ name, description, inputSchema })),
+        tools: SFI_STUDIO_MCP_TOOLS.map(({ name, description, inputSchema, requiredScope }) => {
+          const securitySchemes = [{ type: 'oauth2', scopes: [requiredScope] }];
+          return {
+            name,
+            description,
+            inputSchema,
+            securitySchemes,
+            _meta: { securitySchemes },
+          };
+        }),
       }),
     };
   }
