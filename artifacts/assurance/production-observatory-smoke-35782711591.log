@@ -1,0 +1,22 @@
+{
+  "contract": "SFI-PRODUCTION-OBSERVATORY-SMOKE-1.0",
+  "target": "https://www.systemfriction.org",
+  "relatedDeployment": {
+    "runId": "35782444105",
+    "headSha": "122f370fd3a32908a3b995a0a8ddf76c8b4fda43",
+    "runUrl": "https://github.com/Aptymok/system-friction/actions/runs/35782444105"
+  },
+  "productionReturn": "PASS",
+  "gates": {
+    "canonicalTarget": "PASS",
+    "domain": "PASS",
+    "ssr": "PASS",
+    "apis": "PASS",
+    "browser": "PASS",
+    "falseZero": "PASS",
+    "actualZero": "PASS",
+    "hypothesisAbsence": "PASS",
+    "readPlane": "PASS"
+  },
+  "artifact": ".sfi-assurance/production-observatory-smoke.json"
+}
