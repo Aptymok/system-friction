@@ -5,7 +5,7 @@ import { readRootNeuralGraphRuntime } from '@/lib/root/neuralGraphRuntime';
 export const dynamic = 'force-dynamic';
 
 const CRITICAL_TABLES = [
-  'profiles','nodes','graph_nodes','graph_edges','logbook_mutations','action_proposals','mihm_analyses','epistemic_events','root_audit_events','root_evidence_entries','accounts','account_members','usage_ledger','account_balance','sfi_evidence_ledger','sfi_graph_nodes','sfi_graph_edges','sfi_attractors','sfi_ejectors','sfi_phenomena','sfi_phenomenon_evidence','sfi_moph_sessions','sfi_amv_memory',
+  'profiles','graph_nodes','graph_edges','logbook_mutations','action_proposals','field_mihm_readings','epistemic_events','root_audit_events','root_evidence_entries','accounts','account_members','usage_ledger','account_balance','sfi_evidence_ledger','sfi_attractors','sfi_ejectors','sfi_phenomena','sfi_phenomenon_evidence','sfi_moph_sessions','sfi_amv_memory',
 ];
 
 export async function GET(req:Request){
