@@ -164,6 +164,10 @@ export const SFI_AUTHENTICATED_MACHINE_TOOLS = Object.freeze([
   {
     name: 'invoke_cognitive_capability',
     description: 'Invoke one existing canonical cognitive execution contract through the existing governed runtime. OAuth execute scope and an ACTIVE SFI-CAPABILITY-GRANT-1.0 are both required; neither model capability nor Broker admission alone authorizes execution.',
+    securitySchemes: [{ type: 'oauth2', scopes: ['execute'] }],
+    _meta: {
+      securitySchemes: [{ type: 'oauth2', scopes: ['execute'] }],
+    },
     inputSchema: {
       type: 'object',
       properties: {
