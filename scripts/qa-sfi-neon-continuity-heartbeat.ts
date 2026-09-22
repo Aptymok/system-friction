@@ -79,6 +79,10 @@ check('Scorefriction lab persistence uses the canonical systemic data-plane clie
 check('orphan legacy runtime modules are removed while live event callers converge on the canonical epistemic writer',
   !fs.existsSync(path.join(root, 'src/runtime/layers/Observer.ts'))
   && !fs.existsSync(path.join(root, 'src/runtime/layers/IntentLayer.ts'))
+  && !fs.existsSync(path.join(root, 'src/runtime/layers/Planner.ts'))
+  && !fs.existsSync(path.join(root, 'src/runtime/layers/Simulator.ts'))
+  && !fs.existsSync(path.join(root, 'src/runtime/layers/Gate.ts'))
+  && !fs.existsSync(path.join(root, 'src/runtime/layers/Executor.ts'))
   && !fs.existsSync(path.join(root, 'src/lib/actions/generate-protocol.ts'))
   && !fs.existsSync(path.join(root, 'src/lib/memory/embeddings.ts'))
   && !fs.existsSync(path.join(root, 'src/experimental/store/project-manager.ts'))
