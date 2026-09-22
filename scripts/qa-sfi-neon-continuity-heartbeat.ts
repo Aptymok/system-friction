@@ -33,6 +33,7 @@ const signalsRoute = read('src/app/api/signals/route.ts');
 const fieldEventsRoute = read('src/app/api/field/events/route.ts');
 const fieldStateRoute = read('src/app/api/field/state/route.ts');
 const amvFieldResponseRoute = read('src/app/api/amv/field-response/route.ts');
+const socialResonanceRoute = read('src/app/api/social/resonance/route.ts');
 const epistemicEventWriter = read('src/core/memory/epistemicEventWriter.ts');
 const operationalSnapshotRoute = read('src/app/api/sfi/operational-snapshot/route.ts');
 const mophSessionStore = read('src/lib/moph/session-store.ts');
@@ -114,6 +115,14 @@ check('AMV Field responses are derived actor events in the canonical epistemic l
   && amvFieldResponseRoute.includes("epistemicClass: 'derived'")
   && amvFieldResponseRoute.includes("streamType: 'agent'")
   && !amvFieldResponseRoute.includes("from('cognitive_event_stream')"));
+
+check('manual social resonance is a declared actor event without legacy social persistence',
+  socialResonanceRoute.includes('emitEpistemicEvent')
+  && socialResonanceRoute.includes("eventName: 'social_resonance_ingested'")
+  && socialResonanceRoute.includes("epistemicClass: 'declared'")
+  && socialResonanceRoute.includes("sourceState: 'declared'")
+  && !socialResonanceRoute.includes("from('social_resonance_events')")
+  && !socialResonanceRoute.includes("from('cognitive_event_stream')"));
 
 check('operational snapshot write-return avoids wildcard row transfer',
   !operationalSnapshotRoute.includes(".select('*')"));
