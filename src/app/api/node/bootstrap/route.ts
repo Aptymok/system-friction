@@ -54,8 +54,8 @@ export async function GET() {
           .order('created_at', { ascending: false })
           .limit(30),
         ctx.service
-          .from('licenses')
-          .select('status,product_key')
+          .from('sfi_user_entitlements')
+          .select('status,tier,valid_until,source')
           .eq('user_id', ctx.user.id)
           .order('created_at', { ascending: false })
           .limit(1),
@@ -76,7 +76,14 @@ export async function GET() {
     actions: actions?.data || [],
     license: ctx.isRoot
       ? { status: 'root_bypass', product_key: 'system_internal' }
-      : licenseRows?.data?.[0] || null,
+      : licenseRows?.data?.[0]
+        ? {
+            status: licenseRows.data[0].status,
+            product_key: licenseRows.data[0].tier,
+            valid_until: licenseRows.data[0].valid_until,
+            source: licenseRows.data[0].source ?? 'sfi_user_entitlements',
+          }
+        : null,
     entitlements,
     sfi_assets: sfiAssets.assets,
     sfi_assets_error: sfiAssets.error,

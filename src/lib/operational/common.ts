@@ -275,7 +275,7 @@ const OPERATIONAL_READ_PROJECTIONS = {
   logbook_mutations: 'id,event_id,mutation_key,target,current_state,proposed_state,coherence_delta,status,proposal_id,actor_id,mutation_type,payload,created_at,updated_at',
   logbook_knowledge: 'id,knowledge_key,verified,pattern_type,confidence,payload,created_at',
   logbook_signals: 'id,event_id,signal_key,source_id,plane,node_type,raw_signal,recurrence_count,status,created_at',
-  mihm_analyses: 'id,event_id,actor_id,input_hash,detected_dimensions,claims,evidence,tensions,risks,confidence,homeostatic_vector,payload,created_at',
+  mihm_analyses: 'id,case_id,owner_id,status,metrics,tensions,formula_version,evidence_ids,created_at',
 } as const;
 
 type OperationalReadTable = keyof typeof OPERATIONAL_READ_PROJECTIONS;
@@ -297,7 +297,7 @@ export async function latestRows(table: OperationalReadTable, limit = 10) {
       result = await service.from('logbook_signals').select(OPERATIONAL_READ_PROJECTIONS.logbook_signals).order('created_at', { ascending: false }).limit(limit);
       break;
     case 'mihm_analyses':
-      result = await service.from('mihm_analyses').select(OPERATIONAL_READ_PROJECTIONS.mihm_analyses).order('created_at', { ascending: false }).limit(limit);
+      result = await service.from('field_mihm_readings').select(OPERATIONAL_READ_PROJECTIONS.mihm_analyses).order('created_at', { ascending: false }).limit(limit);
       break;
   }
   return { data: result.error ? [] : result.data ?? [], error: result.error?.message ?? null };

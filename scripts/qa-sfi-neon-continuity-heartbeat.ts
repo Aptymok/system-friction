@@ -33,6 +33,8 @@ const scorefrictionMeasurementRoute = read('src/app/api/scorefriction/assets/[as
 const cognitiveLabService = read('src/lib/cognitive-lab/service.ts');
 const sfiAssetsService = read('src/lib/server/sfiAssets.ts');
 const nodeBootstrapRoute = read('src/app/api/node/bootstrap/route.ts');
+const entitlementsService = read('src/lib/licensing/entitlements.ts');
+const mihmRuntimeMatrix = read('src/observatory/field/catalog/mihmRuntimeMatrix.ts');
 const mutationProposeRoute = fs.readFileSync(path.join(process.cwd(), 'src/app/api/mutations/propose/route.ts'), 'utf8');
 const mutationCloseRoute = fs.readFileSync(path.join(process.cwd(), 'src/app/api/root/mutations/[id]/close/route.ts'), 'utf8');
 const rootContinuityRoute = fs.readFileSync(path.join(process.cwd(), 'src/app/api/root/continuity/route.ts'), 'utf8');
@@ -80,6 +82,17 @@ check('Cognitive Lab execution reads use explicit semantic contracts even when u
   cognitiveLabService.includes(".select('id,session_key,title,objective,condition,status,technology_nodes,human_nodes,baseline_session_id,metadata,created_by,started_at,ended_at,created_at,updated_at')")
   && cognitiveLabService.includes(".select('id,session_id,event_kind,provenance,actor_key,relation_from,relation_to,payload,evidence_refs,source_ref,occurred_at,created_by,created_at')"));
 
+check('active entitlement reads use canonical sfi_user_entitlements instead of missing legacy licenses',
+  entitlementsService.includes("from('sfi_user_entitlements')")
+  && !entitlementsService.includes("from('licenses')")
+  && nodeBootstrapRoute.includes("from('sfi_user_entitlements')"));
+
+check('MIHM runtime reads canonical field_mihm_readings and understands metrics envelope',
+  operationalCommon.includes("from('field_mihm_readings')")
+  && operationalCommon.includes("id,case_id,owner_id,status,metrics,tensions,formula_version,evidence_ids,created_at")
+  && mihmRuntimeMatrix.includes("const metrics = asRecord(observed.metrics)")
+  && !operationalCommon.includes("from('mihm_analyses')"));
+
 check('node bootstrap requests asset summaries without four historical child collections',
   sfiAssetsService.includes("options: { includeHistory?: boolean } = {}")
   && sfiAssetsService.includes("options.includeHistory === false")
@@ -111,7 +124,7 @@ check('operational latest-row reads are table-typed and explicitly projected',
   && operationalCommon.includes("service.from('logbook_mutations').select(OPERATIONAL_READ_PROJECTIONS.logbook_mutations)")
   && operationalCommon.includes("service.from('logbook_knowledge').select(OPERATIONAL_READ_PROJECTIONS.logbook_knowledge)")
   && operationalCommon.includes("service.from('logbook_signals').select(OPERATIONAL_READ_PROJECTIONS.logbook_signals)")
-  && operationalCommon.includes("service.from('mihm_analyses').select(OPERATIONAL_READ_PROJECTIONS.mihm_analyses)")
+  && operationalCommon.includes("service.from('field_mihm_readings').select(OPERATIONAL_READ_PROJECTIONS.mihm_analyses)")
   && !operationalCommon.includes("service.from(table).select('*')"));
 
 check('mutation write returns use the explicit mutation DTO instead of wildcard hydration',
