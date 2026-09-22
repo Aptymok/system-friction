@@ -1,16 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createHash, randomUUID } from 'crypto';
+import { createHash } from 'crypto';
 import { ensureOwnedNode, getServerUserContext } from '@/lib/server/productionBackend';
-import { getConnectedSocialSources, ingestSocialMetrics } from '@/observatory/social/socialReadOnlyIngestion';
-import type { SocialProvider } from '@/observatory/social/socialOAuthTypes';
 import { emitEpistemicEvent } from '@/core/memory/epistemicEventWriter';
+import { getLatestWorldSpectSnapshotRead } from '@/lib/worldspect/snapshotStore';
 
 function jsonOk(data?: unknown) {
-  return NextResponse.json({ ok: true, mode: 'supabase', data });
+  return NextResponse.json({ ok: true, mode: 'systemic_data_plane', data });
 }
 
 function localOnly(error: string) {
   return NextResponse.json({ ok: false, mode: 'local_only', error });
+}
+
+function retiredAction(error: string, routes: Record<string, string>) {
+  return NextResponse.json({
+    ok: false,
+    mode: 'retired',
+    error,
+    ...routes,
+  }, { status: 410 });
 }
 
 function hashPayload(payload: unknown) {
@@ -66,56 +74,51 @@ export async function POST(req: NextRequest) {
       const ctx = await getServerUserContext();
       if (!ctx.user) return localOnly('unauthorized');
       const payload = {
+        asset_id: body.asset_id ? String(body.asset_id) : null,
         ...(body.trace_payload || {}),
         message: body.message,
+        streamType: 'legacy_logbook_adapter',
       };
-      const { data, error } = await ctx.service.from('sfi_logbook').insert({
-        asset_id: String(body.asset_id),
-        event_type: String(body.event_type),
+      const emitted = await emitEpistemicEvent({
+        eventName: String(body.event_type || 'SFI_LOGBOOK_EVENT'),
+        logbookId: `ACTOR:${ctx.user.id}`,
+        epistemicClass: 'declared',
+        schemaVersion: '2026-09-22.field-logbook-adapter.v1',
+        sourceId: hashPayload({ asset_id: body.asset_id, event_type: body.event_type, payload }),
+        sourceType: 'SFI_FIELD_LEGACY_LOGBOOK_ADAPTER',
+        actorId: ctx.user.id,
+        nodeId: null,
+        confidence: 0.6,
         payload,
-        created_by: ctx.user.id,
-        hash: hashPayload(payload),
-      }).select('*').single();
-      if (error) return localOnly(error.message);
-      return jsonOk(data);
+      });
+      if (!emitted.ok) return localOnly('sfi_logbook_event_persist_failed');
+      return jsonOk({
+        id: emitted.event.id,
+        event_name: emitted.event.event_name,
+        payload: emitted.event.payload,
+        created_at: emitted.event.created_at,
+      });
     }
 
     if (body.action === 'world_spectrum_snapshot') {
-      const reading = body.reading || {};
-      const wsi = reading.wsi ?? reading.WSI;
-      const nti = reading.nti ?? reading.NTI;
-      const sources = reading.sources || reading.sourceUrl || reading.source_url;
-      if (typeof wsi !== 'number' || typeof nti !== 'number' || !sources) {
-        return localOnly('worldspect_snapshot_not_measured');
-      }
       const ctx = await ensureOwnedNode(body.node_id);
-      if (ctx.error) return localOnly('node_not_ready');
-      const { data, error } = await ctx.service.from('world_spectrum_snapshots').insert({
-        node_id: ctx.node.id,
-        user_id: ctx.user.id,
-        ihg: Number(wsi),
-        nti: Number(nti),
-        ldi: Number(reading.ldi ?? reading.LDI ?? 0),
-        payload: reading,
-        observed_at: reading.ts || reading.observed_at || new Date().toISOString(),
-      }).select('*').single();
-      if (error) return localOnly(error.message);
-      return jsonOk(data);
+      if (ctx.error || !ctx.node || !ctx.user) return localOnly('node_not_ready');
+      return retiredAction('worldspect_legacy_snapshot_writer_retired', {
+        canonicalWrite: '/api/worldspect/ingest',
+        canonicalRead: '/api/worldspect/real',
+      });
     }
 
     if (body.action === 'latest_world_spectrum_snapshot') {
       const ctx = await ensureOwnedNode(body.nodeId);
-      if (ctx.error) return localOnly('node_not_ready');
-      const { data, error } = await ctx.service
-        .from('world_spectrum_snapshots')
-        .select('*')
-        .eq('node_id', ctx.node.id)
-        .eq('user_id', ctx.user.id)
-        .order('observed_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (error) return localOnly(error.message);
-      return jsonOk(data || null);
+      if (ctx.error || !ctx.node || !ctx.user) return localOnly('node_not_ready');
+      const latest = await getLatestWorldSpectSnapshotRead();
+      return jsonOk(latest.data ? {
+        ...latest.data,
+        scope: 'global_canonical_worldspect',
+        readPlane: latest.readPlane,
+        primaryDiagnostic: latest.primaryDiagnostic,
+      } : null);
     }
 
     if (body.action === 'social_draft') {
@@ -169,69 +172,90 @@ export async function POST(req: NextRequest) {
 
     if (body.action === 'manual_social_post') {
       const ctx = await ensureOwnedNode(body.node_id);
-      if (ctx.error) return localOnly('node_not_ready');
+      if (ctx.error || !ctx.node || !ctx.user) return localOnly('node_not_ready');
       const provider = String(body.network || 'manual');
       const externalPostId = body.externalPostId ? String(body.externalPostId) : null;
       const postUrl = body.postUrl ? String(body.postUrl) : null;
+      const publishedAt = body.postedAt || new Date().toISOString();
+      const dedupeKey = hashPayload({
+        actorId: ctx.user.id,
+        nodeId: ctx.node.id,
+        provider,
+        externalPostId,
+        postUrl,
+        publishedAt,
+        text: String(body.text || ''),
+      });
+      const eventId = `ACTOR:${ctx.user.id}:SOCIAL_POST_DECLARED:${dedupeKey}`;
+      const { data: existing, error: existingError } = await ctx.service
+        .from('epistemic_events')
+        .select('id,event_name,payload,created_at')
+        .eq('event_id', eventId)
+        .limit(1)
+        .maybeSingle();
+      if (existingError) return localOnly(existingError.message);
+      if (existing) return jsonOk({ ...existing, duplicate: true });
 
-      if (externalPostId) {
-        const { data: existing } = await ctx.service
-          .from('social_posts')
-          .select('*')
-          .eq('user_id', ctx.user.id)
-          .eq('provider', provider)
-          .eq('external_post_id', externalPostId)
-          .limit(1)
-          .maybeSingle();
-        if (existing) return jsonOk({ ...existing, duplicate: true });
-      } else if (postUrl) {
-        const { data: existing } = await ctx.service
-          .from('social_posts')
-          .select('*')
-          .eq('user_id', ctx.user.id)
-          .eq('provider', provider)
-          .eq('engagement_metrics->_metadata->>postUrl', postUrl)
-          .limit(1)
-          .maybeSingle();
-        if (existing) return jsonOk({ ...existing, duplicate: true });
-      }
-
-      const { data, error } = await ctx.service.from('social_posts').insert({
-        id: randomUUID(),
-        user_id: ctx.user.id,
-        node_id: ctx.node.id,
+      const payload = {
         provider,
         content: String(body.text || ''),
-        published_at: body.postedAt || new Date().toISOString(),
-        status: 'published',
+        published_at: publishedAt,
         external_post_id: externalPostId,
-        engagement_metrics: { _metadata: { ...(body.metadata || {}), postUrl } },
-      }).select('*').single();
-      if (error) return localOnly(error.message);
-      return jsonOk(data);
+        post_url: postUrl,
+        metadata: body.metadata || {},
+        sourceState: 'declared',
+        captureMode: 'manual',
+        streamType: 'social_post',
+      };
+      const emitted = await emitEpistemicEvent({
+        eventId,
+        eventName: 'SOCIAL_POST_DECLARED',
+        logbookId: `ACTOR:${ctx.user.id}`,
+        epistemicClass: 'declared',
+        schemaVersion: '2026-09-22.actor-social.v1',
+        sourceId: externalPostId || postUrl || dedupeKey,
+        sourceType: 'SFI_FIELD_MANUAL_SOCIAL_POST',
+        actorId: ctx.user.id,
+        nodeId: ctx.node.id,
+        confidence: 0.6,
+        payload,
+        occurredAt: publishedAt,
+      });
+      if (!emitted.ok) return localOnly('manual_social_post_persist_failed');
+      return jsonOk({
+        id: emitted.event.id,
+        event_name: emitted.event.event_name,
+        payload: emitted.event.payload,
+        created_at: emitted.event.created_at,
+      });
     }
 
     if (body.action === 'manual_social_return') {
       const ctx = await ensureOwnedNode(body.node_id);
-      if (ctx.error) return localOnly('node_not_ready');
+      if (ctx.error || !ctx.node || !ctx.user) return localOnly('node_not_ready');
       const manualReturn = body.manualReturn || {};
       const platform = String(manualReturn.platform || 'manual');
       const postId = manualReturn.postId ? String(manualReturn.postId) : null;
       const capturedAt = manualReturn.capturedAt || new Date().toISOString();
-
-      let existingQuery = ctx.service
-        .from('social_resonance_events')
-        .select('*')
-        .eq('node_id', ctx.node.id)
-        .eq('platform', platform)
-        .eq('raw_payload->>capturedAt', capturedAt)
-        .limit(1);
-      existingQuery = postId ? existingQuery.eq('post_id', postId) : existingQuery.is('post_id', null);
-      const { data: existing } = await existingQuery.maybeSingle();
+      const dedupeKey = hashPayload({
+        actorId: ctx.user.id,
+        nodeId: ctx.node.id,
+        platform,
+        postId,
+        capturedAt,
+        engagement: manualReturn.engagement || {},
+      });
+      const eventId = `ACTOR:${ctx.user.id}:SOCIAL_RETURN_CAPTURED:${dedupeKey}`;
+      const { data: existing, error: existingError } = await ctx.service
+        .from('epistemic_events')
+        .select('id,event_name,payload,created_at')
+        .eq('event_id', eventId)
+        .limit(1)
+        .maybeSingle();
+      if (existingError) return localOnly(existingError.message);
       if (existing) return jsonOk({ ...existing, duplicate: true });
 
       const payload = {
-        node_id: ctx.node.id,
         platform,
         post_id: postId,
         resonance_score: manualReturn.resonanceScore === undefined || manualReturn.resonanceScore === null
@@ -239,132 +263,77 @@ export async function POST(req: NextRequest) {
           : Number(manualReturn.resonanceScore),
         engagement: manualReturn.engagement || {},
         comments_summary: manualReturn.commentsSummary ? String(manualReturn.commentsSummary) : null,
-        raw_payload: {
-          ...(manualReturn.rawPayload || {}),
-          capturedAt,
-          sourceState: 'SOCIAL_RETURN',
-          captureMode: 'manual',
-        },
+        raw_payload: manualReturn.rawPayload || {},
+        capturedAt,
+        sourceState: 'declared',
+        captureMode: 'manual',
+        streamType: 'social_field',
       };
-      const { data, error } = await ctx.service.from('social_resonance_events').insert(payload).select('*').single();
-      if (error) return localOnly(error.message);
-      return jsonOk(data);
+      const emitted = await emitEpistemicEvent({
+        eventId,
+        eventName: 'SOCIAL_RETURN_CAPTURED',
+        logbookId: `ACTOR:${ctx.user.id}`,
+        epistemicClass: 'declared',
+        schemaVersion: '2026-09-22.actor-social.v1',
+        sourceId: postId || `${platform}:${capturedAt}`,
+        sourceType: 'SFI_FIELD_MANUAL_SOCIAL_RETURN',
+        actorId: ctx.user.id,
+        nodeId: ctx.node.id,
+        confidence: 0.6,
+        payload,
+        occurredAt: capturedAt,
+      });
+      if (!emitted.ok) return localOnly('manual_social_return_persist_failed');
+      return jsonOk({
+        id: emitted.event.id,
+        event_name: emitted.event.event_name,
+        payload: emitted.event.payload,
+        created_at: emitted.event.created_at,
+      });
     }
 
-    if (body.action === 'social_readonly_sources') {
-      const ctx = await ensureOwnedNode(body.node_id);
-      if (ctx.error) return localOnly('node_not_ready');
-      const sources = await getConnectedSocialSources(ctx);
-      return jsonOk({ sources });
-    }
-
-    if (body.action === 'social_readonly_ingest') {
+    if (body.action === 'social_readonly_sources' || body.action === 'social_readonly_ingest') {
       const ctx = await ensureOwnedNode(body.node_id);
       if (ctx.error || !ctx.node || !ctx.user) return localOnly('node_not_ready');
-      const provider = String(body.provider || 'x') as SocialProvider;
-      const result = await ingestSocialMetrics(ctx, provider);
-
-      if (result.ok) {
-        for (const snapshot of result.snapshots || []) {
-          const payload = {
-            provider: snapshot.provider,
-            post_id: snapshot.postId,
-            metrics: snapshot.engagement,
-            sourceState: 'SOCIAL_RETURN',
-            captureMode: 'oauth_read_only',
-            isSimulated: false,
-            streamType: 'social',
-          };
-          await emitEpistemicEvent({
-            eventName: 'SOCIAL_RETURN_CAPTURED',
-            logbookId: `ACTOR:${ctx.user.id}`,
-            epistemicClass: 'observed',
-            schemaVersion: '2026-09-21.actor-event.v1',
-            sourceId: snapshot.postId || snapshot.provider,
-            sourceType: 'SFI_FIELD_SOCIAL_READONLY',
-            actorId: ctx.user.id,
-            nodeId: ctx.node.id,
-            confidence: 0.75,
-            payload,
-          });
-          if (body.asset_id) {
-            await ctx.service.from('sfi_logbook').insert({
-              asset_id: String(body.asset_id),
-              event_type: 'SOCIAL_RETURN_CAPTURED',
-              payload,
-              created_by: ctx.user.id,
-              hash: hashPayload(payload),
-            });
-          }
-        }
-      }
-
-      return jsonOk(result);
+      return retiredAction('social_readonly_integration_retired', {
+        canonicalWrite: '/api/social/resonance',
+        statusEndpoint: '/api/field/persist',
+        statusAction: 'runtime_status',
+      });
     }
 
     if (body.action === 'runtime_status') {
       const ctx = await ensureOwnedNode(body.node_id);
       if (ctx.error || !ctx.node || !ctx.user) return localOnly('node_not_ready');
       const since = new Date(Date.now() - 5 * 60_000).toISOString();
-      const [
-        fieldEvents,
-        latestWorld,
-        socialPosts,
-        socialReturns,
-        tokens,
-        latestReturn,
-      ] = await Promise.all([
+      const [fieldEvents, latestWorld] = await Promise.all([
         ctx.service
           .from('epistemic_events')
-          .select('id,created_at')
+          .select('id,event_name,payload,created_at')
           .eq('actor_id', ctx.user.id)
           .eq('node_id', ctx.node.id)
           .gte('created_at', since)
           .order('created_at', { ascending: false })
           .limit(100),
-        ctx.service
-          .from('world_spectrum_snapshots')
-          .select('id,ihg,nti,ldi,payload,observed_at')
-          .eq('node_id', ctx.node.id)
-          .eq('user_id', ctx.user.id)
-          .order('observed_at', { ascending: false })
-          .limit(1)
-          .maybeSingle(),
-        ctx.service
-          .from('social_posts')
-          .select('id')
-          .eq('node_id', ctx.node.id)
-          .eq('user_id', ctx.user.id)
-          .gte('created_at', since)
-          .limit(100),
-        ctx.service
-          .from('social_resonance_events')
-          .select('id')
-          .eq('node_id', ctx.node.id)
-          .gte('created_at', since)
-          .limit(100),
-        ctx.service
-          .from('social_tokens')
-          .select('id')
-          .eq('user_id', ctx.user.id)
-          .limit(1),
-        ctx.service
-          .from('social_resonance_events')
-          .select('created_at')
-          .eq('node_id', ctx.node.id)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle(),
+        getLatestWorldSpectSnapshotRead(),
       ]);
 
+      if (fieldEvents.error) return localOnly(fieldEvents.error.message);
       const recentEvents = fieldEvents.data || [];
+      const socialPosts = recentEvents.filter((event) => event.event_name === 'SOCIAL_POST_DECLARED');
+      const socialReturns = recentEvents.filter((event) =>
+        event.event_name === 'SOCIAL_RETURN_CAPTURED' || event.event_name === 'social_resonance_ingested');
+      const latestReturn = socialReturns[0] || null;
+
       return jsonOk({
         recentFieldEventsCount: recentEvents.length,
         latestWorldSpectrumSnapshot: latestWorld.data || null,
-        recentSocialPostsCount: socialPosts.data?.length || 0,
-        recentSocialReturnsCount: socialReturns.data?.length || 0,
-        hasReadOnlyTokens: Boolean(tokens.data?.length),
-        latestSocialReturnAt: latestReturn.data?.created_at || null,
+        latestWorldSpectrumReadPlane: latestWorld.readPlane,
+        recentSocialPostsCount: socialPosts.length,
+        recentSocialReturnsCount: socialReturns.length,
+        hasReadOnlyTokens: false,
+        socialReadOnlyIntegration: 'retired',
+        latestSocialReturnAt: latestReturn?.created_at || null,
         latestPersistedEventAt: recentEvents[0]?.created_at || null,
       });
     }

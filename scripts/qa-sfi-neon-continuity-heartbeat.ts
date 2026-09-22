@@ -61,6 +61,9 @@ const rootCognitiveTwinRoute = fs.readFileSync(path.join(process.cwd(), 'src/app
 const rootEvidenceRoute = fs.readFileSync(path.join(process.cwd(), 'src/app/api/root/evidence/route.ts'), 'utf8');
 const operationalCommon = read('src/lib/operational/common.ts');
 const rootServer = read('src/lib/root/server.ts');
+const legacyLiveSchema = read('config/sfi-legacy-live-schema.json');
+const retiredSchema = read('config/sfi-retired-schema.json');
+const consolidationAudit = read('scripts/system-consolidation-audit.py');
 
 check('Scorefriction lab persistence uses the canonical systemic data-plane client and does not claim Supabase provenance',
   scorefrictionLab.includes("createServiceSupabaseClient")
@@ -179,9 +182,35 @@ check('Field social drafts use append-only actor ledger instead of missing media
   && fieldPersistRoute.includes("epistemicClass: 'declared'")
   && !fieldPersistRoute.includes("from('media_drafts')"));
 
-check('Field persistence recent runtime status uses bounded rows instead of exact-count probes',
-  fieldPersistRoute.includes(".select('id,created_at')")
+check('Field persistence has converged off absent legacy WorldSpect, social and asset stores',
+  fieldPersistRoute.includes('getLatestWorldSpectSnapshotRead')
+  && fieldPersistRoute.includes("eventName: 'SOCIAL_POST_DECLARED'")
+  && fieldPersistRoute.includes("eventName: 'SOCIAL_RETURN_CAPTURED'")
+  && fieldPersistRoute.includes('social_readonly_integration_retired')
+  && !fieldPersistRoute.includes("from('sfi_logbook')")
+  && !fieldPersistRoute.includes("from('world_spectrum_snapshots')")
+  && !fieldPersistRoute.includes("from('social_posts')")
+  && !fieldPersistRoute.includes("from('social_resonance_events')")
+  && !fieldPersistRoute.includes("from('social_tokens')")
+  && !fieldPersistRoute.includes('socialReadOnlyIngestion')
+  && !fs.existsSync(path.join(root, 'src/observatory/social/socialReadOnlyIngestion.ts'))
+  && !fs.existsSync(path.join(root, 'src/observatory/persistence/supabaseFieldPersistence.ts'))
+  && !fs.existsSync(path.join(root, 'src/observatory/persistence/migrateLocalNodeToSupabase.ts'))
+  && !fs.existsSync(path.join(root, 'src/observatory/worldspect/globalWorldSpect.ts')));
+
+check('verified absent legacy objects are retired instead of preserved as live schema contracts',
+  ['sfi_assets','sfi_measurements','sfi_interventions','sfi_outputs','sfi_logbook','world_spectrum_snapshots','social_posts','social_resonance_events','social_tokens','external_signals','telemetry_sources']
+    .every((name) => !legacyLiveSchema.includes(`"${name}"`) && retiredSchema.includes(`"${name}"`)));
+
+check('schema consolidation counts runtime consumers rather than QA or documentation string literals',
+  consolidationAudit.includes("runtime_reference_source = source.startswith('src/') or source.startswith('packages/')")
+  && consolidationAudit.includes('if runtime_reference_source:')
+  && consolidationAudit.includes('table_refs.setdefault(table, set()).add(source)'));
+
+check('Field persistence recent runtime status uses one bounded canonical ledger projection instead of legacy count probes',
+  fieldPersistRoute.includes(".select('id,event_name,payload,created_at')")
   && fieldPersistRoute.includes(".limit(100)")
+  && fieldPersistRoute.includes("getLatestWorldSpectSnapshotRead()")
   && !fieldPersistRoute.includes("count: 'exact'"));
 
 check('public global metrics read canonical bounded indicator snapshots instead of absent legacy audits',
