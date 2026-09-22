@@ -159,6 +159,12 @@ check('transparent failover resolves the canonical Neon Data API endpoint instea
   && dataPlaneFetch.includes('sfiNeonDataApiUrl')
   && !dataPlaneFetch.includes("(process.env.SFI_NEON_DATA_API_URL || '').trim()"));
 
+check('heartbeat distinguishes Neon REST authentication from direct Neon SQL continuity',
+  dataPlaneRpc.includes('export async function probeNeonDataPlane')
+  && dataPlaneRpc.includes('SFI_NEON_DATA_API_JWKS_MISMATCH')
+  && dataPlaneRpc.includes('mintSfiDataPlaneServiceJwt()')
+  && runtime.includes('continuityRestProbe'));
+
 check('heartbeat determines physical primary provenance with a direct non-fallback probe before trusting transparent client results',
   dataPlaneRpc.includes('export async function probePrimaryDataPlane')
   && runtime.includes("import('@/lib/persistence/dataPlaneRpc')")
