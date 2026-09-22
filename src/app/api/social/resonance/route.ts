@@ -10,7 +10,10 @@ function clamp01(value: unknown) {
 export async function POST(req: NextRequest) {
   const body = await req.json();
   const ctx = await ensureOwnedNode(body.node_id);
-  if (ctx.error || !ctx.node || !ctx.user) return ctx.error;
+  if (ctx.error) return ctx.error;
+  if (!ctx.node || !ctx.user) {
+    return NextResponse.json({ error: 'node_not_ready' }, { status: 404 });
+  }
 
   const payload = {
     node_id: ctx.node.id,
