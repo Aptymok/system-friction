@@ -34,6 +34,8 @@ const fieldEventsRoute = read('src/app/api/field/events/route.ts');
 const fieldStateRoute = read('src/app/api/field/state/route.ts');
 const amvFieldResponseRoute = read('src/app/api/amv/field-response/route.ts');
 const socialResonanceRoute = read('src/app/api/social/resonance/route.ts');
+const mediaDraftsRoute = read('src/app/api/media/drafts/route.ts');
+const bitacoraRegenerateRoute = read('src/app/api/bitacora/regenerate/route.ts');
 const epistemicEventWriter = read('src/core/memory/epistemicEventWriter.ts');
 const operationalSnapshotRoute = read('src/app/api/sfi/operational-snapshot/route.ts');
 const mophSessionStore = read('src/lib/moph/session-store.ts');
@@ -123,6 +125,30 @@ check('manual social resonance is a declared actor event without legacy social p
   && socialResonanceRoute.includes("sourceState: 'declared'")
   && !socialResonanceRoute.includes("from('social_resonance_events')")
   && !socialResonanceRoute.includes("from('cognitive_event_stream')"));
+
+check('media drafts remain pending-human-validation actor events and never become publications implicitly',
+  mediaDraftsRoute.includes("from('epistemic_events')")
+  && mediaDraftsRoute.includes("eventName: 'SFI_MEDIA_DRAFT_RECORDED'")
+  && mediaDraftsRoute.includes("epistemicClass: 'declared'")
+  && mediaDraftsRoute.includes("status: 'pending_human_validation'")
+  && mediaDraftsRoute.includes(".eq('actor_id', ctx.user.id)")
+  && mediaDraftsRoute.includes(".eq('node_id', ctx.node.id)")
+  && !mediaDraftsRoute.includes("from('media_drafts')")
+  && !mediaDraftsRoute.includes("from('sfi_publications')"));
+
+check('bitacora derives from bounded actor ledger history and public fragments stop at draft status',
+  bitacoraRegenerateRoute.includes("from('epistemic_events')")
+  && bitacoraRegenerateRoute.includes(".select('id,event_name,payload,created_at')")
+  && bitacoraRegenerateRoute.includes(".eq('actor_id', ctx.user.id)")
+  && bitacoraRegenerateRoute.includes(".eq('node_id', ctx.node.id)")
+  && bitacoraRegenerateRoute.includes("eventName: 'bitacora_regenerated'")
+  && bitacoraRegenerateRoute.includes("epistemicClass: 'derived'")
+  && bitacoraRegenerateRoute.includes("eventName: 'SFI_MEDIA_DRAFT_RECORDED'")
+  && bitacoraRegenerateRoute.includes("status: 'pending_human_validation'")
+  && !bitacoraRegenerateRoute.includes("from('cognitive_event_stream')")
+  && !bitacoraRegenerateRoute.includes("from('media_drafts')")
+  && !bitacoraRegenerateRoute.includes("from('sfi_publications')")
+  && !bitacoraRegenerateRoute.includes(".select('*')"));
 
 check('operational snapshot write-return avoids wildcard row transfer',
   !operationalSnapshotRoute.includes(".select('*')"));
