@@ -8,6 +8,7 @@ import { getLatestKernelCycle } from '@/lib/kernel/kernelCycleStore';
 import { readGovernanceRuntime } from '@/lib/governance/governanceRuntime';
 import { readRecentThoughtInhibitions } from '@/lib/governance/thoughtInhibition';
 import { readRecentThoughtClosures } from '@/lib/cognitive/thoughtClosure';
+import { readActorNodeProjection } from '@/lib/server/actorNodeProjection';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,19 +20,15 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { data: nodes, error: selectNodeError } = await ctx.service
-    .from('nodes')
-    .select('*')
-    .eq('user_id', ctx.user.id)
-    .order('created_at', { ascending: false })
-    .limit(1);
-
-  const node = nodes?.[0] ?? null;
-  const nodeError = selectNodeError?.message ?? null;
-
-  if (!node && !ctx.isRoot) {
-    return NextResponse.json({ ok: false, error: nodeError ?? 'node_not_found' }, { status: nodeError ? 500 : 404 });
-  }
+  const projection = await readActorNodeProjection({
+    user: ctx.user,
+    profile: ctx.profile && typeof ctx.profile === 'object'
+      ? ctx.profile as Record<string, unknown>
+      : null,
+    service: ctx.service,
+  });
+  const node = projection.node;
+  const nodeError = projection.diagnostic;
 
   const [graph, latestWorldSpect, latestKernelCycle, governance, recentThoughtInhibitions, recentThoughtClosures, entitlements] = await Promise.all([
     readCanonicalGraphState(profile),
@@ -49,14 +46,14 @@ export async function GET(request: NextRequest) {
     ? {
       fieldId: `field:${node.id}`,
       nodeId: node.id,
-      sourceState: 'observed',
-      evidenceLevel: 'direct',
-      confidence: 0.7,
+      sourceState: node.source_state,
+      evidenceLevel: node.evidence_level,
+      confidence: node.source_state === 'observed' ? 0.7 : 0,
       updatedAt: now,
       metrics: {
-        ihg: Number(node.current_ihg ?? 0.52),
-        nti: Number(node.current_nti ?? 0.48),
-        ldi: Number(node.current_ldi ?? 1.12),
+        ihg: node.current_ihg,
+        nti: node.current_nti,
+        ldi: node.current_ldi,
       },
     }
     : {
@@ -103,7 +100,7 @@ export async function GET(request: NextRequest) {
       entitlements,
       loadedAt: now,
       warnings: [
-        ...(nodeError ? [`user_nodes_read:${nodeError}`] : []),
+        ...(nodeError ? [`actor_projection:${nodeError}`] : []),
         ...(graph.degradedReason ? [graph.degradedReason] : []),
         ...(governance.warning ? [governance.warning] : []),
         ...(latestWorldSpect ? [] : ['worldspect_snapshot_missing']),
