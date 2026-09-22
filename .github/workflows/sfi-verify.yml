@@ -117,6 +117,9 @@ jobs:
       - name: Verify Method Lab UI R4-B
         run: npx tsx scripts/qa-sfi-method-lab-ui-r4b.ts
 
+      - name: Verify WS-01 ownership and WS-02 Universal/Twin lineage
+        run: npx tsx scripts/qa-sfi-ws01-ownership-boundary.ts && npx tsx scripts/qa-sfi-ws02-universal-twin-lineage.ts
+
       - name: Verify Cognitive Twin reentry and longitudinal integration
         run: npx tsx scripts/qa-sfi-cognitive-twin-reentry.ts
 

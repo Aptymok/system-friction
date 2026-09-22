@@ -32,6 +32,8 @@ export const GLOBAL_REGRESSION_SCOPE = Object.freeze([
 export const TARGETED_CANONICAL_PROOFS = Object.freeze({
   'MASTER-03': ['src/lib/sfi/cognitive-runtime/capabilityBroker.test.ts'],
   'WS-01-029': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
+  'WS-01-040': ['scripts/qa-sfi-ws01-ownership-boundary.ts'],
+  'WS-02-001': ['scripts/qa-sfi-ws02-universal-twin-lineage.ts'],
   'ISSUE154-001': ['scripts/qa-sfi-discovery-operational.ts'],
 });
 
