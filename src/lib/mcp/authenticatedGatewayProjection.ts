@@ -82,9 +82,17 @@ export const SFI_AUTHENTICATED_GATEWAY_OPERATION_IDS = Object.freeze(
   DEFINITIONS.map((definition) => definition.operationId),
 );
 
+export const SFI_AUTHENTICATED_GATEWAY_SECURITY_SCHEMES = Object.freeze([
+  { type: 'oauth2', scopes: [...SFI_AUTHENTICATED_MCP_SCOPES] },
+] as const);
+
 export const SFI_AUTHENTICATED_GATEWAY_TOOL = Object.freeze({
   name: SFI_AUTHENTICATED_GATEWAY_TOOL_NAME,
   description: 'Invoke one allowlisted canonical SFI External Agent Gateway operation using the same user-bound OAuth credential. The MCP adapter adds no authority, cannot call arbitrary URLs, and reuses the gateway route so scope, tenant, ROOT, queue, evidence and RETURN boundaries remain authoritative.',
+  securitySchemes: SFI_AUTHENTICATED_GATEWAY_SECURITY_SCHEMES,
+  _meta: {
+    securitySchemes: SFI_AUTHENTICATED_GATEWAY_SECURITY_SCHEMES,
+  },
   inputSchema: {
     type: 'object',
     properties: {

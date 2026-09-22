@@ -75,6 +75,13 @@ assert.match(externalAuth, /clientId: session\.clientId/, 'gateway_credential_mu
 assert.match(route, /credential\.authMethod !== 'oauth'/, 'authenticated_machine_must_reject_static_tokens');
 assert.match(route, /!credential\.clientId/, 'authenticated_machine_must_reject_unbound_legacy_tokens');
 assert.match(route, /requiredScopeForAuthenticatedGatewayInvocation/, 'gateway_projection_scope_must_be_resolved_before_authorization');
+assert.match(adapter, /securitySchemes:\s*\[\{ type: 'oauth2', scopes: \['execute'\] \}\]/, 'cognitive_tool_must_advertise_oauth_security_scheme');
+assert.match(gatewayProjection, /SFI_AUTHENTICATED_GATEWAY_SECURITY_SCHEMES/, 'root_gateway_tool_must_advertise_oauth_security_scheme');
+assert.match(gatewayProjection, /_meta:\s*\{[\s\S]*securitySchemes:/, 'root_gateway_tool_must_publish_legacy_security_scheme_copy');
+assert.match(route, /isPublicDiscoveryRequest/, 'authenticated_mcp_must_allow_unauthenticated_tool_discovery');
+assert.match(route, /dispatchPublicDiscovery/, 'authenticated_mcp_discovery_must_not_require_identity');
+assert.match(route, /mcp\/www_authenticate/, 'authenticated_mcp_must_emit_runtime_oauth_link_challenge');
+assert.match(route, /error_description="Authorize SYSTEM FRICTION INSTITUTE to continue"/, 'authenticated_mcp_oauth_challenge_must_be_user_linkable');
 assert.match(route, /Authorization: authorization/, 'gateway_projection_must_forward_only_bound_oauth_identity_to_canonical_gateway');
 const gatewayForwardBlock = route.match(/invokeGateway: async \(invocation\) => \{([\s\S]*?)\n    \},\n    readInstitutionalContext/)?.[1] ?? '';
 assert.ok(gatewayForwardBlock, 'gateway_projection_forward_block_must_be_inspectable');
