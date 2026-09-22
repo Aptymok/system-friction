@@ -25,6 +25,11 @@ assert.match(route, /DECLARED_ANALYSIS_PERMISSION_DOES_NOT_TRANSFER_RIGHTS_OR_PR
 
 assert.match(studioMcpRoute, /POST as canonicalStudioPost/);
 assert.match(studioMcpRoute, /authorizeExternalRequest\(request, requiredScope\)/);
+assert.match(studioMcpRoute, /isPublicDiscoveryRequest/, 'studio_mcp_must_allow_unauthenticated_tool_discovery');
+assert.match(studioMcpRoute, /mcp\/www_authenticate/, 'studio_mcp_must_emit_runtime_oauth_link_challenge');
+assert.match(studioMcpRoute, /error_description="Authorize SFI Studio to continue"/, 'studio_mcp_oauth_challenge_must_be_user_linkable');
+assert.match(studioMcpServer, /securitySchemes/, 'studio_tools_must_advertise_oauth_security_schemes');
+assert.match(studioMcpServer, /_meta:\s*\{ securitySchemes \}/, 'studio_tools_must_publish_legacy_security_scheme_copy');
 assert.match(studioMcpRoute, /credential\.authMethod !== 'oauth'/);
 assert.match(studioMcpRoute, /!credential\.subjectId \|\| !credential\.clientId/);
 assert.match(studioMcpRoute, /\/api\/external\/v1\/studio/);
