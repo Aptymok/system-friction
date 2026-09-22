@@ -27,6 +27,7 @@
     "nodes",
     "sfi_assets",
     "sfi_graph_edges",
+    "sfi_graph_nodes",
     "sfi_ingestion_attestation_receipts",
     "sfi_interventions",
     "sfi_logbook",
