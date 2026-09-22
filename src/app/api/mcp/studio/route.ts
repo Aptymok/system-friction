@@ -25,7 +25,7 @@ function requestId(value: unknown): string | number | null {
   return typeof id === 'string' || typeof id === 'number' || id === null ? id : null;
 }
 
-function responseHeaders(protocolVersion = SFI_STUDIO_MCP_PROTOCOL_VERSION) {
+function responseHeaders(protocolVersion: string = SFI_STUDIO_MCP_PROTOCOL_VERSION) {
   return {
     'Cache-Control': 'private, no-store',
     'X-SFI-MCP-Server': SFI_STUDIO_MCP_SERVER_ID,
@@ -44,7 +44,7 @@ function errorResponse(
   message: string,
   data: JsonObject,
   status: number,
-  protocolVersion = SFI_STUDIO_MCP_PROTOCOL_VERSION,
+  protocolVersion: string = SFI_STUDIO_MCP_PROTOCOL_VERSION,
 ) {
   return Response.json({ jsonrpc: '2.0', id, error: { code, message, data } }, {
     status,
