@@ -1,6 +1,6 @@
 {
   "contract": "SFI-MAIN-CONVERGENCE-REVIEW-LEDGER-1.0",
-  "observedAgainstMain": "63e40478176a4baf62e8b1ac272997490b166179",
+  "observedAgainstMain": "d67b2292c7facd7979f4703ab6b29eed71abb5c6",
   "reviewedDeltas": {
     "4ef7801c4803bd7d": {
       "decision": "SUPERSEDED_BY_LATER_MAIN",
@@ -214,6 +214,138 @@
         "Issue #539 retains the valid future direction: persist semantically equivalent derived vectors at canonical measurement time, but only through a complete typed writer/caller/QA slice."
       ],
       "reason": "Reject this incomplete alternate implementation. Preserve the vector-persistence design direction in #539, but require a fresh complete slice that adds the typed input, canonical caller wiring, deterministic equivalence checks, and writer-only authority proof."
+    },
+    "4899bc1fb766437c": {
+      "decision": "EXPLICITLY_SUPERSEDED",
+      "branches": [
+        "chore/continuity-recovery-receipt-20260921"
+      ],
+      "evidence": [
+        "PR #607 is closed unmerged; merged PR #606 landed the continuity scheduler recovery probes on main first.",
+        "Merged PR #606 exposes recovery diagnostics through the existing continuity scheduler receipt without creating a second runtime owner.",
+        "Current main retains the later continuity heartbeat and recovery observability evolved after #606."
+      ],
+      "reason": "The one-file #607-era scheduler delta is historical duplicate provenance. Its intended diagnostics were already carried by merged #606 and must not be reintroduced as a second stale workflow variant."
+    },
+    "7731e25d9e085f55": {
+      "decision": "EXPLICITLY_SUPERSEDED",
+      "branches": [
+        "feat/capability-packaging-studio-mcp-20260919"
+      ],
+      "evidence": [
+        "PR #555 is closed unmerged; merged PR #626 rebuilt the valid Studio MCP transport on current main.",
+        "PR #626 preserves owner-scoped Studio MCP transport and delegates to the canonical /api/external/v1/studio owner.",
+        "The stale branch also contains capabilityPackageCatalog/public product claims that were deliberately not adopted; public get_public_capabilities remains unavailable without an authoritative public capability projection."
+      ],
+      "reason": "The branch mixed a valid Studio MCP transport with an unowned capability-product catalog. The transport is superseded by #626 and the catalog/claim layer was deliberately rejected, so the old mixed branch must not be merged wholesale."
+    },
+    "c57fd3d9e625e9eb": {
+      "decision": "EXPLICITLY_SUPERSEDED",
+      "branches": [
+        "feat/systemic-data-plane-router-20260921"
+      ],
+      "evidence": [
+        "Merged PR #586 rebuilt the systemic data-plane router on then-current main rather than force-merging the divergent prototype branch.",
+        "PR #586 established the governed Supabase-primary/Neon-continuity router, recovery and service identity on canonical main.",
+        "Merged PRs #587, #588, #589 and #590 subsequently hardened provider provenance, canonical Neon endpoint selection, governed primary recovery and ScoreFriction use of the systemic data plane."
+      ],
+      "reason": "The old 26-commit data-plane branch is the divergent prototype lineage. Its valid architecture was reconstructed and then further corrected on main; merging the prototype now would overwrite later provenance, recovery and caller fixes."
+    },
+    "920f1615b0b3e33f": {
+      "decision": "SUPERSEDED_BY_LATER_MAIN",
+      "branches": [
+        "fix/assets-bootstrap-contract-20260921"
+      ],
+      "evidence": [
+        "PR #594 is closed unmerged and proposed separating asset summary from history so bootstrap does not fetch historical child collections.",
+        "Merged PR #595 rebased the same asset-bootstrap contract on current main and combined it with the Cognitive Lab contract.",
+        "Current main preserves full history on the canonical assets endpoint while bootstrap uses the bounded summary contract."
+      ],
+      "reason": "The standalone #594 implementation was replaced by the current-main batch in #595. Keeping both would duplicate the same asset read-contract ownership."
+    },
+    "abdddb9b1831a5b8": {
+      "decision": "REJECTED_ALTERNATE_IMPLEMENTATION",
+      "branches": [
+        "fix/auth-primary-supabase-login-20260919"
+      ],
+      "evidence": [
+        "PR #557 is closed unmerged with the conclusion that a Supabase-Auth-dependent primary login was unusable during the active continuity window.",
+        "Merged PRs #558 and #559 established Neon-native continuity activation without requiring Supabase Auth or email delivery.",
+        "Merged PRs #569 and #571 preserve effective Neon continuity sessions, and #584 later unified the institutional login/recovery UI."
+      ],
+      "reason": "The branch encoded the wrong recovery dependency for the observed outage. Later main preserves primary/continuity semantics without making Supabase availability a prerequisite for continuity access, so this alternate login implementation remains rejected."
+    },
+    "df4ab35152d4e3e4": {
+      "decision": "SUPERSEDED_BY_LATER_MAIN",
+      "branches": [
+        "fix/cognitive-lab-data-contracts-20260921"
+      ],
+      "evidence": [
+        "The stale branch formalized explicit Cognitive Lab session/event projections while retaining the semantically necessary rich execution corpus.",
+        "Merged PR #595 rebased the Cognitive Lab contract onto current main and combined it with the bootstrap contract.",
+        "Current continuity QA requires the Cognitive Lab semantic projections rather than wildcard execution reads."
+      ],
+      "reason": "The standalone Cognitive Lab contract branch was consumed by the later merged #595 batch. Its valid semantics are already canonical and the stale branch is no longer an independent integration candidate."
+    },
+    "a8ac5769c9f4b7cc": {
+      "decision": "EXPLICITLY_SUPERSEDED",
+      "branches": [
+        "fix/continuity-storage-probe-20260921"
+      ],
+      "evidence": [
+        "PR #608 is closed unmerged after continuity files changed underneath its base.",
+        "Merged PR #618 reapplied the read-only Storage-plane probe on current main.",
+        "PR #618 keeps Storage health distinct from DB REST and Neon REST without claiming Storage failover or adding a writer."
+      ],
+      "reason": "The first Storage-probe branch is a stale pre-convergence implementation. Its exact valid intent was re-certified on current main in #618."
+    },
+    "146fb811db328c80": {
+      "decision": "EXPLICITLY_SUPERSEDED",
+      "branches": [
+        "fix/continuity-storage-probe-r2-20260921"
+      ],
+      "evidence": [
+        "PR #617 is closed unmerged after actor-ledger convergence changed the same continuity surface.",
+        "Merged PR #618 is the current-main reapplication of the independent Storage probe.",
+        "The canonical heartbeat now observes primary Storage independently beside the database and continuity planes."
+      ],
+      "reason": "R2 became stale as its base changed. R3/#618 carries the same bounded probe on the correct main and therefore supersedes this branch."
+    },
+    "c11863cd3d5cc7e3": {
+      "decision": "EXPLICITLY_SUPERSEDED",
+      "branches": [
+        "fix/live-root-proof-current-auth-20260922"
+      ],
+      "evidence": [
+        "PR #624 is closed unmerged after its fail-closed live-proof intent was rebuilt on current main as PR #627.",
+        "Merged PR #627 classifies RETURN_PASS, RETURN_FAIL and BLOCKED_BY_AUTH_FIXTURE and requires a valid authenticated ROOT SFI session without defining authority by a database provider.",
+        "PR #627 exact head de6b57763d593a44ff9b30bb086d19045b5d756e passed its required certification gates before merge."
+      ],
+      "reason": "The draft had a sound epistemic correction but stale provider-specific wording and an older base. #627 preserves the correction on current main with a provider-neutral authority contract."
+    },
+    "3966596cccd3a1cb": {
+      "decision": "EXPLICITLY_SUPERSEDED",
+      "branches": [
+        "fix/media-draft-bitacora-ledger-20260921"
+      ],
+      "evidence": [
+        "PR #615 is closed unmerged after its combined media/Bitácora delta was split into current-main owners.",
+        "Merged PR #616 moved Bitácora and remaining actor-runtime legacy stores to canonical actor/epistemic stores.",
+        "Merged PR #619 moved active media draft surfaces to append-only actor-scoped epistemic_events while retaining the publication boundary."
+      ],
+      "reason": "The mixed #615 draft/Bitácora delta was split and reimplemented through the correct current-main owners in #616 and #619. Merging #615 now would reintroduce a stale combined implementation."
+    },
+    "ef5433fb1850e88b": {
+      "decision": "EXPLICITLY_SUPERSEDED",
+      "branches": [
+        "sfi/native-intelligence-world-provenance-r3"
+      ],
+      "evidence": [
+        "PR #583 is closed unmerged after its valid World Vector provenance delta was freshly ported to current main in PR #625.",
+        "Merged PR #625 preserves separate latest/history WorldSpect read-plane provenance through World Vector, ROOT/Friccionauta and QA without adding writes or authority.",
+        "PR #625 changes the same seven provenance-facing files while being certified on the post-convergence main rather than the older #583 base."
+      ],
+      "reason": "R3 remains implementation provenance only. The same bounded provenance requirement is canonical through merged #625 and the stale branch must not overwrite later main."
     }
   }
 }
