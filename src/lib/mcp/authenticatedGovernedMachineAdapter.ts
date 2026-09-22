@@ -12,6 +12,12 @@ import {
   type SfiPublicCapabilityGrant,
 } from '../sfi/cognitive-runtime/capabilityGrant';
 import type { SfiAuthorityClass } from '../sfi/cognitive-runtime/cognitivePassportRegistry';
+import {
+  SFI_AUTHENTICATED_GATEWAY_TOOL,
+  SFI_AUTHENTICATED_GATEWAY_TOOL_NAME,
+  buildAuthenticatedGatewayRequest,
+  type SfiAuthenticatedGatewayInvocation,
+} from './authenticatedGatewayProjection';
 
 export const SFI_AUTHENTICATED_MACHINE_ADAPTER_CONTRACT = 'SFI-AUTHENTICATED-GOVERNED-MACHINE-ADAPTER-1.0' as const;
 export const SFI_AUTHENTICATED_MACHINE_SERVER_ID = 'org.systemfriction/authenticated' as const;
@@ -83,6 +89,10 @@ export type SfiAuthenticatedMachineDependencies = {
   >;
   executeCognitive: (
     execution: JsonObject,
+    principal: SfiAuthenticatedMachinePrincipal,
+  ) => Promise<{ status: number; body: JsonObject }>;
+  invokeGateway?: (
+    invocation: SfiAuthenticatedGatewayInvocation,
     principal: SfiAuthenticatedMachinePrincipal,
   ) => Promise<{ status: number; body: JsonObject }>;
   readInstitutionalContext?: () => Promise<JsonObject>;
@@ -173,6 +183,7 @@ export const SFI_AUTHENTICATED_MACHINE_TOOLS = Object.freeze([
       additionalProperties: false,
     },
   },
+  SFI_AUTHENTICATED_GATEWAY_TOOL,
 ] as const);
 
 export const SFI_AUTHENTICATED_MACHINE_RESOURCES = Object.freeze([
@@ -651,6 +662,61 @@ export async function dispatchAuthenticatedMachineRequest(
   const params = row(payload.params);
   const name = text(params.name);
   const args = row(params.arguments);
+
+  if (name === SFI_AUTHENTICATED_GATEWAY_TOOL_NAME) {
+    if (!deps.invokeGateway) {
+      return { status: 503, body: error(id, -32053, 'GatewayProjectionUnavailable', { reason: 'GATEWAY_OWNER_NOT_BOUND' }) };
+    }
+    const invocation: SfiAuthenticatedGatewayInvocation = {
+      operationId: text(args.operationId),
+      body: row(args.body),
+      query: row(args.query) as Record<string, string | number | boolean | null | undefined>,
+      pathParams: row(args.pathParams) as Record<string, string>,
+    };
+    let requestSpec: ReturnType<typeof buildAuthenticatedGatewayRequest>;
+    try {
+      requestSpec = buildAuthenticatedGatewayRequest(invocation);
+    } catch (gatewayError) {
+      return {
+        status: 400,
+        body: error(id, -32602, 'InvalidGatewayInvocation', {
+          reason: gatewayError instanceof Error ? gatewayError.message : String(gatewayError),
+          operationId: invocation.operationId || null,
+        }),
+      };
+    }
+    if (!principal.scopes.includes(requestSpec.scope)) {
+      return {
+        status: 403,
+        body: error(id, -32043, 'AuthorizationDenied', {
+          reasons: [`OAUTH_SCOPE_REQUIRED:${requestSpec.scope}`],
+          authorizationAllowed: false,
+          operationId: invocation.operationId,
+          requiredScope: requestSpec.scope,
+        }),
+      };
+    }
+    const gatewayResult = await deps.invokeGateway(invocation, principal);
+    return {
+      status: gatewayResult.status,
+      body: response(id, {
+        content: [{ type: 'text', text: JSON.stringify(gatewayResult.body) }],
+        structuredContent: {
+          ...gatewayResult.body,
+          machineGateway: {
+            operationId: invocation.operationId,
+            requiredScope: requestSpec.scope,
+            canonicalGatewayReused: true,
+            arbitraryUrlAllowed: false,
+            authorityExpansionAllowed: false,
+            canonicalPromotionAllowed: false,
+          },
+        },
+        isError: gatewayResult.status < 200 || gatewayResult.status >= 300 || gatewayResult.body.ok === false,
+      }),
+    };
+  }
+
   if (name !== 'invoke_cognitive_capability') return { status: 404, body: error(id, -32602, 'Unknown tool', { name }) };
   const authorizationValue = args.authorization;
   const execution = row(args.execution);
