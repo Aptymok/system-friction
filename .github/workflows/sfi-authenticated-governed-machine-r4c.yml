@@ -4,8 +4,10 @@ on:
   pull_request:
     paths:
       - 'src/lib/mcp/authenticatedGovernedMachineAdapter.ts'
+      - 'src/lib/mcp/authenticatedGatewayProjection.ts'
       - 'src/lib/mcp/authenticatedGovernedMachineAdapter.test.ts'
       - 'src/app/api/mcp/authenticated/route.ts'
+      - 'src/app/.well-known/oauth-protected-resource/route.ts'
       - 'src/lib/sfi/externalSessionToken.ts'
       - 'src/lib/sfi/externalAuth.ts'
       - 'src/app/api/oauth/token/route.ts'
