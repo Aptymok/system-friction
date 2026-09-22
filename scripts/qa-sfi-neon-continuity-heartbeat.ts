@@ -41,6 +41,7 @@ const fieldPersistRoute = read('src/app/api/field/persist/route.ts');
 const liturgiaAmvRoute = read('src/app/api/liturgia/amv/route.ts');
 const epistemicEventWriter = read('src/core/memory/epistemicEventWriter.ts');
 const operationalSnapshotRoute = read('src/app/api/sfi/operational-snapshot/route.ts');
+const globalMetricsRoute = read('src/app/api/global-metrics/route.ts');
 const mophSessionStore = read('src/lib/moph/session-store.ts');
 const scorefrictionMeasurementRoute = read('src/app/api/scorefriction/assets/[asset_id]/measurements/route.ts');
 const cognitiveLabService = read('src/lib/cognitive-lab/service.ts');
@@ -181,6 +182,21 @@ check('Field persistence recent runtime status uses bounded rows instead of exac
   fieldPersistRoute.includes(".select('id,created_at')")
   && fieldPersistRoute.includes(".limit(100)")
   && !fieldPersistRoute.includes("count: 'exact'"));
+
+check('public global metrics read canonical bounded indicator snapshots instead of absent legacy audits',
+  globalMetricsRoute.includes("from('sfi_indicator_snapshots')")
+  && globalMetricsRoute.includes(".select('captured_at,ihg,source_status')")
+  && globalMetricsRoute.includes('.limit(WINDOW_LIMIT)')
+  && globalMetricsRoute.includes("sourceState:")
+  && globalMetricsRoute.includes("lastUpdated: observedAt")
+  && !globalMetricsRoute.includes("from('audits')")
+  && !globalMetricsRoute.includes(".select('*')"));
+
+check('public global metrics aggregate evidence state is derived from every included snapshot, not only the latest row',
+  globalMetricsRoute.includes('function aggregateSourceState')
+  && globalMetricsRoute.includes('rows.map((row) => sourceState')
+  && globalMetricsRoute.includes('const state = aggregateSourceState(rows)')
+  && !globalMetricsRoute.includes('const state = sourceState(latestSourceStatus)'));
 
 check('operational snapshot write-return avoids wildcard row transfer',
   !operationalSnapshotRoute.includes(".select('*')"));
