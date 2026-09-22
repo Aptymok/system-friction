@@ -36,6 +36,8 @@ export function SfiFriccionautaPanel() {
   const twinMemoryPlane = typeof result?.observationPlanes?.cognitiveTwin?.memory === 'string' ? result.observationPlanes.cognitiveTwin.memory : 'MISSING';
   const twinRuntimePlane = typeof result?.observationPlanes?.cognitiveTwin?.runtime === 'string' ? result.observationPlanes.cognitiveTwin.runtime : 'MISSING';
   const amvPlane = typeof result?.observationPlanes?.amv === 'string' ? result.observationPlanes.amv : 'MISSING';
+  const worldLatestPlane = typeof result?.observationPlanes?.worldVector?.latest?.plane === 'string' ? result.observationPlanes.worldVector.latest.plane : 'MISSING';
+  const worldHistoryPlane = typeof result?.observationPlanes?.worldVector?.history?.plane === 'string' ? result.observationPlanes.worldVector.history.plane : 'MISSING';
   const continuityDivergence = result?.continuity?.planeComparison?.resolved?.divergenceObserved === true;
   const statusClass = execution === 'EXECUTED' ? 'ok' : 'degraded';
   const conversation = useMemo(() => history.slice(-8), [history]);
@@ -125,6 +127,8 @@ export function SfiFriccionautaPanel() {
         <span>TWIN M {twinMemoryPlane}</span>
         <span>TWIN R {twinRuntimePlane}</span>
         <span>AMV {amvPlane}</span>
+        <span>WORLD L {worldLatestPlane}</span>
+        <span>WORLD H {worldHistoryPlane}</span>
         <span>CONTINUITY {continuityPlane}{continuityDivergence ? ' · DIVERGENCE OBSERVED' : ''}</span>
         {runId ? <span>RUN {runId.slice(0, 8)}</span> : null}
       </div>

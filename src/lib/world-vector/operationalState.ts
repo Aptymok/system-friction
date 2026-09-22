@@ -39,6 +39,7 @@ export async function buildWorldVectorOperationalState(): Promise<WorldVectorOpe
       pulse_available: status.pulse.latest_snapshot_available,
       warnings: [...new Set([...status.warnings, ...today.observation.warnings])],
       blocked,
+      read_provenance: today.read_provenance,
     },
   };
 }

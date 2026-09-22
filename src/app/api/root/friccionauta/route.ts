@@ -64,6 +64,10 @@ async function ask(request: Request, gate: RootActorGate, body: Row) {
     continuity: continuity?.readPlane ?? 'UNAVAILABLE',
     cognitiveTwin: twin?.readPlanes ?? { memory: 'UNAVAILABLE', runtime: 'UNAVAILABLE' },
     amv: amv?.read_plane ?? 'UNAVAILABLE',
+    worldVector: world?.today.read_provenance ?? {
+      latest: { plane: 'UNAVAILABLE', primary_diagnostic: null },
+      history: { plane: 'UNAVAILABLE', primary_diagnostic: null },
+    },
   };
   const retrievalWarnings = [
     rejectedWarning('root', rootResult),
@@ -105,6 +109,7 @@ async function ask(request: Request, gate: RootActorGate, body: Row) {
     attractors: root?.amv.data.attractors.slice(0, 18) ?? [],
     executionCapabilities: root?.execution.data.capabilities ?? [],
     worldVector: world?.today.observation ?? null,
+    worldVectorReadProvenance: world?.today.read_provenance ?? null,
     cognitiveTwin: twin ? {
       readPlanes: twin.readPlanes,
       primaryDiagnostics: twin.primaryDiagnostics,
@@ -161,6 +166,7 @@ async function ask(request: Request, gate: RootActorGate, body: Row) {
       'Some readers may be explicitly unavailable. Missing readers are not a reason to refuse the whole conversation; name the missing context and continue with what is available.',
       'Continuity may be observed across Supabase primary and authorized Neon continuity planes. Never equate newest timestamp with global authority; use the supplied resolved plane and comparison rule for the continuity domain only.',
       'Cognitive Twin and AMV may fall back to Neon only when their Supabase read fails. Use observationPlanes and primary diagnostics to disclose fallback provenance when it materially affects the answer.',
+      'World Vector provenance is inherited from the existing WorldSpect read plane. Latest snapshot and history may come from different planes; disclose them separately and do not collapse mixed provenance into an authority claim.',
       'You may interpret, compare, diagnose gaps and propose next observations. You may NOT execute endpoints, approve, publish, mutate canon, alter formulas, grant access, contact anyone or represent a proposal as executed.',
       'Evidence before inference. Distinguish OBSERVED, IMPORTED, DERIVED, INFERRED, PROPOSED and MISSING.',
       'When asked what something means, explain the operational consequence rather than restating database fields.',
@@ -203,7 +209,7 @@ async function ask(request: Request, gate: RootActorGate, body: Row) {
     actionsExecuted: [
       root ? 'read_root_state' : 'read_root_state_failed',
       twin ? `read_cognitive_twin:memory=${observationPlanes.cognitiveTwin.memory}:runtime=${observationPlanes.cognitiveTwin.runtime}` : 'read_cognitive_twin_failed',
-      world ? 'read_world_vector' : 'read_world_vector_failed',
+      world ? `read_world_vector:latest=${observationPlanes.worldVector.latest.plane}:history=${observationPlanes.worldVector.history.plane}` : 'read_world_vector_failed',
       graph ? 'retrieve_neural_graph' : 'retrieve_neural_graph_failed',
       amv ? `read_amv:${observationPlanes.amv}` : 'read_amv_failed',
       continuity ? `read_continuity:${continuity.readPlane}` : 'read_continuity_failed',

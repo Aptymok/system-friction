@@ -8,6 +8,8 @@ const health = fs.readFileSync('src/app/api/worldspect/health/route.ts', 'utf8')
 const trend = fs.readFileSync('src/app/api/worldspect/trend/route.ts', 'utf8');
 const real = fs.readFileSync('src/app/api/worldspect/real/route.ts', 'utf8');
 const pulse = fs.readFileSync('scripts/qa-world-vector-pulse.mjs', 'utf8');
+const worldVectorReadModel = fs.readFileSync('src/lib/world-vector/readModel.ts', 'utf8');
+const worldVectorOperational = fs.readFileSync('src/lib/world-vector/operationalState.ts', 'utf8');
 
 assert.match(continuity, /readContinuityLatestWorldSpectSnapshot/, 'latest snapshot continuity reader missing');
 assert.match(continuity, /readContinuityWorldSpectSnapshotAtOrBefore/, 'historical snapshot continuity reader missing');
@@ -35,6 +37,12 @@ assert.match(trend, /read_plane/, 'trend must expose read plane');
 assert.match(real, /getLatestWorldSpectSnapshotRead/, 'real snapshot must use read-plane-aware reader');
 assert.match(real, /readPlane/, 'real snapshot must expose read plane');
 assert.match(pulse, /WORLD_VECTOR_PULSE_QA_DEGRADED_CONTINUITY/, 'pulse QA must distinguish controlled continuity degradation');
+assert.match(worldVectorReadModel, /getLatestWorldSpectSnapshotRead/, 'World Vector latest observation must preserve WorldSpect read-plane provenance');
+assert.match(worldVectorReadModel, /getRecentWorldSpectSnapshotsRead/, 'World Vector history must preserve WorldSpect read-plane provenance');
+assert.match(worldVectorReadModel, /read_provenance/, 'World Vector read model must expose provenance instead of discarding it');
+assert.match(worldVectorReadModel, /world_vector_latest_primary_degraded/, 'World Vector must surface primary latest-read degradation');
+assert.match(worldVectorReadModel, /world_vector_history_primary_degraded/, 'World Vector must surface primary history-read degradation');
+assert.match(worldVectorOperational, /read_provenance: today\.read_provenance/, 'World Vector operational audit must retain read provenance');
 
 console.log(JSON.stringify({
   ok: true,
