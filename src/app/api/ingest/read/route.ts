@@ -86,10 +86,10 @@ export async function GET(req: NextRequest) {
     if (ctx.error || !ctx.node || !ctx.user) return apiError('node_not_ready', 404, traceId);
 
     const { data, error } = await ctx.service
-      .from('cognitive_event_stream')
+      .from('epistemic_events')
       .select('id,created_at,payload')
+      .eq('actor_id', ctx.user.id)
       .eq('node_id', ctx.node.id)
-      .eq('stream_type', 'ingest')
       .eq('event_name', 'REAL_OBSERVATION_INGESTED')
       .order('created_at', { ascending: false })
       .limit(50);
