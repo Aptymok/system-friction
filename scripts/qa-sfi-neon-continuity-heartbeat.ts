@@ -17,6 +17,7 @@ const dataPlaneRpc = read('src/lib/persistence/dataPlaneRpc.ts');
 const continuityRecovery = read('src/lib/persistence/continuityRecovery.ts');
 const dataPlaneContinuityStore = read('src/lib/persistence/dataPlaneContinuityStore.ts');
 const continuityRecoveryMigration = read('supabase/migrations/20260922183500_continuity_state_ancestor_replay.sql');
+const primaryOutboxAclMigration = read('supabase/migrations/20260922184000_lock_primary_outbox_trigger_acl.sql');
 const dataPlaneFetch = read('src/lib/persistence/dataPlaneFetch.ts');
 const dataPlaneConfig = read('src/lib/persistence/dataPlaneConfig.ts');
 const neonDataPlaneGovernor = read('scripts/db/neon-data-plane-governor.sql');
@@ -473,6 +474,10 @@ check('recovery cannot return to PRIMARY until journal is empty and fingerprints
   && continuityRecovery.includes("reason: 'POST_RECOVERY_FINGERPRINT_MISMATCH'")
   && continuityRecovery.includes('completeRecoveryMode()')
   && dataPlaneContinuityStore.includes("status in ('PENDING','REPLAYING','CONFLICT')"));
+
+check('primary outbox trigger function is not directly executable by public API roles',
+  primaryOutboxAclMigration.includes('revoke all on function public.sfi_capture_primary_data_plane_write() from public, anon, authenticated')
+  && primaryOutboxAclMigration.includes('grant execute on function public.sfi_capture_primary_data_plane_write() to service_role'));
 
 check('heartbeat persists run/check/incident/state to Neon fallback',
   store.includes('createNeonContinuityRun')
