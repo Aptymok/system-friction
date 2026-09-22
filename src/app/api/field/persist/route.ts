@@ -3,6 +3,7 @@ import { createHash, randomUUID } from 'crypto';
 import { ensureOwnedNode, getServerUserContext } from '@/lib/server/productionBackend';
 import { getConnectedSocialSources, ingestSocialMetrics } from '@/observatory/social/socialReadOnlyIngestion';
 import type { SocialProvider } from '@/observatory/social/socialOAuthTypes';
+import { emitEpistemicEvent } from '@/core/memory/epistemicEventWriter';
 
 function jsonOk(data?: unknown) {
   return NextResponse.json({ ok: true, mode: 'supabase', data });
@@ -33,20 +34,32 @@ export async function POST(req: NextRequest) {
   try {
     if (body.action === 'field_event') {
       const ctx = await ensureOwnedNode(body.node_id);
-      if (ctx.error) return localOnly('node_not_ready');
+      if (ctx.error || !ctx.node || !ctx.user) return localOnly('node_not_ready');
       const payload = {
         ...(body.trace_payload || {}),
         message: body.message,
+        streamType: 'field',
       };
-      const { data, error } = await ctx.service.from('cognitive_event_stream').insert({
-        node_id: ctx.node.id,
-        stream_type: 'field',
-        event_name: String(body.event_type),
+      const emitted = await emitEpistemicEvent({
+        eventName: String(body.event_type),
+        logbookId: `ACTOR:${ctx.user.id}`,
+        epistemicClass: 'declared',
+        schemaVersion: '2026-09-21.actor-event.v1',
+        sourceId: hashPayload({ event_type: body.event_type, payload }),
+        sourceType: 'SFI_FIELD',
+        actorId: ctx.user.id,
+        nodeId: ctx.node.id,
+        confidence: 0.6,
         payload,
-        emitted_by: 'SFI_FIELD',
-      }).select('*').single();
-      if (error) return localOnly(error.message);
-      return jsonOk(data);
+      });
+      if (!emitted.ok) return localOnly('field_event_persist_failed');
+      return jsonOk({
+        id: emitted.event.id,
+        node_id: emitted.event.node_id,
+        event_name: emitted.event.event_name,
+        payload: emitted.event.payload,
+        created_at: emitted.event.created_at,
+      });
     }
 
     if (body.action === 'sfi_logbook_event') {
@@ -241,7 +254,7 @@ export async function POST(req: NextRequest) {
 
     if (body.action === 'social_readonly_ingest') {
       const ctx = await ensureOwnedNode(body.node_id);
-      if (ctx.error) return localOnly('node_not_ready');
+      if (ctx.error || !ctx.node || !ctx.user) return localOnly('node_not_ready');
       const provider = String(body.provider || 'x') as SocialProvider;
       const result = await ingestSocialMetrics(ctx, provider);
 
@@ -254,13 +267,19 @@ export async function POST(req: NextRequest) {
             sourceState: 'SOCIAL_RETURN',
             captureMode: 'oauth_read_only',
             isSimulated: false,
+            streamType: 'social',
           };
-          await ctx.service.from('cognitive_event_stream').insert({
-            node_id: ctx.node.id,
-            stream_type: 'social',
-            event_name: 'SOCIAL_RETURN_CAPTURED',
+          await emitEpistemicEvent({
+            eventName: 'SOCIAL_RETURN_CAPTURED',
+            logbookId: `ACTOR:${ctx.user.id}`,
+            epistemicClass: 'observed',
+            schemaVersion: '2026-09-21.actor-event.v1',
+            sourceId: snapshot.postId || snapshot.provider,
+            sourceType: 'SFI_FIELD_SOCIAL_READONLY',
+            actorId: ctx.user.id,
+            nodeId: ctx.node.id,
+            confidence: 0.75,
             payload,
-            emitted_by: 'SFI_FIELD',
           });
           if (body.asset_id) {
             await ctx.service.from('sfi_logbook').insert({
@@ -279,7 +298,7 @@ export async function POST(req: NextRequest) {
 
     if (body.action === 'runtime_status') {
       const ctx = await ensureOwnedNode(body.node_id);
-      if (ctx.error) return localOnly('node_not_ready');
+      if (ctx.error || !ctx.node || !ctx.user) return localOnly('node_not_ready');
       const since = new Date(Date.now() - 5 * 60_000).toISOString();
       const [
         fieldEvents,
@@ -288,16 +307,18 @@ export async function POST(req: NextRequest) {
         socialReturns,
         tokens,
         latestReturn,
-        latestEvent,
       ] = await Promise.all([
         ctx.service
-          .from('cognitive_event_stream')
-          .select('id', { count: 'exact', head: true })
+          .from('epistemic_events')
+          .select('id,created_at')
+          .eq('actor_id', ctx.user.id)
           .eq('node_id', ctx.node.id)
-          .gte('created_at', since),
+          .gte('created_at', since)
+          .order('created_at', { ascending: false })
+          .limit(100),
         ctx.service
           .from('world_spectrum_snapshots')
-          .select('*')
+          .select('id,ihg,nti,ldi,payload,observed_at')
           .eq('node_id', ctx.node.id)
           .eq('user_id', ctx.user.id)
           .order('observed_at', { ascending: false })
@@ -305,28 +326,24 @@ export async function POST(req: NextRequest) {
           .maybeSingle(),
         ctx.service
           .from('social_posts')
-          .select('id', { count: 'exact', head: true })
+          .select('id')
           .eq('node_id', ctx.node.id)
           .eq('user_id', ctx.user.id)
-          .gte('created_at', since),
+          .gte('created_at', since)
+          .limit(100),
         ctx.service
           .from('social_resonance_events')
-          .select('id', { count: 'exact', head: true })
+          .select('id')
           .eq('node_id', ctx.node.id)
-          .gte('created_at', since),
+          .gte('created_at', since)
+          .limit(100),
         ctx.service
           .from('social_tokens')
-          .select('id', { count: 'exact', head: true })
-          .eq('user_id', ctx.user.id),
+          .select('id')
+          .eq('user_id', ctx.user.id)
+          .limit(1),
         ctx.service
           .from('social_resonance_events')
-          .select('created_at')
-          .eq('node_id', ctx.node.id)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle(),
-        ctx.service
-          .from('cognitive_event_stream')
           .select('created_at')
           .eq('node_id', ctx.node.id)
           .order('created_at', { ascending: false })
@@ -334,14 +351,15 @@ export async function POST(req: NextRequest) {
           .maybeSingle(),
       ]);
 
+      const recentEvents = fieldEvents.data || [];
       return jsonOk({
-        recentFieldEventsCount: fieldEvents.count || 0,
+        recentFieldEventsCount: recentEvents.length,
         latestWorldSpectrumSnapshot: latestWorld.data || null,
-        recentSocialPostsCount: socialPosts.count || 0,
-        recentSocialReturnsCount: socialReturns.count || 0,
-        hasReadOnlyTokens: Boolean(tokens.count),
+        recentSocialPostsCount: socialPosts.data?.length || 0,
+        recentSocialReturnsCount: socialReturns.data?.length || 0,
+        hasReadOnlyTokens: Boolean(tokens.data?.length),
         latestSocialReturnAt: latestReturn.data?.created_at || null,
-        latestPersistedEventAt: latestEvent.data?.created_at || null,
+        latestPersistedEventAt: recentEvents[0]?.created_at || null,
       });
     }
 
