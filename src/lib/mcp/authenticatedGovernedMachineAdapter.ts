@@ -13,6 +13,7 @@ import {
 } from '../sfi/cognitive-runtime/capabilityGrant';
 import type { SfiAuthorityClass } from '../sfi/cognitive-runtime/cognitivePassportRegistry';
 import {
+  SFI_AUTHENTICATED_GATEWAY_PROJECTION_CONTRACT,
   SFI_AUTHENTICATED_GATEWAY_TOOL,
   SFI_AUTHENTICATED_GATEWAY_TOOL_NAME,
   buildAuthenticatedGatewayRequest,
@@ -526,9 +527,18 @@ function adapterStatus() {
     execution: {
       plane: 'EXISTING_CANONICAL_COGNITIVE_RUNTIME',
       availableTools: SFI_AUTHENTICATED_MACHINE_TOOLS.map((tool) => tool.name),
-      externalSideEffects: false,
+      cognitiveExecutionExternalSideEffects: false,
       canonicalPromotion: false,
       returnFabrication: false,
+    },
+    gatewayProjection: {
+      contract: SFI_AUTHENTICATED_GATEWAY_PROJECTION_CONTRACT,
+      canonicalGatewayReused: true,
+      arbitraryUrlAllowed: false,
+      authorityExpansionAllowed: false,
+      cognitiveGrantBypassAllowed: false,
+      externalSideEffects: 'ONLY_THROUGH_EXISTING_GATEWAY_AUTHORIZATION',
+      canonicalPromotion: false,
     },
     publicBoundary: {
       publicMcpServerSeparate: true,
@@ -704,6 +714,7 @@ export async function dispatchAuthenticatedMachineRequest(
         structuredContent: {
           ...gatewayResult.body,
           machineGateway: {
+            contract: SFI_AUTHENTICATED_GATEWAY_PROJECTION_CONTRACT,
             operationId: invocation.operationId,
             requiredScope: requestSpec.scope,
             canonicalGatewayReused: true,
