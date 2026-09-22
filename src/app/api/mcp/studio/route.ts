@@ -38,6 +38,45 @@ function oauthChallenge(request: Request, scope: string) {
   return `Bearer resource_metadata="${origin}/.well-known/oauth-protected-resource/api/mcp/studio", scope="${scope}"`;
 }
 
+function oauthRuntimeChallenge(request: Request, scope: string) {
+  return `${oauthChallenge(request, scope)}, error="insufficient_scope", error_description="Authorize SFI Studio to continue"`;
+}
+
+function isPublicDiscoveryRequest(payload: unknown) {
+  const request = row(payload);
+  if (request.method === 'initialize' || request.method === 'ping' || request.method === 'notifications/initialized' || request.method === 'tools/list' || request.method === 'resources/list') return true;
+  if (request.method !== 'resources/read') return false;
+  return row(request.params).uri === 'sfi://studio/status';
+}
+
+function authenticationRequiredToolResponse(
+  request: Request,
+  payload: unknown,
+  scope: string,
+) {
+  const challenge = oauthRuntimeChallenge(request, scope);
+  return Response.json({
+    jsonrpc: '2.0',
+    id: requestId(payload),
+    result: {
+      content: [{
+        type: 'text',
+        text: `Authentication required. Authorize SFI Studio with scope ${scope} to continue.`,
+      }],
+      _meta: {
+        'mcp/www_authenticate': [challenge],
+      },
+      isError: true,
+    },
+  }, {
+    status: 401,
+    headers: {
+      ...responseHeaders(studioMcpProtocolVersionFor(payload)),
+      'WWW-Authenticate': oauthChallenge(request, scope),
+    },
+  });
+}
+
 function errorResponse(
   id: string | number | null,
   code: number,
@@ -105,8 +144,26 @@ export async function POST(request: Request) {
     return errorResponse(requestId(payload), -32600, 'Invalid Request', { reason: 'INVALID_JSON_RPC_REQUEST' }, 400);
   }
 
+  if (isPublicDiscoveryRequest(payload)) {
+    const discovery = await dispatchStudioMcpRequest(payload, {
+      invokeStudioOperation: async () => ({ status: 403, body: { ok: false, error: 'DISCOVERY_ONLY' } }),
+    });
+    const protocolVersion = studioMcpProtocolVersionFor(payload);
+    if (discovery.status === 202 && Object.keys(discovery.body).length === 0) {
+      return new Response(null, { status: 202, headers: responseHeaders(protocolVersion) });
+    }
+    return Response.json(discovery.body, {
+      status: discovery.status,
+      headers: responseHeaders(protocolVersion),
+    });
+  }
+
+  const requestMethod = row(payload).method;
   const requiredScope = studioMcpRequiredScope(payload);
   if (!bearerHeader(request)) {
+    if (requestMethod === 'tools/call') {
+      return authenticationRequiredToolResponse(request, payload, requiredScope);
+    }
     return Response.json(externalAuthError({
       credential: null,
       tokenPresent: false,
@@ -121,6 +178,9 @@ export async function POST(request: Request) {
   const auth = authorizeExternalRequest(request, requiredScope);
   const credential = auth.credential;
   if (!credential) {
+    if (requestMethod === 'tools/call') {
+      return authenticationRequiredToolResponse(request, payload, requiredScope);
+    }
     return Response.json(externalAuthError(auth, requiredScope), {
       status: 401,
       headers: { ...responseHeaders(studioMcpProtocolVersionFor(payload)), 'WWW-Authenticate': oauthChallenge(request, requiredScope) },
@@ -147,6 +207,10 @@ export async function POST(request: Request) {
   const challengedScope = typeof errorDetails.requiredScope === 'string'
     ? errorDetails.requiredScope
     : requiredScope;
+
+  if (result.status === 401 && requestMethod === 'tools/call') {
+    return authenticationRequiredToolResponse(request, payload, challengedScope);
+  }
 
   return Response.json(result.body, {
     status: result.status,
