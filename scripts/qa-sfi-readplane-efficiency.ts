@@ -10,6 +10,9 @@ const real = fs.readFileSync('src/app/api/worldspect/real/route.ts', 'utf8');
 const gold = fs.readFileSync('src/lib/observatory/gold/observatoryGoldAdapter.ts', 'utf8');
 const publicObservatory = fs.readFileSync('src/lib/observatory/public/readPublicObservatoryState.ts', 'utf8');
 const publicTimeline = fs.readFileSync('src/lib/observatory/public/worldSnapshotTimeline.ts', 'utf8');
+const worldVectorReadModel = fs.readFileSync('src/lib/world-vector/readModel.ts', 'utf8');
+const worldInterfaceState = fs.readFileSync('src/lib/sfi/worldInterfaceState.ts', 'utf8');
+const studioCulturalLens = fs.readFileSync('src/lib/studio/production/studioCulturalLens.ts', 'utf8');
 
 assert.match(store, /unstable_cache/, 'WorldSpect reads must use the shared Next data cache');
 assert.match(store, /WORLDSPECT_SHARED_CACHE_TTL_SECONDS = 30/, 'shared cache TTL must remain explicitly bounded');
@@ -37,6 +40,14 @@ assert.doesNotMatch(trend, /getRecentWorldSpectSnapshotsRead/, 'trend must not p
 assert.match(trend, /source\.domain \?\? source\.mihm_var/, 'trend must recover canonical domain identity from persisted lightweight sources');
 assert.match(trend, /read_cache: snapshotRead\.cache/, 'trend must expose read-cache diagnostics');
 assert.match(real, /readCache: latestRead\.cache/, 'real snapshot must expose read-cache diagnostics');
+assert.match(worldVectorReadModel, /getWorldSpectPublicHistoryRead/, 'World Vector sample-count history must use lightweight WorldSpect history');
+assert.doesNotMatch(worldVectorReadModel, /getRecentWorldSpectSnapshotsRead/, 'World Vector must not pull full snapshots only to count recent samples');
+assert.match(worldInterfaceState, /getWorldSpectPublicHistoryRead/, 'World Interface schedule health must reuse lightweight WorldSpect history with continuity fallback');
+assert.doesNotMatch(worldInterfaceState, /createServiceSupabaseClient|from\('worldspect_snapshots'\)/, 'World Interface must not own an independent WorldSpect history query');
+assert.match(studioCulturalLens, /getWorldSpectPublicHistory/, 'Studio Cultural Lens must reuse lightweight WorldSpect history');
+assert.doesNotMatch(studioCulturalLens, /getRecentWorldSpectSnapshots|raw_payload|aggregateWorldSpect/, 'Studio Cultural Lens must not pull full snapshot history or raw payload for trend reconstruction');
+assert.match(studioCulturalLens, /source\.domain \?\? source\.mihm_var/, 'Studio Cultural Lens must reconstruct canonical domain identity from lightweight sources');
+assert.match(studioCulturalLens, /DOMAIN_LAYER_PRIORITY/, 'Studio Cultural Lens must preserve the canonical layer-priority rule for cultural trend values');
 
 for (const [surface, source] of [
   ['health', health],
@@ -83,9 +94,9 @@ async function main() {
       legacyRepresentativeColdBurstSourceReads: 3,
       boundedColdBurstSourceReads: 2,
       warmBurstAdditionalSourceReads: 0,
-      recentWindowConsumers: ['health', 'trend'],
+      recentWindowConsumers: ['health', 'trend', 'world-vector', 'world-interface', 'studio-cultural-lens'],
       latestWindowConsumers: ['real'],
-      lightweightPublicHistoryConsumers: ['observatory-gold', 'public-observatory', 'timeline'],
+      lightweightPublicHistoryConsumers: ['observatory-gold', 'public-observatory', 'timeline', 'world-vector', 'world-interface', 'studio-cultural-lens'],
       measuredFullRowBytes120: 7703905,
       measuredLightweightBytes120: 1842916,
       measuredEgressReductionPercent: 76.08,
