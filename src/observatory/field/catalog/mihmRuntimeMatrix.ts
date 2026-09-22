@@ -41,14 +41,15 @@ export function buildMihmRuntimeMatrix(input: {
   const warnings: string[] = [];
   const observed = latest(input.mihmAnalyses);
   if (observed) {
+    const metrics = asRecord(observed.metrics);
     const payload = asRecord(observed.payload || observed.result || observed.analysis);
     const vector = asRecord(observed.homeostatic_vector || payload.homeostatic_vector || payload.homeostaticVector);
     const visible = asRecord(observed.visible_variables || payload.visible_variables || payload.visibleVariables);
     const sensitive = asRecord(observed.sensitive_variables || payload.sensitive_variables || payload.sensitiveVariables);
-    const ihg = pickNumber(observed, ['ihg', 'IHG']) ?? pickNumber(vector, ['ihg', 'IHG']);
-    const nti = pickNumber(observed, ['nti', 'NTI', 'nti_obs']) ?? pickNumber(vector, ['nti', 'NTI', 'NTI_obs']);
-    const ldi = pickNumber(observed, ['ldi', 'LDI', 'ldi_hours']) ?? pickNumber(vector, ['ldi', 'LDI', 'LDI_hours']);
-    const phi = pickNumber(observed, ['phi', 'PHI_S', 'PHI_SF']) ?? pickNumber(vector, ['phi', 'PHI_S', 'PHI_SF']);
+    const ihg = pickNumber(observed, ['ihg', 'IHG']) ?? pickNumber(metrics, ['ihg', 'IHG']) ?? pickNumber(vector, ['ihg', 'IHG']);
+    const nti = pickNumber(observed, ['nti', 'NTI', 'nti_obs']) ?? pickNumber(metrics, ['nti', 'NTI', 'nti_obs', 'NTI_obs']) ?? pickNumber(vector, ['nti', 'NTI', 'NTI_obs']);
+    const ldi = pickNumber(observed, ['ldi', 'LDI', 'ldi_hours']) ?? pickNumber(metrics, ['ldi', 'LDI', 'ldi_hours', 'LDI_hours']) ?? pickNumber(vector, ['ldi', 'LDI', 'LDI_hours']);
+    const phi = pickNumber(observed, ['phi', 'PHI_S', 'PHI_SF']) ?? pickNumber(metrics, ['phi', 'PHI_S', 'PHI_SF']) ?? pickNumber(vector, ['phi', 'PHI_S', 'PHI_SF']);
     const explicitSymbol = pickPhiSymbol(observed, payload, vector);
     const legacyAssetPhi = phi !== null && explicitSymbol === null;
     if (legacyAssetPhi) warnings.push('legacy_phi_sf_interpreted_as_phi_s_for_field_object');
