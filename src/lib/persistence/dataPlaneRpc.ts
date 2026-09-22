@@ -72,3 +72,27 @@ export async function probePrimaryDataPlane() {
   }
   return { ok: true as const, status: response.status };
 }
+
+export async function probeNeonDataPlane() {
+  const response = await fetch(`${sfiNeonDataApiUrl()}/profiles?select=user_id&limit=1`, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${mintSfiDataPlaneServiceJwt()}`,
+      'X-Client-Info': 'sfi-data-plane-neon-probe',
+    },
+    cache: 'no-store',
+  });
+  if (!response.ok) {
+    const error = (await response.text().catch(() => '')).slice(0, 1200);
+    const normalized = error.toLowerCase();
+    return {
+      ok: false as const,
+      status: response.status,
+      error,
+      errorCode: (response.status === 401 || response.status === 403) && normalized.includes('jwk not found')
+        ? 'SFI_NEON_DATA_API_JWKS_MISMATCH'
+        : `HTTP_${response.status}`,
+    };
+  }
+  return { ok: true as const, status: response.status, errorCode: null };
+}
