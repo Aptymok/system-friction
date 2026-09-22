@@ -169,6 +169,7 @@ jobs:
           lane_status = payload.get('laneStatus') or {}
           primary_probe = payload.get('primaryPhysicalProbe') or {}
           continuity_rest_probe = payload.get('continuityRestProbe') or {}
+          primary_storage_probe = payload.get('primaryStorageProbe') or {}
           recovery_attempt = payload.get('recoveryAttempt') or {}
           universal = payload.get('universalCycleContinuation') or {}
           before = payload.get('returnPlanUpgradeBefore') or {}
@@ -188,6 +189,7 @@ jobs:
               'primaryDiagnostic': payload.get('primaryDiagnostic'),
               'primaryPhysicalProbe': primary_probe,
               'continuityRestProbe': continuity_rest_probe,
+              'primaryStorageProbe': primary_storage_probe,
               'recoveryAttempt': recovery_attempt,
               'laneStatus': lane_status,
               'returnPlanUpgradeBefore': {'ok': before.get('ok'), 'processed': before.get('processed'), 'results': before.get('results', [])},
