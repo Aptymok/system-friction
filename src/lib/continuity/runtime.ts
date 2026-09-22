@@ -281,12 +281,22 @@ async function probeCapability(capability: ContinuityCapability, mode: Continuit
 }
 
 export async function runContinuityHeartbeat(trigger = 'scheduled') {
-  const { probePrimaryDataPlane } = await import('@/lib/persistence/dataPlaneRpc');
-  const primaryPhysicalProbe = await probePrimaryDataPlane().catch((error) => ({
-    ok: false as const,
-    status: 0,
-    error: error instanceof Error ? error.message : String(error),
-  }));
+  const { probePrimaryDataPlane, probeNeonDataPlane } = await import('@/lib/persistence/dataPlaneRpc');
+  const [primaryPhysicalProbe, continuityRestProbe] = await Promise.all([
+    probePrimaryDataPlane().catch((error) => ({
+      ok: false as const,
+      status: 0,
+      error: error instanceof Error ? error.message : String(error),
+    })),
+    isSfiContinuityConfigured()
+      ? probeNeonDataPlane().catch((error) => ({
+          ok: false as const,
+          status: 0,
+          error: error instanceof Error ? error.message : String(error),
+          errorCode: 'SFI_NEON_DATA_API_PROBE_FAILED',
+        }))
+      : Promise.resolve({ ok: false as const, status: 0, error: 'continuity_not_configured', errorCode: 'CONTINUITY_NOT_CONFIGURED' }),
+  ]);
 
   let systemicDataPlaneState: Awaited<ReturnType<typeof import('@/lib/persistence/dataPlaneContinuityStore')['readDataPlaneState']>> | null = null;
   if (isSfiContinuityConfigured()) {
@@ -508,6 +518,7 @@ export async function runContinuityHeartbeat(trigger = 'scheduled') {
     dataPlane,
     primaryDiagnostic,
     primaryPhysicalProbe,
+    continuityRestProbe,
     primaryMirror,
     recoveryAttempt,
   };
