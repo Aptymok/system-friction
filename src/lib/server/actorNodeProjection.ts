@@ -1,4 +1,5 @@
 import 'server-only';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 type Row = Record<string, unknown>;
 
@@ -14,7 +15,7 @@ function finite(value: unknown) {
 export async function readActorNodeProjection(ctx: {
   user: { id: string; email?: string | null };
   profile: Row | null;
-  service: any;
+  service: SupabaseClient;
 }) {
   const latest = await ctx.service
     .from('field_mihm_readings')
