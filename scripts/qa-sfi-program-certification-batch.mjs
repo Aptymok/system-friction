@@ -20,6 +20,8 @@ const GLOBAL_REGRESSION_SCOPE = [
 const TARGETED_CANONICAL_PROOFS = {
   'MASTER-03': ['src/lib/sfi/cognitive-runtime/capabilityBroker.test.ts'],
   'WS-01-029': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
+  'WS-01-040': ['scripts/qa-sfi-ws01-ownership-boundary.ts'],
+  'WS-02-001': ['scripts/qa-sfi-ws02-universal-twin-lineage.ts'],
   'ISSUE154-001': ['scripts/qa-sfi-discovery-operational.ts'],
 };
 
@@ -44,7 +46,7 @@ assert.equal(certification.canonicalStatusMutation, false);
 assert.equal(certification.autoReceiptWrite, false);
 assert.deepEqual(certification.regressionScope, GLOBAL_REGRESSION_SCOPE);
 assert.deepEqual(certification.targetedCanonicalProofs, TARGETED_CANONICAL_PROOFS);
-assert.deepEqual(Object.keys(certification.targetedCanonicalProofs).sort(), ['ISSUE154-001','MASTER-03','WS-01-029']);
+assert.deepEqual(Object.keys(certification.targetedCanonicalProofs).sort(), ['ISSUE154-001','MASTER-03','WS-01-029','WS-01-040','WS-02-001']);
 assert.ok(certification.selectedCount <= certification.batchLimit);
 assert.equal(certification.selectedCount, certification.requirements.length);
 assert.equal(certification.failedProofCount, 0);
