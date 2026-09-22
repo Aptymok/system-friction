@@ -65,16 +65,28 @@ export async function POST(req: NextRequest) {
   if (!emitted.ok) return NextResponse.json({ error: 'bitacora_persist_failed' }, { status: 500 });
 
   if (mode === 'public_fragment') {
-    const { error } = await ctx.service.from('media_drafts').insert({
-      node_id: ctx.node.id,
-      source_type: 'bitacora',
-      source_id: emitted.event.id,
-      platform_target: 'field',
-      content: fragment,
-      status: 'pending_human_validation',
-      metadata: { density, calendar_hint },
+    const draft = await emitEpistemicEvent({
+      eventName: 'SFI_MEDIA_DRAFT_RECORDED',
+      logbookId: `ACTOR:${ctx.user.id}`,
+      epistemicClass: 'derived',
+      schemaVersion: '2026-09-21.actor-event.v1',
+      sourceId: emitted.event.id,
+      sourceType: 'api/bitacora/regenerate',
+      actorId: ctx.user.id,
+      nodeId: ctx.node.id,
+      confidence: metricsEvent ? 0.65 : 0.35,
+      payload: {
+        node_id: ctx.node.id,
+        source_type: 'bitacora',
+        source_id: emitted.event.id,
+        platform_target: 'field',
+        content: fragment,
+        status: 'pending_human_validation',
+        metadata: { density, calendar_hint },
+        streamType: 'media_draft',
+      },
     });
-    if (error) return NextResponse.json({ error: 'bitacora_draft_persist_failed' }, { status: 500 });
+    if (!draft.ok) return NextResponse.json({ error: 'bitacora_draft_persist_failed' }, { status: 500 });
   }
 
   return NextResponse.json({ status: 'ok', fragment, density, suggested_publication, calendar_hint });

@@ -120,7 +120,7 @@ export async function POST(req: NextRequest) {
 
     if (body.action === 'social_draft') {
       const ctx = await ensureOwnedNode(body.node_id);
-      if (ctx.error) return localOnly('node_not_ready');
+      if (ctx.error || !ctx.node || !ctx.user) return localOnly('node_not_ready');
       const draft = body.draft || {};
       const metadata = {
         draftId: draft.id,
@@ -143,22 +143,28 @@ export async function POST(req: NextRequest) {
         status: draftStatus(String(draft.status || 'DRAFT')),
         metadata,
         approved_at: draft.status === 'CONTENT_APPROVED' ? new Date().toISOString() : null,
+        streamType: 'media_draft',
       };
 
-      const { data: existing } = await ctx.service
-        .from('media_drafts')
-        .select('id')
-        .eq('node_id', ctx.node.id)
-        .eq('metadata->>draftId', String(draft.id))
-        .limit(1)
-        .maybeSingle();
+      const emitted = await emitEpistemicEvent({
+        eventName: 'SFI_MEDIA_DRAFT_RECORDED',
+        logbookId: `ACTOR:${ctx.user.id}`,
+        epistemicClass: 'declared',
+        schemaVersion: '2026-09-21.actor-event.v1',
+        sourceId: String(draft.id || draft.contentHash || 'social_draft'),
+        sourceType: 'SFI_FIELD_SOCIAL_DRAFT',
+        actorId: ctx.user.id,
+        nodeId: ctx.node.id,
+        confidence: draft.status === 'CONTENT_APPROVED' ? 0.75 : 0.6,
+        payload,
+      });
 
-      const query = existing?.id
-        ? ctx.service.from('media_drafts').update(payload).eq('id', existing.id).select('*').single()
-        : ctx.service.from('media_drafts').insert(payload).select('*').single();
-      const { data, error } = await query;
-      if (error) return localOnly(error.message);
-      return jsonOk(data);
+      if (!emitted.ok) return localOnly('social_draft_persist_failed');
+      return jsonOk({
+        id: emitted.event.id,
+        ...payload,
+        created_at: emitted.event.created_at,
+      });
     }
 
     if (body.action === 'manual_social_post') {
