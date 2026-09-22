@@ -23,8 +23,6 @@ const canonicalTwinMemory = read('src/core/cognitive-twin/canonicalMemoryView.ts
 const twinState = read('src/core/cognitive-twin/readState.ts');
 const amvAgent = read('src/lib/agents/amvAgent.ts');
 const scorefrictionLab = read('src/app/api/scorefriction/lab/analyze/route.ts');
-const runtimeObserver = read('src/runtime/layers/Observer.ts');
-const runtimeIntentLayer = read('src/runtime/layers/IntentLayer.ts');
 const worldReobserveRoute = read('src/app/api/field/map/world/reobserve/route.ts');
 const ingestReadRoute = read('src/app/api/ingest/read/route.ts');
 const ingestRealRoute = read('src/app/api/ingest/real/route.ts');
@@ -64,6 +62,8 @@ const rootServer = read('src/lib/root/server.ts');
 const legacyLiveSchema = read('config/sfi-legacy-live-schema.json');
 const retiredSchema = read('config/sfi-retired-schema.json');
 const consolidationAudit = read('scripts/system-consolidation-audit.py');
+const sfiPsiStore = read('src/lib/sfi-psi/store.ts');
+const indicatorSnapshotStore = read('src/lib/sfi/indicatorSnapshot.ts');
 
 check('Scorefriction lab persistence uses the canonical systemic data-plane client and does not claim Supabase provenance',
   scorefrictionLab.includes("createServiceSupabaseClient")
@@ -71,11 +71,19 @@ check('Scorefriction lab persistence uses the canonical systemic data-plane clie
   && scorefrictionLab.includes('persistenceSource: "systemic_data_plane"')
   && !scorefrictionLab.includes('persistenceSource: "supabase"'));
 
-check('runtime Observer and IntentLayer reuse the canonical systemic service client instead of parallel Supabase clients',
-  runtimeObserver.includes("createServiceSupabaseClient")
-  && runtimeIntentLayer.includes("createServiceSupabaseClient")
-  && !runtimeObserver.includes("from '@supabase/supabase-js'")
-  && !runtimeIntentLayer.includes("from '@supabase/supabase-js'"));
+check('orphan legacy runtime modules are removed while live event callers converge on the canonical epistemic writer',
+  !fs.existsSync(path.join(root, 'src/runtime/layers/Observer.ts'))
+  && !fs.existsSync(path.join(root, 'src/runtime/layers/IntentLayer.ts'))
+  && !fs.existsSync(path.join(root, 'src/lib/actions/generate-protocol.ts'))
+  && !fs.existsSync(path.join(root, 'src/lib/memory/embeddings.ts'))
+  && !fs.existsSync(path.join(root, 'src/experimental/store/project-manager.ts'))
+  && !fs.existsSync(path.join(root, 'src/lib/db/events.ts'))
+  && sfiPsiStore.includes("from '@/core/memory/epistemicEventWriter'")
+  && indicatorSnapshotStore.includes("from '@/core/memory/epistemicEventWriter'")
+  && sfiPsiStore.includes("eventName: 'telemetry.signal_ingested'")
+  && indicatorSnapshotStore.includes("eventName: 'telemetry.signal_ingested'")
+  && !sfiPsiStore.includes("from '@/lib/db/events'")
+  && !indicatorSnapshotStore.includes("from '@/lib/db/events'"));
 
 check('world reobserve does not spend five count-only data-plane queries after executing its cycles',
   !worldReobserveRoute.includes("count: 'exact', head: true"));
@@ -206,6 +214,18 @@ check('schema consolidation counts runtime consumers rather than QA or documenta
   consolidationAudit.includes("runtime_reference_source = source.startswith('src/') or source.startswith('packages/')")
   && consolidationAudit.includes('if runtime_reference_source:')
   && consolidationAudit.includes('table_refs.setdefault(table, set()).add(source)'));
+
+check('final legacy schema inventory separates physically live contracts, retired absences and SQL-internal control-plane dependencies',
+  [
+    'actions','amv_messages','amv_sessions','audits','cognitive_event_stream','decision_gate_logs',
+    'events','external_reality_weights','intent_history','intents','interaction_events','licenses',
+    'logbook_visible','media_drafts','memory_facts','memory_vectors','structured_observations','systemic_patterns',
+    'mihm_analyses','nodes','sfi_graph_edges','sfi_ingestion_attestation_receipts','vw_sfi_attractor_alignment_queue',
+  ].every((name) => !legacyLiveSchema.includes(`"${name}"`) && retiredSchema.includes(`"${name}"`))
+  && legacyLiveSchema.includes('"logbook_knowledge"')
+  && !retiredSchema.includes('"logbook_knowledge"')
+  && consolidationAudit.includes('function_body_schema_references')
+  && consolidationAudit.includes('schema_refs.setdefault(table, set()).add(source)'));
 
 check('Field persistence recent runtime status uses one bounded canonical ledger projection instead of legacy count probes',
   fieldPersistRoute.includes(".select('id,event_name,payload,created_at')")
