@@ -1,5 +1,7 @@
+import { createHash } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { ensureOwnedNode } from '@/lib/server/productionBackend';
+import { emitEpistemicEvent } from '@/core/memory/epistemicEventWriter';
 
 type LiturgiaContext = {
   entity?: string;
@@ -20,17 +22,18 @@ type LiturgiaAmvBody = {
   context?: LiturgiaContext;
 };
 
-function dominantTension(context: LiturgiaContext, latestAudit?: any) {
-  const ldi = Number(context.ldi ?? latestAudit?.ldi ?? 0);
-  const nti = Number(context.nti ?? latestAudit?.nti ?? 0.5);
-  const ihg = Number(context.ihg ?? latestAudit?.ihg ?? 0.5);
-  if (ldi > 1 || ldi > ihg * 1.5) return 'disipacion longitudinal';
-  if (nti < 0.35) return 'opacidad de trazabilidad';
-  if (ihg < 0.35) return 'fragmentacion de gobernanza';
+function dominantTension(context: LiturgiaContext) {
+  const ldi = typeof context.ldi === 'number' ? context.ldi : null;
+  const nti = typeof context.nti === 'number' ? context.nti : null;
+  const ihg = typeof context.ihg === 'number' ? context.ihg : null;
+  if (ldi !== null && (ldi > 1 || (ihg !== null && ldi > ihg * 1.5))) return 'disipacion longitudinal';
+  if (nti !== null && nti < 0.35) return 'opacidad de trazabilidad';
+  if (ihg !== null && ihg < 0.35) return 'fragmentacion de gobernanza';
+  if (ldi === null && nti === null && ihg === null) return 'tension no medida';
   return 'tension residual estable';
 }
 
-function observedLoop(context: LiturgiaContext, memoryFacts: any[], events: any[]) {
+function observedLoop(context: LiturgiaContext, events: Array<Record<string, any>>) {
   const socialEvent = events.find((event) => event.event_name === 'social_resonance_ingested');
   if (socialEvent) {
     const score = Number(socialEvent.payload?.resonance_score);
@@ -38,20 +41,15 @@ function observedLoop(context: LiturgiaContext, memoryFacts: any[], events: any[
       ? `retorno del campo social registrado con resonancia ${score.toFixed(2)}`
       : 'retorno del campo social registrado';
   }
-
-  const loopFact = memoryFacts.find((fact) => fact.fact_type === 'loop');
-  if (loopFact?.value) return String(loopFact.value);
   const anomaly = context.anomalies?.[0];
   if (anomaly) return `reaparicion de ${anomaly} sin cierre estructural`;
   const repeated = events.find((event) => String(event.event_name || '').includes('registered'));
   return repeated ? `registro recurrente: ${repeated.event_name}` : 'loop no consolidado; observacion insuficiente';
 }
 
-function proposedAction(tension: string, context: LiturgiaContext, events: any[]) {
+function proposedAction(tension: string, context: LiturgiaContext, events: Array<Record<string, any>>) {
   const hasSocialReturn = events.some((event) => event.event_name === 'social_resonance_ingested');
-  if (hasSocialReturn) {
-    return 'ajustar pieza activa: reducir saturacion, elevar evidencia y medir respuesta del campo';
-  }
+  if (hasSocialReturn) return 'ajustar pieza activa: reducir saturacion, elevar evidencia y medir respuesta del campo';
   if (tension.includes('disipacion')) return 'reducir latencia: registrar una accion minima con responsable y fecha';
   if (tension.includes('opacidad')) return 'aumentar trazabilidad: convertir evidencia parcial en evento verificable';
   if (tension.includes('gobernanza')) return 'alinear autoridad: declarar un unico criterio de decision';
@@ -59,7 +57,7 @@ function proposedAction(tension: string, context: LiturgiaContext, events: any[]
   return 'mantener observacion y capturar el proximo residuo operativo';
 }
 
-function nextQuestion(tension: string, events: any[]) {
+function nextQuestion(tension: string, events: Array<Record<string, any>>) {
   const hasSocialReturn = events.some((event) => event.event_name === 'social_resonance_ingested');
   if (hasSocialReturn) return 'Que variante reduce ruido narrativo y aumenta evidencia observable frente al campo?';
   if (tension.includes('disipacion')) return 'Que accion sigue viva pero perdio fecha, responsable o criterio de cierre?';
@@ -68,64 +66,37 @@ function nextQuestion(tension: string, events: any[]) {
   return 'Que residuo se repite aunque el sistema declare estabilidad?';
 }
 
-async function ensureAmvSession(service: any, nodeId: string, userId: string, liturgiaSessionId?: string) {
-  if (!liturgiaSessionId) return null;
-  const { data: existing } = await service
-    .from('amv_sessions')
-    .select('*')
-    .eq('node_id', nodeId)
-    .eq('status', 'active')
-    .contains('final_reading', { liturgia_session_id: liturgiaSessionId })
-    .limit(1);
-
-  if (existing?.[0]) return existing[0];
-
-  const { data } = await service
-    .from('amv_sessions')
-    .insert({
-      node_id: nodeId,
-      user_id: userId,
-      status: 'active',
-      final_reading: { liturgia_session_id: liturgiaSessionId, mode: 'amv_minimal' },
-    })
-    .select('*')
-    .single();
-  return data;
-}
-
 export async function POST(req: NextRequest) {
   const body = (await req.json()) as LiturgiaAmvBody;
   const message = String(body.message || '').trim();
   if (!message) return NextResponse.json({ status: 'error', message: 'message_required' }, { status: 400 });
 
   const ctx = await ensureOwnedNode(body.node_id);
-  if (ctx.error) return ctx.error;
+  if (ctx.error || !ctx.node || !ctx.user) return ctx.error ?? NextResponse.json({ error: 'node_not_ready' }, { status: 404 });
 
-  const [audits, actions, memoryFacts, events] = await Promise.all([
-    ctx.service.from('audits').select('*').eq('node_id', ctx.node.id).order('created_at', { ascending: false }).limit(8),
-    ctx.service.from('actions').select('*').eq('node_id', ctx.node.id).order('created_at', { ascending: false }).limit(8),
-    ctx.service.from('memory_facts').select('*').eq('node_id', ctx.node.id).order('last_seen_at', { ascending: false }).limit(12),
-    ctx.service.from('cognitive_event_stream').select('*').eq('node_id', ctx.node.id).order('created_at', { ascending: false }).limit(12),
-  ]);
+  const { data: events, error: eventsError } = await ctx.service
+    .from('epistemic_events')
+    .select('id,event_name,payload,created_at')
+    .eq('actor_id', ctx.user.id)
+    .eq('node_id', ctx.node.id)
+    .order('created_at', { ascending: false })
+    .limit(12);
 
-  const latestAudit = audits.data?.[0];
-  const context = body.context || {};
-  const recentEvents = events.data || [];
-  const tension = dominantTension(context, latestAudit);
-  const loop = observedLoop(context, memoryFacts.data || [], recentEvents);
+  if (eventsError) return NextResponse.json({ status: 'error', message: 'amv_context_unavailable' }, { status: 500 });
+
+  const context: LiturgiaContext = {
+    ...(body.context || {}),
+    ihg: body.context?.ihg ?? ctx.node.current_ihg ?? undefined,
+    nti: body.context?.nti ?? ctx.node.current_nti ?? undefined,
+    ldi: body.context?.ldi ?? ctx.node.current_ldi ?? undefined,
+  };
+  const recentEvents = Array.isArray(events) ? events : [];
+  const tension = dominantTension(context);
+  const loop = observedLoop(context, recentEvents);
   const action = proposedAction(tension, context, recentEvents);
-  const confidence = Math.min(0.86, Math.max(0.42, 0.48 + (audits.data?.length || 0) * 0.03 + (memoryFacts.data?.length || 0) * 0.015));
+  const confidence = Math.min(0.82, Math.max(0.35, 0.42 + Math.min(12, recentEvents.length) * 0.02));
   const question = nextQuestion(tension, recentEvents);
   const assistantMessage = `AMV interno registra ${tension}. Loop observado: ${loop}. Vector operativo: ${action}. Proxima pregunta: ${question}`;
-
-  const amvSession = await ensureAmvSession(ctx.service, ctx.node.id, ctx.user.id, body.session_id);
-  if (amvSession?.id) {
-    await ctx.service.from('amv_messages').insert([
-      { session_id: amvSession.id, node_id: ctx.node.id, role: 'user', content: message },
-      { session_id: amvSession.id, node_id: ctx.node.id, role: 'assistant', content: assistantMessage },
-    ]);
-    await ctx.service.from('amv_sessions').update({ question_count: Number(amvSession.question_count || 0) + 1 }).eq('id', amvSession.id);
-  }
 
   const reading = {
     dominant_tension: tension,
@@ -135,35 +106,50 @@ export async function POST(req: NextRequest) {
     next_question: question,
   };
 
-  await ctx.service.from('cognitive_event_stream').insert({
-    node_id: ctx.node.id,
-    stream_type: 'liturgia_amv',
-    event_name: 'liturgia_amv_internal_response',
+  const emitted = await emitEpistemicEvent({
+    eventName: 'liturgia_amv_internal_response',
+    logbookId: `ACTOR:${ctx.user.id}`,
+    epistemicClass: 'inferred',
+    schemaVersion: '2026-09-21.actor-event.v1',
+    sourceId: body.session_id || createHash('sha256').update(message).digest('hex').slice(0, 24),
+    sourceType: 'api/liturgia/amv',
+    actorId: ctx.user.id,
+    nodeId: ctx.node.id,
+    confidence,
     payload: {
+      streamType: 'liturgia_amv',
       session_id: body.session_id || null,
       message,
       context,
       reading,
-      recent_actions: actions.data?.length || 0,
-      recent_audits: audits.data?.length || 0,
     },
-    emitted_by: 'api/liturgia/amv',
+    uncertainty: tension === 'tension no medida' ? 'MIHM actor metrics unavailable' : null,
   });
 
-  if (loop && !loop.includes('insuficiente')) {
-    await ctx.service.from('memory_facts').insert({
-      node_id: ctx.node.id,
-      fact_type: 'loop',
-      label: 'amv_loop_detected',
-      value: loop,
-      confidence,
-    });
-  }
+  if (!emitted.ok) return NextResponse.json({ status: 'error', message: 'amv_event_persist_failed' }, { status: 500 });
+
+  const inputHash = createHash('sha256').update(JSON.stringify({ message, context })).digest('hex');
+  const { error: memoryError } = await ctx.service.from('sfi_amv_memory').insert({
+    session_id: body.session_id || null,
+    module: 'liturgia_amv',
+    input_hash: inputHash,
+    input_summary: message.slice(0, 1000),
+    inference: { tension, loop, confidence },
+    decision: { proposed_action: action, next_question: question },
+    output_summary: assistantMessage,
+    evaluation: { epistemic_event_id: emitted.event.id },
+    memory_delta: loop.includes('insuficiente') ? {} : { observed_loop: loop },
+    uncertainty: Number((1 - confidence).toFixed(2)),
+    source_trust: ctx.node.source_state === 'observed' ? 0.65 : 0.35,
+    requires_human_validation: true,
+  });
 
   return NextResponse.json({
     status: 'connected_internal',
     mode: 'amv_minimal',
     message: assistantMessage,
     reading,
+    memory_persisted: !memoryError,
+    warnings: memoryError ? ['amv_memory_not_persisted'] : [],
   });
 }
