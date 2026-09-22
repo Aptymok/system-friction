@@ -1,4 +1,4 @@
-import { getLatestWorldSpectSnapshotRead, getRecentWorldSpectSnapshotsRead } from '@/lib/worldspect/snapshotStore';
+import { getLatestWorldSpectSnapshotRead, getWorldSpectPublicHistoryRead } from '@/lib/worldspect/snapshotStore';
 import { deriveWorldVectorObservation } from './deriveObservation';
 import { getCurrentWorldVectorCycleDay, getWorldVectorCycleRange } from './sectorCycle';
 import { getWorldVectorPersistenceStatus } from './persistence';
@@ -9,7 +9,7 @@ export async function getWorldVectorToday() {
   const cycleRange = getWorldVectorCycleRange();
   const [latestRead, recentRead, persistence] = await Promise.all([
     getLatestWorldSpectSnapshotRead(),
-    getRecentWorldSpectSnapshotsRead({ days: 90, ingestMode: 'all', limit: 120 }),
+    getWorldSpectPublicHistoryRead({ days: 90, ingestMode: 'all', limit: 120 }),
     getWorldVectorPersistenceStatus(),
   ]);
   const latest = latestRead.data;
@@ -34,7 +34,7 @@ export async function getWorldVectorStatus(): Promise<WorldVectorStatus> {
   const currentCycleDay = getCurrentWorldVectorCycleDay();
   const [latestRead, recentRead, memory] = await Promise.all([
     getLatestWorldSpectSnapshotRead(),
-    getRecentWorldSpectSnapshotsRead({ days: 90, ingestMode: 'all', limit: 120 }),
+    getWorldSpectPublicHistoryRead({ days: 90, ingestMode: 'all', limit: 120 }),
     getWorldVectorPersistenceStatus(),
   ]);
   const latest = latestRead.data;
