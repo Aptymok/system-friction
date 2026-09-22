@@ -1,5 +1,16 @@
 export const SFI_AUTHENTICATED_GATEWAY_PROJECTION_CONTRACT = 'SFI-AUTHENTICATED-GATEWAY-PROJECTION-1.0' as const;
 export const SFI_AUTHENTICATED_GATEWAY_TOOL_NAME = 'invoke_sfi_gateway_operation' as const;
+export const SFI_AUTHENTICATED_MCP_SCOPES = Object.freeze([
+  'observe',
+  'propose',
+  'execute',
+  'governance:decide',
+  'cases:read',
+  'cases:write',
+  'lab:read',
+  'lab:write',
+  'lab:run',
+] as const);
 
 type HttpMethod = 'GET' | 'POST';
 type JsonObject = Record<string, unknown>;
@@ -115,10 +126,24 @@ export function requiredScopeForAuthenticatedGatewayInvocation(input: SfiAuthent
 
 function interpolatePath(path: string, input: SfiAuthenticatedGatewayInvocation) {
   return path.replace(/\{([^}]+)\}/g, (_match, key: string) => {
-    const value = input.pathParams?.[key]?.trim();
+    const raw = input.pathParams?.[key];
+    const value = typeof raw === 'string' ? raw.trim() : '';
     if (!value) throw new Error(`SFI_GATEWAY_PATH_PARAM_REQUIRED:${key}`);
     return encodeURIComponent(value);
   });
+}
+
+function normalizeQuery(input: SfiAuthenticatedGatewayInvocation) {
+  const query: Record<string, string | number | boolean | null> = {};
+  for (const [key, value] of Object.entries(input.query ?? {})) {
+    if (value === undefined) continue;
+    if (value === null || typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+      query[key] = value;
+      continue;
+    }
+    throw new Error(`SFI_GATEWAY_QUERY_VALUE_INVALID:${key}`);
+  }
+  return query;
 }
 
 export function buildAuthenticatedGatewayRequest(input: SfiAuthenticatedGatewayInvocation) {
@@ -132,7 +157,7 @@ export function buildAuthenticatedGatewayRequest(input: SfiAuthenticatedGatewayI
     path: interpolatePath(definition.path, input),
     scope,
     body: input.body ?? {},
-    query: input.query ?? {},
+    query: normalizeQuery(input),
     summary: definition.summary,
   };
 }
