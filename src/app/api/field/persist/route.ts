@@ -162,7 +162,6 @@ export async function POST(req: NextRequest) {
       if (!emitted.ok) return localOnly('social_draft_persist_failed');
       return jsonOk({
         id: emitted.event.id,
-        node_id: emitted.event.node_id,
         ...payload,
         created_at: emitted.event.created_at,
       });
