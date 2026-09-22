@@ -3,7 +3,7 @@ import 'server-only';
 import { runNeuralGraphAgent } from '@/lib/agents/neuralGraphAgent';
 import { readAmvOperationalMemory } from '@/lib/agents/amvAgent';
 import { readRootNeuralGraphRuntime } from '@/lib/root/neuralGraphRuntime';
-import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { getWorldSpectPublicHistoryRead } from '@/lib/worldspect/snapshotStore';
 import { getPredictionRegistryHealth } from '@/lib/sfi/predictions/service';
 import { buildWorldVectorOperationalState } from '@/lib/world-vector/operationalState';
 import type { WorldVectorDomainValue } from '@/lib/world-vector/types';
@@ -163,32 +163,18 @@ function activeSourceCount(sources: unknown[]) {
 
 async function readScheduleHealth(): Promise<ScheduleHealth> {
   try {
-    const service = createServiceSupabaseClient();
-    const observedSince = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
-    const { data, error } = await service
-      .from('worldspect_snapshots')
-      .select('observed_at,sources,degraded_sources,adapter_error')
-      .gte('observed_at', observedSince)
-      .order('observed_at', { ascending: true })
-      .limit(120);
-
-    if (error) throw error;
-
-    const recent90d: ScheduleSnapshotRow[] = Array.isArray(data)
-      ? data
-        .map((row) => {
-          const record = row as Record<string, unknown>;
-          return {
-            observed_at: typeof record.observed_at === 'string' ? record.observed_at : '',
-            sources: Array.isArray(record.sources) ? record.sources : [],
-            degraded_sources: Array.isArray(record.degraded_sources)
-              ? record.degraded_sources.filter((source): source is string => typeof source === 'string')
-              : [],
-            adapter_error: typeof record.adapter_error === 'string' ? record.adapter_error : null,
-          };
-        })
-        .filter((row) => row.observed_at)
-      : [];
+    const recentRead = await getWorldSpectPublicHistoryRead({ days: 90, ingestMode: 'all', limit: 120 });
+    const recent90d: ScheduleSnapshotRow[] = recentRead.data
+      .map((row) => ({
+        observed_at: row.observed_at,
+        sources: row.sources,
+        degraded_sources: row.degraded_sources,
+        adapter_error: row.adapter_error,
+      }))
+      .filter((row) => row.observed_at);
+    const readWarning = recentRead.primaryDiagnostic
+      ? `worldspect_schedule_primary_degraded:${recentRead.primaryDiagnostic};served=${recentRead.readPlane}`
+      : null;
     const latest = recent90d[recent90d.length - 1] ?? null;
 
     if (!latest || recent90d.length === 0) {
@@ -203,7 +189,7 @@ async function readScheduleHealth(): Promise<ScheduleHealth> {
         sampleCount: 0,
         latestObservedAt: null,
         minutesSinceLastMeasurement: null,
-        warnings: ['worldspect_snapshot_missing'],
+        warnings: ['worldspect_snapshot_missing', ...(readWarning ? [readWarning] : [])],
       };
     }
 
@@ -216,6 +202,11 @@ async function readScheduleHealth(): Promise<ScheduleHealth> {
     const minutes = minutesSince(latest.observed_at);
     const warnings: string[] = [];
     let status: ScheduleHealth['status'] = 'healthy';
+
+    if (readWarning) {
+      status = 'degraded';
+      warnings.push(readWarning);
+    }
 
     if (minutes === null || activeSources === 0) {
       status = 'failed';

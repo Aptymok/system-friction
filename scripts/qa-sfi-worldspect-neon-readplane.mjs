@@ -43,7 +43,8 @@ assert.match(pulse, /restricted_read_plane_unavailable/, 'blocked scheduled cycl
 assert.match(worldCron, /SFI_WORLD_CYCLE_EXECUTION_STATE/, 'world cron must propagate scheduled execution state into pulse QA');
 assert.match(worldCron, /SFI_WORLD_CYCLE_MIXED_EGRESS_STATE/, 'world cron must fail closed when only part of the scheduled cycle is egress-restricted');
 assert.match(worldVectorReadModel, /getLatestWorldSpectSnapshotRead/, 'World Vector latest observation must preserve WorldSpect read-plane provenance');
-assert.match(worldVectorReadModel, /getRecentWorldSpectSnapshotsRead/, 'World Vector history must preserve WorldSpect read-plane provenance');
+assert.match(worldVectorReadModel, /getWorldSpectPublicHistoryRead/, 'World Vector history must preserve WorldSpect read-plane provenance through the lightweight shared reader');
+assert.doesNotMatch(worldVectorReadModel, /getRecentWorldSpectSnapshotsRead/, 'World Vector history must not require full WorldSpect rows merely to preserve read-plane provenance');
 assert.match(worldVectorReadModel, /read_provenance/, 'World Vector read model must expose provenance instead of discarding it');
 assert.match(worldVectorReadModel, /world_vector_latest_primary_degraded/, 'World Vector must surface primary latest-read degradation');
 assert.match(worldVectorReadModel, /world_vector_history_primary_degraded/, 'World Vector must surface primary history-read degradation');

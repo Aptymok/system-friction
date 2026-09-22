@@ -1,28 +1,49 @@
 import 'server-only';
 import { getWorldVectorToday } from '@/lib/world-vector/readModel';
-import { getRecentWorldSpectSnapshots, type WorldSpectSnapshotRow } from '@/lib/worldspect/snapshotStore';
-import { aggregateWorldSpect } from '@/lib/worldspect/vector-aggregator';
-import type { SourceObservation } from '@/lib/worldspect/source-adapter-contract';
+import { getWorldSpectPublicHistory, type WorldSpectPublicHistoryRow } from '@/lib/worldspect/snapshotStore';
 import type { StudioCulturalDomain, StudioCulturalLens, StudioCulturalTrend } from './hypothesisEngine';
 
 const RELEVANT_DOMAINS = ['CULTURAL', 'MEMETIC', 'AFFECTIVE'];
+
+const DOMAIN_LAYER_PRIORITY: Record<string, string[]> = {
+  CULTURAL: ['ATTENTION'],
+  MEMETIC: ['ATTENTION', 'DIGITAL_ACTIVITY'],
+  AFFECTIVE: ['AFFECTIVE_PROXY', 'ATTENTION', 'DIGITAL_ACTIVITY'],
+};
 
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
 
-function observationsFromSnapshot(snapshot: WorldSpectSnapshotRow): SourceObservation[] {
-  const observations = asRecord(snapshot.raw_payload).observations;
-  return Array.isArray(observations) ? observations as SourceObservation[] : [];
+function finiteNumber(value: unknown): number | null {
+  const parsed = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
-function domainValueFromSnapshot(snapshot: WorldSpectSnapshotRow, domain: string): number | null {
+function domainValueFromSnapshot(snapshot: WorldSpectPublicHistoryRow, domain: string): number | null {
   try {
-    const observations = observationsFromSnapshot(snapshot);
-    if (!observations.length) return null;
-    const aggregated = aggregateWorldSpect(observations);
-    const vector = aggregated.vectors.find((item) => item.domain.toUpperCase() === domain && item.status === 'ACTIVE' && typeof item.value === 'number');
-    return vector ? Number(vector.value) : null;
+    const domainSources = snapshot.sources
+      .map(asRecord)
+      .filter((source) => {
+        const sourceDomain = String(source.domain ?? source.mihm_var ?? '').toUpperCase();
+        const status = String(source.status ?? '').toUpperCase();
+        const trust = finiteNumber(source.trust ?? source.nti);
+        const degradation = finiteNumber(source.degradation);
+        return sourceDomain === domain
+          && status === 'ACTIVE'
+          && finiteNumber(source.value) !== null
+          && (trust ?? 0) > 0
+          && (degradation === null || degradation < 1);
+      });
+
+    for (const layer of DOMAIN_LAYER_PRIORITY[domain] ?? []) {
+      const values = domainSources
+        .filter((source) => String(source.layer ?? '').toUpperCase() === layer)
+        .map((source) => finiteNumber(source.value))
+        .filter((value): value is number => value !== null);
+      if (values.length > 0) return values.reduce((sum, value) => sum + value, 0) / values.length;
+    }
+    return null;
   } catch {
     return null;
   }
@@ -40,7 +61,7 @@ function linearSlope(points: Array<{ t: number; value: number }>): number {
   return Number(((n * sumTV - sumT * sumV) / denominator).toFixed(5));
 }
 
-function buildTrends(snapshots: WorldSpectSnapshotRow[]): StudioCulturalTrend[] {
+function buildTrends(snapshots: WorldSpectPublicHistoryRow[]): StudioCulturalTrend[] {
   const sorted = [...snapshots].sort((a, b) => new Date(a.observed_at).getTime() - new Date(b.observed_at).getTime());
   return RELEVANT_DOMAINS.map((domain) => {
     const points = sorted
@@ -56,7 +77,7 @@ function buildTrends(snapshots: WorldSpectSnapshotRow[]): StudioCulturalTrend[] 
 export async function buildStudioCulturalLens(): Promise<StudioCulturalLens> {
   const [today, recent] = await Promise.all([
     getWorldVectorToday(),
-    getRecentWorldSpectSnapshots({ days: 90, ingestMode: 'all', limit: 120 }),
+    getWorldSpectPublicHistory({ days: 90, ingestMode: 'all', limit: 120 }),
   ]);
 
   const observation = today.observation;
