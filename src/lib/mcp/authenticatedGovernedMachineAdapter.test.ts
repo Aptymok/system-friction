@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
   SFI_AUTHENTICATED_MACHINE_ADAPTER_CONTRACT,
+  SFI_AUTHENTICATED_MACHINE_TOOLS,
   SFI_MACHINE_AUTHORIZATION_DENIED,
   SFI_MACHINE_AUTHORIZATION_RESERVED,
   SFI_MACHINE_EXECUTION_OBSERVED,
@@ -410,4 +411,18 @@ test('gateway tool rejects unknown operation ids and never accepts arbitrary pat
   const result = await dispatchAuthenticatedMachineRequest(gatewayCall('https://example.com/root'), principal(), h.deps);
   assert.equal(result.status, 400);
   assert.equal((result.body as any).error.message, 'InvalidGatewayInvocation');
+});
+
+
+test('authenticated MCP tool catalog advertises OAuth security schemes for ChatGPT linking', () => {
+  const cognitive = SFI_AUTHENTICATED_MACHINE_TOOLS.find((tool) => tool.name === 'invoke_cognitive_capability') as any;
+  const gateway = SFI_AUTHENTICATED_MACHINE_TOOLS.find((tool) => tool.name === SFI_AUTHENTICATED_GATEWAY_TOOL_NAME) as any;
+  assert.deepEqual(cognitive.securitySchemes, [{ type: 'oauth2', scopes: ['execute'] }]);
+  assert.deepEqual(cognitive._meta.securitySchemes, cognitive.securitySchemes);
+  assert.ok(Array.isArray(gateway.securitySchemes));
+  assert.ok(gateway.securitySchemes[0].scopes.includes('observe'));
+  assert.ok(gateway.securitySchemes[0].scopes.includes('governance:decide'));
+  assert.ok(gateway.securitySchemes[0].scopes.includes('cases:write'));
+  assert.ok(gateway.securitySchemes[0].scopes.includes('lab:run'));
+  assert.deepEqual(gateway._meta.securitySchemes, gateway.securitySchemes);
 });
