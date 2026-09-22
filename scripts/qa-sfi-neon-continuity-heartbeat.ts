@@ -34,6 +34,10 @@ const fieldEventsRoute = read('src/app/api/field/events/route.ts');
 const fieldStateRoute = read('src/app/api/field/state/route.ts');
 const amvFieldResponseRoute = read('src/app/api/amv/field-response/route.ts');
 const socialResonanceRoute = read('src/app/api/social/resonance/route.ts');
+const bitacoraRegenerateRoute = read('src/app/api/bitacora/regenerate/route.ts');
+const phenomenologicalCalendarRoute = read('src/app/api/calendar/phenomenological/route.ts');
+const fieldPersistRoute = read('src/app/api/field/persist/route.ts');
+const liturgiaAmvRoute = read('src/app/api/liturgia/amv/route.ts');
 const epistemicEventWriter = read('src/core/memory/epistemicEventWriter.ts');
 const operationalSnapshotRoute = read('src/app/api/sfi/operational-snapshot/route.ts');
 const mophSessionStore = read('src/lib/moph/session-store.ts');
@@ -123,6 +127,34 @@ check('manual social resonance is a declared actor event without legacy social p
   && socialResonanceRoute.includes("sourceState: 'declared'")
   && !socialResonanceRoute.includes("from('social_resonance_events')")
   && !socialResonanceRoute.includes("from('cognitive_event_stream')"));
+
+check('remaining actor-facing legacy surfaces use canonical ledger and live stores only',
+  bitacoraRegenerateRoute.includes("from('epistemic_events')")
+  && bitacoraRegenerateRoute.includes('emitEpistemicEvent')
+  && phenomenologicalCalendarRoute.includes("from('field_interventions')")
+  && phenomenologicalCalendarRoute.includes("from('epistemic_events')")
+  && fieldPersistRoute.includes('emitEpistemicEvent')
+  && fieldPersistRoute.includes("from('epistemic_events')")
+  && liturgiaAmvRoute.includes("from('epistemic_events')")
+  && liturgiaAmvRoute.includes("from('sfi_amv_memory')")
+  && liturgiaAmvRoute.includes('emitEpistemicEvent')
+  && !bitacoraRegenerateRoute.includes("from('cognitive_event_stream')")
+  && !phenomenologicalCalendarRoute.includes("from('cognitive_event_stream')")
+  && !fieldPersistRoute.includes("from('cognitive_event_stream')")
+  && !liturgiaAmvRoute.includes("from('cognitive_event_stream')")
+  && !phenomenologicalCalendarRoute.includes("from('audits')")
+  && !phenomenologicalCalendarRoute.includes("from('actions')")
+  && !phenomenologicalCalendarRoute.includes("from('interaction_events')")
+  && !liturgiaAmvRoute.includes("from('audits')")
+  && !liturgiaAmvRoute.includes("from('actions')")
+  && !liturgiaAmvRoute.includes("from('memory_facts')")
+  && !liturgiaAmvRoute.includes("from('amv_sessions')")
+  && !liturgiaAmvRoute.includes("from('amv_messages')"));
+
+check('Field persistence recent runtime status uses bounded rows instead of exact-count probes',
+  fieldPersistRoute.includes(".select('id,created_at')")
+  && fieldPersistRoute.includes(".limit(100)")
+  && !fieldPersistRoute.includes("count: 'exact'"));
 
 check('operational snapshot write-return avoids wildcard row transfer',
   !operationalSnapshotRoute.includes(".select('*')"));
