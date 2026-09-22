@@ -96,3 +96,30 @@ export async function probeNeonDataPlane() {
   }
   return { ok: true as const, status: response.status, errorCode: null };
 }
+
+
+export async function probePrimaryStoragePlane() {
+  const { url, key } = primaryCredentials();
+  const response = await fetch(`${url}/storage/v1/bucket/field-evidence`, {
+    method: 'GET',
+    headers: {
+      apikey: key,
+      Authorization: `Bearer ${key}`,
+      'X-Client-Info': 'sfi-storage-primary-probe',
+    },
+    cache: 'no-store',
+  });
+  if (!response.ok) {
+    const error = (await response.text().catch(() => '')).slice(0, 1200);
+    const normalized = error.toLowerCase();
+    return {
+      ok: false as const,
+      status: response.status,
+      error,
+      errorCode: normalized.includes('exceed_egress_quota') || normalized.includes('service for this project is restricted')
+        ? 'SUPABASE_STORAGE_SERVICE_RESTRICTED'
+        : `HTTP_${response.status}`,
+    };
+  }
+  return { ok: true as const, status: response.status, errorCode: null };
+}
