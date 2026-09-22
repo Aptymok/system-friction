@@ -15,6 +15,11 @@ export type WorldVectorCycleDay = {
 };
 
 export type WorldVectorObservationStatus = 'observed' | 'thin' | 'degraded' | 'failed';
+export type WorldVectorReadPlane = 'SUPABASE' | 'NEON' | 'UNAVAILABLE';
+export type WorldVectorReadProvenance = {
+  latest: { plane: WorldVectorReadPlane; primary_diagnostic: string | null };
+  history: { plane: WorldVectorReadPlane; primary_diagnostic: string | null };
+};
 
 export type WorldVectorPersistenceStatus =
   | {
@@ -101,6 +106,7 @@ export type WorldVectorStatus = {
   };
   memory: WorldVectorPersistenceStatus;
   current_cycle_day: WorldVectorCycleDay;
+  read_provenance: WorldVectorReadProvenance;
   warnings: string[];
 };
 
@@ -111,6 +117,7 @@ export type WorldVectorOperationalState = {
     cycle_range: WorldVectorCycleRange;
     observation: WorldVectorObservation;
     persistence: WorldVectorPersistenceStatus;
+    read_provenance: WorldVectorReadProvenance;
   };
   reports: {
     internal: WorldVectorReport;
@@ -125,5 +132,6 @@ export type WorldVectorOperationalState = {
     pulse_available: boolean;
     warnings: string[];
     blocked: string[];
+    read_provenance: WorldVectorReadProvenance;
   };
 };
