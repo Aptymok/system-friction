@@ -297,7 +297,8 @@ export async function POST(req: NextRequest) {
       if (ctx.error || !ctx.node || !ctx.user) return localOnly('node_not_ready');
       return retiredAction('social_readonly_integration_retired', {
         canonicalWrite: '/api/social/resonance',
-        canonicalStatus: '/api/field/persist?action=runtime_status',
+        statusEndpoint: '/api/field/persist',
+        statusAction: 'runtime_status',
       });
     }
 
