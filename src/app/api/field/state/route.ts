@@ -60,6 +60,16 @@ function payloadOf(row: EventRow) {
   return isRecord(row.payload) ? row.payload : {};
 }
 
+function streamTypeOf(row: EventRow) {
+  const payloadStream = stringValue(payloadOf(row).streamType);
+  if (payloadStream === 'signal' || payloadStream === 'agent' || payloadStream === 'ingest') return payloadStream;
+  const eventName = stringValue(row.event_name);
+  if (eventName === 'SIGNAL_DECLARED') return 'signal';
+  if (eventName === 'AMV_RESPONSE') return 'agent';
+  if (eventName === 'REAL_OBSERVATION_INGESTED') return 'ingest';
+  return null;
+}
+
 function relevantRows(rows: EventRow[]) {
   return rows.filter((row) => {
     const streamType = stringValue(row.stream_type);
@@ -144,15 +154,19 @@ export async function GET(req: NextRequest) {
     if (ctx.error || !ctx.node || !ctx.user) return apiError('node_not_ready', 404, traceId);
 
     const { data, error } = await ctx.service
-      .from('cognitive_event_stream')
-      .select('*')
+      .from('epistemic_events')
+      .select('id,node_id,event_name,payload,created_at')
+      .eq('actor_id', ctx.user.id)
       .eq('node_id', ctx.node.id)
+      .in('event_name', ['SIGNAL_DECLARED', 'AMV_RESPONSE', 'REAL_OBSERVATION_INGESTED'])
       .order('created_at', { ascending: false })
       .limit(250);
 
     if (error) return apiSanitizedError(error, 500, traceId);
 
-    const rows = Array.isArray(data) ? data.filter(isRecord) : [];
+    const rows = Array.isArray(data)
+      ? data.filter(isRecord).map((row) => ({ ...row, stream_type: streamTypeOf(row) }))
+      : [];
     const signalReadModel = buildSignalReadModel(rows);
     const summary = summarizeEvents(rows, signalReadModel.warnings);
     const fieldState = {

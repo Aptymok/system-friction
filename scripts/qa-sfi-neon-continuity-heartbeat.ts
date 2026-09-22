@@ -31,6 +31,8 @@ const ingestRealRoute = read('src/app/api/ingest/real/route.ts');
 const signalsReadRoute = read('src/app/api/signals/read/route.ts');
 const signalsRoute = read('src/app/api/signals/route.ts');
 const fieldEventsRoute = read('src/app/api/field/events/route.ts');
+const fieldStateRoute = read('src/app/api/field/state/route.ts');
+const amvFieldResponseRoute = read('src/app/api/amv/field-response/route.ts');
 const epistemicEventWriter = read('src/core/memory/epistemicEventWriter.ts');
 const operationalSnapshotRoute = read('src/app/api/sfi/operational-snapshot/route.ts');
 const mophSessionStore = read('src/lib/moph/session-store.ts');
@@ -95,6 +97,23 @@ check('actor command writers converge on the canonical epistemic writer with det
   && ingestRealRoute.includes('emitEpistemicEvent')
   && ingestRealRoute.includes("epistemicClass: 'observed'")
   && !ingestRealRoute.includes("from('cognitive_event_stream')"));
+
+check('Field State reads only actor-scoped canonical signal, ingest and AMV events',
+  fieldStateRoute.includes("from('epistemic_events')")
+  && fieldStateRoute.includes(".select('id,node_id,event_name,payload,created_at')")
+  && fieldStateRoute.includes(".eq('actor_id', ctx.user.id)")
+  && fieldStateRoute.includes(".eq('node_id', ctx.node.id)")
+  && fieldStateRoute.includes(".in('event_name', ['SIGNAL_DECLARED', 'AMV_RESPONSE', 'REAL_OBSERVATION_INGESTED'])")
+  && fieldStateRoute.includes('streamTypeOf')
+  && !fieldStateRoute.includes("from('cognitive_event_stream')")
+  && !fieldStateRoute.includes(".select('*')"));
+
+check('AMV Field responses are derived actor events in the canonical epistemic ledger',
+  amvFieldResponseRoute.includes('emitEpistemicEvent')
+  && amvFieldResponseRoute.includes("eventName: 'AMV_RESPONSE'")
+  && amvFieldResponseRoute.includes("epistemicClass: 'derived'")
+  && amvFieldResponseRoute.includes("streamType: 'agent'")
+  && !amvFieldResponseRoute.includes("from('cognitive_event_stream')"));
 
 check('operational snapshot write-return avoids wildcard row transfer',
   !operationalSnapshotRoute.includes(".select('*')"));
