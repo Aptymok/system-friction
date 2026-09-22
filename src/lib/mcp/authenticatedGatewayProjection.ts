@@ -57,7 +57,6 @@ const DEFINITIONS = [
   { operationId: 'readSfiCase', method: 'POST', path: '/api/external/v1/cases/read', scope: 'cases:read', summary: 'Read one tenant-scoped case.' },
   { operationId: 'transitionSfiCaseV2', method: 'POST', path: '/api/external/v1/cases/transition', scope: 'cases:write', summary: 'Apply one bounded non-intervention case transition.' },
   { operationId: 'readSfiCognitiveRuntimeExecutions', method: 'GET', path: '/api/external/v1/cognitive-runtime', scope: 'observe', summary: 'Read cognitive runtime contracts and execution history.' },
-  { operationId: 'executeSfiCognitiveAgentContract', method: 'POST', path: '/api/external/v1/cognitive-runtime', scope: 'execute', summary: 'Execute one canonical typed cognitive-agent contract.' },
   { operationId: 'getSfiCognitiveBootstrap', method: 'GET', path: '/api/external/v1/bootstrap', scope: 'observe', summary: 'Hydrate the governed cognitive bootstrap.' },
   { operationId: 'decideSfiGovernanceProposal', method: 'POST', path: '/api/external/v1/governance/proposals/{proposalId}/decision', scope: 'governance:decide', summary: 'Accept or deny one proposal through the existing sovereign ROOT decision route.' },
 ] as const satisfies readonly GatewayOperationDefinition[];
