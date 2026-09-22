@@ -32,6 +32,18 @@ assert.equal(completionDiagnosticFor(fixtures[3]).state, 'PRODUCTION_RETURN_PEND
 assert.equal(completionDiagnosticFor(fixtures[4]).state, 'EXTERNAL_ACTION_PENDING');
 assert.equal(completionDiagnosticFor(fixtures[5]).state, 'SUPERSEDED');
 
+const falseExternalErrorFixture = {
+  id: 'false-external-error-token',
+  status: 'IN_PROGRESS',
+  evidence: ['scripts/qa-sfi-production-observatory-smoke.mjs'],
+  requirement: '`LOADING`, `DEGRADED`, `UNAVAILABLE`, and `ERROR` never map to numeric zero;',
+  source: 'docs/program/workstreams/WS-03-DISCOVERY-MESH.md',
+  returnCondition: 'Exact-head QA plus production RETURN evidence required by the source contract.',
+};
+const falseExternalAssessment = completionDiagnosticFor(falseExternalErrorFixture);
+assert.equal(falseExternalAssessment.state, 'IMPLEMENTATION_EVIDENCE_PRESENT_UNCERTIFIED', 'ERROR must not be misclassified as the ROR external identity');
+assert.equal(falseExternalAssessment.needsExternalAction, false, 'false-zero assurance is internal certification work, not external identity work');
+
 const canonicalStatusesBefore = fixtures.map((item) => item.status);
 const report = enrichCompletionDiagnostics({
   contract: 'SFI-PROGRAM-COMPLETION-CONTROLLER-1.4',

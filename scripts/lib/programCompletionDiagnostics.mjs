@@ -9,7 +9,7 @@ export const COMPLETION_DIAGNOSTIC_STATES = Object.freeze([
   'SUPERSEDED',
 ]);
 
-const EXTERNAL_PATTERN = /(external-only|external action|registry submission|directory submission|account ownership|platform acceptance|LinkedIn|Medium|YouTube|Bluesky|Mastodon|Hugging Face|Zenodo|ORCID|ROR|ResearchGate|Postman|OSF)/i;
+const EXTERNAL_PATTERN = /(external-only|external action|registry submission|directory submission|account ownership|platform acceptance|\bLinkedIn\b|\bMedium\b|\bYouTube\b|\bBluesky\b|\bMastodon\b|\bHugging Face\b|\bZenodo\b|\bORCID\b|\bROR\b|\bResearchGate\b|\bPostman\b|\bOSF\b)/i;
 const PRODUCTION_PATTERN = /(observed[_ -]?in[_ -]?production|production return|production verification|production proof|production observation|required deployment|\bdeployed\b|\bdeployment\b)/i;
 
 function evidenceCount(requirement) {
