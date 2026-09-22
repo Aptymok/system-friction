@@ -34,6 +34,7 @@ const fieldEventsRoute = read('src/app/api/field/events/route.ts');
 const fieldStateRoute = read('src/app/api/field/state/route.ts');
 const amvFieldResponseRoute = read('src/app/api/amv/field-response/route.ts');
 const socialResonanceRoute = read('src/app/api/social/resonance/route.ts');
+const mediaDraftsRoute = read('src/app/api/media/drafts/route.ts');
 const bitacoraRegenerateRoute = read('src/app/api/bitacora/regenerate/route.ts');
 const phenomenologicalCalendarRoute = read('src/app/api/calendar/phenomenological/route.ts');
 const fieldPersistRoute = read('src/app/api/field/persist/route.ts');
@@ -127,6 +128,23 @@ check('manual social resonance is a declared actor event without legacy social p
   && socialResonanceRoute.includes("sourceState: 'declared'")
   && !socialResonanceRoute.includes("from('social_resonance_events')")
   && !socialResonanceRoute.includes("from('cognitive_event_stream')"));
+
+check('media drafts are actor ledger events pending human validation, never implicit publications',
+  mediaDraftsRoute.includes("from('epistemic_events')")
+  && mediaDraftsRoute.includes("eventName: 'SFI_MEDIA_DRAFT_RECORDED'")
+  && mediaDraftsRoute.includes("epistemicClass: 'declared'")
+  && mediaDraftsRoute.includes("status: 'pending_human_validation'")
+  && mediaDraftsRoute.includes(".eq('actor_id', ctx.user.id)")
+  && mediaDraftsRoute.includes(".eq('node_id', ctx.node.id)")
+  && !mediaDraftsRoute.includes("from('media_drafts')")
+  && !mediaDraftsRoute.includes("from('sfi_publications')"));
+
+check('bitacora public fragments stop at a pending draft event',
+  bitacoraRegenerateRoute.includes("eventName: 'SFI_MEDIA_DRAFT_RECORDED'")
+  && bitacoraRegenerateRoute.includes("epistemicClass: 'derived'")
+  && bitacoraRegenerateRoute.includes("status: 'pending_human_validation'")
+  && !bitacoraRegenerateRoute.includes("from('media_drafts')")
+  && !bitacoraRegenerateRoute.includes("from('sfi_publications')"));
 
 check('remaining actor-facing legacy surfaces use canonical ledger and live stores only',
   bitacoraRegenerateRoute.includes("from('epistemic_events')")
