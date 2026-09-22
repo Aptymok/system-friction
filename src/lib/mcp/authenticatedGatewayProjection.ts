@@ -1,3 +1,4 @@
+export const SFI_AUTHENTICATED_GATEWAY_PROJECTION_CONTRACT = 'SFI-AUTHENTICATED-GATEWAY-PROJECTION-1.0' as const;
 export const SFI_AUTHENTICATED_GATEWAY_TOOL_NAME = 'invoke_sfi_gateway_operation' as const;
 
 type HttpMethod = 'GET' | 'POST';
