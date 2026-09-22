@@ -22,6 +22,7 @@ export type EpistemicClass =
   | 'missing';
 
 export type EmitEpistemicEventInput = {
+  eventId?: string;
   eventName: string;
   logbookId: string;
   epistemicClass: EpistemicClass;
@@ -43,6 +44,9 @@ export type EpistemicEventRow = {
   event_name: string;
   logbook_id: string;
   epistemic_class: EpistemicClass;
+  source?: Record<string, unknown>;
+  actor_id?: string | null;
+  node_id?: string | null;
   confidence: number;
   payload: Record<string, unknown>;
   occurred_at: string;
@@ -75,7 +79,7 @@ export async function emitEpistemicEvent(
 ): Promise<{ ok: true; event: EpistemicEventRow } | { ok: false; error: string }> {
   const service = createServiceSupabaseClient();
   const occurredAt = input.occurredAt ?? new Date().toISOString();
-  const eventId = `${input.logbookId}:${input.eventName}:${occurredAt}:${crypto.randomUUID()}`;
+  const eventId = input.eventId?.trim() || `${input.logbookId}:${input.eventName}:${occurredAt}:${crypto.randomUUID()}`;
   const checksum = hashPayload(input.payload);
   const hashPrev = await getLatestEventHash();
   const hashSelf = hashPayload({
@@ -105,7 +109,7 @@ export async function emitEpistemicEvent(
       hash_prev: hashPrev,
       hash_self: hashSelf,
     })
-    .select('id, event_id, event_name, logbook_id, epistemic_class, confidence, payload, occurred_at, created_at, hash_self')
+    .select('id,event_id,event_name,logbook_id,epistemic_class,source,actor_id,node_id,confidence,payload,occurred_at,created_at,hash_self')
     .single();
 
   if (error || !data) {

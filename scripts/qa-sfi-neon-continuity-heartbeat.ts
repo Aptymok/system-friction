@@ -27,7 +27,11 @@ const runtimeObserver = read('src/runtime/layers/Observer.ts');
 const runtimeIntentLayer = read('src/runtime/layers/IntentLayer.ts');
 const worldReobserveRoute = read('src/app/api/field/map/world/reobserve/route.ts');
 const ingestReadRoute = read('src/app/api/ingest/read/route.ts');
+const ingestRealRoute = read('src/app/api/ingest/real/route.ts');
 const signalsReadRoute = read('src/app/api/signals/read/route.ts');
+const signalsRoute = read('src/app/api/signals/route.ts');
+const fieldEventsRoute = read('src/app/api/field/events/route.ts');
+const epistemicEventWriter = read('src/core/memory/epistemicEventWriter.ts');
 const operationalSnapshotRoute = read('src/app/api/sfi/operational-snapshot/route.ts');
 const mophSessionStore = read('src/lib/moph/session-store.ts');
 const scorefrictionMeasurementRoute = read('src/app/api/scorefriction/assets/[asset_id]/measurements/route.ts');
@@ -63,11 +67,34 @@ check('runtime Observer and IntentLayer reuse the canonical systemic service cli
 check('world reobserve does not spend five count-only data-plane queries after executing its cycles',
   !worldReobserveRoute.includes("count: 'exact', head: true"));
 
-check('bounded read models project only fields they consume on high-frequency ingest and signal routes',
-  ingestReadRoute.includes(".select('id,created_at,payload')")
-  && signalsReadRoute.includes(".select('id,created_at,payload')")
+check('high-frequency ingest and signal reads use bounded actor-scoped canonical ledger projections',
+  ingestReadRoute.includes("from('epistemic_events')")
+  && ingestReadRoute.includes(".select('id,created_at,payload')")
+  && ingestReadRoute.includes(".eq('actor_id', ctx.user.id)")
+  && ingestReadRoute.includes(".eq('node_id', ctx.node.id)")
+  && signalsReadRoute.includes("from('epistemic_events')")
+  && signalsReadRoute.includes(".select('id,node_id,event_name,created_at,payload')")
+  && signalsReadRoute.includes(".eq('actor_id', ctx.user.id)")
+  && signalsReadRoute.includes(".eq('node_id', ctx.node.id)")
+  && !ingestReadRoute.includes("from('cognitive_event_stream')")
+  && !signalsReadRoute.includes("from('cognitive_event_stream')")
   && !ingestReadRoute.includes(".select('*')")
   && !signalsReadRoute.includes(".select('*')"));
+
+check('actor command writers converge on the canonical epistemic writer with deterministic idempotency where declared',
+  epistemicEventWriter.includes('eventId?: string')
+  && epistemicEventWriter.includes("from('epistemic_events')")
+  && signalsRoute.includes('emitEpistemicEvent')
+  && signalsRoute.includes('eventId: canonicalEventId')
+  && signalsRoute.includes("epistemicClass: 'declared'")
+  && !signalsRoute.includes("from('cognitive_event_stream')")
+  && fieldEventsRoute.includes('emitEpistemicEvent')
+  && fieldEventsRoute.includes('eventId: canonicalEventId')
+  && fieldEventsRoute.includes("epistemicClass: 'declared'")
+  && !fieldEventsRoute.includes("from('cognitive_event_stream')")
+  && ingestRealRoute.includes('emitEpistemicEvent')
+  && ingestRealRoute.includes("epistemicClass: 'observed'")
+  && !ingestRealRoute.includes("from('cognitive_event_stream')"));
 
 check('operational snapshot write-return avoids wildcard row transfer',
   !operationalSnapshotRoute.includes(".select('*')"));
