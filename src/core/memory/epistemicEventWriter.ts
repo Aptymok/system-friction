@@ -44,9 +44,9 @@ export type EpistemicEventRow = {
   event_name: string;
   logbook_id: string;
   epistemic_class: EpistemicClass;
-  source: Record<string, unknown>;
-  actor_id: string | null;
-  node_id: string | null;
+  source?: Record<string, unknown>;
+  actor_id?: string | null;
+  node_id?: string | null;
   confidence: number;
   payload: Record<string, unknown>;
   occurred_at: string;
