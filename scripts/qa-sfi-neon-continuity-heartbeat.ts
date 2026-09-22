@@ -170,6 +170,13 @@ check('remaining actor-facing legacy surfaces use canonical ledger and live stor
   && !liturgiaAmvRoute.includes("from('amv_sessions')")
   && !liturgiaAmvRoute.includes("from('amv_messages')"));
 
+check('Field social drafts use append-only actor ledger instead of missing media_drafts',
+  fieldPersistRoute.includes("body.action === 'social_draft'")
+  && fieldPersistRoute.includes("eventName: 'SFI_MEDIA_DRAFT_RECORDED'")
+  && fieldPersistRoute.includes("sourceType: 'SFI_FIELD_SOCIAL_DRAFT'")
+  && fieldPersistRoute.includes("epistemicClass: 'declared'")
+  && !fieldPersistRoute.includes("from('media_drafts')"));
+
 check('Field persistence recent runtime status uses bounded rows instead of exact-count probes',
   fieldPersistRoute.includes(".select('id,created_at')")
   && fieldPersistRoute.includes(".limit(100)")
