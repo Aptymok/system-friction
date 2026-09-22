@@ -145,7 +145,7 @@ assert.ok(merge.includes('api.components.schemas.CaseTransitionRequest'), 'opena
 assert.ok(merge.includes("'REJECTED'"), 'openapi_merge_rejected_transition_missing');
 assert.ok(merge.includes('INTERVENING and AWAITING_RETURN remain unavailable'), 'openapi_merge_reserved_transition_boundary_missing');
 
-assert.equal(openapi.info?.version, '1.17.5', 'openapi_gateway_version_invalid');
+assert.equal(openapi.info?.version, '1.18.0', 'openapi_gateway_version_invalid');
 assert.equal(openapi.info?.['x-sfi-action-revision'], 'case-lifecycle-actions-v6', 'openapi_case_action_revision_invalid');
 assert.ok(openapi.paths?.['/api/external/v1/cases']?.post, 'openapi_case_workspace_path_missing_after_merge');
 assert.equal(openapi.paths?.['/api/external/v1/cases/object']?.post?.operationId, 'addSfiCaseObjectJson', 'openapi_case_object_action_missing_after_merge');
