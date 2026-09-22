@@ -280,6 +280,12 @@ check('transparent failover resolves the canonical Neon Data API endpoint instea
   && dataPlaneFetch.includes('sfiNeonDataApiUrl')
   && !dataPlaneFetch.includes("(process.env.SFI_NEON_DATA_API_URL || '').trim()"));
 
+check('heartbeat observes Supabase Storage independently from DB REST and Neon continuity',
+  dataPlaneRpc.includes('export async function probePrimaryStoragePlane')
+  && dataPlaneRpc.includes('/storage/v1/bucket/field-evidence')
+  && runtime.includes('primaryStorageProbe')
+  && hourlyContinuity.includes('primaryStorageProbe'));
+
 check('heartbeat distinguishes Neon REST authentication from direct Neon SQL continuity',
   dataPlaneRpc.includes('export async function probeNeonDataPlane')
   && dataPlaneRpc.includes('SFI_NEON_DATA_API_JWKS_MISMATCH')
