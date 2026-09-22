@@ -3,6 +3,11 @@ import { readFileSync } from 'node:fs';
 
 const text = (path: string) => readFileSync(path, 'utf8');
 const route = text('src/app/api/external/v1/studio/route.ts');
+const studioMcpRoute = text('src/app/api/mcp/studio/route.ts');
+const studioMcpServer = text('src/lib/mcp/studioMcpServer.ts');
+const studioResourceMetadata = text('src/app/.well-known/oauth-protected-resource/api/mcp/studio/route.ts');
+const externalAuth = text('src/lib/sfi/externalAuth.ts');
+const publicMcp = text('src/lib/mcp/publicMcpServer.ts');
 const intake = text('src/lib/studio/external/chatgptAttachmentIntake.ts');
 const storage = text('src/lib/studio/multimodal/storage.ts');
 const manifest = text('src/app/api/external/v1/manifest/route.ts');
@@ -17,6 +22,25 @@ assert.match(route, /'ingest_analyze'/);
 assert.match(route, /operation === 'analyze' \|\| operation === 'ingest_analyze' \|\| operation === 'produce'\) return 'studio:run'/);
 assert.match(route, /const ownerId = cred\.subjectId/);
 assert.match(route, /DECLARED_ANALYSIS_PERMISSION_DOES_NOT_TRANSFER_RIGHTS_OR_PROMOTE_CANON/);
+
+assert.match(studioMcpRoute, /POST as canonicalStudioPost/);
+assert.match(studioMcpRoute, /authorizeExternalRequest\(request, requiredScope\)/);
+assert.match(studioMcpRoute, /credential\.authMethod !== 'oauth'/);
+assert.match(studioMcpRoute, /!credential\.subjectId \|\| !credential\.clientId/);
+assert.match(studioMcpRoute, /\/api\/external\/v1\/studio/);
+assert.doesNotMatch(studioMcpRoute, /x-sfi-token/i);
+assert.match(studioMcpServer, /SFI-STUDIO-MCP-1\.0/);
+for (const tool of ['studio_context','studio_list','studio_inspect','studio_features','studio_content','studio_analyze','studio_ingest_analyze','studio_produce']) assert.ok(studioMcpServer.includes(tool), `studio_mcp_tool_missing:${tool}`);
+for (const scope of ['studio:read','studio:content','studio:run']) assert.ok(studioMcpServer.includes(scope), `studio_mcp_scope_missing:${scope}`);
+assert.match(studioMcpServer, /rightsTransfer:\s*false/);
+assert.match(studioMcpServer, /canonicalPromotionAllowed:\s*false/);
+assert.match(studioMcpServer, /rootAuthorityInherited:\s*false/);
+assert.match(studioMcpServer, /publicCapabilityCatalogPublished:\s*false/);
+for (const scope of ['studio:read','studio:content','studio:run']) assert.ok(studioResourceMetadata.includes(`'${scope}'`), `studio_resource_metadata_scope_missing:${scope}`);
+assert.match(studioResourceMetadata, /resource:\s*`\$\{origin\}\/api\/mcp\/studio`/);
+assert.match(externalAuth, /pathname === '\/api\/mcp\/studio'/);
+assert.match(publicMcp, /NO_AUTHORITATIVE_PUBLIC_CAPABILITY_PROJECTION/);
+assert.doesNotMatch(publicMcp, /capabilityPackageCatalog/);
 
 for (const token of [
   'openaiFileIdRefs','value.length !== 1','files.oaiusercontent.com',"url.protocol !== 'https:'","redirect: 'error'","studioAnalysisLimitBytes('audio')",
@@ -41,6 +65,10 @@ assert.match(storage, /\.eq\('status', 'stored'\)/);
 
 assert.match(manifest, /studio-ingest-analyze|ingest_analyze/);
 assert.match(manifest, /studioAttachmentPersistence|OWNER_SCOPED|owner-scoped/i);
+assert.match(manifest, /studioMcp: '\/api\/mcp\/studio'/);
+assert.match(manifest, /contract: 'SFI-STUDIO-MCP-1\.0'/);
+assert.match(manifest, /publicCapabilityCatalogPublished: false/);
+assert.match(manifest, /pluginListingClaimed: false/);
 for (const token of ['openaiFileIdRefs','analysisAuthorization','SFI-CHATGPT-STUDIO-ATTACHMENT-1.1']) assert.ok(merge.includes(token));
 assert.match(merge, /ingest_analyze\s*:\s*'studio:run'/);
 assert.match(merge, /rightsTransfer\s*:\s*false/);
@@ -79,4 +107,6 @@ console.log(JSON.stringify({
   gptActionsOpenApi: '/openapi.json',
   separateActionsProjection: false,
   authenticatedMcpOpenApiExposure: 'OUT_OF_BAND_MCP',
+  studioMcp: '/api/mcp/studio',
+  publicCapabilityCatalog: 'UNAVAILABLE',
 }, null, 2));

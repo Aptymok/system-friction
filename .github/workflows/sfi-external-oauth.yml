@@ -5,6 +5,8 @@ on:
     paths:
       - 'src/app/api/oauth/**'
       - 'src/app/api/external/v1/**'
+      - 'src/app/api/mcp/studio/**'
+      - 'src/app/.well-known/oauth-protected-resource/api/mcp/studio/**'
       - 'src/app/api/external/openapi/**'
       - 'src/app/api/acp/proposals/route.ts'
       - 'src/app/integrations/**'
@@ -19,6 +21,7 @@ on:
       - 'src/lib/sfi/personal/**'
       - 'src/lib/studio/external/**'
       - 'src/lib/studio/multimodal/**'
+      - 'src/lib/mcp/studioMcpServer.ts'
       - 'src/lib/system/access/**'
       - 'src/components/sfi/LoginSurface.tsx'
       - 'src/components/sfi/PersonalCognitiveLabWorkspace.tsx'
