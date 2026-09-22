@@ -1,7 +1,7 @@
 import 'server-only'
 
 import { createServiceSupabaseClient } from '@/runtime/supabase/server'
-import { appendEvent } from '@/lib/db/events'
+import { emitEpistemicEvent } from '@/core/memory/epistemicEventWriter'
 import { deriveCoreIndicators } from './coreIndicators'
 import type { SfiWorldInterfaceState } from './worldInterfaceState'
 import type { WorldVectorDomainValue } from '@/lib/world-vector/types'
@@ -103,9 +103,23 @@ export async function persistIndicatorSnapshot(
       }
     }
 
-    await appendEvent({
-      event_type:
-        'telemetry.signal_ingested',
+    await emitEpistemicEvent({
+      eventName: 'telemetry.signal_ingested',
+      logbookId: 'SFI:INDICATOR_SNAPSHOT',
+      epistemicClass: 'derived',
+      schemaVersion: '2026-09-22.system-telemetry.v1',
+      sourceId: state.generatedAt,
+      sourceType: 'SFI_INDICATOR_SNAPSHOT',
+      actorId: null,
+      nodeId: null,
+      confidence:
+        sourceStatus === 'observed'
+          ? 0.9
+          : sourceStatus === 'thin'
+            ? 0.7
+            : sourceStatus === 'degraded'
+              ? 0.5
+              : 0.2,
       payload: {
         type:
           'indicator_snapshot',
@@ -118,9 +132,7 @@ export async function persistIndicatorSnapshot(
         ldi,
         wsv,
       },
-      source:
-        'indicator-snapshot',
-    })
+    }).catch(() => null)
 
     return {
       ok: true,

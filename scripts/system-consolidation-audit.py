@@ -82,6 +82,27 @@ def table_constants(text: str) -> dict[str, str]:
         values[match.group(1)] = match.group(2)
     return values
 
+def function_body_schema_references(text: str) -> set[str]:
+    refs: set[str] = set()
+    bodies = [
+        match.group(1)
+        for match in re.finditer(r"\bas\s+\$\$(.*?)\$\$", text, re.I | re.S)
+    ]
+    bodies.extend(
+        match.group(2)
+        for match in re.finditer(
+            r"\bas\s+\$([A-Za-z_][A-Za-z0-9_]*)\$(.*?)\$\1\$",
+            text,
+            re.I | re.S,
+        )
+    )
+    for body in bodies:
+        for match in re.finditer(r"\bpublic\.[\"`]?([A-Za-z_][A-Za-z0-9_]*)", body, re.I):
+            table = match.group(1)
+            if DB_IDENTIFIER.fullmatch(table):
+                refs.add(table)
+    return refs
+
 
 def main() -> None:
     textfiles = read_textfiles()
@@ -146,6 +167,8 @@ def main() -> None:
                     created_tables.add(created_view.group(1))
             for dependency in re.finditer(r'\breferences\s+(?:public\.)?[\"`]?([A-Za-z_][A-Za-z0-9_]*)', text, re.I):
                 schema_refs.setdefault(dependency.group(1), set()).add(source)
+            for table in function_body_schema_references(text):
+                schema_refs.setdefault(table, set()).add(source)
 
     route_objects = pages + apis
     for item in route_objects:

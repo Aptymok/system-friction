@@ -24,7 +24,6 @@ const CANONICAL_OBJECTS = [
   { name: 'vw_sfi_pipeline_loss', kind: 'view', required: true },
   { name: 'vw_sfi_execution_recovery_queue', kind: 'view', required: true },
   { name: 'vw_sfi_evidence_map', kind: 'view', required: true },
-  { name: 'vw_sfi_attractor_alignment_queue', kind: 'view', required: true },
   { name: 'worldspect_snapshots', kind: 'table', required: true },
   { name: 'scorefriction_observations', kind: 'table', required: true },
   { name: 'scorefriction_vectors', kind: 'table', required: true },

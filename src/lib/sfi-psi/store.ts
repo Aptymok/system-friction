@@ -1,7 +1,7 @@
 import 'server-only'
 
 import { createServiceSupabaseClient } from '@/runtime/supabase/server'
-import { appendEvent } from '@/lib/db/events'
+import { emitEpistemicEvent } from '@/core/memory/epistemicEventWriter'
 import type { SfiLabAnalysis } from './types'
 
 const localAnalyses = new Map<string, SfiLabAnalysis>()
@@ -141,9 +141,16 @@ export async function saveSfiLabAnalysis(
         )
     }
 
-    await appendEvent({
-      event_type:
-        'telemetry.signal_ingested',
+    await emitEpistemicEvent({
+      eventName: 'telemetry.signal_ingested',
+      logbookId: `SFI-PSI:${analysis.analysisId}`,
+      epistemicClass: 'derived',
+      schemaVersion: '2026-09-22.system-telemetry.v1',
+      sourceId: analysis.analysisId,
+      sourceType: 'SFI_PSI_STORE',
+      actorId: null,
+      nodeId: null,
+      confidence: 0.8,
       payload: {
         type: 'sfi_lab_analysis',
         analysis_id:
@@ -155,8 +162,7 @@ export async function saveSfiLabAnalysis(
         hypotheses:
           analysis.hypotheses.length,
       },
-      source: 'sfi-lab-store',
-    })
+    }).catch(() => null)
 
     return {
       ok: true,

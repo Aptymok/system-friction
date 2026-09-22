@@ -21,22 +21,34 @@ export async function ensureInstitutionalAttractorDeclaration() {
   if (existing.data) return { ok: true as const, created: false, error: null };
 
   const now = new Date().toISOString();
-  const node = await db.from('sfi_graph_nodes').upsert({
+  const node = await db.from('graph_nodes').upsert({
     node_key: 'SFI-INSTITUTION',
     label: 'System Friction Institute',
-    module: 'institution',
-    node_type: 'institution',
-    layer: 0,
-    description: 'Institutional subject whose DECLARED direction is evaluated against observed evidence; declaration is not evidence of attainment.',
-    metrics: { epistemicClass: 'DECLARED', authority: 'FOUNDER' },
-    evidence_count: 0,
-    private_evidence_count: 0,
-    density: 0,
-    weight: 0,
-    degradation: 0,
-    status: 'active',
-    position: {},
-    visual: { symbol: 'SFI', role: 'institutional_subject' },
+    node_type: 'INST',
+    profile: 'institution',
+    origin: 'SFI_INSTITUTIONAL_ATTRACTOR',
+    epistemic_class: 'declared',
+    confidence: 0,
+    payload: {
+      description: 'Institutional subject whose DECLARED direction is evaluated against observed evidence; declaration is not evidence of attainment.',
+      metrics: { epistemicClass: 'DECLARED', authority: 'FOUNDER' },
+      visual: { symbol: 'SFI', role: 'institutional_subject' },
+      declaration: {
+        desiredState: DECLARATION.desiredState,
+        mechanism: DECLARATION.mechanism,
+        normativePosition: DECLARATION.normativePosition,
+        claimBoundary: DECLARATION.claimBoundary,
+        dimensions: [...SFI_ATTRACTOR_DIMENSIONS],
+      },
+    },
+    ontology_type: 'institution',
+    lineage: [],
+    attributes: {
+      status: 'active',
+      authority: 'FOUNDER',
+      module: 'institution',
+      layer: 0,
+    },
     updated_at: now,
   }, { onConflict: 'node_key' });
   if (node.error) return { ok: false as const, created: false, error: `institution_node:${node.error.message}` };
