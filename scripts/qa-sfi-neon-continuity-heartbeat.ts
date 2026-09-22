@@ -44,6 +44,7 @@ const operationalSnapshotRoute = read('src/app/api/sfi/operational-snapshot/rout
 const globalMetricsRoute = read('src/app/api/global-metrics/route.ts');
 const mophSessionStore = read('src/lib/moph/session-store.ts');
 const scorefrictionMeasurementRoute = read('src/app/api/scorefriction/assets/[asset_id]/measurements/route.ts');
+const scorefrictionAssetsRoute = read('src/app/api/scorefriction/assets/route.ts');
 const cognitiveLabService = read('src/lib/cognitive-lab/service.ts');
 const sfiAssetsService = read('src/lib/server/sfiAssets.ts');
 const nodeBootstrapRoute = read('src/app/api/node/bootstrap/route.ts');
@@ -226,14 +227,21 @@ check('MIHM runtime reads canonical field_mihm_readings and understands metrics 
   && mihmRuntimeMatrix.includes("const metrics = asRecord(observed.metrics)")
   && !operationalCommon.includes("from('mihm_analyses')"));
 
-check('node bootstrap requests asset summaries without four historical child collections',
-  sfiAssetsService.includes("options: { includeHistory?: boolean } = {}")
-  && sfiAssetsService.includes("options.includeHistory === false")
-  && nodeBootstrapRoute.includes("loadSfiAssets(ctx, { includeHistory: false })"));
-
-check('ScoreFriction measurement mutation returns an explicit DTO instead of the full database row',
-  scorefrictionMeasurementRoute.includes(".select('id,asset_id,ihg,nti_obs,ldi_hours,xi_noise,phi_sf,regime,runway_days,measured_at,created_at')")
-  && !scorefrictionMeasurementRoute.includes(".insert(measurement).select('*')"));
+check('retired ScoreFriction asset compatibility surface cannot touch absent legacy asset stores',
+  nodeBootstrapRoute.includes("loadSfiAssets(ctx, { includeHistory: false })")
+  && sfiAssetsService.includes('LEGACY_SCORE_FRICTION_ASSET_PLANE_RETIRED')
+  && !sfiAssetsService.includes(".from('sfi_assets')")
+  && !sfiAssetsService.includes(".from('sfi_measurements')")
+  && !sfiAssetsService.includes(".from('sfi_interventions')")
+  && !sfiAssetsService.includes(".from('sfi_outputs')")
+  && !sfiAssetsService.includes(".from('sfi_logbook')")
+  && scorefrictionAssetsRoute.includes("status: 410")
+  && scorefrictionAssetsRoute.includes("canonical: '/api/scorefriction/state'")
+  && scorefrictionMeasurementRoute.includes("status: 410")
+  && scorefrictionMeasurementRoute.includes("canonicalWrite: '/api/scorefriction/observe'")
+  && !scorefrictionMeasurementRoute.includes(".from('sfi_measurements')")
+  && !scorefrictionMeasurementRoute.includes(".from('sfi_assets')")
+  && !scorefrictionMeasurementRoute.includes(".from('sfi_logbook')"));
 
 check('MOPH session persistence projects exactly the rowToSession contract on write-return and read',
   (mophSessionStore.match(/\.select\('id,session_key,consent_state,movement_trace_digest,choices,texts,behavioral_nodes,metrics,public_summary,created_at'\)/g) || []).length === 2
