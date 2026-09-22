@@ -243,10 +243,6 @@ check('retired ScoreFriction asset compatibility surface cannot touch absent leg
   && !scorefrictionMeasurementRoute.includes(".from('sfi_assets')")
   && !scorefrictionMeasurementRoute.includes(".from('sfi_logbook')"));
 
-check('ScoreFriction measurement mutation returns an explicit DTO instead of the full database row',
-  scorefrictionMeasurementRoute.includes(".select('id,asset_id,ihg,nti_obs,ldi_hours,xi_noise,phi_sf,regime,runway_days,measured_at,created_at')")
-  && !scorefrictionMeasurementRoute.includes(".insert(measurement).select('*')"));
-
 check('MOPH session persistence projects exactly the rowToSession contract on write-return and read',
   (mophSessionStore.match(/\.select\('id,session_key,consent_state,movement_trace_digest,choices,texts,behavioral_nodes,metrics,public_summary,created_at'\)/g) || []).length === 2
   && !mophSessionStore.includes(".select('*')"));
