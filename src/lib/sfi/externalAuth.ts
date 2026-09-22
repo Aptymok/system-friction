@@ -44,7 +44,7 @@ function routeAllowsPersonalScope(req: Request, credential: ExternalCredential, 
 
   // Personal OAuth is admitted only through explicit owner-scoped route allowlists.
   // Scope possession never opens institutional Method Lab, proposal queue or execution plane.
-  if (scope.startsWith('studio:')) return pathname === '/api/external/v1/studio';
+  if (scope.startsWith('studio:')) return pathname === '/api/external/v1/studio' || pathname === '/api/mcp/studio';
   if (scope.startsWith('cases:')) {
     return new Set([
       '/api/external/v1/cases',

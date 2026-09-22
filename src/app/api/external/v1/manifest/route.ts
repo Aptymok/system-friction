@@ -10,13 +10,13 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     name: 'SFI External Agent Gateway',
-    version: '1.17.4',
+    version: '1.17.5',
     auth: 'OAuth 2.0 authorization_code (user-bound) or X-SFI-Token/Bearer static token',
     base: '/api/external/v1',
     discovery: {
       openapi: '/openapi.json', llms: '/llms.txt', llmsFull: '/llms-full.txt', cognitiveBootstrap: '/api/external/v1/bootstrap',
       mutationEvidence: '/api/public/mutations', mutationHistory: '/history/mutations', aiIndex: '/ai-index.json', fieldSchema: '/field-schema.json', privacy: '/privacy',
-      oauthAuthorize: '/api/oauth/authorize', oauthToken: '/api/oauth/token', publicMcp: '/api/mcp/public', authenticatedMcp: '/api/mcp/authenticated',
+      oauthAuthorize: '/api/oauth/authorize', oauthToken: '/api/oauth/token', publicMcp: '/api/mcp/public', authenticatedMcp: '/api/mcp/authenticated', studioMcp: '/api/mcp/studio',
       ownerStudioContext: { method: 'POST', path: '/api/external/v1/studio', operation: 'context', scope: 'studio:read', contract: 'SFI-STUDIO-OWNER-CONTEXT-1.0' },
     },
     oauth: {
@@ -71,6 +71,13 @@ export async function GET() {
     ],
     machineInterfaces: {
       public: { contract: 'SFI-PUBLIC-MCP-READONLY-1.0', serverId: 'org.systemfriction/public', endpoint: '/api/mcp/public', authority: 'PUBLIC_READ_ONLY', authenticatedExecutionInherited: false },
+      studio: {
+        contract: 'SFI-STUDIO-MCP-1.0', serverId: 'org.systemfriction/studio', endpoint: '/api/mcp/studio', protocolVersion: '2026-07-28',
+        oauth: { userBoundRequired: true, clientBindingRequired: true, staticTokenAllowed: false, scopes: ['studio:read', 'studio:content', 'studio:run'] },
+        operationOwner: '/api/external/v1/studio',
+        authority: { ownerBound: true, rightsTransfer: false, canonicalPromotionAllowed: false, rootAuthorityInherited: false },
+        publication: { publicCapabilityCatalogPublished: false, pluginListingClaimed: false },
+      },
       authenticated: {
         contract: 'SFI-AUTHENTICATED-GOVERNED-MACHINE-ADAPTER-1.0', serverId: 'org.systemfriction/authenticated', endpoint: '/api/mcp/authenticated', protocolVersion: '2026-07-28',
         oauth: { userBoundRequired: true, clientBindingRequired: true, institutionalTenantRequired: true, staticTokenAllowed: false, executeScopeRequiredForToolsCall: true },

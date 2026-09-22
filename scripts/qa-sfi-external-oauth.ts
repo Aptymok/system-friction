@@ -26,6 +26,9 @@ const manifest = text('src/app/api/external/v1/manifest/route.ts');
 const cognitive = text('src/app/api/external/v1/cognitive/route.ts');
 const personalLab = text('src/app/api/external/v1/personal-lab/route.ts');
 const studio = text('src/app/api/external/v1/studio/route.ts');
+const studioMcp = text('src/app/api/mcp/studio/route.ts');
+const studioMcpMetadata = text('src/app/.well-known/oauth-protected-resource/api/mcp/studio/route.ts');
+const studioMcpServer = text('src/lib/mcp/studioMcpServer.ts');
 const institutionalLab = text('src/app/api/external/v1/lab/route.ts');
 const execute = text('src/app/api/external/v1/execute/route.ts');
 const migration = text('supabase/migrations/20260827113000_personal_cognitive_workspace_ownership.sql');
@@ -101,6 +104,7 @@ assert.match(externalAuth, /tenantId\.startsWith\('user:'\)/, 'personal_oauth_mu
 assert.match(externalAuth, /pathname === '\/api\/external\/v1\/cognitive'/, 'personal_lab_scope_must_allow_personal_cognitive_only');
 assert.match(externalAuth, /pathname === '\/api\/external\/v1\/personal-lab'/, 'personal_lab_scope_must_allow_personal_lab_only');
 assert.match(externalAuth, /scope\.startsWith\('studio:'\)/, 'studio_scope_must_have_route_boundary');
+assert.match(externalAuth, /pathname === '\/api\/mcp\/studio'/, 'studio_scope_must_allow_only_the_owner_studio_mcp_adapter_in_addition_to_canonical_api');
 assert.match(externalAuth, /verifyExternalAccessToken\(token\)/, 'external_gateway_must_accept_oauth_tokens');
 assert.match(externalAuth, /authMethod: 'static_token'/, 'internal_static_token_compatibility_must_remain');
 
@@ -119,6 +123,13 @@ assert.match(personalLab, /if \(operation === 'run'\) return 'lab:run'/, 'person
 assert.match(personalLab, /return 'lab:write'/, 'personal_lab_writes_must_require_lab_write');
 assert.match(studio, /const ownerId = cred\.subjectId/, 'studio_owner_must_derive_from_oauth_subject');
 assert.match(studio, /getStudioObject\(objectId, ownerId\)/, 'studio_object_operations_must_be_owner_scoped');
+assert.match(studioMcp, /authorizeExternalRequest\(request, requiredScope\)/, 'studio_mcp_must_authorize_each_request_by_tool_scope');
+assert.match(studioMcp, /USER_BOUND_OAUTH_WITH_CLIENT_ID_REQUIRED/, 'studio_mcp_must_require_user_and_client_bound_oauth');
+assert.doesNotMatch(studioMcp, /x-sfi-token/i, 'studio_mcp_must_not_advertise_static_token_transport');
+assert.match(studioMcp, /POST as canonicalStudioPost/, 'studio_mcp_must_delegate_to_canonical_studio_operation_owner');
+for (const scope of ['studio:read','studio:content','studio:run']) assert.ok(studioMcpMetadata.includes(`'${scope}'`), `studio_mcp_metadata_scope_missing:${scope}`);
+assert.match(studioMcpServer, /rootAuthorityInherited:\s*false/, 'studio_mcp_must_not_inherit_root_authority');
+assert.match(studioMcpServer, /canonicalPromotionAllowed:\s*false/, 'studio_mcp_must_not_promote_canon');
 
 // Institutional operations remain fail-closed by scope and proposal state, but
 // an already-authorized operation must not require a second human confirmation.
