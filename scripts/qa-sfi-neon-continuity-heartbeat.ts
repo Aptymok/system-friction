@@ -17,6 +17,7 @@ const dataPlaneRpc = read('src/lib/persistence/dataPlaneRpc.ts');
 const continuityRecovery = read('src/lib/persistence/continuityRecovery.ts');
 const dataPlaneFetch = read('src/lib/persistence/dataPlaneFetch.ts');
 const dataPlaneConfig = read('src/lib/persistence/dataPlaneConfig.ts');
+const neonDataPlaneGovernor = read('scripts/db/neon-data-plane-governor.sql');
 const hourlyContinuity = read('.github/workflows/sfi-continuity-hourly.yml');
 const canonicalTwinMemory = read('src/core/cognitive-twin/canonicalMemoryView.ts');
 const twinState = read('src/core/cognitive-twin/readState.ts');
@@ -165,6 +166,12 @@ check('actionable work gate reads Neon only after primary failure',
   gate.includes('readNeonActionableWorkSnapshot')
   && gate.includes("dataPlane: 'NEON'")
   && gate.indexOf('if (readError || missingContinuityState)') < gate.indexOf('const fallback = await readNeonActionableWorkSnapshot()'));
+
+check('Neon Data API infrastructure contract binds institutional JWKS to the bounded service role',
+  neonDataPlaneGovernor.includes('auth_provider=external')
+  && neonDataPlaneGovernor.includes('https://www.systemfriction.org/api/system/data-plane/jwks')
+  && neonDataPlaneGovernor.includes('audience=sfi-neon-data-api')
+  && neonDataPlaneGovernor.includes('grant sfi_continuity_service to authenticator'));
 
 check('transparent failover resolves the canonical Neon Data API endpoint instead of requiring a duplicate environment variable',
   dataPlaneConfig.includes('DEFAULT_SFI_NEON_DATA_API_URL')
