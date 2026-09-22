@@ -1,6 +1,7 @@
 import { createHash } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { ensureOwnedNode } from '@/lib/server/productionBackend';
+import { emitEpistemicEvent } from '@/core/memory/epistemicEventWriter';
 import type { ApiResult } from '../../../../../packages/api-contracts/src';
 import { sanitizeError } from '../../../../../packages/security/src';
 
@@ -127,27 +128,31 @@ export async function POST(req: NextRequest) {
       evidenceLevel,
       sourceState: 'observed',
       metadata: parsed.metadata,
+      streamType: 'ingest',
     };
 
-    const { data, error } = await ctx.service
-      .from('cognitive_event_stream')
-      .insert({
-        node_id: ctx.node.id,
-        stream_type: 'ingest',
-        event_name: 'REAL_OBSERVATION_INGESTED',
-        payload: {
-          ...payloadBase,
-          payloadHash: hashPayload(payloadBase),
-        },
-        emitted_by: 'SFI_REAL_INGEST',
-      })
-      .select('id,node_id')
-      .single();
+    const payload = {
+      ...payloadBase,
+      payloadHash: hashPayload(payloadBase),
+    };
+    const emitted = await emitEpistemicEvent({
+      eventName: 'REAL_OBSERVATION_INGESTED',
+      logbookId: `ACTOR:${ctx.user.id}`,
+      epistemicClass: 'observed',
+      schemaVersion: '2026-09-21.actor-event.v1',
+      sourceId: parsed.source_id,
+      sourceType: 'SFI_REAL_INGEST',
+      actorId: ctx.user.id,
+      nodeId: ctx.node.id,
+      confidence: parsed.confidence,
+      payload,
+      occurredAt: parsed.observed_at,
+    });
 
-    if (error) return apiError('ingest_failed', 500, parsed.node_id);
+    if (!emitted.ok) return apiError('ingest_failed', 500, parsed.node_id);
 
     return apiOk({
-      eventId: typeof data?.id === 'string' ? data.id : null,
+      eventId: emitted.event.id,
       nodeId: ctx.node.id,
       sourceState: 'observed',
       evidenceLevel,
