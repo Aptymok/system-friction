@@ -181,6 +181,11 @@ jobs:
               'requestedCycleId': payload.get('requestedCycleId'),
               'targetSource': target_source,
               'coreHeartbeat': core,
+              'primaryPhysicalProbe': payload.get('primaryPhysicalProbe'),
+              'continuityRestProbe': payload.get('continuityRestProbe'),
+              'recoveryAttempt': payload.get('recoveryAttempt'),
+              'primaryDiagnostic': payload.get('primaryDiagnostic'),
+              'dataPlane': payload.get('dataPlane'),
               'laneStatus': lane_status,
               'returnPlanUpgradeBefore': {'ok': before.get('ok'), 'processed': before.get('processed'), 'results': before.get('results', [])},
               'universal': {
