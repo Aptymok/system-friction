@@ -2,6 +2,7 @@ import { createHash } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { ensureOwnedNode } from '@/lib/server/productionBackend';
 import { emitEpistemicEvent } from '@/core/memory/epistemicEventWriter';
+import { writeInstitutionalMemory } from '@/core/memory/InstitutionalMemoryWriter';
 
 type LiturgiaContext = {
   entity?: string;
@@ -128,20 +129,31 @@ export async function POST(req: NextRequest) {
 
   if (!emitted.ok) return NextResponse.json({ status: 'error', message: 'amv_event_persist_failed' }, { status: 500 });
 
-  const inputHash = createHash('sha256').update(JSON.stringify({ message, context })).digest('hex');
-  const { error: memoryError } = await ctx.service.from('sfi_amv_memory').insert({
-    session_id: body.session_id || null,
-    module: 'liturgia_amv',
-    input_hash: inputHash,
-    input_summary: message.slice(0, 1000),
-    inference: { tension, loop, confidence },
-    decision: { proposed_action: action, next_question: question },
-    output_summary: assistantMessage,
-    evaluation: { epistemic_event_id: emitted.event.id },
-    memory_delta: loop.includes('insuficiente') ? {} : { observed_loop: loop },
-    uncertainty: Number((1 - confidence).toFixed(2)),
-    source_trust: ctx.node.source_state === 'observed' ? 0.65 : 0.35,
-    requires_human_validation: true,
+  const memory = await writeInstitutionalMemory({
+    source: 'liturgia_amv',
+    entityType: 'ACTOR_LITURGIA_RESPONSE',
+    entityId: emitted.event.id,
+    eventType: 'liturgia_amv_internal_response',
+    confidence,
+    provenance: {
+      epistemic_event_id: emitted.event.id,
+      actor_id: ctx.user.id,
+      node_id: ctx.node.id,
+      session_id: body.session_id || null,
+    },
+    authorization: {
+      mode: 'internal_response',
+      external_execution: false,
+      human_validation_required: true,
+    },
+    payload: {
+      caseId: body.session_id || `actor:${ctx.user.id}`,
+      message,
+      context,
+      reading,
+      assistantMessage,
+      observed_loop: loop.includes('insuficiente') ? null : loop,
+    },
   });
 
   return NextResponse.json({
@@ -149,7 +161,7 @@ export async function POST(req: NextRequest) {
     mode: 'amv_minimal',
     message: assistantMessage,
     reading,
-    memory_persisted: !memoryError,
-    warnings: memoryError ? ['amv_memory_not_persisted'] : [],
+    memory_persisted: memory.ok,
+    warnings: memory.ok ? [] : ['amv_memory_not_persisted'],
   });
 }
