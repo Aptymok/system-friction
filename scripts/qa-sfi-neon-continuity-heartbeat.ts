@@ -33,6 +33,8 @@ const scorefrictionMeasurementRoute = read('src/app/api/scorefriction/assets/[as
 const cognitiveLabService = read('src/lib/cognitive-lab/service.ts');
 const sfiAssetsService = read('src/lib/server/sfiAssets.ts');
 const nodeBootstrapRoute = read('src/app/api/node/bootstrap/route.ts');
+const entitlementsService = read('src/lib/licensing/entitlements.ts');
+const mihmRuntimeMatrix = read('src/observatory/field/catalog/mihmRuntimeMatrix.ts');
 const mutationProposeRoute = fs.readFileSync(path.join(process.cwd(), 'src/app/api/mutations/propose/route.ts'), 'utf8');
 const mutationCloseRoute = fs.readFileSync(path.join(process.cwd(), 'src/app/api/root/mutations/[id]/close/route.ts'), 'utf8');
 const rootContinuityRoute = fs.readFileSync(path.join(process.cwd(), 'src/app/api/root/continuity/route.ts'), 'utf8');
@@ -79,6 +81,17 @@ check('root audit mutation returns only the identifier required for epistemic li
 check('Cognitive Lab execution reads use explicit semantic contracts even when up to 500 events are required',
   cognitiveLabService.includes(".select('id,session_key,title,objective,condition,status,technology_nodes,human_nodes,baseline_session_id,metadata,created_by,started_at,ended_at,created_at,updated_at')")
   && cognitiveLabService.includes(".select('id,session_id,event_kind,provenance,actor_key,relation_from,relation_to,payload,evidence_refs,source_ref,occurred_at,created_by,created_at')"));
+
+check('active entitlement reads use canonical sfi_user_entitlements instead of missing legacy licenses',
+  entitlementsService.includes("from('sfi_user_entitlements')")
+  && !entitlementsService.includes("from('licenses')")
+  && nodeBootstrapRoute.includes("from('sfi_user_entitlements')"));
+
+check('MIHM runtime reads canonical field_mihm_readings and understands metrics envelope',
+  operationalCommon.includes("from('field_mihm_readings')")
+  && operationalCommon.includes("id,case_id,owner_id,status,metrics,tensions,formula_version,evidence_ids,created_at")
+  && mihmRuntimeMatrix.includes("const metrics = asRecord(observed.metrics)")
+  && !operationalCommon.includes("from('mihm_analyses')"));
 
 check('node bootstrap requests asset summaries without four historical child collections',
   sfiAssetsService.includes("options: { includeHistory?: boolean } = {}")
