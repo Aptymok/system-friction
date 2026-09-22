@@ -201,9 +201,10 @@ check('verified absent legacy objects are retired instead of preserved as live s
   ['sfi_assets','sfi_measurements','sfi_interventions','sfi_outputs','sfi_logbook','world_spectrum_snapshots','social_posts','social_resonance_events','social_tokens','external_signals','telemetry_sources']
     .every((name) => !legacyLiveSchema.includes(`"${name}"`) && retiredSchema.includes(`"${name}"`)));
 
-check('Field persistence recent runtime status uses bounded rows instead of exact-count probes',
-  fieldPersistRoute.includes(".select('id,created_at')")
+check('Field persistence recent runtime status uses one bounded canonical ledger projection instead of legacy count probes',
+  fieldPersistRoute.includes(".select('id,event_name,payload,created_at')")
   && fieldPersistRoute.includes(".limit(100)")
+  && fieldPersistRoute.includes("getLatestWorldSpectSnapshotRead()")
   && !fieldPersistRoute.includes("count: 'exact'"));
 
 check('public global metrics read canonical bounded indicator snapshots instead of absent legacy audits',
