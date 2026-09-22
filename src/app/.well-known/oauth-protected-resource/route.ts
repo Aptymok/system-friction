@@ -1,4 +1,4 @@
-import { SFI_ROOT_SCOPES } from '@/lib/sfi/oauthConfig';
+import { SFI_AUTHENTICATED_MCP_SCOPES } from '@/lib/mcp/authenticatedGatewayProjection';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,7 +10,7 @@ export async function GET() {
     resource: `${resourceOrigin}/api/mcp/authenticated`,
     authorization_servers: [oauthIssuer],
     bearer_methods_supported: ['header'],
-    scopes_supported: [...SFI_ROOT_SCOPES],
+    scopes_supported: [...SFI_AUTHENTICATED_MCP_SCOPES],
   }, {
     headers: {
       'Cache-Control': 'public, max-age=300, stale-while-revalidate=300',
