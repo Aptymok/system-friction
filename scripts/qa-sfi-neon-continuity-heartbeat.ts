@@ -15,6 +15,8 @@ const heartbeat = read('src/app/api/cron/continuity-heartbeat/route.ts');
 const primaryMirror = read('src/lib/persistence/primaryMirror.ts');
 const dataPlaneRpc = read('src/lib/persistence/dataPlaneRpc.ts');
 const continuityRecovery = read('src/lib/persistence/continuityRecovery.ts');
+const dataPlaneContinuityStore = read('src/lib/persistence/dataPlaneContinuityStore.ts');
+const continuityRecoveryMigration = read('supabase/migrations/20260922183500_continuity_state_ancestor_replay.sql');
 const dataPlaneFetch = read('src/lib/persistence/dataPlaneFetch.ts');
 const dataPlaneConfig = read('src/lib/persistence/dataPlaneConfig.ts');
 const neonDataPlaneGovernor = read('scripts/db/neon-data-plane-governor.sql');
@@ -440,6 +442,37 @@ check('continuity recovery is owned by the existing heartbeat and only attempted
   && runtime.includes('recoverPrimaryDataPlane')
   && runtime.includes('primaryPhysicalProbe.ok')
   && runtime.includes('recoveryAttempt'));
+
+check('continuity replay claims one source transaction at a time in journal sequence order and recovers stale replay leases',
+  dataPlaneContinuityStore.includes("pg_try_advisory_xact_lock(hashtext('sfi_data_plane_recovery'))")
+  && dataPlaneContinuityStore.includes("status = 'REPLAYING' and updated_at < now() - interval '5 minutes'")
+  && dataPlaneContinuityStore.includes('order by sequence asc')
+  && dataPlaneContinuityStore.includes('and source_txid = ${sourceTxid}::bigint')
+  && dataPlaneContinuityStore.includes("set status = 'REPLAYING'"));
+
+check('primary continuity replay remains idempotent, trigger-isolated and fail-closed for general divergence',
+  continuityRecoveryMigration.includes("pg_advisory_xact_lock(hashtext('SFI_CONTINUITY_REPLAY_V1'))")
+  && continuityRecoveryMigration.includes('sfi_continuity_applied_operations')
+  && continuityRecoveryMigration.includes("alter table public.%I disable trigger user")
+  && continuityRecoveryMigration.includes("alter table public.%I enable trigger user")
+  && continuityRecoveryMigration.includes("raise exception 'SFI_CONTINUITY_CONFLICT:%:%'")
+  && continuityRecoveryMigration.includes("raise exception 'SFI_CONTINUITY_INSERT_CONFLICT:%:%'"));
+
+check('continuity-state replay accepts only a monotonic same-content stale heartbeat ancestor',
+  continuityRecoveryMigration.includes("table_name = 'sfi_continuity_state'")
+  && continuityRecoveryMigration.includes("current_row->>'id' = 'institution'")
+  && continuityRecoveryMigration.includes("before_data->>'id' = 'institution'")
+  && continuityRecoveryMigration.includes("current_row - 'updated_at' - 'last_heartbeat_at' - 'last_successful_run_at'")
+  && continuityRecoveryMigration.includes("before_data - 'updated_at' - 'last_heartbeat_at' - 'last_successful_run_at'")
+  && continuityRecoveryMigration.includes("(current_row->>'updated_at')::timestamptz")
+  && continuityRecoveryMigration.includes("<= (before_data->>'updated_at')::timestamptz")
+  && continuityRecoveryMigration.includes("'staleAncestorsReconciled', stale_ancestor_count"));
+
+check('recovery cannot return to PRIMARY until journal is empty and fingerprints converge',
+  continuityRecovery.includes("reason: 'CONTINUITY_JOURNAL_NOT_EMPTY'")
+  && continuityRecovery.includes("reason: 'POST_RECOVERY_FINGERPRINT_MISMATCH'")
+  && continuityRecovery.includes('completeRecoveryMode()')
+  && dataPlaneContinuityStore.includes("status in ('PENDING','REPLAYING','CONFLICT')"));
 
 check('heartbeat persists run/check/incident/state to Neon fallback',
   store.includes('createNeonContinuityRun')
