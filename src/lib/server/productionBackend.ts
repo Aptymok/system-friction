@@ -10,6 +10,7 @@ import { findInstitutionalMember } from '@/lib/system/access/institutionalMember
 import { isConfiguredFounderIdentity, resolveFounderAuthority } from '@/lib/system/access/founderAuthority';
 import { hasActiveInstitutionalAccountGrant } from '@/lib/system/access/server';
 import { readContinuityProfile, readContinuityProfileByEmail } from '@/lib/sfi/continuityPostgres';
+import { readActorNodeProjection } from '@/lib/server/actorNodeProjection';
 
 export const PRODUCTION_APP_URL =
   process.env.NEXT_PUBLIC_APP_URL || 'https://systemfriction.org';
@@ -267,59 +268,22 @@ export async function ensureOwnedNode(
     };
   }
 
-  let query = ctx.service
-    .from('nodes')
-    .select('*');
+  const projection = await readActorNodeProjection({
+    user: ctx.user,
+    profile: ctx.profile ? record(ctx.profile) : null,
+    service: ctx.service,
+  });
 
-  if (nodeId) {
-    query = query.eq('id', nodeId);
-  } else {
-    query = query.eq(
-      'user_id',
-      ctx.user.id
-    );
-  }
-
-  const { data: nodes } = await query
-    .order('created_at', {
-      ascending: false,
-    })
-    .limit(1);
-
-  const node = nodes?.[0] || null;
-
-  if (!node) {
-    return {
-      ...ctx,
-      node: null,
-      error: NextResponse.json(
-        {
-          error: 'node_not_found',
-          epistemicStatus: 'MISSING',
-          message: 'No persisted node exists for this actor. SFI will not synthesize IHG, NTI or LDI values.',
-        },
-        { status: 404 }
-      ),
-    };
-  }
-
-  if (
-    !ctx.isRoot &&
-    node.user_id !== ctx.user.id
-  ) {
-    return {
-      ...ctx,
-      node: null,
-      error: NextResponse.json(
-        { error: 'Forbidden' },
-        { status: 403 }
-      ),
-    };
-  }
+  const node = {
+    ...projection.node,
+    requested_node_id: nodeId ?? null,
+    compatibility_remapped: Boolean(nodeId && nodeId !== ctx.user.id),
+  };
 
   return {
     ...ctx,
     node,
+    nodeDiagnostic: projection.diagnostic,
     error: null,
   };
 }
