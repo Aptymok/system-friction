@@ -37,17 +37,18 @@ export async function GET(req: NextRequest) {
     if (ctx.error || !ctx.node || !ctx.user) return apiError('node_not_ready', 404, traceId);
 
     const { data, error } = await ctx.service
-      .from('cognitive_event_stream')
-      .select('id,created_at,payload')
+      .from('epistemic_events')
+      .select('id,node_id,event_name,created_at,payload')
+      .eq('actor_id', ctx.user.id)
       .eq('node_id', ctx.node.id)
-      .eq('stream_type', 'signal')
       .eq('event_name', 'SIGNAL_DECLARED')
       .order('created_at', { ascending: false })
       .limit(100);
 
     if (error) return apiSanitizedError(error, 500, traceId);
 
-    const readModel = buildSignalReadModel(data || []);
+    const rows = (data || []).map((row) => ({ ...row, stream_type: 'signal' }));
+    const readModel = buildSignalReadModel(rows);
     return apiOk(readModel, traceId, readModel.warnings.length ? readModel.warnings : undefined);
   } catch (error) {
     return apiSanitizedError(error, 500, traceId);
