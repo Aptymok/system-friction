@@ -12,6 +12,14 @@ import {
   type SfiPublicCapabilityGrant,
 } from '../sfi/cognitive-runtime/capabilityGrant';
 import type { SfiAuthorityClass } from '../sfi/cognitive-runtime/cognitivePassportRegistry';
+import {
+  SFI_AUTHENTICATED_GATEWAY_PROJECTION_CONTRACT,
+  SFI_AUTHENTICATED_GATEWAY_TOOL,
+  SFI_AUTHENTICATED_GATEWAY_TOOL_NAME,
+  authenticatedGatewayCatalog,
+  buildAuthenticatedGatewayRequest,
+  type SfiAuthenticatedGatewayInvocation,
+} from './authenticatedGatewayProjection';
 
 export const SFI_AUTHENTICATED_MACHINE_ADAPTER_CONTRACT = 'SFI-AUTHENTICATED-GOVERNED-MACHINE-ADAPTER-1.0' as const;
 export const SFI_AUTHENTICATED_MACHINE_SERVER_ID = 'org.systemfriction/authenticated' as const;
@@ -83,6 +91,10 @@ export type SfiAuthenticatedMachineDependencies = {
   >;
   executeCognitive: (
     execution: JsonObject,
+    principal: SfiAuthenticatedMachinePrincipal,
+  ) => Promise<{ status: number; body: JsonObject }>;
+  invokeGateway?: (
+    invocation: SfiAuthenticatedGatewayInvocation,
     principal: SfiAuthenticatedMachinePrincipal,
   ) => Promise<{ status: number; body: JsonObject }>;
   readInstitutionalContext?: () => Promise<JsonObject>;
@@ -173,6 +185,7 @@ export const SFI_AUTHENTICATED_MACHINE_TOOLS = Object.freeze([
       additionalProperties: false,
     },
   },
+  SFI_AUTHENTICATED_GATEWAY_TOOL,
 ] as const);
 
 export const SFI_AUTHENTICATED_MACHINE_RESOURCES = Object.freeze([
@@ -187,6 +200,12 @@ export const SFI_AUTHENTICATED_MACHINE_RESOURCES = Object.freeze([
     name: 'SFI compact institutional context',
     mimeType: 'application/json',
     description: 'Authenticated, observe-scoped projection of compact persisted institutional state: continuity, cognitive runtime, open-cycle counts and recent RETURN/execution receipts. It does not mint authority or expose credentials, raw media, grant nonces or canonical promotion.',
+  },
+  {
+    uri: 'sfi://authenticated-machine/gateway-catalog',
+    name: 'SFI authenticated gateway operation catalog',
+    mimeType: 'application/json',
+    description: 'Navigation-only catalog of allowlisted canonical gateway operation ids, methods, paths and scopes. It grants no authority and contains no credentials.',
   },
 ] as const);
 
@@ -515,9 +534,18 @@ function adapterStatus() {
     execution: {
       plane: 'EXISTING_CANONICAL_COGNITIVE_RUNTIME',
       availableTools: SFI_AUTHENTICATED_MACHINE_TOOLS.map((tool) => tool.name),
-      externalSideEffects: false,
+      cognitiveExecutionExternalSideEffects: false,
       canonicalPromotion: false,
       returnFabrication: false,
+    },
+    gatewayProjection: {
+      contract: SFI_AUTHENTICATED_GATEWAY_PROJECTION_CONTRACT,
+      canonicalGatewayReused: true,
+      arbitraryUrlAllowed: false,
+      authorityExpansionAllowed: false,
+      cognitiveGrantBypassAllowed: false,
+      externalSideEffects: 'ONLY_THROUGH_EXISTING_GATEWAY_AUTHORIZATION',
+      canonicalPromotion: false,
     },
     publicBoundary: {
       publicMcpServerSeparate: true,
@@ -622,6 +650,23 @@ export async function dispatchAuthenticatedMachineRequest(
         }),
       };
     }
+    if (uri === 'sfi://authenticated-machine/gateway-catalog') {
+      return {
+        status: 200,
+        body: response(id, {
+          contents: [{
+            uri,
+            mimeType: 'application/json',
+            text: JSON.stringify({
+              contract: SFI_AUTHENTICATED_GATEWAY_PROJECTION_CONTRACT,
+              authorityExpansionAllowed: false,
+              arbitraryUrlAllowed: false,
+              operations: authenticatedGatewayCatalog(),
+            }),
+          }],
+        }),
+      };
+    }
     if (uri === 'sfi://institutional/context') {
       if (!deps.readInstitutionalContext) {
         return { status: 503, body: error(id, -32053, 'InstitutionalContextUnavailable', { uri, reason: 'CONTEXT_READER_NOT_BOUND' }) };
@@ -651,6 +696,62 @@ export async function dispatchAuthenticatedMachineRequest(
   const params = row(payload.params);
   const name = text(params.name);
   const args = row(params.arguments);
+
+  if (name === SFI_AUTHENTICATED_GATEWAY_TOOL_NAME) {
+    if (!deps.invokeGateway) {
+      return { status: 503, body: error(id, -32053, 'GatewayProjectionUnavailable', { reason: 'GATEWAY_OWNER_NOT_BOUND' }) };
+    }
+    const invocation: SfiAuthenticatedGatewayInvocation = {
+      operationId: text(args.operationId),
+      body: row(args.body),
+      query: row(args.query) as Record<string, string | number | boolean | null | undefined>,
+      pathParams: row(args.pathParams) as Record<string, string>,
+    };
+    let requestSpec: ReturnType<typeof buildAuthenticatedGatewayRequest>;
+    try {
+      requestSpec = buildAuthenticatedGatewayRequest(invocation);
+    } catch (gatewayError) {
+      return {
+        status: 400,
+        body: error(id, -32602, 'InvalidGatewayInvocation', {
+          reason: gatewayError instanceof Error ? gatewayError.message : String(gatewayError),
+          operationId: invocation.operationId || null,
+        }),
+      };
+    }
+    if (!principal.scopes.includes(requestSpec.scope)) {
+      return {
+        status: 403,
+        body: error(id, -32043, 'AuthorizationDenied', {
+          reasons: [`OAUTH_SCOPE_REQUIRED:${requestSpec.scope}`],
+          authorizationAllowed: false,
+          operationId: invocation.operationId,
+          requiredScope: requestSpec.scope,
+        }),
+      };
+    }
+    const gatewayResult = await deps.invokeGateway(invocation, principal);
+    return {
+      status: gatewayResult.status,
+      body: response(id, {
+        content: [{ type: 'text', text: JSON.stringify(gatewayResult.body) }],
+        structuredContent: {
+          ...gatewayResult.body,
+          machineGateway: {
+            contract: SFI_AUTHENTICATED_GATEWAY_PROJECTION_CONTRACT,
+            operationId: invocation.operationId,
+            requiredScope: requestSpec.scope,
+            canonicalGatewayReused: true,
+            arbitraryUrlAllowed: false,
+            authorityExpansionAllowed: false,
+            canonicalPromotionAllowed: false,
+          },
+        },
+        isError: gatewayResult.status < 200 || gatewayResult.status >= 300 || gatewayResult.body.ok === false,
+      }),
+    };
+  }
+
   if (name !== 'invoke_cognitive_capability') return { status: 404, body: error(id, -32602, 'Unknown tool', { name }) };
   const authorizationValue = args.authorization;
   const execution = row(args.execution);

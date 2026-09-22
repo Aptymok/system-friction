@@ -13,6 +13,10 @@ import {
 } from './authenticatedGovernedMachineAdapter';
 import type { SfiCapabilityHistoryEntry, SfiCapabilityRequest } from '../sfi/cognitive-runtime/capabilityBroker';
 import type { SfiPublicCapabilityGrant } from '../sfi/cognitive-runtime/capabilityGrant';
+import {
+  SFI_AUTHENTICATED_GATEWAY_TOOL_NAME,
+  requiredScopeForAuthenticatedGatewayInvocation,
+} from './authenticatedGatewayProjection';
 
 const NOW = new Date('2026-09-07T01:00:00.000Z');
 
@@ -183,6 +187,18 @@ function errorReasons(body: Record<string, any>) {
   return (body.error?.data?.reasons ?? []) as string[];
 }
 
+function gatewayCall(operationId: string, body: Record<string, unknown> = {}, pathParams: Record<string, string> = {}) {
+  return {
+    jsonrpc: '2.0',
+    id: 2,
+    method: 'tools/call',
+    params: {
+      name: SFI_AUTHENTICATED_GATEWAY_TOOL_NAME,
+      arguments: { operationId, body, pathParams },
+    },
+  };
+}
+
 test('ACTIVE grant + OAuth principal/client/scope binding executes once through injected canonical owner', async () => {
   const h = harness(admissionHistory());
   const result = await dispatchAuthenticatedMachineRequest(call(), principal(), h.deps);
@@ -339,4 +355,59 @@ test('reservation persistence failure fails closed before execution', async () =
   assert.equal(result.status, 409);
   assert.equal(h.executions(), 0);
   assert.equal((result.body as any).error.message, 'GrantReservationFailedClosed');
+});
+
+
+test('authenticated gateway projection resolves bounded scopes without authority expansion', async () => {
+  assert.equal(requiredScopeForAuthenticatedGatewayInvocation({ operationId: 'readSfiConsole' }), 'observe');
+  assert.equal(requiredScopeForAuthenticatedGatewayInvocation({ operationId: 'operateSfiLab', body: { operation: 'state' } }), 'lab:read');
+  assert.equal(requiredScopeForAuthenticatedGatewayInvocation({ operationId: 'operateSfiLab', body: { operation: 'persist' } }), 'lab:write');
+  assert.equal(requiredScopeForAuthenticatedGatewayInvocation({ operationId: 'operateSfiLab', body: { operation: 'run' } }), 'lab:run');
+  assert.equal(requiredScopeForAuthenticatedGatewayInvocation({ operationId: 'operateSfiCaseWorkspace', body: { operation: 'list' } }), 'cases:read');
+  assert.equal(requiredScopeForAuthenticatedGatewayInvocation({ operationId: 'operateSfiCaseWorkspace', body: { operation: 'transition' } }), 'cases:write');
+  assert.equal(requiredScopeForAuthenticatedGatewayInvocation({ operationId: 'decideSfiGovernanceProposal', pathParams: { proposalId: 'proposal-1' } }), 'governance:decide');
+  assert.equal(requiredScopeForAuthenticatedGatewayInvocation({ operationId: 'arbitraryUrl' }), null);
+});
+
+test('gateway tool delegates only when the OAuth principal already has the operation scope', async () => {
+  const h = harness([]);
+  let invoked = 0;
+  h.deps.invokeGateway = async (invocation) => {
+    invoked += 1;
+    assert.equal(invocation.operationId, 'readSfiConsole');
+    return { status: 200, body: { ok: true, source: 'canonical_gateway' } };
+  };
+  const result = await dispatchAuthenticatedMachineRequest(gatewayCall('readSfiConsole'), principal(), h.deps);
+  assert.equal(result.status, 200);
+  assert.equal(invoked, 1);
+  const gateway = (result.body as any).result.structuredContent.machineGateway;
+  assert.equal(gateway.requiredScope, 'observe');
+  assert.equal(gateway.canonicalGatewayReused, true);
+  assert.equal(gateway.arbitraryUrlAllowed, false);
+  assert.equal(gateway.authorityExpansionAllowed, false);
+});
+
+test('gateway tool fails closed before delegation when ROOT decision scope is absent', async () => {
+  const h = harness([]);
+  let invoked = 0;
+  h.deps.invokeGateway = async () => {
+    invoked += 1;
+    return { status: 200, body: { ok: true } };
+  };
+  const denied = await dispatchAuthenticatedMachineRequest(
+    gatewayCall('decideSfiGovernanceProposal', { decision: 'accept' }, { proposalId: 'proposal-1' }),
+    principal({ scopes: ['observe', 'execute', 'propose'] }),
+    h.deps,
+  );
+  assert.equal(denied.status, 403);
+  assert.equal(invoked, 0);
+  assert.ok(errorReasons(denied.body as any).includes('OAUTH_SCOPE_REQUIRED:governance:decide'));
+});
+
+test('gateway tool rejects unknown operation ids and never accepts arbitrary paths', async () => {
+  const h = harness([]);
+  h.deps.invokeGateway = async () => ({ status: 200, body: { ok: true } });
+  const result = await dispatchAuthenticatedMachineRequest(gatewayCall('https://example.com/root'), principal(), h.deps);
+  assert.equal(result.status, 400);
+  assert.equal((result.body as any).error.message, 'InvalidGatewayInvocation');
 });

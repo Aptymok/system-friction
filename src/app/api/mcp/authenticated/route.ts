@@ -16,6 +16,12 @@ import {
   externalActor,
   externalAuthError,
 } from '@/lib/sfi/externalAuth';
+import {
+  SFI_AUTHENTICATED_GATEWAY_TOOL_NAME,
+  buildAuthenticatedGatewayRequest,
+  requiredScopeForAuthenticatedGatewayInvocation,
+  type SfiAuthenticatedGatewayInvocation,
+} from '@/lib/mcp/authenticatedGatewayProjection';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -54,6 +60,24 @@ function requestedGrantId(value: unknown) {
   const params = row(row(value).params);
   const args = row(params.arguments);
   return text(row(args.authorization).grantId);
+}
+
+function requestedScope(value: unknown) {
+  if (method(value) !== 'tools/call') return 'observe';
+  const params = row(row(value).params);
+  const toolName = text(params.name);
+  if (toolName === 'invoke_cognitive_capability') return 'execute';
+  if (toolName === SFI_AUTHENTICATED_GATEWAY_TOOL_NAME) {
+    const args = row(params.arguments);
+    const invocation: SfiAuthenticatedGatewayInvocation = {
+      operationId: text(args.operationId),
+      body: row(args.body),
+      query: row(args.query) as Record<string, string | number | boolean | null | undefined>,
+      pathParams: row(args.pathParams) as Record<string, string>,
+    };
+    return requiredScopeForAuthenticatedGatewayInvocation(invocation) ?? 'observe';
+  }
+  return 'observe';
 }
 
 function responseHeaders(protocolVersion: string = SFI_AUTHENTICATED_MACHINE_PROTOCOL_VERSION) {
@@ -111,7 +135,7 @@ export async function POST(request: Request) {
   }
 
   const requestMethod = method(payload);
-  const requiredScope = requestMethod === 'tools/call' ? 'execute' : 'observe';
+  const requiredScope = requestedScope(payload);
   const auth = authorizeExternalRequest(request, requiredScope);
   const credential = auth.credential;
   if (!credential) {
@@ -196,6 +220,38 @@ export async function POST(request: Request) {
       requestSource: 'EXTERNAL_API',
       allowLegacyCompatibility: false,
     }),
+    invokeGateway: async (invocation) => {
+      const spec = buildAuthenticatedGatewayRequest(invocation);
+      const origin = new URL(request.url).origin;
+      const target = new URL(spec.path, origin);
+      for (const [key, value] of Object.entries(spec.query)) {
+        if (value === undefined || value === null) continue;
+        target.searchParams.set(key, String(value));
+      }
+      const authorization = request.headers.get('authorization')?.trim() ?? '';
+      if (!authorization) {
+        return { status: 401, body: { ok: false, error: 'oauth_bearer_missing_for_gateway_projection' } };
+      }
+      const forwarded = await fetch(target, {
+        method: spec.method,
+        headers: {
+          Authorization: authorization,
+          Accept: 'application/json',
+          ...(spec.method === 'POST' ? { 'Content-Type': 'application/json' } : {}),
+        },
+        body: spec.method === 'POST' ? JSON.stringify(spec.body) : undefined,
+        cache: 'no-store',
+        redirect: 'manual',
+      });
+      const raw = await forwarded.text();
+      let body: JsonObject;
+      try {
+        body = raw ? JSON.parse(raw) as JsonObject : { ok: forwarded.ok };
+      } catch {
+        body = { ok: forwarded.ok, status: forwarded.status, statusText: forwarded.statusText, text: raw.slice(0, 4000) };
+      }
+      return { status: forwarded.status, body };
+    },
     readInstitutionalContext: async () => {
       const [continuity, cognitive, cycles, recent] = await Promise.all([
         readContinuityDashboard(),

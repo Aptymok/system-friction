@@ -49,7 +49,7 @@ assert.match(authorize, /resolveSfiOAuthClient\(clientId\)/, 'oauth_authorize_mu
 assert.match(authorize, /isAllowedSfiOAuthRedirect\(client, redirectUri\)/, 'oauth_authorize_must_exact_match_registered_redirect');
 assert.match(authorize, /canSfiOAuthClientAuthorizeSubject\(client, context\.user\.id\)/, 'owner_only_client_must_be_bound_to_authenticated_subject');
 assert.match(authorize, /clientScopes\.has\(scope\)/, 'oauth_authorize_must_enforce_client_scope_ceiling');
-for (const scope of ['observe', 'propose', 'execute', 'cases:read', 'cases:write', 'lab:read', 'lab:write', 'lab:run', 'studio:read', 'studio:content', 'studio:run']) {
+for (const scope of ['observe', 'propose', 'execute', 'governance:decide', 'cases:read', 'cases:write', 'lab:read', 'lab:write', 'lab:run', 'studio:read', 'studio:content', 'studio:run']) {
   assert.match(oauthConfig, new RegExp(`'${scope.replace(':', '\\:')}'`), `supported_scope_missing:${scope}`);
 }
 

@@ -209,3 +209,40 @@ The repository-wide `SFI Verify` workflow remains the integration-level exact-he
 - `EXTERNAL REPRESENTATION NEVER BECOMES CANON`
 - `MISSING remains MISSING`
 - `UNAVAILABLE != ZERO`
+
+
+## 2026-09-22 — Personal ROOT gateway projection
+
+The authenticated MCP endpoint now carries a second, explicitly separate contract:
+
+`SFI-AUTHENTICATED-GATEWAY-PROJECTION-1.0`
+
+This projection does **not** replace or weaken `SFI-AUTHENTICATED-GOVERNED-MACHINE-ADAPTER-1.0`. The two lanes remain distinct:
+
+1. `invoke_cognitive_capability`
+   - canonical cognitive execution only;
+   - `execute` OAuth scope;
+   - ACTIVE `SFI-CAPABILITY-GRANT-1.0`;
+   - transient nonce possession proof;
+   - principal/client/resource/capability/trajectory/step/TTL/parent/confirmation revalidation;
+   - one-time reservation and observed execution receipt.
+
+2. `invoke_sfi_gateway_operation`
+   - thin projection of an allowlisted subset of the existing External Agent Gateway;
+   - no arbitrary URL input;
+   - operation-specific OAuth scope resolved before dispatch;
+   - the same OAuth bearer identity is forwarded to the canonical route;
+   - the canonical route re-authorizes ownership, tenant, queue, evidence or sovereign ROOT conditions;
+   - no cognitive grant bypass;
+   - no canonical promotion.
+
+The authenticated MCP projects:
+`observe`, `propose`, `execute`, `governance:decide`, `cases:read`, `cases:write`, `lab:read`, `lab:write`, and `lab:run`.
+
+Studio remains a separate owner-bound MCP with `studio:read`, `studio:content`, and `studio:run`. The personal plugin may therefore aggregate the configured 12-scope ROOT ceiling without collapsing institutional ROOT authority into Studio ownership.
+
+The navigation resource `sfi://authenticated-machine/gateway-catalog` exposes operation ids, methods, canonical paths, scope class and summaries only. It grants no authority.
+
+The sovereign governance decision operation delegates only to the existing ROOT route and therefore still requires `governance:decide`, user-bound OAuth, `root_delegate`, tenant `sfi`, and a live root/system profile with ROOT module access.
+
+This change adds no database, persistence owner, credential store, grant store or second governance runtime.
