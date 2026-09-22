@@ -40,6 +40,7 @@ function caseScope(input: SfiAuthenticatedGatewayInvocation) {
 }
 
 const DEFINITIONS = [
+  { operationId: 'getSfiManifest', method: 'GET', path: '/api/external/v1/manifest', scope: 'observe', summary: 'Discover the current SFI gateway, OAuth and machine-interface contract.' },
   { operationId: 'readSfiConsole', method: 'GET', path: '/api/external/v1/console', scope: 'observe', summary: 'Read the compact governed SFI machine console.' },
   { operationId: 'getSfiExecutionContract', method: 'POST', path: '/api/external/v1/execution-contract', scope: 'observe', summary: 'Get the SFI measurement contract for one declared object.' },
   { operationId: 'persistSfiStructuredResult', method: 'POST', path: '/api/external/v1/result', scope: 'lab:write', summary: 'Persist a sanitized structured derived result through the canonical gateway.' },
@@ -134,4 +135,15 @@ export function buildAuthenticatedGatewayRequest(input: SfiAuthenticatedGatewayI
     query: input.query ?? {},
     summary: definition.summary,
   };
+}
+
+
+export function authenticatedGatewayCatalog() {
+  return DEFINITIONS.map((definition) => ({
+    operationId: definition.operationId,
+    method: definition.method,
+    path: definition.path,
+    scope: typeof definition.scope === 'function' ? 'OPERATION_DEPENDENT' : definition.scope,
+    summary: definition.summary,
+  }));
 }
