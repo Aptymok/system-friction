@@ -1,3 +1,5 @@
+import { SFI_ROOT_SCOPES } from '@/lib/sfi/oauthConfig';
+
 export const dynamic = 'force-dynamic';
 
 const oauthIssuer = 'https://www.systemfriction.org';
@@ -8,7 +10,7 @@ export async function GET() {
     resource: `${resourceOrigin}/api/mcp/authenticated`,
     authorization_servers: [oauthIssuer],
     bearer_methods_supported: ['header'],
-    scopes_supported: ['observe', 'execute'],
+    scopes_supported: [...SFI_ROOT_SCOPES],
   }, {
     headers: {
       'Cache-Control': 'public, max-age=300, stale-while-revalidate=300',
