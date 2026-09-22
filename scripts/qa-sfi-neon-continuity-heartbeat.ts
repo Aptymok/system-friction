@@ -33,6 +33,9 @@ const scorefrictionMeasurementRoute = read('src/app/api/scorefriction/assets/[as
 const cognitiveLabService = read('src/lib/cognitive-lab/service.ts');
 const sfiAssetsService = read('src/lib/server/sfiAssets.ts');
 const nodeBootstrapRoute = read('src/app/api/node/bootstrap/route.ts');
+const runtimeBootstrapRoute = read('src/app/api/runtime/bootstrap/route.ts');
+const productionBackend = read('src/lib/server/productionBackend.ts');
+const actorNodeProjection = read('src/lib/server/actorNodeProjection.ts');
 const entitlementsService = read('src/lib/licensing/entitlements.ts');
 const mihmRuntimeMatrix = read('src/observatory/field/catalog/mihmRuntimeMatrix.ts');
 const mutationProposeRoute = fs.readFileSync(path.join(process.cwd(), 'src/app/api/mutations/propose/route.ts'), 'utf8');
@@ -112,11 +115,21 @@ check('action proposal type contract normalizes new writes without hiding legacy
   && operationalCommon.includes("const proposalType = proposalTypeFrom(row)")
   && !operationalCommon.includes("query = query.in('proposal_type', proposalTypes)"));
 
-check('node bootstrap uses explicit consumer DTOs instead of wildcard row hydration',
-  !nodeBootstrapRoute.includes(".select('*')")
-  && nodeBootstrapRoute.includes(".select('id,node_id,source,narrative,ihg,nti,ldi,verdict,diagnosis,loop_score,divergence,pattern,hard_stop,proposed_action,created_at,whatsapp_session_id')")
-  && nodeBootstrapRoute.includes(".select('id,node_id,audit_id,fact_type,label,value,confidence,first_seen_at,last_seen_at,recurrence_count')")
-  && nodeBootstrapRoute.includes(".select('id,node_id,audit_id,description,verification_criterion,due_at,completed_at,status,action_type,metadata,created_at')"));
+check('actor ownership and bootstrap use canonical actor projection instead of absent legacy nodes',
+  actorNodeProjection.includes("from('field_mihm_readings')")
+  && productionBackend.includes('readActorNodeProjection')
+  && nodeBootstrapRoute.includes('readActorNodeProjection')
+  && runtimeBootstrapRoute.includes('readActorNodeProjection')
+  && !productionBackend.includes("from('nodes')")
+  && !nodeBootstrapRoute.includes("from('nodes')")
+  && !runtimeBootstrapRoute.includes("from('nodes')"));
+
+check('node bootstrap does not resurrect absent audit, memory or action stores',
+  !nodeBootstrapRoute.includes("from('audits')")
+  && !nodeBootstrapRoute.includes("from('memory_facts')")
+  && !nodeBootstrapRoute.includes("from('actions')")
+  && nodeBootstrapRoute.includes("legacy_state: 'not_recreated'")
+  && !nodeBootstrapRoute.includes(".select('*')"));
 
 check('operational latest-row reads are table-typed and explicitly projected',
   operationalCommon.includes("const OPERATIONAL_READ_PROJECTIONS = {")
