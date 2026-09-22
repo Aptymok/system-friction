@@ -192,6 +192,12 @@ check('public global metrics read canonical bounded indicator snapshots instead 
   && !globalMetricsRoute.includes("from('audits')")
   && !globalMetricsRoute.includes(".select('*')"));
 
+check('public global metrics aggregate evidence state is derived from every included snapshot, not only the latest row',
+  globalMetricsRoute.includes('function aggregateSourceState')
+  && globalMetricsRoute.includes('rows.map((row) => sourceState')
+  && globalMetricsRoute.includes('const state = aggregateSourceState(rows)')
+  && !globalMetricsRoute.includes('const state = sourceState(latestSourceStatus)'));
+
 check('operational snapshot write-return avoids wildcard row transfer',
   !operationalSnapshotRoute.includes(".select('*')"));
 
