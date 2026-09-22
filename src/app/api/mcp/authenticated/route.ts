@@ -106,6 +106,64 @@ function oauthChallenge(request: Request, scope: string) {
   return `Bearer resource_metadata="${origin}/.well-known/oauth-protected-resource", scope="${scope}"`;
 }
 
+function oauthRuntimeChallenge(request: Request, scope: string) {
+  return `${oauthChallenge(request, scope)}, error="insufficient_scope", error_description="Authorize SYSTEM FRICTION INSTITUTE to continue"`;
+}
+
+function isPublicDiscoveryRequest(payload: unknown) {
+  const requestMethod = method(payload);
+  if (requestMethod === 'initialize' || requestMethod === 'tools/list' || requestMethod === 'resources/list') return true;
+  if (requestMethod !== 'resources/read') return false;
+  const uri = text(row(row(payload).params).uri);
+  return uri === 'sfi://authenticated-machine/status'
+    || uri === 'sfi://authenticated-machine/gateway-catalog';
+}
+
+async function dispatchPublicDiscovery(payload: unknown) {
+  const discoveryPrincipal: SfiAuthenticatedMachinePrincipal = {
+    subjectId: 'MCP_DISCOVERY_ONLY',
+    actorId: 'MCP_DISCOVERY_ONLY',
+    clientId: 'MCP_DISCOVERY_ONLY',
+    tenantId: 'sfi',
+    scopes: [],
+    authMethod: 'oauth',
+  };
+  return dispatchAuthenticatedMachineRequest(payload, discoveryPrincipal, {
+    readHistory: async () => [],
+    appendEvent: async () => ({ ok: false as const, error: 'DISCOVERY_ONLY' }),
+    executeCognitive: async () => ({ status: 403, body: { ok: false, error: 'DISCOVERY_ONLY' } }),
+    now: () => new Date(),
+  });
+}
+
+function authenticationRequiredToolResponse(
+  request: Request,
+  payload: unknown,
+  scope: string,
+) {
+  const challenge = oauthRuntimeChallenge(request, scope);
+  return Response.json({
+    jsonrpc: '2.0',
+    id: requestId(payload),
+    result: {
+      content: [{
+        type: 'text',
+        text: `Authentication required. Authorize SYSTEM FRICTION INSTITUTE with scope ${scope} to continue.`,
+      }],
+      _meta: {
+        'mcp/www_authenticate': [challenge],
+      },
+      isError: true,
+    },
+  }, {
+    status: 401,
+    headers: {
+      ...responseHeaders(requestedProtocol(payload)),
+      'WWW-Authenticate': oauthChallenge(request, scope),
+    },
+  });
+}
+
 function negotiateLegacyInitialize(body: JsonObject, protocolVersion: string) {
   const result = row(body.result);
   if (!Object.keys(result).length) return body;
@@ -135,10 +193,37 @@ export async function POST(request: Request) {
   }
 
   const requestMethod = method(payload);
+
+  if (requestMethod === 'notifications/initialized') {
+    return new Response(null, { status: 202, headers: responseHeaders(requestedProtocol(payload)) });
+  }
+  if (requestMethod === 'ping') {
+    return Response.json({ jsonrpc: '2.0', id: requestId(payload), result: {} }, {
+      status: 200,
+      headers: responseHeaders(requestedProtocol(payload)),
+    });
+  }
+  if (isPublicDiscoveryRequest(payload)) {
+    const discovery = await dispatchPublicDiscovery(payload);
+    const protocolVersion = requestMethod === 'initialize'
+      ? requestedProtocol(payload)
+      : SFI_AUTHENTICATED_MACHINE_PROTOCOL_VERSION;
+    const body = requestMethod === 'initialize'
+      ? negotiateLegacyInitialize(discovery.body, protocolVersion)
+      : discovery.body;
+    return Response.json(body, {
+      status: discovery.status,
+      headers: responseHeaders(protocolVersion),
+    });
+  }
+
   const requiredScope = requestedScope(payload);
   const auth = authorizeExternalRequest(request, requiredScope);
   const credential = auth.credential;
   if (!credential) {
+    if (requestMethod === 'tools/call') {
+      return authenticationRequiredToolResponse(request, payload, requiredScope);
+    }
     return Response.json(externalAuthError(auth, requiredScope), {
       status: 401,
       headers: {
@@ -157,16 +242,6 @@ export async function POST(request: Request) {
       reason: 'USER_BOUND_OAUTH_WITH_CLIENT_ID_REQUIRED',
       staticTokenExecutionAllowed: false,
     }, 403);
-  }
-
-  if (requestMethod === 'notifications/initialized') {
-    return new Response(null, { status: 202, headers: responseHeaders(requestedProtocol(payload)) });
-  }
-  if (requestMethod === 'ping') {
-    return Response.json({ jsonrpc: '2.0', id: requestId(payload), result: {} }, {
-      status: 200,
-      headers: responseHeaders(requestedProtocol(payload)),
-    });
   }
 
   const principal: SfiAuthenticatedMachinePrincipal = {
