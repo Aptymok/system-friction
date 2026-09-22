@@ -69,6 +69,7 @@ const cognitiveRuntimeRegistry = read('src/lib/sfi/cognitive-runtime/registry.ts
 const coreAgentsRegistry = read('src/core/agents/agents.ts');
 const rootStateRoute = read('src/app/api/root/state/route.ts');
 const databaseVerifier = read('scripts/db/verify-sfi-database.mjs');
+const liveSurfaceProof = read('scripts/qa-sfi-live-proof.mjs');
 
 check('Scorefriction lab persistence uses the canonical systemic data-plane client and does not claim Supabase provenance',
   scorefrictionLab.includes("createServiceSupabaseClient")
@@ -248,6 +249,18 @@ check('institutional attractor, cognitive registries and ROOT diagnostics use ca
   && !rootStateRoute.includes("'sfi_graph_nodes'")
   && !rootStateRoute.includes("'sfi_graph_edges'")
   && !databaseVerifier.includes("name: 'vw_sfi_attractor_alignment_queue'"));
+
+check('live ROOT proof targets current auth and canonical surfaces without cosmetic green when human fixture is absent',
+  liveSurfaceProof.includes("'/api/root/state'")
+  && liveSurfaceProof.includes("'/api/sfi/operational-state'")
+  && liveSurfaceProof.includes("'/login'")
+  && liveSurfaceProof.includes("'/continuity-access'")
+  && !liveSurfaceProof.includes("'/sfi-console'")
+  && liveSurfaceProof.includes("SFI_ROOT_COOKIE_HEADER")
+  && liveSurfaceProof.includes('currently Neon-backed')
+  && liveSurfaceProof.includes("proof_state: proofState")
+  && liveSurfaceProof.includes("proofState === 'BLOCKED_BY_AUTH_FIXTURE'")
+  && liveSurfaceProof.includes('process.exitCode = 2'));
 
 check('Field persistence recent runtime status uses one bounded canonical ledger projection instead of legacy count probes',
   fieldPersistRoute.includes(".select('id,event_name,payload,created_at')")
