@@ -8,6 +8,7 @@ const health = fs.readFileSync('src/app/api/worldspect/health/route.ts', 'utf8')
 const trend = fs.readFileSync('src/app/api/worldspect/trend/route.ts', 'utf8');
 const real = fs.readFileSync('src/app/api/worldspect/real/route.ts', 'utf8');
 const pulse = fs.readFileSync('scripts/qa-world-vector-pulse.mjs', 'utf8');
+const worldCron = fs.readFileSync('.github/workflows/worldspect-cron.yml', 'utf8');
 const worldVectorReadModel = fs.readFileSync('src/lib/world-vector/readModel.ts', 'utf8');
 const worldVectorOperational = fs.readFileSync('src/lib/world-vector/operationalState.ts', 'utf8');
 
@@ -37,6 +38,10 @@ assert.match(trend, /read_plane/, 'trend must expose read plane');
 assert.match(real, /getLatestWorldSpectSnapshotRead/, 'real snapshot must use read-plane-aware reader');
 assert.match(real, /readPlane/, 'real snapshot must expose read plane');
 assert.match(pulse, /WORLD_VECTOR_PULSE_QA_DEGRADED_CONTINUITY/, 'pulse QA must distinguish controlled continuity degradation');
+assert.match(pulse, /WORLD_VECTOR_PULSE_QA_BLOCKED_BY_EGRESS_POLICY/, 'pulse QA must distinguish an intentionally blocked scheduled cycle from an executed observation failure');
+assert.match(pulse, /restricted_read_plane_unavailable/, 'blocked scheduled cycle must still fail when the WorldSpect read plane is unavailable');
+assert.match(worldCron, /SFI_WORLD_CYCLE_EXECUTION_STATE/, 'world cron must propagate scheduled execution state into pulse QA');
+assert.match(worldCron, /SFI_WORLD_CYCLE_MIXED_EGRESS_STATE/, 'world cron must fail closed when only part of the scheduled cycle is egress-restricted');
 assert.match(worldVectorReadModel, /getLatestWorldSpectSnapshotRead/, 'World Vector latest observation must preserve WorldSpect read-plane provenance');
 assert.match(worldVectorReadModel, /getRecentWorldSpectSnapshotsRead/, 'World Vector history must preserve WorldSpect read-plane provenance');
 assert.match(worldVectorReadModel, /read_provenance/, 'World Vector read model must expose provenance instead of discarding it');
@@ -46,7 +51,7 @@ assert.match(worldVectorOperational, /read_provenance: today\.read_provenance/, 
 
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-WORLDSPECT-NEON-READPLANE-1.0',
+  contract: 'SFI-WORLDSPECT-NEON-READPLANE-1.1',
   primaryWriter: 'SUPABASE',
   continuityReadFallback: true,
   continuityWriteExpansion: false,

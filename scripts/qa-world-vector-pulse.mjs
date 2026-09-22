@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 const appUrl = process.env.VERCEL_APP_URL?.replace(/\/+$/, '');
+const executionState = process.env.SFI_WORLD_CYCLE_EXECUTION_STATE || 'EXECUTED';
 
 function fail(reason, action = 'Inspect /api/worldspect/health and recent cron runs.') {
   console.error('WORLD_VECTOR_PULSE_QA_FAILED');
@@ -48,6 +49,27 @@ const real = await readJson('/api/worldspect/real');
 const continuityDegraded = health.status === 'degraded'
   && health.read_plane === 'NEON'
   && health.continuity_state === 'DEGRADED_CONTINUITY';
+
+if (executionState === 'BLOCKED_BY_EGRESS_POLICY') {
+  if (health.ok !== true) fail('restricted_health.ok_not_true', 'WorldSpect health endpoint must remain readable while scheduled writes are restricted.');
+  if (health.read_plane === 'UNAVAILABLE' || health.continuity_state === 'FAILED') {
+    fail('restricted_read_plane_unavailable', health.primary_diagnostic || health.latest_error || 'WorldSpect read plane unavailable while egress is restricted.');
+  }
+  if (trend.ok !== true) fail('restricted_trend.ok_not_true', 'WorldSpect trend endpoint must remain readable while scheduled writes are restricted.');
+  if (trend.read_plane === 'UNAVAILABLE') fail('restricted_trend_read_plane_unavailable', 'WorldSpect trend read plane is unavailable.');
+
+  console.log('WORLD_VECTOR_PULSE_QA_BLOCKED_BY_EGRESS_POLICY');
+  console.log(line('execution_state', executionState));
+  console.log(line('health_status', health.status));
+  console.log(line('read_plane', health.read_plane));
+  console.log(line('continuity_state', health.continuity_state));
+  console.log(line('sample_count', trend.sample_count));
+  console.log(line('trend_quality', trend.trend_quality));
+  console.log(line('warnings', health.warnings || []));
+  process.exit(0);
+}
+
+if (executionState !== 'EXECUTED') fail('invalid_execution_state', `SFI_WORLD_CYCLE_EXECUTION_STATE=${executionState}`);
 
 if (health.status === 'failed') fail('health.status=failed', (health.warnings || []).join('|') || health.latest_error || 'Inspect health output.');
 if (trend.ok !== true) fail('trend.ok_not_true', 'WorldSpect trend endpoint did not return ok=true.');

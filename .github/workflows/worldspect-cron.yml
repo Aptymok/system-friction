@@ -39,32 +39,85 @@ jobs:
           node-version: '20'
 
       - name: Execute Canonical WorldSpect Measurement
+        id: worldspect
         env:
           VERCEL_APP_URL: ${{ secrets.VERCEL_APP_URL }}
           WORLDSPECT_INGEST_SECRET: ${{ secrets.WORLDSPECT_INGEST_SECRET }}
         run: |
           test -n "$VERCEL_APP_URL" || (echo "Missing VERCEL_APP_URL secret" && exit 1)
           test -n "$WORLDSPECT_INGEST_SECRET" || (echo "Missing WORLDSPECT_INGEST_SECRET" && exit 1)
-          curl --fail-with-body -X POST "$VERCEL_APP_URL/api/cron/worldspect" \
+          body="$(curl --fail-with-body -X POST "$VERCEL_APP_URL/api/cron/worldspect" \
             -H "Authorization: Bearer $WORLDSPECT_INGEST_SECRET" \
             -H "X-SFI-Ingest-Mode: $WORLDSPECT_INGEST_MODE" \
-            -H "X-SFI-Measurement-Slot: $WORLDSPECT_MEASUREMENT_SLOT"
+            -H "X-SFI-Measurement-Slot: $WORLDSPECT_MEASUREMENT_SLOT")"
+          printf '%s\n' "$body"
+          status="$(BODY="$body" node - <<'NODE'
+          const body = JSON.parse(process.env.BODY || '{}');
+          if (body.ok !== true) process.exit(2);
+          process.stdout.write(body.status === 'EGRESS_RESTRICTED' ? 'EGRESS_RESTRICTED' : 'EXECUTED');
+          NODE
+          )"
+          echo "status=$status" >> "$GITHUB_OUTPUT"
 
       - name: Execute World Observatory Observation Hypothesis Calibration Cycle
+        id: observatory
         env:
           VERCEL_APP_URL: ${{ secrets.VERCEL_APP_URL }}
           WORLDSPECT_INGEST_SECRET: ${{ secrets.WORLDSPECT_INGEST_SECRET }}
         run: |
-          curl --fail-with-body -X POST "$VERCEL_APP_URL/api/cron/world-observatory" \
-            -H "Authorization: Bearer $WORLDSPECT_INGEST_SECRET"
+          body="$(curl --fail-with-body -X POST "$VERCEL_APP_URL/api/cron/world-observatory" \
+            -H "Authorization: Bearer $WORLDSPECT_INGEST_SECRET")"
+          printf '%s\n' "$body"
+          status="$(BODY="$body" node - <<'NODE'
+          const body = JSON.parse(process.env.BODY || '{}');
+          if (body.ok !== true) process.exit(2);
+          process.stdout.write(body.status === 'EGRESS_RESTRICTED' ? 'EGRESS_RESTRICTED' : 'EXECUTED');
+          NODE
+          )"
+          echo "status=$status" >> "$GITHUB_OUTPUT"
 
       - name: Execute SFI Institutional Cognitive Cycle
+        id: institutional
         env:
           VERCEL_APP_URL: ${{ secrets.VERCEL_APP_URL }}
           WORLDSPECT_INGEST_SECRET: ${{ secrets.WORLDSPECT_INGEST_SECRET }}
         run: |
-          curl --fail-with-body -X POST "$VERCEL_APP_URL/api/cron/sfi-institutional-cycle" \
-            -H "Authorization: Bearer $WORLDSPECT_INGEST_SECRET"
+          body="$(curl --fail-with-body -X POST "$VERCEL_APP_URL/api/cron/sfi-institutional-cycle" \
+            -H "Authorization: Bearer $WORLDSPECT_INGEST_SECRET")"
+          printf '%s\n' "$body"
+          status="$(BODY="$body" node - <<'NODE'
+          const body = JSON.parse(process.env.BODY || '{}');
+          if (body.ok !== true) process.exit(2);
+          process.stdout.write(body.status === 'EGRESS_RESTRICTED' ? 'EGRESS_RESTRICTED' : 'EXECUTED');
+          NODE
+          )"
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+
+      - name: Classify scheduled observation execution
+        env:
+          WORLDSPECT_STAGE: ${{ steps.worldspect.outputs.status }}
+          OBSERVATORY_STAGE: ${{ steps.observatory.outputs.status }}
+          INSTITUTIONAL_STAGE: ${{ steps.institutional.outputs.status }}
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const stages = [
+            process.env.WORLDSPECT_STAGE,
+            process.env.OBSERVATORY_STAGE,
+            process.env.INSTITUTIONAL_STAGE,
+          ];
+          const restricted = stages.filter((value) => value === 'EGRESS_RESTRICTED').length;
+          const executed = stages.filter((value) => value === 'EXECUTED').length;
+          let state = 'INVALID';
+          if (restricted === stages.length) state = 'BLOCKED_BY_EGRESS_POLICY';
+          else if (executed === stages.length) state = 'EXECUTED';
+          else {
+            console.error(`SFI_WORLD_CYCLE_MIXED_EGRESS_STATE stages=${stages.join(',')}`);
+            process.exit(1);
+          }
+          fs.appendFileSync(process.env.GITHUB_ENV, `SFI_WORLD_CYCLE_EXECUTION_STATE=${state}\n`);
+          console.log(`SFI_WORLD_CYCLE_EXECUTION_STATE=${state}`);
+          NODE
 
       - name: Run World Vector Pulse QA
         env:
