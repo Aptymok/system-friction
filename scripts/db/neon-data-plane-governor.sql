@@ -99,11 +99,22 @@ begin
 end;
 $$;
 
-do $$ begin
+-- Neon Data API continuity contract:
+-- provision the Data API with auth_provider=external,
+-- JWKS=https://www.systemfriction.org/api/system/data-plane/jwks,
+-- audience=sfi-neon-data-api. The gateway role must be allowed to SET ROLE
+-- to the bounded continuity service role after the JWT is verified.
+do $ begin
   if not exists (select 1 from pg_roles where rolname = 'sfi_continuity_service') then
     create role sfi_continuity_service nologin nobypassrls;
   end if;
-end $$;
+end $;
+
+do $ begin
+  if exists (select 1 from pg_roles where rolname = 'authenticator') then
+    grant sfi_continuity_service to authenticator;
+  end if;
+end $;
 
 grant usage on schema public to sfi_continuity_service;
 grant select, insert, update, delete on all tables in schema public to sfi_continuity_service;
