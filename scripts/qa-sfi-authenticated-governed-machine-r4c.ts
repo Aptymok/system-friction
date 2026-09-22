@@ -6,7 +6,10 @@ function text(path: string) {
 }
 
 const adapter = text('src/lib/mcp/authenticatedGovernedMachineAdapter.ts');
+const gatewayProjection = text('src/lib/mcp/authenticatedGatewayProjection.ts');
 const route = text('src/app/api/mcp/authenticated/route.ts');
+const protectedResourceMetadata = text('src/app/.well-known/oauth-protected-resource/route.ts');
+const rootDecisionRoute = text('src/app/api/external/v1/governance/proposals/[id]/decision/route.ts');
 const publicRoute = text('src/app/api/mcp/public/route.ts');
 const publicServer = text('src/lib/mcp/publicMcpServer.ts');
 const externalAuth = text('src/lib/sfi/externalAuth.ts');
@@ -42,7 +45,14 @@ assert.match(adapter, /reservationEventId/, 'deterministic_replay_reservation_re
 assert.match(adapter, /SFI_MACHINE_EXECUTION_OBSERVED/, 'execution_receipt_required');
 assert.match(adapter, /SFI_MACHINE_AUTHORIZATION_DENIED/, 'denial_receipt_required');
 assert.match(adapter, /canonicalPromotionAllowed: false/, 'machine_adapter_cannot_promote_canon');
-assert.match(adapter, /externalSideEffectExecuted: false/, 'current_adapter_must_not_expose_external_side_effects');
+assert.match(adapter, /externalSideEffectExecuted: false/, 'grant_bound_cognitive_execution_must_not_expose_external_side_effects');
+assert.match(gatewayProjection, /SFI-AUTHENTICATED-GATEWAY-PROJECTION-1\.0/, 'gateway_projection_contract_required');
+assert.match(gatewayProjection, /invoke_sfi_gateway_operation/, 'gateway_projection_tool_required');
+assert.match(gatewayProjection, /SFI_GATEWAY_OPERATION_NOT_ALLOWED/, 'gateway_projection_must_reject_arbitrary_operations');
+assert.match(gatewayProjection, /governance:decide/, 'gateway_projection_must_preserve_root_decision_scope');
+assert.doesNotMatch(gatewayProjection, /executeSfiCognitiveAgentContract/, 'gateway_projection_must_not_bypass_grant_bound_cognitive_execution');
+assert.match(adapter, /cognitiveGrantBypassAllowed: false/, 'gateway_projection_must_publish_no_cognitive_grant_bypass');
+assert.match(adapter, /ONLY_THROUGH_EXISTING_GATEWAY_AUTHORIZATION/, 'gateway_projection_external_effects_must_remain_owned_by_canonical_gateway');
 
 assert.match(route, /authorizeExternalRequest/, 'must_absorb_existing_oauth_gateway');
 assert.match(route, /appendEpistemicEvent/, 'must_absorb_existing_event_owner');
@@ -64,6 +74,12 @@ assert.match(tokenRoute, /clientId,\n\s*label:/, 'oauth_token_exchange_must_bind
 assert.match(externalAuth, /clientId: session\.clientId/, 'gateway_credential_must_expose_verified_client_id');
 assert.match(route, /credential\.authMethod !== 'oauth'/, 'authenticated_machine_must_reject_static_tokens');
 assert.match(route, /!credential\.clientId/, 'authenticated_machine_must_reject_unbound_legacy_tokens');
+assert.match(route, /requiredScopeForAuthenticatedGatewayInvocation/, 'gateway_projection_scope_must_be_resolved_before_authorization');
+assert.match(route, /Authorization: authorization/, 'gateway_projection_must_forward_only_bound_oauth_identity_to_canonical_gateway');
+assert.match(route, /buildAuthenticatedGatewayRequest/, 'gateway_projection_must_reuse_allowlisted_request_builder');
+assert.match(protectedResourceMetadata, /SFI_ROOT_SCOPES/, 'authenticated_mcp_resource_metadata_must_publish_root_scope_ceiling');
+assert.match(rootDecisionRoute, /credential\.role !== 'root_delegate'/, 'governance_decision_must_require_root_delegate');
+assert.match(rootDecisionRoute, /sovereignRootProfile/, 'governance_decision_must_revalidate_sovereign_root_profile');
 
 assert.match(grantOwner, /capabilityGrantNonceHash\(nonce: string\)/, 'upstream_grant_hash_owner_required');
 assert.match(route, /x-sfi-capability-grant-nonce/i, 'machine_grant_nonce_header_required');
