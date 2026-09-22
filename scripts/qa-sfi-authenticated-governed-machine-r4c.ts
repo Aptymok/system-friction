@@ -76,6 +76,10 @@ assert.match(route, /credential\.authMethod !== 'oauth'/, 'authenticated_machine
 assert.match(route, /!credential\.clientId/, 'authenticated_machine_must_reject_unbound_legacy_tokens');
 assert.match(route, /requiredScopeForAuthenticatedGatewayInvocation/, 'gateway_projection_scope_must_be_resolved_before_authorization');
 assert.match(route, /Authorization: authorization/, 'gateway_projection_must_forward_only_bound_oauth_identity_to_canonical_gateway');
+const gatewayForwardBlock = route.match(/invokeGateway: async \(invocation\) => \{([\s\S]*?)\n    \},\n    readInstitutionalContext/)?.[1] ?? '';
+assert.ok(gatewayForwardBlock, 'gateway_projection_forward_block_must_be_inspectable');
+assert.match(gatewayForwardBlock, /Authorization: authorization/, 'gateway_projection_must_forward_bearer_identity');
+assert.doesNotMatch(gatewayForwardBlock, /x-sfi-capability-grant-nonce|rawGrantNonce|presentedGrantNonceHash/i, 'gateway_projection_must_not_forward_cognitive_possession_proof');
 assert.match(route, /buildAuthenticatedGatewayRequest/, 'gateway_projection_must_reuse_allowlisted_request_builder');
 assert.match(protectedResourceMetadata, /SFI_AUTHENTICATED_MCP_SCOPES/, 'authenticated_mcp_resource_metadata_must_publish_exact_projected_scope_set');
 assert.match(rootDecisionRoute, /credential\.role !== 'root_delegate'/, 'governance_decision_must_require_root_delegate');
