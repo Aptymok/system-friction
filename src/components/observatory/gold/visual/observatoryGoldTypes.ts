@@ -27,6 +27,34 @@ export type ObservatoryTemporalFrame = {
   }>;
 };
 
+export type ObservatoryPublicSourceObservation = {
+  ref: string;
+  key: string;
+  label: string | null;
+  domain: string;
+  provider: string | null;
+  value: number;
+  unit: string | null;
+  nti: number | null;
+  weight: number | null;
+  observedAt: string;
+};
+
+export type ObservatoryVectorReconstructibility = {
+  vectorId: string;
+  state: 'RECONSTRUCTIBLE_TO_NORMALIZED_SOURCE' | 'EVIDENCE_NOT_PUBLICLY_RECONSTRUCTIBLE';
+  derivation: 'ARITHMETIC_MEAN_OF_NORMALIZED_USABLE_SOURCES';
+  publishedValue: number;
+  reconstructedValue: number | null;
+  tolerance: number;
+  matchesPublishedValue: boolean | null;
+  declaredSourceCount: number;
+  publicSourceCount: number;
+  observations: ObservatoryPublicSourceObservation[];
+  upstreamRawState: 'NOT_PUBLICLY_EXPOSED';
+  limitations: string[];
+};
+
 export type ObservatoryGoldState = {
   generatedAt: string;
   systemState: ObservatoryGoldSystemState;
@@ -62,6 +90,14 @@ export type ObservatoryGoldState = {
   };
 
   temporalFrames?: ObservatoryTemporalFrame[];
+
+  reconstructibility?: {
+    contract: 'SFI-PUBLIC-WORLD-RECONSTRUCTIBILITY-1.0';
+    state: 'PARTIAL' | 'EVIDENCE_NOT_PUBLICLY_RECONSTRUCTIBLE';
+    sourceSnapshotObservedAt: string | null;
+    vectors: ObservatoryVectorReconstructibility[];
+    limitations: string[];
+  };
 
   explanation: {
     title: string;

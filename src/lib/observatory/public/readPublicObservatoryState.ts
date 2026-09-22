@@ -93,6 +93,86 @@ function sourceDomain(source: Row) {
   return null;
 }
 
+function publicSourceObservation(snapshotObservedAt: string, source: Row) {
+  const key = text(source.key);
+  const domain = sourceDomain(source);
+  const value = normalize(source.value);
+  if (!key || !domain || value === null || source.simulated === true || text(source.error)) return null;
+  const raw = record(source.raw);
+  return {
+    ref: `worldspect-source:${snapshotObservedAt}:${key}`,
+    key,
+    label: text(source.label) || null,
+    domain,
+    provider: text(raw.provider) || null,
+    value,
+    unit: text(source.unit) || null,
+    nti: normalize(source.nti),
+    weight: normalize(source.weight),
+    observedAt: text(source.ts, snapshotObservedAt),
+  };
+}
+
+function buildPublicWorldReconstructibility(
+  vectors: ObservatoryGoldState['vectors'],
+  history: PublicHistoryRow[],
+): NonNullable<ObservatoryGoldState['reconstructibility']> {
+  const latest = history.at(-1) ?? null;
+  const tolerance = 0.0001;
+  const vectorResults = vectors.map((vector) => {
+    const observations = latest
+      ? latest.sources
+        .map((source) => publicSourceObservation(latest.observedAt, source))
+        .filter((item): item is NonNullable<ReturnType<typeof publicSourceObservation>> => item !== null)
+        .filter((item) => vector.domainKeys.includes(item.domain))
+      : [];
+    const reconstructedValue = observations.length
+      ? Number((observations.reduce((sum, item) => sum + item.value, 0) / observations.length).toFixed(4))
+      : null;
+    const matchesPublishedValue = reconstructedValue === null
+      ? null
+      : Math.abs(reconstructedValue - vector.value) <= tolerance;
+    const sourceCountsMatch = observations.length === vector.sourceCount;
+    const state = vector.active
+      && observations.length > 0
+      && sourceCountsMatch
+      && matchesPublishedValue === true
+      ? 'RECONSTRUCTIBLE_TO_NORMALIZED_SOURCE' as const
+      : 'EVIDENCE_NOT_PUBLICLY_RECONSTRUCTIBLE' as const;
+
+    return {
+      vectorId: vector.id,
+      state,
+      derivation: 'ARITHMETIC_MEAN_OF_NORMALIZED_USABLE_SOURCES' as const,
+      publishedValue: vector.value,
+      reconstructedValue,
+      tolerance,
+      matchesPublishedValue,
+      declaredSourceCount: vector.sourceCount,
+      publicSourceCount: observations.length,
+      observations,
+      upstreamRawState: 'NOT_PUBLICLY_EXPOSED' as const,
+      limitations: [
+        'The published vector is reconstructible only to normalized usable source inputs exposed here.',
+        'Provider raw payloads and provider-specific normalization transforms are not exposed by this public projection.',
+      ],
+    };
+  });
+  const activeResults = vectorResults.filter((item) => vectors.find((vector) => vector.id === item.vectorId)?.active);
+  const reconstructibleCount = activeResults.filter((item) => item.state === 'RECONSTRUCTIBLE_TO_NORMALIZED_SOURCE').length;
+
+  return {
+    contract: 'SFI-PUBLIC-WORLD-RECONSTRUCTIBILITY-1.0',
+    state: reconstructibleCount > 0 ? 'PARTIAL' : 'EVIDENCE_NOT_PUBLICLY_RECONSTRUCTIBLE',
+    sourceSnapshotObservedAt: latest?.observedAt ?? null,
+    vectors: vectorResults,
+    limitations: [
+      'Normalized source inputs are public evidence for the vector calculation; they are not the providers raw payloads.',
+      'Where a vector cannot be reproduced from the exposed normalized inputs, the state remains EVIDENCE_NOT_PUBLICLY_RECONSTRUCTIBLE rather than being inferred.',
+    ],
+  };
+}
+
 function domainValue(snapshot: PublicHistoryRow, domains: string[]) {
   const values = snapshot.sources
     .filter((source) => source.simulated !== true && !text(source.error))
@@ -245,6 +325,8 @@ export async function readPublicObservatoryState(): Promise<ObservatoryGoldState
     };
   });
 
+  const reconstructibility = buildPublicWorldReconstructibility(vectors, history);
+
   const firstObservedAt = points[0]?.observedAt ?? null;
   const lastObservedAt = points.at(-1)?.observedAt ?? null;
   const longitudinal: ObservatoryGoldState['longitudinal'] = {
@@ -264,6 +346,7 @@ export async function readPublicObservatoryState(): Promise<ObservatoryGoldState
     ...baseState,
     longitudinal,
     vectors,
+    reconstructibility,
     highlightedSignals: vectors
       .filter((vector) => vector.active)
       .sort((a, b) => b.value - a.value)

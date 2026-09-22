@@ -93,12 +93,12 @@ const EVIDENCE_INPUT_SCHEMA = Object.freeze({
   properties: {
     identifier: { type: 'string', minLength: 1, description: 'Canonical public-object id, object key, slug, or canonical URL.' },
     capsuleId: { type: 'string', minLength: 1, description: 'Evidence Capsule identifier supplied to the WS-03 owner.' },
-    claim: { type: 'string', minLength: 1, description: 'Claim supplied unchanged to the WS-03 Evidence Capsule owner.' },
+    claim: { type: 'string', minLength: 1, description: 'Client-supplied claim passed unchanged to the WS-03 Evidence Capsule owner; it is not discovered independently by this tool.' },
     evidenceRefs: {
       type: 'array',
       minItems: 1,
       items: { type: 'string', minLength: 1 },
-      description: 'Validated evidence references; WS-03 decides whether each ref is admissible.',
+      description: 'Client-supplied evidence references. WS-03 validates whether each ref is already admitted by the canonical object; this tool does not discover refs independently.',
     },
     observedAt: { type: 'string', description: 'Observation timestamp when origin is observational. Exactly-one temporal semantics remain WS-03-owned.' },
     producedAt: { type: 'string', description: 'Production timestamp for non-observational capsule origins. Exactly-one temporal semantics remain WS-03-owned.' },
@@ -141,7 +141,7 @@ export const SFI_PUBLIC_MCP_TOOLS = Object.freeze([
   },
   {
     name: 'get_public_evidence',
-    description: 'Read a WS-03-governed Evidence Capsule projection for an explicitly public canonical object.',
+    description: 'Validate and materialize a WS-03-governed Evidence Capsule for an explicitly public canonical object using client-supplied claim, evidence refs, and temporal coordinates.',
     inputSchema: EVIDENCE_INPUT_SCHEMA,
   },
   {
@@ -323,6 +323,15 @@ export function getPublicCanonicalObject(
   return record ? publicProjectionForCanonicalObject(record) : null;
 }
 
+function evidenceInputProvenance() {
+  return {
+    claim: 'CLIENT_SUPPLIED',
+    evidenceRefs: 'CLIENT_SUPPLIED',
+    temporalCoordinate: 'CLIENT_SUPPLIED',
+    independentEvidenceDiscovery: false,
+  } as const;
+}
+
 function evidenceRequestFromArgs(args: JsonObject): SfiEvidenceCapsuleRequest | null {
   const origin = text(args.origin) as SfiEvidenceCapsuleOrigin;
   if (!(EVIDENCE_ORIGINS as readonly string[]).includes(origin)) return null;
@@ -359,6 +368,7 @@ export function publicEvidenceForCanonicalObjects(
       state: 'AVAILABLE',
       sourceContract: SFI_EVIDENCE_CAPSULE_CONTRACT,
       found: false,
+      inputProvenance: evidenceInputProvenance(),
       capsule: null,
     };
   }
@@ -375,6 +385,7 @@ export function publicEvidenceForCanonicalObjects(
       found: true,
       disposition: ownerDisposition.disposition,
       reasons: ownerDisposition.reasons,
+      inputProvenance: evidenceInputProvenance(),
       capsule: null,
     };
   }
@@ -395,6 +406,7 @@ export function publicEvidenceForCanonicalObjects(
     sourceContract: SFI_EVIDENCE_CAPSULE_CONTRACT,
     found: true,
     disposition: ownerDisposition.disposition,
+    inputProvenance: evidenceInputProvenance(),
     capsule,
   };
 }
