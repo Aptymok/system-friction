@@ -2,6 +2,7 @@ import { createHash } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { runLlmTask } from '@/lib/ai/providerRouter';
 import { ensureOwnedNode } from '@/lib/server/productionBackend';
+import { emitEpistemicEvent } from '@/core/memory/epistemicEventWriter';
 
 type FieldContext = {
   regime: string;
@@ -124,20 +125,27 @@ async function logAmvResponse(input: {
       confidence: input.response.confidence,
       sourceState: input.response.sourceState,
       source: 'amv.field-response.route',
+      streamType: 'agent',
     };
 
-    const { error } = await ctx.service.from('cognitive_event_stream').insert({
-      node_id: ctx.node.id,
-      stream_type: 'agent',
-      event_name: 'AMV_RESPONSE',
+    const payloadHash = hashPayload(payloadBase);
+    const emitted = await emitEpistemicEvent({
+      eventName: 'AMV_RESPONSE',
+      logbookId: `ACTOR:${ctx.user.id}`,
+      epistemicClass: 'derived',
+      schemaVersion: '2026-09-21.actor-event.v1',
+      sourceId: payloadHash,
+      sourceType: 'SFI_AMV_FIELD_RESPONSE',
+      actorId: ctx.user.id,
+      nodeId: ctx.node.id,
+      confidence: input.response.confidence,
       payload: {
         ...payloadBase,
-        payloadHash: hashPayload(payloadBase),
+        payloadHash,
       },
-      emitted_by: 'SFI_AMV_FIELD_RESPONSE',
     });
 
-    if (error) {
+    if (!emitted.ok) {
       return { responseLogged: false, warnings: ['amv_response_not_logged'] };
     }
 
