@@ -126,7 +126,7 @@ export async function POST(req: Request) {
   };
   const evidenceHash = sha256(payload);
 
-  const existing = await service.from('root_evidence_entries').select('*').eq('evidence_hash', evidenceHash).maybeSingle();
+  const existing = await service.from('root_evidence_entries').select('id,evidence_hash,actor_id,title,content,evidence_type,target_node_id,payload,epistemic_event_id,created_at').eq('evidence_hash', evidenceHash).maybeSingle();
   if (existing.error) return NextResponse.json({ ok: false, error: 'root_evidence_lookup_failed', details: existing.error.message }, { status: 400 });
   if (existing.data) {
     const [audit, cognitiveTwin] = await Promise.all([
@@ -188,7 +188,7 @@ export async function POST(req: Request) {
     target_node_id: targetNodeId,
     payload,
     epistemic_event_id: eventId,
-  }).select('*').single();
+  }).select('id,evidence_hash,actor_id,title,content,evidence_type,target_node_id,payload,epistemic_event_id,created_at').single();
   if (evidenceInsert.error) {
     if (storagePath) await service.storage.from(ROOT_EVIDENCE_BUCKET).remove([storagePath]);
     return NextResponse.json({ ok: false, error: 'root_evidence_insert_failed', details: evidenceInsert.error.message }, { status: 400 });
@@ -287,7 +287,7 @@ export async function POST(req: Request) {
     proposedState: payload,
     coherenceDelta: 0,
     payload: { ...payload, evidenceHash, rootEvidenceId: evidenceInsert.data.id, proposalId: proposal?.ok ? proposal.data.id : null },
-  })).select('*').single();
+  })).select('id,event_id,mutation_key,target,current_state,proposed_state,coherence_delta,status,proposal_id,actor_id,mutation_type,payload,created_at,updated_at').single();
   if (mutation.error) return NextResponse.json({ ok: false, error: 'logbook_evidence_insert_failed', details: mutation.error.message }, { status: 400 });
 
   const [audit, cognitiveTwin] = await Promise.all([
