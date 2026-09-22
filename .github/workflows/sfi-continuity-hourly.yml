@@ -167,6 +167,9 @@ jobs:
 
           core = payload.get('coreHeartbeat') or {}
           lane_status = payload.get('laneStatus') or {}
+          primary_probe = payload.get('primaryPhysicalProbe') or {}
+          continuity_rest_probe = payload.get('continuityRestProbe') or {}
+          recovery_attempt = payload.get('recoveryAttempt') or {}
           universal = payload.get('universalCycleContinuation') or {}
           before = payload.get('returnPlanUpgradeBefore') or {}
           after = payload.get('returnPlanUpgradeAfter') or {}
@@ -181,6 +184,11 @@ jobs:
               'requestedCycleId': payload.get('requestedCycleId'),
               'targetSource': target_source,
               'coreHeartbeat': core,
+              'dataPlane': payload.get('dataPlane'),
+              'primaryDiagnostic': payload.get('primaryDiagnostic'),
+              'primaryPhysicalProbe': primary_probe,
+              'continuityRestProbe': continuity_rest_probe,
+              'recoveryAttempt': recovery_attempt,
               'laneStatus': lane_status,
               'returnPlanUpgradeBefore': {'ok': before.get('ok'), 'processed': before.get('processed'), 'results': before.get('results', [])},
               'universal': {
