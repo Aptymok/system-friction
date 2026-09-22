@@ -17,6 +17,17 @@ function sourceState(status: string | null) {
   return 'MISSING';
 }
 
+function aggregateSourceState(rows: Array<{ source_status?: unknown }>) {
+  const states = rows.map((row) => sourceState(
+    typeof row.source_status === 'string' ? row.source_status : null,
+  ));
+
+  if (states.some((state) => state === 'MISSING')) return 'MISSING';
+  if (states.some((state) => state === 'DEGRADED')) return 'DEGRADED';
+  if (states.some((state) => state === 'THIN')) return 'THIN';
+  return states.length ? 'OBSERVED' : 'MISSING';
+}
+
 export async function GET() {
   const service = createServiceSupabaseClient();
   const { data, error } = await service
@@ -62,7 +73,7 @@ export async function GET() {
 
   const avgIHG = ihgs.reduce((sum, value) => sum + value, 0) / ihgs.length;
   const variance = ihgs.reduce((sum, value) => sum + Math.pow(value - avgIHG, 2), 0) / ihgs.length;
-  const state = sourceState(latestSourceStatus);
+  const state = aggregateSourceState(rows);
 
   return NextResponse.json({
     globalAverageIHG: avgIHG,
