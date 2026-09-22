@@ -64,6 +64,11 @@ const retiredSchema = read('config/sfi-retired-schema.json');
 const consolidationAudit = read('scripts/system-consolidation-audit.py');
 const sfiPsiStore = read('src/lib/sfi-psi/store.ts');
 const indicatorSnapshotStore = read('src/lib/sfi/indicatorSnapshot.ts');
+const institutionalAttractorEnsure = read('src/lib/institution/ensureInstitutionalAttractor.ts');
+const cognitiveRuntimeRegistry = read('src/lib/sfi/cognitive-runtime/registry.ts');
+const coreAgentsRegistry = read('src/core/agents/agents.ts');
+const rootStateRoute = read('src/app/api/root/state/route.ts');
+const databaseVerifier = read('scripts/db/verify-sfi-database.mjs');
 
 check('Scorefriction lab persistence uses the canonical systemic data-plane client and does not claim Supabase provenance',
   scorefrictionLab.includes("createServiceSupabaseClient")
@@ -220,12 +225,25 @@ check('final legacy schema inventory separates physically live contracts, retire
     'actions','amv_messages','amv_sessions','audits','cognitive_event_stream','decision_gate_logs',
     'events','external_reality_weights','intent_history','intents','interaction_events','licenses',
     'logbook_visible','media_drafts','memory_facts','memory_vectors','structured_observations','systemic_patterns',
-    'mihm_analyses','nodes','sfi_graph_edges','sfi_ingestion_attestation_receipts','vw_sfi_attractor_alignment_queue',
+    'mihm_analyses','nodes','sfi_graph_nodes','sfi_graph_edges','sfi_ingestion_attestation_receipts','vw_sfi_attractor_alignment_queue',
   ].every((name) => !legacyLiveSchema.includes(`"${name}"`) && retiredSchema.includes(`"${name}"`))
   && legacyLiveSchema.includes('"logbook_knowledge"')
   && !retiredSchema.includes('"logbook_knowledge"')
   && consolidationAudit.includes('function_body_schema_references')
   && consolidationAudit.includes('schema_refs.setdefault(table, set()).add(source)'));
+
+check('institutional attractor, cognitive registries and ROOT diagnostics use canonical graph and MIHM stores',
+  institutionalAttractorEnsure.includes("from('graph_nodes')")
+  && institutionalAttractorEnsure.includes("node_type: 'INST'")
+  && !institutionalAttractorEnsure.includes("from('sfi_graph_nodes')")
+  && !cognitiveRuntimeRegistry.includes("'sfi_graph_nodes'")
+  && !coreAgentsRegistry.includes("'sfi_graph_nodes'")
+  && rootStateRoute.includes("'field_mihm_readings'")
+  && !rootStateRoute.includes("'nodes'")
+  && !rootStateRoute.includes("'mihm_analyses'")
+  && !rootStateRoute.includes("'sfi_graph_nodes'")
+  && !rootStateRoute.includes("'sfi_graph_edges'")
+  && !databaseVerifier.includes("name: 'vw_sfi_attractor_alignment_queue'"));
 
 check('Field persistence recent runtime status uses one bounded canonical ledger projection instead of legacy count probes',
   fieldPersistRoute.includes(".select('id,event_name,payload,created_at')")
