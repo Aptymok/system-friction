@@ -19,17 +19,24 @@ export async function POST(req: NextRequest) {
 
   if (eventsError) return NextResponse.json({ error: 'bitacora_source_read_failed' }, { status: 500 });
 
-  const metrics = events?.find((event) => {
-    const payload = event.payload && typeof event.payload === 'object' ? event.payload as Record<string, unknown> : {};
-    return payload.metrics && typeof payload.metrics === 'object';
-  })?.payload?.metrics || {
+  let observedMetrics: Record<string, unknown> | null = null;
+  for (const event of events || []) {
+    const payload = event.payload && typeof event.payload === 'object' && !Array.isArray(event.payload)
+      ? event.payload as Record<string, unknown>
+      : {};
+    if (payload.metrics && typeof payload.metrics === 'object' && !Array.isArray(payload.metrics)) {
+      observedMetrics = payload.metrics as Record<string, unknown>;
+      break;
+    }
+  }
+  const metrics = observedMetrics || {
     ihg: ctx.node.current_ihg,
     nti: ctx.node.current_nti,
     ldi: ctx.node.current_ldi,
   };
   const fragment = denseFragment(metrics as { ihg?: number; nti?: number; ldi?: number }, mode === 'public_fragment' ? 'publicar residuo mínimo antes de saturación' : undefined);
   const density = Math.min(1, Number(((events?.length || 0) / 20).toFixed(2)));
-  const calendar_hint = Number((metrics as Record<string, unknown>).ldi ?? 0) > 1 ? 'ventana corta: próximas 24-48h' : 'ventana estable: próximas 72h';
+  const calendar_hint = Number(metrics.ldi ?? 0) > 1 ? 'ventana corta: próximas 24-48h' : 'ventana estable: próximas 72h';
   const suggested_publication = mode === 'public_fragment' ? fragment : null;
 
   const event = await emitEpistemicEvent({
