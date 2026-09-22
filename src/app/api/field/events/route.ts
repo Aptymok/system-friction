@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ensureOwnedNode } from '@/lib/server/productionBackend';
 import type { ApiResult } from '../../../../../packages/api-contracts/src';
 import { isValidIdempotencyKey, sanitizeError } from '../../../../../packages/security/src';
+import { emitEpistemicEvent } from '@/core/memory/epistemicEventWriter';
 
 type FieldEventCommand = {
   command: 'field-events.create';
@@ -107,36 +108,84 @@ export async function POST(req: NextRequest) {
         trace_payload: command.trace_payload || {},
       }),
       source: 'field-events.route',
+      streamType: 'field',
     };
 
+    const canonicalEventId = `ACTOR_FIELD:${ctx.user.id}:${hashPayload(command.idempotencyKey)}`;
+
     const { data: existing, error: existingError } = await ctx.service
-      .from('cognitive_event_stream')
-      .select('*')
-      .eq('node_id', ctx.node.id)
-      .eq('stream_type', 'field')
-      .eq('event_name', command.event_type)
-      .eq('payload->>idempotencyKey', command.idempotencyKey)
-      .limit(1)
+      .from('epistemic_events')
+      .select('id,event_id,event_name,node_id,payload,created_at')
+      .eq('actor_id', ctx.user.id)
+      .eq('event_id', canonicalEventId)
       .maybeSingle();
 
     if (existingError) return apiSanitizedError(existingError, 500, traceId);
-    if (existing) return apiOk({ event: existing, duplicate: true }, traceId, ['idempotent_replay']);
+    if (existing) {
+      return apiOk({
+        event: {
+          id: existing.id,
+          node_id: existing.node_id,
+          stream_type: 'field',
+          event_name: existing.event_name,
+          payload: existing.payload,
+          emitted_by: 'SFI_FIELD_COMMAND',
+          created_at: existing.created_at,
+        },
+        duplicate: true,
+      }, traceId, ['idempotent_replay']);
+    }
 
-    const { data, error } = await ctx.service
-      .from('cognitive_event_stream')
-      .insert({
-        node_id: ctx.node.id,
+    const emitted = await emitEpistemicEvent({
+      eventId: canonicalEventId,
+      eventName: command.event_type,
+      logbookId: `ACTOR:${ctx.user.id}`,
+      epistemicClass: 'declared',
+      schemaVersion: '2026-09-21.actor-event.v1',
+      sourceId: command.idempotencyKey,
+      sourceType: 'SFI_FIELD_COMMAND',
+      actorId: ctx.user.id,
+      nodeId: ctx.node.id,
+      confidence: 0.6,
+      payload,
+    });
+
+    if (!emitted.ok) {
+      const { data: raced } = await ctx.service
+        .from('epistemic_events')
+        .select('id,event_id,event_name,node_id,payload,created_at')
+        .eq('actor_id', ctx.user.id)
+        .eq('event_id', canonicalEventId)
+        .maybeSingle();
+      if (raced) {
+        return apiOk({
+          event: {
+            id: raced.id,
+            node_id: raced.node_id,
+            stream_type: 'field',
+            event_name: raced.event_name,
+            payload: raced.payload,
+            emitted_by: 'SFI_FIELD_COMMAND',
+            created_at: raced.created_at,
+          },
+          duplicate: true,
+        }, traceId, ['idempotent_replay']);
+      }
+      return apiSanitizedError(new Error(emitted.error), 500, traceId);
+    }
+
+    return apiOk({
+      event: {
+        id: emitted.event.id,
+        node_id: emitted.event.node_id,
         stream_type: 'field',
-        event_name: command.event_type,
-        payload,
+        event_name: emitted.event.event_name,
+        payload: emitted.event.payload,
         emitted_by: 'SFI_FIELD_COMMAND',
-      })
-      .select('*')
-      .single();
-
-    if (error) return apiSanitizedError(error, 500, traceId);
-
-    return apiOk({ event: data, duplicate: false }, traceId);
+        created_at: emitted.event.created_at,
+      },
+      duplicate: false,
+    }, traceId);
   } catch (error) {
     return apiSanitizedError(error, 500, traceId);
   }
