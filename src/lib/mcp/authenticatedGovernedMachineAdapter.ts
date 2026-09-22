@@ -16,6 +16,7 @@ import {
   SFI_AUTHENTICATED_GATEWAY_PROJECTION_CONTRACT,
   SFI_AUTHENTICATED_GATEWAY_TOOL,
   SFI_AUTHENTICATED_GATEWAY_TOOL_NAME,
+  authenticatedGatewayCatalog,
   buildAuthenticatedGatewayRequest,
   type SfiAuthenticatedGatewayInvocation,
 } from './authenticatedGatewayProjection';
@@ -199,6 +200,12 @@ export const SFI_AUTHENTICATED_MACHINE_RESOURCES = Object.freeze([
     name: 'SFI compact institutional context',
     mimeType: 'application/json',
     description: 'Authenticated, observe-scoped projection of compact persisted institutional state: continuity, cognitive runtime, open-cycle counts and recent RETURN/execution receipts. It does not mint authority or expose credentials, raw media, grant nonces or canonical promotion.',
+  },
+  {
+    uri: 'sfi://authenticated-machine/gateway-catalog',
+    name: 'SFI authenticated gateway operation catalog',
+    mimeType: 'application/json',
+    description: 'Navigation-only catalog of allowlisted canonical gateway operation ids, methods, paths and scopes. It grants no authority and contains no credentials.',
   },
 ] as const);
 
@@ -640,6 +647,23 @@ export async function dispatchAuthenticatedMachineRequest(
         status: 200,
         body: response(id, {
           contents: [{ uri, mimeType: 'application/json', text: JSON.stringify(adapterStatus()) }],
+        }),
+      };
+    }
+    if (uri === 'sfi://authenticated-machine/gateway-catalog') {
+      return {
+        status: 200,
+        body: response(id, {
+          contents: [{
+            uri,
+            mimeType: 'application/json',
+            text: JSON.stringify({
+              contract: SFI_AUTHENTICATED_GATEWAY_PROJECTION_CONTRACT,
+              authorityExpansionAllowed: false,
+              arbitraryUrlAllowed: false,
+              operations: authenticatedGatewayCatalog(),
+            }),
+          }],
         }),
       };
     }
