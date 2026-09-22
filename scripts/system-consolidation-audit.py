@@ -101,37 +101,39 @@ def main() -> None:
             route = '/' + path.parent.relative_to('src/app').as_posix()
             apis.append({'kind': 'API', 'route': route, 'file': source, 'lines': text.count('\n') + 1})
 
-        constants = table_constants(text)
-        for match in re.finditer(r"\.from\(\s*['\"]([^'\"]+)['\"]\s*\)", text):
-            table = match.group(1)
-            prefix = text[max(0, match.start() - 80):match.start()]
-            if '.storage' in prefix or not DB_IDENTIFIER.fullmatch(table):
-                continue
-            table_refs.setdefault(table, set()).add(source)
-        for match in re.finditer(r"\.from\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)", text):
-            prefix = text[max(0, match.start() - 80):match.start()]
-            if '.storage' in prefix:
-                continue
-            table = constants.get(match.group(1))
-            if table and DB_IDENTIFIER.fullmatch(table):
+        runtime_reference_source = source.startswith('src/') or source.startswith('packages/')
+        if runtime_reference_source:
+            constants = table_constants(text)
+            for match in re.finditer(r"\.from\(\s*['\"]([^'\"]+)['\"]\s*\)", text):
+                table = match.group(1)
+                prefix = text[max(0, match.start() - 80):match.start()]
+                if '.storage' in prefix or not DB_IDENTIFIER.fullmatch(table):
+                    continue
                 table_refs.setdefault(table, set()).add(source)
+            for match in re.finditer(r"\.from\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)", text):
+                prefix = text[max(0, match.start() - 80):match.start()]
+                if '.storage' in prefix:
+                    continue
+                table = constants.get(match.group(1))
+                if table and DB_IDENTIFIER.fullmatch(table):
+                    table_refs.setdefault(table, set()).add(source)
 
-        # Canonical ROOT readers and several server helpers route DB access through
-        # wrappers such as selectRows({ table: 'sfi_ejectors', ... }). Treat literal
-        # table properties as consumers; a false-positive KEEP is safer than a
-        # false-negative DROP in a destructive consolidation audit.
-        for match in re.finditer(r"\btable\s*:\s*['\"]([A-Za-z_][A-Za-z0-9_]*)['\"]", text):
-            table = match.group(1)
-            if DB_IDENTIFIER.fullmatch(table):
-                table_refs.setdefault(table, set()).add(source)
+            # Canonical ROOT readers and several server helpers route DB access through
+            # wrappers such as selectRows({ table: 'sfi_ejectors', ... }). Treat literal
+            # table properties in executable runtime source as consumers. Tests, docs,
+            # and inventory files may mention legacy names without proving runtime use.
+            for match in re.finditer(r"\btable\s*:\s*['\"]([A-Za-z_][A-Za-z0-9_]*)['\"]", text):
+                table = match.group(1)
+                if DB_IDENTIFIER.fullmatch(table):
+                    table_refs.setdefault(table, set()).add(source)
 
-        # Operational read helpers also accept literal view/table names positionally.
-        # Detect these wrappers explicitly so a live read model cannot be classified
-        # as unconsumed merely because the underlying .from() call is centralized.
-        for match in re.finditer(r"\b(?:readSingleFromView|readListFromView)\(\s*['\"]([A-Za-z_][A-Za-z0-9_]*)['\"]", text):
-            table = match.group(1)
-            if DB_IDENTIFIER.fullmatch(table):
-                table_refs.setdefault(table, set()).add(source)
+            # Operational read helpers also accept literal view/table names positionally.
+            # Detect these wrappers explicitly inside runtime source so a live read model
+            # cannot be classified as unconsumed merely because .from() is centralized.
+            for match in re.finditer(r"\b(?:readSingleFromView|readListFromView)\(\s*['\"]([A-Za-z_][A-Za-z0-9_]*)['\"]", text):
+                table = match.group(1)
+                if DB_IDENTIFIER.fullmatch(table):
+                    table_refs.setdefault(table, set()).add(source)
 
         if source.startswith('supabase/migrations/') and path.suffix == '.sql':
             for statement in re.split(r';', text):
