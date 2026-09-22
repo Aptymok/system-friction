@@ -124,7 +124,7 @@ check('operational latest-row reads are table-typed and explicitly projected',
   && operationalCommon.includes("service.from('logbook_mutations').select(OPERATIONAL_READ_PROJECTIONS.logbook_mutations)")
   && operationalCommon.includes("service.from('logbook_knowledge').select(OPERATIONAL_READ_PROJECTIONS.logbook_knowledge)")
   && operationalCommon.includes("service.from('logbook_signals').select(OPERATIONAL_READ_PROJECTIONS.logbook_signals)")
-  && operationalCommon.includes("service.from('mihm_analyses').select(OPERATIONAL_READ_PROJECTIONS.mihm_analyses)")
+  && operationalCommon.includes("service.from('field_mihm_readings').select(OPERATIONAL_READ_PROJECTIONS.mihm_analyses)")
   && !operationalCommon.includes("service.from(table).select('*')"));
 
 check('mutation write returns use the explicit mutation DTO instead of wildcard hydration',
