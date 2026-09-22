@@ -31,6 +31,7 @@ const read = (relative: string) => readFileSync(path.join(root, relative), 'utf8
 const routeSource = read('src/app/api/mcp/public/route.ts');
 const serverSource = read('src/lib/mcp/publicMcpServer.ts');
 const evidenceOwnerSource = read('src/lib/discovery/publicSemanticProjection.ts');
+const publicWorldSource = read('src/lib/observatory/public/readPublicObservatoryState.ts');
 
 function fixture(objectType: SfiCanonicalObjectType, suffix: string): SfiCanonicalObjectRecord {
   const slug = `mcp-${suffix}`;
@@ -150,6 +151,12 @@ async function main() {
   assert.ok(acceptedEvidence, 'evidence_owner_adapter_return_missing');
   assert.equal(acceptedEvidence?.sourceContract, SFI_EVIDENCE_CAPSULE_CONTRACT, 'evidence_owner_contract_not_projected');
   assert.equal(acceptedEvidence?.disposition, 'PUBLISH', 'valid_owner_disposition_not_preserved');
+  assert.deepEqual(acceptedEvidence?.inputProvenance, {
+    claim: 'CLIENT_SUPPLIED',
+    evidenceRefs: 'CLIENT_SUPPLIED',
+    temporalCoordinate: 'CLIENT_SUPPLIED',
+    independentEvidenceDiscovery: false,
+  }, 'client_supplied_evidence_provenance_missing');
   assert.equal((acceptedEvidence?.capsule as { contract?: string } | null)?.contract, SFI_EVIDENCE_CAPSULE_CONTRACT, 'capsule_not_created_by_ws03_contract');
 
   const blockedEvidence = publicEvidenceForCanonicalObjects(evidenceArgs(publicReport, {
@@ -221,7 +228,21 @@ async function main() {
   }, validEnvelope).includes('NAME_HEADER_MISMATCH'), 'header_body_name_mismatch_not_blocked');
 
   const dependencies = {
-    readPublicWorldState: async () => ({ state: 'unused' }),
+    readPublicWorldState: async () => ({
+      state: 'synthetic',
+      reconstructibility: {
+        contract: 'SFI-PUBLIC-WORLD-RECONSTRUCTIBILITY-1.0',
+        state: 'PARTIAL',
+        vectors: [{
+          vectorId: 'bio',
+          state: 'RECONSTRUCTIBLE_TO_NORMALIZED_SOURCE',
+          observations: [
+            { ref: 'worldspect-source:synthetic:bio-a', value: 1 },
+            { ref: 'worldspect-source:synthetic:bio-b', value: 0.7 },
+          ],
+        }],
+      },
+    }),
   };
 
   const discover = await dispatchPublicMcpRequest(request('server/discover'), dependencies);
@@ -273,6 +294,14 @@ async function main() {
     }), dependencies);
     assert.ok(JSON.stringify(blocked).includes('TOOL_NOT_AVAILABLE'), `forbidden_tool_not_blocked:${forbiddenName}`);
   }
+
+  const reconstructedWorld = await dispatchPublicMcpRequest(request('tools/call', {
+    name: 'get_public_world_state',
+    arguments: {},
+  }), dependencies);
+  const reconstructedWorldText = JSON.stringify(reconstructedWorld);
+  assert.ok(reconstructedWorldText.includes('SFI-PUBLIC-WORLD-RECONSTRUCTIBILITY-1.0'), 'world_reconstructibility_contract_not_projected');
+  assert.ok(reconstructedWorldText.includes('RECONSTRUCTIBLE_TO_NORMALIZED_SOURCE'), 'world_normalized_source_reconstruction_not_projected');
 
   const unavailableWorld = await dispatchPublicMcpRequest(request('tools/call', {
     name: 'get_public_world_state',
@@ -337,6 +366,12 @@ async function main() {
     'MODEL_OUTPUT_CANNOT_BE_OBSERVATION',
   ]) assert.equal(serverSource.includes(ws03OwnedRule), false, `ws03_epistemic_rule_duplicated:${ws03OwnedRule}`);
 
+  assert.ok(publicWorldSource.includes("contract: 'SFI-PUBLIC-WORLD-RECONSTRUCTIBILITY-1.0'"), 'world_reconstructibility_contract_missing');
+  assert.ok(publicWorldSource.includes("'RECONSTRUCTIBLE_TO_NORMALIZED_SOURCE'"), 'world_reconstructible_state_missing');
+  assert.ok(publicWorldSource.includes("'EVIDENCE_NOT_PUBLICLY_RECONSTRUCTIBLE'"), 'world_unreconstructible_state_missing');
+  assert.ok(publicWorldSource.includes("provider: text(raw.provider) || null"), 'world_public_provider_provenance_missing');
+  assert.equal(publicWorldSource.includes('rawPayload'), false, 'world_public_reconstructibility_must_not_expose_raw_payload');
+
   assert.ok(serverSource.includes("from '../public/institutionProfile'"), 'institution_profile_owner_not_reused');
   assert.ok(serverSource.includes("from '../research/researchGraphProjection'"), 'research_projection_owner_not_reused');
   assert.equal(serverSource.includes('export const SFI_CANONICAL_OBJECT_REGISTRY ='), false, 'canonical_registry_duplicated');
@@ -352,6 +387,8 @@ async function main() {
     evidenceCapsuleContract: SFI_EVIDENCE_CAPSULE_CONTRACT,
     resources: SFI_PUBLIC_MCP_RESOURCES.map((resource) => resource.uri),
     evidenceOwnerConsumption: 'PASS',
+    evidenceInputProvenance: 'CLIENT_SUPPLIED_EXPLICIT',
+    publicWorldReconstructibility: 'PARTIAL_EXPLICIT',
     duplicateEvidenceOwner: 'PASS',
     canonicalRegistryEmptyIsAvailable: true,
     privateLeakage: 'PASS',
