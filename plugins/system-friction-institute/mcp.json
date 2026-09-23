@@ -1,0 +1,13 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "sfi": {
+      "type": "streamable-http",
+      "url": "https://www.systemfriction.org/api/mcp/authenticated"
+    },
+    "sfi_studio": {
+      "type": "streamable-http",
+      "url": "https://www.systemfriction.org/api/mcp/studio"
+    }
+  }
+}

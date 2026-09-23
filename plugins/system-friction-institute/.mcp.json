@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "sfi": {
+      "type": "streamable-http",
+      "url": "https://www.systemfriction.org/api/mcp/authenticated",
+      "headers": {}
+    },
+    "sfi_studio": {
+      "type": "streamable-http",
+      "url": "https://www.systemfriction.org/api/mcp/studio",
+      "headers": {}
+    }
+  }
+}
