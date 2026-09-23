@@ -219,8 +219,34 @@ export async function resolveSfiOAuthClient(clientId: string): Promise<ResolvedS
   }
 }
 
+function isLoopbackIpRedirectMatch(registeredUri: string, requestedUri: string) {
+  try {
+    const registered = new URL(registeredUri);
+    const requested = new URL(requestedUri);
+    const loopbackHosts = new Set(['127.0.0.1', '[::1]']);
+
+    if (
+      registered.protocol !== 'http:' ||
+      requested.protocol !== 'http:' ||
+      !loopbackHosts.has(registered.hostname) ||
+      requested.hostname !== registered.hostname
+    ) return false;
+
+    return (
+      requested.pathname === registered.pathname &&
+      requested.search === registered.search &&
+      requested.hash === '' &&
+      registered.hash === ''
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function isAllowedSfiOAuthRedirect(client: ResolvedSfiOAuthClient, redirectUri: string) {
-  return client.redirectUris.includes(redirectUri);
+  return client.redirectUris.some(
+    (registeredUri) => registeredUri === redirectUri || isLoopbackIpRedirectMatch(registeredUri, redirectUri),
+  );
 }
 
 export function canSfiOAuthClientAuthorizeSubject(client: ResolvedSfiOAuthClient, subjectId: string) {
