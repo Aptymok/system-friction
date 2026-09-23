@@ -58,6 +58,7 @@ export async function POST(req: NextRequest) {
   const code = String(form.get('code') || '').trim();
   const redirectUri = String(form.get('redirect_uri') || '').trim();
   const codeVerifier = String(form.get('code_verifier') || '').trim();
+  const resource = String(form.get('resource') || '').trim();
 
   let client: Awaited<ReturnType<typeof resolveSfiOAuthClient>>;
   try {
@@ -67,6 +68,12 @@ export async function POST(req: NextRequest) {
   }
   if (!client || !validateSfiOAuthClientSecret(client, clientSecret)) {
     return oauthError('invalid_client', 'Client authentication failed.', 401);
+  }
+  if (resource) {
+    const origin = req.nextUrl.origin;
+    if (resource !== origin && resource !== `${origin}/api/mcp/authenticated`) {
+      return oauthError('invalid_target', 'The requested OAuth resource is not this SFI MCP server.');
+    }
   }
   if (grantType !== 'authorization_code') {
     return oauthError('unsupported_grant_type', 'SFI supports authorization_code only.');
@@ -92,8 +99,8 @@ export async function POST(req: NextRequest) {
     return oauthError('invalid_grant', 'Authorization code is invalid, expired, or already consumed.');
   }
 
-  if (client.source === 'chatgpt_cimd' && !found.record.code_challenge) {
-    return oauthError('invalid_grant', 'PKCE is required for the ChatGPT MCP client.');
+  if ((client.source === 'chatgpt_cimd' || client.source === 'dcr_stateless') && !found.record.code_challenge) {
+    return oauthError('invalid_grant', 'PKCE is required for remote public/dynamically registered MCP clients.');
   }
 
   if (found.record.code_challenge) {

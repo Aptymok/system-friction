@@ -99,6 +99,7 @@ export async function GET(req: NextRequest) {
   const rawScope = req.nextUrl.searchParams.get('scope')?.trim() || null;
   const codeChallenge = req.nextUrl.searchParams.get('code_challenge')?.trim() || null;
   const codeChallengeMethod = req.nextUrl.searchParams.get('code_challenge_method')?.trim() || null;
+  const resource = req.nextUrl.searchParams.get('resource')?.trim() || null;
 
   let client: Awaited<ReturnType<typeof resolveSfiOAuthClient>>;
   try {
@@ -193,11 +194,19 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  if (resource) {
+    const allowedResources = new Set([issuer, `${issuer}/api/mcp/authenticated`]);
+    if (!allowedResources.has(resource)) return redirectOAuthError(redirectUri, state, 'invalid_target', 'The requested OAuth resource is not this SFI MCP server.', issuer);
+  }
+
   if (responseType !== 'code') {
     return redirectOAuthError(redirectUri, state, 'unsupported_response_type', 'SFI supports OAuth authorization_code only.', issuer);
   }
   if (client.source === 'chatgpt_cimd' && (!codeChallenge || codeChallengeMethod !== 'S256')) {
     return redirectOAuthError(redirectUri, state, 'invalid_request', 'PKCE S256 is required for the ChatGPT MCP client.', issuer);
+  }
+  if (client.source === 'dcr_stateless' && (!codeChallenge || codeChallengeMethod !== 'S256')) {
+    return redirectOAuthError(redirectUri, state, 'invalid_request', 'PKCE S256 is required for dynamically registered MCP clients.', issuer);
   }
   if (codeChallenge && codeChallengeMethod !== 'S256') {
     return redirectOAuthError(redirectUri, state, 'invalid_request', 'Only PKCE S256 is supported.', issuer);
