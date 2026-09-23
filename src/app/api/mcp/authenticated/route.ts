@@ -18,6 +18,7 @@ import {
 } from '@/lib/sfi/externalAuth';
 import {
   SFI_AUTHENTICATED_GATEWAY_TOOL_NAME,
+  SFI_AUTHENTICATED_MCP_SCOPES,
   buildAuthenticatedGatewayRequest,
   requiredScopeForAuthenticatedGatewayInvocation,
   type SfiAuthenticatedGatewayInvocation,
@@ -28,6 +29,9 @@ export const runtime = 'nodejs';
 export const maxDuration = 300;
 
 const LEGACY_MCP_PROTOCOL_VERSIONS = new Set(['2025-11-25', '2025-06-18', '2025-03-26']);
+const INITIAL_OPERATIONAL_OAUTH_SCOPE = SFI_AUTHENTICATED_MCP_SCOPES
+  .filter((scope) => scope !== 'governance:decide')
+  .join(' ');
 
 type JsonObject = Record<string, unknown>;
 
@@ -175,7 +179,7 @@ export async function GET(request: Request) {
     status: 401,
     headers: {
       ...responseHeaders(),
-      'WWW-Authenticate': oauthChallenge(request, 'observe'),
+      'WWW-Authenticate': oauthChallenge(request, INITIAL_OPERATIONAL_OAUTH_SCOPE),
     },
   });
 }

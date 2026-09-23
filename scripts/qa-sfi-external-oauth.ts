@@ -29,6 +29,7 @@ const manifest = text('src/app/api/external/v1/manifest/route.ts');
 const cognitive = text('src/app/api/external/v1/cognitive/route.ts');
 const personalLab = text('src/app/api/external/v1/personal-lab/route.ts');
 const studio = text('src/app/api/external/v1/studio/route.ts');
+const authenticatedMcp = text('src/app/api/mcp/authenticated/route.ts');
 const studioMcp = text('src/app/api/mcp/studio/route.ts');
 const studioMcpMetadata = text('src/app/.well-known/oauth-protected-resource/api/mcp/studio/route.ts');
 const studioMcpServer = text('src/lib/mcp/studioMcpServer.ts');
@@ -147,6 +148,9 @@ assert.match(personalLab, /if \(operation === 'run'\) return 'lab:run'/, 'person
 assert.match(personalLab, /return 'lab:write'/, 'personal_lab_writes_must_require_lab_write');
 assert.match(studio, /const ownerId = cred\.subjectId/, 'studio_owner_must_derive_from_oauth_subject');
 assert.match(studio, /getStudioObject\(objectId, ownerId\)/, 'studio_object_operations_must_be_owner_scoped');
+assert.match(authenticatedMcp, /INITIAL_OPERATIONAL_OAUTH_SCOPE = SFI_AUTHENTICATED_MCP_SCOPES[\s\S]*scope !== 'governance:decide'/, 'authenticated_mcp_initial_auth_must_request_non_sovereign_operational_scope_set');
+assert.match(authenticatedMcp, /oauthChallenge\(request, INITIAL_OPERATIONAL_OAUTH_SCOPE\)/, 'authenticated_mcp_get_challenge_must_not_bootstrap_as_observe_only');
+assert.doesNotMatch(authenticatedMcp, /oauthChallenge\(request, 'observe'\)/, 'authenticated_mcp_initial_auth_must_not_be_observe_only');
 assert.match(studioMcp, /authorizeExternalRequest\(request, requiredScope\)/, 'studio_mcp_must_authorize_each_request_by_tool_scope');
 assert.match(studioMcp, /USER_BOUND_OAUTH_WITH_CLIENT_ID_REQUIRED/, 'studio_mcp_must_require_user_and_client_bound_oauth');
 assert.doesNotMatch(studioMcp, /x-sfi-token/i, 'studio_mcp_must_not_advertise_static_token_transport');

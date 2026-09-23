@@ -16,6 +16,8 @@ export const maxDuration = 300;
 
 type JsonObject = Record<string, unknown>;
 
+const INITIAL_STUDIO_OAUTH_SCOPE = 'studio:read studio:content studio:run';
+
 function row(value: unknown): JsonObject {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as JsonObject : {};
 }
@@ -123,7 +125,7 @@ export async function GET(request: Request) {
     status: 401,
     headers: {
       ...responseHeaders(),
-      'WWW-Authenticate': oauthChallenge(request, 'studio:read'),
+      'WWW-Authenticate': oauthChallenge(request, INITIAL_STUDIO_OAUTH_SCOPE),
     },
   });
 }
