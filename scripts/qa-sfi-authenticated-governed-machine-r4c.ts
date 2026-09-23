@@ -15,6 +15,9 @@ const publicServer = text('src/lib/mcp/publicMcpServer.ts');
 const externalAuth = text('src/lib/sfi/externalAuth.ts');
 const accessToken = text('src/lib/sfi/externalSessionToken.ts');
 const tokenRoute = text('src/app/api/oauth/token/route.ts');
+const authorizeRoute = text('src/app/api/oauth/authorize/route.ts');
+const oauthAuthorizationMetadata = text('src/app/.well-known/oauth-authorization-server/route.ts');
+const oauthClientRegistry = text('src/lib/sfi/oauthClientRegistry.ts');
 const manifest = text('src/app/api/external/v1/manifest/route.ts');
 const openapiMerge = text('scripts/merge-openapi-authenticated-machine.mjs');
 const hostBoundOpenapi = text('src/app/api/external/openapi/route.ts');
@@ -71,6 +74,14 @@ assert.match(manualExecution, /runCognitiveAgent\(agentId, context\)/, 'canonica
 
 assert.match(accessToken, /clientId\?: string/, 'oauth_access_token_claim_must_support_client_binding');
 assert.match(tokenRoute, /clientId,\n\s*label:/, 'oauth_token_exchange_must_bind_verified_client_id');
+assert.match(oauthAuthorizationMetadata, /client_id_metadata_document_supported:\s*true/, 'oauth_metadata_must_advertise_cimd');
+assert.match(oauthAuthorizationMetadata, /token_endpoint_auth_methods_supported:\s*\['none', 'client_secret_basic', 'client_secret_post'\]/, 'oauth_metadata_must_allow_pkce_public_client_without_regressing_secret_clients');
+assert.match(oauthClientRegistry, /https:\/\/chatgpt\.com\/oauth\/client\.json/, 'chatgpt_stable_cimd_client_id_required');
+assert.match(oauthClientRegistry, /https:\/\/chatgpt\.com\/connector_platform_oauth_redirect/, 'chatgpt_stable_redirect_required');
+assert.match(oauthClientRegistry, /source:\s*'chatgpt_cimd'/, 'chatgpt_cimd_client_must_be_explicitly_bounded');
+assert.match(oauthClientRegistry, /client\.source === 'chatgpt_cimd'\) return clientSecret === ''/, 'chatgpt_cimd_must_use_public_client_token_exchange');
+assert.match(authorizeRoute, /client\.source === 'chatgpt_cimd'[\s\S]*PKCE S256 is required for the ChatGPT MCP client/, 'chatgpt_cimd_authorization_must_require_pkce_s256');
+assert.match(tokenRoute, /client\.source === 'chatgpt_cimd'[\s\S]*!found\.record\.code_challenge/, 'chatgpt_cimd_token_exchange_must_fail_closed_without_pkce');
 assert.match(externalAuth, /clientId: session\.clientId/, 'gateway_credential_must_expose_verified_client_id');
 assert.match(route, /credential\.authMethod !== 'oauth'/, 'authenticated_machine_must_reject_static_tokens');
 assert.match(route, /!credential\.clientId/, 'authenticated_machine_must_reject_unbound_legacy_tokens');
