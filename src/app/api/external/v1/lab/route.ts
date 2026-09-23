@@ -166,7 +166,16 @@ export async function POST(req: Request) {
     const confidenceIsValid = Number.isFinite(requestedConfidence) && requestedConfidence >= 0 && requestedConfidence <= 1;
     const confidence = confidenceIsValid ? requestedConfidence : 0;
     const refs = Array.isArray(body.refs) ? body.refs.filter((value): value is string => typeof value === 'string') : [];
-    const metadata = body.metadata && typeof body.metadata === 'object' && !Array.isArray(body.metadata) ? body.metadata as Record<string, unknown> : {};
+    // researchMetadata was advertised by the gateway manifest. Normalize that
+    // compatibility name before fingerprinting, rather than silently losing it.
+    if ('metadata' in body && 'researchMetadata' in body) {
+      return NextResponse.json({ ok: false, error: 'method_lab_metadata_ambiguous', expected: 'Use metadata or legacy researchMetadata, not both.' }, { status: 400 });
+    }
+    const metadataValue = 'metadata' in body ? body.metadata : 'researchMetadata' in body ? body.researchMetadata : {};
+    if (!metadataValue || typeof metadataValue !== 'object' || Array.isArray(metadataValue)) {
+      return NextResponse.json({ ok: false, error: 'method_lab_metadata_object_required' }, { status: 400 });
+    }
+    const metadata = metadataValue as Record<string, unknown>;
     const source = body.source ?? 'github_lab_bridge';
     const incomingFingerprint = persistFingerprint({ title, content, source, refs, metadata, confidence });
 
@@ -220,8 +229,14 @@ export async function POST(req: Request) {
   // `lab:run`. That scope is the run authorization. Requiring a second boolean
   // would make the human approve routine internal experimentation twice.
   const protocolId = body.protocolId === 'sociotechnical_simulation' || body.protocolId === 'economic_simulation' ? body.protocolId : null;
-  const evidenceIds = Array.isArray(body.evidenceIds) ? body.evidenceIds.filter((value): value is string => typeof value === 'string' && value.trim().length > 0) : [];
-  if (!protocolId || !evidenceIds.length) return NextResponse.json({ ok: false, error: 'protocolId_and_persisted_evidenceIds_required' }, { status: 400 });
+  const evidenceIds = Array.isArray(body.evidenceIds) && body.evidenceIds.every((value) => typeof value === 'string' && value.trim().length > 0)
+    ? [...new Set((body.evidenceIds as string[]).map((value) => value.trim()))] : [];
+  if (!protocolId || !evidenceIds.length) return NextResponse.json({
+    ok: false, error: 'protocolId_and_persisted_evidenceIds_required',
+    required: ['protocolId', 'evidenceIds'],
+    acceptedProtocolIds: ['sociotechnical_simulation', 'economic_simulation'],
+    evidenceIds: 'Nonempty array of persisted root_evidence_entries or sfi_evidence_ledger IDs; every entry must be a nonempty string.',
+  }, { status: 400 });
 
   const parameters = body.parameters && typeof body.parameters === 'object' && !Array.isArray(body.parameters) ? body.parameters as Record<string, unknown> : {};
   const cognitiveSpineContextRefs = Array.isArray(body.cognitiveSpineContextRefs) ? body.cognitiveSpineContextRefs.filter((value): value is string => typeof value === 'string' && value.trim().length > 0) : [];

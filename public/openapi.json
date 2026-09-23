@@ -1103,9 +1103,12 @@
           "evidenceIds": {
             "type": "array",
             "items": {
-              "type": "string"
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S"
             },
-            "minItems": 1
+            "minItems": 1,
+            "description": "Existing root_evidence_entries or sfi_evidence_ledger row IDs, not epistemic event IDs. All entries must be valid nonempty strings."
           },
           "parameters": {
             "type": "object",
@@ -1120,10 +1123,16 @@
           "objectId": {
             "type": "string",
             "description": "Research projection selector for report; use commandId to read the complete persisted receipt."
+          },
+          "researchMetadata": {
+            "type": "object",
+            "additionalProperties": true,
+            "deprecated": true,
+            "description": "Legacy manifest alias for metadata. Supply only one of metadata or researchMetadata; normalized before idempotency and persistence."
           }
         },
         "additionalProperties": false,
-        "description": "Operation-specific Method Lab request. Persist requires top-level title/content strings. Structured research uses metadata.kind=METHOD_LAB_RESEARCH_OBJECT and metadata.researchObject. Conduct time and external origin belong in metadata, not the registration timestamp.",
+        "description": "Operation-specific Method Lab request. Persist requires top-level title/content strings. Structured research uses metadata.kind=METHOD_LAB_RESEARCH_OBJECT and metadata.researchObject. Conduct time and external origin belong in metadata, not the registration timestamp. Run supports only the listed simulation protocols, produces SIMULATED output, and is not idempotent. commandId applies only to persist.",
         "oneOf": [
           {
             "properties": {
@@ -1169,7 +1178,13 @@
               "evidenceIds"
             ]
           }
-        ]
+        ],
+        "not": {
+          "required": [
+            "metadata",
+            "researchMetadata"
+          ]
+        }
       },
       "StudioRequest": {
         "type": "object",

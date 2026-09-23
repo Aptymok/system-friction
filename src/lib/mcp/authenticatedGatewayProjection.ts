@@ -105,7 +105,7 @@ export const SFI_AUTHENTICATED_GATEWAY_TOOL = Object.freeze({
       },
       body: {
         type: 'object',
-        description: 'Canonical POST body. operateSfiLab persist requires operation="persist", nonempty title and content strings; use commandId for idempotency, refs for lineage, metadata for provenance. operateSfiRoot accepts operation="capabilities" | "reports" | "accounts_list" | "account_invite"; account_invite requires invitation {email,displayName,title,accessClass}.',
+        description: 'Canonical POST body. operateSfiLab persist requires operation="persist", nonempty title/content; commandId is its idempotency key; structured research uses metadata={kind:"METHOD_LAB_RESEARCH_OBJECT",researchObject:{objectId,...}} (legacy researchMetadata accepted instead). Lab run requires {operation:"run",protocolId:"economic_simulation"|"sociotechnical_simulation",evidenceIds:[persisted evidence row IDs],parameters?:object,cognitiveSpineContextRefs?:string[]}; lab:run, SIMULATED, no promotion, not idempotent. operateSfiRoot accepts operation="capabilities" | "reports" | "accounts_list" | "account_invite"; account_invite requires invitation {email,displayName,title,accessClass}.',
         additionalProperties: true,
       },
       query: {
