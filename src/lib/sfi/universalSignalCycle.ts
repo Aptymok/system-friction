@@ -8,6 +8,7 @@ import { getLatestWorldSpectSnapshot, snapshotRowToApiData } from '@/lib/worldsp
 import { createKernelContext } from '@/lib/sfi/cognitive-runtime/createKernelContext';
 import { executeCognitiveCycle } from '@/lib/sfi/cognitive-runtime/cognitiveCycle';
 import { SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY } from '@/lib/sfi/cognitive-runtime/convergedRegistry';
+import { hasVerifiedLatestUniversalReturnCalibration } from '@/lib/sfi/universalCalibrationState';
 
 export const SFI_UNIVERSAL_SIGNAL_CONTRACT = 'SFI-UNIVERSAL-SIGNAL-1.1';
 export const SFI_UNIVERSAL_CYCLE_CONTRACT = 'SFI-UNIVERSAL-REASONING-CYCLE-1.2';
@@ -307,17 +308,9 @@ export async function readUniversalCycleHistory(cycleId: string): Promise<Univer
   const closureEnvelopes = events.filter((row) => row.event_name === 'SFI_UNIVERSAL_CLOSURE_ENVELOPE_ACCEPTED');
   const closures = events.filter((row) => row.event_name === 'SFI_UNIVERSAL_CYCLE_CLOSED');
   const hasAnalysis = structuredResults.length > 0 || cognitiveRuns.length > 0 || aiSyntheses.length > 0;
-  // A contrast is an assessment attempt, not proof of calibration. Only the
-  // latest subsequent contrast linked to the latest RETURN can establish it.
-  const latestReturn = returns.at(-1);
-  const latestContrast = latestReturn && events.slice(events.indexOf(latestReturn) + 1)
-    .filter((event) => event.event_name === 'SFI_UNIVERSAL_RETURN_CONTRASTED'
-      && Array.isArray(event.lineage) && event.lineage.includes(latestReturn.event_id)).at(-1);
-  const contrastPayload = record(latestContrast?.payload);
-  const isCalibrated = contrastPayload.calibrationStatus === 'CONTRAST_RECORDED'
-    && ['CONFIRMED', 'PARTIAL', 'CONTRADICTED'].includes(String(contrastPayload.classification))
-    && contrastPayload.returnTraceability === 'VERIFIED_EVIDENCE_LINKED'
-    && Array.isArray(contrastPayload.returnEvidenceRefs) && contrastPayload.returnEvidenceRefs.length > 0;
+  // A contrast is an assessment attempt, not proof of calibration. All
+  // consumers share the same latest-RETURN, evidence-linked predicate.
+  const isCalibrated = hasVerifiedLatestUniversalReturnCalibration(events);
   return {
     ok: true,
     cycleId,
