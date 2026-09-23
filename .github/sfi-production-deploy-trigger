@@ -1,11 +1,11 @@
 SFI-00 CONTROLLED PRODUCTION RELEASE
 requested_at=2026-09-22T21:45:00-06:00
-release_reason=Deploy RFC 8252 loopback ephemeral-port OAuth interoperability for Codex/MCP.
-source_main=1e1eff911e47dfb94553f7ac0e6c972a6172f176
+release_reason=Deploy Codex native CIMD loopback metadata and ephemeral-port OAuth interoperability.
+source_main=PENDING_MERGE
 release_basis=pr_648+r4c_133_pass+external_oauth_808_pass+root_governance_35_pass+sfi08_719_pass+sfi_verify_3757_pass+audio_1281_pass+mihm_874_pass
 data_plane_contract=SFI_SYSTEMIC_DATA_PLANE_ROUTER_V1
 egress_policy=MINIMUM_NECESSARY_TRANSFER+CONTINUITY_FAIL_CLOSED
-changes=oauth_loopback_ephemeral_port_matching+codex_cimd_interoperability
+changes=codex_native_cimd_loopback_metadata+oauth_loopback_ephemeral_port_matching
 authority_change=false
 db_change=false
 database_state=UNCHANGED
@@ -13,7 +13,7 @@ public_mcp_authority_change=false
 cognitive_grant_bypass=false
 studio_owner_boundary_change=false
 production_observation_required=true
-post_release_tests=deployment_ready+codex_loopback_ephemeral_port_authorize+pkce_s256+resource_validation+authenticated_mcp_oauth_challenge+runtime_error_scan
-release_pr=651
-release_commit=6d1ebf53907b98f98067612f4ab58f9cefb30d00
-release_retry=2
+post_release_tests=deployment_ready+codex_cimd_resolution+codex_loopback_ephemeral_port_authorize+pkce_s256+resource_validation+authenticated_mcp_oauth_challenge+runtime_error_scan
+release_pr=PENDING
+release_commit=PENDING_MERGE
+release_retry=3
