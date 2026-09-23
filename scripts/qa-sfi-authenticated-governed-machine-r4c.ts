@@ -10,6 +10,8 @@ const gatewayProjection = text('src/lib/mcp/authenticatedGatewayProjection.ts');
 const route = text('src/app/api/mcp/authenticated/route.ts');
 const protectedResourceMetadata = text('src/app/.well-known/oauth-protected-resource/route.ts');
 const rootDecisionRoute = text('src/app/api/external/v1/governance/proposals/[id]/decision/route.ts');
+const rootOperateRoute = text('src/app/api/external/v1/root/operate/route.ts');
+const oauthConfig = text('src/lib/sfi/oauthConfig.ts');
 const publicRoute = text('src/app/api/mcp/public/route.ts');
 const publicServer = text('src/lib/mcp/publicMcpServer.ts');
 const externalAuth = text('src/lib/sfi/externalAuth.ts');
@@ -53,6 +55,8 @@ assert.match(gatewayProjection, /SFI-AUTHENTICATED-GATEWAY-PROJECTION-1\.0/, 'ga
 assert.match(gatewayProjection, /invoke_sfi_gateway_operation/, 'gateway_projection_tool_required');
 assert.match(gatewayProjection, /SFI_GATEWAY_OPERATION_NOT_ALLOWED/, 'gateway_projection_must_reject_arbitrary_operations');
 assert.match(gatewayProjection, /governance:decide/, 'gateway_projection_must_preserve_root_decision_scope');
+assert.match(gatewayProjection, /root:operate/, 'gateway_projection_must_preserve_founder_root_operate_scope');
+assert.match(gatewayProjection, /operateSfiRoot/, 'gateway_projection_must_expose_bounded_founder_root_operation');
 assert.doesNotMatch(gatewayProjection, /executeSfiCognitiveAgentContract/, 'gateway_projection_must_not_bypass_grant_bound_cognitive_execution');
 assert.match(adapter, /cognitiveGrantBypassAllowed: false/, 'gateway_projection_must_publish_no_cognitive_grant_bypass');
 assert.match(adapter, /ONLY_THROUGH_EXISTING_GATEWAY_AUTHORIZATION/, 'gateway_projection_external_effects_must_remain_owned_by_canonical_gateway');
@@ -102,6 +106,18 @@ assert.match(route, /buildAuthenticatedGatewayRequest/, 'gateway_projection_must
 assert.match(protectedResourceMetadata, /SFI_AUTHENTICATED_MCP_SCOPES/, 'authenticated_mcp_resource_metadata_must_publish_exact_projected_scope_set');
 assert.match(rootDecisionRoute, /credential\.role !== 'root_delegate'/, 'governance_decision_must_require_root_delegate');
 assert.match(rootDecisionRoute, /sovereignRootProfile/, 'governance_decision_must_revalidate_sovereign_root_profile');
+assert.match(oauthConfig, /'root:operate'/, 'root_oauth_scope_registry_must_include_founder_operate_scope');
+assert.match(route, /scope !== 'governance:decide' && scope !== 'root:operate'/, 'initial_mcp_oauth_bootstrap_must_not_request_founder_only_scopes');
+assert.match(rootOperateRoute, /REQUIRED_SCOPE = 'root:operate'/, 'root_operate_route_must_require_dedicated_founder_scope');
+assert.match(rootOperateRoute, /credential\.role !== 'root_delegate'/, 'root_operate_route_must_require_root_delegate');
+assert.match(rootOperateRoute, /sovereignRootProfile/, 'root_operate_route_must_revalidate_sovereign_root_profile');
+assert.match(rootOperateRoute, /operation === 'reports'/, 'root_operate_route_must_expose_reports');
+assert.match(rootOperateRoute, /humanReportText/, 'root_reports_must_be_normalized_for_human_readback');
+assert.match(rootOperateRoute, /operation === 'accounts_list'/, 'root_operate_route_must_expose_account_listing');
+assert.match(rootOperateRoute, /operation === 'account_invite'/, 'root_operate_route_must_expose_account_invitation');
+assert.match(rootOperateRoute, /inviteUserByEmail/, 'root_account_invitation_must_reuse_auth_provider_invitation');
+assert.doesNotMatch(rootOperateRoute, /password|setPassword|updateUserById\([^)]*password/i, 'root_operate_must_never_assign_another_users_password');
+assert.match(rootOperateRoute, /sovereignAuthorityGranted: false/, 'account_invitation_must_not_grant_sovereign_authority');
 
 assert.match(grantOwner, /capabilityGrantNonceHash\(nonce: string\)/, 'upstream_grant_hash_owner_required');
 assert.match(route, /x-sfi-capability-grant-nonce/i, 'machine_grant_nonce_header_required');
