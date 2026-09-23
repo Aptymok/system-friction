@@ -2,6 +2,7 @@ import 'server-only';
 
 import { getSfiServiceProfile } from '@/core/contracts/sfi';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { getCurrentUniversalClosureRecommendation } from '@/lib/sfi/universalCalibrationState';
 import { readUniversalCycleHistory, type UniversalCycleHistory } from '@/lib/sfi/universalSignalCycle';
 
 type Row = Record<string, unknown>;
@@ -186,7 +187,7 @@ export async function readInteractiveCycleDossier(cycleId: string) {
   const denial = latestNamed(history, 'SFI_UNIVERSAL_REPORT_DENIED_BY_USER');
   const closure = history.closures?.length ? row(history.closures[history.closures.length - 1]) : null;
   const learningCandidate = latestNamed(history, 'SFI_UNIVERSAL_LEARNING_CANDIDATE_RECORDED');
-  const recommendationActive = Boolean(recommendation) && sequence(recommendation) > sequence(denial) && !closure;
+  const recommendationActive = Boolean(getCurrentUniversalClosureRecommendation(history.events ?? []));
   const structured = structuredSection(history);
   const synthesis = synthesisSection(history);
   const state = closure ? 'CLOSED' : recommendationActive ? 'AWAITING_USER_CLOSE' : history.state ?? 'OPEN';
