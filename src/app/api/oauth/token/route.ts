@@ -92,6 +92,10 @@ export async function POST(req: NextRequest) {
     return oauthError('invalid_grant', 'Authorization code is invalid, expired, or already consumed.');
   }
 
+  if (client.source === 'chatgpt_cimd' && !found.record.code_challenge) {
+    return oauthError('invalid_grant', 'PKCE is required for the ChatGPT MCP client.');
+  }
+
   if (found.record.code_challenge) {
     if (!codeVerifier) return oauthError('invalid_grant', 'PKCE code_verifier is required.');
     const calculated = createHash('sha256').update(codeVerifier).digest('base64url');
