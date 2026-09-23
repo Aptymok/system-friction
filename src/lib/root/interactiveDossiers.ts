@@ -189,7 +189,7 @@ export async function readInteractiveCycleDossier(cycleId: string) {
   const recommendationActive = Boolean(recommendation) && sequence(recommendation) > sequence(denial) && !closure;
   const structured = structuredSection(history);
   const synthesis = synthesisSection(history);
-  const state = closure ? 'CLOSED' : recommendationActive ? 'AWAITING_USER_CLOSE' : lastContrast ? 'CALIBRATED' : lastReturn ? 'RETURN_RECORDED' : history.state ?? 'OPEN';
+  const state = closure ? 'CLOSED' : recommendationActive ? 'AWAITING_USER_CLOSE' : history.state ?? 'OPEN';
 
   return {
     contract: 'SFI-HUMAN-CASE-DOSSIER-1.1',

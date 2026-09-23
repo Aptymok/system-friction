@@ -169,11 +169,7 @@ function buildCycleDossier(history: UniversalCycleHistory) {
     ? 'CLOSED'
     : recommendationActive
       ? 'AWAITING_USER_CLOSE'
-      : lastContrast
-        ? 'CALIBRATED'
-        : lastReturn
-          ? 'RETURN_RECORDED'
-          : history.state ?? 'OPEN';
+      : history.state ?? 'OPEN';
 
   return {
     contract: 'SFI-HUMAN-CASE-DOSSIER-1.0',
