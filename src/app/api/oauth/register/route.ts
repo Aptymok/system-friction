@@ -22,8 +22,8 @@ export async function POST(req: NextRequest) {
     return oauthRegistrationError('invalid_client_metadata', 'SFI supports authorization_code with response_type=code only.');
   }
   const tokenMethod = typeof body.token_endpoint_auth_method === 'string' ? body.token_endpoint_auth_method : 'client_secret_post';
-  if (!['client_secret_post', 'client_secret_basic'].includes(tokenMethod)) {
-    return oauthRegistrationError('invalid_client_metadata', 'DCR clients must use client_secret_post or client_secret_basic.');
+  if (!['none', 'client_secret_post', 'client_secret_basic'].includes(tokenMethod)) {
+    return oauthRegistrationError('invalid_client_metadata', 'DCR clients must use none, client_secret_post, or client_secret_basic.');
   }
   const requestedScopes = typeof body.scope === 'string' ? body.scope.split(/\s+/).filter(Boolean) : [...SFI_ROOT_SCOPES];
   try {
@@ -31,12 +31,13 @@ export async function POST(req: NextRequest) {
       name: typeof body.client_name === 'string' ? body.client_name : 'Remote MCP client',
       redirectUris,
       scopes: requestedScopes,
+      tokenMethod: tokenMethod as 'none' | 'client_secret_post' | 'client_secret_basic',
     });
     return NextResponse.json({
       client_id: created.clientId,
-      client_secret: created.clientSecret,
+      ...(created.clientSecret ? { client_secret: created.clientSecret } : {}),
       client_id_issued_at: Math.floor(Date.now() / 1000),
-      client_secret_expires_at: 0,
+      client_secret_expires_at: created.clientSecret ? Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60 : 0,
       redirect_uris: created.redirectUris,
       grant_types: ['authorization_code'],
       response_types: ['code'],
