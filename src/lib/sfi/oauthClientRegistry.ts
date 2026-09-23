@@ -219,6 +219,7 @@ export async function resolveSfiOAuthClient(clientId: string): Promise<ResolvedS
   }
 }
 
+// Production release marker: RFC 8252 loopback ephemeral-port interoperability.
 function isLoopbackIpRedirectMatch(registeredUri: string, requestedUri: string) {
   try {
     const registered = new URL(registeredUri);
