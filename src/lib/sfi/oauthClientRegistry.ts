@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
+import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { readContinuityOAuthClient, touchContinuityOAuthClient } from '@/lib/sfi/continuityPostgres';
 import {
@@ -48,7 +48,8 @@ async function chatGptCimdClient(clientId: string): Promise<ResolvedSfiOAuthClie
     let parsed: URL;
     try { parsed = new URL(clientId); } catch { return null; }
     if (parsed.protocol !== 'https:' || parsed.hostname !== 'chatgpt.com' || !/^\/oauth\/(?:[A-Za-z0-9_-]+\/)?client\.json$/.test(parsed.pathname)) return null;
-    const response = await fetch(clientId, { headers: { Accept: 'application/json' }, cache: 'no-store', redirect: 'error' });
+    const metadataUrl = `https://chatgpt.com${parsed.pathname}`;
+    const response = await fetch(metadataUrl, { headers: { Accept: 'application/json' }, cache: 'no-store', redirect: 'error' });
     if (!response.ok) return null;
     const metadata = await response.json() as Record<string, unknown>;
     if (metadata.client_id !== clientId || !Array.isArray(metadata.redirect_uris)) return null;
@@ -160,16 +161,17 @@ function dcrSigningSecret() {
 function dcrSignature(payload: string) {
   const secret = dcrSigningSecret();
   if (!secret) throw new Error('SFI_DCR_SIGNING_SECRET_UNAVAILABLE');
-  return createHash('sha256').update(secret + ':' + payload).digest('base64url');
+  return createHmac('sha256', secret).update(payload).digest('base64url');
 }
 
-export function createStatelessSfiDcrClient(input: { name: string; redirectUris: unknown; scopes?: unknown }) {
+export function createStatelessSfiDcrClient(input: { name: string; redirectUris: unknown; scopes?: unknown; tokenMethod?: 'none' | 'client_secret_post' | 'client_secret_basic' }) {
   const redirectUris = normalizeSfiOAuthRedirectUris(input.redirectUris);
   const allowedScopes = normalizeSfiOAuthScopes(input.scopes, SFI_ROOT_SCOPES);
-  const clientSecret = `sfi_dcr_sec_${randomBytes(32).toString('base64url')}`;
-  const payload = Buffer.from(JSON.stringify({ n: input.name.slice(0, 120) || 'MCP client', r: redirectUris, s: allowedScopes, h: hashSfiOAuthClientSecret(clientSecret), iat: Date.now() }), 'utf8').toString('base64url');
+  const tokenMethod = input.tokenMethod || 'client_secret_post';
+  const clientSecret = tokenMethod === 'none' ? '' : `sfi_dcr_sec_${randomBytes(32).toString('base64url')}`;
+  const payload = Buffer.from(JSON.stringify({ n: input.name.slice(0, 120) || 'MCP client', r: redirectUris, s: allowedScopes, h: clientSecret ? hashSfiOAuthClientSecret(clientSecret) : '', m: tokenMethod, iat: Date.now() }), 'utf8').toString('base64url');
   const clientId = `sfi_dcr_${payload}.${dcrSignature(payload)}`;
-  return { clientId, clientSecret, redirectUris, allowedScopes };
+  return { clientId, clientSecret, redirectUris, allowedScopes, tokenMethod };
 }
 
 function resolveStatelessSfiDcrClient(clientId: string): ResolvedSfiOAuthClient | null {
@@ -181,9 +183,9 @@ function resolveStatelessSfiDcrClient(clientId: string): ResolvedSfiOAuthClient 
   const sig = encoded.slice(dot + 1);
   if (!safeEqual(sig, dcrSignature(payload))) return null;
   try {
-    const data = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as { n?: string; r?: unknown; s?: unknown; h?: string; iat?: number };
+    const data = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as { n?: string; r?: unknown; s?: unknown; h?: string; m?: string; iat?: number };
     if (!data.iat || Date.now() - data.iat > 30 * 24 * 60 * 60 * 1000 || Date.now() + 60_000 < data.iat) return null;
-    return { clientId, name: data.n || 'MCP client', redirectUris: normalizeSfiOAuthRedirectUris(data.r), allowedScopes: normalizeSfiOAuthScopes(data.s, SFI_ROOT_SCOPES), audience: 'TRUSTED_MULTI_USER', ownerId: null, source: 'dcr_stateless', secretHash: text(data.h) };
+    return { clientId, name: data.n || 'MCP client', redirectUris: normalizeSfiOAuthRedirectUris(data.r), allowedScopes: normalizeSfiOAuthScopes(data.s, SFI_ROOT_SCOPES), audience: 'OWNER_ONLY', ownerId: null, source: 'dcr_stateless', secretHash: text(data.h), legacySecret: data.m === 'none' ? 'PUBLIC_PKCE' : undefined };
   } catch { return null; }
 }
 
@@ -222,12 +224,15 @@ export function isAllowedSfiOAuthRedirect(client: ResolvedSfiOAuthClient, redire
 }
 
 export function canSfiOAuthClientAuthorizeSubject(client: ResolvedSfiOAuthClient, subjectId: string) {
-  return client.audience === 'TRUSTED_MULTI_USER' || client.ownerId === subjectId;
+  return client.audience === 'TRUSTED_MULTI_USER' || client.ownerId === subjectId || (client.source === 'dcr_stateless' && client.ownerId === null);
 }
 
 export function validateSfiOAuthClientSecret(client: ResolvedSfiOAuthClient, clientSecret: string) {
   if (client.source === 'chatgpt_cimd') return clientSecret === '';
-  if (client.source === 'dcr_stateless') return safeEqual(hashSfiOAuthClientSecret(clientSecret), client.secretHash || '');
+  if (client.source === 'dcr_stateless') {
+    if (client.legacySecret === 'PUBLIC_PKCE') return clientSecret === '';
+    return safeEqual(hashSfiOAuthClientSecret(clientSecret), client.secretHash || '');
+  }
   if (!clientSecret) return false;
   if (client.source === 'legacy_env') return safeEqual(clientSecret, client.legacySecret || '');
   return safeEqual(hashSfiOAuthClientSecret(clientSecret), client.secretHash || '');
