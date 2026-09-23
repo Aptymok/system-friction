@@ -196,6 +196,9 @@ export async function GET(req: NextRequest) {
   if (responseType !== 'code') {
     return redirectOAuthError(redirectUri, state, 'unsupported_response_type', 'SFI supports OAuth authorization_code only.', issuer);
   }
+  if (client.source === 'chatgpt_cimd' && (!codeChallenge || codeChallengeMethod !== 'S256')) {
+    return redirectOAuthError(redirectUri, state, 'invalid_request', 'PKCE S256 is required for the ChatGPT MCP client.', issuer);
+  }
   if (codeChallenge && codeChallengeMethod !== 'S256') {
     return redirectOAuthError(redirectUri, state, 'invalid_request', 'Only PKCE S256 is supported.', issuer);
   }
