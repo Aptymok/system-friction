@@ -4,7 +4,7 @@ import { classifyGovernedProposalWork, SFI_GOVERNED_EXECUTION_ADAPTERS } from '@
 import { classifyProposalDecisionBoundary } from '@/lib/governance/rootDecisionBoundary';
 import { normalizeProposalState } from '@/lib/governance/proposalLifecycle';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
-import { hasVerifiedLatestUniversalReturnCalibration } from '@/lib/sfi/universalCalibrationState';
+import { getCurrentUniversalClosureRecommendation, hasVerifiedLatestUniversalReturnCalibration } from '@/lib/sfi/universalCalibrationState';
 
 type Row = Record<string, unknown>;
 
@@ -233,9 +233,8 @@ function cycleState(cycleId: string, events: Row[], staleAfterHours: number) {
 
   if (closed) return { ...base, state: 'CLOSED', owner: null, nextExpectedEvent: null, blocker: null, rootActionRequired: false };
 
-  const recommendation = latest(events, 'SFI_UNIVERSAL_CLOSURE_RECOMMENDED');
-  const denial = latest(events, 'SFI_UNIVERSAL_REPORT_DENIED_BY_USER');
-  if (recommendation && sequence(recommendation) > sequence(denial)) return {
+  const recommendation = getCurrentUniversalClosureRecommendation(events);
+  if (recommendation) return {
     ...base,
     state: 'READY_TO_CLOSE',
     stale: false,
