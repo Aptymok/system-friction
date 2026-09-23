@@ -12,6 +12,8 @@ on:
       - 'src/lib/sfi/externalAuth.ts'
       - 'src/app/api/oauth/token/route.ts'
       - 'src/app/api/external/v1/manifest/route.ts'
+      - 'src/app/api/external/v1/root/operate/route.ts'
+      - 'src/lib/sfi/oauthConfig.ts'
       - 'src/app/api/external/openapi/route.ts'
       - 'scripts/merge-openapi-authenticated-machine.mjs'
       - 'scripts/qa-sfi-authenticated-governed-machine-r4c.ts'

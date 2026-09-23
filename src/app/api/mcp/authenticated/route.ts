@@ -30,7 +30,7 @@ export const maxDuration = 300;
 
 const LEGACY_MCP_PROTOCOL_VERSIONS = new Set(['2025-11-25', '2025-06-18', '2025-03-26']);
 const INITIAL_OPERATIONAL_OAUTH_SCOPE = SFI_AUTHENTICATED_MCP_SCOPES
-  .filter((scope) => scope !== 'governance:decide')
+  .filter((scope) => scope !== 'governance:decide' && scope !== 'root:operate')
   .join(' ');
 
 type JsonObject = Record<string, unknown>;
