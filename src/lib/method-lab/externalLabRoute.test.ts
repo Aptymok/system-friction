@@ -21,15 +21,19 @@ function harness() {
       externalActor: () => 'external:qa',
     },
     '@/lib/events/eventStore': { appendEpistemicEvent: async (input: Record<string, any>) => {
-      const event = { event_id: input.eventId, event_name: input.eventName, payload: input.payload, confidence: input.confidence, occurred_at: input.occurredAt, lineage: input.lineage };
+      const event = { event_id: input.eventId, event_name: input.eventName, payload: input.payload, confidence: input.confidence, occurred_at: input.occurredAt, lineage: input.lineage, uncertainty: input.uncertainty ?? null, checksum: hash(input.payload), hash_prev: 'previous-event-hash', hash_self: hash(input), schema_version: '1.0', logbook_id: input.logbookId };
       events.push(event);
       return { ok: true, data: event };
     } },
     '@/runtime/supabase/server': { createServiceSupabaseClient: () => ({ from: () => {
       let commandId = '';
-      const query = { select: () => query, eq: () => query, order: () => query, limit: () => query,
+      let projection = '*';
+      const query = { select: (columns: string) => { projection = columns; return query; }, eq: () => query, order: () => query, limit: () => query,
         contains: (_: string, input: { commandId: string }) => { commandId = input.commandId; return query; },
-        maybeSingle: async () => ({ data: events.find(e => e.payload.commandId === commandId) ?? null, error: null }),
+        maybeSingle: async () => {
+          const event = events.find(e => e.payload.commandId === commandId);
+          return { data: !event ? null : projection === '*' ? event : Object.fromEntries(projection.split(',').map(key => [key, event[key]])), error: null };
+        },
       };
       return query;
     } }) },
@@ -63,6 +67,7 @@ test('persist and report(commandId) preserve retrospective provenance with idemp
   assert.equal(report.status, 200);
   const read = await report.json();
   assert.equal(read.event.event_id, receipt.event.event_id);
+  assert.deepEqual(read.event, receipt.event, 'read-back must preserve the complete original receipt, including chain verification fields');
   assert.deepEqual(read.event.payload.metadata, body.metadata);
   assert.notEqual(read.event.occurred_at.slice(0, 10), body.metadata.conductedAt);
   assert.equal((await h.post({ ...body, content: 'changed' })).status, 409);

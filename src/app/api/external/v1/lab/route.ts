@@ -57,7 +57,9 @@ function existingPersistFingerprint(row: Record<string, unknown>) {
 async function readExistingPersist(commandId: string) {
   const db = createServiceSupabaseClient();
   return db.from('epistemic_events')
-    .select('id,sequence,event_id,event_name,epistemic_class,source,confidence,payload,lineage,occurred_at,created_at,hash_self')
+    // Match appendEpistemicEvent's creation receipt, including uncertainty and
+    // all chain-verification fields, for both replay and report(commandId).
+    .select('*')
     .eq('event_name', 'external.method_lab.record.persisted')
     .contains('payload', { commandId })
     .order('sequence', { ascending: true })
