@@ -99,6 +99,7 @@ export async function GET(req: NextRequest) {
   const rawScope = req.nextUrl.searchParams.get('scope')?.trim() || null;
   const codeChallenge = req.nextUrl.searchParams.get('code_challenge')?.trim() || null;
   const codeChallengeMethod = req.nextUrl.searchParams.get('code_challenge_method')?.trim() || null;
+  const resource = req.nextUrl.searchParams.get('resource')?.trim() || null;
 
   let client: Awaited<ReturnType<typeof resolveSfiOAuthClient>>;
   try {
@@ -191,6 +192,11 @@ export async function GET(req: NextRequest) {
     } catch {
       return NextResponse.json({ ok: false, error: 'oauth_redirect_refresh_failed' }, { status: 503 });
     }
+  }
+
+  if (resource) {
+    const allowedResources = new Set([issuer, `${issuer}/api/mcp/authenticated`]);
+    if (!allowedResources.has(resource)) return redirectOAuthError(redirectUri, state, 'invalid_target', 'The requested OAuth resource is not this SFI MCP server.', issuer);
   }
 
   if (responseType !== 'code') {
