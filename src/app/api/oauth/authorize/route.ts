@@ -240,16 +240,28 @@ export async function GET(req: NextRequest) {
   const requestedScopes = explicitlyRequestedScopes ?? defaultRequestedScopes;
   let grantedScopes: string[];
 
-  if (personalPrincipal) {
+  if (rootDelegate) {
+    // ROOT/system may receive any requested scope already admitted by the
+    // supported-scope and OAuth-client ceilings above.
+    grantedScopes = requestedScopes;
+  } else {
+    // Non-sovereign principals receive only the intersection of what the MCP
+    // client requested, what the client is registered to request, and what the
+    // authenticated SFI principal is actually allowed to hold. This permits a
+    // shared ChatGPT MCP client to request a superset without promoting an
+    // institutional operator to ROOT authority.
     grantedScopes = requestedScopes.filter((scope) => principalScopes.has(scope) && clientScopes.has(scope));
     if (!grantedScopes.length) {
-      return redirectOAuthError(redirectUri, state, 'invalid_scope', 'The requested scopes do not include a personal workspace capability.', issuer);
+      return redirectOAuthError(
+        redirectUri,
+        state,
+        'invalid_scope',
+        personalPrincipal
+          ? 'The requested scopes do not include a personal workspace capability.'
+          : 'The requested scopes do not include a capability assigned to this SFI principal.',
+        issuer,
+      );
     }
-  } else {
-    if (requestedScopes.some((scope) => !principalScopes.has(scope) || !clientScopes.has(scope))) {
-      return redirectOAuthError(redirectUri, state, 'invalid_scope', 'The authenticated SFI principal or OAuth client is not allowed to receive one or more requested scopes.', issuer);
-    }
-    grantedScopes = requestedScopes;
   }
 
   const label = context.member?.displayName || String(context.profile.alias || context.user.email || 'SFI user');
