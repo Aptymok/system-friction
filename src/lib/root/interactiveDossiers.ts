@@ -12,7 +12,6 @@ function text(value: unknown, max = 6000) { return typeof value === 'string' && 
 function list(value: unknown, max = 250) { return Array.isArray(value) ? value.slice(0, max) : []; }
 function strings(value: unknown, max = 100) { return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0).map((item) => item.trim()).slice(0, max) : []; }
 function payload(value: unknown) { return row(row(value).payload); }
-function sequence(value: unknown) { const parsed = Number(row(value).sequence); return Number.isFinite(parsed) ? parsed : -1; }
 function firstNonEmpty(...values: unknown[]) { for (const value of values) { const candidate = text(value); if (candidate) return candidate; } return null; }
 function latestNamed(history: UniversalCycleHistory, name: string) {
   const values = (history.events ?? []).filter((item) => text(row(item).event_name) === name);
