@@ -3,6 +3,7 @@ import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import ts from 'typescript';
+import { hasVerifiedLatestUniversalReturnCalibration } from './universalCalibrationState';
 
 type Event = { event_id: string; event_name: string; payload: Record<string, unknown>; lineage?: string[] };
 const source = readFileSync('src/lib/sfi/universalSignalCycle.ts', 'utf8');
@@ -14,6 +15,7 @@ async function readHistory(events: Event[]) {
   const exports: Record<string, any> = {};
   vm.runInNewContext(compiled, { exports, require: (id: string) => {
     if (id === '@/runtime/supabase/server') return { createServiceSupabaseClient: () => ({ from: () => query }) };
+    if (id === '@/lib/sfi/universalCalibrationState') return { hasVerifiedLatestUniversalReturnCalibration };
     // All other dependencies are deliberately inert. Reading must not execute agents or write.
     return new Proxy({}, { get: () => () => { throw new Error(`Unexpected dependency call: ${id}`); } });
   } });
