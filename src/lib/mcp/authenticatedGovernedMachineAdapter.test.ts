@@ -413,6 +413,33 @@ test('gateway tool rejects unknown operation ids and never accepts arbitrary pat
   assert.equal((result.body as any).error.message, 'InvalidGatewayInvocation');
 });
 
+test('canonical Lab validation failures remain readable MCP tool results', async () => {
+  const h = harness([]);
+  h.deps.invokeGateway = async () => ({ status: 400, body: { ok: false, error: 'title_and_content_required' } });
+  const result = await dispatchAuthenticatedMachineRequest(
+    gatewayCall('operateSfiLab', { operation: 'persist' }), principal({ scopes: ['lab:write'] }), h.deps,
+  );
+  assert.equal(result.status, 200);
+  const tool = (result.body as any).result;
+  assert.equal(tool.isError, true);
+  assert.equal(tool.structuredContent.error, 'title_and_content_required');
+  assert.equal(tool.structuredContent.machineGateway.httpStatus, 400);
+});
+
+test('Lab persistence preserves structured provenance and canonical creation receipt through MCP', async () => {
+  const h = harness([]);
+  const body = { operation: 'persist', title: 'External method', content: 'Source-derived record', commandId: 'qa-command', metadata: { origin: 'outside_sfi_method_lab', conductedAt: '2026-09-21', canonicalPromotion: false } };
+  h.deps.invokeGateway = async (invocation) => {
+    assert.deepEqual(invocation.body, body);
+    return { status: 201, body: { ok: true, event: { event_id: 'persisted-event' } } };
+  };
+  const result = await dispatchAuthenticatedMachineRequest(gatewayCall('operateSfiLab', body), principal({ scopes: ['lab:write'] }), h.deps);
+  assert.equal(result.status, 200);
+  assert.equal((result.body as any).result.isError, false);
+  assert.equal((result.body as any).result.structuredContent.machineGateway.httpStatus, 201);
+  assert.equal((result.body as any).result.structuredContent.event.event_id, 'persisted-event');
+});
+
 
 test('authenticated MCP tool catalog advertises OAuth security schemes for ChatGPT linking', () => {
   const cognitive = SFI_AUTHENTICATED_MACHINE_TOOLS.find((tool) => tool.name === 'invoke_cognitive_capability') as any;

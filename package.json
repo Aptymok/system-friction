@@ -56,7 +56,7 @@
     "qa:sfi-root-capability-matrix": "tsx scripts/qa-sfi-root-capability-matrix.ts",
     "qa:sfi-operating-field": "tsx scripts/qa-sfi-operating-field-closure.ts",
     "qa:sfi-operational-reset": "tsx scripts/qa-sfi-operational-reset.ts",
-    "qa:sfi-authenticated-machine": "node --import tsx --test src/lib/mcp/authenticatedGovernedMachineAdapter.test.ts && npx tsx scripts/qa-sfi-authenticated-governed-machine-r4c.ts",
+    "qa:sfi-authenticated-machine": "node --import tsx --test src/lib/mcp/authenticatedGovernedMachineAdapter.test.ts src/lib/method-lab/externalLabRoute.test.ts && npx tsx scripts/qa-sfi-authenticated-governed-machine-r4c.ts",
     "typecheck": "tsc --noEmit --pretty false --incremental false",
     "phase:verify": "npm run check:boundaries && npm run typecheck",
     "qa:sfi-pipeline": "node scripts/qa-sfi-minimal-pipeline.mjs",

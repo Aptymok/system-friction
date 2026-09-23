@@ -113,6 +113,17 @@ export async function POST(req: Request) {
   }
 
   if (operation === 'report') {
+    const commandId = normalizedCommandId(body.commandId);
+    if (commandId) {
+      const existing = await readExistingPersist(commandId);
+      if (existing.error) {
+        return NextResponse.json({ ok: false, error: 'method_lab_persist_receipt_lookup_failed', details: existing.error.message }, { status: 500 });
+      }
+      if (!existing.data) {
+        return NextResponse.json({ ok: false, error: 'method_lab_persist_receipt_not_found', commandId }, { status: 404 });
+      }
+      return NextResponse.json({ ok: true, operation, actor: actorId, commandId, event: existing.data });
+    }
     const db = createServiceSupabaseClient();
     const [analyses, evaluations, research] = await Promise.all([
       db.from('sfi_lab_analyses').select('id,mode,source,data_mode,limitations,recommendations,raw_analysis,created_at').order('created_at', { ascending: false }).limit(100),
@@ -140,9 +151,13 @@ export async function POST(req: Request) {
   }
 
   if (operation === 'persist') {
-    const title = String(body.title || '').trim();
-    const content = String(body.content || '').trim();
-    if (!title || !content) return NextResponse.json({ ok: false, error: 'title_and_content_required' }, { status: 400 });
+    const title = typeof body.title === 'string' ? body.title.trim() : '';
+    const content = typeof body.content === 'string' ? body.content.trim() : '';
+    if (!title || !content) return NextResponse.json({
+      ok: false, error: 'title_and_content_required',
+      required: ['title', 'content'],
+      expected: 'Nonempty top-level strings in the operation body; structured research belongs in metadata.researchObject with metadata.kind=METHOD_LAB_RESEARCH_OBJECT.',
+    }, { status: 400 });
 
     const commandId = normalizedCommandId(body.commandId);
     const requestedConfidence = typeof body.confidence === 'number' ? body.confidence : 1;

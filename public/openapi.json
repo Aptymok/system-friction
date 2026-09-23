@@ -474,10 +474,16 @@
             "description": "Persisted Method Lab record"
           },
           "400": {
-            "description": "Invalid operation"
+            "description": "Invalid operation or missing/non-string persist title/content"
           },
           "401": {
             "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Requested receipt or research object not found"
+          },
+          "409": {
+            "description": "Idempotency key already used for different content"
           },
           "503": {
             "description": "Runtime failure"
@@ -1052,10 +1058,14 @@
             ]
           },
           "title": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
           },
           "content": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
           },
           "confidence": {
             "type": "number",
@@ -1066,7 +1076,8 @@
             "type": "string"
           },
           "commandId": {
-            "type": "string"
+            "type": "string",
+            "description": "Idempotency key for persist; report(commandId) reads the exact stored receipt. Reuse with different content returns 409."
           },
           "refs": {
             "type": "array",
@@ -1076,7 +1087,8 @@
           },
           "metadata": {
             "type": "object",
-            "additionalProperties": true
+            "additionalProperties": true,
+            "description": "Provenance and optional research object: kind=METHOD_LAB_RESEARCH_OBJECT, researchObject={objectId, objectClass, title, method, state, summary, findings, limitations, ...}."
           },
           "protocolId": {
             "type": "string",
@@ -1092,7 +1104,8 @@
             "type": "array",
             "items": {
               "type": "string"
-            }
+            },
+            "minItems": 1
           },
           "parameters": {
             "type": "object",
@@ -1103,9 +1116,60 @@
             "items": {
               "type": "string"
             }
+          },
+          "objectId": {
+            "type": "string",
+            "description": "Research projection selector for report; use commandId to read the complete persisted receipt."
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "Operation-specific Method Lab request. Persist requires top-level title/content strings. Structured research uses metadata.kind=METHOD_LAB_RESEARCH_OBJECT and metadata.researchObject. Conduct time and external origin belong in metadata, not the registration timestamp.",
+        "oneOf": [
+          {
+            "properties": {
+              "operation": {
+                "enum": [
+                  "state"
+                ]
+              }
+            }
+          },
+          {
+            "properties": {
+              "operation": {
+                "enum": [
+                  "report"
+                ]
+              }
+            }
+          },
+          {
+            "properties": {
+              "operation": {
+                "enum": [
+                  "persist"
+                ]
+              }
+            },
+            "required": [
+              "title",
+              "content"
+            ]
+          },
+          {
+            "properties": {
+              "operation": {
+                "enum": [
+                  "run"
+                ]
+              }
+            },
+            "required": [
+              "protocolId",
+              "evidenceIds"
+            ]
+          }
+        ]
       },
       "StudioRequest": {
         "type": "object",
