@@ -4,6 +4,7 @@ import { classifyGovernedProposalWork, SFI_GOVERNED_EXECUTION_ADAPTERS } from '@
 import { classifyProposalDecisionBoundary } from '@/lib/governance/rootDecisionBoundary';
 import { normalizeProposalState } from '@/lib/governance/proposalLifecycle';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { hasVerifiedLatestUniversalReturnCalibration } from '@/lib/sfi/universalCalibrationState';
 
 type Row = Record<string, unknown>;
 
@@ -245,8 +246,7 @@ function cycleState(cycleId: string, events: Row[], staleAfterHours: number) {
     actionLabel: 'Ninguna · el cierre metodológico es trabajo operativo; canon permanece separado',
   };
 
-  const contrast = latest(events, 'SFI_UNIVERSAL_RETURN_CONTRASTED');
-  if (contrast) return {
+  if (hasVerifiedLatestUniversalReturnCalibration(events)) return {
     ...base,
     state: 'CALIBRATED',
     stale: false,
@@ -349,7 +349,7 @@ async function readOperationalCycleEvents() {
   const events: Row[] = [];
   for (let from = 0; from < EVENT_WINDOW_LIMIT; from += EVENT_PAGE_SIZE) {
     const result = await db.from('epistemic_events')
-      .select('sequence,event_id,event_name,payload,occurred_at,logbook_id')
+      .select('sequence,event_id,event_name,payload,lineage,occurred_at,logbook_id')
       .in('event_name', [...OPERATIONAL_EVENT_NAMES])
       .order('sequence', { ascending: false })
       .range(from, from + EVENT_PAGE_SIZE - 1);
