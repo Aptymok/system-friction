@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import vm from 'node:vm';
+import ts from 'typescript';
 
 function text(path: string) {
-  return readFileSync(path, 'utf8');
+  return readFileSync(path, 'utf8').replace(/\r\n/g, '\n');
 }
 
 function semverAtLeast(value: string, minimum: [number, number]) {
@@ -71,7 +74,26 @@ assert.match(oauthRegistryMigration, /audience text not null default 'OWNER_ONLY
 assert.match(oauthRegistryMigration, /TRUSTED_MULTI_USER/i, 'registry_must_distinguish_trusted_multi_user_clients');
 assert.match(oauthRegistryMigration, /revoke all[\s\S]*anon, authenticated/i, 'oauth_registry_must_not_be_browser_readable');
 assert.match(oauthRegistryMigration, /grant select, insert, update, delete[\s\S]*service_role/i, 'oauth_registry_service_role_grant_required');
-assert.match(oauthRegistry, /redirectUris\.includes\(redirectUri\)/, 'redirect_match_must_remain_exact_not_wildcard');
+// Exercise the existing matcher, including the previously shipped RFC 8252
+// loopback-port exception, instead of requiring the obsolete .includes spelling.
+const registryExports: Record<string, any> = {};
+const registryRequire = createRequire(import.meta.url);
+vm.runInNewContext(ts.transpileModule(oauthRegistry, {
+  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+}).outputText, {
+  exports: registryExports, URL,
+  require: (id: string) => id === 'node:crypto' ? registryRequire(id) : {},
+});
+const redirectAllowed = (registered: string, requested: string) => registryExports.isAllowedSfiOAuthRedirect({ redirectUris: [registered] }, requested);
+assert.equal(redirectAllowed('https://example.test/callback', 'https://example.test/callback'), true);
+for (const requested of ['https://evil.test/callback', 'https://example.test/callback/extra', 'https://example.test/callback?extra=1', 'https://example.test:8443/callback']) {
+  assert.equal(redirectAllowed('https://example.test/callback', requested), false, `non_loopback_redirect_must_be_exact:${requested}`);
+}
+assert.equal(redirectAllowed('http://127.0.0.1/callback', 'http://127.0.0.1:54321/callback'), true);
+assert.equal(redirectAllowed('http://[::1]/callback', 'http://[::1]:54321/callback'), true);
+for (const requested of ['http://127.0.0.2:54321/callback', 'http://127.0.0.1:54321/other', 'http://127.0.0.1:54321/callback?extra=1', 'http://127.0.0.1:54321/callback#fragment', 'https://127.0.0.1:54321/callback']) {
+  assert.equal(redirectAllowed('http://127.0.0.1/callback', requested), false, `loopback_only_port_may_vary:${requested}`);
+}
 assert.match(oauthRegistry, /hashSfiOAuthClientSecret/, 'oauth_client_secret_must_be_hashed');
 assert.match(oauthRegistry, /audience: 'OWNER_ONLY'/, 'new_self_service_clients_must_be_owner_only');
 assert.match(oauthRegistry, /audience: 'TRUSTED_MULTI_USER'/, 'legacy_institutional_client_must_be_explicitly_trusted_multi_user');
@@ -190,7 +212,7 @@ console.log(JSON.stringify({
   flow: 'authorization_code',
   pkce: 'S256',
   clientRegistry: 'PERSISTENT_SELF_SERVICE',
-  redirectMatching: 'EXACT',
+  redirectMatching: 'EXACT_EXCEPT_LOOPBACK_IP_PORT',
   selfServiceAudience: 'OWNER_ONLY',
   trustedMultiUser: 'INSTITUTIONAL_ONLY',
   legacyClient: 'BACKWARD_COMPATIBLE_ADOPTABLE',

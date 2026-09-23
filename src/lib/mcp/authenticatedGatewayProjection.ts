@@ -103,7 +103,7 @@ export const SFI_AUTHENTICATED_GATEWAY_TOOL = Object.freeze({
       },
       body: {
         type: 'object',
-        description: 'JSON request body for POST operations. Use the canonical gateway/OpenAPI contract for this operation.',
+        description: 'Canonical POST body. operateSfiLab persist requires operation="persist", nonempty title and content strings; use commandId for idempotency, refs for lineage, metadata for provenance. Research records use metadata.kind="METHOD_LAB_RESEARCH_OBJECT" and metadata.researchObject. Reread with operation="report", commandId (receipt) or objectId (research projection).',
         additionalProperties: true,
       },
       query: {

@@ -736,7 +736,9 @@ export async function dispatchAuthenticatedMachineRequest(
     }
     const gatewayResult = await deps.invokeGateway(invocation, principal);
     return {
-      status: gatewayResult.status,
+      // A completed tools/call is a JSON-RPC result even when the canonical
+      // operation fails. Keep its status as evidence, not a transport failure.
+      status: 200,
       body: response(id, {
         content: [{ type: 'text', text: JSON.stringify(gatewayResult.body) }],
         structuredContent: {
@@ -745,6 +747,7 @@ export async function dispatchAuthenticatedMachineRequest(
             contract: SFI_AUTHENTICATED_GATEWAY_PROJECTION_CONTRACT,
             operationId: invocation.operationId,
             requiredScope: requestSpec.scope,
+            httpStatus: gatewayResult.status,
             canonicalGatewayReused: true,
             arbitraryUrlAllowed: false,
             authorityExpansionAllowed: false,
