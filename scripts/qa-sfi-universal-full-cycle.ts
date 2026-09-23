@@ -89,7 +89,7 @@ async function main() {
   assert(spanishSelection.automationIds.includes('risk_agent'), 'decision intent in Spanish must select downside analysis');
   assert(spanishSelection.automationIds.includes('opportunity_agent'), 'decision intent in Spanish must select opportunity analysis');
 
-  const [signalRoute, casesRoute, cycle, automationSelector, hydrator, evidenceResolver, synthesis, closure, learning, profiler, rootWorkboard, interactiveDossiers, interactiveOperationalNext, vercel] = await Promise.all([
+  const [signalRoute, casesRoute, cycle, automationSelector, hydrator, evidenceResolver, synthesis, closure, learning, empiricalContinuation, profiler, rootWorkboard, interactiveDossiers, interactiveOperationalNext, vercel] = await Promise.all([
     text('src/app/api/external/v1/signal/route.ts'),
     text('src/app/api/external/v1/cases/route.ts'),
     text('src/lib/sfi/universalSignalCycle.ts'),
@@ -99,6 +99,7 @@ async function main() {
     text('src/lib/sfi/universalAiSynthesis.ts'),
     text('src/lib/sfi/universalClosure.ts'),
     text('src/lib/sfi/universalLearningQuarantine.ts'),
+    text('src/lib/sfi/universalEmpiricalContinuation.ts'),
     text('supabase/functions/sfi-dataset-profile/datasetProfile.ts'),
     text('src/app/api/root/workboard/route.ts'),
     text('src/lib/root/interactiveDossiers.ts'),
@@ -219,6 +220,8 @@ async function main() {
   assert(learning.includes("explicit === 'CALIBRATED_RETURN'"), 'requested learning class must be checked rather than trusted');
   assert(learning.includes("text(contrast.calibrationStatus) === 'CONTRAST_RECORDED'"), 'promotion must re-check persisted calibration status');
   assert(learning.includes('RETURN_EVIDENCE_UNLINKED'), 'unlinked returns must remain operational evidence rather than promotable learning');
+  assert(empiricalContinuation.includes('hasVerifiedLatestUniversalReturnCalibration(history.events)'), 'empirical continuation must reuse only a contrast that still establishes canonical calibration');
+  assert(empiricalContinuation.includes('Failed or superseding defective attempts remain in'), 'failed contrast attempts must remain reconstructible while allowing a later correction');
 
   assert(cycle.includes("const aiSyntheses = events.filter((row) => row.event_name === 'SFI_UNIVERSAL_AI_SYNTHESIS_COMPLETED')"));
   assert(cycle.includes("const returnContrasts = events.filter((row) => row.event_name === 'SFI_UNIVERSAL_RETURN_CONTRASTED')"));
