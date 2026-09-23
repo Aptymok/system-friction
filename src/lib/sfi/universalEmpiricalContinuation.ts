@@ -3,7 +3,7 @@ import 'server-only';
 import { runLlmTask } from '@/lib/ai/providerRouter';
 import { appendEpistemicEvent } from '@/lib/events/eventStore';
 import { assessUniversalClosure } from '@/lib/sfi/universalClosure';
-import { hasVerifiedLatestUniversalReturnCalibration } from '@/lib/sfi/universalCalibrationState';
+import { getCurrentUniversalClosureRecommendation, hasVerifiedLatestUniversalReturnCalibration } from '@/lib/sfi/universalCalibrationState';
 import {
   recordUniversalLearningCandidate,
   readUniversalLearningCycleState,
@@ -428,6 +428,18 @@ async function continueOne(cycleId: string) {
     };
   }
 
+  const denial = latestNamed(history, 'SFI_UNIVERSAL_REPORT_DENIED_BY_USER');
+  const contrastSequence = sequence(latestContrast);
+  if (Object.keys(denial).length && sequence(denial) > contrastSequence) {
+    return {
+      cycleId,
+      state: 'CLOSURE_RECOMMENDATION_DENIED_AWAITING_REVISED_CONTRAST',
+      denialEventId: text(denial.event_id),
+      contrastEventId: text(latestContrast.event_id),
+      rule: 'A denial keeps the cycle open. New evidence or analysis must produce a revised contrast after the denial before closure can be recommended again.',
+    };
+  }
+
   const closureAssessment = assessUniversalClosure({
     history,
     requested: { closureClass: 'EMPIRICAL_CONTRAST' },
@@ -438,9 +450,8 @@ async function continueOne(cycleId: string) {
   }
 
   const evidenceRefs = strings(contrastPayload.returnEvidenceRefs);
-  const recommendation = latestNamed(history, 'SFI_UNIVERSAL_CLOSURE_RECOMMENDED');
-  const contrastSequence = sequence(latestContrast);
-  let recommendationEventId = sequence(recommendation) > contrastSequence ? text(recommendation.event_id) : null;
+  const recommendation = getCurrentUniversalClosureRecommendation(history.events ?? []);
+  let recommendationEventId = recommendation ? text(recommendation.event_id) : null;
 
   if (!recommendationEventId) {
     const recommendationEvent = await appendEpistemicEvent({
