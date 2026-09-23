@@ -11,6 +11,9 @@ import {
 
 type Row = Record<string, unknown>;
 
+const CHATGPT_CIMD_CLIENT_ID = 'https://chatgpt.com/oauth/client.json';
+const CHATGPT_CIMD_REDIRECT_URI = 'https://chatgpt.com/connector_platform_oauth_redirect';
+
 export type ResolvedSfiOAuthClient = {
   clientId: string;
   name: string;
@@ -18,7 +21,7 @@ export type ResolvedSfiOAuthClient = {
   allowedScopes: string[];
   audience: 'OWNER_ONLY' | 'TRUSTED_MULTI_USER';
   ownerId: string | null;
-  source: 'registry' | 'continuity_registry' | 'legacy_env';
+  source: 'registry' | 'continuity_registry' | 'legacy_env' | 'chatgpt_cimd';
   secretHash?: string;
   legacySecret?: string;
 };
@@ -37,6 +40,19 @@ function safeEqual(a: string, b: string) {
   const left = Buffer.from(a);
   const right = Buffer.from(b);
   return left.length === right.length && timingSafeEqual(left, right);
+}
+
+function chatGptCimdClient(clientId: string): ResolvedSfiOAuthClient | null {
+  if (!safeEqual(clientId, CHATGPT_CIMD_CLIENT_ID)) return null;
+  return {
+    clientId: CHATGPT_CIMD_CLIENT_ID,
+    name: 'ChatGPT MCP client (CIMD)',
+    redirectUris: [CHATGPT_CIMD_REDIRECT_URI],
+    allowedScopes: [...SFI_ROOT_SCOPES],
+    audience: 'TRUSTED_MULTI_USER',
+    ownerId: null,
+    source: 'chatgpt_cimd',
+  };
 }
 
 function legacyClient() {
@@ -129,6 +145,9 @@ async function readContinuityRegisteredClient(clientId: string): Promise<Resolve
 export async function resolveSfiOAuthClient(clientId: string): Promise<ResolvedSfiOAuthClient | null> {
   if (!clientId) return null;
 
+  const cimd = chatGptCimdClient(clientId);
+  if (cimd) return cimd;
+
   const legacy = legacyClient();
   const legacyMatch = legacy && safeEqual(clientId, legacy.clientId) ? legacy : null;
 
@@ -160,6 +179,7 @@ export function canSfiOAuthClientAuthorizeSubject(client: ResolvedSfiOAuthClient
 }
 
 export function validateSfiOAuthClientSecret(client: ResolvedSfiOAuthClient, clientSecret: string) {
+  if (client.source === 'chatgpt_cimd') return clientSecret === '';
   if (!clientSecret) return false;
   if (client.source === 'legacy_env') return safeEqual(clientSecret, client.legacySecret || '');
   return safeEqual(hashSfiOAuthClientSecret(clientSecret), client.secretHash || '');
