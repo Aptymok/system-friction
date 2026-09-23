@@ -5,6 +5,7 @@ export const SFI_AUTHENTICATED_MCP_SCOPES = Object.freeze([
   'propose',
   'execute',
   'governance:decide',
+  'root:operate',
   'cases:read',
   'cases:write',
   'lab:read',
@@ -72,6 +73,7 @@ const DEFINITIONS = [
   { operationId: 'readSfiCognitiveRuntimeExecutions', method: 'GET', path: '/api/external/v1/cognitive-runtime', scope: 'observe', summary: 'Read cognitive runtime contracts and execution history.' },
   { operationId: 'getSfiCognitiveBootstrap', method: 'GET', path: '/api/external/v1/bootstrap', scope: 'observe', summary: 'Hydrate the governed cognitive bootstrap.' },
   { operationId: 'decideSfiGovernanceProposal', method: 'POST', path: '/api/external/v1/governance/proposals/{proposalId}/decision', scope: 'governance:decide', summary: 'Accept or deny one proposal through the existing sovereign ROOT decision route.' },
+  { operationId: 'operateSfiRoot', method: 'POST', path: '/api/external/v1/root/operate', scope: 'root:operate', summary: 'Operate bounded founder-only ROOT administration, including report retrieval and institutional account invitation/listing.' },
 ] as const satisfies readonly GatewayOperationDefinition[];
 
 const BY_OPERATION = new Map<string, GatewayOperationDefinition>(
@@ -103,7 +105,7 @@ export const SFI_AUTHENTICATED_GATEWAY_TOOL = Object.freeze({
       },
       body: {
         type: 'object',
-        description: 'Canonical POST body. operateSfiLab persist requires operation="persist", nonempty title and content strings; use commandId for idempotency, refs for lineage, metadata for provenance. Research records use metadata.kind="METHOD_LAB_RESEARCH_OBJECT" and metadata.researchObject. Reread with operation="report", commandId (receipt) or objectId (research projection).',
+        description: 'Canonical POST body. operateSfiLab persist requires operation="persist", nonempty title and content strings; use commandId for idempotency, refs for lineage, metadata for provenance. operateSfiRoot accepts operation="capabilities" | "reports" | "accounts_list" | "account_invite"; account_invite requires invitation {email,displayName,title,accessClass}.',
         additionalProperties: true,
       },
       query: {
@@ -169,7 +171,6 @@ export function buildAuthenticatedGatewayRequest(input: SfiAuthenticatedGatewayI
     summary: definition.summary,
   };
 }
-
 
 export function authenticatedGatewayCatalog() {
   return DEFINITIONS.map((definition) => ({
