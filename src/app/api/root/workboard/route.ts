@@ -38,10 +38,6 @@ function payload(value: unknown) {
   return row(row(value).payload);
 }
 
-function sequence(value: unknown) {
-  const parsed = Number(row(value).sequence);
-  return Number.isFinite(parsed) ? parsed : -1;
-}
 
 function latestNamed(history: UniversalCycleHistory, name: string) {
   const values = (history.events ?? []).filter((item) => text(row(item).event_name) === name);
