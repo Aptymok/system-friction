@@ -54,7 +54,18 @@ async function chatGptCimdClient(clientId: string): Promise<ResolvedSfiOAuthClie
     const metadata = await response.json() as Record<string, unknown>;
     if (metadata.client_id !== clientId || !Array.isArray(metadata.redirect_uris)) return null;
     redirectUris = normalizeSfiOAuthRedirectUris(metadata.redirect_uris);
-    if (!redirectUris.every((uri) => { try { return new URL(uri).hostname === 'chatgpt.com'; } catch { return false; } })) return null;
+    const nativeClient = metadata.application_type === 'native';
+    const trustedMetadataRedirect = (uri: string) => {
+      try {
+        const redirect = new URL(uri);
+        if (redirect.protocol === 'https:' && redirect.hostname === 'chatgpt.com') return true;
+        if (!nativeClient || redirect.protocol !== 'http:') return false;
+        return redirect.hostname === '127.0.0.1' || redirect.hostname === '::1' || redirect.hostname === 'localhost';
+      } catch {
+        return false;
+      }
+    };
+    if (!redirectUris.every(trustedMetadataRedirect)) return null;
   }
   return {
     clientId,
