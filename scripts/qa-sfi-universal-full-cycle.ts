@@ -89,7 +89,7 @@ async function main() {
   assert(spanishSelection.automationIds.includes('risk_agent'), 'decision intent in Spanish must select downside analysis');
   assert(spanishSelection.automationIds.includes('opportunity_agent'), 'decision intent in Spanish must select opportunity analysis');
 
-  const [signalRoute, casesRoute, cycle, automationSelector, hydrator, evidenceResolver, synthesis, closure, learning, profiler, vercel] = await Promise.all([
+  const [signalRoute, casesRoute, cycle, automationSelector, hydrator, evidenceResolver, synthesis, closure, learning, profiler, rootWorkboard, interactiveDossiers, interactiveOperationalNext, vercel] = await Promise.all([
     text('src/app/api/external/v1/signal/route.ts'),
     text('src/app/api/external/v1/cases/route.ts'),
     text('src/lib/sfi/universalSignalCycle.ts'),
@@ -100,6 +100,9 @@ async function main() {
     text('src/lib/sfi/universalClosure.ts'),
     text('src/lib/sfi/universalLearningQuarantine.ts'),
     text('supabase/functions/sfi-dataset-profile/datasetProfile.ts'),
+    text('src/app/api/root/workboard/route.ts'),
+    text('src/lib/root/interactiveDossiers.ts'),
+    text('src/lib/root/interactiveOperationalNext.ts'),
     text('vercel.json'),
   ]);
 
@@ -221,6 +224,13 @@ async function main() {
   assert(cycle.includes("const returnContrasts = events.filter((row) => row.event_name === 'SFI_UNIVERSAL_RETURN_CONTRASTED')"));
   assert(cycle.includes("const closureEnvelopes = events.filter((row) => row.event_name === 'SFI_UNIVERSAL_CLOSURE_ENVELOPE_ACCEPTED')"));
   assert(cycle.includes("? 'CALIBRATED'"));
+  assert(rootWorkboard.includes(": history.state ?? 'OPEN';"), 'ROOT workboard must project the canonical cycle state after recommendation overrides');
+  assert(!rootWorkboard.includes("lastContrast\n        ? 'CALIBRATED'"), 'ROOT workboard must not infer calibration from contrast presence');
+  assert(interactiveDossiers.includes("recommendationActive ? 'AWAITING_USER_CLOSE' : history.state ?? 'OPEN'"), 'interactive dossier must reuse canonical cycle state');
+  assert(!interactiveDossiers.includes("lastContrast ? 'CALIBRATED'"), 'interactive dossier must not infer calibration from contrast presence');
+  assert(interactiveOperationalNext.includes('hasVerifiedLatestUniversalReturnCalibration(events)'), 'interactive operational overview must share the verified calibration predicate');
+  assert(interactiveOperationalNext.includes("payload,lineage,occurred_at"), 'bulk operational projection must hydrate lineage required to verify the latest RETURN contrast');
+
 
   assert(profiler.includes('formulasEvaluated: false'));
   assert(profiler.includes('macrosExecuted: false'));
