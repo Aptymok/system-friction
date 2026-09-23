@@ -1,7 +1,7 @@
 SFI-00 CONTROLLED PRODUCTION RELEASE
 requested_at=2026-09-22T21:45:00-06:00
 release_reason=Deploy Codex native CIMD loopback metadata and ephemeral-port OAuth interoperability.
-source_main=PENDING_MERGE
+source_main=9b4e63c64f654be632bd76f85dfd69d47560fb66
 release_basis=pr_648+r4c_133_pass+external_oauth_808_pass+root_governance_35_pass+sfi08_719_pass+sfi_verify_3757_pass+audio_1281_pass+mihm_874_pass
 data_plane_contract=SFI_SYSTEMIC_DATA_PLANE_ROUTER_V1
 egress_policy=MINIMUM_NECESSARY_TRANSFER+CONTINUITY_FAIL_CLOSED
@@ -14,6 +14,6 @@ cognitive_grant_bypass=false
 studio_owner_boundary_change=false
 production_observation_required=true
 post_release_tests=deployment_ready+codex_cimd_resolution+codex_loopback_ephemeral_port_authorize+pkce_s256+resource_validation+authenticated_mcp_oauth_challenge+runtime_error_scan
-release_pr=PENDING
-release_commit=PENDING_MERGE
-release_retry=3
+release_pr=654
+release_commit=9b4e63c64f654be632bd76f85dfd69d47560fb66
+release_retry=4
