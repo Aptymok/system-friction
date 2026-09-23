@@ -195,7 +195,7 @@ export async function GET(req: NextRequest) {
   }
 
   if (resource) {
-    const allowedResources = new Set([issuer, `${issuer}/api/mcp/authenticated`]);
+    const allowedResources = new Set([issuer, `${issuer}/api/mcp/authenticated`, `${issuer}/api/mcp/studio`]);
     if (!allowedResources.has(resource)) return redirectOAuthError(redirectUri, state, 'invalid_target', 'The requested OAuth resource is not this SFI MCP server.', issuer);
   }
 

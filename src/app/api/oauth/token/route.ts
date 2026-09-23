@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
   }
   if (resource) {
     const origin = req.nextUrl.origin;
-    if (resource !== origin && resource !== `${origin}/api/mcp/authenticated`) {
+    if (resource !== origin && resource !== `${origin}/api/mcp/authenticated` && resource !== `${origin}/api/mcp/studio`) {
       return oauthError('invalid_target', 'The requested OAuth resource is not this SFI MCP server.');
     }
   }

@@ -65,6 +65,8 @@ assert.match(continuityStore, /consumed_at is null/i, 'authorization_code_contin
 assert.match(token, /PKCE verification failed/, 'token_exchange_must_verify_pkce_when_present');
 assert.match(token, /mintExternalAccessToken/, 'token_exchange_must_issue_signed_sfi_access_token');
 assert.match(token, /validateSfiOAuthClientSecret\(client, clientSecret\)/, 'token_exchange_must_validate_registry_client_secret');
+assert.match(authorize, /api\/mcp\/studio/, 'oauth_authorize_must_allow_studio_resource_target');
+assert.match(token, /api\/mcp\/studio/, 'oauth_token_must_allow_studio_resource_target');
 assert.match(sessionToken, /createHmac\('sha256'/, 'access_tokens_must_be_signed');
 assert.match(sessionToken, /exp <= now/, 'access_tokens_must_expire');
 
