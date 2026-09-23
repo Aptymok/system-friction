@@ -34,7 +34,7 @@
     "qa:sfi-entity-linkage": "tsx scripts/audit-sfi-entity-linkage.ts",
     "qa:sfi-spatial-surfaces": "tsx scripts/qa-sfi-spatial-surfaces.ts",
     "qa:sfi-ingestion-boundary": "tsx scripts/qa-sfi-ingestion-epistemic-boundary.ts",
-    "qa:sfi-universal-cycle": "tsx scripts/qa-sfi-universal-full-cycle.ts",
+    "qa:sfi-universal-cycle": "tsx scripts/qa-sfi-universal-full-cycle.ts && node --import tsx --test src/lib/sfi/universalSignalCycle.test.ts",
     "qa:sfi-resume-identity": "tsx scripts/qa-sfi-resume-identity.ts",
     "qa:sfi-learning-bootstrap": "tsx scripts/qa-sfi-learning-bootstrap.ts",
     "qa:sfi-person-ct-patterns": "tsx scripts/qa-sfi-person-ct-patterns.ts",
