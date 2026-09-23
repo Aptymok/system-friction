@@ -1,0 +1,32 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "system-friction-institute",
+  "version": "1.0.1",
+  "description": "Governed access to SYSTEM FRICTION INSTITUTE through its authenticated and Studio MCP servers.",
+  "author": {
+    "name": "SYSTEM FRICTION INSTITUTE",
+    "url": "https://www.systemfriction.org"
+  },
+  "homepage": "https://www.systemfriction.org",
+  "repository": "https://github.com/Aptymok/system-friction",
+  "keywords": ["governance", "systems", "assurance", "mcp", "studio"],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "SYSTEM FRICTION INSTITUTE",
+        "shortDescription": "Governed SFI context, operations and Studio.",
+        "longDescription": "Connect ChatGPT and Codex to SYSTEM FRICTION INSTITUTE through its authenticated, scope-bound MCP gateway and owner-scoped Studio MCP.",
+        "developerName": "SYSTEM FRICTION INSTITUTE",
+        "category": "Productivity",
+        "capabilities": ["Read", "Write"],
+        "websiteURL": "https://www.systemfriction.org",
+        "privacyPolicyURL": "https://www.systemfriction.org/privacy",
+        "defaultPrompt": [
+          "Use SYSTEM FRICTION INSTITUTE to read my institutional context.",
+          "Use SYSTEM FRICTION INSTITUTE for a governed SFI operation.",
+          "Use SYSTEM FRICTION INSTITUTE Studio to read or operate my authorized Studio workspace."
+        ]
+      }
+    }
+  }
+}
