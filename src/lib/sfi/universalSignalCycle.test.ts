@@ -3,7 +3,7 @@ import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import ts from 'typescript';
-import { hasVerifiedLatestUniversalReturnCalibration } from './universalCalibrationState';
+import { getCurrentUniversalClosureRecommendation, hasVerifiedLatestUniversalReturnCalibration } from './universalCalibrationState';
 
 type Event = { event_id: string; event_name: string; payload: Record<string, unknown>; lineage?: string[] };
 const source = readFileSync('src/lib/sfi/universalSignalCycle.ts', 'utf8');
@@ -27,6 +27,11 @@ const contrasted = (status = 'CONTRAST_RECORDED', returnId = 'return-1', extra: 
   event_id: 'contrast-1', event_name: 'SFI_UNIVERSAL_RETURN_CONTRASTED', lineage: [returnId, 'evidence-1'],
   payload: { calibrationStatus: status, classification: 'CONFIRMED', returnTraceability: 'VERIFIED_EVIDENCE_LINKED', returnEvidenceRefs: ['evidence-1'], ...extra },
 });
+const recommended = (contrastId = 'contrast-1', id = 'recommendation-1'): Event => ({
+  event_id: id, event_name: 'SFI_UNIVERSAL_CLOSURE_RECOMMENDED', lineage: [contrastId], payload: {},
+});
+const denied = (id = 'denial-1'): Event => ({ event_id: id, event_name: 'SFI_UNIVERSAL_REPORT_DENIED_BY_USER', payload: {} });
+const closed = (): Event => ({ event_id: 'closed', event_name: 'SFI_UNIVERSAL_CYCLE_CLOSED', payload: {} });
 
 test('failed contrasts never promote RETURN to CALIBRATED', async () => {
   for (const status of ['PREDICTION_MISSING', 'DISCRIMINATING_SIGNALS_MISSING', 'RETURN_EVIDENCE_VALIDATION_DEGRADED', 'RETURN_EVIDENCE_UNLINKED', 'RETURN_EVIDENCE_UNVERIFIED', 'REQUIRES_REVIEW']) {
@@ -68,4 +73,33 @@ test('existing OPEN, AWAITING_RETURN and CLOSED projections retain their meaning
   assert.equal((await readHistory([])).state, 'OPEN');
   assert.equal((await readHistory([{ event_id: 'run', event_name: 'SFI_UNIVERSAL_COGNITIVE_CYCLE_EXECUTED', payload: {} }])).state, 'AWAITING_RETURN');
   assert.equal((await readHistory([returned(), contrasted('PREDICTION_MISSING'), { event_id: 'closed', event_name: 'SFI_UNIVERSAL_CYCLE_CLOSED', payload: {} }])).state, 'CLOSED');
+});
+
+
+test('closure recommendation is current only for the verified latest RETURN contrast', () => {
+  const events = [returned(), contrasted(), recommended()];
+  assert.equal(getCurrentUniversalClosureRecommendation(events)?.event_id, 'recommendation-1');
+});
+
+test('denial, later RETURN, replacement contrast and closure invalidate stale recommendations', () => {
+  assert.equal(getCurrentUniversalClosureRecommendation([returned(), contrasted(), recommended(), denied()]), null);
+  assert.equal(getCurrentUniversalClosureRecommendation([returned(), contrasted(), recommended(), returned('return-2')]), null);
+
+  const contrast2 = { ...contrasted('CONTRAST_RECORDED'), event_id: 'contrast-2' };
+  assert.equal(getCurrentUniversalClosureRecommendation([returned(), contrasted(), recommended(), contrast2]), null);
+  assert.equal(
+    getCurrentUniversalClosureRecommendation([returned(), contrasted(), recommended(), contrast2, recommended('contrast-2', 'recommendation-2')])?.event_id,
+    'recommendation-2',
+  );
+  assert.equal(getCurrentUniversalClosureRecommendation([returned(), contrasted(), recommended(), closed()]), null);
+});
+
+test('a post-denial revised contrast requires a new linked recommendation', () => {
+  const contrast2 = { ...contrasted('CONTRAST_RECORDED'), event_id: 'contrast-2' };
+  const base = [returned(), contrasted(), recommended(), denied(), contrast2];
+  assert.equal(getCurrentUniversalClosureRecommendation(base), null);
+  assert.equal(
+    getCurrentUniversalClosureRecommendation([...base, recommended('contrast-2', 'recommendation-2')])?.event_id,
+    'recommendation-2',
+  );
 });
