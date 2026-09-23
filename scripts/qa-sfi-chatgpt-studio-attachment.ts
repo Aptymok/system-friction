@@ -28,6 +28,8 @@ assert.match(studioMcpRoute, /authorizeExternalRequest\(request, requiredScope\)
 assert.match(studioMcpRoute, /isPublicDiscoveryRequest/, 'studio_mcp_must_allow_unauthenticated_tool_discovery');
 assert.match(studioMcpRoute, /mcp\/www_authenticate/, 'studio_mcp_must_emit_runtime_oauth_link_challenge');
 assert.match(studioMcpRoute, /error_description="Authorize SFI Studio to continue"/, 'studio_mcp_oauth_challenge_must_be_user_linkable');
+assert.match(studioMcpRoute, /INITIAL_STUDIO_OAUTH_SCOPE = 'studio:read studio:content studio:run'/, 'studio_mcp_initial_auth_must_request_complete_studio_scope_set');
+assert.match(studioMcpRoute, /oauthChallenge\(request, INITIAL_STUDIO_OAUTH_SCOPE\)/, 'studio_mcp_get_challenge_must_request_complete_studio_scope_set');
 assert.match(studioMcpServer, /securitySchemes/, 'studio_tools_must_advertise_oauth_security_schemes');
 assert.match(studioMcpServer, /_meta:\s*\{ securitySchemes \}/, 'studio_tools_must_publish_legacy_security_scheme_copy');
 assert.match(studioMcpRoute, /credential\.authMethod !== 'oauth'/);
