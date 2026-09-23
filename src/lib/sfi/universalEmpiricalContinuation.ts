@@ -3,6 +3,7 @@ import 'server-only';
 import { runLlmTask } from '@/lib/ai/providerRouter';
 import { appendEpistemicEvent } from '@/lib/events/eventStore';
 import { assessUniversalClosure } from '@/lib/sfi/universalClosure';
+import { hasVerifiedLatestUniversalReturnCalibration } from '@/lib/sfi/universalCalibrationState';
 import {
   recordUniversalLearningCandidate,
   readUniversalLearningCycleState,
@@ -296,8 +297,14 @@ async function contrastLatestReturn(history: UniversalCycleHistory, cycleId: str
   const returnPayload = payload(lastReturn);
   const returnEventId = text(lastReturn.event_id) ?? '';
 
-  const existingContrast = [...(history.returnContrasts ?? [])].reverse().find((value) => strings(row(value).lineage).includes(returnEventId));
-  if (existingContrast) return { ok: true as const, reused: true as const, event: existingContrast, data: existingContrast };
+  const linkedContrasts = (history.returnContrasts ?? []).filter((value) => strings(row(value).lineage).includes(returnEventId));
+  const existingContrast = linkedContrasts.length ? linkedContrasts[linkedContrasts.length - 1] : null;
+  // Reuse only a contrast that still establishes the canonical latest-RETURN
+  // calibration state. Failed or superseding defective attempts remain in
+  // history but must not block a later corrective contrast.
+  if (existingContrast && hasVerifiedLatestUniversalReturnCalibration(history.events)) {
+    return { ok: true as const, reused: true as const, event: existingContrast, data: existingContrast };
+  }
 
   const declaredReturnEvidenceRefs = [
     ...strings(returnPayload.evidenceRefs),
