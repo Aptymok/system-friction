@@ -222,6 +222,11 @@ async function main() {
   assert(learning.includes('RETURN_EVIDENCE_UNLINKED'), 'unlinked returns must remain operational evidence rather than promotable learning');
   assert(empiricalContinuation.includes('hasVerifiedLatestUniversalReturnCalibration(history.events)'), 'empirical continuation must reuse only a contrast that still establishes canonical calibration');
   assert(empiricalContinuation.includes('Failed or superseding defective attempts remain in'), 'failed contrast attempts must remain reconstructible while allowing a later correction');
+  assert(empiricalContinuation.includes('CLOSURE_RECOMMENDATION_DENIED_AWAITING_REVISED_CONTRAST'), 'empirical continuation must honor a denial until a revised contrast exists');
+  assert(empiricalContinuation.includes('getCurrentUniversalClosureRecommendation(history.events ?? [])'), 'empirical continuation must reuse only a current recommendation');
+  assert(rootWorkboard.includes('getCurrentUniversalClosureRecommendation(history.events ?? [])'), 'ROOT workboard read and decision paths must freshness-check closure recommendations');
+  assert(interactiveDossiers.includes('getCurrentUniversalClosureRecommendation(history.events ?? [])'), 'interactive dossier must freshness-check closure recommendations');
+  assert(interactiveOperationalNext.includes('getCurrentUniversalClosureRecommendation(events)'), 'interactive next projection must freshness-check closure recommendations');
 
   assert(cycle.includes("const aiSyntheses = events.filter((row) => row.event_name === 'SFI_UNIVERSAL_AI_SYNTHESIS_COMPLETED')"));
   assert(cycle.includes("const returnContrasts = events.filter((row) => row.event_name === 'SFI_UNIVERSAL_RETURN_CONTRASTED')"));

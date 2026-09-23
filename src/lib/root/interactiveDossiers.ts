@@ -2,6 +2,7 @@ import 'server-only';
 
 import { getSfiServiceProfile } from '@/core/contracts/sfi';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { getCurrentUniversalClosureRecommendation } from '@/lib/sfi/universalCalibrationState';
 import { readUniversalCycleHistory, type UniversalCycleHistory } from '@/lib/sfi/universalSignalCycle';
 
 type Row = Record<string, unknown>;
@@ -11,7 +12,6 @@ function text(value: unknown, max = 6000) { return typeof value === 'string' && 
 function list(value: unknown, max = 250) { return Array.isArray(value) ? value.slice(0, max) : []; }
 function strings(value: unknown, max = 100) { return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0).map((item) => item.trim()).slice(0, max) : []; }
 function payload(value: unknown) { return row(row(value).payload); }
-function sequence(value: unknown) { const parsed = Number(row(value).sequence); return Number.isFinite(parsed) ? parsed : -1; }
 function firstNonEmpty(...values: unknown[]) { for (const value of values) { const candidate = text(value); if (candidate) return candidate; } return null; }
 function latestNamed(history: UniversalCycleHistory, name: string) {
   const values = (history.events ?? []).filter((item) => text(row(item).event_name) === name);
@@ -186,7 +186,7 @@ export async function readInteractiveCycleDossier(cycleId: string) {
   const denial = latestNamed(history, 'SFI_UNIVERSAL_REPORT_DENIED_BY_USER');
   const closure = history.closures?.length ? row(history.closures[history.closures.length - 1]) : null;
   const learningCandidate = latestNamed(history, 'SFI_UNIVERSAL_LEARNING_CANDIDATE_RECORDED');
-  const recommendationActive = Boolean(recommendation) && sequence(recommendation) > sequence(denial) && !closure;
+  const recommendationActive = Boolean(getCurrentUniversalClosureRecommendation(history.events ?? []));
   const structured = structuredSection(history);
   const synthesis = synthesisSection(history);
   const state = closure ? 'CLOSED' : recommendationActive ? 'AWAITING_USER_CLOSE' : history.state ?? 'OPEN';
