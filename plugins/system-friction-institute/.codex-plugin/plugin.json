@@ -1,8 +1,8 @@
 {
   "interface": {
     "displayName": "SYSTEM FRICTION INSTITUTE",
-    "shortDescription": "Governed SFI context, operations and Studio.",
-    "longDescription": "Connect ChatGPT and Codex to SYSTEM FRICTION INSTITUTE through its authenticated, scope-bound MCP gateway and owner-scoped Studio MCP.",
+    "shortDescription": "Governed SFI context, ROOT operations and Studio.",
+    "longDescription": "Connect ChatGPT and Codex to SYSTEM FRICTION INSTITUTE through its authenticated, scope-bound MCP gateway and owner-scoped Studio MCP. Authorized founders may use bounded ROOT operations such as report retrieval and institutional account invitations.",
     "developerName": "SYSTEM FRICTION INSTITUTE",
     "category": "Productivity",
     "capabilities": [
@@ -14,12 +14,14 @@
     "defaultPrompt": [
       "Use SYSTEM FRICTION INSTITUTE to read my institutional context.",
       "Use SYSTEM FRICTION INSTITUTE for a governed SFI operation.",
+      "Use SYSTEM FRICTION INSTITUTE to read my authorized ROOT reports and explain them in human language.",
+      "Use SYSTEM FRICTION INSTITUTE to administer institutional access when my ROOT authority permits it.",
       "Use SYSTEM FRICTION INSTITUTE Studio to read or operate my authorized Studio workspace."
     ]
   },
   "name": "system-friction-institute",
-  "version": "1.0.1",
-  "description": "Governed access to SYSTEM FRICTION INSTITUTE through its authenticated and Studio MCP servers.",
+  "version": "1.0.2",
+  "description": "Governed access to SYSTEM FRICTION INSTITUTE through its authenticated and Studio MCP servers, including bounded ROOT operations for authorized founders.",
   "author": {
     "name": "SYSTEM FRICTION INSTITUTE",
     "url": "https://www.systemfriction.org"
@@ -29,7 +31,8 @@
     "systems",
     "assurance",
     "mcp",
-    "studio"
+    "studio",
+    "root"
   ],
   "homepage": "https://www.systemfriction.org",
   "repository": "https://github.com/Aptymok/system-friction",
