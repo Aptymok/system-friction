@@ -7,6 +7,7 @@ import { readRootOperationalNext } from '@/lib/root/operationalNext';
 import { readRootOperationalWorkboard } from '@/lib/root/operationalWorkboard';
 import { auditRootAction, requireRootActor, requireRootViewer } from '@/lib/root/server';
 import { runUniversalEmpiricalContinuation } from '@/lib/sfi/universalEmpiricalContinuation';
+import { getCurrentUniversalClosureRecommendation } from '@/lib/sfi/universalCalibrationState';
 import { closeUniversalCycle, readUniversalCycleHistory, type UniversalCycleHistory } from '@/lib/sfi/universalSignalCycle';
 
 export const dynamic = 'force-dynamic';
@@ -155,9 +156,7 @@ function buildCycleDossier(history: UniversalCycleHistory) {
   const denial = latestNamed(history, 'SFI_UNIVERSAL_REPORT_DENIED_BY_USER');
   const closure = history.closures?.length ? row(history.closures[history.closures.length - 1]) : null;
   const learningCandidate = latestNamed(history, 'SFI_UNIVERSAL_LEARNING_CANDIDATE_RECORDED');
-  const recommendationActive = Boolean(recommendation)
-    && sequence(recommendation) > sequence(denial)
-    && !closure;
+  const recommendationActive = Boolean(getCurrentUniversalClosureRecommendation(history.events ?? []));
   const structured = structuredSection(history);
   const synthesis = synthesisSection(history);
   const hypotheses = statements(list(cognitivePayload.hypotheses, 100));
@@ -335,9 +334,8 @@ export async function POST(request: NextRequest) {
   const history = await readUniversalCycleHistory(cycleId);
   if (!history.ok) return NextResponse.json({ ok: false, error: history.error ?? 'cycle_history_unavailable' }, { status: 404 });
   if (history.closures?.length) return NextResponse.json({ ok: false, error: 'cycle_already_closed' }, { status: 409 });
-  const recommendation = latestNamed(history, 'SFI_UNIVERSAL_CLOSURE_RECOMMENDED');
-  const denial = latestNamed(history, 'SFI_UNIVERSAL_REPORT_DENIED_BY_USER');
-  if (!recommendation || sequence(recommendation) <= sequence(denial)) {
+  const recommendation = getCurrentUniversalClosureRecommendation(history.events ?? []);
+  if (!recommendation) {
     return NextResponse.json({ ok: false, error: 'cycle_report_not_ready_for_user_decision' }, { status: 409 });
   }
   const recommendationPayload = payload(recommendation);
@@ -356,7 +354,7 @@ export async function POST(request: NextRequest) {
         recommendationEventId: text(recommendation.event_id),
         note,
         decision: 'DENY',
-        next: 'The cycle remains open. New evidence, analysis or a revised contrast is required before SFI may recommend closure again.',
+        next: 'The cycle remains open. New evidence or analysis must be incorporated into a revised contrast before SFI may recommend closure again.',
       },
       occurredAt: new Date().toISOString(),
       source: { sourceId: gate.ctx.user.id, sourceType: 'root_user_report_decision' },
