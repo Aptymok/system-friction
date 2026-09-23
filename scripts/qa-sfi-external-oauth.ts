@@ -44,6 +44,8 @@ assert.match(authorize, /SFI_PERSONAL_SCOPES/, 'oauth_must_use_personal_scope_se
 assert.match(authorize, /context\.member\?\.external\?\.scopes/, 'institutional_scopes_must_come_from_member_registry');
 assert.match(authorize, /personalPrincipal = !rootDelegate && !context\.member/, 'normal_account_detection_must_not_infer_institutional_membership');
 assert.match(authorize, /principalScopes\.has\(scope\) && clientScopes\.has\(scope\)/, 'normal_accounts_must_receive_principal_client_intersection');
+assert.match(authorize, /if \(rootDelegate\)[\s\S]*grantedScopes = requestedScopes;[\s\S]*else[\s\S]*requestedScopes\.filter\(\(scope\) => principalScopes\.has\(scope\) && clientScopes\.has\(scope\)\)/, 'non_root_institutional_oauth_must_partial_grant_principal_client_intersection');
+assert.doesNotMatch(authorize, /requestedScopes\.some\(\(scope\) => !principalScopes\.has\(scope\)/, 'non_root_institutional_oauth_must_not_abort_on_client_superset_scope');
 assert.match(authorize, /tenantId = personalPrincipal \? `user:\$\{context\.user\.id\}` : 'sfi'/, 'personal_oauth_tenant_must_be_subject_bound');
 assert.match(authorize, /role.*personal_operator/s, 'personal_oauth_role_must_be_non_sovereign');
 assert.match(authorize, /codeHash\(code\)/, 'authorization_code_must_be_stored_as_hash');
