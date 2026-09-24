@@ -70,7 +70,16 @@ export async function runWorldCalibrationCycle(input: {
     .lte('validation_ends_at', now);
   if (ids.length) hypothesisQuery = hypothesisQuery.in('id', ids);
   const { data: hypotheses, error } = await hypothesisQuery.limit(100);
-  if (error) return { ok: false, calibrated: 0, error: error.message, generatedAt: now };
+  if (error) return {
+    ok: false,
+    calibrated: 0,
+    reopened: 0,
+    attempted: 0,
+    targeted: ids,
+    warnings: [`hypothesis_read:${error.message}`],
+    error: error.message,
+    generatedAt: now,
+  };
 
   let calibrated = 0;
   let reopened = 0;
