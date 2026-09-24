@@ -84,6 +84,15 @@ test('registered institutional member cannot become founder through profile flag
   });
 });
 
+test('founder identity translation is reused by Neon server and proxy admission', () => {
+  const runtime = readFileSync('src/runtime/supabase/server.ts', 'utf8');
+  const proxy = readFileSync('src/proxy.ts', 'utf8');
+  assert.match(runtime, /canonicalFounderUserId\(\{ email \}\)/);
+  assert.match(runtime, /founderUserId[\s\S]*?readContinuityProfileByEmail\(email\)\.catch/);
+  assert.match(proxy, /canonicalFounderUserId\(\{ email \}\)/);
+  assert.match(proxy, /founderUserId[\s\S]*?readContinuityProfileByEmail\(email\)\.catch/);
+});
+
 test('founder-state endpoint uses requireRootActor as the single sovereign admission gate', () => {
   const route = readFileSync('src/app/api/root/founder-state/route.ts', 'utf8');
   assert.match(route, /requireRootActor\('founder-state\.read'\)/);
