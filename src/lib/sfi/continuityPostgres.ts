@@ -155,6 +155,17 @@ export async function readContinuityInstitutionalAccountGrantByEmail(email: stri
   return (rows[0] as JsonRecord | undefined) ?? null;
 }
 
+export async function readContinuityInstitutionalAccountAccessGrants(limit = 50) {
+  const sql = db();
+  const boundedLimit = Math.max(1, Math.min(200, limit));
+  return sql`
+    select id,email,display_name,title,access_class,status,invited_at,activated_at,last_invite_error
+      from sfi_account_access_grants
+     order by created_at desc
+     limit ${boundedLimit}
+  `;
+}
+
 export async function readContinuityMemberWorkspaceCounts(userId: string) {
   const sql = db();
   const rows = await sql`
