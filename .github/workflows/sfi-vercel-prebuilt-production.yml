@@ -143,3 +143,13 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: npx --yes vercel@latest deploy --prebuilt --prod --archive=tgz --token="$VERCEL_TOKEN"
+
+      - name: Execute bounded authorized SFI operating-cycle closure
+        if: steps.creds.outputs.ready == 'true'
+        shell: bash
+        env:
+          NODE_OPTIONS: --conditions=react-server
+        run: |
+          set -euo pipefail
+          test -f .vercel/.env.production.local
+          node --env-file=.vercel/.env.production.local --import tsx scripts/run-sfi-operating-cycle-closure.ts
