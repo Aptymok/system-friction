@@ -14,6 +14,7 @@ const login = read('src/components/sfi/LoginSurface.tsx');
 const continuityAccess = read('src/app/continuity-access/page.tsx');
 const authActions = read('src/lib/auth/actions.ts');
 const neonPasswordBootstrap = read('src/lib/auth/neonPasswordBootstrap.ts');
+const continuityPostgres = read('src/lib/sfi/continuityPostgres.ts');
 
 assert.match(migration, /sfi_account_access_grants/);
 assert.match(migration, /INSTITUTIONAL_OBSERVER/);
@@ -32,6 +33,11 @@ assert.match(invite, /previousStatus === 'INVITED'/, 'a failed resend must not e
 assert.match(invite, /limite_correo/, 'mail-provider rate limits must be represented explicitly');
 assert.doesNotMatch(invite, /from\('profiles'\)/, 'INVITE must not provision institutional authorization profile before activation');
 assert.match(invite, /profileProvisioned: false/);
+assert.match(invite, /readContinuityInstitutionalAccountAccessGrants/, 'ROOT access listing must reuse Neon continuity during primary failure');
+assert.match(invite, /source: 'NEON_CONTINUITY'/, 'ROOT access listing must expose its continuity read source');
+assert.match(invite, /source: 'UNAVAILABLE'/, 'ROOT access listing must fail closed without throwing the human surface away');
+assert.match(continuityPostgres, /readContinuityInstitutionalAccountAccessGrants/, 'continuity layer must expose bounded institutional grant listing');
+assert.match(continuityPostgres, /order by created_at desc/, 'continuity grant listing must preserve recency ordering');
 
 assert.match(rootAccess, /inviteInstitutionalAccountAction/);
 assert.match(rootAccess, /listInstitutionalAccountAccessGrants/);
@@ -42,6 +48,8 @@ assert.match(rootAccess, /Operador — puede trabajar/);
 assert.match(rootAccess, /no autoridad soberana/i);
 assert.match(rootAccess, /limite_correo/);
 assert.match(rootAccess, /lastInviteError/);
+assert.match(rootAccess, /NEON_CONTINUITY/, 'ROOT access must visibly distinguish continuity reads');
+assert.match(rootAccess, /No se modificó ningún acceso/, 'unavailable read planes must not imply a successful mutation');
 
 assert.match(forgot, /forgotPasswordAction/);
 assert.match(reset, /updateUser\(\{ password \}\)/);
@@ -117,7 +125,7 @@ assert.equal(existsSync('src/app/signup/page.tsx'), false, 'public signup surfac
 
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-ACCOUNT-INVITATION-LIFECYCLE-1.3',
+  contract: 'SFI-ACCOUNT-INVITATION-LIFECYCLE-1.4',
   invitationOnly: true,
   temporaryPasswordGenerated: false,
   founderAdminRequired: true,
@@ -133,4 +141,5 @@ console.log(JSON.stringify({
   deliveryFailedGrantCanActivate: false,
   verifiedProfileProvisionFailureCanRetry: true,
   failedResendPreservesExistingInvite: true,
+  rootAccessContinuityReadFallback: true,
 }, null, 2));
