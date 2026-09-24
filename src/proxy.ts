@@ -4,7 +4,7 @@ import type { NextRequest } from 'next/server'
 import { normalizeSupabaseUrl } from '@/runtime/supabase/url'
 import { readContinuityProfileByEmail } from '@/lib/sfi/continuityPostgres'
 import { findInstitutionalMember } from '@/lib/system/access/institutionalMembers'
-import { isConfiguredFounderIdentity } from '@/lib/system/access/founderAuthority'
+import { canonicalFounderUserId, isConfiguredFounderIdentity } from '@/lib/system/access/founderAuthority'
 
 const AUTH_COOKIE_NAMES = ['sb-access-token', 'sb-refresh-token', 'supabase-auth-token']
 const SFI_NEON_SESSION_COOKIE = 'sfi_neon_auth_session'
@@ -138,8 +138,12 @@ async function readNeonProxyIdentity(request: NextRequest): Promise<SessionIdent
   const email = body?.user?.email?.trim().toLowerCase()
   if (!email) return null
 
-  const profile = await readContinuityProfileByEmail(email).catch(() => null)
-  const canonicalUserId = typeof profile?.user_id === 'string' ? profile.user_id : null
+  const founderUserId = canonicalFounderUserId({ email })
+  const profile = founderUserId
+    ? null
+    : await readContinuityProfileByEmail(email).catch(() => null)
+  const canonicalUserId = founderUserId
+    ?? (typeof profile?.user_id === 'string' ? profile.user_id : null)
   if (!canonicalUserId) return null
 
   return { id: canonicalUserId, email }

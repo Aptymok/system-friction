@@ -28,6 +28,23 @@ function withFounderEnv(
   }
 }
 
+test('canonical founder identity survives unavailable profile projections', () => {
+  withFounderEnv({}, () => {
+    assert.deepEqual(
+      resolveFounderAuthority({
+        userId: 'c0a71851-9c8b-4e1c-83fc-9f1f0c783fa2',
+        email: 'jmarin@systemfriction.org',
+        profile: null,
+      }),
+      { isFounder: true, source: 'canonical_founder_identity' },
+    );
+    assert.equal(
+      resolveFounderAuthority({ email: 'other@systemfriction.org', profile: null }).isFounder,
+      false,
+    );
+  });
+});
+
 test('configured founder user id is sovereign without relying on profile projection', () => {
   withFounderEnv({ SFI_FOUNDER_USER_IDS: 'founder-id' }, () => {
     assert.deepEqual(
@@ -65,6 +82,15 @@ test('registered institutional member cannot become founder through profile flag
       profile: { role: 'root', module_access: { full_access: true } },
     }).isFounder, false);
   });
+});
+
+test('founder identity translation is reused by Neon server and proxy admission', () => {
+  const runtime = readFileSync('src/runtime/supabase/server.ts', 'utf8');
+  const proxy = readFileSync('src/proxy.ts', 'utf8');
+  assert.match(runtime, /canonicalFounderUserId\(\{ email \}\)/);
+  assert.match(runtime, /founderUserId[\s\S]*?readContinuityProfileByEmail\(email\)\.catch/);
+  assert.match(proxy, /canonicalFounderUserId\(\{ email \}\)/);
+  assert.match(proxy, /founderUserId[\s\S]*?readContinuityProfileByEmail\(email\)\.catch/);
 });
 
 test('founder-state endpoint uses requireRootActor as the single sovereign admission gate', () => {
