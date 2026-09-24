@@ -3,6 +3,8 @@ import type {
   HypothesisCriterionResult,
 } from './hypothesisTestContract';
 
+// Historical adjudication is a bounded compatibility path inside the existing World calibrator.
+// It does not create a second writer, authority surface, or learning lane.
 export type LegacyFrozenSignal = {
   id: string;
   kind: 'EXPECTED' | 'CONTRADICTION';
