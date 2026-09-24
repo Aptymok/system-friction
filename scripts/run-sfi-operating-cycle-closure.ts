@@ -58,6 +58,20 @@ if (cycleMetadata.machineExecutionAuthorized !== true || cycleMetadata.machineEx
   throw new Error('CLOSURE_MACHINE_AUTHORITY_NOT_GRANTED');
 }
 
+await db.from('sfi_audit_events').insert({
+  actor_id: ownerId,
+  action: 'SFI_OPERATING_CYCLE_CLOSURE_EXECUTOR_STARTED',
+  target_type: 'sfi_operating_cycle',
+  target_id: cycleId,
+  before_state: { status: cycle.status },
+  after_state: { executor: 'scripts/run-sfi-operating-cycle-closure.ts' },
+  context: {
+    authority: 'FOUNDER_AUTHORIZED_ADMIN_CLOSURE',
+    machineExecutionScope: AUTH_SCOPE,
+    codeCommit: process.env.GITHUB_SHA ?? null,
+  },
+});
+
 const evidenceRefs = strings(cycle.evidence_refs);
 if (!evidenceRefs.length) throw new Error('CLOSURE_EVIDENCE_REQUIRED');
 
@@ -73,17 +87,40 @@ let labAnalysisId = methodLabRefs[0] ?? null;
 let methodLabReceipt: Row = { reused: Boolean(labAnalysisId), labAnalysisId };
 
 if (!labAnalysisId) {
-  const lab = await runMethodLabSimulation({
-    protocolId: 'sociotechnical_simulation',
-    evidenceIds: evidenceRefs,
-    actorId: ownerId,
-    parameters: {
-      operatingCycleId: cycleId,
-      cycleCode: cycle.cycle_code,
-      purpose: 'Operational mirror closure contrast',
-      claimBoundary: 'SIMULATED output only. The mirror RETURN is observed separately.',
-    },
-  });
+  let lab;
+  try {
+    lab = await runMethodLabSimulation({
+      protocolId: 'sociotechnical_simulation',
+      evidenceIds: evidenceRefs,
+      actorId: ownerId,
+      parameters: {
+        operatingCycleId: cycleId,
+        cycleCode: cycle.cycle_code,
+        purpose: 'Operational mirror closure contrast',
+        claimBoundary: 'SIMULATED output only. The mirror RETURN is observed separately.',
+      },
+    });
+  } catch (error) {
+    const message = sanitizedError(error);
+    await db.from('sfi_audit_events').insert({
+      actor_id: ownerId,
+      action: 'SFI_OPERATING_CYCLE_METHOD_LAB_EXECUTION_FAILED',
+      target_type: 'sfi_operating_cycle',
+      target_id: cycleId,
+      before_state: { status: cycle.status },
+      after_state: { status: 'BLOCKED', error: message },
+      context: {
+        authority: 'FOUNDER_AUTHORIZED_ADMIN_CLOSURE',
+        epistemicBoundary: 'No Method Lab result was persisted; failure is operational evidence, not a simulation result.',
+      },
+    });
+    await db.from('sfi_operating_cycles').update({
+      status: 'BLOCKED',
+      metadata: { ...cycleMetadata, methodLabFailure: { observedAt: new Date().toISOString(), error: message } },
+      updated_at: new Date().toISOString(),
+    }).eq('id', cycleId).eq('owner_id', ownerId);
+    throw error;
+  }
   labAnalysisId = lab.labAnalysisId;
   methodLabRefs = addUnique(methodLabRefs, labAnalysisId);
   methodLabReceipt = {
