@@ -13,6 +13,7 @@ import {
 import { readContinuityProfile, readContinuityProfileByEmail } from '@/lib/sfi/continuityPostgres'
 import { activateNeonPasswordWithBootstrap } from '@/lib/auth/neonPasswordBootstrap'
 import { authSchema } from '@/lib/validation/schemas'
+import { canonicalFounderUserId, isConfiguredFounderIdentity } from '@/lib/system/access/founderAuthority'
 
 function formValue(formData: FormData, key: string) {
   return String(formData.get(key) || '')
@@ -38,6 +39,7 @@ function record(value: unknown): Record<string, unknown> {
 
 async function resolvePostLoginPath(userId: string, requestedNext: string) {
   if (requestedNext !== '/entry') return requestedNext
+  if (isConfiguredFounderIdentity({ userId })) return '/root'
 
   let primaryProfile: { role?: unknown; module_access?: unknown } | null = null
   try {
@@ -92,23 +94,58 @@ export async function loginAction(formData: FormData) {
   const limit = checkRateLimit(rateLimitKey('login', email), 8, 60_000)
   if (!limit.allowed) redirect(`/login?error=rate_limit&next=${encodeURIComponent(next)}`)
 
+  // Neon is the continuity-first credential provider. A valid Neon session wins
+  // without touching Supabase Auth. Supabase is a bounded compatibility fallback
+  // for institutional accounts whose invitation/password lifecycle still lives
+  // in the canonical Supabase Auth registry.
   const neon = await signInWithNeonAuth(email, parsed.data.password)
-  if (!neon.ok) {
-    const errorCode = neon.status === 429
-      ? 'rate_limit'
-      : neon.status >= 500
-        ? 'auth_unavailable'
-        : 'invalid_credentials'
-    redirect(`/login?error=${errorCode}&next=${encodeURIComponent(next)}`)
-  }
+  if (neon.ok) {
+    const founderUserId = canonicalFounderUserId({ email })
+    const profile = founderUserId
+      ? null
+      : await readContinuityProfileByEmail(email).catch(() => null)
+    const canonicalUserId = founderUserId
+      ?? (typeof profile?.user_id === 'string' ? profile.user_id : null)
 
-  const profile = await readContinuityProfileByEmail(email)
-  if (!profile?.user_id || typeof profile.user_id !== 'string') {
+    if (canonicalUserId) {
+      redirect(await resolvePostLoginPath(canonicalUserId, next))
+    }
+
+    // Do not keep an unbound Neon session. A primary-bound institutional account
+    // may still authenticate below through Supabase.
     await signOutNeonAuth()
-    redirect(`/login?error=continuity_profile_missing&next=${encodeURIComponent(next)}`)
+  } else if (neon.status === 429) {
+    redirect(`/login?error=rate_limit&next=${encodeURIComponent(next)}`)
   }
 
-  redirect(await resolvePostLoginPath(profile.user_id, next))
+  let primaryStatus = 503
+  let primaryUserId: string | null = null
+  try {
+    const supabase = await createServerSupabaseClient()
+    const primary = await supabase.auth.signInWithPassword({
+      email,
+      password: parsed.data.password,
+    })
+    primaryStatus = Number(primary.error?.status ?? (primary.data.user ? 200 : 401))
+    primaryUserId = !primary.error && primary.data.user ? primary.data.user.id : null
+  } catch {
+    primaryStatus = 503
+  }
+
+  // redirect() throws NEXT_REDIRECT internally; keep it outside the provider
+  // try/catch so a successful primary login cannot be misclassified as 503.
+  if (primaryUserId) {
+    redirect(await resolvePostLoginPath(primaryUserId, next))
+  }
+
+  const neonUnavailable = !neon.ok && neon.status >= 500
+  const primaryUnavailable = primaryStatus === 402 || primaryStatus >= 500
+  const errorCode = primaryStatus === 429
+    ? 'rate_limit'
+    : neonUnavailable || primaryUnavailable
+      ? 'auth_unavailable'
+      : 'invalid_credentials'
+  redirect(`/login?error=${errorCode}&next=${encodeURIComponent(next)}`)
 }
 
 export async function activateContinuityPasswordAction(formData: FormData) {
