@@ -11,7 +11,7 @@ const STATES: Record<string, string> = {
   entrada_invalida: 'Revisa nombre, correo, cargo y tipo de acceso.',
   ya_activa: 'Esa cuenta ya está activa.',
   suspendida: 'Esa cuenta está suspendida. No se reactivó automáticamente.',
-  registro_no_disponible: 'El registro de accesos no está disponible todavía.',
+  registro_no_disponible: 'El plano primario no permitió preparar la invitación. No se otorgó acceso nuevo.',
   invitacion_no_enviada: 'No se pudo enviar la invitación. No se otorgó acceso.',
   limite_correo: 'El proveedor de autenticación alcanzó un límite temporal de envío. No se otorgó acceso nuevo; vuelve a intentar cuando el límite se libere o configura un proveedor SMTP propio antes de reintentar.',
 };
@@ -59,6 +59,13 @@ export default async function RootAccessPage({
         <p role="status" style={{ padding: 16, border: '1px solid currentColor', margin: '24px 0' }}>{STATES[state]}</p>
       ) : null}
 
+      {access.source === 'NEON_CONTINUITY' ? (
+        <p role="status" style={{ padding: 16, border: '1px solid currentColor', margin: '24px 0' }}>
+          Supabase primario no respondió; SFI está leyendo el registro de accesos desde continuidad Neon.
+          Puedes revisar el estado existente. El envío de nuevas invitaciones sigue sujeto al proveedor primario.
+        </p>
+      ) : null}
+
       <form action={inviteInstitutionalAccountAction} style={{ display: 'grid', gap: 14, maxWidth: 680, marginTop: 32 }}>
         <label>
           Nombre
@@ -84,7 +91,7 @@ export default async function RootAccessPage({
 
       <section style={{ marginTop: 56 }}>
         <h2>Accesos administrados</h2>
-        {!access.available ? <p>El registro nuevo se habilitará con la siguiente migración de producción.</p> : null}
+        {!access.available ? <p>El registro de accesos no está disponible en el plano primario ni en continuidad. No se modificó ningún acceso.</p> : null}
         {access.grants.length === 0 ? <p>No hay invitaciones registradas todavía.</p> : (
           <div style={{ display: 'grid', gap: 12 }}>
             {access.grants.map((grant) => {
