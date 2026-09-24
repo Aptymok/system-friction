@@ -35,6 +35,10 @@ assert.ok(page.includes('SFI_REALITY_CHAIN_BRIEF') && page.includes('PUBLIC-SOUR
 assert.ok(editorial.includes("slug: 'the-reality-chain'") && editorial.includes("language: 'en'") && editorial.includes("editorialKind: 'FRICTION_BRIEF'"), 'reality_chain_editorial_contract_missing');
 assert.ok(publicationEntry.includes('publication.visuals.map') && publicationEntry.includes('OPEN PDF'), 'reality_chain_visual_or_pdf_surface_missing');
 assert.ok(page.includes('SFI_EDITORIAL_FAMILIES'), 'editorial_families_not_projected');
+assert.ok(page.includes("force-dynamic"), 'persisted_publication_projection_must_not_be_force_static');
+assert.ok(page.includes("createServiceSupabaseClient"), 'persisted_publication_projection_missing_service_reader');
+assert.ok(page.includes(".from('sfi_publications')") && page.includes(".eq('status','PUBLISHED')"), 'persisted_published_returns_not_projected');
+assert.ok(page.includes('public_payload') && page.includes('PUBLICACIÓN = EXPOSURE'), 'persisted_publication_epistemic_boundary_missing');
 assert.ok(page.includes('<picture>') && page.includes('SFI_PUBLICATIONS_BANNER.mobile'), 'responsive_editorial_banner_missing');
 assert.ok(page.includes('GENERADA (IA)') || families.includes('GENERADA (IA)'), 'generated_image_provenance_missing');
 assert.equal(page.includes('Notas de Tiempo'), false, 'monthly_temporal_notes_must_not_be_reclassified_as_notas_de_tiempo');
