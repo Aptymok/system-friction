@@ -23,6 +23,7 @@ function sanitizedError(error: unknown) {
   return error instanceof Error ? error.message.slice(0, 1200) : String(error).slice(0, 1200);
 }
 
+async function main() {
 const db = createServiceSupabaseClient();
 const requestedId = (process.env.SFI_CLOSURE_CYCLE_ID || '').trim();
 
@@ -509,3 +510,9 @@ const receipt = {
 };
 console.log(JSON.stringify(receipt));
 if (!receipt.ok) process.exitCode = 2;
+}
+
+main().catch((error) => {
+  console.error('SFI_OPERATING_CYCLE_CLOSURE_FATAL', sanitizedError(error));
+  process.exitCode = 1;
+});
