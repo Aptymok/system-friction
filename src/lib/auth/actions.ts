@@ -119,6 +119,7 @@ export async function loginAction(formData: FormData) {
   }
 
   let primaryStatus = 503
+  let primaryUserId: string | null = null
   try {
     const supabase = await createServerSupabaseClient()
     const primary = await supabase.auth.signInWithPassword({
@@ -126,12 +127,15 @@ export async function loginAction(formData: FormData) {
       password: parsed.data.password,
     })
     primaryStatus = Number(primary.error?.status ?? (primary.data.user ? 200 : 401))
-
-    if (!primary.error && primary.data.user) {
-      redirect(await resolvePostLoginPath(primary.data.user.id, next))
-    }
+    primaryUserId = !primary.error && primary.data.user ? primary.data.user.id : null
   } catch {
     primaryStatus = 503
+  }
+
+  // redirect() throws NEXT_REDIRECT internally; keep it outside the provider
+  // try/catch so a successful primary login cannot be misclassified as 503.
+  if (primaryUserId) {
+    redirect(await resolvePostLoginPath(primaryUserId, next))
   }
 
   const neonUnavailable = !neon.ok && neon.status >= 500
