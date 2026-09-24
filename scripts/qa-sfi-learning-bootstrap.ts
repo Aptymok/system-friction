@@ -64,7 +64,11 @@ async function main() {
   assert(worldCalibration.includes("classification === 'VALIDATED' || classification === 'CONTRADICTED'"), 'world_learning_must_require_decisive_outcome');
   assert(worldCalibration.includes('linkedSourceFamilies'), 'world_calibration_source_diversity_gate_missing');
   assert(worldCalibration.includes('linkedEvidenceCount'), 'world_calibration_evidence_count_gate_missing');
-  assert(worldCalibration.includes('LEGACY_HYPOTHESIS_WITHOUT_PREREGISTERED_TEST_CONTRACT'), 'legacy_hypotheses_must_not_be_retroactively_upgraded');
+  assert(worldCalibration.includes('buildLegacyFrozenSignals'), 'legacy_frozen_signal_builder_missing');
+  assert(worldCalibration.includes('classifyLegacyFrozenSignals'), 'legacy_frozen_signal_classifier_missing');
+  assert(worldCalibration.includes('LEGACY_FROZEN_SIGNAL_ADJUDICATION'), 'legacy_frozen_signal_outcome_marker_missing');
+  assert(worldCalibration.includes('Legacy adjudication never writes world_learning_events'), 'legacy_adjudication_must_not_write_learning');
+  assert(!worldCalibration.includes('LEGACY_HYPOTHESIS_WITHOUT_PREREGISTERED_TEST_CONTRACT'), 'legacy_hypotheses_must_not_be_auto_closed_only_for_missing_test_contract');
   assert(!worldCalibration.includes('"classification":"VALIDATED|PARTIALLY_VALIDATED|CONTRADICTED|INCONCLUSIVE"'), 'model_must_not_own_final_hypothesis_classification');
   for (const liveCaller of [worldCron, worldReobserve, worldBootstrap]) {
     assert(liveCaller.includes("@/lib/world-observatory/hypothesisCalibration"), 'live_world_surface_not_using_strict_calibration_owner');
@@ -191,7 +195,8 @@ async function main() {
       modelCannotOwnFinalWorldClassification: true,
       decisiveWorldOutcomeRequiredForLearning: true,
       strictCalibrationOwnsLiveWorldSurfaces: true,
-      legacyHypothesesCannotBeRetroactivelyUpgraded: true,
+      legacyHypothesesUseFrozenSignalAdjudication: true,
+      legacyHypothesesCannotCreateLearningEvents: true,
       promotionRechecksPersistedCalibration: true,
       rootPromotionRequired: true,
       singleTerminalLearningState: true,

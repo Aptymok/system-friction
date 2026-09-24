@@ -10,6 +10,10 @@ import {
   parseHypothesisTestContract,
   type HypothesisCriterionResult,
 } from './hypothesisTestContract';
+import {
+  buildLegacyFrozenSignals,
+  classifyLegacyFrozenSignals,
+} from './historicalHypothesisAdjudication';
 
 type Row = Record<string, unknown>;
 
@@ -68,31 +72,6 @@ export async function runWorldCalibrationCycle() {
     const testContract = parseHypothesisTestContract(predictedTrajectory.testContract);
     const priorConfidence = clamp01(Number(hypothesis.current_confidence ?? hypothesis.initial_confidence ?? 0.5));
 
-    // A historical hypothesis without a preregistered contract cannot be upgraded retroactively
-    // after its RETURN is known. Close it conservatively as INCONCLUSIVE.
-    if (!testContract) {
-      const reason = 'LEGACY_HYPOTHESIS_WITHOUT_PREREGISTERED_TEST_CONTRACT';
-      const { error: outcomeError } = await db.from('world_hypothesis_outcomes').upsert({
-        hypothesis_id: hypothesis.id,
-        classification: 'INCONCLUSIVE',
-        observed_outcome: reason,
-        directional_accuracy: null,
-        temporal_accuracy: null,
-        actor_accuracy: null,
-        mechanism_accuracy: null,
-        source_coverage: 0,
-        evidence_ids: [],
-        evaluator_version: `${WORLD_METHODOLOGY_VERSION}+strict-test-contract`,
-      }, { onConflict: 'hypothesis_id' });
-      if (outcomeError) {
-        warnings.push(`legacy_outcome_write:${outcomeError.message}`);
-        continue;
-      }
-      await db.from('world_hypotheses').update({ status: 'INCONCLUSIVE', current_confidence: priorConfidence }).eq('id', hypothesis.id);
-      calibrated += 1;
-      continue;
-    }
-
     const { data: later, error: laterError } = await db.from('world_source_observations')
       .select('id,source_id,source_family,publisher,title,summary,affected_systems,actors,observed_at,released_at,fetched_at,confidence,source_url,payload')
       .gt('fetched_at', hypothesis.cutoff_at)
@@ -107,6 +86,102 @@ export async function runWorldCalibrationCycle() {
 
     const evidenceRows = (later ?? []) as Row[];
     const availableEvidenceIds = new Set(evidenceRows.map((item) => String(item.id ?? '')).filter(Boolean));
+
+    if (!testContract) {
+      const frozenSignals = buildLegacyFrozenSignals({
+        expectedSignals: hypothesis.expected_signals,
+        contradictionSignals: hypothesis.contradiction_signals,
+      });
+
+      const llm = await runLlmTask({
+        task: 'deep_report',
+        system: [
+          'You are the governed legacy RETURN-assessment engine for the System Friction Institute World Observatory.',
+          'The hypothesis text, expected signals, contradiction signals and validation window were frozen before RETURN. Never add, broaden or rewrite them.',
+          'Assess only those frozen signals against observations acquired inside the original validation window. Use only supplied material.',
+          'A later observation may satisfy a literal frozen signal. This is a legitimate RETURN comparison, not retrospective hypothesis editing.',
+          'Do not infer causality, mechanism, motive, actor influence or hidden linkage from temporal coincidence. Mark such claims NOT_DETERMINABLE unless directly supported by supplied evidence.',
+          'For absence claims, SATISFIED requires supplied evidence that directly covers the relevant domain across the original window. Mere lack of a matching row is NOT_DETERMINABLE.',
+          'Every SATISFIED verdict must link at least one supplied evidence id. Otherwise use NOT_DETERMINABLE.',
+          'You DO NOT choose the final hypothesis classification. Deterministic code owns VALIDATED/PARTIALLY_VALIDATED/CONTRADICTED/INCONCLUSIVE.',
+          'Return ONLY JSON: {"criterionResults":[{"criterionId":string,"verdict":"SATISFIED|NOT_SATISFIED|NOT_DETERMINABLE","evidenceIds":string[],"reason":string}],"retainedAssumptions":[],"rejectedAssumptions":[],"missingVariables":string[],"mechanismAssessment":string|null,"confidenceAfter":null}.',
+        ].join('\n'),
+        prompt: JSON.stringify({
+          hypothesis: {
+            id: hypothesis.id,
+            statement: hypothesis.statement,
+            cutoffAt: hypothesis.cutoff_at,
+            validationStartsAt: hypothesis.validation_starts_at,
+            validationEndsAt: hypothesis.validation_ends_at,
+            priorConfidence,
+            frozenExpectedSignals: frozenSignals.expected,
+            frozenContradictionSignals: frozenSignals.contradiction,
+          },
+          laterObservations: evidenceRows.map((item) => ({
+            id: item.id,
+            sourceId: item.source_id,
+            sourceFamily: item.source_family,
+            publisher: item.publisher,
+            title: item.title,
+            summary: item.summary,
+            affectedSystems: item.affected_systems,
+            actors: item.actors,
+            observedAt: item.observed_at,
+            fetchedAt: item.fetched_at,
+            sourceConfidence: item.confidence,
+            sourceUrl: item.source_url,
+            payload: item.payload,
+          })),
+          epistemicBoundary: 'This is legacy frozen-signal adjudication. Frozen T0 claims cannot be changed. Later observations are persisted source records; signal verdicts are DERIVED/INFERRED. Causal claims remain unproven without direct evidence.',
+        }).slice(0, 50000),
+        fallbackResult: '{"criterionResults":[],"retainedAssumptions":[],"rejectedAssumptions":[],"missingVariables":["governed_model_unavailable"],"mechanismAssessment":null,"confidenceAfter":null}',
+        requirements: { reasoning: true, structuredOutput: true, priority: 'quality' },
+        maxTokens: 2600,
+      });
+
+      const assessment = llm.ok ? parseAssessment(llm.result) : null;
+      const criterionResults = assessment?.criterionResults ?? [];
+      const linked = relevantEvidenceIds(criterionResults, availableEvidenceIds);
+      const classificationResult = classifyLegacyFrozenSignals({
+        expected: frozenSignals.expected,
+        contradiction: frozenSignals.contradiction,
+        criterionResults,
+      });
+      const classification = classificationResult.classification;
+      const directionalAccuracy = classification === 'VALIDATED' ? 1 : classification === 'PARTIALLY_VALIDATED' ? 0.6 : classification === 'CONTRADICTED' ? 0 : null;
+      const sourceCoverage = evidenceRows.length ? linked.length / evidenceRows.length : 0;
+      const observedOutcome = [
+        `LEGACY_FROZEN_SIGNAL_ADJUDICATION: ${classificationResult.reason}`,
+        assessment?.mechanismAssessment ? `Mechanism boundary: ${assessment.mechanismAssessment}` : null,
+      ].filter(Boolean).join(' ');
+
+      const { error: outcomeError } = await db.from('world_hypothesis_outcomes').upsert({
+        hypothesis_id: hypothesis.id,
+        classification,
+        observed_outcome: observedOutcome,
+        directional_accuracy: directionalAccuracy,
+        temporal_accuracy: evidenceRows.length ? 1 : null,
+        actor_accuracy: null,
+        mechanism_accuracy: null,
+        source_coverage: sourceCoverage,
+        evidence_ids: linked,
+        evaluator_version: `${WORLD_METHODOLOGY_VERSION}+legacy-frozen-signal-adjudication`,
+        evaluated_at: now,
+      }, { onConflict: 'hypothesis_id' });
+      if (outcomeError) {
+        warnings.push(`legacy_outcome_write:${outcomeError.message}`);
+        continue;
+      }
+
+      // Legacy adjudication never writes world_learning_events. It can preserve an
+      // observed RETURN classification without granting retrospective learning authority.
+      await db.from('world_hypotheses').update({
+        status: classification,
+        current_confidence: priorConfidence,
+      }).eq('id', hypothesis.id);
+      calibrated += 1;
+      continue;
+    }
     const llm = await runLlmTask({
       task: 'deep_report',
       system: [
@@ -188,6 +263,7 @@ export async function runWorldCalibrationCycle() {
       source_coverage: sourceCoverage,
       evidence_ids: linked,
       evaluator_version: `${WORLD_METHODOLOGY_VERSION}+strict-test-contract`,
+      evaluated_at: now,
     }, { onConflict: 'hypothesis_id' }).select('id').single();
     if (outcomeError || !outcome) {
       warnings.push(`outcome_write:${outcomeError?.message ?? 'unknown'}`);
@@ -218,6 +294,6 @@ export async function runWorldCalibrationCycle() {
     calibrated,
     warnings: [...new Set(warnings)].slice(0, 20),
     generatedAt: now,
-    rule: 'The governed model assesses preregistered criteria only. Deterministic code owns final classification; decisive evidence is required before a world_learning_event can be created.',
+    rule: 'Current hypotheses use preregistered deterministic test contracts. Legacy hypotheses may be adjudicated only against frozen T0 signals and original-window evidence; legacy adjudication never creates world_learning_events.',
   };
 }
