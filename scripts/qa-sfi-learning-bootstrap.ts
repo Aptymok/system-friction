@@ -74,6 +74,12 @@ async function main() {
   assert(worldCalibration.includes('allowHistoricalReevaluation'), 'historical_revaluation_must_be_explicit');
   assert(worldCalibration.includes("update({ status: 'AWAITING_OUTCOME' })"), 'historical_revaluation_must_reopen_before_assessment');
   assert(worldCalibration.includes('expectedCriterionIds.some'), 'historical_assessment_must_cover_all_frozen_criteria');
+  assert(worldCalibration.includes('filterLegacyCriterionEvidence'), 'historical_assessment_must_filter_evidence_to_original_window');
+  assert(worldCalibration.includes('historical_readjudication_test_contract_not_allowed'), 'historical_readjudication_must_be_legacy_only');
+  assert(worldCalibration.includes('WORLD_HYPOTHESIS_OUTCOME_SUPERSEDED'), 'historical_readjudication_must_preserve_prior_outcome_lineage');
+  assert(worldCalibration.includes('calibratedIds'), 'historical_readjudication_must_report_exact_calibrated_ids');
+  assert(worldCron.includes('calibration.calibratedIds.length === hypothesisIds.length'), 'manual_readjudication_must_require_all_targets_to_complete');
+  assert(worldCron.includes('calibration.calibratedIds.every'), 'manual_readjudication_must_match_requested_target_ids');
   assert(!worldCalibration.includes('LEGACY_HYPOTHESIS_WITHOUT_PREREGISTERED_TEST_CONTRACT'), 'legacy_hypotheses_must_not_be_auto_closed_only_for_missing_test_contract');
   assert(!worldCalibration.includes('"classification":"VALIDATED|PARTIALLY_VALIDATED|CONTRADICTED|INCONCLUSIVE"'), 'model_must_not_own_final_hypothesis_classification');
   for (const liveCaller of [worldCron, worldReobserve, worldBootstrap]) {
@@ -205,6 +211,10 @@ async function main() {
       legacyHypothesesCannotCreateLearningEvents: true,
       legacyModelUnavailableCannotCloseHypothesis: true,
       legacyAssessmentMustCoverAllFrozenCriteria: true,
+      legacyEvidenceMustResolveInsideOriginalWindow: true,
+      historicalReadjudicationLegacyOnly: true,
+      historicalReadjudicationPreservesPriorOutcomeLineage: true,
+      historicalReadjudicationRequiresAllTargets: true,
       promotionRechecksPersistedCalibration: true,
       rootPromotionRequired: true,
       singleTerminalLearningState: true,
