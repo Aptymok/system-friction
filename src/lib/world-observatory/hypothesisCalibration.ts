@@ -158,6 +158,44 @@ export async function runWorldCalibrationCycle(input: {
 
     if (!testContract) {
       attempted += 1;
+      if (input.allowHistoricalReevaluation) {
+        const { data: priorOutcome, error: priorOutcomeError } = await db
+          .from('world_hypothesis_outcomes')
+          .select('*')
+          .eq('hypothesis_id', hypothesis.id)
+          .maybeSingle();
+        if (priorOutcomeError) {
+          warnings.push(`legacy_prior_outcome_read:${hypothesis.id}:${priorOutcomeError.message}`);
+          continue;
+        }
+        if (priorOutcome) {
+          try {
+            await recordAuditEvent({
+              actorId: null,
+              action: 'WORLD_HYPOTHESIS_OUTCOME_PRE_READJUDICATION_SNAPSHOT',
+              targetType: 'world_hypothesis',
+              targetId: String(hypothesis.id),
+              before: {
+                hypothesisStatus: hypothesis.status,
+                outcome: priorOutcome,
+              },
+              after: {
+                intendedStatus: 'AWAITING_OUTCOME',
+                intendedOperation: 'HISTORICAL_READJUDICATION',
+              },
+              context: {
+                source: 'world_hypothesis_outcomes',
+                reason: 'HISTORICAL_READJUDICATION',
+                epistemicClass: 'RECORD',
+                lineageRule: 'Preserve the prior hypothesis/outcome projection before any historical readjudication mutation.',
+              },
+            });
+          } catch (auditError) {
+            warnings.push(`legacy_prior_outcome_audit:${hypothesis.id}:${auditError instanceof Error ? auditError.message : String(auditError)}`);
+            continue;
+          }
+        }
+      }
       if (input.allowHistoricalReevaluation && hypothesis.status !== 'AWAITING_OUTCOME') {
         const { error: reopenError } = await db.from('world_hypotheses')
           .update({ status: 'AWAITING_OUTCOME' })
@@ -255,43 +293,6 @@ export async function runWorldCalibrationCycle(input: {
         `LEGACY_FROZEN_SIGNAL_ADJUDICATION: ${classificationResult.reason}`,
         assessment?.mechanismAssessment ? `Mechanism boundary: ${assessment.mechanismAssessment}` : null,
       ].filter(Boolean).join(' ');
-
-      if (input.allowHistoricalReevaluation) {
-        const { data: priorOutcome, error: priorOutcomeError } = await db
-          .from('world_hypothesis_outcomes')
-          .select('*')
-          .eq('hypothesis_id', hypothesis.id)
-          .maybeSingle();
-        if (priorOutcomeError) {
-          warnings.push(`legacy_prior_outcome_read:${hypothesis.id}:${priorOutcomeError.message}`);
-          continue;
-        }
-        if (priorOutcome) {
-          try {
-            await recordAuditEvent({
-              actorId: null,
-              action: 'WORLD_HYPOTHESIS_OUTCOME_PRE_READJUDICATION_SNAPSHOT',
-              targetType: 'world_hypothesis',
-              targetId: String(hypothesis.id),
-              before: priorOutcome,
-              after: {
-                classification,
-                evaluatorVersion: `${WORLD_METHODOLOGY_VERSION}+legacy-frozen-signal-adjudication`,
-                evaluatedAt: now,
-              },
-              context: {
-                source: 'world_hypothesis_outcomes',
-                reason: 'HISTORICAL_READJUDICATION',
-                epistemicClass: 'RECORD',
-                lineageRule: 'Preserve the prior current projection before replacing it; this audit receipt does not alter the hypothesis classification.',
-              },
-            });
-          } catch (auditError) {
-            warnings.push(`legacy_prior_outcome_audit:${hypothesis.id}:${auditError instanceof Error ? auditError.message : String(auditError)}`);
-            continue;
-          }
-        }
-      }
 
       const { error: outcomeError } = await db.from('world_hypothesis_outcomes').upsert({
         hypothesis_id: hypothesis.id,
