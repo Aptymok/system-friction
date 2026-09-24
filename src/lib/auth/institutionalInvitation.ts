@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { requireFounder } from '@/lib/system/access/server';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { readContinuityInstitutionalAccountAccessGrants } from '@/lib/sfi/continuityPostgres';
 
 const invitationSchema = z.object({
   email: z.string().trim().email().transform((value) => value.toLowerCase()),
@@ -24,28 +25,13 @@ export type InstitutionalAccountAccessView = {
   lastInviteError: string | null;
 };
 
-function accessStatePath(state: string) {
-  return `/root/access?state=${encodeURIComponent(state)}`;
-}
+type InstitutionalAccountAccessSource = 'SUPABASE' | 'NEON_CONTINUITY' | 'UNAVAILABLE';
 
-export async function listInstitutionalAccountAccessGrants(): Promise<{
-  available: boolean;
-  grants: InstitutionalAccountAccessView[];
-}> {
-  await requireFounder();
-  const service = createServiceSupabaseClient();
-  const read = await service
-    .from('sfi_account_access_grants')
-    .select('id,email,display_name,title,access_class,status,invited_at,activated_at,last_invite_error')
-    .order('created_at', { ascending: false })
-    .limit(50);
-
-  if (read.error) {
-    if (/does not exist|schema cache/i.test(read.error.message)) return { available: false, grants: [] };
-    throw read.error;
-  }
-
-  const grants = (read.data ?? []).flatMap((row) => {
+function normalizeInstitutionalAccountAccessRows(rows: unknown[]): InstitutionalAccountAccessView[] {
+  return rows.flatMap((raw) => {
+    const row = raw && typeof raw === 'object' && !Array.isArray(raw)
+      ? raw as Record<string, unknown>
+      : {};
     const accessClass = String(row.access_class || '');
     const status = String(row.status || '');
     if (!['INSTITUTIONAL_OBSERVER', 'INSTITUTIONAL_OPERATOR'].includes(accessClass)) return [];
@@ -62,7 +48,43 @@ export async function listInstitutionalAccountAccessGrants(): Promise<{
       lastInviteError: row.last_invite_error ? String(row.last_invite_error) : null,
     }];
   });
-  return { available: true, grants };
+}
+
+function accessStatePath(state: string) {
+  return `/root/access?state=${encodeURIComponent(state)}`;
+}
+
+export async function listInstitutionalAccountAccessGrants(): Promise<{
+  available: boolean;
+  grants: InstitutionalAccountAccessView[];
+  source: InstitutionalAccountAccessSource;
+}> {
+  await requireFounder();
+  const service = createServiceSupabaseClient();
+  const read = await service
+    .from('sfi_account_access_grants')
+    .select('id,email,display_name,title,access_class,status,invited_at,activated_at,last_invite_error')
+    .order('created_at', { ascending: false })
+    .limit(50);
+
+  if (!read.error) {
+    return {
+      available: true,
+      grants: normalizeInstitutionalAccountAccessRows(read.data ?? []),
+      source: 'SUPABASE',
+    };
+  }
+
+  const continuityRows = await readContinuityInstitutionalAccountAccessGrants(50).catch(() => null);
+  if (continuityRows) {
+    return {
+      available: true,
+      grants: normalizeInstitutionalAccountAccessRows([...continuityRows]),
+      source: 'NEON_CONTINUITY',
+    };
+  }
+
+  return { available: false, grants: [], source: 'UNAVAILABLE' };
 }
 
 export async function inviteInstitutionalAccountAction(formData: FormData) {
