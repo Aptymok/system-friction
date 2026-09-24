@@ -36,7 +36,7 @@
     "qa:sfi-ingestion-boundary": "tsx scripts/qa-sfi-ingestion-epistemic-boundary.ts",
     "qa:sfi-universal-cycle": "tsx scripts/qa-sfi-universal-full-cycle.ts && node --import tsx --test src/lib/sfi/universalSignalCycle.test.ts",
     "qa:sfi-resume-identity": "tsx scripts/qa-sfi-resume-identity.ts",
-    "qa:sfi-learning-bootstrap": "tsx scripts/qa-sfi-learning-bootstrap.ts",
+    "qa:sfi-learning-bootstrap": "tsx scripts/qa-sfi-learning-bootstrap.ts && node --import tsx --test src/lib/world-observatory/legacyHypothesisAdjudication.test.ts",
     "qa:sfi-person-ct-patterns": "tsx scripts/qa-sfi-person-ct-patterns.ts",
     "qa:sfi-mutation-evidence": "tsx scripts/qa-sfi-mutation-evidence.ts",
     "qa:sfi-bilingual-interface": "tsx scripts/qa-sfi-bilingual-interface.ts",
