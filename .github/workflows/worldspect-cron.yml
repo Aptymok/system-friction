@@ -137,6 +137,9 @@ jobs:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
       - name: Execute bounded historical World readjudication
         env:
           VERCEL_APP_URL: ${{ secrets.VERCEL_APP_URL }}
@@ -145,15 +148,24 @@ jobs:
           set -euo pipefail
           test -n "$VERCEL_APP_URL" || (echo "Missing VERCEL_APP_URL secret" && exit 1)
           test -n "$WORLDSPECT_INGEST_SECRET" || (echo "Missing WORLDSPECT_INGEST_SECRET" && exit 1)
+          payload="$(node - <<'NODE'
+          const fs = require('node:fs');
+          const source = fs.readFileSync('.github/sfi-world-readjudication-trigger', 'utf8');
+          const ids = [...new Set(source.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi) || [])].slice(0, 20);
+          if (!ids.length) process.exit(2);
+          process.stdout.write(JSON.stringify({ hypothesisIds: ids }));
+          NODE
+          )"
           body="$(curl --fail-with-body -X POST "$VERCEL_APP_URL/api/cron/world-observatory" \
             -H "Authorization: Bearer $WORLDSPECT_INGEST_SECRET" \
-            -H "X-SFI-World-Readjudication: authorized")"
+            -H "X-SFI-World-Readjudication: authorized" \
+            -H "Content-Type: application/json" \
+            --data "$payload")"
           printf '%s\n' "$body"
           BODY="$body" node - <<'NODE'
           const body = JSON.parse(process.env.BODY || '{}');
-          if (body.ok !== true) process.exit(2);
-          if (body.status !== 'READJUDICATION_EXECUTED') process.exit(3);
-          if (body.contract !== 'SFI-WORLD-HISTORICAL-READJUDICATION-1.0') process.exit(4);
+          if (body.contract !== 'SFI-WORLD-HISTORICAL-READJUDICATION-1.1') process.exit(4);
           if (!body.calibration || typeof body.calibration.calibrated !== 'number') process.exit(5);
-          console.log(`SFI_WORLD_READJUDICATION calibrated=${body.calibration.calibrated}`);
+          console.log(`SFI_WORLD_READJUDICATION status=${body.status} calibrated=${body.calibration.calibrated} reopened=${body.calibration.reopened} warnings=${JSON.stringify(body.calibration.warnings)} providers=${JSON.stringify(body.providers)}`);
+          if (body.ok !== true || body.status !== 'READJUDICATION_EXECUTED') process.exit(2);
           NODE
