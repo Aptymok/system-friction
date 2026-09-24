@@ -3,6 +3,7 @@ import test from 'node:test';
 import {
   buildLegacyFrozenSignals,
   classifyLegacyFrozenSignals,
+  filterLegacyCriterionEvidence,
 } from './historicalHypothesisAdjudication';
 
 const signals = buildLegacyFrozenSignals({
@@ -55,5 +56,23 @@ test('a satisfied verdict without evidence cannot decide a legacy hypothesis', (
     ],
   });
   assert.equal(result.classification, 'INCONCLUSIVE');
+  assert.equal(result.decisive, false);
+});
+
+
+test('legacy adjudication ignores evidence ids outside the original validation-window corpus', () => {
+  const filtered = filterLegacyCriterionEvidence([
+    { criterionId: 'legacy-expected-1', verdict: 'SATISFIED', evidenceIds: ['e1', 'fabricated'], reason: 'mixed refs' },
+    { criterionId: 'legacy-expected-2', verdict: 'SATISFIED', evidenceIds: ['fabricated-only'], reason: 'unsupported ref' },
+  ], new Set(['e1']));
+
+  assert.deepEqual(filtered[0]?.evidenceIds, ['e1']);
+  assert.deepEqual(filtered[1]?.evidenceIds, []);
+
+  const result = classifyLegacyFrozenSignals({
+    ...signals,
+    criterionResults: filtered,
+  });
+  assert.equal(result.classification, 'PARTIALLY_VALIDATED');
   assert.equal(result.decisive, false);
 });
