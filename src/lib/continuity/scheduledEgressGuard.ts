@@ -7,8 +7,9 @@ export function scheduledEgressEnabled() {
   return (process.env.SFI_SCHEDULED_EGRESS_MODE ?? 'restricted').trim().toLowerCase() === 'enabled';
 }
 
-export function scheduledEgressGuardResponse(input: { allowContinuityFallback?: boolean } = {}) {
+export function scheduledEgressGuardResponse(input: { allowContinuityFallback?: boolean; authorizedManualOverride?: boolean } = {}) {
   if (scheduledEgressEnabled()) return null;
+  if (input.authorizedManualOverride === true) return null;
   if (input.allowContinuityFallback && isSfiContinuityConfigured()) return null;
   return NextResponse.json({
     ok: true,
