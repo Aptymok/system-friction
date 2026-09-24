@@ -560,8 +560,11 @@ for (const route of [
     source.includes("if (!authorized(request))")
     && source.includes("request.headers.get('x-sfi-world-readjudication') === 'authorized'")
     && source.includes('scheduledEgressGuardResponse({ authorizedManualOverride: manualReadjudication })')
-    && source.includes("status: 'READJUDICATION_EXECUTED'")
-    && source.includes('runWorldCalibrationCycle()')
+    && source.includes("status: completed ? 'READJUDICATION_EXECUTED' : 'READJUDICATION_BLOCKED'")
+    && source.includes('runWorldCalibrationCycle({')
+    && source.includes('hypothesisIds,')
+    && source.includes('allowHistoricalReevaluation: true')
+    && source.includes("error: 'historical_readjudication_target_required'")
     && !source.includes('allowContinuityFallback: true')
     && source.indexOf('if (!authorized(request))') < source.indexOf("request.headers.get('x-sfi-world-readjudication')"));
 }

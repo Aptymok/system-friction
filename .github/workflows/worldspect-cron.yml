@@ -137,6 +137,9 @@ jobs:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
       - name: Execute bounded historical World readjudication
         env:
           VERCEL_APP_URL: ${{ secrets.VERCEL_APP_URL }}
@@ -145,15 +148,80 @@ jobs:
           set -euo pipefail
           test -n "$VERCEL_APP_URL" || (echo "Missing VERCEL_APP_URL secret" && exit 1)
           test -n "$WORLDSPECT_INGEST_SECRET" || (echo "Missing WORLDSPECT_INGEST_SECRET" && exit 1)
+          payload="$(node - <<'NODE'
+          const fs = require('node:fs');
+          const source = fs.readFileSync('.github/sfi-world-readjudication-trigger', 'utf8');
+          const ids = [...new Set(source.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi) || [])].slice(0, 20);
+          if (!ids.length) process.exit(2);
+          process.stdout.write(JSON.stringify({ hypothesisIds: ids }));
+          NODE
+          )"
           body="$(curl --fail-with-body -X POST "$VERCEL_APP_URL/api/cron/world-observatory" \
             -H "Authorization: Bearer $WORLDSPECT_INGEST_SECRET" \
-            -H "X-SFI-World-Readjudication: authorized")"
+            -H "X-SFI-World-Readjudication: authorized" \
+            -H "Content-Type: application/json" \
+            --data "$payload")"
           printf '%s\n' "$body"
           BODY="$body" node - <<'NODE'
           const body = JSON.parse(process.env.BODY || '{}');
-          if (body.ok !== true) process.exit(2);
-          if (body.status !== 'READJUDICATION_EXECUTED') process.exit(3);
-          if (body.contract !== 'SFI-WORLD-HISTORICAL-READJUDICATION-1.0') process.exit(4);
+          if (body.contract !== 'SFI-WORLD-HISTORICAL-READJUDICATION-1.1') process.exit(4);
           if (!body.calibration || typeof body.calibration.calibrated !== 'number') process.exit(5);
-          console.log(`SFI_WORLD_READJUDICATION calibrated=${body.calibration.calibrated}`);
+          console.log(`SFI_WORLD_READJUDICATION status=${body.status} calibrated=${body.calibration.calibrated} reopened=${body.calibration.reopened} warnings=${JSON.stringify(body.calibration.warnings)} providers=${JSON.stringify(body.providers)}`);
+          if (body.ok !== true || body.status !== 'READJUDICATION_EXECUTED') process.exit(2);
+          NODE
+
+      - name: Verify public World consumes persisted readjudication
+        env:
+          VERCEL_APP_URL: ${{ secrets.VERCEL_APP_URL }}
+        run: |
+          set -euo pipefail
+          test -n "$VERCEL_APP_URL" || (echo "Missing VERCEL_APP_URL secret" && exit 1)
+          verify_file="$RUNNER_TEMP/sfi-world-readjudication-consumer.json"
+          curl --fail-with-body             "$VERCEL_APP_URL/api/observatory/world?readjudication_verify=${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"             -H "Cache-Control: no-cache"             -o "$verify_file"
+          VERIFY_FILE="$verify_file" node - <<'NODE'
+          const fs = require('node:fs');
+          const source = fs.readFileSync('.github/sfi-world-readjudication-trigger', 'utf8');
+          const expectedIds = [...new Set(source.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi) || [])].slice(0, 20);
+          const body = JSON.parse(fs.readFileSync(process.env.VERIFY_FILE, 'utf8'));
+          if (body.ok !== true) {
+            console.error('PUBLIC_WORLD_READ_FAILED', body.warnings || body.error || null);
+            process.exit(2);
+          }
+          if (body.dataPlaneMode === 'CONTINUITY' || body.dataPlaneMode === 'RECOVERY') {
+            if (body.readPlane !== 'NEON') {
+              console.error('PUBLIC_WORLD_READ_PLANE_MISMATCH', { dataPlaneMode: body.dataPlaneMode, readPlane: body.readPlane });
+              process.exit(3);
+            }
+          } else if (body.dataPlaneMode === 'PRIMARY' && body.readPlane !== 'SUPABASE') {
+            console.error('PUBLIC_WORLD_READ_PLANE_MISMATCH', { dataPlaneMode: body.dataPlaneMode, readPlane: body.readPlane });
+            process.exit(4);
+          }
+          const hypotheses = Array.isArray(body.hypotheses) ? body.hypotheses : [];
+          const observed = [];
+          for (const id of expectedIds) {
+            const hypothesis = hypotheses.find((item) => String(item?.id || '') === id);
+            if (!hypothesis) {
+              console.error('PUBLIC_WORLD_TARGET_MISSING', id);
+              process.exit(5);
+            }
+            if (!hypothesis.outcome) {
+              console.error('PUBLIC_WORLD_TARGET_OUTCOME_MISSING', id);
+              process.exit(6);
+            }
+            const evaluator = String(hypothesis.outcome.evaluator_version || '');
+            if (!evaluator.includes('legacy-frozen-signal-adjudication')) {
+              console.error('PUBLIC_WORLD_TARGET_EVALUATOR_STALE', { id, evaluator });
+              process.exit(7);
+            }
+            if (String(hypothesis.status || '') === 'AWAITING_OUTCOME') {
+              console.error('PUBLIC_WORLD_TARGET_STATUS_STALE', id);
+              process.exit(8);
+            }
+            observed.push({ id, status: hypothesis.status, classification: hypothesis.outcome.classification });
+          }
+          console.log('SFI_WORLD_READJUDICATION_CONSUMPTION_VERIFIED', JSON.stringify({
+            readPlane: body.readPlane,
+            dataPlaneMode: body.dataPlaneMode,
+            targets: observed,
+          }));
           NODE

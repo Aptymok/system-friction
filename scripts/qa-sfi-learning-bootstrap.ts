@@ -68,6 +68,18 @@ async function main() {
   assert(worldCalibration.includes('classifyLegacyFrozenSignals'), 'legacy_frozen_signal_classifier_missing');
   assert(worldCalibration.includes('LEGACY_FROZEN_SIGNAL_ADJUDICATION'), 'legacy_frozen_signal_outcome_marker_missing');
   assert(worldCalibration.includes('Legacy adjudication never writes world_learning_events'), 'legacy_adjudication_must_not_write_learning');
+  assert(worldCalibration.includes('legacy_assessment_unavailable'), 'legacy_model_unavailability_must_remain_explicit');
+  assert(worldCalibration.includes('legacy_assessment_invalid'), 'legacy_invalid_assessment_must_fail_closed');
+  assert(worldCalibration.includes('legacy_assessment_incomplete'), 'legacy_incomplete_assessment_must_fail_closed');
+  assert(worldCalibration.includes('allowHistoricalReevaluation'), 'historical_revaluation_must_be_explicit');
+  assert(worldCalibration.includes("update({ status: 'AWAITING_OUTCOME' })"), 'historical_revaluation_must_reopen_before_assessment');
+  assert(worldCalibration.includes('expectedCriterionIds.some'), 'historical_assessment_must_cover_all_frozen_criteria');
+  assert(worldCalibration.includes('filterLegacyCriterionEvidence'), 'historical_assessment_must_filter_evidence_to_original_window');
+  assert(worldCalibration.includes('historical_readjudication_test_contract_not_allowed'), 'historical_readjudication_must_be_legacy_only');
+  assert(worldCalibration.includes('WORLD_HYPOTHESIS_OUTCOME_PRE_READJUDICATION_SNAPSHOT'), 'historical_readjudication_must_preserve_prior_outcome_lineage');
+  assert(worldCalibration.includes('calibratedIds'), 'historical_readjudication_must_report_exact_calibrated_ids');
+  assert(worldCron.includes('calibration.calibratedIds.length === hypothesisIds.length'), 'manual_readjudication_must_require_all_targets_to_complete');
+  assert(worldCron.includes('calibration.calibratedIds.every'), 'manual_readjudication_must_match_requested_target_ids');
   assert(!worldCalibration.includes('LEGACY_HYPOTHESIS_WITHOUT_PREREGISTERED_TEST_CONTRACT'), 'legacy_hypotheses_must_not_be_auto_closed_only_for_missing_test_contract');
   assert(!worldCalibration.includes('"classification":"VALIDATED|PARTIALLY_VALIDATED|CONTRADICTED|INCONCLUSIVE"'), 'model_must_not_own_final_hypothesis_classification');
   for (const liveCaller of [worldCron, worldReobserve, worldBootstrap]) {
@@ -197,6 +209,12 @@ async function main() {
       strictCalibrationOwnsLiveWorldSurfaces: true,
       legacyHypothesesUseFrozenSignalAdjudication: true,
       legacyHypothesesCannotCreateLearningEvents: true,
+      legacyModelUnavailableCannotCloseHypothesis: true,
+      legacyAssessmentMustCoverAllFrozenCriteria: true,
+      legacyEvidenceMustResolveInsideOriginalWindow: true,
+      historicalReadjudicationLegacyOnly: true,
+      historicalReadjudicationPreservesPriorOutcomeLineage: true,
+      historicalReadjudicationRequiresAllTargets: true,
       promotionRechecksPersistedCalibration: true,
       rootPromotionRequired: true,
       singleTerminalLearningState: true,

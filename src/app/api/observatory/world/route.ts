@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { isSfiContinuityConfigured, readContinuityPublicWorldBundle } from '@/lib/sfi/continuityPostgres';
+import { readDataPlaneState } from '@/lib/persistence/dataPlaneContinuityStore';
 
 export const runtime='nodejs';
 export const dynamic='force-dynamic';
@@ -30,6 +31,9 @@ function unique(values:string[]){return [...new Set(values.filter(Boolean))].sor
 export async function GET(){
   const db=createServiceSupabaseClient();
   const since=new Date(Date.now()-HORIZON_DAYS*86400000).toISOString();
+  const dataPlaneState=isSfiContinuityConfigured()
+    ? await readDataPlaneState().catch(()=>null)
+    : null;
   const [observations,readings,hypotheses,outcomes,learning]=await Promise.all([
     db.from('world_source_observations').select('id,source_id,source_family,publisher,observation_kind,title,summary,observed_at,fetched_at,latitude,longitude,country_codes,affected_systems,actors,confidence,source_url,payload').gte('fetched_at',since).order('fetched_at',{ascending:false}).limit(LIMIT),
     db.from('world_friction_readings').select('observation_id,systemic_friction,interaction_density,friction_gradient,systemic_coherence,tension,pain_map,field_drivers,permissions,trajectory,minimum_viable_perturbation,created_at').gte('created_at',since).order('created_at',{ascending:false}).limit(LIMIT),
@@ -38,7 +42,9 @@ export async function GET(){
     db.from('world_learning_events').select('id,hypothesis_id,outcome_id,retained_assumptions,rejected_assumptions,missing_variables,graph_adjustments,confidence_before,confidence_after,created_at').gte('created_at',since).order('created_at',{ascending:false}).limit(LIMIT),
   ]);
 
-  let readPlane: 'SUPABASE' | 'NEON' = 'SUPABASE';
+  let readPlane: 'SUPABASE' | 'NEON' = dataPlaneState && dataPlaneState.mode !== 'PRIMARY'
+    ? 'NEON'
+    : 'SUPABASE';
   let observationsData: unknown = observations.data;
   let readingsData: unknown = readings.data;
   let hypothesesData: unknown = hypotheses.data;
@@ -62,7 +68,7 @@ export async function GET(){
     }
   }
 
-  if(observations.error&&readPlane==='SUPABASE')return NextResponse.json({
+  if(observations.error&&errors.length)return NextResponse.json({
     ok:false,
     error:'PUBLIC_WORLD_OBSERVATIONS_FAILED',
     details:observations.error.message,
@@ -184,6 +190,7 @@ export async function GET(){
   return NextResponse.json({
     ok:errors.length===0,
     readPlane,
+    dataPlaneMode:dataPlaneState?.mode??null,
     generatedAt:new Date().toISOString(),
     horizonDays:HORIZON_DAYS,
     nodes,

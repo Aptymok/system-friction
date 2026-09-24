@@ -2,6 +2,7 @@ import 'server-only';
 
 import { runLlmTask } from '@/lib/ai/providerRouter';
 import { clamp01 } from '@/lib/sfi/math';
+import { recordAuditEvent } from '@/lib/system/audit/server';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { WORLD_METHODOLOGY_VERSION } from './worldCycle';
 import {
@@ -13,6 +14,7 @@ import {
 import {
   buildLegacyFrozenSignals,
   classifyLegacyFrozenSignals,
+  filterLegacyCriterionEvidence,
 } from './historicalHypothesisAdjudication';
 
 type Row = Record<string, unknown>;
@@ -53,21 +55,88 @@ function relevantEvidenceIds(results: HypothesisCriterionResult[], available: Se
   return [...new Set(results.flatMap((result) => result.evidenceIds).filter((id) => available.has(id)))];
 }
 
-export async function runWorldCalibrationCycle() {
+export async function runWorldCalibrationCycle(input: {
+  hypothesisIds?: string[];
+  allowHistoricalReevaluation?: boolean;
+} = {}) {
   const db = createServiceSupabaseClient();
   const now = new Date().toISOString();
-  const { data: hypotheses, error } = await db
-    .from('world_hypotheses')
-    .select('*')
-    .in('status', ['OPEN','AWAITING_OUTCOME'])
-    .lte('validation_ends_at', now)
-    .limit(100);
-  if (error) return { ok: false, calibrated: 0, error: error.message, generatedAt: now };
+  const ids = [...new Set((input.hypothesisIds ?? []).filter((id) => /^[0-9a-f-]{36}$/i.test(id)))].slice(0, 20);
+  const allowedStatuses = input.allowHistoricalReevaluation
+    ? ['OPEN', 'AWAITING_OUTCOME', 'INCONCLUSIVE']
+    : ['OPEN', 'AWAITING_OUTCOME'];
+  let hypothesisQuery = db.from('world_hypotheses').select('*');
+  if (ids.length && input.allowHistoricalReevaluation) {
+    hypothesisQuery = hypothesisQuery.in('id', ids);
+  } else {
+    hypothesisQuery = hypothesisQuery.in('status', allowedStatuses).lte('validation_ends_at', now);
+    if (ids.length) hypothesisQuery = hypothesisQuery.in('id', ids);
+  }
+
+  const { data: hypothesisRows, error } = await hypothesisQuery.limit(100);
+  if (error) return {
+    ok: false,
+    calibrated: 0,
+    reopened: 0,
+    attempted: 0,
+    targeted: ids,
+    matchedIds: [],
+    calibratedIds: [],
+    warnings: [`hypothesis_read:${error.message}`],
+    error: error.message,
+    generatedAt: now,
+  };
+
+  const hypotheses = hypothesisRows ?? [];
+  const matchedIds = hypotheses.map((hypothesis) => String(hypothesis.id));
+  if (ids.length && input.allowHistoricalReevaluation) {
+    const matched = new Set(matchedIds);
+    const missingIds = ids.filter((id) => !matched.has(id));
+    const ineligibleStatusIds = hypotheses
+      .filter((hypothesis) => !allowedStatuses.includes(String(hypothesis.status ?? '')))
+      .map((hypothesis) => String(hypothesis.id));
+    const futureWindowIds = hypotheses
+      .filter((hypothesis) => {
+        const validationEnd = Date.parse(String(hypothesis.validation_ends_at ?? ''));
+        return !Number.isFinite(validationEnd) || validationEnd > Date.parse(now);
+      })
+      .map((hypothesis) => String(hypothesis.id));
+    const testContractIds = hypotheses
+      .filter((hypothesis) => {
+        const predictedTrajectory = row(hypothesis.predicted_trajectory);
+        return Boolean(parseHypothesisTestContract(predictedTrajectory.testContract));
+      })
+      .map((hypothesis) => String(hypothesis.id));
+
+    const targetWarnings = [
+      ...missingIds.map((id) => `historical_readjudication_target_missing:${id}`),
+      ...ineligibleStatusIds.map((id) => `historical_readjudication_status_not_allowed:${id}`),
+      ...futureWindowIds.map((id) => `historical_readjudication_window_not_closed:${id}`),
+      ...testContractIds.map((id) => `historical_readjudication_test_contract_not_allowed:${id}`),
+    ];
+    if (targetWarnings.length) {
+      return {
+        ok: false,
+        calibrated: 0,
+        reopened: 0,
+        attempted: 0,
+        targeted: ids,
+        matchedIds,
+        calibratedIds: [],
+        warnings: targetWarnings,
+        generatedAt: now,
+        rule: 'Historical manual readjudication is legacy-only and fail-closed: every requested target must exist, be eligible, have a closed validation window and have no preregistered test contract.',
+      };
+    }
+  }
 
   let calibrated = 0;
+  let reopened = 0;
+  let attempted = 0;
+  const calibratedIds: string[] = [];
   const warnings: string[] = [];
 
-  for (const hypothesis of hypotheses ?? []) {
+  for (const hypothesis of hypotheses) {
     const predictedTrajectory = row(hypothesis.predicted_trajectory);
     const testContract = parseHypothesisTestContract(predictedTrajectory.testContract);
     const priorConfidence = clamp01(Number(hypothesis.current_confidence ?? hypothesis.initial_confidence ?? 0.5));
@@ -88,6 +157,56 @@ export async function runWorldCalibrationCycle() {
     const availableEvidenceIds = new Set(evidenceRows.map((item) => String(item.id ?? '')).filter(Boolean));
 
     if (!testContract) {
+      attempted += 1;
+      if (input.allowHistoricalReevaluation) {
+        const { data: priorOutcome, error: priorOutcomeError } = await db
+          .from('world_hypothesis_outcomes')
+          .select('*')
+          .eq('hypothesis_id', hypothesis.id)
+          .maybeSingle();
+        if (priorOutcomeError) {
+          warnings.push(`legacy_prior_outcome_read:${hypothesis.id}:${priorOutcomeError.message}`);
+          continue;
+        }
+        if (priorOutcome) {
+          try {
+            await recordAuditEvent({
+              actorId: null,
+              action: 'WORLD_HYPOTHESIS_OUTCOME_PRE_READJUDICATION_SNAPSHOT',
+              targetType: 'world_hypothesis',
+              targetId: String(hypothesis.id),
+              before: {
+                hypothesisStatus: hypothesis.status,
+                outcome: priorOutcome,
+              },
+              after: {
+                intendedStatus: 'AWAITING_OUTCOME',
+                intendedOperation: 'HISTORICAL_READJUDICATION',
+              },
+              context: {
+                source: 'world_hypothesis_outcomes',
+                reason: 'HISTORICAL_READJUDICATION',
+                epistemicClass: 'RECORD',
+                lineageRule: 'Preserve the prior hypothesis/outcome projection before any historical readjudication mutation.',
+              },
+            });
+          } catch (auditError) {
+            warnings.push(`legacy_prior_outcome_audit:${hypothesis.id}:${auditError instanceof Error ? auditError.message : String(auditError)}`);
+            continue;
+          }
+        }
+      }
+      if (input.allowHistoricalReevaluation && hypothesis.status !== 'AWAITING_OUTCOME') {
+        const { error: reopenError } = await db.from('world_hypotheses')
+          .update({ status: 'AWAITING_OUTCOME' })
+          .eq('id', hypothesis.id);
+        if (reopenError) {
+          warnings.push(`legacy_reopen_write:${hypothesis.id}:${reopenError.message}`);
+          continue;
+        }
+        reopened += 1;
+      }
+
       const frozenSignals = buildLegacyFrozenSignals({
         expectedSignals: hypothesis.expected_signals,
         contradictionSignals: hypothesis.contradiction_signals,
@@ -139,8 +258,28 @@ export async function runWorldCalibrationCycle() {
         maxTokens: 2600,
       });
 
-      const assessment = llm.ok ? parseAssessment(llm.result) : null;
-      const criterionResults = assessment?.criterionResults ?? [];
+      if (!llm.ok) {
+        warnings.push(`legacy_assessment_unavailable:${hypothesis.id}:${llm.warnings.join('|') || 'no_provider'}`);
+        continue;
+      }
+      const assessment = parseAssessment(llm.result);
+      if (!assessment) {
+        warnings.push(`legacy_assessment_invalid:${hypothesis.id}`);
+        continue;
+      }
+      const expectedCriterionIds = [
+        ...frozenSignals.expected.map((item) => item.id),
+        ...frozenSignals.contradiction.map((item) => item.id),
+      ];
+      const returnedCriterionIds = new Set(assessment.criterionResults.map((item) => item.criterionId));
+      if (expectedCriterionIds.some((id) => !returnedCriterionIds.has(id))) {
+        warnings.push(`legacy_assessment_incomplete:${hypothesis.id}`);
+        continue;
+      }
+      const criterionResults = filterLegacyCriterionEvidence(
+        assessment.criterionResults,
+        availableEvidenceIds,
+      );
       const linked = relevantEvidenceIds(criterionResults, availableEvidenceIds);
       const classificationResult = classifyLegacyFrozenSignals({
         expected: frozenSignals.expected,
@@ -175,11 +314,16 @@ export async function runWorldCalibrationCycle() {
 
       // Legacy adjudication never writes world_learning_events. It can preserve an
       // observed RETURN classification without granting retrospective learning authority.
-      await db.from('world_hypotheses').update({
+      const { error: statusError } = await db.from('world_hypotheses').update({
         status: classification,
         current_confidence: priorConfidence,
       }).eq('id', hypothesis.id);
+      if (statusError) {
+        warnings.push(`legacy_status_write:${hypothesis.id}:${statusError.message}`);
+        continue;
+      }
       calibrated += 1;
+      calibratedIds.push(String(hypothesis.id));
       continue;
     }
     const llm = await runLlmTask({
@@ -292,6 +436,11 @@ export async function runWorldCalibrationCycle() {
   return {
     ok: warnings.length === 0,
     calibrated,
+    reopened,
+    attempted,
+    targeted: ids,
+    matchedIds,
+    calibratedIds,
     warnings: [...new Set(warnings)].slice(0, 20),
     generatedAt: now,
     rule: 'Current hypotheses use preregistered deterministic test contracts. Legacy hypotheses may be adjudicated only against frozen T0 signals and original-window evidence; legacy adjudication never creates world_learning_events.',
