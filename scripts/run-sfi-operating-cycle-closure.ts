@@ -1,9 +1,6 @@
 // EXECUTION_TRIGGER_2026_09_24
 import { createHash } from 'node:crypto';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
-import { runMethodLabSimulation } from '@/lib/method-lab/simulationRun';
-import { runIntegratedInstitutionalCycle } from '@/core/cognitive-twin/integratedInstitutionalCycle';
-import { flushPrimaryMirror, readPrimaryOutboxStatus } from '@/lib/persistence/primaryMirror';
 
 type Row = Record<string, any>;
 const AUTH_SCOPE = 'METHOD_LAB_INSTITUTIONAL_CYCLE_MIRROR_RETURN_PUBLICATION';
@@ -71,6 +68,44 @@ await db.from('sfi_audit_events').insert({
     codeCommit: process.env.GITHUB_SHA ?? null,
   },
 });
+
+
+let runMethodLabSimulation: typeof import('@/lib/method-lab/simulationRun').runMethodLabSimulation;
+let runIntegratedInstitutionalCycle: typeof import('@/core/cognitive-twin/integratedInstitutionalCycle').runIntegratedInstitutionalCycle;
+let flushPrimaryMirror: typeof import('@/lib/persistence/primaryMirror').flushPrimaryMirror;
+let readPrimaryOutboxStatus: typeof import('@/lib/persistence/primaryMirror').readPrimaryOutboxStatus;
+
+try {
+  const [labModule, institutionalModule, mirrorModule] = await Promise.all([
+    import('@/lib/method-lab/simulationRun'),
+    import('@/core/cognitive-twin/integratedInstitutionalCycle'),
+    import('@/lib/persistence/primaryMirror'),
+  ]);
+  runMethodLabSimulation = labModule.runMethodLabSimulation;
+  runIntegratedInstitutionalCycle = institutionalModule.runIntegratedInstitutionalCycle;
+  flushPrimaryMirror = mirrorModule.flushPrimaryMirror;
+  readPrimaryOutboxStatus = mirrorModule.readPrimaryOutboxStatus;
+} catch (error) {
+  const message = sanitizedError(error);
+  await db.from('sfi_audit_events').insert({
+    actor_id: ownerId,
+    action: 'SFI_OPERATING_CYCLE_CLOSURE_RUNTIME_IMPORT_FAILED',
+    target_type: 'sfi_operating_cycle',
+    target_id: cycleId,
+    before_state: { status: cycle.status },
+    after_state: { status: 'BLOCKED', error: message },
+    context: {
+      authority: 'FOUNDER_AUTHORIZED_ADMIN_CLOSURE',
+      phase: 'runtime_import',
+    },
+  });
+  await db.from('sfi_operating_cycles').update({
+    status: 'BLOCKED',
+    metadata: { ...cycleMetadata, runtimeImportFailure: { observedAt: new Date().toISOString(), error: message } },
+    updated_at: new Date().toISOString(),
+  }).eq('id', cycleId).eq('owner_id', ownerId);
+  throw error;
+}
 
 const evidenceRefs = strings(cycle.evidence_refs);
 if (!evidenceRefs.length) throw new Error('CLOSURE_EVIDENCE_REQUIRED');
