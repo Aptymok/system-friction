@@ -24,10 +24,26 @@ function authorized(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   if (!authorized(request)) return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 });
-  const egressGuard = scheduledEgressGuardResponse();
+
+  const manualReadjudication = request.headers.get('x-sfi-world-readjudication') === 'authorized';
+  const egressGuard = scheduledEgressGuardResponse({ authorizedManualOverride: manualReadjudication });
   if (egressGuard) return egressGuard;
 
   const startedAt = new Date().toISOString();
+
+  if (manualReadjudication) {
+    const calibration = await runWorldCalibrationCycle();
+    return NextResponse.json({
+      ok: calibration.ok,
+      status: 'READJUDICATION_EXECUTED',
+      contract: 'SFI-WORLD-HISTORICAL-READJUDICATION-1.0',
+      startedAt,
+      completedAt: new Date().toISOString(),
+      calibration,
+      writesPerformed: calibration.calibrated > 0,
+      boundary: 'Authorized manual readjudication executes only the existing World calibration owner. It does not collect observations, generate hypotheses, run institutional cycles, or enable scheduled egress globally.',
+    }, { status: calibration.ok ? 200 : 500 });
+  }
   const worldSignalObserver = await executeWorldSignalObserverAgent();
   const observation = worldSignalObserver.observation;
   const hypothesis = await runWorldHypothesisCycle();

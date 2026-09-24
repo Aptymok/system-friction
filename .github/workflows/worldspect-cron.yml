@@ -4,9 +4,15 @@ on:
   schedule:
     - cron: '0 */6 * * *'
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/sfi-world-readjudication-trigger
 
 jobs:
   observe_world:
+    if: github.event_name != 'push'
     runs-on: ubuntu-latest
 
     steps:
@@ -125,3 +131,29 @@ jobs:
           WORLDSPECT_INGEST_SECRET: ${{ secrets.WORLDSPECT_INGEST_SECRET }}
         run: |
           node scripts/qa-world-vector-pulse.mjs
+
+
+  readjudicate_world:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Execute bounded historical World readjudication
+        env:
+          VERCEL_APP_URL: ${{ secrets.VERCEL_APP_URL }}
+          WORLDSPECT_INGEST_SECRET: ${{ secrets.WORLDSPECT_INGEST_SECRET }}
+        run: |
+          set -euo pipefail
+          test -n "$VERCEL_APP_URL" || (echo "Missing VERCEL_APP_URL secret" && exit 1)
+          test -n "$WORLDSPECT_INGEST_SECRET" || (echo "Missing WORLDSPECT_INGEST_SECRET" && exit 1)
+          body="$(curl --fail-with-body -X POST "$VERCEL_APP_URL/api/cron/world-observatory" \
+            -H "Authorization: Bearer $WORLDSPECT_INGEST_SECRET" \
+            -H "X-SFI-World-Readjudication: authorized")"
+          printf '%s\n' "$body"
+          BODY="$body" node - <<'NODE'
+          const body = JSON.parse(process.env.BODY || '{}');
+          if (body.ok !== true) process.exit(2);
+          if (body.status !== 'READJUDICATION_EXECUTED') process.exit(3);
+          if (body.contract !== 'SFI-WORLD-HISTORICAL-READJUDICATION-1.0') process.exit(4);
+          if (!body.calibration || typeof body.calibration.calibrated !== 'number') process.exit(5);
+          console.log(`SFI_WORLD_READJUDICATION calibrated=${body.calibration.calibrated}`);
+          NODE
