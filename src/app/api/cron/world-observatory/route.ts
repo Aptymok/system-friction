@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getLlmProviderStatus } from '@/lib/ai/providerRouter';
 import { runWorldCalibrationCycle } from '@/lib/world-observatory/hypothesisCalibration';
 import { runWorldHypothesisCycle } from '@/lib/world-observatory/hypothesisCycle';
 import { runWorldInstrumentSweep } from '@/lib/world-observatory/instrumentSweep';
@@ -32,17 +33,37 @@ export async function POST(request: NextRequest) {
   const startedAt = new Date().toISOString();
 
   if (manualReadjudication) {
-    const calibration = await runWorldCalibrationCycle();
+    const body = await request.json().catch(() => ({})) as { hypothesisIds?: unknown };
+    const hypothesisIds = Array.isArray(body.hypothesisIds)
+      ? [...new Set(body.hypothesisIds.filter((id): id is string => typeof id === 'string' && /^[0-9a-f-]{36}$/i.test(id)))].slice(0, 20)
+      : [];
+    if (!hypothesisIds.length) {
+      return NextResponse.json({ ok: false, error: 'historical_readjudication_target_required' }, { status: 400 });
+    }
+    const calibration = await runWorldCalibrationCycle({
+      hypothesisIds,
+      allowHistoricalReevaluation: true,
+    });
+    const providers = getLlmProviderStatus().map((item) => ({
+      id: item.id,
+      configured: item.configured,
+      state: item.state,
+      canaryOk: item.canaryOk,
+      lastErrorClass: item.lastErrorClass,
+      circuitOpen: item.circuitOpen,
+    }));
+    const completed = calibration.ok && calibration.calibrated > 0;
     return NextResponse.json({
-      ok: calibration.ok,
-      status: 'READJUDICATION_EXECUTED',
-      contract: 'SFI-WORLD-HISTORICAL-READJUDICATION-1.0',
+      ok: completed,
+      status: completed ? 'READJUDICATION_EXECUTED' : 'READJUDICATION_BLOCKED',
+      contract: 'SFI-WORLD-HISTORICAL-READJUDICATION-1.1',
       startedAt,
       completedAt: new Date().toISOString(),
       calibration,
-      writesPerformed: calibration.calibrated > 0,
-      boundary: 'Authorized manual readjudication executes only the existing World calibration owner. It does not collect observations, generate hypotheses, run institutional cycles, or enable scheduled egress globally.',
-    }, { status: calibration.ok ? 200 : 500 });
+      providers,
+      writesPerformed: calibration.calibrated > 0 || calibration.reopened > 0,
+      boundary: 'Authorized manual readjudication executes only the existing World calibration owner. Unavailable or incomplete model assessment leaves targeted historical hypotheses AWAITING_OUTCOME; it does not fabricate INCONCLUSIVE. It does not collect observations, generate hypotheses, run institutional cycles, or enable scheduled egress globally.',
+    }, { status: 200 });
   }
   const worldSignalObserver = await executeWorldSignalObserverAgent();
   const observation = worldSignalObserver.observation;
