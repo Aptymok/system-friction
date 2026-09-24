@@ -102,7 +102,16 @@ assert.match(authActions, /activateNeonPasswordWithBootstrap/, 'explicit continu
 assert.match(continuityAccess, /Activar continuidad/);
 assert.match(continuityAccess, /código temporal SFI/);
 assert.match(continuityAccess, /repite la contraseña/);
-assert.doesNotMatch(authActions, /supabase\.auth\.signInWithPassword/, 'continuity login must not depend on Supabase Auth during the outage window');
+const loginBlock = authActions.match(/export async function loginAction[\s\S]*?export async function activateContinuityPasswordAction/)?.[0] ?? '';
+assert.match(loginBlock, /signInWithNeonAuth/, 'normal login must try Neon continuity credentials first');
+assert.match(loginBlock, /supabase\.auth\.signInWithPassword/, 'normal login must retain Supabase compatibility for invited institutional accounts');
+assert.ok(
+  loginBlock.indexOf('signInWithNeonAuth') < loginBlock.indexOf('supabase.auth.signInWithPassword'),
+  'Supabase compatibility must never precede Neon continuity login',
+);
+assert.match(loginBlock, /neon\.status === 429[\s\S]*?rate_limit/, 'Neon rate limits must not be bypassed through the secondary provider');
+assert.match(loginBlock, /primaryStatus === 402 \|\| primaryStatus >= 500/, 'restricted primary auth must be represented as unavailable, not bad credentials');
+assert.match(authActions, /canonicalFounderUserId\(\{ email \}\)/, 'founder Neon login must not require a profile-plane read');
 assert.match(authActions, /try \{[\s\S]*?createServiceSupabaseClient\(\)[\s\S]*?\} catch \{[\s\S]*?primaryProfile = null/, 'post-login routing must degrade cleanly when the primary profile plane is unavailable');
 assert.match(authActions, /await readContinuityProfile\(userId\)\.catch\(\(\) => null\)/, 'post-login routing must use the Neon continuity profile when the primary profile plane is unavailable');
 assert.match(authActions, /neon\.status === 429[\s\S]*?'rate_limit'/, 'upstream Neon rate limits must remain explicit');
@@ -125,7 +134,7 @@ assert.equal(existsSync('src/app/signup/page.tsx'), false, 'public signup surfac
 
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-ACCOUNT-INVITATION-LIFECYCLE-1.4',
+  contract: 'SFI-ACCOUNT-INVITATION-LIFECYCLE-1.5',
   invitationOnly: true,
   temporaryPasswordGenerated: false,
   founderAdminRequired: true,
@@ -142,4 +151,5 @@ console.log(JSON.stringify({
   verifiedProfileProvisionFailureCanRetry: true,
   failedResendPreservesExistingInvite: true,
   rootAccessContinuityReadFallback: true,
+  dualProviderInstitutionalLogin: true,
 }, null, 2));
