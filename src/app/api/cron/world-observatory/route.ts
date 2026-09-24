@@ -52,7 +52,11 @@ export async function POST(request: NextRequest) {
       lastErrorClass: item.lastErrorClass,
       circuitOpen: item.circuitOpen,
     }));
-    const completed = calibration.ok && calibration.calibrated > 0;
+    const calibratedSet = new Set(calibration.calibratedIds);
+    const completed = calibration.ok
+      && calibration.calibratedIds.length === hypothesisIds.length
+      && calibration.calibratedIds.every((id) => hypothesisIds.includes(id))
+      && hypothesisIds.every((id) => calibratedSet.has(id));
     return NextResponse.json({
       ok: completed,
       status: completed ? 'READJUDICATION_EXECUTED' : 'READJUDICATION_BLOCKED',
@@ -62,6 +66,12 @@ export async function POST(request: NextRequest) {
       calibration,
       providers,
       writesPerformed: calibration.calibrated > 0 || calibration.reopened > 0,
+      targetCoverage: {
+        requested: hypothesisIds,
+        matched: calibration.matchedIds,
+        calibrated: calibration.calibratedIds,
+        complete: completed,
+      },
       boundary: 'Authorized manual readjudication executes only the existing World calibration owner. Unavailable or incomplete model assessment leaves targeted historical hypotheses AWAITING_OUTCOME; it does not fabricate INCONCLUSIVE. It does not collect observations, generate hypotheses, run institutional cycles, or enable scheduled egress globally.',
     }, { status: 200 });
   }
