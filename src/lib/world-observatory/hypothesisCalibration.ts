@@ -2,6 +2,7 @@ import 'server-only';
 
 import { runLlmTask } from '@/lib/ai/providerRouter';
 import { clamp01 } from '@/lib/sfi/math';
+import { recordAuditEvent } from '@/lib/system/audit/server';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { WORLD_METHODOLOGY_VERSION } from './worldCycle';
 import {
@@ -13,6 +14,7 @@ import {
 import {
   buildLegacyFrozenSignals,
   classifyLegacyFrozenSignals,
+  filterLegacyCriterionEvidence,
 } from './historicalHypothesisAdjudication';
 
 type Row = Record<string, unknown>;
@@ -63,30 +65,78 @@ export async function runWorldCalibrationCycle(input: {
   const allowedStatuses = input.allowHistoricalReevaluation
     ? ['OPEN', 'AWAITING_OUTCOME', 'INCONCLUSIVE']
     : ['OPEN', 'AWAITING_OUTCOME'];
-  let hypothesisQuery = db
-    .from('world_hypotheses')
-    .select('*')
-    .in('status', allowedStatuses)
-    .lte('validation_ends_at', now);
-  if (ids.length) hypothesisQuery = hypothesisQuery.in('id', ids);
-  const { data: hypotheses, error } = await hypothesisQuery.limit(100);
+  let hypothesisQuery = db.from('world_hypotheses').select('*');
+  if (ids.length && input.allowHistoricalReevaluation) {
+    hypothesisQuery = hypothesisQuery.in('id', ids);
+  } else {
+    hypothesisQuery = hypothesisQuery.in('status', allowedStatuses).lte('validation_ends_at', now);
+    if (ids.length) hypothesisQuery = hypothesisQuery.in('id', ids);
+  }
+
+  const { data: hypothesisRows, error } = await hypothesisQuery.limit(100);
   if (error) return {
     ok: false,
     calibrated: 0,
     reopened: 0,
     attempted: 0,
     targeted: ids,
+    matchedIds: [],
+    calibratedIds: [],
     warnings: [`hypothesis_read:${error.message}`],
     error: error.message,
     generatedAt: now,
   };
 
+  const hypotheses = hypothesisRows ?? [];
+  const matchedIds = hypotheses.map((hypothesis) => String(hypothesis.id));
+  if (ids.length && input.allowHistoricalReevaluation) {
+    const matched = new Set(matchedIds);
+    const missingIds = ids.filter((id) => !matched.has(id));
+    const ineligibleStatusIds = hypotheses
+      .filter((hypothesis) => !allowedStatuses.includes(String(hypothesis.status ?? '')))
+      .map((hypothesis) => String(hypothesis.id));
+    const futureWindowIds = hypotheses
+      .filter((hypothesis) => {
+        const validationEnd = Date.parse(String(hypothesis.validation_ends_at ?? ''));
+        return !Number.isFinite(validationEnd) || validationEnd > Date.parse(now);
+      })
+      .map((hypothesis) => String(hypothesis.id));
+    const testContractIds = hypotheses
+      .filter((hypothesis) => {
+        const predictedTrajectory = row(hypothesis.predicted_trajectory);
+        return Boolean(parseHypothesisTestContract(predictedTrajectory.testContract));
+      })
+      .map((hypothesis) => String(hypothesis.id));
+
+    const targetWarnings = [
+      ...missingIds.map((id) => `historical_readjudication_target_missing:${id}`),
+      ...ineligibleStatusIds.map((id) => `historical_readjudication_status_not_allowed:${id}`),
+      ...futureWindowIds.map((id) => `historical_readjudication_window_not_closed:${id}`),
+      ...testContractIds.map((id) => `historical_readjudication_test_contract_not_allowed:${id}`),
+    ];
+    if (targetWarnings.length) {
+      return {
+        ok: false,
+        calibrated: 0,
+        reopened: 0,
+        attempted: 0,
+        targeted: ids,
+        matchedIds,
+        calibratedIds: [],
+        warnings: targetWarnings,
+        generatedAt: now,
+        rule: 'Historical manual readjudication is legacy-only and fail-closed: every requested target must exist, be eligible, have a closed validation window and have no preregistered test contract.',
+      };
+    }
+  }
+
   let calibrated = 0;
   let reopened = 0;
   let attempted = 0;
+  const calibratedIds: string[] = [];
   const warnings: string[] = [];
 
-  for (const hypothesis of hypotheses ?? []) {
+  for (const hypothesis of hypotheses) {
     const predictedTrajectory = row(hypothesis.predicted_trajectory);
     const testContract = parseHypothesisTestContract(predictedTrajectory.testContract);
     const priorConfidence = clamp01(Number(hypothesis.current_confidence ?? hypothesis.initial_confidence ?? 0.5));
@@ -188,7 +238,10 @@ export async function runWorldCalibrationCycle(input: {
         warnings.push(`legacy_assessment_incomplete:${hypothesis.id}`);
         continue;
       }
-      const criterionResults = assessment.criterionResults;
+      const criterionResults = filterLegacyCriterionEvidence(
+        assessment.criterionResults,
+        availableEvidenceIds,
+      );
       const linked = relevantEvidenceIds(criterionResults, availableEvidenceIds);
       const classificationResult = classifyLegacyFrozenSignals({
         expected: frozenSignals.expected,
@@ -202,6 +255,43 @@ export async function runWorldCalibrationCycle(input: {
         `LEGACY_FROZEN_SIGNAL_ADJUDICATION: ${classificationResult.reason}`,
         assessment?.mechanismAssessment ? `Mechanism boundary: ${assessment.mechanismAssessment}` : null,
       ].filter(Boolean).join(' ');
+
+      if (input.allowHistoricalReevaluation) {
+        const { data: priorOutcome, error: priorOutcomeError } = await db
+          .from('world_hypothesis_outcomes')
+          .select('*')
+          .eq('hypothesis_id', hypothesis.id)
+          .maybeSingle();
+        if (priorOutcomeError) {
+          warnings.push(`legacy_prior_outcome_read:${hypothesis.id}:${priorOutcomeError.message}`);
+          continue;
+        }
+        if (priorOutcome) {
+          try {
+            await recordAuditEvent({
+              actorId: null,
+              action: 'WORLD_HYPOTHESIS_OUTCOME_PRE_READJUDICATION_SNAPSHOT',
+              targetType: 'world_hypothesis',
+              targetId: String(hypothesis.id),
+              before: priorOutcome,
+              after: {
+                classification,
+                evaluatorVersion: `${WORLD_METHODOLOGY_VERSION}+legacy-frozen-signal-adjudication`,
+                evaluatedAt: now,
+              },
+              context: {
+                source: 'world_hypothesis_outcomes',
+                reason: 'HISTORICAL_READJUDICATION',
+                epistemicClass: 'RECORD',
+                lineageRule: 'Preserve the prior current projection before replacing it; this audit receipt does not alter the hypothesis classification.',
+              },
+            });
+          } catch (auditError) {
+            warnings.push(`legacy_prior_outcome_audit:${hypothesis.id}:${auditError instanceof Error ? auditError.message : String(auditError)}`);
+            continue;
+          }
+        }
+      }
 
       const { error: outcomeError } = await db.from('world_hypothesis_outcomes').upsert({
         hypothesis_id: hypothesis.id,
@@ -232,6 +322,7 @@ export async function runWorldCalibrationCycle(input: {
         continue;
       }
       calibrated += 1;
+      calibratedIds.push(String(hypothesis.id));
       continue;
     }
     const llm = await runLlmTask({
@@ -347,6 +438,8 @@ export async function runWorldCalibrationCycle(input: {
     reopened,
     attempted,
     targeted: ids,
+    matchedIds,
+    calibratedIds,
     warnings: [...new Set(warnings)].slice(0, 20),
     generatedAt: now,
     rule: 'Current hypotheses use preregistered deterministic test contracts. Legacy hypotheses may be adjudicated only against frozen T0 signals and original-window evidence; legacy adjudication never creates world_learning_events.',
