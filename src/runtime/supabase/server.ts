@@ -3,6 +3,7 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { createClient, type SupabaseClient, type User } from '@supabase/supabase-js';
 import { normalizeSupabaseUrl } from '@/runtime/supabase/url';
 import { readContinuityProfileByEmail } from '@/lib/sfi/continuityPostgres';
+import { canonicalFounderUserId } from '@/lib/system/access/founderAuthority';
 import { createSfiDataPlaneFetch } from '@/lib/persistence/dataPlaneFetch';
 
 export class SfiAuthUnavailableError extends Error {
@@ -128,8 +129,12 @@ export async function getVerifiedNeonServerUser(): Promise<User | null> {
   const email = body?.user?.email?.trim().toLowerCase();
   if (!email) return null;
 
-  const profile = await readContinuityProfileByEmail(email);
-  const canonicalUserId = typeof profile?.user_id === 'string' ? profile.user_id : null;
+  const founderUserId = canonicalFounderUserId({ email });
+  const profile = founderUserId
+    ? null
+    : await readContinuityProfileByEmail(email).catch(() => null);
+  const canonicalUserId = founderUserId
+    ?? (typeof profile?.user_id === 'string' ? profile.user_id : null);
   if (!canonicalUserId) return null;
 
   return {
