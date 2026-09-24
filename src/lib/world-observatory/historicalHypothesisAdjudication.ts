@@ -38,6 +38,16 @@ export function buildLegacyFrozenSignals(input: {
   return { expected, contradiction };
 }
 
+export function filterLegacyCriterionEvidence(
+  criterionResults: HypothesisCriterionResult[],
+  availableEvidenceIds: Set<string>,
+): HypothesisCriterionResult[] {
+  return criterionResults.map((result) => ({
+    ...result,
+    evidenceIds: result.evidenceIds.filter((id) => availableEvidenceIds.has(id)),
+  }));
+}
+
 function evidenceBackedSatisfied(
   result: HypothesisCriterionResult | undefined,
 ) {
