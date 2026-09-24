@@ -76,7 +76,7 @@ async function main() {
   assert(worldCalibration.includes('expectedCriterionIds.some'), 'historical_assessment_must_cover_all_frozen_criteria');
   assert(worldCalibration.includes('filterLegacyCriterionEvidence'), 'historical_assessment_must_filter_evidence_to_original_window');
   assert(worldCalibration.includes('historical_readjudication_test_contract_not_allowed'), 'historical_readjudication_must_be_legacy_only');
-  assert(worldCalibration.includes('WORLD_HYPOTHESIS_OUTCOME_SUPERSEDED'), 'historical_readjudication_must_preserve_prior_outcome_lineage');
+  assert(worldCalibration.includes('WORLD_HYPOTHESIS_OUTCOME_PRE_READJUDICATION_SNAPSHOT'), 'historical_readjudication_must_preserve_prior_outcome_lineage');
   assert(worldCalibration.includes('calibratedIds'), 'historical_readjudication_must_report_exact_calibrated_ids');
   assert(worldCron.includes('calibration.calibratedIds.length === hypothesisIds.length'), 'manual_readjudication_must_require_all_targets_to_complete');
   assert(worldCron.includes('calibration.calibratedIds.every'), 'manual_readjudication_must_match_requested_target_ids');
