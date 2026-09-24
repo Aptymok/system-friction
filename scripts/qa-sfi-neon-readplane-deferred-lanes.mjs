@@ -14,6 +14,8 @@ assert.match(heartbeat, /pendingWorkPreserved:\s*true/, 'Neon heartbeat must pre
 
 assert.match(world, /readContinuityPublicWorldBundle/, 'public world read must have a Neon continuity fallback');
 assert.match(world, /readPlane/, 'public world response must expose which read plane served the data');
+assert.match(world, /readDataPlaneState/, 'public world read must consult systemic data-plane state for truthful plane attribution');
+assert.match(world, /mode !== 'PRIMARY'/, 'public world read must report Neon when systemic routing is in continuity or recovery');
 assert.match(timeline, /getWorldSpectPublicHistoryRead/, 'public timeline must use the shared WorldSpect read-plane owner');
 assert.match(snapshotStore, /readContinuityWorldSnapshotTimeline/, 'shared WorldSpect public-history owner must preserve the Neon continuity fallback');
 assert.match(snapshotStore, /readPlane: 'NEON'/, 'shared WorldSpect public-history owner must expose the Neon read plane');
