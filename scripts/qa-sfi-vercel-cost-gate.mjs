@@ -55,6 +55,17 @@ assert.doesNotMatch(publicObservatoryClient, /cache:\s*['"]no-store['"]/, 'publi
 const scheduledEgressGuard = fs.readFileSync('src/lib/continuity/scheduledEgressGuard.ts', 'utf8');
 assert.match(scheduledEgressGuard, /SFI_SCHEDULED_EGRESS_MODE/, 'scheduled Supabase egress must require an explicit runtime enablement');
 assert.match(scheduledEgressGuard, /\?\? 'restricted'/, 'scheduled egress must fail closed by default');
+assert.match(scheduledEgressGuard, /authorizedManualOverride/, 'manual egress override must remain explicit and caller-supplied');
+
+const worldObservatoryCron = fs.readFileSync('src/app/api/cron/world-observatory/route.ts', 'utf8');
+assert.match(worldObservatoryCron, /x-sfi-world-readjudication/, 'World manual readjudication must require its explicit request marker');
+assert.match(worldObservatoryCron, /READJUDICATION_EXECUTED/, 'World manual readjudication must return an explicit execution state');
+assert.match(worldObservatoryCron, /runWorldCalibrationCycle\(\)/, 'World manual readjudication must reuse the canonical calibration owner');
+assert.match(worldObservatoryCron, /It does not collect observations, generate hypotheses/, 'World manual readjudication boundary must remain calibration-only');
+
+const worldCycleWorkflow = fs.readFileSync('.github/workflows/worldspect-cron.yml', 'utf8');
+assert.match(worldCycleWorkflow, /\.github\/sfi-world-readjudication-trigger/, 'World readjudication must use the dedicated trigger marker');
+assert.match(worldCycleWorkflow, /X-SFI-World-Readjudication: authorized/, 'World readjudication trigger must send the explicit authorization marker');
 
 for (const path of [
   'src/app/api/cron/worldspect/route.ts',
