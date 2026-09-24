@@ -13,7 +13,7 @@ import {
 import {
   buildLegacyFrozenSignals,
   classifyLegacyFrozenSignals,
-} from './legacyHypothesisAdjudication';
+} from './historicalHypothesisAdjudication';
 
 type Row = Record<string, unknown>;
 
