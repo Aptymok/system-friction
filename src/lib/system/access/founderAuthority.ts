@@ -9,10 +9,19 @@ export type FounderAuthoritySource =
   | 'explicit_sovereign_profile'
   | null;
 
-const SFI_CANONICAL_FOUNDER_IDENTITIES = new Set([
-  'c0a71851-9c8b-4e1c-83fc-9f1f0c783fa2',
-  'jmarin@systemfriction.org',
-]);
+const SFI_CANONICAL_FOUNDER_USER_ID = 'c0a71851-9c8b-4e1c-83fc-9f1f0c783fa2';
+const SFI_CANONICAL_FOUNDER_EMAIL = 'jmarin@systemfriction.org';
+
+export function canonicalFounderUserId(input: {
+  userId?: string | null;
+  email?: string | null;
+}) {
+  const userId = input.userId?.trim() || null;
+  const email = input.email?.trim().toLowerCase() || null;
+  if (userId === SFI_CANONICAL_FOUNDER_USER_ID) return SFI_CANONICAL_FOUNDER_USER_ID;
+  if (email === SFI_CANONICAL_FOUNDER_EMAIL) return SFI_CANONICAL_FOUNDER_USER_ID;
+  return null;
+}
 
 export type FounderAuthorityResolution = {
   isFounder: boolean;
@@ -49,8 +58,7 @@ export function isConfiguredFounderIdentity(input: {
   const userId = input.userId?.trim() || null;
   const email = input.email?.trim().toLowerCase() || null;
   return (
-    Boolean(userId && SFI_CANONICAL_FOUNDER_IDENTITIES.has(userId)) ||
-    Boolean(email && SFI_CANONICAL_FOUNDER_IDENTITIES.has(email)) ||
+    Boolean(canonicalFounderUserId({ userId, email })) ||
     Boolean(userId && configuredFounderIds().has(userId)) ||
     Boolean(email && configuredFounderEmails().has(email))
   );
@@ -64,10 +72,7 @@ export function resolveFounderAuthority(input: {
   const userId = input.userId?.trim() || null;
   const email = input.email?.trim().toLowerCase() || null;
 
-  if (
-    (userId && SFI_CANONICAL_FOUNDER_IDENTITIES.has(userId)) ||
-    (email && SFI_CANONICAL_FOUNDER_IDENTITIES.has(email))
-  ) {
+  if (canonicalFounderUserId({ userId, email })) {
     return { isFounder: true, source: 'canonical_founder_identity' };
   }
 
