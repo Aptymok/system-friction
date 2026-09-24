@@ -53,18 +53,28 @@ function relevantEvidenceIds(results: HypothesisCriterionResult[], available: Se
   return [...new Set(results.flatMap((result) => result.evidenceIds).filter((id) => available.has(id)))];
 }
 
-export async function runWorldCalibrationCycle() {
+export async function runWorldCalibrationCycle(input: {
+  hypothesisIds?: string[];
+  allowHistoricalReevaluation?: boolean;
+} = {}) {
   const db = createServiceSupabaseClient();
   const now = new Date().toISOString();
-  const { data: hypotheses, error } = await db
+  const ids = [...new Set((input.hypothesisIds ?? []).filter((id) => /^[0-9a-f-]{36}$/i.test(id)))].slice(0, 20);
+  const allowedStatuses = input.allowHistoricalReevaluation
+    ? ['OPEN', 'AWAITING_OUTCOME', 'INCONCLUSIVE']
+    : ['OPEN', 'AWAITING_OUTCOME'];
+  let hypothesisQuery = db
     .from('world_hypotheses')
     .select('*')
-    .in('status', ['OPEN','AWAITING_OUTCOME'])
-    .lte('validation_ends_at', now)
-    .limit(100);
+    .in('status', allowedStatuses)
+    .lte('validation_ends_at', now);
+  if (ids.length) hypothesisQuery = hypothesisQuery.in('id', ids);
+  const { data: hypotheses, error } = await hypothesisQuery.limit(100);
   if (error) return { ok: false, calibrated: 0, error: error.message, generatedAt: now };
 
   let calibrated = 0;
+  let reopened = 0;
+  let attempted = 0;
   const warnings: string[] = [];
 
   for (const hypothesis of hypotheses ?? []) {
@@ -88,6 +98,18 @@ export async function runWorldCalibrationCycle() {
     const availableEvidenceIds = new Set(evidenceRows.map((item) => String(item.id ?? '')).filter(Boolean));
 
     if (!testContract) {
+      attempted += 1;
+      if (input.allowHistoricalReevaluation && hypothesis.status !== 'AWAITING_OUTCOME') {
+        const { error: reopenError } = await db.from('world_hypotheses')
+          .update({ status: 'AWAITING_OUTCOME' })
+          .eq('id', hypothesis.id);
+        if (reopenError) {
+          warnings.push(`legacy_reopen_write:${hypothesis.id}:${reopenError.message}`);
+          continue;
+        }
+        reopened += 1;
+      }
+
       const frozenSignals = buildLegacyFrozenSignals({
         expectedSignals: hypothesis.expected_signals,
         contradictionSignals: hypothesis.contradiction_signals,
@@ -139,8 +161,25 @@ export async function runWorldCalibrationCycle() {
         maxTokens: 2600,
       });
 
-      const assessment = llm.ok ? parseAssessment(llm.result) : null;
-      const criterionResults = assessment?.criterionResults ?? [];
+      if (!llm.ok) {
+        warnings.push(`legacy_assessment_unavailable:${hypothesis.id}:${llm.warnings.join('|') || 'no_provider'}`);
+        continue;
+      }
+      const assessment = parseAssessment(llm.result);
+      if (!assessment) {
+        warnings.push(`legacy_assessment_invalid:${hypothesis.id}`);
+        continue;
+      }
+      const expectedCriterionIds = [
+        ...frozenSignals.expected.map((item) => item.id),
+        ...frozenSignals.contradiction.map((item) => item.id),
+      ];
+      const returnedCriterionIds = new Set(assessment.criterionResults.map((item) => item.criterionId));
+      if (expectedCriterionIds.some((id) => !returnedCriterionIds.has(id))) {
+        warnings.push(`legacy_assessment_incomplete:${hypothesis.id}`);
+        continue;
+      }
+      const criterionResults = assessment.criterionResults;
       const linked = relevantEvidenceIds(criterionResults, availableEvidenceIds);
       const classificationResult = classifyLegacyFrozenSignals({
         expected: frozenSignals.expected,
@@ -175,10 +214,14 @@ export async function runWorldCalibrationCycle() {
 
       // Legacy adjudication never writes world_learning_events. It can preserve an
       // observed RETURN classification without granting retrospective learning authority.
-      await db.from('world_hypotheses').update({
+      const { error: statusError } = await db.from('world_hypotheses').update({
         status: classification,
         current_confidence: priorConfidence,
       }).eq('id', hypothesis.id);
+      if (statusError) {
+        warnings.push(`legacy_status_write:${hypothesis.id}:${statusError.message}`);
+        continue;
+      }
       calibrated += 1;
       continue;
     }
@@ -292,6 +335,9 @@ export async function runWorldCalibrationCycle() {
   return {
     ok: warnings.length === 0,
     calibrated,
+    reopened,
+    attempted,
+    targeted: ids,
     warnings: [...new Set(warnings)].slice(0, 20),
     generatedAt: now,
     rule: 'Current hypotheses use preregistered deterministic test contracts. Legacy hypotheses may be adjudicated only against frozen T0 signals and original-window evidence; legacy adjudication never creates world_learning_events.',
