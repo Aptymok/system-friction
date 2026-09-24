@@ -1,6 +1,7 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
-import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { createClient } from '@supabase/supabase-js';
+import { normalizeSupabaseUrl } from '@/runtime/supabase/url';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -29,7 +30,27 @@ function equalHex(a: string, b: string) {
 }
 
 function errorText(error: unknown) {
-  return error instanceof Error ? error.message.slice(0, 1200) : String(error).slice(0, 1200);
+  return error instanceof Error ? error.message.slice(0, 1600) : String(error).slice(0, 1600);
+}
+
+function canonicalPrimaryClient() {
+  const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!rawUrl || !serviceRoleKey) throw new Error('CLOSURE_ONCE_PRIMARY_CLIENT_NOT_CONFIGURED');
+  const url = normalizeSupabaseUrl(rawUrl);
+  return createClient(url, serviceRoleKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+    global: {
+      fetch,
+      headers: {
+        'X-Client-Info': 'sfi-closure-once-primary',
+      },
+    },
+  });
 }
 
 export async function GET(request: NextRequest) {
@@ -40,7 +61,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: false, error: 'closure_once_identity_required' }, { status: 400 });
   }
 
-  const db = createServiceSupabaseClient();
+  const db = canonicalPrimaryClient();
   const cycleRead = await db
     .from('sfi_operating_cycles')
     .select('id,owner_id,cycle_code,status,evidence_refs,method_lab_refs,cognitive_twin_refs,metadata')
@@ -48,7 +69,11 @@ export async function GET(request: NextRequest) {
     .maybeSingle();
 
   if (cycleRead.error || !cycleRead.data) {
-    return NextResponse.json({ ok: false, error: 'closure_once_cycle_not_found' }, { status: 404 });
+    return NextResponse.json({
+      ok: false,
+      error: 'closure_once_cycle_not_found_in_primary',
+      details: cycleRead.error?.message ?? null,
+    }, { status: 404 });
   }
 
   const cycle = cycleRead.data as Row;
@@ -102,14 +127,39 @@ export async function GET(request: NextRequest) {
       authority: 'FOUNDER_AUTHORIZED_ADMIN_CLOSURE',
       machineExecutionScope: AUTH_SCOPE,
       route: '/api/internal/closure-once',
+      authorityPlane: 'SUPABASE_PRIMARY_DIRECT',
     },
   });
 
   try {
-    const [{ runMethodLabSimulation }, { runIntegratedInstitutionalCycle }, { flushPrimaryMirror, readPrimaryOutboxStatus }] = await Promise.all([
+    const [
+      { flushPrimaryMirror, readPrimaryOutboxStatus },
+      { recoverPrimaryDataPlane },
+      { readDataPlaneState },
+    ] = await Promise.all([
+      import('@/lib/persistence/primaryMirror'),
+      import('@/lib/persistence/continuityRecovery'),
+      import('@/lib/persistence/dataPlaneContinuityStore'),
+    ]);
+
+    const mirrorBeforeRuntime = await flushPrimaryMirror({ maxTransactions: 32 });
+    if (!mirrorBeforeRuntime.ok) {
+      throw new Error(`CLOSURE_ONCE_PRIMARY_TO_CONTINUITY_MIRROR_BLOCKED:${JSON.stringify(mirrorBeforeRuntime).slice(0, 1000)}`);
+    }
+
+    const recovery = await recoverPrimaryDataPlane({ maxTransactions: 64 });
+    if (!recovery.ok) {
+      throw new Error(`CLOSURE_ONCE_RECOVERY_BLOCKED:${JSON.stringify(recovery).slice(0, 1200)}`);
+    }
+
+    const dataPlaneState = await readDataPlaneState();
+    if (dataPlaneState.mode !== 'PRIMARY') {
+      throw new Error(`CLOSURE_ONCE_PRIMARY_NOT_ACTIVE_AFTER_RECOVERY:${dataPlaneState.mode}`);
+    }
+
+    const [{ runMethodLabSimulation }, { runIntegratedInstitutionalCycle }] = await Promise.all([
       import('@/lib/method-lab/simulationRun'),
       import('@/core/cognitive-twin/integratedInstitutionalCycle'),
-      import('@/lib/persistence/primaryMirror'),
     ]);
 
     const evidenceRefs = strings(cycle.evidence_refs);
@@ -150,11 +200,14 @@ export async function GET(request: NextRequest) {
       ...(institutionalRunId ? [institutionalRunId] : []),
     ])];
 
-    const mirrorExecution = await flushPrimaryMirror({ maxTransactions: 32 });
-    const mirrorObserved = await readPrimaryOutboxStatus();
-
+    const runtimeObservedAt = new Date().toISOString();
+    const preliminaryMirrorStatus = await readPrimaryOutboxStatus();
     const runtimeReceipt = {
-      executedAt: new Date().toISOString(),
+      executedAt: runtimeObservedAt,
+      authorityPlane: 'SUPABASE_PRIMARY_DIRECT',
+      preRuntimeMirror: mirrorBeforeRuntime,
+      recovery,
+      dataPlaneModeBeforeRuntime: dataPlaneState.mode,
       methodLab: labReceipt,
       institutionalCycle: {
         ok: institutional.ok,
@@ -166,17 +219,8 @@ export async function GET(request: NextRequest) {
         exercised: institutional.cognitiveTwinIntegration.exercised,
         warnings: institutional.warnings,
       },
-      mirror: {
-        ok: mirrorExecution.ok,
-        mirroredTransactions: mirrorExecution.mirroredTransactions,
-        mirroredRows: mirrorExecution.mirroredRows,
-        conflict: mirrorExecution.conflict,
-        pending: mirrorObserved.pending,
-        conflicts: mirrorObserved.conflicts,
-        oldestPendingAt: mirrorObserved.oldestPendingAt,
-        lastMirroredAt: mirrorObserved.lastMirroredAt,
-      },
-      claimBoundary: 'Method Lab remains SIMULATED. Mirror state is an OBSERVED operational RETURN candidate. This route does not self-promote scientific or institutional validation.',
+      preliminaryMirrorStatus,
+      claimBoundary: 'Method Lab remains SIMULATED. Institutional runtime state is recorded separately. Mirror state is OBSERVED operational state and does not imply scientific or external validation.',
     };
 
     const update = await db.from('sfi_operating_cycles').update({
@@ -186,7 +230,7 @@ export async function GET(request: NextRequest) {
         ...consumedMetadata,
         closureOnceRuntimeReceipt: runtimeReceipt,
       },
-      updated_at: runtimeReceipt.executedAt,
+      updated_at: runtimeObservedAt,
     }).eq('id', cycleId).eq('owner_id', ownerId);
 
     if (update.error) throw new Error(`CLOSURE_ONCE_LINK_FAILED:${update.error.message}`);
@@ -200,17 +244,25 @@ export async function GET(request: NextRequest) {
       after_state: {
         labAnalysisId,
         institutionalRunId,
-        mirrorPending: mirrorObserved.pending,
-        mirrorConflicts: mirrorObserved.conflicts,
+        dataPlaneMode: dataPlaneState.mode,
       },
       context: {
         authority: 'FOUNDER_AUTHORIZED_ADMIN_CLOSURE',
         methodLabEpistemicClass: 'SIMULATED',
-        mirrorReturnEpistemicClass: 'OBSERVED',
+        primaryRecoveredBeforeRuntime: true,
       },
     });
 
-    return NextResponse.json({ ok: true, cycleId, runtimeReceipt }, {
+    const finalMirror = await flushPrimaryMirror({ maxTransactions: 32 });
+    const finalMirrorStatus = await readPrimaryOutboxStatus();
+
+    return NextResponse.json({
+      ok: finalMirror.ok === true && finalMirrorStatus.pending === 0 && finalMirrorStatus.conflicts === 0,
+      cycleId,
+      runtimeReceipt,
+      finalMirror,
+      finalMirrorStatus,
+    }, {
       headers: { 'Cache-Control': 'no-store, private' },
     });
   } catch (error) {
@@ -234,7 +286,7 @@ export async function GET(request: NextRequest) {
       after_state: { error: message },
       context: {
         authority: 'FOUNDER_AUTHORIZED_ADMIN_CLOSURE',
-        phase: 'bounded_runtime_execution',
+        phase: 'mirror_recovery_runtime_execution',
       },
     });
 
