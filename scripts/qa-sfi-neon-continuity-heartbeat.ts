@@ -543,14 +543,27 @@ for (const route of [
   'src/app/api/cron/predictive-engine/route.ts',
   'src/app/api/cron/sfi-indicators/route.ts',
   'src/app/api/cron/worldspect/route.ts',
-  'src/app/api/cron/world-observatory/route.ts',
   'src/app/api/cron/continuity-report/route.ts',
   'src/app/api/cron/sfi-institutional-cycle/route.ts',
 ]) {
   const source = read(route);
   check(`${route} remains fail-closed while scheduled egress is restricted`,
     source.includes('scheduledEgressGuardResponse()')
-    && !source.includes('allowContinuityFallback: true'));
+    && !source.includes('allowContinuityFallback: true')
+    && !source.includes('authorizedManualOverride'));
+}
+
+{
+  const route = 'src/app/api/cron/world-observatory/route.ts';
+  const source = read(route);
+  check('world-observatory remains fail-closed except for the authenticated explicit manual readjudication lane',
+    source.includes("if (!authorized(request))")
+    && source.includes("request.headers.get('x-sfi-world-readjudication') === 'authorized'")
+    && source.includes('scheduledEgressGuardResponse({ authorizedManualOverride: manualReadjudication })')
+    && source.includes("status: 'READJUDICATION_EXECUTED'")
+    && source.includes('runWorldCalibrationCycle()')
+    && !source.includes('allowContinuityFallback: true')
+    && source.indexOf('if (!authorized(request))') < source.indexOf("request.headers.get('x-sfi-world-readjudication')"));
 }
 
 check('restricted probe responses are not reported as operational',
