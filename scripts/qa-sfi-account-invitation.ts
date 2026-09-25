@@ -55,6 +55,13 @@ assert.match(forgot, /forgotPasswordAction/);
 assert.match(reset, /updateUser\(\{ password \}\)/);
 assert.match(reset, /password\.length < 12/);
 assert.match(reset, /SFI nunca necesita enviarte una contraseña temporal/);
+assert.match(reset, /data-sfi-auth-surface="institutional-access"/, 'invitation confirmation must use the canonical SFI institutional access surface');
+assert.match(reset, /SYSTEM FRICTION INSTITUTE/);
+assert.match(reset, /INVITATION/);
+assert.match(reset, /IDENTITY/);
+assert.match(reset, /ACCESS/);
+assert.match(reset, /ACCESS ≠ AUTHORITY/, 'confirmation must visibly preserve the access/authority boundary');
+assert.match(reset, /CONFIRMAR Y ACTIVAR/, 'invited user must receive a clear bounded activation action');
 assert.match(reset, /mode === 'invite'/, 'institutional activation must be required only for invite completion');
 assert.match(reset, /activationBody\.activated !== true/, 'invite UI must not redirect before institutional activation is confirmed');
 assert.match(reset, /La contraseña quedó guardada, pero SFI no confirmó el acceso institucional/);
@@ -155,4 +162,5 @@ console.log(JSON.stringify({
   failedResendPreservesExistingInvite: true,
   rootAccessContinuityReadFallback: true,
   dualProviderInstitutionalLogin: true,
+  sfiInvitationVisualGrammar: true,
 }, null, 2));
