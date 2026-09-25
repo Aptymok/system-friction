@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'r
 import { useAuthState } from '@/components/auth/AuthProvider';
 import { SessionControls } from './SessionControls';
 import { ObservatoryInterpretiveFlow } from './ObservatoryInterpretiveFlow';
-import { translateUiText, useSfiLanguage } from '@/components/i18n/SfiLanguageProvider';
+import { translateUiText } from '@/components/i18n/SfiLanguageProvider';
 import {
   classifyObservatoryRead,
   observableMetricValue,
@@ -61,7 +61,8 @@ async function fetchJson(path:string){
 
 export function ObservatoryConsole(){
   const auth=useAuthState();
-  const {language,text:ownedText}=useSfiLanguage();
+  const language='en' as const;
+  const ownedText=(_spanish:string,english:string)=>english;
   const ui=(value:string)=>translateUiText(value,language);
   const[world,setWorld]=useState<Row|null>(null),[obs,setObs]=useState<Row|null>(null),[timeline,setTimeline]=useState<TimelineFrame[]>([]);
   const[availability,setAvailability]=useState<ObservatoryAvailability>(INITIAL_AVAILABILITY);
