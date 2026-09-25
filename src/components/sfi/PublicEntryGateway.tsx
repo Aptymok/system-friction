@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type PointerEvent, type TouchEvent as ReactTouchEvent } from 'react';
 import './PublicEntryGateway.css';
 
 type SceneFrame = {
@@ -191,7 +191,6 @@ export function PublicEntryGateway(){
   const wheelAccumulator = useRef(0);
   const wheelLock = useRef(false);
   const touchStart = useRef<{x:number;y:number}|null>(null);
-  const frameRef = useRef(0);
   const rafRef = useRef<number|null>(null);
 
   const [sceneIndex,setSceneIndex] = useState(0);
@@ -206,7 +205,6 @@ export function PublicEntryGateway(){
     const bounded = clamp(next,0,SCENES.length-1);
     setSceneIndex(bounded);
     setFrameIndex(0);
-    frameRef.current = 0;
     setHotspotIndex(null);
   },[]);
 
@@ -214,7 +212,6 @@ export function PublicEntryGateway(){
     setFrameIndex(current=>{
       const length = SCENES[sceneIndex].frames.length;
       const next = (current + direction + length) % length;
-      frameRef.current = next;
       return next;
     });
     setHotspotIndex(null);
@@ -300,12 +297,12 @@ export function PublicEntryGateway(){
     node.style.setProperty('--pointer-y','0');
   }
 
-  function handleTouchStart(event:React.TouchEvent<HTMLElement>){
+  function handleTouchStart(event:ReactTouchEvent<HTMLElement>){
     const touch = event.touches[0];
     touchStart.current = {x:touch.clientX,y:touch.clientY};
   }
 
-  function handleTouchEnd(event:React.TouchEvent<HTMLElement>){
+  function handleTouchEnd(event:ReactTouchEvent<HTMLElement>){
     const start = touchStart.current;
     const touch = event.changedTouches[0];
     touchStart.current = null;
@@ -406,7 +403,7 @@ export function PublicEntryGateway(){
               </div>}
               <div className="sfiHorizontalControls">
                 <button type="button" onClick={()=>moveFrame(-1)} aria-label="Previous perspective">←</button>
-                <div>{item.frames.map((frame,i)=><button key={frame.label} type="button" aria-label={`Open ${frame.label} perspective`} aria-current={frameIndex===i ? 'true' : undefined} onClick={()=>{setFrameIndex(i);frameRef.current=i;setHotspotIndex(null);}}><i/></button>)}</div>
+                <div>{item.frames.map((frame,i)=><button key={frame.label} type="button" aria-label={`Open ${frame.label} perspective`} aria-current={frameIndex===i ? 'true' : undefined} onClick={()=>{setFrameIndex(i);setHotspotIndex(null);}}><i/></button>)}</div>
                 <button type="button" onClick={()=>moveFrame(1)} aria-label="Next perspective">→</button>
               </div>
             </aside>
