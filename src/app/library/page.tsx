@@ -82,8 +82,8 @@ export default async function LibraryPage() {
 
   const surfaceContract: LibrarySurfaceContract = {
     surfaceLabel: 'LIBRARY · DOCUMENTARY CORPUS · NEURAL GRAPH',
-    catalogLabel: 'CATÁLOGO DOCUMENTAL CANÓNICO · NODOS / RELACIONES',
-    compactBodyBoundary: 'El catálogo conserva metadata compacta y relaciones documentales declaradas; los cuerpos completos no se presumen materializados y una relación no equivale a validación.',
+    catalogLabel: 'CANONICAL DOCUMENTARY CATALOG · NODES / RELATIONS',
+    compactBodyBoundary: 'The catalog preserves compact metadata and declared documentary relations; full bodies are not assumed to be materialized and a relation does not equal validation.',
     fullBodyReaderBoundary: 'FULL DOCUMENT BODY READER = NOT MATERIALIZED',
     graphState: graph.sourceState,
     graphBoundary: graph.degradedReason ?? 'PERSISTED + DECLARED GRAPH READ OBSERVED',
