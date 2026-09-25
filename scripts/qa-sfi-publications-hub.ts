@@ -12,6 +12,7 @@ const editorial = read('src/lib/publications/editorialContent.ts');
 const publicationEntry = read('src/app/publications/[slug]/page.tsx');
 const temporalCss = read('src/app/publications/[slug]/temporalIssue.css');
 const temporalView = read('src/components/publications/TemporalIssueView.tsx');
+const publicState = read('src/lib/observatory/publicState.ts');
 
 for (const asset of [
   'public/images/editorial/notas-temporales-septiembre-2026.webp',
@@ -36,9 +37,10 @@ assert.ok(editorial.includes("slug: 'the-reality-chain'") && editorial.includes(
 assert.ok(publicationEntry.includes('publication.visuals.map') && publicationEntry.includes('OPEN PDF'), 'reality_chain_visual_or_pdf_surface_missing');
 assert.ok(page.includes('SFI_EDITORIAL_FAMILIES'), 'editorial_families_not_projected');
 assert.ok(page.includes("force-dynamic"), 'persisted_publication_projection_must_not_be_force_static');
-assert.ok(page.includes("createServiceSupabaseClient"), 'persisted_publication_projection_missing_service_reader');
-assert.ok(page.includes(".from('sfi_publications')") && page.includes(".eq('status','PUBLISHED')"), 'persisted_published_returns_not_projected');
-assert.ok(page.includes('public_payload') && page.includes('PUBLICACIÓN = EXPOSURE'), 'persisted_publication_epistemic_boundary_missing');
+assert.ok(page.includes("getPublicPublishedReturns"), 'persisted_publication_projection_missing_public_read_model');
+assert.equal(page.includes("createServiceSupabaseClient"), false, 'publications_interface_must_not_construct_supabase_client');
+assert.ok(publicState.includes(".from('sfi_publications')") && publicState.includes(".eq('status', 'PUBLISHED')"), 'persisted_published_returns_not_projected_by_server_read_model');
+assert.ok(page.includes('publicPayload') && page.includes('PUBLICACIÓN = EXPOSURE'), 'persisted_publication_epistemic_boundary_missing');
 assert.ok(page.includes('<picture>') && page.includes('SFI_PUBLICATIONS_BANNER.mobile'), 'responsive_editorial_banner_missing');
 assert.ok(page.includes('GENERADA (IA)') || families.includes('GENERADA (IA)'), 'generated_image_provenance_missing');
 assert.equal(page.includes('Notas de Tiempo'), false, 'monthly_temporal_notes_must_not_be_reclassified_as_notas_de_tiempo');
