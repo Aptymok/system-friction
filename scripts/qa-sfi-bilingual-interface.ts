@@ -17,6 +17,7 @@ const rejectText = (haystack: string, needle: string, label: string) => {
 const provider = read('src/components/i18n/SfiLanguageProvider.tsx');
 const layout = read('src/app/layout.tsx');
 const entry = read('src/components/sfi/PublicEntryGateway.tsx');
+const publicSceneManifest = read('src/components/sfi/publicSceneManifest.ts');
 const session = read('src/components/sfi/SessionControls.tsx');
 const consoleUi = read('src/components/sfi/SfiConsole.tsx');
 const observatory = read('src/components/sfi/ObservatoryConsole.tsx');
@@ -64,9 +65,9 @@ requireText(entry, 'SYSTEM FRICTION INSTITUTE', 'public entry institution identi
 requireText(entry, 'MOVE BETWEEN SCENES', 'scene navigation instruction');
 requireText(entry, 'CHANGE PERSPECTIVE', 'horizontal scene interaction');
 requireText(entry, 'SHIFT DEPTH', 'pointer parallax interaction');
-requireText(entry, "primaryHref:'/observatory'", 'public Observatory route');
-requireText(entry, "primaryHref:'/field'", 'public FIELD route');
-requireText(entry, "secondaryHref:'/institution'", 'public Institute route');
+requireText(publicSceneManifest, "primaryHref:'/observatory'", 'public Observatory route');
+requireText(publicSceneManifest, "secondaryHref:'/world-vector'", 'public World Vector route');
+requireText(publicSceneManifest, "secondaryHref:'/institution'", 'public Institute route');
 requireText(entry, 'href="/login"', 'public sign-in route');
 
 // Public Observatory is hard English; underlying epistemic/data values are not translated.
