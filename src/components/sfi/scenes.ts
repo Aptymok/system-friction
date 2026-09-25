@@ -10,11 +10,11 @@ type SceneLabel={label:string;title:string;subtitle:string};
 type SceneSpec=SceneLabel&{key:SceneKey;markers:string[];liveSource:string};
 
 export const SCENE_LABELS:Record<SceneKey,SceneLabel>={
-  field:{label:'FIELD',title:'Campo de observación',subtitle:'Observatorio público vivo: fuentes persistidas, métricas derivadas, hipótesis trazables, trayectoria, retorno y contraste.'},
-  root:{label:'ROOT',title:'ROOT · Operación soberana',subtitle:'Autoridad institucional: obligaciones humanas accionables, decisiones, reportes y acceso a superficies SFI.'},
-  cases:{label:'CASOS',title:'Casos',subtitle:'Expedientes completos, evidencia, contraste, aprendizaje y reporte.'},
-  governance:{label:'GOBERNANZA IA',title:'Gobernanza de IA',subtitle:'Opera agentes, continuidad, evidencia y decisiones con autoridad explícita.'},
-  twin:{label:'TWIN / SPINE',title:'Cognitive Twin / Spine',subtitle:'Observa y gobierna lo que SFI sostiene, aprende, contradice y utiliza.'},
+  field:{label:'FIELD',title:'Observation Field',subtitle:'Live public observatory: persisted sources, derived metrics, traceable hypotheses, trajectory, RETURN and contrast.'},
+  root:{label:'ROOT',title:'ROOT · Sovereign Operation',subtitle:'Institutional authority: actionable human obligations, decisions, reports and access to SFI surfaces.'},
+  cases:{label:'CASES',title:'Cases',subtitle:'Complete case files, evidence, contrast, learning and reporting.'},
+  governance:{label:'AI GOVERNANCE',title:'AI Governance',subtitle:'Operate agents, continuity, evidence and decisions with explicit authority.'},
+  twin:{label:'TWIN / SPINE',title:'Cognitive Twin / Spine',subtitle:'Observe and govern what SFI maintains, learns, contradicts and uses.'},
 };
 
 export const SCENES:Record<SceneKey,SceneSpec>={
