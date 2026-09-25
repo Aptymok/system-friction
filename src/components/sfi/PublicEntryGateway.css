@@ -289,6 +289,84 @@
     150px
   )
 }
+
+.sfiSceneLayer{z-index:calc(4 + var(--asset-depth,0))}
+.sfiSceneLayer[data-alpha="true"]{mix-blend-mode:screen}
+.sfiSceneLayer[data-role="atmosphere"]{filter:blur(.1px) drop-shadow(0 0 38px rgba(200,169,81,.16))}
+.sfiSceneLayer[data-motion="slow-drift"]{animation:sfiSceneBreath 8s ease-in-out infinite alternate}
+@keyframes sfiSceneBreath{
+  from{filter:brightness(.92) saturate(.95);opacity:.5}
+  to{filter:brightness(1.08) saturate(1.06);opacity:.72}
+}
+
+/* Opening composition: architecture → planetary field → golden optical layers. */
+.sfiScene--sfi .sfiSceneBackground{
+  background-position:center;
+  filter:saturate(.92) contrast(1.07) brightness(.72)
+}
+.sfiScene--sfi .sfiSceneLayer--1{
+  width:min(49vw,820px);
+  height:min(64vh,720px);
+  right:5.5vw;
+  top:7%;
+  object-fit:cover;
+  clip-path:ellipse(43% 47% at 50% 50%);
+  opacity:.74;
+  mix-blend-mode:normal;
+  transform:translate3d(
+    calc(var(--pointer-x,0) * 7px),
+    calc(var(--pointer-y,0) * 4px),
+    24px
+  ) scale(1.035)
+}
+.sfiScene--sfi .sfiSceneLayer--2{
+  width:min(52vw,850px);
+  right:4vw;
+  top:1%;
+  opacity:.58;
+  mix-blend-mode:screen;
+  transform:translate3d(
+    calc(var(--pointer-x,0) * -11px),
+    calc(var(--pointer-y,0) * -7px),
+    80px
+  )
+}
+.sfiScene--sfi .sfiSceneLayer--3{
+  width:100vw;
+  max-width:none;
+  height:100%;
+  right:0;
+  top:0;
+  bottom:auto;
+  object-fit:cover;
+  opacity:.28;
+  mix-blend-mode:screen;
+  transform:translate3d(
+    calc(var(--pointer-x,0) * 4px),
+    calc(var(--pointer-y,0) * 3px),
+    120px
+  ) scale(1.03)
+}
+.sfiScene--sfi .sfiSceneLayer--4{
+  width:calc(100vw - 34px);
+  height:calc(100% - 30px);
+  left:17px;
+  top:15px;
+  object-fit:fill;
+  opacity:.42;
+  mix-blend-mode:screen;
+  transform:translate3d(0,0,170px)
+}
+
+/* Master-corpus tuning by scale. */
+.sfiScene--space .sfiSceneLayer--1,
+.sfiScene--earth .sfiSceneLayer--1{width:min(58vw,900px);right:-1vw;top:5%;opacity:.62}
+.sfiScene--territory .sfiSceneLayer--1{width:min(61vw,980px);right:-6vw;top:19%;opacity:.55}
+.sfiScene--city .sfiSceneLayer--1{width:min(56vw,900px);right:-2vw;top:12%;opacity:.52}
+.sfiScene--institution .sfiSceneLayer--1{width:min(45vw,700px);right:4vw;top:10%;opacity:.65}
+.sfiScene--human .sfiSceneLayer--1{width:min(39vw,620px);right:8vw;top:14%;opacity:.72}
+.sfiScene--return .sfiSceneLayer--1{width:min(42vw,680px);right:4vw;top:12%;opacity:.62}
+
 .sfiScene--systems .sfiSceneLayer--1{width:min(64vw,1100px);right:-4vw;top:27%;opacity:.58}
 .sfiScene--friction .sfiSceneLayer--1,
 .sfiScene--friction .sfiSceneLayer--2,
@@ -660,6 +738,11 @@
   .sfiSceneLayer--1{width:78vw;right:-23vw;top:10%}
   .sfiSceneLayer--2{width:70vw;right:-6vw;top:34%}
   .sfiSceneLayer--3{width:58vw;right:-14vw;bottom:10%}
+  .sfiScene--sfi .sfiSceneLayer--1{width:92vw;height:52vh;right:-31vw;top:8%}
+  .sfiScene--sfi .sfiSceneLayer--2{width:94vw;right:-30vw;top:5%}
+  .sfiScene--sfi .sfiSceneLayer--3{width:120vw;right:-10vw;top:0;height:100%}
+  .sfiScene--sfi .sfiSceneLayer--4{width:calc(100vw - 16px);height:calc(100% - 16px);left:8px;top:8px}
+
   .sfiSceneContent{
     width:calc(100vw - 44px);
     padding:79px 0 68px;
