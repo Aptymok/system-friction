@@ -11,10 +11,10 @@
   "canonical_question": "What structural configuration of a signal, under what world state and field conditions, produces particular patterns of propagation, persistence, transformation or disappearance?",
   "founder": {"name":"Juan Antonio Marín Liera","role":"Founder and accountable human governor"},
   "instruments": [
-    {"key":"MIHM","name":"Modelo Integral Homeostático Multi-nodo","purpose":"Represent structural variables, capacity, friction and homeostatic conditions with explicit evidence and missing-data handling."},
+    {"key":"MIHM","name":"Integrated Multivariable Homeostasis Framework","purpose":"Represent structural variables, capacity, friction and homeostatic conditions with explicit evidence and missing-data handling."},
     {"key":"DIOL-SF","name":"DIOL-SF","purpose":"Reconstruct longitudinal trajectories while separating real, observed, reconstructed and projected states."},
-    {"key":"SFI-INFERENCE","name":"Método SFI de Inferencia","purpose":"Generate and preserve primary and rival hypotheses until discriminating evidence separates them."},
-    {"key":"MOP-H","name":"Método de Observación y Perturbación Humana","purpose":"Observe human systems and design proportional, minimal perturbations with explicit return and contrast."},
+    {"key":"SFI-INFERENCE","name":"SFI Inference Method","purpose":"Generate and preserve primary and rival hypotheses until discriminating evidence separates them."},
+    {"key":"MOP-H","name":"Human Observation and Perturbation Method","purpose":"Observe human systems and design proportional, minimal perturbations with explicit return and contrast."},
     {"key":"MOP-S","name":"MOP-S","purpose":"Study persistence, transformation or disappearance of signals across carriers, platforms and time."},
     {"key":"FAD","name":"FAD","purpose":"Specialized structural analysis of sound/music objects where applicable."},
     {"key":"WorldSpect","name":"World Spectrum Observation","purpose":"Persist world-state snapshots, source health, confidence and longitudinal observations across ten dimensions."},
