@@ -146,6 +146,7 @@ export function PublicEntryGateway(){
   return <main
     ref={rootRef}
     className="sfiSceneExperience"
+    data-active-scene={scene.id}
     style={{'--scene-index':sceneIndex,'--frame-index':frameIndex} as CSSProperties}
     onPointerMove={handlePointerMove}
     onPointerLeave={resetPointer}
@@ -223,7 +224,7 @@ export function PublicEntryGateway(){
               </div>
               <div className="sfiSceneInstruction">
                 <span>WHEEL / ↑↓</span><b>MOVE BETWEEN SCENES</b>
-                <span>← →</span><b>CHANGE PERSPECTIVE</b>
+                <span>CLICK / ← →</span><b>CHANGE LENS</b>
                 <span>POINTER</span><b>SHIFT DEPTH</b>
               </div>
             </div>
@@ -243,9 +244,16 @@ export function PublicEntryGateway(){
                 <p>Select a marked point in the scene to inspect a bounded reading.</p>
               </div>}
               <div className="sfiHorizontalControls">
-                <button type="button" onClick={()=>moveFrame(-1)} aria-label="Previous perspective">←</button>
-                <div>{item.frames.map((frame,i)=><button key={frame.label} type="button" aria-label={`Open ${frame.label} perspective`} aria-current={frameIndex===i ? 'true' : undefined} onClick={()=>{setFrameIndex(i);setHotspotIndex(null);}}><i/></button>)}</div>
-                <button type="button" onClick={()=>moveFrame(1)} aria-label="Next perspective">→</button>
+                <button type="button" className="sfiLensArrow" onClick={()=>moveFrame(-1)} aria-label="Previous perspective">←</button>
+                <div className="sfiLensBoxes">{item.frames.map((frame,i)=><button
+                  key={frame.label}
+                  type="button"
+                  className="sfiLensBox"
+                  aria-label={`Open ${frame.label} perspective`}
+                  aria-current={frameIndex===i ? 'true' : undefined}
+                  onClick={()=>{setFrameIndex(i);setHotspotIndex(null);}}
+                ><span>{frame.label}</span><i/></button>)}</div>
+                <button type="button" className="sfiLensArrow" onClick={()=>moveFrame(1)} aria-label="Next perspective">→</button>
               </div>
             </aside>
           </div>
