@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { requireFounder } from '@/lib/system/access/server';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { readContinuityInstitutionalAccountAccessGrants } from '@/lib/sfi/continuityPostgres';
+import { deliverInstitutionalInvitation } from '@/lib/auth/institutionalInvitationDelivery';
 
 const invitationSchema = z.object({
   email: z.string().trim().email().transform((value) => value.toLowerCase()),
@@ -150,17 +151,17 @@ export async function inviteInstitutionalAccountAction(formData: FormData) {
   }
 
   const origin = process.env.NEXT_PUBLIC_APP_URL || 'https://www.systemfriction.org';
-  const invitation = await service.auth.admin.inviteUserByEmail(email, {
+  const invitation = await deliverInstitutionalInvitation({
+    service,
+    email,
+    displayName,
+    title,
+    accessClass,
     redirectTo: `${origin}/reset?mode=invite`,
-    data: {
-      display_name: displayName,
-      sfi_access_class: accessClass,
-      sfi_invitation: true,
-    },
   });
 
-  if (invitation.error || !invitation.data.user) {
-    const inviteError = invitation.error?.message ?? 'invite_user_missing';
+  if (!invitation.ok) {
+    const inviteError = invitation.error;
     await service.from('sfi_account_access_grants').update({
       status: previousStatus === 'INVITED' ? 'INVITED' : 'INVITE_FAILED',
       last_invite_error: inviteError,
@@ -171,7 +172,7 @@ export async function inviteInstitutionalAccountAction(formData: FormData) {
 
   const invitedAt = new Date().toISOString();
   await service.from('sfi_account_access_grants').update({
-    user_id: invitation.data.user.id,
+    user_id: invitation.userId,
     status: 'INVITED',
     invited_at: invitedAt,
     activated_at: null,
@@ -199,6 +200,7 @@ export async function inviteInstitutionalAccountAction(formData: FormData) {
       accountAccessIsInstitutionalAppointment: false,
       sovereignAuthorityGranted: false,
       canonicalPromotionAllowed: false,
+      deliveryChannel: invitation.channel,
     },
   });
 
