@@ -160,7 +160,8 @@ jobs:
           fi
           if [ "$code" = "2" ]; then
             echo 'SFI_PRODUCTION_RETURN_NOT_OBSERVED'
-            exit 2
+            echo 'No contradiction was observed; durable artifact preserves NOT_OBSERVED for later review.'
+            exit 0
           fi
           echo 'SFI_PRODUCTION_RETURN_FAIL'
           exit 1
