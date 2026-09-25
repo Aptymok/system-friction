@@ -199,7 +199,16 @@ export function PublicEntryGateway(){
           <div className="sfiSceneBackground" style={{backgroundImage:`linear-gradient(90deg,rgba(6,6,5,.96) 0%,rgba(6,6,5,.76) 39%,rgba(6,6,5,.25) 69%,rgba(6,6,5,.68) 100%),url('${item.background}')`}}/>
           <div className="sfiSceneGrid" aria-hidden="true"/>
           <div className="sfiSceneLayers" aria-hidden="true">
-            {item.assets.map((asset,layerIndex)=><img key={asset.src} src={asset.src} alt="" className={`sfiSceneLayer sfiSceneLayer--${layerIndex+1}`}/>)}
+            {item.assets.map((asset,layerIndex)=><img
+              key={asset.src}
+              src={asset.src}
+              alt=""
+              data-role={asset.role}
+              data-motion={asset.motion}
+              data-alpha={asset.alpha ? 'true' : undefined}
+              className={`sfiSceneLayer sfiSceneLayer--${layerIndex+1} sfiSceneLayer--${asset.role}`}
+              style={{'--asset-depth':asset.depth} as CSSProperties}
+            />)}
           </div>
 
           <div className="sfiSceneContent">
