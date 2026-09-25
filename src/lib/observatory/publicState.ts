@@ -1,17 +1,17 @@
 import 'server-only';
 
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
-import type { Publication } from '@/lib/system/contracts';
+import type { Publication, PublicationStatus } from '@/lib/system/contracts';
 
 type PublishedPublicationRow = {
   id: string;
-  source_type: string | null;
-  source_id: string | null;
+  source_type: string;
+  source_id: string;
   approved_by: string | null;
   public_fields: string[] | null;
   public_payload: Record<string, unknown> | null;
   snapshot_version: string | null;
-  status: string;
+  status: PublicationStatus;
   published_at: string | null;
 };
 
