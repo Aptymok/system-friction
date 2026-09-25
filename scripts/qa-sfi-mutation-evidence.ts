@@ -40,7 +40,7 @@ async function main() {
   assert(publicRoute.includes('publicBoundary'));
   assert(publicRoute.includes('Internal QA payloads, deployment metadata, cycle contents and learning payloads remain on governed surfaces.'));
   assert(page.includes('DEPLOYMENT EVIDENCE RECORDED'));
-  assert(page.includes('Un commit demuestra que el código cambió'));
+  assert(page.includes('A commit proves that code changed'));
   assert(history.includes('href="/history/mutations"'));
 
   console.log(JSON.stringify({
