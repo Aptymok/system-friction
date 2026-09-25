@@ -6,11 +6,14 @@ assert.equal(config?.git?.deploymentEnabled, false, 'automatic Vercel Git deploy
 
 const workflow = fs.readFileSync('.github/workflows/sfi-vercel-prebuilt-production.yml', 'utf8');
 assert.match(workflow, /workflow_dispatch:/, 'production deployment may be explicitly dispatched');
-assert.match(
+assert.doesNotMatch(
   workflow,
-  /Execute bounded authorized SFI operating-cycle closure[\s\S]*?NEXT_PUBLIC_SUPABASE_URL:\s*https:\/\/nwrmbkgsnrhdscnsyoko\.supabase\.co/,
-  'post-deploy closure must pin the canonical public Supabase URL instead of trusting a redacted Vercel pull value',
+  /run-sfi-operating-cycle-closure|Execute bounded authorized SFI operating-cycle closure/,
+  'production deployment must end at publication; post-deploy continuity/observatory workflows own runtime assurance',
 );
+const operatingClosureWorkflow = fs.readFileSync('.github/workflows/sfi-operating-cycle-closure.yml', 'utf8');
+assert.match(operatingClosureWorkflow, /workflow_dispatch:/, 'primary operating-cycle closure must remain explicitly dispatchable');
+assert.doesNotMatch(operatingClosureWorkflow, /workflow_run:|push:/, 'primary operating-cycle closure must not auto-run from deployments or source pushes');
 
 const pushSection = workflow.match(/\n  push:\n([\s\S]*?)(?=\n  workflow_dispatch:)/)?.[1];
 assert.ok(pushSection, 'production workflow must retain an explicit push trigger section');
