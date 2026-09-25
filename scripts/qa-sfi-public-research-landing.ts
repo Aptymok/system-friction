@@ -42,9 +42,10 @@ async function main() {
     assert.match(route, /type: 'article'/);
     assert.match(route, /url: landing\.canonicalUrl/);
     assert.match(route, /title,/);
-    assert.match(route, /description: landing\.node\.summary/);
     assert.match(route, /siteName: 'System Friction Institute'/);
   }
+  assert.match(researchRoute, /description: landing\.node\.summary/, 'research metadata must preserve canonical landing summary');
+  assert.match(publicationRoute, /description: projection\.summary/, 'publication metadata must use the English public projection while preserving canonical landing identity');
   assert.doesNotMatch(`${researchRoute}\n${publicationRoute}`, /openGraph:\s*\{[^}]*url:\s*['"]https:\/\/systemfriction\.org['"]/, 'object landing Open Graph URL must never fall back to homepage');
   assert.doesNotMatch(`${researchRoute}\n${publicationRoute}`, /redirect\(|createServiceSupabaseClient|fetch\(/, 'public landing routes may not invent compatibility redirects or bypass the canonical projection');
 
