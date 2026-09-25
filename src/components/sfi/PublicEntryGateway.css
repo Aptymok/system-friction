@@ -377,6 +377,304 @@
 .sfiScene--institution .sfiSceneLayer--1{right:10vw;top:16%;width:min(31vw,470px);opacity:.72}
 .sfiScene--return .sfiSceneLayer--1{right:3vw;top:13%;width:min(38vw,590px)}
 
+
+/* -------------------------------------------------------------------------
+   SFI public experience — approved inward journey
+   Vertical gestures trigger scene-specific camera transitions instead of
+   document scrolling. Horizontal gestures continue to change the active lens.
+   ------------------------------------------------------------------------- */
+
+.sfiScene--entry-world:after{
+  background:
+    linear-gradient(90deg,rgba(5,5,4,.88) 0%,rgba(5,5,4,.58) 36%,rgba(5,5,4,.08) 68%,rgba(5,5,4,.35) 100%),
+    radial-gradient(circle at 67% 43%,transparent 0 24%,rgba(4,4,3,.12) 55%,rgba(4,4,3,.62) 100%)
+}
+.sfiScene--observatory-dashboard:after{
+  background:
+    linear-gradient(90deg,rgba(4,4,3,.72) 0%,rgba(4,4,3,.28) 30%,transparent 58%,rgba(4,4,3,.28) 100%),
+    linear-gradient(180deg,rgba(4,4,3,.12),transparent 65%,rgba(4,4,3,.54))
+}
+.sfiScene--method-lenses:after,
+.sfiScene--institutional-descent:after,
+.sfiScene--archive-evidence:after,
+.sfiScene--authority-execution:after,
+.sfiScene--human-scale:after,
+.sfiScene--return-loop:after{
+  background:
+    linear-gradient(90deg,rgba(5,5,4,.91) 0%,rgba(5,5,4,.62) 38%,rgba(5,5,4,.12) 72%,rgba(5,5,4,.48) 100%),
+    radial-gradient(circle at 71% 46%,transparent 0 20%,rgba(5,5,4,.16) 53%,rgba(5,5,4,.68) 100%)
+}
+
+/* 01 → 02: dolly/zoom through the world into the observatory. */
+.sfiScene--entry-world[data-state="past"]{
+  transform:translate3d(0,0,260px) scale(1.34);
+  opacity:0;
+  filter:brightness(.45) blur(9px) saturate(.8)
+}
+.sfiScene--observatory-dashboard[data-state="future"]{
+  transform:translate3d(0,0,-520px) scale(.70);
+  opacity:0;
+  filter:brightness(.42) blur(12px) saturate(.7)
+}
+.sfiScene--observatory-dashboard[data-state="active"]{
+  transform:translate3d(0,0,0) scale(1);
+  opacity:1;
+  filter:none
+}
+.sfiScene--observatory-dashboard[data-state="past"]{
+  transform:translate3d(-7%,0,170px) scale(1.09);
+  opacity:.08;
+  filter:brightness(.42) blur(8px)
+}
+
+/* 02 → 03: lateral focus transfer, as if the dashboard becomes a method lens. */
+.sfiScene--method-lenses[data-state="future"]{
+  transform:translate3d(18%,0,-170px) rotateY(-4deg) scale(.91);
+  transform-origin:70% 50%;
+  opacity:.05;
+  filter:brightness(.48) blur(8px)
+}
+.sfiScene--method-lenses[data-state="active"]{
+  transform:translate3d(0,0,0) rotateY(0) scale(1);
+  opacity:1;
+  filter:none
+}
+.sfiScene--method-lenses[data-state="past"]{
+  transform:translate3d(-18%,0,120px) rotateY(3deg) scale(1.04);
+  opacity:.06;
+  filter:brightness(.44) blur(7px)
+}
+
+/* 03 → 04: descent into institutional scale. */
+.sfiScene--institutional-descent[data-state="future"]{
+  transform:translate3d(0,24%,-310px) rotateX(5deg) scale(.84);
+  transform-origin:50% 22%;
+  opacity:.04;
+  filter:brightness(.42) blur(10px)
+}
+.sfiScene--institutional-descent[data-state="active"]{
+  transform:translate3d(0,0,0) rotateX(0) scale(1);
+  opacity:1;
+  filter:none
+}
+.sfiScene--institutional-descent[data-state="past"]{
+  transform:translate3d(0,-10%,180px) scale(1.08);
+  opacity:.06;
+  filter:brightness(.42) blur(8px)
+}
+
+/* 04 → 05: aperture / archive reveal. */
+.sfiScene--archive-evidence{
+  clip-path:inset(0 0 0 0 round 0);
+  transition:
+    transform .82s cubic-bezier(.2,.82,.2,1),
+    opacity .58s ease,
+    filter .58s ease,
+    clip-path .82s cubic-bezier(.2,.82,.2,1)
+}
+.sfiScene--archive-evidence[data-state="future"]{
+  transform:translate3d(0,0,-190px) scale(.88);
+  clip-path:inset(35% 38% 35% 38% round 24px);
+  opacity:.05;
+  filter:brightness(.38) blur(8px)
+}
+.sfiScene--archive-evidence[data-state="active"]{
+  transform:translate3d(0,0,0) scale(1);
+  clip-path:inset(0 0 0 0 round 0);
+  opacity:1;
+  filter:none
+}
+.sfiScene--archive-evidence[data-state="past"]{
+  transform:translate3d(0,0,150px) scale(1.06);
+  opacity:.05;
+  filter:brightness(.4) blur(7px)
+}
+
+/* 05 → 06: authority plane rotates into view. */
+.sfiScene--authority-execution[data-state="future"]{
+  transform:translate3d(18%,0,-220px) rotateY(8deg) scale(.9);
+  transform-origin:85% 50%;
+  opacity:.04;
+  filter:brightness(.42) blur(9px)
+}
+.sfiScene--authority-execution[data-state="active"]{
+  transform:translate3d(0,0,0) rotateY(0) scale(1);
+  opacity:1;
+  filter:none
+}
+.sfiScene--authority-execution[data-state="past"]{
+  transform:translate3d(-12%,0,150px) rotateY(-5deg) scale(1.04);
+  opacity:.05;
+  filter:brightness(.4) blur(8px)
+}
+
+/* 06 → 07: converge toward human scale. */
+.sfiScene--human-scale[data-state="future"]{
+  transform:translate3d(0,0,-440px) scale(.68);
+  opacity:.03;
+  filter:brightness(.5) blur(13px)
+}
+.sfiScene--human-scale[data-state="active"]{
+  transform:translate3d(0,0,0) scale(1);
+  opacity:1;
+  filter:none
+}
+.sfiScene--human-scale[data-state="past"]{
+  transform:translate3d(0,0,210px) scale(1.17);
+  opacity:.05;
+  filter:brightness(.4) blur(9px)
+}
+
+/* 07 → 08: RETURN contracts the accumulated field into a new stable state. */
+.sfiScene--return-loop[data-state="future"]{
+  transform:translate3d(0,0,260px) scale(1.22);
+  opacity:.02;
+  filter:brightness(.72) blur(10px)
+}
+.sfiScene--return-loop[data-state="active"]{
+  transform:translate3d(0,0,0) scale(1);
+  opacity:1;
+  filter:none
+}
+
+/* Observatory dashboard: keep the reference frame legible and animate the
+   additional optical layers independently from the baked dashboard. */
+.sfiScene--observatory-dashboard .sfiSceneBackground{
+  inset:-2%;
+  background-size:cover;
+  background-position:center;
+  filter:saturate(.98) contrast(1.04) brightness(.86);
+  transform:translate3d(
+    calc(var(--pointer-x,0) * -5px),
+    calc(var(--pointer-y,0) * -3px),
+    -20px
+  ) scale(1.035)
+}
+.sfiScene--observatory-dashboard .sfiSceneGrid{
+  opacity:.34;
+  animation:sfiHudGridLock 1.35s cubic-bezier(.2,.82,.2,1) both
+}
+.sfiScene--observatory-dashboard .sfiSceneLayer--1{
+  width:min(66vw,1120px);
+  right:-7vw;
+  top:4%;
+  opacity:.38;
+  transform:translate3d(
+    calc(var(--pointer-x,0) * 10px),
+    calc(var(--pointer-y,0) * 6px),
+    45px
+  ) rotate(-1deg)
+}
+.sfiScene--observatory-dashboard .sfiSceneLayer--2{
+  width:min(48vw,760px);
+  right:8vw;
+  top:10%;
+  opacity:.42;
+  transform:translate3d(
+    calc(var(--pointer-x,0) * -18px),
+    calc(var(--pointer-y,0) * -10px),
+    105px
+  ) rotate(2deg)
+}
+.sfiScene--observatory-dashboard .sfiSceneLayer--3{
+  width:110vw;
+  max-width:none;
+  right:-5vw;
+  bottom:-8%;
+  opacity:.18;
+  transform:translate3d(
+    calc(var(--pointer-x,0) * 5px),
+    calc(var(--pointer-y,0) * 3px),
+    145px
+  ) scale(1.02)
+}
+.sfiScene--observatory-dashboard[data-state="active"] .sfiSceneLayer--1{
+  animation:sfiOrbitalDrift 10s ease-in-out infinite alternate
+}
+.sfiScene--observatory-dashboard[data-state="active"] .sfiSceneLayer--2{
+  animation:sfiHudOrbit 13s ease-in-out infinite alternate
+}
+.sfiScene--observatory-dashboard[data-state="active"] .sfiSceneInspector{
+  animation:sfiPanelLock .72s .22s cubic-bezier(.2,.82,.2,1) both
+}
+
+/* Entry keeps the new opening architecture intact while the overlays move
+   independently. */
+.sfiScene--entry-world .sfiSceneBackground{
+  background-position:center;
+  filter:saturate(.92) contrast(1.07) brightness(.76)
+}
+.sfiScene--entry-world .sfiSceneLayer--1{
+  width:min(49vw,820px);
+  height:min(64vh,720px);
+  right:5.5vw;
+  top:7%;
+  object-fit:cover;
+  clip-path:ellipse(43% 47% at 50% 50%);
+  opacity:.74;
+  mix-blend-mode:normal;
+  transform:translate3d(
+    calc(var(--pointer-x,0) * 7px),
+    calc(var(--pointer-y,0) * 4px),
+    24px
+  ) scale(1.035)
+}
+.sfiScene--entry-world .sfiSceneLayer--2{
+  width:min(52vw,850px);
+  right:4vw;
+  top:1%;
+  opacity:.58;
+  mix-blend-mode:screen;
+  transform:translate3d(
+    calc(var(--pointer-x,0) * -11px),
+    calc(var(--pointer-y,0) * -7px),
+    80px
+  )
+}
+.sfiScene--entry-world .sfiSceneLayer--3{
+  width:100vw;
+  max-width:none;
+  height:100%;
+  right:0;
+  top:0;
+  bottom:auto;
+  object-fit:cover;
+  opacity:.27;
+  mix-blend-mode:screen;
+  transform:translate3d(
+    calc(var(--pointer-x,0) * 4px),
+    calc(var(--pointer-y,0) * 3px),
+    120px
+  ) scale(1.03)
+}
+.sfiScene--entry-world .sfiSceneLayer--4{
+  width:calc(100vw - 34px);
+  height:calc(100% - 30px);
+  left:17px;
+  top:15px;
+  object-fit:fill;
+  opacity:.42;
+  mix-blend-mode:screen;
+  transform:translate3d(0,0,170px)
+}
+
+@keyframes sfiHudGridLock{
+  from{opacity:0;transform:scale(1.08)}
+  to{opacity:.34;transform:scale(1)}
+}
+@keyframes sfiOrbitalDrift{
+  from{transform:translate3d(-8px,-3px,45px) rotate(-2deg) scale(.995);opacity:.30}
+  to{transform:translate3d(10px,6px,45px) rotate(1deg) scale(1.025);opacity:.44}
+}
+@keyframes sfiHudOrbit{
+  from{transform:translate3d(-10px,5px,105px) rotate(-2deg);opacity:.32}
+  to{transform:translate3d(12px,-7px,105px) rotate(3deg);opacity:.48}
+}
+@keyframes sfiPanelLock{
+  from{opacity:0;transform:translate3d(36px,0,0) scale(.96);filter:blur(5px)}
+  to{opacity:1;transform:translate3d(0,0,0) scale(1);filter:none}
+}
+
 .sfiSceneContent{
   position:relative;
   z-index:12;
@@ -738,10 +1036,13 @@
   .sfiSceneLayer--1{width:78vw;right:-23vw;top:10%}
   .sfiSceneLayer--2{width:70vw;right:-6vw;top:34%}
   .sfiSceneLayer--3{width:58vw;right:-14vw;bottom:10%}
-  .sfiScene--sfi .sfiSceneLayer--1{width:92vw;height:52vh;right:-31vw;top:8%}
-  .sfiScene--sfi .sfiSceneLayer--2{width:94vw;right:-30vw;top:5%}
-  .sfiScene--sfi .sfiSceneLayer--3{width:120vw;right:-10vw;top:0;height:100%}
-  .sfiScene--sfi .sfiSceneLayer--4{width:calc(100vw - 16px);height:calc(100% - 16px);left:8px;top:8px}
+  .sfiScene--entry-world .sfiSceneLayer--1{width:92vw;height:52vh;right:-31vw;top:8%}
+  .sfiScene--entry-world .sfiSceneLayer--2{width:94vw;right:-30vw;top:5%}
+  .sfiScene--entry-world .sfiSceneLayer--3{width:120vw;right:-10vw;top:0;height:100%}
+  .sfiScene--entry-world .sfiSceneLayer--4{width:calc(100vw - 16px);height:calc(100% - 16px);left:8px;top:8px}
+  .sfiScene--observatory-dashboard .sfiSceneLayer--1{width:112vw;right:-48vw;top:9%}
+  .sfiScene--observatory-dashboard .sfiSceneLayer--2{width:90vw;right:-28vw;top:18%}
+  .sfiScene--observatory-dashboard .sfiSceneLayer--3{width:140vw;right:-22vw;bottom:-2%}
 
   .sfiSceneContent{
     width:calc(100vw - 44px);
