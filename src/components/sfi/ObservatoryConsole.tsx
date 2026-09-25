@@ -150,11 +150,11 @@ export function ObservatoryConsole(){
       : `The field contains ${nodes.length} visible observations and ${filteredHypotheses.length} traceable hypotheses under the current filters.`;
 
   return <><main className="obsShell" data-world-availability={availability.world} data-state-availability={availability.state} data-timeline-availability={availability.timeline}><section className={`obsScene lens-${lens}`}><div className="starfield"/><div className="deepSpace"/>
-    <button className={`satelliteActor satellite-${lens}`} onClick={()=>{setSatelliteOpen(v=>!v);if(!selectedHypothesisId&&filteredHypotheses[0])setSelectedHypothesisId(String(filteredHypotheses[0].id))}} aria-label={ui('Abrir instrumento satelital SFI')}>
+    <button className={`satelliteActor satellite-${lens}`} onClick={()=>{setSatelliteOpen(v=>!v);if(!selectedHypothesisId&&filteredHypotheses[0])setSelectedHypothesisId(String(filteredHypotheses[0].id))}} aria-label={ui('Open SFI satellite instrument')}>
       <img src="/sfi-scenes/satellite.png" alt={ui('SFI observatory satellite')}/><span className="scanBeam"/>
     </button>
 
-    <div className="earthStage"><img className="worldActor" src="/sfi-scenes/world.png" alt={ui('Tierra observada por System Friction Institute')}/><svg className="earthOverlay" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid meet">
+    <div className="earthStage"><img className="worldActor" src="/sfi-scenes/world.png" alt={ui('Earth observed by System Friction Institute')}/><svg className="earthOverlay" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid meet">
       <defs><filter id="glow"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
       {selectedHypothesis&&[...selectedEvidenceIds].flatMap((fromId)=>{
         const from=positions.get(fromId);if(!from)return[];
@@ -167,11 +167,11 @@ export function ObservatoryConsole(){
       </g>})}
     </svg></div>
 
-    <header className="obsTop"><div className="obsBrand"><strong>SFI</strong><span>{ui('FIELD · SYSTEM FRICTION INSTITUTE')}</span><small>{ui('OBSERVATORIO MUNDIAL EN VIVO')}</small></div>
-      <nav>{(['field','hypotheses','trajectory','sources'] as Lens[]).map(k=><button key={k} className={lens===k?'active':''} onClick={()=>{setLens(k);setSatelliteOpen(true)}}>{k==='hypotheses'?'HYPOTHESES':k==='trajectory'?'TRAJECTORY':k==='sources'?'SOURCES':'FIELD'}</button>)}<button onClick={()=>void pull(true)} disabled={refreshing}>{refreshing?'READING…':'REFRESH'}</button><Link href="/history">{ui('ORIGEN → AHORA')}</Link>{auth.status==='authenticated'&&<Link href="/cases">{ui('CASOS')}</Link>}</nav>
+    <header className="obsTop"><div className="obsBrand"><strong>SFI</strong><span>{ui('FIELD · SYSTEM FRICTION INSTITUTE')}</span><small>{ui('LIVE WORLD OBSERVATORY')}</small></div>
+      <nav>{(['field','hypotheses','trajectory','sources'] as Lens[]).map(k=><button key={k} className={lens===k?'active':''} onClick={()=>{setLens(k);setSatelliteOpen(true)}}>{k==='hypotheses'?'HYPOTHESES':k==='trajectory'?'TRAJECTORY':k==='sources'?'SOURCES':'FIELD'}</button>)}<button onClick={()=>void pull(true)} disabled={refreshing}>{refreshing?'READING…':'REFRESH'}</button><Link href="/history">{ui('ORIGIN → NOW')}</Link>{auth.status==='authenticated'&&<Link href="/cases">{ui('CASES')}</Link>}</nav>
       <div className="obsIdentity"><b>{auth.identity?.alias||'PUBLIC'}</b><span>{lastReadAt?`${'READ'} ${lastReadAt.slice(11,19)} UTC`:auth.identity?.role||auth.status}</span></div><SessionControls className="obsSessionControls"/></header>
 
-    <aside className="hud hudLeft"><section><small>SFI-OBS-LIVE</small><h3>{'LIVE FIELD'}</h3><p className="good">● {clock.slice(11,19)} UTC</p><dl><dt>{ui('OBSERVACIONES')}</dt><dd data-availability={availability.world}>{worldMetric(nodes.length)}</dd><dt>{ui('FUENTES ACTIVAS')}</dt><dd data-availability={availability.world}>{worldMetric(sourceIds.length)}</dd><dt>{ui('HYPOTHESES')}</dt><dd data-availability={availability.world}>{worldMetric(filteredHypotheses.length)}</dd><dt>{ui('EN RETORNO')}</dt><dd data-availability={availability.world}>{worldMetric(openHypotheses)}</dd></dl><button onClick={()=>setSatelliteOpen(true)}>{ui('OPEN SATELLITE')}</button></section>
+    <aside className="hud hudLeft"><section><small>SFI-OBS-LIVE</small><h3>{'LIVE FIELD'}</h3><p className="good">● {clock.slice(11,19)} UTC</p><dl><dt>{ui('OBSERVATIONS')}</dt><dd data-availability={availability.world}>{worldMetric(nodes.length)}</dd><dt>{ui('ACTIVE SOURCES')}</dt><dd data-availability={availability.world}>{worldMetric(sourceIds.length)}</dd><dt>{ui('HYPOTHESES')}</dt><dd data-availability={availability.world}>{worldMetric(filteredHypotheses.length)}</dd><dt>{ui('IN RETURN')}</dt><dd data-availability={availability.world}>{worldMetric(openHypotheses)}</dd></dl><button onClick={()=>setSatelliteOpen(true)}>{ui('OPEN SATELLITE')}</button></section>
       <section><small>{'DERIVED METRICS'}</small><dl><dt>Fₛ</dt><dd data-availability={availability.world}>{avgFs==null?'—':avgFs.toFixed(3)}</dd><dt>NTI</dt><dd data-availability={availability.world}>{avgNti==null?'—':avgNti.toFixed(3)}</dd><dt>Φ</dt><dd data-availability={availability.world}>{avgPhi==null?'—':avgPhi.toFixed(3)}</dd></dl><p style={{fontSize:11,opacity:.62,lineHeight:1.5}}>{'Numbers describe observed/derived structure. Meaning, mechanism and consequences are shown only as traceable hypotheses.'}</p></section>
     </aside>
 
