@@ -5,6 +5,7 @@ import { humanReportText } from '@/lib/reports/humanReport';
 import { readRootReportHealth, readRootReportInbox } from '@/lib/reports/rootReportInbox';
 import { authorizeExternalRequest, externalAuthError } from '@/lib/sfi/externalAuth';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { deliverInstitutionalInvitation } from '@/lib/auth/institutionalInvitationDelivery';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -212,17 +213,17 @@ async function inviteInstitutionalAccount(
   }
 
   const origin = process.env.NEXT_PUBLIC_APP_URL || 'https://www.systemfriction.org';
-  const invitation = await service.auth.admin.inviteUserByEmail(email, {
+  const invitation = await deliverInstitutionalInvitation({
+    service,
+    email,
+    displayName,
+    title,
+    accessClass,
     redirectTo: `${origin}/reset?mode=invite`,
-    data: {
-      display_name: displayName,
-      sfi_access_class: accessClass,
-      sfi_invitation: true,
-    },
   });
 
-  if (invitation.error || !invitation.data.user) {
-    const inviteError = invitation.error?.message ?? 'invite_user_missing';
+  if (!invitation.ok) {
+    const inviteError = invitation.error;
     await service
       .from('sfi_account_access_grants')
       .update({
@@ -247,7 +248,7 @@ async function inviteInstitutionalAccount(
   await service
     .from('sfi_account_access_grants')
     .update({
-      user_id: invitation.data.user.id,
+      user_id: invitation.userId,
       status: 'INVITED',
       invited_at: invitedAt,
       activated_at: null,
@@ -276,6 +277,7 @@ async function inviteInstitutionalAccount(
       accountAccessIsInstitutionalAppointment: false,
       sovereignAuthorityGranted: false,
       canonicalPromotionAllowed: false,
+      deliveryChannel: invitation.channel,
     },
   });
 
@@ -284,7 +286,7 @@ async function inviteInstitutionalAccount(
     status: 200,
     account: {
       grantId,
-      userId: invitation.data.user.id,
+      userId: invitation.userId,
       email,
       displayName,
       title,
