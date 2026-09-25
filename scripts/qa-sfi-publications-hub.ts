@@ -40,15 +40,15 @@ assert.ok(page.includes("force-dynamic"), 'persisted_publication_projection_must
 assert.ok(page.includes("getPublicPublishedReturns"), 'persisted_publication_projection_missing_public_read_model');
 assert.equal(page.includes("createServiceSupabaseClient"), false, 'publications_interface_must_not_construct_supabase_client');
 assert.ok(publicState.includes(".from('sfi_publications')") && publicState.includes(".eq('status', 'PUBLISHED')"), 'persisted_published_returns_not_projected_by_server_read_model');
-assert.ok(page.includes('publicPayload') && page.includes('PUBLICACIÓN = EXPOSURE'), 'persisted_publication_epistemic_boundary_missing');
+assert.ok(publicState.includes('publicPayload: row.public_payload') && page.includes('persistedPublications') && page.includes('PUBLICATION = EXPOSURE') && page.includes('Original-language payload text is withheld from this English-only surface.'), 'persisted_publication_epistemic_boundary_missing');
 assert.ok(page.includes('<picture>') && page.includes('SFI_PUBLICATIONS_BANNER.mobile'), 'responsive_editorial_banner_missing');
-assert.ok(page.includes('GENERADA (IA)') || families.includes('GENERADA (IA)'), 'generated_image_provenance_missing');
+assert.ok(page.includes('AI-GENERATED') || families.includes('AI-GENERATED'), 'generated_image_provenance_missing');
 assert.equal(page.includes('Notas de Tiempo'), false, 'monthly_temporal_notes_must_not_be_reclassified_as_notas_de_tiempo');
 assert.ok(editorial.includes("editorialKind: 'TEMPORAL_ISSUE'") && editorial.includes("collection: 'Notas Temporales'"), 'monthly_notes_canonical_boundary_missing');
 assert.ok(editorial.includes("code: 'SFI-TN-M / 2026-09'") && editorial.includes("coordinate: '2026 / 09'"), 'temporal_coordinate_contract_missing');
 assert.ok(editorial.includes("state: 'PUBLIC'") && editorial.includes('1LFQkhEtcilXQ6IgeUwIflDcj-MAJVSvE'), 'temporal_pdf_public_rendition_missing');
-assert.ok(publicationEntry.includes('TemporalIssueView') && temporalView.includes('QUÉ OBSERVAR DESPUÉS'), 'canonical_temporal_surface_missing');
-assert.ok(temporalView.includes('DESCARGAR / ABRIR PDF') && temporalView.includes('SEMÁNTICA TEMPORAL'), 'temporal_download_or_semantics_missing');
+assert.ok(publicationEntry.includes('TemporalIssueView') && temporalView.includes('WHAT TO OBSERVE NEXT'), 'canonical_temporal_surface_missing');
+assert.ok(temporalView.includes('DOWNLOAD / OPEN PDF') && temporalView.includes('TEMPORAL SEMANTICS'), 'temporal_download_or_semantics_missing');
 
 for (const family of ['SIGNAL', 'CASE', 'FIELD', 'RETURN', 'LAB']) assert.ok(families.includes(`key: '${family}'`), `missing_editorial_family:${family}`);
 assert.equal(families.includes('SFI_CANONICAL_OBJECT_REGISTRY'), false, 'presentation_family_must_not_mutate_canonical_registry');
