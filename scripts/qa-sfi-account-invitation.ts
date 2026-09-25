@@ -4,6 +4,8 @@ import { existsSync, readFileSync } from 'node:fs';
 const read = (path: string) => readFileSync(path, 'utf8');
 const migration = read('supabase/migrations/20260911013000_sfi_account_access_grants.sql');
 const invite = read('src/lib/auth/institutionalInvitation.ts');
+const invitationDelivery = read('src/lib/auth/institutionalInvitationDelivery.ts');
+const externalRootOperate = read('src/app/api/external/v1/root/operate/route.ts');
 const rootAccess = read('src/app/root/access/page.tsx');
 const forgot = read('src/app/forgot/page.tsx');
 const reset = read('src/components/sfi/PasswordResetSurface.tsx');
@@ -23,7 +25,17 @@ assert.doesNotMatch(migration, /'root'\s*,|'system'\s*,|'controller'\s*,/i);
 assert.match(migration, /not an institutional appointment/i);
 
 assert.match(invite, /requireFounder\(\)/);
-assert.match(invite, /auth\.admin\.inviteUserByEmail/);
+assert.match(invite, /deliverInstitutionalInvitation/);
+assert.match(invitationDelivery, /auth\.admin\.generateLink/);
+assert.match(invitationDelivery, /https:\/\/api\.resend\.com\/emails/);
+assert.match(invitationDelivery, /RESEND_API_KEY/);
+assert.match(invitationDelivery, /EMAIL_FROM/);
+assert.match(invitationDelivery, /System Friction Institute · Invitación de acceso/);
+assert.match(invitationDelivery, /ACCESS ≠ AUTHORITY/);
+assert.match(invitationDelivery, /CONFIRMAR Y ACTIVAR/);
+assert.match(invitationDelivery, /auth\.admin\.inviteUserByEmail/, 'default provider fallback must remain available when branded mail is not configured');
+assert.doesNotMatch(invitationDelivery, /password\s*:/i, 'delivery must never generate or transmit a temporary password');
+assert.match(externalRootOperate, /deliverInstitutionalInvitation/, 'external ROOT invitation must share the canonical delivery path');
 assert.match(invite, /listInstitutionalAccountAccessGrants/);
 assert.match(invite, /\.from\('sfi_account_access_grants'\)/);
 assert.doesNotMatch(invite, /password\s*:/i, 'invitation must never generate or transmit a temporary password');
@@ -144,7 +156,7 @@ assert.equal(existsSync('src/app/signup/page.tsx'), false, 'public signup surfac
 
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-ACCOUNT-INVITATION-LIFECYCLE-1.5',
+  contract: 'SFI-ACCOUNT-INVITATION-LIFECYCLE-1.6',
   invitationOnly: true,
   temporaryPasswordGenerated: false,
   founderAdminRequired: true,
@@ -163,4 +175,6 @@ console.log(JSON.stringify({
   rootAccessContinuityReadFallback: true,
   dualProviderInstitutionalLogin: true,
   sfiInvitationVisualGrammar: true,
+  brandedInstitutionalInvitationEmail: true,
+  defaultAuthProviderDeliveryFallback: true,
 }, null, 2));
