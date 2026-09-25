@@ -1,17 +1,6 @@
 name: SFI Operating Cycle Closure Execution
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'scripts/run-sfi-operating-cycle-closure.ts'
-      - '.github/workflows/sfi-operating-cycle-closure.yml'
-  workflow_run:
-    workflows:
-      - SFI Vercel Prebuilt Production
-    types:
-      - completed
   workflow_dispatch:
     inputs:
       cycle_id:
@@ -28,7 +17,6 @@ concurrency:
 
 jobs:
   execute:
-    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
