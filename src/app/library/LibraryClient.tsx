@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { publicEnglishObservationLabel, publicEnglishProjection } from '@/lib/publications/publicEnglishProjection';
-import { PublicSurfaceBridge } from '@/components/sfi/PublicSurfaceBridge';
+import { PublicSurfaceContinuity } from '@/components/sfi/PublicSurfaceContinuity';
 
 export type LibraryDoc = { id:string; type?:string; nodeId?:string; title:string; doc_id?:string; series?:string; summary?:string; version?:string; stability?:string; first_published?:string; node?:string; mihm_variable?:string; mihm_equation?:string; sf_pattern?:string; mihm_note?:string; patterns?:string[]; contentLength?:number; contentHash?:string; graphRelations?:string[]; graphRelationCount?:number };
 export type LibraryPublication = { id:string; slug:string; title:string; summary:string; version:string; objectType:string; publicationState:string; epistemicState:string; series:string|null; issue:string|null; subtitle:string|null; editorialKind:string|null; collection:string|null; observationKind:string|null; publishedAt:string; mediumUrl:string|null; contentState:string|null; coverImage:string|null };
@@ -29,7 +29,7 @@ export default function LibraryClient({ publications, corpus, surfaceContract }:
   const visibleObservations=observationFilter==='ALL'?observations:observations.filter((p)=>p.observationKind===observationFilter);
   const hashed=corpus.filter((doc)=>doc.contentHash).length;
 
-  return <main className="sfiLibrary"><PublicSurfaceBridge scene="archive-evidence" number="05" label="LIBRARY / EVIDENCE" previous={{href:'/observatory',label:'OBSERVATORY'}} next={{href:'/institution',label:'INSTITUTION'}}/>
+  return <main className="sfiLibrary"><PublicSurfaceContinuity scene="archive-evidence" number="05" label="LIBRARY / EVIDENCE" previous={{href:'/observatory',label:'OBSERVATORY'}} next={{href:'/institution',label:'INSTITUTION'}}/>
     <header className="libraryTop">
       <div><Link href="/">SFI</Link><span>LIBRARY · KNOWLEDGE / EVIDENCE / RELATION</span></div>
       <nav><Link href="/observatory">OBSERVATORY</Link><Link href="/publications">PUBLICATIONS</Link><Link href="/library">LIBRARY</Link><Link href="/field">FIELD</Link><Link href="/institution">INSTITUTE</Link><Link href="/login">SIGN IN</Link></nav>
