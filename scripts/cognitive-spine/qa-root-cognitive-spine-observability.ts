@@ -39,7 +39,7 @@ assert.ok(route.includes("'Cache-Control': 'no-store'"), 'root_ct_status_endpoin
 // the observation modules are lenses over existing owners, while agent/runtime
 // operation remains delegated to Governance and human decisions remain in ROOT.
 assert.ok(scenes.includes("root:{key:'root'"), 'root_live_scene_missing');
-assert.ok(scenes.includes("title:'ROOT · Operación soberana'"), 'root_live_scene_semantics_missing');
+assert.ok(scenes.includes("title:'ROOT · Sovereign Operation'"), 'root_live_scene_semantics_missing');
 assert.ok(
   rootUi.includes('ROOT · SOBERANÍA INSTITUCIONAL · AUTHORITY / OBSERVATION / RETURN')
     && rootUi.includes('10 MÓDULOS · TOPOLOGÍA DE OBSERVACIÓN')
