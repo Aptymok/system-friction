@@ -82,7 +82,7 @@ for(const legacy of ['systems','falsification','agents']){
 }
 assert.ok(shellUi.includes('ObservatoryConsole') && shellUi.includes('SfiOperatingWorkspace'), 'canonical_shell_must_mount_public_and_institutional_operating_surfaces');
 assert.ok(observatoryUi.includes("type Lens='field'|'hypotheses'|'trajectory'|'sources'"), 'field_must_expose_observation_hypothesis_trajectory_source_lenses');
-assert.ok(observatoryUi.includes('MÉTRICAS DERIVADAS') && observatoryUi.includes('TRAZA DE CONSECUENCIAS'), 'field_must_expose_metrics_and_traceable_hypothesis_meaning');
+assert.ok(observatoryUi.includes('DERIVED METRICS') && observatoryUi.includes('CONSEQUENCE TRACE') && observatoryUi.includes('Numbers describe observed/derived structure. Meaning, mechanism and consequences are shown only as traceable hypotheses.'), 'field_must_expose_metrics_and_traceable_hypothesis_meaning');
 assert.ok(operatingUi.includes('SfiGovernanceWorkspace'), 'governance_scene_must_delegate_to_canonical_workspace');
 assert.ok(governanceUi.includes("jsonFetch('/api/root/interactive?surface=governance')") && governanceUi.includes('includeTargets=1'), 'governance_runtime_must_use_deferred_interactive_projection');
 assert.ok(interactiveApi.includes('targetHydrationDeferred: true') && interactiveApi.includes('separateProposalListRead: false'), 'governance projection must remain singular and defer heavy targets');
