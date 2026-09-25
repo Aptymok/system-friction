@@ -12,12 +12,12 @@ type PublicSurfaceContinuityProps={
 };
 
 export function PublicSurfaceContinuity({scene,number,label,previous,next}:PublicSurfaceContinuityProps){
-  return <div className="sfiJourneyBridge" data-scene={scene} aria-label="Public journey continuity">
-    <Link className="sfiJourneyBridgeHome" href="/">
+  return <div className="sfiJourneyContinuity" data-scene={scene} aria-label="Public journey continuity">
+    <Link className="sfiJourneyContinuityHome" href="/">
       <span>SFI</span>
       <b>RETURN TO JOURNEY</b>
     </Link>
-    <div className="sfiJourneyBridgeState">
+    <div className="sfiJourneyContinuityState">
       <small>PUBLIC SURFACE</small>
       <strong>{number} · {label}</strong>
     </div>
