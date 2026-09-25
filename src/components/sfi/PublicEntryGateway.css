@@ -9,7 +9,8 @@
   --panel:rgba(8,8,7,.74);
   --mono:"Liberation Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
   --display:"Noto Serif Display",Georgia,serif;
-  --screen:"Noto Sans",Inter,system-ui,sans-serif;
+  --narrative:"EB Garamond",Georgia,serif;
+  --screen:"Noto Sans",system-ui,sans-serif;
   position:fixed;
   inset:0;
   width:100vw;
@@ -347,7 +348,7 @@
 .sfiSceneCopy>p{
   max-width:31em;
   margin:22px 0 0;
-  font:400 clamp(15px,1.25vw,19px)/1.55 var(--screen);
+  font:400 clamp(15px,1.25vw,19px)/1.55 var(--narrative);
   color:#c9c0b2
 }
 .sfiSceneActions{
