@@ -1004,6 +1004,154 @@
 .sfiSceneEdge button:hover:not(:disabled){color:var(--gold)}
 .sfiSceneEdge button:disabled{opacity:0;pointer-events:none}
 
+
+/* Quiet entry + explicit lens controls.
+   The opening master is the regenerated 404-derived observatory itself.
+   Do not composite the planet/HUD stack over it again. */
+.sfiScene--entry-world .sfiSceneGrid,
+.sfiScene--entry-world .sfiSceneLayers,
+.sfiScene--entry-world .sfiSceneHotspots,
+.sfiScene--entry-world .sfiSceneInspector{
+  display:none
+}
+.sfiScene--entry-world .sfiSceneBackground{
+  inset:0;
+  background-size:cover;
+  background-position:center;
+  transform-origin:50% 38%;
+  filter:saturate(.94) contrast(1.035) brightness(.9);
+  transform:translate3d(
+    calc(var(--pointer-x,0) * -2px),
+    calc(var(--pointer-y,0) * -1px),
+    0
+  ) scale(1.018)
+}
+.sfiScene--entry-world:after{
+  background:
+    linear-gradient(90deg,rgba(4,4,3,.68) 0%,rgba(4,4,3,.34) 29%,transparent 55%),
+    linear-gradient(180deg,rgba(4,4,3,.13),transparent 58%,rgba(4,4,3,.28))
+}
+.sfiScene--entry-world .sfiSceneContent{
+  width:min(1380px,calc(100vw - 116px));
+  grid-template-columns:minmax(360px,560px);
+  justify-content:start;
+  align-items:end;
+  padding-bottom:92px
+}
+.sfiScene--entry-world .sfiSceneCopy{
+  align-self:end;
+  max-width:540px
+}
+.sfiScene--entry-world .sfiSceneCopy h1{
+  font-size:clamp(42px,5.2vw,78px);
+  max-width:10ch
+}
+.sfiScene--entry-world .sfiSceneInstruction{display:none}
+.sfiScene--entry-world[data-state="past"]{
+  transform:translate3d(0,0,360px) scale(1.52);
+  transform-origin:50% 38%;
+  opacity:0;
+  filter:brightness(.58) blur(4px) saturate(.88)
+}
+
+/* The dashboard master already contains its own HUD language.
+   Keep our extra system restrained and let the Earth become the second read. */
+.sfiScene--observatory-dashboard .sfiSceneGrid,
+.sfiScene--observatory-dashboard .sfiSceneLayers{
+  display:none
+}
+.sfiScene--observatory-dashboard .sfiSceneBackground{
+  inset:0;
+  background-size:cover;
+  background-position:center;
+  transform-origin:50% 53%;
+  filter:saturate(.98) contrast(1.025) brightness(.92);
+  transform:translate3d(
+    calc(var(--pointer-x,0) * -3px),
+    calc(var(--pointer-y,0) * -2px),
+    0
+  ) scale(1.012)
+}
+.sfiScene--observatory-dashboard[data-state="future"]{
+  transform:translate3d(0,0,-560px) scale(.64);
+  transform-origin:50% 48%;
+  opacity:0;
+  filter:brightness(.48) blur(8px) saturate(.78)
+}
+.sfiScene--observatory-dashboard .sfiSceneCopy h1{
+  font-size:clamp(38px,4.6vw,70px)
+}
+.sfiScene--observatory-dashboard .sfiSceneCopy>p{
+  max-width:28em;
+  font-size:14px
+}
+.sfiScene--observatory-dashboard .sfiSceneInspector{
+  background:rgba(7,7,6,.66);
+  border-color:rgba(200,169,81,.34)
+}
+
+/* Horizontal lenses are visible controls, not hidden gesture affordances. */
+.sfiHorizontalControls{
+  grid-template-columns:30px minmax(0,1fr) 30px;
+  gap:7px
+}
+.sfiHorizontalControls>.sfiLensArrow{
+  width:30px;
+  min-width:30px;
+  height:34px
+}
+.sfiHorizontalControls>.sfiLensBoxes{
+  display:flex;
+  justify-content:flex-start;
+  gap:6px;
+  min-width:0;
+  overflow-x:auto;
+  overflow-y:hidden;
+  padding:1px 0 5px;
+  scroll-snap-type:x proximity;
+  scrollbar-width:thin
+}
+.sfiHorizontalControls>.sfiLensBoxes .sfiLensBox{
+  width:auto;
+  height:34px;
+  flex:0 0 auto;
+  min-width:88px;
+  padding:0 9px;
+  border:1px solid rgba(200,169,81,.24);
+  background:rgba(6,6,5,.46);
+  color:#8f846f;
+  scroll-snap-align:start;
+  transition:border-color .18s ease,background .18s ease,color .18s ease,transform .18s ease
+}
+.sfiHorizontalControls>.sfiLensBoxes .sfiLensBox span{
+  display:block;
+  font:600 7px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  letter-spacing:.11em;
+  white-space:nowrap
+}
+.sfiHorizontalControls>.sfiLensBoxes .sfiLensBox i{
+  width:100%;
+  height:1px;
+  margin-top:5px;
+  border:0;
+  border-radius:0;
+  background:rgba(200,169,81,.18)
+}
+.sfiHorizontalControls>.sfiLensBoxes .sfiLensBox:hover{
+  color:#dec58c;
+  border-color:rgba(200,169,81,.55);
+  transform:translateY(-1px)
+}
+.sfiHorizontalControls>.sfiLensBoxes .sfiLensBox[aria-current="true"]{
+  color:#100e09;
+  border-color:var(--gold);
+  background:var(--gold)
+}
+.sfiHorizontalControls>.sfiLensBoxes .sfiLensBox[aria-current="true"] i{
+  background:#100e09;
+  box-shadow:none
+}
+
 @media(max-width:1050px){
   .sfiSceneChrome{grid-template-columns:auto 1fr auto}
   .sfiSceneChrome nav{gap:15px}
