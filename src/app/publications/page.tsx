@@ -6,6 +6,7 @@ import {
   SFI_PUBLICATIONS_BANNER,
   editorialFamilyEntries,
 } from '@/lib/publications/editorialFamilies';
+import { publicEnglishObservationLabel, publicEnglishProjection } from '@/lib/publications/publicEnglishProjection';
 import { getPublicPublishedReturns } from '@/lib/observatory/publicState';
 import './publications.css';
 
@@ -15,50 +16,194 @@ const CANONICAL_URL = 'https://systemfriction.org/publications';
 const DISCOVERY_NOTE = '/publications/discovery-mesh-publicar-no-es-ser-encontrado';
 
 export const metadata: Metadata = {
-  title: 'Publicaciones · System Friction Institute',
-  description: 'Archivo editorial de SFI: Notas Temporales mensuales y observaciones de señal, caso, campo, retorno y laboratorio.',
+  title: 'Publications · System Friction Institute',
+  description: 'SFI editorial archive: monthly Temporary Notes, signals, cases, field observations, RETURN and laboratory notes.',
   alternates: { canonical: CANONICAL_URL },
-  openGraph: { type:'website',url:CANONICAL_URL,siteName:'System Friction Institute',title:'Publicaciones · System Friction Institute',description:'Una superficie editorial para observar, contrastar y retornar sin mezclar estados epistemológicos.',images:[{url:SFI_PUBLICATIONS_BANNER.web}] },
-  other: { 'sfi-surface':'PUBLICATIONS_HUB','sfi-editorial-contract':'SFI-EDITORIAL-FAMILY-PROJECTION-1.0','sfi-identity-manual':'SFI-ID-003 / MASTER EDITION V4.0' },
+  openGraph: {
+    type:'website',
+    url:CANONICAL_URL,
+    siteName:'System Friction Institute',
+    title:'Publications · System Friction Institute',
+    description:'A public editorial surface for observation, contrast and RETURN without mixing epistemic states.',
+    images:[{url:SFI_PUBLICATIONS_BANNER.web}],
+  },
+  other: {
+    'sfi-surface':'PUBLICATIONS_HUB',
+    'sfi-editorial-contract':'SFI-EDITORIAL-FAMILY-PROJECTION-1.0',
+    'sfi-identity-manual':'SFI-ID-003 / MASTER EDITION V4.0',
+  },
 };
 
 function formatDate(value: string) {
   const date = new Date(value);
-  return Number.isFinite(date.valueOf()) ? new Intl.DateTimeFormat('es-MX',{day:'2-digit',month:'short',year:'numeric'}).format(date) : value;
-}
-
-
-type PersistedPublication = {
-  id: string;
-  public_payload: Record<string, unknown> | null;
-  snapshot_version: string | null;
-  published_at: string | null;
-};
-
-function payloadText(value: unknown, fallback: string) {
-  return typeof value === 'string' && value.trim() ? value.trim() : fallback;
-}
-
-function payloadStringList(value: unknown) {
-  return Array.isArray(value)
-    ? value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
-    : [];
+  return Number.isFinite(date.valueOf())
+    ? new Intl.DateTimeFormat('en-US',{day:'2-digit',month:'short',year:'numeric'}).format(date)
+    : value;
 }
 
 export default async function PublicationsPage() {
   const monthly = SFI_NOTAS_TEMPORALES_V1;
+  const monthlyProjection = publicEnglishProjection(monthly.slug,{
+    title:monthly.title,
+    subtitle:monthly.subtitle,
+    summary:monthly.deck,
+  });
   const persistedPublications = await getPublicPublishedReturns(12);
-  return <main className="publicationsHub">
-    <header className="pubTopbar"><Link href="/" className="pubBrand">SFI</Link><div className="pubTopbarIdentity"><span>SYSTEM FRICTION INSTITUTE</span><small>PUBLICATIONS / EDITORIAL ARCHIVE</small></div><nav aria-label="Public navigation"><Link href="/observatory">OBSERVATORY</Link><Link href="/publications">PUBLICATIONS</Link><Link href="/library">LIBRARY</Link><Link href="/field">FIELD</Link><Link href="/institution">INSTITUTE</Link><Link href="/login">SIGN IN</Link></nav></header>
-    <section className="pubHero" aria-labelledby="publications-title"><figure className="pubBanner"><picture><source media="(max-width: 720px)" srcSet={SFI_PUBLICATIONS_BANNER.mobile}/><img src={SFI_PUBLICATIONS_BANNER.web} alt={SFI_PUBLICATIONS_BANNER.alt}/></picture><figcaption>{SFI_PUBLICATIONS_BANNER.provenance}</figcaption></figure><div className="pubHeroCopy"><span>PUBLICACIONES · ARCHIVO EDITORIAL</span><h1 id="publications-title">Observar antes de concluir.</h1><p>SFI publica objetos por función, no por formato. Notas, investigación, métodos, casos y retornos mantienen identidad, versión, procedencia y frontera epistémica aunque su rendition cambie.</p><div className="pubHeroBoundary"><b>REGLA</b><span>PUBLICACIÓN = EXPOSURE</span><span>EXPOSURE ≠ EVIDENCIA EXTERNA ≠ RETURN</span></div></div></section>
-    <section className="temporalIssue" aria-labelledby="temporal-title"><div className="sectionKicker"><span>01</span><b>EDICIÓN MENSUAL</b><i>SFI-TN-M / YYYY-MM</i></div><div className="temporalIssueGrid"><figure className="temporalCover">{monthly.coverImage ? <img src={monthly.coverImage} alt={`${monthly.title} · ${monthly.issue}`}/> : null}<figcaption>RENDITION EDITORIAL · identidad canónica preservada</figcaption></figure><article><span className="temporalState">MONTHLY ISSUE · {monthly.issue.toUpperCase()}</span><h2 id="temporal-title">{monthly.title}</h2><h3>{monthly.subtitle}</h3><p>{monthly.deck}</p><dl><div><dt>CADENCIA</dt><dd>Una edición institucional por mes</dd></div><div><dt>ESTADO</dt><dd>As-of state / retorno abierto</dd></div><div><dt>FUNCIÓN</dt><dd>Qué cambió · qué persiste · qué expiró · qué sigue</dd></div></dl><div className="pubActions"><Link href={`/publications/${monthly.slug}`}>ABRIR EDICIÓN →</Link><Link href="/library#notas-temporales">VER ARCHIVO MENSUAL</Link></div></article></div></section>
-    <section className="temporalIssue" aria-labelledby="reality-chain-title"><div className="sectionKicker"><span>02</span><b>PUBLIC-SOURCE FRICTION BRIEF</b><i>SFI-PUB-FB-002</i></div><div className="temporalIssueGrid"><figure className="temporalCover"><img src={SFI_REALITY_CHAIN_BRIEF.coverImage ?? undefined} alt="The Reality Chain · System Friction Institute"/><figcaption>PUBLIC RENDITION · ENGLISH · SOURCE CUT-OFF 20 SEP 2026</figcaption></figure><article><span className="temporalState">FRICTION BRIEF · 20 SEP 2026</span><h2 id="reality-chain-title">{SFI_REALITY_CHAIN_BRIEF.title}</h2><h3>{SFI_REALITY_CHAIN_BRIEF.subtitle}</h3><p>{SFI_REALITY_CHAIN_BRIEF.deck}</p><dl><div><dt>CLAIM</dt><dd>Machine inference is scaling faster than institutional verification capacity.</dd></div><div><dt>CASE ZERO</dt><dd>AARO / PURSUE UAP evidence under incomplete context and custody.</dd></div><div><dt>BOUNDARY</dt><dd>Unresolved ≠ extraterrestrial · provenance ≠ truth · benchmark v0 not yet independently executed.</dd></div></dl><div className="pubActions"><Link href={`/publications/${SFI_REALITY_CHAIN_BRIEF.slug}`}>READ BRIEF →</Link>{SFI_REALITY_CHAIN_BRIEF.renditions.find((item)=>item.state==='PUBLIC'&&item.publicUrl)?.publicUrl?<a href={SFI_REALITY_CHAIN_BRIEF.renditions.find((item)=>item.state==='PUBLIC'&&item.publicUrl)!.publicUrl!} target="_blank" rel="noreferrer">OPEN PDF ↗</a>:null}</div></article></div></section>
 
-    <section className="temporalIssue" aria-labelledby="years-exist-title"><div className="sectionKicker"><span>03</span><b>RESEARCH LAB NOTE · PUBLIC-SOURCE SYNTHESIS</b><i>SFI-PUB-LN-001</i></div><div className="temporalIssueGrid"><figure className="temporalCover"><img src={SFI_YEARS_THAT_DID_EXIST_LAB_NOTE.coverImage ?? undefined} alt="The Years That Did Exist · System Friction Institute"/><figcaption>LAB NOTE · ENGLISH · SOURCE CUT-OFF 20 SEP 2026</figcaption></figure><article><span className="temporalState">OPEN INVESTIGATION · 20 SEP 2026</span><h2 id="years-exist-title">{SFI_YEARS_THAT_DID_EXIST_LAB_NOTE.title}</h2><h3>{SFI_YEARS_THAT_DID_EXIST_LAB_NOTE.subtitle}</h3><p>{SFI_YEARS_THAT_DID_EXIST_LAB_NOTE.deck}</p><dl><div><dt>FALSIFIED</dt><dd>A literal ~297-year chronological insertion does not survive independent physical chronology.</dd></div><div><dt>WORKING MODEL</dt><dd>Slow reproductive-capacity stress and rapid coordination fracture are distinct failure regimes.</dd></div><div><dt>BOUNDARY</dt><dd>Comparative synthesis ≠ validated collapse law · analytical scores ≠ historical measurements.</dd></div></dl><div className="pubActions"><Link href={`/publications/${SFI_YEARS_THAT_DID_EXIST_LAB_NOTE.slug}`}>READ LAB NOTE →</Link></div></article></div></section>
-    <section className="temporalIssue" aria-labelledby="discovery-method-title"><div className="sectionKicker"><span>04</span><b>NOTA DE LABORATORIO · DISCOVERY MESH</b><i>SFI-PUB-OBS-014</i></div><div className="temporalIssueGrid"><figure className="temporalCover"><img src="/images/editorial/discovery-mesh-observation.svg" alt="Discovery Mesh · Exposure a Return"/><figcaption>INSTRUMENTO VISUAL · los estados posibles no implican que hayan sido observados</figcaption></figure><article><span className="temporalState">METHOD NOTE · 16 SEP 2026</span><h2 id="discovery-method-title">Discovery Mesh: publicar no es ser encontrado</h2><h3>Cómo SFI observa su propia encontrabilidad sin convertir exposición en reconocimiento.</h3><p>La nota documenta EXPOSURE → DISCOVERY → RECOGNITION → INTERACTION → RELATION → PROPAGATION → PULL → RETURN y la capacidad de convertir degradaciones observadas en candidatos gobernados sin fabricar autoridad, ejecución ni éxito.</p><dl><div><dt>AUTORIDAD</dt><dd>Publicación bounded autorizada por el Fundador</dd></div><div><dt>AUTONOMÍA</dt><dd>El Mesh observa y formula candidatos; no adopta ni ejecuta materialmente sin owner real</dd></div><div><dt>FRONTERA</dt><dd>NULL ≠ 0 · candidato ≠ adopción · adopción ≠ canon</dd></div></dl><div className="pubActions"><Link href={DISCOVERY_NOTE}>LEER NOTA →</Link><Link href="/observatory">OBSERVAR CAMPO →</Link></div></article></div></section>
-    <section className="observationFamilies" aria-labelledby="persisted-returns-title"><div className="sectionKicker"><span>05</span><b>RETORNOS OPERATIVOS PUBLICADOS</b><i>PERSISTED / GOVERNED</i></div><header className="familiesIntro"><h2 id="persisted-returns-title">Lo que el sistema ya pudo reconstruir.</h2><p>Esta proyección lee únicamente objetos persistidos con estado PUBLISHED. PUBLICACIÓN = EXPOSURE: un resultado publicado no se convierte por ello en evidencia externa, validación científica ni reconocimiento institucional.</p></header>{persistedPublications.length?<div className="familyEntries">{persistedPublications.map((publication)=>{const payload=publication.publicPayload??{};const title=payloadText(payload.title,'SFI · retorno operativo');const result=payloadText(payload.result,'RESULTADO NO DECLARADO');const limitations=payloadStringList(payload.limitations);const finalClosure=payload.finalClosure===true;return <article key={publication.id}><div className="entryMeta"><span>{finalClosure?'CLOSED RETURN':'PUBLISHED RETURN'}</span><time>{publication.publishedAt?formatDate(publication.publishedAt):'fecha no disponible'}</time></div><h4>{title}</h4><p>{result}</p><footer><span>{publication.snapshotVersion??'SNAPSHOT SIN VERSIÓN'}</span><span>{limitations.length?limitations[0]:'Sin límite público adicional declarado.'}</span></footer></article>})}</div>:<p>No hay todavía retornos operativos persistidos con autorización de publicación.</p>}</section>
-    <section className="observationFamilies" aria-labelledby="families-title"><div className="sectionKicker"><span>06</span><b>OBSERVACIONES INDIVIDUALES</b><i>EVENT / EDITORIAL LENSES</i></div><header className="familiesIntro"><h2 id="families-title">Cinco lentes. Un mismo archivo.</h2><p>Las familias organizan lectura y descubrimiento. No reemplazan la clasificación canónica ni convierten una observación en evidencia por presentarla editorialmente.</p></header><div className="familyStack">{SFI_EDITORIAL_FAMILIES.map((family,index)=>{const entries=editorialFamilyEntries(family);return <details className="family" key={family.key} open={index===0}><summary><figure><img src={family.image} alt={family.label}/></figure><div className="familySummaryCopy"><span>{String(index+1).padStart(2,'0')} · {family.shortLabel.toUpperCase()}</span><h3>{family.label}</h3><p>{family.description}</p><small>{entries.length} {entries.length===1?'pieza':'piezas'} · abrir archivo</small></div><b className="familyToggle" aria-hidden="true">＋</b></summary><div className="familyBody"><p className="imageProvenance">{family.imageProvenance}</p><div className="familyEntries">{entries.map((publication)=><article key={publication.slug}><div className="entryMeta"><span>{publication.observationKind??'OBSERVATION'}</span><time>{formatDate(publication.publishedAt)}</time></div><h4><Link href={`/publications/${publication.slug}`}>{publication.title}</Link></h4><p>{publication.subtitle}</p><footer><Link href={`/publications/${publication.slug}`}>LEER EN SFI →</Link>{publication.mediumUrl?<a href={publication.mediumUrl} target="_blank" rel="noreferrer">MEDIUM ↗</a>:<span>SFI ORIGINAL</span>}</footer></article>)}</div></div></details>})}</div></section>
-    <section className="pubOntology" aria-label="Editorial ontology boundary"><div><span>MONTHLY</span><b>Notas Temporales</b><p>Una coordenada temporal por mes.</p></div><div><span>EVENT</span><b>Observaciones</b><p>Piezas situadas con timestamp, procedencia y frontera epistemológica.</p></div><div><span>RETURN</span><b>Corregir la lectura</b><p>El retorno modifica lo que SFI creía con outcome observado.</p></div><div><span>DISCOVERY</span><b>Encontrable ≠ validado</b><p>El mesh mide exposición, descubrimiento, propagación, PULL y RETURN sin confundirlos.</p></div></section>
-    <footer className="pubFooter"><div><b>SYSTEM FRICTION INSTITUTE</b><span>Observar · Contrastar · Retornar</span></div><div><span>IDENTIDAD VISUAL</span><small>SFI-ID-003 · MASTER EDITION V4.0</small></div></footer>
+  return <main className="publicationsHub">
+    <header className="pubTopbar">
+      <Link href="/" className="pubBrand">SFI</Link>
+      <div className="pubTopbarIdentity"><span>SYSTEM FRICTION INSTITUTE</span><small>PUBLICATIONS / EDITORIAL ARCHIVE</small></div>
+      <nav aria-label="Public navigation">
+        <Link href="/observatory">OBSERVATORY</Link>
+        <Link href="/publications">PUBLICATIONS</Link>
+        <Link href="/library">LIBRARY</Link>
+        <Link href="/field">FIELD</Link>
+        <Link href="/institution">INSTITUTE</Link>
+        <Link href="/login">SIGN IN</Link>
+      </nav>
+    </header>
+
+    <section className="pubHero" aria-labelledby="publications-title">
+      <figure className="pubBanner">
+        <picture><source media="(max-width: 720px)" srcSet={SFI_PUBLICATIONS_BANNER.mobile}/><img src={SFI_PUBLICATIONS_BANNER.web} alt={SFI_PUBLICATIONS_BANNER.alt}/></picture>
+        <figcaption>{SFI_PUBLICATIONS_BANNER.provenance}</figcaption>
+      </figure>
+      <div className="pubHeroCopy">
+        <span>PUBLICATIONS · EDITORIAL ARCHIVE</span>
+        <h1 id="publications-title">Observe before concluding.</h1>
+        <p>SFI publishes objects by function rather than format. Notes, research, methods, cases and RETURN preserve identity, version, provenance and epistemic boundary even when their rendition changes.</p>
+        <div className="pubHeroBoundary"><b>RULE</b><span>PUBLICATION = EXPOSURE</span><span>EXPOSURE ≠ EXTERNAL EVIDENCE ≠ RETURN</span></div>
+      </div>
+    </section>
+
+    <section className="temporalIssue" aria-labelledby="temporal-title">
+      <div className="sectionKicker"><span>01</span><b>MONTHLY ISSUE</b><i>SFI-TN-M / YYYY-MM</i></div>
+      <div className="temporalIssueGrid">
+        <figure className="temporalCover">{monthly.coverImage ? <img src={monthly.coverImage} alt={monthlyProjection.title}/> : null}<figcaption>EDITORIAL RENDITION · CANONICAL IDENTITY PRESERVED</figcaption></figure>
+        <article>
+          <span className="temporalState">MONTHLY ISSUE · {monthly.issue.toUpperCase()}</span>
+          <h2 id="temporal-title">{monthlyProjection.title}</h2>
+          <h3>{monthlyProjection.subtitle}</h3>
+          <p>{monthlyProjection.summary}</p>
+          <dl>
+            <div><dt>CADENCE</dt><dd>One institutional issue per month</dd></div>
+            <div><dt>STATE</dt><dd>As-of state / RETURN open</dd></div>
+            <div><dt>FUNCTION</dt><dd>What changed · what persists · what expired · what follows</dd></div>
+          </dl>
+          <div className="pubActions"><Link href={`/publications/${monthly.slug}`}>OPEN ISSUE →</Link><Link href="/library#temporary-notes">VIEW MONTHLY ARCHIVE</Link></div>
+        </article>
+      </div>
+    </section>
+
+    <section className="temporalIssue" aria-labelledby="reality-chain-title">
+      <div className="sectionKicker"><span>02</span><b>PUBLIC-SOURCE FRICTION BRIEF</b><i>SFI-PUB-FB-002</i></div>
+      <div className="temporalIssueGrid">
+        <figure className="temporalCover"><img src={SFI_REALITY_CHAIN_BRIEF.coverImage ?? undefined} alt="The Reality Chain · System Friction Institute"/><figcaption>PUBLIC RENDITION · ENGLISH · SOURCE CUT-OFF 20 SEP 2026</figcaption></figure>
+        <article>
+          <span className="temporalState">FRICTION BRIEF · 20 SEP 2026</span>
+          <h2 id="reality-chain-title">{SFI_REALITY_CHAIN_BRIEF.title}</h2>
+          <h3>{SFI_REALITY_CHAIN_BRIEF.subtitle}</h3>
+          <p>{SFI_REALITY_CHAIN_BRIEF.deck}</p>
+          <dl>
+            <div><dt>CLAIM</dt><dd>Machine inference is scaling faster than institutional verification capacity.</dd></div>
+            <div><dt>CASE ZERO</dt><dd>AARO / PURSUE UAP evidence under incomplete context and custody.</dd></div>
+            <div><dt>BOUNDARY</dt><dd>Unresolved ≠ extraterrestrial · provenance ≠ truth · benchmark v0 not yet independently executed.</dd></div>
+          </dl>
+          <div className="pubActions"><Link href={`/publications/${SFI_REALITY_CHAIN_BRIEF.slug}`}>READ BRIEF →</Link>{SFI_REALITY_CHAIN_BRIEF.renditions.find((item)=>item.state==='PUBLIC'&&item.publicUrl)?.publicUrl?<a href={SFI_REALITY_CHAIN_BRIEF.renditions.find((item)=>item.state==='PUBLIC'&&item.publicUrl)!.publicUrl!} target="_blank" rel="noreferrer">OPEN PDF ↗</a>:null}</div>
+        </article>
+      </div>
+    </section>
+
+    <section className="temporalIssue" aria-labelledby="years-exist-title">
+      <div className="sectionKicker"><span>03</span><b>RESEARCH LAB NOTE · PUBLIC-SOURCE SYNTHESIS</b><i>SFI-PUB-LN-001</i></div>
+      <div className="temporalIssueGrid">
+        <figure className="temporalCover"><img src={SFI_YEARS_THAT_DID_EXIST_LAB_NOTE.coverImage ?? undefined} alt="The Years That Did Exist · System Friction Institute"/><figcaption>LAB NOTE · ENGLISH · SOURCE CUT-OFF 20 SEP 2026</figcaption></figure>
+        <article>
+          <span className="temporalState">OPEN INVESTIGATION · 20 SEP 2026</span>
+          <h2 id="years-exist-title">{SFI_YEARS_THAT_DID_EXIST_LAB_NOTE.title}</h2>
+          <h3>{SFI_YEARS_THAT_DID_EXIST_LAB_NOTE.subtitle}</h3>
+          <p>{SFI_YEARS_THAT_DID_EXIST_LAB_NOTE.deck}</p>
+          <dl>
+            <div><dt>FALSIFIED</dt><dd>A literal ~297-year chronological insertion does not survive independent physical chronology.</dd></div>
+            <div><dt>WORKING MODEL</dt><dd>Slow reproductive-capacity stress and rapid coordination fracture are distinct failure regimes.</dd></div>
+            <div><dt>BOUNDARY</dt><dd>Comparative synthesis ≠ validated collapse law · analytical scores ≠ historical measurements.</dd></div>
+          </dl>
+          <div className="pubActions"><Link href={`/publications/${SFI_YEARS_THAT_DID_EXIST_LAB_NOTE.slug}`}>READ LAB NOTE →</Link></div>
+        </article>
+      </div>
+    </section>
+
+    <section className="temporalIssue" aria-labelledby="discovery-method-title">
+      <div className="sectionKicker"><span>04</span><b>LAB NOTE · DISCOVERY MESH</b><i>SFI-PUB-OBS-014</i></div>
+      <div className="temporalIssueGrid">
+        <figure className="temporalCover"><img src="/images/editorial/discovery-mesh-observation.svg" alt="Discovery Mesh · Exposure to RETURN"/><figcaption>VISUAL INSTRUMENT · possible states do not imply observed states</figcaption></figure>
+        <article>
+          <span className="temporalState">METHOD NOTE · 16 SEP 2026</span>
+          <h2 id="discovery-method-title">Discovery Mesh: publishing is not being found</h2>
+          <h3>How SFI observes its own discoverability without converting exposure into recognition.</h3>
+          <p>The note documents EXPOSURE → DISCOVERY → RECOGNITION → INTERACTION → RELATION → PROPAGATION → PULL → RETURN, while preserving the difference between observed degradation, governed candidates, authority and material execution.</p>
+          <dl>
+            <div><dt>AUTHORITY</dt><dd>Bounded publication authorized by the Founder</dd></div>
+            <div><dt>AUTONOMY</dt><dd>The Mesh observes and formulates candidates; it does not materially adopt or execute without a real owner</dd></div>
+            <div><dt>BOUNDARY</dt><dd>NULL ≠ 0 · candidate ≠ adoption · adoption ≠ canon</dd></div>
+          </dl>
+          <div className="pubActions"><Link href={DISCOVERY_NOTE}>READ NOTE →</Link><Link href="/observatory">OBSERVE FIELD →</Link></div>
+        </article>
+      </div>
+    </section>
+
+    <section className="observationFamilies" aria-labelledby="persisted-returns-title">
+      <div className="sectionKicker"><span>05</span><b>PUBLISHED OPERATIONAL RETURNS</b><i>PERSISTED / GOVERNED</i></div>
+      <header className="familiesIntro">
+        <h2 id="persisted-returns-title">What the system can already reconstruct.</h2>
+        <p>This projection reads only persisted objects with PUBLISHED status. PUBLICATION = EXPOSURE: publication does not become external evidence, scientific validation or institutional recognition.</p>
+      </header>
+      {persistedPublications.length ? <div className="familyEntries">{persistedPublications.map((publication)=><article key={publication.id}>
+        <div className="entryMeta"><span>PUBLISHED RETURN</span><time>{publication.publishedAt?formatDate(publication.publishedAt):'date unavailable'}</time></div>
+        <h4>SFI · Operational Return</h4>
+        <p>A governed operational return is persisted and publicly projected. Original-language payload text is withheld from this English-only surface.</p>
+        <footer><span>{publication.snapshotVersion??'SNAPSHOT VERSION UNAVAILABLE'}</span><span>PUBLICATION ≠ EXTERNAL VALIDATION</span></footer>
+      </article>)}</div> : <p>No governed operational RETURN is currently published.</p>}
+    </section>
+
+    <section className="observationFamilies" aria-labelledby="families-title">
+      <div className="sectionKicker"><span>06</span><b>INDIVIDUAL OBSERVATIONS</b><i>EVENT / EDITORIAL LENSES</i></div>
+      <header className="familiesIntro"><h2 id="families-title">Five lenses. One archive.</h2><p>Families organize reading and discovery. They do not replace canonical classification or convert an observation into evidence by presenting it editorially.</p></header>
+      <div className="familyStack">{SFI_EDITORIAL_FAMILIES.map((family,index)=>{
+        const entries=editorialFamilyEntries(family);
+        return <details className="family" key={family.key} open={index===0}>
+          <summary>
+            <figure><img src={family.image} alt={family.label}/></figure>
+            <div className="familySummaryCopy"><span>{String(index+1).padStart(2,'0')} · {family.shortLabel.toUpperCase()}</span><h3>{family.label}</h3><p>{family.description}</p><small>{entries.length} {entries.length===1?'piece':'pieces'} · open archive</small></div>
+            <b className="familyToggle" aria-hidden="true">＋</b>
+          </summary>
+          <div className="familyBody">
+            <p className="imageProvenance">{family.imageProvenance}</p>
+            <div className="familyEntries">{entries.map((publication)=>{
+              const projection=publicEnglishProjection(publication.slug,{title:publication.title,subtitle:publication.subtitle,summary:publication.deck});
+              return <article key={publication.slug}>
+                <div className="entryMeta"><span>{publicEnglishObservationLabel(publication.observationKind)}</span><time>{formatDate(publication.publishedAt)}</time></div>
+                <h4><Link href={`/publications/${publication.slug}`}>{projection.title}</Link></h4>
+                <p>{projection.subtitle}</p>
+                <footer><Link href={`/publications/${publication.slug}`}>READ IN SFI →</Link>{publication.mediumUrl?<a href={publication.mediumUrl} target="_blank" rel="noreferrer">SOURCE ↗</a>:<span>SFI ORIGINAL</span>}</footer>
+              </article>;
+            })}</div>
+          </div>
+        </details>;
+      })}</div>
+    </section>
+
+    <section className="pubOntology" aria-label="Editorial ontology boundary">
+      <div><span>MONTHLY</span><b>Temporary Notes</b><p>One time coordinate per month.</p></div>
+      <div><span>EVENT</span><b>Observations</b><p>Situated pieces with timestamp, provenance and epistemic boundary.</p></div>
+      <div><span>RETURN</span><b>Correct the reading</b><p>RETURN modifies what SFI believed through observed outcome.</p></div>
+      <div><span>DISCOVERY</span><b>Discoverable ≠ validated</b><p>The Mesh measures exposure, discovery, propagation, PULL and RETURN without confusing them.</p></div>
+    </section>
+
+    <footer className="pubFooter">
+      <div><b>SYSTEM FRICTION INSTITUTE</b><span>Observe · Contrast · Return</span></div>
+      <div><span>VISUAL IDENTITY</span><small>SFI-ID-003 · MASTER EDITION V4.0</small></div>
+    </footer>
   </main>;
 }

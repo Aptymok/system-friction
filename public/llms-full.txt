@@ -1,7 +1,7 @@
 # System Friction Institute · Complete Public Machine Context
 
 Canonical origin: https://systemfriction.org
-Canonical language: Spanish (Mexico)
+Canonical language: English
 Institution: independent structural-field research institute
 Public definition: System Friction Institute makes visible the friction that systems learn to normalize.
 
@@ -13,10 +13,10 @@ SFI is an evidence-governed observation and experimentation architecture. It sep
 
 ## 2. Core methodological stack
 
-- MIHM — Modelo Integral Homeostático Multi-nodo: structural representation of nodes, relations, capacity, friction, homeostatic conditions and explicitly missing variables.
+- MIHM — Integrated Multivariable Homeostasis Framework: structural representation of nodes, relations, capacity, friction, homeostatic conditions and explicitly missing variables.
 - DIOL-SF: longitudinal reconstruction. Keep real, observed, reconstructed and projected trajectories separate.
-- Método SFI de Inferencia: generate multiple plausible explanations and preserve rival hypotheses until discriminating evidence separates them.
-- MOP-H — Método de Observación y Perturbación Humana: use for human systems. It is not the universal method for every object.
+- SFI Inference Method: generate multiple plausible explanations and preserve rival hypotheses until discriminating evidence separates them.
+- MOP-H — Human Observation and Perturbation Method: use for human systems. It is not the universal method for every object.
 - MOP-S: analyze signal persistence/transformation across carriers, platforms and time.
 - Minimal Field Perturbation: general proportional intervention layer for systems where MOP-H does not apply.
 - FAD: specialized sound/music structural analysis where applicable.

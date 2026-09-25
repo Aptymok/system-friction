@@ -3,7 +3,7 @@ import type { CSSProperties } from 'react';
 import type { SfiEditorialPublication } from '@/lib/publications/editorialContent';
 import type { SfiPublicResearchLanding } from '@/lib/research/publicResearchLanding';
 
-const MONTHS = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'] as const;
+const MONTHS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'] as const;
 
 function bytesLabel(bytes: number) {
   return `${(bytes / 1_000_000).toFixed(1)} MB`;
@@ -15,7 +15,7 @@ function safeJsonLd(landing: SfiPublicResearchLanding): string {
 
 function TemporalDial({ month }: { month: number }) {
   const normalized = Math.min(12, Math.max(1, month));
-  return <div className="tnDial" aria-label={`Coordenada mensual: ${MONTHS[normalized - 1]}`}>
+  return <div className="tnDial" aria-label={`Monthly coordinate: ${MONTHS[normalized - 1]}`}>
     <div className="tnDialCore"><span>MONTH</span><b>{String(normalized).padStart(2, '0')}</b></div>
     {MONTHS.map((label, index) => {
       const angle = (index / 12) * 360 - 90;
@@ -48,21 +48,21 @@ export function TemporalIssueView({
     <main className="tnPage" data-state={profile.state}>
       <header className="tnTopbar">
         <Link className="tnBrand" href="/"><span>SFI</span><small>SYSTEM FRICTION INSTITUTE</small></Link>
-        <nav aria-label="Navegación institucional">
-          <Link href="/institution">INSTITUTO</Link>
-          <Link href="/research">INVESTIGACIÓN</Link>
-          <Link href="/library">ARCHIVO</Link>
+        <nav aria-label="Institutional navigation">
+          <Link href="/institution">INSTITUTE</Link>
+          <Link href="/research">RESEARCH</Link>
+          <Link href="/library">ARCHIVE</Link>
           <Link href="/field">FIELD</Link>
-          <Link href="/publications">NOTAS</Link>
-          <Link href="/observatory">OBSERVATORIO</Link>
+          <Link href="/publications">NOTES</Link>
+          <Link href="/observatory">OBSERVATORY</Link>
         </nav>
-        <Link className="tnExplore" href="/publications">EXPLORAR <span>→</span></Link>
+        <Link className="tnExplore" href="/publications">EXPLORE <span>→</span></Link>
       </header>
 
       <section className="tnHero">
         <div className="tnHeroCopy">
-          <div className="tnBreadcrumb">INICIO / NOTAS / TEMPORAL / {profile.coordinate.replace(' / ', '-')}</div>
-          <div className="tnKicker">NOTAS TEMPORALES · {profile.code}</div>
+          <div className="tnBreadcrumb">HOME / NOTES / TEMPORAL / {profile.coordinate.replace(' / ', '-')}</div>
+          <div className="tnKicker">TEMPORARY NOTES · {profile.code}</div>
           <h1>{publication.title}</h1>
           <h2>{publication.subtitle}</h2>
           <p>{publication.deck}</p>
@@ -73,12 +73,12 @@ export function TemporalIssueView({
           {publication.coverImage ? <img src={publication.coverImage} alt={`${publication.title} · ${publication.issue}`} /> : null}
           <div className="tnHeroShade" />
           <div className="tnHeroRail">
-            <span>TIEMPO</span>
-            <span>EVIDENCIA</span>
-            <span>ESTADO</span>
+            <span>TIME</span>
+            <span>EVIDENCE</span>
+            <span>STATE</span>
             <span>RETURN</span>
             <i />
-            <b>OBSERVAR ANTES DE CONCLUIR</b>
+            <b>OBSERVE BEFORE CONCLUDING</b>
           </div>
           <div className="tnDialWrap">
             <TemporalDial month={profile.month} />
@@ -91,20 +91,20 @@ export function TemporalIssueView({
         </div>
       </section>
 
-      <section className="tnMetaStrip" aria-label="Metadatos de la edición">
+      <section className="tnMetaStrip" aria-label="Issue metadata">
         {[
-          ['CORTE', profile.cutoffLabel],
-          ['COORDENADA', profile.coordinate],
-          ['ESTADO', profile.state],
+          ['CUT-OFF', profile.cutoffLabel],
+          ['COORDINATE', profile.coordinate],
+          ['STATE', profile.state],
           ['RETURN', profile.returnState],
-          ['AUTORIDAD', profile.authorityLabel],
-          ['OBJETO', publication.canonicalId],
+          ['AUTHORITY', profile.authorityLabel],
+          ['OBJECT', publication.canonicalId],
         ].map(([label, value]) => <div key={label}><span>{label}</span><b>{value}</b></div>)}
       </section>
 
       <div className="tnBody">
-        <aside className="tnToc" aria-label="En esta edición">
-          <span>EN ESTA EDICIÓN</span>
+        <aside className="tnToc" aria-label="In this issue">
+          <span>IN THIS ISSUE</span>
           <nav>
             {publication.sections.map((section, index) => <a href={`#${section.id}`} key={section.id}>
               <i>{String(index + 1).padStart(2, '0')}</i>{section.title}
@@ -123,21 +123,21 @@ export function TemporalIssueView({
             </div>
           </section>)}
 
-          {publication.cadence.length ? <section id="cadencia">
+          {publication.cadence.length ? <section id="cadence">
             <div className="tnSectionNo">↻</div>
             <div className="tnSectionContent">
-              <h3>Cadencia institucional</h3>
+              <h3>Institutional cadence</h3>
               {publication.cadence.map((item) => <div className="tnCadence" key={item.interval}>
                 <b>{item.interval}</b><span>{item.name}</span><p>{item.scope}</p>
               </div>)}
             </div>
           </section> : null}
 
-          <section id="frontera">
+          <section id="boundary">
             <div className="tnSectionNo">!</div>
             <div className="tnSectionContent">
-              <h3>Frontera epistémica</h3>
-              <p className="tnBoundaryIntro">Lo que esta edición no autoriza a afirmar permanece visible junto al objeto publicado.</p>
+              <h3>Epistemic boundary</h3>
+              <p className="tnBoundaryIntro">What this issue does not authorize us to claim remains visible beside the published object.</p>
               <ul className="tnBoundaryList">{publication.epistemicBoundary.map((item) => <li key={item}>{item}</li>)}</ul>
             </div>
           </section>
@@ -145,38 +145,38 @@ export function TemporalIssueView({
 
         <aside className="tnRail">
           <section className="tnRailCard tnDownload">
-            <div className="tnRailTitle">DESCARGA Y CITACIÓN</div>
+            <div className="tnRailTitle">DOWNLOAD & CITATION</div>
             {rendition ? <>
               <a className="tnDownloadButton" href={rendition.publicUrl!} target="_blank" rel="noreferrer">
-                <span>DESCARGAR / ABRIR PDF</span><b>{bytesLabel(rendition.byteLength)}</b><i>→</i>
+                <span>DOWNLOAD / OPEN PDF</span><b>{bytesLabel(rendition.byteLength)}</b><i>→</i>
               </a>
               <dl>
                 <div><dt>RENDITION</dt><dd>PDF · PUBLIC</dd></div>
                 <div><dt>SHA-256</dt><dd>{rendition.sha256.slice(0, 16)}…</dd></div>
-                <div><dt>ARCHIVO</dt><dd>{rendition.filename}</dd></div>
+                <div><dt>ARCHIVE</dt><dd>{rendition.filename}</dd></div>
               </dl>
-            </> : <p>La rendition PDF todavía no está publicada.</p>}
-            <div className="tnCitation"><span>CITAR ESTA EDICIÓN</span><p>{citation}</p></div>
+            </> : <p>The PDF rendition is not yet published.</p>}
+            <div className="tnCitation"><span>CITE THIS ISSUE</span><p>{citation}</p></div>
           </section>
 
           <section className="tnRailCard">
-            <div className="tnRailTitle">QUÉ OBSERVAR DESPUÉS</div>
+            <div className="tnRailTitle">WHAT TO OBSERVE NEXT</div>
             <ol className="tnFollow">{profile.followUpPrompts.map((item) => <li key={item}>{item}<span>→</span></li>)}</ol>
           </section>
 
           <section className="tnRailCard">
-            <div className="tnRailTitle">SEMÁNTICA TEMPORAL</div>
+            <div className="tnRailTitle">TEMPORAL SEMANTICS</div>
             <dl className="tnSemantic">
-              <div><dt>SIGNAL</dt><dd>algo cambió; aún no se valida.</dd></div>
-              <div><dt>DECISION</dt><dd>un estado autorizado modifica la ruta.</dd></div>
-              <div><dt>CORRECTION</dt><dd>una afirmación o registro debe cambiar.</dd></div>
-              <div><dt>RETURN</dt><dd>el outcome regresa al sistema.</dd></div>
-              <div><dt>HORIZON</dt><dd>dirección futura sin autoridad presente.</dd></div>
+              <div><dt>SIGNAL</dt><dd>something changed; it is not yet validated.</dd></div>
+              <div><dt>DECISION</dt><dd>an authorized state changes the route.</dd></div>
+              <div><dt>CORRECTION</dt><dd>a claim or record must change.</dd></div>
+              <div><dt>RETURN</dt><dd>the outcome returns to the system.</dd></div>
+              <div><dt>HORIZON</dt><dd>future direction without present authority.</dd></div>
             </dl>
           </section>
 
           <section className="tnRailCard">
-            <div className="tnRailTitle">DOMINIOS OBSERVADOS</div>
+            <div className="tnRailTitle">OBSERVED DOMAINS</div>
             <div className="tnDomains">{publication.domains.map((domain) => <span key={domain}>{domain}</span>)}</div>
           </section>
         </aside>
@@ -185,7 +185,7 @@ export function TemporalIssueView({
       <footer className="tnFooter">
         <div><b>SFI</b><span>SYSTEM FRICTION INSTITUTE</span></div>
         <div><span>{profile.code}</span><span>{landing.contract}</span></div>
-        <div><Link href="/privacy">PRIVACIDAD</Link><Link href="/institution">INSTITUTO</Link><Link href="/publications">PUBLICACIONES</Link></div>
+        <div><Link href="/privacy">PRIVACY</Link><Link href="/institution">INSTITUTE</Link><Link href="/publications">PUBLICATIONS</Link></div>
       </footer>
     </main>
   </>;

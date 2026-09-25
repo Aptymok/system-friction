@@ -11,9 +11,9 @@ export default function HistoryPage() {
           <div>
             <small style={{letterSpacing:'.28em',color:'#b78d50'}}>SYSTEM FRICTION INSTITUTE · OBSERVED HISTORY</small>
             <h1 style={{fontSize:'clamp(42px,7vw,92px)',fontWeight:400,letterSpacing:'-.03em',margin:'14px 0 10px',color:'#e7cf9c'}}>ORIGIN → PRESENT</h1>
-            <p style={{maxWidth:760,fontSize:18,lineHeight:1.7,color:'#b9aa8e'}}>Una línea temporal institucional compuesta únicamente por hitos verificables en fuentes públicas del propio SFI y su repositorio. La cronología no completa silencios con inferencias.</p>
+            <p style={{maxWidth:760,fontSize:18,lineHeight:1.7,color:'#b9aa8e'}}>An institutional timeline composed only of milestones verifiable through SFI public sources and its repository. The chronology does not fill silence with inference.</p>
           </div>
-          <Link href="/" style={{color:'#d5ad69',textDecoration:'none',letterSpacing:'.15em',fontSize:12}}>← FIELD</Link>
+          <Link href="/" style={{color:'#d5ad69',textDecoration:'none',letterSpacing:'.15em',fontSize:12}}>← HOME</Link>
         </header>
 
         <section style={{marginTop:36,padding:'18px 20px',border:'1px solid rgba(202,160,92,.25)',background:'rgba(191,139,65,.035)'}}>

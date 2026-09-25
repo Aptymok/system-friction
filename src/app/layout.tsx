@@ -5,7 +5,7 @@ import Script from 'next/script';
 import type { ReactNode } from 'react';
 import { AuthProvider } from '@/components/auth/AuthProvider';
 import { SfiConsentBanner } from '@/components/analytics/SfiConsentBanner';
-import { SfiLanguageProvider, SfiUiText } from '@/components/i18n/SfiLanguageProvider';
+import { SfiLanguageProvider } from '@/components/i18n/SfiLanguageProvider';
 import { SFI_PUBLIC_PROFILE } from '@/lib/public/institutionProfile';
 
 const BASE = SFI_PUBLIC_PROFILE.institution.canonicalUrl;
@@ -80,7 +80,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   };
 
   return (
-    <html lang="es">
+    <html lang="en">
       <body>
         <Script id="sfi-consent-default" strategy="beforeInteractive">
           {`window.dataLayer = window.dataLayer || [];
@@ -103,10 +103,10 @@ gtag('config', '${GA_ID}');`}
           <AuthProvider>{children}</AuthProvider>
           <footer className="sfiGlobalFooter">
             <strong>SFI.</strong>
-            <a href="/observatory"><SfiUiText es="OBSERVATORIO" en="OBSERVATORY" /></a>
-            <a href="/history"><SfiUiText es="ORIGEN → AHORA" en="ORIGIN → NOW" /></a>
-            <a href="/institution"><SfiUiText es="INSTITUTO" en="INSTITUTE" /></a>
-            <a href="/privacy"><SfiUiText es="PRIVACIDAD Y POLÍTICA DE DATOS PARA AGENTES EXTERNOS" en="PRIVACY & EXTERNAL AGENT DATA POLICY" /></a>
+            <a href="/observatory">OBSERVATORY</a>
+            <a href="/history">ORIGIN → NOW</a>
+            <a href="/institution">INSTITUTE</a>
+            <a href="/privacy">PRIVACY & EXTERNAL AGENT DATA POLICY</a>
           </footer>
           <SfiConsentBanner />
         </SfiLanguageProvider>

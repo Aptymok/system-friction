@@ -84,9 +84,9 @@ async function main() {
   // The first method note is an explicitly bounded public artifact in this convergence;
   // future notes remain governed candidates and never auto-publish.
   assert(notePage.includes("'SFI-PUB-OBS-014'"), 'Discovery Mesh method note canonical editorial id missing');
-  assert(notePage.includes('Publicar no es ser encontrado'), 'Discovery Mesh method note title missing');
+  assert(notePage.includes('Publishing is not being found'), 'Discovery Mesh method note title missing');
   assert(notePage.includes('/images/editorial/discovery-mesh-observation.svg'), 'Discovery Mesh method note graphic missing');
-  assert(notePage.includes('NULL no se convierte en cero'), 'method note false-zero boundary missing');
+  assert(notePage.includes('NULL is not converted to zero'), 'method note false-zero boundary missing');
   assert(publicationsHub.includes('SFI-PUB-OBS-014'), 'publications hub must expose Discovery Mesh method note');
   assert(existsSync('public/images/editorial/discovery-mesh-observation.svg'), 'Discovery Mesh visual asset missing');
 

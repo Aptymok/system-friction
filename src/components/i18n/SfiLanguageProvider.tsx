@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { usePathname } from 'next/navigation';
 
 export type SfiLanguage = 'es' | 'en';
 
@@ -13,9 +14,9 @@ type LanguageContextValue = {
 const STORAGE_KEY = 'sfi-language';
 
 const LanguageContext = createContext<LanguageContextValue>({
-  language: 'es',
+  language: 'en',
   setLanguage: () => undefined,
-  text: (es) => es,
+  text: (_es, en) => en,
 });
 
 // Every tuple is [Spanish, English]. This catalog is intentionally a pure lookup
@@ -243,22 +244,45 @@ export function SfiUiText({ es, en }: { es: string; en: string }) {
 }
 
 export function SfiLanguageProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguageState] = useState<SfiLanguage>('es');
+  const pathname = usePathname();
+  const [privateLanguage, setPrivateLanguage] = useState<SfiLanguage>('en');
+
+  const publicEnglishOnly = useMemo(() => {
+    if (!pathname) return true;
+    const publicRoots = [
+      '/',
+      '/observatory',
+      '/publications',
+      '/library',
+      '/institution',
+      '/history',
+      '/privacy',
+      '/login',
+      '/forgot',
+      '/continuity-access',
+      '/contact',
+      '/auth-unavailable',
+      '/field',
+    ];
+    return publicRoots.some((root) => root === '/' ? pathname === '/' : pathname === root || pathname.startsWith(`${root}/`));
+  }, [pathname]);
 
   useEffect(() => {
+    if (publicEnglishOnly) {
+      setPrivateLanguage('en');
+      return;
+    }
     const stored = window.localStorage.getItem(STORAGE_KEY);
-    const initial: SfiLanguage = stored === 'en' || stored === 'es'
-      ? stored
-      : window.navigator.language.toLowerCase().startsWith('es')
-        ? 'es'
-        : 'en';
-    setLanguageState(initial);
-  }, []);
+    setPrivateLanguage(stored === 'es' ? 'es' : 'en');
+  }, [publicEnglishOnly]);
+
+  const language: SfiLanguage = publicEnglishOnly ? 'en' : privateLanguage;
 
   const setLanguage = useCallback((next: SfiLanguage) => {
+    if (publicEnglishOnly) return;
     window.localStorage.setItem(STORAGE_KEY, next);
-    setLanguageState(next);
-  }, []);
+    setPrivateLanguage(next);
+  }, [publicEnglishOnly]);
 
   useEffect(() => {
     document.documentElement.lang = language;
@@ -271,7 +295,7 @@ export function SfiLanguageProvider({ children }: { children: ReactNode }) {
   return (
     <LanguageContext.Provider value={value}>
       {children}
-      <div
+      {!publicEnglishOnly ? <div
         role="group"
         aria-label={language === 'es' ? 'Idioma de la interfaz' : 'Interface language'}
         data-sfi-ui-copy="language-control"
@@ -317,7 +341,7 @@ export function SfiLanguageProvider({ children }: { children: ReactNode }) {
             {option.toUpperCase()}
           </button>
         ))}
-      </div>
+      </div> : null}
     </LanguageContext.Provider>
   );
 }

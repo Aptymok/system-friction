@@ -20,7 +20,7 @@ System Friction Institute observes how signals, systems and fields accumulate fr
 - MIHM: structural measurement/representation layer.
 - DIOL-SF: longitudinal reconstruction of real, observed, reconstructed and projected trajectories.
 - SFI Inference: keeps rival hypotheses open until discriminating evidence exists.
-- MOP-H: Método de Observación y Perturbación Humana; use for human systems, not as a universal method.
+- MOP-H: Human Observation and Perturbation Method; use for human systems, not as a universal method.
 - MOP-S: signal/persistence method for carriers, platforms and temporal transformations.
 - Minimal Field Perturbation: general governed minimal intervention for non-human/general systems.
 - FAD: specialized sound/music analysis where applicable.

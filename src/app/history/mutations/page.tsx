@@ -20,7 +20,7 @@ export default async function MutationHistoryPage() {
           <div>
             <small style={{letterSpacing:'.28em',color:'#b78d50'}}>SYSTEM FRICTION INSTITUTE · MUTATION EVIDENCE</small>
             <h1 style={{fontSize:'clamp(42px,7vw,88px)',fontWeight:400,letterSpacing:'-.03em',margin:'14px 0 10px',color:'#e7cf9c'}}>CODE → RETURN</h1>
-            <p style={{maxWidth:860,fontSize:18,lineHeight:1.7,color:'#b9aa8e'}}>Cada entrada distingue la mutación del repositorio de su validación posterior. Un commit demuestra que el código cambió; QA, evidencia de deployment, ejercicio real y aprendizaje calibrado requieren evidencias adicionales.</p>
+            <p style={{maxWidth:860,fontSize:18,lineHeight:1.7,color:'#b9aa8e'}}>Each entry separates a repository mutation from its later validation. A commit proves that code changed; QA, deployment evidence, real exercise and calibrated learning require additional evidence.</p>
           </div>
           <Link href="/history" style={{color:'#d5ad69',textDecoration:'none',letterSpacing:'.15em',fontSize:12}}>← HISTORY</Link>
         </header>
@@ -45,7 +45,7 @@ export default async function MutationHistoryPage() {
                 <div style={{display:'flex',justifyContent:'space-between',gap:18,flexWrap:'wrap',alignItems:'baseline'}}>
                   <div>
                     <small style={{fontFamily:'ui-monospace, monospace',letterSpacing:'.12em',color:'#9f845b'}}>{STAGE_LABEL[mutation.stage] ?? mutation.stage}</small>
-                    <h2 style={{fontWeight:400,fontSize:26,margin:'8px 0 8px',color:'#dfc38c'}}>{mutation.title}</h2>
+                    <h2 style={{fontWeight:400,fontSize:26,margin:'8px 0 8px',color:'#dfc38c'}}>{mutation.mutationId}</h2>
                   </div>
                   <span style={{fontFamily:'ui-monospace, monospace',fontSize:11,color:'#83745e'}}>{mutation.recordedAt?.slice(0,10) ?? '—'}</span>
                 </div>
@@ -56,7 +56,7 @@ export default async function MutationHistoryPage() {
                   <div><small style={{color:'#806c4d'}}>LEARNING LINK</small><div style={{fontFamily:'ui-monospace, monospace'}}>{mutation.learningLinkCount}</div></div>
                 </div>
                 {mutation.capabilityIds.length > 0 && <p style={{fontFamily:'ui-monospace, monospace',fontSize:11,color:'#95866e',marginTop:18}}>CAPABILITIES · {mutation.capabilityIds.join(' · ')}</p>}
-                <p style={{fontSize:13,lineHeight:1.6,color:'#938671',marginBottom:0}}>{mutation.boundary}</p>
+                <p style={{fontSize:13,lineHeight:1.6,color:'#938671',marginBottom:0}}>A governed mutation record preserves code, QA, deployment, exercise and learning as separate stages. Stored free-form prose is not rendered on this English-only public surface.</p>
                 {mutation.commit.htmlUrl && <a href={mutation.commit.htmlUrl} target="_blank" rel="noreferrer" style={{display:'inline-block',marginTop:14,color:'#cfa15d',textDecoration:'none',fontFamily:'ui-monospace, monospace',fontSize:11}}>GITHUB · {mutation.commit.sha?.slice(0,12) ?? 'COMMIT'} ↗</a>}
               </article>
             ))}

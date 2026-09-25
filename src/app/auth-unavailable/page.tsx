@@ -16,13 +16,13 @@ export default async function AuthUnavailablePage({
     <main className="login">
       <section>
         <div className="sigil">SFI.</div>
-        <h1>Verificación temporalmente indisponible</h1>
+        <h1>Verification temporarily unavailable</h1>
         <p>
-          SFI no ha clasificado tu sesión como cerrada ni tu cuenta como no autorizada. El servicio de verificación no respondió a tiempo.
+          SFI has not classified your session as closed or your account as unauthorized. The verification service did not respond in time.
         </p>
-        <p>No vuelvas a introducir tu contraseña por este mensaje. Reintenta la superficie cuando el servicio responda.</p>
-        <p><a href={next}>REINTENTAR</a></p>
-        <p><a href="/field">ABRIR FIELD PÚBLICO</a></p>
+        <p>Do not re-enter your password because of this message. Retry the surface when the verification service responds.</p>
+        <p><a href={next}>RETRY</a></p>
+        <p><a href="/field">OPEN PUBLIC FIELD</a></p>
       </section>
     </main>
   );

@@ -7,17 +7,18 @@ import './temporalIssue.css';
 import { editorialPublicationForSlug, relatedEditorialObservations } from '@/lib/publications/editorialContent';
 import { editorialFamilyForSlug } from '@/lib/publications/editorialFamilies';
 import { publicResearchLandingForSlug } from '@/lib/research/publicResearchLanding';
+import { publicEnglishObservationLabel, publicEnglishProjection } from '@/lib/publications/publicEnglishProjection';
 
 type PageProps = { params: Promise<{ slug: string }> };
 
 const OBSERVATION_LABELS: Record<string, string> = {
-  SIGNAL: 'SEÑAL',
-  TRAJECTORY: 'TRAYECTORIA',
-  CASE: 'CASO',
-  METHOD: 'MÉTODO',
-  MEMORY: 'MEMORIA',
+  SIGNAL: 'SIGNAL',
+  TRAJECTORY: 'TRAJECTORY',
+  CASE: 'CASE',
+  METHOD: 'METHOD',
+  MEMORY: 'MEMORY',
   ATLAS: 'ATLAS',
-  INSTITUTIONAL: 'INSTITUCIONAL',
+  INSTITUTIONAL: 'INSTITUTIONAL',
 };
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -25,17 +26,18 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const landing = publicResearchLandingForSlug('PUBLICATION', slug);
   if (!landing) return {};
   const editorial = editorialPublicationForSlug(slug);
-  const title = `${landing.node.title} · System Friction Institute`;
+  const projection = publicEnglishProjection(slug,{ title: landing.node.title, summary: landing.node.summary, subtitle: editorial?.subtitle ?? undefined });
+  const title = `${projection.title} · System Friction Institute`;
   return {
     title,
-    description: landing.node.summary,
+    description: projection.summary,
     alternates: { canonical: landing.canonicalUrl },
     openGraph: {
       type: 'article',
       url: landing.canonicalUrl,
       siteName: 'System Friction Institute',
       title,
-      description: landing.node.summary,
+      description: projection.summary,
       images: editorial?.coverImage ? [{ url: editorial.coverImage }] : undefined,
     },
     other: {
@@ -56,7 +58,7 @@ export default async function PublicationLandingPage({ params }: PageProps) {
   const family = publication?.editorialKind === 'OBSERVATION' ? editorialFamilyForSlug(slug) : null;
   const related = publication?.editorialKind === 'OBSERVATION' ? relatedEditorialObservations(slug, 8) : [];
   const isEnglish = publication?.language === 'en';
-  const ui = isEnglish ? {
+  const ui = {
     back: 'BACK TO PUBLICATIONS',
     pdf: 'OPEN PDF ↗',
     originalBody: 'INDEXED ORIGINAL BODY',
@@ -70,21 +72,44 @@ export default async function PublicationLandingPage({ params }: PageProps) {
     boundaryTitle: 'What this publication does not authorize us to claim',
     related: 'CONTINUE THE TRAJECTORY',
     relatedTitle: 'Other observations',
-  } : {
-    back: 'VOLVER A PUBLICACIONES',
-    pdf: 'ABRIR PDF ↗',
-    originalBody: 'CUERPO ORIGINAL INDEXADO',
-    originalTitle: 'La observación forma parte del archivo editorial de SFI',
-    originalText: 'Esta pieza conserva su identidad canónica, fecha, clasificación y relación con el resto de la serie.',
-    cadence: 'CADENCIA EDITORIAL',
-    cadenceTitle: 'Cuándo se publica',
-    domains: 'DOMINIOS DE OBSERVACIÓN',
-    domainsTitle: 'Dominios de observación',
-    boundary: 'FRONTERA EPISTÉMICA',
-    boundaryTitle: 'Lo que esta publicación no autoriza a afirmar',
-    related: 'CONTINUAR LA TRAYECTORIA',
-    relatedTitle: 'Otras observaciones',
   };
+
+  const projection = publicEnglishProjection(slug,{
+    title:publication?.title ?? landing.node.title,
+    subtitle:publication?.subtitle ?? undefined,
+    summary:publication?.deck ?? landing.node.summary,
+  });
+
+  if (publication && !isEnglish) {
+    const familyLabel = publication.observationKind
+      ? publicEnglishObservationLabel(publication.observationKind)
+      : publication.editorialKind === 'TEMPORAL_ISSUE' ? 'MONTHLY ISSUE' : 'PUBLICATION';
+
+    return <main style={{minHeight:'100vh',background:'#070706',color:'#e8ddc3',padding:'96px 28px',fontFamily:'Inter,ui-sans-serif,system-ui,sans-serif'}}>
+      <article style={{maxWidth:960,margin:'0 auto'}}>
+        <header style={{borderBottom:'1px solid rgba(200,169,81,.25)',paddingBottom:32}}>
+          <small style={{fontSize:10,letterSpacing:'.18em',color:'#c8a951'}}>{familyLabel} · ENGLISH PUBLIC PROJECTION</small>
+          <h1 style={{fontFamily:'Georgia,serif',fontWeight:400,fontSize:'clamp(44px,7vw,82px)',lineHeight:.95,margin:'18px 0 16px',color:'#f0e8da'}}>{projection.title}</h1>
+          <h2 style={{fontFamily:'Georgia,serif',fontWeight:400,fontSize:'clamp(24px,3vw,38px)',margin:'0 0 20px',color:'#d9bd80'}}>{projection.subtitle}</h2>
+          <p style={{maxWidth:820,fontSize:17,lineHeight:1.7,color:'#bcb1a1'}}>{projection.summary}</p>
+          <div style={{display:'flex',gap:12,flexWrap:'wrap',marginTop:24}}>
+            <Link href="/publications" style={{fontSize:10,letterSpacing:'.13em',color:'#d5ad69'}}>BACK TO PUBLICATIONS</Link>
+            <Link href="/library" style={{fontSize:10,letterSpacing:'.13em',color:'#9e927e'}}>LIBRARY</Link>
+            {publication.mediumUrl?<a href={publication.mediumUrl} target="_blank" rel="noreferrer" style={{fontSize:10,letterSpacing:'.13em',color:'#9e927e'}}>SOURCE OBJECT ↗</a>:null}
+          </div>
+        </header>
+        <section style={{paddingTop:42}}>
+          <small style={{fontSize:10,letterSpacing:'.18em',color:'#c8a951'}}>CANONICAL PRESERVATION</small>
+          <h3 style={{fontFamily:'Georgia,serif',fontWeight:400,fontSize:32,color:'#e4cf9c'}}>Original-language body preserved, not publicly rendered here.</h3>
+          <p style={{fontSize:16,lineHeight:1.75,color:'#aaa091'}}>The canonical object keeps its original identity, date, classification and provenance. This public surface is English-only, so original-language prose is withheld until an English rendition is materialized.</p>
+        </section>
+        <section style={{marginTop:38,border:'1px solid rgba(200,169,81,.22)',padding:24}}>
+          <small style={{fontSize:10,letterSpacing:'.18em',color:'#c8a951'}}>EPISTEMIC BOUNDARY</small>
+          <p style={{fontSize:15,lineHeight:1.7,color:'#b7aa96'}}>Publication equals exposure. A public rendition does not become external evidence, validation, authority or RETURN merely because it is visible.</p>
+        </section>
+      </article>
+    </main>;
+  }
 
   if (publication?.editorialKind === 'TEMPORAL_ISSUE') {
     return <TemporalIssueView publication={publication} landing={landing} />;
@@ -103,7 +128,7 @@ export default async function PublicationLandingPage({ params }: PageProps) {
             <Link href="/publications" style={{ fontSize: 10, letterSpacing: '.13em', color: '#d5ad69', textDecoration: 'none', borderBottom: '1px solid rgba(213,173,105,.35)', paddingBottom: 4 }}>{ui.back}</Link>
             <Link href="/library" style={{ fontSize: 10, letterSpacing: '.13em', color: '#8e806a', textDecoration: 'none' }}>LIBRARY</Link>
             {publication.renditions.find((item) => item.state === 'PUBLIC' && item.publicUrl)?.publicUrl ? <a href={publication.renditions.find((item) => item.state === 'PUBLIC' && item.publicUrl)!.publicUrl!} target="_blank" rel="noreferrer" style={{ fontSize: 10, letterSpacing: '.13em', color: '#d5ad69', textDecoration: 'none' }}>{ui.pdf}</a> : null}
-            {publication.mediumUrl ? <a href={publication.mediumUrl} target="_blank" rel="noreferrer" style={{ fontSize: 10, letterSpacing: '.13em', color: '#8e806a', textDecoration: 'none' }}>{isEnglish ? 'MEDIUM VERSION ↗' : 'VERSIÓN EN MEDIUM ↗'}</a> : null}
+            {publication.mediumUrl ? <a href={publication.mediumUrl} target="_blank" rel="noreferrer" style={{ fontSize: 10, letterSpacing: '.13em', color: '#8e806a', textDecoration: 'none' }}>MEDIUM VERSION ↗</a> : null}
           </div>
         </header>
 
@@ -113,7 +138,7 @@ export default async function PublicationLandingPage({ params }: PageProps) {
         </figure> : null}
 
         {publication.visuals.length ? <section style={{ paddingTop: 52 }}>
-          <small style={{ letterSpacing: '.18em', color: '#9f845b' }}>{isEnglish ? 'VISUAL ARGUMENT' : 'ARGUMENTO VISUAL'}</small>
+          <small style={{ letterSpacing: '.18em', color: '#9f845b' }}>VISUAL ARGUMENT</small>
           <div style={{ display: 'grid', gap: 22, marginTop: 18 }}>
             {publication.visuals.map((visual) => <figure key={visual.id} style={{ margin: 0, border: '1px solid rgba(202,160,92,.18)', background: '#080807' }}>
               <img src={visual.src} alt={visual.alt} style={{ display: 'block', width: '100%', height: 'auto' }}/>
@@ -131,7 +156,7 @@ export default async function PublicationLandingPage({ params }: PageProps) {
           <small style={{ letterSpacing: '.18em', color: '#9f845b' }}>{ui.originalBody}</small>
           <h3 style={{ fontSize: 'clamp(28px,4vw,44px)', fontWeight: 400, color: '#e5ce9d', margin: '10px 0 20px' }}>{ui.originalTitle}</h3>
           <p style={{ fontSize: 18, lineHeight: 1.85, color: '#bdb09a' }}>{ui.originalText}</p>
-          {publication.mediumUrl ? <p><a href={publication.mediumUrl} target="_blank" rel="noreferrer" style={{ color: '#d5ad69' }}>Leer el cuerpo completo en Medium ↗</a></p> : null}
+          {publication.mediumUrl ? <p><a href={publication.mediumUrl} target="_blank" rel="noreferrer" style={{ color: '#d5ad69' }}>READ FULL SOURCE ON MEDIUM ↗</a></p> : null}
         </section>}
 
         {publication.cadence.length ? <section style={{ paddingTop: 56 }}>
@@ -162,10 +187,10 @@ export default async function PublicationLandingPage({ params }: PageProps) {
           <small style={{ letterSpacing: '.18em', color: '#9f845b' }}>{ui.related}</small>
           <h3 style={{ fontSize: 38, fontWeight: 400, color: '#e5ce9d', margin: '10px 0 24px' }}>{ui.relatedTitle}</h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 10 }}>
-            {related.map((item) => <Link key={item.slug} href={`/publications/${item.slug}`} style={{ border: '1px solid rgba(202,160,92,.16)', padding: 18, textDecoration: 'none', minHeight: 150, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            {related.map((item) => { const itemProjection=publicEnglishProjection(item.slug,{title:item.title,subtitle:item.subtitle,summary:item.deck}); return <Link key={item.slug} href={`/publications/${item.slug}`} style={{ border: '1px solid rgba(202,160,92,.16)', padding: 18, textDecoration: 'none', minHeight: 150, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
               <span style={{ fontFamily: 'Inter,ui-sans-serif,system-ui,sans-serif', fontSize: 9, letterSpacing: '.12em', color: '#9f845b' }}>{OBSERVATION_LABELS[item.observationKind ?? ''] ?? item.observationKind}</span>
-              <strong style={{ fontWeight: 400, fontSize: 20, lineHeight: 1.15, color: '#dfcda8' }}>{item.title}</strong>
-            </Link>)}
+              <strong style={{ fontWeight: 400, fontSize: 20, lineHeight: 1.15, color: '#dfcda8' }}>{itemProjection.title}</strong>
+            </Link>; })}
           </div>
         </section> : null}
       </article>

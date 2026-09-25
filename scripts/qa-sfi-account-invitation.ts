@@ -118,9 +118,9 @@ assert.doesNotMatch(
 );
 assert.match(authActions, /export async function activateContinuityPasswordAction/);
 assert.match(authActions, /activateNeonPasswordWithBootstrap/, 'explicit continuity activation must own the one-time password bootstrap');
-assert.match(continuityAccess, /Activar continuidad/);
-assert.match(continuityAccess, /código temporal SFI/);
-assert.match(continuityAccess, /repite la contraseña/);
+assert.match(continuityAccess, /Activate continuity/);
+assert.match(continuityAccess, /temporary SFI code/);
+assert.match(continuityAccess, /repeat password/);
 const loginBlock = authActions.match(/export async function loginAction[\s\S]*?export async function activateContinuityPasswordAction/)?.[0] ?? '';
 assert.match(loginBlock, /signInWithNeonAuth/, 'normal login must try Neon continuity credentials first');
 assert.match(loginBlock, /supabase\.auth\.signInWithPassword/, 'normal login must retain Supabase compatibility for invited institutional accounts');

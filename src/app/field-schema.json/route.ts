@@ -20,11 +20,11 @@ export async function GET() {
     regime_jump_readiness: {
       formula: '0.20 Authority Density + 0.20 Evidence Coherence + 0.15 Field Persistence + 0.15 Public Observability + 0.10 Canon Stability + 0.10 Attractor Alignment + 0.10 Invitation Probability',
       thresholds: {
-        '0.00-0.39': 'Campo disperso',
-        '0.40-0.59': 'Campo emergente',
-        '0.60-0.74': 'Campo operativo',
-        '0.75-0.84': 'Campo con autoridad',
-        '0.85-1.00': 'Salto de regimen',
+        '0.00-0.39': 'Dispersed field',
+        '0.40-0.59': 'Emerging field',
+        '0.60-0.74': 'Operational field',
+        '0.75-0.84': 'Field with authority',
+        '0.85-1.00': 'Regime jump',
       },
     },
   }, {

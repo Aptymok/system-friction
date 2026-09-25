@@ -115,9 +115,9 @@ assert.doesNotMatch(`${operatingUi}\n${governanceUi}`,/rootPresenceReady|confirm
 // The canonical public entry must route humans and agents into existing owners without adding a parallel institution shell.
 assert.match(home,/PublicEntryGateway/,'canonical_home_missing_public_entry_gateway');
 for(const p of ['/institution','/login','/llms.txt','/ai-index.json','/api/external/v1/manifest']) assert.ok(publicEntry.includes(p),`public_entry_missing_path:${p}`);
-assert.match(publicEntry,/Observatory/,'public_entry_missing_observatory');
-assert.match(publicEntry,/Publications/,'public_entry_missing_publications');
-assert.match(publicEntry,/Library/,'public_entry_missing_library');
+assert.ok(publicEntry.includes('/observatory'),'public_entry_missing_observatory');
+assert.ok(publicEntry.includes('/publications'),'public_entry_missing_publications');
+assert.ok(publicEntry.includes('/library'),'public_entry_missing_library');
 assert.match(llms,/## WHAT TO DO FIRST/,'llms_missing_first_action_sequence');
 assert.match(llms,/execution-contract → perform requested measurements locally → \/result/,'llms_missing_universal_cycle');
 assert.match(aiIndex,/start_here/,'ai_index_missing_start_here');

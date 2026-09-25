@@ -13,18 +13,18 @@ export default async function ForgotPasswordPage({
     <main className="login">
       <form action={forgotPasswordAction}>
         <div className="sigil">SFI.</div>
-        <h1>Recuperar acceso</h1>
-        <p className="loginLead">Escribe el correo de tu cuenta SFI. Si la cuenta puede recibir correo, enviaremos un enlace seguro para definir una contraseña válida.</p>
-        <input name="email" type="email" placeholder="correo" autoComplete="email" required />
-        <button>ENVIAR ENLACE</button>
+        <h1>Recover access</h1>
+        <p className="loginLead">Enter the email address associated with your SFI account. If the account can receive email, we will send a secure link to set a valid password.</p>
+        <input name="email" type="email" placeholder="email" autoComplete="email" required />
+        <button>SEND LINK</button>
 
-        {state === 'sent' ? <div className="authNotice">Si la cuenta existe, el enlace fue solicitado. Revisa tu correo.</div> : null}
-        {error === 'rate_limit' ? <div className="authMessage">Hubo demasiados intentos seguidos. Inténtalo nuevamente más tarde.</div> : null}
-        {error === 'auth_unavailable' ? <div className="authMessage">El sistema de acceso no pudo procesar la recuperación en este momento.</div> : null}
+        {state === 'sent' ? <div className="authNotice">If the account exists, the recovery link was requested. Check your email.</div> : null}
+        {error === 'rate_limit' ? <div className="authMessage">Too many attempts were made in a short period. Try again later.</div> : null}
+        {error === 'auth_unavailable' ? <div className="authMessage">The access system could not process recovery at this time.</div> : null}
 
         <div className="loginSupport">
-          <a href="/login">Volver al acceso</a>
-          <a className="loginSupportSecondary" href="/continuity-access">No tengo acceso al correo institucional</a>
+          <a href="/login">Back to sign in</a>
+          <a className="loginSupportSecondary" href="/continuity-access">I do not have access to the institutional email account</a>
         </div>
       </form>
     </main>
