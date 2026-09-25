@@ -60,12 +60,7 @@ export const SCENES: readonly Scene[] = [
     accent:'BEFORE YOU EXPLAIN IT.',
     lead:'A more reconstructible world begins by separating what is seen, what is inferred, and what can be acted upon.',
     background:'/assets/sfi/scenes/sala_inicial.png',
-    assets:[
-      {src:'/assets/sfi/maps/planeta_tierra.png',role:'background',depth:1,motion:'slow-drift',scale:'orbital'},
-      {src:'/assets/sfi/overlays/domo sobre el planeta.png',role:'interface',depth:2,motion:'pointer-parallax',scale:'planetary',alpha:true},
-      {src:'/assets/sfi/overlays/shinny_effect.png',role:'atmosphere',depth:3,motion:'slow-drift',scale:'planetary',alpha:true},
-      {src:'/assets/sfi/overlays/margen_inicial.png',role:'interface',depth:4,motion:'static',scale:'planetary',alpha:true},
-    ],
+    assets:[],
     frames:[
       {label:'WORLD',title:'Begin with the field.',text:'Systems, territory, institutions and people are observed before a single explanation is privileged.'},
       {label:'POSITION',title:'Every reading has a position.',text:'Observation is situated by time, source, role, access and distance from consequence.'},
@@ -90,11 +85,7 @@ export const SCENES: readonly Scene[] = [
     accent:'WHEN SCALE IS CONTROLLED.',
     lead:'The observatory is not a static dashboard. It is a position from which planetary signals, institutional time, and systemic contrast can be inspected.',
     background:'/assets/sfi/system/reference/a_wide_cinematic_futuristic_ui_header_website_inte.png',
-    assets:[
-      {src:'/assets/sfi/overlays/orbit-overlay.png',role:'signal',depth:1,motion:'slow-drift',scale:'orbital',alpha:true},
-      {src:'/assets/sfi/overlays/halo_dorado_de_astrolabio_cósmico.png',role:'interface',depth:2,motion:'pointer-parallax',scale:'orbital',alpha:true},
-      {src:'/assets/sfi/overlays/amanecer_dorado_celestial_transparente.png',role:'atmosphere',depth:3,motion:'slow-drift',scale:'orbital',alpha:true},
-    ],
+    assets:[],
     frames:[
       {label:'OBSERVATION',title:'Observe what is present.',text:'Signals, positions and changing states appear before explanation.'},
       {label:'EVIDENCE',title:'Preserve what can be recovered.',text:'Evidence must remain retrievable, inspectable and challengeable.'},
