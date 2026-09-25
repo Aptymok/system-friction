@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'r
 import { useAuthState } from '@/components/auth/AuthProvider';
 import { SessionControls } from './SessionControls';
 import { ObservatoryInterpretiveFlow } from './ObservatoryInterpretiveFlow';
+import { PublicSurfaceBridge } from './PublicSurfaceBridge';
 import { translateUiText } from '@/components/i18n/SfiLanguageProvider';
 import {
   classifyObservatoryRead,
@@ -149,7 +150,7 @@ export function ObservatoryConsole(){
       ? `The selected hypothesis is an inference, not a fact: ${selectedHypothesis.statement??'no statement'}. Its trace uses ${selectedEvidenceIds.size} source records, affects ${arr(selectedHypothesis.aiInference?.affectedSystems).length} systems, and preserves explicit contradiction signals.`
       : `The field contains ${nodes.length} visible observations and ${filteredHypotheses.length} traceable hypotheses under the current filters.`;
 
-  return <><main className="obsShell" data-world-availability={availability.world} data-state-availability={availability.state} data-timeline-availability={availability.timeline}><section className={`obsScene lens-${lens}`}><div className="starfield"/><div className="deepSpace"/>
+  return <><main className="obsShell" data-world-availability={availability.world} data-state-availability={availability.state} data-timeline-availability={availability.timeline}><PublicSurfaceBridge scene="observatory-dashboard" number="02" label="OBSERVATORY" previous={{href:'/',label:'ENTRY'}} next={{href:'/library',label:'LIBRARY'}}/><section className={`obsScene lens-${lens}`}><div className="starfield"/><div className="deepSpace"/>
     <button className={`satelliteActor satellite-${lens}`} onClick={()=>{setSatelliteOpen(v=>!v);if(!selectedHypothesisId&&filteredHypotheses[0])setSelectedHypothesisId(String(filteredHypotheses[0].id))}} aria-label={ui('Open SFI satellite instrument')}>
       <img src="/sfi-scenes/satellite.png" alt={ui('SFI observatory satellite')}/><span className="scanBeam"/>
     </button>
