@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { PublicSurfaceBridge } from '@/components/sfi/PublicSurfaceBridge';
 import { SFI_NOTAS_TEMPORALES_V1, SFI_REALITY_CHAIN_BRIEF, SFI_YEARS_THAT_DID_EXIST_LAB_NOTE } from '@/lib/publications/editorialContent';
 import {
   SFI_EDITORIAL_FAMILIES,
@@ -50,7 +51,7 @@ export default async function PublicationsPage() {
   });
   const persistedPublications = await getPublicPublishedReturns(12);
 
-  return <main className="publicationsHub">
+  return <main className="publicationsHub"><PublicSurfaceBridge scene="return-loop" number="08" label="PUBLICATIONS / RETURN" previous={{href:'/library',label:'LIBRARY'}} next={{href:'/',label:'JOURNEY'}}/>
     <header className="pubTopbar">
       <Link href="/" className="pubBrand">SFI</Link>
       <div className="pubTopbarIdentity"><span>SYSTEM FRICTION INSTITUTE</span><small>PUBLICATIONS / EDITORIAL ARCHIVE</small></div>
