@@ -193,10 +193,11 @@ export function PublicEntryGateway(){
           className={`sfiScene sfiScene--${item.id}`}
           data-state={state}
           data-scene={item.id}
+          data-scale={item.scale}
           style={{'--scene-offset':offset,'--active-frame':index===sceneIndex?frameIndex:0} as CSSProperties}
           aria-hidden={index===sceneIndex ? undefined : true}
         >
-          <div className="sfiSceneBackground" style={{backgroundImage:`linear-gradient(90deg,rgba(6,6,5,.96) 0%,rgba(6,6,5,.76) 39%,rgba(6,6,5,.25) 69%,rgba(6,6,5,.68) 100%),url('${item.background}')`}}/>
+          <div className="sfiSceneBackground" style={{backgroundImage:`url('${item.background}')`}}/>
           <div className="sfiSceneGrid" aria-hidden="true"/>
           <div className="sfiSceneLayers" aria-hidden="true">
             {item.assets.map((asset,layerIndex)=><img
