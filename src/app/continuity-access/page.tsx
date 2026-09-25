@@ -8,31 +8,31 @@ export default async function ContinuityAccessPage({
   const params = await searchParams;
   const rawError = Array.isArray(params.error) ? params.error[0] : params.error;
   const error = rawError === 'rate_limit'
-    ? 'Hubo demasiados intentos seguidos. Inténtalo nuevamente más tarde.'
+    ? 'Too many attempts were made in a short period. Try again later.'
     : rawError === 'auth_unavailable'
-      ? 'La activación de continuidad no está disponible en este momento.'
+      ? 'Continuity activation is not available at this time.'
       : rawError === 'invalid_or_expired'
-        ? 'El código de activación no es válido, ya expiró o ya fue utilizado.'
+        ? 'The activation code is invalid, expired or has already been used.'
         : rawError
-          ? 'Revisa el código y confirma que las dos contraseñas coincidan.'
+          ? 'Check the code and confirm that both passwords match.'
           : '';
 
   return (
     <main className="login">
       <form action={activateContinuityPasswordAction}>
         <div className="sigil">SFI.</div>
-        <h1>Activar continuidad</h1>
+        <h1>Activate continuity</h1>
         <p>
-          Define directamente tu credencial de Neon con el código temporal de activación.
-          El código se consume una sola vez y no crea una cuenta nueva ni modifica tu autoridad institucional.
+          Set your Neon credential directly with the temporary activation code.
+          The code is consumed once and does not create a new account or modify your institutional authority.
         </p>
-        <input name="code" type="text" placeholder="código temporal SFI-…" autoComplete="one-time-code" required />
-        <input name="password" type="password" placeholder="nueva contraseña" autoComplete="new-password" minLength={12} required />
-        <input name="confirmation" type="password" placeholder="repite la contraseña" autoComplete="new-password" minLength={12} required />
-        <button>ACTIVAR EN NEON</button>
+        <input name="code" type="text" placeholder="temporary SFI code…" autoComplete="one-time-code" required />
+        <input name="password" type="password" placeholder="new password" autoComplete="new-password" minLength={12} required />
+        <input name="confirmation" type="password" placeholder="repeat password" autoComplete="new-password" minLength={12} required />
+        <button>ACTIVATE IN NEON</button>
         {error ? <small>{error}</small> : null}
-        <small>La activación sólo inicializa la credencial del usuario Neon ya existente. No cambia user_id, perfil, rol ROOT ni permisos.</small>
-        <small><a href="/login">Volver al acceso</a></small>
+        <small>Activation only initializes the credential for the existing Neon user. It does not change user_id, profile, ROOT role or permissions.</small>
+        <small><a href="/login">Back to sign in</a></small>
       </form>
     </main>
   );
