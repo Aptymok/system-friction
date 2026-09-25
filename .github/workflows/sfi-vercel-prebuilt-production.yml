@@ -149,6 +149,7 @@ jobs:
         shell: bash
         env:
           NODE_OPTIONS: --conditions=react-server
+          NEXT_PUBLIC_SUPABASE_URL: https://nwrmbkgsnrhdscnsyoko.supabase.co
         run: |
           set -euo pipefail
           test -f .vercel/.env.production.local
