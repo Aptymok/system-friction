@@ -17,8 +17,8 @@ const route = read('src/app/api/root/library/cognitive-spine/route.ts');
 // compact metadata contains full document bodies.
 assert.ok(publicPage.includes('sf_docs_frontmatter.json'), 'library_canonical_catalog_source_missing');
 assert.ok(publicPage.includes('LIBRARY · DOCUMENTARY CORPUS'), 'library_documentary_surface_missing');
-assert.ok(publicPage.includes('CATÁLOGO DOCUMENTAL CANÓNICO'), 'library_canonical_catalog_contract_missing');
-assert.ok(publicPage.includes('cuerpos completos'), 'library_compact_body_boundary_missing');
+assert.ok(publicPage.includes('CANONICAL DOCUMENTARY CATALOG'), 'library_canonical_catalog_contract_missing');
+assert.ok(publicPage.includes('full bodies are not assumed to be materialized'), 'library_compact_body_boundary_missing');
 assert.ok(publicPage.includes('FULL DOCUMENT BODY READER = NOT MATERIALIZED'), 'library_full_body_reader_boundary_missing');
 assert.equal(publicPage.includes("redirect('/archive')"), false, 'library_must_not_remain_archive_redirect_alias');
 assert.ok(scenes.includes("LEGACY_INTERNAL_SCENES=['systems','archive'"), 'archive_legacy_lens_registry_missing');
