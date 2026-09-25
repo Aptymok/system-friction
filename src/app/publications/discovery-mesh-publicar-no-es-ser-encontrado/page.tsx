@@ -6,27 +6,64 @@ const CANONICAL = 'https://systemfriction.org/publications/discovery-mesh-public
 const COVER = '/images/editorial/discovery-mesh-observation.svg';
 
 export const metadata: Metadata = {
-  title: 'Discovery Mesh: publicar no es ser encontrado · System Friction Institute',
-  description: 'Nota de Laboratorio sobre auto-observación institucional, encontrabilidad, candidatos gobernados y la distancia entre EXPOSURE, DISCOVERY, PULL y RETURN.',
+  title: 'Discovery Mesh: Publishing Is Not Being Found · System Friction Institute',
+  description: 'Lab note on institutional self-observation, discoverability, governed candidates and the distance between EXPOSURE, DISCOVERY, PULL and RETURN.',
   alternates: { canonical: CANONICAL },
-  openGraph: { type:'article',url:CANONICAL,siteName:'System Friction Institute',title:'Discovery Mesh: publicar no es ser encontrado',description:'Cómo SFI observa su propia encontrabilidad sin convertir exposición en reconocimiento.',images:[{url:COVER}] },
-  other: { 'sfi-canonical-id':'SFI-PUB-OBS-014','sfi-epistemic-class':'METHOD_NOTE','sfi-publication-state':'PUBLISHED_BY_FOUNDER_AUTHORIZATION','sfi-boundary':'EXPOSURE_NE_DISCOVERY_NE_PULL_NE_RETURN' },
+  openGraph: {
+    type:'article',
+    url:CANONICAL,
+    siteName:'System Friction Institute',
+    title:'Discovery Mesh: Publishing Is Not Being Found',
+    description:'How SFI observes its own discoverability without converting exposure into recognition.',
+    images:[{url:COVER}],
+  },
+  other: {
+    'sfi-canonical-id':'SFI-PUB-OBS-014',
+    'sfi-epistemic-class':'METHOD_NOTE',
+    'sfi-publication-state':'PUBLISHED_BY_FOUNDER_AUTHORIZATION',
+    'sfi-boundary':'EXPOSURE_NE_DISCOVERY_NE_PULL_NE_RETURN',
+  },
 };
 
 export default function DiscoveryMeshMethodNote() {
   return <main className="meshNote">
-    <header className="meshTop"><Link href="/">SYSTEM FRICTION INSTITUTE</Link><div>NOTAS DE LABORATORIO · SFI-PUB-OBS-014 · 16 SEP 2026</div><Link href="/publications">PUBLICATIONS</Link></header>
-    <section className="meshHero"><div className="meshHeroCopy"><span className="meshKicker">DISCOVERY MESH · METHOD NOTE</span><h1>Publicar no es ser encontrado.</h1><p className="meshLead">Una institución puede exponer una superficie, aparecer en una búsqueda y aun así no haber sido reconocida, utilizada ni requerida. Discovery Mesh conserva esas distancias en lugar de rellenarlas con narrativa.</p></div><figure className="meshFigure"><img src={COVER} alt="Discovery Mesh: trayectoria desde EXPOSURE hasta RETURN"/><figcaption>SFI · DISCOVERY MESH · representación metodológica. La gráfica describe estados posibles; no afirma que todos hayan sido observados.</figcaption></figure></section>
-    <aside className="meshBoundary"><b>FRONTERA</b><p>PUBLICACIÓN = EXPOSURE. DISCOVERY, RECOGNITION, INTERACTION, RELATION, PROPAGATION, PULL y RETURN requieren observaciones distintas. Un estado ausente permanece ausente. NULL no se convierte en cero.</p></aside>
+    <header className="meshTop">
+      <Link href="/">SYSTEM FRICTION INSTITUTE</Link>
+      <div>LAB NOTES · SFI-PUB-OBS-014 · 16 SEP 2026</div>
+      <Link href="/publications">PUBLICATIONS</Link>
+    </header>
+
+    <section className="meshHero">
+      <div className="meshHeroCopy">
+        <span className="meshKicker">DISCOVERY MESH · METHOD NOTE</span>
+        <h1>Publishing is not being found.</h1>
+        <p className="meshLead">An institution can expose a surface, appear in search, and still not have been recognized, used or required. Discovery Mesh preserves those distances instead of filling them with narrative.</p>
+      </div>
+      <figure className="meshFigure">
+        <img src={COVER} alt="Discovery Mesh: trajectory from EXPOSURE to RETURN"/>
+        <figcaption>SFI · DISCOVERY MESH · methodological representation. The diagram describes possible states; it does not claim that all of them have been observed.</figcaption>
+      </figure>
+    </section>
+
+    <aside className="meshBoundary">
+      <b>BOUNDARY</b>
+      <p>PUBLICATION = EXPOSURE. DISCOVERY, RECOGNITION, INTERACTION, RELATION, PROPAGATION, PULL and RETURN require distinct observations. An absent state remains absent. NULL is not converted to zero.</p>
+    </aside>
+
     <article className="meshBody">
-      <section className="meshSection"><span>01 / EXPOSURE</span><div><h2>Publicar sólo abre la trayectoria.</h2><p>Una página pública, un feed, un objeto canónico o una representación legible para máquinas demuestran que SFI colocó algo en una superficie accesible. No demuestran que alguien lo encontró, lo reconoció como útil, modificó una decisión con él o regresó con un resultado.</p><p>Si publicación y descubrimiento se mezclan, el sistema puede celebrar actividad propia como si fuera evidencia externa.</p></div></section>
-      <section className="meshSection"><span>02 / SELF-OBSERVATION</span><div><h2>La institución puede observar su propia encontrabilidad.</h2><p>Discovery Mesh ejecuta observaciones acotadas sobre búsquedas y recuperaciones elegibles. Conserva consulta, intención, proveedor, fuente, timestamp, identidad atribuida, URL canónica citada, referencias independientes y colisiones cuando esas variables existen.</p><p>La auto-observación no convierte al instituto en juez de su propia legitimidad. Detecta dónde la representación pública puede reconstruirse y dónde todavía faltan observaciones.</p></div></section>
-      <section className="meshSection"><span>03 / INSTRUMENTS</span><div><h2>Siete familias de medición, ninguna métrica de prestigio.</h2><div className="meshMetrics"><div><b>UDR</b><small>Recuperación no marcada.</small></div><div><b>EIC</b><small>Coherencia de identidad externa.</small></div><div><b>IRD</b><small>Densidad de referencias independientes.</small></div><div><b>ACR</b><small>Recuperación, atribución y cita por IA.</small></div><div><b>ECR</b><small>Colisiones de nombre, dominio, método y entidad.</small></div><div><b>MPD</b><small>Profundidad observada de propagación.</small></div><div><b>ERR</b><small>Reconstrucción de la entidad.</small></div></div><p>Su función es volver falsables afirmaciones que de otro modo serían impresiones: “somos encontrables”, “nos reconstruyen correctamente”, “la pieza circuló”, “una IA nos cita”.</p></div></section>
-      <section className="meshSection"><span>04 / MISSING</span><div><h2>Lo no observado no se rellena.</h2><p>Una consulta sin muestra elegible no produce cero. Una publicación sin referencia independiente no produce fracaso. Una mención no se convierte en relación. Una relación no se convierte en PULL. Y una solicitud no se convierte en RETURN mientras no exista un resultado observable ligado a ella.</p></div></section>
-      <section className="meshSection"><span>05 / DEVELOPMENT</span><div><h2>La observación puede producir candidatos de desarrollo.</h2><p>Cuando el Mesh encuentra una dimensión no observada o una medición degradada, puede formular un cambio acotado y conservar el run que lo originó, la métrica observada, la condición deseada y el cambio sugerido.</p><p>El candidato entra al lifecycle institucional existente. Si requiere código o implementación material y no existe un executor autorizado, queda <b>BLOCKED_MISSING_EXECUTOR</b>; esa ausencia no se convierte en una petición artificial para que ROOT autorice “pensar”. Ejecución, RETURN, adopción y canon siguen siendo estados distintos.</p></div></section>
-      <section className="meshSection"><span>06 / FOUNDER-AWAY</span><div><h2>Encontrar no debe depender de que el Fundador persiga.</h2><p>La función institucional del Mesh es reducir esa dependencia: emitir objetos reconstruibles, observar cómo aparecen —o no aparecen—, detectar fricción de identidad y formular candidatos trazables.</p><p>El Fundador interviene donde existe una decisión reservada. La rutina de observar, registrar y volver a medir puede continuar sin convertir su atención en middleware del instituto.</p></div></section>
-      <section className="meshSection"><span>07 / RETURN</span><div><h2>El siguiente ciclo empieza cuando el campo responde.</h2><p>Una mejora sólo queda demostrada cuando una observación posterior cambia de manera trazable: una consulta recupera lo que antes no recuperaba, una identidad se reconstruye correctamente, aparece una referencia independiente o una trayectoria externa alcanza un estado antes no observado.</p><p>RETURN conserva también la posibilidad de que la intervención no funcionara.</p></div></section>
+      <section className="meshSection"><span>01 / EXPOSURE</span><div><h2>Publishing only opens the trajectory.</h2><p>A public page, feed, canonical object or machine-readable representation demonstrates that SFI placed something on an accessible surface. It does not demonstrate that anyone found it, recognized it as useful, changed a decision because of it or returned with an outcome.</p><p>If publication and discovery are mixed, the system can celebrate its own activity as if it were external evidence.</p></div></section>
+      <section className="meshSection"><span>02 / SELF-OBSERVATION</span><div><h2>The institution can observe its own discoverability.</h2><p>Discovery Mesh performs bounded observations over eligible searches and retrievals. It preserves query, intent, provider, source, timestamp, attributed identity, cited canonical URL, independent references and collisions when those variables exist.</p><p>Self-observation does not make the institute the judge of its own legitimacy. It detects where public representation can be reconstructed and where observations are still missing.</p></div></section>
+      <section className="meshSection"><span>03 / INSTRUMENTS</span><div><h2>Seven measurement families. No prestige metric.</h2><div className="meshMetrics"><div><b>UDR</b><small>Unmarked retrieval.</small></div><div><b>EIC</b><small>External identity coherence.</small></div><div><b>IRD</b><small>Independent reference density.</small></div><div><b>ACR</b><small>AI retrieval, attribution and citation.</small></div><div><b>ECR</b><small>Name, domain, method and entity collisions.</small></div><div><b>MPD</b><small>Observed propagation depth.</small></div><div><b>ERR</b><small>Entity reconstruction.</small></div></div><p>Their purpose is to make otherwise impressionistic claims falsifiable: “we are discoverable,” “we are reconstructed correctly,” “the piece circulated,” “an AI cites us.”</p></div></section>
+      <section className="meshSection"><span>04 / MISSING</span><div><h2>What was not observed is not filled in.</h2><p>A query without an eligible sample does not produce zero. A publication without an independent reference does not produce failure. A mention does not become a relation. A relation does not become PULL. A request does not become RETURN until an observable outcome is linked to it.</p></div></section>
+      <section className="meshSection"><span>05 / DEVELOPMENT</span><div><h2>Observation can produce development candidates.</h2><p>When the Mesh finds an unobserved dimension or degraded measurement, it can formulate a bounded change and preserve the run that originated it, the observed metric, the desired condition and the suggested change.</p><p>The candidate enters the existing institutional lifecycle. If it requires code or material implementation and no authorized executor exists, it remains <b>BLOCKED_MISSING_EXECUTOR</b>. Execution, RETURN, adoption and canon remain distinct states.</p></div></section>
+      <section className="meshSection"><span>06 / FOUNDER-AWAY</span><div><h2>Being found must not depend on the Founder chasing it.</h2><p>The institutional function of the Mesh is to reduce that dependency: emit reconstructible objects, observe how they appear—or fail to appear—detect identity friction and formulate traceable candidates.</p><p>The Founder intervenes where a reserved decision exists. Routine observation, recording and re-measurement can continue without turning Founder attention into institutional middleware.</p></div></section>
+      <section className="meshSection"><span>07 / RETURN</span><div><h2>The next cycle begins when the field responds.</h2><p>An improvement is demonstrated only when a later observation changes traceably: a query retrieves what it previously did not, an identity is reconstructed correctly, an independent reference appears or an external trajectory reaches a previously unobserved state.</p><p>RETURN also preserves the possibility that the intervention did not work.</p></div></section>
     </article>
-    <footer className="meshFooter"><span>SFI · NOTAS DE LABORATORIO</span><span>OBSERVED / DERIVED / INFERRED / PROJECTED permanecen separados</span><span><Link href="/root/discovery">ROOT / DISCOVERY →</Link></span></footer>
+
+    <footer className="meshFooter">
+      <span>SFI · LAB NOTES</span>
+      <span>OBSERVED / DERIVED / INFERRED / PROJECTED remain separate</span>
+      <span><Link href="/root/discovery">ROOT / DISCOVERY →</Link></span>
+    </footer>
   </main>;
 }
