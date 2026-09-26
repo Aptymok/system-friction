@@ -1,7 +1,21 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { SFI_EDITORIAL_PUBLICATIONS } from '@/lib/publications/editorialContent';
-import { publicEnglishProjection } from '@/lib/publications/publicEnglishProjection';
+import {
+  SFI_EDITORIAL_PUBLICATIONS,
+  SFI_NOTAS_TEMPORALES_V1,
+  SFI_REALITY_CHAIN_BRIEF,
+  SFI_YEARS_THAT_DID_EXIST_LAB_NOTE,
+} from '@/lib/publications/editorialContent';
+import {
+  SFI_EDITORIAL_FAMILIES,
+  SFI_PUBLICATIONS_BANNER,
+  editorialFamilyEntries,
+} from '@/lib/publications/editorialFamilies';
+import {
+  publicEnglishObservationLabel,
+  publicEnglishProjection,
+} from '@/lib/publications/publicEnglishProjection';
+import { getPublicPublishedReturns } from '@/lib/observatory/publicState';
 import { PublicationsCatalog, type PublicationCatalogItem } from './PublicationsCatalog';
 import './publications.css';
 
@@ -30,11 +44,13 @@ export const metadata: Metadata = {
     siteName:'System Friction Institute',
     title:'Publications · System Friction Institute',
     description:'Recoverable institutional memory: published observations, research, cases, methods and RETURN.',
-    images:[{url:'/assets/sfi/scenes/06_archive_background.png'}],
+    images:[{url:SFI_PUBLICATIONS_BANNER.web}],
   },
   other: {
     'sfi-surface':'PUBLICATIONS_HUB',
     'sfi-public-language':'en',
+    'sfi-editorial-contract':'SFI-EDITORIAL-FAMILY-PROJECTION-1.0',
+    'sfi-identity-manual':'SFI-ID-003 / MASTER EDITION V4.0',
   },
 };
 
@@ -51,6 +67,12 @@ function categoryFor(item:(typeof SFI_EDITORIAL_PUBLICATIONS)[number]){
     INSTITUTIONAL:'INSTITUTIONS',
   };
   return map[item.observationKind||''] || 'OBSERVATIONS';
+}
+
+function formatDate(value:string){
+  const date=new Date(value);
+  if(!Number.isFinite(date.valueOf())) return value;
+  return new Intl.DateTimeFormat('en-US',{day:'2-digit',month:'short',year:'numeric'}).format(date);
 }
 
 const DISCOVERY_MESH_PUBLICATION = Object.freeze({
@@ -80,7 +102,7 @@ const editorialItems: PublicationCatalogItem[] = SFI_EDITORIAL_PUBLICATIONS
       summary:projection.summary,
       publishedAt:publication.publishedAt,
       category:categoryFor(publication),
-      cover:DOCUMENT_COVERS[index % DOCUMENT_COVERS.length],
+      cover:publication.coverImage || DOCUMENT_COVERS[index % DOCUMENT_COVERS.length],
     };
   });
 
@@ -97,7 +119,15 @@ const items: readonly PublicationCatalogItem[] = [
   },
 ].sort((a,b)=>Date.parse(b.publishedAt)-Date.parse(a.publishedAt));
 
-export default function PublicationsPage(){
+export default async function PublicationsPage(){
+  const monthly=SFI_NOTAS_TEMPORALES_V1;
+  const monthlyProjection=publicEnglishProjection(monthly.slug,{
+    title:monthly.title,
+    subtitle:monthly.subtitle,
+    summary:monthly.deck,
+  });
+  const persistedPublications=await getPublicPublishedReturns(12);
+
   return <main className="publicationsHub">
     <header className="pubTopbar">
       <Link href="/" className="pubBrand" aria-label="System Friction Institute home">SFI</Link>
@@ -113,10 +143,92 @@ export default function PublicationsPage(){
     </header>
 
     <section className="pubArchiveHero" aria-labelledby="publications-title">
+      <figure className="pubCanonicalBanner">
+        <picture>
+          <source media="(max-width: 720px)" srcSet={SFI_PUBLICATIONS_BANNER.mobile}/>
+          <img src={SFI_PUBLICATIONS_BANNER.web} alt={SFI_PUBLICATIONS_BANNER.alt}/>
+        </picture>
+        <figcaption>{SFI_PUBLICATIONS_BANNER.provenance}</figcaption>
+      </figure>
       <div className="pubArchiveHeroCopy">
         <span>PUBLICATIONS / PUBLIC RECORD</span>
         <h1 id="publications-title">Memory that can be recovered.</h1>
         <p>Published observations, research, cases and RETURN preserved as recoverable institutional objects.</p>
+        <div className="pubBoundary">
+          <b>PUBLICATION = EXPOSURE</b>
+          <span>EXPOSURE ≠ EXTERNAL EVIDENCE ≠ RETURN</span>
+        </div>
+      </div>
+    </section>
+
+    <section className="pubFeatured" aria-label="Canonical editorial objects">
+      <article>
+        <span>MONTHLY ISSUE · {monthly.issue.toUpperCase()}</span>
+        <h2>{monthlyProjection.title}</h2>
+        <p>{monthlyProjection.summary}</p>
+        <Link href={`/publications/${monthly.slug}`}>OPEN MONTHLY ISSUE →</Link>
+      </article>
+      <article>
+        <span>PUBLIC-SOURCE FRICTION BRIEF</span>
+        <h2>{SFI_REALITY_CHAIN_BRIEF.title}</h2>
+        <p>{SFI_REALITY_CHAIN_BRIEF.deck}</p>
+        <Link href={`/publications/${SFI_REALITY_CHAIN_BRIEF.slug}`}>READ BRIEF →</Link>
+      </article>
+      <article>
+        <span>RESEARCH LAB NOTE</span>
+        <h2>{SFI_YEARS_THAT_DID_EXIST_LAB_NOTE.title}</h2>
+        <p>{SFI_YEARS_THAT_DID_EXIST_LAB_NOTE.deck}</p>
+        <Link href={`/publications/${SFI_YEARS_THAT_DID_EXIST_LAB_NOTE.slug}`}>READ LAB NOTE →</Link>
+      </article>
+    </section>
+
+    <section className="pubPersisted" aria-labelledby="persisted-returns-title">
+      <header>
+        <span>PUBLISHED OPERATIONAL RETURNS</span>
+        <h2 id="persisted-returns-title">What the system can already reconstruct.</h2>
+        <p>Original-language payload text is withheld from this English-only surface. PUBLICATION = EXPOSURE; publication does not become external validation merely because it is visible.</p>
+      </header>
+      <div className="pubPersistedGrid">
+        {persistedPublications.length ? persistedPublications.map((publication)=><article key={publication.id}>
+          <span>PUBLISHED RETURN</span>
+          <time>{publication.publishedAt?formatDate(publication.publishedAt):'DATE UNAVAILABLE'}</time>
+          <strong>SFI · Operational Return</strong>
+          <small>{publication.snapshotVersion??'SNAPSHOT VERSION UNAVAILABLE'}</small>
+        </article>) : <p>No governed operational RETURN is currently published.</p>}
+      </div>
+    </section>
+
+    <section className="pubFamilies" aria-labelledby="families-title">
+      <header>
+        <span>EDITORIAL FAMILIES</span>
+        <h2 id="families-title">Five lenses. One public record.</h2>
+        <p>Families organize reading and discovery. They do not replace canonical classification or convert an observation into evidence.</p>
+      </header>
+      <div className="pubFamiliesGrid">
+        {SFI_EDITORIAL_FAMILIES.map((family)=>{
+          const entries=editorialFamilyEntries(family);
+          return <article key={family.key}>
+            <img src={family.image} alt=""/>
+            <div>
+              <span>{family.shortLabel.toUpperCase()}</span>
+              <h3>{family.label}</h3>
+              <p>{family.description}</p>
+              <small>{family.imageProvenance}</small>
+              <div className="pubFamilyLinks">
+                {entries.slice(0,3).map((publication)=>{
+                  const projection=publicEnglishProjection(publication.slug,{
+                    title:publication.title,
+                    subtitle:publication.subtitle,
+                    summary:publication.deck,
+                  });
+                  return <Link key={publication.slug} href={`/publications/${publication.slug}`}>
+                    {publicEnglishObservationLabel(publication.observationKind)} · {projection.title}
+                  </Link>;
+                })}
+              </div>
+            </div>
+          </article>;
+        })}
       </div>
     </section>
 
