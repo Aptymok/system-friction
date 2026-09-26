@@ -200,8 +200,9 @@ export function PublicEntryGateway(){
       </Link>
 
       <nav aria-label="Public navigation">
+        <Link href="/method-lab">LABORATORY</Link>
+        <Link href="/publications">REGISTRY</Link>
         <Link href="/observatory">OBSERVATORY</Link>
-        <Link href="/publications">PUBLICATIONS</Link>
       </nav>
 
       <div className="sfiSceneChromeActions">
