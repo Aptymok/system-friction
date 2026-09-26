@@ -237,7 +237,11 @@
     145px
   )
 }
-.sfiSceneLayer[data-alpha="true"]{mix-blend-mode:screen}
+.sfiSceneLayer[data-alpha="true"][data-role="signal"],
+.sfiSceneLayer[data-alpha="true"][data-role="interface"],
+.sfiSceneLayer[data-alpha="true"][data-role="atmosphere"]{mix-blend-mode:screen}
+.sfiSceneLayer[data-role="human"],
+.sfiSceneLayer[data-role="structure"]{mix-blend-mode:normal}
 .sfiSceneLayer[data-role="atmosphere"]{opacity:.3}
 .sfiSceneLayer[data-motion="slow-drift"]{animation:sfiSceneBreath 9s ease-in-out infinite alternate}
 @keyframes sfiSceneBreath{
@@ -449,110 +453,225 @@
   filter:none
 }
 
-/* 04 — friction: luminous relation field, not dashboard UI. */
-.sfiScene--friction .sfiSceneBackground{
-  background-size:112% auto;
-  filter:saturate(.9) contrast(1.07) brightness(.78)
+/* 04 / 05 — same physical room. FRICTION becomes INSTITUTION by adding humanity.
+   The world does not jump; responsibility appears inside the same field. */
+.sfiScene--friction,
+.sfiScene--institution{
+  background:#030302
 }
-.sfiScene--friction .sfiSceneLayers{opacity:.48}
-.sfiScene--friction:after{
-  background:
-    radial-gradient(circle at var(--field-x,58%) 46%,transparent 0 19%,rgba(4,4,3,.1) 44%,rgba(4,4,3,.55) 100%),
-    linear-gradient(90deg,rgba(4,4,3,.72),rgba(4,4,3,.28) 34%,transparent 64%)
+.sfiScene--friction .sfiSceneGrid,
+.sfiScene--institution .sfiSceneGrid,
+.sfiScene--library .sfiSceneGrid,
+.sfiScene--return .sfiSceneGrid{
+  display:none
 }
-
-/* 05 — institutional descent. */
+.sfiScene--friction .sfiSceneBackground,
 .sfiScene--institution .sfiSceneBackground{
-  background-size:112% auto;
-  filter:saturate(.86) contrast(1.05) brightness(.77)
-}
-.sfiScene--institution[data-state="future"]{
-  transform:translate3d(0,18%,-330px) scale(.82);
-  opacity:0;
-  filter:brightness(.42) blur(10px)
-}
-
-/* 06 — archive/library reads as spatial memory. */
-.sfiScene--library .sfiSceneBackground{
+  inset:68px -3% -3%;
   background-size:cover;
-  filter:saturate(.84) contrast(1.05) brightness(.72)
-}
-.sfiScene--library[data-state="future"]{
-  transform:translate3d(0,0,-220px) scale(.89);
-  opacity:0;
-  filter:brightness(.4) blur(8px);
-  clip-path:inset(30% 30% 30% 30% round 18px)
-}
-.sfiScene--library[data-state="active"]{
-  clip-path:inset(0 0 0 0 round 0)
-}
-
-/* 07 — RETURN contracts rather than scrolls away. */
-.sfiScene--return[data-state="future"]{
-  transform:translate3d(0,0,270px) scale(1.18);
-  opacity:0;
-  filter:brightness(.7) blur(9px)
-}
-.sfiScene--return .sfiSceneBackground{
-  filter:saturate(.82) contrast(1.06) brightness(.75)
-}
-
-
-/* 04 parallax: one restrained orbital layer over the clean FRICTION master. */
-.sfiScene--friction .sfiSceneLayer--1{
-  width:112vw;
-  max-width:none;
-  right:-6vw;
-  top:-2%;
-  opacity:.18;
-  mix-blend-mode:screen;
-  transform:translate3d(
-    calc(var(--pointer-x,0) * 8px),
-    calc(var(--pointer-y,0) * 5px),
-    55px
-  ) scale(1.03)
-}
-
-/* 05 parallax: institutional memory/authority objects remain subordinate. */
-.sfiScene--institution .sfiSceneLayer--1{
-  width:108vw;
-  max-width:none;
-  right:-4vw;
-  top:0;
-  opacity:.14;
-  mix-blend-mode:screen;
-  transform:translate3d(
-    calc(var(--pointer-x,0) * 7px),
-    calc(var(--pointer-y,0) * 4px),
-    45px
-  )
-}
-.sfiScene--institution .sfiSceneLayer--2{
-  width:min(25vw,390px);
-  right:auto;
-  left:1.5vw;
-  top:auto;
-  bottom:2vh;
-  opacity:.28;
-  mix-blend-mode:screen;
+  background-position:var(--field-x,50%) center;
   transform:translate3d(
     calc(var(--pointer-x,0) * -10px),
     calc(var(--pointer-y,0) * -5px),
-    95px
-  )
+    -70px
+  ) scale(1.075);
+  filter:saturate(.92) contrast(1.045) brightness(.82)
 }
-.sfiScene--institution .sfiSceneLayer--3{
-  width:min(21vw,330px);
-  right:1.5vw;
-  top:auto;
-  bottom:0;
-  opacity:.24;
+.sfiScene--friction:after,
+.sfiScene--institution:after{
+  top:68px;
+  background:
+    linear-gradient(90deg,rgba(4,4,3,.78) 0%,rgba(4,4,3,.43) 29%,transparent 59%,rgba(4,4,3,.10) 100%),
+    linear-gradient(180deg,rgba(4,4,3,.08),transparent 62%,rgba(4,4,3,.27))
+}
+.sfiScene--friction[data-state="past"],
+.sfiScene--institution[data-state="future"]{
+  transform:translate3d(0,0,0) scale(1);
+  opacity:0;
+  filter:none
+}
+.sfiScene--institution[data-state="active"]{
+  transform:translate3d(0,0,0) scale(1);
+  opacity:1;
+  filter:none
+}
+
+/* 04 — FRICTION: one observer, one field, high depth separation. */
+.sfiScene--friction .sfiSceneLayers,
+.sfiScene--institution .sfiSceneLayers,
+.sfiScene--library .sfiSceneLayers,
+.sfiScene--return .sfiSceneLayers{
+  transform:translate3d(var(--field-shift,0vw),0,0);
+  transition:transform .9s cubic-bezier(.2,.82,.2,1)
+}
+.sfiScene--friction .sfiSceneLayer--1{
+  width:118vw;
+  max-width:none;
+  left:-9vw;
+  top:-2%;
+  opacity:.31;
   mix-blend-mode:screen;
   transform:translate3d(
-    calc(var(--pointer-x,0) * 13px),
-    calc(var(--pointer-y,0) * 7px),
-    130px
-  )
+    calc(var(--pointer-x,0) * 30px),
+    calc(var(--pointer-y,0) * 16px),
+    105px
+  ) scale(1.05)
+}
+.sfiScene--friction .sfiSceneLayer--2{
+  width:min(31vw,520px);
+  right:19vw;
+  top:auto;
+  bottom:-2vh;
+  opacity:1;
+  transform:translate3d(
+    calc(var(--pointer-x,0) * -44px),
+    calc(var(--pointer-y,0) * -20px),
+    225px
+  ) scale(1.02);
+  filter:drop-shadow(0 24px 45px rgba(0,0,0,.55))
+}
+
+/* 05 — INSTITUTION: same room, but the system is now populated and deliberative. */
+.sfiScene--institution .sfiSceneLayer--1{
+  width:116vw;
+  max-width:none;
+  left:-8vw;
+  top:-1%;
+  opacity:.20;
+  mix-blend-mode:screen;
+  transform:translate3d(
+    calc(var(--pointer-x,0) * 26px),
+    calc(var(--pointer-y,0) * 13px),
+    90px
+  ) scale(1.04)
+}
+.sfiScene--institution .sfiSceneLayer--2{
+  width:min(82vw,1370px);
+  max-width:none;
+  right:-5vw;
+  left:auto;
+  top:auto;
+  bottom:-8vh;
+  opacity:.96;
+  transform:translate3d(
+    calc(var(--pointer-x,0) * -50px),
+    calc(var(--pointer-y,0) * -24px),
+    245px
+  ) scale(1.015);
+  filter:drop-shadow(0 28px 54px rgba(0,0,0,.52))
+}
+
+/* 06 — ARCHIVE REGISTRY: a new room; memory becomes recoverable and social. */
+.sfiScene--library .sfiSceneBackground{
+  inset:68px -3% -3%;
+  background-size:cover;
+  background-position:var(--field-x,50%) center;
+  transform:translate3d(
+    calc(var(--pointer-x,0) * -9px),
+    calc(var(--pointer-y,0) * -4px),
+    -80px
+  ) scale(1.07);
+  filter:saturate(.89) contrast(1.05) brightness(.79)
+}
+.sfiScene--library:after{
+  top:68px;
+  background:
+    linear-gradient(90deg,rgba(4,4,3,.80) 0%,rgba(4,4,3,.46) 31%,transparent 62%,rgba(4,4,3,.08) 100%),
+    linear-gradient(180deg,rgba(4,4,3,.05),transparent 65%,rgba(4,4,3,.28))
+}
+.sfiScene--library[data-state="future"]{
+  transform:translate3d(16%,0,-280px) rotateY(-5deg) scale(.84);
+  transform-origin:80% 50%;
+  opacity:0;
+  filter:brightness(.45) blur(8px)
+}
+.sfiScene--library[data-state="active"]{
+  transform:translate3d(0,0,0) rotateY(0) scale(1);
+  opacity:1;
+  filter:none
+}
+.sfiScene--library .sfiSceneLayer--1{
+  width:min(80vw,1340px);
+  max-width:none;
+  right:-5vw;
+  top:auto;
+  bottom:-9vh;
+  opacity:.94;
+  transform:translate3d(
+    calc(var(--pointer-x,0) * -48px),
+    calc(var(--pointer-y,0) * -22px),
+    235px
+  ) scale(1.01);
+  filter:drop-shadow(0 26px 52px rgba(0,0,0,.52))
+}
+
+/* 07 — RETURN: deliberately different. World, consequence and people occupy
+   separate depth planes so RETURN feels like an outward re-entry, not another slide. */
+.sfiScene--return .sfiSceneBackground{
+  inset:68px -4% -4%;
+  background-size:cover;
+  background-position:var(--field-x,50%) center;
+  transform:translate3d(
+    calc(var(--pointer-x,0) * -12px),
+    calc(var(--pointer-y,0) * -6px),
+    -110px
+  ) scale(1.10);
+  filter:saturate(.93) contrast(1.055) brightness(.80)
+}
+.sfiScene--return:after{
+  top:68px;
+  background:
+    linear-gradient(90deg,rgba(4,4,3,.74) 0%,rgba(4,4,3,.40) 28%,transparent 55%,rgba(4,4,3,.05) 100%),
+    linear-gradient(180deg,rgba(4,4,3,.04),transparent 57%,rgba(4,4,3,.19))
+}
+.sfiScene--return[data-state="future"]{
+  transform:translate3d(0,0,-420px) scale(.72);
+  opacity:0;
+  filter:brightness(.48) blur(10px)
+}
+.sfiScene--return[data-state="active"]{
+  transform:translate3d(0,0,0) scale(1);
+  opacity:1;
+  filter:none
+}
+.sfiScene--return .sfiSceneLayer--1{
+  width:122vw;
+  max-width:none;
+  left:-11vw;
+  top:-4%;
+  opacity:.29;
+  mix-blend-mode:screen;
+  transform:translate3d(
+    calc(var(--pointer-x,0) * 34px),
+    calc(var(--pointer-y,0) * 18px),
+    95px
+  ) scale(1.05)
+}
+.sfiScene--return .sfiSceneLayer--2{
+  width:min(42vw,700px);
+  right:11vw;
+  top:13%;
+  opacity:.48;
+  transform:translate3d(
+    calc(var(--pointer-x,0) * -46px),
+    calc(var(--pointer-y,0) * -24px),
+    190px
+  ) scale(1.03);
+  filter:drop-shadow(0 22px 50px rgba(0,0,0,.45))
+}
+.sfiScene--return .sfiSceneLayer--3{
+  width:104vw;
+  max-width:none;
+  left:-2vw;
+  top:auto;
+  bottom:-10vh;
+  opacity:.98;
+  transform:translate3d(
+    calc(var(--pointer-x,0) * 58px),
+    calc(var(--pointer-y,0) * 28px),
+    310px
+  ) scale(1.01);
+  filter:drop-shadow(0 28px 54px rgba(0,0,0,.55))
 }
 
 /* Mobile keeps the same spatial model with reduced copy. */
