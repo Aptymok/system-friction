@@ -211,7 +211,7 @@ export function PublicEntryGateway(){
             '--scene-offset':offset,
             '--active-frame':localFrameIndex,
             '--field-x':`${30 + progress*40}%`,
-            '--field-shift':`${(0.5-progress)*8}vw`,
+            '--field-shift':`${(0.5-progress)*14}vw`,
           } as CSSProperties}
           aria-hidden={index===sceneIndex ? undefined : true}
         >
