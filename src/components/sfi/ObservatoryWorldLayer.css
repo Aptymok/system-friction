@@ -56,3 +56,10 @@
   .worldVector text{display:none}
   .fieldBoundary text{font-size:6px;letter-spacing:.1em}
 }
+
+
+/* Elite Experience P3 · persisted temporal ghost */
+.worldSpectrumGhost{pointer-events:none;opacity:.42}
+.worldVectorGhost line{stroke:rgba(111,169,205,.72);stroke-width:1.1;stroke-dasharray:5 7;vector-effect:non-scaling-stroke}
+.worldVectorGhost circle{fill:rgba(86,153,194,.22);stroke:rgba(126,191,228,.78);stroke-width:1;filter:url(#fieldGlow)}
+.lens-trajectory .worldSpectrumGhost{opacity:.58}
