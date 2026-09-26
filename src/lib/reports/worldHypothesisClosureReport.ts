@@ -509,7 +509,7 @@ export async function persistWorldHypothesisClosureReport(input: {
   }
 
   const startedAt = new Date().toISOString();
-  const providerBlocked = generated.report.provider.startsWith('blocked:');
+  const providerBlocked = generated.report.provider.startsWith('blocked:') || generated.report.provider.startsWith('degraded:');
   const inserted = await db.from('sfi_cognitive_twin_runs').insert({
     task_id:taskId,
     contract_version:'world-hypothesis-closure-report-v1',
