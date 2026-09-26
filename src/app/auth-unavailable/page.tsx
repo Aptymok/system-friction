@@ -22,7 +22,7 @@ export default async function AuthUnavailablePage({
         </p>
         <p>Do not re-enter your password because of this message. Retry the surface when the verification service responds.</p>
         <p><a href={next}>RETRY</a></p>
-        <p><a href="/field">OPEN PUBLIC FIELD</a></p>
+        <p><a href="/observatory">OPEN PUBLIC OBSERVATORY</a></p>
       </section>
     </main>
   );
