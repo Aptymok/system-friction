@@ -39,6 +39,7 @@ type Props={
   selectedGraphEdges:readonly Row[];
   graphNodes:readonly Row[];
   vectors:readonly ObservatoryFieldVector[];
+  ghostVectors:readonly ObservatoryFieldVector[];
   onSelectNode:(id:string)=>void;
   onSelectHypothesis:(id:string)=>void;
 };
@@ -77,7 +78,7 @@ function edgeClass(edge:Row){
 
 export function ObservatoryWorldField({
   lens,nodes,selectedNodeId,selectedHypothesis,selectedEvidenceIds,selectedAffectedIds,
-  selectedGraphEdges,graphNodes,vectors,onSelectNode,onSelectHypothesis,
+  selectedGraphEdges,graphNodes,vectors,ghostVectors,onSelectNode,onSelectHypothesis,
 }:Props){
   const positionMap=new Map<string,Position>(nodes.map((node)=>[node.id,node.position]));
   const graphById=new Map(graphNodes.map((node)=>[asText(node.id),node]));
@@ -118,6 +119,23 @@ export function ObservatoryWorldField({
       {[170,260,350,440].map((radius)=><ellipse key={radius} cx={cx} cy={cy} rx={radius} ry={radius*.61}/>)}
       {[0,45,90,135].map((angle)=><line key={angle} x1={cx-520} y1={cy} x2={cx+520} y2={cy} transform={'rotate('+angle+' '+cx+' '+cy+')'}/>)}
     </g>
+
+    {lens==='trajectory'&&ghostVectors.length?<g className="worldSpectrumGhost" aria-label="WorldSpect T0 ghost">
+      {ghostVectors.map((vector,index)=>{
+        if(vector.value==null) return null;
+        const angle=(-90+(index*(360/Math.max(1,ghostVectors.length))))*Math.PI/180;
+        const base=345;
+        const length=40+(Math.max(0,Math.min(1,vector.value))*90);
+        const x1=cx+Math.cos(angle)*base;
+        const y1=cy+Math.sin(angle)*(base*.61);
+        const x2=cx+Math.cos(angle)*(base+length);
+        const y2=cy+Math.sin(angle)*((base+length)*.61);
+        return <g key={'ghost:'+vector.id} className="worldVectorGhost">
+          <line x1={x1} y1={y1} x2={x2} y2={y2}/>
+          <circle cx={x2} cy={y2} r={3+vector.value*4}/>
+        </g>;
+      })}
+    </g>:null}
 
     {(lens==='field'||lens==='trajectory')?<g className="worldSpectrumCorona" aria-label="WorldSpect vectors">
       {vectors.map((vector,index)=>{
