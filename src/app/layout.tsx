@@ -104,9 +104,8 @@ gtag('config', '${GA_ID}');`}
           <footer className="sfiGlobalFooter">
             <strong>SFI.</strong>
             <a href="/observatory">OBSERVATORY</a>
-            <a href="/history">ORIGIN → NOW</a>
-            <a href="/institution">INSTITUTE</a>
-            <a href="/privacy">PRIVACY & EXTERNAL AGENT DATA POLICY</a>
+            <a href="/publications">PUBLICATIONS</a>
+            <a href="/login">SIGN IN</a>
           </footer>
           <SfiConsentBanner />
         </SfiLanguageProvider>

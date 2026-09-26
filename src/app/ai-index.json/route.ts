@@ -24,8 +24,8 @@ export async function GET() {
     start_here: {
       human: [
         `${baseUrl}/`,
-        `${baseUrl}/institution`,
-        `${baseUrl}/field`,
+        `${baseUrl}/observatory`,
+        `${baseUrl}/publications`,
         `${baseUrl}/login`,
       ],
       agent: [

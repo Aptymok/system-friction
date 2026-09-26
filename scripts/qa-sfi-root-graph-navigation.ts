@@ -10,6 +10,7 @@ const reconcile = read('src/lib/evidence/reconcileEvidenceGraph.ts');
 const canonicalGraph = read('src/lib/graph/canonicalGraph.ts');
 const libraryProjection = read('src/lib/graph/libraryCorpusProjection.ts');
 const libraryPage = read('src/app/library/page.tsx');
+const documentaryCatalog = read('src/lib/sfi/library/documentaryCatalog.ts');
 const libraryClient = read('src/app/library/LibraryClient.tsx');
 const reader = read('src/lib/root/sovereign/readers/readRootEvidenceGraph.ts');
 const amvReader = read('src/lib/root/sovereign/readers/readRootAmv.ts');
@@ -50,7 +51,7 @@ check('explicit graph maintenance is sovereign and audited', reconcileRoute.incl
 
 check('Library corpus projects into canonical graph types without a second graph store', libraryProjection.includes('buildLibraryCorpusGraphProjection') && libraryProjection.includes('CanonicalGraphNode') && libraryProjection.includes('CanonicalGraphEdge') && libraryProjection.includes('sf_docs_frontmatter.json') && !libraryProjection.includes("from('graph_nodes')") && !libraryProjection.includes("from('graph_edges')"));
 check('canonical graph reader merges shared Library projection without write side effects', canonicalGraph.includes('buildLibraryCorpusGraphProjection') && canonicalGraph.includes('libraryProjection') && !canonicalGraph.includes('.upsert(') && !canonicalGraph.includes('.insert('));
-check('Library reads only the SFI canonical graph profile instead of broad shared/private state', libraryPage.includes("readCanonicalGraphState('sfi')") && libraryPage.includes('graphRelations') && libraryPage.includes("dynamic = 'force-dynamic'"));
+check('Retired public Library preserves its SFI canonical graph capability internally', libraryPage.includes("redirect('/publications')") && documentaryCatalog.includes("readCanonicalGraphState('sfi')") && documentaryCatalog.includes('graphRelations') && documentaryCatalog.includes('library_corpus'));
 check('Library search and cards consume graph relations', libraryClient.includes('graphRelations?:string[]') && libraryClient.includes('...(doc.graphRelations??[])') && libraryClient.includes('doc.graphRelationCount??0') && libraryClient.includes('graph relations'));
 check('Library graph remains documentary relation rather than validation claim', libraryProjection.includes('doesNotImplyValidation: true') && libraryProjection.includes("epistemicClass: 'DECLARED'"));
 check('Library graph supplies a stable non-empty label when source title is absent', libraryProjection.includes('function documentLabel') && libraryProjection.includes('doc.title?.trim()') && libraryProjection.includes('doc.nodeId?.trim()') && libraryProjection.includes('label: documentLabel(doc)'));

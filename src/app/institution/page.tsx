@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { SFI_PUBLIC_PROFILE } from '@/lib/public/institutionProfile';
+import { PublicSurfaceContinuity } from '@/components/sfi/PublicSurfaceContinuity';
 import './institution.css';
 
 export const dynamic = 'force-dynamic';
@@ -7,7 +8,6 @@ export const dynamic = 'force-dynamic';
 const PUBLIC_NAV = [
   ['/observatory','OBSERVATORY'],
   ['/publications','PUBLICATIONS'],
-  ['/library','LIBRARY'],
   ['/field','FIELD'],
   ['/institution','INSTITUTE'],
 ] as const;
@@ -26,7 +26,7 @@ const PUBLIC_INSTRUMENT_NAMES: Record<string,string> = {
 export default function InstitutionPage() {
   const p = SFI_PUBLIC_PROFILE;
 
-  return <main className="institutionPage">
+  return <main className="institutionPage"><PublicSurfaceContinuity scene="institution" number="05" label="INSTITUTION" previous={{href:'/observatory',label:'FRICTION'}} next={{href:'/publications',label:'PUBLICATIONS'}}/>
     <header className="sfiPublicTopbar">
       <Link href="/" className="sfiPublicBrand"><strong>SFI</strong><span>SYSTEM FRICTION INSTITUTE</span></Link>
       <nav>{PUBLIC_NAV.map(([href,label]) => <Link key={href} href={href} data-active={href === '/institution' ? 'true' : 'false'}>{label}</Link>)}</nav>

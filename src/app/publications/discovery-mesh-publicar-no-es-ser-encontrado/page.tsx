@@ -63,7 +63,7 @@ export default function DiscoveryMeshMethodNote() {
     <footer className="meshFooter">
       <span>SFI · LAB NOTES</span>
       <span>OBSERVED / DERIVED / INFERRED / PROJECTED remain separate</span>
-      <span><Link href="/root/discovery">ROOT / DISCOVERY →</Link></span>
+      <span><Link href="/observatory">OBSERVATORY →</Link></span>
     </footer>
   </main>;
 }

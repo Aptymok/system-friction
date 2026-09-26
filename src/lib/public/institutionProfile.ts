@@ -150,7 +150,6 @@ export const SFI_PUBLIC_PROFILE = {
     { path: '/', role: 'Institutional public threshold and entry membrane' },
     { path: '/observatory', role: 'Live field observation, sources, hypotheses, trajectory and contrast' },
     { path: '/publications', role: 'Editorial archive for notes, cases, methods and published RETURN' },
-    { path: '/library', role: 'Connected knowledge, methods, instruments and provenance' },
     { path: '/institution', role: 'Institutional identity, authority, limits and invariants' },
     { path: '/history', role: 'Observed institutional history with provenance' },
     { path: '/privacy', role: 'Privacy and external-agent data policy' },

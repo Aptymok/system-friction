@@ -6,20 +6,22 @@ const root = process.cwd();
 const read = (relative: string) => readFileSync(path.join(root, relative), 'utf8');
 
 const publicPage = read('src/app/library/page.tsx');
+const documentaryCatalog = read('src/lib/sfi/library/documentaryCatalog.ts');
 const dynamicScenePage = read('src/app/[scene]/page.tsx');
 const scenes = read('src/components/sfi/scenes.ts');
 const consoleUi = read('src/components/sfi/SfiConsole.tsx');
 const inspector = read('src/lib/sfi/library/cognitiveSpineImpactContext.ts');
 const route = read('src/app/api/root/library/cognitive-spine/route.ts');
 
-// /library is a documentary presentation surface over the canonical compact corpus.
-// It stays read-only and must not infer private Cognitive Spine state or pretend
-// compact metadata contains full document bodies.
-assert.ok(publicPage.includes('sf_docs_frontmatter.json'), 'library_canonical_catalog_source_missing');
-assert.ok(publicPage.includes('LIBRARY · DOCUMENTARY CORPUS'), 'library_documentary_surface_missing');
-assert.ok(publicPage.includes('CANONICAL DOCUMENTARY CATALOG'), 'library_canonical_catalog_contract_missing');
-assert.ok(publicPage.includes('full bodies are not assumed to be materialized'), 'library_compact_body_boundary_missing');
-assert.ok(publicPage.includes('FULL DOCUMENT BODY READER = NOT MATERIALIZED'), 'library_full_body_reader_boundary_missing');
+// The public /library surface is retired into /publications.
+// The canonical documentary corpus remains an internal read-only capability and
+// must not infer private Cognitive Spine state or pretend compact metadata contains full bodies.
+assert.ok(publicPage.includes("redirect('/publications')"), 'library_public_surface_must_redirect_to_publications');
+assert.ok(documentaryCatalog.includes('sf_docs_frontmatter.json'), 'library_canonical_catalog_source_missing');
+assert.ok(documentaryCatalog.includes('LIBRARY · DOCUMENTARY CORPUS'), 'library_documentary_surface_contract_missing');
+assert.ok(documentaryCatalog.includes('CANONICAL DOCUMENTARY CATALOG'), 'library_canonical_catalog_contract_missing');
+assert.ok(documentaryCatalog.includes('full bodies are not assumed to be materialized'), 'library_compact_body_boundary_missing');
+assert.ok(documentaryCatalog.includes('FULL DOCUMENT BODY READER = NOT MATERIALIZED'), 'library_full_body_reader_boundary_missing');
 assert.equal(publicPage.includes("redirect('/archive')"), false, 'library_must_not_remain_archive_redirect_alias');
 assert.ok(scenes.includes("LEGACY_INTERNAL_SCENES=['systems','archive'"), 'archive_legacy_lens_registry_missing');
 assert.equal(scenes.includes("archive:{key:'archive'"), false, 'archive_must_not_reappear_as_independent_live_scene');
@@ -27,7 +29,7 @@ assert.ok(dynamicScenePage.includes('LEGACY_INTERNAL_SCENES'), 'shared_scene_rou
 assert.ok(dynamicScenePage.includes("redirect('/root')"), 'legacy_archive_lens_must_resolve_to_canonical_root_surface');
 assert.ok(consoleUi.includes("href:'/library'") || consoleUi.includes("href: '/library'"), 'library_must_be_navigable_from_operating_shell');
 for (const forbiddenPrivateRead of ["@/runtime/supabase", 'createServiceSupabaseClient', 'materializeInstitutionalCognitiveSpineProfile', 'cognitiveSpineImpactContext']) {
-  assert.equal(publicPage.includes(forbiddenPrivateRead), false, `library_catalog_reads_private_state:${forbiddenPrivateRead}`);
+  assert.equal(documentaryCatalog.includes(forbiddenPrivateRead), false, `library_catalog_reads_private_state:${forbiddenPrivateRead}`);
 }
 
 assert.ok(inspector.includes('LIBRARY_IMPACT_CONTEXT_PROFILE'), 'library_projection_profile_missing');
@@ -50,7 +52,8 @@ assert.ok(route.includes('Cache-Control'), 'library_root_inspection_cache_bounda
 console.log(JSON.stringify({
   ok: true,
   profile: 'LIBRARY_IMPACT_CONTEXT_V1.1',
-  publicLibrarySurface: 'DOCUMENTARY_CATALOG',
+  publicLibrarySurface: 'REDIRECT_TO_PUBLICATIONS',
+  canonicalDocumentaryCatalog: 'INTERNAL_READ_ONLY_CAPABILITY',
   archiveIndependentSurface: false,
   libraryCatalogReadsPrivateCt: false,
   ordinaryLibraryReadConsumesCt: false,

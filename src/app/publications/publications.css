@@ -1,1 +1,457 @@
-.publicationsHub{--void:#060605;--paper:#f7f4ea;--gold:#c8a951;--cream:#e8ddc3;--critical:#b85050;--signal:#4a7aaa;--meta:#6b635a;--line:rgba(200,169,81,.28);min-height:100vh;background:var(--void);color:var(--cream);font-family:"Noto Sans",Inter,system-ui,sans-serif}.publicationsHub *{box-sizing:border-box}.publicationsHub a{color:inherit}.pubTopbar{position:sticky;top:0;z-index:20;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:18px;padding:16px clamp(18px,4vw,56px);border-bottom:1px solid var(--line);background:rgba(6,6,5,.94);backdrop-filter:blur(14px)}.pubBrand{font-family:"Noto Serif Display",Georgia,serif;font-size:28px;letter-spacing:.12em;color:var(--gold)}.pubTopbarIdentity{display:grid;gap:2px;border-left:1px solid var(--line);padding-left:18px}.pubTopbarIdentity span,.pubTopbarIdentity small,.pubTopbar nav a,.sectionKicker,.entryMeta,.imageProvenance,.pubFooter span,.pubFooter small{font-family:"Liberation Mono",ui-monospace,monospace}.pubTopbarIdentity span{font-size:10px;letter-spacing:.18em}.pubTopbarIdentity small{font-size:8px;letter-spacing:.14em;color:#8c8376}.pubTopbar nav{display:flex;gap:16px}.pubTopbar nav a{font-size:9px;letter-spacing:.13em;color:#a79e90}.pubTopbar nav a:hover,.pubTopbar nav a:focus-visible{color:var(--gold)}.pubHero{position:relative;display:grid;grid-template-columns:minmax(0,1.2fr) minmax(320px,.8fr);min-height:70vh;border-bottom:1px solid var(--line);overflow:hidden}.pubBanner{position:relative;margin:0;min-height:520px;background:#0a0a08}.pubBanner picture,.pubBanner img{display:block;width:100%;height:100%}.pubBanner img{object-fit:cover;object-position:center}.pubBanner:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent 55%,rgba(6,6,5,.88)),linear-gradient(0deg,rgba(6,6,5,.65),transparent 35%);pointer-events:none}.pubBanner figcaption,.temporalCover figcaption{position:absolute;z-index:2;left:18px;bottom:14px;right:18px;font:8px "Liberation Mono",ui-monospace,monospace;letter-spacing:.08em;color:#948a7a}.pubHeroCopy{display:flex;flex-direction:column;justify-content:center;padding:clamp(36px,7vw,96px) clamp(24px,5vw,72px);background:radial-gradient(circle at 20% 32%,rgba(200,169,81,.07),transparent 38%)}.pubHeroCopy>span{font:9px "Liberation Mono",ui-monospace,monospace;letter-spacing:.22em;color:var(--gold)}.pubHeroCopy h1,.familiesIntro h2,.temporalIssue h2{font-family:"Noto Serif Display",Georgia,serif;font-weight:400}.pubHeroCopy h1{font-size:clamp(44px,6.5vw,92px);line-height:.92;margin:18px 0 28px;color:var(--cream)}.pubHeroCopy p,.familiesIntro p,.familySummaryCopy p,.familyEntries p,.temporalIssue article>p,.pubOntology p{font-family:"EB Garamond",Georgia,serif}.pubHeroCopy p{font-size:19px;line-height:1.65;color:#bdb19d;max-width:660px}.pubHeroBoundary{display:flex;flex-wrap:wrap;gap:8px 12px;margin-top:28px;padding-top:16px;border-top:1px solid var(--line);font:8px "Liberation Mono",ui-monospace,monospace;letter-spacing:.1em}.pubHeroBoundary b{color:var(--gold)}.pubHeroBoundary span{color:#81796d}.sectionKicker{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;font-size:9px;letter-spacing:.14em;color:#8d8374}.sectionKicker span{color:var(--gold);font-size:18px}.sectionKicker b{font-weight:400;color:#c4b89e}.sectionKicker i{font-style:normal}.temporalIssue,.observationFamilies{padding:clamp(48px,7vw,96px) clamp(18px,5vw,72px);border-bottom:1px solid var(--line)}.temporalIssueGrid{display:grid;grid-template-columns:minmax(280px,.78fr) minmax(0,1.22fr);gap:clamp(32px,6vw,86px);align-items:center;margin-top:34px}.temporalCover{position:relative;margin:0;aspect-ratio:4/5;background:#0b0a08;border:1px solid rgba(200,169,81,.22);overflow:hidden}.temporalCover img{width:100%;height:100%;object-fit:cover}.temporalIssue article{max-width:800px}.temporalState{font:9px "Liberation Mono",ui-monospace,monospace;letter-spacing:.2em;color:var(--gold)}.temporalIssue h2{font-size:clamp(46px,6vw,82px);line-height:.95;margin:16px 0 8px}.temporalIssue h3{font:400 clamp(20px,2.3vw,31px) "EB Garamond",Georgia,serif;color:#c8b992;margin:0 0 24px}.temporalIssue article>p{font-size:18px;line-height:1.72;color:#a99e8c}.temporalIssue dl{display:grid;gap:0;margin:30px 0}.temporalIssue dl div{display:grid;grid-template-columns:120px 1fr;gap:16px;padding:12px 0;border-top:1px solid rgba(200,169,81,.14)}.temporalIssue dt,.temporalIssue dd{font:9px "Liberation Mono",ui-monospace,monospace}.temporalIssue dt{color:var(--gold);letter-spacing:.1em}.temporalIssue dd{margin:0;color:#9d9383}.pubActions{display:flex;flex-wrap:wrap;gap:12px}.pubActions a{padding:10px 14px;border:1px solid var(--line);font:9px "Liberation Mono",ui-monospace,monospace;letter-spacing:.1em}.pubActions a:first-child{color:var(--gold)}.pubActions a:hover,.pubActions a:focus-visible{background:rgba(200,169,81,.07);border-color:rgba(200,169,81,.55)}.familiesIntro{display:grid;grid-template-columns:minmax(0,.7fr) minmax(300px,.3fr);gap:40px;align-items:end;margin:36px 0 30px}.familiesIntro h2{font-size:clamp(38px,5vw,66px);line-height:1;margin:0}.familiesIntro p{font-size:17px;line-height:1.6;color:#a89e8e;margin:0}.familyStack{border-top:1px solid var(--line)}.family{border-bottom:1px solid var(--line)}.family summary{position:relative;display:grid;grid-template-columns:minmax(190px,330px) 1fr auto;gap:clamp(20px,4vw,54px);align-items:stretch;list-style:none;cursor:pointer;min-height:220px}.family summary::-webkit-details-marker{display:none}.family summary figure{margin:0;overflow:hidden;background:#0a0a08}.family summary img{display:block;width:100%;height:100%;min-height:220px;object-fit:cover;filter:saturate(.9);transition:transform .45s ease,filter .3s ease}.familySummaryCopy{display:flex;flex-direction:column;justify-content:center;padding:26px 0}.familySummaryCopy>span{font:9px "Liberation Mono",ui-monospace,monospace;letter-spacing:.18em;color:var(--gold)}.familySummaryCopy h3{font:400 clamp(31px,4vw,52px) "Noto Serif Display",Georgia,serif;margin:8px 0 11px}.familySummaryCopy p{max-width:700px;margin:0 0 14px;color:#a99e8b;font-size:16px;line-height:1.58}.familySummaryCopy small{font:8px "Liberation Mono",ui-monospace,monospace;letter-spacing:.1em;color:#7c7469}.familyToggle{align-self:center;margin-right:18px;font-size:28px;font-weight:300;color:var(--gold);transition:transform .3s ease}.family[open] .familyToggle{transform:rotate(45deg)}.family[open] summary img{filter:saturate(1);transform:scale(1.015)}.familyBody{padding:0 0 34px}.imageProvenance{margin:12px 0 20px;padding-left:calc(min(330px,28vw) + clamp(20px,4vw,54px));font-size:8px;letter-spacing:.08em;color:#756e64}.familyEntries{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-left:calc(min(330px,28vw) + clamp(20px,4vw,54px))}.familyEntries article{display:flex;flex-direction:column;min-height:220px;padding:18px;border:1px solid rgba(200,169,81,.16);background:#090908}.entryMeta{display:flex;justify-content:space-between;gap:10px;color:#867d70;font-size:8px;letter-spacing:.08em}.entryMeta span{color:var(--signal)}.familyEntries h4{font:400 23px/1.08 "Noto Serif Display",Georgia,serif;margin:22px 0 12px}.familyEntries h4 a:hover,.familyEntries h4 a:focus-visible{color:var(--gold)}.familyEntries p{font-size:14px;line-height:1.5;color:#9d9383;margin:0 0 20px}.familyEntries footer{display:flex;justify-content:space-between;gap:10px;margin-top:auto;padding-top:12px;border-top:1px solid rgba(200,169,81,.1)}.familyEntries footer a,.familyEntries footer span{font:8px "Liberation Mono",ui-monospace,monospace;letter-spacing:.08em;color:#81786c}.familyEntries footer a:first-child{color:#bca15d}.pubOntology{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-bottom:1px solid var(--line)}.pubOntology>div{min-height:220px;padding:30px;border-right:1px solid var(--line)}.pubOntology>div:last-child{border-right:0}.pubOntology span{font:8px "Liberation Mono",ui-monospace,monospace;letter-spacing:.15em;color:var(--gold)}.pubOntology b{display:block;margin:22px 0 10px;font:400 22px "Noto Serif Display",Georgia,serif}.pubOntology p{font-size:14px;line-height:1.5;color:#8f877a}.pubFooter{display:flex;justify-content:space-between;gap:30px;padding:32px clamp(18px,5vw,72px);font-size:10px}.pubFooter>div{display:grid;gap:5px}.pubFooter b{font:400 18px "Noto Serif Display",Georgia,serif;color:var(--gold)}.pubFooter span,.pubFooter small{font-size:8px;letter-spacing:.1em;color:#7f776b}.publicationsHub a:focus-visible,.publicationsHub summary:focus-visible{outline:2px solid var(--gold);outline-offset:4px}@media(max-width:1000px){.pubHero{grid-template-columns:1fr}.pubBanner{min-height:52vw}.pubBanner:after{background:linear-gradient(0deg,rgba(6,6,5,.7),transparent 45%)}.familiesIntro{grid-template-columns:1fr}.familyEntries{grid-template-columns:repeat(2,minmax(0,1fr))}.pubOntology{grid-template-columns:1fr 1fr}.pubOntology>div:nth-child(2){border-right:0}.pubOntology>div:nth-child(-n+2){border-bottom:1px solid var(--line)}}@media(max-width:720px){.pubTopbar{grid-template-columns:auto 1fr;padding:12px 16px}.pubTopbar nav{grid-column:1/-1;border-top:1px solid rgba(200,169,81,.12);padding-top:10px}.pubHero{min-height:auto}.pubBanner{min-height:64vh}.pubHeroCopy{padding:36px 18px 54px}.pubHeroCopy h1{font-size:48px}.temporalIssue,.observationFamilies{padding:50px 16px}.sectionKicker{grid-template-columns:auto 1fr}.sectionKicker i{grid-column:2}.temporalIssueGrid{grid-template-columns:1fr}.temporalCover{max-width:480px}.family summary{grid-template-columns:110px 1fr auto;gap:14px;min-height:170px}.family summary img{min-height:170px}.familySummaryCopy{padding:18px 0}.familySummaryCopy p{display:none}.familySummaryCopy h3{font-size:28px}.familyToggle{margin-right:6px}.imageProvenance,.familyEntries{margin-left:0;padding-left:0}.familyEntries{grid-template-columns:1fr}.pubOntology{grid-template-columns:1fr}.pubOntology>div{border-right:0;border-bottom:1px solid var(--line)}.pubFooter{flex-direction:column}.pubTopbarIdentity span{font-size:8px}}@media(prefers-reduced-motion:reduce){.publicationsHub *{scroll-behavior:auto!important}.family summary img,.familyToggle{transition:none!important}.family[open] summary img{transform:none}}
+.publicationsHub{
+  --void:#060605;
+  --gold:#c8a951;
+  --cream:#e8ddc3;
+  --signal:#4a7aaa;
+  --critical:#b85050;
+  --display:"Noto Serif Display",Georgia,serif;
+  --narrative:"EB Garamond",Georgia,serif;
+  --trace:"Liberation Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --screen:"Noto Sans",system-ui,sans-serif;
+  --line:rgba(200,169,81,.22);
+  min-height:100vh;
+  background:
+    linear-gradient(180deg,rgba(4,4,3,.1),rgba(4,4,3,.34) 50%,#060605 88%),
+    #060605;
+  color:var(--cream)
+}
+.publicationsHub *{box-sizing:border-box}
+.publicationsHub a{color:inherit;text-decoration:none}
+
+.pubTopbar{
+  position:sticky;
+  top:0;
+  z-index:30;
+  min-height:68px;
+  display:grid;
+  grid-template-columns:auto auto 1fr;
+  align-items:center;
+  gap:16px;
+  padding:0 clamp(18px,4vw,64px);
+  border-bottom:1px solid var(--line);
+  background:rgba(5,5,4,.82);
+  backdrop-filter:blur(18px)
+}
+.pubBrand{
+  color:var(--gold);
+  font:500 28px/1 "Noto Serif Display",Georgia,serif;
+  letter-spacing:.04em
+}
+.pubTopbarIdentity{
+  display:grid;
+  gap:4px;
+  padding-left:16px;
+  border-left:1px solid var(--line)
+}
+.pubTopbarIdentity span,
+.pubTopbarIdentity small,
+.pubTopbar nav a{
+  font-family:"Liberation Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  letter-spacing:.14em
+}
+.pubTopbarIdentity span{font-size:8px;color:#c6bcac}
+.pubTopbarIdentity small{font-size:7px;color:#746c61}
+.pubTopbar nav{
+  justify-self:end;
+  display:flex;
+  gap:clamp(16px,2.5vw,34px)
+}
+.pubTopbar nav a{
+  position:relative;
+  padding:10px 0;
+  font-size:8px;
+  color:#938a7d
+}
+.pubTopbar nav a:hover,
+.pubTopbar nav a[aria-current="page"]{color:var(--gold)}
+.pubTopbar nav a[aria-current="page"]:after{
+  content:"";
+  position:absolute;
+  left:0;right:0;bottom:3px;
+  height:1px;background:var(--gold)
+}
+
+.pubArchiveHero{
+  min-height:min(72vh,760px);
+  display:flex;
+  align-items:flex-end;
+  padding:clamp(110px,14vw,190px) clamp(18px,5vw,76px) clamp(54px,7vw,92px);
+  background:
+    linear-gradient(90deg,rgba(4,4,3,.86) 0%,rgba(4,4,3,.52) 32%,rgba(4,4,3,.12) 64%,rgba(4,4,3,.30) 100%),
+    linear-gradient(180deg,transparent 55%,#060605 100%),
+    url('/assets/sfi/scenes/06_archive_background.png') center/cover no-repeat;
+  border-bottom:1px solid var(--line)
+}
+.pubArchiveHeroCopy{
+  width:min(780px,72vw)
+}
+.pubArchiveHeroCopy>span{
+  display:block;
+  margin-bottom:18px;
+  font:600 9px/1 "Liberation Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  letter-spacing:.2em;
+  color:var(--gold)
+}
+.pubArchiveHero h1{
+  margin:0;
+  max-width:10ch;
+  font:500 clamp(56px,8vw,118px)/.9 "Noto Serif Display",Georgia,serif;
+  letter-spacing:-.045em
+}
+.pubArchiveHero p{
+  max-width:36em;
+  margin:24px 0 0;
+  font:400 clamp(17px,1.6vw,23px)/1.5 "EB Garamond",Georgia,serif;
+  color:#b8ae9d
+}
+
+.pubCatalog{
+  padding:clamp(54px,7vw,100px) clamp(18px,5vw,76px) 110px
+}
+.pubCatalogHeader{
+  display:flex;
+  justify-content:space-between;
+  align-items:end;
+  gap:28px;
+  margin-bottom:34px;
+  padding-bottom:22px;
+  border-bottom:1px solid var(--line)
+}
+.pubCatalogHeader>div>span,
+.pubFilter>span{
+  font:600 8px/1 "Liberation Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  letter-spacing:.18em;
+  color:var(--gold)
+}
+.pubCatalogHeader h2{
+  margin:10px 0 0;
+  font:500 clamp(38px,5.6vw,74px)/.95 "Noto Serif Display",Georgia,serif
+}
+.pubFilter{
+  display:grid;
+  gap:8px;
+  min-width:220px
+}
+.pubFilter select{
+  width:100%;
+  padding:11px 36px 11px 12px;
+  border:1px solid var(--line);
+  border-radius:0;
+  background:#090908;
+  color:#d9cfbf;
+  font:500 10px/1 var(--screen);
+  letter-spacing:.08em
+}
+
+.pubGrid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:18px
+}
+.pubCard{
+  min-width:0;
+  border:1px solid rgba(200,169,81,.16);
+  background:#090908;
+  transition:transform .25s ease,border-color .25s ease
+}
+.pubCard:hover{
+  transform:translateY(-3px);
+  border-color:rgba(200,169,81,.42)
+}
+.pubCover{
+  display:block;
+  aspect-ratio:4/3;
+  overflow:hidden;
+  background:#11100d
+}
+.pubCover img{
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  filter:saturate(.9) contrast(1.02) brightness(.88);
+  transition:transform .45s ease,filter .3s ease
+}
+.pubCard:hover .pubCover img{
+  transform:scale(1.025);
+  filter:saturate(1) contrast(1.03) brightness(.95)
+}
+.pubCardBody{
+  display:flex;
+  flex-direction:column;
+  min-height:340px;
+  padding:22px
+}
+.pubCard time,
+.pubRead{
+  font:500 8px/1.2 "Liberation Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  letter-spacing:.11em
+}
+.pubCard time{color:#7f776c}
+.pubCard h3{
+  margin:18px 0 12px;
+  font:500 clamp(26px,2.4vw,38px)/1.04 "Noto Serif Display",Georgia,serif
+}
+.pubCard h3 a:hover{color:var(--gold)}
+.pubCardSubtitle{
+  margin:0 0 12px;
+  font:400 17px/1.35 "EB Garamond",Georgia,serif;
+  color:#c0b49f
+}
+.pubCardSummary{
+  margin:0 0 24px;
+  font:400 14px/1.55 "EB Garamond",Georgia,serif;
+  color:#8f877b
+}
+.pubRead{
+  margin-top:auto;
+  padding-top:15px;
+  border-top:1px solid rgba(200,169,81,.11);
+  color:#bda45e
+}
+
+.pubFooter{
+  display:flex;
+  justify-content:space-between;
+  gap:24px;
+  padding:28px clamp(18px,5vw,76px);
+  border-top:1px solid var(--line);
+  color:#81796d
+}
+.pubFooter b{
+  color:var(--gold);
+  font:500 16px/1 "Noto Serif Display",Georgia,serif
+}
+.pubFooter span{
+  font:500 8px/1 "Liberation Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  letter-spacing:.14em
+}
+
+.publicationsHub a:focus-visible,
+.publicationsHub select:focus-visible{
+  outline:2px solid var(--gold);
+  outline-offset:4px
+}
+
+@media(max-width:1050px){
+  .pubGrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:720px){
+  .pubTopbar{
+    grid-template-columns:auto 1fr;
+    gap:12px;
+    padding:12px 16px
+  }
+  .pubTopbarIdentity{display:none}
+  .pubTopbar nav{
+    grid-column:1/-1;
+    justify-self:stretch;
+    justify-content:space-between;
+    padding-top:8px;
+    border-top:1px solid rgba(200,169,81,.11)
+  }
+  .pubArchiveHero{
+    min-height:68vh;
+    padding:120px 18px 48px;
+    background-position:62% center
+  }
+  .pubArchiveHeroCopy{width:100%}
+  .pubArchiveHero h1{font-size:clamp(48px,15vw,72px)}
+  .pubCatalog{padding:48px 16px 74px}
+  .pubCatalogHeader{
+    align-items:stretch;
+    flex-direction:column
+  }
+  .pubFilter{min-width:0;width:100%}
+  .pubGrid{grid-template-columns:1fr}
+  .pubCardBody{min-height:auto}
+  .pubFooter{flex-direction:column}
+}
+@media(prefers-reduced-motion:reduce){
+  .pubCard,.pubCover img{transition:none!important}
+}
+
+
+/* Canonical editorial projections reabsorbed into the archive hub. */
+.pubCanonicalBanner{
+  margin:0;
+  position:absolute;
+  inset:0;
+  z-index:0;
+  overflow:hidden
+}
+.pubCanonicalBanner picture,
+.pubCanonicalBanner img{
+  display:block;
+  width:100%;
+  height:100%
+}
+.pubCanonicalBanner img{
+  object-fit:cover;
+  filter:saturate(.78) contrast(1.08) brightness(.48)
+}
+.pubCanonicalBanner:after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:
+    linear-gradient(90deg,rgba(6,6,5,.96) 0%,rgba(6,6,5,.78) 38%,rgba(6,6,5,.28) 72%,rgba(6,6,5,.58)),
+    linear-gradient(180deg,rgba(6,6,5,.18),rgba(6,6,5,.62))
+}
+.pubCanonicalBanner figcaption{
+  position:absolute;
+  left:var(--pub-gutter,clamp(18px,4vw,64px));
+  bottom:18px;
+  z-index:2;
+  max-width:620px;
+  font:500 7px/1.45 "Liberation Mono",ui-monospace,monospace;
+  letter-spacing:.09em;
+  color:#6f675b
+}
+.pubArchiveHeroCopy{position:relative;z-index:2}
+.pubBoundary{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px 18px;
+  margin-top:24px;
+  padding-top:14px;
+  border-top:1px solid rgba(200,169,81,.24);
+  font:600 8px/1.3 "Liberation Mono",ui-monospace,monospace;
+  letter-spacing:.11em
+}
+.pubBoundary b{color:#c8a951}
+.pubBoundary span{color:#8f8576}
+
+.pubFeatured,
+.pubPersisted,
+.pubFamilies{
+  width:min(1500px,calc(100vw - 48px));
+  margin:0 auto;
+  padding:64px 0;
+  border-top:1px solid rgba(200,169,81,.18)
+}
+.pubFeatured{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:1px;
+  background:rgba(200,169,81,.15);
+  padding:1px
+}
+.pubFeatured article{
+  min-height:320px;
+  padding:30px;
+  background:#090908;
+  display:flex;
+  flex-direction:column
+}
+.pubFeatured article>span,
+.pubPersisted header>span,
+.pubFamilies header>span,
+.pubFamiliesGrid article span,
+.pubPersistedGrid article>span{
+  font:600 8px/1.2 "Liberation Mono",ui-monospace,monospace;
+  letter-spacing:.15em;
+  color:#c8a951
+}
+.pubFeatured h2,
+.pubPersisted h2,
+.pubFamilies h2{
+  font:400 clamp(28px,3.2vw,48px)/1.02 "Noto Serif Display",Georgia,serif;
+  color:#eee6d8
+}
+.pubFeatured h2{font-size:clamp(25px,2.5vw,38px);margin:18px 0 14px}
+.pubFeatured p,
+.pubPersisted header p,
+.pubFamilies header p,
+.pubFamiliesGrid article p{
+  font:400 16px/1.65 "EB Garamond",Georgia,serif;
+  color:#aaa091
+}
+.pubFeatured a{
+  margin-top:auto;
+  padding-top:24px;
+  font:600 8px/1 "Liberation Mono",ui-monospace,monospace;
+  letter-spacing:.12em;
+  color:#d8bd7d
+}
+
+.pubPersisted header,
+.pubFamilies header{
+  max-width:840px;
+  margin-bottom:30px
+}
+.pubPersistedGrid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:10px
+}
+.pubPersistedGrid article{
+  min-height:150px;
+  padding:20px;
+  border:1px solid rgba(200,169,81,.17);
+  background:#090908;
+  display:grid;
+  gap:9px
+}
+.pubPersistedGrid time,
+.pubPersistedGrid small{
+  font:500 8px/1.35 "Liberation Mono",ui-monospace,monospace;
+  letter-spacing:.08em;
+  color:#71695d
+}
+.pubPersistedGrid strong{
+  font:400 20px/1.1 "Noto Serif Display",Georgia,serif;
+  color:#ddd0b5
+}
+
+.pubFamiliesGrid{
+  display:grid;
+  gap:12px
+}
+.pubFamiliesGrid>article{
+  display:grid;
+  grid-template-columns:minmax(220px,32%) 1fr;
+  min-height:240px;
+  border:1px solid rgba(200,169,81,.16);
+  background:#090908;
+  overflow:hidden
+}
+.pubFamiliesGrid>article>img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  filter:saturate(.72) contrast(1.05) brightness(.65)
+}
+.pubFamiliesGrid>article>div{
+  padding:26px 30px
+}
+.pubFamiliesGrid h3{
+  margin:8px 0 10px;
+  font:400 30px/1 "Noto Serif Display",Georgia,serif;
+  color:#e4d6b8
+}
+.pubFamiliesGrid small{
+  display:block;
+  margin-top:14px;
+  font:500 7px/1.45 "Liberation Mono",ui-monospace,monospace;
+  color:#615b52
+}
+.pubFamilyLinks{
+  display:grid;
+  gap:7px;
+  margin-top:18px
+}
+.pubFamilyLinks a{
+  padding-top:8px;
+  border-top:1px solid rgba(200,169,81,.10);
+  font:500 9px/1.35 "Liberation Mono",ui-monospace,monospace;
+  color:#aa9874
+}
+
+@media(max-width:900px){
+  .pubFeatured{grid-template-columns:1fr}
+  .pubFeatured article{min-height:240px}
+  .pubFamiliesGrid>article{grid-template-columns:1fr}
+  .pubFamiliesGrid>article>img{height:210px}
+  .pubFeatured,.pubPersisted,.pubFamilies{width:calc(100vw - 28px);padding:42px 0}
+}
