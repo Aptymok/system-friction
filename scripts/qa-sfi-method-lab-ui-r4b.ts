@@ -7,6 +7,8 @@ function read(path: string) {
 
 const page = read('src/app/method-lab/page.tsx');
 const ui = read('src/components/sfi/MethodLabExperimentWorkbench.tsx');
+const instrumentRoom = read('src/components/sfi/MethodLabInstrumentRoom.tsx');
+const instrumentRoomCss = read('src/components/sfi/MethodLabInstrumentRoom.module.css');
 const route = read('src/app/api/interface/method-lab/route.ts');
 const projection = read('src/lib/method-lab/uiProjection.ts');
 const execution = read('src/lib/method-lab/uiExecution.ts');
@@ -74,6 +76,30 @@ assert.match(ui, /reentryExecution/);
 assert.match(ui, /REPRODUCIBILITY_RECEIPT/);
 assert.match(ui, /runtimeReceipt/);
 assert.match(ui, /lineageRefs/);
+
+assert.match(ui, /MethodLabInstrumentRoom/, 'Method Lab Instrument Room must mount inside the existing workbench.');
+assert.match(ui, /runs=\{projection\?\.runs \?\? \[\]\}/, 'Instrument Room must reuse the existing run projection.');
+assert.match(ui, /preregistrations=\{projection\?\.preregistrations \?\? \[\]\}/, 'Instrument Room must reuse the existing preregistration projection.');
+for (const token of [
+  'P5 · LABORATORY INSTRUMENT ROOM',
+  'REPRODUCIBILITY DOSSIER',
+  'DATASET / INPUT SET',
+  'HASH CHAIN',
+  'SEED',
+  'REPLAY',
+  'PREREGISTRATION HASH',
+  'INPUT HASH',
+  'RESULT HASH',
+  'FROZEN INPUT SET',
+  'CODE REF',
+  'NOT RECORDED',
+]) assert.ok(instrumentRoom.includes(token), `Method Lab Instrument Room missing ${token}`);
+assert.match(instrumentRoom, /REPLAY SPEC ≠ REPLAY EXECUTION ≠ OBSERVED RETURN/);
+assert.match(instrumentRoom, /SIMULATION ≠ OBSERVATION/);
+assert.match(instrumentRoom, /HASH MATCH ≠ CAUSAL VALIDATION/);
+assert.match(instrumentRoom, /successful replay has NOT been asserted/);
+assert.equal(/fetch\(|createServiceSupabaseClient|\.from\(/.test(instrumentRoom), false, 'Instrument Room must remain a pure projection of existing Method Lab owners.');
+assert.match(instrumentRoomCss, /prefers-reduced-motion/, 'Instrument Room must retain a reduced-motion path.');
 assert.match(reentry, /REENTRY_NEVER_INHERITS_OBSERVED/);
 assert.match(reentry, /authorityCeiling: 'RECOMMEND'/);
 
