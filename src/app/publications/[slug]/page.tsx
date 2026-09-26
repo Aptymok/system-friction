@@ -94,7 +94,6 @@ export default async function PublicationLandingPage({ params }: PageProps) {
           <p style={{maxWidth:820,fontSize:17,lineHeight:1.7,color:'#bcb1a1'}}>{projection.summary}</p>
           <div style={{display:'flex',gap:12,flexWrap:'wrap',marginTop:24}}>
             <Link href="/publications" style={{fontSize:10,letterSpacing:'.13em',color:'#d5ad69'}}>BACK TO PUBLICATIONS</Link>
-            <Link href="/library" style={{fontSize:10,letterSpacing:'.13em',color:'#9e927e'}}>LIBRARY</Link>
             {publication.mediumUrl?<a href={publication.mediumUrl} target="_blank" rel="noreferrer" style={{fontSize:10,letterSpacing:'.13em',color:'#9e927e'}}>SOURCE OBJECT ↗</a>:null}
           </div>
         </header>
@@ -126,7 +125,6 @@ export default async function PublicationLandingPage({ params }: PageProps) {
           <blockquote style={{ margin: '30px 0 0', padding: '18px 22px', borderLeft: '2px solid #b78d50', color: '#e1c995', fontSize: 22 }}>{publication.motto}</blockquote>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', marginTop: 26, fontFamily: 'Inter,ui-sans-serif,system-ui,sans-serif' }}>
             <Link href="/publications" style={{ fontSize: 10, letterSpacing: '.13em', color: '#d5ad69', textDecoration: 'none', borderBottom: '1px solid rgba(213,173,105,.35)', paddingBottom: 4 }}>{ui.back}</Link>
-            <Link href="/library" style={{ fontSize: 10, letterSpacing: '.13em', color: '#8e806a', textDecoration: 'none' }}>LIBRARY</Link>
             {publication.renditions.find((item) => item.state === 'PUBLIC' && item.publicUrl)?.publicUrl ? <a href={publication.renditions.find((item) => item.state === 'PUBLIC' && item.publicUrl)!.publicUrl!} target="_blank" rel="noreferrer" style={{ fontSize: 10, letterSpacing: '.13em', color: '#d5ad69', textDecoration: 'none' }}>{ui.pdf}</a> : null}
             {publication.mediumUrl ? <a href={publication.mediumUrl} target="_blank" rel="noreferrer" style={{ fontSize: 10, letterSpacing: '.13em', color: '#8e806a', textDecoration: 'none' }}>MEDIUM VERSION ↗</a> : null}
           </div>
