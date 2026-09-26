@@ -70,7 +70,7 @@ Acceptance:
 - publication detail remains addressable without JavaScript-only navigation
 
 ### P2 · Observatory World Field
-State: PLANNED
+State: IMPLEMENTED / VERIFYING
 Deliverables:
 - project existing WorldSpect/sources/hypotheses/trajectory state into a navigable field
 - semantic visual mapping for source, signal, vector, hypothesis and RETURN
