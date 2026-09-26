@@ -7,6 +7,7 @@
   --mono:"Liberation Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
   --display:"Noto Serif Display",Georgia,serif;
   --narrative:"EB Garamond",Georgia,serif;
+  --screen:"Noto Sans",system-ui,sans-serif;
   position:fixed;
   inset:0;
   width:100vw;
