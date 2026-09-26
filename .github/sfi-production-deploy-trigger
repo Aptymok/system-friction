@@ -1,4 +1,4 @@
-SFI Hub telemetry closure release 2026-09-26
-source=510631e52e9fcdb0f05d405eb0b22b15cafeb4c4
-reason=wire_platform_metric_snapshots_into_observatory_and_align_ga4
-verification=production_build_and_observatory_return
+SFI Hub telemetry primary-read closure 2026-09-26
+source=0d891e0c32d5bef3a314adc95ea7510c54444c4e
+reason=read_platform_metrics_from_canonical_supabase_primary
+verification=production_observatory_platform_metrics_return
