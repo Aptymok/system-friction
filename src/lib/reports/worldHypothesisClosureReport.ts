@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { isSfiContinuityConfigured, readContinuityPublicWorldBundle } from '@/lib/sfi/continuityPostgres';
 
 export const WORLD_HYPOTHESIS_CLOSURE_DOSSIER_CONTRACT = 'SFI-WORLD-HYPOTHESIS-CLOSURE-DOSSIER-1.0' as const;
 
@@ -224,30 +225,67 @@ export async function readWorldHypothesisClosureDossier(input: {
 } = {}): Promise<WorldHypothesisClosureDossier> {
   const db = createServiceSupabaseClient();
   const limit = Math.max(1, Math.min(500, input.limit ?? 360));
-  let query = db
-    .from('world_hypotheses')
-    .select(`
-      id,phenomenon_key,statement,status,cutoff_at,validation_starts_at,validation_ends_at,
-      initial_confidence,current_confidence,methodology_version,
-      outcome:world_hypothesis_outcomes(
-        id,classification,observed_outcome,directional_accuracy,temporal_accuracy,
-        actor_accuracy,mechanism_accuracy,source_coverage,evidence_ids,evaluator_version,evaluated_at
-      ),
-      learning:world_learning_events(
-        id,retained_assumptions,rejected_assumptions,missing_variables,
-        confidence_before,confidence_after,created_at
-      )
-    `)
-    .in('status', ['VALIDATED','PARTIALLY_VALIDATED','CONTRADICTED','INCONCLUSIVE'])
-    .order('cutoff_at', { ascending: false })
-    .limit(limit);
+  const since = input.since ?? new Date(Date.now() - 90 * 86_400_000).toISOString();
 
-  if (input.since) query = query.gte('cutoff_at', input.since);
-  const result = await query;
-  if (result.error) throw new Error(`world_hypothesis_closure_dossier_read_failed:${result.error.message}`);
+  const [hypothesisRead,outcomeRead,learningRead] = await Promise.all([
+    db.from('world_hypotheses')
+      .select('id,phenomenon_key,statement,status,cutoff_at,validation_starts_at,validation_ends_at,initial_confidence,current_confidence,methodology_version')
+      .in('status', ['VALIDATED','PARTIALLY_VALIDATED','CONTRADICTED','INCONCLUSIVE'])
+      .gte('cutoff_at', since)
+      .order('cutoff_at', { ascending: false })
+      .limit(limit),
+    db.from('world_hypothesis_outcomes')
+      .select('id,hypothesis_id,classification,observed_outcome,directional_accuracy,temporal_accuracy,actor_accuracy,mechanism_accuracy,source_coverage,evidence_ids,evaluator_version,evaluated_at')
+      .gte('evaluated_at', since)
+      .order('evaluated_at', { ascending: false })
+      .limit(limit),
+    db.from('world_learning_events')
+      .select('id,hypothesis_id,retained_assumptions,rejected_assumptions,missing_variables,confidence_before,confidence_after,created_at')
+      .gte('created_at', since)
+      .order('created_at', { ascending: false })
+      .limit(limit),
+  ]);
 
-  const hypotheses = (result.data ?? []).map((item) => normalize(item as unknown as Row));
-  return buildWorldHypothesisClosureDossier(hypotheses);
+  let hypothesisRows = (hypothesisRead.data ?? []) as unknown as Row[];
+  let outcomeRows = (outcomeRead.data ?? []) as unknown as Row[];
+  let learningRows = (learningRead.data ?? []) as unknown as Row[];
+
+  const primaryErrors = [
+    hypothesisRead.error ? `hypotheses:${hypothesisRead.error.message}` : null,
+    outcomeRead.error ? `outcomes:${outcomeRead.error.message}` : null,
+    learningRead.error ? `learning:${learningRead.error.message}` : null,
+  ].filter((item): item is string => Boolean(item));
+
+  if (primaryErrors.length) {
+    if (!isSfiContinuityConfigured()) {
+      throw new Error(`world_hypothesis_closure_dossier_read_failed:${primaryErrors.join('|')}`);
+    }
+    const continuity = await readContinuityPublicWorldBundle({ since, limit });
+    hypothesisRows = (continuity.hypotheses ?? []) as unknown as Row[];
+    outcomeRows = (continuity.outcomes ?? []) as unknown as Row[];
+    learningRows = (continuity.learning ?? []) as unknown as Row[];
+  }
+
+  const outcomeByHypothesis = new Map<string,Row>();
+  for (const outcome of outcomeRows) {
+    const hypothesisId = text(outcome.hypothesis_id);
+    if (hypothesisId && !outcomeByHypothesis.has(hypothesisId)) outcomeByHypothesis.set(hypothesisId,outcome);
+  }
+  const learningByHypothesis = new Map<string,Row>();
+  for (const learning of learningRows) {
+    const hypothesisId = text(learning.hypothesis_id);
+    if (hypothesisId && !learningByHypothesis.has(hypothesisId)) learningByHypothesis.set(hypothesisId,learning);
+  }
+
+  const closed = hypothesisRows
+    .filter((item)=>['VALIDATED','PARTIALLY_VALIDATED','CONTRADICTED','INCONCLUSIVE'].includes(text(item.status)))
+    .map((item) => normalize({
+      ...item,
+      outcome: outcomeByHypothesis.get(text(item.id)) ?? null,
+      learning: learningByHypothesis.get(text(item.id)) ?? null,
+    }));
+
+  return buildWorldHypothesisClosureDossier(closed);
 }
 
 export function worldHypothesisClosureReportBody(dossier: WorldHypothesisClosureDossier) {
