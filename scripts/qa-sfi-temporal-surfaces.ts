@@ -93,6 +93,13 @@ assert.equal(/fetch\(|createServiceSupabaseClient|\.from\(/.test(observatoryWorl
 assert.ok(observatoryWorldLayerCss.includes('.worldSpectrumCorona') && observatoryWorldLayerCss.includes('.fieldHypothesisNode'), 'world_field_visual_layers_missing');
 assert.ok(observatoryWorldLayerCss.includes('prefers-reduced-motion'), 'world_field_reduced_motion_boundary_missing');
 
+assert.ok(observatoryUi.includes('const[baselineTime,setBaselineTime]=useState(0)'), 'persisted_t0_t1_temporal_comparison_missing');
+assert.ok(observatoryUi.includes('baselineFrameIndex') && observatoryUi.includes('temporalVectorDeltas'), 'temporal_snapshot_delta_projection_missing');
+assert.ok(observatoryUi.includes('ghostVectors={baselineFrame?.vectors??[]}'), 'temporal_worldspect_ghost_not_mounted');
+assert.ok(observatoryUi.includes('T0/T1 compares persisted WorldSpect snapshots only. The current source/hypothesis graph is not backdated or rewritten by this control.'), 'temporal_backdating_boundary_missing');
+assert.ok(observatoryUi.includes('T0 → T1 · PERSISTED WORLDSPECT'), 'temporal_comparison_identity_missing');
+assert.ok(observatoryWorldField.includes('worldSpectrumGhost') && observatoryWorldField.includes('ghostVectors'), 'worldspect_temporal_ghost_projection_missing');
+
 // One bounded refresh reads the three existing public owners. Returning to the surface reuses a recent snapshot.
 for (const endpoint of [
   "fetchJson('/api/observatory/world')",
@@ -170,6 +177,8 @@ console.log(JSON.stringify({
     simulationDoesNotRewriteObservation:true,
     publicFieldSingleReadOwner:true,
     typedWorldFieldProjection:true,
+    persistedT0T1Comparison:true,
+    historicalGraphBackdating:false,
     worldFieldSecondReadOwner:false,
     observatoryDataPolling:false,
     observatorySnapshotReuse:true,
