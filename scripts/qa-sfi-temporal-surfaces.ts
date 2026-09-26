@@ -20,6 +20,9 @@ const observatoryUi = read('src/components/sfi/ObservatoryConsole.tsx');
 const observatoryInterpretiveFlow = read('src/components/sfi/ObservatoryInterpretiveFlow.tsx');
 const observatoryWorldField = read('src/components/sfi/ObservatoryWorldField.tsx');
 const observatoryWorldLayerCss = read('src/components/sfi/ObservatoryWorldLayer.css');
+const hypothesisClosureDiff = read('src/components/sfi/HypothesisClosureDiff.tsx');
+const worldHypothesisClosureReport = read('src/lib/reports/worldHypothesisClosureReport.ts');
+const worldObservatoryCron = read('src/app/api/cron/world-observatory/route.ts');
 const observatoryAvailability = read('src/lib/observatory/public/readAvailability.ts');
 const observatoryPage = read('src/app/observatory/page.tsx');
 
@@ -100,6 +103,25 @@ assert.ok(observatoryUi.includes('T0/T1 compares persisted WorldSpect snapshots 
 assert.ok(observatoryUi.includes('T0 → T1 · PERSISTED WORLDSPECT'), 'temporal_comparison_identity_missing');
 assert.ok(observatoryWorldField.includes('worldSpectrumGhost') && observatoryWorldField.includes('ghostVectors'), 'worldspect_temporal_ghost_projection_missing');
 
+assert.ok(observatoryUi.includes('<HypothesisClosureDiff hypothesis={selectedHypothesis}/>'), 'hypothesis_closure_return_diff_missing');
+for (const token of ['T0 CLAIM','RETURN WINDOW','LATER EVIDENCE','CLASSIFICATION','LEARNING','EXPECTED ≠ OBSERVED','INCONCLUSIVE ≠ FALSE','REPORT ≠ RETURN']) {
+  assert.ok(hypothesisClosureDiff.includes(token), `hypothesis_closure_diff_contract_missing:${token}`);
+}
+assert.equal(/fetch\(|createServiceSupabaseClient|\.from\(/.test(hypothesisClosureDiff), false, 'hypothesis_closure_diff_must_not_become_read_or_write_owner');
+
+assert.ok(worldHypothesisClosureReport.includes('SFI-WORLD-HYPOTHESIS-CLOSURE-DOSSIER-1.0'), 'closure_dossier_contract_missing');
+assert.ok(worldHypothesisClosureReport.includes('Outcome classification is owned by the World calibration cycle; this dossier does not reclassify hypotheses.'), 'closure_report_classification_authority_boundary_missing');
+assert.ok(worldHypothesisClosureReport.includes('You are NOT the hypothesis evaluator.'), 'closure_report_editor_must_not_become_evaluator');
+assert.ok(worldHypothesisClosureReport.includes('Do not call PARTIALLY_VALIDATED validated. Do not call INCONCLUSIVE false.'), 'closure_report_language_boundary_missing');
+assert.ok(worldHypothesisClosureReport.includes("role:'report_agent'") && worldHypothesisClosureReport.includes("sfi_cognitive_twin_runs"), 'closure_report_must_use_existing_report_owner');
+assert.ok(worldHypothesisClosureReport.includes('readContinuityPublicWorldBundle'), 'closure_report_continuity_read_fallback_missing');
+assert.doesNotMatch(worldHypothesisClosureReport, /world_hypotheses[^\n]*\.update|from\('world_hypotheses'\)[\s\S]{0,300}\.update\(/, 'closure_report_must_never_write_hypothesis_classification');
+
+assert.ok(worldObservatoryCron.includes('const calibration = await runWorldCalibrationCycle()'), 'world_calibration_owner_missing');
+assert.ok(worldObservatoryCron.includes('persistWorldHypothesisClosureReport({ hypothesisIds: calibration.calibratedIds })'), 'closure_report_must_run_only_from_calibrated_ids');
+assert.ok(worldObservatoryCron.includes('Closure-report generation is downstream narrative projection only and cannot change classification.'), 'manual_closure_report_boundary_missing');
+assert.ok(worldObservatoryCron.includes('Hypothesis closure reports are downstream narrative projections of classifications already persisted by calibration and cannot change them.'), 'scheduled_closure_report_boundary_missing');
+
 // One bounded refresh reads the three existing public owners. Returning to the surface reuses a recent snapshot.
 for (const endpoint of [
   "fetchJson('/api/observatory/world')",
@@ -178,6 +200,9 @@ console.log(JSON.stringify({
     publicFieldSingleReadOwner:true,
     typedWorldFieldProjection:true,
     persistedT0T1Comparison:true,
+    hypothesisClosureReturnDiff:true,
+    closureReportClassificationAuthority:'WORLD_CALIBRATION_ONLY',
+    closureReportExistingOwner:'sfi_cognitive_twin_runs',
     historicalGraphBackdating:false,
     worldFieldSecondReadOwner:false,
     observatoryDataPolling:false,
