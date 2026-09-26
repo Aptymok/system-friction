@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { MethodLabInstrumentRoom } from './MethodLabInstrumentRoom';
 
 const EXPERIMENT_TYPES = [
   'SIMULATION',
@@ -321,6 +322,13 @@ export function MethodLabExperimentWorkbench() {
             <pre style={{ ...mono, whiteSpace: 'pre-wrap', maxHeight: 220, overflow: 'auto', margin: 0 }}>{Object.keys(record(execution.runtimeReceipt)).length ? JSON.stringify(record(execution.runtimeReceipt), null, 2) : 'No Reentry runtime receipt on this run.'}</pre>
           </div>
         </div>
+
+        <MethodLabInstrumentRoom
+          runs={projection?.runs ?? []}
+          preregistrations={projection?.preregistrations ?? []}
+          selectedRunId={inspectRunId}
+          onSelectRun={setInspectRunId}
+        />
 
         <div style={panel}>
           <strong>09 · SLICE F PREREGISTRATION METADATA PREVIEW</strong>
