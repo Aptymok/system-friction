@@ -51,7 +51,7 @@ export default async function PublicationsPage() {
   });
   const persistedPublications = await getPublicPublishedReturns(12);
 
-  return <main className="publicationsHub"><PublicSurfaceContinuity scene="return-loop" number="08" label="PUBLICATIONS / RETURN" previous={{href:'/library',label:'LIBRARY'}} next={{href:'/',label:'JOURNEY'}}/>
+  return <main className="publicationsHub"><PublicSurfaceContinuity scene="return" number="07" label="PUBLICATIONS / RETURN" previous={{href:'/library',label:'LIBRARY'}} next={{href:'/',label:'JOURNEY'}}/>
     <header className="pubTopbar">
       <Link href="/" className="pubBrand">SFI</Link>
       <div className="pubTopbarIdentity"><span>SYSTEM FRICTION INSTITUTE</span><small>PUBLICATIONS / EDITORIAL ARCHIVE</small></div>
