@@ -132,6 +132,7 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_SUPPORT_LARGE_FUNCTIONS: "1"
           NEXT_PUBLIC_SUPABASE_URL: https://nwrmbkgsnrhdscnsyoko.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_5bmBY6_sN3_X125_DhvW5w_IFvcI3l1
         run: npx --yes vercel@latest build --prod --token="$VERCEL_TOKEN"
@@ -142,5 +143,6 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_SUPPORT_LARGE_FUNCTIONS: "1"
         run: npx --yes vercel@latest deploy --prebuilt --prod --archive=tgz --token="$VERCEL_TOKEN"
 
