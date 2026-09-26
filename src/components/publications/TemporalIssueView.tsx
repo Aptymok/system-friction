@@ -49,9 +49,9 @@ export function TemporalIssueView({
       <header className="tnTopbar">
         <Link className="tnBrand" href="/"><span>SFI</span><small>SYSTEM FRICTION INSTITUTE</small></Link>
         <nav aria-label="Institutional navigation">
-          <Link href="/">SFI</Link>
+          <Link href="/method-lab">LABORATORY</Link>
+          <Link href="/publications">REGISTRY</Link>
           <Link href="/observatory">OBSERVATORY</Link>
-          <Link href="/publications">PUBLICATIONS</Link>
           <Link href="/login">SIGN IN</Link>
         </nav>
         <Link className="tnExplore" href="/publications">EXPLORE <span>→</span></Link>
