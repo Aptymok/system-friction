@@ -81,7 +81,7 @@ Acceptance:
 - THIN/DEGRADED remains visible
 
 ### P3 · Temporal Scrubber
-State: IMPLEMENTED / VERIFYING
+State: CLOSED / PRODUCTION READY
 Deliverables:
 - TIME control over existing public timeline/snapshots
 - T0 ↔ T1 comparison
@@ -92,7 +92,7 @@ Acceptance:
 - unavailable periods render NOT OBSERVED
 
 ### P4 · Hypothesis Close + RETURN Diff
-State: PLANNED
+State: IMPLEMENTED / VERIFYING
 Deliverables:
 - expose OPEN → CONTRAST → CLOSE/RETAIN/REJECT lifecycle
 - EXPECTED / AUTHORIZED / EXECUTED / OBSERVED / RETURN comparison
