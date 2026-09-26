@@ -25,7 +25,6 @@ export function PublicEntryGateway(){
 
   const scene = SCENES[sceneIndex];
   const activeFrame = scene.frames[frameIndex % scene.frames.length];
-  const activeHotspot = hotspotIndex === null ? null : scene.hotspots[hotspotIndex];
 
   const goScene = useCallback((next:number)=>{
     const bounded = clamp(next,0,SCENES.length-1);
