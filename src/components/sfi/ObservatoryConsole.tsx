@@ -6,6 +6,7 @@ import { useAuthState } from '@/components/auth/AuthProvider';
 import { SessionControls } from './SessionControls';
 import { ObservatoryInterpretiveFlow } from './ObservatoryInterpretiveFlow';
 import { ObservatoryWorldField } from './ObservatoryWorldField';
+import { HypothesisClosureDiff } from './HypothesisClosureDiff';
 import { translateUiText } from '@/components/i18n/SfiLanguageProvider';
 import {
   classifyObservatoryRead,
@@ -233,6 +234,7 @@ export function ObservatoryConsole(){
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginTop:14}}><section><div style={micro}>{'EXPECTED SIGNALS'}</div>{arr(selectedHypothesis.expected_signals).map(String).map(v=><div key={v} style={{fontSize:11,padding:'4px 0'}}>+ {v}</div>)}</section><section><div style={micro}>{'CONTRADICTIONS'}</div>{arr(selectedHypothesis.contradiction_signals).map(String).map(v=><div key={v} style={{fontSize:11,padding:'4px 0'}}>− {v}</div>)}</section></div>
         <div style={{...micro,marginTop:14}}>{'RIVAL HYPOTHESES'}</div>{arr(selectedHypothesis.aiInference?.rivalHypotheses).map(String).map(v=><div key={v} style={{fontSize:11,padding:'4px 0'}}>{v}</div>)}
         <div style={{...micro,marginTop:14}}>{'INPUT LINEAGE'}</div><div style={{display:'flex',gap:5,flexWrap:'wrap',marginTop:6}}>{[...selectedEvidenceIds].map(id=><button key={id} style={chip} onClick={()=>setSelectedNodeId(id)}>{id.slice(0,8)}</button>)}</div>
+        <HypothesisClosureDiff hypothesis={selectedHypothesis}/>
         {selectedHypothesis.outcome&&<div style={{marginTop:16,padding:11,border:'1px solid rgba(214,180,120,.18)',borderRadius:10}}><div style={micro}>RETURN / CONTRAST</div><b>{selectedHypothesis.outcome.classification}</b><p style={{fontSize:11,lineHeight:1.55}}>{selectedHypothesis.outcome.observed_outcome}</p></div>}
         {selectedHypothesis.learning&&<div style={{marginTop:10,padding:11,border:'1px solid rgba(214,180,120,.18)',borderRadius:10}}><div style={micro}>LEARNING</div><div style={{fontSize:11,lineHeight:1.55}}>{'Retained'}: {arr(selectedHypothesis.learning.retained_assumptions).join(' · ')||'—'}<br/>{'Rejected'}: {arr(selectedHypothesis.learning.rejected_assumptions).join(' · ')||'—'}<br/>{'Missing variables'}: {arr(selectedHypothesis.learning.missing_variables).join(' · ')||'—'}</div></div>}
       </div>:<p>{'No hypothesis exists under the current filters.'}</p>}
