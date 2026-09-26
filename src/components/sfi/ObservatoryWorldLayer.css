@@ -5,3 +5,54 @@
 .nodeTimelinePanel{position:absolute;z-index:23;right:3vw;bottom:92px;width:min(470px,90vw);max-height:58vh;overflow:auto;padding:18px;background:rgba(4,6,6,.91);border:1px solid rgba(215,170,98,.38);backdrop-filter:blur(18px);box-shadow:0 28px 90px rgba(0,0,0,.66)}.nodeTimelineRows{position:relative;margin-top:10px;padding-left:22px}.nodeTimelineRows:before{content:"";position:absolute;left:6px;top:4px;bottom:4px;width:1px;background:linear-gradient(#d2a661,rgba(210,166,97,.08))}.nodeTimelineRows>div{position:relative;padding:0 0 16px}.nodeTimelineRows>div:before{content:"";position:absolute;left:-20px;top:5px;width:7px;height:7px;border-radius:50%;background:#d6aa66;box-shadow:0 0 12px rgba(214,170,102,.45)}.nodeTimelineRows time{font:9px ui-monospace,SFMono-Regular,Menlo,monospace;color:#8d7450}.nodeTimelineRows p{margin:5px 0 0;font-size:12px;line-height:1.55;color:#c7b9a3}
 
 @media(max-width:760px){.satelliteHubPanel{left:3vw;top:15vh;width:94vw;max-height:58vh}.hubRail,.dimensionGrid{grid-template-columns:1fr}.nodeTimelinePanel{right:3vw;bottom:80px;width:94vw;max-height:43vh}}
+
+
+/* Elite Experience P2 · typed World Field */
+.worldField{filter:drop-shadow(0 0 18px rgba(44,140,190,.08))}
+.fieldGrid{opacity:.14;pointer-events:none}
+.fieldGrid ellipse,.fieldGrid line{fill:none;stroke:rgba(146,190,211,.34);stroke-width:1;vector-effect:non-scaling-stroke}
+.fieldGrid line{stroke-dasharray:2 10;opacity:.45}
+
+.worldSpectrumCorona{pointer-events:none}
+.worldVector{opacity:var(--vector-trust,.35)}
+.worldVector line{stroke:#d5aa68;stroke-width:1.3;vector-effect:non-scaling-stroke;filter:url(#fieldGlow)}
+.worldVector circle{fill:#e0b472;stroke:#f4d3a2;stroke-width:1;filter:url(#fieldGlow)}
+.worldVector text{font:600 9px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.08em;fill:#9f875f;paint-order:stroke;stroke:#020304;stroke-width:4px;stroke-linejoin:round}
+
+.fieldEdges{pointer-events:none}
+.fieldEdge{vector-effect:non-scaling-stroke;fill:none;stroke-width:1.4}
+.fieldEdgeLineage{stroke:rgba(91,213,255,.7);stroke-dasharray:3 5;animation:fieldDash 8s linear infinite}
+.fieldEdgeDerived{stroke:rgba(215,174,105,.46);stroke-dasharray:2 7}
+.fieldEdgeInferred{stroke:rgba(229,111,92,.64);stroke-dasharray:8 8;animation:fieldDash 11s linear infinite}
+
+.fieldObservation{opacity:calc(.45 + (var(--node-confidence,.45) * .55))}
+.fieldObservation:focus-visible{outline:none}
+.fieldObservation:focus-visible .geoHalo{stroke:#fff;stroke-width:4;opacity:1}
+
+.fieldHypothesisNode{pointer-events:auto;cursor:pointer}
+.fieldHypothesisNode:focus-visible{outline:none}
+.hypothesisOrbit{fill:rgba(213,170,101,.025);stroke:rgba(234,184,102,.72);stroke-width:1.6;stroke-dasharray:5 7;animation:fieldOrbit 13s linear infinite;transform-box:fill-box;transform-origin:center}
+.hypothesisCore{fill:rgba(230,181,99,.78);stroke:#f0cca0;stroke-width:1.3;filter:url(#fieldGlow)}
+.fieldHypothesisNode text,.fieldSystemNode text{font:600 10px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.08em;fill:#c5ad87;paint-order:stroke;stroke:#020304;stroke-width:4px;stroke-linejoin:round}
+
+.fieldSystemNode{pointer-events:none}
+.fieldSystemNode rect{fill:rgba(6,12,14,.82);stroke:rgba(102,203,230,.6);stroke-width:1.5;filter:url(#fieldGlow)}
+
+.fieldBoundary{opacity:.68;pointer-events:none}
+.fieldBoundary text{font:600 8px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.16em;fill:#765f42;paint-order:stroke;stroke:#020304;stroke-width:3px}
+
+.lens-sources .worldSpectrumCorona,.lens-sources .fieldSystemLayer,.lens-sources .fieldHypothesisNode{opacity:.18}
+.lens-hypotheses .fieldObservationLayer{opacity:.54}
+.lens-hypotheses .fieldObservation.nodeNeighbor,.lens-hypotheses .fieldObservation.nodeSelected{opacity:1}
+.lens-trajectory .fieldGrid{opacity:.23}
+.lens-trajectory .worldVector{opacity:calc(.25 + (var(--vector-trust,.35) * .75))}
+
+@keyframes fieldDash{to{stroke-dashoffset:-72}}
+@keyframes fieldOrbit{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){
+  .fieldEdgeLineage,.fieldEdgeInferred,.hypothesisOrbit{animation:none!important}
+}
+@media(max-width:760px){
+  .worldVector text{display:none}
+  .fieldBoundary text{font-size:6px;letter-spacing:.1em}
+}
