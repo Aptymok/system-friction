@@ -10,9 +10,8 @@ System Friction Institute observes how signals, systems and fields accumulate fr
 
 - Home: https://systemfriction.org/
 - Observatory: https://systemfriction.org/observatory
+- Publications: https://systemfriction.org/publications
 - World timeline: https://systemfriction.org/api/observatory/timeline
-- FIELD: https://systemfriction.org/field
-- History: https://systemfriction.org/history
 - Privacy: https://systemfriction.org/privacy
 
 ## Canonical concepts
