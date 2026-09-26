@@ -174,19 +174,12 @@ export function PublicEntryGateway(){
       </Link>
 
       <nav aria-label="Public navigation">
-        <Link href="/institution">INSTITUTE</Link>
-        <Link href="/library">LIBRARY</Link>
         <Link href="/observatory">OBSERVATORY</Link>
         <Link href="/publications">PUBLICATIONS</Link>
       </nav>
 
       <div className="sfiSceneChromeActions">
         <span>{scene.number} / {String(SCENES.length).padStart(2,'0')}</span>
-        <nav className="sfiMachineLinks" aria-label="Machine-readable entry points">
-          <Link href="/llms.txt">LLM</Link>
-          <Link href="/ai-index.json">INDEX</Link>
-          <Link href="/api/external/v1/manifest">API</Link>
-        </nav>
         <Link href="/login">SIGN IN</Link>
       </div>
     </header>
