@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { buildScoreFrictionEvaluationContract } from '@/lib/scorefriction/evaluationContract';
 import { evaluateScoreFrictionCase, evaluateScoreFrictionObservation, recordScoreFrictionAudioObservation } from '@/lib/scorefriction/store';
-import { runPythonScoreFrictionAnalysis } from '@/infrastructure/python/scorefrictionClient';
 import { buildScoreFrictionOperationalReading } from '@/lib/scorefriction/python/pythonMihmToOperational';
 
 export const dynamic = 'force-dynamic';
@@ -64,26 +63,36 @@ function buildPythonVectors(payload: Record<string, unknown>) {
 }
 
 async function analyzeAudio(file: File, input: { text?: string | null; nti?: number | null; caseId: string; evidenceType: string; metadata: Record<string, unknown> }) {
-  const python = await runPythonScoreFrictionAnalysis({
-    audioFile: file,
-    text: input.text,
-    nti: input.nti,
-    caseId: input.caseId,
-    evidenceType: input.evidenceType,
-    metadata: input.metadata,
-  });
-  if (python.ok) return { ok: true as const, mode: 'python_mihm', payload: python.data, ...buildPythonVectors(python.data) };
-
   const analyzerUrl = process.env.SCOREFRICTION_AUDIO_ANALYZER_URL;
-  if (!analyzerUrl) return { ok: false as const, error: `audio_analyzer_unavailable:${python.error}` };
+  if (!analyzerUrl) {
+    return {
+      ok: false as const,
+      error: 'audio_analyzer_unavailable:external_service_not_configured',
+    };
+  }
+
   const form = new FormData();
   form.set('file', file);
+  if (input.text) form.set('text', input.text);
+  if (input.nti !== null && input.nti !== undefined) form.set('nti', String(input.nti));
+  form.set('case_id', input.caseId);
+  form.set('evidence_type', input.evidenceType);
+  form.set('audio_metadata', JSON.stringify(input.metadata));
+
   const response = await fetch(analyzerUrl, { method: 'POST', body: form }).catch(() => null);
   if (!response?.ok) return { ok: false as const, error: `audio_analyzer_failed:${response?.status ?? 'network'}` };
   const json = record(await response.json().catch(() => null));
   const acoustic = record(json.audio_vector ?? json.data ?? json);
   if (!Object.keys(acoustic).length) return { ok: false as const, error: 'audio_analyzer_returned_no_vector' };
-  return { ok: true as const, mode: 'external_analyzer', payload: json, acoustic_vector: acoustic, semantic_vector: undefined, mihm_cultural_vector: undefined };
+
+  return {
+    ok: true as const,
+    mode: 'external_analyzer',
+    payload: json,
+    acoustic_vector: acoustic,
+    semantic_vector: Object.keys(record(json.semantic_vector)).length ? record(json.semantic_vector) : undefined,
+    mihm_cultural_vector: Object.keys(record(json.mihm_cultural_vector)).length ? record(json.mihm_cultural_vector) : undefined,
+  };
 }
 
 async function worldspectContext(request: NextRequest) {
