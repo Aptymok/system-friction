@@ -5,6 +5,7 @@ import { runWorldHypothesisCycle } from '@/lib/world-observatory/hypothesisCycle
 import { runWorldInstrumentSweep } from '@/lib/world-observatory/instrumentSweep';
 import { executeWorldSignalObserverAgent } from '@/lib/world-observatory/worldSignalObserverAgent';
 import { scheduledEgressGuardResponse } from '@/lib/continuity/scheduledEgressGuard';
+import { persistWorldHypothesisClosureReport } from '@/lib/reports/worldHypothesisClosureReport';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -44,6 +45,26 @@ export async function POST(request: NextRequest) {
       hypothesisIds,
       allowHistoricalReevaluation: true,
     });
+    const manualClosureReport = calibration.calibratedIds.length
+      ? await persistWorldHypothesisClosureReport({ hypothesisIds: calibration.calibratedIds })
+          .then((result)=>({
+            ok:true,
+            persisted:result.persisted,
+            skipped:result.skipped,
+            reportRunId:result.reportRunId,
+            taskId:result.taskId,
+            fingerprint:result.fingerprint,
+          }))
+          .catch((error)=>({
+            ok:false,
+            persisted:false,
+            skipped:false,
+            reportRunId:null,
+            taskId:null,
+            fingerprint:null,
+            error:error instanceof Error?error.message:String(error),
+          }))
+      : null;
     const providers = getLlmProviderStatus().map((item) => ({
       id: item.id,
       configured: item.configured,
@@ -64,6 +85,7 @@ export async function POST(request: NextRequest) {
       startedAt,
       completedAt: new Date().toISOString(),
       calibration,
+      closureReport: manualClosureReport,
       providers,
       writesPerformed: calibration.calibrated > 0 || calibration.reopened > 0,
       targetCoverage: {
@@ -72,13 +94,33 @@ export async function POST(request: NextRequest) {
         calibrated: calibration.calibratedIds,
         complete: completed,
       },
-      boundary: 'Authorized manual readjudication executes only the existing World calibration owner. Unavailable or incomplete model assessment leaves targeted historical hypotheses AWAITING_OUTCOME; it does not fabricate INCONCLUSIVE. It does not collect observations, generate hypotheses, run institutional cycles, or enable scheduled egress globally.',
+      boundary: 'Authorized manual readjudication executes only the existing World calibration owner. Unavailable or incomplete model assessment leaves targeted historical hypotheses AWAITING_OUTCOME; it does not fabricate INCONCLUSIVE. Closure-report generation is downstream narrative projection only and cannot change classification. It does not collect observations, generate hypotheses, run institutional cycles, or enable scheduled egress globally.',
     }, { status: 200 });
   }
   const worldSignalObserver = await executeWorldSignalObserverAgent();
   const observation = worldSignalObserver.observation;
   const hypothesis = await runWorldHypothesisCycle();
   const calibration = await runWorldCalibrationCycle();
+  const closureReport = calibration.calibratedIds.length
+    ? await persistWorldHypothesisClosureReport({ hypothesisIds: calibration.calibratedIds })
+        .then((result)=>({
+          ok:true,
+          persisted:result.persisted,
+          skipped:result.skipped,
+          reportRunId:result.reportRunId,
+          taskId:result.taskId,
+          fingerprint:result.fingerprint,
+        }))
+        .catch((error)=>({
+          ok:false,
+          persisted:false,
+          skipped:false,
+          reportRunId:null,
+          taskId:null,
+          fingerprint:null,
+          error:error instanceof Error?error.message:String(error),
+        }))
+    : null;
   const instrumentSweep = await runWorldInstrumentSweep({
     observedAt: startedAt,
     worldSignalObserver,
@@ -105,13 +147,14 @@ export async function POST(request: NextRequest) {
     observation,
     hypothesis,
     calibration,
+    closureReport,
     instrumentSweep,
     freshness: {
       observed: observation.observed,
       persisted: observation.persisted,
       collectorFailures: observation.failures.length,
     },
-    executionRule: 'World observation, hypothesis generation and deterministic calibration remain authoritative for this cron. Signal Vane, Cluster Atlas and Predictive health are a read-only daily instrumentation sweep; their failure does not fabricate evidence or block the observed World cycle.',
+    executionRule: 'World observation, hypothesis generation and deterministic calibration remain authoritative for this cron. Hypothesis closure reports are downstream narrative projections of classifications already persisted by calibration and cannot change them. Signal Vane, Cluster Atlas and Predictive health are a read-only daily instrumentation sweep; their failure does not fabricate evidence or block the observed World cycle.',
   });
 }
 
