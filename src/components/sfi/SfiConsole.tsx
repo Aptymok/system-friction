@@ -17,7 +17,6 @@ const HUMAN_NAV = [
   { href:'/root#reports', label:'REPORTES', scene:null },
   { href:'/observatory', label:'OBSERVATORY', scene:null },
   { href:'/root/neural-graph', label:'NEURAL GRAPH', scene:null },
-  { href:'/library', label:'LIBRARY', scene:null },
 ] as const;
 
 export function SfiConsole({scene}:{scene:SceneKey}){
