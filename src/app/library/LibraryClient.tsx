@@ -29,7 +29,7 @@ export default function LibraryClient({ publications, corpus, surfaceContract }:
   const visibleObservations=observationFilter==='ALL'?observations:observations.filter((p)=>p.observationKind===observationFilter);
   const hashed=corpus.filter((doc)=>doc.contentHash).length;
 
-  return <main className="sfiLibrary"><PublicSurfaceContinuity scene="archive-evidence" number="05" label="LIBRARY / EVIDENCE" previous={{href:'/observatory',label:'OBSERVATORY'}} next={{href:'/institution',label:'INSTITUTION'}}/>
+  return <main className="sfiLibrary"><PublicSurfaceContinuity scene="library" number="06" label="LIBRARY / PUBLIC ARCHIVE" previous={{href:'/institution',label:'INSTITUTION'}} next={{href:'/publications',label:'RETURN'}}/>
     <header className="libraryTop">
       <div><Link href="/">SFI</Link><span>LIBRARY · KNOWLEDGE / EVIDENCE / RELATION</span></div>
       <nav><Link href="/observatory">OBSERVATORY</Link><Link href="/publications">PUBLICATIONS</Link><Link href="/library">LIBRARY</Link><Link href="/field">FIELD</Link><Link href="/institution">INSTITUTE</Link><Link href="/login">SIGN IN</Link></nav>
