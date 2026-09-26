@@ -1,4 +1,4 @@
-SFI Hub telemetry primary-read closure 2026-09-26
-source=0d891e0c32d5bef3a314adc95ea7510c54444c4e
-reason=read_platform_metrics_from_canonical_supabase_primary
+SFI Hub telemetry direct-primary closure 2026-09-26
+source=02bfb363aecda91bc76002562a9d44eebe03474e
+reason=fallback_platform_metrics_to_verified_primary_postgres
 verification=production_observatory_platform_metrics_return
