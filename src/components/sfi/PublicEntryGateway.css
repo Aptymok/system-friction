@@ -1270,3 +1270,368 @@
     transform:none!important
   }
 }
+
+
+/* ==========================================================================
+   SFI spatial convergence — complex systems public journey
+   Horizontal travel is scene motion, never a tab/lens bar.
+   ========================================================================== */
+
+.sfiSceneGrid,
+.sfiSceneHotspots{display:none}
+
+.sfiSceneBackground{
+  inset:-3%;
+  background-repeat:no-repeat;
+  background-size:cover;
+  background-position:var(--field-x,50%) center;
+  transition:
+    background-position .82s cubic-bezier(.2,.82,.2,1),
+    transform .18s linear,
+    filter .55s ease;
+}
+
+.sfiSceneLayers{
+  transform:translateX(var(--field-shift,0vw));
+  transition:transform .82s cubic-bezier(.2,.82,.2,1),opacity .45s ease
+}
+.sfiSceneLayer{opacity:.36}
+.sfiSceneLayer[data-role="signal"]{opacity:.28}
+.sfiSceneLayer[data-role="atmosphere"]{opacity:.22}
+.sfiSceneLayer[data-role="structure"]{opacity:.42}
+
+/* Horizontal state is written into the world instead of another dashboard. */
+.sfiFieldReadout{
+  position:absolute;
+  z-index:18;
+  right:0;
+  bottom:98px;
+  width:min(350px,30vw);
+  padding:14px 0 4px 18px;
+  border-left:1px solid rgba(200,169,81,.58);
+  background:linear-gradient(90deg,rgba(6,6,5,.34),transparent);
+  text-shadow:0 2px 16px rgba(0,0,0,.72);
+  pointer-events:none
+}
+.sfiFieldReadout header{
+  display:flex;
+  justify-content:space-between;
+  gap:16px;
+  margin-bottom:9px
+}
+.sfiFieldReadout header span,
+.sfiFieldReadout header strong{
+  font:600 8px/1 var(--mono);
+  letter-spacing:.17em
+}
+.sfiFieldReadout header span{color:var(--gold)}
+.sfiFieldReadout header strong{color:#726b61}
+.sfiFieldReadout h2{
+  margin:0;
+  max-width:13ch;
+  font:500 clamp(24px,2.2vw,36px)/1 var(--display);
+  color:#efe8dc
+}
+.sfiFieldReadout p{
+  max-width:31em;
+  margin:10px 0 0;
+  font:400 12px/1.52 var(--screen);
+  color:#aaa092
+}
+
+.sfiFieldEdges{
+  position:absolute;
+  z-index:24;
+  left:-22px;
+  right:-22px;
+  top:50%;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  transform:translateY(-50%);
+  pointer-events:none
+}
+.sfiFieldEdge{
+  pointer-events:auto;
+  display:flex;
+  align-items:center;
+  gap:9px;
+  max-width:150px;
+  padding:16px 6px;
+  border:0;
+  background:transparent;
+  color:rgba(232,221,195,.45);
+  cursor:pointer;
+  text-shadow:0 2px 12px rgba(0,0,0,.8);
+  transition:color .18s ease,transform .18s ease
+}
+.sfiFieldEdge span{
+  font:600 7px/1 var(--mono);
+  letter-spacing:.16em
+}
+.sfiFieldEdge i{
+  font:400 17px/1 var(--screen);
+  color:rgba(200,169,81,.58)
+}
+.sfiFieldEdge:hover{color:var(--gold)}
+.sfiFieldEdge--left:hover{transform:translateX(-3px)}
+.sfiFieldEdge--right:hover{transform:translateX(3px)}
+
+/* Keep the narrative present but let the world dominate. */
+.sfiSceneContent{
+  grid-template-columns:minmax(330px,560px) 1fr;
+  align-items:center
+}
+.sfiSceneCopy{
+  max-width:560px
+}
+.sfiSceneCopy h1{
+  font-size:clamp(44px,5.7vw,88px);
+  max-width:10ch
+}
+.sfiSceneCopy>p{
+  max-width:28em;
+  font-size:clamp(14px,1.05vw,17px)
+}
+.sfiSceneInstruction{
+  width:min(390px,100%);
+  opacity:.72
+}
+
+/* ENTRY — the regenerated 404-derived scene reads almost untouched. */
+.sfiScene--entry-world .sfiSceneLayers,
+.sfiScene--entry-world .sfiFieldReadout,
+.sfiScene--entry-world .sfiSceneInstruction{
+  display:none
+}
+.sfiScene--entry-world .sfiSceneBackground{
+  inset:0;
+  background-size:cover;
+  background-position:center;
+  filter:saturate(.94) contrast(1.035) brightness(.91);
+  transform-origin:50% 39%;
+  transform:translate3d(
+    calc(var(--pointer-x,0) * -2px),
+    calc(var(--pointer-y,0) * -1px),
+    0
+  ) scale(1.012)
+}
+.sfiScene--entry-world:after{
+  background:
+    linear-gradient(90deg,rgba(4,4,3,.68),rgba(4,4,3,.30) 31%,transparent 58%),
+    linear-gradient(180deg,rgba(4,4,3,.08),transparent 70%,rgba(4,4,3,.26))
+}
+.sfiScene--entry-world[data-state="past"]{
+  transform:translate3d(0,0,390px) scale(1.58);
+  transform-origin:50% 39%;
+  opacity:0;
+  filter:brightness(.54) blur(4px)
+}
+
+/* OBSERVATORY — the dashboard is a fitted instrument, not a cropped wallpaper. */
+.sfiScene--observatory-dashboard:after{
+  background:linear-gradient(90deg,rgba(4,4,3,.62),rgba(4,4,3,.14) 34%,transparent 72%)
+}
+.sfiScene--observatory-dashboard .sfiSceneBackground{
+  inset:72px 1.3vw 58px;
+  background-size:contain;
+  background-color:#050504;
+  background-position:var(--field-x,50%) center;
+  filter:saturate(.96) contrast(1.02) brightness(.92);
+  transform:none
+}
+.sfiScene--observatory-dashboard .sfiSceneContent{
+  padding-top:104px
+}
+.sfiScene--observatory-dashboard[data-state="future"]{
+  transform:translate3d(0,0,-620px) scale(.60);
+  transform-origin:50% 48%;
+  opacity:0;
+  filter:brightness(.4) blur(9px)
+}
+.sfiScene--observatory-dashboard[data-state="past"]{
+  transform:translate3d(0,0,190px) scale(1.10);
+  opacity:.05;
+  filter:brightness(.42) blur(7px)
+}
+
+/* SYSTEM FIELD — a lateral world map. */
+.sfiScene--system-field:after{
+  background:
+    linear-gradient(90deg,rgba(4,4,3,.73),rgba(4,4,3,.24) 32%,transparent 66%),
+    linear-gradient(180deg,transparent 55%,rgba(4,4,3,.34))
+}
+.sfiScene--system-field .sfiSceneBackground{
+  inset:-4% -9%;
+  background-size:cover;
+  filter:saturate(.92) contrast(1.04) brightness(.83)
+}
+.sfiScene--system-field[data-state="future"]{
+  transform:translate3d(13%,0,-240px) rotateY(-3deg) scale(.90);
+  opacity:.03;
+  filter:brightness(.48) blur(8px)
+}
+.sfiScene--system-field[data-state="past"]{
+  transform:translate3d(-10%,0,150px) rotateY(2deg) scale(1.05);
+  opacity:.05;
+  filter:brightness(.42) blur(7px)
+}
+
+/* FRICTION — interference occupies the field; UI remains sparse. */
+.sfiScene--friction:after{
+  background:
+    radial-gradient(circle at 64% 47%,transparent 0 24%,rgba(5,5,4,.10) 49%,rgba(5,5,4,.68) 100%),
+    linear-gradient(90deg,rgba(5,5,4,.82),rgba(5,5,4,.22) 38%,transparent 70%)
+}
+.sfiScene--friction .sfiSceneBackground{
+  background-size:cover;
+  filter:saturate(.9) contrast(1.07) brightness(.84)
+}
+.sfiScene--friction .sfiSceneLayer{
+  width:70vw;
+  max-width:none;
+  right:0;
+  top:4%;
+  opacity:.24
+}
+.sfiScene--friction[data-state="future"]{
+  transform:translate3d(0,0,-360px) scale(.78);
+  opacity:.03;
+  filter:brightness(.46) blur(10px)
+}
+.sfiScene--friction[data-state="past"]{
+  transform:translate3d(0,0,175px) scale(1.08);
+  opacity:.04;
+  filter:brightness(.4) blur(8px)
+}
+
+/* INSTITUTION — architecture, boundary and depth. */
+.sfiScene--institution:after{
+  background:
+    linear-gradient(90deg,rgba(5,5,4,.88),rgba(5,5,4,.34) 37%,transparent 72%),
+    linear-gradient(180deg,rgba(5,5,4,.08),transparent 61%,rgba(5,5,4,.38))
+}
+.sfiScene--institution .sfiSceneBackground{
+  inset:-2%;
+  background-size:cover;
+  filter:saturate(.88) contrast(1.06) brightness(.78)
+}
+.sfiScene--institution .sfiSceneLayer--1{
+  width:67vw;
+  max-width:none;
+  right:-8vw;
+  top:0;
+  opacity:.30
+}
+.sfiScene--institution .sfiSceneLayer--2{
+  width:94vw;
+  max-width:none;
+  right:-10vw;
+  bottom:-6%;
+  opacity:.16
+}
+.sfiScene--institution[data-state="future"]{
+  transform:translate3d(0,13%,-330px) rotateX(4deg) scale(.84);
+  transform-origin:50% 25%;
+  opacity:.03;
+  filter:brightness(.42) blur(10px)
+}
+.sfiScene--institution[data-state="past"]{
+  transform:translate3d(0,-8%,165px) scale(1.06);
+  opacity:.04;
+  filter:brightness(.4) blur(8px)
+}
+
+/* LIBRARY — preserve the archive mock as a readable, fitted surface. */
+.sfiScene--library:after{
+  background:linear-gradient(90deg,rgba(4,4,3,.54),rgba(4,4,3,.08) 39%,transparent 76%)
+}
+.sfiScene--library .sfiSceneBackground{
+  inset:72px 1vw 58px;
+  background-size:contain;
+  background-color:#050504;
+  filter:saturate(.93) contrast(1.025) brightness(.88);
+  transform:none
+}
+.sfiScene--library .sfiSceneCopy{
+  max-width:470px
+}
+.sfiScene--library .sfiSceneCopy h1{
+  font-size:clamp(39px,4.7vw,70px)
+}
+.sfiScene--library[data-state="future"]{
+  transform:translate3d(-12%,0,-210px) rotateY(4deg) scale(.91);
+  opacity:.03;
+  filter:brightness(.44) blur(8px)
+}
+.sfiScene--library[data-state="past"]{
+  transform:translate3d(9%,0,145px) rotateY(-3deg) scale(1.04);
+  opacity:.04;
+  filter:brightness(.4) blur(7px)
+}
+
+/* RETURN — contract the field back into a reconstructible state. */
+.sfiScene--return:after{
+  background:
+    radial-gradient(circle at 68% 48%,transparent 0 23%,rgba(5,5,4,.12) 48%,rgba(5,5,4,.72) 100%),
+    linear-gradient(90deg,rgba(5,5,4,.84),rgba(5,5,4,.22) 41%,transparent 75%)
+}
+.sfiScene--return .sfiSceneLayer--1{
+  width:min(33vw,430px);
+  right:10vw;
+  top:24%;
+  opacity:.42
+}
+.sfiScene--return[data-state="future"]{
+  transform:translate3d(0,0,280px) scale(1.20);
+  opacity:.02;
+  filter:brightness(.7) blur(10px)
+}
+
+/* Scene footer remains a quiet coordinate, not a second navigation system. */
+.sfiSceneFooter{opacity:.58}
+.sfiSceneRail{opacity:.72}
+
+@media(max-width:1050px){
+  .sfiFieldReadout{width:min(320px,34vw)}
+  .sfiFieldEdges{left:-10px;right:-10px}
+}
+
+@media(max-width:780px){
+  .sfiSceneContent{
+    width:calc(100vw - 42px);
+    grid-template-columns:1fr;
+    padding:78px 0 56px
+  }
+  .sfiSceneCopy{
+    max-width:88%;
+    padding-top:4vh
+  }
+  .sfiSceneCopy h1{font-size:clamp(36px,12vw,58px)}
+  .sfiFieldReadout{
+    right:18px;
+    bottom:58px;
+    width:min(290px,72vw);
+    padding-left:12px
+  }
+  .sfiFieldReadout h2{font-size:22px}
+  .sfiFieldReadout p{font-size:10px}
+  .sfiFieldEdges{
+    position:fixed;
+    left:5px;
+    right:5px;
+    top:56%
+  }
+  .sfiFieldEdge span{display:none}
+  .sfiFieldEdge{padding:20px 7px}
+  .sfiScene--observatory-dashboard .sfiSceneBackground,
+  .sfiScene--library .sfiSceneBackground{
+    inset:60px 0 38px;
+    background-size:contain
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  .sfiSceneLayers{transform:none!important}
+  .sfiSceneBackground{background-position:center!important}
+}
