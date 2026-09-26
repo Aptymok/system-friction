@@ -142,6 +142,14 @@ export function ObservatoryConsole(){
   const relationClass=txt(selectedHypothesis?.aiInference?.relationClass)||'UNKNOWN';
   const worldMetric=(value:number|string)=>observableMetricValue(availability.world,value);
   const timelineMetric=(value:number|string)=>observableMetricValue(availability.timeline,value);
+  const platformMetrics=row(obs?.data?.platformMetrics);
+  const platformBySource=row(platformMetrics?.byPlatform);
+  const ga4Metrics=row(platformMetrics?.ga4);
+  const platformSnapshotCount=num(platformMetrics?.snapshotCount);
+  const platformSourceCount=platformBySource?Object.keys(platformBySource).length:0;
+  const ga4Users=num(ga4Metrics?.activeUsers);
+  const ga4Sessions=num(ga4Metrics?.sessions);
+  const aiAssistantSessions=num(ga4Metrics?.aiAssistantSessions);
 
   const narrative=availability.world!=='AVAILABLE'
     ? `Authoritative field read: ${availability.world}. Counts remain non-numeric until a successful read.`
@@ -191,7 +199,8 @@ export function ObservatoryConsole(){
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10}}><div><div style={micro}>SFI SATELLITE · {lens.toUpperCase()}</div><h2 style={{fontSize:18,margin:'5px 0 0'}}>{lens==='field'?'FIELD READING':lens==='hypotheses'?'HYPOTHESIS GRAPH':lens==='trajectory'?'TRAJECTORY & RETURN':'LIVE SOURCES'}</h2></div><button onClick={()=>setSatelliteOpen(false)} style={{...selectStyle,padding:'6px 9px'}}>×</button></div>
       <p style={{fontSize:12,lineHeight:1.6,opacity:.74}} data-availability={availability.world}>{narrative}</p>
 
-      {lens==='field'&&<><div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,margin:'12px 0'}}>{[['Sources',worldMetric(sourceIds.length)],['Open hypotheses',worldMetric(openHypotheses)],['Contrasted',worldMetric(outcomeCount)],['Learning',worldMetric(learningCount)],['WSI',num(obs?.data?.worldspect?.wsi??frame?.wsi)?.toFixed(3)??'—'],['NTI src',num(obs?.data?.worldspect?.nti??frame?.nti)?.toFixed(3)??'—']].map(([a,b],index)=><div key={String(a)} data-availability={index<4?availability.world:undefined} style={{padding:10,border:'1px solid rgba(214,180,120,.12)',borderRadius:9}}><div style={micro}>{a}</div><b style={{fontSize:18}}>{b}</b></div>)}</div>
+      {lens==='field'&&<><div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,margin:'12px 0'}}>{[['Sources',worldMetric(sourceIds.length)],['Open hypotheses',worldMetric(openHypotheses)],['Contrasted',worldMetric(outcomeCount)],['Learning',worldMetric(learningCount)],['WSI',num(obs?.data?.worldspect?.wsi??frame?.wsi)?.toFixed(3)??'—'],['NTI src',num(obs?.data?.worldspect?.nti??frame?.nti)?.toFixed(3)??'—'],['Platform snapshots',platformSnapshotCount??'—'],['GA4 users',ga4Users??'—'],['AI-assistant sessions',aiAssistantSessions??'—']].map(([a,b],index)=><div key={String(a)} data-availability={index<4?availability.world:undefined} style={{padding:10,border:'1px solid rgba(214,180,120,.12)',borderRadius:9}}><div style={micro}>{a}</div><b style={{fontSize:18}}>{b}</b></div>)}</div>
+        <p style={{fontSize:10,opacity:.58,margin:'-4px 0 10px'}}>{platformSnapshotCount==null?'Platform telemetry unavailable.':`${platformSnapshotCount} governed snapshots · ${platformSourceCount} platform sources · ${ga4Sessions??'—'} GA4 sessions. These are observed platform metrics, not institutional validation.`}</p>
         <div style={micro}>{'ACTIVE HYPOTHESES'}</div>{availability.world!=='AVAILABLE'?<p data-availability={availability.world} style={{fontSize:11,opacity:.72}}>{availability.world}</p>:filteredHypotheses.slice(0,8).map(h=><button key={String(h.id)} onClick={()=>{setSelectedHypothesisId(String(h.id));setLens('hypotheses')}} style={{display:'block',width:'100%',textAlign:'left',marginTop:7,padding:10,borderRadius:9,border:String(h.id)===String(selectedHypothesis?.id)?'1px solid rgba(214,180,120,.5)':'1px solid rgba(214,180,120,.12)',background:'rgba(255,255,255,.018)',color:'inherit'}}><b>{short(h.statement,120)||'Hypothesis'}</b><div style={{...micro,marginTop:5}}>{h.aiInference?.relationClass||'UNKNOWN'} · {pct(num(h.current_confidence))} · {h.status}</div></button>)}</>}
 
       {lens==='hypotheses'&&<>{availability.world!=='AVAILABLE'?<p data-availability={availability.world} style={{fontSize:11,opacity:.72}}>{'The authoritative hypothesis read is unavailable.'} · {availability.world}</p>:selectedHypothesis?<div>
