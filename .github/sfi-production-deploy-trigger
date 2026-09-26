@@ -1,4 +1,4 @@
-SFI Elite Experience P4 release retry 2026-09-26
-source=da3a2320d02a1167dd8a5c4f0dd8a251de6531b0
-reason=scope_css_module_footer_for_closure_diff
-verification=closure_report_authority_build_and_production_return_retry
+SFI Elite Experience P4 release retry 2 2026-09-26
+source=0c07aac638759107a14e6c5bf2f1a98a3f9b822b
+reason=scope_all_css_module_footer_selectors_for_closure_diff
+verification=closure_report_authority_build_and_production_return_retry_2
