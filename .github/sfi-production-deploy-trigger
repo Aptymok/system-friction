@@ -1,6 +1,4 @@
 SFI Public canonical surface convergence release 2026-09-26
-source=9c8077c9a8cbd3301df3a828935cd981581296c5
-release_infra=59e4d9e19ae012e648d2eb11bc95383b6425381a
-pr=683
-verification=SFI_VERIFY_36227635282_SUCCESS
-retry=VERCEL_LARGE_FUNCTIONS_ELIGIBLE
+source=ed2c1d97ad680199401e6c6084a9e5e385ebb4e6
+reason=remove_disabled_python_bundle_from_audio_function
+verification=deployment_unblock_retry
