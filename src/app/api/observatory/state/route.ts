@@ -11,14 +11,22 @@ import { buildDocumentCatalog } from '@/observatory/field/catalog/sfDocumentCata
 import { buildMihmRuntimeMatrix } from '@/observatory/field/catalog/mihmRuntimeMatrix';
 import { buildNodeCatalog } from '@/observatory/field/catalog/sfNodeCatalog';
 import { buildPatternCatalog } from '@/observatory/field/catalog/patternCatalog';
-import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { createClient } from '@supabase/supabase-js';
+import { normalizeSupabaseUrl } from '@/runtime/supabase/url';
 
 export const dynamic = 'force-dynamic';
 
 const PUBLIC_CDN_CACHE = { 'Vercel-CDN-Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' } as const;
 
 async function readPlatformMetricSummary() {
-  const service = createServiceSupabaseClient();
+  const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!rawUrl || !serviceRoleKey) return { data: null, error: 'platform_metrics_primary_not_configured' };
+  const normalizedUrl = normalizeSupabaseUrl(rawUrl);
+  const service = createClient(normalizedUrl, serviceRoleKey, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    global: { fetch, headers: { 'X-Client-Info': 'sfi-platform-metrics-primary-direct' } },
+  });
   const { data, error } = await service
     .from('platform_metric_snapshots')
     .select('object_id,platform,metric_name,metric_value,metric_unit,period_start,period_end,source_mode,reliability,raw_payload,created_at')
@@ -43,6 +51,10 @@ async function readPlatformMetricSummary() {
   return {
     data: {
       snapshotCount: snapshots.length,
+      readPlane: 'SUPABASE_PRIMARY_DIRECT',
+      projectRef: (() => {
+        try { return new URL(normalizedUrl).hostname.split('.')[0] ?? null; } catch { return null; }
+      })(),
       byPlatform,
       latestCapturedAt: typeof snapshots[0]?.created_at === 'string' ? snapshots[0].created_at : null,
       ga4: {
