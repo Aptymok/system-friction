@@ -111,6 +111,7 @@ export function ObservatoryWorldField({
   return <svg className="earthOverlay worldField" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid meet" aria-label="SFI World Field">
     <defs>
       <filter id="fieldGlow"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      <filter id="glow"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
     </defs>
 
     <g className="fieldGrid" aria-hidden="true">
