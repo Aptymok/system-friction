@@ -1,4 +1,4 @@
-SFI Public canonical surface convergence release 2026-09-26
-source=22e849feba244f7cc60d3ff98859fac975b9e4ae
-reason=externalize_remaining_scorefriction_python_route
-verification=deployment_unblock_retry_2
+SFI Hub telemetry closure release 2026-09-26
+source=510631e52e9fcdb0f05d405eb0b22b15cafeb4c4
+reason=wire_platform_metric_snapshots_into_observatory_and_align_ga4
+verification=production_build_and_observatory_return
