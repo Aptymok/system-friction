@@ -1,6 +1,6 @@
 'use client';
 
-export const GA_MEASUREMENT_ID = 'G-7YKTPLX3QD';
+export const GA_MEASUREMENT_ID = 'G-P8G69HMYLM';
 
 type AnalyticsPrimitive = string | number | boolean | null | undefined;
 export type AnalyticsParameters = Record<string, AnalyticsPrimitive>;
