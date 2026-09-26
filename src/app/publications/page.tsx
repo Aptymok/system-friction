@@ -35,19 +35,19 @@ const DOCUMENT_COVERS = [
 ] as const;
 
 export const metadata: Metadata = {
-  title: 'Publications · System Friction Institute',
-  description: 'Publications from System Friction Institute: observations, research notes, cases, methods and RETURN.',
+  title: 'Registry · System Friction Institute',
+  description: 'SFI Registry: connected publications, observations, research notes, cases, methods and RETURN.',
   alternates: { canonical: CANONICAL_URL },
   openGraph: {
     type:'website',
     url:CANONICAL_URL,
     siteName:'System Friction Institute',
-    title:'Publications · System Friction Institute',
-    description:'Recoverable institutional memory: published observations, research, cases, methods and RETURN.',
+    title:'Registry · System Friction Institute',
+    description:'Connected institutional memory: publications, research, cases, methods and RETURN as reconstructible nodes.',
     images:[{url:SFI_PUBLICATIONS_BANNER.web}],
   },
   other: {
-    'sfi-surface':'PUBLICATIONS_HUB',
+    'sfi-surface':'REGISTRY_GRAPH',
     'sfi-public-language':'en',
     'sfi-editorial-contract':'SFI-EDITORIAL-FAMILY-PROJECTION-1.0',
     'sfi-identity-manual':'SFI-ID-003 / MASTER EDITION V4.0',
@@ -133,11 +133,12 @@ export default async function PublicationsPage(){
       <Link href="/" className="pubBrand" aria-label="System Friction Institute home">SFI</Link>
       <div className="pubTopbarIdentity">
         <span>SYSTEM FRICTION INSTITUTE</span>
-        <small>PUBLICATIONS</small>
+        <small>REGISTRY</small>
       </div>
       <nav aria-label="Public navigation">
+        <Link href="/method-lab">LABORATORY</Link>
+        <Link href="/publications" aria-current="page">REGISTRY</Link>
         <Link href="/observatory">OBSERVATORY</Link>
-        <Link href="/publications" aria-current="page">PUBLICATIONS</Link>
         <Link href="/login">SIGN IN</Link>
       </nav>
     </header>
@@ -151,9 +152,9 @@ export default async function PublicationsPage(){
         <figcaption>{SFI_PUBLICATIONS_BANNER.provenance}</figcaption>
       </figure>
       <div className="pubArchiveHeroCopy">
-        <span>PUBLICATIONS / PUBLIC RECORD</span>
-        <h1 id="publications-title">Memory that can be recovered.</h1>
-        <p>Published observations, research, cases and RETURN preserved as recoverable institutional objects.</p>
+        <span>REGISTRY / PUBLIC RECORD</span>
+        <h1 id="publications-title">Memory becomes a graph.</h1>
+        <p>Every publication is an addressable node: connected by editorial sequence, shared themes and reconstructible institutional lineage.</p>
         <div className="pubBoundary">
           <b>PUBLICATION = EXPOSURE</b>
           <span>EXPOSURE ≠ EXTERNAL EVIDENCE ≠ RETURN</span>
