@@ -56,19 +56,31 @@ rejectText(layout, 'SfiUiText', 'root public layout');
 requireText(layout, '<html lang="en">', 'root document English declaration');
 requireText(layout, '<SfiLanguageProvider>', 'root layout provider mount');
 requireText(layout, '</SfiLanguageProvider>', 'root layout provider boundary');
-requireText(layout, 'PRIVACY & EXTERNAL AGENT DATA POLICY', 'English public privacy footer');
+requireText(layout, 'href="/observatory">OBSERVATORY', 'public Observatory footer route');
+requireText(layout, 'href="/publications">PUBLICATIONS', 'public Publications footer route');
+requireText(layout, 'href="/login">SIGN IN', 'public sign-in footer route');
+rejectText(layout, 'href="/history"', 'retired public History footer link');
+rejectText(layout, 'href="/institution"', 'retired public Institute footer link');
 rejectText(layout, 'PRIVACIDAD', 'root public layout Spanish privacy copy');
 
 // Public entry is intentionally English-only and must remain independent from runtime language choice.
 rejectText(entry, 'useSfiLanguage', 'public entry');
 requireText(entry, 'SYSTEM FRICTION INSTITUTE', 'public entry institution identity');
-requireText(entry, 'MOVE BETWEEN SCENES', 'scene navigation instruction');
-requireText(entry, 'CHANGE PERSPECTIVE', 'horizontal scene interaction');
-requireText(entry, 'SHIFT DEPTH', 'pointer parallax interaction');
-requireText(publicSceneManifest, "primaryHref:'/observatory'", 'public Observatory route');
-requireText(publicSceneManifest, "secondaryHref:'/world-vector'", 'public World Vector route');
-requireText(publicSceneManifest, "secondaryHref:'/institution'", 'public Institute route');
+requireText(entry, 'DESCEND THROUGH SCALE', 'scene navigation instruction');
+requireText(entry, 'SHIFT THE FIELD', 'horizontal scene interaction');
+requireText(entry, 'href="/observatory"', 'public Observatory navigation');
+requireText(entry, 'href="/publications"', 'public Publications navigation');
 requireText(entry, 'href="/login"', 'public sign-in route');
+rejectText(entry, 'href="/library"', 'retired Library navigation');
+rejectText(entry, 'href="/institution"', 'retired Institute navigation');
+rejectText(entry, 'href="/field"', 'retired FIELD navigation');
+requireText(publicSceneManifest, "primaryHref:'/login'", 'entry sign-in action');
+requireText(publicSceneManifest, "secondaryHref:'/observatory'", 'entry Observatory action');
+requireText(publicSceneManifest, "secondaryHref:'/publications'", 'public Publications action');
+rejectText(publicSceneManifest, "primaryHref:'/library'", 'retired Library scene action');
+rejectText(publicSceneManifest, "secondaryHref:'/library'", 'retired Library scene action');
+rejectText(publicSceneManifest, "primaryHref:'/institution'", 'retired Institute scene action');
+rejectText(publicSceneManifest, "secondaryHref:'/world-vector'", 'retired World Vector scene action');
 
 // Public Observatory is hard English; underlying epistemic/data values are not translated.
 rejectText(observatory, 'useSfiLanguage', 'public Observatory language hook');
