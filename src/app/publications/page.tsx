@@ -53,7 +53,18 @@ function categoryFor(item:(typeof SFI_EDITORIAL_PUBLICATIONS)[number]){
   return map[item.observationKind||''] || 'OBSERVATIONS';
 }
 
-const items: readonly PublicationCatalogItem[] = SFI_EDITORIAL_PUBLICATIONS
+const DISCOVERY_MESH_PUBLICATION = Object.freeze({
+  canonicalId:'SFI-PUB-OBS-014',
+  slug:'discovery-mesh-publicar-no-es-ser-encontrado',
+  title:'Publishing Is Not Being Found',
+  subtitle:'Discovery Mesh and the distance between exposure, discovery and RETURN',
+  summary:'A method note on observing discoverability without converting publication, retrieval or propagation into recognition or external validation.',
+  publishedAt:'2026-09-16T00:00:00-06:00',
+  category:'METHODS',
+  cover:'/assets/documentos/sfi_internal_memorandum_cosmic_observatory.png',
+} as const);
+
+const editorialItems: PublicationCatalogItem[] = SFI_EDITORIAL_PUBLICATIONS
   .slice()
   .sort((a,b)=>Date.parse(b.publishedAt)-Date.parse(a.publishedAt))
   .map((publication,index)=>{
@@ -72,6 +83,19 @@ const items: readonly PublicationCatalogItem[] = SFI_EDITORIAL_PUBLICATIONS
       cover:DOCUMENT_COVERS[index % DOCUMENT_COVERS.length],
     };
   });
+
+const items: readonly PublicationCatalogItem[] = [
+  ...editorialItems,
+  {
+    slug:DISCOVERY_MESH_PUBLICATION.slug,
+    title:DISCOVERY_MESH_PUBLICATION.title,
+    subtitle:DISCOVERY_MESH_PUBLICATION.subtitle,
+    summary:DISCOVERY_MESH_PUBLICATION.summary,
+    publishedAt:DISCOVERY_MESH_PUBLICATION.publishedAt,
+    category:DISCOVERY_MESH_PUBLICATION.category,
+    cover:DISCOVERY_MESH_PUBLICATION.cover,
+  },
+].sort((a,b)=>Date.parse(b.publishedAt)-Date.parse(a.publishedAt));
 
 export default function PublicationsPage(){
   return <main className="publicationsHub">
