@@ -78,7 +78,7 @@ export const SCENES: readonly Scene[] = [
     title:'NOTHING',
     accent:'OPERATES ALONE.',
     lead:'Cities, water, energy, institutions, networks and people form coupled systems. The observatory is where those relations become visible.',
-    background:'/assets/sfi/system/reference/a_wide_cinematic_futuristic_ui_header_website_inte.png',
+    background:'/assets/sfi/system/reference/02_03.png',
     assets:[],
     frames:[
       {label:'WORLD',title:'A moving field.',text:'The world is not a backdrop. It is the coupled field in which every system is already affecting others.'},
@@ -100,7 +100,7 @@ export const SCENES: readonly Scene[] = [
     title:'RELATIONS',
     accent:'SHAPE THE POSSIBLE.',
     lead:'A system is not its parts. It is the changing arrangement of flows, dependencies, boundaries and feedback among them.',
-    background:'/assets/sfi/system/reference/SFI_Un_Mundo_en_Movimiento.png',
+    background:'/assets/sfi/system/reference/02_03.png',
     assets:[
       {src:'/assets/sfi/overlays/red_global_de_conexiones_luminosas.png',role:'signal',depth:1,motion:'pointer-parallax',scale:'planetary',alpha:true},
     ],
@@ -125,9 +125,9 @@ export const SCENES: readonly Scene[] = [
     title:'WHERE SYSTEMS MEET,',
     accent:'POSSIBILITIES CHANGE.',
     lead:'Friction is not simply failure. It appears where systems, incentives, constraints, timescales and interpretations meet.',
-    background:'/assets/sfi/system/reference/a_wide_cinematic_futuristic_sci_fi_ui_website_he.png',
+    background:'/assets/sfi/system/reference/04_scene.png',
     assets:[
-      {src:'/assets/sfi/overlays/orbit-overlay.png',role:'signal',depth:1,motion:'slow-drift',scale:'orbital',alpha:true},
+      {src:'/assets/sfi/system/reference/04_overlay_orbits.png',role:'signal',depth:1,motion:'slow-drift',scale:'orbital',alpha:true},
     ],
     frames:[
       {label:'CONVERGENCE',title:'Systems reinforce one another.',text:'Aligned flows can concentrate capability, legitimacy, capital or opportunity.'},
@@ -149,10 +149,11 @@ export const SCENES: readonly Scene[] = [
     title:'COMPLEXITY BECOMES',
     accent:'RESPONSIBILITY.',
     lead:'Institutions transform signals into memory, interpretation, authority and action. Their internal boundaries determine what the world can become through them.',
-    background:'/assets/sfi/institutional/celestial_observatory_temple_interior.png',
+    background:'/assets/sfi/system/reference/05_scene.png',
     assets:[
-      {src:'/assets/sfi/institutional/institution-frame.png',role:'structure',depth:1,motion:'pointer-parallax',scale:'institutional',alpha:true},
-      {src:'/assets/sfi/overlays/light.png',role:'atmosphere',depth:2,motion:'slow-drift',scale:'institutional',alpha:true},
+      {src:'/assets/sfi/system/reference/05_overlay_network.png',role:'signal',depth:1,motion:'pointer-parallax',scale:'institutional',alpha:true},
+      {src:'/assets/sfi/system/reference/05_element_books.png',role:'structure',depth:2,motion:'pointer-parallax',scale:'institutional',alpha:true},
+      {src:'/assets/sfi/system/reference/05_element_bust.png',role:'structure',depth:3,motion:'pointer-parallax',scale:'institutional',alpha:true},
     ],
     frames:[
       {label:'PROCESS',title:'Signals enter procedure.',text:'Processes determine what can be recognized, routed, delayed, escalated or ignored.'},
@@ -174,7 +175,7 @@ export const SCENES: readonly Scene[] = [
     title:'MEMORY THAT',
     accent:'CAN BE RECOVERED.',
     lead:'The Library is the public memory surface: records, observations, publications and evidence that can be retrieved instead of merely remembered.',
-    background:'/assets/sfi/system/reference/índice_dorado_del_archivo_estelar.png',
+    background:'/assets/sfi/system/reference/06_scene.png',
     assets:[],
     frames:[
       {label:'SOURCE',title:'Where did it come from?',text:'Origin and provenance remain attached to claims and records.'},
