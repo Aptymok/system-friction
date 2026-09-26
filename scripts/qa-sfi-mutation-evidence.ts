@@ -41,7 +41,8 @@ async function main() {
   assert(publicRoute.includes('Internal QA payloads, deployment metadata, cycle contents and learning payloads remain on governed surfaces.'));
   assert(page.includes('DEPLOYMENT EVIDENCE RECORDED'));
   assert(page.includes('A commit proves that code changed'));
-  assert(history.includes('href="/history/mutations"'));
+  assert(history.includes("redirect('/publications')"));
+  assert(!history.includes('href="/history/mutations"'));
 
   console.log(JSON.stringify({
     ok: true,
