@@ -195,7 +195,17 @@ export function PublicEntryGateway(){
           data-state={state}
           data-scene={item.id}
           data-scale={item.scale}
-          style={{'--scene-offset':offset,'--active-frame':index===sceneIndex?frameIndex:0} as CSSProperties}
+          style={(()=>{
+            const localFrame = index===sceneIndex ? frameIndex : 0;
+            const count = Math.max(1,item.frames.length);
+            const progress = count > 1 ? localFrame/(count-1) : .5;
+            return {
+              '--scene-offset':offset,
+              '--active-frame':localFrame,
+              '--field-x':`${30 + progress*40}%`,
+              '--field-shift':`${(0.5-progress)*10}vw`,
+            } as CSSProperties;
+          })()}
           aria-hidden={index===sceneIndex ? undefined : true}
         >
           <div className="sfiSceneBackground" style={{backgroundImage:`url('${item.background}')`}}/>
@@ -224,38 +234,28 @@ export function PublicEntryGateway(){
               </div>
               <div className="sfiSceneInstruction">
                 <span>WHEEL / ↑↓</span><b>MOVE BETWEEN SCENES</b>
-                <span>CLICK / ← →</span><b>CHANGE LENS</b>
+                <span>DRAG / ← →</span><b>SHIFT THE FIELD</b>
                 <span>POINTER</span><b>SHIFT DEPTH</b>
               </div>
             </div>
 
-            <aside className="sfiSceneInspector">
-              <header><span>PERSPECTIVE</span><strong>{String(frameIndex+1).padStart(2,'0')} / {String(item.frames.length).padStart(2,'0')}</strong></header>
-              <div className="sfiSceneFrameText">
-                <small>{activeFrame.label}</small>
-                <h2>{activeFrame.title}</h2>
-                <p>{activeFrame.text}</p>
-              </div>
-              {activeHotspot ? <div className="sfiHotspotReadout">
-                <span>OBSERVED POINT · {activeHotspot.label}</span>
-                <p>{activeHotspot.text}</p>
-              </div> : <div className="sfiHotspotReadout sfiHotspotReadout--idle">
-                <span>OBSERVATION REQUIRED</span>
-                <p>Select a marked point in the scene to inspect a bounded reading.</p>
-              </div>}
-              <div className="sfiHorizontalControls">
-                <button type="button" className="sfiLensArrow" onClick={()=>moveFrame(-1)} aria-label="Previous perspective">←</button>
-                <div className="sfiLensBoxes">{item.frames.map((frame,i)=><button
-                  key={frame.label}
-                  type="button"
-                  className="sfiLensBox"
-                  aria-label={`Open ${frame.label} perspective`}
-                  aria-current={frameIndex===i ? 'true' : undefined}
-                  onClick={()=>{setFrameIndex(i);setHotspotIndex(null);}}
-                ><span>{frame.label}</span><i/></button>)}</div>
-                <button type="button" className="sfiLensArrow" onClick={()=>moveFrame(1)} aria-label="Next perspective">→</button>
-              </div>
+            <aside className="sfiFieldReadout" aria-live="polite">
+              <header>
+                <span>{activeFrame.label}</span>
+                <strong>{String(frameIndex+1).padStart(2,'0')} / {String(item.frames.length).padStart(2,'0')}</strong>
+              </header>
+              <h2>{activeFrame.title}</h2>
+              <p>{activeFrame.text}</p>
             </aside>
+
+            {item.frames.length > 1 ? <div className="sfiFieldEdges" aria-label="Shift within this system field">
+              <button type="button" className="sfiFieldEdge sfiFieldEdge--left" onClick={()=>moveFrame(-1)} aria-label="Shift field left">
+                <i>←</i><span>{item.frames[(frameIndex-1+item.frames.length)%item.frames.length].label}</span>
+              </button>
+              <button type="button" className="sfiFieldEdge sfiFieldEdge--right" onClick={()=>moveFrame(1)} aria-label="Shift field right">
+                <span>{item.frames[(frameIndex+1)%item.frames.length].label}</span><i>→</i>
+              </button>
+            </div> : null}
           </div>
 
           <div className="sfiSceneHotspots">
@@ -274,7 +274,7 @@ export function PublicEntryGateway(){
           <footer className="sfiSceneFooter">
             <div><span>{item.number}</span><strong>{item.id.toUpperCase()}</strong></div>
             <div className="sfiSceneProgress"><i style={{width:`${((sceneIndex+1)/SCENES.length)*100}%`}}/></div>
-            <div><span>ACTIVE LENS</span><strong>{activeFrame.label}</strong></div>
+            <div><span>ACTIVE FIELD</span><strong>{activeFrame.label}</strong></div>
           </footer>
         </section>;
       })}
