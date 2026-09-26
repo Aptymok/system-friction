@@ -1,4 +1,4 @@
-SFI Hub telemetry direct-primary closure 2026-09-26
-source=02bfb363aecda91bc76002562a9d44eebe03474e
-reason=fallback_platform_metrics_to_verified_primary_postgres
-verification=production_observatory_platform_metrics_return
+SFI Registry Graph public release 2026-09-26
+source=d1e32effac561f01bb890c959dd21996027db2cc
+reason=registry_graph_publication_hubs_canonical_navigation
+verification=registry_graph_build_and_production_return
