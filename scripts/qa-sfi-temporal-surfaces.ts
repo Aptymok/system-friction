@@ -18,6 +18,8 @@ const scenes = read('src/components/sfi/scenes.ts');
 const shellUi = read('src/components/sfi/SfiConsole.tsx');
 const observatoryUi = read('src/components/sfi/ObservatoryConsole.tsx');
 const observatoryInterpretiveFlow = read('src/components/sfi/ObservatoryInterpretiveFlow.tsx');
+const observatoryWorldField = read('src/components/sfi/ObservatoryWorldField.tsx');
+const observatoryWorldLayerCss = read('src/components/sfi/ObservatoryWorldLayer.css');
 const observatoryAvailability = read('src/lib/observatory/public/readAvailability.ts');
 const observatoryPage = read('src/app/observatory/page.tsx');
 
@@ -73,6 +75,23 @@ assert.equal(observatoryPage.includes('redirect('), false, 'public_observatory_m
 assert.equal(occurrences(observatoryInterpretiveFlow, "fetch('/api/observatory/world'"), 0, 'interpretive_flow_must_not_fetch_world');
 assert.equal(occurrences(observatoryInterpretiveFlow, 'setInterval('), 0, 'interpretive_flow_must_not_own_polling');
 assert.ok(observatoryUi.includes('<ObservatoryInterpretiveFlow world={world} availability={availability.world}/>'), 'interpretive_flow_must_receive_canonical_world_read_model');
+
+assert.ok(observatoryUi.includes('<ObservatoryWorldField'), 'world_field_projection_must_be_mounted');
+assert.ok(observatoryUi.includes('graphNodes={rows(world?.graph?.nodes)}'), 'world_field_must_reuse_canonical_world_graph_nodes');
+assert.ok(observatoryUi.includes('selectedGraphEdges={selectedGraphEdges}'), 'world_field_must_use_typed_selected_graph_edges');
+assert.ok(observatoryUi.includes('vectors={frame?.vectors??[]}'), 'world_field_must_reuse_persisted_worldspect_frame_vectors');
+for (const token of [
+  'fieldEdgeLineage',
+  'fieldEdgeDerived',
+  'fieldEdgeInferred',
+  'WORLD FIELD · GEOGRAPHIC OBSERVATIONS + INTERFACE ORBITS · ORBITAL POSITION ≠ GEOGRAPHY ≠ CAUSALITY',
+  "kind==='SYSTEM'||kind==='HYPOTHESIS'",
+]) assert.ok(observatoryWorldField.includes(token), `world_field_contract_missing:${token}`);
+assert.ok(observatoryWorldField.includes("selectedGraphEdges.filter"), 'world_field_must_not_render_unbounded_graph_edges');
+assert.ok(observatoryWorldField.includes(".slice(0,120)"), 'world_field_visual_edge_budget_missing');
+assert.equal(/fetch\(|createServiceSupabaseClient|\.from\(/.test(observatoryWorldField), false, 'world_field_must_not_become_a_second_read_owner');
+assert.ok(observatoryWorldLayerCss.includes('.worldSpectrumCorona') && observatoryWorldLayerCss.includes('.fieldHypothesisNode'), 'world_field_visual_layers_missing');
+assert.ok(observatoryWorldLayerCss.includes('prefers-reduced-motion'), 'world_field_reduced_motion_boundary_missing');
 
 // One bounded refresh reads the three existing public owners. Returning to the surface reuses a recent snapshot.
 for (const endpoint of [
@@ -150,6 +169,8 @@ console.log(JSON.stringify({
     acquisitionTimeCalibration:true,
     simulationDoesNotRewriteObservation:true,
     publicFieldSingleReadOwner:true,
+    typedWorldFieldProjection:true,
+    worldFieldSecondReadOwner:false,
     observatoryDataPolling:false,
     observatorySnapshotReuse:true,
     falseZeroPrevented:true,
