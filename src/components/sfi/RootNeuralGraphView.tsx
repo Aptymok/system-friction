@@ -164,7 +164,6 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
         </div>
         <div className="neuralGraphHeaderActions">
           <Link href="/root">← ROOT</Link>
-          <Link href="/library">LIBRARY</Link>
         </div>
       </header>
 

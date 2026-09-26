@@ -58,7 +58,7 @@ export function LoginSurface({
 
         <div className="loginMeta">
           <span>Authentication identifies your account; it does not modify your institutional authority.</span>
-          <a href="/field">FIELD is public and does not require sign-in.</a>
+          <a href="/observatory">OBSERVATORY is public and does not require sign-in.</a>
         </div>
       </form>
     </main>

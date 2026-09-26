@@ -27,7 +27,7 @@ assert.ok(scenes.includes("LEGACY_INTERNAL_SCENES=['systems','archive'"), 'archi
 assert.equal(scenes.includes("archive:{key:'archive'"), false, 'archive_must_not_reappear_as_independent_live_scene');
 assert.ok(dynamicScenePage.includes('LEGACY_INTERNAL_SCENES'), 'shared_scene_router_legacy_registry_missing');
 assert.ok(dynamicScenePage.includes("redirect('/root')"), 'legacy_archive_lens_must_resolve_to_canonical_root_surface');
-assert.ok(consoleUi.includes("href:'/library'") || consoleUi.includes("href: '/library'"), 'library_must_be_navigable_from_operating_shell');
+assert.equal(consoleUi.includes("href:'/library'") || consoleUi.includes("href: '/library'"), false, 'retired_library_surface_must_not_reappear_in_operating_shell');
 for (const forbiddenPrivateRead of ["@/runtime/supabase", 'createServiceSupabaseClient', 'materializeInstitutionalCognitiveSpineProfile', 'cognitiveSpineImpactContext']) {
   assert.equal(documentaryCatalog.includes(forbiddenPrivateRead), false, `library_catalog_reads_private_state:${forbiddenPrivateRead}`);
 }

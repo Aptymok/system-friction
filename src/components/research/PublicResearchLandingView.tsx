@@ -33,7 +33,7 @@ export function PublicResearchLandingView({ landing }: { landing: SfiPublicResea
                 </h1>
                 <p style={{ maxWidth: 850, fontSize: 19, lineHeight: 1.7, color: '#b9aa8e' }}>{node.summary}</p>
               </div>
-              <Link href="/institution" style={{ color: '#d5ad69', textDecoration: 'none', letterSpacing: '.13em', fontSize: 12 }}>
+              <Link href="/?scene=institution" style={{ color: '#d5ad69', textDecoration: 'none', letterSpacing: '.13em', fontSize: 12 }}>
                 INSTITUTION →
               </Link>
             </div>

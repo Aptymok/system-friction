@@ -49,12 +49,10 @@ export function TemporalIssueView({
       <header className="tnTopbar">
         <Link className="tnBrand" href="/"><span>SFI</span><small>SYSTEM FRICTION INSTITUTE</small></Link>
         <nav aria-label="Institutional navigation">
-          <Link href="/institution">INSTITUTE</Link>
-          <Link href="/research">RESEARCH</Link>
-          <Link href="/library">ARCHIVE</Link>
-          <Link href="/field">FIELD</Link>
-          <Link href="/publications">NOTES</Link>
+          <Link href="/">SFI</Link>
           <Link href="/observatory">OBSERVATORY</Link>
+          <Link href="/publications">PUBLICATIONS</Link>
+          <Link href="/login">SIGN IN</Link>
         </nav>
         <Link className="tnExplore" href="/publications">EXPLORE <span>→</span></Link>
       </header>
@@ -185,7 +183,7 @@ export function TemporalIssueView({
       <footer className="tnFooter">
         <div><b>SFI</b><span>SYSTEM FRICTION INSTITUTE</span></div>
         <div><span>{profile.code}</span><span>{landing.contract}</span></div>
-        <div><Link href="/privacy">PRIVACY</Link><Link href="/institution">INSTITUTE</Link><Link href="/publications">PUBLICATIONS</Link></div>
+        <div><Link href="/privacy">PRIVACY</Link><Link href="/?scene=institution">INSTITUTION</Link><Link href="/publications">PUBLICATIONS</Link></div>
       </footer>
     </main>
   </>;

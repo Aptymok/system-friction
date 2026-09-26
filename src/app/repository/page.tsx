@@ -1,1 +1,5 @@
-import { redirect } from 'next/navigation'; export default function Page(){redirect('/archive');}
+import { redirect } from 'next/navigation';
+
+export default function RepositoryPage(){
+  redirect('/publications');
+}

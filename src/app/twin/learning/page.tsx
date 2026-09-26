@@ -76,7 +76,7 @@ export default function TwinLearningPage() {
   return <main className="twinLearning">
     <header className="twinLearningTop">
       <div><Link href="/root">SFI / ROOT</Link><span>COGNITIVE TWIN · LEARNING LINEAGE</span></div>
-      <nav><Link href="/twin">SPINE</Link><Link href="/method-lab">METHOD LAB</Link><Link href="/library">LIBRARY</Link><Link href="/root">ROOT</Link></nav>
+      <nav><Link href="/twin">SPINE</Link><Link href="/method-lab">METHOD LAB</Link><Link href="/root">ROOT</Link></nav>
     </header>
 
     {(error || notice) && <div className={`learningToast ${error ? 'error' : ''}`}><span>{error || notice}</span><button onClick={() => { setError(null); setNotice(null); }}>×</button></div>}
