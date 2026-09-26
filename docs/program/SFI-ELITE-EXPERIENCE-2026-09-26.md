@@ -103,7 +103,7 @@ Acceptance:
 - contradiction remains first-class
 
 ### P5 · Laboratory Instrument Room
-State: IN PROGRESS
+State: IMPLEMENTED / VERIFYING
 Deliverables:
 - methods, runs, datasets, hashes, seeds and replay represented as instruments
 - reproducibility dossier per run
