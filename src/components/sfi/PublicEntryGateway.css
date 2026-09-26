@@ -400,44 +400,53 @@
   filter:brightness(.58) blur(4px)
 }
 
-/* 02 — dashboard is fitted to the viewport and allowed to pan internally. */
-.sfiScene--observatory-dashboard{
+/* 02 / 03 — one canonical scene. Only narrative state changes.
+   The field may pan horizontally, but the camera does not jump to a new world. */
+.sfiScene--observatory-dashboard,
+.sfiScene--system-field{
   background:#030302
 }
 .sfiScene--observatory-dashboard .sfiSceneGrid,
-.sfiScene--observatory-dashboard .sfiSceneLayers{
+.sfiScene--observatory-dashboard .sfiSceneLayers,
+.sfiScene--system-field .sfiSceneGrid,
+.sfiScene--system-field .sfiSceneLayers{
   display:none
 }
-.sfiScene--observatory-dashboard .sfiSceneBackground{
+.sfiScene--observatory-dashboard .sfiSceneBackground,
+.sfiScene--system-field .sfiSceneBackground{
   inset:70px 0 0;
-  background-size:contain;
+  background-size:cover;
   background-color:#030302;
   background-position:var(--field-x,50%) center;
-  transform:none;
-  filter:saturate(.98) contrast(1.02) brightness(.94)
+  transform:translate3d(
+    calc(var(--pointer-x,0) * -2px),
+    calc(var(--pointer-y,0) * -1px),
+    0
+  ) scale(1.018);
+  filter:saturate(.98) contrast(1.025) brightness(.92)
 }
-.sfiScene--observatory-dashboard:after{
+.sfiScene--observatory-dashboard:after,
+.sfiScene--system-field:after{
   top:70px;
   background:
-    linear-gradient(90deg,rgba(3,3,2,.74) 0%,rgba(3,3,2,.34) 29%,transparent 56%,rgba(3,3,2,.12) 100%),
-    linear-gradient(180deg,transparent 62%,rgba(3,3,2,.36))
+    linear-gradient(90deg,rgba(3,3,2,.72) 0%,rgba(3,3,2,.32) 28%,transparent 58%,rgba(3,3,2,.1) 100%),
+    linear-gradient(180deg,transparent 64%,rgba(3,3,2,.32))
 }
 .sfiScene--observatory-dashboard[data-state="future"]{
   transform:translate3d(0,0,-560px) scale(.66);
   opacity:0;
   filter:brightness(.5) blur(8px)
 }
-
-/* 03 — system field: broader lateral travel. */
-.sfiScene--system-field .sfiSceneBackground{
-  inset:-5%;
-  background-size:118% auto;
-  filter:saturate(.92) contrast(1.04) brightness(.84)
+.sfiScene--observatory-dashboard[data-state="past"],
+.sfiScene--system-field[data-state="future"]{
+  transform:translate3d(0,0,0) scale(1);
+  opacity:0;
+  filter:none
 }
-.sfiScene--system-field:after{
-  background:
-    linear-gradient(90deg,rgba(4,4,3,.79) 0%,rgba(4,4,3,.43) 29%,transparent 58%,rgba(4,4,3,.18) 100%),
-    linear-gradient(180deg,rgba(4,4,3,.1),transparent 62%,rgba(4,4,3,.28))
+.sfiScene--system-field[data-state="active"]{
+  transform:translate3d(0,0,0) scale(1);
+  opacity:1;
+  filter:none
 }
 
 /* 04 — friction: luminous relation field, not dashboard UI. */
@@ -488,6 +497,64 @@
   filter:saturate(.82) contrast(1.06) brightness(.75)
 }
 
+
+/* 04 parallax: one restrained orbital layer over the clean FRICTION master. */
+.sfiScene--friction .sfiSceneLayer--1{
+  width:112vw;
+  max-width:none;
+  right:-6vw;
+  top:-2%;
+  opacity:.18;
+  mix-blend-mode:screen;
+  transform:translate3d(
+    calc(var(--pointer-x,0) * 8px),
+    calc(var(--pointer-y,0) * 5px),
+    55px
+  ) scale(1.03)
+}
+
+/* 05 parallax: institutional memory/authority objects remain subordinate. */
+.sfiScene--institution .sfiSceneLayer--1{
+  width:108vw;
+  max-width:none;
+  right:-4vw;
+  top:0;
+  opacity:.14;
+  mix-blend-mode:screen;
+  transform:translate3d(
+    calc(var(--pointer-x,0) * 7px),
+    calc(var(--pointer-y,0) * 4px),
+    45px
+  )
+}
+.sfiScene--institution .sfiSceneLayer--2{
+  width:min(25vw,390px);
+  right:auto;
+  left:1.5vw;
+  top:auto;
+  bottom:2vh;
+  opacity:.28;
+  mix-blend-mode:screen;
+  transform:translate3d(
+    calc(var(--pointer-x,0) * -10px),
+    calc(var(--pointer-y,0) * -5px),
+    95px
+  )
+}
+.sfiScene--institution .sfiSceneLayer--3{
+  width:min(21vw,330px);
+  right:1.5vw;
+  top:auto;
+  bottom:0;
+  opacity:.24;
+  mix-blend-mode:screen;
+  transform:translate3d(
+    calc(var(--pointer-x,0) * 13px),
+    calc(var(--pointer-y,0) * 7px),
+    130px
+  )
+}
+
 /* Mobile keeps the same spatial model with reduced copy. */
 @media(max-width:900px){
   .sfiSceneChrome{
@@ -523,11 +590,13 @@
   .sfiSceneLayer--1{width:88vw;right:-34vw}
   .sfiSceneLayer--2{width:72vw;right:-12vw}
   .sfiSceneLayer--3{width:60vw;right:-22vw}
-  .sfiScene--observatory-dashboard .sfiSceneBackground{
+  .sfiScene--observatory-dashboard .sfiSceneBackground,
+  .sfiScene--system-field .sfiSceneBackground{
     inset:60px 0 0;
     background-size:cover
   }
-  .sfiScene--observatory-dashboard:after{top:60px}
+  .sfiScene--observatory-dashboard:after,
+  .sfiScene--system-field:after{top:60px}
 }
 
 @media(max-height:690px) and (min-width:901px){
