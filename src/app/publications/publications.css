@@ -1,7 +1,9 @@
 .publicationsHub{
   --void:#060605;
   --gold:#c8a951;
-  --cream:#eee6d8;
+  --cream:#e8ddc3;
+  --signal:#4a7aaa;
+  --critical:#b85050;
   --line:rgba(200,169,81,.22);
   min-height:100vh;
   background:
