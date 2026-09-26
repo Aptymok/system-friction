@@ -57,7 +57,7 @@ Acceptance:
 - reduced-motion path remains usable
 
 ### P1 · Registry Graph + Object Reconstruct
-State: ACTIVE
+State: CLOSED / PRODUCTION READY
 Deliverables:
 - publication nodes with bounded SEQUENCE and THEME presentation relations
 - publication information inspector
@@ -92,7 +92,7 @@ Acceptance:
 - unavailable periods render NOT OBSERVED
 
 ### P4 · Hypothesis Close + RETURN Diff
-State: IMPLEMENTED / VERIFYING
+State: CLOSED / PRODUCTION READY
 Deliverables:
 - expose OPEN → CONTRAST → CLOSE/RETAIN/REJECT lifecycle
 - EXPECTED / AUTHORIZED / EXECUTED / OBSERVED / RETURN comparison
@@ -103,7 +103,7 @@ Acceptance:
 - contradiction remains first-class
 
 ### P5 · Laboratory Instrument Room
-State: PLANNED
+State: IN PROGRESS
 Deliverables:
 - methods, runs, datasets, hashes, seeds and replay represented as instruments
 - reproducibility dossier per run
