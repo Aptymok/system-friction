@@ -461,7 +461,6 @@
 }
 .sfiScene--friction .sfiSceneGrid,
 .sfiScene--institution .sfiSceneGrid,
-.sfiScene--library .sfiSceneGrid,
 .sfiScene--return .sfiSceneGrid{
   display:none
 }
@@ -499,7 +498,6 @@
 /* 04 — FRICTION: one observer, one field, high depth separation. */
 .sfiScene--friction .sfiSceneLayers,
 .sfiScene--institution .sfiSceneLayers,
-.sfiScene--library .sfiSceneLayers,
 .sfiScene--return .sfiSceneLayers{
   transform:translate3d(var(--field-shift,0vw),0,0);
   transition:transform .9s cubic-bezier(.2,.82,.2,1)
@@ -559,50 +557,6 @@
     245px
   ) scale(1.015);
   filter:drop-shadow(0 28px 54px rgba(0,0,0,.52))
-}
-
-/* 06 — ARCHIVE REGISTRY: a new room; memory becomes recoverable and social. */
-.sfiScene--library .sfiSceneBackground{
-  inset:68px -3% -3%;
-  background-size:cover;
-  background-position:var(--field-x,50%) center;
-  transform:translate3d(
-    calc(var(--pointer-x,0) * -9px),
-    calc(var(--pointer-y,0) * -4px),
-    -80px
-  ) scale(1.07);
-  filter:saturate(.89) contrast(1.05) brightness(.79)
-}
-.sfiScene--library:after{
-  top:68px;
-  background:
-    linear-gradient(90deg,rgba(4,4,3,.80) 0%,rgba(4,4,3,.46) 31%,transparent 62%,rgba(4,4,3,.08) 100%),
-    linear-gradient(180deg,rgba(4,4,3,.05),transparent 65%,rgba(4,4,3,.28))
-}
-.sfiScene--library[data-state="future"]{
-  transform:translate3d(16%,0,-280px) rotateY(-5deg) scale(.84);
-  transform-origin:80% 50%;
-  opacity:0;
-  filter:brightness(.45) blur(8px)
-}
-.sfiScene--library[data-state="active"]{
-  transform:translate3d(0,0,0) rotateY(0) scale(1);
-  opacity:1;
-  filter:none
-}
-.sfiScene--library .sfiSceneLayer--1{
-  width:min(80vw,1340px);
-  max-width:none;
-  right:-5vw;
-  top:auto;
-  bottom:-9vh;
-  opacity:.94;
-  transform:translate3d(
-    calc(var(--pointer-x,0) * -48px),
-    calc(var(--pointer-y,0) * -22px),
-    235px
-  ) scale(1.01);
-  filter:drop-shadow(0 26px 52px rgba(0,0,0,.52))
 }
 
 /* 07 — RETURN: deliberately different. World, consequence and people occupy
