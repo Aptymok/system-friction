@@ -4,13 +4,6 @@ export type SceneFrame = {
   text: string;
 };
 
-export type SceneHotspot = {
-  x: number;
-  y: number;
-  label: string;
-  text: string;
-};
-
 export type SceneAsset = {
   src: string;
   role: 'background' | 'atmosphere' | 'terrain' | 'structure' | 'signal' | 'interface' | 'human';
@@ -31,7 +24,6 @@ export type Scene = {
   background: string;
   assets: readonly SceneAsset[];
   frames: readonly SceneFrame[];
-  hotspots: readonly SceneHotspot[];
   primaryHref: string;
   primaryLabel: string;
   secondaryHref: string;
@@ -39,16 +31,12 @@ export type Scene = {
 };
 
 /**
- * SFI public spatial grammar
+ * Public spatial journey.
  *
- * Vertical = enter another scale / institutional space.
- * Horizontal = move laterally inside the same system field.
- * Pointer = subtle depth only.
+ * Visible human destinations are deliberately bounded to:
+ * SIGN IN · OBSERVATORY · PUBLICATIONS.
  *
- * The Reality Chain is an analytical instrument; it is not the geography
- * of the public site. SFI observes complex systems far beyond AI.
- *
- * ENTRY → OBSERVATORY → SYSTEM FIELD → FRICTION → INSTITUTION → LIBRARY → RETURN
+ * ENTRY → OBSERVATORY → SYSTEM FIELD → FRICTION → INSTITUTION → RETURN
  */
 export const SCENES: readonly Scene[] = [
   {
@@ -64,11 +52,10 @@ export const SCENES: readonly Scene[] = [
     frames:[
       {label:'ENTRY',title:'Enter the field.',text:'Observe systems as relationships in motion rather than isolated objects.'},
     ],
-    hotspots:[],
-    primaryHref:'/observatory',
-    primaryLabel:'ENTER OBSERVATORY',
-    secondaryHref:'/institution',
-    secondaryLabel:'ABOUT SFI',
+    primaryHref:'/login',
+    primaryLabel:'SIGN IN',
+    secondaryHref:'/observatory',
+    secondaryLabel:'OBSERVATORY',
   },
   {
     id:'observatory-dashboard',
@@ -86,11 +73,10 @@ export const SCENES: readonly Scene[] = [
       {label:'PATTERNS',title:'Signals in the noise.',text:'Repeated relations can reveal structure without being confused with cause.'},
       {label:'PEOPLE',title:'Consequences become lived.',text:'Every system eventually resolves into access, burden, risk, trust and lived consequence.'},
     ],
-    hotspots:[],
     primaryHref:'/observatory',
     primaryLabel:'OPEN OBSERVATORY',
-    secondaryHref:'/field',
-    secondaryLabel:'ENTER FIELD',
+    secondaryHref:'/publications',
+    secondaryLabel:'PUBLICATIONS',
   },
   {
     id:'system-field',
@@ -111,11 +97,10 @@ export const SCENES: readonly Scene[] = [
       {label:'INFORMATION',title:'Signals reorganize action.',text:'Information changes coordination, expectation and response across otherwise distant nodes.'},
       {label:'INSTITUTIONS',title:'Rules alter trajectories.',text:'Mandates, procedures and authority determine which possibilities become legitimate action.'},
     ],
-    hotspots:[],
-    primaryHref:'/field',
-    primaryLabel:'EXPLORE FIELD',
-    secondaryHref:'/world-vector',
-    secondaryLabel:'WORLD VECTOR',
+    primaryHref:'/observatory',
+    primaryLabel:'OBSERVATORY',
+    secondaryHref:'/publications',
+    secondaryLabel:'PUBLICATIONS',
   },
   {
     id:'friction',
@@ -136,11 +121,10 @@ export const SCENES: readonly Scene[] = [
       {label:'DIVERGENCE',title:'Different realities persist.',text:'Actors can inhabit the same system while seeing different evidence, incentives and consequences.'},
       {label:'CONSTRAINT',title:'Limits redirect possibility.',text:'Scarcity, rules, geometry, timing and authority can reshape the available path without stopping the system.'},
     ],
-    hotspots:[],
     primaryHref:'/observatory',
-    primaryLabel:'OBSERVE FRICTION',
+    primaryLabel:'OBSERVATORY',
     secondaryHref:'/publications',
-    secondaryLabel:'READ CASES',
+    secondaryLabel:'PUBLICATIONS',
   },
   {
     id:'institution',
@@ -161,39 +145,14 @@ export const SCENES: readonly Scene[] = [
       {label:'AUTHORITY',title:'Capability is not permission.',text:'Authority defines who may transform interpretation into consequential action.'},
       {label:'EXECUTION',title:'Action changes the field.',text:'Execution alters conditions outside the institution and creates the need for RETURN.'},
     ],
-    hotspots:[],
-    primaryHref:'/institution',
-    primaryLabel:'ENTER INSTITUTION',
-    secondaryHref:'/library',
-    secondaryLabel:'OPEN LIBRARY',
-  },
-  {
-    id:'library',
-    number:'06',
-    scale:'institutional',
-    eyebrow:'LIBRARY / PUBLIC ARCHIVE',
-    title:'ARCHIVE',
-    accent:'REGISTRY.',
-    lead:'Memory that can be recovered. Records, observations, publications and evidence remain available for reconstruction rather than merely remembered.',
-    background:'/assets/sfi/scenes/06_archive_background.png',
-    assets:[
-      {src:'/assets/sfi/scenes/06_archive_board.png',role:'human',depth:3,motion:'pointer-parallax',scale:'institutional',alpha:true},
-    ],
-    frames:[
-      {label:'SOURCE',title:'Where did it come from?',text:'Origin and provenance remain attached to claims and records.'},
-      {label:'RECORD',title:'What was preserved?',text:'A record captures an institutional state that can later be reconstructed.'},
-      {label:'EVIDENCE',title:'What can withstand inspection?',text:'Evidence remains recoverable, inspectable and open to contradiction.'},
-      {label:'PUBLICATION',title:'What becomes public memory?',text:'Publication exposes bounded findings without pretending that the archive is complete.'},
-    ],
-    hotspots:[],
-    primaryHref:'/library',
-    primaryLabel:'ENTER LIBRARY',
+    primaryHref:'/observatory',
+    primaryLabel:'OBSERVATORY',
     secondaryHref:'/publications',
     secondaryLabel:'PUBLICATIONS',
   },
   {
     id:'return',
-    number:'07',
+    number:'06',
     scale:'institutional',
     eyebrow:'RETURN',
     title:'RETURN.',
@@ -210,10 +169,9 @@ export const SCENES: readonly Scene[] = [
       {label:'CONTRAST',title:'What survived reality?',text:'Expectation is compared with consequence without rewriting the prior state.'},
       {label:'CORRECTION',title:'What changes now?',text:'RETURN can alter memory, confidence, method, authority or the next available action.'},
     ],
-    hotspots:[],
-    primaryHref:'/observatory',
-    primaryLabel:'RETURN TO OBSERVATORY',
-    secondaryHref:'/publications',
-    secondaryLabel:'PUBLISHED RETURNS',
+    primaryHref:'/publications',
+    primaryLabel:'PUBLICATIONS',
+    secondaryHref:'/observatory',
+    secondaryLabel:'OBSERVATORY',
   },
 ] as const;
