@@ -1,6 +1,8 @@
 import 'server-only';
 
+import { createHash } from 'crypto';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { runLlmTask } from '@/lib/ai/providerRouter';
 import { isSfiContinuityConfigured, readContinuityPublicWorldBundle } from '@/lib/sfi/continuityPostgres';
 
 export const WORLD_HYPOTHESIS_CLOSURE_DOSSIER_CONTRACT = 'SFI-WORLD-HYPOTHESIS-CLOSURE-DOSSIER-1.0' as const;
@@ -222,28 +224,39 @@ export function buildWorldHypothesisClosureDossier(
 export async function readWorldHypothesisClosureDossier(input: {
   limit?: number;
   since?: string | null;
+  hypothesisIds?: string[];
 } = {}): Promise<WorldHypothesisClosureDossier> {
   const db = createServiceSupabaseClient();
   const limit = Math.max(1, Math.min(500, input.limit ?? 360));
   const since = input.since ?? new Date(Date.now() - 90 * 86_400_000).toISOString();
+  const ids = [...new Set((input.hypothesisIds ?? []).filter((id)=>/^[0-9a-f-]{36}$/i.test(id)))].slice(0,100);
+
+  let hypothesisQuery = db.from('world_hypotheses')
+    .select('id,phenomenon_key,statement,status,cutoff_at,validation_starts_at,validation_ends_at,initial_confidence,current_confidence,methodology_version')
+    .in('status', ['VALIDATED','PARTIALLY_VALIDATED','CONTRADICTED','INCONCLUSIVE'])
+    .order('cutoff_at', { ascending: false })
+    .limit(limit);
+  let outcomeQuery = db.from('world_hypothesis_outcomes')
+    .select('id,hypothesis_id,classification,observed_outcome,directional_accuracy,temporal_accuracy,actor_accuracy,mechanism_accuracy,source_coverage,evidence_ids,evaluator_version,evaluated_at')
+    .order('evaluated_at', { ascending: false })
+    .limit(limit);
+  let learningQuery = db.from('world_learning_events')
+    .select('id,hypothesis_id,retained_assumptions,rejected_assumptions,missing_variables,confidence_before,confidence_after,created_at')
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (ids.length) {
+    hypothesisQuery = hypothesisQuery.in('id', ids);
+    outcomeQuery = outcomeQuery.in('hypothesis_id', ids);
+    learningQuery = learningQuery.in('hypothesis_id', ids);
+  } else {
+    hypothesisQuery = hypothesisQuery.gte('cutoff_at', since);
+    outcomeQuery = outcomeQuery.gte('evaluated_at', since);
+    learningQuery = learningQuery.gte('created_at', since);
+  }
 
   const [hypothesisRead,outcomeRead,learningRead] = await Promise.all([
-    db.from('world_hypotheses')
-      .select('id,phenomenon_key,statement,status,cutoff_at,validation_starts_at,validation_ends_at,initial_confidence,current_confidence,methodology_version')
-      .in('status', ['VALIDATED','PARTIALLY_VALIDATED','CONTRADICTED','INCONCLUSIVE'])
-      .gte('cutoff_at', since)
-      .order('cutoff_at', { ascending: false })
-      .limit(limit),
-    db.from('world_hypothesis_outcomes')
-      .select('id,hypothesis_id,classification,observed_outcome,directional_accuracy,temporal_accuracy,actor_accuracy,mechanism_accuracy,source_coverage,evidence_ids,evaluator_version,evaluated_at')
-      .gte('evaluated_at', since)
-      .order('evaluated_at', { ascending: false })
-      .limit(limit),
-    db.from('world_learning_events')
-      .select('id,hypothesis_id,retained_assumptions,rejected_assumptions,missing_variables,confidence_before,confidence_after,created_at')
-      .gte('created_at', since)
-      .order('created_at', { ascending: false })
-      .limit(limit),
+    hypothesisQuery,outcomeQuery,learningQuery,
   ]);
 
   let hypothesisRows = (hypothesisRead.data ?? []) as unknown as Row[];
@@ -264,6 +277,12 @@ export async function readWorldHypothesisClosureDossier(input: {
     hypothesisRows = (continuity.hypotheses ?? []) as unknown as Row[];
     outcomeRows = (continuity.outcomes ?? []) as unknown as Row[];
     learningRows = (continuity.learning ?? []) as unknown as Row[];
+    if (ids.length) {
+      const idSet = new Set(ids);
+      hypothesisRows = hypothesisRows.filter((item)=>idSet.has(text(item.id)));
+      outcomeRows = outcomeRows.filter((item)=>idSet.has(text(item.hypothesis_id)));
+      learningRows = learningRows.filter((item)=>idSet.has(text(item.hypothesis_id)));
+    }
   }
 
   const outcomeByHypothesis = new Map<string,Row>();
@@ -334,4 +353,188 @@ export function worldHypothesisClosureReportBody(dossier: WorldHypothesisClosure
     'EPISTEMIC BOUNDARY',
     ...dossier.boundaries.map((item)=>`- ${item}`),
   ].join('\n');
+}
+
+
+export type WorldHypothesisClosureReportEnvelope = {
+  ok: boolean;
+  type: 'world_hypothesis_closure';
+  title: string;
+  body: string;
+  evidence: string[];
+  provider: string;
+  warnings: string[];
+  trace: Record<string, unknown>;
+  approval_queue: {
+    action: 'report_review';
+    reason: string;
+    evidence: string[];
+    risk: 'low';
+    expected_outcome: string;
+    approval_required: true;
+    status: 'queued_for_approval';
+  };
+};
+
+function dossierFingerprint(dossier: WorldHypothesisClosureDossier) {
+  const payload = dossier.hypotheses
+    .map((item)=>({
+      id:item.id,
+      status:item.status,
+      classification:item.outcome?.classification??null,
+      evidenceIds:item.outcome?.evidenceIds??[],
+      evaluatedAt:item.outcome?.evaluatedAt??null,
+    }))
+    .sort((a,b)=>a.id.localeCompare(b.id));
+  return createHash('sha256').update(JSON.stringify(payload)).digest('hex');
+}
+
+export async function generateWorldHypothesisClosureReport(input: {
+  hypothesisIds?: string[];
+  since?: string | null;
+} = {}): Promise<{ dossier: WorldHypothesisClosureDossier; report: WorldHypothesisClosureReportEnvelope; fingerprint: string }> {
+  const dossier = await readWorldHypothesisClosureDossier({
+    hypothesisIds: input.hypothesisIds,
+    since: input.since,
+    limit: input.hypothesisIds?.length ? Math.max(1,input.hypothesisIds.length) : 360,
+  });
+  const fingerprint = dossierFingerprint(dossier);
+  const fallbackBody = worldHypothesisClosureReportBody(dossier);
+  const evidence = [...new Set(dossier.hypotheses.flatMap((item)=>item.outcome?.evidenceIds??[]))].slice(0,120);
+
+  if (!dossier.scope.total) {
+    return {
+      dossier,
+      fingerprint,
+      report: {
+        ok:false,
+        type:'world_hypothesis_closure',
+        title:'World hypothesis closure · no closed objects in scope',
+        body:fallbackBody,
+        evidence:[],
+        provider:'blocked:no-closed-hypotheses',
+        warnings:['no_closed_hypotheses_in_scope'],
+        trace:{contract:dossier.contract,fingerprint,hypothesisCount:0},
+        approval_queue:{
+          action:'report_review',
+          reason:'No closed hypothesis exists in the selected scope; human review may adjust scope but cannot fabricate closure.',
+          evidence:[],
+          risk:'low',
+          expected_outcome:'Reviewer confirms the empty closure scope or selects another persisted cohort.',
+          approval_required:true,
+          status:'queued_for_approval',
+        },
+      },
+    };
+  }
+
+  const llm = await runLlmTask({
+    task:'deep_report',
+    system:[
+      'You are the System Friction Institute closure-report editor. You are NOT the hypothesis evaluator.',
+      'All classifications in the supplied dossier are immutable inputs owned by the World calibration cycle. Never upgrade, downgrade, merge or reinterpret them.',
+      'Write a rigorous institutional report that is readable, striking and reconstructible without becoming promotional.',
+      'Distinguish OBSERVED persisted fields from DERIVED aggregate readings. Do not call PARTIALLY_VALIDATED validated. Do not call INCONCLUSIVE false.',
+      'Do not infer causality from count equality, temporal sequence, graph adjacency or evidence absence.',
+      'Highlight contradictions, missing evidence, instrument limitations and methodological changes as strongly as apparent support.',
+      'Use this narrative architecture: THE QUESTION; THE COHORT; THE CONFRONTATION WITH RETURN; WHERE DISCRIMINATION FAILED; METHOD TRANSITION; CALIBRATION; CONTRADICTIONS; LEARNING; NEXT FALSIFICATION; EPISTEMIC BOUNDARY.',
+      'Keep identifiers and numeric quantities exactly as supplied. If a requested fact is not in the dossier, write NOT OBSERVED.',
+      'Publication of this report is exposure only; never describe it as external validation or RETURN.',
+    ].join('\n'),
+    prompt:JSON.stringify({
+      dossier,
+      deterministicFallback:fallbackBody,
+      instruction:'Produce the final internal closure-report body only. No JSON wrapper.',
+    }).slice(0,120000),
+    fallbackResult:fallbackBody,
+    requirements:{reasoning:true,structuredOutput:false,priority:'quality'},
+    maxTokens:4200,
+  });
+
+  const warnings=[...new Set([
+    ...llm.warnings,
+    ...(llm.ok?[]:['governed_report_model_unavailable_deterministic_fallback_used']),
+  ])];
+
+  return {
+    dossier,
+    fingerprint,
+    report:{
+      ok:true,
+      type:'world_hypothesis_closure',
+      title:`World hypothesis closure · ${dossier.scope.total} objects · ${dossier.generatedAt.slice(0,10)}`,
+      body:llm.result||fallbackBody,
+      evidence,
+      provider:`${llm.provider}:${llm.model}`,
+      warnings,
+      trace:{
+        contract:dossier.contract,
+        fingerprint,
+        hypothesisCount:dossier.scope.total,
+        classifications:dossier.counts.byClassification,
+        withLinkedReturnEvidence:dossier.counts.withLinkedReturnEvidence,
+        withLearning:dossier.counts.withLearning,
+        calibration:dossier.calibration,
+        reportAuthority:'NARRATIVE_ONLY_CLASSIFICATION_OWNER_WORLD_CALIBRATION',
+      },
+      approval_queue:{
+        action:'report_review',
+        reason:'Closure report is a narrative projection of persisted outcomes. Human review is required before any external publication.',
+        evidence,
+        risk:'low',
+        expected_outcome:'Reviewer verifies reconstruction, language and epistemic boundaries before publication.',
+        approval_required:true,
+        status:'queued_for_approval',
+      },
+    },
+  };
+}
+
+export async function persistWorldHypothesisClosureReport(input: {
+  hypothesisIds?: string[];
+  since?: string | null;
+} = {}) {
+  const generated = await generateWorldHypothesisClosureReport(input);
+  const db = createServiceSupabaseClient();
+  const taskId = `world-hypothesis-closure:${generated.fingerprint}`;
+
+  const existing = await db.from('sfi_cognitive_twin_runs')
+    .select('id,task_id,status,created_at')
+    .eq('role','report_agent')
+    .eq('task_id',taskId)
+    .maybeSingle();
+  if (existing.error) throw new Error(`world_hypothesis_closure_report_lookup_failed:${existing.error.message}`);
+  if (existing.data?.id) {
+    return { ...generated, persisted:true, skipped:true, reportRunId:String(existing.data.id), taskId };
+  }
+
+  const startedAt = new Date().toISOString();
+  const providerBlocked = generated.report.provider.startsWith('blocked:');
+  const inserted = await db.from('sfi_cognitive_twin_runs').insert({
+    task_id:taskId,
+    contract_version:'world-hypothesis-closure-report-v1',
+    provider:generated.report.provider||null,
+    model:null,
+    role:'report_agent',
+    status:generated.report.ok&&!providerBlocked?'READY':'BLOCKED',
+    objective:generated.report.title,
+    input_snapshot:{
+      reportType:generated.report.type,
+      closureContract:generated.dossier.contract,
+      fingerprint:generated.fingerprint,
+      hypothesisIds:generated.dossier.hypotheses.map((item)=>item.id),
+      generatedBy:'world-calibration-post-closure',
+      authorityBoundary:'Report narrates persisted classifications; it never owns classification.',
+    },
+    output_envelope:generated.report,
+    evidence_refs:generated.report.evidence,
+    limitations:generated.report.warnings,
+    started_at:startedAt,
+    finished_at:new Date().toISOString(),
+  }).select('id').single();
+
+  if (inserted.error||!inserted.data?.id) {
+    throw new Error(`world_hypothesis_closure_report_persistence_failed:${inserted.error?.message??'unknown'}`);
+  }
+  return { ...generated, persisted:true, skipped:false, reportRunId:String(inserted.data.id), taskId };
 }
