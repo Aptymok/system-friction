@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'r
 import { useAuthState } from '@/components/auth/AuthProvider';
 import { SessionControls } from './SessionControls';
 import { ObservatoryInterpretiveFlow } from './ObservatoryInterpretiveFlow';
+import { ObservatoryWorldField } from './ObservatoryWorldField';
 import { translateUiText } from '@/components/i18n/SfiLanguageProvider';
 import {
   classifyObservatoryRead,
@@ -162,18 +163,28 @@ export function ObservatoryConsole(){
       <img src="/sfi-scenes/satellite.png" alt={ui('SFI observatory satellite')}/><span className="scanBeam"/>
     </button>
 
-    <div className="earthStage"><img className="worldActor" src="/sfi-scenes/world.png" alt={ui('Earth observed by System Friction Institute')}/><svg className="earthOverlay" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid meet">
-      <defs><filter id="glow"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
-      {selectedHypothesis&&[...selectedEvidenceIds].flatMap((fromId)=>{
-        const from=positions.get(fromId);if(!from)return[];
-        const targets=[...selectedAffectedIds].filter(id=>id!==fromId&&positions.has(id));
-        if(!targets.length)return[<line key={`${fromId}-hyp`} className="neighborEdge" x1={from.x} y1={from.y} x2={800} y2={470} strokeDasharray="8 10"><animate attributeName="stroke-dashoffset" from="36" to="0" dur="2.4s" repeatCount="indefinite"/></line>];
-        return targets.map(toId=>{const to=positions.get(toId)!;return <line key={`${fromId}-${toId}`} className="neighborEdge" x1={from.x} y1={from.y} x2={to.x} y2={to.y} strokeDasharray="8 10"><animate attributeName="stroke-dashoffset" from="36" to="0" dur="2.4s" repeatCount="indefinite"/></line>})
-      })}
-      {nodes.map((n,i)=>{const p=positions.get(n.id)!;const selected=n.id===selectedNodeId;const evidence=selectedEvidenceIds.has(n.id);const affected=selectedAffectedIds.has(n.id);return <g key={n.id} className={`geoNode observed ${selected?'nodeSelected':''} ${evidence||affected?'nodeNeighbor':''}`} onClick={()=>setSelectedNodeId(n.id)} role="button" tabIndex={0}>
-        <circle cx={p.x} cy={p.y} r={selected?18:evidence?14:affected?12:8} className="geoHalo"/><circle cx={p.x} cy={p.y} r={selected?6:evidence?5:3.5} className="geoCore"/>{(selected||evidence)&&<text x={p.x+14} y={p.y-10}>{n.title.slice(0,28)}</text>}
-      </g>})}
-    </svg></div>
+    <div className="earthStage">
+      <img className="worldActor" src="/sfi-scenes/world.png" alt={ui('Earth observed by System Friction Institute')}/>
+      <ObservatoryWorldField
+        lens={lens}
+        nodes={nodes.map((node)=>({
+          id:node.id,
+          title:node.title,
+          confidence:node.confidence,
+          sourceFamily:node.sourceFamily,
+          position:positions.get(node.id)??orbitalPosition(node.id,0,1),
+        }))}
+        selectedNodeId={selectedNodeId}
+        selectedHypothesis={selectedHypothesis}
+        selectedEvidenceIds={selectedEvidenceIds}
+        selectedAffectedIds={selectedAffectedIds}
+        selectedGraphEdges={selectedGraphEdges}
+        graphNodes={rows(world?.graph?.nodes)}
+        vectors={frame?.vectors??[]}
+        onSelectNode={setSelectedNodeId}
+        onSelectHypothesis={setSelectedHypothesisId}
+      />
+    </div>
 
     <header className="obsTop"><div className="obsBrand"><strong>SFI</strong><span>{ui('FIELD · SYSTEM FRICTION INSTITUTE')}</span><small>{ui('LIVE WORLD OBSERVATORY')}</small></div>
       <nav>{(['field','hypotheses','trajectory','sources'] as Lens[]).map(k=><button key={k} className={lens===k?'active':''} onClick={()=>{setLens(k);setSatelliteOpen(true)}}>{k==='hypotheses'?'HYPOTHESES':k==='trajectory'?'TRAJECTORY':k==='sources'?'SOURCES':'FIELD'}</button>)}<button onClick={()=>void pull(true)} disabled={refreshing}>{refreshing?'READING…':'REFRESH'}</button><Link href="/method-lab">LABORATORY</Link><Link href="/publications">REGISTRY</Link>{auth.status!=='authenticated'&&<Link href="/login">SIGN IN</Link>}{auth.status==='authenticated'&&<Link href="/cases">{ui('CASES')}</Link>}</nav>
