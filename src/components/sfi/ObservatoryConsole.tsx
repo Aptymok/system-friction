@@ -5,7 +5,6 @@ import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'r
 import { useAuthState } from '@/components/auth/AuthProvider';
 import { SessionControls } from './SessionControls';
 import { ObservatoryInterpretiveFlow } from './ObservatoryInterpretiveFlow';
-import { PublicSurfaceContinuity } from './PublicSurfaceContinuity';
 import { translateUiText } from '@/components/i18n/SfiLanguageProvider';
 import {
   classifyObservatoryRead,
@@ -150,7 +149,7 @@ export function ObservatoryConsole(){
       ? `The selected hypothesis is an inference, not a fact: ${selectedHypothesis.statement??'no statement'}. Its trace uses ${selectedEvidenceIds.size} source records, affects ${arr(selectedHypothesis.aiInference?.affectedSystems).length} systems, and preserves explicit contradiction signals.`
       : `The field contains ${nodes.length} visible observations and ${filteredHypotheses.length} traceable hypotheses under the current filters.`;
 
-  return <><main className="obsShell" data-world-availability={availability.world} data-state-availability={availability.state} data-timeline-availability={availability.timeline}><PublicSurfaceContinuity scene="observatory-dashboard" number="02" label="OBSERVATORY" previous={{href:'/',label:'ENTRY'}} next={{href:'/field',label:'SYSTEM FIELD'}}/><section className={`obsScene lens-${lens}`}><div className="starfield"/><div className="deepSpace"/>
+  return <><main className="obsShell" data-world-availability={availability.world} data-state-availability={availability.state} data-timeline-availability={availability.timeline}><section className={`obsScene lens-${lens}`}><div className="starfield"/><div className="deepSpace"/>
     <button className={`satelliteActor satellite-${lens}`} onClick={()=>{setSatelliteOpen(v=>!v);if(!selectedHypothesisId&&filteredHypotheses[0])setSelectedHypothesisId(String(filteredHypotheses[0].id))}} aria-label={ui('Open SFI satellite instrument')}>
       <img src="/sfi-scenes/satellite.png" alt={ui('SFI observatory satellite')}/><span className="scanBeam"/>
     </button>
@@ -169,7 +168,7 @@ export function ObservatoryConsole(){
     </svg></div>
 
     <header className="obsTop"><div className="obsBrand"><strong>SFI</strong><span>{ui('FIELD · SYSTEM FRICTION INSTITUTE')}</span><small>{ui('LIVE WORLD OBSERVATORY')}</small></div>
-      <nav>{(['field','hypotheses','trajectory','sources'] as Lens[]).map(k=><button key={k} className={lens===k?'active':''} onClick={()=>{setLens(k);setSatelliteOpen(true)}}>{k==='hypotheses'?'HYPOTHESES':k==='trajectory'?'TRAJECTORY':k==='sources'?'SOURCES':'FIELD'}</button>)}<button onClick={()=>void pull(true)} disabled={refreshing}>{refreshing?'READING…':'REFRESH'}</button><Link href="/history">{ui('ORIGIN → NOW')}</Link>{auth.status==='authenticated'&&<Link href="/cases">{ui('CASES')}</Link>}</nav>
+      <nav>{(['field','hypotheses','trajectory','sources'] as Lens[]).map(k=><button key={k} className={lens===k?'active':''} onClick={()=>{setLens(k);setSatelliteOpen(true)}}>{k==='hypotheses'?'HYPOTHESES':k==='trajectory'?'TRAJECTORY':k==='sources'?'SOURCES':'FIELD'}</button>)}<button onClick={()=>void pull(true)} disabled={refreshing}>{refreshing?'READING…':'REFRESH'}</button><Link href="/publications">PUBLICATIONS</Link>{auth.status!=='authenticated'&&<Link href="/login">SIGN IN</Link>}{auth.status==='authenticated'&&<Link href="/cases">{ui('CASES')}</Link>}</nav>
       <div className="obsIdentity"><b>{auth.identity?.alias||'PUBLIC'}</b><span>{lastReadAt?`${'READ'} ${lastReadAt.slice(11,19)} UTC`:auth.identity?.role||auth.status}</span></div><SessionControls className="obsSessionControls"/></header>
 
     <aside className="hud hudLeft"><section><small>SFI-OBS-LIVE</small><h3>{'LIVE FIELD'}</h3><p className="good">● {clock.slice(11,19)} UTC</p><dl><dt>{ui('OBSERVATIONS')}</dt><dd data-availability={availability.world}>{worldMetric(nodes.length)}</dd><dt>{ui('ACTIVE SOURCES')}</dt><dd data-availability={availability.world}>{worldMetric(sourceIds.length)}</dd><dt>{ui('HYPOTHESES')}</dt><dd data-availability={availability.world}>{worldMetric(filteredHypotheses.length)}</dd><dt>{ui('IN RETURN')}</dt><dd data-availability={availability.world}>{worldMetric(openHypotheses)}</dd></dl><button onClick={()=>setSatelliteOpen(true)}>{ui('OPEN SATELLITE')}</button></section>
