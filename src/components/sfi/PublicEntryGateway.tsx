@@ -27,6 +27,27 @@ export function PublicEntryGateway(){
   const [sceneIndex,setSceneIndex] = useState(0);
   const [frameIndex,setFrameIndex] = useState(0);
 
+  useEffect(()=>{
+    const requested = new URL(window.location.href).searchParams.get('scene')?.trim().toLowerCase();
+    if(!requested) return;
+    const aliases:Record<string,string>={
+      entry:'entry-world',
+      world:'entry-world',
+      observatory:'observatory-dashboard',
+      systems:'system-field',
+      system:'system-field',
+      institution:'institution',
+      friction:'friction',
+      return:'return',
+    };
+    const target = aliases[requested] ?? requested;
+    const index = SCENES.findIndex((candidate)=>candidate.id===target);
+    if(index>=0){
+      setSceneIndex(index);
+      setFrameIndex(0);
+    }
+  },[]);
+
   const scene = SCENES[sceneIndex];
   const activeFrame = scene.frames[frameIndex] ?? scene.frames[0];
 
@@ -34,6 +55,11 @@ export function PublicEntryGateway(){
     const bounded = clamp(next,0,SCENES.length-1);
     setSceneIndex(bounded);
     setFrameIndex(0);
+    const target = SCENES[bounded];
+    const url = new URL(window.location.href);
+    if(target.id==='entry-world') url.searchParams.delete('scene');
+    else url.searchParams.set('scene',target.id==='observatory-dashboard'?'observatory':target.id);
+    window.history.replaceState(null,'',url.pathname+url.search+url.hash);
   },[]);
 
   const moveFrame = useCallback((direction:-1|1)=>{
