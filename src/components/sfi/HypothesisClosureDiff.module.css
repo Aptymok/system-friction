@@ -1,7 +1,7 @@
 .shell{margin-top:16px;border:1px solid rgba(214,180,120,.18);background:linear-gradient(180deg,rgba(8,11,12,.92),rgba(4,6,7,.96));overflow:hidden}
 .header{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:12px 13px;border-bottom:1px solid rgba(214,180,120,.14)}
 .header>div:first-child{display:grid;gap:5px}
-.header small,.track small,.compare small,.dossier span,footer{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.12em}
+.header small,.track small,.compare small,.dossier span,.shell footer{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.12em}
 .header small{font-size:7px;color:#9a8057}.header strong{font-size:13px;color:#e0c18d}
 .dossier{display:grid;text-align:right;gap:4px}.dossier span{font-size:6px;opacity:.5}.dossier b{font-size:8px;color:#857b6d}
 .dossier[data-ready="true"] b{color:#8cc5b4}
