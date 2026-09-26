@@ -11,10 +11,57 @@ import { buildDocumentCatalog } from '@/observatory/field/catalog/sfDocumentCata
 import { buildMihmRuntimeMatrix } from '@/observatory/field/catalog/mihmRuntimeMatrix';
 import { buildNodeCatalog } from '@/observatory/field/catalog/sfNodeCatalog';
 import { buildPatternCatalog } from '@/observatory/field/catalog/patternCatalog';
+import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
 const PUBLIC_CDN_CACHE = { 'Vercel-CDN-Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' } as const;
+
+async function readPlatformMetricSummary() {
+  const service = createServiceSupabaseClient();
+  const { data, error } = await service
+    .from('platform_metric_snapshots')
+    .select('object_id,platform,metric_name,metric_value,metric_unit,period_start,period_end,source_mode,reliability,raw_payload,created_at')
+    .order('created_at', { ascending: false })
+    .limit(1000);
+
+  if (error) return { data: null, error: error.message };
+
+  const snapshots = (data ?? []) as Array<Record<string, unknown>>;
+  const byPlatform = snapshots.reduce<Record<string, number>>((acc, item) => {
+    const platform = typeof item.platform === 'string' ? item.platform : 'unknown';
+    acc[platform] = (acc[platform] ?? 0) + 1;
+    return acc;
+  }, {});
+  const metricValue = (objectId: string, metricName: string) => {
+    const item = snapshots.find((row) => row.object_id === objectId && row.metric_name === metricName);
+    const value = item?.metric_value;
+    const numeric = typeof value === 'number' ? value : Number(value);
+    return Number.isFinite(numeric) ? numeric : null;
+  };
+
+  return {
+    data: {
+      snapshotCount: snapshots.length,
+      byPlatform,
+      latestCapturedAt: typeof snapshots[0]?.created_at === 'string' ? snapshots[0].created_at : null,
+      ga4: {
+        propertyId: 'properties/551040116',
+        activeUsers: metricValue('ga4:551040116:lifetime', 'activeUsers'),
+        newUsers: metricValue('ga4:551040116:lifetime', 'newUsers'),
+        sessions: metricValue('ga4:551040116:lifetime', 'sessions'),
+        engagedSessions: metricValue('ga4:551040116:lifetime', 'engagedSessions'),
+        pageViews: metricValue('ga4:551040116:lifetime', 'screenPageViews'),
+        eventCount: metricValue('ga4:551040116:lifetime', 'eventCount'),
+        aiAssistantSessions: metricValue('ga4:551040116:channel:AI Assistant', 'sessions'),
+        aiAssistantUsers: metricValue('ga4:551040116:channel:AI Assistant', 'activeUsers'),
+      },
+      recent: snapshots.slice(0, 12),
+    },
+    error: null,
+  };
+}
+
 
 export async function GET() {
   const [
@@ -33,6 +80,7 @@ export async function GET() {
     latestProposals,
     logbookKnowledge,
     logbookSignals,
+    platformMetrics,
   ] = await Promise.all([
     getLatestWorldSpectSnapshot(),
     readCanonicalGraphState('sfi'),
@@ -49,6 +97,7 @@ export async function GET() {
     latestActionProposals(undefined, 25),
     latestRows('logbook_knowledge', 50),
     latestRows('logbook_signals', 25),
+    readPlatformMetricSummary(),
   ]);
 
   const worldspectData = worldspect ? snapshotRowToApiData(worldspect) : null;
@@ -75,6 +124,7 @@ export async function GET() {
     latestProposals.error,
     logbookKnowledge.error,
     logbookSignals.error,
+    platformMetrics.error,
     ...mihmRuntimeMatrix.warnings,
     ...(worldspect ? [] : ['worldspect_snapshot_missing']),
     ...(kernel ? [] : ['kernel_cycle_missing']),
@@ -103,6 +153,7 @@ export async function GET() {
       patternCatalog,
       executionCatalog,
       mihmRuntimeMatrix,
+      platformMetrics: platformMetrics.data,
       loadedAt: new Date().toISOString(),
       warnings,
     },
