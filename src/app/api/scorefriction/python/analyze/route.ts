@@ -1,12 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { buildScoreFrictionEvaluationContract } from '@/lib/scorefriction/evaluationContract';
 import { buildScoreFrictionOperationalReading } from '@/lib/scorefriction/python/pythonMihmToOperational';
-import {
-  runMonteCarlo,
-  runPythonScoreFrictionAnalysis,
-  scoreFrictionPythonClientConfig,
-  type PythonClientFile,
-} from '@/infrastructure/python/scorefrictionClient';
 import { isScoreFrictionEvidenceType } from '@/lib/scorefriction/evidence-contract';
 
 export const dynamic = 'force-dynamic';
@@ -31,7 +25,14 @@ function parseMetadata(value: FormDataEntryValue | null) {
   }
 }
 
-function fileFrom(value: FormDataEntryValue | null): PythonClientFile | null {
+const scoreFrictionPythonClientConfig = {
+  timeoutMs: 60_000,
+  maxFileSizeBytes: 50 * 1024 * 1024,
+  audioExtensions: ['.mp3','.wav','.m4a','.aac','.ogg','.flac'],
+  textExtensions: ['.txt','.md'],
+} as const;
+
+function fileFrom(value: FormDataEntryValue | null): File | null {
   return value instanceof File ? value : null;
 }
 
@@ -167,8 +168,20 @@ export async function POST(request: NextRequest) {
   const action = request.nextUrl.searchParams.get('action');
 
   if (action === 'montecarlo') {
-    const result = await runMonteCarlo(await request.json().catch(() => ({})));
-    return NextResponse.json(result, { status: result.ok ? 200 : 400 });
+    return NextResponse.json({
+      ok: false,
+      error: 'python_runtime_externalized',
+      message: 'Monte Carlo analysis requires the external ScoreFriction analysis service.',
+    }, { status: 503 });
+  }
+
+  const analyzerUrl = process.env.SCOREFRICTION_AUDIO_ANALYZER_URL;
+  if (!analyzerUrl) {
+    return NextResponse.json({
+      ok: false,
+      error: 'scorefriction_analyzer_unavailable',
+      message: 'ScoreFriction Python execution is externalized from the web runtime.',
+    }, { status: 503 });
   }
 
   if (contentType.includes('multipart/form-data')) {
@@ -180,53 +193,31 @@ export async function POST(request: NextRequest) {
     const evidenceType = String(form.get('evidence_type') ?? (audioFile ? 'audio_file_analysis' : 'lyrics'));
     const metadata = parseMetadata(form.get('metadata'));
     const textValue = String(form.get('text') ?? '').trim();
-    const nti = numeric(form.get('nti')) ?? 0.5;
 
-    const result = await runPythonScoreFrictionAnalysis({
-      audioFile,
-      textFile,
-      text: textValue || null,
-      metadata,
-      nti,
-      caseId,
-      evidenceType,
-    });
-
-    if (!result.ok) {
+    const outbound = new FormData();
+    for (const [key, value] of form.entries()) outbound.append(key, value);
+    const response = await fetch(analyzerUrl, { method: 'POST', body: outbound }).catch(() => null);
+    if (!response?.ok) {
       return NextResponse.json({
         ok: false,
-        error: result.error,
-        message: result.error === 'python_not_available'
-          ? 'Python MIHM no disponible; instala Python y dependencias de python/scorefriction/requirements.txt.'
-          : 'No se pudo ejecutar el nucleo Python MIHM.',
-        stderr: result.stderr,
+        error: `scorefriction_analyzer_failed:${response?.status ?? 'network'}`,
       }, { status: 503 });
     }
 
-    return NextResponse.json(responseFrom(result.data, { caseId, sourceName, evidenceType, metadata, hasAudio: Boolean(audioFile), hasText: Boolean(textValue || textFile) }));
+    const payload = record(await response.json().catch(() => null));
+    return NextResponse.json(responseFrom(payload, {
+      caseId,
+      sourceName,
+      evidenceType,
+      metadata,
+      hasAudio: Boolean(audioFile),
+      hasText: Boolean(textValue || textFile),
+    }));
   }
 
-  const body = record(await request.json().catch(() => ({})));
-  const caseId = String(body.case_id ?? 'PY-MIHM');
-  const sourceName = String(body.source_name ?? 'manual_upload');
-  const evidenceType = String(body.evidence_type ?? 'lyrics');
-  const text = typeof body.text === 'string' ? body.text : '';
-  const result = await runPythonScoreFrictionAnalysis({
-    text: text.trim() ? text : null,
-    metadata: record(body.metadata),
-    nti: numeric(body.nti) ?? 0.5,
-    caseId,
-    evidenceType,
-  });
-
-  if (!result.ok) {
-    return NextResponse.json({
-      ok: false,
-      error: result.error,
-      message: 'No se pudo ejecutar el nucleo Python MIHM.',
-      stderr: result.stderr,
-    }, { status: 503 });
-  }
-
-  return NextResponse.json(responseFrom(result.data, { caseId, sourceName, evidenceType, metadata: record(body.metadata), hasAudio: false, hasText: Boolean(text.trim()) }));
+  return NextResponse.json({
+    ok: false,
+    error: 'scorefriction_text_analysis_requires_external_service_contract',
+    message: 'Text-only Python analysis is not executed inside the Next.js web bundle.',
+  }, { status: 503 });
 }
