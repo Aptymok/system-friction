@@ -69,7 +69,7 @@ export function ObservatoryConsole(){
   const[refreshing,setRefreshing]=useState(false),[lastReadAt,setLastReadAt]=useState<string|null>(null);
   const[lens,setLens]=useState<Lens>('field'),[satelliteOpen,setSatelliteOpen]=useState(true),[selectedNodeId,setSelectedNodeId]=useState<string|null>(null),[selectedHypothesisId,setSelectedHypothesisId]=useState<string|null>(null);
   const[sourceFamily,setSourceFamily]=useState('ALL'),[systemFilter,setSystemFilter]=useState('ALL'),[statusFilter,setStatusFilter]=useState('ALL'),[windowHours,setWindowHours]=useState(168),[minConfidence,setMinConfidence]=useState(0),[query,setQuery]=useState('');
-  const[time,setTime]=useState(100),[clock,setClock]=useState('');
+  const[baselineTime,setBaselineTime]=useState(0),[time,setTime]=useState(100),[clock,setClock]=useState('');
 
   const applySnapshot=useCallback((snapshot:ObservatorySnapshot)=>{
     setAvailability(snapshot.availability);setWorld(snapshot.world);setObs(snapshot.obs);setTimeline(snapshot.timeline);setLastReadAt(new Date(snapshot.at).toISOString());
@@ -126,8 +126,18 @@ export function ObservatoryConsole(){
     return edge.from===hid||edge.to===hid||selectedEvidenceIds.has(String(edge.from))&&selectedAffectedIds.has(String(edge.to))||selectedEvidenceIds.has(String(edge.to))&&selectedAffectedIds.has(String(edge.from));
   }),[world,selectedHypothesis,selectedEvidenceIds,selectedAffectedIds]);
 
+  const baselineFrameIndex=timeline.length?Math.round((timeline.length-1)*(baselineTime/100)):0;
   const frameIndex=timeline.length?Math.round((timeline.length-1)*(time/100)):0;
+  const baselineFrame=timeline[baselineFrameIndex]||null;
   const frame=timeline[frameIndex]||null;
+  const temporalVectorDeltas=useMemo(()=>{
+    const baselineById=new Map((baselineFrame?.vectors??[]).map((vector)=>[vector.id,vector]));
+    return (frame?.vectors??[]).flatMap((vector)=>{
+      const prior=baselineById.get(vector.id);
+      if(vector.value==null||prior?.value==null)return[];
+      return[{id:vector.id,label:vector.label,from:prior.value,to:vector.value,delta:vector.value-prior.value}];
+    }).sort((a,b)=>Math.abs(b.delta)-Math.abs(a.delta)).slice(0,6);
+  },[baselineFrame,frame]);
   const avgFs=mean(nodes.map(n=>num(n.reading?.systemic_friction)));
   const avgNti=mean(nodes.map(n=>num(n.reading?.interaction_density)));
   const avgPhi=mean(nodes.map(n=>num(n.reading?.systemic_coherence)));
@@ -181,6 +191,7 @@ export function ObservatoryConsole(){
         selectedGraphEdges={selectedGraphEdges}
         graphNodes={rows(world?.graph?.nodes)}
         vectors={frame?.vectors??[]}
+        ghostVectors={baselineFrame?.vectors??[]}
         onSelectNode={setSelectedNodeId}
         onSelectHypothesis={setSelectedHypothesisId}
       />
@@ -227,7 +238,37 @@ export function ObservatoryConsole(){
       </div>:<p>{'No hypothesis exists under the current filters.'}</p>}
         {availability.world==='AVAILABLE'&&<><div style={{...micro,marginTop:18}}>{'OTHER HYPOTHESES'}</div>{filteredHypotheses.slice(0,14).map(h=><button key={String(h.id)} onClick={()=>setSelectedHypothesisId(String(h.id))} style={{display:'block',width:'100%',textAlign:'left',padding:'8px 0',border:0,borderBottom:'1px solid rgba(214,180,120,.1)',background:'transparent',color:'inherit',fontSize:11}}>{short(h.statement,120)} <span style={{opacity:.5}}>· {pct(num(h.current_confidence))}</span></button>)}</>}</>}
 
-      {lens==='trajectory'&&<><div style={{display:'flex',justifyContent:'space-between',gap:8,margin:'12px 0'}}><span style={micro} data-availability={availability.timeline}>{timelineMetric(`${timeline.length} snapshots`)}</span><span style={micro}>{frame?.observedAt||availability.timeline}</span></div><input style={{width:'100%'}} type="range" min="0" max="100" value={time} onChange={e=>setTime(Number(e.target.value))}/><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginTop:12}}><div style={{padding:10,border:'1px solid rgba(214,180,120,.12)',borderRadius:9}}><div style={micro}>WSI</div><b>{frame?.wsi==null?'—':frame.wsi.toFixed(3)}</b></div><div style={{padding:10,border:'1px solid rgba(214,180,120,.12)',borderRadius:9}}><div style={micro}>NTI</div><b>{frame?.nti==null?'—':frame.nti.toFixed(3)}</b></div></div><div style={{...micro,marginTop:14}}>{'HYPOTHESIS LIFECYCLE'}</div>{filteredHypotheses.slice(0,14).map(h=><div key={String(h.id)} style={{padding:'9px 0',borderBottom:'1px solid rgba(214,180,120,.1)'}}><b style={{fontSize:11}}>{short(h.statement,110)}</b><div style={{fontSize:10,opacity:.6}}>{h.cutoff_at} → {h.validation_ends_at} · {h.status} · {pct(num(h.current_confidence))}</div></div>)}</>}
+      {lens==='trajectory'&&<>
+        <div style={{display:'flex',justifyContent:'space-between',gap:8,margin:'12px 0'}}>
+          <span style={micro} data-availability={availability.timeline}>{timelineMetric(`${timeline.length} snapshots`)}</span>
+          <span style={micro}>T0 → T1 · PERSISTED WORLDSPECT</span>
+        </div>
+        <div style={{display:'grid',gap:10,padding:12,border:'1px solid rgba(214,180,120,.14)',borderRadius:10,background:'rgba(0,0,0,.12)'}}>
+          <label style={{display:'grid',gridTemplateColumns:'30px 1fr',gap:10,alignItems:'center',fontSize:10}}>
+            <b style={{color:'#79b7d5'}}>T0</b>
+            <span><input aria-label="T0 baseline snapshot" style={{width:'100%'}} type="range" min="0" max="100" value={baselineTime} onChange={e=>setBaselineTime(Math.min(Number(e.target.value),time))}/><small style={{display:'block',marginTop:4,opacity:.58}}>{baselineFrame?.observedAt||availability.timeline}</small></span>
+          </label>
+          <label style={{display:'grid',gridTemplateColumns:'30px 1fr',gap:10,alignItems:'center',fontSize:10}}>
+            <b style={{color:'#d9aa63'}}>T1</b>
+            <span><input aria-label="T1 comparison snapshot" style={{width:'100%'}} type="range" min="0" max="100" value={time} onChange={e=>{const next=Number(e.target.value);setTime(next);if(baselineTime>next)setBaselineTime(next)}}/><small style={{display:'block',marginTop:4,opacity:.58}}>{frame?.observedAt||availability.timeline}</small></span>
+          </label>
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,marginTop:12}}>
+          <div style={{padding:10,border:'1px solid rgba(214,180,120,.12)',borderRadius:9}}><div style={micro}>WSI · T0</div><b>{baselineFrame?.wsi==null?'—':baselineFrame.wsi.toFixed(3)}</b></div>
+          <div style={{padding:10,border:'1px solid rgba(214,180,120,.12)',borderRadius:9}}><div style={micro}>WSI · T1</div><b>{frame?.wsi==null?'—':frame.wsi.toFixed(3)}</b></div>
+          <div style={{padding:10,border:'1px solid rgba(214,180,120,.12)',borderRadius:9}}><div style={micro}>Δ WSI</div><b>{baselineFrame?.wsi==null||frame?.wsi==null?'—':`${frame.wsi-baselineFrame.wsi>=0?'+':''}${(frame.wsi-baselineFrame.wsi).toFixed(3)}`}</b></div>
+          <div style={{padding:10,border:'1px solid rgba(214,180,120,.12)',borderRadius:9}}><div style={micro}>NTI · T0</div><b>{baselineFrame?.nti==null?'—':baselineFrame.nti.toFixed(3)}</b></div>
+          <div style={{padding:10,border:'1px solid rgba(214,180,120,.12)',borderRadius:9}}><div style={micro}>NTI · T1</div><b>{frame?.nti==null?'—':frame.nti.toFixed(3)}</b></div>
+          <div style={{padding:10,border:'1px solid rgba(214,180,120,.12)',borderRadius:9}}><div style={micro}>Δ NTI</div><b>{baselineFrame?.nti==null||frame?.nti==null?'—':`${frame.nti-baselineFrame.nti>=0?'+':''}${(frame.nti-baselineFrame.nti).toFixed(3)}`}</b></div>
+        </div>
+        <div style={{...micro,marginTop:14}}>VECTOR MOVEMENT · LARGEST ABSOLUTE Δ</div>
+        {temporalVectorDeltas.length?temporalVectorDeltas.map(vector=><div key={vector.id} style={{display:'grid',gridTemplateColumns:'1fr auto auto auto',gap:8,padding:'7px 0',borderBottom:'1px solid rgba(214,180,120,.08)',fontSize:10}}>
+          <span>{vector.label}</span><span style={{opacity:.55}}>{vector.from.toFixed(3)}</span><span>→ {vector.to.toFixed(3)}</span><b style={{color:vector.delta>=0?'#d9aa63':'#79b7d5'}}>{vector.delta>=0?'+':''}{vector.delta.toFixed(3)}</b>
+        </div>):<p style={{fontSize:11,opacity:.58}}>No comparable vector values are present in both selected snapshots.</p>}
+        <p style={{fontSize:10,lineHeight:1.55,opacity:.56,marginTop:12}}>T0/T1 compares persisted WorldSpect snapshots only. The current source/hypothesis graph is not backdated or rewritten by this control.</p>
+        <div style={{...micro,marginTop:14}}>HYPOTHESIS LIFECYCLE · CURRENT READ MODEL</div>
+        {filteredHypotheses.slice(0,14).map(h=><div key={String(h.id)} style={{padding:'9px 0',borderBottom:'1px solid rgba(214,180,120,.1)'}}><b style={{fontSize:11}}>{short(h.statement,110)}</b><div style={{fontSize:10,opacity:.6}}>{h.cutoff_at} → {h.validation_ends_at} · {h.status} · {pct(num(h.current_confidence))}</div></div>)}
+      </>}
 
       {lens==='sources'&&<><div style={{...micro,marginTop:12}}>{'SOURCES THAT ACTUALLY PERSISTED OBSERVATIONS'}</div>{availability.world!=='AVAILABLE'&&<p data-availability={availability.world} style={{fontSize:11,opacity:.72}}>{availability.world}</p>}{rows(world?.sourceSummary).slice(0,80).map(source=><div key={String(source.sourceId)} style={{display:'flex',justifyContent:'space-between',gap:10,padding:'7px 0',borderBottom:'1px solid rgba(214,180,120,.08)',fontSize:11}}><span>{source.sourceId}</span><b>{source.count}</b></div>)}<p style={{fontSize:11,lineHeight:1.55,opacity:.62,marginTop:12}}>{'Configured sources are not presented as live. This list contains only sources that actually left persisted records inside the selected horizon.'}</p></>}
 
