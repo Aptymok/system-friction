@@ -103,8 +103,9 @@ gtag('config', '${GA_ID}');`}
           <AuthProvider>{children}</AuthProvider>
           <footer className="sfiGlobalFooter">
             <strong>SFI.</strong>
+            <a href="/method-lab">LABORATORY</a>
+            <a href="/publications">REGISTRY</a>
             <a href="/observatory">OBSERVATORY</a>
-            <a href="/publications">PUBLICATIONS</a>
             <a href="/login">SIGN IN</a>
           </footer>
           <SfiConsentBanner />
