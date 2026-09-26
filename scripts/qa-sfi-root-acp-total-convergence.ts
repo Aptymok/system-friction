@@ -112,11 +112,11 @@ assert.match(acpSeenRoute,/export async function POST/,'acp_presence_mutation_mu
 assert.match(acpSeenRoute,/requireRootActor\('governance\.acp\.presence'\)/,'acp_presence_post_must_remain_root_governed');
 assert.doesNotMatch(`${operatingUi}\n${governanceUi}`,/rootPresenceReady|confirmRootPresence|HACERME VISTO · CONFIRMAR PRESENCIA ACP/,'proposal observability must not depend on a manual presence ritual');
 
-// Human public navigation is intentionally bounded to SIGN IN, OBSERVATORY and PUBLICATIONS.
+// Human public navigation uses the canonical LABORATORY / REGISTRY / OBSERVATORY vocabulary plus SIGN IN.
 // Machine-readable interfaces remain discoverable through llms/ai-index and do not need to be
 // rendered as human navigation links.
 assert.match(home,/PublicEntryGateway/,'canonical_home_missing_public_entry_gateway');
-for(const p of ['/login','/observatory','/publications']) assert.ok(publicEntry.includes(p),`public_entry_missing_path:${p}`);
+for(const p of ['/login','/method-lab','/observatory','/publications']) assert.ok(publicEntry.includes(p),`public_entry_missing_path:${p}`);
 for(const retired of ['/institution','/library','/field','/history']) assert.equal(publicEntry.includes(`href="${retired}"`),false,`retired_public_navigation_visible:${retired}`);
 assert.match(llms,/## WHAT TO DO FIRST/,'llms_missing_first_action_sequence');
 assert.match(llms,/\/ai-index\.json/,'llms_missing_ai_index_machine_entry');
