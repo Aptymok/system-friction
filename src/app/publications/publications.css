@@ -4,6 +4,10 @@
   --cream:#e8ddc3;
   --signal:#4a7aaa;
   --critical:#b85050;
+  --display:"Noto Serif Display",Georgia,serif;
+  --narrative:"EB Garamond",Georgia,serif;
+  --trace:"Liberation Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --screen:"Noto Sans",system-ui,sans-serif;
   --line:rgba(200,169,81,.22);
   min-height:100vh;
   background:
@@ -135,8 +139,8 @@
   border-radius:0;
   background:#090908;
   color:#d9cfbf;
-  font:500 9px/1 "Liberation Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
-  letter-spacing:.1em
+  font:500 10px/1 var(--screen);
+  letter-spacing:.08em
 }
 
 .pubGrid{
