@@ -59,7 +59,7 @@ export default async function PublicationLandingPage({ params }: PageProps) {
   const related = publication?.editorialKind === 'OBSERVATION' ? relatedEditorialObservations(slug, 8) : [];
   const isEnglish = publication?.language === 'en';
   const ui = {
-    back: 'BACK TO PUBLICATIONS',
+    back: 'BACK TO REGISTRY',
     pdf: 'OPEN PDF ↗',
     originalBody: 'INDEXED ORIGINAL BODY',
     originalTitle: 'This observation is part of the SFI editorial archive',
@@ -70,8 +70,8 @@ export default async function PublicationLandingPage({ params }: PageProps) {
     domainsTitle: 'Domains in scope',
     boundary: 'EPISTEMIC BOUNDARY',
     boundaryTitle: 'What this publication does not authorize us to claim',
-    related: 'CONTINUE THE TRAJECTORY',
-    relatedTitle: 'Other observations',
+    related: 'CONNECTED NODES',
+    relatedTitle: 'Related publications',
   };
 
   const projection = publicEnglishProjection(slug,{
@@ -93,7 +93,7 @@ export default async function PublicationLandingPage({ params }: PageProps) {
           <h2 style={{fontFamily:'Georgia,serif',fontWeight:400,fontSize:'clamp(24px,3vw,38px)',margin:'0 0 20px',color:'#d9bd80'}}>{projection.subtitle}</h2>
           <p style={{maxWidth:820,fontSize:17,lineHeight:1.7,color:'#bcb1a1'}}>{projection.summary}</p>
           <div style={{display:'flex',gap:12,flexWrap:'wrap',marginTop:24}}>
-            <Link href="/publications" style={{fontSize:10,letterSpacing:'.13em',color:'#d5ad69'}}>BACK TO PUBLICATIONS</Link>
+            <Link href="/publications" style={{fontSize:10,letterSpacing:'.13em',color:'#d5ad69'}}>BACK TO REGISTRY</Link>
             {publication.mediumUrl?<a href={publication.mediumUrl} target="_blank" rel="noreferrer" style={{fontSize:10,letterSpacing:'.13em',color:'#9e927e'}}>SOURCE OBJECT ↗</a>:null}
           </div>
         </header>
