@@ -36,6 +36,8 @@ async function main() {
   assert.match(publicationRoute, /publicResearchLandingForSlug\('PUBLICATION', slug\)/);
   assert.match(researchRoute, /if \(!landing\) notFound\(\)/);
   assert.match(publicationRoute, /if \(!landing\) notFound\(\)/);
+  assert.match(publicationRoute, /data-sfi-object-modes="non-english"/, 'non-English publication hubs must expose the same object modes');
+  assert.match(publicationRoute, /data-sfi-object-modes="temporal"/, 'temporal publication hubs must expose the same object modes');
   assert.match(researchRoute, /alternates: \{ canonical: landing\.canonicalUrl \}/);
   assert.match(publicationRoute, /alternates: \{ canonical: landing\.canonicalUrl \}/);
   for (const route of [researchRoute, publicationRoute]) {
