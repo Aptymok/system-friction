@@ -70,7 +70,7 @@ Acceptance:
 - publication detail remains addressable without JavaScript-only navigation
 
 ### P2 · Observatory World Field
-State: IMPLEMENTED / VERIFYING
+State: CLOSED / PRODUCTION READY
 Deliverables:
 - project existing WorldSpect/sources/hypotheses/trajectory state into a navigable field
 - semantic visual mapping for source, signal, vector, hypothesis and RETURN
@@ -81,7 +81,7 @@ Acceptance:
 - THIN/DEGRADED remains visible
 
 ### P3 · Temporal Scrubber
-State: PLANNED
+State: IMPLEMENTED / VERIFYING
 Deliverables:
 - TIME control over existing public timeline/snapshots
 - T0 ↔ T1 comparison
