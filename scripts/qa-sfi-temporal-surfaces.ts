@@ -19,6 +19,7 @@ const shellUi = read('src/components/sfi/SfiConsole.tsx');
 const observatoryUi = read('src/components/sfi/ObservatoryConsole.tsx');
 const observatoryInterpretiveFlow = read('src/components/sfi/ObservatoryInterpretiveFlow.tsx');
 const observatoryWorldField = read('src/components/sfi/ObservatoryWorldField.tsx');
+const observatorySemanticGpuLayer = read('src/components/sfi/ObservatorySemanticGpuLayer.tsx');
 const observatoryWorldLayerCss = read('src/components/sfi/ObservatoryWorldLayer.css');
 const hypothesisClosureDiff = read('src/components/sfi/HypothesisClosureDiff.tsx');
 const worldHypothesisClosureReport = read('src/lib/reports/worldHypothesisClosureReport.ts');
@@ -95,6 +96,17 @@ assert.ok(observatoryWorldField.includes(".slice(0,120)"), 'world_field_visual_e
 assert.equal(/fetch\(|createServiceSupabaseClient|\.from\(/.test(observatoryWorldField), false, 'world_field_must_not_become_a_second_read_owner');
 assert.ok(observatoryWorldLayerCss.includes('.worldSpectrumCorona') && observatoryWorldLayerCss.includes('.fieldHypothesisNode'), 'world_field_visual_layers_missing');
 assert.ok(observatoryWorldLayerCss.includes('prefers-reduced-motion'), 'world_field_reduced_motion_boundary_missing');
+
+assert.ok(observatoryUi.includes('<ObservatorySemanticGpuLayer'), 'semantic_gpu_layer_must_be_mounted');
+assert.ok(observatorySemanticGpuLayer.includes("import('pixi.js')"), 'semantic_gpu_layer_must_use_existing_pixi_runtime');
+assert.ok(observatorySemanticGpuLayer.includes("matchMedia('(prefers-reduced-motion: reduce)')"), 'semantic_gpu_layer_must_respect_reduced_motion_before_initialization');
+assert.ok(observatorySemanticGpuLayer.includes('Math.min(window.devicePixelRatio||1,1.5)'), 'semantic_gpu_device_pixel_ratio_budget_missing');
+assert.ok(observatorySemanticGpuLayer.includes('selectedGraphEdges.filter') && observatorySemanticGpuLayer.includes('.slice(0,maxEdges)'), 'semantic_gpu_must_be_bounded_to_typed_selected_edges');
+assert.ok(observatorySemanticGpuLayer.includes("vectors.filter((vector)=>typeof vector.value==='number'"), 'semantic_gpu_vectors_must_derive_from_observed_worldspect_values');
+assert.ok(observatorySemanticGpuLayer.includes('GPU ENHANCEMENT ≠ EVIDENCE'), 'semantic_gpu_epistemic_boundary_missing');
+assert.ok(observatorySemanticGpuLayer.includes('SVG/DOM REMAINS CANONICAL INTERACTION SURFACE'), 'semantic_gpu_fallback_boundary_missing');
+assert.doesNotMatch(observatorySemanticGpuLayer, /Math\.random|fetch\(|createServiceSupabaseClient|\.from\(|\.insert\(|\.update\(|\.upsert\(/, 'semantic_gpu_must_not_create_random_or_data-owning state');
+assert.ok(observatoryWorldLayerCss.includes('.semanticGpuLayer') && observatoryWorldLayerCss.includes('display:none!important'), 'semantic_gpu_css_fallback_missing');
 
 assert.ok(observatoryUi.includes('const[baselineTime,setBaselineTime]=useState(0)'), 'persisted_t0_t1_temporal_comparison_missing');
 assert.ok(observatoryUi.includes('baselineFrameIndex') && observatoryUi.includes('temporalVectorDeltas'), 'temporal_snapshot_delta_projection_missing');
@@ -199,6 +211,9 @@ console.log(JSON.stringify({
     simulationDoesNotRewriteObservation:true,
     publicFieldSingleReadOwner:true,
     typedWorldFieldProjection:true,
+    optionalSemanticGpuLayer:true,
+    gpuCreatesEvidence:false,
+    svgDomCanonicalInteractionSurface:true,
     persistedT0T1Comparison:true,
     hypothesisClosureReturnDiff:true,
     closureReportClassificationAuthority:'WORLD_CALIBRATION_ONLY',

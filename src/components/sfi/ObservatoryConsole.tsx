@@ -6,6 +6,7 @@ import { useAuthState } from '@/components/auth/AuthProvider';
 import { SessionControls } from './SessionControls';
 import { ObservatoryInterpretiveFlow } from './ObservatoryInterpretiveFlow';
 import { ObservatoryWorldField } from './ObservatoryWorldField';
+import { ObservatorySemanticGpuLayer } from './ObservatorySemanticGpuLayer';
 import { HypothesisClosureDiff } from './HypothesisClosureDiff';
 import { translateUiText } from '@/components/i18n/SfiLanguageProvider';
 import {
@@ -176,6 +177,13 @@ export function ObservatoryConsole(){
 
     <div className="earthStage">
       <img className="worldActor" src="/sfi-scenes/world.png" alt={ui('Earth observed by System Friction Institute')}/>
+      <ObservatorySemanticGpuLayer
+        lens={lens}
+        nodes={nodes.map((node)=>({id:node.id,position:positions.get(node.id)??orbitalPosition(node.id,0,1)}))}
+        graphNodes={rows(world?.graph?.nodes)}
+        selectedGraphEdges={selectedGraphEdges}
+        vectors={frame?.vectors??[]}
+      />
       <ObservatoryWorldField
         lens={lens}
         nodes={nodes.map((node)=>({

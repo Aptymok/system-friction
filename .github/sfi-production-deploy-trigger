@@ -1,4 +1,4 @@
-SFI Elite Experience P6 release 2026-09-27
+SFI Elite Experience P7 release 2026-09-27
 source=THIS_COMMIT
-reason=registry_discovery_mesh_projection_and_canonical_crawler_alignment
-verification=discovery_mesh_registry_build_and_production_return
+reason=optional_semantic_gpu_worldspect_and_typed_relation_propagation
+verification=gpu_optional_fallback_build_and_production_return

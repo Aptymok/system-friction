@@ -112,7 +112,7 @@ Acceptance:
 - replayable parameters remain addressable
 
 ### P6 · Discovery Mesh Projection
-State: IMPLEMENTED / VERIFYING
+State: PHASE COMPLETE / PROGRAM CONTINUES
 Deliverables:
 - HUMAN / SEARCH / LLM / MCP / API discoverability matrix
 - exposure-to-return lifecycle visualization
@@ -121,7 +121,7 @@ Acceptance:
 - missing external stages remain missing
 
 ### P7 · Spatial/GPU layer
-State: GATED
+State: IMPLEMENTED / VERIFYING
 Stack:
 - DOM/React for content and accessibility
 - CSS 3D + GSAP for bounded motion

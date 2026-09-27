@@ -63,3 +63,12 @@
 .worldVectorGhost line{stroke:rgba(111,169,205,.72);stroke-width:1.1;stroke-dasharray:5 7;vector-effect:non-scaling-stroke}
 .worldVectorGhost circle{fill:rgba(86,153,194,.22);stroke:rgba(126,191,228,.78);stroke-width:1;filter:url(#fieldGlow)}
 .lens-trajectory .worldSpectrumGhost{opacity:.58}
+
+
+/* Elite Experience P7 · optional semantic GPU layer */
+.semanticGpuLayer{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;opacity:.82;mix-blend-mode:screen}
+.semanticGpuLayer canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.semanticGpuLayer span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.worldField{z-index:1}
+@media(max-width:760px){.semanticGpuLayer{opacity:.58}}
+@media(prefers-reduced-motion:reduce){.semanticGpuLayer{display:none!important}}
