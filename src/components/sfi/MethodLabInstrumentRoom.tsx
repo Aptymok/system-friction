@@ -35,6 +35,7 @@ export function MethodLabInstrumentRoom({runs,preregistrations,selectedRunId,onS
   const receipt=selected?artifact(selected,'REPRODUCIBILITY_RECEIPT'):{};
   const preregRow=selected?preregistrationFor(selected,preregistrations):null;
   const prereg=preregRow?row(preregRow.preregistration):{};
+  const definitionHash=preregRow?text(preregRow.definitionHash,'NOT RECORDED'):'NOT RECORDED';
   const method=row(prereg.METHOD);
   const t0=row(prereg.T0);
   const inputs=rows(prereg.INPUTS);
@@ -48,7 +49,8 @@ export function MethodLabInstrumentRoom({runs,preregistrations,selectedRunId,onS
     receipt.preregistrationHash,receipt.inputHash,receipt.resultHash,
   ].every(present);
   const hasFrozenInputs=frozenRefs.length>0;
-  const replayState=coreReceipt&&hasFrozenInputs&&hasSeed
+  const replayInputsComplete=coreReceipt&&hasFrozenInputs&&hasSeed;
+  const replayState=replayInputsComplete
     ?'REPLAY SPEC COMPLETE'
     :coreReceipt&&hasFrozenInputs
       ?'PARTIAL · SEED NOT RECORDED'
@@ -57,13 +59,14 @@ export function MethodLabInstrumentRoom({runs,preregistrations,selectedRunId,onS
   const instruments=[
     {id:'method',label:'METHOD',value:text(method.methodId),detail:text(method.version),state:present(method.methodId)&&present(method.version)?'RECORDED':'MISSING'},
     {id:'run',label:'RUN',value:text(executed.runId),detail:text(executed.experimentType),state:present(executed.runId)?'EXECUTED':'MISSING'},
-    {id:'inputs',label:'DATASET / INPUT SET',value:frozenRefs.length?String(frozenRefs.length):'0',detail:frozenRefs.length?'frozen refs':'no frozen refs',state:hasFrozenInputs?'FROZEN':'MISSING'},
+    {id:'inputs',label:'FROZEN INPUT SET',value:frozenRefs.length?String(frozenRefs.length):'0',detail:frozenRefs.length?'addressable refs':'no frozen refs',state:hasFrozenInputs?'FROZEN':'MISSING'},
+    {id:'definition',label:'DEFINITION HASH',value:definitionHash==='NOT RECORDED'?'MISSING':'RECORDED',detail:definitionHash,state:definitionHash==='NOT RECORDED'?'MISSING':'RECORDED'},
     {id:'hash',label:'HASH CHAIN',value:present(receipt.inputHash)&&present(receipt.resultHash)?'3 LINKS':'INCOMPLETE',detail:'prereg → input → result',state:coreReceipt?'RECORDED':'MISSING'},
     {id:'seed',label:'SEED',value:hasSeed?String(seed):'NOT RECORDED',detail:'execution parameter',state:hasSeed?'RECORDED':'NOT RECORDED'},
-    {id:'replay',label:'REPLAY',value:replayState,detail:'specification only',state:replayState},
+    {id:'replay',label:'REPLAY',value:replayState,detail:'specification only · not execution',state:replayState},
   ];
 
-  return <section className={styles.shell} aria-label="Method Lab Instrument Room">
+  return <section className={styles.shell} aria-label="Method Lab Instrument Room" data-run-state={selected?'PERSISTED_RUN_SELECTED':'NO_PERSISTED_RUN'}>
     <header className={styles.header}>
       <div><small>P5 · LABORATORY INSTRUMENT ROOM</small><h3>Reproducibility rack</h3></div>
       <div className={styles.boundary}>REPLAY SPEC ≠ REPLAY EXECUTION ≠ OBSERVED RETURN</div>
@@ -79,6 +82,12 @@ export function MethodLabInstrumentRoom({runs,preregistrations,selectedRunId,onS
         })}
       </select>
     </div>
+
+    {!selected?<div className={styles.empty}>
+      <small>OBSERVED RUN STATE</small>
+      <strong>NO PERSISTED EXPERIMENT RUN IN THIS OWNER SCOPE</strong>
+      <p>The Instrument Room remains available, but it will not fabricate a dataset hash, seed, receipt or replay state. Create and execute a governed experiment to populate the rack.</p>
+    </div>:null}
 
     <div className={styles.rack}>
       {instruments.map((instrument)=><article key={instrument.id} data-state={instrument.state}>
@@ -98,6 +107,7 @@ export function MethodLabInstrumentRoom({runs,preregistrations,selectedRunId,onS
       <div className={styles.grid}>
         <div><small>METHOD</small><code>{text(method.methodId)}</code></div>
         <div><small>METHOD VERSION</small><code>{text(method.version)}</code></div>
+        <div><small>DEFINITION HASH</small><code>{definitionHash}</code></div>
         <div><small>CODE REF</small><code>{text(receipt.codeRef)}</code></div>
         <div><small>T0 CUTOFF</small><code>{text(t0.cutoff)}</code></div>
         <div><small>PROVIDER</small><code>{text(executed.provider)}</code></div>
@@ -125,7 +135,7 @@ export function MethodLabInstrumentRoom({runs,preregistrations,selectedRunId,onS
       <footer>
         <span>SIMULATION ≠ OBSERVATION</span>
         <span>HASH MATCH ≠ CAUSAL VALIDATION</span>
-        <span>{replayState==='REPLAY SPEC COMPLETE'?'Replay specification is complete; successful replay has NOT been asserted.':replayState}</span>
+        <span>{replayState==='REPLAY SPEC COMPLETE'?'Replay specification is complete; replay execution, equality and successful reproduction have NOT been asserted.':replayState}</span>
         {limitations.length?<span>{limitations.map(String).join(' · ')}</span>:null}
       </footer>
     </div>
