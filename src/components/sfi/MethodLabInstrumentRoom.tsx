@@ -135,7 +135,7 @@ export function MethodLabInstrumentRoom({runs,preregistrations,selectedRunId,onS
       <footer>
         <span>SIMULATION ≠ OBSERVATION</span>
         <span>HASH MATCH ≠ CAUSAL VALIDATION</span>
-        <span>{replayState==='REPLAY SPEC COMPLETE'?'Replay specification is complete; replay execution, equality and successful reproduction have NOT been asserted.':replayState}</span>
+        <span>{replayState==='REPLAY SPEC COMPLETE'?'Replay specification is complete; successful replay has NOT been asserted. Replay execution, equality and successful reproduction remain unobserved.':replayState}</span>
         {limitations.length?<span>{limitations.map(String).join(' · ')}</span>:null}
       </footer>
     </div>
