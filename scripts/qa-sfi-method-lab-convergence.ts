@@ -158,6 +158,9 @@ assert.doesNotMatch(governanceUi, /ACEPTAR|DENEGAR|PEDIR EVIDENCIA|SOLICITAR EVI
 
 const methodLabPage = read('src/app/method-lab/page.tsx');
 const methodLabHub = read('src/components/sfi/MethodLabNativeHub.tsx');
+const methodLabWorkbench = read('src/components/sfi/MethodLabExperimentWorkbench.tsx');
+const methodLabInstrumentRoom = read('src/components/sfi/MethodLabInstrumentRoom.tsx');
+const methodLabInstrumentCss = read('src/components/sfi/MethodLabInstrumentRoom.module.css');
 assert.match(methodLabPage, /requireRootObserverPage\('\/method-lab'\)/, 'Method Lab native hub must remain ROOT protected.');
 assert.match(methodLabPage, /readMethodLabState/, 'Method Lab native hub must read canonical protocol state.');
 assert.match(methodLabPage, /readMethodLabEvidenceOptions/, 'Method Lab native hub must expose persisted evidence through a server-owned reader.');
@@ -167,6 +170,27 @@ for (const route of ['/api/root/method-lab/simulate','/api/root/cognitive-lab/se
 assert.ok(methodLabHub.includes('SIMULATED ≠ OBSERVED'), 'Method Lab native hub must state its epistemic boundary.');
 assert.ok(methodLabHub.includes('FOUNDER_AUTHORIZATION no equivale a FOUNDER_ORIGINATED'), 'CRL provenance boundary must remain visible to ROOT.');
 assert.ok(methodLabHub.includes('FOUNDER_MODEL'), 'Method Lab must retain explicit model-comparison conditions after MODELS scene absorption.');
+
+assert.ok(methodLabWorkbench.includes('<MethodLabInstrumentRoom'), 'instrument_room_must_be_mounted_on_existing_method_lab_surface');
+for (const token of [
+  'P5 · LABORATORY INSTRUMENT ROOM',
+  'REPRODUCIBILITY DOSSIER',
+  'DEFINITION HASH',
+  'PREREGISTRATION HASH',
+  'INPUT HASH',
+  'RESULT HASH',
+  'SEED',
+  'REPLAY SPEC COMPLETE',
+  'REPLAY SPEC ≠ REPLAY EXECUTION ≠ OBSERVED RETURN',
+  'HASH MATCH ≠ CAUSAL VALIDATION',
+  'NO PERSISTED EXPERIMENT RUN IN THIS OWNER SCOPE',
+]) assert.ok(methodLabInstrumentRoom.includes(token), `method_lab_instrument_room_contract_missing:${token}`);
+assert.ok(methodLabInstrumentRoom.includes("data-run-state={selected?'PERSISTED_RUN_SELECTED':'NO_PERSISTED_RUN'}"), 'instrument_room_run_state_must_be_explicit');
+assert.ok(methodLabInstrumentRoom.includes("definitionHash") && methodLabInstrumentRoom.includes("frozenInputRefs"), 'instrument_room_must_project_persisted_preregistration_inputs');
+assert.ok(methodLabInstrumentRoom.includes("receipt.codeRef") && methodLabInstrumentRoom.includes("receipt.inputHash") && methodLabInstrumentRoom.includes("receipt.resultHash"), 'instrument_room_must_project_reproducibility_receipt');
+assert.ok(methodLabInstrumentRoom.includes("successful reproduction have NOT been asserted"), 'instrument_room_must_not_claim_replay_success_from_spec');
+assert.doesNotMatch(methodLabInstrumentRoom, /fetch\(|createServiceSupabaseClient|\.from\(|\.insert\(|\.update\(|\.upsert\(/, 'instrument_room_must_remain_a_projection_not_a_data_owner');
+assert.ok(methodLabInstrumentCss.includes('prefers-reduced-motion'), 'instrument_room_reduced_motion_boundary_missing');
 
 const externalLab = read('src/app/api/external/v1/lab/route.ts');
 assert.match(externalLab, /persistEventId\(commandId: string\)/, 'External Method Lab persist must derive a deterministic event id from commandId.');
@@ -226,5 +250,6 @@ console.log(JSON.stringify({
     'GitHub Method Lab branch PRs are read-only; write-triggered pushes execute only on main',
     'external Method Lab persist is idempotent by commandId and database-unique deterministic event id',
     'Method Lab owns no Vercel cron',
+    'P5 Instrument Room projects persisted preregistration/run receipts without claiming replay execution or observed RETURN',
   ],
 }, null, 2));
