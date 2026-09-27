@@ -1,4 +1,4 @@
-SFI Elite Experience P5 release 2026-09-26
-source=c5274c9450303fe9c6541b6537479b8f058f112c
-reason=method_lab_instrument_room_reproducibility_dossier
-verification=method_lab_instrument_room_build_and_production_return
+SFI Elite Experience P5 release retry 2026-09-27
+source=eba03dc066578cd59a6b4e8c14d0534cb7e740db
+reason=restore_canonical_dataset_input_set_label
+verification=method_lab_instrument_room_build_and_production_return_retry
