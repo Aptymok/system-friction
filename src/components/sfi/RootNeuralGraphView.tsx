@@ -97,6 +97,7 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
   const [query, setQuery] = useState('');
   const [activeType, setActiveType] = useState('ALL');
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [reading, setReading] = useState<'CANONICAL'|'WORLD_VECTOR'|'FRICTION_MAP'|'LEARNING'|'REALITY_CHAIN'>('CANONICAL');
 
   const degree = useMemo(() => {
     const values = new Map<string, number>();
@@ -157,11 +158,11 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
       <InstitutionalSurfaceRail surface="NEURAL_GRAPH" state={graph.sourceState.toUpperCase()} detail={'READ PLANE '+graph.readPlane}/>
       <header className="neuralGraphHeader">
         <div>
-          <span className="neuralGraphEyebrow">ROOT · NEURAL GRAPH · CANONICAL GRAPH STORE</span>
-          <h1>The institution as observable topology.</h1>
+          <span className="neuralGraphEyebrow">ROOT · CANONICAL COGNITIVE FIELD · ONE GRAPH / MANY READINGS</span>
+          <h1>The institution is the graph.</h1>
           <p>
-            This view does not invent connections. It projects persisted nodes and relations, preserves provenance
-            and separates documentary relation from validation, causality or authority.
+            Persisted objects remain canonical while the reading changes. Follow what SFI observed, what became evidence,
+            what was claimed or authorized, what was executed, and what independently came back from the world.
           </p>
         </div>
         <div className="neuralGraphHeaderActions">
@@ -177,9 +178,30 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
         <article><span>ONTOLOGY TYPES</span><strong>{typeCount}</strong><small>{allTypes.slice(0, 3).join(' · ') || 'MISSING'}</small></article>
       </section>
 
+      <section className="neuralGraphControls" aria-label="Canonical cognitive field readings">
+        <div className="neuralGraphFilters">
+          {(['CANONICAL','WORLD_VECTOR','FRICTION_MAP','LEARNING','REALITY_CHAIN'] as const).map((mode) => (
+            <button key={mode} className={reading === mode ? 'active' : ''} onClick={() => setReading(mode)}>
+              {mode.replaceAll('_',' ')}
+            </button>
+          ))}
+        </div>
+        <p>
+          {reading === 'REALITY_CHAIN'
+            ? 'WORLD → OBSERVATION → EVIDENCE → CLAIM → AUTHORITY → EXECUTION → INDEPENDENT RETURN → WORLD. Missing provenance or an ungrounded relation remains visible as a gap; it is not repaired by narrative.'
+            : reading === 'WORLD_VECTOR'
+              ? 'Read external signals as context and direction without turning correlation into causality.'
+              : reading === 'FRICTION_MAP'
+                ? 'Read resistance, contradiction, missing provenance and coordination cost across the same canonical objects.'
+                : reading === 'LEARNING'
+                  ? 'Read where RETURN changed what the institution may retain. Closure alone is not learning.'
+                  : 'Canonical reading: persisted identity and provenance do not change when the graph is rearranged or interpreted.'}
+        </p>
+      </section>
+
       <section className="neuralGraphBoundary">
         <strong>RELATION ≠ CAUSALITY.</strong>
-        <span>DECLARED / DOCUMENTARY ≠ VALIDATED · CONNECTION ≠ AUTHORITY · GRAPH ≠ RETURN.</span>
+        <span>SOURCE ≠ EVIDENCE · MULTIPLE EVIDENCE ≠ CORROBORATED EVIDENCE · EXECUTION ≠ TRUTH · ACTION RESPONSE ≠ PERSISTED STATE · GRAPH ≠ RETURN.</span>
       </section>
 
       <section className="neuralGraphControls">
@@ -204,7 +226,7 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
       <div className="neuralGraphLayout">
         <section className="neuralGraphCanvas" aria-label="Canonical graph topology">
           <div className="neuralGraphCanvasMeta">
-            <span>VISIBLE {visibleNodes.length} NODES · {visibleEdges.length} EDGES</span>
+            <span>{reading.replaceAll('_',' ')} · VISIBLE {visibleNodes.length} NODES · {visibleEdges.length} EDGES</span>
             <span>LOADED {date(graph.loadedAt)}</span>
           </div>
           <svg viewBox={`0 0 ${topology.width} ${topology.height}`} role="img" aria-label="System Friction Institute Neural Graph">
@@ -319,8 +341,8 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
           <p>{graph.primaryDiagnostic ?? 'PRIMARY READ AVAILABLE'}</p>
         </div>
         <div>
-          <span>CANONICAL GRAPH</span>
-          <p>{graphObserved ? 'OBSERVED' : graph.sourceState.toUpperCase()} · {graph.degradedReason ?? 'NO DEGRADATION REPORTED'}</p>
+          <span>WORLD-TO-CLAIM TRACEABILITY</span>
+          <p>{reading === 'REALITY_CHAIN' ? 'Ask: why is this claim allowed to represent the world?' : 'Select REALITY CHAIN to inspect reconstructibility.'}</p>
         </div>
       </footer>
     </main>
