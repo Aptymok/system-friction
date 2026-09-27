@@ -104,9 +104,9 @@ export function SfiGovernanceWorkspace({enabled}:{enabled:boolean}){
     const options:AgentTarget[]=[
       ...projects.filter(item=>item.status!=='CLOSED').map(item=>({kind:'PROJECT' as const,id:String(item.id),title:`Project · ${txt(item.name,item.id)}`})),
       ...cases.filter(item=>!['CLOSED','REJECTED'].includes(String(item.status))).map(item=>({kind:'CASE' as const,id:String(item.id),title:`Case · ${txt(item.subject,item.id)}`})),
-      ...cycles.map(item=>({kind:'CYCLE' as const,id:String(item.cycleId),title:`Ciclo · ${txt(item.title,item.cycleId)}`})),
+      ...cycles.map(item=>({kind:'CYCLE' as const,id:String(item.cycleId),title:`Cycle · ${txt(item.title,item.cycleId)}`})),
       ...evidenceEntries.map(item=>({kind:'EVIDENCE' as const,id:String(item.id),title:`Evidence · ${txt(item.title??item.name,item.id)}`})),
-      ...evidenceNodes.map(item=>({kind:'NODE' as const,id:String(item.id),title:`Nodo · ${txt(item.label??item.title,item.id)}`})),
+      ...evidenceNodes.map(item=>({kind:'NODE' as const,id:String(item.id),title:`Node · ${txt(item.label??item.title,item.id)}`})),
     ];
     const allowed=new Set(allowedTargetKinds);
     const unique=[...new Map(options.filter(item=>!allowed.size||allowed.has(item.kind)).map(item=>[`${item.kind}:${item.id}`,item])).values()];
@@ -127,7 +127,7 @@ export function SfiGovernanceWorkspace({enabled}:{enabled:boolean}){
   const missingRequiredParameters=requiredParameters.filter(key=>!parameters[key]?.trim());
   const canExecute=Boolean(agentId&&contract&&purpose.trim()&&targetCountValid&&!missingRequiredParameters.length&&busy!=='agent');
 
-  const heartbeat=async()=>{setBusy('heartbeat');try{const result=await jsonFetch('/api/root/continuity',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'heartbeat'})});setNotice(result.result?.humanSummary?.message??'Ronda de continuidad ejecutada.');await Promise.all([loadTargets(true),agentId?loadDossier(agentId,true):Promise.resolve()])}catch(cause){setError(cause instanceof Error?cause.message:String(cause))}finally{setBusy(null)}};
+  const heartbeat=async()=>{setBusy('heartbeat');try{const result=await jsonFetch('/api/root/continuity',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'heartbeat'})});setNotice(result.result?.humanSummary?.message??'Continuity round executed.');await Promise.all([loadTargets(true),agentId?loadDossier(agentId,true):Promise.resolve()])}catch(cause){setError(cause instanceof Error?cause.message:String(cause))}finally{setBusy(null)}};
 
   const runAgent=async()=>{if(!canExecute||!contract)return;setBusy('agent');setAgentResult(null);try{
     let uploadedEvidenceId:string|undefined;
@@ -146,9 +146,9 @@ export function SfiGovernanceWorkspace({enabled}:{enabled:boolean}){
 
   return <div className="sfiGovernanceLayout">
     {(error||notice)&&<div className={`sfiToast ${error?'error':''}`}><span>{error||notice}</span><button onClick={()=>{setError(null);setNotice(null)}}>×</button></div>}
-    <section className="sfiGovernancePanel agentPanel"><header><span>AGENTES · PASSPORT</span><b>{agents.length}</b></header><div className="sfiAgentList">{agents.map(agent=><button key={agent.id} className={agentId===agent.id?'selected':''} onClick={()=>setAgentId(agent.id)}><small>{agent.layer} · {agent.domain}</small><strong>{agent.name}</strong><p>{agent.purpose}</p><em>{agent.humanApprovalRequired?'La autoridad humana se resuelve en ROOT cuando aplique':'Autoridad no expandida por el modelo'}</em></button>)}</div></section>
+    <section className="sfiGovernancePanel agentPanel"><header><span>AGENTS · PASSPORT</span><b>{agents.length}</b></header><div className="sfiAgentList">{agents.map(agent=><button key={agent.id} className={agentId===agent.id?'selected':''} onClick={()=>setAgentId(agent.id)}><small>{agent.layer} · {agent.domain}</small><strong>{agent.name}</strong><p>{agent.purpose}</p><em>{agent.humanApprovalRequired?'La autoridad humana se resuelve en ROOT cuando aplique':'Autoridad no expandida por el modelo'}</em></button>)}</div></section>
 
-    <section className="sfiGovernancePanel operatorPanel"><header><span>RUNTIME / AGENTES · {selectedAgent?.name??'Selecciona un agente'}</span><button className="heartbeat" disabled={busy==='heartbeat'||!agentId} onClick={()=>void heartbeat()}>{busy==='heartbeat'?'Running…':'Ejecutar heartbeat ahora'}</button></header><div className="sfiOperatorForm">
+    <section className="sfiGovernancePanel operatorPanel"><header><span>RUNTIME / AGENTS · {selectedAgent?.name??'Selecciona un agente'}</span><button className="heartbeat" disabled={busy==='heartbeat'||!agentId} onClick={()=>void heartbeat()}>{busy==='heartbeat'?'Running…':'Ejecutar heartbeat ahora'}</button></header><div className="sfiOperatorForm">
       {!agentId&&<div className="sfiAgentResult"><h3>DEFERRED HYDRATION</h3><p>Passports and contracts are available without loading Cases, Evidence, Graph, cycles or history. Select an agent to read only the targets and records needed to operate it.</p></div>}
       {agentId&&<><div className="sfiMetaGrid"><span>Infrastructure: <Status value={state?.infrastructure}/></span><span>Work: <Status value={state?.work}/></span><span>Epistemology: <Status value={state?.epistemic}/></span><span>Authority: <Status value={state?.authority}/></span><span>Latest execution: {date(state?.latestExecutionAt)}</span><span>Latest inference: {date(state?.latestInferenceAt)}</span><span>Generic interaction: {state?.latestInteractionObservation==='OBSERVED'?date(state?.latestInteractionAt):'NOT OBSERVED'}</span><span>Contract: {contract?.version??'—'}</span></div>
       <p>{dossier?.passport?.purpose??selectedAgent?.purpose}</p>

@@ -50,15 +50,15 @@ const promote = read('src/app/api/root/governance/promote/route.ts');
 // Governance/Agents is runtime observability and execution, not a second decision owner.
 assert.ok(scenes.includes("root:{key:'root'") && scenes.includes("governance:{key:'governance'"), 'ROOT/GOVERNANCE operating scenes missing');
 assert.ok(operatingUi.includes('SfiGovernanceWorkspace'), 'canonical operating workspace must delegate governance runtime');
-assert.ok(governanceUi.includes('AGENTES') && governanceUi.includes('/api/root/cognitive-runtime/records?agentId='), 'governance agent runtime dossier missing');
+assert.ok(governanceUi.includes('AGENTS') && governanceUi.includes('/api/root/cognitive-runtime/records?agentId='), 'governance agent runtime dossier missing');
 assert.ok(interactiveApi.includes("includeTargets') === '1'") && interactiveApi.includes('targetHydrationDeferred: true'), 'governance target hydration must remain deferred');
-assert.ok(governanceUi.includes('HIDRATACIÓN DIFERIDA') && governanceUi.includes('includeTargets=1'), 'governance UI must hydrate targets only when an agent is selected');
+assert.ok(governanceUi.includes('DEFERRED HYDRATION') && governanceUi.includes('includeTargets=1'), 'governance UI must hydrate targets only when an agent is selected');
 assert.doesNotMatch(governanceUi, /setInterval\(/, 'governance runtime must not poll');
 assert.doesNotMatch(operatingUi, /setInterval\(/, 'operating workspace must not poll');
 assert.doesNotMatch(rootUi, /setInterval\(/, 'ROOT workspace must not poll');
-assert.ok(rootUi.includes('ACEPTAR') && rootUi.includes('DENEGAR') && rootUi.includes('SOLICITAR EVIDENCIA'), 'plain-language sovereign decision controls must live in ROOT');
-assert.doesNotMatch(governanceUi, /ACEPTAR|DENEGAR|PEDIR EVIDENCIA|SOLICITAR EVIDENCIA/, 'Governance runtime must not duplicate sovereign controls');
-assert.ok(shellUi.includes("label:'DECISIONES'") && shellUi.includes("href:'/root'"), 'decision navigation must converge on ROOT');
+assert.ok(rootUi.includes('ACCEPT') && rootUi.includes('DENY') && rootUi.includes('REQUEST EVIDENCE'), 'plain-language sovereign decision controls must live in ROOT');
+assert.doesNotMatch(governanceUi, /ACCEPT|DENY|REQUEST EVIDENCE/, 'Governance runtime must not duplicate sovereign controls');
+assert.ok(shellUi.includes("label:'DECISIONS'") && shellUi.includes("href:'/root'"), 'decision navigation must converge on ROOT');
 assert.ok(rootUi.includes('/api/root/interactive?surface=root') && rootUi.includes('BASE_CACHE_TTL_MS'), 'ROOT must reuse recent interactive state rather than rehydrate on every return');
 assert.ok(rootUi.includes('SfiFriccionautaPanel'), 'ROOT must mount the existing Friccionauta conversational owner');
 assert.ok(friccionautaUi.includes('/api/root/friccionauta') && friccionautaUi.includes('NO CANON · NO PUBLICATION · NO SILENT EXECUTION'), 'Friccionauta UI must reuse the existing endpoint and show its authority boundary');
@@ -76,7 +76,7 @@ assert.match(friccionautaApi, /epistemicClass:'INFERRED'/, 'Founder-selected Fri
 assert.match(friccionautaApi, /does not make the finding verified or canonical/, 'Saving a Friccionauta finding must not promote evidence or canon');
 assert.doesNotMatch(friccionautaApi, /executeManualCognitiveAgent|createActionProposal|canonicalPromotionAllowed:\s*true/, 'Friccionauta must not acquire silent execution or canonical promotion');
 assert.ok(operatingUi.includes('DOSSIER_CACHE_TTL_MS') && operatingUi.includes('baseCache'), 'Cases/Twin workspace must reuse recent bounded reads');
-assert.doesNotMatch(governanceUi, /REGISTRAR REALIZACIÓN INTERNA/, 'ROOT UI must not offer a false manual realization button');
+assert.doesNotMatch(governanceUi, /REGISTER INTERNAL REALIZATION/, 'ROOT UI must not offer a false manual realization button');
 assert.match(shellUi, /SfiOperatingWorkspace/, 'canonical shell must mount the converged operating workspace');
 
 assert.match(workboardApi, /requireRootViewer\('root\.workboard\.read'\)/, 'workboard must remain behind ROOT-observer authorization');
