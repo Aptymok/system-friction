@@ -78,8 +78,8 @@ async function main() {
   assert(continuityRoute.includes('No additional Vercel cron invocation'), 'autonomy must not create timer proliferation');
   assert(controlPlane.includes("from('action_proposals')"), 'ROOT Discovery may read governed candidates from canonical proposal persistence');
   assert(controlPlane.includes('developmentProposalIsNotApproval: true'), 'ROOT proposal boundary missing');
-  assert(rootPage.includes('AUTO-OBSERVACIÓN / DEVELOPMENT'), 'ROOT discovery autonomy panel missing');
-  assert(rootPage.includes('ABRIR NOTA DE LABORATORIO AUTORIZADA'), 'ROOT discovery editorial bridge missing');
+  assert(rootPage.includes('SELF-OBSERVATION / DEVELOPMENT'), 'ROOT discovery autonomy panel missing');
+  assert(rootPage.includes('OPEN AUTHORIZED LABORATORY NOTE'), 'ROOT discovery editorial bridge missing');
 
   // The first method note is an explicitly bounded public artifact in this convergence;
   // future notes remain governed candidates and never auto-publish.

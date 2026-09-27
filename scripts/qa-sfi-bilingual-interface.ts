@@ -50,7 +50,7 @@ requireText(entry,'SFI_PUBLIC_NAV.map','entry complete public navigation');
 requireText(observatory,'SFI_PUBLIC_NAV.filter','Observatory complete public navigation');
 requireText(laboratory,'SFI_PUBLIC_NAV.map','Laboratory complete public navigation');
 requireText(laboratory,'CanonicalCognitiveFieldPublic','public canonical cognitive field');
-requireText(laboratory,"'/login?next=%2Fmethod-lab'",'governed Method Lab sign-in handoff');
+requireText(laboratory,'href="/login?next=%2Fmethod-lab"','governed Method Lab sign-in handoff');
 requireText(methodLab,"requireUserProfile()",'Method Lab remains authenticated');
 requireText(methodLab,"redirect('/login?next=%2Fmethod-lab')",'Method Lab unauthenticated redirect');
 
