@@ -17,6 +17,7 @@ import {
 } from '@/lib/publications/publicEnglishProjection';
 import { getPublicPublishedReturns } from '@/lib/observatory/publicState';
 import { PublicationsCatalog, type PublicationCatalogItem } from './PublicationsCatalog';
+import { RegistryDiscoveryMesh } from './RegistryDiscoveryMesh';
 import './publications.css';
 
 export const dynamic = 'force-dynamic';
@@ -161,6 +162,8 @@ export default async function PublicationsPage(){
         </div>
       </div>
     </section>
+
+    <RegistryDiscoveryMesh/>
 
     <section className="pubFeatured" aria-label="Canonical editorial objects">
       <article>

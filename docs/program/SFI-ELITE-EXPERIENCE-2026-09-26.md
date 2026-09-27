@@ -103,7 +103,7 @@ Acceptance:
 - contradiction remains first-class
 
 ### P5 · Laboratory Instrument Room
-State: IMPLEMENTED / VERIFYING
+State: PHASE COMPLETE / PROGRAM CONTINUES
 Deliverables:
 - methods, runs, datasets, hashes, seeds and replay represented as instruments
 - reproducibility dossier per run
@@ -112,7 +112,7 @@ Acceptance:
 - replayable parameters remain addressable
 
 ### P6 · Discovery Mesh Projection
-State: PLANNED
+State: IMPLEMENTED / VERIFYING
 Deliverables:
 - HUMAN / SEARCH / LLM / MCP / API discoverability matrix
 - exposure-to-return lifecycle visualization

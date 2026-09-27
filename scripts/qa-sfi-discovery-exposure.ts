@@ -11,6 +11,8 @@ async function main() {
   const institutionalRead = await text('src/lib/discovery/institutionalDiscoveryReadModel.ts');
   const api = await text('src/app/api/root/discovery/route.ts');
   const page = await text('src/app/root/discovery/page.tsx');
+  const registryPage = await text('src/app/publications/page.tsx');
+  const registryDiscovery = await text('src/app/publications/RegistryDiscoveryMesh.tsx');
   const robots = await text('src/app/robots.ts');
   const aiPolicy = await text('src/app/ai-policy/route.ts');
   const aiIndex = await text('src/app/ai-index.json/route.ts');
@@ -50,6 +52,17 @@ async function main() {
   assert.match(crawlers, /apiDiscoveryIsAllowlistedOnly: true/);
   assert.match(crawlers, /crawlerAccessIsNotTrainingConsent: true/);
   assert.match(crawlers, /privateMaterialNeverPromotedByCrawlerPolicy: true/);
+
+  for (const path of ['/observatory','/publications','/publications/','/research/']) assert.ok(crawlers.includes(`'${path}'`), `current_public_discovery_path_missing:${path}`);
+  assert.ok(crawlers.includes("'/method-lab'"), 'method_lab_must_be_explicitly_private_from_discovery');
+  assert.match(crawlers, /disallow: \[\.\.\.SFI_PRIVATE_DISCOVERY_PREFIXES\]/, 'robots wildcard must consume canonical private prefixes');
+  assert.ok(registryPage.includes('<RegistryDiscoveryMesh/>'), 'registry_discovery_mesh_must_be_mounted');
+  for (const channel of ['HUMAN','SEARCH','LLM','MCP','API']) assert.ok(registryDiscovery.includes(`id:'${channel}'`), `registry_discovery_channel_missing:${channel}`);
+  for (const stage of ['EXPOSURE','DISCOVERY','RECOGNITION','INTERACTION','RELATION','PROPAGATION','PULL','RETURN']) assert.ok(registryDiscovery.includes(stage), `registry_discovery_lifecycle_missing:${stage}`);
+  assert.ok(registryDiscovery.includes('NOT EXPOSED IN THIS PUBLIC PROJECTION'), 'public_registry_must_not_infer_external_discovery');
+  assert.ok(registryDiscovery.includes('NOT EXPOSED HERE ≠ ZERO ≠ NOT OBSERVED GLOBALLY'), 'public_registry_missing_absence_boundary');
+  assert.ok(registryDiscovery.includes('CRAWLER ACCESS ≠ TRAINING CONSENT'), 'crawler_training_consent_boundary_missing');
+  assert.doesNotMatch(registryDiscovery, /createServiceSupabaseClient|\.from\(|fetch\(|\.insert\(|\.update\(|\.upsert\(/, 'registry discovery projection must remain pure and must not become a DB/read owner');
   assert.match(robots, /sfiRobotsRules/);
   assert.doesNotMatch(robots, /GPTBot|ClaudeBot|PerplexityBot|Google-Extended/, 'robots.ts must consume the canonical crawler-policy owner instead of duplicating it');
   assert.match(aiPolicy, /DISCOVERY \/ EXPOSURE/);
@@ -168,6 +181,9 @@ async function main() {
     ManhattanIsAttractor: true,
     publicationNamespaceCanonicalGateActive: true,
     discoveryAutonomyReadIntegrated: true,
+    publicRegistryDiscoveryProjection: true,
+    methodLabPublicDiscovery: false,
+    publicRegistryInfersExternalDiscovery: false,
     automaticPublication: false,
     automaticCanon: false,
     automaticExternalAction: false,

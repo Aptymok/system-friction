@@ -2,21 +2,10 @@ export const SFI_DISCOVERY_CRAWLER_POLICY_CONTRACT = 'SFI-DISCOVERY-CRAWLER-POLI
 
 export const SFI_PUBLIC_DISCOVERY_PATHS = Object.freeze([
   '/',
-  '/institution',
-  '/field',
-  '/systems',
-  '/archive',
-  '/falsification',
-  '/optionality',
-  '/governance',
-  '/authority',
-  '/agents',
-  '/identity',
-  '/models',
-  '/genai',
-  '/concepts/',
-  '/methods/',
-  '/instruments/',
+  '/observatory',
+  '/publications',
+  '/publications/',
+  '/research/',
   '/feed.xml',
   '/feed.atom',
   '/feed.json',
@@ -37,6 +26,7 @@ export const SFI_PUBLIC_DISCOVERY_API_PATHS = Object.freeze([
 
 export const SFI_PRIVATE_DISCOVERY_PREFIXES = Object.freeze([
   '/root',
+  '/method-lab',
   '/login',
   '/api/',
   '/api/root',
@@ -98,7 +88,7 @@ export function sfiRobotsRules() {
     {
       userAgent: '*',
       allow: [...SFI_PUBLIC_DISCOVERY_PATHS],
-      disallow: ['/root', '/login', '/api/'],
+      disallow: [...SFI_PRIVATE_DISCOVERY_PREFIXES],
     },
     {
       userAgent: [...SFI_SEARCH_DISCOVERY_BOTS],
