@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { SFI_PUBLIC_NAV } from '@/lib/navigation/publicNavigation';
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { useAuthState } from '@/components/auth/AuthProvider';
 import { SessionControls } from './SessionControls';
@@ -207,7 +208,7 @@ export function ObservatoryConsole(){
     </div>
 
     <header className="obsTop"><div className="obsBrand"><strong>SFI</strong><span>{ui('FIELD · SYSTEM FRICTION INSTITUTE')}</span><small>{ui('LIVE WORLD OBSERVATORY')}</small></div>
-      <nav>{(['field','hypotheses','trajectory','sources'] as Lens[]).map(k=><button key={k} className={lens===k?'active':''} onClick={()=>{setLens(k);setSatelliteOpen(true)}}>{k==='hypotheses'?'HYPOTHESES':k==='trajectory'?'TRAJECTORY':k==='sources'?'SOURCES':'FIELD'}</button>)}<button onClick={()=>void pull(true)} disabled={refreshing}>{refreshing?'READING…':'REFRESH'}</button><Link href="/method-lab">LABORATORY</Link><Link href="/publications">REGISTRY</Link>{auth.status!=='authenticated'&&<Link href="/login">SIGN IN</Link>}{auth.status==='authenticated'&&<Link href="/cases">{ui('CASES')}</Link>}</nav>
+      <nav>{(['field','hypotheses','trajectory','sources'] as Lens[]).map(k=><button key={k} className={lens===k?'active':''} onClick={()=>{setLens(k);setSatelliteOpen(true)}}>{k==='hypotheses'?'HYPOTHESES':k==='trajectory'?'TRAJECTORY':k==='sources'?'SOURCES':'FIELD'}</button>)}<button onClick={()=>void pull(true)} disabled={refreshing}>{refreshing?'READING…':'REFRESH'}</button>{SFI_PUBLIC_NAV.filter((item)=>item.href!=='/login').map((item)=><Link key={item.href} href={item.href}>{item.label}</Link>)}{auth.status!=='authenticated'&&<Link href="/login">SIGN IN</Link>}{auth.status==='authenticated'&&<Link href="/root">ROOT</Link>}</nav>
       <div className="obsIdentity"><b>{auth.identity?.alias||'PUBLIC'}</b><span>{lastReadAt?`${'READ'} ${lastReadAt.slice(11,19)} UTC`:auth.identity?.role||auth.status}</span></div><SessionControls className="obsSessionControls"/></header>
 
     <aside className="hud hudLeft"><section><small>SFI-OBS-LIVE</small><h3>{'LIVE FIELD'}</h3><p className="good">● {clock.slice(11,19)} UTC</p><dl><dt>{ui('OBSERVATIONS')}</dt><dd data-availability={availability.world}>{worldMetric(nodes.length)}</dd><dt>{ui('ACTIVE SOURCES')}</dt><dd data-availability={availability.world}>{worldMetric(sourceIds.length)}</dd><dt>{ui('HYPOTHESES')}</dt><dd data-availability={availability.world}>{worldMetric(filteredHypotheses.length)}</dd><dt>{ui('IN RETURN')}</dt><dd data-availability={availability.world}>{worldMetric(openHypotheses)}</dd></dl><button onClick={()=>setSatelliteOpen(true)}>{ui('OPEN SATELLITE')}</button></section>

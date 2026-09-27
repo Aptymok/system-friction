@@ -53,7 +53,7 @@ async function main() {
   assert.match(crawlers, /crawlerAccessIsNotTrainingConsent: true/);
   assert.match(crawlers, /privateMaterialNeverPromotedByCrawlerPolicy: true/);
 
-  for (const path of ['/observatory','/publications','/publications/','/research/']) assert.ok(crawlers.includes(`'${path}'`), `current_public_discovery_path_missing:${path}`);
+  for (const path of ['/observatory','/laboratory','/institution','/publications','/publications/','/research/']) assert.ok(crawlers.includes(`'${path}'`), `current_public_discovery_path_missing:${path}`);
   assert.ok(crawlers.includes("'/method-lab'"), 'method_lab_must_be_explicitly_private_from_discovery');
   assert.match(crawlers, /disallow: \[\.\.\.SFI_PRIVATE_DISCOVERY_PREFIXES\]/, 'robots wildcard must consume canonical private prefixes');
   assert.ok(registryPage.includes('<RegistryDiscoveryMesh/>'), 'registry_discovery_mesh_must_be_mounted');

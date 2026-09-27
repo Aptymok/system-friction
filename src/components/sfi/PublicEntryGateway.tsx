@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { SFI_PUBLIC_NAV } from '@/lib/navigation/publicNavigation';
 import {
   useCallback,
   useEffect,
@@ -200,14 +201,11 @@ export function PublicEntryGateway(){
       </Link>
 
       <nav aria-label="Public navigation">
-        <Link href="/method-lab">LABORATORY</Link>
-        <Link href="/publications">REGISTRY</Link>
-        <Link href="/observatory">OBSERVATORY</Link>
+        {SFI_PUBLIC_NAV.map((item)=><Link key={item.href} href={item.href}>{item.label}</Link>)}
       </nav>
 
       <div className="sfiSceneChromeActions">
         <span>{scene.number} / {String(SCENES.length).padStart(2,'0')}</span>
-        <Link href="/login">SIGN IN</Link>
       </div>
     </header>
 

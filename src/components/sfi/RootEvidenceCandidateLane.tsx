@@ -102,8 +102,8 @@ export function RootEvidenceCandidateLane({ proposals }: Props) {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(action === 'search'
-          ? { action: 'search', request_note: 'Buscar fuentes suficientes para completar el análisis de esta propuesta.' }
-          : { action: 'add_url', url: url.trim(), request_note: 'URL agregada como fuente de trabajo trazable.' }),
+          ? { action: 'search', request_note: 'Find enough sources to complete analysis of this proposal.' }
+          : { action: 'add_url', url: url.trim(), request_note: 'URL added as a traceable working source.' }),
       });
       const json = await response.json().catch(() => null);
       if (!response.ok && response.status !== 207) throw new Error(`${response.status}: ${json?.error ?? 'evidence_candidate_acquisition_failed'}`);
@@ -122,10 +122,10 @@ export function RootEvidenceCandidateLane({ proposals }: Props) {
   return <section className="rootEvidenceCandidates" aria-label="Working evidence sources">
     <header>
       <div>
-        <small>FUENTES / TRABAJO OPERATIVO</small>
-        <strong>SFI BUSCA, CLASIFICA Y CONTINÚA · ROOT NO APRUEBA FUENTES</strong>
+        <small>SOURCES / OPERATIONAL WORK</small>
+        <strong>SFI SEARCHES, CLASSIFIES AND CONTINUES · ROOT DOES NOT APPROVE SOURCES</strong>
       </div>
-      <span>{counts.working} de trabajo · {counts.accepted} ya persistidas · {counts.rejected} descartadas</span>
+      <span>{counts.working} working · {counts.accepted} already persisted · {counts.rejected} discarded</span>
     </header>
 
     <div className="rootEvidenceProposalTabs">
@@ -136,14 +136,14 @@ export function RootEvidenceCandidateLane({ proposals }: Props) {
 
     {readiness && <div className="rootEvidenceControls" aria-label="Evidence readiness">
       <div>
-        <span>ESTADO PARA TRABAJAR</span>
+        <span>WORKING STATE</span>
         <b>{readiness.state}</b>
         <small>{readiness.counts.usable ?? readiness.counts.accepted + readiness.counts.candidate}/{readiness.counts.required} necesidades cubiertas · {readiness.basis ?? '—'}</small>
       </div>
       <div>
-        <span>QUÉ SIGUE</span>
+        <span>WHAT NEXT</span>
         <b>{readiness.nextExpectedEvent}</b>
-        <small>Tu intervención: ninguna por revisión de fuentes</small>
+        <small>Your intervention: none for source review</small>
       </div>
       <div>
         <span>RESPONSABLE</span>
@@ -154,21 +154,21 @@ export function RootEvidenceCandidateLane({ proposals }: Props) {
     {readiness?.slots?.length ? <div className="rootEvidenceCandidateList" aria-label="Evidence slots">
       {readiness.slots.map((slot) => <article key={slot.key} data-status={slot.status === 'ACCEPTED' ? 'accepted' : slot.status === 'CANDIDATE' ? 'proposed' : 'missing'}>
         <div className="rootEvidenceCandidateHead">
-          <div><small>NECESIDAD DE EVIDENCIA</small><b>{slot.label}</b></div>
+          <div><small>EVIDENCE NEED</small><b>{slot.label}</b></div>
           <strong>{slot.status}</strong>
         </div>
         <p>{slot.status === 'ACCEPTED'
-          ? 'Existe evidencia persistida; SFI puede usarla conservando su trazabilidad.'
+          ? 'Persisted evidence exists; SFI may use it while preserving traceability.'
           : slot.status === 'CANDIDATE'
-            ? 'Existe una fuente de trabajo trazable. SFI puede analizarla sin pedir aprobación; eso no la vuelve verdad institucional.'
-            : 'Falta una fuente adecuada; SFI conserva la búsqueda como siguiente trabajo.'}</p>
+            ? 'A traceable working source exists. SFI may analyze it without asking for approval; that does not make it institutional truth.'
+            : 'An adequate source is missing; SFI keeps the search as the next task.'}</p>
       </article>)}
     </div> : null}
 
     {selectedProposal && <div className="rootEvidenceControls">
-      <button disabled={Boolean(busy)} onClick={() => void acquire('search')}>{busy === 'search' ? 'BUSCANDO…' : 'BUSCAR / REINTENTAR'}</button>
+      <button disabled={Boolean(busy)} onClick={() => void acquire('search')}>{busy === 'search' ? 'SEARCHING…' : 'SEARCH / RETRY'}</button>
       <label>
-        <span>APORTAR URL COMO FUENTE</span>
+        <span>CONTRIBUTE URL AS SOURCE</span>
         <input value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://www.inegi.org.mx/..." />
       </label>
       <button disabled={Boolean(busy) || !url.trim()} onClick={() => void acquire('add_url')}>{busy === 'add_url' ? 'REGISTRANDO…' : 'AGREGAR URL'}</button>
@@ -180,9 +180,9 @@ export function RootEvidenceCandidateLane({ proposals }: Props) {
       {candidates.map((candidate) => <article key={candidate.id} data-status={candidate.status}>
         <div className="rootEvidenceCandidateHead">
           <div><small>{candidate.source.sourceType.toUpperCase()} · {candidate.acquisitionOrigin.replaceAll('_', ' ').toUpperCase()}</small><b>{candidate.source.title}</b></div>
-          <strong>{candidate.status === 'proposed' ? 'FUENTE DE TRABAJO' : candidate.status.toUpperCase()}</strong>
+          <strong>{candidate.status === 'proposed' ? 'WORKING SOURCE' : candidate.status.toUpperCase()}</strong>
         </div>
-        <p>{candidate.source.snippet || 'Sin extracto; SFI conserva la referencia y sus límites.'}</p>
+        <p>{candidate.source.snippet || 'No excerpt; SFI preserves the reference and its limits.'}</p>
         <dl>
           <div><dt>Publisher</dt><dd>{candidate.source.publisher ?? '—'}</dd></div>
           <div><dt>Publicado</dt><dd>{candidate.source.publishedAt ?? '—'}</dd></div>
@@ -192,11 +192,11 @@ export function RootEvidenceCandidateLane({ proposals }: Props) {
           <div><dt>Content hash</dt><dd>UNOBSERVED</dd></div>
         </dl>
         <div className="rootEvidenceCandidateActions">
-          <a href={candidate.source.url} target="_blank" rel="noreferrer">VER FUENTE ↗</a>
+          <a href={candidate.source.url} target="_blank" rel="noreferrer">VIEW SOURCE ↗</a>
         </div>
-        <small className="rootEvidenceBoundary">USO OPERATIVO ≠ VERIFICACIÓN DE TODAS LAS AFIRMACIONES ≠ CANON. Si después se pretende cambiar SFI con esta información, esa decisión aparece separadamente.</small>
+        <small className="rootEvidenceBoundary">OPERATIONAL USE ≠ VERIFICATION OF EVERY CLAIM ≠ CANON. If this information is later used to change SFI, that decision appears separately.</small>
       </article>)}
-      {!candidates.length && !error && <em>No hay fuentes todavía. SFI inicia o reintenta la adquisición automáticamente; también puedes aportar una URL si ya la tienes.</em>}
+      {!candidates.length && !error && <em>No sources yet. SFI starts or retries acquisition automatically; you may also contribute a URL if you already have one.</em>}
     </div>
   </section>;
 }

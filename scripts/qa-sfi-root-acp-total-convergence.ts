@@ -91,16 +91,16 @@ assert.ok(scenes.includes("governance:{key:'governance'"), 'governance_live_scen
 assert.ok(scenes.includes("root:{key:'root'"), 'root_live_scene_missing');
 assert.ok(!scenes.includes("agents:{key:'agents'"), 'agents_must_not_reappear_as_parallel_sovereign_scene');
 assert.ok(operatingUi.includes('SfiGovernanceWorkspace'), 'governance_workspace_delegation_missing');
-assert.ok(governanceUi.includes('AGENTES'), 'governance_workspace_must_expose_agents');
+assert.ok(governanceUi.includes('AGENTES') || governanceUi.includes('AGENTS'), 'governance_workspace_must_expose_agents');
 assert.ok(governanceUi.includes("jsonFetch('/api/root/interactive?surface=governance')") && governanceUi.includes('/api/root/cognitive-runtime/records?agentId='), 'governance_workspace_must_use_bootstrap_plus_selected_agent_dossier');
 assert.ok(interactiveApi.includes("includeTargets') === '1'") && interactiveApi.includes('targetHydrationDeferred: true'), 'runtime targets must not hydrate until explicitly needed');
-assert.ok(governanceUi.includes('HIDRATACIÓN DIFERIDA') && governanceUi.includes('includeTargets=1'), 'runtime UI must disclose and use selective hydration');
+assert.ok((governanceUi.includes('HIDRATACIÓN DIFERIDA') || governanceUi.includes('DEFERRED HYDRATION')) && governanceUi.includes('includeTargets=1'), 'runtime UI must disclose and use selective hydration');
 assert.doesNotMatch(governanceUi,/setInterval\(/,'governance_runtime_must_not_poll');
 assert.doesNotMatch(operatingUi,/setInterval\(/,'operating_workspace_must_not_poll');
 assert.doesNotMatch(rootUi,/setInterval\(/,'root_workspace_must_not_poll');
-assert.ok(rootUi.includes('ACEPTAR') && rootUi.includes('DENEGAR') && rootUi.includes('SOLICITAR EVIDENCIA'), 'plain_language_sovereign_decisions_missing_from_root');
-assert.doesNotMatch(governanceUi,/ACEPTAR|DENEGAR|PEDIR EVIDENCIA|SOLICITAR EVIDENCIA/,'governance_runtime_must_not_duplicate_root_decisions');
-assert.ok(shellUi.includes("label:'DECISIONES'") && shellUi.includes("href:'/root'"), 'decision_navigation_must_point_to_root');
+assert.ok(rootUi.includes('ACCEPT') && rootUi.includes('DENY') && rootUi.includes('REQUEST EVIDENCE'), 'plain_language_sovereign_decisions_missing_from_root');
+assert.doesNotMatch(governanceUi,/ACCEPT|DENY|REQUEST EVIDENCE|ACEPTAR|DENEGAR|PEDIR EVIDENCIA|SOLICITAR EVIDENCIA/,'governance_runtime_must_not_duplicate_root_decisions');
+assert.ok(shellUi.includes("label:'DECISIONS'") && shellUi.includes("href:'/root'"), 'decision_navigation_must_point_to_root');
 assert.ok(interactiveApi.includes('separateProposalListRead: false'), 'hydrated governance mode must not duplicate proposal list reads');
 
 // ACP presence remains an explicit governed mutation when needed, but it is not a
@@ -112,12 +112,15 @@ assert.match(acpSeenRoute,/export async function POST/,'acp_presence_mutation_mu
 assert.match(acpSeenRoute,/requireRootActor\('governance\.acp\.presence'\)/,'acp_presence_post_must_remain_root_governed');
 assert.doesNotMatch(`${operatingUi}\n${governanceUi}`,/rootPresenceReady|confirmRootPresence|HACERME VISTO · CONFIRMAR PRESENCIA ACP/,'proposal observability must not depend on a manual presence ritual');
 
-// Human public navigation uses the canonical LABORATORY / REGISTRY / OBSERVATORY vocabulary plus SIGN IN.
+// Human public navigation uses one complete canonical public menu. Public Laboratory is explanatory; Method Lab remains authenticated.
 // Machine-readable interfaces remain discoverable through llms/ai-index and do not need to be
 // rendered as human navigation links.
 assert.match(home,/PublicEntryGateway/,'canonical_home_missing_public_entry_gateway');
-for(const p of ['/login','/method-lab','/observatory','/publications']) assert.ok(publicEntry.includes(p),`public_entry_missing_path:${p}`);
-for(const retired of ['/institution','/library','/field','/history']) assert.equal(publicEntry.includes(`href="${retired}"`),false,`retired_public_navigation_visible:${retired}`);
+assert.ok(publicEntry.includes('SFI_PUBLIC_NAV.map'), 'public_entry_must_consume_canonical_public_nav');
+const publicNav=read('src/lib/navigation/publicNavigation.ts');
+for(const p of ['/','/login','/laboratory','/observatory','/publications','/institution']) assert.ok(publicNav.includes(`href:'${p}'`),`public_nav_missing_path:${p}`);
+assert.equal(publicNav.includes("href:'/method-lab'"),false,'authenticated_method_lab_must_not_be_public_navigation');
+for(const retired of ['/library','/field','/history']) assert.equal(publicNav.includes(`href:'${retired}'`),false,`retired_public_navigation_visible:${retired}`);
 assert.match(llms,/## WHAT TO DO FIRST/,'llms_missing_first_action_sequence');
 assert.match(llms,/\/ai-index\.json/,'llms_missing_ai_index_machine_entry');
 assert.match(llms,/\/api\/external\/v1\/manifest/,'llms_missing_external_manifest_machine_entry');

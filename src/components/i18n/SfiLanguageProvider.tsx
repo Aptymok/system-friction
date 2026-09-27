@@ -1,7 +1,6 @@
 'use client';
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { usePathname } from 'next/navigation';
+import { createContext, useCallback, useContext, useEffect, useMemo, type ReactNode } from 'react';
 
 export type SfiLanguage = 'es' | 'en';
 
@@ -11,7 +10,6 @@ type LanguageContextValue = {
   text: (es: string, en: string) => string;
 };
 
-const STORAGE_KEY = 'sfi-language';
 
 const LanguageContext = createContext<LanguageContextValue>({
   language: 'en',
@@ -244,106 +242,20 @@ export function SfiUiText({ es, en }: { es: string; en: string }) {
 }
 
 export function SfiLanguageProvider({ children }: { children: ReactNode }) {
-  const pathname = usePathname();
-  const [privateLanguage, setPrivateLanguage] = useState<SfiLanguage>('en');
-
-  const publicEnglishOnly = useMemo(() => {
-    if (!pathname) return true;
-    const publicRoots = [
-      '/',
-      '/observatory',
-      '/publications',
-      '/library',
-      '/institution',
-      '/history',
-      '/privacy',
-      '/login',
-      '/forgot',
-      '/continuity-access',
-      '/contact',
-      '/auth-unavailable',
-      '/field',
-    ];
-    return publicRoots.some((root) => root === '/' ? pathname === '/' : pathname === root || pathname.startsWith(`${root}/`));
-  }, [pathname]);
-
   useEffect(() => {
-    if (publicEnglishOnly) {
-      setPrivateLanguage('en');
-      return;
-    }
-    const stored = window.localStorage.getItem(STORAGE_KEY);
-    setPrivateLanguage(stored === 'es' ? 'es' : 'en');
-  }, [publicEnglishOnly]);
+    document.documentElement.lang = 'en';
+    document.documentElement.dataset.sfiLanguage = 'en';
+  }, []);
 
-  const language: SfiLanguage = publicEnglishOnly ? 'en' : privateLanguage;
+  const setLanguage = useCallback((_next: SfiLanguage) => undefined, []);
+  const text = useCallback((_es: string, en: string) => en, []);
+  const value = useMemo<LanguageContextValue>(() => ({
+    language: 'en',
+    setLanguage,
+    text,
+  }), [setLanguage, text]);
 
-  const setLanguage = useCallback((next: SfiLanguage) => {
-    if (publicEnglishOnly) return;
-    window.localStorage.setItem(STORAGE_KEY, next);
-    setPrivateLanguage(next);
-  }, [publicEnglishOnly]);
-
-  useEffect(() => {
-    document.documentElement.lang = language;
-    document.documentElement.dataset.sfiLanguage = language;
-  }, [language]);
-
-  const text = useCallback((es: string, en: string) => language === 'es' ? es : en, [language]);
-  const value = useMemo(() => ({ language, setLanguage, text }), [language, setLanguage, text]);
-
-  return (
-    <LanguageContext.Provider value={value}>
-      {children}
-      {!publicEnglishOnly ? <div
-        role="group"
-        aria-label={language === 'es' ? 'Idioma de la interfaz' : 'Interface language'}
-        data-sfi-ui-copy="language-control"
-        style={{
-          position: 'fixed',
-          right: 14,
-          top: 14,
-          zIndex: 2147483000,
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 2,
-          padding: 3,
-          border: '1px solid rgba(205,164,93,.32)',
-          borderRadius: 999,
-          background: 'rgba(8,8,6,.88)',
-          backdropFilter: 'blur(12px)',
-          boxShadow: '0 8px 28px rgba(0,0,0,.28)',
-          fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif',
-        }}
-      >
-        <span style={{ padding: '0 6px', fontSize: 9, letterSpacing: '.08em', color: '#c7b58f' }}>
-          {language === 'es' ? 'IDIOMA' : 'LANGUAGE'}
-        </span>
-        {(['es', 'en'] as const).map((option) => (
-          <button
-            key={option}
-            type="button"
-            aria-pressed={language === option}
-            aria-label={option === 'es' ? 'Español' : 'English'}
-            onClick={() => setLanguage(option)}
-            style={{
-              border: 0,
-              borderRadius: 999,
-              padding: '6px 9px',
-              cursor: 'pointer',
-              fontSize: 10,
-              fontWeight: 700,
-              letterSpacing: '.08em',
-              color: language === option ? '#0b0906' : '#c7b58f',
-              background: language === option ? '#cda45d' : 'transparent',
-            }}
-          >
-            {option.toUpperCase()}
-          </button>
-        ))}
-      </div> : null}
-    </LanguageContext.Provider>
-  );
+  return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
 }
 
 export function useSfiLanguage() {

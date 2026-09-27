@@ -17,19 +17,19 @@ function readableResetError(error?: string) {
   if (!error) return '';
   const normalized = error.toLowerCase();
   if (normalized.includes('invalid') || normalized.includes('token') || normalized.includes('expired')) {
-    return 'El enlace no es válido o ya expiró. Solicita uno nuevo.';
+    return 'The link is invalid or has expired. Request a new one.';
   }
   if (normalized.includes('entrada_invalida')) {
-    return 'Usa una contraseña válida, confirma que coincida y abre esta página desde el enlace recibido por correo.';
+    return 'Use a valid password, confirm it matches and open this page from the link received by email.';
   }
-  return 'No fue posible actualizar la contraseña. Solicita un enlace nuevo.';
+  return 'The password could not be updated. Request a new link.';
 }
 
 function AccessRail({ state }: { state: GateState }) {
   const identityVerified = state === 'VERIFIED' || state === 'ACTIVE';
   const accessActive = state === 'ACTIVE';
   return (
-    <ol className="sfiAuthRail" aria-label="Secuencia de activación">
+    <ol className="sfiAuthRail" aria-label="Activation sequence">
       <li data-state="complete">
         <span>01</span>
         <strong>INVITATION</strong>
@@ -38,7 +38,7 @@ function AccessRail({ state }: { state: GateState }) {
       <li data-state={identityVerified ? 'complete' : state === 'ACTION_REQUIRED' ? 'blocked' : 'current'}>
         <span>02</span>
         <strong>IDENTITY</strong>
-        <small>{identityVerified ? 'Verificada' : state === 'ACTION_REQUIRED' ? 'Revisión requerida' : 'Verificando'}</small>
+        <small>{identityVerified ? 'Verified' : state === 'ACTION_REQUIRED' ? 'Review required' : 'Verifying'}</small>
       </li>
       <li data-state={accessActive ? 'complete' : identityVerified ? 'current' : 'pending'}>
         <span>03</span>
@@ -99,18 +99,18 @@ function AuthFrame({
             <span>AUTHORITY BOUNDARY</span>
             <h2>ACCESS ≠ AUTHORITY</h2>
             <p>
-              Esta confirmación habilita una cuenta dentro de los límites asignados.
-              No concede ROOT, autoridad soberana, nombramiento institucional ni promoción canónica.
+              This confirmation enables an account within its assigned limits.
+              It grants no ROOT, sovereign authority, institutional appointment or canonical promotion.
             </p>
           </div>
           <dl>
             <div>
               <dt>IDENTITY</dt>
-              <dd>Verificada por el proveedor de autenticación.</dd>
+              <dd>Verified by the authentication provider.</dd>
             </div>
             <div>
               <dt>CREDENTIAL</dt>
-              <dd>Definida únicamente por la persona invitada.</dd>
+              <dd>Defined only by the invited person.</dd>
             </div>
             <div>
               <dt>AUTHORITY</dt>
@@ -140,24 +140,24 @@ function ContinuityRecovery({
       title="Restablecer credencial"
       lead={token
         ? 'Identidad verificada mediante enlace seguro. Define una nueva credencial para recuperar continuidad.'
-        : 'Abre esta superficie desde el enlace de recuperación enviado a tu correo.'}
+        : 'Open this surface from the recovery link sent to your email.'}
       state={state}
     >
       <form action={resetPasswordAction} className="sfiAuthForm">
         <input type="hidden" name="token" value={token || ''} />
         <label>
-          <span>NUEVA CONTRASEÑA</span>
+          <span>NEW PASSWORD</span>
           <input name="password" type="password" autoComplete="new-password" minLength={12} required disabled={!token} />
         </label>
         <label>
-          <span>CONFIRMAR CONTRASEÑA</span>
+          <span>CONFIRM PASSWORD</span>
           <input name="confirmation" type="password" autoComplete="new-password" minLength={12} required disabled={!token} />
         </label>
-        <button disabled={!token}>GUARDAR CREDENCIAL</button>
+        <button disabled={!token}>SAVE CREDENTIAL</button>
         {readable ? <div className="sfiAuthMessage" role="alert">{readable}</div> : null}
         {!token ? <a className="sfiAuthLink" href="/forgot">Solicitar un enlace nuevo</a> : null}
         <p className="sfiAuthPrivacy">
-          SFI nunca necesita enviarte una contraseña temporal ni conocer la contraseña que elijas.
+          SFI never needs to send you a temporary password or know the password you choose.
         </p>
       </form>
     </AuthFrame>
@@ -179,13 +179,13 @@ export function PasswordResetSurface({
   const [busy, setBusy] = useState(false);
   const [activated, setActivated] = useState(false);
   const [attention, setAttention] = useState(false);
-  const [message, setMessage] = useState('Verificando el enlace seguro…');
+  const [message, setMessage] = useState('Verifying el enlace seguro…');
 
   useEffect(() => {
     if (!inviteMode) return;
     if (!sb) {
       setAttention(true);
-      setMessage('El servicio de activación de invitaciones no está disponible.');
+      setMessage('The invitation activation service is unavailable.');
       return;
     }
     let active = true;
@@ -195,10 +195,10 @@ export function PasswordResetSurface({
       if (data.session) {
         setReady(true);
         setAttention(false);
-        setMessage('Correo verificado. Define tu credencial para completar el acceso.');
+        setMessage('Email verified. Define your credential to complete access.');
       } else {
         setAttention(true);
-        setMessage('El enlace no creó una sesión válida. Puede haber expirado o ya haber sido utilizado.');
+        setMessage('The link did not create a valid session. It may have expired or already been used.');
       }
     };
     void check();
@@ -207,7 +207,7 @@ export function PasswordResetSurface({
       if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
         setReady(true);
         setAttention(false);
-        setMessage('Correo verificado. Define tu credencial para completar el acceso.');
+        setMessage('Email verified. Define your credential to complete access.');
       }
     });
     return () => {
@@ -229,12 +229,12 @@ export function PasswordResetSurface({
 
     if (password.length < 12) {
       setAttention(true);
-      setMessage('Usa una contraseña de al menos 12 caracteres.');
+      setMessage('Use a password of at least 12 characters.');
       return;
     }
     if (password !== confirmation) {
       setAttention(true);
-      setMessage('Las dos contraseñas no coinciden.');
+      setMessage('The two passwords do not match.');
       return;
     }
 
@@ -243,7 +243,7 @@ export function PasswordResetSurface({
     const updated = await sb.auth.updateUser({ password });
     if (updated.error) {
       setAttention(true);
-      setMessage('No fue posible actualizar la contraseña. Solicita un enlace nuevo.');
+      setMessage('The password could not be updated. Request a new link.');
       setBusy(false);
       return;
     }
@@ -253,7 +253,7 @@ export function PasswordResetSurface({
       activation = await fetch('/api/account/activate', { method: 'POST', credentials: 'same-origin' });
     } catch {
       setAttention(true);
-      setMessage('La contraseña quedó guardada, pero SFI no pudo confirmar el acceso institucional. Solicita revisión antes de continuar.');
+      setMessage('The password was saved, but SFI could not confirm institutional access. Request review before continuing.');
       setBusy(false);
       return;
     }
@@ -269,8 +269,8 @@ export function PasswordResetSurface({
       setAttention(true);
       setMessage(
         activationBody.message
-          ? `${activationBody.message} La contraseña ya quedó guardada; no necesitas volver a definirla.`
-          : 'La contraseña quedó guardada, pero SFI no confirmó el acceso institucional. Solicita revisión antes de continuar.',
+          ? `${activationBody.message} The password is already saved; you do not need to define it again.`
+          : 'The password was saved, but SFI did not confirm institutional access. Request review before continuing.',
       );
       setBusy(false);
       return;
@@ -293,7 +293,7 @@ export function PasswordResetSurface({
     <AuthFrame
       eyebrow="INSTITUTIONAL INVITATION"
       title="Confirmar acceso"
-      lead="Has recibido un grant de acceso a System Friction Institute. Verifica la identidad y define tu propia credencial para completar la activación."
+      lead="You received an access grant to System Friction Institute. Verify your identity and define your own credential to complete activation."
       state={state}
     >
       <form onSubmit={submit} className="sfiAuthForm">
@@ -303,11 +303,11 @@ export function PasswordResetSurface({
         </div>
 
         <label>
-          <span>NUEVA CONTRASEÑA</span>
+          <span>NEW PASSWORD</span>
           <input name="password" type="password" autoComplete="new-password" minLength={12} required disabled={!ready || busy} />
         </label>
         <label>
-          <span>CONFIRMAR CONTRASEÑA</span>
+          <span>CONFIRM PASSWORD</span>
           <input name="confirmation" type="password" autoComplete="new-password" minLength={12} required disabled={!ready || busy} />
         </label>
 
@@ -316,7 +316,7 @@ export function PasswordResetSurface({
         </button>
 
         <p className="sfiAuthPrivacy">
-          Tu contraseña permanece privada. SFI no la genera, no la conoce y no la comparte.
+          Your password remains private. SFI does not generate it, know it or share it.
         </p>
       </form>
     </AuthFrame>

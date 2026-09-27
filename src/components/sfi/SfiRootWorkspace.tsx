@@ -19,23 +19,23 @@ const dossierCache=new Map<string,CacheEntry>();
 const reportCache=new Map<string,CacheEntry>();
 
 const OBSERVE_LINKS = [
-  { href: '/observatory', label: 'Observatorio', note: 'Actividad, ejecución, evidencia, salud y continuidad.' },
-  { href: '/cases', label: 'Casos', note: 'Expedientes, evidencia, RETURN y cierres autónomos.' },
-  { href: '/method-lab', label: 'Laboratorio', note: 'Experimentos, comparación, simulación y reentry.' },
-  { href: '/twin', label: 'Twin / Spine', note: 'Estado cognitivo, lineage, contradicción y memoria no canónica.' },
-  { href: '/twin/learning', label: 'Aprendizajes', note: 'Candidatos y promociones institucionales gobernadas.' },
-  { href: '/studio', label: 'Studio', note: 'Material, audio y ejecución de capacidades specialist.' },
-  { href: '/library', label: 'Library / Atlas', note: 'Corpus documental, referencia longitudinal y catálogo metodológico.' },
-  { href: '/governance', label: 'Agentes / Runtime', note: 'Passports, ejecución y telemetría. Las decisiones humanas viven aquí en ROOT.' },
-  { href: '/root/evidence-review', label: 'Evidence', note: 'Aportar, revisar procedencia y elegibilidad de evidencia.' },
-  { href: '/history/mutations', label: 'Audit / Return', note: 'Mutaciones, receipts y trazabilidad de cambio institucional.' },
+  { href: '/observatory', label: 'Observatory', note: 'Activity, execution, evidence, health and continuity.' },
+  { href: '/cases', label: 'Cases', note: 'Dossiers, evidence, RETURN and autonomous closure.' },
+  { href: '/method-lab', label: 'Laboratory', note: 'Experiments, comparison, simulation and reentry.' },
+  { href: '/twin', label: 'Twin / Spine', note: 'Cognitive state, lineage, contradiction and non-canonical memory.' },
+  { href: '/twin/learning', label: 'Learning', note: 'Candidates and governed institutional promotions.' },
+  { href: '/studio', label: 'Studio', note: 'Material, audio and specialist-capability execution.' },
+  { href: '/library', label: 'Library / Atlas', note: 'Document corpus, longitudinal reference and method catalog.' },
+  { href: '/governance', label: 'Agents / Runtime', note: 'Passports, execution and telemetry. Human decisions live here in ROOT.' },
+  { href: '/root/evidence-review', label: 'Evidence', note: 'Contribute and review provenance and evidence eligibility.' },
+  { href: '/history/mutations', label: 'Audit / Return', note: 'Mutations, receipts and institutional-change traceability.' },
 ] as const;
 
 function rows(value: unknown): Row[] {
   return Array.isArray(value) ? value.filter((item): item is Row => Boolean(item) && typeof item === 'object' && !Array.isArray(item)) : [];
 }
 function txt(value: unknown, fallback = '—') { return typeof value === 'string' && value.trim() ? value.trim() : fallback; }
-function when(value: unknown) { if (typeof value !== 'string' || !value) return '—'; const parsed = new Date(value); return Number.isNaN(parsed.valueOf()) ? value : parsed.toLocaleString('es-MX'); }
+function when(value: unknown) { if (typeof value !== 'string' || !value) return '—'; const parsed = new Date(value); return Number.isNaN(parsed.valueOf()) ? value : parsed.toLocaleString('en-US'); }
 function cacheFresh(entry:CacheEntry|undefined,ttl:number){return Boolean(entry&&Date.now()-entry.at<ttl)}
 async function jsonFetch(url: string, init?: RequestInit) {
   const response = await fetch(url, { cache: 'no-store', ...init });
@@ -51,9 +51,9 @@ function State({ value }: { value: unknown }) {
   return <span className={`rootState ${attention ? 'attention' : sovereign ? 'sovereign' : ''}`}>{raw.replaceAll('_', ' ') || 'MISSING'}</span>;
 }
 function Section({ title, children }: { title: string; children: ReactNode }) { return <section className="rootDossierSection"><h3>{title}</h3>{children}</section>; }
-function Trace({ value }: { value: unknown }) { return <details className="rootTrace"><summary>Ver trazabilidad técnica</summary><pre>{JSON.stringify(value, null, 2)}</pre></details>; }
+function Trace({ value }: { value: unknown }) { return <details className="rootTrace"><summary>View technical trace</summary><pre>{JSON.stringify(value, null, 2)}</pre></details>; }
 function HumanReportBody({ value }: { value: unknown }) {
-  const raw = txt(value, 'MISSING · no existe cuerpo legible para este reporte.');
+  const raw = txt(value, 'MISSING · no readable report body exists.');
   const blocks = raw.split(/\n\s*\n/).map((block) => block.trim()).filter(Boolean);
   return <div className="rootReportBody">{blocks.map((block, index) => {
     const cleaned = block.replace(/^#{1,6}\s*/gm, '').replace(/^[-*]\s+/gm, '• ');
@@ -130,7 +130,7 @@ export function SfiRootWorkspace({ enabled }: { enabled: boolean }) {
     setBusy(decision);
     try {
       await jsonFetch('/api/root/decisions', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'proposal', id: dossier.id, decision, note: note.trim() || null }) });
-      setNotice(decision === 'accept' ? 'Cambio aceptado. La ejecución posterior conserva sus propios límites, evidencia y RETURN.' : 'Cambio denegado. El expediente y su trazabilidad permanecen disponibles.');
+      setNotice(decision === 'accept' ? 'Change accepted. Subsequent execution keeps its own limits, evidence and RETURN.' : 'Change denied. The dossier and its trace remain available.');
       setNote('');
       await Promise.all([loadBase(true), loadDossier(dossier.id,true)]);
     } catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
@@ -141,8 +141,8 @@ export function SfiRootWorkspace({ enabled }: { enabled: boolean }) {
     if (!dossier?.id || dossier?.actionability?.actionable !== true) return;
     setBusy('evidence');
     try {
-      await jsonFetch(`/api/sfi/proposals/${dossier.id}/request-evidence`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ evidence_required: note.trim() || 'Busca evidencia suficiente para sostener, contradecir o volver indeterminada esta propuesta antes de decidir.' }) });
-      setNotice('Solicitud de evidencia registrada. SFI inició adquisición gobernada y la decisión permanece abierta.');
+      await jsonFetch(`/api/sfi/proposals/${dossier.id}/request-evidence`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ evidence_required: note.trim() || 'Find enough evidence to support, contradict or make this proposal indeterminate before deciding.' }) });
+      setNotice('Evidence request recorded. SFI started governed acquisition and the decision remains open.');
       setNote('');
       await Promise.all([loadBase(true), loadDossier(dossier.id,true)]);
     } catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
@@ -159,40 +159,40 @@ export function SfiRootWorkspace({ enabled }: { enabled: boolean }) {
 
     <InstitutionalSurfaceRail surface="ROOT" state={readState} detail={lastReadAt ? 'LAST READ '+when(lastReadAt) : 'AWAITING FIRST READ'}/>
 
-    <header className="rootHeader"><div className="rootHeaderCopy"><span>ROOT · SOBERANÍA INSTITUCIONAL · AUTHORITY / OBSERVATION / RETURN</span><h1>Decide lo soberano. Observa y lee el resto.</h1><p>SFI opera, busca evidencia, ejecuta capacidades ya autorizadas, registra RETURN y cierra trabajo rutinario sin pedir permiso. ROOT interviene cuando existe una decisión real de autoridad y conserva lectura completa de reportes, casos, aprendizaje y RETURN.</p></div><div className="rootReadState"><span>ESTADO DE LECTURA</span><b>{lastReadAt ? `${readState} · ${when(lastReadAt)}` : `${readState} · esperando primera observación`}</b><button onClick={() => void loadBase(true)}>Actualizar</button></div></header>
+    <header className="rootHeader"><div className="rootHeaderCopy"><span>ROOT · INSTITUTIONAL SOVEREIGNTY · AUTHORITY / OBSERVATION / RETURN</span><h1>Decide what is sovereign. Observe and read the rest.</h1><p>SFI operates, searches for evidence, executes already-authorized capabilities, records RETURN and closes routine work without asking permission. ROOT intervenes when a real authority decision exists and retains complete visibility over reports, cases, learning and RETURN.</p></div><div className="rootReadState"><span>READ STATE</span><b>{lastReadAt ? `${readState} · ${when(lastReadAt)}` : `${readState} · waiting for first observation`}</b><button onClick={() => void loadBase(true)}>Refresh</button></div></header>
 
-    <section className="rootPulse" aria-label="Estado institucional observable"><article data-epistemic-state={readState}><span>Decisiones ROOT</span><b>{pulseValue(actionable.length)}</b><small>Sólo cambios soberanos.</small></article><article data-epistemic-state={readState}><span>Casos activos</span><b>{pulseValue(activeCases.length)}</b><small>Se observan; no se aprueban.</small></article><article data-epistemic-state={readState}><span>Ciclos abiertos</span><b>{pulseValue(cycles.length)}</b><small>Pueden cerrar autónomamente.</small></article><article data-epistemic-state={readState}><span>Trabajo observable</span><b>{pulseValue(observable.length)}</b><small>SFI continúa dentro de su autoridad.</small></article></section>
+    <section className="rootPulse" aria-label="Observable institutional state"><article data-epistemic-state={readState}><span>ROOT decisions</span><b>{pulseValue(actionable.length)}</b><small>Sovereign changes only.</small></article><article data-epistemic-state={readState}><span>Active cases</span><b>{pulseValue(activeCases.length)}</b><small>Observed; not approved.</small></article><article data-epistemic-state={readState}><span>Open cycles</span><b>{pulseValue(cycles.length)}</b><small>May close autonomously.</small></article><article data-epistemic-state={readState}><span>Observable work</span><b>{pulseValue(observable.length)}</b><small>SFI continues within its authority.</small></article></section>
 
-    <nav className="rootObserve" aria-label="Diez módulos institucionales ROOT"><div className="rootObserveLead"><span>10 MÓDULOS · TOPOLOGÍA DE OBSERVACIÓN</span><p>Son lentes sobre owners existentes. Ninguno adquiere escritor, memoria o autoridad nueva por aparecer aquí.</p></div><div className="rootObserveLinks">{OBSERVE_LINKS.map((item) => <Link key={item.href} href={item.href}><strong>{item.label}</strong><span>{item.note}</span></Link>)}</div></nav>
+    <nav className="rootObserve" aria-label="Ten ROOT institutional modules"><div className="rootObserveLead"><span>10 MODULES · OBSERVATION TOPOLOGY</span><p>They are lenses over existing owners. None gains a new writer, memory or authority by appearing here.</p></div><div className="rootObserveLinks">{OBSERVE_LINKS.map((item) => <Link key={item.href} href={item.href}><strong>{item.label}</strong><span>{item.note}</span></Link>)}</div></nav>
 
-    <section className="rootRule"><strong>SFI OPERA SIN PEDIR PERMISO.</strong><span>OBSERVACIÓN ≠ INFERENCIA · SIMULACIÓN ≠ OBSERVACIÓN · operar ≠ gobernar · cerrar ≠ aprender · evidencia ≠ aprobación · reporte ≠ decisión.</span></section>
+    <section className="rootRule"><strong>SFI OPERATES WITHOUT ASKING PERMISSION.</strong><span>OBSERVATION ≠ INFERENCE · SIMULATION ≠ OBSERVATION · operating ≠ governing · closing ≠ learning · evidence ≠ approval · report ≠ decision.</span></section>
 
     <SfiFriccionautaPanel />
 
     <div className="rootDecisionLayout">
-      <aside className="rootDecisionQueue"><header><div><span>DECISIONES QUE SÍ NECESITAN ROOT</span><b>{base ? actionable.length : 'MISSING'}</b></div></header>{actionable.map((item) => <Link key={item.id} href={`/root?decision=${encodeURIComponent(String(item.id))}`} className={`rootDecisionCard ${selectedId === item.id ? 'selected' : ''}`}><div><State value={item.rootDecisionClass ?? item.decisionClass}/><State value={item.riskLevel}/></div><strong>{txt(item.title, 'Cambio institucional')}</strong><p>{txt(item.actionability?.question, 'Abre el expediente para entender qué cambiaría y por qué.')}</p><small>Abrir decisión →</small></Link>)}{base && !actionable.length && <div className="rootEmpty">No hay cambios institucionales esperando tu decisión.</div>}{!base && <div className="rootEmpty">{readState} · no se proyecta cero hasta observar el read contract.</div>}{!!observable.length && <details className="rootObservable"><summary>Trabajo que SFI está resolviendo · {observable.length}</summary>{observable.slice(0, 80).map((item) => <article key={item.id}><strong>{txt(item.title, 'Trabajo operativo')}</strong><p>{txt(item.actionability?.question, 'SFI continúa dentro de autoridad existente.')}</p></article>)}</details>}</aside>
+      <aside className="rootDecisionQueue"><header><div><span>DECISIONS THAT REQUIRE ROOT</span><b>{base ? actionable.length : 'MISSING'}</b></div></header>{actionable.map((item) => <Link key={item.id} href={`/root?decision=${encodeURIComponent(String(item.id))}`} className={`rootDecisionCard ${selectedId === item.id ? 'selected' : ''}`}><div><State value={item.rootDecisionClass ?? item.decisionClass}/><State value={item.riskLevel}/></div><strong>{txt(item.title, 'Institutional change')}</strong><p>{txt(item.actionability?.question, 'Open the dossier to understand what would change and why.')}</p><small>Open decision →</small></Link>)}{base && !actionable.length && <div className="rootEmpty">No institutional changes are waiting for your decision.</div>}{!base && <div className="rootEmpty">{readState} · zero is not projected until the read contract is observed.</div>}{!!observable.length && <details className="rootObservable"><summary>Work SFI is resolving · {observable.length}</summary>{observable.slice(0, 80).map((item) => <article key={item.id}><strong>{txt(item.title, 'Operational work')}</strong><p>{txt(item.actionability?.question, 'SFI continues within existing authority.')}</p></article>)}</details>}</aside>
 
       <main className="rootDecisionDetail">
-        {loading && <div className="rootEmpty large">Reconstruyendo expediente…</div>}
-        {!loading && !dossier && <div className="rootEmpty large"><strong>No hay nada que aprobar aquí por defecto.</strong><p>Selecciona una decisión sólo cuando SFI proponga un cambio soberano. El resto debe continuar automáticamente o permanecer observable.</p></div>}
-        {!loading && dossier && <article className="rootDossier"><header className="rootDossierHero"><div><State value={dossier.decisionClass}/><h2>{txt(dossier.title, 'Decisión institucional')}</h2><p>{txt(dossier.statusMeaning, dossier.status)}</p></div><State value={dossier.risk?.level}/></header>
-          <Section title="Quién lo trae"><p>{txt(plain.who, 'El origen no quedó normalizado. La trazabilidad técnica debe mostrar exactamente qué falta.')}</p></Section><Section title="Qué pasó"><p>{txt(plain.whatHappened, 'No quedó registrada una explicación humana suficiente.')}</p></Section><Section title="Por qué importa"><p>{txt(plain.whyItMatters)}</p></Section><Section title="Qué propone"><p>{txt(plain.proposal)}</p></Section><Section title="Qué gana SFI"><p>{txt(plain.sfiGain)}</p></Section><Section title="Qué evidencia hay"><p>{txt(plain.evidence)}</p><small>ROOT puede pedir más evidencia, pero no convierte una fuente en evidencia aceptada por pulsar un botón.</small></Section><Section title="Si aceptas"><p>{txt(plain.ifAccepted)}</p></Section><Section title="Si deniegas"><p>{txt(plain.ifDenied)}</p></Section><Section title="Por qué te corresponde decidir"><p>{txt(plain.whyRoot)}</p></Section>
-          {dossier.actionability?.actionable === true ? <section className="rootDecisionActions"><textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder="Nota opcional o especificación de la evidencia que falta"/><div><button disabled={Boolean(busy)} onClick={() => void decide('accept')}>ACEPTAR</button><button className="deny" disabled={Boolean(busy)} onClick={() => void decide('deny')}>DENEGAR</button><button className="evidence" disabled={Boolean(busy)} onClick={() => void requestEvidence()}>SOLICITAR EVIDENCIA</button><Link className="rootEvidenceLink" href="/root/evidence-review">APORTAR / REVISAR EVIDENCIA →</Link></div></section> : <div className="rootEmpty">No hay una decisión ROOT accionable ahora. El trabajo operativo continúa sin pedir autorización.</div>}
+        {loading && <div className="rootEmpty large">Reconstructing dossier…</div>}
+        {!loading && !dossier && <div className="rootEmpty large"><strong>There is nothing to approve here by default.</strong><p>Select a decision only when SFI proposes a sovereign change. Everything else should continue automatically or remain observable.</p></div>}
+        {!loading && dossier && <article className="rootDossier"><header className="rootDossierHero"><div><State value={dossier.decisionClass}/><h2>{txt(dossier.title, 'Institutional decision')}</h2><p>{txt(dossier.statusMeaning, dossier.status)}</p></div><State value={dossier.risk?.level}/></header>
+          <Section title="Who brings it"><p>{txt(plain.who, 'The origin was not normalized. The technical trace must show exactly what is missing.')}</p></Section><Section title="What happened"><p>{txt(plain.whatHappened, 'No sufficient human-readable explanation was recorded.')}</p></Section><Section title="Why it matters"><p>{txt(plain.whyItMatters)}</p></Section><Section title="What it proposes"><p>{txt(plain.proposal)}</p></Section><Section title="What SFI gains"><p>{txt(plain.sfiGain)}</p></Section><Section title="What evidence exists"><p>{txt(plain.evidence)}</p><small>ROOT may request more evidence, but pressing a button does not turn a source into admitted evidence.</small></Section><Section title="If accepted"><p>{txt(plain.ifAccepted)}</p></Section><Section title="If denied"><p>{txt(plain.ifDenied)}</p></Section><Section title="Why this decision belongs to you"><p>{txt(plain.whyRoot)}</p></Section>
+          {dossier.actionability?.actionable === true ? <section className="rootDecisionActions"><textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder="Optional note or specification of missing evidence"/><div><button disabled={Boolean(busy)} onClick={() => void decide('accept')}>ACCEPT</button><button className="deny" disabled={Boolean(busy)} onClick={() => void decide('deny')}>DENY</button><button className="evidence" disabled={Boolean(busy)} onClick={() => void requestEvidence()}>REQUEST EVIDENCE</button><Link className="rootEvidenceLink" href="/root/evidence-review">CONTRIBUTE / REVIEW EVIDENCE →</Link></div></section> : <div className="rootEmpty">There is no actionable ROOT decision now. Operational work continues without asking for authorization.</div>}
           <Trace value={dossier.technicalTrace ?? dossier}/>
         </article>}
       </main>
     </div>
 
     <details className="rootReports" onToggle={(event) => { if (event.currentTarget.open) void loadReportArchive(false); }}>
-      <summary>REPORTES · OBSERVACIONES · HIPÓTESIS · APRENDIZAJE · RETURN</summary>
-      {reportArchiveLoading && <div className="rootEmpty">Leyendo reportes…</div>}
+      <summary>REPORTS · OBSERVATIONS · HYPOTHESES · LEARNING · RETURN</summary>
+      {reportArchiveLoading && <div className="rootEmpty">Reading reports…</div>}
       {reportArchive && <div className="rootReportList">
-        <p>Los reportes se leen completos aquí. Informan y reconstruyen; no requieren ACCEPT/DENY para existir o utilizarse bajo autoridad vigente.</p>
-        {!!reportLanes.length && <div className="rootReportHealth">{reportLanes.map((lane) => <article key={lane.key}><span>{txt(lane.label, lane.key)}</span><State value={lane.state}/><small>{lane.lastGeneratedAt ? when(lane.lastGeneratedAt) : 'sin generación observada'}</small></article>)}</div>}
-        {reportItems.slice(0, 80).map((item) => <details className="rootReportItem" key={`${item.source}:${item.id}`}><summary><div><State value={item.status}/><State value={item.category}/><small>{when(item.createdAt)}</small></div><strong>{txt(item.title, 'Reporte')}</strong><span>{txt(item.reportType, 'report')} · {txt(item.cadence, 'unknown')}</span></summary><HumanReportBody value={item.body}/><div className="rootReportFacts"><span>EVIDENCIA {rows(item.evidence).length || (Array.isArray(item.evidence) ? item.evidence.length : 0)}</span><span>WARNINGS {Array.isArray(item.warnings) ? item.warnings.length : 0}</span><span>PROVIDER {txt(item.provider, '—')}</span><span>MODEL {txt(item.model, '—')}</span></div><Trace value={{ evidence: item.evidence, warnings: item.warnings, trace: item.trace, metadata: item.metadata }}/></details>)}
+        <p>Reports are read in full here. They inform and reconstruct; they do not require ACCEPT/DENY to exist or be used under current authority.</p>
+        {!!reportLanes.length && <div className="rootReportHealth">{reportLanes.map((lane) => <article key={lane.key}><span>{txt(lane.label, lane.key)}</span><State value={lane.state}/><small>{lane.lastGeneratedAt ? when(lane.lastGeneratedAt) : 'no observed generation'}</small></article>)}</div>}
+        {reportItems.slice(0, 80).map((item) => <details className="rootReportItem" key={`${item.source}:${item.id}`}><summary><div><State value={item.status}/><State value={item.category}/><small>{when(item.createdAt)}</small></div><strong>{txt(item.title, 'Report')}</strong><span>{txt(item.reportType, 'report')} · {txt(item.cadence, 'unknown')}</span></summary><HumanReportBody value={item.body}/><div className="rootReportFacts"><span>EVIDENCE {rows(item.evidence).length || (Array.isArray(item.evidence) ? item.evidence.length : 0)}</span><span>WARNINGS {Array.isArray(item.warnings) ? item.warnings.length : 0}</span><span>PROVIDER {txt(item.provider, '—')}</span><span>MODEL {txt(item.model, '—')}</span></div><Trace value={{ evidence: item.evidence, warnings: item.warnings, trace: item.trace, metadata: item.metadata }}/></details>)}
       </div>}
     </details>
 
-    <footer className="rootFooter"><span>PROYECTOS {base ? projects.length : 'MISSING'}</span><span>CASOS {base ? cases.length : 'MISSING'}</span><span>DECISIÓN / EVIDENCIA / REPORTES / RETURN</span><span>REGLA: ROOT DECIDE; SFI HACE EL TRABAJO.</span></footer>
+    <footer className="rootFooter"><span>PROJECTS {base ? projects.length : 'MISSING'}</span><span>CASES {base ? cases.length : 'MISSING'}</span><span>DECISION / EVIDENCE / REPORTS / RETURN</span><span>RULE: ROOT DECIDES; SFI DOES THE WORK.</span></footer>
   </div>;
 }

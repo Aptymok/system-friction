@@ -36,7 +36,7 @@ type Disclosure = {
 
 function extractRedirectUri(raw: string) {
   const value = raw.trim();
-  if (!value) throw new Error('Pega la nueva Callback URL o la URL larga de autorización.');
+  if (!value) throw new Error('Paste the new Callback URL or the full authorization URL.');
   const parsed = new URL(value);
   const embedded = parsed.searchParams.get('redirect_uri');
   return embedded ? new URL(embedded).toString() : parsed.toString();
@@ -113,10 +113,10 @@ export function OAuthIntegrationsSurface() {
       });
       const payload = await response.json() as MutationResponse;
       if (!response.ok || !payload.ok || !payload.client || !payload.clientSecret) {
-        throw new Error(payload.error || 'No se pudo registrar la integración.');
+        throw new Error(payload.error || 'The integration could not be registered.');
       }
       setDisclosure({ client: payload.client, clientSecret: payload.clientSecret });
-      setNotice('Cliente creado. La callback se enlazará automáticamente cuando este GPT haga su primera autorización como propietario.');
+      setNotice('Client created. The callback will bind automatically when this GPT performs its first owner authorization.');
       await reload();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
@@ -137,7 +137,7 @@ export function OAuthIntegrationsSurface() {
         body: JSON.stringify({ clientId, redirectUris: [redirectUri] }),
       });
       const payload = await response.json() as MutationResponse;
-      if (!response.ok || !payload.ok) throw new Error(payload.error || 'No se pudo actualizar la callback.');
+      if (!response.ok || !payload.ok) throw new Error(payload.error || 'The callback could not be updated.');
       setEditingClient(null);
       setEditingCallback('');
       setNotice('Callback actualizada sin tocar Vercel ni redeployar SFI.');
@@ -174,15 +174,15 @@ export function OAuthIntegrationsSurface() {
   }
 
   async function revoke(clientId: string) {
-    if (!window.confirm('¿Revocar esta integración? El GPT dejará de autenticarse inmediatamente.')) return;
+    if (!window.confirm('Revoke this integration? The GPT will stop authenticating immediately.')) return;
     setBusy(true);
     setError('');
     setNotice('');
     try {
       const response = await fetch(`/api/oauth/clients?client_id=${encodeURIComponent(clientId)}`, { method: 'DELETE' });
       const payload = await response.json() as MutationResponse;
-      if (!response.ok || !payload.ok) throw new Error(payload.error || 'No se pudo revocar la integración.');
-      setNotice('Integración revocada.');
+      if (!response.ok || !payload.ok) throw new Error(payload.error || 'The integration could not be revoked.');
+      setNotice('Integration revoked.');
       if (disclosure?.client.client_id === clientId) setDisclosure(null);
       await reload();
     } catch (cause) {
@@ -204,16 +204,16 @@ export function OAuthIntegrationsSurface() {
         <div>
           <span>ACCOUNT · EXTERNAL INTEGRATIONS</span>
           <h1>Conectar GPT / agente</h1>
-          <p>SFI genera la identidad OAuth. La primera llamada del GPT registra su callback exacta automáticamente después de autenticar al propietario.</p>
+          <p>SFI generates the OAuth identity. The GPT's first call registers its exact callback automatically after authenticating the owner.</p>
         </div>
         <a href="/root">VOLVER</a>
       </header>
 
       <section className="oauthIntegrationsGrid">
         <form className="oauthPanel" onSubmit={createClient}>
-          <span className="oauthKicker">NUEVA INTEGRACIÓN</span>
-          <h2>Generar conexión</h2>
-          <p className="oauthMuted">No pegues callback, no edites Vercel y no toques Supabase. Crea el cliente aquí, copia la configuración al GPT y pulsa conectar. SFI aprenderá la callback de esa primera solicitud OAuth y la fijará por exact match.</p>
+          <span className="oauthKicker">NEW INTEGRATION</span>
+          <h2>Generate connection</h2>
+          <p className="oauthMuted">Do not paste a callback, edit Vercel or touch Supabase. Create the client here, copy the configuration to the GPT and connect. SFI will learn the callback from that first OAuth request and pin it by exact match.</p>
 
           <label>
             NOMBRE
@@ -232,18 +232,18 @@ export function OAuthIntegrationsSurface() {
             </div>
           </div>
 
-          <button className="oauthPrimary" disabled={busy || !selectedScopes.length}>{busy ? 'PROCESANDO…' : 'GENERAR CONFIGURACIÓN GPT'}</button>
-          <small>La auto-vinculación sólo existe para un cliente OWNER_ONLY sin callback previa y sólo después de autenticar a la misma cuenta SFI propietaria.</small>
+          <button className="oauthPrimary" disabled={busy || !selectedScopes.length}>{busy ? 'PROCESSING…' : 'GENERATE GPT CONFIGURATION'}</button>
+          <small>Auto-binding exists only for an OWNER_ONLY client without a prior callback and only after authenticating the same owner SFI account.</small>
         </form>
 
         <section className="oauthPanel">
-          <span className="oauthKicker">CONFIGURACIÓN GENERADA</span>
+          <span className="oauthKicker">GENERATED CONFIGURATION</span>
           {disclosure ? (
             <>
               <h2>Copiar al editor del GPT</h2>
               <div className="oauthSecretWarning">CLIENT SECRET · ONE TIME ONLY</div>
               <pre>{configText(disclosure.client, disclosure.clientSecret, origin)}</pre>
-              <p className="oauthMuted">Después de guardar esto en ChatGPT, prueba una Action. Usa /openapi.json como único schema. OAuth permanece declarado en OpenAPI y MCP autenticado conserva su contrato separado fuera de GPT Actions.</p>
+              <p className="oauthMuted">After saving this in ChatGPT, test an Action. Use /openapi.json as the single schema. OAuth remains declared in OpenAPI and authenticated MCP keeps its separate contract outside GPT Actions.</p>
               <div className="oauthActions">
                 <button type="button" onClick={() => copy(configText(disclosure.client, disclosure.clientSecret, origin))}>COPIAR TODO</button>
                 <button type="button" onClick={() => copy(disclosure.client.client_id)}>COPIAR CLIENT ID</button>
@@ -252,8 +252,8 @@ export function OAuthIntegrationsSurface() {
             </>
           ) : (
             <>
-              <h2>Sin configuración pendiente</h2>
-              <p className="oauthMuted">Al crear o rotar una integración, el secreto aparecerá aquí una sola vez. SFI persiste únicamente su hash.</p>
+              <h2>No pending configuration</h2>
+              <p className="oauthMuted">When creating or rotating an integration, the secret appears here once. SFI persists only its hash.</p>
               <dl className="oauthContract">
                 <dt>AUTH</dt><dd>OAuth Authorization Code</dd>
                 <dt>SCHEMA</dt><dd>{origin ? `${origin}/openapi.json` : '/openapi.json'}</dd>
@@ -269,8 +269,8 @@ export function OAuthIntegrationsSurface() {
 
       <section className="oauthPanel oauthExisting">
         <span className="oauthKicker">REGISTRO PERSISTENTE</span>
-        <h2>Integraciones de esta cuenta</h2>
-        {!clients.length && <p className="oauthMuted">No hay clientes OAuth registrados.</p>}
+        <h2>Integrations for this account</h2>
+        {!clients.length && <p className="oauthMuted">No OAuth clients are registered.</p>}
         <div className="oauthClientList">
           {clients.map((client) => (
             <article key={client.client_id} className="oauthClientCard">
@@ -280,15 +280,15 @@ export function OAuthIntegrationsSurface() {
               </div>
               <dl className="oauthContract">
                 <dt>AUDIENCE</dt><dd>{client.audience}</dd>
-                <dt>CALLBACK</dt><dd>{client.redirect_uris.length ? client.redirect_uris.join(', ') : 'PENDING · AUTO-BIND EN PRIMERA AUTORIZACIÓN'}</dd>
+                <dt>CALLBACK</dt><dd>{client.redirect_uris.length ? client.redirect_uris.join(', ') : 'PENDING · AUTO-BIND ON FIRST AUTHORIZATION'}</dd>
                 <dt>SCOPES</dt><dd>{client.allowed_scopes.join(' ')}</dd>
                 <dt>LAST USE</dt><dd>{prettyDate(client.last_used_at)}</dd>
               </dl>
               {editingClient === client.client_id && (
                 <div className="oauthInlineEdit">
-                  <textarea value={editingCallback} onChange={(event) => setEditingCallback(event.target.value)} placeholder="Callback o URL larga de autorización" />
-                  <button type="button" onClick={() => updateCallback(client.client_id)} disabled={busy}>GUARDAR CALLBACK</button>
-                  <button type="button" onClick={() => setEditingClient(null)}>CANCELAR</button>
+                  <textarea value={editingCallback} onChange={(event) => setEditingCallback(event.target.value)} placeholder="Callback or full authorization URL" />
+                  <button type="button" onClick={() => updateCallback(client.client_id)} disabled={busy}>SAVE CALLBACK</button>
+                  <button type="button" onClick={() => setEditingClient(null)}>CANCEL</button>
                 </div>
               )}
               <div className="oauthActions">

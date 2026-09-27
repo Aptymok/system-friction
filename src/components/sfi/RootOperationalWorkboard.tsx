@@ -125,16 +125,16 @@ export function RootOperationalWorkboard({ enabled }: Props) {
     return [...unique.values()];
   }, [decisions, blockers, executions, twinProposals, caseItems, returns]);
 
-  if (!enabled) return <aside className="rootWorkboard"><div className="workboardLoading">{ownedText('PANEL DE TRABAJO · esperando sesión / presencia gobernada','WORKBOARD · waiting for session / governed presence')}</div></aside>;
+  if (!enabled) return <aside className="rootWorkboard"><div className="workboardLoading">{ownedText('WORKBOARD · waiting for session / governed presence','WORKBOARD · waiting for session / governed presence')}</div></aside>;
 
-  return <aside className="rootWorkboard" aria-label={ownedText('Panel operativo ROOT','ROOT operational workboard')} data-sfi-contract-lanes="EJECUCIONES / ASSIGNMENT | PROJECTS / CASE EXECUTION | BLOQUEOS / WARNINGS | QUÉ SIGUE / NEXT EXPECTED EVENT | ROOT: ACCIÓN REQUERIDA | LLM PROVIDERS · CONFIG ≠ HEALTH | SYSTEM HEALTH | DEGRADED LANES | ROOT ACTION | SFI AUTOMATIC | CONTINUITY PULSE | RETURNS | TWIN | UNIVERSAL CYCLES">
+  return <aside className="rootWorkboard" aria-label={ownedText('ROOT operational workboard','ROOT operational workboard')} data-sfi-contract-lanes="EXECUTIONS / ASSIGNMENT | PROJECTS / CASE EXECUTION | BLOCKERS / WARNINGS | WHAT NEXT / EXPECTED EVENT | ROOT: ACTION REQUIRED | LLM PROVIDERS · CONFIG ≠ HEALTH | SYSTEM HEALTH | DEGRADED LANES | ROOT ACTION | SFI AUTOMATIC | CONTINUITY PULSE | RETURNS | TWIN | UNIVERSAL CYCLES">
     <div className="workboardHead">
-      <div><small>{ui('INICIO OPERATIVO ROOT')}</small><strong>{ui('TRABAJO QUE REQUIERE ATENCIÓN')}</strong></div>
+      <div><small>{ui('ROOT OPERATIONAL HOME')}</small><strong>{ui('WORK REQUIRING ATTENTION')}</strong></div>
       <span>{data?.authority ? String(data.authority).toUpperCase() : 'VIEWER'} · {ui('SALUD DEL SISTEMA')} {systemHealth}</span>
     </div>
 
     <div className="workboardSummary">
-      <div><small>{ui('NECESITA DE MÍ')}</small><b>{humanActionCount}</b></div>
+      <div><small>{ui('NEEDS ME')}</small><b>{humanActionCount}</b></div>
       <div><small>{ui('SFI TRABAJANDO')}</small><b>{automaticCount}</b></div>
       <div><small>{ui('PULSO')}</small><b>{continuityHealth}</b></div>
       <div><small>{ui('CARRILES DEGRADADOS')}</small><b>{degradedLaneCount}</b></div>
@@ -153,25 +153,25 @@ export function RootOperationalWorkboard({ enabled }: Props) {
     />
 
     <div className="workboardGrid">
-      <Lane title="NECESITA DE MÍ / ROOT ACTION" count={humanActionCount}>
+      <Lane title="NEEDS ME / ROOT ACTION" count={humanActionCount}>
         {humanNextItems.slice(0, 10).map((item: Row) => <article key={`human:${item.id}`} className={stateClass(item.blocker ?? item.status)}>
           <b>{short(item.title, 'Objeto operativo')}</b>
           <span>{short(item.status)} → {short(item.nextExpectedEvent, 'TERMINAL')}</span>
-          <small>{ownedText('responsable','owner')}: {short(item.owner)} · ROOT: {ownedText('ACCIÓN REQUERIDA','ACTION REQUIRED')}</small>
+          <small>{ownedText('owner','owner')}: {short(item.owner)} · ROOT: {ownedText('ACTION REQUIRED','ACTION REQUIRED')}</small>
           {item.blocker && <small>{ownedText('BLOQUEO','BLOCKER')} · {short(item.blocker)}</small>}
           <small>{short(item.actionLabel)}</small>
-          {item.status === 'waiting_evidence' && <a href="/root/evidence-review">{ownedText('REVISAR EVIDENCIA →','REVIEW EVIDENCE →')}</a>}
+          {item.status === 'waiting_evidence' && <a href="/root/evidence-review">{ownedText('REVIEW EVIDENCE →','REVIEW EVIDENCE →')}</a>}
         </article>)}
         {humanNextCycles.slice(0, 5).map((cycle: Row) => <article key={`human-cycle:${cycle.cycleId}`} className={stateClass(cycle.state)}>
           <b>{short(cycle.title, 'Ciclo universal')}</b>
           <span>{short(cycle.state)} → {short(cycle.nextExpectedEvent)}</span>
-          <small>owner: {short(cycle.owner)} · ROOT: ACCIÓN REQUERIDA</small>
+          <small>owner: {short(cycle.owner)} · ROOT: ACTION REQUIRED</small>
           {cycle.blocker && <small>{ownedText('BLOQUEO','BLOCKER')} · {short(cycle.blocker)}</small>}
         </article>)}
-        {!humanActionCount && <em>{ownedText('No hay acciones humanas requeridas ahora.','No human action is required now.')}</em>}
+        {!humanActionCount && <em>{ownedText('No human action is required now.','No human action is required now.')}</em>}
       </Lane>
 
-      <Lane title="SFI TRABAJANDO / AUTOMÁTICO" count={automaticCount}>
+      <Lane title="SFI WORKING / AUTOMATIC" count={automaticCount}>
         {automaticNextItems.slice(0, 10).map((item: Row) => <article key={`auto:${item.id}`} className={stateClass(item.blocker ?? item.status)}>
           <b>{short(item.title, 'Objeto operativo')}</b>
           <span>{short(item.status)} → {short(item.nextExpectedEvent, 'TERMINAL')}</span>
@@ -185,17 +185,17 @@ export function RootOperationalWorkboard({ enabled }: Props) {
           <small>owner: {short(cycle.owner)} · ROOT: ninguna</small>
           {cycle.blocker && <small>{ownedText('BLOQUEO','BLOCKER')} · {short(cycle.blocker)}</small>}
         </article>)}
-        {!automaticCount && <em>{ownedText('Sin trabajo autónomo pendiente.','No autonomous work is pending.')}</em>}
+        {!automaticCount && <em>{ownedText('No autonomous work is pending.','No autonomous work is pending.')}</em>}
       </Lane>
 
       <Lane title="PULSO / CONTINUIDAD" count={continuity.latestRun ? 1 : 0}>
         <article className={stateClass(continuityHealth)}>
           <b>{continuityHealth}</b>
-          <span>modo {short(continuity.mode)} · cadencia esperada {continuity.expectedCadenceMinutes ?? 30} min</span>
-          <small>último heartbeat · {short(continuity.lastHeartbeatAt)}</small>
+          <span>modo {short(continuity.mode)} · cadencia waiting forda {continuity.expectedCadenceMinutes ?? 30} min</span>
+          <small>last heartbeat · {short(continuity.lastHeartbeatAt)}</small>
           <small>edad · {typeof continuity.heartbeatAgeMinutes === 'number' ? `${continuity.heartbeatAgeMinutes.toFixed(1)} min` : 'sin lectura'}</small>
           <small>scheduler · {short(continuity.scheduler)} · respaldo {short(continuity.fallback)}</small>
-          {continuity.latestRun && <small>último run · {short(continuity.latestRun.status)} · {short(continuity.latestRun.trigger)} · {short(continuity.latestRun.id)}</small>}
+          {continuity.latestRun && <small>last run · {short(continuity.latestRun.status)} · {short(continuity.latestRun.trigger)} · {short(continuity.latestRun.id)}</small>}
         </article>
       </Lane>
 
@@ -203,7 +203,7 @@ export function RootOperationalWorkboard({ enabled }: Props) {
         {humanDecisions.slice(0, 6).map((item: Row) => {
           const next = nextById.get(String(item.id));
           return <article key={item.id} className={stateClass(next?.blocker ?? item.status)}>
-            <b>{short(item.title, 'Propuesta')}</b>
+            <b>{short(item.title, 'Proposal')}</b>
             <span>{short(item.status)} · {short(item.decisionClass)} · riesgo {short(item.riskLevel, 'unknown')}</span>
             <small>{next ? `${short(next.nextExpectedEvent)} · owner ${short(next.owner)}` : 'ROOT decide'}</small>
           </article>;
@@ -211,11 +211,11 @@ export function RootOperationalWorkboard({ enabled }: Props) {
         {!humanDecisions.length && <em>{ownedText('Sin decisiones que requieran ROOT.','No decisions require ROOT.')}</em>}
       </Lane>
 
-      <Lane title="EJECUCIONES / ASIGNACIÓN" count={executions.length}>
+      <Lane title="EXECUTIONS / ASSIGNMENT" count={executions.length}>
         {executions.slice(0, 6).map((item: Row) => {
           const next = nextById.get(String(item.id));
           return <article key={item.id} className={stateClass(next?.blocker ?? item.execution?.adapterState)}>
-            <b>{short(item.title, 'Ejecución')}</b>
+            <b>{short(item.title, 'Execution')}</b>
             <span>{short(item.status)} · {short(item.execution?.assignmentState)}</span>
             <small>clase: {short(item.execution?.executionClass)} · coordinador: {short(item.execution?.coordinator)}</small>
             <small>adapter: {short(item.execution?.adapterId, 'NO VERIFICADO')} · executor: {short(item.execution?.executor, 'NO ASIGNADO')}</small>
@@ -223,17 +223,17 @@ export function RootOperationalWorkboard({ enabled }: Props) {
             {next?.blocker && <small>{ownedText('BLOQUEO','BLOCKER')} · {short(next.blocker)}</small>}
           </article>;
         })}
-        {!executions.length && <em>No hay propuestas en handoff de ejecución.</em>}
+        {!executions.length && <em>No proposals are in execution handoff.</em>}
       </Lane>
 
-      <Lane title="PROYECTOS / EJECUCIÓN DE CASOS" count={caseItems.length}>
+      <Lane title="PROJECTS / CASE EXECUTION" count={caseItems.length}>
         {caseItems.slice(0, 6).map((item: Row) => <article key={item.id} className={stateClass(item.status)}>
           <b>{short(item.action, 'Case action')}</b>
           <span>{short(item.status)} · riesgo {short(item.riskLevel)} · {short(item.reversibility)}</span>
-          <small>case {short(item.caseId)} · intervention {item.interventionRef ? 'sí' : 'no'} · RETURN {item.returnRef ? 'sí' : 'no'}</small>
+          <small>case {short(item.caseId)} · intervention {item.interventionRef ? 'yes' : 'no'} · RETURN {item.returnRef ? 'yes' : 'no'}</small>
           <small>platform external action: FALSE</small>
         </article>)}
-        {!caseItems.length && <em>{data?.authority === 'root' ? 'Sin case actions observadas.' : 'Projects/Case Execution es visible sólo para ROOT soberano.'}</em>}
+        {!caseItems.length && <em>{data?.authority === 'root' ? 'No case actions observed.' : 'Projects/Case Execution is visible only to sovereign ROOT.'}</em>}
       </Lane>
 
       <Lane title="TWIN / PROPUESTAS" count={twinProposals.length}>
@@ -245,7 +245,7 @@ export function RootOperationalWorkboard({ enabled }: Props) {
 
       <Lane title="CICLOS UNIVERSALES" count={nextCycles.length}>
         {nextCycles.slice(0, 8).map((cycle: Row) => <article key={`cycle:${cycle.cycleId}`} className={stateClass(cycle.blocker ?? cycle.state)}>
-          <b>{short(cycle.title, 'Ciclo universal abierto')}</b><span>{short(cycle.state)} · espera {short(cycle.nextExpectedEvent)}</span><small>{short(cycle.cycleId)} · owner {short(cycle.owner)} · ROOT {cycle.rootActionRequired ? 'sí' : 'no'}</small>
+          <b>{short(cycle.title, 'Open universal cycle')}</b><span>{short(cycle.state)} · waiting for {short(cycle.nextExpectedEvent)}</span><small>{short(cycle.cycleId)} · owner {short(cycle.owner)} · ROOT {cycle.rootActionRequired ? 'yes' : 'no'}</small>
           {cycle.blocker && <small>BLOQUEO · {short(cycle.blocker)}</small>}
         </article>)}
         {!nextCycles.length && <em>Sin ciclos universales abiertos visibles.</em>}
@@ -264,18 +264,18 @@ export function RootOperationalWorkboard({ enabled }: Props) {
       <Lane title="REPORTES / CARRILES DEGRADADOS" count={reports.length}>
         <div className="reportHealthStrip">{reportLanes.map((lane: Row) => <span key={lane.key} className={stateClass(lane.state)}>{short(lane.key)} · {short(lane.state)}</span>)}</div>
         {reports.slice(0, 5).map((report: Row) => <details key={report.id} className={stateClass(report.status)}>
-          <summary><b>{short(report.title, 'Reporte')}</b><span>{short(report.status)}</span></summary>
+          <summary><b>{short(report.title, 'Report')}</b><span>{short(report.status)}</span></summary>
           <p>{short(report.body, 'Sin cuerpo legible.')}</p>
           {Array.isArray(report.warnings) && report.warnings.length > 0 && <small>{report.warnings.join(' · ')}</small>}
         </details>)}
-        {!reports.length && <em>No hay reportes legibles en inbox.</em>}
+        {!reports.length && <em>No readable reports are in the inbox.</em>}
       </Lane>
 
       <Lane title="LLM PROVIDERS · CONFIG ≠ HEALTH" count={providerHealth.length}>
         {providerHealth.map((provider: Row) => <article key={provider.id} className={stateClass(provider.state ?? (provider.available ? 'configured' : 'unconfigured'))}>
           <b>{short(provider.id).toUpperCase()}</b>
           <span>{short(provider.state, provider.available ? 'CONFIGURED / UNTESTED' : 'UNCONFIGURED')} · {short(provider.model)}</span>
-          <small>configured {(provider.configured ?? provider.available) ? 'sí' : 'no'} · canary {provider.canaryOk === true ? 'OK' : provider.canaryOk === false ? 'FAIL' : 'UNTESTED'}</small>
+          <small>configured {(provider.configured ?? provider.available) ? 'yes' : 'no'} · canary {provider.canaryOk === true ? 'OK' : provider.canaryOk === false ? 'FAIL' : 'UNTESTED'}</small>
           {provider.lastError && <small>last error · {short(provider.lastErrorClass)} · {short(provider.lastError)}</small>}
           {provider.lastSuccessAt && <small>last success · {short(provider.lastSuccessAt)}</small>}
         </article>)}
@@ -286,31 +286,31 @@ export function RootOperationalWorkboard({ enabled }: Props) {
         {riskOpportunity.slice(0, 8).map((item: Row) => <article key={item.id} className={item.kind === 'risk' ? 'isAttention' : ''}>
           <b>{String(item.kind ?? '').toUpperCase()}</b><span>{short(item.text)}</span><small>{short(item.epistemicClass)} · run {short(item.sourceRunId)}</small>
         </article>)}
-        {!riskOpportunity.length && <em>No hay riesgos/oportunidades estructurados en los runs recientes; no se infieren aquí.</em>}
+        {!riskOpportunity.length && <em>No structured risks/opportunities exist in recent runs; none are inferred here.</em>}
       </Lane>
 
-      <Lane title="RETURN / CALIBRACIÓN" count={returns.length}>
+      <Lane title="RETURN / CALIBRATION" count={returns.length}>
         {returns.slice(0, 6).map((item: Row) => <article key={item.id} className="isReady">
           <b>{short(item.eventName, 'RETURN')}</b><span>{short(item.epistemicClass)}</span><small>{short(item.occurredAt)}</small>
         </article>)}
-        {!returns.length && <em>No hay RETURN reciente observado en la fuente consultada.</em>}
+        {!returns.length && <em>No recent RETURN is observed in the consulted source.</em>}
       </Lane>
 
       <Lane title="CANON QUEUE · ROOT ONLY" count={canon.length}>
         {canon.slice(0, 6).map((item: Row) => <article key={item.id} className="isAttention">
-          <b>{short(item.title, 'Candidato')}</b><span>accepted + outcome recorded</span><small>La promoción exige contrato, evidencia, tests, reproducibilidad, migración y rollback.</small>
+          <b>{short(item.title, 'Candidate')}</b><span>accepted + outcome recorded</span><small>Promotion requires contract, evidence, tests, reproducibility, migration and rollback.</small>
         </article>)}
-        {!canon.length && <em>Sin candidatos observados para revisión canónica.</em>}
+        {!canon.length && <em>No candidates observed for canonical review.</em>}
       </Lane>
 
       <Lane title="CAPACIDADES RESERVADAS" count={reserved.length}>
         {reserved.map((item: Row) => <article key={item.id} className={stateClass(item.status)}>
           <b>{short(item.name)}</b><span>{short(item.status)}</span>
-          <small>{item.executionAuthorized ? `AUTORIZADA · owner ${short(item.implementationOwner)} · el router puede continuar sin otro gate mecánico.` : 'NO autorizada para ejecución; espera una decisión gobernada.'}</small>
+          <small>{item.executionAuthorized ? `AUTHORIZED · owner ${short(item.implementationOwner)} · the router may continue without another mechanical gate.` : 'NOT authorized for execution; waiting for a governed decision.'}</small>
         </article>)}
       </Lane>
     </div>
 
-    <footer className="workboardBoundary">humano sólo cuando rootActionRequired=true · cognition interrumpida → continuidad durable · cognition completa → síntesis → plan de RETURN → adquisición gobernada → RETURN observado → CONTRAST → learning → ROOT canon/close · external actions fail closed without adapter</footer>
+    <footer className="workboardBoundary">human only when rootActionRequired=true · interrupted cognition → durable continuity · completed cognition → synthesis → RETURN plan → governed acquisition → observed RETURN → CONTRAST → learning → ROOT canon/close · external actions fail closed without adapter</footer>
   </aside>;
 }

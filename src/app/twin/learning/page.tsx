@@ -55,7 +55,7 @@ export default function TwinLearningPage() {
 
   const decide = async (action: 'promote' | 'reject') => {
     if (!selected?.event_id) return;
-    if (action === 'reject' && !reason.trim()) { setError('El rechazo requiere una razón explícita; SFI no persiste una negativa opaca.'); return; }
+    if (action === 'reject' && !reason.trim()) { setError('Rejection requires an explicit reason; SFI does not persist an opaque denial.'); return; }
     setBusy(action);
     try {
       await jsonFetch('/api/root/learning', {
@@ -65,8 +65,8 @@ export default function TwinLearningPage() {
           : { action, candidateEventId: selected.event_id, reason: reason.trim() }),
       });
       setNotice(action === 'promote'
-        ? 'Aprendizaje promovido con receipt. La promoción no convierte hipótesis en observación ni borra contradicciones.'
-        : 'Aprendizaje rechazado con razón explícita y lineage preservado.');
+        ? 'Learning promoted with receipt. Promotion does not turn hypotheses into observation or erase contradictions.'
+        : 'Learning rejected with explicit reason and preserved lineage.');
       setSelectedId(null);
       await load();
     } catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
@@ -82,13 +82,13 @@ export default function TwinLearningPage() {
     {(error || notice) && <div className={`learningToast ${error ? 'error' : ''}`}><span>{error || notice}</span><button onClick={() => { setError(null); setNotice(null); }}>×</button></div>}
 
     <section className="learningHero">
-      <div><span>SFI · LEARNING QUARANTINE</span><h1>Qué aprendió, de dónde salió y qué puede decidir ROOT</h1><p>El aprendizaje institucional es append-only. ROOT puede promover/rechazar y registrar la razón. Una modificación sustantiva no sobrescribe el candidato original: requiere AMEND/SUPERSEDE con lineage.</p></div>
+      <div><span>SFI · LEARNING QUARANTINE</span><h1>What was learned, where it came from and what ROOT may decide</h1><p>Institutional learning is append-only. ROOT may promote/reject and record the reason. A substantive modification does not overwrite the original candidate: it requires AMEND/SUPERSEDE with lineage.</p></div>
       <div className="learningMetrics"><b>{String(data?.summary?.quarantined ?? candidates.length)}</b><span>pendientes</span><b>{String(data?.summary?.eligible ?? 0)}</b><span>elegibles</span><b>{String(data?.summary?.promoted ?? promotions.length)}</b><span>promovidos</span><b>{String(data?.summary?.rejected ?? rejections.length)}</b><span>rechazados</span></div>
     </section>
 
     <div className="learningLayout">
       <aside className="learningQueue">
-        <header><span>CANDIDATOS</span><button onClick={() => void load()}>ACTUALIZAR</button></header>
+        <header><span>CANDIDATES</span><button onClick={() => void load()}>REFRESH</button></header>
         {candidates.map((item) => {
           const body = payload(item); const itemLearning = body.learning && typeof body.learning === 'object' ? body.learning as Row : {};
           return <button key={item.event_id} className={activeId === String(item.event_id) ? 'selected' : ''} onClick={() => setSelectedId(String(item.event_id))}>
@@ -97,13 +97,13 @@ export default function TwinLearningPage() {
             <small>{date(item.occurred_at)}</small>
           </button>;
         })}
-        {!candidates.length && <p className="learningEmpty">No hay candidatos de aprendizaje pendientes.</p>}
+        {!candidates.length && <p className="learningEmpty">No learning candidates are pending.</p>}
       </aside>
 
       <section className="learningDossier">
         {!selected && <div className="learningEmpty">No existe un candidato seleccionado.</div>}
         {selected && <>
-          <header><div><span>{txt(selectedPayload.classification, 'UNKNOWN')}</span><h2>{short(learning.learningCandidate ?? learning.primaryHypothesis ?? selectedPayload.cycleId, 180)}</h2><p>{txt(selectedPayload.quarantineReason, 'Sin razón de cuarentena estructurada.')}</p></div><div><b>{selectedPayload.eligibleForRootPromotion === true ? 'ELIGIBLE' : txt(selectedPayload.promotionState, 'QUARANTINED')}</b><small>{selected.event_id}</small></div></header>
+          <header><div><span>{txt(selectedPayload.classification, 'UNKNOWN')}</span><h2>{short(learning.learningCandidate ?? learning.primaryHypothesis ?? selectedPayload.cycleId, 180)}</h2><p>{txt(selectedPayload.quarantineReason, 'No structured quarantine reason.')}</p></div><div><b>{selectedPayload.eligibleForRootPromotion === true ? 'ELIGIBLE' : txt(selectedPayload.promotionState, 'QUARANTINED')}</b><small>{selected.event_id}</small></div></header>
 
           <section className="lineageSection"><h3>LINEAGE GRAPH</h3><div className="learningGraph">
             <Node label="RUN" value={lineage.runEventId} state={lineage.runEventId ? 'observed' : 'missing'}/><i>→</i>
@@ -114,16 +114,16 @@ export default function TwinLearningPage() {
             <Node label="LEARNING CANDIDATE" value={selected.event_id} state="candidate"/>
           </div></section>
 
-          <section className="learningSection"><h3>COGNITIVO</h3><div className="learningFacts"><span><b>Hipótesis primaria</b>{txt(learning.primaryHypothesis)}</span><span><b>Predicción</b>{txt(learning.prediction)}</span><span><b>RETURN observado</b>{txt(learning.observedReturn)}</span><span><b>Confianza actualizada</b>{learning.updatedConfidence == null ? '—' : String(learning.updatedConfidence)}</span></div></section>
+          <section className="learningSection"><h3>COGNITIVE</h3><div className="learningFacts"><span><b>Primary hypothesis</b>{txt(learning.primaryHypothesis)}</span><span><b>Prediction</b>{txt(learning.prediction)}</span><span><b>Observed RETURN</b>{txt(learning.observedReturn)}</span><span><b>Updated confidence</b>{learning.updatedConfidence == null ? '—' : String(learning.updatedConfidence)}</span></div></section>
 
-          <section className="learningSection"><h3>SEÑALES Y CONTRADICCIÓN</h3><div className="learningColumns"><div><b>Esperadas</b>{values(learning.expectedSignals).map((item, i) => <p key={`e${i}`}>{renderValue(item)}</p>)}</div><div><b>Contradicción</b>{values(learning.contradictionSignals).map((item, i) => <p key={`c${i}`}>{renderValue(item)}</p>)}</div><div><b>Evidencia faltante</b>{values(learning.missingEvidence).map((item, i) => <p key={`m${i}`}>{renderValue(item)}</p>)}</div></div></section>
+          <section className="learningSection"><h3>SIGNALS AND CONTRADICTION</h3><div className="learningColumns"><div><b>Expected</b>{values(learning.expectedSignals).map((item, i) => <p key={`e${i}`}>{renderValue(item)}</p>)}</div><div><b>Contradiction</b>{values(learning.contradictionSignals).map((item, i) => <p key={`c${i}`}>{renderValue(item)}</p>)}</div><div><b>Missing evidence</b>{values(learning.missingEvidence).map((item, i) => <p key={`m${i}`}>{renderValue(item)}</p>)}</div></div></section>
 
-          <section className="learningSection"><h3>LÍMITE EPISTÉMICO</h3><p>{txt(selectedPayload.epistemicBoundary)}</p></section>
+          <section className="learningSection"><h3>EPISTEMIC BOUNDARY</h3><p>{txt(selectedPayload.epistemicBoundary)}</p></section>
 
           <section className="learningDecision">
-            <div><label>Nota ROOT para promoción<textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder="Qué aceptas, bajo qué reserva y por qué."/></label><button disabled={Boolean(busy) || selectedPayload.eligibleForRootPromotion !== true} onClick={() => void decide('promote')}>PROMOVER APRENDIZAJE</button></div>
-            <div><label>Razón de rechazo<textarea value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Razón obligatoria; se preserva en lineage."/></label><button className="deny" disabled={Boolean(busy)} onClick={() => void decide('reject')}>RECHAZAR</button></div>
-            <p><b>Edición sustantiva:</b> no se ejecuta como UPDATE. Debe institucionalizarse como AMEND/SUPERSEDE para conservar genealogía y reversibilidad.</p>
+            <div><label>ROOT promotion note<textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder="What you accept, under what reservation and why."/></label><button disabled={Boolean(busy) || selectedPayload.eligibleForRootPromotion !== true} onClick={() => void decide('promote')}>PROMOTE LEARNING</button></div>
+            <div><label>Rejection reason<textarea value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Required reason; preserved in lineage."/></label><button className="deny" disabled={Boolean(busy)} onClick={() => void decide('reject')}>REJECT</button></div>
+            <p><b>Substantive edit:</b> is not executed as UPDATE. It must be institutionalized as AMEND/SUPERSEDE to preserve genealogy and reversibility.</p>
           </section>
 
           <details className="learningTrace"><summary>TRAZABILIDAD COMPLETA</summary><pre>{JSON.stringify(selected, null, 2)}</pre></details>

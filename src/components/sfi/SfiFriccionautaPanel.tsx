@@ -50,7 +50,7 @@ export function SfiFriccionautaPanel() {
     setSaved(null);
     try {
       const data = await post({ action: 'ask', question: prompt, history: conversation });
-      const responseText = typeof data.answer === 'string' ? data.answer : 'MISSING · Friccionauta no devolvió cuerpo legible.';
+      const responseText = typeof data.answer === 'string' ? data.answer : 'MISSING · Friccionauta returned no readable body.';
       setResult(data);
       setHistory((current) => {
         const next: Message[] = [
@@ -92,8 +92,8 @@ export function SfiFriccionautaPanel() {
     <header className="friccionautaHeader">
       <div>
         <span>FRICCIONAUTA · SFI NATIVE INTELLIGENCE</span>
-        <h2>Pregunta al estado institucional, no a una memoria aislada.</h2>
-        <p>ROOT + Cognitive Twin + World Vector + Neural Graph + AMV + continuidad dual-plane. Interpretación y propuesta; sin autoridad implícita.</p>
+        <h2>Ask the institutional state, not an isolated memory.</h2>
+        <p>ROOT + Cognitive Twin + World Vector + Neural Graph + AMV + dual-plane continuity. Interpretation and proposal; no implicit authority.</p>
       </div>
       <div className="friccionautaBoundary">
         <b>READ / INTERPRET / PROPOSE</b>
@@ -105,7 +105,7 @@ export function SfiFriccionautaPanel() {
       <textarea
         value={question}
         onChange={(event) => setQuestion(event.target.value)}
-        placeholder="Ej. ¿Qué está realmente bloqueando a SFI hoy y qué evidencia sostiene esa lectura?"
+        placeholder="e.g. What is actually blocking SFI today, and what evidence supports that reading?"
         onKeyDown={(event) => {
           if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') void ask();
         }}
@@ -137,16 +137,16 @@ export function SfiFriccionautaPanel() {
         <button disabled={Boolean(busy)} onClick={() => void saveFinding()}>
           {busy === 'save' ? 'REGISTRANDO…' : 'CONSERVAR COMO HALLAZGO INFERIDO'}
         </button>
-        {saved ? <small>INFERRED · {saved}</small> : <small>Guardar relevancia no convierte la respuesta en evidencia verificada ni canon.</small>}
+        {saved ? <small>INFERRED · {saved}</small> : <small>Saving relevance does not turn the answer into verified evidence or canon.</small>}
       </div>
       {(retrievalWarnings.length || evidenceRefs.length) ? <details className="friccionautaTrace">
-        <summary>EVIDENCIA / DEGRADACIONES</summary>
+        <summary>EVIDENCE / DEGRADATIONS</summary>
         {retrievalWarnings.length ? <div><strong>Fuentes degradadas</strong>{retrievalWarnings.map((item) => <code key={item}>{item}</code>)}</div> : null}
         {evidenceRefs.length ? <div><strong>Referencias recuperadas</strong>{evidenceRefs.slice(0, 40).map((item) => <code key={item}>{item}</code>)}</div> : null}
       </details> : null}
     </article> : <div className="friccionautaEmpty">
-      <span>OBSERVACIÓN DISPONIBLE</span>
-      <p>La conversación aún no ha ejecutado una lectura. Cada pregunta genera un run trazable y conserva separación entre evidencia, inferencia y autoridad.</p>
+      <span>OBSERVATION AVAILABLE</span>
+      <p>The conversation has not executed a reading yet. Each question creates a traceable run and keeps evidence, inference and authority separate.</p>
     </div>}
   </section>;
 }

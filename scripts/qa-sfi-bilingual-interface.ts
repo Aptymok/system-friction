@@ -1,135 +1,85 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const ROOT = process.cwd();
-const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8');
-const fail = (message: string): never => {
-  console.error(`SFI language-boundary QA failed: ${message}`);
-  process.exit(1);
-};
-const requireText = (haystack: string, needle: string, label: string) => {
-  if (!haystack.includes(needle)) fail(`${label} is missing: ${needle}`);
-};
-const rejectText = (haystack: string, needle: string, label: string) => {
-  if (haystack.includes(needle)) fail(`${label} must not contain: ${needle}`);
-};
+const ROOT=process.cwd();
+const read=(file:string)=>fs.readFileSync(path.join(ROOT,file),'utf8');
+const fail=(message:string):never=>{console.error('SFI English-interface QA failed: '+message);process.exit(1)};
+const requireText=(haystack:string,needle:string,label:string)=>{if(!haystack.includes(needle))fail(label+' is missing: '+needle)};
+const rejectText=(haystack:string,needle:string,label:string)=>{if(haystack.includes(needle))fail(label+' must not contain: '+needle)};
 
-const provider = read('src/components/i18n/SfiLanguageProvider.tsx');
-const layout = read('src/app/layout.tsx');
-const entry = read('src/components/sfi/PublicEntryGateway.tsx');
-const publicSceneManifest = read('src/components/sfi/publicSceneManifest.ts');
-const session = read('src/components/sfi/SessionControls.tsx');
-const consoleUi = read('src/components/sfi/SfiConsole.tsx');
-const observatory = read('src/components/sfi/ObservatoryConsole.tsx');
-const consent = read('src/components/analytics/SfiConsentBanner.tsx');
-const pkg = JSON.parse(read('package.json')) as { scripts?: Record<string, string> };
+const provider=read('src/components/i18n/SfiLanguageProvider.tsx');
+const nav=read('src/lib/navigation/publicNavigation.ts');
+const layout=read('src/app/layout.tsx');
+const entry=read('src/components/sfi/PublicEntryGateway.tsx');
+const observatory=read('src/components/sfi/ObservatoryConsole.tsx');
+const consoleUi=read('src/components/sfi/SfiConsole.tsx');
+const rootUi=read('src/components/sfi/SfiRootWorkspace.tsx');
+const access=read('src/app/root/access/page.tsx');
+const evidence=read('src/components/sfi/RootEvidenceReviewConsole.tsx');
+const laboratory=read('src/app/laboratory/page.tsx');
+const methodLab=read('src/app/method-lab/page.tsx');
+const pkg=JSON.parse(read('package.json')) as {scripts?:Record<string,string>};
 
-// One language owner remains available for internal/private surfaces.
-// Public human routes are a stricter English-only projection.
-requireText(provider, "export type SfiLanguage = 'es' | 'en'", 'language contract');
-requireText(provider, "const STORAGE_KEY = 'sfi-language'", 'persistent private language preference');
-requireText(provider, 'document.documentElement.lang = language', 'document language synchronization');
-requireText(provider, 'export function SfiUiText', 'owned-copy translation primitive');
-requireText(provider, '// Every tuple is [Spanish, English].', 'catalog direction contract');
-requireText(provider, 'const publicEnglishOnly = useMemo', 'public English-only route boundary');
-requireText(provider, "const language: SfiLanguage = publicEnglishOnly ? 'en' : privateLanguage", 'public English language lock');
-requireText(provider, 'if (publicEnglishOnly) return;', 'public language mutation block');
-requireText(provider, '{!publicEnglishOnly ? <div', 'public language control suppression');
-requireText(provider, "'/observatory'", 'Observatory public route lock');
-requireText(provider, "'/publications'", 'Publications public route lock');
-requireText(provider, "'/library'", 'Library public route lock');
-requireText(provider, "'/institution'", 'Institute public route lock');
-requireText(provider, "'/history'", 'History public route lock');
-requireText(provider, "'/privacy'", 'Privacy public route lock');
-requireText(provider, "'/login'", 'Login public route lock');
-requireText(provider, "'/field'", 'FIELD public route lock');
+requireText(provider,"language: 'en'",'global English language owner');
+requireText(provider,"document.documentElement.lang = 'en'",'document English synchronization');
+requireText(provider,"text = useCallback((_es: string, en: string) => en",'English projection');
+rejectText(provider,"window.localStorage.getItem(STORAGE_KEY)",'language preference read');
+rejectText(provider,"aria-label={language === 'es'",'language switch');
+rejectText(provider,"setPrivateLanguage",'mutable bilingual runtime');
 
-if (provider.includes('MutationObserver')) fail('global MutationObserver translation must not be reintroduced');
-if (provider.includes('localizeNode(document.body')) fail('document.body must never be rewritten by localization');
-if (provider.includes('createTreeWalker')) fail('arbitrary rendered data must not be traversed for translation');
-if (!provider.includes('It never walks or rewrites document.body')) fail('non-mutation boundary must remain explicit');
+for(const [href,label] of [
+  ['/','HOME'],
+  ['/observatory','OBSERVATORY'],
+  ['/laboratory','LABORATORY'],
+  ['/publications','REGISTRY'],
+  ['/institution','INSTITUTION'],
+  ['/login','SIGN IN'],
+] as const){
+  requireText(nav,`href:'${href}'`,`public nav href ${href}`);
+  requireText(nav,`label:'${label}'`,`public nav label ${label}`);
+}
+rejectText(nav,"href:'/method-lab'",'public nav must not expose authenticated Method Lab');
 
-// Root public shell: English is the document contract; provider stays mounted so private descendants
-// can retain the internal language owner without exposing a public switch.
-requireText(layout, "import { SfiLanguageProvider }", 'root layout language provider import');
-rejectText(layout, 'SfiUiText', 'root public layout');
-requireText(layout, '<html lang="en">', 'root document English declaration');
-requireText(layout, '<SfiLanguageProvider>', 'root layout provider mount');
-requireText(layout, '</SfiLanguageProvider>', 'root layout provider boundary');
-requireText(layout, 'href="/method-lab">LABORATORY', 'public Laboratory footer route');
-requireText(layout, 'href="/observatory">OBSERVATORY', 'public Observatory footer route');
-requireText(layout, 'href="/publications">REGISTRY', 'public Registry footer route');
-requireText(layout, 'href="/login">SIGN IN', 'public sign-in footer route');
-rejectText(layout, 'href="/history"', 'retired public History footer link');
-rejectText(layout, 'href="/institution"', 'retired public Institute footer link');
-rejectText(layout, 'PRIVACIDAD', 'root public layout Spanish privacy copy');
+requireText(layout,'<html lang="en">','root document English declaration');
+for(const route of ['/','/observatory','/laboratory','/publications','/institution','/login']){
+  requireText(layout,`href="${route}"`,`global footer route ${route}`);
+}
+rejectText(layout,'href="/method-lab">LABORATORY','public footer authenticated-lab leak');
 
-// Public entry is intentionally English-only and must remain independent from runtime language choice.
-rejectText(entry, 'useSfiLanguage', 'public entry');
-requireText(entry, 'SYSTEM FRICTION INSTITUTE', 'public entry institution identity');
-requireText(entry, 'DESCEND THROUGH SCALE', 'scene navigation instruction');
-requireText(entry, 'SHIFT THE FIELD', 'horizontal scene interaction');
-requireText(entry, 'href="/observatory"', 'public Observatory navigation');
-requireText(entry, 'href="/publications"', 'public Publications navigation');
-requireText(entry, 'href="/login"', 'public sign-in route');
-rejectText(entry, 'href="/library"', 'retired Library navigation');
-rejectText(entry, 'href="/institution"', 'retired Institute navigation');
-rejectText(entry, 'href="/field"', 'retired FIELD navigation');
-requireText(publicSceneManifest, "primaryHref:'/login'", 'entry sign-in action');
-requireText(publicSceneManifest, "secondaryHref:'/observatory'", 'entry Observatory action');
-requireText(publicSceneManifest, "secondaryHref:'/publications'", 'public Publications action');
-rejectText(publicSceneManifest, "primaryHref:'/library'", 'retired Library scene action');
-rejectText(publicSceneManifest, "secondaryHref:'/library'", 'retired Library scene action');
-rejectText(publicSceneManifest, "primaryHref:'/institution'", 'retired Institute scene action');
-rejectText(publicSceneManifest, "secondaryHref:'/world-vector'", 'retired World Vector scene action');
+requireText(entry,'SFI_PUBLIC_NAV.map','entry complete public navigation');
+requireText(observatory,'SFI_PUBLIC_NAV.filter','Observatory complete public navigation');
+requireText(laboratory,'SFI_PUBLIC_NAV.map','Laboratory complete public navigation');
+requireText(laboratory,'CanonicalCognitiveFieldPublic','public canonical cognitive field');
+requireText(laboratory,"'/login?next=%2Fmethod-lab'",'governed Method Lab sign-in handoff');
+requireText(methodLab,"requireUserProfile()",'Method Lab remains authenticated');
+requireText(methodLab,"redirect('/login?next=%2Fmethod-lab')",'Method Lab unauthenticated redirect');
 
-// Public Observatory is hard English; underlying epistemic/data values are not translated.
-rejectText(observatory, 'useSfiLanguage', 'public Observatory language hook');
-requireText(observatory, "const language='en' as const", 'Observatory English lock');
-requireText(observatory, "'LIVE WORLD OBSERVATORY'", 'Observatory English identity');
-requireText(observatory, "'REFRESH'", 'Observatory refresh action');
-requireText(observatory, "'FIELD READING'", 'Observatory field lens');
-rejectText(observatory, 'ACTUALIZAR', 'Observatory Spanish refresh copy');
-rejectText(observatory, 'OBSERVATORIO MUNDIAL EN VIVO', 'Observatory Spanish title');
+requireText(consoleUi,"if(current==='root') return",'ROOT single-shell handoff');
+requireText(consoleUi,'<SfiRootWorkspace enabled/>','ROOT workspace owner');
+requireText(consoleUi,"label:'DECISIONS'",'internal navigation English');
+rejectText(consoleUi,'NUEVO →','Spanish create action');
+rejectText(rootUi,'SOBERANÍA INSTITUCIONAL','ROOT Spanish authority heading');
+rejectText(rootUi,'ACEPTAR','ROOT Spanish accept action');
+rejectText(rootUi,'DENEGAR','ROOT Spanish deny action');
+rejectText(rootUi,'SOLICITAR EVIDENCIA','ROOT Spanish evidence action');
 
-// Public consent is hard English and may not expose the internal language switch.
-rejectText(consent, 'useSfiLanguage', 'public privacy banner language hook');
-requireText(consent, 'PRIVACY & MEASUREMENT', 'English privacy banner');
-requireText(consent, 'REJECT', 'English privacy rejection action');
-requireText(consent, 'ACCEPT', 'English privacy acceptance action');
-rejectText(consent, 'RECHAZAR', 'public privacy banner Spanish rejection action');
-rejectText(consent, 'ACEPTAR', 'public privacy banner Spanish acceptance action');
-
-// Authenticated/internal surfaces may continue to consume the singular language owner.
-requireText(session, 'useSfiLanguage', 'session controls language owner');
-requireText(session, "text('INICIAR SESIÓN', 'SIGN IN')", 'internal/session bilingual copy');
-requireText(consoleUi, 'translateUiText, useSfiLanguage', 'authenticated console translation owner');
-
-// The internal lookup catalog is preserved for private surfaces; it does not authorize Spanish
-// on the public projection.
-const requiredPairs: Array<[string, string]> = [
-  ['PRIVACIDAD Y POLÍTICA DE DATOS PARA AGENTES EXTERNOS', 'PRIVACY & EXTERNAL AGENT DATA POLICY'],
-  ['OBSERVATORIO MUNDIAL EN VIVO', 'LIVE WORLD OBSERVATORY'],
-  ['ORIGEN → AHORA', 'ORIGIN → NOW'],
-  ['LECTURA DEL CAMPO', 'FIELD READING'],
-  ['HIPÓTESIS', 'HYPOTHESES'],
-  ['SESIÓN', 'SESSION'],
-];
-for (const [es, en] of requiredPairs) {
-  const serialized = `['${es.replaceAll("'", "\\'")}', '${en.replaceAll("'", "\\'")}']`;
-  requireText(provider, serialized, `ordered internal bilingual pair ${es} / ${en}`);
+for(const [source,label] of [[access,'ROOT Access'],[evidence,'ROOT Evidence']] as const){
+  for(const token of ['Invitación','Correo','Cuenta','Actualizar','No hay','La ausencia','Ninguna fuente']){
+    rejectText(source,token,label+' Spanish UI token');
+  }
 }
 
-const build = pkg.scripts?.build ?? '';
-const qa = pkg.scripts?.['qa:sfi-bilingual-interface'] ?? '';
-if (!qa.includes('qa-sfi-bilingual-interface.ts')) fail('package script qa:sfi-bilingual-interface is not wired');
-if (!build.includes('qa:sfi-bilingual-interface')) fail('language-boundary QA is not part of the canonical build');
+const build=pkg.scripts?.build??'';
+const qaScript=pkg.scripts?.['qa:sfi-bilingual-interface']??'';
+if(!qaScript.includes('qa-sfi-bilingual-interface.ts'))fail('package script qa:sfi-bilingual-interface is not wired');
+if(!build.includes('qa:sfi-bilingual-interface'))fail('English-interface QA is not part of canonical build');
 
 console.log(JSON.stringify({
-  ok: true,
-  contract: 'SFI-LANGUAGE-BOUNDARY-3.0',
-  publicLanguage: 'en',
-  publicLanguageSwitchVisible: false,
-  internalBilingualOwnerRetained: true,
-  arbitraryRenderedDataMutation: false,
-}, null, 2));
+  ok:true,
+  contract:'SFI-ENGLISH-INTERFACE-4.0',
+  language:'en',
+  languageSwitchVisible:false,
+  publicLaboratory:'/laboratory',
+  governedMethodLab:'/method-lab',
+  rootGlobalMenus:1,
+},null,2));

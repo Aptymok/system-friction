@@ -95,7 +95,7 @@ export default async function StudioPage({ searchParams }: { searchParams?: Prom
         <Link href="/field" style={{ color: '#fff', fontWeight: 700, fontSize: 18, letterSpacing: '.18em', textDecoration: 'none' }}>SFI.</Link>
         <span style={{ color: '#7fc8f5', fontSize: 11, letterSpacing: '.18em' }}>STUDIO · PRIVATE PRODUCER FIELD</span>
         <span style={{ marginLeft: 'auto', color: '#91a0a8', fontSize: 11 }}>{user.email ?? user.id}</span>
-        <Link href="/logout" style={{ ...action, minHeight: 30 }}>Cerrar sesión</Link>
+        <Link href="/logout" style={{ ...action, minHeight: 30 }}>Log out</Link>
       </header>
 
       <section style={{ position: 'relative', zIndex: 1, padding: 'clamp(38px,6vw,78px) clamp(18px,4vw,58px) 26px', maxWidth: 1540, margin: '0 auto' }}>
@@ -103,7 +103,7 @@ export default async function StudioPage({ searchParams }: { searchParams?: Prom
           <div style={{ color: '#69bdea', fontSize: 11, letterSpacing: '.2em', marginBottom: 12 }}>AUTHENTICATED · OWNER-SCOPED</div>
           <h1 style={{ fontSize: 'clamp(34px,6vw,78px)', fontWeight: 300, lineHeight: .94, letterSpacing: '-.055em', margin: 0 }}>Studio no es ROOT.</h1>
           <p style={{ maxWidth: 800, margin: '20px 0 0', color: '#a7b0b6', lineHeight: 1.7, fontSize: 14 }}>
-            Esta superficie opera únicamente sobre los objetos cuyo ownership pertenece a la identidad autenticada. Leer, analizar y producir evidencia aquí no concede promoción canónica, ejecución ROOT ni autoridad sobre otros nodos.
+            This surface operates only on objects whose ownership belongs to the authenticated identity. Reading, analyzing and producing evidence here grants no canonical promotion, ROOT execution or authority over other nodes.
           </p>
         </div>
       </section>
@@ -122,7 +122,7 @@ export default async function StudioPage({ searchParams }: { searchParams?: Prom
               return (
                 <Link key={id} href={`/studio?objectId=${encodeURIComponent(id)}`} style={{ display: 'grid', gap: 6, padding: '17px 20px', borderBottom: '1px solid rgba(255,255,255,.07)', background: selected ? 'rgba(66,158,213,.12)' : 'transparent', textDecoration: 'none', color: 'inherit' }}>
                   <span style={{ color: selected ? '#9fdcff' : '#7096aa', fontSize: 10, letterSpacing: '.18em' }}>{scopeOf(object)}</span>
-                  <strong style={{ fontSize: 14, fontWeight: 500 }}>{text(object.title, 'Sin título')}</strong>
+                  <strong style={{ fontSize: 14, fontWeight: 500 }}>{text(object.title, 'Untitled')}</strong>
                   <span style={{ color: '#7f898f', fontSize: 11 }}>{text(object.object_type)} · {text(object.status)} · {formatBytes(object.size_bytes)}</span>
                 </Link>
               );
@@ -141,7 +141,7 @@ export default async function StudioPage({ searchParams }: { searchParams?: Prom
               <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
                 <div style={{ flex: '1 1 420px' }}>
                   <div style={{ color: '#7fc8f5', fontSize: 10, letterSpacing: '.19em' }}>{scopeOf(active)} · ACTIVE OBJECT</div>
-                  <h2 style={{ margin: '10px 0 8px', fontSize: 'clamp(25px,3vw,44px)', fontWeight: 350, letterSpacing: '-.035em' }}>{text(active.title, 'Sin título')}</h2>
+                  <h2 style={{ margin: '10px 0 8px', fontSize: 'clamp(25px,3vw,44px)', fontWeight: 350, letterSpacing: '-.035em' }}>{text(active.title, 'Untitled')}</h2>
                   <div style={{ color: '#88949b', fontSize: 12 }}>{text(active.object_type)} · {text(active.mime_type)} · {formatBytes(active.size_bytes)} · {text(active.status)}</div>
                 </div>
                 <form action={`/api/studio/objects/${encodeURIComponent(text(active.id, ''))}/analyze`} method="post" target="_blank">
@@ -159,11 +159,11 @@ export default async function StudioPage({ searchParams }: { searchParams?: Prom
                 <input type="hidden" name="evidenceType" value="operator_evidence" />
                 <input type="hidden" name="sourceName" value="studio_owner_surface" />
                 <div style={{ color: '#7fc8f5', fontSize: 10, letterSpacing: '.17em', marginBottom: 10 }}>ADD EVIDENCE TO THIS OBJECT</div>
-                <textarea name="text" required rows={3} placeholder="Observación, hallazgo o retorno verificable…" style={{ ...input, resize: 'vertical' }} />
+                <textarea name="text" required rows={3} placeholder="Observation, finding or verifiable return…" style={{ ...input, resize: 'vertical' }} />
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
                   <input name="confidence" inputMode="decimal" placeholder="confidence 0–1" style={{ ...input, flex: '1 1 150px', width: 'auto' }} />
                   <input name="file" type="file" style={{ ...input, flex: '2 1 240px', width: 'auto' }} />
-                  <button type="submit" style={action}>Persistir evidencia</button>
+                  <button type="submit" style={action}>Persist evidence</button>
                 </div>
               </form>
 
@@ -179,7 +179,7 @@ export default async function StudioPage({ searchParams }: { searchParams?: Prom
                       <div style={{ marginTop: 6, fontSize: 13 }}>{displayValue(feature.numeric_value, displayValue(feature.text_value, displayValue(feature.value, 'persistida')))} {text(feature.unit, '')}</div>
                     </div>
                   ))}
-                  {!features.length && <div style={{ color: '#7f898f', fontSize: 12 }}>Sin features persistidas todavía. El objeto sigue siendo operable.</div>}
+                  {!features.length && <div style={{ color: '#7f898f', fontSize: 12 }}>No features are persisted yet. The object remains operable.</div>}
                 </div>
               </div>
             </>

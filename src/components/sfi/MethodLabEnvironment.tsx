@@ -76,44 +76,44 @@ export function MethodLabEnvironment({
 
   const zones: LabZone[] = [
     {
-      id: 'method', label: 'CÁMARA DE MÉTODO', state: `${operationalProtocols}/${protocols.length} OPERATIONAL`,
+      id: 'method', label: 'METHOD CHAMBER', state: `${operationalProtocols}/${protocols.length} OPERATIONAL`,
       tone: operationalProtocols > 0 ? 'ready' : 'gated',
-      detail: 'Instrumentos, contratos y protocolos disponibles. La selección conserva clase epistémica, dependencias, validación y regla de promoción.',
+      detail: 'Available instruments, contracts and protocols. Selection preserves epistemic class, dependencies, validation and promotion rule.',
       target: '.mlh-protocol-grid', desktop: [20, 7], tablet: [18, 28], mobile: [18, 31],
     },
     {
       id: 'observatory', label: 'OBSERVATORIO', state: `${researchObjectCount} RESEARCH OBJECTS`,
       tone: reviewWarnings > 0 ? 'attention' : researchObjectCount > 0 ? 'ready' : 'idle',
-      detail: 'Objetos de investigación, findings, métricas, lineage y publication packages. Observar no equivale a promover.',
+      detail: 'Research objects, findings, metrics, lineage and publication packages. Observing does not equal promotion.',
       target: '.mlr-shell', desktop: [52, 10], tablet: [53, 14], mobile: [50, 10],
     },
     {
-      id: 'signal', label: 'LAB DE SEÑAL', state: evidenceWarningCount > 0 ? `${evidenceWarningCount} READER WARNINGS` : `${evidenceCount} EVIDENCE OPTIONS`,
+      id: 'signal', label: 'SIGNAL LAB', state: evidenceWarningCount > 0 ? `${evidenceWarningCount} READER WARNINGS` : `${evidenceCount} EVIDENCE OPTIONS`,
       tone: evidenceWarningCount > 0 ? 'attention' : evidenceCount > 0 ? 'ready' : 'idle',
-      detail: 'Entrada de evidencia persistida. Fuente, caso, claim boundary y provenance permanecen visibles antes del run.',
+      detail: 'Persisted evidence input. Source, case, claim boundary and provenance remain visible before the run.',
       target: '.mlh-evidence-list', desktop: [92, 12], tablet: [78, 22], mobile: [76, 25],
     },
     {
       id: 'tests', label: 'MESA DE PRUEBAS', state: activeSessions > 0 ? `${activeSessions} ACTIVE CRL` : `${sessions.length} CRL SESSIONS`,
       tone: activeSessions > 0 ? 'ready' : sessions.length > 0 ? 'idle' : 'gated',
-      detail: 'CRL opera sesión → eventos → BLIND → lectura del fundador → contraste. La lectura del fundador entra después del BLIND.',
+      detail: 'CRL runs session → events → BLIND → founder reading → contrast. The founder reading enters after BLIND.',
       target: '.mlh-three-col', desktop: [94, 39], tablet: [84, 49], mobile: [73, 49],
     },
     {
       id: 'root', label: 'ROOT CONSOLE', state: `DT ${decisionTransfer.status}`,
       tone: toneFromStatus(decisionTransfer.status),
-      detail: 'Autoridad y Decision Transfer. El laboratorio puede producir resultados; canon, publicación y autoridad permanecen gobernados.',
+      detail: 'Authority and Decision Transfer. The laboratory may produce results; canon, publication and authority remain governed.',
       target: '.mlh-status-section', desktop: [46, 59], tablet: [21, 80], mobile: [50, 88],
     },
     {
-      id: 'simulation', label: 'SIMULACIÓN', state: `${simulationOperational}/${simulationProtocols.length} RUNNERS OPERATIONAL`,
+      id: 'simulation', label: 'SIMULATION', state: `${simulationOperational}/${simulationProtocols.length} RUNNERS OPERATIONAL`,
       tone: simulationOperational === simulationProtocols.length && simulationProtocols.length > 0 ? 'ready' : simulationOperational > 0 ? 'attention' : 'gated',
-      detail: 'Runner sociotécnico/económico aislado. El output permanece SIMULATED y nunca se convierte en observación por persistencia.',
+      detail: 'Isolated sociotechnical/economic runner. Output remains SIMULATED and never becomes observation merely by persistence.',
       target: '.mlh-two-col', desktop: [66, 67], tablet: [51, 82], mobile: [28, 72],
     },
     {
       id: 'field', label: 'NODO DE CAMPO', state: 'RETURN BOUNDARY', tone: 'boundary',
-      detail: 'El laboratorio no declara mundo observado. Un RETURN de Field es otro estado, con evidencia y contraste propios.',
+      detail: 'The laboratory does not declare an observed world. A Field RETURN is another state, with its own evidence and contrast.',
       target: '.mlh-status-section', desktop: [93, 71], tablet: [80, 80], mobile: [73, 73],
     },
   ];

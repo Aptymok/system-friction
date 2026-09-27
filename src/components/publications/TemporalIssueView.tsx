@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { SFI_PUBLIC_NAV } from '@/lib/navigation/publicNavigation';
 import type { CSSProperties } from 'react';
 import type { SfiEditorialPublication } from '@/lib/publications/editorialContent';
 import type { SfiPublicResearchLanding } from '@/lib/research/publicResearchLanding';
@@ -49,10 +50,7 @@ export function TemporalIssueView({
       <header className="tnTopbar">
         <Link className="tnBrand" href="/"><span>SFI</span><small>SYSTEM FRICTION INSTITUTE</small></Link>
         <nav aria-label="Institutional navigation">
-          <Link href="/method-lab">LABORATORY</Link>
-          <Link href="/publications">REGISTRY</Link>
-          <Link href="/observatory">OBSERVATORY</Link>
-          <Link href="/login">SIGN IN</Link>
+          {SFI_PUBLIC_NAV.map((item)=><Link key={item.href} href={item.href}>{item.label}</Link>)}
         </nav>
         <Link className="tnExplore" href="/publications">EXPLORE <span>→</span></Link>
       </header>

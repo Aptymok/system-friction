@@ -8,7 +8,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const publicSurfaces = [
     '',
     'observatory',
+    'laboratory',
     'publications',
+    'institution',
   ].map((path) => ({
     url: `${BASE}/${path}`.replace(/\/$/, ''),
     lastModified: new Date(),
