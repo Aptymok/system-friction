@@ -1,4 +1,4 @@
-SFI Elite Experience P5 release retry 2 2026-09-27
-source=bc77eab09e7be8b5cfec769961c9663714f8315b
-reason=preserve_r4b_replay_assertion_contract
-verification=method_lab_instrument_room_build_and_production_return_retry_2
+SFI Elite Experience P5 release retry 3 2026-09-27
+source=b1163b8125629f87ea65032bc435535d2533dc92
+reason=align_instrument_room_replay_qa_boundary
+verification=method_lab_instrument_room_build_and_production_return_retry_3
