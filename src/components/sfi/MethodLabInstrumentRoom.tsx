@@ -59,7 +59,7 @@ export function MethodLabInstrumentRoom({runs,preregistrations,selectedRunId,onS
   const instruments=[
     {id:'method',label:'METHOD',value:text(method.methodId),detail:text(method.version),state:present(method.methodId)&&present(method.version)?'RECORDED':'MISSING'},
     {id:'run',label:'RUN',value:text(executed.runId),detail:text(executed.experimentType),state:present(executed.runId)?'EXECUTED':'MISSING'},
-    {id:'inputs',label:'FROZEN INPUT SET',value:frozenRefs.length?String(frozenRefs.length):'0',detail:frozenRefs.length?'addressable refs':'no frozen refs',state:hasFrozenInputs?'FROZEN':'MISSING'},
+    {id:'inputs',label:'DATASET / INPUT SET',value:frozenRefs.length?String(frozenRefs.length):'0',detail:frozenRefs.length?'addressable refs':'no frozen refs',state:hasFrozenInputs?'FROZEN':'MISSING'},
     {id:'definition',label:'DEFINITION HASH',value:definitionHash==='NOT RECORDED'?'MISSING':'RECORDED',detail:definitionHash,state:definitionHash==='NOT RECORDED'?'MISSING':'RECORDED'},
     {id:'hash',label:'HASH CHAIN',value:present(receipt.inputHash)&&present(receipt.resultHash)?'3 LINKS':'INCOMPLETE',detail:'prereg → input → result',state:coreReceipt?'RECORDED':'MISSING'},
     {id:'seed',label:'SEED',value:hasSeed?String(seed):'NOT RECORDED',detail:'execution parameter',state:hasSeed?'RECORDED':'NOT RECORDED'},
