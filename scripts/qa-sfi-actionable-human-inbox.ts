@@ -63,16 +63,16 @@ for (const label of ['Who brings it', 'What happened', 'Why it matters', 'What i
 assert.ok(root.includes('ACCEPT') && root.includes('DENY'), 'ROOT must expose binary terminal sovereign decisions');
 assert.ok(root.includes('REQUEST EVIDENCE'), 'ROOT must be able to defer a sovereign decision and ask SFI to acquire more evidence');
 assert.ok(root.includes('/request-evidence'), 'evidence defer must use the existing governed request-evidence owner');
-assert.ok(root.includes('Solicitud de evidencia registrada') && root.includes('la decisión permanece abierta'), 'requesting evidence must not masquerade as a decision');
-assert.ok(root.includes('no convierte una fuente en evidencia aceptada'), 'ROOT UI must state that requesting/reviewing does not promote a source to accepted evidence');
-assert.equal(root.includes('APROBAR PARA USO HUMANO'), false, 'ROOT must not expose report approval');
-assert.equal(root.includes('RECHAZAR REPORTE'), false, 'ROOT must not expose report rejection');
+assert.ok(root.includes('Evidence request recorded') && root.includes('decision remains open'), 'requesting evidence must not masquerade as a decision');
+assert.ok(root.includes('does not turn a source into admitted evidence'), 'ROOT UI must state that requesting/reviewing does not promote a source to admitted evidence');
+assert.equal(root.includes('APPROVE FOR HUMAN USE'), false, 'ROOT must not expose report approval');
+assert.equal(root.includes('REJECT REPORT'), false, 'ROOT must not expose report rejection');
 assert.equal(root.includes('/evidence-candidates/'), false, 'ROOT workspace must not directly accept/reject evidence candidates');
 assert.equal(root.includes('decisionKind=report'), false, 'reports must not deep-link into sovereign decisions');
-assert.ok(root.includes('Los reportes se leen completos aquí') && root.includes('no requieren ACCEPT/DENY'), 'report archive must be explicitly observational/read-only');
+assert.ok(root.includes('Reports are read in full here') && root.includes('do not require ACCEPT/DENY'), 'report archive must be explicitly observational/read-only');
 
-assert.equal(operating.includes('ACEPTAR Y CERRAR'), false, 'case/cycle workspace must not require approval to close');
-assert.equal(operating.includes('DENEGAR REPORTE'), false, 'case/cycle workspace must not gate reports on user denial');
+assert.equal(operating.includes('ACCEPT AND CLOSE'), false, 'case/cycle workspace must not require approval to close');
+assert.equal(operating.includes('DENY REPORT'), false, 'case/cycle workspace must not gate reports on user denial');
 assert.equal(operating.includes('reportDecision'), false, 'case/cycle workspace must not retain legacy report-decision mutations');
 assert.ok(cases.includes("'AWAITING_USER_CLOSE'"), 'legacy close state must remain addressable for historical reconstruction');
 assert.ok(cases.includes("error: 'legacy_state_not_enterable'") && cases.includes('remains readable for historical reconstruction'), 'API must read legacy close state but reject new entry into it');
