@@ -57,7 +57,7 @@ Acceptance:
 - reduced-motion path remains usable
 
 ### P1 · Registry Graph + Object Reconstruct
-State: CLOSED / PRODUCTION READY
+State: PHASE COMPLETE / PROGRAM CONTINUES
 Deliverables:
 - publication nodes with bounded SEQUENCE and THEME presentation relations
 - publication information inspector
@@ -70,7 +70,7 @@ Acceptance:
 - publication detail remains addressable without JavaScript-only navigation
 
 ### P2 · Observatory World Field
-State: CLOSED / PRODUCTION READY
+State: PHASE COMPLETE / PROGRAM CONTINUES
 Deliverables:
 - project existing WorldSpect/sources/hypotheses/trajectory state into a navigable field
 - semantic visual mapping for source, signal, vector, hypothesis and RETURN
@@ -81,7 +81,7 @@ Acceptance:
 - THIN/DEGRADED remains visible
 
 ### P3 · Temporal Scrubber
-State: CLOSED / PRODUCTION READY
+State: PHASE COMPLETE / PROGRAM CONTINUES
 Deliverables:
 - TIME control over existing public timeline/snapshots
 - T0 ↔ T1 comparison
@@ -92,7 +92,7 @@ Acceptance:
 - unavailable periods render NOT OBSERVED
 
 ### P4 · Hypothesis Close + RETURN Diff
-State: CLOSED / PRODUCTION READY
+State: PHASE COMPLETE / PROGRAM CONTINUES
 Deliverables:
 - expose OPEN → CONTRAST → CLOSE/RETAIN/REJECT lifecycle
 - EXPECTED / AUTHORIZED / EXECUTED / OBSERVED / RETURN comparison
@@ -136,6 +136,20 @@ Not allowed:
 - autoplay audio
 - mandatory WebGPU
 - glitch effects without semantic meaning
+
+### P8 · Final Convergence / Institutional Experience Certification
+State: PLANNED
+Deliverables:
+- end-to-end traversal across ENTRY → OBSERVATORY → TIME → HYPOTHESIS → RETURN → LABORATORY → REGISTRY → RECONSTRUCT → MACHINE → DISCOVERY
+- cross-surface visual, accessibility and performance convergence
+- canonical navigation, object identity and semantic boundary audit
+- production smoke, mobile/desktop QA and reduced-motion verification
+Acceptance:
+- no competing public owner or duplicate canon
+- every elite visual projection resolves to persisted/read-model state or explicit NOT OBSERVED
+- no simulated/derived state silently becomes observed, evidence, authority or RETURN
+- machine and human projections resolve to the same canonical object identity
+- production release is observed READY and critical public surfaces pass smoke verification
 
 ## 4. Performance contract
 
