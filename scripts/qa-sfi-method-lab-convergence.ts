@@ -188,7 +188,8 @@ for (const token of [
 assert.ok(methodLabInstrumentRoom.includes("data-run-state={selected?'PERSISTED_RUN_SELECTED':'NO_PERSISTED_RUN'}"), 'instrument_room_run_state_must_be_explicit');
 assert.ok(methodLabInstrumentRoom.includes("definitionHash") && methodLabInstrumentRoom.includes("frozenInputRefs"), 'instrument_room_must_project_persisted_preregistration_inputs');
 assert.ok(methodLabInstrumentRoom.includes("receipt.codeRef") && methodLabInstrumentRoom.includes("receipt.inputHash") && methodLabInstrumentRoom.includes("receipt.resultHash"), 'instrument_room_must_project_reproducibility_receipt');
-assert.ok(methodLabInstrumentRoom.includes("successful reproduction have NOT been asserted"), 'instrument_room_must_not_claim_replay_success_from_spec');
+assert.ok(methodLabInstrumentRoom.includes("successful replay has NOT been asserted"), 'instrument_room_must_not_claim_replay_success_from_spec');
+assert.ok(methodLabInstrumentRoom.includes("successful reproduction remain unobserved"), 'instrument_room_must_not_claim_reproduction_from_replay_spec');
 assert.doesNotMatch(methodLabInstrumentRoom, /fetch\(|createServiceSupabaseClient|\.from\(|\.insert\(|\.update\(|\.upsert\(/, 'instrument_room_must_remain_a_projection_not_a_data_owner');
 assert.ok(methodLabInstrumentCss.includes('prefers-reduced-motion'), 'instrument_room_reduced_motion_boundary_missing');
 
