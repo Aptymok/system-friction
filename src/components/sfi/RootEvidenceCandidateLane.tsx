@@ -171,7 +171,7 @@ export function RootEvidenceCandidateLane({ proposals }: Props) {
         <span>CONTRIBUTE URL AS SOURCE</span>
         <input value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://www.inegi.org.mx/..." />
       </label>
-      <button disabled={Boolean(busy) || !url.trim()} onClick={() => void acquire('add_url')}>{busy === 'add_url' ? 'REGISTRANDO…' : 'AGREGAR URL'}</button>
+      <button disabled={Boolean(busy) || !url.trim()} onClick={() => void acquire('add_url')}>{busy === 'add_url' ? 'REGISTERING…' : 'ADD URL'}</button>
     </div>}
 
     {error && <p className="rootEvidenceError">{error}</p>}

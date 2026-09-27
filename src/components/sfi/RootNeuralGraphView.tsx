@@ -64,7 +64,7 @@ function date(value: string | null) {
   const parsed = new Date(value);
   return Number.isNaN(parsed.valueOf())
     ? value
-    : parsed.toLocaleString('es-MX', { timeZone: 'America/Mexico_City', hour12: false });
+    : parsed.toLocaleString('en-US', { timeZone: 'America/Mexico_City', hour12: false });
 }
 
 function buildPositions(nodes: GraphNode[]) {
@@ -158,10 +158,10 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
       <header className="neuralGraphHeader">
         <div>
           <span className="neuralGraphEyebrow">ROOT · NEURAL GRAPH · CANONICAL GRAPH STORE</span>
-          <h1>La institución como topología observable.</h1>
+          <h1>The institution as observable topology.</h1>
           <p>
-            Esta vista no inventa conexiones. Proyecta nodos y relaciones persistidos, conserva procedencia
-            y separa relación documental de validación, causalidad o autoridad.
+            This view does not invent connections. It projects persisted nodes and relations, preserves provenance
+            and separates documentary relation from validation, causality or authority.
           </p>
         </div>
         <div className="neuralGraphHeaderActions">
@@ -169,30 +169,30 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
         </div>
       </header>
 
-      <section className="neuralGraphPulse" aria-label="Estado del Neural Graph">
-        <article><span>NODOS</span><strong>{graph.nodes.length}</strong><small>persistidos + proyección canónica</small></article>
-        <article><span>RELACIONES</span><strong>{graph.edges.length}</strong><small>aristas visibles en perfil SFI</small></article>
-        <article data-state={graph.readPlane}><span>READ PLANE</span><strong>{graph.readPlane}</strong><small>{continuity ? 'Continuidad activa' : graph.readPlane === 'SUPABASE' ? 'Primario activo' : 'Proyección / no disponible'}</small></article>
+      <section className="neuralGraphPulse" aria-label="Neural Graph state">
+        <article><span>NODES</span><strong>{graph.nodes.length}</strong><small>persisted + canonical projection</small></article>
+        <article><span>RELATIONS</span><strong>{graph.edges.length}</strong><small>visible edges in SFI profile</small></article>
+        <article data-state={graph.readPlane}><span>READ PLANE</span><strong>{graph.readPlane}</strong><small>{continuity ? 'Continuity active' : graph.readPlane === 'SUPABASE' ? 'Primary active' : 'Projection / unavailable'}</small></article>
         <article data-state={graph.sourceState}><span>GRAPH STATE</span><strong>{graph.sourceState.toUpperCase()}</strong><small>{graphObserved ? 'persisted graph observed' : 'degraded projection'}</small></article>
         <article><span>ONTOLOGY TYPES</span><strong>{typeCount}</strong><small>{allTypes.slice(0, 3).join(' · ') || 'MISSING'}</small></article>
       </section>
 
       <section className="neuralGraphBoundary">
-        <strong>RELACIÓN ≠ CAUSALIDAD.</strong>
+        <strong>RELATION ≠ CAUSALITY.</strong>
         <span>DECLARED / DOCUMENTARY ≠ VALIDATED · CONNECTION ≠ AUTHORITY · GRAPH ≠ RETURN.</span>
       </section>
 
       <section className="neuralGraphControls">
         <label>
-          <span>BUSCAR EN TOPOLOGÍA</span>
+          <span>SEARCH TOPOLOGY</span>
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="nodo, tipo, procedencia, lineage…"
+            placeholder="node, type, provenance, lineage…"
           />
         </label>
-        <div className="neuralGraphFilters" aria-label="Filtrar por tipo de nodo">
-          <button className={activeType === 'ALL' ? 'active' : ''} onClick={() => setActiveType('ALL')}>TODO · {graph.nodes.length}</button>
+        <div className="neuralGraphFilters" aria-label="Filter by node type">
+          <button className={activeType === 'ALL' ? 'active' : ''} onClick={() => setActiveType('ALL')}>ALL · {graph.nodes.length}</button>
           {allTypes.map((type) => (
             <button key={type} className={activeType === type ? 'active' : ''} onClick={() => setActiveType(type)}>
               {type.toUpperCase()} · {graph.nodes.filter((node) => node.type === type).length}
@@ -202,12 +202,12 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
       </section>
 
       <div className="neuralGraphLayout">
-        <section className="neuralGraphCanvas" aria-label="Topología del grafo canónico">
+        <section className="neuralGraphCanvas" aria-label="Canonical graph topology">
           <div className="neuralGraphCanvasMeta">
             <span>VISIBLE {visibleNodes.length} NODES · {visibleEdges.length} EDGES</span>
             <span>LOADED {date(graph.loadedAt)}</span>
           </div>
-          <svg viewBox={`0 0 ${topology.width} ${topology.height}`} role="img" aria-label="Neural Graph de System Friction Institute">
+          <svg viewBox={`0 0 ${topology.width} ${topology.height}`} role="img" aria-label="System Friction Institute Neural Graph">
             <defs>
               <radialGradient id="sfiGraphGlow">
                 <stop offset="0%" stopColor="#d5b36f" stopOpacity=".18" />
@@ -261,13 +261,13 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
               );
             })}
           </svg>
-          {!visibleNodes.length ? <div className="neuralGraphEmpty">No hay nodos que coincidan con este filtro.</div> : null}
+          {!visibleNodes.length ? <div className="neuralGraphEmpty">No nodes match this filter.</div> : null}
         </section>
 
         <aside className="neuralGraphInspector">
           <div className="neuralGraphInspectorHead">
             <span>INSPECTOR</span>
-            <strong>{selected ? selected.label : 'Selecciona un nodo'}</strong>
+            <strong>{selected ? selected.label : 'Select a node'}</strong>
           </div>
           {selected ? (
             <>
@@ -282,10 +282,10 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
                 <span>LINEAGE</span>
                 {selected.lineage.length
                   ? selected.lineage.map((item) => <code key={item}>{item}</code>)
-                  : <p>MISSING · no lineage adicional declarado.</p>}
+                  : <p>MISSING · no additional lineage declared.</p>}
               </section>
               <section>
-                <span>RELACIONES</span>
+                <span>RELATIONS</span>
                 {selectedEdges.length ? selectedEdges.map((edge) => {
                   const outbound = edge.source === selected.id;
                   const other = nodeById.get(outbound ? edge.target : edge.source);
@@ -300,11 +300,11 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
                       <small>{edge.origin} · {edge.provenance}{edge.lineage.length ? ` · lineage ${edge.lineage.length}` : ''}</small>
                     </button>
                   );
-                }) : <p>Sin relaciones visibles.</p>}
+                }) : <p>No visible relations.</p>}
               </section>
             </>
           ) : (
-            <p>Selecciona un nodo para ver procedencia, lineage y relaciones adyacentes. La vista no asigna significado causal a una arista.</p>
+            <p>Select a node para ver procedencia, lineage y relaciones adyacentes. La vista no asigna significado causal a una arista.</p>
           )}
         </aside>
       </div>
@@ -312,7 +312,7 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
       <footer className="neuralGraphFooter">
         <div>
           <span>RUNTIME</span>
-          <p>{graphObserved ? 'Grafo canónico persistido disponible.' : 'Vista degradada: la proyección documental conserva observabilidad sin fingir persistencia.'}</p>
+          <p>{graphObserved ? 'Persisted canonical graph available.' : 'Degraded view: the documentary projection preserves observability without pretending persistence.'}</p>
         </div>
         <div>
           <span>PRIMARY DIAGNOSTIC</span>

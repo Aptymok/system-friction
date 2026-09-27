@@ -138,11 +138,11 @@ async function main() {
   assert.match(api, /Promise\.all/);
   assert.match(api, /private, no-store/);
   assert.match(page, /requireRootObserverPage\('\/root\/discovery'\)/);
-  assert.match(page, /Hasta dónde llegó\./, 'ROOT Discovery must lead with the human trajectory rather than an obsolete subsystem label');
+  assert.match(page, /How far it went\./, 'ROOT Discovery must lead with the human trajectory rather than an obsolete subsystem label');
   assert.match(page, /PUBLICATION ≠ DISCOVERY ≠ PULL ≠ RETURN/, 'ROOT Discovery must preserve the epistemic lifecycle boundary in the human view');
   assert.match(page, /EXPOSURE → DISCOVERY → RECOGNITION → INTERACTION → RELATION → PROPAGATION → PULL → RETURN/);
   assert.match(page, /CANONICAL_NAMESPACE_ACTIVE/, 'ROOT Discovery must still project the active publication namespace state');
-  for (const section of ['Qué salió de SFI', 'Qué fue encontrado', 'Qué se propagó', 'Qué retornó', 'Atractor Manhattan', 'Gate mínimo de convergencia', 'Representación para máquinas', 'Colisiones de identidad']) assert.match(page, new RegExp(section));
+  for (const section of ['What left SFI', 'What was found', 'What propagated', 'What returned', 'Manhattan attractor', 'Minimum convergence gate', 'Machine representation', 'Identity collisions']) assert.match(page, new RegExp(section));
   assert.doesNotMatch(page, /setInterval|setTimeout\(/, 'ROOT Discovery page must not poll');
 
   assert.match(aiIndex, /discoveryExposurePlan/);

@@ -54,8 +54,8 @@ assert.match(evidenceExternal, /humanApprovalRequired: false/);
 assert.match(evidenceExternal, /operationalUseAllowed: true/);
 assert.match(evidenceExternal, /canonicalPromotionAllowed: false/);
 
-assert.match(evidenceUi, /ROOT NO APRUEBA FUENTES/);
-assert.doesNotMatch(evidenceUi, /ACEPTAR COMO EVIDENCIA/);
+assert.match(evidenceUi, /ROOT DOES NOT APPROVE SOURCES/);
+assert.doesNotMatch(evidenceUi, /ACCEPT AS EVIDENCE/);
 assert.doesNotMatch(evidenceUi, /\/accept`/);
 assert.doesNotMatch(evidenceUi, /\/reject`/);
 

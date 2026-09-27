@@ -74,10 +74,10 @@ assert.equal(openapi.paths['/api/external/v1/evidence-candidates'].post['x-sfi-s
 assert.match(manifest, /working sources without ROOT source approval/, 'manifest must publish operational source-use authority');
 
 assert.match(reviewPage, /RootEvidenceReviewConsole/, 'legacy canonical evidence review route may remain available');
-assert.match(reviewConsole, /ROOT NO APRUEBA FUENTES/, 'default ROOT evidence UI must state that ordinary source review is not a founder task');
-assert.doesNotMatch(reviewConsole, /ACEPTAR COMO EVIDENCIA/, 'default evidence lane must not expose routine acceptance control');
-assert.doesNotMatch(reviewConsole, />RECHAZAR</, 'default evidence lane must not expose routine rejection control');
-assert.match(reviewConsole, /AGREGAR URL/, 'evidence UI may permit optional source contribution');
+assert.match(reviewConsole, /ROOT DOES NOT APPROVE SOURCES/, 'default ROOT evidence UI must state that ordinary source review is not a founder task');
+assert.doesNotMatch(reviewConsole, /ACCEPT AS EVIDENCE/, 'default evidence lane must not expose routine acceptance control');
+assert.doesNotMatch(reviewConsole, />REJECT</, 'default evidence lane must not expose routine rejection control');
+assert.match(reviewConsole, /ADD URL/, 'evidence UI may permit optional source contribution');
 assert.match(reviewConsole, /BUSCAR \/ REINTENTAR/, 'evidence UI must permit acquisition retry');
 assert.match(reviewConsole, /NECESIDAD DE EVIDENCIA/, 'evidence UI must show what information is needed');
 assert.match(reviewConsole, /Tu intervención: ninguna por revisión de fuentes/, 'evidence UI must state the human boundary plainly');
