@@ -18,19 +18,6 @@ const baseCache=new Map<string,CacheEntry>();
 const dossierCache=new Map<string,CacheEntry>();
 const reportCache=new Map<string,CacheEntry>();
 
-const OBSERVE_LINKS = [
-  { href: '/observatory', label: 'Observatory', note: 'Activity, execution, evidence, health and continuity.' },
-  { href: '/cases', label: 'Cases', note: 'Dossiers, evidence, RETURN and autonomous closure.' },
-  { href: '/method-lab', label: 'Laboratory', note: 'Experiments, comparison, simulation and reentry.' },
-  { href: '/twin', label: 'Twin / Spine', note: 'Cognitive state, lineage, contradiction and non-canonical memory.' },
-  { href: '/twin/learning', label: 'Learning', note: 'Candidates and governed institutional promotions.' },
-  { href: '/studio', label: 'Studio', note: 'Material, audio and specialist-capability execution.' },
-  { href: '/library', label: 'Library / Atlas', note: 'Document corpus, longitudinal reference and method catalog.' },
-  { href: '/governance', label: 'Agents / Runtime', note: 'Passports, execution and telemetry. Human decisions live here in ROOT.' },
-  { href: '/root/evidence-review', label: 'Evidence', note: 'Contribute and review provenance and evidence eligibility.' },
-  { href: '/history/mutations', label: 'Audit / Return', note: 'Mutations, receipts and institutional-change traceability.' },
-] as const;
-
 function rows(value: unknown): Row[] {
   return Array.isArray(value) ? value.filter((item): item is Row => Boolean(item) && typeof item === 'object' && !Array.isArray(item)) : [];
 }
@@ -162,8 +149,6 @@ export function SfiRootWorkspace({ enabled }: { enabled: boolean }) {
     <header className="rootHeader"><div className="rootHeaderCopy"><span>ROOT · INSTITUTIONAL SOVEREIGNTY · AUTHORITY / OBSERVATION / RETURN</span><h1>Decide what is sovereign. Observe and read the rest.</h1><p>SFI operates, searches for evidence, executes already-authorized capabilities, records RETURN and closes routine work without asking permission. ROOT intervenes when a real authority decision exists and retains complete visibility over reports, cases, learning and RETURN.</p></div><div className="rootReadState"><span>READ STATE</span><b>{lastReadAt ? `${readState} · ${when(lastReadAt)}` : `${readState} · waiting for first observation`}</b><button onClick={() => void loadBase(true)}>Refresh</button></div></header>
 
     <section className="rootPulse" aria-label="Observable institutional state"><article data-epistemic-state={readState}><span>ROOT decisions</span><b>{pulseValue(actionable.length)}</b><small>Sovereign changes only.</small></article><article data-epistemic-state={readState}><span>Active cases</span><b>{pulseValue(activeCases.length)}</b><small>Observed; not approved.</small></article><article data-epistemic-state={readState}><span>Open cycles</span><b>{pulseValue(cycles.length)}</b><small>May close autonomously.</small></article><article data-epistemic-state={readState}><span>Observable work</span><b>{pulseValue(observable.length)}</b><small>SFI continues within its authority.</small></article></section>
-
-    <nav className="rootObserve" aria-label="Ten ROOT institutional modules"><div className="rootObserveLead"><span>10 MODULES · OBSERVATION TOPOLOGY</span><p>They are lenses over existing owners. None gains a new writer, memory or authority by appearing here.</p></div><div className="rootObserveLinks">{OBSERVE_LINKS.map((item) => <Link key={item.href} href={item.href}><strong>{item.label}</strong><span>{item.note}</span></Link>)}</div></nav>
 
     <section className="rootRule"><strong>SFI OPERATES WITHOUT ASKING PERMISSION.</strong><span>OBSERVATION ≠ INFERENCE · SIMULATION ≠ OBSERVATION · operating ≠ governing · closing ≠ learning · evidence ≠ approval · report ≠ decision.</span></section>
 
