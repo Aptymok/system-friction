@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import './RootNeuralGraphView.css';
+import { InstitutionalSurfaceRail } from './InstitutionalSurfaceRail';
 
 type GraphNode = {
   id: string;
@@ -153,6 +154,7 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
 
   return (
     <main className="neuralGraphShell" data-neural-graph-contract="SFI-ROOT-NEURAL-GRAPH-1.0">
+      <InstitutionalSurfaceRail surface="NEURAL_GRAPH" state={graph.sourceState.toUpperCase()} detail={'READ PLANE '+graph.readPlane}/>
       <header className="neuralGraphHeader">
         <div>
           <span className="neuralGraphEyebrow">ROOT · NEURAL GRAPH · CANONICAL GRAPH STORE</span>

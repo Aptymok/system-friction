@@ -3,6 +3,8 @@ import {
   listInstitutionalAccountAccessGrants,
 } from '@/lib/auth/institutionalInvitation';
 import { requireFounderPage } from '@/lib/system/access/server';
+import { InstitutionalSurfaceRail } from '@/components/sfi/InstitutionalSurfaceRail';
+import './root-access.css';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,72 +44,48 @@ export default async function RootAccessPage({
   const access = await listInstitutionalAccountAccessGrants();
 
   return (
-    <main style={{ maxWidth: 960, margin: '0 auto', padding: '48px 24px 80px' }}>
-      <p style={{ letterSpacing: '.14em', fontSize: 12 }}>ROOT · ACCESO</p>
-      <h1>Invitar una cuenta</h1>
-      <p style={{ maxWidth: 760 }}>
-        SFI envía un enlace personal. La persona verifica su correo y define su propia contraseña.
-        Esta operación concede acceso, no autoridad soberana: nunca crea ROOT, un nombramiento institucional
-        ni permiso para modificar el canon.
-      </p>
-      <p style={{ maxWidth: 760 }}>
-        ROOT nunca asigna, conoce ni comparte la contraseña de otra persona. Si alguien pierde el acceso,
-        utiliza el restablecimiento verificado por correo.
-      </p>
+    <main className="rootAccessShell">
+      <InstitutionalSurfaceRail surface="ACCESS" state={access.available?'AVAILABLE':'DEGRADED'} detail={access.source==='NEON_CONTINUITY'?'CONTINUITY READ':'PRIMARY READ'}/>
+      <header className="rootAccessHeader">
+        <div><small>ROOT · IDENTITY / ACCESS</small><h1>Invite access without manufacturing authority.</h1><p>SFI envía un enlace personal. La persona verifica su correo y define su propia contraseña. El acceso habilita una superficie gobernada; no crea ROOT, soberanía ni autoridad institucional.</p></div>
+        <div className="rootAccessPrinciple"><span>IDENTITY RULE</span><b>ROOT NEVER ASSIGNS OR KNOWS ANOTHER PERSON'S PASSWORD</b></div>
+      </header>
 
-      {state && STATES[state] ? (
-        <p role="status" style={{ padding: 16, border: '1px solid currentColor', margin: '24px 0' }}>{STATES[state]}</p>
-      ) : null}
+      <section className="rootAccessBoundary"><b>ACCESS ≠ AUTHORITY</b><span>INVITATION ≠ ACTIVE ACCOUNT · ROLE ≠ SOVEREIGNTY · DELIVERY ≠ ACCEPTANCE</span></section>
 
-      {access.source === 'NEON_CONTINUITY' ? (
-        <p role="status" style={{ padding: 16, border: '1px solid currentColor', margin: '24px 0' }}>
-          Supabase primario no respondió; SFI está leyendo el registro de accesos desde continuidad Neon.
-          Puedes revisar el estado existente. El envío de nuevas invitaciones sigue sujeto al proveedor primario.
-        </p>
-      ) : null}
+      {state && STATES[state] ? <p role="status" className="rootAccessStatus">{STATES[state]}</p> : null}
+      {access.source === 'NEON_CONTINUITY' ? <p role="status" className="rootAccessStatus continuity">Supabase primario no respondió; SFI está leyendo el registro de accesos desde continuidad Neon. Puedes revisar el estado existente. El envío de nuevas invitaciones sigue sujeto al proveedor primario.</p> : null}
 
-      <form action={inviteInstitutionalAccountAction} style={{ display: 'grid', gap: 14, maxWidth: 680, marginTop: 32 }}>
-        <label>
-          Nombre
-          <input name="displayName" required minLength={2} maxLength={120} style={{ display: 'block', width: '100%', marginTop: 6 }} />
-        </label>
-        <label>
-          Correo
-          <input name="email" type="email" required autoComplete="email" style={{ display: 'block', width: '100%', marginTop: 6 }} />
-        </label>
-        <label>
-          Cargo o referencia humana
-          <input name="title" required minLength={2} maxLength={160} placeholder="Ej. Observador institucional" style={{ display: 'block', width: '100%', marginTop: 6 }} />
-        </label>
-        <label>
-          Tipo de acceso
-          <select name="accessClass" defaultValue="INSTITUTIONAL_OBSERVER" style={{ display: 'block', width: '100%', marginTop: 6 }}>
-            <option value="INSTITUTIONAL_OBSERVER">Observador — puede consultar, no ejecutar cambios institucionales</option>
-            <option value="INSTITUTIONAL_OPERATOR">Operador — puede trabajar dentro de su espacio, sin autoridad soberana</option>
-          </select>
-        </label>
-        <button type="submit" style={{ justifySelf: 'start', padding: '10px 18px' }}>ENVIAR INVITACIÓN</button>
-      </form>
+      <div className="rootAccessLayout">
+        <section className="rootAccessPanel">
+          <div className="rootAccessSectionHead"><small>NEW ACCESS GRANT</small><h2>Invitar una cuenta</h2><p>La invitación concede acceso delimitado. Toda autoridad posterior conserva sus propios gates.</p></div>
+          <form action={inviteInstitutionalAccountAction} className="rootAccessForm">
+            <label>Nombre<input name="displayName" required minLength={2} maxLength={120}/></label>
+            <label>Correo<input name="email" type="email" required autoComplete="email"/></label>
+            <label>Cargo o referencia humana<input name="title" required minLength={2} maxLength={160} placeholder="Ej. Observador institucional"/></label>
+            <label>Tipo de acceso<select name="accessClass" defaultValue="INSTITUTIONAL_OBSERVER"><option value="INSTITUTIONAL_OBSERVER">Observador — puede consultar, no ejecutar cambios institucionales</option><option value="INSTITUTIONAL_OPERATOR">Operador — puede trabajar dentro de su espacio, sin autoridad soberana</option></select></label>
+            <button type="submit">ENVIAR INVITACIÓN</button>
+          </form>
+        </section>
 
-      <section style={{ marginTop: 56 }}>
-        <h2>Accesos administrados</h2>
-        {!access.available ? <p>El registro de accesos no está disponible en el plano primario ni en continuidad. No se modificó ningún acceso.</p> : null}
-        {access.grants.length === 0 ? <p>No hay invitaciones registradas todavía.</p> : (
-          <div style={{ display: 'grid', gap: 12 }}>
-            {access.grants.map((grant) => {
-              const detail = deliveryDetail(grant.lastInviteError);
-              return (
-                <article key={grant.id} style={{ borderTop: '1px solid currentColor', paddingTop: 12 }}>
-                  <strong>{grant.displayName}</strong>
-                  <div>{grant.title} · {grant.email}</div>
+        <section className="rootAccessPanel rootAccessRegistry">
+          <div className="rootAccessSectionHead"><small>ACCESS REGISTRY</small><h2>Accesos administrados</h2><p>{access.available ? <>{access.grants.length} registros observados.</> : <>El registro no está disponible en el plano primario ni continuidad.</>}</p></div>
+          {!access.available ? <div className="rootAccessEmpty">No se modificó ningún acceso.</div> : null}
+          {access.available && access.grants.length === 0 ? <div className="rootAccessEmpty">No hay invitaciones registradas todavía.</div> : (
+            <div className="rootAccessGrantList">
+              {access.grants.map((grant) => {
+                const detail = deliveryDetail(grant.lastInviteError);
+                return <article key={grant.id} data-state={grant.status}>
+                  <div><strong>{grant.displayName}</strong><span>{grant.title}</span></div>
+                  <code>{grant.email}</code>
                   <small>{statusText(grant.status)} · {grant.accessClass === 'INSTITUTIONAL_OBSERVER' ? 'Observador' : 'Operador'}</small>
-                  {detail ? <div><small>{detail}</small></div> : null}
-                </article>
-              );
-            })}
-          </div>
-        )}
-      </section>
+                  {detail ? <p>{detail}</p> : null}
+                </article>;
+              })}
+            </div>
+          )}
+        </section>
+      </div>
     </main>
   );
 }

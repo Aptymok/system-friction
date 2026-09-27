@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import { useSearchParams } from 'next/navigation';
 import { useAuthState } from '@/components/auth/AuthProvider';
 import { SfiFriccionautaPanel } from './SfiFriccionautaPanel';
+import { InstitutionalSurfaceRail } from './InstitutionalSurfaceRail';
 import './SfiRootWorkspace.css';
 
 type Row = Record<string, any>;
@@ -155,6 +156,8 @@ export function SfiRootWorkspace({ enabled }: { enabled: boolean }) {
 
   return <div className="rootWorkspace" data-root-visual-contract="SFI-ROOT-VISUAL-2.0" data-root-module-count={OBSERVE_LINKS.length}>
     {(error || notice) && <div className={`rootToast ${error ? 'error' : ''}`}><span>{error || notice}</span><button onClick={() => { setError(null); setNotice(null); }}>×</button></div>}
+
+    <InstitutionalSurfaceRail surface="ROOT" state={readState} detail={lastReadAt ? 'LAST READ '+when(lastReadAt) : 'AWAITING FIRST READ'}/>
 
     <header className="rootHeader"><div className="rootHeaderCopy"><span>ROOT · SOBERANÍA INSTITUCIONAL · AUTHORITY / OBSERVATION / RETURN</span><h1>Decide lo soberano. Observa y lee el resto.</h1><p>SFI opera, busca evidencia, ejecuta capacidades ya autorizadas, registra RETURN y cierra trabajo rutinario sin pedir permiso. ROOT interviene cuando existe una decisión real de autoridad y conserva lectura completa de reportes, casos, aprendizaje y RETURN.</p></div><div className="rootReadState"><span>ESTADO DE LECTURA</span><b>{lastReadAt ? `${readState} · ${when(lastReadAt)}` : `${readState} · esperando primera observación`}</b><button onClick={() => void loadBase(true)}>Actualizar</button></div></header>
 

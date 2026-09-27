@@ -121,7 +121,7 @@ Acceptance:
 - missing external stages remain missing
 
 ### P7 · Spatial/GPU layer
-State: IMPLEMENTED / VERIFYING
+State: PHASE COMPLETE / PROGRAM CONTINUES
 Stack:
 - DOM/React for content and accessibility
 - CSS 3D + GSAP for bounded motion
@@ -138,7 +138,7 @@ Not allowed:
 - glitch effects without semantic meaning
 
 ### P8 · Final Convergence / Institutional Experience Certification
-State: PLANNED
+State: IMPLEMENTED / VERIFYING
 Deliverables:
 - end-to-end traversal across ENTRY → OBSERVATORY → TIME → HYPOTHESIS → RETURN → LABORATORY → REGISTRY → RECONSTRUCT → MACHINE → DISCOVERY
 - cross-surface visual, accessibility and performance convergence

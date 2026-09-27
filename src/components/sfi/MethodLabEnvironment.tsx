@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState, type CSSProperties } from 'react';
 import './MethodLabEnvironment.css';
+import { InstitutionalSurfaceRail } from './InstitutionalSurfaceRail';
 
 type ProtocolView = { id: string; status: string };
 type SessionView = { status: string };
@@ -164,6 +165,7 @@ export function MethodLabEnvironment({
 
   return (
     <section className="mlenv" aria-label="SFI Method Lab spatial interface">
+      <InstitutionalSurfaceRail surface="LABORATORY" state={status} detail={'CONTRACT '+contractVersion}/>
       <header className="mlenv-topbar">
         <Link href="/root" className="mlenv-brand">SFI.</Link>
         <div><small>CONTROLLED EXPERIMENTATION</small><strong>METHOD LAB</strong></div>

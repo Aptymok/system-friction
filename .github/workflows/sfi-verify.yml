@@ -87,6 +87,9 @@ jobs:
       - name: Verify ROOT graph and navigation convergence
         run: npx tsx scripts/qa-sfi-root-graph-navigation.ts
 
+      - name: Verify P8 institutional visual convergence
+        run: npx tsx scripts/qa-sfi-institutional-visual-convergence.ts
+
       - name: Verify ROOT reports and runtime truth
         run: npx tsx scripts/qa-sfi-root-reports-runtime.ts
 

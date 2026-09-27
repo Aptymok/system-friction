@@ -3,6 +3,7 @@ import { requireRootObserverPage } from '@/lib/root/server';
 import { readDiscoveryControlPlane } from '@/lib/discovery/discoveryControlPlane';
 import { readInstitutionalDiscoveryMesh } from '@/lib/discovery/institutionalDiscoveryReadModel';
 import './discovery.css';
+import { InstitutionalSurfaceRail } from '@/components/sfi/InstitutionalSurfaceRail';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,6 +48,7 @@ export default async function RootDiscoveryPage() {
   const latestDiscoveryRun = data.searchHealth.latestRun;
 
   return <main className="discoveryRoot">
+    <InstitutionalSurfaceRail surface="DISCOVERY" state={data.availability} detail={'REALITY '+mesh.reality.state}/>
     <header className="discoveryHeader">
       <div><p className="discoveryKicker">DISCOVERY MESH · QUÉ PASA DESPUÉS DE PUBLICAR</p><h1>Hasta dónde llegó.</h1><p>SFI distingue exposición, descubrimiento, reconocimiento, interacción, relación, propagación, PULL y RETURN. Publicar una pieza sólo inicia la trayectoria; ningún estado posterior se inventa para completar el gráfico.</p></div>
       <div className="discoveryHeaderActions"><span className={statusClass(data.availability)}>{data.availability}</span><Link href="/root">ROOT</Link><Link href="/publications">PUBLICATIONS</Link></div>
