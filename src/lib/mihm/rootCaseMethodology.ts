@@ -308,6 +308,9 @@ export type CanonicalUnknownResolutionPlan = {
   sourceStrategy: string[];
   stoppingCondition: string;
   noCalendarTimeoutInvented: true;
+  evidenceDisposition: 'NOT_EVALUATED' | 'NO_DISCRIMINATING_EVIDENCE' | 'CANDIDATE_SUPPORTED' | 'RIVAL_REQUIRED' | 'RESOLVED';
+  supportedIdentity: MihmObservationSubject | null;
+  supportReasons: string[];
 };
 
 export function planCanonicalUnknownResolution(
@@ -317,7 +320,7 @@ export function planCanonicalUnknownResolution(
   signal = deriveCanonicalFieldMethodSignal(node, edges),
 ): CanonicalUnknownResolutionPlan {
   if (methodology.input.subject !== 'UNKNOWN') {
-    return { status: 'NOT_REQUIRED', target: 'SUBJECT_IDENTITY', temporalBasis: [], knownWithoutIdentity: [], missing: [], discriminatingObservations: [], sourceStrategy: [], stoppingCondition: 'Subject identity is already declared.', noCalendarTimeoutInvented: true };
+    return { status: 'NOT_REQUIRED', target: 'SUBJECT_IDENTITY', temporalBasis: [], knownWithoutIdentity: [], missing: [], discriminatingObservations: [], sourceStrategy: [], stoppingCondition: 'Subject identity is already declared.', noCalendarTimeoutInvented: true, evidenceDisposition: 'RESOLVED', supportedIdentity: methodology.input.subject, supportReasons: ['SUBJECT_IDENTITY_DECLARED'] };
   }
   const attrs = node.attributes ?? {};
   const bases = new Set<CanonicalUnknownResolutionPlan['temporalBasis'][number]>();
@@ -352,6 +355,62 @@ export function planCanonicalUnknownResolution(
       ? 'Current instrumentation contains no discriminating observation opportunity; mark censored until a new source, relation, event, cycle, or measurement becomes observable.'
       : 'Stop the current pass when identity is discriminated by evidence or when all currently observable discriminators are exhausted; do not substitute elapsed calendar time for an observation opportunity.',
     noCalendarTimeoutInvented: true,
+    evidenceDisposition: 'NOT_EVALUATED',
+    supportedIdentity: null,
+    supportReasons: [],
+  };
+}
+
+export type UnknownIdentityEvidenceObservation = {
+  sourceId: string;
+  authorityFit: 'FIT' | 'NO_FIT' | 'REVIEW_REQUIRED' | 'UNKNOWN';
+  admission: 'SOURCE_ONLY' | 'CANDIDATE_EVIDENCE' | 'CORROBORATION_REQUIRED' | 'UNKNOWN';
+  supports: MihmObservationSubject[];
+  challenges: MihmObservationSubject[];
+  directObservation?: boolean;
+  provenanceBound?: boolean;
+};
+
+export function contrastUnknownIdentityEvidence(
+  plan: CanonicalUnknownResolutionPlan,
+  observations: UnknownIdentityEvidenceObservation[],
+): CanonicalUnknownResolutionPlan {
+  if (plan.status === 'NOT_REQUIRED') return plan;
+  const admissible = observations.filter((item) =>
+    item.provenanceBound !== false
+    && (item.directObservation === true || item.authorityFit === 'FIT')
+    && item.admission !== 'SOURCE_ONLY'
+  );
+  if (!admissible.length) {
+    return { ...plan, evidenceDisposition: 'NO_DISCRIMINATING_EVIDENCE', supportedIdentity: null, supportReasons: ['NO_CLAIM_SCOPED_OR_DIRECT_DISCRIMINATING_EVIDENCE'] };
+  }
+  const candidates = new Map<MihmObservationSubject, { support: number; challenge: number; sources: Set<string> }>();
+  for (const item of admissible) {
+    for (const identity of item.supports) {
+      const state = candidates.get(identity) ?? { support: 0, challenge: 0, sources: new Set<string>() };
+      state.support += 1; state.sources.add(item.sourceId); candidates.set(identity, state);
+    }
+    for (const identity of item.challenges) {
+      const state = candidates.get(identity) ?? { support: 0, challenge: 0, sources: new Set<string>() };
+      state.challenge += 1; state.sources.add(item.sourceId); candidates.set(identity, state);
+    }
+  }
+  const viable = [...candidates.entries()].filter(([, value]) => value.support > 0 && value.challenge === 0);
+  if (viable.length !== 1) {
+    return { ...plan, evidenceDisposition: 'RIVAL_REQUIRED', supportedIdentity: null, supportReasons: viable.length > 1 ? ['MULTIPLE_SUPPORTED_IDENTITIES_REMAIN'] : ['SUPPORTED_IDENTITY_NOT_ESTABLISHED'] };
+  }
+  const [identity, state] = viable[0];
+  const rivalAddressed = [...candidates.entries()].some(([candidate, value]) => candidate !== identity && value.challenge > 0);
+  if (!rivalAddressed) {
+    return { ...plan, evidenceDisposition: 'CANDIDATE_SUPPORTED', supportedIdentity: identity, supportReasons: [`IDENTITY_SUPPORTED_BY_${state.sources.size}_ADMISSIBLE_SOURCE(S)`, 'RIVAL_NOT_YET_DISCRIMINATED'] };
+  }
+  return {
+    ...plan,
+    status: 'NOT_REQUIRED',
+    evidenceDisposition: 'RESOLVED',
+    supportedIdentity: identity,
+    supportReasons: [`IDENTITY_SUPPORTED_BY_${state.sources.size}_ADMISSIBLE_SOURCE(S)`, 'AT_LEAST_ONE_RIVAL_CHALLENGED_BY_ADMISSIBLE_EVIDENCE'],
+    stoppingCondition: 'Identity resolution reached for the current evidence boundary. Reopen if counterevidence, a new rival, or incompatible RETURN appears.',
   };
 }
 
