@@ -11,6 +11,7 @@ const route = text('src/app/api/mcp/authenticated/route.ts');
 const protectedResourceMetadata = text('src/app/.well-known/oauth-protected-resource/route.ts');
 const rootDecisionRoute = text('src/app/api/external/v1/governance/proposals/[id]/decision/route.ts');
 const rootOperateRoute = text('src/app/api/external/v1/root/operate/route.ts');
+const institutionalInvitationDelivery = text('src/lib/auth/institutionalInvitationDelivery.ts');
 const oauthConfig = text('src/lib/sfi/oauthConfig.ts');
 const publicRoute = text('src/app/api/mcp/public/route.ts');
 const publicServer = text('src/lib/mcp/publicMcpServer.ts');
@@ -115,7 +116,8 @@ assert.match(rootOperateRoute, /operation === 'reports'/, 'root_operate_route_mu
 assert.match(rootOperateRoute, /humanReportText/, 'root_reports_must_be_normalized_for_human_readback');
 assert.match(rootOperateRoute, /operation === 'accounts_list'/, 'root_operate_route_must_expose_account_listing');
 assert.match(rootOperateRoute, /operation === 'account_invite'/, 'root_operate_route_must_expose_account_invitation');
-assert.match(rootOperateRoute, /inviteUserByEmail/, 'root_account_invitation_must_reuse_auth_provider_invitation');
+assert.match(rootOperateRoute, /deliverInstitutionalInvitation/, 'root_account_invitation_must_delegate_to_canonical_delivery_owner');
+assert.match(institutionalInvitationDelivery, /inviteUserByEmail/, 'canonical_invitation_delivery_owner_must_reuse_auth_provider_invitation');
 assert.doesNotMatch(rootOperateRoute, /password|setPassword|updateUserById\([^)]*password/i, 'root_operate_must_never_assign_another_users_password');
 assert.match(rootOperateRoute, /sovereignAuthorityGranted: false/, 'account_invitation_must_not_grant_sovereign_authority');
 
