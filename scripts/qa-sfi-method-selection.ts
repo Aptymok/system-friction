@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { resolveMihmMethod } from '../src/lib/mihm/methodSelectionResolver';
 import { deriveCanonicalFieldMethodSignal, resolveRootCaseMethodology } from '../src/lib/mihm/rootCaseMethodology';
 import type { CanonicalGraphEdge, CanonicalGraphNode } from '../packages/graph/src';
-import { resolveMethodLabFieldProjection } from '../src/lib/method-lab/fieldProjection';
+import { proposeMethodLabFieldProtocol, resolveMethodLabFieldProjection } from '../src/lib/method-lab/fieldProjection';
 
 const personal = resolveMihmMethod({
   subject: 'PERSON', temporalScope: 'SESSION', evidenceModalities: ['CONVERSATION'], sessionId: 'session-1',
@@ -329,5 +329,40 @@ const unresolvedDirectionProjection = resolveMethodLabFieldProjection({
 });
 assert.equal(unresolvedDirectionProjection.decision, 'ABSTAIN');
 assert.equal(unresolvedDirectionProjection.reason, 'DIRECTION_UNRESOLVED');
+
+const proposedSociotechnicalProtocol = proposeMethodLabFieldProtocol({
+  declaredProtocolId: null,
+  primaryMethodId: 'PPOI',
+  evidenceModalities: [],
+  worldContextRequested: false,
+  requiresTrajectory: true,
+  requiresRivalHypothesis: true,
+  requiresInterventionTracking: false,
+  relationCount: evidenceDrivenPromotedSignal.relationCount,
+  evidenceBoundRelationCount: evidenceDrivenPromotedSignal.evidenceBoundRelationCount,
+  temporalStructureObserved: evidenceDrivenPromotedSignal.temporalStructureObserved,
+  relationTransition: evidenceDrivenPromotedSignal.relationTransition,
+  weightChangeObserved: evidenceDrivenPromotedSignal.weightChangeObserved,
+});
+assert.equal(proposedSociotechnicalProtocol.status, 'PROPOSED');
+assert.equal(proposedSociotechnicalProtocol.protocolId, 'sociotechnical_simulation');
+assert.equal(proposedSociotechnicalProtocol.epistemicClass, 'DERIVED');
+
+const abstainedProtocol = proposeMethodLabFieldProtocol({
+  declaredProtocolId: null,
+  primaryMethodId: 'PPOI',
+  evidenceModalities: [],
+  worldContextRequested: false,
+  requiresTrajectory: true,
+  requiresRivalHypothesis: false,
+  requiresInterventionTracking: false,
+  relationCount: 0,
+  evidenceBoundRelationCount: 0,
+  temporalStructureObserved: true,
+  relationTransition: false,
+  weightChangeObserved: false,
+});
+assert.equal(abstainedProtocol.status, 'ABSTAIN');
+assert.equal(abstainedProtocol.protocolId, null);
 
 console.log('SFI method selection resolver QA passed.');
