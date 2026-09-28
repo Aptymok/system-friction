@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { resolveMihmMethod } from '../src/lib/mihm/methodSelectionResolver';
-import { deriveCanonicalFieldMethodSignal, resolveRootCaseMethodology } from '../src/lib/mihm/rootCaseMethodology';
+import { deriveCanonicalFieldMethodSignal, planCanonicalUnknownResolution, resolveCanonicalFieldMethodology, resolveRootCaseMethodology } from '../src/lib/mihm/rootCaseMethodology';
 import type { CanonicalGraphEdge, CanonicalGraphNode } from '../packages/graph/src';
 import { proposeMethodLabFieldProtocol, resolveMethodLabFieldProjection } from '../src/lib/method-lab/fieldProjection';
 
@@ -406,5 +406,24 @@ assert.equal(temporalUnknownMethodology.input.subject, 'UNKNOWN');
 assert.equal(temporalUnknownMethodology.input.temporalScope, 'LONGITUDINAL');
 assert.equal(temporalUnknownMethodology.subjectProposal, 'CASE');
 assert.equal(temporalUnknownMethodology.resolution.status, 'BLOCKED');
+
+const temporalUnknownPlan = planCanonicalUnknownResolution(
+  { ...canonicalFieldNode, nodeId: 'temporal-unknown', provenance: 'evidence:temporal:1', lineage: ['evidence:temporal:1'], attributes: { cycleIndex: 3 } },
+  [],
+  temporalUnknownMethodology,
+);
+assert.equal(temporalUnknownPlan.status, 'ACTIVE');
+assert.ok(temporalUnknownPlan.temporalBasis.includes('CYCLE'));
+assert.equal(temporalUnknownPlan.noCalendarTimeoutInvented, true);
+assert.ok(temporalUnknownPlan.discriminatingObservations.some((item) => item.includes('distinguishes proposed CASE')));
+
+const censoredUnknownPlan = planCanonicalUnknownResolution(
+  { ...canonicalFieldNode, nodeId: 'censored-unknown', provenance: '', lineage: [], attributes: {}, createdAt: '', updatedAt: '' },
+  [],
+  unknownCanonicalMethodology,
+);
+assert.equal(censoredUnknownPlan.status, 'CENSORED');
+assert.ok(censoredUnknownPlan.temporalBasis.includes('UNKNOWN'));
+assert.ok(censoredUnknownPlan.stoppingCondition.includes('new source, relation, event, cycle, or measurement'));
 
 console.log('SFI method selection resolver QA passed.');
