@@ -317,6 +317,11 @@ export function canonicalPublicationDisposition(record: SfiCanonicalObjectRecord
     : { disposition: 'PUBLISH', reasons: [] };
 }
 
+/**
+ * PUBLIC is a governed projection of canonical institutional state.
+ * It is not a downstream cognitive stage after ROOT, and publication does not
+ * manufacture observation, external recognition, interaction, PULL or RETURN.
+ */
 export function publicProjectionForCanonicalObject(record: SfiCanonicalObjectRecord): SfiCanonicalPublicProjection | null {
   if (canonicalPublicationDisposition(record).disposition !== 'PUBLISH') return null;
   return {
