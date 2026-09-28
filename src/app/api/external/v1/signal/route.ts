@@ -593,6 +593,8 @@ export async function POST(req: Request) {
         epistemicClass: 'INFERENCE',
         primaryHypothesis: aiSynthesis.primaryHypothesis,
         rivalHypotheses: aiSynthesis.rivalHypotheses,
+        discriminatingObservations: aiSynthesis.discriminatingObservations,
+        stoppingCondition: aiSynthesis.stoppingCondition,
         predictions: aiSynthesis.predictions,
         missingEvidence: aiSynthesis.missingEvidence,
         sourceClaimBoundary: {
@@ -601,9 +603,11 @@ export async function POST(req: Request) {
           authoritySensitive: evidenceRequirement.authoritySensitive,
           rule: 'Acquired SOURCE_CLAIMS may inform inference and discriminator design, but they do not become accepted EVIDENCE merely by retrieval, relevance, authority fit, or synthesis.',
         },
-        next: aiSynthesis.predictions.length
-          ? 'Register/observe the discriminating return before empirical closure.'
-          : 'Do not fabricate a prediction. Resolve the missing evidence or close only as DESCRIPTIVE_DELIMITED if methodologically appropriate.',
+        next: aiSynthesis.discriminatingObservations.length
+          ? 'Acquire and link one of the bounded discriminating observations before empirical closure; then contrast it against the primary and rival hypotheses.'
+          : aiSynthesis.predictions.length
+            ? 'Register/observe the discriminating return before empirical closure.'
+            : 'Do not fabricate a prediction or discriminator. Resolve the missing evidence or close only as DESCRIPTIVE_DELIMITED if methodologically appropriate.',
       } : null,
       metadata: cycle.result.context.metadata,
       reread: compactCycleHistory(history),
