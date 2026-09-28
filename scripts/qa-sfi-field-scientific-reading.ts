@@ -7,6 +7,9 @@ const node={
   attributes:{sequenceIndex:4,recurrenceIndex:2,timeInState:12,observedAt:'2026-09-28T12:00:00.000Z',presenceState:'OBSERVED_PRESENCE',previousPresenceState:'OBSERVED_ABSENCE',phenomenonRefs:['phenomenon:1'],sourceObservationRefs:['obs:1','obs:2'],aggregationRefs:['aggregate:1'],interventionRef:'action:1',perturbationMagnitude:0.2,capacityResponse:'RECOVERY',recoveryTime:3,returnEvidenceRefs:['return:1']},
   createdAt:'2026-09-28T15:00:00.000Z',updatedAt:'2026-09-28T15:01:00.000Z',
 } as CanonicalGraphNode;
+const otherEdge={
+  edgeId:'edge:2',sourceNodeId:'observed-system',targetNodeId:'third',relation:'coordinates_with',weight:0.8,profile:'sfi',origin:'qa',provenance:'evidence:edge2',lineage:['edge-evidence:2'],attributes:{relationState:'SUPPORTED'},createdAt:'2026-09-28T15:00:00.000Z',updatedAt:'2026-09-28T15:01:00.000Z',
+} as CanonicalGraphEdge;
 const edge={
   edgeId:'edge:1',sourceNodeId:'observed-system',targetNodeId:'other',relation:'depends_on',weight:0.6,profile:'sfi',origin:'qa',provenance:'evidence:edge',lineage:['edge-evidence:1'],
   attributes:{relationState:'CHALLENGED',previousRelationState:'SUPPORTED',previousWeight:0.9,latency:5,uncertainty:0.2,onsetAt:'2026-09-28T11:00:00.000Z',recurrenceIndex:2},
@@ -34,13 +37,18 @@ assert(methods.some(x=>x.family==='CHANGE_POINT'));
 assert(methods.some(x=>x.family==='ACTIVE_LEARNING'));
 for(const method of methods){assert(method.dataRequired.length);assert(method.assumptions.length);assert(method.failureModes.length);assert(method.falsificationCondition.length);}
 
-const reading=deriveFieldScientificReading(node,[edge]);
+const reading=deriveFieldScientificReading(node,[edge,otherEdge]);
 assert.equal(reading.temporal.multipleClocks,true);
 assert(reading.temporal.availableResolutions.includes('EVENT'));
 assert(reading.temporal.availableResolutions.includes('TRANSITION'));
 assert(reading.temporal.availableResolutions.includes('CYCLE'));
 assert(reading.temporal.availableResolutions.includes('PHENOMENON'));
 assert.equal(reading.capacity?.response,'RECOVERY');
+assert.equal(reading.distributedConfiguration.state,'CANDIDATE');
+assert.equal(reading.distributedConfiguration.memberNodeIds.length,3);
+assert.equal(reading.evidenceGeometry.authority,'OBSERVED_RELATION_MEASURE');
+assert.equal(reading.evidenceGeometry.strongestRelationId,'edge:2');
+assert.equal(reading.nextAction.decision,'OBSERVE_NEXT','challenged rival structure must prefer observation before perturbation');
 assert.equal(reading.reversibility.reconstructable,true);
 assert(reading.boundaries.includes('RECURRENCE_NOT_ATTRACTOR'));
 
