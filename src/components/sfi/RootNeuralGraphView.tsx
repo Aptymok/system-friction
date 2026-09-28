@@ -162,6 +162,28 @@ function realityStage(node: GraphNode) {
   return stages.find((stage) => text.includes(stage)) ?? 'unclassified';
 }
 
+function reorganizationOffset(node: GraphNode, reading: string): Position {
+  if (reading !== 'CURRENT_STATE' && reading !== 'RETURN_CONTRAST') return { x: 0, y: 0 };
+  const state = node.methodSignal?.fieldReorganizationState ?? 'UNCHANGED';
+  if (state === 'UNCHANGED') return { x: 0, y: 0 };
+
+  // This is a reversible reading transform only. Canonical node coordinates/history
+  // are not persisted or overwritten by learning projection.
+  const seed = hash(`reorganization:${node.id}:${state}`);
+  const direction = seed % 2 === 0 ? 1 : -1;
+  if (state === 'CONTRAST_RECORDED') return { x: 18 * direction, y: 10 };
+  if (state === 'LEARNING_QUARANTINED') return { x: 30 * direction, y: 18 };
+  return { x: 54 * direction, y: -24 };
+}
+
+function applyReorganizationReading(node: GraphNode, position: Position, reading: string, width: number, height: number): Position {
+  const offset = reorganizationOffset(node, reading);
+  return {
+    x: Math.max(38, Math.min(width - 38, position.x + offset.x)),
+    y: Math.max(38, Math.min(height - 38, position.y + offset.y)),
+  };
+}
+
 function buildPositions(nodes: GraphNode[], reading: 'CURRENT_STATE'|'HIERARCHY'|'TRAJECTORY'|'RETROLONGITUDINAL'|'PROJECTION'|'FRICTION_REGIME'|'REALITY_CHAIN'|'RETURN_CONTRAST') {
   const width = 1180;
   const height = 700;
@@ -245,6 +267,10 @@ function buildPositions(nodes: GraphNode[], reading: 'CURRENT_STATE'|'HIERARCHY'
       x: Math.max(38, Math.min(width - 38, centerX + Math.cos(localAngle) * localRadius)),
       y: Math.max(38, Math.min(height - 38, centerY + Math.sin(localAngle) * localRadius * 0.72)),
     });
+  }
+  for (const node of nodes) {
+    const position = positions.get(node.id);
+    if (position) positions.set(node.id, applyReorganizationReading(node, position, reading, width, height));
   }
   return { positions, types, width, height };
 }
