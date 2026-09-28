@@ -4,6 +4,7 @@ import { RootNeuralGraphView } from '@/components/sfi/RootNeuralGraphView';
 import { SfiRootWorkspace } from '@/components/sfi/SfiRootWorkspace';
 import { LEGACY_INTERNAL_SCENES, SCENE_KEYS, type SceneKey } from '@/components/sfi/scenes';
 import { readCanonicalGraphState } from '@/lib/graph/canonicalGraph';
+import { readRealityChainNode, readRealityChainEdge, realityChainCoverage } from '@/lib/graph/realityChainProjection';
 import { requireFounderPage } from '@/lib/system/access/server';
 
 export const dynamic = 'force-dynamic';
@@ -16,6 +17,10 @@ export default async function ScenePage({ params }:{ params:Promise<{scene:strin
   if(scene === 'root'){
     await requireFounderPage('/root');
     const graph = await readCanonicalGraphState('sfi', { allowContinuity: true });
+
+    const realityNodes = new Map(graph.nodes.map((node) => [node.nodeId, readRealityChainNode(node)]));
+    const realityEdges = new Map(graph.edges.map((edge) => [edge.edgeId, readRealityChainEdge(edge)]));
+    const realityCoverage = realityChainCoverage(graph.nodes);
 
     return (
       <main className="sfiOperatingShell" data-root-primary-interface="CANONICAL_COGNITIVE_FIELD">
@@ -34,6 +39,7 @@ export default async function ScenePage({ params }:{ params:Promise<{scene:strin
               provenance: node.provenance,
               lineage: node.lineage,
               attributes: node.attributes,
+              reality: realityNodes.get(node.nodeId),
             })),
             edges: graph.edges.map((edge) => ({
               id: edge.edgeId,
@@ -45,7 +51,9 @@ export default async function ScenePage({ params }:{ params:Promise<{scene:strin
               provenance: edge.provenance,
               lineage: edge.lineage,
               attributes: edge.attributes,
+              reality: realityEdges.get(edge.edgeId),
             })),
+            realityCoverage,
           }}
         />
         <SfiRootWorkspace enabled/>
