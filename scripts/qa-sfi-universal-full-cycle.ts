@@ -115,6 +115,11 @@ async function main() {
   assert(hydrationIndex >= 0 && hydrationIndex < sufficiencyIndex, 'same-cycle material hydration must precede sufficiency');
   assert(sufficiencyIndex >= 0 && sufficiencyIndex < webIndex, 'object sufficiency must precede external evidence acquisition');
   assert(webIndex >= 0 && webIndex < runtimeIndex, 'required web evidence must be acquired before cognitive execution');
+  assert(signalRoute.includes("authority: source.authority ?? null"), 'acquired source authority must survive into cognitive context');
+  assert(signalRoute.includes("temporalValidity: source.temporalValidity ?? null"), 'source temporal validity must survive into cognitive context');
+  assert(signalRoute.includes("verification: source.verification ?? null"), 'direct-source verification must survive into cognitive context');
+  assert(signalRoute.includes("admissionBoundary: 'SOURCE_CLAIM_NOT_ACCEPTED_EVIDENCE'"), 'retrieved source claims must remain explicitly non-admitted');
+  assert(signalRoute.includes("rule: 'Acquired SOURCE_CLAIMS may inform inference and discriminator design"), 'AI synthesis must preserve source-claim versus evidence boundary');
   assert(runtimeIndex >= 0 && runtimeIndex < synthesisIndex, 'AI synthesis must occur after deterministic cognitive execution');
 
   assert(signalRoute.includes("error: 'clarification_required'"));
