@@ -660,7 +660,7 @@ async function boundedPublicRetrieval(queries: string[], lookbackDays: number) {
   })));
   const verifiedByDiscoveredUrl = new Map(verificationPairs.map((item) => [item.discoveredUrl, item.verified]));
   const verified = verificationPairs.map((item) => item.verified);
-  const sources = discovered.map((source) => verifiedByDiscoveredUrl.get(source.url) ?? source);
+  const sources = discovered.map((source) => withSourceEpistemics(verifiedByDiscoveredUrl.get(source.url) ?? source));
   return {
     provider: 'gdelt_discovery_plus_pinned_direct_source_fetch',
     sources,
@@ -701,7 +701,7 @@ export async function acquireUniversalWebEvidence(inputValue: unknown, actorId: 
   const result = await boundedPublicRetrieval(requirement.queries, requirement.lookbackDays);
   const directFetchSources = distinctSourcesByResolvedUrl(result.sources.filter((source) => source.verification?.directFetch === true));
   const verifiedSources = directFetchSources.filter((source) => Number(source.verification?.queryCoverage ?? 0) >= MIN_VERIFIED_QUERY_COVERAGE);
-  const authoritativeVerified = verifiedSources.filter((source) => source.sourceType === 'regulator');
+  const authoritativeVerified = verifiedSources.filter((source) => source.authority?.admission === 'CANDIDATE_EVIDENCE');
   const discoverySatisfied = result.sources.length >= requirement.requiredSourceCount;
   const directVerificationSatisfied = verifiedSources.length >= requirement.requiredVerifiedSourceCount;
   const authoritySatisfied = !requirement.authoritySensitive || authoritativeVerified.length > 0;
@@ -721,6 +721,8 @@ export async function acquireUniversalWebEvidence(inputValue: unknown, actorId: 
       requiredVerifiedSourceCount: requirement.requiredVerifiedSourceCount,
       minimumQueryCoverage: MIN_VERIFIED_QUERY_COVERAGE,
       authoritySensitive: requirement.authoritySensitive,
+      authoritySatisfied,
+      sourceAuthority: result.sources.map((source) => ({ sourceId: source.id, authority: source.authority, temporalValidity: source.temporalValidity })),
       provider: result.provider,
       queries: requirement.queries,
       warnings: result.warnings,
