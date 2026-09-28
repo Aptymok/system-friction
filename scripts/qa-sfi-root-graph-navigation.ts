@@ -114,4 +114,3 @@ if (failed.length) {
   process.exit(1);
 }
 console.log(`\nROOT graph/operating-workspace convergence QA passed: ${checks.length}/${checks.length}`);
-check('Neural Graph is not exposed as an independent navigation surface', !shellUi.includes("href:'/root/neural-graph'") && !fs.existsSync(path.join(root, 'src/app/root/neural-graph/page.tsx')));
