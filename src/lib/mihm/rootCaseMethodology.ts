@@ -135,6 +135,10 @@ export type CanonicalFieldMethodSignal = {
   discriminatingObservationObserved: boolean;
   stoppingConditionObserved: boolean;
   contrastReady: boolean;
+  contrastRecorded: boolean;
+  learningCandidateObserved: boolean;
+  learningPromoted: boolean;
+  fieldReorganizationState: 'UNCHANGED' | 'CONTRAST_RECORDED' | 'LEARNING_QUARANTINED' | 'LEARNING_PROMOTED';
 };
 
 function graphText(record: Record<string, unknown>, keys: readonly string[]) {
@@ -172,6 +176,9 @@ export function deriveCanonicalFieldMethodSignal(
   let returnObserved = false;
   let discriminatingObservationObserved = false;
   let stoppingConditionObserved = false;
+  let contrastRecorded = false;
+  let learningCandidateObserved = false;
+  let learningPromoted = false;
   let evidenceBoundRelationCount = 0;
 
   for (const edge of adjacent) {
@@ -187,8 +194,14 @@ export function deriveCanonicalFieldMethodSignal(
     const observed = attributes.observedReturn ?? attributes.observed_return ?? attributes.actualOutcome ?? attributes.actual_outcome;
     const discriminator = attributes.discriminatingObservation ?? attributes.discriminating_observation ?? attributes.discriminatingObservations ?? attributes.discriminating_observations;
     const stopping = attributes.stoppingCondition ?? attributes.stopping_condition;
+    const eventName = graphText(attributes, ['eventName','event_name','eventType','event_type'])?.toUpperCase() ?? '';
+    const calibrationStatus = graphText(attributes, ['calibrationStatus','calibration_status'])?.toUpperCase() ?? '';
+    const assessmentClass = graphText(attributes, ['assessmentClass','assessment_class','epistemicAssessment','epistemic_assessment'])?.toUpperCase() ?? '';
 
     if (edge.lineage.length > 0 || edge.provenance) evidenceBoundRelationCount += 1;
+    if (eventName === 'SFI_UNIVERSAL_RETURN_CONTRASTED' && calibrationStatus === 'CONTRAST_RECORDED') contrastRecorded = true;
+    if (eventName === 'SFI_UNIVERSAL_LEARNING_CANDIDATE_RECORDED') learningCandidateObserved = true;
+    if (eventName === 'SFI_UNIVERSAL_LEARNING_PROMOTED' && assessmentClass === 'VERIFIED_CONTRAST') learningPromoted = true;
     if (expected !== undefined && expected !== null && expected !== '') expectationObserved = true;
     if (observed !== undefined && observed !== null && observed !== '') returnObserved = true;
     if (Array.isArray(discriminator) ? discriminator.length > 0 : Boolean(discriminator)) discriminatingObservationObserved = true;
@@ -207,6 +220,12 @@ export function deriveCanonicalFieldMethodSignal(
   const nodeObserved = nodeAttributes.observedReturn ?? nodeAttributes.observed_return ?? nodeAttributes.actualOutcome ?? nodeAttributes.actual_outcome;
   const nodeDiscriminator = nodeAttributes.discriminatingObservation ?? nodeAttributes.discriminating_observation ?? nodeAttributes.discriminatingObservations ?? nodeAttributes.discriminating_observations;
   const nodeStopping = nodeAttributes.stoppingCondition ?? nodeAttributes.stopping_condition;
+  const nodeEventName = graphText(nodeAttributes, ['eventName','event_name','eventType','event_type'])?.toUpperCase() ?? '';
+  const nodeCalibrationStatus = graphText(nodeAttributes, ['calibrationStatus','calibration_status'])?.toUpperCase() ?? '';
+  const nodeAssessmentClass = graphText(nodeAttributes, ['assessmentClass','assessment_class','epistemicAssessment','epistemic_assessment'])?.toUpperCase() ?? '';
+  if (nodeEventName === 'SFI_UNIVERSAL_RETURN_CONTRASTED' && nodeCalibrationStatus === 'CONTRAST_RECORDED') contrastRecorded = true;
+  if (nodeEventName === 'SFI_UNIVERSAL_LEARNING_CANDIDATE_RECORDED') learningCandidateObserved = true;
+  if (nodeEventName === 'SFI_UNIVERSAL_LEARNING_PROMOTED' && nodeAssessmentClass === 'VERIFIED_CONTRAST') learningPromoted = true;
   temporalStructureObserved ||= nodeSequence !== null || nodeCycle !== null || Boolean(nodePhase);
   expectationObserved ||= nodeExpected !== undefined && nodeExpected !== null && nodeExpected !== '';
   returnObserved ||= nodeObserved !== undefined && nodeObserved !== null && nodeObserved !== '';
@@ -228,6 +247,16 @@ export function deriveCanonicalFieldMethodSignal(
     discriminatingObservationObserved,
     stoppingConditionObserved,
     contrastReady: expectationObserved && returnObserved && discriminatingObservationObserved,
+    contrastRecorded,
+    learningCandidateObserved,
+    learningPromoted,
+    fieldReorganizationState: learningPromoted
+      ? 'LEARNING_PROMOTED'
+      : learningCandidateObserved
+        ? 'LEARNING_QUARANTINED'
+        : contrastRecorded
+          ? 'CONTRAST_RECORDED'
+          : 'UNCHANGED',
   };
 }
 
