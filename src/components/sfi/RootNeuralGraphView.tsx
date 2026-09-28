@@ -13,6 +13,11 @@ type GraphNode = {
   provenance: string;
   lineage: string[];
   attributes: Record<string, unknown>;
+  reality?: {
+    stage: string; state: string; sourceVersion: string|null; captureTime: string|null; uncertainty: unknown|null;
+    verificationState: string|null; authority: string|null; executionState: string|null;
+    expectedReturn: unknown|null; observedReturn: unknown|null; applicableObligation: unknown|null;
+  };
 };
 
 type GraphEdge = {
@@ -25,6 +30,7 @@ type GraphEdge = {
   provenance: string;
   lineage: string[];
   attributes: Record<string, unknown>;
+  reality?: { material: boolean; provenance: string; relation: string; state: string };
 };
 
 type GraphPayload = {
@@ -35,6 +41,7 @@ type GraphPayload = {
   loadedAt: string;
   nodes: GraphNode[];
   edges: GraphEdge[];
+  realityCoverage: { stage: string; observed: boolean }[];
 };
 
 type Position = { x: number; y: number };
@@ -76,6 +83,7 @@ function semanticText(node: GraphNode) {
 }
 
 function realityStage(node: GraphNode) {
+  if (node.reality?.stage) return node.reality.stage.toLowerCase();
   const text = semanticText(node);
   const stages = ['world','capture','evidence','transformation','inference','verification','authority','action','return'] as const;
   return stages.find((stage) => text.includes(stage)) ?? 'unclassified';
@@ -264,6 +272,13 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
         </p>
       </section>
 
+      {reading === 'REALITY_CHAIN' ? (
+        <section className="neuralGraphBoundary">
+          <strong>MCDC COVERAGE · {graph.realityCoverage.filter((item) => item.observed).length}/{graph.realityCoverage.length}</strong>
+          <span>{graph.realityCoverage.map((item) => `${item.observed ? '●' : '○'} ${item.stage}`).join(' · ')}</span>
+        </section>
+      ) : null}
+
       <section className="neuralGraphBoundary">
         <strong>RELATION ≠ CAUSALITY.</strong>
         <span>SOURCE ≠ EVIDENCE · MULTIPLE EVIDENCE ≠ CORROBORATED EVIDENCE · EXECUTION ≠ TRUTH · ACTION RESPONSE ≠ PERSISTED STATE · GRAPH ≠ RETURN.</span>
@@ -365,7 +380,17 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
                 <div><dt>DEGREE</dt><dd>{degree.get(selected.id) ?? 0}</dd></div>
                 <div><dt>ID</dt><dd>{selected.id}</dd></div>
                 <div><dt>REALITY STAGE</dt><dd>{realityStage(selected).toUpperCase()}</dd></div>
+                <div><dt>EPISTEMIC STATE</dt><dd>{selected.reality?.state ?? 'UNKNOWN'}</dd></div>
+                <div><dt>VERIFICATION</dt><dd>{selected.reality?.verificationState ?? 'NOT VERIFIED'}</dd></div>
+                <div><dt>AUTHORITY</dt><dd>{selected.reality?.authority ?? 'UNKNOWN'}</dd></div>
+                <div><dt>EXECUTION</dt><dd>{selected.reality?.executionState ?? 'NOT OBSERVED'}</dd></div>
               </dl>
+              <section>
+                <span>MCDC / RETURN</span>
+                <p>EXPECTED · {selected.reality?.expectedReturn == null ? 'UNKNOWN' : String(selected.reality.expectedReturn)}</p>
+                <p>OBSERVED · {selected.reality?.observedReturn == null ? 'NOT OBSERVED' : String(selected.reality.observedReturn)}</p>
+                <p>OBLIGATION · {selected.reality?.applicableObligation == null ? 'UNKNOWN' : String(selected.reality.applicableObligation)}</p>
+              </section>
               <section>
                 <span>LINEAGE</span>
                 {selected.lineage.length
