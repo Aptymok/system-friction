@@ -9,14 +9,7 @@ import { SfiRootWorkspace } from './SfiRootWorkspace';
 import { SessionControls } from './SessionControls';
 import { INTERNAL_SCENE_KEYS, SCENE_LABELS, type InternalSceneKey, type SceneKey } from './scenes';
 import './SfiConsole.css';
-
-const HUMAN_NAV = [
-  { href:'/root', label:'ROOT', scene:'root' },
-  { href:'/cases', label:'PROJECTS / CASES', scene:'cases' },
-  { href:'/root#decisions', label:'DECISIONS', scene:null },
-  { href:'/root#reports', label:'REPORTS', scene:null },
-  { href:'/observatory', label:'OBSERVATORY', scene:null },
-] as const;
+import { AuthenticatedSfiMenu } from './AuthenticatedSfiMenu';
 
 export function SfiConsole({scene}:{scene:SceneKey}){
   const auth=useAuthState();
@@ -36,17 +29,9 @@ export function SfiConsole({scene}:{scene:SceneKey}){
 
   if(current==='root') return <main className="sfiOperatingShell"><SfiRootWorkspace enabled/></main>;
 
-  return <main className="sfiOperatingShell">
-    <header className="sfiOperatingTop">
-      <div className="sfiOperatingIdentity"><Link href="/root" className="sfiWordmark">SFI</Link><div><strong>{ui(spec.title)}</strong><small>{ui(spec.subtitle)}</small></div></div>
-      <nav className="sfiOperatingNav" aria-label="SFI work surfaces">
-        {HUMAN_NAV.map((item)=><Link key={item.href} href={item.href} className={item.scene===current?'isActive':''}>{ui(item.label)}</Link>)}
-        <Link href="/cases/new" className="sfiCreateAction">NEW →</Link>
-        <Link href="/governance" className={current==='governance'?'isActive':''}>SFI / SYSTEM</Link>
-      </nav>
-      <div className="sfiOperatingAccount"><span>{auth.identity?.alias||'ROOT'}{auth.identity?.displayTitle?` · ${auth.identity.displayTitle}`:''}</span><SessionControls/></div>
-    </header>
-    <SfiOperatingWorkspace enabled surface={current}/>
+  return <main className="sfiOperatingShell sfiAuthenticatedViewport">
+    <AuthenticatedSfiMenu/>
+    <div className="sfiAuthenticatedViewportContent"><SfiOperatingWorkspace enabled surface={current}/></div>
   </main>;
 }
 
