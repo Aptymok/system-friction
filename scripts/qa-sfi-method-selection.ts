@@ -181,6 +181,10 @@ assert.equal(fieldSignal.temporalStructureObserved, true);
 assert.equal(fieldSignal.counterevidenceObserved, true);
 assert.equal(fieldSignal.requiresTrajectory, true);
 assert.equal(fieldSignal.requiresRivalHypothesis, true);
+assert.equal(fieldSignal.observedWeightDelta, 0.2);
+assert.equal(fieldSignal.relationSupportRatio, 0);
+assert.equal(fieldSignal.provenanceCoverage, 1);
+assert.equal(fieldSignal.reorganizationMagnitude, 0);
 assert.equal(fieldSignal.expectationObserved, false);
 assert.equal(fieldSignal.returnObserved, false);
 assert.equal(fieldSignal.contrastReady, false);
@@ -263,5 +267,36 @@ const uncalibratedContrastFieldSignal = deriveCanonicalFieldMethodSignal(
 );
 assert.equal(uncalibratedContrastFieldSignal.contrastRecorded, false);
 assert.equal(uncalibratedContrastFieldSignal.fieldReorganizationState, 'UNCHANGED');
+
+const evidenceDrivenPromotedSignal = deriveCanonicalFieldMethodSignal(
+  {
+    ...canonicalFieldNode,
+    nodeId: 'field-learning-evidence-driven',
+    attributes: {
+      eventName: 'SFI_UNIVERSAL_LEARNING_PROMOTED',
+      assessmentClass: 'VERIFIED_CONTRAST',
+      epistemicClass: 'DERIVED',
+    },
+  },
+  [{
+    ...canonicalFieldEdge,
+    edgeId: 'field-edge-evidence-driven',
+    sourceNodeId: 'field-learning-evidence-driven',
+    weight: 0.8,
+    provenance: 'evidence:edge:promoted',
+    lineage: ['evidence:edge:promoted'],
+    attributes: {
+      relationState: 'SUPPORTED',
+      previousRelationState: 'CHALLENGED',
+      previousWeight: 0.5,
+    },
+  }],
+);
+assert.equal(evidenceDrivenPromotedSignal.learningPromoted, true);
+assert.equal(evidenceDrivenPromotedSignal.observedWeightDelta, 0.30000000000000004);
+assert.equal(evidenceDrivenPromotedSignal.relationSupportRatio, 1);
+assert.equal(evidenceDrivenPromotedSignal.provenanceCoverage, 1);
+assert.ok(evidenceDrivenPromotedSignal.reorganizationMagnitude > 0);
+assert.ok(evidenceDrivenPromotedSignal.reorganizationMagnitude <= 1);
 
 console.log('SFI method selection resolver QA passed.');
