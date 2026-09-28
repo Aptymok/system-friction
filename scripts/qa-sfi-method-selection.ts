@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { resolveMihmMethod } from '../src/lib/mihm/methodSelectionResolver';
-import { resolveRootCaseMethodology } from '../src/lib/mihm/rootCaseMethodology';
+import { deriveCanonicalFieldMethodSignal, resolveRootCaseMethodology } from '../src/lib/mihm/rootCaseMethodology';
+import type { CanonicalGraphEdge, CanonicalGraphNode } from '../packages/graph/src';
 
 const personal = resolveMihmMethod({
   subject: 'PERSON', temporalScope: 'SESSION', evidenceModalities: ['CONVERSATION'], sessionId: 'session-1',
@@ -136,5 +137,64 @@ const returnContrastCase = resolveRootCaseMethodology({
 });
 assert.equal(returnContrastCase.input.requiresRivalHypothesis, true);
 assert.equal(returnContrastCase.resolution.primary?.methodId, 'PPOI');
+
+const canonicalFieldNode = {
+  nodeId: 'field-node-1',
+  label: 'Observed object',
+  ontologyType: 'case',
+  profile: 'sfi',
+  origin: 'test',
+  provenance: 'evidence:node:1',
+  lineage: ['evidence:node:1'],
+  attributes: { cycleIndex: 2, epistemicClass: 'OBSERVED' },
+  createdAt: '2026-09-28T00:00:00.000Z',
+  updatedAt: '2026-09-28T00:00:00.000Z',
+} as CanonicalGraphNode;
+
+const canonicalFieldEdge = {
+  edgeId: 'field-edge-1',
+  sourceNodeId: 'field-node-1',
+  targetNodeId: 'field-node-2',
+  relation: 'depends_on',
+  weight: 0.7,
+  profile: 'sfi',
+  origin: 'test',
+  provenance: 'evidence:edge:1',
+  lineage: ['evidence:edge:1'],
+  attributes: {
+    relationState: 'CHALLENGED',
+    previousRelationState: 'SUPPORTED',
+    previousWeight: 0.9,
+    counterevidence: ['evidence:counter:1'],
+    transitionIndex: 4,
+  },
+  createdAt: '2026-09-28T00:00:00.000Z',
+  updatedAt: '2026-09-28T00:00:00.000Z',
+} as CanonicalGraphEdge;
+
+const fieldSignal = deriveCanonicalFieldMethodSignal(canonicalFieldNode, [canonicalFieldEdge]);
+assert.equal(fieldSignal.relationCount, 1);
+assert.equal(fieldSignal.evidenceBoundRelationCount, 1);
+assert.equal(fieldSignal.relationTransition, true);
+assert.equal(fieldSignal.weightChangeObserved, true);
+assert.equal(fieldSignal.temporalStructureObserved, true);
+assert.equal(fieldSignal.counterevidenceObserved, true);
+assert.equal(fieldSignal.requiresTrajectory, true);
+assert.equal(fieldSignal.requiresRivalHypothesis, true);
+
+const staticFieldEdge = {
+  ...canonicalFieldEdge,
+  edgeId: 'field-edge-static',
+  weight: 0.7,
+  lineage: [],
+  provenance: '',
+  attributes: {},
+} as CanonicalGraphEdge;
+const staticFieldSignal = deriveCanonicalFieldMethodSignal(
+  { ...canonicalFieldNode, attributes: { epistemicClass: 'OBSERVED' } },
+  [staticFieldEdge],
+);
+assert.equal(staticFieldSignal.requiresTrajectory, false);
+assert.equal(staticFieldSignal.requiresRivalHypothesis, false);
 
 console.log('SFI method selection resolver QA passed.');
