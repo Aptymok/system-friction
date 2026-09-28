@@ -459,6 +459,16 @@ const sourceOnlyIdentity = contrastUnknownIdentityEvidence(temporalUnknownPlan, 
 assert.equal(sourceOnlyIdentity.evidenceDisposition, 'NO_DISCRIMINATING_EVIDENCE');
 assert.equal(sourceOnlyIdentity.supportedIdentity, null);
 
+const corroborationOnlyIdentity = contrastUnknownIdentityEvidence(temporalUnknownPlan, [{
+  sourceId: 'official-needs-corroboration', authorityFit: 'FIT', admission: 'CORROBORATION_REQUIRED', supports: ['CASE'], challenges: [], provenanceBound: true,
+}]);
+assert.equal(corroborationOnlyIdentity.evidenceDisposition, 'NO_DISCRIMINATING_EVIDENCE');
+
+const unknownAdmissionDirectObservation = contrastUnknownIdentityEvidence(temporalUnknownPlan, [{
+  sourceId: 'direct-unadmitted', authorityFit: 'UNKNOWN', admission: 'UNKNOWN', supports: ['CASE'], challenges: ['ARTIFACT'], directObservation: true, provenanceBound: true, rivalSetComplete: true,
+}]);
+assert.equal(unknownAdmissionDirectObservation.evidenceDisposition, 'NO_DISCRIMINATING_EVIDENCE');
+
 const candidateIdentity = contrastUnknownIdentityEvidence(temporalUnknownPlan, [{
   sourceId: 'primary-1', authorityFit: 'FIT', admission: 'CANDIDATE_EVIDENCE', supports: ['CASE'], challenges: [], provenanceBound: true,
 }]);
@@ -466,9 +476,16 @@ assert.equal(candidateIdentity.evidenceDisposition, 'CANDIDATE_SUPPORTED');
 assert.equal(candidateIdentity.supportedIdentity, 'CASE');
 assert.equal(candidateIdentity.status, 'ACTIVE');
 
-const resolvedIdentity = contrastUnknownIdentityEvidence(temporalUnknownPlan, [
+const incompleteRivalSetIdentity = contrastUnknownIdentityEvidence(temporalUnknownPlan, [
   { sourceId: 'primary-1', authorityFit: 'FIT', admission: 'CANDIDATE_EVIDENCE', supports: ['CASE'], challenges: [], provenanceBound: true },
   { sourceId: 'direct-2', authorityFit: 'UNKNOWN', admission: 'CANDIDATE_EVIDENCE', supports: [], challenges: ['ARTIFACT'], directObservation: true, provenanceBound: true },
+]);
+assert.equal(incompleteRivalSetIdentity.evidenceDisposition, 'CANDIDATE_SUPPORTED');
+assert.ok(incompleteRivalSetIdentity.supportReasons.includes('RIVAL_SET_NOT_FROZEN_COMPLETE'));
+
+const resolvedIdentity = contrastUnknownIdentityEvidence(temporalUnknownPlan, [
+  { sourceId: 'primary-1', authorityFit: 'FIT', admission: 'CANDIDATE_EVIDENCE', supports: ['CASE'], challenges: [], provenanceBound: true },
+  { sourceId: 'direct-2', authorityFit: 'UNKNOWN', admission: 'CANDIDATE_EVIDENCE', supports: [], challenges: ['ARTIFACT'], directObservation: true, provenanceBound: true, rivalSetComplete: true },
 ]);
 assert.equal(resolvedIdentity.evidenceDisposition, 'RESOLVED');
 assert.equal(resolvedIdentity.supportedIdentity, 'CASE');
