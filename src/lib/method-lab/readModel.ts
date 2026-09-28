@@ -6,6 +6,7 @@ import { SFI_AGENT_EXECUTION_MAP } from '@/lib/sfi/cognitive-runtime/agentExecut
 import { COGNITIVE_TWIN_REENTRY } from '@/core/cognitive-twin/reentry/runtime';
 import { METHOD_LAB_CONTRACT_VERSION, type MethodLabProtocolId, type MethodLabProtocolStatus } from './contracts';
 import { METHOD_LAB_PROTOCOLS } from './registry';
+import { assertMethodLabExperimentPreregistration, projectMethodLabMethodResult, type MethodLabExperimentPreregistration, type MethodLabExperimentRun } from './experimentContract';
 
 type Row = Record<string, unknown>;
 type DependencyState = { table: string; available: boolean; error: string | null };
@@ -81,6 +82,46 @@ function summarizeDecisionTransfer(item: Row) {
     qualifyingDomains: strings(promotion.qualifyingDomains),
     mayAutoPromoteToRule: promotion.mayAutoPromoteToRule === true,
   };
+}
+
+export async function readMethodLabFieldMethodResults(systemRefs: string[]) {
+  const refs = new Set(systemRefs.map((value) => value.trim()).filter(Boolean));
+  const results = new Map<string, ReturnType<typeof projectMethodLabMethodResult>>();
+  if (!refs.size) return results;
+  const db = createServiceSupabaseClient();
+  const rows = await db.from('sfi_lab_analyses')
+    .select('id,mode,source,raw_analysis,created_at')
+    .or('mode.eq.experiment_preregistration,mode.like.experiment_run:%')
+    .order('created_at', { ascending: false })
+    .limit(500);
+  if (rows.error) return results;
+  const all = (rows.data ?? []) as Row[];
+  const preregByRef = new Map<string, MethodLabExperimentPreregistration>();
+  const systemByPrereg = new Map<string, string>();
+  for (const item of all) {
+    if (text(item.mode) !== 'experiment_preregistration') continue;
+    const raw = row(item.raw_analysis);
+    try {
+      const preregistration = assertMethodLabExperimentPreregistration(raw.preregistration as MethodLabExperimentPreregistration);
+      const systemRef = preregistration.POPULATION_SYSTEM.ref.trim();
+      if (!refs.has(systemRef)) continue;
+      const preregRef = text(item.id);
+      preregByRef.set(preregRef, preregistration);
+      systemByPrereg.set(preregRef, systemRef);
+    } catch { /* malformed/legacy rows cannot become ROOT method results */ }
+  }
+  for (const item of all) {
+    if (!text(item.mode).startsWith('experiment_run:')) continue;
+    const preregRef = text(item.source);
+    const preregistration = preregByRef.get(preregRef);
+    const systemRef = systemByPrereg.get(preregRef);
+    if (!preregistration || !systemRef || results.has(systemRef)) continue;
+    const raw = row(item.raw_analysis);
+    try {
+      results.set(systemRef, projectMethodLabMethodResult(preregistration, row(raw.run) as MethodLabExperimentRun));
+    } catch { /* only contract-valid persisted runs are projected into ROOT */ }
+  }
+  return results;
 }
 
 export async function readMethodLabState() {
