@@ -400,6 +400,7 @@ export type UnknownIdentityEvidenceObservation = {
   challenges: MihmObservationSubject[];
   directObservation?: boolean;
   provenanceBound?: boolean;
+  rivalSetComplete?: boolean;
 };
 
 export function contrastUnknownIdentityEvidence(
@@ -410,7 +411,7 @@ export function contrastUnknownIdentityEvidence(
   const admissible = observations.filter((item) =>
     item.provenanceBound !== false
     && (item.directObservation === true || item.authorityFit === 'FIT')
-    && item.admission !== 'SOURCE_ONLY'
+    && item.admission === 'CANDIDATE_EVIDENCE'
   );
   if (!admissible.length) {
     return { ...plan, evidenceDisposition: 'NO_DISCRIMINATING_EVIDENCE', supportedIdentity: null, supportReasons: ['NO_CLAIM_SCOPED_OR_DIRECT_DISCRIMINATING_EVIDENCE'] };
@@ -431,16 +432,18 @@ export function contrastUnknownIdentityEvidence(
     return { ...plan, evidenceDisposition: 'RIVAL_REQUIRED', supportedIdentity: null, supportReasons: viable.length > 1 ? ['MULTIPLE_SUPPORTED_IDENTITIES_REMAIN'] : ['SUPPORTED_IDENTITY_NOT_ESTABLISHED'] };
   }
   const [identity, state] = viable[0];
-  const rivalAddressed = [...candidates.entries()].some(([candidate, value]) => candidate !== identity && value.challenge > 0);
-  if (!rivalAddressed) {
-    return { ...plan, evidenceDisposition: 'CANDIDATE_SUPPORTED', supportedIdentity: identity, supportReasons: [`IDENTITY_SUPPORTED_BY_${state.sources.size}_ADMISSIBLE_SOURCE(S)`, 'RIVAL_NOT_YET_DISCRIMINATED'] };
+  const rivals = [...candidates.entries()].filter(([candidate]) => candidate !== identity);
+  const allObservedRivalsChallenged = rivals.length > 0 && rivals.every(([, value]) => value.challenge > 0 && value.support === 0);
+  const rivalSetComplete = admissible.some((item) => item.rivalSetComplete === true);
+  if (!allObservedRivalsChallenged || !rivalSetComplete) {
+    return { ...plan, evidenceDisposition: 'CANDIDATE_SUPPORTED', supportedIdentity: identity, supportReasons: [`IDENTITY_SUPPORTED_BY_${state.sources.size}_ADMISSIBLE_SOURCE(S)`, !rivalSetComplete ? 'RIVAL_SET_NOT_FROZEN_COMPLETE' : 'RIVAL_NOT_YET_DISCRIMINATED'] };
   }
   return {
     ...plan,
     status: 'NOT_REQUIRED',
     evidenceDisposition: 'RESOLVED',
     supportedIdentity: identity,
-    supportReasons: [`IDENTITY_SUPPORTED_BY_${state.sources.size}_ADMISSIBLE_SOURCE(S)`, 'AT_LEAST_ONE_RIVAL_CHALLENGED_BY_ADMISSIBLE_EVIDENCE'],
+    supportReasons: [`IDENTITY_SUPPORTED_BY_${state.sources.size}_ADMISSIBLE_SOURCE(S)`, 'ALL_FROZEN_RIVALS_CHALLENGED_BY_ADMISSIBLE_EVIDENCE'],
     stoppingCondition: 'Identity resolution reached for the current evidence boundary. Reopen if counterevidence, a new rival, or incompatible RETURN appears.',
     nextObservation: null,
   };
