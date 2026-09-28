@@ -39,6 +39,7 @@ type GraphNode = {
     relationSupportRatio: number | null;
     provenanceCoverage: number | null;
     reorganizationMagnitude: number;
+    projectionAuthority: 'NONE' | 'VISUAL_HEURISTIC_ONLY' | 'METHOD_LAB_REQUIRED';
   };
 };
 
@@ -178,7 +179,8 @@ function reorganizationOffset(node: GraphNode, reading: string): Position {
     ? (hash(`reorganization:${node.id}:${state}`) % 2 === 0 ? 1 : -1)
     : supportRatio > 0.5 ? 1 : -1;
   const magnitude = node.methodSignal?.reorganizationMagnitude ?? 0;
-  if (magnitude <= 0) return { x: 0, y: 0 };
+  const projectionAuthority = node.methodSignal?.projectionAuthority ?? 'NONE';
+  if (magnitude <= 0 || projectionAuthority === 'METHOD_LAB_REQUIRED') return { x: 0, y: 0 };
   const stateScale = state === 'LEARNING_PROMOTED' ? 54 : state === 'LEARNING_QUARANTINED' ? 30 : 18;
   const displacement = stateScale * magnitude;
   return { x: displacement * direction, y: state === 'LEARNING_PROMOTED' ? -24 * magnitude : 14 * magnitude };
@@ -523,6 +525,7 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
                 <p>FIELD REORGANIZATION · {selected.methodSignal?.fieldReorganizationState ?? 'UNCHANGED'}</p>
                 <p>REORGANIZATION MAGNITUDE · {selected.methodSignal ? selected.methodSignal.reorganizationMagnitude.toFixed(3) : '0.000'} · ΔWEIGHT {selected.methodSignal?.observedWeightDelta == null ? 'NOT OBSERVED' : selected.methodSignal.observedWeightDelta.toFixed(3)}</p>
                 <p>RELATION SUPPORT · {selected.methodSignal?.relationSupportRatio == null ? 'UNKNOWN' : selected.methodSignal.relationSupportRatio.toFixed(3)} · PROVENANCE COVERAGE {selected.methodSignal?.provenanceCoverage == null ? 'UNKNOWN' : selected.methodSignal.provenanceCoverage.toFixed(3)}</p>
+                <p>PROJECTION AUTHORITY · {selected.methodSignal?.projectionAuthority ?? 'NONE'}</p>
               </section>
               <section>
                 <span>MCDC / RETURN</span>
