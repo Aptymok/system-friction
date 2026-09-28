@@ -1,21 +1,37 @@
 import type { CanonicalGraphEdge, CanonicalGraphNode, CanonicalGraphState } from '../../../packages/graph/src';
 
-export const SFI_COGNITIVE_GRAPH_ADMISSION = 'SFI-COGNITIVE-GRAPH-ADMISSION-1.0';
+export const SFI_COGNITIVE_GRAPH_ADMISSION = 'SFI-COGNITIVE-GRAPH-ADMISSION-1.1';
 
+/**
+ * Admission is intentionally open by ontology and closed by evidence.
+ * New domains, object classes and edge situations do not need a code allow-list.
+ * What they do need is reconstructable identity, provenance and epistemic state.
+ */
 const DOCUMENTARY_TYPES = new Set(['document','series','pattern','mihm_variable']);
+const EPISTEMIC_STATES = new Set([
+  'OBSERVED','DERIVED','INFERRED','HYPOTHESIZED','SIMULATED',
+  'UNKNOWN','NOT_OBSERVED','NOT VERIFIED','NOT_VERIFIED','DECLARED',
+]);
 
 function value(record: Record<string, unknown>, key: string) {
   const candidate = record[key];
   return typeof candidate === 'string' ? candidate.trim().toUpperCase() : '';
 }
 
+function epistemicState(node: CanonicalGraphNode) {
+  return value(node.attributes, 'epistemicClass')
+    || value(node.attributes, 'epistemic_class')
+    || value(node.attributes, 'state')
+    || value(node.attributes, 'epistemicState');
+}
+
 export function cognitiveNodeAdmission(node: CanonicalGraphNode) {
   const projectionKind = value(node.attributes, 'projectionKind');
-  const epistemicClass = value(node.attributes, 'epistemicClass');
+  const state = epistemicState(node);
   const documentary =
     node.origin === 'library_corpus'
     || projectionKind === 'DOCUMENTARY_RELATION'
-    || (DOCUMENTARY_TYPES.has(node.ontologyType.toLowerCase()) && epistemicClass === 'DECLARED' && node.attributes.doesNotImplyValidation === true);
+    || (DOCUMENTARY_TYPES.has(node.ontologyType.toLowerCase()) && state === 'DECLARED' && node.attributes.doesNotImplyValidation === true);
 
   if (documentary) {
     return { admitted: false as const, reason: 'DOCUMENTARY_RELATION_NOT_COGNITIVE_STATE' };
@@ -25,7 +41,18 @@ export function cognitiveNodeAdmission(node: CanonicalGraphNode) {
     return { admitted: false as const, reason: 'IDENTITY_OR_PROVENANCE_MISSING' };
   }
 
-  return { admitted: true as const, reason: 'CANONICAL_PERSISTED_OBJECT' };
+  // Legacy persisted operational objects predate explicit epistemic metadata.
+  // Preserve them as reconstructable legacy state, but never treat missing state
+  // as verified/observed. New writers should always emit an explicit state.
+  if (!state) {
+    return { admitted: true as const, reason: 'LEGACY_RECONSTRUCTABLE_STATE' };
+  }
+
+  if (!EPISTEMIC_STATES.has(state)) {
+    return { admitted: false as const, reason: 'EPISTEMIC_STATE_UNRECOGNIZED' };
+  }
+
+  return { admitted: true as const, reason: 'EVIDENCE_BOUNDED_COGNITIVE_STATE' };
 }
 
 export function projectCognitiveGraph(state: CanonicalGraphState): CanonicalGraphState & {
