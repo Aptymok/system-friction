@@ -143,6 +143,7 @@ export type CanonicalFieldMethodSignal = {
   relationSupportRatio: number | null;
   provenanceCoverage: number | null;
   reorganizationMagnitude: number;
+  projectionAuthority: 'NONE' | 'VISUAL_HEURISTIC_ONLY' | 'METHOD_LAB_REQUIRED';
 };
 
 function graphText(record: Record<string, unknown>, keys: readonly string[]) {
@@ -289,6 +290,11 @@ export function deriveCanonicalFieldMethodSignal(
     relationSupportRatio,
     provenanceCoverage,
     reorganizationMagnitude,
+    projectionAuthority: governanceBase === 0
+      ? 'NONE'
+      : observedWeightDelta !== null || relationSupportRatio !== null || provenanceCoverage !== null
+        ? 'METHOD_LAB_REQUIRED'
+        : 'VISUAL_HEURISTIC_ONLY',
   };
 }
 
