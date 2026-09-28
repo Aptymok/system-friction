@@ -31,6 +31,10 @@ type GraphNode = {
     discriminatingObservationObserved: boolean;
     stoppingConditionObserved: boolean;
     contrastReady: boolean;
+    contrastRecorded: boolean;
+    learningCandidateObserved: boolean;
+    learningPromoted: boolean;
+    fieldReorganizationState: 'UNCHANGED' | 'CONTRAST_RECORDED' | 'LEARNING_QUARANTINED' | 'LEARNING_PROMOTED';
   };
 };
 
@@ -475,6 +479,8 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
                 <p>EXPECTATION · {selected.methodSignal?.expectationObserved ? 'OBSERVED' : 'NOT OBSERVED'} · RETURN {selected.methodSignal?.returnObserved ? 'OBSERVED' : 'NOT OBSERVED'}</p>
                 <p>DISCRIMINATOR · {selected.methodSignal?.discriminatingObservationObserved ? 'OBSERVED' : 'NOT OBSERVED'} · STOP {selected.methodSignal?.stoppingConditionObserved ? 'OBSERVED' : 'NOT OBSERVED'}</p>
                 <p>CONTRAST READINESS · {selected.methodSignal?.contrastReady ? 'READY TO VERIFY' : 'OPEN / INCOMPLETE'}</p>
+                <p>GOVERNED CONTRAST · {selected.methodSignal?.contrastRecorded ? 'RECORDED' : 'NOT RECORDED'} · LEARNING {selected.methodSignal?.learningCandidateObserved ? 'QUARANTINED' : 'NOT OBSERVED'}</p>
+                <p>FIELD REORGANIZATION · {selected.methodSignal?.fieldReorganizationState ?? 'UNCHANGED'}</p>
               </section>
               <section>
                 <span>MCDC / RETURN</span>
