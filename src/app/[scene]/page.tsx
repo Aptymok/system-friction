@@ -8,7 +8,7 @@ import { readRealityChainNode, readRealityChainEdge, realityChainCoverage } from
 import { requireFounderPage } from '@/lib/system/access/server';
 import { AuthenticatedSfiMenu } from '@/components/sfi/AuthenticatedSfiMenu';
 import { deriveCanonicalFieldMethodSignal } from '@/lib/mihm/rootCaseMethodology';
-import { resolveMethodLabFieldProjection } from '@/lib/method-lab/fieldProjection';
+import { proposeMethodLabFieldProtocol, resolveMethodLabFieldProjection } from '@/lib/method-lab/fieldProjection';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,18 +28,33 @@ export default async function ScenePage({ params }:{ params:Promise<{scene:strin
     const methodSignals = new Map(
       graph.nodes.map((node) => [node.nodeId, deriveCanonicalFieldMethodSignal(node, graph.edges)]),
     );
-    const fieldProjections = new Map(
+    const fieldProtocolProposals = new Map(
       graph.nodes.map((node) => {
         const signal = methodSignals.get(node.nodeId)!;
-        const declaredProtocol = typeof node.attributes?.methodLabProtocolId === 'string'
+        const declared = typeof node.attributes?.methodLabProtocolId === 'string'
           ? node.attributes.methodLabProtocolId
           : typeof node.attributes?.method_lab_protocol_id === 'string'
             ? node.attributes.method_lab_protocol_id
             : null;
-        const protocolId = declaredProtocol === 'sociotechnical_simulation' || declaredProtocol === 'economic_simulation'
-          ? declaredProtocol
-          : null;
-        return [node.nodeId, resolveMethodLabFieldProjection({ protocolId, ...signal })];
+        const declaredProtocolId = declared === 'sociotechnical_simulation' || declared === 'economic_simulation' ? declared : null;
+        const primaryMethodId = signal.requiresTrajectory || signal.requiresRivalHypothesis ? 'PPOI' : null;
+        return [node.nodeId, proposeMethodLabFieldProtocol({
+          declaredProtocolId,
+          primaryMethodId,
+          evidenceModalities: [],
+          worldContextRequested: false,
+          requiresTrajectory: signal.requiresTrajectory,
+          requiresRivalHypothesis: signal.requiresRivalHypothesis,
+          requiresInterventionTracking: false,
+          ...signal,
+        })];
+      }),
+    );
+    const fieldProjections = new Map(
+      graph.nodes.map((node) => {
+        const signal = methodSignals.get(node.nodeId)!;
+        const proposal = fieldProtocolProposals.get(node.nodeId)!;
+        return [node.nodeId, resolveMethodLabFieldProjection({ protocolId: proposal.protocolId, ...signal })];
       }),
     );
 
@@ -63,6 +78,7 @@ export default async function ScenePage({ params }:{ params:Promise<{scene:strin
               attributes: node.attributes,
               reality: realityNodes.get(node.nodeId),
               methodSignal: methodSignals.get(node.nodeId),
+              fieldProtocolProposal: fieldProtocolProposals.get(node.nodeId),
               fieldProjection: fieldProjections.get(node.nodeId),
             })),
             edges: graph.edges.map((edge) => ({
