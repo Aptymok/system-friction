@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import type { CanonicalGraphEdge, CanonicalGraphNode } from '../packages/graph/src';
-import { deriveFieldScientificReading, emergenceReading, relationScientificReading, scientificMethodCandidates, temporalCoordinates } from '../src/lib/mihm/fieldScientificReading';
+import { deriveEmpiricalCapacityEnvelope, deriveFieldScientificReading, emergenceReading, relationScientificReading, scientificMethodCandidates, temporalCoordinates } from '../src/lib/mihm/fieldScientificReading';
 
 const node={
   nodeId:'observed-system',label:'Observed system',ontologyType:'case',profile:'sfi',origin:'qa',provenance:'evidence:node',lineage:['obs:1','obs:2'],
@@ -44,6 +44,14 @@ assert(reading.temporal.availableResolutions.includes('TRANSITION'));
 assert(reading.temporal.availableResolutions.includes('CYCLE'));
 assert(reading.temporal.availableResolutions.includes('PHENOMENON'));
 assert.equal(reading.capacity?.response,'RECOVERY');
+const secondCapacityNode={...node,nodeId:'observed-system-2',lineage:['obs:3'],attributes:{interventionRef:'action:2',perturbationMagnitude:0.5,capacityResponse:'DEGRADATION',returnEvidenceRefs:['return:2']}} as CanonicalGraphNode;
+const envelope=deriveEmpiricalCapacityEnvelope([node,secondCapacityNode]);
+assert.equal(envelope.status,'OBSERVED_RANGE');
+assert.equal(envelope.minPerturbation,0.2);
+assert.equal(envelope.maxPerturbation,0.5);
+assert.equal(envelope.responses.RECOVERY,1);
+assert.equal(envelope.responses.DEGRADATION,1);
+assert.equal(deriveEmpiricalCapacityEnvelope([node]).status,'INSUFFICIENT');
 assert.equal(reading.distributedConfiguration.state,'CANDIDATE');
 assert.equal(reading.distributedConfiguration.memberNodeIds.length,3);
 assert.equal(reading.evidenceGeometry.authority,'OBSERVED_RELATION_MEASURE');
