@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { resolveMihmMethod } from '../src/lib/mihm/methodSelectionResolver';
-import { deriveCanonicalFieldMethodSignal, planCanonicalUnknownResolution, resolveCanonicalFieldMethodology, resolveRootCaseMethodology } from '../src/lib/mihm/rootCaseMethodology';
+import { contrastUnknownIdentityEvidence, deriveCanonicalFieldMethodSignal, planCanonicalUnknownResolution, resolveCanonicalFieldMethodology, resolveRootCaseMethodology } from '../src/lib/mihm/rootCaseMethodology';
 import type { CanonicalGraphEdge, CanonicalGraphNode } from '../packages/graph/src';
 import { proposeMethodLabFieldProtocol, resolveMethodLabFieldProjection } from '../src/lib/method-lab/fieldProjection';
 
@@ -425,5 +425,34 @@ const censoredUnknownPlan = planCanonicalUnknownResolution(
 assert.equal(censoredUnknownPlan.status, 'CENSORED');
 assert.ok(censoredUnknownPlan.temporalBasis.includes('UNKNOWN'));
 assert.ok(censoredUnknownPlan.stoppingCondition.includes('new source, relation, event, cycle, or measurement'));
+
+const sourceOnlyIdentity = contrastUnknownIdentityEvidence(temporalUnknownPlan, [{
+  sourceId: 'social-1', authorityFit: 'FIT', admission: 'SOURCE_ONLY', supports: ['CASE'], challenges: [], provenanceBound: true,
+}]);
+assert.equal(sourceOnlyIdentity.evidenceDisposition, 'NO_DISCRIMINATING_EVIDENCE');
+assert.equal(sourceOnlyIdentity.supportedIdentity, null);
+
+const candidateIdentity = contrastUnknownIdentityEvidence(temporalUnknownPlan, [{
+  sourceId: 'primary-1', authorityFit: 'FIT', admission: 'CANDIDATE_EVIDENCE', supports: ['CASE'], challenges: [], provenanceBound: true,
+}]);
+assert.equal(candidateIdentity.evidenceDisposition, 'CANDIDATE_SUPPORTED');
+assert.equal(candidateIdentity.supportedIdentity, 'CASE');
+assert.equal(candidateIdentity.status, 'ACTIVE');
+
+const resolvedIdentity = contrastUnknownIdentityEvidence(temporalUnknownPlan, [
+  { sourceId: 'primary-1', authorityFit: 'FIT', admission: 'CANDIDATE_EVIDENCE', supports: ['CASE'], challenges: [], provenanceBound: true },
+  { sourceId: 'direct-2', authorityFit: 'UNKNOWN', admission: 'CANDIDATE_EVIDENCE', supports: [], challenges: ['ARTIFACT'], directObservation: true, provenanceBound: true },
+]);
+assert.equal(resolvedIdentity.evidenceDisposition, 'RESOLVED');
+assert.equal(resolvedIdentity.supportedIdentity, 'CASE');
+assert.equal(resolvedIdentity.status, 'NOT_REQUIRED');
+assert.ok(resolvedIdentity.stoppingCondition.includes('Reopen if counterevidence'));
+
+const unresolvedRivals = contrastUnknownIdentityEvidence(temporalUnknownPlan, [
+  { sourceId: 'primary-1', authorityFit: 'FIT', admission: 'CANDIDATE_EVIDENCE', supports: ['CASE'], challenges: [], provenanceBound: true },
+  { sourceId: 'primary-2', authorityFit: 'FIT', admission: 'CANDIDATE_EVIDENCE', supports: ['ARTIFACT'], challenges: [], provenanceBound: true },
+]);
+assert.equal(unresolvedRivals.evidenceDisposition, 'RIVAL_REQUIRED');
+assert.equal(unresolvedRivals.supportedIdentity, null);
 
 console.log('SFI method selection resolver QA passed.');
