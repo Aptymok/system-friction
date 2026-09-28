@@ -59,8 +59,8 @@ check('ROOT graph reconciliation materializes Library through the existing canon
 check('persisted Library materialization preserves the documentary non-validation boundary', reconcile.includes('doesNotImplyValidation') && reconcile.includes("epistemic_class: 'declared'") && reconcile.includes('library_corpus'));
 
 check('ROOT remains the canonical sovereign operating scene', scenes.includes("root:{key:'root'") && scenes.includes("title:'ROOT · Sovereign Operation'") && scenes.includes("liveSource:'/api/root/workboard'"));
-check('ROOT is regenerated as a thin sovereign projection over existing owners', rootUi.includes('ROOT · INSTITUTIONAL SOVEREIGNTY') && rootUi.includes('Decide what is sovereign. Observe and read the rest.') && rootUi.includes("jsonFetch('/api/root/interactive?surface=root')") && rootUi.includes("jsonFetch('/api/root/decisions'"));
-check('ROOT exposes observation links without inventing a second subsystem map', rootUi.includes("href: '/observatory'") && rootUi.includes("href: '/cases'") && rootUi.includes("href: '/method-lab'") && !rootUi.includes('MAPA OPERATIVO · SUPERFICIES SFI'));
+check('legacy sovereign workspace no longer composes the ROOT scene', !scenePage.includes('SfiRootWorkspace') && scenePage.includes('RootNeuralGraphView'));
+check('ROOT field exposes temporal and reconstructive readings', neuralGraphView.includes("'TRAJECTORY'") && neuralGraphView.includes("'RETROLONGITUDINAL'") && neuralGraphView.includes("'PROJECTION'") && neuralGraphView.includes("'FRICTION_REGIME'") && neuralGraphView.includes("'RETURN_CONTRAST'"));
 check('ROOT preserves binary terminal decisions while evidence request remains a non-terminal defer', rootUi.includes('ACCEPT') && rootUi.includes('DENY') && rootUi.includes('REQUEST EVIDENCE') && rootUi.includes('does not turn a source into admitted evidence') && rootUi.includes('decision remains open'));
 check('ROOT report archive is observational rather than approvable', rootUi.includes("jsonFetch('/api/root/reports')") && rootUi.includes('do not require ACCEPT/DENY') && !rootUi.includes('DENY REPORT'));
 check('ROOT report route normalizes every report body before presentation', reportsRoute.includes("humanReportText") && reportsRoute.includes("from '@/lib/reports/humanReport'") && reportsRoute.includes('body: humanReportText(item.body)'));
@@ -114,3 +114,4 @@ if (failed.length) {
   process.exit(1);
 }
 console.log(`\nROOT graph/operating-workspace convergence QA passed: ${checks.length}/${checks.length}`);
+check('Neural Graph is not exposed as an independent navigation surface', !shellUi.includes("href:'/root/neural-graph'") && !fs.existsSync(path.join(root, 'src/app/root/neural-graph/page.tsx')));
