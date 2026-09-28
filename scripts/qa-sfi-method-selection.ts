@@ -111,4 +111,30 @@ assert.equal(questionDrivenCase.input.requiresTrajectory, true);
 assert.equal(questionDrivenCase.input.requiresRivalHypothesis, true);
 assert.equal(questionDrivenCase.resolution.primary?.methodId, 'PPOI');
 
+const fieldTransitionCase = resolveRootCaseMethodology({
+  id: 'field-transition-case',
+  title: 'Observed relation transition',
+  type: 'case',
+  status: 'closed',
+  relation_state: 'CHALLENGED',
+  previous_relation_state: 'SUPPORTED',
+  evidence_count: 1,
+  evidence_type: 'institutional record',
+});
+assert.equal(fieldTransitionCase.input.requiresTrajectory, true);
+assert.equal(fieldTransitionCase.resolution.primary?.methodId, 'PPOI');
+
+const returnContrastCase = resolveRootCaseMethodology({
+  id: 'return-contrast-case',
+  title: 'Observed return differs from bounded expectation',
+  type: 'case',
+  status: 'closed',
+  expected_return: 2,
+  observed_return: 10,
+  evidence_count: 1,
+  evidence_type: 'institutional record',
+});
+assert.equal(returnContrastCase.input.requiresRivalHypothesis, true);
+assert.equal(returnContrastCase.resolution.primary?.methodId, 'PPOI');
+
 console.log('SFI method selection resolver QA passed.');
