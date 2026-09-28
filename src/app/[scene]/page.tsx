@@ -33,6 +33,7 @@ export default async function ScenePage({ params }:{ params:Promise<{scene:strin
               origin: node.origin,
               provenance: node.provenance,
               lineage: node.lineage,
+              attributes: node.attributes,
             })),
             edges: graph.edges.map((edge) => ({
               id: edge.edgeId,
@@ -43,6 +44,7 @@ export default async function ScenePage({ params }:{ params:Promise<{scene:strin
               origin: edge.origin,
               provenance: edge.provenance,
               lineage: edge.lineage,
+              attributes: edge.attributes,
             })),
           }}
         />
