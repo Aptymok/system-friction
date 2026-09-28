@@ -181,6 +181,9 @@ assert.equal(fieldSignal.temporalStructureObserved, true);
 assert.equal(fieldSignal.counterevidenceObserved, true);
 assert.equal(fieldSignal.requiresTrajectory, true);
 assert.equal(fieldSignal.requiresRivalHypothesis, true);
+assert.equal(fieldSignal.expectationObserved, false);
+assert.equal(fieldSignal.returnObserved, false);
+assert.equal(fieldSignal.contrastReady, false);
 
 const staticFieldEdge = {
   ...canonicalFieldEdge,
@@ -196,5 +199,25 @@ const staticFieldSignal = deriveCanonicalFieldMethodSignal(
 );
 assert.equal(staticFieldSignal.requiresTrajectory, false);
 assert.equal(staticFieldSignal.requiresRivalHypothesis, false);
+
+const contrastFieldSignal = deriveCanonicalFieldMethodSignal(
+  {
+    ...canonicalFieldNode,
+    nodeId: 'field-node-contrast',
+    attributes: {
+      epistemicClass: 'OBSERVED',
+      expectedCondition: 'signal remains below declared threshold',
+      observedReturn: 'signal exceeded declared threshold',
+      discriminatingObservations: ['independent observation after the bounded window'],
+      stoppingCondition: 'window closed',
+    },
+  },
+  [],
+);
+assert.equal(contrastFieldSignal.expectationObserved, true);
+assert.equal(contrastFieldSignal.returnObserved, true);
+assert.equal(contrastFieldSignal.discriminatingObservationObserved, true);
+assert.equal(contrastFieldSignal.stoppingConditionObserved, true);
+assert.equal(contrastFieldSignal.contrastReady, true);
 
 console.log('SFI method selection resolver QA passed.');
