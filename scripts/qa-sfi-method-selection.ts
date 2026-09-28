@@ -373,13 +373,29 @@ const canonicalMethodology = resolveCanonicalFieldMethodology(
 assert.equal(canonicalMethodology.input.requiresTrajectory, true);
 assert.equal(canonicalMethodology.input.requiresRivalHypothesis, true);
 assert.equal(canonicalMethodology.input.temporalScope, 'LONGITUDINAL');
-assert.equal(canonicalMethodology.resolution.primary?.methodId, 'PPOI');
+assert.equal(canonicalMethodology.input.subject, 'UNKNOWN');
+assert.equal(canonicalMethodology.subjectBasis, 'PROPOSED');
+assert.equal(canonicalMethodology.subjectProposal, 'CASE');
+assert.equal(canonicalMethodology.resolution.status, 'BLOCKED');
+assert.equal(canonicalMethodology.resolution.primary, null);
 
 const staticCanonicalMethodology = resolveCanonicalFieldMethodology(
   { ...canonicalFieldNode, nodeId: 'static-artifact', attributes: { subjectType: 'ARTIFACT' } },
   [staticFieldEdge],
   staticFieldSignal,
 );
+assert.equal(staticCanonicalMethodology.subjectBasis, 'DECLARED');
+assert.equal(staticCanonicalMethodology.input.subject, 'ARTIFACT');
 assert.equal(staticCanonicalMethodology.resolution.primary?.methodId, 'SCOREFRICTION');
+
+const unknownCanonicalMethodology = resolveCanonicalFieldMethodology(
+  { ...canonicalFieldNode, nodeId: 'unknown-object', provenance: '', lineage: [], attributes: {} },
+  [],
+);
+assert.equal(unknownCanonicalMethodology.subjectBasis, 'UNKNOWN');
+assert.equal(unknownCanonicalMethodology.subjectProposal, null);
+assert.equal(unknownCanonicalMethodology.input.subject, 'UNKNOWN');
+assert.equal(unknownCanonicalMethodology.input.temporalScope, 'UNKNOWN');
+assert.equal(unknownCanonicalMethodology.resolution.status, 'BLOCKED');
 
 console.log('SFI method selection resolver QA passed.');
