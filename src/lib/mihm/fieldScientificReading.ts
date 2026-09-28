@@ -187,7 +187,12 @@ export function methodCompetitionReading(node: CanonicalGraphNode, edges: Canoni
     if(method.family==='CHANGE_POINT' && !coordinates.some(x=>x.basis==='SEQUENCE'||x.basis==='CHRONOLOGY')) missing.push('ordered observations');
     if(method.family==='SURVIVAL_SOJOURN' && !coordinates.some(x=>x.basis==='STATE_OCCUPANCY')) missing.push('state occupancy/censoring');
     if(method.family==='MARKOV_SEMI_MARKOV' && !coordinates.some(x=>x.basis==='CYCLE'||x.basis==='RECURRENCE')) missing.push('repeated cycle/recurrence observations');
-    if(method.family==='NETWORK_SCIENCE' && adjacent.filter(x=>x.provenanceBound).length<2) missing.push('at least two provenance-bound relations');
+    if(method.family==='STATE_SPACE' && !coordinates.some(x=>x.basis==='SEQUENCE'||x.basis==='CHRONOLOGY')) missing.push('ordered repeated observations');
+    if(method.family==='STATE_SPACE' && !adjacent.some(x=>x.uncertainty!==null||x.weightDelta!==null)) missing.push('measurement uncertainty or residual structure');
+    if(method.family==='POINT_PROCESS' && !coordinates.some(x=>x.basis==='SEQUENCE'||x.basis==='CHRONOLOGY')) missing.push('event ordering/time');
+    if(method.family==='POINT_PROCESS' && !coordinates.some(x=>x.basis==='RECURRENCE')) missing.push('recurrence/event exposure');
+    if(method.family==='DYNAMICAL_SYSTEMS' && !capacityObservation(node)) missing.push('intervention-linked observed RETURN');
+        if(method.family==='NETWORK_SCIENCE' && adjacent.filter(x=>x.provenanceBound).length<2) missing.push('at least two provenance-bound relations');
     if(method.family==='ACTIVE_LEARNING' && !adjacent.some(x=>x.currentState==='CHALLENGED'||x.previousState==='CHALLENGED')) missing.push('explicit challenged/rival structure');
     return {family:method.family,question:method.question,assumptionCheck:missing.length?'INSUFFICIENT' as const:'OBSERVABLE' as const,missing,falsificationCondition:method.falsificationCondition};
   });
