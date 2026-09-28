@@ -130,6 +130,11 @@ export type CanonicalFieldMethodSignal = {
   temporalStructureObserved: boolean;
   requiresTrajectory: boolean;
   requiresRivalHypothesis: boolean;
+  expectationObserved: boolean;
+  returnObserved: boolean;
+  discriminatingObservationObserved: boolean;
+  stoppingConditionObserved: boolean;
+  contrastReady: boolean;
 };
 
 function graphText(record: Record<string, unknown>, keys: readonly string[]) {
@@ -163,6 +168,10 @@ export function deriveCanonicalFieldMethodSignal(
   let weightChangeObserved = false;
   let counterevidenceObserved = false;
   let temporalStructureObserved = false;
+  let expectationObserved = false;
+  let returnObserved = false;
+  let discriminatingObservationObserved = false;
+  let stoppingConditionObserved = false;
   let evidenceBoundRelationCount = 0;
 
   for (const edge of adjacent) {
@@ -174,8 +183,16 @@ export function deriveCanonicalFieldMethodSignal(
     const cycle = graphNumber(attributes, ['cycle','cycleIndex','cycle_index','cycleNumber','cycle_number','recurrence','recurrenceIndex','recurrence_index']);
     const phase = graphText(attributes, ['phase','temporalPhase','temporal_phase','cyclePhase','cycle_phase','statePhase','state_phase']);
     const counterevidence = attributes.counterevidence ?? attributes.counterEvidence ?? attributes.counter_evidence;
+    const expected = attributes.expectedReturn ?? attributes.expected_return ?? attributes.expectedCondition ?? attributes.expected_condition ?? attributes.prediction;
+    const observed = attributes.observedReturn ?? attributes.observed_return ?? attributes.actualOutcome ?? attributes.actual_outcome;
+    const discriminator = attributes.discriminatingObservation ?? attributes.discriminating_observation ?? attributes.discriminatingObservations ?? attributes.discriminating_observations;
+    const stopping = attributes.stoppingCondition ?? attributes.stopping_condition;
 
     if (edge.lineage.length > 0 || edge.provenance) evidenceBoundRelationCount += 1;
+    if (expected !== undefined && expected !== null && expected !== '') expectationObserved = true;
+    if (observed !== undefined && observed !== null && observed !== '') returnObserved = true;
+    if (Array.isArray(discriminator) ? discriminator.length > 0 : Boolean(discriminator)) discriminatingObservationObserved = true;
+    if (Boolean(stopping)) stoppingConditionObserved = true;
     if (state && previousState && state !== previousState) relationTransition = true;
     if (previousWeight !== null && Number.isFinite(edge.weight) && previousWeight !== edge.weight) weightChangeObserved = true;
     if (Array.isArray(counterevidence) ? counterevidence.length > 0 : Boolean(counterevidence)) counterevidenceObserved = true;
@@ -186,7 +203,15 @@ export function deriveCanonicalFieldMethodSignal(
   const nodeSequence = graphNumber(nodeAttributes, ['sequence','sequenceIndex','sequence_index','transitionIndex','transition_index','eventIndex','event_index','order']);
   const nodeCycle = graphNumber(nodeAttributes, ['cycle','cycleIndex','cycle_index','cycleNumber','cycle_number','recurrence','recurrenceIndex','recurrence_index']);
   const nodePhase = graphText(nodeAttributes, ['phase','temporalPhase','temporal_phase','cyclePhase','cycle_phase','statePhase','state_phase']);
+  const nodeExpected = nodeAttributes.expectedReturn ?? nodeAttributes.expected_return ?? nodeAttributes.expectedCondition ?? nodeAttributes.expected_condition ?? nodeAttributes.prediction;
+  const nodeObserved = nodeAttributes.observedReturn ?? nodeAttributes.observed_return ?? nodeAttributes.actualOutcome ?? nodeAttributes.actual_outcome;
+  const nodeDiscriminator = nodeAttributes.discriminatingObservation ?? nodeAttributes.discriminating_observation ?? nodeAttributes.discriminatingObservations ?? nodeAttributes.discriminating_observations;
+  const nodeStopping = nodeAttributes.stoppingCondition ?? nodeAttributes.stopping_condition;
   temporalStructureObserved ||= nodeSequence !== null || nodeCycle !== null || Boolean(nodePhase);
+  expectationObserved ||= nodeExpected !== undefined && nodeExpected !== null && nodeExpected !== '';
+  returnObserved ||= nodeObserved !== undefined && nodeObserved !== null && nodeObserved !== '';
+  discriminatingObservationObserved ||= Array.isArray(nodeDiscriminator) ? nodeDiscriminator.length > 0 : Boolean(nodeDiscriminator);
+  stoppingConditionObserved ||= Boolean(nodeStopping);
 
   return {
     nodeId: node.nodeId,
@@ -198,6 +223,11 @@ export function deriveCanonicalFieldMethodSignal(
     temporalStructureObserved,
     requiresTrajectory: temporalStructureObserved || relationTransition || weightChangeObserved,
     requiresRivalHypothesis: counterevidenceObserved,
+    expectationObserved,
+    returnObserved,
+    discriminatingObservationObserved,
+    stoppingConditionObserved,
+    contrastReady: expectationObserved && returnObserved && discriminatingObservationObserved,
   };
 }
 
