@@ -1,12 +1,14 @@
 import { RootNeuralGraphView } from '@/components/sfi/RootNeuralGraphView';
 import { readCanonicalGraphState } from '@/lib/graph/canonicalGraph';
+import { projectCognitiveGraph } from '@/lib/graph/cognitiveGraphAdmission';
 import { requireFounderPage } from '@/lib/system/access/server';
 
 export const dynamic = 'force-dynamic';
 
 export default async function RootNeuralGraphPage() {
   await requireFounderPage('/root/neural-graph');
-  const graph = await readCanonicalGraphState('sfi', { allowContinuity: true });
+  const canonicalGraph = await readCanonicalGraphState('sfi', { allowContinuity: true });
+  const graph = projectCognitiveGraph(canonicalGraph);
 
   return (
     <RootNeuralGraphView
