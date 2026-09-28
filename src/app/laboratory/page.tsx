@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { CanonicalCognitiveFieldPublic } from '@/components/sfi/CanonicalCognitiveFieldPublic';
-import { SFI_PUBLIC_NAV } from '@/lib/navigation/publicNavigation';
+import { SfiPublicHeader, SfiPublicFooter } from '@/components/public/SfiPublicChrome';
 import './laboratory.css';
 
 export const metadata:Metadata={
@@ -24,13 +24,7 @@ const HUMAN_LAYERS=[
 
 export default function LaboratoryPage(){
   return <main className="publicLab">
-    <header className="publicLabTop">
-      <Link href="/" className="publicLabBrand">SFI</Link>
-      <div><span>SYSTEM FRICTION INSTITUTE</span><small>LABORATORY · PUBLIC READING</small></div>
-      <nav aria-label="Public navigation">
-        {SFI_PUBLIC_NAV.map((item)=><Link key={item.href} href={item.href} aria-current={item.href==='/laboratory'?'page':undefined}>{item.label}</Link>)}
-      </nav>
-    </header>
+    <SfiPublicHeader active="/laboratory"/>
 
     <section className="publicLabHero">
       <div>
@@ -66,6 +60,6 @@ export default function LaboratoryPage(){
       </div>
     </section>
 
-    <footer className="publicLabFooter"><b>SYSTEM FRICTION INSTITUTE</b><span>OBSERVE · DISTINGUISH · CONTRAST · RETURN</span></footer>
+    <SfiPublicFooter/>
   </main>;
 }
