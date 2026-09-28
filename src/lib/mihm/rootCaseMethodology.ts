@@ -1,4 +1,5 @@
 import type { RootRow } from '@/lib/root/sovereign/rootSovereignState';
+import type { CanonicalGraphEdge, CanonicalGraphNode } from '../../../packages/graph/src';
 import type { MihmEvidenceModality, MihmMethodSelectionInput, MihmMethodSelectionResult, MihmObservationSubject, MihmTemporalScope } from './methodSelectionContract';
 import { resolveMihmMethod } from './methodSelectionResolver';
 
@@ -117,6 +118,87 @@ function temporalScopeFor(row: RootRow, subject: MihmObservationSubject): MihmTe
 
   if (temporalEvidence || (span ?? 0) > 1 || /open|active|follow|monitor|pending|abierto|seguimiento/.test(status)) return 'LONGITUDINAL';
   return 'BOUNDED_WINDOW';
+}
+
+export type CanonicalFieldMethodSignal = {
+  nodeId: string;
+  relationCount: number;
+  evidenceBoundRelationCount: number;
+  relationTransition: boolean;
+  weightChangeObserved: boolean;
+  counterevidenceObserved: boolean;
+  temporalStructureObserved: boolean;
+  requiresTrajectory: boolean;
+  requiresRivalHypothesis: boolean;
+};
+
+function graphText(record: Record<string, unknown>, keys: readonly string[]) {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === 'string' && value.trim()) return value.trim();
+  }
+  return null;
+}
+
+function graphNumber(record: Record<string, unknown>, keys: readonly string[]) {
+  for (const key of keys) {
+    const value = record[key];
+    if (value === null || value === undefined || value === '') continue;
+    const parsed = typeof value === 'number' ? value : Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return null;
+}
+
+/**
+ * Reads only properties already present in the canonical field.
+ * It does not infer causality, invent prior states, or promote repeated edges to attractors/regimes.
+ */
+export function deriveCanonicalFieldMethodSignal(
+  node: CanonicalGraphNode,
+  edges: CanonicalGraphEdge[],
+): CanonicalFieldMethodSignal {
+  const adjacent = edges.filter((edge) => edge.sourceNodeId === node.nodeId || edge.targetNodeId === node.nodeId);
+  let relationTransition = false;
+  let weightChangeObserved = false;
+  let counterevidenceObserved = false;
+  let temporalStructureObserved = false;
+  let evidenceBoundRelationCount = 0;
+
+  for (const edge of adjacent) {
+    const attributes = edge.attributes ?? {};
+    const state = graphText(attributes, ['relationState','relation_state','edgeState','edge_state'])?.toUpperCase() ?? '';
+    const previousState = graphText(attributes, ['previousRelationState','previous_relation_state','priorRelationState','prior_relation_state'])?.toUpperCase() ?? '';
+    const previousWeight = graphNumber(attributes, ['previousWeight','previous_weight','priorWeight','prior_weight']);
+    const sequence = graphNumber(attributes, ['sequence','sequenceIndex','sequence_index','transitionIndex','transition_index','eventIndex','event_index','order']);
+    const cycle = graphNumber(attributes, ['cycle','cycleIndex','cycle_index','cycleNumber','cycle_number','recurrence','recurrenceIndex','recurrence_index']);
+    const phase = graphText(attributes, ['phase','temporalPhase','temporal_phase','cyclePhase','cycle_phase','statePhase','state_phase']);
+    const counterevidence = attributes.counterevidence ?? attributes.counterEvidence ?? attributes.counter_evidence;
+
+    if (edge.lineage.length > 0 || edge.provenance) evidenceBoundRelationCount += 1;
+    if (state && previousState && state !== previousState) relationTransition = true;
+    if (previousWeight !== null && Number.isFinite(edge.weight) && previousWeight !== edge.weight) weightChangeObserved = true;
+    if (Array.isArray(counterevidence) ? counterevidence.length > 0 : Boolean(counterevidence)) counterevidenceObserved = true;
+    if (sequence !== null || cycle !== null || Boolean(phase)) temporalStructureObserved = true;
+  }
+
+  const nodeAttributes = node.attributes ?? {};
+  const nodeSequence = graphNumber(nodeAttributes, ['sequence','sequenceIndex','sequence_index','transitionIndex','transition_index','eventIndex','event_index','order']);
+  const nodeCycle = graphNumber(nodeAttributes, ['cycle','cycleIndex','cycle_index','cycleNumber','cycle_number','recurrence','recurrenceIndex','recurrence_index']);
+  const nodePhase = graphText(nodeAttributes, ['phase','temporalPhase','temporal_phase','cyclePhase','cycle_phase','statePhase','state_phase']);
+  temporalStructureObserved ||= nodeSequence !== null || nodeCycle !== null || Boolean(nodePhase);
+
+  return {
+    nodeId: node.nodeId,
+    relationCount: adjacent.length,
+    evidenceBoundRelationCount,
+    relationTransition,
+    weightChangeObserved,
+    counterevidenceObserved,
+    temporalStructureObserved,
+    requiresTrajectory: temporalStructureObserved || relationTransition || weightChangeObserved,
+    requiresRivalHypothesis: counterevidenceObserved,
+  };
 }
 
 export type RootCaseMethodology = {
