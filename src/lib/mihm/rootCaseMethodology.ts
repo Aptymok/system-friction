@@ -301,6 +301,9 @@ export function deriveCanonicalFieldMethodSignal(
 export type CanonicalFieldMethodResolution = {
   input: MihmMethodSelectionInput;
   resolution: MihmMethodSelectionResult;
+  subjectBasis: 'DECLARED' | 'PROPOSED' | 'UNKNOWN';
+  subjectProposal: MihmObservationSubject | null;
+  subjectProposalReasons: string[];
 };
 
 function canonicalFieldEvidenceModalities(node: CanonicalGraphNode, adjacent: CanonicalGraphEdge[]): MihmEvidenceModality[] {
@@ -325,19 +328,30 @@ export function resolveCanonicalFieldMethodology(
   const adjacent = edges.filter((edge) => edge.sourceNodeId === node.nodeId || edge.targetNodeId === node.nodeId);
   const attrs = node.attributes ?? {};
   const explicitSubject = graphText(attrs, ['subject','subjectType','subject_type'])?.toUpperCase();
-  const subject: MihmObservationSubject =
+  const declaredSubject: MihmObservationSubject | null =
     explicitSubject === 'WORLD_CONTEXT' ? 'WORLD_CONTEXT'
       : explicitSubject === 'SFI_SYSTEM' ? 'SFI_SYSTEM'
         : explicitSubject === 'ORGANIZATION' ? 'ORGANIZATION'
           : explicitSubject === 'PERSON' || explicitSubject === 'SESSION' ? 'PERSON'
             : explicitSubject === 'OBJECT' || explicitSubject === 'SIGNAL' || explicitSubject === 'ARTIFACT' ? 'ARTIFACT'
-              : signal.requiresTrajectory || signal.requiresRivalHypothesis ? 'CASE'
-                : 'ARTIFACT';
+              : explicitSubject === 'CASE' ? 'CASE'
+                : explicitSubject === 'PHENOMENON' ? 'PHENOMENON'
+                  : null;
+  const subjectProposal: MihmObservationSubject | null = declaredSubject
+    ? null
+    : signal.requiresTrajectory || signal.requiresRivalHypothesis
+      ? 'CASE'
+      : adjacent.length > 0 || node.lineage.length > 0 || Boolean(node.provenance)
+        ? 'ARTIFACT'
+        : null;
+  const subject: MihmObservationSubject = declaredSubject ?? 'UNKNOWN';
   const temporalScope: MihmTemporalScope = signal.temporalStructureObserved || signal.requiresTrajectory
     ? 'LONGITUDINAL'
     : subject === 'WORLD_CONTEXT'
       ? 'CURRENT_WORLD_STATE'
-      : 'BOUNDED_WINDOW';
+      : subject === 'UNKNOWN'
+        ? 'UNKNOWN'
+        : 'BOUNDED_WINDOW';
   const evidenceModalities = canonicalFieldEvidenceModalities(node, adjacent);
   const input: MihmMethodSelectionInput = {
     subject,
@@ -353,7 +367,19 @@ export function resolveCanonicalFieldMethodology(
     observationSpanDays: 0,
     isSfiInternal: subject === 'SFI_SYSTEM',
   };
-  return { input, resolution: resolveMihmMethod(input) };
+  return {
+    input,
+    resolution: resolveMihmMethod(input),
+    subjectBasis: declaredSubject ? 'DECLARED' : subjectProposal ? 'PROPOSED' : 'UNKNOWN',
+    subjectProposal,
+    subjectProposalReasons: declaredSubject
+      ? ['CANONICAL_SUBJECT_DECLARED']
+      : subjectProposal === 'CASE'
+        ? ['RELATIONAL_OR_RIVAL_STRUCTURE_SUGGESTS_CASE_CONTAINER']
+        : subjectProposal === 'ARTIFACT'
+          ? ['BOUNDED_EVIDENCE_OBJECT_SUGGESTS_ARTIFACT']
+          : ['INSUFFICIENT_SUBJECT_IDENTITY'],
+  };
 }
 
 export type RootCaseMethodology = {
