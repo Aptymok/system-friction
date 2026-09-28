@@ -1,42 +1,9 @@
-import { RootNeuralGraphView } from '@/components/sfi/RootNeuralGraphView';
-import { readCanonicalGraphState } from '@/lib/graph/canonicalGraph';
-import { projectCognitiveGraph } from '@/lib/graph/cognitiveGraphAdmission';
+import { redirect } from 'next/navigation';
 import { requireFounderPage } from '@/lib/system/access/server';
 
 export const dynamic = 'force-dynamic';
 
 export default async function RootNeuralGraphPage() {
   await requireFounderPage('/root/neural-graph');
-  const canonicalGraph = await readCanonicalGraphState('sfi', { allowContinuity: true });
-  const graph = projectCognitiveGraph(canonicalGraph);
-
-  return (
-    <RootNeuralGraphView
-      graph={{
-        sourceState: graph.sourceState,
-        degradedReason: graph.degradedReason,
-        readPlane: graph.readPlane ?? 'UNAVAILABLE',
-        primaryDiagnostic: graph.primaryDiagnostic ?? null,
-        loadedAt: graph.loadedAt,
-        nodes: graph.nodes.map((node) => ({
-          id: node.nodeId,
-          label: node.label,
-          type: node.ontologyType,
-          origin: node.origin,
-          provenance: node.provenance,
-          lineage: node.lineage,
-        })),
-        edges: graph.edges.map((edge) => ({
-          id: edge.edgeId,
-          source: edge.sourceNodeId,
-          target: edge.targetNodeId,
-          relation: edge.relation,
-          weight: edge.weight,
-          origin: edge.origin,
-          provenance: edge.provenance,
-          lineage: edge.lineage,
-        })),
-      }}
-    />
-  );
+  redirect('/root');
 }
