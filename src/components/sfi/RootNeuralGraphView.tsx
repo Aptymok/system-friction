@@ -26,6 +26,11 @@ type GraphNode = {
     temporalStructureObserved: boolean;
     requiresTrajectory: boolean;
     requiresRivalHypothesis: boolean;
+    expectationObserved: boolean;
+    returnObserved: boolean;
+    discriminatingObservationObserved: boolean;
+    stoppingConditionObserved: boolean;
+    contrastReady: boolean;
   };
 };
 
@@ -467,6 +472,9 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
                 <p>RELATIONS · {selected.methodSignal?.relationCount ?? 0} · EVIDENCE-BOUND {selected.methodSignal?.evidenceBoundRelationCount ?? 0}</p>
                 <p>TRANSITION · {selected.methodSignal?.relationTransition ? 'OBSERVED' : 'NOT OBSERVED'} · WEIGHT Δ {selected.methodSignal?.weightChangeObserved ? 'OBSERVED' : 'NOT OBSERVED'}</p>
                 <p>COUNTEREVIDENCE · {selected.methodSignal?.counterevidenceObserved ? 'OBSERVED' : 'NOT OBSERVED'} · TEMPORAL STRUCTURE {selected.methodSignal?.temporalStructureObserved ? 'OBSERVED' : 'NOT OBSERVED'}</p>
+                <p>EXPECTATION · {selected.methodSignal?.expectationObserved ? 'OBSERVED' : 'NOT OBSERVED'} · RETURN {selected.methodSignal?.returnObserved ? 'OBSERVED' : 'NOT OBSERVED'}</p>
+                <p>DISCRIMINATOR · {selected.methodSignal?.discriminatingObservationObserved ? 'OBSERVED' : 'NOT OBSERVED'} · STOP {selected.methodSignal?.stoppingConditionObserved ? 'OBSERVED' : 'NOT OBSERVED'}</p>
+                <p>CONTRAST READINESS · {selected.methodSignal?.contrastReady ? 'READY TO VERIFY' : 'OPEN / INCOMPLETE'}</p>
               </section>
               <section>
                 <span>MCDC / RETURN</span>
