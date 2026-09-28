@@ -311,6 +311,13 @@ export type CanonicalUnknownResolutionPlan = {
   evidenceDisposition: 'NOT_EVALUATED' | 'NO_DISCRIMINATING_EVIDENCE' | 'CANDIDATE_SUPPORTED' | 'RIVAL_REQUIRED' | 'RESOLVED';
   supportedIdentity: MihmObservationSubject | null;
   supportReasons: string[];
+  nextObservation: {
+    objective: 'IDENTITY_DISCRIMINATION';
+    temporalBasis: CanonicalUnknownResolutionPlan['temporalBasis'];
+    opportunity: string;
+    completionCondition: string;
+    calendarWaitRequired: false;
+  } | null;
 };
 
 export function planCanonicalUnknownResolution(
@@ -320,7 +327,7 @@ export function planCanonicalUnknownResolution(
   signal = deriveCanonicalFieldMethodSignal(node, edges),
 ): CanonicalUnknownResolutionPlan {
   if (methodology.input.subject !== 'UNKNOWN') {
-    return { status: 'NOT_REQUIRED', target: 'SUBJECT_IDENTITY', temporalBasis: [], knownWithoutIdentity: [], missing: [], discriminatingObservations: [], sourceStrategy: [], stoppingCondition: 'Subject identity is already declared.', noCalendarTimeoutInvented: true, evidenceDisposition: 'RESOLVED', supportedIdentity: methodology.input.subject, supportReasons: ['SUBJECT_IDENTITY_DECLARED'] };
+    return { status: 'NOT_REQUIRED', target: 'SUBJECT_IDENTITY', temporalBasis: [], knownWithoutIdentity: [], missing: [], discriminatingObservations: [], sourceStrategy: [], stoppingCondition: 'Subject identity is already declared.', noCalendarTimeoutInvented: true, evidenceDisposition: 'RESOLVED', supportedIdentity: methodology.input.subject, supportReasons: ['SUBJECT_IDENTITY_DECLARED'], nextObservation: null };
   }
   const attrs = node.attributes ?? {};
   const bases = new Set<CanonicalUnknownResolutionPlan['temporalBasis'][number]>();
@@ -363,6 +370,25 @@ export function planCanonicalUnknownResolution(
     evidenceDisposition: 'NOT_EVALUATED',
     supportedIdentity: null,
     supportReasons: [],
+    nextObservation: {
+      objective: 'IDENTITY_DISCRIMINATION',
+      temporalBasis: [...bases],
+      opportunity: bases.has('RECURRENCE')
+        ? 'Observe the next comparable recurrence and capture the identity discriminator under the same declared observation conditions.'
+        : bases.has('STATE_OCCUPANCY')
+          ? 'Observe the next state transition or completed sojourn that can discriminate the candidate identity.'
+          : bases.has('CYCLE')
+            ? 'Observe the next comparable cycle boundary or transition; do not translate the cycle into calendar duration.'
+            : bases.has('PHASE')
+              ? 'Observe the next comparable phase transition with provenance preserved.'
+              : bases.has('SEQUENCE')
+                ? 'Observe the next discriminating event in sequence order.'
+                : bases.has('CHRONOLOGY')
+                  ? 'Observe the next claim-relevant world event within the declared validity/observation window.'
+                  : 'Acquire a new source, relation, event, measurement, or direct observation that creates a discrimination opportunity.',
+      completionCondition: 'Complete when the observation supports one bounded identity candidate and discriminates at least one explicit rival, or when the declared opportunity becomes censored.',
+      calendarWaitRequired: false,
+    },
   };
 }
 
@@ -416,6 +442,7 @@ export function contrastUnknownIdentityEvidence(
     supportedIdentity: identity,
     supportReasons: [`IDENTITY_SUPPORTED_BY_${state.sources.size}_ADMISSIBLE_SOURCE(S)`, 'AT_LEAST_ONE_RIVAL_CHALLENGED_BY_ADMISSIBLE_EVIDENCE'],
     stoppingCondition: 'Identity resolution reached for the current evidence boundary. Reopen if counterevidence, a new rival, or incompatible RETURN appears.',
+    nextObservation: null,
   };
 }
 
