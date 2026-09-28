@@ -15,6 +15,12 @@ export type MihmMethodDefinition = {
   primaryInputs: string[];
   outputs: string[];
   exclusions: string[];
+  answers: string[];
+  assumptions: string[];
+  failureModes: string[];
+  falsificationOrContrast: string[];
+  computationalCost: 'LOW' | 'MEDIUM' | 'HIGH' | 'EXTERNAL';
+  epistemicOutput: 'OBSERVED' | 'DERIVED' | 'INFERRED' | 'SIMULATED';
   formulaAuthority: string;
   formulaVersion: string;
 };
@@ -36,6 +42,12 @@ export const MIHM_METHOD_REGISTRY: Record<MihmMethodId, MihmMethodDefinition> = 
       'No representa el estado institucional, mundial, organizacional ni de un artefacto.',
       'PHI_H no se promedia con otros índices Phi.',
     ],
+    answers: ['What changed within an identified human session under the declared MOP-H measurements?'],
+    assumptions: ['A session identity is stable enough for within-session comparison.', 'Required MOP-H inputs are observed or explicitly declared rather than imputed.'],
+    failureModes: ['Missing session identity.', 'Pre/post measurements are not comparable.', 'Inputs are inferred or imputed without provenance.'],
+    falsificationOrContrast: ['Compare the bounded before/after session observations; preserve disagreement instead of averaging it away.'],
+    computationalCost: 'LOW',
+    epistemicOutput: 'DERIVED',
     formulaAuthority: 'src/lib/moph/moph-math.ts#calculateMophPhi',
     formulaVersion: '2026-08-06.phi-h.v1',
   },
@@ -55,6 +67,12 @@ export const MIHM_METHOD_REGISTRY: Record<MihmMethodId, MihmMethodDefinition> = 
       'No sustituye un caso longitudinal ni describe por sí solo una organización completa.',
       'PHI_S no representa el estado institucional de SFI.',
     ],
+    answers: ['What bounded formal, structural, semantic, memetic or longitudinal friction is measurable in this identified object?'],
+    assumptions: ['The object boundary and feature provenance are explicit.', 'Compared feature vectors are commensurable at the declared resolution.'],
+    failureModes: ['Object identity drift.', 'Feature vectors come from incompatible resolutions.', 'Missing provenance for compared measurements.'],
+    falsificationOrContrast: ['Recompute from the same bounded evidence under the declared formula and compare against an independently observed object state.'],
+    computationalCost: 'MEDIUM',
+    epistemicOutput: 'DERIVED',
     formulaAuthority: 'src/lib/sfi/math.ts#evaluateSfi',
     formulaVersion: '2026-08-06.phi-s.v2',
   },
@@ -74,6 +92,12 @@ export const MIHM_METHOD_REGISTRY: Record<MihmMethodId, MihmMethodDefinition> = 
       'No atribuye causalidad a una persona u organización y no resuelve una hipótesis de caso.',
       'PHI_W es contexto mundial y no se promedia con PHI_SFI.',
     ],
+    answers: ['What externally observed multidomain state and pressure are present at the declared observation time?'],
+    assumptions: ['Sources are time-bounded and their provenance/freshness is available.', 'Domain aggregation does not imply causal attribution.'],
+    failureModes: ['Stale or missing source observations.', 'Cross-domain aggregation hides incompatible temporal windows.', 'Context is mistaken for case causality.'],
+    falsificationOrContrast: ['Reobserve the same declared domains at a later comparable window and contrast the vector without backdating knowledge.'],
+    computationalCost: 'MEDIUM',
+    epistemicOutput: 'DERIVED',
     formulaAuthority: 'src/lib/worldspect/vector-aggregator.ts#aggregateWorldSpect',
     formulaVersion: '2026-08-06.phi-w.wsi-alias.v1',
   },
@@ -93,6 +117,12 @@ export const MIHM_METHOD_REGISTRY: Record<MihmMethodId, MihmMethodDefinition> = 
       'No debe abrirse para una lectura puntual que puede resolverse con MOP-H o ScoreFriction.',
       'El compuesto PPOI 0-5 debe normalizarse antes de representarse como PHI_F.',
     ],
+    answers: ['How does a bounded phenomenon or case change longitudinally under accumulated evidence and rival hypotheses?'],
+    assumptions: ['Phenomenon/case identity is reconstructable across observations.', 'Observation times and evidence lineage are preserved.'],
+    failureModes: ['Identity drift across the longitudinal record.', 'Later knowledge overwrites what was known earlier.', 'A repeated pattern is promoted to attractor or cause without contrast.'],
+    falsificationOrContrast: ['Freeze primary/rival hypotheses and acquire an independent discriminating observation or RETURN before recalibration.'],
+    computationalCost: 'MEDIUM',
+    epistemicOutput: 'INFERRED',
     formulaAuthority: 'src/lib/mihm/phiContract.ts#normalizePpoiComposite',
     formulaVersion: '2026-08-06.phi-f.v1',
   },
@@ -112,6 +142,12 @@ export const MIHM_METHOD_REGISTRY: Record<MihmMethodId, MihmMethodDefinition> = 
       'No es promedio ni sustitución de PHI_H, PHI_S, PHI_F o PHI_W.',
       'Sólo puede existir para un snapshot institucional identificado y trazable.',
     ],
+    answers: ['Can SFI reconstruct and close its own observation-decision-execution-RETURN-memory cycle at the declared institutional snapshot?'],
+    assumptions: ['Institutional events, authority and RETURN lineage are persisted.', 'Snapshot boundaries are explicit.'],
+    failureModes: ['Execution response is mistaken for persisted state.', 'Closure exists without verified RETURN.', 'Learning is promoted without ROOT governance.'],
+    falsificationOrContrast: ['Replay the institutional cycle from persisted events and verify that the same closure/RETURN boundary is reconstructable.'],
+    computationalCost: 'MEDIUM',
+    epistemicOutput: 'DERIVED',
     formulaAuthority: 'src/lib/sfi/math.ts#evaluateSfi',
     formulaVersion: '2026-08-06.phi-sfi.v1',
   },
