@@ -1,0 +1,9 @@
+.sfiDiamondNavigation{position:fixed;left:clamp(16px,2vw,30px);top:clamp(16px,2vw,30px);z-index:120}
+.sfiDiamondTrigger{width:54px;height:54px;padding:0;border:0;background:transparent;cursor:pointer;display:grid;place-items:center}
+.sfiDiamondTrigger img{display:block;width:100%;height:100%;object-fit:contain}
+.sfiDiamondMenu{position:absolute;left:0;top:66px;width:min(390px,calc(100vw - 32px));display:grid;background:rgba(5,5,4,.96);border:var(--sfi-rule);backdrop-filter:blur(22px)}
+.sfiDiamondMenu a{padding:14px 16px;border-bottom:1px solid rgba(214,170,87,.12);font:600 var(--sfi-nav-size)/1.25 var(--sfi-trace);letter-spacing:.11em;color:#bdb3a4}
+.sfiDiamondMenu a:last-child{border-bottom:0}.sfiDiamondMenu a:hover{color:var(--sfi-gold);background:rgba(214,170,87,.055)}
+.sfiAuthenticatedViewport{height:100dvh;min-height:0;overflow:hidden}
+.sfiAuthenticatedViewportContent{height:100%;min-height:0;overflow-y:auto;scrollbar-width:none;-ms-overflow-style:none}
+.sfiAuthenticatedViewportContent::-webkit-scrollbar{display:none}
