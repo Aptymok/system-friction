@@ -132,6 +132,43 @@ export function scientificMethodCandidates(node: CanonicalGraphNode, edges: Cano
   return out;
 }
 
+export type PropertyDiscoveryReading = {
+  status:'CANDIDATES'|'INSUFFICIENT';
+  candidates:Array<{property:'RELATION_WEIGHT_CHANGE'|'RELATION_STATE_CHANGE'|'RECURRENCE'|'STATE_OCCUPANCY'|'EMERGENCE'|'CAPACITY_RESPONSE'; sourceRef:string; value:string|number; epistemicClass:'OBSERVED'|'DERIVED'}>;
+  boundary:string;
+};
+export function discoverObservedProperties(node: CanonicalGraphNode, edges: CanonicalGraphEdge[]): PropertyDiscoveryReading {
+  const candidates:PropertyDiscoveryReading['candidates']=[];
+  for(const relation of edges.filter(e=>e.sourceNodeId===node.nodeId||e.targetNodeId===node.nodeId).map(relationScientificReading)){
+    if(relation.provenanceBound && relation.weightDelta!==null) candidates.push({property:'RELATION_WEIGHT_CHANGE',sourceRef:relation.edgeId,value:relation.weightDelta,epistemicClass:'DERIVED'});
+    if(relation.provenanceBound && relation.previousState && relation.currentState && relation.previousState!==relation.currentState) candidates.push({property:'RELATION_STATE_CHANGE',sourceRef:relation.edgeId,value:`${relation.previousState}->${relation.currentState}`,epistemicClass:'OBSERVED'});
+  }
+  for(const coordinate of temporalCoordinates(node)){
+    if(coordinate.basis==='RECURRENCE') candidates.push({property:'RECURRENCE',sourceRef:coordinate.source,value:coordinate.value,epistemicClass:'OBSERVED'});
+    if(coordinate.basis==='STATE_OCCUPANCY') candidates.push({property:'STATE_OCCUPANCY',sourceRef:coordinate.source,value:coordinate.value,epistemicClass:'OBSERVED'});
+  }
+  const emergence=emergenceReading(node);
+  if(emergence.state!=='NOT_ESTABLISHED') candidates.push({property:'EMERGENCE',sourceRef:emergence.observedAt??node.nodeId,value:emergence.state,epistemicClass:'DERIVED'});
+  const capacity=capacityObservation(node);
+  if(capacity) candidates.push({property:'CAPACITY_RESPONSE',sourceRef:capacity.interventionRef??node.nodeId,value:capacity.response,epistemicClass:'OBSERVED'});
+  return {status:candidates.length?'CANDIDATES':'INSUFFICIENT',candidates,boundary:'Properties are discovered only from persisted observed/provenance-bound field structure. A candidate property is not a phenomenon, attractor, regime change or causal mechanism.'};
+}
+
+export type AttractorReading = {
+  state:'RECURRENCE_ONLY'|'ATTRACTOR_CANDIDATE'|'NOT_ESTABLISHED';
+  recurrenceObserved:boolean; recoveryObserved:boolean; stabilityEvidenceRefs:string[]; reason:string;
+};
+export function attractorReading(node: CanonicalGraphNode, edges: CanonicalGraphEdge[]): AttractorReading {
+  const recurrenceObserved=temporalCoordinates(node).some(x=>x.basis==='RECURRENCE');
+  const capacity=capacityObservation(node);
+  const recoveryObserved=Boolean(capacity && (capacity.response==='RECOVERY'||capacity.response==='ABSORPTION'));
+  const stableRelations=edges.filter(e=>e.sourceNodeId===node.nodeId||e.targetNodeId===node.nodeId)
+    .map(relationScientificReading).filter(r=>r.provenanceBound && r.currentState==='SUPPORTED' && (r.weightDelta===null||r.weightDelta<=0.05));
+  if(recurrenceObserved && recoveryObserved && stableRelations.length) return {state:'ATTRACTOR_CANDIDATE',recurrenceObserved,recoveryObserved,stabilityEvidenceRefs:[...new Set(stableRelations.flatMap(x=>x.evidenceRefs))],reason:'Recurrence, an observed recovery/absorption RETURN and provenance-bound relational stability coexist. This is an attractor candidate only; basin and prospective stability remain unestablished.'};
+  if(recurrenceObserved) return {state:'RECURRENCE_ONLY',recurrenceObserved,recoveryObserved,stabilityEvidenceRefs:[],reason:'Recurrence is observed, but recurrence alone does not establish an attractor.'};
+  return {state:'NOT_ESTABLISHED',recurrenceObserved:false,recoveryObserved,stabilityEvidenceRefs:[],reason:'No observed recurrence supports attractor analysis.'};
+}
+
 export type DistributedConfigurationReading = {
   state:'CANDIDATE'|'NOT_ESTABLISHED'; memberNodeIds:string[]; relationIds:string[]; evidenceBoundRelationCount:number; reason:string;
 };
@@ -176,6 +213,8 @@ export type FieldScientificReading = {
   capacity:CapacityObservation|null;
   distributedConfiguration:DistributedConfigurationReading;
   evidenceGeometry:EvidenceGeometryReading;
+  propertyDiscovery:PropertyDiscoveryReading;
+  attractor:AttractorReading;
   nextAction:NextFieldAction;
   methodCandidates:ScientificMethodCandidate[];
   reversibility:{sourceObservationRefs:string[];aggregationRefs:string[];phenomenonRefs:string[];reconstructable:boolean};
@@ -203,6 +242,8 @@ export function deriveFieldScientificReading(node: CanonicalGraphNode, edges: Ca
     capacity:capacityObservation(node),
     distributedConfiguration:distributedConfigurationReading(node,edges),
     evidenceGeometry:evidenceGeometryReading(node,edges),
+    propertyDiscovery:discoverObservedProperties(node,edges),
+    attractor:attractorReading(node,edges),
     nextAction:nextFieldAction(node,edges),
     methodCandidates:scientificMethodCandidates(node,edges),
     reversibility:{sourceObservationRefs,aggregationRefs,phenomenonRefs,reconstructable:sourceObservationRefs.length>0 && (aggregationRefs.length===0||phenomenonRefs.length===0||Boolean(node.provenance))},
