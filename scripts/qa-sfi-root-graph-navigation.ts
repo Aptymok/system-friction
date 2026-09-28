@@ -109,4 +109,8 @@ if (failed.length) {
   console.error(`\nROOT graph/operating-workspace convergence QA failed: ${failed.length}/${checks.length}`);
   process.exit(1);
 }
+
+check('ROOT canonical field preserves graph attributes for Reality Chain reconstruction', scenePage.includes('attributes: node.attributes') && scenePage.includes('attributes: edge.attributes') && scenePage.includes('realityChainCoverage'));
+check('Reality Chain reading exposes canonical v0.1 grammar and MCDC gaps', neuralGraphView.includes('WORLD → CAPTURE → EVIDENCE → TRANSFORMATION → [INFERENCE] → VERIFICATION → AUTHORITY → ACTION → RETURN') && neuralGraphView.includes('MCDC COVERAGE') && neuralGraphView.includes('NOT VERIFIED') && neuralGraphView.includes('NOT OBSERVED'));
+check('ROOT readings change deterministic projection rather than object identity', neuralGraphView.includes("reading === 'REALITY_CHAIN'") && neuralGraphView.includes("reading === 'WORLD_VECTOR'") && neuralGraphView.includes("reading === 'FRICTION_MAP'") && neuralGraphView.includes("reading === 'LEARNING'") && neuralGraphView.includes('buildPositions(graph.nodes, reading)'));
 console.log(`\nROOT graph/operating-workspace convergence QA passed: ${checks.length}/${checks.length}`);
