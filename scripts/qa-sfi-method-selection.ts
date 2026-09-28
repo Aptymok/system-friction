@@ -398,4 +398,13 @@ assert.equal(unknownCanonicalMethodology.input.subject, 'UNKNOWN');
 assert.equal(unknownCanonicalMethodology.input.temporalScope, 'UNKNOWN');
 assert.equal(unknownCanonicalMethodology.resolution.status, 'BLOCKED');
 
+const temporalUnknownMethodology = resolveCanonicalFieldMethodology(
+  { ...canonicalFieldNode, nodeId: 'temporal-unknown', provenance: 'evidence:temporal:1', lineage: ['evidence:temporal:1'], attributes: { cycleIndex: 3 } },
+  [],
+);
+assert.equal(temporalUnknownMethodology.input.subject, 'UNKNOWN');
+assert.equal(temporalUnknownMethodology.input.temporalScope, 'LONGITUDINAL');
+assert.equal(temporalUnknownMethodology.subjectProposal, 'CASE');
+assert.equal(temporalUnknownMethodology.resolution.status, 'BLOCKED');
+
 console.log('SFI method selection resolver QA passed.');
