@@ -64,8 +64,7 @@ function primaryFor(input: MihmMethodSelectionInput): {
     || input.requiresTrajectory === true
     || input.requiresRivalHypothesis === true
     || input.requiresInterventionTracking === true
-    || (input.observationSpanDays ?? 0) > 1
-    || (input.evidenceCount ?? 0) > 1;
+    || (input.observationSpanDays ?? 0) > 1;
 
   if (input.subject === 'CASE') {
     return { methodId: 'PPOI', reasons: ['CASE_REQUIRES_CONTAINER'] };
