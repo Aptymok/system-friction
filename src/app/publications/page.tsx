@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import {
   SFI_EDITORIAL_PUBLICATIONS,
   SFI_NOTAS_TEMPORALES_V1,
@@ -8,9 +7,9 @@ import {
   publicEnglishProjection,
 } from '@/lib/publications/publicEnglishProjection';
 import { getPublicPublishedReturns } from '@/lib/observatory/publicState';
-import { SFI_PUBLIC_NAV } from '@/lib/navigation/publicNavigation';
 import { PublicationsCatalog, type PublicationCatalogItem } from './PublicationsCatalog';
 import { RegistryDiscoveryMesh } from './RegistryDiscoveryMesh';
+import { SfiPublicHeader, SfiPublicFooter } from '@/components/public/SfiPublicChrome';
 import './publications.css';
 
 export const dynamic='force-dynamic';
@@ -100,13 +99,7 @@ export default async function PublicationsPage(){
   const persistedPublications=await getPublicPublishedReturns(12);
 
   return <main className="publicationsHub">
-    <header className="pubTopbar">
-      <Link href="/" className="pubBrand" aria-label="System Friction Institute home">SFI</Link>
-      <div className="pubTopbarIdentity"><span>SYSTEM FRICTION INSTITUTE</span><small>REGISTRY</small></div>
-      <nav aria-label="Public navigation">
-        {SFI_PUBLIC_NAV.map((item)=><Link key={item.href} href={item.href} aria-current={item.href==='/publications'?'page':undefined}>{item.label}</Link>)}
-      </nav>
-    </header>
+    <SfiPublicHeader active="/publications"/>
 
     <section className="pubGraphHero" aria-labelledby="publications-title">
       <div>
@@ -150,6 +143,6 @@ export default async function PublicationsPage(){
 
     <RegistryDiscoveryMesh/>
 
-    <footer className="pubFooter"><b>SYSTEM FRICTION INSTITUTE</b><span>OBSERVE · CONTRAST · RETURN</span></footer>
+    <SfiPublicFooter/>
   </main>;
 }
