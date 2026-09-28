@@ -307,7 +307,7 @@ export function resolveUniversalEvidenceRequirements(inputValue: unknown) {
     && !verificationRequested
     && !dynamicExternal;
   const requiredClaimScope = requiredClaimScopeFor(blob);
-  const authoritySensitive = requiredClaimScope !== 'UNKNOWN' || /official|oficial/.test(blob) || (hasSlaToken && !internalObjectContext);
+  const authoritySensitive = ['REGULATORY', 'SELF_REPORTED', 'SOCIAL_SIGNAL'].includes(requiredClaimScope) || /official|oficial/.test(blob) || (hasSlaToken && !internalObjectContext);
   const strictlyInternal = internalObjectContext
     && !dynamicExternal
     && !verificationRequested;
