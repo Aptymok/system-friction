@@ -3,12 +3,11 @@
 import Link from 'next/link';
 import './InstitutionalSurfaceRail.css';
 
-type Surface='ROOT'|'LABORATORY'|'NEURAL_GRAPH'|'DISCOVERY'|'EVIDENCE'|'ACCESS';
+type Surface='ROOT'|'LABORATORY'|'DISCOVERY'|'EVIDENCE'|'ACCESS';
 
 const NAV=[
   {href:'/root',label:'ROOT',surface:'ROOT'},
   {href:'/method-lab',label:'LAB',surface:'LABORATORY'},
-  {href:'/root/neural-graph',label:'NEURAL',surface:'NEURAL_GRAPH'},
   {href:'/root/discovery',label:'DISCOVERY',surface:'DISCOVERY'},
   {href:'/root/evidence-review',label:'EVIDENCE',surface:'EVIDENCE'},
   {href:'/root/access',label:'ACCESS',surface:'ACCESS'},
@@ -17,7 +16,6 @@ const NAV=[
 const COPY:Record<Surface,{mode:string;boundary:string}>={
   ROOT:{mode:'AUTHORITY CHAMBER',boundary:'OBSERVE ≠ DECIDE · OPERATE ≠ GOVERN'},
   LABORATORY:{mode:'EXPERIMENTAL CHAMBER',boundary:'SIMULATED ≠ OBSERVED · REPLAY ≠ RETURN'},
-  NEURAL_GRAPH:{mode:'TOPOLOGY CHAMBER',boundary:'RELATION ≠ CAUSALITY · GRAPH ≠ RETURN'},
   DISCOVERY:{mode:'PROPAGATION CHAMBER',boundary:'EXPOSURE ≠ DISCOVERY ≠ PULL ≠ RETURN'},
   EVIDENCE:{mode:'EVIDENCE CHAMBER',boundary:'SOURCE ≠ EVIDENCE · PROPOSAL ≠ ADMISSION'},
   ACCESS:{mode:'IDENTITY / ACCESS CHAMBER',boundary:'ACCESS ≠ AUTHORITY · INVITATION ≠ ROLE'},
