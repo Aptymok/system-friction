@@ -49,6 +49,21 @@ function evidenceModalities(row: RootRow, evidenceCount: number): MihmEvidenceMo
   return [...result];
 }
 
+function observedQuestionSignals(row: RootRow) {
+  const joined = [
+    text(row, ['question', 'research_question', 'observation_question', 'objective']),
+    text(row, ['evidence_summary', 'evidence_description']),
+    text(row, ['title', 'name', 'label']),
+  ].filter(Boolean).join(' ').toLowerCase();
+
+  return {
+    trajectory: /trajectory|trayectoria|transition|transición|change|cambio|evolution|evolución|recurrence|recurrencia|cycle|ciclo|rhythm|ritmo|phase|fase/.test(joined),
+    rival: /rival|alternative hypothesis|hipótesis alternativa|counterhypothesis|contrahipótesis|discriminate|distinguir/.test(joined),
+    intervention: /intervention|intervención|perturbation|perturbación|action|acción|experiment|experimento/.test(joined),
+    worldContext: /world context|contexto mundial|external context|contexto externo|worldspect|world vector/.test(joined),
+  };
+}
+
 function subjectFor(row: RootRow): MihmObservationSubject {
   const explicit = [
     text(row, ['type', 'entity_type', 'subject_type', 'kind']),
@@ -98,6 +113,7 @@ export function resolveRootCaseMethodology(row: RootRow, index = 0): RootCaseMet
   const temporalScope = temporalScopeFor(row, subject);
   const phenomenonId = text(row, ['phenomenon_id', 'ppoi_phenomenon_id']);
   const evidenceCount = explicitEvidenceCount(row);
+  const questionSignals = observedQuestionSignals(row);
   const input: MihmMethodSelectionInput = {
     subject,
     temporalScope,
@@ -107,10 +123,10 @@ export function resolveRootCaseMethodology(row: RootRow, index = 0): RootCaseMet
     caseId,
     phenomenonId,
     sessionId: text(row, ['session_id', 'moph_session_id']),
-    worldContextRequested: subject === 'ORGANIZATION' || subject === 'CASE' || Boolean(row.world_context_requested),
-    requiresTrajectory: temporalScope === 'LONGITUDINAL',
-    requiresRivalHypothesis: Boolean(row.requires_rival_hypothesis),
-    requiresInterventionTracking: Boolean(row.requires_intervention_tracking) || /proposal|intervention|seguimiento/i.test(String(row.stage ?? row.status ?? '')),
+    worldContextRequested: subject === 'ORGANIZATION' || subject === 'CASE' || Boolean(row.world_context_requested) || questionSignals.worldContext,
+    requiresTrajectory: temporalScope === 'LONGITUDINAL' || questionSignals.trajectory,
+    requiresRivalHypothesis: Boolean(row.requires_rival_hypothesis) || questionSignals.rival,
+    requiresInterventionTracking: Boolean(row.requires_intervention_tracking) || questionSignals.intervention || /proposal|intervention|seguimiento/i.test(String(row.stage ?? row.status ?? '')),
     evidenceCount,
     observationSpanDays: numberValue(row, ['observation_span_days', 'span_days']) ?? 0,
     isSfiInternal: subject === 'SFI_SYSTEM',
