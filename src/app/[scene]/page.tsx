@@ -9,6 +9,7 @@ import { requireFounderPage } from '@/lib/system/access/server';
 import { AuthenticatedSfiMenu } from '@/components/sfi/AuthenticatedSfiMenu';
 import { deriveCanonicalFieldMethodSignal, planCanonicalUnknownResolution, resolveCanonicalFieldMethodology } from '@/lib/mihm/rootCaseMethodology';
 import { proposeMethodLabFieldProtocol, resolveMethodLabFieldProjection } from '@/lib/method-lab/fieldProjection';
+import { deriveFieldScientificReading } from '@/lib/mihm/fieldScientificReading';
 
 export const dynamic = 'force-dynamic';
 
@@ -71,6 +72,10 @@ export default async function ScenePage({ params }:{ params:Promise<{scene:strin
       }),
     );
 
+    const scientificReadings = new Map(
+      graph.nodes.map((node) => [node.nodeId, deriveFieldScientificReading(node, graph.edges)]),
+    );
+
     return (
       <main className="sfiOperatingShell sfiAuthenticatedViewport" data-root-primary-interface="CANONICAL_COGNITIVE_FIELD">
         <AuthenticatedSfiMenu/>
@@ -95,6 +100,7 @@ export default async function ScenePage({ params }:{ params:Promise<{scene:strin
               unknownResolutionPlan: unknownResolutionPlans.get(node.nodeId),
               fieldProtocolProposal: fieldProtocolProposals.get(node.nodeId),
               fieldProjection: fieldProjections.get(node.nodeId),
+              scientificReading: scientificReadings.get(node.nodeId),
             })),
             edges: graph.edges.map((edge) => ({
               id: edge.edgeId,
