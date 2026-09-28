@@ -6,6 +6,7 @@ import { appendEpistemicEvent } from '@/lib/events/eventStore';
 
 export const SFI_EVIDENCE_REQUIREMENT_RESOLVER_CONTRACT = 'SFI-EVIDENCE-REQUIREMENT-RESOLVER-1.2' as const;
 export type SfiWebEvidencePolicy = 'WEB_REQUIRED' | 'WEB_OPTIONAL' | 'WEB_NOT_REQUIRED' | 'WEB_FORBIDDEN' | 'WEB_ALREADY_SUFFICIENT';
+export type SfiClaimScope = 'REGULATORY' | 'SELF_REPORTED' | 'STATISTICAL' | 'TECHNICAL' | 'JOURNALISTIC' | 'SOCIAL_SIGNAL' | 'UNKNOWN';
 
 const MAX_DIRECT_SOURCE_BYTES = 120_000;
 const MIN_VERIFIED_QUERY_COVERAGE = 0.05;
@@ -25,7 +26,7 @@ export type UniversalWebSource = {
   reliability: number;
   authority?: {
     sourceClass: 'PRIMARY_AUTHORITY' | 'PRIMARY_PARTY' | 'SECONDARY' | 'SOCIAL_OR_COMMUNITY' | 'UNKNOWN';
-    claimScope: 'REGULATORY' | 'SELF_REPORTED' | 'STATISTICAL' | 'TECHNICAL' | 'JOURNALISTIC' | 'SOCIAL_SIGNAL' | 'UNKNOWN';
+    claimScope: SfiClaimScope;
     admission: 'SOURCE_ONLY' | 'CANDIDATE_EVIDENCE' | 'CORROBORATION_REQUIRED';
     reason: string;
   };
@@ -228,6 +229,37 @@ function reliabilityFor(type: UniversalWebSource['sourceType'], url: string) {
   return host(url) ? 0.55 : 0.35;
 }
 
+function requiredClaimScopeFor(blob: string): SfiClaimScope {
+  if (/post|publicacion|published|facebook|instagram|threads|twitter|\bx\b|tiktok|reddit|social/.test(blob)) return 'SOCIAL_SIGNAL';
+  if (/law|legal|regulat|regulacion|regulatorio|regulatory|norma|standard|gobierno|government|autoridad/.test(blob)) return 'REGULATORY';
+  if (/technical|tecnico|specification|especificacion|manual|documentation|documentacion|release|version/.test(blob)) return 'TECHNICAL';
+  if (/statistic|estadistic|dataset|indicator|indicador|measurement|medicion|census|censo/.test(blob)) return 'STATISTICAL';
+  if (/company says|organization says|declara|afirma|anuncia|announces|self.report|first.party|official statement|comunicado/.test(blob)) return 'SELF_REPORTED';
+  return 'UNKNOWN';
+}
+
+function authorityFitFor(source: UniversalWebSource, requiredScope: SfiClaimScope) {
+  const authority = source.authority;
+  if (!authority) return { fit: 'UNKNOWN' as const, reason: 'Source authority was not classified.' };
+  if (requiredScope === 'UNKNOWN') return { fit: 'REVIEW_REQUIRED' as const, reason: 'Claim scope is not sufficiently bounded to admit a source by authority.' };
+  if (requiredScope === 'SOCIAL_SIGNAL') {
+    return authority.claimScope === 'SOCIAL_SIGNAL'
+      ? { fit: 'FIT' as const, reason: 'The claim concerns the publication/social signal itself.' }
+      : { fit: 'REVIEW_REQUIRED' as const, reason: 'A non-social source may corroborate context but does not establish the social publication event.' };
+  }
+  if (requiredScope === 'REGULATORY') {
+    return authority.sourceClass === 'PRIMARY_AUTHORITY' && authority.claimScope === 'REGULATORY'
+      ? { fit: 'FIT' as const, reason: 'Primary authority is aligned to the regulatory claim scope.' }
+      : { fit: 'NO_FIT' as const, reason: 'Regulatory claims require claim-scoped primary authority; first-party, news, and social discovery are insufficient.' };
+  }
+  if (requiredScope === 'SELF_REPORTED') {
+    return authority.sourceClass === 'PRIMARY_PARTY'
+      ? { fit: 'FIT' as const, reason: 'First-party material can establish what the party itself declared.' }
+      : { fit: 'REVIEW_REQUIRED' as const, reason: 'Secondary material may corroborate but is not the primary record of the party declaration.' };
+  }
+  return { fit: 'REVIEW_REQUIRED' as const, reason: 'This source class is not enough by itself to establish the requested claim scope.' };
+}
+
 function claimStrings(context: Row) {
   return [
     ...strings(context.claimsToVerify),
@@ -274,7 +306,8 @@ export function resolveUniversalEvidenceRequirements(inputValue: unknown) {
     && internalObjectContext
     && !verificationRequested
     && !dynamicExternal;
-  const authoritySensitive = /law|legal|regulat|regulacion|regulatorio|regulatory|norma|standard|gobierno|government|autoridad|official|oficial/.test(blob) || (hasSlaToken && !internalObjectContext);
+  const requiredClaimScope = requiredClaimScopeFor(blob);
+  const authoritySensitive = requiredClaimScope !== 'UNKNOWN' || /official|oficial/.test(blob) || (hasSlaToken && !internalObjectContext);
   const strictlyInternal = internalObjectContext
     && !dynamicExternal
     && !verificationRequested;
@@ -299,6 +332,7 @@ export function resolveUniversalEvidenceRequirements(inputValue: unknown) {
     requiredSourceCount,
     requiredVerifiedSourceCount,
     authoritySensitive,
+    requiredClaimScope,
     queries: buildQueries(input),
     lookbackDays,
     blockingIfUnavailable: webPolicy === 'WEB_REQUIRED',
@@ -701,7 +735,8 @@ export async function acquireUniversalWebEvidence(inputValue: unknown, actorId: 
   const result = await boundedPublicRetrieval(requirement.queries, requirement.lookbackDays);
   const directFetchSources = distinctSourcesByResolvedUrl(result.sources.filter((source) => source.verification?.directFetch === true));
   const verifiedSources = directFetchSources.filter((source) => Number(source.verification?.queryCoverage ?? 0) >= MIN_VERIFIED_QUERY_COVERAGE);
-  const authoritativeVerified = verifiedSources.filter((source) => source.authority?.admission === 'CANDIDATE_EVIDENCE');
+  const authorityFits = verifiedSources.map((source) => ({ source, ...authorityFitFor(source, requirement.requiredClaimScope) }));
+  const authoritativeVerified = authorityFits.filter((item) => item.fit === 'FIT').map((item) => item.source);
   const discoverySatisfied = result.sources.length >= requirement.requiredSourceCount;
   const directVerificationSatisfied = verifiedSources.length >= requirement.requiredVerifiedSourceCount;
   const authoritySatisfied = !requirement.authoritySensitive || authoritativeVerified.length > 0;
@@ -721,7 +756,9 @@ export async function acquireUniversalWebEvidence(inputValue: unknown, actorId: 
       requiredVerifiedSourceCount: requirement.requiredVerifiedSourceCount,
       minimumQueryCoverage: MIN_VERIFIED_QUERY_COVERAGE,
       authoritySensitive: requirement.authoritySensitive,
+      requiredClaimScope: requirement.requiredClaimScope,
       authoritySatisfied,
+      authorityFit: authorityFits.map((item) => ({ sourceId: item.source.id, fit: item.fit, reason: item.reason })),
       sourceAuthority: result.sources.map((source) => ({ sourceId: source.id, authority: source.authority, temporalValidity: source.temporalValidity })),
       provider: result.provider,
       queries: requirement.queries,
@@ -733,7 +770,7 @@ export async function acquireUniversalWebEvidence(inputValue: unknown, actorId: 
       authoritativeVerifiedSourceCount: authoritativeVerified.length,
       satisfied,
       executionBoundary: 'BOUNDED_DISCOVERY_PLUS_DNS_PINNED_DIRECT_SOURCE_FETCH_NO_LLM',
-      epistemicBoundary: 'Direct retrieval establishes that source material was fetched and records an excerpt. The exact URL hostname is preserved for DNS and TLS transport, the connection is pinned to a prevalidated public address, redirects are revalidated under one shared wall-clock deadline per source, and source provenance is recomputed from the final URL. Verification additionally requires query relevance measured only from final fetched material and distinct resolved source URLs; authority-sensitive cases require regulator provenance from the final source hostname. Neither state makes the source claim accepted evidence or proves causal/factual truth by itself.',
+      epistemicBoundary: 'Direct retrieval establishes that source material was fetched and records an excerpt. The exact URL hostname is preserved for DNS and TLS transport, the connection is pinned to a prevalidated public address, redirects are revalidated under one shared wall-clock deadline per source, and source provenance is recomputed from the final URL. Verification additionally requires query relevance measured only from final fetched material and distinct resolved source URLs; authority-sensitive cases require explicit fit between the claim scope and the source's authority. Neither an official domain nor a numeric source reputation is sufficient by itself. Neither retrieval nor authority fit makes the source claim accepted evidence or proves causal/factual truth.',
     },
     occurredAt: new Date().toISOString(),
     source: { sourceId: 'universal_evidence_acquisition', sourceType: 'public_research' },
