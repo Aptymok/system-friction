@@ -7,7 +7,7 @@ import { projectCognitiveGraph } from '@/lib/graph/cognitiveGraphAdmission';
 import { readRealityChainNode, readRealityChainEdge, realityChainCoverage } from '@/lib/graph/realityChainProjection';
 import { requireFounderPage } from '@/lib/system/access/server';
 import { AuthenticatedSfiMenu } from '@/components/sfi/AuthenticatedSfiMenu';
-import { deriveCanonicalFieldMethodSignal } from '@/lib/mihm/rootCaseMethodology';
+import { deriveCanonicalFieldMethodSignal, resolveCanonicalFieldMethodology } from '@/lib/mihm/rootCaseMethodology';
 import { proposeMethodLabFieldProtocol, resolveMethodLabFieldProjection } from '@/lib/method-lab/fieldProjection';
 
 export const dynamic = 'force-dynamic';
@@ -28,6 +28,12 @@ export default async function ScenePage({ params }:{ params:Promise<{scene:strin
     const methodSignals = new Map(
       graph.nodes.map((node) => [node.nodeId, deriveCanonicalFieldMethodSignal(node, graph.edges)]),
     );
+    const fieldMethodResolutions = new Map(
+      graph.nodes.map((node) => {
+        const signal = methodSignals.get(node.nodeId)!;
+        return [node.nodeId, resolveCanonicalFieldMethodology(node, graph.edges, signal)];
+      }),
+    );
     const fieldProtocolProposals = new Map(
       graph.nodes.map((node) => {
         const signal = methodSignals.get(node.nodeId)!;
@@ -37,15 +43,15 @@ export default async function ScenePage({ params }:{ params:Promise<{scene:strin
             ? node.attributes.method_lab_protocol_id
             : null;
         const declaredProtocolId = declared === 'sociotechnical_simulation' || declared === 'economic_simulation' ? declared : null;
-        const primaryMethodId = signal.requiresTrajectory || signal.requiresRivalHypothesis ? 'PPOI' : null;
+        const methodology = fieldMethodResolutions.get(node.nodeId)!;
         return [node.nodeId, proposeMethodLabFieldProtocol({
           declaredProtocolId,
-          primaryMethodId,
-          evidenceModalities: [],
-          worldContextRequested: false,
-          requiresTrajectory: signal.requiresTrajectory,
-          requiresRivalHypothesis: signal.requiresRivalHypothesis,
-          requiresInterventionTracking: false,
+          primaryMethodId: methodology.resolution.primary?.methodId ?? null,
+          evidenceModalities: methodology.input.evidenceModalities,
+          worldContextRequested: methodology.input.worldContextRequested,
+          requiresTrajectory: methodology.input.requiresTrajectory,
+          requiresRivalHypothesis: methodology.input.requiresRivalHypothesis,
+          requiresInterventionTracking: methodology.input.requiresInterventionTracking,
           ...signal,
         })];
       }),
@@ -78,6 +84,7 @@ export default async function ScenePage({ params }:{ params:Promise<{scene:strin
               attributes: node.attributes,
               reality: realityNodes.get(node.nodeId),
               methodSignal: methodSignals.get(node.nodeId),
+              methodResolution: fieldMethodResolutions.get(node.nodeId),
               fieldProtocolProposal: fieldProtocolProposals.get(node.nodeId),
               fieldProjection: fieldProjections.get(node.nodeId),
             })),
