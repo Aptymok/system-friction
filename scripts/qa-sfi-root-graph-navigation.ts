@@ -142,3 +142,6 @@ console.log(`\nROOT graph/operating-workspace convergence QA passed: ${checks.le
 
 assert(source.includes('PROPERTY DISCOVERY'));
 assert(source.includes('ATTRACTOR ·'));
+
+assert(source.includes('METHOD COMPETITION'));
+assert(source.includes('NEXT DISCRIMINATING OBSERVATION'));
