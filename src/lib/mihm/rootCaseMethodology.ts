@@ -301,7 +301,7 @@ export function deriveCanonicalFieldMethodSignal(
 export type CanonicalUnknownResolutionPlan = {
   status: 'NOT_REQUIRED' | 'ACTIVE' | 'CENSORED';
   target: 'SUBJECT_IDENTITY';
-  temporalBasis: Array<'SEQUENCE' | 'CYCLE' | 'PHASE' | 'CHRONOLOGY' | 'UNKNOWN'>;
+  temporalBasis: Array<'SEQUENCE' | 'CYCLE' | 'RECURRENCE' | 'PHASE' | 'STATE_OCCUPANCY' | 'CHRONOLOGY' | 'UNKNOWN'>;
   knownWithoutIdentity: string[];
   missing: string[];
   discriminatingObservations: string[];
@@ -325,9 +325,14 @@ export function planCanonicalUnknownResolution(
   const attrs = node.attributes ?? {};
   const bases = new Set<CanonicalUnknownResolutionPlan['temporalBasis'][number]>();
   if (graphNumber(attrs, ['sequence','sequenceIndex','sequence_index','transitionIndex','transition_index','eventIndex','event_index','order']) !== null) bases.add('SEQUENCE');
-  if (graphNumber(attrs, ['cycle','cycleIndex','cycle_index','cycleNumber','cycle_number','recurrence','recurrenceIndex','recurrence_index']) !== null) bases.add('CYCLE');
+  if (graphNumber(attrs, ['cycle','cycleIndex','cycle_index','cycleNumber','cycle_number']) !== null) bases.add('CYCLE');
+  if (graphNumber(attrs, ['recurrence','recurrenceIndex','recurrence_index','recurrenceCount','recurrence_count']) !== null
+    || graphText(attrs, ['recurrencePattern','recurrence_pattern','recurrenceInterval','recurrence_interval'])) bases.add('RECURRENCE');
   if (graphText(attrs, ['phase','temporalPhase','temporal_phase','cyclePhase','cycle_phase','statePhase','state_phase'])) bases.add('PHASE');
-  if (node.createdAt || node.updatedAt) bases.add('CHRONOLOGY');
+  if (graphNumber(attrs, ['timeInState','time_in_state','sojourn','sojournDuration','sojourn_duration','stateDuration','state_duration']) !== null) bases.add('STATE_OCCUPANCY');
+  // Record creation/update time is provenance about the graph record, not automatically
+  // chronology of the observed world. Only explicit observed-world temporal coordinates qualify.
+  if (graphText(attrs, ['observedAt','observed_at','occurredAt','occurred_at','effectiveAt','effective_at','releasedAt','released_at','validFrom','valid_from','validTo','valid_to'])) bases.add('CHRONOLOGY');
   if (!bases.size) bases.add('UNKNOWN');
 
   const knownWithoutIdentity = [
