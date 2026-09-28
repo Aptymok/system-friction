@@ -210,10 +210,19 @@ function buildPositions(nodes: GraphNode[], reading: 'CURRENT_STATE'|'HIERARCHY'
     const anchors: Record<string, number> = { return: 180, contrast: 360, learning: 560, memory: 790, canon: 980 };
     nodes.forEach((node, index) => {
       const text = semanticText(node);
-      const key = Object.keys(anchors).find((candidate) => text.includes(candidate));
+      const reorganization = node.methodSignal?.fieldReorganizationState ?? 'UNCHANGED';
+      const governedAnchor = reorganization === 'LEARNING_PROMOTED'
+        ? 'memory'
+        : reorganization === 'LEARNING_QUARANTINED'
+          ? 'learning'
+          : reorganization === 'CONTRAST_RECORDED'
+            ? 'contrast'
+            : null;
+      const key = governedAnchor ?? Object.keys(anchors).find((candidate) => text.includes(candidate));
       const x = key ? anchors[key] : 540;
       const seed = hash(node.id);
-      positions.set(node.id, { x, y: 70 + ((seed + index * 31) % 560) });
+      const base = { x, y: 70 + ((seed + index * 31) % 560) };
+      positions.set(node.id, applyReorganizationReading(node, base, reading, width, height));
     });
     return { positions, types, width, height };
   }
@@ -263,14 +272,11 @@ function buildPositions(nodes: GraphNode[], reading: 'CURRENT_STATE'|'HIERARCHY'
     const seed = hash(node.id);
     const localAngle = ((seed % 360) / 180) * Math.PI;
     const localRadius = 24 + ((seed >>> 8) % 112);
-    positions.set(node.id, {
+    const base = {
       x: Math.max(38, Math.min(width - 38, centerX + Math.cos(localAngle) * localRadius)),
       y: Math.max(38, Math.min(height - 38, centerY + Math.sin(localAngle) * localRadius * 0.72)),
-    });
-  }
-  for (const node of nodes) {
-    const position = positions.get(node.id);
-    if (position) positions.set(node.id, applyReorganizationReading(node, position, reading, width, height));
+    };
+    positions.set(node.id, applyReorganizationReading(node, base, reading, width, height));
   }
   return { positions, types, width, height };
 }
