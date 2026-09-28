@@ -9,7 +9,7 @@ import { requireFounderPage } from '@/lib/system/access/server';
 import { AuthenticatedSfiMenu } from '@/components/sfi/AuthenticatedSfiMenu';
 import { deriveCanonicalFieldMethodSignal, planCanonicalUnknownResolution, resolveCanonicalFieldMethodology } from '@/lib/mihm/rootCaseMethodology';
 import { proposeMethodLabFieldProtocol, resolveMethodLabFieldProjection } from '@/lib/method-lab/fieldProjection';
-import { deriveFieldScientificReading } from '@/lib/mihm/fieldScientificReading';
+import { deriveEmpiricalCapacityEnvelope, deriveFieldScientificReading } from '@/lib/mihm/fieldScientificReading';
 
 export const dynamic = 'force-dynamic';
 
@@ -75,6 +75,7 @@ export default async function ScenePage({ params }:{ params:Promise<{scene:strin
     const scientificReadings = new Map(
       graph.nodes.map((node) => [node.nodeId, deriveFieldScientificReading(node, graph.edges)]),
     );
+    const capacityEnvelope = deriveEmpiricalCapacityEnvelope(graph.nodes);
 
     return (
       <main className="sfiOperatingShell sfiAuthenticatedViewport" data-root-primary-interface="CANONICAL_COGNITIVE_FIELD">
@@ -115,6 +116,7 @@ export default async function ScenePage({ params }:{ params:Promise<{scene:strin
               reality: realityEdges.get(edge.edgeId),
             })),
             realityCoverage,
+            capacityEnvelope,
             admission: graph.admission,
           }}
         /></div>
