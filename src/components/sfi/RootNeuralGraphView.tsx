@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import './RootNeuralGraphView.css';
 
 type GraphNode = {
@@ -194,10 +195,14 @@ function buildPositions(nodes: GraphNode[], reading: 'CURRENT_STATE'|'HIERARCHY'
 }
 
 export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
+  const searchParams=useSearchParams();
+  const requestedReading=searchParams.get('reading');
+  const allowedReadings=['CURRENT_STATE','HIERARCHY','TRAJECTORY','RETROLONGITUDINAL','PROJECTION','FRICTION_REGIME','REALITY_CHAIN','RETURN_CONTRAST'] as const;
+  const initialReading=(allowedReadings as readonly string[]).includes(requestedReading||'') ? requestedReading as typeof allowedReadings[number] : 'CURRENT_STATE';
   const [query, setQuery] = useState('');
   const [activeType, setActiveType] = useState('ALL');
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [reading, setReading] = useState<'CURRENT_STATE'|'HIERARCHY'|'TRAJECTORY'|'RETROLONGITUDINAL'|'PROJECTION'|'FRICTION_REGIME'|'REALITY_CHAIN'|'RETURN_CONTRAST'>('CURRENT_STATE');
+  const [reading, setReading] = useState<'CURRENT_STATE'|'HIERARCHY'|'TRAJECTORY'|'RETROLONGITUDINAL'|'PROJECTION'|'FRICTION_REGIME'|'REALITY_CHAIN'|'RETURN_CONTRAST'>(initialReading);
 
   const degree = useMemo(() => {
     const values = new Map<string, number>();
