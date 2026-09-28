@@ -365,4 +365,21 @@ const abstainedProtocol = proposeMethodLabFieldProtocol({
 assert.equal(abstainedProtocol.status, 'ABSTAIN');
 assert.equal(abstainedProtocol.protocolId, null);
 
+const canonicalMethodology = resolveCanonicalFieldMethodology(
+  canonicalFieldNode,
+  [canonicalFieldEdge],
+  fieldSignal,
+);
+assert.equal(canonicalMethodology.input.requiresTrajectory, true);
+assert.equal(canonicalMethodology.input.requiresRivalHypothesis, true);
+assert.equal(canonicalMethodology.input.temporalScope, 'LONGITUDINAL');
+assert.equal(canonicalMethodology.resolution.primary?.methodId, 'PPOI');
+
+const staticCanonicalMethodology = resolveCanonicalFieldMethodology(
+  { ...canonicalFieldNode, nodeId: 'static-artifact', attributes: { subjectType: 'ARTIFACT' } },
+  [staticFieldEdge],
+  staticFieldSignal,
+);
+assert.equal(staticCanonicalMethodology.resolution.primary?.methodId, 'SCOREFRICTION');
+
 console.log('SFI method selection resolver QA passed.');
