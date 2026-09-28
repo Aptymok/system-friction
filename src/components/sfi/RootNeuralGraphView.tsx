@@ -85,6 +85,9 @@ type GraphNode = {
     relations: { edgeId:string; currentState:string|null; previousState:string|null; weightDelta:number|null; latency:number|null; uncertainty:number|null; onset:string|null; offset:string|null; recurrence:number|string|null; provenanceBound:boolean }[];
     emergence: { state:string; reason:string; observedAt:string|null; priorState:string|null };
     capacity: { interventionRef:string|null; perturbationMagnitude:number|null; response:string; recoveryTime:number|null; evidenceRefs:string[] } | null;
+    distributedConfiguration: { state:string; memberNodeIds:string[]; relationIds:string[]; evidenceBoundRelationCount:number; reason:string };
+    evidenceGeometry: { authority:string; meanObservedWeight:number|null; strongestRelationId:string|null; strongestWeight:number|null; rule:string };
+    nextAction: { decision:string; basis:string[]; candidateRefs:string[]; authorityRequired:boolean; reason:string };
     methodCandidates: { family:string; question:string; assumptions:string[]; failureModes:string[]; output:string; falsificationCondition:string; computationalCost:string }[];
     reversibility: { sourceObservationRefs:string[]; aggregationRefs:string[]; phenomenonRefs:string[]; reconstructable:boolean };
     boundaries:string[];
@@ -608,6 +611,9 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
                 <p>RELATIONAL HISTORY · {selected.scientificReading?.relations.length ?? 0} relations · {(selected.scientificReading?.relations.filter((item) => item.previousState || item.weightDelta !== null).length ?? 0)} with observed transition/delta</p>
                 <p>METHOD CANDIDATES · {selected.scientificReading?.methodCandidates.map((item) => item.family).join(' · ') || 'NONE FROM CURRENT OBSERVATION'}</p>
                 <p>CAPACITY ENVELOPE · {selected.scientificReading?.capacity ? `${selected.scientificReading.capacity.response} · ${selected.scientificReading.capacity.evidenceRefs.length} EVIDENCE REF(S)` : 'NOT OBSERVED'}</p>
+                <p>DISTRIBUTED CONFIGURATION · {selected.scientificReading?.distributedConfiguration.state ?? 'NOT_ESTABLISHED'} · {selected.scientificReading?.distributedConfiguration.evidenceBoundRelationCount ?? 0} EVIDENCE-BOUND RELATIONS</p>
+                <p>EVIDENCE GEOMETRY · {selected.scientificReading?.evidenceGeometry.authority ?? 'INSUFFICIENT'} · MEAN WEIGHT {selected.scientificReading?.evidenceGeometry.meanObservedWeight == null ? 'UNKNOWN' : selected.scientificReading.evidenceGeometry.meanObservedWeight.toFixed(3)}</p>
+                <p>NEXT FIELD ACTION · {selected.scientificReading?.nextAction.decision ?? 'NO_ACTION'} · {selected.scientificReading?.nextAction.authorityRequired ? 'ROOT AUTHORITY REQUIRED' : 'NO EXECUTION AUTHORITY CLAIMED'}</p>
                 <p>MULTI-RESOLUTION LINEAGE · {selected.scientificReading?.reversibility.reconstructable ? 'RECONSTRUCTABLE' : 'INCOMPLETE'} · SOURCE {selected.scientificReading?.reversibility.sourceObservationRefs.length ?? 0}</p>
                 {selected.unknownResolutionPlan?.status !== 'NOT_REQUIRED' ? <p>STOPPING CONDITION · {selected.unknownResolutionPlan?.stoppingCondition}</p> : null}
                 <p>MIHM RESOLUTION · {selected.methodResolution?.resolution.status ?? 'AMBIGUOUS'} · {selected.methodResolution?.resolution.primary?.methodId ?? 'NONE'} · {selected.methodResolution?.input.temporalScope ?? 'UNKNOWN'}</p>
