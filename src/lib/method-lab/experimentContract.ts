@@ -250,6 +250,7 @@ export type MethodLabMethodResult = {
   stoppingCondition: string;
   returnWindow: MethodLabExperimentPreregistration['RETURN_WINDOW'];
   contrastStatus: MethodLabExperimentRunArtifacts['CONTRAST']['status'];
+  nextState: 'WAIT_RETURN' | 'CONTRAST_AVAILABLE' | 'COMPLETE_WITHOUT_RETURN';
   canonicalMutation: false;
   boundary: 'METHOD_RESULT_IS_NOT_OBSERVATION_OR_CANON';
 };
@@ -271,6 +272,7 @@ export function projectMethodLabMethodResult(
     stoppingCondition: preregistration.STOPPING_RULE.condition,
     returnWindow: { ...preregistration.RETURN_WINDOW },
     contrastStatus: checked.artifacts.CONTRAST.status,
+    nextState: checked.artifacts.CONTRAST.status === 'PENDING_RETURN' ? 'WAIT_RETURN' : checked.artifacts.CONTRAST.status === 'AVAILABLE' ? 'CONTRAST_AVAILABLE' : 'COMPLETE_WITHOUT_RETURN',
     canonicalMutation: false,
     boundary: 'METHOD_RESULT_IS_NOT_OBSERVATION_OR_CANON',
   };
