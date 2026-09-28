@@ -225,6 +225,8 @@ async function classifyReturnWithAi(history: UniversalCycleHistory, cycleId: str
 
   const hypotheses = uniqueStatements(collectRunValues(history, 'hypotheses'));
   const predictions = uniqueStatements(collectRunValues(history, 'predictions'));
+  const discriminatingObservations = uniqueStatements(collectRunValues(history, 'discriminatingObservations'));
+  const stoppingConditions = uniqueStatements(collectRunValues(history, 'stoppingCondition'));
   const signals = predictionSignals(predictions);
   const llm = await runLlmTask({
     task: 'fast_classification',
@@ -243,6 +245,8 @@ async function classifyReturnWithAi(history: UniversalCycleHistory, cycleId: str
       primaryHypothesis: hypotheses[0] ?? null,
       rivalHypotheses: hypotheses.slice(1, 5),
       predictions: predictions.slice(0, 6),
+      discriminatingObservations: discriminatingObservations.slice(0, 8),
+      stoppingConditions: stoppingConditions.slice(0, 4),
       expectedSignals: signals.expectedSignals,
       contradictionSignals: signals.contradictionSignals,
       observationWindows: signals.observationWindows,
@@ -291,6 +295,8 @@ async function classifyReturnWithAi(history: UniversalCycleHistory, cycleId: str
 async function contrastLatestReturn(history: UniversalCycleHistory, cycleId: string, tenantId: string) {
   const predictions = uniqueStatements(collectRunValues(history, 'predictions'));
   const hypotheses = uniqueStatements(collectRunValues(history, 'hypotheses'));
+  const discriminatingObservations = uniqueStatements(collectRunValues(history, 'discriminatingObservations'));
+  const stoppingConditions = uniqueStatements(collectRunValues(history, 'stoppingCondition'));
   const signals = predictionSignals(predictions);
   const lastReturn = row(latest(history.returns));
   if (!Object.keys(lastReturn).length) return { ok: false as const, error: 'RETURN_REQUIRED_FOR_CONTRAST' };
@@ -313,10 +319,13 @@ async function contrastLatestReturn(history: UniversalCycleHistory, cycleId: str
   const evidenceValidation = await validateReturnEvidenceRefs({ refs: declaredReturnEvidenceRefs, cycleId, tenantId, history });
   const classification = await classifyReturnWithAi(history, cycleId, lastReturn);
   const hasPrediction = predictions.length > 0;
+  const hasDiscriminatingObservation = discriminatingObservations.length > 0;
   const hasDiscriminatingSignals = signals.expectedSignals.length > 0 && signals.contradictionSignals.length > 0;
   const traceableReturn = evidenceValidation.verified.length > 0;
   const calibrationStatus = !hasPrediction
     ? 'PREDICTION_MISSING'
+    : !hasDiscriminatingObservation
+      ? 'DISCRIMINATING_OBSERVATION_MISSING'
     : !hasDiscriminatingSignals
       ? 'DISCRIMINATING_SIGNALS_MISSING'
       : !evidenceValidation.ok
@@ -350,6 +359,8 @@ async function contrastLatestReturn(history: UniversalCycleHistory, cycleId: str
       primaryHypothesis: hypotheses[0] ?? null,
       rivalHypotheses: hypotheses.slice(1),
       predictions,
+      discriminatingObservations,
+      stoppingConditions,
       expectedSignals: signals.expectedSignals,
       contradictionSignals: signals.contradictionSignals,
       observationWindows: signals.observationWindows,
@@ -371,7 +382,7 @@ async function contrastLatestReturn(history: UniversalCycleHistory, cycleId: str
       updatedConfidence,
       calibrationStatus,
       calibrationHeuristic: 'BOUNDED_DIRECTIONAL_V1',
-      epistemicBoundary: 'AI proposes classification only. Contrast becomes calibrated only when preregistration is discriminating and the RETURN links to verified evidence-bearing events. Updated confidence is bounded operational calibration, not truth probability or canon.',
+      epistemicBoundary: 'AI proposes classification only. Contrast becomes calibrated only when a preregistered discriminating observation and discriminating prediction signals exist and the RETURN links to verified evidence-bearing events. Updated confidence is bounded operational calibration, not truth probability or canon.',
     },
     occurredAt: new Date().toISOString(),
     source: { sourceId: 'sfi_empirical_continuation', sourceType: 'governed_return_contrast' },
