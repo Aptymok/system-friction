@@ -190,6 +190,11 @@ async function main() {
   assert(synthesis.includes('SFI-UNIVERSAL-AI-SYNTHESIS-1.1'));
   assert(synthesis.includes('primaryHypothesis'));
   assert(synthesis.includes('rivalHypotheses'));
+  assert(synthesis.includes('discriminatingObservations'), 'AI synthesis must expose an explicit observation that can separate rivals');
+  assert(synthesis.includes('stoppingCondition'), 'AI synthesis must bound the empirical discrimination pass');
+  assert(synthesis.includes('Do not treat an acquired SOURCE_CLAIM as that observation'), 'retrieved source claims must not masquerade as completed discriminating observations');
+  assert(signalRoute.includes('aiSynthesis.discriminatingObservations'), 'cycle response must expose the next discriminator');
+  assert(signalRoute.includes('Acquire and link one of the bounded discriminating observations'), 'cycle must direct continuation toward empirical discrimination');
   assert(synthesis.includes('expectedSignals'));
   assert(synthesis.includes('contradictionSignals'));
   assert(synthesis.includes('observationWindow'));
