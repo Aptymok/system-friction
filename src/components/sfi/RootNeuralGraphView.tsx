@@ -86,7 +86,7 @@ function semanticText(node: GraphNode) {
 function realityStage(node: GraphNode) {
   if (node.reality?.stage) return node.reality.stage.toLowerCase();
   const text = semanticText(node);
-  const stages = ['world','capture','evidence','transformation','inference','verification','authority','action','return'] as const;
+  const stages: readonly string[] = ['world','capture','evidence','transformation','inference','verification','authority','action','return'];
   return stages.find((stage) => text.includes(stage)) ?? 'unclassified';
 }
 
