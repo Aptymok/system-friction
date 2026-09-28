@@ -59,11 +59,18 @@ assert.equal(reading.evidenceGeometry.strongestRelationId,'edge:2');
 assert.equal(reading.nextAction.decision,'OBSERVE_NEXT','challenged rival structure must prefer observation before perturbation');
 assert.equal(reading.reversibility.reconstructable,true);
 assert(reading.boundaries.includes('RECURRENCE_NOT_ATTRACTOR'));
+assert.equal(reading.propertyDiscovery.status,'CANDIDATES');
+assert(reading.propertyDiscovery.candidates.some(x=>x.property==='RELATION_WEIGHT_CHANGE'));
+assert(reading.propertyDiscovery.candidates.some(x=>x.property==='RELATION_STATE_CHANGE'));
+assert(reading.propertyDiscovery.candidates.some(x=>x.property==='RECURRENCE'));
+assert.equal(reading.attractor.state,'ATTRACTOR_CANDIDATE','recurrence plus observed recovery and provenance-bound stable relation may become a candidate, never an established attractor');
 
 const recordOnly={...node,nodeId:'record-only',lineage:[],provenance:'',attributes:{},createdAt:'2026-09-28T15:00:00.000Z',updatedAt:'2026-09-28T15:01:00.000Z'} as CanonicalGraphNode;
 assert.equal(temporalCoordinates(recordOnly).length,0,'database record timestamps must not become observed-world time');
 assert.equal(emergenceReading(recordOnly).state,'NOT_ESTABLISHED');
 assert.equal(deriveFieldScientificReading(recordOnly,[]).capacity,null);
+assert.equal(deriveFieldScientificReading(recordOnly,[]).propertyDiscovery.status,'INSUFFICIENT');
+assert.equal(deriveFieldScientificReading(recordOnly,[]).attractor.state,'NOT_ESTABLISHED');
 
 const fakeCapacityFromGenericLineage={
   ...node,
