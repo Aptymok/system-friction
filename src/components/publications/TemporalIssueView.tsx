@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { SFI_PUBLIC_NAV } from '@/lib/navigation/publicNavigation';
+import { SfiPublicHeader, SfiPublicFooter } from '@/components/public/SfiPublicChrome';
 import type { CSSProperties } from 'react';
 import type { SfiEditorialPublication } from '@/lib/publications/editorialContent';
 import type { SfiPublicResearchLanding } from '@/lib/research/publicResearchLanding';
@@ -47,13 +47,7 @@ export function TemporalIssueView({
   return <>
     <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(landing) }} />
     <main className="tnPage" data-state={profile.state}>
-      <header className="tnTopbar">
-        <Link className="tnBrand" href="/"><span>SFI</span><small>SYSTEM FRICTION INSTITUTE</small></Link>
-        <nav aria-label="Institutional navigation">
-          {SFI_PUBLIC_NAV.map((item)=><Link key={item.href} href={item.href}>{item.label}</Link>)}
-        </nav>
-        <Link className="tnExplore" href="/publications">EXPLORE <span>→</span></Link>
-      </header>
+      <SfiPublicHeader active="/publications"/>
 
       <section className="tnHero">
         <div className="tnHeroCopy">
@@ -178,11 +172,7 @@ export function TemporalIssueView({
         </aside>
       </div>
 
-      <footer className="tnFooter">
-        <div><b>SFI</b><span>SYSTEM FRICTION INSTITUTE</span></div>
-        <div><span>{profile.code}</span><span>{landing.contract}</span></div>
-        <div><Link href="/privacy">PRIVACY</Link><Link href="/?scene=institution">INSTITUTION</Link><Link href="/publications">PUBLICATIONS</Link></div>
-      </footer>
+      <SfiPublicFooter/>
     </main>
   </>;
 }
