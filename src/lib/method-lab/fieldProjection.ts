@@ -25,6 +25,65 @@ export type FieldProjectionDecision = {
 
 const ADMISSIBLE_FIELD_PROTOCOLS: MethodLabProtocolId[] = ['sociotechnical_simulation', 'economic_simulation'];
 
+export type FieldProtocolProposalInput = {
+  declaredProtocolId?: MethodLabProtocolId | null;
+  primaryMethodId?: 'MOP_H' | 'SCOREFRICTION' | 'WORLD_VECTOR' | 'PPOI' | 'SFI_INSTITUTIONAL' | null;
+  evidenceModalities?: string[];
+  worldContextRequested?: boolean;
+  requiresTrajectory?: boolean;
+  requiresRivalHypothesis?: boolean;
+  requiresInterventionTracking?: boolean;
+  relationCount: number;
+  evidenceBoundRelationCount: number;
+  temporalStructureObserved: boolean;
+  relationTransition: boolean;
+  weightChangeObserved: boolean;
+};
+
+export type FieldProtocolProposal = {
+  status: 'DECLARED' | 'PROPOSED' | 'ABSTAIN';
+  protocolId: MethodLabProtocolId | null;
+  epistemicClass: 'DECLARED' | 'DERIVED';
+  reasons: string[];
+  assumptionsToCheck: string[];
+};
+
+export function proposeMethodLabFieldProtocol(input: FieldProtocolProposalInput): FieldProtocolProposal {
+  if (input.declaredProtocolId) {
+    return { status: 'DECLARED', protocolId: input.declaredProtocolId, epistemicClass: 'DECLARED', reasons: ['CANONICAL_OBJECT_DECLARED_PROTOCOL'], assumptionsToCheck: ['Protocol declaration is current for the bounded observation question.'] };
+  }
+  if (input.relationCount < 1 || input.evidenceBoundRelationCount < 1) {
+    return { status: 'ABSTAIN', protocolId: null, epistemicClass: 'DERIVED', reasons: ['RELATIONAL_EVIDENCE_REQUIRED'], assumptionsToCheck: [] };
+  }
+
+  const modalities = new Set(input.evidenceModalities ?? []);
+  const economicEvidence = modalities.has('DATASET') && input.worldContextRequested === true && input.primaryMethodId === 'WORLD_VECTOR';
+  if (economicEvidence) {
+    return {
+      status: 'PROPOSED',
+      protocolId: 'economic_simulation',
+      epistemicClass: 'DERIVED',
+      reasons: ['WORLD_CONTEXT_WITH_DATASET_EVIDENCE'],
+      assumptionsToCheck: ['Economic observables and units are explicitly defined.','Historical/context windows are comparable.','Projection remains SIMULATED until later RETURN.'],
+    };
+  }
+
+  const relationalQuestion = input.primaryMethodId === 'PPOI'
+    && (input.requiresTrajectory || input.requiresRivalHypothesis || input.requiresInterventionTracking)
+    && (input.temporalStructureObserved || input.relationTransition || input.weightChangeObserved);
+  if (relationalQuestion) {
+    return {
+      status: 'PROPOSED',
+      protocolId: 'sociotechnical_simulation',
+      epistemicClass: 'DERIVED',
+      reasons: ['PPOI_RELATIONAL_TEMPORAL_QUESTION'],
+      assumptionsToCheck: ['Relation states refer to the same bounded system.','Temporal resolution is sufficient for the proposed comparison.','Simulation output cannot inherit OBSERVED or authorize external action.'],
+    };
+  }
+
+  return { status: 'ABSTAIN', protocolId: null, epistemicClass: 'DERIVED', reasons: ['NO_COMPATIBLE_FIELD_PROTOCOL_FROM_OBSERVED_NEEDS'], assumptionsToCheck: [] };
+}
+
 export function resolveMethodLabFieldProjection(input: FieldProjectionInput): FieldProjectionDecision {
   const base = { contractVersion: METHOD_LAB_FIELD_PROJECTION_CONTRACT, epistemicClass: 'SIMULATED' as const, protocolId: input.protocolId };
   if (input.fieldReorganizationState === 'UNCHANGED') return { ...base, decision: 'ABSTAIN', assumptions: [], limitations: [], displacement: null, reason: 'NO_GOVERNED_REORGANIZATION_STATE' };
