@@ -41,6 +41,13 @@ type GraphNode = {
     reorganizationMagnitude: number;
     projectionAuthority: 'NONE' | 'VISUAL_HEURISTIC_ONLY' | 'METHOD_LAB_REQUIRED';
   };
+  fieldProtocolProposal?: {
+    status: 'DECLARED' | 'PROPOSED' | 'ABSTAIN';
+    protocolId: string | null;
+    epistemicClass: 'DECLARED' | 'DERIVED';
+    reasons: string[];
+    assumptionsToCheck: string[];
+  };
   fieldProjection?: {
     decision: 'ABSTAIN' | 'SIMULATED_PROJECTION';
     epistemicClass: 'SIMULATED';
@@ -541,6 +548,7 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
                 <p>REORGANIZATION MAGNITUDE · {selected.methodSignal ? selected.methodSignal.reorganizationMagnitude.toFixed(3) : '0.000'} · ΔWEIGHT {selected.methodSignal?.observedWeightDelta == null ? 'NOT OBSERVED' : selected.methodSignal.observedWeightDelta.toFixed(3)}</p>
                 <p>RELATION SUPPORT · {selected.methodSignal?.relationSupportRatio == null ? 'UNKNOWN' : selected.methodSignal.relationSupportRatio.toFixed(3)} · PROVENANCE COVERAGE {selected.methodSignal?.provenanceCoverage == null ? 'UNKNOWN' : selected.methodSignal.provenanceCoverage.toFixed(3)}</p>
                 <p>PROJECTION AUTHORITY · {selected.methodSignal?.projectionAuthority ?? 'NONE'}</p>
+                <p>PROTOCOL PROPOSAL · {selected.fieldProtocolProposal?.status ?? 'ABSTAIN'} · {selected.fieldProtocolProposal?.protocolId ?? 'NONE'} · {selected.fieldProtocolProposal?.epistemicClass ?? 'DERIVED'}</p>
                 <p>METHOD LAB PROJECTION · {selected.fieldProjection?.decision ?? 'ABSTAIN'} · {selected.fieldProjection?.epistemicClass ?? 'SIMULATED'}</p>
                 <p>PROJECTION REASON · {selected.fieldProjection?.reason ?? 'FIELD_PROTOCOL_REQUIRED'}</p>
               </section>
