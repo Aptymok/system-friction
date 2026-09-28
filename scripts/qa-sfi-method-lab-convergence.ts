@@ -204,6 +204,17 @@ assert.match(bridgeWorkflow, /push:\s*\n\s*branches:\s*\n\s*- main\s*\n\s*paths:
 assert.match(bridgeWorkflow, /pull_request:[\s\S]*\{"operation":"state"\}/, 'Pull-request bridge verification must remain read-only.');
 assert.match(bridgeWorkflow, /https:\/\/www\.systemfriction\.org/, 'Authenticated bridge calls must normalize the known SFI canonical host before sending Authorization.');
 
+const experimentContract = read('src/lib/method-lab/experimentContract.ts');
+for (const token of [
+  'MethodLabMethodResult',
+  'projectMethodLabMethodResult',
+  'METHOD_RESULT_IS_NOT_OBSERVATION_OR_CANON',
+  "nextState: 'WAIT_RETURN' | 'CONTRAST_AVAILABLE' | 'COMPLETE_WITHOUT_RETURN'",
+  "checked.artifacts.CONTRAST.status === 'PENDING_RETURN' ? 'WAIT_RETURN'",
+  'falsificationCondition: preregistration.FALSIFICATION.condition',
+  'stoppingCondition: preregistration.STOPPING_RULE.condition',
+]) assert.ok(experimentContract.includes(token), `method_lab_method_result_boundary_missing:${token}`);
+
 const runner = read('src/lib/method-lab/simulationRun.ts');
 assert.match(runner, /executeRegisteredAgent/, 'Method Lab simulations must use isolated registered executors rather than productive runtime event emission.');
 assert.match(runner, /METHOD_LAB_SIMULATION_CONTAMINATED_EVIDENCE/, 'Method Lab must abort if a simulator mutates observed evidence.');
@@ -242,6 +253,7 @@ console.log(JSON.stringify({
     'preregistration is immutable and insert-only in the existing sfi_lab_analyses owner',
     'non-observational runs cannot inherit OBSERVED and RETURN must originate from REALITY with evidence refs',
     'every first-class run carries PREREGISTERED/EXECUTED/RESULT/CONTRAST/LIMITATIONS/REPRODUCIBILITY_RECEIPT artifacts',
+    'method results remain non-canonical and carry frozen falsification, stopping and RETURN transition state',
     'CHRONOS and CRL are protocols, not parallel labs',
     'CT reentry implementation is distinct from Method Lab validation and individuation claims',
     'sociotechnical/economic runs use isolated executors',
