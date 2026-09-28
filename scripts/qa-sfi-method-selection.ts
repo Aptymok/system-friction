@@ -417,6 +417,28 @@ assert.ok(temporalUnknownPlan.temporalBasis.includes('CYCLE'));
 assert.equal(temporalUnknownPlan.noCalendarTimeoutInvented, true);
 assert.ok(temporalUnknownPlan.discriminatingObservations.some((item) => item.includes('distinguishes proposed CASE')));
 
+const recurrenceOccupancyPlan = planCanonicalUnknownResolution(
+  {
+    ...canonicalFieldNode,
+    nodeId: 'recurrence-occupancy-unknown',
+    attributes: { recurrenceIndex: 4, timeInState: 12, observedAt: '2026-09-28T12:00:00.000Z' },
+  },
+  [],
+  temporalUnknownMethodology,
+);
+assert.ok(recurrenceOccupancyPlan.temporalBasis.includes('RECURRENCE'));
+assert.ok(recurrenceOccupancyPlan.temporalBasis.includes('STATE_OCCUPANCY'));
+assert.ok(recurrenceOccupancyPlan.temporalBasis.includes('CHRONOLOGY'));
+assert.equal(recurrenceOccupancyPlan.temporalBasis.includes('CYCLE'), false, 'recurrence must not be silently converted into cycle');
+
+const recordTimestampOnlyPlan = planCanonicalUnknownResolution(
+  { ...canonicalFieldNode, nodeId: 'record-time-only', attributes: {}, createdAt: '2026-09-28T00:00:00.000Z', updatedAt: '2026-09-28T01:00:00.000Z' },
+  [],
+  unknownCanonicalMethodology,
+);
+assert.equal(recordTimestampOnlyPlan.temporalBasis.includes('CHRONOLOGY'), false, 'graph record timestamps are not observed-world chronology');
+assert.ok(recordTimestampOnlyPlan.temporalBasis.includes('UNKNOWN'));
+
 const censoredUnknownPlan = planCanonicalUnknownResolution(
   { ...canonicalFieldNode, nodeId: 'censored-unknown', provenance: '', lineage: [], attributes: {}, createdAt: '', updatedAt: '' },
   [],
