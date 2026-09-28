@@ -89,6 +89,31 @@ export function capacityObservation(node: CanonicalGraphNode): CapacityObservati
   return {interventionRef,perturbationMagnitude:firstNum(a,['perturbationMagnitude','perturbation_magnitude','interventionMagnitude','intervention_magnitude'])?.value??null,response,recoveryTime:firstNum(a,['recoveryTime','recovery_time','timeToRecovery','time_to_recovery'])?.value??null,evidenceRefs};
 }
 
+export type EmpiricalCapacityEnvelope = {
+  status:'OBSERVED_RANGE'|'INSUFFICIENT';
+  observationCount:number; minPerturbation:number|null; maxPerturbation:number|null;
+  responses:Record<string,number>; evidenceRefs:string[];
+  boundary:string;
+};
+export function deriveEmpiricalCapacityEnvelope(nodes: CanonicalGraphNode[]): EmpiricalCapacityEnvelope {
+  const observations=nodes.map(capacityObservation).filter((x):x is CapacityObservation=>Boolean(x&&x.evidenceRefs.length));
+  const magnitudes=observations.map(x=>x.perturbationMagnitude).filter((x):x is number=>x!==null);
+  const responses:Record<string,number>={};
+  for(const item of observations) responses[item.response]=(responses[item.response]??0)+1;
+  const sufficient=observations.length>=2 && magnitudes.length>=2;
+  return {
+    status:sufficient?'OBSERVED_RANGE':'INSUFFICIENT',
+    observationCount:observations.length,
+    minPerturbation:sufficient?Math.min(...magnitudes):null,
+    maxPerturbation:sufficient?Math.max(...magnitudes):null,
+    responses,
+    evidenceRefs:[...new Set(observations.flatMap(x=>x.evidenceRefs))],
+    boundary:sufficient
+      ? 'Observed perturbation/response range only. It is not a safe operating limit, causal law, tolerance guarantee or extrapolation beyond observed magnitudes.'
+      : 'At least two evidence-linked perturbation/RETURN observations with measured magnitude are required before representing an empirical range.',
+  };
+}
+
 export type ScientificMethodCandidate = {
   family:'CHANGE_POINT'|'SURVIVAL_SOJOURN'|'MARKOV_SEMI_MARKOV'|'STATE_SPACE'|'POINT_PROCESS'|'DYNAMICAL_SYSTEMS'|'NETWORK_SCIENCE'|'ACTIVE_LEARNING';
   question:string; dataRequired:string[]; assumptions:string[]; failureModes:string[]; output:string; falsificationCondition:string; computationalCost:'LOW'|'MEDIUM'|'HIGH';
