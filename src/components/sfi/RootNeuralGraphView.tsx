@@ -42,6 +42,7 @@ type GraphPayload = {
   nodes: GraphNode[];
   edges: GraphEdge[];
   realityCoverage: { stage: string; observed: boolean }[];
+  admission: { contract: string; admittedNodes: number; excludedNodes: number; excludedEdges: number };
 };
 
 type Position = { x: number; y: number };
@@ -306,7 +307,7 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
       <div className="neuralGraphLayout">
         <section className="neuralGraphCanvas" aria-label="Canonical graph topology">
           <div className="neuralGraphCanvasMeta">
-            <span>{reading.replaceAll('_',' ')} · VISIBLE {visibleNodes.length} NODES · {visibleEdges.length} EDGES</span>
+            <span>{reading.replaceAll('_',' ')} · VISIBLE {visibleNodes.length} NODES · {visibleEdges.length} EDGES · DOCUMENTARY EXCLUDED {graph.admission.excludedNodes}</span>
             <span>LOADED {date(graph.loadedAt)}</span>
           </div>
           <svg viewBox={`0 0 ${topology.width} ${topology.height}`} role="img" aria-label="System Friction Institute Neural Graph">
@@ -432,7 +433,7 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
           <p>{graph.primaryDiagnostic ?? 'PRIMARY READ AVAILABLE'}</p>
         </div>
         <div>
-          <span>WORLD-TO-CLAIM TRACEABILITY</span>
+          <span>{graph.admission.contract} · WORLD-TO-CLAIM TRACEABILITY</span>
           <p>{reading === 'REALITY_CHAIN' ? 'Ask: why is this claim allowed to represent the world?' : 'Select REALITY CHAIN to inspect reconstructibility.'}</p>
         </div>
       </footer>
