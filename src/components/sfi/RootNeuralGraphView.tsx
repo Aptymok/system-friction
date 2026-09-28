@@ -353,7 +353,15 @@ function buildPositions(nodes: GraphNode[], reading: 'CURRENT_STATE'|'HIERARCHY'
     const centerY = height / 2 + Math.sin(groupAngle) * 210;
     const seed = hash(node.id);
     const localAngle = ((seed % 360) / 180) * Math.PI;
-    const localRadius = 24 + ((seed >>> 8) % 112);
+    const observedMeanWeight = node.scientificReading?.evidenceGeometry.authority === 'OBSERVED_RELATION_MEASURE'
+      ? node.scientificReading.evidenceGeometry.meanObservedWeight
+      : null;
+    // Evidence-bound geometry: when canonical relation weights exist, stronger observed
+    // coupling reduces local radius. Hash remains only a collision-spreading fallback
+    // when no admissible relational measure exists; it carries no epistemic meaning.
+    const localRadius = observedMeanWeight === null || observedMeanWeight === undefined
+      ? 24 + ((seed >>> 8) % 112)
+      : 24 + (1 - Math.max(0, Math.min(1, observedMeanWeight))) * 112;
     const base = {
       x: Math.max(38, Math.min(width - 38, centerX + Math.cos(localAngle) * localRadius)),
       y: Math.max(38, Math.min(height - 38, centerY + Math.sin(localAngle) * localRadius * 0.72)),
