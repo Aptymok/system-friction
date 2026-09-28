@@ -46,7 +46,7 @@ export default async function ScenePage({ params }:{ params:Promise<{scene:strin
         const methodology = fieldMethodResolutions.get(node.nodeId)!;
         return [node.nodeId, proposeMethodLabFieldProtocol({
           declaredProtocolId,
-          primaryMethodId: methodology.resolution.primary?.methodId ?? null,
+          primaryMethodId: methodology.resolution.status === 'READY' ? methodology.resolution.primary?.methodId ?? null : null,
           evidenceModalities: methodology.input.evidenceModalities,
           worldContextRequested: methodology.input.worldContextRequested,
           requiresTrajectory: methodology.input.requiresTrajectory,
