@@ -7,7 +7,7 @@ import { projectCognitiveGraph } from '@/lib/graph/cognitiveGraphAdmission';
 import { readRealityChainNode, readRealityChainEdge, realityChainCoverage } from '@/lib/graph/realityChainProjection';
 import { requireFounderPage } from '@/lib/system/access/server';
 import { AuthenticatedSfiMenu } from '@/components/sfi/AuthenticatedSfiMenu';
-import { deriveCanonicalFieldMethodSignal, resolveCanonicalFieldMethodology } from '@/lib/mihm/rootCaseMethodology';
+import { deriveCanonicalFieldMethodSignal, planCanonicalUnknownResolution, resolveCanonicalFieldMethodology } from '@/lib/mihm/rootCaseMethodology';
 import { proposeMethodLabFieldProtocol, resolveMethodLabFieldProjection } from '@/lib/method-lab/fieldProjection';
 
 export const dynamic = 'force-dynamic';
@@ -32,6 +32,13 @@ export default async function ScenePage({ params }:{ params:Promise<{scene:strin
       graph.nodes.map((node) => {
         const signal = methodSignals.get(node.nodeId)!;
         return [node.nodeId, resolveCanonicalFieldMethodology(node, graph.edges, signal)];
+      }),
+    );
+    const unknownResolutionPlans = new Map(
+      graph.nodes.map((node) => {
+        const signal = methodSignals.get(node.nodeId)!;
+        const methodology = fieldMethodResolutions.get(node.nodeId)!;
+        return [node.nodeId, planCanonicalUnknownResolution(node, graph.edges, methodology, signal)];
       }),
     );
     const fieldProtocolProposals = new Map(
@@ -85,6 +92,7 @@ export default async function ScenePage({ params }:{ params:Promise<{scene:strin
               reality: realityNodes.get(node.nodeId),
               methodSignal: methodSignals.get(node.nodeId),
               methodResolution: fieldMethodResolutions.get(node.nodeId),
+              unknownResolutionPlan: unknownResolutionPlans.get(node.nodeId),
               fieldProtocolProposal: fieldProtocolProposals.get(node.nodeId),
               fieldProjection: fieldProjections.get(node.nodeId),
             })),
