@@ -12,6 +12,7 @@ type GraphNode = {
   origin: string;
   provenance: string;
   lineage: string[];
+  attributes: Record<string, unknown>;
 };
 
 type GraphEdge = {
@@ -23,6 +24,7 @@ type GraphEdge = {
   origin: string;
   provenance: string;
   lineage: string[];
+  attributes: Record<string, unknown>;
 };
 
 type GraphPayload = {
@@ -67,20 +69,84 @@ function date(value: string | null) {
     : parsed.toLocaleString('en-US', { timeZone: 'America/Mexico_City', hour12: false });
 }
 
-function buildPositions(nodes: GraphNode[]) {
-  const types = [...new Set(nodes.map((node) => node.type))].sort();
-  const typeIndex = new Map(types.map((type, index) => [type, index]));
+function semanticText(node: GraphNode) {
+  return [node.type, node.label, node.origin, node.provenance, ...node.lineage, ...Object.entries(node.attributes).flatMap(([key, value]) => [key, typeof value === 'string' ? value : ''])]
+    .join(' ')
+    .toLowerCase();
+}
+
+function realityStage(node: GraphNode) {
+  const text = semanticText(node);
+  const stages = ['world','capture','evidence','transformation','inference','verification','authority','action','return'] as const;
+  return stages.find((stage) => text.includes(stage)) ?? 'unclassified';
+}
+
+function buildPositions(nodes: GraphNode[], reading: 'CANONICAL'|'WORLD_VECTOR'|'FRICTION_MAP'|'LEARNING'|'REALITY_CHAIN') {
   const width = 1180;
   const height = 700;
   const positions = new Map<string, Position>();
+  const types = [...new Set(nodes.map((node) => node.type))].sort();
 
+  if (reading === 'REALITY_CHAIN') {
+    const stages = ['world','capture','evidence','transformation','inference','verification','authority','action','return','unclassified'] as const;
+    const buckets = new Map(stages.map((stage) => [stage, [] as GraphNode[]]));
+    for (const node of nodes) buckets.get(realityStage(node))?.push(node);
+    stages.forEach((stage, stageIndex) => {
+      const bucket = buckets.get(stage) ?? [];
+      const x = 70 + (stageIndex * (width - 140)) / Math.max(1, stages.length - 1);
+      bucket.forEach((node, index) => {
+        const spread = Math.max(1, bucket.length - 1);
+        const y = bucket.length === 1 ? height / 2 : 90 + (index * (height - 180)) / spread;
+        positions.set(node.id, { x, y });
+      });
+    });
+    return { positions, types, width, height };
+  }
+
+  if (reading === 'LEARNING') {
+    const anchors: Record<string, number> = { return: 180, contrast: 360, learning: 560, memory: 790, canon: 980 };
+    nodes.forEach((node, index) => {
+      const text = semanticText(node);
+      const key = Object.keys(anchors).find((candidate) => text.includes(candidate));
+      const x = key ? anchors[key] : 540;
+      const seed = hash(node.id);
+      positions.set(node.id, { x, y: 70 + ((seed + index * 31) % 560) });
+    });
+    return { positions, types, width, height };
+  }
+
+  if (reading === 'FRICTION_MAP') {
+    nodes.forEach((node, index) => {
+      const text = semanticText(node);
+      const friction = ['unknown','missing','fail','breach','contradict','counterevidence','degraded','blocked'].filter((term) => text.includes(term)).length;
+      const seed = hash(node.id);
+      positions.set(node.id, {
+        x: 100 + Math.min(4, friction) * 240,
+        y: 70 + ((seed + index * 17) % 560),
+      });
+    });
+    return { positions, types, width, height };
+  }
+
+  if (reading === 'WORLD_VECTOR') {
+    nodes.forEach((node, index) => {
+      const text = semanticText(node);
+      const external = ['world','external','signal','source','context'].some((term) => text.includes(term));
+      const seed = hash(node.id);
+      positions.set(node.id, {
+        x: external ? 260 + (seed % 170) : 720 + (seed % 220),
+        y: 70 + ((seed + index * 23) % 560),
+      });
+    });
+    return { positions, types, width, height };
+  }
+
+  const typeIndex = new Map(types.map((type, index) => [type, index]));
   for (const node of nodes) {
     const group = typeIndex.get(node.type) ?? 0;
     const groupAngle = (Math.PI * 2 * group) / Math.max(1, types.length) - Math.PI / 2;
-    const centerRadiusX = types.length <= 2 ? 230 : 330;
-    const centerRadiusY = types.length <= 2 ? 150 : 210;
-    const centerX = width / 2 + Math.cos(groupAngle) * centerRadiusX;
-    const centerY = height / 2 + Math.sin(groupAngle) * centerRadiusY;
+    const centerX = width / 2 + Math.cos(groupAngle) * 330;
+    const centerY = height / 2 + Math.sin(groupAngle) * 210;
     const seed = hash(node.id);
     const localAngle = ((seed % 360) / 180) * Math.PI;
     const localRadius = 24 + ((seed >>> 8) % 112);
@@ -89,7 +155,6 @@ function buildPositions(nodes: GraphNode[]) {
       y: Math.max(38, Math.min(height - 38, centerY + Math.sin(localAngle) * localRadius * 0.72)),
     });
   }
-
   return { positions, types, width, height };
 }
 
@@ -129,7 +194,7 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
     [graph.edges, visibleNodeIds],
   );
 
-  const topology = useMemo(() => buildPositions(graph.nodes), [graph.nodes]);
+  const topology = useMemo(() => buildPositions(graph.nodes, reading), [graph.nodes, reading]);
   const nodeById = useMemo(() => new Map(graph.nodes.map((node) => [node.id, node])), [graph.nodes]);
 
   const selected = selectedId ? nodeById.get(selectedId) ?? null : null;
@@ -188,7 +253,7 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
         </div>
         <p>
           {reading === 'REALITY_CHAIN'
-            ? 'WORLD → OBSERVATION → EVIDENCE → CLAIM → AUTHORITY → EXECUTION → INDEPENDENT RETURN → WORLD. Missing provenance or an ungrounded relation remains visible as a gap; it is not repaired by narrative.'
+            ? 'WORLD → CAPTURE → EVIDENCE → TRANSFORMATION → [INFERENCE] → VERIFICATION → AUTHORITY → ACTION → RETURN. PROVENANCE, UNCERTAINTY, SIGNAL and COUNTEREVIDENCE remain transversal; ABSTAIN / ESCALATE / REJECT are boundary exits.'
             : reading === 'WORLD_VECTOR'
               ? 'Read external signals as context and direction without turning correlation into causality.'
               : reading === 'FRICTION_MAP'
@@ -299,6 +364,7 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
                 <div><dt>PROVENANCE</dt><dd>{selected.provenance}</dd></div>
                 <div><dt>DEGREE</dt><dd>{degree.get(selected.id) ?? 0}</dd></div>
                 <div><dt>ID</dt><dd>{selected.id}</dd></div>
+                <div><dt>REALITY STAGE</dt><dd>{realityStage(selected).toUpperCase()}</dd></div>
               </dl>
               <section>
                 <span>LINEAGE</span>
