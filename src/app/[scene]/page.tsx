@@ -4,6 +4,7 @@ import { RootNeuralGraphView } from '@/components/sfi/RootNeuralGraphView';
 import { SfiRootWorkspace } from '@/components/sfi/SfiRootWorkspace';
 import { LEGACY_INTERNAL_SCENES, SCENE_KEYS, type SceneKey } from '@/components/sfi/scenes';
 import { readCanonicalGraphState } from '@/lib/graph/canonicalGraph';
+import { projectCognitiveGraph } from '@/lib/graph/cognitiveGraphAdmission';
 import { readRealityChainNode, readRealityChainEdge, realityChainCoverage } from '@/lib/graph/realityChainProjection';
 import { requireFounderPage } from '@/lib/system/access/server';
 
@@ -16,7 +17,8 @@ export default async function ScenePage({ params }:{ params:Promise<{scene:strin
 
   if(scene === 'root'){
     await requireFounderPage('/root');
-    const graph = await readCanonicalGraphState('sfi', { allowContinuity: true });
+    const canonicalGraph = await readCanonicalGraphState('sfi', { allowContinuity: true });
+    const graph = projectCognitiveGraph(canonicalGraph);
 
     const realityNodes = new Map(graph.nodes.map((node) => [node.nodeId, readRealityChainNode(node)]));
     const realityEdges = new Map(graph.edges.map((edge) => [edge.edgeId, readRealityChainEdge(edge)]));
@@ -54,6 +56,7 @@ export default async function ScenePage({ params }:{ params:Promise<{scene:strin
               reality: realityEdges.get(edge.edgeId),
             })),
             realityCoverage,
+            admission: graph.admission,
           }}
         />
         <SfiRootWorkspace enabled/>
