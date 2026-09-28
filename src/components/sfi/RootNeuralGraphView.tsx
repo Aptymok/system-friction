@@ -95,6 +95,22 @@ type GraphNode = {
     reversibility: { sourceObservationRefs:string[]; aggregationRefs:string[]; phenomenonRefs:string[]; reconstructable:boolean };
     boundaries:string[];
   };
+  methodResult?: {
+    methodId: string;
+    methodVersion: string;
+    runId: string;
+    epistemicClass: 'SIMULATED' | 'DERIVED' | 'OBSERVED';
+    resultHash: string;
+    evidenceRefs: string[];
+    expectedSignal: { description: string; measures: string[] };
+    falsificationCondition: string;
+    stoppingCondition: string;
+    returnWindow: { opensAt: string; closesAt: string; required: boolean };
+    contrastStatus: 'PENDING_RETURN' | 'AVAILABLE' | 'NOT_APPLICABLE';
+    nextState: 'WAIT_RETURN' | 'CONTRAST_AVAILABLE' | 'COMPLETE_WITHOUT_RETURN';
+    canonicalMutation: false;
+    boundary: 'METHOD_RESULT_IS_NOT_OBSERVATION_OR_CANON';
+  } | null;
   fieldProjection?: {
     decision: 'ABSTAIN' | 'SIMULATED_PROJECTION';
     epistemicClass: 'SIMULATED';
@@ -635,6 +651,9 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
                 {selected.unknownResolutionPlan?.status !== 'NOT_REQUIRED' ? <p>STOPPING CONDITION · {selected.unknownResolutionPlan?.stoppingCondition}</p> : null}
                 <p>MIHM RESOLUTION · {selected.methodResolution?.resolution.status ?? 'AMBIGUOUS'} · {selected.methodResolution?.resolution.primary?.methodId ?? 'NONE'} · {selected.methodResolution?.input.temporalScope ?? 'UNKNOWN'}</p>
                 <p>PROTOCOL PROPOSAL · {selected.fieldProtocolProposal?.status ?? 'ABSTAIN'} · {selected.fieldProtocolProposal?.protocolId ?? 'NONE'} · {selected.fieldProtocolProposal?.epistemicClass ?? 'DERIVED'}</p>
+                <p>METHOD RESULT · {selected.methodResult ? `${selected.methodResult.methodId}@${selected.methodResult.methodVersion} · ${selected.methodResult.epistemicClass}` : 'NOT EXECUTED / NOT PROJECTED'}</p>
+                <p>METHOD → WORLD · {selected.methodResult?.nextState ?? 'NO PERSISTED METHOD RESULT'} · {selected.methodResult?.contrastStatus ?? 'NO CONTRAST STATE'}</p>
+                {selected.methodResult ? <p>FALSIFIER · {selected.methodResult.falsificationCondition} · STOP · {selected.methodResult.stoppingCondition}</p> : null}
                 <p>METHOD LAB PROJECTION · {selected.fieldProjection?.decision ?? 'ABSTAIN'} · {selected.fieldProjection?.epistemicClass ?? 'SIMULATED'}</p>
                 <p>PROJECTION REASON · {selected.fieldProjection?.reason ?? 'FIELD_PROTOCOL_REQUIRED'}</p>
               </section>
