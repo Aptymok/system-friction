@@ -125,6 +125,7 @@ type GraphPayload = {
   nodes: GraphNode[];
   edges: GraphEdge[];
   realityCoverage: { stage: string; observed: boolean }[];
+  capacityEnvelope: { status:'OBSERVED_RANGE'|'INSUFFICIENT'; observationCount:number; minPerturbation:number|null; maxPerturbation:number|null; responses:Record<string,number>; evidenceRefs:string[]; boundary:string };
   admission: { contract: string; admittedNodes: number; excludedNodes: number; excludedEdges: number };
 };
 
@@ -453,6 +454,7 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
         <article data-state={graph.readPlane}><span>READ PLANE</span><strong>{graph.readPlane}</strong><small>{continuity ? 'Continuity active' : graph.readPlane === 'SUPABASE' ? 'Primary active' : 'Projection / unavailable'}</small></article>
         <article data-state={graph.sourceState}><span>GRAPH STATE</span><strong>{graph.sourceState.toUpperCase()}</strong><small>{graphObserved ? 'persisted graph observed' : 'degraded projection'}</small></article>
         <article><span>ONTOLOGY TYPES</span><strong>{typeCount}</strong><small>{allTypes.slice(0, 3).join(' · ') || 'MISSING'}</small></article>
+        <article data-state={graph.capacityEnvelope.status}><span>CAPACITY</span><strong>{graph.capacityEnvelope.status}</strong><small>{graph.capacityEnvelope.status === 'OBSERVED_RANGE' ? `${graph.capacityEnvelope.observationCount} observed perturbation/RETURN pairs` : 'insufficient repeated observed RETURN'}</small></article>
       </section>
 
       <section className="neuralGraphControls" aria-label="Canonical cognitive field readings">
@@ -618,7 +620,7 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
                 <p>EMERGENCE · {selected.scientificReading?.emergence.state ?? 'NOT_ESTABLISHED'} · {selected.scientificReading?.emergence.reason ?? 'No emergence reading.'}</p>
                 <p>RELATIONAL HISTORY · {selected.scientificReading?.relations.length ?? 0} relations · {(selected.scientificReading?.relations.filter((item) => item.previousState || item.weightDelta !== null).length ?? 0)} with observed transition/delta</p>
                 <p>METHOD CANDIDATES · {selected.scientificReading?.methodCandidates.map((item) => item.family).join(' · ') || 'NONE FROM CURRENT OBSERVATION'}</p>
-                <p>CAPACITY ENVELOPE · {selected.scientificReading?.capacity ? `${selected.scientificReading.capacity.response} · ${selected.scientificReading.capacity.evidenceRefs.length} EVIDENCE REF(S)` : 'NOT OBSERVED'}</p>
+                <p>CAPACITY OBSERVATION · {selected.scientificReading?.capacity ? `${selected.scientificReading.capacity.response} · ${selected.scientificReading.capacity.evidenceRefs.length} EVIDENCE REF(S)` : 'NOT OBSERVED'}</p>
                 <p>DISTRIBUTED CONFIGURATION · {selected.scientificReading?.distributedConfiguration.state ?? 'NOT_ESTABLISHED'} · {selected.scientificReading?.distributedConfiguration.evidenceBoundRelationCount ?? 0} EVIDENCE-BOUND RELATIONS</p>
                 <p>EVIDENCE GEOMETRY · {selected.scientificReading?.evidenceGeometry.authority ?? 'INSUFFICIENT'} · MEAN WEIGHT {selected.scientificReading?.evidenceGeometry.meanObservedWeight == null ? 'UNKNOWN' : selected.scientificReading.evidenceGeometry.meanObservedWeight.toFixed(3)}</p>
                 <p>NEXT FIELD ACTION · {selected.scientificReading?.nextAction.decision ?? 'NO_ACTION'} · {selected.scientificReading?.nextAction.authorityRequired ? 'ROOT AUTHORITY REQUIRED' : 'NO EXECUTION AUTHORITY CLAIMED'}</p>
