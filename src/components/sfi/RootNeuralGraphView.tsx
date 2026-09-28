@@ -89,6 +89,7 @@ type GraphNode = {
     evidenceGeometry: { authority:string; meanObservedWeight:number|null; strongestRelationId:string|null; strongestWeight:number|null; rule:string };
     propertyDiscovery: { status:string; candidates:{property:string;sourceRef:string;value:string|number;epistemicClass:string}[]; boundary:string };
     attractor: { state:string; recurrenceObserved:boolean; recoveryObserved:boolean; stabilityEvidenceRefs:string[]; reason:string };
+    methodCompetition: { state:string; candidates:{family:string;question:string;assumptionCheck:string;missing:string[];falsificationCondition:string}[]; nextObservation:string|null; boundary:string };
     nextAction: { decision:string; basis:string[]; candidateRefs:string[]; authorityRequired:boolean; reason:string };
     methodCandidates: { family:string; question:string; assumptions:string[]; failureModes:string[]; output:string; falsificationCondition:string; computationalCost:string }[];
     reversibility: { sourceObservationRefs:string[]; aggregationRefs:string[]; phenomenonRefs:string[]; reconstructable:boolean };
@@ -627,6 +628,8 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
                 <p>EVIDENCE GEOMETRY · {selected.scientificReading?.evidenceGeometry.authority ?? 'INSUFFICIENT'} · MEAN WEIGHT {selected.scientificReading?.evidenceGeometry.meanObservedWeight == null ? 'UNKNOWN' : selected.scientificReading.evidenceGeometry.meanObservedWeight.toFixed(3)}</p>
                 <p>PROPERTY DISCOVERY · {selected.scientificReading?.propertyDiscovery.status ?? 'INSUFFICIENT'} · {selected.scientificReading?.propertyDiscovery.candidates.map((item) => item.property).join(' · ') || 'NO OBSERVED PROPERTY CANDIDATE'}</p>
                 <p>ATTRACTOR · {selected.scientificReading?.attractor.state ?? 'NOT_ESTABLISHED'} · {selected.scientificReading?.attractor.reason ?? 'Recurrence alone is insufficient.'}</p>
+                <p>METHOD COMPETITION · {selected.scientificReading?.methodCompetition.state ?? 'NO_CANDIDATE'} · {selected.scientificReading?.methodCompetition.candidates.filter((item) => item.assumptionCheck === 'OBSERVABLE').map((item) => item.family).join(' ↔ ') || 'NO VIABLE METHOD'}</p>
+                {selected.scientificReading?.methodCompetition.nextObservation ? <p>NEXT DISCRIMINATING OBSERVATION · {selected.scientificReading.methodCompetition.nextObservation}</p> : null}
                 <p>NEXT FIELD ACTION · {selected.scientificReading?.nextAction.decision ?? 'NO_ACTION'} · {selected.scientificReading?.nextAction.authorityRequired ? 'ROOT AUTHORITY REQUIRED' : 'NO EXECUTION AUTHORITY CLAIMED'}</p>
                 <p>MULTI-RESOLUTION LINEAGE · {selected.scientificReading?.reversibility.reconstructable ? 'RECONSTRUCTABLE' : 'INCOMPLETE'} · SOURCE {selected.scientificReading?.reversibility.sourceObservationRefs.length ?? 0}</p>
                 {selected.unknownResolutionPlan?.status !== 'NOT_REQUIRED' ? <p>STOPPING CONDITION · {selected.unknownResolutionPlan?.stoppingCondition}</p> : null}
