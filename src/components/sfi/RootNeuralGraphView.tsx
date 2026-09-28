@@ -228,11 +228,11 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
   const typeCount = allTypes.length;
 
   return (
-    <main className="neuralGraphShell" data-neural-graph-contract="SFI-INSTITUTIONAL-NEURAL-GRAPH-2.0">
+    <main className="neuralGraphShell" data-neural-graph-contract="SFI-ROOT-NEURAL-GRAPH-1.0">
       <InstitutionalSurfaceRail surface="NEURAL_GRAPH" state={graph.sourceState.toUpperCase()} detail={'READ PLANE '+graph.readPlane}/>
       <header className="neuralGraphHeader">
         <div>
-          <span className="neuralGraphEyebrow">SFI · CANONICAL COGNITIVE FIELD · POST-LOGIN · ONE GRAPH / MANY READINGS</span>
+          <span className="neuralGraphEyebrow">ROOT · CANONICAL COGNITIVE FIELD · ONE GRAPH / MANY READINGS</span>
           <h1>The institution is the graph.</h1>
           <p>
             Persisted objects remain canonical while the reading changes. Follow what SFI observed, what became evidence,
@@ -240,7 +240,7 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
           </p>
         </div>
         <div className="neuralGraphHeaderActions">
-          <Link href="/entry">SFI HOME</Link>
+          <Link href="/root">← ROOT</Link>
         </div>
       </header>
 
