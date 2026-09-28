@@ -139,6 +139,10 @@ export type CanonicalFieldMethodSignal = {
   learningCandidateObserved: boolean;
   learningPromoted: boolean;
   fieldReorganizationState: 'UNCHANGED' | 'CONTRAST_RECORDED' | 'LEARNING_QUARANTINED' | 'LEARNING_PROMOTED';
+  observedWeightDelta: number | null;
+  relationSupportRatio: number | null;
+  provenanceCoverage: number | null;
+  reorganizationMagnitude: number;
 };
 
 function graphText(record: Record<string, unknown>, keys: readonly string[]) {
@@ -180,6 +184,10 @@ export function deriveCanonicalFieldMethodSignal(
   let learningCandidateObserved = false;
   let learningPromoted = false;
   let evidenceBoundRelationCount = 0;
+  let observedWeightDeltaTotal = 0;
+  let observedWeightDeltaCount = 0;
+  let supportedRelationCount = 0;
+  let challengedRelationCount = 0;
 
   for (const edge of adjacent) {
     const attributes = edge.attributes ?? {};
@@ -207,7 +215,13 @@ export function deriveCanonicalFieldMethodSignal(
     if (Array.isArray(discriminator) ? discriminator.length > 0 : Boolean(discriminator)) discriminatingObservationObserved = true;
     if (Boolean(stopping)) stoppingConditionObserved = true;
     if (state && previousState && state !== previousState) relationTransition = true;
-    if (previousWeight !== null && Number.isFinite(edge.weight) && previousWeight !== edge.weight) weightChangeObserved = true;
+    if (/SUPPORTED|VERIFIED|CORROBORATED/.test(state)) supportedRelationCount += 1;
+    if (/CHALLENGED|CONTRADICTED|REJECTED|UNRESOLVED/.test(state)) challengedRelationCount += 1;
+    if (previousWeight !== null && Number.isFinite(edge.weight) && previousWeight !== edge.weight) {
+      weightChangeObserved = true;
+      observedWeightDeltaTotal += Math.abs(edge.weight - previousWeight);
+      observedWeightDeltaCount += 1;
+    }
     if (Array.isArray(counterevidence) ? counterevidence.length > 0 : Boolean(counterevidence)) counterevidenceObserved = true;
     if (sequence !== null || cycle !== null || Boolean(phase)) temporalStructureObserved = true;
   }
@@ -231,6 +245,20 @@ export function deriveCanonicalFieldMethodSignal(
   returnObserved ||= nodeObserved !== undefined && nodeObserved !== null && nodeObserved !== '';
   discriminatingObservationObserved ||= Array.isArray(nodeDiscriminator) ? nodeDiscriminator.length > 0 : Boolean(nodeDiscriminator);
   stoppingConditionObserved ||= Boolean(nodeStopping);
+
+  const observedWeightDelta = observedWeightDeltaCount > 0
+    ? observedWeightDeltaTotal / observedWeightDeltaCount
+    : null;
+  const classifiedRelations = supportedRelationCount + challengedRelationCount;
+  const relationSupportRatio = classifiedRelations > 0 ? supportedRelationCount / classifiedRelations : null;
+  const provenanceCoverage = adjacent.length > 0 ? evidenceBoundRelationCount / adjacent.length : null;
+  const governanceBase = learningPromoted ? 1 : learningCandidateObserved ? 0.55 : contrastRecorded ? 0.35 : 0;
+  const relationalEvidence = observedWeightDelta ?? 0;
+  const provenanceFactor = provenanceCoverage ?? 0;
+  // Bounded visualization magnitude: evidence can modulate a governed state, never create one.
+  const reorganizationMagnitude = governanceBase === 0
+    ? 0
+    : Math.min(1, governanceBase * (0.7 + 0.2 * relationalEvidence + 0.1 * provenanceFactor));
 
   return {
     nodeId: node.nodeId,
@@ -257,6 +285,10 @@ export function deriveCanonicalFieldMethodSignal(
         : contrastRecorded
           ? 'CONTRAST_RECORDED'
           : 'UNCHANGED',
+    observedWeightDelta,
+    relationSupportRatio,
+    provenanceCoverage,
+    reorganizationMagnitude,
   };
 }
 
