@@ -490,7 +490,21 @@ export async function POST(req: Request) {
           retrievedAt: source.retrievedAt,
           sourceType: source.sourceType,
           reliability: source.reliability,
+          authority: source.authority ?? null,
+          temporalValidity: source.temporalValidity ?? null,
+          verification: source.verification ?? null,
+          requiredClaimScope: evidenceRequirement.requiredClaimScope,
+          authorityFit: source.authority
+            ? evidenceRequirement.requiredClaimScope === 'REGULATORY'
+              ? source.authority.sourceClass === 'PRIMARY_AUTHORITY' && source.authority.claimScope === 'REGULATORY' ? 'FIT' : 'NO_FIT'
+              : evidenceRequirement.requiredClaimScope === 'SELF_REPORTED'
+                ? source.authority.sourceClass === 'PRIMARY_PARTY' ? 'FIT' : 'REVIEW_REQUIRED'
+                : evidenceRequirement.requiredClaimScope === 'SOCIAL_SIGNAL'
+                  ? source.authority.claimScope === 'SOCIAL_SIGNAL' ? 'FIT' : 'REVIEW_REQUIRED'
+                  : 'REVIEW_REQUIRED'
+            : 'UNKNOWN',
           epistemicClass: 'SOURCE_CLAIM',
+          admissionBoundary: 'SOURCE_CLAIM_NOT_ACCEPTED_EVIDENCE',
         })),
       },
     },
