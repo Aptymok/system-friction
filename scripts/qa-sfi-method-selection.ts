@@ -88,4 +88,14 @@ assert.equal(cycleObservedCase.input.observationSpanDays, 0);
 assert.equal(cycleObservedCase.input.requiresTrajectory, true);
 assert.equal(cycleObservedCase.resolution.primary?.methodId, 'PPOI');
 
+const multiEvidenceSnapshot = resolveMihmMethod({
+  subject: 'ARTIFACT',
+  temporalScope: 'POINT_IN_TIME',
+  evidenceModalities: ['AUDIO', 'INSTITUTIONAL_RECORD'],
+  subjectId: 'artifact-multi-evidence',
+  evidenceCount: 4,
+});
+assert.equal(multiEvidenceSnapshot.status, 'READY');
+assert.equal(multiEvidenceSnapshot.primary?.methodId, 'SCOREFRICTION');
+
 console.log('SFI method selection resolver QA passed.');
