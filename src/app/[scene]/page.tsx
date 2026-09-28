@@ -6,6 +6,7 @@ import { readCanonicalGraphState } from '@/lib/graph/canonicalGraph';
 import { projectCognitiveGraph } from '@/lib/graph/cognitiveGraphAdmission';
 import { readRealityChainNode, readRealityChainEdge, realityChainCoverage } from '@/lib/graph/realityChainProjection';
 import { requireFounderPage } from '@/lib/system/access/server';
+import { AuthenticatedSfiMenu } from '@/components/sfi/AuthenticatedSfiMenu';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,8 +25,9 @@ export default async function ScenePage({ params }:{ params:Promise<{scene:strin
     const realityCoverage = realityChainCoverage(graph.nodes);
 
     return (
-      <main className="sfiOperatingShell" data-root-primary-interface="CANONICAL_COGNITIVE_FIELD">
-        <RootNeuralGraphView
+      <main className="sfiOperatingShell sfiAuthenticatedViewport" data-root-primary-interface="CANONICAL_COGNITIVE_FIELD">
+        <AuthenticatedSfiMenu/>
+        <div className="sfiAuthenticatedViewportContent"><RootNeuralGraphView
           graph={{
             sourceState: graph.sourceState,
             degradedReason: graph.degradedReason,
@@ -57,7 +59,7 @@ export default async function ScenePage({ params }:{ params:Promise<{scene:strin
             realityCoverage,
             admission: graph.admission,
           }}
-        />
+        /></div>
       </main>
     );
   }
