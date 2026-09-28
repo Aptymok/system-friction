@@ -169,6 +169,37 @@ export function attractorReading(node: CanonicalGraphNode, edges: CanonicalGraph
   return {state:'NOT_ESTABLISHED',recurrenceObserved:false,recoveryObserved,stabilityEvidenceRefs:[],reason:'No observed recurrence supports attractor analysis.'};
 }
 
+export type MethodCompetitionReading = {
+  state:'COMPETING'|'SINGLE_CANDIDATE'|'NO_CANDIDATE';
+  candidates:Array<{family:ScientificMethodCandidate['family']; question:string; assumptionCheck:'OBSERVABLE'|'INSUFFICIENT'; missing:string[]; falsificationCondition:string}>;
+  nextObservation:string|null;
+  boundary:string;
+};
+export function methodCompetitionReading(node: CanonicalGraphNode, edges: CanonicalGraphEdge[]): MethodCompetitionReading {
+  const methods=scientificMethodCandidates(node,edges);
+  const coordinates=temporalCoordinates(node);
+  const adjacent=edges.filter(e=>e.sourceNodeId===node.nodeId||e.targetNodeId===node.nodeId).map(relationScientificReading);
+  const candidates=methods.map(method=>{
+    const missing:string[]=[];
+    if(method.family==='CHANGE_POINT' && !coordinates.some(x=>x.basis==='SEQUENCE'||x.basis==='CHRONOLOGY')) missing.push('ordered observations');
+    if(method.family==='SURVIVAL_SOJOURN' && !coordinates.some(x=>x.basis==='STATE_OCCUPANCY')) missing.push('state occupancy/censoring');
+    if(method.family==='MARKOV_SEMI_MARKOV' && !coordinates.some(x=>x.basis==='CYCLE'||x.basis==='RECURRENCE')) missing.push('repeated cycle/recurrence observations');
+    if(method.family==='NETWORK_SCIENCE' && adjacent.filter(x=>x.provenanceBound).length<2) missing.push('at least two provenance-bound relations');
+    if(method.family==='ACTIVE_LEARNING' && !adjacent.some(x=>x.currentState==='CHALLENGED'||x.previousState==='CHALLENGED')) missing.push('explicit challenged/rival structure');
+    return {family:method.family,question:method.question,assumptionCheck:missing.length?'INSUFFICIENT' as const:'OBSERVABLE' as const,missing,falsificationCondition:method.falsificationCondition};
+  });
+  const viable=candidates.filter(x=>x.assumptionCheck==='OBSERVABLE');
+  const active=viable.find(x=>x.family==='ACTIVE_LEARNING');
+  const nextObservation=active
+    ? 'Acquire the smallest observation whose outcome can eliminate or materially weaken at least one explicit rival; then rerun all viable candidate methods on the same preserved observations.'
+    : viable.length>1
+      ? 'Acquire the next comparable observation required by the competing methods; do not select a winner until their assumptions and outputs can be contrasted on the same preserved field history.'
+      : viable.length===1
+        ? `Acquire the next observation required to falsify or preserve ${viable[0].family}: ${viable[0].falsificationCondition}`
+        : null;
+  return {state:viable.length>1?'COMPETING':viable.length===1?'SINGLE_CANDIDATE':'NO_CANDIDATE',candidates,nextObservation,boundary:'Method competition compares applicability and future falsification conditions. It does not rank methods by preference, and a candidate method is not a method result.'};
+}
+
 export type DistributedConfigurationReading = {
   state:'CANDIDATE'|'NOT_ESTABLISHED'; memberNodeIds:string[]; relationIds:string[]; evidenceBoundRelationCount:number; reason:string;
 };
@@ -215,6 +246,7 @@ export type FieldScientificReading = {
   evidenceGeometry:EvidenceGeometryReading;
   propertyDiscovery:PropertyDiscoveryReading;
   attractor:AttractorReading;
+  methodCompetition:MethodCompetitionReading;
   nextAction:NextFieldAction;
   methodCandidates:ScientificMethodCandidate[];
   reversibility:{sourceObservationRefs:string[];aggregationRefs:string[];phenomenonRefs:string[];reconstructable:boolean};
@@ -244,6 +276,7 @@ export function deriveFieldScientificReading(node: CanonicalGraphNode, edges: Ca
     evidenceGeometry:evidenceGeometryReading(node,edges),
     propertyDiscovery:discoverObservedProperties(node,edges),
     attractor:attractorReading(node,edges),
+    methodCompetition:methodCompetitionReading(node,edges),
     nextAction:nextFieldAction(node,edges),
     methodCandidates:scientificMethodCandidates(node,edges),
     reversibility:{sourceObservationRefs,aggregationRefs,phenomenonRefs,reconstructable:sourceObservationRefs.length>0 && (aggregationRefs.length===0||phenomenonRefs.length===0||Boolean(node.provenance))},
