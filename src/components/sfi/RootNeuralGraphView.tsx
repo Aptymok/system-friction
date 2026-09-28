@@ -41,6 +41,15 @@ type GraphNode = {
     reorganizationMagnitude: number;
     projectionAuthority: 'NONE' | 'VISUAL_HEURISTIC_ONLY' | 'METHOD_LAB_REQUIRED';
   };
+  fieldProjection?: {
+    decision: 'ABSTAIN' | 'SIMULATED_PROJECTION';
+    epistemicClass: 'SIMULATED';
+    protocolId: string | null;
+    assumptions: string[];
+    limitations: string[];
+    displacement: { x: number; y: number } | null;
+    reason: string;
+  };
 };
 
 type GraphEdge = {
@@ -180,7 +189,13 @@ function reorganizationOffset(node: GraphNode, reading: string): Position {
     : supportRatio > 0.5 ? 1 : -1;
   const magnitude = node.methodSignal?.reorganizationMagnitude ?? 0;
   const projectionAuthority = node.methodSignal?.projectionAuthority ?? 'NONE';
-  if (magnitude <= 0 || projectionAuthority === 'METHOD_LAB_REQUIRED') return { x: 0, y: 0 };
+  const labProjection = node.fieldProjection;
+  if (projectionAuthority === 'METHOD_LAB_REQUIRED') {
+    if (labProjection?.decision !== 'SIMULATED_PROJECTION' || !labProjection.displacement) return { x: 0, y: 0 };
+    const stateScale = state === 'LEARNING_PROMOTED' ? 54 : state === 'LEARNING_QUARANTINED' ? 30 : 18;
+    return { x: labProjection.displacement.x * stateScale, y: labProjection.displacement.y * stateScale * 0.45 };
+  }
+  if (magnitude <= 0) return { x: 0, y: 0 };
   const stateScale = state === 'LEARNING_PROMOTED' ? 54 : state === 'LEARNING_QUARANTINED' ? 30 : 18;
   const displacement = stateScale * magnitude;
   return { x: displacement * direction, y: state === 'LEARNING_PROMOTED' ? -24 * magnitude : 14 * magnitude };
@@ -526,6 +541,8 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
                 <p>REORGANIZATION MAGNITUDE · {selected.methodSignal ? selected.methodSignal.reorganizationMagnitude.toFixed(3) : '0.000'} · ΔWEIGHT {selected.methodSignal?.observedWeightDelta == null ? 'NOT OBSERVED' : selected.methodSignal.observedWeightDelta.toFixed(3)}</p>
                 <p>RELATION SUPPORT · {selected.methodSignal?.relationSupportRatio == null ? 'UNKNOWN' : selected.methodSignal.relationSupportRatio.toFixed(3)} · PROVENANCE COVERAGE {selected.methodSignal?.provenanceCoverage == null ? 'UNKNOWN' : selected.methodSignal.provenanceCoverage.toFixed(3)}</p>
                 <p>PROJECTION AUTHORITY · {selected.methodSignal?.projectionAuthority ?? 'NONE'}</p>
+                <p>METHOD LAB PROJECTION · {selected.fieldProjection?.decision ?? 'ABSTAIN'} · {selected.fieldProjection?.epistemicClass ?? 'SIMULATED'}</p>
+                <p>PROJECTION REASON · {selected.fieldProjection?.reason ?? 'FIELD_PROTOCOL_REQUIRED'}</p>
               </section>
               <section>
                 <span>MCDC / RETURN</span>
