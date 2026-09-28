@@ -73,4 +73,19 @@ assert.equal(externalCaseWithoutEvidence.input.evidenceCount, 0);
 assert.deepEqual(externalCaseWithoutEvidence.input.evidenceModalities, []);
 assert.equal(externalCaseWithoutEvidence.resolution.primary?.methodId, 'PPOI');
 
+const cycleObservedCase = resolveRootCaseMethodology({
+  id: 'cycle-observed-case',
+  title: 'Observed recurrence without declared day span',
+  type: 'case',
+  status: 'closed',
+  cycle_index: 3,
+  phase: 'RECOVERY',
+  evidence_count: 2,
+  evidence_type: 'telemetry',
+});
+assert.equal(cycleObservedCase.input.temporalScope, 'LONGITUDINAL');
+assert.equal(cycleObservedCase.input.observationSpanDays, 0);
+assert.equal(cycleObservedCase.input.requiresTrajectory, true);
+assert.equal(cycleObservedCase.resolution.primary?.methodId, 'PPOI');
+
 console.log('SFI method selection resolver QA passed.');
