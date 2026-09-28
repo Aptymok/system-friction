@@ -298,6 +298,64 @@ export function deriveCanonicalFieldMethodSignal(
   };
 }
 
+export type CanonicalFieldMethodResolution = {
+  input: MihmMethodSelectionInput;
+  resolution: MihmMethodSelectionResult;
+};
+
+function canonicalFieldEvidenceModalities(node: CanonicalGraphNode, adjacent: CanonicalGraphEdge[]): MihmEvidenceModality[] {
+  const joined = [node.provenance, ...node.lineage, ...adjacent.flatMap((edge) => [edge.provenance, ...edge.lineage])]
+    .filter(Boolean).join(' ').toLowerCase();
+  const result = new Set<MihmEvidenceModality>();
+  if (/audio|wav|mp3|sound/.test(joined)) result.add('AUDIO');
+  if (/video|mp4|clip/.test(joined)) result.add('VIDEO');
+  if (/image|png|jpg|jpeg|visual/.test(joined)) result.add('IMAGE');
+  if (/software|repository|repo|code/.test(joined)) result.add('SOFTWARE');
+  if (/dataset|csv|xlsx|database|data:/.test(joined)) result.add('DATASET');
+  if (/telemetry/.test(joined)) result.add('TELEMETRY');
+  if (/record|contract|document|evidence:/.test(joined)) result.add('INSTITUTIONAL_RECORD');
+  return [...result];
+}
+
+export function resolveCanonicalFieldMethodology(
+  node: CanonicalGraphNode,
+  edges: CanonicalGraphEdge[],
+  signal = deriveCanonicalFieldMethodSignal(node, edges),
+): CanonicalFieldMethodResolution {
+  const adjacent = edges.filter((edge) => edge.sourceNodeId === node.nodeId || edge.targetNodeId === node.nodeId);
+  const attrs = node.attributes ?? {};
+  const explicitSubject = graphText(attrs, ['subject','subjectType','subject_type'])?.toUpperCase();
+  const subject: MihmObservationSubject =
+    explicitSubject === 'WORLD_CONTEXT' ? 'WORLD_CONTEXT'
+      : explicitSubject === 'SFI_SYSTEM' ? 'SFI_SYSTEM'
+        : explicitSubject === 'ORGANIZATION' ? 'ORGANIZATION'
+          : explicitSubject === 'PERSON' || explicitSubject === 'SESSION' ? 'PERSON'
+            : explicitSubject === 'OBJECT' || explicitSubject === 'SIGNAL' || explicitSubject === 'ARTIFACT' ? 'ARTIFACT'
+              : signal.requiresTrajectory || signal.requiresRivalHypothesis ? 'CASE'
+                : 'ARTIFACT';
+  const temporalScope: MihmTemporalScope = signal.temporalStructureObserved || signal.requiresTrajectory
+    ? 'LONGITUDINAL'
+    : subject === 'WORLD_CONTEXT'
+      ? 'CURRENT_WORLD_STATE'
+      : 'BOUNDED_WINDOW';
+  const evidenceModalities = canonicalFieldEvidenceModalities(node, adjacent);
+  const input: MihmMethodSelectionInput = {
+    subject,
+    temporalScope,
+    evidenceModalities,
+    subjectId: node.nodeId,
+    caseId: subject === 'CASE' ? node.nodeId : null,
+    worldContextRequested: subject === 'WORLD_CONTEXT' || Boolean(attrs.worldContextRequested ?? attrs.world_context_requested),
+    requiresTrajectory: signal.requiresTrajectory,
+    requiresRivalHypothesis: signal.requiresRivalHypothesis,
+    requiresInterventionTracking: Boolean(attrs.requiresInterventionTracking ?? attrs.requires_intervention_tracking),
+    evidenceCount: signal.evidenceBoundRelationCount + (node.lineage.length > 0 || node.provenance ? 1 : 0),
+    observationSpanDays: 0,
+    isSfiInternal: subject === 'SFI_SYSTEM',
+  };
+  return { input, resolution: resolveMihmMethod(input) };
+}
+
 export type RootCaseMethodology = {
   caseId: string;
   title: string;
