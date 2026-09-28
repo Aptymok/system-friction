@@ -1,0 +1,17 @@
+import fs from 'node:fs';
+import path from 'node:path';
+const root=process.cwd(),read=(p:string)=>fs.readFileSync(path.join(root,p),'utf8');
+const menu=read('src/components/sfi/AuthenticatedSfiMenu.tsx');
+const css=read('src/components/sfi/AuthenticatedSfiMenu.css');
+const scene=read('src/app/[scene]/page.tsx');
+const consoleUi=read('src/components/sfi/SfiConsole.tsx');
+const rootUi=read('src/components/sfi/RootNeuralGraphView.tsx');
+const required=['DESPLAZAMIENTO','TRAYECTORIAS','OBSERVATORIO','PROYECCIONES Y FENÓMENOS','BITÁCORA JR.','BITÁCORA TÉCNICA','H1, HR, CONTRASTE Y APRENDIZAJE'];
+for(const label of required) if(!menu.includes(label)) throw new Error('missing authenticated navigation item:'+label);
+if(menu.includes('>SFI<')||menu.includes('sfiWordmark')) throw new Error('diamond navigation must not redraw SFI letters');
+if(!menu.includes('/identity/sfi-canonical-diamond.svg')) throw new Error('canonical diamond asset contract missing');
+if(!css.includes('height:100dvh')||!css.includes('overflow:hidden')||!css.includes('scrollbar-width:none')) throw new Error('fixed viewport/hidden internal scroll contract missing');
+if(!scene.includes('<AuthenticatedSfiMenu/>')||!consoleUi.includes('<AuthenticatedSfiMenu/>')) throw new Error('authenticated surfaces must use diamond navigation');
+if(consoleUi.includes('sfiOperatingNav')) throw new Error('legacy authenticated top navigation remains');
+if(!rootUi.includes("searchParams.get('reading')")) throw new Error('ROOT readings are not addressable from diamond navigation');
+console.log('PASS · authenticated diamond navigation contract');
