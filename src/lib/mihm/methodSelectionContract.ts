@@ -100,6 +100,12 @@ export type MihmSelectedMethod = {
   objectId: string | null;
   requiredInputs: string[];
   expectedOutputs: string[];
+  answers: string[];
+  assumptions: string[];
+  failureModes: string[];
+  falsificationOrContrast: string[];
+  computationalCost: 'LOW' | 'MEDIUM' | 'HIGH' | 'EXTERNAL';
+  epistemicOutput: 'OBSERVED' | 'DERIVED' | 'INFERRED' | 'SIMULATED';
 };
 
 export type MihmMethodSelectionResult = {
