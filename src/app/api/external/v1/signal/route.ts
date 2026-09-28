@@ -595,6 +595,12 @@ export async function POST(req: Request) {
         rivalHypotheses: aiSynthesis.rivalHypotheses,
         predictions: aiSynthesis.predictions,
         missingEvidence: aiSynthesis.missingEvidence,
+        sourceClaimBoundary: {
+          acquiredSourceClaims: webEvidence.sources.length,
+          requiredClaimScope: evidenceRequirement.requiredClaimScope,
+          authoritySensitive: evidenceRequirement.authoritySensitive,
+          rule: 'Acquired SOURCE_CLAIMS may inform inference and discriminator design, but they do not become accepted EVIDENCE merely by retrieval, relevance, authority fit, or synthesis.',
+        },
         next: aiSynthesis.predictions.length
           ? 'Register/observe the discriminating return before empirical closure.'
           : 'Do not fabricate a prediction. Resolve the missing evidence or close only as DESCRIPTIVE_DELIMITED if methodologically appropriate.',
