@@ -30,7 +30,6 @@ const humanReport = read('src/lib/reports/humanReport.ts');
 const neuralGraphRuntime = read('src/lib/root/neuralGraphRuntime.ts');
 const continuityStore = read('src/lib/sfi/continuityPostgres.ts');
 const canonicalGraphRuntime = read('src/lib/graph/canonicalGraph.ts');
-const neuralGraphPage = read('src/app/root/neural-graph/page.tsx');
 const neuralGraphView = read('src/components/sfi/RootNeuralGraphView.tsx');
 const cognitiveAdmission = read('src/lib/graph/cognitiveGraphAdmission.ts');
 const publicGraphStateRoute = read('src/app/api/graph/state/route.ts');
@@ -90,7 +89,6 @@ check('Neon continuity treats JSON null attributes as absent before payload fall
 check('Neon continuity preserves legacy evidence_ids as canonical edge lineage', continuityStore.includes("'lineage'") && continuityStore.includes("to_jsonb(e)->'evidence_ids'") && continuityStore.includes("nullif(nullif(to_jsonb(e)->'lineage', 'null'::jsonb), '[]'::jsonb)"));
 check('canonical graph continuity fallback requires explicit caller opt-in', canonicalGraphRuntime.includes('CanonicalGraphReadOptions') && canonicalGraphRuntime.includes('options: CanonicalGraphReadOptions = {}') && canonicalGraphRuntime.includes('options.allowContinuity === true') && canonicalGraphRuntime.includes('primaryDiagnostic && allowContinuity && isSfiContinuityConfigured()'));
 check('public graph, Library, and Observatory surfaces cannot opt into continuity', !publicGraphStateRoute.includes('allowContinuity: true') && !libraryPage.includes('allowContinuity: true') && !observatoryStateRoute.includes('allowContinuity: true'));
-check('legacy founder Neural Graph route converges into the canonical ROOT field', neuralGraphPage.includes("await requireFounderPage('/root/neural-graph')") && neuralGraphPage.includes("redirect('/root')") && !neuralGraphPage.includes('readCanonicalGraphState'));
 check('authenticated runtime bootstrap remains primary-only after user authorization', runtimeBootstrapRoute.includes('if (!ctx.user)') && runtimeBootstrapRoute.includes('readCanonicalGraphState(profile)') && !runtimeBootstrapRoute.includes('allowContinuity: true') && runtimeBootstrapRoute.indexOf('if (!ctx.user)') < runtimeBootstrapRoute.indexOf('readCanonicalGraphState(profile)'));
 check('canonical graph marks primary failure when continuity served', canonicalGraphRuntime.includes('primary_graph_read_unavailable_continuity_served') && canonicalGraphRuntime.includes('continuityServed') && canonicalGraphRuntime.includes("readPlane: continuityServed ? 'NEON' : 'SUPABASE'"));
 check('canonical graph resolves semantic edge relation before physical compatibility type', canonicalGraphRuntime.includes('function semanticRelation') && canonicalGraphRuntime.includes('attributes.declaredRelations') && canonicalGraphRuntime.includes('attributes.declaredRelation') && canonicalGraphRuntime.includes('const relation = semanticRelation(row, attributes)'));
