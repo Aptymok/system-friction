@@ -25,6 +25,12 @@ function selected(
     objectId,
     requiredInputs: definition.primaryInputs,
     expectedOutputs: definition.outputs,
+    answers: definition.answers,
+    assumptions: definition.assumptions,
+    failureModes: definition.failureModes,
+    falsificationOrContrast: definition.falsificationOrContrast,
+    computationalCost: definition.computationalCost,
+    epistemicOutput: definition.epistemicOutput,
   };
 }
 
