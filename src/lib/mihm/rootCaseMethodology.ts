@@ -64,6 +64,27 @@ function observedQuestionSignals(row: RootRow) {
   };
 }
 
+function observedFieldSignals(row: RootRow) {
+  const relationState = text(row, ['relation_state', 'relationState', 'edge_state', 'edgeState'])?.toUpperCase() ?? '';
+  const previousRelationState = text(row, ['previous_relation_state', 'previousRelationState', 'prior_relation_state', 'priorRelationState'])?.toUpperCase() ?? '';
+  const epistemicState = text(row, ['epistemic_state', 'epistemicState', 'epistemic_class', 'epistemicClass', 'state'])?.toUpperCase() ?? '';
+  const previousEpistemicState = text(row, ['previous_epistemic_state', 'previousEpistemicState', 'prior_epistemic_state', 'priorEpistemicState'])?.toUpperCase() ?? '';
+  const observedReturn = row.observed_return ?? row.observedReturn;
+  const expectedReturn = row.expected_return ?? row.expectedReturn;
+  const counterevidence = row.counterevidence ?? row.counter_evidence ?? row.counterEvidence;
+  const cycle = numberValue(row, ['cycle', 'cycle_index', 'cycleIndex', 'cycle_number', 'cycleNumber', 'recurrence', 'recurrence_index', 'recurrenceIndex']);
+  const sequence = numberValue(row, ['sequence', 'sequence_index', 'sequenceIndex', 'transition_index', 'transitionIndex', 'event_index', 'eventIndex', 'order']);
+  const phase = text(row, ['phase', 'temporal_phase', 'temporalPhase', 'cycle_phase', 'cyclePhase', 'state_phase', 'statePhase']);
+
+  return {
+    temporalStructure: cycle !== null || sequence !== null || Boolean(phase),
+    relationTransition: Boolean(relationState && previousRelationState && relationState !== previousRelationState),
+    epistemicTransition: Boolean(epistemicState && previousEpistemicState && epistemicState !== previousEpistemicState),
+    returnContrast: observedReturn !== undefined && observedReturn !== null && expectedReturn !== undefined && expectedReturn !== null,
+    counterevidence: Array.isArray(counterevidence) ? counterevidence.length > 0 : Boolean(counterevidence),
+  };
+}
+
 function subjectFor(row: RootRow): MihmObservationSubject {
   const explicit = [
     text(row, ['type', 'entity_type', 'subject_type', 'kind']),
@@ -114,6 +135,7 @@ export function resolveRootCaseMethodology(row: RootRow, index = 0): RootCaseMet
   const phenomenonId = text(row, ['phenomenon_id', 'ppoi_phenomenon_id']);
   const evidenceCount = explicitEvidenceCount(row);
   const questionSignals = observedQuestionSignals(row);
+  const fieldSignals = observedFieldSignals(row);
   const input: MihmMethodSelectionInput = {
     subject,
     temporalScope,
@@ -124,8 +146,8 @@ export function resolveRootCaseMethodology(row: RootRow, index = 0): RootCaseMet
     phenomenonId,
     sessionId: text(row, ['session_id', 'moph_session_id']),
     worldContextRequested: subject === 'ORGANIZATION' || subject === 'CASE' || Boolean(row.world_context_requested) || questionSignals.worldContext,
-    requiresTrajectory: temporalScope === 'LONGITUDINAL' || questionSignals.trajectory,
-    requiresRivalHypothesis: Boolean(row.requires_rival_hypothesis) || questionSignals.rival,
+    requiresTrajectory: temporalScope === 'LONGITUDINAL' || questionSignals.trajectory || fieldSignals.temporalStructure || fieldSignals.relationTransition || fieldSignals.epistemicTransition,
+    requiresRivalHypothesis: Boolean(row.requires_rival_hypothesis) || questionSignals.rival || fieldSignals.returnContrast || fieldSignals.counterevidence,
     requiresInterventionTracking: Boolean(row.requires_intervention_tracking) || questionSignals.intervention || /proposal|intervention|seguimiento/i.test(String(row.stage ?? row.status ?? '')),
     evidenceCount,
     observationSpanDays: numberValue(row, ['observation_span_days', 'span_days']) ?? 0,
