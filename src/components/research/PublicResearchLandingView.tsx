@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { SfiPublicResearchLanding } from '@/lib/research/publicResearchLanding';
 import { ResearchObjectModes } from './ResearchObjectModes';
+import { SfiPublicHeader, SfiPublicFooter } from '@/components/public/SfiPublicChrome';
 
 function SourceRef({ value }: { value: string }) {
   if (/^https?:\/\//i.test(value)) {
@@ -21,7 +22,9 @@ export function PublicResearchLandingView({ landing }: { landing: SfiPublicResea
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: safeJsonLd(landing) }}
       />
-      <main style={{ minHeight: '100vh', background: '#070705', color: '#d8c6a0', padding: '48px 28px 84px', fontFamily: 'Georgia, serif' }}>
+      <main style={{ minHeight: '100vh', background: '#070705', color: '#d8c6a0', fontFamily: 'var(--sfi-narrative)' }}>
+        <SfiPublicHeader/> 
+        <div style={{ padding: '48px 28px 84px' }}>
         <div style={{ maxWidth: 1120, margin: '0 auto' }}>
           <header style={{ borderBottom: '1px solid rgba(202,160,92,.28)', paddingBottom: 30 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 20, alignItems: 'flex-start', flexWrap: 'wrap' }}>
@@ -103,11 +106,12 @@ export function PublicResearchLandingView({ landing }: { landing: SfiPublicResea
             </section>
           ) : null}
 
-          <footer style={{ marginTop: 54, borderTop: '1px solid rgba(202,160,92,.2)', paddingTop: 22, color: '#95866e', fontSize: 13, lineHeight: 1.7 }}>
+          <section style={{ marginTop: 54, borderTop: '1px solid rgba(202,160,92,.2)', paddingTop: 22, color: '#95866e', fontSize: 13, lineHeight: 1.7 }}>
             <p>{landing.contract} · {landing.canonicalNamespace}</p>
             <p>This page is a read-only projection of an explicitly public canonical object. Rendering it does not create publication status, evidence, external validation, Discovery, PULL or RETURN.</p>
-          </footer>
-        </div>
+          </section>
+        </div></div>
+        <SfiPublicFooter/>
       </main>
     </>
   );
