@@ -185,6 +185,7 @@ assert.equal(fieldSignal.observedWeightDelta, 0.2);
 assert.equal(fieldSignal.relationSupportRatio, 0);
 assert.equal(fieldSignal.provenanceCoverage, 1);
 assert.equal(fieldSignal.reorganizationMagnitude, 0);
+assert.equal(fieldSignal.projectionAuthority, 'NONE');
 assert.equal(fieldSignal.expectationObserved, false);
 assert.equal(fieldSignal.returnObserved, false);
 assert.equal(fieldSignal.contrastReady, false);
@@ -298,5 +299,6 @@ assert.equal(evidenceDrivenPromotedSignal.relationSupportRatio, 1);
 assert.equal(evidenceDrivenPromotedSignal.provenanceCoverage, 1);
 assert.ok(evidenceDrivenPromotedSignal.reorganizationMagnitude > 0);
 assert.ok(evidenceDrivenPromotedSignal.reorganizationMagnitude <= 1);
+assert.equal(evidenceDrivenPromotedSignal.projectionAuthority, 'METHOD_LAB_REQUIRED');
 
 console.log('SFI method selection resolver QA passed.');
