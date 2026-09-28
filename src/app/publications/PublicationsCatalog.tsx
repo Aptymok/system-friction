@@ -12,7 +12,7 @@ export type PublicationCatalogItem = Readonly<{
   category:string;
 }>;
 
-type EdgeKind='SEQUENCE'|'THEME';
+type EdgeKind='SEQUENCE'|'THEME'|'INSTITUTIONAL_MEMBERSHIP';
 type Edge=Readonly<{from:string;to:string;kind:EdgeKind}>;
 
 const CATEGORY_SHAPE:Record<string,string>={
@@ -79,6 +79,7 @@ export function PublicationsCatalog({items}:{items:readonly PublicationCatalogIt
         next.push({from:ordered[index].slug,to:ordered[index+1].slug,kind:'THEME'});
       }
     });
+    visible.forEach((item)=>next.push({from:'__SFI__',to:item.slug,kind:'INSTITUTIONAL_MEMBERSHIP'}));
     return next;
   },[visible]);
 
@@ -102,6 +103,7 @@ export function PublicationsCatalog({items}:{items:readonly PublicationCatalogIt
     <div className="pubGraphLegend" aria-label="Registry graph legend">
       <span><i data-edge="SEQUENCE"/>SEQUENCE</span>
       <span><i data-edge="THEME"/>SHARED CLASSIFICATION</span>
+      <span><i data-edge="INSTITUTIONAL_MEMBERSHIP"/>PUBLISHED BY SFI</span>
       {categories.filter((value)=>value!=='ALL').map((value)=><span key={value}><i className="pubLegendNode" data-category={value} data-shape={CATEGORY_SHAPE[value]??'circle'}/>{value}</span>)}
     </div>
 
@@ -109,13 +111,13 @@ export function PublicationsCatalog({items}:{items:readonly PublicationCatalogIt
       <div className="pubGraph" role="group" aria-label="Publication registry graph">
         <svg className="pubGraphEdges" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
           {edges.map((edge,index)=>{
-            const from=positions.get(edge.from),to=positions.get(edge.to);
+            const from=edge.from==='__SFI__'?{x:50,y:50}:positions.get(edge.from),to=positions.get(edge.to);
             if(!from||!to)return null;
             return <line key={edge.kind+'-'+edge.from+'-'+edge.to+'-'+index} x1={from.x} y1={from.y} x2={to.x} y2={to.y} data-kind={edge.kind}/>;
           })}
         </svg>
 
-        <div className="pubGraphCore" aria-hidden="true"><span>SFI</span><small>INSTITUTIONAL ATTRACTOR</small></div>
+        <div className="pubGraphCore" aria-label="System Friction Institute · institutional publication node"><span>SFI</span><small>INSTITUTIONAL NODE</small></div>
 
         {visible.map((item)=>{
           const position=positions.get(item.slug)??{x:50,y:50};
@@ -152,6 +154,7 @@ export function PublicationsCatalog({items}:{items:readonly PublicationCatalogIt
           <b>RELATIONS</b>
           <span>SEQUENCE · chronological adjacency only</span>
           <span>THEME · shared editorial classification only</span>
+          <span>INSTITUTIONAL MEMBERSHIP · published by System Friction Institute</span>
           {related.map((item)=><button key={item.slug} type="button" onClick={()=>setSelectedSlug(item.slug)}>{item.title}</button>)}
         </div>
         <Link className="pubRead" href={'/publications/'+selected.slug}>OPEN INFORMATION HUB →</Link>
