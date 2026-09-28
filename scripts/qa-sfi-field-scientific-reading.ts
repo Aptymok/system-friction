@@ -57,4 +57,14 @@ assert.equal(temporalCoordinates(recordOnly).length,0,'database record timestamp
 assert.equal(emergenceReading(recordOnly).state,'NOT_ESTABLISHED');
 assert.equal(deriveFieldScientificReading(recordOnly,[]).capacity,null);
 
+const fakeCapacityFromGenericLineage={
+  ...node,
+  nodeId:'generic-lineage-not-capacity',
+  lineage:['evidence:generic'],
+  attributes:{interventionCandidateRefs:['action:candidate']},
+} as CanonicalGraphNode;
+const fakeCapacityReading=deriveFieldScientificReading(fakeCapacityFromGenericLineage,[]);
+assert.equal(fakeCapacityReading.capacity,null,'generic provenance must never be treated as empirical capacity evidence');
+assert.notEqual(fakeCapacityReading.nextAction.decision,'REVIEW_PERTURBATION_CANDIDATE','perturbation review requires intervention-linked observed RETURN capacity');
+
 console.log('SFI field scientific reading QA passed.');
