@@ -1,9 +1,7 @@
 'use client';
 
-import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import './RootNeuralGraphView.css';
-import { InstitutionalSurfaceRail } from './InstitutionalSurfaceRail';
 
 type GraphNode = {
   id: string;
@@ -56,13 +54,31 @@ function hash(value: string) {
   return result >>> 0;
 }
 
-function nodeTone(type: string) {
-  const normalized = type.toLowerCase();
-  if (normalized.includes('document')) return '#d5b36f';
-  if (normalized.includes('series')) return '#9f8452';
-  if (normalized.includes('pattern')) return '#b8866b';
-  if (normalized.includes('mihm')) return '#c6654e';
-  return '#8e846e';
+function nodeTone(node: GraphNode) {
+  const state = String(node.reality?.state ?? node.attributes.epistemicClass ?? node.attributes.state ?? 'UNKNOWN').toUpperCase();
+  const authority = String(node.reality?.authority ?? node.attributes.authority ?? '').toUpperCase();
+  if (/FAIL|BREACH|REJECT|CONTRADICT|DEGRADED|FALSIF/.test(state)) return '#B85050';
+  if (/AUTHORITY|AUTHORIZED|CANON|PERSIST/.test(authority+' '+state)) return '#C8A951';
+  if (/OBSERVED|SIGNAL|EMERG/.test(state)) return '#4A7AAA';
+  return '#6B635A';
+}
+
+function temporalValue(node: GraphNode) {
+  const candidates = [node.reality?.captureTime, node.attributes.observedAt, node.attributes.sourceObservedAt, node.attributes.createdAt, node.attributes.updatedAt];
+  for (const value of candidates) {
+    if (typeof value === 'string') {
+      const ms = Date.parse(value);
+      if (!Number.isNaN(ms)) return ms;
+    }
+  }
+  return null;
+}
+
+function regimeSignal(node: GraphNode) {
+  const text = semanticText(node);
+  if (/bifurcat|threshold|regime change|attractor|ejector/.test(text)) return 'REGIME CANDIDATE';
+  if (/contradict|counterevidence|breach|degraded|fail/.test(text)) return 'FRICTION / DIVERGENCE';
+  return 'PERSISTING / UNCLASSIFIED';
 }
 
 function short(value: string, max = 34) {
@@ -90,7 +106,7 @@ function realityStage(node: GraphNode) {
   return stages.find((stage) => text.includes(stage)) ?? 'unclassified';
 }
 
-function buildPositions(nodes: GraphNode[], reading: 'CANONICAL'|'WORLD_VECTOR'|'FRICTION_MAP'|'LEARNING'|'REALITY_CHAIN') {
+function buildPositions(nodes: GraphNode[], reading: 'CURRENT_STATE'|'HIERARCHY'|'TRAJECTORY'|'RETROLONGITUDINAL'|'PROJECTION'|'FRICTION_REGIME'|'REALITY_CHAIN'|'RETURN_CONTRAST') {
   const width = 1180;
   const height = 700;
   const positions = new Map<string, Position>();
@@ -112,7 +128,7 @@ function buildPositions(nodes: GraphNode[], reading: 'CANONICAL'|'WORLD_VECTOR'|
     return { positions, types, width, height };
   }
 
-  if (reading === 'LEARNING') {
+  if (reading === 'RETURN_CONTRAST') {
     const anchors: Record<string, number> = { return: 180, contrast: 360, learning: 560, memory: 790, canon: 980 };
     nodes.forEach((node, index) => {
       const text = semanticText(node);
@@ -124,7 +140,7 @@ function buildPositions(nodes: GraphNode[], reading: 'CANONICAL'|'WORLD_VECTOR'|
     return { positions, types, width, height };
   }
 
-  if (reading === 'FRICTION_MAP') {
+  if (reading === 'FRICTION_REGIME') {
     nodes.forEach((node, index) => {
       const text = semanticText(node);
       const friction = ['unknown','missing','fail','breach','contradict','counterevidence','degraded','blocked'].filter((term) => text.includes(term)).length;
@@ -137,15 +153,25 @@ function buildPositions(nodes: GraphNode[], reading: 'CANONICAL'|'WORLD_VECTOR'|
     return { positions, types, width, height };
   }
 
-  if (reading === 'WORLD_VECTOR') {
-    nodes.forEach((node, index) => {
-      const text = semanticText(node);
-      const external = ['world','external','signal','source','context'].some((term) => text.includes(term));
-      const seed = hash(node.id);
-      positions.set(node.id, {
-        x: external ? 260 + (seed % 170) : 720 + (seed % 220),
-        y: 70 + ((seed + index * 23) % 560),
-      });
+  if (reading === 'TRAJECTORY' || reading === 'RETROLONGITUDINAL' || reading === 'PROJECTION') {
+    const timed = nodes.map((node) => ({ node, time: temporalValue(node) })).sort((a,b) => (a.time ?? 0) - (b.time ?? 0));
+    const known = timed.filter((item) => item.time !== null);
+    const min = known[0]?.time ?? 0;
+    const max = known[known.length - 1]?.time ?? min + 1;
+    timed.forEach(({node,time}, index) => {
+      const ratio = time === null ? .5 : (time-min)/Math.max(1,max-min);
+      const forward = reading === 'RETROLONGITUDINAL' ? 1-ratio : ratio;
+      const projected = reading === 'PROJECTION' && /HYPOTHESIZED|SIMULATED|EXPECTED/.test(String(node.reality?.state ?? node.attributes.epistemicClass ?? '').toUpperCase());
+      positions.set(node.id, { x: 90 + forward*(width-180), y: 90 + ((hash(node.id)+index*29)%500) + (projected ? 40 : 0) });
+    });
+    return { positions, types, width, height };
+  }
+
+  if (reading === 'HIERARCHY') {
+    const typeIndex = new Map(types.map((type,index)=>[type,index]));
+    nodes.forEach((node,index)=>{
+      const level=typeIndex.get(node.type) ?? 0;
+      positions.set(node.id,{x:100+(level%5)*245,y:80+(Math.floor(level/5)*170)+((hash(node.id)+index*19)%120)});
     });
     return { positions, types, width, height };
   }
@@ -171,7 +197,7 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
   const [query, setQuery] = useState('');
   const [activeType, setActiveType] = useState('ALL');
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [reading, setReading] = useState<'CANONICAL'|'WORLD_VECTOR'|'FRICTION_MAP'|'LEARNING'|'REALITY_CHAIN'>('CANONICAL');
+  const [reading, setReading] = useState<'CURRENT_STATE'|'HIERARCHY'|'TRAJECTORY'|'RETROLONGITUDINAL'|'PROJECTION'|'FRICTION_REGIME'|'REALITY_CHAIN'|'RETURN_CONTRAST'>('CURRENT_STATE');
 
   const degree = useMemo(() => {
     const values = new Map<string, number>();
@@ -229,18 +255,11 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
 
   return (
     <main className="neuralGraphShell" data-neural-graph-contract="SFI-ROOT-NEURAL-GRAPH-1.0">
-      <InstitutionalSurfaceRail surface="NEURAL_GRAPH" state={graph.sourceState.toUpperCase()} detail={'READ PLANE '+graph.readPlane}/>
       <header className="neuralGraphHeader">
         <div>
-          <span className="neuralGraphEyebrow">ROOT · CANONICAL COGNITIVE FIELD · ONE GRAPH / MANY READINGS</span>
-          <h1>The institution is the graph.</h1>
-          <p>
-            Persisted objects remain canonical while the reading changes. Follow what SFI observed, what became evidence,
-            what was claimed or authorized, what was executed, and what independently came back from the world.
-          </p>
-        </div>
-        <div className="neuralGraphHeaderActions">
-          <Link href="/root">← ROOT</Link>
+          <span className="neuralGraphEyebrow">ROOT · SYSTEM FRICTION INSTITUTE · STATE / RELATION / TIME / RETURN</span>
+          <h1>Observe the institution through its changing states.</h1>
+          <p>ROOT organizes governed nodes according to SFI identity grammar, preserves hierarchy and provenance, follows trajectories through time, reconstructs material transitions, and separates observed history from present reconstruction and future projection.</p>
         </div>
       </header>
 
@@ -254,7 +273,7 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
 
       <section className="neuralGraphControls" aria-label="Canonical cognitive field readings">
         <div className="neuralGraphFilters">
-          {(['CANONICAL','WORLD_VECTOR','FRICTION_MAP','LEARNING','REALITY_CHAIN'] as const).map((mode) => (
+          {(['CURRENT_STATE','HIERARCHY','TRAJECTORY','RETROLONGITUDINAL','PROJECTION','FRICTION_REGIME','REALITY_CHAIN','RETURN_CONTRAST'] as const).map((mode) => (
             <button key={mode} className={reading === mode ? 'active' : ''} onClick={() => setReading(mode)}>
               {mode.replaceAll('_',' ')}
             </button>
@@ -262,14 +281,20 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
         </div>
         <p>
           {reading === 'REALITY_CHAIN'
-            ? 'WORLD → CAPTURE → EVIDENCE → TRANSFORMATION → [INFERENCE] → VERIFICATION → AUTHORITY → ACTION → RETURN. PROVENANCE, UNCERTAINTY, SIGNAL and COUNTEREVIDENCE remain transversal; ABSTAIN / ESCALATE / REJECT are boundary exits.'
-            : reading === 'WORLD_VECTOR'
-              ? 'Read external signals as context and direction without turning correlation into causality.'
-              : reading === 'FRICTION_MAP'
-                ? 'Read resistance, contradiction, missing provenance and coordination cost across the same canonical objects.'
-                : reading === 'LEARNING'
-                  ? 'Read where RETURN changed what the institution may retain. Closure alone is not learning.'
-                  : 'Canonical reading: persisted identity and provenance do not change when the graph is rearranged or interpreted.'}
+            ? 'Reconstruct material passage: WORLD → CAPTURE → EVIDENCE → TRANSFORMATION → [INFERENCE] → VERIFICATION → AUTHORITY → ACTION → RETURN. Inference remains conditional.'
+            : reading === 'TRAJECTORY'
+              ? 'Follow observed state displacement through time. A trajectory is not a causal explanation.'
+              : reading === 'RETROLONGITUDINAL'
+                ? 'Reconstruct backward from the present while preserving the difference between what happened, what was observed then, what can be reconstructed now, and what was formalized later.'
+                : reading === 'PROJECTION'
+                  ? 'Project bounded future trajectories. HYPOTHESIZED / SIMULATED / EXPECTED never become OBSERVED by visualization.'
+                  : reading === 'FRICTION_REGIME'
+                    ? 'Expose friction, thresholds, attractors, divergence and regime-change candidates without promoting them to causal truth.'
+                    : reading === 'RETURN_CONTRAST'
+                      ? 'Contrast EXPECTED RETURN with OBSERVED RETURN. Case RETURN informs one trajectory; repeated RETURN may alter system memory.'
+                      : reading === 'HIERARCHY'
+                        ? 'Organize nodes by institutional and ontological hierarchy without equating visual prominence with truth or importance.'
+                        : 'Current state: one governed institutional field. Identity, provenance, authority and epistemic state remain attached to each object.'}
         </p>
       </section>
 
@@ -354,7 +379,7 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
                   className={selectedNode ? 'graphNode selected' : 'graphNode'}
                 >
                   <circle cx={position.x} cy={position.y} r={radius + (selectedNode ? 8 : 3)} className="graphNodeHalo" />
-                  <circle cx={position.x} cy={position.y} r={radius} fill={nodeTone(node.type)} />
+                  <circle cx={position.x} cy={position.y} r={radius} fill={nodeTone(node)} />
                   {showLabel ? (
                     <text x={position.x + 9} y={position.y - 7} className="graphLabel">
                       {short(node.label)}
@@ -384,7 +409,7 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
                 <div><dt>EPISTEMIC STATE</dt><dd>{selected.reality?.state ?? 'UNKNOWN'}</dd></div>
                 <div><dt>VERIFICATION</dt><dd>{selected.reality?.verificationState ?? 'NOT VERIFIED'}</dd></div>
                 <div><dt>AUTHORITY</dt><dd>{selected.reality?.authority ?? 'UNKNOWN'}</dd></div>
-                <div><dt>EXECUTION</dt><dd>{selected.reality?.executionState ?? 'NOT OBSERVED'}</dd></div>
+                <div><dt>EXECUTION</dt><dd>{selected.reality?.executionState ?? 'NOT OBSERVED'}</dd></div><div><dt>TIME</dt><dd>{temporalValue(selected) ? date(new Date(temporalValue(selected)!).toISOString()) : 'UNKNOWN'}</dd></div><div><dt>REGIME SIGNAL</dt><dd>{regimeSignal(selected)}</dd></div>
               </dl>
               <section>
                 <span>MCDC / RETURN</span>
@@ -434,7 +459,7 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
         </div>
         <div>
           <span>{graph.admission.contract} · WORLD-TO-CLAIM TRACEABILITY</span>
-          <p>{reading === 'REALITY_CHAIN' ? 'Ask: why is this claim allowed to represent the world?' : 'Select REALITY CHAIN to inspect reconstructibility.'}</p>
+          <p>{reading === 'REALITY_CHAIN' ? 'Ask: why is this claim allowed to represent the world?' : 'Change the reading to inspect time, reconstruction, RETURN and regime dynamics without changing the underlying objects.'}</p>
         </div>
       </footer>
     </main>
