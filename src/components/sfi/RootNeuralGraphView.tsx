@@ -79,6 +79,16 @@ type GraphNode = {
     reasons: string[];
     assumptionsToCheck: string[];
   };
+  scientificReading?: {
+    contract: string;
+    temporal: { coordinates: { basis: string; value: number|string; source: string }[]; availableResolutions: string[]; multipleClocks: boolean };
+    relations: { edgeId:string; currentState:string|null; previousState:string|null; weightDelta:number|null; latency:number|null; uncertainty:number|null; onset:string|null; offset:string|null; recurrence:number|string|null; provenanceBound:boolean }[];
+    emergence: { state:string; reason:string; observedAt:string|null; priorState:string|null };
+    capacity: { interventionRef:string|null; perturbationMagnitude:number|null; response:string; recoveryTime:number|null; evidenceRefs:string[] } | null;
+    methodCandidates: { family:string; question:string; assumptions:string[]; failureModes:string[]; output:string; falsificationCondition:string; computationalCost:string }[];
+    reversibility: { sourceObservationRefs:string[]; aggregationRefs:string[]; phenomenonRefs:string[]; reconstructable:boolean };
+    boundaries:string[];
+  };
   fieldProjection?: {
     decision: 'ABSTAIN' | 'SIMULATED_PROJECTION';
     epistemicClass: 'SIMULATED';
@@ -137,7 +147,7 @@ function nodeTone(node: GraphNode) {
 
 type TemporalReading = {
   coordinate: number | null;
-  basis: 'SEQUENCE' | 'CYCLE' | 'PHASE' | 'CHRONOLOGY' | 'UNKNOWN';
+  basis: 'SEQUENCE' | 'CYCLE' | 'RECURRENCE' | 'PHASE' | 'STATE_OCCUPANCY' | 'CHRONOLOGY' | 'UNKNOWN';
   label: string;
 };
 
@@ -162,13 +172,19 @@ function temporalReading(node: GraphNode): TemporalReading {
   const sequence = numericAttribute(node, ['sequence','sequenceIndex','transitionIndex','eventIndex','order']);
   if (sequence !== null) return { coordinate: sequence, basis: 'SEQUENCE', label: `SEQUENCE · ${sequence}` };
 
-  const cycle = numericAttribute(node, ['cycle','cycleIndex','cycleNumber','recurrence','recurrenceIndex']);
+  const cycle = numericAttribute(node, ['cycle','cycleIndex','cycleNumber']);
   if (cycle !== null) return { coordinate: cycle, basis: 'CYCLE', label: `CYCLE · ${cycle}` };
+
+  const recurrence = numericAttribute(node, ['recurrence','recurrenceIndex','recurrenceCount']);
+  if (recurrence !== null) return { coordinate: recurrence, basis: 'RECURRENCE', label: `RECURRENCE · ${recurrence}` };
+
+  const occupancy = numericAttribute(node, ['timeInState','sojourn','sojournDuration','stateDuration']);
+  if (occupancy !== null) return { coordinate: occupancy, basis: 'STATE_OCCUPANCY', label: `STATE OCCUPANCY · ${occupancy}` };
 
   const phase = stringAttribute(node, ['phase','temporalPhase','cyclePhase','statePhase']);
   if (phase) return { coordinate: null, basis: 'PHASE', label: `PHASE · ${phase}` };
 
-  const candidates = [node.reality?.captureTime, node.attributes.observedAt, node.attributes.sourceObservedAt, node.attributes.createdAt, node.attributes.updatedAt];
+  const candidates = [node.reality?.captureTime, node.attributes.observedAt, node.attributes.observed_at, node.attributes.occurredAt, node.attributes.occurred_at, node.attributes.effectiveAt, node.attributes.effective_at, node.attributes.releasedAt, node.attributes.released_at, node.attributes.validFrom, node.attributes.valid_from];
   for (const value of candidates) {
     if (typeof value === 'string') {
       const ms = Date.parse(value);
@@ -353,6 +369,7 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
   const [activeType, setActiveType] = useState('ALL');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [reading, setReading] = useState<'CURRENT_STATE'|'HIERARCHY'|'TRAJECTORY'|'RETROLONGITUDINAL'|'PROJECTION'|'FRICTION_REGIME'|'REALITY_CHAIN'|'RETURN_CONTRAST'>(initialReading);
+  const [temporalResolution, setTemporalResolution] = useState('ALL');
 
   const degree = useMemo(() => {
     const values = new Map<string, number>();
@@ -372,11 +389,12 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
     const needle = query.trim().toLowerCase();
     return graph.nodes.filter((node) => {
       if (activeType !== 'ALL' && node.type !== activeType) return false;
+      if (temporalResolution !== 'ALL' && !node.scientificReading?.temporal.availableResolutions.includes(temporalResolution)) return false;
       if (!needle) return true;
       return [node.label, node.type, node.origin, node.provenance, ...node.lineage]
         .some((value) => value.toLowerCase().includes(needle));
     });
-  }, [activeType, graph.nodes, query]);
+  }, [activeType, graph.nodes, query, temporalResolution]);
 
   const visibleNodeIds = useMemo(() => new Set(visibleNodes.map((node) => node.id)), [visibleNodes]);
   const visibleEdges = useMemo(
@@ -428,6 +446,9 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
 
       <section className="neuralGraphControls" aria-label="Canonical cognitive field readings">
         <div className="neuralGraphFilters">
+          <select aria-label="Temporal resolution" value={temporalResolution} onChange={(event) => setTemporalResolution(event.target.value)}>
+            {['ALL','SYSTEM_HISTORY','REGIME','PHENOMENON','CYCLE','TRANSITION','EVENT','OBSERVATION'].map((level) => <option key={level} value={level}>{level.replaceAll('_',' ')}</option>)}
+          </select>
           {(['CURRENT_STATE','HIERARCHY','TRAJECTORY','RETROLONGITUDINAL','PROJECTION','FRICTION_REGIME','REALITY_CHAIN','RETURN_CONTRAST'] as const).map((mode) => (
             <button key={mode} className={reading === mode ? 'active' : ''} onClick={() => setReading(mode)}>
               {mode.replaceAll('_',' ')}
@@ -581,6 +602,13 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
                 <p>PROJECTION AUTHORITY · {selected.methodSignal?.projectionAuthority ?? 'NONE'}</p>
                 <p>SUBJECT IDENTITY · {selected.methodResolution?.subjectBasis ?? 'UNKNOWN'} · {selected.methodResolution?.input.subject ?? 'UNKNOWN'}{selected.methodResolution?.subjectProposal ? ` · PROPOSED ${selected.methodResolution.subjectProposal}` : ''}</p>
                 <p>UNKNOWN RESOLUTION · {selected.unknownResolutionPlan?.status ?? 'NOT_REQUIRED'} · {selected.unknownResolutionPlan?.temporalBasis.join(' + ') || 'NO ACTIVE BASIS'}</p>
+                <p>TEMPORAL FIELD · {selected.scientificReading?.temporal.coordinates.map((item) => item.basis).join(' + ') || 'UNKNOWN'} · {selected.scientificReading?.temporal.multipleClocks ? 'MULTIPLE CLOCKS' : 'SINGLE/NO CLOCK'}</p>
+                <p>TEMPORAL ZOOM · {selected.scientificReading?.temporal.availableResolutions.join(' → ') || 'OBSERVATION'}</p>
+                <p>EMERGENCE · {selected.scientificReading?.emergence.state ?? 'NOT_ESTABLISHED'} · {selected.scientificReading?.emergence.reason ?? 'No emergence reading.'}</p>
+                <p>RELATIONAL HISTORY · {selected.scientificReading?.relations.length ?? 0} relations · {(selected.scientificReading?.relations.filter((item) => item.previousState || item.weightDelta !== null).length ?? 0)} with observed transition/delta</p>
+                <p>METHOD CANDIDATES · {selected.scientificReading?.methodCandidates.map((item) => item.family).join(' · ') || 'NONE FROM CURRENT OBSERVATION'}</p>
+                <p>CAPACITY ENVELOPE · {selected.scientificReading?.capacity ? `${selected.scientificReading.capacity.response} · ${selected.scientificReading.capacity.evidenceRefs.length} EVIDENCE REF(S)` : 'NOT OBSERVED'}</p>
+                <p>MULTI-RESOLUTION LINEAGE · {selected.scientificReading?.reversibility.reconstructable ? 'RECONSTRUCTABLE' : 'INCOMPLETE'} · SOURCE {selected.scientificReading?.reversibility.sourceObservationRefs.length ?? 0}</p>
                 {selected.unknownResolutionPlan?.status !== 'NOT_REQUIRED' ? <p>STOPPING CONDITION · {selected.unknownResolutionPlan?.stoppingCondition}</p> : null}
                 <p>MIHM RESOLUTION · {selected.methodResolution?.resolution.status ?? 'AMBIGUOUS'} · {selected.methodResolution?.resolution.primary?.methodId ?? 'NONE'} · {selected.methodResolution?.input.temporalScope ?? 'UNKNOWN'}</p>
                 <p>PROTOCOL PROPOSAL · {selected.fieldProtocolProposal?.status ?? 'ABSTAIN'} · {selected.fieldProtocolProposal?.protocolId ?? 'NONE'} · {selected.fieldProtocolProposal?.epistemicClass ?? 'DERIVED'}</p>
