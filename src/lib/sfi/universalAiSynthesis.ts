@@ -141,6 +141,8 @@ export type SfiUniversalAiSynthesis = {
   frictionAnalysis: SfiUniversalFrictionFinding[];
   primaryHypothesis: string | null;
   rivalHypotheses: string[];
+  discriminatingObservations: string[];
+  stoppingCondition: string | null;
   predictions: SfiUniversalAiPrediction[];
   missingEvidence: string[];
   confidence: number | null;
@@ -232,6 +234,8 @@ function parseSynthesis(value: string) {
       frictionAnalysis,
       primaryHypothesis,
       rivalHypotheses: rivals,
+      discriminatingObservations: strings(parsed.discriminatingObservations, 8),
+      stoppingCondition: text(parsed.stoppingCondition),
       predictions,
       missingEvidence: strings(parsed.missingEvidence, 12),
       confidence: parsed.confidence === null || parsed.confidence === undefined ? null : clamp01(parsed.confidence, 0.5),
@@ -262,6 +266,8 @@ export async function synthesizeUniversalCycleWithAi(input: {
     'Distinguish measured friction from causal explanation: a recurring pattern or temporal anomaly can establish a friction candidate without establishing its cause.',
     'Your output is INFERENCE only and cannot authorize action or promote itself to canonical truth.',
     'Generate one falsifiable primary hypothesis and at least one materially distinct rival when evidence permits.',
+    'When rivals exist, propose discriminatingObservations that describe the smallest future or independent observation capable of separating the primary hypothesis from at least one rival. Do not treat an acquired SOURCE_CLAIM as that observation unless it is explicitly admitted as evidence elsewhere.',
+    'stoppingCondition must state the bounded empirical condition under which the current discrimination pass stops; do not invent a calendar timeout when the supplied temporal basis is a cycle, recurrence, phase, sequence or state occupancy.',
     'Predictions must discriminate between hypotheses. Each prediction needs expectedSignals, contradictionSignals and an observationWindow when possible.',
     'If the available material cannot support a friction, hypothesis or prediction, omit it and name the missing evidence instead of guessing.',
     'Write in the language used by the question/objective when reasonably possible.',
@@ -272,7 +278,7 @@ export async function synthesizeUniversalCycleWithAi(input: {
     'humanReport must preserve the sequence: what was declared; what was observed; external contrast when relevant; friction; competing interpretation; what is not demonstrated; next observation.',
     'Do not use labels such as INFERRED_NO_PROOF, NO_MATCHING_MATERIAL_OBSERVATION, SOURCE_CLAIM or similar internal codes as human-facing explanations. Translate the meaning into ordinary language.',
     'Public/essay metaphors are not appropriate in CASE_ANALYSIS unless the user explicitly asks for a public narrative.',
-    'Return ONLY JSON with this exact shape: {"summary":string|null,"humanReport":{"opening":string|null,"declaredContext":string[],"observedEvidence":string[],"externalContrast":string[],"frictionReading":string[],"competingInterpretations":string[],"notDemonstrated":string[],"nextObservation":string[]},"evidenceAssessment":{"declared":string[],"observed":string[],"derived":string[],"externalSourceClaims":string[],"unresolved":string[]},"frictionAnalysis":[{"dimension":string,"finding":string,"basis":string[],"evidenceRefs":string[],"confidence":number}],"primaryHypothesis":string|null,"rivalHypotheses":string[],"predictions":[{"description":string,"confidence":number,"expectedSignals":string[],"contradictionSignals":string[],"observationWindow":string|null}],"missingEvidence":string[],"confidence":number|null}.',
+    'Return ONLY JSON with this exact shape: {"summary":string|null,"humanReport":{"opening":string|null,"declaredContext":string[],"observedEvidence":string[],"externalContrast":string[],"frictionReading":string[],"competingInterpretations":string[],"notDemonstrated":string[],"nextObservation":string[]},"evidenceAssessment":{"declared":string[],"observed":string[],"derived":string[],"externalSourceClaims":string[],"unresolved":string[]},"frictionAnalysis":[{"dimension":string,"finding":string,"basis":string[],"evidenceRefs":string[],"confidence":number}],"primaryHypothesis":string|null,"rivalHypotheses":string[],"discriminatingObservations":string[],"stoppingCondition":string|null,"predictions":[{"description":string,"confidence":number,"expectedSignals":string[],"contradictionSignals":string[],"observationWindow":string|null}],"missingEvidence":string[],"confidence":number|null}.',
   ].join('\n');
 
   const prompt = JSON.stringify(compact({
@@ -288,7 +294,7 @@ export async function synthesizeUniversalCycleWithAi(input: {
     task: 'graph_interpretation',
     system,
     prompt,
-    fallbackResult: '{"summary":null,"humanReport":{"opening":null,"declaredContext":[],"observedEvidence":[],"externalContrast":[],"frictionReading":[],"competingInterpretations":[],"notDemonstrated":["No fue posible producir una síntesis humana suficiente con la observación disponible."],"nextObservation":["Conservar el ciclo abierto hasta contar con material suficiente para una lectura verificable."]},"evidenceAssessment":{"declared":[],"observed":[],"derived":[],"externalSourceClaims":[],"unresolved":["LLM_PROVIDER_UNAVAILABLE_OR_INSUFFICIENT_STRUCTURED_OBSERVATION"]},"frictionAnalysis":[],"primaryHypothesis":null,"rivalHypotheses":[],"predictions":[],"missingEvidence":["LLM_PROVIDER_UNAVAILABLE_OR_INSUFFICIENT_STRUCTURED_OBSERVATION"],"confidence":null}',
+    fallbackResult: '{"summary":null,"humanReport":{"opening":null,"declaredContext":[],"observedEvidence":[],"externalContrast":[],"frictionReading":[],"competingInterpretations":[],"notDemonstrated":["No fue posible producir una síntesis humana suficiente con la observación disponible."],"nextObservation":["Conservar el ciclo abierto hasta contar con material suficiente para una lectura verificable."]},"evidenceAssessment":{"declared":[],"observed":[],"derived":[],"externalSourceClaims":[],"unresolved":["LLM_PROVIDER_UNAVAILABLE_OR_INSUFFICIENT_STRUCTURED_OBSERVATION"]},"frictionAnalysis":[],"primaryHypothesis":null,"rivalHypotheses":[],"discriminatingObservations":[],"stoppingCondition":null,"predictions":[],"missingEvidence":["LLM_PROVIDER_UNAVAILABLE_OR_INSUFFICIENT_STRUCTURED_OBSERVATION"],"confidence":null}',
     requirements: { reasoning: true, structuredOutput: true, priority: 'quality' },
     maxTokens: 2200,
   });
@@ -311,6 +317,8 @@ export async function synthesizeUniversalCycleWithAi(input: {
         frictionAnalysis: [],
         primaryHypothesis: null,
         rivalHypotheses: [],
+        discriminatingObservations: [],
+        stoppingCondition: null,
         predictions: [],
         missingEvidence: ['AI_SYNTHESIS_SCHEMA_INVALID'],
         confidence: null,
