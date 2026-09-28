@@ -98,4 +98,17 @@ const multiEvidenceSnapshot = resolveMihmMethod({
 assert.equal(multiEvidenceSnapshot.status, 'READY');
 assert.equal(multiEvidenceSnapshot.primary?.methodId, 'SCOREFRICTION');
 
+const questionDrivenCase = resolveRootCaseMethodology({
+  id: 'question-driven-case',
+  title: 'Bounded observation',
+  type: 'case',
+  status: 'closed',
+  research_question: 'Did the relation change across a recurring cycle, and which rival hypothesis would distinguish the transition?',
+  evidence_count: 1,
+  evidence_type: 'institutional record',
+});
+assert.equal(questionDrivenCase.input.requiresTrajectory, true);
+assert.equal(questionDrivenCase.input.requiresRivalHypothesis, true);
+assert.equal(questionDrivenCase.resolution.primary?.methodId, 'PPOI');
+
 console.log('SFI method selection resolver QA passed.');
