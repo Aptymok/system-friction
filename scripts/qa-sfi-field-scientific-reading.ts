@@ -35,6 +35,9 @@ assert.equal(emergenceReading({...node,attributes:{...node.attributes,previousPr
 const methods=scientificMethodCandidates(node,[edge]);
 assert(methods.some(x=>x.family==='CHANGE_POINT'));
 assert(methods.some(x=>x.family==='ACTIVE_LEARNING'));
+assert(methods.some(x=>x.family==='STATE_SPACE'));
+assert(methods.some(x=>x.family==='POINT_PROCESS'));
+assert(methods.some(x=>x.family==='DYNAMICAL_SYSTEMS'));
 for(const method of methods){assert(method.dataRequired.length);assert(method.assumptions.length);assert(method.failureModes.length);assert(method.falsificationCondition.length);}
 
 const reading=deriveFieldScientificReading(node,[edge,otherEdge]);
@@ -68,6 +71,9 @@ assert.equal(reading.methodCompetition.state,'COMPETING');
 assert(reading.methodCompetition.candidates.some(x=>x.family==='CHANGE_POINT'&&x.assumptionCheck==='OBSERVABLE'));
 assert(reading.methodCompetition.candidates.some(x=>x.family==='NETWORK_SCIENCE'&&x.assumptionCheck==='OBSERVABLE'));
 assert(reading.methodCompetition.candidates.some(x=>x.family==='ACTIVE_LEARNING'&&x.assumptionCheck==='OBSERVABLE'));
+assert(reading.methodCompetition.candidates.some(x=>x.family==='STATE_SPACE'&&x.assumptionCheck==='OBSERVABLE'));
+assert(reading.methodCompetition.candidates.some(x=>x.family==='POINT_PROCESS'&&x.assumptionCheck==='OBSERVABLE'));
+assert(reading.methodCompetition.candidates.some(x=>x.family==='DYNAMICAL_SYSTEMS'&&x.assumptionCheck==='OBSERVABLE'));
 assert.ok(reading.methodCompetition.nextObservation?.includes('smallest observation'));
 
 const recordOnly={...node,nodeId:'record-only',lineage:[],provenance:'',attributes:{},createdAt:'2026-09-28T15:00:00.000Z',updatedAt:'2026-09-28T15:01:00.000Z'} as CanonicalGraphNode;
