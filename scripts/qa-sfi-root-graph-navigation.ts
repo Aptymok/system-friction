@@ -99,6 +99,8 @@ check('ROOT Neural Graph view renders topology without owning persistence', neur
 check('ROOT Neural Graph inspector does not silently truncate adjacent relations', !neuralGraphView.includes('.filter((edge) => edge.source === selected.id || edge.target === selected.id).slice(0, 40)'));
 check('ROOT Neural Graph inspector does not silently truncate selected-node lineage', !neuralGraphView.includes('selected.lineage.slice(0, 12)'));
 check('ROOT Neural Graph timestamp formatting is hydration-deterministic', neuralGraphView.includes("timeZone: 'America/Mexico_City'"));
+check('ROOT temporal reading prefers observed sequence and cycle coordinates before chronology', neuralGraphView.includes("basis: 'SEQUENCE'") && neuralGraphView.includes("basis: 'CYCLE'") && neuralGraphView.includes("basis: 'PHASE'") && neuralGraphView.includes("basis: 'CHRONOLOGY'") && neuralGraphView.includes("['sequence','sequenceIndex','transitionIndex','eventIndex','order']") && neuralGraphView.includes("['cycle','cycleIndex','cycleNumber','recurrence','recurrenceIndex']"));
+check('ROOT temporal inspector exposes temporal basis instead of presenting timestamps as the only time model', neuralGraphView.includes('<dt>TEMPORAL BASIS</dt>') && neuralGraphView.includes('<dt>TIME / CYCLE</dt>'));
 check('ROOT Neural Graph unavailable read plane does not claim primary active', neuralGraphView.includes("graph.readPlane === 'SUPABASE' ? 'Primary active' : 'Projection / unavailable'"));
 check('ROOT itself is the Neural Graph surface without a duplicate neural-graph route or scene', scenePage.includes('RootNeuralGraphView') && !shellUi.includes("href:'/root/neural-graph'") && !scenes.includes("key:'neural-graph'") && !fs.existsSync(path.join(root, 'src/app/root/neural-graph/page.tsx')));
 
