@@ -84,8 +84,10 @@ export function capacityObservation(node: CanonicalGraphNode): CapacityObservati
   const responseRaw=String(a.capacityResponse??a.capacity_response??a.responseClass??a.response_class??'').toUpperCase();
   const allowed=['ABSORPTION','RECOVERY','REORGANIZATION','DEGRADATION','FRAGMENTATION'] as const;
   const response=allowed.find(x=>responseRaw.includes(x))??'UNKNOWN';
-  const evidenceRefs=[...new Set([...node.lineage,...list(a.evidenceRefs),...list(a.evidence_refs),...list(a.returnEvidenceRefs),...list(a.return_evidence_refs)])];
-  if(!interventionRef && response==='UNKNOWN' && !evidenceRefs.length) return null;
+  const evidenceRefs=[...new Set([...list(a.returnEvidenceRefs),...list(a.return_evidence_refs)])];
+  // Capacity is empirical only when a specific intervention/perturbation is linked to
+  // an observed response and RETURN evidence. Generic node lineage is not capacity evidence.
+  if(!interventionRef || response==='UNKNOWN' || !evidenceRefs.length) return null;
   return {interventionRef,perturbationMagnitude:firstNum(a,['perturbationMagnitude','perturbation_magnitude','interventionMagnitude','intervention_magnitude'])?.value??null,response,recoveryTime:firstNum(a,['recoveryTime','recovery_time','timeToRecovery','time_to_recovery'])?.value??null,evidenceRefs};
 }
 
