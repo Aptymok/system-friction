@@ -64,6 +64,11 @@ assert(reading.propertyDiscovery.candidates.some(x=>x.property==='RELATION_WEIGH
 assert(reading.propertyDiscovery.candidates.some(x=>x.property==='RELATION_STATE_CHANGE'));
 assert(reading.propertyDiscovery.candidates.some(x=>x.property==='RECURRENCE'));
 assert.equal(reading.attractor.state,'ATTRACTOR_CANDIDATE','recurrence plus observed recovery and provenance-bound stable relation may become a candidate, never an established attractor');
+assert.equal(reading.methodCompetition.state,'COMPETING');
+assert(reading.methodCompetition.candidates.some(x=>x.family==='CHANGE_POINT'&&x.assumptionCheck==='OBSERVABLE'));
+assert(reading.methodCompetition.candidates.some(x=>x.family==='NETWORK_SCIENCE'&&x.assumptionCheck==='OBSERVABLE'));
+assert(reading.methodCompetition.candidates.some(x=>x.family==='ACTIVE_LEARNING'&&x.assumptionCheck==='OBSERVABLE'));
+assert.ok(reading.methodCompetition.nextObservation?.includes('smallest observation'));
 
 const recordOnly={...node,nodeId:'record-only',lineage:[],provenance:'',attributes:{},createdAt:'2026-09-28T15:00:00.000Z',updatedAt:'2026-09-28T15:01:00.000Z'} as CanonicalGraphNode;
 assert.equal(temporalCoordinates(recordOnly).length,0,'database record timestamps must not become observed-world time');
@@ -71,6 +76,7 @@ assert.equal(emergenceReading(recordOnly).state,'NOT_ESTABLISHED');
 assert.equal(deriveFieldScientificReading(recordOnly,[]).capacity,null);
 assert.equal(deriveFieldScientificReading(recordOnly,[]).propertyDiscovery.status,'INSUFFICIENT');
 assert.equal(deriveFieldScientificReading(recordOnly,[]).attractor.state,'NOT_ESTABLISHED');
+assert.equal(deriveFieldScientificReading(recordOnly,[]).methodCompetition.state,'NO_CANDIDATE');
 
 const fakeCapacityFromGenericLineage={
   ...node,
