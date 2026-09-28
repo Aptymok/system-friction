@@ -298,6 +298,63 @@ export function deriveCanonicalFieldMethodSignal(
   };
 }
 
+export type CanonicalUnknownResolutionPlan = {
+  status: 'NOT_REQUIRED' | 'ACTIVE' | 'CENSORED';
+  target: 'SUBJECT_IDENTITY';
+  temporalBasis: Array<'SEQUENCE' | 'CYCLE' | 'PHASE' | 'CHRONOLOGY' | 'UNKNOWN'>;
+  knownWithoutIdentity: string[];
+  missing: string[];
+  discriminatingObservations: string[];
+  sourceStrategy: string[];
+  stoppingCondition: string;
+  noCalendarTimeoutInvented: true;
+};
+
+export function planCanonicalUnknownResolution(
+  node: CanonicalGraphNode,
+  edges: CanonicalGraphEdge[],
+  methodology: CanonicalFieldMethodResolution,
+  signal = deriveCanonicalFieldMethodSignal(node, edges),
+): CanonicalUnknownResolutionPlan {
+  if (methodology.input.subject !== 'UNKNOWN') {
+    return { status: 'NOT_REQUIRED', target: 'SUBJECT_IDENTITY', temporalBasis: [], knownWithoutIdentity: [], missing: [], discriminatingObservations: [], sourceStrategy: [], stoppingCondition: 'Subject identity is already declared.', noCalendarTimeoutInvented: true };
+  }
+  const attrs = node.attributes ?? {};
+  const bases = new Set<CanonicalUnknownResolutionPlan['temporalBasis'][number]>();
+  if (graphNumber(attrs, ['sequence','sequenceIndex','sequence_index','transitionIndex','transition_index','eventIndex','event_index','order']) !== null) bases.add('SEQUENCE');
+  if (graphNumber(attrs, ['cycle','cycleIndex','cycle_index','cycleNumber','cycle_number','recurrence','recurrenceIndex','recurrence_index']) !== null) bases.add('CYCLE');
+  if (graphText(attrs, ['phase','temporalPhase','temporal_phase','cyclePhase','cycle_phase','statePhase','state_phase'])) bases.add('PHASE');
+  if (node.createdAt || node.updatedAt) bases.add('CHRONOLOGY');
+  if (!bases.size) bases.add('UNKNOWN');
+
+  const knownWithoutIdentity = [
+    signal.temporalStructureObserved ? 'TEMPORAL_STRUCTURE_OBSERVED' : null,
+    signal.relationTransition ? 'RELATION_TRANSITION_OBSERVED' : null,
+    signal.weightChangeObserved ? 'RELATION_WEIGHT_CHANGE_OBSERVED' : null,
+    signal.counterevidenceObserved ? 'COUNTEREVIDENCE_OBSERVED' : null,
+    signal.evidenceBoundRelationCount > 0 ? 'PROVENANCE_BOUND_RELATIONS_PRESENT' : null,
+  ].filter((value): value is string => Boolean(value));
+
+  const censored = signal.evidenceBoundRelationCount === 0 && signal.relationCount === 0 && !signal.temporalStructureObserved;
+  return {
+    status: censored ? 'CENSORED' : 'ACTIVE',
+    target: 'SUBJECT_IDENTITY',
+    temporalBasis: [...bases],
+    knownWithoutIdentity,
+    missing: ['CLAIM_SCOPED_PRIMARY_SOURCE_OR_DIRECT_OBSERVATION', 'IDENTITY_DISCRIMINATOR', 'RIVAL_IDENTITY_OR_EXCLUSION_CRITERIA'],
+    discriminatingObservations: [
+      methodology.subjectProposal ? `Seek an observation that distinguishes proposed ${methodology.subjectProposal} from at least one rival identity.` : 'Acquire an observation capable of supporting at least one bounded identity candidate.',
+      'Preserve temporal basis and provenance while testing identity; do not convert recurrence into identity.',
+      'If public information is relevant, retrieve claim-scoped primary authority before secondary/social corroboration.',
+    ],
+    sourceStrategy: ['PRIMARY_AUTHORITY_OR_DIRECT_SOURCE', 'PRIMARY_PARTY_FOR_SELF_REPORTED_CLAIMS', 'SECONDARY_FOR_CORROBORATION', 'SOCIAL_ONLY_AS_SIGNAL_UNLESS_THE_PUBLICATION_ITSELF_IS_THE_CLAIM'],
+    stoppingCondition: censored
+      ? 'Current instrumentation contains no discriminating observation opportunity; mark censored until a new source, relation, event, cycle, or measurement becomes observable.'
+      : 'Stop the current pass when identity is discriminated by evidence or when all currently observable discriminators are exhausted; do not substitute elapsed calendar time for an observation opportunity.',
+    noCalendarTimeoutInvented: true,
+  };
+}
+
 export type CanonicalFieldMethodResolution = {
   input: MihmMethodSelectionInput;
   resolution: MihmMethodSelectionResult;
