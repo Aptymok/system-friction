@@ -7,6 +7,7 @@ import { projectCognitiveGraph } from '@/lib/graph/cognitiveGraphAdmission';
 import { readRealityChainNode, readRealityChainEdge, realityChainCoverage } from '@/lib/graph/realityChainProjection';
 import { requireFounderPage } from '@/lib/system/access/server';
 import { AuthenticatedSfiMenu } from '@/components/sfi/AuthenticatedSfiMenu';
+import { deriveCanonicalFieldMethodSignal } from '@/lib/mihm/rootCaseMethodology';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,6 +24,9 @@ export default async function ScenePage({ params }:{ params:Promise<{scene:strin
     const realityNodes = new Map(graph.nodes.map((node) => [node.nodeId, readRealityChainNode(node)]));
     const realityEdges = new Map(graph.edges.map((edge) => [edge.edgeId, readRealityChainEdge(edge)]));
     const realityCoverage = realityChainCoverage(graph.nodes);
+    const methodSignals = new Map(
+      graph.nodes.map((node) => [node.nodeId, deriveCanonicalFieldMethodSignal(node, graph.edges)]),
+    );
 
     return (
       <main className="sfiOperatingShell sfiAuthenticatedViewport" data-root-primary-interface="CANONICAL_COGNITIVE_FIELD">
@@ -43,6 +47,7 @@ export default async function ScenePage({ params }:{ params:Promise<{scene:strin
               lineage: node.lineage,
               attributes: node.attributes,
               reality: realityNodes.get(node.nodeId),
+              methodSignal: methodSignals.get(node.nodeId),
             })),
             edges: graph.edges.map((edge) => ({
               id: edge.edgeId,
