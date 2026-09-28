@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { resolveMihmMethod } from '../src/lib/mihm/methodSelectionResolver';
 import { deriveCanonicalFieldMethodSignal, resolveRootCaseMethodology } from '../src/lib/mihm/rootCaseMethodology';
 import type { CanonicalGraphEdge, CanonicalGraphNode } from '../packages/graph/src';
+import { resolveMethodLabFieldProjection } from '../src/lib/method-lab/fieldProjection';
 
 const personal = resolveMihmMethod({
   subject: 'PERSON', temporalScope: 'SESSION', evidenceModalities: ['CONVERSATION'], sessionId: 'session-1',
@@ -300,5 +301,33 @@ assert.equal(evidenceDrivenPromotedSignal.provenanceCoverage, 1);
 assert.ok(evidenceDrivenPromotedSignal.reorganizationMagnitude > 0);
 assert.ok(evidenceDrivenPromotedSignal.reorganizationMagnitude <= 1);
 assert.equal(evidenceDrivenPromotedSignal.projectionAuthority, 'METHOD_LAB_REQUIRED');
+
+const noProtocolProjection = resolveMethodLabFieldProjection({
+  protocolId: null,
+  ...evidenceDrivenPromotedSignal,
+});
+assert.equal(noProtocolProjection.decision, 'ABSTAIN');
+assert.equal(noProtocolProjection.reason, 'FIELD_PROTOCOL_REQUIRED');
+
+const methodLabProjection = resolveMethodLabFieldProjection({
+  protocolId: 'sociotechnical_simulation',
+  ...evidenceDrivenPromotedSignal,
+});
+assert.equal(methodLabProjection.decision, 'SIMULATED_PROJECTION');
+assert.equal(methodLabProjection.epistemicClass, 'SIMULATED');
+assert.ok(methodLabProjection.displacement);
+assert.ok(methodLabProjection.limitations.some((item) => item.includes('not an observed force')));
+
+const unresolvedDirectionProjection = resolveMethodLabFieldProjection({
+  protocolId: 'sociotechnical_simulation',
+  relationCount: 1,
+  evidenceBoundRelationCount: 1,
+  observedWeightDelta: 0.3,
+  relationSupportRatio: 0.5,
+  provenanceCoverage: 1,
+  fieldReorganizationState: 'LEARNING_PROMOTED',
+});
+assert.equal(unresolvedDirectionProjection.decision, 'ABSTAIN');
+assert.equal(unresolvedDirectionProjection.reason, 'DIRECTION_UNRESOLVED');
 
 console.log('SFI method selection resolver QA passed.');
