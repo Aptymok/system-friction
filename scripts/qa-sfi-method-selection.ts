@@ -429,6 +429,9 @@ const recurrenceOccupancyPlan = planCanonicalUnknownResolution(
 assert.ok(recurrenceOccupancyPlan.temporalBasis.includes('RECURRENCE'));
 assert.ok(recurrenceOccupancyPlan.temporalBasis.includes('STATE_OCCUPANCY'));
 assert.ok(recurrenceOccupancyPlan.temporalBasis.includes('CHRONOLOGY'));
+assert.equal(recurrenceOccupancyPlan.nextObservation?.objective, 'IDENTITY_DISCRIMINATION');
+assert.ok(recurrenceOccupancyPlan.nextObservation?.opportunity.includes('next comparable recurrence'));
+assert.equal(recurrenceOccupancyPlan.nextObservation?.calendarWaitRequired, false);
 assert.equal(recurrenceOccupancyPlan.temporalBasis.includes('CYCLE'), false, 'recurrence must not be silently converted into cycle');
 
 const recordTimestampOnlyPlan = planCanonicalUnknownResolution(
@@ -438,6 +441,8 @@ const recordTimestampOnlyPlan = planCanonicalUnknownResolution(
 );
 assert.equal(recordTimestampOnlyPlan.temporalBasis.includes('CHRONOLOGY'), false, 'graph record timestamps are not observed-world chronology');
 assert.ok(recordTimestampOnlyPlan.temporalBasis.includes('UNKNOWN'));
+assert.ok(recordTimestampOnlyPlan.nextObservation?.opportunity.includes('Acquire a new source'));
+assert.equal(recordTimestampOnlyPlan.nextObservation?.calendarWaitRequired, false);
 
 const censoredUnknownPlan = planCanonicalUnknownResolution(
   { ...canonicalFieldNode, nodeId: 'censored-unknown', provenance: '', lineage: [], attributes: {}, createdAt: '', updatedAt: '' },
@@ -468,6 +473,7 @@ const resolvedIdentity = contrastUnknownIdentityEvidence(temporalUnknownPlan, [
 assert.equal(resolvedIdentity.evidenceDisposition, 'RESOLVED');
 assert.equal(resolvedIdentity.supportedIdentity, 'CASE');
 assert.equal(resolvedIdentity.status, 'NOT_REQUIRED');
+assert.equal(resolvedIdentity.nextObservation, null);
 assert.ok(resolvedIdentity.stoppingCondition.includes('Reopen if counterevidence'));
 
 const unresolvedRivals = contrastUnknownIdentityEvidence(temporalUnknownPlan, [
