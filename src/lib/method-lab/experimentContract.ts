@@ -122,6 +122,44 @@ export type MethodLabExperimentRunArtifacts = {
   };
 };
 
+export type MethodLabMethodResult = {
+  methodId: string;
+  methodVersion: string;
+  runId: string;
+  epistemicClass: MethodLabExperimentResultEpistemicClass;
+  resultHash: string;
+  evidenceRefs: string[];
+  expectedSignal: { description: string; measures: string[] };
+  falsificationCondition: string;
+  stoppingCondition: string;
+  returnWindow: MethodLabExperimentPreregistration['RETURN_WINDOW'];
+  contrastStatus: MethodLabExperimentRunArtifacts['CONTRAST']['status'];
+  canonicalMutation: false;
+  boundary: 'METHOD_RESULT_IS_NOT_OBSERVATION_OR_CANON';
+};
+
+export function projectMethodLabMethodResult(
+  preregistration: MethodLabExperimentPreregistration,
+  run: MethodLabExperimentRun,
+): MethodLabMethodResult {
+  const checked = assertMethodLabExperimentRun(preregistration, run);
+  return {
+    methodId: preregistration.METHOD.methodId,
+    methodVersion: preregistration.METHOD.version,
+    runId: checked.artifacts.EXECUTED.runId,
+    epistemicClass: checked.artifacts.RESULT.epistemicClass,
+    resultHash: checked.artifacts.RESULT.resultHash,
+    evidenceRefs: [...checked.artifacts.RESULT.evidenceRefs],
+    expectedSignal: { description: preregistration.EXPECTED_SIGNAL.description, measures: [...preregistration.EXPECTED_SIGNAL.measures] },
+    falsificationCondition: preregistration.FALSIFICATION.condition,
+    stoppingCondition: preregistration.STOPPING_RULE.condition,
+    returnWindow: { ...preregistration.RETURN_WINDOW },
+    contrastStatus: checked.artifacts.CONTRAST.status,
+    canonicalMutation: false,
+    boundary: 'METHOD_RESULT_IS_NOT_OBSERVATION_OR_CANON',
+  };
+}
+
 export type MethodLabExperimentRun = {
   contractVersion: typeof METHOD_LAB_EXPERIMENT_CONTRACT_VERSION;
   artifacts: MethodLabExperimentRunArtifacts;
