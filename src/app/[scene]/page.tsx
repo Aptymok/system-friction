@@ -1,7 +1,6 @@
 import { notFound, redirect } from 'next/navigation';
 import { SfiConsole } from '@/components/sfi/SfiConsole';
 import { RootNeuralGraphView } from '@/components/sfi/RootNeuralGraphView';
-import { SfiRootWorkspace } from '@/components/sfi/SfiRootWorkspace';
 import { LEGACY_INTERNAL_SCENES, SCENE_KEYS, type SceneKey } from '@/components/sfi/scenes';
 import { readCanonicalGraphState } from '@/lib/graph/canonicalGraph';
 import { projectCognitiveGraph } from '@/lib/graph/cognitiveGraphAdmission';
@@ -59,7 +58,6 @@ export default async function ScenePage({ params }:{ params:Promise<{scene:strin
             admission: graph.admission,
           }}
         />
-        <SfiRootWorkspace enabled/>
       </main>
     );
   }
