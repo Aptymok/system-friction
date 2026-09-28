@@ -87,6 +87,8 @@ type GraphNode = {
     capacity: { interventionRef:string|null; perturbationMagnitude:number|null; response:string; recoveryTime:number|null; evidenceRefs:string[] } | null;
     distributedConfiguration: { state:string; memberNodeIds:string[]; relationIds:string[]; evidenceBoundRelationCount:number; reason:string };
     evidenceGeometry: { authority:string; meanObservedWeight:number|null; strongestRelationId:string|null; strongestWeight:number|null; rule:string };
+    propertyDiscovery: { status:string; candidates:{property:string;sourceRef:string;value:string|number;epistemicClass:string}[]; boundary:string };
+    attractor: { state:string; recurrenceObserved:boolean; recoveryObserved:boolean; stabilityEvidenceRefs:string[]; reason:string };
     nextAction: { decision:string; basis:string[]; candidateRefs:string[]; authorityRequired:boolean; reason:string };
     methodCandidates: { family:string; question:string; assumptions:string[]; failureModes:string[]; output:string; falsificationCondition:string; computationalCost:string }[];
     reversibility: { sourceObservationRefs:string[]; aggregationRefs:string[]; phenomenonRefs:string[]; reconstructable:boolean };
@@ -623,6 +625,8 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
                 <p>CAPACITY OBSERVATION · {selected.scientificReading?.capacity ? `${selected.scientificReading.capacity.response} · ${selected.scientificReading.capacity.evidenceRefs.length} EVIDENCE REF(S)` : 'NOT OBSERVED'}</p>
                 <p>DISTRIBUTED CONFIGURATION · {selected.scientificReading?.distributedConfiguration.state ?? 'NOT_ESTABLISHED'} · {selected.scientificReading?.distributedConfiguration.evidenceBoundRelationCount ?? 0} EVIDENCE-BOUND RELATIONS</p>
                 <p>EVIDENCE GEOMETRY · {selected.scientificReading?.evidenceGeometry.authority ?? 'INSUFFICIENT'} · MEAN WEIGHT {selected.scientificReading?.evidenceGeometry.meanObservedWeight == null ? 'UNKNOWN' : selected.scientificReading.evidenceGeometry.meanObservedWeight.toFixed(3)}</p>
+                <p>PROPERTY DISCOVERY · {selected.scientificReading?.propertyDiscovery.status ?? 'INSUFFICIENT'} · {selected.scientificReading?.propertyDiscovery.candidates.map((item) => item.property).join(' · ') || 'NO OBSERVED PROPERTY CANDIDATE'}</p>
+                <p>ATTRACTOR · {selected.scientificReading?.attractor.state ?? 'NOT_ESTABLISHED'} · {selected.scientificReading?.attractor.reason ?? 'Recurrence alone is insufficient.'}</p>
                 <p>NEXT FIELD ACTION · {selected.scientificReading?.nextAction.decision ?? 'NO_ACTION'} · {selected.scientificReading?.nextAction.authorityRequired ? 'ROOT AUTHORITY REQUIRED' : 'NO EXECUTION AUTHORITY CLAIMED'}</p>
                 <p>MULTI-RESOLUTION LINEAGE · {selected.scientificReading?.reversibility.reconstructable ? 'RECONSTRUCTABLE' : 'INCOMPLETE'} · SOURCE {selected.scientificReading?.reversibility.sourceObservationRefs.length ?? 0}</p>
                 {selected.unknownResolutionPlan?.status !== 'NOT_REQUIRED' ? <p>STOPPING CONDITION · {selected.unknownResolutionPlan?.stoppingCondition}</p> : null}
