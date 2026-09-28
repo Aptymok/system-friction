@@ -4,7 +4,7 @@ import { request as httpsRequest } from 'node:https';
 import { isIP } from 'node:net';
 import { appendEpistemicEvent } from '@/lib/events/eventStore';
 
-export const SFI_EVIDENCE_REQUIREMENT_RESOLVER_CONTRACT = 'SFI-EVIDENCE-REQUIREMENT-RESOLVER-1.1' as const;
+export const SFI_EVIDENCE_REQUIREMENT_RESOLVER_CONTRACT = 'SFI-EVIDENCE-REQUIREMENT-RESOLVER-1.2' as const;
 export type SfiWebEvidencePolicy = 'WEB_REQUIRED' | 'WEB_OPTIONAL' | 'WEB_NOT_REQUIRED' | 'WEB_FORBIDDEN' | 'WEB_ALREADY_SUFFICIENT';
 
 const MAX_DIRECT_SOURCE_BYTES = 120_000;
@@ -23,6 +23,19 @@ export type UniversalWebSource = {
   retrievedAt: string;
   sourceType: 'official' | 'regulator' | 'news' | 'professional' | 'other';
   reliability: number;
+  authority?: {
+    sourceClass: 'PRIMARY_AUTHORITY' | 'PRIMARY_PARTY' | 'SECONDARY' | 'SOCIAL_OR_COMMUNITY' | 'UNKNOWN';
+    claimScope: 'REGULATORY' | 'SELF_REPORTED' | 'STATISTICAL' | 'TECHNICAL' | 'JOURNALISTIC' | 'SOCIAL_SIGNAL' | 'UNKNOWN';
+    admission: 'SOURCE_ONLY' | 'CANDIDATE_EVIDENCE' | 'CORROBORATION_REQUIRED';
+    reason: string;
+  };
+  temporalValidity?: {
+    publishedAt: string | null;
+    retrievedAt: string;
+    validFrom: string | null;
+    validTo: string | null;
+    status: 'CURRENT_UNKNOWN' | 'DATED_SOURCE' | 'VALIDITY_DECLARED';
+  };
   verification?: {
     directFetch: boolean;
     httpStatus: number | null;
@@ -181,6 +194,30 @@ function classifySource(url: string, _title: string): UniversalWebSource['source
     // Keep unknown source provenance as other.
   }
   return 'other';
+}
+
+function sourceAuthorityFor(source: Pick<UniversalWebSource, 'url' | 'sourceType' | 'publishedAt' | 'retrievedAt'>): NonNullable<UniversalWebSource['authority']> {
+  const hostname = host(source.url);
+  const social = /(^|\.)(facebook\.com|instagram\.com|threads\.net|threads\.com|x\.com|twitter\.com|tiktok\.com|reddit\.com)$/.test(hostname);
+  if (social) return { sourceClass: 'SOCIAL_OR_COMMUNITY', claimScope: 'SOCIAL_SIGNAL', admission: 'SOURCE_ONLY', reason: 'Social publication can evidence that a statement was published; it does not establish the external claim as true.' };
+  if (source.sourceType === 'regulator') return { sourceClass: 'PRIMARY_AUTHORITY', claimScope: 'REGULATORY', admission: 'CANDIDATE_EVIDENCE', reason: 'Government/regulator source is primary only for claims within its institutional authority; claim-level fit still requires verification.' };
+  if (source.sourceType === 'official') return { sourceClass: 'PRIMARY_PARTY', claimScope: 'SELF_REPORTED', admission: 'CORROBORATION_REQUIRED', reason: 'Official first-party material is primary for what the party declares, not automatically for independent truth of the declaration.' };
+  if (source.sourceType === 'news') return { sourceClass: 'SECONDARY', claimScope: 'JOURNALISTIC', admission: 'CORROBORATION_REQUIRED', reason: 'Secondary reporting may corroborate or discover claims but does not replace an available primary source.' };
+  return { sourceClass: 'UNKNOWN', claimScope: 'UNKNOWN', admission: 'CORROBORATION_REQUIRED', reason: 'Source authority and claim scope are not established.' };
+}
+
+function temporalValidityFor(source: Pick<UniversalWebSource, 'publishedAt' | 'retrievedAt'>): NonNullable<UniversalWebSource['temporalValidity']> {
+  return {
+    publishedAt: source.publishedAt,
+    retrievedAt: source.retrievedAt,
+    validFrom: null,
+    validTo: null,
+    status: source.publishedAt ? 'DATED_SOURCE' : 'CURRENT_UNKNOWN',
+  };
+}
+
+function withSourceEpistemics(source: UniversalWebSource): UniversalWebSource {
+  return { ...source, authority: sourceAuthorityFor(source), temporalValidity: temporalValidityFor(source) };
 }
 
 function reliabilityFor(type: UniversalWebSource['sourceType'], url: string) {
