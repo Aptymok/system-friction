@@ -122,6 +122,13 @@ export type MethodLabExperimentRunArtifacts = {
   };
 };
 
+export type MethodLabExperimentRun = {
+  contractVersion: typeof METHOD_LAB_EXPERIMENT_CONTRACT_VERSION;
+  artifacts: MethodLabExperimentRunArtifacts;
+  canonicalMutation: false;
+  observationBoundary: 'SIMULATION_NEVER_INHERITS_OBSERVED';
+};
+
 export type MethodLabMethodResult = {
   methodId: string;
   methodVersion: string;
@@ -159,13 +166,6 @@ export function projectMethodLabMethodResult(
     boundary: 'METHOD_RESULT_IS_NOT_OBSERVATION_OR_CANON',
   };
 }
-
-export type MethodLabExperimentRun = {
-  contractVersion: typeof METHOD_LAB_EXPERIMENT_CONTRACT_VERSION;
-  artifacts: MethodLabExperimentRunArtifacts;
-  canonicalMutation: false;
-  observationBoundary: 'SIMULATION_NEVER_INHERITS_OBSERVED';
-};
 
 function assertIso(value: string, field: string) {
   if (!value || Number.isNaN(Date.parse(value))) throw new Error(`METHOD_LAB_EXPERIMENT_INVALID_${field.toUpperCase()}`);
