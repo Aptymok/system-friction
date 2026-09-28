@@ -35,6 +35,10 @@ type GraphNode = {
     learningCandidateObserved: boolean;
     learningPromoted: boolean;
     fieldReorganizationState: 'UNCHANGED' | 'CONTRAST_RECORDED' | 'LEARNING_QUARANTINED' | 'LEARNING_PROMOTED';
+    observedWeightDelta: number | null;
+    relationSupportRatio: number | null;
+    provenanceCoverage: number | null;
+    reorganizationMagnitude: number;
   };
 };
 
@@ -169,11 +173,15 @@ function reorganizationOffset(node: GraphNode, reading: string): Position {
 
   // This is a reversible reading transform only. Canonical node coordinates/history
   // are not persisted or overwritten by learning projection.
-  const seed = hash(`reorganization:${node.id}:${state}`);
-  const direction = seed % 2 === 0 ? 1 : -1;
-  if (state === 'CONTRAST_RECORDED') return { x: 18 * direction, y: 10 };
-  if (state === 'LEARNING_QUARANTINED') return { x: 30 * direction, y: 18 };
-  return { x: 54 * direction, y: -24 };
+  const supportRatio = node.methodSignal?.relationSupportRatio;
+  const direction = supportRatio === null || supportRatio === undefined || supportRatio === 0.5
+    ? (hash(`reorganization:${node.id}:${state}`) % 2 === 0 ? 1 : -1)
+    : supportRatio > 0.5 ? 1 : -1;
+  const magnitude = node.methodSignal?.reorganizationMagnitude ?? 0;
+  if (magnitude <= 0) return { x: 0, y: 0 };
+  const stateScale = state === 'LEARNING_PROMOTED' ? 54 : state === 'LEARNING_QUARANTINED' ? 30 : 18;
+  const displacement = stateScale * magnitude;
+  return { x: displacement * direction, y: state === 'LEARNING_PROMOTED' ? -24 * magnitude : 14 * magnitude };
 }
 
 function applyReorganizationReading(node: GraphNode, position: Position, reading: string, width: number, height: number): Position {
@@ -513,6 +521,8 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
                 <p>CONTRAST READINESS · {selected.methodSignal?.contrastReady ? 'READY TO VERIFY' : 'OPEN / INCOMPLETE'}</p>
                 <p>GOVERNED CONTRAST · {selected.methodSignal?.contrastRecorded ? 'RECORDED' : 'NOT RECORDED'} · LEARNING {selected.methodSignal?.learningCandidateObserved ? 'QUARANTINED' : 'NOT OBSERVED'}</p>
                 <p>FIELD REORGANIZATION · {selected.methodSignal?.fieldReorganizationState ?? 'UNCHANGED'}</p>
+                <p>REORGANIZATION MAGNITUDE · {selected.methodSignal ? selected.methodSignal.reorganizationMagnitude.toFixed(3) : '0.000'} · ΔWEIGHT {selected.methodSignal?.observedWeightDelta == null ? 'NOT OBSERVED' : selected.methodSignal.observedWeightDelta.toFixed(3)}</p>
+                <p>RELATION SUPPORT · {selected.methodSignal?.relationSupportRatio == null ? 'UNKNOWN' : selected.methodSignal.relationSupportRatio.toFixed(3)} · PROVENANCE COVERAGE {selected.methodSignal?.provenanceCoverage == null ? 'UNKNOWN' : selected.methodSignal.provenanceCoverage.toFixed(3)}</p>
               </section>
               <section>
                 <span>MCDC / RETURN</span>
