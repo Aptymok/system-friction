@@ -64,15 +64,51 @@ function nodeTone(node: GraphNode) {
   return '#6B635A';
 }
 
-function temporalValue(node: GraphNode) {
+type TemporalReading = {
+  coordinate: number | null;
+  basis: 'SEQUENCE' | 'CYCLE' | 'PHASE' | 'CHRONOLOGY' | 'UNKNOWN';
+  label: string;
+};
+
+function numericAttribute(node: GraphNode, keys: readonly string[]) {
+  for (const key of keys) {
+    const value = node.attributes[key];
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    if (typeof value === 'string' && value.trim() && Number.isFinite(Number(value))) return Number(value);
+  }
+  return null;
+}
+
+function stringAttribute(node: GraphNode, keys: readonly string[]) {
+  for (const key of keys) {
+    const value = node.attributes[key];
+    if (typeof value === 'string' && value.trim()) return value.trim();
+  }
+  return null;
+}
+
+function temporalReading(node: GraphNode): TemporalReading {
+  const sequence = numericAttribute(node, ['sequence','sequenceIndex','transitionIndex','eventIndex','order']);
+  if (sequence !== null) return { coordinate: sequence, basis: 'SEQUENCE', label: `SEQUENCE · ${sequence}` };
+
+  const cycle = numericAttribute(node, ['cycle','cycleIndex','cycleNumber','recurrence','recurrenceIndex']);
+  if (cycle !== null) return { coordinate: cycle, basis: 'CYCLE', label: `CYCLE · ${cycle}` };
+
+  const phase = stringAttribute(node, ['phase','temporalPhase','cyclePhase','statePhase']);
+  if (phase) return { coordinate: null, basis: 'PHASE', label: `PHASE · ${phase}` };
+
   const candidates = [node.reality?.captureTime, node.attributes.observedAt, node.attributes.sourceObservedAt, node.attributes.createdAt, node.attributes.updatedAt];
   for (const value of candidates) {
     if (typeof value === 'string') {
       const ms = Date.parse(value);
-      if (!Number.isNaN(ms)) return ms;
+      if (!Number.isNaN(ms)) return { coordinate: ms, basis: 'CHRONOLOGY', label: date(value) };
     }
   }
-  return null;
+  return { coordinate: null, basis: 'UNKNOWN', label: 'UNKNOWN' };
+}
+
+function temporalValue(node: GraphNode) {
+  return temporalReading(node).coordinate;
 }
 
 function regimeSignal(node: GraphNode) {
@@ -414,7 +450,7 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
                 <div><dt>EPISTEMIC STATE</dt><dd>{selected.reality?.state ?? 'UNKNOWN'}</dd></div>
                 <div><dt>VERIFICATION</dt><dd>{selected.reality?.verificationState ?? 'NOT VERIFIED'}</dd></div>
                 <div><dt>AUTHORITY</dt><dd>{selected.reality?.authority ?? 'UNKNOWN'}</dd></div>
-                <div><dt>EXECUTION</dt><dd>{selected.reality?.executionState ?? 'NOT OBSERVED'}</dd></div><div><dt>TIME</dt><dd>{temporalValue(selected) ? date(new Date(temporalValue(selected)!).toISOString()) : 'UNKNOWN'}</dd></div><div><dt>REGIME SIGNAL</dt><dd>{regimeSignal(selected)}</dd></div>
+                <div><dt>EXECUTION</dt><dd>{selected.reality?.executionState ?? 'NOT OBSERVED'}</dd></div><div><dt>TEMPORAL BASIS</dt><dd>{temporalReading(selected).basis}</dd></div><div><dt>TIME / CYCLE</dt><dd>{temporalReading(selected).label}</dd></div><div><dt>REGIME SIGNAL</dt><dd>{regimeSignal(selected)}</dd></div>
               </dl>
               <section>
                 <span>MCDC / RETURN</span>
