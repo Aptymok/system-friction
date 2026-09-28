@@ -71,9 +71,15 @@ function subjectFor(row: RootRow): MihmObservationSubject {
 function temporalScopeFor(row: RootRow, subject: MihmObservationSubject): MihmTemporalScope {
   if (subject === 'WORLD_CONTEXT') return 'CURRENT_WORLD_STATE';
   if (subject === 'PERSON') return text(row, ['session_id', 'sessionId']) ? 'SESSION' : 'POINT_IN_TIME';
+
   const span = numberValue(row, ['observation_span_days', 'span_days', 'age_days']);
   const status = text(row, ['status', 'stage', 'state'])?.toLowerCase() ?? '';
-  if ((span ?? 0) > 1 || /open|active|follow|monitor|pending|abierto|seguimiento/.test(status)) return 'LONGITUDINAL';
+  const cycle = numberValue(row, ['cycle', 'cycle_index', 'cycleIndex', 'cycle_number', 'cycleNumber', 'recurrence', 'recurrence_index', 'recurrenceIndex']);
+  const sequence = numberValue(row, ['sequence', 'sequence_index', 'sequenceIndex', 'transition_index', 'transitionIndex', 'event_index', 'eventIndex', 'order']);
+  const phase = text(row, ['phase', 'temporal_phase', 'temporalPhase', 'cycle_phase', 'cyclePhase', 'state_phase', 'statePhase']);
+  const temporalEvidence = cycle !== null || sequence !== null || Boolean(phase);
+
+  if (temporalEvidence || (span ?? 0) > 1 || /open|active|follow|monitor|pending|abierto|seguimiento/.test(status)) return 'LONGITUDINAL';
   return 'BOUNDED_WINDOW';
 }
 
@@ -106,7 +112,7 @@ export function resolveRootCaseMethodology(row: RootRow, index = 0): RootCaseMet
     requiresRivalHypothesis: Boolean(row.requires_rival_hypothesis),
     requiresInterventionTracking: Boolean(row.requires_intervention_tracking) || /proposal|intervention|seguimiento/i.test(String(row.stage ?? row.status ?? '')),
     evidenceCount,
-    observationSpanDays: numberValue(row, ['observation_span_days', 'span_days']) ?? (temporalScope === 'LONGITUDINAL' ? 2 : 0),
+    observationSpanDays: numberValue(row, ['observation_span_days', 'span_days']) ?? 0,
     isSfiInternal: subject === 'SFI_SYSTEM',
   };
   const resolution = resolveMihmMethod(input);
