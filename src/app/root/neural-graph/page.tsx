@@ -5,5 +5,5 @@ export const dynamic = 'force-dynamic';
 
 export default async function RootNeuralGraphPage() {
   await requireFounderPage('/root/neural-graph');
-  redirect('/neural');
+  redirect('/root');
 }
