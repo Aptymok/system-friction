@@ -105,12 +105,51 @@ export function scientificMethodCandidates(node: CanonicalGraphNode, edges: Cano
   return out;
 }
 
+export type DistributedConfigurationReading = {
+  state:'CANDIDATE'|'NOT_ESTABLISHED'; memberNodeIds:string[]; relationIds:string[]; evidenceBoundRelationCount:number; reason:string;
+};
+export function distributedConfigurationReading(node: CanonicalGraphNode, edges: CanonicalGraphEdge[]): DistributedConfigurationReading {
+  const adjacent=edges.filter(e=>e.sourceNodeId===node.nodeId||e.targetNodeId===node.nodeId);
+  const members=[...new Set([node.nodeId,...adjacent.flatMap(e=>[e.sourceNodeId,e.targetNodeId])])];
+  const evidenceBound=adjacent.filter(e=>relationScientificReading(e).provenanceBound);
+  if(members.length>=3 && evidenceBound.length>=2) return {state:'CANDIDATE',memberNodeIds:members,relationIds:adjacent.map(e=>e.edgeId),evidenceBoundRelationCount:evidenceBound.length,reason:'A multi-node provenance-bound relational configuration is observed. This is a distributed phenomenon candidate, not an established phenomenon or causal mechanism.'};
+  return {state:'NOT_ESTABLISHED',memberNodeIds:members,relationIds:adjacent.map(e=>e.edgeId),evidenceBoundRelationCount:evidenceBound.length,reason:'Insufficient multi-node provenance-bound relations to represent a distributed configuration candidate.'};
+}
+
+export type EvidenceGeometryReading = {
+  authority:'OBSERVED_RELATION_MEASURE'|'INSUFFICIENT';
+  meanObservedWeight:number|null; strongestRelationId:string|null; strongestWeight:number|null;
+  rule:string;
+};
+export function evidenceGeometryReading(node: CanonicalGraphNode, edges: CanonicalGraphEdge[]): EvidenceGeometryReading {
+  const adjacent=edges.filter(e=>e.sourceNodeId===node.nodeId||e.targetNodeId===node.nodeId).filter(e=>relationScientificReading(e).provenanceBound);
+  if(!adjacent.length) return {authority:'INSUFFICIENT',meanObservedWeight:null,strongestRelationId:null,strongestWeight:null,rule:'No provenance-bound relation measure is available; geometry must not claim relational strength.'};
+  const strongest=[...adjacent].sort((a,b)=>b.weight-a.weight)[0];
+  return {authority:'OBSERVED_RELATION_MEASURE',meanObservedWeight:adjacent.reduce((s,e)=>s+e.weight,0)/adjacent.length,strongestRelationId:strongest.edgeId,strongestWeight:strongest.weight,rule:'Observed canonical edge weights may organize a reversible reading only; they do not establish causal force, physical distance or an attractor.'};
+}
+
+export type NextFieldAction = {
+  decision:'OBSERVE_NEXT'|'REVIEW_PERTURBATION_CANDIDATE'|'NO_ACTION';
+  basis:string[]; candidateRefs:string[]; authorityRequired:boolean; reason:string;
+};
+export function nextFieldAction(node: CanonicalGraphNode, edges: CanonicalGraphEdge[]): NextFieldAction {
+  const a=record(node.attributes); const methods=scientificMethodCandidates(node,edges); const capacity=capacityObservation(node);
+  const candidateRefs=[...new Set([...list(a.interventionCandidateRefs),...list(a.intervention_candidate_refs),...list(a.actionCandidateRefs),...list(a.action_candidate_refs)])];
+  if(methods.some(m=>m.family==='ACTIVE_LEARNING')) return {decision:'OBSERVE_NEXT',basis:['RIVAL_OR_CHALLENGED_RELATION_REMAINS','ACTIVE_LEARNING_CANDIDATE'],candidateRefs:[],authorityRequired:false,reason:'Acquire the discriminating observation before perturbing the field.'};
+  if(candidateRefs.length && capacity && capacity.evidenceRefs.length) return {decision:'REVIEW_PERTURBATION_CANDIDATE',basis:['EXPLICIT_CANDIDATE_REF','OBSERVED_CAPACITY_RETURN'],candidateRefs,authorityRequired:true,reason:'A perturbation candidate exists and capacity has empirical RETURN evidence; ROOT authority review remains required before execution.'};
+  if(methods.length) return {decision:'OBSERVE_NEXT',basis:['METHOD_CANDIDATE_REQUIRES_MORE_OBSERVATION'],candidateRefs:[],authorityRequired:false,reason:'Continue observation/contrast; no evidence-bound perturbation candidate is justified.'};
+  return {decision:'NO_ACTION',basis:['INSUFFICIENT_OBSERVATION'],candidateRefs:[],authorityRequired:false,reason:'No methodologically defensible observation or perturbation step is derivable from the current field record.'};
+}
+
 export type FieldScientificReading = {
   contract:typeof SFI_FIELD_SCIENTIFIC_READING_CONTRACT;
   temporal:{coordinates:TemporalCoordinate[];availableResolutions:ResolutionLevel[];multipleClocks:boolean};
   relations:RelationScientificReading[];
   emergence:EmergenceReading;
   capacity:CapacityObservation|null;
+  distributedConfiguration:DistributedConfigurationReading;
+  evidenceGeometry:EvidenceGeometryReading;
+  nextAction:NextFieldAction;
   methodCandidates:ScientificMethodCandidate[];
   reversibility:{sourceObservationRefs:string[];aggregationRefs:string[];phenomenonRefs:string[];reconstructable:boolean};
   boundaries:string[];
@@ -135,6 +174,9 @@ export function deriveFieldScientificReading(node: CanonicalGraphNode, edges: Ca
     relations,
     emergence:emergenceReading(node),
     capacity:capacityObservation(node),
+    distributedConfiguration:distributedConfigurationReading(node,edges),
+    evidenceGeometry:evidenceGeometryReading(node,edges),
+    nextAction:nextFieldAction(node,edges),
     methodCandidates:scientificMethodCandidates(node,edges),
     reversibility:{sourceObservationRefs,aggregationRefs,phenomenonRefs,reconstructable:sourceObservationRefs.length>0 && (aggregationRefs.length===0||phenomenonRefs.length===0||Boolean(node.provenance))},
     boundaries:['NO_OBSERVED_ABSENCE_NO_EMERGENCE','RECURRENCE_NOT_ATTRACTOR','METHOD_CANDIDATE_NOT_METHOD_RESULT','CAPACITY_REQUIRES_OBSERVED_PERTURBATION_RETURN','GEOMETRY_READING_NOT_CAUSAL_FORCE','AGGREGATION_MUST_PRESERVE_SOURCE_LINEAGE'],
