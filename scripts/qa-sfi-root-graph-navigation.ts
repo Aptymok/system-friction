@@ -139,3 +139,6 @@ if (failed.length) {
   process.exit(1);
 }
 console.log(`\nROOT graph/operating-workspace convergence QA passed: ${checks.length}/${checks.length}`);
+
+assert(source.includes('PROPERTY DISCOVERY'));
+assert(source.includes('ATTRACTOR ·'));
