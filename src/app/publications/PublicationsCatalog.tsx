@@ -115,7 +115,7 @@ export function PublicationsCatalog({items}:{items:readonly PublicationCatalogIt
           })}
         </svg>
 
-        <div className="pubGraphCore" aria-hidden="true"><span>SFI</span><small>REGISTRY</small></div>
+        <div className="pubGraphCore" aria-hidden="true"><span>SFI</span><small>INSTITUTIONAL ATTRACTOR</small></div>
 
         {visible.map((item)=>{
           const position=positions.get(item.slug)??{x:50,y:50};
