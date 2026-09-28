@@ -29,5 +29,6 @@ export default async function EntryPage({
   }
 
   if (requested) redirect(requested);
-  redirect('/neural');
+  if (ctx.canObserveRoot) redirect('/root');
+  redirect('/observatory');
 }
