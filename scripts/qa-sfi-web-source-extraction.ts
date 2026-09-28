@@ -88,8 +88,38 @@ const forcedWeb = resolveUniversalEvidenceRequirements({
 });
 assert.equal(forcedWeb.webPolicy, 'WEB_REQUIRED', 'explicit operator WEB_REQUIRED policy must remain authoritative');
 
+const regulatoryClaim = resolveUniversalEvidenceRequirements({
+  signal: { kind: 'web_page', name: 'regulatory-check' },
+  question: 'Verify current regulation and legal authority for this requirement',
+  objective: 'Establish the applicable regulatory claim',
+  context: { webPolicy: 'WEB_REQUIRED' },
+});
+assert.equal(regulatoryClaim.requiredClaimScope, 'REGULATORY');
+assert.equal(regulatoryClaim.authoritySensitive, true);
+
+const socialPublicationClaim = resolveUniversalEvidenceRequirements({
+  signal: { kind: 'url', name: 'social-publication' },
+  question: 'Verify whether this Instagram publication was published',
+  objective: 'Establish the publication event itself, not the truth of its content',
+  context: { webPolicy: 'WEB_REQUIRED' },
+});
+assert.equal(socialPublicationClaim.requiredClaimScope, 'SOCIAL_SIGNAL');
+assert.equal(socialPublicationClaim.authoritySensitive, true);
+
+const technicalClaim = resolveUniversalEvidenceRequirements({
+  signal: { kind: 'web_page', name: 'technical-documentation' },
+  question: 'Verify the technical documentation and version',
+  objective: 'Find the primary technical source',
+  context: { webPolicy: 'WEB_REQUIRED' },
+});
+assert.equal(technicalClaim.requiredClaimScope, 'TECHNICAL');
+assert.equal(technicalClaim.authoritySensitive, false, 'technical scope remains explicit but must not pretend the current classifier can establish technical authority');
+
 requireText('isRegulatorHostname(hostname)', 'hostname-derived regulator provenance');
-requireText("source.sourceType === 'regulator'", 'authority-sensitive regulator requirement');
+requireText("requiredClaimScopeFor(blob)", 'claim-scoped authority requirement');
+requireText("authorityFitFor(source, requirement.requiredClaimScope)", 'claim-to-source authority fit');
+requireText("authorityFits.filter((item) => item.fit === 'FIT')", 'authority fit satisfaction gate');
+requireText("Neither an official domain nor a numeric source reputation is sufficient by itself", 'domain reputation non-authority boundary');
 requireText('const finalSourceType = classifySource(currentUrl, source.title)', 'redirect-aware provenance reclassification');
 requireText('const finalReliability = reliabilityFor(finalSourceType, currentUrl)', 'redirect-aware reliability reclassification');
 if (source.includes('`${hostname} ${title}`')) fail('titles must not confer source authority');
