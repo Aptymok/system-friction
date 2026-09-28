@@ -220,4 +220,48 @@ assert.equal(contrastFieldSignal.discriminatingObservationObserved, true);
 assert.equal(contrastFieldSignal.stoppingConditionObserved, true);
 assert.equal(contrastFieldSignal.contrastReady, true);
 
+const promotedLearningFieldSignal = deriveCanonicalFieldMethodSignal(
+  {
+    ...canonicalFieldNode,
+    nodeId: 'field-learning-promoted',
+    attributes: {
+      eventName: 'SFI_UNIVERSAL_LEARNING_PROMOTED',
+      assessmentClass: 'VERIFIED_CONTRAST',
+      epistemicClass: 'DERIVED',
+    },
+  },
+  [],
+);
+assert.equal(promotedLearningFieldSignal.learningPromoted, true);
+assert.equal(promotedLearningFieldSignal.fieldReorganizationState, 'LEARNING_PROMOTED');
+
+const quarantinedLearningFieldSignal = deriveCanonicalFieldMethodSignal(
+  {
+    ...canonicalFieldNode,
+    nodeId: 'field-learning-candidate',
+    attributes: {
+      eventName: 'SFI_UNIVERSAL_LEARNING_CANDIDATE_RECORDED',
+      epistemicClass: 'DERIVED',
+    },
+  },
+  [],
+);
+assert.equal(quarantinedLearningFieldSignal.learningCandidateObserved, true);
+assert.equal(quarantinedLearningFieldSignal.learningPromoted, false);
+assert.equal(quarantinedLearningFieldSignal.fieldReorganizationState, 'LEARNING_QUARANTINED');
+
+const uncalibratedContrastFieldSignal = deriveCanonicalFieldMethodSignal(
+  {
+    ...canonicalFieldNode,
+    nodeId: 'field-contrast-inconclusive',
+    attributes: {
+      eventName: 'SFI_UNIVERSAL_RETURN_CONTRASTED',
+      calibrationStatus: 'REQUIRES_REVIEW',
+    },
+  },
+  [],
+);
+assert.equal(uncalibratedContrastFieldSignal.contrastRecorded, false);
+assert.equal(uncalibratedContrastFieldSignal.fieldReorganizationState, 'UNCHANGED');
+
 console.log('SFI method selection resolver QA passed.');
