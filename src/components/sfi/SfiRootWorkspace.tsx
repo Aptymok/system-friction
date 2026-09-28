@@ -141,7 +141,7 @@ export function SfiRootWorkspace({ enabled }: { enabled: boolean }) {
   const reportItems = rows(reportArchive?.inbox?.items);
   const reportLanes = rows(reportArchive?.health?.lanes);
 
-  return <div className="rootWorkspace" data-root-visual-contract="SFI-ROOT-VISUAL-2.0" data-root-module-count={OBSERVE_LINKS.length}>
+  return <div className="rootWorkspace" data-root-visual-contract="SFI-ROOT-VISUAL-2.0" data-root-module-count="dynamic">
     {(error || notice) && <div className={`rootToast ${error ? 'error' : ''}`}><span>{error || notice}</span><button onClick={() => { setError(null); setNotice(null); }}>×</button></div>}
 
     <InstitutionalSurfaceRail surface="ROOT" state={readState} detail={lastReadAt ? 'LAST READ '+when(lastReadAt) : 'AWAITING FIRST READ'}/>
