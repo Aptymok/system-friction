@@ -17,6 +17,16 @@ type GraphNode = {
     verificationState: string|null; authority: string|null; executionState: string|null;
     expectedReturn: unknown|null; observedReturn: unknown|null; applicableObligation: unknown|null;
   };
+  methodSignal?: {
+    relationCount: number;
+    evidenceBoundRelationCount: number;
+    relationTransition: boolean;
+    weightChangeObserved: boolean;
+    counterevidenceObserved: boolean;
+    temporalStructureObserved: boolean;
+    requiresTrajectory: boolean;
+    requiresRivalHypothesis: boolean;
+  };
 };
 
 type GraphEdge = {
@@ -450,8 +460,14 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
                 <div><dt>EPISTEMIC STATE</dt><dd>{selected.reality?.state ?? 'UNKNOWN'}</dd></div>
                 <div><dt>VERIFICATION</dt><dd>{selected.reality?.verificationState ?? 'NOT VERIFIED'}</dd></div>
                 <div><dt>AUTHORITY</dt><dd>{selected.reality?.authority ?? 'UNKNOWN'}</dd></div>
-                <div><dt>EXECUTION</dt><dd>{selected.reality?.executionState ?? 'NOT OBSERVED'}</dd></div><div><dt>TEMPORAL BASIS</dt><dd>{temporalReading(selected).basis}</dd></div><div><dt>TIME / CYCLE</dt><dd>{temporalReading(selected).label}</dd></div><div><dt>REGIME SIGNAL</dt><dd>{regimeSignal(selected)}</dd></div>
+                <div><dt>EXECUTION</dt><dd>{selected.reality?.executionState ?? 'NOT OBSERVED'}</dd></div><div><dt>TEMPORAL BASIS</dt><dd>{temporalReading(selected).basis}</dd></div><div><dt>TIME / CYCLE</dt><dd>{temporalReading(selected).label}</dd></div><div><dt>METHOD NEED</dt><dd>{selected.methodSignal?.requiresTrajectory ? 'TRAJECTORY' : selected.methodSignal?.requiresRivalHypothesis ? 'RIVAL HYPOTHESIS' : 'NOT DERIVED'}</dd></div><div><dt>REGIME SIGNAL</dt><dd>{regimeSignal(selected)}</dd></div>
               </dl>
+              <section>
+                <span>FIELD-DERIVED METHOD SIGNAL</span>
+                <p>RELATIONS · {selected.methodSignal?.relationCount ?? 0} · EVIDENCE-BOUND {selected.methodSignal?.evidenceBoundRelationCount ?? 0}</p>
+                <p>TRANSITION · {selected.methodSignal?.relationTransition ? 'OBSERVED' : 'NOT OBSERVED'} · WEIGHT Δ {selected.methodSignal?.weightChangeObserved ? 'OBSERVED' : 'NOT OBSERVED'}</p>
+                <p>COUNTEREVIDENCE · {selected.methodSignal?.counterevidenceObserved ? 'OBSERVED' : 'NOT OBSERVED'} · TEMPORAL STRUCTURE {selected.methodSignal?.temporalStructureObserved ? 'OBSERVED' : 'NOT OBSERVED'}</p>
+              </section>
               <section>
                 <span>MCDC / RETURN</span>
                 <p>EXPECTED · {selected.reality?.expectedReturn == null ? 'UNKNOWN' : String(selected.reality.expectedReturn)}</p>
