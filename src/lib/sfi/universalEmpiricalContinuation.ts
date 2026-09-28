@@ -114,6 +114,8 @@ function collectRunValues(history: UniversalCycleHistory, key: string) {
       if (Array.isArray(synthesis.rivalHypotheses)) values.push(...synthesis.rivalHypotheses);
     } else if (key === 'predictions') {
       if (Array.isArray(synthesis.predictions)) values.push(...synthesis.predictions);
+    } else if (key === 'stoppingCondition') {
+      if (synthesis.stoppingCondition) values.push(synthesis.stoppingCondition);
     } else if (Array.isArray(synthesis[key])) {
       values.push(...synthesis[key] as unknown[]);
     }
