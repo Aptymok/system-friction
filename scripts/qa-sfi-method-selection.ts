@@ -182,7 +182,8 @@ assert.equal(fieldSignal.temporalStructureObserved, true);
 assert.equal(fieldSignal.counterevidenceObserved, true);
 assert.equal(fieldSignal.requiresTrajectory, true);
 assert.equal(fieldSignal.requiresRivalHypothesis, true);
-assert.equal(fieldSignal.observedWeightDelta, 0.2);
+assert.ok(fieldSignal.observedWeightDelta !== null);
+assert.ok(Math.abs(fieldSignal.observedWeightDelta - 0.2) < 1e-12);
 assert.equal(fieldSignal.relationSupportRatio, 0);
 assert.equal(fieldSignal.provenanceCoverage, 1);
 assert.equal(fieldSignal.reorganizationMagnitude, 0);
@@ -295,7 +296,8 @@ const evidenceDrivenPromotedSignal = deriveCanonicalFieldMethodSignal(
   }],
 );
 assert.equal(evidenceDrivenPromotedSignal.learningPromoted, true);
-assert.equal(evidenceDrivenPromotedSignal.observedWeightDelta, 0.30000000000000004);
+assert.ok(evidenceDrivenPromotedSignal.observedWeightDelta !== null);
+assert.ok(Math.abs(evidenceDrivenPromotedSignal.observedWeightDelta - 0.3) < 1e-12);
 assert.equal(evidenceDrivenPromotedSignal.relationSupportRatio, 1);
 assert.equal(evidenceDrivenPromotedSignal.provenanceCoverage, 1);
 assert.ok(evidenceDrivenPromotedSignal.reorganizationMagnitude > 0);
