@@ -25,7 +25,7 @@ export function RootCognitiveFieldPixi({nodes,edges,width,height,onSelect}:{node
       const nodeLayer=new Container();
       world.addChild(edgeLayer,nodeLayer);
 
-      const state=new Map(nodes.map(n=>[n.id,{...n,vx:0,vy:0}]));
+      const state=new Map(nodes.map(n=>[n.id,{...n,tx:n.x,ty:n.y,vx:0,vy:0}]));
       const glyphs=new Map<string,{g:Graphics;t:Text}>();
       for(const n of nodes){
         const g=new Graphics();
@@ -62,7 +62,7 @@ export function RootCognitiveFieldPixi({nodes,edges,width,height,onSelect}:{node
           a.vx+=dx/d*force;a.vy+=dy/d*force;b.vx-=dx/d*force;b.vy-=dy/d*force;
         }
         for(const n of state.values()){
-          n.vx+=(n.x-(n as any).x)*0;
+          n.vx+=(n.tx-n.x)*.006;n.vy+=(n.ty-n.y)*.006;
           n.vx*=.91;n.vy*=.91;
           n.x=Math.max(24,Math.min(width-24,n.x+n.vx));
           n.y=Math.max(24,Math.min(height-24,n.y+n.vy));
