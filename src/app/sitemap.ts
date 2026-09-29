@@ -11,6 +11,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     'laboratory',
     'publications',
     'institution',
+    'contact',
   ].map((path) => ({
     url: `${BASE}/${path}`.replace(/\/$/, ''),
     lastModified: new Date(),
