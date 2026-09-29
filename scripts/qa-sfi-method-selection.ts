@@ -385,7 +385,8 @@ assert.equal(canonicalMethodology.input.subject, 'UNKNOWN');
 assert.equal(canonicalMethodology.subjectBasis, 'PROPOSED');
 assert.equal(canonicalMethodology.subjectProposal, 'CASE');
 assert.equal(canonicalMethodology.resolution.status, 'BLOCKED');
-assert.equal(canonicalMethodology.resolution.primary, null);
+assert.equal(canonicalMethodology.resolution.primary?.methodId, 'PPOI');
+assert.ok(canonicalMethodology.resolution.blockers.some((item) => item.code === 'SUBJECT_UNKNOWN'), 'PPOI may be proposed from observed longitudinal structure, but execution remains blocked until subject identity is discriminated.');
 
 const staticCanonicalMethodology = resolveCanonicalFieldMethodology(
   { ...canonicalFieldNode, nodeId: 'static-artifact', attributes: { subjectType: 'ARTIFACT' } },
