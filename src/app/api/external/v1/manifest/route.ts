@@ -10,7 +10,7 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     name: 'SFI External Agent Gateway',
-    version: '1.18.0',
+    version: '1.19.0',
     auth: 'OAuth 2.0 authorization_code (user-bound) or X-SFI-Token/Bearer static token',
     base: '/api/external/v1',
     discovery: {
@@ -41,6 +41,8 @@ export async function GET() {
       { id: 'signal-status', method: 'GET', path: '/signal', scope: 'observe', tenant: 'institutional', description: 'Read open cycles or one canonical cycle history.' },
       { id: 'signal-cycle', method: 'POST', path: '/signal', scope: 'lab:write', tenant: 'institutional', description: 'Run governed institutional signal-cycle operations, including same-cycle resume, RETURN contrast and closure gates.' },
       { id: 'observe', method: 'POST', path: '/observe', scope: 'observe', tenant: 'institutional', description: 'Read allowlisted proposal/evidence surfaces.' },
+      { id: 'world-state', method: 'POST', path: '/world', scope: 'world:read', tenant: 'institutional-user-bound-oauth', contract: 'SFI-WORLD-DAILY-CYCLE-1.0', body: { operation: 'state' }, description: 'Read persisted World freshness, latest observation, friction reading, hypothesis and daily-cycle receipt.' },
+      { id: 'world-run', method: 'POST', path: '/world', scope: 'world:run', tenant: 'institutional-user-bound-oauth', contract: 'SFI-WORLD-DAILY-CYCLE-1.0', body: { operation: 'run' }, description: 'Execute canonical World observation, hypothesis, calibration and instrument owners, persist a derived receipt, then reread persisted state. Does not inherit ROOT/governance/canon authority.' },
       { id: 'case-read', method: 'POST', path: '/cases', scope: 'cases:read', tenant: 'owner/member', body: { operation: 'list | read | reports | intake_plan' }, description: 'Read Case Platform state and unresolved pre-case intake questions available to the OAuth subject.' },
       { id: 'case-write', method: 'POST', path: '/cases', scope: 'cases:write', tenant: 'owner/member', body: { operation: 'create | add_source | add_object | transition' }, description: 'Create/populate bounded Case Platform records. Cannot mint governance authority, intervention, observed RETURN or truth claims.' },
       { id: 'case-object-dedicated', method: 'POST', path: '/cases/object', scope: 'cases:write', tenant: 'owner/member', operationId: 'addSfiCaseObjectJson', body: { required: ['caseId', 'kind', 'canonicalRefId', 'payloadJson'] }, description: 'Persist one bounded Case object through transport-safe flat canonicalRef fields plus JSON-string payload transport using the canonical Case writer. Cannot mint accepted evidence, governance, intervention, RETURN or truth claims.' },
@@ -91,7 +93,7 @@ export async function GET() {
       },
       authenticated: {
         contract: 'SFI-AUTHENTICATED-GOVERNED-MACHINE-ADAPTER-1.0', serverId: 'org.systemfriction/authenticated', endpoint: '/api/mcp/authenticated', protocolVersion: '2026-07-28',
-        oauth: { userBoundRequired: true, clientBindingRequired: true, institutionalTenantRequired: true, staticTokenAllowed: false, scopeMode: 'PER_TOOL_CANONICAL_SCOPE', authenticatedMcpScopes: ['observe','propose','execute','governance:decide','root:operate','cases:read','cases:write','lab:read','lab:write','lab:run'], pluginAggregateRootScopes: ['observe','propose','execute','governance:decide','root:operate','cases:read','cases:write','lab:read','lab:write','lab:run','studio:read','studio:content','studio:run'] },
+        oauth: { userBoundRequired: true, clientBindingRequired: true, institutionalTenantRequired: true, staticTokenAllowed: false, scopeMode: 'PER_TOOL_CANONICAL_SCOPE', authenticatedMcpScopes: ['observe','propose','execute','governance:decide','root:operate','world:read','world:run','cases:read','cases:write','lab:read','lab:write','lab:run'], pluginAggregateRootScopes: ['observe','propose','execute','governance:decide','root:operate','world:read','world:run','cases:read','cases:write','lab:read','lab:write','lab:run','studio:read','studio:content','studio:run'] },
         grant: { contract: 'SFI-CAPABILITY-GRANT-1.0', activeRequiredFor: 'invoke_cognitive_capability', possessionProofRequiredFor: 'invoke_cognitive_capability', possessionProof: 'X-SFI-Capability-Grant-Nonce -> SHA256 -> persisted nonceHash comparison', parentCannotBeExpanded: true, rawNonceAcceptedOnlyAsTransientMachineHeader: true, rawNonceInJson: false, rawNoncePersisted: false, rawNonceInBrowserOrModelContext: false, replayAllowed: false },
         observation: { resource: 'sfi://institutional/context', scope: 'observe', contract: 'SFI-CHATGPT-INSTITUTIONAL-CONTEXT-1.0', sources: ['sfi_continuity_state', 'sfi_continuity_runs', 'sfi_capability_health_checks', 'sfi_institutional_incidents', 'sfi_founder_decision_queue', 'epistemic_events', 'observed cognitive runtime', 'universal open cycles'], compactProjection: true, authorityExpansionAllowed: false, rawSecretsIncluded: false },
         execution: { owner: 'SFI-MANUAL-COGNITIVE-EXECUTION-1.1 -> runtimeAgentExecutor -> agentExecutionMap', eventOwner: 'epistemic_events', cognitiveExternalSideEffects: false, canonicalPromotionAllowed: false, modelCapabilityImpliesAuthority: false, returnFabricationAllowed: false },
