@@ -12,6 +12,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     'publications',
     'institution',
     'contact',
+    'privacy',
+    'terms',
+    'accessibility',
   ].map((path) => ({
     url: `${BASE}/${path}`.replace(/\/$/, ''),
     lastModified: new Date(),
