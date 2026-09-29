@@ -15,6 +15,7 @@ ${baseUrl}
 - ${baseUrl}/laboratory — public laboratory explanation
 - ${baseUrl}/publications — canonical public registry
 - ${baseUrl}/institution — institutional identity
+- ${baseUrl}/contact — public institutional contact
 
 ROOT, Cases, Cognitive Twin/Spine and Studio are internal operational lenses/workspaces, not independent public institutional surfaces. Their data contracts may remain operational without being advertised as public architecture.
 
