@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { SFI_PUBLIC_NAV } from '@/lib/navigation/publicNavigation';
 import {
   useCallback,
   useEffect,
@@ -70,75 +69,6 @@ export function PublicEntryGateway(){
     });
   },[sceneIndex]);
 
-  useEffect(()=>{
-    const html = document.documentElement;
-    const body = document.body;
-    const previousHtmlOverflow = html.style.overflow;
-    const previousBodyOverflow = body.style.overflow;
-    const previousBodyHeight = body.style.height;
-
-    html.style.overflow = 'hidden';
-    body.style.overflow = 'hidden';
-    body.style.height = '100svh';
-
-    const onWheel = (event:WheelEvent)=>{
-      event.preventDefault();
-      if(wheelLock.current) return;
-
-      const horizontal = event.shiftKey || Math.abs(event.deltaX) > Math.abs(event.deltaY) * 1.15;
-      if(horizontal && scene.frames.length > 1){
-        const delta = Math.abs(event.deltaX) > 1 ? event.deltaX : event.deltaY;
-        wheelAccumulator.current += delta;
-        if(Math.abs(wheelAccumulator.current) > 42){
-          moveFrame(wheelAccumulator.current > 0 ? 1 : -1);
-          wheelAccumulator.current = 0;
-          wheelLock.current = true;
-          window.setTimeout(()=>{wheelLock.current=false;},360);
-        }
-        return;
-      }
-
-      wheelAccumulator.current += event.deltaY;
-      if(Math.abs(wheelAccumulator.current) > 68){
-        goScene(sceneIndex + (wheelAccumulator.current > 0 ? 1 : -1));
-        wheelAccumulator.current = 0;
-        wheelLock.current = true;
-        window.setTimeout(()=>{wheelLock.current=false;},620);
-      }
-    };
-
-    const onKey = (event:KeyboardEvent)=>{
-      if(event.key === 'ArrowDown' || event.key === 'PageDown'){
-        event.preventDefault();
-        goScene(sceneIndex + 1);
-      }else if(event.key === 'ArrowUp' || event.key === 'PageUp'){
-        event.preventDefault();
-        goScene(sceneIndex - 1);
-      }else if(event.key === 'ArrowRight'){
-        event.preventDefault();
-        moveFrame(1);
-      }else if(event.key === 'ArrowLeft'){
-        event.preventDefault();
-        moveFrame(-1);
-      }else if(event.key === 'Home'){
-        event.preventDefault();
-        goScene(0);
-      }else if(event.key === 'End'){
-        event.preventDefault();
-        goScene(SCENES.length-1);
-      }
-    };
-
-    window.addEventListener('wheel',onWheel,{passive:false});
-    window.addEventListener('keydown',onKey);
-    return ()=>{
-      window.removeEventListener('wheel',onWheel);
-      window.removeEventListener('keydown',onKey);
-      html.style.overflow = previousHtmlOverflow;
-      body.style.overflow = previousBodyOverflow;
-      body.style.height = previousBodyHeight;
-    };
-  },[goScene,moveFrame,scene.frames.length,sceneIndex]);
 
   function handlePointerMove(event:PointerEvent<HTMLElement>){
     const node = rootRef.current;
@@ -194,21 +124,6 @@ export function PublicEntryGateway(){
     onPointerCancel={()=>{dragStart.current=null;}}
     onPointerLeave={resetPointer}
   >
-    <header className="sfiSceneChrome">
-      <Link href="/" className="sfiSceneBrand" aria-label="System Friction Institute home">
-        <span className="sfiSceneMark">SFI</span>
-        <span>SYSTEM FRICTION INSTITUTE</span>
-      </Link>
-
-      <nav aria-label="Public navigation">
-        {SFI_PUBLIC_NAV.map((item)=><Link key={item.href} href={item.href}>{item.label}</Link>)}
-      </nav>
-
-      <div className="sfiSceneChromeActions">
-        <span>{scene.number} / {String(SCENES.length).padStart(2,'0')}</span>
-      </div>
-    </header>
-
     <div className="sfiSceneDeck" aria-live="polite">
       {SCENES.map((item,index)=>{
         const offset = index - sceneIndex;
