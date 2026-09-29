@@ -161,7 +161,7 @@ function repositoryEvidence(requirement) {
   const files = [];
   for (const token of tokens) {
     try {
-      const out = execFileSync('git', ['grep', '-Il', token, '--', 'src', 'scripts', '.github/workflows'], { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+      const out = execFileSync('git', ['grep', '-iIl', token, '--', 'src', 'scripts', '.github/workflows'], { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
       for (const f of out.split('\n').filter(Boolean)) if (!files.includes(f)) files.push(f);
     } catch {}
   }
