@@ -56,9 +56,11 @@ export function cognitiveNodeAdmission(node: CanonicalGraphNode) {
 }
 
 export function projectCognitiveGraph(state: CanonicalGraphState): CanonicalGraphState & {
-  admission: { contract: string; admittedNodes: number; excludedNodes: number; excludedEdges: number };
+  admission: { contract: string; sourceNodes: number; sourceEdges: number; admittedNodes: number; admittedEdges: number; excludedNodes: number; excludedEdges: number; excludedNodeReasons: Record<string, number> };
 } {
-  const nodes = state.nodes.filter((node) => cognitiveNodeAdmission(node).admitted);
+  const nodeAdmission = state.nodes.map((node) => ({ node, result: cognitiveNodeAdmission(node) }));
+  const nodes = nodeAdmission.filter((item) => item.result.admitted).map((item) => item.node);
+  const excludedNodeReasons = nodeAdmission.filter((item) => !item.result.admitted).reduce<Record<string, number>>((counts, item) => { counts[item.result.reason] = (counts[item.result.reason] ?? 0) + 1; return counts; }, {});
   const ids = new Set(nodes.map((node) => node.nodeId));
   const edges = state.edges.filter((edge: CanonicalGraphEdge) => ids.has(edge.sourceNodeId) && ids.has(edge.targetNodeId));
   return {
@@ -67,9 +69,13 @@ export function projectCognitiveGraph(state: CanonicalGraphState): CanonicalGrap
     edges,
     admission: {
       contract: SFI_COGNITIVE_GRAPH_ADMISSION,
+      sourceNodes: state.nodes.length,
+      sourceEdges: state.edges.length,
       admittedNodes: nodes.length,
+      admittedEdges: edges.length,
       excludedNodes: state.nodes.length - nodes.length,
       excludedEdges: state.edges.length - edges.length,
+      excludedNodeReasons,
     },
   };
 }
