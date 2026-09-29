@@ -41,7 +41,8 @@ export function MethodLabInstrumentRoom({runs,preregistrations,selectedRunId,onS
   const inputs=rows(prereg.INPUTS);
   const frozenRefs=Array.isArray(t0.frozenInputRefs)?t0.frozenInputRefs.map(String):[];
   const evidenceRefs=Array.isArray(result.evidenceRefs)?result.evidenceRefs.map(String):[];
-  const selectedRun=row(row(selected).run);\n  const limitations=selected&&Array.isArray(selectedRun.artifacts)?[]:Array.isArray(row(selectedRun.artifacts).LIMITATIONS)?row(selectedRun.artifacts).LIMITATIONS as unknown[]:[];
+  const selectedRun=row(row(selected).run);
+  const limitations=selected&&Array.isArray(selectedRun.artifacts)?[]:Array.isArray(row(selectedRun.artifacts).LIMITATIONS)?row(selectedRun.artifacts).LIMITATIONS as unknown[]:[];
   const seed=executed.seed;
   const hasSeed=present(seed);
   const coreReceipt=[
