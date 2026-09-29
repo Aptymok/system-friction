@@ -40,6 +40,7 @@ ${baseUrl}/observatory — public observation
 ${baseUrl}/laboratory — public laboratory explanation
 ${baseUrl}/publications — canonical public registry
 ${baseUrl}/institution — institutional identity
+${baseUrl}/contact — public institutional contact
 
 Internal operational lenses such as ROOT, Cases, Cognitive Twin/Spine and Studio are not public discovery surfaces. Reachability must not be interpreted as public status or authority.
 
