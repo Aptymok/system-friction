@@ -68,8 +68,8 @@ assert(/LEGACY_INTERNAL_SCENES=.*'falsification'.*'models'/s.test(scenes), 'lega
 assert(scenes.includes("twin:{label:'TWIN / SPINE',title:'Cognitive Twin / Spine'") && liveUi.includes('SfiOperatingWorkspace') && liveUi.includes('surface={current}'), 'decision_transfer_twin_observability_missing');
 assert(operatingUi.includes('SfiGovernanceWorkspace'), 'decision_transfer_governance_delegation_missing');
 assert(governanceUi.includes("jsonFetch('/api/root/interactive?surface=governance')"), 'decision_transfer_runtime_observability_missing');
-assert(rootUi.includes("jsonFetch('/api/root/decisions'") && rootUi.includes('ACEPTAR') && rootUi.includes('DENEGAR'), 'decision_transfer_authority_boundary_missing');
-assert(rootUi.includes('/request-evidence') && rootUi.includes('SOLICITAR EVIDENCIA'), 'decision_transfer_evidence_boundary_missing');
+assert(rootUi.includes("jsonFetch('/api/root/decisions'") && rootUi.includes('ACCEPT') && rootUi.includes('DENY'), 'decision_transfer_authority_boundary_missing');
+assert(rootUi.includes('/request-evidence') && rootUi.includes('REQUEST EVIDENCE'), 'decision_transfer_evidence_boundary_missing');
 assert(methodLabPage.includes('MethodLabNativeHub'), 'decision_transfer_method_lab_surface_missing');
 assert(methodLabHub.includes('DECISION TRANSFER'), 'decision_transfer_native_observability_missing');
 

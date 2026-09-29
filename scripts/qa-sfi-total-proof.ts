@@ -40,7 +40,7 @@ assert.doesNotMatch(governanceUi,/setInterval\(/,'governance_ui_must_not_poll');
 assert.doesNotMatch(operatingUi,/setInterval\(/,'operating_ui_must_not_poll');
 assert.doesNotMatch(rootUi,/setInterval\(/,'root_ui_must_not_poll');
 assert.ok(operatingUi.includes("surface==='twin'") && operatingUi.includes('CognitiveSpineAnatomy'), 'live_twin_observability_missing');
-assert.ok(rootUi.includes('ACEPTAR') && rootUi.includes('DENEGAR') && rootUi.includes('SOLICITAR EVIDENCIA'), 'root_governed_decision_controls_missing');
+assert.ok(rootUi.includes('ACCEPT') && rootUi.includes('DENY') && rootUi.includes('REQUEST EVIDENCE'), 'root_governed_decision_controls_missing');
 assert.doesNotMatch(governanceUi,/ACEPTAR|DENEGAR|PEDIR EVIDENCIA|SOLICITAR EVIDENCIA/,'runtime_surface_must_not_duplicate_sovereign_controls');
 assert.ok(authMenu.includes("href:'/root?reading=CURRENT_STATE'"), 'decision_navigation_must_converge_on_canonical_root_field');
 

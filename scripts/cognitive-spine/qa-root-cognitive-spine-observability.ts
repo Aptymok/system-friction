@@ -54,7 +54,7 @@ assert.ok(operatingUi.includes('SfiGovernanceWorkspace'), 'root_operating_worksp
 assert.ok(governanceUi.includes("jsonFetch('/api/root/interactive?surface=governance')") && governanceUi.includes('surface=governance&includeTargets=1'), 'root_governance_runtime_projection_missing');
 assert.equal(governanceUi.includes("jsonFetch('/api/acp/proposals')"), false, 'governance_must_not_restore_parallel_proposal_feed');
 assert.ok(rootUi.includes("jsonFetch('/api/root/decisions'") && rootUi.includes('/request-evidence'), 'root_human_decision_ownership_missing');
-assert.ok(rootUi.includes('ACEPTAR') && rootUi.includes('DENEGAR') && rootUi.includes('SOLICITAR EVIDENCIA'), 'root_human_decision_controls_missing');
+assert.ok(rootUi.includes('ACCEPT') && rootUi.includes('DENY') && rootUi.includes('REQUEST EVIDENCE'), 'root_human_decision_controls_missing');
 assert.ok(scenePage.includes('SCENE_KEYS.includes'), 'dynamic_scene_gate_missing');
 assert.ok(scenePage.includes('<SfiConsole') && scenePage.includes('scene={scene as SceneKey}'), 'dynamic_scene_runtime_missing');
 

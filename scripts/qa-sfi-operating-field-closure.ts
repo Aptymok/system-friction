@@ -90,7 +90,7 @@ assert.ok(governanceUi.includes('AGENTS · PASSPORT') && governanceUi.includes('
 assert.doesNotMatch(governanceUi,/setInterval\(/,'governance_must_not_poll');
 assert.doesNotMatch(operatingUi,/setInterval\(/,'operating_workspace_must_not_poll');
 assert.ok(operatingUi.includes("surface==='twin'") && operatingUi.includes('CognitiveSpineAnatomy'), 'cognitive_twin_operating_surface_missing');
-assert.ok(rootUi.includes('ACEPTAR') && rootUi.includes('DENEGAR') && rootUi.includes('SOLICITAR EVIDENCIA'), 'decision_authority_controls_must_live_in_root');
+assert.ok(rootUi.includes('ACCEPT') && rootUi.includes('DENY') && rootUi.includes('REQUEST EVIDENCE'), 'decision_authority_controls_must_live_in_root');
 assert.doesNotMatch(governanceUi,/ACEPTAR|DENEGAR|PEDIR EVIDENCIA|SOLICITAR EVIDENCIA/,'runtime_must_not_duplicate_sovereign_controls');
 
 assert.match(readiness,/EMPTY_READY/);

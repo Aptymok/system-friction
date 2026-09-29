@@ -91,8 +91,8 @@ assert(/LEGACY_INTERNAL_SCENES=.*'falsification'.*'models'/s.test(scenes), 'blin
 assert(scenes.includes("twin:{label:'TWIN / SPINE',title:'Cognitive Twin / Spine'") && liveUi.includes('SfiOperatingWorkspace') && liveUi.includes('surface={current}'), 'blind_experiment_twin_observability_missing');
 assert(operatingUi.includes('SfiGovernanceWorkspace'), 'blind_experiment_governance_delegation_missing');
 assert(governanceUi.includes("jsonFetch('/api/root/interactive?surface=governance')"), 'blind_experiment_runtime_observability_missing');
-assert(rootUi.includes("jsonFetch('/api/root/decisions'") && rootUi.includes('ACEPTAR') && rootUi.includes('DENEGAR'), 'blind_experiment_root_authority_missing');
-assert(rootUi.includes('/request-evidence') && rootUi.includes('SOLICITAR EVIDENCIA'), 'blind_experiment_evidence_deferral_missing');
+assert(rootUi.includes("jsonFetch('/api/root/decisions'") && rootUi.includes('ACCEPT') && rootUi.includes('DENY'), 'blind_experiment_root_authority_missing');
+assert(rootUi.includes('/request-evidence') && rootUi.includes('REQUEST EVIDENCE'), 'blind_experiment_evidence_deferral_missing');
 assert(methodLabPage.includes('MethodLabNativeHub'), 'blind_experiment_method_lab_surface_missing');
 assert(methodLabHub.includes('/blind') && methodLabHub.includes('/contrast'), 'blind_experiment_native_controls_missing');
 

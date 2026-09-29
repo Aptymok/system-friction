@@ -190,8 +190,8 @@ assert.ok(operatingUi.includes('SfiGovernanceWorkspace'), 'cognitive_twin_govern
 assert.ok(governanceUi.includes("jsonFetch('/api/root/interactive?surface=governance')") && governanceUi.includes('surface=governance&includeTargets=1'), 'cognitive_twin_governance_runtime_projection_missing');
 assert.equal(governanceUi.includes("jsonFetch('/api/acp/proposals')"), false, 'cognitive_twin_governance_must_not_duplicate_proposal_feed');
 assert.ok(interactiveApi.includes("proposalQueueSource: 'operationalNext.items'") && interactiveApi.includes('separateProposalListRead: false'), 'cognitive_twin_interactive_proposal_source_must_remain_bounded');
-assert.ok(rootUi.includes("jsonFetch('/api/root/decisions'") && rootUi.includes('ACEPTAR') && rootUi.includes('DENEGAR'), 'root_twin_decision_controls_missing');
-assert.ok(rootUi.includes('/request-evidence') && rootUi.includes('SOLICITAR EVIDENCIA'), 'root_twin_evidence_deferral_missing');
+assert.ok(rootUi.includes("jsonFetch('/api/root/decisions'") && rootUi.includes('ACCEPT') && rootUi.includes('DENY'), 'root_twin_decision_controls_missing');
+assert.ok(rootUi.includes('/request-evidence') && rootUi.includes('REQUEST EVIDENCE'), 'root_twin_evidence_deferral_missing');
 assert.ok(externalLab.includes("operation === 'report'") || externalLab.includes("case 'report'"), 'external_lab_report_surface_missing');
 
 assert.match(experiments, /SFI-CT-SNAPSHOT-1\.0/);
