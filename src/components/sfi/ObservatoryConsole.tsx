@@ -77,7 +77,7 @@ export function ObservatoryConsole(){
     try{
       const[worldR,obsR,timeR]=await Promise.all([fetchJson('/api/observatory/world'),fetchJson('/api/observatory/state'),fetchJson('/api/observatory/timeline')]);
       const nextAvailability:ObservatoryAvailability={world:classifyObservatoryRead(worldR,'WORLD'),state:classifyObservatoryRead(obsR,'STATE'),timeline:classifyObservatoryRead(timeR,'TIMELINE')};
-      const snapshot:ObservatorySnapshot={at:Date.now(),availability:nextAvailability,world:nextAvailability.world==='AVAILABLE'?row(worldR.data):null,obs:nextAvailability.state==='AVAILABLE'?row(obsR.data):null,timeline:nextAvailability.timeline==='AVAILABLE'&&Array.isArray(timeR.data?.frames)?timeR.data.frames:[]};
+      const snapshot:ObservatorySnapshot={at:Date.now(),availability:nextAvailability,world:(nextAvailability.world==='AVAILABLE'||nextAvailability.world==='DEGRADED')?row(worldR.data):null,obs:nextAvailability.state==='AVAILABLE'?row(obsR.data):null,timeline:nextAvailability.timeline==='AVAILABLE'&&Array.isArray(timeR.data?.frames)?timeR.data.frames:[]};
       observatorySnapshotCache=snapshot;applySnapshot(snapshot);
     }finally{setRefreshing(false)}
   },[applySnapshot]);
@@ -160,7 +160,7 @@ export function ObservatoryConsole(){
   const ga4Users=num(ga4Metrics?.activeUsers);
   const ga4Sessions=num(ga4Metrics?.sessions);
   const aiAssistantSessions=num(ga4Metrics?.aiAssistantSessions);
-  const worldIsPersistedLive=availability.world==='AVAILABLE'&&(nodes.length>0||timeline.length>0);
+  const worldIsPersistedLive=availability.world==='AVAILABLE'&&world?.liveWorld?.state==='LIVE'&&nodes.length>0;
 
   const narrative=availability.world!=='AVAILABLE'
     ? `Authoritative field read: ${availability.world}. Counts remain non-numeric until a successful read.`
@@ -201,7 +201,7 @@ export function ObservatoryConsole(){
         ghostVectors={baselineFrame?.vectors??[]}
         onSelectNode={setSelectedNodeId}
         onSelectHypothesis={setSelectedHypothesisId}
-      /></>:<div className="worldUnavailable"><small>PERSISTED WORLD</small><strong>{availability.world}</strong><p>No live world is rendered without persisted observations or a persisted temporal state.</p></div>}
+      /></>:<div className="worldUnavailable"><small>PERSISTED WORLD</small><strong>{availability.world}</strong><p>No live world is rendered without recent persisted observations. Historical hypotheses may remain inspectable in the Satellite Hub without being presented as a live world.</p></div>}
     </div>
 
     <aside className="hud hudLeft"><section><small>SFI-OBS-LIVE</small><h3>{'LIVE FIELD'}</h3><p className="good">● {clock.slice(11,19)} UTC</p><dl><dt>{ui('OBSERVATIONS')}</dt><dd data-availability={availability.world}>{worldMetric(nodes.length)}</dd><dt>{ui('ACTIVE SOURCES')}</dt><dd data-availability={availability.world}>{worldMetric(sourceIds.length)}</dd><dt>{ui('HYPOTHESES')}</dt><dd data-availability={availability.world}>{worldMetric(filteredHypotheses.length)}</dd><dt>{ui('IN RETURN')}</dt><dd data-availability={availability.world}>{worldMetric(openHypotheses)}</dd></dl><button onClick={()=>setSatelliteOpen(true)}>{ui('OPEN SATELLITE')}</button></section>
