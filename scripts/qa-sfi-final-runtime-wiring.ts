@@ -22,7 +22,6 @@ const files={
  scene:readFileSync('src/components/sfi/SfiConsole.tsx','utf8'),
  observatoryConsole:readFileSync('src/components/sfi/ObservatoryConsole.tsx','utf8'),
  operatingWorkspace:readFileSync('src/components/sfi/SfiOperatingWorkspace.tsx','utf8'),
- interpretiveFlow:readFileSync('src/components/sfi/ObservatoryInterpretiveFlow.tsx','utf8'),
  sceneRegistry:readFileSync('src/components/sfi/scenes.ts','utf8'),
  externalManifest:readFileSync('src/app/api/external/v1/manifest/route.ts','utf8'),
 };
@@ -41,10 +40,10 @@ assert.match(files.governedObservatory,/observatoryPublicationDisposition/);
 assert.match(files.scene,/SfiOperatingWorkspace/);
 assert.match(files.scene,/ObservatoryConsole/);
 assert.doesNotMatch(files.scene,/ObservatoryInterpretiveFlow/);
-assert.match(files.observatoryConsole,/ObservatoryInterpretiveFlow/);
-assert.match(files.observatoryConsole,/<ObservatoryInterpretiveFlow world=\{world\} availability=\{availability\.world\}\/>/);
-assert.doesNotMatch(files.interpretiveFlow,/fetch\('\/api\/observatory\/world'/);
-assert.doesNotMatch(files.interpretiveFlow,/setInterval\(/);
+assert.doesNotMatch(files.observatoryConsole,/ObservatoryInterpretiveFlow/);
+assert.match(files.observatoryConsole,/SFI SATELLITE → HUB/);
+assert.match(files.observatoryConsole,/LATEST HYPOTHESES/);
+assert.match(files.observatoryConsole,/world\?\.liveWorld\?\.state==='LIVE'/);
 assert.match(files.operatingWorkspace,/CognitiveSpineAnatomy/);
 assert.match(files.operatingWorkspace,/SfiGovernanceWorkspace/);
 assert.doesNotMatch(files.operatingWorkspace,/ACEPTAR Y CERRAR/);
@@ -52,8 +51,7 @@ assert.doesNotMatch(files.operatingWorkspace,/DENEGAR REPORTE/);
 assert.doesNotMatch(files.operatingWorkspace,/reportDecision|decideCase|decideCycle/);
 assert.match(files.operatingWorkspace,/SFI works autonomously within its authority/);
 assert.match(files.operatingWorkspace,/ACCEPT LEARNING/);
-assert.match(files.interpretiveFlow,/INFERENCE_ONLY/);
-assert.match(files.interpretiveFlow,/RETURN \/ CONTRAST/);
+
 
 assert.match(files.sceneRegistry,/root/);
 assert.match(files.sceneRegistry,/governance/);
