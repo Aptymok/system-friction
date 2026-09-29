@@ -3,8 +3,6 @@ export const SFI_DISCOVERY_CRAWLER_POLICY_CONTRACT = 'SFI-DISCOVERY-CRAWLER-POLI
 export const SFI_PUBLIC_DISCOVERY_PATHS = Object.freeze([
   '/',
   '/observatory',
-  '/laboratory',
-  '/institution',
   '/publications',
   '/publications/',
   '/research/',
