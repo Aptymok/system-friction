@@ -8,13 +8,12 @@
   --display:"Noto Serif Display",Georgia,serif;
   --narrative:"EB Garamond",Georgia,serif;
   --screen:"Noto Sans",system-ui,sans-serif;
-  position:fixed;
-  inset:0;
-  width:100vw;
-  height:100svh;
+  position:relative;
+  width:100%;
+  height:calc(100svh - 68px);
   overflow:hidden;
   overscroll-behavior:none;
-  touch-action:none;
+  touch-action:pan-y;
   background:var(--void);
   color:var(--cream);
   isolation:isolate
