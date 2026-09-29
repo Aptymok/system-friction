@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import type { SfiPublicResearchLanding } from '@/lib/research/publicResearchLanding';
-import { ResearchObjectModes } from './ResearchObjectModes';
 import { SfiPublicHeader, SfiPublicFooter } from '@/components/public/SfiPublicChrome';
 
 function SourceRef({ value }: { value: string }) {
@@ -58,8 +57,6 @@ export function PublicResearchLandingView({ landing }: { landing: SfiPublicResea
               </div>
             ))}
           </section>
-
-          <ResearchObjectModes landing={landing} />
 
           <section style={{ marginTop: 46, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))', gap: 32 }}>
             <article>
