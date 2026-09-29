@@ -43,14 +43,14 @@ for(const [href,label] of [
 rejectText(nav,"href:'/method-lab'",'public nav must not expose authenticated Method Lab');
 
 requireText(layout,'<html lang="en">','root document English declaration');
-for(const route of ['/','/observatory','/laboratory','/publications','/institution','/login']){
-  requireText(layout,`href="${route}"`,`global footer route ${route}`);
-}
-rejectText(layout,'href="/method-lab">LABORATORY','public footer authenticated-lab leak');
-
-requireText(entry,'SFI_PUBLIC_NAV.map','entry complete public navigation');
-requireText(observatory,'SFI_PUBLIC_NAV.filter','Observatory complete public navigation');
+requireText(layout,'<SfiPublicHeader global/>','global institutional header');
+requireText(layout,'<SfiPublicFooter global/>','global institutional footer');
 requireText(publicChrome,'SFI_PUBLIC_NAV.map','shared public chrome complete public navigation');
+requireText(publicChrome,'href="/login"','shared public chrome sign-in');
+requireText(publicChrome,'href="/privacy"','shared footer privacy');
+requireText(publicChrome,'<PublicNewsletterForm/>','shared footer newsletter');
+rejectText(entry,'SFI_PUBLIC_NAV.map','home duplicate public navigation');
+rejectText(observatory,'SFI_PUBLIC_NAV.filter','Observatory duplicate public navigation');
 requireText(laboratory,'CanonicalCognitiveFieldPublic','public canonical cognitive field');
 requireText(laboratory,'href="/login?next=%2Fmethod-lab"','governed Method Lab sign-in handoff');
 requireText(methodLab,"requireUserProfile()",'Method Lab remains authenticated');
