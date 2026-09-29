@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { Application, Container, Graphics, Text } from 'pixi.js';
 
-type FieldNode={id:string;label:string;type:string;tone:string;x:number;y:number;radius:number;selected:boolean};
+type FieldNode={id:string;label:string;type:string;tone:string;shape:'circle'|'rounded'|'diamond'|'hex'|'triangle'|'ring'|'pill';x:number;y:number;radius:number;selected:boolean};
 type FieldEdge={id:string;source:string;target:string;weight:number;selected:boolean};
 
 export function RootCognitiveFieldPixi({nodes,edges,width,height,onSelect}:{nodes:FieldNode[];edges:FieldEdge[];width:number;height:number;onSelect:(id:string)=>void}) {
@@ -29,8 +29,15 @@ export function RootCognitiveFieldPixi({nodes,edges,width,height,onSelect}:{node
       const glyphs=new Map<string,{g:Graphics;t:Text}>();
       for(const n of nodes){
         const g=new Graphics();
-        g.circle(0,0,n.radius+(n.selected?4:0)).fill({color:n.tone,alpha:n.selected?.95:.78});
-        g.circle(0,0,n.radius+8).stroke({color:n.tone,width:n.selected?1.4:.45,alpha:n.selected?.5:.16});
+        const r=n.radius+(n.selected?4:0);
+        if(n.shape==='diamond') g.poly([0,-r,r,0,0,r,-r,0]).fill({color:n.tone,alpha:n.selected?.95:.82});
+        else if(n.shape==='hex') g.poly([-r*.86,-r*.5,0,-r,r*.86,-r*.5,r*.86,r*.5,0,r,-r*.86,r*.5]).fill({color:n.tone,alpha:n.selected?.95:.82});
+        else if(n.shape==='triangle') g.poly([0,-r,r,r,-r,r]).fill({color:n.tone,alpha:n.selected?.95:.82});
+        else if(n.shape==='rounded') g.roundRect(-r,-r,r*2,r*2,Math.max(2,r*.32)).fill({color:n.tone,alpha:n.selected?.95:.82});
+        else if(n.shape==='pill') g.roundRect(-r*1.45,-r*.72,r*2.9,r*1.44,r).fill({color:n.tone,alpha:n.selected?.95:.82});
+        else if(n.shape==='ring') g.circle(0,0,r).stroke({color:n.tone,width:Math.max(2,r*.28),alpha:n.selected?.95:.82});
+        else g.circle(0,0,r).fill({color:n.tone,alpha:n.selected?.95:.82});
+        g.circle(0,0,r+8).stroke({color:n.tone,width:n.selected?1.4:.45,alpha:n.selected?.5:.14});
         g.eventMode='static'; g.cursor='pointer'; g.on('pointertap',()=>onSelect(n.id));
         const t=new Text({text:n.label,style:{fontFamily:'Helvetica,Arial,sans-serif',fontSize:10,fill:0xd8d4cc}});
         t.alpha=n.selected?1:.7; t.x=10; t.y=-8;
@@ -76,7 +83,7 @@ export function RootCognitiveFieldPixi({nodes,edges,width,height,onSelect}:{node
         for(const n of state.values()){
           const item=glyphs.get(n.id);if(!item)continue;
           (item.g as any).position.set(n.x,n.y);
-          item.t.visible=zoom>1.05||n.selected;
+          item.t.visible=zoom>1.75||n.selected;
           item.t.scale.set(1/Math.max(1,zoom*.72));
         }
       });
