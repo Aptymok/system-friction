@@ -100,6 +100,21 @@ function promotedLearningHypotheses(event: Row): CognitiveSpineSourceRecord[] {
   }));
 }
 
+export function projectPromotedLearningForReentry(event: Row) {
+  const records = promotedLearningHypotheses(event);
+  const payload = record(event.payload);
+  return {
+    candidateEventId: text(payload.candidateEventId),
+    cycleId: text(payload.cycleId),
+    promotionState: text(payload.promotionState),
+    assessmentClass: text(payload.assessmentClass),
+    records,
+    reentersFutureSnapshots: records.length > 0,
+    mutatesHistoricalObservation: false as const,
+    boundary: 'PROMOTION_REENTERS_FUTURE_COGNITION_BY_NEW_DERIVED_SOURCE_NOT_T0_REWRITE' as const,
+  };
+}
+
 /**
  * Historical Cognitive Spine state is reconstructed from immutable events.
  *
@@ -157,7 +172,7 @@ export async function readAdditionalInstitutionalCognitiveSpineSources(sourceCut
   const records: CognitiveSpineSourceRecord[] = [];
   let promotedUniversalHypotheses = 0;
   for (const event of rows(promotedLearningResult.data)) {
-    const mapped = promotedLearningHypotheses(event);
+    const mapped = projectPromotedLearningForReentry(event).records;
     records.push(...mapped);
     promotedUniversalHypotheses += mapped.length;
   }
