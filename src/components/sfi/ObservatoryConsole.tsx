@@ -162,6 +162,7 @@ export function ObservatoryConsole(){
   const ga4Users=num(ga4Metrics?.activeUsers);
   const ga4Sessions=num(ga4Metrics?.sessions);
   const aiAssistantSessions=num(ga4Metrics?.aiAssistantSessions);
+  const worldIsPersistedLive=availability.world==='AVAILABLE'&&(nodes.length>0||timeline.length>0);
 
   const narrative=availability.world!=='AVAILABLE'
     ? `Authoritative field read: ${availability.world}. Counts remain non-numeric until a successful read.`
@@ -174,8 +175,8 @@ export function ObservatoryConsole(){
       <img src="/sfi-scenes/satellite.png" alt={ui('SFI observatory satellite')}/><span className="scanBeam"/>
     </button>
 
-    <div className="earthStage">
-      <img className="worldActor" src="/sfi-scenes/world.png" alt={ui('Earth observed by System Friction Institute')}/>
+    <div className="earthStage" data-persisted-live={worldIsPersistedLive?'true':'false'}>
+      {worldIsPersistedLive?<><img className="worldActor" src="/sfi-scenes/world.png" alt={ui('Earth observed by System Friction Institute')}/>
       <ObservatorySemanticGpuLayer
         lens={lens}
         nodes={nodes.map((node)=>({id:node.id,position:positions.get(node.id)??orbitalPosition(node.id,0,1)}))}
@@ -202,7 +203,7 @@ export function ObservatoryConsole(){
         ghostVectors={baselineFrame?.vectors??[]}
         onSelectNode={setSelectedNodeId}
         onSelectHypothesis={setSelectedHypothesisId}
-      />
+      /></>:<div className="worldUnavailable"><small>PERSISTED WORLD</small><strong>{availability.world}</strong><p>No live world is rendered without persisted observations or a persisted temporal state.</p></div>}
     </div>
 
     <aside className="hud hudLeft"><section><small>SFI-OBS-LIVE</small><h3>{'LIVE FIELD'}</h3><p className="good">● {clock.slice(11,19)} UTC</p><dl><dt>{ui('OBSERVATIONS')}</dt><dd data-availability={availability.world}>{worldMetric(nodes.length)}</dd><dt>{ui('ACTIVE SOURCES')}</dt><dd data-availability={availability.world}>{worldMetric(sourceIds.length)}</dd><dt>{ui('HYPOTHESES')}</dt><dd data-availability={availability.world}>{worldMetric(filteredHypotheses.length)}</dd><dt>{ui('IN RETURN')}</dt><dd data-availability={availability.world}>{worldMetric(openHypotheses)}</dd></dl><button onClick={()=>setSatelliteOpen(true)}>{ui('OPEN SATELLITE')}</button></section>
