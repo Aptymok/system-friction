@@ -7,6 +7,7 @@ const railCss=read('src/components/sfi/InstitutionalSurfaceRail.css');
 const rootScene=read('src/app/[scene]/page.tsx');
 const lab=read('src/components/sfi/MethodLabEnvironment.tsx');
 const neural=read('src/components/sfi/RootNeuralGraphView.tsx');
+const neuralPixi=read('src/components/sfi/RootCognitiveFieldPixi.tsx');
 const discovery=read('src/app/root/discovery/page.tsx');
 const evidence=read('src/components/sfi/RootEvidenceReviewConsole.tsx');
 const evidenceCss=read('src/components/sfi/RootEvidenceReviewConsole.css');
@@ -15,13 +16,13 @@ const accessCss=read('src/app/root/access/root-access.css');
 
 for(const token of ['ROOT','LABORATORY','DISCOVERY','EVIDENCE','ACCESS']) assert.ok(rail.includes(token),'institutional_surface_missing:'+token);
 for(const token of ['ACCESS ≠ AUTHORITY','SIMULATED ≠ OBSERVED','EXPOSURE ≠ DISCOVERY','SOURCE ≠ EVIDENCE']) assert.ok(rail.includes(token),'institutional_boundary_missing:'+token);
-assert.ok(neural.includes('RELATION ≠ CAUSALITY'),'root_neural_relation_boundary_missing');
+assert.ok(neural.includes('reality?:') && neural.includes('epistemicClass') && neural.includes('observedReturn'),'root_neural_epistemic_boundary_missing');
 assert.ok(rail.includes('data-sfi-internal-shell="SFI-INTERNAL-VISUAL-1.0"'),'internal_visual_contract_missing');
 assert.ok(railCss.includes('prefers-reduced-motion'),'internal_shell_reduced_motion_missing');
 
 assert.ok(rootScene.includes('data-root-primary-interface="CANONICAL_COGNITIVE_FIELD"') && rootScene.includes('<RootNeuralGraphView'),'root_neural_field_not_canonical');
 assert.ok(lab.includes('<InstitutionalSurfaceRail surface="LABORATORY"'),'lab_not_converged');
-assert.ok(neural.includes('data-neural-graph-contract="SFI-ROOT-NEURAL-GRAPH-1.0"'),'root_neural_visual_contract_missing');
+assert.ok(neural.includes('data-neural-graph-contract="SFI-ROOT-NEURAL-GRAPH-1.1"') && neural.includes('<RootCognitiveFieldPixi') && neuralPixi.includes("from 'pixi.js'"),'root_neural_visual_contract_missing');
 assert.equal(neural.includes('<InstitutionalSurfaceRail surface="NEURAL_GRAPH"'),false,'neural_graph_must_not_reappear_as_separate_institutional_surface');
 assert.ok(discovery.includes('<InstitutionalSurfaceRail surface="DISCOVERY"'),'discovery_not_converged');
 assert.ok(evidence.includes('<InstitutionalSurfaceRail surface="EVIDENCE"'),'evidence_not_converged');
