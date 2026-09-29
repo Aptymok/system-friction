@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
   if (!authorized(request)) return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 });
 
   const manualReadjudication = request.headers.get('x-sfi-world-readjudication') === 'authorized';
-  const egressGuard = scheduledEgressGuardResponse({ authorizedManualOverride: manualReadjudication });
+  const egressGuard = scheduledEgressGuardResponse({ authorizedManualOverride: manualReadjudication, lane: 'WORLD_OBSERVATION' });
   if (egressGuard) return egressGuard;
 
   const startedAt = new Date().toISOString();
