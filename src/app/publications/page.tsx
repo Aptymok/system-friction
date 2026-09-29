@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import {
   SFI_EDITORIAL_PUBLICATIONS,
   SFI_NOTAS_TEMPORALES_V1,

@@ -254,11 +254,14 @@ function semanticText(node: GraphNode) {
     .toLowerCase();
 }
 
-function realityStage(node: GraphNode) {
-  if (node.reality?.stage) return node.reality.stage.toLowerCase();
+const REALITY_STAGES = ['world','capture','evidence','transformation','inference','verification','authority','action','return','unclassified'] as const;
+type RealityStage = (typeof REALITY_STAGES)[number];
+
+function realityStage(node: GraphNode): RealityStage {
+  const explicit = node.reality?.stage?.toLowerCase();
+  if (explicit && REALITY_STAGES.includes(explicit as RealityStage)) return explicit as RealityStage;
   const text = semanticText(node);
-  const stages: readonly string[] = ['world','capture','evidence','transformation','inference','verification','authority','action','return'];
-  return stages.find((stage) => text.includes(stage)) ?? 'unclassified';
+  return REALITY_STAGES.slice(0, -1).find((stage) => text.includes(stage)) ?? 'unclassified';
 }
 
 function reorganizationOffset(node: GraphNode, reading: string): Position {
