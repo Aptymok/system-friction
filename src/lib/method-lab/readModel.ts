@@ -7,6 +7,7 @@ import { COGNITIVE_TWIN_REENTRY } from '@/core/cognitive-twin/reentry/runtime';
 import { METHOD_LAB_CONTRACT_VERSION, type MethodLabProtocolId, type MethodLabProtocolStatus } from './contracts';
 import { METHOD_LAB_PROTOCOLS } from './registry';
 import { assertMethodLabExperimentPreregistration, projectMethodLabMethodResult, type MethodLabExperimentPreregistration, type MethodLabExperimentRun } from './experimentContract';
+import { readUniversalLearningQuarantine } from '@/lib/sfi/universalLearningQuarantine';
 
 type Row = Record<string, unknown>;
 type DependencyState = { table: string; available: boolean; error: string | null };
@@ -133,6 +134,49 @@ export async function readMethodLabFieldMethodResults(systemRefs: string[]) {
     } catch { /* only contract-valid persisted runs are projected into ROOT */ }
   }
   return results;
+}
+
+export async function readMethodLabFieldLearningStates(systemRefs: string[]) {
+  const refs = new Set(systemRefs.map((value) => value.trim()).filter(Boolean));
+  const states = new Map<string, { candidateEventId: string; cycleId: string | null; classification: string | null; state: 'QUARANTINED' | 'ELIGIBLE_FOR_ROOT_PROMOTION' | 'PROMOTED' | 'REJECTED'; assessmentClass: string | null; boundary: 'LEARNING_STATE_IS_GOVERNANCE_NOT_OBSERVATION' }>();
+  if (!refs.size) return states;
+  const quarantine = await readUniversalLearningQuarantine(240);
+  if (!quarantine.ok) return states;
+  const all = [...quarantine.candidates, ...quarantine.promotions, ...quarantine.rejections];
+  for (const event of all) {
+    const p = row(event.payload);
+    const learning = row(p.learning);
+    const candidateLearning = row(learning.learningCandidate);
+    if (text(candidateLearning.source) !== 'METHOD_LAB_CONTRAST') continue;
+    const experimentId = text(candidateLearning.experimentId);
+    const runId = text(candidateLearning.runId);
+    if (!experimentId || !runId) continue;
+    const cycleId = text(p.cycleId);
+    const systemRef = cycleId?.startsWith('method-lab:') ? null : null;
+    void systemRef;
+    const preregRef = `method-lab:prereg:${experimentId}`;
+    const db = createServiceSupabaseClient();
+    const prereg = await db.from('sfi_lab_analyses').select('raw_analysis').eq('id', preregRef).maybeSingle();
+    if (prereg.error || !prereg.data) continue;
+    const raw = row(prereg.data.raw_analysis);
+    const preregistration = row(raw.preregistration);
+    const population = row(preregistration.POPULATION_SYSTEM);
+    const ref = text(population.ref);
+    if (!ref || !refs.has(ref) || states.has(ref)) continue;
+    const eventName = text(event.event_name);
+    const state = eventName === 'SFI_UNIVERSAL_LEARNING_PROMOTED' ? 'PROMOTED'
+      : eventName === 'SFI_UNIVERSAL_LEARNING_REJECTED' ? 'REJECTED'
+        : p.eligibleForRootPromotion === true ? 'ELIGIBLE_FOR_ROOT_PROMOTION' : 'QUARANTINED';
+    states.set(ref, {
+      candidateEventId: text(p.candidateEventId) ?? text(event.event_id) ?? '',
+      cycleId,
+      classification: text(p.classification),
+      state,
+      assessmentClass: text(p.assessmentClass),
+      boundary: 'LEARNING_STATE_IS_GOVERNANCE_NOT_OBSERVATION',
+    });
+  }
+  return states;
 }
 
 export async function readMethodLabState() {
