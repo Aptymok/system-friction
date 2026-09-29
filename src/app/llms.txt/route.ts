@@ -1,9 +1,6 @@
-import { SCENE_KEYS, SCENES } from '@/components/sfi/scenes';
-
 export async function GET() {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://systemfriction.org';
   const today = new Date().toISOString().split('T')[0];
-  const scenes = SCENE_KEYS.map((key) => `${baseUrl}/${key} — ${SCENES[key].title}`).join('\n');
   const content = `
 # SYSTEM FRICTION INSTITUTE
 
@@ -37,8 +34,14 @@ When timestamps imply impossible chronology, test whether the real operational p
 ## WHAT SFI ACCEPTS AS AN OBJECT
 URL, web page, text, audio, video, image, document, dataset, JSON, CSV, conversation, email, code, API response, sensor/event data, organization, person, place or composite references. Raw object persistence is not the default; preserve references, hashes, time and provenance.
 
-## PUBLIC LIVE SCENES
-${scenes}
+## PUBLIC HUMAN SURFACES
+${baseUrl}/ — institutional entry
+${baseUrl}/observatory — public observation
+${baseUrl}/laboratory — public laboratory explanation
+${baseUrl}/publications — canonical public registry
+${baseUrl}/institution — institutional identity
+
+Internal operational lenses such as ROOT, Cases, Cognitive Twin/Spine and Studio are not public discovery surfaces. Reachability must not be interpreted as public status or authority.
 
 ## MACHINE-READABLE ENTRY POINTS
 ${baseUrl}/llms-full.txt
