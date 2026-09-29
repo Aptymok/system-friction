@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { PublicResearchLandingView } from '@/components/research/PublicResearchLandingView';
-import { ResearchObjectModes } from '@/components/research/ResearchObjectModes';
 import { TemporalIssueView } from '@/components/publications/TemporalIssueView';
 import './temporalIssue.css';
 import { editorialPublicationForSlug, relatedEditorialObservations } from '@/lib/publications/editorialContent';
@@ -98,7 +97,6 @@ export default async function PublicationLandingPage({ params }: PageProps) {
             {publication.mediumUrl?<a href={publication.mediumUrl} target="_blank" rel="noreferrer" style={{fontSize:10,letterSpacing:'.13em',color:'#9e927e'}}>SOURCE OBJECT ↗</a>:null}
           </div>
         </header>
-        <div data-sfi-object-modes="non-english"><ResearchObjectModes landing={landing}/></div>
         <section style={{paddingTop:42}}>
           <small style={{fontSize:10,letterSpacing:'.18em',color:'#c8a951'}}>CANONICAL PRESERVATION</small>
           <h3 style={{fontFamily:'Georgia,serif',fontWeight:400,fontSize:32,color:'#e4cf9c'}}>Original-language body preserved, not publicly rendered here.</h3>
@@ -115,9 +113,6 @@ export default async function PublicationLandingPage({ params }: PageProps) {
   if (publication?.editorialKind === 'TEMPORAL_ISSUE') {
     return <>
       <TemporalIssueView publication={publication} landing={landing} />
-      <section data-sfi-object-modes="temporal" style={{background:'#070706',padding:'0 28px 84px'}}>
-        <div style={{maxWidth:1120,margin:'0 auto'}}><ResearchObjectModes landing={landing}/></div>
-      </section>
     </>;
   }
 
