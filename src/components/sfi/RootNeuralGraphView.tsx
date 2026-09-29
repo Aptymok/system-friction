@@ -170,12 +170,45 @@ function hash(value: string) {
 }
 
 function nodeTone(node: GraphNode) {
-  const state = String(node.reality?.state ?? node.attributes.epistemicClass ?? node.attributes.state ?? 'UNKNOWN').toUpperCase();
-  const authority = String(node.reality?.authority ?? node.attributes.authority ?? '').toUpperCase();
-  if (/FAIL|BREACH|REJECT|CONTRADICT|DEGRADED|FALSIF/.test(state)) return '#B85050';
-  if (/AUTHORITY|AUTHORIZED|CANON|PERSIST/.test(authority+' '+state)) return '#C8A951';
-  if (/OBSERVED|SIGNAL|EMERG/.test(state)) return '#4A7AAA';
-  return '#6B635A';
+  const epistemic = String(node.reality?.state ?? node.attributes.epistemicClass ?? node.attributes.state ?? 'UNKNOWN').toUpperCase();
+  const type = node.type.toLowerCase();
+  if (/FAIL|BREACH|REJECT|CONTRADICT|DEGRADED|FALSIF/.test(epistemic)) return '#B85050';
+  if (type.includes('return') || type.includes('outcome')) return '#7B9B82';
+  if (type.includes('learning')) return '#9D7CAC';
+  if (type.includes('hypothesis')) return '#C8A951';
+  if (type.includes('evidence') || /OBSERVED/.test(epistemic)) return '#4A7AAA';
+  if (type.includes('case')) return '#B85050';
+  if (type.includes('twin') || type.includes('method')) return '#8D9A9E';
+  if (/DECLARED/.test(epistemic)) return '#C8A951';
+  if (/HYPOTHESIZED|SIMULATED/.test(epistemic)) return '#9D7CAC';
+  return '#7D756A';
+}
+
+function nodeShape(node: GraphNode): 'circle'|'rounded'|'diamond'|'hex'|'triangle'|'ring'|'pill' {
+  const type=node.type.toLowerCase();
+  if(type.includes('hypothesis')) return 'diamond';
+  if(type.includes('evidence')) return 'circle';
+  if(type.includes('return')||type.includes('outcome')) return 'ring';
+  if(type.includes('learning')) return 'hex';
+  if(type.includes('case_object')||type.includes('case-object')) return 'rounded';
+  if(type==='case'||type.includes('case')) return 'pill';
+  if(type.includes('twin')||type.includes('method')) return 'triangle';
+  return 'rounded';
+}
+
+function qualifiedRelationCount(node: GraphNode, edges: GraphEdge[]) {
+  return edges.filter((edge)=>{
+    if(edge.source!==node.id&&edge.target!==node.id) return false;
+    const provenance=String(edge.provenance||'').trim();
+    const epistemic=String(edge.attributes?.epistemicClass??'').toUpperCase();
+    const evidenceRefs=edge.attributes?.evidenceRefs;
+    return Boolean(provenance) && (
+      epistemic==='OBSERVED' ||
+      epistemic==='DERIVED' ||
+      (Array.isArray(evidenceRefs)&&evidenceRefs.length>0) ||
+      edge.reality?.material===true
+    );
+  }).length;
 }
 
 type TemporalReading = {
@@ -470,7 +503,7 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
   const graphObserved = graph.sourceState === 'observed';
   const typeCount = allTypes.length;
 
-  const fieldNodes=visibleNodes.map((node)=>{const p=topology.positions.get(node.id)??{x:topology.width/2,y:topology.height/2};return {id:node.id,label:node.label,type:node.type,tone:nodeTone(node),x:p.x,y:p.y,radius:selectedId===node.id?7:2.8+Math.min(3.2,(degree.get(node.id)??0)*.22),selected:selectedId===node.id};});
+  const fieldNodes=visibleNodes.map((node)=>{const p=topology.positions.get(node.id)??{x:topology.width/2,y:topology.height/2};const qualified=qualifiedRelationCount(node,graph.edges);const evidence=Number(node.methodSignal?.evidenceBoundRelationCount??0);return {id:node.id,label:node.label,type:node.type,tone:nodeTone(node),shape:nodeShape(node),x:p.x,y:p.y,radius:selectedId===node.id?8:3.6+Math.min(3.4,qualified*.28+evidence*.22),selected:selectedId===node.id};});
   const fieldEdges=visibleEdges.map((edge)=>({id:edge.id,source:edge.source,target:edge.target,weight:edge.weight,selected:selectedId===edge.source||selectedId===edge.target}));
 
   return (
@@ -505,18 +538,21 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
             <span className="rootFieldHubKicker">{selected.type} · {realityStage(selected).toUpperCase()}</span>
             <h2>{selected.label}</h2>
             <p>{selected.origin} · {selected.provenance}</p>
+            <p>{String(selected.attributes.statement ?? selected.attributes.observedOutcome ?? selected.attributes.objective ?? selected.attributes.scope ?? selected.attributes.evidenceKind ?? selected.attributes.classification ?? 'Persisted cognitive object. Select connected objects to reconstruct its context.')}</p>
             <div className="rootFieldHubGrid">
               <span>STATE<strong>{selected.reality?.state ?? String(selected.attributes.epistemicClass ?? 'UNKNOWN')}</strong></span>
               <span>TIME<strong>{temporalReading(selected).label}</strong></span>
               <span>AUTHORITY<strong>{selected.reality?.authority ?? 'UNKNOWN'}</strong></span>
               <span>RETURN<strong>{selected.reality?.observedReturn == null ? 'NOT OBSERVED' : String(selected.reality.observedReturn)}</strong></span>
-              <span>RELATIONS<strong>{selectedEdges.length}</strong></span>
-              <span>ATTRACTOR<strong>{selected.scientificReading?.attractor.state ?? 'NOT ESTABLISHED'}</strong></span>
+              <span>STRUCTURAL LINKS<strong>{selectedEdges.length}</strong></span>
+              <span>QUALIFIED RELATIONS<strong>{qualifiedRelationCount(selected,graph.edges)}</strong></span>
+              <span>INSTITUTIONAL DIRECTION<strong>SFI-INSTITUTIONAL-ATTRACTOR-001</strong></span>
+              <span>LOCAL DYNAMICAL ATTRACTOR<strong>{selected.scientificReading?.attractor.state ?? 'NOT ESTABLISHED'}</strong></span>
             </div>
             {selected.methodResult ? <p>METHOD · {selected.methodResult.methodId}@{selected.methodResult.methodVersion} · {selected.methodResult.epistemicClass}</p> : null}
             {selected.learningState ? <p>LEARNING · {selected.learningState.state} · {selected.learningState.classification ?? 'UNCLASSIFIED'}</p> : null}
             <div className="rootFieldRelations">
-              {selectedEdges.map((edge)=>{const outbound=edge.source===selected.id;const other=nodeById.get(outbound?edge.target:edge.source);return <button key={edge.id} onClick={()=>setSelectedId(other?.id??null)}><small>{outbound?'→':'←'} {edge.relation}</small><strong>{other?.label??(outbound?edge.target:edge.source)}</strong><em>{edge.weight.toFixed(3)}</em></button>;})}
+              {selectedEdges.map((edge)=>{const outbound=edge.source===selected.id;const other=nodeById.get(outbound?edge.target:edge.source);return <button key={edge.id} onClick={()=>setSelectedId(other?.id??null)}><small>{outbound?'→':'←'} {edge.relation}</small><strong>{other?.label??(outbound?edge.target:edge.source)}</strong><em>{edge.origin==='operational_projection' ? edge.provenance : `WEIGHT · ${edge.weight.toFixed(3)}`}</em></button>;})}
             </div>
             {selected.lineage.length ? <details><summary>LINEAGE · {selected.lineage.length}</summary>{selected.lineage.map((item)=><code key={item}>{item}</code>)}</details> : null}
           </aside>
