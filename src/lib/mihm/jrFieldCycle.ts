@@ -11,6 +11,7 @@ import { deriveDistributedPhenomena, persistDistributedPhenomenonCandidate } fro
 import { dispatchScientificMethodToLab } from './scientificMethodDispatch';
 import { executeScientificMethodsForNode, persistScientificMethodExecutions, readFieldEpochHistories } from './scientificMethodRuntime';
 import { persistActiveObservationRequest } from './activeObservationQueue';
+import { reconcileJrMethodLabReturns } from './jrReturnReconciliation';
 
 export const SFI_JR_FIELD_CYCLE_CONTRACT = 'SFI-JR-FIELD-CYCLE-1.0' as const;
 
@@ -206,6 +207,21 @@ export async function runJrFieldCycle(input: JrCycleInput) {
     }
   }
 
+  const returnReconciliation = await reconcileJrMethodLabReturns({
+    actorId: input.actorId,
+    tenantId: 'sfi',
+    maxRuns: 30,
+  }).catch((error) => ({
+    ok:false as const,
+    contract:'SFI-JR-RETURN-RECONCILIATION-1.0',
+    pending:0,
+    contrasted:0,
+    waiting:0,
+    results:[],
+    writesPerformed:false,
+    error:error instanceof Error ? error.message : String(error),
+  }));
+
   const persistedObservationRequests = activeObservationRequests.filter((item) =>
     typeof item === 'object'
     && item !== null
@@ -241,6 +257,7 @@ export async function runJrFieldCycle(input: JrCycleInput) {
       persistence:{epochTargets:epochTargets.length,persistedEpochs,phenomenonCandidates:phenomena.length,persistedPhenomena},
       methods:{maxMethodRuns,methodRuns,scientificMethodExecutions,dispatches:methodDispatches},
       activeObservationRequests,
+      returnReconciliation,
       nextObservations,
       perturbationReviewCandidates,
       materialPerturbationExecuted:false,
@@ -250,12 +267,13 @@ export async function runJrFieldCycle(input: JrCycleInput) {
     },
   });
 
-  const writesPerformed = persistedEpochs > 0 || persistedPhenomena > 0 || persistedScientificMethods > 0 || persistedObservationRequests > 0 || methodRuns > 0 || cycleReceipt.ok;
+  const writesPerformed = persistedEpochs > 0 || persistedPhenomena > 0 || persistedScientificMethods > 0 || persistedObservationRequests > 0 || methodRuns > 0 || returnReconciliation.writesPerformed === true || cycleReceipt.ok;
   const degradedDispatches = methodDispatches.filter((item) => typeof item === 'object' && item !== null && (item as {state?:string}).state === 'DEGRADED').length;
+  const returnDegraded = returnReconciliation.ok === false;
 
   return {
-    ok: degradedDispatches === 0,
-    status: degradedDispatches ? 'DEGRADED' as const : 'COMPLETE' as const,
+    ok: degradedDispatches === 0 && !returnDegraded,
+    status: (degradedDispatches || returnDegraded) ? 'DEGRADED' as const : 'COMPLETE' as const,
     contract:SFI_JR_FIELD_CYCLE_CONTRACT,
     startedAt,
     completedAt,
@@ -272,6 +290,7 @@ export async function runJrFieldCycle(input: JrCycleInput) {
     scientificMethodExecutions,
     activeObservationRequests,
     methodDispatches,
+    returnReconciliation,
     cycleReceipt:cycleReceipt.ok ? cycleReceipt.data : cycleReceipt,
     writesPerformed,
     boundary:'Observation and simulation may continue automatically within existing authority. Jr never turns a method result into observation, executes a material perturbation, promotes canon, makes a governance decision or fabricates RETURN.',
