@@ -96,6 +96,7 @@ async function api(body?: Row) {
 
 function artifact(runRow: Row, key: string) {
   const run = record(runRow.run);
+  if (!run) return {};
   return record(record(run.artifacts)[key]);
 }
 
