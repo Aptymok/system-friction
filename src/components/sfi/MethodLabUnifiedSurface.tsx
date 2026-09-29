@@ -1,0 +1,10 @@
+'use client';
+import { useState,type ReactNode } from 'react';
+import Link from 'next/link';
+import './MethodLabUnifiedSurface.css';
+type View='experiment'|'operations'|'research';
+export function MethodLabUnifiedSurface({status,experiment,operations,research}:{status:string;experiment:ReactNode;operations:ReactNode;research:ReactNode}){
+ const [view,setView]=useState<View>('experiment');
+ const copy=view==='experiment'?['DEFINE → FREEZE T0 → TEST','What are we trying to learn?','Define one bounded experiment. Evidence and prior state remain frozen before execution.']:view==='operations'?['EVIDENCE → RUN → CONTRAST','What can be tested now?','Use persisted evidence and governed instruments without converting simulation into observation.']:['OBJECT → FINDING → RETURN','What survived the experiment?','Review findings, lineage and RETURN. Publication or promotion remains a separate governed decision.'];
+ return <main className="mlu" data-view={view}><div className="mluAtmosphere" aria-hidden="true"><i/><i/><i/></div><header className="mluHeader"><Link href="/root" className="mluBrand">SFI.</Link><div><small>CONTROLLED EXPERIMENTATION</small><strong>METHOD LAB</strong></div><span className="mluStatus">{status}</span></header><nav className="mluNav" aria-label="Method Lab views"><button data-active={view==='experiment'} onClick={()=>setView('experiment')}>EXPERIMENT</button><button data-active={view==='operations'} onClick={()=>setView('operations')}>EVIDENCE / RUN</button><button data-active={view==='research'} onClick={()=>setView('research')}>RESEARCH / RETURN</button></nav><section className="mluIntro"><small>{copy[0]}</small><h1>{copy[1]}</h1><p>{copy[2]}</p></section><div className="mluViewport"><section hidden={view!=='experiment'}>{experiment}</section><section hidden={view!=='operations'}>{operations}</section><section hidden={view!=='research'}>{research}</section></div></main>
+}
