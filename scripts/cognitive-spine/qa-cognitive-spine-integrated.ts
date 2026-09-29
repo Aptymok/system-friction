@@ -64,6 +64,17 @@ for (const absolute of walkFiles(coreDirectory).filter((file) => /\.(ts|tsx|js|m
   assert.equal(/process\.env\.VERCEL(?:_|\b)/.test(content), false, `core_vercel_runtime_dependency:${relative}`);
 }
 
+const additionalSources = read('src/lib/institution/cognitiveSpineAdditionalSources.ts');
+for (const token of [
+  'projectPromotedLearningForReentry',
+  'reentersFutureSnapshots: records.length > 0',
+  'mutatesHistoricalObservation: false',
+  'PROMOTION_REENTERS_FUTURE_COGNITION_BY_NEW_DERIVED_SOURCE_NOT_T0_REWRITE',
+  "text(payload.promotionState) !== 'PROMOTED'",
+  "text(payload.classification) !== 'CALIBRATED_RETURN'",
+  "text(payload.assessmentClass) !== 'VERIFIED_CONTRAST'",
+]) assert.ok(additionalSources.includes(token), `promoted_learning_reentry_boundary_missing:${token}`);
+
 const runtime = read('src/lib/institution/cognitiveSpineRuntimeMaterializer.ts');
 const studio = read('src/core/cognitive-twin/studioContext.ts');
 const rootDeliberation = read('src/app/api/root/cognitive-twin/deliberate/route.ts');
