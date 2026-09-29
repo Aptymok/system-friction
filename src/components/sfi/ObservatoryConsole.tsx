@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
-import { useAuthState } from '@/components/auth/AuthProvider';
 import { ObservatoryWorldField } from './ObservatoryWorldField';
 import { ObservatorySemanticGpuLayer } from './ObservatorySemanticGpuLayer';
 import { HypothesisClosureDiff } from './HypothesisClosureDiff';
@@ -60,18 +59,17 @@ async function fetchJson(path:string){
 }
 
 export function ObservatoryConsole(){
-  const auth=useAuthState();
   const language='en' as const;
   const ui=(value:string)=>translateUiText(value,language);
   const[world,setWorld]=useState<Row|null>(null),[obs,setObs]=useState<Row|null>(null),[timeline,setTimeline]=useState<TimelineFrame[]>([]);
   const[availability,setAvailability]=useState<ObservatoryAvailability>(INITIAL_AVAILABILITY);
-  const[refreshing,setRefreshing]=useState(false),[lastReadAt,setLastReadAt]=useState<string|null>(null);
+  const[refreshing,setRefreshing]=useState(false);
   const[lens,setLens]=useState<Lens>('field'),[satelliteOpen,setSatelliteOpen]=useState(true),[selectedNodeId,setSelectedNodeId]=useState<string|null>(null),[selectedHypothesisId,setSelectedHypothesisId]=useState<string|null>(null);
   const[sourceFamily,setSourceFamily]=useState('ALL'),[systemFilter,setSystemFilter]=useState('ALL'),[statusFilter,setStatusFilter]=useState('ALL'),[windowHours,setWindowHours]=useState(168),[minConfidence,setMinConfidence]=useState(0),[query,setQuery]=useState('');
   const[baselineTime,setBaselineTime]=useState(0),[time,setTime]=useState(100),[clock,setClock]=useState('');
 
   const applySnapshot=useCallback((snapshot:ObservatorySnapshot)=>{
-    setAvailability(snapshot.availability);setWorld(snapshot.world);setObs(snapshot.obs);setTimeline(snapshot.timeline);setLastReadAt(new Date(snapshot.at).toISOString());
+    setAvailability(snapshot.availability);setWorld(snapshot.world);setObs(snapshot.obs);setTimeline(snapshot.timeline);
   },[]);
   const pull=useCallback(async(force=false)=>{
     if(!force&&observatorySnapshotCache&&Date.now()-observatorySnapshotCache.at<OBSERVATORY_CACHE_TTL_MS){applySnapshot(observatorySnapshotCache);return;}
