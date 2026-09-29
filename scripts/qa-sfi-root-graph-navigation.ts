@@ -132,6 +132,9 @@ check('CURRENT STATE geometry uses observed canonical relation weights when avai
 check('Reality Chain reading exposes canonical v0.1 grammar and MCDC gaps', neuralGraphView.includes('WORLD → CAPTURE → EVIDENCE → TRANSFORMATION → [INFERENCE] → VERIFICATION → AUTHORITY → ACTION → RETURN') && neuralGraphView.includes('MCDC COVERAGE') && neuralGraphView.includes('NOT VERIFIED') && neuralGraphView.includes('NOT OBSERVED'));
 check('ROOT readings change deterministic projection rather than object identity', neuralGraphView.includes("function buildPositions(nodes: GraphNode[], reading: 'CURRENT_STATE'") && neuralGraphView.includes("reading === 'TRAJECTORY'") && neuralGraphView.includes("reading === 'RETROLONGITUDINAL'") && neuralGraphView.includes("reading === 'PROJECTION'") && neuralGraphView.includes("reading === 'FRICTION_REGIME'") && neuralGraphView.includes("reading === 'REALITY_CHAIN'") && neuralGraphView.includes("reading === 'RETURN_CONTRAST'") && neuralGraphView.includes('buildPositions(graph.nodes, reading)'));
 
+check('ROOT exposes property discovery and bounded attractor reading', neuralGraphView.includes('PROPERTY DISCOVERY') && neuralGraphView.includes('ATTRACTOR ·'));
+check('ROOT exposes method competition and next discriminating observation', neuralGraphView.includes('METHOD COMPETITION') && neuralGraphView.includes('NEXT DISCRIMINATING OBSERVATION'));
+
 const failed = checks.filter((item) => !item.ok);
 for (const item of checks) console.log(`${item.ok ? 'PASS' : 'FAIL'} · ${item.name}`);
 if (failed.length) {
@@ -139,9 +142,3 @@ if (failed.length) {
   process.exit(1);
 }
 console.log(`\nROOT graph/operating-workspace convergence QA passed: ${checks.length}/${checks.length}`);
-
-assert(source.includes('PROPERTY DISCOVERY'));
-assert(source.includes('ATTRACTOR ·'));
-
-assert(source.includes('METHOD COMPETITION'));
-assert(source.includes('NEXT DISCRIMINATING OBSERVATION'));
