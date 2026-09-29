@@ -7,6 +7,7 @@ import { runWorldCalibrationCycle } from '@/lib/world-observatory/hypothesisCali
 import { runWorldInstrumentSweep } from '@/lib/world-observatory/instrumentSweep';
 import { persistWorldHypothesisClosureReport } from '@/lib/reports/worldHypothesisClosureReport';
 import { appendEpistemicEvent } from '@/lib/events/eventStore';
+import { runJrFieldCycle } from '@/lib/mihm/jrFieldCycle';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -72,6 +73,17 @@ export async function POST(req: Request) {
     : null;
   const instrumentSweep = await runWorldInstrumentSweep({ observedAt: startedAt, worldSignalObserver, hypothesis, calibration })
     .catch((error) => ({ ok: false, contract: 'SFI-WORLD-INSTRUMENT-SWEEP-1.0', warnings: [error instanceof Error ? error.message : String(error)], writesPerformed: false }));
+  const jrFieldCycle = await runJrFieldCycle({
+    actorId,
+    trigger: 'EXTERNAL_WORLD_RUN',
+    maxMethodRuns: 2,
+  }).catch((error) => ({
+    ok: false as const,
+    status: 'DEGRADED' as const,
+    contract: 'SFI-JR-FIELD-CYCLE-1.0',
+    writesPerformed: false,
+    error: error instanceof Error ? error.message : String(error),
+  }));
 
   const receipt = await appendEpistemicEvent({
     eventName: 'external.world.daily_cycle.completed',
@@ -91,6 +103,7 @@ export async function POST(req: Request) {
       calibration,
       closureReport,
       instrumentSweep,
+      jrFieldCycle,
       authorityBoundary: {
         scope: 'world:run',
         rootAuthorityInherited: false,
@@ -102,7 +115,7 @@ export async function POST(req: Request) {
   });
 
   const reread = await readWorldState();
-  const ok = observation.ok && hypothesis.ok && calibration.ok && receipt.ok && reread.freshness === 'LIVE';
+  const ok = observation.ok && hypothesis.ok && calibration.ok && receipt.ok && jrFieldCycle.ok !== false && reread.freshness === 'LIVE';
   return NextResponse.json({
     ok,
     operation,
@@ -113,10 +126,11 @@ export async function POST(req: Request) {
     calibration,
     closureReport,
     instrumentSweep,
+    jrFieldCycle,
     receipt: receipt.ok ? receipt.data : receipt,
     verification: reread,
-    writesPerformed: observation.persisted > 0 || (hypothesis.created ?? 0) > 0 || (calibration.calibrated ?? 0) > 0 || receipt.ok,
-    boundary: 'This operation reuses canonical World observation, hypothesis, calibration and instrument owners. It does not grant ROOT/governance authority, publish, promote canon or fabricate RETURN.',
+    writesPerformed: observation.persisted > 0 || (hypothesis.created ?? 0) > 0 || (calibration.calibrated ?? 0) > 0 || jrFieldCycle.writesPerformed === true || receipt.ok,
+    boundary: 'This operation reuses canonical World observation, hypothesis, calibration, instrument and Jr field-cycle owners. Jr may append derived temporal/configuration receipts and execute bounded SIMULATED Method Lab runs from persisted evidence, but it does not grant ROOT/governance authority, execute material perturbations, publish, promote canon or fabricate RETURN.',
   }, { status: ok ? 200 : 207 });
 }
 
