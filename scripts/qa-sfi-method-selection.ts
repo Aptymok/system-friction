@@ -241,6 +241,8 @@ const promotedLearningFieldSignal = deriveCanonicalFieldMethodSignal(
 );
 assert.equal(promotedLearningFieldSignal.learningPromoted, true);
 assert.equal(promotedLearningFieldSignal.fieldReorganizationState, 'LEARNING_PROMOTED');
+assert.equal(promotedLearningFieldSignal.reorganizationMagnitude, 0.7);
+assert.equal(promotedLearningFieldSignal.projectionAuthority, 'VISUAL_HEURISTIC_ONLY');
 
 const quarantinedLearningFieldSignal = deriveCanonicalFieldMethodSignal(
   {
@@ -300,7 +302,7 @@ assert.ok(evidenceDrivenPromotedSignal.observedWeightDelta !== null);
 assert.ok(Math.abs(evidenceDrivenPromotedSignal.observedWeightDelta - 0.3) < 1e-12);
 assert.equal(evidenceDrivenPromotedSignal.relationSupportRatio, 1);
 assert.equal(evidenceDrivenPromotedSignal.provenanceCoverage, 1);
-assert.ok(evidenceDrivenPromotedSignal.reorganizationMagnitude > 0);
+assert.ok(evidenceDrivenPromotedSignal.reorganizationMagnitude > promotedLearningFieldSignal.reorganizationMagnitude);
 assert.ok(evidenceDrivenPromotedSignal.reorganizationMagnitude <= 1);
 assert.equal(evidenceDrivenPromotedSignal.projectionAuthority, 'VISUAL_HEURISTIC_ONLY');
 assert.equal(evidenceDrivenPromotedSignal.temporalStructureObserved, false, 'A promoted learning event does not invent observed-world temporal structure.');
