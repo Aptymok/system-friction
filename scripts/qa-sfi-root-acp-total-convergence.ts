@@ -117,9 +117,11 @@ assert.doesNotMatch(`${operatingUi}\n${governanceUi}`,/rootPresenceReady|confirm
 // Machine-readable interfaces remain discoverable through llms/ai-index and do not need to be
 // rendered as human navigation links.
 assert.match(home,/PublicEntryGateway/,'canonical_home_missing_public_entry_gateway');
-assert.ok(publicEntry.includes('SFI_PUBLIC_NAV.map'), 'public_entry_must_consume_canonical_public_nav');
+assert.equal(publicEntry.includes('SFI_PUBLIC_NAV.map'), false, 'public_entry_must_not_own_duplicate_public_nav');
+const publicChrome=read('src/components/public/SfiPublicChrome.tsx');
+assert.ok(publicChrome.includes('SFI_PUBLIC_NAV.map'), 'global_public_chrome_must_consume_canonical_public_nav');
 const publicNav=read('src/lib/navigation/publicNavigation.ts');
-for(const p of ['/','/login','/laboratory','/observatory','/publications','/institution']) assert.ok(publicNav.includes(`href:'${p}'`),`public_nav_missing_path:${p}`);
+for(const p of ['/','/laboratory','/observatory','/publications','/institution','/contact']) assert.ok(publicNav.includes(`href:'${p}'`),`public_nav_missing_path:${p}`);
 assert.equal(publicNav.includes("href:'/method-lab'"),false,'authenticated_method_lab_must_not_be_public_navigation');
 for(const retired of ['/library','/field','/history']) assert.equal(publicNav.includes(`href:'${retired}'`),false,`retired_public_navigation_visible:${retired}`);
 assert.match(llms,/## WHAT TO DO FIRST/,'llms_missing_first_action_sequence');
