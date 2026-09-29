@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
-import { MethodLabEnvironment } from '@/components/sfi/MethodLabEnvironment';
 import { MethodLabNativeHub } from '@/components/sfi/MethodLabNativeHub';
 import { MethodLabResearchReview } from '@/components/sfi/MethodLabResearchReview';
+import { MethodLabUnifiedSurface } from '@/components/sfi/MethodLabUnifiedSurface';
 import { MethodLabExperimentWorkbench } from '@/components/sfi/MethodLabExperimentWorkbench';
 import { PersonalCognitiveLabWorkspace } from '@/components/sfi/PersonalCognitiveLabWorkspace';
 import { readMethodLabState } from '@/lib/method-lab/readModel';
@@ -82,26 +82,16 @@ export default async function MethodLabPage() {
   }));
 
   return (
-    <>
-      <MethodLabEnvironment
-        status={state.status}
-        contractVersion={state.contractVersion}
-        protocols={state.protocols.map((protocol) => ({ id: protocol.id, status: protocol.status }))}
-        sessions={sessionViews.map((session) => ({ status: session.status }))}
-        evidenceCount={evidence.options.length}
-        evidenceWarningCount={evidence.warnings.length}
-        researchObjectCount={research.objects.length}
-        researchWarningCount={research.warnings.length}
-        decisionTransfer={{ status: state.decisionTransfer.status, totalEvaluations: state.decisionTransfer.totalEvaluations }}
-      />
-      <MethodLabExperimentWorkbench />
-      <MethodLabNativeHub
+    <MethodLabUnifiedSurface
+      status={state.status}
+      experiment={<MethodLabExperimentWorkbench />}
+      operations={<MethodLabNativeHub
         initialState={state}
         initialSessions={sessionViews}
         evidenceOptions={evidence.options}
         evidenceWarnings={evidence.warnings}
-      />
-      <MethodLabResearchReview research={research} />
-    </>
+      />}
+      research={<MethodLabResearchReview research={research} />}
+    />
   );
 }
