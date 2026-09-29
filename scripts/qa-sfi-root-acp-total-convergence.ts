@@ -27,6 +27,7 @@ const snapshotRoute=read('src/app/api/root/cognitive-twin/snapshot/route.ts');
 const forkRoute=read('src/app/api/root/cognitive-twin/fork/route.ts');
 const scenes=read('src/components/sfi/scenes.ts');
 const shellUi=read('src/components/sfi/SfiConsole.tsx');
+const authMenu=read('src/components/sfi/AuthenticatedSfiMenu.tsx');
 const rootUi=read('src/components/sfi/SfiRootWorkspace.tsx');
 const operatingUi=read('src/components/sfi/SfiOperatingWorkspace.tsx');
 const governanceUi=read('src/components/sfi/SfiGovernanceWorkspace.tsx');
@@ -100,7 +101,7 @@ assert.doesNotMatch(operatingUi,/setInterval\(/,'operating_workspace_must_not_po
 assert.doesNotMatch(rootUi,/setInterval\(/,'root_workspace_must_not_poll');
 assert.ok(rootUi.includes('ACCEPT') && rootUi.includes('DENY') && rootUi.includes('REQUEST EVIDENCE'), 'plain_language_sovereign_decisions_missing_from_root');
 assert.doesNotMatch(governanceUi,/ACCEPT|DENY|REQUEST EVIDENCE|ACEPTAR|DENEGAR|PEDIR EVIDENCIA|SOLICITAR EVIDENCIA/,'governance_runtime_must_not_duplicate_root_decisions');
-assert.ok(shellUi.includes("label:'DECISIONS'") && shellUi.includes("href:'/root'"), 'decision_navigation_must_point_to_root');
+assert.ok(authMenu.includes("href:'/root?reading=CURRENT_STATE'"), 'decision_navigation_must_point_to_canonical_root_field');
 assert.ok(interactiveApi.includes('separateProposalListRead: false'), 'hydrated governance mode must not duplicate proposal list reads');
 
 // ACP presence remains an explicit governed mutation when needed, but it is not a

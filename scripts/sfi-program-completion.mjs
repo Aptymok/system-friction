@@ -119,12 +119,19 @@ function tryGhJson(args) {
 const repo = process.env.GITHUB_REPOSITORY || 'Aptymok/system-friction';
 const openIssues = tryGhJson(['issue', 'list', '--repo', repo, '--state', 'open', '--limit', '200', '--json', 'number,title,body,url']) || [];
 const issue405 = tryGhJson(['issue', 'view', '405', '--repo', repo, '--json', 'number,title,body,url']);
-const issue405CommentAudit = tryGhJson([
-  'api', '--paginate', '--slurp', `repos/${repo}/issues/405/comments?per_page=100`,
-  '--jq', '{accepted: [.[][] | select((.body // "") | test("^##[[:space:]]+(ACCEPTED[[:space:]]+)?ROOT DIRECTIVE"; "i")) | {body}], total: ([.[][]] | length)}',
-]) || { accepted: [], total: 0 };
-const issue405AcceptedComments = Array.isArray(issue405CommentAudit.accepted) ? issue405CommentAudit.accepted : [];
-const issue405CommentTotal = Number.isFinite(Number(issue405CommentAudit.total)) ? Number(issue405CommentAudit.total) : 0;
+function readIssueComments(issueNumber, maxPages = 20) {
+  const comments = [];
+  for (let page = 1; page <= maxPages; page += 1) {
+    const batch = tryGhJson(['api', `repos/${repo}/issues/${issueNumber}/comments?per_page=100&page=${page}`]);
+    if (!Array.isArray(batch)) break;
+    comments.push(...batch);
+    if (batch.length < 100) break;
+  }
+  return comments;
+}
+const issue405Comments = readIssueComments(405);
+const issue405AcceptedComments = issue405Comments.filter(comment => isAcceptedRootDirectiveComment(comment?.body));
+const issue405CommentTotal = issue405Comments.length;
 const issue154 = tryGhJson(['issue', 'view', '154', '--repo', repo, '--json', 'number,title,body,url']);
 
 function isAcceptedRootDirectiveComment(body) {
@@ -133,7 +140,7 @@ function isAcceptedRootDirectiveComment(body) {
 
 function acceptedControlRequirements() {
   if (!issue405) return [];
-  const authorityTexts = [issue405.body || ''];
+  const authorityTexts = [];
   for (const comment of issue405AcceptedComments) {
     if (isAcceptedRootDirectiveComment(comment.body)) authorityTexts.push(comment.body || '');
   }
@@ -245,7 +252,7 @@ const qa = {
   unclassifiedZero: counts.UNCLASSIFIED === 0,
   allIncompleteHaveTrajectory: hardDefects.every(d => d.rule !== 'KNOWN_INCOMPLETE_AND_NO_ACTIVE_COMPLETION_TRAJECTORY' || Boolean(d.trajectoryRef)) && classified.every(r => ['SATISFIED','EXTERNAL_ACTION','SUPERSEDED_BY_AUTHORIZED_DECISION'].includes(r.status) || Boolean(r.owner && r.trajectoryRef && r.nextAction)),
   legacy154Included: classified.some(r => /154|ROOT_WORLD_CASE/.test(r.source)),
-  accepted405DirectiveIncluded: classified.some(r => r.source.includes('#405')),
+  accepted405DirectiveIncluded: acceptedDirectiveCommentCount > 0 && classified.some(r => r.source === 'GitHub issue #405 accepted control directives'),
   acceptedDirectiveCommentCount,
   rejectedNonDirectiveCommentCount,
   admittedNonDirectiveCommentCount,

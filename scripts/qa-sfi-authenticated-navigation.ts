@@ -6,7 +6,7 @@ const css=read('src/components/sfi/AuthenticatedSfiMenu.css');
 const scene=read('src/app/[scene]/page.tsx');
 const consoleUi=read('src/components/sfi/SfiConsole.tsx');
 const rootUi=read('src/components/sfi/RootNeuralGraphView.tsx');
-const required=['DESPLAZAMIENTO','TRAYECTORIAS','OBSERVATORIO','PROYECCIONES Y FENÓMENOS','BITÁCORA JR.','BITÁCORA TÉCNICA','H1, HR, CONTRASTE Y APRENDIZAJE'];
+const required=['CURRENT STATE','TRAJECTORIES','OBSERVATORY','GOVERNANCE','TWIN / SPINE','PROJECTIONS & PHENOMENA','JR. LOGBOOK','TECHNICAL LOG','H1, HR, CONTRAST & LEARNING'];
 for(const label of required) if(!menu.includes(label)) throw new Error('missing authenticated navigation item:'+label);
 if(menu.includes('>SFI<')||menu.includes('sfiWordmark')) throw new Error('diamond navigation must not redraw SFI letters');
 if(!menu.includes('/identity/sfi-canonical-diamond.svg')) throw new Error('canonical diamond asset contract missing');

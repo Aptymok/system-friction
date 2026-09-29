@@ -9,6 +9,8 @@ const rejectText=(haystack:string,needle:string,label:string)=>{if(haystack.incl
 
 const provider=read('src/components/i18n/SfiLanguageProvider.tsx');
 const nav=read('src/lib/navigation/publicNavigation.ts');
+const publicChrome=read('src/components/public/SfiPublicChrome.tsx');
+const authMenu=read('src/components/sfi/AuthenticatedSfiMenu.tsx');
 const layout=read('src/app/layout.tsx');
 const entry=read('src/components/sfi/PublicEntryGateway.tsx');
 const observatory=read('src/components/sfi/ObservatoryConsole.tsx');
@@ -48,7 +50,9 @@ rejectText(layout,'href="/method-lab">LABORATORY','public footer authenticated-l
 
 requireText(entry,'SFI_PUBLIC_NAV.map','entry complete public navigation');
 requireText(observatory,'SFI_PUBLIC_NAV.filter','Observatory complete public navigation');
-requireText(laboratory,'SFI_PUBLIC_NAV.map','Laboratory complete public navigation');
+requireText(publicChrome,'SFI_PUBLIC_NAV.map','shared public chrome complete public navigation');
+requireText(laboratory,'<SfiPublicHeader active="/laboratory"/>','Laboratory must use the shared public header');
+requireText(laboratory,'<SfiPublicFooter/>','Laboratory must use the shared public footer');
 requireText(laboratory,'CanonicalCognitiveFieldPublic','public canonical cognitive field');
 requireText(laboratory,'href="/login?next=%2Fmethod-lab"','governed Method Lab sign-in handoff');
 requireText(methodLab,"requireUserProfile()",'Method Lab remains authenticated');
@@ -56,7 +60,8 @@ requireText(methodLab,"redirect('/login?next=%2Fmethod-lab')",'Method Lab unauth
 
 requireText(consoleUi,"if(current==='root') return",'ROOT single-shell handoff');
 requireText(consoleUi,'<SfiRootWorkspace enabled/>','ROOT workspace owner');
-requireText(consoleUi,"label:'DECISIONS'",'internal navigation English');
+for(const label of ['CURRENT STATE','TRAJECTORIES','OBSERVATORY','GOVERNANCE','TWIN / SPINE','PROJECTIONS & PHENOMENA','JR. LOGBOOK','TECHNICAL LOG','H1, HR, CONTRAST & LEARNING']) requireText(authMenu,`label:'${label}'`,'authenticated navigation English');
+for(const stale of ['DESPLAZAMIENTO','TRAYECTORIAS','OBSERVATORIO','PROYECCIONES Y FENÓMENOS','BITÁCORA TÉCNICA','CONTRASTE Y APRENDIZAJE']) rejectText(authMenu,stale,'authenticated navigation stale Spanish label');
 rejectText(consoleUi,'NUEVO →','Spanish create action');
 rejectText(rootUi,'SOBERANÍA INSTITUCIONAL','ROOT Spanish authority heading');
 rejectText(rootUi,'ACEPTAR','ROOT Spanish accept action');

@@ -25,13 +25,13 @@ const quarantine = read('src/lib/sfi/universalLearningQuarantine.ts');
 assert.ok(methodLabReadModel.includes('readMethodLabFieldLearningStates'), 'ROOT field must read Method Lab learning governance without treating it as observation.');
 assert.ok(methodLabReadModel.includes('LEARNING_STATE_IS_GOVERNANCE_NOT_OBSERVATION'), 'Learning state projection must preserve the governance/observation boundary.');
 assert.ok(rootScene.includes('readMethodLabFieldLearningStates'), 'ROOT must project governed learning state on the same neural field node.');
-assert.ok(neuralRootUi.includes('CONTRAST → LEARNING') && rootUi.includes('NO LEARNING CANDIDATE'), 'Neural field must distinguish contrast from quarantine/promotion state.');
+assert.ok(neuralRootUi.includes('CONTRAST → LEARNING') && neuralRootUi.includes('NO LEARNING CANDIDATE'), 'Neural field must distinguish contrast from quarantine/promotion state.');
 assert.ok(neuralRootUi.includes('historical observation remains unchanged'), 'Promotion must never imply rewriting historical observation.');
 assert.ok(methodLabReadModel.includes('readMethodLabFieldMethodResults'), 'ROOT field must have a server-owned reader for persisted Method Lab results.');
 assert.ok(methodLabReadModel.includes('projectMethodLabMethodResult'), 'Persisted runs must pass the Method Lab result contract before ROOT projection.');
 assert.ok(rootScene.includes('readMethodLabFieldMethodResults'), 'ROOT must consume persisted Method Lab results without duplicating persistence.');
 assert.ok(rootScene.includes('methodResult: methodResults.get(node.nodeId) ?? null'), 'ROOT nodes must expose a bounded method-result reading when one exists.');
-assert.ok(neuralRootUi.includes('METHOD → WORLD') && rootUi.includes('NO PERSISTED METHOD RESULT'), 'Neural field must distinguish executed method results from absent execution and expose the WORLD/RETURN transition.');
+assert.ok(neuralRootUi.includes('METHOD → WORLD') && neuralRootUi.includes('NO PERSISTED METHOD RESULT'), 'Neural field must distinguish executed method results from absent execution and expose the WORLD/RETURN transition.');
 
 const experimentPersistence = read('src/lib/method-lab/experimentPersistence.ts');
 for (const token of [
@@ -50,7 +50,6 @@ assert.ok(methodLabReadModel.includes("mode.eq.experiment_return_contrast"), 'RO
 assert.ok(methodLabReadModel.includes("text(item.mode) !== 'experiment_return_contrast'"), 'ROOT must prefer a valid RETURN contrast over its earlier pending run.');
 
 const experimentContract = read('src/lib/method-lab/experimentContract.ts');
-const experimentPersistence = read('src/lib/method-lab/experimentPersistence.ts');
 assert.equal(METHOD_LAB_EXPERIMENT_CONTRACT_VERSION, 'SFI-METHOD-LAB-EXPERIMENT-1.0');
 for (const type of [
   'SIMULATION',
@@ -172,6 +171,7 @@ assert.match(crlContrast, /METHOD_LAB_CONTRACT_VERSION/, 'CRL summary must carry
 
 const scenes = read('src/components/sfi/scenes.ts');
 const liveUi = read('src/components/sfi/SfiConsole.tsx');
+const authMenu = read('src/components/sfi/AuthenticatedSfiMenu.tsx');
 const rootUi = read('src/components/sfi/SfiRootWorkspace.tsx');
 const operatingUi = read('src/components/sfi/SfiOperatingWorkspace.tsx');
 const governanceUi = read('src/components/sfi/SfiGovernanceWorkspace.tsx');
@@ -183,8 +183,8 @@ assert.match(scenes, /LEGACY_INTERNAL_SCENES=.*'models','genai'/, 'MODELS and GE
 assert.match(rootWorkboard, /getLlmProviderStatus/, 'Converged ROOT workboard must preserve model/provider observability.');
 assert.match(rootWorkboard, /providerHealthBoundary/, 'Converged ROOT workboard must preserve the configured-vs-healthy model boundary.');
 assert.ok(operatingUi.includes("surface==='twin'") && operatingUi.includes('CognitiveSpineAnatomy'), 'Twin proposals/state must remain observable through the canonical Twin operating scene.');
-assert.ok(liveUi.includes("href:'/root'") && liveUi.includes('href="/governance"'), 'Canonical shell must route sovereign decisions to ROOT and runtime operation to Governance.');
-assert.ok(rootUi.includes('ACEPTAR') && rootUi.includes('DENEGAR') && rootUi.includes('SOLICITAR EVIDENCIA'), 'ROOT must retain sovereign decision and non-terminal evidence-defer controls.');
+assert.ok(authMenu.includes("href:'/root?reading=CURRENT_STATE'") && authMenu.includes("href:'/governance'"), 'Canonical authenticated navigation must route sovereign readings to ROOT and runtime operation to Governance.');
+assert.ok(rootUi.includes('ACCEPT') && rootUi.includes('DENY') && rootUi.includes('REQUEST EVIDENCE'), 'ROOT must retain sovereign decision and non-terminal evidence-defer controls.');
 assert.doesNotMatch(governanceUi, /ACEPTAR|DENEGAR|PEDIR EVIDENCIA|SOLICITAR EVIDENCIA/, 'Governance runtime must not duplicate sovereign decision controls.');
 
 const methodLabPage = read('src/app/method-lab/page.tsx');
@@ -235,7 +235,6 @@ assert.match(bridgeWorkflow, /push:\s*\n\s*branches:\s*\n\s*- main\s*\n\s*paths:
 assert.match(bridgeWorkflow, /pull_request:[\s\S]*\{"operation":"state"\}/, 'Pull-request bridge verification must remain read-only.');
 assert.match(bridgeWorkflow, /https:\/\/www\.systemfriction\.org/, 'Authenticated bridge calls must normalize the known SFI canonical host before sending Authorization.');
 
-const experimentContract = read('src/lib/method-lab/experimentContract.ts');
 for (const token of [
   'MethodLabMethodResult',
   'projectMethodLabMethodResult',

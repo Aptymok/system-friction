@@ -78,9 +78,9 @@ assert.match(reviewConsole, /ROOT DOES NOT APPROVE SOURCES/, 'default ROOT evide
 assert.doesNotMatch(reviewConsole, /ACCEPT AS EVIDENCE/, 'default evidence lane must not expose routine acceptance control');
 assert.doesNotMatch(reviewConsole, />REJECT</, 'default evidence lane must not expose routine rejection control');
 assert.match(reviewConsole, /ADD URL/, 'evidence UI may permit optional source contribution');
-assert.match(reviewConsole, /BUSCAR \/ REINTENTAR/, 'evidence UI must permit acquisition retry');
-assert.match(reviewConsole, /NECESIDAD DE EVIDENCIA/, 'evidence UI must show what information is needed');
-assert.match(reviewConsole, /Tu intervención: ninguna por revisión de fuentes/, 'evidence UI must state the human boundary plainly');
+assert.match(reviewConsole, /SEARCH \/ RETRY/, 'evidence UI must permit acquisition retry');
+assert.match(reviewConsole, /EVIDENCE NEED/, 'evidence UI must show what information is needed');
+assert.match(reviewConsole, /Your intervention: none for source review/, 'evidence UI must state the human boundary plainly');
 
 console.log(JSON.stringify({
   ok: true,

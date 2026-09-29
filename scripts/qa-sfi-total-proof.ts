@@ -7,6 +7,7 @@ const route = fs.readFileSync('src/app/api/root/readiness/route.ts','utf8');
 const continuityRoute = fs.readFileSync('src/app/api/root/continuity/route.ts','utf8');
 const scenes = fs.readFileSync('src/components/sfi/scenes.ts','utf8');
 const shellUi = fs.readFileSync('src/components/sfi/SfiConsole.tsx','utf8');
+const authMenu = fs.readFileSync('src/components/sfi/AuthenticatedSfiMenu.tsx','utf8');
 const rootUi = fs.readFileSync('src/components/sfi/SfiRootWorkspace.tsx','utf8');
 const operatingUi = fs.readFileSync('src/components/sfi/SfiOperatingWorkspace.tsx','utf8');
 const governanceUi = fs.readFileSync('src/components/sfi/SfiGovernanceWorkspace.tsx','utf8');
@@ -41,7 +42,7 @@ assert.doesNotMatch(rootUi,/setInterval\(/,'root_ui_must_not_poll');
 assert.ok(operatingUi.includes("surface==='twin'") && operatingUi.includes('CognitiveSpineAnatomy'), 'live_twin_observability_missing');
 assert.ok(rootUi.includes('ACEPTAR') && rootUi.includes('DENEGAR') && rootUi.includes('SOLICITAR EVIDENCIA'), 'root_governed_decision_controls_missing');
 assert.doesNotMatch(governanceUi,/ACEPTAR|DENEGAR|PEDIR EVIDENCIA|SOLICITAR EVIDENCIA/,'runtime_surface_must_not_duplicate_sovereign_controls');
-assert.ok(shellUi.includes("label:'DECISIONES'") && shellUi.includes("href:'/root'"), 'decision_navigation_must_converge_on_root');
+assert.ok(authMenu.includes("href:'/root?reading=CURRENT_STATE'"), 'decision_navigation_must_converge_on_canonical_root_field');
 
 assert.match(continuityRoute,/readContinuityDashboard/,'continuity_dashboard_handler_missing');
 assert.match(continuityRoute,/runContinuityHeartbeat/,'continuity_heartbeat_handler_missing');

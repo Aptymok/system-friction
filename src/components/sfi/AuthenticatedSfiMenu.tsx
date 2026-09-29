@@ -5,13 +5,15 @@ import { useState } from 'react';
 import './AuthenticatedSfiMenu.css';
 
 const ITEMS=[
-  {label:'DESPLAZAMIENTO',href:'/root?reading=CURRENT_STATE'},
-  {label:'TRAYECTORIAS',href:'/root?reading=TRAJECTORY'},
-  {label:'OBSERVATORIO',href:'/observatory'},
-  {label:'PROYECCIONES Y FENÓMENOS',href:'/root?reading=PROJECTION'},
-  {label:'BITÁCORA JR.',href:'/root?reading=RETURN_CONTRAST'},
-  {label:'BITÁCORA TÉCNICA',href:'/root?reading=RETROLONGITUDINAL'},
-  {label:'H1, HR, CONTRASTE Y APRENDIZAJE',href:'/root?reading=REALITY_CHAIN'},
+  {label:'CURRENT STATE',href:'/root?reading=CURRENT_STATE'},
+  {label:'TRAJECTORIES',href:'/root?reading=TRAJECTORY'},
+  {label:'OBSERVATORY',href:'/observatory'},
+  {label:'GOVERNANCE',href:'/governance'},
+  {label:'TWIN / SPINE',href:'/twin'},
+  {label:'PROJECTIONS & PHENOMENA',href:'/root?reading=PROJECTION'},
+  {label:'JR. LOGBOOK',href:'/root?reading=RETURN_CONTRAST'},
+  {label:'TECHNICAL LOG',href:'/root?reading=RETROLONGITUDINAL'},
+  {label:'H1, HR, CONTRAST & LEARNING',href:'/root?reading=REALITY_CHAIN'},
 ] as const;
 
 export function AuthenticatedSfiMenu(){
