@@ -17,7 +17,6 @@ const nationalFieldRoute = read('src/app/api/root/cognitive-twin/national-field/
 const scenes = read('src/components/sfi/scenes.ts');
 const shellUi = read('src/components/sfi/SfiConsole.tsx');
 const observatoryUi = read('src/components/sfi/ObservatoryConsole.tsx');
-const observatoryInterpretiveFlow = read('src/components/sfi/ObservatoryInterpretiveFlow.tsx');
 const observatoryWorldField = read('src/components/sfi/ObservatoryWorldField.tsx');
 const observatorySemanticGpuLayer = read('src/components/sfi/ObservatorySemanticGpuLayer.tsx');
 const observatoryWorldLayerCss = read('src/components/sfi/ObservatoryWorldLayer.css');
@@ -67,7 +66,7 @@ assert.match(
   'public_timeline_persisted_snapshot_boundary_missing',
 );
 
-// FIELD remains one canonical Observatory surface; interpretive flow is a projection, not another reader.
+// FIELD remains one canonical Observatory surface; Satellite → Hub owns public interpretation without a second reader.
 for (const token of [
   "field:{key:'field'",
   "liveSource:'/api/observatory/world'",
@@ -76,9 +75,14 @@ for (const token of [
 assert.ok(shellUi.includes('ObservatoryConsole'), 'canonical_field_surface_missing');
 assert.ok(observatoryPage.includes('ObservatoryConsole'), 'public_observatory_must_render_native_observatory_console');
 assert.equal(observatoryPage.includes('redirect('), false, 'public_observatory_must_not_be_forced_into_redirect_semantics');
-assert.equal(occurrences(observatoryInterpretiveFlow, "fetch('/api/observatory/world'"), 0, 'interpretive_flow_must_not_fetch_world');
-assert.equal(occurrences(observatoryInterpretiveFlow, 'setInterval('), 0, 'interpretive_flow_must_not_own_polling');
-assert.ok(observatoryUi.includes('<ObservatoryInterpretiveFlow world={world} availability={availability.world}/>'), 'interpretive_flow_must_receive_canonical_world_read_model');
+assert.equal(observatoryUi.includes('ObservatoryInterpretiveFlow'), false, 'legacy_interpretive_flow_must_not_render_below_observatory');
+assert.ok(observatoryUi.includes('SFI SATELLITE → HUB'), 'satellite_hub_must_own_public_interpretation');
+assert.ok(observatoryUi.includes('LATEST HYPOTHESES'), 'satellite_hub_latest_hypothesis_lens_missing');
+assert.ok(observatoryUi.includes('.slice(0,8)'), 'public_hypothesis_visual_budget_missing');
+assert.ok(worldReadModel.includes('PUBLIC_HYPOTHESIS_LIMIT=8'), 'public_hypothesis_query_budget_missing');
+assert.ok(worldReadModel.includes('LIVE_WORLD_MAX_AGE_HOURS=48'), 'live_world_freshness_window_missing');
+assert.ok(worldReadModel.includes("liveWorldState=nodes.length>0?'LIVE':'STALE_OR_ABSENT'"), 'live_world_persisted_state_contract_missing');
+assert.ok(observatoryUi.includes("world?.liveWorld?.state==='LIVE'"), 'world_visual_must_require_persisted_live_state');
 
 assert.ok(observatoryUi.includes('<ObservatoryWorldField'), 'world_field_projection_must_be_mounted');
 assert.ok(observatoryUi.includes('graphNodes={rows(world?.graph?.nodes)}'), 'world_field_must_reuse_canonical_world_graph_nodes');
@@ -210,6 +214,9 @@ console.log(JSON.stringify({
     acquisitionTimeCalibration:true,
     simulationDoesNotRewriteObservation:true,
     publicFieldSingleReadOwner:true,
+    satelliteHubSingleInterpretiveOwner:true,
+    latestPublicHypotheses:8,
+    liveWorldRequiresRecentPersistedObservation:true,
     typedWorldFieldProjection:true,
     optionalSemanticGpuLayer:true,
     gpuCreatesEvidence:false,
