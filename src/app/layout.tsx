@@ -105,9 +105,7 @@ gtag('config', '${GA_ID}');`}
             <strong>SFI.</strong>
             <a href="/">HOME</a>
             <a href="/observatory">OBSERVATORY</a>
-            <a href="/laboratory">LABORATORY</a>
             <a href="/publications">REGISTRY</a>
-            <a href="/institution">INSTITUTION</a>
             <a href="/login">SIGN IN</a>
           </footer>
           <SfiConsentBanner />
