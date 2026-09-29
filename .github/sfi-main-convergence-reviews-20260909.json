@@ -346,6 +346,30 @@
         "PR #625 changes the same seven provenance-facing files while being certified on the post-convergence main rather than the older #583 base."
       ],
       "reason": "R3 remains implementation provenance only. The same bounded provenance requirement is canonical through merged #625 and the stale branch must not overwrite later main."
+    },
+    "0080689d2907ce24": {
+      "decision": "SUPERSEDED_BY_LATER_MAIN",
+      "branches": [
+        "fix/cognitive-field-open-expansion-20260928"
+      ],
+      "evidence": [
+        "current main commit 71fc17a5ca0db2c70505d741f3f45fc4b881890a explicitly converged the governed cognitive-field open expansion on main",
+        "src/components/sfi/SfiRootWorkspace.tsx is byte-identical between the stale branch and current main at blob d168f7c60ef523a072818c92b21e4763304bd0f6, including the dynamic module-count correction",
+        "current main has later RootNeuralGraphView and cognitive-field QA evolution, so merging the older branch wholesale would regress the canonical Neural ROOT surface"
+      ],
+      "reason": "The branch's unique static module-count fix is already present on main, while its remaining divergent files are older than the current Neural ROOT and QA contracts. Preserve history only; do not re-merge the stale branch."
+    },
+    "23d94c553e8e84ca": {
+      "decision": "SUPERSEDED_BY_LATER_MAIN",
+      "branches": [
+        "fix/post-deploy-assurance-separation-20260924"
+      ],
+      "evidence": [
+        "merged main commit 646e7e1c9d6009108161d95c595faab804b0ebc2 (PR #675) explicitly moved post-deploy assurance to continuity/runtime ownership and ended deployment at Vercel publication",
+        ".github/workflows/sfi-operating-cycle-closure.yml is byte-identical between the stale branch and current main at blob 52d17c4545c40e6e25e5824ad28311e4a58d1266",
+        "current main scripts/qa-sfi-vercel-cost-gate.mjs enforces the same separation boundary and .github/workflows/sfi-vercel-prebuilt-production.yml has additional later production-function configuration from commit 59e4d9e19ae012e648d2eb11bc95383b6425381a"
+      ],
+      "reason": "The valid assurance-ownership correction was merged through PR #675 and then evolved further on main. Re-merging this older branch would replace later production deployment configuration without adding a missing capability."
     }
   }
 }
