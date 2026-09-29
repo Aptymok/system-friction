@@ -17,7 +17,7 @@ function text(value:unknown,fallback='NOT RECORDED'){return typeof value==='stri
 function present(value:unknown){return !(value===null||value===undefined||value==='')}
 
 function artifact(runRow:Row,key:string){
-  const run=row(runRow.run);
+  const run=row(row(runRow).run);
   return row(row(run.artifacts)[key]);
 }
 
@@ -41,7 +41,7 @@ export function MethodLabInstrumentRoom({runs,preregistrations,selectedRunId,onS
   const inputs=rows(prereg.INPUTS);
   const frozenRefs=Array.isArray(t0.frozenInputRefs)?t0.frozenInputRefs.map(String):[];
   const evidenceRefs=Array.isArray(result.evidenceRefs)?result.evidenceRefs.map(String):[];
-  const limitations=selected&&Array.isArray(row(selected.run).artifacts)?[]:Array.isArray(row(row(selected.run).artifacts).LIMITATIONS)?row(row(selected.run).artifacts).LIMITATIONS as unknown[]:[];
+  const selectedRun=row(row(selected).run);\n  const limitations=selected&&Array.isArray(selectedRun.artifacts)?[]:Array.isArray(row(selectedRun.artifacts).LIMITATIONS)?row(selectedRun.artifacts).LIMITATIONS as unknown[]:[];
   const seed=executed.seed;
   const hasSeed=present(seed);
   const coreReceipt=[
