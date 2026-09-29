@@ -12,6 +12,7 @@ import {
   type MethodLabExperimentPreregistration,
   type MethodLabExperimentRun,
 } from './experimentContract';
+import { methodLabPreregistrationId } from './experimentPersistence';
 
 export const METHOD_LAB_REENTRY_CONTRACT_VERSION = 'SFI-METHOD-LAB-REENTRY-1.0' as const;
 export const METHOD_LAB_REENTRY_BOUNDARIES = [
@@ -583,7 +584,7 @@ export function buildMethodLabReentryRun(input: {
     contractVersion: METHOD_LAB_EXPERIMENT_CONTRACT_VERSION,
     artifacts: {
       PREREGISTERED: {
-        preregistrationRef: `method-lab:prereg:${input.preregistration.experimentId}`,
+        preregistrationRef: methodLabPreregistrationId(input.preregistration.experimentId),
         preregistrationHash,
       },
       EXECUTED: {
