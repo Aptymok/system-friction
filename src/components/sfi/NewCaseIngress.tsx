@@ -13,10 +13,10 @@ type Row = Record<string, any>;
 type IngressMode = 'PROJECT' | 'CASE';
 
 const TEMPORAL_BASES: Array<{ value: SfiTemporalBasis; label: string }> = [
-  { value: 'OBSERVED_TIME', label: 'Tiempo observado' },
-  { value: 'RECONSTRUCTED_TIME', label: 'Tiempo reconstruido' },
-  { value: 'SIMULATED_TIME', label: 'Tiempo simulado' },
-  { value: 'PROJECTED_TIME', label: 'Tiempo proyectado' },
+  { value: 'OBSERVED_TIME', label: 'Observed time' },
+  { value: 'RECONSTRUCTED_TIME', label: 'Reconstructed time' },
+  { value: 'SIMULATED_TIME', label: 'Simulated time' },
+  { value: 'PROJECTED_TIME', label: 'Projected time' },
 ];
 
 function localDateTimeValue(date = new Date()) {
@@ -150,34 +150,34 @@ export function NewCaseIngress() {
   }
 
   if (auth.status !== 'authenticated') {
-    return <main className="newCaseShell"><header className="newCaseTop"><Link href="/cases" className="newCaseWordmark">SFI</Link><SessionControls /></header><section className="newCaseAccess"><span>WORK SPACE</span><h1>Sign in to begin.</h1><p>Your identity determines which projects, cases, evidence and memory you may observe or modify.</p><SessionControls /></section></main>;
+    return <main className="newCaseShell"><header className="newCaseTop"><Link href="/cases" className="newCaseWordmark">SFI</Link><SessionControls /></header><section className="newCaseAccess"><span>WORK SPACE</span><h1>Authentication is required.</h1><p>The authenticated identity determines which projects, cases, evidence and memory are visible or mutable.</p><SessionControls /></section></main>;
   }
 
   return <main className="newCaseShell">
     <header className="newCaseTop"><div className="newCaseIdentity"><Link href="/cases" className="newCaseWordmark">SFI</Link><div><strong>NEW WORK OBJECT</strong><small>Project / Attractor or Case</small></div></div><div className="newCaseTopActions"><Link href="/cases">BACK TO CASES</Link><SessionControls /></div></header>
 
     <section className="newCaseFrame">
-      <div className="newCaseIntro"><span>DECLARAR → OBSERVAR → CONTRASTAR → RETORNAR</span><h1>What do you want SFI to follow?</h1><p>Start with the objective if there is a trajectory you want to sustain; start with a Case if you first need to understand a problem, system or phenomenon.</p></div>
+      <div className="newCaseIntro"><span>DECLARE → OBSERVE → CONTRAST → RETURN</span><h1>What should SFI follow?</h1><p>A Project begins with a declared target state and trajectory. A Case begins with a bounded problem, system or phenomenon that requires observation.</p></div>
 
-      <div className="newCaseMode" role="tablist" aria-label="Tipo de objeto"><button type="button" className={mode === 'PROJECT' ? 'active' : ''} onClick={() => setMode('PROJECT')}><strong>PROYECTO / ATRACTOR</strong><span>Quiero que ocurra algo y observar la trayectoria.</span></button><button type="button" className={mode === 'CASE' ? 'active' : ''} onClick={() => setMode('CASE')}><strong>CASE</strong><span>Quiero entender, reconstruir o resolver algo.</span></button></div>
+      <div className="newCaseMode" role="tablist" aria-label="Work object type"><button type="button" className={mode === 'PROJECT' ? 'active' : ''} onClick={() => setMode('PROJECT')}><strong>PROJECT / ATTRACTOR</strong><span>A declared target state and its trajectory are followed over time.</span></button><button type="button" className={mode === 'CASE' ? 'active' : ''} onClick={() => setMode('CASE')}><strong>CASE</strong><span>A bounded problem is observed, reconstructed or resolved.</span></button></div>
 
       <form className="newCaseForm" onSubmit={submit}>
         {mode === 'PROJECT' ? <>
-          <label className="newCaseWide"><span>What do you want to happen?</span><textarea required maxLength={4000} rows={5} value={attractor} onChange={(event) => setAttractor(event.target.value)} placeholder="Describe the state toward which you want to move the system. SFI will treat it as an attractor declaration, not evidence that it is attainable." /></label>
-          <label><span>Nombre del proyecto</span><input required maxLength={240} value={projectName} onChange={(event) => setProjectName(event.target.value)} placeholder="Ej. Observatorio Manhattan" /></label>
+          <label className="newCaseWide"><span>What do you want to happen?</span><textarea required maxLength={4000} rows={5} value={attractor} onChange={(event) => setAttractor(event.target.value)} placeholder="Describe the target state. SFI records it as an attractor declaration, not as evidence that the state is attainable." /></label>
+          <label><span>Project name</span><input required maxLength={240} value={projectName} onChange={(event) => setProjectName(event.target.value)} placeholder="e.g. Manhattan Observatory" /></label>
           <label><span>Space / organization</span><select required value={tenantId} onChange={(event) => setTenantId(event.target.value)}><option value="">Select…</option>{tenants.map((tenant) => <option key={tenant.id} value={tenant.id}>{String(tenant.name ?? tenant.tenantKey ?? tenant.id)}</option>)}</select></label>
-          <label className="newCaseWide"><span>Initial context · optional</span><textarea maxLength={4000} rows={4} value={projectContext} onChange={(event) => setProjectContext(event.target.value)} placeholder="What exists today, what you want to preserve, and what constraints you already know. This enters as declaration/context, not verified fact." /></label>
+          <label className="newCaseWide"><span>Initial context · optional</span><textarea maxLength={4000} rows={4} value={projectContext} onChange={(event) => setProjectContext(event.target.value)} placeholder="Current conditions, preserved constraints and known limitations enter as declaration/context, not verified fact." /></label>
           <div className="newCaseAuthority newCaseWide"><strong>What SFI will do next</strong><p>It will persist the Project, its Attractor and an identifiable trajectory. Cases, observations, evidence, hypotheses, perturbations and RETURN can be linked later without losing prior state.</p></div>
         </> : <>
           <label className="newCaseWide"><span>What do you want to understand or resolve?</span><input required maxLength={160} value={subject} onChange={(event) => setSubject(event.target.value)} placeholder="e.g. why a certification loses validity after normal changes" /></label>
           <label className="newCaseWide"><span>What should SFI observe, and what is out of scope?</span><textarea required maxLength={2000} rows={5} value={scope} onChange={(event) => setScope(event.target.value)} placeholder="Describe the problem in ordinary language, its boundaries and what would be useful to determine." /></label>
-          <label className="newCaseWide"><span>Proyecto / Atractor relacionado · opcional</span><select value={projectId} onChange={(event) => setProjectId(event.target.value)}><option value="">Sin proyecto relacionado</option>{projects.filter((project) => project.status === 'ACTIVE').map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></label>
-          <details className="newCaseAdvanced newCaseWide"><summary>Opciones avanzadas</summary><div className="newCaseAdvancedGrid"><label><span>Perfil de servicio</span><select value={serviceProfileId} onChange={(event) => changeProfile(event.target.value)}>{SFI_SERVICE_PROFILES.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select><small>{profile.requiredSources.join(' · ')}</small></label><label><span>Modo temporal</span><select value={temporalMode} onChange={(event) => setTemporalMode(event.target.value as SfiTemporalMode)}>{profile.temporalPolicy.map((item) => <option key={item} value={item}>{item}</option>)}</select></label><label><span>Base temporal</span><select value={temporalBasis} onChange={(event) => setTemporalBasis(event.target.value as SfiTemporalBasis)}>{TEMPORAL_BASES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label><label><span>Corte reproducible</span><input required type="datetime-local" value={cutoffLocal} onChange={(event) => setCutoffLocal(event.target.value)} /></label><label><span>Zona horaria</span><input required maxLength={120} value={timezone} onChange={(event) => setTimezone(event.target.value)} /></label></div></details>
-          <div className="newCaseAuthority newCaseWide"><strong>Automatic</strong><p>SFI derives the canonical boundary, cutoff date and technical lineage. Creating the Case does not turn your declaration into evidence or grant additional authority.</p></div>
+          <label className="newCaseWide"><span>Related Project / Attractor · optional</span><select value={projectId} onChange={(event) => setProjectId(event.target.value)}><option value="">No related project</option>{projects.filter((project) => project.status === 'ACTIVE').map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></label>
+          <details className="newCaseAdvanced newCaseWide"><summary>Advanced options</summary><div className="newCaseAdvancedGrid"><label><span>Service profile</span><select value={serviceProfileId} onChange={(event) => changeProfile(event.target.value)}>{SFI_SERVICE_PROFILES.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select><small>{profile.requiredSources.join(' · ')}</small></label><label><span>Temporal mode</span><select value={temporalMode} onChange={(event) => setTemporalMode(event.target.value as SfiTemporalMode)}>{profile.temporalPolicy.map((item) => <option key={item} value={item}>{item}</option>)}</select></label><label><span>Temporal basis</span><select value={temporalBasis} onChange={(event) => setTemporalBasis(event.target.value as SfiTemporalBasis)}>{TEMPORAL_BASES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label><label><span>Reproducible cutoff</span><input required type="datetime-local" value={cutoffLocal} onChange={(event) => setCutoffLocal(event.target.value)} /></label><label><span>Timezone</span><input required maxLength={120} value={timezone} onChange={(event) => setTimezone(event.target.value)} /></label></div></details>
+          <div className="newCaseAuthority newCaseWide"><strong>Automatic</strong><p>SFI derives the canonical boundary, cutoff date and technical lineage. Creating the Case does not convert a declaration into evidence or grant additional authority.</p></div>
         </>}
 
         {error && <div className="newCaseError newCaseWide" role="alert">{error}</div>}
-        <div className="newCaseSubmit newCaseWide"><Link href="/cases">Cancel</Link><button type="submit" disabled={submitting || (mode === 'PROJECT' ? !attractor.trim() || !projectName.trim() || !tenantId : !subject.trim() || !scope.trim())}>{submitting ? 'PERSISTING…' : mode === 'PROJECT' ? 'CREATE PROJECT / ATTRACTOR' : 'CREATE CASE'}</button></div>
+        <div className="newCaseSubmit newCaseWide"><Link href="/cases">CANCEL</Link><button type="submit" disabled={submitting || (mode === 'PROJECT' ? !attractor.trim() || !projectName.trim() || !tenantId : !subject.trim() || !scope.trim())}>{submitting ? 'PERSISTING…' : mode === 'PROJECT' ? 'CREATE PROJECT / ATTRACTOR' : 'CREATE CASE'}</button></div>
       </form>
     </section>
   </main>;
