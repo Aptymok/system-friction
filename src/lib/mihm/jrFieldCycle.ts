@@ -10,6 +10,7 @@ import { persistFieldTemporalEpoch } from './fieldTemporalPersistence';
 import { deriveDistributedPhenomena, persistDistributedPhenomenonCandidate } from './distributedPhenomena';
 import { dispatchScientificMethodToLab } from './scientificMethodDispatch';
 import { executeScientificMethodsForNode, persistScientificMethodExecutions, readFieldEpochHistories } from './scientificMethodRuntime';
+import { persistActiveObservationRequest } from './activeObservationQueue';
 
 export const SFI_JR_FIELD_CYCLE_CONTRACT = 'SFI-JR-FIELD-CYCLE-1.0' as const;
 
@@ -62,7 +63,6 @@ export async function runJrFieldCycle(input: JrCycleInput) {
   const scientificTargets = nodeReadings
     .filter((item) => item.reading.methodCompetition.state !== 'NO_CANDIDATE')
     .slice(0, 30);
-  const epochHistories = await readFieldEpochHistories(scientificTargets.map((item) => item.node.nodeId));
   const nextObservations = uniqueStrings(nodeReadings.map((item) => item.reading.methodCompetition.nextObservation));
   const perturbationReviewCandidates = nodeReadings
     .filter((item) => item.reading.nextAction.decision === 'REVIEW_PERTURBATION_CANDIDATE')
@@ -119,6 +119,8 @@ export async function runJrFieldCycle(input: JrCycleInput) {
     }
   }
 
+  const epochHistories = await readFieldEpochHistories(scientificTargets.map((item) => item.node.nodeId));
+
   const phenomenonReceipts: unknown[] = [];
   for (const candidate of phenomena.slice(0, maxPhenomenonWrites)) {
     try {
@@ -133,6 +135,7 @@ export async function runJrFieldCycle(input: JrCycleInput) {
   }
 
   const scientificMethodExecutions: unknown[] = [];
+  const activeObservationRequests: unknown[] = [];
   for (const item of scientificTargets) {
     try {
       const history = epochHistories.get(item.node.nodeId) ?? [];
@@ -153,11 +156,30 @@ export async function runJrFieldCycle(input: JrCycleInput) {
         executions,
         persistence,
       });
+      if (item.reading.nextAction.decision === 'OBSERVE_NEXT' && item.reading.methodCompetition.nextObservation) {
+        const request = await persistActiveObservationRequest({
+          nodeId:item.node.nodeId,
+          observation:item.reading.methodCompetition.nextObservation,
+          actorId:input.actorId,
+          trigger:input.trigger,
+          methodFamilies:executions.filter((execution)=>execution.status==='EXECUTED').map((execution)=>execution.family),
+          evidenceRefs:uniqueStrings(executions.flatMap((execution)=>execution.evidenceRefs)),
+          historyEventIds:history.map((epoch)=>epoch.eventId),
+          stoppingCondition:null,
+        });
+        activeObservationRequests.push({nodeId:item.node.nodeId,...request});
+      }
     } catch (error) {
       scientificMethodExecutions.push({
         nodeId:item.node.nodeId,
         executions:[],
         persistence:{ok:false,persisted:false,error:error instanceof Error ? error.message : String(error)},
+      });
+      activeObservationRequests.push({
+        nodeId:item.node.nodeId,
+        ok:false,
+        persisted:false,
+        error:error instanceof Error ? error.message : String(error),
       });
     }
   }
@@ -184,6 +206,11 @@ export async function runJrFieldCycle(input: JrCycleInput) {
     }
   }
 
+  const persistedObservationRequests = activeObservationRequests.filter((item) =>
+    typeof item === 'object'
+    && item !== null
+    && (item as {persisted?:boolean}).persisted === true
+  ).length;
   const persistedScientificMethods = scientificMethodExecutions.filter((item) =>
     typeof item === 'object'
     && item !== null
@@ -213,6 +240,7 @@ export async function runJrFieldCycle(input: JrCycleInput) {
       observed:{nodes:graph.nodes.length,edges:graph.edges.length,distributedPhenomenonCandidates:phenomena.length},
       persistence:{epochTargets:epochTargets.length,persistedEpochs,phenomenonCandidates:phenomena.length,persistedPhenomena},
       methods:{maxMethodRuns,methodRuns,scientificMethodExecutions,dispatches:methodDispatches},
+      activeObservationRequests,
       nextObservations,
       perturbationReviewCandidates,
       materialPerturbationExecuted:false,
@@ -222,7 +250,7 @@ export async function runJrFieldCycle(input: JrCycleInput) {
     },
   });
 
-  const writesPerformed = persistedEpochs > 0 || persistedPhenomena > 0 || persistedScientificMethods > 0 || methodRuns > 0 || cycleReceipt.ok;
+  const writesPerformed = persistedEpochs > 0 || persistedPhenomena > 0 || persistedScientificMethods > 0 || persistedObservationRequests > 0 || methodRuns > 0 || cycleReceipt.ok;
   const degradedDispatches = methodDispatches.filter((item) => typeof item === 'object' && item !== null && (item as {state?:string}).state === 'DEGRADED').length;
 
   return {
@@ -242,6 +270,7 @@ export async function runJrFieldCycle(input: JrCycleInput) {
     epochs:epochReceipts,
     phenomena:phenomenonReceipts,
     scientificMethodExecutions,
+    activeObservationRequests,
     methodDispatches,
     cycleReceipt:cycleReceipt.ok ? cycleReceipt.data : cycleReceipt,
     writesPerformed,
