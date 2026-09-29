@@ -5,6 +5,7 @@ import type { CanonicalGraphEdge, CanonicalGraphNode } from '../../../packages/g
 import { appendEpistemicEvent } from '@/lib/events/eventStore';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { runMethodLabSimulation } from '@/lib/method-lab/simulationRun';
+import { resolveMethodLabEvidence } from '@/lib/method-lab/persistedEvidenceResolver';
 import {
   METHOD_LAB_EXPERIMENT_CONTRACT_VERSION,
   type MethodLabExperimentPreregistration,
@@ -28,6 +29,13 @@ const EXECUTABLE_PROTOCOLS = new Set(['sociotechnical_simulation','economic_simu
 
 function sha256(value: unknown) {
   return createHash('sha256').update(JSON.stringify(value)).digest('hex');
+}
+
+function preregistrationEpistemicClass(value: unknown): 'OBSERVED'|'DECLARED'|'DERIVED'|'INFERRED'|'SIMULATED'|'MISSING' {
+  const candidate=typeof value==='string'?value.trim().toUpperCase():'MISSING';
+  return ['OBSERVED','DECLARED','DERIVED','INFERRED','SIMULATED','MISSING'].includes(candidate)
+    ? candidate as 'OBSERVED'|'DECLARED'|'DERIVED'|'INFERRED'|'SIMULATED'|'MISSING'
+    : 'MISSING';
 }
 
 function textList(value: unknown) {
@@ -98,12 +106,18 @@ export async function dispatchScientificMethodToLab(input: {
   if (!evidenceIds.length) {
     return { state:'METHOD_LAB_REQUIRED', reason:'PERSISTED_EVIDENCE_IDS_REQUIRED_BEFORE_EXECUTION', protocolId, methodFamilies, evidenceIds:[], writesPerformed:false };
   }
+  const resolvedEvidence = await resolveMethodLabEvidence(evidenceIds);
+  const evidenceEpistemicClasses = resolvedEvidence.map((item) => ({
+    ref:item.id,
+    epistemicClass:preregistrationEpistemicClass((item.payload as Record<string, unknown> | null | undefined)?.epistemicClass),
+  }));
 
   const fingerprint = sha256({
     contract:SFI_SCIENTIFIC_METHOD_DISPATCH_CONTRACT,
     nodeId:input.node.nodeId,
     protocolId,
     evidenceIds:[...evidenceIds].sort(),
+    evidenceEpistemicClasses:[...evidenceEpistemicClasses].sort((a,b)=>a.ref.localeCompare(b.ref)),
     methodFamilies:[...methodFamilies].sort(),
     propertyDiscovery:input.reading.propertyDiscovery.candidates,
     relationSignature:input.reading.relations.map((relation) => ({
@@ -129,6 +143,7 @@ export async function dispatchScientificMethodToLab(input: {
       protocolId,
       methodFamilies,
       evidenceIds,
+      evidenceEpistemicClasses,
       experimentId,
       experimentRunId,
       receiptEventId,
@@ -167,7 +182,11 @@ export async function dispatchScientificMethodToLab(input: {
       ref: input.node.nodeId,
       description: `Canonical field subject ${input.node.label || input.node.nodeId}`,
     },
-    INPUTS: evidenceIds.map((ref) => ({ ref, role: 'EVIDENCE' as const, epistemicClass: 'OBSERVED' as const })),
+    INPUTS: evidenceEpistemicClasses.map((item) => ({
+      ref:item.ref,
+      role:'EVIDENCE' as const,
+      epistemicClass:item.epistemicClass,
+    })),
     CONTROL: {
       kind: 'NONE',
       description: 'No external control is asserted for this bounded field simulation. T0 evidence and method parameters are frozen for later replay/contrast.',
