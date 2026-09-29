@@ -54,7 +54,7 @@
     "qa:fi001-autonomy": "tsx scripts/qa-fi001-autonomy.ts",
     "qa:fi001-oidc": "tsx scripts/qa-fi001-oidc-policy.ts",
     "qa:sfi-root-capability-matrix": "tsx scripts/qa-sfi-root-capability-matrix.ts",
-    "qa:sfi-cognitive-field": "tsx scripts/qa-sfi-cognitive-field-admission.ts && tsx scripts/qa-sfi-method-selection.ts && tsx scripts/qa-sfi-field-scientific-reading.ts && tsx scripts/qa-sfi-root-graph-navigation.ts",
+    "qa:sfi-cognitive-field": "tsx scripts/qa-sfi-cognitive-field-admission.ts && tsx scripts/qa-sfi-method-selection.ts && tsx scripts/qa-sfi-field-scientific-reading.ts && tsx scripts/qa-sfi-jr-field-cycle.ts && tsx scripts/qa-sfi-root-graph-navigation.ts",
     "qa:sfi-authenticated-navigation": "tsx scripts/qa-sfi-authenticated-navigation.ts",
     "qa:sfi-root-public-field": "tsx scripts/qa-sfi-root-public-field.ts",
     "qa:sfi-contextual-return": "tsx scripts/qa-sfi-contextual-return.ts",
