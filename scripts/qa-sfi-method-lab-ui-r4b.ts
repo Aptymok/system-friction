@@ -24,6 +24,7 @@ const twinStatePersistence = read('src/core/cognitive-twin/statePersistence.ts')
 assert.match(page, /requireUserProfile\(\)/, 'Method Lab page must require an authenticated user profile.');
 assert.match(page, /requireRootObserverPage\('\/method-lab'\)/, 'Institutional Method Lab must retain the existing ROOT observer gate.');
 assert.match(page, /MethodLabExperimentWorkbench/, 'Slice E must mount on the existing canonical /method-lab route.');
+assert.match(ui, /if \(!run\) return \{\};/, 'Method Lab workbench must tolerate persisted experiment rows without a run payload.');
 assert.doesNotMatch(page, /createServiceSupabaseClient|\.from\(/, 'Page rendering must not bypass server-owned persistence boundaries.');
 assert.match(route, /requireUserProfile\(\)/, 'Method Lab UI API must authenticate every read/write.');
 assert.match(route, /allowed: \['preregister', 'export_preregistration', 'execute_simulation'\]/, 'UI API operation surface must stay explicitly bounded.');
