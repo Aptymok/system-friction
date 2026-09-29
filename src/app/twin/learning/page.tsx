@@ -101,7 +101,7 @@ export default function TwinLearningPage() {
       </aside>
 
       <section className="learningDossier">
-        {!selected && <div className="learningEmpty">No existe un candidato seleccionado.</div>}
+        {!selected && <div className="learningEmpty">No learning candidate is selected.</div>}
         {selected && <>
           <header><div><span>{txt(selectedPayload.classification, 'UNKNOWN')}</span><h2>{short(learning.learningCandidate ?? learning.primaryHypothesis ?? selectedPayload.cycleId, 180)}</h2><p>{txt(selectedPayload.quarantineReason, 'No structured quarantine reason.')}</p></div><div><b>{selectedPayload.eligibleForRootPromotion === true ? 'ELIGIBLE' : txt(selectedPayload.promotionState, 'QUARANTINED')}</b><small>{selected.event_id}</small></div></header>
 
@@ -126,11 +126,11 @@ export default function TwinLearningPage() {
             <p><b>Substantive edit:</b> is not executed as UPDATE. It must be institutionalized as AMEND/SUPERSEDE to preserve genealogy and reversibility.</p>
           </section>
 
-          <details className="learningTrace"><summary>TRAZABILIDAD COMPLETA</summary><pre>{JSON.stringify(selected, null, 2)}</pre></details>
+          <details className="learningTrace"><summary>COMPLETE TRACE</summary><pre>{JSON.stringify(selected, null, 2)}</pre></details>
         </>}
       </section>
     </div>
 
-    <section className="learningHistory"><details><summary>PROMOVIDOS · {promotions.length}</summary>{promotions.map((item) => <pre key={item.event_id}>{JSON.stringify(item, null, 2)}</pre>)}</details><details><summary>RECHAZADOS · {rejections.length}</summary>{rejections.map((item) => <pre key={item.event_id}>{JSON.stringify(item, null, 2)}</pre>)}</details></section>
+    <section className="learningHistory"><details><summary>PROMOTED · {promotions.length}</summary>{promotions.map((item) => <pre key={item.event_id}>{JSON.stringify(item, null, 2)}</pre>)}</details><details><summary>REJECTED · {rejections.length}</summary>{rejections.map((item) => <pre key={item.event_id}>{JSON.stringify(item, null, 2)}</pre>)}</details></section>
   </main>;
 }
