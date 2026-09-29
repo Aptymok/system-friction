@@ -12,6 +12,7 @@ import { dispatchScientificMethodToLab } from './scientificMethodDispatch';
 import { executeScientificMethodsForNode, persistScientificMethodExecutions, readFieldEpochHistories } from './scientificMethodRuntime';
 import { persistActiveObservationRequest } from './activeObservationQueue';
 import { reconcileJrMethodLabReturns } from './jrReturnReconciliation';
+import { persistPerturbationReviewCandidate } from './perturbationReviewQueue';
 
 export const SFI_JR_FIELD_CYCLE_CONTRACT = 'SFI-JR-FIELD-CYCLE-1.0' as const;
 
@@ -185,6 +186,34 @@ export async function runJrFieldCycle(input: JrCycleInput) {
     }
   }
 
+  const perturbationReviewRequests: unknown[] = [];
+  for (const item of nodeReadings) {
+    if (item.reading.nextAction.decision !== 'REVIEW_PERTURBATION_CANDIDATE' || !item.reading.capacity) continue;
+    try {
+      const magnitude=item.reading.capacity.perturbationMagnitude;
+      perturbationReviewRequests.push({
+        nodeId:item.node.nodeId,
+        ...(await persistPerturbationReviewCandidate({
+          nodeId:item.node.nodeId,
+          actorId:input.actorId,
+          trigger:input.trigger,
+          basis:item.reading.nextAction.basis,
+          candidateRefs:item.reading.nextAction.candidateRefs,
+          capacityEvidenceRefs:item.reading.capacity.evidenceRefs,
+          observedRange:magnitude===null?null:{min:magnitude,max:magnitude},
+          reason:item.reading.nextAction.reason,
+        })),
+      });
+    } catch (error) {
+      perturbationReviewRequests.push({
+        nodeId:item.node.nodeId,
+        ok:false,
+        persisted:false,
+        error:error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
   const methodDispatches: unknown[] = [];
   let executedRuns = 0;
   for (const item of nodeReadings) {
@@ -222,6 +251,11 @@ export async function runJrFieldCycle(input: JrCycleInput) {
     error:error instanceof Error ? error.message : String(error),
   }));
 
+  const persistedPerturbationRequests = perturbationReviewRequests.filter((item) =>
+    typeof item === 'object'
+    && item !== null
+    && (item as {persisted?:boolean}).persisted === true
+  ).length;
   const persistedObservationRequests = activeObservationRequests.filter((item) =>
     typeof item === 'object'
     && item !== null
@@ -257,6 +291,7 @@ export async function runJrFieldCycle(input: JrCycleInput) {
       persistence:{epochTargets:epochTargets.length,persistedEpochs,phenomenonCandidates:phenomena.length,persistedPhenomena},
       methods:{maxMethodRuns,methodRuns,scientificMethodExecutions,dispatches:methodDispatches},
       activeObservationRequests,
+      perturbationReviewRequests,
       returnReconciliation,
       nextObservations,
       perturbationReviewCandidates,
@@ -267,7 +302,7 @@ export async function runJrFieldCycle(input: JrCycleInput) {
     },
   });
 
-  const writesPerformed = persistedEpochs > 0 || persistedPhenomena > 0 || persistedScientificMethods > 0 || persistedObservationRequests > 0 || methodRuns > 0 || returnReconciliation.writesPerformed === true || cycleReceipt.ok;
+  const writesPerformed = persistedEpochs > 0 || persistedPhenomena > 0 || persistedScientificMethods > 0 || persistedObservationRequests > 0 || persistedPerturbationRequests > 0 || methodRuns > 0 || returnReconciliation.writesPerformed === true || cycleReceipt.ok;
   const degradedDispatches = methodDispatches.filter((item) => typeof item === 'object' && item !== null && (item as {state?:string}).state === 'DEGRADED').length;
   const returnDegraded = returnReconciliation.ok === false;
 
@@ -289,6 +324,7 @@ export async function runJrFieldCycle(input: JrCycleInput) {
     phenomena:phenomenonReceipts,
     scientificMethodExecutions,
     activeObservationRequests,
+    perturbationReviewRequests,
     methodDispatches,
     returnReconciliation,
     cycleReceipt:cycleReceipt.ok ? cycleReceipt.data : cycleReceipt,
