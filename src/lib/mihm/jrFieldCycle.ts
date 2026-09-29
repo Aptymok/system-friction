@@ -9,6 +9,7 @@ import { proposeMethodLabFieldProtocol } from '@/lib/method-lab/fieldProjection'
 import { persistFieldTemporalEpoch } from './fieldTemporalPersistence';
 import { deriveDistributedPhenomena, persistDistributedPhenomenonCandidate } from './distributedPhenomena';
 import { dispatchScientificMethodToLab } from './scientificMethodDispatch';
+import { executeScientificMethodsForNode, persistScientificMethodExecutions, readFieldEpochHistories } from './scientificMethodRuntime';
 
 export const SFI_JR_FIELD_CYCLE_CONTRACT = 'SFI-JR-FIELD-CYCLE-1.0' as const;
 
@@ -58,6 +59,10 @@ export async function runJrFieldCycle(input: JrCycleInput) {
   });
 
   const phenomena = deriveDistributedPhenomena(graph.nodes, graph.edges);
+  const scientificTargets = nodeReadings
+    .filter((item) => item.reading.methodCompetition.state !== 'NO_CANDIDATE')
+    .slice(0, 30);
+  const epochHistories = await readFieldEpochHistories(scientificTargets.map((item) => item.node.nodeId));
   const nextObservations = uniqueStrings(nodeReadings.map((item) => item.reading.methodCompetition.nextObservation));
   const perturbationReviewCandidates = nodeReadings
     .filter((item) => item.reading.nextAction.decision === 'REVIEW_PERTURBATION_CANDIDATE')
@@ -127,6 +132,36 @@ export async function runJrFieldCycle(input: JrCycleInput) {
     }
   }
 
+  const scientificMethodExecutions: unknown[] = [];
+  for (const item of scientificTargets) {
+    try {
+      const history = epochHistories.get(item.node.nodeId) ?? [];
+      const executions = executeScientificMethodsForNode({
+        node: item.node,
+        edges: graph.edges,
+        reading: item.reading,
+        history,
+      });
+      const persistence = await persistScientificMethodExecutions({
+        nodeId: item.node.nodeId,
+        actorId: input.actorId,
+        trigger: input.trigger,
+        executions,
+      });
+      scientificMethodExecutions.push({
+        nodeId:item.node.nodeId,
+        executions,
+        persistence,
+      });
+    } catch (error) {
+      scientificMethodExecutions.push({
+        nodeId:item.node.nodeId,
+        executions:[],
+        persistence:{ok:false,persisted:false,error:error instanceof Error ? error.message : String(error)},
+      });
+    }
+  }
+
   const methodDispatches: unknown[] = [];
   let executedRuns = 0;
   for (const item of nodeReadings) {
@@ -149,6 +184,12 @@ export async function runJrFieldCycle(input: JrCycleInput) {
     }
   }
 
+  const persistedScientificMethods = scientificMethodExecutions.filter((item) =>
+    typeof item === 'object'
+    && item !== null
+    && typeof (item as {persistence?:unknown}).persistence === 'object'
+    && (item as {persistence?:{persisted?:boolean}}).persistence?.persisted === true
+  ).length;
   const persistedEpochs = epochReceipts.filter((item) => typeof item === 'object' && item !== null && (item as {persisted?:boolean}).persisted === true).length;
   const persistedPhenomena = phenomenonReceipts.filter((item) => typeof item === 'object' && item !== null && (item as {persisted?:boolean}).persisted === true).length;
   const methodRuns = methodDispatches.filter((item) => typeof item === 'object' && item !== null && (item as {state?:string}).state === 'EXECUTED').length;
@@ -171,7 +212,7 @@ export async function runJrFieldCycle(input: JrCycleInput) {
       graphState:{sourceState:graph.sourceState,readPlane:graph.readPlane ?? 'UNAVAILABLE'},
       observed:{nodes:graph.nodes.length,edges:graph.edges.length,distributedPhenomenonCandidates:phenomena.length},
       persistence:{epochTargets:epochTargets.length,persistedEpochs,phenomenonCandidates:phenomena.length,persistedPhenomena},
-      methods:{maxMethodRuns,methodRuns,dispatches:methodDispatches},
+      methods:{maxMethodRuns,methodRuns,scientificMethodExecutions,dispatches:methodDispatches},
       nextObservations,
       perturbationReviewCandidates,
       materialPerturbationExecuted:false,
@@ -181,7 +222,7 @@ export async function runJrFieldCycle(input: JrCycleInput) {
     },
   });
 
-  const writesPerformed = persistedEpochs > 0 || persistedPhenomena > 0 || methodRuns > 0 || cycleReceipt.ok;
+  const writesPerformed = persistedEpochs > 0 || persistedPhenomena > 0 || persistedScientificMethods > 0 || methodRuns > 0 || cycleReceipt.ok;
   const degradedDispatches = methodDispatches.filter((item) => typeof item === 'object' && item !== null && (item as {state?:string}).state === 'DEGRADED').length;
 
   return {
@@ -200,6 +241,7 @@ export async function runJrFieldCycle(input: JrCycleInput) {
     },
     epochs:epochReceipts,
     phenomena:phenomenonReceipts,
+    scientificMethodExecutions,
     methodDispatches,
     cycleReceipt:cycleReceipt.ok ? cycleReceipt.data : cycleReceipt,
     writesPerformed,
