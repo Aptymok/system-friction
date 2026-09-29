@@ -250,7 +250,7 @@ export function PublicEntryGateway(){
               data-motion={asset.motion}
               data-alpha={asset.alpha ? 'true' : undefined}
               className={`sfiSceneLayer sfiSceneLayer--${layerIndex+1} sfiSceneLayer--${asset.role}`}
-              style={{'--asset-depth':asset.depth} as CSSProperties}
+              style={{'--asset-depth':asset.depth,'--parallax-x':`${asset.depth*11}px`,'--parallax-y':`${asset.depth*5}px`,'--parallax-z':`${asset.depth*58}px`} as CSSProperties}
             />)}
           </div>
 
