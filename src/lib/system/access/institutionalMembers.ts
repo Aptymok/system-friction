@@ -2,6 +2,8 @@ export type SfiExternalScope =
   | 'observe'
   | 'propose'
   | 'execute'
+  | 'world:read'
+  | 'world:run'
   | 'cases:read'
   | 'cases:write'
   | 'lab:read'
