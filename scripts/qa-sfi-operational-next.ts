@@ -78,8 +78,8 @@ assert.doesNotMatch(operatingUi, /decideCase/, 'case UI must not contain a routi
 assert.doesNotMatch(operatingUi, /decideCycle/, 'cycle UI must not contain a routine close decision handler');
 assert.doesNotMatch(operatingUi, /ACEPTAR Y CERRAR/, 'routine close button must be removed');
 assert.doesNotMatch(operatingUi, /DENEGAR REPORTE/, 'routine report denial button must be removed');
-assert.match(operatingUi, /SFI trabaja de forma autónoma dentro de su autoridad/, 'Observatory UI must explain autonomy plainly');
-assert.match(operatingUi, /ACEPTAR APRENDIZAJE/, 'learning promotion remains a visible human decision');
+assert.match(operatingUi, /SFI works autonomously within its authority/, 'Observatory UI must explain autonomy plainly in the canonical English interface');
+assert.match(operatingUi, /ACCEPT LEARNING/, 'learning promotion remains a visible human decision');
 
 assert.match(workboardRoute, /requireRootActor\('root\.workboard\.decide'\)/, 'legacy workboard POST must still pass the central authority gate until physically removed');
 assert.match(rootServer, /RETIRED_ROOT_APPROVAL_ACTIONS/, 'retired routine approval actions must be centrally blocked');

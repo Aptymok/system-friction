@@ -50,8 +50,8 @@ assert.match(files.operatingWorkspace,/SfiGovernanceWorkspace/);
 assert.doesNotMatch(files.operatingWorkspace,/ACEPTAR Y CERRAR/);
 assert.doesNotMatch(files.operatingWorkspace,/DENEGAR REPORTE/);
 assert.doesNotMatch(files.operatingWorkspace,/reportDecision|decideCase|decideCycle/);
-assert.match(files.operatingWorkspace,/SFI trabaja de forma autónoma dentro de su autoridad/);
-assert.match(files.operatingWorkspace,/ACEPTAR APRENDIZAJE/);
+assert.match(files.operatingWorkspace,/SFI works autonomously within its authority/);
+assert.match(files.operatingWorkspace,/ACCEPT LEARNING/);
 assert.match(files.interpretiveFlow,/INFERENCE_ONLY/);
 assert.match(files.interpretiveFlow,/RETURN \/ CONTRAST/);
 

@@ -118,7 +118,13 @@ function tryGhJson(args) {
 
 const repo = process.env.GITHUB_REPOSITORY || 'Aptymok/system-friction';
 const openIssues = tryGhJson(['issue', 'list', '--repo', repo, '--state', 'open', '--limit', '200', '--json', 'number,title,body,url']) || [];
-const issue405 = tryGhJson(['issue', 'view', '405', '--repo', repo, '--json', 'number,title,body,comments,url']);
+const issue405 = tryGhJson(['issue', 'view', '405', '--repo', repo, '--json', 'number,title,body,url']);
+const issue405CommentAudit = tryGhJson([
+  'api', '--paginate', '--slurp', `repos/${repo}/issues/405/comments?per_page=100`,
+  '--jq', '{accepted: [.[][] | select((.body // "") | test("^##[[:space:]]+(ACCEPTED[[:space:]]+)?ROOT DIRECTIVE"; "i")) | {body}], total: ([.[][]] | length)}',
+]) || { accepted: [], total: 0 };
+const issue405AcceptedComments = Array.isArray(issue405CommentAudit.accepted) ? issue405CommentAudit.accepted : [];
+const issue405CommentTotal = Number.isFinite(Number(issue405CommentAudit.total)) ? Number(issue405CommentAudit.total) : 0;
 const issue154 = tryGhJson(['issue', 'view', '154', '--repo', repo, '--json', 'number,title,body,url']);
 
 function isAcceptedRootDirectiveComment(body) {
@@ -128,7 +134,7 @@ function isAcceptedRootDirectiveComment(body) {
 function acceptedControlRequirements() {
   if (!issue405) return [];
   const authorityTexts = [issue405.body || ''];
-  for (const comment of issue405.comments || []) {
+  for (const comment of issue405AcceptedComments) {
     if (isAcceptedRootDirectiveComment(comment.body)) authorityTexts.push(comment.body || '');
   }
   return extractNormativeLines('GitHub issue #405 accepted control directives', authorityTexts.join('\n'), 'CTRL405');
@@ -218,8 +224,8 @@ const classified = unique.map(r => ({ ...r, ...classify(r) }));
 const counts = Object.fromEntries([...CANONICAL_STATUS].map(s => [s, classified.filter(r => r.status === s).length]));
 counts.UNCLASSIFIED = classified.filter(r => !CANONICAL_STATUS.has(r.status)).length;
 
-const acceptedDirectiveCommentCount = (issue405?.comments || []).filter(comment => isAcceptedRootDirectiveComment(comment.body)).length;
-const rejectedNonDirectiveCommentCount = (issue405?.comments || []).filter(comment => !isAcceptedRootDirectiveComment(comment.body)).length;
+const acceptedDirectiveCommentCount = issue405AcceptedComments.filter(comment => isAcceptedRootDirectiveComment(comment.body)).length;
+const rejectedNonDirectiveCommentCount = Math.max(0, issue405CommentTotal - acceptedDirectiveCommentCount);
 const admittedNonDirectiveCommentCount = 0;
 
 const hardDefects = [];
