@@ -300,7 +300,10 @@ assert.equal(evidenceDrivenPromotedSignal.relationSupportRatio, 1);
 assert.equal(evidenceDrivenPromotedSignal.provenanceCoverage, 1);
 assert.ok(evidenceDrivenPromotedSignal.reorganizationMagnitude > 0);
 assert.ok(evidenceDrivenPromotedSignal.reorganizationMagnitude <= 1);
-assert.equal(evidenceDrivenPromotedSignal.projectionAuthority, 'METHOD_LAB_REQUIRED');
+assert.equal(evidenceDrivenPromotedSignal.projectionAuthority, 'VISUAL_HEURISTIC_ONLY');
+assert.equal(evidenceDrivenPromotedSignal.temporalStructureObserved, false, 'A promoted learning event does not invent observed-world temporal structure.');
+assert.equal(evidenceDrivenPromotedSignal.relationTransition, true);
+assert.equal(evidenceDrivenPromotedSignal.weightChangeObserved, true);
 
 const noProtocolProjection = resolveMethodLabFieldProjection({
   protocolId: null,
