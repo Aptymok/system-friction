@@ -87,9 +87,7 @@ export const SCENES: readonly Scene[] = [
     accent:'SHAPE THE POSSIBLE.',
     lead:'A system is not its parts. It is the changing arrangement of flows, dependencies, boundaries and feedback among them.',
     background:'/assets/sfi/system/reference/02_03.png',
-    assets:[
-      {src:'/assets/sfi/overlays/red_global_de_conexiones_luminosas.png',role:'signal',depth:1,motion:'pointer-parallax',scale:'planetary',alpha:true},
-    ],
+    assets:[],
     frames:[
       {label:'ENERGY',title:'Capacity moves.',text:'Energy links production, infrastructure, territory, cost and institutional continuity.'},
       {label:'TERRITORY',title:'Space changes the system.',text:'Geography shapes access, exposure, distance, concentration and vulnerability.'},
@@ -112,7 +110,6 @@ export const SCENES: readonly Scene[] = [
     lead:'Friction is not simply failure. It appears where systems, incentives, constraints, timescales and interpretations meet.',
     background:'/assets/sfi/scenes/04_05_background.png',
     assets:[
-      {src:'/assets/sfi/scenes/07_return_network.png',role:'signal',depth:1,motion:'pointer-parallax',scale:'orbital',alpha:true},
       {src:'/assets/sfi/scenes/04_observer.png',role:'human',depth:3,motion:'pointer-parallax',scale:'human',alpha:true},
     ],
     frames:[
@@ -136,7 +133,6 @@ export const SCENES: readonly Scene[] = [
     lead:'Institutions transform signals into memory, interpretation, authority and action. Their internal boundaries determine what the world can become through them.',
     background:'/assets/sfi/scenes/04_05_background.png',
     assets:[
-      {src:'/assets/sfi/scenes/07_return_network.png',role:'signal',depth:1,motion:'pointer-parallax',scale:'institutional',alpha:true},
       {src:'/assets/sfi/scenes/05_board.png',role:'human',depth:3,motion:'pointer-parallax',scale:'institutional',alpha:true},
     ],
     frames:[
@@ -160,8 +156,6 @@ export const SCENES: readonly Scene[] = [
     lead:'Outcomes emerge. Contradictions surface. Consequences accumulate. Effects move back into the world and become evidence for what comes next.',
     background:'/assets/sfi/scenes/07_return_background.png',
     assets:[
-      {src:'/assets/sfi/scenes/07_return_network.png',role:'signal',depth:1,motion:'pointer-parallax',scale:'planetary',alpha:true},
-      {src:'/assets/sfi/scenes/07_return_monument.png',role:'structure',depth:2,motion:'pointer-parallax',scale:'institutional',alpha:true},
       {src:'/assets/sfi/scenes/07_return_people.png',role:'human',depth:4,motion:'pointer-parallax',scale:'human',alpha:true},
     ],
     frames:[
