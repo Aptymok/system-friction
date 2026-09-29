@@ -25,13 +25,13 @@ const quarantine = read('src/lib/sfi/universalLearningQuarantine.ts');
 assert.ok(methodLabReadModel.includes('readMethodLabFieldLearningStates'), 'ROOT field must read Method Lab learning governance without treating it as observation.');
 assert.ok(methodLabReadModel.includes('LEARNING_STATE_IS_GOVERNANCE_NOT_OBSERVATION'), 'Learning state projection must preserve the governance/observation boundary.');
 assert.ok(rootScene.includes('readMethodLabFieldLearningStates'), 'ROOT must project governed learning state on the same neural field node.');
-assert.ok(neuralRootUi.includes('CONTRAST → LEARNING') && neuralRootUi.includes('NO LEARNING CANDIDATE'), 'Neural field must distinguish contrast from quarantine/promotion state.');
-assert.ok(neuralRootUi.includes('historical observation remains unchanged'), 'Promotion must never imply rewriting historical observation.');
+assert.ok(neuralRootUi.includes('learningState?:') && neuralRootUi.includes('<p>LEARNING ·'), 'Neural field HUB must distinguish quarantine/promotion state from the underlying contrast.');
+assert.ok(neuralRootUi.includes('mutatesHistoricalObservation') === false && neuralRootUi.includes('learningState?:'), 'ROOT presentation must not introduce a historical-observation mutation path.');
 assert.ok(methodLabReadModel.includes('readMethodLabFieldMethodResults'), 'ROOT field must have a server-owned reader for persisted Method Lab results.');
 assert.ok(methodLabReadModel.includes('projectMethodLabMethodResult'), 'Persisted runs must pass the Method Lab result contract before ROOT projection.');
 assert.ok(rootScene.includes('readMethodLabFieldMethodResults'), 'ROOT must consume persisted Method Lab results without duplicating persistence.');
 assert.ok(rootScene.includes('methodResult: methodResults.get(node.nodeId) ?? null'), 'ROOT nodes must expose a bounded method-result reading when one exists.');
-assert.ok(neuralRootUi.includes('METHOD → WORLD') && neuralRootUi.includes('NO PERSISTED METHOD RESULT'), 'Neural field must distinguish executed method results from absent execution and expose the WORLD/RETURN transition.');
+assert.ok(neuralRootUi.includes('methodResult?:') && neuralRootUi.includes('<p>METHOD ·'), 'Neural field HUB must distinguish persisted Method Lab result presence without manufacturing execution.');
 
 const experimentPersistence = read('src/lib/method-lab/experimentPersistence.ts');
 for (const token of [
