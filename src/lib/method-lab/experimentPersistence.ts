@@ -9,6 +9,7 @@ import {
   type MethodLabExperimentPreregistration,
   type MethodLabExperimentRun,
 } from './experimentContract';
+import { recordUniversalLearningCandidate } from '@/lib/sfi/universalLearningQuarantine';
 
 function canonicalize(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(canonicalize);
@@ -166,6 +167,53 @@ export async function persistMethodLabRealityReturn(input: {
   }).select('id,created_at').single();
   if (persisted.error || !persisted.data?.id) throw new Error(`METHOD_LAB_RETURN_PERSIST_FAILED:${persisted.error?.message ?? 'unknown'}`);
   return { ok: true as const, analysisId: String(persisted.data.id), runId: input.runId, sourceRunRef: runRef, resultHash: original.artifacts.RESULT.resultHash, createdAt: String(persisted.data.created_at ?? input.realityReturn.observedAt) };
+}
+
+export async function recordMethodLabContrastLearningCandidate(input: {
+  experimentId: string;
+  runId: string;
+  ownerId: string;
+  tenantId: string;
+}) {
+  const ownerId = input.ownerId.trim();
+  const tenantId = input.tenantId.trim();
+  if (!ownerId || !tenantId) throw new Error('METHOD_LAB_LEARNING_ACTOR_AND_TENANT_REQUIRED');
+  const prereg = await readOwnedMethodLabExperimentPreregistration({ experimentId: input.experimentId, ownerId });
+  const db = createServiceSupabaseClient();
+  const contrastRef = methodLabReturnId(input.runId.trim());
+  const found = await db.from('sfi_lab_analyses').select('id,owner_id,raw_analysis,created_at').eq('id', contrastRef).eq('owner_id', ownerId).maybeSingle();
+  if (found.error) throw new Error(`METHOD_LAB_LEARNING_CONTRAST_READ_FAILED:${found.error.message}`);
+  if (!found.data) throw new Error('METHOD_LAB_LEARNING_CONTRAST_REQUIRED');
+  const raw = record(found.data.raw_analysis);
+  const run = assertMethodLabExperimentRun(prereg.preregistration, record(raw.run) as MethodLabExperimentRun);
+  if (run.artifacts.CONTRAST.status !== 'AVAILABLE' || !run.artifacts.CONTRAST.realityReturn) throw new Error('METHOD_LAB_LEARNING_OBSERVED_RETURN_REQUIRED');
+  const realityReturn = run.artifacts.CONTRAST.realityReturn;
+  const history = {
+    cycleId: `method-lab:${input.experimentId}:${input.runId}`,
+    cognitiveRuns: [{ event_id: contrastRef, payload: { cycleId: `method-lab:${input.experimentId}:${input.runId}` } }],
+    returns: [{ event_id: contrastRef, payload: { outcome: realityReturn.outcome, evidenceRefs: realityReturn.evidenceRefs } }],
+    returnContrasts: [],
+    closures: [],
+    aiSyntheses: [],
+    events: [],
+  };
+  return recordUniversalLearningCandidate({
+    history,
+    requested: {
+      classification: 'OPERATIONAL_EVIDENCE',
+      learningCandidate: {
+        source: 'METHOD_LAB_CONTRAST',
+        experimentId: input.experimentId,
+        runId: input.runId,
+        methodId: prereg.preregistration.METHOD.methodId,
+        resultHash: run.artifacts.RESULT.resultHash,
+        contrastRef,
+      },
+    },
+    actorId: ownerId,
+    tenantId,
+    closureEventId: null,
+  });
 }
 
 export async function persistMethodLabExperimentRun(input: {
