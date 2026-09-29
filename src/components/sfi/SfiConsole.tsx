@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useAuthState } from '@/components/auth/AuthProvider';
 import { translateUiText, useSfiLanguage } from '@/components/i18n/SfiLanguageProvider';
 import { ObservatoryConsole } from './ObservatoryConsole';
@@ -13,7 +12,7 @@ import { AuthenticatedSfiMenu } from './AuthenticatedSfiMenu';
 
 export function SfiConsole({scene}:{scene:SceneKey}){
   const auth=useAuthState();
-  const {language,text}=useSfiLanguage();
+  const {language}=useSfiLanguage();
   const ui=(value:string)=>translateUiText(value,language);
   if(scene==='field') return <ObservatoryConsole/>;
 
@@ -22,8 +21,7 @@ export function SfiConsole({scene}:{scene:SceneKey}){
 
   if(auth.status!=='authenticated'){
     return <main className="sfiOperatingShell sfiAccessShell">
-      <header className="sfiOperatingTop"><Link href="/" className="sfiWordmark">SFI</Link><SessionControls/></header>
-      <section className="sfiAccessCard"><span>{text('ESPACIO DE TRABAJO','WORK SPACE')}</span><h1>{ui(spec.title)}</h1><p>{text('Esta superficie contiene proyectos, casos, evidencia, decisiones, reportes y conocimiento autorizado. Inicia sesión para continuar.','This surface contains projects, cases, evidence, decisions, reports and authorized knowledge. Sign in to continue.')}</p><SessionControls/></section>
+      <section className="sfiAccessCard"><span>WORK SPACE</span><h1>{ui(spec.title)}</h1><p>This surface contains projects, cases, evidence, decisions, reports and authorized knowledge. Authentication is required before the governed workspace is exposed.</p><SessionControls/></section>
     </main>;
   }
 
