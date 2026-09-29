@@ -5,7 +5,7 @@ const read=(path:string)=>readFileSync(path,'utf8');
 const rail=read('src/components/sfi/InstitutionalSurfaceRail.tsx');
 const railCss=read('src/components/sfi/InstitutionalSurfaceRail.css');
 const rootScene=read('src/app/[scene]/page.tsx');
-const lab=read('src/components/sfi/MethodLabEnvironment.tsx');
+const lab=read('src/components/sfi/MethodLabUnifiedSurface.tsx');
 const neural=read('src/components/sfi/RootNeuralGraphView.tsx');
 const neuralPixi=read('src/components/sfi/RootCognitiveFieldPixi.tsx');
 const discovery=read('src/app/root/discovery/page.tsx');
@@ -21,7 +21,7 @@ assert.ok(rail.includes('data-sfi-internal-shell="SFI-INTERNAL-VISUAL-1.0"'),'in
 assert.ok(railCss.includes('prefers-reduced-motion'),'internal_shell_reduced_motion_missing');
 
 assert.ok(rootScene.includes('data-root-primary-interface="CANONICAL_COGNITIVE_FIELD"') && rootScene.includes('<RootNeuralGraphView'),'root_neural_field_not_canonical');
-assert.ok(lab.includes('<InstitutionalSurfaceRail surface="LABORATORY"'),'lab_not_converged');
+assert.ok(lab.includes('CONTROLLED EXPERIMENTATION') && lab.includes('METHOD LAB') && lab.includes('EVIDENCE / RUN') && lab.includes('RESEARCH / RETURN'),'lab_not_converged');
 assert.ok(neural.includes('data-neural-graph-contract="SFI-ROOT-NEURAL-GRAPH-1.1"') && neural.includes('<RootCognitiveFieldPixi') && neuralPixi.includes("from 'pixi.js'"),'root_neural_visual_contract_missing');
 assert.equal(neural.includes('<InstitutionalSurfaceRail surface="NEURAL_GRAPH"'),false,'neural_graph_must_not_reappear_as_separate_institutional_surface');
 assert.ok(discovery.includes('<InstitutionalSurfaceRail surface="DISCOVERY"'),'discovery_not_converged');
