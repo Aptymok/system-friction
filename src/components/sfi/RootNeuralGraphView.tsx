@@ -97,6 +97,20 @@ type GraphNode = {
     reversibility: { sourceObservationRefs:string[]; aggregationRefs:string[]; phenomenonRefs:string[]; reconstructable:boolean };
     boundaries:string[];
   };
+  fieldHistory?: {
+    epochCount: number;
+    firstObservedAt: string | null;
+    lastObservedAt: string | null;
+    persistedHistory: boolean;
+    recentEpochs: Array<{
+      eventId: string;
+      occurredAt: string;
+      state: string | null;
+      previousState: string | null;
+      censoring: string;
+      relationTransitions: Record<string, unknown>[];
+    }>;
+  } | null;
   learningState?: {
     candidateEventId: string;
     cycleId: string | null;
@@ -250,7 +264,7 @@ function temporalReading(node: GraphNode): TemporalReading {
   const phase = stringAttribute(node, ['phase','temporalPhase','cyclePhase','statePhase']);
   if (phase) return { coordinate: null, basis: 'PHASE', label: `PHASE · ${phase}` };
 
-  const candidates = [node.reality?.captureTime, node.attributes.observedAt, node.attributes.observed_at, node.attributes.occurredAt, node.attributes.occurred_at, node.attributes.effectiveAt, node.attributes.effective_at, node.attributes.releasedAt, node.attributes.released_at, node.attributes.validFrom, node.attributes.valid_from];
+  const candidates = [node.reality?.captureTime, node.attributes.observedAt, node.attributes.observed_at, node.attributes.occurredAt, node.attributes.occurred_at, node.attributes.effectiveAt, node.attributes.effective_at, node.attributes.releasedAt, node.attributes.released_at, node.attributes.validFrom, node.attributes.valid_from, node.fieldHistory?.lastObservedAt];
   for (const value of candidates) {
     if (typeof value === 'string') {
       const ms = Date.parse(value);
@@ -564,11 +578,14 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
               <span>RETURN<strong>{selected.reality?.observedReturn == null ? 'NOT OBSERVED' : String(selected.reality.observedReturn)}</strong></span>
               <span>STRUCTURAL LINKS<strong>{selectedEdges.length}</strong></span>
               <span>QUALIFIED RELATIONS<strong>{qualifiedRelationCount(selected,graph.edges)}</strong></span>
+              <span>PERSISTED EPOCHS<strong>{selected.fieldHistory?.epochCount ?? 0}</strong></span>
+              <span>HISTORY RANGE<strong>{selected.fieldHistory?.firstObservedAt ? `${date(selected.fieldHistory.firstObservedAt)} → ${date(selected.fieldHistory.lastObservedAt)}` : 'NOT YET PERSISTED'}</strong></span>
               <span>INSTITUTIONAL DIRECTION<strong>SFI-INSTITUTIONAL-ATTRACTOR-001</strong></span>
               <span>LOCAL DYNAMICAL ATTRACTOR<strong>{selected.scientificReading?.attractor.state ?? 'NOT ESTABLISHED'}</strong></span>
             </div>
             {selected.methodResult ? <p>METHOD · {selected.methodResult.methodId}@{selected.methodResult.methodVersion} · {selected.methodResult.epistemicClass}</p> : null}
             {selected.learningState ? <p>LEARNING · {selected.learningState.state} · {selected.learningState.classification ?? 'UNCLASSIFIED'}</p> : null}
+            {selected.fieldHistory?.recentEpochs?.length ? <details><summary>FIELD HISTORY · {selected.fieldHistory.epochCount} EPOCHS</summary>{selected.fieldHistory.recentEpochs.map((epoch)=><div key={epoch.eventId}><code>{date(epoch.occurredAt)} · {epoch.previousState ?? 'UNKNOWN'} → {epoch.state ?? 'UNKNOWN'} · {epoch.censoring}</code><small>{epoch.relationTransitions.length} relational transitions</small></div>)}</details> : null}
             <div className="rootFieldRelations">
               {selectedEdges.map((edge)=>{const outbound=edge.source===selected.id;const other=nodeById.get(outbound?edge.target:edge.source);return <button key={edge.id} onClick={()=>setSelectedId(other?.id??null)}><small>{outbound?'→':'←'} {edge.relation}</small><strong>{other?.label??(outbound?edge.target:edge.source)}</strong><em>{edge.origin==='operational_projection' ? edge.provenance : `WEIGHT · ${edge.weight.toFixed(3)}`}</em></button>;})}
             </div>
