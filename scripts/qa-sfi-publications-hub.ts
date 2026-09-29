@@ -6,6 +6,7 @@ const read=(path:string)=>readFileSync(path,'utf8');
 const page=read('src/app/publications/page.tsx');
 const graph=read('src/app/publications/PublicationsCatalog.tsx');
 const css=read('src/app/publications/publications.css');
+const globals=read('src/app/globals.css');
 const editorial=read('src/lib/publications/editorialContent.ts');
 const publicationEntry=read('src/app/publications/[slug]/page.tsx');
 const temporalCss=read('src/app/publications/[slug]/temporalIssue.css');
@@ -48,7 +49,8 @@ assert.ok(publicationEntry.includes('TemporalIssueView')&&temporalView.includes(
 assert.ok(temporalView.includes('DOWNLOAD / OPEN PDF')&&temporalView.includes('TEMPORAL SEMANTICS'),'temporal_download_or_semantics_missing');
 
 for(const token of ['--void:#060605','--gold:#c8a951','--cream:#e8ddc3','--signal:#4a7aaa','--critical:#b85050']) assert.ok(css.toLowerCase().includes(token),`identity_manual_palette_missing:${token}`);
-assert.ok(css.includes('Noto Serif Display')&&css.includes('EB Garamond')&&css.includes('Liberation Mono')&&css.includes('Noto Sans'),'identity_manual_typography_roles_missing');
+assert.ok(css.includes('--display:var(--sfi-display)')&&css.includes('--narrative:var(--sfi-narrative)')&&css.includes('--trace:var(--sfi-trace)')&&css.includes('--screen:var(--sfi-screen)'),'identity_manual_typography_role_mapping_missing');
+assert.ok(globals.includes('--sfi-display:"Noto Serif Display"')&&globals.includes('--sfi-narrative:"EB Garamond"')&&globals.includes('--sfi-trace:"Liberation Mono"')&&globals.includes('--sfi-screen:"Noto Sans"'),'identity_global_typography_roles_missing');
 for(const family of ['Noto Serif Display','EB Garamond','Liberation Mono','Noto Sans']) assert.ok(temporalCss.includes(family),`temporal_identity_typography_missing:${family}`);
 assert.ok(temporalCss.includes(':focus-visible')&&temporalCss.includes('prefers-reduced-motion'),'temporal_accessibility_boundary_missing');
 assert.ok(css.includes(':focus-visible')&&css.includes('prefers-reduced-motion'),'registry_accessibility_boundary_missing');
