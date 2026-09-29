@@ -6,6 +6,7 @@ import { runWorldInstrumentSweep } from '@/lib/world-observatory/instrumentSweep
 import { executeWorldSignalObserverAgent } from '@/lib/world-observatory/worldSignalObserverAgent';
 import { scheduledEgressGuardResponse } from '@/lib/continuity/scheduledEgressGuard';
 import { persistWorldHypothesisClosureReport } from '@/lib/reports/worldHypothesisClosureReport';
+import { runJrFieldCycle } from '@/lib/mihm/jrFieldCycle';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -137,7 +138,18 @@ export async function POST(request: NextRequest) {
     writesPerformed: false,
     boundary: 'Instrument sweep degraded without changing World observation/hypothesis/calibration authority.',
   }));
-  const ok = observation.ok && hypothesis.ok && calibration.ok;
+  const jrFieldCycle = await runJrFieldCycle({
+    actorId: 'sfi:cron:world-observatory',
+    trigger: 'WORLD_OBSERVATORY_CRON',
+    maxMethodRuns: 1,
+  }).catch((error) => ({
+    ok: false as const,
+    status: 'DEGRADED' as const,
+    contract: 'SFI-JR-FIELD-CYCLE-1.0',
+    writesPerformed: false,
+    error: error instanceof Error ? error.message : String(error),
+  }));
+  const ok = observation.ok && hypothesis.ok && calibration.ok && jrFieldCycle.ok !== false;
 
   return NextResponse.json({
     ok,
@@ -149,12 +161,13 @@ export async function POST(request: NextRequest) {
     calibration,
     closureReport,
     instrumentSweep,
+    jrFieldCycle,
     freshness: {
       observed: observation.observed,
       persisted: observation.persisted,
       collectorFailures: observation.failures.length,
     },
-    executionRule: 'World observation, hypothesis generation and deterministic calibration remain authoritative for this cron. Hypothesis closure reports are downstream narrative projections of classifications already persisted by calibration and cannot change them. Signal Vane, Cluster Atlas and Predictive health are a read-only daily instrumentation sweep; their failure does not fabricate evidence or block the observed World cycle.',
+    executionRule: 'World observation, hypothesis generation and deterministic calibration remain authoritative for this cron. Hypothesis closure reports are downstream narrative projections of classifications already persisted by calibration and cannot change them. Signal Vane, Cluster Atlas and Predictive health are a read-only daily instrumentation sweep. Jr may append derived field epochs/configurations and bounded SIMULATED Method Lab receipts from persisted evidence, but cannot execute material perturbations, make governance decisions, promote canon or fabricate RETURN.',
   });
 }
 
