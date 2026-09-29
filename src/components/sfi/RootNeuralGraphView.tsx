@@ -154,7 +154,7 @@ type GraphPayload = {
   edges: GraphEdge[];
   realityCoverage: { stage: string; observed: boolean }[];
   capacityEnvelope: { status:'OBSERVED_RANGE'|'INSUFFICIENT'; observationCount:number; minPerturbation:number|null; maxPerturbation:number|null; responses:Record<string,number>; evidenceRefs:string[]; boundary:string };
-  admission: { contract: string; admittedNodes: number; excludedNodes: number; excludedEdges: number };
+  admission: { contract: string; sourceNodes: number; sourceEdges: number; admittedNodes: number; admittedEdges: number; excludedNodes: number; excludedEdges: number; excludedNodeReasons: Record<string, number> };
 };
 
 type Position = { x: number; y: number };
@@ -480,10 +480,10 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
       </header>
 
       <section className="neuralGraphPulse" aria-label="Neural Graph state">
-        <article><span>NODES</span><strong>{graph.nodes.length}</strong><small>persisted + canonical projection</small></article>
-        <article><span>RELATIONS</span><strong>{graph.edges.length}</strong><small>visible edges in SFI profile</small></article>
+        <article><span>COGNITIVE NODES</span><strong>{graph.nodes.length}</strong><small>{graph.admission.sourceNodes} canonical source · {graph.admission.excludedNodes} excluded by admission</small></article>
+        <article><span>COGNITIVE RELATIONS</span><strong>{graph.edges.length}</strong><small>{graph.admission.sourceEdges} canonical source · {graph.admission.excludedEdges} excluded after node admission</small></article>
         <article data-state={graph.readPlane}><span>READ PLANE</span><strong>{graph.readPlane}</strong><small>{continuity ? 'Continuity active' : graph.readPlane === 'SUPABASE' ? 'Primary active' : 'Projection / unavailable'}</small></article>
-        <article data-state={graph.sourceState}><span>GRAPH STATE</span><strong>{graph.sourceState.toUpperCase()}</strong><small>{graphObserved ? 'persisted graph observed' : 'degraded projection'}</small></article>
+        <article data-state={graph.sourceState}><span>SOURCE GRAPH STATE</span><strong>{graph.sourceState.toUpperCase()}</strong><small>{graphObserved ? (graph.nodes.length ? 'persisted cognitive graph observed' : 'canonical source observed · cognitive admission empty') : 'degraded projection'}</small></article>
         <article><span>ONTOLOGY TYPES</span><strong>{typeCount}</strong><small>{allTypes.slice(0, 3).join(' · ') || 'MISSING'}</small></article>
         <article data-state={graph.capacityEnvelope.status}><span>CAPACITY</span><strong>{graph.capacityEnvelope.status}</strong><small>{graph.capacityEnvelope.status === 'OBSERVED_RANGE' ? `${graph.capacityEnvelope.observationCount} observed perturbation/RETURN pairs` : 'insufficient repeated observed RETURN'}</small></article>
       </section>
@@ -558,7 +558,7 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
       <div className="neuralGraphLayout">
         <section className="neuralGraphCanvas" aria-label="Canonical graph topology">
           <div className="neuralGraphCanvasMeta">
-            <span>{reading.replaceAll('_',' ')} · VISIBLE {visibleNodes.length} NODES · {visibleEdges.length} EDGES · DOCUMENTARY EXCLUDED {graph.admission.excludedNodes}</span>
+            <span>{reading.replaceAll('_',' ')} · VISIBLE {visibleNodes.length} NODES · {visibleEdges.length} EDGES · CANONICAL SOURCE {graph.admission.sourceNodes}/{graph.admission.sourceEdges} · EXCLUDED {graph.admission.excludedNodes} · {Object.entries(graph.admission.excludedNodeReasons).map(([reason,count]) => `${reason} ${count}`).join(' · ') || 'NO EXCLUSIONS'}</span>
             <span>LOADED {date(graph.loadedAt)}</span>
           </div>
           <svg viewBox={`0 0 ${topology.width} ${topology.height}`} role="img" aria-label="System Friction Institute Neural Graph">
