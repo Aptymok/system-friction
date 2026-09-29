@@ -129,7 +129,7 @@ type GraphNode = {
     expectedSignal: { description: string; measures: string[] };
     falsificationCondition: string;
     stoppingCondition: string;
-    returnWindow: { opensAt: string; closesAt: string; required: boolean };
+    returnWindow: { opensAt: string; closesAt: string | null; required: boolean; basis?: 'CHRONOLOGY'|'PHENOMENON_CONDITION'; condition?: string | null };
     contrastStatus: 'PENDING_RETURN' | 'AVAILABLE' | 'NOT_APPLICABLE';
     nextState: 'WAIT_RETURN' | 'CONTRAST_AVAILABLE' | 'COMPLETE_WITHOUT_RETURN';
     canonicalMutation: false;
