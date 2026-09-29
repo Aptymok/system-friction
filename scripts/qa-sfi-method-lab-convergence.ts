@@ -26,6 +26,18 @@ assert.ok(rootScene.includes('readMethodLabFieldMethodResults'), 'ROOT must cons
 assert.ok(rootScene.includes('methodResult: methodResults.get(node.nodeId) ?? null'), 'ROOT nodes must expose a bounded method-result reading when one exists.');
 assert.ok(rootUi.includes('METHOD → WORLD') && rootUi.includes('NO PERSISTED METHOD RESULT'), 'Neural field must distinguish executed method results from absent execution and expose the WORLD/RETURN transition.');
 
+const experimentPersistence = read('src/lib/method-lab/experimentPersistence.ts');
+for (const token of [
+  'persistMethodLabRealityReturn',
+  'methodLabReturnId',
+  "mode: 'experiment_return_contrast'",
+  "phase: 'CONTRAST_AVAILABLE'",
+  "original.artifacts.CONTRAST.status !== 'PENDING_RETURN'",
+  'the executed run is never rewritten',
+]) assert.ok(experimentPersistence.includes(token), `method_lab_return_append_boundary_missing:${token}`);
+assert.ok(methodLabReadModel.includes("mode.eq.experiment_return_contrast"), 'ROOT method-result reader must inspect immutable RETURN contrast records.');
+assert.ok(methodLabReadModel.includes("text(item.mode) !== 'experiment_return_contrast'"), 'ROOT must prefer a valid RETURN contrast over its earlier pending run.');
+
 const experimentContract = read('src/lib/method-lab/experimentContract.ts');
 const experimentPersistence = read('src/lib/method-lab/experimentPersistence.ts');
 assert.equal(METHOD_LAB_EXPERIMENT_CONTRACT_VERSION, 'SFI-METHOD-LAB-EXPERIMENT-1.0');
@@ -262,6 +274,7 @@ console.log(JSON.stringify({
     'non-observational runs cannot inherit OBSERVED and RETURN must originate from REALITY with evidence refs',
     'every first-class run carries PREREGISTERED/EXECUTED/RESULT/CONTRAST/LIMITATIONS/REPRODUCIBILITY_RECEIPT artifacts',
     'method results remain non-canonical and carry frozen falsification, stopping and RETURN transition state',
+    'observed RETURN contrast is append-only and never rewrites the executed Method Lab run',
     'CHRONOS and CRL are protocols, not parallel labs',
     'CT reentry implementation is distinct from Method Lab validation and individuation claims',
     'sociotechnical/economic runs use isolated executors',
