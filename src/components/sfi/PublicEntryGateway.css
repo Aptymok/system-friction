@@ -208,6 +208,13 @@
   transition:transform .18s linear,opacity .4s ease;
   z-index:calc(4 + var(--asset-depth,0))
 }
+.sfiSceneLayer[data-motion="pointer-parallax"]{
+  transform:translate3d(
+    calc(var(--pointer-x,0) * var(--parallax-x,18px)),
+    calc(var(--pointer-y,0) * var(--parallax-y,8px)),
+    var(--parallax-z,90px)
+  ) scale(calc(1 + var(--asset-depth,1) * .004))
+}
 .sfiSceneLayer--1{
   width:min(58vw,980px);
   right:-4vw;
@@ -697,4 +704,28 @@
   .sfiSceneLayer{
     transform:none!important
   }
+}
+
+
+/* Cinematic reduction: each scene keeps one focal foreground plane at most.
+   Depth is encoded by the asset itself; decorative middle planes are intentionally absent. */
+.sfiScene--friction .sfiSceneLayer--1{
+  width:min(31vw,520px);right:19vw;left:auto;top:auto;bottom:-2vh;opacity:1;
+  transform:translate3d(calc(var(--pointer-x,0) * -33px),calc(var(--pointer-y,0) * -15px),174px) scale(1.012);
+  filter:drop-shadow(0 24px 45px rgba(0,0,0,.55))
+}
+.sfiScene--institution .sfiSceneLayer--1{
+  width:min(82vw,1370px);max-width:none;right:-5vw;left:auto;top:auto;bottom:-8vh;opacity:.96;
+  transform:translate3d(calc(var(--pointer-x,0) * -36px),calc(var(--pointer-y,0) * -17px),174px) scale(1.012);
+  filter:drop-shadow(0 28px 54px rgba(0,0,0,.52))
+}
+.sfiScene--return .sfiSceneLayer--1{
+  width:104vw;max-width:none;left:-2vw;right:auto;top:auto;bottom:-10vh;opacity:.98;mix-blend-mode:normal;
+  transform:translate3d(calc(var(--pointer-x,0) * 44px),calc(var(--pointer-y,0) * 21px),232px) scale(1.008);
+  filter:drop-shadow(0 28px 54px rgba(0,0,0,.55))
+}
+@media(max-width:900px){
+  .sfiScene--friction .sfiSceneLayer--1{width:62vw;right:-5vw;bottom:-1vh}
+  .sfiScene--institution .sfiSceneLayer--1{width:122vw;right:-36vw;bottom:-3vh}
+  .sfiScene--return .sfiSceneLayer--1{width:150vw;left:-20vw;bottom:-4vh}
 }
