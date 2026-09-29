@@ -1,11 +1,7 @@
 'use client';
 
-import Link from 'next/link';
-import { SFI_PUBLIC_NAV } from '@/lib/navigation/publicNavigation';
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { useAuthState } from '@/components/auth/AuthProvider';
-import { SessionControls } from './SessionControls';
-import { ObservatoryInterpretiveFlow } from './ObservatoryInterpretiveFlow';
 import { ObservatoryWorldField } from './ObservatoryWorldField';
 import { ObservatorySemanticGpuLayer } from './ObservatorySemanticGpuLayer';
 import { HypothesisClosureDiff } from './HypothesisClosureDiff';
@@ -94,7 +90,9 @@ export function ObservatoryConsole(){
   const allNodes=useMemo<WorldNode[]>(()=>rows(world?.nodes).map((o)=>({
     id:String(o.id),kind:String(o.kind||'observed'),sourceId:String(o.sourceId||'unknown'),sourceFamily:String(o.sourceFamily||'unknown'),publisher:String(o.publisher||'unknown'),observationKind:String(o.observationKind||'unknown'),title:String(o.title||'Untitled observation'),summary:typeof o.summary==='string'?o.summary:null,observedAt:String(o.observedAt||''),fetchedAt:String(o.fetchedAt||o.observedAt||''),lat:num(o.lat),lng:num(o.lng),countryCodes:arr(o.countryCodes).filter((v):v is string=>typeof v==='string'),affectedSystems:arr(o.affectedSystems).filter((v):v is string=>typeof v==='string'),actors:arr(o.actors).filter((v):v is string=>typeof v==='string'),confidence:num(o.confidence),reading:o.reading&&typeof o.reading==='object'?o.reading:null,provenance:o.provenance&&typeof o.provenance==='object'?o.provenance:null,
   })),[world]);
-  const hypotheses=useMemo<Hypothesis[]>(()=>rows(world?.hypotheses) as Hypothesis[],[world]);
+  const hypotheses=useMemo<Hypothesis[]>(()=>rows(world?.hypotheses)
+    .sort((a,b)=>dateMs(b.cutoff_at??b.created_at)-dateMs(a.cutoff_at??a.created_at))
+    .slice(0,8) as Hypothesis[],[world]);
   const cutoff=Date.now()-windowHours*3600000;
   const q=query.trim().toLowerCase();
   const nodes=useMemo(()=>allNodes.filter(node=>{
@@ -207,10 +205,6 @@ export function ObservatoryConsole(){
       />
     </div>
 
-    <header className="obsTop"><div className="obsBrand"><strong>SFI</strong><span>{ui('FIELD · SYSTEM FRICTION INSTITUTE')}</span><small>{ui('LIVE WORLD OBSERVATORY')}</small></div>
-      <nav>{(['field','hypotheses','trajectory','sources'] as Lens[]).map(k=><button key={k} className={lens===k?'active':''} onClick={()=>{setLens(k);setSatelliteOpen(true)}}>{k==='hypotheses'?'HYPOTHESES':k==='trajectory'?'TRAJECTORY':k==='sources'?'SOURCES':'FIELD'}</button>)}<button onClick={()=>void pull(true)} disabled={refreshing}>{refreshing?'READING…':'REFRESH'}</button>{SFI_PUBLIC_NAV.filter((item)=>item.href!=='/login').map((item)=><Link key={item.href} href={item.href}>{item.label}</Link>)}{auth.status!=='authenticated'&&<Link href="/login">SIGN IN</Link>}{auth.status==='authenticated'&&<Link href="/root">ROOT</Link>}</nav>
-      <div className="obsIdentity"><b>{auth.identity?.alias||'PUBLIC'}</b><span>{lastReadAt?`${'READ'} ${lastReadAt.slice(11,19)} UTC`:auth.identity?.role||auth.status}</span></div><SessionControls className="obsSessionControls"/></header>
-
     <aside className="hud hudLeft"><section><small>SFI-OBS-LIVE</small><h3>{'LIVE FIELD'}</h3><p className="good">● {clock.slice(11,19)} UTC</p><dl><dt>{ui('OBSERVATIONS')}</dt><dd data-availability={availability.world}>{worldMetric(nodes.length)}</dd><dt>{ui('ACTIVE SOURCES')}</dt><dd data-availability={availability.world}>{worldMetric(sourceIds.length)}</dd><dt>{ui('HYPOTHESES')}</dt><dd data-availability={availability.world}>{worldMetric(filteredHypotheses.length)}</dd><dt>{ui('IN RETURN')}</dt><dd data-availability={availability.world}>{worldMetric(openHypotheses)}</dd></dl><button onClick={()=>setSatelliteOpen(true)}>{ui('OPEN SATELLITE')}</button></section>
       <section><small>{'DERIVED METRICS'}</small><dl><dt>Fₛ</dt><dd data-availability={availability.world}>{avgFs==null?'—':avgFs.toFixed(3)}</dd><dt>NTI</dt><dd data-availability={availability.world}>{avgNti==null?'—':avgNti.toFixed(3)}</dd><dt>Φ</dt><dd data-availability={availability.world}>{avgPhi==null?'—':avgPhi.toFixed(3)}</dd></dl><p style={{fontSize:11,opacity:.62,lineHeight:1.5}}>{'Numbers describe observed/derived structure. Meaning, mechanism and consequences are shown only as traceable hypotheses.'}</p></section>
     </aside>
@@ -227,8 +221,12 @@ export function ObservatoryConsole(){
 
     {selectedNode&&<aside style={{...panel,left:20,bottom:170,width:'min(360px,38vw)',padding:14}}><div style={micro}>{selectedNode.sourceFamily} · {selectedNode.publisher}</div><h3 style={{margin:'7px 0 6px'}}>{selectedNode.title}</h3><p style={{fontSize:12,lineHeight:1.55,opacity:.78}}>{selectedNode.summary||'No published summary.'}</p><div style={{display:'flex',gap:6,flexWrap:'wrap'}}>{selectedNode.affectedSystems.map(v=><span key={v} style={chip}>{v}</span>)}</div><hr style={{border:0,borderTop:'1px solid rgba(214,180,120,.14)',margin:'12px 0'}}/><div style={{fontSize:11,lineHeight:1.6,opacity:.72}}><b>{'Provenance'}:</b> {selectedNode.provenance?.sourceRole||'SOURCE_RECORD'}<br/><b>{'Verification'}:</b> {selectedNode.provenance?.verificationState||'NOT_RECORDED'}<br/><b>{'Source confidence'}:</b> {pct(selectedNode.confidence)}<br/>{selectedNode.provenance?.sourceUrl&&<a href={selectedNode.provenance.sourceUrl} target="_blank" rel="noreferrer" style={{color:'inherit'}}>{'open source'}</a>}</div></aside>}
 
-    {satelliteOpen&&<aside style={{...panel,right:18,top:104,bottom:142,width:'min(470px,42vw)',padding:16,overflowY:'auto',scrollbarWidth:'none'}}>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10}}><div><div style={micro}>SFI SATELLITE · {lens.toUpperCase()}</div><h2 style={{fontSize:18,margin:'5px 0 0'}}>{lens==='field'?'FIELD READING':lens==='hypotheses'?'HYPOTHESIS GRAPH':lens==='trajectory'?'TRAJECTORY & RETURN':'LIVE SOURCES'}</h2></div><button onClick={()=>setSatelliteOpen(false)} style={{...selectStyle,padding:'6px 9px'}}>×</button></div>
+    {satelliteOpen&&<aside style={{...panel,right:18,top:24,bottom:142,width:'min(520px,46vw)',padding:16,overflowY:'auto',scrollbarWidth:'none'}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10}}><div><div style={micro}>SFI SATELLITE → HUB · {lens.toUpperCase()}</div><h2 style={{fontSize:18,margin:'5px 0 0'}}>{lens==='field'?'FIELD READING':lens==='hypotheses'?'LATEST HYPOTHESES':lens==='trajectory'?'TRAJECTORY & RETURN':'LIVE SOURCES'}</h2></div><button onClick={()=>setSatelliteOpen(false)} style={{...selectStyle,padding:'6px 9px'}}>×</button></div>
+      <div className="hubRail" aria-label="Observatory hub lenses">
+        {(['field','hypotheses','trajectory','sources'] as Lens[]).map(k=><button key={k} className={lens===k?'active':''} onClick={()=>setLens(k)}><b>{k==='field'?'FIELD':k==='hypotheses'?'HYPOTHESES':k==='trajectory'?'TRAJECTORY':'SOURCES'}</b><span>{k==='hypotheses'?'latest governed readings only':k==='trajectory'?'persisted T0 → T1':'satellite hub'}</span></button>)}
+      </div>
+      <button onClick={()=>void pull(true)} disabled={refreshing} style={{...selectStyle,width:'100%',marginBottom:10}}>{refreshing?'READING PERSISTED STATE…':'REFRESH PERSISTED STATE'}</button>
       <p style={{fontSize:12,lineHeight:1.6,opacity:.74}} data-availability={availability.world}>{narrative}</p>
 
       {lens==='field'&&<><div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,margin:'12px 0'}}>{[['Sources',worldMetric(sourceIds.length)],['Open hypotheses',worldMetric(openHypotheses)],['Contrasted',worldMetric(outcomeCount)],['Learning',worldMetric(learningCount)],['WSI',num(obs?.data?.worldspect?.wsi??frame?.wsi)?.toFixed(3)??'—'],['NTI src',num(obs?.data?.worldspect?.nti??frame?.nti)?.toFixed(3)??'—'],['Platform snapshots',platformSnapshotCount??'—'],['GA4 users',ga4Users??'—'],['AI-assistant sessions',aiAssistantSessions??'—']].map(([a,b],index)=><div key={String(a)} data-availability={index<4?availability.world:undefined} style={{padding:10,border:'1px solid rgba(214,180,120,.12)',borderRadius:9}}><div style={micro}>{a}</div><b style={{fontSize:18}}>{b}</b></div>)}</div>
@@ -247,7 +245,7 @@ export function ObservatoryConsole(){
         {selectedHypothesis.outcome&&<div style={{marginTop:16,padding:11,border:'1px solid rgba(214,180,120,.18)',borderRadius:10}}><div style={micro}>RETURN / CONTRAST</div><b>{selectedHypothesis.outcome.classification}</b><p style={{fontSize:11,lineHeight:1.55}}>{selectedHypothesis.outcome.observed_outcome}</p></div>}
         {selectedHypothesis.learning&&<div style={{marginTop:10,padding:11,border:'1px solid rgba(214,180,120,.18)',borderRadius:10}}><div style={micro}>LEARNING</div><div style={{fontSize:11,lineHeight:1.55}}>{'Retained'}: {arr(selectedHypothesis.learning.retained_assumptions).join(' · ')||'—'}<br/>{'Rejected'}: {arr(selectedHypothesis.learning.rejected_assumptions).join(' · ')||'—'}<br/>{'Missing variables'}: {arr(selectedHypothesis.learning.missing_variables).join(' · ')||'—'}</div></div>}
       </div>:<p>{'No hypothesis exists under the current filters.'}</p>}
-        {availability.world==='AVAILABLE'&&<><div style={{...micro,marginTop:18}}>{'OTHER HYPOTHESES'}</div>{filteredHypotheses.slice(0,14).map(h=><button key={String(h.id)} onClick={()=>setSelectedHypothesisId(String(h.id))} style={{display:'block',width:'100%',textAlign:'left',padding:'8px 0',border:0,borderBottom:'1px solid rgba(214,180,120,.1)',background:'transparent',color:'inherit',fontSize:11}}>{short(h.statement,120)} <span style={{opacity:.5}}>· {pct(num(h.current_confidence))}</span></button>)}</>}</>}
+        {availability.world==='AVAILABLE'&&<><div style={{...micro,marginTop:18}}>{'OTHER HYPOTHESES'}</div>{filteredHypotheses.slice(0,8).map(h=><button key={String(h.id)} onClick={()=>setSelectedHypothesisId(String(h.id))} style={{display:'block',width:'100%',textAlign:'left',padding:'8px 0',border:0,borderBottom:'1px solid rgba(214,180,120,.1)',background:'transparent',color:'inherit',fontSize:11}}>{short(h.statement,120)} <span style={{opacity:.5}}>· {pct(num(h.current_confidence))}</span></button>)}</>}</>}
 
       {lens==='trajectory'&&<>
         <div style={{display:'flex',justifyContent:'space-between',gap:8,margin:'12px 0'}}>
@@ -278,7 +276,7 @@ export function ObservatoryConsole(){
         </div>):<p style={{fontSize:11,opacity:.58}}>No comparable vector values are present in both selected snapshots.</p>}
         <p style={{fontSize:10,lineHeight:1.55,opacity:.56,marginTop:12}}>T0/T1 compares persisted WorldSpect snapshots only. The current source/hypothesis graph is not backdated or rewritten by this control.</p>
         <div style={{...micro,marginTop:14}}>HYPOTHESIS LIFECYCLE · CURRENT READ MODEL</div>
-        {filteredHypotheses.slice(0,14).map(h=><div key={String(h.id)} style={{padding:'9px 0',borderBottom:'1px solid rgba(214,180,120,.1)'}}><b style={{fontSize:11}}>{short(h.statement,110)}</b><div style={{fontSize:10,opacity:.6}}>{h.cutoff_at} → {h.validation_ends_at} · {h.status} · {pct(num(h.current_confidence))}</div></div>)}
+        {filteredHypotheses.slice(0,8).map(h=><div key={String(h.id)} style={{padding:'9px 0',borderBottom:'1px solid rgba(214,180,120,.1)'}}><b style={{fontSize:11}}>{short(h.statement,110)}</b><div style={{fontSize:10,opacity:.6}}>{h.cutoff_at} → {h.validation_ends_at} · {h.status} · {pct(num(h.current_confidence))}</div></div>)}
       </>}
 
       {lens==='sources'&&<><div style={{...micro,marginTop:12}}>{'SOURCES THAT ACTUALLY PERSISTED OBSERVATIONS'}</div>{availability.world!=='AVAILABLE'&&<p data-availability={availability.world} style={{fontSize:11,opacity:.72}}>{availability.world}</p>}{rows(world?.sourceSummary).slice(0,80).map(source=><div key={String(source.sourceId)} style={{display:'flex',justifyContent:'space-between',gap:10,padding:'7px 0',borderBottom:'1px solid rgba(214,180,120,.08)',fontSize:11}}><span>{source.sourceId}</span><b>{source.count}</b></div>)}<p style={{fontSize:11,lineHeight:1.55,opacity:.62,marginTop:12}}>{'Configured sources are not presented as live. This list contains only sources that actually left persisted records inside the selected horizon.'}</p></>}
@@ -287,5 +285,5 @@ export function ObservatoryConsole(){
     </aside>}
 
     <div style={{position:'absolute',zIndex:15,left:'50%',transform:'translateX(-50%)',top:88,pointerEvents:'none',fontSize:11,letterSpacing:'.08em',opacity:.62}} data-availability={availability.world}>{'LIVE FLOW'} · {world?.generatedAt?.slice?.(11,19)||availability.world} · {worldMetric(sourceIds.length)} {'observed sources'} · {worldMetric(selectedGraphEdges.length)} {'visible relations'}</div>
-  </section></main><ObservatoryInterpretiveFlow world={world} availability={availability.world}/></>;
+  </section></main></>;
 }
