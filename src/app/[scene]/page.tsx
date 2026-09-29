@@ -16,6 +16,11 @@ export const dynamic = 'force-dynamic';
 
 export default async function ScenePage({ params }:{ params:Promise<{scene:string}> }){
   const { scene } = await params;
+  // Historical top-level surfaces are now absorbed by their canonical owner.
+  // APIs/data contracts remain unchanged; this only removes competing page identities.
+  if (scene === 'field') redirect('/observatory');
+  if (scene === 'cases') redirect('/root?reading=CURRENT_STATE');
+  if (scene === 'twin') redirect('/root?reading=RETROLONGITUDINAL');
   if ((LEGACY_INTERNAL_SCENES as readonly string[]).includes(scene)) redirect('/root');
   if(!SCENE_KEYS.includes(scene as SceneKey)) notFound();
 
