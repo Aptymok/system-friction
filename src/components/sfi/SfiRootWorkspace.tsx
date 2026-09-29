@@ -49,7 +49,7 @@ function HumanReportBody({ value }: { value: unknown }) {
   })}</div>;
 }
 
-export function SfiRootWorkspace({ enabled }: { enabled: boolean }) {
+export function SfiRootWorkspace({ enabled, decisionOnly = false }: { enabled: boolean; decisionOnly?: boolean }) {
   const search = useSearchParams();
   const auth=useAuthState();
   const userKey=auth.identity?.userId??'unknown';
@@ -141,14 +141,8 @@ export function SfiRootWorkspace({ enabled }: { enabled: boolean }) {
   const reportItems = rows(reportArchive?.inbox?.items);
   const reportLanes = rows(reportArchive?.health?.lanes);
 
-  return <div className="rootWorkspace" data-root-visual-contract="SFI-ROOT-VISUAL-2.0" data-root-module-count="dynamic">
-    {(error || notice) && <div className={`rootToast ${error ? 'error' : ''}`}><span>{error || notice}</span><button onClick={() => { setError(null); setNotice(null); }}>×</button></div>}
-
-    <InstitutionalSurfaceRail surface="ROOT" state={readState} detail={lastReadAt ? 'LAST READ '+when(lastReadAt) : 'AWAITING FIRST READ'}/>
-
-    <header className="rootHeader"><div className="rootHeaderCopy"><span>ROOT · INSTITUTIONAL SOVEREIGNTY · AUTHORITY / OBSERVATION / RETURN</span><h1>Decide what is sovereign. Observe and read the rest.</h1><p>SFI operates, searches for evidence, executes already-authorized capabilities, records RETURN and closes routine work without asking permission. ROOT intervenes when a real authority decision exists and retains complete visibility over reports, cases, learning and RETURN.</p></div><div className="rootReadState"><span>READ STATE</span><b>{lastReadAt ? `${readState} · ${when(lastReadAt)}` : `${readState} · waiting for first observation`}</b><button onClick={() => void loadBase(true)}>Refresh</button></div></header>
-
-    <section className="rootPulse" aria-label="Observable institutional state"><article data-epistemic-state={readState}><span>ROOT decisions</span><b>{pulseValue(actionable.length)}</b><small>Sovereign changes only.</small></article><article data-epistemic-state={readState}><span>Active cases</span><b>{pulseValue(activeCases.length)}</b><small>Observed; not approved.</small></article><article data-epistemic-state={readState}><span>Open cycles</span><b>{pulseValue(cycles.length)}</b><small>May close autonomously.</small></article><article data-epistemic-state={readState}><span>Observable work</span><b>{pulseValue(observable.length)}</b><small>SFI continues within its authority.</small></article></section>
+  const decisionSurface = (
+    {decisionSurface}ses.length)}</b><small>Observed; not approved.</small></article><article data-epistemic-state={readState}><span>Open cycles</span><b>{pulseValue(cycles.length)}</b><small>May close autonomously.</small></article><article data-epistemic-state={readState}><span>Observable work</span><b>{pulseValue(observable.length)}</b><small>SFI continues within its authority.</small></article></section>
 
     <section className="rootRule"><strong>SFI OPERATES WITHOUT ASKING PERMISSION.</strong><span>OBSERVATION ≠ INFERENCE · SIMULATION ≠ OBSERVATION · operating ≠ governing · closing ≠ learning · evidence ≠ approval · report ≠ decision.</span></section>
 

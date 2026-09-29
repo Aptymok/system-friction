@@ -11,6 +11,8 @@ const interactiveApi = read('src/app/api/root/interactive/route.ts');
 const scenes = read('src/components/sfi/scenes.ts');
 const liveUi = read('src/components/sfi/SfiConsole.tsx');
 const rootUi = read('src/components/sfi/SfiRootWorkspace.tsx');
+const neuralUi = read('src/components/sfi/RootNeuralGraphView.tsx');
+const authMenu = read('src/components/sfi/AuthenticatedSfiMenu.tsx');
 const operatingUi = read('src/components/sfi/SfiOperatingWorkspace.tsx');
 const governanceUi = read('src/components/sfi/SfiGovernanceWorkspace.tsx');
 const scenePage = read('src/app/[scene]/page.tsx');
@@ -41,19 +43,20 @@ assert.ok(route.includes("'Cache-Control': 'no-store'"), 'root_ct_status_endpoin
 assert.ok(scenes.includes("root:{key:'root'"), 'root_live_scene_missing');
 assert.ok(scenes.includes("title:'ROOT · Sovereign Operation'"), 'root_live_scene_semantics_missing');
 assert.ok(
-  rootUi.includes('ROOT · SOBERANÍA INSTITUCIONAL · AUTHORITY / OBSERVATION / RETURN')
-    && rootUi.includes('10 MÓDULOS · TOPOLOGÍA DE OBSERVACIÓN')
-    && rootUi.includes('SFI OPERA SIN PEDIR PERMISO.'),
+  scenePage.includes('data-root-primary-interface="CANONICAL_COGNITIVE_FIELD"')
+    && scenePage.includes('<RootNeuralGraphView')
+    && neuralUi.includes('ROOT · SYSTEM FRICTION INSTITUTE · STATE / RELATION / TIME / RETURN'),
   'root_sovereign_workspace_semantics_missing',
 );
-assert.ok(rootUi.includes('Son lentes sobre owners existentes.') && rootUi.includes('Ninguno adquiere escritor, memoria o autoridad nueva'), 'root_observation_topology_boundary_missing');
-assert.ok(rootUi.includes("href: '/twin'") && rootUi.includes("href: '/twin/learning'"), 'root_twin_navigation_missing');
+assert.ok(neuralUi.includes('RELATION ≠ CAUSALITY.') && neuralUi.includes('SOURCE ≠ EVIDENCE') && neuralUi.includes('GRAPH ≠ RETURN'), 'root_observation_topology_boundary_missing');
+assert.ok(authMenu.includes("href:'/twin'") && neuralUi.includes('<SfiRootWorkspace enabled decisionOnly/>'), 'root_twin_navigation_or_decision_embedding_missing');
 assert.ok(scenes.includes("twin:{label:'TWIN / SPINE',title:'Cognitive Twin / Spine'"), 'root_live_scene_twin_observability_missing');
 assert.ok(liveUi.includes('SfiOperatingWorkspace') && liveUi.includes('surface={current}'), 'root_live_scene_dispatch_missing');
 assert.ok(operatingUi.includes('SfiGovernanceWorkspace'), 'root_operating_workspace_governance_delegate_missing');
 assert.ok(governanceUi.includes("jsonFetch('/api/root/interactive?surface=governance')") && governanceUi.includes('surface=governance&includeTargets=1'), 'root_governance_runtime_projection_missing');
 assert.equal(governanceUi.includes("jsonFetch('/api/acp/proposals')"), false, 'governance_must_not_restore_parallel_proposal_feed');
-assert.ok(rootUi.includes("jsonFetch('/api/root/decisions'") && rootUi.includes('/request-evidence'), 'root_human_decision_ownership_missing');
+assert.ok(neuralUi.includes('data-root-decision-interface') || neuralUi.includes('<SfiRootWorkspace enabled decisionOnly/>'), 'root_human_decision_surface_not_embedded_in_neural_field');
+assert.ok(rootUi.includes("jsonFetch('/api/root/decisions'") && rootUi.includes('/request-evidence') && rootUi.includes('decisionOnly'), 'root_human_decision_ownership_missing');
 assert.ok(rootUi.includes('ACCEPT') && rootUi.includes('DENY') && rootUi.includes('REQUEST EVIDENCE'), 'root_human_decision_controls_missing');
 assert.ok(scenePage.includes('SCENE_KEYS.includes'), 'dynamic_scene_gate_missing');
 assert.ok(scenePage.includes('<SfiConsole') && scenePage.includes('scene={scene as SceneKey}'), 'dynamic_scene_runtime_missing');

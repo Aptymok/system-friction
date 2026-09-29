@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { SfiRootWorkspace } from './SfiRootWorkspace';
 import './RootNeuralGraphView.css';
 
 type GraphNode = {
@@ -528,6 +529,12 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
         <strong>RELATION ≠ CAUSALITY.</strong>
         <span>SOURCE ≠ EVIDENCE · MULTIPLE EVIDENCE ≠ CORROBORATED EVIDENCE · EXECUTION ≠ TRUTH · ACTION RESPONSE ≠ PERSISTED STATE · GRAPH ≠ RETURN.</span>
       </section>
+
+      <details className="neuralGraphDecisionDock" open={Boolean(searchParams.get('decision'))}>
+        <summary>SOVEREIGN DECISIONS · ROOT AUTHORITY</summary>
+        <p>Decision authority stays inside this canonical field. Opening or deciding a proposal does not change the graph's epistemic state by itself.</p>
+        <SfiRootWorkspace enabled decisionOnly/>
+      </details>
 
       <section className="neuralGraphControls">
         <label>
