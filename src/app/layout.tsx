@@ -7,6 +7,7 @@ import { AuthProvider } from '@/components/auth/AuthProvider';
 import { SfiConsentBanner } from '@/components/analytics/SfiConsentBanner';
 import { SfiLanguageProvider } from '@/components/i18n/SfiLanguageProvider';
 import { SFI_PUBLIC_PROFILE } from '@/lib/public/institutionProfile';
+import { SfiPublicHeader, SfiPublicFooter } from '@/components/public/SfiPublicChrome';
 
 const BASE = SFI_PUBLIC_PROFILE.institution.canonicalUrl;
 const INSTITUTION_NAME = SFI_PUBLIC_PROFILE.institution.name;
@@ -64,6 +65,11 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
+  icons: {
+    icon: '/icon.svg',
+    shortcut: '/icon.svg',
+    apple: '/icon.svg',
+  },
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
@@ -100,14 +106,9 @@ gtag('config', '${GA_ID}');`}
         </Script>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
         <SfiLanguageProvider>
-          <AuthProvider>{children}</AuthProvider>
-          <footer className="sfiGlobalFooter">
-            <strong>SFI.</strong>
-            <a href="/">HOME</a>
-            <a href="/observatory">OBSERVATORY</a>
-            <a href="/publications">REGISTRY</a>
-            <a href="/login">SIGN IN</a>
-          </footer>
+          <SfiPublicHeader global/>
+          <div className="sfiPageContent"><AuthProvider>{children}</AuthProvider></div>
+          <SfiPublicFooter global/>
           <SfiConsentBanner />
         </SfiLanguageProvider>
       </body>
