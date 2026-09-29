@@ -447,6 +447,7 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [reading, setReading] = useState<'CURRENT_STATE'|'HIERARCHY'|'TRAJECTORY'|'RETROLONGITUDINAL'|'PROJECTION'|'FRICTION_REGIME'|'REALITY_CHAIN'|'RETURN_CONTRAST'>(initialReading);
   const [temporalResolution, setTemporalResolution] = useState('ALL');
+  const [focusId,setFocusId]=useState<string|null>(null);
 
   const degree = useMemo(() => {
     const values = new Map<string, number>();
@@ -462,16 +463,32 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
     [graph.nodes],
   );
 
+  const focusIds=useMemo(()=>{
+    if(!focusId) return null;
+    const ids=new Set<string>([focusId]);
+    let frontier=new Set<string>([focusId]);
+    for(let depth=0;depth<2;depth+=1){
+      const next=new Set<string>();
+      for(const edge of graph.edges){
+        if(frontier.has(edge.source)){ids.add(edge.target);next.add(edge.target);}
+        if(frontier.has(edge.target)){ids.add(edge.source);next.add(edge.source);}
+      }
+      frontier=next;
+    }
+    return ids;
+  },[focusId,graph.edges]);
+
   const visibleNodes = useMemo(() => {
     const needle = query.trim().toLowerCase();
     return graph.nodes.filter((node) => {
+      if (focusIds && !focusIds.has(node.id)) return false;
       if (activeType !== 'ALL' && node.type !== activeType) return false;
       if (temporalResolution !== 'ALL' && !node.scientificReading?.temporal.availableResolutions.includes(temporalResolution)) return false;
       if (!needle) return true;
       return [node.label, node.type, node.origin, node.provenance, ...node.lineage]
         .some((value) => value.toLowerCase().includes(needle));
     });
-  }, [activeType, graph.nodes, query, temporalResolution]);
+  }, [activeType, graph.nodes, query, temporalResolution,focusIds]);
 
   const visibleNodeIds = useMemo(() => new Set(visibleNodes.map((node) => node.id)), [visibleNodes]);
   const visibleEdges = useMemo(
@@ -515,7 +532,7 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
       </div>
 
       <section className="rootFieldStage" aria-label="Canonical cognitive field">
-        <RootCognitiveFieldPixi nodes={fieldNodes} edges={fieldEdges} width={topology.width} height={topology.height} onSelect={setSelectedId}/>
+        <RootCognitiveFieldPixi nodes={fieldNodes} edges={fieldEdges} width={topology.width} height={topology.height} onSelect={(id)=>{setSelectedId(id);}}/>
         <div className="rootFieldControls">
           <select aria-label="Field reading" value={reading} onChange={(event)=>setReading(event.target.value as typeof reading)}>
             {allowedReadings.map((mode)=><option key={mode} value={mode}>{mode.replaceAll('_',' ')}</option>)}
@@ -524,6 +541,7 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
             {['ALL','SYSTEM_HISTORY','REGIME','PHENOMENON','CYCLE','TRANSITION','EVENT','OBSERVATION'].map((level)=><option key={level} value={level}>{level.replaceAll('_',' ')}</option>)}
           </select>
           <input aria-label="Search field" value={query} onChange={(event)=>setQuery(event.target.value)} placeholder="search field…"/>
+          {selectedId?<button type="button" onClick={()=>setFocusId(focusId===selectedId?null:selectedId)}>{focusId===selectedId?'EXIT NODE':'ENTER NODE'}</button>:null}
         </div>
         <div className="rootFieldLegend">
           <span>{reading.replaceAll('_',' ')}</span>
