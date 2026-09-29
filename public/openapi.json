@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "System Friction Institute External Agent API",
-    "version": "1.18.0",
+    "version": "1.19.0",
     "description": "Governed machine interface for authorized AI clients. GPT Actions authenticate with SFI OAuth. Institutional principals receive explicitly configured authority; normal accounts receive only owner-scoped personal Lab, Cognitive and Studio capabilities.",
     "termsOfService": "https://systemfriction.org/privacy",
     "x-sfi-action-revision": "case-lifecycle-actions-v6"
@@ -975,6 +975,61 @@
           },
           "409": {
             "description": "Execution Contract unavailable"
+          }
+        }
+      }
+    },
+    "/api/external/v1/world": {
+      "post": {
+        "operationId": "operateSfiWorld",
+        "summary": "Read or run the governed SFI World cycle",
+        "description": "operation=state requires world:read. operation=run requires world:run and reuses canonical observation, hypothesis, calibration and instrument owners, persists a derived receipt, then rereads persisted freshness.",
+        "security": [
+          {
+            "sfiOAuth": [
+              "world:read"
+            ]
+          }
+        ],
+        "x-sfi-operation-scopes": {
+          "state": "world:read",
+          "run": "world:run"
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "operation": {
+                    "type": "string",
+                    "enum": [
+                      "state",
+                      "run"
+                    ]
+                  }
+                },
+                "required": [
+                  "operation"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "World state or successful daily cycle"
+          },
+          "207": {
+            "description": "Cycle completed with degraded persistence/freshness"
+          },
+          "401": {
+            "description": "OAuth scope required"
+          },
+          "403": {
+            "description": "Institutional user-bound OAuth required"
           }
         }
       }
@@ -2309,7 +2364,9 @@
               "studio:content": "Obtain a short-lived signed URL for Studio content owned by the OAuth principal.",
               "studio:run": "Run the server-side Studio analyzer for owned audio/video objects.",
               "cases:read": "Read SFI cases available to the authenticated subject through active tenant membership.",
-              "cases:write": "Create and populate bounded SFI Case Platform records through authenticated tenant membership."
+              "cases:write": "Create and populate bounded SFI Case Platform records through authenticated tenant membership.",
+              "world:read": "Read persisted SFI World state, freshness, latest observations, derived friction readings, hypotheses and daily-cycle receipts.",
+              "world:run": "Execute the bounded canonical SFI World daily cycle through user-bound institutional OAuth; no ROOT, governance, publication or canon authority is inherited."
             }
           }
         }
