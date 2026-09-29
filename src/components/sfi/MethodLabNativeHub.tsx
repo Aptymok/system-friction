@@ -159,7 +159,7 @@ export function MethodLabNativeHub({ initialState, initialSessions, evidenceOpti
       </section>
 
       <section className="mlh-section">
-        <div className="mlh-section-head"><div><span>01 / REGISTRY</span><h2>Instrumentos registrados</h2></div><p>{initialState.promotionRule}</p></div>
+        <div className="mlh-section-head"><div><span>01 / REGISTRY</span><h2>Registered instruments</h2></div><p>{initialState.promotionRule}</p></div>
         <div className="mlh-protocol-grid">
           {initialState.protocols.map((protocol) => (
             <article className="mlh-card" data-state={protocol.status} key={protocol.id}>
@@ -199,7 +199,7 @@ export function MethodLabNativeHub({ initialState, initialSessions, evidenceOpti
               ))}
             </div>
             <button className="mlh-action" disabled={Boolean(busy) || selectedEvidence.length === 0} onClick={() => execute('METHOD LAB RUN', () => postJson('/api/root/method-lab/simulate', { protocolId: simulationProtocol, evidenceIds: selectedEvidence, parameters: {}, cognitiveSpineContextRefs: [] }))}>
-              {busy === 'METHOD LAB RUN' ? 'EJECUTANDO…' : `EJECUTAR CON ${selectedEvidence.length} EVIDENCIAS`}
+              {busy === 'METHOD LAB RUN' ? 'RUNNING…' : `RUN WITH ${selectedEvidence.length} EVIDENCE ITEMS`}
             </button>
             {simulationProtocol === 'economic_simulation' ? <p className="mlh-boundary">Do not run Economic merely to increase a counter: select genuinely admissible economic/world evidence.</p> : null}
           </div>
@@ -261,7 +261,7 @@ export function MethodLabNativeHub({ initialState, initialSessions, evidenceOpti
 
               {!['CLOSED', 'REJECTED'].includes(session.status) && ['FOUNDER_MODEL', 'FOUNDER_TWIN', 'TWIN_ONLY'].includes(session.condition) ? <div className="mlh-inline-action"><textarea value={interactionPrompts[session.id] ?? ''} onChange={(event) => setInteractionPrompts({ ...interactionPrompts, [session.id]: event.target.value })} placeholder="Real prompt to record interaction…"/><button disabled={Boolean(busy) || !(interactionPrompts[session.id] ?? '').trim()} onClick={() => execute('CRL INTERACTION', () => postJson(`/api/root/cognitive-lab/sessions/${session.id}/interact`, { prompt: interactionPrompts[session.id] ?? '', history: [] }))}>INTERACT</button></div> : null}
 
-              {session.status === 'READY_FOR_BLIND' ? <button className="mlh-action" disabled={Boolean(busy)} onClick={() => execute('CRL BLIND', () => postJson(`/api/root/cognitive-lab/sessions/${session.id}/blind`, {}))}>EJECUTAR BLIND</button> : null}
+              {session.status === 'READY_FOR_BLIND' ? <button className="mlh-action" disabled={Boolean(busy)} onClick={() => execute('CRL BLIND', () => postJson(`/api/root/cognitive-lab/sessions/${session.id}/blind`, {}))}>RUN BLIND</button> : null}
 
               {['BLIND_COMPLETE', 'CONTRAST_PENDING'].includes(session.status) ? <div className="mlh-contrast"><label>FOUNDER READING<textarea value={founderReadings[session.id] ?? ''} onChange={(event) => setFounderReadings({ ...founderReadings, [session.id]: event.target.value })} placeholder="Your post-BLIND reading: agreements, divergences, omissions, causality and who changed whom…" /></label><button className="mlh-action" disabled={Boolean(busy) || !(founderReadings[session.id] ?? '').trim()} onClick={() => execute('CRL CONTRAST', () => postJson(`/api/root/cognitive-lab/sessions/${session.id}/contrast`, { founderReading: founderReadings[session.id] ?? '' }))}>CONTRAST AND CLOSE</button></div> : null}
             </article>
