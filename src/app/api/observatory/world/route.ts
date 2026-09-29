@@ -7,6 +7,7 @@ export const runtime='nodejs';
 export const dynamic='force-dynamic';
 
 const HORIZON_DAYS=30;
+const LIVE_WORLD_MAX_AGE_HOURS=48;
 const LIMIT=240;
 const PUBLIC_HYPOTHESIS_LIMIT=8;
 const PUBLIC_RETURN_LIMIT=16;
@@ -33,12 +34,13 @@ function unique(values:string[]){return [...new Set(values.filter(Boolean))].sor
 export async function GET(){
   const db=createServiceSupabaseClient();
   const since=new Date(Date.now()-HORIZON_DAYS*86400000).toISOString();
+  const liveSince=new Date(Date.now()-LIVE_WORLD_MAX_AGE_HOURS*3600000).toISOString();
   const dataPlaneState=isSfiContinuityConfigured()
     ? await readDataPlaneState().catch(()=>null)
     : null;
   const [observations,readings,hypotheses,outcomes,learning]=await Promise.all([
-    db.from('world_source_observations').select('id,source_id,source_family,publisher,observation_kind,title,summary,observed_at,fetched_at,latitude,longitude,country_codes,affected_systems,actors,confidence,source_url,payload').gte('fetched_at',since).order('fetched_at',{ascending:false}).limit(LIMIT),
-    db.from('world_friction_readings').select('observation_id,systemic_friction,interaction_density,friction_gradient,systemic_coherence,tension,pain_map,field_drivers,permissions,trajectory,minimum_viable_perturbation,created_at').gte('created_at',since).order('created_at',{ascending:false}).limit(LIMIT),
+    db.from('world_source_observations').select('id,source_id,source_family,publisher,observation_kind,title,summary,observed_at,fetched_at,latitude,longitude,country_codes,affected_systems,actors,confidence,source_url,payload').gte('fetched_at',liveSince).order('fetched_at',{ascending:false}).limit(LIMIT),
+    db.from('world_friction_readings').select('observation_id,systemic_friction,interaction_density,friction_gradient,systemic_coherence,tension,pain_map,field_drivers,permissions,trajectory,minimum_viable_perturbation,created_at').gte('created_at',liveSince).order('created_at',{ascending:false}).limit(LIMIT),
     db.from('world_hypotheses').select('id,phenomenon_key,graph_snapshot,cutoff_at,statement,predicted_trajectory,expected_signals,contradiction_signals,validation_starts_at,validation_ends_at,initial_confidence,current_confidence,evidence_ids,status,methodology_version,created_at').gte('cutoff_at',since).order('cutoff_at',{ascending:false}).limit(PUBLIC_HYPOTHESIS_LIMIT),
     db.from('world_hypothesis_outcomes').select('id,hypothesis_id,classification,observed_outcome,directional_accuracy,temporal_accuracy,actor_accuracy,mechanism_accuracy,source_coverage,evidence_ids,evaluator_version,evaluated_at').gte('evaluated_at',since).order('evaluated_at',{ascending:false}).limit(PUBLIC_RETURN_LIMIT),
     db.from('world_learning_events').select('id,hypothesis_id,outcome_id,retained_assumptions,rejected_assumptions,missing_variables,graph_adjustments,confidence_before,confidence_after,created_at').gte('created_at',since).order('created_at',{ascending:false}).limit(PUBLIC_RETURN_LIMIT),
@@ -58,8 +60,8 @@ export async function GET(){
   if(errors.length && isSfiContinuityConfigured()){
     try{
       const fallback=await readContinuityPublicWorldBundle({since,limit:LIMIT});
-      observationsData=fallback.observations;
-      readingsData=fallback.readings;
+      observationsData=rows(fallback.observations).filter((item)=>Date.parse(String(item.fetched_at??item.observed_at??''))>=Date.parse(liveSince));
+      readingsData=rows(fallback.readings).filter((item)=>Date.parse(String(item.created_at??''))>=Date.parse(liveSince));
       hypothesesData=rows(fallback.hypotheses).slice(0,PUBLIC_HYPOTHESIS_LIMIT);
       outcomesData=rows(fallback.outcomes).slice(0,PUBLIC_RETURN_LIMIT);
       learningData=rows(fallback.learning).slice(0,PUBLIC_RETURN_LIMIT);
@@ -179,6 +181,10 @@ export async function GET(){
   const sourceCounts=new Map<string,number>();
   nodes.forEach(node=>sourceCounts.set(node.sourceId,(sourceCounts.get(node.sourceId)??0)+1));
   const sourceSummary=[...sourceCounts.entries()].map(([sourceId,count])=>({sourceId,count})).sort((a,b)=>b.count-a.count);
+  const latestObservationAt=nodes.map((node)=>node.fetchedAt||node.observedAt).filter(Boolean).sort().at(-1)??null;
+  const liveWorldState=nodes.length>0?'LIVE':'STALE_OR_ABSENT';
+  if(liveWorldState!=='LIVE')errors.push('LIVE_WORLD_STALE_OR_ABSENT');
+
   const filters={
     sourceIds:unique(nodes.map(node=>node.sourceId)),
     sourceFamilies:unique(nodes.map(node=>node.sourceFamily)),
@@ -195,6 +201,7 @@ export async function GET(){
     dataPlaneMode:dataPlaneState?.mode??null,
     generatedAt:new Date().toISOString(),
     horizonDays:HORIZON_DAYS,
+    liveWorld:{state:liveWorldState,maxAgeHours:LIVE_WORLD_MAX_AGE_HOURS,latestObservationAt},
     nodes,
     attentionSummary,
     sourceSummary,
