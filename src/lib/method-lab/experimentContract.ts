@@ -67,8 +67,10 @@ export type MethodLabExperimentPreregistration = {
   };
   RETURN_WINDOW: {
     opensAt: string;
-    closesAt: string;
+    closesAt: string | null;
     required: boolean;
+    basis?: 'CHRONOLOGY' | 'PHENOMENON_CONDITION';
+    condition?: string | null;
   };
   preregisteredAt: string;
   preregisteredBy: string | null;
@@ -173,8 +175,11 @@ export function assertMethodLabExperimentPreregistration(value: MethodLabExperim
     throw new Error('METHOD_LAB_EXPERIMENT_MAX_EXECUTIONS_INVALID');
   }
   assertIso(value.RETURN_WINDOW.opensAt, 'return_window_opens_at');
-  assertIso(value.RETURN_WINDOW.closesAt, 'return_window_closes_at');
-  if (Date.parse(value.RETURN_WINDOW.closesAt) < Date.parse(value.RETURN_WINDOW.opensAt)) throw new Error('METHOD_LAB_EXPERIMENT_RETURN_WINDOW_INVALID');
+  const returnBasis = value.RETURN_WINDOW.basis ?? 'CHRONOLOGY';
+  if (value.RETURN_WINDOW.closesAt !== null) assertIso(value.RETURN_WINDOW.closesAt, 'return_window_closes_at');
+  if (returnBasis === 'CHRONOLOGY' && value.RETURN_WINDOW.closesAt === null) throw new Error('METHOD_LAB_EXPERIMENT_RETURN_WINDOW_CLOSE_REQUIRED');
+  if (returnBasis === 'PHENOMENON_CONDITION') assertNonEmpty(value.RETURN_WINDOW.condition ?? '', 'return_window_condition');
+  if (value.RETURN_WINDOW.closesAt !== null && Date.parse(value.RETURN_WINDOW.closesAt) < Date.parse(value.RETURN_WINDOW.opensAt)) throw new Error('METHOD_LAB_EXPERIMENT_RETURN_WINDOW_INVALID');
   assertIso(value.preregisteredAt, 'preregistered_at');
   if (value.canonicalMutation !== false) throw new Error('METHOD_LAB_EXPERIMENT_CANNOT_MUTATE_CANON');
   return value;
@@ -218,7 +223,9 @@ export function assertMethodLabExperimentRun(
     if (CONTRAST.realityReturn.evidenceRefs.length === 0) throw new Error('METHOD_LAB_EXPERIMENT_RETURN_EVIDENCE_REQUIRED');
     assertUniqueRefs(CONTRAST.realityReturn.evidenceRefs, 'return_evidence_refs');
     const returnObservedAt = Date.parse(CONTRAST.realityReturn.observedAt);
-    if (returnObservedAt < Date.parse(preregistration.RETURN_WINDOW.opensAt) || returnObservedAt > Date.parse(preregistration.RETURN_WINDOW.closesAt)) {
+    const returnOpensAt = Date.parse(preregistration.RETURN_WINDOW.opensAt);
+    const returnClosesAt = preregistration.RETURN_WINDOW.closesAt === null ? null : Date.parse(preregistration.RETURN_WINDOW.closesAt);
+    if (returnObservedAt < returnOpensAt || (returnClosesAt !== null && returnObservedAt > returnClosesAt)) {
       throw new Error('METHOD_LAB_EXPERIMENT_RETURN_OUTSIDE_PREREGISTERED_WINDOW');
     }
   } else if (CONTRAST.realityReturn !== null) {
