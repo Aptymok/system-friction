@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { SfiRootWorkspace } from './SfiRootWorkspace';
+import { RootCognitiveFieldPixi } from './RootCognitiveFieldPixi';
 import './RootNeuralGraphView.css';
 
 type GraphNode = {
@@ -469,265 +470,62 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
   const graphObserved = graph.sourceState === 'observed';
   const typeCount = allTypes.length;
 
+  const fieldNodes=visibleNodes.map((node)=>{const p=topology.positions.get(node.id)??{x:topology.width/2,y:topology.height/2};return {id:node.id,label:node.label,type:node.type,tone:nodeTone(node),x:p.x,y:p.y,radius:selectedId===node.id?7:2.8+Math.min(3.2,(degree.get(node.id)??0)*.22),selected:selectedId===node.id};});
+  const fieldEdges=visibleEdges.map((edge)=>({id:edge.id,source:edge.source,target:edge.target,weight:edge.weight,selected:selectedId===edge.source||selectedId===edge.target}));
+
   return (
-    <main className="neuralGraphShell" data-neural-graph-contract="SFI-ROOT-NEURAL-GRAPH-1.0">
-      <header className="neuralGraphHeader">
-        <div>
-          <span className="neuralGraphEyebrow">ROOT · SYSTEM FRICTION INSTITUTE · STATE / RELATION / TIME / RETURN</span>
-          <h1>Observe the institution through its changing states.</h1>
-          <p>ROOT organizes governed nodes according to SFI identity grammar, preserves hierarchy and provenance, follows trajectories through time, reconstructs material transitions, and separates observed history from present reconstruction and future projection.</p>
-        </div>
-      </header>
-
-      <section className="neuralGraphPulse" aria-label="Neural Graph state">
-        <article><span>COGNITIVE NODES</span><strong>{graph.nodes.length}</strong><small>{graph.admission.sourceNodes} canonical source · {graph.admission.excludedNodes} excluded by admission</small></article>
-        <article><span>COGNITIVE RELATIONS</span><strong>{graph.edges.length}</strong><small>{graph.admission.sourceEdges} canonical source · {graph.admission.excludedEdges} excluded after node admission</small></article>
-        <article data-state={graph.readPlane}><span>READ PLANE</span><strong>{graph.readPlane}</strong><small>{continuity ? 'Continuity active' : graph.readPlane === 'SUPABASE' ? 'Primary active' : 'Projection / unavailable'}</small></article>
-        <article data-state={graph.sourceState}><span>SOURCE GRAPH STATE</span><strong>{graph.sourceState.toUpperCase()}</strong><small>{graphObserved ? (graph.nodes.length ? 'persisted cognitive graph observed' : 'canonical source observed · cognitive admission empty') : 'degraded projection'}</small></article>
-        <article><span>ONTOLOGY TYPES</span><strong>{typeCount}</strong><small>{allTypes.slice(0, 3).join(' · ') || 'MISSING'}</small></article>
-        <article data-state={graph.capacityEnvelope.status}><span>CAPACITY</span><strong>{graph.capacityEnvelope.status}</strong><small>{graph.capacityEnvelope.status === 'OBSERVED_RANGE' ? `${graph.capacityEnvelope.observationCount} observed perturbation/RETURN pairs` : 'insufficient repeated observed RETURN'}</small></article>
-      </section>
-
-      <section className="neuralGraphControls" aria-label="Canonical cognitive field readings">
-        <div className="neuralGraphFilters">
-          <select aria-label="Temporal resolution" value={temporalResolution} onChange={(event) => setTemporalResolution(event.target.value)}>
-            {['ALL','SYSTEM_HISTORY','REGIME','PHENOMENON','CYCLE','TRANSITION','EVENT','OBSERVATION'].map((level) => <option key={level} value={level}>{level.replaceAll('_',' ')}</option>)}
-          </select>
-          {(['CURRENT_STATE','HIERARCHY','TRAJECTORY','RETROLONGITUDINAL','PROJECTION','FRICTION_REGIME','REALITY_CHAIN','RETURN_CONTRAST'] as const).map((mode) => (
-            <button key={mode} className={reading === mode ? 'active' : ''} onClick={() => setReading(mode)}>
-              {mode.replaceAll('_',' ')}
-            </button>
-          ))}
-        </div>
-        <p>
-          {reading === 'REALITY_CHAIN'
-            ? 'Reconstruct material passage: WORLD → CAPTURE → EVIDENCE → TRANSFORMATION → [INFERENCE] → VERIFICATION → AUTHORITY → ACTION → RETURN. Inference remains conditional.'
-            : reading === 'TRAJECTORY'
-              ? 'Follow observed state displacement through time. A trajectory is not a causal explanation.'
-              : reading === 'RETROLONGITUDINAL'
-                ? 'Reconstruct backward from the present while preserving the difference between what happened, what was observed then, what can be reconstructed now, and what was formalized later.'
-                : reading === 'PROJECTION'
-                  ? 'Project bounded future trajectories. HYPOTHESIZED / SIMULATED / EXPECTED never become OBSERVED by visualization.'
-                  : reading === 'FRICTION_REGIME'
-                    ? 'Expose friction, thresholds, attractors, divergence and regime-change candidates without promoting them to causal truth.'
-                    : reading === 'RETURN_CONTRAST'
-                      ? 'Contrast EXPECTED RETURN with OBSERVED RETURN. Case RETURN informs one trajectory; repeated RETURN may alter system memory.'
-                      : reading === 'HIERARCHY'
-                        ? 'Organize nodes by institutional and ontological hierarchy without equating visual prominence with truth or importance.'
-                        : 'Current state: one governed institutional field. Identity, provenance, authority and epistemic state remain attached to each object.'}
-        </p>
-      </section>
-
-      {reading === 'REALITY_CHAIN' ? (
-        <section className="neuralGraphBoundary">
-          <strong>MCDC COVERAGE · {graph.realityCoverage.filter((item) => item.observed).length}/{graph.realityCoverage.length}</strong>
-          <span>{graph.realityCoverage.map((item) => `${item.observed ? '●' : '○'} ${item.stage}`).join(' · ')}</span>
-        </section>
-      ) : null}
-
-      <section className="neuralGraphBoundary">
-        <strong>RELATION ≠ CAUSALITY.</strong>
-        <span>SOURCE ≠ EVIDENCE · MULTIPLE EVIDENCE ≠ CORROBORATED EVIDENCE · EXECUTION ≠ TRUTH · ACTION RESPONSE ≠ PERSISTED STATE · GRAPH ≠ RETURN.</span>
-      </section>
-
-      <details className="neuralGraphDecisionDock" open={Boolean(searchParams.get('decision'))}>
-        <summary>SOVEREIGN DECISIONS · ROOT AUTHORITY</summary>
-        <p>Decision authority stays inside this canonical field. Opening or deciding a proposal does not change the graph's epistemic state by itself.</p>
-        <SfiRootWorkspace enabled decisionOnly/>
-      </details>
-
-      <section className="neuralGraphControls">
-        <label>
-          <span>SEARCH TOPOLOGY</span>
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="node, type, provenance, lineage…"
-          />
-        </label>
-        <div className="neuralGraphFilters" aria-label="Filter by node type">
-          <button className={activeType === 'ALL' ? 'active' : ''} onClick={() => setActiveType('ALL')}>ALL · {graph.nodes.length}</button>
-          {allTypes.map((type) => (
-            <button key={type} className={activeType === type ? 'active' : ''} onClick={() => setActiveType(type)}>
-              {type.toUpperCase()} · {graph.nodes.filter((node) => node.type === type).length}
-            </button>
-          ))}
-        </div>
-      </section>
-
-      <div className="neuralGraphLayout">
-        <section className="neuralGraphCanvas" aria-label="Canonical graph topology">
-          <div className="neuralGraphCanvasMeta">
-            <span>{reading.replaceAll('_',' ')} · VISIBLE {visibleNodes.length} NODES · {visibleEdges.length} EDGES · CANONICAL SOURCE {graph.admission.sourceNodes}/{graph.admission.sourceEdges} · EXCLUDED {graph.admission.excludedNodes} · {Object.entries(graph.admission.excludedNodeReasons).map(([reason,count]) => `${reason} ${count}`).join(' · ') || 'NO EXCLUSIONS'}</span>
-            <span>LOADED {date(graph.loadedAt)}</span>
-          </div>
-          <svg viewBox={`0 0 ${topology.width} ${topology.height}`} role="img" aria-label="System Friction Institute Neural Graph">
-            <defs>
-              <radialGradient id="sfiGraphGlow">
-                <stop offset="0%" stopColor="#d5b36f" stopOpacity=".18" />
-                <stop offset="100%" stopColor="#d5b36f" stopOpacity="0" />
-              </radialGradient>
-            </defs>
-            <circle cx={topology.width / 2} cy={topology.height / 2} r="310" fill="url(#sfiGraphGlow)" />
-            {visibleEdges.map((edge) => {
-              const from = topology.positions.get(edge.source);
-              const to = topology.positions.get(edge.target);
-              if (!from || !to) return null;
-              const selectedEdge = selectedId === edge.source || selectedId === edge.target;
-              return (
-                <line
-                  key={edge.id}
-                  x1={from.x}
-                  y1={from.y}
-                  x2={to.x}
-                  y2={to.y}
-                  className={selectedEdge ? 'graphEdge selected' : 'graphEdge'}
-                  strokeWidth={selectedEdge ? 1.4 : Math.max(.35, Math.min(1, edge.weight || .35))}
-                />
-              );
-            })}
-            {visibleNodes.map((node) => {
-              const position = topology.positions.get(node.id);
-              if (!position) return null;
-              const selectedNode = selectedId === node.id;
-              const showLabel = labelled.has(node.id);
-              const radius = selectedNode ? 7 : 2.8 + Math.min(3.2, (degree.get(node.id) ?? 0) * .22);
-              return (
-                <g
-                  key={node.id}
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`${node.label}, ${node.type}`}
-                  onClick={() => setSelectedId(node.id)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' || event.key === ' ') setSelectedId(node.id);
-                  }}
-                  className={selectedNode ? 'graphNode selected' : 'graphNode'}
-                >
-                  <circle cx={position.x} cy={position.y} r={radius + (selectedNode ? 8 : 3)} className="graphNodeHalo" />
-                  <circle cx={position.x} cy={position.y} r={radius} fill={nodeTone(node)} />
-                  {showLabel ? (
-                    <text x={position.x + 9} y={position.y - 7} className="graphLabel">
-                      {short(node.label)}
-                    </text>
-                  ) : null}
-                </g>
-              );
-            })}
-          </svg>
-          {!visibleNodes.length ? <div className="neuralGraphEmpty">No nodes match this filter.</div> : null}
-        </section>
-
-        <aside className="neuralGraphInspector">
-          <div className="neuralGraphInspectorHead">
-            <span>INSPECTOR</span>
-            <strong>{selected ? selected.label : 'Select a node'}</strong>
-          </div>
-          {selected ? (
-            <>
-              <dl>
-                <div><dt>TYPE</dt><dd>{selected.type}</dd></div>
-                <div><dt>ORIGIN</dt><dd>{selected.origin}</dd></div>
-                <div><dt>PROVENANCE</dt><dd>{selected.provenance}</dd></div>
-                <div><dt>DEGREE</dt><dd>{degree.get(selected.id) ?? 0}</dd></div>
-                <div><dt>ID</dt><dd>{selected.id}</dd></div>
-                <div><dt>REALITY STAGE</dt><dd>{realityStage(selected).toUpperCase()}</dd></div>
-                <div><dt>EPISTEMIC STATE</dt><dd>{selected.reality?.state ?? 'UNKNOWN'}</dd></div>
-                <div><dt>VERIFICATION</dt><dd>{selected.reality?.verificationState ?? 'NOT VERIFIED'}</dd></div>
-                <div><dt>AUTHORITY</dt><dd>{selected.reality?.authority ?? 'UNKNOWN'}</dd></div>
-                <div><dt>EXECUTION</dt><dd>{selected.reality?.executionState ?? 'NOT OBSERVED'}</dd></div><div><dt>TEMPORAL BASIS</dt><dd>{temporalReading(selected).basis}</dd></div><div><dt>TIME / CYCLE</dt><dd>{temporalReading(selected).label}</dd></div><div><dt>METHOD NEED</dt><dd>{selected.methodSignal?.requiresTrajectory ? 'TRAJECTORY' : selected.methodSignal?.requiresRivalHypothesis ? 'RIVAL HYPOTHESIS' : 'NOT DERIVED'}</dd></div><div><dt>REGIME SIGNAL</dt><dd>{regimeSignal(selected)}</dd></div>
-              </dl>
-              <section>
-                <span>FIELD-DERIVED METHOD SIGNAL</span>
-                <p>RELATIONS · {selected.methodSignal?.relationCount ?? 0} · EVIDENCE-BOUND {selected.methodSignal?.evidenceBoundRelationCount ?? 0}</p>
-                <p>TRANSITION · {selected.methodSignal?.relationTransition ? 'OBSERVED' : 'NOT OBSERVED'} · WEIGHT Δ {selected.methodSignal?.weightChangeObserved ? 'OBSERVED' : 'NOT OBSERVED'}</p>
-                <p>COUNTEREVIDENCE · {selected.methodSignal?.counterevidenceObserved ? 'OBSERVED' : 'NOT OBSERVED'} · TEMPORAL STRUCTURE {selected.methodSignal?.temporalStructureObserved ? 'OBSERVED' : 'NOT OBSERVED'}</p>
-                <p>EXPECTATION · {selected.methodSignal?.expectationObserved ? 'OBSERVED' : 'NOT OBSERVED'} · RETURN {selected.methodSignal?.returnObserved ? 'OBSERVED' : 'NOT OBSERVED'}</p>
-                <p>DISCRIMINATOR · {selected.methodSignal?.discriminatingObservationObserved ? 'OBSERVED' : 'NOT OBSERVED'} · STOP {selected.methodSignal?.stoppingConditionObserved ? 'OBSERVED' : 'NOT OBSERVED'}</p>
-                <p>CONTRAST READINESS · {selected.methodSignal?.contrastReady ? 'READY TO VERIFY' : 'OPEN / INCOMPLETE'}</p>
-                <p>GOVERNED CONTRAST · {selected.methodSignal?.contrastRecorded ? 'RECORDED' : 'NOT RECORDED'} · LEARNING {selected.methodSignal?.learningCandidateObserved ? 'QUARANTINED' : 'NOT OBSERVED'}</p>
-                <p>FIELD REORGANIZATION · {selected.methodSignal?.fieldReorganizationState ?? 'UNCHANGED'}</p>
-                <p>REORGANIZATION MAGNITUDE · {selected.methodSignal ? selected.methodSignal.reorganizationMagnitude.toFixed(3) : '0.000'} · ΔWEIGHT {selected.methodSignal?.observedWeightDelta == null ? 'NOT OBSERVED' : selected.methodSignal.observedWeightDelta.toFixed(3)}</p>
-                <p>RELATION SUPPORT · {selected.methodSignal?.relationSupportRatio == null ? 'UNKNOWN' : selected.methodSignal.relationSupportRatio.toFixed(3)} · PROVENANCE COVERAGE {selected.methodSignal?.provenanceCoverage == null ? 'UNKNOWN' : selected.methodSignal.provenanceCoverage.toFixed(3)}</p>
-                <p>PROJECTION AUTHORITY · {selected.methodSignal?.projectionAuthority ?? 'NONE'}</p>
-                <p>SUBJECT IDENTITY · {selected.methodResolution?.subjectBasis ?? 'UNKNOWN'} · {selected.methodResolution?.input.subject ?? 'UNKNOWN'}{selected.methodResolution?.subjectProposal ? ` · PROPOSED ${selected.methodResolution.subjectProposal}` : ''}</p>
-                <p>UNKNOWN RESOLUTION · {selected.unknownResolutionPlan?.status ?? 'NOT_REQUIRED'} · {selected.unknownResolutionPlan?.temporalBasis.join(' + ') || 'NO ACTIVE BASIS'}</p>
-                <p>TEMPORAL FIELD · {selected.scientificReading?.temporal.coordinates.map((item) => item.basis).join(' + ') || 'UNKNOWN'} · {selected.scientificReading?.temporal.multipleClocks ? 'MULTIPLE CLOCKS' : 'SINGLE/NO CLOCK'}</p>
-                <p>TEMPORAL ZOOM · {selected.scientificReading?.temporal.availableResolutions.join(' → ') || 'OBSERVATION'}</p>
-                <p>EMERGENCE · {selected.scientificReading?.emergence.state ?? 'NOT_ESTABLISHED'} · {selected.scientificReading?.emergence.reason ?? 'No emergence reading.'}</p>
-                <p>RELATIONAL HISTORY · {selected.scientificReading?.relations.length ?? 0} relations · {(selected.scientificReading?.relations.filter((item) => item.previousState || item.weightDelta !== null).length ?? 0)} with observed transition/delta</p>
-                <p>METHOD CANDIDATES · {selected.scientificReading?.methodCandidates.map((item) => item.family).join(' · ') || 'NONE FROM CURRENT OBSERVATION'}</p>
-                <p>CAPACITY OBSERVATION · {selected.scientificReading?.capacity ? `${selected.scientificReading.capacity.response} · ${selected.scientificReading.capacity.evidenceRefs.length} EVIDENCE REF(S)` : 'NOT OBSERVED'}</p>
-                <p>DISTRIBUTED CONFIGURATION · {selected.scientificReading?.distributedConfiguration.state ?? 'NOT_ESTABLISHED'} · {selected.scientificReading?.distributedConfiguration.evidenceBoundRelationCount ?? 0} EVIDENCE-BOUND RELATIONS</p>
-                <p>EVIDENCE GEOMETRY · {selected.scientificReading?.evidenceGeometry.authority ?? 'INSUFFICIENT'} · MEAN WEIGHT {selected.scientificReading?.evidenceGeometry.meanObservedWeight == null ? 'UNKNOWN' : selected.scientificReading.evidenceGeometry.meanObservedWeight.toFixed(3)}</p>
-                <p>PROPERTY DISCOVERY · {selected.scientificReading?.propertyDiscovery.status ?? 'INSUFFICIENT'} · {selected.scientificReading?.propertyDiscovery.candidates.map((item) => item.property).join(' · ') || 'NO OBSERVED PROPERTY CANDIDATE'}</p>
-                <p>ATTRACTOR · {selected.scientificReading?.attractor.state ?? 'NOT_ESTABLISHED'} · {selected.scientificReading?.attractor.reason ?? 'Recurrence alone is insufficient.'}</p>
-                <p>METHOD COMPETITION · {selected.scientificReading?.methodCompetition.state ?? 'NO_CANDIDATE'} · {selected.scientificReading?.methodCompetition.candidates.filter((item) => item.assumptionCheck === 'OBSERVABLE').map((item) => item.family).join(' ↔ ') || 'NO VIABLE METHOD'}</p>
-                {selected.scientificReading?.methodCompetition.nextObservation ? <p>NEXT DISCRIMINATING OBSERVATION · {selected.scientificReading.methodCompetition.nextObservation}</p> : null}
-                <p>NEXT FIELD ACTION · {selected.scientificReading?.nextAction.decision ?? 'NO_ACTION'} · {selected.scientificReading?.nextAction.authorityRequired ? 'ROOT AUTHORITY REQUIRED' : 'NO EXECUTION AUTHORITY CLAIMED'}</p>
-                <p>MULTI-RESOLUTION LINEAGE · {selected.scientificReading?.reversibility.reconstructable ? 'RECONSTRUCTABLE' : 'INCOMPLETE'} · SOURCE {selected.scientificReading?.reversibility.sourceObservationRefs.length ?? 0}</p>
-                {selected.unknownResolutionPlan?.status !== 'NOT_REQUIRED' ? <p>STOPPING CONDITION · {selected.unknownResolutionPlan?.stoppingCondition}</p> : null}
-                <p>MIHM RESOLUTION · {selected.methodResolution?.resolution.status ?? 'AMBIGUOUS'} · {selected.methodResolution?.resolution.primary?.methodId ?? 'NONE'} · {selected.methodResolution?.input.temporalScope ?? 'UNKNOWN'}</p>
-                <p>PROTOCOL PROPOSAL · {selected.fieldProtocolProposal?.status ?? 'ABSTAIN'} · {selected.fieldProtocolProposal?.protocolId ?? 'NONE'} · {selected.fieldProtocolProposal?.epistemicClass ?? 'DERIVED'}</p>
-                <p>METHOD RESULT · {selected.methodResult ? `${selected.methodResult.methodId}@${selected.methodResult.methodVersion} · ${selected.methodResult.epistemicClass}` : 'NOT EXECUTED / NOT PROJECTED'}</p>
-                <p>METHOD → WORLD · {selected.methodResult?.nextState ?? 'NO PERSISTED METHOD RESULT'} · {selected.methodResult?.contrastStatus ?? 'NO CONTRAST STATE'}</p>
-                <p>CONTRAST → LEARNING · {selected.learningState?.state ?? 'NO LEARNING CANDIDATE'} · {selected.learningState?.classification ?? 'NOT CLASSIFIED'}</p>
-                {selected.learningState?.state === 'PROMOTED' ? <p>INSTITUTIONAL USE · VERIFIED_CONTRAST · historical observation remains unchanged</p> : null}
-                {selected.methodResult ? <p>FALSIFIER · {selected.methodResult.falsificationCondition} · STOP · {selected.methodResult.stoppingCondition}</p> : null}
-                <p>METHOD LAB PROJECTION · {selected.fieldProjection?.decision ?? 'ABSTAIN'} · {selected.fieldProjection?.epistemicClass ?? 'SIMULATED'}</p>
-                <p>PROJECTION REASON · {selected.fieldProjection?.reason ?? 'FIELD_PROTOCOL_REQUIRED'}</p>
-              </section>
-              <section>
-                <span>MCDC / RETURN</span>
-                <p>EXPECTED · {selected.reality?.expectedReturn == null ? 'UNKNOWN' : String(selected.reality.expectedReturn)}</p>
-                <p>OBSERVED · {selected.reality?.observedReturn == null ? 'NOT OBSERVED' : String(selected.reality.observedReturn)}</p>
-                <p>OBLIGATION · {selected.reality?.applicableObligation == null ? 'UNKNOWN' : String(selected.reality.applicableObligation)}</p>
-              </section>
-              <section>
-                <span>LINEAGE</span>
-                {selected.lineage.length
-                  ? selected.lineage.map((item) => <code key={item}>{item}</code>)
-                  : <p>MISSING · no additional lineage declared.</p>}
-              </section>
-              <section>
-                <span>RELATIONS</span>
-                {selectedEdges.length ? selectedEdges.map((edge) => {
-                  const outbound = edge.source === selected.id;
-                  const other = nodeById.get(outbound ? edge.target : edge.source);
-                  return (
-                    <button
-                      key={edge.id}
-                      className="neuralGraphRelation"
-                      onClick={() => setSelectedId(other?.id ?? null)}
-                    >
-                      <small>{outbound ? '→' : '←'} {edge.relation}</small>
-                      <strong>{other?.label ?? (outbound ? edge.target : edge.source)}</strong>
-                      <small>{edge.origin} · {edge.provenance}{edge.lineage.length ? ` · lineage ${edge.lineage.length}` : ''}</small>
-                    </button>
-                  );
-                }) : <p>No visible relations.</p>}
-              </section>
-            </>
-          ) : (
-            <p>Select a node para ver procedencia, lineage y relaciones adyacentes. La vista no asigna significado causal a una arista.</p>
-          )}
-        </aside>
+    <main className="neuralGraphShell rootFieldMode" data-neural-graph-contract="SFI-ROOT-NEURAL-GRAPH-1.1">
+      <div className="rootFieldIdentity">
+        <strong>SYSTEM FRICTION INSTITUTE</strong>
+        <span>{date(graph.loadedAt)}</span>
+        <span>Juan Marín | Founder</span>
       </div>
 
-      <footer className="neuralGraphFooter">
-        <div>
-          <span>RUNTIME</span>
-          <p>{graphObserved ? 'Persisted canonical graph available.' : 'Degraded view: the documentary projection preserves observability without pretending persistence.'}</p>
+      <section className="rootFieldStage" aria-label="Canonical cognitive field">
+        <RootCognitiveFieldPixi nodes={fieldNodes} edges={fieldEdges} width={topology.width} height={topology.height} onSelect={setSelectedId}/>
+        <div className="rootFieldControls">
+          <select aria-label="Field reading" value={reading} onChange={(event)=>setReading(event.target.value as typeof reading)}>
+            {allowedReadings.map((mode)=><option key={mode} value={mode}>{mode.replaceAll('_',' ')}</option>)}
+          </select>
+          <select aria-label="Temporal resolution" value={temporalResolution} onChange={(event)=>setTemporalResolution(event.target.value)}>
+            {['ALL','SYSTEM_HISTORY','REGIME','PHENOMENON','CYCLE','TRANSITION','EVENT','OBSERVATION'].map((level)=><option key={level} value={level}>{level.replaceAll('_',' ')}</option>)}
+          </select>
+          <input aria-label="Search field" value={query} onChange={(event)=>setQuery(event.target.value)} placeholder="search field…"/>
         </div>
-        <div>
-          <span>PRIMARY DIAGNOSTIC</span>
-          <p>{graph.primaryDiagnostic ?? 'PRIMARY READ AVAILABLE'}</p>
+        <div className="rootFieldLegend">
+          <span>{reading.replaceAll('_',' ')}</span>
+          <span>{visibleNodes.length} cognitive · {visibleEdges.length} relations</span>
+          {graph.admission.excludedNodes ? <span>{graph.admission.excludedNodes} documentary source objects outside cognitive admission</span> : null}
         </div>
-        <div>
-          <span>{graph.admission.contract} · WORLD-TO-CLAIM TRACEABILITY</span>
-          <p>{reading === 'REALITY_CHAIN' ? 'Ask: why is this claim allowed to represent the world?' : 'Change the reading to inspect time, reconstruction, RETURN and regime dynamics without changing the underlying objects.'}</p>
-        </div>
-      </footer>
+        {!visibleNodes.length ? <div className="rootFieldEmpty">Canonical source observed. No objects currently satisfy cognitive admission.</div> : null}
+
+        {selected ? (
+          <aside className="rootFieldHub">
+            <button className="rootFieldHubClose" onClick={()=>setSelectedId(null)} aria-label="Close object hub">×</button>
+            <span className="rootFieldHubKicker">{selected.type} · {realityStage(selected).toUpperCase()}</span>
+            <h2>{selected.label}</h2>
+            <p>{selected.origin} · {selected.provenance}</p>
+            <div className="rootFieldHubGrid">
+              <span>STATE<strong>{selected.reality?.state ?? String(selected.attributes.epistemicClass ?? 'UNKNOWN')}</strong></span>
+              <span>TIME<strong>{temporalReading(selected).label}</strong></span>
+              <span>AUTHORITY<strong>{selected.reality?.authority ?? 'UNKNOWN'}</strong></span>
+              <span>RETURN<strong>{selected.reality?.observedReturn == null ? 'NOT OBSERVED' : String(selected.reality.observedReturn)}</strong></span>
+              <span>RELATIONS<strong>{selectedEdges.length}</strong></span>
+              <span>ATTRACTOR<strong>{selected.scientificReading?.attractor.state ?? 'NOT ESTABLISHED'}</strong></span>
+            </div>
+            {selected.methodResult ? <p>METHOD · {selected.methodResult.methodId}@{selected.methodResult.methodVersion} · {selected.methodResult.epistemicClass}</p> : null}
+            {selected.learningState ? <p>LEARNING · {selected.learningState.state} · {selected.learningState.classification ?? 'UNCLASSIFIED'}</p> : null}
+            <div className="rootFieldRelations">
+              {selectedEdges.map((edge)=>{const outbound=edge.source===selected.id;const other=nodeById.get(outbound?edge.target:edge.source);return <button key={edge.id} onClick={()=>setSelectedId(other?.id??null)}><small>{outbound?'→':'←'} {edge.relation}</small><strong>{other?.label??(outbound?edge.target:edge.source)}</strong><em>{edge.weight.toFixed(3)}</em></button>;})}
+            </div>
+            {selected.lineage.length ? <details><summary>LINEAGE · {selected.lineage.length}</summary>{selected.lineage.map((item)=><code key={item}>{item}</code>)}</details> : null}
+          </aside>
+        ):null}
+      </section>
+
+      <details className="rootFieldAuthority" open={Boolean(searchParams.get('decision'))}>
+        <summary>AUTHORITY</summary>
+        <SfiRootWorkspace enabled decisionOnly/>
+      </details>
     </main>
-  );
-}
+  );}
