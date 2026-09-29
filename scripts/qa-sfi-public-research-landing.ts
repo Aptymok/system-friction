@@ -12,7 +12,6 @@ async function main() {
   const researchRoute = await text('src/app/research/[slug]/page.tsx');
   const publicationRoute = await text('src/app/publications/[slug]/page.tsx');
   const view = await text('src/components/research/PublicResearchLandingView.tsx');
-  const objectModes = await text('src/components/research/ResearchObjectModes.tsx');
 
   assert.match(resolver, /SFI-PUBLIC-RESEARCH-LANDING-1\.0/);
   assert.match(resolver, /researchGraphProjectionForCanonicalObjects/);
@@ -36,8 +35,6 @@ async function main() {
   assert.match(publicationRoute, /publicResearchLandingForSlug\('PUBLICATION', slug\)/);
   assert.match(researchRoute, /if \(!landing\) notFound\(\)/);
   assert.match(publicationRoute, /if \(!landing\) notFound\(\)/);
-  assert.match(publicationRoute, /data-sfi-object-modes="non-english"/, 'non-English publication hubs must expose the same object modes');
-  assert.match(publicationRoute, /data-sfi-object-modes="temporal"/, 'temporal publication hubs must expose the same object modes');
   assert.match(researchRoute, /alternates: \{ canonical: landing\.canonicalUrl \}/);
   assert.match(publicationRoute, /alternates: \{ canonical: landing\.canonicalUrl \}/);
   for (const route of [researchRoute, publicationRoute]) {
@@ -58,13 +55,8 @@ async function main() {
   assert.match(view, /read-only projection of an explicitly public canonical object/);
   assert.match(view, /does not create publication status, evidence, external validation, Discovery, PULL or RETURN/);
 
-  assert.match(view, /ResearchObjectModes landing=\{landing\}/, 'public object modes must be mounted on the shared landing');
-  for (const mode of ['HUMAN','RECONSTRUCT','MACHINE']) assert.ok(objectModes.includes(`'${mode}'`) || objectModes.includes(`>${mode}<`), `missing_object_mode:${mode}`);
-  assert.ok(objectModes.includes('EVIDENCE ADMISSION') && objectModes.includes('NOT ASSERTED BY THIS PUBLIC PROJECTION'), 'reconstruct_mode_must_not_fabricate_evidence');
-  assert.ok(objectModes.includes('AUTHORITY') && objectModes.includes('RETURN'), 'reconstruct_mode_must_expose_authority_and_return_boundaries');
-  assert.ok(objectModes.includes('relatedCanonicalObjectIds') && objectModes.includes('sourceRefs') && objectModes.includes('methods'), 'reconstruct_mode_must_use_canonical_public_projection_fields');
-  assert.ok(objectModes.includes('RECONSTRUCT ≠ INFER') && objectModes.includes('PUBLICATION ≠ RETURN'), 'reconstruct_mode_epistemic_boundary_missing');
-  assert.doesNotMatch(objectModes, /createServiceSupabaseClient|\.from\(|\.insert\(|\.upsert\(|\.update\(/, 'object modes must remain a read-only projection');
+  assert.doesNotMatch(view, /ResearchObjectModes/, 'retired object-modes surface must not be mounted');
+  assert.doesNotMatch(publicationRoute, /data-sfi-object-modes/, 'publication route must not retain retired object-modes wrappers');
 
   assert.equal(publicResearchLandingForSlug('RESEARCH', 'not-observed', []), null);
   assert.equal(publicResearchLandingForSlug('PUBLICATION', 'not-observed', []), null);
@@ -84,8 +76,7 @@ async function main() {
     externalActions: 0,
     syntheticRedirects: 0,
     authorityExpanded: false,
-    reconstructMode: 'RECONSTRUCT_MODE_BOUNDED',
-    machineMode: 'SAME_CANONICAL_OBJECT_PROJECTION',
+    retiredObjectModesRemoved: true,
   }, null, 2));
 }
 
