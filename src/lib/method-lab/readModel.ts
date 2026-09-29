@@ -91,7 +91,7 @@ export async function readMethodLabFieldMethodResults(systemRefs: string[]) {
   const db = createServiceSupabaseClient();
   const rows = await db.from('sfi_lab_analyses')
     .select('id,mode,source,raw_analysis,created_at')
-    .or('mode.eq.experiment_preregistration,mode.like.experiment_run:%')
+    .or('mode.eq.experiment_preregistration,mode.like.experiment_run:%,mode.eq.experiment_return_contrast')
     .order('created_at', { ascending: false })
     .limit(500);
   if (rows.error) return results;
@@ -109,6 +109,17 @@ export async function readMethodLabFieldMethodResults(systemRefs: string[]) {
       preregByRef.set(preregRef, preregistration);
       systemByPrereg.set(preregRef, systemRef);
     } catch { /* malformed/legacy rows cannot become ROOT method results */ }
+  }
+  for (const item of all) {
+    if (text(item.mode) !== 'experiment_return_contrast') continue;
+    const raw = row(item.raw_analysis);
+    const preregRef = text(raw.preregistrationRef);
+    const preregistration = preregByRef.get(preregRef);
+    const systemRef = systemByPrereg.get(preregRef);
+    if (!preregistration || !systemRef || results.has(systemRef)) continue;
+    try {
+      results.set(systemRef, projectMethodLabMethodResult(preregistration, row(raw.run) as MethodLabExperimentRun));
+    } catch { /* only contract-valid immutable RETURN contrasts are projected */ }
   }
   for (const item of all) {
     if (!text(item.mode).startsWith('experiment_run:')) continue;
