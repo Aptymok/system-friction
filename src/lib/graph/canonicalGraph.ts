@@ -11,6 +11,7 @@ import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { executeAbortableQuery } from '@/lib/supabase/abortableQuery';
 import { isSfiContinuityConfigured, readContinuityCanonicalGraphRows } from '@/lib/sfi/continuityPostgres';
 import { buildLibraryCorpusGraphProjection } from './libraryCorpusProjection';
+import { buildOperationalCognitiveGraphProjection } from './operationalCognitiveProjection';
 
 type Row = Record<string, unknown>;
 
@@ -216,6 +217,7 @@ export async function readCanonicalGraphState(
 ): Promise<CanonicalGraphState> {
   const allowContinuity = options.allowContinuity === true;
   const libraryProjection = buildLibraryCorpusGraphProjection();
+  const operationalProjection = await buildOperationalCognitiveGraphProjection();
   let rawNodeRows: Row[] = [];
   let rawEdgeRows: Row[] = [];
   let continuityServed = false;
@@ -267,10 +269,12 @@ export async function readCanonicalGraphState(
 
   const mergedNodes = new Map<string, CanonicalGraphNode>();
   for (const node of libraryProjection.nodes) mergedNodes.set(node.nodeId, node);
+  for (const node of operationalProjection.nodes) mergedNodes.set(node.nodeId, node);
   for (const node of persistedNodes) mergedNodes.set(node.nodeId, node);
 
   const mergedEdges = new Map<string, CanonicalGraphEdge>();
   for (const edge of libraryProjection.edges) mergedEdges.set(edge.edgeId, edge);
+  for (const edge of operationalProjection.edges) mergedEdges.set(edge.edgeId, edge);
   for (const edge of persistedEdges) mergedEdges.set(edge.edgeId, edge);
 
   const nodes = [...mergedNodes.values()].filter((node) => visibleInProfile(node.profile, profile));
