@@ -12,6 +12,7 @@ import { proposeMethodLabFieldProtocol, resolveMethodLabFieldProjection } from '
 import { deriveEmpiricalCapacityEnvelope, deriveFieldScientificReading } from '@/lib/mihm/fieldScientificReading';
 import { deriveDistributedPhenomena, projectDistributedPhenomenaForRoot } from '@/lib/mihm/distributedPhenomena';
 import { readMethodLabFieldLearningStates, readMethodLabFieldMethodResults } from '@/lib/method-lab/readModel';
+import { readFieldEpochHistories } from '@/lib/mihm/scientificMethodRuntime';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,10 +31,32 @@ export default async function ScenePage({ params }:{ params:Promise<{scene:strin
     const canonicalGraph = await readCanonicalGraphState('sfi', { allowContinuity: true });
     const graph = projectCognitiveGraph(canonicalGraph);
     const fieldNodeRefs = graph.nodes.map((node) => node.nodeId);
-    const [methodResults, learningStates] = await Promise.all([
+    const [methodResults, learningStates, fieldEpochHistories] = await Promise.all([
       readMethodLabFieldMethodResults(fieldNodeRefs),
       readMethodLabFieldLearningStates(fieldNodeRefs),
+      readFieldEpochHistories(fieldNodeRefs),
     ]);
+    const fieldHistorySummaries = new Map(
+      graph.nodes.map((node) => {
+        const history = fieldEpochHistories.get(node.nodeId) ?? [];
+        return [node.nodeId, {
+          epochCount: history.length,
+          firstObservedAt: history[0]?.occurredAt ?? null,
+          lastObservedAt: history.at(-1)?.occurredAt ?? null,
+          recentEpochs: history.slice(-8).map((epoch) => ({
+            eventId: epoch.eventId,
+            occurredAt: epoch.occurredAt,
+            state: typeof epoch.snapshot.state === 'string' ? epoch.snapshot.state : null,
+            previousState: typeof epoch.snapshot.previousState === 'string' ? epoch.snapshot.previousState : null,
+            censoring: typeof epoch.snapshot.censoring === 'string' ? epoch.snapshot.censoring : 'UNKNOWN',
+            relationTransitions: Array.isArray(epoch.snapshot.relationTransitions)
+              ? epoch.snapshot.relationTransitions.slice(0, 12)
+              : [],
+          })),
+          persistedHistory: history.length > 0,
+        }];
+      }),
+    );
 
     const realityNodes = new Map(graph.nodes.map((node) => [node.nodeId, readRealityChainNode(node)]));
     const realityEdges = new Map(graph.edges.map((edge) => [edge.edgeId, readRealityChainEdge(edge)]));
@@ -117,6 +140,7 @@ export default async function ScenePage({ params }:{ params:Promise<{scene:strin
               scientificReading: scientificReadings.get(node.nodeId),
               methodResult: methodResults.get(node.nodeId) ?? null,
               learningState: learningStates.get(node.nodeId) ?? null,
+              fieldHistory: fieldHistorySummaries.get(node.nodeId) ?? null,
             })),
               ...distributedPhenomenonProjection.nodes.map((node) => ({
                 id: node.nodeId,
