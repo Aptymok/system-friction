@@ -95,6 +95,14 @@ type GraphNode = {
     reversibility: { sourceObservationRefs:string[]; aggregationRefs:string[]; phenomenonRefs:string[]; reconstructable:boolean };
     boundaries:string[];
   };
+  learningState?: {
+    candidateEventId: string;
+    cycleId: string | null;
+    classification: string | null;
+    state: 'QUARANTINED' | 'ELIGIBLE_FOR_ROOT_PROMOTION' | 'PROMOTED' | 'REJECTED';
+    assessmentClass: string | null;
+    boundary: 'LEARNING_STATE_IS_GOVERNANCE_NOT_OBSERVATION';
+  } | null;
   methodResult?: {
     methodId: string;
     methodVersion: string;
@@ -653,6 +661,8 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
                 <p>PROTOCOL PROPOSAL · {selected.fieldProtocolProposal?.status ?? 'ABSTAIN'} · {selected.fieldProtocolProposal?.protocolId ?? 'NONE'} · {selected.fieldProtocolProposal?.epistemicClass ?? 'DERIVED'}</p>
                 <p>METHOD RESULT · {selected.methodResult ? `${selected.methodResult.methodId}@${selected.methodResult.methodVersion} · ${selected.methodResult.epistemicClass}` : 'NOT EXECUTED / NOT PROJECTED'}</p>
                 <p>METHOD → WORLD · {selected.methodResult?.nextState ?? 'NO PERSISTED METHOD RESULT'} · {selected.methodResult?.contrastStatus ?? 'NO CONTRAST STATE'}</p>
+                <p>CONTRAST → LEARNING · {selected.learningState?.state ?? 'NO LEARNING CANDIDATE'} · {selected.learningState?.classification ?? 'NOT CLASSIFIED'}</p>
+                {selected.learningState?.state === 'PROMOTED' ? <p>INSTITUTIONAL USE · VERIFIED_CONTRAST · historical observation remains unchanged</p> : null}
                 {selected.methodResult ? <p>FALSIFIER · {selected.methodResult.falsificationCondition} · STOP · {selected.methodResult.stoppingCondition}</p> : null}
                 <p>METHOD LAB PROJECTION · {selected.fieldProjection?.decision ?? 'ABSTAIN'} · {selected.fieldProjection?.epistemicClass ?? 'SIMULATED'}</p>
                 <p>PROJECTION REASON · {selected.fieldProjection?.reason ?? 'FIELD_PROTOCOL_REQUIRED'}</p>
