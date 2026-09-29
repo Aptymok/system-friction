@@ -73,7 +73,7 @@ const DEFINITIONS = [
   { operationId: 'readSfiCognitiveRuntimeExecutions', method: 'GET', path: '/api/external/v1/cognitive-runtime', scope: 'observe', summary: 'Read cognitive runtime contracts and execution history.' },
   { operationId: 'getSfiCognitiveBootstrap', method: 'GET', path: '/api/external/v1/bootstrap', scope: 'observe', summary: 'Hydrate the governed cognitive bootstrap.' },
   { operationId: 'decideSfiGovernanceProposal', method: 'POST', path: '/api/external/v1/governance/proposals/{proposalId}/decision', scope: 'governance:decide', summary: 'Accept or deny one proposal through the existing sovereign ROOT decision route.' },
-  { operationId: 'operateSfiRoot', method: 'POST', path: '/api/external/v1/root/operate', scope: 'root:operate', summary: 'Operate bounded founder-only ROOT administration, including report retrieval and institutional account invitation/listing.' },
+  { operationId: 'operateSfiRoot', method: 'POST', path: '/api/external/v1/root/operate', scope: 'root:operate', summary: 'Operate the founder ROOT control plane: capabilities, pending sovereign work, bounded whole-SFI state, reports and institutional account administration; delegate canonical Lab, governance, agent and Studio actions without bypassing their contracts.' },
 ] as const satisfies readonly GatewayOperationDefinition[];
 
 const BY_OPERATION = new Map<string, GatewayOperationDefinition>(
@@ -105,7 +105,7 @@ export const SFI_AUTHENTICATED_GATEWAY_TOOL = Object.freeze({
       },
       body: {
         type: 'object',
-        description: 'Canonical POST body. operateSfiLab persist requires operation="persist", nonempty title/content; commandId is its idempotency key; structured research uses metadata={kind:"METHOD_LAB_RESEARCH_OBJECT",researchObject:{objectId,...}} (legacy researchMetadata accepted instead). Lab run requires {operation:"run",protocolId:"economic_simulation"|"sociotechnical_simulation",evidenceIds:[persisted evidence row IDs],parameters?:object,cognitiveSpineContextRefs?:string[]}; lab:run, SIMULATED, no promotion, not idempotent. operateSfiRoot accepts operation="capabilities" | "reports" | "accounts_list" | "account_invite"; account_invite requires invitation {email,displayName,title,accessClass}.',
+        description: 'Canonical POST body. operateSfiLab persist requires operation="persist", nonempty title/content; commandId is its idempotency key; structured research uses metadata={kind:"METHOD_LAB_RESEARCH_OBJECT",researchObject:{objectId,...}} (legacy researchMetadata accepted instead). Lab run requires {operation:"run",protocolId:"economic_simulation"|"sociotechnical_simulation",evidenceIds:[persisted evidence row IDs],parameters?:object,cognitiveSpineContextRefs?:string[]}; lab:run, SIMULATED, no promotion, not idempotent. operateSfiRoot accepts operation="capabilities" | "capability_map" | "pending" | "sfi_state" | "reports" | "accounts_list" | "account_invite"; account_invite requires invitation {email,displayName,title,accessClass}.',
         additionalProperties: true,
       },
       query: {
