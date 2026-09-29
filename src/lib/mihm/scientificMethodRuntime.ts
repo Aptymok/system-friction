@@ -61,7 +61,7 @@ function median(values:number[]) {
 function unique<T>(values:T[]) { return [...new Set(values)]; }
 
 export async function readFieldEpochHistories(subjectRefs:string[]) {
-  const refs=unique(subjectRefs.filter(Boolean)).slice(0,40);
+  const refs=unique(subjectRefs.filter(Boolean)).slice(0,100);
   const map=new Map<string,EpochRecord[]>();
   for(const ref of refs)map.set(ref,[]);
   if(!refs.length)return map;
@@ -73,7 +73,7 @@ export async function readFieldEpochHistories(subjectRefs:string[]) {
     .eq('event_name','SFI_FIELD_TEMPORAL_EPOCH_RECORDED')
     .in('logbook_id',logbooks)
     .order('occurred_at',{ascending:true})
-    .limit(1000);
+    .limit(2400);
   if(result.error)throw new Error(`FIELD_EPOCH_HISTORY_READ_FAILED:${result.error.message}`);
 
   for(const item of (result.data??[]) as Row[]){
