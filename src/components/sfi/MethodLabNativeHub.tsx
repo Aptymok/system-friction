@@ -181,7 +181,7 @@ export function MethodLabNativeHub({ initialState, initialSessions, evidenceOpti
         <div className="mlh-section-head"><div><span>02 / SIMULATION</span><h2>Run with persisted evidence</h2></div><p>Only `sociotechnical_simulation` and `economic_simulation` use this runner. The result remains SIMULATED.</p></div>
         <div className="mlh-two-col">
           <div className="mlh-panel">
-            <label>PROTOCOLO
+            <label>PROTOCOL
               <select value={simulationProtocol} onChange={(event) => setSimulationProtocol(event.target.value as typeof simulationProtocol)}>
                 <option value="sociotechnical_simulation">Sociotechnical Simulation</option>
                 <option value="economic_simulation">Observable Economic Simulation</option>
@@ -201,7 +201,7 @@ export function MethodLabNativeHub({ initialState, initialSessions, evidenceOpti
             <button className="mlh-action" disabled={Boolean(busy) || selectedEvidence.length === 0} onClick={() => execute('METHOD LAB RUN', () => postJson('/api/root/method-lab/simulate', { protocolId: simulationProtocol, evidenceIds: selectedEvidence, parameters: {}, cognitiveSpineContextRefs: [] }))}>
               {busy === 'METHOD LAB RUN' ? 'RUNNING…' : `RUN WITH ${selectedEvidence.length} EVIDENCE ITEMS`}
             </button>
-            {simulationProtocol === 'economic_simulation' ? <p className="mlh-boundary">Do not run Economic merely to increase a counter: select genuinely admissible economic/world evidence.</p> : null}
+            {simulationProtocol === 'economic_simulation' ? <p className="mlh-boundary">Economic Simulation runs only with genuinely admissible economic or world evidence; execution count alone is not a validation target.</p> : null}
           </div>
           <div className="mlh-panel mlh-readout">
             <span>BOUNDARY</span>
@@ -223,7 +223,7 @@ export function MethodLabNativeHub({ initialState, initialSessions, evidenceOpti
           <form className="mlh-panel" onSubmit={(event) => { event.preventDefault(); void execute('CREATE CRL SESSION', () => postJson('/api/root/cognitive-lab/sessions', newSession)); }}>
             <h3>ACTIVATE SESSION</h3>
             <label>TITLE<input value={newSession.title} onChange={(event) => setNewSession({ ...newSession, title: event.target.value })} /></label>
-            <label>OBJETIVO<textarea value={newSession.objective} onChange={(event) => setNewSession({ ...newSession, objective: event.target.value })} /></label>
+            <label>OBJECTIVE<textarea value={newSession.objective} onChange={(event) => setNewSession({ ...newSession, objective: event.target.value })} /></label>
             <label>CONDITION<select value={newSession.condition} onChange={(event) => setNewSession({ ...newSession, condition: event.target.value })}>
               <option value="FOUNDER_TWIN">FOUNDER + COGNITIVE TWIN</option>
               <option value="FOUNDER_MODEL">FOUNDER + MODEL</option>
@@ -236,19 +236,19 @@ export function MethodLabNativeHub({ initialState, initialSessions, evidenceOpti
           </form>
 
           <form className="mlh-panel" onSubmit={(event) => { event.preventDefault(); if (!eventDraft.sessionId) return; void execute('RECORD CRL EVENT', () => postJson(`/api/root/cognitive-lab/sessions/${eventDraft.sessionId}/events`, { eventKind: eventDraft.eventKind, provenance: eventDraft.provenance, actorKey: eventDraft.actorKey, payload: { content: eventDraft.content }, evidenceRefs: selectedEvidence })); }}>
-            <h3>REGISTRAR EVENTO</h3>
+            <h3>RECORD EVENT</h3>
             <label>SESSION<select value={eventDraft.sessionId} onChange={(event) => setEventDraft({ ...eventDraft, sessionId: event.target.value })}><option value="">SELECT…</option>{initialSessions.filter((item) => !['CLOSED', 'REJECTED'].includes(item.status)).map((item) => <option value={item.id} key={item.id}>{item.sessionKey} · {item.status}</option>)}</select></label>
-            <label>EVENTO<select value={eventDraft.eventKind} onChange={(event) => setEventDraft({ ...eventDraft, eventKind: event.target.value })}>{['OBSERVATION','FOUNDER_DECISION','TOOL_EXECUTION','ARTIFACT','OUTCOME','FRICTION','OMISSION','OTHER'].map((value) => <option key={value}>{value}</option>)}</select></label>
+            <label>EVENT<select value={eventDraft.eventKind} onChange={(event) => setEventDraft({ ...eventDraft, eventKind: event.target.value })}>{['OBSERVATION','FOUNDER_DECISION','TOOL_EXECUTION','ARTIFACT','OUTCOME','FRICTION','OMISSION','OTHER'].map((value) => <option key={value}>{value}</option>)}</select></label>
             <label>PROVENANCE<select value={eventDraft.provenance} onChange={(event) => setEventDraft({ ...eventDraft, provenance: event.target.value })}>{['FOUNDER_ORIGINATED','MODEL_PROPOSED','CO_DEVELOPED','SYSTEM_EMERGENT','EXTERNAL','FOUNDER_AUTHORIZATION','UNKNOWN'].map((value) => <option key={value}>{value}</option>)}</select></label>
             <label>ACTOR<input value={eventDraft.actorKey} onChange={(event) => setEventDraft({ ...eventDraft, actorKey: event.target.value })} /></label>
-            <label>CONTENIDO<textarea value={eventDraft.content} onChange={(event) => setEventDraft({ ...eventDraft, content: event.target.value })} /></label>
-            <button className="mlh-action" disabled={Boolean(busy) || !eventDraft.sessionId || !eventDraft.content.trim()}>REGISTRAR</button>
+            <label>CONTENT<textarea value={eventDraft.content} onChange={(event) => setEventDraft({ ...eventDraft, content: event.target.value })} /></label>
+            <button className="mlh-action" disabled={Boolean(busy) || !eventDraft.sessionId || !eventDraft.content.trim()}>RECORD</button>
           </form>
 
           <div className="mlh-panel mlh-readout">
-            <span>CRL STATE</span><h3>{initialSessions.length} sesiones</h3>
-            <p>{initialSessions.filter((item) => item.status === 'READY_FOR_BLIND').length} listas para BLIND · {initialSessions.filter((item) => item.status === 'BLIND_COMPLETE').length} listas para contraste.</p>
-            <p className="mlh-boundary">FOUNDER_AUTHORIZATION no equivale a FOUNDER_ORIGINATED.</p>
+            <span>CRL STATE</span><h3>{initialSessions.length} sessions</h3>
+            <p>{initialSessions.filter((item) => item.status === 'READY_FOR_BLIND').length} ready for BLIND · {initialSessions.filter((item) => item.status === 'BLIND_COMPLETE').length} ready for contrast.</p>
+            <p className="mlh-boundary">FOUNDER_AUTHORIZATION is not equivalent to FOUNDER_ORIGINATED.</p>
           </div>
         </div>
 
@@ -263,7 +263,7 @@ export function MethodLabNativeHub({ initialState, initialSessions, evidenceOpti
 
               {session.status === 'READY_FOR_BLIND' ? <button className="mlh-action" disabled={Boolean(busy)} onClick={() => execute('CRL BLIND', () => postJson(`/api/root/cognitive-lab/sessions/${session.id}/blind`, {}))}>RUN BLIND</button> : null}
 
-              {['BLIND_COMPLETE', 'CONTRAST_PENDING'].includes(session.status) ? <div className="mlh-contrast"><label>FOUNDER READING<textarea value={founderReadings[session.id] ?? ''} onChange={(event) => setFounderReadings({ ...founderReadings, [session.id]: event.target.value })} placeholder="Your post-BLIND reading: agreements, divergences, omissions, causality and who changed whom…" /></label><button className="mlh-action" disabled={Boolean(busy) || !(founderReadings[session.id] ?? '').trim()} onClick={() => execute('CRL CONTRAST', () => postJson(`/api/root/cognitive-lab/sessions/${session.id}/contrast`, { founderReading: founderReadings[session.id] ?? '' }))}>CONTRAST AND CLOSE</button></div> : null}
+              {['BLIND_COMPLETE', 'CONTRAST_PENDING'].includes(session.status) ? <div className="mlh-contrast"><label>FOUNDER READING<textarea value={founderReadings[session.id] ?? ''} onChange={(event) => setFounderReadings({ ...founderReadings, [session.id]: event.target.value })} placeholder="Post-BLIND reading: agreements, divergences, omissions, causal claims and observed influence…" /></label><button className="mlh-action" disabled={Boolean(busy) || !(founderReadings[session.id] ?? '').trim()} onClick={() => execute('CRL CONTRAST', () => postJson(`/api/root/cognitive-lab/sessions/${session.id}/contrast`, { founderReading: founderReadings[session.id] ?? '' }))}>CONTRAST AND CLOSE</button></div> : null}
             </article>
           ))}
         </div>
