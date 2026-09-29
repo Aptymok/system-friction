@@ -64,9 +64,13 @@ const scheduledEgressGuard = fs.readFileSync('src/lib/continuity/scheduledEgress
 assert.match(scheduledEgressGuard, /SFI_SCHEDULED_EGRESS_MODE/, 'scheduled Supabase egress must require an explicit runtime enablement');
 assert.match(scheduledEgressGuard, /\?\? 'restricted'/, 'scheduled egress must fail closed by default');
 assert.match(scheduledEgressGuard, /authorizedManualOverride/, 'manual egress override must remain explicit and caller-supplied');
+assert.match(scheduledEgressGuard, /SFI_WORLD_OBSERVATION_MODE/, 'bounded World observation must have its own explicit disable switch');
+assert.match(scheduledEgressGuard, /\?\? 'enabled'/, 'bounded World observation must remain enabled by default unless explicitly disabled');
+assert.match(scheduledEgressGuard, /lane === 'WORLD_OBSERVATION'/, 'World observation must be a distinct non-propagating egress lane');
 
 const worldObservatoryCron = fs.readFileSync('src/app/api/cron/world-observatory/route.ts', 'utf8');
 assert.match(worldObservatoryCron, /x-sfi-world-readjudication/, 'World manual readjudication must require its explicit request marker');
+assert.match(worldObservatoryCron, /lane: 'WORLD_OBSERVATION'/, 'World scheduled observation must use the bounded independent World lane');
 assert.match(worldObservatoryCron, /READJUDICATION_EXECUTED/, 'World manual readjudication must return an explicit execution state');
 assert.match(worldObservatoryCron, /runWorldCalibrationCycle\(\)/, 'World manual readjudication must reuse the canonical calibration owner');
 assert.match(worldObservatoryCron, /It does not collect observations, generate hypotheses/, 'World manual readjudication boundary must remain calibration-only');
@@ -96,5 +100,5 @@ console.log(JSON.stringify({
   productionDeployment: 'EXPLICIT_TRIGGER_ONLY',
   productionPushPath: '.github/sfi-production-deploy-trigger',
   publicSupabaseReadPolicy: 'CACHED_AND_BOUNDED',
-  scheduledSupabaseAutomation: 'FAIL_CLOSED_EXPLICIT_ENABLE_ONLY',
+  scheduledSupabaseAutomation: 'GENERAL_FAIL_CLOSED_WORLD_OBSERVATION_BOUNDED_ENABLED_UNLESS_DISABLED',
 }, null, 2));
