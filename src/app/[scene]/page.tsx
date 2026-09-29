@@ -10,7 +10,7 @@ import { AuthenticatedSfiMenu } from '@/components/sfi/AuthenticatedSfiMenu';
 import { deriveCanonicalFieldMethodSignal, planCanonicalUnknownResolution, resolveCanonicalFieldMethodology } from '@/lib/mihm/rootCaseMethodology';
 import { proposeMethodLabFieldProtocol, resolveMethodLabFieldProjection } from '@/lib/method-lab/fieldProjection';
 import { deriveEmpiricalCapacityEnvelope, deriveFieldScientificReading } from '@/lib/mihm/fieldScientificReading';
-import { readMethodLabFieldMethodResults } from '@/lib/method-lab/readModel';
+import { readMethodLabFieldLearningStates, readMethodLabFieldMethodResults } from '@/lib/method-lab/readModel';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,7 +23,11 @@ export default async function ScenePage({ params }:{ params:Promise<{scene:strin
     await requireFounderPage('/root');
     const canonicalGraph = await readCanonicalGraphState('sfi', { allowContinuity: true });
     const graph = projectCognitiveGraph(canonicalGraph);
-    const methodResults = await readMethodLabFieldMethodResults(graph.nodes.map((node) => node.nodeId));
+    const fieldNodeRefs = graph.nodes.map((node) => node.nodeId);
+    const [methodResults, learningStates] = await Promise.all([
+      readMethodLabFieldMethodResults(fieldNodeRefs),
+      readMethodLabFieldLearningStates(fieldNodeRefs),
+    ]);
 
     const realityNodes = new Map(graph.nodes.map((node) => [node.nodeId, readRealityChainNode(node)]));
     const realityEdges = new Map(graph.edges.map((edge) => [edge.edgeId, readRealityChainEdge(edge)]));
@@ -105,6 +109,7 @@ export default async function ScenePage({ params }:{ params:Promise<{scene:strin
               fieldProjection: fieldProjections.get(node.nodeId),
               scientificReading: scientificReadings.get(node.nodeId),
               methodResult: methodResults.get(node.nodeId) ?? null,
+              learningState: learningStates.get(node.nodeId) ?? null,
             })),
             edges: graph.edges.map((edge) => ({
               id: edge.edgeId,
