@@ -221,6 +221,133 @@ export async function persistMethodLabRealityReturn(input: {
   return { ok: true as const, analysisId: String(persisted.data.id), runId: input.runId, sourceRunRef: runRef, resultHash: original.artifacts.RESULT.resultHash, createdAt: String(persisted.data.created_at ?? input.realityReturn.observedAt) };
 }
 
+export async function persistInstitutionalMethodLabRealityReturn(input: {
+  experimentId: string;
+  runId: string;
+  realityReturn: NonNullable<MethodLabExperimentRun['artifacts']['CONTRAST']['realityReturn']>;
+  contrastPayload: Record<string, unknown>;
+}) {
+  const prereg = await readInstitutionalMethodLabExperimentPreregistration(input.experimentId);
+  if (!prereg) throw new Error('METHOD_LAB_INSTITUTIONAL_PREREGISTRATION_REQUIRED');
+  const runRef = methodLabRunId(input.runId.trim());
+  const contrastRef = methodLabReturnId(input.runId.trim());
+  const db = createServiceSupabaseClient();
+  const prior = await db.from('sfi_lab_analyses')
+    .select('id,raw_analysis,created_at')
+    .eq('id', contrastRef)
+    .is('owner_id', null)
+    .maybeSingle();
+  if (prior.error) throw new Error(`METHOD_LAB_INSTITUTIONAL_RETURN_READ_FAILED:${prior.error.message}`);
+  if (prior.data) {
+    return { ok:true as const, analysisId:String(prior.data.id), runId:input.runId, sourceRunRef:runRef, alreadyPersisted:true as const, createdAt:String(prior.data.created_at ?? input.realityReturn.observedAt) };
+  }
+
+  const found = await db.from('sfi_lab_analyses')
+    .select('id,owner_id,source,raw_analysis')
+    .eq('id', runRef)
+    .is('owner_id', null)
+    .maybeSingle();
+  if (found.error) throw new Error(`METHOD_LAB_INSTITUTIONAL_RETURN_RUN_READ_FAILED:${found.error.message}`);
+  if (!found.data) throw new Error('METHOD_LAB_INSTITUTIONAL_RETURN_RUN_REQUIRED');
+  if (String(found.data.source ?? '') !== prereg.preregistrationRef) throw new Error('METHOD_LAB_INSTITUTIONAL_RETURN_PREREGISTRATION_REF_MISMATCH');
+  const raw = record(found.data.raw_analysis);
+  const original = assertMethodLabExperimentRun(prereg.preregistration, record(raw.run) as MethodLabExperimentRun);
+  if (original.artifacts.EXECUTED.runId !== input.runId) throw new Error('METHOD_LAB_INSTITUTIONAL_RETURN_RUN_ID_MISMATCH');
+  if (original.artifacts.CONTRAST.status !== 'PENDING_RETURN') throw new Error('METHOD_LAB_INSTITUTIONAL_RETURN_RUN_NOT_PENDING');
+
+  const contrasted: MethodLabExperimentRun = {
+    ...original,
+    artifacts: {
+      ...original.artifacts,
+      CONTRAST: { status:'AVAILABLE', payload:input.contrastPayload, realityReturn:input.realityReturn },
+    },
+  };
+  const checked = assertMethodLabExperimentRun(prereg.preregistration, contrasted);
+  const persisted = await db.from('sfi_lab_analyses').insert({
+    id: contrastRef,
+    owner_id: null,
+    mode: 'experiment_return_contrast',
+    source: runRef,
+    data_mode: 'OBSERVED',
+    systems: [prereg.preregistration.POPULATION_SYSTEM.ref],
+    variables: prereg.preregistration.EXPECTED_SIGNAL.measures,
+    recommendations: [],
+    limitations: checked.artifacts.LIMITATIONS,
+    raw_analysis: {
+      phase:'CONTRAST_AVAILABLE',
+      contractVersion:METHOD_LAB_EXPERIMENT_CONTRACT_VERSION,
+      preregistrationRef:prereg.preregistrationRef,
+      sourceRunRef:runRef,
+      sourceResultHash:original.artifacts.RESULT.resultHash,
+      run:checked,
+      canonicalMutation:false,
+      returnBoundary:'OBSERVED RETURN is appended from evidence-linked post-T0 reality. The preregistration and simulation run remain immutable.',
+    },
+  }).select('id,created_at').single();
+  if (persisted.error || !persisted.data?.id) throw new Error(`METHOD_LAB_INSTITUTIONAL_RETURN_PERSIST_FAILED:${persisted.error?.message ?? 'unknown'}`);
+  return {
+    ok:true as const,
+    analysisId:String(persisted.data.id),
+    runId:input.runId,
+    sourceRunRef:runRef,
+    resultHash:original.artifacts.RESULT.resultHash,
+    alreadyPersisted:false as const,
+    createdAt:String(persisted.data.created_at ?? input.realityReturn.observedAt),
+  };
+}
+
+export async function recordInstitutionalMethodLabContrastLearningCandidate(input: {
+  experimentId: string;
+  runId: string;
+  actorId: string;
+  tenantId?: string;
+}) {
+  const actorId = input.actorId.trim();
+  const tenantId = (input.tenantId ?? 'sfi').trim();
+  if (!actorId || !tenantId) throw new Error('METHOD_LAB_INSTITUTIONAL_LEARNING_ACTOR_AND_TENANT_REQUIRED');
+  const prereg = await readInstitutionalMethodLabExperimentPreregistration(input.experimentId);
+  if (!prereg) throw new Error('METHOD_LAB_INSTITUTIONAL_LEARNING_PREREGISTRATION_REQUIRED');
+  const db = createServiceSupabaseClient();
+  const contrastRef = methodLabReturnId(input.runId.trim());
+  const found = await db.from('sfi_lab_analyses')
+    .select('id,owner_id,raw_analysis,created_at')
+    .eq('id', contrastRef)
+    .is('owner_id', null)
+    .maybeSingle();
+  if (found.error) throw new Error(`METHOD_LAB_INSTITUTIONAL_LEARNING_CONTRAST_READ_FAILED:${found.error.message}`);
+  if (!found.data) throw new Error('METHOD_LAB_INSTITUTIONAL_LEARNING_CONTRAST_REQUIRED');
+  const raw = record(found.data.raw_analysis);
+  const run = assertMethodLabExperimentRun(prereg.preregistration, record(raw.run) as MethodLabExperimentRun);
+  if (run.artifacts.CONTRAST.status !== 'AVAILABLE' || !run.artifacts.CONTRAST.realityReturn) throw new Error('METHOD_LAB_INSTITUTIONAL_LEARNING_OBSERVED_RETURN_REQUIRED');
+  const realityReturn = run.artifacts.CONTRAST.realityReturn;
+  const history = {
+    cycleId: `method-lab:${input.experimentId}:${input.runId}`,
+    cognitiveRuns: [{ event_id:contrastRef, payload:{ cycleId:`method-lab:${input.experimentId}:${input.runId}` } }],
+    returns: [{ event_id:contrastRef, payload:{ outcome:realityReturn.outcome, evidenceRefs:realityReturn.evidenceRefs } }],
+    returnContrasts: [{ event_id:contrastRef, payload:{ status:'AVAILABLE', resultHash:run.artifacts.RESULT.resultHash } }],
+    closures: [],
+    aiSyntheses: [],
+    events: [],
+  };
+  return recordUniversalLearningCandidate({
+    history,
+    requested: {
+      classification:'OPERATIONAL_EVIDENCE',
+      learningCandidate: {
+        source:'METHOD_LAB_CONTRAST',
+        experimentId:input.experimentId,
+        runId:input.runId,
+        methodId:prereg.preregistration.METHOD.methodId,
+        resultHash:run.artifacts.RESULT.resultHash,
+        contrastRef,
+      },
+    },
+    actorId,
+    tenantId,
+    closureEventId:null,
+  });
+}
+
 export async function recordMethodLabContrastLearningCandidate(input: {
   experimentId: string;
   runId: string;
