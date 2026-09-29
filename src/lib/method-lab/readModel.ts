@@ -8,6 +8,7 @@ import { METHOD_LAB_CONTRACT_VERSION, type MethodLabProtocolId, type MethodLabPr
 import { METHOD_LAB_PROTOCOLS } from './registry';
 import { assertMethodLabExperimentPreregistration, projectMethodLabMethodResult, type MethodLabExperimentPreregistration, type MethodLabExperimentRun } from './experimentContract';
 import { readUniversalLearningQuarantine } from '@/lib/sfi/universalLearningQuarantine';
+import { methodLabPreregistrationId } from './experimentPersistence';
 
 type Row = Record<string, unknown>;
 type DependencyState = { table: string; available: boolean; error: string | null };
@@ -154,7 +155,7 @@ export async function readMethodLabFieldLearningStates(systemRefs: string[]) {
     const cycleId = text(p.cycleId);
     const systemRef = cycleId?.startsWith('method-lab:') ? null : null;
     void systemRef;
-    const preregRef = `method-lab:prereg:${experimentId}`;
+    const preregRef = methodLabPreregistrationId(experimentId);
     const db = createServiceSupabaseClient();
     const prereg = await db.from('sfi_lab_analyses').select('raw_analysis').eq('id', preregRef).maybeSingle();
     if (prereg.error || !prereg.data) continue;
