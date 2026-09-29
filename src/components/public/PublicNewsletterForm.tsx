@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
+import { useState, type FormEvent } from 'react';
 
 export function PublicNewsletterForm(){
   const [state,setState]=useState<'idle'|'sending'|'ok'|'error'>('idle');
