@@ -29,6 +29,10 @@ assert.ok(rootUi.includes('METHOD → WORLD') && rootUi.includes('NO PERSISTED M
 const experimentPersistence = read('src/lib/method-lab/experimentPersistence.ts');
 for (const token of [
   'persistMethodLabRealityReturn',
+  'recordMethodLabContrastLearningCandidate',
+  "classification: 'OPERATIONAL_EVIDENCE'",
+  "source: 'METHOD_LAB_CONTRAST'",
+  'recordUniversalLearningCandidate',
   'methodLabReturnId',
   "mode: 'experiment_return_contrast'",
   "phase: 'CONTRAST_AVAILABLE'",
@@ -275,6 +279,7 @@ console.log(JSON.stringify({
     'every first-class run carries PREREGISTERED/EXECUTED/RESULT/CONTRAST/LIMITATIONS/REPRODUCIBILITY_RECEIPT artifacts',
     'method results remain non-canonical and carry frozen falsification, stopping and RETURN transition state',
     'observed RETURN contrast is append-only and never rewrites the executed Method Lab run',
+    'Method Lab RETURN may enter learning quarantine as OPERATIONAL_EVIDENCE but cannot self-promote as CALIBRATED_RETURN',
     'CHRONOS and CRL are protocols, not parallel labs',
     'CT reentry implementation is distinct from Method Lab validation and individuation claims',
     'sociotechnical/economic runs use isolated executors',
