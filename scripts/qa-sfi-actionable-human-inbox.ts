@@ -57,9 +57,10 @@ assert.ok(decisions.includes("error: 'candidate_capture_is_not_a_sovereign_decis
 assert.ok(root.includes("jsonFetch('/api/root/interactive?surface=root')"), 'ROOT must use one base interactive bootstrap');
 assert.ok(root.includes('/api/root/decision-dossier?kind=proposal&id='), 'ROOT detail must use targeted proposal dossier reads');
 assert.ok(root.includes("jsonFetch('/api/root/decisions'"), 'sovereign ACCEPT/DENY must use the canonical ROOT writer');
-for (const label of ['Who brings it', 'What happened', 'Why it matters', 'What it proposes', 'What SFI gains', 'What evidence exists', 'If accepted', 'If denied', 'Why this decision belongs to you']) {
+for (const label of ['Who brings it', 'What happened', 'Why it matters', 'What it proposes', 'What SFI gains', 'What evidence exists', 'If accepted', 'If denied', 'Why this decision belongs to ROOT']) {
   assert.ok(root.includes(label), `human-language ROOT section missing: ${label}`);
 }
+assert.ok(root.includes('plain.whyRoot'), 'ROOT sovereign authority explanation must render the canonical whyRoot field');
 assert.ok(root.includes('ACCEPT') && root.includes('DENY'), 'ROOT must expose binary terminal sovereign decisions');
 assert.ok(root.includes('REQUEST EVIDENCE'), 'ROOT must be able to defer a sovereign decision and ask SFI to acquire more evidence');
 assert.ok(root.includes('/request-evidence'), 'evidence defer must use the existing governed request-evidence owner');
