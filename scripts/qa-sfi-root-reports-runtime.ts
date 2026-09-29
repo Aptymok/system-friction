@@ -22,6 +22,8 @@ for (const field of ['reads:', 'writes:', 'executes:', 'executionEvidence:']) {
 
 const scenes = read('src/components/sfi/scenes.ts');
 const shellUi = read('src/components/sfi/SfiConsole.tsx');
+const rootScene = read('src/app/[scene]/page.tsx');
+const authMenu = read('src/components/sfi/AuthenticatedSfiMenu.tsx');
 const rootUi = read('src/components/sfi/SfiRootWorkspace.tsx');
 const friccionautaUi = read('src/components/sfi/SfiFriccionautaPanel.tsx');
 const friccionautaApi = read('src/app/api/root/friccionauta/route.ts');
@@ -58,7 +60,7 @@ assert.doesNotMatch(operatingUi, /setInterval\(/, 'operating workspace must not 
 assert.doesNotMatch(rootUi, /setInterval\(/, 'ROOT workspace must not poll');
 assert.ok(rootUi.includes('ACCEPT') && rootUi.includes('DENY') && rootUi.includes('REQUEST EVIDENCE'), 'plain-language sovereign decision controls must live in ROOT');
 assert.doesNotMatch(governanceUi, /ACCEPT|DENY|REQUEST EVIDENCE/, 'Governance runtime must not duplicate sovereign controls');
-assert.ok(shellUi.includes("label:'DECISIONS'") && shellUi.includes("href:'/root'"), 'decision navigation must converge on ROOT');
+assert.ok(rootScene.includes('data-root-primary-interface="CANONICAL_COGNITIVE_FIELD"') && authMenu.includes("href:'/root?reading=CURRENT_STATE'"), 'authenticated navigation must converge on the canonical ROOT Neural field rather than a duplicate decision surface');
 assert.ok(rootUi.includes('/api/root/interactive?surface=root') && rootUi.includes('BASE_CACHE_TTL_MS'), 'ROOT must reuse recent interactive state rather than rehydrate on every return');
 assert.ok(rootUi.includes('SfiFriccionautaPanel'), 'ROOT must mount the existing Friccionauta conversational owner');
 assert.ok(friccionautaUi.includes('/api/root/friccionauta') && friccionautaUi.includes('NO CANON · NO PUBLICATION · NO SILENT EXECUTION'), 'Friccionauta UI must reuse the existing endpoint and show its authority boundary');
