@@ -20,16 +20,18 @@ assert.match(contracts, /export \* from '\.\/experimentContract'/, 'General expe
 // SFI-METHOD-LAB-EXPERIMENT-CONTRACT-1.0 — R3 first-class experiment gate.
 const methodLabReadModel = read('src/lib/method-lab/readModel.ts');
 const rootScene = read('src/app/[scene]/page.tsx');
+const neuralRootUi = read('src/components/sfi/RootNeuralGraphView.tsx');
+const quarantine = read('src/lib/sfi/universalLearningQuarantine.ts');
 assert.ok(methodLabReadModel.includes('readMethodLabFieldLearningStates'), 'ROOT field must read Method Lab learning governance without treating it as observation.');
 assert.ok(methodLabReadModel.includes('LEARNING_STATE_IS_GOVERNANCE_NOT_OBSERVATION'), 'Learning state projection must preserve the governance/observation boundary.');
 assert.ok(rootScene.includes('readMethodLabFieldLearningStates'), 'ROOT must project governed learning state on the same neural field node.');
-assert.ok(rootUi.includes('CONTRAST → LEARNING') && rootUi.includes('NO LEARNING CANDIDATE'), 'Neural field must distinguish contrast from quarantine/promotion state.');
-assert.ok(rootUi.includes('historical observation remains unchanged'), 'Promotion must never imply rewriting historical observation.');
+assert.ok(neuralRootUi.includes('CONTRAST → LEARNING') && rootUi.includes('NO LEARNING CANDIDATE'), 'Neural field must distinguish contrast from quarantine/promotion state.');
+assert.ok(neuralRootUi.includes('historical observation remains unchanged'), 'Promotion must never imply rewriting historical observation.');
 assert.ok(methodLabReadModel.includes('readMethodLabFieldMethodResults'), 'ROOT field must have a server-owned reader for persisted Method Lab results.');
 assert.ok(methodLabReadModel.includes('projectMethodLabMethodResult'), 'Persisted runs must pass the Method Lab result contract before ROOT projection.');
 assert.ok(rootScene.includes('readMethodLabFieldMethodResults'), 'ROOT must consume persisted Method Lab results without duplicating persistence.');
 assert.ok(rootScene.includes('methodResult: methodResults.get(node.nodeId) ?? null'), 'ROOT nodes must expose a bounded method-result reading when one exists.');
-assert.ok(rootUi.includes('METHOD → WORLD') && rootUi.includes('NO PERSISTED METHOD RESULT'), 'Neural field must distinguish executed method results from absent execution and expose the WORLD/RETURN transition.');
+assert.ok(neuralRootUi.includes('METHOD → WORLD') && rootUi.includes('NO PERSISTED METHOD RESULT'), 'Neural field must distinguish executed method results from absent execution and expose the WORLD/RETURN transition.');
 
 const experimentPersistence = read('src/lib/method-lab/experimentPersistence.ts');
 for (const token of [
