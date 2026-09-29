@@ -69,6 +69,49 @@ export function PublicEntryGateway(){
     });
   },[sceneIndex]);
 
+  useEffect(()=>{
+    const onWheel=(event:WheelEvent)=>{
+      if(wheelLock.current)return;
+      const horizontal=event.shiftKey||Math.abs(event.deltaX)>Math.abs(event.deltaY)*1.15;
+      if(horizontal&&scene.frames.length>1){
+        const delta=Math.abs(event.deltaX)>1?event.deltaX:event.deltaY;
+        const canMove=delta>0?frameIndex<scene.frames.length-1:frameIndex>0;
+        if(!canMove)return;
+        event.preventDefault();
+        wheelAccumulator.current+=delta;
+        if(Math.abs(wheelAccumulator.current)>42){
+          moveFrame(wheelAccumulator.current>0?1:-1);
+          wheelAccumulator.current=0;
+          wheelLock.current=true;
+          window.setTimeout(()=>{wheelLock.current=false;},360);
+        }
+        return;
+      }
+      const direction=event.deltaY>0?1:-1;
+      const canMove=direction>0?sceneIndex<SCENES.length-1:sceneIndex>0;
+      if(!canMove)return;
+      event.preventDefault();
+      wheelAccumulator.current+=event.deltaY;
+      if(Math.abs(wheelAccumulator.current)>68){
+        goScene(sceneIndex+direction);
+        wheelAccumulator.current=0;
+        wheelLock.current=true;
+        window.setTimeout(()=>{wheelLock.current=false;},620);
+      }
+    };
+    const onKey=(event:KeyboardEvent)=>{
+      if(event.key==='ArrowDown'||event.key==='PageDown'){if(sceneIndex<SCENES.length-1){event.preventDefault();goScene(sceneIndex+1);}}
+      else if(event.key==='ArrowUp'||event.key==='PageUp'){if(sceneIndex>0){event.preventDefault();goScene(sceneIndex-1);}}
+      else if(event.key==='ArrowRight'){event.preventDefault();moveFrame(1);}
+      else if(event.key==='ArrowLeft'){event.preventDefault();moveFrame(-1);}
+      else if(event.key==='Home'){event.preventDefault();goScene(0);}
+      else if(event.key==='End'){event.preventDefault();goScene(SCENES.length-1);}
+    };
+    window.addEventListener('wheel',onWheel,{passive:false});
+    window.addEventListener('keydown',onKey);
+    return()=>{window.removeEventListener('wheel',onWheel);window.removeEventListener('keydown',onKey);};
+  },[frameIndex,goScene,moveFrame,scene.frames.length,sceneIndex]);
+
 
   function handlePointerMove(event:PointerEvent<HTMLElement>){
     const node = rootRef.current;
