@@ -23,7 +23,7 @@ export function SfiPublicFooter({global=false}:{global?:boolean}){
     </div>
     <div className="sfiFooterLinks">
       <div><b>INSTITUTE</b><Link href="/institution">Institution</Link><Link href="/laboratory">Laboratory</Link><Link href="/observatory">Observatory</Link><Link href="/publications">Registry</Link></div>
-      <div><b>PUBLIC</b><Link href="/contact">Contact</Link><Link href="/privacy">Privacy</Link><Link href="/llms.txt">LLM orientation</Link><Link href="/ai-index.json">AI index</Link></div>
+      <div><b>PUBLIC</b><Link href="/contact">Contact</Link><Link href="/privacy">Privacy</Link><Link href="/terms">Terms of Use</Link><Link href="/accessibility">Accessibility</Link><Link href="/ai-policy">AI / Data Policy</Link></div>
     </div>
     <PublicNewsletterForm/>
     <div className="sfiFooterLegal">
