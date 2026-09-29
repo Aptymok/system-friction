@@ -10,6 +10,7 @@ import { AuthenticatedSfiMenu } from '@/components/sfi/AuthenticatedSfiMenu';
 import { deriveCanonicalFieldMethodSignal, planCanonicalUnknownResolution, resolveCanonicalFieldMethodology } from '@/lib/mihm/rootCaseMethodology';
 import { proposeMethodLabFieldProtocol, resolveMethodLabFieldProjection } from '@/lib/method-lab/fieldProjection';
 import { deriveEmpiricalCapacityEnvelope, deriveFieldScientificReading } from '@/lib/mihm/fieldScientificReading';
+import { deriveDistributedPhenomena, projectDistributedPhenomenaForRoot } from '@/lib/mihm/distributedPhenomena';
 import { readMethodLabFieldLearningStates, readMethodLabFieldMethodResults } from '@/lib/method-lab/readModel';
 
 export const dynamic = 'force-dynamic';
@@ -85,6 +86,8 @@ export default async function ScenePage({ params }:{ params:Promise<{scene:strin
       graph.nodes.map((node) => [node.nodeId, deriveFieldScientificReading(node, graph.edges)]),
     );
     const capacityEnvelope = deriveEmpiricalCapacityEnvelope(graph.nodes);
+    const distributedPhenomena = deriveDistributedPhenomena(graph.nodes, graph.edges);
+    const distributedPhenomenonProjection = projectDistributedPhenomenaForRoot(distributedPhenomena, graph.loadedAt);
 
     return (
       <main className="sfiOperatingShell sfiAuthenticatedViewport" data-root-primary-interface="CANONICAL_COGNITIVE_FIELD">
@@ -96,7 +99,8 @@ export default async function ScenePage({ params }:{ params:Promise<{scene:strin
             readPlane: graph.readPlane ?? 'UNAVAILABLE',
             primaryDiagnostic: graph.primaryDiagnostic ?? null,
             loadedAt: graph.loadedAt,
-            nodes: graph.nodes.map((node) => ({
+            nodes: [
+              ...graph.nodes.map((node) => ({
               id: node.nodeId,
               label: node.label,
               type: node.ontologyType,
@@ -114,7 +118,18 @@ export default async function ScenePage({ params }:{ params:Promise<{scene:strin
               methodResult: methodResults.get(node.nodeId) ?? null,
               learningState: learningStates.get(node.nodeId) ?? null,
             })),
-            edges: graph.edges.map((edge) => ({
+              ...distributedPhenomenonProjection.nodes.map((node) => ({
+                id: node.nodeId,
+                label: node.label,
+                type: node.ontologyType,
+                origin: node.origin,
+                provenance: node.provenance,
+                lineage: node.lineage,
+                attributes: node.attributes,
+              })),
+            ],
+            edges: [
+              ...graph.edges.map((edge) => ({
               id: edge.edgeId,
               source: edge.sourceNodeId,
               target: edge.targetNodeId,
@@ -126,6 +141,18 @@ export default async function ScenePage({ params }:{ params:Promise<{scene:strin
               attributes: edge.attributes,
               reality: realityEdges.get(edge.edgeId),
             })),
+              ...distributedPhenomenonProjection.edges.map((edge) => ({
+                id: edge.edgeId,
+                source: edge.sourceNodeId,
+                target: edge.targetNodeId,
+                relation: edge.relation,
+                weight: edge.weight,
+                origin: edge.origin,
+                provenance: edge.provenance,
+                lineage: edge.lineage,
+                attributes: edge.attributes,
+              })),
+            ],
             realityCoverage,
             capacityEnvelope,
             admission: graph.admission,
