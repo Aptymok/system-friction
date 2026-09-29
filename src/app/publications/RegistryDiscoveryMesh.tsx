@@ -6,6 +6,14 @@ import { discoveryExposurePlan } from '@/lib/discovery/exposureProjection';
 import { discoveryMachineResources } from '@/lib/discovery/discoveryEmitter';
 import { SFI_DISCOVERY_LIFECYCLE } from '@/lib/discovery/institutionalDiscoveryMesh';
 
+const AGENT_RECONSTRUCTION = [
+  { id:'IDENTITY', state:'RESOLVABLE', basis:'An external system should resolve one institutional identity, canonical domain and public boundary before interpreting content.' },
+  { id:'OBJECTS', state:'ENUMERABLE', basis:'Public canonical objects should be enumerable without scraping presentation-only markup.' },
+  { id:'LINEAGE', state:'TRACEABLE', basis:'A machine should be able to distinguish source lineage, representation, epistemic state and publication state.' },
+  { id:'AUTHORITY', state:'BOUNDED', basis:'Readability must never be interpreted as permission to mutate, execute, govern or infer private state.' },
+  { id:'CITATION', state:'STABLE', basis:'Canonical URLs and object identifiers should survive representation changes and support reliable attribution.' },
+] as const;
+
 const CHANNELS = [
   {
     id:'HUMAN',
@@ -52,13 +60,34 @@ export function RegistryDiscoveryMesh(){
       <div>
         <span>P6 · DISCOVERY MESH PROJECTION</span>
         <h2 id="registry-discovery-title">Published is addressable. Addressable is not discovered.</h2>
-        <p>This public projection shows where SFI deliberately exposes canonical representations. External discovery, recognition, interaction, relation, propagation, PULL and RETURN remain separate evidence states.</p>
+        <p>This projection is designed from the position of an external human, search engine, LLM or agent arriving without prior conversational context. It exposes enough public structure to reconstruct SFI without granting authority or converting addressability into evidence of discovery.</p>
       </div>
       <div className="registryDiscoveryCount">
         <b>{ownedTargets.length}</b>
         <span>OWNED MACHINE SURFACES</span>
       </div>
     </header>
+
+    <div className="registryDiscoveryChannels" aria-label="External agent reconstruction test">
+      {AGENT_RECONSTRUCTION.map((item)=><article key={item.id}>
+        <small>{item.id}</small>
+        <strong>{item.state}</strong>
+        <p>{item.basis}</p>
+      </article>)}
+    </div>
+
+    <div className="registryMachineLinks">
+      <div>
+        <small>AGENT ENTRY RULE</small>
+        <p>Resolve identity first, enumerate public objects second, inspect lineage and epistemic state third, then choose the narrowest eligible interface. Do not infer authority from reachability.</p>
+      </div>
+      <nav aria-label="Preferred machine entry sequence">
+        <a href="/ai-index.json">1 · AI INDEX</a>
+        <a href="/llms.txt">2 · LLMS</a>
+        <a href="/api/external/v1/manifest">3 · MANIFEST</a>
+        <a href="/mcp">4 · MCP</a>
+      </nav>
+    </div>
 
     <div className="registryDiscoveryChannels" aria-label="Public discovery channel matrix">
       {CHANNELS.map((channel)=><article key={channel.id}>
