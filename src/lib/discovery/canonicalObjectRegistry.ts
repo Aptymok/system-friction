@@ -405,7 +405,9 @@ function canonicalObservationPublication(publication: (typeof SFI_EDITORIAL_OBSE
     publicState: 'PUBLIC',
     license: 'CC BY 4.0',
     createdAt: publication.publishedAt,
-    updatedAt: '2026-09-12T15:00:00-06:00',
+    updatedAt: Date.parse(publication.publishedAt) > Date.parse('2026-09-12T15:00:00-06:00')
+      ? publication.publishedAt
+      : '2026-09-12T15:00:00-06:00',
     entity: {
       entityId: SFI_ENTITY_ID,
       relation: 'PUBLISHED_BY',
