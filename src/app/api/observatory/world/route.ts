@@ -38,10 +38,10 @@ export async function GET(){
     : null;
   const [observations,readings,hypotheses,outcomes,learning]=await Promise.all([
     db.from('world_source_observations').select('id,source_id,source_family,publisher,observation_kind,title,summary,observed_at,fetched_at,latitude,longitude,country_codes,affected_systems,actors,confidence,source_url,payload').gte('fetched_at',since).order('fetched_at',{ascending:false}).limit(LIMIT),
-    db.from('world_friction_readings').select('observation_id,systemic_friction,interaction_density,friction_gradient,systemic_coherence,tension,pain_map,field_drivers,permissions,trajectory,minimum_viable_perturbation,created_at').gte('created_at',since).order('created_at',{ascending:false}).limit(PUBLIC_RETURN_LIMIT),
+    db.from('world_friction_readings').select('observation_id,systemic_friction,interaction_density,friction_gradient,systemic_coherence,tension,pain_map,field_drivers,permissions,trajectory,minimum_viable_perturbation,created_at').gte('created_at',since).order('created_at',{ascending:false}).limit(LIMIT),
     db.from('world_hypotheses').select('id,phenomenon_key,graph_snapshot,cutoff_at,statement,predicted_trajectory,expected_signals,contradiction_signals,validation_starts_at,validation_ends_at,initial_confidence,current_confidence,evidence_ids,status,methodology_version,created_at').gte('cutoff_at',since).order('cutoff_at',{ascending:false}).limit(PUBLIC_HYPOTHESIS_LIMIT),
     db.from('world_hypothesis_outcomes').select('id,hypothesis_id,classification,observed_outcome,directional_accuracy,temporal_accuracy,actor_accuracy,mechanism_accuracy,source_coverage,evidence_ids,evaluator_version,evaluated_at').gte('evaluated_at',since).order('evaluated_at',{ascending:false}).limit(PUBLIC_RETURN_LIMIT),
-    db.from('world_learning_events').select('id,hypothesis_id,outcome_id,retained_assumptions,rejected_assumptions,missing_variables,graph_adjustments,confidence_before,confidence_after,created_at').gte('created_at',since).order('created_at',{ascending:false}).limit(LIMIT),
+    db.from('world_learning_events').select('id,hypothesis_id,outcome_id,retained_assumptions,rejected_assumptions,missing_variables,graph_adjustments,confidence_before,confidence_after,created_at').gte('created_at',since).order('created_at',{ascending:false}).limit(PUBLIC_RETURN_LIMIT),
   ]);
 
   let readPlane: 'SUPABASE' | 'NEON' = dataPlaneState && dataPlaneState.mode !== 'PRIMARY'
