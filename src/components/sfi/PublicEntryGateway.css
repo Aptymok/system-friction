@@ -43,7 +43,7 @@
   align-items:center;
   gap:13px;
   min-width:max-content;
-  font:500 9px/1 var(--mono);
+  font:500 11px/1.15 var(--mono);
   letter-spacing:.18em;
   color:#ddd3c1
 }
@@ -64,7 +64,7 @@
 }
 .sfiSceneChrome>nav a,
 .sfiSceneChromeActions{
-  font:500 8px/1 var(--mono);
+  font:500 10px/1.2 var(--mono);
   letter-spacing:.16em;
   color:#aaa091
 }
@@ -279,7 +279,7 @@
   align-items:center;
   gap:14px;
   margin-bottom:17px;
-  font:600 8px/1 var(--mono);
+  font:600 11px/1.2 var(--mono);
   letter-spacing:.22em;
   color:var(--gold)
 }
@@ -372,11 +372,11 @@
 }
 .sfiSceneInstruction span,
 .sfiSceneInstruction b{
-  font:500 7px/1.25 var(--mono);
+  font:600 11px/1.35 var(--mono);
   letter-spacing:.11em
 }
 .sfiSceneInstruction span{color:var(--gold)}
-.sfiSceneInstruction b{color:#82796d}
+.sfiSceneInstruction b{color:#b5aa9a}
 
 /* 01 — clean regenerated 404-derived opening. */
 .sfiScene--entry-world .sfiSceneGrid,
@@ -728,4 +728,14 @@
   .sfiScene--friction .sfiSceneLayer--1{width:62vw;right:-5vw;bottom:-1vh}
   .sfiScene--institution .sfiSceneLayer--1{width:122vw;right:-36vw;bottom:-3vh}
   .sfiScene--return .sfiSceneLayer--1{width:150vw;left:-20vw;bottom:-4vh}
+}
+
+/* Readability floor for secondary public-interface typography. */
+.sfiSceneInstruction{opacity:.78;gap:8px 14px}
+.sfiMachineLinks a{font-size:10px;line-height:1.2}
+@media(max-width:900px){
+  .sfiSceneBrand{font-size:11px;line-height:1.2}
+  .sfiSceneChrome>nav a,.sfiSceneChromeActions{font-size:10px;line-height:1.2}
+  .sfiSceneEyebrow,.sfiFieldState small,.sfiSceneActions a{font-size:11px;line-height:1.25}
+  .sfiSceneInstruction span,.sfiSceneInstruction b{font-size:12px;line-height:1.35}
 }
