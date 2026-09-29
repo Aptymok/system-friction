@@ -273,6 +273,27 @@ const methodLabCrons = (vercel.crons ?? []).filter((item) => item.path?.includes
 assert.equal(methodLabCrons.length, 0, 'Method Lab convergence must not own or add Vercel cron jobs.');
 assert.equal(vercel.crons?.filter((item) => item.path === '/api/cron/continuity-report').length, 1, 'Existing continuity cron must remain singular.');
 
+const spineSources = read('src/lib/institution/cognitiveSpineAdditionalSources.ts');
+for (const token of [
+  'projectPromotedLearningForReentry',
+  "promotionState) !== 'PROMOTED'",
+  "classification) !== 'CALIBRATED_RETURN'",
+  "assessmentClass) !== 'VERIFIED_CONTRAST'",
+  'reentersFutureSnapshots: records.length > 0',
+  'mutatesHistoricalObservation: false',
+]) assert.ok(spineSources.includes(token), `method_lab_learning_reentry_missing:${token}`);
+
+const endToEndChain = [
+  'experiment_preregistration',
+  'experiment_run:',
+  'experiment_return_contrast',
+  'recordUniversalLearningCandidate',
+  'SFI_UNIVERSAL_LEARNING_PROMOTED',
+  'projectPromotedLearningForReentry',
+];
+const endToEndSources = [experimentPersistence, methodLabReadModel, quarantine, spineSources].join('\n');
+for (const token of endToEndChain) assert.ok(endToEndSources.includes(token), `method_lab_end_to_end_chain_missing:${token}`);
+
 console.log(JSON.stringify({
   ok: true,
   gates: ['SFI-METHOD-LAB-EXPERIMENT-CONTRACT-1.0'],
