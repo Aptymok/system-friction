@@ -86,7 +86,7 @@ assert.ok(observatoryUi.includes('DERIVED METRICS') && observatoryUi.includes('C
 assert.ok(operatingUi.includes('SfiGovernanceWorkspace'), 'governance_scene_must_delegate_to_canonical_workspace');
 assert.ok(governanceUi.includes("jsonFetch('/api/root/interactive?surface=governance')") && governanceUi.includes('includeTargets=1'), 'governance_runtime_must_use_deferred_interactive_projection');
 assert.ok(interactiveApi.includes('targetHydrationDeferred: true') && interactiveApi.includes('separateProposalListRead: false'), 'governance projection must remain singular and defer heavy targets');
-assert.ok(governanceUi.includes('AGENTES') && governanceUi.includes('/api/root/cognitive-runtime/records?agentId='), 'governance_must_surface_selected_agent_runtime_without_duplicate_base_runtime_read');
+assert.ok(governanceUi.includes('AGENTS · PASSPORT') && governanceUi.includes('/api/root/cognitive-runtime/records?agentId='), 'governance_must_surface_selected_agent_runtime_without_duplicate_base_runtime_read');
 assert.doesNotMatch(governanceUi,/setInterval\(/,'governance_must_not_poll');
 assert.doesNotMatch(operatingUi,/setInterval\(/,'operating_workspace_must_not_poll');
 assert.ok(operatingUi.includes("surface==='twin'") && operatingUi.includes('CognitiveSpineAnatomy'), 'cognitive_twin_operating_surface_missing');

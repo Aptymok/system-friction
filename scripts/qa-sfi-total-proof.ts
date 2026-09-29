@@ -34,7 +34,7 @@ assert.ok(operatingUi.includes('/api/root/interactive?surface=') && operatingUi.
 assert.ok(interactiveApi.includes('readInteractiveOperationalNext') && interactiveApi.includes('duplicateBaseHttpReads: 0'), 'interactive_readiness_projection_must_be_bounded_and_nonduplicated');
 assert.ok(interactiveApi.includes('targetHydrationDeferred: true') && interactiveApi.includes("includeTargets') === '1'"), 'governance_targets_must_be_deferred_until_requested');
 assert.ok(operatingUi.includes('SfiGovernanceWorkspace'), 'governance_delegation_missing');
-assert.ok(governanceUi.includes("jsonFetch('/api/root/interactive?surface=governance')") && governanceUi.includes('/api/root/cognitive-runtime/records?agentId=') && governanceUi.includes('AGENTES'), 'live_runtime_telemetry_missing');
+assert.ok(governanceUi.includes("jsonFetch('/api/root/interactive?surface=governance')") && governanceUi.includes('/api/root/cognitive-runtime/records?agentId=') && governanceUi.includes('AGENTS · PASSPORT'), 'live_runtime_telemetry_missing');
 assert.ok(governanceUi.includes('HIDRATACIÓN DIFERIDA') && governanceUi.includes('includeTargets=1'), 'governance_selective_hydration_missing');
 assert.doesNotMatch(governanceUi,/setInterval\(/,'governance_ui_must_not_poll');
 assert.doesNotMatch(operatingUi,/setInterval\(/,'operating_ui_must_not_poll');
