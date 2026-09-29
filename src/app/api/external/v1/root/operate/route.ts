@@ -98,6 +98,33 @@ function clampReportLimit(value: unknown) {
   return Math.max(1, Math.min(240, Math.floor(parsed)));
 }
 
+async function readRootControlPlane(service: ReturnType<typeof createServiceSupabaseClient>) {
+  const safe = async (table:string, select:string, limit=80) => {
+    const r=await service.from(table).select(select).order('created_at',{ascending:false}).limit(limit);
+    return {available:!r.error, rows:r.data??[], error:r.error?.message??null};
+  };
+  const [proposals,founderRules,hypotheses,outcomes,learning,cases,health,incidents,commercialProposals,commercialOpportunities]=await Promise.all([
+    safe('action_proposals','id,proposal_type,title,description,status,expected_field_delta,proportionality_check,outcome,created_at',120),
+    safe('sfi_cognitive_twin_decisions','id,decision_id,situation,rejected_condition,correct_state,general_rule,required_evidence,evidence_refs,status,decision_kind,created_at,updated_at',100),
+    safe('world_hypotheses','id,phenomenon_key,statement,status,current_confidence,validation_starts_at,validation_ends_at,created_at',80),
+    safe('world_hypothesis_outcomes','id,hypothesis_id,classification,observed_outcome,evidence_ids,evaluated_at,created_at',80),
+    safe('world_learning_events','id,hypothesis_id,outcome_id,retained_assumptions,rejected_assumptions,missing_variables,graph_adjustments,confidence_before,confidence_after,created_at',80),
+    safe('sfi_cases','id,subject,scope,status,uncertainty,governance,created_at,updated_at,closed_at',80),
+    safe('sfi_capability_health_checks','*',80),
+    safe('sfi_institutional_incidents','*',80),
+    safe('commercial_proposals','*',80),
+    safe('commercial_opportunities','*',80),
+  ]);
+  return {generatedAt:new Date().toISOString(),proposals,founderRules,world:{hypotheses,outcomes,learning},cases,health,incidents,commercial:{proposals:commercialProposals,opportunities:commercialOpportunities},boundaries:{observationDoesNotEqualEvidence:true,simulationDoesNotEqualReturn:true,reportDoesNotEqualAuthority:true,rootDoesNotRewriteHistory:true}};
+}
+
+async function readRootPending(service: ReturnType<typeof createServiceSupabaseClient>) {
+ const state=await readRootControlPlane(service);
+ const pendingProposals=(state.proposals.rows as Record<string,unknown>[]).filter(r=>['proposed','conflicted','pending'].includes(String(r.status??'').toLowerCase()));
+ const pendingRules=(state.founderRules.rows as Record<string,unknown>[]).filter(r=>String(r.status??'').toUpperCase()==='CANDIDATE');
+ return {generatedAt:state.generatedAt,proposals:pendingProposals,founderRules:pendingRules,nextStep:'Use governance:decide for sovereign proposal decisions; operational work remains outside the sovereign queue.'};
+}
+
 async function listInstitutionalAccounts(service: ReturnType<typeof createServiceSupabaseClient>) {
   const read = await service
     .from('sfi_account_access_grants')
@@ -317,6 +344,9 @@ export async function POST(req: Request) {
         { id: 'reports', effect: 'READ', description: 'Read normalized ROOT report inbox and report health.' },
         { id: 'accounts_list', effect: 'READ', description: 'List ROOT-administered institutional account access grants.' },
         { id: 'account_invite', effect: 'EXTERNAL_REVERSIBLE', description: 'Send one institutional account invitation without granting sovereign authority.' },
+        { id: 'pending', effect: 'READ', description: 'Read sovereign pending proposals and founder-rule candidates with next-step boundary.' },
+        { id: 'sfi_state', effect: 'READ', description: 'Read one bounded cross-institution control-plane projection: WORLD hypotheses/outcomes/learning, Cases, health, incidents and commercial state.' },
+        { id: 'capability_map', effect: 'READ', description: 'Describe the canonical surfaces ROOT can orchestrate without duplicating their authority.' },
       ],
       existingMachineAuthority: {
         governanceDecision: 'decideSfiGovernanceProposal',
@@ -327,8 +357,45 @@ export async function POST(req: Request) {
         cognitiveExecution: 'invoke_cognitive_capability (ACTIVE grant + possession proof required)',
         studio: 'separate SFI Studio MCP',
       },
+      rootControlPlane: {
+        accounts: 'root:operate',
+        pending: 'root:operate read + governance:decide mutation',
+        institution: 'root:operate sfi_state + observe/read surfaces',
+        registryPublications: 'canonical publication/registry services; mutation adapter pending',
+        reports: 'root:operate reports',
+        methodLab: 'operateSfiLab',
+        agents: 'cognitive-runtime + invoke_cognitive_capability',
+        health: 'root:operate sfi_state health + canonical QA/CI surfaces',
+        commercial: 'root:operate sfi_state commercial + commercial service',
+        studio: 'separate owner-bound Studio MCP',
+        jr: 'RETURN/contrast/learning projection; dedicated JR mutation contract pending',
+      },
       boundary: 'root:operate adds founder-only ROOT administration. It does not replace governance:decide, bypass capability grants, create arbitrary URL access, mint canon, or grant ROOT to another account.',
     }, { headers: { 'Cache-Control': 'no-store' } });
+  }
+
+  if (operation === 'capability_map') {
+    return NextResponse.json({ok:true,operation,controlPlane:{
+      accounts:{read:'root:operate/accounts_list',invite:'root:operate/account_invite'},
+      pending:{read:'root:operate/pending',decide:'governance:decide'},
+      institution:{read:'root:operate/sfi_state'},
+      reports:{read:'root:operate/reports'},
+      lab:{delegate:'operateSfiLab'},
+      agents:{delegate:'cognitive-runtime/invoke_cognitive_capability'},
+      studio:{delegate:'SFI Studio MCP'},
+      registry:{status:'READ_AVAILABLE_MUTATION_ADAPTER_PENDING'},
+      health:{read:'root:operate/sfi_state.health',execution:'CANONICAL_QA_ADAPTER_PENDING'},
+      commercial:{read:'root:operate/sfi_state.commercial'},
+      jr:{readSources:['proposal RETURN','world outcomes','world learning events'],status:'DEDICATED_JR_CONTRACT_PENDING'}
+    }},{headers:{'Cache-Control':'no-store'}});
+  }
+
+  if (operation === 'pending') {
+    return NextResponse.json({ok:true,operation,pending:await readRootPending(root.service)},{headers:{'Cache-Control':'no-store'}});
+  }
+
+  if (operation === 'sfi_state') {
+    return NextResponse.json({ok:true,operation,state:await readRootControlPlane(root.service)},{headers:{'Cache-Control':'no-store'}});
   }
 
   if (operation === 'reports') {
@@ -381,6 +448,6 @@ export async function POST(req: Request) {
   return NextResponse.json({
     ok: false,
     error: 'unsupported_root_operation',
-    allowed: ['capabilities', 'reports', 'accounts_list', 'account_invite'],
+    allowed: ['capabilities','capability_map','pending','sfi_state','reports','accounts_list','account_invite'],
   }, { status: 400 });
 }
