@@ -110,6 +110,64 @@ export async function persistMethodLabExperimentPreregistration(input: {
   };
 }
 
+export function methodLabReturnId(runId: string) {
+  return `method-lab:return:${runId}`;
+}
+
+export async function persistMethodLabRealityReturn(input: {
+  experimentId: string;
+  runId: string;
+  ownerId: string;
+  realityReturn: NonNullable<MethodLabExperimentRun['artifacts']['CONTRAST']['realityReturn']>;
+  contrastPayload: Record<string, unknown>;
+}) {
+  const ownerId = input.ownerId.trim();
+  if (!ownerId) throw new Error('METHOD_LAB_RETURN_OWNER_REQUIRED');
+  const prereg = await readOwnedMethodLabExperimentPreregistration({ experimentId: input.experimentId, ownerId });
+  const runRef = methodLabRunId(input.runId.trim());
+  const db = createServiceSupabaseClient();
+  const found = await db.from('sfi_lab_analyses').select('id,owner_id,source,raw_analysis').eq('id', runRef).eq('owner_id', ownerId).maybeSingle();
+  if (found.error) throw new Error(`METHOD_LAB_RETURN_RUN_READ_FAILED:${found.error.message}`);
+  if (!found.data) throw new Error('METHOD_LAB_RETURN_RUN_OWNER_SCOPE_REQUIRED');
+  if (String(found.data.source ?? '') !== prereg.preregistrationRef) throw new Error('METHOD_LAB_RETURN_PREREGISTRATION_REF_MISMATCH');
+  const raw = record(found.data.raw_analysis);
+  const original = assertMethodLabExperimentRun(prereg.preregistration, record(raw.run) as MethodLabExperimentRun);
+  if (original.artifacts.EXECUTED.runId !== input.runId) throw new Error('METHOD_LAB_RETURN_RUN_ID_MISMATCH');
+  if (original.artifacts.CONTRAST.status !== 'PENDING_RETURN') throw new Error('METHOD_LAB_RETURN_RUN_NOT_PENDING');
+  const contrasted: MethodLabExperimentRun = {
+    ...original,
+    artifacts: {
+      ...original.artifacts,
+      CONTRAST: { status: 'AVAILABLE', payload: input.contrastPayload, realityReturn: input.realityReturn },
+    },
+  };
+  const checked = assertMethodLabExperimentRun(prereg.preregistration, contrasted);
+  const analysisId = methodLabReturnId(input.runId);
+  const persisted = await db.from('sfi_lab_analyses').insert({
+    id: analysisId,
+    owner_id: ownerId,
+    mode: 'experiment_return_contrast',
+    source: runRef,
+    data_mode: 'OBSERVED',
+    systems: [prereg.preregistration.POPULATION_SYSTEM.ref],
+    variables: prereg.preregistration.EXPECTED_SIGNAL.measures,
+    recommendations: [],
+    limitations: checked.artifacts.LIMITATIONS,
+    raw_analysis: {
+      phase: 'CONTRAST_AVAILABLE',
+      contractVersion: METHOD_LAB_EXPERIMENT_CONTRACT_VERSION,
+      preregistrationRef: prereg.preregistrationRef,
+      sourceRunRef: runRef,
+      sourceResultHash: original.artifacts.RESULT.resultHash,
+      run: checked,
+      canonicalMutation: false,
+      returnBoundary: 'OBSERVED RETURN is appended as a new immutable contrast record; the executed run is never rewritten.',
+    },
+  }).select('id,created_at').single();
+  if (persisted.error || !persisted.data?.id) throw new Error(`METHOD_LAB_RETURN_PERSIST_FAILED:${persisted.error?.message ?? 'unknown'}`);
+  return { ok: true as const, analysisId: String(persisted.data.id), runId: input.runId, sourceRunRef: runRef, resultHash: original.artifacts.RESULT.resultHash, createdAt: String(persisted.data.created_at ?? input.realityReturn.observedAt) };
+}
+
 export async function persistMethodLabExperimentRun(input: {
   preregistration: MethodLabExperimentPreregistration;
   run: MethodLabExperimentRun;
