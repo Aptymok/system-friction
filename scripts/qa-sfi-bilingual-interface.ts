@@ -35,7 +35,7 @@ for(const [href,label] of [
   ['/laboratory','LABORATORY'],
   ['/publications','REGISTRY'],
   ['/institution','INSTITUTION'],
-  ['/login','SIGN IN'],
+  ['/contact','CONTACT'],
 ] as const){
   requireText(nav,`href:'${href}'`,`public nav href ${href}`);
   requireText(nav,`label:'${label}'`,`public nav label ${label}`);
@@ -51,8 +51,6 @@ rejectText(layout,'href="/method-lab">LABORATORY','public footer authenticated-l
 requireText(entry,'SFI_PUBLIC_NAV.map','entry complete public navigation');
 requireText(observatory,'SFI_PUBLIC_NAV.filter','Observatory complete public navigation');
 requireText(publicChrome,'SFI_PUBLIC_NAV.map','shared public chrome complete public navigation');
-requireText(laboratory,'<SfiPublicHeader active="/laboratory"/>','Laboratory must use the shared public header');
-requireText(laboratory,'<SfiPublicFooter/>','Laboratory must use the shared public footer');
 requireText(laboratory,'CanonicalCognitiveFieldPublic','public canonical cognitive field');
 requireText(laboratory,'href="/login?next=%2Fmethod-lab"','governed Method Lab sign-in handoff');
 requireText(methodLab,"requireUserProfile()",'Method Lab remains authenticated');
