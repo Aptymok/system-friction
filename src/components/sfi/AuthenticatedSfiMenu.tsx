@@ -23,7 +23,7 @@ export function AuthenticatedSfiMenu(){
   const [open,setOpen]=useState(false);
   return <div className="sfiDiamondNavigation" data-sfi-auth-navigation="DIAMOND-1.0">
     <button className="sfiDiamondTrigger" type="button" aria-label="Open SFI navigation" aria-expanded={open} onClick={()=>setOpen(v=>!v)}>
-      <img src="/identity/sfi-canonical-diamond.svg" alt="" aria-hidden="true"/>
+      <img src="/library/assets/sfi-mark.svg" alt="" aria-hidden="true"/>
     </button>
     {open?<nav className="sfiDiamondMenu" aria-label="SFI authenticated navigation">
       {ITEMS.map((item)=><Link key={item.label} href={item.href} onClick={()=>setOpen(false)}>{item.label}</Link>)}
