@@ -65,8 +65,9 @@
 
 /* SFI institutional chrome v2 — one public menu and one footer on every route. */
 .sfiGlobalHeader{position:sticky;top:0;z-index:1000}
-.sfiPageContent>.sfiPublicTopbar,.sfiPageContent .sfiPublicFooter{display:none!important}
-.sfiPageContent .sfiSceneChrome,.sfiPageContent .obsTop,.sfiPageContent .mluHeader,.sfiPageContent .twinLearningTop,.sfiPageContent .newCaseTop{display:none!important}
+.sfiPageContent .sfiPublicTopbar,.sfiPageContent .sfiPublicFooter{display:none!important}
+.sfiPageContent .sfiSceneChrome,.sfiPageContent .obsTop,.sfiPageContent .mluHeader,.sfiPageContent .twinLearningTop,.sfiPageContent .newCaseTop,.sfiPageContent .libraryTop{display:none!important}
+.sfiPageContent .obsReportsNav{display:none!important}
 .sfiPublicBrand{gap:10px}.sfiPublicBrand>img{width:34px;height:34px;display:block}.sfiPublicBrandText{display:flex;align-items:baseline;gap:10px}.sfiPublicBrandText>strong{color:var(--sfi-gold);font:500 24px/1 var(--sfi-display)}.sfiPublicBrandText>span{font:600 10px/1 var(--sfi-trace);letter-spacing:.17em;color:#d7d0c4}
 .sfiPublicTopbar{min-height:68px;grid-template-columns:auto minmax(0,1fr) auto;padding:12px var(--sfi-page-gutter)}
 .sfiPublicTopbar nav{min-width:0;overflow-x:auto;scrollbar-width:none}.sfiPublicTopbar nav::-webkit-scrollbar{display:none}
