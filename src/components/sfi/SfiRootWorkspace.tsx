@@ -142,12 +142,6 @@ export function SfiRootWorkspace({ enabled, decisionOnly = false }: { enabled: b
   const reportLanes = rows(reportArchive?.health?.lanes);
 
   const decisionSurface = (
-    {decisionSurface}ses.length)}</b><small>Observed; not approved.</small></article><article data-epistemic-state={readState}><span>Open cycles</span><b>{pulseValue(cycles.length)}</b><small>May close autonomously.</small></article><article data-epistemic-state={readState}><span>Observable work</span><b>{pulseValue(observable.length)}</b><small>SFI continues within its authority.</small></article></section>
-
-    <section className="rootRule"><strong>SFI OPERATES WITHOUT ASKING PERMISSION.</strong><span>OBSERVATION ≠ INFERENCE · SIMULATION ≠ OBSERVATION · operating ≠ governing · closing ≠ learning · evidence ≠ approval · report ≠ decision.</span></section>
-
-    <SfiFriccionautaPanel />
-
     <div className="rootDecisionLayout">
       <aside className="rootDecisionQueue"><header><div><span>DECISIONS THAT REQUIRE ROOT</span><b>{base ? actionable.length : 'MISSING'}</b></div></header>{actionable.map((item) => <Link key={item.id} href={`/root?decision=${encodeURIComponent(String(item.id))}`} className={`rootDecisionCard ${selectedId === item.id ? 'selected' : ''}`}><div><State value={item.rootDecisionClass ?? item.decisionClass}/><State value={item.riskLevel}/></div><strong>{txt(item.title, 'Institutional change')}</strong><p>{txt(item.actionability?.question, 'Open the dossier to understand what would change and why.')}</p><small>Open decision →</small></Link>)}{base && !actionable.length && <div className="rootEmpty">No institutional changes are waiting for your decision.</div>}{!base && <div className="rootEmpty">{readState} · zero is not projected until the read contract is observed.</div>}{!!observable.length && <details className="rootObservable"><summary>Work SFI is resolving · {observable.length}</summary>{observable.slice(0, 80).map((item) => <article key={item.id}><strong>{txt(item.title, 'Operational work')}</strong><p>{txt(item.actionability?.question, 'SFI continues within existing authority.')}</p></article>)}</details>}</aside>
 
@@ -161,6 +155,28 @@ export function SfiRootWorkspace({ enabled, decisionOnly = false }: { enabled: b
         </article>}
       </main>
     </div>
+  );
+
+  if (decisionOnly) return <section className="rootWorkspace rootDecisionEmbedded" data-root-decision-interface="SFI-ROOT-SOVEREIGN-DECISION-1.0">
+    {(error || notice) && <div className={`rootToast ${error ? 'error' : ''}`}><span>{error || notice}</span><button onClick={() => { setError(null); setNotice(null); }}>×</button></div>}
+    <header className="rootDecisionEmbeddedHeader"><span>SOVEREIGN DECISIONS · ROOT</span><strong>{base ? actionable.length : 'MISSING'}</strong><small>Only authority-bound changes appear here. Observation and routine execution continue autonomously.</small></header>
+    {decisionSurface}
+  </section>;
+
+  return <div className="rootWorkspace" data-root-visual-contract="SFI-ROOT-VISUAL-2.0" data-root-module-count="dynamic">
+    {(error || notice) && <div className={`rootToast ${error ? 'error' : ''}`}><span>{error || notice}</span><button onClick={() => { setError(null); setNotice(null); }}>×</button></div>}
+
+    <InstitutionalSurfaceRail surface="ROOT" state={readState} detail={lastReadAt ? 'LAST READ '+when(lastReadAt) : 'AWAITING FIRST READ'}/>
+
+    <header className="rootHeader"><div className="rootHeaderCopy"><span>ROOT · INSTITUTIONAL SOVEREIGNTY · AUTHORITY / OBSERVATION / RETURN</span><h1>Decide what is sovereign. Observe and read the rest.</h1><p>SFI operates, searches for evidence, executes already-authorized capabilities, records RETURN and closes routine work without asking permission. ROOT intervenes when a real authority decision exists and retains complete visibility over reports, cases, learning and RETURN.</p></div><div className="rootReadState"><span>READ STATE</span><b>{lastReadAt ? `${readState} · ${when(lastReadAt)}` : `${readState} · waiting for first observation`}</b><button onClick={() => void loadBase(true)}>Refresh</button></div></header>
+
+    <section className="rootPulse" aria-label="Observable institutional state"><article data-epistemic-state={readState}><span>ROOT decisions</span><b>{pulseValue(actionable.length)}</b><small>Sovereign changes only.</small></article><article data-epistemic-state={readState}><span>Active cases</span><b>{pulseValue(activeCases.length)}</b><small>Observed; not approved.</small></article><article data-epistemic-state={readState}><span>Open cycles</span><b>{pulseValue(cycles.length)}</b><small>May close autonomously.</small></article><article data-epistemic-state={readState}><span>Observable work</span><b>{pulseValue(observable.length)}</b><small>SFI continues within its authority.</small></article></section>
+
+    <section className="rootRule"><strong>SFI OPERATES WITHOUT ASKING PERMISSION.</strong><span>OBSERVATION ≠ INFERENCE · SIMULATION ≠ OBSERVATION · operating ≠ governing · closing ≠ learning · evidence ≠ approval · report ≠ decision.</span></section>
+
+    <SfiFriccionautaPanel />
+
+    {decisionSurface}
 
     <details className="rootReports" onToggle={(event) => { if (event.currentTarget.open) void loadReportArchive(false); }}>
       <summary>REPORTS · OBSERVATIONS · HYPOTHESES · LEARNING · RETURN</summary>
