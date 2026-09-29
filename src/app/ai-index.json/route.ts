@@ -18,14 +18,17 @@ export async function GET() {
   return Response.json({
     name: 'System Friction Institute',
     canonical_hub: baseUrl,
-    architecture: 'SFI Live Scene Runtime v2',
+    architecture: 'SFI Institutional Surface Runtime v3',
     purpose: 'Longitudinal observation, evidence handling, falsification, governance and governed action across complex sociotechnical systems.',
-    interface_model: 'Live observable scenes. Data is rendered on or around the observed object instead of being reduced to dashboard cards.',
+    interface_model: 'One institutional public chrome spans bounded human surfaces; machine representations and governed operational interfaces remain separate layers.',
     start_here: {
       human: [
         `${baseUrl}/`,
         `${baseUrl}/observatory`,
+        `${baseUrl}/laboratory`,
         `${baseUrl}/publications`,
+        `${baseUrl}/institution`,
+        `${baseUrl}/contact`,
         `${baseUrl}/login`,
       ],
       agent: [
