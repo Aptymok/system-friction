@@ -339,7 +339,7 @@ export const SFI_OBSERVATION_T_MINUS_9 = indexedObservation({
   observationKind: 'INSTITUTIONAL',
   title: 'T-9 minutos: IA, instituciones y fricción',
   subtitle: 'Una ventana de decisión observada antes de que el sistema cierre sobre una respuesta.',
-  publishedAt: '2026-09-12T00:00:00-06:00',
+  publishedAt: '2026-09-10T00:00:00-06:00',
   mediumUrl: 'https://medium.com/@systemfriction/t-9-minutos-ia-instituciones-y-fricci%C3%B3n-ec8ca0edf4f4',
 });
 
@@ -353,12 +353,12 @@ export const SFI_OBSERVATION_T_PLUS_72: SfiEditorialPublication = Object.freeze(
   language: 'es',
   series: 'SFI · Observaciones',
   issue: 'TRAJECTORY',
-  title: 'T+72 horas: la señal no era la canción',
+  title: 'La señal no era la canción',
   subtitle: 'KXTXR, REM618, 111 y QUE NO: lo que aparece cuando una obra puede ser observada antes, durante y después de entrar al mundo',
   motto: 'Observar · Contrastar · Retornar',
   deck: 'Una canción puede desaparecer de una plataforma y continuar modificando otra cosa. Esta observación sigue la distancia entre publicación, señal, memoria, cuerpo y RETURN sin confundir visibilidad con permanencia.',
-  publishedAt: '2026-09-12T00:00:00-06:00',
-  mediumUrl: null,
+  publishedAt: '2026-09-14T00:00:00-06:00',
+  mediumUrl: 'https://medium.com/@systemfriction/kxtxr-observar-una-obra-antes-durante-y-despu%C3%A9s-de-entrar-al-mundo-715d459ba969',
   coverImage: null,
   visuals: Object.freeze([]),
   contentState: 'MATERIALIZED',
@@ -785,6 +785,18 @@ export const SFI_EDITORIAL_FRICTION_BRIEFS: readonly SfiEditorialPublication[] =
   SFI_YEARS_THAT_DID_EXIST_LAB_NOTE,
 ]);
 
+
+export const SFI_OBSERVATION_JR_POTENTIAL = indexedObservation({
+  canonicalId: 'SFI-PUB-OBS-014',
+  slug: 'yo-creo-que-no-yo-se-que-no',
+  observationKind: 'INSTITUTIONAL',
+  title: 'YO CREO QUE NO. YO SÉ QUE NO.',
+  subtitle: 'Notas sobre JR., el futuro que todavía no podemos querer y la última agencia que SFI no sabía que tenía que proteger.',
+  publishedAt: '2026-09-29T00:00:00-06:00',
+  mediumUrl: 'https://medium.com/@systemfriction/yo-creo-que-no-yo-s%C3%A9-que-no-03e8774b212f',
+  deck: 'A longitudinal observation about potential, agency, irreversibility and JR. The publication explicitly states that JR. does not yet exist as the complete system described; it records the conceptual boundary rather than claiming an implemented capability.',
+});
+
 export const SFI_EDITORIAL_OBSERVATIONS: readonly SfiEditorialPublication[] = Object.freeze([
   SFI_OBSERVATION_CRISIS_STATE,
   SFI_OBSERVATION_SIGNAL_NAMING,
@@ -799,6 +811,7 @@ export const SFI_EDITORIAL_OBSERVATIONS: readonly SfiEditorialPublication[] = Ob
   SFI_OBSERVATION_T_MINUS_9,
   SFI_OBSERVATION_T_PLUS_72,
   SFI_OBSERVATION_KAVAK,
+  SFI_OBSERVATION_JR_POTENTIAL,
 ]);
 
 export const SFI_EDITORIAL_PUBLICATIONS: readonly SfiEditorialPublication[] = Object.freeze([
