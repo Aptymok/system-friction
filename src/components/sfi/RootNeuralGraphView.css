@@ -276,3 +276,31 @@
   .neuralGraphBoundary{align-items:flex-start;flex-direction:column;gap:4px}
   .neuralGraphCanvas,.neuralGraphCanvas svg{min-height:520px}
 }
+
+
+/* ROOT field mode: the field is the interface; diagnostics remain outside the primary surface. */
+.rootFieldMode{min-height:100svh;padding:0!important;overflow:hidden;background:radial-gradient(circle at 50% 42%,rgba(200,169,81,.055),transparent 42%),#080909;color:#d8d4cc}
+.rootFieldIdentity{position:fixed;z-index:20;top:18px;left:22px;right:22px;display:flex;gap:18px;align-items:center;pointer-events:none;font-size:10px;letter-spacing:.12em;text-transform:uppercase}
+.rootFieldIdentity strong{margin-right:auto;font-weight:500;letter-spacing:.2em}
+.rootFieldStage{position:relative;width:100vw;height:100svh;overflow:hidden}
+.rootCognitivePixi{position:absolute;inset:0}
+.rootFieldControls{position:absolute;z-index:12;left:50%;bottom:22px;transform:translateX(-50%);display:flex;gap:6px;padding:6px;border:1px solid rgba(255,255,255,.09);background:rgba(8,9,9,.72);backdrop-filter:blur(18px);border-radius:999px}
+.rootFieldControls select,.rootFieldControls input{min-width:130px;border:0;background:transparent;color:#c9c4bb;padding:8px 12px;font:10px/1.2 Helvetica,Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase;outline:none}
+.rootFieldControls input{min-width:180px;text-transform:none}
+.rootFieldLegend{position:absolute;z-index:10;left:22px;bottom:24px;display:flex;flex-direction:column;gap:4px;font:9px/1.3 Helvetica,Arial,sans-serif;letter-spacing:.09em;text-transform:uppercase;color:rgba(216,212,204,.46);pointer-events:none}
+.rootFieldEmpty{position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center;font:11px/1.6 Helvetica,Arial,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:rgba(216,212,204,.5);pointer-events:none}
+.rootFieldHub{position:absolute;z-index:18;right:20px;top:56px;bottom:24px;width:min(390px,calc(100vw - 40px));overflow:auto;padding:24px;border:1px solid rgba(255,255,255,.1);background:rgba(10,11,11,.84);backdrop-filter:blur(24px);box-shadow:0 24px 80px rgba(0,0,0,.42)}
+.rootFieldHubClose{position:absolute;right:12px;top:10px;border:0;background:none;color:#d8d4cc;font-size:24px;cursor:pointer}
+.rootFieldHubKicker{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#9b958b}
+.rootFieldHub h2{margin:10px 30px 8px 0;font:400 25px/1.05 Helvetica,Arial,sans-serif}
+.rootFieldHub>p{color:#918b82;font-size:11px;line-height:1.5}
+.rootFieldHubGrid{display:grid;grid-template-columns:1fr 1fr;gap:1px;margin:20px 0;background:rgba(255,255,255,.06)}
+.rootFieldHubGrid span{display:flex;flex-direction:column;gap:6px;padding:12px;background:#0b0c0c;font-size:8px;letter-spacing:.1em}
+.rootFieldHubGrid strong{font-size:10px;font-weight:500;letter-spacing:.03em}
+.rootFieldRelations{display:flex;flex-direction:column;margin-top:16px}
+.rootFieldRelations button{display:grid;grid-template-columns:1fr auto;gap:4px;text-align:left;padding:10px 0;border:0;border-top:1px solid rgba(255,255,255,.07);background:none;color:#cbc6bd;cursor:pointer}
+.rootFieldRelations button small{grid-column:1/-1;color:#7f7a72}.rootFieldRelations button strong{font-weight:400}.rootFieldRelations button em{font-style:normal;color:#8d877d}
+.rootFieldHub details{margin-top:16px}.rootFieldHub code{display:block;margin-top:6px;white-space:normal;color:#8f8a82;font-size:9px}
+.rootFieldAuthority{position:fixed;z-index:17;right:22px;bottom:22px;max-width:520px;background:rgba(8,9,9,.88);border:1px solid rgba(255,255,255,.08);padding:8px 12px}
+.rootFieldAuthority:not([open]){width:auto}.rootFieldAuthority summary{cursor:pointer;font-size:9px;letter-spacing:.12em}
+@media(max-width:760px){.rootFieldIdentity{top:14px;left:14px;right:14px;flex-wrap:wrap;gap:5px 12px}.rootFieldIdentity strong{width:100%}.rootFieldControls{bottom:14px;width:calc(100vw - 28px);overflow:auto;justify-content:flex-start}.rootFieldControls select,.rootFieldControls input{min-width:128px}.rootFieldLegend{left:14px;bottom:68px}.rootFieldHub{top:74px;left:14px;right:14px;bottom:70px;width:auto}.rootFieldAuthority{right:14px;bottom:68px}}
