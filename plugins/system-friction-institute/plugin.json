@@ -1,24 +1,34 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "system-friction-institute",
-  "version": "1.0.2",
-  "description": "Governed access to SYSTEM FRICTION INSTITUTE through its authenticated and Studio MCP servers, including bounded ROOT operations for authorized founders.",
+  "version": "1.1.0",
+  "description": "Governed access to SYSTEM FRICTION INSTITUTE through authenticated Gateway and Studio MCP surfaces, covering observation, proposals, execution, governance, ROOT operations, Cases, Method Lab and owner-scoped Studio.",
   "author": {
     "name": "SYSTEM FRICTION INSTITUTE",
     "url": "https://www.systemfriction.org"
   },
   "homepage": "https://www.systemfriction.org",
   "repository": "https://github.com/Aptymok/system-friction",
-  "keywords": ["governance", "systems", "assurance", "mcp", "studio", "root"],
+  "keywords": [
+    "governance",
+    "systems",
+    "assurance",
+    "mcp",
+    "studio",
+    "root"
+  ],
   "extensions": {
     "com.openai": {
       "interface": {
         "displayName": "SYSTEM FRICTION INSTITUTE",
         "shortDescription": "Governed SFI context, ROOT operations and Studio.",
-        "longDescription": "Connect ChatGPT and Codex to SYSTEM FRICTION INSTITUTE through its authenticated, scope-bound MCP gateway and owner-scoped Studio MCP. Authorized founders may use bounded ROOT operations such as report retrieval and institutional account invitations.",
+        "longDescription": "Connect ChatGPT and Codex to SYSTEM FRICTION INSTITUTE through its authenticated, scope-bound MCP gateway and owner-scoped Studio MCP. The current contract exposes observation, proposal, authorized execution, governance decision, bounded ROOT operations, Cases, Method Lab and Studio capabilities. Effective authority remains user-, tenant- and scope-bound.",
         "developerName": "SYSTEM FRICTION INSTITUTE",
         "category": "Productivity",
-        "capabilities": ["Read", "Write"],
+        "capabilities": [
+          "Read",
+          "Write"
+        ],
         "websiteURL": "https://www.systemfriction.org",
         "privacyPolicyURL": "https://www.systemfriction.org/privacy",
         "defaultPrompt": [
