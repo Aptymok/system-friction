@@ -56,7 +56,7 @@ begin
     table_name := nullif(entry->>'table_name','');
     operation_name := upper(coalesce(entry->>'operation',''));
     row_data := entry->'row_data';
-    before_data := entry->'before_data';
+    before_data := nullif(entry->'before_data', 'null'::jsonb);
 
     if op_id is null or table_name is null or row_data is null then
       raise exception 'SFI_PRIMARY_MIRROR_ENTRY_INVALID';
