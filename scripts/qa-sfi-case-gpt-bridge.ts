@@ -14,7 +14,6 @@ const oauthConfig = read('src/lib/sfi/oauthConfig.ts');
 const observatoryApi = read('src/app/api/observatory/world/route.ts');
 const observatoryPage = read('src/app/observatory/page.tsx');
 const observatoryConsole = read('src/components/sfi/ObservatoryConsole.tsx');
-const observatoryInterpretiveFlow = read('src/components/sfi/ObservatoryInterpretiveFlow.tsx');
 const merge = read('scripts/merge-openapi-cases.mjs');
 const openapi = JSON.parse(read('public/openapi.json')) as Record<string, any>;
 
@@ -131,10 +130,9 @@ assert.ok(observatoryApi.includes('source_url,payload'), 'observatory_public_pro
 assert.ok(observatoryApi.includes('provenance:'), 'observatory_public_provenance_projection_missing');
 assert.ok(observatoryPage.includes('ObservatoryConsole'), 'observatory_canonical_console_not_rendered');
 assert.equal(observatoryPage.includes('ObservatoryInterpretiveFlow'), false, 'observatory_page_must_not_mount_duplicate_interpretive_owner');
-assert.ok(observatoryConsole.includes('ObservatoryInterpretiveFlow'), 'observatory_interpretive_flow_not_rendered_by_canonical_owner');
-assert.ok(observatoryConsole.includes('<ObservatoryInterpretiveFlow world={world} availability={availability.world}/>'), 'observatory_interpretive_flow_must_share_canonical_read_model');
-for (const token of ['sourceRole','verificationState','FRONTERA EPISTÉMICA','INFERENCE_ONLY','RETURN / CONTRAST']) {
-  assert.ok(observatoryInterpretiveFlow.includes(token), `observatory_interpretive_provenance_missing:${token}`);
+assert.equal(observatoryConsole.includes('ObservatoryInterpretiveFlow'), false, 'observatory_must_not_mount_a_second_interpretive_surface');
+for (const token of ['SFI SATELLITE → HUB','LATEST HYPOTHESES','HypothesisClosureDiff','world?.liveWorld?.state']) {
+  assert.ok(observatoryConsole.includes(token), `observatory_satellite_hub_missing:${token}`);
 }
 
 assert.ok(merge.includes("operationId: 'readSfiCase'"), 'openapi_merge_read_case_action_missing');
@@ -222,5 +220,5 @@ console.log(JSON.stringify({
   interventionAuthority: false,
   returnAuthority: false,
   observatoryProvenance: true,
-  observatoryInterpretation: 'SHARED_AUTHORITATIVE_READ_MODEL',
+  observatoryInterpretation: 'SATELLITE_HUB_SINGLE_PUBLIC_OWNER',
 }, null, 2));
