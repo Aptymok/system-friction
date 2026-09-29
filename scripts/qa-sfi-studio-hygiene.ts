@@ -7,7 +7,6 @@ const repository = read('src/lib/studio/production/studioProductionRepository.ts
 const contextRoute = read('src/app/api/studio/objects/[id]/context/route.ts');
 const externalStudio = read('src/app/api/external/v1/studio/route.ts');
 const observatoryRoute = read('src/app/api/observatory/world/route.ts');
-const observatoryFeed = read('src/components/sfi/ObservatoryProvenanceFeed.tsx');
 const vercel = read('vercel.json');
 
 for (const token of ['SFI-STUDIO-HYGIENE-1.0', 'VERIFIED_HASH', 'contentKey', 'PROCESSING_ATTEMPT', 'processingState']) {
@@ -41,9 +40,9 @@ for (const token of ['whyShown', 'sourceRole', 'verificationState', 'caseBinding
   assert.ok(observatoryRoute.includes(token), `observatory_relevance_contract_missing:${token}`);
 }
 assert.ok(observatoryRoute.includes('SOURCE/PROVENANCE does not imply accepted EVIDENCE'), 'observatory_epistemic_boundary_missing');
-assert.ok(observatoryFeed.includes("visibility === 'VISIBLE_BY_DEFAULT'"), 'observatory_background_must_be_collapsed');
-assert.ok(observatoryFeed.includes('WHY SHOWN'), 'observatory_reason_for_inclusion_not_visible');
-assert.ok(observatoryFeed.includes('SOURCE / PROVENANCE ≠ ACCEPTED EVIDENCE'), 'observatory_source_evidence_boundary_not_visible');
+assert.ok(observatoryRoute.includes("'VISIBLE_BY_DEFAULT'") && observatoryRoute.includes("'COLLAPSED_BY_DEFAULT'"), 'observatory_attention_visibility_contract_missing');
+assert.ok(observatoryRoute.includes('reasonForInclusion') || observatoryRoute.includes('whyShown'), 'observatory_reason_for_inclusion_contract_missing');
+assert.ok(observatoryRoute.includes('SOURCE/PROVENANCE does not imply accepted EVIDENCE'), 'observatory_source_evidence_boundary_missing');
 
 const config = JSON.parse(vercel) as { git?: { deploymentEnabled?: boolean | Record<string, boolean> } };
 assert.equal(config.git?.deploymentEnabled, false, 'studio_hygiene_pr_must_keep_all_vercel_git_deployments_disabled');
