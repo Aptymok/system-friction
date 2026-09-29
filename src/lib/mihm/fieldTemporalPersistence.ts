@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto';
 import type { CanonicalGraphEdge, CanonicalGraphNode } from '../../../packages/graph/src';
 import { appendEpistemicEvent } from '@/lib/events/eventStore';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
-import { emergenceReading, relationScientificReading, temporalCoordinates } from './fieldScientificReading';
+import { capacityObservation, emergenceReading, relationScientificReading, temporalCoordinates } from './fieldScientificReading';
 
 export const SFI_FIELD_TEMPORAL_EPOCH_CONTRACT = 'SFI-FIELD-TEMPORAL-EPOCH-1.0' as const;
 
@@ -39,6 +39,8 @@ export type FieldTemporalEpochSnapshot = {
     relation: string;
     currentState: string | null;
     previousState: string | null;
+    currentWeight: number;
+    previousWeight: number | null;
     weightDelta: number | null;
     onset: string | null;
     offset: string | null;
@@ -46,6 +48,7 @@ export type FieldTemporalEpochSnapshot = {
     evidenceRefs: string[];
   }>;
   emergence: ReturnType<typeof emergenceReading>;
+  capacity: ReturnType<typeof capacityObservation>;
   censoring: 'OPEN' | 'CLOSED' | 'UNKNOWN';
   sourceObservationRefs: string[];
   evidenceRefs: string[];
@@ -108,6 +111,8 @@ export function deriveFieldTemporalEpochSnapshot(
       relation: relation.relation,
       currentState: relation.currentState,
       previousState: relation.previousState,
+      currentWeight: relation.currentWeight,
+      previousWeight: relation.previousWeight,
       weightDelta: relation.weightDelta,
       onset: relation.onset,
       offset: relation.offset,
@@ -115,6 +120,7 @@ export function deriveFieldTemporalEpochSnapshot(
       evidenceRefs: relation.evidenceRefs,
     })),
     emergence,
+    capacity: capacityObservation(node),
     censoring,
     sourceObservationRefs,
     evidenceRefs,
