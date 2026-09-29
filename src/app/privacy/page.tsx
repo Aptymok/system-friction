@@ -18,6 +18,7 @@ const sections = [
     title: '2. Data that may be processed',
     body: [
       'Public surfaces may process technical navigation data, visited page, date and time, device or browser, campaign origin and instrument-usage events, subject to the applicable consent configuration.',
+      'The public contact form stores the submitted name, email address, optional organization, subject, message, explicit consent state, source label and submission time. The newsletter form stores the email address, explicit subscription consent, subscription state and related timestamps.',
       'Authenticated or agentic/API surfaces may process technical identifiers for the principal or agent, tenant or workspace where applicable, granted scopes, requested operation, timestamps, SFI object identifiers, evidence references, runtime results and audit traces.',
       'Access credentials are used to authenticate and authorize operations. SFI must not expose tokens, service-role secrets or credentials in public responses, reports or indexable resources.',
     ],
@@ -62,7 +63,7 @@ const sections = [
   {
     title: '8. Retention, audit and security',
     body: [
-      'Retention periods may vary by record class. Evidence, decisions, RETURN, predictions and audit events may be preserved longitudinally when required for traceability, research, security or governance.',
+      'Retention periods may vary by record class. Evidence, decisions, RETURN, predictions and audit events may be preserved longitudinally when required for traceability, research, security or governance. Public contact and newsletter records are retained only for institutional correspondence, subscription administration, security and related audit needs.',
       'SFI applies authority separation, scopes, operation traceability and provenance recording. No technical mechanism eliminates risk completely; controls are reviewed as infrastructure changes.',
     ],
   },
@@ -101,7 +102,7 @@ export default function PrivacyPage() {
         </div>
 
         <footer style={{ paddingTop: 28, color: '#7f725d', fontFamily: 'system-ui, sans-serif', fontSize: 12, lineHeight: 1.7 }}>
-          <div>Last updated: August 22, 2026.</div>
+          <div>Last updated: September 29, 2026.</div>
           <div>Canonical: https://systemfriction.org/privacy</div>
           <div style={{ marginTop: 12 }}>This page describes SFI public operating policy and does not by itself constitute legal advice or a certification of compliance for every jurisdiction.</div>
         </footer>
