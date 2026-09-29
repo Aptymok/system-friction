@@ -83,6 +83,50 @@ export async function readOwnedMethodLabExperimentPreregistration(input: {
   };
 }
 
+export async function readInstitutionalMethodLabExperimentPreregistration(experimentIdInput: string) {
+  const experimentId = experimentIdInput.trim();
+  if (!experimentId) throw new Error('METHOD_LAB_PREREGISTRATION_EXPERIMENT_REQUIRED');
+  const preregistrationRef = methodLabPreregistrationId(experimentId);
+  const db = createServiceSupabaseClient();
+  const existing = await db.from('sfi_lab_analyses')
+    .select('id,owner_id,raw_analysis,created_at')
+    .eq('id', preregistrationRef)
+    .is('owner_id', null)
+    .maybeSingle();
+  if (existing.error) throw new Error(`METHOD_LAB_PREREGISTRATION_READ_FAILED:${existing.error.message}`);
+  if (!existing.data) return null;
+  const raw = record(existing.data.raw_analysis);
+  if (raw.phase !== 'PREREGISTERED' || raw.contractVersion !== METHOD_LAB_EXPERIMENT_CONTRACT_VERSION) {
+    throw new Error('METHOD_LAB_PREREGISTRATION_PERSISTED_CONTRACT_INVALID');
+  }
+  const preregistration = assertMethodLabExperimentPreregistration(raw.preregistration as MethodLabExperimentPreregistration);
+  if (preregistration.experimentId !== experimentId) throw new Error('METHOD_LAB_PREREGISTRATION_EXPERIMENT_ID_MISMATCH');
+  const definitionHash = hashMethodLabPreregistration(preregistration);
+  if (raw.definitionHash !== definitionHash) throw new Error('METHOD_LAB_PREREGISTRATION_IMMUTABILITY_CHECK_FAILED');
+  return {
+    preregistrationRef,
+    definitionHash,
+    preregistration,
+    createdAt: String(existing.data.created_at ?? preregistration.preregisteredAt),
+  };
+}
+
+export async function readInstitutionalMethodLabExperimentRun(runIdInput: string) {
+  const runId = runIdInput.trim();
+  if (!runId) throw new Error('METHOD_LAB_RUN_ID_REQUIRED');
+  const runRef = methodLabRunId(runId);
+  const db = createServiceSupabaseClient();
+  const found = await db.from('sfi_lab_analyses')
+    .select('id,owner_id,source,raw_analysis,created_at')
+    .eq('id', runRef)
+    .is('owner_id', null)
+    .maybeSingle();
+  if (found.error) throw new Error(`METHOD_LAB_RUN_READ_FAILED:${found.error.message}`);
+  if (!found.data) return null;
+  const raw = record(found.data.raw_analysis);
+  return { runRef, raw, createdAt: String(found.data.created_at ?? '') };
+}
+
 export async function persistMethodLabExperimentPreregistration(input: {
   preregistration: MethodLabExperimentPreregistration;
   ownerId?: string | null;
