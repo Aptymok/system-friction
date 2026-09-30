@@ -362,4 +362,3 @@ export async function dispatchScientificMethodToLab(input: {
     writesPerformed:true,
   };
 }
-}
