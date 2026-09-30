@@ -8,8 +8,6 @@
   --mono:"Liberation Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
   --display:"Noto Serif Display",Georgia,serif;
   --narrative:"EB Garamond",Georgia,serif;
-  --stage-shift-x:0px;
-  --stage-shift-y:0px;
   position:relative;
   width:100%;
   height:100svh;
@@ -39,9 +37,7 @@
   inset:0;
   z-index:0;
   overflow:hidden;
-  pointer-events:none;
-  transform:translate3d(var(--stage-shift-x),var(--stage-shift-y),0);
-  transition:transform .22s ease-out
+  pointer-events:none
 }
 .sfiSharedBackground{
   position:absolute;
@@ -60,13 +56,7 @@
   height:100%;
   object-fit:contain;
   user-select:none;
-  -webkit-user-drag:none;
-  transition:opacity .55s ease,filter .55s ease
-}
-.sfiSceneLayer[data-motion="slow-drift"]{animation:sfiNycDrift 34s ease-in-out infinite alternate}
-@keyframes sfiNycDrift{
-  from{translate:-1px 1px;filter:brightness(.985)}
-  to{translate:1.5px -1px;filter:brightness(1.015)}
+  -webkit-user-drag:none
 }
 .sfiSceneLayer--1{z-index:1;opacity:.16;transform:scale(1.08)}
 .sfiSceneLayer--2{z-index:2;opacity:.27;transform:translate3d(17vw,-8vh,0) scale(.82)}
@@ -84,18 +74,6 @@
     linear-gradient(90deg,rgba(2,2,1,.88) 0%,rgba(2,2,1,.62) 30%,rgba(2,2,1,.16) 60%,rgba(2,2,1,.20) 100%),
     linear-gradient(180deg,rgba(2,2,1,.18),transparent 56%,rgba(2,2,1,.44))
 }
-.sfiSceneExperience[data-active-scene="intro"] .sfiSceneLayer--5{opacity:.70}
-.sfiSceneExperience[data-active-scene="time"] .sfiSceneLayer--2{opacity:.43}
-.sfiSceneExperience[data-active-scene="time"] .sfiSceneLayer--3{opacity:.16}
-.sfiSceneExperience[data-active-scene="observation"] .sfiSceneLayer--3{opacity:.34}
-.sfiSceneExperience[data-active-scene="observation"] .sfiSceneLayer--4{opacity:.29}
-.sfiSceneExperience[data-active-scene="authority"] .sfiSceneLayer--4{opacity:.38}
-.sfiSceneExperience[data-active-scene="authority"] .sfiSceneLayer--5{opacity:.82}
-.sfiSceneExperience[data-active-scene="execution"] .sfiSceneLayer--5{opacity:.85}
-.sfiSceneExperience[data-active-scene="return"] .sfiSceneLayer--6{opacity:.98}
-.sfiSceneExperience[data-active-scene="after-ai-governance"] .sfiSceneLayer--3{opacity:.35}
-.sfiSceneExperience[data-active-scene="after-ai-governance"] .sfiSceneLayer--4{opacity:.33}
-.sfiSceneExperience[data-active-scene="after-ai-governance"] .sfiSceneLayer--5{opacity:.89}
 
 .sfiSceneDeck{position:absolute;inset:0;z-index:20;overflow:hidden}
 .sfiScene{
@@ -201,7 +179,7 @@
   padding:18px;
   cursor:pointer;
   isolation:isolate;
-  transition:transform .2s ease,border-color .2s ease,background .2s ease
+  transition:border-color .2s ease,background .2s ease
 }
 .sfiIntroTile:before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(2,2,1,.12),rgba(2,2,1,.86));z-index:-1}
 .sfiIntroTile img{
@@ -212,10 +190,9 @@
   object-fit:cover;
   opacity:.24;
   z-index:-2;
-  transform:scale(1.02);
   filter:saturate(.72) brightness(.76)
 }
-.sfiIntroTile:hover{transform:translateY(-2px);border-color:rgba(216,180,107,.44);background:rgba(12,10,7,.58)}
+.sfiIntroTile:hover{border-color:rgba(216,180,107,.44);background:rgba(12,10,7,.58)}
 .sfiIntroTile>span{display:block;font:650 12px/1 var(--mono);letter-spacing:.13em;color:var(--gold-hi);margin-bottom:36px}
 .sfiIntroTile strong{display:block;font:500 22px/1.08 var(--display);color:#f0e7da}
 .sfiIntroTile p{margin:8px 0 0;font:400 15px/1.48 var(--narrative);color:#c6bcaf}
@@ -293,7 +270,6 @@
   .sfiScene--intro .sfiSceneCopy{width:min(820px,82vw)}
 }
 @media(max-width:900px){
-  .sfiVisualStage{transform:none}
   .sfiSceneContent{width:calc(100vw - 34px);padding:88px 0 64px;align-items:flex-start}
   .sfiSceneCopy,.sfiScene--intro .sfiSceneCopy{width:min(90vw,620px);padding-top:5vh}
   .sfiSceneCopy h1{font-size:clamp(42px,12.6vw,68px);max-width:9.6ch}
@@ -335,5 +311,5 @@
   .sfiIntroTile{min-height:160px}
 }
 @media(prefers-reduced-motion:reduce){
-  .sfiVisualStage,.sfiScene,.sfiSceneLayer,.sfiFieldState,.sfiTopicRail i,.sfiExplanationRail button,.sfiIntroTile{transition:none!important;animation:none!important}
+  .sfiScene,.sfiFieldState,.sfiTopicRail i,.sfiExplanationRail button,.sfiIntroTile{transition:none!important;animation:none!important}
 }
