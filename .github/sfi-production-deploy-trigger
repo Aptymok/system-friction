@@ -1,6 +1,6 @@
 SFI Production Release 2026-09-30
-base=f38818eb93606b372b41d25d17ea7996a5d09660
-reason=nyc_single_page_cinematic_landing_assets_v5
+base=64ce055356591f854ed25d9ee50588d6f1d43743
+reason=nyc_single_page_cinematic_landing_assets_v6
 verification=production_build_runs_qa_typecheck_before_prebuilt_deploy
 public_surface=single_page
 language=en
@@ -16,6 +16,6 @@ library_public_surface=false
 library_internal_graph_preserved=true
 publications_public_surface=false
 discovery_method_note_preserved=true
-discovery_publications_hub=false
+worldspect_egress_lane=WORLD_OBSERVATION
 institutional_apis_untouched=true
 mcp_root_untouched=true
