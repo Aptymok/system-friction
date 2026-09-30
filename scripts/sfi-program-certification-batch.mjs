@@ -24,10 +24,10 @@ export const GLOBAL_REGRESSION_SCOPE = Object.freeze([
   'docs/ROOT_WORLD_CASE_AND_DISCOVERY_ENGINE.md',
 ]);
 
-// These three requirements predate the current completion classifier and their
-// repository evidence lists do not name the exact proof that already exists in
-// SFI Verify. The mapping is intentionally closed and auditable: adding another
-// requirement here requires a code review and the proof still has to be present
+// These requirements predate or outlive the current completion classifier and their
+// repository evidence lists do not always name the exact canonical proof already
+// executed by SFI Verify. The mapping is intentionally closed and auditable: adding
+// another requirement here requires code review, and the proof must still be present
 // in the SFI Verify execution catalog and pass at the exact certification head.
 export const TARGETED_CANONICAL_PROOFS = Object.freeze({
   'MASTER-03': ['src/lib/sfi/cognitive-runtime/capabilityBroker.test.ts'],
@@ -35,6 +35,8 @@ export const TARGETED_CANONICAL_PROOFS = Object.freeze({
   'WS-01-040': ['scripts/qa-sfi-ws01-ownership-boundary.ts'],
   'WS-02-001': ['scripts/qa-sfi-ws02-universal-twin-lineage.ts'],
   'ISSUE154-001': ['scripts/qa-sfi-discovery-operational.ts'],
+  'MASTER-20': ['scripts/qa-sfi-discovery-operational.ts'],
+  'WS-01-057': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
 });
 
 const GENERIC_PROOF_TERMS = new Set([
