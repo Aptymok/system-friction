@@ -88,7 +88,7 @@ async function main() {
   assert(notePage.includes('Publishing is not being found'), 'Discovery Mesh method note title missing');
   assert(notePage.includes('/images/editorial/discovery-mesh-observation.svg'), 'Discovery Mesh method note graphic missing');
   assert(notePage.includes('NULL is not converted to zero'), 'method note false-zero boundary missing');
-  assert(publicationsHub.includes("redirect('/')"), 'Retired Publications hub must converge to the single public landing');
+  assert(publicationsHub.includes('PublicationsCatalog') && publicationsHub.includes('RegistryDiscoveryMesh'), 'Publications hub must expose Registry and Discovery Mesh');
   assert(existsSync('public/images/editorial/discovery-mesh-observation.svg'), 'Discovery Mesh visual asset missing');
 
   for (const table of ['sfi_discovery_queries','sfi_discovery_query_runs','sfi_entity_collisions','sfi_external_representations']) {
