@@ -81,13 +81,14 @@ async function main() {
   assert(rootPage.includes('SELF-OBSERVATION / DEVELOPMENT'), 'ROOT discovery autonomy panel missing');
   assert(rootPage.includes('OPEN AUTHORIZED LABORATORY NOTE'), 'ROOT discovery editorial bridge missing');
 
-  // The first method note is an explicitly bounded public artifact in this convergence;
-  // future notes remain governed candidates and never auto-publish.
+  // The first method note remains a bounded canonical editorial artifact in source,
+  // while the retired Publications hub converges to the single public landing.
+  // Future notes remain governed candidates and never auto-publish.
   assert(notePage.includes("'SFI-PUB-OBS-014'"), 'Discovery Mesh method note canonical editorial id missing');
   assert(notePage.includes('Publishing is not being found'), 'Discovery Mesh method note title missing');
   assert(notePage.includes('/images/editorial/discovery-mesh-observation.svg'), 'Discovery Mesh method note graphic missing');
   assert(notePage.includes('NULL is not converted to zero'), 'method note false-zero boundary missing');
-  assert(publicationsHub.includes('discovery-mesh-publicar-no-es-ser-encontrado'), 'Registry graph must expose the Discovery Mesh method-note hub');
+  assert(publicationsHub.includes("redirect('/')"), 'Retired Publications hub must converge to the single public landing');
   assert(existsSync('public/images/editorial/discovery-mesh-observation.svg'), 'Discovery Mesh visual asset missing');
 
   for (const table of ['sfi_discovery_queries','sfi_discovery_query_runs','sfi_entity_collisions','sfi_external_representations']) {
