@@ -50,7 +50,7 @@ function labScope(input: SfiAuthenticatedGatewayInvocation) {
 
 function worldScope(input: SfiAuthenticatedGatewayInvocation) {
   const operation = bodyOperation(input);
-  return operation === 'run' || operation === 'measure_worldspect' || operation === 'recover_worldspect_history' || operation === 'regenerate_world_vector' ? 'world:run' : 'world:read';
+  return operation === 'run' || operation === 'measure_worldspect' || operation === 'recover_worldspect_history' || operation === 'close_hypotheses' || operation === 'regenerate_world_vector' ? 'world:run' : 'world:read';
 }
 
 function jrScope(input: SfiAuthenticatedGatewayInvocation) {
@@ -77,7 +77,7 @@ const DEFINITIONS = [
   { operationId: 'executeAuthorizedSfiAction', method: 'POST', path: '/api/external/v1/execute', scope: 'execute', summary: 'Dispatch an already-authorized queued proposal.' },
   { operationId: 'recordSfiProposalReturn', method: 'POST', path: '/api/external/v1/proposal-return', scope: 'execute', summary: 'Record an observed return for an already-queued proposal.' },
   { operationId: 'operateSfiLab', method: 'POST', path: '/api/external/v1/lab', scope: labScope, summary: 'Read, persist or run institutional Method Lab according to operation scope.' },
-  { operationId: 'operateSfiWorld', method: 'POST', path: '/api/external/v1/world', scope: worldScope, summary: 'Read World freshness, measure current WorldSpect, audit or persist evidence-bounded historical WorldSpect recovery, execute the governed daily cycle, or regenerate World Vector longitudinal memory.' },
+  { operationId: 'operateSfiWorld', method: 'POST', path: '/api/external/v1/world', scope: worldScope, summary: 'Read World freshness, measure current WorldSpect, audit or persist historical WorldSpect recovery, close eligible hypotheses through the canonical calibration owner, execute the governed daily cycle, or regenerate World Vector longitudinal memory.' },
   { operationId: 'operateSfiJr', method: 'POST', path: '/api/external/v1/jr', scope: jrScope, summary: 'Read JR field-cycle state or run the bounded JR observation/method/RETURN coordination cycle.' },
   { operationId: 'operateSfiCaseWorkspace', method: 'POST', path: '/api/external/v1/cases', scope: caseScope, summary: 'Operate the tenant-scoped Case Platform through its canonical adapter.' },
   { operationId: 'planSfiCaseIntake', method: 'POST', path: '/api/external/v1/cases/intake', scope: 'cases:read', summary: 'Resolve required Case Platform intake before creation.' },
