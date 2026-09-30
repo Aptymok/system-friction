@@ -94,3 +94,64 @@
 .sfiPolicyPage section h2{margin:0 0 10px;font:500 22px/1.1 var(--sfi-display);color:#d4b676}
 .sfiPolicyPage section p{margin:0;max-width:880px;font:400 14px/1.7 var(--sfi-narrative);color:#a49b8d}
 .sfiPolicyPage article>footer{padding-top:26px;border-top:1px solid rgba(214,170,87,.16);font:500 9px/1.6 var(--sfi-trace);letter-spacing:.06em;color:#6f675c}
+
+
+/* SFI NYC LANDING CHROME 1.0 */
+.sfiGlobalHeader{
+  position:fixed!important;
+  top:14px!important;
+  left:clamp(12px,2vw,28px)!important;
+  right:clamp(12px,2vw,28px)!important;
+  width:auto!important;
+  min-height:46px!important;
+  grid-template-columns:auto 1fr auto!important;
+  padding:7px 12px!important;
+  border:1px solid rgba(220,184,112,.12)!important;
+  border-radius:14px!important;
+  background:rgba(5,5,4,.16)!important;
+  box-shadow:0 10px 50px rgba(0,0,0,.12)!important;
+  backdrop-filter:blur(18px) saturate(125%)!important;
+  -webkit-backdrop-filter:blur(18px) saturate(125%)!important;
+  z-index:1100!important;
+}
+.sfiPublicBrand>img{width:27px!important;height:27px!important}
+.sfiPublicBrandText>strong{font:500 21px/1 var(--sfi-display)!important}
+.sfiPublicBrandText>span{font:600 8px/1 var(--sfi-trace)!important;letter-spacing:.17em!important;color:#b7aea0!important}
+.sfiPublicEvent{text-align:center;font:600 8px/1 var(--sfi-trace);letter-spacing:.18em;color:#968b78}
+.sfiPublicChromeRight{display:flex;align-items:center;gap:12px;font:600 8px/1 var(--sfi-trace);letter-spacing:.12em;color:#80776b}
+.sfiPublicAccess{padding:7px 9px!important;border:1px solid rgba(214,170,87,.16)!important;border-radius:9px!important;color:#d8bd87!important}
+.sfiPublicAccess:hover{background:rgba(214,170,87,.06)!important;border-bottom-color:rgba(214,170,87,.16)!important}
+
+.sfiGlobalInstitutionalFooter{
+  position:fixed!important;
+  left:clamp(12px,2vw,28px)!important;
+  right:clamp(12px,2vw,28px)!important;
+  bottom:14px!important;
+  z-index:1100!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:16px!important;
+  padding:8px 12px!important;
+  border:1px solid rgba(220,184,112,.10)!important;
+  border-radius:12px!important;
+  background:rgba(5,5,4,.10)!important;
+  color:#756d62!important;
+  box-shadow:none!important;
+  backdrop-filter:blur(16px) saturate(120%)!important;
+  -webkit-backdrop-filter:blur(16px) saturate(120%)!important;
+  font:600 7px/1.2 var(--sfi-trace)!important;
+  letter-spacing:.12em!important;
+}
+.sfiGlobalInstitutionalFooter b{font:600 7px/1.2 var(--sfi-trace)!important;letter-spacing:.14em!important;color:#b79a61!important}
+.sfiFooterPolicy{display:flex;gap:10px}.sfiFooterPolicy a:hover{color:#d8bd87}
+.sfiPageContent{min-height:100svh}
+
+@media(max-width:780px){
+  .sfiGlobalHeader{top:8px!important;left:8px!important;right:8px!important;grid-template-columns:auto 1fr!important}
+  .sfiPublicEvent{justify-self:end}
+  .sfiPublicChromeRight>span{display:none}
+  .sfiPublicBrandText>span{display:none!important}
+  .sfiGlobalInstitutionalFooter{left:8px!important;right:8px!important;bottom:8px!important;justify-content:center!important;padding:7px 10px!important}
+  .sfiGlobalInstitutionalFooter>span:first-child,.sfiGlobalInstitutionalFooter>span:nth-of-type(2),.sfiFooterPolicy{display:none}
+}
