@@ -142,11 +142,12 @@ export async function persistWorldVectorObservation(input: {
     .from('world_vector_observations')
     .select('*')
     .gte('observed_at', start)
-    .lte('observed_at', end)
-    .order('observed_at', { ascending: false })
-    .limit(1);
+    .lte('observed_at', end);
   if (!input.overwrite) existingQuery = existingQuery.eq('sector', input.observation.sector);
-  const { data: existing, error: selectError } = await existingQuery.maybeSingle();
+  const { data: existing, error: selectError } = await existingQuery
+    .order('observed_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
   if (selectError) return blocked(tableMissing(selectError.message) ? 'world_vector_tables_not_installed' : 'world_vector_table_read_failed', selectError.message);
   if (existing && !input.overwrite) return { ok: true, data: existing as Record<string, unknown>, persisted: true, existing: true };
