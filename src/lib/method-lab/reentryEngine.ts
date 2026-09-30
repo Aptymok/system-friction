@@ -12,7 +12,7 @@ import {
   type MethodLabExperimentPreregistration,
   type MethodLabExperimentRun,
 } from './experimentContract';
-import { methodLabPreregistrationId } from './experimentPersistence';
+import { methodLabPreregistrationId } from './experimentIds';
 
 export const METHOD_LAB_REENTRY_CONTRACT_VERSION = 'SFI-METHOD-LAB-REENTRY-1.0' as const;
 export const METHOD_LAB_REENTRY_BOUNDARIES = [
