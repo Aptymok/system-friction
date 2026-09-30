@@ -114,7 +114,7 @@ export function hashEpistemicEvent(
 }
 
 export async function appendEpistemicEvent(
-  input: Partial<SFIEvent> & { logbookId?: string; schemaVersion?: string }
+  input: Partial<SFIEvent> & { logbookId?: string; schemaVersion?: string; returnMode?: 'full'|'receipt' }
 ) {
   const service = createServiceSupabaseClient();
   const event = normalizeEvent(input);
@@ -144,6 +144,10 @@ export async function appendEpistemicEvent(
     hashPrev,
   });
 
+  const returnProjection = input.returnMode === 'receipt'
+    ? 'event_id,event_name,logbook_id,epistemic_class,occurred_at,sequence,hash_self'
+    : '*';
+
   const { data, error } = await service
     .from('epistemic_events')
     .insert({
@@ -162,7 +166,7 @@ export async function appendEpistemicEvent(
       hash_prev: hashPrev,
       hash_self: hashSelf,
     })
-    .select('*')
+    .select(returnProjection)
     .single();
 
   if (error) {
