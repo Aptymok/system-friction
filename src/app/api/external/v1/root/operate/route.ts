@@ -368,7 +368,7 @@ export async function POST(req: Request) {
         health: 'root:operate sfi_state health + canonical QA/CI surfaces',
         commercial: 'root:operate sfi_state commercial + commercial service',
         studio: 'separate owner-bound Studio MCP',
-        jr: 'RETURN/contrast/learning projection; dedicated JR mutation contract pending',
+        jr: 'operateSfiJr (jr:read / jr:run); bounded field-cycle coordination with no material perturbation, governance decision or canon promotion',
       },
       boundary: 'root:operate adds founder-only ROOT administration. It does not replace governance:decide, bypass capability grants, create arbitrary URL access, mint canon, or grant ROOT to another account.',
     }, { headers: { 'Cache-Control': 'no-store' } });
@@ -386,7 +386,7 @@ export async function POST(req: Request) {
       registry:{status:'READ_AVAILABLE_MUTATION_ADAPTER_PENDING'},
       health:{read:'root:operate/sfi_state.health',execution:'CANONICAL_QA_ADAPTER_PENDING'},
       commercial:{read:'root:operate/sfi_state.commercial'},
-      jr:{readSources:['proposal RETURN','world outcomes','world learning events'],status:'DEDICATED_JR_CONTRACT_PENDING'}
+      jr:{delegate:'operateSfiJr',readScope:'jr:read',runScope:'jr:run',materialPerturbationAllowed:false,governanceDecisionAuthorityInherited:false,canonicalPromotionAllowed:false}
     }},{headers:{'Cache-Control':'no-store'}});
   }
 
