@@ -355,6 +355,18 @@ async function findExistingRemediation(parentProposalId: string, missingCapabili
 async function openRemediationChild(row: Row, missingCapability: string, reason: string) {
   const parentProposalId = stringValue(row.id);
   if (!parentProposalId) return { ok: false as const, error: 'parent_proposal_id_missing' };
+
+  const parentProposalType = proposalTypeOf(row);
+  const parentActionType = stringValue(requestedAction(row).type)?.toLowerCase() ?? '';
+  if (parentProposalType === 'execution_capability_remediation' && parentActionType === 'build_execution_adapter') {
+    return {
+      ok: false as const,
+      error: 'recursive_execution_capability_remediation_blocked',
+      parentProposalId,
+      missingCapability,
+      reason: 'A remediation proposal may not create another build_execution_adapter remediation. Reclassify the parent or provide an explicit bounded development contract.',
+    };
+  }
   const existing = await findExistingRemediation(parentProposalId, missingCapability);
   if (existing) {
     return { ok: true as const, created: false, proposalId: String(existing.id), status: existing.status, missingCapability };
