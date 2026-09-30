@@ -128,8 +128,8 @@ assert.ok(manifest.includes("scope: 'cases:write'"), 'manifest_case_write_scope_
 
 assert.ok(observatoryApi.includes('source_url,payload'), 'observatory_public_provenance_fields_missing');
 assert.ok(observatoryApi.includes('provenance:'), 'observatory_public_provenance_projection_missing');
-assert.ok(observatoryPage.includes("redirect('/')"), 'observatory_public_surface_must_redirect_to_single_landing');
-assert.equal(observatoryPage.includes('ObservatoryConsole'), false, 'observatory_console_must_not_mount_as_public_surface');
+assert.ok(observatoryPage.includes('ObservatoryConsole'), 'observatory_public_surface_must_mount_canonical_console');
+assert.equal(observatoryPage.includes("redirect('/')"), false, 'observatory_public_surface_must_not_redirect_home');
 assert.equal(observatoryPage.includes('ObservatoryInterpretiveFlow'), false, 'observatory_page_must_not_mount_duplicate_interpretive_owner');
 assert.equal(observatoryConsole.includes('ObservatoryInterpretiveFlow'), false, 'observatory_internal_console_must_not_mount_a_second_interpretive_surface');
 for (const token of ['SFI SATELLITE → HUB','LATEST HYPOTHESES','HypothesisClosureDiff','world?.liveWorld?.state']) {
