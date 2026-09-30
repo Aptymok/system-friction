@@ -55,7 +55,7 @@ assert.match(authorize, /resolveSfiOAuthClient\(clientId\)/, 'oauth_authorize_mu
 assert.match(authorize, /isAllowedSfiOAuthRedirect\(client, redirectUri\)/, 'oauth_authorize_must_exact_match_registered_redirect');
 assert.match(authorize, /canSfiOAuthClientAuthorizeSubject\(client, context\.user\.id\)/, 'owner_only_client_must_be_bound_to_authenticated_subject');
 assert.match(authorize, /clientScopes\.has\(scope\)/, 'oauth_authorize_must_enforce_client_scope_ceiling');
-for (const scope of ['observe', 'propose', 'execute', 'governance:decide', 'cases:read', 'cases:write', 'lab:read', 'lab:write', 'lab:run', 'studio:read', 'studio:content', 'studio:run']) {
+for (const scope of ['observe', 'propose', 'execute', 'governance:decide', 'root:operate', 'world:read', 'world:run', 'jr:read', 'jr:run', 'cases:read', 'cases:write', 'lab:read', 'lab:write', 'lab:run', 'studio:read', 'studio:content', 'studio:run']) {
   assert.match(oauthConfig, new RegExp(`'${scope.replace(':', '\\:')}'`), `supported_scope_missing:${scope}`);
 }
 
@@ -125,6 +125,8 @@ assert.match(access, /subscription_tier: 'solo'/, 'normal_account_profile_must_b
 assert.match(access, /personalModuleAccess\(\)/, 'normal_account_profile_must_receive_personal_module_contract');
 assert.match(access, /requireSfiMember/, 'institutional_membership_gate_must_remain_separate');
 assert.match(members, /role: 'institutional_operator'/, 'registered_institutional_operator_contract_must_remain');
+assert.match(members, /'jr:read'/, 'institutional_controller_must_receive_jr_read');
+assert.match(members, /'jr:run'/, 'institutional_controller_must_receive_jr_run');
 
 // Scope names are not enough: personal tokens are route-bound to owner-scoped APIs.
 assert.match(externalAuth, /tenantId\.startsWith\('user:'\)/, 'personal_oauth_must_be_detectable_by_tenant');
