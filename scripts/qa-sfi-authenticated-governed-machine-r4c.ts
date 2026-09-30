@@ -9,9 +9,9 @@ const adapter = text('src/lib/mcp/authenticatedGovernedMachineAdapter.ts');
 const gatewayProjection = text('src/lib/mcp/authenticatedGatewayProjection.ts');
 const route = text('src/app/api/mcp/authenticated/route.ts');
 const protectedResourceMetadata = text('src/app/.well-known/oauth-protected-resource/route.ts');
-const authenticatedProtectedResourceMetadata = text('src/app/.well-known/oauth-protected-resource/api/mcp/authenticated/route.ts');
 const rootDecisionRoute = text('src/app/api/external/v1/governance/proposals/[id]/decision/route.ts');
 const rootOperateRoute = text('src/app/api/external/v1/root/operate/route.ts');
+const invitationDelivery = text('src/lib/auth/institutionalInvitationDelivery.ts');
 const jrRoute = text('src/app/api/external/v1/jr/route.ts');
 const oauthConfig = text('src/lib/sfi/oauthConfig.ts');
 const publicRoute = text('src/app/api/mcp/public/route.ts');
@@ -109,8 +109,8 @@ assert.match(gatewayForwardBlock, /Authorization: authorization/, 'gateway_proje
 assert.doesNotMatch(gatewayForwardBlock, /x-sfi-capability-grant-nonce|rawGrantNonce|presentedGrantNonceHash/i, 'gateway_projection_must_not_forward_cognitive_possession_proof');
 assert.match(route, /buildAuthenticatedGatewayRequest/, 'gateway_projection_must_reuse_allowlisted_request_builder');
 assert.match(protectedResourceMetadata, /SFI_AUTHENTICATED_MCP_SCOPES/, 'authenticated_mcp_resource_metadata_must_publish_exact_projected_scope_set');
-assert.match(authenticatedProtectedResourceMetadata, /api\/mcp\/authenticated/, 'authenticated_mcp_path_specific_resource_metadata_required');
-assert.match(authenticatedProtectedResourceMetadata, /SFI_AUTHENTICATED_MCP_SCOPES/, 'authenticated_mcp_path_specific_metadata_must_publish_exact_projected_scope_set');
+// Both protected-resource discovery routes are exercised against canonical and
+// alias request URLs in authenticatedGovernedMachineAdapter.test.ts.
 assert.doesNotMatch(route, /APPLICATION_JSON_REQUIRED/, 'authenticated_mcp_discovery_must_not_fail_valid_json_on_content_type_only');
 assert.match(rootDecisionRoute, /credential\.role !== 'root_delegate'/, 'governance_decision_must_require_root_delegate');
 assert.match(rootDecisionRoute, /sovereignRootProfile/, 'governance_decision_must_revalidate_sovereign_root_profile');
@@ -130,7 +130,8 @@ assert.match(rootOperateRoute, /operation === 'reports'/, 'root_operate_route_mu
 assert.match(rootOperateRoute, /humanReportText/, 'root_reports_must_be_normalized_for_human_readback');
 assert.match(rootOperateRoute, /operation === 'accounts_list'/, 'root_operate_route_must_expose_account_listing');
 assert.match(rootOperateRoute, /operation === 'account_invite'/, 'root_operate_route_must_expose_account_invitation');
-assert.match(rootOperateRoute, /inviteUserByEmail/, 'root_account_invitation_must_reuse_auth_provider_invitation');
+assert.match(rootOperateRoute, /deliverInstitutionalInvitation/, 'root_account_invitation_must_reuse_canonical_delivery');
+assert.match(invitationDelivery, /inviteUserByEmail/, 'canonical_invitation_delivery_must_reuse_auth_provider_invitation');
 assert.doesNotMatch(rootOperateRoute, /password|setPassword|updateUserById\([^)]*password/i, 'root_operate_must_never_assign_another_users_password');
 assert.match(rootOperateRoute, /sovereignAuthorityGranted: false/, 'account_invitation_must_not_grant_sovereign_authority');
 
