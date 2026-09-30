@@ -10,6 +10,8 @@ import {
   type MethodLabExperimentRun,
 } from './experimentContract';
 import { recordUniversalLearningCandidate } from '@/lib/sfi/universalLearningQuarantine';
+import { methodLabPreregistrationId, methodLabRunId, methodLabReturnId } from './experimentIds';
+export { methodLabPreregistrationId, methodLabRunId, methodLabReturnId } from './experimentIds';
 
 function canonicalize(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(canonicalize);
@@ -28,21 +30,6 @@ function record(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
 
-function deterministicAnalysisId(kind: 'preregistration'|'run'|'return', logicalId: string) {
-  const hex = cryptoHash('sha256', `method-lab:${kind}:${logicalId.trim()}`, 'hex').slice(0, 32).split('');
-  hex[12] = '5';
-  hex[16] = 'a';
-  const value = hex.join('');
-  return `${value.slice(0,8)}-${value.slice(8,12)}-${value.slice(12,16)}-${value.slice(16,20)}-${value.slice(20,32)}`;
-}
-
-export function methodLabPreregistrationId(experimentId: string) {
-  return deterministicAnalysisId('preregistration', experimentId);
-}
-
-export function methodLabRunId(runId: string) {
-  return deterministicAnalysisId('run', runId);
-}
 
 export function hashMethodLabPreregistration(value: MethodLabExperimentPreregistration) {
   return hash(assertMethodLabExperimentPreregistration(value));
@@ -163,9 +150,6 @@ export async function persistMethodLabExperimentPreregistration(input: {
   };
 }
 
-export function methodLabReturnId(runId: string) {
-  return deterministicAnalysisId('return', runId);
-}
 
 export async function persistMethodLabRealityReturn(input: {
   experimentId: string;
