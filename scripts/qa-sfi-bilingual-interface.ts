@@ -31,18 +31,20 @@ rejectText(provider,"setPrivateLanguage",'mutable bilingual runtime');
 
 requireText(nav,"href:'/'",'single public landing href');
 requireText(nav,"label:'HOME'",'single public landing label');
-for(const retired of ['/observatory','/laboratory','/publications','/institution','/contact','/method-lab']){
-  rejectText(nav,`href:'${retired}'`,`public nav must not expose ${retired}`);
+for(const hidden of ['/observatory','/laboratory','/publications','/institution','/contact','/method-lab']){
+  rejectText(nav,`href:'${hidden}'`,`global public nav must keep contextual surfaces hidden: ${hidden}`);
 }
 
 requireText(layout,'<html lang="en">','root document English declaration');
 requireText(layout,'<SfiPublicHeader global/>','global institutional header');
 requireText(layout,'<SfiPublicFooter global/>','global institutional footer');
 rejectText(publicChrome,'SFI_PUBLIC_NAV.map','NYC chrome must not render route menu');
-requireText(publicChrome,'NEW YORK 2026','NYC event identity');
-requireText(publicChrome,'OCT 08 · 19:00 ET','NYC event time');
+requireText(publicChrome,'sfiPublicPageTitle','contextual public page title');
+requireText(publicChrome,"timeZone:'UTC'",'live UTC public clock');
 requireText(publicChrome,'href="/login"','shared public chrome sign-in');
-requireText(publicChrome,'href="/privacy"','ultra-fine footer privacy');
+requireText(publicChrome,'AI WEEK NYC 2026','footer event identity');
+requireText(publicChrome,'https://gomry.com/l/Kzcb3xl','footer event destination');
+requireText(publicChrome,'sfiFooterChain','semantic footer chain');
 rejectText(entry,'SFI_PUBLIC_NAV.map','home duplicate public navigation');
 rejectText(observatory,'SFI_PUBLIC_NAV.filter','Observatory duplicate public navigation');
 requireText(laboratory,"redirect('/')",'former Laboratory public surface converges to NYC landing');
@@ -76,7 +78,7 @@ console.log(JSON.stringify({
   language:'en',
   languageSwitchVisible:false,
   publicLanding:'/',
-  formerPublicHubs:'redirect:/',
+  boundedPublicHubs:['/observatory','/publications'],
   governedMethodLab:'/method-lab',
   rootGlobalMenus:1,
 },null,2));
