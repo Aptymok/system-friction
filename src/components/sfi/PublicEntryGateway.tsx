@@ -25,6 +25,8 @@ export function PublicEntryGateway(){
   const [frameIndex,setFrameIndex]=useState(0);
 
   const scene=SCENES[sceneIndex];
+  const sharedBackground=SCENES[0].background;
+  const sharedAssets=SCENES[0].assets;
 
   const goScene=useCallback((next:number)=>{
     const bounded=clamp(next,0,SCENES.length-1);
@@ -91,7 +93,7 @@ export function PublicEntryGateway(){
         goScene(sceneIndex+direction);
         wheelAccumulator.current=0;
         wheelLock.current=true;
-        window.setTimeout(()=>{wheelLock.current=false;},620);
+        window.setTimeout(()=>{wheelLock.current=false;},520);
       }
     };
 
@@ -117,6 +119,7 @@ export function PublicEntryGateway(){
   },[frameIndex,goScene,moveFrame,scene.frames.length,sceneIndex]);
 
   function handlePointerMove(event:PointerEvent<HTMLElement>){
+    if(event.pointerType==='touch')return;
     const node=rootRef.current;
     if(!node)return;
     const rect=node.getBoundingClientRect();
@@ -124,8 +127,8 @@ export function PublicEntryGateway(){
     const y=((event.clientY-rect.top)/rect.height-.5)*2;
     if(rafRef.current)cancelAnimationFrame(rafRef.current);
     rafRef.current=requestAnimationFrame(()=>{
-      node.style.setProperty('--pointer-x',x.toFixed(4));
-      node.style.setProperty('--pointer-y',y.toFixed(4));
+      node.style.setProperty('--stage-shift-x',`${(x*1.4).toFixed(2)}px`);
+      node.style.setProperty('--stage-shift-y',`${(y*.8).toFixed(2)}px`);
     });
   }
 
@@ -149,8 +152,8 @@ export function PublicEntryGateway(){
   function resetPointer(){
     const node=rootRef.current;
     if(!node)return;
-    node.style.setProperty('--pointer-x','0');
-    node.style.setProperty('--pointer-y','0');
+    node.style.setProperty('--stage-shift-x','0px');
+    node.style.setProperty('--stage-shift-y','0px');
   }
 
   return <main
@@ -164,6 +167,24 @@ export function PublicEntryGateway(){
     onPointerCancel={()=>{dragStart.current=null;}}
     onPointerLeave={resetPointer}
   >
+    <div className="sfiVisualStage" aria-hidden="true">
+      <div className="sfiSharedBackground" style={{backgroundImage:`url('${sharedBackground}')`}}/>
+      <div className="sfiSharedLayers">
+        {sharedAssets.map((asset,layerIndex)=><img
+          key={asset.src}
+          src={asset.src}
+          alt=""
+          decoding="async"
+          draggable={false}
+          className={`sfiSceneLayer sfiSceneLayer--${layerIndex+1}`}
+          data-role={asset.role}
+          data-motion={asset.motion}
+          data-alpha={asset.alpha?'true':undefined}
+        />)}
+      </div>
+      <div className="sfiSharedVeil"/>
+    </div>
+
     <div className="sfiSceneDeck" aria-live="polite">
       {SCENES.map((item,index)=>{
         const offset=index-sceneIndex;
@@ -184,26 +205,6 @@ export function PublicEntryGateway(){
           } as CSSProperties}
           aria-hidden={index===sceneIndex?undefined:true}
         >
-          <div className="sfiSceneBackground" style={{backgroundImage:`url('${item.background}')`}} aria-hidden="true"/>
-          <div className="sfiSceneLayers" aria-hidden="true">
-            {item.assets.map((asset,layerIndex)=><img
-              key={asset.src}
-              src={asset.src}
-              alt=""
-              className={`sfiSceneLayer sfiSceneLayer--${layerIndex+1}`}
-              data-role={asset.role}
-              data-motion={asset.motion}
-              data-alpha={asset.alpha?'true':undefined}
-              style={{
-                '--asset-depth':asset.depth,
-                '--parallax-x':`${asset.depth*2.2}px`,
-                '--parallax-y':`${asset.depth*1.1}px`,
-                '--parallax-z':`${asset.depth*18}px`,
-              } as CSSProperties}
-            />)}
-          </div>
-
-          <div className="sfiSceneVeil" aria-hidden="true"/>
           <div className="sfiSceneContent">
             <div className="sfiSceneCopy">
               <div className="sfiSceneEyebrow"><span>{item.number}</span>{item.eyebrow}</div>
@@ -217,7 +218,7 @@ export function PublicEntryGateway(){
                   className="sfiIntroTile"
                   onClick={()=>tile.targetSceneId&&goSceneById(tile.targetSceneId)}
                 >
-                  <img src={tile.image} alt="" aria-hidden="true"/>
+                  <img src={tile.image} alt="" aria-hidden="true" decoding="async"/>
                   <span>{tile.label}</span>
                   <strong>{tile.title}</strong>
                   <p>{tile.description}</p>
