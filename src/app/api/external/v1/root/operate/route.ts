@@ -120,8 +120,8 @@ async function readRootControlPlane(service: ReturnType<typeof createServiceSupa
 
 async function readRootPending(service: ReturnType<typeof createServiceSupabaseClient>) {
  const state=await readRootControlPlane(service);
- const pendingProposals=(state.proposals.rows as Record<string,unknown>[]).filter(r=>['proposed','conflicted','pending'].includes(String(r.status??'').toLowerCase()));
- const pendingRules=(state.founderRules.rows as Record<string,unknown>[]).filter(r=>String(r.status??'').toUpperCase()==='CANDIDATE');
+ const pendingProposals=(state.proposals.rows as unknown as Record<string,unknown>[]).filter(r=>['proposed','conflicted','pending'].includes(String(r.status??'').toLowerCase()));
+ const pendingRules=(state.founderRules.rows as unknown as Record<string,unknown>[]).filter(r=>String(r.status??'').toUpperCase()==='CANDIDATE');
  return {generatedAt:state.generatedAt,proposals:pendingProposals,founderRules:pendingRules,nextStep:'Use governance:decide for sovereign proposal decisions; operational work remains outside the sovereign queue.'};
 }
 
