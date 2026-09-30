@@ -185,7 +185,19 @@ export function PublicEntryGateway(){
               <p className="sfiSceneLead">{item.lead}</p>
 
               {item.tiles?.length ? <div className="sfiIntroTiles" aria-label="Public SFI destinations">
-                {item.tiles.map(tile=><button
+                {item.tiles.map(tile=>tile.href?<a
+                  key={tile.label}
+                  className="sfiIntroTile"
+                  href={tile.href}
+                  target={tile.href.startsWith('http')?'_blank':undefined}
+                  rel={tile.href.startsWith('http')?'noreferrer':undefined}
+                >
+                  <img src={tile.image} alt="" aria-hidden="true" decoding="async"/>
+                  <span>{tile.label}</span>
+                  <strong>{tile.title}</strong>
+                  <p>{tile.description}</p>
+                  <b aria-hidden="true">↗</b>
+                </a>:<button
                   type="button"
                   key={tile.label}
                   className="sfiIntroTile"
