@@ -29,30 +29,23 @@ rejectText(provider,"window.localStorage.getItem(STORAGE_KEY)",'language prefere
 rejectText(provider,"aria-label={language === 'es'",'language switch');
 rejectText(provider,"setPrivateLanguage",'mutable bilingual runtime');
 
-for(const [href,label] of [
-  ['/','HOME'],
-  ['/observatory','OBSERVATORY'],
-  ['/laboratory','LABORATORY'],
-  ['/publications','REGISTRY'],
-  ['/institution','INSTITUTION'],
-  ['/contact','CONTACT'],
-] as const){
-  requireText(nav,`href:'${href}'`,`public nav href ${href}`);
-  requireText(nav,`label:'${label}'`,`public nav label ${label}`);
+requireText(nav,"href:'/'",'single public landing href');
+requireText(nav,"label:'HOME'",'single public landing label');
+for(const retired of ['/observatory','/laboratory','/publications','/institution','/contact','/method-lab']){
+  rejectText(nav,`href:'${retired}'`,`public nav must not expose ${retired}`);
 }
-rejectText(nav,"href:'/method-lab'",'public nav must not expose authenticated Method Lab');
 
 requireText(layout,'<html lang="en">','root document English declaration');
 requireText(layout,'<SfiPublicHeader global/>','global institutional header');
 requireText(layout,'<SfiPublicFooter global/>','global institutional footer');
-requireText(publicChrome,'SFI_PUBLIC_NAV.map','shared public chrome complete public navigation');
+rejectText(publicChrome,'SFI_PUBLIC_NAV.map','NYC chrome must not render route menu');
+requireText(publicChrome,'NEW YORK · AI WEEK 2026','NYC event identity');
+requireText(publicChrome,'OCT 08 · 19:00 ET','NYC event time');
 requireText(publicChrome,'href="/login"','shared public chrome sign-in');
-requireText(publicChrome,'href="/privacy"','shared footer privacy');
-requireText(publicChrome,'<PublicNewsletterForm/>','shared footer newsletter');
+requireText(publicChrome,'href="/privacy"','ultra-fine footer privacy');
 rejectText(entry,'SFI_PUBLIC_NAV.map','home duplicate public navigation');
 rejectText(observatory,'SFI_PUBLIC_NAV.filter','Observatory duplicate public navigation');
-requireText(laboratory,'CanonicalCognitiveFieldPublic','public canonical cognitive field');
-requireText(laboratory,'href="/login?next=%2Fmethod-lab"','governed Method Lab sign-in handoff');
+requireText(laboratory,"redirect('/')",'former Laboratory public surface converges to NYC landing');
 requireText(methodLab,"requireUserProfile()",'Method Lab remains authenticated');
 requireText(methodLab,"redirect('/login?next=%2Fmethod-lab')",'Method Lab unauthenticated redirect');
 
@@ -82,7 +75,8 @@ console.log(JSON.stringify({
   contract:'SFI-ENGLISH-INTERFACE-4.0',
   language:'en',
   languageSwitchVisible:false,
-  publicLaboratory:'/laboratory',
+  publicLanding:'/',
+  formerPublicHubs:'redirect:/',
   governedMethodLab:'/method-lab',
   rootGlobalMenus:1,
 },null,2));
