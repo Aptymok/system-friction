@@ -139,6 +139,7 @@ export async function persistDistributedPhenomenonCandidate(input: {
   }
 
   const event = await appendEpistemicEvent({
+    returnMode:'receipt',
     eventId,
     eventName: 'SFI_DISTRIBUTED_PHENOMENON_CANDIDATE_RECORDED',
     epistemicClass: 'derived',
