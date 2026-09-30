@@ -1,6 +1,5 @@
 import { appendEpistemicEvent } from '@/lib/events/eventStore';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
-import { SFI_SUPABASE_READ_BUDGET } from '@/lib/supabase/readBudget';
 import { computeCulturalVector } from './cultural-vector-scoring';
 import type { CulturalVectorResponse, PlatformVector } from './cultural-vector-contract';
 import { evidenceTypeVectorEffects, inferEvidenceType, sourceCoverageContribution } from './evidence-vector-mapper';
@@ -171,27 +170,6 @@ export async function recordScoreFrictionAudioObservation(input: {
       platform_vector: { source_coverage: input.source_coverage_contribution, reliability_score: input.reliability_score },
     },
   });
-}
-
-export async function readScoreFrictionState() {
-  const service = createServiceSupabaseClient();
-  const [sources, cases, observations, prototypes, verifications] = await Promise.all([
-    service.from('scorefriction_sources').select('*').order('source_name', { ascending: true }).limit(SFI_SUPABASE_READ_BUDGET.scoreFrictionStateRows + 1),
-    service.from('scorefriction_case_studies').select('*').order('case_id', { ascending: true }).limit(SFI_SUPABASE_READ_BUDGET.scoreFrictionStateRows + 1),
-    service.from('scorefriction_observations').select('*').order('created_at', { ascending: false }).limit(25),
-    service.from('scorefriction_prototypes').select('*').order('created_at', { ascending: false }).limit(25),
-    service.from('scorefriction_verifications').select('*').order('verified_at', { ascending: false }).limit(25),
-  ]);
-  const warnings = [sources.error, cases.error, observations.error, prototypes.error, verifications.error].filter(Boolean).map((item) => item?.message ?? 'unknown_error');
-  if ((sources.data ?? []).length > SFI_SUPABASE_READ_BUDGET.scoreFrictionStateRows) warnings.push(`scorefriction_sources_budget_exceeded:limit=${SFI_SUPABASE_READ_BUDGET.scoreFrictionStateRows}`);
-  if ((cases.data ?? []).length > SFI_SUPABASE_READ_BUDGET.scoreFrictionStateRows) warnings.push(`scorefriction_cases_budget_exceeded:limit=${SFI_SUPABASE_READ_BUDGET.scoreFrictionStateRows}`);
-  return {
-    ok: warnings.length === 0,
-    data: {
-      sources: (sources.data ?? []).slice(0, SFI_SUPABASE_READ_BUDGET.scoreFrictionStateRows), cases: (cases.data ?? []).slice(0, SFI_SUPABASE_READ_BUDGET.scoreFrictionStateRows), observations: observations.data ?? [],
-      prototypes: prototypes.data ?? [], verifications: verifications.data ?? [], warnings,
-    },
-  };
 }
 
 function evaluatedObservationInput(input: ScoreFrictionObservationInput & { normalized_payload?: unknown; raw_payload?: unknown }) {
