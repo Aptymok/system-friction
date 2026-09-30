@@ -74,7 +74,7 @@ async function main() {
     oauthSubjectBound: true,
     bootstrapDiscoverable: true,
     manifestDiscoverable: true,
-    externalGatewayVersion: '1.19.0',
+    externalGatewayVersion: '1.20.0',
     downstreamOpenApiVersionRegressionGuard: true,
     contextSources: ['studio_sessions','studio_objects','studio_evidence_traces','studio_archive_events','owner-attributed sfi_amv_memory'],
     binaryContentIncluded: false,
