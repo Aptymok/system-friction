@@ -9,7 +9,7 @@ const rootUi=read('src/components/sfi/RootNeuralGraphView.tsx');
 const required=['CURRENT STATE','TRAJECTORIES','OBSERVATORY','GOVERNANCE','TWIN / SPINE','PROJECTIONS & PHENOMENA','JR. LOGBOOK','TECHNICAL LOG','H1, HR, CONTRAST & LEARNING'];
 for(const label of required) if(!menu.includes(label)) throw new Error('missing authenticated navigation item:'+label);
 if(menu.includes('>SFI<')||menu.includes('sfiWordmark')) throw new Error('diamond navigation must not redraw SFI letters');
-if(!menu.includes('/identity/sfi-canonical-diamond.svg')) throw new Error('canonical diamond asset contract missing');
+if(!menu.includes('/library/assets/sfi-mark.svg')) throw new Error('canonical SFI vector asset contract missing');
 if(!css.includes('height:100dvh')||!css.includes('overflow:hidden')||!css.includes('scrollbar-width:none')) throw new Error('fixed viewport/hidden internal scroll contract missing');
 if(!scene.includes('<AuthenticatedSfiMenu/>')||!consoleUi.includes('<AuthenticatedSfiMenu/>')) throw new Error('authenticated surfaces must use diamond navigation');
 if(consoleUi.includes('sfiOperatingNav')) throw new Error('legacy authenticated top navigation remains');
