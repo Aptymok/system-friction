@@ -316,6 +316,7 @@ export async function dispatchScientificMethodToLab(input: {
   });
 
   const receipt = await appendEpistemicEvent({
+    returnMode:'receipt',
     eventId: receiptEventId,
     eventName:'SFI_JR_METHOD_LAB_DISPATCH_COMPLETED',
     epistemicClass:'simulated',
