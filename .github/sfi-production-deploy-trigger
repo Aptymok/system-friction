@@ -1,12 +1,13 @@
 SFI Production Release 2026-09-30
-base=96595a253b9cf05c2a199052aa6ae6ccee5bc200
-reason=contextual_header_lateral_navigation_ordered_footer_reality_chain
+base=38baad96b126796a44076dd06003f60761345364
+reason=contextual_header_lateral_navigation_ordered_footer_reality_chain_sitemap_fix
 header=title_statement_stage
 header_navigation=previous_next_surface_arrows
 header_method_lab_stage=RESEARCH
 footer_titles_repeated=false
 footer_institutional_chain=OBSERVATION,RESEARCH,EVIDENCE,INFERENCE,AUTHORITY,DECISION,EXECUTION,RETURN,LEARN,OBSERVATION
 footer_reality_chain_method=WORLD,SENSOR,SIGNAL,ARTIFACT,CONTEXT,INFERENCE,AUTHORITY,CLAIM,ACTION,RETURN
+public_sitemap=publications,observatory
 footer_event=AI_WEEK_NYC_2026
 footer_event_url=https://gomry.com/l/Kzcb3xl
 institutional_apis_untouched=true
