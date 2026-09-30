@@ -1,5 +1,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { GET as rootResourceMetadata } from '../../app/.well-known/oauth-protected-resource/route';
+import { GET as authenticatedResourceMetadata } from '../../app/.well-known/oauth-protected-resource/api/mcp/authenticated/route';
+
+test('OAuth discovery paths identify the same canonical MCP resource on every deployment alias', async () => {
+  for (const origin of ['https://www.systemfriction.org', 'https://system-friction.vercel.app']) {
+    const root = await Reflect.apply(rootResourceMetadata, undefined, [new Request(`${origin}/.well-known/oauth-protected-resource`)]);
+    const specific = await Reflect.apply(authenticatedResourceMetadata, undefined, [new Request(`${origin}/.well-known/oauth-protected-resource/api/mcp/authenticated`)]);
+    assert.equal(root.status, 200);
+    assert.equal(specific.status, 200);
+    const expected = await root.json();
+    const actual = await specific.json();
+    assert.equal(actual.resource, 'https://www.systemfriction.org/api/mcp/authenticated');
+    assert.deepEqual(actual, expected, 'path discovery must not advertise an audience rejected by the canonical issuer');
+  }
+});
 
 import {
   SFI_AUTHENTICATED_MACHINE_ADAPTER_CONTRACT,

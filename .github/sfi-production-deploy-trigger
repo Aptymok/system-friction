@@ -1,6 +1,6 @@
-SFI Production Release 2026-09-29
-source=e8cd1233b544b6fe7374f3874d16323bd828f7dc
-reason=publish_governed_jr_mcp_and_current_verified_main
+SFI Production Release 2026-09-30
+base=a027754c89385a3c510b08a91877503ff7f8d114
+reason=deploy_canonical_authenticated_mcp_resource_metadata
 verification=production_build_runs_qa_typecheck_before_prebuilt_deploy
 data_plane=PRIMARY
 mcp_scopes=observe,propose,execute,governance:decide,root:operate,world:read,world:run,jr:read,jr:run,cases:read,cases:write,lab:read,lab:write,lab:run,studio:read,studio:content,studio:run
