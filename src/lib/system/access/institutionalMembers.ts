@@ -4,6 +4,8 @@ export type SfiExternalScope =
   | 'execute'
   | 'world:read'
   | 'world:run'
+  | 'jr:read'
+  | 'jr:run'
   | 'cases:read'
   | 'cases:write'
   | 'lab:read'
@@ -54,6 +56,8 @@ const MEMBERS: SfiInstitutionalMember[] = [
         'observe',
         'propose',
         'execute',
+        'jr:read',
+        'jr:run',
         'cases:read',
         'cases:write',
         'lab:read',
