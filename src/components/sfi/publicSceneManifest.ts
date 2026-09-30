@@ -4,6 +4,15 @@ export type SceneFrame = {
   text: string;
 };
 
+export type SceneTile = {
+  label: string;
+  title: string;
+  description: string;
+  image: string;
+  targetSceneId?: string;
+  href?: string;
+};
+
 export type SceneAsset = {
   src: string;
   role: 'atmosphere' | 'celestial' | 'geometry' | 'structure' | 'terrain' | 'signal';
@@ -22,6 +31,7 @@ export type Scene = {
   background: string;
   assets: readonly SceneAsset[];
   frames: readonly SceneFrame[];
+  tiles?: readonly SceneTile[];
 };
 
 const NYC_ASSETS = Object.freeze([
@@ -31,23 +41,34 @@ const NYC_ASSETS = Object.freeze([
   {src:'/sfi/nyc/lines.avif',role:'geometry',depth:4,motion:'pointer-parallax',alpha:true},
   {src:'/sfi/nyc/structure.avif',role:'structure',depth:5,motion:'pointer-parallax',alpha:true},
   {src:'/sfi/nyc/earth.avif',role:'terrain',depth:6,motion:'pointer-parallax',alpha:true},
-  {src:'/sfi/nyc/lights.avif',role:'signal',depth:7,motion:'slow-drift',alpha:true},
 ] satisfies readonly SceneAsset[]);
 
 const BACKGROUND='/sfi/nyc/background.avif';
 
-/**
- * SFI NYC public landing.
- *
- * Vertical movement changes the institutional subject.
- * Horizontal movement changes the explanation inside that subject.
- * Every subject remains inside one continuous visual field.
- */
 export const SCENES: readonly Scene[] = [
+  {
+    id:'intro',
+    number:'00',
+    eyebrow:'SYSTEM FRICTION INSTITUTE · NEW YORK 2026',
+    title:'SYSTEM FRICTION',
+    accent:'INSTITUTE.',
+    lead:'An independent institutional research environment for evidence, authority, execution and RETURN in complex sociotechnical systems.',
+    background:BACKGROUND,
+    assets:NYC_ASSETS,
+    frames:[
+      {label:'PUBLIC ORIENTATION',title:'Institutional intelligence must remain reconstructible.',text:'SFI studies how signals become evidence, how evidence becomes authority, how authority becomes execution, and how reality returns as a constraint on what the institution believes next.'},
+    ],
+    tiles:[
+      {label:'REGISTRY',title:'Institutional registry',description:'Methods, records, evidence objects and governed institutional memory.',image:'/sfi/nyc/structure.avif',targetSceneId:'authority'},
+      {label:'AI WEEK NEW YORK',title:'October 8 · 7:00 PM ET',description:'After AI Governance: Evidence, Authority & RETURN in Real Institutions.',image:'/sfi/nyc/earth.avif',targetSceneId:'time'},
+      {label:'FRICTION NOTES',title:'Field notes',description:'Short-form institutional observations on friction, evidence and consequence.',image:'/sfi/nyc/lines.avif',targetSceneId:'after-ai-governance'},
+      {label:'OBSERVATORY',title:'World & institutional state',description:'Observation, hypotheses, calibration and longitudinal context.',image:'/sfi/nyc/moon.avif',targetSceneId:'observation'},
+    ],
+  },
   {
     id:'time',
     number:'01',
-    eyebrow:'AI WEEK NY · OCTOBER 08, 2026 · 7:00 PM ET',
+    eyebrow:'AI WEEK NEW YORK 2026 · OCT 08 · 19:00 ET',
     title:'THE WORLD',
     accent:'DOES NOT HAVE THE SAME TIME.',
     lead:'AI can be global. Institutions are not. They operate through different clocks, evidence thresholds, authorities and consequences.',
@@ -62,7 +83,7 @@ export const SCENES: readonly Scene[] = [
   {
     id:'observation',
     number:'02',
-    eyebrow:'OBSERVATION',
+    eyebrow:'OBSERVATORY / OBSERVATION',
     title:'A SIGNAL',
     accent:'IS NOT EVIDENCE.',
     lead:'SFI separates what was sensed from what can legitimately support a claim.',
@@ -77,7 +98,7 @@ export const SCENES: readonly Scene[] = [
   {
     id:'authority',
     number:'03',
-    eyebrow:'INFERENCE / AUTHORITY',
+    eyebrow:'REGISTRY / INFERENCE / AUTHORITY',
     title:'EVIDENCE',
     accent:'IS NOT A DECISION.',
     lead:'Reasoning can produce a defensible interpretation faster than an institution can determine whether anyone is authorized to act on it.',
@@ -92,7 +113,7 @@ export const SCENES: readonly Scene[] = [
   {
     id:'execution',
     number:'04',
-    eyebrow:'EXECUTION',
+    eyebrow:'INTEGRATION / EXECUTION',
     title:'AUTHORITY',
     accent:'IS NOT EXECUTION.',
     lead:'The transition from an approved decision to a material action is where institutional AI becomes consequential.',
@@ -107,7 +128,7 @@ export const SCENES: readonly Scene[] = [
   {
     id:'return',
     number:'05',
-    eyebrow:'RETURN',
+    eyebrow:'CASES / RETURN',
     title:'REALITY',
     accent:'ANSWERS BACK.',
     lead:'After execution, the institution must observe what actually happened and allow the result to change what it believes next.',
@@ -123,7 +144,7 @@ export const SCENES: readonly Scene[] = [
   {
     id:'after-ai-governance',
     number:'06',
-    eyebrow:'AFTER AI GOVERNANCE',
+    eyebrow:'METHOD LAB / FIELD EVENTS',
     title:'GOVERNANCE',
     accent:'IS ONLY THE BEGINNING.',
     lead:'System Friction Institute is building an institutional operating model in which AI action remains reconstructible from observation to consequence.',
@@ -133,7 +154,7 @@ export const SCENES: readonly Scene[] = [
       {label:'COGNITIVE TWIN',title:'Institutional state becomes inspectable.',text:'Memory, proposals, decisions and learning remain linked without collapsing observation, inference and authority into one layer.'},
       {label:'WORLD VECTOR',title:'Institutions act inside a changing world.',text:'Longitudinal world state is treated as context for institutional decisions rather than as a decorative dashboard.'},
       {label:'METHOD LAB',title:'Simulation does not become reality by declaration.',text:'Experiments, replays and model outputs remain SIMULATED until an observed outcome returns through a governed evidence path.'},
-      {label:'NYC',title:'After AI Governance: Evidence, Authority & RETURN in Real Institutions.',text:'October 8, 2026 · 7:00 PM ET · AI Week NY. A public introduction to the institutional problem SFI is designed to make visible.'},
+      {label:'AI WEEK NEW YORK',title:'After AI Governance: Evidence, Authority & RETURN in Real Institutions.',text:'October 8, 2026 · 7:00 PM ET · AI Week NY. A public introduction to the institutional problem SFI is designed to make visible.'},
     ],
   },
 ] as const;
