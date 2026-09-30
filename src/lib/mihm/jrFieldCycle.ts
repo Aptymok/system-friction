@@ -13,6 +13,7 @@ import { executeScientificMethodsForNode, persistScientificMethodExecutions, rea
 import { persistActiveObservationRequest } from './activeObservationQueue';
 import { reconcileJrMethodLabReturns } from './jrReturnReconciliation';
 import { persistPerturbationReviewCandidate } from './perturbationReviewQueue';
+import { SFI_SUPABASE_READ_BUDGET } from '@/lib/supabase/readBudget';
 
 export const SFI_JR_FIELD_CYCLE_CONTRACT = 'SFI-JR-FIELD-CYCLE-1.0' as const;
 
@@ -32,9 +33,9 @@ export async function runJrFieldCycle(input: JrCycleInput) {
   const startedAt = new Date().toISOString();
   const canonical = await readCanonicalGraphState('sfi', { allowContinuity: true });
   const graph = projectCognitiveGraph(canonical);
-  const maxMethodRuns = Math.max(0, Math.min(4, input.maxMethodRuns ?? 2));
-  const maxEpochWrites = Math.max(1, Math.min(80, input.maxEpochWrites ?? 40));
-  const maxPhenomenonWrites = Math.max(1, Math.min(40, input.maxPhenomenonWrites ?? 20));
+  const maxMethodRuns = Math.max(0, Math.min(SFI_SUPABASE_READ_BUDGET.jrMethodRuns, input.maxMethodRuns ?? SFI_SUPABASE_READ_BUDGET.jrMethodRuns));
+  const maxEpochWrites = Math.max(1, Math.min(SFI_SUPABASE_READ_BUDGET.jrEpochWrites, input.maxEpochWrites ?? SFI_SUPABASE_READ_BUDGET.jrEpochWrites));
+  const maxPhenomenonWrites = Math.max(1, Math.min(SFI_SUPABASE_READ_BUDGET.jrPhenomenonWrites, input.maxPhenomenonWrites ?? SFI_SUPABASE_READ_BUDGET.jrPhenomenonWrites));
 
   const nodeReadings = graph.nodes.map((node) => {
     const reading = deriveFieldScientificReading(node, graph.edges);
@@ -62,7 +63,7 @@ export async function runJrFieldCycle(input: JrCycleInput) {
   const phenomena = deriveDistributedPhenomena(graph.nodes, graph.edges);
   const scientificTargets = nodeReadings
     .filter((item) => item.reading.methodCompetition.state !== 'NO_CANDIDATE')
-    .slice(0, 30);
+    .slice(0, SFI_SUPABASE_READ_BUDGET.jrScientificTargets);
   const nextObservations = uniqueStrings(nodeReadings.map((item) => item.reading.methodCompetition.nextObservation));
   const perturbationReviewCandidates = nodeReadings
     .filter((item) => item.reading.nextAction.decision === 'REVIEW_PERTURBATION_CANDIDATE')
@@ -119,7 +120,13 @@ export async function runJrFieldCycle(input: JrCycleInput) {
     }
   }
 
-  const epochHistories = await readFieldEpochHistories(scientificTargets.map((item) => item.node.nodeId));
+  let historyReadError:string|null=null;
+  let epochHistories=new Map<string,Awaited<ReturnType<typeof readFieldEpochHistories>> extends Map<string,infer T> ? T : never>();
+  try {
+    epochHistories=await readFieldEpochHistories(scientificTargets.map((item)=>item.node.nodeId));
+  } catch (error) {
+    historyReadError=error instanceof Error?error.message:String(error);
+  }
 
   const phenomenonReceipts: unknown[] = [];
   for (const candidate of phenomena.slice(0, maxPhenomenonWrites)) {
@@ -185,8 +192,8 @@ export async function runJrFieldCycle(input: JrCycleInput) {
   }
 
   const perturbationReviewRequests: unknown[] = [];
-  for (const item of nodeReadings) {
-    if (item.reading.nextAction.decision !== 'REVIEW_PERTURBATION_CANDIDATE' || !item.reading.capacity) continue;
+  for (const item of nodeReadings.filter((entry)=>entry.reading.nextAction.decision === 'REVIEW_PERTURBATION_CANDIDATE' && Boolean(entry.reading.capacity)).slice(0,SFI_SUPABASE_READ_BUDGET.jrPhenomenonWrites)) {
+    if (!item.reading.capacity) continue;
     try {
       const magnitude=item.reading.capacity.perturbationMagnitude;
       perturbationReviewRequests.push({
@@ -237,7 +244,7 @@ export async function runJrFieldCycle(input: JrCycleInput) {
   const returnReconciliation = await reconcileJrMethodLabReturns({
     actorId: input.actorId,
     tenantId: 'sfi',
-    maxRuns: 30,
+    maxRuns: SFI_SUPABASE_READ_BUDGET.jrReturnRuns,
   }).catch((error) => ({
     ok:false as const,
     contract:'SFI-JR-RETURN-RECONCILIATION-1.0',
@@ -291,6 +298,8 @@ export async function runJrFieldCycle(input: JrCycleInput) {
       activeObservationRequests,
       perturbationReviewRequests,
       returnReconciliation,
+      historyReadError,
+      readBudget:SFI_SUPABASE_READ_BUDGET,
       nextObservations,
       perturbationReviewCandidates,
       materialPerturbationExecuted:false,
@@ -303,10 +312,11 @@ export async function runJrFieldCycle(input: JrCycleInput) {
   const writesPerformed = persistedEpochs > 0 || persistedPhenomena > 0 || persistedScientificMethods > 0 || persistedObservationRequests > 0 || persistedPerturbationRequests > 0 || methodRuns > 0 || returnReconciliation.writesPerformed === true || cycleReceipt.ok;
   const degradedDispatches = methodDispatches.filter((item) => typeof item === 'object' && item !== null && (item as {state?:string}).state === 'DEGRADED').length;
   const returnDegraded = returnReconciliation.ok === false;
+  const historyDegraded = historyReadError !== null;
 
   return {
-    ok: degradedDispatches === 0 && !returnDegraded,
-    status: (degradedDispatches || returnDegraded) ? 'DEGRADED' as const : 'COMPLETE' as const,
+    ok: degradedDispatches === 0 && !returnDegraded && !historyDegraded,
+    status: (degradedDispatches || returnDegraded || historyDegraded) ? 'DEGRADED' as const : 'COMPLETE' as const,
     contract:SFI_JR_FIELD_CYCLE_CONTRACT,
     startedAt,
     completedAt,
@@ -325,6 +335,8 @@ export async function runJrFieldCycle(input: JrCycleInput) {
     perturbationReviewRequests,
     methodDispatches,
     returnReconciliation,
+    historyReadError,
+    readBudget:SFI_SUPABASE_READ_BUDGET,
     cycleReceipt:cycleReceipt.ok ? cycleReceipt.data : cycleReceipt,
     writesPerformed,
     boundary:'Observation and simulation may continue automatically within existing authority. Jr never turns a method result into observation, executes a material perturbation, promotes canon, makes a governance decision or fabricates RETURN.',
