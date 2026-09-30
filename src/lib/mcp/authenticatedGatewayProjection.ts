@@ -8,6 +8,8 @@ export const SFI_AUTHENTICATED_MCP_SCOPES = Object.freeze([
   'root:operate',
   'world:read',
   'world:run',
+  'jr:read',
+  'jr:run',
   'cases:read',
   'cases:write',
   'lab:read',
@@ -50,6 +52,10 @@ function worldScope(input: SfiAuthenticatedGatewayInvocation) {
   return bodyOperation(input) === 'run' ? 'world:run' : 'world:read';
 }
 
+function jrScope(input: SfiAuthenticatedGatewayInvocation) {
+  return bodyOperation(input) === 'run' ? 'jr:run' : 'jr:read';
+}
+
 function caseScope(input: SfiAuthenticatedGatewayInvocation) {
   const operation = bodyOperation(input);
   if (['list', 'read', 'reports', 'intake_plan'].includes(operation)) return 'cases:read';
@@ -71,6 +77,7 @@ const DEFINITIONS = [
   { operationId: 'recordSfiProposalReturn', method: 'POST', path: '/api/external/v1/proposal-return', scope: 'execute', summary: 'Record an observed return for an already-queued proposal.' },
   { operationId: 'operateSfiLab', method: 'POST', path: '/api/external/v1/lab', scope: labScope, summary: 'Read, persist or run institutional Method Lab according to operation scope.' },
   { operationId: 'operateSfiWorld', method: 'POST', path: '/api/external/v1/world', scope: worldScope, summary: 'Read persisted World freshness or execute the governed World daily cycle with persistence verification.' },
+  { operationId: 'operateSfiJr', method: 'POST', path: '/api/external/v1/jr', scope: jrScope, summary: 'Read JR field-cycle state or run the bounded JR observation/method/RETURN coordination cycle.' },
   { operationId: 'operateSfiCaseWorkspace', method: 'POST', path: '/api/external/v1/cases', scope: caseScope, summary: 'Operate the tenant-scoped Case Platform through its canonical adapter.' },
   { operationId: 'planSfiCaseIntake', method: 'POST', path: '/api/external/v1/cases/intake', scope: 'cases:read', summary: 'Resolve required Case Platform intake before creation.' },
   { operationId: 'createSfiCaseFromResolvedIntake', method: 'POST', path: '/api/external/v1/cases/create', scope: 'cases:write', summary: 'Create a case from resolved intake.' },
@@ -112,7 +119,7 @@ export const SFI_AUTHENTICATED_GATEWAY_TOOL = Object.freeze({
       },
       body: {
         type: 'object',
-        description: 'Canonical POST body. operateSfiWorld accepts operation="state" (world:read) or operation="run" (world:run). operateSfiLab persist requires operation="persist", nonempty title/content; commandId is its idempotency key; structured research uses metadata={kind:"METHOD_LAB_RESEARCH_OBJECT",researchObject:{objectId,...}} (legacy researchMetadata accepted instead). Lab run requires {operation:"run",protocolId:"economic_simulation"|"sociotechnical_simulation",evidenceIds:[persisted evidence row IDs],parameters?:object,cognitiveSpineContextRefs?:string[]}; lab:run, SIMULATED, no promotion, not idempotent. operateSfiRoot accepts operation="capabilities" | "capability_map" | "pending" | "sfi_state" | "reports" | "accounts_list" | "account_invite"; account_invite requires invitation {email,displayName,title,accessClass}.',
+        description: 'Canonical POST body. operateSfiWorld accepts operation="state" (world:read) or operation="run" (world:run). operateSfiJr accepts operation="state" (jr:read) or operation="run" (jr:run); JR may persist derived temporal/method receipts and bounded SIMULATED Method Lab runs but never executes material perturbation, governance decision or canon promotion. operateSfiLab persist requires operation="persist", nonempty title/content; commandId is its idempotency key; structured research uses metadata={kind:"METHOD_LAB_RESEARCH_OBJECT",researchObject:{objectId,...}} (legacy researchMetadata accepted instead). Lab run requires {operation:"run",protocolId:"economic_simulation"|"sociotechnical_simulation",evidenceIds:[persisted evidence row IDs],parameters?:object,cognitiveSpineContextRefs?:string[]}; lab:run, SIMULATED, no promotion, not idempotent. operateSfiRoot accepts operation="capabilities" | "capability_map" | "pending" | "sfi_state" | "reports" | "accounts_list" | "account_invite"; account_invite requires invitation {email,displayName,title,accessClass}.',
         additionalProperties: true,
       },
       query: {
