@@ -128,11 +128,12 @@ assert.ok(manifest.includes("scope: 'cases:write'"), 'manifest_case_write_scope_
 
 assert.ok(observatoryApi.includes('source_url,payload'), 'observatory_public_provenance_fields_missing');
 assert.ok(observatoryApi.includes('provenance:'), 'observatory_public_provenance_projection_missing');
-assert.ok(observatoryPage.includes('ObservatoryConsole'), 'observatory_canonical_console_not_rendered');
+assert.ok(observatoryPage.includes("redirect('/')"), 'observatory_public_surface_must_redirect_to_single_landing');
+assert.equal(observatoryPage.includes('ObservatoryConsole'), false, 'observatory_console_must_not_mount_as_public_surface');
 assert.equal(observatoryPage.includes('ObservatoryInterpretiveFlow'), false, 'observatory_page_must_not_mount_duplicate_interpretive_owner');
-assert.equal(observatoryConsole.includes('ObservatoryInterpretiveFlow'), false, 'observatory_must_not_mount_a_second_interpretive_surface');
+assert.equal(observatoryConsole.includes('ObservatoryInterpretiveFlow'), false, 'observatory_internal_console_must_not_mount_a_second_interpretive_surface');
 for (const token of ['SFI SATELLITE → HUB','LATEST HYPOTHESES','HypothesisClosureDiff','world?.liveWorld?.state']) {
-  assert.ok(observatoryConsole.includes(token), `observatory_satellite_hub_missing:${token}`);
+  assert.ok(observatoryConsole.includes(token), `observatory_internal_console_capability_missing:${token}`);
 }
 
 assert.ok(merge.includes("operationId: 'readSfiCase'"), 'openapi_merge_read_case_action_missing');
@@ -220,5 +221,5 @@ console.log(JSON.stringify({
   interventionAuthority: false,
   returnAuthority: false,
   observatoryProvenance: true,
-  observatoryInterpretation: 'SATELLITE_HUB_SINGLE_PUBLIC_OWNER',
+  observatoryInterpretation: 'INTERNAL_CONSOLE_PUBLIC_REDIRECT_TO_SINGLE_LANDING',
 }, null, 2));
