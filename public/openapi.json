@@ -983,7 +983,7 @@
       "post": {
         "operationId": "operateSfiWorld",
         "summary": "Read or run the governed SFI World cycle",
-        "description": "operation=state requires world:read. operation=run requires world:run and reuses canonical observation, hypothesis, calibration and instrument owners. operation=regenerate_world_vector requires world:run and reconstructs World Vector longitudinal observations only from persisted same-day WorldSpect snapshots.",
+        "description": "operation=state requires world:read. operation=run requires world:run and reuses canonical observation, hypothesis, calibration and instrument owners. operation=measure_worldspect requires world:run and runs the canonical present-time WorldSpect adapters. operation=regenerate_world_vector requires world:run and reconstructs World Vector longitudinal observations only from persisted same-day WorldSpect snapshots.",
         "security": [
           {
             "sfiOAuth": [
@@ -994,6 +994,7 @@
         "x-sfi-operation-scopes": {
           "state": "world:read",
           "run": "world:run",
+          "measure_worldspect": "world:run",
           "regenerate_world_vector": "world:run"
         },
         "requestBody": {
@@ -1008,6 +1009,7 @@
                     "enum": [
                       "state",
                       "run",
+                      "measure_worldspect",
                       "regenerate_world_vector"
                     ]
                   },
