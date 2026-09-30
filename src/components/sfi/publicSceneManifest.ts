@@ -6,17 +6,15 @@ export type SceneFrame = {
 
 export type SceneAsset = {
   src: string;
-  role: 'background' | 'atmosphere' | 'terrain' | 'structure' | 'signal' | 'interface' | 'human';
+  role: 'atmosphere' | 'celestial' | 'geometry' | 'structure' | 'terrain' | 'signal';
   depth: number;
-  motion: 'static' | 'slow-drift' | 'pointer-parallax' | 'scale-in' | 'scale-out';
-  scale: 'institutional' | 'human' | 'city' | 'territory' | 'planetary' | 'orbital';
+  motion: 'static' | 'slow-drift' | 'pointer-parallax';
   alpha?: boolean;
 };
 
 export type Scene = {
   id: string;
   number: string;
-  scale: SceneAsset['scale'];
   eyebrow: string;
   title: string;
   accent: string;
@@ -24,148 +22,118 @@ export type Scene = {
   background: string;
   assets: readonly SceneAsset[];
   frames: readonly SceneFrame[];
-  primaryHref: string;
-  primaryLabel: string;
-  secondaryHref: string;
-  secondaryLabel: string;
 };
 
+const NYC_ASSETS = Object.freeze([
+  {src:'/sfi/nyc/clouds.avif',role:'atmosphere',depth:1,motion:'slow-drift',alpha:true},
+  {src:'/sfi/nyc/moon.avif',role:'celestial',depth:2,motion:'pointer-parallax',alpha:true},
+  {src:'/sfi/nyc/golden-circle.avif',role:'geometry',depth:3,motion:'slow-drift',alpha:true},
+  {src:'/sfi/nyc/lines.avif',role:'geometry',depth:4,motion:'pointer-parallax',alpha:true},
+  {src:'/sfi/nyc/structure.avif',role:'structure',depth:5,motion:'pointer-parallax',alpha:true},
+  {src:'/sfi/nyc/earth.avif',role:'terrain',depth:6,motion:'pointer-parallax',alpha:true},
+  {src:'/sfi/nyc/lights.avif',role:'signal',depth:7,motion:'slow-drift',alpha:true},
+] satisfies readonly SceneAsset[]);
+
+const BACKGROUND='/sfi/nyc/background.avif';
+
 /**
- * Public spatial journey.
+ * SFI NYC public landing.
  *
- * Visible human destinations are deliberately bounded to:
- * SIGN IN · OBSERVATORY · PUBLICATIONS.
- *
- * ENTRY → OBSERVATORY → SYSTEM FIELD → FRICTION → INSTITUTION → RETURN
+ * Vertical movement changes the institutional subject.
+ * Horizontal movement changes the explanation inside that subject.
+ * Every subject remains inside one continuous visual field.
  */
 export const SCENES: readonly Scene[] = [
   {
-    id:'entry-world',
+    id:'time',
     number:'01',
-    scale:'planetary',
-    eyebrow:'SYSTEM FRICTION INSTITUTE',
+    eyebrow:'AI WEEK NY · OCTOBER 08, 2026 · 7:00 PM ET',
     title:'THE WORLD',
-    accent:'ALREADY MOVES.',
-    lead:'Systems interact before they are understood. SFI observes where relationships create friction, change and consequence.',
-    background:'/assets/sfi/scenes/sala_inicial.png',
-    assets:[],
+    accent:'DOES NOT HAVE THE SAME TIME.',
+    lead:'AI can be global. Institutions are not. They operate through different clocks, evidence thresholds, authorities and consequences.',
+    background:BACKGROUND,
+    assets:NYC_ASSETS,
     frames:[
-      {label:'ENTRY',title:'Enter the field.',text:'Observe systems as relationships in motion rather than isolated objects.'},
+      {label:'ASYNCHRONY',title:'One event. Different institutional times.',text:'A signal can arrive everywhere at once while becoming actionable at radically different speeds.'},
+      {label:'FRICTION',title:'Delay is not neutral.',text:'Procedures, verification, jurisdiction and accountability reshape what an institution can do and when it can do it.'},
+      {label:'REALITY',title:'The same signal can become different decisions.',text:'Global intelligence enters local systems that do not share the same memory, authority or tolerance for consequence.'},
     ],
-    primaryHref:'/login',
-    primaryLabel:'SIGN IN',
-    secondaryHref:'/observatory',
-    secondaryLabel:'OBSERVATORY',
   },
   {
-    id:'observatory-dashboard',
+    id:'observation',
     number:'02',
-    scale:'orbital',
-    eyebrow:'OBSERVATORY',
-    title:'NOTHING',
-    accent:'OPERATES ALONE.',
-    lead:'Cities, water, energy, institutions, networks and people form coupled systems. The observatory is where those relations become visible.',
-    background:'/assets/sfi/system/reference/02_03.png',
-    assets:[],
+    eyebrow:'OBSERVATION',
+    title:'A SIGNAL',
+    accent:'IS NOT EVIDENCE.',
+    lead:'SFI separates what was sensed from what can legitimately support a claim.',
+    background:BACKGROUND,
+    assets:NYC_ASSETS,
     frames:[
-      {label:'WORLD',title:'A moving field.',text:'The world is not a backdrop. It is the coupled field in which every system is already affecting others.'},
-      {label:'SYSTEMS',title:'Interconnected realities.',text:'Energy, water, logistics, institutions, markets, ecosystems and people exchange constraints and possibilities.'},
-      {label:'PATTERNS',title:'Signals in the noise.',text:'Repeated relations can reveal structure without being confused with cause.'},
-      {label:'PEOPLE',title:'Consequences become lived.',text:'Every system eventually resolves into access, burden, risk, trust and lived consequence.'},
+      {label:'SOURCE',title:'Something emitted a signal.',text:'Origin, acquisition time and access conditions remain part of the object. A source is not yet a conclusion.'},
+      {label:'RECORD',title:'Something was preserved.',text:'A record makes reconstruction possible. It still does not establish relevance, validity or causality.'},
+      {label:'EVIDENCE',title:'A claim earns support.',text:'Evidence is admitted against a defined question, method and boundary. Visibility alone is insufficient.'},
     ],
-    primaryHref:'/observatory',
-    primaryLabel:'OPEN OBSERVATORY',
-    secondaryHref:'/publications',
-    secondaryLabel:'PUBLICATIONS',
   },
   {
-    id:'system-field',
+    id:'authority',
     number:'03',
-    scale:'territory',
-    eyebrow:'SYSTEM FIELD',
-    title:'RELATIONS',
-    accent:'SHAPE THE POSSIBLE.',
-    lead:'A system is not its parts. It is the changing arrangement of flows, dependencies, boundaries and feedback among them.',
-    background:'/assets/sfi/system/reference/02_03.png',
-    assets:[],
+    eyebrow:'INFERENCE / AUTHORITY',
+    title:'EVIDENCE',
+    accent:'IS NOT A DECISION.',
+    lead:'Reasoning can produce a defensible interpretation faster than an institution can determine whether anyone is authorized to act on it.',
+    background:BACKGROUND,
+    assets:NYC_ASSETS,
     frames:[
-      {label:'ENERGY',title:'Capacity moves.',text:'Energy links production, infrastructure, territory, cost and institutional continuity.'},
-      {label:'TERRITORY',title:'Space changes the system.',text:'Geography shapes access, exposure, distance, concentration and vulnerability.'},
-      {label:'INFRASTRUCTURE',title:'Dependencies become physical.',text:'Networks, transport, compute, water and facilities constrain what other systems can do.'},
-      {label:'INFORMATION',title:'Signals reorganize action.',text:'Information changes coordination, expectation and response across otherwise distant nodes.'},
-      {label:'INSTITUTIONS',title:'Rules alter trajectories.',text:'Mandates, procedures and authority determine which possibilities become legitimate action.'},
+      {label:'INFERENCE',title:'Interpretation remains interpretation.',text:'Models can rank, summarize and project. Their output remains distinct from institutional fact and institutional will.'},
+      {label:'AUTHORITY',title:'Capability is not permission.',text:'The ability to perform an action does not establish who may authorize it, under what mandate, or with what liability.'},
+      {label:'GOVERNANCE',title:'Decision rights must remain reconstructible.',text:'A governed system records who decided, under which scope, from which evidence and with which explicit boundary.'},
     ],
-    primaryHref:'/observatory',
-    primaryLabel:'OBSERVATORY',
-    secondaryHref:'/publications',
-    secondaryLabel:'PUBLICATIONS',
   },
   {
-    id:'friction',
+    id:'execution',
     number:'04',
-    scale:'territory',
-    eyebrow:'FRICTION',
-    title:'WHERE SYSTEMS MEET,',
-    accent:'POSSIBILITIES CHANGE.',
-    lead:'Friction is not simply failure. It appears where systems, incentives, constraints, timescales and interpretations meet.',
-    background:'/assets/sfi/scenes/04_05_background.png',
-    assets:[
-      {src:'/assets/sfi/scenes/04_observer.png',role:'human',depth:3,motion:'pointer-parallax',scale:'human',alpha:true},
-    ],
+    eyebrow:'EXECUTION',
+    title:'AUTHORITY',
+    accent:'IS NOT EXECUTION.',
+    lead:'The transition from an approved decision to a material action is where institutional AI becomes consequential.',
+    background:BACKGROUND,
+    assets:NYC_ASSETS,
     frames:[
-      {label:'CONVERGENCE',title:'Systems reinforce one another.',text:'Aligned flows can concentrate capability, legitimacy, capital or opportunity.'},
-      {label:'INTERFERENCE',title:'One system changes another.',text:'A local action can produce remote effects through dependencies that are not visible from a single node.'},
-      {label:'DIVERGENCE',title:'Different realities persist.',text:'Actors can inhabit the same system while seeing different evidence, incentives and consequences.'},
-      {label:'CONSTRAINT',title:'Limits redirect possibility.',text:'Scarcity, rules, geometry, timing and authority can reshape the available path without stopping the system.'},
+      {label:'CAPABILITY',title:'The system can do something.',text:'Tools, models and adapters define technical possibility, not legitimacy.'},
+      {label:'PERMISSION',title:'The system is allowed to do something.',text:'Scopes constrain action to an identified principal, object and operating boundary.'},
+      {label:'ACTION',title:'The world is changed.',text:'Execution must create a trace strong enough to reconstruct what happened without pretending that success equals validation.'},
     ],
-    primaryHref:'/observatory',
-    primaryLabel:'OBSERVATORY',
-    secondaryHref:'/publications',
-    secondaryLabel:'PUBLICATIONS',
-  },
-  {
-    id:'institution',
-    number:'05',
-    scale:'institutional',
-    eyebrow:'INSTITUTION',
-    title:'COMPLEXITY BECOMES',
-    accent:'RESPONSIBILITY.',
-    lead:'Institutions transform signals into memory, interpretation, authority and action. Their internal boundaries determine what the world can become through them.',
-    background:'/assets/sfi/scenes/04_05_background.png',
-    assets:[
-      {src:'/assets/sfi/scenes/05_board.png',role:'human',depth:3,motion:'pointer-parallax',scale:'institutional',alpha:true},
-    ],
-    frames:[
-      {label:'PROCESS',title:'Signals enter procedure.',text:'Processes determine what can be recognized, routed, delayed, escalated or ignored.'},
-      {label:'MEMORY',title:'Institutions remember selectively.',text:'Records preserve some states and erase others; reconstructibility depends on what survives.'},
-      {label:'AUTHORITY',title:'Capability is not permission.',text:'Authority defines who may transform interpretation into consequential action.'},
-      {label:'EXECUTION',title:'Action changes the field.',text:'Execution alters conditions outside the institution and creates the need for RETURN.'},
-    ],
-    primaryHref:'/observatory',
-    primaryLabel:'OBSERVATORY',
-    secondaryHref:'/publications',
-    secondaryLabel:'PUBLICATIONS',
   },
   {
     id:'return',
-    number:'06',
-    scale:'institutional',
+    number:'05',
     eyebrow:'RETURN',
-    title:'RETURN.',
-    accent:'REALITY ANSWERS BACK.',
-    lead:'Outcomes emerge. Contradictions surface. Consequences accumulate. Effects move back into the world and become evidence for what comes next.',
-    background:'/assets/sfi/scenes/07_return_background.png',
-    assets:[
-      {src:'/assets/sfi/scenes/07_return_people.png',role:'human',depth:4,motion:'pointer-parallax',scale:'human',alpha:true},
-    ],
+    title:'REALITY',
+    accent:'ANSWERS BACK.',
+    lead:'After execution, the institution must observe what actually happened and allow the result to change what it believes next.',
+    background:BACKGROUND,
+    assets:NYC_ASSETS,
     frames:[
-      {label:'OUTCOME',title:'What happened?',text:'Observed result remains separate from the intention that preceded it.'},
-      {label:'CONTRAST',title:'What survived reality?',text:'Expectation is compared with consequence without rewriting the prior state.'},
-      {label:'CORRECTION',title:'What changes now?',text:'RETURN can alter memory, confidence, method, authority or the next available action.'},
+      {label:'OUTCOME',title:'What happened?',text:'Observed result remains separate from the intention, prediction and justification that preceded it.'},
+      {label:'CONTRAST',title:'What survived reality?',text:'Expectation is compared with consequence without rewriting the prior state after the fact.'},
+      {label:'CORRECTION',title:'What changes now?',text:'Confidence, method, memory, authority or the next available action may all change after RETURN.'},
+      {label:'LEARNING',title:'Learning is governed re-entry.',text:'The system may adapt only from what was actually observed, with lineage preserved across the transition.'},
     ],
-    primaryHref:'/publications',
-    primaryLabel:'PUBLICATIONS',
-    secondaryHref:'/observatory',
-    secondaryLabel:'OBSERVATORY',
+  },
+  {
+    id:'after-ai-governance',
+    number:'06',
+    eyebrow:'AFTER AI GOVERNANCE',
+    title:'GOVERNANCE',
+    accent:'IS ONLY THE BEGINNING.',
+    lead:'System Friction Institute is building an institutional operating model in which AI action remains reconstructible from observation to consequence.',
+    background:BACKGROUND,
+    assets:NYC_ASSETS,
+    frames:[
+      {label:'COGNITIVE TWIN',title:'Institutional state becomes inspectable.',text:'Memory, proposals, decisions and learning remain linked without collapsing observation, inference and authority into one layer.'},
+      {label:'WORLD VECTOR',title:'Institutions act inside a changing world.',text:'Longitudinal world state is treated as context for institutional decisions rather than as a decorative dashboard.'},
+      {label:'METHOD LAB',title:'Simulation does not become reality by declaration.',text:'Experiments, replays and model outputs remain SIMULATED until an observed outcome returns through a governed evidence path.'},
+      {label:'NYC',title:'After AI Governance: Evidence, Authority & RETURN in Real Institutions.',text:'October 8, 2026 · 7:00 PM ET · AI Week NY. A public introduction to the institutional problem SFI is designed to make visible.'},
+    ],
   },
 ] as const;
