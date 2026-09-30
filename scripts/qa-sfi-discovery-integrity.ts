@@ -233,7 +233,8 @@ for (const token of [
   "observatory_duplicate_equivalent_read",
   "observatory_data_polling_must_not_return",
   "observatorySnapshotReuse",
-  "interpretive_flow_must_not_fetch_world",
+  "legacy_interpretive_flow_must_not_render_below_observatory",
+  "observatory_second_read_owner_detected",
 ]) assert.ok(temporalQa.includes(token), `false_zero_read_plane_regression_missing:${token}`);
 
 console.log(JSON.stringify({
