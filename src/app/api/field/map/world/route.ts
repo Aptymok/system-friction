@@ -4,6 +4,7 @@ import {
   createServiceSupabaseClient,
 } from '@/runtime/supabase/server';
 import { bootstrapWorldObservatory } from './bootstrap';
+import { SFI_SUPABASE_READ_BUDGET, supabaseReadBudgetExceeded } from '@/lib/supabase/readBudget';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -52,20 +53,25 @@ function pendingSchemaResponse(error: DbError) {
 async function readPagedRows(db: ServiceDb, table: string, timeColumn: string, since: string, ascending = false) {
   const rows: Row[] = [];
   let from = 0;
+  const maxRows = SFI_SUPABASE_READ_BUDGET.worldMapRows;
 
   for (;;) {
+    const remainingWithSentinel = (maxRows + 1) - rows.length;
+    if (remainingWithSentinel <= 0) return { data: [], error: supabaseReadBudgetExceeded(`world_map:${table}`, rows.length, maxRows) };
+    const pageSize = Math.min(PAGE_SIZE, remainingWithSentinel);
     const result = await db
       .from(table)
       .select('*')
       .gte(timeColumn, since)
       .order(timeColumn, { ascending })
-      .range(from, from + PAGE_SIZE - 1);
+      .range(from, from + pageSize - 1);
 
     if (result.error) return { data: rows, error: result.error };
     const page = Array.isArray(result.data) ? result.data as Row[] : [];
     rows.push(...page);
-    if (page.length < PAGE_SIZE) break;
-    from += PAGE_SIZE;
+    if (rows.length > maxRows) return { data: [], error: supabaseReadBudgetExceeded(`world_map:${table}`, rows.length, maxRows) };
+    if (page.length < pageSize) break;
+    from += pageSize;
   }
 
   return { data: rows, error: null };
@@ -74,6 +80,7 @@ async function readPagedRows(db: ServiceDb, table: string, timeColumn: string, s
 async function readOwnerCognitiveRuns(db: ServiceDb, since: string, ownerId: string) {
   const rows: Row[] = [];
   let from = 0;
+  const maxRows = SFI_SUPABASE_READ_BUDGET.worldMapRows;
 
   for (;;) {
     const result = await db.from('sfi_cognitive_twin_runs')
@@ -82,12 +89,13 @@ async function readOwnerCognitiveRuns(db: ServiceDb, since: string, ownerId: str
       .contains('input_snapshot', { requestedBy: ownerId })
       .gte('created_at', since)
       .order('created_at', { ascending: true })
-      .range(from, from + PAGE_SIZE - 1);
+      .range(from, from + Math.min(PAGE_SIZE, (maxRows + 1) - rows.length) - 1);
     if (result.error) return { data: rows, error: result.error };
     const page = Array.isArray(result.data) ? result.data as Row[] : [];
     rows.push(...page);
-    if (page.length < PAGE_SIZE) break;
-    from += PAGE_SIZE;
+    if (rows.length > maxRows) return { data: [], error: supabaseReadBudgetExceeded('world_map:cognitive_runs', rows.length, maxRows) };
+    if (page.length < Math.min(PAGE_SIZE, (maxRows + 1) - (rows.length - page.length))) break;
+    from += page.length;
   }
 
   return { data: rows, error: null };
