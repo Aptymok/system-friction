@@ -1,6 +1,6 @@
 SFI Production Release 2026-09-30
-base=e1512c30cf8c21ed1ca0f44b0ac0ccfc87095af6
-reason=nyc_landing_gpu_memory_optimization_and_shared_stage
+base=3883f2d8d857d1056a2bddf3ba84358878830c67
+reason=nyc_landing_gpu_memory_optimization_and_shared_stage_v2
 verification=production_build_runs_qa_typecheck_before_prebuilt_deploy
 public_surface=single_page
 language=en
@@ -12,7 +12,6 @@ deep_3d_scene_transforms=removed
 scene_blur_transitions=removed
 pointer_motion=subtle_non_touch_only
 duplicate_vertical_light_beam=removed
-header=ultrafine_glass
-footer=ultrafine_glass_overlay
+nyc_identity=NEW_YORK_2026
 institutional_apis_untouched=true
 mcp_root_untouched=true
