@@ -62,6 +62,13 @@ if (!isMaterialExternalAction('distribute_content', 'Distribute approved content
 if (!isMaterialExternalAction('action', 'Send an email to the approved recipient.')) {
   throw new Error('SFI_ROUTER_QA_CLASSIFIER:generic_action_with_explicit_external_side_effect_must_be_external');
 }
+if (isMaterialExternalAction('action', 'Generate the internal report. Do not publish externally. Do not mutate canon.')) {
+  throw new Error('SFI_ROUTER_QA_CLASSIFIER:negated_publish_must_not_be_external');
+}
+if (isMaterialExternalAction('task', 'Prepare the artifact but never upload it.')) {
+  throw new Error('SFI_ROUTER_QA_CLASSIFIER:negated_upload_must_not_be_external');
+}
+requireText(router, 'recursive_execution_capability_remediation_blocked', 'recursive-remediation-guard');
 
 requireText(outcome, 'recordProposalOutcomeFromObservedReturn', 'single-outcome-writer');
 requireText(outcome, "epistemicClass === 'observed'", 'observed-return-gate');
