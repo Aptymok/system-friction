@@ -16,11 +16,9 @@ function clamp(value:number,min:number,max:number){
 }
 
 export function PublicEntryGateway(){
-  const rootRef=useRef<HTMLElement>(null);
   const wheelAccumulator=useRef(0);
   const wheelLock=useRef(false);
   const dragStart=useRef<{x:number;y:number}|null>(null);
-  const rafRef=useRef<number|null>(null);
   const [sceneIndex,setSceneIndex]=useState(0);
   const [frameIndex,setFrameIndex]=useState(0);
 
@@ -118,20 +116,6 @@ export function PublicEntryGateway(){
     return()=>{window.removeEventListener('wheel',onWheel);window.removeEventListener('keydown',onKey);};
   },[frameIndex,goScene,moveFrame,scene.frames.length,sceneIndex]);
 
-  function handlePointerMove(event:PointerEvent<HTMLElement>){
-    if(event.pointerType==='touch')return;
-    const node=rootRef.current;
-    if(!node)return;
-    const rect=node.getBoundingClientRect();
-    const x=((event.clientX-rect.left)/rect.width-.5)*2;
-    const y=((event.clientY-rect.top)/rect.height-.5)*2;
-    if(rafRef.current)cancelAnimationFrame(rafRef.current);
-    rafRef.current=requestAnimationFrame(()=>{
-      node.style.setProperty('--stage-shift-x',`${(x*1.4).toFixed(2)}px`);
-      node.style.setProperty('--stage-shift-y',`${(y*.8).toFixed(2)}px`);
-    });
-  }
-
   function handlePointerDown(event:PointerEvent<HTMLElement>){
     const target=event.target as HTMLElement;
     if(target.closest('button,a'))return;
@@ -149,23 +133,13 @@ export function PublicEntryGateway(){
     else goScene(sceneIndex+(dy<0?1:-1));
   }
 
-  function resetPointer(){
-    const node=rootRef.current;
-    if(!node)return;
-    node.style.setProperty('--stage-shift-x','0px');
-    node.style.setProperty('--stage-shift-y','0px');
-  }
-
   return <main
-    ref={rootRef}
     className="sfiSceneExperience"
     data-active-scene={scene.id}
     style={{'--scene-index':sceneIndex,'--frame-index':frameIndex} as CSSProperties}
-    onPointerMove={handlePointerMove}
     onPointerDown={handlePointerDown}
     onPointerUp={handlePointerUp}
     onPointerCancel={()=>{dragStart.current=null;}}
-    onPointerLeave={resetPointer}
   >
     <div className="sfiVisualStage" aria-hidden="true">
       <div className="sfiSharedBackground" style={{backgroundImage:`url('${sharedBackground}')`}}/>
@@ -178,7 +152,6 @@ export function PublicEntryGateway(){
           draggable={false}
           className={`sfiSceneLayer sfiSceneLayer--${layerIndex+1}`}
           data-role={asset.role}
-          data-motion={asset.motion}
           data-alpha={asset.alpha?'true':undefined}
         />)}
       </div>
