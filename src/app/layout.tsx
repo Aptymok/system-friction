@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     default: INSTITUTION_NAME,
     template: '%s | SFI',
   },
-  description: 'Live institutional observability environment for complex sociotechnical systems: evidence, falsification, governance, agents, Cognitive Twin and governed AI interaction.',
+  description: 'After AI Governance: Evidence, Authority & RETURN in Real Institutions. System Friction Institute · AI Week NY · October 8, 2026 · 7:00 PM ET.',
   applicationName: INSTITUTION_NAME,
   keywords: [
     'system friction',
@@ -59,7 +59,7 @@ export const metadata: Metadata = {
     url: BASE,
     siteName: INSTITUTION_NAME,
     title: INSTITUTION_NAME,
-    description: 'Live observability, evidence, falsification, governance and governed AI interaction for complex sociotechnical systems.',
+    description: 'After AI Governance: Evidence, Authority & RETURN in Real Institutions · AI Week NY 2026.',
   },
   robots: {
     index: true,
@@ -80,7 +80,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     '@id': SFI_PUBLIC_PROFILE.institution.entityId,
     name: SFI_PUBLIC_PROFILE.institution.name,
     url: BASE,
-    description: 'Research and observability environment for complex sociotechnical systems, evidence, falsification, governance and governed AI interaction.',
+    description: 'Independent institutional research environment for evidence, authority, execution and RETURN in complex sociotechnical systems.',
     ...(verifiedSameAs.length ? { sameAs: verifiedSameAs } : {}),
     privacyPolicy: `${BASE}/privacy`,
   };
