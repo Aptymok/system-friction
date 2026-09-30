@@ -9,6 +9,7 @@ const adapter = text('src/lib/mcp/authenticatedGovernedMachineAdapter.ts');
 const gatewayProjection = text('src/lib/mcp/authenticatedGatewayProjection.ts');
 const route = text('src/app/api/mcp/authenticated/route.ts');
 const protectedResourceMetadata = text('src/app/.well-known/oauth-protected-resource/route.ts');
+const authenticatedProtectedResourceMetadata = text('src/app/.well-known/oauth-protected-resource/api/mcp/authenticated/route.ts');
 const rootDecisionRoute = text('src/app/api/external/v1/governance/proposals/[id]/decision/route.ts');
 const rootOperateRoute = text('src/app/api/external/v1/root/operate/route.ts');
 const jrRoute = text('src/app/api/external/v1/jr/route.ts');
@@ -108,6 +109,9 @@ assert.match(gatewayForwardBlock, /Authorization: authorization/, 'gateway_proje
 assert.doesNotMatch(gatewayForwardBlock, /x-sfi-capability-grant-nonce|rawGrantNonce|presentedGrantNonceHash/i, 'gateway_projection_must_not_forward_cognitive_possession_proof');
 assert.match(route, /buildAuthenticatedGatewayRequest/, 'gateway_projection_must_reuse_allowlisted_request_builder');
 assert.match(protectedResourceMetadata, /SFI_AUTHENTICATED_MCP_SCOPES/, 'authenticated_mcp_resource_metadata_must_publish_exact_projected_scope_set');
+assert.match(authenticatedProtectedResourceMetadata, /api\/mcp\/authenticated/, 'authenticated_mcp_path_specific_resource_metadata_required');
+assert.match(authenticatedProtectedResourceMetadata, /SFI_AUTHENTICATED_MCP_SCOPES/, 'authenticated_mcp_path_specific_metadata_must_publish_exact_projected_scope_set');
+assert.doesNotMatch(route, /APPLICATION_JSON_REQUIRED/, 'authenticated_mcp_discovery_must_not_fail_valid_json_on_content_type_only');
 assert.match(rootDecisionRoute, /credential\.role !== 'root_delegate'/, 'governance_decision_must_require_root_delegate');
 assert.match(rootDecisionRoute, /sovereignRootProfile/, 'governance_decision_must_revalidate_sovereign_root_profile');
 assert.match(oauthConfig, /'root:operate'/, 'root_oauth_scope_registry_must_include_founder_operate_scope');
