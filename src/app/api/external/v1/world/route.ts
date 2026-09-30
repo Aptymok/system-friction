@@ -106,6 +106,7 @@ export async function POST(req: Request) {
   }));
 
   const receipt = await appendEpistemicEvent({
+    returnMode:'receipt',
     eventName: 'external.world.daily_cycle.completed',
     epistemicClass: 'derived',
     confidence: 1,
