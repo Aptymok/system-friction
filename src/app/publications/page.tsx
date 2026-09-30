@@ -7,6 +7,7 @@ import {
 import {
   publicEnglishProjection,
 } from '@/lib/publications/publicEnglishProjection';
+import { getPublicPublishedReturns } from '@/lib/observatory/publicState';
 import { PublicationsCatalog, type PublicationCatalogItem } from './PublicationsCatalog';
 import { RegistryDiscoveryMesh } from './RegistryDiscoveryMesh';
 import { SfiPublicHeader, SfiPublicFooter } from '@/components/public/SfiPublicChrome';
@@ -34,6 +35,12 @@ export const metadata:Metadata={
     'sfi-identity-manual':'SFI-ID-003 / MASTER EDITION V4.0',
   },
 };
+
+function formatDate(value:string){
+  const date=new Date(value);
+  if(!Number.isFinite(date.valueOf()))return value;
+  return new Intl.DateTimeFormat('en-US',{day:'2-digit',month:'short',year:'numeric'}).format(date);
+}
 
 function categoryFor(item:(typeof SFI_EDITORIAL_PUBLICATIONS)[number]){
   if(item.editorialKind==='TEMPORAL_ISSUE')return'MONTHLY';
@@ -90,6 +97,7 @@ export default async function PublicationsPage(){
     subtitle:monthly.subtitle,
     summary:monthly.deck,
   });
+  const persistedPublications=await getPublicPublishedReturns(12);
 
   return <main className="publicationsHub">
     <SfiPublicHeader active="/publications"/>
@@ -110,6 +118,22 @@ export default async function PublicationsPage(){
     </section>
 
     <PublicationsCatalog items={items}/>
+
+    <section className="pubPersisted" aria-labelledby="persisted-returns-title">
+      <header>
+        <span>PUBLISHED OPERATIONAL RETURNS</span>
+        <h2 id="persisted-returns-title">What the system can already reconstruct.</h2>
+        <p>These records are governed operational RETURN publications. Their visibility does not convert them into external validation.</p>
+      </header>
+      <div className="pubPersistedGrid">
+        {persistedPublications.length?persistedPublications.map((publication)=><article key={publication.id}>
+          <span>PUBLISHED RETURN</span>
+          <time>{publication.publishedAt?formatDate(publication.publishedAt):'DATE UNAVAILABLE'}</time>
+          <strong>SFI · Operational Return</strong>
+          <small>{publication.snapshotVersion??'SNAPSHOT VERSION UNAVAILABLE'}</small>
+        </article>):<p>No governed operational RETURN is currently published.</p>}
+      </div>
+    </section>
 
     <section className="pubMonthlyAnchor" aria-label="Current monthly issue">
       <small>CURRENT MONTHLY ISSUE</small>
