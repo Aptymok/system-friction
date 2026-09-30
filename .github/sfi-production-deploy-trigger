@@ -1,6 +1,6 @@
 SFI Production Release 2026-09-30
-base=76840e0afd8e57f375166b6a445af0b92ab6439b
-reason=nyc_single_page_cinematic_landing_assets
+base=14ac6ba1d4518ed61aaa856a89279374104fbae1
+reason=nyc_single_page_cinematic_landing_assets_v2
 verification=production_build_runs_qa_typecheck_before_prebuilt_deploy
 public_surface=single_page
 language=en
@@ -10,5 +10,7 @@ header=transparent_ultrafine_glass
 footer=overlay_ultrafine_glass
 cinematic_assets=background,clouds,moon,golden-circle,lines,structure,earth,lights
 legacy_public_surfaces=redirect_to_root
+observatory_public_console=false
+observatory_internal_capability_preserved=true
 institutional_apis_untouched=true
 mcp_root_untouched=true
