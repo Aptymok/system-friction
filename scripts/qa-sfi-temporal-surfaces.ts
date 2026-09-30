@@ -65,7 +65,7 @@ for (const token of [
   'ARCHIVED_FORECAST',
   'AS_OF_PROXY_CURRENT_INDEX',
   'ORIGINAL_SEMANTICS_UNAVAILABLE',
-  "ingestMode: 'diagnostic'",
+  "persistWorldSpectObservations(observations, 'diagnostic'",
   'originalCronExecutionClaimed: false',
   'cognitiveSpineReentryPerformed: false',
   'canonicalPromotionPerformed: false',
