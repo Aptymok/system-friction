@@ -14,6 +14,9 @@ const worldMap=read('src/app/api/field/map/world/route.ts');
 const journal=read('src/core/cognitive-twin/reentry/journal.ts');
 const governance=read('src/lib/governance/readGovernanceHealth.ts');
 const commercial=read('src/lib/commercial/commercialService.ts');
+const scoreDetection=read('src/lib/scorefriction/detectionState.ts');
+const scoreStore=read('src/lib/scorefriction/store.ts');
+const studioAutonomy=read('src/lib/continuity/studioAutonomy.ts');
 
 for(const token of [
   'SFI-SUPABASE-READ-BUDGET-1.0',
@@ -28,6 +31,13 @@ for(const token of [
   'cognitiveJournalRows',
   'governanceProposalRows',
   'commercialWorkspaceRows',
+  'scoreFrictionStateRows',
+  'scoreFrictionVectorRows',
+  'studioAutonomySessions',
+  'studioAutonomyObjects',
+  'studioAutonomyHypotheses',
+  'studioAutonomyEvidence',
+  'studioAutonomyArchive',
 ]) assert.ok(budget.includes(token),`read_budget_contract_missing:${token}`);
 
 assert.ok(graph.includes('.limit(SFI_SUPABASE_READ_BUDGET.graphNodes + 1)'), 'graph_nodes_must_be_bounded');
@@ -59,6 +69,13 @@ assert.ok(journal.includes('SFI_SUPABASE_READ_BUDGET.cognitiveJournalRows'), 'ct
 assert.ok(governance.includes('SFI_SUPABASE_READ_BUDGET.governanceProposalRows + 1'), 'governance_reads_must_be_bounded');
 assert.ok(!governance.includes("from('action_proposals').select('*')"), 'governance_health_must_not_wildcard_proposals');
 assert.ok(commercial.includes('SFI_SUPABASE_READ_BUDGET.commercialWorkspaceRows'), 'commercial_workspace_reads_must_be_bounded');
+assert.ok(scoreDetection.includes('SFI_SUPABASE_READ_BUDGET.scoreFrictionVectorRows + 1'), 'scorefriction_vector_reads_must_be_bounded');
+assert.ok(scoreDetection.includes("select('observation_id,acoustic_vector,semantic_vector,memetic_vector,platform_vector,mihm_cultural_vector')"), 'scorefriction_vectors_must_use_narrow_projection');
+assert.ok(scoreStore.includes('SFI_SUPABASE_READ_BUDGET.scoreFrictionStateRows + 1'), 'scorefriction_state_tables_must_be_bounded');
+assert.ok(studioAutonomy.includes('SFI_SUPABASE_READ_BUDGET.studioAutonomyHypotheses + 1'), 'studio_autonomy_hypotheses_must_be_bounded');
+assert.ok(studioAutonomy.includes('SFI_SUPABASE_READ_BUDGET.studioAutonomyEvidence + 1'), 'studio_autonomy_evidence_must_be_bounded');
+assert.ok(studioAutonomy.includes('SFI_SUPABASE_READ_BUDGET.studioAutonomyArchive + 1'), 'studio_autonomy_archive_must_be_bounded');
+assert.ok(!studioAutonomy.includes("from('studio_hypotheses').select('*')"), 'studio_autonomy_hypotheses_must_not_use_wildcard_reads');
 
 assert.ok(events.includes("returnMode?: 'full'|'receipt'"), 'event_store_must_support_compact_receipts');
 assert.ok(events.includes("event_id,event_name,logbook_id,epistemic_class,occurred_at,sequence,hash_self"), 'compact_receipt_projection_missing');
@@ -88,4 +105,6 @@ console.log(JSON.stringify({
   narrowCognitiveJournalReads:true,
   boundedGovernanceReads:true,
   boundedCommercialReads:true,
+  boundedScoreFrictionReads:true,
+  boundedStudioAutonomyReads:true,
 },null,2));
