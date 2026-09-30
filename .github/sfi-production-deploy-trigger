@@ -1,6 +1,6 @@
 SFI Production Release 2026-09-30
-base=827f6bd974e860a186605f7d263c8116173fd86e
-reason=worldspect_historical_source_audit
+base=53bfe975af2bfddb7d80c6ab2cdeae13bb8fa8be
+reason=worldspect_historical_source_audit_v2
 verification=production_build_runs_qa_typecheck_before_prebuilt_deploy
 mcp_scope=world:run
 operation=recover_worldspect_history
