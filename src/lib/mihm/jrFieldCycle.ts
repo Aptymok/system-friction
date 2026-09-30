@@ -278,6 +278,7 @@ export async function runJrFieldCycle(input: JrCycleInput) {
   const completedAt = new Date().toISOString();
 
   const cycleReceipt = await appendEpistemicEvent({
+    returnMode:'receipt',
     eventName:'SFI_JR_FIELD_CYCLE_COMPLETED',
     epistemicClass:'derived',
     confidence:1,
