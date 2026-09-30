@@ -354,8 +354,26 @@ export async function recoverWorldSpectHistoricalDays(input: {
     .filter((day) => parseDay(day) !== null))]
     .sort();
   const persist = input.persist === true;
+  const reconstructionBoundary = {
+    exactArchiveSources: PAGEVIEW_CONFIGS.map((item) => item.sourceId),
+    archivedForecastSources: ['climate_open_meteo_public'],
+    asOfProxySources: HN_CONFIGS.map((item) => item.sourceId),
+    unavailableOriginalSemanticsSources: UNRECOVERABLE_SOURCES.map((item) => item.sourceId),
+    originalCronExecutionClaimed: false,
+    cognitiveSpineReentryPerformed: false,
+    canonicalPromotionPerformed: false,
+  };
   if (!requested.length) {
-    return { ok: false, contract: SFI_WORLDSPECT_HISTORICAL_RECOVERY_CONTRACT, error: 'no_valid_days', days: [] };
+    return {
+      ok: false,
+      contract: SFI_WORLDSPECT_HISTORICAL_RECOVERY_CONTRACT,
+      mode: persist ? 'PERSIST' as const : 'AUDIT_ONLY' as const,
+      error: 'no_valid_days',
+      requestedDays: [] as string[],
+      counts: { requested: 0, persisted: 0, skippedExisting: 0, failures: 0 },
+      days: [] as Array<Record<string, unknown>>,
+      reconstructionBoundary,
+    };
   }
 
   const earliestWindow = dayOffset(requested[0], -34);
@@ -426,14 +444,6 @@ export async function recoverWorldSpectHistoricalDays(input: {
     requestedDays: requested,
     counts: { requested: requested.length, persisted, skippedExisting, failures },
     days,
-    reconstructionBoundary: {
-      exactArchiveSources: PAGEVIEW_CONFIGS.map((item) => item.sourceId),
-      archivedForecastSources: ['climate_open_meteo_public'],
-      asOfProxySources: HN_CONFIGS.map((item) => item.sourceId),
-      unavailableOriginalSemanticsSources: UNRECOVERABLE_SOURCES.map((item) => item.sourceId),
-      originalCronExecutionClaimed: false,
-      cognitiveSpineReentryPerformed: false,
-      canonicalPromotionPerformed: false,
-    },
+    reconstructionBoundary,
   };
 }
