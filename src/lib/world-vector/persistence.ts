@@ -125,6 +125,7 @@ async function ensureCycle(range: WorldVectorCycleRange, observation?: WorldVect
 export async function persistWorldVectorObservation(input: {
   observation: WorldVectorObservation;
   cycleRange: WorldVectorCycleRange;
+  overwrite?: boolean;
 }): Promise<WorldVectorPersistenceResult<Record<string, unknown>>> {
   const readiness = await getWorldVectorPersistenceStatus();
   if (!readiness.enabled) return blocked(readiness.reason, readiness.details);
@@ -137,34 +138,48 @@ export async function persistWorldVectorObservation(input: {
   const day = input.observation.observed_at.slice(0, 10);
   const start = `${day}T00:00:00.000Z`;
   const end = `${day}T23:59:59.999Z`;
-  const { data: existing, error: selectError } = await service
+  let existingQuery = service
     .from('world_vector_observations')
     .select('*')
-    .eq('sector', input.observation.sector)
     .gte('observed_at', start)
     .lte('observed_at', end)
-    .limit(1)
-    .maybeSingle();
+    .order('observed_at', { ascending: false })
+    .limit(1);
+  if (!input.overwrite) existingQuery = existingQuery.eq('sector', input.observation.sector);
+  const { data: existing, error: selectError } = await existingQuery.maybeSingle();
 
   if (selectError) return blocked(tableMissing(selectError.message) ? 'world_vector_tables_not_installed' : 'world_vector_table_read_failed', selectError.message);
-  if (existing) return { ok: true, data: existing as Record<string, unknown>, persisted: true, existing: true };
+  if (existing && !input.overwrite) return { ok: true, data: existing as Record<string, unknown>, persisted: true, existing: true };
+
+  const observationRow = {
+    cycle_id: cycle.data.id,
+    observed_at: input.observation.observed_at,
+    day_of_week: input.observation.day_of_week,
+    sector: input.observation.sector,
+    source_snapshot_id: input.observation.source_snapshot_id,
+    domain_values: input.observation.domain_values,
+    dominant_sources: input.observation.dominant_sources,
+    dominant_signal: input.observation.dominant_signal,
+    interpretation: input.observation.interpretation,
+    confidence: input.observation.confidence,
+    status: input.observation.status,
+    warnings: input.observation.warnings,
+  };
+
+  if (existing && input.overwrite) {
+    const { data, error } = await service
+      .from('world_vector_observations')
+      .update(observationRow)
+      .eq('id', String((existing as Record<string, unknown>).id))
+      .select('*')
+      .single();
+    if (error) return blocked(tableMissing(error.message) ? 'world_vector_tables_not_installed' : 'world_vector_table_read_failed', error.message);
+    return { ok: true, data: data as Record<string, unknown>, persisted: true, existing: true, regenerated: true };
+  }
 
   const { data, error } = await service
     .from('world_vector_observations')
-    .insert({
-      cycle_id: cycle.data.id,
-      observed_at: input.observation.observed_at,
-      day_of_week: input.observation.day_of_week,
-      sector: input.observation.sector,
-      source_snapshot_id: input.observation.source_snapshot_id,
-      domain_values: input.observation.domain_values,
-      dominant_sources: input.observation.dominant_sources,
-      dominant_signal: input.observation.dominant_signal,
-      interpretation: input.observation.interpretation,
-      confidence: input.observation.confidence,
-      status: input.observation.status,
-      warnings: input.observation.warnings,
-    })
+    .insert(observationRow)
     .select('*')
     .single();
 
