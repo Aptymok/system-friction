@@ -199,7 +199,7 @@ assert.match(methodLabPage, /MethodLabNativeHub/, 'Method Lab declared execution
 assert.doesNotMatch(methodLabPage, /createServiceSupabaseClient|\.from\(/, 'Method Lab page must not bypass interface persistence boundaries.');
 for (const route of ['/api/root/method-lab/simulate','/api/root/cognitive-lab/sessions','/blind','/contrast','/events','/interact']) assert.ok(methodLabHub.includes(route), `method_lab_native_hub_missing_control:${route}`);
 assert.ok(methodLabHub.includes('SIMULATED ≠ OBSERVED'), 'Method Lab native hub must state its epistemic boundary.');
-assert.ok(methodLabHub.includes('FOUNDER_AUTHORIZATION no equivale a FOUNDER_ORIGINATED'), 'CRL provenance boundary must remain visible to ROOT.');
+assert.ok(methodLabHub.includes('FOUNDER_AUTHORIZATION is not equivalent to FOUNDER_ORIGINATED.'), 'CRL provenance boundary must remain visible to ROOT.');
 assert.ok(methodLabHub.includes('FOUNDER_MODEL'), 'Method Lab must retain explicit model-comparison conditions after MODELS scene absorption.');
 
 assert.ok(methodLabWorkbench.includes('<MethodLabInstrumentRoom'), 'instrument_room_must_be_mounted_on_existing_method_lab_surface');
