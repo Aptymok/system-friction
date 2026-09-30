@@ -1,15 +1,15 @@
 import { strict as assert } from 'node:assert';
 import { readFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 
 async function text(path: string) { return readFile(path, 'utf8'); }
 
 async function main() {
-  const [ledger, rootRoute, publicRoute, page, history] = await Promise.all([
+  const [ledger, rootRoute, publicRoute, page] = await Promise.all([
     text('src/lib/sfi/mutationEvidence.ts'),
     text('src/app/api/root/mutations/route.ts'),
     text('src/app/api/public/mutations/route.ts'),
     text('src/app/history/mutations/page.tsx'),
-    text('src/app/history/page.tsx'),
   ]);
 
   assert(ledger.includes("export const SFI_MUTATION_REPOSITORY = 'Aptymok/system-friction'"));
@@ -41,8 +41,9 @@ async function main() {
   assert(publicRoute.includes('Internal QA payloads, deployment metadata, cycle contents and learning payloads remain on governed surfaces.'));
   assert(page.includes('DEPLOYMENT EVIDENCE RECORDED'));
   assert(page.includes('A commit proves that code changed'));
-  assert(history.includes("redirect('/publications')"));
-  assert(!history.includes('href="/history/mutations"'));
+  assert.equal(existsSync('src/app/history/page.tsx'), false, 'retired_history_surface_must_remain_absent');
+  assert(page.includes('href="/publications"'), 'mutation_history_back_link_must_target_canonical_publications_surface');
+  assert(!page.includes('href="/history"'), 'mutation_history_must_not_link_retired_history_surface');
 
   console.log(JSON.stringify({
     ok: true,
