@@ -17,10 +17,10 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 export const maxDuration = 300;
 
-type WorldOperation = 'state' | 'run' | 'measure_worldspect' | 'recover_worldspect_history' | 'regenerate_world_vector';
+type WorldOperation = 'state' | 'run' | 'measure_worldspect' | 'recover_worldspect_history' | 'close_hypotheses' | 'regenerate_world_vector';
 
 function requiredScope(operation: WorldOperation) {
-  return operation === 'run' || operation === 'measure_worldspect' || operation === 'recover_worldspect_history' || operation === 'regenerate_world_vector' ? 'world:run' : 'world:read';
+  return operation === 'run' || operation === 'measure_worldspect' || operation === 'recover_worldspect_history' || operation === 'close_hypotheses' || operation === 'regenerate_world_vector' ? 'world:run' : 'world:read';
 }
 
 async function readWorldState() {
@@ -49,8 +49,8 @@ async function readWorldState() {
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({})) as Record<string, unknown>;
   const operation = String(body.operation || 'state') as WorldOperation;
-  if (!['state', 'run', 'measure_worldspect', 'recover_worldspect_history', 'regenerate_world_vector'].includes(operation)) {
-    return NextResponse.json({ ok: false, error: 'unsupported_world_operation', supported: ['state', 'run', 'measure_worldspect', 'recover_worldspect_history', 'regenerate_world_vector'] }, { status: 400 });
+  if (!['state', 'run', 'measure_worldspect', 'recover_worldspect_history', 'close_hypotheses', 'regenerate_world_vector'].includes(operation)) {
+    return NextResponse.json({ ok: false, error: 'unsupported_world_operation', supported: ['state', 'run', 'measure_worldspect', 'recover_worldspect_history', 'close_hypotheses', 'regenerate_world_vector'] }, { status: 400 });
   }
 
   const scope = requiredScope(operation);
@@ -155,7 +155,107 @@ export async function POST(req: Request) {
     }, { status: recovery.ok && (!persist || receipt?.ok === true) ? 200 : 207 });
   }
 
-  if (operation === 'regenerate_world_vector') {
+  if (operation === 'close_hypotheses') {
+    const db = createServiceSupabaseClient();
+    const now = new Date().toISOString();
+    const beforeRead = await db.from('world_hypotheses')
+      .select('id,status,validation_ends_at')
+      .in('status', ['OPEN','AWAITING_OUTCOME','INCONCLUSIVE'])
+      .lte('validation_ends_at', now)
+      .order('validation_ends_at', { ascending: true })
+      .limit(500);
+    if (beforeRead.error) {
+      return NextResponse.json({
+        ok:false,
+        operation,
+        actor:actorId,
+        error:'hypothesis_closure_candidate_read_failed',
+        details:beforeRead.error.message,
+      }, { status: 503 });
+    }
+
+    const beforeRows = beforeRead.data ?? [];
+    const pendingBefore = beforeRows.filter((item)=>['OPEN','AWAITING_OUTCOME'].includes(String(item.status ?? ''))).length;
+    const historicalInconclusiveBefore = beforeRows.filter((item)=>String(item.status ?? '') === 'INCONCLUSIVE').length;
+
+    const calibration = await runWorldCalibrationCycle({ allowHistoricalReevaluation: true });
+    let closureReport: Awaited<ReturnType<typeof persistWorldHypothesisClosureReport>> | null = null;
+    if (calibration.calibratedIds?.length) {
+      closureReport = await persistWorldHypothesisClosureReport({ hypothesisIds: calibration.calibratedIds })
+        .catch((error) => null);
+    }
+
+    const afterRead = await db.from('world_hypotheses')
+      .select('id,status,validation_ends_at')
+      .in('status', ['OPEN','AWAITING_OUTCOME'])
+      .lte('validation_ends_at', now)
+      .order('validation_ends_at', { ascending: true })
+      .limit(500);
+    const remainingPending = afterRead.error ? null : (afterRead.data ?? []).length;
+
+    const receipt = await appendEpistemicEvent({
+      returnMode:'receipt',
+      eventName:'external.world.hypotheses.closure.completed',
+      epistemicClass:'derived',
+      confidence:calibration.ok ? 1 : 0.5,
+      occurredAt:new Date().toISOString(),
+      source:{ sourceId:'SYSTEM_FRICTION_INSTITUTE', sourceType:'operational_runtime' },
+      logbookId:'WORLD',
+      lineage:calibration.calibratedIds ?? [],
+      payload:{
+        contract:'SFI-WORLD-HYPOTHESIS-CLOSURE-1.0',
+        actorId,
+        candidateCount:beforeRows.length,
+        pendingBefore,
+        historicalInconclusiveBefore,
+        calibration:{
+          ok:calibration.ok,
+          attempted:calibration.attempted,
+          calibrated:calibration.calibrated,
+          reopened:calibration.reopened,
+          calibratedIds:calibration.calibratedIds,
+          warnings:calibration.warnings,
+        },
+        remainingPending,
+        closureReportRunId:closureReport?.reportRunId ?? null,
+        authorityBoundary:{
+          scope:'world:run',
+          observationCollectionPerformed:false,
+          hypothesisGenerationPerformed:false,
+          historicalClaimsRewritten:false,
+          deterministicClassificationOwner:'runWorldCalibrationCycle',
+          publicationAllowed:false,
+          canonicalPromotionAllowed:false,
+        },
+      },
+    });
+
+    return NextResponse.json({
+      ok: calibration.ok && receipt.ok && remainingPending === 0,
+      operation,
+      actor:actorId,
+      contract:'SFI-WORLD-HYPOTHESIS-CLOSURE-1.0',
+      candidates:{
+        total:beforeRows.length,
+        pendingBefore,
+        historicalInconclusiveBefore,
+      },
+      calibration,
+      remainingPending,
+      closureReport:closureReport ? {
+        persisted:closureReport.persisted,
+        skipped:closureReport.skipped,
+        reportRunId:closureReport.reportRunId,
+        taskId:closureReport.taskId,
+        counts:closureReport.dossier.counts,
+      } : null,
+      receipt:receipt.ok ? receipt.data : receipt,
+      writesPerformed:(calibration.calibrated ?? 0) > 0 || receipt.ok,
+      boundary:'Calibration-only closure. No new observation collection, hypothesis generation, external action, publication, canon promotion or T0 rewrite is performed. INCONCLUSIVE remains a valid closed outcome when evidence is not discriminating.',
+    }, { status: calibration.ok && receipt.ok ? 200 : 207 });
+  }
+
+    if (operation === 'regenerate_world_vector') {
     const startedAt = new Date().toISOString();
     const days = typeof body.days === 'number' ? body.days : Number(body.days ?? 3650);
     const maxSnapshots = typeof body.maxSnapshots === 'number' ? body.maxSnapshots : Number(body.maxSnapshots ?? 5000);
