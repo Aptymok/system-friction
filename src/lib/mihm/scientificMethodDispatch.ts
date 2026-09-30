@@ -75,7 +75,7 @@ async function resolvePersistedEvidenceIds(refs: string[]) {
 export type ScientificMethodDispatchResult =
   | { state:'ABSTAIN'; reason:string; protocolId:null|string; methodFamilies:string[]; evidenceIds:string[]; writesPerformed:false }
   | { state:'METHOD_LAB_REQUIRED'; reason:string; protocolId:string|null; methodFamilies:string[]; evidenceIds:string[]; writesPerformed:false }
-  | { state:'ALREADY_EXECUTED'; reason:string; protocolId:string; methodFamilies:string[]; evidenceIds:string[]; experimentId:string; experimentRunId:string; receiptEventId:string; writesPerformed:false }
+  | { state:'ALREADY_EXECUTED'; reason:string; protocolId:string; methodFamilies:string[]; evidenceIds:string[]; evidenceEpistemicClasses:Array<{ref:string;epistemicClass:'OBSERVED'|'DECLARED'|'DERIVED'|'INFERRED'|'SIMULATED'|'MISSING'}>; experimentId:string; experimentRunId:string; receiptEventId:string; writesPerformed:false }
   | { state:'EXECUTED'; reason:string; protocolId:string; methodFamilies:string[]; evidenceIds:string[]; experimentId:string; preregistrationAnalysisId:string; experimentAnalysisId:string; labAnalysisId:string; labRunId:string; resultHash:string|null; receiptEventId:string|null; writesPerformed:true };
 
 export async function dispatchScientificMethodToLab(input: {
@@ -247,6 +247,9 @@ export async function dispatchScientificMethodToLab(input: {
     },
   });
 
+  const runFinishedAt = run.run.finishedAt;
+  const runResultHash = run.run.resultHash;
+  if (!runFinishedAt || !runResultHash) throw new Error('METHOD_LAB_SIMULATION_RECEIPT_INCOMPLETE');
   const finishedAt = new Date().toISOString();
   const executorRefs = [...new Set(run.agentResults.map((item) => item.agentId))];
   const experimentRun: MethodLabExperimentRun = {
@@ -261,7 +264,7 @@ export async function dispatchScientificMethodToLab(input: {
         experimentId,
         experimentType: 'SIMULATION',
         startedAt: run.run.startedAt,
-        finishedAt: run.run.finishedAt,
+        finishedAt: runFinishedAt,
         provider: run.run.provider,
         model: run.run.model,
         passportRef: null,
@@ -282,7 +285,7 @@ export async function dispatchScientificMethodToLab(input: {
           claimBoundary:run.claimBoundary,
         },
         evidenceRefs:[...evidenceIds],
-        resultHash:run.run.resultHash,
+        resultHash:runResultHash,
       },
       CONTRAST: {
         status:'PENDING_RETURN',
@@ -298,7 +301,7 @@ export async function dispatchScientificMethodToLab(input: {
         codeRef:'src/lib/method-lab/simulationRun.ts#runMethodLabSimulation',
         preregistrationHash,
         inputHash:sha256({fingerprint,evidenceIds,protocolId,methodFamilies,nextObservation}),
-        resultHash:run.run.resultHash,
+        resultHash:runResultHash,
         executorRefs,
         createdAt:finishedAt,
       },
@@ -335,7 +338,7 @@ export async function dispatchScientificMethodToLab(input: {
       experimentAnalysisId:formalRun.analysisId,
       labAnalysisId:run.labAnalysisId,
       labRunId:run.run.labRunId,
-      resultHash:run.run.resultHash,
+      resultHash:runResultHash,
       returnWindow:preregistration.RETURN_WINDOW,
       expectedSignal:preregistration.EXPECTED_SIGNAL,
       falsification:preregistration.FALSIFICATION,
@@ -357,7 +360,7 @@ export async function dispatchScientificMethodToLab(input: {
     experimentAnalysisId:formalRun.analysisId,
     labAnalysisId:run.labAnalysisId,
     labRunId:run.run.labRunId,
-    resultHash:run.run.resultHash,
+    resultHash:runResultHash,
     receiptEventId:receipt.ok ? receiptEventId : null,
     writesPerformed:true,
   };
