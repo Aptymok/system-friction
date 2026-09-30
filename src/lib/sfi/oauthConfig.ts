@@ -8,6 +8,8 @@ export const SFI_ROOT_SCOPES = [
   'root:operate',
   'world:read',
   'world:run',
+  'jr:read',
+  'jr:run',
   'cases:read',
   'cases:write',
   'lab:read',
