@@ -50,6 +50,7 @@ export async function persistPerturbationReviewCandidate(input:{
   }
 
   const event=await appendEpistemicEvent({
+    returnMode:'receipt',
     eventId,
     eventName:'SFI_JR_PERTURBATION_REVIEW_REQUESTED',
     epistemicClass:'proposed',
