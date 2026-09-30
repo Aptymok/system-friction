@@ -543,13 +543,21 @@ for (const route of [
   'src/app/api/cron/notas-temporales/route.ts',
   'src/app/api/cron/predictive-engine/route.ts',
   'src/app/api/cron/sfi-indicators/route.ts',
-  'src/app/api/cron/worldspect/route.ts',
   'src/app/api/cron/continuity-report/route.ts',
   'src/app/api/cron/sfi-institutional-cycle/route.ts',
 ]) {
   const source = read(route);
   check(`${route} remains fail-closed while scheduled egress is restricted`,
     source.includes('scheduledEgressGuardResponse()')
+    && !source.includes('allowContinuityFallback: true')
+    && !source.includes('authorizedManualOverride'));
+}
+
+{
+  const route = 'src/app/api/cron/worldspect/route.ts';
+  const source = read(route);
+  check('WorldSpect scheduled observation uses the independent WORLD_OBSERVATION egress lane without continuity escalation',
+    source.includes("scheduledEgressGuardResponse({ lane: 'WORLD_OBSERVATION' })")
     && !source.includes('allowContinuityFallback: true')
     && !source.includes('authorizedManualOverride'));
 }
@@ -569,8 +577,10 @@ for (const route of [
     && !source.includes('allowContinuityFallback: true')
     && source.indexOf('if (!authorized(request))') < source.indexOf("request.headers.get('x-sfi-world-readjudication')"));
 
-  check('external World run is a separate user-bound OAuth lane and never bypasses scheduled egress by mutating the cron guard',
-    externalWorldRoute.includes("return operation === 'run' ? 'world:run' : 'world:read'")
+  check('external World operations remain a separate user-bound OAuth lane and never bypass scheduled egress by mutating the cron guard',
+    externalWorldRoute.includes("operation === 'run'")
+    && externalWorldRoute.includes("operation === 'measure_worldspect'")
+    && externalWorldRoute.includes("? 'world:run' : 'world:read'")
     && externalWorldRoute.includes('authorizeExternalRequest(req, scope)')
     && externalWorldRoute.includes("auth.credential.authMethod !== 'oauth'")
     && externalWorldRoute.includes("auth.credential.tenantId !== 'sfi'")
