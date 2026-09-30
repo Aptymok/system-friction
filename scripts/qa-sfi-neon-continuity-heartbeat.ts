@@ -27,6 +27,7 @@ const twinState = read('src/core/cognitive-twin/readState.ts');
 const amvAgent = read('src/lib/agents/amvAgent.ts');
 const scorefrictionLab = read('src/app/api/scorefriction/lab/analyze/route.ts');
 const worldReobserveRoute = read('src/app/api/field/map/world/reobserve/route.ts');
+const externalWorldRoute = read('src/app/api/external/v1/world/route.ts');
 const ingestReadRoute = read('src/app/api/ingest/read/route.ts');
 const ingestRealRoute = read('src/app/api/ingest/real/route.ts');
 const signalsReadRoute = read('src/app/api/signals/read/route.ts');
@@ -556,10 +557,10 @@ for (const route of [
 {
   const route = 'src/app/api/cron/world-observatory/route.ts';
   const source = read(route);
-  check('world-observatory remains fail-closed except for the authenticated explicit manual readjudication lane',
+  check('world-observatory cron remains fail-closed except for authenticated explicit manual readjudication',
     source.includes("if (!authorized(request))")
     && source.includes("request.headers.get('x-sfi-world-readjudication') === 'authorized'")
-    && source.includes('scheduledEgressGuardResponse({ authorizedManualOverride: manualReadjudication })')
+    && source.includes("scheduledEgressGuardResponse({ authorizedManualOverride: manualReadjudication, lane: 'WORLD_OBSERVATION' })")
     && source.includes("status: completed ? 'READJUDICATION_EXECUTED' : 'READJUDICATION_BLOCKED'")
     && source.includes('runWorldCalibrationCycle({')
     && source.includes('hypothesisIds,')
@@ -567,6 +568,17 @@ for (const route of [
     && source.includes("error: 'historical_readjudication_target_required'")
     && !source.includes('allowContinuityFallback: true')
     && source.indexOf('if (!authorized(request))') < source.indexOf("request.headers.get('x-sfi-world-readjudication')"));
+
+  check('external World run is a separate user-bound OAuth lane and never bypasses scheduled egress by mutating the cron guard',
+    externalWorldRoute.includes("return operation === 'run' ? 'world:run' : 'world:read'")
+    && externalWorldRoute.includes('authorizeExternalRequest(req, scope)')
+    && externalWorldRoute.includes("auth.credential.authMethod !== 'oauth'")
+    && externalWorldRoute.includes("auth.credential.tenantId !== 'sfi'")
+    && externalWorldRoute.includes("trigger: 'EXTERNAL_WORLD_RUN'")
+    && externalWorldRoute.includes('runJrFieldCycle({')
+    && !externalWorldRoute.includes('scheduledEgressGuardResponse')
+    && !externalWorldRoute.includes('authorizedManualOverride')
+    && !externalWorldRoute.includes('allowContinuityFallback: true'));
 }
 
 check('restricted probe responses are not reported as operational',
