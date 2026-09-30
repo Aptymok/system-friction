@@ -2,6 +2,7 @@ import 'server-only';
 
 import { runStudioCognitiveRuntime } from '@/lib/studio/cognitive/studioCognitiveRuntime';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { SFI_SUPABASE_READ_BUDGET } from '@/lib/supabase/readBudget';
 import type { ContinuityMode } from './contracts';
 import {
   selectStudioAutonomyTransition,
@@ -96,9 +97,10 @@ async function discoverFiTargets(): Promise<ExperimentTarget[]> {
     .select('id,owner_id,title,status,metadata,created_at,updated_at')
     .neq('status', 'archived')
     .order('updated_at', { ascending: false })
-    .limit(50);
+    .limit(SFI_SUPABASE_READ_BUDGET.studioAutonomySessions + 1);
 
   if (sessionsResult.error) throw new Error(`fi001_sessions_read_failed:${sessionsResult.error.message}`);
+  if ((sessionsResult.data ?? []).length > SFI_SUPABASE_READ_BUDGET.studioAutonomySessions) throw new Error(`fi001_sessions_read_budget_exceeded:limit=${SFI_SUPABASE_READ_BUDGET.studioAutonomySessions}`);
 
   const targets: ExperimentTarget[] = [];
   for (const session of rows(sessionsResult.data)) {
@@ -113,8 +115,9 @@ async function discoverFiTargets(): Promise<ExperimentTarget[]> {
       .select('id,session_id,owner_id,title,status,metadata,created_at,updated_at')
       .eq('session_id', sessionId)
       .order('created_at', { ascending: true })
-      .limit(120);
+      .limit(SFI_SUPABASE_READ_BUDGET.studioAutonomyObjects + 1);
     if (objectsResult.error) throw new Error(`fi001_objects_read_failed:${objectsResult.error.message}`);
+    if ((objectsResult.data ?? []).length > SFI_SUPABASE_READ_BUDGET.studioAutonomyObjects) throw new Error(`fi001_objects_read_budget_exceeded:limit=${SFI_SUPABASE_READ_BUDGET.studioAutonomyObjects}`);
 
     const objects = rows(objectsResult.data);
     for (const project of projects) {
@@ -188,12 +191,15 @@ async function persistContinuityObservation(input: {
 async function readExperimentState(target: ExperimentTarget) {
   const db = createServiceSupabaseClient();
   const [hypothesesResult, evidenceResult, archiveResult] = await Promise.all([
-    db.from('studio_hypotheses').select('*').eq('object_id', target.objectId).eq('owner_id', target.ownerId).order('created_at', { ascending: false }).limit(100),
-    db.from('studio_evidence_traces').select('*').eq('object_id', target.objectId).eq('owner_id', target.ownerId).order('created_at', { ascending: false }).limit(500),
-    db.from('studio_archive_events').select('*').eq('object_id', target.objectId).eq('owner_id', target.ownerId).order('created_at', { ascending: false }).limit(500),
+    db.from('studio_hypotheses').select('id,object_id,owner_id,status,payload,created_at').eq('object_id', target.objectId).eq('owner_id', target.ownerId).order('created_at', { ascending: false }).limit(SFI_SUPABASE_READ_BUDGET.studioAutonomyHypotheses + 1),
+    db.from('studio_evidence_traces').select('id,object_id,owner_id,source,label,payload,created_at').eq('object_id', target.objectId).eq('owner_id', target.ownerId).order('created_at', { ascending: false }).limit(SFI_SUPABASE_READ_BUDGET.studioAutonomyEvidence + 1),
+    db.from('studio_archive_events').select('id,object_id,owner_id,event_type,label,source,payload,created_at').eq('object_id', target.objectId).eq('owner_id', target.ownerId).order('created_at', { ascending: false }).limit(SFI_SUPABASE_READ_BUDGET.studioAutonomyArchive + 1),
   ]);
   const error = hypothesesResult.error ?? evidenceResult.error ?? archiveResult.error;
   if (error) throw new Error(`fi001_state_read_failed:${error.message}`);
+  if ((hypothesesResult.data ?? []).length > SFI_SUPABASE_READ_BUDGET.studioAutonomyHypotheses) throw new Error(`fi001_hypotheses_read_budget_exceeded:limit=${SFI_SUPABASE_READ_BUDGET.studioAutonomyHypotheses}`);
+  if ((evidenceResult.data ?? []).length > SFI_SUPABASE_READ_BUDGET.studioAutonomyEvidence) throw new Error(`fi001_evidence_read_budget_exceeded:limit=${SFI_SUPABASE_READ_BUDGET.studioAutonomyEvidence}`);
+  if ((archiveResult.data ?? []).length > SFI_SUPABASE_READ_BUDGET.studioAutonomyArchive) throw new Error(`fi001_archive_read_budget_exceeded:limit=${SFI_SUPABASE_READ_BUDGET.studioAutonomyArchive}`);
 
   const hypotheses = rows(hypothesesResult.data);
   const evidence = rows(evidenceResult.data);
