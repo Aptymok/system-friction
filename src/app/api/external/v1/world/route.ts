@@ -11,15 +11,16 @@ import { runJrFieldCycle } from '@/lib/mihm/jrFieldCycle';
 import { SFI_SUPABASE_READ_BUDGET } from '@/lib/supabase/readBudget';
 import { regenerateWorldVectorRetrospective } from '@/lib/world-vector/retrospective';
 import { runWorldSpectAdapters } from '@/lib/worldspect/runAdapters';
+import { recoverWorldSpectHistoricalDays } from '@/lib/worldspect/historicalRecovery';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 export const maxDuration = 300;
 
-type WorldOperation = 'state' | 'run' | 'measure_worldspect' | 'regenerate_world_vector';
+type WorldOperation = 'state' | 'run' | 'measure_worldspect' | 'recover_worldspect_history' | 'regenerate_world_vector';
 
 function requiredScope(operation: WorldOperation) {
-  return operation === 'run' || operation === 'measure_worldspect' || operation === 'regenerate_world_vector' ? 'world:run' : 'world:read';
+  return operation === 'run' || operation === 'measure_worldspect' || operation === 'recover_worldspect_history' || operation === 'regenerate_world_vector' ? 'world:run' : 'world:read';
 }
 
 async function readWorldState() {
@@ -48,8 +49,8 @@ async function readWorldState() {
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({})) as Record<string, unknown>;
   const operation = String(body.operation || 'state') as WorldOperation;
-  if (!['state', 'run', 'measure_worldspect', 'regenerate_world_vector'].includes(operation)) {
-    return NextResponse.json({ ok: false, error: 'unsupported_world_operation', supported: ['state', 'run', 'measure_worldspect', 'regenerate_world_vector'] }, { status: 400 });
+  if (!['state', 'run', 'measure_worldspect', 'recover_worldspect_history', 'regenerate_world_vector'].includes(operation)) {
+    return NextResponse.json({ ok: false, error: 'unsupported_world_operation', supported: ['state', 'run', 'measure_worldspect', 'recover_worldspect_history', 'regenerate_world_vector'] }, { status: 400 });
   }
 
   const scope = requiredScope(operation);
@@ -108,7 +109,53 @@ export async function POST(req: Request) {
     }, { status: measurement.ok && receipt.ok ? 200 : 207 });
   }
 
-    if (operation === 'regenerate_world_vector') {
+  if (operation === 'recover_worldspect_history') {
+    const rawDays = Array.isArray(body.days) ? body.days.map(String) : undefined;
+    const persist = body.persist === true;
+    const recovery = await recoverWorldSpectHistoricalDays({ days: rawDays, persist });
+    let receipt: Awaited<ReturnType<typeof appendEpistemicEvent>> | null = null;
+    if (persist) {
+      receipt = await appendEpistemicEvent({
+        returnMode: 'receipt',
+        eventName: 'external.worldspect.historical_recovery.completed',
+        epistemicClass: 'derived',
+        confidence: recovery.ok ? 1 : 0.5,
+        occurredAt: new Date().toISOString(),
+        source: { sourceId: 'SYSTEM_FRICTION_INSTITUTE', sourceType: 'operational_runtime' },
+        logbookId: 'WORLDSPECT',
+        lineage: [],
+        payload: {
+          contract: recovery.contract,
+          actorId,
+          mode: recovery.mode,
+          counts: recovery.counts,
+          requestedDays: recovery.requestedDays,
+          reconstructionBoundary: recovery.reconstructionBoundary,
+          authorityBoundary: {
+            scope: 'world:run',
+            historicalCronExecutionClaimed: false,
+            rootAuthorityInherited: false,
+            governanceDecisionAuthorityInherited: false,
+            cognitiveSpineReentryPerformed: false,
+            canonicalPromotionAllowed: false,
+            publicationAllowed: false,
+          },
+        },
+      });
+    }
+    return NextResponse.json({
+      ok: recovery.ok && (!persist || receipt?.ok === true),
+      operation,
+      actor: actorId,
+      contract: recovery.contract,
+      recovery,
+      receipt: receipt ? (receipt.ok ? receipt.data : receipt) : null,
+      writesPerformed: persist && (recovery.counts.persisted > 0 || receipt?.ok === true),
+      boundary: 'Historical source recovery is evidence-bounded. Official archives and explicitly labeled as-of proxies may reconstruct a missing WorldSpect day; non-versioned live-index sources remain missing. No original cron execution, Cognitive Spine reentry, governance decision, publication or canon promotion is fabricated.',
+    }, { status: recovery.ok && (!persist || receipt?.ok === true) ? 200 : 207 });
+  }
+
+  if (operation === 'regenerate_world_vector') {
     const startedAt = new Date().toISOString();
     const days = typeof body.days === 'number' ? body.days : Number(body.days ?? 3650);
     const maxSnapshots = typeof body.maxSnapshots === 'number' ? body.maxSnapshots : Number(body.maxSnapshots ?? 5000);
