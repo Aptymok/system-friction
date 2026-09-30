@@ -25,6 +25,10 @@ const worldHypothesisClosureReport = read('src/lib/reports/worldHypothesisClosur
 const worldObservatoryCron = read('src/app/api/cron/world-observatory/route.ts');
 const observatoryAvailability = read('src/lib/observatory/public/readAvailability.ts');
 const observatoryPage = read('src/app/observatory/page.tsx');
+const worldVectorRetrospective = read('src/lib/world-vector/retrospective.ts');
+const worldVectorPersistence = read('src/lib/world-vector/persistence.ts');
+const externalWorldRoute = read('src/app/api/external/v1/world/route.ts');
+const authenticatedGatewayProjection = read('src/lib/mcp/authenticatedGatewayProjection.ts');
 
 // Temporal truth must be reconstructed from persisted records, not a recent-row shortcut.
 assert.ok(worldApi.includes('readPagedRows'), 'world_history_must_paginate');
@@ -32,6 +36,21 @@ assert.ok(worldApi.includes("'world_hypotheses', 'cutoff_at'"), 'world_hypothese
 assert.ok(worldApi.includes("'world_hypothesis_outcomes', 'evaluated_at'"), 'world_outcomes_must_be_temporally_read');
 assert.ok(worldApi.includes("'world_learning_events', 'created_at'"), 'world_learning_must_be_temporally_read');
 assert.ok(!worldApi.includes(".from('world_hypotheses').select('*').order('created_at', { ascending: false }).limit(100)"), 'legacy_first_100_hypothesis_limit_present');
+
+// World Vector retrospective reconstruction is same-day/as-of only and may regenerate derived observations without rewriting WorldSpect T0.
+for (const token of [
+  'getWorldSpectSnapshotIndexRead',
+  'getWorldSpectSnapshotAtOrBefore',
+  "snapshot.observed_at.slice(0, 10) !== day",
+  'recentSampleCount(ordered, Date.parse(snapshot.observed_at))',
+  "RETROSPECTIVE RECONSTRUCTION ONLY",
+  "Future snapshots are never projected backward",
+]) assert.ok(worldVectorRetrospective.includes(token), `world_vector_retrospective_boundary_missing:${token}`);
+assert.ok(worldVectorPersistence.includes('overwrite?: boolean'), 'world_vector_regeneration_overwrite_contract_missing');
+assert.ok(worldVectorPersistence.includes('.update(observationRow)'), 'world_vector_regeneration_update_path_missing');
+assert.ok(externalWorldRoute.includes("'regenerate_world_vector'"), 'world_vector_regeneration_external_operation_missing');
+assert.ok(externalWorldRoute.includes("rewritesWorldSpectT0: false"), 'world_vector_regeneration_t0_boundary_missing');
+assert.ok(authenticatedGatewayProjection.includes("operation === 'regenerate_world_vector'"), 'world_vector_regeneration_mcp_scope_missing');
 
 // Cognitive interpretation remains bounded and may not rewrite observed reality.
 for (const token of [
@@ -211,6 +230,8 @@ console.log(JSON.stringify({
   contract:'SFI-TEMPORAL-SURFACES-2.0',
   invariants:{
     temporalHistoryPaged:true,
+    worldVectorRetrospectiveSameDayOnly:true,
+    worldVectorRetrospectiveMcpGoverned:true,
     acquisitionTimeCalibration:true,
     simulationDoesNotRewriteObservation:true,
     publicFieldSingleReadOwner:true,
