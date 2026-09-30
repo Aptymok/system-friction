@@ -35,15 +35,15 @@ export type Scene = {
 };
 
 const NYC_ASSETS = Object.freeze([
-  {src:'/sfi/nyc/clouds.avif',role:'atmosphere',depth:1,motion:'slow-drift',alpha:true},
-  {src:'/sfi/nyc/moon.avif',role:'celestial',depth:2,motion:'pointer-parallax',alpha:true},
-  {src:'/sfi/nyc/golden-circle.avif',role:'geometry',depth:3,motion:'slow-drift',alpha:true},
-  {src:'/sfi/nyc/lines.avif',role:'geometry',depth:4,motion:'pointer-parallax',alpha:true},
-  {src:'/sfi/nyc/structure.avif',role:'structure',depth:5,motion:'pointer-parallax',alpha:true},
-  {src:'/sfi/nyc/earth.avif',role:'terrain',depth:6,motion:'pointer-parallax',alpha:true},
+  {src:'/sfi/nyc/runtime/clouds.avif',role:'atmosphere',depth:1,motion:'slow-drift',alpha:true},
+  {src:'/sfi/nyc/runtime/moon.avif',role:'celestial',depth:2,motion:'static',alpha:true},
+  {src:'/sfi/nyc/runtime/golden-circle.avif',role:'geometry',depth:3,motion:'slow-drift',alpha:true},
+  {src:'/sfi/nyc/runtime/lines.avif',role:'geometry',depth:4,motion:'static',alpha:true},
+  {src:'/sfi/nyc/runtime/structure.avif',role:'structure',depth:5,motion:'static',alpha:true},
+  {src:'/sfi/nyc/runtime/earth.avif',role:'terrain',depth:6,motion:'static',alpha:true},
 ] satisfies readonly SceneAsset[]);
 
-const BACKGROUND='/sfi/nyc/background.avif';
+const BACKGROUND='/sfi/nyc/runtime/background.avif';
 
 export const SCENES: readonly Scene[] = [
   {
@@ -59,10 +59,10 @@ export const SCENES: readonly Scene[] = [
       {label:'PUBLIC ORIENTATION',title:'Institutional intelligence must remain reconstructible.',text:'SFI studies how signals become evidence, how evidence becomes authority, how authority becomes execution, and how reality returns as a constraint on what the institution believes next.'},
     ],
     tiles:[
-      {label:'REGISTRY',title:'Institutional registry',description:'Methods, records, evidence objects and governed institutional memory.',image:'/sfi/nyc/structure.avif',targetSceneId:'authority'},
-      {label:'AI WEEK NEW YORK',title:'October 8 · 7:00 PM ET',description:'After AI Governance: Evidence, Authority & RETURN in Real Institutions.',image:'/sfi/nyc/earth.avif',targetSceneId:'time'},
-      {label:'FRICTION NOTES',title:'Field notes',description:'Short-form institutional observations on friction, evidence and consequence.',image:'/sfi/nyc/lines.avif',targetSceneId:'after-ai-governance'},
-      {label:'OBSERVATORY',title:'World & institutional state',description:'Observation, hypotheses, calibration and longitudinal context.',image:'/sfi/nyc/moon.avif',targetSceneId:'observation'},
+      {label:'REGISTRY',title:'Institutional registry',description:'Methods, records, evidence objects and governed institutional memory.',image:'/sfi/nyc/runtime/structure.avif',targetSceneId:'authority'},
+      {label:'AI WEEK NEW YORK',title:'October 8 · 7:00 PM ET',description:'After AI Governance: Evidence, Authority & RETURN in Real Institutions.',image:'/sfi/nyc/runtime/earth.avif',targetSceneId:'time'},
+      {label:'FRICTION NOTES',title:'Field notes',description:'Short-form institutional observations on friction, evidence and consequence.',image:'/sfi/nyc/runtime/lines.avif',targetSceneId:'after-ai-governance'},
+      {label:'OBSERVATORY',title:'World & institutional state',description:'Observation, hypotheses, calibration and longitudinal context.',image:'/sfi/nyc/runtime/moon.avif',targetSceneId:'observation'},
     ],
   },
   {
