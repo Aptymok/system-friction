@@ -3,6 +3,7 @@ import 'server-only';
 import { readGovernanceRuntime } from '@/lib/governance/governanceRuntime';
 import { normalizeProposalState, proposalStateMeaning } from '@/lib/governance/proposalLifecycle';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { SFI_SUPABASE_READ_BUDGET } from '@/lib/supabase/readBudget';
 
 type Row = Record<string, unknown>;
 const STATES = ['draft','proposed','waiting_evidence','design_approved','queued','accepted','rejected','conflicted','frozen','superseded'] as const;
@@ -14,11 +15,12 @@ export async function readGovernanceHealth() {
   const service = createServiceSupabaseClient();
   const [runtime, proposals, decisions, reports, events] = await Promise.all([
     readGovernanceRuntime(),
-    service.from('action_proposals').select('*').order('created_at', { ascending: false }).limit(500),
+    service.from('action_proposals').select('id,status,proposal_type,expected_field_delta,proportionality_check').order('created_at', { ascending: false }).limit(SFI_SUPABASE_READ_BUDGET.governanceProposalRows + 1),
     service.from('sfi_cognitive_twin_decisions').select('id,status,decision_kind,created_at').order('created_at', { ascending: false }).limit(200),
     service.from('sfi_cognitive_twin_runs').select('id,status,role,output_envelope,created_at').order('created_at', { ascending: false }).limit(200),
     service.from('epistemic_events').select('id,event_id,event_name,payload,occurred_at,created_at').like('event_name', 'governance.%').order('occurred_at', { ascending: false }).limit(200),
   ]);
+  if ((proposals.data ?? []).length > SFI_SUPABASE_READ_BUDGET.governanceProposalRows) throw new Error(`GOVERNANCE_PROPOSAL_READ_BUDGET_EXCEEDED:limit=${SFI_SUPABASE_READ_BUDGET.governanceProposalRows}`);
   const rows = (proposals.data ?? []) as Row[];
   const counts = Object.fromEntries(STATES.map((state) => [state, 0])) as Record<(typeof STATES)[number], number>;
   let legacyApproved = 0, unknown = 0;
