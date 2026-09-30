@@ -1,117 +1,38 @@
 .sfiSceneExperience{
-  --void:#060605;
-  --gold:#c8a951;
-  --cream:#eee6d8;
-  --line:rgba(200,169,81,.24);
-  --line-soft:rgba(200,169,81,.11);
+  --void:#020201;
+  --gold:#d8b46b;
+  --gold-hi:#f2d8a3;
+  --ivory:#f2eee7;
+  --muted:#a99f90;
+  --hairline:rgba(226,190,117,.16);
   --mono:"Liberation Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
   --display:"Noto Serif Display",Georgia,serif;
   --narrative:"EB Garamond",Georgia,serif;
-  --screen:"Noto Sans",system-ui,sans-serif;
   position:relative;
   width:100%;
-  height:calc(100svh - 68px);
+  height:100svh;
   overflow:hidden;
   overscroll-behavior:none;
-  touch-action:pan-y;
+  touch-action:none;
   background:var(--void);
-  color:var(--cream);
+  color:var(--ivory);
   isolation:isolate
 }
-
 .sfiSceneExperience *{box-sizing:border-box}
-.sfiSceneExperience a{color:inherit;text-decoration:none}
-
-/* Public chrome stays outside the visual masters. */
-.sfiSceneChrome{
-  position:absolute;
-  z-index:90;
-  inset:0 0 auto;
-  height:70px;
-  display:grid;
-  grid-template-columns:auto 1fr auto;
-  align-items:center;
-  gap:24px;
-  padding:0 clamp(18px,2.8vw,44px);
-  border-bottom:1px solid rgba(200,169,81,.18);
-  background:linear-gradient(180deg,rgba(4,4,3,.86),rgba(4,4,3,.28));
-  backdrop-filter:blur(14px)
-}
-.sfiSceneBrand{
-  display:flex;
-  align-items:center;
-  gap:13px;
-  min-width:max-content;
-  font:500 11px/1.15 var(--mono);
-  letter-spacing:.18em;
-  color:#ddd3c1
-}
-.sfiSceneMark{
-  display:grid;
-  place-items:center;
-  width:38px;
-  height:38px;
-  border:1px solid rgba(200,169,81,.6);
-  color:var(--gold);
-  font:700 10px/1 var(--mono);
-  letter-spacing:.08em
-}
-.sfiSceneChrome>nav{
-  display:flex;
-  justify-content:center;
-  gap:clamp(16px,2.6vw,40px)
-}
-.sfiSceneChrome>nav a,
-.sfiSceneChromeActions{
-  font:500 10px/1.2 var(--mono);
-  letter-spacing:.16em;
-  color:#aaa091
-}
-.sfiSceneChrome>nav a{
-  position:relative;
-  padding:9px 0
-}
-.sfiSceneChrome>nav a:after{
+.sfiSceneExperience:before{
   content:"";
   position:absolute;
-  left:0;
-  right:100%;
-  bottom:1px;
-  height:1px;
-  background:var(--gold);
-  transition:right .22s ease
-}
-.sfiSceneChrome>nav a:hover{color:#e8dfcf}
-.sfiSceneChrome>nav a:hover:after{right:0}
-.sfiSceneChromeActions{
-  display:flex;
-  align-items:center;
-  gap:13px
-}
-.sfiSceneChromeActions>span{color:#6d665c}
-.sfiMachineLinks{
-  display:flex;
-  gap:9px;
-  padding:0 10px;
-  border-left:1px solid var(--line-soft);
-  border-right:1px solid var(--line-soft)
-}
-.sfiMachineLinks a{font-size:7px;color:#756d61}
-.sfiMachineLinks a:hover{color:var(--gold)}
-.sfiSceneChromeActions>a{
-  padding:9px 11px;
-  border:1px solid rgba(200,169,81,.28);
-  color:#cbb986
-}
-
-/* Spatial deck */
-.sfiSceneDeck{
-  position:absolute;
   inset:0;
-  overflow:hidden;
-  perspective:1500px;
-  transform-style:preserve-3d
+  z-index:80;
+  pointer-events:none;
+  opacity:.22;
+  mix-blend-mode:soft-light;
+  background-image:
+    radial-gradient(circle at 10% 20%,rgba(255,255,255,.22) 0 .45px,transparent .6px),
+    radial-gradient(circle at 70% 80%,rgba(255,255,255,.18) 0 .45px,transparent .6px);
+  background-size:5px 5px,7px 7px
 }
+.sfiSceneDeck{position:absolute;inset:0;overflow:hidden;perspective:1700px;transform-style:preserve-3d}
 .sfiScene{
   position:absolute;
   inset:0;
@@ -119,622 +40,218 @@
   background:var(--void);
   transform-style:preserve-3d;
   will-change:transform,opacity,filter;
-  transition:
-    transform .9s cubic-bezier(.2,.82,.2,1),
-    opacity .62s ease,
-    filter .62s ease;
+  transition:transform .95s cubic-bezier(.18,.78,.18,1),opacity .68s ease,filter .68s ease;
   pointer-events:none
 }
-.sfiScene[data-state="active"]{
-  transform:translate3d(0,0,0) scale(1);
-  opacity:1;
-  filter:none;
-  pointer-events:auto;
-  z-index:5
-}
-.sfiScene[data-state="past"]{
-  transform:translate3d(0,-8%,170px) scale(1.08);
-  opacity:0;
-  filter:brightness(.45) blur(7px);
-  z-index:2
-}
-.sfiScene[data-state="future"]{
-  transform:translate3d(0,10%,-260px) scale(.86);
-  opacity:0;
-  filter:brightness(.45) blur(8px);
-  z-index:1
-}
+.sfiScene[data-state="active"]{transform:translate3d(0,0,0) scale(1);opacity:1;filter:none;pointer-events:auto;z-index:5}
+.sfiScene[data-state="past"]{transform:translate3d(0,-9%,220px) scale(1.07);opacity:0;filter:brightness(.42) blur(8px);z-index:2}
+.sfiScene[data-state="future"]{transform:translate3d(0,10%,-320px) scale(.84);opacity:0;filter:brightness(.42) blur(9px);z-index:1}
 
-/* The scene itself pans laterally. No horizontal nav UI exists. */
 .sfiSceneBackground{
   position:absolute;
-  inset:-3%;
+  inset:-5%;
   z-index:0;
-  background-repeat:no-repeat;
   background-size:cover;
-  background-position:var(--field-x,50%) center;
-  transform:translate3d(
-    calc(var(--pointer-x,0) * -4px),
-    calc(var(--pointer-y,0) * -2px),
-    -30px
-  ) scale(1.055);
-  filter:saturate(.9) contrast(1.035) brightness(.82);
-  transition:
-    background-position .82s cubic-bezier(.2,.82,.2,1),
-    transform .16s linear,
-    filter .5s ease
+  background-position:center;
+  transform:translate3d(calc(var(--pointer-x,0) * -3px),calc(var(--pointer-y,0) * -2px),-80px) scale(1.09);
+  filter:saturate(.82) contrast(1.07) brightness(.62)
 }
-.sfiScene:after{
-  content:"";
+.sfiSceneVeil{
   position:absolute;
   inset:0;
-  z-index:2;
+  z-index:10;
   pointer-events:none;
   background:
-    linear-gradient(90deg,rgba(4,4,3,.76) 0%,rgba(4,4,3,.44) 28%,rgba(4,4,3,.08) 57%,rgba(4,4,3,.24) 100%),
-    linear-gradient(180deg,rgba(4,4,3,.18),transparent 56%,rgba(4,4,3,.38))
-}
-.sfiSceneGrid{
-  position:absolute;
-  z-index:3;
-  inset:92px clamp(18px,2.7vw,42px) 28px;
-  pointer-events:none;
-  opacity:.16;
-  border:1px solid rgba(200,169,81,.12);
-  background-image:
-    linear-gradient(rgba(200,169,81,.028) 1px,transparent 1px),
-    linear-gradient(90deg,rgba(200,169,81,.028) 1px,transparent 1px);
-  background-size:112px 112px;
-  mask-image:linear-gradient(180deg,rgba(0,0,0,.5),rgba(0,0,0,.05) 78%,transparent)
+    radial-gradient(circle at 66% 42%,transparent 0 24%,rgba(2,2,1,.10) 48%,rgba(2,2,1,.68) 100%),
+    linear-gradient(90deg,rgba(2,2,1,.91) 0%,rgba(2,2,1,.68) 28%,rgba(2,2,1,.18) 58%,rgba(2,2,1,.24) 100%),
+    linear-gradient(180deg,rgba(2,2,1,.25),transparent 55%,rgba(2,2,1,.56))
 }
 
-/* Optional parallax layers: they move as part of the field, never as controls. */
-.sfiSceneLayers{
-  position:absolute;
-  z-index:4;
-  inset:70px 0 0;
-  pointer-events:none;
-  transform:translate3d(var(--field-shift,0vw),0,0);
-  transition:transform .82s cubic-bezier(.2,.82,.2,1)
-}
+.sfiSceneLayers{position:absolute;inset:0;z-index:5;pointer-events:none;transform-style:preserve-3d}
 .sfiSceneLayer{
   position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
   object-fit:contain;
   user-select:none;
   -webkit-user-drag:none;
-  opacity:.46;
-  will-change:transform,opacity;
-  transition:transform .18s linear,opacity .4s ease;
-  z-index:calc(4 + var(--asset-depth,0))
+  will-change:transform,opacity,filter;
+  transition:opacity .75s ease,filter .75s ease,transform .22s linear
 }
+.sfiSceneLayer[data-alpha="true"]{mix-blend-mode:screen}
 .sfiSceneLayer[data-motion="pointer-parallax"]{
   transform:translate3d(
-    calc(var(--pointer-x,0) * var(--parallax-x,18px)),
-    calc(var(--pointer-y,0) * var(--parallax-y,8px)),
-    var(--parallax-z,90px)
-  ) scale(calc(1 + var(--asset-depth,1) * .004))
-}
-.sfiSceneLayer--1{
-  width:min(58vw,980px);
-  right:-4vw;
-  top:7%;
-  transform:translate3d(
-    calc(var(--pointer-x,0) * 8px),
-    calc(var(--pointer-y,0) * 5px),
-    35px
+    calc(var(--pointer-x,0) * var(--parallax-x,14px)),
+    calc(var(--pointer-y,0) * var(--parallax-y,7px)),
+    var(--parallax-z,80px)
   )
 }
-.sfiSceneLayer--2{
-  width:min(42vw,680px);
-  right:14vw;
-  top:23%;
-  transform:translate3d(
-    calc(var(--pointer-x,0) * -12px),
-    calc(var(--pointer-y,0) * -7px),
-    90px
-  )
-}
-.sfiSceneLayer--3{
-  width:min(32vw,520px);
-  right:2vw;
-  bottom:8%;
-  transform:translate3d(
-    calc(var(--pointer-x,0) * 16px),
-    calc(var(--pointer-y,0) * 9px),
-    145px
-  )
-}
-.sfiSceneLayer[data-alpha="true"][data-role="signal"],
-.sfiSceneLayer[data-alpha="true"][data-role="interface"],
-.sfiSceneLayer[data-alpha="true"][data-role="atmosphere"]{mix-blend-mode:screen}
-.sfiSceneLayer[data-role="human"],
-.sfiSceneLayer[data-role="structure"]{mix-blend-mode:normal}
-.sfiSceneLayer[data-role="atmosphere"]{opacity:.3}
-.sfiSceneLayer[data-motion="slow-drift"]{animation:sfiSceneBreath 9s ease-in-out infinite alternate}
-@keyframes sfiSceneBreath{
-  from{opacity:.28;filter:brightness(.9)}
-  to{opacity:.46;filter:brightness(1.08)}
+.sfiSceneLayer[data-motion="slow-drift"]{animation:sfiNycDrift 12s ease-in-out infinite alternate}
+@keyframes sfiNycDrift{
+  from{transform:translate3d(-.35%,.25%,0) scale(1.005);filter:brightness(.91)}
+  to{transform:translate3d(.45%,-.3%,0) scale(1.018);filter:brightness(1.08)}
 }
 
-/* Narrative is part of the scene; frame state is text, not a floating panel. */
+/* Layer stack: clouds / moon / halo / geometry / structure / earth / lights. */
+.sfiSceneLayer--1{z-index:1;opacity:.22;transform:scale(1.16)}
+.sfiSceneLayer--2{z-index:2;opacity:.34;transform:translate3d(17vw,-8vh,80px) scale(.82)}
+.sfiSceneLayer--3{z-index:3;opacity:.34;transform:translate3d(17vw,-2vh,100px) scale(.84)}
+.sfiSceneLayer--4{z-index:4;opacity:.28;transform:translate3d(14vw,2vh,120px) scale(.94)}
+.sfiSceneLayer--5{z-index:5;opacity:.76;transform:translate3d(18vw,2vh,160px) scale(.88)}
+.sfiSceneLayer--6{z-index:6;opacity:.94;transform:translate3d(0,17vh,210px) scale(1.13);mix-blend-mode:normal!important}
+.sfiSceneLayer--7{z-index:7;opacity:.42;transform:translate3d(4vw,11vh,250px) scale(1.08)}
+
+.sfiScene--time .sfiSceneLayer--2{opacity:.56}
+.sfiScene--time .sfiSceneLayer--3{opacity:.22}
+.sfiScene--observation .sfiSceneLayer--3{opacity:.48}
+.sfiScene--observation .sfiSceneLayer--4{opacity:.42}
+.sfiScene--authority .sfiSceneLayer--4{opacity:.52}
+.sfiScene--authority .sfiSceneLayer--5{opacity:.88}
+.sfiScene--execution .sfiSceneLayer--5{opacity:.94;filter:brightness(1.08)}
+.sfiScene--execution .sfiSceneLayer--7{opacity:.52}
+.sfiScene--return .sfiSceneLayer--6{opacity:1}
+.sfiScene--return .sfiSceneLayer--7{opacity:.66;filter:brightness(1.12)}
+.sfiScene--after-ai-governance .sfiSceneLayer--3{opacity:.48}
+.sfiScene--after-ai-governance .sfiSceneLayer--4{opacity:.46}
+.sfiScene--after-ai-governance .sfiSceneLayer--5{opacity:1;filter:brightness(1.08)}
+.sfiScene--after-ai-governance .sfiSceneLayer--7{opacity:.62}
+
 .sfiSceneContent{
   position:relative;
-  z-index:12;
-  width:min(1440px,calc(100vw - 116px));
+  z-index:20;
+  width:min(1480px,calc(100vw - 128px));
   height:100%;
   margin:0 auto;
-  padding:108px 0 54px;
+  padding:96px 0 76px;
   display:flex;
   align-items:center;
   pointer-events:none
 }
-.sfiSceneCopy{
-  width:min(600px,46vw);
-  pointer-events:auto;
-  text-shadow:0 3px 26px rgba(0,0,0,.48)
-}
+.sfiSceneCopy{width:min(650px,46vw);pointer-events:auto;text-shadow:0 4px 34px rgba(0,0,0,.58)}
 .sfiSceneEyebrow{
   display:flex;
   align-items:center;
-  gap:14px;
-  margin-bottom:17px;
-  font:600 11px/1.2 var(--mono);
-  letter-spacing:.22em;
+  gap:13px;
+  margin-bottom:18px;
+  font:600 9px/1.35 var(--mono);
+  letter-spacing:.19em;
   color:var(--gold)
 }
-.sfiSceneEyebrow:before{
-  content:"";
-  width:42px;
-  height:1px;
-  background:var(--gold)
-}
+.sfiSceneEyebrow>span{display:inline-grid;place-items:center;width:28px;height:28px;border:1px solid rgba(216,180,107,.28);border-radius:50%;font-size:8px;color:#d8cbb7}
 .sfiSceneCopy h1{
   margin:0;
-  max-width:9.5ch;
-  font:500 clamp(48px,6.4vw,100px)/.89 var(--display);
-  letter-spacing:-.045em;
-  color:#f2ede4
+  max-width:10.2ch;
+  font:500 clamp(52px,6.65vw,108px)/.88 var(--display);
+  letter-spacing:-.047em;
+  color:#f5f0e8
 }
-.sfiSceneCopy h1 span{
-  display:block;
-  color:var(--gold)
-}
-.sfiSceneCopy>p{
-  max-width:31em;
-  margin:20px 0 0;
-  font:400 clamp(15px,1.2vw,19px)/1.5 var(--narrative);
-  color:#c7bdad
+.sfiSceneCopy h1 span{display:block;color:var(--gold)}
+.sfiSceneLead{
+  max-width:34em;
+  margin:23px 0 0;
+  font:400 clamp(15px,1.2vw,19px)/1.58 var(--narrative);
+  color:#c5bbad
 }
 .sfiFieldState{
-  max-width:32em;
-  margin-top:22px;
-  padding-top:14px;
-  border-top:1px solid rgba(200,169,81,.18);
-  animation:sfiFieldStateIn .48s cubic-bezier(.2,.82,.2,1) both
+  max-width:36em;
+  margin-top:25px;
+  padding:16px 0 0;
+  border-top:1px solid var(--hairline);
+  animation:sfiNycFrameIn .45s cubic-bezier(.18,.78,.18,1) both
 }
-.sfiFieldState small{
-  display:block;
-  margin-bottom:6px;
-  font:600 8px/1 var(--mono);
-  letter-spacing:.18em;
-  color:var(--gold)
-}
-.sfiFieldState strong{
-  display:block;
-  font:500 clamp(20px,2vw,30px)/1.05 var(--display);
-  color:#eee5d8
-}
-.sfiFieldState p{
-  max-width:34em;
-  margin:8px 0 0;
-  font:400 12px/1.5 var(--narrative);
-  color:#a89f92
-}
-@keyframes sfiFieldStateIn{
-  from{opacity:0;transform:translate3d(16px,0,0)}
-  to{opacity:1;transform:translate3d(0,0,0)}
-}
+.sfiFieldState small{display:block;margin-bottom:7px;font:600 9px/1 var(--mono);letter-spacing:.18em;color:var(--gold-hi)}
+.sfiFieldState strong{display:block;font:500 clamp(21px,2vw,31px)/1.08 var(--display);color:#efe7da}
+.sfiFieldState p{max-width:38em;margin:8px 0 0;font:400 13px/1.55 var(--narrative);color:#9f9689}
+@keyframes sfiNycFrameIn{from{opacity:0;transform:translate3d(18px,0,0)}to{opacity:1;transform:none}}
 
-.sfiSceneActions{
-  display:flex;
-  gap:22px;
-  flex-wrap:wrap;
-  margin-top:24px
-}
-.sfiSceneActions a{
-  position:relative;
-  padding:8px 0;
-  font:600 8px/1 var(--mono);
-  letter-spacing:.13em;
-  color:#d8c38e
-}
-.sfiSceneActions a:after{
-  content:"";
-  position:absolute;
-  left:0;
-  right:0;
-  bottom:2px;
-  height:1px;
-  background:rgba(200,169,81,.44);
-  transform-origin:left;
-  transition:transform .2s ease
-}
-.sfiSceneActions a:hover:after{transform:scaleX(.55)}
-
-.sfiSceneInstruction{
+.sfiGestureLegend{
   display:grid;
   grid-template-columns:auto 1fr;
-  gap:7px 13px;
-  width:min(370px,100%);
-  margin-top:17px;
-  opacity:.58
+  gap:7px 12px;
+  width:min(390px,100%);
+  margin-top:20px;
+  opacity:.66
 }
-.sfiSceneInstruction span,
-.sfiSceneInstruction b{
-  font:600 11px/1.35 var(--mono);
-  letter-spacing:.11em
-}
-.sfiSceneInstruction span{color:var(--gold)}
-.sfiSceneInstruction b{color:#b5aa9a}
+.sfiGestureLegend span,.sfiGestureLegend b{font:600 9px/1.35 var(--mono);letter-spacing:.12em}
+.sfiGestureLegend span{color:var(--gold)}
+.sfiGestureLegend b{color:#9c9386}
 
-/* 01 — clean regenerated 404-derived opening. */
-.sfiScene--entry-world .sfiSceneGrid,
-.sfiScene--entry-world .sfiSceneLayers{
-  display:none
+.sfiTopicRail{
+  position:absolute;
+  z-index:60;
+  right:clamp(20px,2.4vw,38px);
+  top:50%;
+  transform:translateY(-50%);
+  display:grid;
+  gap:10px
 }
-.sfiScene--entry-world .sfiSceneBackground{
-  inset:0;
-  background-size:cover;
-  background-position:center;
-  transform-origin:50% 39%;
-  filter:saturate(.95) contrast(1.04) brightness(.91);
-  transform:translate3d(
-    calc(var(--pointer-x,0) * -2px),
-    calc(var(--pointer-y,0) * -1px),
-    0
-  ) scale(1.018)
+.sfiTopicRail button{
+  appearance:none;
+  border:0;
+  background:none;
+  color:#756d61;
+  display:grid;
+  grid-template-columns:24px 30px;
+  align-items:center;
+  gap:8px;
+  padding:0;
+  cursor:pointer
 }
-.sfiScene--entry-world:after{
-  background:
-    linear-gradient(90deg,rgba(4,4,3,.67) 0%,rgba(4,4,3,.34) 29%,transparent 58%),
-    linear-gradient(180deg,rgba(4,4,3,.1),transparent 65%,rgba(4,4,3,.23))
-}
-.sfiScene--entry-world .sfiSceneCopy{
-  align-self:flex-end;
-  margin-bottom:34px
-}
-.sfiScene--entry-world .sfiFieldState{display:none}
-.sfiScene--entry-world[data-state="past"]{
-  transform:translate3d(0,0,380px) scale(1.52);
-  transform-origin:50% 39%;
-  opacity:0;
-  filter:brightness(.58) blur(4px)
-}
+.sfiTopicRail span{font:600 8px/1 var(--mono);letter-spacing:.08em}
+.sfiTopicRail i{display:block;height:1px;background:rgba(216,180,107,.22);transition:width .25s ease,background .25s ease;width:13px}
+.sfiTopicRail button[data-active="true"]{color:var(--gold-hi)}
+.sfiTopicRail button[data-active="true"] i{width:30px;background:var(--gold)}
 
-/* 02 / 03 — one canonical scene. Only narrative state changes.
-   The field may pan horizontally, but the camera does not jump to a new world. */
-.sfiScene--observatory-dashboard,
-.sfiScene--system-field{
-  background:#030302
+.sfiExplanationRail{
+  position:absolute;
+  z-index:60;
+  left:50%;
+  bottom:22px;
+  transform:translateX(-50%);
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-width:150px;
+  justify-content:center;
+  color:#71695f
 }
-.sfiScene--observatory-dashboard .sfiSceneGrid,
-.sfiScene--observatory-dashboard .sfiSceneLayers,
-.sfiScene--system-field .sfiSceneGrid,
-.sfiScene--system-field .sfiSceneLayers{
-  display:none
-}
-.sfiScene--observatory-dashboard .sfiSceneBackground,
-.sfiScene--system-field .sfiSceneBackground{
-  inset:70px 0 0;
-  background-size:cover;
-  background-color:#030302;
-  background-position:var(--field-x,50%) center;
-  transform:translate3d(
-    calc(var(--pointer-x,0) * -2px),
-    calc(var(--pointer-y,0) * -1px),
-    0
-  ) scale(1.018);
-  filter:saturate(.98) contrast(1.025) brightness(.92)
-}
-.sfiScene--observatory-dashboard:after,
-.sfiScene--system-field:after{
-  top:70px;
-  background:
-    linear-gradient(90deg,rgba(3,3,2,.72) 0%,rgba(3,3,2,.32) 28%,transparent 58%,rgba(3,3,2,.1) 100%),
-    linear-gradient(180deg,transparent 64%,rgba(3,3,2,.32))
-}
-.sfiScene--observatory-dashboard[data-state="future"]{
-  transform:translate3d(0,0,-560px) scale(.66);
-  opacity:0;
-  filter:brightness(.5) blur(8px)
-}
-.sfiScene--observatory-dashboard[data-state="past"],
-.sfiScene--system-field[data-state="future"]{
-  transform:translate3d(0,0,0) scale(1);
-  opacity:0;
-  filter:none
-}
-.sfiScene--system-field[data-state="active"]{
-  transform:translate3d(0,0,0) scale(1);
-  opacity:1;
-  filter:none
-}
+.sfiExplanationRail>span{font:600 8px/1 var(--mono);letter-spacing:.08em}
+.sfiExplanationRail>div{display:flex;align-items:center;gap:6px}
+.sfiExplanationRail button{width:18px;height:1px;padding:0;border:0;background:rgba(216,180,107,.22);cursor:pointer;transition:width .2s ease,background .2s ease}
+.sfiExplanationRail button[data-active="true"]{width:34px;background:var(--gold)}
 
-/* 04 / 05 — same physical room. FRICTION becomes INSTITUTION by adding humanity.
-   The world does not jump; responsibility appears inside the same field. */
-.sfiScene--friction,
-.sfiScene--institution{
-  background:#030302
-}
-.sfiScene--friction .sfiSceneGrid,
-.sfiScene--institution .sfiSceneGrid,
-.sfiScene--return .sfiSceneGrid{
-  display:none
-}
-.sfiScene--friction .sfiSceneBackground,
-.sfiScene--institution .sfiSceneBackground{
-  inset:68px -3% -3%;
-  background-size:cover;
-  background-position:var(--field-x,50%) center;
-  transform:translate3d(
-    calc(var(--pointer-x,0) * -10px),
-    calc(var(--pointer-y,0) * -5px),
-    -70px
-  ) scale(1.075);
-  filter:saturate(.92) contrast(1.045) brightness(.82)
-}
-.sfiScene--friction:after,
-.sfiScene--institution:after{
-  top:68px;
-  background:
-    linear-gradient(90deg,rgba(4,4,3,.78) 0%,rgba(4,4,3,.43) 29%,transparent 59%,rgba(4,4,3,.10) 100%),
-    linear-gradient(180deg,rgba(4,4,3,.08),transparent 62%,rgba(4,4,3,.27))
-}
-.sfiScene--friction[data-state="past"],
-.sfiScene--institution[data-state="future"]{
-  transform:translate3d(0,0,0) scale(1);
-  opacity:0;
-  filter:none
-}
-.sfiScene--institution[data-state="active"]{
-  transform:translate3d(0,0,0) scale(1);
-  opacity:1;
-  filter:none
-}
-
-/* 04 — FRICTION: one observer, one field, high depth separation. */
-.sfiScene--friction .sfiSceneLayers,
-.sfiScene--institution .sfiSceneLayers,
-.sfiScene--return .sfiSceneLayers{
-  transform:translate3d(var(--field-shift,0vw),0,0);
-  transition:transform .9s cubic-bezier(.2,.82,.2,1)
-}
-.sfiScene--friction .sfiSceneLayer--1{
-  width:118vw;
-  max-width:none;
-  left:-9vw;
-  top:-2%;
-  opacity:.31;
-  mix-blend-mode:screen;
-  transform:translate3d(
-    calc(var(--pointer-x,0) * 30px),
-    calc(var(--pointer-y,0) * 16px),
-    105px
-  ) scale(1.05)
-}
-.sfiScene--friction .sfiSceneLayer--2{
-  width:min(31vw,520px);
-  right:19vw;
-  top:auto;
-  bottom:-2vh;
-  opacity:1;
-  transform:translate3d(
-    calc(var(--pointer-x,0) * -44px),
-    calc(var(--pointer-y,0) * -20px),
-    225px
-  ) scale(1.02);
-  filter:drop-shadow(0 24px 45px rgba(0,0,0,.55))
-}
-
-/* 05 — INSTITUTION: same room, but the system is now populated and deliberative. */
-.sfiScene--institution .sfiSceneLayer--1{
-  width:116vw;
-  max-width:none;
-  left:-8vw;
-  top:-1%;
-  opacity:.20;
-  mix-blend-mode:screen;
-  transform:translate3d(
-    calc(var(--pointer-x,0) * 26px),
-    calc(var(--pointer-y,0) * 13px),
-    90px
-  ) scale(1.04)
-}
-.sfiScene--institution .sfiSceneLayer--2{
-  width:min(82vw,1370px);
-  max-width:none;
-  right:-5vw;
-  left:auto;
-  top:auto;
-  bottom:-8vh;
-  opacity:.96;
-  transform:translate3d(
-    calc(var(--pointer-x,0) * -50px),
-    calc(var(--pointer-y,0) * -24px),
-    245px
-  ) scale(1.015);
-  filter:drop-shadow(0 28px 54px rgba(0,0,0,.52))
-}
-
-/* 07 — RETURN: deliberately different. World, consequence and people occupy
-   separate depth planes so RETURN feels like an outward re-entry, not another slide. */
-.sfiScene--return .sfiSceneBackground{
-  inset:68px -4% -4%;
-  background-size:cover;
-  background-position:var(--field-x,50%) center;
-  transform:translate3d(
-    calc(var(--pointer-x,0) * -12px),
-    calc(var(--pointer-y,0) * -6px),
-    -110px
-  ) scale(1.10);
-  filter:saturate(.93) contrast(1.055) brightness(.80)
-}
-.sfiScene--return:after{
-  top:68px;
-  background:
-    linear-gradient(90deg,rgba(4,4,3,.74) 0%,rgba(4,4,3,.40) 28%,transparent 55%,rgba(4,4,3,.05) 100%),
-    linear-gradient(180deg,rgba(4,4,3,.04),transparent 57%,rgba(4,4,3,.19))
-}
-.sfiScene--return[data-state="future"]{
-  transform:translate3d(0,0,-420px) scale(.72);
-  opacity:0;
-  filter:brightness(.48) blur(10px)
-}
-.sfiScene--return[data-state="active"]{
-  transform:translate3d(0,0,0) scale(1);
-  opacity:1;
-  filter:none
-}
-.sfiScene--return .sfiSceneLayer--1{
-  width:122vw;
-  max-width:none;
-  left:-11vw;
-  top:-4%;
-  opacity:.29;
-  mix-blend-mode:screen;
-  transform:translate3d(
-    calc(var(--pointer-x,0) * 34px),
-    calc(var(--pointer-y,0) * 18px),
-    95px
-  ) scale(1.05)
-}
-.sfiScene--return .sfiSceneLayer--2{
-  width:min(42vw,700px);
-  right:11vw;
-  top:13%;
-  opacity:.48;
-  transform:translate3d(
-    calc(var(--pointer-x,0) * -46px),
-    calc(var(--pointer-y,0) * -24px),
-    190px
-  ) scale(1.03);
-  filter:drop-shadow(0 22px 50px rgba(0,0,0,.45))
-}
-.sfiScene--return .sfiSceneLayer--3{
-  width:104vw;
-  max-width:none;
-  left:-2vw;
-  top:auto;
-  bottom:-10vh;
-  opacity:.98;
-  transform:translate3d(
-    calc(var(--pointer-x,0) * 58px),
-    calc(var(--pointer-y,0) * 28px),
-    310px
-  ) scale(1.01);
-  filter:drop-shadow(0 28px 54px rgba(0,0,0,.55))
-}
-
-/* Mobile keeps the same spatial model with reduced copy. */
 @media(max-width:900px){
-  .sfiSceneChrome{
-    height:60px;
-    grid-template-columns:1fr auto;
-    padding:0 14px
-  }
-  .sfiSceneBrand>span:last-child,
-  .sfiSceneChrome>nav,
-  .sfiMachineLinks,
-  .sfiSceneChromeActions>span{display:none}
-  .sfiSceneContent{
-    width:calc(100vw - 36px);
-    padding:80px 0 30px;
-    align-items:flex-start
-  }
-  .sfiSceneCopy{
-    width:min(92vw,520px);
-    padding-top:5vh
-  }
-  .sfiSceneCopy h1{
-    font-size:clamp(38px,13vw,64px);
-    max-width:8.5ch
-  }
-  .sfiSceneCopy>p{font-size:13px;margin-top:13px}
-  .sfiFieldState{margin-top:14px;padding-top:11px}
+  .sfiSceneContent{width:calc(100vw - 34px);padding:82px 0 70px;align-items:flex-start}
+  .sfiSceneCopy{width:min(92vw,580px);padding-top:6vh}
+  .sfiSceneCopy h1{font-size:clamp(40px,13.2vw,70px);max-width:9ch}
+  .sfiSceneLead{font-size:13px;margin-top:15px;max-width:30em}
+  .sfiFieldState{margin-top:16px;padding-top:12px}
   .sfiFieldState strong{font-size:22px}
-  .sfiFieldState p{font-size:11px}
-  .sfiSceneActions{margin-top:15px;gap:16px}
-  .sfiSceneInstruction{display:none}
-  .sfiSceneGrid{inset:70px 10px 10px;background-size:64px 64px}
-  .sfiSceneLayers{inset:60px 0 0}
-  .sfiSceneLayer--1{width:88vw;right:-34vw}
-  .sfiSceneLayer--2{width:72vw;right:-12vw}
-  .sfiSceneLayer--3{width:60vw;right:-22vw}
-  .sfiScene--observatory-dashboard .sfiSceneBackground,
-  .sfiScene--system-field .sfiSceneBackground{
-    inset:60px 0 0;
-    background-size:cover
-  }
-  .sfiScene--observatory-dashboard:after,
-  .sfiScene--system-field:after{top:60px}
+  .sfiFieldState p{font-size:12px;max-width:31em}
+  .sfiGestureLegend{display:none}
+  .sfiTopicRail{right:10px;gap:8px}
+  .sfiTopicRail button{grid-template-columns:18px 18px;gap:4px}
+  .sfiTopicRail i{width:8px}
+  .sfiTopicRail button[data-active="true"] i{width:18px}
+  .sfiSceneLayer--2{transform:translate3d(30vw,-5vh,80px) scale(.92)}
+  .sfiSceneLayer--3{transform:translate3d(24vw,4vh,100px) scale(1.04)}
+  .sfiSceneLayer--4{transform:translate3d(20vw,8vh,120px) scale(1.08)}
+  .sfiSceneLayer--5{transform:translate3d(24vw,8vh,160px) scale(1.08)}
+  .sfiSceneLayer--6{transform:translate3d(0,24vh,210px) scale(1.42)}
+  .sfiSceneLayer--7{transform:translate3d(0,18vh,250px) scale(1.24)}
 }
 
-@media(max-height:690px) and (min-width:901px){
-  .sfiSceneContent{padding-top:90px;padding-bottom:26px}
-  .sfiSceneCopy h1{font-size:clamp(40px,5.5vw,74px)}
-  .sfiSceneCopy>p{font-size:14px;margin-top:13px}
-  .sfiFieldState{margin-top:12px;padding-top:10px}
+@media(max-height:710px) and (min-width:901px){
+  .sfiSceneContent{padding-top:80px;padding-bottom:58px}
+  .sfiSceneCopy h1{font-size:clamp(44px,5.6vw,78px)}
+  .sfiSceneLead{margin-top:14px;font-size:14px}
+  .sfiFieldState{margin-top:14px;padding-top:11px}
   .sfiFieldState strong{font-size:24px}
   .sfiFieldState p{font-size:11px}
-  .sfiSceneActions{margin-top:13px}
-  .sfiSceneInstruction{margin-top:10px}
 }
 
 @media(prefers-reduced-motion:reduce){
-  .sfiScene,
-  .sfiSceneBackground,
-  .sfiSceneLayers,
-  .sfiSceneLayer,
-  .sfiSceneChrome>nav a:after{
-    transition:none!important;
-    animation:none!important
-  }
-  .sfiSceneBackground,
-  .sfiSceneLayer{
-    transform:none!important
-  }
-}
-
-
-/* Cinematic reduction: each scene keeps one focal foreground plane at most.
-   Depth is encoded by the asset itself; decorative middle planes are intentionally absent. */
-.sfiScene--friction .sfiSceneLayer--1{
-  width:min(31vw,520px);right:19vw;left:auto;top:auto;bottom:-2vh;opacity:1;
-  transform:translate3d(calc(var(--pointer-x,0) * -33px),calc(var(--pointer-y,0) * -15px),174px) scale(1.012);
-  filter:drop-shadow(0 24px 45px rgba(0,0,0,.55))
-}
-.sfiScene--institution .sfiSceneLayer--1{
-  width:min(82vw,1370px);max-width:none;right:-5vw;left:auto;top:auto;bottom:-8vh;opacity:.96;
-  transform:translate3d(calc(var(--pointer-x,0) * -36px),calc(var(--pointer-y,0) * -17px),174px) scale(1.012);
-  filter:drop-shadow(0 28px 54px rgba(0,0,0,.52))
-}
-.sfiScene--return .sfiSceneLayer--1{
-  width:104vw;max-width:none;left:-2vw;right:auto;top:auto;bottom:-10vh;opacity:.98;mix-blend-mode:normal;
-  transform:translate3d(calc(var(--pointer-x,0) * 44px),calc(var(--pointer-y,0) * 21px),232px) scale(1.008);
-  filter:drop-shadow(0 28px 54px rgba(0,0,0,.55))
-}
-@media(max-width:900px){
-  .sfiScene--friction .sfiSceneLayer--1{width:62vw;right:-5vw;bottom:-1vh}
-  .sfiScene--institution .sfiSceneLayer--1{width:122vw;right:-36vw;bottom:-3vh}
-  .sfiScene--return .sfiSceneLayer--1{width:150vw;left:-20vw;bottom:-4vh}
-}
-
-/* Readability floor for secondary public-interface typography. */
-.sfiSceneInstruction{opacity:.78;gap:8px 14px}
-.sfiMachineLinks a{font-size:10px;line-height:1.2}
-@media(max-width:900px){
-  .sfiSceneBrand{font-size:11px;line-height:1.2}
-  .sfiSceneChrome>nav a,.sfiSceneChromeActions{font-size:10px;line-height:1.2}
-  .sfiSceneEyebrow,.sfiFieldState small,.sfiSceneActions a{font-size:11px;line-height:1.25}
-  .sfiSceneInstruction span,.sfiSceneInstruction b{font-size:12px;line-height:1.35}
+  .sfiScene,.sfiSceneLayer,.sfiFieldState,.sfiTopicRail i,.sfiExplanationRail button{transition:none!important;animation:none!important}
+  .sfiSceneLayer{transform:none!important}
 }
