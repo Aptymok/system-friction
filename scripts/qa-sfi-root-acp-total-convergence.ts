@@ -117,7 +117,7 @@ assert.doesNotMatch(`${operatingUi}\n${governanceUi}`,/rootPresenceReady|confirm
 assert.match(home,/PublicEntryGateway/,'canonical_home_missing_public_entry_gateway');
 assert.equal(publicEntry.includes('SFI_PUBLIC_NAV.map'),false,'public_entry_must_not_own_duplicate_public_nav');
 const publicChrome=read('src/components/public/SfiPublicChrome.tsx');
-assert.ok(publicChrome.includes('NEW YORK · AI WEEK 2026'),'global_public_chrome_must_expose_nyc_event_identity');
+assert.ok(publicChrome.includes('NEW YORK 2026'),'global_public_chrome_must_expose_nyc_event_identity');
 assert.equal(publicChrome.includes('SFI_PUBLIC_NAV.map'),false,'global_public_chrome_must_not_render_old_route_menu');
 const publicNav=read('src/lib/navigation/publicNavigation.ts');
 assert.ok(publicNav.includes("href:'/'"),'public_nav_missing_home');
