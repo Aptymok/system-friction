@@ -180,6 +180,10 @@ export async function proxy(request: NextRequest) {
   let response = NextResponse.next()
   const { pathname } = request.nextUrl
 
+  if (pathname === '/field/world-observatory') {
+    return NextResponse.rewrite(new URL('/observatory', request.url))
+  }
+
   response.headers.set('X-Frame-Options', permitsRootInternalFrame(pathname) ? 'SAMEORIGIN' : 'DENY')
   response.headers.set('X-Content-Type-Options', 'nosniff')
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
