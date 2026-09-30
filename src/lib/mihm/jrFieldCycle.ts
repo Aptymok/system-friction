@@ -53,8 +53,6 @@ export async function runJrFieldCycle(input: JrCycleInput) {
       primaryMethodId: methodology.resolution.status === 'READY' ? methodology.resolution.primary?.methodId ?? null : null,
       evidenceModalities: methodology.input.evidenceModalities,
       worldContextRequested: methodology.input.worldContextRequested,
-      requiresTrajectory: methodology.input.requiresTrajectory,
-      requiresRivalHypothesis: methodology.input.requiresRivalHypothesis,
       requiresInterventionTracking: methodology.input.requiresInterventionTracking,
       ...signal,
     });
