@@ -273,6 +273,7 @@ export async function persistScientificMethodExecutions(input:{
   if(existing.data?.event_id)return {ok:true as const,persisted:false as const,skipped:true as const,reason:'IDENTICAL_METHOD_RESULT_ALREADY_PERSISTED',eventId,fingerprint};
 
   const event=await appendEpistemicEvent({
+    returnMode:'receipt',
     eventId,
     eventName:'SFI_FIELD_SCIENTIFIC_METHODS_EXECUTED',
     epistemicClass:'derived',
