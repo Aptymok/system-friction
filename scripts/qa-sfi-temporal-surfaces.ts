@@ -29,6 +29,7 @@ const worldVectorRetrospective = read('src/lib/world-vector/retrospective.ts');
 const worldVectorPersistence = read('src/lib/world-vector/persistence.ts');
 const externalWorldRoute = read('src/app/api/external/v1/world/route.ts');
 const authenticatedGatewayProjection = read('src/lib/mcp/authenticatedGatewayProjection.ts');
+const worldSpectCron = read('src/app/api/cron/worldspect/route.ts');
 
 // Temporal truth must be reconstructed from persisted records, not a recent-row shortcut.
 assert.ok(worldApi.includes('readPagedRows'), 'world_history_must_paginate');
@@ -51,6 +52,9 @@ assert.ok(worldVectorPersistence.includes('.update(observationRow)'), 'world_vec
 assert.ok(externalWorldRoute.includes("'regenerate_world_vector'"), 'world_vector_regeneration_external_operation_missing');
 assert.ok(externalWorldRoute.includes("rewritesWorldSpectT0: false"), 'world_vector_regeneration_t0_boundary_missing');
 assert.ok(authenticatedGatewayProjection.includes("operation === 'regenerate_world_vector'"), 'world_vector_regeneration_mcp_scope_missing');
+assert.ok(worldSpectCron.includes("scheduledEgressGuardResponse({ lane: 'WORLD_OBSERVATION' })"), 'worldspect_cron_must_use_independent_world_observation_egress_lane');
+assert.ok(externalWorldRoute.includes("'measure_worldspect'"), 'worldspect_governed_manual_measurement_missing');
+assert.ok(authenticatedGatewayProjection.includes("operation === 'measure_worldspect'"), 'worldspect_manual_measurement_mcp_scope_missing');
 
 // Cognitive interpretation remains bounded and may not rewrite observed reality.
 for (const token of [
@@ -232,6 +236,8 @@ console.log(JSON.stringify({
     temporalHistoryPaged:true,
     worldVectorRetrospectiveSameDayOnly:true,
     worldVectorRetrospectiveMcpGoverned:true,
+    worldSpectIndependentEgressLane:true,
+    worldSpectGovernedManualMeasurement:true,
     acquisitionTimeCalibration:true,
     simulationDoesNotRewriteObservation:true,
     publicFieldSingleReadOwner:true,
