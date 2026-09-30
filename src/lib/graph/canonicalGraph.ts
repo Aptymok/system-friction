@@ -12,6 +12,7 @@ import { executeAbortableQuery } from '@/lib/supabase/abortableQuery';
 import { isSfiContinuityConfigured, readContinuityCanonicalGraphRows } from '@/lib/sfi/continuityPostgres';
 import { buildLibraryCorpusGraphProjection } from './libraryCorpusProjection';
 import { buildOperationalCognitiveGraphProjection } from './operationalCognitiveProjection';
+import { SFI_SUPABASE_READ_BUDGET, supabaseReadBudgetExceeded } from '@/lib/supabase/readBudget';
 
 type Row = Record<string, unknown>;
 
@@ -93,28 +94,19 @@ async function readSupabaseGraphRows() {
 
   const read = async (nodeFields: string, edgeFields: string) => {
     const [nodesResult, edgesResult] = await Promise.all([
-      executeAbortableQuery(service.from('graph_nodes').select(nodeFields).order('created_at', { ascending: true })),
-      executeAbortableQuery(service.from('graph_edges').select(edgeFields).order('created_at', { ascending: true })),
+      executeAbortableQuery(service.from('graph_nodes').select(nodeFields).order('created_at', { ascending: true }).limit(SFI_SUPABASE_READ_BUDGET.graphNodes + 1)),
+      executeAbortableQuery(service.from('graph_edges').select(edgeFields).order('created_at', { ascending: true }).limit(SFI_SUPABASE_READ_BUDGET.graphEdges + 1)),
     ]);
     const error = nodesResult.error ?? edgesResult.error ?? null;
-    return {
-      nodes: !nodesResult.error ? rowsFromUnknown(nodesResult.data) : [],
-      edges: !edgesResult.error ? rowsFromUnknown(edgesResult.data) : [],
-      error,
-    };
-  };
-
-  const readSupabaseGraphRowsWide = async () => {
-    const [nodesResult, edgesResult] = await Promise.all([
-      executeAbortableQuery(service.from('graph_nodes').select('*').order('created_at', { ascending: true })),
-      executeAbortableQuery(service.from('graph_edges').select('*').order('created_at', { ascending: true })),
-    ]);
-    const error = nodesResult.error ?? edgesResult.error ?? null;
-    return {
-      nodes: !nodesResult.error ? rowsFromUnknown(nodesResult.data) : [],
-      edges: !edgesResult.error ? rowsFromUnknown(edgesResult.data) : [],
-      error,
-    };
+    const nodes = !nodesResult.error ? rowsFromUnknown(nodesResult.data) : [];
+    const edges = !edgesResult.error ? rowsFromUnknown(edgesResult.data) : [];
+    if (!error && nodes.length > SFI_SUPABASE_READ_BUDGET.graphNodes) {
+      return { nodes: [], edges: [], error: supabaseReadBudgetExceeded('graph_nodes', nodes.length, SFI_SUPABASE_READ_BUDGET.graphNodes) };
+    }
+    if (!error && edges.length > SFI_SUPABASE_READ_BUDGET.graphEdges) {
+      return { nodes: [], edges: [], error: supabaseReadBudgetExceeded('graph_edges', edges.length, SFI_SUPABASE_READ_BUDGET.graphEdges) };
+    }
+    return { nodes, edges, error };
   };
 
   const hybrid = await read(GRAPH_NODE_HYBRID_READ_FIELDS, GRAPH_EDGE_HYBRID_READ_FIELDS);
@@ -123,7 +115,11 @@ async function readSupabaseGraphRows() {
   const canonical = await read(GRAPH_NODE_CANONICAL_READ_FIELDS, GRAPH_EDGE_CANONICAL_READ_FIELDS);
   if (!canonical.error || !isMissingGraphColumn(canonical.error)) return canonical;
 
-  return readSupabaseGraphRowsWide();
+  return {
+    nodes: [],
+    edges: [],
+    error: { code: 'SFI_GRAPH_SCHEMA_UNSUPPORTED', message: 'graph_schema_projection_unavailable_without_wildcard_fallback' },
+  };
 }
 
 function stateFromProjection(profile: GraphProfile, reason: string, projection = buildLibraryCorpusGraphProjection()): CanonicalGraphState {
