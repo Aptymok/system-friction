@@ -113,17 +113,16 @@ assert.match(acpSeenRoute,/export async function POST/,'acp_presence_mutation_mu
 assert.match(acpSeenRoute,/requireRootActor\('governance\.acp\.presence'\)/,'acp_presence_post_must_remain_root_governed');
 assert.doesNotMatch(`${operatingUi}\n${governanceUi}`,/rootPresenceReady|confirmRootPresence|HACERME VISTO · CONFIRMAR PRESENCIA ACP/,'proposal observability must not depend on a manual presence ritual');
 
-// Human public navigation uses one complete canonical public menu. Public Laboratory is explanatory; Method Lab remains authenticated.
-// Machine-readable interfaces remain discoverable through llms/ai-index and do not need to be
-// rendered as human navigation links.
+// Human public presentation converges to one NYC landing. Auth, legal and machine interfaces remain separate operational endpoints.
 assert.match(home,/PublicEntryGateway/,'canonical_home_missing_public_entry_gateway');
-assert.equal(publicEntry.includes('SFI_PUBLIC_NAV.map'), false, 'public_entry_must_not_own_duplicate_public_nav');
+assert.equal(publicEntry.includes('SFI_PUBLIC_NAV.map'),false,'public_entry_must_not_own_duplicate_public_nav');
 const publicChrome=read('src/components/public/SfiPublicChrome.tsx');
-assert.ok(publicChrome.includes('SFI_PUBLIC_NAV.map'), 'global_public_chrome_must_consume_canonical_public_nav');
+assert.ok(publicChrome.includes('NEW YORK · AI WEEK 2026'),'global_public_chrome_must_expose_nyc_event_identity');
+assert.equal(publicChrome.includes('SFI_PUBLIC_NAV.map'),false,'global_public_chrome_must_not_render_old_route_menu');
 const publicNav=read('src/lib/navigation/publicNavigation.ts');
-for(const p of ['/','/laboratory','/observatory','/publications','/institution','/contact']) assert.ok(publicNav.includes(`href:'${p}'`),`public_nav_missing_path:${p}`);
-assert.equal(publicNav.includes("href:'/method-lab'"),false,'authenticated_method_lab_must_not_be_public_navigation');
-for(const retired of ['/library','/field','/history']) assert.equal(publicNav.includes(`href:'${retired}'`),false,`retired_public_navigation_visible:${retired}`);
+assert.ok(publicNav.includes("href:'/'"),'public_nav_missing_home');
+for(const retired of ['/laboratory','/observatory','/publications','/institution','/contact','/method-lab','/library','/field','/history']) assert.equal(publicNav.includes(`href:'${retired}'`),false,`retired_public_navigation_visible:${retired}`);
+for(const routeFile of ['src/app/laboratory/page.tsx','src/app/observatory/page.tsx','src/app/publications/page.tsx','src/app/institution/page.tsx','src/app/contact/page.tsx']) assert.match(read(routeFile),/redirect\('\/'\)/,`former_public_hub_must_redirect_home:${routeFile}`);
 assert.match(llms,/## WHAT TO DO FIRST/,'llms_missing_first_action_sequence');
 assert.match(llms,/\/ai-index\.json/,'llms_missing_ai_index_machine_entry');
 assert.match(llms,/\/api\/external\/v1\/manifest/,'llms_missing_external_manifest_machine_entry');
@@ -169,7 +168,7 @@ console.log(JSON.stringify({ok:true,invariants:[
   'runtime target hydration is deferred and recurring UI polling is absent',
   'proposal observability is identity-authorized and independent from ACP runtime presence health',
   'ACP presence remains an explicit POST mutation but is not a prerequisite for reading governance recovery state',
-  'canonical public entry routes into existing public institutional owners',
+  'canonical public presentation is one NYC landing while machine/auth owners remain separate',
   'machine discovery exposes governed authorization, bounded internal dispatch, external fail-closed behavior and ROOT-only canon',
   'readiness separates Evidence Ledger from Knowledge Graph',
   'readiness uses planned health counts rather than expensive exact dashboard counts',
