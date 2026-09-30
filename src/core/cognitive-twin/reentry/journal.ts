@@ -2,6 +2,7 @@ import 'server-only';
 
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import type { CognitiveTwinDevelopmentalEvent } from './types';
+import { SFI_SUPABASE_READ_BUDGET } from '@/lib/supabase/readBudget';
 
 const ROLE = 'cognitive_twin_developmental_heartbeat';
 type Row = Record<string, unknown>;
@@ -21,12 +22,14 @@ function parseEvent(row: Row): CognitiveTwinDevelopmentalEvent | null {
 
 export async function readCognitiveTwinJournal(limit = 120) {
   const db = createServiceSupabaseClient();
+  const requested = Math.max(1, Math.min(limit, SFI_SUPABASE_READ_BUDGET.cognitiveJournalRows));
   const result = await db.from('sfi_cognitive_twin_runs')
-    .select('*')
+    .select('output_envelope')
     .eq('role', ROLE)
     .order('created_at', { ascending: false })
-    .limit(Math.max(1, Math.min(limit, 400)));
+    .limit(requested + 1);
   if (result.error) throw new Error(`CT_JOURNAL_READ_FAILED:${result.error.message}`);
+  if ((result.data ?? []).length > requested) throw new Error(`CT_JOURNAL_READ_BUDGET_EXCEEDED:limit=${requested}`);
 
   const entries = ((result.data ?? []) as Row[])
     .map(parseEvent)
