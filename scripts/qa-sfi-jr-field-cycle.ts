@@ -11,6 +11,7 @@ const activeObservation=read('src/lib/mihm/activeObservationQueue.ts');
 const perturbation=read('src/lib/mihm/perturbationReviewQueue.ts');
 const returnReconciliation=read('src/lib/mihm/jrReturnReconciliation.ts');
 const experimentContract=read('src/lib/method-lab/experimentContract.ts');
+const experimentIds=read('src/lib/method-lab/experimentIds.ts');
 const experimentPersistence=read('src/lib/method-lab/experimentPersistence.ts');
 const methodReadModel=read('src/lib/method-lab/readModel.ts');
 const jr=read('src/lib/mihm/jrFieldCycle.ts');
@@ -94,8 +95,9 @@ for(const token of [
   'METHOD_LAB_EXPERIMENT_RETURN_WINDOW_CLOSE_REQUIRED',
 ]) assert.ok(experimentContract.includes(token),`method_lab_phenomenon_return_contract_missing:${token}`);
 
+assert.ok(experimentIds.includes("deterministicAnalysisId(kind: 'preregistration'|'run'|'return'"),'method_lab_deterministic_ids_must_live_in_pure_id_module');
 for(const token of [
-  "deterministicAnalysisId(kind: 'preregistration'|'run'|'return'",
+  "export { methodLabPreregistrationId, methodLabRunId, methodLabReturnId } from './experimentIds'",
   'readInstitutionalMethodLabExperimentPreregistration',
   'persistInstitutionalMethodLabRealityReturn',
   'recordInstitutionalMethodLabContrastLearningCandidate',
