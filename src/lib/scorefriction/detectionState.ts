@@ -1,4 +1,5 @@
 ﻿import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { SFI_SUPABASE_READ_BUDGET, supabaseReadBudgetExceeded } from '@/lib/supabase/readBudget';
 
 type AnyRecord = Record<string, any>;
 
@@ -141,9 +142,9 @@ export async function buildScoreFrictionDetectionState(filter: ScoreFrictionDete
 
   let query = service
     .from('scorefriction_observations')
-    .select('*')
+    .select('id,case_id,evidence_type,source_name,source_url,territory,reliability_score,source_coverage_contribution,evidence_hash,created_at,raw_payload,normalized_payload')
     .order('created_at', { ascending: false })
-    .limit(limit);
+    .limit(Math.min(limit, SFI_SUPABASE_READ_BUDGET.scoreFrictionStateRows));
 
   if (textValue(filter.case_id)) query = query.eq('case_id', textValue(filter.case_id));
   if (textValue(filter.evidence_type)) query = query.eq('evidence_type', textValue(filter.evidence_type));
@@ -176,9 +177,15 @@ export async function buildScoreFrictionDetectionState(filter: ScoreFrictionDete
   const vectors = ids.length
     ? await service
       .from('scorefriction_vectors')
-      .select('*')
+      .select('observation_id,acoustic_vector,semantic_vector,memetic_vector,platform_vector,mihm_cultural_vector')
       .in('observation_id', ids)
+      .limit(SFI_SUPABASE_READ_BUDGET.scoreFrictionVectorRows + 1)
     : { data: [], error: null };
+
+  if ((vectors.data ?? []).length > SFI_SUPABASE_READ_BUDGET.scoreFrictionVectorRows) {
+    const exceeded = supabaseReadBudgetExceeded('scorefriction_vectors', (vectors.data ?? []).length, SFI_SUPABASE_READ_BUDGET.scoreFrictionVectorRows);
+    return { ok: false, generated_at: new Date().toISOString(), source: 'scorefriction_detection_state' as const, error: exceeded.message, selected_filter: filter, detected_objects: [], signals: { by_evidence_type: [], by_source: [], by_territory: [], recurrent_terms: [] }, interpretation: 'ScoreFriction detuvo la lectura al alcanzar el presupuesto de egress.' };
+  }
 
   const vectorByObservation = new Map<string, AnyRecord>();
   for (const vector of vectors.data ?? []) {
