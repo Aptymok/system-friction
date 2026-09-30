@@ -113,16 +113,22 @@ assert.match(acpSeenRoute,/export async function POST/,'acp_presence_mutation_mu
 assert.match(acpSeenRoute,/requireRootActor\('governance\.acp\.presence'\)/,'acp_presence_post_must_remain_root_governed');
 assert.doesNotMatch(`${operatingUi}\n${governanceUi}`,/rootPresenceReady|confirmRootPresence|HACERME VISTO · CONFIRMAR PRESENCIA ACP/,'proposal observability must not depend on a manual presence ritual');
 
-// Human public presentation converges to one NYC landing. Auth, legal and machine interfaces remain separate operational endpoints.
+// Public chrome exposes only contextual page identity. The NYC landing remains primary while canonical Registry and Observatory surfaces stay directly addressable.
 assert.match(home,/PublicEntryGateway/,'canonical_home_missing_public_entry_gateway');
 assert.equal(publicEntry.includes('SFI_PUBLIC_NAV.map'),false,'public_entry_must_not_own_duplicate_public_nav');
 const publicChrome=read('src/components/public/SfiPublicChrome.tsx');
-assert.ok(publicChrome.includes('NEW YORK 2026'),'global_public_chrome_must_expose_nyc_event_identity');
+assert.ok(publicChrome.includes('sfiPublicPageTitle') && publicChrome.includes('AI WEEK NYC 2026'),'global_public_chrome_must_expose_contextual_title_and_event');
+assert.ok(publicChrome.includes('timeZone:\'UTC\'') && publicChrome.includes('SIGN IN'),'global_public_chrome_must_expose_utc_clock_and_sign_in');
 assert.equal(publicChrome.includes('SFI_PUBLIC_NAV.map'),false,'global_public_chrome_must_not_render_old_route_menu');
 const publicNav=read('src/lib/navigation/publicNavigation.ts');
 assert.ok(publicNav.includes("href:'/'"),'public_nav_missing_home');
-for(const retired of ['/laboratory','/observatory','/publications','/institution','/contact','/method-lab','/library','/field','/history']) assert.equal(publicNav.includes(`href:'${retired}'`),false,`retired_public_navigation_visible:${retired}`);
-for(const routeFile of ['src/app/laboratory/page.tsx','src/app/observatory/page.tsx','src/app/publications/page.tsx','src/app/institution/page.tsx','src/app/contact/page.tsx']) assert.match(read(routeFile),/redirect\('\/'\)/,`former_public_hub_must_redirect_home:${routeFile}`);
+for(const hidden of ['/laboratory','/observatory','/publications','/institution','/contact','/method-lab','/library','/field','/history']) assert.equal(publicNav.includes(`href:'${hidden}'`),false,`hidden_public_navigation_visible:${hidden}`);
+assert.match(read('src/app/laboratory/page.tsx'),/redirect\('\/'\)/,'laboratory_public_surface_must_remain_absorbed');
+assert.match(read('src/app/institution/page.tsx'),/redirect\('\/'\)/,'institution_public_surface_must_remain_absorbed');
+assert.match(read('src/app/contact/page.tsx'),/redirect\('\/'\)/,'contact_public_surface_must_remain_absorbed');
+assert.match(read('src/app/observatory/page.tsx'),/ObservatoryConsole/,'canonical_observatory_public_surface_missing');
+assert.match(read('src/app/publications/page.tsx'),/PublicationsCatalog/,'canonical_registry_publications_surface_missing');
+assert.match(read('src/app/publications/page.tsx'),/RegistryDiscoveryMesh/,'canonical_registry_discovery_mesh_missing');
 assert.match(llms,/## WHAT TO DO FIRST/,'llms_missing_first_action_sequence');
 assert.match(llms,/\/ai-index\.json/,'llms_missing_ai_index_machine_entry');
 assert.match(llms,/\/api\/external\/v1\/manifest/,'llms_missing_external_manifest_machine_entry');
@@ -168,7 +174,7 @@ console.log(JSON.stringify({ok:true,invariants:[
   'runtime target hydration is deferred and recurring UI polling is absent',
   'proposal observability is identity-authorized and independent from ACP runtime presence health',
   'ACP presence remains an explicit POST mutation but is not a prerequisite for reading governance recovery state',
-  'canonical public presentation is one NYC landing while machine/auth owners remain separate',
+  'public presentation uses contextual chrome with NYC landing plus bounded Registry and Observatory surfaces',
   'machine discovery exposes governed authorization, bounded internal dispatch, external fail-closed behavior and ROOT-only canon',
   'readiness separates Evidence Ledger from Knowledge Graph',
   'readiness uses planned health counts rather than expensive exact dashboard counts',
