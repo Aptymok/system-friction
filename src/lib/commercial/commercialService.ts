@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { SFI_SUPABASE_READ_BUDGET } from '@/lib/supabase/readBudget';
 
 export const COMMERCIAL_STATUSES = [
   'draft',
@@ -80,9 +81,9 @@ async function recordEvent(input: {
 export async function readCommercialWorkspace() {
   const service = createServiceSupabaseClient();
   const [clients, opportunities, proposals, sourceProposals] = await Promise.all([
-    service.from('commercial_clients').select('*').order('updated_at', { ascending: false }).limit(200),
-    service.from('commercial_opportunities').select('*').order('updated_at', { ascending: false }).limit(200),
-    service.from('commercial_proposals').select('*').order('updated_at', { ascending: false }).limit(200),
+    service.from('commercial_clients').select('*').order('updated_at', { ascending: false }).limit(SFI_SUPABASE_READ_BUDGET.commercialWorkspaceRows),
+    service.from('commercial_opportunities').select('*').order('updated_at', { ascending: false }).limit(SFI_SUPABASE_READ_BUDGET.commercialWorkspaceRows),
+    service.from('commercial_proposals').select('*').order('updated_at', { ascending: false }).limit(SFI_SUPABASE_READ_BUDGET.commercialWorkspaceRows),
     service
       .from('action_proposals')
       .select('id,title,status,risk_level,approval_required,objective,proposal_type,created_at,expected_field_delta')
