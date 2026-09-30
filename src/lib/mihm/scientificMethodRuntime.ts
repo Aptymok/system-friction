@@ -5,6 +5,7 @@ import type { CanonicalGraphEdge, CanonicalGraphNode } from '../../../packages/g
 import { appendEpistemicEvent } from '@/lib/events/eventStore';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import type { FieldScientificReading, ScientificMethodCandidate } from './fieldScientificReading';
+import { SFI_SUPABASE_READ_BUDGET } from '@/lib/supabase/readBudget';
 
 export const SFI_SCIENTIFIC_METHOD_RUNTIME_CONTRACT = 'SFI-SCIENTIFIC-METHOD-RUNTIME-1.0' as const;
 
@@ -61,7 +62,7 @@ function median(values:number[]) {
 function unique<T>(values:T[]) { return [...new Set(values)]; }
 
 export async function readFieldEpochHistories(subjectRefs:string[]) {
-  const refs=unique(subjectRefs.filter(Boolean)).slice(0,100);
+  const refs=unique(subjectRefs.filter(Boolean)).slice(0,SFI_SUPABASE_READ_BUDGET.fieldEpochSubjects);
   const map=new Map<string,EpochRecord[]>();
   for(const ref of refs)map.set(ref,[]);
   if(!refs.length)return map;
@@ -72,9 +73,10 @@ export async function readFieldEpochHistories(subjectRefs:string[]) {
     .select('event_id,logbook_id,occurred_at,payload,lineage')
     .eq('event_name','SFI_FIELD_TEMPORAL_EPOCH_RECORDED')
     .in('logbook_id',logbooks)
-    .order('occurred_at',{ascending:true})
-    .limit(2400);
+    .order('occurred_at',{ascending:false})
+    .limit(SFI_SUPABASE_READ_BUDGET.fieldEpochRows + 1);
   if(result.error)throw new Error(`FIELD_EPOCH_HISTORY_READ_FAILED:${result.error.message}`);
+  if((result.data??[]).length>SFI_SUPABASE_READ_BUDGET.fieldEpochRows)throw new Error(`FIELD_EPOCH_HISTORY_BUDGET_EXCEEDED:limit=${SFI_SUPABASE_READ_BUDGET.fieldEpochRows}`);
 
   for(const item of (result.data??[]) as Row[]){
     const logbook=String(item.logbook_id??'');
@@ -89,6 +91,7 @@ export async function readFieldEpochHistories(subjectRefs:string[]) {
       snapshot,
     });
   }
+  for(const [ref,items] of map.entries()) map.set(ref,items.sort((a,b)=>Date.parse(a.occurredAt)-Date.parse(b.occurredAt)));
   return map;
 }
 
