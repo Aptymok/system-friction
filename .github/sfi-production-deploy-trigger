@@ -1,10 +1,11 @@
 SFI Production Release 2026-09-30
-base=1c461eb85c3cb7cae4c9cacce8d2dab281c8ffbf
-reason=calibration_only_world_hypothesis_closure
+base=2fed4326cd45a072fc93f6b454a926a12e298017
+reason=preserve_closed_hypothesis_state_on_readjudication_failure
 verification=production_build_runs_qa_typecheck_before_prebuilt_deploy
 mcp_scope=world:run
 operation=close_hypotheses
-historical_reevaluation=true
+restore_prior_inconclusive_on_assessment_failure=true
+reopen_only_after_valid_assessment=true
 observation_collection=false
 hypothesis_generation=false
 t0_rewrite=false
