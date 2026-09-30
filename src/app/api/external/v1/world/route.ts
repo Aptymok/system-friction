@@ -9,15 +9,16 @@ import { persistWorldHypothesisClosureReport } from '@/lib/reports/worldHypothes
 import { appendEpistemicEvent } from '@/lib/events/eventStore';
 import { runJrFieldCycle } from '@/lib/mihm/jrFieldCycle';
 import { SFI_SUPABASE_READ_BUDGET } from '@/lib/supabase/readBudget';
+import { regenerateWorldVectorRetrospective } from '@/lib/world-vector/retrospective';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 export const maxDuration = 300;
 
-type WorldOperation = 'state' | 'run';
+type WorldOperation = 'state' | 'run' | 'regenerate_world_vector';
 
 function requiredScope(operation: WorldOperation) {
-  return operation === 'run' ? 'world:run' : 'world:read';
+  return operation === 'run' || operation === 'regenerate_world_vector' ? 'world:run' : 'world:read';
 }
 
 async function readWorldState() {
@@ -46,8 +47,8 @@ async function readWorldState() {
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({})) as Record<string, unknown>;
   const operation = String(body.operation || 'state') as WorldOperation;
-  if (!['state', 'run'].includes(operation)) {
-    return NextResponse.json({ ok: false, error: 'unsupported_world_operation', supported: ['state', 'run'] }, { status: 400 });
+  if (!['state', 'run', 'regenerate_world_vector'].includes(operation)) {
+    return NextResponse.json({ ok: false, error: 'unsupported_world_operation', supported: ['state', 'run', 'regenerate_world_vector'] }, { status: 400 });
   }
 
   const scope = requiredScope(operation);
@@ -60,6 +61,55 @@ export async function POST(req: Request) {
 
   if (operation === 'state') {
     return NextResponse.json({ ...(await readWorldState()), operation, actor: actorId });
+  }
+
+  if (operation === 'regenerate_world_vector') {
+    const startedAt = new Date().toISOString();
+    const days = typeof body.days === 'number' ? body.days : Number(body.days ?? 3650);
+    const maxSnapshots = typeof body.maxSnapshots === 'number' ? body.maxSnapshots : Number(body.maxSnapshots ?? 5000);
+    const overwrite = body.overwrite !== false;
+    const regeneration = await regenerateWorldVectorRetrospective({ days, maxSnapshots, overwrite });
+    const receipt = await appendEpistemicEvent({
+      returnMode: 'receipt',
+      eventName: 'external.world_vector.retrospective_regenerated',
+      epistemicClass: 'derived',
+      confidence: regeneration.ok ? 1 : 0.5,
+      occurredAt: new Date().toISOString(),
+      source: { sourceId: 'SYSTEM_FRICTION_INSTITUTE', sourceType: 'operational_runtime' },
+      logbookId: 'WORLD_VECTOR',
+      lineage: [],
+      payload: {
+        contract: regeneration.contract,
+        actorId,
+        startedAt,
+        completedAt: new Date().toISOString(),
+        regeneration: {
+          requested: regeneration.requested,
+          sourceIndex: regeneration.sourceIndex,
+          range: regeneration.range,
+          counts: regeneration.counts,
+        },
+        authorityBoundary: {
+          scope: 'world:run',
+          rewritesWorldSpectT0: false,
+          futureSnapshotBackdatingAllowed: false,
+          rootAuthorityInherited: false,
+          governanceDecisionAuthorityInherited: false,
+          canonicalPromotionAllowed: false,
+          publicationAllowed: false,
+        },
+      },
+    });
+    return NextResponse.json({
+      ok: regeneration.ok && receipt.ok,
+      operation,
+      actor: actorId,
+      contract: regeneration.contract,
+      regeneration,
+      receipt: receipt.ok ? receipt.data : receipt,
+      writesPerformed: regeneration.counts.persisted > 0 || receipt.ok,
+      boundary: regeneration.boundary,
+    }, { status: regeneration.ok && receipt.ok ? 200 : 207 });
   }
 
   const preflight=await readWorldState();
