@@ -22,7 +22,7 @@ export default async function MutationHistoryPage() {
             <h1 style={{fontSize:'clamp(42px,7vw,88px)',fontWeight:400,letterSpacing:'-.03em',margin:'14px 0 10px',color:'#e7cf9c'}}>CODE → RETURN</h1>
             <p style={{maxWidth:860,fontSize:18,lineHeight:1.7,color:'#b9aa8e'}}>Each entry separates a repository mutation from its later validation. A commit proves that code changed; QA, deployment evidence, real exercise and calibrated learning require additional evidence.</p>
           </div>
-          <Link href="/history" style={{color:'#d5ad69',textDecoration:'none',letterSpacing:'.15em',fontSize:12}}>← HISTORY</Link>
+          <Link href="/publications" style={{color:'#d5ad69',textDecoration:'none',letterSpacing:'.15em',fontSize:12}}>← PUBLICATIONS</Link>
         </header>
 
         <section style={{marginTop:32,padding:'18px 20px',border:'1px solid rgba(202,160,92,.25)',background:'rgba(191,139,65,.035)'}}>
