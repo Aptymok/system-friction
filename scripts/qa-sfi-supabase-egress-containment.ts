@@ -10,6 +10,10 @@ const jr=read('src/lib/mihm/jrFieldCycle.ts');
 const returns=read('src/lib/mihm/jrReturnReconciliation.ts');
 const world=read('src/app/api/external/v1/world/route.ts');
 const events=read('src/lib/events/eventStore.ts');
+const worldMap=read('src/app/api/field/map/world/route.ts');
+const journal=read('src/core/cognitive-twin/reentry/journal.ts');
+const governance=read('src/lib/governance/readGovernanceHealth.ts');
+const commercial=read('src/lib/commercial/commercialService.ts');
 
 for(const token of [
   'SFI-SUPABASE-READ-BUDGET-1.0',
@@ -20,6 +24,10 @@ for(const token of [
   'jrReturnRuns',
   'jrReturnEpochRows',
   'worldRunCooldownMinutes',
+  'worldMapRows',
+  'cognitiveJournalRows',
+  'governanceProposalRows',
+  'commercialWorkspaceRows',
 ]) assert.ok(budget.includes(token),`read_budget_contract_missing:${token}`);
 
 assert.ok(graph.includes('.limit(SFI_SUPABASE_READ_BUDGET.graphNodes + 1)'), 'graph_nodes_must_be_bounded');
@@ -44,6 +52,13 @@ assert.ok(world.includes("status:'COOLDOWN_SKIPPED'"), 'world_run_must_have_cool
 assert.ok(world.includes('SFI_SUPABASE_READ_BUDGET.worldRunCooldownMinutes'), 'world_cooldown_must_use_budget_contract');
 assert.ok(world.includes("select('event_id,event_name,occurred_at')"), 'world_state_receipt_read_must_be_lightweight');
 assert.ok(!world.includes("select('event_id,event_name,occurred_at,payload')"), 'world_state_must_not_refetch_heavy_receipt_payload');
+assert.ok(worldMap.includes('SFI_SUPABASE_READ_BUDGET.worldMapRows'), 'world_map_reads_must_be_bounded');
+assert.ok(worldMap.includes('supabaseReadBudgetExceeded'), 'world_map_must_fail_closed_on_budget');
+assert.ok(journal.includes("select('output_envelope')"), 'ct_journal_must_use_narrow_projection');
+assert.ok(journal.includes('SFI_SUPABASE_READ_BUDGET.cognitiveJournalRows'), 'ct_journal_reads_must_be_bounded');
+assert.ok(governance.includes('SFI_SUPABASE_READ_BUDGET.governanceProposalRows + 1'), 'governance_reads_must_be_bounded');
+assert.ok(!governance.includes("from('action_proposals').select('*')"), 'governance_health_must_not_wildcard_proposals');
+assert.ok(commercial.includes('SFI_SUPABASE_READ_BUDGET.commercialWorkspaceRows'), 'commercial_workspace_reads_must_be_bounded');
 
 assert.ok(events.includes("returnMode?: 'full'|'receipt'"), 'event_store_must_support_compact_receipts');
 assert.ok(events.includes("event_id,event_name,logbook_id,epistemic_class,occurred_at,sequence,hash_self"), 'compact_receipt_projection_missing');
@@ -69,4 +84,8 @@ console.log(JSON.stringify({
   boundedJrWork:true,
   worldRunCooldown:true,
   compactWriteReceipts:true,
+  boundedWorldMapReads:true,
+  narrowCognitiveJournalReads:true,
+  boundedGovernanceReads:true,
+  boundedCommercialReads:true,
 },null,2));
