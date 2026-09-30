@@ -185,10 +185,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  if (!request.headers.get('content-type')?.toLowerCase().includes('application/json')) {
-    return errorResponse(null, -32600, 'Invalid Request', { reason: 'APPLICATION_JSON_REQUIRED' }, 415);
-  }
-
+  // ChatGPT and other MCP clients may omit or vary the Content-Type header during
+  // tool discovery. Parse the JSON-RPC body first and fail on invalid JSON rather
+  // than rejecting a valid MCP request at the media-type layer.
   let payload: unknown;
   try {
     payload = await request.json();
