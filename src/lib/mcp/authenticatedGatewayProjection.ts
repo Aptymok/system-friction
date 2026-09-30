@@ -50,7 +50,7 @@ function labScope(input: SfiAuthenticatedGatewayInvocation) {
 
 function worldScope(input: SfiAuthenticatedGatewayInvocation) {
   const operation = bodyOperation(input);
-  return operation === 'run' || operation === 'regenerate_world_vector' ? 'world:run' : 'world:read';
+  return operation === 'run' || operation === 'measure_worldspect' || operation === 'regenerate_world_vector' ? 'world:run' : 'world:read';
 }
 
 function jrScope(input: SfiAuthenticatedGatewayInvocation) {
@@ -120,7 +120,7 @@ export const SFI_AUTHENTICATED_GATEWAY_TOOL = Object.freeze({
       },
       body: {
         type: 'object',
-        description: 'Canonical POST body. operateSfiWorld accepts operation="state" (world:read), operation="run" (world:run), or operation="regenerate_world_vector" (world:run; optional days/maxSnapshots/overwrite). operateSfiJr accepts operation="state" (jr:read) or operation="run" (jr:run); JR may persist derived temporal/method receipts and bounded SIMULATED Method Lab runs but never executes material perturbation, governance decision or canon promotion. operateSfiLab persist requires operation="persist", nonempty title/content; commandId is its idempotency key; structured research uses metadata={kind:"METHOD_LAB_RESEARCH_OBJECT",researchObject:{objectId,...}} (legacy researchMetadata accepted instead). Lab run requires {operation:"run",protocolId:"economic_simulation"|"sociotechnical_simulation",evidenceIds:[persisted evidence row IDs],parameters?:object,cognitiveSpineContextRefs?:string[]}; lab:run, SIMULATED, no promotion, not idempotent. operateSfiRoot accepts operation="capabilities" | "capability_map" | "pending" | "sfi_state" | "reports" | "accounts_list" | "account_invite"; account_invite requires invitation {email,displayName,title,accessClass}.',
+        description: 'Canonical POST body. operateSfiWorld accepts operation="state" (world:read), operation="run" (world:run), operation="measure_worldspect" (world:run), or operation="regenerate_world_vector" (world:run; optional days/maxSnapshots/overwrite). operateSfiJr accepts operation="state" (jr:read) or operation="run" (jr:run); JR may persist derived temporal/method receipts and bounded SIMULATED Method Lab runs but never executes material perturbation, governance decision or canon promotion. operateSfiLab persist requires operation="persist", nonempty title/content; commandId is its idempotency key; structured research uses metadata={kind:"METHOD_LAB_RESEARCH_OBJECT",researchObject:{objectId,...}} (legacy researchMetadata accepted instead). Lab run requires {operation:"run",protocolId:"economic_simulation"|"sociotechnical_simulation",evidenceIds:[persisted evidence row IDs],parameters?:object,cognitiveSpineContextRefs?:string[]}; lab:run, SIMULATED, no promotion, not idempotent. operateSfiRoot accepts operation="capabilities" | "capability_map" | "pending" | "sfi_state" | "reports" | "accounts_list" | "account_invite"; account_invite requires invitation {email,displayName,title,accessClass}.',
         additionalProperties: true,
       },
       query: {
