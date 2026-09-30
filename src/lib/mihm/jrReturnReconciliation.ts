@@ -12,6 +12,7 @@ import {
   readInstitutionalMethodLabExperimentPreregistration,
   recordInstitutionalMethodLabContrastLearningCandidate,
 } from '@/lib/method-lab/experimentPersistence';
+import { SFI_SUPABASE_READ_BUDGET } from '@/lib/supabase/readBudget';
 
 export const SFI_JR_RETURN_RECONCILIATION_CONTRACT = 'SFI-JR-RETURN-RECONCILIATION-1.0' as const;
 
@@ -59,7 +60,7 @@ function epochCandidateRefs(event:Row,snapshot:Row) {
 }
 
 async function verifiedEvidenceRefs(refs:string[]) {
-  const requested=unique(refs).slice(0,100);
+  const requested=unique(refs).slice(0,SFI_SUPABASE_READ_BUDGET.evidenceRefs);
   if(!requested.length)return [];
   const db=createServiceSupabaseClient();
   const [rootEvidence,ledgerEvidence]=await Promise.all([
@@ -79,7 +80,7 @@ export async function reconcileJrMethodLabReturns(input:{
   maxRuns?:number;
 }) {
   const db=createServiceSupabaseClient();
-  const maxRuns=Math.max(1,Math.min(60,input.maxRuns??30));
+  const maxRuns=Math.max(1,Math.min(SFI_SUPABASE_READ_BUDGET.jrReturnRuns,input.maxRuns??SFI_SUPABASE_READ_BUDGET.jrReturnRuns));
   const runsResult=await db.from('sfi_lab_analyses')
     .select('id,source,mode,raw_analysis,created_at')
     .is('owner_id',null)
@@ -121,12 +122,13 @@ export async function reconcileJrMethodLabReturns(input:{
     .eq('event_name','SFI_FIELD_TEMPORAL_EPOCH_RECORDED')
     .in('logbook_id',logbooks)
     .gte('occurred_at',new Date(earliest).toISOString())
-    .order('occurred_at',{ascending:true})
-    .limit(1600);
+    .order('occurred_at',{ascending:false})
+    .limit(SFI_SUPABASE_READ_BUDGET.jrReturnEpochRows + 1);
   if(epochsResult.error) throw new Error(`JR_RETURN_EPOCH_READ_FAILED:${epochsResult.error.message}`);
+  if((epochsResult.data??[]).length>SFI_SUPABASE_READ_BUDGET.jrReturnEpochRows) return {ok:false as const,contract:SFI_JR_RETURN_RECONCILIATION_CONTRACT,pending:pending.length,contrasted:0,waiting:pending.length,results:[],writesPerformed:false,error:`JR_RETURN_EPOCH_BUDGET_EXCEEDED:limit=${SFI_SUPABASE_READ_BUDGET.jrReturnEpochRows}`};
 
   const epochsByLogbook=new Map<string,Row[]>();
-  for(const event of (epochsResult.data??[]) as Row[]){
+  for(const event of [...((epochsResult.data??[]) as Row[])].reverse()){
     const logbook=String(event.logbook_id??'');
     const list=epochsByLogbook.get(logbook)??[];
     list.push(event);
