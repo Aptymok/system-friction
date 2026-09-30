@@ -1,8 +1,8 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "system-friction-institute",
-  "version": "1.2.0",
-  "description": "Governed access to SYSTEM FRICTION INSTITUTE through authenticated Gateway and Studio MCP surfaces, including World observation, hypotheses, calibration, bounded instrumentation, ROOT operations, Cases, Method Lab and owner-scoped Studio.",
+  "version": "1.3.0",
+  "description": "Governed access to SYSTEM FRICTION INSTITUTE through authenticated Gateway and Studio MCP surfaces, including World, JR Neural Field coordination, ROOT operations, Cases, Method Lab and owner-scoped Studio.",
   "author": {
     "name": "SYSTEM FRICTION INSTITUTE",
     "url": "https://www.systemfriction.org"
@@ -21,8 +21,8 @@
     "com.openai": {
       "interface": {
         "displayName": "SYSTEM FRICTION INSTITUTE",
-        "shortDescription": "Governed SFI World, context, ROOT operations and Studio.",
-        "longDescription": "Connect ChatGPT and Codex to SYSTEM FRICTION INSTITUTE through its authenticated, scope-bound MCP gateway and owner-scoped Studio MCP. The contract exposes persisted World state plus a bounded World daily cycle, observation, proposal, authorized execution, governance decision, bounded ROOT operations, Cases, Method Lab and Studio capabilities. Effective authority remains user-, tenant- and scope-bound.",
+        "shortDescription": "Governed SFI World, JR, ROOT and Studio.",
+        "longDescription": "Connect ChatGPT and Codex to SYSTEM FRICTION INSTITUTE through authenticated, scope-bound MCP surfaces. The contract exposes World state/run, bounded JR field coordination and scientific-method execution, observation, proposal, authorized execution, governance decision, ROOT operations, Cases, Method Lab and Studio. JR may persist derived temporal/method receipts and bounded SIMULATED laboratory work but cannot execute material perturbation, decide governance, fabricate RETURN or promote canon.",
         "developerName": "SYSTEM FRICTION INSTITUTE",
         "category": "Productivity",
         "capabilities": [
@@ -34,6 +34,7 @@
         "defaultPrompt": [
           "Use SYSTEM FRICTION INSTITUTE to read my institutional context.",
           "Use SYSTEM FRICTION INSTITUTE to inspect World freshness or run the governed daily World cycle when authorized.",
+          "Use SYSTEM FRICTION INSTITUTE JR to inspect or run the bounded Neural Field coordination cycle when authorized.",
           "Use SYSTEM FRICTION INSTITUTE for a governed SFI operation.",
           "Use SYSTEM FRICTION INSTITUTE to read my authorized ROOT reports and explain them in human language.",
           "Use SYSTEM FRICTION INSTITUTE to administer institutional access when my ROOT authority permits it.",
