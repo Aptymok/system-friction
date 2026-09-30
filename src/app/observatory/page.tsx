@@ -1,5 +1,7 @@
-import { redirect } from 'next/navigation';
+import { ObservatoryConsole } from '@/components/sfi/ObservatoryConsole';
 
-export default function PublicSurfaceRedirect(){
-  redirect('/');
+export const dynamic='force-dynamic';
+
+export default function ObservatoryPage(){
+  return <ObservatoryConsole/>;
 }
