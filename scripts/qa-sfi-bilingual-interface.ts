@@ -39,7 +39,7 @@ requireText(layout,'<html lang="en">','root document English declaration');
 requireText(layout,'<SfiPublicHeader global/>','global institutional header');
 requireText(layout,'<SfiPublicFooter global/>','global institutional footer');
 rejectText(publicChrome,'SFI_PUBLIC_NAV.map','NYC chrome must not render route menu');
-requireText(publicChrome,'NEW YORK · AI WEEK 2026','NYC event identity');
+requireText(publicChrome,'NEW YORK 2026','NYC event identity');
 requireText(publicChrome,'OCT 08 · 19:00 ET','NYC event time');
 requireText(publicChrome,'href="/login"','shared public chrome sign-in');
 requireText(publicChrome,'href="/privacy"','ultra-fine footer privacy');
