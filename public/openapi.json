@@ -983,7 +983,7 @@
       "post": {
         "operationId": "operateSfiWorld",
         "summary": "Read or run the governed SFI World cycle",
-        "description": "operation=state requires world:read. operation=run requires world:run and reuses canonical observation, hypothesis, calibration and instrument owners, persists a derived receipt, then rereads persisted freshness.",
+        "description": "operation=state requires world:read. operation=run requires world:run and reuses canonical observation, hypothesis, calibration and instrument owners. operation=regenerate_world_vector requires world:run and reconstructs World Vector longitudinal observations only from persisted same-day WorldSpect snapshots.",
         "security": [
           {
             "sfiOAuth": [
@@ -993,7 +993,8 @@
         ],
         "x-sfi-operation-scopes": {
           "state": "world:read",
-          "run": "world:run"
+          "run": "world:run",
+          "regenerate_world_vector": "world:run"
         },
         "requestBody": {
           "required": true,
@@ -1006,8 +1007,25 @@
                     "type": "string",
                     "enum": [
                       "state",
-                      "run"
+                      "run",
+                      "regenerate_world_vector"
                     ]
+                  },
+                  "days": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 3650,
+                    "description": "Historical lookback for World Vector regeneration; default 3650."
+                  },
+                  "maxSnapshots": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 5000,
+                    "description": "Bounded WorldSpect index rows used to discover reconstructable days; default 5000."
+                  },
+                  "overwrite": {
+                    "type": "boolean",
+                    "description": "When true, regenerate an existing same-day World Vector observation instead of duplicating it."
                   }
                 },
                 "required": [
