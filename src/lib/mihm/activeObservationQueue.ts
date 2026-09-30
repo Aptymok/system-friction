@@ -43,6 +43,7 @@ export async function persistActiveObservationRequest(input:{
   }
 
   const event=await appendEpistemicEvent({
+    returnMode:'receipt',
     eventId,
     eventName:'SFI_JR_ACTIVE_OBSERVATION_REQUESTED',
     epistemicClass:'proposed',
