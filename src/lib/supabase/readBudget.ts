@@ -19,6 +19,10 @@ export const SFI_SUPABASE_READ_BUDGET = Object.freeze({
   jrReturnEpochRows: boundedEnvInt('SFI_JR_RETURN_EPOCH_READ_LIMIT', 400, 800),
   evidenceRefs: boundedEnvInt('SFI_EVIDENCE_REF_READ_LIMIT', 60, 100),
   worldRunCooldownMinutes: boundedEnvInt('SFI_WORLD_RUN_COOLDOWN_MINUTES', 30, 180),
+  worldMapRows: boundedEnvInt('SFI_WORLD_MAP_READ_LIMIT', 1000, 2000),
+  cognitiveJournalRows: boundedEnvInt('SFI_CT_JOURNAL_READ_LIMIT', 120, 240),
+  governanceProposalRows: boundedEnvInt('SFI_GOVERNANCE_PROPOSAL_READ_LIMIT', 200, 400),
+  commercialWorkspaceRows: boundedEnvInt('SFI_COMMERCIAL_WORKSPACE_READ_LIMIT', 100, 200),
 });
 
 export function supabaseReadBudgetExceeded(scope:string, observed:number, limit:number) {
