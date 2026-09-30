@@ -983,7 +983,7 @@
       "post": {
         "operationId": "operateSfiWorld",
         "summary": "Read or run the governed SFI World cycle",
-        "description": "operation=state requires world:read. operation=run requires world:run and reuses canonical observation, hypothesis, calibration and instrument owners. operation=measure_worldspect requires world:run and runs the canonical present-time WorldSpect adapters. operation=regenerate_world_vector requires world:run and reconstructs World Vector longitudinal observations only from persisted same-day WorldSpect snapshots.",
+        "description": "operation=state requires world:read. operation=run requires world:run and reuses canonical observation, hypothesis, calibration and instrument owners. operation=measure_worldspect requires world:run and runs the canonical present-time WorldSpect adapters. operation=recover_worldspect_history requires world:run and audits or persists evidence-bounded historical WorldSpect recovery without claiming the original cron ran. operation=regenerate_world_vector requires world:run and reconstructs World Vector longitudinal observations only from persisted same-day WorldSpect snapshots.",
         "security": [
           {
             "sfiOAuth": [
@@ -995,6 +995,7 @@
           "state": "world:read",
           "run": "world:run",
           "measure_worldspect": "world:run",
+          "recover_worldspect_history": "world:run",
           "regenerate_world_vector": "world:run"
         },
         "requestBody": {
@@ -1010,14 +1011,27 @@
                       "state",
                       "run",
                       "measure_worldspect",
+                      "recover_worldspect_history",
                       "regenerate_world_vector"
                     ]
                   },
                   "days": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "maximum": 3650,
-                    "description": "Historical lookback for World Vector regeneration; default 3650."
+                    "oneOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 3650,
+                        "description": "Lookback days for regenerate_world_vector."
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "format": "date"
+                        },
+                        "description": "Explicit target dates for recover_worldspect_history."
+                      }
+                    ]
                   },
                   "maxSnapshots": {
                     "type": "integer",
@@ -1028,6 +1042,18 @@
                   "overwrite": {
                     "type": "boolean",
                     "description": "When true, regenerate an existing same-day World Vector observation instead of duplicating it."
+                  },
+                  "persist": {
+                    "type": "boolean",
+                    "description": "For recover_worldspect_history only. false performs source audit only; true persists diagnostic retrospective snapshots."
+                  },
+                  "recoveryDays": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "description": "Alias documentation for the days[] field used by recover_worldspect_history."
                   }
                 },
                 "required": [
