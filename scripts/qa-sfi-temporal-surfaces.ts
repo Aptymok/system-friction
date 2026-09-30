@@ -30,6 +30,8 @@ const worldVectorPersistence = read('src/lib/world-vector/persistence.ts');
 const externalWorldRoute = read('src/app/api/external/v1/world/route.ts');
 const authenticatedGatewayProjection = read('src/lib/mcp/authenticatedGatewayProjection.ts');
 const worldSpectCron = read('src/app/api/cron/worldspect/route.ts');
+const worldSpectHistoricalRecovery = read('src/lib/worldspect/historicalRecovery.ts');
+const worldSpectRunAdapters = read('src/lib/worldspect/runAdapters.ts');
 
 // Temporal truth must be reconstructed from persisted records, not a recent-row shortcut.
 assert.ok(worldApi.includes('readPagedRows'), 'world_history_must_paginate');
@@ -55,6 +57,22 @@ assert.ok(authenticatedGatewayProjection.includes("operation === 'regenerate_wor
 assert.ok(worldSpectCron.includes("scheduledEgressGuardResponse({ lane: 'WORLD_OBSERVATION' })"), 'worldspect_cron_must_use_independent_world_observation_egress_lane');
 assert.ok(externalWorldRoute.includes("'measure_worldspect'"), 'worldspect_governed_manual_measurement_missing');
 assert.ok(authenticatedGatewayProjection.includes("operation === 'measure_worldspect'"), 'worldspect_manual_measurement_mcp_scope_missing');
+assert.ok(externalWorldRoute.includes("'recover_worldspect_history'"), 'worldspect_historical_recovery_operation_missing');
+assert.ok(authenticatedGatewayProjection.includes("operation === 'recover_worldspect_history'"), 'worldspect_historical_recovery_mcp_scope_missing');
+for (const token of [
+  'SFI-WORLDSPECT-HISTORICAL-RECOVERY-1.0',
+  'EXACT_ARCHIVE',
+  'ARCHIVED_FORECAST',
+  'AS_OF_PROXY_CURRENT_INDEX',
+  'ORIGINAL_SEMANTICS_UNAVAILABLE',
+  "ingestMode: 'diagnostic'",
+  'originalCronExecutionClaimed: false',
+  'cognitiveSpineReentryPerformed: false',
+  'canonicalPromotionPerformed: false',
+]) assert.ok(worldSpectHistoricalRecovery.includes(token), `worldspect_historical_recovery_boundary_missing:${token}`);
+assert.ok(worldSpectRunAdapters.includes('snapshotObservedAt?: string'), 'worldspect_historical_snapshot_timestamp_missing');
+assert.ok(worldSpectRunAdapters.includes('skipCognitiveSpineContrast?: boolean'), 'worldspect_historical_reentry_suppression_missing');
+assert.ok(worldSpectRunAdapters.includes('options.skipCognitiveSpineContrast !== true'), 'worldspect_historical_reentry_guard_missing');
 
 // Cognitive interpretation remains bounded and may not rewrite observed reality.
 for (const token of [
@@ -238,6 +256,8 @@ console.log(JSON.stringify({
     worldVectorRetrospectiveMcpGoverned:true,
     worldSpectIndependentEgressLane:true,
     worldSpectGovernedManualMeasurement:true,
+    worldSpectHistoricalRecoveryAuditable:true,
+    worldSpectHistoricalRecoveryNoCronFabrication:true,
     acquisitionTimeCalibration:true,
     simulationDoesNotRewriteObservation:true,
     publicFieldSingleReadOwner:true,
