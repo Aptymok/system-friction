@@ -158,8 +158,9 @@ export async function runWorldCalibrationCycle(input: {
 
     if (!testContract) {
       attempted += 1;
+      let priorOutcome: Row | null = null;
       if (input.allowHistoricalReevaluation) {
-        const { data: priorOutcome, error: priorOutcomeError } = await db
+        const { data: priorOutcomeData, error: priorOutcomeError } = await db
           .from('world_hypothesis_outcomes')
           .select('*')
           .eq('hypothesis_id', hypothesis.id)
@@ -168,6 +169,7 @@ export async function runWorldCalibrationCycle(input: {
           warnings.push(`legacy_prior_outcome_read:${hypothesis.id}:${priorOutcomeError.message}`);
           continue;
         }
+        priorOutcome = priorOutcomeData ? row(priorOutcomeData) : null;
         if (priorOutcome) {
           try {
             await recordAuditEvent({
@@ -196,16 +198,18 @@ export async function runWorldCalibrationCycle(input: {
           }
         }
       }
-      if (input.allowHistoricalReevaluation && hypothesis.status !== 'AWAITING_OUTCOME') {
-        const { error: reopenError } = await db.from('world_hypotheses')
-          .update({ status: 'AWAITING_OUTCOME' })
-          .eq('id', hypothesis.id);
-        if (reopenError) {
-          warnings.push(`legacy_reopen_write:${hypothesis.id}:${reopenError.message}`);
-          continue;
+
+      const restorePriorClosedStatus = async () => {
+        const priorClassification = String(priorOutcome?.classification ?? '');
+        if (!input.allowHistoricalReevaluation || priorClassification !== 'INCONCLUSIVE') return;
+        const { error: restoreError } = await db.from('world_hypotheses')
+          .update({ status: 'INCONCLUSIVE' })
+          .eq('id', hypothesis.id)
+          .eq('status', 'AWAITING_OUTCOME');
+        if (restoreError) {
+          warnings.push(`legacy_restore_prior_status:${hypothesis.id}:${restoreError.message}`);
         }
-        reopened += 1;
-      }
+      };
 
       const frozenSignals = buildLegacyFrozenSignals({
         expectedSignals: hypothesis.expected_signals,
@@ -259,11 +263,13 @@ export async function runWorldCalibrationCycle(input: {
       });
 
       if (!llm.ok) {
+        await restorePriorClosedStatus();
         warnings.push(`legacy_assessment_unavailable:${hypothesis.id}:${llm.warnings.join('|') || 'no_provider'}`);
         continue;
       }
       const assessment = parseAssessment(llm.result);
       if (!assessment) {
+        await restorePriorClosedStatus();
         warnings.push(`legacy_assessment_invalid:${hypothesis.id}`);
         continue;
       }
@@ -273,9 +279,22 @@ export async function runWorldCalibrationCycle(input: {
       ];
       const returnedCriterionIds = new Set(assessment.criterionResults.map((item) => item.criterionId));
       if (expectedCriterionIds.some((id) => !returnedCriterionIds.has(id))) {
+        await restorePriorClosedStatus();
         warnings.push(`legacy_assessment_incomplete:${hypothesis.id}`);
         continue;
       }
+
+      if (input.allowHistoricalReevaluation && hypothesis.status !== 'AWAITING_OUTCOME') {
+        const { error: reopenError } = await db.from('world_hypotheses')
+          .update({ status: 'AWAITING_OUTCOME' })
+          .eq('id', hypothesis.id);
+        if (reopenError) {
+          warnings.push(`legacy_reopen_write:${hypothesis.id}:${reopenError.message}`);
+          continue;
+        }
+        reopened += 1;
+      }
+
       const criterionResults = filterLegacyCriterionEvidence(
         assessment.criterionResults,
         availableEvidenceIds,
@@ -308,6 +327,7 @@ export async function runWorldCalibrationCycle(input: {
         evaluated_at: now,
       }, { onConflict: 'hypothesis_id' });
       if (outcomeError) {
+        await restorePriorClosedStatus();
         warnings.push(`legacy_outcome_write:${outcomeError.message}`);
         continue;
       }
