@@ -149,6 +149,7 @@ export async function persistFieldTemporalEpoch(input: {
   }
 
   const event = await appendEpistemicEvent({
+    returnMode:'receipt',
     eventId,
     eventName: 'SFI_FIELD_TEMPORAL_EPOCH_RECORDED',
     epistemicClass: 'derived',
