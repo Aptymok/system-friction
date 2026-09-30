@@ -14,21 +14,36 @@ const manifest=read('src/components/sfi/publicSceneManifest.ts');
 
 check('canonical contextual public header exists',
   chrome.includes('SfiPublicHeader')
-  && chrome.includes('sfiPublicPageTitle')
+  && chrome.includes('sfiPublicPageNav')
+  && chrome.includes('sfiPublicPageArrow')
   && chrome.includes("timeZone:'UTC'")
   && chrome.includes('SIGN IN'));
+check('header title is also lateral surface menu',
+  chrome.includes('Previous window:')
+  && chrome.includes('Next window:')
+  && chrome.includes('NAV_SURFACES')
+  && chrome.includes('context.statement')
+  && chrome.includes('context.stage'));
 check('canonical semantic footer exists',
   chrome.includes('SfiPublicFooter')
-  && chrome.includes('sfiFooterChain')
+  && chrome.includes('sfiFooterChains')
+  && chrome.includes('REALITY CHAIN METHOD')
   && chrome.includes('AI WEEK NYC 2026')
   && chrome.includes('https://gomry.com/l/Kzcb3xl'));
+check('institutional chain is ordered',
+  chrome.includes("['OBSERVATION','RESEARCH','EVIDENCE','INFERENCE','AUTHORITY','DECISION','EXECUTION','RETURN','LEARN','OBSERVATION']"));
+check('Reality Chain Method is canonical and ordered',
+  chrome.includes("['WORLD','SENSOR','SIGNAL','ARTIFACT','CONTEXT','INFERENCE','AUTHORITY','CLAIM','ACTION','RETURN']"));
+check('footer does not repeat active title or statement',
+  !chrome.includes('<b>{context.statement}</b>'));
 check('public chrome hides route menu',
   !chrome.includes('SFI_PUBLIC_NAV.map')
   && !chrome.includes('sfiPublicModuleRail'));
 check('ultra-fine glass chrome owns overlap spacing',
   chromeCss.includes('backdrop-filter:blur(12px)')
   && chromeCss.includes('.sfiPublicChromeSpacer')
-  && chromeCss.includes('sfiFooterState'));
+  && chromeCss.includes('sfiFooterChains')
+  && chromeCss.includes('sfiFooterReality'));
 check('landing owns vertical text subject transition',landing.includes('goScene')&&landing.includes('CHANGE SUBJECT'));
 check('landing owns horizontal text explanation transition',landing.includes('moveFrame')&&landing.includes('CHANGE EXPLANATION'));
 check('landing visual stage is shared once',landing.includes('sfiVisualStage')&&landing.includes('sharedAssets.map')&&landing.split('sharedAssets.map').length===2);
