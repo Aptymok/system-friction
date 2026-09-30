@@ -144,30 +144,42 @@ export async function appendEpistemicEvent(
     hashPrev,
   });
 
-  const returnProjection = input.returnMode === 'receipt'
-    ? 'event_id,event_name,logbook_id,epistemic_class,occurred_at,sequence,hash_self'
-    : '*';
+  const insertRow = {
+    event_id: event.eventId,
+    event_name: event.eventName,
+    logbook_id: event.logbookId,
+    epistemic_class: event.epistemicClass,
+    schema_version: event.schemaVersion,
+    source: event.source,
+    confidence: event.confidence,
+    payload: event.payload,
+    checksum: event.checksum,
+    lineage: event.lineage,
+    uncertainty: event.uncertainty ?? null,
+    occurred_at: event.occurredAt,
+    hash_prev: hashPrev,
+    hash_self: hashSelf,
+  };
 
-  const { data, error } = await service
-    .from('epistemic_events')
-    .insert({
-      event_id: event.eventId,
-      event_name: event.eventName,
-      logbook_id: event.logbookId,
-      epistemic_class: event.epistemicClass,
-      schema_version: event.schemaVersion,
-      source: event.source,
-      confidence: event.confidence,
-      payload: event.payload,
-      checksum: event.checksum,
-      lineage: event.lineage,
-      uncertainty: event.uncertainty ?? null,
-      occurred_at: event.occurredAt,
-      hash_prev: hashPrev,
-      hash_self: hashSelf,
-    })
-    .select(returnProjection)
-    .single();
+  let data: any;
+  let error: any;
+  if (input.returnMode === 'receipt') {
+    const result = await service
+      .from('epistemic_events')
+      .insert(insertRow)
+      .select('event_id,event_name,logbook_id,epistemic_class,occurred_at,sequence,hash_self')
+      .single();
+    data = result.data;
+    error = result.error;
+  } else {
+    const result = await service
+      .from('epistemic_events')
+      .insert(insertRow)
+      .select('*')
+      .single();
+    data = result.data;
+    error = result.error;
+  }
 
   if (error) {
     return {
