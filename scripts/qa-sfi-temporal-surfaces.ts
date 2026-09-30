@@ -107,15 +107,15 @@ assert.match(
   'public_timeline_persisted_snapshot_boundary_missing',
 );
 
-// FIELD remains one canonical internal Observatory surface; the human-facing public route converges to the single landing.
+// FIELD and public Observatory reuse one canonical ObservatoryConsole; no duplicate reader or writer is introduced.
 for (const token of [
   "field:{key:'field'",
   "liveSource:'/api/observatory/world'",
   "markers:['source_record','derived_metric','hypothesis_graph','trajectory','return','contrast']",
 ]) assert.ok(scenes.includes(token), `field_live_scene_contract_missing:${token}`);
 assert.ok(shellUi.includes('ObservatoryConsole'), 'canonical_internal_field_surface_missing');
-assert.ok(observatoryPage.includes("redirect('/')"), 'public_observatory_must_redirect_to_single_landing');
-assert.equal(observatoryPage.includes('ObservatoryConsole'), false, 'public_observatory_must_not_mount_internal_console');
+assert.ok(observatoryPage.includes('ObservatoryConsole'), 'public_observatory_must_mount_canonical_console');
+assert.equal(observatoryPage.includes("redirect('/')"), false, 'public_observatory_must_not_redirect_away_from_canonical_console');
 assert.equal(observatoryUi.includes('ObservatoryInterpretiveFlow'), false, 'legacy_interpretive_flow_must_not_render_below_internal_observatory');
 assert.ok(observatoryUi.includes('SFI SATELLITE → HUB'), 'satellite_hub_internal_interpretation_owner_missing');
 assert.ok(observatoryUi.includes('LATEST HYPOTHESES'), 'satellite_hub_latest_hypothesis_lens_missing');
