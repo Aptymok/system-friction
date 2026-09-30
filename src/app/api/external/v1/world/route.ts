@@ -8,6 +8,7 @@ import { runWorldInstrumentSweep } from '@/lib/world-observatory/instrumentSweep
 import { persistWorldHypothesisClosureReport } from '@/lib/reports/worldHypothesisClosureReport';
 import { appendEpistemicEvent } from '@/lib/events/eventStore';
 import { runJrFieldCycle } from '@/lib/mihm/jrFieldCycle';
+import { SFI_SUPABASE_READ_BUDGET } from '@/lib/supabase/readBudget';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -25,7 +26,7 @@ async function readWorldState() {
     db.from('world_source_observations').select('id,source_id,fetched_at').order('fetched_at', { ascending: false }).limit(1).maybeSingle(),
     db.from('world_friction_readings').select('id,created_at,systemic_friction,interaction_density,systemic_coherence').order('created_at', { ascending: false }).limit(1).maybeSingle(),
     db.from('world_hypotheses').select('id,status,created_at,cutoff_at,validation_ends_at,current_confidence').order('created_at', { ascending: false }).limit(1).maybeSingle(),
-    db.from('epistemic_events').select('event_id,event_name,occurred_at,payload').eq('event_name', 'external.world.daily_cycle.completed').order('occurred_at', { ascending: false }).limit(1).maybeSingle(),
+    db.from('epistemic_events').select('event_id,event_name,occurred_at').eq('event_name', 'external.world.daily_cycle.completed').order('occurred_at', { ascending: false }).limit(1).maybeSingle(),
   ]);
   const warnings = [observation.error?.message, reading.error?.message, hypothesis.error?.message, receipt.error?.message].filter(Boolean);
   const latestObservationAt = observation.data?.fetched_at ?? null;
@@ -61,6 +62,25 @@ export async function POST(req: Request) {
     return NextResponse.json({ ...(await readWorldState()), operation, actor: actorId });
   }
 
+  const preflight=await readWorldState();
+  const lastReceiptAt=typeof preflight.latestDailyCycleReceipt?.occurred_at==='string'
+    ? Date.parse(preflight.latestDailyCycleReceipt.occurred_at)
+    : Number.NaN;
+  const cooldownMs=SFI_SUPABASE_READ_BUDGET.worldRunCooldownMinutes*60_000;
+  if(Number.isFinite(lastReceiptAt) && Date.now()-lastReceiptAt<cooldownMs){
+    return NextResponse.json({
+      ok:true,
+      operation,
+      actor:actorId,
+      status:'COOLDOWN_SKIPPED',
+      cooldownMinutes:SFI_SUPABASE_READ_BUDGET.worldRunCooldownMinutes,
+      retryAfterSeconds:Math.max(1,Math.ceil((cooldownMs-(Date.now()-lastReceiptAt))/1000)),
+      verification:preflight,
+      writesPerformed:false,
+      boundary:'A recent governed World cycle already exists. Repeated world:run calls inside the cooldown window are skipped to contain primary egress and duplicate institutional work.',
+    });
+  }
+
   const startedAt = new Date().toISOString();
   const worldSignalObserver = await executeWorldSignalObserverAgent();
   const observation = worldSignalObserver.observation;
@@ -76,7 +96,7 @@ export async function POST(req: Request) {
   const jrFieldCycle = await runJrFieldCycle({
     actorId,
     trigger: 'EXTERNAL_WORLD_RUN',
-    maxMethodRuns: 2,
+    maxMethodRuns: SFI_SUPABASE_READ_BUDGET.jrMethodRuns,
   }).catch((error) => ({
     ok: false as const,
     status: 'DEGRADED' as const,
