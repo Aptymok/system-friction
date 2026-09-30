@@ -1,15 +1,15 @@
 SFI Production Release 2026-09-30
-base=2fce5af6a3b8bf2a0961a7b8b121e0583c828667
-reason=worldspect_cron_reactivation_and_world_vector_retrospective
+base=827f6bd974e860a186605f7d263c8116173fd86e
+reason=worldspect_historical_source_audit
 verification=production_build_runs_qa_typecheck_before_prebuilt_deploy
 mcp_scope=world:run
-worldspect_manual_operation=measure_worldspect
-world_vector_operation=regenerate_world_vector
-world_observation_egress_lane=WORLD_OBSERVATION
-lookback_days=3650
-max_snapshot_index_rows=5000
-overwrite_same_day_world_vector=true
-no_worldspect_t0_rewrite=true
-no_future_snapshot_backdating=true
+operation=recover_worldspect_history
+mode=AUDIT_ONLY_FIRST
+known_gap_days=15
+snapshot_ingest_mode=diagnostic
+historical_cutoff=07:20Z
+no_original_cron_claim=true
+no_cognitive_spine_reentry=true
+no_governance_decision=true
 no_publication=true
 no_canon_promotion=true
