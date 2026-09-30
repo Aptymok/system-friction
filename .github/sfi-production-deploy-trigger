@@ -1,6 +1,6 @@
 SFI Production Release 2026-09-30
-base=a027754c89385a3c510b08a91877503ff7f8d114
-reason=deploy_canonical_authenticated_mcp_resource_metadata
+base=4c0453155c2229d7a26610d28c85129a253dd0d6
+reason=restore_existing_clients_saved_with_authentication_mcp_url
 verification=production_build_runs_qa_typecheck_before_prebuilt_deploy
 data_plane=PRIMARY
 mcp_scopes=observe,propose,execute,governance:decide,root:operate,world:read,world:run,jr:read,jr:run,cases:read,cases:write,lab:read,lab:write,lab:run,studio:read,studio:content,studio:run
