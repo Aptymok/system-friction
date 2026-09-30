@@ -41,10 +41,16 @@ export async function persistWorldSpectObservations(
   observations: SourceObservation[],
   ingestMode: WorldSpectIngestMode = 'manual',
   rawPayload: Record<string, unknown> = {},
-  options: { priorCognitiveStateCutoff?: string } = {},
+  options: {
+    priorCognitiveStateCutoff?: string;
+    snapshotObservedAt?: string;
+    skipCognitiveSpineContrast?: boolean;
+  } = {},
 ) {
   const snapshot = aggregateWorldSpect(observations)
-  const ts = new Date().toISOString()
+  const ts = options.snapshotObservedAt
+    ? new Date(options.snapshotObservedAt).toISOString()
+    : new Date().toISOString()
   const sources = observations.map(observationToSource)
   const degraded_sources = observations
     .filter((obs) => obs.status === 'DEGRADED_BLOCKING' || obs.status === 'RATE_LIMITED' || obs.status === 'AWAITING_CREDENTIALS')
@@ -103,7 +109,7 @@ export async function persistWorldSpectObservations(
 
   let cognitiveSpineContrast: Awaited<ReturnType<typeof recordWorldSpectPostObservationCognitiveSpineContrast>> | null = null
   let cognitiveSpineContrastWarning: string | null = null
-  if (persistence.ok && persistence.data?.id) {
+  if (persistence.ok && persistence.data?.id && options.skipCognitiveSpineContrast !== true) {
     const observationTimes = observations
       .map((observation) => new Date(observation.observedAt).valueOf())
       .filter((value) => Number.isFinite(value))
