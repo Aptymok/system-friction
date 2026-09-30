@@ -88,7 +88,7 @@ export type WorldVectorReport = {
 };
 
 export type WorldVectorPersistenceResult<T = Record<string, unknown>> =
-  | { ok: true; data: T; persisted: true; existing?: boolean }
+  | { ok: true; data: T; persisted: true; existing?: boolean; regenerated?: boolean }
   | {
     ok: false;
     blocked: true;
