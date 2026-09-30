@@ -117,7 +117,11 @@ assert.doesNotMatch(`${operatingUi}\n${governanceUi}`,/rootPresenceReady|confirm
 assert.match(home,/PublicEntryGateway/,'canonical_home_missing_public_entry_gateway');
 assert.equal(publicEntry.includes('SFI_PUBLIC_NAV.map'),false,'public_entry_must_not_own_duplicate_public_nav');
 const publicChrome=read('src/components/public/SfiPublicChrome.tsx');
-assert.ok(publicChrome.includes('sfiPublicPageTitle') && publicChrome.includes('AI WEEK NYC 2026'),'global_public_chrome_must_expose_contextual_title_and_event');
+assert.ok(publicChrome.includes('sfiPublicPageNav') && publicChrome.includes('sfiPublicPageArrow') && publicChrome.includes('AI WEEK NYC 2026'),'global_public_chrome_must_expose_contextual_lateral_menu_and_event');
+assert.ok(publicChrome.includes("['OBSERVATION','RESEARCH','EVIDENCE','INFERENCE','AUTHORITY','DECISION','EXECUTION','RETURN','LEARN','OBSERVATION']"),'institutional_footer_chain_must_be_ordered');
+assert.ok(publicChrome.includes("['WORLD','SENSOR','SIGNAL','ARTIFACT','CONTEXT','INFERENCE','AUTHORITY','CLAIM','ACTION','RETURN']"),'reality_chain_method_must_remain_canonical');
+assert.ok(publicChrome.includes("title:'METHOD LAB',statement:'GOVERNANCE IS ONLY THE BEGINNING.',stage:'RESEARCH'"),'method_lab_header_stage_must_be_research_not_learning');
+assert.equal(publicChrome.includes('<b>{context.statement}</b>'),false,'footer_must_not_repeat_active_header_statement');
 assert.ok(publicChrome.includes('timeZone:\'UTC\'') && publicChrome.includes('SIGN IN'),'global_public_chrome_must_expose_utc_clock_and_sign_in');
 assert.equal(publicChrome.includes('SFI_PUBLIC_NAV.map'),false,'global_public_chrome_must_not_render_old_route_menu');
 const publicNav=read('src/lib/navigation/publicNavigation.ts');
