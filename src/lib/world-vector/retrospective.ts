@@ -58,7 +58,7 @@ export async function regenerateWorldVectorRetrospective(input: {
   let skipped = 0;
   let failed = 0;
 
-  for (const [day, indexRow] of [...latestByDay.entries()].sort(([a], [b]) => a.localeCompare(b))) {
+  for (const day of [...latestByDay.keys()].sort((a, b) => a.localeCompare(b))) {
     const cutoff = Date.parse(`${day}T23:59:59.999Z`);
     const snapshot = await getWorldSpectSnapshotAtOrBefore(new Date(cutoff).toISOString());
     if (!snapshot || snapshot.observed_at.slice(0, 10) !== day) {
