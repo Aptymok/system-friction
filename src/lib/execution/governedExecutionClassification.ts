@@ -33,10 +33,21 @@ const MATERIAL_EXTERNAL_ACTION_TYPES = new Set([
 
 const GENERIC_ACTION_TYPES = new Set(['', 'action', 'task', 'execute', 'external_action']);
 const MATERIAL_EXTERNAL_TEXT = /\bpublish(?:ed|es|ing)?\b|\bupload(?:ed|s|ing)?\b|\bdistribut(?:e|es|ed|ing|ion)\b|\bsend\s+(?:an?\s+)?email\b|\bsend\s+(?:a\s+)?message\b|\bcontact\s+(?:a\s+)?prospect\b|\bmake\s+(?:a\s+)?payment\b|\bpurchase\b|\bwrite\s+to\s+github\b|\bmerge\s+(?:a\s+)?pull\s+request\b|\bdeploy(?:ed|s|ing|ment)?\b|\bchange\s+dns\b|\bchange\s+oauth\b|\btrigger\s+(?:a\s+)?webhook\b|\bexternal\s+mutation\b/i;
+const MATERIAL_EXTERNAL_TEXT_GLOBAL = new RegExp(MATERIAL_EXTERNAL_TEXT.source, 'ig');
+const MATERIAL_NEGATION_WINDOW = /\b(?:do\s+not|don't|must\s+not|mustn't|should\s+not|shouldn't|shall\s+not|never|avoid(?:ing)?|without)\s+(?:[a-z0-9_-]+\s+){0,4}$/i;
+
+function containsAffirmativeMaterialExternalText(descriptiveText: string) {
+  for (const match of descriptiveText.matchAll(MATERIAL_EXTERNAL_TEXT_GLOBAL)) {
+    const index = match.index ?? 0;
+    const prefix = descriptiveText.slice(Math.max(0, index - 96), index);
+    if (!MATERIAL_NEGATION_WINDOW.test(prefix)) return true;
+  }
+  return false;
+}
 
 export function isMaterialExternalAction(actionType: string | null | undefined, descriptiveText: string) {
   const normalized = normalizeGovernedActionType(actionType);
   if (MATERIAL_EXTERNAL_ACTION_TYPES.has(normalized)) return true;
   if (!GENERIC_ACTION_TYPES.has(normalized)) return false;
-  return MATERIAL_EXTERNAL_TEXT.test(descriptiveText);
+  return containsAffirmativeMaterialExternalText(descriptiveText);
 }
