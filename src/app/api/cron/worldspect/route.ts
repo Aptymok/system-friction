@@ -70,7 +70,7 @@ function ingestModeFromRequest(request: NextRequest): CronIngestMode {
 export async function GET(request: NextRequest) {
   const auth = authorizeCron(request)
   if (!auth.ok) return auth.response
-  const egressGuard = scheduledEgressGuardResponse()
+  const egressGuard = scheduledEgressGuardResponse({ lane: 'WORLD_OBSERVATION' })
   if (egressGuard) return egressGuard
 
   const ingestMode = ingestModeFromRequest(request)
