@@ -27,13 +27,41 @@ export function PublicEntryGateway(){
   const scene=SCENES[sceneIndex];
 
   const goScene=useCallback((next:number)=>{
-    setSceneIndex(clamp(next,0,SCENES.length-1));
+    const bounded=clamp(next,0,SCENES.length-1);
+    setSceneIndex(bounded);
     setFrameIndex(0);
+    if(typeof window!=='undefined'){
+      const id=SCENES[bounded]?.id;
+      if(id)window.history.replaceState(null,'',`#${id}`);
+      window.dispatchEvent(new CustomEvent('sfi:subjectchange',{detail:{subject:id}}));
+    }
   },[]);
+
+  const goSceneById=useCallback((id:string)=>{
+    const index=SCENES.findIndex(item=>item.id===id);
+    if(index>=0)goScene(index);
+  },[goScene]);
 
   const moveFrame=useCallback((direction:-1|1)=>{
     setFrameIndex(current=>clamp(current+direction,0,SCENES[sceneIndex].frames.length-1));
   },[sceneIndex]);
+
+  useEffect(()=>{
+    const syncHash=()=>{
+      const id=window.location.hash.replace(/^#/,'');
+      if(!id)return;
+      const index=SCENES.findIndex(item=>item.id===id);
+      if(index>=0){setSceneIndex(index);setFrameIndex(0);}
+    };
+    syncHash();
+    window.addEventListener('hashchange',syncHash);
+    const onNavigate=(event:Event)=>{
+      const custom=event as CustomEvent<{subject?:string}>;
+      if(custom.detail?.subject)goSceneById(custom.detail.subject);
+    };
+    window.addEventListener('sfi:navigate',onNavigate);
+    return()=>{window.removeEventListener('hashchange',syncHash);window.removeEventListener('sfi:navigate',onNavigate);};
+  },[goSceneById]);
 
   useEffect(()=>{
     const onWheel=(event:WheelEvent)=>{
@@ -45,11 +73,11 @@ export function PublicEntryGateway(){
         if(!canMove)return;
         event.preventDefault();
         wheelAccumulator.current+=delta;
-        if(Math.abs(wheelAccumulator.current)>38){
+        if(Math.abs(wheelAccumulator.current)>48){
           moveFrame(wheelAccumulator.current>0?1:-1);
           wheelAccumulator.current=0;
           wheelLock.current=true;
-          window.setTimeout(()=>{wheelLock.current=false;},320);
+          window.setTimeout(()=>{wheelLock.current=false;},360);
         }
         return;
       }
@@ -59,11 +87,11 @@ export function PublicEntryGateway(){
       if(!canMove)return;
       event.preventDefault();
       wheelAccumulator.current+=event.deltaY;
-      if(Math.abs(wheelAccumulator.current)>62){
+      if(Math.abs(wheelAccumulator.current)>72){
         goScene(sceneIndex+direction);
         wheelAccumulator.current=0;
         wheelLock.current=true;
-        window.setTimeout(()=>{wheelLock.current=false;},560);
+        window.setTimeout(()=>{wheelLock.current=false;},620);
       }
     };
 
@@ -168,9 +196,9 @@ export function PublicEntryGateway(){
               data-alpha={asset.alpha?'true':undefined}
               style={{
                 '--asset-depth':asset.depth,
-                '--parallax-x':`${asset.depth*7}px`,
-                '--parallax-y':`${asset.depth*3.5}px`,
-                '--parallax-z':`${asset.depth*40}px`,
+                '--parallax-x':`${asset.depth*2.2}px`,
+                '--parallax-y':`${asset.depth*1.1}px`,
+                '--parallax-z':`${asset.depth*18}px`,
               } as CSSProperties}
             />)}
           </div>
@@ -181,11 +209,26 @@ export function PublicEntryGateway(){
               <div className="sfiSceneEyebrow"><span>{item.number}</span>{item.eyebrow}</div>
               <h1>{item.title}<span>{item.accent}</span></h1>
               <p className="sfiSceneLead">{item.lead}</p>
-              <div key={`${item.id}-${frame.label}`} className="sfiFieldState">
+
+              {item.tiles?.length ? <div className="sfiIntroTiles" aria-label="Public SFI destinations">
+                {item.tiles.map(tile=><button
+                  type="button"
+                  key={tile.label}
+                  className="sfiIntroTile"
+                  onClick={()=>tile.targetSceneId&&goSceneById(tile.targetSceneId)}
+                >
+                  <img src={tile.image} alt="" aria-hidden="true"/>
+                  <span>{tile.label}</span>
+                  <strong>{tile.title}</strong>
+                  <p>{tile.description}</p>
+                  <b aria-hidden="true">↗</b>
+                </button>)}
+              </div> : <div key={`${item.id}-${frame.label}`} className="sfiFieldState">
                 <small>{frame.label}</small>
                 <strong>{frame.title}</strong>
                 <p>{frame.text}</p>
-              </div>
+              </div>}
+
               <div className="sfiGestureLegend" aria-hidden="true">
                 <span>VERTICAL</span><b>CHANGE SUBJECT</b>
                 <span>HORIZONTAL</span><b>CHANGE EXPLANATION</b>
@@ -206,7 +249,7 @@ export function PublicEntryGateway(){
       ><span>{item.number}</span><i/></button>)}
     </nav>
 
-    <div className="sfiExplanationRail" aria-label="Explanations">
+    {!scene.tiles?.length&&<div className="sfiExplanationRail" aria-label="Explanations">
       <span>{String(frameIndex+1).padStart(2,'0')}</span>
       <div>
         {scene.frames.map((frame,index)=><button
@@ -218,6 +261,6 @@ export function PublicEntryGateway(){
         />)}
       </div>
       <span>{String(scene.frames.length).padStart(2,'0')}</span>
-    </div>
+    </div>}
   </main>;
 }
