@@ -10,15 +10,16 @@ import { appendEpistemicEvent } from '@/lib/events/eventStore';
 import { runJrFieldCycle } from '@/lib/mihm/jrFieldCycle';
 import { SFI_SUPABASE_READ_BUDGET } from '@/lib/supabase/readBudget';
 import { regenerateWorldVectorRetrospective } from '@/lib/world-vector/retrospective';
+import { runWorldSpectAdapters } from '@/lib/worldspect/runAdapters';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 export const maxDuration = 300;
 
-type WorldOperation = 'state' | 'run' | 'regenerate_world_vector';
+type WorldOperation = 'state' | 'run' | 'measure_worldspect' | 'regenerate_world_vector';
 
 function requiredScope(operation: WorldOperation) {
-  return operation === 'run' || operation === 'regenerate_world_vector' ? 'world:run' : 'world:read';
+  return operation === 'run' || operation === 'measure_worldspect' || operation === 'regenerate_world_vector' ? 'world:run' : 'world:read';
 }
 
 async function readWorldState() {
@@ -47,8 +48,8 @@ async function readWorldState() {
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({})) as Record<string, unknown>;
   const operation = String(body.operation || 'state') as WorldOperation;
-  if (!['state', 'run', 'regenerate_world_vector'].includes(operation)) {
-    return NextResponse.json({ ok: false, error: 'unsupported_world_operation', supported: ['state', 'run', 'regenerate_world_vector'] }, { status: 400 });
+  if (!['state', 'run', 'measure_worldspect', 'regenerate_world_vector'].includes(operation)) {
+    return NextResponse.json({ ok: false, error: 'unsupported_world_operation', supported: ['state', 'run', 'measure_worldspect', 'regenerate_world_vector'] }, { status: 400 });
   }
 
   const scope = requiredScope(operation);
@@ -63,7 +64,51 @@ export async function POST(req: Request) {
     return NextResponse.json({ ...(await readWorldState()), operation, actor: actorId });
   }
 
-  if (operation === 'regenerate_world_vector') {
+  if (operation === 'measure_worldspect') {
+    const measurement = await runWorldSpectAdapters('manual');
+    const receipt = await appendEpistemicEvent({
+      returnMode: 'receipt',
+      eventName: 'external.worldspect.measurement.completed',
+      epistemicClass: 'derived',
+      confidence: measurement.ok ? 1 : 0.5,
+      occurredAt: new Date().toISOString(),
+      source: { sourceId: 'SYSTEM_FRICTION_INSTITUTE', sourceType: 'operational_runtime' },
+      logbookId: 'WORLDSPECT',
+      lineage: measurement.persistence.ok && measurement.persistence.data?.id
+        ? [String(measurement.persistence.data.id)]
+        : [],
+      payload: {
+        contract: 'SFI-WORLDSPECT-MANUAL-MEASUREMENT-1.0',
+        actorId,
+        snapshotId: measurement.persistence.ok ? String(measurement.persistence.data?.id ?? '') : null,
+        degradedSources: measurement.degraded_sources,
+        sourceCount: measurement.sources.length,
+        authorityBoundary: {
+          scope: 'world:run',
+          observationOnly: true,
+          rootAuthorityInherited: false,
+          governanceDecisionAuthorityInherited: false,
+          canonicalPromotionAllowed: false,
+          publicationAllowed: false,
+        },
+      },
+    });
+    return NextResponse.json({
+      ok: measurement.ok && receipt.ok,
+      operation,
+      actor: actorId,
+      contract: 'SFI-WORLDSPECT-MANUAL-MEASUREMENT-1.0',
+      snapshot: measurement.snapshot,
+      persistence: measurement.persistence,
+      degraded_sources: measurement.degraded_sources,
+      sourceHealth: measurement.sourceHealth,
+      receipt: receipt.ok ? receipt.data : receipt,
+      writesPerformed: measurement.persistence.ok || receipt.ok,
+      boundary: 'Manual WorldSpect measurement reuses the canonical public adapters and snapshot store. It records present observation only; it cannot backdate missing historical snapshots, promote canon, publish, or grant governance authority.',
+    }, { status: measurement.ok && receipt.ok ? 200 : 207 });
+  }
+
+    if (operation === 'regenerate_world_vector') {
     const startedAt = new Date().toISOString();
     const days = typeof body.days === 'number' ? body.days : Number(body.days ?? 3650);
     const maxSnapshots = typeof body.maxSnapshots === 'number' ? body.maxSnapshots : Number(body.maxSnapshots ?? 5000);
