@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "System Friction Institute External Agent API",
-    "version": "1.19.0",
+    "version": "1.20.0",
     "description": "Governed machine interface for authorized AI clients. GPT Actions authenticate with SFI OAuth. Institutional principals receive explicitly configured authority; normal accounts receive only owner-scoped personal Lab, Cognitive and Studio capabilities.",
     "termsOfService": "https://systemfriction.org/privacy",
     "x-sfi-action-revision": "case-lifecycle-actions-v6"
@@ -1024,6 +1024,68 @@
           },
           "207": {
             "description": "Cycle completed with degraded persistence/freshness"
+          },
+          "401": {
+            "description": "OAuth scope required"
+          },
+          "403": {
+            "description": "Institutional user-bound OAuth required"
+          }
+        }
+      }
+    },
+    "/api/external/v1/jr": {
+      "post": {
+        "operationId": "operateSfiJr",
+        "summary": "Read or run bounded JR Neural Field coordination",
+        "description": "operation=state requires jr:read. operation=run requires jr:run. JR coordinates canonical field reading, derived temporal epochs, bounded scientific-method execution, SIMULATED Method Lab dispatch, active-observation requests, perturbation review queue and RETURN reconciliation. It never executes material perturbation, grants ROOT/governance authority, fabricates RETURN or promotes canon.",
+        "security": [
+          {
+            "sfiOAuth": [
+              "jr:read"
+            ]
+          }
+        ],
+        "x-sfi-operation-scopes": {
+          "state": "jr:read",
+          "run": "jr:run"
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "operation": {
+                    "type": "string",
+                    "enum": [
+                      "state",
+                      "run"
+                    ]
+                  },
+                  "nodeRefs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 12
+                  }
+                },
+                "required": [
+                  "operation"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "JR state or successful bounded cycle"
+          },
+          "207": {
+            "description": "JR cycle completed with degraded read/method/RETURN state"
           },
           "401": {
             "description": "OAuth scope required"
@@ -2366,7 +2428,9 @@
               "cases:read": "Read SFI cases available to the authenticated subject through active tenant membership.",
               "cases:write": "Create and populate bounded SFI Case Platform records through authenticated tenant membership.",
               "world:read": "Read persisted SFI World state, freshness, latest observations, derived friction readings, hypotheses and daily-cycle receipts.",
-              "world:run": "Execute the bounded canonical SFI World daily cycle through user-bound institutional OAuth; no ROOT, governance, publication or canon authority is inherited."
+              "world:run": "Execute the bounded canonical SFI World daily cycle through user-bound institutional OAuth; no ROOT, governance, publication or canon authority is inherited.",
+              "jr:read": "Read bounded persisted JR Neural Field cycle state and derived coordination receipts.",
+              "jr:run": "Run the bounded JR field coordination cycle, including derived temporal/method receipts and SIMULATED Method Lab dispatch, without material perturbation, governance decision or canon promotion."
             }
           }
         }
