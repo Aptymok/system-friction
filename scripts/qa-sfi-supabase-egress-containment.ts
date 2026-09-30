@@ -25,7 +25,7 @@ for(const token of [
 assert.ok(graph.includes('.limit(SFI_SUPABASE_READ_BUDGET.graphNodes + 1)'), 'graph_nodes_must_be_bounded');
 assert.ok(graph.includes('.limit(SFI_SUPABASE_READ_BUDGET.graphEdges + 1)'), 'graph_edges_must_be_bounded');
 assert.ok(!graph.includes(".select('*')"), 'canonical_graph_must_not_use_wildcard_reads');
-assert.ok(graph.includes('SFI_EGRESS_BUDGET_EXCEEDED'), 'canonical_graph_must_fail_closed_on_budget');
+assert.ok(graph.includes('supabaseReadBudgetExceeded'), 'canonical_graph_must_fail_closed_on_budget');
 
 assert.ok(history.includes('SFI_SUPABASE_READ_BUDGET.fieldEpochSubjects'), 'epoch_subjects_must_be_bounded');
 assert.ok(history.includes('SFI_SUPABASE_READ_BUDGET.fieldEpochRows + 1'), 'epoch_rows_must_be_bounded');
