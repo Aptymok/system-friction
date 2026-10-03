@@ -99,8 +99,8 @@ function clampReportLimit(value: unknown) {
 }
 
 async function readRootControlPlane(service: ReturnType<typeof createServiceSupabaseClient>) {
-  const safe = async (table:string, select:string, limit=80) => {
-    const r=await service.from(table).select(select).order('created_at',{ascending:false}).limit(limit);
+  const safe = async (table:string, select:string, limit=80, orderColumn='created_at') => {
+    const r=await service.from(table).select(select).order(orderColumn,{ascending:false}).limit(limit);
     return {available:!r.error, rows:r.data??[], error:r.error?.message??null};
   };
   const [proposals,founderRules,hypotheses,outcomes,learning,cases,health,incidents,commercialProposals,commercialOpportunities]=await Promise.all([
@@ -110,8 +110,8 @@ async function readRootControlPlane(service: ReturnType<typeof createServiceSupa
     safe('world_hypothesis_outcomes','id,hypothesis_id,classification,observed_outcome,evidence_ids,evaluated_at,created_at',80),
     safe('world_learning_events','id,hypothesis_id,outcome_id,retained_assumptions,rejected_assumptions,missing_variables,graph_adjustments,confidence_before,confidence_after,created_at',80),
     safe('sfi_cases','id,subject,scope,status,uncertainty,governance,created_at,updated_at,closed_at',80),
-    safe('sfi_capability_health_checks','*',80),
-    safe('sfi_institutional_incidents','*',80),
+    safe('sfi_capability_health_checks','*',80,'checked_at'),
+    safe('sfi_institutional_incidents','*',80,'opened_at'),
     safe('commercial_proposals','*',80),
     safe('commercial_opportunities','*',80),
   ]);
