@@ -31,6 +31,37 @@ export const SFI_EXTERNAL_COGNITIVE_PEER_POLICY = Object.freeze({
 
 type Row = Record<string, unknown>;
 
+export type ExternalCognitivePeerClaim = {
+  statement: string;
+  confidence: number | null;
+  evidenceRefs: string[];
+  uncertainty: string | null;
+};
+
+export type ExternalCognitivePeerHypothesis = ExternalCognitivePeerClaim & {
+  falsification: string | null;
+  expectedSignals: string[];
+  contradictionSignals: string[];
+};
+
+export type ExternalCognitivePeerAction = {
+  action: string;
+  rationale: string | null;
+  authorityRequired: boolean;
+  reversible: boolean | null;
+  evidenceRefs: string[];
+};
+
+export type ExternalCognitivePeerResponse = {
+  summary: string | null;
+  claims: ExternalCognitivePeerClaim[];
+  hypotheses: ExternalCognitivePeerHypothesis[];
+  rivalHypotheses: ExternalCognitivePeerHypothesis[];
+  proposedActions: ExternalCognitivePeerAction[];
+  missingEvidence: string[];
+  limitations: string[];
+};
+
 const FORBIDDEN_KEYS = new Set([
   'return',
   'observedreturn',
@@ -83,43 +114,63 @@ function strings(value: unknown, limit = 100) {
 function evidenceRefs(value: unknown) {
   return strings(value, 100);
 }
-function structuredItems(value: unknown, mode: 'claim'|'hypothesis'|'action') {
-  if (!Array.isArray(value)) return [];
-  return value.slice(0, 100).flatMap((item) => {
-    const source = item && typeof item === 'object' && !Array.isArray(item) ? item as Row : {};
-    const statement = text(source.statement ?? source.action, 6_000);
+function itemRows(value: unknown) {
+  return Array.isArray(value)
+    ? value.slice(0, 100).filter((item): item is Row => Boolean(item) && typeof item === 'object' && !Array.isArray(item))
+    : [];
+}
+
+function claims(value: unknown): ExternalCognitivePeerClaim[] {
+  return itemRows(value).flatMap((source) => {
+    const statement = text(source.statement, 6_000);
     if (!statement) return [];
-    if (mode === 'action') {
-      return [{
-        action: statement,
-        rationale: text(source.rationale, 6_000),
-        authorityRequired: source.authorityRequired === true,
-        reversible: source.reversible === true ? true : source.reversible === false ? false : null,
-        evidenceRefs: evidenceRefs(source.evidenceRefs),
-      }];
-    }
     return [{
       statement,
       confidence: confidence(source.confidence),
       evidenceRefs: evidenceRefs(source.evidenceRefs),
       uncertainty: text(source.uncertainty, 2_000),
-      ...(mode === 'hypothesis' ? {
-        falsification: text(source.falsification, 4_000),
-        expectedSignals: strings(source.expectedSignals, 40),
-        contradictionSignals: strings(source.contradictionSignals, 40),
-      } : {}),
     }];
   });
 }
 
-export function projectExternalCognitivePeerResponse(value: unknown) {
+function hypotheses(value: unknown): ExternalCognitivePeerHypothesis[] {
+  return itemRows(value).flatMap((source) => {
+    const statement = text(source.statement, 6_000);
+    if (!statement) return [];
+    return [{
+      statement,
+      confidence: confidence(source.confidence),
+      evidenceRefs: evidenceRefs(source.evidenceRefs),
+      uncertainty: text(source.uncertainty, 2_000),
+      falsification: text(source.falsification, 4_000),
+      expectedSignals: strings(source.expectedSignals, 40),
+      contradictionSignals: strings(source.contradictionSignals, 40),
+    }];
+  });
+}
+
+function actions(value: unknown): ExternalCognitivePeerAction[] {
+  return itemRows(value).flatMap((source) => {
+    const action = text(source.action, 6_000);
+    if (!action) return [];
+    return [{
+      action,
+      rationale: text(source.rationale, 6_000),
+      authorityRequired: source.authorityRequired === true,
+      reversible: source.reversible === true ? true : source.reversible === false ? false : null,
+      evidenceRefs: evidenceRefs(source.evidenceRefs),
+    }];
+  });
+}
+
+export function projectExternalCognitivePeerResponse(value: unknown): ExternalCognitivePeerResponse {
   const input = value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {};
   return {
     summary: text(input.summary, 20_000),
-    claims: structuredItems(input.claims, 'claim'),
-    hypotheses: structuredItems(input.hypotheses, 'hypothesis'),
-    rivalHypotheses: structuredItems(input.rivalHypotheses, 'hypothesis'),
-    proposedActions: structuredItems(input.proposedActions, 'action'),
+    claims: claims(input.claims),
+    hypotheses: hypotheses(input.hypotheses),
+    rivalHypotheses: hypotheses(input.rivalHypotheses),
+    proposedActions: actions(input.proposedActions),
     missingEvidence: strings(input.missingEvidence, 100),
     limitations: strings(input.limitations, 100),
   };
