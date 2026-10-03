@@ -3,6 +3,7 @@ import { SFI_ROOT_DECISION_BOUNDARY } from '@/lib/governance/rootDecisionBoundar
 import { SFI_HUMAN_INTERACTION_POLICY } from '@/lib/sfi/humanInteractionPolicy';
 import { SFI_ANALYSIS_LEARNING_POLICY } from '@/lib/sfi/analysisLearningPolicy';
 import { SFI_CASE_EXECUTION_POLICY } from '@/lib/sfi/caseExecutionPolicy';
+import { SFI_EXTERNAL_COGNITIVE_PEER_CONTRACT } from '@/lib/sfi/externalCognitivePeer';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,7 +15,7 @@ export async function GET() {
     auth: 'OAuth 2.0 authorization_code (user-bound) or X-SFI-Token/Bearer static token',
     base: '/api/external/v1',
     discovery: {
-      openapi: '/openapi.json', llms: '/llms.txt', llmsFull: '/llms-full.txt', cognitiveBootstrap: '/api/external/v1/bootstrap',
+      openapi: '/openapi.json', llms: '/llms.txt', llmsFull: '/llms-full.txt', cognitiveBootstrap: '/api/external/v1/bootstrap', cognitivePeer: '/api/external/v1/cognitive-peer',
       mutationEvidence: '/api/public/mutations', mutationHistory: '/history/mutations', aiIndex: '/ai-index.json', fieldSchema: '/field-schema.json', privacy: '/privacy',
       oauthAuthorize: '/api/oauth/authorize', oauthToken: '/api/oauth/token', publicMcp: '/api/mcp/public', authenticatedMcp: '/api/mcp/authenticated', studioMcp: '/api/mcp/studio',
       ownerStudioContext: { method: 'POST', path: '/api/external/v1/studio', operation: 'context', scope: 'studio:read', contract: 'SFI-STUDIO-OWNER-CONTEXT-1.0' },
@@ -28,10 +29,12 @@ export async function GET() {
       scopeOmission: 'Scope omission defaults to the authenticated principal configured set.',
       studioIdentityBoundary: 'Studio operations require user-bound OAuth and resolve ownership from token subject_id; shared/static tokens cannot impersonate an owner.',
       cognitiveExecutionBoundary: 'Institutional cognitive-agent execution requires user-bound OAuth, execute scope and tenant sfi. Static tokens and personal user:<subject_id> tenants may not invoke this execution plane.',
-      machineAdapterBinding: 'New OAuth access tokens retain the verified client_id. invoke_cognitive_capability remains grant-bound and requires token-bound subject_id + client_id + execute scope plus possession proof of an ACTIVE ephemeral grant. invoke_sfi_gateway_operation never bypasses that cognitive grant path; it reuses allowlisted canonical gateway routes and their existing per-operation OAuth/ROOT/tenant/queue boundaries.',
+      machineAdapterBinding: 'New OAuth access tokens retain the verified client_id. invoke_cognitive_capability remains grant-bound and requires token-bound subject_id + client_id + execute scope plus possession proof of an ACTIVE ephemeral grant. invoke_sfi_gateway_operation never bypasses that cognitive grant path; it reuses allowlisted canonical gateway routes and their existing per-operation OAuth/ROOT/tenant/queue boundaries. The external cognitive peer uses observe for bounded context and lab:write for INFERRED response persistence only.',
     },
     operations: [
       { id: 'bootstrap', method: 'GET', path: '/bootstrap', scope: 'observe', tenant: 'institutional', description: 'Hydrate an authorized AI client with the current SFI cognitive contract, human interaction policy, analysis policy, decision boundary and autonomous case-execution policy.' },
+      { id: 'external-cognitive-peer-context', method: 'GET', path: '/cognitive-peer', scope: 'observe', tenant: 'institutional-user-bound-oauth', contract: SFI_EXTERNAL_COGNITIVE_PEER_CONTRACT, operationId: 'getSfiExternalCognitivePeerContext', description: 'Hydrate a governed external LLM peer with bounded institutional context. Context is not new observation and conveys no authority.' },
+      { id: 'external-cognitive-peer-submit', method: 'POST', path: '/cognitive-peer', scope: 'lab:write', tenant: 'institutional-user-bound-oauth', contract: SFI_EXTERNAL_COGNITIVE_PEER_CONTRACT, operationId: 'submitSfiExternalCognitivePeerResponse', description: 'Persist one structured external cognitive-peer response as INFERRED only. Cannot mint evidence, RETURN, governance, execution authority, learning promotion or canon.' },
       { id: 'console', method: 'GET', path: '/console', scope: 'observe', tenant: 'institutional', description: 'Read the compact governed machine console.' },
       { id: 'cognitive-runtime-read', method: 'GET', path: '/cognitive-runtime', scope: 'observe', tenant: 'institutional', contract: 'SFI-EXTERNAL-COGNITIVE-RUNTIME-1.0', description: 'Read versioned execution-centric agent passports, typed Execution Contracts, multidimensional state, exact execution history and bounded GenAI assurance from the canonical runtime/event plane.' },
       { id: 'cognitive-runtime-execute', method: 'POST', path: '/cognitive-runtime', scope: 'execute', tenant: 'institutional-user-bound-oauth', contract: 'SFI-MANUAL-COGNITIVE-EXECUTION-1.0', body: { operation: 'execute', required: ['agentId', 'purpose', 'anchors[]', 'targets[]'], legacyShapeAccepted: false }, description: 'Execute one typed cognitive-agent contract through the canonical runtime. Requires user-bound institutional OAuth and preserves target membership, evidence, authority and event-lineage boundaries.' },
