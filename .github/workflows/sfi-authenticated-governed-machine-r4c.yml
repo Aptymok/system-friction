@@ -12,11 +12,15 @@ on:
       - 'src/lib/sfi/externalAuth.ts'
       - 'src/app/api/oauth/token/route.ts'
       - 'src/app/api/external/v1/manifest/route.ts'
+      - 'src/app/api/external/v1/bootstrap/route.ts'
+      - 'src/app/api/external/v1/cognitive-peer/route.ts'
+      - 'src/lib/sfi/externalCognitivePeer.ts'
       - 'src/app/api/external/v1/root/operate/route.ts'
       - 'src/lib/sfi/oauthConfig.ts'
       - 'src/app/api/external/openapi/route.ts'
       - 'scripts/merge-openapi-authenticated-machine.mjs'
       - 'scripts/qa-sfi-authenticated-governed-machine-r4c.ts'
+      - 'scripts/qa-sfi-external-cognitive-peer.ts'
       - 'package.json'
       - '.github/workflows/sfi-authenticated-governed-machine-r4c.yml'
       - 'docs/program/workstreams/WS-04-AUTHENTICATED-GOVERNED-MACHINE-R4C.md'
@@ -63,6 +67,9 @@ jobs:
 
       - name: Authenticated governed machine exact-head QA
         run: npm run qa:sfi-authenticated-machine
+
+      - name: Verify governed external cognitive peer boundary
+        run: npx tsx scripts/qa-sfi-external-cognitive-peer.ts
 
       - name: Revalidate upstream Ephemeral Capability Grant contract
         run: node --import tsx --test src/lib/sfi/cognitive-runtime/capabilityGrant.test.ts
