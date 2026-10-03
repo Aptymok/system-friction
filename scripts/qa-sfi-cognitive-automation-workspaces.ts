@@ -45,7 +45,7 @@ assert.match(access,/sovereign_actions: false/,'normal accounts must not receive
 assert.match(migration,/owner_id/i,'personal cognitive lab persistence must be owner scoped');
 assert.match(migration,/auth\.uid\(\)/i,'personal cognitive lab RLS must bind to authenticated owner');
 
-assert.equal(openapi.info?.version,'1.8.0');
+assert.equal(openapi.info?.version,'1.20.0');
 assert.ok(openapi.paths?.['/api/external/v1/cognitive']?.post,'personal cognitive action missing');
 assert.ok(openapi.paths?.['/api/external/v1/personal-lab']?.post,'personal lab action missing');
 
