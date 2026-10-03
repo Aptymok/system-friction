@@ -41,7 +41,7 @@ async function main() {
   assert.match(bootstrap, /gptActionsOpenApi: '\/openapi\.json'/);
   assert.match(bootstrap, /separateActionsProjection: false/);
 
-  assert.match(manifest, /version: '1\.18\.0'/);
+  assert.match(manifest, /version: '1\.20\.0'/);
   assert.match(manifest, /id: 'studio-context'/);
   assert.match(manifest, /contract: 'SFI-STUDIO-OWNER-CONTEXT-1\.0'/);
   assert.match(manifest, /ownerStudioContext/);
