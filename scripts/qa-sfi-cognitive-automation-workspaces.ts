@@ -31,7 +31,7 @@ assert.match(operationalNext,/action_proposal_reads: 1|actionProposalReads:\s*1/
 assert.ok(rootUi.includes("jsonFetch('/api/root/interactive?surface=root')"),'ROOT must own the authenticated human-decision projection');
 assert.ok(rootUi.includes("jsonFetch('/api/root/decisions'"),'ROOT must own accept/deny decisions');
 assert.ok(rootUi.includes('/request-evidence'),'ROOT must own evidence deferral for human decisions');
-assert.ok(rootUi.includes('DECISIONES QUE SÍ NECESITAN ROOT'),'ROOT must expose the bounded sovereign decision queue');
+assert.ok(rootUi.includes('DECISIONS THAT REQUIRE ROOT'),'ROOT must expose the bounded sovereign decision queue');
 
 assert.match(selector,/reasons:\s*Record<string,\s*string\[\]>/,'automation selector must expose selection reasons');
 assert.match(selector,/reasons:\s*Object\.fromEntries/,'automation selector must materialize selection reasons');
