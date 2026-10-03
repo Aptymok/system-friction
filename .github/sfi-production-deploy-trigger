@@ -1,11 +1,16 @@
 SFI Production Release 2026-10-02
-base=4148ba3c28fde8b47805eca9c554e0f999059f41
-reason=root_operational_sovereignty_validation_health_read_repair_and_governance_qa_convergence
-observed_cycle_case=e187883b-7cf2-4e6b-812e-cdb43c3c5496
-root_health_order=checked_at
-institutional_incidents_order=opened_at
-oauth_governance_qa=aligned_with_canonical_1.20.0
+base=242c58e9a1748ca41a5cada458022f8957350fd8
+reason=governed_external_cognitive_peer_authenticated_mcp
+contract=SFI-EXTERNAL-COGNITIVE-PEER-1.0
+context_scope=observe
+submit_scope=lab:write
+persisted_epistemic_class=INFERRED
+public_mcp_mutation=false
 authority_expansion=false
-schema_change=false
+return_minting=false
+governance_decision_minting=false
+capability_grant_minting=false
+learning_promotion=false
 canonical_promotion=false
+schema_change=false
 release_gate=prebuilt_production_workflow
