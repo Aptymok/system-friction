@@ -31,7 +31,7 @@ assert.match(operationalNext,/action_proposal_reads: 1|actionProposalReads:\s*1/
 assert.ok(rootUi.includes("jsonFetch('/api/root/interactive?surface=root')"),'ROOT must own the authenticated human-decision projection');
 assert.ok(rootUi.includes("jsonFetch('/api/root/decisions'"),'ROOT must own accept/deny decisions');
 assert.ok(rootUi.includes('/request-evidence'),'ROOT must own evidence deferral for human decisions');
-assert.ok(rootUi.includes('DECISIONES QUE SÍ NECESITAN ROOT'),'ROOT must expose the bounded sovereign decision queue');
+assert.ok(rootUi.includes('DECISIONS THAT REQUIRE ROOT'),'ROOT must expose the bounded sovereign decision queue');
 
 assert.match(selector,/reasons:\s*Record<string,\s*string\[\]>/,'automation selector must expose selection reasons');
 assert.match(selector,/reasons:\s*Object\.fromEntries/,'automation selector must materialize selection reasons');
@@ -45,7 +45,7 @@ assert.match(access,/sovereign_actions: false/,'normal accounts must not receive
 assert.match(migration,/owner_id/i,'personal cognitive lab persistence must be owner scoped');
 assert.match(migration,/auth\.uid\(\)/i,'personal cognitive lab RLS must bind to authenticated owner');
 
-assert.equal(openapi.info?.version,'1.8.0');
+assert.equal(openapi.info?.version,'1.20.0');
 assert.ok(openapi.paths?.['/api/external/v1/cognitive']?.post,'personal cognitive action missing');
 assert.ok(openapi.paths?.['/api/external/v1/personal-lab']?.post,'personal lab action missing');
 

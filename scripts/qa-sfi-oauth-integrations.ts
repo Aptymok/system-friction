@@ -22,8 +22,8 @@ assert.match(surface, /Schema URL: \$\{origin\}\/openapi\.json/, 'surface_must_e
 assert.doesNotMatch(surface, /openapi-actions\.json/, 'surface_must_not_reference_removed_actions_projection');
 assert.doesNotMatch(surface, /Schema URL: \$\{origin\}\/api\/external\/openapi/, 'surface_should_expose_stable_openapi_json_url');
 assert.match(surface, /ONE TIME ONLY/, 'surface_must_warn_that_client_secret_is_one_time_only');
-assert.match(surface, /No pegues callback/, 'normal_onboarding_must_not_require_callback_round_trip');
-assert.match(surface, /PENDING · AUTO-BIND EN PRIMERA AUTORIZACIÓN/, 'surface_must_explain_pending_first_redirect_state');
+assert.match(surface, /Do not paste a callback/, 'normal_onboarding_must_not_require_callback_round_trip');
+assert.match(surface, /PENDING · AUTO-BIND ON FIRST AUTHORIZATION/, 'surface_must_explain_pending_first_redirect_state');
 assert.doesNotMatch(surface, /SFI_OAUTH_REDIRECT_URIS/, 'surface_must_not_instruct_users_to_edit_vercel_callback_env');
 assert.doesNotMatch(surface, /createServiceSupabaseClient|\.from\(['"]sfi_oauth_clients['"]\)|execute_sql/i, 'browser_surface_must_not_access_database_directly');
 
