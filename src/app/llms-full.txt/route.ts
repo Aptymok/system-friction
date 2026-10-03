@@ -41,6 +41,7 @@ Important execution boundary:
 
 Endpoints:
 - GET /api/external/v1/console
+- GET|POST /api/external/v1/cognitive-peer
 - POST /api/external/v1/execution-contract
 - POST /api/external/v1/result
 - GET|POST /api/external/v1/signal
@@ -54,6 +55,9 @@ Endpoints:
 proposal → authorization → routing/readiness → assignment → adapter-specific execution → proposal-scoped RETURN → calibration → candidate learning → ROOT canon/close.
 
 The proposed AI Execution Router and self-healing bootstrap are not implied by the existence of these endpoints. Generic auto-dispatch and self-healing remain off unless separately governed and implemented.
+
+## GOVERNED EXTERNAL COGNITIVE PEER
+The authenticated MCP may project an institutional user-bound LLM into SFI as a governed external cognitive peer. GET /api/external/v1/cognitive-peer hydrates bounded Cognitive Spine/institutional context under observe. POST /api/external/v1/cognitive-peer persists a structured peer response under lab:write as INFERRED only. The route rejects attempts to mint observed RETURN, truth/canon, governance decisions, authority/capability grants, execution receipts or learning promotion. Any next action must traverse the existing evidence, proposal, execution, RETURN, calibration and promotion owners separately.
 
 ## COGNITIVE TWIN
 The Cognitive Twin is a governed proposal and reconstruction system. It can generate proposals in normal language, reconstruct operational state from evidence and longitudinal traces, and participate in laboratory protocols. Delegated controllers may decide bounded operational proposals where authorized; ROOT alone owns canonical promotion.
