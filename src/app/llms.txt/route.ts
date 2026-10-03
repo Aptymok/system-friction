@@ -15,6 +15,7 @@ SFI is a live observability and governance environment for complex sociotechnica
 6. Use /propose for a governed action proposal. A queued proposal is not proof of execution.
 7. /execute dispatches only a proposal that is already queued and requires execute scope plus explicit confirmation. Internal bounded work uses the canonical governed router; material external work without a real governed adapter fails closed. /execute cannot self-approve, expand scope or promote canon.
 8. When a material operation is performed outside SFI by a real adapter/executor, POST /proposal-return with the queued proposal UUID, observed_at, outcome and evidence_refs. RETURN does not close or canonize the proposal by itself.
+9. For sustained external LLM reasoning through authenticated MCP, hydrate the governed cognitive-peer context and submit the model response through the peer operation. Peer output is persisted as INFERRED only; proposals, execution, RETURN, learning and canon stay on their existing authority surfaces.
 
 ## HUMAN-FACING INTERACTION
 Machine precision remains internal. When speaking to a human, explain in this order: what is happening, why it matters, who must act, available options, consequences, and what happens next. Source code, file paths, database terminology, payload/schema names, internal state identifiers and backend implementation jargon are secondary details and must not be the default human interface. Show them only when explicitly requested or when omission would make a safety/authority decision materially misleading.
@@ -53,6 +54,9 @@ ${baseUrl}/api/external/v1/manifest
 
 ## EXTERNAL AGENTS
 Authorized AI clients can interact through the governed v1 gateway. Authentication, scopes and execution authority are controlled by SFI governance. External agents may observe, return structured analysis, propose within granted scopes, trigger already-authorized queued internal work through the governed dispatcher, and record evidence-linked RETURN for external executions. They cannot self-authorize execution, fabricate an adapter, close a proposal without matching RETURN evidence, expand authorized scope, or promote canon.
+
+## GOVERNED EXTERNAL COGNITIVE PEER
+Authenticated institutional MCP clients may act as bounded external cognitive peers. Context requires observe; response persistence requires lab:write. The peer may return structured claims, hypotheses, rivals, proposed actions, missing evidence and limitations. Its response remains INFERRED and cannot create accepted evidence, observed RETURN, governance decisions, capability grants, execution authority, learning promotion or canon.
 
 ## COGNITIVE TWIN
 The Cognitive Twin proposes and reconstructs; governed reviewers decide bounded proposals and ROOT alone owns canonical promotion. Experimental output is not automatically canonical. PERSON_CT is owner-scoped and does not enter the institutional Cognitive Spine by inheritance.
