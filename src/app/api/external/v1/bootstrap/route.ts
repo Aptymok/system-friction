@@ -5,6 +5,7 @@ import { buildSfiCognitiveBootstrap } from '@/lib/sfi/cognitiveBootstrap';
 import { SFI_CASE_EXECUTION_POLICY } from '@/lib/sfi/caseExecutionPolicy';
 import { SFI_HUMAN_INTERACTION_POLICY } from '@/lib/sfi/humanInteractionPolicy';
 import { SFI_ANALYSIS_LEARNING_POLICY } from '@/lib/sfi/analysisLearningPolicy';
+import { SFI_EXTERNAL_COGNITIVE_PEER_CONTRACT, SFI_EXTERNAL_COGNITIVE_PEER_POLICY } from '@/lib/sfi/externalCognitivePeer';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -48,9 +49,21 @@ export async function GET(req: Request) {
         separateActionsProjection: false,
         authenticatedMcpOpenApiExposure: 'OUT_OF_BAND_MCP',
         ownerStudioContext,
+        externalCognitivePeer: {
+          contract: SFI_EXTERNAL_COGNITIVE_PEER_CONTRACT,
+          contextOperationId: 'getSfiExternalCognitivePeerContext',
+          submitOperationId: 'submitSfiExternalCognitivePeerResponse',
+          path: '/api/external/v1/cognitive-peer',
+          contextScope: SFI_EXTERNAL_COGNITIVE_PEER_POLICY.contextScope,
+          submitScope: SFI_EXTERNAL_COGNITIVE_PEER_POLICY.submitScope,
+          persistedEpistemicClass: SFI_EXTERNAL_COGNITIVE_PEER_POLICY.persistedEpistemicClass,
+          authorityExpanded: false,
+          mayMintReturn: false,
+          mayPromoteCanon: false,
+        },
         modelCapabilityImpliesAuthority: false,
       },
-      useInstruction: `${bootstrap.useInstruction} Human-facing interaction must follow interactionPolicy: explain meaning, authority, options, consequences and next event before implementation detail. For case work, follow caseExecutionPolicy and decisionBoundary. Do not ask the human for initial approval, evidence-source approval, routine execution approval, report approval or case-closure approval. Continue operational work autonomously while it remains inside already granted authority. Ask only for genuinely missing factual input that cannot be acquired safely, and describe it as missing information rather than permission. Interrupt ROOT only when the next step is explicitly classified as an institutional/canonical decision, a material capability implementation/change, a learning promotion, or a reserved external/irreversible operation. Working sources may be used and classified without ROOT acceptance but never become verified claims or canon merely by use. Apply analysisLearningPolicy when choosing what evidence to request and when interpreting process/data contradictions. Explicit owner requests to learn/remember/apply a personal interaction rule may use the governed PERSON_CT learn_declared_pattern operation. When ownerStudioContext is available and owner Studio/KXTXR lineage is relevant, read that governed context before concluding that owner data is absent.`,
+      useInstruction: `${bootstrap.useInstruction} Human-facing interaction must follow interactionPolicy: explain meaning, authority, options, consequences and next event before implementation detail. For case work, follow caseExecutionPolicy and decisionBoundary. Do not ask the human for initial approval, evidence-source approval, routine execution approval, report approval or case-closure approval. Continue operational work autonomously while it remains inside already granted authority. Ask only for genuinely missing factual input that cannot be acquired safely, and describe it as missing information rather than permission. Interrupt ROOT only when the next step is explicitly classified as an institutional/canonical decision, a material capability implementation/change, a learning promotion, or a reserved external/irreversible operation. Working sources may be used and classified without ROOT acceptance but never become verified claims or canon merely by use. Apply analysisLearningPolicy when choosing what evidence to request and when interpreting process/data contradictions. Explicit owner requests to learn/remember/apply a personal interaction rule may use the governed PERSON_CT learn_declared_pattern operation. When ownerStudioContext is available and owner Studio/KXTXR lineage is relevant, read that governed context before concluding that owner data is absent. When sustained external reasoning is needed, use modelInteroperability.externalCognitivePeer: hydrate the governed peer context, reason externally, then submit only structured inference; RETURN, truth, governance, execution authority, learning promotion and canon remain owned by their existing SFI surfaces.`,
     }, {
       status: 200,
       headers: {
@@ -61,6 +74,7 @@ export async function GET(req: Request) {
         'X-SFI-Analysis-Learning': SFI_ANALYSIS_LEARNING_POLICY.contract,
         'X-SFI-Case-Execution': SFI_CASE_EXECUTION_POLICY.contract,
         'X-SFI-Decision-Boundary': SFI_ROOT_DECISION_BOUNDARY.contract,
+        'X-SFI-External-Cognitive-Peer': SFI_EXTERNAL_COGNITIVE_PEER_CONTRACT,
       },
     });
   } catch (error) {
