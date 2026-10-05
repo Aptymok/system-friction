@@ -281,7 +281,7 @@
   .sfiGestureLegend{display:none}
   .sfiTopicRail{right:10px;gap:9px}
   .sfiTopicRail button{grid-template-columns:20px 18px;gap:4px}
-  .sfiTopicRail span{font-size:10px}
+  .sfiTopicRail span{font-size:11px}
   .sfiTopicRail i{width:8px}
   .sfiTopicRail button[data-active="true"] i{width:18px}
   .sfiSceneLayer--2{transform:translate3d(30vw,-5vh,0) scale(.92)}
