@@ -79,3 +79,60 @@ test('observed return is never reduced to execution success',()=>{
   assert.equal(passport.returnState.observed,'measured-change');
   assert.equal(passport.boundary,'DERIVED_PROJECTION_NOT_CANONICAL_TRUTH');
 });
+
+
+test('underscore epistemic states normalize without manufacturing observation',()=>{
+  const subject=node({nodeId:'claim-underscore',ontologyType:'CLAIM',attributes:{epistemicClass:'NOT_OBSERVED'}});
+  const passport=buildRealityPassport(subject,[]);
+  assert.equal(passport.epistemicState,'NOT OBSERVED');
+  assert.equal(passport.decision,'ABSTAIN');
+});
+
+test('passport exposes exact support and contradiction references',()=>{
+  const subject=node({nodeId:'claim-refs',ontologyType:'CLAIM',attributes:{epistemicClass:'DERIVED',verificationState:'VERIFIED'}});
+  const evidence=node({nodeId:'evidence-ref',ontologyType:'EVIDENCE',attributes:{epistemicClass:'OBSERVED'}});
+  const rival=node({nodeId:'rival-ref',ontologyType:'HYPOTHESIS',attributes:{epistemicClass:'INFERRED'}});
+  const edges=[
+    edge({edgeId:'edge-support-ref',sourceNodeId:evidence.nodeId,targetNodeId:subject.nodeId,relation:'supports_claim'}),
+    edge({edgeId:'edge-contra-ref',sourceNodeId:rival.nodeId,targetNodeId:subject.nodeId,relation:'contradicts_claim'}),
+  ];
+  const passport=buildRealityPassport(subject,edges);
+  assert.deepEqual(passport.provenance.supportingRelationRefs,['edge-support-ref']);
+  assert.deepEqual(passport.provenance.contradictionRefs,['edge-contra-ref']);
+});
+
+test('action response is not treated as persisted state without explicit persistence evidence',()=>{
+  const subject=node({
+    nodeId:'action-persistence',
+    ontologyType:'ACTION',
+    attributes:{
+      epistemicClass:'OBSERVED',
+      verificationState:'VERIFIED',
+      authority:'ROOT',
+      executionState:'SUCCEEDED',
+      expectedReturn:'change',
+    },
+  });
+  const passport=buildRealityPassport(subject,[]);
+  assert.equal(passport.persistence.represented,false);
+  assert.equal(passport.persistence.boundary,'ACTION_RESPONSE_NOT_PERSISTED_STATE_UNLESS_EXPLICITLY_REPRESENTED');
+});
+
+test('external cognitive peer style inferred claim remains bounded without verification',()=>{
+  const subject=node({
+    nodeId:'external-peer-claim',
+    ontologyType:'CLAIM',
+    attributes:{
+      epistemicClass:'INFERRED',
+      authorityExpanded:false,
+      mayMintReturn:false,
+      mayPromoteCanon:false,
+    },
+  });
+  const passport=buildRealityPassport(subject,[]);
+  assert.equal(passport.decision,'ABSTAIN');
+  assert.equal(passport.authority.authorityExpanded,false);
+  assert.equal(passport.authority.mayMintReturn,false);
+  assert.equal(passport.authority.mayPromoteCanon,false);
+  assert.equal(passport.contract,'SFI-REALITY-PASSPORT-1.1');
+});
