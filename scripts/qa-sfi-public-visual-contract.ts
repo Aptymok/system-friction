@@ -10,6 +10,8 @@ const chrome=read('src/components/public/SfiPublicChrome.tsx');
 const chromeCss=read('src/components/public/SfiPublicChrome.css');
 const landing=read('src/components/sfi/PublicEntryGateway.tsx');
 const landingCss=read('src/components/sfi/PublicEntryGateway.css');
+const observatory=read('src/components/sfi/ObservatoryConsole.tsx');
+const observatoryCss=read('src/components/sfi/ObservatoryConsole.css');
 const manifest=read('src/components/sfi/publicSceneManifest.ts');
 
 const pxSizes=(source:string)=>[...source.matchAll(/font(?:-size)?\\s*:\\s*(?:[^;{}]*?\\s)?([0-9]+(?:\\.[0-9]+)?)px/g)].map((match)=>Number(match[1]));
@@ -19,6 +21,12 @@ check('canonical SFI mark is vector and shared with authenticated navigation',
   chrome.includes('/library/assets/sfi-mark.svg')
   && !chrome.includes('sfi-institutional-seal.png')
   && chromeCss.includes('object-fit:contain'));
+check('Observatory respects public readability floor and chrome clearance',
+  belowReadableFloor(observatoryCss).length===0
+  && !/fontSize\s*:\s*(?:[0-9]|10)(?:\D|$)/.test(observatory)
+  && observatory.includes("bottom:102")
+  && observatory.includes("top:92,bottom:112"));
+
 check('public home/chrome typography respects 11px readability floor',
   belowReadableFloor(chromeCss).length===0
   && belowReadableFloor(landingCss).length===0);
