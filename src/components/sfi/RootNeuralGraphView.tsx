@@ -326,7 +326,7 @@ function semanticText(node: GraphNode) {
 const REALITY_PASSPORT_STAGES = ['world','capture','evidence','friction','transformation','hypothesis','inference','claim','verification','authority','action','return','contrast','learning','unclassified'] as const;
 type RealityPassportStage = (typeof REALITY_PASSPORT_STAGES)[number];
 
-function realityPassportStage(node: GraphNode): RealityStage {
+function realityPassportStage(node: GraphNode): RealityPassportStage {
   const explicit = node.reality?.stage?.toLowerCase();
   if (explicit && REALITY_PASSPORT_STAGES.includes(explicit as RealityPassportStage)) return explicit as RealityPassportStage;
   const text = semanticText(node);
