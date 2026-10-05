@@ -37,6 +37,7 @@ type GraphNode = {
     returnState: { expected:unknown|null; observed:unknown|null; status:'OBSERVED'|'PENDING'|'NOT_APPLICABLE'|'UNKNOWN' };
     constraints: { privacy:unknown|null; trajectory:unknown|null };
     boundary: string;
+    methodBoundary: string;
   };
   methodSignal?: {
     relationCount: number;
@@ -322,14 +323,14 @@ function semanticText(node: GraphNode) {
     .toLowerCase();
 }
 
-const REALITY_STAGES = ['world','capture','evidence','friction','transformation','hypothesis','inference','claim','verification','authority','action','return','contrast','learning','unclassified'] as const;
-type RealityStage = (typeof REALITY_STAGES)[number];
+const REALITY_PASSPORT_STAGES = ['world','capture','evidence','friction','transformation','hypothesis','inference','claim','verification','authority','action','return','contrast','learning','unclassified'] as const;
+type RealityPassportStage = (typeof REALITY_PASSPORT_STAGES)[number];
 
-function realityStage(node: GraphNode): RealityStage {
+function realityPassportStage(node: GraphNode): RealityStage {
   const explicit = node.reality?.stage?.toLowerCase();
-  if (explicit && REALITY_STAGES.includes(explicit as RealityStage)) return explicit as RealityStage;
+  if (explicit && REALITY_PASSPORT_STAGES.includes(explicit as RealityPassportStage)) return explicit as RealityPassportStage;
   const text = semanticText(node);
-  return REALITY_STAGES.slice(0, -1).find((stage) => text.includes(stage)) ?? 'unclassified';
+  return REALITY_PASSPORT_STAGES.slice(0, -1).find((stage) => text.includes(stage)) ?? 'unclassified';
 }
 
 function reorganizationOffset(node: GraphNode, reading: string): Position {
@@ -372,9 +373,9 @@ function buildPositions(nodes: GraphNode[], reading: 'CURRENT_STATE'|'HIERARCHY'
   const types = [...new Set(nodes.map((node) => node.type))].sort();
 
   if (reading === 'REALITY_CHAIN') {
-    const stages = REALITY_STAGES;
+    const stages = REALITY_PASSPORT_STAGES;
     const buckets = new Map(stages.map((stage) => [stage, [] as GraphNode[]]));
-    for (const node of nodes) buckets.get(realityStage(node))?.push(node);
+    for (const node of nodes) buckets.get(realityPassportStage(node))?.push(node);
     stages.forEach((stage, stageIndex) => {
       const bucket = buckets.get(stage) ?? [];
       const x = 70 + (stageIndex * (width - 140)) / Math.max(1, stages.length - 1);
@@ -622,7 +623,7 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
                 <span>PRIVACY<strong>{selected.realityPassport.constraints.privacy == null ? 'NOT REPRESENTED' : String(selected.realityPassport.constraints.privacy)}</strong></span>
                 <span>TRAJECTORY<strong>{selected.realityPassport.constraints.trajectory == null ? 'NOT REPRESENTED' : String(selected.realityPassport.constraints.trajectory)}</strong></span>
               </div>
-              <small>{selected.realityPassport.boundary.replaceAll('_',' ')} · {selected.realityPassport.persistence.boundary.replaceAll('_',' ')}</small>
+              <small>{selected.realityPassport.boundary.replaceAll('_',' ')} · {selected.realityPassport.methodBoundary.replaceAll('_',' ')} · {selected.realityPassport.persistence.boundary.replaceAll('_',' ')}</small>
             </details> : null}
             {selected.methodResult ? <p>METHOD · {selected.methodResult.methodId}@{selected.methodResult.methodVersion} · {selected.methodResult.epistemicClass}</p> : null}
             {selected.learningState ? <p>LEARNING · {selected.learningState.state} · {selected.learningState.classification ?? 'UNCLASSIFIED'}</p> : null}
