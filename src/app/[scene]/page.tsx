@@ -4,7 +4,7 @@ import { RootNeuralGraphView } from '@/components/sfi/RootNeuralGraphView';
 import { LEGACY_INTERNAL_SCENES, SCENE_KEYS, type SceneKey } from '@/components/sfi/scenes';
 import { readCanonicalGraphState } from '@/lib/graph/canonicalGraph';
 import { projectCognitiveGraph } from '@/lib/graph/cognitiveGraphAdmission';
-import { buildRealityPassport, readRealityChainNode, readRealityChainEdge, realityChainCoverage } from '@/lib/graph/realityChainProjection';
+import { buildRealityPassport, readRealityPassportNode, readRealityChainEdge, realityPassportCoverage } from '@/lib/graph/realityChainProjection';
 import { requireFounderPage } from '@/lib/system/access/server';
 import { AuthenticatedSfiMenu } from '@/components/sfi/AuthenticatedSfiMenu';
 import { deriveCanonicalFieldMethodSignal, planCanonicalUnknownResolution, resolveCanonicalFieldMethodology } from '@/lib/mihm/rootCaseMethodology';
@@ -58,9 +58,9 @@ export default async function ScenePage({ params }:{ params:Promise<{scene:strin
       }),
     );
 
-    const realityNodes = new Map(graph.nodes.map((node) => [node.nodeId, readRealityChainNode(node)]));
+    const realityNodes = new Map(graph.nodes.map((node) => [node.nodeId, readRealityPassportNode(node)]));
     const realityEdges = new Map(graph.edges.map((edge) => [edge.edgeId, readRealityChainEdge(edge)]));
-    const realityCoverage = realityChainCoverage(graph.nodes);
+    const realityPassportCoverage = realityPassportCoverage(graph.nodes);
     const realityPassports = new Map(graph.nodes.map((node) => [node.nodeId, buildRealityPassport(node, graph.edges)]));
     const methodSignals = new Map(
       graph.nodes.map((node) => [node.nodeId, deriveCanonicalFieldMethodSignal(node, graph.edges)]),
@@ -179,7 +179,7 @@ export default async function ScenePage({ params }:{ params:Promise<{scene:strin
                 attributes: edge.attributes,
               })),
             ],
-            realityCoverage,
+            realityCoverage: realityPassportCoverage,
             capacityEnvelope,
             admission: graph.admission,
           }}
