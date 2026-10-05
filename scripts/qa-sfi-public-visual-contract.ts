@@ -61,7 +61,7 @@ check('ultra-fine glass chrome owns overlap spacing',
   && chromeCss.includes('sfiFooterReality'));
 check('landing owns vertical text subject transition',landing.includes('goScene')&&landing.includes('CHANGE SUBJECT'));
 check('landing owns horizontal text explanation transition',landing.includes('moveFrame')&&landing.includes('CHANGE EXPLANATION'));
-check('landing visual stage is shared once',landing.includes('sfiVisualStage')&&landing.includes('sharedAssets.map')&&landing.split('sharedAssets.map').length===2);
+check('landing visual stage is shared once while active scene owns its clean visual sources',landing.includes('sfiVisualStage')&&landing.includes('sceneBackground=scene.background')&&landing.includes('sceneAssets=scene.assets')&&landing.includes('sceneAssets.map')&&landing.split('sfiVisualStage').length===2);
 check('landing visual stage does not react to pointer',!landing.includes('handlePointerMove')&&!landing.includes('stage-shift'));
 check('landing scene itself is static',!landingCss.includes('sfiNycDrift')&&!landingCss.includes('animation:sfiNycDrift'));
 check('only text/interface scene transition remains',landingCss.includes('.sfiScene[data-state="past"]')&&landingCss.includes('.sfiFieldState'));
