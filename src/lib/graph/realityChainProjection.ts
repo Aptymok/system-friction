@@ -1,10 +1,10 @@
 import type { CanonicalGraphEdge, CanonicalGraphNode } from '../../../packages/graph/src';
 
-export const REALITY_CHAIN_STAGES = [
+export const REALITY_PASSPORT_STAGES = [
   'WORLD','CAPTURE','EVIDENCE','FRICTION','TRANSFORMATION','HYPOTHESIS','INFERENCE','CLAIM',
   'VERIFICATION','AUTHORITY','ACTION','RETURN','CONTRAST','LEARNING',
 ] as const;
-export type RealityChainStage = typeof REALITY_CHAIN_STAGES[number];
+export type RealityPassportStage = typeof REALITY_PASSPORT_STAGES[number];
 
 export const REALITY_CHAIN_STATES = [
   'OBSERVED','DECLARED','IMPORTED','EXTRACTED','DERIVED','INFERRED','SIMULATED','PROPOSED',
@@ -13,8 +13,8 @@ export const REALITY_CHAIN_STATES = [
 ] as const;
 export type RealityChainState = typeof REALITY_CHAIN_STATES[number];
 
-export type RealityChainNodeReading = {
-  stage: RealityChainStage|'UNCLASSIFIED';
+export type RealityPassportNodeReading = {
+  stage: RealityPassportStage|'UNCLASSIFIED';
   state: RealityChainState;
   sourceVersion: string|null;
   captureTime: string|null;
@@ -35,7 +35,7 @@ export type RealityChainNodeReading = {
 export type RealityPassport = {
   contract: 'SFI-REALITY-PASSPORT-1.1';
   nodeId: string;
-  stage: RealityChainStage|'UNCLASSIFIED';
+  stage: RealityPassportStage|'UNCLASSIFIED';
   epistemicState: RealityChainState;
   decision: 'CONTINUE'|'ABSTAIN'|'BLOCKED';
   reasons: string[];
@@ -84,6 +84,7 @@ export type RealityPassport = {
     trajectory: unknown|null;
   };
   boundary: 'DERIVED_PROJECTION_NOT_CANONICAL_TRUTH';
+  methodBoundary: 'PROJECTS_REALITY_WITHOUT_REDEFINING_REALITY_CHAIN_METHOD';
 };
 
 const text=(value:unknown)=>typeof value==='string'&&value.trim()?value.trim():null;
@@ -97,10 +98,10 @@ const haystack=(node:CanonicalGraphNode)=>[
 function normalizedToken(value:string|null){
   return value?.trim().toUpperCase().replace(/[_-]+/g,' ').replace(/\s+/g,' ')??null;
 }
-function normalizedStage(value:string|null):RealityChainStage|null{
+function normalizedStage(value:string|null):RealityPassportStage|null{
   const token=normalizedToken(value);
   if(!token)return null;
-  return REALITY_CHAIN_STAGES.find((candidate)=>candidate===token)??null;
+  return REALITY_PASSPORT_STAGES.find((candidate)=>candidate===token)??null;
 }
 function normalizedState(value:string|null):RealityChainState|null{
   const token=normalizedToken(value);
@@ -129,11 +130,11 @@ function persistenceRefs(node:CanonicalGraphNode){
   })));
 }
 
-export function readRealityChainNode(node:CanonicalGraphNode):RealityChainNodeReading {
+export function readRealityPassportNode(node:CanonicalGraphNode):RealityPassportNodeReading {
   const value=haystack(node);
   const ontologyStage=normalizedStage(text(node.ontologyType));
   const explicitStage=normalizedStage(text(first(node.attributes,['realityChainStage','reality_chain_stage','realityStage','reality_stage','stage'])));
-  const stage=explicitStage??ontologyStage??REALITY_CHAIN_STAGES.find((candidate)=>value.includes(candidate.toLowerCase()))??'UNCLASSIFIED';
+  const stage=explicitStage??ontologyStage??REALITY_PASSPORT_STAGES.find((candidate)=>value.includes(candidate.toLowerCase()))??'UNCLASSIFIED';
   const declared=text(first(node.attributes,['epistemicState','epistemic_state','epistemicClass','epistemic_class','state','verification_status']));
   const state=normalizedState(declared)??'UNKNOWN';
   return {
@@ -162,7 +163,7 @@ export function readRealityChainEdge(edge:CanonicalGraphEdge) {
 }
 
 export function buildRealityPassport(node:CanonicalGraphNode,edges:CanonicalGraphEdge[]):RealityPassport {
-  const reading=readRealityChainNode(node);
+  const reading=readRealityPassportNode(node);
   const connected=edges.filter((edge)=>edge.sourceNodeId===node.nodeId||edge.targetNodeId===node.nodeId);
   const supporting=connected.filter((edge)=>relationMatches(edge,['support','evidence','verify','observe','capture','derive','infer']));
   const contradictions=connected.filter((edge)=>relationMatches(edge,['contradict','counterevidence','conflict','falsif','reject']));
@@ -257,10 +258,11 @@ export function buildRealityPassport(node:CanonicalGraphNode,edges:CanonicalGrap
       trajectory:reading.trajectory,
     },
     boundary:'DERIVED_PROJECTION_NOT_CANONICAL_TRUTH',
+    methodBoundary:'PROJECTS_REALITY_WITHOUT_REDEFINING_REALITY_CHAIN_METHOD',
   };
 }
 
-export function realityChainCoverage(nodes:CanonicalGraphNode[]) {
-  const present=new Set(nodes.map(readRealityChainNode).filter((item)=>item.stage!=='UNCLASSIFIED').map((item)=>item.stage));
-  return REALITY_CHAIN_STAGES.map((stage)=>({stage,observed:present.has(stage)}));
+export function realityPassportCoverage(nodes:CanonicalGraphNode[]) {
+  const present=new Set(nodes.map(readRealityPassportNode).filter((item)=>item.stage!=='UNCLASSIFIED').map((item)=>item.stage));
+  return REALITY_PASSPORT_STAGES.map((stage)=>({stage,observed:present.has(stage)}));
 }
