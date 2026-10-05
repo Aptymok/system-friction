@@ -115,7 +115,7 @@ export function SfiPublicHeader({global=false,active}:{active?:string;global?:bo
   return <>
     <header className={global?'sfiPublicTopbar sfiGlobalHeader':'sfiPublicTopbar'} data-sfi-public-chrome="SFI-NYC-CHROME-4.0">
       <Link href="/#intro" className="sfiPublicBrand" aria-label="System Friction Institute home">
-        <img src="/sfi/brand/sfi-institutional-seal.png" alt="" aria-hidden="true"/>
+        <img src="/library/assets/sfi-mark.svg" alt="" aria-hidden="true"/>
         <span className="sfiPublicBrandText"><strong>SFI</strong><i aria-hidden="true">|</i><span>SYSTEM FRICTION INSTITUTE</span></span>
       </Link>
 
