@@ -1,3 +1,8 @@
+:root{
+  --sfi-screen-void:#060605;
+  --sfi-screen-gold:#C8A951;
+  --sfi-screen-cream:#E8DDC3;
+}
 .sfiPublicTopbar{
   position:fixed!important;
   top:10px!important;
@@ -12,7 +17,7 @@
   padding:7px 12px!important;
   border:1px solid rgba(226,190,117,.10)!important;
   border-radius:11px;
-  background:rgba(7,7,6,.22)!important;
+  background:rgba(6,6,5,.42)!important;
   -webkit-backdrop-filter:blur(12px) saturate(122%);
   backdrop-filter:blur(12px) saturate(122%);
   box-shadow:0 10px 30px rgba(0,0,0,.12);
@@ -21,13 +26,13 @@
 .sfiPublicBrand{display:flex!important;align-items:center;gap:10px!important;min-width:0}
 .sfiPublicBrand>img{width:40px!important;height:40px!important;object-fit:contain!important;flex:0 0 auto}
 .sfiPublicBrandText{display:flex!important;align-items:center!important;gap:9px!important;min-width:0}
-.sfiPublicBrandText>strong{font:600 15px/1 ui-sans-serif,system-ui!important;letter-spacing:.10em!important;color:#f0d59f!important}
+.sfiPublicBrandText>strong{font:600 15px/1 ui-sans-serif,system-ui!important;letter-spacing:.10em!important;color:var(--sfi-screen-gold)!important}
 .sfiPublicBrandText>i{font:400 13px/1 ui-monospace,monospace;color:rgba(216,180,107,.46)}
 .sfiPublicBrandText>span{
   display:block!important;
-  font:650 10px/1.15 ui-monospace,SFMono-Regular,Menlo,monospace!important;
+  font:650 11px/1.15 ui-monospace,SFMono-Regular,Menlo,monospace!important;
   letter-spacing:.12em!important;
-  color:#d8d0c3!important;
+  color:var(--sfi-screen-cream)!important;
   white-space:nowrap
 }
 
@@ -41,7 +46,7 @@
 .sfiPublicPageArrow{
   display:flex!important;
   align-items:center;
-  gap:7px;
+  gap:9px;
   min-width:0;
   color:#9f9585!important;
   opacity:.72;
@@ -59,7 +64,7 @@
   overflow:hidden;
   text-overflow:ellipsis;
   white-space:nowrap;
-  font:650 8px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  font:650 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
   letter-spacing:.10em
 }
 .sfiPublicPageArrow--previous:hover{transform:translateX(-2px)}
@@ -86,19 +91,19 @@
 }
 .sfiPublicPageTitle strong{
   flex:0 1 auto;
-  font:700 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  font:700 12px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
   letter-spacing:.13em;
   color:#f0d59f
 }
 .sfiPublicPageTitle span{
   flex:0 1 auto;
-  font:550 10px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  font:550 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
   letter-spacing:.07em;
   color:#c6bbaa
 }
 .sfiPublicPageTitle em{
   flex:0 0 auto;
-  font:700 9px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  font:700 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
   letter-spacing:.12em;
   font-style:normal;
   color:#8fb2c3
@@ -112,7 +117,7 @@
 
 .sfiPublicChromeRight{display:flex;align-items:center;justify-content:flex-end;gap:14px;white-space:nowrap}
 .sfiPublicChromeRight time{
-  font:650 10px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  font:650 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
   letter-spacing:.08em;
   color:#d3cabd
 }
@@ -120,7 +125,7 @@
   border:1px solid rgba(216,180,107,.24)!important;
   border-radius:999px;
   padding:8px 11px!important;
-  font:700 10px/1 ui-monospace,SFMono-Regular,Menlo,monospace!important;
+  font:700 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace!important;
   letter-spacing:.12em!important;
   color:#f0d39a!important;
   background:rgba(216,180,107,.035)
@@ -137,11 +142,11 @@
   grid-template-columns:minmax(165px,.75fr) minmax(0,2.5fr) minmax(145px,.75fr);
   align-items:center;
   gap:16px!important;
-  min-height:58px;
+  min-height:76px;
   padding:8px 11px!important;
   border:1px solid rgba(226,190,117,.08)!important;
   border-radius:10px;
-  background:rgba(7,7,6,.18)!important;
+  background:rgba(6,6,5,.38)!important;
   -webkit-backdrop-filter:blur(10px) saturate(118%);
   backdrop-filter:blur(10px) saturate(118%);
   color:#b9b0a3!important;
@@ -149,7 +154,7 @@
 }
 .sfiFooterIdentity,
 .sfiFooterEvent{
-  font:650 10px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace!important;
+  font:650 11px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace!important;
   letter-spacing:.11em!important;
   color:#c8bfae!important
 }
@@ -165,7 +170,7 @@
   display:flex;
   justify-content:center;
   align-items:center;
-  gap:5px;
+  gap:8px;
   min-width:0;
   overflow-x:auto;
   white-space:nowrap;
@@ -177,7 +182,7 @@
   align-items:center;
   gap:5px;
   flex:0 0 auto;
-  font:650 7.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  font:650 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
   letter-spacing:.075em;
   color:#716a60;
   transition:color .18s ease
@@ -188,14 +193,14 @@
   display:flex;
   align-items:center;
   justify-content:center;
-  gap:10px;
+  gap:12px;
   min-width:0;
-  padding-top:6px;
+  padding-top:8px;
   border-top:1px solid rgba(216,180,107,.07)
 }
 .sfiFooterReality small{
   flex:0 0 auto;
-  font:700 7px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  font:700 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
   letter-spacing:.10em;
   color:#799aad
 }
@@ -206,7 +211,7 @@
   .sfiPublicBrandText>span{display:none!important}
   .sfiPublicBrandText>i{display:none}
   .sfiPublicPageArrow span{display:none}
-  .sfiPublicChromeRight time{font-size:9px}
+  .sfiPublicChromeRight time{font-size:11px}
   .sfiPublicFooter{grid-template-columns:auto 1fr auto}
 }
 @media(max-width:820px){
@@ -221,10 +226,10 @@
   .sfiPublicBrand>img{width:34px!important;height:34px!important}
   .sfiPublicBrandText>strong{font-size:13px!important}
   .sfiPublicPageTitle{gap:5px}
-  .sfiPublicPageTitle strong{font-size:9px;letter-spacing:.08em}
-  .sfiPublicPageTitle em{font-size:7px;letter-spacing:.08em}
+  .sfiPublicPageTitle strong{font-size:11px;letter-spacing:.08em}
+  .sfiPublicPageTitle em{font-size:11px;letter-spacing:.08em}
   .sfiPublicChromeRight time{display:none}
-  .sfiPublicAccess{padding:7px 9px!important;font-size:9px!important}
+  .sfiPublicAccess{padding:7px 9px!important;font-size:11px!important}
 
   .sfiPublicFooter{
     left:7px;
@@ -232,13 +237,13 @@
     bottom:7px;
     grid-template-columns:1fr!important;
     gap:5px!important;
-    min-height:54px;
-    padding:7px 9px!important
+    min-height:84px;
+    padding:9px 11px!important
   }
   .sfiFooterIdentity,.sfiFooterEvent{display:none}
   .sfiFooterChains{gap:6px}
   .sfiFooterReality{gap:7px}
-  .sfiFooterReality small{font-size:6px}
+  .sfiFooterReality small{font-size:11px}
   .sfiFooterChain{justify-content:flex-start}
-  .sfiFooterChain span{font-size:6.5px}
+  .sfiFooterChain span{font-size:11px}
 }
