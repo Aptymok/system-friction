@@ -131,8 +131,9 @@ function persistenceRefs(node:CanonicalGraphNode){
 
 export function readRealityChainNode(node:CanonicalGraphNode):RealityChainNodeReading {
   const value=haystack(node);
+  const ontologyStage=normalizedStage(text(node.ontologyType));
   const explicitStage=normalizedStage(text(first(node.attributes,['realityChainStage','reality_chain_stage','realityStage','reality_stage','stage'])));
-  const stage=explicitStage??REALITY_CHAIN_STAGES.find((candidate)=>value.includes(candidate.toLowerCase()))??'UNCLASSIFIED';
+  const stage=explicitStage??ontologyStage??REALITY_CHAIN_STAGES.find((candidate)=>value.includes(candidate.toLowerCase()))??'UNCLASSIFIED';
   const declared=text(first(node.attributes,['epistemicState','epistemic_state','epistemicClass','epistemic_class','state','verification_status']));
   const state=normalizedState(declared)??'UNKNOWN';
   return {
