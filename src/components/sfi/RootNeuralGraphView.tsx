@@ -587,7 +587,7 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
         {selected ? (
           <aside className="rootFieldHub">
             <button className="rootFieldHubClose" onClick={()=>setSelectedId(null)} aria-label="Close object hub">×</button>
-            <span className="rootFieldHubKicker">{selected.type} · {realityStage(selected).toUpperCase()}</span>
+            <span className="rootFieldHubKicker">{selected.type} · {realityPassportStage(selected).toUpperCase()}</span>
             <h2>{selected.label}</h2>
             <p>{selected.origin} · {selected.provenance}</p>
             <p>{String(selected.attributes.statement ?? selected.attributes.observedOutcome ?? selected.attributes.objective ?? selected.attributes.scope ?? selected.attributes.evidenceKind ?? selected.attributes.classification ?? 'Persisted cognitive object. Select connected objects to reconstruct its context.')}</p>
