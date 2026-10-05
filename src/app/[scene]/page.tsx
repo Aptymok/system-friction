@@ -60,7 +60,7 @@ export default async function ScenePage({ params }:{ params:Promise<{scene:strin
 
     const realityNodes = new Map(graph.nodes.map((node) => [node.nodeId, readRealityPassportNode(node)]));
     const realityEdges = new Map(graph.edges.map((edge) => [edge.edgeId, readRealityChainEdge(edge)]));
-    const realityPassportCoverage = realityPassportCoverage(graph.nodes);
+    const passportCoverage = realityPassportCoverage(graph.nodes);
     const realityPassports = new Map(graph.nodes.map((node) => [node.nodeId, buildRealityPassport(node, graph.edges)]));
     const methodSignals = new Map(
       graph.nodes.map((node) => [node.nodeId, deriveCanonicalFieldMethodSignal(node, graph.edges)]),
@@ -179,7 +179,7 @@ export default async function ScenePage({ params }:{ params:Promise<{scene:strin
                 attributes: edge.attributes,
               })),
             ],
-            realityCoverage: realityPassportCoverage,
+            realityCoverage: passportCoverage,
             capacityEnvelope,
             admission: graph.admission,
           }}
