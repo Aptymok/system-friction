@@ -64,6 +64,57 @@
 .sfiSceneLayer--4{z-index:4;opacity:.20;transform:translate3d(14vw,2vh,0) scale(.94);mix-blend-mode:screen}
 .sfiSceneLayer--5{z-index:5;opacity:.78;transform:translate3d(18vw,2vh,0) scale(.88);mix-blend-mode:screen}
 .sfiSceneLayer--6{z-index:6;opacity:.93;transform:translate3d(0,17vh,0) scale(1.13)}
+
+/* Scene-specific compositions use the same clean runtime plates.
+   Navigation, labels and rails remain DOM/CSS and are never baked into image assets. */
+.sfiSceneExperience[data-active-scene="time"] .sfiSharedBackground{background-position:58% center;filter:saturate(.78) contrast(1.045) brightness(.62)}
+.sfiSceneExperience[data-active-scene="time"] .sfiSceneLayer--1{opacity:.24;transform:scale(1.14)}
+.sfiSceneExperience[data-active-scene="time"] .sfiSceneLayer--2{opacity:.48;transform:translate3d(23vw,-11vh,0) scale(.74)}
+.sfiSceneExperience[data-active-scene="time"] .sfiSceneLayer--3{opacity:.34;transform:translate3d(19vw,-3vh,0) scale(.78)}
+.sfiSceneExperience[data-active-scene="time"] .sfiSceneLayer--4{opacity:.13}
+.sfiSceneExperience[data-active-scene="time"] .sfiSceneLayer--5{opacity:.24;transform:translate3d(23vw,4vh,0) scale(.88)}
+.sfiSceneExperience[data-active-scene="time"] .sfiSceneLayer--6{opacity:.88;transform:translate3d(-2vw,19vh,0) scale(1.16)}
+
+.sfiSceneExperience[data-active-scene="observation"] .sfiSharedBackground{background-position:64% center;filter:saturate(.72) contrast(1.06) brightness(.58)}
+.sfiSceneExperience[data-active-scene="observation"] .sfiSceneLayer--1{opacity:.08}
+.sfiSceneExperience[data-active-scene="observation"] .sfiSceneLayer--2{opacity:.12;transform:translate3d(27vw,-5vh,0) scale(.78)}
+.sfiSceneExperience[data-active-scene="observation"] .sfiSceneLayer--3{opacity:.10}
+.sfiSceneExperience[data-active-scene="observation"] .sfiSceneLayer--4{opacity:.36;transform:translate3d(11vw,4vh,0) scale(1)}
+.sfiSceneExperience[data-active-scene="observation"] .sfiSceneLayer--5{opacity:.92;transform:translate3d(20vw,1vh,0) scale(.9)}
+.sfiSceneExperience[data-active-scene="observation"] .sfiSceneLayer--6{opacity:.96;transform:translate3d(4vw,20vh,0) scale(1.17)}
+
+.sfiSceneExperience[data-active-scene="authority"] .sfiSharedBackground{background-position:54% center;filter:saturate(.82) contrast(1.07) brightness(.56)}
+.sfiSceneExperience[data-active-scene="authority"] .sfiSceneLayer--1{opacity:.10}
+.sfiSceneExperience[data-active-scene="authority"] .sfiSceneLayer--2{opacity:.08}
+.sfiSceneExperience[data-active-scene="authority"] .sfiSceneLayer--3{opacity:.52;transform:translate3d(18vw,-1vh,0) scale(.82)}
+.sfiSceneExperience[data-active-scene="authority"] .sfiSceneLayer--4{opacity:.28;transform:translate3d(17vw,3vh,0) scale(.91)}
+.sfiSceneExperience[data-active-scene="authority"] .sfiSceneLayer--5{opacity:.94;transform:translate3d(21vw,1vh,0) scale(.84)}
+.sfiSceneExperience[data-active-scene="authority"] .sfiSceneLayer--6{opacity:.64;transform:translate3d(1vw,22vh,0) scale(1.2)}
+
+.sfiSceneExperience[data-active-scene="execution"] .sfiSharedBackground{background-position:60% center;filter:saturate(.68) contrast(1.085) brightness(.54)}
+.sfiSceneExperience[data-active-scene="execution"] .sfiSceneLayer--1{opacity:.05}
+.sfiSceneExperience[data-active-scene="execution"] .sfiSceneLayer--2{opacity:.05}
+.sfiSceneExperience[data-active-scene="execution"] .sfiSceneLayer--3{opacity:.22;transform:translate3d(16vw,2vh,0) scale(.9)}
+.sfiSceneExperience[data-active-scene="execution"] .sfiSceneLayer--4{opacity:.20;transform:translate3d(19vw,7vh,0) scale(1)}
+.sfiSceneExperience[data-active-scene="execution"] .sfiSceneLayer--5{opacity:1;transform:translate3d(17vw,4vh,0) scale(.93)}
+.sfiSceneExperience[data-active-scene="execution"] .sfiSceneLayer--6{opacity:.74;transform:translate3d(7vw,25vh,0) scale(1.24)}
+
+.sfiSceneExperience[data-active-scene="return"] .sfiSharedBackground{background-position:50% center;filter:saturate(.88) contrast(1.04) brightness(.63)}
+.sfiSceneExperience[data-active-scene="return"] .sfiSceneLayer--1{opacity:.18;transform:scale(1.12)}
+.sfiSceneExperience[data-active-scene="return"] .sfiSceneLayer--2{opacity:.18;transform:translate3d(13vw,-7vh,0) scale(.86)}
+.sfiSceneExperience[data-active-scene="return"] .sfiSceneLayer--3{opacity:.30;transform:translate3d(11vw,0,0) scale(.9)}
+.sfiSceneExperience[data-active-scene="return"] .sfiSceneLayer--4{opacity:.42;transform:translate3d(9vw,2vh,0) scale(.98)}
+.sfiSceneExperience[data-active-scene="return"] .sfiSceneLayer--5{opacity:.34;transform:translate3d(20vw,5vh,0) scale(.9)}
+.sfiSceneExperience[data-active-scene="return"] .sfiSceneLayer--6{opacity:1;transform:translate3d(-5vw,14vh,0) scale(1.09)}
+
+.sfiSceneExperience[data-active-scene="after-ai-governance"] .sfiSharedBackground{background-position:56% center;filter:saturate(.9) contrast(1.035) brightness(.66)}
+.sfiSceneExperience[data-active-scene="after-ai-governance"] .sfiSceneLayer--1{opacity:.14}
+.sfiSceneExperience[data-active-scene="after-ai-governance"] .sfiSceneLayer--2{opacity:.24;transform:translate3d(20vw,-9vh,0) scale(.8)}
+.sfiSceneExperience[data-active-scene="after-ai-governance"] .sfiSceneLayer--3{opacity:.40;transform:translate3d(16vw,-2vh,0) scale(.84)}
+.sfiSceneExperience[data-active-scene="after-ai-governance"] .sfiSceneLayer--4{opacity:.32;transform:translate3d(14vw,1vh,0) scale(.94)}
+.sfiSceneExperience[data-active-scene="after-ai-governance"] .sfiSceneLayer--5{opacity:.68;transform:translate3d(19vw,3vh,0) scale(.88)}
+.sfiSceneExperience[data-active-scene="after-ai-governance"] .sfiSceneLayer--6{opacity:.9;transform:translate3d(0,18vh,0) scale(1.14)}
+
 .sfiSharedVeil{
   position:absolute;
   inset:0;
