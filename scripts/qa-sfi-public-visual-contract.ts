@@ -12,6 +12,21 @@ const landing=read('src/components/sfi/PublicEntryGateway.tsx');
 const landingCss=read('src/components/sfi/PublicEntryGateway.css');
 const manifest=read('src/components/sfi/publicSceneManifest.ts');
 
+const pxSizes=(source:string)=>[...source.matchAll(/font(?:-size)?\\s*:\\s*(?:[^;{}]*?\\s)?([0-9]+(?:\\.[0-9]+)?)px/g)].map((match)=>Number(match[1]));
+const belowReadableFloor=(source:string)=>pxSizes(source).filter((value)=>value<11);
+
+check('canonical SFI mark is vector and shared with authenticated navigation',
+  chrome.includes('/library/assets/sfi-mark.svg')
+  && !chrome.includes('sfi-institutional-seal.png')
+  && chromeCss.includes('object-fit:contain'));
+check('public home/chrome typography respects 11px readability floor',
+  belowReadableFloor(chromeCss).length===0
+  && belowReadableFloor(landingCss).length===0);
+check('institutional screen compensation palette is declared',
+  chromeCss.includes('#060605')
+  && chromeCss.includes('#C8A951')
+  && chromeCss.includes('#E8DDC3'));
+
 check('canonical contextual public header exists',
   chrome.includes('SfiPublicHeader')
   && chrome.includes('sfiPublicPageNav')
