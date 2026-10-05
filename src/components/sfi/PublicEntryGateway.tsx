@@ -23,8 +23,8 @@ export function PublicEntryGateway(){
   const [frameIndex,setFrameIndex]=useState(0);
 
   const scene=SCENES[sceneIndex];
-  const sharedBackground=SCENES[0].background;
-  const sharedAssets=SCENES[0].assets;
+  const sceneBackground=scene.background;
+  const sceneAssets=scene.assets;
 
   const goScene=useCallback((next:number)=>{
     const bounded=clamp(next,0,SCENES.length-1);
@@ -142,10 +142,10 @@ export function PublicEntryGateway(){
     onPointerCancel={()=>{dragStart.current=null;}}
   >
     <div className="sfiVisualStage" aria-hidden="true">
-      <div className="sfiSharedBackground" style={{backgroundImage:`url('${sharedBackground}')`}}/>
+      <div className="sfiSharedBackground" style={{backgroundImage:`url('${sceneBackground}')`}}/>
       <div className="sfiSharedLayers">
-        {sharedAssets.map((asset,layerIndex)=><img
-          key={asset.src}
+        {sceneAssets.map((asset,layerIndex)=><img
+          key={`${scene.id}:${asset.src}`}
           src={asset.src}
           alt=""
           decoding="async"
