@@ -110,6 +110,7 @@
 }
 .sfiPublicPageTitle i{
   flex:0 0 auto;
+  font-size:11px;
   font-style:normal;
   color:rgba(216,180,107,.34)
 }
