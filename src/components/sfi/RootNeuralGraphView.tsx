@@ -28,9 +28,12 @@ type GraphNode = {
     epistemicState: string;
     decision: 'CONTINUE'|'ABSTAIN'|'BLOCKED';
     reasons: string[];
-    provenance: { declared:string; lineageCount:number; supportingRelationCount:number; contradictionCount:number };
+    temporal: { sourceVersion:string|null; captureTime:string|null; nodeUpdatedAt:string|null };
+    epistemic: { uncertainty:unknown|null };
+    provenance: { declared:string; lineageCount:number; lineageRefs:string[]; supportingRelationCount:number; supportingRelationRefs:string[]; contradictionCount:number; contradictionRefs:string[] };
     verification: { state:string; cost:unknown|null; budget:unknown|null; nextBestObservation:string|null };
-    authority: { state:string; executionState:string };
+    authority: { state:string; executionState:string; authorityExpanded:boolean|null; mayMintReturn:boolean|null; mayPromoteCanon:boolean|null };
+    persistence: { represented:boolean; refs:string[]; boundary:string };
     returnState: { expected:unknown|null; observed:unknown|null; status:'OBSERVED'|'PENDING'|'NOT_APPLICABLE'|'UNKNOWN' };
     constraints: { privacy:unknown|null; trajectory:unknown|null };
     boundary: string;
@@ -608,11 +611,18 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
                 <span>SUPPORTING RELATIONS<strong>{selected.realityPassport.provenance.supportingRelationCount}</strong></span>
                 <span>CONTRADICTIONS<strong>{selected.realityPassport.provenance.contradictionCount}</strong></span>
                 <span>LINEAGE<strong>{selected.realityPassport.provenance.lineageCount}</strong></span>
+                <span>AS-OF / CAPTURE<strong>{selected.realityPassport.temporal.captureTime ?? selected.realityPassport.temporal.nodeUpdatedAt ?? 'NOT REPRESENTED'}</strong></span>
+                <span>SOURCE VERSION<strong>{selected.realityPassport.temporal.sourceVersion ?? 'NOT REPRESENTED'}</strong></span>
+                <span>UNCERTAINTY<strong>{selected.realityPassport.epistemic.uncertainty == null ? 'NOT REPRESENTED' : String(selected.realityPassport.epistemic.uncertainty)}</strong></span>
                 <span>NEXT OBSERVATION<strong>{selected.realityPassport.verification.nextBestObservation ?? 'NOT REPRESENTED'}</strong></span>
+                <span>PERSISTED STATE<strong>{selected.realityPassport.persistence.represented ? 'REPRESENTED' : 'NOT REPRESENTED'}</strong></span>
+                <span>AUTHORITY EXPANDED<strong>{selected.realityPassport.authority.authorityExpanded == null ? 'NOT REPRESENTED' : String(selected.realityPassport.authority.authorityExpanded)}</strong></span>
+                <span>MAY MINT RETURN<strong>{selected.realityPassport.authority.mayMintReturn == null ? 'NOT REPRESENTED' : String(selected.realityPassport.authority.mayMintReturn)}</strong></span>
+                <span>MAY PROMOTE CANON<strong>{selected.realityPassport.authority.mayPromoteCanon == null ? 'NOT REPRESENTED' : String(selected.realityPassport.authority.mayPromoteCanon)}</strong></span>
                 <span>PRIVACY<strong>{selected.realityPassport.constraints.privacy == null ? 'NOT REPRESENTED' : String(selected.realityPassport.constraints.privacy)}</strong></span>
                 <span>TRAJECTORY<strong>{selected.realityPassport.constraints.trajectory == null ? 'NOT REPRESENTED' : String(selected.realityPassport.constraints.trajectory)}</strong></span>
               </div>
-              <small>{selected.realityPassport.boundary.replaceAll('_',' ')}</small>
+              <small>{selected.realityPassport.boundary.replaceAll('_',' ')} · {selected.realityPassport.persistence.boundary.replaceAll('_',' ')}</small>
             </details> : null}
             {selected.methodResult ? <p>METHOD · {selected.methodResult.methodId}@{selected.methodResult.methodVersion} · {selected.methodResult.epistemicClass}</p> : null}
             {selected.learningState ? <p>LEARNING · {selected.learningState.state} · {selected.learningState.classification ?? 'UNCLASSIFIED'}</p> : null}
