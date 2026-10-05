@@ -33,17 +33,28 @@ export type RealityChainNodeReading = {
 };
 
 export type RealityPassport = {
-  contract: 'SFI-REALITY-PASSPORT-1.0';
+  contract: 'SFI-REALITY-PASSPORT-1.1';
   nodeId: string;
   stage: RealityChainStage|'UNCLASSIFIED';
   epistemicState: RealityChainState;
   decision: 'CONTINUE'|'ABSTAIN'|'BLOCKED';
   reasons: string[];
+  temporal: {
+    sourceVersion: string|null;
+    captureTime: string|null;
+    nodeUpdatedAt: string|null;
+  };
+  epistemic: {
+    uncertainty: unknown|null;
+  };
   provenance: {
     declared: string;
     lineageCount: number;
+    lineageRefs: string[];
     supportingRelationCount: number;
+    supportingRelationRefs: string[];
     contradictionCount: number;
+    contradictionRefs: string[];
   };
   verification: {
     state: string;
@@ -54,6 +65,14 @@ export type RealityPassport = {
   authority: {
     state: string;
     executionState: string;
+    authorityExpanded: boolean|null;
+    mayMintReturn: boolean|null;
+    mayPromoteCanon: boolean|null;
+  };
+  persistence: {
+    represented: boolean;
+    refs: string[];
+    boundary: 'ACTION_RESPONSE_NOT_PERSISTED_STATE_UNLESS_EXPLICITLY_REPRESENTED';
   };
   returnState: {
     expected: unknown|null;
@@ -68,22 +87,54 @@ export type RealityPassport = {
 };
 
 const text=(value:unknown)=>typeof value==='string'&&value.trim()?value.trim():null;
+const bool=(value:unknown)=>value===true?true:value===false?false:null;
 const first=(a:Record<string,unknown>,keys:string[])=>{for(const k of keys) if(a[k]!==undefined&&a[k]!==null)return a[k]; return null;};
 const haystack=(node:CanonicalGraphNode)=>[
   node.ontologyType,node.label,node.origin,node.provenance,...node.lineage,
   ...Object.keys(node.attributes),...Object.values(node.attributes).filter((v):v is string=>typeof v==='string'),
 ].join(' ').toLowerCase();
 
+function normalizedToken(value:string|null){
+  return value?.trim().toUpperCase().replace(/[_-]+/g,' ').replace(/\s+/g,' ')??null;
+}
+function normalizedStage(value:string|null):RealityChainStage|null{
+  const token=normalizedToken(value);
+  if(!token)return null;
+  return REALITY_CHAIN_STAGES.find((candidate)=>candidate===token)??null;
+}
+function normalizedState(value:string|null):RealityChainState|null{
+  const token=normalizedToken(value);
+  if(!token)return null;
+  return REALITY_CHAIN_STATES.find((candidate)=>candidate===token)??null;
+}
 function relationMatches(edge:CanonicalGraphEdge,tokens:string[]){
   const value=`${edge.relation} ${edge.provenance} ${Object.keys(edge.attributes).join(' ')}`.toLowerCase();
   return tokens.some((token)=>value.includes(token));
 }
+function representedAuthority(value:string|null){
+  const token=normalizedToken(value);
+  return Boolean(token&&!['UNKNOWN','NONE','NOT REPRESENTED','NOT APPLICABLE','MISSING'].includes(token));
+}
+function verificationBlocks(value:string|null){
+  const token=normalizedToken(value);
+  return token!==null&&['UNKNOWN','MISSING','NOT VERIFIED','FAILED','REJECTED','BLOCKED'].includes(token);
+}
+function persistenceRefs(node:CanonicalGraphNode){
+  const keys=['eventId','event_id','receiptId','receipt_id','recordId','record_id','persistedAt','persisted_at'];
+  return Array.from(new Set(keys.flatMap((key)=>{
+    const value=node.attributes[key];
+    if(typeof value==='string'&&value.trim())return [value.trim()];
+    if(Array.isArray(value))return value.filter((item):item is string=>typeof item==='string'&&item.trim().length>0).map((item)=>item.trim());
+    return [];
+  })));
+}
 
 export function readRealityChainNode(node:CanonicalGraphNode):RealityChainNodeReading {
   const value=haystack(node);
-  const stage=REALITY_CHAIN_STAGES.find((candidate)=>value.includes(candidate.toLowerCase()))??'UNCLASSIFIED';
-  const declared=text(first(node.attributes,['epistemicState','epistemic_state','epistemicClass','epistemic_class','state','verification_status']))?.toUpperCase();
-  const state=REALITY_CHAIN_STATES.includes(declared as RealityChainState)?declared as RealityChainState:'UNKNOWN';
+  const explicitStage=normalizedStage(text(first(node.attributes,['realityChainStage','reality_chain_stage','realityStage','reality_stage','stage'])));
+  const stage=explicitStage??REALITY_CHAIN_STAGES.find((candidate)=>value.includes(candidate.toLowerCase()))??'UNCLASSIFIED';
+  const declared=text(first(node.attributes,['epistemicState','epistemic_state','epistemicClass','epistemic_class','state','verification_status']));
+  const state=normalizedState(declared)??'UNKNOWN';
   return {
     stage,state,
     sourceVersion:text(first(node.attributes,['sourceVersion','source_version','version'])),
@@ -106,7 +157,7 @@ export function readRealityChainNode(node:CanonicalGraphNode):RealityChainNodeRe
 export function readRealityChainEdge(edge:CanonicalGraphEdge) {
   const relation=edge.relation.toUpperCase();
   const material=['CAPTURE','EVIDENCE','FRICTION','TRANSFORM','HYPOTH','INFER','CLAIM','VERIFY','AUTHOR','ACTION','EXECUT','RETURN','CONTRAST','LEARN','SUPPORT','CONTRADICT'].some((token)=>relation.includes(token));
-  return {material,provenance:edge.provenance||'UNKNOWN',relation:edge.relation,state:text(first(edge.attributes,['state','epistemicState','epistemic_state']))?.toUpperCase()??'UNKNOWN'};
+  return {material,provenance:edge.provenance||'UNKNOWN',relation:edge.relation,state:normalizedState(text(first(edge.attributes,['state','epistemicState','epistemic_state'])))??'UNKNOWN'};
 }
 
 export function buildRealityPassport(node:CanonicalGraphNode,edges:CanonicalGraphEdge[]):RealityPassport {
@@ -121,18 +172,20 @@ export function buildRealityPassport(node:CanonicalGraphNode,edges:CanonicalGrap
   const authorityRequired=reading.stage==='ACTION';
   const returnRequired=reading.stage==='ACTION'||reading.expectedReturn!==null;
 
-  if (reading.state==='UNKNOWN'||reading.state==='MISSING'||reading.state==='NOT OBSERVED') {
+  if (['UNKNOWN','MISSING','NOT OBSERVED'].includes(reading.state)) {
     reasons.push('Epistemic state is not sufficiently observed.');
     decision='ABSTAIN';
   }
-  if (claimLike && !reading.verificationState && supporting.length===0) {
-    reasons.push('No explicit verification state or supporting relation is available.');
+  if (claimLike && ((!reading.verificationState&&supporting.length===0)||verificationBlocks(reading.verificationState))) {
+    reasons.push(reading.verificationState
+      ? `Represented verification state is ${reading.verificationState}.`
+      : 'No explicit verification state or supporting relation is available.');
     decision='ABSTAIN';
   }
   if (contradictions.length>0) {
     reasons.push(`${contradictions.length} contradiction or counterevidence relation(s) remain visible.`);
   }
-  if (authorityRequired && !reading.authority) {
+  if (authorityRequired && !representedAuthority(reading.authority)) {
     reasons.push('Action authority is not represented.');
     decision='BLOCKED';
   }
@@ -149,18 +202,31 @@ export function buildRealityPassport(node:CanonicalGraphNode,edges:CanonicalGrap
 
   if (returnStatus==='PENDING' && decision==='CONTINUE') reasons.push('Execution/expectation exists but observed RETURN is still pending.');
 
+  const persistedRefs=persistenceRefs(node);
+  const persistedFlag=bool(first(node.attributes,['persisted','persistedState','persisted_state','persistenceConfirmed','persistence_confirmed']));
+  const persistenceRepresented=persistedFlag===true||persistedRefs.length>0;
+
   return {
-    contract:'SFI-REALITY-PASSPORT-1.0',
+    contract:'SFI-REALITY-PASSPORT-1.1',
     nodeId:node.nodeId,
     stage:reading.stage,
     epistemicState:reading.state,
     decision,
     reasons,
+    temporal:{
+      sourceVersion:reading.sourceVersion,
+      captureTime:reading.captureTime,
+      nodeUpdatedAt:node.updatedAt??null,
+    },
+    epistemic:{uncertainty:reading.uncertainty},
     provenance:{
       declared:node.provenance||'UNKNOWN',
       lineageCount:node.lineage.length,
+      lineageRefs:[...node.lineage],
       supportingRelationCount:supporting.length,
+      supportingRelationRefs:supporting.map((edge)=>edge.edgeId),
       contradictionCount:contradictions.length,
+      contradictionRefs:contradictions.map((edge)=>edge.edgeId),
     },
     verification:{
       state:reading.verificationState??'UNKNOWN',
@@ -171,6 +237,14 @@ export function buildRealityPassport(node:CanonicalGraphNode,edges:CanonicalGrap
     authority:{
       state:reading.authority??'UNKNOWN',
       executionState:reading.executionState??'UNKNOWN',
+      authorityExpanded:bool(first(node.attributes,['authorityExpanded','authority_expanded'])),
+      mayMintReturn:bool(first(node.attributes,['mayMintReturn','may_mint_return','observedReturnCreated','observed_return_created'])),
+      mayPromoteCanon:bool(first(node.attributes,['mayPromoteCanon','may_promote_canon','canonPromoted','canon_promoted'])),
+    },
+    persistence:{
+      represented:persistenceRepresented,
+      refs:persistedRefs,
+      boundary:'ACTION_RESPONSE_NOT_PERSISTED_STATE_UNLESS_EXPLICITLY_REPRESENTED',
     },
     returnState:{
       expected:reading.expectedReturn,
