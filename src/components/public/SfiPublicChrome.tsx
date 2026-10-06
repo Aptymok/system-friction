@@ -101,7 +101,6 @@ export function SfiPublicHeader({global=false,active}:{active?:string;global?:bo
   const {pathname,context,clock}=usePublicChromeContext();
   const title=active||context.title;
   const reserveSpace=pathname!=='/';
-  const external=context.href.startsWith('http');
 
   return <>
     <header className={global?'sfiPublicTopbar sfiGlobalHeader':'sfiPublicTopbar'} data-sfi-public-chrome="SFI-NYC-CHROME-4.0">
