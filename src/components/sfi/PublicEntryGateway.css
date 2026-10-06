@@ -364,3 +364,147 @@
 @media(prefers-reduced-motion:reduce){
   .sfiScene,.sfiFieldState,.sfiTopicRail i,.sfiExplanationRail button,.sfiIntroTile{transition:none!important;animation:none!important}
 }
+
+
+/* AI Week NYC reference convergence · approved Home grammar */
+.sfiScene--intro .sfiSceneContent{
+  width:100%;
+  margin:0;
+  padding:84px 4.6vw 92px;
+  align-items:center;
+}
+.sfiScene--intro .sfiSceneCopy{width:min(760px,48vw)}
+.sfiScene--intro .sfiSceneEyebrow{
+  gap:12px;
+  margin-bottom:27px;
+  font-size:11px;
+  letter-spacing:.23em;
+  color:rgba(232,221,195,.58);
+}
+.sfiScene--intro .sfiSceneEyebrow:before{
+  content:"";
+  width:56px;
+  height:1px;
+  background:rgba(200,169,81,.72);
+}
+.sfiScene--intro .sfiSceneEyebrow>span{display:none}
+.sfiScene--intro .sfiSceneCopy h1{
+  max-width:8.2ch;
+  font:400 clamp(58px,6.1vw,98px)/.91 Georgia,'Times New Roman',serif;
+  letter-spacing:-.045em;
+  color:#f3efe5;
+}
+.sfiScene--intro .sfiSceneCopy h1 span{color:#f3efe5}
+.sfiScene--intro .sfiSceneLead{
+  max-width:none;
+  margin:20px 0 0;
+  font:400 clamp(22px,1.8vw,31px)/1.2 Georgia,'Times New Roman',serif;
+  letter-spacing:.012em;
+  color:rgba(232,221,195,.9);
+}
+.sfiHeroActions{margin-top:22px}
+.sfiHeroStatement{
+  margin:0;
+  font:400 18px/1.5 Georgia,'Times New Roman',serif;
+  letter-spacing:.16em;
+  color:rgba(232,221,195,.35);
+}
+.sfiHeroCta{
+  display:inline-flex;
+  align-items:center;
+  gap:24px;
+  min-width:250px;
+  margin-top:34px;
+  padding:14px 28px;
+  border:1px solid rgba(232,221,195,.34);
+  border-right-color:rgba(200,169,81,.82);
+  border-radius:999px;
+  background:linear-gradient(90deg,rgba(6,6,5,.18),rgba(200,169,81,.08));
+  color:#ede3cf!important;
+  box-shadow:inset -16px 0 26px rgba(200,169,81,.06),0 0 24px rgba(0,0,0,.18);
+  transition:border-color .2s ease,background .2s ease,box-shadow .2s ease,transform .2s ease;
+}
+.sfiHeroCta span{font:400 19px/1 Georgia,'Times New Roman',serif;color:#e7c775}
+.sfiHeroCta b{font:400 18px/1.2 Georgia,'Times New Roman',serif;letter-spacing:.01em}
+.sfiHeroCta:hover{
+  transform:translateX(3px);
+  border-color:rgba(200,169,81,.76);
+  background:linear-gradient(90deg,rgba(6,6,5,.28),rgba(200,169,81,.14));
+  box-shadow:0 0 28px rgba(200,169,81,.12);
+}
+.sfiScene--intro .sfiGestureLegend{display:none}
+
+.sfiTopicRail{
+  right:4.2vw;
+  gap:0;
+  padding:0;
+}
+.sfiTopicRail:before{
+  content:"";
+  position:absolute;
+  left:118px;
+  top:13px;
+  bottom:13px;
+  width:1px;
+  background:linear-gradient(180deg,transparent,rgba(200,169,81,.46) 12%,rgba(200,169,81,.46) 88%,transparent);
+}
+.sfiTopicRail button{
+  position:relative;
+  grid-template-columns:106px 26px 25px;
+  min-height:42px;
+  gap:12px;
+  text-align:left;
+}
+.sfiTopicRail span{
+  text-align:left;
+  font-size:11px;
+  letter-spacing:.18em;
+  color:rgba(232,221,195,.62);
+}
+.sfiTopicRail i{
+  position:relative;
+  width:26px!important;
+  height:1px;
+  background:transparent!important;
+}
+.sfiTopicRail i:after{
+  content:"";
+  position:absolute;
+  left:12px;
+  top:-2px;
+  width:5px;
+  height:5px;
+  border-radius:50%;
+  background:#b38d4d;
+  box-shadow:0 0 9px rgba(200,169,81,.26);
+}
+.sfiTopicRail em{
+  font:650 11px/1 var(--mono);
+  letter-spacing:.08em;
+  font-style:normal;
+  color:rgba(232,221,195,.58);
+}
+.sfiTopicRail button[data-active="true"] span,
+.sfiTopicRail button[data-active="true"] em{color:#ead8ad}
+.sfiTopicRail button[data-active="true"] i:after{
+  background:#efd398;
+  box-shadow:0 0 14px rgba(200,169,81,.68);
+}
+
+.sfiExplanationRail{bottom:94px}
+
+@media(max-width:900px){
+  .sfiScene--intro .sfiSceneContent{padding:78px 18px 94px;align-items:flex-start}
+  .sfiScene--intro .sfiSceneCopy{width:min(82vw,620px);padding-top:8vh}
+  .sfiScene--intro .sfiSceneCopy h1{font-size:clamp(46px,12vw,74px)}
+  .sfiScene--intro .sfiSceneLead{font-size:clamp(18px,4.8vw,24px)}
+  .sfiHeroStatement{font-size:14px;letter-spacing:.10em}
+  .sfiHeroCta{min-width:220px;margin-top:26px}
+  .sfiTopicRail{right:11px}
+  .sfiTopicRail:before{left:14px}
+  .sfiTopicRail button{grid-template-columns:28px 24px;gap:4px;min-height:36px}
+  .sfiTopicRail span{display:none}
+  .sfiTopicRail i{grid-column:1;width:28px!important}
+  .sfiTopicRail i:after{left:12px}
+  .sfiTopicRail em{grid-column:2}
+}
