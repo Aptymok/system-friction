@@ -123,7 +123,7 @@ assert.ok(
   && publicChrome.includes("label:'ROOT'")
   && publicChrome.includes("label:'OBSERVATORY'")
   && publicChrome.includes("label:'REPOSITORY'")
-  && publicChrome.includes("label:'MOPH'")
+  && publicChrome.includes("label:'METHOD LAB'")
   && publicChrome.includes("label:'WORLD VECTOR'")
   && publicChrome.includes("label:'PUBLICATIONS'")
   && publicChrome.includes('AI WEEK NYC 2026'),
