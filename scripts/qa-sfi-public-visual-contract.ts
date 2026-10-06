@@ -43,13 +43,14 @@ check('canonical institutional public header exists',
   && chrome.includes('sfiPublicMenuItem')
   && chrome.includes("timeZone:'UTC'")
   && chrome.includes('Institutional access'));
-check('reference header exposes the approved institutional menu',
-  chrome.includes("label:'ROOT'")
-  && chrome.includes("label:'OBSERVATORY'")
+check('reference header exposes the canonical SFI instrument surfaces',
+  chrome.includes("label:'TIMELINE'")
   && chrome.includes("label:'REPOSITORY'")
-  && chrome.includes("label:'MOPH'")
   && chrome.includes("label:'WORLD VECTOR'")
-  && chrome.includes("label:'PUBLICATIONS'")
+  && chrome.includes("label:'METHOD LAB'")
+  && chrome.includes("label:'REALITY CHAIN'")
+  && chrome.includes("label:'OBSERVATORY'")
+  && chrome.includes("label:'ROOT'")
   && chrome.includes('NAV_SURFACES')
   && chrome.includes('context.statement')
   && chrome.includes('context.stage'));
@@ -73,25 +74,60 @@ check('reference chrome owns fixed header and semantic timeline clearances',
   && chromeCss.includes('.sfiPublicChromeSpacer')
   && chromeCss.includes('sfiFooterChains')
   && chromeCss.includes('sfiFooterReality'));
-check('landing owns vertical text subject transition',landing.includes('goScene')&&landing.includes('CHANGE SUBJECT'));
-check('Home reference hero has direct Observatory entry and six-stage rail',
+
+check('landing owns vertical surface transition',landing.includes('goScene')&&landing.includes('CHANGE SURFACE'));
+check('Home reference hero keeps direct Observatory entry and seven-surface rail',
   landing.includes('Enter Observatory')
-  && landing.includes('CORE_RAIL')
-  && landing.includes("label:'OBSERVATION'")
-  && landing.includes("label:'RETURN'")
+  && landing.includes('SURFACE_RAIL')
+  && landing.includes("label:'TIMELINE'")
+  && landing.includes("label:'REALITY CHAIN'")
+  && landing.includes("label:'ROOT'")
   && landingCss.includes('.sfiHeroCta')
   && landingCss.includes('.sfiTopicRail'));
-check('landing owns horizontal text explanation transition',landing.includes('moveFrame')&&landing.includes('CHANGE EXPLANATION'));
-check('landing visual stage is shared once while active scene owns its clean visual sources',landing.includes('sfiVisualStage')&&landing.includes('sceneBackground=scene.background')&&landing.includes('sceneAssets=scene.assets')&&landing.includes('sceneAssets.map')&&landing.split('sfiVisualStage').length===2);
-check('landing visual stage does not react to pointer',!landing.includes('handlePointerMove')&&!landing.includes('stage-shift'));
-check('landing scene itself is static',!landingCss.includes('sfiNycDrift')&&!landingCss.includes('animation:sfiNycDrift'));
-check('only text/interface scene transition remains',landingCss.includes('.sfiScene[data-state="past"]')&&landingCss.includes('.sfiFieldState'));
-check('NYC visual stack has no humans',!manifest.includes("role:'human'")&&!manifest.includes('observer.png')&&!manifest.includes('board.png')&&!manifest.includes('people.png'));
-for(const asset of ['background.avif','earth.avif','moon.avif','clouds.avif','golden-circle.avif','structure.avif','lines.avif']){
-  check(`runtime NYC layer declared: ${asset}`,manifest.includes(`/sfi/nyc/runtime/${asset}`));
+check('landing owns horizontal reading transition',landing.includes('moveFrame')&&landing.includes('CHANGE READING'));
+check('landing visual stage is shared once while active scene owns its visual sources',
+  landing.includes('sfiVisualStage')
+  && landing.includes('sceneBackground=scene.background')
+  && landing.includes('sceneAssets=scene.assets')
+  && landing.includes('sceneAssets.map')
+  && landing.split('sfiVisualStage').length===2);
+check('landing visual stack has real pointer parallax',
+  landing.includes('handlePointerMove')
+  && landing.includes('sfiSceneParallaxLayer')
+  && landing.includes('data-motion')
+  && landingCss.includes('.sfiSceneParallaxLayer')
+  && landingCss.includes('sfiSurfaceAmbientDrift'));
+check('landing scene transition remains bounded to interface state',
+  landingCss.includes('.sfiScene[data-state="past"]')
+  && landingCss.includes('.sfiFieldState'));
+check('public visual stack has no human layer',
+  !manifest.includes("role:'human'")
+  && !manifest.includes('observer.png')
+  && !manifest.includes('people.png'));
+
+for(const surface of ['timeline','repository','world-vector','method-lab','reality-chain','observatory','root']){
+  check(`canonical public surface declared: ${surface}`,manifest.includes(`id:'${surface}'`));
 }
+for(const asset of [
+  'luminous_gold_celestial_timeline_spine.png',
+  '06_elements_archive.png',
+  'world-network.png',
+  '04_overlay_orbits.png',
+  '05_element_portal.png',
+  'observatory-frame.png',
+  'golden_celestial_astrolabe_hud.png',
+]){
+  check(`surface layer declared: ${asset}`,manifest.includes(asset));
+}
+check('instrument scenes use independent parallax layers',
+  manifest.includes("motion:'pointer-parallax'")
+  && manifest.includes("motion:'slow-drift'")
+  && manifest.includes('depth:5'));
+check('runtime master corpus remains available for intro',
+  manifest.includes('/sfi/nyc/runtime/background.avif')
+  && manifest.includes('/sfi/nyc/runtime/earth.avif')
+  && manifest.includes('/sfi/nyc/runtime/structure.avif'));
 check('duplicate lights beam is absent',!manifest.includes('lights.avif'));
-check('runtime asset motion contract is static',!manifest.includes("motion:'slow-drift'")&&!manifest.includes("motion:'pointer-parallax'"));
 
 const failed=checks.filter(([,ok])=>!ok);
 for(const [name,ok] of checks)console.log(`${ok?'PASS':'FAIL'} · ${name}`);
