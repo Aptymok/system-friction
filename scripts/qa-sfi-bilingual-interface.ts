@@ -40,7 +40,7 @@ requireText(layout,'<SfiPublicHeader global/>','global institutional header');
 requireText(layout,'<SfiPublicFooter global/>','global institutional footer');
 rejectText(publicChrome,'SFI_PUBLIC_NAV.map','NYC chrome must not render legacy route menu');
 requireText(publicChrome,'sfiPublicPageNav','institutional public page navigator');
-for(const label of ['ROOT','OBSERVATORY','REPOSITORY','MOPH','WORLD VECTOR','PUBLICATIONS']) requireText(publicChrome,`label:'${label}'`,`institutional menu label ${label}`);
+for(const label of ['TIMELINE','REPOSITORY','WORLD VECTOR','METHOD LAB','REALITY CHAIN','OBSERVATORY','ROOT']) requireText(publicChrome,`label:'${label}'`,`institutional menu label ${label}`);
 requireText(publicChrome,'context.statement','header principle statement');
 requireText(publicChrome,'context.stage','header institutional stage');
 requireText(publicChrome,"timeZone:'UTC'",'live UTC public clock');

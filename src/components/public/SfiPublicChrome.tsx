@@ -16,36 +16,38 @@ type ChromeContext={
 };
 
 const NAV_SURFACES=[
-  {key:'root',label:'ROOT',href:'/root'},
-  {key:'field',label:'OBSERVATORY',href:'/observatory'},
-  {key:'registry',label:'REPOSITORY',href:'/publications?view=registry'},
-  {key:'method-lab',label:'MOPH',href:'/method-lab?method=MOP_H'},
-  {key:'world',label:'WORLD VECTOR',href:'/observatory#trajectory'},
-  {key:'publications',label:'PUBLICATIONS',href:'/publications'},
+  {key:'timeline',label:'TIMELINE',href:'/#timeline'},
+  {key:'repository',label:'REPOSITORY',href:'/#repository'},
+  {key:'world-vector',label:'WORLD VECTOR',href:'/#world-vector'},
+  {key:'method-lab',label:'METHOD LAB',href:'/#method-lab'},
+  {key:'reality-chain',label:'REALITY CHAIN',href:'/#reality-chain'},
+  {key:'observatory',label:'OBSERVATORY',href:'/#observatory'},
+  {key:'root',label:'ROOT',href:'/#root'},
 ] as const;
 
 const SUBJECTS:Record<string,ChromeContext>={
   intro:{title:'SYSTEM FRICTION INSTITUTE',statement:'INSTITUTIONAL INTELLIGENCE MUST REMAIN RECONSTRUCTIBLE.',stage:'OBSERVATION',href:'/',navKey:'home'},
-  time:{title:'AI WEEK NYC 2026',statement:'THE WORLD DOES NOT HAVE THE SAME TIME.',stage:'OBSERVATION',href:EVENT_URL,navKey:'home'},
-  observation:{title:'FIELD',statement:'A SIGNAL IS NOT EVIDENCE.',stage:'OBSERVATION',href:'/field/world-observatory',navKey:'field'},
-  authority:{title:'REGISTRY',statement:'EVIDENCE IS NOT A DECISION.',stage:'EVIDENCE',href:'/publications',navKey:'registry'},
-  execution:{title:'INTEGRATION',statement:'AUTHORITY IS NOT EXECUTION.',stage:'EXECUTION',href:'/integrations',navKey:'integration'},
-  return:{title:'CASES / RETURN',statement:'REALITY ANSWERS BACK.',stage:'RETURN',href:'/cases',navKey:'cases'},
-  'after-ai-governance':{title:'METHOD LAB',statement:'GOVERNANCE IS ONLY THE BEGINNING.',stage:'RESEARCH',href:'/method-lab',navKey:'method-lab'},
-};
+  timeline:{title:'TIMELINE',statement:'EVERYTHING THE INSTITUTION CAN RECONSTRUCT OVER TIME.',stage:'OBSERVATION',href:'/#timeline',navKey:'timeline'},
+  repository:{title:'REPOSITORY',statement:'PROVENANCE REMAINS ADDRESSABLE.',stage:'EVIDENCE',href:'/#repository',navKey:'repository'},
+  'world-vector':{title:'WORLD VECTOR',statement:'THE WORLD DOES NOT HAVE THE SAME TIME.',stage:'OBSERVATION',href:'/#world-vector',navKey:'world-vector'},
+  'method-lab':{title:'METHOD LAB',statement:'SIMULATION ≠ OBSERVATION.',stage:'RESEARCH',href:'/#method-lab',navKey:'method-lab'},
+  'reality-chain':{title:'REALITY CHAIN',statement:'RECONSTRUCTION PRECEDES EXPLANATION.',stage:'RETURN',href:'/#reality-chain',navKey:'reality-chain'},
+  observatory:{title:'OBSERVATORY',statement:'A SIGNAL IS NOT EVIDENCE.',stage:'OBSERVATION',href:'/#observatory',navKey:'observatory'},
+  root:{title:'ROOT',statement:'REASONING IS DIFFERENT FROM AUTHORITY.',stage:'AUTHORITY',href:'/#root',navKey:'root'},
+}
 
 const INSTITUTIONAL_CHAIN=['OBSERVATION','RESEARCH','EVIDENCE','INFERENCE','AUTHORITY','DECISION','EXECUTION','RETURN','LEARN','OBSERVATION'] as const;
 const REALITY_CHAIN_METHOD=['WORLD','SENSOR','SIGNAL','ARTIFACT','CONTEXT','INFERENCE','AUTHORITY','CLAIM','ACTION','RETURN'] as const;
 
 function routeContext(pathname:string):ChromeContext{
   if(pathname.startsWith('/root')) return {title:'ROOT',statement:'AUTHORITY REMAINS EXPLICIT.',stage:'AUTHORITY',href:'/root',navKey:'root'};
-  if(pathname.startsWith('/publications')) return {title:'PUBLICATIONS',statement:'PUBLICATION = EXPOSURE.',stage:'EVIDENCE',href:'/publications',navKey:'publications'};
+  if(pathname.startsWith('/publications')) return {title:'REPOSITORY',statement:'PUBLICATION = EXPOSURE.',stage:'EVIDENCE',href:'/publications',navKey:'repository'};
   if(pathname.startsWith('/root/access')) return {title:'ACCESS',statement:'ACCESS ≠ AUTHORITY.',stage:'AUTHORITY',href:'/root/access',navKey:'access'};
-  if(pathname.startsWith('/field')||pathname.startsWith('/observatory')) return {title:'FIELD',statement:'A SIGNAL IS NOT EVIDENCE.',stage:'OBSERVATION',href:'/field/world-observatory',navKey:'field'};
+  if(pathname.startsWith('/field')||pathname.startsWith('/observatory')) return {title:'OBSERVATORY',statement:'A SIGNAL IS NOT EVIDENCE.',stage:'OBSERVATION',href:'/observatory',navKey:'observatory'};
   if(pathname.startsWith('/method-lab')) return {title:'METHOD LAB',statement:'GOVERNANCE IS ONLY THE BEGINNING.',stage:'RESEARCH',href:'/method-lab',navKey:'method-lab'};
   if(pathname.startsWith('/integrations')) return {title:'INTEGRATION',statement:'AUTHORITY IS NOT EXECUTION.',stage:'EXECUTION',href:'/integrations',navKey:'integration'};
   if(pathname.startsWith('/cases')) return {title:'CASES / RETURN',statement:'REALITY ANSWERS BACK.',stage:'RETURN',href:'/cases',navKey:'cases'};
-  if(pathname.startsWith('/research')) return {title:'RESEARCH',statement:'RESEARCH MUST REMAIN RECONSTRUCTIBLE.',stage:'RESEARCH',href:'/research',navKey:'research'};
+  if(pathname.startsWith('/research')) return {title:'RESEARCH',statement:'RESEARCH MUST REMAIN RECONSTRUCTIBLE.',stage:'RESEARCH',href:'/research',navKey:'reality-chain'};
   if(pathname.startsWith('/login')) return {title:'ACCESS',statement:'IDENTITY ≠ AUTHORITY.',stage:'AUTHORITY',href:'/login',navKey:'access'};
   return SUBJECTS.intro;
 }

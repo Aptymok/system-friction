@@ -120,18 +120,19 @@ const publicChrome=read('src/components/public/SfiPublicChrome.tsx');
 assert.ok(
   publicChrome.includes('sfiPublicPageNav')
   && publicChrome.includes('sfiPublicMenuItem')
-  && publicChrome.includes("label:'ROOT'")
-  && publicChrome.includes("label:'OBSERVATORY'")
+  && publicChrome.includes("label:'TIMELINE'")
   && publicChrome.includes("label:'REPOSITORY'")
-  && publicChrome.includes("label:'MOPH'")
   && publicChrome.includes("label:'WORLD VECTOR'")
-  && publicChrome.includes("label:'PUBLICATIONS'")
+  && publicChrome.includes("label:'METHOD LAB'")
+  && publicChrome.includes("label:'REALITY CHAIN'")
+  && publicChrome.includes("label:'OBSERVATORY'")
+  && publicChrome.includes("label:'ROOT'")
   && publicChrome.includes('AI WEEK NYC 2026'),
   'global_public_chrome_must_expose_institutional_menu_and_event',
 );
 assert.ok(publicChrome.includes("['OBSERVATION','RESEARCH','EVIDENCE','INFERENCE','AUTHORITY','DECISION','EXECUTION','RETURN','LEARN','OBSERVATION']"),'institutional_footer_chain_must_be_ordered');
 assert.ok(publicChrome.includes("['WORLD','SENSOR','SIGNAL','ARTIFACT','CONTEXT','INFERENCE','AUTHORITY','CLAIM','ACTION','RETURN']"),'reality_chain_method_must_remain_canonical');
-assert.ok(publicChrome.includes("title:'METHOD LAB',statement:'GOVERNANCE IS ONLY THE BEGINNING.',stage:'RESEARCH'"),'method_lab_header_stage_must_be_research_not_learning');
+assert.ok(publicChrome.includes("title:'METHOD LAB',statement:'SIMULATION ≠ OBSERVATION.',stage:'RESEARCH'"),'method_lab_header_stage_must_be_research_not_learning');
 assert.equal(publicChrome.includes('<b>{context.statement}</b>'),false,'footer_must_not_repeat_active_header_statement');
 assert.ok(publicChrome.includes('timeZone:\'UTC\'') && publicChrome.includes('Institutional access'),'global_public_chrome_must_expose_utc_context_and_access');
 assert.equal(publicChrome.includes('SFI_PUBLIC_NAV.map'),false,'global_public_chrome_must_not_render_old_route_menu');
