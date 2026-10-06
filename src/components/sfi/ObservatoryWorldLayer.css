@@ -17,7 +17,7 @@
 .worldVector{opacity:var(--vector-trust,.35)}
 .worldVector line{stroke:#d5aa68;stroke-width:1.3;vector-effect:non-scaling-stroke;filter:url(#fieldGlow)}
 .worldVector circle{fill:#e0b472;stroke:#f4d3a2;stroke-width:1;filter:url(#fieldGlow)}
-.worldVector text{font:600 9px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.08em;fill:#9f875f;paint-order:stroke;stroke:#020304;stroke-width:4px;stroke-linejoin:round}
+.worldVector text{font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.08em;fill:#9f875f;paint-order:stroke;stroke:#020304;stroke-width:4px;stroke-linejoin:round}
 
 .fieldEdges{pointer-events:none}
 .fieldEdge{vector-effect:non-scaling-stroke;fill:none;stroke-width:1.4}
@@ -33,13 +33,13 @@
 .fieldHypothesisNode:focus-visible{outline:none}
 .hypothesisOrbit{fill:rgba(213,170,101,.025);stroke:rgba(234,184,102,.72);stroke-width:1.6;stroke-dasharray:5 7;animation:fieldOrbit 13s linear infinite;transform-box:fill-box;transform-origin:center}
 .hypothesisCore{fill:rgba(230,181,99,.78);stroke:#f0cca0;stroke-width:1.3;filter:url(#fieldGlow)}
-.fieldHypothesisNode text,.fieldSystemNode text{font:600 10px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.08em;fill:#c5ad87;paint-order:stroke;stroke:#020304;stroke-width:4px;stroke-linejoin:round}
+.fieldHypothesisNode text,.fieldSystemNode text{font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.08em;fill:#c5ad87;paint-order:stroke;stroke:#020304;stroke-width:4px;stroke-linejoin:round}
 
 .fieldSystemNode{pointer-events:none}
 .fieldSystemNode rect{fill:rgba(6,12,14,.82);stroke:rgba(102,203,230,.6);stroke-width:1.5;filter:url(#fieldGlow)}
 
 .fieldBoundary{opacity:.68;pointer-events:none}
-.fieldBoundary text{font:600 8px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.16em;fill:#765f42;paint-order:stroke;stroke:#020304;stroke-width:3px}
+.fieldBoundary text{font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.16em;fill:#765f42;paint-order:stroke;stroke:#020304;stroke-width:3px}
 
 .lens-sources .worldSpectrumCorona,.lens-sources .fieldSystemLayer,.lens-sources .fieldHypothesisNode{opacity:.18}
 .lens-hypotheses .fieldObservationLayer{opacity:.54}
