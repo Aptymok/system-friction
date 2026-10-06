@@ -18,6 +18,26 @@ type GraphNode = {
     stage: string; state: string; sourceVersion: string|null; captureTime: string|null; uncertainty: unknown|null;
     verificationState: string|null; authority: string|null; executionState: string|null;
     expectedReturn: unknown|null; observedReturn: unknown|null; applicableObligation: unknown|null;
+    verificationCost: unknown|null; verificationBudget: unknown|null; nextBestObservation: string|null;
+    privacyBoundary: unknown|null; trajectory: unknown|null;
+  };
+  realityPassport?: {
+    contract: string;
+    nodeId: string;
+    stage: string;
+    epistemicState: string;
+    decision: 'CONTINUE'|'ABSTAIN'|'BLOCKED';
+    reasons: string[];
+    temporal: { sourceVersion:string|null; captureTime:string|null; nodeUpdatedAt:string|null };
+    epistemic: { uncertainty:unknown|null };
+    provenance: { declared:string; lineageCount:number; lineageRefs:string[]; supportingRelationCount:number; supportingRelationRefs:string[]; contradictionCount:number; contradictionRefs:string[] };
+    verification: { state:string; cost:unknown|null; budget:unknown|null; nextBestObservation:string|null };
+    authority: { state:string; executionState:string; authorityExpanded:boolean|null; mayMintReturn:boolean|null; mayPromoteCanon:boolean|null };
+    persistence: { represented:boolean; refs:string[]; boundary:string };
+    returnState: { expected:unknown|null; observed:unknown|null; status:'OBSERVED'|'PENDING'|'NOT_APPLICABLE'|'UNKNOWN' };
+    constraints: { privacy:unknown|null; trajectory:unknown|null };
+    boundary: string;
+    methodBoundary: string;
   };
   methodSignal?: {
     relationCount: number;
@@ -303,14 +323,14 @@ function semanticText(node: GraphNode) {
     .toLowerCase();
 }
 
-const REALITY_STAGES = ['world','capture','evidence','transformation','inference','verification','authority','action','return','unclassified'] as const;
-type RealityStage = (typeof REALITY_STAGES)[number];
+const REALITY_PASSPORT_STAGES = ['world','capture','evidence','friction','transformation','hypothesis','inference','claim','verification','authority','action','return','contrast','learning','unclassified'] as const;
+type RealityPassportStage = (typeof REALITY_PASSPORT_STAGES)[number];
 
-function realityStage(node: GraphNode): RealityStage {
+function realityPassportStage(node: GraphNode): RealityPassportStage {
   const explicit = node.reality?.stage?.toLowerCase();
-  if (explicit && REALITY_STAGES.includes(explicit as RealityStage)) return explicit as RealityStage;
+  if (explicit && REALITY_PASSPORT_STAGES.includes(explicit as RealityPassportStage)) return explicit as RealityPassportStage;
   const text = semanticText(node);
-  return REALITY_STAGES.slice(0, -1).find((stage) => text.includes(stage)) ?? 'unclassified';
+  return REALITY_PASSPORT_STAGES.slice(0, -1).find((stage) => text.includes(stage)) ?? 'unclassified';
 }
 
 function reorganizationOffset(node: GraphNode, reading: string): Position {
@@ -353,9 +373,9 @@ function buildPositions(nodes: GraphNode[], reading: 'CURRENT_STATE'|'HIERARCHY'
   const types = [...new Set(nodes.map((node) => node.type))].sort();
 
   if (reading === 'REALITY_CHAIN') {
-    const stages = ['world','capture','evidence','transformation','inference','verification','authority','action','return','unclassified'] as const;
+    const stages = REALITY_PASSPORT_STAGES;
     const buckets = new Map(stages.map((stage) => [stage, [] as GraphNode[]]));
-    for (const node of nodes) buckets.get(realityStage(node))?.push(node);
+    for (const node of nodes) buckets.get(realityPassportStage(node))?.push(node);
     stages.forEach((stage, stageIndex) => {
       const bucket = buckets.get(stage) ?? [];
       const x = 70 + (stageIndex * (width - 140)) / Math.max(1, stages.length - 1);
@@ -567,15 +587,18 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
         {selected ? (
           <aside className="rootFieldHub">
             <button className="rootFieldHubClose" onClick={()=>setSelectedId(null)} aria-label="Close object hub">×</button>
-            <span className="rootFieldHubKicker">{selected.type} · {realityStage(selected).toUpperCase()}</span>
+            <span className="rootFieldHubKicker">{selected.type} · {realityPassportStage(selected).toUpperCase()}</span>
             <h2>{selected.label}</h2>
             <p>{selected.origin} · {selected.provenance}</p>
             <p>{String(selected.attributes.statement ?? selected.attributes.observedOutcome ?? selected.attributes.objective ?? selected.attributes.scope ?? selected.attributes.evidenceKind ?? selected.attributes.classification ?? 'Persisted cognitive object. Select connected objects to reconstruct its context.')}</p>
             <div className="rootFieldHubGrid">
               <span>STATE<strong>{selected.reality?.state ?? String(selected.attributes.epistemicClass ?? 'UNKNOWN')}</strong></span>
+              <span>REALITY DECISION<strong>{selected.realityPassport?.decision ?? 'UNKNOWN'}</strong></span>
               <span>TIME<strong>{temporalReading(selected).label}</strong></span>
-              <span>AUTHORITY<strong>{selected.reality?.authority ?? 'UNKNOWN'}</strong></span>
-              <span>RETURN<strong>{selected.reality?.observedReturn == null ? 'NOT OBSERVED' : String(selected.reality.observedReturn)}</strong></span>
+              <span>AUTHORITY<strong>{selected.realityPassport?.authority.state ?? selected.reality?.authority ?? 'UNKNOWN'}</strong></span>
+              <span>VERIFICATION<strong>{selected.realityPassport?.verification.state ?? selected.reality?.verificationState ?? 'UNKNOWN'}</strong></span>
+              <span>VERIFICATION COST<strong>{selected.realityPassport?.verification.cost == null ? 'UNKNOWN' : String(selected.realityPassport.verification.cost)}</strong></span>
+              <span>RETURN<strong>{selected.realityPassport?.returnState.status ?? (selected.reality?.observedReturn == null ? 'NOT OBSERVED' : 'OBSERVED')}</strong></span>
               <span>STRUCTURAL LINKS<strong>{selectedEdges.length}</strong></span>
               <span>QUALIFIED RELATIONS<strong>{qualifiedRelationCount(selected,graph.edges)}</strong></span>
               <span>PERSISTED EPOCHS<strong>{selected.fieldHistory?.epochCount ?? 0}</strong></span>
@@ -583,6 +606,25 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
               <span>INSTITUTIONAL DIRECTION<strong>SFI-INSTITUTIONAL-ATTRACTOR-001</strong></span>
               <span>LOCAL DYNAMICAL ATTRACTOR<strong>{selected.scientificReading?.attractor.state ?? 'NOT ESTABLISHED'}</strong></span>
             </div>
+            {selected.realityPassport ? <details open={selected.realityPassport.decision!=='CONTINUE'}><summary>REALITY PASSPORT · {selected.realityPassport.decision}</summary>
+              <p>{selected.realityPassport.reasons.length ? selected.realityPassport.reasons.join(' ') : 'No epistemic stop is currently derived from represented state.'}</p>
+              <div className="rootFieldHubGrid">
+                <span>SUPPORTING RELATIONS<strong>{selected.realityPassport.provenance.supportingRelationCount}</strong></span>
+                <span>CONTRADICTIONS<strong>{selected.realityPassport.provenance.contradictionCount}</strong></span>
+                <span>LINEAGE<strong>{selected.realityPassport.provenance.lineageCount}</strong></span>
+                <span>AS-OF / CAPTURE<strong>{selected.realityPassport.temporal.captureTime ?? selected.realityPassport.temporal.nodeUpdatedAt ?? 'NOT REPRESENTED'}</strong></span>
+                <span>SOURCE VERSION<strong>{selected.realityPassport.temporal.sourceVersion ?? 'NOT REPRESENTED'}</strong></span>
+                <span>UNCERTAINTY<strong>{selected.realityPassport.epistemic.uncertainty == null ? 'NOT REPRESENTED' : String(selected.realityPassport.epistemic.uncertainty)}</strong></span>
+                <span>NEXT OBSERVATION<strong>{selected.realityPassport.verification.nextBestObservation ?? 'NOT REPRESENTED'}</strong></span>
+                <span>PERSISTED STATE<strong>{selected.realityPassport.persistence.represented ? 'REPRESENTED' : 'NOT REPRESENTED'}</strong></span>
+                <span>AUTHORITY EXPANDED<strong>{selected.realityPassport.authority.authorityExpanded == null ? 'NOT REPRESENTED' : String(selected.realityPassport.authority.authorityExpanded)}</strong></span>
+                <span>MAY MINT RETURN<strong>{selected.realityPassport.authority.mayMintReturn == null ? 'NOT REPRESENTED' : String(selected.realityPassport.authority.mayMintReturn)}</strong></span>
+                <span>MAY PROMOTE CANON<strong>{selected.realityPassport.authority.mayPromoteCanon == null ? 'NOT REPRESENTED' : String(selected.realityPassport.authority.mayPromoteCanon)}</strong></span>
+                <span>PRIVACY<strong>{selected.realityPassport.constraints.privacy == null ? 'NOT REPRESENTED' : String(selected.realityPassport.constraints.privacy)}</strong></span>
+                <span>TRAJECTORY<strong>{selected.realityPassport.constraints.trajectory == null ? 'NOT REPRESENTED' : String(selected.realityPassport.constraints.trajectory)}</strong></span>
+              </div>
+              <small>{selected.realityPassport.boundary.replaceAll('_',' ')} · {selected.realityPassport.methodBoundary.replaceAll('_',' ')} · {selected.realityPassport.persistence.boundary.replaceAll('_',' ')}</small>
+            </details> : null}
             {selected.methodResult ? <p>METHOD · {selected.methodResult.methodId}@{selected.methodResult.methodVersion} · {selected.methodResult.epistemicClass}</p> : null}
             {selected.learningState ? <p>LEARNING · {selected.learningState.state} · {selected.learningState.classification ?? 'UNCLASSIFIED'}</p> : null}
             {selected.fieldHistory?.recentEpochs?.length ? <details><summary>FIELD HISTORY · {selected.fieldHistory.epochCount} EPOCHS</summary>{selected.fieldHistory.recentEpochs.map((epoch)=><div key={epoch.eventId}><code>{date(epoch.occurredAt)} · {epoch.previousState ?? 'UNKNOWN'} → {epoch.state ?? 'UNKNOWN'} · {epoch.censoring}</code><small>{epoch.relationTransitions.length} relational transitions</small></div>)}</details> : null}
