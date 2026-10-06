@@ -136,3 +136,11 @@ test('external cognitive peer style inferred claim remains bounded without verif
   assert.equal(passport.authority.mayPromoteCanon,false);
   assert.equal(passport.contract,'SFI-REALITY-PASSPORT-1.1');
 });
+
+
+test('passport explicitly preserves the public Reality Chain Method boundary',()=>{
+  const subject=node({nodeId:'method-boundary',ontologyType:'HYPOTHESIS',attributes:{epistemicClass:'INFERRED'}});
+  const passport=buildRealityPassport(subject,[]);
+  assert.equal(passport.methodBoundary,'PROJECTS_REALITY_WITHOUT_REDEFINING_REALITY_CHAIN_METHOD');
+  assert.equal(passport.boundary,'DERIVED_PROJECTION_NOT_CANONICAL_TRUTH');
+});
