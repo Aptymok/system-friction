@@ -60,10 +60,10 @@ export const SCENES: readonly Scene[] = [
   {
     id:'intro',
     number:'00',
-    eyebrow:'SYSTEM FRICTION INSTITUTE · NEW YORK 2026',
-    title:'SYSTEM FRICTION',
-    accent:'INSTITUTE.',
-    lead:'An independent institutional research environment for evidence, authority, execution and RETURN in complex sociotechnical systems.',
+    eyebrow:'INSTITUTIONS / EVIDENCE / LONGER TIME',
+    title:'System Friction',
+    accent:'Institute',
+    lead:'Evidence, Authority & RETURN in Real Institutions',
     background:SCENE_BACKGROUNDS.intro,
     assets:NYC_ASSETS,
     frames:[
