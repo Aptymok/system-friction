@@ -37,15 +37,19 @@ check('institutional screen compensation palette is declared',
   && chromeCss.includes('#C8A951')
   && chromeCss.includes('#E8DDC3'));
 
-check('canonical contextual public header exists',
+check('canonical institutional public header exists',
   chrome.includes('SfiPublicHeader')
   && chrome.includes('sfiPublicPageNav')
-  && chrome.includes('sfiPublicPageArrow')
+  && chrome.includes('sfiPublicMenuItem')
   && chrome.includes("timeZone:'UTC'")
-  && chrome.includes('SIGN IN'));
-check('header title is also lateral surface menu',
-  chrome.includes('Previous window:')
-  && chrome.includes('Next window:')
+  && chrome.includes('Institutional access'));
+check('reference header exposes the approved institutional menu',
+  chrome.includes("label:'ROOT'")
+  && chrome.includes("label:'OBSERVATORY'")
+  && chrome.includes("label:'REPOSITORY'")
+  && chrome.includes("label:'MOPH'")
+  && chrome.includes("label:'WORLD VECTOR'")
+  && chrome.includes("label:'PUBLICATIONS'")
   && chrome.includes('NAV_SURFACES')
   && chrome.includes('context.statement')
   && chrome.includes('context.stage'));
@@ -64,12 +68,19 @@ check('footer does not repeat active title or statement',
 check('public chrome hides route menu',
   !chrome.includes('SFI_PUBLIC_NAV.map')
   && !chrome.includes('sfiPublicModuleRail'));
-check('ultra-fine glass chrome owns overlap spacing',
-  chromeCss.includes('backdrop-filter:blur(12px)')
+check('reference chrome owns fixed header and semantic timeline clearances',
+  chromeCss.includes('border-bottom:1px solid rgba(232,221,195,.22)')
   && chromeCss.includes('.sfiPublicChromeSpacer')
   && chromeCss.includes('sfiFooterChains')
   && chromeCss.includes('sfiFooterReality'));
 check('landing owns vertical text subject transition',landing.includes('goScene')&&landing.includes('CHANGE SUBJECT'));
+check('Home reference hero has direct Observatory entry and six-stage rail',
+  landing.includes('Enter Observatory')
+  && landing.includes('CORE_RAIL')
+  && landing.includes("label:'OBSERVATION'")
+  && landing.includes("label:'RETURN'")
+  && landingCss.includes('.sfiHeroCta')
+  && landingCss.includes('.sfiTopicRail'));
 check('landing owns horizontal text explanation transition',landing.includes('moveFrame')&&landing.includes('CHANGE EXPLANATION'));
 check('landing visual stage is shared once while active scene owns its clean visual sources',landing.includes('sfiVisualStage')&&landing.includes('sceneBackground=scene.background')&&landing.includes('sceneAssets=scene.assets')&&landing.includes('sceneAssets.map')&&landing.split('sfiVisualStage').length===2);
 check('landing visual stage does not react to pointer',!landing.includes('handlePointerMove')&&!landing.includes('stage-shift'));
