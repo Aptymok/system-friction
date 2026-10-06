@@ -38,10 +38,9 @@ for(const hidden of ['/observatory','/laboratory','/publications','/institution'
 requireText(layout,'<html lang="en">','root document English declaration');
 requireText(layout,'<SfiPublicHeader global/>','global institutional header');
 requireText(layout,'<SfiPublicFooter global/>','global institutional footer');
-rejectText(publicChrome,'SFI_PUBLIC_NAV.map','NYC chrome must not render route menu');
-requireText(publicChrome,'sfiPublicPageNav','contextual public page navigator');
-requireText(publicChrome,'Previous window:','previous surface navigation');
-requireText(publicChrome,'Next window:','next surface navigation');
+rejectText(publicChrome,'SFI_PUBLIC_NAV.map','NYC chrome must not render legacy route menu');
+requireText(publicChrome,'sfiPublicPageNav','institutional public page navigator');
+for(const label of ['ROOT','OBSERVATORY','REPOSITORY','MOPH','WORLD VECTOR','PUBLICATIONS']) requireText(publicChrome,`label:'${label}'`,`institutional menu label ${label}`);
 requireText(publicChrome,'context.statement','header principle statement');
 requireText(publicChrome,'context.stage','header institutional stage');
 requireText(publicChrome,"timeZone:'UTC'",'live UTC public clock');

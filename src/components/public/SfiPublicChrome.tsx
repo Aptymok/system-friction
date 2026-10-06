@@ -16,14 +16,12 @@ type ChromeContext={
 };
 
 const NAV_SURFACES=[
-  {key:'home',label:'HOME',href:'/'},
-  {key:'field',label:'FIELD',href:'/field/world-observatory'},
-  {key:'registry',label:'REGISTRY',href:'/publications'},
-  {key:'research',label:'RESEARCH',href:'/research'},
-  {key:'method-lab',label:'METHOD LAB',href:'/method-lab'},
-  {key:'integration',label:'INTEGRATION',href:'/integrations'},
-  {key:'cases',label:'CASES',href:'/cases'},
-  {key:'access',label:'ACCESS',href:'/root/access'},
+  {key:'root',label:'ROOT',href:'/root'},
+  {key:'field',label:'OBSERVATORY',href:'/observatory'},
+  {key:'registry',label:'REPOSITORY',href:'/publications?view=registry'},
+  {key:'method-lab',label:'MOPH',href:'/method-lab?method=MOP_H'},
+  {key:'world',label:'WORLD VECTOR',href:'/observatory#trajectory'},
+  {key:'publications',label:'PUBLICATIONS',href:'/publications'},
 ] as const;
 
 const SUBJECTS:Record<string,ChromeContext>={
@@ -40,7 +38,8 @@ const INSTITUTIONAL_CHAIN=['OBSERVATION','RESEARCH','EVIDENCE','INFERENCE','AUTH
 const REALITY_CHAIN_METHOD=['WORLD','SENSOR','SIGNAL','ARTIFACT','CONTEXT','INFERENCE','AUTHORITY','CLAIM','ACTION','RETURN'] as const;
 
 function routeContext(pathname:string):ChromeContext{
-  if(pathname.startsWith('/publications')) return {title:'REGISTRY',statement:'PUBLICATION = EXPOSURE.',stage:'EVIDENCE',href:'/publications',navKey:'registry'};
+  if(pathname.startsWith('/root')) return {title:'ROOT',statement:'AUTHORITY REMAINS EXPLICIT.',stage:'AUTHORITY',href:'/root',navKey:'root'};
+  if(pathname.startsWith('/publications')) return {title:'PUBLICATIONS',statement:'PUBLICATION = EXPOSURE.',stage:'EVIDENCE',href:'/publications',navKey:'publications'};
   if(pathname.startsWith('/root/access')) return {title:'ACCESS',statement:'ACCESS ≠ AUTHORITY.',stage:'AUTHORITY',href:'/root/access',navKey:'access'};
   if(pathname.startsWith('/field')||pathname.startsWith('/observatory')) return {title:'FIELD',statement:'A SIGNAL IS NOT EVIDENCE.',stage:'OBSERVATION',href:'/field/world-observatory',navKey:'field'};
   if(pathname.startsWith('/method-lab')) return {title:'METHOD LAB',statement:'GOVERNANCE IS ONLY THE BEGINNING.',stage:'RESEARCH',href:'/method-lab',navKey:'method-lab'};
@@ -98,46 +97,32 @@ function usePublicChromeContext(){
   return {pathname,context,clock};
 }
 
-function adjacentSurfaces(navKey:string){
-  const index=Math.max(0,NAV_SURFACES.findIndex((item)=>item.key===navKey));
-  const previous=NAV_SURFACES[(index-1+NAV_SURFACES.length)%NAV_SURFACES.length];
-  const next=NAV_SURFACES[(index+1)%NAV_SURFACES.length];
-  return {previous,next};
-}
-
 export function SfiPublicHeader({global=false,active}:{active?:string;global?:boolean}) {
   const {pathname,context,clock}=usePublicChromeContext();
   const title=active||context.title;
   const reserveSpace=pathname!=='/';
-  const {previous,next}=adjacentSurfaces(context.navKey);
-  const external=context.href.startsWith('http');
 
   return <>
     <header className={global?'sfiPublicTopbar sfiGlobalHeader':'sfiPublicTopbar'} data-sfi-public-chrome="SFI-NYC-CHROME-4.0">
       <Link href="/#intro" className="sfiPublicBrand" aria-label="System Friction Institute home">
-        <img src="/sfi/brand/sfi-institutional-seal.png" alt="" aria-hidden="true"/>
+        <img src="/library/assets/sfi-mark.svg" alt="" aria-hidden="true"/>
         <span className="sfiPublicBrandText"><strong>SFI</strong><i aria-hidden="true">|</i><span>SYSTEM FRICTION INSTITUTE</span></span>
       </Link>
 
       <nav className="sfiPublicPageNav" aria-label="SFI surface navigation">
-        <Link className="sfiPublicPageArrow sfiPublicPageArrow--previous" href={previous.href} aria-label={`Previous window: ${previous.label}`} title={`Previous window: ${previous.label}`}>
-          <b aria-hidden="true">‹</b><span>{previous.label}</span>
-        </Link>
-
-        {external?<a className="sfiPublicPageTitle" href={context.href} target="_blank" rel="noreferrer">
-          <strong>{title}</strong><i aria-hidden="true">|</i><span>{context.statement}</span><i aria-hidden="true">|</i><em>{context.stage}</em>
-        </a>:<Link className="sfiPublicPageTitle" href={context.href}>
-          <strong>{title}</strong><i aria-hidden="true">|</i><span>{context.statement}</span><i aria-hidden="true">|</i><em>{context.stage}</em>
-        </Link>}
-
-        <Link className="sfiPublicPageArrow sfiPublicPageArrow--next" href={next.href} aria-label={`Next window: ${next.label}`} title={`Next window: ${next.label}`}>
-          <span>{next.label}</span><b aria-hidden="true">›</b>
-        </Link>
+        {NAV_SURFACES.map((surface)=><Link
+          key={surface.key}
+          className="sfiPublicMenuItem"
+          href={surface.href}
+          data-active={surface.key===context.navKey?'true':undefined}
+        >{surface.label}</Link>)}
       </nav>
 
       <div className="sfiPublicChromeRight">
-        <time suppressHydrationWarning>{clock||'UTC'}</time>
-        <Link className="sfiPublicAccess" href="/login">SIGN IN</Link>
+        <span className="sfiPublicContext" aria-label={`${title}. ${context.statement}. ${context.stage}`}>
+          <time suppressHydrationWarning>{clock||'UTC'}</time>
+        </span>
+        <Link className="sfiPublicAccess" href="/login" aria-label="Institutional access" title="Institutional access"><span>ACCESS</span></Link>
       </div>
     </header>
     {reserveSpace?<div className="sfiPublicChromeSpacer" aria-hidden="true"/>:null}

@@ -50,8 +50,8 @@ const OBSERVATORY_CACHE_TTL_MS=120_000;
 const INITIAL_AVAILABILITY:ObservatoryAvailability={world:'LOADING',state:'LOADING',timeline:'LOADING'};
 let observatorySnapshotCache:ObservatorySnapshot|null=null;
 const panel:CSSProperties={position:'absolute',zIndex:25,background:'rgba(4,6,7,.88)',backdropFilter:'blur(18px)',border:'1px solid rgba(214,180,120,.22)',boxShadow:'0 22px 70px rgba(0,0,0,.45)',borderRadius:14,color:'#e7dfd2'};
-const micro:CSSProperties={fontSize:10,letterSpacing:'.12em',textTransform:'uppercase',opacity:.58};
-const chip:CSSProperties={fontSize:10,padding:'5px 8px',border:'1px solid rgba(214,180,120,.2)',borderRadius:999,background:'rgba(214,180,120,.055)',whiteSpace:'nowrap'};
+const micro:CSSProperties={fontSize:11,letterSpacing:'.12em',textTransform:'uppercase',opacity:.58};
+const chip:CSSProperties={fontSize:11,padding:'5px 8px',border:'1px solid rgba(214,180,120,.2)',borderRadius:999,background:'rgba(214,180,120,.055)',whiteSpace:'nowrap'};
 const selectStyle:CSSProperties={background:'rgba(5,7,8,.88)',color:'#e7dfd2',border:'1px solid rgba(214,180,120,.18)',borderRadius:8,padding:'7px 9px',fontSize:11,maxWidth:190};
 
 async function fetchJson(path:string){
@@ -208,19 +208,19 @@ export function ObservatoryConsole(){
       <section><small>{'DERIVED METRICS'}</small><dl><dt>Fₛ</dt><dd data-availability={availability.world}>{avgFs==null?'—':avgFs.toFixed(3)}</dd><dt>NTI</dt><dd data-availability={availability.world}>{avgNti==null?'—':avgNti.toFixed(3)}</dd><dt>Φ</dt><dd data-availability={availability.world}>{avgPhi==null?'—':avgPhi.toFixed(3)}</dd></dl><p style={{fontSize:11,opacity:.62,lineHeight:1.5}}>{'Numbers describe observed/derived structure. Meaning, mechanism and consequences are shown only as traceable hypotheses.'}</p></section>
     </aside>
 
-    <div style={{...panel,left:'50%',transform:'translateX(-50%)',bottom:22,width:'min(94vw,980px)',padding:'10px 12px',display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
+    <div style={{...panel,left:'50%',transform:'translateX(-50%)',bottom:102,width:'min(94vw,980px)',padding:'10px 12px',display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
       <span style={micro}>{'FILTERS'}</span>
       <select style={selectStyle} value={windowHours} onChange={e=>setWindowHours(Number(e.target.value))}><option value={6}>6h</option><option value={24}>24h</option><option value={72}>72h</option><option value={168}>7d</option><option value={720}>30d</option></select>
       <select style={selectStyle} value={sourceFamily} onChange={e=>setSourceFamily(e.target.value)}><option value="ALL">{'All source families'}</option>{sourceFamilies.map(v=><option key={v} value={v}>{v}</option>)}</select>
       <select style={selectStyle} value={systemFilter} onChange={e=>setSystemFilter(e.target.value)}><option value="ALL">{'All systems'}</option>{systems.map(v=><option key={v} value={v}>{v}</option>)}</select>
       <select style={selectStyle} value={statusFilter} onChange={e=>setStatusFilter(e.target.value)}><option value="ALL">{'All hypothesis states'}</option>{statuses.map(v=><option key={v} value={v}>{v}</option>)}</select>
       <input value={query} onChange={e=>setQuery(e.target.value)} placeholder={'search signal / node / hypothesis'} style={{...selectStyle,minWidth:210}}/>
-      <label style={{display:'flex',gap:6,alignItems:'center',fontSize:10,opacity:.72}}>{'min confidence'}<input type="range" min="0" max="0.9" step="0.1" value={minConfidence} onChange={e=>setMinConfidence(Number(e.target.value))}/><b>{pct(minConfidence)}</b></label>
+      <label style={{display:'flex',gap:6,alignItems:'center',fontSize:11,opacity:.72}}>{'min confidence'}<input type="range" min="0" max="0.9" step="0.1" value={minConfidence} onChange={e=>setMinConfidence(Number(e.target.value))}/><b>{pct(minConfidence)}</b></label>
     </div>
 
     {selectedNode&&<aside style={{...panel,left:20,bottom:170,width:'min(360px,38vw)',padding:14}}><div style={micro}>{selectedNode.sourceFamily} · {selectedNode.publisher}</div><h3 style={{margin:'7px 0 6px'}}>{selectedNode.title}</h3><p style={{fontSize:12,lineHeight:1.55,opacity:.78}}>{selectedNode.summary||'No published summary.'}</p><div style={{display:'flex',gap:6,flexWrap:'wrap'}}>{selectedNode.affectedSystems.map(v=><span key={v} style={chip}>{v}</span>)}</div><hr style={{border:0,borderTop:'1px solid rgba(214,180,120,.14)',margin:'12px 0'}}/><div style={{fontSize:11,lineHeight:1.6,opacity:.72}}><b>{'Provenance'}:</b> {selectedNode.provenance?.sourceRole||'SOURCE_RECORD'}<br/><b>{'Verification'}:</b> {selectedNode.provenance?.verificationState||'NOT_RECORDED'}<br/><b>{'Source confidence'}:</b> {pct(selectedNode.confidence)}<br/>{selectedNode.provenance?.sourceUrl&&<a href={selectedNode.provenance.sourceUrl} target="_blank" rel="noreferrer" style={{color:'inherit'}}>{'open source'}</a>}</div></aside>}
 
-    {satelliteOpen&&<aside style={{...panel,right:18,top:24,bottom:142,width:'min(520px,46vw)',padding:16,overflowY:'auto',scrollbarWidth:'none'}}>
+    {satelliteOpen&&<aside style={{...panel,right:18,top:92,bottom:112,width:'min(520px,46vw)',padding:16,overflowY:'auto',scrollbarWidth:'none'}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10}}><div><div style={micro}>SFI SATELLITE → HUB · {lens.toUpperCase()}</div><h2 style={{fontSize:18,margin:'5px 0 0'}}>{lens==='field'?'FIELD READING':lens==='hypotheses'?'LATEST HYPOTHESES':lens==='trajectory'?'TRAJECTORY & RETURN':'LIVE SOURCES'}</h2></div><button onClick={()=>setSatelliteOpen(false)} style={{...selectStyle,padding:'6px 9px'}}>×</button></div>
       <div className="hubRail" aria-label="Observatory hub lenses">
         {(['field','hypotheses','trajectory','sources'] as Lens[]).map(k=><button key={k} className={lens===k?'active':''} onClick={()=>setLens(k)}><b>{k==='field'?'FIELD':k==='hypotheses'?'HYPOTHESES':k==='trajectory'?'TRAJECTORY':'SOURCES'}</b><span>{k==='hypotheses'?'latest governed readings only':k==='trajectory'?'persisted T0 → T1':'satellite hub'}</span></button>)}
@@ -229,14 +229,14 @@ export function ObservatoryConsole(){
       <p style={{fontSize:12,lineHeight:1.6,opacity:.74}} data-availability={availability.world}>{narrative}</p>
 
       {lens==='field'&&<><div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,margin:'12px 0'}}>{[['Sources',worldMetric(sourceIds.length)],['Open hypotheses',worldMetric(openHypotheses)],['Contrasted',worldMetric(outcomeCount)],['Learning',worldMetric(learningCount)],['WSI',num(obs?.data?.worldspect?.wsi??frame?.wsi)?.toFixed(3)??'—'],['NTI src',num(obs?.data?.worldspect?.nti??frame?.nti)?.toFixed(3)??'—'],['Platform snapshots',platformSnapshotCount??'—'],['GA4 users',ga4Users??'—'],['AI-assistant sessions',aiAssistantSessions??'—']].map(([a,b],index)=><div key={String(a)} data-availability={index<4?availability.world:undefined} style={{padding:10,border:'1px solid rgba(214,180,120,.12)',borderRadius:9}}><div style={micro}>{a}</div><b style={{fontSize:18}}>{b}</b></div>)}</div>
-        <p style={{fontSize:10,opacity:.58,margin:'-4px 0 10px'}}>{platformSnapshotCount==null?'Platform telemetry unavailable.':`${platformSnapshotCount} governed snapshots · ${platformSourceCount} platform sources · ${ga4Sessions??'—'} GA4 sessions. These are observed platform metrics, not institutional validation.`}</p>
+        <p style={{fontSize:11,opacity:.58,margin:'-4px 0 10px'}}>{platformSnapshotCount==null?'Platform telemetry unavailable.':`${platformSnapshotCount} governed snapshots · ${platformSourceCount} platform sources · ${ga4Sessions??'—'} GA4 sessions. These are observed platform metrics, not institutional validation.`}</p>
         <div style={micro}>{'ACTIVE HYPOTHESES'}</div>{availability.world!=='AVAILABLE'?<p data-availability={availability.world} style={{fontSize:11,opacity:.72}}>{availability.world}</p>:filteredHypotheses.slice(0,8).map(h=><button key={String(h.id)} onClick={()=>{setSelectedHypothesisId(String(h.id));setLens('hypotheses')}} style={{display:'block',width:'100%',textAlign:'left',marginTop:7,padding:10,borderRadius:9,border:String(h.id)===String(selectedHypothesis?.id)?'1px solid rgba(214,180,120,.5)':'1px solid rgba(214,180,120,.12)',background:'rgba(255,255,255,.018)',color:'inherit'}}><b>{short(h.statement,120)||'Hypothesis'}</b><div style={{...micro,marginTop:5}}>{h.aiInference?.relationClass||'UNKNOWN'} · {pct(num(h.current_confidence))} · {h.status}</div></button>)}</>}
 
       {lens==='hypotheses'&&<>{availability.world!=='AVAILABLE'?<p data-availability={availability.world} style={{fontSize:11,opacity:.72}}>{'The authoritative hypothesis read is unavailable.'} · {availability.world}</p>:selectedHypothesis?<div>
         <div style={{display:'flex',gap:6,flexWrap:'wrap',margin:'11px 0'}}><span style={chip}>{relationClass}</span><span style={chip}>{pct(num(selectedHypothesis.current_confidence))}</span><span style={chip}>{selectedHypothesis.status}</span><span style={chip}>{aiProvider} / {aiModel}</span></div>
         <h3 style={{fontSize:16,lineHeight:1.4}}>{selectedHypothesis.statement}</h3>
         <div style={{...micro,marginTop:14}}>{'PROPOSED MECHANISM · INFERENCE'}</div><p style={{fontSize:12,lineHeight:1.65}}>{selectedHypothesis.aiInference?.mechanism||'Undetermined.'}</p>
-        <div style={{...micro,marginTop:14}}>{'CONSEQUENCE TRACE'}</div>{arr(selectedHypothesis.aiInference?.consequenceChain).length?rows(selectedHypothesis.aiInference?.consequenceChain).map((edge,i)=><div key={i} style={{marginTop:7,padding:9,borderLeft:'2px solid rgba(214,180,120,.34)',background:'rgba(255,255,255,.018)'}}><b>{edge.from} → {edge.to}</b><div style={{fontSize:11,opacity:.74}}>{edge.relation}</div><div style={{fontSize:10,opacity:.5}}>{'basis'}: {arr(edge.basisEvidenceIds).join(', ')||'—'}</div></div>):<p style={{fontSize:11,opacity:.6}}>{'No consequence chain proposed.'}</p>}
+        <div style={{...micro,marginTop:14}}>{'CONSEQUENCE TRACE'}</div>{arr(selectedHypothesis.aiInference?.consequenceChain).length?rows(selectedHypothesis.aiInference?.consequenceChain).map((edge,i)=><div key={i} style={{marginTop:7,padding:9,borderLeft:'2px solid rgba(214,180,120,.34)',background:'rgba(255,255,255,.018)'}}><b>{edge.from} → {edge.to}</b><div style={{fontSize:11,opacity:.74}}>{edge.relation}</div><div style={{fontSize:11,opacity:.5}}>{'basis'}: {arr(edge.basisEvidenceIds).join(', ')||'—'}</div></div>):<p style={{fontSize:11,opacity:.6}}>{'No consequence chain proposed.'}</p>}
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginTop:14}}><section><div style={micro}>{'EXPECTED SIGNALS'}</div>{arr(selectedHypothesis.expected_signals).map(String).map(v=><div key={v} style={{fontSize:11,padding:'4px 0'}}>+ {v}</div>)}</section><section><div style={micro}>{'CONTRADICTIONS'}</div>{arr(selectedHypothesis.contradiction_signals).map(String).map(v=><div key={v} style={{fontSize:11,padding:'4px 0'}}>− {v}</div>)}</section></div>
         <div style={{...micro,marginTop:14}}>{'RIVAL HYPOTHESES'}</div>{arr(selectedHypothesis.aiInference?.rivalHypotheses).map(String).map(v=><div key={v} style={{fontSize:11,padding:'4px 0'}}>{v}</div>)}
         <div style={{...micro,marginTop:14}}>{'INPUT LINEAGE'}</div><div style={{display:'flex',gap:5,flexWrap:'wrap',marginTop:6}}>{[...selectedEvidenceIds].map(id=><button key={id} style={chip} onClick={()=>setSelectedNodeId(id)}>{id.slice(0,8)}</button>)}</div>
@@ -252,11 +252,11 @@ export function ObservatoryConsole(){
           <span style={micro}>T0 → T1 · PERSISTED WORLDSPECT</span>
         </div>
         <div style={{display:'grid',gap:10,padding:12,border:'1px solid rgba(214,180,120,.14)',borderRadius:10,background:'rgba(0,0,0,.12)'}}>
-          <label style={{display:'grid',gridTemplateColumns:'30px 1fr',gap:10,alignItems:'center',fontSize:10}}>
+          <label style={{display:'grid',gridTemplateColumns:'30px 1fr',gap:10,alignItems:'center',fontSize:11}}>
             <b style={{color:'#79b7d5'}}>T0</b>
             <span><input aria-label="T0 baseline snapshot" style={{width:'100%'}} type="range" min="0" max="100" value={baselineTime} onChange={e=>setBaselineTime(Math.min(Number(e.target.value),time))}/><small style={{display:'block',marginTop:4,opacity:.58}}>{baselineFrame?.observedAt||availability.timeline}</small></span>
           </label>
-          <label style={{display:'grid',gridTemplateColumns:'30px 1fr',gap:10,alignItems:'center',fontSize:10}}>
+          <label style={{display:'grid',gridTemplateColumns:'30px 1fr',gap:10,alignItems:'center',fontSize:11}}>
             <b style={{color:'#d9aa63'}}>T1</b>
             <span><input aria-label="T1 comparison snapshot" style={{width:'100%'}} type="range" min="0" max="100" value={time} onChange={e=>{const next=Number(e.target.value);setTime(next);if(baselineTime>next)setBaselineTime(next)}}/><small style={{display:'block',marginTop:4,opacity:.58}}>{frame?.observedAt||availability.timeline}</small></span>
           </label>
@@ -270,17 +270,17 @@ export function ObservatoryConsole(){
           <div style={{padding:10,border:'1px solid rgba(214,180,120,.12)',borderRadius:9}}><div style={micro}>Δ NTI</div><b>{baselineFrame?.nti==null||frame?.nti==null?'—':`${frame.nti-baselineFrame.nti>=0?'+':''}${(frame.nti-baselineFrame.nti).toFixed(3)}`}</b></div>
         </div>
         <div style={{...micro,marginTop:14}}>VECTOR MOVEMENT · LARGEST ABSOLUTE Δ</div>
-        {temporalVectorDeltas.length?temporalVectorDeltas.map(vector=><div key={vector.id} style={{display:'grid',gridTemplateColumns:'1fr auto auto auto',gap:8,padding:'7px 0',borderBottom:'1px solid rgba(214,180,120,.08)',fontSize:10}}>
+        {temporalVectorDeltas.length?temporalVectorDeltas.map(vector=><div key={vector.id} style={{display:'grid',gridTemplateColumns:'1fr auto auto auto',gap:8,padding:'7px 0',borderBottom:'1px solid rgba(214,180,120,.08)',fontSize:11}}>
           <span>{vector.label}</span><span style={{opacity:.55}}>{vector.from.toFixed(3)}</span><span>→ {vector.to.toFixed(3)}</span><b style={{color:vector.delta>=0?'#d9aa63':'#79b7d5'}}>{vector.delta>=0?'+':''}{vector.delta.toFixed(3)}</b>
         </div>):<p style={{fontSize:11,opacity:.58}}>No comparable vector values are present in both selected snapshots.</p>}
-        <p style={{fontSize:10,lineHeight:1.55,opacity:.56,marginTop:12}}>T0/T1 compares persisted WorldSpect snapshots only. The current source/hypothesis graph is not backdated or rewritten by this control.</p>
+        <p style={{fontSize:11,lineHeight:1.55,opacity:.56,marginTop:12}}>T0/T1 compares persisted WorldSpect snapshots only. The current source/hypothesis graph is not backdated or rewritten by this control.</p>
         <div style={{...micro,marginTop:14}}>HYPOTHESIS LIFECYCLE · CURRENT READ MODEL</div>
-        {filteredHypotheses.slice(0,8).map(h=><div key={String(h.id)} style={{padding:'9px 0',borderBottom:'1px solid rgba(214,180,120,.1)'}}><b style={{fontSize:11}}>{short(h.statement,110)}</b><div style={{fontSize:10,opacity:.6}}>{h.cutoff_at} → {h.validation_ends_at} · {h.status} · {pct(num(h.current_confidence))}</div></div>)}
+        {filteredHypotheses.slice(0,8).map(h=><div key={String(h.id)} style={{padding:'9px 0',borderBottom:'1px solid rgba(214,180,120,.1)'}}><b style={{fontSize:11}}>{short(h.statement,110)}</b><div style={{fontSize:11,opacity:.6}}>{h.cutoff_at} → {h.validation_ends_at} · {h.status} · {pct(num(h.current_confidence))}</div></div>)}
       </>}
 
       {lens==='sources'&&<><div style={{...micro,marginTop:12}}>{'SOURCES THAT ACTUALLY PERSISTED OBSERVATIONS'}</div>{availability.world!=='AVAILABLE'&&<p data-availability={availability.world} style={{fontSize:11,opacity:.72}}>{availability.world}</p>}{rows(world?.sourceSummary).slice(0,80).map(source=><div key={String(source.sourceId)} style={{display:'flex',justifyContent:'space-between',gap:10,padding:'7px 0',borderBottom:'1px solid rgba(214,180,120,.08)',fontSize:11}}><span>{source.sourceId}</span><b>{source.count}</b></div>)}<p style={{fontSize:11,lineHeight:1.55,opacity:.62,marginTop:12}}>{'Configured sources are not presented as live. This list contains only sources that actually left persisted records inside the selected horizon.'}</p></>}
 
-      <hr style={{border:0,borderTop:'1px solid rgba(214,180,120,.14)',margin:'16px 0'}}/><div style={{fontSize:10,lineHeight:1.55,opacity:.52}}>{world?.graph?.boundary||'Source ≠ evidence; derived relation ≠ observed causality; hypothesis ≠ truth.'}</div>
+      <hr style={{border:0,borderTop:'1px solid rgba(214,180,120,.14)',margin:'16px 0'}}/><div style={{fontSize:11,lineHeight:1.55,opacity:.52}}>{world?.graph?.boundary||'Source ≠ evidence; derived relation ≠ observed causality; hypothesis ≠ truth.'}</div>
     </aside>}
 
     <div style={{position:'absolute',zIndex:15,left:'50%',transform:'translateX(-50%)',top:88,pointerEvents:'none',fontSize:11,letterSpacing:'.08em',opacity:.62}} data-availability={availability.world}>{'LIVE FLOW'} · {world?.generatedAt?.slice?.(11,19)||availability.world} · {worldMetric(sourceIds.length)} {'observed sources'} · {worldMetric(selectedGraphEdges.length)} {'visible relations'}</div>

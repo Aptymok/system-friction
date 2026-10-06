@@ -45,15 +45,26 @@ const NYC_ASSETS = Object.freeze([
 
 const BACKGROUND='/sfi/nyc/runtime/background.avif';
 
+const SCENE_BACKGROUNDS = Object.freeze({
+  intro:'/sfi/nyc/runtime/background.avif',
+  time:'/assets/sfi/system/reference/02_03_world_background.png',
+  observation:'/assets/sfi/system/reference/02_03_world_background.png',
+  authority:'/sfi/nyc/runtime/background.avif',
+  execution:'/assets/sfi/scenes/04_05_background.png',
+  return:'/assets/sfi/scenes/07_return_background.png',
+  afterAiGovernance:'/assets/sfi/scenes/06_archive_background.png',
+});
+
+
 export const SCENES: readonly Scene[] = [
   {
     id:'intro',
     number:'00',
-    eyebrow:'SYSTEM FRICTION INSTITUTE · NEW YORK 2026',
-    title:'SYSTEM FRICTION',
-    accent:'INSTITUTE.',
-    lead:'An independent institutional research environment for evidence, authority, execution and RETURN in complex sociotechnical systems.',
-    background:BACKGROUND,
+    eyebrow:'INSTITUTIONS / EVIDENCE / LONGER TIME',
+    title:'System Friction',
+    accent:'Institute',
+    lead:'Evidence, Authority & RETURN in Real Institutions',
+    background:SCENE_BACKGROUNDS.intro,
     assets:NYC_ASSETS,
     frames:[
       {label:'PUBLIC ORIENTATION',title:'Institutional intelligence must remain reconstructible.',text:'SFI studies how signals become evidence, how evidence becomes authority, how authority becomes execution, and how reality returns as a constraint on what the institution believes next.'},
@@ -72,7 +83,7 @@ export const SCENES: readonly Scene[] = [
     title:'THE WORLD',
     accent:'DOES NOT HAVE THE SAME TIME.',
     lead:'AI can be global. Institutions are not. They operate through different clocks, evidence thresholds, authorities and consequences.',
-    background:BACKGROUND,
+    background:SCENE_BACKGROUNDS.time,
     assets:NYC_ASSETS,
     frames:[
       {label:'ASYNCHRONY',title:'One event. Different institutional times.',text:'A signal can arrive everywhere at once while becoming actionable at radically different speeds.'},
@@ -87,7 +98,7 @@ export const SCENES: readonly Scene[] = [
     title:'A SIGNAL',
     accent:'IS NOT EVIDENCE.',
     lead:'SFI separates what was sensed from what can legitimately support a claim.',
-    background:BACKGROUND,
+    background:SCENE_BACKGROUNDS.observation,
     assets:NYC_ASSETS,
     frames:[
       {label:'SOURCE',title:'Something emitted a signal.',text:'Origin, acquisition time and access conditions remain part of the object. A source is not yet a conclusion.'},
@@ -102,7 +113,7 @@ export const SCENES: readonly Scene[] = [
     title:'EVIDENCE',
     accent:'IS NOT A DECISION.',
     lead:'Reasoning can produce a defensible interpretation faster than an institution can determine whether anyone is authorized to act on it.',
-    background:BACKGROUND,
+    background:SCENE_BACKGROUNDS.authority,
     assets:NYC_ASSETS,
     frames:[
       {label:'INFERENCE',title:'Interpretation remains interpretation.',text:'Models can rank, summarize and project. Their output remains distinct from institutional fact and institutional will.'},
@@ -117,7 +128,7 @@ export const SCENES: readonly Scene[] = [
     title:'AUTHORITY',
     accent:'IS NOT EXECUTION.',
     lead:'The transition from an approved decision to a material action is where institutional AI becomes consequential.',
-    background:BACKGROUND,
+    background:SCENE_BACKGROUNDS.execution,
     assets:NYC_ASSETS,
     frames:[
       {label:'CAPABILITY',title:'The system can do something.',text:'Tools, models and adapters define technical possibility, not legitimacy.'},
@@ -132,7 +143,7 @@ export const SCENES: readonly Scene[] = [
     title:'REALITY',
     accent:'ANSWERS BACK.',
     lead:'After execution, the institution must observe what actually happened and allow the result to change what it believes next.',
-    background:BACKGROUND,
+    background:SCENE_BACKGROUNDS.return,
     assets:NYC_ASSETS,
     frames:[
       {label:'OUTCOME',title:'What happened?',text:'Observed result remains separate from the intention, prediction and justification that preceded it.'},
@@ -148,7 +159,7 @@ export const SCENES: readonly Scene[] = [
     title:'GOVERNANCE',
     accent:'IS ONLY THE BEGINNING.',
     lead:'System Friction Institute is building an institutional operating model in which AI action remains reconstructible from observation to consequence.',
-    background:BACKGROUND,
+    background:SCENE_BACKGROUNDS.afterAiGovernance,
     assets:NYC_ASSETS,
     frames:[
       {label:'COGNITIVE TWIN',title:'Institutional state becomes inspectable.',text:'Memory, proposals, decisions and learning remain linked without collapsing observation, inference and authority into one layer.'},

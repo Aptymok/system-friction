@@ -113,16 +113,27 @@ assert.match(acpSeenRoute,/export async function POST/,'acp_presence_mutation_mu
 assert.match(acpSeenRoute,/requireRootActor\('governance\.acp\.presence'\)/,'acp_presence_post_must_remain_root_governed');
 assert.doesNotMatch(`${operatingUi}\n${governanceUi}`,/rootPresenceReady|confirmRootPresence|HACERME VISTO · CONFIRMAR PRESENCIA ACP/,'proposal observability must not depend on a manual presence ritual');
 
-// Public chrome exposes only contextual page identity. The NYC landing remains primary while canonical Registry and Observatory surfaces stay directly addressable.
+// Public chrome exposes the approved institutional menu while the NYC landing remains primary and canonical Registry/Observatory owners stay directly addressable.
 assert.match(home,/PublicEntryGateway/,'canonical_home_missing_public_entry_gateway');
 assert.equal(publicEntry.includes('SFI_PUBLIC_NAV.map'),false,'public_entry_must_not_own_duplicate_public_nav');
 const publicChrome=read('src/components/public/SfiPublicChrome.tsx');
-assert.ok(publicChrome.includes('sfiPublicPageNav') && publicChrome.includes('sfiPublicPageArrow') && publicChrome.includes('AI WEEK NYC 2026'),'global_public_chrome_must_expose_contextual_lateral_menu_and_event');
+assert.ok(
+  publicChrome.includes('sfiPublicPageNav')
+  && publicChrome.includes('sfiPublicMenuItem')
+  && publicChrome.includes("label:'ROOT'")
+  && publicChrome.includes("label:'OBSERVATORY'")
+  && publicChrome.includes("label:'REPOSITORY'")
+  && publicChrome.includes("label:'MOPH'")
+  && publicChrome.includes("label:'WORLD VECTOR'")
+  && publicChrome.includes("label:'PUBLICATIONS'")
+  && publicChrome.includes('AI WEEK NYC 2026'),
+  'global_public_chrome_must_expose_institutional_menu_and_event',
+);
 assert.ok(publicChrome.includes("['OBSERVATION','RESEARCH','EVIDENCE','INFERENCE','AUTHORITY','DECISION','EXECUTION','RETURN','LEARN','OBSERVATION']"),'institutional_footer_chain_must_be_ordered');
 assert.ok(publicChrome.includes("['WORLD','SENSOR','SIGNAL','ARTIFACT','CONTEXT','INFERENCE','AUTHORITY','CLAIM','ACTION','RETURN']"),'reality_chain_method_must_remain_canonical');
 assert.ok(publicChrome.includes("title:'METHOD LAB',statement:'GOVERNANCE IS ONLY THE BEGINNING.',stage:'RESEARCH'"),'method_lab_header_stage_must_be_research_not_learning');
 assert.equal(publicChrome.includes('<b>{context.statement}</b>'),false,'footer_must_not_repeat_active_header_statement');
-assert.ok(publicChrome.includes('timeZone:\'UTC\'') && publicChrome.includes('SIGN IN'),'global_public_chrome_must_expose_utc_clock_and_sign_in');
+assert.ok(publicChrome.includes('timeZone:\'UTC\'') && publicChrome.includes('Institutional access'),'global_public_chrome_must_expose_utc_context_and_access');
 assert.equal(publicChrome.includes('SFI_PUBLIC_NAV.map'),false,'global_public_chrome_must_not_render_old_route_menu');
 const publicNav=read('src/lib/navigation/publicNavigation.ts');
 assert.ok(publicNav.includes("href:'/'"),'public_nav_missing_home');
@@ -178,7 +189,7 @@ console.log(JSON.stringify({ok:true,invariants:[
   'runtime target hydration is deferred and recurring UI polling is absent',
   'proposal observability is identity-authorized and independent from ACP runtime presence health',
   'ACP presence remains an explicit POST mutation but is not a prerequisite for reading governance recovery state',
-  'public presentation uses contextual chrome with NYC landing plus bounded Registry and Observatory surfaces',
+  'public presentation uses the approved institutional chrome with NYC landing plus bounded Registry and Observatory surfaces',
   'machine discovery exposes governed authorization, bounded internal dispatch, external fail-closed behavior and ROOT-only canon',
   'readiness separates Evidence Ledger from Knowledge Graph',
   'readiness uses planned health counts rather than expensive exact dashboard counts',

@@ -15,6 +15,15 @@ function clamp(value:number,min:number,max:number){
   return Math.min(max,Math.max(min,value));
 }
 
+const CORE_RAIL = [
+  {label:'OBSERVATION',number:'01',sceneId:'observation',frameIndex:0},
+  {label:'EVIDENCE',number:'02',sceneId:'observation',frameIndex:2},
+  {label:'INFERENCE',number:'03',sceneId:'authority',frameIndex:0},
+  {label:'AUTHORITY',number:'04',sceneId:'authority',frameIndex:1},
+  {label:'EXECUTION',number:'05',sceneId:'execution',frameIndex:2},
+  {label:'RETURN',number:'06',sceneId:'return',frameIndex:0},
+] as const;
+
 export function PublicEntryGateway(){
   const wheelAccumulator=useRef(0);
   const wheelLock=useRef(false);
@@ -23,8 +32,8 @@ export function PublicEntryGateway(){
   const [frameIndex,setFrameIndex]=useState(0);
 
   const scene=SCENES[sceneIndex];
-  const sharedBackground=SCENES[0].background;
-  const sharedAssets=SCENES[0].assets;
+  const sceneBackground=scene.background;
+  const sceneAssets=scene.assets;
 
   const goScene=useCallback((next:number)=>{
     const bounded=clamp(next,0,SCENES.length-1);
@@ -41,6 +50,17 @@ export function PublicEntryGateway(){
     const index=SCENES.findIndex(item=>item.id===id);
     if(index>=0)goScene(index);
   },[goScene]);
+
+  const goSceneFrame=useCallback((id:string,nextFrame:number)=>{
+    const index=SCENES.findIndex(item=>item.id===id);
+    if(index<0)return;
+    setSceneIndex(index);
+    setFrameIndex(clamp(nextFrame,0,SCENES[index].frames.length-1));
+    if(typeof window!=='undefined'){
+      window.history.replaceState(null,'',`#${id}`);
+      window.dispatchEvent(new CustomEvent('sfi:subjectchange',{detail:{subject:id}}));
+    }
+  },[]);
 
   const moveFrame=useCallback((direction:-1|1)=>{
     setFrameIndex(current=>clamp(current+direction,0,SCENES[sceneIndex].frames.length-1));
@@ -142,10 +162,10 @@ export function PublicEntryGateway(){
     onPointerCancel={()=>{dragStart.current=null;}}
   >
     <div className="sfiVisualStage" aria-hidden="true">
-      <div className="sfiSharedBackground" style={{backgroundImage:`url('${sharedBackground}')`}}/>
+      <div className="sfiSharedBackground" style={{backgroundImage:`url('${sceneBackground}')`}}/>
       <div className="sfiSharedLayers">
-        {sharedAssets.map((asset,layerIndex)=><img
-          key={asset.src}
+        {sceneAssets.map((asset,layerIndex)=><img
+          key={`${scene.id}:${asset.src}`}
           src={asset.src}
           alt=""
           decoding="async"
@@ -184,7 +204,10 @@ export function PublicEntryGateway(){
               <h1>{item.title}<span>{item.accent}</span></h1>
               <p className="sfiSceneLead">{item.lead}</p>
 
-              {item.tiles?.length ? <div className="sfiIntroTiles" aria-label="Public SFI destinations">
+              {item.id==='intro' ? <div className="sfiHeroActions">
+                <p className="sfiHeroStatement">The world does not have the same time.</p>
+                <a className="sfiHeroCta" href="/observatory"><span aria-hidden="true">→</span><b>Enter Observatory</b></a>
+              </div> : item.tiles?.length ? <div className="sfiIntroTiles" aria-label="Public SFI destinations">
                 {item.tiles.map(tile=>tile.href?<a
                   key={tile.label}
                   className="sfiIntroTile"
@@ -225,14 +248,14 @@ export function PublicEntryGateway(){
       })}
     </div>
 
-    <nav className="sfiTopicRail" aria-label="Landing subjects">
-      {SCENES.map((item,index)=><button
-        key={item.id}
+    <nav className="sfiTopicRail" aria-label="Institutional chain">
+      {CORE_RAIL.map((item)=><button
+        key={item.label}
         type="button"
-        data-active={index===sceneIndex?'true':undefined}
-        onClick={()=>goScene(index)}
-        aria-label={`Open subject ${item.number}: ${item.eyebrow}`}
-      ><span>{item.number}</span><i/></button>)}
+        data-active={scene.id===item.sceneId&&frameIndex===item.frameIndex?'true':undefined}
+        onClick={()=>goSceneFrame(item.sceneId,item.frameIndex)}
+        aria-label={`Open ${item.label.toLowerCase()} stage`}
+      ><span>{item.label}</span><i/><em>{item.number}</em></button>)}
     </nav>
 
     {!scene.tiles?.length&&<div className="sfiExplanationRail" aria-label="Explanations">
