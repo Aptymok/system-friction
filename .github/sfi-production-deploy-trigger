@@ -1,16 +1,14 @@
-SFI Production Release 2026-10-02
-base=242c58e9a1748ca41a5cada458022f8957350fd8
-reason=governed_external_cognitive_peer_authenticated_mcp
-contract=SFI-EXTERNAL-COGNITIVE-PEER-1.0
-context_scope=observe
-submit_scope=lab:write
-persisted_epistemic_class=INFERRED
-public_mcp_mutation=false
+SFI Production Release 2026-10-05
+base=a7b19ef629a91042fcd05afbd0df1031f2959144
+reason=aiweek_nyc_public_visual_grammar_and_reality_passport
+ui_scope=home_observatory_public_chrome
+visual_reference=approved_sfi_aiweek_home
+reality_passport_contract=SFI-REALITY-PASSPORT-1.1
+public_reality_chain_method_redefined=false
+observatory_semantics_changed=false
 authority_expansion=false
+persistence_owner_changed=false
 return_minting=false
-governance_decision_minting=false
-capability_grant_minting=false
-learning_promotion=false
 canonical_promotion=false
 schema_change=false
 release_gate=prebuilt_production_workflow
