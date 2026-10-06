@@ -508,3 +508,181 @@
   .sfiTopicRail i:after{left:12px}
   .sfiTopicRail em{grid-column:2}
 }
+
+
+/* Canonical SFI instrument surfaces · parallax scene system */
+.sfiSceneParallaxLayer{
+  position:absolute;
+  inset:0;
+  z-index:1;
+  pointer-events:none;
+  will-change:transform;
+  transition:transform .16s cubic-bezier(.2,.7,.2,1)
+}
+.sfiSceneParallaxLayer[data-motion="slow-drift"]{
+  animation:sfiSurfaceAmbientDrift 18s ease-in-out infinite alternate
+}
+@keyframes sfiSurfaceAmbientDrift{
+  from{transform:translate3d(-3px,-2px,0) scale(1)}
+  to{transform:translate3d(5px,4px,0) scale(1.008)}
+}
+
+.sfiSceneExperience:not([data-active-scene="intro"]) .sfiSharedBackground{
+  background-position:66% center;
+  filter:saturate(.82) contrast(1.08) brightness(.42);
+  transform:scale(1.035)
+}
+.sfiSceneExperience:not([data-active-scene="intro"]) .sfiSharedVeil{
+  background:
+    radial-gradient(circle at 68% 48%,rgba(2,2,1,.02) 0 21%,rgba(2,2,1,.18) 45%,rgba(2,2,1,.58) 100%),
+    linear-gradient(90deg,rgba(2,2,1,.94) 0%,rgba(2,2,1,.72) 31%,rgba(2,2,1,.22) 56%,rgba(2,2,1,.18) 100%),
+    linear-gradient(180deg,rgba(2,2,1,.14),transparent 58%,rgba(2,2,1,.52))
+}
+.sfiSceneExperience:not([data-active-scene="intro"]) .sfiSceneLayer--1{
+  opacity:.56;
+  transform:translate3d(24vw,0,0) scale(.82);
+  mix-blend-mode:screen
+}
+.sfiSceneExperience:not([data-active-scene="intro"]) .sfiSceneLayer--2{
+  opacity:.72;
+  transform:translate3d(22vw,1vh,0) scale(.86);
+  mix-blend-mode:screen
+}
+.sfiSceneExperience:not([data-active-scene="intro"]) .sfiSceneLayer--3{
+  opacity:.62;
+  transform:translate3d(20vw,3vh,0) scale(.90);
+  mix-blend-mode:screen
+}
+.sfiSceneExperience:not([data-active-scene="intro"]) .sfiSceneContent{
+  width:100%;
+  margin:0;
+  padding:86px 4.6vw 96px;
+  align-items:center
+}
+.sfiSceneExperience:not([data-active-scene="intro"]) .sfiSceneCopy{
+  width:min(620px,42vw);
+  padding:20px 0 0
+}
+.sfiSceneExperience:not([data-active-scene="intro"]) .sfiSceneCopy h1{
+  max-width:8.7ch;
+  font:400 clamp(58px,6.0vw,102px)/.86 Georgia,'Times New Roman',serif;
+  letter-spacing:-.055em;
+  color:#f5efe3
+}
+.sfiSceneExperience:not([data-active-scene="intro"]) .sfiSceneCopy h1 span{
+  color:#f5efe3
+}
+.sfiSceneExperience:not([data-active-scene="intro"]) .sfiSceneEyebrow{
+  margin-bottom:16px;
+  font-size:12px;
+  letter-spacing:.18em;
+  color:rgba(236,216,174,.72)
+}
+.sfiSceneExperience:not([data-active-scene="intro"]) .sfiSceneLead{
+  margin-top:18px;
+  max-width:34em;
+  font:400 clamp(18px,1.35vw,23px)/1.43 Georgia,'Times New Roman',serif;
+  color:rgba(239,231,216,.88)
+}
+.sfiSceneExperience:not([data-active-scene="intro"]) .sfiFieldState{
+  max-width:35em;
+  margin-top:22px;
+  padding-top:15px;
+  background:linear-gradient(90deg,rgba(8,7,5,.48),rgba(8,7,5,0));
+  border-top:1px solid rgba(216,180,107,.30)
+}
+.sfiSceneExperience:not([data-active-scene="intro"]) .sfiFieldState small{font-size:12px}
+.sfiSceneExperience:not([data-active-scene="intro"]) .sfiFieldState strong{
+  font:400 clamp(22px,1.7vw,30px)/1.12 Georgia,'Times New Roman',serif
+}
+.sfiSceneExperience:not([data-active-scene="intro"]) .sfiFieldState p{
+  font-size:16px;
+  line-height:1.56
+}
+
+.sfiSurfaceActions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  margin-top:22px
+}
+.sfiSurfaceCta{
+  display:inline-flex;
+  align-items:center;
+  gap:16px;
+  min-height:46px;
+  padding:0 22px;
+  border:1px solid rgba(216,180,107,.34);
+  border-radius:999px;
+  background:rgba(8,7,5,.42);
+  color:#ede3cf!important;
+  font:400 16px/1.1 Georgia,'Times New Roman',serif;
+  box-shadow:inset 0 0 20px rgba(216,180,107,.035),0 0 22px rgba(0,0,0,.18);
+  transition:transform .18s ease,border-color .18s ease,background .18s ease,box-shadow .18s ease
+}
+.sfiSurfaceCta span{color:#e7c775;font-size:18px}
+.sfiSurfaceCta:hover{
+  transform:translateX(3px);
+  border-color:rgba(216,180,107,.72);
+  background:rgba(20,16,9,.58);
+  box-shadow:0 0 24px rgba(216,180,107,.11)
+}
+.sfiSurfaceCta--secondary{
+  border-color:rgba(232,221,195,.20);
+  color:rgba(239,231,216,.78)!important
+}
+
+/* Individual instrument composition offsets */
+.sfiSceneExperience[data-active-scene="timeline"] .sfiSharedBackground{background-position:63% center}
+.sfiSceneExperience[data-active-scene="timeline"] .sfiSceneLayer--1{opacity:.78;transform:translate3d(19vw,20vh,0) scale(.92)}
+.sfiSceneExperience[data-active-scene="timeline"] .sfiSceneLayer--2{opacity:.54;transform:translate3d(29vw,-2vh,0) scale(.72)}
+.sfiSceneExperience[data-active-scene="timeline"] .sfiSceneLayer--3{opacity:.36;transform:translate3d(18vw,-3vh,0) scale(.92)}
+
+.sfiSceneExperience[data-active-scene="repository"] .sfiSharedBackground{background-position:67% center}
+.sfiSceneExperience[data-active-scene="repository"] .sfiSceneLayer--1{opacity:.86;transform:translate3d(23vw,2vh,0) scale(.84)}
+.sfiSceneExperience[data-active-scene="repository"] .sfiSceneLayer--2{opacity:.42;transform:translate3d(31vw,-1vh,0) scale(.72)}
+.sfiSceneExperience[data-active-scene="repository"] .sfiSceneLayer--3{opacity:.38;transform:translate3d(21vw,14vh,0) scale(.78)}
+
+.sfiSceneExperience[data-active-scene="world-vector"] .sfiSharedBackground{background-position:69% center}
+.sfiSceneExperience[data-active-scene="world-vector"] .sfiSceneLayer--1{opacity:.78;transform:translate3d(26vw,1vh,0) scale(.80)}
+.sfiSceneExperience[data-active-scene="world-vector"] .sfiSceneLayer--2{opacity:.72;transform:translate3d(23vw,0,0) scale(.88)}
+.sfiSceneExperience[data-active-scene="world-vector"] .sfiSceneLayer--3{opacity:.44;transform:translate3d(19vw,-2vh,0) scale(.95)}
+
+.sfiSceneExperience[data-active-scene="method-lab"] .sfiSharedBackground{background-position:68% center}
+.sfiSceneExperience[data-active-scene="method-lab"] .sfiSceneLayer--1{opacity:.72;transform:translate3d(23vw,-1vh,0) scale(.89)}
+.sfiSceneExperience[data-active-scene="method-lab"] .sfiSceneLayer--2{opacity:.54;transform:translate3d(29vw,1vh,0) scale(.74)}
+.sfiSceneExperience[data-active-scene="method-lab"] .sfiSceneLayer--3{opacity:.42;transform:translate3d(18vw,15vh,0) scale(.80)}
+
+.sfiSceneExperience[data-active-scene="reality-chain"] .sfiSharedBackground{background-position:68% center}
+.sfiSceneExperience[data-active-scene="reality-chain"] .sfiSceneLayer--1{opacity:.66;transform:translate3d(24vw,0,0) scale(.90)}
+.sfiSceneExperience[data-active-scene="reality-chain"] .sfiSceneLayer--2{opacity:.62;transform:translate3d(27vw,-2vh,0) scale(.78)}
+.sfiSceneExperience[data-active-scene="reality-chain"] .sfiSceneLayer--3{opacity:.48;transform:translate3d(20vw,16vh,0) scale(.84)}
+
+.sfiSceneExperience[data-active-scene="observatory"] .sfiSharedBackground{background-position:70% center}
+.sfiSceneExperience[data-active-scene="observatory"] .sfiSceneLayer--1{opacity:.52;transform:translate3d(27vw,0,0) scale(.77)}
+.sfiSceneExperience[data-active-scene="observatory"] .sfiSceneLayer--2{opacity:.60;transform:translate3d(24vw,2vh,0) scale(.82)}
+.sfiSceneExperience[data-active-scene="observatory"] .sfiSceneLayer--3{opacity:.48;transform:translate3d(25vw,-2vh,0) scale(.84)}
+
+.sfiSceneExperience[data-active-scene="root"] .sfiSharedBackground{background-position:70% center}
+.sfiSceneExperience[data-active-scene="root"] .sfiSceneLayer--1{opacity:.52;transform:translate3d(23vw,0,0) scale(.88)}
+.sfiSceneExperience[data-active-scene="root"] .sfiSceneLayer--2{opacity:.72;transform:translate3d(27vw,0,0) scale(.80)}
+.sfiSceneExperience[data-active-scene="root"] .sfiSceneLayer--3{opacity:.66;transform:translate3d(21vw,0,0) scale(.92)}
+
+@media(max-width:900px){
+  .sfiSceneExperience:not([data-active-scene="intro"]) .sfiSceneContent{padding:76px 18px 94px;align-items:flex-start}
+  .sfiSceneExperience:not([data-active-scene="intro"]) .sfiSceneCopy{width:min(82vw,600px);padding-top:7vh}
+  .sfiSceneExperience:not([data-active-scene="intro"]) .sfiSceneCopy h1{font-size:clamp(45px,12vw,72px);max-width:8.2ch}
+  .sfiSceneExperience:not([data-active-scene="intro"]) .sfiSceneLead{font-size:17px;max-width:28em}
+  .sfiSceneExperience:not([data-active-scene="intro"]) .sfiFieldState p{font-size:15px}
+  .sfiSurfaceActions{margin-top:16px}
+  .sfiSurfaceCta{min-height:42px;padding:0 18px;font-size:15px}
+  .sfiSceneExperience:not([data-active-scene="intro"]) .sfiSceneLayer--1,
+  .sfiSceneExperience:not([data-active-scene="intro"]) .sfiSceneLayer--2,
+  .sfiSceneExperience:not([data-active-scene="intro"]) .sfiSceneLayer--3{
+    opacity:.30;
+    transform:translate3d(30vw,16vh,0) scale(1.08)
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .sfiSceneParallaxLayer{transition:none!important;animation:none!important}
+}
