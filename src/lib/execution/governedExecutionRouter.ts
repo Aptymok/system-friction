@@ -92,6 +92,20 @@ export const SFI_GOVERNED_EXECUTION_ADAPTERS: GovernedExecutionAdapter[] = [
     executorRef: 'github-actions:sfi-self-development',
     healthStatus: 'AVAILABLE',
   },
+  {
+    capabilityId: 'external_connector_handoff_v1',
+    name: 'External Connector Handoff',
+    domain: 'external_executor_handoff',
+    actionsSupported: ['publish', 'upload', 'send_email', 'send_message', 'github_mutation', 'github_write', 'merge_pull_request', 'vercel_deploy', 'deploy', 'external_mutation', 'build_execution_adapter'],
+    inputContract: 'already-authorized queued proposal + execute-scoped external executor',
+    outputContract: 'persisted external assignment + bounded handoff payload; observed RETURN must be recorded separately with evidence refs',
+    requiredScopes: ['execute'],
+    authorityBoundary: 'Assigns approved external work to an authenticated external executor. It does not perform the side effect, expand proposal scope, infer success, write executed_at, or promote canon. Completion requires an evidence-linked observed RETURN.',
+    riskClass: 'MEDIUM',
+    reversibility: 'EXTERNAL_DEPENDENT',
+    executorRef: 'external-agent-connector',
+    healthStatus: 'AVAILABLE',
+  },
 ];
 
 function proposalPayload(row: Row) {
@@ -166,8 +180,10 @@ export function classifyGovernedProposalWork(row: Row) {
   if (materialExternal) {
     return {
       executionClass: 'EXTERNAL_ACTION' as const,
-      adapterId,
-      reason: 'The requested action type or explicit operative wording declares a material external side effect and therefore requires a verified governed adapter.',
+      adapterId: adapterId ?? 'external_connector_handoff_v1',
+      reason: adapterId
+        ? 'The requested action declares a material external side effect and uses its explicitly declared governed adapter.'
+        : 'The requested action declares a material external side effect. It is assigned to the bounded external connector handoff; execution remains external and completion requires an observed evidence-linked RETURN.',
     };
   }
 
@@ -658,6 +674,61 @@ export async function dispatchQueuedProposal(proposalId: string) {
   const adapter = classification.adapterId
     ? SFI_GOVERNED_EXECUTION_ADAPTERS.find((candidate) => candidate.capabilityId === classification.adapterId && candidate.healthStatus === 'AVAILABLE')
     : null;
+
+  if (
+    classification.executionClass === 'EXTERNAL_ACTION'
+    && adapter?.domain === 'external_executor_handoff'
+  ) {
+    const assignment = await persistExecutionState(row, {
+      executionClass: 'EXTERNAL_ACTION',
+      adapterId: adapter.capabilityId,
+      executorId: adapter.executorRef,
+      state: 'ASSIGNED',
+      eventId: routeEventId,
+      systemNextAction: 'EXTERNAL_EXECUTOR_PERFORM_AUTHORIZED_ACTION_AND_RECORD_OBSERVED_RETURN',
+    });
+    if (!assignment.ok) return { ok: false as const, state: 'ASSIGNMENT_PERSIST_FAILED', proposalId, details: assignment };
+
+    const handoff = {
+      proposalId,
+      adapterId: adapter.capabilityId,
+      executorRef: adapter.executorRef,
+      requestedAction: requestedAction(assignment.data as Row),
+      title: stringValue((assignment.data as Row).title),
+      objective: stringValue(recordValue((assignment.data as Row).expected_field_delta).objective),
+      authorityBoundary: {
+        proposalWasAlreadyQueued: true,
+        scopeExpansionAllowed: false,
+        executionStillExternal: true,
+        successMayNotBeInferredFromAssignment: true,
+        observedReturnRequired: true,
+        canonicalPromotionAllowed: false,
+      },
+      returnContract: {
+        endpoint: '/api/external/v1/proposal-return',
+        required: ['proposal_id', 'observed_at', 'outcome', 'evidence_refs[]'],
+      },
+    };
+
+    await appendOperationalEvent({
+      eventName: 'execution.router.assigned_external',
+      actorId: SYSTEM_ACTOR,
+      confidence: 1,
+      payload: {
+        ...handoff,
+        state: 'ASSIGNED',
+      },
+      lineage: [proposalId],
+    });
+
+    return {
+      ok: true as const,
+      state: 'ASSIGNED_EXTERNAL_EXECUTOR',
+      proposalId,
+      adapterId: adapter.capabilityId,
+      handoff,
+    };
+  }
   if (adapter && adapter.domain !== 'internal_cognition' && adapter.domain !== 'internal_execution_control' && adapter.domain !== 'execution_remediation' && adapter.domain !== 'repository_self_development') {
     const missingCapability = `dispatcher:${adapter.capabilityId}`;
     const remediation = await openRemediationChild(row, missingCapability, 'The governed adapter is registered but no dispatcher implementation is available for this external domain.');
