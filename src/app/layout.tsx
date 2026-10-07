@@ -11,6 +11,9 @@ import { SfiPublicHeader, SfiPublicFooter } from '@/components/public/SfiPublicC
 
 const BASE = SFI_PUBLIC_PROFILE.institution.canonicalUrl;
 const INSTITUTION_NAME = SFI_PUBLIC_PROFILE.institution.name;
+const SLOGAN = SFI_PUBLIC_PROFILE.institution.slogan;
+const SOCIAL_IMAGE = SFI_PUBLIC_PROFILE.institution.socialImage;
+const META_DESCRIPTION = `${SLOGAN} ${SFI_PUBLIC_PROFILE.institution.primaryDefinition}`;
 const GA_ID = 'G-P8G69HMYLM';
 
 export const viewport: Viewport = {
@@ -25,7 +28,7 @@ export const metadata: Metadata = {
     default: INSTITUTION_NAME,
     template: '%s | SFI',
   },
-  description: 'After AI Governance: Evidence, Authority & RETURN in Real Institutions. System Friction Institute · AI Week NY · October 8, 2026 · 7:00 PM ET.',
+  description: META_DESCRIPTION,
   applicationName: INSTITUTION_NAME,
   keywords: [
     'system friction',
@@ -58,8 +61,22 @@ export const metadata: Metadata = {
     type: 'website',
     url: BASE,
     siteName: INSTITUTION_NAME,
-    title: INSTITUTION_NAME,
-    description: 'After AI Governance: Evidence, Authority & RETURN in Real Institutions · AI Week NY 2026.',
+    title: `${INSTITUTION_NAME} | ${SLOGAN}`,
+    description: META_DESCRIPTION,
+    images: [
+      {
+        url: SOCIAL_IMAGE,
+        width: 1200,
+        height: 630,
+        alt: `${INSTITUTION_NAME} — ${SLOGAN}`,
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: `${INSTITUTION_NAME} | ${SLOGAN}`,
+    description: META_DESCRIPTION,
+    images: [SOCIAL_IMAGE],
   },
   robots: {
     index: true,
@@ -80,7 +97,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     '@id': SFI_PUBLIC_PROFILE.institution.entityId,
     name: SFI_PUBLIC_PROFILE.institution.name,
     url: BASE,
-    description: 'Independent institutional research environment for evidence, authority, execution and RETURN in complex sociotechnical systems.',
+    slogan: SLOGAN,
+    description: META_DESCRIPTION,
+    image: `${BASE}${SOCIAL_IMAGE}`,
     ...(verifiedSameAs.length ? { sameAs: verifiedSameAs } : {}),
     privacyPolicy: `${BASE}/privacy`,
   };
