@@ -82,7 +82,7 @@ export const SCENES: readonly Scene[] = [
   {
     id:'intro',
     number:'00',
-    eyebrow:'INSTITUTIONAL FIELD',
+    eyebrow:'',
     title:'System Friction',
     accent:'Institute',
     lead:'SYSTEM | FRICTION | INSTITUTE',
