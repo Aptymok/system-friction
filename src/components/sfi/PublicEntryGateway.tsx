@@ -239,7 +239,7 @@ export function PublicEntryGateway(){
           </ol>:null}
           <div className="sfiSceneContent">
             <div className="sfiSceneCopy">
-              <div className="sfiSceneEyebrow"><span>{item.number}</span>{item.eyebrow}</div>
+              {item.eyebrow?<div className="sfiSceneEyebrow"><span>{item.number}</span>{item.eyebrow}</div>:null}
               <h1>{item.title}{item.accent?<span>{item.accent}</span>:null}</h1>
               <p className="sfiSceneLead">{item.lead}</p>
 
