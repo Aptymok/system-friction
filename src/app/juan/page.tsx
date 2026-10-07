@@ -5,7 +5,7 @@ const BASE='https://systemfriction.org';
 const CARD_URL=`${BASE}/juan`;
 const LINKEDIN_JUAN='https://www.linkedin.com/in/juanliera/';
 const LINKEDIN_SFI='https://www.linkedin.com/company/system-friction-institute/';
-const WHATSAPP='https://wa.me/5214496370444?text=Hello%20Juan%20%E2%80%94%20I%27m%20contacting%20you%20from%20your%20SFI%20digital%20contact%20card.';
+const WHATSAPP='https://wa.me/524496370444?text=Hello%20Juan%20%E2%80%94%20I%27m%20contacting%20you%20from%20your%20SFI%20digital%20contact%20card.';
 
 const caseSubject=encodeURIComponent('Case for System Friction Institute');
 const caseBody=encodeURIComponent(`Hello Juan,
@@ -43,13 +43,13 @@ const personLd={
   jobTitle:'Founder',
   url:CARD_URL,
   email:'mailto:jmarin@systemfriction.org',
-  telephone:'+52 1 449 637 0444',
+  telephone:'+52 449 637 0444',
   worksFor:{
     '@type':'ResearchOrganization',
     name:'System Friction Institute',
     url:BASE,
   },
-  sameAs:[LINKEDIN_JUAN,LINKEDIN_SFI],
+  sameAs:[LINKEDIN_JUAN],
 };
 
 function Arrow(){return <span aria-hidden="true">↗</span>}
@@ -105,7 +105,7 @@ export default function JuanDigitalContactCard(){
 
           <a href={WHATSAPP} target="_blank" rel="noreferrer">
             <small>WHATSAPP</small>
-            <strong>+52 1 449 637 0444</strong>
+            <strong>+52 449 637 0444</strong>
             <Arrow/>
           </a>
 
