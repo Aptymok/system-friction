@@ -77,7 +77,7 @@ check('reference chrome owns fixed header and semantic timeline clearances',
 
 check('landing owns vertical surface transition',landing.includes('goScene')&&landing.includes('CHANGE SURFACE'));
 check('Home reference hero remains canonical and keeps the seven-surface rail',
-  manifest.includes("eyebrow:'INSTITUTIONAL FIELD'")
+  manifest.includes("eyebrow:''")
   && manifest.includes("lead:'SYSTEM | FRICTION | INSTITUTE'")
   && !manifest.includes("actions:[{label:'Enter Observatory'")
   && !landing.includes('The world does not have the same time.')
