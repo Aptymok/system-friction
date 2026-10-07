@@ -478,6 +478,7 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
   const initialReading=(allowedReadings as readonly string[]).includes(requestedReading||'') ? requestedReading as typeof allowedReadings[number] : 'CURRENT_STATE';
   const [query, setQuery] = useState('');
   const [activeType, setActiveType] = useState('ALL');
+  const [activeStage, setActiveStage] = useState<'ALL'|RealityPassportStage>('ALL');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [reading, setReading] = useState<'CURRENT_STATE'|'HIERARCHY'|'TRAJECTORY'|'RETROLONGITUDINAL'|'PROJECTION'|'FRICTION_REGIME'|'REALITY_CHAIN'|'RETURN_CONTRAST'>(initialReading);
   const [temporalResolution, setTemporalResolution] = useState('ALL');
@@ -496,6 +497,19 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
     () => [...new Set(graph.nodes.map((node) => node.type))].sort(),
     [graph.nodes],
   );
+  const typeCounts = useMemo(() => {
+    const counts=new Map<string,number>();
+    graph.nodes.forEach((node)=>counts.set(node.type,(counts.get(node.type)??0)+1));
+    return counts;
+  },[graph.nodes]);
+  const stageCounts = useMemo(() => {
+    const counts=new Map<RealityPassportStage,number>();
+    graph.nodes.forEach((node)=>{
+      const stage=realityPassportStage(node);
+      counts.set(stage,(counts.get(stage)??0)+1);
+    });
+    return counts;
+  },[graph.nodes]);
 
   const focusIds=useMemo(()=>{
     if(!focusId) return null;
@@ -517,12 +531,13 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
     return graph.nodes.filter((node) => {
       if (focusIds && !focusIds.has(node.id)) return false;
       if (activeType !== 'ALL' && node.type !== activeType) return false;
+      if (activeStage !== 'ALL' && realityPassportStage(node) !== activeStage) return false;
       if (temporalResolution !== 'ALL' && !node.scientificReading?.temporal.availableResolutions.includes(temporalResolution)) return false;
       if (!needle) return true;
       return [node.label, node.type, node.origin, node.provenance, ...node.lineage]
         .some((value) => value.toLowerCase().includes(needle));
     });
-  }, [activeType, graph.nodes, query, temporalResolution,focusIds]);
+  }, [activeStage, activeType, graph.nodes, query, temporalResolution,focusIds]);
 
   const visibleNodeIds = useMemo(() => new Set(visibleNodes.map((node) => node.id)), [visibleNodes]);
   const visibleEdges = useMemo(
@@ -571,6 +586,14 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
           <select aria-label="Field reading" value={reading} onChange={(event)=>setReading(event.target.value as typeof reading)}>
             {allowedReadings.map((mode)=><option key={mode} value={mode}>{mode.replaceAll('_',' ')}</option>)}
           </select>
+          <select aria-label="Reality stage" value={activeStage} onChange={(event)=>setActiveStage(event.target.value as 'ALL'|RealityPassportStage)}>
+            <option value="ALL">ALL REALITY STAGES ({graph.nodes.length})</option>
+            {REALITY_PASSPORT_STAGES.map((stage)=><option key={stage} value={stage}>{stage.toUpperCase()} ({stageCounts.get(stage)??0})</option>)}
+          </select>
+          <select aria-label="Object category" value={activeType} onChange={(event)=>setActiveType(event.target.value)}>
+            <option value="ALL">ALL OBJECT CATEGORIES ({graph.nodes.length})</option>
+            {allTypes.map((type)=><option key={type} value={type}>{type.replaceAll('_',' ')} ({typeCounts.get(type)??0})</option>)}
+          </select>
           <select aria-label="Temporal resolution" value={temporalResolution} onChange={(event)=>setTemporalResolution(event.target.value)}>
             {['ALL','SYSTEM_HISTORY','REGIME','PHENOMENON','CYCLE','TRANSITION','EVENT','OBSERVATION'].map((level)=><option key={level} value={level}>{level.replaceAll('_',' ')}</option>)}
           </select>
@@ -606,7 +629,7 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
               <span>INSTITUTIONAL DIRECTION<strong>SFI-INSTITUTIONAL-ATTRACTOR-001</strong></span>
               <span>LOCAL DYNAMICAL ATTRACTOR<strong>{selected.scientificReading?.attractor.state ?? 'NOT ESTABLISHED'}</strong></span>
             </div>
-            {selected.realityPassport ? <details open={selected.realityPassport.decision!=='CONTINUE'}><summary>REALITY PASSPORT · {selected.realityPassport.decision}</summary>
+            {selected.realityPassport ? <details open><summary>REALITY PASSPORT · {selected.realityPassport.decision}</summary>
               <p>{selected.realityPassport.reasons.length ? selected.realityPassport.reasons.join(' ') : 'No epistemic stop is currently derived from represented state.'}</p>
               <div className="rootFieldHubGrid">
                 <span>SUPPORTING RELATIONS<strong>{selected.realityPassport.provenance.supportingRelationCount}</strong></span>
