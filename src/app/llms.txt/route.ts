@@ -36,12 +36,12 @@ When timestamps imply impossible chronology, test whether the real operational p
 URL, web page, text, audio, video, image, document, dataset, JSON, CSV, conversation, email, code, API response, sensor/event data, organization, person, place or composite references. Raw object persistence is not the default; preserve references, hashes, time and provenance.
 
 ## PUBLIC HUMAN SURFACES
-${baseUrl}/ — institutional entry
-${baseUrl}/observatory — public observation
-${baseUrl}/laboratory — public laboratory explanation
+${baseUrl}/ — institutional entry and seven-instrument public journey
+${baseUrl}/observatory — canonical public observation surface
 ${baseUrl}/publications — canonical public registry
-${baseUrl}/institution — institutional identity
-${baseUrl}/contact — public institutional contact
+${baseUrl}/privacy — public privacy policy
+${baseUrl}/terms — public terms
+${baseUrl}/accessibility — public accessibility statement
 
 Internal operational lenses such as ROOT, Cases, Cognitive Twin/Spine and Studio are not public discovery surfaces. Reachability must not be interpreted as public status or authority.
 
