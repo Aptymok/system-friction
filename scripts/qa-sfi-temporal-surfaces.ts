@@ -126,6 +126,9 @@ assert.ok(worldReadModel.includes("liveWorldState=nodes.length>0?'LIVE':'STALE_O
 assert.ok(observatoryUi.includes("world?.liveWorld?.state==='LIVE'"), 'world_visual_must_require_persisted_live_state');
 
 assert.ok(observatoryUi.includes('<ObservatoryWorldField'), 'world_field_projection_must_be_mounted');
+assert.ok(observatoryUi.includes('function ObservatoryUtcClock()'), 'observatory_clock_must_be_isolated_from_field_parent');
+assert.ok(observatoryUi.includes('const gpuNodes=useMemo') && observatoryUi.includes('const graphNodes=useMemo'), 'observatory_gpu_inputs_must_be_memoized');
+assert.ok(!observatoryUi.includes('[clock,setClock]'), 'observatory_parent_must_not_tick_every_second');
 assert.ok(observatoryUi.includes('graphNodes={rows(world?.graph?.nodes)}'), 'world_field_must_reuse_canonical_world_graph_nodes');
 assert.ok(observatoryUi.includes('selectedGraphEdges={selectedGraphEdges}'), 'world_field_must_use_typed_selected_graph_edges');
 assert.ok(observatoryUi.includes('vectors={frame?.vectors??[]}'), 'world_field_must_reuse_persisted_worldspect_frame_vectors');
