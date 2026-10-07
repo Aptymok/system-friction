@@ -82,16 +82,15 @@ export const SCENES: readonly Scene[] = [
   {
     id:'intro',
     number:'00',
-    eyebrow:'SYSTEM FRICTION INSTITUTE',
+    eyebrow:'INSTITUTIONAL FIELD',
     title:'System Friction',
     accent:'Institute',
-    lead:'Evidence, Authority & RETURN in Real Institutions',
+    lead:'SYSTEM | FRICTION | INSTITUTE',
     background:'/sfi/nyc/runtime/background.avif',
     assets:NYC_ASSETS,
     frames:[
       {label:'PUBLIC ORIENTATION',title:'Institutional intelligence must remain reconstructible.',text:'SFI studies how signals become evidence, how evidence becomes authority, how authority becomes execution, and how reality returns as a constraint on what the institution believes next.'},
     ],
-    actions:[{label:'Enter Observatory',href:'/observatory',kind:'primary'}],
     tiles:[
       {label:'REGISTRY',title:'Institutional registry',description:'Methods, records, publications and Discovery Mesh.',image:'/sfi/nyc/runtime/structure.avif',href:'/publications'},
       {label:'AI WEEK NYC 2026',title:'October 8 · 7:00 PM ET',description:'After AI Governance: Evidence, Authority & RETURN in Real Institutions.',image:'/sfi/nyc/runtime/earth.avif',href:'https://gomry.com/l/Kzcb3xl'},
