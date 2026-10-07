@@ -691,7 +691,7 @@
 .sfiAiWeekOverlay{
   position:absolute;
   inset:0;
-  z-index:120;
+  z-index:1200;
   display:grid;
   place-items:center;
   padding:30px;
@@ -709,6 +709,7 @@
 }
 .sfiAiWeekDialog{
   position:relative;
+  outline:none;
   z-index:2;
   width:min(860px,calc(100vw - 60px));
   max-height:calc(100svh - 60px);
