@@ -15,6 +15,9 @@ function clamp(value:number,min:number,max:number){
   return Math.min(max,Math.max(min,value));
 }
 
+const EVENT_PAGE_URL='https://www.gomry.com/event/After-AI-Governance-Evidence-Authority-and-RETURN-in-Real-Institutions-AIWeekNY-q9HX2ZNYElJdAvG8MXIA';
+const EVENT_EMBED_URL='https://www.gomry.com/embed/event/After-AI-Governance-Evidence-Authority-and-RETURN-in-Real-Institutions-AIWeekNY-q9HX2ZNYElJdAvG8MXIA';
+
 const SURFACE_RAIL = [
   {label:'ROOT',number:'01',sceneId:'root',frameIndex:0},
   {label:'OBSERVATORY',number:'02',sceneId:'observatory',frameIndex:0},
@@ -30,8 +33,11 @@ export function PublicEntryGateway(){
   const wheelLock=useRef(false);
   const dragStart=useRef<{x:number;y:number}|null>(null);
   const parallaxRef=useRef<HTMLElement|null>(null);
+  const eventTriggerRef=useRef<HTMLButtonElement|null>(null);
+  const eventDialogRef=useRef<HTMLElement|null>(null);
   const [sceneIndex,setSceneIndex]=useState(0);
   const [frameIndex,setFrameIndex]=useState(0);
+  const [eventOpen,setEventOpen]=useState(false);
 
   const scene=SCENES[sceneIndex];
   const sceneBackground=scene.background;
@@ -86,7 +92,41 @@ export function PublicEntryGateway(){
   },[goSceneById]);
 
   useEffect(()=>{
+    if(!eventOpen)return;
+    const dialog=eventDialogRef.current;
+    const previouslyFocused=document.activeElement instanceof HTMLElement?document.activeElement:null;
+    const focusableSelector='button:not([disabled]),a[href],iframe,[tabindex]:not([tabindex="-1"])';
+    const focusables=()=>Array.from(dialog?.querySelectorAll<HTMLElement>(focusableSelector)??[]).filter(element=>!element.hasAttribute('hidden'));
+    window.requestAnimationFrame(()=>{(focusables()[0]??dialog)?.focus();});
+    const onDialogKey=(event:KeyboardEvent)=>{
+      if(event.key==='Escape'){
+        event.preventDefault();
+        setEventOpen(false);
+        return;
+      }
+      if(event.key!=='Tab')return;
+      const nodes=focusables();
+      if(nodes.length===0){event.preventDefault();dialog?.focus();return;}
+      const first=nodes[0];
+      const last=nodes[nodes.length-1];
+      if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}
+      else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
+    };
+    document.addEventListener('keydown',onDialogKey);
+    return()=>{
+      document.removeEventListener('keydown',onDialogKey);
+      const target=eventTriggerRef.current??previouslyFocused;
+      window.requestAnimationFrame(()=>target?.focus());
+    };
+  },[eventOpen]);
+
+  useEffect(()=>{
+    if(scene.id!=='intro'&&eventOpen)setEventOpen(false);
+  },[eventOpen,scene.id]);
+
+  useEffect(()=>{
     const onWheel=(event:WheelEvent)=>{
+      if(eventOpen)return;
       if(window.matchMedia('(max-width: 900px)').matches)return;
       if(wheelLock.current)return;
       const horizontal=event.shiftKey||Math.abs(event.deltaX)>Math.abs(event.deltaY)*1.15;
@@ -119,6 +159,7 @@ export function PublicEntryGateway(){
     };
 
     const onKey=(event:KeyboardEvent)=>{
+      if(eventOpen)return;
       if(event.key==='ArrowDown'||event.key==='PageDown'){
         if(sceneIndex<SCENES.length-1){event.preventDefault();goScene(sceneIndex+1);}
       }else if(event.key==='ArrowUp'||event.key==='PageUp'){
@@ -137,11 +178,11 @@ export function PublicEntryGateway(){
     window.addEventListener('wheel',onWheel,{passive:false});
     window.addEventListener('keydown',onKey);
     return()=>{window.removeEventListener('wheel',onWheel);window.removeEventListener('keydown',onKey);};
-  },[frameIndex,goScene,moveFrame,scene.frames.length,sceneIndex]);
+  },[eventOpen,frameIndex,goScene,moveFrame,scene.frames.length,sceneIndex]);
 
   function handlePointerDown(event:PointerEvent<HTMLElement>){
     const target=event.target as HTMLElement;
-    if(target.closest('button,a'))return;
+    if(target.closest('button,a,iframe,[data-sfi-interactive="true"]'))return;
     dragStart.current={x:event.clientX,y:event.clientY};
   }
 
@@ -211,7 +252,7 @@ export function PublicEntryGateway(){
       <div className="sfiSharedVeil"/>
     </div>
 
-    <div className="sfiSceneDeck" aria-live="polite">
+    <div className="sfiSceneDeck" aria-live="polite" inert={eventOpen} aria-hidden={eventOpen||undefined}>
       {SCENES.map((item,index)=>{
         const offset=index-sceneIndex;
         const state=offset===0?'active':offset<0?'past':'future';
@@ -245,6 +286,19 @@ export function PublicEntryGateway(){
 
               {item.id==='intro' ? <div className="sfiHeroActions">
                 <p className="sfiHeroStatement">The world does not have the same time.</p>
+                <button
+                  ref={eventTriggerRef}
+                  type="button"
+                  className="sfiAiWeekRibbon"
+                  onClick={()=>setEventOpen(true)}
+                  aria-haspopup="dialog"
+                  aria-expanded={eventOpen}
+                >
+                  <span className="sfiAiWeekRibbonMeta">AI WEEK NY 2026 · OCTOBER 8 · 7:00 PM ET</span>
+                  <strong>After AI Governance</strong>
+                  <span className="sfiAiWeekRibbonTitle">Evidence, Authority &amp; RETURN in Real Institutions</span>
+                  <b>REGISTER / JOIN <i aria-hidden="true">↗</i></b>
+                </button>
                 {item.actions?.map((action)=><a
                   key={action.label}
                   className="sfiHeroCta"
@@ -280,7 +334,37 @@ export function PublicEntryGateway(){
       })}
     </div>
 
-    <nav className="sfiTopicRail" aria-label="Institutional surfaces">
+    {eventOpen&&scene.id==='intro'?<div className="sfiAiWeekOverlay" data-sfi-interactive="true" role="presentation">
+      <button type="button" className="sfiAiWeekBackdrop" onClick={()=>setEventOpen(false)} aria-label="Close AI Week registration"/>
+      <section ref={eventDialogRef} tabIndex={-1} className="sfiAiWeekDialog" role="dialog" aria-modal="true" aria-labelledby="sfi-aiweek-title">
+        <header>
+          <div>
+            <span>AI WEEK NY 2026 · OCTOBER 8 · 7:00 PM ET</span>
+            <h2 id="sfi-aiweek-title">After AI Governance</h2>
+            <p>Evidence, Authority &amp; RETURN in Real Institutions</p>
+          </div>
+          <button type="button" className="sfiAiWeekClose" onClick={()=>setEventOpen(false)} aria-label="Close registration">CLOSE ×</button>
+        </header>
+        <div className="sfiAiWeekEmbed">
+          <iframe
+            src={EVENT_EMBED_URL}
+            width="700"
+            height="450"
+            frameBorder="0"
+            allow="fullscreen; payment"
+            aria-hidden={false}
+            tabIndex={0}
+            title="Register for After AI Governance at AI Week NY 2026"
+          />
+        </div>
+        <footer>
+          <p>Register without leaving System Friction Institute.</p>
+          <a href={EVENT_PAGE_URL} target="_blank" rel="noreferrer">OPEN EVENT PAGE ↗</a>
+        </footer>
+      </section>
+    </div>:null}
+
+    <nav className="sfiTopicRail" aria-label="Institutional surfaces" inert={eventOpen} aria-hidden={eventOpen||undefined}>
       {SURFACE_RAIL.map((item)=><button
         key={item.label}
         type="button"
