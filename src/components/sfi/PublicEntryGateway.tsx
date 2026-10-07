@@ -16,20 +16,20 @@ function clamp(value:number,min:number,max:number){
 }
 
 const SURFACE_RAIL = [
-  {label:'TIMELINE',number:'01',sceneId:'timeline',frameIndex:0},
-  {label:'REPOSITORY',number:'02',sceneId:'repository',frameIndex:0},
-  {label:'WORLD VECTOR',number:'03',sceneId:'world-vector',frameIndex:0},
+  {label:'ROOT',number:'01',sceneId:'root',frameIndex:0},
+  {label:'OBSERVATORY',number:'02',sceneId:'observatory',frameIndex:0},
+  {label:'REALITY CHAIN',number:'03',sceneId:'reality-chain',frameIndex:0},
   {label:'METHOD LAB',number:'04',sceneId:'method-lab',frameIndex:0},
-  {label:'REALITY CHAIN',number:'05',sceneId:'reality-chain',frameIndex:0},
-  {label:'OBSERVATORY',number:'06',sceneId:'observatory',frameIndex:0},
-  {label:'ROOT',number:'07',sceneId:'root',frameIndex:0},
+  {label:'WORLD VECTOR',number:'05',sceneId:'world-vector',frameIndex:0},
+  {label:'REPOSITORY',number:'06',sceneId:'repository',frameIndex:0},
+  {label:'TIMELINE',number:'07',sceneId:'timeline',frameIndex:0},
 ] as const;
 
 export function PublicEntryGateway(){
   const wheelAccumulator=useRef(0);
   const wheelLock=useRef(false);
   const dragStart=useRef<{x:number;y:number}|null>(null);
-  const parallaxRef=useRef<HTMLDivElement|null>(null);
+  const parallaxRef=useRef<HTMLElement|null>(null);
   const [sceneIndex,setSceneIndex]=useState(0);
   const [frameIndex,setFrameIndex]=useState(0);
 
@@ -87,6 +87,7 @@ export function PublicEntryGateway(){
 
   useEffect(()=>{
     const onWheel=(event:WheelEvent)=>{
+      if(window.matchMedia('(max-width: 900px)').matches)return;
       if(wheelLock.current)return;
       const horizontal=event.shiftKey||Math.abs(event.deltaX)>Math.abs(event.deltaY)*1.15;
       if(horizontal&&scene.frames.length>1){
@@ -145,7 +146,7 @@ export function PublicEntryGateway(){
   }
 
   function handlePointerMove(event:PointerEvent<HTMLElement>){
-    if(event.pointerType==='touch')return;
+    if(event.pointerType==='touch'||window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
     const host=parallaxRef.current;
     if(!host)return;
     const rect=event.currentTarget.getBoundingClientRect();
@@ -175,11 +176,12 @@ export function PublicEntryGateway(){
     const dy=event.clientY-start.y;
     if(Math.abs(dx)<36&&Math.abs(dy)<36)return;
     if(Math.abs(dx)>Math.abs(dy)*1.05)moveFrame(dx<0?1:-1);
-    else goScene(sceneIndex+(dy<0?1:-1));
+    else if(!window.matchMedia('(max-width: 900px)').matches)goScene(sceneIndex+(dy<0?1:-1));
   }
 
   return <main
     className="sfiSceneExperience"
+    ref={parallaxRef}
     data-active-scene={scene.id}
     style={{'--scene-index':sceneIndex,'--frame-index':frameIndex} as CSSProperties}
     onPointerDown={handlePointerDown}
@@ -188,7 +190,7 @@ export function PublicEntryGateway(){
     onPointerUp={handlePointerUp}
     onPointerCancel={()=>{dragStart.current=null;resetParallax();}}
   >
-    <div className="sfiVisualStage" aria-hidden="true" ref={parallaxRef}>
+    <div className="sfiVisualStage" aria-hidden="true">
       <div className="sfiSharedBackground" style={{backgroundImage:`url('${sceneBackground}')`}}/>
       <div className="sfiSharedLayers">
         {sceneAssets.map((asset,layerIndex)=><div
@@ -228,7 +230,13 @@ export function PublicEntryGateway(){
             '--frame-progress':frameProgress,
           } as CSSProperties}
           aria-hidden={index===sceneIndex?undefined:true}
+          inert={index!==sceneIndex}
         >
+          {item.id==='reality-chain'?<ol className="sfiRealityTrajectory" aria-label="Reality Chain temporal trajectory">
+            {item.frames.map((stage,stageIndex)=><li key={stage.label} style={{'--stage-index':stageIndex} as CSSProperties}>
+              <button type="button" data-active={localFrameIndex===stageIndex?'true':undefined} onClick={()=>setFrameIndex(stageIndex)} aria-label={`Read ${stage.label}`}><i aria-hidden="true"/>{stage.label}</button>
+            </li>)}
+          </ol>:null}
           <div className="sfiSceneContent">
             <div className="sfiSceneCopy">
               <div className="sfiSceneEyebrow"><span>{item.number}</span>{item.eyebrow}</div>
@@ -262,6 +270,11 @@ export function PublicEntryGateway(){
                 <span>HORIZONTAL</span><b>CHANGE READING</b>
               </div>
             </div>
+            {item.id==='root'?<nav className="sfiRootForeground" aria-label="ROOT institutional access">
+              {item.tiles?.map((tile,tileIndex)=><a key={tile.label} href={tile.href} className="sfiRootAccess" data-motion="pointer-parallax" data-depth={5+tileIndex*.3}>
+                <img src={tile.image} alt="" draggable={false}/><span>{tile.label}</span>
+              </a>)}
+            </nav>:null}
           </div>
         </section>;
       })}

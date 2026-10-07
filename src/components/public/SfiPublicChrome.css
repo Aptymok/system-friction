@@ -229,3 +229,14 @@
   .sfiFooterReality{justify-content:flex-start}
   .sfiFooterChain{justify-content:flex-start}
 }
+
+/* Keep the complete institutional chain readable in a single shared chrome. */
+@media(min-width:881px){
+  .sfiPublicFooter{grid-template-columns:1fr;gap:8px!important;min-height:90px}
+  .sfiFooterIdentity,.sfiFooterEvent{display:none}
+  .sfiFooterChain{gap:7px;justify-content:center}
+  .sfiFooterChain span{font-size:11px;letter-spacing:0;gap:5px}
+  .sfiPublicPageNav{gap:clamp(14px,1.5vw,26px)}
+  .sfiPublicTopbar{grid-template-columns:minmax(110px,.8fr) minmax(0,3fr) 30px!important;gap:16px!important}
+}
+.sfiFooterChain{justify-content:safe center}
