@@ -10,12 +10,12 @@ System Friction Institute (SFI) is an institutional observability and governance
 ${baseUrl}
 
 ## CANONICAL PUBLIC HUMAN SURFACES
-- ${baseUrl}/ — institutional entry
-- ${baseUrl}/observatory — public observation
-- ${baseUrl}/laboratory — public laboratory explanation
+- ${baseUrl}/ — institutional entry and seven-instrument public journey
+- ${baseUrl}/observatory — canonical public observation surface
 - ${baseUrl}/publications — canonical public registry
-- ${baseUrl}/institution — institutional identity
-- ${baseUrl}/contact — public institutional contact
+- ${baseUrl}/privacy — public privacy policy
+- ${baseUrl}/terms — public terms
+- ${baseUrl}/accessibility — public accessibility statement
 
 ROOT, Cases, Cognitive Twin/Spine and Studio are internal operational lenses/workspaces, not independent public institutional surfaces. Their data contracts may remain operational without being advertised as public architecture.
 
