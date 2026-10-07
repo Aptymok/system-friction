@@ -76,13 +76,15 @@ check('reference chrome owns fixed header and semantic timeline clearances',
   && chromeCss.includes('sfiFooterReality'));
 
 check('landing owns vertical surface transition',landing.includes('goScene')&&landing.includes('CHANGE SURFACE'));
-check('Home reference hero keeps direct Observatory entry and seven-surface rail',
-  manifest.includes('Enter Observatory')
+check('Home reference hero remains canonical and keeps the seven-surface rail',
+  manifest.includes("eyebrow:''")
+  && manifest.includes("lead:'SYSTEM | FRICTION | INSTITUTE'")
+  && !manifest.includes("actions:[{label:'Enter Observatory'")
+  && !landing.includes('The world does not have the same time.')
   && landing.includes('SURFACE_RAIL')
   && landing.includes("label:'TIMELINE'")
   && landing.includes("label:'REALITY CHAIN'")
   && landing.includes("label:'ROOT'")
-  && landingCss.includes('.sfiHeroCta')
   && landingCss.includes('.sfiTopicRail'));
 check('landing owns horizontal reading transition',landing.includes('moveFrame')&&landing.includes('CHANGE READING'));
 check('landing visual stage is shared once while active scene owns its visual sources',

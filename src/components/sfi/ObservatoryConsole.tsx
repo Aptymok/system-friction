@@ -58,6 +58,12 @@ async function fetchJson(path:string){
   try{const response=await fetch(path,{signal:AbortSignal.timeout(OBSERVATORY_REQUEST_TIMEOUT_MS)});const data=await response.json().catch(()=>null);return{ok:response.ok,data,status:response.status}}catch(error){return{ok:false,data:null,status:0,error:error instanceof Error?error.message:String(error)}}
 }
 
+function ObservatoryUtcClock(){
+  const[clock,setClock]=useState('');
+  useEffect(()=>{const tick=()=>setClock(new Date().toISOString());tick();const t=window.setInterval(tick,1000);return()=>window.clearInterval(t)},[]);
+  return <>{clock.slice(11,19)||'--:--:--'}</>;
+}
+
 export function ObservatoryConsole(){
   const language='en' as const;
   const ui=(value:string)=>translateUiText(value,language);
@@ -66,7 +72,7 @@ export function ObservatoryConsole(){
   const[refreshing,setRefreshing]=useState(false);
   const[lens,setLens]=useState<Lens>('field'),[satelliteOpen,setSatelliteOpen]=useState(true),[selectedNodeId,setSelectedNodeId]=useState<string|null>(null),[selectedHypothesisId,setSelectedHypothesisId]=useState<string|null>(null);
   const[sourceFamily,setSourceFamily]=useState('ALL'),[systemFilter,setSystemFilter]=useState('ALL'),[statusFilter,setStatusFilter]=useState('ALL'),[windowHours,setWindowHours]=useState(168),[minConfidence,setMinConfidence]=useState(0),[query,setQuery]=useState('');
-  const[baselineTime,setBaselineTime]=useState(0),[time,setTime]=useState(100),[clock,setClock]=useState('');
+  const[baselineTime,setBaselineTime]=useState(0),[time,setTime]=useState(100);
 
   const applySnapshot=useCallback((snapshot:ObservatorySnapshot)=>{
     setAvailability(snapshot.availability);setWorld(snapshot.world);setObs(snapshot.obs);setTimeline(snapshot.timeline);
@@ -82,7 +88,6 @@ export function ObservatoryConsole(){
     }finally{setRefreshing(false)}
   },[applySnapshot]);
 
-  useEffect(()=>{const tick=()=>setClock(new Date().toISOString());tick();const t=setInterval(tick,1000);return()=>clearInterval(t)},[]);
   useEffect(()=>{void pull(false)},[pull]);
 
   const allNodes=useMemo<WorldNode[]>(()=>rows(world?.nodes).map((o)=>({
@@ -119,6 +124,15 @@ export function ObservatoryConsole(){
   const selectedEvidenceIds=useMemo(()=>new Set(arr(selectedHypothesis?.evidence_ids).map(String)),[selectedHypothesis]);
   const selectedAffectedIds=useMemo(()=>new Set(arr(selectedHypothesis?.aiInference?.affectedObservationIds).map(String)),[selectedHypothesis]);
   const positions=useMemo(()=>new Map(nodes.map((n,i)=>[n.id,nodePosition(n,i,nodes.length)])),[nodes]);
+  const graphNodes=useMemo(()=>rows(world?.graph?.nodes),[world]);
+  const gpuNodes=useMemo(()=>nodes.map((node)=>({id:node.id,position:positions.get(node.id)??orbitalPosition(node.id,0,1)})),[nodes,positions]);
+  const fieldNodes=useMemo(()=>nodes.map((node)=>({
+    id:node.id,
+    title:node.title,
+    confidence:node.confidence,
+    sourceFamily:node.sourceFamily,
+    position:positions.get(node.id)??orbitalPosition(node.id,0,1),
+  })),[nodes,positions]);
   const selectedGraphEdges=useMemo(()=>rows(world?.graph?.edges).filter(edge=>{
     if(!selectedHypothesis)return false;
     const hid=`hypothesis:${selectedHypothesis.id}`;
@@ -177,26 +191,20 @@ export function ObservatoryConsole(){
       {worldIsPersistedLive?<><img className="worldActor" src="/sfi-scenes/world.png" alt={ui('Earth observed by System Friction Institute')}/>
       <ObservatorySemanticGpuLayer
         lens={lens}
-        nodes={nodes.map((node)=>({id:node.id,position:positions.get(node.id)??orbitalPosition(node.id,0,1)}))}
-        graphNodes={rows(world?.graph?.nodes)}
+        nodes={gpuNodes}
+        graphNodes={graphNodes}
         selectedGraphEdges={selectedGraphEdges}
         vectors={frame?.vectors??[]}
       />
       <ObservatoryWorldField
         lens={lens}
-        nodes={nodes.map((node)=>({
-          id:node.id,
-          title:node.title,
-          confidence:node.confidence,
-          sourceFamily:node.sourceFamily,
-          position:positions.get(node.id)??orbitalPosition(node.id,0,1),
-        }))}
+        nodes={fieldNodes}
         selectedNodeId={selectedNodeId}
         selectedHypothesis={selectedHypothesis}
         selectedEvidenceIds={selectedEvidenceIds}
         selectedAffectedIds={selectedAffectedIds}
         selectedGraphEdges={selectedGraphEdges}
-        graphNodes={rows(world?.graph?.nodes)}
+        graphNodes={graphNodes}
         vectors={frame?.vectors??[]}
         ghostVectors={baselineFrame?.vectors??[]}
         onSelectNode={setSelectedNodeId}
@@ -204,7 +212,7 @@ export function ObservatoryConsole(){
       /></>:<div className="worldUnavailable"><small>PERSISTED WORLD</small><strong>{availability.world}</strong><p>No live world is rendered without recent persisted observations. Historical hypotheses may remain inspectable in the Satellite Hub without being presented as a live world.</p></div>}
     </div>
 
-    <aside className="hud hudLeft"><section><small>SFI-OBS-LIVE</small><h3>{'LIVE FIELD'}</h3><p className="good">● {clock.slice(11,19)} UTC</p><dl><dt>{ui('OBSERVATIONS')}</dt><dd data-availability={availability.world}>{worldMetric(nodes.length)}</dd><dt>{ui('ACTIVE SOURCES')}</dt><dd data-availability={availability.world}>{worldMetric(sourceIds.length)}</dd><dt>{ui('HYPOTHESES')}</dt><dd data-availability={availability.world}>{worldMetric(filteredHypotheses.length)}</dd><dt>{ui('IN RETURN')}</dt><dd data-availability={availability.world}>{worldMetric(openHypotheses)}</dd></dl><button onClick={()=>setSatelliteOpen(true)}>{ui('OPEN SATELLITE')}</button></section>
+    <aside className="hud hudLeft"><section><small>SFI-OBS-LIVE</small><h3>{'LIVE FIELD'}</h3><p className="good">● <ObservatoryUtcClock/> UTC</p><dl><dt>{ui('OBSERVATIONS')}</dt><dd data-availability={availability.world}>{worldMetric(nodes.length)}</dd><dt>{ui('ACTIVE SOURCES')}</dt><dd data-availability={availability.world}>{worldMetric(sourceIds.length)}</dd><dt>{ui('HYPOTHESES')}</dt><dd data-availability={availability.world}>{worldMetric(filteredHypotheses.length)}</dd><dt>{ui('IN RETURN')}</dt><dd data-availability={availability.world}>{worldMetric(openHypotheses)}</dd></dl><button onClick={()=>setSatelliteOpen(true)}>{ui('OPEN SATELLITE')}</button></section>
       <section><small>{'DERIVED METRICS'}</small><dl><dt>Fₛ</dt><dd data-availability={availability.world}>{avgFs==null?'—':avgFs.toFixed(3)}</dd><dt>NTI</dt><dd data-availability={availability.world}>{avgNti==null?'—':avgNti.toFixed(3)}</dd><dt>Φ</dt><dd data-availability={availability.world}>{avgPhi==null?'—':avgPhi.toFixed(3)}</dd></dl><p style={{fontSize:11,opacity:.62,lineHeight:1.5}}>{'Numbers describe observed/derived structure. Meaning, mechanism and consequences are shown only as traceable hypotheses.'}</p></section>
     </aside>
 

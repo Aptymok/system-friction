@@ -239,18 +239,11 @@ export function PublicEntryGateway(){
           </ol>:null}
           <div className="sfiSceneContent">
             <div className="sfiSceneCopy">
-              <div className="sfiSceneEyebrow"><span>{item.number}</span>{item.eyebrow}</div>
+              {item.eyebrow?<div className="sfiSceneEyebrow"><span>{item.number}</span>{item.eyebrow}</div>:null}
               <h1>{item.title}{item.accent?<span>{item.accent}</span>:null}</h1>
               <p className="sfiSceneLead">{item.lead}</p>
 
-              {item.id==='intro' ? <div className="sfiHeroActions">
-                <p className="sfiHeroStatement">The world does not have the same time.</p>
-                {item.actions?.map((action)=><a
-                  key={action.label}
-                  className="sfiHeroCta"
-                  href={action.href}
-                ><span aria-hidden="true">→</span><b>{action.label}</b></a>)}
-              </div> : <>
+              {item.id==='intro' ? null : <>
                 <div key={`${item.id}-${frame.label}`} className="sfiFieldState">
                   <small>{frame.label}</small>
                   <strong>{frame.title}</strong>

@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     default: INSTITUTION_NAME,
     template: '%s | SFI',
   },
-  description: 'After AI Governance: Evidence, Authority & RETURN in Real Institutions. System Friction Institute · AI Week NY · October 8, 2026 · 7:00 PM ET.',
+  description: 'System Friction Institute makes visible the friction that systems learn to normalize. An independent research institute for reconstructible complex systems, evidence, authority, execution and RETURN.',
   applicationName: INSTITUTION_NAME,
   keywords: [
     'system friction',
@@ -59,7 +59,7 @@ export const metadata: Metadata = {
     url: BASE,
     siteName: INSTITUTION_NAME,
     title: INSTITUTION_NAME,
-    description: 'After AI Governance: Evidence, Authority & RETURN in Real Institutions · AI Week NY 2026.',
+    description: 'System Friction Institute makes visible the friction that systems learn to normalize. Research on reconstructible complex systems, evidence, authority, execution and RETURN.',
   },
   robots: {
     index: true,
