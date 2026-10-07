@@ -100,7 +100,7 @@ export const SCENES: readonly Scene[] = [
   },
   {
     id:'root',
-    number:'01',
+    number:'05',
     eyebrow:'ROOT / CANONICAL COGNITIVE FIELD',
     title:'ROOT',
     accent:'',
@@ -126,7 +126,7 @@ export const SCENES: readonly Scene[] = [
 
   {
     id:'observatory',
-    number:'02',
+    number:'01',
     eyebrow:'OBSERVATORY / LIVE FIELD',
     title:'OBSERVA',
     accent:'TORY',
@@ -143,7 +143,7 @@ export const SCENES: readonly Scene[] = [
   },
   {
     id:'reality-chain',
-    number:'03',
+    number:'06',
     eyebrow:'REALITY CHAIN / RECONSTRUCTION',
     title:'REALITY',
     accent:'CHAIN',
@@ -188,7 +188,7 @@ export const SCENES: readonly Scene[] = [
   },
   {
     id:'world-vector',
-    number:'05',
+    number:'02',
     eyebrow:'WORLD VECTOR / LONGITUDINAL FIELD',
     title:'WORLD',
     accent:'VECTOR',
@@ -207,7 +207,7 @@ export const SCENES: readonly Scene[] = [
   },
   {
     id:'repository',
-    number:'06',
+    number:'03',
     eyebrow:'REPOSITORY / PROVENANCE',
     title:'REPO',
     accent:'SITORY',

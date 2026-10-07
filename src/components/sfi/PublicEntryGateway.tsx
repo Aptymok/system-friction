@@ -15,13 +15,20 @@ function clamp(value:number,min:number,max:number){
   return Math.min(max,Math.max(min,value));
 }
 
+const JOURNEY_ORDER = ['intro','observatory','world-vector','repository','method-lab','root','reality-chain','timeline'] as const;
+const JOURNEY_SCENES = JOURNEY_ORDER.map((id)=>{
+  const scene=SCENES.find((item)=>item.id===id);
+  if(!scene) throw new Error(`Missing public scene: ${id}`);
+  return scene;
+});
+
 const SURFACE_RAIL = [
-  {label:'ROOT',number:'01',sceneId:'root',frameIndex:0},
-  {label:'OBSERVATORY',number:'02',sceneId:'observatory',frameIndex:0},
-  {label:'REALITY CHAIN',number:'03',sceneId:'reality-chain',frameIndex:0},
+  {label:'OBSERVATORY',number:'01',sceneId:'observatory',frameIndex:0},
+  {label:'WORLD VECTOR',number:'02',sceneId:'world-vector',frameIndex:0},
+  {label:'REPOSITORY',number:'03',sceneId:'repository',frameIndex:0},
   {label:'METHOD LAB',number:'04',sceneId:'method-lab',frameIndex:0},
-  {label:'WORLD VECTOR',number:'05',sceneId:'world-vector',frameIndex:0},
-  {label:'REPOSITORY',number:'06',sceneId:'repository',frameIndex:0},
+  {label:'ROOT',number:'05',sceneId:'root',frameIndex:0},
+  {label:'REALITY CHAIN',number:'06',sceneId:'reality-chain',frameIndex:0},
   {label:'TIMELINE',number:'07',sceneId:'timeline',frameIndex:0},
 ] as const;
 
@@ -33,31 +40,31 @@ export function PublicEntryGateway(){
   const [sceneIndex,setSceneIndex]=useState(0);
   const [frameIndex,setFrameIndex]=useState(0);
 
-  const scene=SCENES[sceneIndex];
+  const scene=JOURNEY_SCENES[sceneIndex];
   const sceneBackground=scene.background;
   const sceneAssets=scene.assets;
 
   const goScene=useCallback((next:number)=>{
-    const bounded=clamp(next,0,SCENES.length-1);
+    const bounded=clamp(next,0,JOURNEY_SCENES.length-1);
     setSceneIndex(bounded);
     setFrameIndex(0);
     if(typeof window!=='undefined'){
-      const id=SCENES[bounded]?.id;
+      const id=JOURNEY_SCENES[bounded]?.id;
       if(id)window.history.replaceState(null,'',`#${id}`);
       window.dispatchEvent(new CustomEvent('sfi:subjectchange',{detail:{subject:id}}));
     }
   },[]);
 
   const goSceneById=useCallback((id:string)=>{
-    const index=SCENES.findIndex(item=>item.id===id);
+    const index=JOURNEY_SCENES.findIndex(item=>item.id===id);
     if(index>=0)goScene(index);
   },[goScene]);
 
   const goSceneFrame=useCallback((id:string,nextFrame:number)=>{
-    const index=SCENES.findIndex(item=>item.id===id);
+    const index=JOURNEY_SCENES.findIndex(item=>item.id===id);
     if(index<0)return;
     setSceneIndex(index);
-    setFrameIndex(clamp(nextFrame,0,SCENES[index].frames.length-1));
+    setFrameIndex(clamp(nextFrame,0,JOURNEY_SCENES[index].frames.length-1));
     if(typeof window!=='undefined'){
       window.history.replaceState(null,'',`#${id}`);
       window.dispatchEvent(new CustomEvent('sfi:subjectchange',{detail:{subject:id}}));
@@ -65,14 +72,14 @@ export function PublicEntryGateway(){
   },[]);
 
   const moveFrame=useCallback((direction:-1|1)=>{
-    setFrameIndex(current=>clamp(current+direction,0,SCENES[sceneIndex].frames.length-1));
+    setFrameIndex(current=>clamp(current+direction,0,JOURNEY_SCENES[sceneIndex].frames.length-1));
   },[sceneIndex]);
 
   useEffect(()=>{
     const syncHash=()=>{
       const id=window.location.hash.replace(/^#/,'');
       if(!id)return;
-      const index=SCENES.findIndex(item=>item.id===id);
+      const index=JOURNEY_SCENES.findIndex(item=>item.id===id);
       if(index>=0){setSceneIndex(index);setFrameIndex(0);}
     };
     syncHash();
@@ -106,7 +113,7 @@ export function PublicEntryGateway(){
       }
 
       const direction=event.deltaY>0?1:-1;
-      const canMove=direction>0?sceneIndex<SCENES.length-1:sceneIndex>0;
+      const canMove=direction>0?sceneIndex<JOURNEY_SCENES.length-1:sceneIndex>0;
       if(!canMove)return;
       event.preventDefault();
       wheelAccumulator.current+=event.deltaY;
@@ -120,7 +127,7 @@ export function PublicEntryGateway(){
 
     const onKey=(event:KeyboardEvent)=>{
       if(event.key==='ArrowDown'||event.key==='PageDown'){
-        if(sceneIndex<SCENES.length-1){event.preventDefault();goScene(sceneIndex+1);}
+        if(sceneIndex<JOURNEY_SCENES.length-1){event.preventDefault();goScene(sceneIndex+1);}
       }else if(event.key==='ArrowUp'||event.key==='PageUp'){
         if(sceneIndex>0){event.preventDefault();goScene(sceneIndex-1);}
       }else if(event.key==='ArrowRight'){
@@ -130,7 +137,7 @@ export function PublicEntryGateway(){
       }else if(event.key==='Home'){
         event.preventDefault();goScene(0);
       }else if(event.key==='End'){
-        event.preventDefault();goScene(SCENES.length-1);
+        event.preventDefault();goScene(JOURNEY_SCENES.length-1);
       }
     };
 
@@ -212,7 +219,7 @@ export function PublicEntryGateway(){
     </div>
 
     <div className="sfiSceneDeck" aria-live="polite">
-      {SCENES.map((item,index)=>{
+      {JOURNEY_SCENES.map((item,index)=>{
         const offset=index-sceneIndex;
         const state=offset===0?'active':offset<0?'past':'future';
         const localFrameIndex=index===sceneIndex?frameIndex:0;
