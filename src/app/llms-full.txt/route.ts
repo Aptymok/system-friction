@@ -33,9 +33,10 @@ ROOT, Cases, Cognitive Twin/Spine and Studio are internal operational lenses/wor
 Authorized external agents may use the v1 gateway to observe, propose, run supported internal/laboratory operations and return evidence. Authentication and scopes are user-managed. Proposal authority, adapter binding, execution, return, calibration and canonical promotion are distinct.
 
 Important execution boundary:
-- POST /api/external/v1/execute validates that a proposal is already queued and inspects persisted adapter state. It does NOT generically dispatch work, write executed_at or mark the proposal accepted.
-- If no proposal-specific governed adapter exists, /execute fails closed with execution_adapter_required.
-- After a real execution occurs through an adapter-specific governed path, POST /api/external/v1/proposal-return with proposal_id, observed_at, outcome and evidence_refs.
+- POST /api/external/v1/execute validates that a proposal is already queued and inspects persisted adapter state. It does NOT self-authorize, write executed_at or mark the proposal accepted.
+- Unnamed material external work may be assigned to external_connector_handoff_v1. That persisted assignment only exports the approved scope to an authenticated external executor; it does not claim the side effect occurred.
+- If the proposal explicitly requires another adapter and that adapter is unavailable, /execute fails closed and remediation remains required.
+- After a real execution occurs through the authenticated external executor, POST /api/external/v1/proposal-return with proposal_id, observed_at, outcome and evidence_refs.
 - proposal-return records OBSERVED return evidence with proposal UUID lineage but does not close the proposal, claim causal proof, complete calibration or promote canon.
 - ROOT outcome recording must reference a RETURN event belonging to the same proposal.
 
@@ -54,7 +55,7 @@ Endpoints:
 ## OPERATIONAL FLOW
 proposal → authorization → routing/readiness → assignment → adapter-specific execution → proposal-scoped RETURN → calibration → candidate learning → ROOT canon/close.
 
-The proposed AI Execution Router and self-healing bootstrap are not implied by the existence of these endpoints. Generic auto-dispatch and self-healing remain off unless separately governed and implemented.
+The governed execution router and self-healing bootstrap remain bounded capabilities. Internal work may auto-dispatch only after authorization. External connector handoff may assign already-authorized material work, but the external side effect and its RETURN remain separately observable and evidence-bound.
 
 ## GOVERNED EXTERNAL COGNITIVE PEER
 The authenticated MCP may project an institutional user-bound LLM into SFI as a governed external cognitive peer. GET /api/external/v1/cognitive-peer hydrates bounded Cognitive Spine/institutional context under observe. POST /api/external/v1/cognitive-peer persists a structured peer response under lab:write as INFERRED only. The route rejects attempts to mint observed RETURN, truth/canon, governance decisions, authority/capability grants, execution receipts or learning promotion. Any next action must traverse the existing evidence, proposal, execution, RETURN, calibration and promotion owners separately.
