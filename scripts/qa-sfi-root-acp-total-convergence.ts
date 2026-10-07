@@ -130,9 +130,9 @@ assert.ok(
   && publicChrome.includes('AI WEEK NYC 2026'),
   'global_public_chrome_must_expose_institutional_menu_and_event',
 );
-assert.ok(publicChrome.includes("['OBSERVATION','RESEARCH','EVIDENCE','INFERENCE','AUTHORITY','DECISION','EXECUTION','RETURN','LEARN','OBSERVATION']"),'institutional_footer_chain_must_be_ordered');
-assert.ok(publicChrome.includes("['WORLD','SENSOR','SIGNAL','ARTIFACT','CONTEXT','INFERENCE','AUTHORITY','CLAIM','ACTION','RETURN']"),'reality_chain_method_must_remain_canonical');
-assert.ok(publicChrome.includes("title:'METHOD LAB',statement:'SIMULATION ≠ OBSERVATION.',stage:'RESEARCH'"),'method_lab_header_stage_must_be_research_not_learning');
+assert.ok(publicChrome.includes("['REAL WORLD','SIGNAL','OBSERVATION','EVIDENCE','INFERENCE','AUTHORITY','EXECUTION','RETURN','CONTRAST','LEARNING','MEMORY','ADAPTATION']"),'institutional_footer_chain_must_be_ordered');
+assert.ok(publicChrome.includes("['REAL WORLD','SIGNAL','OBSERVATION','EVIDENCE','INFERENCE','AUTHORITY','EXECUTION','RETURN']"),'reality_chain_method_must_remain_canonical');
+assert.ok(publicChrome.includes("title:'METHOD LAB',statement:'SIMULATION ≠ OBSERVATION.',stage:'INFERENCE'"),'method_lab_header_stage_must_be_inference_not_observation');
 assert.equal(publicChrome.includes('<b>{context.statement}</b>'),false,'footer_must_not_repeat_active_header_statement');
 assert.ok(publicChrome.includes('timeZone:\'UTC\'') && publicChrome.includes('Institutional access'),'global_public_chrome_must_expose_utc_context_and_access');
 assert.equal(publicChrome.includes('SFI_PUBLIC_NAV.map'),false,'global_public_chrome_must_not_render_old_route_menu');
@@ -154,7 +154,8 @@ assert.match(aiIndex,/start_here/,'ai_index_missing_start_here');
 assert.match(aiIndex,/authorized_agent_cycle/,'ai_index_missing_authorized_agent_cycle');
 assert.match(aiIndex,/authorized proposal enters queued state/,'ai_index_missing_governed_queue_boundary');
 assert.match(aiIndex,/queued_internal_auto_dispatch: true/,'ai_index_missing_bounded_internal_dispatch');
-assert.match(aiIndex,/external_action_without_adapter: 'fail_closed'/,'ai_index_missing_external_fail_closed_boundary');
+assert.match(aiIndex,/external_action_without_named_adapter: 'bounded_external_connector_handoff'/,'ai_index_missing_external_handoff_boundary');
+assert.match(aiIndex,/external_execution_without_observed_return: 'fail_closed'/,'ai_index_missing_external_return_fail_closed_boundary');
 assert.match(aiIndex,/canonical_promotion: 'ROOT_ONLY'/,'ai_index_missing_root_only_canon_boundary');
 
 assert.match(mutationState,/CT-A01-MUT-%/);
