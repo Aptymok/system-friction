@@ -33,6 +33,8 @@ export function PublicEntryGateway(){
   const wheelLock=useRef(false);
   const dragStart=useRef<{x:number;y:number}|null>(null);
   const parallaxRef=useRef<HTMLElement|null>(null);
+  const eventTriggerRef=useRef<HTMLButtonElement|null>(null);
+  const eventDialogRef=useRef<HTMLElement|null>(null);
   const [sceneIndex,setSceneIndex]=useState(0);
   const [frameIndex,setFrameIndex]=useState(0);
   const [eventOpen,setEventOpen]=useState(false);
@@ -90,6 +92,39 @@ export function PublicEntryGateway(){
   },[goSceneById]);
 
   useEffect(()=>{
+    if(!eventOpen)return;
+    const dialog=eventDialogRef.current;
+    const previouslyFocused=document.activeElement instanceof HTMLElement?document.activeElement:null;
+    const focusableSelector='button:not([disabled]),a[href],iframe,[tabindex]:not([tabindex="-1"])';
+    const focusables=()=>Array.from(dialog?.querySelectorAll<HTMLElement>(focusableSelector)??[]).filter(element=>!element.hasAttribute('hidden'));
+    window.requestAnimationFrame(()=>{(focusables()[0]??dialog)?.focus();});
+    const onDialogKey=(event:KeyboardEvent)=>{
+      if(event.key==='Escape'){
+        event.preventDefault();
+        setEventOpen(false);
+        return;
+      }
+      if(event.key!=='Tab')return;
+      const nodes=focusables();
+      if(nodes.length===0){event.preventDefault();dialog?.focus();return;}
+      const first=nodes[0];
+      const last=nodes[nodes.length-1];
+      if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}
+      else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
+    };
+    document.addEventListener('keydown',onDialogKey);
+    return()=>{
+      document.removeEventListener('keydown',onDialogKey);
+      const target=eventTriggerRef.current??previouslyFocused;
+      window.requestAnimationFrame(()=>target?.focus());
+    };
+  },[eventOpen]);
+
+  useEffect(()=>{
+    if(scene.id!=='intro'&&eventOpen)setEventOpen(false);
+  },[eventOpen,scene.id]);
+
+  useEffect(()=>{
     const onWheel=(event:WheelEvent)=>{
       if(eventOpen)return;
       if(window.matchMedia('(max-width: 900px)').matches)return;
@@ -124,10 +159,7 @@ export function PublicEntryGateway(){
     };
 
     const onKey=(event:KeyboardEvent)=>{
-      if(eventOpen){
-        if(event.key==='Escape'){event.preventDefault();setEventOpen(false);}
-        return;
-      }
+      if(eventOpen)return;
       if(event.key==='ArrowDown'||event.key==='PageDown'){
         if(sceneIndex<SCENES.length-1){event.preventDefault();goScene(sceneIndex+1);}
       }else if(event.key==='ArrowUp'||event.key==='PageUp'){
@@ -220,7 +252,7 @@ export function PublicEntryGateway(){
       <div className="sfiSharedVeil"/>
     </div>
 
-    <div className="sfiSceneDeck" aria-live="polite">
+    <div className="sfiSceneDeck" aria-live="polite" inert={eventOpen} aria-hidden={eventOpen||undefined}>
       {SCENES.map((item,index)=>{
         const offset=index-sceneIndex;
         const state=offset===0?'active':offset<0?'past':'future';
@@ -255,6 +287,7 @@ export function PublicEntryGateway(){
               {item.id==='intro' ? <div className="sfiHeroActions">
                 <p className="sfiHeroStatement">The world does not have the same time.</p>
                 <button
+                  ref={eventTriggerRef}
                   type="button"
                   className="sfiAiWeekRibbon"
                   onClick={()=>setEventOpen(true)}
@@ -303,7 +336,7 @@ export function PublicEntryGateway(){
 
     {eventOpen&&scene.id==='intro'?<div className="sfiAiWeekOverlay" data-sfi-interactive="true" role="presentation">
       <button type="button" className="sfiAiWeekBackdrop" onClick={()=>setEventOpen(false)} aria-label="Close AI Week registration"/>
-      <section className="sfiAiWeekDialog" role="dialog" aria-modal="true" aria-labelledby="sfi-aiweek-title">
+      <section ref={eventDialogRef} tabIndex={-1} className="sfiAiWeekDialog" role="dialog" aria-modal="true" aria-labelledby="sfi-aiweek-title">
         <header>
           <div>
             <span>AI WEEK NY 2026 · OCTOBER 8 · 7:00 PM ET</span>
@@ -331,7 +364,7 @@ export function PublicEntryGateway(){
       </section>
     </div>:null}
 
-    <nav className="sfiTopicRail" aria-label="Institutional surfaces">
+    <nav className="sfiTopicRail" aria-label="Institutional surfaces" inert={eventOpen} aria-hidden={eventOpen||undefined}>
       {SURFACE_RAIL.map((item)=><button
         key={item.label}
         type="button"
