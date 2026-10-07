@@ -16,13 +16,13 @@ type ChromeContext={
 };
 
 const NAV_SURFACES=[
-  {key:'timeline',label:'TIMELINE',href:'/#timeline'},
-  {key:'repository',label:'REPOSITORY',href:'/#repository'},
-  {key:'world-vector',label:'WORLD VECTOR',href:'/#world-vector'},
-  {key:'method-lab',label:'METHOD LAB',href:'/#method-lab'},
-  {key:'reality-chain',label:'REALITY CHAIN',href:'/#reality-chain'},
-  {key:'observatory',label:'OBSERVATORY',href:'/#observatory'},
   {key:'root',label:'ROOT',href:'/#root'},
+  {key:'observatory',label:'OBSERVATORY',href:'/#observatory'},
+  {key:'reality-chain',label:'REALITY CHAIN',href:'/#reality-chain'},
+  {key:'method-lab',label:'METHOD LAB',href:'/#method-lab'},
+  {key:'world-vector',label:'WORLD VECTOR',href:'/#world-vector'},
+  {key:'repository',label:'REPOSITORY',href:'/#repository'},
+  {key:'timeline',label:'TIMELINE',href:'/#timeline'},
 ] as const;
 
 const SUBJECTS:Record<string,ChromeContext>={
@@ -30,24 +30,24 @@ const SUBJECTS:Record<string,ChromeContext>={
   timeline:{title:'TIMELINE',statement:'EVERYTHING THE INSTITUTION CAN RECONSTRUCT OVER TIME.',stage:'OBSERVATION',href:'/#timeline',navKey:'timeline'},
   repository:{title:'REPOSITORY',statement:'PROVENANCE REMAINS ADDRESSABLE.',stage:'EVIDENCE',href:'/#repository',navKey:'repository'},
   'world-vector':{title:'WORLD VECTOR',statement:'THE WORLD DOES NOT HAVE THE SAME TIME.',stage:'OBSERVATION',href:'/#world-vector',navKey:'world-vector'},
-  'method-lab':{title:'METHOD LAB',statement:'SIMULATION ≠ OBSERVATION.',stage:'RESEARCH',href:'/#method-lab',navKey:'method-lab'},
+  'method-lab':{title:'METHOD LAB',statement:'SIMULATION ≠ OBSERVATION.',stage:'INFERENCE',href:'/#method-lab',navKey:'method-lab'},
   'reality-chain':{title:'REALITY CHAIN',statement:'RECONSTRUCTION PRECEDES EXPLANATION.',stage:'RETURN',href:'/#reality-chain',navKey:'reality-chain'},
   observatory:{title:'OBSERVATORY',statement:'A SIGNAL IS NOT EVIDENCE.',stage:'OBSERVATION',href:'/#observatory',navKey:'observatory'},
   root:{title:'ROOT',statement:'REASONING IS DIFFERENT FROM AUTHORITY.',stage:'AUTHORITY',href:'/#root',navKey:'root'},
 }
 
-const INSTITUTIONAL_CHAIN=['OBSERVATION','RESEARCH','EVIDENCE','INFERENCE','AUTHORITY','DECISION','EXECUTION','RETURN','LEARN','OBSERVATION'] as const;
-const REALITY_CHAIN_METHOD=['WORLD','SENSOR','SIGNAL','ARTIFACT','CONTEXT','INFERENCE','AUTHORITY','CLAIM','ACTION','RETURN'] as const;
+const INSTITUTIONAL_CHAIN=['REAL WORLD','SIGNAL','OBSERVATION','EVIDENCE','INFERENCE','AUTHORITY','EXECUTION','RETURN','CONTRAST','LEARNING','MEMORY','ADAPTATION'] as const;
+const REALITY_CHAIN_METHOD=['REAL WORLD','SIGNAL','OBSERVATION','EVIDENCE','INFERENCE','AUTHORITY','EXECUTION','RETURN'] as const;
 
 function routeContext(pathname:string):ChromeContext{
   if(pathname.startsWith('/root')) return {title:'ROOT',statement:'AUTHORITY REMAINS EXPLICIT.',stage:'AUTHORITY',href:'/root',navKey:'root'};
   if(pathname.startsWith('/publications')) return {title:'REPOSITORY',statement:'PUBLICATION = EXPOSURE.',stage:'EVIDENCE',href:'/publications',navKey:'repository'};
   if(pathname.startsWith('/root/access')) return {title:'ACCESS',statement:'ACCESS ≠ AUTHORITY.',stage:'AUTHORITY',href:'/root/access',navKey:'access'};
   if(pathname.startsWith('/field')||pathname.startsWith('/observatory')) return {title:'OBSERVATORY',statement:'A SIGNAL IS NOT EVIDENCE.',stage:'OBSERVATION',href:'/observatory',navKey:'observatory'};
-  if(pathname.startsWith('/method-lab')) return {title:'METHOD LAB',statement:'GOVERNANCE IS ONLY THE BEGINNING.',stage:'RESEARCH',href:'/method-lab',navKey:'method-lab'};
+  if(pathname.startsWith('/method-lab')) return {title:'METHOD LAB',statement:'GOVERNANCE IS ONLY THE BEGINNING.',stage:'INFERENCE',href:'/method-lab',navKey:'method-lab'};
   if(pathname.startsWith('/integrations')) return {title:'INTEGRATION',statement:'AUTHORITY IS NOT EXECUTION.',stage:'EXECUTION',href:'/integrations',navKey:'integration'};
   if(pathname.startsWith('/cases')) return {title:'CASES / RETURN',statement:'REALITY ANSWERS BACK.',stage:'RETURN',href:'/cases',navKey:'cases'};
-  if(pathname.startsWith('/research')) return {title:'RESEARCH',statement:'RESEARCH MUST REMAIN RECONSTRUCTIBLE.',stage:'RESEARCH',href:'/research',navKey:'reality-chain'};
+  if(pathname.startsWith('/research')) return {title:'RESEARCH',statement:'RESEARCH MUST REMAIN RECONSTRUCTIBLE.',stage:'INFERENCE',href:'/research',navKey:'reality-chain'};
   if(pathname.startsWith('/login')) return {title:'ACCESS',statement:'IDENTITY ≠ AUTHORITY.',stage:'AUTHORITY',href:'/login',navKey:'access'};
   return SUBJECTS.intro;
 }
