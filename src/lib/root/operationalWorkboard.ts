@@ -257,7 +257,7 @@ export async function readRootOperationalWorkboard(input: { authority: Workboard
       autoDispatch: true,
       selfHealing: true,
       canonAuthority: 'ROOT_ONLY',
-      principle: 'Observation/diagnosis may proceed automatically. A queued governed scope may route, execute and retry through verified adapters. Material external actions fail closed without an adapter. RETURN is mandatory and canon remains ROOT-only.',
+      principle: 'Observation/diagnosis may proceed automatically. A queued governed scope may route through verified adapters. Unnamed material external work may be assigned to the bounded connector handoff, but assignment is not execution; explicitly required missing adapters fail closed. RETURN is mandatory and canon remains ROOT-only.',
     },
     summary: {
       decisions: decisions.length, executions: executions.length, executionAdapterGaps: executionGaps.length,

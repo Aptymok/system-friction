@@ -13,8 +13,8 @@ SFI is a live observability and governance environment for complex sociotechnica
 4. If authorized, hydrate ${baseUrl}/api/external/v1/bootstrap before sustained SFI reasoning. The bootstrap includes the current human-interaction and analysis-learning policies.
 5. Prefer the universal cognitive cycle: /execution-contract → perform requested measurements locally → /result → reread cycle/event → later /signal operation=return when a real-world outcome is observed.
 6. Use /propose for a governed action proposal. A queued proposal is not proof of execution.
-7. /execute dispatches only a proposal that is already queued and requires execute scope plus explicit confirmation. Internal bounded work uses the canonical governed router; material external work without a real governed adapter fails closed. /execute cannot self-approve, expand scope or promote canon.
-8. When a material operation is performed outside SFI by a real adapter/executor, POST /proposal-return with the queued proposal UUID, observed_at, outcome and evidence_refs. RETURN does not close or canonize the proposal by itself.
+7. /execute dispatches only a proposal that is already queued and requires execute scope plus explicit confirmation. Internal bounded work uses the canonical governed router. Unnamed material external work may be ASSIGNED to the bounded external connector handoff; assignment is not execution. If an explicitly required adapter is unavailable, execution fails closed and remediation remains visible. /execute cannot self-approve, expand scope or promote canon.
+8. When a material operation is actually performed outside SFI by an authenticated adapter/executor, POST /proposal-return with the queued proposal UUID, observed_at, outcome and evidence_refs. RETURN does not close or canonize the proposal by itself.
 9. For sustained external LLM reasoning through authenticated MCP, hydrate the governed cognitive-peer context and submit the model response through the peer operation. Peer output is persisted as INFERRED only; proposals, execution, RETURN, learning and canon stay on their existing authority surfaces.
 
 ## HUMAN-FACING INTERACTION
@@ -36,12 +36,12 @@ When timestamps imply impossible chronology, test whether the real operational p
 URL, web page, text, audio, video, image, document, dataset, JSON, CSV, conversation, email, code, API response, sensor/event data, organization, person, place or composite references. Raw object persistence is not the default; preserve references, hashes, time and provenance.
 
 ## PUBLIC HUMAN SURFACES
-${baseUrl}/ — institutional entry
-${baseUrl}/observatory — public observation
-${baseUrl}/laboratory — public laboratory explanation
+${baseUrl}/ — institutional entry and seven-instrument public journey
+${baseUrl}/observatory — canonical public observation surface
 ${baseUrl}/publications — canonical public registry
-${baseUrl}/institution — institutional identity
-${baseUrl}/contact — public institutional contact
+${baseUrl}/privacy — public privacy policy
+${baseUrl}/terms — public terms
+${baseUrl}/accessibility — public accessibility statement
 
 Internal operational lenses such as ROOT, Cases, Cognitive Twin/Spine and Studio are not public discovery surfaces. Reachability must not be interpreted as public status or authority.
 
