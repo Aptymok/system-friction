@@ -11,6 +11,10 @@ import { SfiPublicHeader, SfiPublicFooter } from '@/components/public/SfiPublicC
 
 const BASE = SFI_PUBLIC_PROFILE.institution.canonicalUrl;
 const INSTITUTION_NAME = SFI_PUBLIC_PROFILE.institution.name;
+const INSTITUTION_SLOGAN = SFI_PUBLIC_PROFILE.institution.slogan;
+const SOCIAL_TITLE = `${INSTITUTION_NAME} | ${INSTITUTION_SLOGAN}`;
+const PUBLIC_DESCRIPTION = 'Independent structural-field research institute for observing relations, evidence, authority, execution and RETURN across complex systems.';
+const SOCIAL_IMAGE = '/og/sfi-institutional.jpg';
 const GA_ID = 'G-P8G69HMYLM';
 
 export const viewport: Viewport = {
@@ -25,7 +29,7 @@ export const metadata: Metadata = {
     default: INSTITUTION_NAME,
     template: '%s | SFI',
   },
-  description: 'After AI Governance: Evidence, Authority & RETURN in Real Institutions. System Friction Institute · AI Week NY · October 8, 2026 · 7:00 PM ET.',
+  description: PUBLIC_DESCRIPTION,
   applicationName: INSTITUTION_NAME,
   keywords: [
     'system friction',
@@ -59,7 +63,22 @@ export const metadata: Metadata = {
     url: BASE,
     siteName: INSTITUTION_NAME,
     title: INSTITUTION_NAME,
-    description: 'After AI Governance: Evidence, Authority & RETURN in Real Institutions · AI Week NY 2026.',
+    description: PUBLIC_DESCRIPTION,
+    images: [
+      {
+        url: SOCIAL_IMAGE,
+        width: 1200,
+        height: 630,
+        alt: SOCIAL_TITLE,
+        type: 'image/jpeg',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: SOCIAL_TITLE,
+    description: PUBLIC_DESCRIPTION,
+    images: [SOCIAL_IMAGE],
   },
   robots: {
     index: true,
@@ -80,7 +99,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     '@id': SFI_PUBLIC_PROFILE.institution.entityId,
     name: SFI_PUBLIC_PROFILE.institution.name,
     url: BASE,
-    description: 'Independent institutional research environment for evidence, authority, execution and RETURN in complex sociotechnical systems.',
+    description: PUBLIC_DESCRIPTION,
+    slogan: INSTITUTION_SLOGAN,
+    image: `${BASE}${SOCIAL_IMAGE}`,
     ...(verifiedSameAs.length ? { sameAs: verifiedSameAs } : {}),
     privacyPolicy: `${BASE}/privacy`,
   };
