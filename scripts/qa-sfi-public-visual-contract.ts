@@ -76,6 +76,11 @@ check('reference chrome owns fixed header and semantic timeline clearances',
   && chromeCss.includes('sfiFooterReality'));
 
 check('landing owns vertical surface transition',landing.includes('goScene')&&landing.includes('CHANGE SURFACE'));
+check('public journey starts with observation and preserves all seven instruments',
+  landing.includes("const JOURNEY_ORDER = ['intro','observatory','world-vector','repository','method-lab','root','reality-chain','timeline']")
+  && landing.includes("label:'OBSERVATORY',number:'01'")
+  && landing.includes("label:'ROOT',number:'05'")
+  && landing.includes("label:'REALITY CHAIN',number:'06'"));
 check('Home reference hero remains canonical and keeps the seven-surface rail',
   manifest.includes("eyebrow:''")
   && manifest.includes("lead:'SYSTEM | FRICTION | INSTITUTE'")
