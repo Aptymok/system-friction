@@ -630,3 +630,196 @@
   .sfiSurfaceActions{margin-top:14px;gap:8px}
   .sfiSurfaceCta{min-height:40px;padding:0 14px;font-size:14px}
 }
+
+
+/* AI Week NY 2026 · temporary registration surface on Home */
+.sfiAiWeekRibbon{
+  width:min(620px,100%);
+  margin-top:26px;
+  padding:17px 20px 16px;
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:4px 20px;
+  align-items:end;
+  border:1px solid rgba(216,180,107,.30);
+  border-left:2px solid rgba(216,180,107,.82);
+  background:
+    linear-gradient(90deg,rgba(7,6,4,.80),rgba(7,6,4,.56) 70%,rgba(216,180,107,.08)),
+    rgba(2,2,1,.58);
+  color:#f3efe5;
+  text-align:left;
+  cursor:pointer;
+  box-shadow:0 18px 54px rgba(0,0,0,.22);
+  backdrop-filter:blur(8px);
+  transition:transform .2s ease,border-color .2s ease,background .2s ease
+}
+.sfiAiWeekRibbon:hover{
+  transform:translateX(3px);
+  border-color:rgba(216,180,107,.65);
+  background:
+    linear-gradient(90deg,rgba(9,7,4,.88),rgba(9,7,4,.62) 70%,rgba(216,180,107,.13)),
+    rgba(2,2,1,.62)
+}
+.sfiAiWeekRibbonMeta{
+  grid-column:1/-1;
+  font:650 11px/1.25 var(--mono);
+  letter-spacing:.14em;
+  color:var(--gold-hi)
+}
+.sfiAiWeekRibbon strong{
+  grid-column:1;
+  margin-top:3px;
+  font:400 clamp(21px,1.6vw,27px)/1.08 Georgia,'Times New Roman',serif;
+  color:#f5efe3
+}
+.sfiAiWeekRibbonTitle{
+  grid-column:1;
+  font:400 15px/1.35 Georgia,'Times New Roman',serif;
+  color:rgba(239,231,216,.76)
+}
+.sfiAiWeekRibbon b{
+  grid-column:2;
+  grid-row:2/4;
+  align-self:center;
+  font:650 11px/1.2 var(--mono);
+  letter-spacing:.12em;
+  color:#e7c775;
+  white-space:nowrap
+}
+.sfiAiWeekRibbon b i{font-style:normal;font-size:15px;margin-left:7px}
+
+.sfiAiWeekOverlay{
+  position:absolute;
+  inset:0;
+  z-index:120;
+  display:grid;
+  place-items:center;
+  padding:30px;
+  pointer-events:auto
+}
+.sfiAiWeekBackdrop{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  border:0;
+  background:rgba(0,0,0,.78);
+  backdrop-filter:blur(9px);
+  cursor:default
+}
+.sfiAiWeekDialog{
+  position:relative;
+  z-index:2;
+  width:min(860px,calc(100vw - 60px));
+  max-height:calc(100svh - 60px);
+  overflow:auto;
+  border:1px solid rgba(216,180,107,.34);
+  background:
+    linear-gradient(145deg,rgba(14,12,8,.98),rgba(3,3,2,.985) 66%),
+    #050504;
+  box-shadow:0 36px 110px rgba(0,0,0,.62),inset 0 0 80px rgba(216,180,107,.025);
+  color:#f3efe5
+}
+.sfiAiWeekDialog header{
+  display:flex;
+  justify-content:space-between;
+  gap:24px;
+  padding:24px 26px 18px;
+  border-bottom:1px solid rgba(216,180,107,.16)
+}
+.sfiAiWeekDialog header span{
+  display:block;
+  font:650 11px/1.3 var(--mono);
+  letter-spacing:.14em;
+  color:var(--gold-hi)
+}
+.sfiAiWeekDialog h2{
+  margin:8px 0 0;
+  font:400 clamp(30px,3vw,46px)/1 Georgia,'Times New Roman',serif;
+  letter-spacing:-.025em;
+  color:#f5efe3
+}
+.sfiAiWeekDialog header p{
+  margin:7px 0 0;
+  font:400 17px/1.35 Georgia,'Times New Roman',serif;
+  color:rgba(239,231,216,.76)
+}
+.sfiAiWeekClose{
+  align-self:flex-start;
+  padding:8px 0 8px 18px;
+  border:0;
+  background:transparent;
+  color:rgba(232,221,195,.68);
+  font:650 11px/1 var(--mono);
+  letter-spacing:.12em;
+  cursor:pointer
+}
+.sfiAiWeekClose:hover{color:#f3efe5}
+.sfiAiWeekEmbed{
+  padding:20px 24px;
+  display:grid;
+  place-items:center
+}
+.sfiAiWeekEmbed iframe{
+  display:block;
+  width:100%;
+  max-width:700px;
+  height:min(450px,52svh);
+  border:1px solid rgba(191,203,218,.28);
+  border-radius:4px;
+  background:#fff
+}
+.sfiAiWeekDialog footer{
+  display:flex;
+  justify-content:space-between;
+  gap:20px;
+  align-items:center;
+  padding:0 26px 23px
+}
+.sfiAiWeekDialog footer p{
+  margin:0;
+  font:400 14px/1.4 Georgia,'Times New Roman',serif;
+  color:rgba(239,231,216,.58)
+}
+.sfiAiWeekDialog footer a{
+  color:#e7c775;
+  font:650 11px/1.2 var(--mono);
+  letter-spacing:.10em;
+  white-space:nowrap
+}
+
+@media(max-width:900px){
+  .sfiAiWeekRibbon{
+    width:min(76vw,520px);
+    margin-top:20px;
+    padding:14px 15px;
+    grid-template-columns:1fr;
+    gap:5px
+  }
+  .sfiAiWeekRibbon strong{font-size:21px}
+  .sfiAiWeekRibbonTitle{font-size:14px}
+  .sfiAiWeekRibbon b{
+    grid-column:1;
+    grid-row:auto;
+    margin-top:7px
+  }
+  .sfiAiWeekOverlay{padding:12px}
+  .sfiAiWeekDialog{width:calc(100vw - 24px);max-height:calc(100svh - 24px)}
+  .sfiAiWeekDialog header{padding:18px 18px 14px;gap:12px}
+  .sfiAiWeekDialog h2{font-size:30px}
+  .sfiAiWeekDialog header p{font-size:15px}
+  .sfiAiWeekClose{padding-left:6px}
+  .sfiAiWeekEmbed{padding:14px}
+  .sfiAiWeekEmbed iframe{height:54svh}
+  .sfiAiWeekDialog footer{padding:0 18px 18px;align-items:flex-start;flex-direction:column}
+}
+@media(max-height:760px) and (min-width:901px){
+  .sfiAiWeekRibbon{margin-top:18px;padding:13px 17px}
+  .sfiAiWeekRibbon strong{font-size:21px}
+  .sfiAiWeekDialog header{padding-top:18px;padding-bottom:14px}
+  .sfiAiWeekEmbed{padding-top:14px;padding-bottom:14px}
+  .sfiAiWeekEmbed iframe{height:48svh}
+}
+@media(prefers-reduced-motion:reduce){
+  .sfiAiWeekRibbon{transition:none!important}
+}
