@@ -41,6 +41,14 @@ requireText(router, 'SFI_GOVERNED_EXECUTION_ADAPTERS', 'adapter-contract');
 requireText(router, "capabilityId: 'sfi_self_development_v1'", 'self-development-adapter');
 requireText(router, "executorRef: 'github-actions:sfi-self-development'", 'self-development-executor-ref');
 requireText(router, "domain: 'repository_self_development'", 'self-development-domain');
+requireText(router, "capabilityId: 'external_connector_handoff_v1'", 'external-connector-handoff-adapter');
+requireText(router, "domain: 'external_executor_handoff'", 'external-connector-handoff-domain');
+requireText(router, "state: 'ASSIGNED_EXTERNAL_EXECUTOR'", 'external-assignment-state');
+requireText(router, "eventName: 'execution.router.assigned_external'", 'external-assignment-event');
+requireText(router, "executionStillExternal: true", 'external-execution-boundary');
+requireText(router, "successMayNotBeInferredFromAssignment: true", 'external-assignment-not-success');
+requireText(router, "observedReturnRequired: true", 'external-return-required');
+requireText(router, "endpoint: '/api/external/v1/proposal-return'", 'external-return-endpoint');
 requireText(router, "state: 'ASSIGNED'", 'scheduled-material-assignment-state');
 requireText(router, 'AWAIT_SCHEDULED_SELF_DEVELOPMENT_EXECUTOR', 'scheduled-material-executor-handoff');
 requireText(router, 'persistExecutionState', 'persist-assignment-state');
@@ -62,6 +70,7 @@ if (!isMaterialExternalAction('distribute_content', 'Distribute approved content
 if (!isMaterialExternalAction('action', 'Send an email to the approved recipient.')) {
   throw new Error('SFI_ROUTER_QA_CLASSIFIER:generic_action_with_explicit_external_side_effect_must_be_external');
 }
+requireText(router, "adapterId: adapterId ?? 'external_connector_handoff_v1'", 'external-actions-default-to-bounded-handoff');
 if (isMaterialExternalAction('action', 'Generate the internal report. Do not publish externally. Do not mutate canon.')) {
   throw new Error('SFI_ROUTER_QA_CLASSIFIER:negated_publish_must_not_be_external');
 }
