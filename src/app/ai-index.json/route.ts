@@ -25,10 +25,10 @@ export async function GET() {
       human: [
         `${baseUrl}/`,
         `${baseUrl}/observatory`,
-        `${baseUrl}/laboratory`,
         `${baseUrl}/publications`,
-        `${baseUrl}/institution`,
-        `${baseUrl}/contact`,
+        `${baseUrl}/privacy`,
+        `${baseUrl}/terms`,
+        `${baseUrl}/accessibility`,
         `${baseUrl}/login`,
       ],
       agent: [
