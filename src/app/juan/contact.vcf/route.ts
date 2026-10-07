@@ -6,10 +6,10 @@ N:Marín Liera;Juan Antonio;;;
 ORG:System Friction Institute
 TITLE:Founder
 EMAIL;TYPE=work:jmarin@systemfriction.org
-TEL;TYPE=cell,voice:+5214496370444
+TEL;TYPE=cell,voice:+524496370444
 URL;TYPE=work:https://systemfriction.org
 URL;TYPE=profile:https://systemfriction.org/juan
-IMPP;TYPE=personal:https://wa.me/5214496370444
+IMPP;TYPE=personal:https://wa.me/524496370444
 X-SOCIALPROFILE;TYPE=linkedin:https://www.linkedin.com/in/juanliera/
 X-SOCIALPROFILE;TYPE=linkedin:https://www.linkedin.com/company/system-friction-institute/
 NOTE:System Friction Institute — Nothing acts alone. Reality answers back.
