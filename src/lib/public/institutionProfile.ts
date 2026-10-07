@@ -107,6 +107,7 @@ export const SFI_PUBLIC_PROFILE = {
     entityId: SFI_CANONICAL_IDENTITY_FINGERPRINT.entityId,
     verifiedSameAs: VERIFIED_INSTITUTION_SAME_AS,
     type: 'independent structural-field research institute',
+    slogan: 'Nothing acts alone. Reality answers back.',
     primaryDefinition: 'System Friction Institute makes visible the friction that systems learn to normalize.',
     operationalDefinition: 'An evidence-governed instrument for observing a signal inside a changing field, proposing a minimal intervention and learning from the documented difference between prediction and outcome.',
     canonicalQuestion: 'What structural configuration of a signal, under what world state and field conditions, produces particular patterns of propagation, persistence, transformation or disappearance?',
