@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import './PublicEntryGateway.css';
 
 const SURFACE_RAIL=[
@@ -103,7 +103,7 @@ export function PublicEntryGateway(){
     <footer className="sfiHomeTimeline">
       <div><strong>SFI / GLOBAL TIMELINE</strong><span>RECONSTRUCTIBLE INSTITUTIONAL MEMORY</span></div>
       <div className="sfiHomeTimelineRail">
-        <i style={{'--progress':progress} as React.CSSProperties}/>
+        <i style={{'--progress':progress} as CSSProperties}/>
         <div>{YEARS.map(year=><span key={year} data-current={year==='2026'?'true':undefined}>{year}</span>)}</div>
       </div>
       <div className="sfiHomePanoramaState"><b>{progress<.5?'01':'02'}</b><span>/ 02</span></div>
