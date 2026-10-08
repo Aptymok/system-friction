@@ -486,3 +486,35 @@
   .rootFieldLegend{display:none!important}
   .rootFieldActions{grid-template-columns:1fr}
 }
+
+/* ROOT / two consecutive operational horizons; original field and authority runtime retained. */
+.rootFieldMode{width:100%;min-height:100svh;overflow:hidden!important}
+.rootHorizontalRail{display:flex;width:100vw;height:100svh;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;overscroll-behavior-x:contain;scrollbar-width:thin;scrollbar-color:#c8a951 #090909}
+.rootHorizontalGraph,.rootGovernanceConsole{position:relative!important;inset:auto!important;flex:0 0 100vw!important;width:100vw!important;height:100svh!important;min-width:0;scroll-snap-align:start;box-sizing:border-box}
+.rootHorizontalGraph{padding-top:64px;padding-bottom:84px;box-sizing:border-box}
+.rootHorizontalGraph .rootCognitivePixi{inset:64px 0 84px!important}
+.rootHorizontalGraph .rootFieldHub{top:78px!important;bottom:104px!important}
+.rootHorizontalGraph .rootFieldControls{bottom:100px!important}
+.rootHorizontalGraph .rootFieldLegend{bottom:105px!important}
+.rootFieldIdentity{z-index:30}
+.rootGovernanceConsole{overflow-y:auto;padding:76px clamp(22px,3vw,60px) 110px;background:linear-gradient(120deg,rgba(6,6,5,.9),rgba(14,15,15,.96)),#080808;color:#e8ddc3}
+.rootGovernanceHead{border-bottom:1px solid rgba(200,169,81,.23);padding-bottom:15px}
+.rootGovernanceHead>span,.rootGovernancePanel h2,.rootGovernanceMetrics span,.rootGovernanceLinks a{font:600 10px/1.5 "Liberation Mono",ui-monospace,monospace;letter-spacing:.12em;color:#c8a951}
+.rootGovernanceHead h1{margin:7px 0;font:400 clamp(25px,2.5vw,45px)/1.05 "Noto Serif Display",Georgia,serif;color:#e8ddc3}
+.rootGovernanceHead p,.rootGovernancePanel p{margin:7px 0;color:#bcb6a9;font:16px/1.4 "Noto Sans",Arial,sans-serif}
+.rootGovernanceMetrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;margin-top:18px;background:rgba(200,169,81,.16)}
+.rootGovernanceMetrics article{min-width:0;padding:15px;background:#0b0d0e;display:flex;flex-direction:column;gap:7px}
+.rootGovernanceMetrics strong{font:400 clamp(17px,2vw,30px)/1.1 "Noto Serif Display",Georgia,serif;overflow-wrap:anywhere}
+.rootGovernanceMetrics small,.rootGovernancePanel dd,.rootGovernancePanel dt,.rootGovernanceLog{font:11px/1.5 "Liberation Mono",ui-monospace,monospace;color:#a49e92;overflow-wrap:anywhere}
+.rootGovernanceMatrix{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+.rootGovernancePanel{min-height:210px;border:1px solid rgba(200,169,81,.19);padding:19px;background:rgba(3,4,4,.46)}
+.rootGovernancePanel h2{margin:0 0 14px}.rootGovernancePanel>strong{font:400 21px "Noto Serif Display",Georgia,serif;color:#e8ddc3}
+.rootGovernancePanel dl{margin:12px 0}.rootGovernancePanel dl div{display:grid;grid-template-columns:130px minmax(0,1fr);gap:12px;padding:7px 0;border-top:1px solid rgba(232,221,195,.09)}
+.rootGovernancePanel dt{color:#c8a951}.rootGovernancePanel dd{margin:0;color:#dad2c5}
+.rootGovernancePanel button,.rootGovernanceLinks a{display:inline-flex;margin:8px 8px 0 0;border:1px solid rgba(200,169,81,.28);padding:10px;background:transparent;color:#e8ddc3;cursor:pointer;text-decoration:none}
+.rootGovernanceLog{display:grid;grid-template-columns:110px 1fr auto;gap:10px;border-top:1px solid rgba(232,221,195,.1);padding:8px 0}
+.rootGovernanceAuthority{position:relative!important;right:auto!important;bottom:auto!important;max-width:none!important;margin-top:14px;padding:14px!important}
+.rootGovernanceAuthority[open]{max-height:none;overflow:visible}
+.rootGovernanceLinks{padding-top:12px}
+@media(max-width:900px){.rootGovernanceMetrics{grid-template-columns:repeat(2,minmax(0,1fr))}.rootGovernanceMatrix{grid-template-columns:1fr}.rootHorizontalGraph .rootFieldControls{bottom:88px!important}.rootHorizontalGraph .rootFieldLegend{display:none}.rootGovernanceConsole{padding:80px 16px 100px}}
+@media(prefers-reduced-motion:reduce){.rootHorizontalRail{scroll-behavior:auto}}
