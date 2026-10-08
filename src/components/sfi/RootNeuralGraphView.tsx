@@ -571,7 +571,8 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
         <span>{date(graph.loadedAt)}</span>
       </div>
 
-      <section className="rootFieldStage" data-hub-open={selected?'true':undefined} aria-label="Canonical cognitive field">
+      <div className="rootHorizontalRail" aria-label="ROOT operational horizontal workspace">
+      <section className="rootFieldStage rootHorizontalGraph" data-hub-open={selected?'true':undefined} aria-label="Canonical cognitive field">
         <RootCognitiveFieldPixi nodes={fieldNodes} edges={fieldEdges} width={topology.width} height={topology.height} onSelect={(id)=>{setSelectedId(id);}}/>
         <div className="rootFieldControls">
           <select aria-label="Field reading" value={reading} onChange={(event)=>setReading(event.target.value as typeof reading)}>
@@ -680,9 +681,16 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
         ):null}
       </section>
 
-      <details className="rootFieldAuthority" open={Boolean(searchParams.get('decision'))}>
+      <section className="rootGovernanceConsole" aria-label="ROOT governed operational console">
+        <header className="rootGovernanceHead"><span>ROOT / GOVERNED OPERATION</span><h1>From relations to decisions.</h1><p>Evidence, authority and RETURN remain separate. This console reports only what the current institutional records support.</p></header>
+        <div className="rootGovernanceMetrics"><article><span>COGNITIVE OBJECTS</span><strong>{graph.nodes.length}</strong><small>{graph.sourceState.toUpperCase()} · {graph.readPlane}</small></article><article><span>ADMITTED RELATIONS</span><strong>{graph.edges.length}</strong><small>{graph.admission.excludedEdges} excluded</small></article><article><span>SELECTED OBJECT</span><strong>{selected ? selected.label : 'NONE'}</strong><small>{selected?.realityPassport?.decision ?? 'SELECT A NODE IN THE GRAPH'}</small></article><article><span>OBSERVED RETURN</span><strong>{selected?.realityPassport?.returnState.status ?? 'NOT SELECTED'}</strong><small>Reported from existing case provenance</small></article></div>
+        <div className="rootGovernanceMatrix"><section className="rootGovernancePanel"><h2>SUMMARY / REALITY PASSPORT</h2>{selected?<><strong>{selected.label}</strong><p>{selected.realityPassport?.boundary ?? 'No canonical Reality Passport is represented for this object.'}</p><dl><div><dt>OBSERVATION</dt><dd>{selected.reality?.state ?? 'UNKNOWN'}</dd></div><div><dt>EVIDENCE</dt><dd>{selected.realityPassport?.provenance.supportingRelationCount ?? 'NOT REPRESENTED'} supporting relations; independence not established</dd></div><div><dt>INFERENCE / DECISION</dt><dd>{selected.realityPassport?.decision ?? 'UNKNOWN'}</dd></div><div><dt>AUTHORITY</dt><dd>{selected.realityPassport?.authority.state ?? 'UNKNOWN'}</dd></div><div><dt>EXECUTION</dt><dd>{selected.realityPassport?.authority.executionState ?? 'UNKNOWN'}</dd></div><div><dt>RETURN</dt><dd>{selected.realityPassport?.returnState.status ?? 'NOT OBSERVED'}</dd></div></dl></>:<p>Select an actual node in the cognitive field to inspect its evidence, authority, time and RETURN.</p>}</section><section className="rootGovernancePanel"><h2>TRAJECTORIES / TEMPORAL FIELD</h2><p>Use the existing field reading selector to inspect trajectory, retrolongitudinal states, projections, friction regimes and contrast.</p><strong>{reading.replaceAll('_',' ')}</strong><p>{selected?.fieldHistory?.persistedHistory ? `${selected.fieldHistory.epochCount} persisted epochs · ${date(selected.fieldHistory.lastObservedAt)}` : 'Historical reconstruction not established for the selected object.'}</p><button type="button" onClick={()=>setReading('TRAJECTORY')}>EXPLORE TRAJECTORY</button><button type="button" onClick={()=>setReading('RETURN_CONTRAST')}>RETURN / CONTRAST</button></section><section className="rootGovernancePanel"><h2>JR LOGBOOK / LEARNING</h2><p>Visible history is limited to events actually represented by the selected object. Learning states do not certify empirical results.</p>{selected?.fieldHistory?.recentEpochs?.length ? selected.fieldHistory.recentEpochs.slice(-5).reverse().map(epoch=><div className="rootGovernanceLog" key={epoch.eventId}><time>{date(epoch.occurredAt)}</time><span>{epoch.state ?? 'UNKNOWN'}</span><small>{epoch.censoring}</small></div>):<p>NOT OBSERVED · Select a node with persisted field history.</p>}<p>LEARNING · {selected?.learningState?.state ?? 'NOT REPRESENTED'}</p></section><section className="rootGovernancePanel"><h2>METHOD / CONTRAST / RETURN</h2><p>Method Lab findings and scientific interpretation retain their declared epistemic class.</p><dl><div><dt>METHOD</dt><dd>{selected?.methodResult?.methodId ?? 'NOT REPRESENTED'}</dd></div><div><dt>RESULT CLASS</dt><dd>{selected?.methodResult?.epistemicClass ?? 'UNKNOWN'}</dd></div><div><dt>CONTRAST</dt><dd>{selected?.methodResult?.contrastStatus ?? 'NOT REPRESENTED'}</dd></div><div><dt>LEARNING</dt><dd>{selected?.learningState?.state ?? 'NOT REPRESENTED'}</dd></div></dl></section></div>
+        <details className="rootFieldAuthority rootGovernanceAuthority" open={Boolean(searchParams.get('decision'))}>
         <summary>AUTHORITY</summary>
         <SfiRootWorkspace enabled decisionOnly/>
-      </details>
+        </details>
+        <nav className="rootGovernanceLinks" aria-label="Institutional operating destinations"><a href="/root?reading=REALITY_CHAIN">REALITY CHAIN</a><a href="/root?reading=RETURN_CONTRAST">RETURN CONTRAST</a><a href="/root?reading=RETROLONGITUDINAL">FIELD HISTORY</a></nav>
+      </section>
+      </div>
     </main>
   );}
