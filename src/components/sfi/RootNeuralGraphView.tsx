@@ -645,7 +645,7 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
               {selected.fieldHistory.recentEpochs.slice(0,6).map((epoch)=><div key={epoch.eventId}><time>{date(epoch.occurredAt)}</time><strong>{humanize(epoch.previousState ?? 'UNKNOWN')} → {humanize(epoch.state ?? 'UNKNOWN')}</strong><small>{epoch.relationTransitions.length} relation transition{epoch.relationTransitions.length===1?'':'s'}</small></div>)}
             </section>:null}
 
-            {selected.learningState ? <section className="rootFieldHumanSection"><span>LEARNING</span><p>{humanize(selected.learningState.state)} · {humanize(selected.learningState.classification ?? 'UNCLASSIFIED')}</p></section> : null}
+            {selected.learningState ? <section className="rootFieldHumanSection"><span>LEARNING</span><p>LEARNING · {humanize(selected.learningState.state)} · {humanize(selected.learningState.classification ?? 'UNCLASSIFIED')}</p></section> : null}
 
             <details className="rootFieldTechnical">
               <summary>TECHNICAL DETAILS</summary>
