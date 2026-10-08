@@ -660,7 +660,7 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
                 <span>QUALIFIED RELATIONS<strong>{qualifiedRelationCount(selected,graph.edges)}</strong></span>
                 <span>PERSISTED EPOCHS<strong>{selected.fieldHistory?.epochCount ?? 0}</strong></span>
                 <span>HISTORY RANGE<strong>{selected.fieldHistory?.firstObservedAt ? `${date(selected.fieldHistory.firstObservedAt)} → ${date(selected.fieldHistory.lastObservedAt)}` : 'NOT YET PERSISTED'}</strong></span>
-                <span>LOCAL ATTRACTOR<strong>{selected.scientificReading?.attractor.state ?? 'NOT ESTABLISHED'}</strong></span>
+                <span>LOCAL DYNAMICAL ATTRACTOR<strong>{selected.scientificReading?.attractor.state ?? 'NOT ESTABLISHED'}</strong></span>
                 <span>METHOD<strong>{selected.methodResult ? `${selected.methodResult.methodId}@${selected.methodResult.methodVersion}` : 'NOT REPRESENTED'}</strong></span>
               </div>
               {selected.realityPassport?<div className="rootFieldTechnicalPassport">
