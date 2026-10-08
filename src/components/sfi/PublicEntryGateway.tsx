@@ -3,6 +3,7 @@
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type CSSProperties,
@@ -16,14 +17,38 @@ function clamp(value:number,min:number,max:number){
 }
 
 const SURFACE_RAIL = [
-  {label:'ROOT',number:'01',sceneId:'root',frameIndex:0},
-  {label:'OBSERVATORY',number:'02',sceneId:'observatory',frameIndex:0},
-  {label:'REALITY CHAIN',number:'03',sceneId:'reality-chain',frameIndex:0},
-  {label:'METHOD LAB',number:'04',sceneId:'method-lab',frameIndex:0},
-  {label:'WORLD VECTOR',number:'05',sceneId:'world-vector',frameIndex:0},
-  {label:'REPOSITORY',number:'06',sceneId:'repository',frameIndex:0},
-  {label:'TIMELINE',number:'07',sceneId:'timeline',frameIndex:0},
+  {label:'ROOT',number:'01',sceneId:'root'},
+  {label:'OBSERVATORY',number:'02',sceneId:'observatory'},
+  {label:'REALITY CHAIN',number:'03',sceneId:'reality-chain'},
+  {label:'METHOD LAB',number:'04',sceneId:'method-lab'},
+  {label:'WORLD VECTOR',number:'05',sceneId:'world-vector'},
+  {label:'REPOSITORY',number:'06',sceneId:'repository'},
+  {label:'TIMELINE',number:'07',sceneId:'timeline'},
+  {label:'ACCESS',number:'08',sceneId:'access'},
 ] as const;
+
+const HUMAN_RESULTS:Record<string,{title:string;lines:string[];cta:string;href:string}>={
+  root:{title:'CURRENT FIELD',lines:['Dense canonical field','Authority remains explicit','JR history remains longitudinal','Learning remains governed'],cta:'ENTER ROOT',href:'/root'},
+  observatory:{title:'CURRENT OBSERVATION',lines:['Sources remain identifiable','Signals remain distinct from observations','Hypotheses remain provisional','Degraded coverage remains visible'],cta:'OPEN OBSERVATORY',href:'/observatory'},
+  'reality-chain':{title:'RECONSTRUCTION RESULT',lines:['What existed','What was observed','Who could decide','What reality returned'],cta:'RECONSTRUCT A CASE',href:'/root?reading=REALITY_CHAIN'},
+  'method-lab':{title:'RUN RESULT',lines:['Method and protocol preserved','Provider and parameters inspectable','Simulation remains non-observed','RETURN may still be pending'],cta:'ENTER METHOD LAB',href:'/method-lab'},
+  'world-vector':{title:'FIELD RESULT',lines:['Current state is dated','Tensions remain relational','Trajectories remain longitudinal','Projection remains non-observed'],cta:'OPEN WORLD VIEW',href:'/observatory#trajectory'},
+  repository:{title:'OBJECT RESULT',lines:['Source remains distinct from claim','Provenance remains addressable','Versions and hashes remain available','Lineage remains reconstructible'],cta:'OPEN REPOSITORY',href:'/publications?view=registry'},
+  timeline:{title:'TEMPORAL RESULT',lines:['Institution and world keep separate clocks','Deployments are events, not outcomes','Case and project histories remain reconstructible','RETURN remains a later observation'],cta:'OPEN TIMELINE',href:'/observatory#timeline'},
+  access:{title:'ACCESS RESULT',lines:['Identity ≠ authority','Role ≠ permission','Permission ≠ execution','Every access change remains traceable'],cta:'INSTITUTIONAL ACCESS',href:'/login'},
+};
+
+const ROOT_FIELD_NODES=Array.from({length:84},(_,index)=>{
+  const angle=index*.77;
+  const radius=10+(index%13)*2.85;
+  return {
+    id:index,
+    x:50+Math.cos(angle)*radius+(index%5-2)*1.3,
+    y:49+Math.sin(angle)*radius*.74+((index*7)%9-4)*1.15,
+    tone:index%11===0?'critical':index%7===0?'signal':index%5===0?'learning':index%3===0?'authority':'neutral',
+    size:2+(index%4)*.72,
+  };
+});
 
 export function PublicEntryGateway(){
   const wheelAccumulator=useRef(0);
@@ -36,6 +61,8 @@ export function PublicEntryGateway(){
   const scene=SCENES[sceneIndex];
   const sceneBackground=scene.background;
   const sceneAssets=scene.assets;
+  const frame=scene.frames[frameIndex]??scene.frames[0];
+  const result=HUMAN_RESULTS[scene.id];
 
   const goScene=useCallback((next:number)=>{
     const bounded=clamp(next,0,SCENES.length-1);
@@ -52,21 +79,6 @@ export function PublicEntryGateway(){
     const index=SCENES.findIndex(item=>item.id===id);
     if(index>=0)goScene(index);
   },[goScene]);
-
-  const goSceneFrame=useCallback((id:string,nextFrame:number)=>{
-    const index=SCENES.findIndex(item=>item.id===id);
-    if(index<0)return;
-    setSceneIndex(index);
-    setFrameIndex(clamp(nextFrame,0,SCENES[index].frames.length-1));
-    if(typeof window!=='undefined'){
-      window.history.replaceState(null,'',`#${id}`);
-      window.dispatchEvent(new CustomEvent('sfi:subjectchange',{detail:{subject:id}}));
-    }
-  },[]);
-
-  const moveFrame=useCallback((direction:-1|1)=>{
-    setFrameIndex(current=>clamp(current+direction,0,SCENES[sceneIndex].frames.length-1));
-  },[sceneIndex]);
 
   useEffect(()=>{
     const syncHash=()=>{
@@ -89,44 +101,26 @@ export function PublicEntryGateway(){
     const onWheel=(event:WheelEvent)=>{
       if(window.matchMedia('(max-width: 900px)').matches)return;
       if(wheelLock.current)return;
-      const horizontal=event.shiftKey||Math.abs(event.deltaX)>Math.abs(event.deltaY)*1.15;
-      if(horizontal&&scene.frames.length>1){
-        const delta=Math.abs(event.deltaX)>1?event.deltaX:event.deltaY;
-        const canMove=delta>0?frameIndex<scene.frames.length-1:frameIndex>0;
-        if(!canMove)return;
-        event.preventDefault();
-        wheelAccumulator.current+=delta;
-        if(Math.abs(wheelAccumulator.current)>48){
-          moveFrame(wheelAccumulator.current>0?1:-1);
-          wheelAccumulator.current=0;
-          wheelLock.current=true;
-          window.setTimeout(()=>{wheelLock.current=false;},360);
-        }
-        return;
-      }
-
-      const direction=event.deltaY>0?1:-1;
+      const delta=Math.abs(event.deltaX)>Math.abs(event.deltaY)?event.deltaX:event.deltaY;
+      if(Math.abs(delta)<4)return;
+      const direction=delta>0?1:-1;
       const canMove=direction>0?sceneIndex<SCENES.length-1:sceneIndex>0;
       if(!canMove)return;
       event.preventDefault();
-      wheelAccumulator.current+=event.deltaY;
+      wheelAccumulator.current+=delta;
       if(Math.abs(wheelAccumulator.current)>72){
         goScene(sceneIndex+direction);
         wheelAccumulator.current=0;
         wheelLock.current=true;
-        window.setTimeout(()=>{wheelLock.current=false;},520);
+        window.setTimeout(()=>{wheelLock.current=false;},460);
       }
     };
 
     const onKey=(event:KeyboardEvent)=>{
-      if(event.key==='ArrowDown'||event.key==='PageDown'){
+      if(event.key==='ArrowRight'||event.key==='PageDown'){
         if(sceneIndex<SCENES.length-1){event.preventDefault();goScene(sceneIndex+1);}
-      }else if(event.key==='ArrowUp'||event.key==='PageUp'){
+      }else if(event.key==='ArrowLeft'||event.key==='PageUp'){
         if(sceneIndex>0){event.preventDefault();goScene(sceneIndex-1);}
-      }else if(event.key==='ArrowRight'){
-        event.preventDefault();moveFrame(1);
-      }else if(event.key==='ArrowLeft'){
-        event.preventDefault();moveFrame(-1);
       }else if(event.key==='Home'){
         event.preventDefault();goScene(0);
       }else if(event.key==='End'){
@@ -137,11 +131,11 @@ export function PublicEntryGateway(){
     window.addEventListener('wheel',onWheel,{passive:false});
     window.addEventListener('keydown',onKey);
     return()=>{window.removeEventListener('wheel',onWheel);window.removeEventListener('keydown',onKey);};
-  },[frameIndex,goScene,moveFrame,scene.frames.length,sceneIndex]);
+  },[goScene,sceneIndex]);
 
   function handlePointerDown(event:PointerEvent<HTMLElement>){
     const target=event.target as HTMLElement;
-    if(target.closest('button,a'))return;
+    if(target.closest('button,a,input,select'))return;
     dragStart.current={x:event.clientX,y:event.clientY};
   }
 
@@ -154,9 +148,7 @@ export function PublicEntryGateway(){
     const ny=((event.clientY-rect.top)/Math.max(rect.height,1)-.5)*2;
     host.querySelectorAll<HTMLElement>('[data-motion="pointer-parallax"]').forEach((layer)=>{
       const depth=Number(layer.dataset.depth||1);
-      const x=nx*depth*4.2;
-      const y=ny*depth*2.8;
-      layer.style.transform=`translate3d(${x.toFixed(2)}px,${y.toFixed(2)}px,0)`;
+      layer.style.transform=`translate3d(${(nx*depth*3.2).toFixed(2)}px,${(ny*depth*1.9).toFixed(2)}px,0)`;
     });
   }
 
@@ -174,10 +166,11 @@ export function PublicEntryGateway(){
     if(!start)return;
     const dx=event.clientX-start.x;
     const dy=event.clientY-start.y;
-    if(Math.abs(dx)<36&&Math.abs(dy)<36)return;
-    if(Math.abs(dx)>Math.abs(dy)*1.05)moveFrame(dx<0?1:-1);
-    else if(!window.matchMedia('(max-width: 900px)').matches)goScene(sceneIndex+(dy<0?1:-1));
+    if(Math.abs(dx)<42||Math.abs(dx)<Math.abs(dy))return;
+    goScene(sceneIndex+(dx<0?1:-1));
   }
+
+  const visibleFrames=useMemo(()=>scene.frames,[scene.frames]);
 
   return <main
     className="sfiSceneExperience"
@@ -216,92 +209,99 @@ export function PublicEntryGateway(){
         const offset=index-sceneIndex;
         const state=offset===0?'active':offset<0?'past':'future';
         const localFrameIndex=index===sceneIndex?frameIndex:0;
-        const frame=item.frames[localFrameIndex]??item.frames[0];
-        const frameProgress=item.frames.length>1?localFrameIndex/(item.frames.length-1):0;
+        const selectedFrame=item.frames[localFrameIndex]??item.frames[0];
+        const itemResult=HUMAN_RESULTS[item.id];
 
         return <section
           key={item.id}
           className={`sfiScene sfiScene--${item.id}`}
           data-state={state}
           data-scene={item.id}
-          style={{
-            '--scene-offset':offset,
-            '--active-frame':localFrameIndex,
-            '--frame-progress':frameProgress,
-          } as CSSProperties}
+          style={{'--scene-offset':offset,'--active-frame':localFrameIndex} as CSSProperties}
           aria-hidden={index===sceneIndex?undefined:true}
           inert={index!==sceneIndex}
         >
-          {item.id==='reality-chain'?<ol className="sfiRealityTrajectory" aria-label="Reality Chain temporal trajectory">
-            {item.frames.map((stage,stageIndex)=><li key={stage.label} style={{'--stage-index':stageIndex} as CSSProperties}>
-              <button type="button" data-active={localFrameIndex===stageIndex?'true':undefined} onClick={()=>setFrameIndex(stageIndex)} aria-label={`Read ${stage.label}`}><i aria-hidden="true"/>{stage.label}</button>
-            </li>)}
-          </ol>:null}
-          <div className="sfiSceneContent">
-            <div className="sfiSceneCopy">
-              <div className="sfiSceneEyebrow"><span>{item.number}</span>{item.eyebrow}</div>
-              <h1>{item.title}{item.accent?<span>{item.accent}</span>:null}</h1>
-              <p className="sfiSceneLead">{item.lead}</p>
-
-              {item.id==='intro' ? <div className="sfiHeroActions">
-                <p className="sfiHeroStatement">The world does not have the same time.</p>
-                {item.actions?.map((action)=><a
-                  key={action.label}
-                  className="sfiHeroCta"
-                  href={action.href}
-                ><span aria-hidden="true">→</span><b>{action.label}</b></a>)}
-              </div> : <>
-                <div key={`${item.id}-${frame.label}`} className="sfiFieldState">
-                  <small>{frame.label}</small>
-                  <strong>{frame.title}</strong>
-                  <p>{frame.text}</p>
-                </div>
-                {item.actions?.length?<div className="sfiSurfaceActions">
-                  {item.actions.map((action)=><a
-                    key={action.label}
-                    className={`sfiSurfaceCta sfiSurfaceCta--${action.kind??'secondary'}`}
-                    href={action.href}
-                  ><span aria-hidden="true">→</span><b>{action.label}</b></a>)}
-                </div>:null}
-              </>}
-
-              <div className="sfiGestureLegend" aria-hidden="true">
-                <span>VERTICAL</span><b>CHANGE SURFACE</b>
-                <span>HORIZONTAL</span><b>CHANGE READING</b>
-              </div>
+          {item.id==='intro'?<div className="sfiIndexHero">
+            <div className="sfiIndexStatement">
+              <span>SFI | SYSTEM FRICTION INSTITUTE</span>
+              <h1>NOTHING ACTS ALONE.<br/><b>REALITY ANSWERS BACK.</b></h1>
+              <p>SFI observes, reconstructs, tests and preserves how systems interact — from signal to authority, execution and RETURN.</p>
+              <button type="button" onClick={()=>goScene(1)}>ENTER SFI <i>→</i></button>
             </div>
-            {item.id==='root'?<nav className="sfiRootForeground" aria-label="ROOT institutional access">
-              {item.tiles?.map((tile,tileIndex)=><a key={tile.label} href={tile.href} className="sfiRootAccess" data-motion="pointer-parallax" data-depth={5+tileIndex*.3}>
-                <img src={tile.image} alt="" draggable={false}/><span>{tile.label}</span>
-              </a>)}
-            </nav>:null}
-          </div>
+            <nav className="sfiIndexSurfaceRail" aria-label="SFI instruments">
+              {SURFACE_RAIL.map((surface)=><button key={surface.sceneId} type="button" onClick={()=>goSceneById(surface.sceneId)}>
+                <small>{surface.number}</small><strong>{surface.label}</strong><span>→</span>
+              </button>)}
+            </nav>
+          </div>:<div className="sfiOperationalPanorama">
+            <aside className="sfiSurfaceIdentity">
+              <span>{item.number}</span>
+              <h1>{item.title}{item.accent?<b>{item.accent}</b>:null}</h1>
+              <p>{item.lead}</p>
+              <em>NOTHING ACTS ALONE.<br/>REALITY ANSWERS BACK.</em>
+              <a href={item.actions?.[0]?.href??'/'}>{item.actions?.[0]?.label??'OPEN'} <i>→</i></a>
+            </aside>
+
+            <section className="sfiInstrumentField" aria-label={`${item.title} operational field`}>
+              <header className="sfiInstrumentTabs">
+                {visibleFrames.map((mode,modeIndex)=><button
+                  type="button"
+                  key={mode.label}
+                  data-active={modeIndex===localFrameIndex?'true':undefined}
+                  onClick={()=>setFrameIndex(modeIndex)}
+                >{mode.label}</button>)}
+              </header>
+
+              {item.id==='root'?<div className="sfiRootFieldPreview" aria-hidden="true">
+                <div className="sfiRootFieldHalo"/>
+                {ROOT_FIELD_NODES.map((node)=><i key={node.id} className={`sfiFieldNode sfiFieldNode--${node.tone}`} style={{left:`${node.x}%`,top:`${node.y}%`,width:`${node.size}px`,height:`${node.size}px`}}/>)}
+                <div className="sfiRootFieldCore"><span>SYSTEM</span></div>
+                <div className="sfiRootCluster sfiRootCluster--governance">GOVERNANCE</div>
+                <div className="sfiRootCluster sfiRootCluster--cases">CASES & PROJECTS</div>
+                <div className="sfiRootCluster sfiRootCluster--external">EXTERNAL REALITY</div>
+                <div className="sfiRootCluster sfiRootCluster--authority">AUTHORITY BOUNDARY</div>
+              </div>:null}
+
+              {item.id==='reality-chain'?<ol className="sfiRealityOperationalChain" aria-label="Reality Chain">
+                {item.frames.map((stage,stageIndex)=><li key={stage.label} data-active={localFrameIndex===stageIndex?'true':undefined}>
+                  <button type="button" onClick={()=>setFrameIndex(stageIndex)}><small>{String(stageIndex+1).padStart(2,'0')}</small><strong>{stage.label}</strong></button>
+                </li>)}
+              </ol>:null}
+
+              <div className="sfiOperationalModules" data-count={item.frames.length}>
+                {item.frames.map((module,moduleIndex)=><button
+                  type="button"
+                  key={module.label}
+                  className="sfiOperationalModule"
+                  data-active={moduleIndex===localFrameIndex?'true':undefined}
+                  onClick={()=>setFrameIndex(moduleIndex)}
+                >
+                  <small>{String(moduleIndex+1).padStart(2,'0')}</small>
+                  <strong>{module.label}</strong>
+                  <p>{module.title}</p>
+                  <span>OPEN READING →</span>
+                </button>)}
+              </div>
+            </section>
+
+            <aside className="sfiResultDock" aria-label="Selected operational result">
+              <header><small>{itemResult?.title??'CURRENT READING'}</small><strong>{selectedFrame.label}</strong></header>
+              <h2>{selectedFrame.title}</h2>
+              <p>{selectedFrame.text}</p>
+              {itemResult?<ul>{itemResult.lines.map(line=><li key={line}>{line}</li>)}</ul>:null}
+              <a href={itemResult?.href??item.actions?.[0]?.href??'/'}>{itemResult?.cta??'OPEN'} <span>→</span></a>
+            </aside>
+          </div>}
         </section>;
       })}
     </div>
 
-    <nav className="sfiTopicRail" aria-label="Institutional surfaces">
-      {SURFACE_RAIL.map((item)=><button
-        key={item.label}
-        type="button"
-        data-active={scene.id===item.sceneId?'true':undefined}
-        onClick={()=>goSceneFrame(item.sceneId,item.frameIndex)}
-        aria-label={`Open ${item.label.toLowerCase()} surface`}
-      ><span>{item.label}</span><i/><em>{item.number}</em></button>)}
+    <nav className="sfiHorizontalProgress" aria-label="Horizontal SFI journey">
+      <button type="button" onClick={()=>goScene(sceneIndex-1)} disabled={sceneIndex===0} aria-label="Previous surface">←</button>
+      <div>{SCENES.map((item,index)=><button key={item.id} type="button" data-active={index===sceneIndex?'true':undefined} onClick={()=>goScene(index)} aria-label={item.id}/>)}</div>
+      <button type="button" onClick={()=>goScene(sceneIndex+1)} disabled={sceneIndex===SCENES.length-1} aria-label="Next surface">→</button>
     </nav>
 
-    {scene.id!=='intro'&&scene.frames.length>1?<div className="sfiExplanationRail" aria-label="Readings">
-      <span>{String(frameIndex+1).padStart(2,'0')}</span>
-      <div>
-        {scene.frames.map((frame,index)=><button
-          key={frame.label}
-          type="button"
-          data-active={index===frameIndex?'true':undefined}
-          onClick={()=>setFrameIndex(index)}
-          aria-label={`Reading ${index+1}: ${frame.label}`}
-        />)}
-      </div>
-      <span>{String(scene.frames.length).padStart(2,'0')}</span>
-    </div>:null}
+    <div className="sfiHorizontalHint" aria-hidden="true"><span>SCROLL</span><i>←</i><b>HORIZONTAL</b><i>→</i></div>
   </main>;
 }
