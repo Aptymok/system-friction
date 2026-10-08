@@ -72,7 +72,7 @@ export function RootCognitiveFieldPixi({nodes,edges,width,height,onSelect}:{node
         }
         // Coarse collision/repulsion keeps dense canonical fields selectable without erasing density.
         const cellSize=34;
-        const buckets=new Map<string,typeof state extends Map<string,infer V>?V[]:never>();
+        const buckets=new Map<string,any[]>();
         for(const n of state.values()){
           const key=`${Math.floor(n.x/cellSize)}:${Math.floor(n.y/cellSize)}`;
           const bucket=buckets.get(key)??[];
