@@ -647,6 +647,8 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
 
             {selected.learningState ? <section className="rootFieldHumanSection"><span>LEARNING</span><p>LEARNING · {humanize(selected.learningState.state)} · {humanize(selected.learningState.classification ?? 'UNCLASSIFIED')}</p></section> : null}
 
+            {selected.methodResult ? <section className="rootFieldHumanSection"><span>METHOD RESULT</span><p>METHOD · {selected.methodResult.methodId}@{selected.methodResult.methodVersion} · {humanize(selected.methodResult.epistemicClass)}</p></section> : null}
+
             <details className="rootFieldTechnical">
               <summary>TECHNICAL DETAILS</summary>
               <div className="rootFieldHubGrid">
