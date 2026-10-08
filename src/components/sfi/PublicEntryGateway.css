@@ -502,3 +502,22 @@
 @media(prefers-reduced-motion:reduce){
   .sfiScene,.sfiSharedBackground,.sfiSceneParallaxLayer{transition:none!important}
 }
+
+
+/* 2026-10-08 · Home is an independent index; public instruments live on their own routes. */
+.sfiHomeOnly{height:calc(100svh - 90px);min-height:650px;touch-action:auto}
+.sfiHomeArtwork{position:absolute;inset:0;z-index:0;overflow:hidden}
+.sfiHomeArtwork img{width:100%;height:100%;object-fit:cover;object-position:center;filter:saturate(.72) contrast(1.04) brightness(.72)}
+.sfiHomeArtworkVeil{position:absolute;inset:0;background:linear-gradient(90deg,rgba(6,6,5,.84),rgba(6,6,5,.28) 48%,rgba(6,6,5,.34)),linear-gradient(180deg,rgba(6,6,5,.08),rgba(6,6,5,.54))}
+.sfiHomeIndependent{position:relative;z-index:5;width:100%;height:100%;display:grid;grid-template-columns:minmax(420px,.82fr) minmax(560px,1.18fr);align-items:center;gap:7vw;padding:5vh 5vw 7vh}
+.sfiHomeIndependent .sfiIndexStatement small{display:block;max-width:650px;margin-top:18px;font:500 10px/1.55 var(--mono);letter-spacing:.035em;color:rgba(232,221,195,.62)}
+.sfiHomeIndependent .sfiIndexSurfaceRail{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid rgba(232,221,195,.18);border-left:1px solid rgba(232,221,195,.14)}
+.sfiHomeIndependent .sfiIndexSurfaceRail a{min-height:100px;display:grid;grid-template-columns:34px 1fr 22px;align-items:center;gap:14px;padding:18px 18px;border-right:1px solid rgba(232,221,195,.14);border-bottom:1px solid rgba(232,221,195,.14);background:rgba(6,6,5,.36);color:var(--cream);transition:background .18s ease,border-color .18s ease}
+.sfiHomeIndependent .sfiIndexSurfaceRail a:hover{background:rgba(6,6,5,.62);border-color:rgba(200,169,81,.42)}
+.sfiHomeIndependent .sfiIndexSurfaceRail a>small{font:650 9px/1 var(--mono);color:var(--gold);letter-spacing:.12em}
+.sfiHomeIndependent .sfiIndexSurfaceRail a>span{display:flex;flex-direction:column;gap:7px}
+.sfiHomeIndependent .sfiIndexSurfaceRail a strong{font:650 11px/1 var(--mono);letter-spacing:.09em;color:#efe5ce}
+.sfiHomeIndependent .sfiIndexSurfaceRail a em{font:500 9px/1.35 var(--mono);font-style:normal;letter-spacing:.02em;color:rgba(232,221,195,.53)}
+.sfiHomeIndependent .sfiIndexSurfaceRail a>b{font:400 18px/1 var(--mono);color:rgba(200,169,81,.68)}
+@media(max-width:1000px){.sfiHomeOnly{height:auto;min-height:calc(100svh - 78px);overflow:auto}.sfiHomeIndependent{min-height:calc(100svh - 78px);grid-template-columns:1fr;align-content:center;gap:34px;padding:7vh 5vw 12vh}.sfiHomeIndependent .sfiIndexSurfaceRail{grid-template-columns:1fr 1fr}}
+@media(max-width:620px){.sfiHomeIndependent{padding-left:20px;padding-right:20px}.sfiHomeIndependent .sfiIndexSurfaceRail{grid-template-columns:1fr}.sfiHomeIndependent .sfiIndexSurfaceRail a{min-height:72px}}
