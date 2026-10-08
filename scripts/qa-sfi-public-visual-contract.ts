@@ -10,6 +10,9 @@ const chrome=read('src/components/public/SfiPublicChrome.tsx');
 const chromeCss=read('src/components/public/SfiPublicChrome.css');
 const landing=read('src/components/sfi/PublicEntryGateway.tsx');
 const landingCss=read('src/components/sfi/PublicEntryGateway.css');
+const surface=read('src/components/sfi/PublicInstrumentSurface.tsx');
+const surfaceCss=read('src/components/sfi/PublicInstrumentSurface.css');
+const route=read('src/app/instruments/[surface]/page.tsx');
 const manifest=read('src/components/sfi/publicSceneManifest.ts');
 
 check('canonical SFI mark is shared and never redrawn',
@@ -25,85 +28,59 @@ check('institutional screen palette is canonical',
 for(const label of ['ROOT','OBSERVATORY','REALITY CHAIN','METHOD LAB','WORLD VECTOR','REPOSITORY','TIMELINE','ACCESS']){
   check(`fixed canonical menu exposes ${label}`,chrome.includes(`label:'${label}'`));
 }
+for(const id of ['root','observatory','reality-chain','method-lab','world-vector','repository','timeline','access']){
+  check(`menu routes independently to ${id}`,chrome.includes(`href:'/instruments/${id}'`));
+}
 check('menu is physically fixed',chromeCss.includes('position:fixed!important')&&chromeCss.includes('.sfiPublicPageNav'));
 
-check('fixed footer is the global timeline',
-  chrome.includes('SFI / GLOBAL TIMELINE')
-  && chrome.includes('NOTHING ACTS ALONE. REALITY ANSWERS BACK.')
-  && chrome.includes("['2023','2024','2025','2026','2027','2028','2029']")
-  && chromeCss.includes('.sfiGlobalTimeline')
-  && chromeCss.includes('position:fixed!important'));
+check('home is independent from operational instrument deck',
+  landing.includes('sfiHomeIndependent')
+  && landing.includes('SFI_HOME_PANORAMA.png')
+  && landing.includes('SURFACE_RAIL')
+  && !landing.includes('SCENES.map')
+  && !landing.includes('sfiSceneDeck'));
 
-check('public landing is horizontal only',
-  landingCss.includes('touch-action:pan-x')
-  && landingCss.includes('translate3d(calc(var(--scene-offset) * 100%),0,0)')
-  && landing.includes("event.key==='ArrowRight'")
-  && landing.includes("event.key==='ArrowLeft'")
-  && !landing.includes('CHANGE SURFACE'));
+check('home exposes all eight independent instrument routes',
+  ['root','observatory','reality-chain','method-lab','world-vector','repository','timeline','access']
+    .every(id=>landing.includes(`href:'/instruments/${id}'`)));
 
-check('home/index declares canonical institution and slogan',
-  landing.includes('SFI | SYSTEM FRICTION INSTITUTE')
-  && landing.includes('NOTHING ACTS ALONE.')
-  && landing.includes('REALITY ANSWERS BACK.'));
+check('instrument route accepts exactly canonical eight surfaces',
+  route.includes("['root','observatory','reality-chain','method-lab','world-vector','repository','timeline','access']"));
 
-check('home/index exposes all eight operational instruments',
-  landing.includes('SURFACE_RAIL')
-  && landing.includes("sceneId:'root'")
-  && landing.includes("sceneId:'observatory'")
-  && landing.includes("sceneId:'reality-chain'")
-  && landing.includes("sceneId:'method-lab'")
-  && landing.includes("sceneId:'world-vector'")
-  && landing.includes("sceneId:'repository'")
-  && landing.includes("sceneId:'timeline'")
-  && landing.includes("sceneId:'access'"));
+check('each public instrument is a five-screen horizontal surface',
+  surfaceCss.includes('width:500vw')
+  && surfaceCss.includes('flex:0 0 100vw')
+  && surfaceCss.includes('scroll-snap-type:x mandatory')
+  && surface.includes("String(index+1).padStart(2,'0')")
+  && surface.includes("01 / 05")===false);
 
-check('operational surfaces expose selected reading and result dock',
-  landing.includes('sfiOperationalPanorama')
-  && landing.includes('sfiInstrumentTabs')
-  && landing.includes('sfiOperationalModules')
-  && landing.includes('sfiResultDock')
-  && landingCss.includes('.sfiResultDock'));
+check('one existing artwork is assigned per public surface',
+  [
+    '11_40_18-1.png','11_40_22-2.png','RealityChain.png','11_40_26-3.png',
+    '11_40_30-4.png','11_40_34-5.png','11_40_38-6.png','11_40_42-7.png'
+  ].every(asset=>surface.includes(asset)));
 
-check('ROOT public preview preserves dense field grammar',
-  landing.includes('ROOT_FIELD_NODES')
-  && landing.includes('sfiRootFieldPreview')
-  && landing.includes('GOVERNANCE')
-  && landing.includes('CASES & PROJECTS')
-  && landing.includes('AUTHORITY BOUNDARY')
-  && landing.includes('EXTERNAL REALITY'));
+check('Reality Chain preserves canonical sequence',
+  ['REAL WORLD','SIGNAL','OBSERVATION','EVIDENCE','INFERENCE','AUTHORITY','EXECUTION','RETURN']
+    .every(token=>manifest.includes(`label:'${token}'`)));
 
-check('landing visual stage remains shared and parallax-capable',
-  landing.includes('sfiVisualStage')
-  && landing.includes('sceneBackground=scene.background')
-  && landing.includes('sceneAssets=scene.assets')
-  && landing.includes('handlePointerMove')
-  && landing.includes('sfiSceneParallaxLayer')
-  && landingCss.includes('.sfiSceneParallaxLayer'));
+for(const token of [
+  'REALITY PASSPORT','EPISTEMIC REGISTER','Traceability','independent','ABSTENTION',
+  'Assignment ≠ execution','KNOWN THEN','Version','RETURN'
+]){
+  check(`2026-10-08 institutional adaptation visible: ${token}`,surface.toLowerCase().includes(token.toLowerCase()));
+}
+
+check('surface keeps public/operational boundary',
+  surface.includes("href:'/root'")
+  && surface.includes("href:'/observatory'")
+  && surface.includes("href:'/method-lab'")
+  && surface.includes("href:'/login'"));
 
 check('public visual stack has no baked human asset role',
   !manifest.includes("role:'human'")
   && !manifest.includes('observer.png')
   && !manifest.includes('people.png'));
-
-const canonicalSurfaces=['root','observatory','reality-chain','method-lab','world-vector','repository','timeline','access'];
-for(const surface of canonicalSurfaces){
-  check(`canonical public surface declared: ${surface}`,manifest.includes(`id:'${surface}'`));
-}
-for(const surface of ['ROOT','OBSERVATORY','REALITY_CHAIN','METHOD_LAB','WORLD_VECTOR','REPOSITORY','TIMELINE']){
-  const asset=`SFI_${surface}_HERO_LAYER.png`;
-  check(`approved hero declared and present: ${surface}`,manifest.includes(asset)&&fs.existsSync(`public/assets/sfi/instruments/${asset}`));
-}
-for(const icon of ['GOVERNANCE','CASES_PROJECTS','ATTRACTOR','AUTHORITY_BOUNDARY']){
-  const asset=`SFI_ROOT_ICON_${icon}.png`;
-  check(`ROOT foreground declared and present: ${icon}`,manifest.includes(asset)&&fs.existsSync(`public/assets/sfi/instruments/${asset}`));
-}
-
-const capabilityTokens=[
-  'SOURCE HEALTH / FRESHNESS','SIGNALS','OBSERVATIONS','RECENT CHANGES','DEGRADED STATES',
-  'EXPERIMENTS','COUNTERFACTUALS','PROVIDER / MODEL','PARAMETERS','HASHES','RESULTS',
-  'VERSIONS','LINEAGE','MANIFESTS','DEPLOYMENTS','TEMPORAL RELATIONS','JR LOGBOOK','MATERIAL ACTIONS'
-];
-for(const token of capabilityTokens)check(`operational capability visible: ${token}`,manifest.includes(`label:'${token}'`));
 
 const failed=checks.filter(([,ok])=>!ok);
 for(const [name,ok] of checks)console.log(`${ok?'PASS':'FAIL'} · ${name}`);
@@ -113,14 +90,6 @@ import { SCENES } from '../src/components/sfi/publicSceneManifest';
 const surfaces=['root','observatory','reality-chain','method-lab','world-vector','repository','timeline','access'];
 const reality=['REAL WORLD','SIGNAL','OBSERVATION','EVIDENCE','INFERENCE','AUTHORITY','EXECUTION','RETURN'];
 const assert=(ok:boolean,message:string)=>{if(!ok)throw new Error(message);};
-
 assert(JSON.stringify(SCENES.slice(1).map(scene=>scene.id))===JSON.stringify(surfaces),'surface sequence drift');
 assert(JSON.stringify(SCENES.find(scene=>scene.id==='reality-chain')?.frames.map(frame=>frame.label))===JSON.stringify(reality),'Reality Chain sequence drift');
-assert(SCENES.find(scene=>scene.id==='root')?.tiles?.length===4,'ROOT foreground missing');
-assert(SCENES.find(scene=>scene.id==='observatory')?.frames.some(frame=>frame.label==='DEGRADED STATES')===true,'Observatory degraded state missing');
-assert(SCENES.find(scene=>scene.id==='method-lab')?.frames.some(frame=>frame.label==='RESULTS')===true,'Method Lab results missing');
-assert(SCENES.find(scene=>scene.id==='repository')?.frames.some(frame=>frame.label==='MANIFESTS')===true,'Repository manifests missing');
-assert(SCENES.find(scene=>scene.id==='timeline')?.frames.some(frame=>frame.label==='DEPLOYMENTS')===true,'Timeline deployments missing');
-assert(SCENES.find(scene=>scene.id==='access')?.frames.some(frame=>frame.label==='ACCESS LOG')===true,'Access log missing');
-assert(landing.includes('inert={index!==sceneIndex}')&&landing.includes("matchMedia('(prefers-reduced-motion: reduce)')"),'focus isolation or reduced motion missing');
-console.log('PASS · canonical horizontal operational SFI visual contract');
+console.log('PASS · independent horizontal public SFI visual contract');
