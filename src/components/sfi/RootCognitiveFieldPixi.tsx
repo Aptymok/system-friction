@@ -30,6 +30,8 @@ export function RootCognitiveFieldPixi({nodes,edges,width,height,onSelect}:{node
       for(const n of nodes){
         const g=new Graphics();
         const r=n.radius+(n.selected?4:0);
+        // Human-scale target: visual density may stay high without forcing pixel-perfect clicking.
+        g.circle(0,0,Math.max(18,r+10)).fill({color:0xffffff,alpha:.001});
         if(n.shape==='diamond') g.poly([0,-r,r,0,0,r,-r,0]).fill({color:n.tone,alpha:n.selected?.95:.82});
         else if(n.shape==='hex') g.poly([-r*.86,-r*.5,0,-r,r*.86,-r*.5,r*.86,r*.5,0,r,-r*.86,r*.5]).fill({color:n.tone,alpha:n.selected?.95:.82});
         else if(n.shape==='triangle') g.poly([0,-r,r,r,-r,r]).fill({color:n.tone,alpha:n.selected?.95:.82});
@@ -68,7 +70,29 @@ export function RootCognitiveFieldPixi({nodes,edges,width,height,onSelect}:{node
           const force=(d-desired)*(.00055+.0011*Math.max(0,Math.min(1,e.weight||0)));
           a.vx+=dx/d*force;a.vy+=dy/d*force;b.vx-=dx/d*force;b.vy-=dy/d*force;
         }
+        // Coarse collision/repulsion keeps dense canonical fields selectable without erasing density.
+        const cellSize=34;
+        const buckets=new Map<string,typeof state extends Map<string,infer V>?V[]:never>();
         for(const n of state.values()){
+          const key=`${Math.floor(n.x/cellSize)}:${Math.floor(n.y/cellSize)}`;
+          const bucket=buckets.get(key)??[];
+          bucket.push(n as any);buckets.set(key,bucket as any);
+        }
+        for(const n of state.values()){
+          const cx=Math.floor(n.x/cellSize),cy=Math.floor(n.y/cellSize);
+          for(let gx=cx-1;gx<=cx+1;gx+=1)for(let gy=cy-1;gy<=cy+1;gy+=1){
+            const bucket=buckets.get(`${gx}:${gy}`)??[];
+            for(const other of bucket as any[]){
+              if(other.id===n.id)continue;
+              const dx=n.x-other.x,dy=n.y-other.y;
+              const distance=Math.max(.001,Math.hypot(dx,dy));
+              const minDistance=18+n.radius+other.radius;
+              if(distance<minDistance){
+                const push=(minDistance-distance)*.006;
+                n.vx+=dx/distance*push;n.vy+=dy/distance*push;
+              }
+            }
+          }
           n.vx+=(n.tx-n.x)*.006;n.vy+=(n.ty-n.y)*.006;
           n.vx*=.91;n.vy*=.91;
           n.x=Math.max(24,Math.min(width-24,n.x+n.vx));
