@@ -34,11 +34,30 @@ for(const id of ['root','observatory','reality-chain','method-lab','world-vector
 check('menu is physically fixed',chromeCss.includes('position:fixed!important')&&chromeCss.includes('.sfiPublicPageNav'));
 
 check('home is independent from operational instrument deck',
-  landing.includes('sfiHomeIndependent')
+  landing.includes('sfiHomeExperience')
+  && landing.includes('SFI_HOME_INDEX_PANORAMA_20261008.png')
   && landing.includes('SFI_HOME_PANORAMA.png')
   && landing.includes('SURFACE_RAIL')
   && !landing.includes('SCENES.map')
   && !landing.includes('sfiSceneDeck'));
+
+check('home uses fixed UI over a two-part horizontal panorama',
+  landing.includes('sfiHomePanoramaScroller')
+  && landing.includes('sfiHomePanoramaTrack')
+  && landing.includes('window.addEventListener(\'wheel\'')
+  && landingCss.includes('width:200vw')
+  && landingCss.includes('.sfiHomeHeader')
+  && landingCss.includes('.sfiHomeSurfaceRail')
+  && landingCss.includes('.sfiHomeTimeline'));
+
+check('home removes fabricated live identity and event claims',
+  !landing.includes('ANNA MARIN')
+  && !landing.includes('1,236 EVENTS')
+  && landing.includes('RECONSTRUCTIBLE INSTITUTIONAL MEMORY'));
+
+check('home keeps canonical Reality Chain order in micro-orientation',
+  ['REAL WORLD','SIGNAL','OBSERVATION','EVIDENCE','INFERENCE','AUTHORITY','EXECUTION','RETURN']
+    .every(token=>landing.includes(`'${token}'`)));
 
 check('home exposes all eight independent instrument routes',
   ['root','observatory','reality-chain','method-lab','world-vector','repository','timeline','access']
