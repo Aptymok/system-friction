@@ -70,13 +70,13 @@ export function PublicEntryGateway(){
         <strong>SFI</strong><i>—</i><span>SYSTEM FRICTION INSTITUTE</span>
       </Link>
       <nav aria-label="SFI instruments">
-        {SURFACE_RAIL.map(surface)=><Link key={surface.sceneId} href={surface.href}>{surface.label}</Link>)}
+        {SURFACE_RAIL.map((surface)=><Link key={surface.sceneId} href={surface.href}>{surface.label}</Link>)}
       </nav>
       <Link className="sfiHomeAccessDot" href="/instruments/access" aria-label="Access"><span>ACCESS</span></Link>
     </header>
 
     <aside className="sfiHomeChain" aria-label="Reality Chain">
-      {CHAIN.map(stage=><span key={stage}>{stage}</span>)}
+      {CHAIN.map((stage)=><span key={stage}>{stage}</span>)}
     </aside>
 
     <section className="sfiHomeStatement">
@@ -104,7 +104,7 @@ export function PublicEntryGateway(){
       <div><strong>SFI / GLOBAL TIMELINE</strong><span>RECONSTRUCTIBLE INSTITUTIONAL MEMORY</span></div>
       <div className="sfiHomeTimelineRail">
         <i style={{'--progress':progress} as CSSProperties}/>
-        <div>{YEARS.map(year=><span key={year} data-current={year==='2026'?'true':undefined}>{year}</span>)}</div>
+        <div>{YEARS.map((year)=><span key={year} data-current={year==='2026'?'true':undefined}>{year}</span>)}</div>
       </div>
       <div className="sfiHomePanoramaState"><b>{progress<.5?'01':'02'}</b><span>/ 02</span></div>
     </footer>
