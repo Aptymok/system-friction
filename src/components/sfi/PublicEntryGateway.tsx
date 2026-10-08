@@ -92,7 +92,7 @@ export function PublicEntryGateway(){
     </section>
 
     <nav className="sfiHomeSurfaceRail" aria-label="Explore SFI">
-      {SURFACE_RAIL.map(surface)=><Link key={surface.sceneId} href={surface.href}>
+      {SURFACE_RAIL.map((surface)=><Link key={surface.sceneId} href={surface.href}>
         <small>{surface.number}</small>
         <strong>{surface.label}</strong>
         <span>{surface.line}</span>
