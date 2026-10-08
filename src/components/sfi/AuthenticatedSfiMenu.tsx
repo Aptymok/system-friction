@@ -40,8 +40,6 @@ export function AuthenticatedSfiMenu(){
     <header className="sfiAuthCanonicalNav" data-sfi-auth-navigation="DIAMOND-1.0">
       <Link href="/root" className="sfiAuthBrand" aria-label="SFI ROOT">
         <img src="/library/assets/sfi-mark.svg" alt="" aria-hidden="true"/>
-        <strong>SFI</strong>
-        <i>|</i>
         <span>SYSTEM FRICTION INSTITUTE</span>
       </Link>
       <nav className="sfiAuthSurfaceNav" aria-label="SFI authenticated surfaces">
