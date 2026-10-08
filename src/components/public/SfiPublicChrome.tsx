@@ -102,7 +102,7 @@ function usePublicChromeContext(){
 export function SfiPublicHeader({global=false,active}:{active?:string;global?:boolean}) {
   const {pathname,context,clock}=usePublicChromeContext();
   const title=active||context.title;
-  const privateShell=pathname.startsWith('/root')||pathname.startsWith('/method-lab')||pathname.startsWith('/governance')||pathname.startsWith('/studio');
+  const privateShell=pathname==='/root'||pathname==='/governance'||pathname.startsWith('/studio');
   const reserveSpace=pathname!=='/';
 
   if(global&&privateShell) return null;
@@ -136,7 +136,7 @@ export function SfiPublicHeader({global=false,active}:{active?:string;global?:bo
 
 export function SfiPublicFooter({global=false}:{global?:boolean}){
   const {pathname,context}=usePublicChromeContext();
-  const privateShell=pathname.startsWith('/root')||pathname.startsWith('/method-lab')||pathname.startsWith('/governance')||pathname.startsWith('/studio');
+  const privateShell=pathname==='/root'||pathname==='/governance'||pathname.startsWith('/studio');
 
   if(privateShell) return null;
 
