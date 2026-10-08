@@ -521,3 +521,64 @@
 .sfiHomeIndependent .sfiIndexSurfaceRail a>b{font:400 18px/1 var(--mono);color:rgba(200,169,81,.68)}
 @media(max-width:1000px){.sfiHomeOnly{height:auto;min-height:calc(100svh - 78px);overflow:auto}.sfiHomeIndependent{min-height:calc(100svh - 78px);grid-template-columns:1fr;align-content:center;gap:34px;padding:7vh 5vw 12vh}.sfiHomeIndependent .sfiIndexSurfaceRail{grid-template-columns:1fr 1fr}}
 @media(max-width:620px){.sfiHomeIndependent{padding-left:20px;padding-right:20px}.sfiHomeIndependent .sfiIndexSurfaceRail{grid-template-columns:1fr}.sfiHomeIndependent .sfiIndexSurfaceRail a{min-height:72px}}
+
+
+/* 2026-10-08 · HOME / INDEX — fixed interface, horizontal panorama only. */
+.sfiHomeExperience{
+  --void:#060605;--gold:#C8A951;--cream:#E8DDC3;--mono:"Liberation Mono",ui-monospace,SFMono-Regular,Menlo,monospace;--display:"Noto Serif Display",Georgia,serif;--narrative:"EB Garamond",Georgia,serif;
+  position:relative;width:100%;height:100svh;min-height:720px;overflow:hidden;background:var(--void);color:var(--cream);isolation:isolate;
+}
+.sfiHomeExperience *{box-sizing:border-box}
+.sfiHomePanoramaScroller{position:absolute;inset:0;z-index:0;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain;touch-action:pan-x}
+.sfiHomePanoramaScroller::-webkit-scrollbar{display:none}
+.sfiHomePanoramaTrack{width:200vw;height:100%;scroll-snap-align:start}
+.sfiHomePanoramaTrack img{display:block;width:200vw;height:100%;object-fit:cover;object-position:center 42%;filter:saturate(.72) contrast(1.04) brightness(.76);user-select:none;-webkit-user-drag:none}
+.sfiHomePanoramaVeil{position:absolute;inset:0;z-index:1;pointer-events:none;background:
+  linear-gradient(180deg,rgba(6,6,5,.72) 0 7%,rgba(6,6,5,.08) 18% 60%,rgba(6,6,5,.64) 82% 100%),
+  linear-gradient(90deg,rgba(6,6,5,.46),transparent 24% 74%,rgba(6,6,5,.26));
+}
+.sfiHomeHeader{position:absolute;z-index:20;left:0;right:0;top:0;height:64px;display:grid;grid-template-columns:minmax(290px,.92fr) minmax(0,3fr) 28px;align-items:center;gap:20px;padding:0 3.2vw;border-bottom:1px solid rgba(232,221,195,.17);background:linear-gradient(180deg,rgba(6,6,5,.86),rgba(6,6,5,.22))}
+.sfiHomeBrand{display:flex;align-items:center;gap:11px;color:var(--cream);min-width:0}
+.sfiHomeBrand img{width:27px;height:27px;object-fit:contain;opacity:.78}
+.sfiHomeBrand strong{font:500 22px/1 var(--display);letter-spacing:.08em;color:#f3ede2}
+.sfiHomeBrand i{font:400 14px/1 var(--mono);font-style:normal;color:rgba(200,169,81,.6)}
+.sfiHomeBrand span{font:650 9px/1 var(--mono);letter-spacing:.24em;color:rgba(232,221,195,.72);white-space:nowrap}
+.sfiHomeHeader nav{display:flex;justify-content:center;align-items:center;gap:clamp(13px,1.65vw,28px);white-space:nowrap}
+.sfiHomeHeader nav a{position:relative;padding:23px 0 19px;font:650 9px/1 var(--mono);letter-spacing:.085em;color:rgba(232,221,195,.78)}
+.sfiHomeHeader nav a:after{content:"";position:absolute;left:50%;bottom:10px;width:0;height:1px;background:var(--gold);transform:translateX(-50%);transition:width .18s ease}
+.sfiHomeHeader nav a:hover{color:#fff0c7}.sfiHomeHeader nav a:hover:after{width:100%}
+.sfiHomeAccessDot{width:18px;height:18px;border:1px solid rgba(200,169,81,.9);border-radius:50%;box-shadow:inset 0 0 0 3px rgba(6,6,5,.88)}
+.sfiHomeAccessDot span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.sfiHomeChain{position:absolute;z-index:10;left:5.7vw;top:13vh;display:flex;flex-direction:column;gap:8px;padding-left:16px;border-left:1px solid rgba(200,169,81,.35)}
+.sfiHomeChain span{font:600 8px/1 var(--mono);letter-spacing:.13em;color:rgba(232,221,195,.62)}
+.sfiHomeStatement{position:absolute;z-index:12;left:50%;top:31%;width:min(620px,40vw);transform:translateX(-50%);text-shadow:0 4px 28px rgba(0,0,0,.76)}
+.sfiHomeStatement>small{display:block;margin-bottom:24px;font:650 9px/1 var(--mono);letter-spacing:.28em;color:rgba(232,221,195,.62)}
+.sfiHomeStatement h1{margin:0;font:400 clamp(38px,3.45vw,66px)/1.06 var(--display);letter-spacing:.08em;color:#f1e9d8}
+.sfiHomeStatement h1 b{font-weight:400;color:#e6d6b0}
+.sfiHomeStatement p{max-width:610px;margin:22px 0 0;font:400 clamp(16px,1.1vw,21px)/1.52 var(--narrative);color:#d5cdc1}
+.sfiHomeStatement em{display:block;margin-top:20px;font:650 8px/1.55 var(--mono);font-style:normal;letter-spacing:.12em;color:rgba(200,169,81,.8)}
+.sfiHomeRightNotes{position:absolute;z-index:10;right:7.5vw;top:28%;width:27vw;display:flex;justify-content:space-between;gap:5vw;pointer-events:none}
+.sfiHomeRightNotes p{margin:0;font:600 8px/1.6 var(--mono);letter-spacing:.13em;color:rgba(232,221,195,.58)}
+.sfiHomeSurfaceRail{position:absolute;z-index:18;left:4vw;right:4vw;bottom:112px;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));border-top:1px solid rgba(232,221,195,.18);border-left:1px solid rgba(232,221,195,.13);background:rgba(6,6,5,.25);backdrop-filter:blur(4px)}
+.sfiHomeSurfaceRail a{position:relative;min-width:0;min-height:132px;padding:18px 16px 16px;border-right:1px solid rgba(232,221,195,.13);border-bottom:1px solid rgba(232,221,195,.11);background:linear-gradient(180deg,rgba(6,6,5,.18),rgba(6,6,5,.5));color:var(--cream)}
+.sfiHomeSurfaceRail a:hover{background:rgba(6,6,5,.66)}
+.sfiHomeSurfaceRail small{display:block;font:650 9px/1 var(--mono);letter-spacing:.12em;color:var(--gold)}
+.sfiHomeSurfaceRail strong{display:block;margin-top:15px;font:650 10px/1.15 var(--mono);letter-spacing:.08em;color:#f0e6d0}
+.sfiHomeSurfaceRail span{display:block;margin-top:9px;max-width:16em;font:500 8px/1.4 var(--mono);letter-spacing:.015em;color:rgba(232,221,195,.55)}
+.sfiHomeSurfaceRail b{position:absolute;right:14px;bottom:13px;width:27px;height:27px;display:grid;place-items:center;border:1px solid rgba(200,169,81,.72);border-radius:50%;font:400 12px/1 var(--mono);color:#e4c978}
+.sfiHomeTimeline{position:absolute;z-index:20;left:0;right:0;bottom:0;height:90px;display:grid;grid-template-columns:minmax(220px,.8fr) minmax(0,3fr) 70px;align-items:center;gap:24px;padding:12px 3.2vw 10px;border-top:1px solid rgba(232,221,195,.18);background:linear-gradient(0deg,rgba(6,6,5,.96),rgba(6,6,5,.54))}
+.sfiHomeTimeline>div:first-child{display:flex;flex-direction:column;gap:6px}
+.sfiHomeTimeline strong{font:650 9px/1 var(--mono);letter-spacing:.13em;color:#d9cba8}
+.sfiHomeTimeline>div:first-child span{font:650 8px/1.25 var(--mono);letter-spacing:.08em;color:#6f6a61}
+.sfiHomeTimelineRail{position:relative;height:44px}
+.sfiHomeTimelineRail:before{content:"";position:absolute;left:0;right:0;top:17px;height:1px;background:linear-gradient(90deg,rgba(232,221,195,.18),rgba(200,169,81,.72),rgba(232,221,195,.18))}
+.sfiHomeTimelineRail>i{position:absolute;left:0;top:14px;width:9px;height:9px;border-radius:50%;border:1px solid var(--gold);background:#090908;transform:translateX(calc(var(--progress) * (100% - 9px)));box-shadow:0 0 10px rgba(200,169,81,.35)}
+.sfiHomeTimelineRail>div{position:absolute;left:0;right:0;bottom:0;display:grid;grid-template-columns:repeat(7,1fr);text-align:center}
+.sfiHomeTimelineRail span{font:650 8px/1 var(--mono);color:#716b63}.sfiHomeTimelineRail span[data-current="true"]{color:#e2cb92}
+.sfiHomePanoramaState{display:flex;align-items:baseline;justify-content:flex-end;gap:5px;font-family:var(--mono)}
+.sfiHomePanoramaState b{font-size:13px;color:#e5cc8d}.sfiHomePanoramaState span{font-size:8px;color:#746d62}
+.sfiHomePanoramaArrow{position:absolute;z-index:24;top:50%;width:42px;height:42px;display:grid;place-items:center;border:1px solid rgba(200,169,81,.62);border-radius:50%;background:rgba(6,6,5,.58);color:#ead7a8;font:400 16px/1 var(--mono);backdrop-filter:blur(5px);cursor:pointer}
+.sfiHomePanoramaArrow--left{left:18px}.sfiHomePanoramaArrow--right{right:18px}.sfiHomePanoramaArrow:disabled{opacity:.14;cursor:default}
+@media(max-width:1180px){.sfiHomeHeader{grid-template-columns:180px minmax(0,1fr) 22px;padding-left:20px;padding-right:20px}.sfiHomeBrand img,.sfiHomeBrand i,.sfiHomeBrand span{display:none}.sfiHomeHeader nav{justify-content:flex-start;overflow-x:auto;scrollbar-width:none}.sfiHomeSurfaceRail{left:20px;right:20px;overflow-x:auto;grid-template-columns:repeat(8,180px)}.sfiHomeRightNotes{display:none}.sfiHomeStatement{left:46%;width:min(680px,58vw)}}
+@media(max-width:760px){.sfiHomeExperience{min-height:640px}.sfiHomeHeader{height:56px;grid-template-columns:42px minmax(0,1fr) 20px;gap:9px;padding:0 12px}.sfiHomeBrand strong{font-size:18px}.sfiHomeHeader nav a{font-size:8px;padding-top:20px}.sfiHomeChain{display:none}.sfiHomeStatement{left:24px;right:24px;top:22%;width:auto;transform:none}.sfiHomeStatement h1{font-size:clamp(34px,9vw,52px)}.sfiHomeStatement p{font-size:16px}.sfiHomeSurfaceRail{bottom:82px}.sfiHomeTimeline{height:70px;grid-template-columns:1fr 50px;padding:8px 14px}.sfiHomeTimeline>div:first-child{display:none}.sfiHomePanoramaArrow{display:none}}
+@media(prefers-reduced-motion:reduce){.sfiHomePanoramaScroller{scroll-behavior:auto}.sfiHomeHeader nav a:after{transition:none}}
