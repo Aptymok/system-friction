@@ -5,8 +5,6 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import './SfiPublicChrome.css';
 
-const EVENT_URL='https://gomry.com/l/Kzcb3xl';
-
 type ChromeContext={
   title:string;
   statement:string;
@@ -23,6 +21,7 @@ const NAV_SURFACES=[
   {key:'world-vector',label:'WORLD VECTOR',href:'/#world-vector'},
   {key:'repository',label:'REPOSITORY',href:'/#repository'},
   {key:'timeline',label:'TIMELINE',href:'/#timeline'},
+  {key:'access',label:'ACCESS',href:'/#access'},
 ] as const;
 
 const SUBJECTS:Record<string,ChromeContext>={
@@ -34,10 +33,11 @@ const SUBJECTS:Record<string,ChromeContext>={
   'reality-chain':{title:'REALITY CHAIN',statement:'RECONSTRUCTION PRECEDES EXPLANATION.',stage:'RETURN',href:'/#reality-chain',navKey:'reality-chain'},
   observatory:{title:'OBSERVATORY',statement:'A SIGNAL IS NOT EVIDENCE.',stage:'OBSERVATION',href:'/#observatory',navKey:'observatory'},
   root:{title:'ROOT',statement:'REASONING IS DIFFERENT FROM AUTHORITY.',stage:'AUTHORITY',href:'/#root',navKey:'root'},
+  access:{title:'ACCESS',statement:'IDENTITY IS NOT AUTHORITY.',stage:'AUTHORITY',href:'/#access',navKey:'access'},
 }
 
-const INSTITUTIONAL_CHAIN=['REAL WORLD','SIGNAL','OBSERVATION','EVIDENCE','INFERENCE','AUTHORITY','EXECUTION','RETURN','CONTRAST','LEARNING','MEMORY','ADAPTATION'] as const;
-const REALITY_CHAIN_METHOD=['REAL WORLD','SIGNAL','OBSERVATION','EVIDENCE','INFERENCE','AUTHORITY','EXECUTION','RETURN'] as const;
+const TIMELINE_YEARS=['2023','2024','2025','2026','2027','2028','2029'] as const;
+const TIMELINE_TICKS=Array.from({length:37},(_,index)=>index);
 
 function routeContext(pathname:string):ChromeContext{
   if(pathname.startsWith('/root')) return {title:'ROOT',statement:'AUTHORITY REMAINS EXPLICIT.',stage:'AUTHORITY',href:'/root',navKey:'root'};
@@ -102,7 +102,10 @@ function usePublicChromeContext(){
 export function SfiPublicHeader({global=false,active}:{active?:string;global?:boolean}) {
   const {pathname,context,clock}=usePublicChromeContext();
   const title=active||context.title;
+  const privateShell=pathname==='/root'||pathname==='/governance'||pathname.startsWith('/studio');
   const reserveSpace=pathname!=='/';
+
+  if(global&&privateShell) return null;
 
   return <>
     <header className={global?'sfiPublicTopbar sfiGlobalHeader':'sfiPublicTopbar'} data-sfi-public-chrome="SFI-NYC-CHROME-4.0">
@@ -133,26 +136,29 @@ export function SfiPublicHeader({global=false,active}:{active?:string;global?:bo
 
 export function SfiPublicFooter({global=false}:{global?:boolean}){
   const {pathname,context}=usePublicChromeContext();
-  const showFooter=!pathname.startsWith('/root')&&!pathname.startsWith('/studio');
+  const privateShell=pathname==='/root'||pathname==='/governance'||pathname.startsWith('/studio');
 
-  if(!showFooter) return null;
+  if(privateShell) return null;
 
-  return <footer className={global?'sfiPublicFooter sfiGlobalInstitutionalFooter':'sfiPublicFooter'} data-sfi-public-chrome="SFI-NYC-CHROME-4.0">
-    <span className="sfiFooterIdentity">SYSTEM FRICTION INSTITUTE</span>
-
-    <div className="sfiFooterChains">
-      <div className="sfiFooterChain sfiFooterChain--institutional" aria-label="Institutional cycle">
-        {INSTITUTIONAL_CHAIN.map((stage,index)=><span key={stage+'-'+index} data-active={stage===context.stage?'true':undefined}>{stage}{index<INSTITUTIONAL_CHAIN.length-1?<i aria-hidden="true">›</i>:null}</span>)}
-      </div>
-
-      <div className="sfiFooterReality">
-        <small>REALITY CHAIN METHOD</small>
-        <div className="sfiFooterChain sfiFooterChain--reality" aria-label="Reality Chain Method">
-          {REALITY_CHAIN_METHOD.map((stage,index)=><span key={stage}>{stage}{index<REALITY_CHAIN_METHOD.length-1?<i aria-hidden="true">›</i>:null}</span>)}
-        </div>
-      </div>
+  return <footer className={global?'sfiPublicFooter sfiGlobalInstitutionalFooter':'sfiPublicFooter'} data-sfi-public-chrome="SFI-HORIZONTAL-CHROME-5.0">
+    <div className="sfiTimelineIdentity">
+      <strong>SFI / GLOBAL TIMELINE</strong>
+      <span>NOTHING ACTS ALONE. REALITY ANSWERS BACK.</span>
     </div>
 
-    <a className="sfiFooterEvent" href={EVENT_URL} target="_blank" rel="noreferrer">AI WEEK NYC 2026 ↗</a>
+    <div className="sfiGlobalTimeline" aria-label="SFI global timeline">
+      <div className="sfiTimelineTicks" aria-hidden="true">
+        {TIMELINE_TICKS.map((tick)=><i key={tick} data-major={tick%6===0?'true':undefined}/>)}
+      </div>
+      <div className="sfiTimelineYears">
+        {TIMELINE_YEARS.map((year)=><span key={year} data-current={year==='2026'?'true':undefined}>{year}</span>)}
+      </div>
+      <div className="sfiTimelinePlay" aria-hidden="true">▶</div>
+    </div>
+
+    <div className="sfiTimelineContext">
+      <strong>{context.title}</strong>
+      <span>{context.stage}</span>
+    </div>
   </footer>;
 }

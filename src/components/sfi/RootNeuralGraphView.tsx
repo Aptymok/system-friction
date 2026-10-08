@@ -309,6 +309,12 @@ function short(value: string, max = 34) {
   return value.length > max ? `${value.slice(0, max - 1)}…` : value;
 }
 
+function humanize(value:string){
+  return value
+    .replaceAll('_',' ')
+    .replace(/\b\w/g,(char)=>char.toUpperCase());
+}
+
 function date(value: string | null) {
   if (!value) return 'MISSING';
   const parsed = new Date(value);
@@ -554,18 +560,18 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
   const graphObserved = graph.sourceState === 'observed';
   const typeCount = allTypes.length;
 
-  const fieldNodes=visibleNodes.map((node)=>{const p=topology.positions.get(node.id)??{x:topology.width/2,y:topology.height/2};const qualified=qualifiedRelationCount(node,graph.edges);const evidence=Number(node.methodSignal?.evidenceBoundRelationCount??0);return {id:node.id,label:node.label,type:node.type,tone:nodeTone(node),shape:nodeShape(node),x:p.x,y:p.y,radius:selectedId===node.id?8:3.6+Math.min(3.4,qualified*.28+evidence*.22),selected:selectedId===node.id};});
+  const fieldNodes=visibleNodes.map((node)=>{const p=topology.positions.get(node.id)??{x:topology.width/2,y:topology.height/2};const qualified=qualifiedRelationCount(node,graph.edges);const evidence=Number(node.methodSignal?.evidenceBoundRelationCount??0);return {id:node.id,label:node.label,type:node.type,tone:nodeTone(node),shape:nodeShape(node),x:p.x,y:p.y,radius:selectedId===node.id?10:5.2+Math.min(4.6,qualified*.32+evidence*.24),selected:selectedId===node.id};});
   const fieldEdges=visibleEdges.map((edge)=>({id:edge.id,source:edge.source,target:edge.target,weight:edge.weight,selected:selectedId===edge.source||selectedId===edge.target}));
 
   return (
     <main className="neuralGraphShell rootFieldMode" data-neural-graph-contract="SFI-ROOT-NEURAL-GRAPH-1.1">
       <div className="rootFieldIdentity">
-        <strong>SYSTEM FRICTION INSTITUTE</strong>
+        <strong>ROOT · GLOBAL COGNITIVE FIELD OF REALITY</strong>
+        <span>NOTHING ACTS ALONE. REALITY ANSWERS BACK.</span>
         <span>{date(graph.loadedAt)}</span>
-        <span>Juan Marín | Founder</span>
       </div>
 
-      <section className="rootFieldStage" aria-label="Canonical cognitive field">
+      <section className="rootFieldStage" data-hub-open={selected?'true':undefined} aria-label="Canonical cognitive field">
         <RootCognitiveFieldPixi nodes={fieldNodes} edges={fieldEdges} width={topology.width} height={topology.height} onSelect={(id)=>{setSelectedId(id);}}/>
         <div className="rootFieldControls">
           <select aria-label="Field reading" value={reading} onChange={(event)=>setReading(event.target.value as typeof reading)}>
@@ -574,7 +580,7 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
           <select aria-label="Temporal resolution" value={temporalResolution} onChange={(event)=>setTemporalResolution(event.target.value)}>
             {['ALL','SYSTEM_HISTORY','REGIME','PHENOMENON','CYCLE','TRANSITION','EVENT','OBSERVATION'].map((level)=><option key={level} value={level}>{level.replaceAll('_',' ')}</option>)}
           </select>
-          <input aria-label="Search field" value={query} onChange={(event)=>setQuery(event.target.value)} placeholder="search field…"/>
+          <input aria-label="Search field" value={query} onChange={(event)=>setQuery(event.target.value)} placeholder="Search a case, project, decision, evidence, person, system or RETURN…"/>
           {selectedId?<button type="button" onClick={()=>setFocusId(focusId===selectedId?null:selectedId)}>{focusId===selectedId?'EXIT NODE':'ENTER NODE'}</button>:null}
         </div>
         <div className="rootFieldLegend">
@@ -587,51 +593,89 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
         {selected ? (
           <aside className="rootFieldHub">
             <button className="rootFieldHubClose" onClick={()=>setSelectedId(null)} aria-label="Close object hub">×</button>
-            <span className="rootFieldHubKicker">{selected.type} · {realityPassportStage(selected).toUpperCase()}</span>
+            <span className="rootFieldHubKicker">{humanize(selected.type)} · {humanize(realityPassportStage(selected))}</span>
             <h2>{selected.label}</h2>
-            <p>{selected.origin} · {selected.provenance}</p>
-            <p>{String(selected.attributes.statement ?? selected.attributes.observedOutcome ?? selected.attributes.objective ?? selected.attributes.scope ?? selected.attributes.evidenceKind ?? selected.attributes.classification ?? 'Persisted cognitive object. Select connected objects to reconstruct its context.')}</p>
-            <div className="rootFieldHubGrid">
-              <span>STATE<strong>{selected.reality?.state ?? String(selected.attributes.epistemicClass ?? 'UNKNOWN')}</strong></span>
-              <span>REALITY DECISION<strong>{selected.realityPassport?.decision ?? 'UNKNOWN'}</strong></span>
-              <span>TIME<strong>{temporalReading(selected).label}</strong></span>
-              <span>AUTHORITY<strong>{selected.realityPassport?.authority.state ?? selected.reality?.authority ?? 'UNKNOWN'}</strong></span>
-              <span>VERIFICATION<strong>{selected.realityPassport?.verification.state ?? selected.reality?.verificationState ?? 'UNKNOWN'}</strong></span>
-              <span>VERIFICATION COST<strong>{selected.realityPassport?.verification.cost == null ? 'UNKNOWN' : String(selected.realityPassport.verification.cost)}</strong></span>
-              <span>RETURN<strong>{selected.realityPassport?.returnState.status ?? (selected.reality?.observedReturn == null ? 'NOT OBSERVED' : 'OBSERVED')}</strong></span>
-              <span>STRUCTURAL LINKS<strong>{selectedEdges.length}</strong></span>
-              <span>QUALIFIED RELATIONS<strong>{qualifiedRelationCount(selected,graph.edges)}</strong></span>
-              <span>PERSISTED EPOCHS<strong>{selected.fieldHistory?.epochCount ?? 0}</strong></span>
-              <span>HISTORY RANGE<strong>{selected.fieldHistory?.firstObservedAt ? `${date(selected.fieldHistory.firstObservedAt)} → ${date(selected.fieldHistory.lastObservedAt)}` : 'NOT YET PERSISTED'}</strong></span>
-              <span>INSTITUTIONAL DIRECTION<strong>SFI-INSTITUTIONAL-ATTRACTOR-001</strong></span>
-              <span>LOCAL DYNAMICAL ATTRACTOR<strong>{selected.scientificReading?.attractor.state ?? 'NOT ESTABLISHED'}</strong></span>
-            </div>
-            {selected.realityPassport ? <details open={selected.realityPassport.decision!=='CONTINUE'}><summary>REALITY PASSPORT · {selected.realityPassport.decision}</summary>
-              <p>{selected.realityPassport.reasons.length ? selected.realityPassport.reasons.join(' ') : 'No epistemic stop is currently derived from represented state.'}</p>
-              <div className="rootFieldHubGrid">
-                <span>SUPPORTING RELATIONS<strong>{selected.realityPassport.provenance.supportingRelationCount}</strong></span>
-                <span>CONTRADICTIONS<strong>{selected.realityPassport.provenance.contradictionCount}</strong></span>
-                <span>LINEAGE<strong>{selected.realityPassport.provenance.lineageCount}</strong></span>
-                <span>AS-OF / CAPTURE<strong>{selected.realityPassport.temporal.captureTime ?? selected.realityPassport.temporal.nodeUpdatedAt ?? 'NOT REPRESENTED'}</strong></span>
-                <span>SOURCE VERSION<strong>{selected.realityPassport.temporal.sourceVersion ?? 'NOT REPRESENTED'}</strong></span>
-                <span>UNCERTAINTY<strong>{selected.realityPassport.epistemic.uncertainty == null ? 'NOT REPRESENTED' : String(selected.realityPassport.epistemic.uncertainty)}</strong></span>
-                <span>NEXT OBSERVATION<strong>{selected.realityPassport.verification.nextBestObservation ?? 'NOT REPRESENTED'}</strong></span>
-                <span>PERSISTED STATE<strong>{selected.realityPassport.persistence.represented ? 'REPRESENTED' : 'NOT REPRESENTED'}</strong></span>
-                <span>AUTHORITY EXPANDED<strong>{selected.realityPassport.authority.authorityExpanded == null ? 'NOT REPRESENTED' : String(selected.realityPassport.authority.authorityExpanded)}</strong></span>
-                <span>MAY MINT RETURN<strong>{selected.realityPassport.authority.mayMintReturn == null ? 'NOT REPRESENTED' : String(selected.realityPassport.authority.mayMintReturn)}</strong></span>
-                <span>MAY PROMOTE CANON<strong>{selected.realityPassport.authority.mayPromoteCanon == null ? 'NOT REPRESENTED' : String(selected.realityPassport.authority.mayPromoteCanon)}</strong></span>
-                <span>PRIVACY<strong>{selected.realityPassport.constraints.privacy == null ? 'NOT REPRESENTED' : String(selected.realityPassport.constraints.privacy)}</strong></span>
-                <span>TRAJECTORY<strong>{selected.realityPassport.constraints.trajectory == null ? 'NOT REPRESENTED' : String(selected.realityPassport.constraints.trajectory)}</strong></span>
+            <p className="rootFieldHubProvenance">{selected.origin} · {selected.provenance}</p>
+
+            <section className="rootFieldHumanSection">
+              <span>WHAT IS THIS?</span>
+              <p>{String(selected.attributes.statement ?? selected.attributes.observedOutcome ?? selected.attributes.objective ?? selected.attributes.scope ?? selected.attributes.evidenceKind ?? selected.attributes.classification ?? 'A persisted cognitive object in the SFI field. Its meaning is reconstructed through its relations, provenance and temporal state.')}</p>
+            </section>
+
+            <section className="rootFieldHumanSection">
+              <span>WHAT DOES SFI KNOW?</span>
+              <ul>
+                <li>Epistemic state: <strong>{humanize(String(selected.reality?.state ?? selected.attributes.epistemicClass ?? 'UNKNOWN'))}</strong></li>
+                <li>{selectedEdges.length} represented structural relation{selectedEdges.length===1?'':'s'}; {qualifiedRelationCount(selected,graph.edges)} evidence-qualified.</li>
+                <li>Reality Chain position: <strong>{humanize(realityPassportStage(selected))}</strong>.</li>
+                {selected.fieldHistory?.epochCount?<li>{selected.fieldHistory.epochCount} persisted field epoch{selected.fieldHistory.epochCount===1?'':'s'} available.</li>:null}
+                {selected.realityPassport?.returnState.status==='OBSERVED'?<li>Observed RETURN is represented for this object.</li>:null}
+              </ul>
+            </section>
+
+            <section className="rootFieldHumanSection">
+              <span>WHAT IS STILL UNKNOWN?</span>
+              <ul>
+                {(!selected.realityPassport?.authority.state||selected.realityPassport.authority.state==='UNKNOWN')?<li>Institutional authority is not sufficiently represented.</li>:null}
+                {(!selected.realityPassport?.verification.state||selected.realityPassport.verification.state==='UNKNOWN')?<li>Verification state remains unknown.</li>:null}
+                {selected.realityPassport?.returnState.status!=='OBSERVED'?<li>Observed RETURN has not been represented.</li>:null}
+                {!selected.fieldHistory?.persistedHistory?<li>Longitudinal history is incomplete or not yet persisted.</li>:null}
+                {selected.realityPassport?.verification.nextBestObservation?<li>Next discriminating observation: {selected.realityPassport.verification.nextBestObservation}</li>:null}
+              </ul>
+            </section>
+
+            <section className="rootFieldHumanSection">
+              <span>WHY IS THIS CONNECTED?</span>
+              {selectedEdges.length?<div className="rootFieldRelations">
+                {selectedEdges.slice(0,8).map((edge)=>{const outbound=edge.source===selected.id;const other=nodeById.get(outbound?edge.target:edge.source);return <button key={edge.id} onClick={()=>setSelectedId(other?.id??null)}><small>{outbound?'→':'←'} {humanize(edge.relation)}</small><strong>{other?.label??(outbound?edge.target:edge.source)}</strong><em>{edge.origin==='operational_projection' ? humanize(edge.provenance) : `RELATION · ${edge.weight.toFixed(3)}`}</em></button>;})}
+              </div>:<p>No represented relation is currently available for this object.</p>}
+            </section>
+
+            <section className="rootFieldHumanSection">
+              <span>WHAT CAN I DO NEXT?</span>
+              <div className="rootFieldActions">
+                <button type="button" onClick={()=>setFocusId(focusId===selected.id?null:selected.id)}>{focusId===selected.id?'EXIT CONNECTION FIELD':'EXPLORE CONNECTIONS'}</button>
+                <a href="/root/evidence-review">SEE EVIDENCE</a>
+                <a href="/root?reading=REALITY_CHAIN">RECONSTRUCT REALITY CHAIN</a>
+                <a href="/root?reading=RETURN_CONTRAST">VIEW RETURN / CONTRAST</a>
               </div>
-              <small>{selected.realityPassport.boundary.replaceAll('_',' ')} · {selected.realityPassport.methodBoundary.replaceAll('_',' ')} · {selected.realityPassport.persistence.boundary.replaceAll('_',' ')}</small>
-            </details> : null}
-            {selected.methodResult ? <p>METHOD · {selected.methodResult.methodId}@{selected.methodResult.methodVersion} · {selected.methodResult.epistemicClass}</p> : null}
-            {selected.learningState ? <p>LEARNING · {selected.learningState.state} · {selected.learningState.classification ?? 'UNCLASSIFIED'}</p> : null}
-            {selected.fieldHistory?.recentEpochs?.length ? <details><summary>FIELD HISTORY · {selected.fieldHistory.epochCount} EPOCHS</summary>{selected.fieldHistory.recentEpochs.map((epoch)=><div key={epoch.eventId}><code>{date(epoch.occurredAt)} · {epoch.previousState ?? 'UNKNOWN'} → {epoch.state ?? 'UNKNOWN'} · {epoch.censoring}</code><small>{epoch.relationTransitions.length} relational transitions</small></div>)}</details> : null}
-            <div className="rootFieldRelations">
-              {selectedEdges.map((edge)=>{const outbound=edge.source===selected.id;const other=nodeById.get(outbound?edge.target:edge.source);return <button key={edge.id} onClick={()=>setSelectedId(other?.id??null)}><small>{outbound?'→':'←'} {edge.relation}</small><strong>{other?.label??(outbound?edge.target:edge.source)}</strong><em>{edge.origin==='operational_projection' ? edge.provenance : `WEIGHT · ${edge.weight.toFixed(3)}`}</em></button>;})}
-            </div>
-            {selected.lineage.length ? <details><summary>LINEAGE · {selected.lineage.length}</summary>{selected.lineage.map((item)=><code key={item}>{item}</code>)}</details> : null}
+            </section>
+
+            {selected.fieldHistory?.recentEpochs?.length ? <section className="rootFieldHumanSection rootFieldJrLog"><span>JR / FIELD LOGBOOK · FIELD HISTORY</span>
+              {selected.fieldHistory.recentEpochs.slice(0,6).map((epoch)=><div key={epoch.eventId}><time>{date(epoch.occurredAt)}</time><strong>{humanize(epoch.previousState ?? 'UNKNOWN')} → {humanize(epoch.state ?? 'UNKNOWN')}</strong><small>{epoch.relationTransitions.length} relation transition{epoch.relationTransitions.length===1?'':'s'}</small></div>)}
+            </section>:null}
+
+            {selected.learningState ? <section className="rootFieldHumanSection"><span>LEARNING</span><p>LEARNING · {humanize(selected.learningState.state)} · {humanize(selected.learningState.classification ?? 'UNCLASSIFIED')}</p></section> : null}
+
+            {selected.methodResult ? <section className="rootFieldHumanSection"><span>METHOD RESULT</span><p>METHOD · {selected.methodResult.methodId}@{selected.methodResult.methodVersion} · {humanize(selected.methodResult.epistemicClass)}</p></section> : null}
+
+            <details className="rootFieldTechnical">
+              <summary>TECHNICAL DETAILS</summary>
+              <div className="rootFieldHubGrid">
+                <span>STATE<strong>{selected.reality?.state ?? String(selected.attributes.epistemicClass ?? 'UNKNOWN')}</strong></span>
+                <span>REALITY DECISION<strong>{selected.realityPassport?.decision ?? 'UNKNOWN'}</strong></span>
+                <span>TIME<strong>{temporalReading(selected).label}</strong></span>
+                <span>AUTHORITY<strong>{selected.realityPassport?.authority.state ?? selected.reality?.authority ?? 'UNKNOWN'}</strong></span>
+                <span>VERIFICATION<strong>{selected.realityPassport?.verification.state ?? selected.reality?.verificationState ?? 'UNKNOWN'}</strong></span>
+                <span>RETURN<strong>{selected.realityPassport?.returnState.status ?? (selected.reality?.observedReturn == null ? 'NOT OBSERVED' : 'OBSERVED')}</strong></span>
+                <span>STRUCTURAL LINKS<strong>{selectedEdges.length}</strong></span>
+                <span>QUALIFIED RELATIONS<strong>{qualifiedRelationCount(selected,graph.edges)}</strong></span>
+                <span>PERSISTED EPOCHS<strong>{selected.fieldHistory?.epochCount ?? 0}</strong></span>
+                <span>HISTORY RANGE<strong>{selected.fieldHistory?.firstObservedAt ? `${date(selected.fieldHistory.firstObservedAt)} → ${date(selected.fieldHistory.lastObservedAt)}` : 'NOT YET PERSISTED'}</strong></span>
+                <span>LOCAL DYNAMICAL ATTRACTOR<strong>{selected.scientificReading?.attractor.state ?? 'NOT ESTABLISHED'}</strong></span>
+                <span>METHOD<strong>{selected.methodResult ? `${selected.methodResult.methodId}@${selected.methodResult.methodVersion}` : 'NOT REPRESENTED'}</strong></span>
+              </div>
+              {selected.realityPassport?<div className="rootFieldTechnicalPassport">
+                <code>SUPPORTING_RELATIONS={selected.realityPassport.provenance.supportingRelationCount}</code>
+                <code>CONTRADICTIONS={selected.realityPassport.provenance.contradictionCount}</code>
+                <code>LINEAGE={selected.realityPassport.provenance.lineageCount}</code>
+                <code>CAPTURE={selected.realityPassport.temporal.captureTime ?? selected.realityPassport.temporal.nodeUpdatedAt ?? 'NOT_REPRESENTED'}</code>
+                <code>SOURCE_VERSION={selected.realityPassport.temporal.sourceVersion ?? 'NOT_REPRESENTED'}</code>
+                <code>MAY_MINT_RETURN={String(selected.realityPassport.authority.mayMintReturn ?? 'NOT_REPRESENTED')}</code>
+                <code>MAY_PROMOTE_CANON={String(selected.realityPassport.authority.mayPromoteCanon ?? 'NOT_REPRESENTED')}</code>
+              </div>:null}
+              {selected.lineage.length?<div className="rootFieldTechnicalPassport">{selected.lineage.map((item)=><code key={item}>{item}</code>)}</div>:null}
+            </details>
           </aside>
         ):null}
       </section>

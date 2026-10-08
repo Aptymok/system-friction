@@ -127,11 +127,13 @@ assert.ok(
   && publicChrome.includes("label:'REALITY CHAIN'")
   && publicChrome.includes("label:'OBSERVATORY'")
   && publicChrome.includes("label:'ROOT'")
-  && publicChrome.includes('AI WEEK NYC 2026'),
-  'global_public_chrome_must_expose_institutional_menu_and_event',
+  && publicChrome.includes("label:'ACCESS'")
+  && publicChrome.includes('SFI / GLOBAL TIMELINE')
+  && publicChrome.includes('NOTHING ACTS ALONE. REALITY ANSWERS BACK.'),
+  'global_public_chrome_must_expose_canonical_institutional_menu_and_timeline',
 );
-assert.ok(publicChrome.includes("['REAL WORLD','SIGNAL','OBSERVATION','EVIDENCE','INFERENCE','AUTHORITY','EXECUTION','RETURN','CONTRAST','LEARNING','MEMORY','ADAPTATION']"),'institutional_footer_chain_must_be_ordered');
-assert.ok(publicChrome.includes("['REAL WORLD','SIGNAL','OBSERVATION','EVIDENCE','INFERENCE','AUTHORITY','EXECUTION','RETURN']"),'reality_chain_method_must_remain_canonical');
+assert.ok(publicChrome.includes("['2023','2024','2025','2026','2027','2028','2029']"),'global_timeline_years_must_be_ordered');
+assert.ok(publicChrome.includes('sfiGlobalTimeline'),'global_timeline_footer_must_remain_canonical');
 assert.ok(publicChrome.includes("title:'METHOD LAB',statement:'SIMULATION ≠ OBSERVATION.',stage:'INFERENCE'"),'method_lab_header_stage_must_be_inference_not_observation');
 assert.equal(publicChrome.includes('<b>{context.statement}</b>'),false,'footer_must_not_repeat_active_header_statement');
 assert.ok(publicChrome.includes('timeZone:\'UTC\'') && publicChrome.includes('Institutional access'),'global_public_chrome_must_expose_utc_context_and_access');

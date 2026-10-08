@@ -304,3 +304,185 @@
 .rootFieldAuthority{position:fixed;z-index:17;right:22px;bottom:22px;max-width:520px;background:rgba(8,9,9,.88);border:1px solid rgba(255,255,255,.08);padding:8px 12px}
 .rootFieldAuthority:not([open]){width:auto}.rootFieldAuthority summary{cursor:pointer;font-size:9px;letter-spacing:.12em}
 @media(max-width:760px){.rootFieldIdentity{top:14px;left:14px;right:14px;flex-wrap:wrap;gap:5px 12px}.rootFieldIdentity strong{width:100%}.rootFieldControls{bottom:14px;width:calc(100vw - 28px);overflow:auto;justify-content:flex-start}.rootFieldControls select,.rootFieldControls input{min-width:128px}.rootFieldLegend{left:14px;bottom:68px}.rootFieldHub{top:74px;left:14px;right:14px;bottom:70px;width:auto}.rootFieldAuthority{right:14px;bottom:68px}}
+
+
+/* SFI horizontal operational convergence · 2026-10-08
+   ROOT keeps the dense canonical field, but humans receive orientation first.
+   The top menu and JR / FIELD HISTORY timeline are owned by AuthenticatedSfiMenu. */
+.rootFieldMode{
+  background:
+    linear-gradient(90deg,rgba(6,6,5,.68),transparent 19% 78%,rgba(6,6,5,.58)),
+    radial-gradient(circle at 46% 44%,rgba(200,169,81,.07),transparent 38%),
+    #060605!important;
+}
+.rootFieldStage{
+  position:absolute!important;
+  inset:64px 0 84px!important;
+  height:auto!important;
+  overflow:hidden!important;
+}
+.rootFieldIdentity{
+  position:fixed!important;
+  z-index:22!important;
+  top:78px!important;
+  left:3.2vw!important;
+  right:auto!important;
+  width:min(280px,22vw);
+  display:flex!important;
+  flex-direction:column;
+  align-items:flex-start!important;
+  gap:8px!important;
+  pointer-events:none;
+  font:650 9px/1.4 "Liberation Mono",ui-monospace,monospace!important;
+  letter-spacing:.12em!important;
+  color:rgba(232,221,195,.62)!important;
+}
+.rootFieldIdentity strong{margin:0!important;color:#eee5d7!important;font-weight:650!important;letter-spacing:.15em!important}
+.rootFieldIdentity span:nth-child(2){color:#c8a951!important}
+.rootCognitivePixi{
+  position:absolute!important;
+  inset:0!important;
+  transition:right .36s cubic-bezier(.18,.78,.18,1),width .36s cubic-bezier(.18,.78,.18,1),opacity .2s ease;
+}
+.rootFieldStage[data-hub-open="true"] .rootCognitivePixi{right:min(470px,34vw)!important;width:auto!important}
+.rootFieldControls{
+  left:50%!important;
+  bottom:18px!important;
+  min-height:48px;
+  max-width:min(820px,72vw);
+  transform:translateX(-50%)!important;
+  border:1px solid rgba(232,221,195,.12)!important;
+  background:rgba(6,6,5,.82)!important;
+  border-radius:2px!important;
+  backdrop-filter:blur(18px)!important;
+}
+.rootFieldControls select,.rootFieldControls input,.rootFieldControls button{
+  min-height:36px;
+  font:650 9px/1.2 "Liberation Mono",ui-monospace,monospace!important;
+  color:#d9d0c4!important;
+}
+.rootFieldControls input{min-width:360px!important;text-transform:none!important}
+.rootFieldLegend{
+  left:3.2vw!important;
+  bottom:22px!important;
+  max-width:260px;
+  font:650 8px/1.45 "Liberation Mono",ui-monospace,monospace!important;
+  color:rgba(232,221,195,.46)!important;
+}
+.rootFieldHub{
+  position:absolute!important;
+  z-index:25!important;
+  right:16px!important;
+  top:14px!important;
+  bottom:14px!important;
+  width:min(450px,33vw)!important;
+  padding:20px 20px 30px!important;
+  border:1px solid rgba(232,221,195,.15)!important;
+  background:linear-gradient(180deg,rgba(7,8,8,.94),rgba(5,6,6,.88))!important;
+  backdrop-filter:blur(22px)!important;
+  box-shadow:-34px 0 80px rgba(0,0,0,.28)!important;
+}
+.rootFieldHubKicker{
+  font:650 9px/1 "Liberation Mono",ui-monospace,monospace!important;
+  letter-spacing:.12em!important;
+  color:#c8a951!important;
+}
+.rootFieldHub h2{
+  margin:11px 34px 5px 0!important;
+  font:500 28px/1.04 "Noto Serif Display",Georgia,serif!important;
+  color:#f1ece4!important;
+}
+.rootFieldHubProvenance{
+  margin:0 0 12px!important;
+  font:650 9px/1.4 "Liberation Mono",ui-monospace,monospace!important;
+  color:#7f7970!important;
+}
+.rootFieldHumanSection{
+  margin:0!important;
+  padding:15px 0!important;
+  border-top:1px solid rgba(232,221,195,.1);
+}
+.rootFieldHumanSection>span{
+  display:block;
+  margin:0 0 8px!important;
+  font:650 9px/1 "Liberation Mono",ui-monospace,monospace!important;
+  letter-spacing:.14em!important;
+  color:#c8a951!important;
+}
+.rootFieldHumanSection p,
+.rootFieldHumanSection li{
+  font:400 14px/1.5 "EB Garamond",Georgia,serif!important;
+  color:#c8c0b5!important;
+}
+.rootFieldHumanSection p{margin:0!important}
+.rootFieldHumanSection ul{list-style:none;margin:0;padding:0}
+.rootFieldHumanSection li{position:relative;padding:5px 0 5px 15px;border-top:1px solid rgba(232,221,195,.045)}
+.rootFieldHumanSection li:first-child{border-top:0}
+.rootFieldHumanSection li:before{content:"•";position:absolute;left:0;color:#c8a951}
+.rootFieldHumanSection li strong{font-weight:500;color:#eee4d4}
+.rootFieldActions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:7px;
+}
+.rootFieldActions button,.rootFieldActions a{
+  min-height:42px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:8px 10px;
+  border:1px solid rgba(200,169,81,.28);
+  background:rgba(6,6,5,.34);
+  color:#d7c9a7;
+  text-decoration:none;
+  text-align:center;
+  font:650 8px/1.25 "Liberation Mono",ui-monospace,monospace;
+  letter-spacing:.07em;
+  cursor:pointer;
+}
+.rootFieldActions button:hover,.rootFieldActions a:hover{border-color:rgba(200,169,81,.72);background:rgba(200,169,81,.07)}
+.rootFieldRelations{margin-top:0!important}
+.rootFieldRelations button{padding:9px 0!important}
+.rootFieldRelations button small{font:650 8px/1.3 "Liberation Mono",ui-monospace,monospace!important;color:#a88f59!important}
+.rootFieldRelations button strong{font:400 14px/1.3 "EB Garamond",Georgia,serif!important;color:#d4cbc0!important}
+.rootFieldRelations button em{font:650 8px/1.3 "Liberation Mono",ui-monospace,monospace!important;color:#716b63!important}
+.rootFieldJrLog>div{
+  display:grid;
+  grid-template-columns:86px 1fr auto;
+  gap:8px;
+  padding:8px 0;
+  border-top:1px solid rgba(232,221,195,.06)
+}
+.rootFieldJrLog time,.rootFieldJrLog small{font:650 8px/1.3 "Liberation Mono",ui-monospace,monospace;color:#777168}
+.rootFieldJrLog strong{font:500 10px/1.3 "Liberation Mono",ui-monospace,monospace;color:#cfc6b9}
+.rootFieldTechnical{margin:6px 0 0!important;padding:13px 0 0;border-top:1px solid rgba(232,221,195,.12)}
+.rootFieldTechnical summary{cursor:pointer;font:650 9px/1 "Liberation Mono",ui-monospace,monospace;letter-spacing:.12em;color:#8b847a}
+.rootFieldTechnical .rootFieldHubGrid{margin:14px 0!important}
+.rootFieldHubGrid span{padding:10px!important;font-size:8px!important}
+.rootFieldHubGrid strong{font-size:9px!important}
+.rootFieldTechnicalPassport{display:grid;gap:5px;margin-top:10px}
+.rootFieldTechnicalPassport code{font:500 8px/1.35 "Liberation Mono",ui-monospace,monospace!important;color:#746e66!important}
+.rootFieldAuthority{
+  right:18px!important;
+  bottom:98px!important;
+  z-index:1180!important;
+  max-width:520px!important;
+}
+.rootFieldAuthority summary{font:650 9px/1 "Liberation Mono",ui-monospace,monospace!important;letter-spacing:.12em;color:#d4c390!important}
+
+@media(max-width:1050px){
+  .rootFieldStage[data-hub-open="true"] .rootCognitivePixi{right:390px!important}
+  .rootFieldHub{width:380px!important}
+  .rootFieldIdentity{width:190px}
+  .rootFieldControls{max-width:62vw}
+  .rootFieldControls input{min-width:240px!important}
+}
+@media(max-width:760px){
+  .rootFieldStage{inset:56px 0 72px!important}
+  .rootFieldStage[data-hub-open="true"] .rootCognitivePixi{right:0!important;opacity:.24}
+  .rootFieldHub{top:10px!important;left:10px!important;right:10px!important;bottom:10px!important;width:auto!important}
+  .rootFieldIdentity{top:68px!important;left:14px!important;width:190px}
+  .rootFieldControls{bottom:12px!important;width:calc(100vw - 28px);max-width:none}
+  .rootFieldLegend{display:none!important}
+  .rootFieldActions{grid-template-columns:1fr}
+}
