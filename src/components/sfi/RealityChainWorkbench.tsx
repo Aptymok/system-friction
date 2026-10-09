@@ -84,7 +84,7 @@ export function RealityChainWorkbench(){
   const [detail,saved]=await Promise.all([requestJson('/api/cases/'+encodeURIComponent(id)),requestJson('/api/cases/'+encodeURIComponent(id)+'/reports')]);
   setCaseData(detail);setReports(Array.isArray(saved.reports)?saved.reports:[]);
  },[]);
- useEffect(()=>{refreshCases().catch(e=>setError(String(e.message??e)));},[refreshCases]);
+ useEffect(()=>{refreshCases().then(()=>{const incoming=new URLSearchParams(window.location.search).get('case');if(incoming)setCaseId(incoming);}).catch(e=>setError(String(e.message??e)));},[refreshCases]);
  useEffect(()=>{loadCase(caseId).catch(e=>{setError(String(e.message??e));setCaseData(null);});setExtraction(null);setSourceRef(null);setChosen([]);setSelectedObject(null);},[caseId,loadCase]);
  useEffect(()=>{
    const element=scroll.current;if(!element)return;
@@ -92,22 +92,27 @@ export function RealityChainWorkbench(){
    element.addEventListener('scroll',update,{passive:true});
    const wheel=(event:WheelEvent)=>{
      const node=event.target as HTMLElement;
-     if(event.ctrlKey||event.metaKey||node.closest('input,select,textarea,.rcExtracted,.rcRecordList,.rcTimelineEntries'))return;
+     if(event.ctrlKey||event.metaKey||node.closest('input,select,textarea,.rcExtracted,.rcRecordList,.rcTimelineEntries,.rcThreePane'))return;
      const delta=Math.abs(event.deltaX)>Math.abs(event.deltaY)?event.deltaX:event.deltaY;
      if(Math.abs(delta)<2)return;
      event.preventDefault();element.scrollBy({left:delta,behavior:'auto'});
    };
    element.addEventListener('wheel',wheel,{passive:false});
-   return()=>element.removeEventListener('wheel',wheel);
+   return()=>{element.removeEventListener('wheel',wheel);element.removeEventListener('scroll',update);};
  },[]);
  const visibleCases=useMemo(()=>cases.filter(c=>projectId==='ALL'||c.projectId===projectId),[cases,projectId]);
  const objects=caseData?.objects??[];
- const stageObjects=objects.filter(o=>stageFor(o)===activeStep);
- const focused=objects.find(o=>o.id===selectedObject)??null;
- const ordered=useMemo(()=>[...objects].sort((a,b)=>Date.parse(a.observedAt??a.createdAt)-Date.parse(b.observedAt??b.createdAt)),[objects]);
- const sourceObjects=objects.filter(o=>o.kind==='SOURCE');
- const asOfObjects=useMemo(()=>ordered.filter(o=>!cutoff||Date.parse(o.observedAt??o.createdAt)<=Date.parse(cutoff+'T23:59:59Z')),[ordered,cutoff]);
- const stageCoverage=STEPS.map((_,index)=>objects.filter(o=>stageFor(o)===index).length);
+ const ordered=useMemo(()=>[...objects].sort((a,b)=>Date.parse(a.createdAt)-Date.parse(b.createdAt)),[objects]);
+ // Known-at requires a persisted row by the selected cutoff: backdated observedAt
+ // alone cannot smuggle a later document into an earlier epistemic snapshot.
+ const asOfObjects=useMemo(()=>ordered.filter(o=>!cutoff||(
+   Date.parse(o.createdAt)<=Date.parse(cutoff+'T23:59:59Z')&&
+   (!o.observedAt||Date.parse(o.observedAt)<=Date.parse(cutoff+'T23:59:59Z'))
+ )),[ordered,cutoff]);
+ const stageObjects=asOfObjects.filter(o=>stageFor(o)===activeStep);
+ const focused=asOfObjects.find(o=>o.id===selectedObject)??null;
+ const sourceObjects=asOfObjects.filter(o=>o.kind==='SOURCE');
+ const stageCoverage=STEPS.map((_,index)=>asOfObjects.filter(o=>stageFor(o)===index).length);
  const scrollTo=(part:number)=>{const target=Math.max(0,Math.min(2,part));const el=scroll.current;el?.scrollTo({left:el.clientWidth*target,behavior:'smooth'});setScreen(target);};
  const makeCase=async()=>{
   if(!title.trim()||!scope.trim()||!profileId){setError('Subject, scope and an existing service profile are required.');return;}
