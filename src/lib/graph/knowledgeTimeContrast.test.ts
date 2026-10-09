@@ -109,3 +109,18 @@ test('updatedAt never substitutes for the date knowledge became available', () =
   assert.equal(out.now.eventAt,'2024-02-20T00:00:00.000Z');
   assert.equal(out.now.recordUpdatedAt,'2026-10-09T12:00:00.000Z');
 });
+
+test('operational epoch state does not masquerade as an epistemic transition',()=>{
+  const out=projectKnowledgeTimeContrast({
+    ...base,
+    fieldHistory:{
+      epochCount:2,firstObservedAt:'2026-10-07T00:00:00Z',lastObservedAt:'2026-10-08T00:00:00Z',
+      persistedHistory:true,recentEpochs:[
+        {eventId:'operational:1',occurredAt:'2026-10-07T00:00:00Z',state:'ACTIVE',previousState:'OPEN',censoring:'NONE'},
+        {eventId:'epistemic:2',occurredAt:'2026-10-08T00:00:00Z',state:'OBSERVED',previousState:'ACTIVE',censoring:'NONE'},
+      ],
+    },
+  });
+  assert.equal(out.then.stateMeaning,'RECORDED_OBJECT_STATE');
+  assert.equal(out.comparison,'INSUFFICIENT_TEMPORAL_EVIDENCE');
+});
