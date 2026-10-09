@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { requireAuthenticatedUser } from '@/lib/system/access/server';
 import { sfiCaseApiFailure } from '@/lib/sfi/case-platform/http';
+import { extractDocumentTextTransient } from '@/lib/studio/multimodal/textAnalyzer';
 
 export const runtime='nodejs';
 export const dynamic='force-dynamic';
@@ -44,33 +45,15 @@ export async function POST(request:Request){
       return NextResponse.json({ok:false,error:'UNSUPPORTED_FORMAT',supported:['txt','md','csv','tsv','json','pdf','docx']},{status:415,headers});
     const bytes=Buffer.from(await file.arrayBuffer());
     const hash=createHash('sha256').update(bytes).digest('hex');
-    let segments:Array<{page:number|null;text:string}>=[];
-    let parser='';
-    let warnings:string[]=[];
-    if(['txt','md','csv','tsv','json'].includes(extension)){
-      segments=[{page:null,text:new TextDecoder('utf-8',{fatal:false}).decode(bytes)}];parser='UTF8_TEXT';
-    }else if(extension==='docx'){
-      if(bytes[0]!==0x50||bytes[1]!==0x4b)throw new Error('INVALID_DOCX_HEADER');
-      const mammoth=(await import('mammoth')).default;
-      const result=await mammoth.extractRawText({buffer:bytes});
-      segments=[{page:null,text:result.value}];parser='MAMMOTH_RAW_TEXT';
-      warnings=result.messages.map(message=>message.message).slice(0,10);
-    }else{
-      if(bytes.toString('latin1',0,5)!=='%PDF-')throw new Error('INVALID_PDF_HEADER');
-      const {PDFParse}=await import('pdf-parse');
-      const reader=new PDFParse({data:new Uint8Array(bytes)});
-      try{
-        const data=await reader.getText();
-        const found=data as unknown as {text:string;total?:number;pages?:Array<{num?:number;text?:string}>};
-        const pages=(found.pages??[]).filter(page=>typeof page.text==='string'&&page.text.trim());
-        if(pages.length)segments=pages.map((page,index)=>({page:typeof page.num==='number'?page.num:index+1,text:page.text??''}));
-        else{
-          segments=[{page:null,text:found.text??''}];
-          warnings.push('PDF_PAGE_LOCATOR_UNRESOLVED');
-        }
-        parser='PDF_PARSE_V2';
-      }finally{await reader.destroy().catch(()=>undefined);}
-    }
+    if(extension==='pdf' && bytes.toString('latin1',0,5)!=='%PDF-')throw new Error('INVALID_PDF_HEADER');
+    if(extension==='docx' && (bytes[0]!==0x50||bytes[1]!==0x4b))throw new Error('INVALID_DOCX_HEADER');
+    const extracted=await extractDocumentTextTransient(bytes,extension);
+    const parser=extracted.parser;
+    const warnings=[...extracted.warnings];
+    const segments:Array<{page:number|null;text:string}>=extracted.pages?.length
+      ? extracted.pages.map(item=>({page:item.page,text:item.text}))
+      : [{page:null,text:extracted.text}];
+    if(extension==='pdf' && !extracted.pages?.length)warnings.push('PDF_PAGE_LOCATOR_UNRESOLVED');
     const all=segments.flatMap(segment=>fragmentsFromText(segment.text,segment.page,segment.page===null?'NOT_RESOLVED':'PARSER'));
     const excerpts=all.slice(0,MAX_FRAGMENTS);
     if(!all.length)warnings.push('NO_EXTRACTABLE_TEXT');
