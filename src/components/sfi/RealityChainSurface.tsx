@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
 import { useAuthState } from '@/components/auth/AuthProvider';
 import './RealityChainSurface.css';
 
@@ -85,7 +84,6 @@ function LearningIcon(){
 
 export function RealityChainSurface(){
   const auth=useAuthState();
-  const params=useSearchParams();
   const scroller=useRef<HTMLDivElement|null>(null);
   const [screen,setScreen]=useState(0);
   const [cases,setCases]=useState<CaseRow[]>([]);
@@ -110,12 +108,12 @@ export function RealityChainSurface(){
       if(!active)return;
       const listed=Array.isArray(result.cases)?result.cases as CaseRow[]:[];
       setCases(listed);
-      const fromUrl=params.get('case')||'';
+      const fromUrl=new URLSearchParams(window.location.search).get('case')||'';
       const initial=listed.find(item=>item.id===fromUrl)?.id||'';
       setSelectedId(current=>listed.some(item=>item.id===current)?current:initial);
     }).catch(cause=>{if(active)setError(String(cause));}).finally(()=>{if(active)setLoading(false);});
     return()=>{active=false;};
-  },[auth.status,params]);
+  },[auth.status]);
 
   async function refreshCase(caseId:string){
     const result=await api('/api/cases/'+encodeURIComponent(caseId));
@@ -186,6 +184,7 @@ export function RealityChainSurface(){
   }
   async function upload(){
     if(!selectedId||!file)return;
+    if(file.size>25*1024*1024){setError('MAX_FILE_SIZE_25_MB');return;}
     setWorking(true);setError('');setNotice('');
     try{
       const ticket=await api('/api/cases/'+encodeURIComponent(selectedId)+'/sources/upload-ticket',{
