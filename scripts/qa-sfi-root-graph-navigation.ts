@@ -60,6 +60,16 @@ check('ROOT comparison reads persisted dated epochs without inventing historical
   knowledgeTemporalEpochs.now.knownAt==='2026-02-01T00:00:00.000Z' &&
   knowledgeTemporalEpochs.comparison==='CHANGED');
 
+const knowledgeOperationalEpoch=projectKnowledgeTimeContrast({
+  attributes:{},epistemicState:'OBSERVED',captureTime:null,nodeUpdatedAt:null,
+  sourceVersion:null,provenance:'test ledger',lineage:[],
+  fieldHistory:{epochCount:2,firstObservedAt:'2026-01-01T00:00:00Z',lastObservedAt:'2026-02-01T00:00:00Z',persistedHistory:true,recentEpochs:[
+    {eventId:'test-operational-a',occurredAt:'2026-01-01T00:00:00Z',state:'ACTIVE',previousState:'OPEN',censoring:'NONE'},
+    {eventId:'test-epistemic-b',occurredAt:'2026-02-01T00:00:00Z',state:'OBSERVED',previousState:'ACTIVE',censoring:'NONE'},
+  ]},
+});
+check('operational states cannot masquerade as changed epistemic knowledge', knowledgeOperationalEpoch.then.stateMeaning==='RECORDED_OBJECT_STATE' && knowledgeOperationalEpoch.comparison==='INSUFFICIENT_TEMPORAL_EVIDENCE');
+
 const cognitiveAdmission = read('src/lib/graph/cognitiveGraphAdmission.ts');
 const publicGraphStateRoute = read('src/app/api/graph/state/route.ts');
 const runtimeBootstrapRoute = read('src/app/api/runtime/bootstrap/route.ts');
