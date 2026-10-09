@@ -30,10 +30,21 @@ export type RealityPassportNodeReading = {
   nextBestObservation: string|null;
   privacyBoundary: unknown|null;
   trajectory: unknown|null;
+  verificationMethod: string|null;
+  verifier: string|null;
+  verifierSelectionReason: string|null;
+  falseAcceptBoundary: unknown|null;
+  falseRejectBoundary: unknown|null;
+  expectedInformationGain: unknown|null;
+  verificationCostUnit: string|null;
+  verificationBudgetUnit: string|null;
+  verificationPerturbation: unknown|null;
+  provenanceBindingMethod: string|null;
+  provenanceBindingResult: unknown|null;
 };
 
 export type RealityPassport = {
-  contract: 'SFI-REALITY-PASSPORT-1.1';
+  contract: 'SFI-REALITY-PASSPORT-1.2';
   nodeId: string;
   stage: RealityPassportStage|'UNCLASSIFIED';
   epistemicState: RealityChainState;
@@ -55,12 +66,35 @@ export type RealityPassport = {
     supportingRelationRefs: string[];
     contradictionCount: number;
     contradictionRefs: string[];
+    independence: {
+      state: 'REPRESENTED'|'UNKNOWN';
+      independentRootCount: number|null;
+      rootRefs: string[];
+      duplicateSupportCount: number|null;
+      boundary: 'MATERIAL_OR_HASH_DIVERSITY_DOES_NOT_PROVE_EVIDENCE_INDEPENDENCE';
+    };
+    contentBinding: {
+      method: string|null;
+      result: unknown|null;
+      verificationPerturbation: unknown|null;
+      boundary: 'PROVENANCE_BINDING_DOES_NOT_PROVE_EVENT_TRUTH';
+    };
   };
   verification: {
     state: string;
+    method: string|null;
+    verifier: string|null;
+    selectionReason: string|null;
     cost: unknown|null;
+    costUnit: string|null;
     budget: unknown|null;
+    budgetUnit: string|null;
+    expectedInformationGain: unknown|null;
+    falseAcceptBoundary: unknown|null;
+    falseRejectBoundary: unknown|null;
     nextBestObservation: string|null;
+    processImpact: unknown|null;
+    boundary: 'VERIFICATION_RESULT_REQUIRES_METHOD_AND_SCOPE_PROVENANCE_FOR_AUDIT';
   };
   authority: {
     state: string;
@@ -120,14 +154,36 @@ function verificationBlocks(value:string|null){
   const token=normalizedToken(value);
   return token!==null&&['UNKNOWN','MISSING','NOT VERIFIED','FAILED','REJECTED','BLOCKED'].includes(token);
 }
+function strings(value:unknown){
+  if(typeof value==='string'&&value.trim())return [value.trim()];
+  if(Array.isArray(value))return value.filter((item):item is string=>typeof item==='string'&&item.trim().length>0).map((item)=>item.trim());
+  return [];
+}
 function persistenceRefs(node:CanonicalGraphNode){
   const keys=['eventId','event_id','receiptId','receipt_id','recordId','record_id','persistedAt','persisted_at'];
-  return Array.from(new Set(keys.flatMap((key)=>{
-    const value=node.attributes[key];
-    if(typeof value==='string'&&value.trim())return [value.trim()];
-    if(Array.isArray(value))return value.filter((item):item is string=>typeof item==='string'&&item.trim().length>0).map((item)=>item.trim());
-    return [];
-  })));
+  return Array.from(new Set(keys.flatMap((key)=>strings(node.attributes[key]))));
+}
+function explicitSupportingRoots(edge:CanonicalGraphEdge){
+  const keys=[
+    'lineageRootId','lineage_root_id','lineageRootRefs','lineage_root_refs',
+    'sourceRootId','source_root_id','sourceRootRefs','source_root_refs',
+    'independentSourceId','independent_source_id','independentSourceRefs','independent_source_refs',
+    'originObservationId','origin_observation_id','originObservationRefs','origin_observation_refs',
+    'sourceId','source_id',
+  ];
+  return Array.from(new Set(keys.flatMap((key)=>strings(edge.attributes[key]))));
+}
+function evidenceIndependence(supporting:CanonicalGraphEdge[]){
+  const rootsByEdge=supporting.map((edge)=>explicitSupportingRoots(edge));
+  const fullyRepresented=supporting.length>0&&rootsByEdge.every((refs)=>refs.length>0);
+  const rootRefs=Array.from(new Set(rootsByEdge.flat()));
+  return {
+    state:fullyRepresented?'REPRESENTED' as const:'UNKNOWN' as const,
+    independentRootCount:fullyRepresented?rootRefs.length:null,
+    rootRefs,
+    duplicateSupportCount:fullyRepresented?Math.max(0,supporting.length-rootRefs.length):null,
+    boundary:'MATERIAL_OR_HASH_DIVERSITY_DOES_NOT_PROVE_EVIDENCE_INDEPENDENCE' as const,
+  };
 }
 
 export function readRealityPassportNode(node:CanonicalGraphNode):RealityPassportNodeReading {
@@ -153,6 +209,17 @@ export function readRealityPassportNode(node:CanonicalGraphNode):RealityPassport
     nextBestObservation:text(first(node.attributes,['nextBestObservation','next_best_observation','nextObservation','next_observation','discriminatingObservation','discriminating_observation'])),
     privacyBoundary:first(node.attributes,['privacyBoundary','privacy_boundary','privacy','confidentiality']),
     trajectory:first(node.attributes,['trajectory','trajectoryId','trajectory_id','temporalTrajectory','temporal_trajectory']),
+    verificationMethod:text(first(node.attributes,['verificationMethod','verification_method','verificationProtocol','verification_protocol','verifierMethod','verifier_method'])),
+    verifier:text(first(node.attributes,['verifier','verifierId','verifier_id','verificationProvider','verification_provider','verificationAgent','verification_agent'])),
+    verifierSelectionReason:text(first(node.attributes,['verifierSelectionReason','verifier_selection_reason','verificationSelectionReason','verification_selection_reason','selectionReason','selection_reason'])),
+    falseAcceptBoundary:first(node.attributes,['falseAcceptBoundary','false_accept_boundary','falseAcceptRate','false_accept_rate','far']),
+    falseRejectBoundary:first(node.attributes,['falseRejectBoundary','false_reject_boundary','falseRejectRate','false_reject_rate','frr']),
+    expectedInformationGain:first(node.attributes,['expectedInformationGain','expected_information_gain','informationGain','information_gain']),
+    verificationCostUnit:text(first(node.attributes,['verificationCostUnit','verification_cost_unit','costUnit','cost_unit'])),
+    verificationBudgetUnit:text(first(node.attributes,['verificationBudgetUnit','verification_budget_unit','budgetUnit','budget_unit'])),
+    verificationPerturbation:first(node.attributes,['verificationPerturbation','verification_perturbation','verificationProcessImpact','verification_process_impact','provenancePerturbation','provenance_perturbation']),
+    provenanceBindingMethod:text(first(node.attributes,['provenanceBindingMethod','provenance_binding_method','contentProvenanceMethod','content_provenance_method','watermarkMethod','watermark_method','fingerprintMethod','fingerprint_method'])),
+    provenanceBindingResult:first(node.attributes,['provenanceBindingResult','provenance_binding_result','contentProvenanceResult','content_provenance_result','watermarkResult','watermark_result','fingerprintResult','fingerprint_result']),
   };
 }
 
@@ -204,12 +271,17 @@ export function buildRealityPassport(node:CanonicalGraphNode,edges:CanonicalGrap
 
   if (returnStatus==='PENDING' && decision==='CONTINUE') reasons.push('Execution/expectation exists but observed RETURN is still pending.');
 
+  const independence=evidenceIndependence(supporting);
+  if(independence.state==='REPRESENTED'&&independence.duplicateSupportCount!==null&&independence.duplicateSupportCount>0){
+    reasons.push(`${independence.duplicateSupportCount} supporting relation(s) reuse represented evidence roots and are not counted as independent observations.`);
+  }
+
   const persistedRefs=persistenceRefs(node);
   const persistedFlag=bool(first(node.attributes,['persisted','persistedState','persisted_state','persistenceConfirmed','persistence_confirmed']));
   const persistenceRepresented=persistedFlag===true||persistedRefs.length>0;
 
   return {
-    contract:'SFI-REALITY-PASSPORT-1.1',
+    contract:'SFI-REALITY-PASSPORT-1.2',
     nodeId:node.nodeId,
     stage:reading.stage,
     epistemicState:reading.state,
@@ -229,12 +301,29 @@ export function buildRealityPassport(node:CanonicalGraphNode,edges:CanonicalGrap
       supportingRelationRefs:supporting.map((edge)=>edge.edgeId),
       contradictionCount:contradictions.length,
       contradictionRefs:contradictions.map((edge)=>edge.edgeId),
+      independence,
+      contentBinding:{
+        method:reading.provenanceBindingMethod,
+        result:reading.provenanceBindingResult,
+        verificationPerturbation:reading.verificationPerturbation,
+        boundary:'PROVENANCE_BINDING_DOES_NOT_PROVE_EVENT_TRUTH',
+      },
     },
     verification:{
       state:reading.verificationState??'UNKNOWN',
+      method:reading.verificationMethod,
+      verifier:reading.verifier,
+      selectionReason:reading.verifierSelectionReason,
       cost:reading.verificationCost,
+      costUnit:reading.verificationCostUnit,
       budget:reading.verificationBudget,
+      budgetUnit:reading.verificationBudgetUnit,
+      expectedInformationGain:reading.expectedInformationGain,
+      falseAcceptBoundary:reading.falseAcceptBoundary,
+      falseRejectBoundary:reading.falseRejectBoundary,
       nextBestObservation:reading.nextBestObservation,
+      processImpact:reading.verificationPerturbation,
+      boundary:'VERIFICATION_RESULT_REQUIRES_METHOD_AND_SCOPE_PROVENANCE_FOR_AUDIT',
     },
     authority:{
       state:reading.authority??'UNKNOWN',
