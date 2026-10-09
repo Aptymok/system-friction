@@ -104,7 +104,7 @@ export function NewCaseIngress() {
         });
         const payload = await response.json().catch(() => null);
         if (!response.ok) throw new Error(messageFromFailure(payload, response.status));
-        router.push('/cases');
+        router.push('/instruments/reality-chain');
         router.refresh();
         return;
       }
@@ -140,7 +140,7 @@ export function NewCaseIngress() {
       if (!response.ok) throw new Error(messageFromFailure(payload, response.status));
       const caseId = payload && typeof payload === 'object' && !Array.isArray(payload) ? String((payload as { case?: { id?: unknown } }).case?.id ?? '') : '';
       if (!caseId) throw new Error('CASE_CREATE_RECEIPT_MISSING_ID');
-      router.push(`/cases?case=${encodeURIComponent(caseId)}`);
+      router.push('/instruments/reality-chain?case='+encodeURIComponent(caseId));
       router.refresh();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'SFI_INGRESS_FAILED');
@@ -150,7 +150,7 @@ export function NewCaseIngress() {
   }
 
   if (auth.status !== 'authenticated') {
-    return <main className="newCaseShell"><header className="newCaseTop"><Link href="/cases" className="newCaseWordmark">SFI</Link><SessionControls /></header><section className="newCaseAccess"><span>WORK SPACE</span><h1>Authentication is required.</h1><p>The authenticated identity determines which projects, cases, evidence and memory are visible or mutable.</p><SessionControls /></section></main>;
+    return <main className="newCaseShell"><header className="newCaseTop"><Link href="/instruments/reality-chain" className="newCaseWordmark">SFI</Link><SessionControls /></header><section className="newCaseAccess"><span>WORK SPACE</span><h1>Authentication is required.</h1><p>The authenticated identity determines which projects, cases, evidence and memory are visible or mutable.</p><SessionControls /></section></main>;
   }
 
   return <main className="newCaseShell">
