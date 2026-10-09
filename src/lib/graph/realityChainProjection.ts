@@ -44,7 +44,7 @@ export type RealityPassportNodeReading = {
 };
 
 export type RealityPassport = {
-  contract: 'SFI-REALITY-PASSPORT-1.2';
+  contract: 'SFI-REALITY-PASSPORT-1.0';
   nodeId: string;
   stage: RealityPassportStage|'UNCLASSIFIED';
   epistemicState: RealityChainState;
@@ -281,7 +281,7 @@ export function buildRealityPassport(node:CanonicalGraphNode,edges:CanonicalGrap
   const persistenceRepresented=persistedFlag===true||persistedRefs.length>0;
 
   return {
-    contract:'SFI-REALITY-PASSPORT-1.2',
+    contract:'SFI-REALITY-PASSPORT-1.0',
     nodeId:node.nodeId,
     stage:reading.stage,
     epistemicState:reading.state,
