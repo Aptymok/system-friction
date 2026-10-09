@@ -12,14 +12,15 @@ type Fragment={paragraph:number;page:number|null;pageBasis:string;text:string;st
 type Extraction={source:{filename:string;mime:string;size:number;sha256:string;modifiedAt:string|null};extraction:{parser:string;pageCount:number|null;fragmentCount:number;returnedFragments:number;complete:boolean;warnings:string[];fragments:Fragment[]}};
 type Profile={id?:string;serviceProfileId?:string;name?:string;label?:string};
 const STEPS=[
-  {name:'REAL WORLD',role:'An external condition or event — only if grounded in a record or observation.'},
+  {name:'WORLD',role:'An external condition or event — only if grounded in a record or observation.'},
   {name:'SIGNAL',role:'Information that calls for attention; not automatically corroboration or counterevidence.'},
   {name:'OBSERVATION',role:'An observation with a source, time, scope and an identifiable observer.'},
   {name:'EVIDENCE',role:'Material admitted as evidence through a governed process; source registration alone is not enough.'},
   {name:'INFERENCE',role:'Interpretation and hypotheses, including rivals, uncertainty and limits.'},
   {name:'AUTHORITY',role:'The person or institution entitled to approve a particular action, with scope and validity.'},
   {name:'EXECUTION',role:'What actually happened, who acted, when, and what was recorded as completed.'},
-  {name:'RETURN',role:'Observed effects, contrast against prior expectations, and proposed learning.'},
+  {name:'RETURN',role:'Observed effects and contrast against prior expectations; an action receipt is not a measured outcome.'},
+  {name:'LEARNING',role:'Governed integration of what changed after a real-world RETURN; case closure is not automatically learning.'},
 ] as const;
 const FULL_METHOD=['WORLD','CAPTURE','EVIDENCE','TRANSFORMATION','INFERENCE (CONDITIONAL)','VERIFICATION','AUTHORITY','ACTION','RETURN'] as const;
 const TRANSVERSAL=['PROVENANCE','UNCERTAINTY','SIGNAL','COUNTEREVIDENCE','APPLICABLE OBLIGATION','ABSTAIN / ESCALATE / REJECT'] as const;
@@ -51,6 +52,8 @@ export function RealityChainWorkbench(){
  const [projects,setProjects]=useState<Project[]>([]);
  const [profiles,setProfiles]=useState<Profile[]>([]);
  const [caseId,setCaseId]=useState('');
+ const [caseToLink,setCaseToLink]=useState('');
+ const [screen,setScreen]=useState(0);
  const [projectId,setProjectId]=useState('ALL');
  const [caseData,setCaseData]=useState<CaseEnvelope|null>(null);
  const [reports,setReports]=useState<unknown[]>([]);
@@ -85,6 +88,8 @@ export function RealityChainWorkbench(){
  useEffect(()=>{loadCase(caseId).catch(e=>{setError(String(e.message??e));setCaseData(null);});setExtraction(null);setSourceRef(null);setChosen([]);setSelectedObject(null);},[caseId,loadCase]);
  useEffect(()=>{
    const element=scroll.current;if(!element)return;
+   const update=()=>setScreen(Math.max(0,Math.min(2,Math.round(element.scrollLeft/Math.max(element.clientWidth,1)))));
+   element.addEventListener('scroll',update,{passive:true});
    const wheel=(event:WheelEvent)=>{
      const node=event.target as HTMLElement;
      if(event.ctrlKey||event.metaKey||node.closest('input,select,textarea,.rcExtracted,.rcRecordList,.rcTimelineEntries'))return;
@@ -103,7 +108,7 @@ export function RealityChainWorkbench(){
  const sourceObjects=objects.filter(o=>o.kind==='SOURCE');
  const asOfObjects=useMemo(()=>ordered.filter(o=>!cutoff||Date.parse(o.observedAt??o.createdAt)<=Date.parse(cutoff+'T23:59:59Z')),[ordered,cutoff]);
  const stageCoverage=STEPS.map((_,index)=>objects.filter(o=>stageFor(o)===index).length);
- const scrollTo=(part:number)=>scroll.current?.scrollTo({left:(scroll.current.scrollWidth-scroll.current.clientWidth)*part,behavior:'smooth'});
+ const scrollTo=(part:number)=>{const target=Math.max(0,Math.min(2,part));const el=scroll.current;el?.scrollTo({left:el.clientWidth*target,behavior:'smooth'});setScreen(target);};
  const makeCase=async()=>{
   if(!title.trim()||!scope.trim()||!profileId){setError('Subject, scope and an existing service profile are required.');return;}
   setWorking(true);setError('');
@@ -212,6 +217,51 @@ export function RealityChainWorkbench(){
    await loadCase(caseId);setMessage('An institutional report receipt was persisted under the existing governed Case Platform; no unsupported claims were added.');
   }catch(e){setError('Institutional report gate: '+String((e as Error).message));}finally{setWorking(false);}
  };
+
+  const linkedCaseObjects=objects.filter(o=>o.kind==='RECORD'&&o.payload?.contract==='SFI-CROSS-CASE-SOURCE-REFERENCE-1.0');
+  const availableToLink=cases.filter(candidate=>candidate.id!==caseId&&candidate.tenantId===caseData?.caseRecord.tenantId);
+  const linkExistingCase=async()=>{
+    if(!caseId||!caseToLink)return;
+    setWorking(true);setError('');
+    try{
+      await requestJson('/api/cases/'+encodeURIComponent(caseId)+'/linked-cases',{
+        method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({referencedCaseId:caseToLink}),
+      });
+      await loadCase(caseId);
+      setCaseToLink('');
+      setMessage('Case chain recorded as an auditable SOURCE REFERENCE. Its claims were not promoted to evidence or canon.');
+    }catch(e){setError(String((e as Error).message));}finally{setWorking(false);}
+  };
+  const uploadOriginal=async()=>{
+    if(!caseId||!file)return;
+    if(file.size>25*1024*1024){setError('SOURCE_MAX_FILE_SIZE_25_MB');return;}
+    setWorking(true);setError('');setMessage('');
+    try{
+      const signed=await requestJson('/api/cases/'+encodeURIComponent(caseId)+'/sources/upload-ticket',{
+        method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({
+          filename:file.name,size:file.size,contentType:file.type||'application/octet-stream',
+        }),
+      });
+      const receipt=signed.upload;
+      if(typeof receipt?.signedUrl!=='string'||!receipt.signedUrl.startsWith('https://'))throw new Error('SIGNED_UPLOAD_URL_UNAVAILABLE');
+      const stored=await fetch(receipt.signedUrl,{method:'PUT',
+        headers:{'Content-Type':file.type||'application/octet-stream','x-upsert':'false'},body:file});
+      if(!stored.ok)throw new Error('DIRECT_STORAGE_UPLOAD_FAILED:'+stored.status);
+      await requestJson('/api/cases/'+encodeURIComponent(caseId)+'/sources/finalize-upload',{
+        method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({
+          storagePath:receipt.storagePath,filename:file.name,size:file.size,
+          contentType:file.type||'application/octet-stream',sourceType:'FILE_UPLOAD',
+        }),
+      });
+      const detail=await requestJson('/api/cases/'+encodeURIComponent(caseId));
+      if(!Array.isArray(detail.objects)||!detail.objects.some((o:CaseObject)=>o.kind==='SOURCE'&&o.payload?.label===file.name)){
+        throw new Error('UPLOAD_REGISTERED_BUT_SOURCE_READBACK_NOT_CONFIRMED');
+      }
+      setCaseData(detail);setFile(null);
+      setMessage('File uploaded to the existing private SFI case bucket and source registered. SOURCE is not EVIDENCE.');
+    }catch(e){setError(String((e as Error).message));}finally{setWorking(false);}
+  };
+
  return <main className="rcOperational" aria-label="Authenticated Reality Chain">
   <header className="rcOperationalHead"><span>03 / REALITY CHAIN · AUTHENTICATED WORKSPACE</span><strong>FROM SOURCE TO CONSEQUENTIAL RETURN</strong><button type="button" onClick={()=>scrollTo(0)}>01 FIELD</button><button type="button" onClick={()=>scrollTo(1)}>02 DOSSIER / REPORT</button></header>
   <div className="rcOperationalScroller" ref={scroll}>
