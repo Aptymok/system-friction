@@ -569,3 +569,15 @@
 .rootRealityQuestions .rootHypothesisContrast{grid-column:1/-1;border-color:rgba(200,169,81,.45)}
 .rootHypothesisContrast small{display:block;margin:9px 0}
 @media(max-width:900px){.rootFieldExplorer{width:210px;left:12px;top:72px;bottom:94px}.rootHorizontalGraph .rootFieldLegend{display:none}}
+
+.rootFieldBrandAnchor{position:absolute!important;z-index:2;left:49%;top:49%;transform:translate(-50%,-50%);pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:5px;text-shadow:0 2px 20px #050505,0 2px 9px #050505}
+.rootFieldBrandAnchor span{font:650 12px/1.15 "Liberation Mono",ui-monospace,monospace;letter-spacing:.28em;color:#e2d3af}
+.rootGovernanceRelationships{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:12px}
+.rootGovernanceRelationships h3,.rootGovernanceRelationships>p{grid-column:1/-1;margin:2px 0;font:600 11px/1.45 "Liberation Mono",monospace;color:#c8a951}
+.rootGovernanceRelationships>p{font-weight:400;color:#b5ae9f}
+.rootGovernanceRelationships button{display:flex;flex-direction:column;gap:6px;min-width:0;max-width:100%;padding:10px;text-align:left;cursor:pointer;color:#e8ddc3;background:rgba(6,8,8,.72);border:1px solid rgba(200,169,81,.17)}
+.rootGovernanceRelationships button:hover{border-color:rgba(200,169,81,.66)}
+.rootGovernanceRelationships button strong{font:600 11px/1.4 "Liberation Mono",monospace;overflow-wrap:anywhere}
+.rootGovernanceRelationships button small,.rootGovernanceRelationships button em{font:400 9px/1.4 "Liberation Mono",monospace;color:#c8a951;overflow-wrap:anywhere}
+.rootGovernanceRelationships button em{font-style:normal;color:#999385}
+@media(max-width:900px){.rootGovernanceRelationships{grid-template-columns:repeat(2,minmax(0,1fr))}.rootFieldBrandAnchor{left:58%;top:47%}}
