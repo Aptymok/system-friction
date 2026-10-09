@@ -77,7 +77,7 @@ export async function POST(request:Request){
     if(all.length>MAX_FRAGMENTS)warnings.push('FRAGMENTS_TRUNCATED_REVIEW_REQUIRED');
     if(excerpts.some(part=>part.end!==null && part.start!==null && part.end-part.start>MAX_FRAGMENT_CHARS))warnings.push('LONG_FRAGMENT_EXCERPT_TRUNCATED');
     return NextResponse.json({ok:true,source:{filename:file.name,mime:file.type||'application/octet-stream',size:file.size,sha256:hash,modifiedAt:file.lastModified?new Date(file.lastModified).toISOString():null},
-      extraction:{parser,pageCount:segments.filter(p=>p.page!==null).length||null,fragmentCount:all.length,returnedFragments:excerpts.length,complete:all.length<=MAX_FRAGMENTS&&all.every(part=>part.text.length<=MAX_FRAGMENT_CHARS),warnings,fragments:excerpts,
+      extraction:{parser,pageCount:segments.filter(p=>p.page!==null).length||null,fragmentCount:all.length,returnedFragments:excerpts.length,complete:all.length<=MAX_FRAGMENTS&&all.every(part=>part.start===null||part.end===null||part.end-part.start<=MAX_FRAGMENT_CHARS),warnings,fragments:excerpts,
       epistemicState:'DERIVED',locatorBasis:'EXTRACTED_TEXT_COORDINATES',rawFilePersisted:false},
       boundary:'Transient parsing only. No file bytes are persisted. Quotes require user selection; page and paragraph must not be inferred when unavailable.'},{headers});
   }catch(error){return sfiCaseApiFailure(error);}
