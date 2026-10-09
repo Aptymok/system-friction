@@ -79,7 +79,8 @@ export async function POST(request:Request,context:Context){
     const reference=await recordOperationalCaseObject({
       caseId,userId:user.id,kind:'RECORD',epistemicRole:'RECORD',
       canonicalRef:{id:'case-reference:'+referencedCaseId,version:null,hash:null},
-      sourceRefs:[],recordRefs:[],evidenceRefs:[],
+      // Explicit provenance to the referenced case, not an evidence claim.
+      sourceRefs:[{id:referencedCaseId,version:source.caseRecord.version,hash:null}],recordRefs:[],evidenceRefs:[],
       payload:{
         contract:CONTRACT,
         referencedCaseId,
