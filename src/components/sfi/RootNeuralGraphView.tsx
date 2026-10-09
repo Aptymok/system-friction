@@ -473,7 +473,7 @@ function buildPositions(nodes: GraphNode[], reading: 'CURRENT_STATE'|'HIERARCHY'
     const seed=hash(node.id),angle=((seed%360)/180)*Math.PI;
     const observedMeanWeight=node.scientificReading?.evidenceGeometry.authority === 'OBSERVED_RELATION_MEASURE'?node.scientificReading.evidenceGeometry.meanObservedWeight:null;
     // Observed canonical relation weights govern available local coupling;
-    // hash is only a collision-spreading, non-epistemic fallback: it carries no evidentiary meaning.
+    // hash is only a collision-spreading, non-epistemic fallback: it carries no epistemic meaning.
     const radius=observedMeanWeight==null?22+((seed>>>8)%118):22+(1-Math.max(0,Math.min(1,observedMeanWeight)))*118;
     const p={x:Math.max(38,Math.min(width-38,anchor.x+Math.cos(angle)*radius)),y:Math.max(38,Math.min(height-38,anchor.y+Math.sin(angle)*radius*.67))};
     positions.set(node.id,applyReorganizationReading(node,p,reading,width,height));
