@@ -529,7 +529,7 @@
   padding:0!important;
   overflow:hidden!important;
   color:#F7F4EA;
-  background:radial-gradient(circle at 50% 42%,rgba(200,169,81,.055),transparent 42%),#060605!important;
+  background:linear-gradient(90deg,rgba(6,6,5,.25),rgba(6,6,5,.48)),url('/assets/sfi/instruments/08102026_04.png') center/cover no-repeat!important;
   font-family:"Noto Sans",Arial,sans-serif;
 }
 .rootReferenceCockpit .rootFieldIdentity {display:none!important}
