@@ -54,13 +54,22 @@ export async function POST(request:Request){
       ? extracted.pages.map(item=>({page:item.page,text:item.text}))
       : [{page:null,text:extracted.text}];
     if(extension==='pdf' && !extracted.pages?.length)warnings.push('PDF_PAGE_LOCATOR_UNRESOLVED');
-    const all=segments.flatMap(segment=>fragmentsFromText(segment.text,segment.page,segment.page===null?'NOT_RESOLVED':'PARSER'));
+    let remainingCharacters=300_000;
+    let textLimited=false;
+    const boundedSegments=segments.map(segment=>{
+      const kept=segment.text.slice(0,Math.max(0,remainingCharacters));
+      if(kept.length<segment.text.length)textLimited=true;
+      remainingCharacters-=kept.length;
+      return {...segment,text:kept};
+    });
+    if(textLimited)warnings.push('EXTRACTION_TEXT_LIMIT_REVIEW_REQUIRED');
+    const all=boundedSegments.flatMap(segment=>fragmentsFromText(segment.text,segment.page,segment.page===null?'NOT_RESOLVED':'PARSER'));
     const excerpts=all.slice(0,MAX_FRAGMENTS);
     if(!all.length)warnings.push('NO_EXTRACTABLE_TEXT');
     if(all.length>MAX_FRAGMENTS)warnings.push('FRAGMENTS_TRUNCATED_REVIEW_REQUIRED');
     if(excerpts.some(part=>part.end!==null && part.start!==null && part.end-part.start>MAX_FRAGMENT_CHARS))warnings.push('LONG_FRAGMENT_EXCERPT_TRUNCATED');
     return NextResponse.json({ok:true,source:{filename:file.name,mime:file.type||'application/octet-stream',size:file.size,sha256:hash,modifiedAt:file.lastModified?new Date(file.lastModified).toISOString():null},
-      extraction:{parser,pageCount:segments.filter(p=>p.page!==null).length||null,fragmentCount:all.length,returnedFragments:excerpts.length,complete:all.length<=MAX_FRAGMENTS&&all.every(part=>part.start===null||part.end===null||part.end-part.start<=MAX_FRAGMENT_CHARS),warnings,fragments:excerpts,
+      extraction:{parser,pageCount:segments.filter(p=>p.page!==null).length||null,fragmentCount:all.length,returnedFragments:excerpts.length,complete:!textLimited&&all.length<=MAX_FRAGMENTS&&all.every(part=>part.start===null||part.end===null||part.end-part.start<=MAX_FRAGMENT_CHARS),warnings,fragments:excerpts,
       epistemicState:'DERIVED',locatorBasis:'EXTRACTED_TEXT_COORDINATES',rawFilePersisted:false},
       boundary:'Transient parsing only. No file bytes are persisted. Quotes require user selection; page and paragraph must not be inferred when unavailable.'},{headers});
   }catch(error){return sfiCaseApiFailure(error);}
