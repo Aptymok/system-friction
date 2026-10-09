@@ -54,8 +54,7 @@ export function PublicEntryGateway(){
     <div className="sfiHomePanoramaScroller" ref={scroller} aria-label="SFI horizontal panorama">
       <div className="sfiHomePanoramaTrack">
         <img
-          src="/assets/sfi/instruments/SFI_HOME_INDEX_PANORAMA_20261008.png"
-          onError={(event)=>{event.currentTarget.src='/assets/sfi/instruments/SFI_HOME_PANORAMA.png';}}
+          src="/assets/sfi/instruments/SFI_HOME_PANORAMA.png"
           alt=""
           draggable={false}
         />
