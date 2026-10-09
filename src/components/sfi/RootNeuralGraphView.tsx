@@ -484,7 +484,11 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
   const initialReading=(allowedReadings as readonly string[]).includes(requestedReading||'') ? requestedReading as typeof allowedReadings[number] : 'CURRENT_STATE';
   const [query, setQuery] = useState('');
   const [activeType, setActiveType] = useState('ALL');
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Deep-link the same admitted cognitive object from the Reality Chain case workbench.
+  // If the case is absent from the canonical graph, do not invent a graph node.
+  const requestedNode=searchParams.get('node');
+  const [selectedId, setSelectedId] = useState<string | null>(()=>
+    requestedNode&&graph.nodes.some(item=>item.id===requestedNode)?requestedNode:null);
   const [reading, setReading] = useState<'CURRENT_STATE'|'HIERARCHY'|'TRAJECTORY'|'RETROLONGITUDINAL'|'PROJECTION'|'FRICTION_REGIME'|'REALITY_CHAIN'|'RETURN_CONTRAST'>(initialReading);
   const [temporalResolution, setTemporalResolution] = useState('ALL');
   const [focusId,setFocusId]=useState<string|null>(null);
