@@ -664,7 +664,7 @@ export function RootNeuralGraphView({ graph, agents=[], agentRegistryState='UNAV
           <label className="rootExplorerLabel">DOMAIN
             <select value={domainFilter} onChange={event=>setDomainFilter(event.target.value)}><option value="ALL">ALL DOMAINS</option>{domains.map(domain=><option key={domain} value={domain}>{domain}</option>)}</select>
           </label>
-          <label className="rootExplorerLabel">TIME RANGE / RESOLUTION
+          <label className="rootExplorerLabel">Temporal resolution
             <select value={temporalResolution} onChange={event=>setTemporalResolution(event.target.value)}>
               {['ALL','SYSTEM_HISTORY','REGIME','PHENOMENON','CYCLE','TRANSITION','EVENT','OBSERVATION'].map(level=><option key={level} value={level}>{level.replaceAll('_',' ')}</option>)}
             </select>
@@ -723,6 +723,26 @@ export function RootNeuralGraphView({ graph, agents=[], agentRegistryState='UNAV
                     <div><dt>EPISTEMIC STATE</dt><dd>{selected.reality?.state ?? representedText(selected.attributes.epistemicClass,'UNKNOWN')}</dd></div>
                   </dl>
                 </header>
+                <section className="rootPassportQuestion rootPassportScientific" aria-label="Scientific temporal and dynamical reading">
+                  <h3>SCIENTIFIC TEMPORAL READING</h3>
+                  <p>Temporal resolution is derived from observed sequence, cycle, recurrence, phase or chronology as available, not inferred from database creation time.</p>
+                  <div className="rootPassportScientificProperties">
+                    <span>TIME<strong>{temporalReading(selected).label}</strong></span>
+                    <span>SCIENTIFIC RESOLUTIONS<strong>{selected.scientificReading?.temporal.availableResolutions.join(' / ') || 'NOT REPRESENTED'}</strong></span>
+                    <span>LOCAL DYNAMICAL ATTRACTOR<strong>{selected.scientificReading?.attractor.state ?? 'NOT OBSERVED'}</strong></span>
+                    <span>ATTRACTOR RECURRENCE<strong>{selected.scientificReading?.attractor.recurrenceObserved===true?'OBSERVED':'NOT OBSERVED'}</strong></span>
+                    <span>ATTRACTOR RECOVERY<strong>{selected.scientificReading?.attractor.recoveryObserved===true?'OBSERVED':'NOT OBSERVED'}</strong></span>
+                  </div>
+                  <p>{selected.scientificReading?.attractor.reason ?? 'No bounded dynamical attractor reading was supplied.'}</p>
+                  <h4>PROPERTY DISCOVERY · {selected.scientificReading?.propertyDiscovery.status ?? 'NOT OBSERVED'}</h4>
+                  {selected.scientificReading?.propertyDiscovery.candidates.length ?
+                    <ul className="rootPassportScientificCandidates">{selected.scientificReading.propertyDiscovery.candidates.slice(0,6).map((candidate,index)=>
+                      <li key={candidate.sourceRef+':'+index}><strong>{candidate.property}</strong><span>{String(candidate.value)}</span><small>{candidate.epistemicClass} · {candidate.sourceRef}</small></li>
+                    )}</ul> :
+                    <p>NO PROPERTY CANDIDATES OBSERVED IN THIS BOUNDED READING.</p>}
+                  <p>Property and attractor observations do not confer authority or canonical truth. {selected.scientificReading?.propertyDiscovery.boundary ?? ''}</p>
+                </section>
+
                 <section className="rootPassportQuestion rootPassportKnowledgeTime" data-knowledge-contract="KNEW_THEN_KNOWN_NOW">
                   <h3>KNEW THEN / KNOWN NOW</h3>
                   <p>Compare epistemic records at two dated cut-offs. The date an event happened, the date its state was recorded, and the date the database row changed are different.</p>
