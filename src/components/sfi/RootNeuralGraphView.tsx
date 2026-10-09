@@ -807,7 +807,7 @@ export function RootNeuralGraphView({ graph, agents=[], agentRegistryState='UNAV
                 <section className="rootPassportQuestion">
                   <h3>02 · WHAT DO WE INFER?</h3>
                   <p>{representedText(selected.attributes.hypothesis ?? selected.attributes.inference ?? selected.attributes.model ?? selected.attributes.objective,'No testable hypothesis or inference represented in this object.')}</p>
-                  <p>Method result: {selected.methodResult?.methodId ?? 'NOT REPRESENTED'} · {selected.methodResult?.epistemicClass ?? 'UNKNOWN'}.</p>
+                  <p>METHOD · {selected.methodResult?.methodId ?? 'NOT REPRESENTED'} · {selected.methodResult?.epistemicClass ?? 'UNKNOWN'}.</p>
                 </section>
                 <section className="rootPassportQuestion">
                   <h3>03 · WHAT WAS AUTHORIZED?</h3>
@@ -827,7 +827,7 @@ export function RootNeuralGraphView({ graph, agents=[], agentRegistryState='UNAV
                 </section>
                 <section className="rootPassportQuestion">
                   <h3>06 · WHAT WAS LEARNED AND INTEGRATED?</h3>
-                  <p>Learning state: {selected.learningState?.state ?? 'NOT REPRESENTED'}.</p>
+                  <p>LEARNING · {selected.learningState?.state ?? 'NOT REPRESENTED'}.</p>
                   <p>{selected.learningState?.boundary ?? 'Learning cannot be asserted as integrated without a recorded governed decision.'}</p>
                 </section>
                 <section className="rootPassportQuestion rootPassportContrast">
