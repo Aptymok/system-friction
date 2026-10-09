@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { SfiRootWorkspace } from './SfiRootWorkspace';
 import { RootCognitiveFieldPixi } from './RootCognitiveFieldPixi';
@@ -192,6 +192,21 @@ type GraphPayload = {
   admission: { contract: string; sourceNodes: number; sourceEdges: number; admittedNodes: number; admittedEdges: number; excludedNodes: number; excludedEdges: number; excludedNodeReasons: Record<string, number> };
 };
 
+type RegisteredAgent={key:string;name:string;kind:string;status:string;permissions:string;capability:string};
+const FIELD_GROUPS=['GOVERNANCE','CASES & PROJECTS','INSTITUTIONAL ATTRACTOR','EXTERNAL REALITY','AUTHORITY BOUNDARY','PROJECTIONS','UNCLASSIFIED'] as const;
+type FieldGroup=typeof FIELD_GROUPS[number];
+function fieldGroup(node:GraphNode):FieldGroup {
+  const type=node.type.toLowerCase();
+  const a=node.attributes;
+  const semantic=[type,String(a.category??''),String(a.classification??''),String(a.domain??'')].join(' ').toLowerCase();
+  if(/authority|constraint|permission|authorization|boundary/.test(semantic))return 'AUTHORITY BOUNDARY';
+  if(/projection|scenario|forecast|simulation/.test(semantic))return 'PROJECTIONS';
+  if(/governance|policy|mandate|regulation|approval|decision/.test(semantic))return 'GOVERNANCE';
+  if(/attractor|institutional.objective|institutional.goal/.test(semantic))return 'INSTITUTIONAL ATTRACTOR';
+  if(/case|project|investigation|research/.test(semantic))return 'CASES & PROJECTS';
+  if(/actor|source|external|phenomenon|world|location|event|signal/.test(semantic))return 'EXTERNAL REALITY';
+  return 'UNCLASSIFIED';
+}
 type Position = { x: number; y: number };
 
 function hash(value: string) {
@@ -477,8 +492,8 @@ function buildPositions(nodes: GraphNode[], reading: 'CURRENT_STATE'|'HIERARCHY'
   return { positions, types, width, height };
 }
 
-const observedText=(value:unknown):string=>value===null||value===undefined||value===''?'NO REGISTRADO':typeof value==='string'||typeof value==='number'?String(value):'NO REGISTRADO';
-const attribute=(node:GraphNode,keys:string[]):string=>{for(const key of keys){const v=node.attributes[key];if(typeof v==='string'&&v.trim())return v;if(typeof v==='number')return String(v);}return 'NO REGISTRADO';};
+const observedText=(value:unknown):string=>value===null||value===undefined||value===''?'NOT RECORDED':typeof value==='string'||typeof value==='number'?String(value):'NOT RECORDED';
+const attribute=(node:GraphNode,keys:string[]):string=>{for(const key of keys){const v=node.attributes[key];if(typeof v==='string'&&v.trim())return v;if(typeof v==='number')return String(v);}return 'NOT RECORDED';};
 const isSpine=(node:GraphNode)=>/^(system|canonical|ontology|spine|root)$/i.test(node.type)||/cognitive[_ -]?spine|system[_ -]?backbone/i.test(node.type);
 
 export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
@@ -489,6 +504,12 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
   const [query, setQuery] = useState('');
   const [consoleTab,setConsoleTab]=useState<'PASSPORT'|'AUTHORITY'|'JR'|'TRAJECTORY'|'LEARNING'|'ACTIONS'|'AGENTS'>('PASSPORT');
   const [agentId,setAgentId]=useState('');
+  const [agentCatalog,setAgentCatalog]=useState<RegisteredAgent[]>([]);
+  const [agentCatalogState,setAgentCatalogState]=useState<'LOADING'|'AVAILABLE'|'UNAVAILABLE'>('LOADING');
+  const [activeGroup,setActiveGroup]=useState<FieldGroup|'ALL'>('ALL');
+  const [authorityFilter,setAuthorityFilter]=useState('ALL');
+  const [evidenceFilter,setEvidenceFilter]=useState('ALL');
+  useEffect(()=>{let alive=true;fetch('/api/root/agent-catalog',{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('unavailable');return r.json();}).then((result:{items:RegisteredAgent[]})=>{if(alive){setAgentCatalog(result.items);setAgentCatalogState('AVAILABLE');}}).catch(()=>{if(alive)setAgentCatalogState('UNAVAILABLE');});return()=>{alive=false};},[]);
   const [activeType, setActiveType] = useState('ALL');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [reading, setReading] = useState<'CURRENT_STATE'|'HIERARCHY'|'TRAJECTORY'|'RETROLONGITUDINAL'|'PROJECTION'|'FRICTION_REGIME'|'REALITY_CHAIN'|'RETURN_CONTRAST'>(initialReading);
@@ -531,12 +552,16 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
     return graph.nodes.filter((node) => {
       if (focusIds && !focusIds.has(node.id)) return false;
       if (activeType !== 'ALL' && node.type !== activeType) return false;
+      if (activeGroup !== 'ALL' && fieldGroup(node)!==activeGroup) return false;
+      if (authorityFilter!=='ALL' && String(node.realityPassport?.authority.state??node.reality?.authority??'UNKNOWN').toUpperCase()!==authorityFilter) return false;
+      if (evidenceFilter==='EVIDENCE_BOUND' && qualifiedRelationCount(node,graph.edges)===0)return false;
+      if (evidenceFilter==='NOT_REPRESENTED' && qualifiedRelationCount(node,graph.edges)>0)return false;
       if (temporalResolution !== 'ALL' && !node.scientificReading?.temporal.availableResolutions.includes(temporalResolution)) return false;
       if (!needle) return true;
       return [node.label, node.type, node.origin, node.provenance, ...node.lineage]
         .some((value) => value.toLowerCase().includes(needle));
     });
-  }, [activeType, graph.nodes, query, temporalResolution,focusIds]);
+  }, [activeType,activeGroup,authorityFilter,evidenceFilter,graph.nodes,graph.edges,query,temporalResolution,focusIds]);
 
   const visibleNodeIds = useMemo(() => new Set(visibleNodes.map((node) => node.id)), [visibleNodes]);
   const visibleEdges = useMemo(
@@ -583,16 +608,23 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
       <div className="rootHorizontalRail" ref={horizontalRailRef} aria-label="ROOT operational horizontal workspace">
       <section className="rootFieldStage rootHorizontalGraph" data-hub-open={selected?'true':undefined} aria-label="Canonical cognitive field">
         <RootCognitiveFieldPixi nodes={fieldNodes} edges={fieldEdges} width={topology.width} height={topology.height} onSelect={(id)=>{setSelectedId(id);setConsoleTab('PASSPORT');openHorizon(1);}}/>
-        <div className="rootFieldControls">
-          <select aria-label="Field reading" value={reading} onChange={(event)=>setReading(event.target.value as typeof reading)}>
-            {allowedReadings.map((mode)=><option key={mode} value={mode}>{mode.replaceAll('_',' ')}</option>)}
-          </select>
-          <select aria-label="Temporal resolution" value={temporalResolution} onChange={(event)=>setTemporalResolution(event.target.value)}>
-            {['ALL','SYSTEM_HISTORY','REGIME','PHENOMENON','CYCLE','TRANSITION','EVENT','OBSERVATION'].map((level)=><option key={level} value={level}>{level.replaceAll('_',' ')}</option>)}
-          </select>
-          <input aria-label="Search field" value={query} onChange={(event)=>setQuery(event.target.value)} placeholder="Search a case, project, decision, evidence, person, system or RETURN…"/>
-          {selectedId?<button type="button" onClick={()=>setFocusId(focusId===selectedId?null:selectedId)}>{focusId===selectedId?'EXIT NODE':'ENTER NODE'}</button>:null}
-        </div>
+        <aside className="rootFieldExplorer" aria-label="Cognitive field explorer">
+          <h2>ROOT</h2><p>GLOBAL COGNITIVE FIELD OF REALITY</p>
+          <strong>{visibleNodes.length} VISIBLE OBJECTS · {visibleEdges.length} RELATIONS</strong>
+          <div className="rootFieldExplorerCategories">
+            <button type="button" aria-pressed={activeGroup==='ALL'} onClick={()=>setActiveGroup('ALL')}>ALL CATEGORIES <span>{graph.nodes.length}</span></button>
+            {FIELD_GROUPS.map(group=><button type="button" key={group} aria-pressed={activeGroup===group} onClick={()=>setActiveGroup(group)}>{group}<span>{graph.nodes.filter(n=>fieldGroup(n)===group).length}</span></button>)}
+          </div>
+          <details open><summary>FILTERS</summary>
+            <label>SEARCH<input value={query} onChange={event=>setQuery(event.target.value)} placeholder="Search objects and sources"/></label>
+            <label>NODE TYPE<select value={activeType} onChange={event=>setActiveType(event.target.value)}><option value="ALL">ALL TYPES</option>{allTypes.map(type=><option key={type} value={type}>{humanize(type)}</option>)}</select></label>
+            <label>AUTHORITY<select value={authorityFilter} onChange={event=>setAuthorityFilter(event.target.value)}>{['ALL','UNKNOWN','AUTHORIZED','BLOCKED','CONDITIONAL'].map(v=><option key={v} value={v}>{v}</option>)}</select></label>
+            <label>EVIDENCE<select value={evidenceFilter} onChange={event=>setEvidenceFilter(event.target.value)}><option value="ALL">ALL</option><option value="EVIDENCE_BOUND">EVIDENCE-QUALIFIED RELATION</option><option value="NOT_REPRESENTED">NO QUALIFIED RELATION REPRESENTED</option></select></label>
+            <label>FIELD READING<select value={reading} onChange={event=>setReading(event.target.value as typeof reading)}>{allowedReadings.map(mode=><option key={mode} value={mode}>{mode.replaceAll('_',' ')}</option>)}</select></label>
+            <label>TEMPORAL BASIS<select value={temporalResolution} onChange={event=>setTemporalResolution(event.target.value)}>{['ALL','SYSTEM_HISTORY','REGIME','PHENOMENON','CYCLE','TRANSITION','EVENT','OBSERVATION'].map(level=><option key={level} value={level}>{level.replaceAll('_',' ')}</option>)}</select></label>
+            <button type="button" onClick={()=>{setActiveGroup('ALL');setActiveType('ALL');setAuthorityFilter('ALL');setEvidenceFilter('ALL');setQuery('');setTemporalResolution('ALL');setFocusId(null);}}>CLEAR FILTERS</button>
+          </details>
+        </aside>
         <div className="rootFieldLegend">
           <span>{reading.replaceAll('_',' ')}</span>
           <span>{visibleNodes.length} cognitive · {visibleEdges.length} relations</span>
@@ -600,119 +632,32 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
         </div>
         {!visibleNodes.length ? <div className="rootFieldEmpty">Canonical source observed. No objects currently satisfy cognitive admission.</div> : null}
 
-        {selected ? (
-          <aside className="rootFieldHub">
-            <button className="rootFieldHubClose" onClick={()=>setSelectedId(null)} aria-label="Close object hub">×</button>
-            <span className="rootFieldHubKicker">{humanize(selected.type)} · {humanize(realityPassportStage(selected))}</span>
-            <h2>{selected.label}</h2>
-            <p className="rootFieldHubProvenance">{selected.origin} · {selected.provenance}</p>
 
-            <section className="rootFieldHumanSection">
-              <span>WHAT IS THIS?</span>
-              <p>{String(selected.attributes.statement ?? selected.attributes.observedOutcome ?? selected.attributes.objective ?? selected.attributes.scope ?? selected.attributes.evidenceKind ?? selected.attributes.classification ?? 'A persisted cognitive object in the SFI field. Its meaning is reconstructed through its relations, provenance and temporal state.')}</p>
-            </section>
-
-            <section className="rootFieldHumanSection">
-              <span>WHAT DOES SFI KNOW?</span>
-              <ul>
-                <li>Epistemic state: <strong>{humanize(String(selected.reality?.state ?? selected.attributes.epistemicClass ?? 'UNKNOWN'))}</strong></li>
-                <li>{selectedEdges.length} represented structural relation{selectedEdges.length===1?'':'s'}; {qualifiedRelationCount(selected,graph.edges)} evidence-qualified.</li>
-                <li>Reality Chain position: <strong>{humanize(realityPassportStage(selected))}</strong>.</li>
-                {selected.fieldHistory?.epochCount?<li>{selected.fieldHistory.epochCount} persisted field epoch{selected.fieldHistory.epochCount===1?'':'s'} available.</li>:null}
-                {selected.realityPassport?.returnState.status==='OBSERVED'?<li>Observed RETURN is represented for this object.</li>:null}
-              </ul>
-            </section>
-
-            <section className="rootFieldHumanSection">
-              <span>WHAT IS STILL UNKNOWN?</span>
-              <ul>
-                {(!selected.realityPassport?.authority.state||selected.realityPassport.authority.state==='UNKNOWN')?<li>Institutional authority is not sufficiently represented.</li>:null}
-                {(!selected.realityPassport?.verification.state||selected.realityPassport.verification.state==='UNKNOWN')?<li>Verification state remains unknown.</li>:null}
-                {selected.realityPassport?.returnState.status!=='OBSERVED'?<li>Observed RETURN has not been represented.</li>:null}
-                {!selected.fieldHistory?.persistedHistory?<li>Longitudinal history is incomplete or not yet persisted.</li>:null}
-                {selected.realityPassport?.verification.nextBestObservation?<li>Next discriminating observation: {selected.realityPassport.verification.nextBestObservation}</li>:null}
-              </ul>
-            </section>
-
-            <section className="rootFieldHumanSection">
-              <span>WHY IS THIS CONNECTED?</span>
-              {selectedEdges.length?<div className="rootFieldRelations">
-                {selectedEdges.slice(0,8).map((edge)=>{const outbound=edge.source===selected.id;const other=nodeById.get(outbound?edge.target:edge.source);return <button key={edge.id} onClick={()=>setSelectedId(other?.id??null)}><small>{outbound?'→':'←'} {humanize(edge.relation)}</small><strong>{other?.label??(outbound?edge.target:edge.source)}</strong><em>{edge.origin==='operational_projection' ? humanize(edge.provenance) : `RELATION · ${edge.weight.toFixed(3)}`}</em></button>;})}
-              </div>:<p>No represented relation is currently available for this object.</p>}
-            </section>
-
-            <section className="rootFieldHumanSection">
-              <span>WHAT CAN I DO NEXT?</span>
-              <div className="rootFieldActions">
-                <button type="button" onClick={()=>setFocusId(focusId===selected.id?null:selected.id)}>{focusId===selected.id?'EXIT CONNECTION FIELD':'EXPLORE CONNECTIONS'}</button>
-                <a href="/root/evidence-review">SEE EVIDENCE</a>
-                <a href="/root?reading=REALITY_CHAIN">RECONSTRUCT REALITY CHAIN</a>
-                <a href="/root?reading=RETURN_CONTRAST">VIEW RETURN / CONTRAST</a>
-              </div>
-            </section>
-
-            {selected.fieldHistory?.recentEpochs?.length ? <section className="rootFieldHumanSection rootFieldJrLog"><span>JR / FIELD LOGBOOK · FIELD HISTORY</span>
-              {selected.fieldHistory.recentEpochs.slice(0,6).map((epoch)=><div key={epoch.eventId}><time>{date(epoch.occurredAt)}</time><strong>{humanize(epoch.previousState ?? 'UNKNOWN')} → {humanize(epoch.state ?? 'UNKNOWN')}</strong><small>{epoch.relationTransitions.length} relation transition{epoch.relationTransitions.length===1?'':'s'}</small></div>)}
-            </section>:null}
-
-            {selected.learningState ? <section className="rootFieldHumanSection"><span>LEARNING</span><p>LEARNING · {humanize(selected.learningState.state)} · {humanize(selected.learningState.classification ?? 'UNCLASSIFIED')}</p></section> : null}
-
-            {selected.methodResult ? <section className="rootFieldHumanSection"><span>METHOD RESULT</span><p>METHOD · {selected.methodResult.methodId}@{selected.methodResult.methodVersion} · {humanize(selected.methodResult.epistemicClass)}</p></section> : null}
-
-            <details className="rootFieldTechnical">
-              <summary>TECHNICAL DETAILS</summary>
-              <div className="rootFieldHubGrid">
-                <span>STATE<strong>{selected.reality?.state ?? String(selected.attributes.epistemicClass ?? 'UNKNOWN')}</strong></span>
-                <span>REALITY DECISION<strong>{selected.realityPassport?.decision ?? 'UNKNOWN'}</strong></span>
-                <span>TIME<strong>{temporalReading(selected).label}</strong></span>
-                <span>AUTHORITY<strong>{selected.realityPassport?.authority.state ?? selected.reality?.authority ?? 'UNKNOWN'}</strong></span>
-                <span>VERIFICATION<strong>{selected.realityPassport?.verification.state ?? selected.reality?.verificationState ?? 'UNKNOWN'}</strong></span>
-                <span>RETURN<strong>{selected.realityPassport?.returnState.status ?? (selected.reality?.observedReturn == null ? 'NOT OBSERVED' : 'OBSERVED')}</strong></span>
-                <span>STRUCTURAL LINKS<strong>{selectedEdges.length}</strong></span>
-                <span>QUALIFIED RELATIONS<strong>{qualifiedRelationCount(selected,graph.edges)}</strong></span>
-                <span>PERSISTED EPOCHS<strong>{selected.fieldHistory?.epochCount ?? 0}</strong></span>
-                <span>HISTORY RANGE<strong>{selected.fieldHistory?.firstObservedAt ? `${date(selected.fieldHistory.firstObservedAt)} → ${date(selected.fieldHistory.lastObservedAt)}` : 'NOT YET PERSISTED'}</strong></span>
-                <span>LOCAL DYNAMICAL ATTRACTOR<strong>{selected.scientificReading?.attractor.state ?? 'NOT ESTABLISHED'}</strong></span>
-                <span>METHOD<strong>{selected.methodResult ? `${selected.methodResult.methodId}@${selected.methodResult.methodVersion}` : 'NOT REPRESENTED'}</strong></span>
-              </div>
-              {selected.realityPassport?<div className="rootFieldTechnicalPassport">
-                <code>SUPPORTING_RELATIONS={selected.realityPassport.provenance.supportingRelationCount}</code>
-                <code>CONTRADICTIONS={selected.realityPassport.provenance.contradictionCount}</code>
-                <code>LINEAGE={selected.realityPassport.provenance.lineageCount}</code>
-                <code>CAPTURE={selected.realityPassport.temporal.captureTime ?? selected.realityPassport.temporal.nodeUpdatedAt ?? 'NOT_REPRESENTED'}</code>
-                <code>SOURCE_VERSION={selected.realityPassport.temporal.sourceVersion ?? 'NOT_REPRESENTED'}</code>
-                <code>MAY_MINT_RETURN={String(selected.realityPassport.authority.mayMintReturn ?? 'NOT_REPRESENTED')}</code>
-                <code>MAY_PROMOTE_CANON={String(selected.realityPassport.authority.mayPromoteCanon ?? 'NOT_REPRESENTED')}</code>
-              </div>:null}
-              {selected.lineage.length?<div className="rootFieldTechnicalPassport">{selected.lineage.map((item)=><code key={item}>{item}</code>)}</div>:null}
-            </details>
-          </aside>
-        ):null}
       </section>
 
       <section className="rootGovernanceConsole" aria-label="ROOT governed operational console">
-        <header className="rootGovernanceHead"><span>ROOT / CONSOLE DE GOBERNANZA</span><h1>{selected?.label??'Seleccione un objeto del grafo'}</h1><p>La información procede del estado representado del objeto. Ausencia de registro no equivale a autorización ni a resultado.</p></header>
-        <nav className="rootGovernanceTabs" aria-label="Instrumentos del objeto">
-          {(['PASSPORT','AUTHORITY','JR','TRAJECTORY','LEARNING','ACTIONS','AGENTS'] as const).map(tab=><button type="button" key={tab} aria-current={consoleTab===tab?'page':undefined} onClick={()=>setConsoleTab(tab)}>{({PASSPORT:'PASAPORTE',AUTHORITY:'AUTORIDAD',JR:'BITÁCORA JR',TRAJECTORY:'TRAYECTORIAS',LEARNING:'APRENDIZAJE',ACTIONS:'ACCIONES',AGENTS:'AGENTES'} as const)[tab]}</button>)}
+        <header className="rootGovernanceHead"><span>ROOT / GOVERNANCE CONSOLE</span><h1>{selected?.label??'Select an object in the graph'}</h1><p>Only represented records are shown. Missing information is not authorization or an observed result.</p></header>
+        <nav className="rootGovernanceTabs" aria-label="Object instruments">
+          {(['PASSPORT','AUTHORITY','JR','TRAJECTORY','LEARNING','ACTIONS','AGENTS'] as const).map(tab=><button type="button" key={tab} aria-current={consoleTab===tab?'page':undefined} onClick={()=>setConsoleTab(tab)}>{({PASSPORT:'PASSPORT',AUTHORITY:'AUTHORITY',JR:'JR LOGBOOK',TRAJECTORY:'TRAJECTORIES',LEARNING:'LEARNING',ACTIONS:'ACTIONS',AGENTS:'AGENTS'} as const)[tab]}</button>)}
         </nav>
         {selected&& !isSpine(selected)&&consoleTab==='PASSPORT'?<div className="rootRealityQuestions">
-          <header><h2>PASAPORTE DE LA REALIDAD</h2><p>Objeto: {selected.label} · {humanize(selected.type)} · estado {observedText(selected.reality?.state)}</p></header>
-          <article><b>01 · ¿Qué se sabe y qué se observó?</b><p>{observedText(selected.attributes.statement??selected.attributes.observedOutcome??selected.attributes.objective??selected.attributes.scope)}</p><small>Fuente: {observedText(selected.provenance)} · Corte: {observedText(selected.realityPassport?.temporal.captureTime??selected.reality?.captureTime)}</small></article>
-          <article><b>02 · ¿Qué se infirió y quién lo produjo?</b><p>{observedText(selected.attributes.inference??selected.attributes.hypothesis??selected.attributes.analysis)}</p><small>Modelo: {attribute(selected,['model','modelId','provider'])} · Agente: {attribute(selected,['agentId','agentName'])} · Cuenta/usuario: {attribute(selected,['accountId','userId','createdBy'])} · Duración: {attribute(selected,['durationMs','executionDuration'])}</small></article>
-          <article><b>03 · ¿Quién autorizó qué?</b><p>Autoridad: {observedText(selected.realityPassport?.authority.state??selected.reality?.authority)}</p><small>Quién: {attribute(selected,['authorizedBy','approverId'])} · Cuándo: {attribute(selected,['authorizedAt','approvalTime'])} · Alcance: {attribute(selected,['authorizedScope','scope'])}</small></article>
-          <article><b>04 · ¿Qué se ejecutó y cuál fue el resultado?</b><p>Estado de ejecución: {observedText(selected.realityPassport?.authority.executionState??selected.reality?.executionState)}</p><small>Responsable: {attribute(selected,['executedBy','executorId'])} · Fecha: {attribute(selected,['executedAt','executionTime'])} · Resultado: {attribute(selected,['executionResult','result'])}</small></article>
-          <article><b>05 · ¿Qué devolvió la realidad? ¿Qué cambió al contrastar?</b><p>RETURN: {observedText(selected.realityPassport?.returnState.status)} · Contraste: {observedText(selected.methodResult?.contrastStatus)}</p><small>Antes: {observedText(selected.fieldHistory?.firstObservedAt)} · Último corte: {observedText(selected.fieldHistory?.lastObservedAt)} · Después: {observedText(selected.realityPassport?.returnState.observed??selected.reality?.observedReturn)}</small></article>
-          <article><b>06 · ¿Qué se aprendió y quién autorizó integrarlo?</b><p>Aprendizaje: {observedText(selected.learningState?.state)}</p><small>Motivo: {observedText(selected.learningState?.classification)} · Integración autorizada por: {attribute(selected,['learningApprovedBy','promotedBy'])} · Evidencia de promoción: {observedText(selected.learningState?.candidateEventId)}</small></article>
-          <footer><span>Independencia de evidencia: NO DETERMINADA por el conteo de relaciones. Un registro o respuesta de acción no demuestra por sí solo un efecto observado.</span></footer>
+          <header><h2>PASSPORT DE LA REALIDAD</h2><p>Object: {selected.label} · {humanize(selected.type)} · state {observedText(selected.reality?.state)}</p></header>
+          <article><b>01 · What do we know and observe?</b><p>{observedText(selected.attributes.statement??selected.attributes.observedOutcome??selected.attributes.objective??selected.attributes.scope)}</p><small>Source: {observedText(selected.provenance)} · As of: {observedText(selected.realityPassport?.temporal.captureTime??selected.reality?.captureTime)}</small></article>
+          <article><b>02 · What was inferred, and by whom?</b><p>{observedText(selected.attributes.inference??selected.attributes.hypothesis??selected.attributes.analysis)}</p><small>Model: {attribute(selected,['model','modelId','provider'])} · Agent: {attribute(selected,['agentId','agentName'])} · Account/user: {attribute(selected,['accountId','userId','createdBy'])} · Duration: {attribute(selected,['durationMs','executionDuration'])}</small></article>
+          <article><b>03 · What was authorized, by whom?</b><p>Autoridad: {observedText(selected.realityPassport?.authority.state??selected.reality?.authority)}</p><small>Who: {attribute(selected,['authorizedBy','approverId'])} · When: {attribute(selected,['authorizedAt','approvalTime'])} · Scope: {attribute(selected,['authorizedScope','scope'])}</small></article>
+          <article><b>04 · What was executed and what resulted?</b><p>Execution state: {observedText(selected.realityPassport?.authority.executionState??selected.reality?.executionState)}</p><small>Executor: {attribute(selected,['executedBy','executorId'])} · Date: {attribute(selected,['executedAt','executionTime'])} · Result: {attribute(selected,['executionResult','result'])}</small></article>
+          <article><b>05 · What did reality return? What changed? </b><p>RETURN: {observedText(selected.realityPassport?.returnState.status)} · Contraste: {observedText(selected.methodResult?.contrastStatus)}</p><small>Before: {observedText(selected.fieldHistory?.firstObservedAt)} · Latest cutoff: {observedText(selected.fieldHistory?.lastObservedAt)} · After: {observedText(selected.realityPassport?.returnState.observed??selected.reality?.observedReturn)}</small></article>
+          <article><b>06 · What was learned and who approved integration?</b><p>Learning: {observedText(selected.learningState?.state)}</p><small>Basis: {observedText(selected.learningState?.classification)} · Integration approved by: {attribute(selected,['learningApprovedBy','promotedBy'])} · Promotion evidence: {observedText(selected.learningState?.candidateEventId)}</small></article>
+          <footer><span>Evidence independence is not established by counting relations. An action response alone is not an observed RETURN.</span></footer>
         </div>:null}
         {selected&&isSpine(selected)&&consoleTab==='PASSPORT'?<section className="rootGovernancePanel"><h2>OBJETO ESTRUCTURAL</h2><p>Este nodo pertenece a la columna vertebral del sistema. No se le atribuye un pasaporte de decisión artificial.</p></section>:null}
         {!selected?<section className="rootGovernancePanel"><h2>SELECCIONE UN NODO</h2><p>Abra un objeto real en el Neural Graph para consultar su cadena, responsabilidades, historia y resultados.</p><button type="button" onClick={()=>openHorizon(0)}>IR AL GRAFO</button></section>:null}
-        {consoleTab==='AUTHORITY'?<section className="rootGovernancePanel"><h2>AUTORIDAD Y LÍMITES</h2><p>Estado: {observedText(selected?.realityPassport?.authority.state)} · Decisión: {observedText(selected?.realityPassport?.decision)}</p><p>Quién: {selected?attribute(selected,['authorizedBy','approverId']):'NO REGISTRADO'} · Autorización externa no inferida.</p></section>:null}
-        {consoleTab==='JR'?<section className="rootGovernancePanel"><h2>BITÁCORA TEMPORAL</h2>{selected?.fieldHistory?.recentEpochs?.length?selected.fieldHistory.recentEpochs.map(epoch=><div className="rootGovernanceLog" key={epoch.eventId}><time>{date(epoch.occurredAt)}</time><span>{observedText(epoch.state)}</span><small>{observedText(epoch.censoring)}</small></div>):<p>NO OBSERVADO: no hay épocas persistidas representadas para este nodo.</p>}</section>:null}
-        {consoleTab==='TRAJECTORY'?<section className="rootGovernancePanel"><h2>TRAYECTORIAS</h2><p>{selected?.fieldHistory?.persistedHistory?`Épocas persistidas: ${selected.fieldHistory.epochCount}. Última observación: ${observedText(selected.fieldHistory.lastObservedAt)}.`:'No hay una trayectoria persistida representada.'}</p><button type="button" onClick={()=>setReading('TRAJECTORY')}>VER LECTURA DE TRAYECTORIA</button></section>:null}
-        {consoleTab==='LEARNING'?<section className="rootGovernancePanel"><h2>CONTRASTE Y APRENDIZAJE</h2><p>Contraste: {observedText(selected?.methodResult?.contrastStatus)} · Aprendizaje: {observedText(selected?.learningState?.state)}</p><p>Simulación, inferencia y observación conservan su clasificación original.</p></section>:null}
-        {consoleTab==='ACTIONS'?<section className="rootGovernancePanel"><h2>ACCIONES SOBRE UNA INSTANCIA</h2><p>Estas entradas abren instrumentos ya existentes. No ejecutan ni alteran el nodo original.</p>{selected?<><a href={`/root?reading=REALITY_CHAIN&node=${encodeURIComponent(selected.id)}`}>RECONSTRUIR REALITY CHAIN</a><a href={`/method-lab?sourceNode=${encodeURIComponent(selected.id)}`}>ABRIR EN METHOD LAB (CONTEXTO PROPUESTO)</a><button type="button" onClick={()=>setConsoleTab('AGENTS')}>ELEGIR AGENTE</button></>:<p>Seleccione un nodo para continuar.</p>}</section>:null}
-        {consoleTab==='AGENTS'?<section className="rootGovernancePanel"><h2>AGENTES Y CASOS</h2><p>Solo agentes representados en el grafo. Elegir uno no concede permiso ni inicia una ejecución.</p><select aria-label="Seleccionar agente" value={agentId} onChange={event=>setAgentId(event.target.value)}><option value="">SELECCIONAR AGENTE</option>{graph.nodes.filter(n=>/agent/i.test(n.type)).map(n=><option value={n.id} key={n.id}>{n.label}</option>)}</select>{agentId?<><p>Agente: {observedText(graph.nodes.find(n=>n.id===agentId)?.label)}</p><p>Configuración de ejecución: abrir el entorno autorizado. No hay configuración inventada ni ejecución automática.</p><p>Cuenta asociada: {attribute(graph.nodes.find(n=>n.id===agentId)!,['accountId','userId','createdBy'])}</p></>:null}<p>La atribución de ejecutor y cuenta para cada caso solo aparece cuando esos datos están registrados.</p></section>:null}
+        {consoleTab==='AUTHORITY'?<section className="rootGovernancePanel"><h2>AUTHORITY Y LÍMITES</h2><p>Estado: {observedText(selected?.realityPassport?.authority.state)} · Decisión: {observedText(selected?.realityPassport?.decision)}</p><p>Who: {selected?attribute(selected,['authorizedBy','approverId']):'NOT RECORDED'} · Autorización externa no inferida.</p></section>:null}
+        {consoleTab==='JR'?<section className="rootGovernancePanel"><h2>BITÁCORA TEMPORAL</h2>{selected?.fieldHistory?.recentEpochs?.length?selected.fieldHistory.recentEpochs.map(epoch=><div className="rootGovernanceLog" key={epoch.eventId}><time>{date(epoch.occurredAt)}</time><span>{observedText(epoch.state)}</span><small>{observedText(epoch.censoring)}</small></div>):<p>NOT OBSERVED: no hay épocas persistidas representadas para este nodo.</p>}</section>:null}
+        {consoleTab==='TRAJECTORY'?<section className="rootGovernancePanel"><h2>TRAJECTORIES</h2><p>{selected?.fieldHistory?.persistedHistory?`Épocas persistidas: ${selected.fieldHistory.epochCount}. Última observación: ${observedText(selected.fieldHistory.lastObservedAt)}.`:'No hay una trayectoria persistida representada.'}</p><button type="button" onClick={()=>setReading('TRAJECTORY')}>VER LECTURA DE TRAYECTORIA</button></section>:null}
+        {consoleTab==='LEARNING'?<section className="rootGovernancePanel"><h2>CONTRASTE Y LEARNING</h2><p>Contraste: {observedText(selected?.methodResult?.contrastStatus)} · Learning: {observedText(selected?.learningState?.state)}</p><p>Simulación, inferencia y observación conservan su clasificación original.</p></section>:null}
+        {consoleTab==='ACTIONS'?<section className="rootGovernancePanel"><h2>ACTIONS SOBRE UNA INSTANCIA</h2><p>Estas entradas abren instrumentos ya existentes. No ejecutan ni alteran el nodo original.</p>{selected?<><a href={`/root?reading=REALITY_CHAIN&node=${encodeURIComponent(selected.id)}`}>RECONSTRUIR REALITY CHAIN</a><a href={`/method-lab?sourceNode=${encodeURIComponent(selected.id)}`}>ABRIR EN METHOD LAB (CONTEXTO PROPUESTO)</a><button type="button" onClick={()=>setConsoleTab('AGENTS')}>ELEGIR AGENTE</button></>:<p>Seleccione un nodo para continuar.</p>}</section>:null}
+        {consoleTab==='AGENTS'?<section className="rootGovernancePanel"><h2>INSTITUTIONAL AGENT CATALOG</h2><p>The code registry is not evidence of runtime health, account identity, execution or authority. Available agents are distinguished from services and observers.</p>{agentCatalogState==='AVAILABLE'?<><select aria-label="Select registered agent" value={agentId} onChange={event=>setAgentId(event.target.value)}><option value="">SELECT REGISTERED AGENT</option>{agentCatalog.map(agent=><option key={agent.key} value={agent.key}>{agent.name} · {agent.kind.toUpperCase()}</option>)}</select>{agentId&&agentCatalog.find(a=>a.key===agentId)?<><p>{agentCatalog.find(a=>a.key===agentId)?.capability}</p><dl><div><dt>ENTITY KIND</dt><dd>{agentCatalog.find(a=>a.key===agentId)?.kind}</dd></div><div><dt>DECLARED PERMISSION</dt><dd>{agentCatalog.find(a=>a.key===agentId)?.permissions}</dd></div><div><dt>RUNTIME STATUS</dt><dd>NOT VERIFIED</dd></div><div><dt>CASE EXECUTIONS</dt><dd>NOT LINKED BY THIS CATALOG</dd></div></dl></>:null}</>:<p>{agentCatalogState==='LOADING'?'LOADING CATALOG':'CATALOG UNAVAILABLE'}</p>}</section>:null}
         <details className="rootFieldAuthority rootGovernanceAuthority" open={Boolean(searchParams.get('decision'))}>
         <summary>AUTHORITY</summary>
         <SfiRootWorkspace enabled decisionOnly/>
