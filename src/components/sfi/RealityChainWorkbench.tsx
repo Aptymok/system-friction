@@ -110,7 +110,7 @@ export function RealityChainWorkbench(){
   try{
    const now=new Date().toISOString();
    const created=await requestJson('/api/cases',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-    resource:'CASE',serviceProfileId:profileId,subject:title.trim(),scope:scope.trim(),
+    resource:'CASE',serviceProfileId:profileId,subject:title.trim(),scope:scope.trim(),...(projectId!=='ALL'?{projectId,tenantId:projects.find(p=>p.id===projectId)?.tenantId}:{}),
     systemBoundaryRef:{id:'user-scope:'+crypto.randomUUID(),version:'1.0',hash:null},
     temporalWindow:{mode:'LONGITUDINAL',basis:'OBSERVED_TIME',start:null,end:null,cutoff:now,timezone:'UTC',reconstructionAsOf:null,horizon:null}
    })});
@@ -162,6 +162,27 @@ export function RealityChainWorkbench(){
    setChosen(chosen.filter(i=>!selected.includes(i)));await loadCase(caseId);
    setMessage(String(selected.length)+' extracted passages preserved as RECORD with source linkage and locators. No evidence or claims were automatically promoted.');
   }catch(e){setError(String((e as Error).message));}finally{setWorking(false);}
+ };
+ const persistTraceManifest=async()=>{
+   if(!caseData||!caseId)return;
+   if(sourceObjects.length>500){setError('Too many source references for a single bounded trace manifest. Partition the case first.');return;}
+   setWorking(true);setError('');
+   try{
+     const snapshotAt=new Date().toISOString();
+     const manifest={contract:'SFI-REALITY-CHAIN-MANIFEST-0.1',classification:'DERIVED_RECORD_NOT_AUTHORIZED_REPORT',
+       title:'Traceability snapshot for '+caseData.caseRecord.subject,sourceCutoff:cutoff||null,recordedAt:snapshotAt,
+       caseId,caseState:caseData.caseRecord.status,sourceHashes:sourceObjects.map(o=>({id:o.canonicalRef.id,hash:o.canonicalRef.hash??null})),
+       objectRefs:asOfObjects.map(o=>({id:o.canonicalRef.id,hash:o.canonicalRef.hash??null,kind:o.kind,
+         observedAt:o.observedAt,recordedAt:o.createdAt})),
+       stages:STEPS.map((step,i)=>({name:step.name,count:asOfObjects.filter(o=>stageFor(o)===i).length})),
+       method:FULL_METHOD,transversalControls:TRANSVERSAL,
+       limitations:['Record of existing references only; not independent confirmation.','No original source files stored.','Absence of record does not prove failure or absence in the world.','No substantive claim authorized or validated.']};
+     await requestJson('/api/cases/'+encodeURIComponent(caseId)+'/objects',{method:'POST',headers:{'Content-Type':'application/json'},
+       body:JSON.stringify({kind:'RECORD',canonicalRef:{id:'trace-manifest:'+crypto.randomUUID(),version:'0.1',hash:null},
+         sourceRefs:sourceObjects.map(o=>o.canonicalRef),recordRefs:[],payload:manifest})});
+     await loadCase(caseId);
+     setMessage('Traceability manifest persisted as a source-linked RECORD in the existing Case Platform. Institutional certification and learning authority remain unchanged.');
+   }catch(e){setError(String((e as Error).message));}finally{setWorking(false);}
  };
  const makeReport=()=>{
   if(!caseData)return;
@@ -229,7 +250,7 @@ export function RealityChainWorkbench(){
         </>:null}
       </section>
       <section className="rcPanel rcDossierRecords"><small>02 / DOCUMENTARY LEDGER</small><h2>What actually exists in the record?</h2>{focused?<div className="rcFocused"><strong>{focused.kind} · {focused.epistemicRole}</strong><p>{payloadDescription(focused)}</p><small>CASE REFERENCE: {focused.canonicalRef.id}</small><small>HASH: {focused.canonicalRef.hash??'NOT REPRESENTED'}</small><small>OBSERVED: {date(focused.observedAt)} · RECORDED: {date(focused.createdAt)}</small><small>LOCATOR: {JSON.stringify(focused.payload.locator??'NOT REPRESENTED')}</small><small>RELATED SOURCE REFERENCES: {focused.sourceRefs.map(r=>r.id).join(', ')||'NOT REPRESENTED'}</small><button onClick={()=>setSelectedObject(null)}>SHOW COMPLETE LEDGER</button></div>:<div className="rcRecordList">{asOfObjects.map(o=><button key={o.id} type="button" onClick={()=>setSelectedObject(o.id)}><time>{date(o.observedAt??o.createdAt)}</time><strong>{o.kind} · {o.epistemicRole}</strong><span>{payloadDescription(o).slice(0,250)}</span></button>)}</div>}</section>
-      <section className="rcPanel rcDeliver"><small>03 / TRACEABILITY DELIVERY</small><h2>Reconstruct · Inspect · Export</h2><p>Includes the case, all represented stages, unclassified objects, source lineage, source hashes, text excerpts and time boundaries. Missing records remain unknown.</p><strong>{asOfObjects.length} objects in selected historical reading · {reports.length} governed reports already recorded</strong><button type="button" disabled={!caseData||working} onClick={makeReport}>GENERATE COMPLETE REPRESENTED TRACE (JSON + PRINTABLE HTML)</button><button type="button" disabled={!caseData||working} onClick={createInstitutionalReport}>REGISTER GOVERNED REPORT RECEIPT (AUTHORIZED MEMBERS ONLY)</button><p>Report registration is an institutional act and does not certify unsupported claims. The full printable report is a derived inspection artifact.</p>{generatedAt?<small>LAST LOCAL EXPORT: {date(generatedAt)}</small>:null}</section>
+      <section className="rcPanel rcDeliver"><small>03 / TRACEABILITY DELIVERY</small><h2>Reconstruct · Inspect · Export</h2><p>Includes the case, all represented stages, unclassified objects, source lineage, source hashes, text excerpts and time boundaries. Missing records remain unknown.</p><strong>{asOfObjects.length} objects in selected historical reading · {reports.length} governed reports already recorded</strong><button type="button" disabled={!caseData||working} onClick={makeReport}>GENERATE COMPLETE REPRESENTED TRACE (JSON + PRINTABLE HTML)</button><button type="button" disabled={!caseData||working} onClick={persistTraceManifest}>PERSIST VERSIONED TRACE MANIFEST AS RECORD</button><button type="button" disabled={!caseData||working} onClick={createInstitutionalReport}>REGISTER GOVERNED REPORT RECEIPT (AUTHORIZED MEMBERS ONLY)</button><p>Report registration is an institutional act and does not certify unsupported claims. The full printable report is a derived inspection artifact.</p>{generatedAt?<small>LAST LOCAL EXPORT: {date(generatedAt)}</small>:null}</section>
     </section>
    </div>
   </div>
