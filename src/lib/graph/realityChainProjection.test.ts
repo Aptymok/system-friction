@@ -134,7 +134,7 @@ test('external cognitive peer style inferred claim remains bounded without verif
   assert.equal(passport.authority.authorityExpanded,false);
   assert.equal(passport.authority.mayMintReturn,false);
   assert.equal(passport.authority.mayPromoteCanon,false);
-  assert.equal(passport.contract,'SFI-REALITY-PASSPORT-1.2');
+  assert.equal(passport.contract,'SFI-REALITY-PASSPORT-1.0');
 });
 
 
