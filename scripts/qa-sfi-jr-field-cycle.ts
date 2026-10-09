@@ -125,7 +125,7 @@ assert.ok(cron.includes('runJrFieldCycle'), 'world_cron_must_continue_into_jr');
 assert.ok(root.includes('projectDistributedPhenomenaForRoot'), 'root_must_project_distributed_phenomena');
 assert.ok(root.includes('readFieldEpochHistories'), 'root_must_hydrate_persisted_field_epochs');
 assert.ok(root.includes('fieldHistory: fieldHistorySummaries.get(node.nodeId)'), 'root_must_bind_epoch_history_to_field_node');
-assert.ok(rootView.includes('fieldHistory?.epochCount') && rootView.includes('persistedHistory'), 'root_governance_console_must_expose_persisted_epoch_count');
+assert.ok(rootView.includes('fieldHistory.epochCount') && rootView.includes('persistedHistory'), 'root_governance_console_must_expose_persisted_epoch_count');
 assert.ok(rootView.includes('recentEpochs') && rootView.includes('JR LOGBOOK'), 'root_governance_console_must_expose_recent_field_history');
 assert.ok(rootView.includes("closesAt: string | null"), 'root_method_result_must_support_phenomenon_conditioned_return');
 
