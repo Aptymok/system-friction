@@ -20,6 +20,8 @@ assert(ui.includes('/sources/upload-ticket')&&ui.includes('/sources/finalize-upl
 assert(ui.includes("kind:'RECORD'")&&ui.includes('sourceRefs:[sourceRef]'),'extracted passage remains source-linked record');
 assert(ui.includes('Date.parse(o.createdAt)<=Date.parse(cutoff'),'do not introduce future records into historical T0');
 assert(ui.includes('const stageObjects=asOfObjects.filter'),'T0 applied to stages, not only ledger');
+assert(ui.includes('Date.parse(o.createdAt)<=Date.parse(cutoff')&&ui.includes('Date.parse(o.observedAt)<=Date.parse(cutoff'),'T0 requires recorded and observed boundaries');
+assert(ui.includes('STEPS.slice(6,9)')&&ui.includes('NOT AUTOMATICALLY')===false,'learning displayed without fabricated promotion claim');
 assert(ui.includes("const sourceObjects=asOfObjects.filter"),'T0 applied to persisted trace manifest');
 assert(ui.includes("function" )||ui.includes("const linkExistingCase"),'existing case link');
 assert(link.includes("readOperationalCase(referencedCaseId,user.id)"),'permission check on referenced case');
