@@ -262,49 +262,206 @@ export function RealityChainWorkbench(){
     }catch(e){setError(String((e as Error).message));}finally{setWorking(false);}
   };
 
- return <main className="rcOperational" aria-label="Authenticated Reality Chain">
-  <header className="rcOperationalHead"><span>03 / REALITY CHAIN · AUTHENTICATED WORKSPACE</span><strong>FROM SOURCE TO CONSEQUENTIAL RETURN</strong><button type="button" onClick={()=>scrollTo(0)}>01 FIELD</button><button type="button" onClick={()=>scrollTo(1)}>02 DOSSIER / REPORT</button></header>
-  <div className="rcOperationalScroller" ref={scroll}>
-   <div className="rcOperationalTrack">
-    <div className="rcBackdrop" aria-hidden="true"><img src="/assets/sfi/instruments/RealityChain.png" alt=""/></div>
-    <section className="rcHorizon rcFieldHorizon" aria-label="Reality Chain field">
-     <aside className="rcCaseRail"><h1>REALITY<br/>CHAIN</h1><p>NOTHING ACTS ALONE.<br/>REALITY ANSWERS BACK.</p>
-      <label>PROJECT FILTER<select value={projectId} onChange={e=>{setProjectId(e.target.value);setCaseId('')}}><option value="ALL">ALL AUTHORIZED PROJECTS</option>{projects.map(p=><option key={p.id} value={p.id}>{p.name} · {p.caseCount}</option>)}</select></label>
-      <label>YOUR CASES<select value={caseId} onChange={e=>setCaseId(e.target.value)}><option value="">SELECT AN EXISTING CASE</option>{visibleCases.map(c=><option key={c.id} value={c.id}>{c.subject} · {c.status}</option>)}</select></label>
-      <button onClick={()=>setNewCase(!newCase)} type="button">{newCase?'CLOSE CASE INTAKE':'+ REGISTER NEW CASE'}</button>
-      {newCase?<div className="rcNewCase"><label>CASE SUBJECT<input value={title} onChange={e=>setTitle(e.target.value)} maxLength={160}/></label><label>SCOPE<textarea value={scope} onChange={e=>setScope(e.target.value)} maxLength={2000} rows={3}/></label><label>EXISTING SERVICE PROFILE<select value={profileId} onChange={e=>setProfileId(e.target.value)}><option value="">SELECT PROFILE</option>{profiles.map((p,i)=><option key={i} value={p.id??p.serviceProfileId??''}>{p.name??p.label??p.id??p.serviceProfileId}</option>)}</select></label><button onClick={makeCase} disabled={working||!profileId}>REGISTER CASE</button></div>:null}
-      <div className="rcRailStats"><span>{visibleCases.length} ACCOUNT-ACCESSIBLE CASES</span><span>{sourceObjects.length} REPRESENTED SOURCES</span><span>{objects.length} CASE OBJECTS</span></div>
-      <button onClick={()=>setShowMethod(!showMethod)} type="button">{showMethod?'HIDE':'SHOW'} FULL METHOD & CONDITIONS</button>
-     </aside>
-     <div className="rcMainField">
-       <p className="rcFieldKicker">MATERIAL CLAIM / DECISION CHAIN · EACH BOUNDARY IS INSPECTABLE</p>
-       <div className="rcStageBand">{STEPS.map((stage,i)=><button type="button" key={stage.name} data-active={activeStep===i} onClick={()=>{setActiveStep(i);setSelectedObject(null)}}><small>{String(i+1).padStart(2,'0')}</small><strong>{stage.name}</strong><em>{stageCoverage[i]} RECORDS</em></button>)}</div>
-       {showMethod?<div className="rcMethodDetails"><strong>FULL EXPERIMENTAL METHOD · NOT A MANDATORY SOFTWARE PIPELINE</strong><p>{FULL_METHOD.join(' → ')}</p><small>TRANSVERSAL · {TRANSVERSAL.join(' · ')}</small></div>:null}
-       <div className="rcFieldBottom">
-        <article className="rcPanel rcStepPanel"><small>SELECTED BOUNDARY · {String(activeStep+1).padStart(2,'0')}</small><h2>{STEPS[activeStep].name}</h2><p>{STEPS[activeStep].role}</p><strong>{stageObjects.length} represented case objects</strong><ul>{stageObjects.slice(0,9).map(o=><li key={o.id}><button type="button" onClick={()=>{setSelectedObject(o.id);scrollTo(1)}}>{safeText(o.payload.label??o.payload.statement??o.kind)} <span>→</span></button></li>)}</ul></article>
-        <article className="rcPanel rcCaseOverview"><small>CASE PASSPORT</small><h2>{caseData?.caseRecord.subject??'Select a case to inspect its chain.'}</h2><p>{caseData?.caseRecord.scope??'The case and timeline will be read from your authorized Case Platform records.'}</p><dl><div><dt>CASE STATE</dt><dd>{caseData?.caseRecord.status??'NOT SELECTED'}</dd></div><div><dt>AS-OF CUTOFF</dt><dd>{caseData?.caseRecord.temporalWindow?.cutoff??'UNKNOWN'}</dd></div><div><dt>EVIDENCE COVERAGE</dt><dd>{caseData?.readiness?.readyForAnalysis?'PROFILE SOURCES PRESENT':'NOT ESTABLISHED'}</dd></div></dl></article>
-        <article className="rcPanel rcTimeline"><small>OBSERVED / RECORDED TIME · UTC</small><h2>LONGITUDINAL CHAIN</h2><p>Time of the source event, observation and record creation are not interchangeable.</p><div className="rcTimelineEntries">{ordered.slice(0,12).map(o=><button key={o.id} type="button" onClick={()=>{setSelectedObject(o.id);scrollTo(1)}}><time>{date(o.observedAt??o.createdAt)}</time><strong>{o.kind}</strong></button>)}</div></article>
-       </div>
-     </div>
-    </section>
-    <section className="rcHorizon rcDossierHorizon" aria-label="Case source and traceability workbench">
-      <div className="rcDossierIntro"><span>CASE PLATFORM / ACCOUNT-BOUND</span><h2>THE EVIDENCE<br/>HAS AN ADDRESS.</h2><p>Reconstruct the source, its extractable passages, precise locators, dates, authorized transitions and what remains unknown.</p><label>HISTORICAL READ-AS-OF DATE<input type="date" value={cutoff} onChange={e=>setCutoff(e.target.value)}/></label><small>Historical cutoff filters recorded objects; it cannot reconstruct a version that was not persisted.</small></div>
-      <section className="rcPanel rcMaterials"><small>01 / SOURCE INTAKE</small><h2>Reference a document without storing the original</h2><p>Uploaded bytes are parsed transiently for exact text, hash and recoverable locators. The source is registered only when you confirm it.</p>
-        <label>LOCAL DOCUMENT (PDF / DOCX / TXT / MD / CSV / JSON)<input type="file" accept=".pdf,.docx,.txt,.md,.csv,.tsv,.json" onChange={e=>setFile(e.target.files?.[0]??null)}/></label>
-        <button type="button" disabled={!caseId||!file||working} onClick={extract}>EXTRACT TEMPORARILY · NO FILE STORAGE</button>
-        {extraction?<><div className="rcSourceSummary"><strong>{extraction.source.filename}</strong><span>SHA-256 · {extraction.source.sha256}</span><span>{extraction.extraction.fragmentCount} PARAGRAPH BLOCKS · {extraction.extraction.parser}</span><span>{extraction.extraction.complete?'COMPLETE WITHIN PARSER LIMITS':'PARTIAL EXTRACTION · REVIEW REQUIRED'}</span>{extraction.extraction.warnings.map(w=><span key={w}>{w}</span>)}</div>
-          <label>OPTIONAL EXTERNAL SOURCE REFERENCE<input placeholder="Institutional repository URL or stable reference" value={externalRef} onChange={e=>setExternalRef(e.target.value)} maxLength={1800}/></label>
-          <button type="button" disabled={!!sourceRef||!caseId||working} onClick={register}>{sourceRef?'SOURCE REFERENCE RECORDED':'REGISTER SOURCE METADATA ONLY'}</button>
-          <div className="rcExtracted">{extraction.extraction.fragments.map((part,i)=><label key={i} className="rcExtractedItem"><input type="checkbox" checked={chosen.includes(i)} onChange={e=>setChosen(old=>e.target.checked?[...old,i]:old.filter(x=>x!==i))}/><span><b>{part.page===null?'PAGE NOT RESOLVED':'PAGE '+part.page} · PARAGRAPH {part.paragraph}</b><p>{part.text}</p><small>EXTRACTED TEXT OFFSETS · {part.start??'UNKNOWN'}–{part.end??'UNKNOWN'}</small></span></label>)}</div>
-          <button type="button" onClick={savePassages} disabled={!sourceRef||!chosen.length||working}>PRESERVE {Math.min(chosen.length,24)} SELECTED EXACT PASSAGES AS RECORDS</button>
-        </>:null}
-      </section>
-      <section className="rcPanel rcDossierRecords"><small>02 / DOCUMENTARY LEDGER</small><h2>What actually exists in the record?</h2>{focused?<div className="rcFocused"><strong>{focused.kind} · {focused.epistemicRole}</strong><p>{payloadDescription(focused)}</p><small>CASE REFERENCE: {focused.canonicalRef.id}</small><small>HASH: {focused.canonicalRef.hash??'NOT REPRESENTED'}</small><small>OBSERVED: {date(focused.observedAt)} · RECORDED: {date(focused.createdAt)}</small><small>LOCATOR: {JSON.stringify(focused.payload.locator??'NOT REPRESENTED')}</small><small>RELATED SOURCE REFERENCES: {focused.sourceRefs.map(r=>r.id).join(', ')||'NOT REPRESENTED'}</small><button onClick={()=>setSelectedObject(null)}>SHOW COMPLETE LEDGER</button></div>:<div className="rcRecordList">{asOfObjects.map(o=><button key={o.id} type="button" onClick={()=>setSelectedObject(o.id)}><time>{date(o.observedAt??o.createdAt)}</time><strong>{o.kind} · {o.epistemicRole}</strong><span>{payloadDescription(o).slice(0,250)}</span></button>)}</div>}</section>
-      <section className="rcPanel rcDeliver"><small>03 / TRACEABILITY DELIVERY</small><h2>Reconstruct · Inspect · Export</h2><p>Includes the case, all represented stages, unclassified objects, source lineage, source hashes, text excerpts and time boundaries. Missing records remain unknown.</p><strong>{asOfObjects.length} objects in selected historical reading · {reports.length} governed reports already recorded</strong><button type="button" disabled={!caseData||working} onClick={makeReport}>GENERATE COMPLETE REPRESENTED TRACE (JSON + PRINTABLE HTML)</button><button type="button" disabled={!caseData||working} onClick={persistTraceManifest}>PERSIST VERSIONED TRACE MANIFEST AS RECORD</button><button type="button" disabled={!caseData||working} onClick={createInstitutionalReport}>REGISTER GOVERNED REPORT RECEIPT (AUTHORIZED MEMBERS ONLY)</button><p>Report registration is an institutional act and does not certify unsupported claims. The full printable report is a derived inspection artifact.</p>{generatedAt?<small>LAST LOCAL EXPORT: {date(generatedAt)}</small>:null}</section>
-    </section>
-   </div>
+ return <main className="rcOperational rcThreeMode" aria-label="Authenticated Reality Chain">
+  <header className="rcOperationalHead">
+    <span>REALITY CHAIN · INSTITUTIONAL RECONSTRUCTION</span>
+    <strong>KNOWN THEN ≠ KNOWN NOW</strong>
+    <button type="button" aria-current={screen===0?'step':undefined} onClick={()=>scrollTo(0)}>01 · OBSERVE</button>
+    <button type="button" aria-current={screen===1?'step':undefined} onClick={()=>scrollTo(1)}>02 · ASSESS</button>
+    <button type="button" aria-current={screen===2?'step':undefined} onClick={()=>scrollTo(2)}>03 · ACT & LEARN</button>
+  </header>
+
+  <div className="rcGlobalCaseBar">
+    <label>PROJECT
+      <select value={projectId} onChange={e=>{setProjectId(e.target.value);setCaseId('')}}>
+        <option value="ALL">ALL ACCESSIBLE PROJECTS</option>
+        {projects.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
+      </select>
+    </label>
+    <label>CASE
+      <select value={caseId} onChange={e=>{setCaseId(e.target.value);setSelectedObject(null)}}>
+        <option value="">SELECT A PERSISTED CASE</option>
+        {visibleCases.map(c=><option key={c.id} value={c.id}>{c.subject} · {c.status}</option>)}
+      </select>
+    </label>
+    <label>RECONSTRUCT AS OF
+      <input type="date" value={cutoff} onChange={e=>setCutoff(e.target.value)}/>
+    </label>
+    <button type="button" onClick={()=>setNewCase(!newCase)}>{newCase?'CANCEL INTAKE':'+ NEW CASE'}</button>
+    <span>{caseData?caseData.caseRecord.status:'NO CASE SELECTED'} · {objects.length} RECORDED OBJECTS</span>
+    {newCase?<div className="rcGlobalNewCase">
+      <label>CASE SUBJECT<input value={title} onChange={e=>setTitle(e.target.value)} maxLength={160}/></label>
+      <label>CASE SCOPE<textarea value={scope} onChange={e=>setScope(e.target.value)} maxLength={2000} rows={2}/></label>
+      <label>AUTHORIZED SERVICE PROFILE
+        <select value={profileId} onChange={e=>setProfileId(e.target.value)}>
+          <option value="">SELECT PROFILE</option>
+          {profiles.map((p,i)=><option key={i} value={p.id??p.serviceProfileId??''}>{p.name??p.label??p.id??p.serviceProfileId}</option>)}
+        </select>
+      </label>
+      <button type="button" disabled={working||!profileId} onClick={makeCase}>REGISTER CASE IN CASE PLATFORM</button>
+    </div>:null}
   </div>
-  <footer className="rcOperationalFooter"><div><strong>REALITY CHAIN / FIELD HISTORY</strong><span>CASE_ID · SOURCE · AUTHORITY · STATE · RETURN</span></div><div className="rcOperationalFooterRail"><span>WORLD</span><span>CAPTURE</span><span>EVIDENCE</span><span>VERIFY</span><span>AUTHORITY</span><span>ACTION</span><span>RETURN</span></div><button type="button" onClick={()=>scrollTo(0)}>← FIELD</button><button type="button" onClick={()=>scrollTo(1)}>DOSSIER →</button></footer>
+
+  <div className="rcOperationalScroller" ref={scroll} aria-label="Reality Chain three-screen horizontal reconstruction">
+    <div className="rcOperationalTrack">
+      <div className="rcBackdrop" aria-hidden="true"><img src="/assets/sfi/instruments/RealityChain.png" alt=""/></div>
+
+      <section className="rcHorizon rcThreeHorizon" aria-label="Screen 1 · World, Signal, Observation">
+        <div className="rcThreeHorizonTop">
+          <div className="rcScreenIdentifier">01 / 03</div>
+          <h1>WORLD · SIGNAL · OBSERVATION</h1>
+          <p>What existed, what attracted attention, and what was actually recorded.</p>
+          <div className="rcThreeStageBand">
+            {STEPS.slice(0,3).map((stage,index)=><button key={stage.name} type="button" onClick={()=>{setActiveStep(index);setSelectedObject(null)}} aria-pressed={activeStep===index}>
+              <small>0{index+1}</small><strong>{stage.name}</strong><span>{stage.role}</span><em>{stageCoverage[index]} REPRESENTED</em>
+            </button>)}
+          </div>
+        </div>
+        <div className="rcThreeHorizonBottom">
+          <section className="rcThreePane">
+            <h2>CASE / OBSERVATION CONTEXT</h2>
+            <strong>{caseData?.caseRecord.subject??'SELECT A CASE ABOVE'}</strong>
+            <p>{caseData?.caseRecord.scope??'Only cases authorized for this account will be readable here.'}</p>
+            <dl><div><dt>STATE</dt><dd>{caseData?.caseRecord.status??'NOT SELECTED'}</dd></div>
+            <div><dt>SYSTEM BOUNDARY</dt><dd>{caseData?.caseRecord.serviceProfileId??'NOT REPRESENTED'}</dd></div>
+            <div><dt>KNOWLEDGE CUTOFF</dt><dd>{cutoff||'ALL REPRESENTED HISTORY'}</dd></div></dl>
+          </section>
+          <section className="rcThreePane">
+            <h2>INSPECT THE SELECTED BOUNDARY</h2>
+            <strong>{STEPS[activeStep].name}</strong><p>{STEPS[activeStep].role}</p>
+            <p>{stageObjects.length} objects represented in this epistemic stage.</p>
+            <div className="rcRecordList">{stageObjects.slice(0,12).map(o=><button key={o.id} type="button" onClick={()=>{setSelectedObject(o.id);scrollTo(1)}}><time>{date(o.createdAt)}</time><strong>{safeText(o.payload.label??o.payload.statement??o.kind)}</strong></button>)}</div>
+            {!stageObjects.length?<p>NOT OBSERVED IN THE CURRENT CASE RECORD.</p>:null}
+          </section>
+          <section className="rcThreePane">
+            <h2>LONGITUDINAL TRACE</h2>
+            <p>Recorded time is not necessarily event time. A later receipt does not retroactively change prior knowledge.</p>
+            <div className="rcTimelineEntries">{asOfObjects.slice(0,16).map(o=><button key={o.id} type="button" onClick={()=>{setSelectedObject(o.id);scrollTo(1)}}><time>{date(o.createdAt)}</time><strong>{o.kind} · {o.epistemicRole}</strong></button>)}</div>
+            {!asOfObjects.length?<p>NO PERSISTED OBJECTS FOR THIS HISTORICAL READING.</p>:null}
+          </section>
+        </div>
+      </section>
+
+      <section className="rcHorizon rcThreeHorizon" aria-label="Screen 2 · Evidence, Inference, Authority">
+        <div className="rcThreeHorizonTop">
+          <div className="rcScreenIdentifier">02 / 03</div>
+          <h1>EVIDENCE · INFERENCE · AUTHORITY</h1>
+          <p>What the records support, what remains an interpretation, and who may decide.</p>
+          <div className="rcThreeStageBand">
+            {STEPS.slice(3,6).map((stage,index)=><button key={stage.name} type="button" onClick={()=>{setActiveStep(index+3);setSelectedObject(null)}} aria-pressed={activeStep===index+3}>
+              <small>0{index+4}</small><strong>{stage.name}</strong><span>{stage.role}</span><em>{stageCoverage[index+3]} REPRESENTED</em>
+            </button>)}
+          </div>
+        </div>
+        <div className="rcThreeHorizonBottom">
+          <section className="rcThreePane">
+            <h2>SOURCE INTAKE / FILE UPLOAD</h2>
+            <p>Choose whether to extract a document without storing its bytes, or preserve the original in authorized private Case Storage.</p>
+            <label>DOCUMENT · PDF, DOCX, TXT, CSV, JSON
+              <input type="file" accept=".pdf,.docx,.txt,.md,.csv,.tsv,.json,.xlsx,.zip,.png,.jpg" onChange={e=>setFile(e.target.files?.[0]??null)}/>
+            </label>
+            <div className="rcThreeActions">
+              <button type="button" disabled={!caseId||!file||working} onClick={extract}>EXTRACT TEXT TEMPORARILY · MAX 6 MB</button>
+              <button type="button" disabled={!caseId||!file||working} onClick={uploadOriginal}>STORE SOURCE PRIVATELY · MAX 25 MB</button>
+            </div>
+            {extraction?<><div className="rcSourceSummary">
+              <strong>{extraction.source.filename}</strong>
+              <span>SHA-256 · {extraction.source.sha256}</span>
+              <span>{extraction.extraction.fragmentCount} EXTRACTED BLOCKS · {extraction.extraction.parser}</span>
+              <span>{extraction.extraction.complete?'EXTRACTION WITHIN PARSER LIMITS':'PARTIAL / REVIEW REQUIRED'}</span>
+            </div>
+              <label>OPTIONAL EXTERNAL SOURCE REFERENCE<input value={externalRef} onChange={e=>setExternalRef(e.target.value)} maxLength={1800}/></label>
+              <button type="button" disabled={!!sourceRef||!caseId||working} onClick={register}>{sourceRef?'SOURCE REGISTERED':'REGISTER SOURCE METADATA'}</button>
+              <div className="rcExtracted">{extraction.extraction.fragments.map((part,index)=><label key={index} className="rcExtractedItem"><input type="checkbox" checked={chosen.includes(index)} onChange={e=>setChosen(old=>e.target.checked?[...old,index]:old.filter(x=>x!==index))}/><span><b>{part.page===null?'PAGE UNKNOWN':'PAGE '+part.page} · PARAGRAPH {part.paragraph}</b><p>{part.text}</p><small>TEXT OFFSETS: {part.start??'UNKNOWN'}–{part.end??'UNKNOWN'}</small></span></label>)}</div>
+              <button type="button" disabled={!sourceRef||!chosen.length||working} onClick={savePassages}>PRESERVE SELECTED PASSAGES AS RECORDS</button>
+            </>:null}
+          </section>
+          <section className="rcThreePane">
+            <h2>DOCUMENTARY LEDGER / PROVENANCE</h2>
+            <p>Known then ≠ known now. An unverified quote remains a RECORD, not EVIDENCE.</p>
+            {focused?<div className="rcFocused">
+              <strong>{focused.kind} · {focused.epistemicRole}</strong>
+              <p>{payloadDescription(focused)}</p>
+              <small>ID: {focused.canonicalRef.id}</small>
+              <small>HASH: {focused.canonicalRef.hash??'NOT REPRESENTED'}</small>
+              <small>OBSERVED: {date(focused.observedAt)} · RECORDED: {date(focused.createdAt)}</small>
+              <small>LOCATOR: {JSON.stringify(focused.payload.locator??'NOT REPRESENTED')}</small>
+              <small>SOURCE REFS: {focused.sourceRefs.map(r=>r.id).join(', ')||'NOT REPRESENTED'}</small>
+              <button type="button" onClick={()=>setSelectedObject(null)}>BACK TO ALL RECORDS</button>
+            </div>:<div className="rcRecordList">{asOfObjects.map(o=><button key={o.id} type="button" onClick={()=>setSelectedObject(o.id)}><time>{date(o.createdAt)}</time><strong>{o.kind} · {o.epistemicRole}</strong><span>{payloadDescription(o).slice(0,240)}</span></button>)}</div>}
+            <div className="rcThreeDataLine">{sourceObjects.length} SOURCES · {asOfObjects.filter(o=>o.kind==='EVIDENCE').length} ADMITTED EVIDENCE · {asOfObjects.filter(o=>o.kind==='CONTRADICTION').length} CONTRADICTIONS</div>
+          </section>
+          <section className="rcThreePane">
+            <h2>HYPOTHESIS / AUTHORITY</h2>
+            <p>Interpretation does not authorize intervention. Independent sources and calibration are not inferred from document counts.</p>
+            <dl><div><dt>HYPOTHESES</dt><dd>{asOfObjects.filter(o=>o.kind==='HYPOTHESIS').length} REPRESENTED</dd></div>
+              <div><dt>GOVERNANCE DECISIONS</dt><dd>{asOfObjects.filter(o=>o.kind==='GOVERNANCE_DECISION').length} RECORDED</dd></div>
+              <div><dt>INDEPENDENT CONFIRMATION</dt><dd>NOT ESTABLISHED FROM COUNTS</dd></div>
+              <div><dt>CALIBRATED CONFIDENCE</dt><dd>NOT CALIBRATED</dd></div>
+              <div><dt>ABSTENTION</dt><dd>REQUIRED WHERE EVIDENCE OR AUTHORITY IS INSUFFICIENT</dd></div></dl>
+            <a className="rcThreeLink" href="/root/evidence-review">OPEN GOVERNED EVIDENCE REVIEW ↗</a>
+          </section>
+        </div>
+      </section>
+
+      <section className="rcHorizon rcThreeHorizon" aria-label="Screen 3 · Execution, Return, Learning">
+        <div className="rcThreeHorizonTop">
+          <div className="rcScreenIdentifier">03 / 03</div>
+          <h1>EXECUTION · RETURN · LEARNING</h1>
+          <p>What was done, what reality returned, and what was actually integrated.</p>
+          <div className="rcThreeStageBand">
+            {STEPS.slice(6,9).map((stage,index)=><button key={stage.name} type="button" onClick={()=>{setActiveStep(index+6);setSelectedObject(null)}} aria-pressed={activeStep===index+6}>
+              <small>0{index+7}</small><strong>{stage.name}{stage.name==='LEARNING'?<svg className="rcLearningIcon" viewBox="0 0 48 48" role="img" aria-label="Learning"><path d="M24 11c-6-4-12-4-19-2v27c7-2 13-2 19 2 6-4 12-4 19-2V9c-7-2-13-2-19 2Z" fill="none" stroke="currentColor" strokeWidth="2"/><path d="M24 11v27M29 23l4 4 8-10" fill="none" stroke="currentColor" strokeWidth="2"/></svg>:null}</strong>
+              <span>{stage.role}</span><em>{stageCoverage[index+6]} REPRESENTED</em>
+            </button>)}
+          </div>
+        </div>
+        <div className="rcThreeHorizonBottom">
+          <section className="rcThreePane">
+            <h2>CHAIN-TO-CHAIN SOURCE REFERENCES</h2>
+            <p>One case may become an inspectable source for another. A reference does not automatically validate its claims as EVIDENCE.</p>
+            <label>REFERENCE ANOTHER AUTHORIZED CASE
+              <select value={caseToLink} onChange={e=>setCaseToLink(e.target.value)}>
+                <option value="">SELECT SOURCE CASE</option>
+                {availableToLink.map(item=><option key={item.id} value={item.id}>{item.subject}</option>)}
+              </select>
+            </label>
+            <button type="button" disabled={working||!caseToLink} onClick={linkExistingCase}>ADD GOVERNED CROSS-CASE REFERENCE</button>
+            <div className="rcRecordList">{linkedCaseObjects.map(o=><div className="rcRecordItem" key={o.id}><strong>{safeText(o.payload.referencedCaseSubject,'CROSS-CASE SOURCE')}</strong><small>{safeText(o.payload.referencedCaseId)}</small><span>NOT YET QUALIFIED AS EVIDENCE</span></div>)}</div>
+            {!linkedCaseObjects.length?<p>NO CROSS-CASE REFERENCES OBSERVED.</p>:null}
+          </section>
+          <section className="rcThreePane">
+            <h2>RECONSTRUCT / TRACE / DELIVER</h2>
+            <p>The same case can be reconstructed as known at a particular time. A report does not manufacture a decision or external RETURN.</p>
+            <div className="rcThreeDataLine">{asOfObjects.length} HISTORICAL OBJECTS · {reports.length} RECORDED REPORTS</div>
+            <button type="button" disabled={!caseData||working} onClick={makeReport}>EXPORT TRACE · JSON + PRINTABLE HTML</button>
+            <button type="button" disabled={!caseData||working} onClick={persistTraceManifest}>PERSIST TRACE MANIFEST AS RECORD</button>
+            <button type="button" disabled={!caseData||working} onClick={createInstitutionalReport}>REQUEST GOVERNED REPORT RECEIPT</button>
+            {generatedAt?<p>LAST LOCAL EXPORT: {date(generatedAt)}</p>:null}
+            <dl><div><dt>EXECUTION RECORDS</dt><dd>{asOfObjects.filter(o=>o.kind==='INTERVENTION').length}</dd></div><div><dt>RETURN RECORDS</dt><dd>{asOfObjects.filter(o=>o.kind==='RETURN').length}</dd></div></dl>
+          </section>
+          <section className="rcThreePane">
+            <h2>REALITY PASSPORT / LEARNING</h2>
+            <p>Inspect the selected case in ROOT using its existing identifier. No duplicate passport or authority is created.</p>
+            {caseId?<a className="rcThreeLink" href={'/root?reading=REALITY_CHAIN&node='+encodeURIComponent(caseId)}>OPEN SELECTED CASE IN ROOT ↗</a>:<p>SELECT A CASE TO OPEN ITS PASSPORT.</p>}
+            <dl><div><dt>WHAT WAS KNOWN?</dt><dd>{asOfObjects.filter(o=>o.kind==='EVIDENCE').length} ADMITTED EVIDENCE OBJECTS</dd></div>
+            <div><dt>WHAT WAS INFERRED?</dt><dd>{asOfObjects.filter(o=>o.kind==='HYPOTHESIS').length} RECORDED HYPOTHESES</dd></div>
+            <div><dt>WHAT WAS AUTHORIZED?</dt><dd>{asOfObjects.filter(o=>o.kind==='GOVERNANCE_DECISION').length} RECORDED DECISIONS</dd></div>
+            <div><dt>WHAT WAS EXECUTED?</dt><dd>{asOfObjects.filter(o=>o.kind==='INTERVENTION').length} INTERVENTION RECORDS</dd></div>
+            <div><dt>WHAT DID REALITY RETURN?</dt><dd>{asOfObjects.filter(o=>o.kind==='RETURN').length} RETURN RECORDS</dd></div>
+            <div><dt>WHAT WAS LEARNED?</dt><dd>GOVERNED INTEGRATION NOT INFERRED FROM CASE CLOSURE</dd></div></dl>
+          </section>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <footer className="rcOperationalFooter">
+    <div><strong>REALITY CHAIN · THREE COGNITIVE SCREENS</strong><span>ORIGIN · LINEAGE · AUTHORITY · TIME · RETURN</span></div>
+    <button type="button" onClick={()=>scrollTo(Math.max(0,screen-1))} disabled={screen===0}>← PREVIOUS</button>
+    <div className="rcOperationalFooterRail"><span>{screen===0?'WORLD · SIGNAL · OBSERVATION':screen===1?'EVIDENCE · INFERENCE · AUTHORITY':'EXECUTION · RETURN · LEARNING'}</span></div>
+    <button type="button" onClick={()=>scrollTo(Math.min(2,screen+1))} disabled={screen===2}>NEXT →</button>
+  </footer>
   {message?<div className="rcToast" role="status">{message}<button onClick={()=>setMessage('')} aria-label="Dismiss message">×</button></div>:null}
   {error?<div className="rcToast rcToastError" role="alert">{error}<button onClick={()=>setError('')} aria-label="Dismiss error">×</button></div>:null}
  </main>;
