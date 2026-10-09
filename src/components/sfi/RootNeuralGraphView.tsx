@@ -192,7 +192,7 @@ type GraphPayload = {
   admission: { contract: string; sourceNodes: number; sourceEdges: number; admittedNodes: number; admittedEdges: number; excludedNodes: number; excludedEdges: number; excludedNodeReasons: Record<string, number> };
 };
 
-type RegisteredAgent={key:string;name:string;kind:string;status:string;permissions:string;capability:string};
+type RegisteredAgent={key:string;name:string;kind:string;declaredStatus:string;permissions:string;capability:string};
 const FIELD_GROUPS=['GOVERNANCE','CASES & PROJECTS','INSTITUTIONAL ATTRACTOR','EXTERNAL REALITY','AUTHORITY BOUNDARY','PROJECTIONS','UNCLASSIFIED'] as const;
 type FieldGroup=typeof FIELD_GROUPS[number];
 function fieldGroup(node:GraphNode):FieldGroup {
