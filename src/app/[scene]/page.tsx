@@ -7,6 +7,7 @@ import { projectCognitiveGraph } from '@/lib/graph/cognitiveGraphAdmission';
 import { buildRealityPassport, readRealityPassportNode, readRealityChainEdge, realityPassportCoverage } from '@/lib/graph/realityChainProjection';
 import { requireFounderPage } from '@/lib/system/access/server';
 import { AuthenticatedSfiMenu } from '@/components/sfi/AuthenticatedSfiMenu';
+import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { deriveCanonicalFieldMethodSignal, planCanonicalUnknownResolution, resolveCanonicalFieldMethodology } from '@/lib/mihm/rootCaseMethodology';
 import { proposeMethodLabFieldProtocol, resolveMethodLabFieldProjection } from '@/lib/method-lab/fieldProjection';
 import { deriveEmpiricalCapacityEnvelope, deriveFieldScientificReading } from '@/lib/mihm/fieldScientificReading';
@@ -113,10 +114,45 @@ export default async function ScenePage({ params }:{ params:Promise<{scene:strin
     const distributedPhenomena = deriveDistributedPhenomena(graph.nodes, graph.edges);
     const distributedPhenomenonProjection = projectDistributedPhenomenaForRoot(distributedPhenomena, graph.loadedAt);
 
+    // Read the existing institutional registry. A registered agent is not
+    // presumed executed or assigned to a selected graph node.
+    let agentRegistryState = 'UNAVAILABLE';
+    let agents: Array<{
+      agentKey:string;name:string;entityKind:string;capability:string;
+      permissions:string;status:string;lifecycleState:string;lastRunAt:string|null
+    }> = [];
+    try {
+      const { data, error } = await createServiceSupabaseClient()
+        .from('root_agents')
+        .select('agent_key,name,entity_kind,capability,permissions,status,lifecycle_state,last_run_at')
+        .order('agent_key',{ascending:true})
+        .limit(80);
+      if (error) {
+        agentRegistryState = 'UNAVAILABLE';
+      } else {
+        agents = (data ?? []).map(row=>({
+          agentKey:String(row.agent_key),
+          name:String(row.name ?? row.agent_key),
+          entityKind:String(row.entity_kind ?? 'UNKNOWN'),
+          capability:String(row.capability ?? 'NOT REPRESENTED'),
+          permissions:String(row.permissions ?? 'UNKNOWN'),
+          status:String(row.status ?? 'UNKNOWN'),
+          lifecycleState:String(row.lifecycle_state ?? 'UNKNOWN'),
+          lastRunAt:typeof row.last_run_at === 'string' ? row.last_run_at : null,
+        }));
+        agentRegistryState = data?.length ? 'AVAILABLE' : 'EMPTY';
+      }
+    } catch {
+      agentRegistryState = 'UNAVAILABLE';
+    }
+
+
     return (
       <main className="sfiOperatingShell sfiAuthenticatedViewport" data-root-primary-interface="CANONICAL_COGNITIVE_FIELD">
         <AuthenticatedSfiMenu/>
         <div className="sfiAuthenticatedViewportContent"><RootNeuralGraphView
+          agents={agents}
+          agentRegistryState={agentRegistryState}
           graph={{
             sourceState: graph.sourceState,
             degradedReason: graph.degradedReason,
