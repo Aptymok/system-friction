@@ -21,6 +21,7 @@ export type KnowledgeHistory = {
 
 export type KnowledgeMoment = {
   state: string;
+  stateMeaning: 'EPISTEMIC' | 'RECORDED_OBJECT_STATE' | 'NOT_RECORDED';
   statement: string | null;
   knownAt: string | null;
   eventAt: string | null;
@@ -78,6 +79,14 @@ function dateFromKeys(row: Record<string, unknown>, keys: string[]): string | nu
 function object(value: unknown): Record<string, unknown> | null {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : null;
 }
+const EPISTEMIC_STATES=new Set([
+  'OBSERVED','DECLARED','IMPORTED','EXTRACTED','DERIVED','INFERRED','SIMULATED',
+  'PROPOSED','UNKNOWN','MISSING','DEGRADED','CONFLICTED','REJECTED',
+  'CANONICAL','NOT OBSERVED','NOT VERIFIED','NOT APPLICABLE','ABSTAIN','BLOCKED',
+]);
+function epistemicState(state: string | null): boolean {
+  return Boolean(state && EPISTEMIC_STATES.has(state.toUpperCase().replaceAll('_',' ')));
+}
 function explicitPast(attributes: Record<string, unknown>): Record<string, unknown> | null {
   return object(attributes.knownThen) ??
     object(attributes.known_then) ??
@@ -106,6 +115,7 @@ export function projectKnowledgeTimeContrast(input: Input): KnowledgeTimeContras
 
   const then: KnowledgeMoment = past ? {
     state: fromKeys(past, ['epistemicState', 'epistemic_state', 'state']) ?? 'UNKNOWN',
+    stateMeaning: epistemicState(fromKeys(past, ['epistemicState', 'epistemic_state', 'state'])) ? 'EPISTEMIC' : 'RECORDED_OBJECT_STATE',
     statement: fromKeys(past, ['statement', 'claim', 'knowledge', 'observation']),
     knownAt: dateFromKeys(past, ['knownAt', 'known_at', 'knowledgeRecordedAt', 'recordedAt', 'recorded_at']),
     eventAt: dateFromKeys(past, ['eventAt', 'event_at', 'effectiveAt', 'effective_at', 'occurredAt', 'occurred_at']),
@@ -116,6 +126,7 @@ export function projectKnowledgeTimeContrast(input: Input): KnowledgeTimeContras
     boundary: 'Historical claim is only attributed to the supplied, independently inspectable prior snapshot.',
   } : persistedPast ? {
     state: persistedPast.state ?? 'UNKNOWN',
+    stateMeaning: epistemicState(persistedPast.state) ? 'EPISTEMIC' : 'RECORDED_OBJECT_STATE',
     statement: null,
     knownAt: persistedPast.occurredAt,
     eventAt: null,
@@ -126,6 +137,7 @@ export function projectKnowledgeTimeContrast(input: Input): KnowledgeTimeContras
     boundary: 'Only a historical STATE was persisted in this epoch; its historical claim text and real-world effective time are NOT RECORDED here.',
   } : {
     state: 'NOT OBSERVED',
+    stateMeaning: 'NOT_RECORDED',
     statement: null,
     knownAt: null,
     eventAt: null,
@@ -141,6 +153,7 @@ export function projectKnowledgeTimeContrast(input: Input): KnowledgeTimeContras
   const matchingLatestEpoch = persistedSample && latest && latest.state === input.epistemicState ? latest : null;
   const now: KnowledgeMoment = {
     state: input.epistemicState || 'UNKNOWN',
+    stateMeaning: epistemicState(input.epistemicState) ? 'EPISTEMIC' : 'RECORDED_OBJECT_STATE',
     statement: fromKeys(input.attributes, ['statement', 'claim', 'observedOutcome', 'observed_outcome', 'inference', 'hypothesis']),
     knownAt: explicitKnownAt ?? matchingLatestEpoch?.occurredAt ?? null,
     eventAt: dateFromKeys(input.attributes, ['effectiveAt', 'effective_at', 'eventAt', 'event_at', 'occurredAt', 'occurred_at']),
@@ -152,7 +165,8 @@ export function projectKnowledgeTimeContrast(input: Input): KnowledgeTimeContras
   };
   // Only compare historical and current status when both dates are backed by valid knowledge records.
   const comparable = then.knownAt !== null && now.knownAt !== null &&
-    then.provenance !== 'NOT_OBSERVED' && then.knownAt <= now.knownAt;
+    then.provenance !== 'NOT_OBSERVED' && then.knownAt <= now.knownAt &&
+    then.stateMeaning === 'EPISTEMIC' && now.stateMeaning === 'EPISTEMIC';
   const comparison: KnowledgeTimeContrast['comparison'] = !comparable
     ? 'INSUFFICIENT_TEMPORAL_EVIDENCE'
     : then.state === now.state ? 'UNCHANGED' : 'CHANGED';
