@@ -1,0 +1,93 @@
+.rcOperational{
+ --rc-void:#060605;--rc-gold:#C8A951;--rc-cream:#E8DDC3;--rc-blue:#4A7AAA;--rc-red:#B85050;
+ --rc-mono:"Liberation Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+ --rc-display:"Noto Serif Display",Georgia,serif;
+ background:var(--rc-void);color:var(--rc-cream);
+ height:calc(100svh - 130px);min-height:680px;position:relative;isolation:isolate;
+ overflow:hidden;font-family:"Noto Sans",Arial,sans-serif;
+}
+.rcOperationalHead{height:52px;position:absolute;z-index:9;top:0;left:0;right:0;display:flex;align-items:center;gap:16px;padding:0 2vw;
+ border-bottom:1px solid rgba(200,169,81,.3);background:rgba(4,5,5,.85);backdrop-filter:blur(9px);
+ font:600 9px/1.4 var(--rc-mono);letter-spacing:.12em}
+.rcOperationalHead>span{color:var(--rc-gold)}.rcOperationalHead>strong{margin-left:auto;font-weight:500;letter-spacing:.07em;color:#b4a999}
+.rcOperationalHead button,.rcOperationalFooter button{background:rgba(8,9,9,.68);color:var(--rc-cream);border:1px solid rgba(200,169,81,.34);font:600 9px var(--rc-mono);padding:8px 12px;white-space:nowrap;cursor:pointer}
+.rcOperationalHead button:hover,.rcOperationalFooter button:hover{border-color:var(--rc-gold);color:#fff}
+.rcOperationalScroller{position:absolute;inset:52px 0 56px;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;scrollbar-width:thin;scrollbar-color:var(--rc-gold) transparent;touch-action:pan-x}
+.rcOperationalTrack{position:relative;display:flex;height:100%;width:max-content;min-width:225vw;isolation:isolate}
+.rcBackdrop{position:absolute;inset:0;z-index:-1;pointer-events:none;overflow:hidden}
+.rcBackdrop img{display:block;position:absolute;height:100%;width:100%;object-fit:cover;object-position:center;filter:saturate(.74) brightness(.38) contrast(1.09)}
+.rcBackdrop:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(4,5,5,.63),transparent 35%,rgba(4,5,5,.55) 55%,rgba(4,5,5,.78)),linear-gradient(180deg,rgba(4,5,5,.12),rgba(4,5,5,.04) 48%,rgba(4,5,5,.83))}
+.rcHorizon{flex:0 0 112.5vw;height:100%;padding:clamp(12px,2vw,30px);position:relative;scroll-snap-align:start;display:flex;gap:clamp(12px,1.2vw,22px)}
+.rcFieldHorizon{padding-left:2vw}
+.rcCaseRail{width:clamp(200px,16vw,310px);flex:0 0 clamp(200px,16vw,310px);background:rgba(5,7,8,.82);backdrop-filter:blur(9px);
+ border-left:1px solid rgba(200,169,81,.65);border-right:1px solid rgba(200,169,81,.2);padding:clamp(15px,2vw,26px);overflow:auto}
+.rcCaseRail h1{font:400 clamp(28px,3vw,45px)/.95 var(--rc-display);letter-spacing:.18em;margin:7px 0 12px}
+.rcCaseRail>p{font:600 9px/1.8 var(--rc-mono);color:#a99e8e;letter-spacing:.12em;margin-bottom:25px}
+.rcCaseRail label,.rcMaterials label,.rcDossierIntro label,.rcNewCase label{display:grid;gap:8px;margin:15px 0;font:600 9px/1.4 var(--rc-mono);letter-spacing:.09em;color:var(--rc-gold)}
+.rcCaseRail select,.rcCaseRail input,.rcNewCase textarea,.rcDossierIntro input,.rcMaterials input{font:11px/1.45 var(--rc-mono);background:rgba(2,4,5,.92);border:1px solid rgba(200,169,81,.28);color:var(--rc-cream);padding:10px;width:100%;min-width:0}
+.rcCaseRail button,.rcPanel button,.rcDossierIntro button{cursor:pointer;min-height:34px;border:1px solid rgba(200,169,81,.4);background:rgba(6,7,8,.72);color:#e1cfab;
+ font:600 9px/1.4 var(--rc-mono);letter-spacing:.03em;padding:9px 11px;text-align:left}
+.rcCaseRail button:disabled,.rcPanel button:disabled{opacity:.42;cursor:not-allowed}
+.rcCaseRail>button{display:block;width:100%;margin-top:14px}
+.rcRailStats{display:grid;gap:9px;margin-top:24px;padding:15px 0;border-top:1px solid rgba(200,169,81,.3);font:600 9px/1.4 var(--rc-mono);color:#a9b4bd}
+.rcMainField{min-width:0;flex:1;display:flex;flex-direction:column;justify-content:space-between;gap:15px}
+.rcFieldKicker{align-self:center;text-align:center;margin:4px 0 0;color:#f0d59b;font:600 10px var(--rc-mono);letter-spacing:.14em;text-shadow:0 2px 14px #000}
+.rcStageBand{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:4px;margin:0;min-height:clamp(125px,21vh,190px);align-items:stretch;padding-top:10px}
+.rcStageBand button{display:flex;flex-direction:column;align-items:start;text-align:left;gap:10px;padding:14px clamp(7px,.9vw,18px);border:1px solid rgba(200,169,81,.18);border-top:2px solid rgba(200,169,81,.28);
+ background:linear-gradient(180deg,rgba(4,6,6,.75),rgba(5,7,7,.14));color:var(--rc-cream);cursor:pointer;min-width:0;transition:background .15s}
+.rcStageBand button[data-active="true"]{border-top-color:var(--rc-gold);background:linear-gradient(180deg,rgba(200,169,81,.23),rgba(4,6,6,.5))}
+.rcStageBand small{font:500 14px var(--rc-mono);color:var(--rc-gold)}
+.rcStageBand strong{font:600 clamp(8px,.75vw,12px)/1.4 var(--rc-mono);letter-spacing:.09em;overflow-wrap:anywhere}
+.rcStageBand em{margin-top:auto;color:#b4aaa0;font:400 9px var(--rc-mono);font-style:normal}
+.rcMethodDetails{padding:14px 20px;border:1px solid rgba(200,169,81,.3);background:rgba(4,5,5,.88)}
+.rcMethodDetails strong{font:600 10px var(--rc-mono);color:var(--rc-gold)}
+.rcMethodDetails p,.rcMethodDetails small{display:block;margin:8px 0;font:10px/1.6 var(--rc-mono)}
+.rcFieldBottom{display:grid;grid-template-columns:1fr 1.2fr .95fr;gap:10px;min-height:225px;max-height:clamp(260px,36vh,425px)}
+.rcPanel{min-width:0;overflow:auto;padding:16px 17px;background:rgba(4,6,7,.83);backdrop-filter:blur(11px);border:1px solid rgba(200,169,81,.3);box-shadow:0 10px 35px rgba(0,0,0,.25)}
+.rcPanel>small,.rcDossierIntro>span{display:block;color:var(--rc-gold);font:650 10px/1.4 var(--rc-mono);letter-spacing:.13em}
+.rcPanel h2,.rcDossierIntro h2{margin:13px 0;font:400 clamp(20px,1.7vw,31px)/1.15 var(--rc-display);color:#f2ecdf}
+.rcPanel p,.rcDossierIntro p{font:12px/1.6 "Noto Sans",Arial,sans-serif;color:#bcb5a9}
+.rcPanel strong{font:600 10px/1.4 var(--rc-mono);color:#d6c299}
+.rcStepPanel ul{padding:0;margin:14px 0;list-style:none}.rcStepPanel li{margin-bottom:4px}
+.rcStepPanel li button{width:100%;display:flex;gap:6px;justify-content:space-between}
+.rcCaseOverview dl{margin-top:15px}.rcCaseOverview dl div{display:flex;justify-content:space-between;padding:9px 0;border-top:1px solid rgba(200,169,81,.15);gap:15px}
+.rcCaseOverview dt,.rcCaseOverview dd{margin:0;font:600 9px/1.4 var(--rc-mono);color:#a9a39b}.rcCaseOverview dd{text-align:right;color:#d5bb77}
+.rcTimelineEntries{height:58%;overflow-y:auto}.rcTimelineEntries button{display:flex;justify-content:space-between;width:100%;gap:10px;margin:4px 0}
+.rcTimelineEntries time,.rcFocused small{font:9px/1.5 var(--rc-mono);color:#bbb0a2}
+.rcDossierHorizon{display:grid;grid-template-columns:.9fr 1.3fr 1.25fr .95fr;gap:12px;align-items:stretch}
+.rcDossierIntro{padding:3vh 10px 10px;align-self:start}
+.rcDossierIntro>span{margin-bottom:24px}.rcDossierIntro h2{font-size:clamp(26px,2.4vw,43px)}
+.rcDossierIntro>small{display:block;line-height:1.6;font-size:10px;color:#a5a095}
+.rcDossierHorizon>.rcPanel{margin:0;max-height:100%;min-height:0}
+.rcDossierHorizon .rcPanel h2{font-size:clamp(19px,1.35vw,26px)}
+.rcMaterials>button,.rcDeliver>button{display:block;width:100%;margin:12px 0}
+.rcMaterials input[type="file"]{font-size:10px;max-width:100%;background:rgba(5,5,5,.8)}
+.rcSourceSummary{padding:11px;margin:10px 0;border-left:2px solid var(--rc-blue);overflow-wrap:anywhere;background:rgba(10,14,16,.88)}
+.rcSourceSummary span,.rcSourceSummary strong{display:block;margin-bottom:6px;font:10px/1.5 var(--rc-mono)}
+.rcExtracted,.rcRecordList{max-height:clamp(165px,29vh,340px);overflow:auto;margin:10px 0;background:rgba(0,0,0,.34);border:1px solid rgba(200,169,81,.14)}
+.rcExtractedItem{display:flex!important;align-items:flex-start;gap:10px;padding:11px!important;border-bottom:1px solid rgba(200,169,81,.17);margin:0!important;color:#e6dfd3!important;letter-spacing:0!important}
+.rcExtractedItem input{width:auto!important;margin-top:3px;accent-color:#C8A951}
+.rcExtractedItem p{font:11px/1.55 "Noto Sans",Arial,sans-serif;max-height:10em;overflow:auto}
+.rcExtractedItem small{font-size:9px;color:#939b9e}
+.rcFocused{display:grid;gap:8px}.rcFocused p{white-space:pre-wrap;overflow-wrap:anywhere}.rcFocused small{display:block;overflow-wrap:anywhere}
+.rcRecordList button{display:grid;gap:7px;padding:11px;width:100%;border:0;border-bottom:1px solid rgba(200,169,81,.22);color:#e2d6bb}
+.rcRecordList button span{color:#b4a99b;font:11px/1.55 Arial,sans-serif;text-align:left;overflow-wrap:anywhere}
+.rcRecordList time{font:9px var(--rc-mono);color:#8caac0;text-align:left}
+.rcDeliver button:first-of-type{border-color:var(--rc-gold)}
+.rcDeliver>strong{display:block;margin:20px 0;font-size:10px}
+.rcOperationalFooter{position:absolute;z-index:9;bottom:0;left:0;right:0;height:56px;display:flex;align-items:center;gap:12px;
+ background:rgba(4,5,5,.92);border-top:1px solid rgba(200,169,81,.34);padding:6px 2vw}
+.rcOperationalFooter>div:first-child{display:grid;gap:5px;min-width:210px}
+.rcOperationalFooter>div:first-child strong{font:600 10px var(--rc-mono);letter-spacing:.07em;color:#dfc583}
+.rcOperationalFooter>div:first-child span{font:9px var(--rc-mono);color:#a49b8c}
+.rcOperationalFooterRail{flex:1;display:flex;justify-content:space-around;border-top:1px solid rgba(200,169,81,.5);gap:10px;padding-top:7px}
+.rcOperationalFooterRail span{font:8px/1 var(--rc-mono);color:#b9a990}
+.rcToast{position:absolute;z-index:25;right:3vw;bottom:75px;max-width:500px;padding:15px 36px 15px 18px;border:1px solid var(--rc-gold);color:#eee4d1;
+ background:rgba(6,11,10,.96);box-shadow:0 6px 24px #000;font:12px/1.5 "Noto Sans",Arial,sans-serif}
+.rcToastError{border-color:var(--rc-red)}
+.rcToast button{position:absolute;right:7px;top:4px;background:none;border:0;color:inherit;font-size:22px;cursor:pointer}
+@media(max-width:1250px){.rcHorizon{flex-basis:1600px}.rcOperationalTrack{min-width:3200px}.rcStageBand strong{font-size:9px}.rcDossierHorizon{grid-template-columns:270px 430px 410px 320px}}
+@media(max-width:720px){.rcOperational{height:calc(100svh - 105px);min-height:590px}.rcOperationalHead{gap:5px;padding:0 8px}.rcOperationalHead>strong{display:none}.rcOperationalHead>span{font-size:8px}.rcOperationalHead button{font-size:8px;padding:7px}
+.rcHorizon{flex-basis:1300px}.rcOperationalTrack{min-width:2600px}.rcCaseRail{width:205px;flex-basis:205px}.rcStageBand{min-height:120px}.rcFieldBottom{min-height:260px;max-height:36vh}
+.rcDossierHorizon{grid-template-columns:220px 390px 390px 280px}.rcOperationalFooter>div:first-child{min-width:130px}.rcOperationalFooterRail{display:none}}
+@media(prefers-reduced-motion:reduce){.rcOperationalScroller{scroll-behavior:auto}}
