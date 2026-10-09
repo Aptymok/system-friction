@@ -20,6 +20,8 @@ assert.match(ui,/sourceRefs:\[sourceRef\]/,'Every passage must cite its register
 assert.match(ui,/SOURCE:-1,RECORD:-1/,'Sources and records cannot silently be treated as observed signals');
 assert.match(ui,/NOT AN AUTHORITY OR SCIENTIFIC VALIDATION/,'Report cannot claim certification');
 assert.match(ui,/claims:\[\]/,'Governed receipt cannot invent substantive claims');
+assert.match(ui,/persistTraceManifest/,'Source-linked trace manifest must be persistable without source files');
+assert.match(ui,/DERIVED_RECORD_NOT_AUTHORIZED_REPORT/,'Trace snapshot is never promoted to institutional authority');
 assert.match(ui,/RealityChain\.png/,'Use committed visual background, no generated image');
 assert.match(publicSurface,/label:'RECONSTRUCT A CASE',href:'\/reality-chain'/,'Public introduction should lead to account-scoped workspace');
 console.log('PASS · Reality Chain case access, source-only intake, parser reuse, non-promotion, report boundaries and existing assets');
