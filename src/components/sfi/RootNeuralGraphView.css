@@ -486,3 +486,113 @@
   .rootFieldLegend{display:none!important}
   .rootFieldActions{grid-template-columns:1fr}
 }
+
+/* ROOT / two consecutive operational horizons; original field and authority runtime retained. */
+.rootFieldMode{width:100%;min-height:100svh;overflow:hidden!important}
+.rootHorizontalRail{display:flex;width:100vw;height:100svh;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;overscroll-behavior-x:contain;scrollbar-width:thin;scrollbar-color:#c8a951 #090909}
+.rootHorizontalGraph,.rootGovernanceConsole{position:relative!important;inset:auto!important;flex:0 0 100vw!important;width:100vw!important;height:100svh!important;min-width:0;scroll-snap-align:start;box-sizing:border-box}
+.rootHorizontalGraph{padding-top:64px;padding-bottom:84px;box-sizing:border-box}
+.rootHorizontalGraph .rootCognitivePixi{inset:64px 0 84px!important}
+.rootHorizontalGraph .rootFieldHub{top:78px!important;bottom:104px!important}
+.rootHorizontalGraph .rootFieldControls{bottom:100px!important}
+.rootHorizontalGraph .rootFieldLegend{bottom:105px!important}
+.rootFieldIdentity{z-index:30}
+.rootGovernanceConsole{overflow-y:auto;padding:76px clamp(22px,3vw,60px) 110px;background:linear-gradient(120deg,rgba(6,6,5,.9),rgba(14,15,15,.96)),#080808;color:#e8ddc3}
+.rootGovernanceHead{border-bottom:1px solid rgba(200,169,81,.23);padding-bottom:15px}
+.rootGovernanceHead>span,.rootGovernancePanel h2,.rootGovernanceMetrics span,.rootGovernanceLinks a{font:600 10px/1.5 "Liberation Mono",ui-monospace,monospace;letter-spacing:.12em;color:#c8a951}
+.rootGovernanceHead h1{margin:7px 0;font:400 clamp(25px,2.5vw,45px)/1.05 "Noto Serif Display",Georgia,serif;color:#e8ddc3}
+.rootGovernanceHead p,.rootGovernancePanel p{margin:7px 0;color:#bcb6a9;font:16px/1.4 "Noto Sans",Arial,sans-serif}
+.rootGovernanceMetrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;margin-top:18px;background:rgba(200,169,81,.16)}
+.rootGovernanceMetrics article{min-width:0;padding:15px;background:#0b0d0e;display:flex;flex-direction:column;gap:7px}
+.rootGovernanceMetrics strong{font:400 clamp(17px,2vw,30px)/1.1 "Noto Serif Display",Georgia,serif;overflow-wrap:anywhere}
+.rootGovernanceMetrics small,.rootGovernancePanel dd,.rootGovernancePanel dt,.rootGovernanceLog{font:11px/1.5 "Liberation Mono",ui-monospace,monospace;color:#a49e92;overflow-wrap:anywhere}
+.rootGovernanceMatrix{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+.rootGovernancePanel{min-height:210px;border:1px solid rgba(200,169,81,.19);padding:19px;background:rgba(3,4,4,.46)}
+.rootGovernancePanel h2{margin:0 0 14px}.rootGovernancePanel>strong{font:400 21px "Noto Serif Display",Georgia,serif;color:#e8ddc3}
+.rootGovernancePanel dl{margin:12px 0}.rootGovernancePanel dl div{display:grid;grid-template-columns:130px minmax(0,1fr);gap:12px;padding:7px 0;border-top:1px solid rgba(232,221,195,.09)}
+.rootGovernancePanel dt{color:#c8a951}.rootGovernancePanel dd{margin:0;color:#dad2c5}
+.rootGovernancePanel button,.rootGovernanceLinks a{display:inline-flex;margin:8px 8px 0 0;border:1px solid rgba(200,169,81,.28);padding:10px;background:transparent;color:#e8ddc3;cursor:pointer;text-decoration:none}
+.rootGovernanceLog{display:grid;grid-template-columns:110px 1fr auto;gap:10px;border-top:1px solid rgba(232,221,195,.1);padding:8px 0}
+.rootGovernanceAuthority{position:relative!important;right:auto!important;bottom:auto!important;max-width:none!important;margin-top:14px;padding:14px!important}
+.rootGovernanceAuthority[open]{max-height:none;overflow:visible}
+.rootGovernanceLinks{padding-top:12px}
+@media(max-width:900px){.rootGovernanceMetrics{grid-template-columns:repeat(2,minmax(0,1fr))}.rootGovernanceMatrix{grid-template-columns:1fr}.rootHorizontalGraph .rootFieldControls{bottom:88px!important}.rootHorizontalGraph .rootFieldLegend{display:none}.rootGovernanceConsole{padding:80px 16px 100px}}
+@media(prefers-reduced-motion:reduce){.rootHorizontalRail{scroll-behavior:auto}}
+
+/* ROOT REFERENCE COCKPIT: real Pixi field, real governance, one shared viewport. */
+.rootReferenceCockpit.rootFieldMode{height:100svh;min-height:660px;position:relative;overflow:hidden!important;background:linear-gradient(90deg,rgba(4,6,8,.94),rgba(6,8,9,.74),rgba(4,6,8,.96)),url('/assets/sfi/instruments/SFI_ROOT_HERO_LAYER.png') center/cover no-repeat!important}
+.rootReferenceCockpit .rootFieldIdentity{display:none!important}
+.rootReferenceCockpit .rootHorizontalRail{position:absolute!important;top:64px;right:0;bottom:84px;left:0;display:grid!important;grid-template-columns:clamp(174px,13vw,230px) minmax(400px,1.16fr) minmax(480px,1fr)!important;width:100%!important;height:auto!important;overflow:hidden!important;scroll-snap-type:none!important;scrollbar-width:none!important;gap:0}
+.rootReferenceSidebar{height:100%;min-height:0;min-width:0;overflow-y:auto;display:flex;flex-direction:column;box-sizing:border-box;padding:28px 17px 18px;background:linear-gradient(90deg,rgba(4,7,9,.93),rgba(8,10,12,.76));border-right:1px solid rgba(227,210,173,.21);color:#d9d4c9;scrollbar-width:thin;scrollbar-color:#736851 transparent}
+.rootReferenceSidebarTitle{display:flex;flex-direction:column;gap:12px;padding-bottom:22px;border-bottom:1px solid rgba(227,210,173,.17)}
+.rootReferenceSidebarTitle strong{font:400 clamp(20px,2.5vw,34px)/1 "Noto Serif Display",Georgia,serif;letter-spacing:.4em;color:#f1ede6}
+.rootReferenceSidebarTitle span{font:600 9px/1.6 "Liberation Mono",monospace;letter-spacing:.15em;color:#c6ba9d}
+.rootReferenceSource{display:flex;align-items:flex-start;gap:9px;padding:17px 0;border-bottom:1px solid rgba(227,210,173,.13);font:600 9px/1.45 "Liberation Mono",monospace;color:#c2ab79}
+.rootReferenceSource i{width:7px;height:7px;flex:0 0 7px;margin-top:3px;border-radius:50%;background:#777}
+.rootReferenceSource[data-state=observed] i{background:#79aa99;box-shadow:0 0 9px #79aa9960}
+.rootReferenceSource[data-state=degraded] i{background:#c16a65}
+.rootReferenceSource small{display:block;margin-top:5px;font:500 8px/1.5 "Liberation Mono",monospace;color:#85847e}
+.rootReferenceSearchLabel,.rootReferenceSidebarKicker{margin:17px 0 8px;font:600 8px/1.4 "Liberation Mono",monospace;letter-spacing:.12em;color:#9d937e}
+.rootReferenceSearch{width:100%;box-sizing:border-box;border:1px solid rgba(204,177,124,.29);background:rgba(4,7,8,.71);color:#e4dbc9;padding:9px 7px;min-height:36px;font:500 9px "Liberation Mono",monospace;outline:none}
+.rootReferenceSearch:focus{border-color:#c8a951}
+.rootReferenceFilters{display:flex;flex-direction:column;gap:1px}
+.rootReferenceFilters button{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:29px;padding:5px 3px;border:0;border-bottom:1px solid rgba(226,208,177,.09);background:transparent;color:#a09f99;cursor:pointer;text-align:left;font:600 8px/1.3 "Liberation Mono",monospace}
+.rootReferenceFilters button:hover,.rootReferenceFilters button[aria-pressed=true]{color:#ead5a8;background:rgba(200,169,81,.1)}
+.rootReferenceFilters button b{font:600 8px "Liberation Mono",monospace;color:#c8a951}
+.rootReferenceSidebarNote{margin:auto 0 12px;padding-top:24px;font:400 10px/1.5 "Noto Sans",Arial,sans-serif;color:#898783}
+.rootReferenceSidebarLink{font:600 8px "Liberation Mono",monospace;color:#c8a951;text-decoration:none}
+.rootReferenceCockpit .rootHorizontalGraph,.rootReferenceCockpit .rootGovernanceConsole{position:relative!important;inset:auto!important;flex:initial!important;width:100%!important;height:100%!important;min-height:0!important;scroll-snap-align:none!important;box-sizing:border-box}
+.rootReferenceCockpit .rootHorizontalGraph{padding:0!important;overflow:hidden!important;background:linear-gradient(90deg,rgba(5,8,9,.36),rgba(5,8,9,.14),rgba(5,8,9,.65));border-right:1px solid rgba(227,210,173,.2)}
+.rootReferenceCockpit .rootHorizontalGraph .rootCognitivePixi{position:absolute!important;top:43px!important;left:0!important;right:0!important;bottom:26px!important;height:auto!important;width:auto!important;opacity:1}
+.rootReferenceCockpit .rootHorizontalGraph[data-hub-open=true] .rootCognitivePixi{right:0!important;width:auto!important}
+.rootReferenceModes{position:absolute;z-index:12;top:8px;left:8px;right:8px;display:flex;gap:6px;justify-content:center}
+.rootReferenceModes button{padding:8px 12px;border:1px solid rgba(219,199,165,.24);border-radius:22px;background:rgba(6,9,10,.86);color:#99948b;font:600 8px/1 "Liberation Mono",monospace;letter-spacing:.08em;cursor:pointer}
+.rootReferenceModes button[aria-pressed=true],.rootReferenceModes button:hover{border-color:#c8a951;color:#ead6a9;background:rgba(200,169,81,.12)}
+.rootReferenceCategoryLegend{position:absolute;z-index:5;top:71px;left:11px;display:flex;flex-direction:column;gap:13px;max-width:145px;pointer-events:none;text-shadow:0 1px 6px #000}
+.rootReferenceCategoryLegend div{display:flex;gap:7px;align-items:flex-start}
+.rootReferenceCategoryLegend i{margin-top:3px;width:6px;height:6px;flex:0 0 6px;background:#c8a951}
+.rootReferenceCategoryLegend span{font:600 8px/1.35 "Liberation Mono",monospace;color:#dbd2be;text-transform:uppercase}
+.rootReferenceCategoryLegend small{display:block;color:#8c8c86;font:500 8px/1.5 "Liberation Mono",monospace}
+.rootReferenceCockpit .rootHorizontalGraph .rootFieldControls{position:absolute!important;top:auto!important;left:auto!important;right:11px!important;bottom:44px!important;transform:none!important;min-height:35px!important;max-width:calc(100% - 22px)!important;background:rgba(4,7,8,.92)!important;border-radius:2px!important}
+.rootReferenceCockpit .rootHorizontalGraph .rootFieldControls select{min-width:102px!important;max-width:146px!important;padding:6px!important;font-size:8px!important}
+.rootReferenceReadPlane{padding:8px;color:#bba775;font:600 8px "Liberation Mono",monospace}
+.rootReferenceCockpit .rootHorizontalGraph .rootFieldLegend{left:13px!important;bottom:12px!important;font-size:8px!important;max-width:calc(100% - 25px)}
+.rootReferenceCockpit .rootHorizontalGraph .rootFieldHub{top:52px!important;right:8px!important;bottom:20px!important;width:min(338px,72%)!important;z-index:22!important;padding:16px!important;background:rgba(6,9,10,.97)!important}
+.rootReferenceCockpit .rootFieldHub h2{font-size:19px!important}
+.rootReferenceCockpit .rootFieldHumanSection{padding:10px 0!important}
+.rootReferenceCockpit .rootFieldHumanSection p,.rootReferenceCockpit .rootFieldHumanSection li{font-size:12px!important}
+.rootReferenceCockpit .rootGovernanceConsole{overflow:auto!important;padding:0 10px 16px!important;background:linear-gradient(120deg,rgba(6,8,10,.93),rgba(9,11,12,.98))!important;scrollbar-width:thin;scrollbar-color:#81735d transparent}
+.rootReferenceConsoleTabs{display:flex;position:sticky;top:0;z-index:11;overflow:auto;gap:8px;justify-content:space-between;background:#090c0d;border-bottom:1px solid rgba(209,187,146,.18);padding:12px 3px 8px;scrollbar-width:none}
+.rootReferenceConsoleTabs a{flex:0 0 auto;font:600 8px "Liberation Mono",monospace;letter-spacing:.03em;color:#928b7f;text-decoration:none}
+.rootReferenceConsoleTabs a:hover,.rootReferenceConsoleTabs a:focus{color:#c8a951;text-decoration:underline}
+.rootReferenceCockpit .rootGovernanceHead{padding:10px 2px!important;border-bottom:1px solid rgba(209,187,146,.13)}
+.rootReferenceCockpit .rootGovernanceHead h1{font:400 clamp(16px,1.3vw,22px)/1.15 "Noto Serif Display",Georgia,serif;margin:5px 0!important}
+.rootReferenceCockpit .rootGovernanceHead>span{font-size:8px!important}
+.rootReferenceCockpit .rootGovernanceHead p{font:400 9px/1.4 "Noto Sans",Arial,sans-serif;margin:3px 0!important}
+.rootReferenceCockpit .rootGovernanceMetrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;margin:8px 0!important}
+.rootReferenceCockpit .rootGovernanceMetrics article{min-height:50px;padding:6px;gap:4px}
+.rootReferenceCockpit .rootGovernanceMetrics span{font-size:7px;letter-spacing:.04em}
+.rootReferenceCockpit .rootGovernanceMetrics strong{font:500 13px/1.15 "Liberation Mono",monospace}
+.rootReferenceCockpit .rootGovernanceMetrics small{font-size:7px;line-height:1.3}
+.rootReferenceCockpit .rootGovernanceMatrix{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:5px;margin:8px 0!important}
+.rootReferenceCockpit .rootGovernancePanel{height:auto;min-height:175px!important;padding:10px!important;min-width:0!important;scroll-margin-top:38px;background:rgba(5,8,9,.82)!important;border:1px solid rgba(194,168,124,.22)}
+.rootReferenceCockpit .rootGovernancePanel h2{font-size:8px!important;line-height:1.4;margin:0 0 8px!important;letter-spacing:.05em}
+.rootReferenceCockpit .rootGovernancePanel>strong{font-size:13px;overflow-wrap:anywhere}
+.rootReferenceCockpit .rootGovernancePanel p{font:400 10px/1.45 "Noto Sans",Arial,sans-serif!important}
+.rootReferenceCockpit .rootGovernancePanel dl{margin:7px 0}
+.rootReferenceCockpit .rootGovernancePanel dl div{display:block!important;padding:5px 0!important}
+.rootReferenceCockpit .rootGovernancePanel dt{font-size:7px}
+.rootReferenceCockpit .rootGovernancePanel dd{font-size:9px}
+.rootReferenceCockpit .rootGovernanceLog{display:flex;flex-direction:column;gap:2px;padding:5px 0;font-size:8px}
+.rootReferenceCockpit .rootGovernancePanel button{font-size:8px!important;padding:6px!important;margin:4px 2px 0 0!important}
+.rootReferencePanelLink,.rootReferenceActionLinks a{display:block;border-top:1px solid rgba(213,188,143,.17);padding:7px 0;color:#d6bf8d;text-decoration:none;font:600 8px/1.4 "Liberation Mono",monospace}
+.rootReferencePanelLink:hover,.rootReferenceActionLinks a:hover{color:#f3e7ca}
+.rootReferenceActionLinks{display:flex;flex-direction:column}
+.rootReferenceCockpit .rootGovernanceAuthority{position:relative!important;right:auto!important;bottom:auto!important;max-width:none!important;margin:8px 0!important;padding:10px!important;max-height:150px;overflow:auto}
+.rootReferenceCockpit .rootGovernanceAuthority[open]{max-height:380px;overflow:auto}
+.rootReferenceCockpit .rootGovernanceLinks{display:flex;flex-wrap:wrap;padding:0}
+.rootReferenceCockpit .rootGovernanceLinks a{font-size:8px;padding:6px}
+@media(max-width:1320px){.rootReferenceCockpit .rootHorizontalRail{grid-template-columns:175px minmax(365px,1.08fr) minmax(370px,1fr)!important}.rootReferenceCockpit .rootGovernanceMatrix{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media(max-width:1050px){.rootReferenceCockpit.rootFieldMode{height:auto;min-height:100svh;overflow:visible!important}.rootReferenceCockpit .rootHorizontalRail{position:relative!important;inset:auto!important;margin:64px 0 84px;height:auto!important;min-height:calc(100svh - 148px);grid-template-columns:175px minmax(0,1fr)!important;grid-template-rows:minmax(530px,calc(100svh - 148px)) auto;overflow:visible!important}.rootReferenceSidebar{grid-column:1;grid-row:1}.rootReferenceCockpit .rootHorizontalGraph{grid-column:2;grid-row:1;min-height:530px!important}.rootReferenceCockpit .rootGovernanceConsole{grid-column:1/-1;grid-row:2;min-height:450px!important;height:auto!important;overflow:visible!important}.rootReferenceCockpit .rootGovernanceMatrix{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
+@media(max-width:650px){.rootReferenceCockpit .rootHorizontalRail{display:flex!important;flex-direction:column}.rootReferenceSidebar{flex:0 0 auto;max-height:245px;overflow:auto;padding:12px}.rootReferenceSidebarTitle{gap:5px;padding-bottom:8px}.rootReferenceSidebarTitle strong{font-size:21px}.rootReferenceSidebarTitle span{font-size:8px}.rootReferenceSidebarNote,.rootReferenceSidebarLink{display:none}.rootReferenceCockpit .rootHorizontalGraph{height:60svh!important;min-height:415px!important;flex:0 0 auto!important}.rootReferenceCockpit .rootGovernanceConsole{height:auto!important;min-height:400px!important;overflow:visible!important}.rootReferenceCockpit .rootGovernanceMatrix{grid-template-columns:repeat(2,minmax(0,1fr))!important}.rootReferenceCockpit .rootGovernanceMetrics{grid-template-columns:repeat(2,minmax(0,1fr))}.rootReferenceCategoryLegend{display:none}.rootReferenceModes button{padding:7px 8px;font-size:7px}.rootReferenceCockpit .rootHorizontalGraph .rootFieldControls{right:4px!important;bottom:36px!important}.rootReferenceCockpit .rootHorizontalGraph .rootFieldControls select{min-width:84px!important;max-width:110px!important}.rootReferenceCockpit .rootHorizontalGraph .rootFieldHub{width:calc(100% - 16px)!important;right:8px!important}.rootReferenceCockpit .rootGovernancePanel{min-height:135px!important}}
+@media(prefers-reduced-motion:reduce){.rootReferenceCockpit *{scroll-behavior:auto!important}}
