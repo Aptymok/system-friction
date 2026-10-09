@@ -31,6 +31,7 @@ assert(link.includes("epistemicRole:'RECORD'")&&link.includes("evidenceQualifica
 assert(link.includes('readbackVerified:true'),'verify case link persistence');
 assert(ui.includes("'/root?reading=REALITY_CHAIN&node='"),'ROOT passport deep link');
 assert(root.includes("searchParams.get('node')"),'ROOT reads deep link');
+assert(root.includes('THIS CASE IS NOT ADMITTED AS A CANONICAL GRAPH NODE'),'ROOT must disclose missing graph admission, not silently lose the Passport');
 assert(nav.includes("{label:'REALITY CHAIN',href:'/reality-chain'}"),'authenticated menu points to one actual case workbench');
 assert(!ui.includes('Coastal Resilience Finance Shift')&&!ui.includes('C-2026-0417'),'no image mock case');
 assert(!ui.includes('CONFIDENCE 87%')&&!ui.includes('RISK 13%'),'no invented confidence');
