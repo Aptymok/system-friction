@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { projectKnowledgeTimeContrast } from '../src/lib/graph/knowledgeTimeContrast';
 
 const root = process.cwd();
 const read = (relative: string) => fs.readFileSync(path.join(root, relative), 'utf8');
@@ -32,6 +33,33 @@ const continuityStore = read('src/lib/sfi/continuityPostgres.ts');
 const canonicalGraphRuntime = read('src/lib/graph/canonicalGraph.ts');
 const neuralGraphView = read('src/components/sfi/RootNeuralGraphView.tsx');
 const cognitiveFieldPixi = read('src/components/sfi/RootCognitiveFieldPixi.tsx');
+
+const knowledgeTimeSource=read('src/lib/graph/knowledgeTimeContrast.ts');
+check('ROOT Reality Passport presents both dated knowledge perspectives', neuralGraphView.includes('KNEW THEN / KNOWN NOW') && neuralGraphView.includes('KNOWLEDGE RECORDED') && neuralGraphView.includes('WORLD EVENT / EFFECTIVE') && neuralGraphView.includes('RECORD LAST UPDATED') && neuralGraphView.includes('HISTORICAL KNOWLEDGE CUT-OFF'));
+check('knowledge projection preserves the non-retroactive boundary', knowledgeTimeSource.includes('LATER_KNOWLEDGE_DOES_NOT_REWRITE_EARLIER_KNOWLEDGE') && knowledgeTimeSource.includes('INSUFFICIENT_TEMPORAL_EVIDENCE'));
+const knowledgeNoHistory=projectKnowledgeTimeContrast({
+  attributes:{effectiveAt:'2026-01-01T00:00:00Z'}, epistemicState:'INFERRED',
+  captureTime:'2026-10-09T00:00:00Z',nodeUpdatedAt:'2026-10-09T09:00:00Z',
+  sourceVersion:null,provenance:'test ledger',lineage:[],
+});
+check('knowledge dates do not backfill from node update or world effective date',
+  knowledgeNoHistory.then.knownAt===null && knowledgeNoHistory.now.knownAt===null &&
+  knowledgeNoHistory.now.eventAt==='2026-01-01T00:00:00.000Z' &&
+  knowledgeNoHistory.comparison==='INSUFFICIENT_TEMPORAL_EVIDENCE');
+const knowledgeTemporalEpochs=projectKnowledgeTimeContrast({
+  attributes:{},epistemicState:'OBSERVED',captureTime:null,nodeUpdatedAt:null,
+  sourceVersion:null,provenance:'test ledger',lineage:[],
+  fieldHistory:{epochCount:2,firstObservedAt:'2026-01-01T00:00:00Z',lastObservedAt:'2026-02-01T00:00:00Z',persistedHistory:true,recentEpochs:[
+    {eventId:'test-a',occurredAt:'2026-01-01T00:00:00Z',state:'UNKNOWN',previousState:null,censoring:'UNKNOWN'},
+    {eventId:'test-b',occurredAt:'2026-02-01T00:00:00Z',state:'OBSERVED',previousState:'UNKNOWN',censoring:'NONE'},
+  ]},
+});
+check('ROOT comparison reads persisted dated epochs without inventing historical claim text',
+  knowledgeTemporalEpochs.then.knownAt==='2026-01-01T00:00:00.000Z' &&
+  knowledgeTemporalEpochs.then.statement===null &&
+  knowledgeTemporalEpochs.now.knownAt==='2026-02-01T00:00:00.000Z' &&
+  knowledgeTemporalEpochs.comparison==='CHANGED');
+
 const cognitiveAdmission = read('src/lib/graph/cognitiveGraphAdmission.ts');
 const publicGraphStateRoute = read('src/app/api/graph/state/route.ts');
 const runtimeBootstrapRoute = read('src/app/api/runtime/bootstrap/route.ts');
