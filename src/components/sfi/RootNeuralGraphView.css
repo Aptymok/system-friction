@@ -581,3 +581,11 @@
 .rootGovernanceRelationships button small,.rootGovernanceRelationships button em{font:400 9px/1.4 "Liberation Mono",monospace;color:#c8a951;overflow-wrap:anywhere}
 .rootGovernanceRelationships button em{font-style:normal;color:#999385}
 @media(max-width:900px){.rootGovernanceRelationships{grid-template-columns:repeat(2,minmax(0,1fr))}.rootFieldBrandAnchor{left:58%;top:47%}}
+
+.rootGovernanceScientific{grid-column:1/-1;margin-top:5px;padding:15px;border:1px solid rgba(200,169,81,.3);background:rgba(5,8,9,.68)}
+.rootGovernanceScientific h3{margin:0 0 10px;color:#d3bc86;font:600 11px/1.5 "Liberation Mono",ui-monospace,monospace;letter-spacing:.08em}
+.rootGovernanceScientific dl{margin:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.rootGovernanceScientific dt{font:600 9px/1.4 "Liberation Mono",monospace;color:#aaa394}
+.rootGovernanceScientific dd{margin:5px 0;font:11px/1.5 "Liberation Mono",monospace;color:#ded5c0;overflow-wrap:anywhere}
+.rootGovernanceScientific p{margin-bottom:0!important;font:11px/1.5 "Liberation Mono",monospace!important;color:#b6ad9d!important}
+@media(max-width:850px){.rootGovernanceScientific dl{grid-template-columns:1fr}}
