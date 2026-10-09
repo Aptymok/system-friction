@@ -39,14 +39,14 @@ export function AuthenticatedSfiMenu(){
   return <>
     <header className="sfiAuthCanonicalNav" data-sfi-auth-navigation="DIAMOND-1.0">
       <Link href="/root" className="sfiAuthBrand" aria-label="SFI ROOT">
-        <img src="/library/assets/sfi-mark.svg" alt="" aria-hidden="true"/>
+        <img src="/assets/sfi/ui/icons/00_sfi_canonical_mark.png" alt="" aria-hidden="true"/>
         <span>SYSTEM FRICTION INSTITUTE</span>
       </Link>
       <nav className="sfiAuthSurfaceNav" aria-label="SFI authenticated surfaces">
         {CORE_SURFACES.map((item)=><Link key={item.label} href={item.href}>{item.label}</Link>)}
       </nav>
       <button className="sfiDiamondTrigger" type="button" aria-label="Open SFI operations" aria-expanded={open} onClick={()=>setOpen(v=>!v)}>
-        <img src="/library/assets/sfi-mark.svg" alt="" aria-hidden="true"/>
+        <img src="/assets/sfi/ui/icons/00_sfi_canonical_mark.png" alt="" aria-hidden="true"/>
       </button>
       {open?<nav className="sfiDiamondMenu" aria-label="SFI authenticated operations">
         <span>OPERATIONS</span>
