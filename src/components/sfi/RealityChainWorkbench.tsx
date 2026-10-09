@@ -82,6 +82,18 @@ export function RealityChainWorkbench(){
  },[]);
  useEffect(()=>{refreshCases().catch(e=>setError(String(e.message??e)));},[refreshCases]);
  useEffect(()=>{loadCase(caseId).catch(e=>{setError(String(e.message??e));setCaseData(null);});setExtraction(null);setSourceRef(null);setChosen([]);setSelectedObject(null);},[caseId,loadCase]);
+ useEffect(()=>{
+   const element=scroll.current;if(!element)return;
+   const wheel=(event:WheelEvent)=>{
+     const node=event.target as HTMLElement;
+     if(event.ctrlKey||event.metaKey||node.closest('input,select,textarea,.rcExtracted,.rcRecordList,.rcTimelineEntries'))return;
+     const delta=Math.abs(event.deltaX)>Math.abs(event.deltaY)?event.deltaX:event.deltaY;
+     if(Math.abs(delta)<2)return;
+     event.preventDefault();element.scrollBy({left:delta,behavior:'auto'});
+   };
+   element.addEventListener('wheel',wheel,{passive:false});
+   return()=>element.removeEventListener('wheel',wheel);
+ },[]);
  const visibleCases=useMemo(()=>cases.filter(c=>projectId==='ALL'||c.projectId===projectId),[cases,projectId]);
  const objects=caseData?.objects??[];
  const stageObjects=objects.filter(o=>stageFor(o)===activeStep);
@@ -179,10 +191,10 @@ export function RealityChainWorkbench(){
   }catch(e){setError('Institutional report gate: '+String((e as Error).message));}finally{setWorking(false);}
  };
  return <main className="rcOperational" aria-label="Authenticated Reality Chain">
-  <div className="rcBackdrop" aria-hidden="true"><img src="/assets/sfi/instruments/RealityChain.png" alt=""/></div>
   <header className="rcOperationalHead"><span>03 / REALITY CHAIN · AUTHENTICATED WORKSPACE</span><strong>FROM SOURCE TO CONSEQUENTIAL RETURN</strong><button type="button" onClick={()=>scrollTo(0)}>01 FIELD</button><button type="button" onClick={()=>scrollTo(1)}>02 DOSSIER / REPORT</button></header>
   <div className="rcOperationalScroller" ref={scroll}>
    <div className="rcOperationalTrack">
+    <div className="rcBackdrop" aria-hidden="true"><img src="/assets/sfi/instruments/RealityChain.png" alt=""/></div>
     <section className="rcHorizon rcFieldHorizon" aria-label="Reality Chain field">
      <aside className="rcCaseRail"><h1>REALITY<br/>CHAIN</h1><p>NOTHING ACTS ALONE.<br/>REALITY ANSWERS BACK.</p>
       <label>PROJECT FILTER<select value={projectId} onChange={e=>{setProjectId(e.target.value);setCaseId('')}}><option value="ALL">ALL AUTHORIZED PROJECTS</option>{projects.map(p=><option key={p.id} value={p.id}>{p.name} · {p.caseCount}</option>)}</select></label>
