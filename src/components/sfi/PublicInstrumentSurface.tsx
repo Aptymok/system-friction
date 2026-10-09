@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useRef } from 'react';
 import { SCENES, type Scene } from './publicSceneManifest';
 import './PublicInstrumentSurface.css';
+import { RealityChainSurface } from './RealityChainSurface';
 
 type SurfaceId='root'|'observatory'|'reality-chain'|'method-lab'|'world-vector'|'repository'|'timeline'|'access';
 
@@ -110,6 +111,8 @@ export function PublicInstrumentSurface({surface}:{surface:SurfaceId}){
     el.addEventListener('wheel',onWheel,{passive:false});
     return()=>el.removeEventListener('wheel',onWheel);
   },[]);
+
+  if(surface==='reality-chain')return <RealityChainSurface/>;
 
   return <main className="sfiInstrumentPage" data-surface={surface}>
     <div className="sfiInstrumentArtwork" aria-hidden="true">
