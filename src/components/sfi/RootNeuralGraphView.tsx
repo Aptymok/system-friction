@@ -31,8 +31,16 @@ type GraphNode = {
     reasons: string[];
     temporal: { sourceVersion:string|null; captureTime:string|null; nodeUpdatedAt:string|null };
     epistemic: { uncertainty:unknown|null };
-    provenance: { declared:string; lineageCount:number; lineageRefs:string[]; supportingRelationCount:number; supportingRelationRefs:string[]; contradictionCount:number; contradictionRefs:string[] };
-    verification: { state:string; cost:unknown|null; budget:unknown|null; nextBestObservation:string|null };
+    provenance: {
+      declared:string; lineageCount:number; lineageRefs:string[]; supportingRelationCount:number; supportingRelationRefs:string[]; contradictionCount:number; contradictionRefs:string[];
+      independence:{ state:'REPRESENTED'|'UNKNOWN'; independentRootCount:number|null; rootRefs:string[]; duplicateSupportCount:number|null; boundary:string };
+      contentBinding:{ method:string|null; result:unknown|null; verificationPerturbation:unknown|null; boundary:string };
+    };
+    verification: {
+      state:string; method:string|null; verifier:string|null; selectionReason:string|null;
+      cost:unknown|null; costUnit:string|null; budget:unknown|null; budgetUnit:string|null; expectedInformationGain:unknown|null;
+      falseAcceptBoundary:unknown|null; falseRejectBoundary:unknown|null; nextBestObservation:string|null; processImpact:unknown|null; boundary:string;
+    };
     authority: { state:string; executionState:string; authorityExpanded:boolean|null; mayMintReturn:boolean|null; mayPromoteCanon:boolean|null };
     persistence: { represented:boolean; refs:string[]; boundary:string };
     returnState: { expected:unknown|null; observed:unknown|null; status:'OBSERVED'|'PENDING'|'NOT_APPLICABLE'|'UNKNOWN' };
@@ -807,7 +815,10 @@ export function RootNeuralGraphView({ graph, agents=[], agentRegistryState='UNAV
                 <section className="rootPassportQuestion">
                   <h3>01 · WHAT DO WE KNOW?</h3>
                   <p>{representedText(selected.attributes.observedOutcome ?? selected.attributes.statement ?? selected.attributes.evidenceKind,'No observation statement represented for this object.')}</p>
-                  <p>Documented provenance: {selected.provenance || 'NOT REPRESENTED'}. {selected.lineage.length} lineage references; {qualifiedRelationCount(selected,graph.edges)} evidence-qualified relations. These counts are not evidence of independent confirmation.</p>
+                  <p>Documented provenance: {selected.provenance || 'NOT REPRESENTED'}. {selected.lineage.length} lineage references; {qualifiedRelationCount(selected,graph.edges)} evidence-qualified relations.</p>
+                  <p>{selected.realityPassport?.provenance.independence.state==='REPRESENTED'
+                    ? `Independent represented evidence roots: ${selected.realityPassport.provenance.independence.independentRootCount}. Repeated support relations: ${selected.realityPassport.provenance.independence.duplicateSupportCount ?? 0}.`
+                    : 'Evidence independence is NOT ESTABLISHED. Multiple files, hashes, citations or agents are not treated as independent confirmation without represented source roots.'}</p>
                 </section>
                 <section className="rootPassportQuestion">
                   <h3>02 · WHAT DO WE INFER?</h3>
@@ -841,12 +852,18 @@ export function RootNeuralGraphView({ graph, agents=[], agentRegistryState='UNAV
                   <dl>
                     <div><dt>SUPPORTING RELATIONS</dt><dd>{selected.realityPassport?.provenance.supportingRelationCount ?? 'NOT REPRESENTED'}</dd></div>
                     <div><dt>CONTRADICTING RELATIONS</dt><dd>{selected.realityPassport?.provenance.contradictionCount ?? 'NOT REPRESENTED'}</dd></div>
-                    <div><dt>INDEPENDENT SOURCES</dt><dd>NOT ESTABLISHED</dd></div>
+                    <div><dt>INDEPENDENT SOURCES</dt><dd>{selected.realityPassport?.provenance.independence.state==='REPRESENTED' ? selected.realityPassport.provenance.independence.independentRootCount : 'NOT ESTABLISHED'}</dd></div>
+                    <div><dt>REPEATED SUPPORT</dt><dd>{selected.realityPassport?.provenance.independence.duplicateSupportCount ?? 'UNKNOWN'}</dd></div>
                     <div><dt>CALIBRATED CONFIDENCE</dt><dd>NOT CALIBRATED</dd></div>
                     <div><dt>VERIFICATION</dt><dd>{selected.realityPassport?.verification.state ?? 'UNKNOWN'}</dd></div>
+                    <div><dt>VERIFY METHOD</dt><dd>{selected.realityPassport?.verification.method ?? 'NOT REPRESENTED'}</dd></div>
+                    <div><dt>VERIFIER</dt><dd>{selected.realityPassport?.verification.verifier ?? 'NOT REPRESENTED'}</dd></div>
+                    <div><dt>VERIFY COST / BUDGET</dt><dd>{selected.realityPassport?.verification.cost == null ? 'UNKNOWN' : String(selected.realityPassport.verification.cost)} {selected.realityPassport?.verification.costUnit ?? ''} / {selected.realityPassport?.verification.budget == null ? 'UNKNOWN' : String(selected.realityPassport.verification.budget)} {selected.realityPassport?.verification.budgetUnit ?? ''}</dd></div>
+                    <div><dt>PROVENANCE BINDING</dt><dd>{selected.realityPassport?.provenance.contentBinding.method ?? 'NOT REPRESENTED'}</dd></div>
                     <div><dt>NEXT DISCRIMINATING OBSERVATION</dt><dd>{selected.realityPassport?.verification.nextBestObservation ?? 'NOT REPRESENTED'}</dd></div>
                   </dl>
-                  <p>No confidence percentage is inferred from graph degree, citations, agents or relation counts.</p>
+                  <p>No confidence percentage is inferred from graph degree, citations, agents or relation counts. Provenance binding may support an origin/process claim; it does not by itself establish that the represented event occurred.</p>
+                  {selected.realityPassport?.verification.processImpact!=null?<p>Verification/process impact: {String(selected.realityPassport.verification.processImpact)}.</p>:null}
                 </section>
                 <section className="rootPassportQuestion">
                   <h3>RELATIONS · {selectedEdges.length}</h3>
