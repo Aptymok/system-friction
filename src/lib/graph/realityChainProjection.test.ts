@@ -134,7 +134,7 @@ test('external cognitive peer style inferred claim remains bounded without verif
   assert.equal(passport.authority.authorityExpanded,false);
   assert.equal(passport.authority.mayMintReturn,false);
   assert.equal(passport.authority.mayPromoteCanon,false);
-  assert.equal(passport.contract,'SFI-REALITY-PASSPORT-1.1');
+  assert.equal(passport.contract,'SFI-REALITY-PASSPORT-1.0');
 });
 
 
@@ -143,4 +143,59 @@ test('passport explicitly preserves the public Reality Chain Method boundary',()
   const passport=buildRealityPassport(subject,[]);
   assert.equal(passport.methodBoundary,'PROJECTS_REALITY_WITHOUT_REDEFINING_REALITY_CHAIN_METHOD');
   assert.equal(passport.boundary,'DERIVED_PROJECTION_NOT_CANONICAL_TRUTH');
+});
+
+
+test('repeated support from the same represented source root is not counted as independent evidence',()=>{
+  const subject=node({nodeId:'claim-independent',ontologyType:'CLAIM',attributes:{epistemicClass:'DERIVED',verificationState:'VERIFIED'}});
+  const edges=[
+    edge({edgeId:'copy-1',sourceNodeId:'e1',targetNodeId:subject.nodeId,relation:'supports_claim',attributes:{sourceRootId:'observation-root-1'}}),
+    edge({edgeId:'copy-2',sourceNodeId:'e2',targetNodeId:subject.nodeId,relation:'supports_claim',attributes:{sourceRootId:'observation-root-1'}}),
+    edge({edgeId:'independent-2',sourceNodeId:'e3',targetNodeId:subject.nodeId,relation:'supports_claim',attributes:{sourceRootId:'observation-root-2'}}),
+  ];
+  const passport=buildRealityPassport(subject,edges);
+  assert.equal(passport.provenance.independence.state,'REPRESENTED');
+  assert.equal(passport.provenance.independence.independentRootCount,2);
+  assert.equal(passport.provenance.independence.duplicateSupportCount,1);
+  assert.match(passport.reasons.join(' '),/not counted as independent observations/i);
+});
+
+test('independence remains unknown when supporting edges do not expose source roots',()=>{
+  const subject=node({nodeId:'claim-unknown-independence',ontologyType:'CLAIM',attributes:{epistemicClass:'DERIVED',verificationState:'VERIFIED'}});
+  const edges=[edge({edgeId:'support-no-root',sourceNodeId:'e1',targetNodeId:subject.nodeId,relation:'supports_claim'})];
+  const passport=buildRealityPassport(subject,edges);
+  assert.equal(passport.provenance.independence.state,'UNKNOWN');
+  assert.equal(passport.provenance.independence.independentRootCount,null);
+});
+
+test('verification provenance remains distinct from verification result',()=>{
+  const subject=node({
+    nodeId:'claim-verifier',
+    ontologyType:'CLAIM',
+    attributes:{
+      epistemicClass:'DERIVED',
+      verificationState:'VERIFIED',
+      verificationMethod:'watermark_detector',
+      verifier:'detector-A',
+      verifierSelectionReason:'lowest bounded cost for origin claim',
+      verificationCost:3,
+      verificationCostUnit:'calls',
+      verificationBudget:10,
+      verificationBudgetUnit:'calls',
+      falseAcceptBoundary:'1e-7',
+      falseRejectBoundary:'benchmark-dependent',
+      expectedInformationGain:0.6,
+      provenanceBindingMethod:'soft-watermark',
+      provenanceBindingResult:'present',
+      verificationPerturbation:'object transformed during binding',
+    },
+  });
+  const passport=buildRealityPassport(subject,[]);
+  assert.equal(passport.verification.method,'watermark_detector');
+  assert.equal(passport.verification.verifier,'detector-A');
+  assert.equal(passport.verification.costUnit,'calls');
+  assert.equal(passport.provenance.contentBinding.method,'soft-watermark');
+  assert.equal(passport.provenance.contentBinding.result,'present');
+  assert.equal(passport.provenance.contentBinding.boundary,'PROVENANCE_BINDING_DOES_NOT_PROVE_EVENT_TRUTH');
+  assert.equal(passport.verification.processImpact,'object transformed during binding');
 });
