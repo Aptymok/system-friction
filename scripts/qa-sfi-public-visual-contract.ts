@@ -35,8 +35,9 @@ check('menu is physically fixed',chromeCss.includes('position:fixed!important')&
 
 check('home is independent from operational instrument deck',
   landing.includes('sfiHomeExperience')
-  && landing.includes('SFI_HOME_INDEX_PANORAMA_20261008.png')
   && landing.includes('SFI_HOME_PANORAMA.png')
+  && fs.existsSync('public/assets/sfi/instruments/SFI_HOME_PANORAMA.png')
+  && !landing.includes('SFI_HOME_INDEX_PANORAMA_20261008.png')
   && landing.includes('SURFACE_RAIL')
   && !landing.includes('SCENES.map')
   && !landing.includes('sfiSceneDeck'));
