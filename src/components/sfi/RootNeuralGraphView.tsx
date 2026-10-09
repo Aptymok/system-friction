@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { SfiRootWorkspace } from './SfiRootWorkspace';
 import { RootCognitiveFieldPixi } from './RootCognitiveFieldPixi';
+import { projectKnowledgeTimeContrast } from '@/lib/graph/knowledgeTimeContrast';
 import './RootNeuralGraphView.css';
 
 type GraphNode = {
@@ -355,6 +356,16 @@ function humanize(value:string){
     .replace(/\b\w/g,(char)=>char.toUpperCase());
 }
 
+function knowledgeDate(value: string | null) {
+  if (!value) return 'NOT RECORDED';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.valueOf())) return 'INVALID DATE';
+  return parsed.toLocaleString('en-GB',{
+    day:'2-digit',month:'short',year:'numeric',
+    hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'UTC',
+  }) + ' UTC';
+}
+
 function date(value: string | null) {
   if (!value) return 'MISSING';
   const parsed = new Date(value);
@@ -524,6 +535,7 @@ export function RootNeuralGraphView({ graph, agents=[], agentRegistryState='UNAV
   const initialReading=(allowedReadings as readonly string[]).includes(requestedReading||'') ? requestedReading as typeof allowedReadings[number] : 'CURRENT_STATE';
   const [query, setQuery] = useState('');
   const [activeType, setActiveType] = useState('ALL');
+  const [knowledgeCutoffSelection,setKnowledgeCutoffSelection]=useState<{nodeId:string;cutoff:string}|null>(null);
   const [activeCategory,setActiveCategory]=useState('ALL');
   const [authorityFilter,setAuthorityFilter]=useState('ALL');
   const [evidenceFilter,setEvidenceFilter]=useState('ALL');
@@ -597,6 +609,17 @@ export function RootNeuralGraphView({ graph, agents=[], agentRegistryState='UNAV
   const nodeById = useMemo(() => new Map(graph.nodes.map((node) => [node.id, node])), [graph.nodes]);
 
   const selected = selectedId ? nodeById.get(selectedId) ?? null : null;
+  const knowledgeContrast=selected?projectKnowledgeTimeContrast({
+    attributes:selected.attributes,
+    epistemicState:selected.realityPassport?.epistemicState ?? selected.reality?.state ?? 'UNKNOWN',
+    captureTime:selected.realityPassport?.temporal.captureTime ?? selected.reality?.captureTime ?? null,
+    nodeUpdatedAt:selected.realityPassport?.temporal.nodeUpdatedAt ?? null,
+    sourceVersion:selected.realityPassport?.temporal.sourceVersion ?? null,
+    provenance:selected.provenance,
+    lineage:selected.lineage,
+    fieldHistory:selected.fieldHistory,
+    selectedCutoff:knowledgeCutoffSelection?.nodeId===selected.id ? knowledgeCutoffSelection.cutoff : null,
+  }):null;
   const selectedEdges = useMemo(
     () => selected
       ? graph.edges.filter((edge) => edge.source === selected.id || edge.target === selected.id)
@@ -700,6 +723,62 @@ export function RootNeuralGraphView({ graph, agents=[], agentRegistryState='UNAV
                     <div><dt>EPISTEMIC STATE</dt><dd>{selected.reality?.state ?? representedText(selected.attributes.epistemicClass,'UNKNOWN')}</dd></div>
                   </dl>
                 </header>
+                <section className="rootPassportQuestion rootPassportKnowledgeTime" data-knowledge-contract="KNEW_THEN_KNOWN_NOW">
+                  <h3>KNEW THEN / KNOWN NOW</h3>
+                  <p>Compare epistemic records at two dated cut-offs. The date an event happened, the date its state was recorded, and the date the database row changed are different.</p>
+                  {knowledgeContrast ? <>
+                    {knowledgeContrast.history.length>=2 ?
+                      <label className="rootKnowledgeCutoffLabel" htmlFor="root-knowledge-cutoff">
+                        HISTORICAL KNOWLEDGE CUT-OFF
+                        <select id="root-knowledge-cutoff"
+                          value={knowledgeContrast.selectedCutoff ?? ''}
+                          onChange={event=>setKnowledgeCutoffSelection({nodeId:selected.id,cutoff:event.target.value})}>
+                          {knowledgeContrast.history.slice(0,-1).map(epoch=><option key={epoch.eventId} value={epoch.occurredAt}>{knowledgeDate(epoch.occurredAt)} · {epoch.state ?? 'UNKNOWN'}</option>)}
+                        </select>
+                      </label> : null}
+                    <div className="rootPassportKnowledgeGrid">
+                      <article className="rootPassportKnowledgeMoment" data-time-role="THEN">
+                        <h4>KNEW THEN</h4>
+                        <dl>
+                          <div><dt>KNOWLEDGE RECORDED</dt><dd><time dateTime={knowledgeContrast.then.knownAt ?? undefined}>{knowledgeDate(knowledgeContrast.then.knownAt)}</time></dd></div>
+                          <div><dt>WORLD EVENT / EFFECTIVE</dt><dd>{knowledgeDate(knowledgeContrast.then.eventAt)}</dd></div>
+                          <div><dt>OBSERVED / CAPTURED</dt><dd>{knowledgeDate(knowledgeContrast.then.observedAt)}</dd></div>
+                          <div><dt>EPISTEMIC STATE</dt><dd>{knowledgeContrast.then.state}</dd></div>
+                          <div><dt>SOURCE RECORD</dt><dd>{knowledgeContrast.then.sourceRef ?? 'NOT REPRESENTED'}</dd></div>
+                        </dl>
+                        <p>{knowledgeContrast.then.statement ?? (knowledgeContrast.then.provenance==='PERSISTED_EPOCH'
+                          ? 'A prior STATE is documented, but its historical claim text is NOT RECORDED.'
+                          : 'No recoverable earlier knowledge statement is represented.')}</p>
+                        <small>{knowledgeContrast.then.boundary}</small>
+                      </article>
+                      <article className="rootPassportKnowledgeMoment" data-time-role="NOW">
+                        <h4>KNOWN NOW</h4>
+                        <dl>
+                          <div><dt>KNOWLEDGE RECORDED</dt><dd><time dateTime={knowledgeContrast.now.knownAt ?? undefined}>{knowledgeDate(knowledgeContrast.now.knownAt)}</time></dd></div>
+                          <div><dt>WORLD EVENT / EFFECTIVE</dt><dd>{knowledgeDate(knowledgeContrast.now.eventAt)}</dd></div>
+                          <div><dt>OBSERVED / CAPTURED</dt><dd>{knowledgeDate(knowledgeContrast.now.observedAt)}</dd></div>
+                          <div><dt>RECORD LAST UPDATED</dt><dd>{knowledgeDate(knowledgeContrast.now.recordUpdatedAt)}</dd></div>
+                          <div><dt>EPISTEMIC STATE</dt><dd>{knowledgeContrast.now.state}</dd></div>
+                          <div><dt>SOURCE RECORD</dt><dd>{knowledgeContrast.now.sourceRef ?? 'NOT REPRESENTED'}</dd></div>
+                        </dl>
+                        <p>{knowledgeContrast.now.statement ?? 'No present knowledge statement is represented beyond the classified epistemic state.'}</p>
+                        <small>{knowledgeContrast.now.boundary}</small>
+                      </article>
+                    </div>
+                    <div className="rootPassportKnowledgeDelta">
+                      <strong>TEMPORAL CONTRAST · {knowledgeContrast.comparison.replaceAll('_',' ')}</strong>
+                      <p>{knowledgeContrast.comparison==='INSUFFICIENT_TEMPORAL_EVIDENCE'
+                        ? 'The available record cannot establish a dated comparison. Unknown historical content remains unknown.'
+                        : knowledgeContrast.comparison==='CHANGED'
+                          ? 'The recorded epistemic STATE changed between the knowledge dates. This does not by itself prove the world changed.'
+                          : 'No change of recorded epistemic STATE is demonstrated. Supporting evidence may still differ.'}</p>
+                      <p>HISTORY: {knowledgeContrast.history.length} dated epochs loaded / {knowledgeContrast.totalPersistedEpochs} persisted epochs.
+                        {knowledgeContrast.historySampleBounded?' BOUNDED SAMPLE: earlier records are not fully loaded.':''}</p>
+                      <p>READ AT: {knowledgeDate(graph.loadedAt)} · Later observations add a new layer; they never rewrite what was known at an earlier cut-off.</p>
+                    </div>
+                  </> : <p>TEMPORAL CONTRAST NOT AVAILABLE.</p>}
+                </section>
+
                 <section className="rootPassportQuestion">
                   <h3>01 · WHAT DO WE KNOW?</h3>
                   <p>{representedText(selected.attributes.observedOutcome ?? selected.attributes.statement ?? selected.attributes.evidenceKind,'No observation statement represented for this object.')}</p>
