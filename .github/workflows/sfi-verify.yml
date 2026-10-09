@@ -228,6 +228,9 @@ jobs:
       - name: Verify governed external cognitive peer boundary
         run: npx tsx scripts/qa-sfi-external-cognitive-peer.ts
 
+      - name: Verify Reality Chain three-screen case lineage
+        run: npx tsx scripts/qa-sfi-reality-chain-three-screen.ts
+
       - name: Typecheck
         id: typecheck
         shell: bash
