@@ -564,14 +564,34 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
   const fieldEdges=visibleEdges.map((edge)=>({id:edge.id,source:edge.source,target:edge.target,weight:edge.weight,selected:selectedId===edge.source||selectedId===edge.target}));
 
   return (
-    <main className="neuralGraphShell rootFieldMode" data-neural-graph-contract="SFI-ROOT-NEURAL-GRAPH-1.1">
+    <main className="neuralGraphShell rootFieldMode rootReferenceCockpit" data-root-layout="REFERENCE-SIMULTANEOUS-20261008" data-neural-graph-contract="SFI-ROOT-NEURAL-GRAPH-1.1">
       <div className="rootFieldIdentity">
         <strong>ROOT · GLOBAL COGNITIVE FIELD OF REALITY</strong>
         <span>NOTHING ACTS ALONE. REALITY ANSWERS BACK.</span>
         <span>{date(graph.loadedAt)}</span>
       </div>
 
-      <section className="rootFieldStage" data-hub-open={selected?'true':undefined} aria-label="Canonical cognitive field">
+      <div className="rootHorizontalRail" aria-label="Simultaneous ROOT cognitive field and governed console">
+       <aside className="rootReferenceSidebar" aria-label="Cognitive field filters">
+         <div className="rootReferenceSidebarTitle"><strong>ROOT</strong><span>GLOBAL COGNITIVE FIELD OF REALITY</span></div>
+         <div className="rootReferenceSource" data-state={graph.sourceState}><i/><span>{graph.sourceState.toUpperCase()} · {graph.readPlane}<small>{graph.nodes.length} admitted objects · {graph.edges.length} relations</small></span></div>
+         <label className="rootReferenceSearchLabel" htmlFor="root-reference-search">SEARCH THE FIELD</label>
+         <input className="rootReferenceSearch" id="root-reference-search" value={query} onChange={(event)=>setQuery(event.target.value)} placeholder="Cases, evidence, methods…" aria-label="Search canonical cognitive objects"/>
+         <div className="rootReferenceSidebarKicker">REPRESENTED CATEGORIES</div>
+         <nav className="rootReferenceFilters" aria-label="Filter node types">
+           <button type="button" aria-pressed={activeType==='ALL'} onClick={()=>setActiveType('ALL')}><span>ALL NODES</span><b>{graph.nodes.length}</b></button>
+           {allTypes.map(type=><button type="button" key={type} aria-pressed={activeType===type} onClick={()=>setActiveType(activeType===type?'ALL':type)}><span>{humanize(type)}</span><b>{graph.nodes.filter(node=>node.type===type).length}</b></button>)}
+         </nav>
+         <p className="rootReferenceSidebarNote">These are admitted graph objects, not the institution’s complete inventory. Unobserved states remain explicit.</p>
+         <a className="rootReferenceSidebarLink" href="/root/evidence-review">REVIEW EVIDENCE ↗</a>
+       </aside>
+      <section className="rootFieldStage rootHorizontalGraph" data-hub-open={selected?'true':undefined} aria-label="Canonical cognitive field">
+        <div className="rootReferenceModes" aria-label="Graph perspective">
+         {([['FIELD','CURRENT_STATE'],['TRAJECTORIES','TRAJECTORY'],['HIERARCHY','HIERARCHY'],['CONTRAST','RETURN_CONTRAST']] as const).map(([label,mode])=><button type="button" key={mode} aria-pressed={reading===mode} onClick={()=>setReading(mode)}>{label}</button>)}
+        </div>
+        <div className="rootReferenceCategoryLegend" aria-label="Admitted cognitive types">
+         {allTypes.slice(0,4).map(type=><div key={type}><i/><span>{humanize(type)}<small>{graph.nodes.filter(node=>node.type===type).length} nodes</small></span></div>)}
+        </div>
         <RootCognitiveFieldPixi nodes={fieldNodes} edges={fieldEdges} width={topology.width} height={topology.height} onSelect={(id)=>{setSelectedId(id);}}/>
         <div className="rootFieldControls">
           <select aria-label="Field reading" value={reading} onChange={(event)=>setReading(event.target.value as typeof reading)}>
@@ -580,7 +600,7 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
           <select aria-label="Temporal resolution" value={temporalResolution} onChange={(event)=>setTemporalResolution(event.target.value)}>
             {['ALL','SYSTEM_HISTORY','REGIME','PHENOMENON','CYCLE','TRANSITION','EVENT','OBSERVATION'].map((level)=><option key={level} value={level}>{level.replaceAll('_',' ')}</option>)}
           </select>
-          <input aria-label="Search field" value={query} onChange={(event)=>setQuery(event.target.value)} placeholder="Search a case, project, decision, evidence, person, system or RETURN…"/>
+          <span className="rootReferenceReadPlane">{graph.sourceState.toUpperCase()} · {graph.readPlane}</span>
           {selectedId?<button type="button" onClick={()=>setFocusId(focusId===selectedId?null:selectedId)}>{focusId===selectedId?'EXIT NODE':'ENTER NODE'}</button>:null}
         </div>
         <div className="rootFieldLegend">
@@ -680,9 +700,30 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
         ):null}
       </section>
 
-      <details className="rootFieldAuthority" open={Boolean(searchParams.get('decision'))}>
+      <section className="rootGovernanceConsole" aria-label="ROOT governed operational console">
+        <nav className="rootReferenceConsoleTabs" aria-label="Operational console sections">
+          <a href="#root-panel-summary">SUMMARY</a><a href="#root-panel-authority">AUTHORITY</a><a href="#root-panel-logbook">JR LOGBOOK</a><a href="#root-panel-trajectories">TRAJECTORIES</a><a href="#root-panel-learning">LEARNING</a><a href="#root-panel-actions">ACTIONS</a>
+        </nav>
+        <header className="rootGovernanceHead"><span>ROOT / GOVERNED OPERATION</span><h1>From relations to decisions.</h1><p>Evidence, authority and RETURN remain separate. This console reports only what the current institutional records support.</p></header>
+        <div className="rootGovernanceMetrics"><article><span>COGNITIVE OBJECTS</span><strong>{graph.nodes.length}</strong><small>{graph.sourceState.toUpperCase()} · {graph.readPlane}</small></article><article><span>ADMITTED RELATIONS</span><strong>{graph.edges.length}</strong><small>{graph.admission.excludedEdges} excluded</small></article><article><span>SELECTED OBJECT</span><strong>{selected ? selected.label : 'NONE'}</strong><small>{selected?.realityPassport?.decision ?? 'SELECT A NODE IN THE GRAPH'}</small></article><article><span>OBSERVED RETURN</span><strong>{selected?.realityPassport?.returnState.status ?? 'NOT SELECTED'}</strong><small>Reported from existing case provenance</small></article></div>
+        <div className="rootGovernanceMatrix"><section id="root-panel-summary" className="rootGovernancePanel"><h2>SUMMARY / REALITY PASSPORT</h2>{selected?<><strong>{selected.label}</strong><p>{selected.realityPassport?.boundary ?? 'No canonical Reality Passport is represented for this object.'}</p><dl><div><dt>OBSERVATION</dt><dd>{selected.reality?.state ?? 'UNKNOWN'}</dd></div><div><dt>EVIDENCE</dt><dd>{selected.realityPassport?.provenance.supportingRelationCount ?? 'NOT REPRESENTED'} supporting relations; independence not established</dd></div><div><dt>INFERENCE / DECISION</dt><dd>{selected.realityPassport?.decision ?? 'UNKNOWN'}</dd></div><div><dt>AUTHORITY</dt><dd>{selected.realityPassport?.authority.state ?? 'UNKNOWN'}</dd></div><div><dt>EXECUTION</dt><dd>{selected.realityPassport?.authority.executionState ?? 'UNKNOWN'}</dd></div><div><dt>RETURN</dt><dd>{selected.realityPassport?.returnState.status ?? 'NOT OBSERVED'}</dd></div></dl></>:<p>Select an actual node in the cognitive field to inspect its evidence, authority, time and RETURN.</p>}</section><section id="root-panel-trajectories" className="rootGovernancePanel"><h2>TRAJECTORIES / TEMPORAL FIELD</h2><p>Use the existing field reading selector to inspect trajectory, retrolongitudinal states, projections, friction regimes and contrast.</p><strong>{reading.replaceAll('_',' ')}</strong><p>{selected?.fieldHistory?.persistedHistory ? `${selected.fieldHistory.epochCount} persisted epochs · ${date(selected.fieldHistory.lastObservedAt)}` : 'Historical reconstruction not established for the selected object.'}</p><button type="button" onClick={()=>setReading('TRAJECTORY')}>EXPLORE TRAJECTORY</button><button type="button" onClick={()=>setReading('RETURN_CONTRAST')}>RETURN / CONTRAST</button></section><section id="root-panel-logbook" className="rootGovernancePanel"><h2>JR / FIELD LOGBOOK</h2><p>Visible history is limited to events actually represented by the selected object. Learning states do not certify empirical results.</p>{selected?.fieldHistory?.recentEpochs?.length ? selected.fieldHistory.recentEpochs.slice(-5).reverse().map(epoch=><div className="rootGovernanceLog" key={epoch.eventId}><time>{date(epoch.occurredAt)}</time><span>{epoch.state ?? 'UNKNOWN'}</span><small>{epoch.censoring}</small></div>):<p>NOT OBSERVED · Select a node with persisted field history.</p>}<p>LEARNING · {selected?.learningState?.state ?? 'NOT REPRESENTED'}</p></section><section id="root-panel-learning" className="rootGovernancePanel"><h2>LEARNING / CONTRAST / RETURN</h2><p>Method Lab findings and scientific interpretation retain their declared epistemic class.</p><dl><div><dt>METHOD</dt><dd>{selected?.methodResult?.methodId ?? 'NOT REPRESENTED'}</dd></div><div><dt>RESULT CLASS</dt><dd>{selected?.methodResult?.epistemicClass ?? 'UNKNOWN'}</dd></div><div><dt>CONTRAST</dt><dd>{selected?.methodResult?.contrastStatus ?? 'NOT REPRESENTED'}</dd></div><div><dt>LEARNING</dt><dd>{selected?.learningState?.state ?? 'NOT REPRESENTED'}</dd></div></dl></section><section id="root-panel-authority" className="rootGovernancePanel"><h2>AUTHORITY / AUTHORIZATION</h2><dl>
+ <div><dt>AUTHORITY</dt><dd>{selected?.realityPassport?.authority.state ?? 'UNKNOWN'}</dd></div>
+ <div><dt>EXECUTION</dt><dd>{selected?.realityPassport?.authority.executionState ?? 'UNKNOWN'}</dd></div>
+ <div><dt>RETURN</dt><dd>{selected?.realityPassport?.returnState.status ?? 'NOT OBSERVED'}</dd></div>
+ </dl><a className="rootReferencePanelLink" href="#root-governed-actions">VIEW GOVERNED DECISIONS ↗</a></section>
+ <section id="root-panel-actions" className="rootGovernancePanel"><h2>MATERIAL ACTIONS / BOUNDARIES</h2><p>Select an existing governed workspace. This interface does not grant or execute authority.</p>
+ <nav className="rootReferenceActionLinks" aria-label="Governed operations">
+ <a href="/root/evidence-review">REVIEW EVIDENCE ↗</a>
+ <a href="/governance">GOVERNANCE ↗</a>
+ <a href="/method-lab">METHOD LAB ↗</a>
+ <a href="/root?reading=REALITY_CHAIN">REALITY CHAIN ↗</a>
+ </nav></section></div>
+        <details id="root-governed-actions" className="rootFieldAuthority rootGovernanceAuthority" open={Boolean(searchParams.get('decision'))}>
         <summary>AUTHORITY</summary>
         <SfiRootWorkspace enabled decisionOnly/>
-      </details>
+        </details>
+        <nav className="rootGovernanceLinks" aria-label="Institutional operating destinations"><a href="/root?reading=REALITY_CHAIN">REALITY CHAIN</a><a href="/root?reading=RETURN_CONTRAST">RETURN CONTRAST</a><a href="/root?reading=RETROLONGITUDINAL">FIELD HISTORY</a></nav>
+      </section>
+      </div>
     </main>
   );}
