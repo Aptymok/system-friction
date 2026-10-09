@@ -65,7 +65,7 @@ export function PublicEntryGateway(){
 
     <header className="sfiHomeHeader">
       <Link href="/" className="sfiHomeBrand" aria-label="System Friction Institute home">
-        <img src="/library/assets/sfi-mark.svg" alt="" aria-hidden="true"/>
+        <img src="/assets/sfi/ui/icons/00_sfi_canonical_mark.png" alt="" aria-hidden="true"/>
         <strong>SFI</strong><i>—</i><span>SYSTEM FRICTION INSTITUTE</span>
       </Link>
       <nav aria-label="SFI instruments">
