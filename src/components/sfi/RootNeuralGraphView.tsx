@@ -792,7 +792,7 @@ export function RootNeuralGraphView({ graph, agents=[], agentRegistryState='UNAV
                         : knowledgeContrast.comparison==='CHANGED'
                           ? 'The recorded epistemic STATE changed between the knowledge dates. This does not by itself prove the world changed.'
                           : 'No change of recorded epistemic STATE is demonstrated. Supporting evidence may still differ.'}</p>
-                      <p>HISTORY: {knowledgeContrast.history.length} dated epochs loaded / {knowledgeContrast.totalPersistedEpochs} persisted epochs.
+                      <p>PERSISTED EPOCHS: {selected.fieldHistory?.epochCount ?? 'NOT OBSERVED'} · DATED EPOCHS IN THIS READING: {knowledgeContrast.history.length}.
                         {knowledgeContrast.historySampleBounded?' BOUNDED SAMPLE: earlier records are not fully loaded.':''}</p>
                       <p>READ AT: {knowledgeDate(graph.loadedAt)} · Later observations add a new layer; they never rewrite what was known at an earlier cut-off.</p>
                     </div>
@@ -823,6 +823,7 @@ export function RootNeuralGraphView({ graph, agents=[], agentRegistryState='UNAV
                   <h3>05 · WHAT DID REALITY RETURN?</h3>
                   <p>RETURN status: {selected.realityPassport?.returnState.status ?? 'UNKNOWN'}.</p>
                   <p>Method contrast: {selected.methodResult?.contrastStatus ?? 'NOT REPRESENTED'} · Epochs: {selected.fieldHistory?.epochCount ?? 'NOT OBSERVED'}.</p>
+                  <h4>FIELD HISTORY</h4>
                   {selected.fieldHistory?.recentEpochs?.length?<ol className="rootPassportHistory">{selected.fieldHistory.recentEpochs.slice(-5).reverse().map(epoch=><li key={epoch.eventId}><time>{date(epoch.occurredAt)}</time><span>{humanize(epoch.previousState ?? 'UNKNOWN')} → {humanize(epoch.state ?? 'UNKNOWN')}</span></li>)}</ol>:<p>T0 / T1 comparison: NOT ESTABLISHED BY THE AVAILABLE RECORD.</p>}
                 </section>
                 <section className="rootPassportQuestion">
