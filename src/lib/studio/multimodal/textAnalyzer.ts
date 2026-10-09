@@ -15,6 +15,7 @@ type TextExtraction = {
   parser: string;
   warnings: string[];
   pageCount: number | null;
+  pages?: Array<{page:number;text:string}>;
 };
 
 function decodeUtf8(bytes: Buffer) {
@@ -123,7 +124,9 @@ async function extractPdfText(bytes: Buffer): Promise<TextExtraction> {
       const parser = new PDFParse({ data: bytes });
       try {
         const result = await parser.getText();
-        return { text: result.text, parser: 'pdf-parse_v2', warnings: [], pageCount: result.total };
+        const pageItems=(result as unknown as {pages?:Array<{num?:number;text?:string}>}).pages??[];
+        const pages=pageItems.filter(page=>typeof page.text==='string'&&page.text.trim()).map((page,index)=>({page:typeof page.num==='number'?page.num:index+1,text:page.text??''}));
+        return { text: result.text, parser: 'pdf-parse_v2', warnings: [], pageCount: result.total, pages:pages.length?pages:undefined };
       } finally {
         await parser.destroy().catch(() => undefined);
       }
@@ -211,6 +214,12 @@ function paragraphArc(text: string) {
   if (!paragraphs.length) return [];
   const max = Math.max(...paragraphs.map((item) => item.length), 1);
   return paragraphs.slice(0, 80).map((item, index) => ({ index, relativeLength: Number((item.length / max).toFixed(4)) }));
+}
+
+// Reuse the existing conservative extractor for transient Reality Chain intake.
+ // This reads input bytes in process memory only; it does not write to storage.
+export async function extractDocumentTextTransient(bytes:Buffer,extension:string){
+  return extractText(bytes,extension);
 }
 
 export async function analyzeStudioText(bytes: Buffer, extension: string) {

@@ -542,7 +542,12 @@ export function RootNeuralGraphView({ graph, agents=[], agentRegistryState='UNAV
   const [relationFilter,setRelationFilter]=useState('ALL');
   const [returnFilter,setReturnFilter]=useState('ALL');
   const [domainFilter,setDomainFilter]=useState('ALL');
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  // A case deep link may select only a genuinely admitted canonical graph node.
+  // Do not synthesize a graph object for an otherwise valid Case Platform record.
+  const requestedNode=searchParams.get('node');
+  const [selectedId, setSelectedId] = useState<string | null>(()=>{
+    return requestedNode&&graph.nodes.some(node=>node.id===requestedNode)?requestedNode:null;
+  });
   const [reading, setReading] = useState<'CURRENT_STATE'|'HIERARCHY'|'TRAJECTORY'|'RETROLONGITUDINAL'|'PROJECTION'|'FRICTION_REGIME'|'REALITY_CHAIN'|'RETURN_CONTRAST'>(initialReading);
   const [temporalResolution, setTemporalResolution] = useState('ALL');
   const [focusId,setFocusId]=useState<string|null>(null);
@@ -859,7 +864,7 @@ export function RootNeuralGraphView({ graph, agents=[], agentRegistryState='UNAV
                   </nav>
                 </section>
               </>
-            ) : <div className="rootPassportWaiting"><h2>SELECT AN OBJECT IN THE GRAPH</h2><p>The Reality Passport will appear here. Structural orientation does not manufacture observations or relations.</p><p>{graph.nodes.length} admitted nodes · {graph.edges.length} admitted edges.</p></div>}
+            ) : <div className="rootPassportWaiting">{requestedNode?<><h2>CASE NOT ADMITTED TO THE COGNITIVE GRAPH</h2><p>This reference does not identify an admitted canonical node. No Reality Passport is fabricated.</p><p><a href={'/reality-chain?case='+encodeURIComponent(requestedNode)}>Inspect the authorized Case Platform record in Reality Chain ↗</a></p></>:<><h2>SELECT AN OBJECT IN THE GRAPH</h2><p>The Reality Passport will appear here. Structural orientation does not manufacture observations or relations.</p></>}<p>{graph.nodes.length} admitted nodes · {graph.edges.length} admitted edges.</p></div>}
             <section className="rootPassportQuestion rootPassportAgents">
               <h3>INSTITUTIONAL AGENTS / RUNTIME REGISTRY</h3>
               <p>Registry read: {agentRegistryState}. These are registered capabilities, not automatically agents assigned to the selected object.</p>

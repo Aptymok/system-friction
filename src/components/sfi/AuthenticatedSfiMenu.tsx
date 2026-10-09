@@ -7,7 +7,7 @@ import './AuthenticatedSfiMenu.css';
 const CORE_SURFACES=[
   {label:'ROOT',href:'/root'},
   {label:'OBSERVATORY',href:'/observatory'},
-  {label:'REALITY CHAIN',href:'/root?reading=REALITY_CHAIN'},
+  {label:'REALITY CHAIN',href:'/reality-chain'},
   {label:'METHOD LAB',href:'/method-lab'},
   {label:'WORLD VECTOR',href:'/root?reading=TRAJECTORY'},
   {label:'REPOSITORY',href:'/publications?view=registry'},
@@ -19,7 +19,7 @@ const ITEMS=[
   {label:'CURRENT STATE',href:'/root?reading=CURRENT_STATE'},
   {label:'TRAJECTORIES',href:'/root?reading=TRAJECTORY'},
   {label:'OBSERVATORY',href:'/observatory'},
-  {label:'CASES',href:'/root?reading=CURRENT_STATE'},
+  {label:'CASES',href:'/reality-chain'},
   {label:'METHOD LAB',href:'/method-lab'},
   {label:'GOVERNANCE',href:'/governance'},
   {label:'TWIN / SPINE',href:'/root?reading=RETROLONGITUDINAL'},
