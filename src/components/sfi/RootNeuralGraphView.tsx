@@ -727,7 +727,7 @@ export function RootNeuralGraphView({ graph, agents=[], agentRegistryState='UNAV
                   <h3>KNEW THEN / KNOWN NOW</h3>
                   <p>Compare epistemic records at two dated cut-offs. The date an event happened, the date its state was recorded, and the date the database row changed are different.</p>
                   {knowledgeContrast ? <>
-                    {knowledgeContrast.history.length>=2 ?
+                    {knowledgeContrast.history.length>=2 && knowledgeContrast.then.provenance==='PERSISTED_EPOCH' ?
                       <label className="rootKnowledgeCutoffLabel" htmlFor="root-knowledge-cutoff">
                         HISTORICAL KNOWLEDGE CUT-OFF
                         <select id="root-knowledge-cutoff"
@@ -743,7 +743,7 @@ export function RootNeuralGraphView({ graph, agents=[], agentRegistryState='UNAV
                           <div><dt>KNOWLEDGE RECORDED</dt><dd><time dateTime={knowledgeContrast.then.knownAt ?? undefined}>{knowledgeDate(knowledgeContrast.then.knownAt)}</time></dd></div>
                           <div><dt>WORLD EVENT / EFFECTIVE</dt><dd>{knowledgeDate(knowledgeContrast.then.eventAt)}</dd></div>
                           <div><dt>OBSERVED / CAPTURED</dt><dd>{knowledgeDate(knowledgeContrast.then.observedAt)}</dd></div>
-                          <div><dt>EPISTEMIC STATE</dt><dd>{knowledgeContrast.then.state}</dd></div>
+                          <div><dt>{knowledgeContrast.then.stateMeaning==='EPISTEMIC'?'EPISTEMIC STATE':'RECORDED OBJECT STATE'}</dt><dd>{knowledgeContrast.then.state}</dd></div>
                           <div><dt>SOURCE RECORD</dt><dd>{knowledgeContrast.then.sourceRef ?? 'NOT REPRESENTED'}</dd></div>
                         </dl>
                         <p>{knowledgeContrast.then.statement ?? (knowledgeContrast.then.provenance==='PERSISTED_EPOCH'
@@ -758,7 +758,7 @@ export function RootNeuralGraphView({ graph, agents=[], agentRegistryState='UNAV
                           <div><dt>WORLD EVENT / EFFECTIVE</dt><dd>{knowledgeDate(knowledgeContrast.now.eventAt)}</dd></div>
                           <div><dt>OBSERVED / CAPTURED</dt><dd>{knowledgeDate(knowledgeContrast.now.observedAt)}</dd></div>
                           <div><dt>RECORD LAST UPDATED</dt><dd>{knowledgeDate(knowledgeContrast.now.recordUpdatedAt)}</dd></div>
-                          <div><dt>EPISTEMIC STATE</dt><dd>{knowledgeContrast.now.state}</dd></div>
+                          <div><dt>{knowledgeContrast.now.stateMeaning==='EPISTEMIC'?'EPISTEMIC STATE':'RECORDED OBJECT STATE'}</dt><dd>{knowledgeContrast.now.state}</dd></div>
                           <div><dt>SOURCE RECORD</dt><dd>{knowledgeContrast.now.sourceRef ?? 'NOT REPRESENTED'}</dd></div>
                         </dl>
                         <p>{knowledgeContrast.now.statement ?? 'No present knowledge statement is represented beyond the classified epistemic state.'}</p>
