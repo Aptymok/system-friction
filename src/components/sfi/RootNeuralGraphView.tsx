@@ -484,7 +484,12 @@ export function RootNeuralGraphView({ graph }: { graph: GraphPayload }) {
   const initialReading=(allowedReadings as readonly string[]).includes(requestedReading||'') ? requestedReading as typeof allowedReadings[number] : 'CURRENT_STATE';
   const [query, setQuery] = useState('');
   const [activeType, setActiveType] = useState('ALL');
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Contextual Passport deep link reuses the same canonical graph node.
+  // A case not admitted to this graph remains absent; we must not synthesize a node.
+  const requestedNode=searchParams.get('node');
+  const [selectedId, setSelectedId] = useState<string | null>(()=>{
+    return requestedNode&&graph.nodes.some(node=>node.id===requestedNode)?requestedNode:null;
+  });
   const [reading, setReading] = useState<'CURRENT_STATE'|'HIERARCHY'|'TRAJECTORY'|'RETROLONGITUDINAL'|'PROJECTION'|'FRICTION_REGIME'|'REALITY_CHAIN'|'RETURN_CONTRAST'>(initialReading);
   const [temporalResolution, setTemporalResolution] = useState('ALL');
   const [focusId,setFocusId]=useState<string|null>(null);
