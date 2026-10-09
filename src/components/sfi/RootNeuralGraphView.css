@@ -686,3 +686,28 @@
   .rootReferenceModes button{font-size:11px;min-height:38px;padding:6px}
 }
 @media(prefers-reduced-motion:reduce){.rootReferenceCockpit *{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+
+
+/* ROOT Reality Passport: dated knowledge contrast. States and dates are textual;
+   the compact two-column comparison wraps rather than shrinking font size. */
+.rootPassportKnowledgeTime{border-top:1px solid #D4AF37}
+.rootPassportKnowledgeTime>p{max-width:65ch}
+.rootKnowledgeCutoffLabel{display:flex;flex-direction:column;gap:8px;margin:18px 0;color:#D4AF37;font:600 13px/1.5 "Noto Sans",Arial,sans-serif}
+.rootKnowledgeCutoffLabel select{width:100%;min-height:44px;max-width:100%;padding:10px;border:1px solid rgba(212,175,55,.65);border-radius:0;background:#0B0B0A;color:#F7F4EA;font:400 14px/1.4 "Noto Sans",Arial,sans-serif}
+.rootKnowledgeCutoffLabel select:focus-visible{outline:2px solid #D4AF37;outline-offset:2px}
+.rootPassportKnowledgeGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:20px 0}
+.rootPassportKnowledgeMoment{min-width:0;padding:18px 14px;background:#0B0B0A;border:1px solid rgba(200,169,81,.45);border-top:3px solid #C8A951}
+.rootPassportKnowledgeMoment[data-time-role=THEN]{border-top-color:#4A7AAA}
+.rootPassportKnowledgeMoment h4{margin:0 0 17px;color:#F7F4EA;font:400 23px/1.2 "Noto Serif Display",Georgia,serif}
+.rootPassportKnowledgeMoment dl{margin:0;display:flex;flex-direction:column;gap:0}
+.rootPassportKnowledgeMoment dl div{border-bottom:1px solid rgba(200,169,81,.23);padding:9px 0}
+.rootPassportKnowledgeMoment dt{margin:0 0 6px;color:#D4AF37;font:600 12px/1.45 "Noto Sans",Arial,sans-serif}
+.rootPassportKnowledgeMoment dd{margin:0;color:#F7F4EA;font:400 14px/1.55 "Noto Sans",Arial,sans-serif;overflow-wrap:anywhere}
+.rootPassportKnowledgeMoment time{font-variant-numeric:tabular-nums}
+.rootPassportKnowledgeMoment p{font:400 15px/1.6 "Noto Sans",Arial,sans-serif;color:#F7F4EA}
+.rootPassportKnowledgeMoment small{display:block;margin-top:12px;color:#E8DDC3;font:400 12px/1.55 "Noto Sans",Arial,sans-serif}
+.rootPassportKnowledgeDelta{border-left:2px solid #D4AF37;padding:12px 18px;margin:16px 0;background:rgba(212,175,55,.045)}
+.rootPassportKnowledgeDelta strong{display:block;margin-bottom:7px;color:#D4AF37;font:600 14px/1.4 "Noto Sans",Arial,sans-serif}
+.rootPassportKnowledgeDelta p{margin:7px 0;color:#E8DDC3;font:400 14px/1.6 "Noto Sans",Arial,sans-serif}
+@media(max-width:1650px){.rootPassportKnowledgeGrid{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:650px){.rootPassportKnowledgeMoment{padding:14px}.rootPassportKnowledgeMoment h4{font-size:21px}}
