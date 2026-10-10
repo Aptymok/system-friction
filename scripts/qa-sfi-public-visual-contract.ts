@@ -70,10 +70,12 @@ check('home exposes canonical surfaces and enters Repository console',
   && landing.includes("sceneId:'repository',href:'/repository'")
   && !landing.includes("href:'/instruments/world-vector'"));
 
-check('instrument route exposes seven canonical surfaces and redirects legacy World Vector',
-  route.includes("['root','observatory','reality-chain','method-lab','repository','timeline','access']")
+check('instrument route excludes duplicate Repository deck and redirects aliases',
+  route.includes("['root','observatory','reality-chain','method-lab','timeline','access']")
   && route.includes("surface==='world-vector'")
-  && route.includes("redirect('/instruments/observatory')"));
+  && route.includes("redirect('/instruments/observatory')")
+  && route.includes("surface==='repository'")
+  && route.includes("redirect('/repository')"));
 
 check('each public instrument is a five-screen horizontal surface',
   surfaceCss.includes('width:500vw')
@@ -87,10 +89,10 @@ check('one existing artwork is assigned per public surface',
     '11_40_18-1.png','11_40_22-2.png','RealityChain.png','11_40_26-3.png',
     '11_40_38-6.png','11_40_42-7.png'
   ].every(asset=>surface.includes(asset)));
-check('Repository preview and operational surface use the requested 11_40_42-7 artwork',
-  surface.includes("repository:'/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_42-7.png'")
+check('Repository exists only as unified operational/public surface and uses requested artwork',
+  !surface.includes("repository:'/assets/sfi/instruments/")
   && fs.existsSync('public/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_42-7.png')
-  && read('src/app/repository/repository.css').includes("Imagen de ChatGPT 8 oct 2026, 11_40_42-7.png"));
+  && repositoryCss.includes("Imagen de ChatGPT 8 oct 2026, 11_40_42-7.png"));
 
 check('public instrument artwork preserves source luminosity and color',
   surfaceCss.includes('.sfiInstrumentArtwork img{width:100%;height:100%;object-fit:cover;object-position:center;filter:none')
@@ -157,4 +159,4 @@ assert(JSON.stringify(SCENES.slice(1).filter(scene=>scene.id!=='world-vector').m
 assert(JSON.stringify(SCENES.find(scene=>scene.id==='reality-chain')?.frames.map(frame=>frame.label))===JSON.stringify(reality),'Reality Chain sequence drift');
 assert(SCENES.find(scene=>scene.id==='observatory')?.frames.some(frame=>frame.label==='TRAJECTORY'),'Observatory trajectory missing');
 assert(surface.includes('WORLD VECTOR / TENSIONS')&&surface.includes('World Vector remains an Observatory capability'),'World Vector context not absorbed into Observatory');
-console.log('PASS · horizontal public SFI visual contract with World Vector owned by Observatory');
+console.log('PASS · public SFI visual contract with World Vector owned by Observatory and Repository unified at /repository');
