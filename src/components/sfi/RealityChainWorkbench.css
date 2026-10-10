@@ -201,3 +201,6 @@
 .rcStageBand button{background:linear-gradient(180deg,rgba(5,6,6,.48),rgba(5,6,6,.15))!important;border-color:rgba(200,169,81,.16)!important}
 .rcStageBand button[data-active="true"]{background:linear-gradient(180deg,rgba(200,169,81,.16),rgba(5,6,6,.28))!important;border-top-color:var(--rc-gold)!important}
 .rcOperationalHead{background:rgba(5,6,6,.58)!important;backdrop-filter:blur(12px)!important}
+
+/* Three live horizontal screens remain interactive; illustration is not evidence. */
+.rcBackdrop{background:linear-gradient(90deg,rgba(4,5,5,.76),rgba(4,5,5,.47)),url("/assets/sfi/instruments/RealityChain.png") center / cover no-repeat!important}
