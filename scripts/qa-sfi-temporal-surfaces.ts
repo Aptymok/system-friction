@@ -185,13 +185,14 @@ assert.ok(worldObservatoryCron.includes('persistWorldHypothesisClosureReport({ h
 assert.ok(worldObservatoryCron.includes('Closure-report generation is downstream narrative projection only and cannot change classification.'), 'manual_closure_report_boundary_missing');
 assert.ok(worldObservatoryCron.includes('Hypothesis closure reports are downstream narrative projections of classifications already persisted by calibration and cannot change them.'), 'scheduled_closure_report_boundary_missing');
 
-// One bounded refresh reads the three existing public owners. Returning to the surface reuses a recent snapshot.
+// One bounded staged refresh reads the existing owners once each. Primary field/state cannot be blocked by optional World Vector/history.
 for (const endpoint of [
   "fetchJson('/api/observatory/world')",
   "fetchJson('/api/observatory/state')",
   "fetchJson('/api/observatory/timeline')",
 ]) assert.equal(occurrences(observatoryUi, endpoint), 1, `observatory_duplicate_equivalent_read:${endpoint}`);
-assert.equal(occurrences(observatoryUi, 'Promise.all(['), 1, 'observatory_second_read_owner_detected');
+assert.equal(occurrences(observatoryUi, 'Promise.all(['), 2, 'observatory_must_stage_primary_and_optional_reads_without_duplicate_endpoint_ownership');
+assert.equal(occurrences(observatoryUi, "fetchJson('/api/world-vector/today')"),1,'world_vector_must_remain_one_bounded_observatory_reader');
 assert.match(observatoryUi, /OBSERVATORY_CACHE_TTL_MS=120_000/, 'observatory_recent_snapshot_cache_missing');
 assert.match(observatoryUi, /observatorySnapshotCache/, 'observatory_snapshot_reuse_missing');
 assert.match(observatoryUi, /pull\(false\)/, 'observatory_initial_bounded_read_missing');
@@ -200,8 +201,8 @@ assert.doesNotMatch(observatoryUi, /setInterval\(pull|setInterval\([^\n]*fetchJs
 const requestTimeout = observatoryUi.match(/const OBSERVATORY_REQUEST_TIMEOUT_MS=(\d+);/);
 assert.ok(requestTimeout && Number(requestTimeout[1]) > 0, 'observatory_request_timeout_missing');
 
-// A 1-second visual clock is allowed because it performs no network or database read.
-assert.match(observatoryUi, /setInterval\(tick,1000\)/, 'observatory_visual_clock_missing');
+// A sampled minute clock avoids global graph recalculation every second without polling data.
+assert.match(observatoryUi, /setInterval\(tick,60_000\)/, 'observatory_render_clock_must_be_throttled');
 
 // Availability is epistemic state, not an empty-array alias.
 for (const token of [
