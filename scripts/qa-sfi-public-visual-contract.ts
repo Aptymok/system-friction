@@ -80,6 +80,17 @@ check('one existing artwork is assigned per public surface',
     '11_40_30-4.png','11_40_34-5.png','11_40_38-6.png','11_40_42-7.png'
   ].every(asset=>surface.includes(asset)));
 
+check('public instrument artwork preserves source luminosity and color',
+  surfaceCss.includes('.sfiInstrumentArtwork img{width:100%;height:100%;object-fit:cover;object-position:center;filter:none')
+  && surfaceCss.includes('.sfiInstrumentArtworkVeil{position:absolute;inset:0;background:rgba(6,6,5,.08)')
+  && !surfaceCss.includes('brightness(.72)')
+  && !surfaceCss.includes('saturate(.72)'));
+
+check('home panorama preserves original artwork with only a sub-10-percent global veil',
+  landingCss.includes('.sfiHomePanoramaTrack img{display:block;width:200vw;height:100%;object-fit:cover;object-position:center 42%;filter:none')
+  && landingCss.includes('.sfiHomePanoramaVeil{position:absolute;inset:0;z-index:1;pointer-events:none;background:rgba(6,6,5,.08)')
+  && !landingCss.includes('brightness(.76)'));
+
 check('Reality Chain preserves canonical sequence',
   ['REAL WORLD','SIGNAL','OBSERVATION','EVIDENCE','INFERENCE','AUTHORITY','EXECUTION','RETURN']
     .every(token=>manifest.includes(`label:'${token}'`)));
