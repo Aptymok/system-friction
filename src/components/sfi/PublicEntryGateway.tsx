@@ -6,13 +6,12 @@ import './PublicEntryGateway.css';
 
 const SURFACE_RAIL=[
   {label:'ROOT',number:'01',sceneId:'root',href:'/instruments/root',line:'Canonical field · authority · RETURN'},
-  {label:'OBSERVATORY',number:'02',sceneId:'observatory',href:'/instruments/observatory',line:'Sources · signals · trajectories'},
+  {label:'OBSERVATORY',number:'02',sceneId:'observatory',href:'/instruments/observatory',line:'Sources · signals · World Vector · trajectories'},
   {label:'REALITY CHAIN',number:'03',sceneId:'reality-chain',href:'/instruments/reality-chain',line:'Evidence · justification · Reality Passport'},
   {label:'METHOD LAB',number:'04',sceneId:'method-lab',href:'/instruments/method-lab',line:'Protocols · abstention · reproducibility'},
-  {label:'WORLD VECTOR',number:'05',sceneId:'world-vector',href:'/instruments/world-vector',line:'World state · tensions · projection'},
-  {label:'REPOSITORY',number:'06',sceneId:'repository',href:'/instruments/repository',line:'Sources · provenance · versions'},
-  {label:'TIMELINE',number:'07',sceneId:'timeline',href:'/instruments/timeline',line:'Epistemic time · reconstruction'},
-  {label:'ACCESS',number:'08',sceneId:'access',href:'/instruments/access',line:'Identity · scope · authority'},
+  {label:'REPOSITORY',number:'05',sceneId:'repository',href:'/repository',line:'Sources · provenance · versions'},
+  {label:'TIMELINE',number:'06',sceneId:'timeline',href:'/instruments/timeline',line:'Epistemic time · reconstruction'},
+  {label:'ACCESS',number:'07',sceneId:'access',href:'/instruments/access',line:'Identity · scope · authority'},
 ] as const;
 
 const CHAIN=['REAL WORLD','SIGNAL','OBSERVATION','EVIDENCE','INFERENCE','AUTHORITY','EXECUTION','RETURN'] as const;

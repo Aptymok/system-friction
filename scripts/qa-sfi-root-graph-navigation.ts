@@ -10,9 +10,9 @@ const check = (name: string, ok: boolean) => checks.push({ name, ok });
 const reconcile = read('src/lib/evidence/reconcileEvidenceGraph.ts');
 const canonicalGraph = read('src/lib/graph/canonicalGraph.ts');
 const libraryProjection = read('src/lib/graph/libraryCorpusProjection.ts');
-const publicationsPage = read('src/app/publications/page.tsx');
+const repositoryPage = read('src/app/repository/page.tsx');
 const documentaryCatalog = read('src/lib/sfi/library/documentaryCatalog.ts');
-const publicationsCatalog = read('src/app/publications/PublicationsCatalog.tsx');
+const repositoryUi = read('src/app/repository/RepositoryConsole.tsx');
 const reader = read('src/lib/root/sovereign/readers/readRootEvidenceGraph.ts');
 const amvReader = read('src/lib/root/sovereign/readers/readRootAmv.ts');
 const predictionReader = read('src/lib/root/sovereign/readers/readRootPredictions.ts');
@@ -32,6 +32,7 @@ const neuralGraphRuntime = read('src/lib/root/neuralGraphRuntime.ts');
 const continuityStore = read('src/lib/sfi/continuityPostgres.ts');
 const canonicalGraphRuntime = read('src/lib/graph/canonicalGraph.ts');
 const neuralGraphView = read('src/components/sfi/RootNeuralGraphView.tsx');
+const neuralGraphCss = read('src/components/sfi/RootNeuralGraphView.css');
 const cognitiveFieldPixi = read('src/components/sfi/RootCognitiveFieldPixi.tsx');
 
 const knowledgeTimeSource=read('src/lib/graph/knowledgeTimeContrast.ts');
@@ -90,8 +91,8 @@ check('explicit graph maintenance is sovereign and audited', reconcileRoute.incl
 
 check('Library corpus projects into canonical graph types without a second graph store', libraryProjection.includes('buildLibraryCorpusGraphProjection') && libraryProjection.includes('CanonicalGraphNode') && libraryProjection.includes('CanonicalGraphEdge') && libraryProjection.includes('sf_docs_frontmatter.json') && !libraryProjection.includes("from('graph_nodes')") && !libraryProjection.includes("from('graph_edges')"));
 check('canonical graph reader merges shared Library projection without write side effects', canonicalGraph.includes('buildLibraryCorpusGraphProjection') && canonicalGraph.includes('libraryProjection') && !canonicalGraph.includes('.upsert(') && !canonicalGraph.includes('.insert('));
-check('Retired public Library projects its canonical documentary capability through Registry', !fs.existsSync(path.join(root, 'src/app/library/page.tsx')) && publicationsPage.includes('PublicationsCatalog') && publicationsPage.includes('RegistryDiscoveryMesh') && documentaryCatalog.includes("surfaceState: 'PUBLIC_SURFACE_PROJECTED_TO_REGISTRY'") && documentaryCatalog.includes("publicRoute: '/publications'") && documentaryCatalog.includes("readCanonicalGraphState('sfi')") && documentaryCatalog.includes('graphRelations') && documentaryCatalog.includes('library_corpus'));
-check('Documentary relations remain bounded while the public Registry preserves non-causal semantics', documentaryCatalog.includes('graphRelations') && documentaryCatalog.includes('graphRelationCount') && publicationsCatalog.includes('RELATIONS') && publicationsCatalog.includes('A link does not assert causality.') && publicationsCatalog.includes("kind:'SEQUENCE'") && publicationsCatalog.includes("kind:'THEME'"));
+check('Retired public Library projects its canonical documentary capability through Repository', !fs.existsSync(path.join(root, 'src/app/library/page.tsx')) && repositoryPage.includes('SFI_CANONICAL_OBJECT_REGISTRY') && documentaryCatalog.includes("surfaceState: 'PUBLIC_SURFACE_PROJECTED_TO_REPOSITORY'") && documentaryCatalog.includes("publicRoute: '/repository'") && documentaryCatalog.includes("readCanonicalGraphState('sfi')") && documentaryCatalog.includes('graphRelations') && documentaryCatalog.includes('library_corpus'));
+check('Documentary relations remain bounded while Repository exposes provenance without causal inflation', documentaryCatalog.includes('graphRelations') && documentaryCatalog.includes('graphRelationCount') && repositoryUi.includes('LINEAGE') && repositoryUi.includes('PROVENANCE') && repositoryUi.includes('Object identity ≠ content hash.'));
 check('Library graph remains documentary relation rather than validation claim', libraryProjection.includes('doesNotImplyValidation: true') && libraryProjection.includes("epistemicClass: 'DECLARED'"));
 check('Library graph supplies a stable non-empty label when source title is absent', libraryProjection.includes('function documentLabel') && libraryProjection.includes('doc.title?.trim()') && libraryProjection.includes('doc.nodeId?.trim()') && libraryProjection.includes('label: documentLabel(doc)'));
 check('ROOT graph reconciliation materializes Library through the existing canonical store', reconcile.includes('buildLibraryCorpusGraphProjection') && reconcile.includes('libraryProjection.nodes') && reconcile.includes('libraryProjection.edges') && reconcile.includes("'library_corpus'"));
@@ -100,6 +101,8 @@ check('persisted Library materialization preserves the documentary non-validatio
 check('ROOT remains the canonical sovereign operating scene', scenes.includes("root:{key:'root'") && scenes.includes("title:'ROOT · Sovereign Operation'") && scenes.includes("liveSource:'/api/root/workboard'"));
 check('legacy sovereign workspace no longer composes the ROOT scene', !scenePage.includes('SfiRootWorkspace') && scenePage.includes('RootNeuralGraphView'));
 check('ROOT field exposes temporal and reconstructive readings', neuralGraphView.includes("'TRAJECTORY'") && neuralGraphView.includes("'RETROLONGITUDINAL'") && neuralGraphView.includes("'PROJECTION'") && neuralGraphView.includes("'FRICTION_REGIME'") && neuralGraphView.includes("'RETURN_CONTRAST'"));
+check('ROOT operational snapshot separates observation, provenance, verification, authority, execution and RETURN', ['OBSERVATION','PROVENANCE','VERIFICATION','AUTHORITY','EXECUTION','RETURN / NEXT OBSERVATION'].every(label=>neuralGraphView.includes(label)) && neuralGraphView.includes('rootOperationalSnapshot'));
+check('ROOT environmental dark scrim remains limited to ten percent opacity', neuralGraphCss.includes("rgba(6,6,5,.10)") && neuralGraphCss.includes('Environmental dark scrim is intentionally limited to 10% opacity.'));
 check('ROOT preserves binary terminal decisions while evidence request remains a non-terminal defer', rootUi.includes('ACCEPT') && rootUi.includes('DENY') && rootUi.includes('REQUEST EVIDENCE') && rootUi.includes('does not turn a source into admitted evidence') && rootUi.includes('decision remains open'));
 check('ROOT report archive is observational rather than approvable', rootUi.includes("jsonFetch('/api/root/reports')") && rootUi.includes('do not require ACCEPT/DENY') && !rootUi.includes('DENY REPORT'));
 check('ROOT report route normalizes every report body before presentation', reportsRoute.includes("humanReportText") && reportsRoute.includes("from '@/lib/reports/humanReport'") && reportsRoute.includes('body: humanReportText(item.body)'));
@@ -127,7 +130,7 @@ check('Neon continuity normalizes legacy payload into attributes before trimming
 check('Neon continuity treats JSON null attributes as absent before payload fallback', continuityStore.includes("nullif(to_jsonb(n)->'attributes', 'null'::jsonb)") && continuityStore.includes("nullif(to_jsonb(e)->'attributes', 'null'::jsonb)"));
 check('Neon continuity preserves legacy evidence_ids as canonical edge lineage', continuityStore.includes("'lineage'") && continuityStore.includes("to_jsonb(e)->'evidence_ids'") && continuityStore.includes("nullif(nullif(to_jsonb(e)->'lineage', 'null'::jsonb), '[]'::jsonb)"));
 check('canonical graph continuity fallback requires explicit caller opt-in', canonicalGraphRuntime.includes('CanonicalGraphReadOptions') && canonicalGraphRuntime.includes('options: CanonicalGraphReadOptions = {}') && canonicalGraphRuntime.includes('options.allowContinuity === true') && canonicalGraphRuntime.includes('primaryDiagnostic && allowContinuity && isSfiContinuityConfigured()'));
-check('public graph, retired documentary capability, Publications, and Observatory surfaces cannot opt into continuity', !publicGraphStateRoute.includes('allowContinuity: true') && !documentaryCatalog.includes('allowContinuity: true') && !publicationsPage.includes('allowContinuity: true') && !observatoryStateRoute.includes('allowContinuity: true'));
+check('public graph, retired documentary capability, Repository, and Observatory surfaces cannot opt into continuity', !publicGraphStateRoute.includes('allowContinuity: true') && !documentaryCatalog.includes('allowContinuity: true') && !repositoryPage.includes('allowContinuity: true') && !observatoryStateRoute.includes('allowContinuity: true'));
 check('authenticated runtime bootstrap remains primary-only after user authorization', runtimeBootstrapRoute.includes('if (!ctx.user)') && runtimeBootstrapRoute.includes('readCanonicalGraphState(profile)') && !runtimeBootstrapRoute.includes('allowContinuity: true') && runtimeBootstrapRoute.indexOf('if (!ctx.user)') < runtimeBootstrapRoute.indexOf('readCanonicalGraphState(profile)'));
 check('canonical graph marks primary failure when continuity served', canonicalGraphRuntime.includes('primary_graph_read_unavailable_continuity_served') && canonicalGraphRuntime.includes('continuityServed') && canonicalGraphRuntime.includes("readPlane: continuityServed ? 'NEON' : 'SUPABASE'"));
 check('canonical graph resolves semantic edge relation before physical compatibility type', canonicalGraphRuntime.includes('function semanticRelation') && canonicalGraphRuntime.includes('attributes.declaredRelations') && canonicalGraphRuntime.includes('attributes.declaredRelation') && canonicalGraphRuntime.includes('const relation = semanticRelation(row, attributes)'));

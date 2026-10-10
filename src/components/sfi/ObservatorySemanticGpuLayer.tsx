@@ -8,7 +8,7 @@ type Node={id:string;position:Position};
 type Vector={id:string;label:string;value:number|null;sourceCount:number;trust:number|null};
 
 type Props={
-  lens:'field'|'hypotheses'|'trajectory'|'sources';
+  lens:'field'|'sources'|'territories'|'hypotheses'|'trajectory'|'world-vector';
   nodes:readonly Node[];
   graphNodes:readonly Row[];
   selectedGraphEdges:readonly Row[];
@@ -80,7 +80,7 @@ export function ObservatorySemanticGpuLayer({lens,nodes,graphNodes,selectedGraph
 
         const maxEdges=window.innerWidth<760?18:36;
         const edges=selectedGraphEdges.filter((edge)=>positions.has(text(edge.from))&&positions.has(text(edge.to))).slice(0,maxEdges);
-        const activeVectors=(lens==='field'||lens==='trajectory')
+        const activeVectors=(lens==='field'||lens==='trajectory'||lens==='world-vector')
           ? vectors.filter((vector)=>typeof vector.value==='number'&&Number.isFinite(vector.value)).slice(0,10)
           : [];
 

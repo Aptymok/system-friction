@@ -38,7 +38,7 @@ URL, web page, text, audio, video, image, document, dataset, JSON, CSV, conversa
 ## PUBLIC HUMAN SURFACES
 ${baseUrl}/ — institutional entry and seven-instrument public journey
 ${baseUrl}/observatory — canonical public observation surface
-${baseUrl}/publications — canonical public registry
+${baseUrl}/repository — canonical public repository: objects, publications, provenance and Discovery Mesh
 ${baseUrl}/privacy — public privacy policy
 ${baseUrl}/terms — public terms
 ${baseUrl}/accessibility — public accessibility statement

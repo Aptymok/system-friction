@@ -151,7 +151,7 @@ export const SFI_PUBLIC_PROFILE = {
   publicSurfaces: [
     { path: '/', role: 'Institutional public threshold and entry membrane' },
     { path: '/observatory', role: 'Live field observation, sources, hypotheses, trajectory and contrast' },
-    { path: '/publications', role: 'Editorial archive for notes, cases, methods and published RETURN' },
+    { path: '/repository', role: 'Unified institutional memory: canonical objects, publications, provenance, lineage and discovery state' },
     { path: '/privacy', role: 'Privacy and external-agent data policy' },
   ],
   externalAi: {

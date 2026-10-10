@@ -29,8 +29,20 @@ export type ObservatoryFieldVector={
   trust:number|null;
 };
 
+export type ObservatoryTerritory={
+  id:string;
+  label:string;
+  position:Position;
+  observationCount:number;
+  sourceCount:number;
+  confidence:number|null;
+  systemicFriction:number|null;
+  activityDelta:number|null;
+  affectedSystems:string[];
+};
+
 type Props={
-  lens:'field'|'hypotheses'|'trajectory'|'sources';
+  lens:'field'|'sources'|'territories'|'hypotheses'|'trajectory'|'world-vector';
   nodes:readonly ObservatoryFieldNode[];
   selectedNodeId:string|null;
   selectedHypothesis:ObservatoryFieldHypothesis|null;
@@ -40,6 +52,7 @@ type Props={
   graphNodes:readonly Row[];
   vectors:readonly ObservatoryFieldVector[];
   ghostVectors:readonly ObservatoryFieldVector[];
+  territories:readonly ObservatoryTerritory[];
   onSelectNode:(id:string)=>void;
   onSelectHypothesis:(id:string)=>void;
 };
@@ -78,7 +91,7 @@ function edgeClass(edge:Row){
 
 export function ObservatoryWorldField({
   lens,nodes,selectedNodeId,selectedHypothesis,selectedEvidenceIds,selectedAffectedIds,
-  selectedGraphEdges,graphNodes,vectors,ghostVectors,onSelectNode,onSelectHypothesis,
+  selectedGraphEdges,graphNodes,vectors,ghostVectors,territories,onSelectNode,onSelectHypothesis,
 }:Props){
   const positionMap=new Map<string,Position>(nodes.map((node)=>[node.id,node.position]));
   const graphById=new Map(graphNodes.map((node)=>[asText(node.id),node]));
@@ -108,6 +121,18 @@ export function ObservatoryWorldField({
     if(from.startsWith('system:')) visibleSystems.add(from);
     if(to.startsWith('system:')) visibleSystems.add(to);
   }
+  const territorialRelations:{from:ObservatoryTerritory;to:ObservatoryTerritory;shared:number}[]=[];
+  for(let left=0;left<territories.length;left+=1){
+    for(let right=left+1;right<territories.length;right+=1){
+      const from=territories[left];
+      const to=territories[right];
+      const shared=from.affectedSystems.filter((system)=>to.affectedSystems.includes(system)).length;
+      if(shared>0) territorialRelations.push({from,to,shared});
+    }
+  }
+  territorialRelations.sort((a,b)=>b.shared-a.shared||((b.from.systemicFriction??0)+(b.to.systemicFriction??0))-((a.from.systemicFriction??0)+(a.to.systemicFriction??0)));
+  const visibleTerritorialRelations=territorialRelations.slice(0,10);
+
 
   return <svg className="earthOverlay worldField" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid meet" aria-label="SFI World Field">
     <defs>
@@ -120,7 +145,7 @@ export function ObservatoryWorldField({
       {[0,45,90,135].map((angle)=><line key={angle} x1={cx-520} y1={cy} x2={cx+520} y2={cy} transform={'rotate('+angle+' '+cx+' '+cy+')'}/>)}
     </g>
 
-    {lens==='trajectory'&&ghostVectors.length?<g className="worldSpectrumGhost" aria-label="WorldSpect T0 ghost">
+    {(lens==='trajectory'||lens==='world-vector')&&ghostVectors.length?<g className="worldSpectrumGhost" aria-label="WorldSpect T0 ghost">
       {ghostVectors.map((vector,index)=>{
         if(vector.value==null) return null;
         const angle=(-90+(index*(360/Math.max(1,ghostVectors.length))))*Math.PI/180;
@@ -137,7 +162,7 @@ export function ObservatoryWorldField({
       })}
     </g>:null}
 
-    {(lens==='field'||lens==='trajectory')?<g className="worldSpectrumCorona" aria-label="WorldSpect vectors">
+    {(lens==='field'||lens==='trajectory'||lens==='world-vector')?<g className="worldSpectrumCorona" aria-label="WorldSpect vectors">
       {vectors.map((vector,index)=>{
         if(vector.value==null) return null;
         const angle=(-90+(index*(360/Math.max(1,vectors.length))))*Math.PI/180;
@@ -169,7 +194,28 @@ export function ObservatoryWorldField({
       })}
     </g>:null}
 
-    {(lens==='field'||lens==='sources'||lens==='hypotheses')?<g className="fieldObservationLayer" aria-label="Observed source records">
+    {(lens==='field'||lens==='territories'||lens==='world-vector')&&territories.length?<g className="territorialTensionLayer" aria-label="Derived territorial tensions">
+      {visibleTerritorialRelations.map(({from,to,shared})=><line key={from.id+'>'+to.id} className="territoryRelation" x1={from.position.x} y1={from.position.y} x2={to.position.x} y2={to.position.y} data-shared-systems={shared}/>)}
+      {territories.map((territory)=>{
+        const p=territory.position;
+        const friction=territory.systemicFriction==null?0.18:Math.max(0,Math.min(1,territory.systemicFriction));
+        const confidence=territory.confidence==null?.35:Math.max(.18,Math.min(1,territory.confidence));
+        const radius=18+(friction*28);
+        const delta=territory.activityDelta;
+        return <g key={territory.id} className="territoryTension" data-level={friction>=.66?'high':friction>=.45?'medium':'low'} style={{'--territory-confidence':confidence,'--territory-friction':friction} as CSSProperties}>
+          <circle cx={p.x} cy={p.y} r={radius+10} className="territoryHalo"/>
+          <circle cx={p.x} cy={p.y} r={radius} className="territoryRing"/>
+          <circle cx={p.x} cy={p.y} r={5+friction*5} className="territoryCore"/>
+          <text x={p.x+radius+12} y={p.y-radius*.35}>
+            <tspan className="territoryLabel">{territory.label}</tspan>
+            <tspan x={p.x+radius+12} dy="15">{territory.observationCount} OBS · {territory.sourceCount} SRC</tspan>
+            <tspan x={p.x+radius+12} dy="14">Fₛ {territory.systemicFriction==null?'—':territory.systemicFriction.toFixed(3)} · Δ ACT {delta==null?'—':(delta>=0?'+':'')+Math.round(delta*100)+'%'}</tspan>
+          </text>
+        </g>;
+      })}
+    </g>:null}
+
+    {(lens==='field'||lens==='sources'||lens==='territories'||lens==='hypotheses')?<g className="fieldObservationLayer" aria-label="Observed source records">
       {nodes.map((node)=>{
         const p=node.position;
         const selected=node.id===selectedNodeId;
@@ -216,7 +262,7 @@ export function ObservatoryWorldField({
     </g>:null}
 
     <g className="fieldBoundary" aria-hidden="true">
-      <text x="800" y="855" textAnchor="middle">WORLD FIELD · GEOGRAPHIC OBSERVATIONS + INTERFACE ORBITS · ORBITAL POSITION ≠ GEOGRAPHY ≠ CAUSALITY</text>
+      <text x="800" y="855" textAnchor="middle">WORLD FIELD · GEO-BOUND OBSERVATIONS + DERIVED TERRITORIAL BUCKETS · DENSITY ≠ IMPORTANCE · TENSION ≠ CAUSALITY</text>
     </g>
   </svg>;
 }

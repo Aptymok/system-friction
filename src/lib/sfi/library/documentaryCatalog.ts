@@ -9,14 +9,14 @@ type DocumentaryCatalogDoc = {
 };
 
 export const DOCUMENTARY_CATALOG_CONTRACT = Object.freeze({
-  surfaceState: 'PUBLIC_SURFACE_PROJECTED_TO_REGISTRY',
+  surfaceState: 'PUBLIC_SURFACE_PROJECTED_TO_REPOSITORY',
   source: 'data/sfi/sf_docs_frontmatter.json',
   surfaceLabel: 'LIBRARY · DOCUMENTARY CORPUS',
   catalogLabel: 'CANONICAL DOCUMENTARY CATALOG',
   compactBodyBoundary: 'The canonical compact corpus preserves metadata and declared documentary relations; full bodies are not assumed to be materialized.',
   fullBodyReaderBoundary: 'FULL DOCUMENT BODY READER = NOT MATERIALIZED',
   storageCreatesEvidence: false,
-  publicRoute: '/publications',
+  publicRoute: '/repository',
 } as const);
 
 export const DOCUMENTARY_CATALOG_CORPUS = docs as DocumentaryCatalogDoc[];
@@ -29,7 +29,7 @@ function unique(values:string[]){
  * Internal read-only documentary capability.
  *
  * The former public /library page remains retired. Its canonical documentary corpus is projected read-only
- * through the public /publications Registry while remaining connected to the SFI graph. Reading documentary relations does
+ * through the public /repository surface while remaining connected to the SFI graph. Reading documentary relations does
  * not validate a document, infer causality, or consume private Cognitive Spine state.
  */
 export async function readDocumentaryCatalogGraph(){

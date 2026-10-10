@@ -529,7 +529,8 @@
   padding:0!important;
   overflow:hidden!important;
   color:#F7F4EA;
-  background:linear-gradient(90deg,rgba(6,6,5,.25),rgba(6,6,5,.48)),url('/assets/sfi/instruments/08102026_04.png') center/cover no-repeat!important;
+  /* Environmental dark scrim is intentionally limited to 10% opacity. */
+  background:linear-gradient(90deg,rgba(6,6,5,.10),rgba(6,6,5,.10)),url('/assets/sfi/instruments/08102026_04.png') center/cover no-repeat!important;
   font-family:"Noto Sans",Arial,sans-serif;
 }
 .rootReferenceCockpit .rootFieldIdentity {display:none!important}
@@ -543,14 +544,15 @@
   gap:0!important;
   overflow:hidden!important;
   scroll-snap-type:none!important;
-  background:#060605;
+  background:transparent;
 }
 .rootReferenceSidebar {
   min-width:0;
   overflow:auto;
   box-sizing:border-box;
   padding:20px 16px 28px;
-  background:#080807;
+  background:rgba(8,8,7,.10);
+  backdrop-filter:blur(10px) saturate(.9);
   border-right:1px solid rgba(200,169,81,.38);
   color:#F7F4EA;
   scrollbar-color:#C8A951 #060605;
@@ -600,7 +602,8 @@
 .rootReferenceCockpit .rootHorizontalGraph{
   border-right:1px solid rgba(200,169,81,.38);
   padding:0!important;overflow:hidden!important;
-  background:radial-gradient(circle at 50% 52%,rgba(212,175,55,.08),transparent 48%),#060605!important;
+  background:radial-gradient(circle at 50% 52%,rgba(212,175,55,.08),transparent 48%),rgba(6,6,5,.10)!important;
+  backdrop-filter:blur(6px) saturate(.92);
 }
 .rootReferenceCockpit .rootHorizontalGraph .rootCognitivePixi {
   position:absolute!important;inset:52px 0 52px!important;
@@ -624,17 +627,55 @@
 .rootFieldTimelineFooter button{min-height:38px;border:1px solid rgba(200,169,81,.42);background:#060605;color:#E8DDC3;padding:8px 10px;font:500 12px "Noto Sans",Arial,sans-serif;cursor:pointer}
 .rootFieldEmpty{font:500 15px/1.5 "Noto Sans",Arial,sans-serif}
 .rootReferenceCockpit .rootGovernanceConsole{
-  padding:0!important;overflow-y:auto!important;background:#060605!important;
+  padding:0!important;overflow-y:auto!important;background:rgba(6,6,5,.10)!important;
+  backdrop-filter:blur(10px) saturate(.9);
   scrollbar-color:#D4AF37 #060605;
 }
 .rootReferenceCockpit .rootGovernanceHead{
   position:sticky;top:0;z-index:10;padding:20px 22px 14px!important;
-  background:#060605;border-bottom:1px solid rgba(200,169,81,.42);
+  background:rgba(6,6,5,.66);backdrop-filter:blur(14px);border-bottom:1px solid rgba(200,169,81,.42);
 }
 .rootReferenceCockpit .rootGovernanceHead>span{font:700 13px/1.4 "Noto Sans",Arial,sans-serif;color:#D4AF37;letter-spacing:.07em}
 .rootReferenceCockpit .rootGovernanceHead h1{margin:7px 0 8px;font:400 clamp(29px,2.4vw,41px)/1.15 "Noto Serif Display",Georgia,serif;color:#F7F4EA}
 .rootReferenceCockpit .rootGovernanceHead p{font:400 15px/1.5 "Noto Sans",Arial,sans-serif;color:#E8DDC3;margin:0}
 .rootGovernanceSingleReading{padding:18px 22px 46px}
+.rootOperationalSnapshot{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+  margin:0 0 18px;
+}
+.rootOperationalSnapshot article{
+  min-width:0;
+  padding:13px 14px;
+  border:1px solid rgba(200,169,81,.28);
+  background:rgba(6,6,5,.44);
+  backdrop-filter:blur(10px);
+}
+.rootOperationalSnapshot span{
+  display:block;
+  margin-bottom:7px;
+  color:#D4AF37;
+  font:700 11px/1.35 "Noto Sans",Arial,sans-serif;
+  letter-spacing:.06em;
+}
+.rootOperationalSnapshot strong{
+  display:block;
+  color:#F7F4EA;
+  font:500 17px/1.35 "Noto Sans",Arial,sans-serif;
+  overflow-wrap:anywhere;
+}
+.rootOperationalSnapshot p{
+  margin:7px 0 0;
+  color:#E8DDC3;
+  font:400 13px/1.5 "Noto Sans",Arial,sans-serif;
+}
+.rootOperationalSnapshot article[data-plane="OBSERVATION"]{border-top:2px solid #4A7AAA}
+.rootOperationalSnapshot article[data-plane="PROVENANCE"]{border-top:2px solid #C8A951}
+.rootOperationalSnapshot article[data-plane="VERIFICATION"]{border-top:2px solid #D4AF37}
+.rootOperationalSnapshot article[data-plane="AUTHORITY"]{border-top:2px solid #B85050}
+.rootOperationalSnapshot article[data-plane="EXECUTION"]{border-top:2px solid #E8DDC3}
+.rootOperationalSnapshot article[data-plane="RETURN"]{border-top:2px solid #D4AF37}
 .rootPassportIdentity{border-bottom:1px solid #D4AF37;padding-bottom:20px}
 .rootPassportIdentity>span{color:#D4AF37;font:600 12px "Noto Sans",Arial,sans-serif;letter-spacing:.05em}
 .rootPassportIdentity h2,.rootPassportWaiting h2{margin:10px 0 16px;color:#F7F4EA;font:400 clamp(25px,2.1vw,33px)/1.22 "Noto Serif Display",Georgia,serif;overflow-wrap:anywhere}
@@ -665,6 +706,7 @@
 .rootPassportGovernance summary{padding:8px 0;color:#D4AF37;font:600 15px "Noto Sans",Arial,sans-serif;cursor:pointer}
 .rootPassportWaiting{padding:18px 0 28px;border-bottom:1px solid #D4AF37}
 @media(max-width:1330px){
+  .rootOperationalSnapshot{grid-template-columns:minmax(0,1fr)}
   .rootReferenceCockpit .rootHorizontalRail{grid-template-columns:minmax(190px,215px) minmax(340px,1fr) minmax(400px,.9fr)!important}
   .rootGovernanceSingleReading{padding:16px}
   .rootPassportIdentity dl div,.rootPassportContrast dl div{grid-template-columns:125px minmax(0,1fr)}
