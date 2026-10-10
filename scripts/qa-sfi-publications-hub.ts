@@ -61,7 +61,7 @@ const sitemapPaths=sitemapProjection()
     try {
       const url=new URL(entry.url);
       if(url.protocol!=='https:'||url.hostname!=='systemfriction.org'||url.port||url.username||url.password)return null;
-      return url.pathname.replace(/\\/+$/,'')||'/';
+      return url.pathname;
     } catch {
       return null;
     }
