@@ -84,6 +84,13 @@ check('each public instrument is a five-screen horizontal surface',
   && surface.includes("String(index+1).padStart(2,'0')")
   && surface.includes("01 / 05")===false);
 
+check('Timeline lower rail is an active navigation control rather than decoration',
+  surface.includes('sfiTimelineDock')
+  && surface.includes('goTo(activeIndex-1)')
+  && surface.includes('goTo(activeIndex+1)')
+  && surface.includes('onClick={()=>goTo(index)}')
+  && surfaceCss.includes('.sfiTimelineDockTrack button[data-active="true"]'));
+
 check('one existing artwork is assigned per public surface',
   [
     '11_40_18-1.png','11_40_22-2.png','RealityChain.png','11_40_26-3.png',
