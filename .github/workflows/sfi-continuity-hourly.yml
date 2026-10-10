@@ -85,6 +85,42 @@ jobs:
           echo "::add-mask::$token"
           echo "token=$token" >> "$GITHUB_OUTPUT"
 
+      - name: Synchronize data planes when existing recovery gates permit
+        shell: bash
+        # Sync monitoring must run even when the separate cognitive wakeup gate is idle.
+        # A bounded reconciliation cannot bypass a divergent journal or mirror outbox.
+        env:
+          OIDC_TOKEN: ${{ steps.oidc.outputs.token }}
+          SFI_SYNC_ENDPOINT: https://system-friction.vercel.app/api/cron/data-plane-reconcile
+        run: |
+          set -euo pipefail
+          receipt="$RUNNER_TEMP/sfi-data-plane-reconciliation.json"
+          status="$(curl --silent --show-error --connect-timeout 15 --max-time 120 \
+            -X POST \
+            -H "Authorization: Bearer ${OIDC_TOKEN}" \
+            -H "X-SFI-Continuity-Trigger: github-actions-oidc" \
+            -o "$receipt" -w '%{http_code}' "$SFI_SYNC_ENDPOINT")"
+          python - "$receipt" "$status" "$GITHUB_STEP_SUMMARY" <<'PY'
+          import json, sys
+          path, http, summary = sys.argv[1:]
+          with open(path, encoding='utf-8') as stream:
+              payload = json.load(stream)
+          before = payload.get('before') or {}
+          journal = before.get('journal') or {}
+          result = {
+              'http': int(http), 'attempted': payload.get('attempted'),
+              'outcome': payload.get('outcome'), 'blocker': before.get('blocker'),
+              'pending': journal.get('pending'), 'conflicts': journal.get('conflicts'),
+              'forcedFailover': payload.get('forcedFailover') is True,
+          }
+          print(json.dumps(result, separators=(',', ':')))
+          with open(summary, 'a', encoding='utf-8') as f:
+              f.write('## SFI data-plane synchronization\n\n')
+              f.write('Status: ' + json.dumps(result) + '\n\n')
+          if http not in ('200', '409'):
+              raise SystemExit('SFI data-plane reconciliation transport/authority failed')
+          PY
+
       - name: Check whether continuity has real work
         id: wakeup
         shell: bash

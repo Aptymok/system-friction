@@ -77,7 +77,7 @@ export async function flushPrimaryMirror(input: { maxTransactions?: number } = {
         mirroredRows += batch.entries.length;
       } catch (error) {
         const detail = message(error);
-        if (detail.includes('SFI_PRIMARY_MIRROR_CONFLICT')) {
+        if (detail.includes('SFI_PRIMARY_MIRROR_CONFLICT') || detail.includes('SFI_PRIMARY_MIRROR_INSERT_CONFLICT')) {
           await acknowledge(batch.entries, 'CONFLICT', detail).catch(() => null);
           await setPrimaryMirrorCertification(false, batch.entries.length, detail).catch(() => null);
           return { ok: false as const, conflict: true as const, error: detail, mirroredTransactions, mirroredRows };

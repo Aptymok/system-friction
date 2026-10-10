@@ -42,6 +42,9 @@ jobs:
             sleep $((attempt * 10))
           done
 
+      - name: Verify governed data-plane reconciliation scheduling
+        run: node scripts/qa-sfi-data-plane-scheduled-recovery.mjs
+
       - name: Verify SFI Verify parallel topology
         run: npx tsx scripts/qa-sfi-verify-parallelism.ts
 
