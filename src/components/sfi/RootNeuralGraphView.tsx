@@ -31,8 +31,16 @@ type GraphNode = {
     reasons: string[];
     temporal: { sourceVersion:string|null; captureTime:string|null; nodeUpdatedAt:string|null };
     epistemic: { uncertainty:unknown|null };
-    provenance: { declared:string; lineageCount:number; lineageRefs:string[]; supportingRelationCount:number; supportingRelationRefs:string[]; contradictionCount:number; contradictionRefs:string[] };
-    verification: { state:string; cost:unknown|null; budget:unknown|null; nextBestObservation:string|null };
+    provenance: {
+      declared:string; lineageCount:number; lineageRefs:string[]; supportingRelationCount:number; supportingRelationRefs:string[]; contradictionCount:number; contradictionRefs:string[];
+      independence:{ state:'REPRESENTED'|'UNKNOWN'; independentRootCount:number|null; rootRefs:string[]; duplicateSupportCount:number|null; boundary:string };
+      contentBinding:{ method:string|null; result:unknown|null; verificationPerturbation:unknown|null; boundary:string };
+    };
+    verification: {
+      state:string; method:string|null; verifier:string|null; selectionReason:string|null;
+      cost:unknown|null; costUnit:string|null; budget:unknown|null; budgetUnit:string|null; expectedInformationGain:unknown|null;
+      falseAcceptBoundary:unknown|null; falseRejectBoundary:unknown|null; nextBestObservation:string|null; processImpact:unknown|null; boundary:string;
+    };
     authority: { state:string; executionState:string; authorityExpanded:boolean|null; mayMintReturn:boolean|null; mayPromoteCanon:boolean|null };
     persistence: { represented:boolean; refs:string[]; boundary:string };
     returnState: { expected:unknown|null; observed:unknown|null; status:'OBSERVED'|'PENDING'|'NOT_APPLICABLE'|'UNKNOWN' };
@@ -542,6 +550,8 @@ export function RootNeuralGraphView({ graph, agents=[], agentRegistryState='UNAV
   const [relationFilter,setRelationFilter]=useState('ALL');
   const [returnFilter,setReturnFilter]=useState('ALL');
   const [domainFilter,setDomainFilter]=useState('ALL');
+  const [explorerView,setExplorerView]=useState<'GROUPS'|'FILTERS'>('GROUPS');
+  const [passportView,setPassportView]=useState<'SUMMARY'|'TIME'|'CHAIN'|'CONTRAST'|'RELATIONS'|'ACTIONS'>('SUMMARY');
   // A case deep link may select only a genuinely admitted canonical graph node.
   // Do not synthesize a graph object for an otherwise valid Case Platform record.
   const requestedNode=searchParams.get('node');
@@ -659,38 +669,45 @@ export function RootNeuralGraphView({ graph, agents=[], agentRegistryState='UNAV
           </div>
           <label className="rootReferenceSearchLabel" htmlFor="root-reference-search">SEARCH THE FIELD</label>
           <input className="rootReferenceSearch" id="root-reference-search" value={query} onChange={event=>setQuery(event.target.value)} placeholder="Objects, cases, actors, evidence, dates" />
-          <div className="rootReferenceSidebarKicker">COGNITIVE GROUPS · DERIVED FROM TYPES</div>
-          <nav className="rootReferenceFilters" aria-label="Cognitive groups">
-            <button type="button" aria-pressed={activeCategory==='ALL'} onClick={()=>setActiveCategory('ALL')}><span>ALL COGNITIVE OBJECTS</span><b>{graph.nodes.length}</b></button>
-            {FIELD_CATEGORIES.map(category=><button key={category} type="button" aria-pressed={activeCategory===category} onClick={()=>setActiveCategory(activeCategory===category?'ALL':category)}><span>{category}</span><b>{graph.nodes.filter(node=>fieldCategory(node)===category).length}</b></button>)}
-            {graph.nodes.some(node=>fieldCategory(node)==='UNCLASSIFIED')?<button type="button" aria-pressed={activeCategory==='UNCLASSIFIED'} onClick={()=>setActiveCategory(activeCategory==='UNCLASSIFIED'?'ALL':'UNCLASSIFIED')}><span>UNCLASSIFIED</span><b>{graph.nodes.filter(node=>fieldCategory(node)==='UNCLASSIFIED').length}</b></button>:null}
-          </nav>
-          <div className="rootReferenceSidebarKicker">ADDITIONAL FILTERS</div>
-          <label className="rootExplorerLabel">DOMAIN
-            <select value={domainFilter} onChange={event=>setDomainFilter(event.target.value)}><option value="ALL">ALL DOMAINS</option>{domains.map(domain=><option key={domain} value={domain}>{domain}</option>)}</select>
-          </label>
-          <label className="rootExplorerLabel">Temporal resolution
-            <select value={temporalResolution} onChange={event=>setTemporalResolution(event.target.value)}>
-              {['ALL','SYSTEM_HISTORY','REGIME','PHENOMENON','CYCLE','TRANSITION','EVENT','OBSERVATION'].map(level=><option key={level} value={level}>{level.replaceAll('_',' ')}</option>)}
-            </select>
-          </label>
-          <label className="rootExplorerLabel">AUTHORITY
-            <select value={authorityFilter} onChange={event=>setAuthorityFilter(event.target.value)}><option value="ALL">ALL STATES</option>{[...new Set(graph.nodes.map(node=>node.realityPassport?.authority.state ?? 'UNKNOWN'))].sort().map(state=><option key={state} value={state}>{state}</option>)}</select>
-          </label>
-          <label className="rootExplorerLabel">EVIDENCE STATE
-            <select value={evidenceFilter} onChange={event=>setEvidenceFilter(event.target.value)}><option value="ALL">ALL EVIDENCE STATES</option><option value="WITH_REFERENCES">WITH REFERENCES</option><option value="WITHOUT_REFERENCES">NO REFERENCES REPRESENTED</option></select>
-          </label>
-          <label className="rootExplorerLabel">NODE TYPE
-            <select value={activeType} onChange={event=>setActiveType(event.target.value)}><option value="ALL">ALL TYPES</option>{allTypes.map(type=><option key={type} value={type}>{humanize(type)}</option>)}</select>
-          </label>
-          <label className="rootExplorerLabel">RELATIONS
-            <select value={relationFilter} onChange={event=>setRelationFilter(event.target.value)}><option value="ALL">ALL RELATIONS</option><option value="CONNECTED">CONNECTED</option><option value="ISOLATED">ISOLATED</option></select>
-          </label>
-          <label className="rootExplorerLabel">RETURN STATE
-            <select value={returnFilter} onChange={event=>setReturnFilter(event.target.value)}><option value="ALL">ALL RETURN STATES</option>{['OBSERVED','PENDING','NOT_APPLICABLE','UNKNOWN'].map(state=><option key={state} value={state}>{state.replaceAll('_',' ')}</option>)}</select>
-          </label>
-          <p className="rootReferenceSidebarNote">SOURCE INDEPENDENCE: NOT ESTABLISHED UNLESS PROVENANCE IDENTIFIES DISTINCT ORIGINAL SOURCES. Reference count is not independence.</p>
-          <button className="rootExplorerReset" type="button" onClick={()=>{setQuery('');setActiveType('ALL');setActiveCategory('ALL');setAuthorityFilter('ALL');setEvidenceFilter('ALL');setRelationFilter('ALL');setReturnFilter('ALL');setDomainFilter('ALL');setTemporalResolution('ALL');setFocusId(null);setSelectedId(null);}}>SHOW COMPLETE FIELD</button>
+          <div className="rootExplorerViewTabs" aria-label="Field explorer view">
+            <button type="button" aria-pressed={explorerView==='GROUPS'} onClick={()=>setExplorerView('GROUPS')}>GROUPS</button>
+            <button type="button" aria-pressed={explorerView==='FILTERS'} onClick={()=>setExplorerView('FILTERS')}>FILTERS</button>
+          </div>
+          {explorerView==='GROUPS'?<>
+            <div className="rootReferenceSidebarKicker">COGNITIVE GROUPS · DERIVED FROM TYPES</div>
+            <nav className="rootReferenceFilters" aria-label="Cognitive groups">
+              <button type="button" aria-pressed={activeCategory==='ALL'} onClick={()=>setActiveCategory('ALL')}><span>ALL COGNITIVE OBJECTS</span><b>{graph.nodes.length}</b></button>
+              {FIELD_CATEGORIES.map(category=><button key={category} type="button" aria-pressed={activeCategory===category} onClick={()=>setActiveCategory(activeCategory===category?'ALL':category)}><span>{category}</span><b>{graph.nodes.filter(node=>fieldCategory(node)===category).length}</b></button>)}
+              {graph.nodes.some(node=>fieldCategory(node)==='UNCLASSIFIED')?<button type="button" aria-pressed={activeCategory==='UNCLASSIFIED'} onClick={()=>setActiveCategory(activeCategory==='UNCLASSIFIED'?'ALL':'UNCLASSIFIED')}><span>UNCLASSIFIED</span><b>{graph.nodes.filter(node=>fieldCategory(node)==='UNCLASSIFIED').length}</b></button>:null}
+            </nav>
+            <p className="rootReferenceSidebarNote">SOURCE INDEPENDENCE: NOT ESTABLISHED UNLESS PROVENANCE IDENTIFIES DISTINCT ORIGINAL SOURCES.</p>
+          </>:<>
+            <div className="rootReferenceSidebarKicker">BOUNDED FILTERS</div>
+            <div className="rootExplorerFilterGrid">
+              <label className="rootExplorerLabel">DOMAIN
+                <select value={domainFilter} onChange={event=>setDomainFilter(event.target.value)}><option value="ALL">ALL DOMAINS</option>{domains.map(domain=><option key={domain} value={domain}>{domain}</option>)}</select>
+              </label>
+              <label className="rootExplorerLabel">TIME
+                <select value={temporalResolution} onChange={event=>setTemporalResolution(event.target.value)}>{['ALL','SYSTEM_HISTORY','REGIME','PHENOMENON','CYCLE','TRANSITION','EVENT','OBSERVATION'].map(level=><option key={level} value={level}>{level.replaceAll('_',' ')}</option>)}</select>
+              </label>
+              <label className="rootExplorerLabel">AUTHORITY
+                <select value={authorityFilter} onChange={event=>setAuthorityFilter(event.target.value)}><option value="ALL">ALL STATES</option>{[...new Set(graph.nodes.map(node=>node.realityPassport?.authority.state ?? 'UNKNOWN'))].sort().map(state=><option key={state} value={state}>{state}</option>)}</select>
+              </label>
+              <label className="rootExplorerLabel">EVIDENCE
+                <select value={evidenceFilter} onChange={event=>setEvidenceFilter(event.target.value)}><option value="ALL">ALL STATES</option><option value="WITH_REFERENCES">WITH REFERENCES</option><option value="WITHOUT_REFERENCES">NO REFERENCES</option></select>
+              </label>
+              <label className="rootExplorerLabel">NODE TYPE
+                <select value={activeType} onChange={event=>setActiveType(event.target.value)}><option value="ALL">ALL TYPES</option>{allTypes.map(type=><option key={type} value={type}>{humanize(type)}</option>)}</select>
+              </label>
+              <label className="rootExplorerLabel">RELATIONS
+                <select value={relationFilter} onChange={event=>setRelationFilter(event.target.value)}><option value="ALL">ALL</option><option value="CONNECTED">CONNECTED</option><option value="ISOLATED">ISOLATED</option></select>
+              </label>
+              <label className="rootExplorerLabel">RETURN
+                <select value={returnFilter} onChange={event=>setReturnFilter(event.target.value)}><option value="ALL">ALL STATES</option>{['OBSERVED','PENDING','NOT_APPLICABLE','UNKNOWN'].map(state=><option key={state} value={state}>{state.replaceAll('_',' ')}</option>)}</select>
+              </label>
+            </div>
+            <button className="rootExplorerReset" type="button" onClick={()=>{setQuery('');setActiveType('ALL');setActiveCategory('ALL');setAuthorityFilter('ALL');setEvidenceFilter('ALL');setRelationFilter('ALL');setReturnFilter('ALL');setDomainFilter('ALL');setTemporalResolution('ALL');setFocusId(null);setSelectedId(null);}}>SHOW COMPLETE FIELD</button>
+          </>}
         </aside>
 
         <section className="rootFieldStage rootHorizontalGraph" aria-label="Canonical Neural Graph">
@@ -707,16 +724,19 @@ export function RootNeuralGraphView({ graph, agents=[], agentRegistryState='UNAV
           </div>
         </section>
 
-        <section className="rootGovernanceConsole" aria-label="Governance Console and Reality Passport">
+        <section className="rootGovernanceConsole" data-passport-view={passportView} aria-label="Governance Console and Reality Passport">
           <header className="rootGovernanceHead">
             <span>ROOT / GOVERNANCE CONSOLE</span>
             <h1>Reality Passport</h1>
             <p>Evidence, inference, authority, execution and RETURN remain distinct.</p>
           </header>
+          <nav className="rootPassportViewTabs" aria-label="Reality Passport view">
+            {(['SUMMARY','TIME','CHAIN','CONTRAST','RELATIONS','ACTIONS'] as const).map(view=><button type="button" key={view} aria-pressed={passportView===view} onClick={()=>setPassportView(view)}>{view}</button>)}
+          </nav>
           <div className="rootGovernanceSingleReading">
             {selected ? (
               <>
-                <header className="rootPassportIdentity">
+                <header className="rootPassportIdentity rootPassportViewSummary">
                   <span>SELECTED COGNITIVE OBJECT · {fieldCategory(selected)}</span>
                   <h2>{selected.label}</h2>
                   <dl>
@@ -728,7 +748,7 @@ export function RootNeuralGraphView({ graph, agents=[], agentRegistryState='UNAV
                     <div><dt>EPISTEMIC STATE</dt><dd>{selected.reality?.state ?? representedText(selected.attributes.epistemicClass,'UNKNOWN')}</dd></div>
                   </dl>
                 </header>
-                <section className="rootPassportQuestion rootPassportScientific" aria-label="Scientific temporal and dynamical reading">
+                <section className="rootPassportQuestion rootPassportScientific rootPassportViewTime" aria-label="Scientific temporal and dynamical reading">
                   <h3>SCIENTIFIC TEMPORAL READING</h3>
                   <p>Temporal resolution is derived from observed sequence, cycle, recurrence, phase or chronology as available, not inferred from database creation time.</p>
                   <div className="rootPassportScientificProperties">
@@ -748,7 +768,7 @@ export function RootNeuralGraphView({ graph, agents=[], agentRegistryState='UNAV
                   <p>Property and attractor observations do not confer authority or canonical truth. {selected.scientificReading?.propertyDiscovery.boundary ?? ''}</p>
                 </section>
 
-                <section className="rootPassportQuestion rootPassportKnowledgeTime" data-knowledge-contract="KNEW_THEN_KNOWN_NOW">
+                <section className="rootPassportQuestion rootPassportKnowledgeTime rootPassportViewTime" data-knowledge-contract="KNEW_THEN_KNOWN_NOW">
                   <h3>KNEW THEN / KNOWN NOW</h3>
                   <p>Compare epistemic records at two dated cut-offs. The date an event happened, the date its state was recorded, and the date the database row changed are different.</p>
                   {knowledgeContrast ? <>
@@ -804,57 +824,66 @@ export function RootNeuralGraphView({ graph, agents=[], agentRegistryState='UNAV
                   </> : <p>TEMPORAL CONTRAST NOT AVAILABLE.</p>}
                 </section>
 
-                <section className="rootPassportQuestion">
+                <section className="rootPassportQuestion rootPassportViewSummary">
                   <h3>01 · WHAT DO WE KNOW?</h3>
                   <p>{representedText(selected.attributes.observedOutcome ?? selected.attributes.statement ?? selected.attributes.evidenceKind,'No observation statement represented for this object.')}</p>
-                  <p>Documented provenance: {selected.provenance || 'NOT REPRESENTED'}. {selected.lineage.length} lineage references; {qualifiedRelationCount(selected,graph.edges)} evidence-qualified relations. These counts are not evidence of independent confirmation.</p>
+                  <p>Documented provenance: {selected.provenance || 'NOT REPRESENTED'}. {selected.lineage.length} lineage references; {qualifiedRelationCount(selected,graph.edges)} evidence-qualified relations.</p>
+                  <p>{selected.realityPassport?.provenance.independence.state==='REPRESENTED'
+                    ? `Independent represented evidence roots: ${selected.realityPassport.provenance.independence.independentRootCount}. Repeated support relations: ${selected.realityPassport.provenance.independence.duplicateSupportCount ?? 0}.`
+                    : 'Evidence independence is NOT ESTABLISHED. Multiple files, hashes, citations or agents are not treated as independent confirmation without represented source roots.'}</p>
                 </section>
-                <section className="rootPassportQuestion">
+                <section className="rootPassportQuestion rootPassportViewSummary">
                   <h3>02 · WHAT DO WE INFER?</h3>
                   <p>{representedText(selected.attributes.hypothesis ?? selected.attributes.inference ?? selected.attributes.model ?? selected.attributes.objective,'No testable hypothesis or inference represented in this object.')}</p>
                   <p>METHOD · {selected.methodResult?.methodId ?? 'NOT REPRESENTED'} · {selected.methodResult?.epistemicClass ?? 'UNKNOWN'}.</p>
                 </section>
-                <section className="rootPassportQuestion">
+                <section className="rootPassportQuestion rootPassportViewChain">
                   <h3>03 · WHAT WAS AUTHORIZED?</h3>
                   <p>Authority: {selected.realityPassport?.authority.state ?? selected.reality?.authority ?? 'UNKNOWN'}.</p>
                   <p>Authority expansion: {representedText(selected.realityPassport?.authority.authorityExpanded,'NOT REPRESENTED')}. Permissions to mint RETURN or promote canon remain governed by their actual contracts.</p>
                 </section>
-                <section className="rootPassportQuestion">
+                <section className="rootPassportQuestion rootPassportViewChain">
                   <h3>04 · WHAT WAS EXECUTED?</h3>
                   <p>Recorded execution state: {selected.realityPassport?.authority.executionState ?? selected.reality?.executionState ?? 'NOT OBSERVED'}.</p>
                   <p>An authorized decision or proposed action does not prove execution.</p>
                 </section>
-                <section className="rootPassportQuestion">
+                <section className="rootPassportQuestion rootPassportViewChain">
                   <h3>05 · WHAT DID REALITY RETURN?</h3>
                   <p>RETURN status: {selected.realityPassport?.returnState.status ?? 'UNKNOWN'}.</p>
                   <p>Method contrast: {selected.methodResult?.contrastStatus ?? 'NOT REPRESENTED'} · Epochs: {selected.fieldHistory?.epochCount ?? 'NOT OBSERVED'}.</p>
                   <h4>FIELD HISTORY</h4>
                   {selected.fieldHistory?.recentEpochs?.length?<ol className="rootPassportHistory">{selected.fieldHistory.recentEpochs.slice(-5).reverse().map(epoch=><li key={epoch.eventId}><time>{date(epoch.occurredAt)}</time><span>{humanize(epoch.previousState ?? 'UNKNOWN')} → {humanize(epoch.state ?? 'UNKNOWN')}</span></li>)}</ol>:<p>T0 / T1 comparison: NOT ESTABLISHED BY THE AVAILABLE RECORD.</p>}
                 </section>
-                <section className="rootPassportQuestion">
+                <section className="rootPassportQuestion rootPassportViewChain">
                   <h3>06 · WHAT WAS LEARNED AND INTEGRATED?</h3>
                   <p>LEARNING · {selected.learningState?.state ?? 'NOT REPRESENTED'}.</p>
                   <p>{selected.learningState?.boundary ?? 'Learning cannot be asserted as integrated without a recorded governed decision.'}</p>
                 </section>
-                <section className="rootPassportQuestion rootPassportContrast">
+                <section className="rootPassportQuestion rootPassportContrast rootPassportViewContrast">
                   <h3>HYPOTHESIS / EVIDENCE CONTRAST</h3>
                   <dl>
                     <div><dt>SUPPORTING RELATIONS</dt><dd>{selected.realityPassport?.provenance.supportingRelationCount ?? 'NOT REPRESENTED'}</dd></div>
                     <div><dt>CONTRADICTING RELATIONS</dt><dd>{selected.realityPassport?.provenance.contradictionCount ?? 'NOT REPRESENTED'}</dd></div>
-                    <div><dt>INDEPENDENT SOURCES</dt><dd>NOT ESTABLISHED</dd></div>
+                    <div><dt>INDEPENDENT SOURCES</dt><dd>{selected.realityPassport?.provenance.independence.state==='REPRESENTED' ? selected.realityPassport.provenance.independence.independentRootCount : 'NOT ESTABLISHED'}</dd></div>
+                    <div><dt>REPEATED SUPPORT</dt><dd>{selected.realityPassport?.provenance.independence.duplicateSupportCount ?? 'UNKNOWN'}</dd></div>
                     <div><dt>CALIBRATED CONFIDENCE</dt><dd>NOT CALIBRATED</dd></div>
                     <div><dt>VERIFICATION</dt><dd>{selected.realityPassport?.verification.state ?? 'UNKNOWN'}</dd></div>
+                    <div><dt>VERIFY METHOD</dt><dd>{selected.realityPassport?.verification.method ?? 'NOT REPRESENTED'}</dd></div>
+                    <div><dt>VERIFIER</dt><dd>{selected.realityPassport?.verification.verifier ?? 'NOT REPRESENTED'}</dd></div>
+                    <div><dt>VERIFY COST / BUDGET</dt><dd>{selected.realityPassport?.verification.cost == null ? 'UNKNOWN' : String(selected.realityPassport.verification.cost)} {selected.realityPassport?.verification.costUnit ?? ''} / {selected.realityPassport?.verification.budget == null ? 'UNKNOWN' : String(selected.realityPassport.verification.budget)} {selected.realityPassport?.verification.budgetUnit ?? ''}</dd></div>
+                    <div><dt>PROVENANCE BINDING</dt><dd>{selected.realityPassport?.provenance.contentBinding.method ?? 'NOT REPRESENTED'}</dd></div>
                     <div><dt>NEXT DISCRIMINATING OBSERVATION</dt><dd>{selected.realityPassport?.verification.nextBestObservation ?? 'NOT REPRESENTED'}</dd></div>
                   </dl>
-                  <p>No confidence percentage is inferred from graph degree, citations, agents or relation counts.</p>
+                  <p>No confidence percentage is inferred from graph degree, citations, agents or relation counts. Provenance binding may support an origin/process claim; it does not by itself establish that the represented event occurred.</p>
+                  {selected.realityPassport?.verification.processImpact!=null?<p>Verification/process impact: {String(selected.realityPassport.verification.processImpact)}.</p>:null}
                 </section>
-                <section className="rootPassportQuestion">
+                <section className="rootPassportQuestion rootPassportViewRelations">
                   <h3>RELATIONS · {selectedEdges.length}</h3>
                   <div className="rootPassportRelations">
-                    {selectedEdges.length?selectedEdges.slice(0,30).map(edge=>{const outgoing=edge.source===selected.id;const other=nodeById.get(outgoing?edge.target:edge.source);return <button type="button" key={edge.id} onClick={()=>setSelectedId(other?.id??null)}><span>{outgoing?'→':'←'} {humanize(edge.relation)}</span><strong>{other?.label ?? (outgoing?edge.target:edge.source)}</strong><small>{edge.provenance || 'PROVENANCE NOT REPRESENTED'}</small></button>}):<p>NO ADMITTED RELATIONS</p>}
+                    {selectedEdges.length?selectedEdges.slice(0,6).map(edge=>{const outgoing=edge.source===selected.id;const other=nodeById.get(outgoing?edge.target:edge.source);return <button type="button" key={edge.id} onClick={()=>setSelectedId(other?.id??null)}><span>{outgoing?'→':'←'} {humanize(edge.relation)}</span><strong>{other?.label ?? (outgoing?edge.target:edge.source)}</strong><small>{edge.provenance || 'PROVENANCE NOT REPRESENTED'}</small></button>}):<p>NO ADMITTED RELATIONS</p>}
                   </div>
                 </section>
-                <section className="rootPassportQuestion">
+                <section className="rootPassportQuestion rootPassportViewActions">
                   <h3>GOVERNED ACTIONS</h3>
                   <p>Actions open existing workspaces. Selecting an object does not authorize execution or change its canonical record.</p>
                   <nav className="rootReferenceActionLinks" aria-label="Governed actions">
@@ -865,12 +894,12 @@ export function RootNeuralGraphView({ graph, agents=[], agentRegistryState='UNAV
                 </section>
               </>
             ) : <div className="rootPassportWaiting">{requestedNode?<><h2>THIS CASE IS NOT ADMITTED AS A CANONICAL GRAPH NODE</h2><p>This reference does not identify an admitted canonical node. No Reality Passport is fabricated.</p><p><a href={'/reality-chain?case='+encodeURIComponent(requestedNode)}>Inspect the authorized Case Platform record in Reality Chain ↗</a></p></>:<><h2>SELECT AN OBJECT IN THE GRAPH</h2><p>The Reality Passport will appear here. Structural orientation does not manufacture observations or relations.</p></>}<p>{graph.nodes.length} admitted nodes · {graph.edges.length} admitted edges.</p></div>}
-            <section className="rootPassportQuestion rootPassportAgents">
+            <section className="rootPassportQuestion rootPassportAgents rootPassportViewActions">
               <h3>INSTITUTIONAL AGENTS / RUNTIME REGISTRY</h3>
               <p>Registry read: {agentRegistryState}. These are registered capabilities, not automatically agents assigned to the selected object.</p>
-              {agents.length?<div className="rootPassportAgentList">{agents.map(agent=><article key={agent.agentKey}><strong>{agent.name}</strong><span>{agent.entityKind} · {agent.status} · {agent.lifecycleState}</span><p>{agent.capability}</p><small>{agent.permissions} · LAST RUN: {agent.lastRunAt ?? 'NOT OBSERVED'}</small></article>)}</div>:<p>AGENT REGISTRY NOT AVAILABLE OR NO REGISTERED RECORDS OBSERVED.</p>}
+              {agents.length?<div className="rootPassportAgentList">{agents.slice(0,4).map(agent=><article key={agent.agentKey}><strong>{agent.name}</strong><span>{agent.entityKind} · {agent.status} · {agent.lifecycleState}</span><p>{agent.capability}</p><small>{agent.permissions} · LAST RUN: {agent.lastRunAt ?? 'NOT OBSERVED'}</small></article>)}</div>:<p>AGENT REGISTRY NOT AVAILABLE OR NO REGISTERED RECORDS OBSERVED.</p>}
             </section>
-            <details className="rootPassportGovernance" open={Boolean(searchParams.get('decision'))}>
+            <details className="rootPassportGovernance rootPassportViewActions" open={Boolean(searchParams.get('decision'))}>
               <summary>GOVERNED DECISIONS / AUTHORIZATION</summary>
               <SfiRootWorkspace enabled decisionOnly/>
             </details>
