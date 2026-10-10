@@ -93,8 +93,8 @@ check('Timeline lower rail is an active navigation control rather than decoratio
 
 check('one existing artwork is assigned per public surface',
   [
-    '11_40_18-1.png','11_40_22-2.png','RealityChain.png','11_40_26-3.png',
-    '11_40_38-6.png','11_40_42-7.png'
+    '11_40_18-1.png','11_40_22-2.png','RealityChain.png',
+    'SFI_METHOD_LAB_HERO_LAYER.png','SFI_TIMELINE_HERO_LAYER.png','11_40_42-7.png'
   ].every(asset=>surface.includes(asset)));
 check('Repository exists only as unified operational/public surface and uses requested artwork',
   !surface.includes("repository:'/assets/sfi/instruments/")
