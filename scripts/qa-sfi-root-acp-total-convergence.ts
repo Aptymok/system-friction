@@ -122,7 +122,6 @@ assert.ok(
   && publicChrome.includes('sfiPublicMenuItem')
   && publicChrome.includes("label:'TIMELINE'")
   && publicChrome.includes("label:'REPOSITORY'")
-  && publicChrome.includes("label:'WORLD VECTOR'")
   && publicChrome.includes("label:'METHOD LAB'")
   && publicChrome.includes("label:'REALITY CHAIN'")
   && publicChrome.includes("label:'OBSERVATORY'")
@@ -132,6 +131,7 @@ assert.ok(
   && publicChrome.includes('NOTHING ACTS ALONE. REALITY ANSWERS BACK.'),
   'global_public_chrome_must_expose_canonical_institutional_menu_and_timeline',
 );
+assert.equal(publicChrome.includes("label:'WORLD VECTOR'"),false,'world_vector_must_be_owned_by_observatory_not_public_parallel_surface');
 assert.ok(publicChrome.includes("['2023','2024','2025','2026','2027','2028','2029']"),'global_timeline_years_must_be_ordered');
 assert.ok(publicChrome.includes('sfiGlobalTimeline'),'global_timeline_footer_must_remain_canonical');
 assert.ok(publicChrome.includes("title:'METHOD LAB',statement:'SIMULATION ≠ OBSERVATION.',stage:'INFERENCE'"),'method_lab_header_stage_must_be_inference_not_observation');
