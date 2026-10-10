@@ -94,7 +94,7 @@ check('Timeline lower rail is an active navigation control rather than decoratio
 check('one existing artwork is assigned per public surface',
   [
     '11_40_18-1.png','11_40_22-2.png','RealityChain.png',
-    'SFI_METHOD_LAB_HERO_LAYER.png','SFI_TIMELINE_HERO_LAYER.png','11_40_42-7.png'
+    '11_40_26-3.png','11_40_38-6.png','11_40_42-7.png'
   ].every(asset=>surface.includes(asset)));
 check('Repository exists only as unified operational/public surface and uses requested artwork',
   !surface.includes("repository:'/assets/sfi/instruments/")
@@ -167,8 +167,8 @@ assert(JSON.stringify(SCENES.find(scene=>scene.id==='reality-chain')?.frames.map
 assert(SCENES.find(scene=>scene.id==='observatory')?.frames.some(frame=>frame.label==='TRAJECTORY'),'Observatory trajectory missing');
 assert(!SCENES.some(scene=>scene.id==='world-vector'),'absorbed World Vector scene must remain absent');
 assert(!surface.includes("'world-vector':["),'absorbed World Vector instrument panels must remain absent');
-assert(!fs.existsSync('public/assets/sfi/instruments/SFI_WORLD_VECTOR_HERO_LAYER.png'),'absorbed World Vector hero asset must remain deleted');
+const sfiNamedInstrumentAssets=fs.readdirSync(path.join(root,'public/assets/sfi/instruments')).filter(name=>name.startsWith('SFI_'));
+assert(JSON.stringify(sfiNamedInstrumentAssets)===JSON.stringify(['SFI_HOME_PANORAMA.png']),'SFI_HOME_PANORAMA.png must be the only SFI_-prefixed instrument asset');
 assert(!fs.existsSync('public/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_30-4.png'),'absorbed World Vector deck artwork must remain deleted');
-assert(!fs.existsSync('public/assets/sfi/instruments/SFI_REPOSITORY_HERO_LAYER.png'),'obsolete Repository hero layer must remain deleted');
 assert(surface.includes('WORLD VECTOR / TENSIONS')&&surface.includes('World Vector remains an Observatory capability'),'World Vector context not absorbed into Observatory');
 console.log('PASS · public SFI visual contract with World Vector owned by Observatory and Repository unified at /repository');
