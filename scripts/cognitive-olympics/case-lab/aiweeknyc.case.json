@@ -45,12 +45,13 @@
     "sourceClass": "EXTERNAL_DOCUMENT_METADATA",
     "classification": "ARTIFACT_EXISTENCE_ONLY",
     "realEventOccurred": "UNVERIFIED_FROM_METADATA_ALONE",
-    "artifact": "https://drive.google.com/file/d/1499zbUA3jWdJdfYEeQo_UAYxzdfH0VNC/view",
+    "artifact": "PRIVATE_GOOGLE_DRIVE_RECORDING_METADATA_2026-10-08",
     "artifactCreatedAt": "2026-10-08T19:46:31.078Z",
     "scheduledStart": "2026-10-08T19:00:00-04:00",
     "scheduledTimeSource": "Google Calendar invitation acceptance email dated 2026-10-08; 5 PM GMT-6 / 7 PM EDT",
     "discrepancy": "Artifact metadata creation precedes the stated 7 PM New York scheduled start. This may reflect a rehearsal, an earlier meeting, a timestamp issue, or a different interpretation. It is not resolved by this fixture.",
     "verificationGate": "Watch/inspect recording and/or independent host attendance evidence; reconcile conflicting clocks before asserting an observed full presentation.",
-    "disclaimer": "DO NOT promote this reference or any synthetic source to Reality Chain, observed RETURN, canonical evidence, or independent empirical validation."
+    "disclaimer": "DO NOT promote this reference or any synthetic source to Reality Chain, observed RETURN, canonical evidence, or independent empirical validation.",
+    "artifactRefVisibility": "PRIVATE_CONNECTED_SOURCE_NOT_PUBLIC_URL"
   }
 }
