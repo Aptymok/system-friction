@@ -958,3 +958,122 @@
   .rootFieldLiveDeck{grid-template-columns:1fr;overflow:auto;height:150px}
   .rootReferenceCockpit[data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0"] .rootHorizontalGraph .rootCognitivePixi{bottom:205px!important}
 }
+
+
+/* ROOT semantic readability contract · 2026-10-10
+   The graph must explain its visual grammar without turning layout into evidence. */
+.rootSemanticLegend{
+  position:absolute;z-index:24;top:54px;left:18px;width:min(330px,calc(100% - 36px));
+  box-sizing:border-box;padding:10px 12px;
+  border:1px solid rgba(200,169,81,.36);
+  background:rgba(6,7,7,.78);backdrop-filter:blur(14px);
+  color:#E8DDC3;
+}
+.rootSemanticLegend summary{
+  cursor:pointer;color:#D4AF37;
+  font:700 11px/1.35 "Noto Sans",Arial,sans-serif;letter-spacing:.06em;
+}
+.rootSemanticLegend p{
+  margin:8px 0 0;color:#E8DDC3;
+  font:400 11px/1.48 "Noto Sans",Arial,sans-serif;
+}
+.rootSemanticLegend p strong{color:#D4AF37;font-weight:650}
+.rootSemanticLegendReading{color:#F7F4EA!important}
+.rootSemanticLegendGrid{
+  display:grid;grid-template-columns:82px minmax(0,1fr);gap:5px 9px;
+  margin:10px 0;padding:8px 0;border-top:1px solid rgba(200,169,81,.18);border-bottom:1px solid rgba(200,169,81,.18);
+}
+.rootSemanticLegendGrid span,.rootSemanticLegendGrid b{
+  font:500 10px/1.35 "Noto Sans",Arial,sans-serif;color:#E8DDC3;
+}
+.rootSemanticLegendGrid b{font-weight:400;color:#CFC8B8}
+.rootLegendSwatch{display:inline-block;width:8px;height:8px;margin-right:6px;border-radius:50%;vertical-align:0}
+.rootLegendBlue{background:#4A7AAA}.rootLegendGold{background:#D4AF37}.rootLegendRed{background:#B85050}.rootLegendIvory{background:#E8DDC3}
+.rootSemanticShapeLegend{display:flex;flex-wrap:wrap;gap:6px 10px}
+.rootSemanticShapeLegend span{font:600 10px/1.35 "Noto Sans",Arial,sans-serif;color:#F7F4EA}
+
+.rootPassportCompactGrid{margin:10px 0 0;display:grid;gap:0}
+.rootPassportCompactGrid>div{
+  display:grid;grid-template-columns:150px minmax(0,1fr);gap:12px;
+  padding:8px 0;border-bottom:1px solid rgba(200,169,81,.18);
+}
+.rootPassportCompactGrid dt{color:#D4AF37;font:650 11px/1.45 "Noto Sans",Arial,sans-serif}
+.rootPassportCompactGrid dd{margin:0;color:#F7F4EA;font:400 12px/1.5 "Noto Sans",Arial,sans-serif;overflow-wrap:anywhere}
+.rootPassportDecoding,.rootPassportSnapshot{background:rgba(7,8,8,.18)}
+.rootAgentRegistrySummary{margin-bottom:12px}
+
+/* Remove the microtype regression in the panoramic composition. */
+.rootReferenceCockpit[data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0"]{
+  --root-side:clamp(190px,14vw,230px);
+}
+.rootReferenceCockpit[data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0"] .rootReferenceSidebar{padding:16px 13px 20px!important}
+.rootReferenceCockpit[data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0"] .rootReferenceSidebarTitle strong{font-size:25px!important}
+.rootReferenceCockpit[data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0"] .rootReferenceSidebarTitle span,
+.rootReferenceCockpit[data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0"] .rootReferenceSource,
+.rootReferenceCockpit[data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0"] .rootReferenceSource small,
+.rootReferenceCockpit[data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0"] .rootReferenceSearchLabel,
+.rootReferenceCockpit[data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0"] .rootReferenceSidebarKicker,
+.rootReferenceCockpit[data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0"] .rootExplorerLabel,
+.rootReferenceCockpit[data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0"] .rootReferenceSidebarNote{font-size:11px!important;line-height:1.45!important}
+.rootReferenceCockpit[data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0"] .rootReferenceSearch,
+.rootReferenceCockpit[data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0"] .rootExplorerLabel select,
+.rootReferenceCockpit[data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0"] .rootReferenceFilters button,
+.rootReferenceCockpit[data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0"] .rootReferenceFilters button b,
+.rootReferenceCockpit[data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0"] .rootExplorerReset{font-size:11px!important}
+.rootReferenceCockpit[data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0"] .rootReferenceFilters button{min-height:38px!important}
+.rootReferenceCockpit[data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0"] .rootReferenceModes button{font-size:11px!important;min-height:36px!important}
+
+.rootReferenceCockpit[data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0"] .rootGovernanceConsole{
+  width:clamp(360px,29vw,470px)!important;
+}
+.rootReferenceCockpit[data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0"] .rootHorizontalGraph .rootCognitivePixi{
+  inset:40px clamp(360px,29vw,470px) 202px 0!important;
+}
+.rootReferenceCockpit[data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0"] .rootGovernanceHead>span{font-size:11px!important}
+.rootReferenceCockpit[data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0"] .rootGovernanceHead h1{font-size:28px!important}
+.rootReferenceCockpit[data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0"] .rootGovernanceHead p{font-size:12px!important}
+.rootReferenceCockpit[data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0"] .rootPassportIdentity>span{font-size:11px!important}
+.rootReferenceCockpit[data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0"] .rootPassportIdentity h2,
+.rootReferenceCockpit[data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0"] .rootPassportWaiting h2{font-size:24px!important}
+.rootReferenceCockpit[data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0"] .rootPassportIdentity dt,
+.rootReferenceCockpit[data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0"] .rootPassportContrast dt{font-size:11px!important}
+.rootReferenceCockpit[data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0"] .rootPassportIdentity dd,
+.rootReferenceCockpit[data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0"] .rootPassportContrast dd{font-size:12px!important;line-height:1.45!important}
+.rootReferenceCockpit[data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0"] .rootPassportQuestion h3{font-size:16px!important}
+.rootReferenceCockpit[data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0"] .rootPassportQuestion h4{font-size:14px!important}
+.rootReferenceCockpit[data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0"] .rootPassportQuestion p,
+.rootReferenceCockpit[data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0"] .rootPassportWaiting p{font-size:12px!important;line-height:1.55!important}
+.rootReferenceCockpit[data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0"] .rootPassportScientificProperties>span{font-size:10px!important}
+.rootReferenceCockpit[data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0"] .rootPassportScientificProperties strong{font-size:12px!important}
+.rootReferenceCockpit[data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0"] .rootPassportAgentList article strong{font-size:13px!important}
+.rootReferenceCockpit[data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0"] .rootPassportAgentList article span,
+.rootReferenceCockpit[data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0"] .rootPassportAgentList article small{font-size:10px!important;line-height:1.4!important}
+.rootReferenceCockpit[data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0"] .rootPassportAgentList article p{font-size:11px!important;line-height:1.5!important}
+
+.rootFieldLiveDeck{
+  right:clamp(360px,29vw,470px);bottom:50px;height:140px;
+  grid-template-columns:1fr 1.15fr 1fr;gap:8px;
+}
+.rootFieldLiveDeck>section{padding:10px 12px}
+.rootFieldLiveDeck header span,.rootFieldLiveDeck header b{font-size:10px;line-height:1.3}
+.rootFieldLiveDeck dt,.rootFieldLiveDeck dd,.rootFieldLiveDeck p{font-size:10px;line-height:1.4}
+.rootFieldDeckRelations span{font-size:9px}.rootFieldDeckRelations strong{font-size:10px}
+.rootReferenceCockpit[data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0"] .rootFieldTimelineFooter,
+.rootReferenceCockpit[data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0"] .rootFieldTimelineFooter button{font-size:10px!important}
+
+@media(max-width:1180px){
+  .rootReferenceCockpit[data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0"] .rootGovernanceConsole{width:360px!important}
+  .rootReferenceCockpit[data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0"] .rootHorizontalGraph .rootCognitivePixi{right:350px!important}
+  .rootFieldLiveDeck{right:350px!important}
+}
+@media(max-width:900px){
+  .rootSemanticLegend{top:56px;width:min(300px,calc(100% - 30px))}
+  .rootReferenceCockpit[data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0"] .rootGovernanceConsole{width:auto!important}
+  .rootReferenceCockpit[data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0"] .rootHorizontalGraph .rootCognitivePixi{right:0!important}
+  .rootFieldLiveDeck{right:14px!important}
+}
+@media(max-width:650px){
+  .rootSemanticLegend{left:10px;right:10px;width:auto}
+  .rootPassportCompactGrid>div{grid-template-columns:118px minmax(0,1fr)}
+  .rootFieldLiveDeck{height:185px}
+}
