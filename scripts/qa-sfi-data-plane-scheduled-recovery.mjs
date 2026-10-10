@@ -43,4 +43,16 @@ assert.ok(recover.includes('fingerprintsMatch()'));
 assert.ok(recover.includes('completeRecoveryMode()'));
 assert.ok(recover.includes('CONTINUITY_JOURNAL_NOT_EMPTY'));
 
+const verifiedReplay = read('src/lib/persistence/verifiedObservationReplay.ts');
+assert.ok(verifiedReplay.includes('world_source_observations'));
+assert.ok(verifiedReplay.includes("j.row_data = to_jsonb(o)"), 'source image must remain exact');
+assert.ok(verifiedReplay.includes("j.before_data is null"), 'only original inserts can be copied');
+assert.ok(verifiedReplay.includes("sfi_apply_continuity_batch_v1"), 'canonical primary RPC must own writes');
+assert.ok(verifiedReplay.includes("status='REPLAYED'"), 'journal must acknowledge confirmed primary writes');
+assert.ok(verifiedReplay.includes("Math.min(20"), 'maximum manual batch size must remain bounded');
+assert.ok(verifiedReplay.includes("dataPlaneSwitched: false"), 'manual copy never promotes the primary');
+assert.ok(verifiedReplay.includes("journalConflictOverride: false"));
+assert.ok(root.includes("operation === 'data_plane_copy_verified'"));
+assert.ok(root.includes("replayVerifiedSourceObservations({ maxEntries:"));
+
 console.log('PASS SFI scheduled data-plane recovery: independent calendar, ROOT manual action, journal/mirror gates, no forced promotion');
