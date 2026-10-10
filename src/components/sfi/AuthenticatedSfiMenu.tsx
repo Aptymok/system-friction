@@ -9,7 +9,7 @@ const CORE_SURFACES=[
   {label:'OBSERVATORY',href:'/observatory'},
   {label:'REALITY CHAIN',href:'/reality-chain'},
   {label:'METHOD LAB',href:'/method-lab'},
-  {label:'REPOSITORY',href:'/publications?view=registry'},
+  {label:'REPOSITORY',href:'/repository'},
   {label:'TIMELINE',href:'/root?reading=RETROLONGITUDINAL'},
   {label:'ACCESS',href:'/root/access'},
 ] as const;
