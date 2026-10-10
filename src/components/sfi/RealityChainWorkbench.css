@@ -188,3 +188,17 @@
   .rcThreeMode .rcOperationalFooter>div:first-child span{display:none}
 }
 @media(prefers-reduced-motion:reduce){.rcThreeMode .rcOperationalScroller{scroll-behavior:auto}}
+
+
+/* SFI-INSTRUMENT-REALITY-CHAIN-1.0 · real case workbench over a de-componentized reference atmosphere. */
+.rcOperational{--rc-panel:rgba(5,6,6,.42);--rc-panel-strong:rgba(5,6,6,.58)}
+.rcOperationalTrack{width:300vw!important;min-width:300vw!important}
+.rcThreeHorizon{flex:0 0 100vw!important}
+.rcBackdrop img{opacity:.36;filter:blur(11px) saturate(.58) brightness(.44) contrast(1.03)!important;transform:scale(1.07)}
+.rcBackdrop:after{background:linear-gradient(90deg,rgba(5,6,6,.58),rgba(5,6,6,.16) 35%,rgba(5,6,6,.12) 64%,rgba(5,6,6,.54)),linear-gradient(180deg,rgba(5,6,6,.18),transparent 55%,rgba(5,6,6,.62))!important}
+.rcCaseRail,.rcPanel,.rcMethodDetails{background:var(--rc-panel)!important;backdrop-filter:blur(12px)!important;box-shadow:none!important}
+.rcCaseRail{border-left-color:rgba(200,169,81,.48)!important;border-right-color:rgba(200,169,81,.15)!important}
+.rcPanel{border-color:rgba(200,169,81,.21)!important}
+.rcStageBand button{background:linear-gradient(180deg,rgba(5,6,6,.48),rgba(5,6,6,.15))!important;border-color:rgba(200,169,81,.16)!important}
+.rcStageBand button[data-active="true"]{background:linear-gradient(180deg,rgba(200,169,81,.16),rgba(5,6,6,.28))!important;border-top-color:var(--rc-gold)!important}
+.rcOperationalHead{background:rgba(5,6,6,.58)!important;backdrop-filter:blur(12px)!important}
