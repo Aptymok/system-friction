@@ -10,7 +10,7 @@ const CORE_SURFACES=[
   {label:'REALITY CHAIN',href:'/reality-chain'},
   {label:'METHOD LAB',href:'/method-lab'},
   {label:'REPOSITORY',href:'/repository'},
-  {label:'TIMELINE',href:'/root?reading=RETROLONGITUDINAL'},
+  {label:'TIMELINE',href:'/timeline'},
   {label:'ACCESS',href:'/root/access'},
 ] as const;
 
