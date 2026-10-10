@@ -16,3 +16,33 @@
 .rootAccessPanel{border-color:rgba(181,154,215,.18)!important}
 .rootAccessForm input,.rootAccessForm select{background:rgba(7,6,9,.62)!important}
 .rootAccessGrantList article{background:transparent!important}
+
+/* SFI-ACCESS-LIVE-PANORAMA-1.0 · evidence-driven access registry, no fake profiles or session data */
+.rootAccessShell{background:radial-gradient(ellipse at 50% 12%,rgba(25,44,51,.48),transparent 44%),repeating-linear-gradient(90deg,transparent 0,transparent 137px,rgba(212,184,128,.065) 138px,transparent 139px),linear-gradient(130deg,#040608,#121e24 55%,#050708);color:#e6dac7}
+.rootAccessLiveOverview{position:relative;max-width:none;margin:32px 2.5vw 0;min-height:480px;display:grid;grid-template-columns:minmax(190px,.88fr) minmax(0,3.6fr) minmax(230px,1.12fr);gap:13px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.rootAccessLiveOverview>*{min-width:0;border:1px solid rgba(212,174,108,.28);background:rgba(4,8,10,.76);padding:25px;backdrop-filter:blur(12px)}
+.rootAccessLiveIdentity{display:flex;flex-direction:column;gap:14px}
+.rootAccessLiveIdentity small,.rootAccessLiveScope small,.rootAccessLiveTelemetry small{font-size:9px;letter-spacing:.15em;color:#c9a66c}
+.rootAccessLiveIdentity h2{font:450 clamp(23px,2.3vw,38px)/1.12 ui-monospace,monospace;letter-spacing:.13em;color:#eee2c8;margin:28px 0 0}
+.rootAccessLiveIdentity p,.rootAccessLiveTelemetry p{color:#a6a39b;font:11px/1.7 ui-monospace,monospace}.rootAccessLiveIdentity strong{margin-top:auto;font-size:11px;color:#8bd6aa}
+.rootAccessLiveIdentity span{font-size:9px;letter-spacing:.1em;color:#c0b2a1}
+.rootAccessLiveScope{display:grid;grid-template-rows:auto 1fr auto;gap:24px}
+.rootAccessLiveScope header,.rootAccessLiveTelemetry header{display:flex;gap:15px;justify-content:space-between;padding-bottom:14px;border-bottom:1px solid rgba(216,180,117,.2)}
+.rootAccessLiveScope header b,.rootAccessLiveTelemetry header b{font-size:8px;font-weight:500;letter-spacing:.09em;color:#aaa196}
+.rootAccessRoleColumns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;align-items:stretch}
+.rootAccessRoleColumns article{border:1px solid rgba(216,180,117,.23);background:radial-gradient(circle at 50% 30%,rgba(177,142,79,.11),transparent 57%),rgba(7,12,14,.66);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:18px}
+.rootAccessRoleColumns article span{font-size:12px;letter-spacing:.13em;color:#d4b980}.rootAccessRoleColumns article b{font-size:clamp(21px,3vw,44px);line-height:1.5;font-weight:400;color:#f2ddad;overflow-wrap:anywhere}
+.rootAccessRoleColumns article:last-child b{font-size:14px;padding:15px 0}.rootAccessRoleColumns article p{font:11px/1.65 system-ui,sans-serif;color:#aaa397}
+.rootAccessAuthorityLine{padding:14px;border-top:1px solid rgba(216,180,117,.2);font-size:9px;line-height:1.8;letter-spacing:.07em;color:#c7bcaa;text-align:center}
+.rootAccessAuthorityLine span{color:#d7ad6a;padding:0 7px}
+.rootAccessLiveTelemetry{display:flex;flex-direction:column}.rootAccessLiveTelemetry dl{display:grid;gap:15px;margin:25px 0}.rootAccessLiveTelemetry dl div{display:flex;align-items:center;justify-content:space-between;gap:8px;border-bottom:1px solid rgba(216,180,117,.1);padding-bottom:8px}
+.rootAccessLiveTelemetry dt{font-size:10px;color:#aaa296}.rootAccessLiveTelemetry dd{font-size:20px;color:#e8c993;margin:0}.rootAccessLiveTelemetry p{margin-top:auto}
+.rootAccessLiveTelemetry a{text-decoration:none;color:#e6d1aa;padding:12px;border:1px solid rgba(216,180,117,.45);font-size:9px;text-align:center}
+.rootAccessHeader{max-width:none;margin:20px 2.5vw 0;border-color:rgba(216,180,117,.2)}
+.rootAccessHeader small,.rootAccessSectionHead small{color:#d0b17b}
+.rootAccessBoundary{max-width:none;margin:12px 2.5vw 0;border-left-color:#cca66f}
+.rootAccessLayout{max-width:none;margin:22px 2.5vw 0;padding:0 0 70px;scroll-margin-top:110px}
+.rootAccessPanel{border-color:rgba(216,180,117,.2);background:rgba(6,10,12,.9)}
+@media(max-width:1100px){.rootAccessLiveOverview{grid-template-columns:1fr 2fr}.rootAccessLiveTelemetry{grid-column:1/-1}.rootAccessLiveTelemetry dl{grid-template-columns:repeat(4,1fr)}.rootAccessLiveTelemetry dl div{display:grid;gap:7px}}
+@media(max-width:720px){.rootAccessLiveOverview{display:flex;flex-direction:column;margin:15px}.rootAccessLiveOverview>*{padding:17px}.rootAccessRoleColumns{grid-template-columns:1fr}.rootAccessLiveIdentity h2{margin-top:0}.rootAccessLiveTelemetry dl{grid-template-columns:repeat(2,1fr)}.rootAccessHeader,.rootAccessBoundary,.rootAccessLayout{margin-left:15px;margin-right:15px}.rootAccessHeader{display:block;padding:22px 12px}.rootAccessPrinciple{margin-top:14px}}
+@media(prefers-reduced-motion:reduce){.rootAccessLiveOverview>*{backdrop-filter:none}}
