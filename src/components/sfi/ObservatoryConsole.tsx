@@ -241,7 +241,7 @@ export function ObservatoryConsole(){
         <Link href="/reality-chain">REALITY CHAIN</Link>
         <Link href="/method-lab">METHOD LAB</Link>
         <Link href="/repository">REPOSITORY</Link>
-        <Link href="/root?reading=RETROLONGITUDINAL">TIMELINE</Link>
+        <Link href="/timeline">TIMELINE</Link>
         <Link href="/root/access">ACCESS</Link>
       </nav>
       <span className="obsOperationalStamp">{clock.slice(0,10) || '—'} · {clock.slice(11,16) || '—'} UTC</span>
