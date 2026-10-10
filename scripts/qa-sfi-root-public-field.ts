@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 const read=(p:string)=>fs.readFileSync(path.join(process.cwd(),p),'utf8');
 const canon=read('src/lib/discovery/canonicalObjectRegistry.ts');
-const catalog=read('src/app/publications/PublicationsCatalog.tsx');
+const repositoryUi=read('src/app/repository/RepositoryConsole.tsx');
 const publicState=read('src/lib/observatory/publicState.ts');
 
 assert.match(canon,/PUBLIC is a governed projection of canonical institutional state/);
@@ -14,10 +14,11 @@ assert.match(canon,/rights: 'CLEARED'/);
 assert.match(canon,/governance: 'PUBLICABLE'/);
 assert.match(canon,/evidenceIdentity: 'VALID'/);
 assert.match(canon,/SFI_RUNTIME_DERIVED_CANONICAL_OBJECTS:[^=]*= Object\.freeze\(\[\]\)/);
-assert.match(catalog,/INSTITUTIONAL_MEMBERSHIP/);
-assert.match(catalog,/PUBLISHED BY SFI/);
-assert.doesNotMatch(catalog,/INSTITUTIONAL ATTRACTOR/);
+assert.match(repositoryUi,/PUBLICATIONS \/ OBJECTS/);
+assert.match(repositoryUi,/PROVENANCE/);
+assert.match(repositoryUi,/PUBLICATION = EXPOSURE/);
+assert.doesNotMatch(repositoryUi,/INSTITUTIONAL ATTRACTOR/);
 assert.match(publicState,/\.eq\('status', 'PUBLISHED'\)/);
 assert.match(publicState,/\.not\('published_at', 'is', null\)/);
 
-console.log('PASS · ROOT/PUBLIC are surfaces over institutional state; publication remains governed projection, not a cognitive pipeline.');
+console.log('PASS · ROOT/REPOSITORY are surfaces over institutional state; publication remains governed projection, not a cognitive pipeline.');

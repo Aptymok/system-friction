@@ -8,7 +8,7 @@ export type MethodLabProtocolId =
   | 'economic_simulation';
 
 export type MethodLabValidationLevel = 'STRUCTURAL' | 'LOGICAL' | 'SIMULATION' | 'RETROSPECTIVE' | 'PROSPECTIVE';
-export type MethodLabProtocolStatus = 'REGISTERED' | 'AVAILABLE' | 'OPERATIONAL' | 'DEGRADED' | 'GATED';
+export type MethodLabProtocolStatus = 'REGISTERED' | 'AVAILABLE' | 'OPERATIONAL' | 'DEGRADED';
 
 export type MethodLabProtocolDefinition = {
   id: MethodLabProtocolId;

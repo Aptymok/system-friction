@@ -58,6 +58,29 @@
 }
 
 
+/* Observatory territorial layer · DERIVED from geo-bound observations */
+.territorialTensionLayer{pointer-events:none}
+.territoryRelation{fill:none;stroke:rgba(157,190,205,.24);stroke-width:1.15;stroke-dasharray:3 8;vector-effect:non-scaling-stroke}
+.territoryTension{opacity:calc(.42 + (var(--territory-confidence,.35) * .58))}
+.territoryTension .territoryHalo{fill:none;stroke-width:1;stroke-dasharray:4 9;vector-effect:non-scaling-stroke;animation:territoryPulse 5.8s ease-in-out infinite}
+.territoryTension .territoryRing{fill:rgba(9,14,16,.2);stroke-width:1.7;vector-effect:non-scaling-stroke;filter:url(#fieldGlow)}
+.territoryTension .territoryCore{filter:url(#fieldGlow)}
+.territoryTension[data-level="low"] .territoryHalo,.territoryTension[data-level="low"] .territoryRing{stroke:rgba(88,194,216,.58)}
+.territoryTension[data-level="low"] .territoryCore{fill:#69c7d8;stroke:#a5e5ed}
+.territoryTension[data-level="medium"] .territoryHalo,.territoryTension[data-level="medium"] .territoryRing{stroke:rgba(220,174,89,.7)}
+.territoryTension[data-level="medium"] .territoryCore{fill:#d8aa59;stroke:#f1d59b}
+.territoryTension[data-level="high"] .territoryHalo,.territoryTension[data-level="high"] .territoryRing{stroke:rgba(229,102,79,.78)}
+.territoryTension[data-level="high"] .territoryCore{fill:#dc6a55;stroke:#f4b09e}
+.territoryTension text{font:600 10px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.06em;fill:#a99d8a;paint-order:stroke;stroke:#020304;stroke-width:4px;stroke-linejoin:round}
+.territoryTension .territoryLabel{font-size:12px;letter-spacing:.12em;fill:#e7d8ba}
+.lens-territories .fieldGrid{opacity:.1}
+.lens-territories .worldSpectrumCorona,.lens-territories .worldSpectrumGhost{opacity:.08}
+.lens-territories .fieldObservationLayer{opacity:.48}
+.lens-territories .territorialTensionLayer{opacity:1}
+@keyframes territoryPulse{50%{opacity:.34;stroke-dashoffset:-26}}
+@media(prefers-reduced-motion:reduce){.territoryTension .territoryHalo{animation:none!important}}
+@media(max-width:760px){.territoryTension text{font-size:8px}.territoryTension .territoryLabel{font-size:9px}.territoryRelation{opacity:.42}}
+
 /* Elite Experience P3 · persisted temporal ghost */
 .worldSpectrumGhost{pointer-events:none;opacity:.42}
 .worldVectorGhost line{stroke:rgba(111,169,205,.72);stroke-width:1.1;stroke-dasharray:5 7;vector-effect:non-scaling-stroke}

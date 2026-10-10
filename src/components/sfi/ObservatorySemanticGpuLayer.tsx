@@ -8,7 +8,7 @@ type Node={id:string;position:Position};
 type Vector={id:string;label:string;value:number|null;sourceCount:number;trust:number|null};
 
 type Props={
-  lens:'field'|'hypotheses'|'trajectory'|'sources';
+  lens:'field'|'sources'|'territories'|'hypotheses'|'trajectory'|'world-vector';
   nodes:readonly Node[];
   graphNodes:readonly Row[];
   selectedGraphEdges:readonly Row[];
@@ -46,7 +46,12 @@ export function ObservatorySemanticGpuLayer({lens,nodes,graphNodes,selectedGraph
     const canvas=canvasRef.current;
     if(!host||!canvas)return;
     const reduced=window.matchMedia('(prefers-reduced-motion: reduce)');
-    if(reduced.matches)return;
+    // Touch screens and reduced-motion clients use the complete SVG/DOM field.
+    // Avoid WebGL allocation and a permanent animation ticker during mobile startup.
+    const touchClient=window.matchMedia('(pointer: coarse)').matches;
+    const modestViewport=window.innerWidth<1100;
+    const deviceMemory=(navigator as Navigator & {deviceMemory?:number}).deviceMemory;
+    if(reduced.matches||touchClient||modestViewport||(typeof deviceMemory==='number'&&deviceMemory<8))return;
 
     let disposed=false;
     let app:any=null;
@@ -80,7 +85,7 @@ export function ObservatorySemanticGpuLayer({lens,nodes,graphNodes,selectedGraph
 
         const maxEdges=window.innerWidth<760?18:36;
         const edges=selectedGraphEdges.filter((edge)=>positions.has(text(edge.from))&&positions.has(text(edge.to))).slice(0,maxEdges);
-        const activeVectors=(lens==='field'||lens==='trajectory')
+        const activeVectors=(lens==='field'||lens==='trajectory'||lens==='world-vector')
           ? vectors.filter((vector)=>typeof vector.value==='number'&&Number.isFinite(vector.value)).slice(0,10)
           : [];
 
@@ -120,6 +125,7 @@ export function ObservatorySemanticGpuLayer({lens,nodes,graphNodes,selectedGraph
           }
         };
 
+        app.ticker.maxFPS=24;
         app.ticker.add(draw);
       }catch{
         // GPU enhancement is optional. SVG/DOM remains the complete canonical interaction surface.

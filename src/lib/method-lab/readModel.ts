@@ -1,6 +1,5 @@
 import 'server-only';
 
-import { getLlmProviderStatus } from '@/lib/ai/providerRouter';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { SFI_AGENT_EXECUTION_MAP } from '@/lib/sfi/cognitive-runtime/agentExecutionMap';
 import { COGNITIVE_TWIN_REENTRY } from '@/core/cognitive-twin/reentry/runtime';
@@ -213,7 +212,7 @@ export async function readMethodLabState() {
     const warnings = [
       ...(Array.isArray(latest?.limitations) ? latest.limitations.map(String) : []),
       ...missingDependencies.map((item) => `${item.table}:${item.error ?? 'unavailable'}`),
-      ...(definition.id === 'ct_reentry' ? ['CT reentry is implemented as governed longitudinal provenance. GATED means no Method Lab evaluation row has yet validated it; it does not mean individuation is demonstrated. Decision Transfer PASS remains a DERIVED measurement and does not imply subjective experience or automatic rule promotion.'] : []),
+      ...(definition.id === 'ct_reentry' ? ['CT reentry is implemented as governed longitudinal provenance. AVAILABLE means the instrument can be exercised even when no qualifying Method Lab evaluation has yet been observed; it does not mean individuation is demonstrated. Decision Transfer PASS remains a DERIVED measurement and does not imply subjective experience or automatic rule promotion.'] : []),
       ...(definition.id === 'cognitive_relational_lab' ? ['CRL protocol-specific migration remains experimental; persisted session state is not canonical memory or proof of individuation.'] : []),
       ...(tableWarning ? [`sfi_lab_analyses:${tableWarning}`] : []),
     ];
@@ -222,7 +221,7 @@ export async function readMethodLabState() {
     else if (!implemented) status = 'REGISTERED';
     else if (missingDependencies.length) status = 'DEGRADED';
     else if (latest) status = 'OPERATIONAL';
-    else status = 'GATED';
+    else status = 'AVAILABLE';
     return {
       ...definition,
       status,
@@ -239,7 +238,7 @@ export async function readMethodLabState() {
 
   const decisionTransferRows = ((decisionTransferEvaluations.data ?? []) as Row[]).map(summarizeDecisionTransfer);
   const decisionTransfer = {
-    status: decisionTransferWarning ? 'DEGRADED' as const : decisionTransferRows.length ? 'OBSERVED' as const : 'GATED' as const,
+    status: decisionTransferWarning ? 'DEGRADED' as const : decisionTransferRows.length ? 'OBSERVED' as const : 'NOT_OBSERVED' as const,
     totalEvaluations: decisionTransferRows.length,
     passCount: decisionTransferRows.filter((item) => item.outcome === 'PASS').length,
     failCount: decisionTransferRows.filter((item) => item.outcome === 'FAIL').length,
@@ -251,7 +250,6 @@ export async function readMethodLabState() {
     authorityRule: 'PASS is an evaluation outcome, not a RULE, canon mutation, memory promotion or authority grant.',
   };
 
-  const llmProviders = getLlmProviderStatus();
 
   return {
     generatedAt: new Date().toISOString(),
@@ -260,11 +258,22 @@ export async function readMethodLabState() {
       ? 'DEGRADED'
       : protocols.some((item) => item.status === 'OPERATIONAL')
         ? 'OPERATIONAL'
-        : 'GATED',
+        : 'AVAILABLE',
     sharedPersistence: 'sfi_lab_analyses + governed protocol stores',
     epistemicRule: 'Every laboratory output preserves its epistemic class. Simulation may exercise an instrument but cannot validate its own claim.',
     promotionRule: 'No protocol can mutate canonical state or promote its own result; ROOT/ACP evaluates promotion requests.',
-    llmProviders,
+    modelAccess: {
+      transport: 'MCP' as const,
+      endpoint: '/api/mcp/authenticated',
+      operationId: 'operateSfiLab',
+      scope: 'lab:run',
+      authentication: 'OAUTH_USER_BOUND',
+      localProviderCredentialsRequired: false,
+      modelSelectionOwner: 'MCP_CLIENT',
+      executionOwner: 'METHOD_LAB',
+      status: 'DECLARED_AVAILABLE' as const,
+      boundary: 'External models participate through the authenticated MCP gateway. Model capability does not expand Method Lab authority, convert SIMULATED output into OBSERVED evidence, or promote canon.',
+    },
     protocols,
     decisionTransfer,
     warnings: [

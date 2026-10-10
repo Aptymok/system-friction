@@ -3,14 +3,14 @@
   position:relative;height:calc(100svh - 154px);min-height:620px;overflow:hidden;background:var(--void);color:var(--cream);isolation:isolate;
 }
 .sfiInstrumentArtwork{position:absolute;inset:0;z-index:0;overflow:hidden;background:#060605}
-.sfiInstrumentArtwork img{width:100%;height:100%;object-fit:cover;object-position:center;filter:saturate(.72) contrast(1.05) brightness(.72);transform:scale(1.01)}
-.sfiInstrumentArtworkVeil{position:absolute;inset:0;background:linear-gradient(90deg,rgba(6,6,5,.82) 0%,rgba(6,6,5,.42) 25%,rgba(6,6,5,.10) 55%,rgba(6,6,5,.34) 100%),linear-gradient(180deg,rgba(6,6,5,.12),rgba(6,6,5,.05) 58%,rgba(6,6,5,.62))}
+.sfiInstrumentArtwork img{width:100%;height:100%;object-fit:cover;object-position:center;filter:none;transform:scale(1.01)}
+.sfiInstrumentArtworkVeil{position:absolute;inset:0;background:rgba(6,6,5,.08)}
 .sfiInstrumentHorizontal{position:absolute;inset:0;z-index:2;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain;touch-action:pan-x}
 .sfiInstrumentHorizontal::-webkit-scrollbar{display:none}
 .sfiInstrumentTrack{display:flex;width:500vw;height:100%}
 .sfiInstrumentFifth{position:relative;width:100vw;height:100%;flex:0 0 100vw;scroll-snap-align:start;display:flex;align-items:center;padding:6vh 7vw 7vh}
 .sfiInstrumentFifth:after{content:"";position:absolute;right:0;top:8%;bottom:8%;width:1px;background:linear-gradient(transparent,rgba(200,169,81,.36),transparent)}
-.sfiInstrumentCopy{width:min(680px,78vw);padding:28px 30px 30px;border-left:1px solid rgba(200,169,81,.68);background:linear-gradient(90deg,rgba(6,6,5,.66),rgba(6,6,5,.25) 76%,transparent);backdrop-filter:blur(2px);text-shadow:0 3px 28px rgba(0,0,0,.82)}
+.sfiInstrumentCopy{width:min(680px,78vw);padding:28px 30px 30px;border-left:1px solid rgba(200,169,81,.68);background:linear-gradient(90deg,rgba(6,6,5,.10),rgba(6,6,5,.06) 76%,transparent);backdrop-filter:none;text-shadow:0 2px 18px rgba(0,0,0,.62)}
 .sfiInstrumentCopy>small,.sfiInstrumentCopy>span{display:block;font:650 10px/1.25 var(--mono);letter-spacing:.18em}
 .sfiInstrumentCopy>small{color:rgba(232,221,195,.58);margin-bottom:18px}.sfiInstrumentCopy>span{color:var(--gold);margin-bottom:14px}
 .sfiInstrumentCopy h1{margin:0;max-width:660px;font:400 clamp(36px,4vw,72px)/1.02 var(--display);letter-spacing:-.035em;color:#f5efe5}
@@ -25,3 +25,20 @@
 .sfiInstrumentScrollCue b{font-weight:600;color:rgba(200,169,81,.72)}
 @media(max-width:880px){.sfiInstrumentPage{height:calc(100svh - 134px);min-height:560px}.sfiInstrumentFifth{padding:4vh 7vw 6vh}.sfiInstrumentCopy{width:min(620px,86vw);padding:22px}.sfiInstrumentCopy h1{font-size:clamp(34px,10vw,58px)}.sfiInstrumentCopy li{font-size:10px}.sfiInstrumentScrollCue{display:none}}
 @media(prefers-reduced-motion:reduce){.sfiInstrumentHorizontal{scroll-behavior:auto}.sfiInstrumentArtwork img{transform:none}}
+
+.sfiInstrumentPage[data-surface="timeline"] .sfiInstrumentFifth{padding-bottom:17vh}
+.sfiTimelineDock{position:absolute;left:2.4vw;right:2.4vw;bottom:2vh;z-index:5;height:112px;padding:10px 12px 8px;border:1px solid rgba(232,221,195,.15);background:rgba(5,6,5,.62);backdrop-filter:blur(10px)}
+.sfiTimelineDockHead{display:flex;justify-content:space-between;align-items:center;font:650 8px/1 var(--mono);letter-spacing:.14em;color:rgba(232,221,195,.62)}
+.sfiTimelineDockHead b{color:var(--gold);font-weight:650}
+.sfiTimelineDockTrack{position:relative;height:58px;margin:9px 92px 0 0}
+.sfiTimelineDockLine{position:absolute;left:0;right:0;top:20px;height:1px;background:linear-gradient(90deg,rgba(200,169,81,.18),rgba(200,169,81,.72),rgba(200,169,81,.18))}
+.sfiTimelineDockTrack button{position:absolute;top:6px;transform:translateX(-50%);width:112px;border:0;background:transparent;color:rgba(232,221,195,.62);cursor:pointer;text-align:center}
+.sfiTimelineDockTrack button i{display:block;width:8px;height:8px;margin:10px auto 7px;border:1px solid rgba(232,221,195,.55);border-radius:50%;background:#060605;transition:.18s ease}
+.sfiTimelineDockTrack button small{display:block;font:700 7px/1 var(--mono);letter-spacing:.08em;color:rgba(232,221,195,.42)}
+.sfiTimelineDockTrack button span{display:block;margin-top:4px;font:650 7px/1.2 var(--mono);letter-spacing:.06em;color:rgba(232,221,195,.54);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sfiTimelineDockTrack button[data-active="true"] i{width:13px;height:13px;margin-top:7px;margin-bottom:5px;border-color:var(--gold);background:rgba(200,169,81,.22);box-shadow:0 0 18px rgba(200,169,81,.58)}
+.sfiTimelineDockTrack button[data-active="true"] small,.sfiTimelineDockTrack button[data-active="true"] span{color:#f0d999}
+.sfiTimelineDockControls{position:absolute;right:12px;top:41px;display:grid;gap:5px}
+.sfiTimelineDockControls button{min-width:78px;padding:7px;border:1px solid rgba(200,169,81,.24);background:rgba(6,6,5,.62);color:#cfbb8b;font:650 6px/1 var(--mono);letter-spacing:.08em;cursor:pointer}
+.sfiTimelineDockControls button:disabled{opacity:.28;cursor:not-allowed}
+@media(max-width:880px){.sfiInstrumentPage[data-surface="timeline"] .sfiInstrumentFifth{padding-bottom:22vh}.sfiTimelineDock{left:10px;right:10px;height:126px}.sfiTimelineDockTrack{margin-right:0}.sfiTimelineDockTrack button{width:72px}.sfiTimelineDockTrack button span{font-size:6px}.sfiTimelineDockControls{left:12px;right:12px;top:auto;bottom:8px;display:flex;justify-content:space-between}}

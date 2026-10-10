@@ -14,6 +14,9 @@ const surface=read('src/components/sfi/PublicInstrumentSurface.tsx');
 const surfaceCss=read('src/components/sfi/PublicInstrumentSurface.css');
 const route=read('src/app/instruments/[surface]/page.tsx');
 const manifest=read('src/components/sfi/publicSceneManifest.ts');
+const repositoryPage=read('src/app/repository/page.tsx');
+const repositoryUi=read('src/app/repository/RepositoryConsole.tsx');
+const repositoryCss=read('src/app/repository/repository.css');
 
 check('canonical SFI mark is shared and never redrawn',
   chrome.includes('/library/assets/sfi-mark.svg')
@@ -25,12 +28,13 @@ check('institutional screen palette is canonical',
   && chromeCss.includes('#C8A951')
   && chromeCss.includes('#E8DDC3'));
 
-for(const label of ['ROOT','OBSERVATORY','REALITY CHAIN','METHOD LAB','WORLD VECTOR','REPOSITORY','TIMELINE','ACCESS']){
+for(const label of ['ROOT','OBSERVATORY','REALITY CHAIN','METHOD LAB','REPOSITORY','TIMELINE','ACCESS']){
   check(`fixed canonical menu exposes ${label}`,chrome.includes(`label:'${label}'`));
 }
-for(const id of ['root','observatory','reality-chain','method-lab','world-vector','repository','timeline','access']){
+for(const id of ['root','observatory','reality-chain','method-lab','timeline','access']){
   check(`menu routes independently to ${id}`,chrome.includes(`href:'/instruments/${id}'`));
 }
+check('Repository menu enters the canonical repository console',chrome.includes("{key:'repository',label:'REPOSITORY',href:'/repository'}"));
 check('menu is physically fixed',chromeCss.includes('position:fixed!important')&&chromeCss.includes('.sfiPublicPageNav'));
 
 check('home is independent from operational instrument deck',
@@ -60,12 +64,18 @@ check('home keeps canonical Reality Chain order in micro-orientation',
   ['REAL WORLD','SIGNAL','OBSERVATION','EVIDENCE','INFERENCE','AUTHORITY','EXECUTION','RETURN']
     .every(token=>landing.includes(`'${token}'`)));
 
-check('home exposes all eight independent instrument routes',
-  ['root','observatory','reality-chain','method-lab','world-vector','repository','timeline','access']
-    .every(id=>landing.includes(`href:'/instruments/${id}'`)));
+check('home exposes canonical surfaces and enters Repository console',
+  ['root','observatory','reality-chain','method-lab','timeline','access']
+    .every(id=>landing.includes(`href:'/instruments/${id}'`))
+  && landing.includes("sceneId:'repository',href:'/repository'")
+  && !landing.includes("href:'/instruments/world-vector'"));
 
-check('instrument route accepts exactly canonical eight surfaces',
-  route.includes("['root','observatory','reality-chain','method-lab','world-vector','repository','timeline','access']"));
+check('instrument route excludes duplicate Repository deck and redirects aliases',
+  route.includes("['root','observatory','reality-chain','method-lab','timeline','access']")
+  && route.includes("surface==='world-vector'")
+  && route.includes("redirect('/instruments/observatory')")
+  && route.includes("surface==='repository'")
+  && route.includes("redirect('/repository')"));
 
 check('each public instrument is a five-screen horizontal surface',
   surfaceCss.includes('width:500vw')
@@ -74,11 +84,33 @@ check('each public instrument is a five-screen horizontal surface',
   && surface.includes("String(index+1).padStart(2,'0')")
   && surface.includes("01 / 05")===false);
 
+check('Timeline lower rail is an active navigation control rather than decoration',
+  surface.includes('sfiTimelineDock')
+  && surface.includes('goTo(activeIndex-1)')
+  && surface.includes('goTo(activeIndex+1)')
+  && surface.includes('onClick={()=>goTo(index)}')
+  && surfaceCss.includes('.sfiTimelineDockTrack button[data-active="true"]'));
+
 check('one existing artwork is assigned per public surface',
   [
-    '11_40_18-1.png','11_40_22-2.png','RealityChain.png','11_40_26-3.png',
-    '11_40_30-4.png','11_40_34-5.png','11_40_38-6.png','11_40_42-7.png'
+    '11_40_18-1.png','11_40_22-2.png','RealityChain.png',
+    '11_40_26-3.png','11_40_38-6.png','11_40_42-7.png'
   ].every(asset=>surface.includes(asset)));
+check('Repository exists only as unified operational/public surface and uses requested artwork',
+  !surface.includes("repository:'/assets/sfi/instruments/")
+  && fs.existsSync('public/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_42-7.png')
+  && repositoryCss.includes("Imagen de ChatGPT 8 oct 2026, 11_40_42-7.png"));
+
+check('public instrument artwork preserves source luminosity and color',
+  surfaceCss.includes('.sfiInstrumentArtwork img{width:100%;height:100%;object-fit:cover;object-position:center;filter:none')
+  && surfaceCss.includes('.sfiInstrumentArtworkVeil{position:absolute;inset:0;background:rgba(6,6,5,.08)')
+  && !surfaceCss.includes('brightness(.72)')
+  && !surfaceCss.includes('saturate(.72)'));
+
+check('home panorama preserves original artwork with only a sub-10-percent global veil',
+  landingCss.includes('.sfiHomePanoramaTrack img{display:block;width:200vw;height:100%;object-fit:cover;object-position:center 42%;filter:none')
+  && landingCss.includes('.sfiHomePanoramaVeil{position:absolute;inset:0;z-index:1;pointer-events:none;background:rgba(6,6,5,.08)')
+  && !landingCss.includes('brightness(.76)'));
 
 check('Reality Chain preserves canonical sequence',
   ['REAL WORLD','SIGNAL','OBSERVATION','EVIDENCE','INFERENCE','AUTHORITY','EXECUTION','RETURN']
@@ -97,6 +129,26 @@ check('surface keeps public/operational boundary',
   && surface.includes("href:'/method-lab'")
   && surface.includes("href:'/login'"));
 
+check('Repository is a canonical-registry read surface rather than fabricated archive counts',
+  repositoryPage.includes('SFI_CANONICAL_OBJECT_REGISTRY')
+  && repositoryPage.includes('canonicalPublicationDisposition')
+  && repositoryUi.includes('SOURCE RECORDS')
+  && repositoryUi.includes('PROVENANCE')
+  && repositoryUi.includes('LINEAGE')
+  && repositoryUi.includes('VERSIONS')
+  && repositoryUi.includes('HASHES')
+  && repositoryUi.includes('NOT MATERIALIZED')
+  && repositoryUi.includes('NOT OBSERVED'));
+
+check('Repository reconstructs the supplied panoramic layout as UI components',
+  repositoryCss.includes('.repoIdentity')
+  && repositoryCss.includes('.repoArchiveRail')
+  && repositoryCss.includes('.repoObjectInspector')
+  && repositoryCss.includes('.repoProvenance')
+  && repositoryCss.includes('.repoTimeline')
+  && repositoryCss.includes('background:rgba(5,6,6,.08)')
+  && repositoryCss.includes('filter:none'));
+
 check('public visual stack has no baked human asset role',
   !manifest.includes("role:'human'")
   && !manifest.includes('observer.png')
@@ -107,9 +159,16 @@ for(const [name,ok] of checks)console.log(`${ok?'PASS':'FAIL'} · ${name}`);
 if(failed.length)process.exit(1);
 
 import { SCENES } from '../src/components/sfi/publicSceneManifest';
-const surfaces=['root','observatory','reality-chain','method-lab','world-vector','repository','timeline','access'];
+const surfaces=['root','observatory','reality-chain','method-lab','repository','timeline','access'];
 const reality=['REAL WORLD','SIGNAL','OBSERVATION','EVIDENCE','INFERENCE','AUTHORITY','EXECUTION','RETURN'];
 const assert=(ok:boolean,message:string)=>{if(!ok)throw new Error(message);};
-assert(JSON.stringify(SCENES.slice(1).map(scene=>scene.id))===JSON.stringify(surfaces),'surface sequence drift');
+assert(JSON.stringify(SCENES.slice(1).filter(scene=>scene.id!=='world-vector').map(scene=>scene.id))===JSON.stringify(surfaces),'public surface sequence drift');
 assert(JSON.stringify(SCENES.find(scene=>scene.id==='reality-chain')?.frames.map(frame=>frame.label))===JSON.stringify(reality),'Reality Chain sequence drift');
-console.log('PASS · independent horizontal public SFI visual contract');
+assert(SCENES.find(scene=>scene.id==='observatory')?.frames.some(frame=>frame.label==='TRAJECTORY'),'Observatory trajectory missing');
+assert(!SCENES.some(scene=>scene.id==='world-vector'),'absorbed World Vector scene must remain absent');
+assert(!surface.includes("'world-vector':["),'absorbed World Vector instrument panels must remain absent');
+const sfiNamedInstrumentAssets=fs.readdirSync(path.join(root,'public/assets/sfi/instruments')).filter(name=>name.startsWith('SFI_'));
+assert(JSON.stringify(sfiNamedInstrumentAssets)===JSON.stringify(['SFI_HOME_PANORAMA.png']),'SFI_HOME_PANORAMA.png must be the only SFI_-prefixed instrument asset');
+assert(!fs.existsSync('public/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_30-4.png'),'absorbed World Vector deck artwork must remain deleted');
+assert(surface.includes('WORLD VECTOR / TENSIONS')&&surface.includes('World Vector remains an Observatory capability'),'World Vector context not absorbed into Observatory');
+console.log('PASS · public SFI visual contract with World Vector owned by Observatory and Repository unified at /repository');

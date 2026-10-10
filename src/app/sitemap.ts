@@ -5,7 +5,7 @@ import { SFI_PUBLIC_PROFILE } from '@/lib/public/institutionProfile';
 const BASE=SFI_PUBLIC_PROFILE.institution.canonicalUrl;
 
 export default function sitemap():MetadataRoute.Sitemap{
-  const publicSurfaces=['','publications','observatory','privacy','terms','accessibility'].map((path)=>({
+  const publicSurfaces=['','repository','observatory','privacy','terms','accessibility'].map((path)=>({
     url:`${BASE}/${path}`.replace(/\/$/,''),
     lastModified:new Date(),
     changeFrequency:'daily' as const,

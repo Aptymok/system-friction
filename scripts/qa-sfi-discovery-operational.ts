@@ -11,8 +11,8 @@ async function main() {
   const controlPlane = await text('src/lib/discovery/discoveryControlPlane.ts');
   const rootPage = await text('src/app/root/discovery/page.tsx');
   const continuityRoute = await text('src/app/api/cron/continuity-report/route.ts');
-  const notePage = await text('src/app/publications/discovery-mesh-publicar-no-es-ser-encontrado/page.tsx');
-  const publicationsHub = await text('src/app/publications/page.tsx');
+  const repositoryPage = await text('src/app/repository/page.tsx');
+  const repositoryUi = await text('src/app/repository/RepositoryConsole.tsx');
   const route = await text('src/app/api/discovery/observe/route.ts');
   const migration = await text('supabase/migrations/20260908004000_create_sfi_discovery_observation_plane.sql');
   const canonical = await text('src/lib/discovery/canonicalObjectRegistry.ts');
@@ -79,17 +79,15 @@ async function main() {
   assert(controlPlane.includes("from('action_proposals')"), 'ROOT Discovery may read governed candidates from canonical proposal persistence');
   assert(controlPlane.includes('developmentProposalIsNotApproval: true'), 'ROOT proposal boundary missing');
   assert(rootPage.includes('SELF-OBSERVATION / DEVELOPMENT'), 'ROOT discovery autonomy panel missing');
-  assert(rootPage.includes('OPEN AUTHORIZED LABORATORY NOTE'), 'ROOT discovery editorial bridge missing');
+  assert(rootPage.includes('OPEN DISCOVERY MESH IN REPOSITORY'), 'ROOT discovery must converge into Repository');
 
-  // The first method note remains a bounded canonical editorial artifact in source,
-  // while the retired Publications hub converges to the single public landing.
-  // Future notes remain governed candidates and never auto-publish.
-  assert(notePage.includes("'SFI-PUB-OBS-014'"), 'Discovery Mesh method note canonical editorial id missing');
-  assert(notePage.includes('Publishing is not being found'), 'Discovery Mesh method note title missing');
-  assert(notePage.includes('/images/editorial/discovery-mesh-observation.svg'), 'Discovery Mesh method note graphic missing');
-  assert(notePage.includes('NULL is not converted to zero'), 'method note false-zero boundary missing');
-  assert(publicationsHub.includes('PublicationsCatalog') && publicationsHub.includes('RegistryDiscoveryMesh'), 'Publications hub must expose Registry and Discovery Mesh');
-  assert(existsSync('public/images/editorial/discovery-mesh-observation.svg'), 'Discovery Mesh visual asset missing');
+  // Discovery Mesh is now a capability inside the single Repository surface.
+  // The former special publication view was removed because it duplicated the Mesh and collided with an existing canonical editorial id.
+  assert(repositoryPage.includes('SFI_DISCOVERY_LIFECYCLE') && repositoryPage.includes('discoveryMachineResources'), 'Repository must consume Discovery Mesh read models');
+  assert(repositoryUi.includes('DISCOVERY MESH') && repositoryUi.includes('PUBLICATION = EXPOSURE'), 'Repository must expose the Discovery Mesh boundary');
+  assert(repositoryUi.includes('NOT OBSERVED IN THIS PUBLIC PROJECTION') || repositoryPage.includes('NOT OBSERVED IN THIS PUBLIC PROJECTION'), 'Repository must preserve missing discovery state');
+  assert.equal(existsSync('src/app/publications/discovery-mesh-publicar-no-es-ser-encontrado/page.tsx'), false, 'duplicate Discovery Mesh publication view must remain deleted');
+  assert.equal(existsSync('public/images/editorial/discovery-mesh-observation.svg'), false, 'orphaned Discovery Mesh page artwork must remain deleted');
 
   for (const table of ['sfi_discovery_queries','sfi_discovery_query_runs','sfi_entity_collisions','sfi_external_representations']) {
     assert(migration.includes(`public.${table}`), `migration missing ${table}`);
