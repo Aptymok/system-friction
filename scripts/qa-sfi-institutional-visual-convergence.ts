@@ -53,7 +53,7 @@ for(const [name,source,contract] of [
   ['access',accessCss,'SFI-INSTRUMENT-ACCESS-1.0'],
   ['repository',repositoryCss,'SFI-LIVE-REPOSITORY-1.0'],
 ] as const) assert.ok(source.includes(contract),`canonical_visual_contract_missing:${name}`);
-assert.ok(observatory.includes("fetchJson('/api/observatory/world')") && observatory.includes("fetchJson('/api/observatory/state')") && observatory.includes("fetchJson('/api/observatory/timeline')"),'observatory_visual_must_remain_live');
+assert.ok(observatory.includes("fetchJson('/api/observatory/world')") && observatory.includes("fetchJson('/api/observatory/state?view=observatory')") && observatory.includes("fetchJson('/api/observatory/timeline')"),'observatory_visual_must_remain_live');
 assert.ok(observatory.includes('useSearchParams') && observatory.includes('requestedLens'),'observatory_lens_deeplink_missing');
 assert.ok(instruments.includes("href:'/observatory?lens=world-vector'") && instruments.includes("href:'/observatory?lens=trajectory&focus=timeline'"),'world_vector_timeline_must_resolve_to_live_observatory');
 
