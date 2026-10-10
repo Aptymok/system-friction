@@ -61,14 +61,14 @@ const PANELS:Record<SurfaceId,Panel[]>={
     {kicker:'02 · EPISTEMIC TIME',title:'Known then ≠ known now.',lead:'A later source may alter the current reading without changing what was available at the earlier decision point.',bullets:['Observed-at.','Effective-at.','Decision-at.','RETURN-at.']},
     {kicker:'03 · VERSION RECONSTRUCTION',title:'History gains new layers; it is not overwritten.',lead:'Versioned reconstruction allows later evidence to coexist with prior institutional state.',bullets:['Prior state preserved.','New evidence appended.','Confidence may change.','Lineage remains explicit.']},
     {kicker:'04 · DEPLOYMENT / EXECUTION',title:'Technical release is an event, not an outcome.',lead:'Deployment, execution and observed consequence belong to different moments.',bullets:['Deployment event.','Authorized action.','Execution receipt.','Observed RETURN.']},
-    {kicker:'05 · CONTRAST',title:'Time makes justification inspectable.',lead:'Expected state and later observed consequence can be compared without collapsing them into one narrative.',bullets:['Before / after.','Enables / derives-from.','Expected / observed.','Learning remains governed.'],action:{label:'OPEN INSTITUTIONAL TIMELINE',href:'/observatory#timeline'}},
+    {kicker:'05 · CONTRAST',title:'Time makes justification inspectable.',lead:'Expected state and later observed consequence can be compared without collapsing them into one narrative.',bullets:['Before / after.','Enables / derives-from.','Expected / observed.','Learning remains governed.'],action:{label:'OPEN INSTITUTIONAL TIMELINE',href:'/observatory?lens=trajectory&focus=timeline'}},
   ],
   access:[
     {kicker:'01 · IDENTITY',title:'Identity is not authority.',lead:'Authentication establishes who is present; it does not silently grant institutional power.',bullets:['Actor identity.','Session.','Authentication method.','Environment.']},
     {kicker:'02 · ROLE / SCOPE',title:'Role does not equal permission.',lead:'Authority remains action-specific and scope-bound.',bullets:['Observer.','Operator.','Controller.','ROOT.','System.']},
     {kicker:'03 · AUTHORITY EVIDENCE',title:'External authority may be recorded without being controlled by SFI.',lead:'SFI can verify and preserve evidence of external authorization but should not claim universal cross-institution authorization.',bullets:['Issuer or institution.','Scope.','Validity window.','Restrictions.','Evidence reference.']},
     {kicker:'04 · PRE-EXECUTION CHECK',title:'Permission must be checked before applicable action.',lead:'A valid identity and a capable model are insufficient when authority or viability is missing.',bullets:['Identity valid?','Scope valid?','Action viable?','Evidence sufficient?','Abstain when a gate fails.']},
-    {kicker:'05 · ACCESS TRACE',title:'Access itself leaves a trace.',lead:'Changes in role, scope, session and operational access remain reconstructible.',bullets:['Access log.','Scope request.','Grant change.','Session boundary.'],action:{label:'INSTITUTIONAL ACCESS',href:'/login'}},
+    {kicker:'05 · ACCESS TRACE',title:'Access itself leaves a trace.',lead:'Changes in role, scope, session and operational access remain reconstructible.',bullets:['Access log.','Scope request.','Grant change.','Session boundary.'],action:{label:'INSTITUTIONAL ACCESS',href:'/root/access'}},
   ],
 };
 
