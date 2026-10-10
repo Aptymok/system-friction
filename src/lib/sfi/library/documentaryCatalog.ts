@@ -9,7 +9,7 @@ type DocumentaryCatalogDoc = {
 };
 
 export const DOCUMENTARY_CATALOG_CONTRACT = Object.freeze({
-  surfaceState: 'PUBLIC_SURFACE_PROJECTED_TO_REGISTRY',
+  surfaceState: 'PUBLIC_SURFACE_PROJECTED_TO_REPOSITORY',
   source: 'data/sfi/sf_docs_frontmatter.json',
   surfaceLabel: 'LIBRARY · DOCUMENTARY CORPUS',
   catalogLabel: 'CANONICAL DOCUMENTARY CATALOG',
