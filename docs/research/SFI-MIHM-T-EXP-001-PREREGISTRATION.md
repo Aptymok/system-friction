@@ -157,3 +157,13 @@ Si el modelo no demuestra ventaja, el resultado institucional válido es `NO_INC
 - [Referencia de protocolo experimental preexistente](./decision-transfer/SFI-DT-EXP-001-FREEZE-CURRENT.md)
 
 **Regla editorial:** este es un borrador de trabajo vivo, no un resultado, no un reporte de laboratorio, no una publicación científica y no una afirmación de preregistro externo.
+
+---
+
+## Documentary convergence follow-up (NON-NORMATIVE)
+
+**Shared research tracking:** [SFI · Three-Experiment Convergence — LCI / SFI-DT / MIHM-T / PEMS](./SFI-THREE-EXPERIMENTS-CONVERGENCE.md).
+
+MIHM-T's distinctive object is the **bounded system trajectory**, not the individual's decision structure (SFI-DT) or the artificial-agent developmental lineage (LCI). The candidate PEMS property asks which relations, historical dependencies, temporal coordinates and hard invariants must persist for a defined trajectory-reconstruction/intervention task. There is **no universal accepted percent difference**; per-task loss, unit, error costs, falsification and non-negotiable authority/evidence invariants must be fixed before test.
+
+The master follow-up matrix records `X-01`, `X-02`, `X-03`, `X-04`, `X-07`, `X-08` and `X-09`. This tracking note does **not** freeze missing MIHM-T preregistration fields, authorize a confirmatory run, equate cross-method Phi variables or create a live Research Hub entry. The scientific status remains `DRAFT_UNFROZEN`.
