@@ -186,6 +186,7 @@ assert.ok(worldObservatoryCron.includes('Closure-report generation is downstream
 assert.ok(worldObservatoryCron.includes('Hypothesis closure reports are downstream narrative projections of classifications already persisted by calibration and cannot change them.'), 'scheduled_closure_report_boundary_missing');
 
 // One bounded staged refresh reads the existing owners once each. Primary field/state cannot be blocked by optional World Vector/history.
+// Regression marker: observatory_second_read_owner_detected now means duplicate endpoint ownership, not two staged Promise.all reads.
 for (const endpoint of [
   "fetchJson('/api/observatory/world')",
   "fetchJson('/api/observatory/state')",
