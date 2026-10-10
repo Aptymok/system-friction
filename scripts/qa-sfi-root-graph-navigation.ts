@@ -32,6 +32,7 @@ const neuralGraphRuntime = read('src/lib/root/neuralGraphRuntime.ts');
 const continuityStore = read('src/lib/sfi/continuityPostgres.ts');
 const canonicalGraphRuntime = read('src/lib/graph/canonicalGraph.ts');
 const neuralGraphView = read('src/components/sfi/RootNeuralGraphView.tsx');
+const neuralGraphCss = read('src/components/sfi/RootNeuralGraphView.css');
 const cognitiveFieldPixi = read('src/components/sfi/RootCognitiveFieldPixi.tsx');
 
 const knowledgeTimeSource=read('src/lib/graph/knowledgeTimeContrast.ts');
@@ -100,6 +101,8 @@ check('persisted Library materialization preserves the documentary non-validatio
 check('ROOT remains the canonical sovereign operating scene', scenes.includes("root:{key:'root'") && scenes.includes("title:'ROOT · Sovereign Operation'") && scenes.includes("liveSource:'/api/root/workboard'"));
 check('legacy sovereign workspace no longer composes the ROOT scene', !scenePage.includes('SfiRootWorkspace') && scenePage.includes('RootNeuralGraphView'));
 check('ROOT field exposes temporal and reconstructive readings', neuralGraphView.includes("'TRAJECTORY'") && neuralGraphView.includes("'RETROLONGITUDINAL'") && neuralGraphView.includes("'PROJECTION'") && neuralGraphView.includes("'FRICTION_REGIME'") && neuralGraphView.includes("'RETURN_CONTRAST'"));
+check('ROOT operational snapshot separates observation, provenance, verification, authority, execution and RETURN', ['OBSERVATION','PROVENANCE','VERIFICATION','AUTHORITY','EXECUTION','RETURN / NEXT OBSERVATION'].every(label=>neuralGraphView.includes(label)) && neuralGraphView.includes('rootOperationalSnapshot'));
+check('ROOT environmental dark scrim remains limited to ten percent opacity', neuralGraphCss.includes("rgba(6,6,5,.10)") && neuralGraphCss.includes('Environmental dark scrim is intentionally limited to 10% opacity.'));
 check('ROOT preserves binary terminal decisions while evidence request remains a non-terminal defer', rootUi.includes('ACCEPT') && rootUi.includes('DENY') && rootUi.includes('REQUEST EVIDENCE') && rootUi.includes('does not turn a source into admitted evidence') && rootUi.includes('decision remains open'));
 check('ROOT report archive is observational rather than approvable', rootUi.includes("jsonFetch('/api/root/reports')") && rootUi.includes('do not require ACCEPT/DENY') && !rootUi.includes('DENY REPORT'));
 check('ROOT report route normalizes every report body before presentation', reportsRoute.includes("humanReportText") && reportsRoute.includes("from '@/lib/reports/humanReport'") && reportsRoute.includes('body: humanReportText(item.body)'));
