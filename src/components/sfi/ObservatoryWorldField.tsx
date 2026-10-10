@@ -30,7 +30,7 @@ export type ObservatoryFieldVector={
 };
 
 type Props={
-  lens:'field'|'hypotheses'|'trajectory'|'sources';
+  lens:'field'|'hypotheses'|'trajectory'|'world-vector'|'sources';
   nodes:readonly ObservatoryFieldNode[];
   selectedNodeId:string|null;
   selectedHypothesis:ObservatoryFieldHypothesis|null;
@@ -120,7 +120,7 @@ export function ObservatoryWorldField({
       {[0,45,90,135].map((angle)=><line key={angle} x1={cx-520} y1={cy} x2={cx+520} y2={cy} transform={'rotate('+angle+' '+cx+' '+cy+')'}/>)}
     </g>
 
-    {lens==='trajectory'&&ghostVectors.length?<g className="worldSpectrumGhost" aria-label="WorldSpect T0 ghost">
+    {(lens==='trajectory'||lens==='world-vector')&&ghostVectors.length?<g className="worldSpectrumGhost" aria-label="WorldSpect T0 ghost">
       {ghostVectors.map((vector,index)=>{
         if(vector.value==null) return null;
         const angle=(-90+(index*(360/Math.max(1,ghostVectors.length))))*Math.PI/180;
@@ -137,7 +137,7 @@ export function ObservatoryWorldField({
       })}
     </g>:null}
 
-    {(lens==='field'||lens==='trajectory')?<g className="worldSpectrumCorona" aria-label="WorldSpect vectors">
+    {(lens==='field'||lens==='trajectory'||lens==='world-vector')?<g className="worldSpectrumCorona" aria-label="WorldSpect vectors">
       {vectors.map((vector,index)=>{
         if(vector.value==null) return null;
         const angle=(-90+(index*(360/Math.max(1,vectors.length))))*Math.PI/180;
