@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { SCENES, type Scene } from './publicSceneManifest';
 import './PublicInstrumentSurface.css';
 
-type SurfaceId='root'|'observatory'|'reality-chain'|'method-lab'|'world-vector'|'timeline'|'access';
+type SurfaceId='root'|'observatory'|'reality-chain'|'method-lab'|'timeline'|'access';
 
 type Panel={
   kicker:string;
@@ -21,7 +21,6 @@ const SURFACE_IMAGE:Record<SurfaceId,string>={
   observatory:'/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_22-2.png',
   'reality-chain':'/assets/sfi/instruments/RealityChain.png',
   'method-lab':'/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_26-3.png',
-  'world-vector':'/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_30-4.png',
   timeline:'/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_38-6.png',
   access:'/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_42-7.png',
 };
@@ -56,13 +55,6 @@ const PANELS:Record<SurfaceId,Panel[]>={
     {kicker:'03 · ABSTENTION',title:'Producing an output is not the same as being justified to produce it.',lead:'Protocols should expose when the correct result is refusal or deferral.',bullets:['Impossible transformation.','Missing evidence.','Missing authority.','Viable and authorized action.']},
     {kicker:'04 · RUN RECEIPT',title:'Every run remains reconstructible.',lead:'Provider, model, parameters, evidence, timing, hashes and result belong to the run receipt.',bullets:['Provider/model identity remains visible.','Parameters remain addressable.','Hashes support integrity and reproducibility.','Result remains separate from real-world RETURN.']},
     {kicker:'05 · RE-ENTRY',title:'A result must survive contrast.',lead:'Re-running under changed evidence exposes what changed and why.',bullets:['Rival hypotheses remain alive where evidence permits.','Counterfactuals remain non-observed.','Learning requires governed re-entry.'],action:{label:'ENTER METHOD LAB',href:'/method-lab'}},
-  ],
-  'world-vector':[
-    {kicker:'01 · WORLD STATE',title:'The world does not have the same time.',lead:'World Vector keeps domain state longitudinal instead of forcing one universal present.',bullets:['Domains move at different rates.','Now is a dated observation.','Historical reconstruction remains bounded by what was knowable then.']},
-    {kicker:'02 · TENSIONS',title:'Friction is relational.',lead:'Contradictions, gradients and pressure points remain inspectable rather than collapsed into one score.',bullets:['Relation before aggregation.','Persistence before narrative.','Uncertainty remains visible.']},
-    {kicker:'03 · TRAJECTORY',title:'Direction matters more than a snapshot.',lead:'Persistent change and transient noise should not be treated as the same phenomenon.',bullets:['Trajectory preserves sequence.','Temporal relations remain explicit.','External change can alter institutional assumptions.']},
-    {kicker:'04 · PROJECTION',title:'Projection is not observation.',lead:'Possible futures can support planning only while their inferred or simulated status remains visible.',bullets:['No future state is back-projected as past knowledge.','Projection can be contrasted later with observed RETURN.']},
-    {kicker:'05 · RETURN TO WORLD',title:'Institutional action re-enters the environment.',lead:'Observed external consequence becomes a new world observation only when actually measured.',bullets:['Action ≠ impact.','Deployment ≠ outcome.','Measurement determines the next state.'],action:{label:'OPEN WORLD VIEW',href:'/observatory#trajectory'}},
   ],
   timeline:[
     {kicker:'01 · LONGITUDINAL MEMORY',title:'Everything the institution can reconstruct over time.',lead:'Timeline preserves sequence without rewriting older states from current knowledge.',bullets:['Institution clock.','World clock.','Case clock.','Project clock.']},
