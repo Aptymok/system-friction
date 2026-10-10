@@ -2,7 +2,7 @@
 // All generated reconstruction/forecast content is hypothetical and must never enter Reality Chain as evidence.
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { pathToFileURL } from 'node:url';
 
 const MODES = Object.freeze(['backcast', 'forecast']);
 const CLASSES = new Set(['INFERRED', 'SIMULATED']);
@@ -155,4 +155,4 @@ function main() {
   process.stdout.write(JSON.stringify(result,null,2)+'\n');
 }
 
-if (process.argv[1] && import.meta.url === new URL('file://' + process.argv[1]).href) main();
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main();
