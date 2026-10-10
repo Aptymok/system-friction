@@ -728,6 +728,38 @@ export function RootNeuralGraphView({ graph, agents=[], agentRegistryState='UNAV
                     <div><dt>EPISTEMIC STATE</dt><dd>{selected.reality?.state ?? representedText(selected.attributes.epistemicClass,'UNKNOWN')}</dd></div>
                   </dl>
                 </header>
+                <section className="rootOperationalSnapshot" aria-label="Operational observation and governance snapshot">
+                  <article data-plane="OBSERVATION">
+                    <span>OBSERVATION</span>
+                    <strong>{selected.reality?.state ?? representedText(selected.attributes.epistemicClass,'UNKNOWN')}</strong>
+                    <p>{selected.realityPassport?.stage ? `Reality Chain stage: ${humanize(selected.realityPassport.stage)}.` : 'Reality Chain stage is not represented.'}</p>
+                  </article>
+                  <article data-plane="PROVENANCE">
+                    <span>PROVENANCE</span>
+                    <strong>{selected.realityPassport?.provenance.supportingRelationCount ?? 0} supporting relations</strong>
+                    <p>{selected.lineage.length} lineage references. Source independence is not inferred from reference count.</p>
+                  </article>
+                  <article data-plane="VERIFICATION">
+                    <span>VERIFICATION</span>
+                    <strong>{selected.realityPassport?.verification.state ?? 'UNKNOWN'}</strong>
+                    <p>Cost: {representedText(selected.realityPassport?.verification.cost,'NOT REPRESENTED')} · Budget: {representedText(selected.realityPassport?.verification.budget,'NOT REPRESENTED')}</p>
+                  </article>
+                  <article data-plane="AUTHORITY">
+                    <span>AUTHORITY</span>
+                    <strong>{selected.realityPassport?.authority.state ?? selected.reality?.authority ?? 'UNKNOWN'}</strong>
+                    <p>Passport decision: {selected.realityPassport?.decision ?? 'UNKNOWN'}. Authority expansion: {representedText(selected.realityPassport?.authority.authorityExpanded,'NOT REPRESENTED')}.</p>
+                  </article>
+                  <article data-plane="EXECUTION">
+                    <span>EXECUTION</span>
+                    <strong>{selected.realityPassport?.authority.executionState ?? selected.reality?.executionState ?? 'NOT OBSERVED'}</strong>
+                    <p>Authorization and execution remain separate states; neither is inferred from the other.</p>
+                  </article>
+                  <article data-plane="RETURN">
+                    <span>RETURN / NEXT OBSERVATION</span>
+                    <strong>{selected.realityPassport?.returnState.status ?? 'UNKNOWN'}</strong>
+                    <p>{selected.realityPassport?.verification.nextBestObservation ?? 'No next discriminating observation is represented.'}</p>
+                  </article>
+                </section>
                 <section className="rootPassportQuestion rootPassportScientific" aria-label="Scientific temporal and dynamical reading">
                   <h3>SCIENTIFIC TEMPORAL READING</h3>
                   <p>Temporal resolution is derived from observed sequence, cycle, recurrence, phase or chronology as available, not inferred from database creation time.</p>
