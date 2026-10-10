@@ -51,7 +51,7 @@ const NYC_ASSETS = Object.freeze([
 ] satisfies readonly SceneAsset[]);
 
 const TIMELINE_ASSETS = Object.freeze([
-  {src:'/assets/sfi/instruments/SFI_TIMELINE_HERO_LAYER.png',role:'structure',depth:3,motion:'pointer-parallax',alpha:true},
+  {src:'/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_38-6.png',role:'structure',depth:3,motion:'pointer-parallax',alpha:true},
 ] satisfies readonly SceneAsset[]);
 
 const REPOSITORY_ASSETS = Object.freeze([
@@ -59,19 +59,19 @@ const REPOSITORY_ASSETS = Object.freeze([
 ] satisfies readonly SceneAsset[]);
 
 const METHOD_LAB_ASSETS = Object.freeze([
-  {src:'/assets/sfi/instruments/SFI_METHOD_LAB_HERO_LAYER.png',role:'structure',depth:3,motion:'pointer-parallax',alpha:true},
+  {src:'/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_26-3.png',role:'structure',depth:3,motion:'pointer-parallax',alpha:true},
 ] satisfies readonly SceneAsset[]);
 
 const REALITY_CHAIN_ASSETS = Object.freeze([
-  {src:'/assets/sfi/instruments/SFI_REALITY_CHAIN_HERO_LAYER.png',role:'structure',depth:3,motion:'pointer-parallax',alpha:true},
+  {src:'/assets/sfi/instruments/RealityChain.png',role:'structure',depth:3,motion:'pointer-parallax',alpha:true},
 ] satisfies readonly SceneAsset[]);
 
 const OBSERVATORY_ASSETS = Object.freeze([
-  {src:'/assets/sfi/instruments/SFI_OBSERVATORY_HERO_LAYER.png',role:'structure',depth:3,motion:'pointer-parallax',alpha:true},
+  {src:'/assets/sfi/instruments/08102026_07.png',role:'structure',depth:3,motion:'pointer-parallax',alpha:true},
 ] satisfies readonly SceneAsset[]);
 
 const ROOT_ASSETS = Object.freeze([
-  {src:'/assets/sfi/instruments/SFI_ROOT_HERO_LAYER.png',role:'structure',depth:3,motion:'pointer-parallax',alpha:true},
+  {src:'/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_18-1.png',role:'structure',depth:3,motion:'pointer-parallax',alpha:true},
 ] satisfies readonly SceneAsset[]);
 
 const ACCESS_ASSETS = Object.freeze([
@@ -120,10 +120,10 @@ export const SCENES: readonly Scene[] = [
     ],
     actions:[{label:'Enter ROOT',href:'/root',kind:'primary'}],
     tiles:[
-      {label:'Governance',title:'Governance',description:'Inspect governed decisions.',image:'/assets/sfi/instruments/SFI_ROOT_ICON_GOVERNANCE.png',href:'/governance'},
-      {label:'Cases & Projects',title:'Cases & Projects',description:'Reconstruct institutional work.',image:'/assets/sfi/instruments/SFI_ROOT_ICON_CASES_PROJECTS.png',href:'/cases'},
-      {label:'Institutional Attractor',title:'Institutional Attractor',description:'Read institutional direction.',image:'/assets/sfi/instruments/SFI_ROOT_ICON_ATTRACTOR.png',href:'/root'},
-      {label:'Authority Boundary',title:'Authority Boundary',description:'Inspect permission to act.',image:'/assets/sfi/instruments/SFI_ROOT_ICON_AUTHORITY_BOUNDARY.png',href:'/root?reading=HIERARCHY'},
+      {label:'Governance',title:'Governance',description:'Inspect governed decisions.',image:'/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_18-1.png',href:'/governance'},
+      {label:'Cases & Projects',title:'Cases & Projects',description:'Reconstruct institutional work.',image:'/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_18-1.png',href:'/cases'},
+      {label:'Institutional Attractor',title:'Institutional Attractor',description:'Read institutional direction.',image:'/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_18-1.png',href:'/root'},
+      {label:'Authority Boundary',title:'Authority Boundary',description:'Inspect permission to act.',image:'/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_18-1.png',href:'/root?reading=HIERARCHY'},
     ],
   },
 
