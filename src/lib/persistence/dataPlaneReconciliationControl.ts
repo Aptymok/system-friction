@@ -3,6 +3,7 @@ import 'server-only';
 import { readDataPlaneState, journalBacklog } from '@/lib/persistence/dataPlaneContinuityStore';
 import { readPrimaryOutboxStatus } from '@/lib/persistence/primaryMirror';
 import { recoverPrimaryDataPlane } from '@/lib/persistence/continuityRecovery';
+import { continuityDatabase } from '@/lib/sfi/continuityPostgres';
 
 /**
  * A single bounded recovery authority for the existing SFI two-plane system.
@@ -20,6 +21,22 @@ export async function readDataPlaneReconciliationStatus() {
         error: error instanceof Error ? error.message.slice(0,400) : String(error).slice(0,400),
       })),
   ]);
+
+  const journalRows = await continuityDatabase()`
+    select table_name, status, count(*)::int as entries,
+           min(created_at)::text as oldest_at
+    from public.sfi_data_plane_write_journal
+    where status in ('PENDING', 'REPLAYING', 'CONFLICT')
+    group by table_name, status
+    order by count(*) desc
+    limit 30
+  `;
+  const pendingByTable = journalRows.map((value) => ({
+    table: String(value.table_name),
+    state: String(value.status),
+    entries: Number(value.entries),
+    oldestAt: String(value.oldest_at),
+  }));
 
   const mirror = mirrorResult.ok ? mirrorResult.status : null;
   const blocker = state.mode === 'PRIMARY'
@@ -45,6 +62,7 @@ export async function readDataPlaneReconciliationStatus() {
     journal: {
       pending: journal.pending,
       conflicts: journal.conflicts,
+      pendingByTable,
     },
     primaryOutbox: mirror,
     primaryOutboxError: mirrorResult.ok ? null : mirrorResult.error,
