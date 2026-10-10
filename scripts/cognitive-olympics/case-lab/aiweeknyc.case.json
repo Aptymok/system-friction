@@ -1,0 +1,56 @@
+{
+  "contract": "SFI-CHRONOS-SYNTHETIC-CASE-1.0",
+  "id": "SFI-LAB-SYNTH-AIWEEKNYC-001",
+  "title": "Synthetic institutional trajectory towards SFI AI Week NYC",
+  "status": "SYNTHETIC_EXERCISE_ONLY",
+  "epistemicClass": "SIMULATED",
+  "scenarioOrigin": "FICTITIOUS_FOR_LAB",
+  "boundaries": {
+    "syntheticNeverEvidence": true,
+    "realityChainAdmission": false,
+    "canonicalMutation": false,
+    "governanceAuthority": false,
+    "worldReturnMinting": false,
+    "executionAllowed": false,
+    "publishAsObserved": false,
+    "historicalReplayNotProspective": true
+  },
+  "cutoffs": {
+    "reconstruction": "2026-10-09T00:00:00Z",
+    "forecast": "2026-10-07T15:00:00Z"
+  },
+  "anchors": {
+    "initial": {
+      "id": "LAB-SYN-INITIAL-001",
+      "at": "2026-10-02T14:00:00Z",
+      "class": "SIMULATED",
+      "text": "Fictional planning record: the laboratory scenario proposes a virtual SFI AI-governance presentation for a New York event. This is NOT an institutional record."
+    },
+    "authority": {
+      "id": "LAB-SYN-AUTHORITY-001",
+      "at": "2026-10-06T15:00:00Z",
+      "class": "SIMULATED",
+      "text": "Fictional exercise authority approves preparing and simulating a presentation workflow, not any actual event action, publication, institutional decision or real system mutation.",
+      "scope": "SYNTHETIC_REHEARSAL_ONLY"
+    },
+    "return": {
+      "id": "LAB-SYN-RETURN-001",
+      "at": "2026-10-08T23:59:00Z",
+      "class": "SIMULATED",
+      "text": "Fictional laboratory outcome: a simulated remote presentation was completed. This is not proof that the real event took place as scheduled."
+    }
+  },
+  "realReference": {
+    "title": "OBSERVACIÓN: PRESENTACIÓN DE SFI · JUAN MARÍN · AI WEEK NYC",
+    "sourceClass": "EXTERNAL_DOCUMENT_METADATA",
+    "classification": "ARTIFACT_EXISTENCE_ONLY",
+    "realEventOccurred": "UNVERIFIED_FROM_METADATA_ALONE",
+    "artifact": "https://drive.google.com/file/d/1499zbUA3jWdJdfYEeQo_UAYxzdfH0VNC/view",
+    "artifactCreatedAt": "2026-10-08T19:46:31.078Z",
+    "scheduledStart": "2026-10-08T19:00:00-04:00",
+    "scheduledTimeSource": "Google Calendar invitation acceptance email dated 2026-10-08; 5 PM GMT-6 / 7 PM EDT",
+    "discrepancy": "Artifact metadata creation precedes the stated 7 PM New York scheduled start. This may reflect a rehearsal, an earlier meeting, a timestamp issue, or a different interpretation. It is not resolved by this fixture.",
+    "verificationGate": "Watch/inspect recording and/or independent host attendance evidence; reconcile conflicting clocks before asserting an observed full presentation.",
+    "disclaimer": "DO NOT promote this reference or any synthetic source to Reality Chain, observed RETURN, canonical evidence, or independent empirical validation."
+  }
+}
