@@ -45,11 +45,11 @@ assert.ok(scenes.includes("title:'ROOT · Sovereign Operation'"), 'root_live_sce
 assert.ok(
   scenePage.includes('data-root-primary-interface="CANONICAL_COGNITIVE_FIELD"')
     && scenePage.includes('<RootNeuralGraphView')
-    && neuralUi.includes('ROOT · SYSTEM FRICTION INSTITUTE · STATE / RELATION / TIME / RETURN'),
+    && neuralUi.includes('data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0"') && neuralUi.includes('FIELD EXPLORER'),
   'root_sovereign_workspace_semantics_missing',
 );
-assert.ok(neuralUi.includes('RELATION ≠ CAUSALITY.') && neuralUi.includes('SOURCE ≠ EVIDENCE') && neuralUi.includes('GRAPH ≠ RETURN'), 'root_observation_topology_boundary_missing');
-assert.ok(authMenu.includes("href:'/twin'") && neuralUi.includes('<SfiRootWorkspace enabled decisionOnly/>'), 'root_twin_navigation_or_decision_embedding_missing');
+assert.ok(neuralUi.includes('Evidence, inference, authority, execution and RETURN remain distinct.') && neuralUi.includes('SOURCE INDEPENDENCE: NOT ESTABLISHED') && neuralUi.includes('A complete-looking object is not automatically verified or authorized.'), 'root_observation_topology_boundary_missing');
+assert.ok(authMenu.includes("href:'/root?reading=RETROLONGITUDINAL'") && neuralUi.includes('<SfiRootWorkspace enabled decisionOnly/>'), 'root_twin_navigation_or_decision_embedding_missing');
 assert.ok(scenes.includes("twin:{label:'TWIN / SPINE',title:'Cognitive Twin / Spine'"), 'root_live_scene_twin_observability_missing');
 assert.ok(liveUi.includes('SfiOperatingWorkspace') && liveUi.includes('surface={current}'), 'root_live_scene_dispatch_missing');
 assert.ok(operatingUi.includes('SfiGovernanceWorkspace'), 'root_operating_workspace_governance_delegate_missing');

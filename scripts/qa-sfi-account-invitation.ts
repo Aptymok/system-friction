@@ -55,18 +55,18 @@ assert.match(rootAccess, /inviteInstitutionalAccountAction/);
 assert.match(rootAccess, /listInstitutionalAccountAccessGrants/);
 assert.doesNotMatch(rootAccess, /createServiceSupabaseClient/);
 assert.doesNotMatch(rootAccess, /\.from\(/, 'human interface must not own raw persistence access');
-assert.match(rootAccess, /Observador — puede consultar/);
-assert.match(rootAccess, /Operador — puede trabajar/);
-assert.match(rootAccess, /no autoridad soberana/i);
+assert.match(rootAccess, /Observer — may read/);
+assert.match(rootAccess, /Operator — may work/);
+assert.match(rootAccess, /does not create ROOT, sovereignty or institutional authority/i);
 assert.match(rootAccess, /limite_correo/);
 assert.match(rootAccess, /lastInviteError/);
 assert.match(rootAccess, /NEON_CONTINUITY/, 'ROOT access must visibly distinguish continuity reads');
-assert.match(rootAccess, /No se modificó ningún acceso/, 'unavailable read planes must not imply a successful mutation');
+assert.match(rootAccess, /No access was modified/, 'unavailable read planes must not imply a successful mutation');
 
 assert.match(forgot, /forgotPasswordAction/);
 assert.match(reset, /updateUser\(\{ password \}\)/);
 assert.match(reset, /password\.length < 12/);
-assert.match(reset, /SFI nunca necesita enviarte una contraseña temporal/);
+assert.match(reset, /SFI never needs to send you a temporary password/);
 assert.match(reset, /data-sfi-auth-surface="institutional-access"/, 'invitation confirmation must use the canonical SFI institutional access surface');
 assert.match(reset, /SYSTEM FRICTION INSTITUTE/);
 assert.match(reset, /INVITATION/);
@@ -76,7 +76,7 @@ assert.match(reset, /ACCESS ≠ AUTHORITY/, 'confirmation must visibly preserve 
 assert.match(reset, /CONFIRMAR Y ACTIVAR/, 'invited user must receive a clear bounded activation action');
 assert.match(reset, /mode === 'invite'/, 'institutional activation must be required only for invite completion');
 assert.match(reset, /activationBody\.activated !== true/, 'invite UI must not redirect before institutional activation is confirmed');
-assert.match(reset, /La contraseña quedó guardada, pero SFI no confirmó el acceso institucional/);
+assert.match(reset, /The password was saved, but SFI did not confirm institutional access/);
 assert.doesNotMatch(reset, /fetch\('\/api\/account\/activate'[\s\S]*?\.catch\(\(\) => null\)/, 'activation failure must never be swallowed');
 
 assert.match(activate, /requireAuthenticatedUser\(\)/);

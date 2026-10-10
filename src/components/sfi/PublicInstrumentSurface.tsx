@@ -1,11 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { SCENES, type Scene } from './publicSceneManifest';
 import './PublicInstrumentSurface.css';
 
-type SurfaceId='root'|'observatory'|'reality-chain'|'method-lab'|'world-vector'|'repository'|'timeline'|'access';
+type SurfaceId='root'|'observatory'|'reality-chain'|'method-lab'|'timeline'|'access';
 
 type Panel={
   kicker:string;
@@ -21,8 +21,6 @@ const SURFACE_IMAGE:Record<SurfaceId,string>={
   observatory:'/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_22-2.png',
   'reality-chain':'/assets/sfi/instruments/RealityChain.png',
   'method-lab':'/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_26-3.png',
-  'world-vector':'/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_30-4.png',
-  repository:'/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_34-5.png',
   timeline:'/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_38-6.png',
   access:'/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_42-7.png',
 };
@@ -38,11 +36,11 @@ const PANELS:Record<SurfaceId,Panel[]>={
     {kicker:'05 · RETURN',title:'Reality can alter what the institution believes next.',lead:'Observed consequence may recalibrate confidence, method and future action without becoming canon by default.',bullets:['Expected state remains reconstructible.','Observed effect remains separate from execution receipt.','Contrast records divergence.','Learning re-enters through governance.'],action:{label:'ENTER OPERATIONAL ROOT',href:'/root'}},
   ],
   observatory:[
-    {kicker:'01 · LIVE FIELD',title:'A signal is not evidence.',lead:'The Observatory exposes what SFI can currently see and where observation is degraded.',bullets:['Sources remain identifiable.','Freshness remains visible.','Signals remain distinct from observations.','Blind spots remain explicit.']},
-    {kicker:'02 · SOURCE HEALTH',title:'Coverage is part of the observation.',lead:'Absence of data must not be mistaken for absence in the world.',bullets:['Fresh · stale · degraded · unavailable · unknown.','Source version and cutoff remain visible.','A copied report does not become a new independent observation.']},
-    {kicker:'03 · INDEPENDENCE',title:'Ten reproductions of one source are not ten confirmations.',lead:'Corroboration should reflect independent origin, not document count or agent count.',bullets:['Track original source lineage.','Detect derived copies and shared upstream dependencies.','Apply independence only where sources are being used as corroboration.'],note:'TRACEABILITY DOES NOT ESTABLISH INDEPENDENCE'},
-    {kicker:'04 · HYPOTHESES',title:'Interpretation remains provisional.',lead:'Possible explanations retain support, contradiction, uncertainty and discriminating observations.',bullets:['Observation ≠ hypothesis.','Confidence does not erase alternatives.','Recent changes remain time-bound.','Degraded state constrains inference.']},
-    {kicker:'05 · TRAJECTORY',title:'Movement matters more than a snapshot.',lead:'Longitudinal observation preserves direction, persistence and divergence through time.',bullets:['Institution and world may keep different clocks.','Trajectory is dated.','Projection remains non-observed.','RETURN can become a later observation.'],action:{label:'OPEN OPERATIONAL OBSERVATORY',href:'/observatory'}},
+    {kicker:'01 · LIVE WORLD FIELD',title:'A signal is not evidence — and a vector is not the world.',lead:'Observatory combines persisted sources, current conditions and the bounded World Vector reading in one observational surface.',bullets:['Sources remain identifiable and dated.','Signals remain distinct from observations.','World Vector contextualizes the field; it does not establish causality.','Unavailable coverage remains explicit.']},
+    {kicker:'02 · SOURCE HEALTH / PROVENANCE',title:'Coverage is part of the observation.',lead:'What SFI can see, how fresh it is and where it came from remain visible before interpretation.',bullets:['Fresh · stale · degraded · unavailable · unknown.','Source version and cutoff remain visible.','Derived copies do not become independent confirmations.','Reference count ≠ source independence.']},
+    {kicker:'03 · WORLD VECTOR / TENSIONS',title:'The world does not have the same time.',lead:'World Vector remains an Observatory capability: a longitudinal contextual reading across domains, gradients and tensions.',bullets:['Domains move at different rates.','Current state is a dated observation.','Tensions remain relations and changes rather than one universal score.','World Vector / WorldSpect retains its own provenance and memory.'],note:'CONTEXT ≠ CAUSALITY'},
+    {kicker:'04 · HYPOTHESES / PROJECTION',title:'Interpretation remains provisional.',lead:'Possible explanations and possible futures remain explicitly separate from observed world state.',bullets:['Observation ≠ hypothesis.','Projection ≠ observation.','Rival explanations remain visible where evidence permits.','Discriminating observations determine what should be checked next.']},
+    {kicker:'05 · TRAJECTORY / RETURN',title:'Movement matters more than a snapshot.',lead:'Persisted T0 → T1 comparison shows direction, persistence and divergence, while RETURN becomes a later observation only when measured.',bullets:['Institution and world may keep different clocks.','Historical frames are not rewritten from later knowledge.','Execution ≠ impact.','Observed RETURN may change the next institutional state.'],action:{label:'OPEN OBSERVATORY',href:'/observatory?lens=world-vector'}},
   ],
   'reality-chain':[
     {kicker:'01 · RECONSTRUCT',title:'A complete-looking package is not a complete chain of justification.',lead:'Reality Chain reconstructs what existed, what was observed, what became evidence, who had authority, what was executed and what reality returned.',bullets:['REAL WORLD → SIGNAL → OBSERVATION → EVIDENCE','INFERENCE → AUTHORITY → EXECUTION → RETURN'],note:COMMON_NOTE},
@@ -58,20 +56,6 @@ const PANELS:Record<SurfaceId,Panel[]>={
     {kicker:'04 · RUN RECEIPT',title:'Every run remains reconstructible.',lead:'Provider, model, parameters, evidence, timing, hashes and result belong to the run receipt.',bullets:['Provider/model identity remains visible.','Parameters remain addressable.','Hashes support integrity and reproducibility.','Result remains separate from real-world RETURN.']},
     {kicker:'05 · RE-ENTRY',title:'A result must survive contrast.',lead:'Re-running under changed evidence exposes what changed and why.',bullets:['Rival hypotheses remain alive where evidence permits.','Counterfactuals remain non-observed.','Learning requires governed re-entry.'],action:{label:'ENTER METHOD LAB',href:'/method-lab'}},
   ],
-  'world-vector':[
-    {kicker:'01 · WORLD STATE',title:'The world does not have the same time.',lead:'World Vector keeps domain state longitudinal instead of forcing one universal present.',bullets:['Domains move at different rates.','Now is a dated observation.','Historical reconstruction remains bounded by what was knowable then.']},
-    {kicker:'02 · TENSIONS',title:'Friction is relational.',lead:'Contradictions, gradients and pressure points remain inspectable rather than collapsed into one score.',bullets:['Relation before aggregation.','Persistence before narrative.','Uncertainty remains visible.']},
-    {kicker:'03 · TRAJECTORY',title:'Direction matters more than a snapshot.',lead:'Persistent change and transient noise should not be treated as the same phenomenon.',bullets:['Trajectory preserves sequence.','Temporal relations remain explicit.','External change can alter institutional assumptions.']},
-    {kicker:'04 · PROJECTION',title:'Projection is not observation.',lead:'Possible futures can support planning only while their inferred or simulated status remains visible.',bullets:['No future state is back-projected as past knowledge.','Projection can be contrasted later with observed RETURN.']},
-    {kicker:'05 · RETURN TO WORLD',title:'Institutional action re-enters the environment.',lead:'Observed external consequence becomes a new world observation only when actually measured.',bullets:['Action ≠ impact.','Deployment ≠ outcome.','Measurement determines the next state.'],action:{label:'OPEN WORLD VIEW',href:'/observatory?lens=trajectory'}},
-  ],
-  repository:[
-    {kicker:'01 · INSTITUTIONAL ARCHIVE',title:'The source remains distinct from the claim.',lead:'Repository preserves source records, evidence, publications and case objects without flattening their roles.',bullets:['Source origin.','Access conditions.','Observed time.','Case relation.']},
-    {kicker:'02 · PROVENANCE / INDEPENDENCE',title:'Trace where a record came from — and whether it is actually independent.',lead:'Lineage must show when multiple records derive from the same upstream observation.',bullets:['Original source.','Derived copy.','Transformation.','Shared dependency.','Independent corroboration when established.']},
-    {kicker:'03 · VERSIONED EVIDENCE',title:'New evidence should not erase old knowledge states.',lead:'Versions preserve what a case contained at each effective time.',bullets:['Version.','Hash.','Lineage.','Manifest.','Effective / observed timestamps.']},
-    {kicker:'04 · INTEGRITY',title:'Timestamp alone does not make a log immutable.',lead:'Integrity claims require preservation, access controls and detectable modification in addition to time.',bullets:['Content-addressable objects.','Version history.','Access boundary.','Modification detection where implemented.']},
-    {kicker:'05 · PUBLICATION',title:'Exposure is not adoption.',lead:'Publication, discovery, citation, institutional use and external recognition remain different observations.',bullets:['Publications remain addressable.','Evidence remains linked to claims.','Case objects retain provenance.'],action:{label:'OPEN REPOSITORY',href:'/publications?view=registry'}},
-  ],
   timeline:[
     {kicker:'01 · LONGITUDINAL MEMORY',title:'Everything the institution can reconstruct over time.',lead:'Timeline preserves sequence without rewriting older states from current knowledge.',bullets:['Institution clock.','World clock.','Case clock.','Project clock.']},
     {kicker:'02 · EPISTEMIC TIME',title:'Known then ≠ known now.',lead:'A later source may alter the current reading without changing what was available at the earlier decision point.',bullets:['Observed-at.','Effective-at.','Decision-at.','RETURN-at.']},
@@ -84,7 +68,7 @@ const PANELS:Record<SurfaceId,Panel[]>={
     {kicker:'02 · ROLE / SCOPE',title:'Role does not equal permission.',lead:'Authority remains action-specific and scope-bound.',bullets:['Observer.','Operator.','Controller.','ROOT.','System.']},
     {kicker:'03 · AUTHORITY EVIDENCE',title:'External authority may be recorded without being controlled by SFI.',lead:'SFI can verify and preserve evidence of external authorization but should not claim universal cross-institution authorization.',bullets:['Issuer or institution.','Scope.','Validity window.','Restrictions.','Evidence reference.']},
     {kicker:'04 · PRE-EXECUTION CHECK',title:'Permission must be checked before applicable action.',lead:'A valid identity and a capable model are insufficient when authority or viability is missing.',bullets:['Identity valid?','Scope valid?','Action viable?','Evidence sufficient?','Abstain when a gate fails.']},
-    {kicker:'05 · ACCESS TRACE',title:'Access itself leaves a trace.',lead:'Changes in role, scope, session and operational access remain reconstructible.',bullets:['Access log.','Scope request.','Grant change.','Session boundary.'],action:{label:'INSTITUTIONAL ACCESS',href:'/login'}},
+    {kicker:'05 · ACCESS TRACE',title:'Access itself leaves a trace.',lead:'Changes in role, scope, session and operational access remain reconstructible.',bullets:['Access log.','Scope request.','Grant change.','Session boundary.'],action:{label:'INSTITUTIONAL ACCESS',href:'/root/access'}},
   ],
 };
 
@@ -98,6 +82,7 @@ export function PublicInstrumentSurface({surface}:{surface:SurfaceId}){
   const host=useRef<HTMLElement|null>(null);
   const scene=useMemo(()=>sceneFor(surface),[surface]);
   const panels=PANELS[surface];
+  const [activeIndex,setActiveIndex]=useState(0);
 
   useEffect(()=>{
     const el=host.current;
@@ -107,9 +92,27 @@ export function PublicInstrumentSurface({surface}:{surface:SurfaceId}){
       event.preventDefault();
       el.scrollBy({left:event.deltaY,behavior:'auto'});
     };
+    const onScroll=()=>{
+      const width=Math.max(1,el.clientWidth);
+      const next=Math.max(0,Math.min(panels.length-1,Math.round(el.scrollLeft/width)));
+      setActiveIndex(next);
+    };
     el.addEventListener('wheel',onWheel,{passive:false});
-    return()=>el.removeEventListener('wheel',onWheel);
-  },[]);
+    el.addEventListener('scroll',onScroll,{passive:true});
+    onScroll();
+    return()=>{
+      el.removeEventListener('wheel',onWheel);
+      el.removeEventListener('scroll',onScroll);
+    };
+  },[panels.length]);
+
+  const goTo=(index:number)=>{
+    const el=host.current;
+    if(!el)return;
+    const next=Math.max(0,Math.min(panels.length-1,index));
+    el.scrollTo({left:next*el.clientWidth,behavior:'smooth'});
+    setActiveIndex(next);
+  };
 
   return <main className="sfiInstrumentPage" data-surface={surface}>
     <div className="sfiInstrumentArtwork" aria-hidden="true">
@@ -129,12 +132,24 @@ export function PublicInstrumentSurface({surface}:{surface:SurfaceId}){
             {panel.note?<em>{panel.note}</em>:null}
             {panel.action?<Link href={panel.action.href}>{panel.action.label} <b>→</b></Link>:null}
           </div>
-          <div className="sfiInstrumentFifthIndex" aria-hidden="true">{String(index+1).padStart(2,'0')} / 05</div>
+          <div className="sfiInstrumentFifthIndex" aria-hidden="true">{String(index+1).padStart(2,'0')} / {String(panels.length).padStart(2,'0')}</div>
         </article>)}
       </div>
     </section>
 
-    <div className="sfiInstrumentScrollCue" aria-hidden="true"><span>SCROLL</span><i>←</i><b>HORIZONTAL</b><i>→</i></div>
+    {surface==='timeline'?<nav className="sfiTimelineDock" aria-label="Timeline navigation">
+      <div className="sfiTimelineDockHead"><span>GLOBAL TIMELINE</span><b>{String(activeIndex+1).padStart(2,'0')} / {String(panels.length).padStart(2,'0')}</b></div>
+      <div className="sfiTimelineDockTrack">
+        <div className="sfiTimelineDockLine"/>
+        {panels.map((panel,index)=><button type="button" key={panel.kicker} data-active={index===activeIndex?'true':undefined} onClick={()=>goTo(index)} style={{left:`${6+(index*(88/Math.max(1,panels.length-1)))}%`}}>
+          <i/><small>{String(index+1).padStart(2,'0')}</small><span>{panel.kicker.replace(/^\d+\s·\s/,'')}</span>
+        </button>)}
+      </div>
+      <div className="sfiTimelineDockControls">
+        <button type="button" disabled={activeIndex===0} onClick={()=>goTo(activeIndex-1)}>← PREVIOUS</button>
+        <button type="button" disabled={activeIndex===panels.length-1} onClick={()=>goTo(activeIndex+1)}>NEXT →</button>
+      </div>
+    </nav>:<div className="sfiInstrumentScrollCue" aria-hidden="true"><span>SCROLL</span><i>←</i><b>HORIZONTAL</b><i>→</i></div>}
   </main>;
 }
 

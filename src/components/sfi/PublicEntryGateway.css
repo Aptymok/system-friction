@@ -43,9 +43,7 @@
   inset:0;
   z-index:71;
   pointer-events:none;
-  background:
-    radial-gradient(circle at 42% 46%,transparent 0 26%,rgba(6,6,5,.08) 48%,rgba(6,6,5,.58) 100%),
-    linear-gradient(90deg,rgba(6,6,5,.62),transparent 18% 78%,rgba(6,6,5,.5));
+  background:rgba(6,6,5,.08);
 }
 
 .sfiVisualStage{position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none}
@@ -55,7 +53,7 @@
   background-size:cover;
   background-position:center;
   transform:scale(1.035);
-  filter:saturate(.72) contrast(1.06) brightness(.68);
+  filter:none;
   transition:filter .6s ease,transform .8s ease,background-position .8s ease;
 }
 .sfiSharedLayers{position:absolute;inset:0;z-index:2}
@@ -77,17 +75,15 @@
   position:absolute;
   inset:0;
   z-index:10;
-  background:
-    linear-gradient(180deg,rgba(6,6,5,.2),rgba(6,6,5,.05) 48%,rgba(6,6,5,.48)),
-    linear-gradient(90deg,rgba(6,6,5,.78) 0%,rgba(6,6,5,.34) 24%,rgba(6,6,5,.12) 52%,rgba(6,6,5,.35) 100%);
+  background:rgba(6,6,5,.08);
 }
-.sfiSceneExperience[data-active-scene="observatory"] .sfiSharedBackground{background-position:62% 44%;filter:saturate(.58) contrast(1.08) brightness(.62)}
-.sfiSceneExperience[data-active-scene="reality-chain"] .sfiSharedBackground{background-position:48% 58%;filter:saturate(.54) contrast(1.07) brightness(.66)}
-.sfiSceneExperience[data-active-scene="method-lab"] .sfiSharedBackground{background-position:36% 36%;filter:saturate(.48) contrast(1.04) brightness(.72)}
-.sfiSceneExperience[data-active-scene="world-vector"] .sfiSharedBackground{background-position:70% 46%;filter:saturate(.62) contrast(1.08) brightness(.64)}
-.sfiSceneExperience[data-active-scene="repository"] .sfiSharedBackground{background-position:28% 52%;filter:saturate(.38) contrast(1.12) brightness(.58)}
-.sfiSceneExperience[data-active-scene="timeline"] .sfiSharedBackground{background-position:54% 60%;filter:saturate(.45) contrast(1.08) brightness(.62)}
-.sfiSceneExperience[data-active-scene="access"] .sfiSharedBackground{background-position:44% 44%;filter:saturate(.38) contrast(1.05) brightness(.68)}
+.sfiSceneExperience[data-active-scene="observatory"] .sfiSharedBackground{background-position:62% 44%;filter:none}
+.sfiSceneExperience[data-active-scene="reality-chain"] .sfiSharedBackground{background-position:48% 58%;filter:none}
+.sfiSceneExperience[data-active-scene="method-lab"] .sfiSharedBackground{background-position:36% 36%;filter:none}
+.sfiSceneExperience[data-active-scene="world-vector"] .sfiSharedBackground{background-position:70% 46%;filter:none}
+.sfiSceneExperience[data-active-scene="repository"] .sfiSharedBackground{background-position:28% 52%;filter:none}
+.sfiSceneExperience[data-active-scene="timeline"] .sfiSharedBackground{background-position:54% 60%;filter:none}
+.sfiSceneExperience[data-active-scene="access"] .sfiSharedBackground{background-position:44% 44%;filter:none}
 
 .sfiSceneDeck{position:absolute;inset:0;z-index:20;overflow:hidden}
 .sfiScene{
@@ -532,11 +528,8 @@
 .sfiHomePanoramaScroller{position:absolute;inset:0;z-index:0;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain;touch-action:pan-x}
 .sfiHomePanoramaScroller::-webkit-scrollbar{display:none}
 .sfiHomePanoramaTrack{width:200vw;height:100%;scroll-snap-align:start}
-.sfiHomePanoramaTrack img{display:block;width:200vw;height:100%;object-fit:cover;object-position:center 42%;filter:saturate(.72) contrast(1.04) brightness(.76);user-select:none;-webkit-user-drag:none}
-.sfiHomePanoramaVeil{position:absolute;inset:0;z-index:1;pointer-events:none;background:
-  linear-gradient(180deg,rgba(6,6,5,.72) 0 7%,rgba(6,6,5,.08) 18% 60%,rgba(6,6,5,.64) 82% 100%),
-  linear-gradient(90deg,rgba(6,6,5,.46),transparent 24% 74%,rgba(6,6,5,.26));
-}
+.sfiHomePanoramaTrack img{display:block;width:200vw;height:100%;object-fit:cover;object-position:center 42%;filter:none;user-select:none;-webkit-user-drag:none}
+.sfiHomePanoramaVeil{position:absolute;inset:0;z-index:1;pointer-events:none;background:rgba(6,6,5,.08)}
 .sfiHomeHeader{position:absolute;z-index:20;left:0;right:0;top:0;height:64px;display:grid;grid-template-columns:minmax(290px,.92fr) minmax(0,3fr) 28px;align-items:center;gap:20px;padding:0 3.2vw;border-bottom:1px solid rgba(232,221,195,.17);background:linear-gradient(180deg,rgba(6,6,5,.86),rgba(6,6,5,.22))}
 .sfiHomeBrand{display:flex;align-items:center;gap:11px;color:var(--cream);min-width:0}
 .sfiHomeBrand img{width:27px;height:27px;object-fit:contain;opacity:.78}
@@ -559,7 +552,7 @@
 .sfiHomeStatement em{display:block;margin-top:20px;font:650 8px/1.55 var(--mono);font-style:normal;letter-spacing:.12em;color:rgba(200,169,81,.8)}
 .sfiHomeRightNotes{position:absolute;z-index:10;right:7.5vw;top:28%;width:27vw;display:flex;justify-content:space-between;gap:5vw;pointer-events:none}
 .sfiHomeRightNotes p{margin:0;font:600 8px/1.6 var(--mono);letter-spacing:.13em;color:rgba(232,221,195,.58)}
-.sfiHomeSurfaceRail{position:absolute;z-index:18;left:4vw;right:4vw;bottom:112px;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));border-top:1px solid rgba(232,221,195,.18);border-left:1px solid rgba(232,221,195,.13);background:rgba(6,6,5,.25);backdrop-filter:blur(4px)}
+.sfiHomeSurfaceRail{position:absolute;z-index:18;left:4vw;right:4vw;bottom:112px;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border-top:1px solid rgba(232,221,195,.18);border-left:1px solid rgba(232,221,195,.13);background:rgba(6,6,5,.25);backdrop-filter:blur(4px)}
 .sfiHomeSurfaceRail a{position:relative;min-width:0;min-height:132px;padding:18px 16px 16px;border-right:1px solid rgba(232,221,195,.13);border-bottom:1px solid rgba(232,221,195,.11);background:linear-gradient(180deg,rgba(6,6,5,.18),rgba(6,6,5,.5));color:var(--cream)}
 .sfiHomeSurfaceRail a:hover{background:rgba(6,6,5,.66)}
 .sfiHomeSurfaceRail small{display:block;font:650 9px/1 var(--mono);letter-spacing:.12em;color:var(--gold)}

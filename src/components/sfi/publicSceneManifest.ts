@@ -51,31 +51,27 @@ const NYC_ASSETS = Object.freeze([
 ] satisfies readonly SceneAsset[]);
 
 const TIMELINE_ASSETS = Object.freeze([
-  {src:'/assets/sfi/instruments/SFI_TIMELINE_HERO_LAYER.png',role:'structure',depth:3,motion:'pointer-parallax',alpha:true},
+  {src:'/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_38-6.png',role:'structure',depth:3,motion:'pointer-parallax',alpha:true},
 ] satisfies readonly SceneAsset[]);
 
 const REPOSITORY_ASSETS = Object.freeze([
-  {src:'/assets/sfi/instruments/SFI_REPOSITORY_HERO_LAYER.png',role:'structure',depth:3,motion:'pointer-parallax',alpha:true},
-] satisfies readonly SceneAsset[]);
-
-const WORLD_VECTOR_ASSETS = Object.freeze([
-  {src:'/assets/sfi/instruments/SFI_WORLD_VECTOR_HERO_LAYER.png',role:'structure',depth:3,motion:'pointer-parallax',alpha:true},
+  {src:'/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_42-7.png',role:'structure',depth:3,motion:'static',alpha:false},
 ] satisfies readonly SceneAsset[]);
 
 const METHOD_LAB_ASSETS = Object.freeze([
-  {src:'/assets/sfi/instruments/SFI_METHOD_LAB_HERO_LAYER.png',role:'structure',depth:3,motion:'pointer-parallax',alpha:true},
+  {src:'/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_26-3.png',role:'structure',depth:3,motion:'pointer-parallax',alpha:true},
 ] satisfies readonly SceneAsset[]);
 
 const REALITY_CHAIN_ASSETS = Object.freeze([
-  {src:'/assets/sfi/instruments/SFI_REALITY_CHAIN_HERO_LAYER.png',role:'structure',depth:3,motion:'pointer-parallax',alpha:true},
+  {src:'/assets/sfi/instruments/RealityChain.png',role:'structure',depth:3,motion:'pointer-parallax',alpha:true},
 ] satisfies readonly SceneAsset[]);
 
 const OBSERVATORY_ASSETS = Object.freeze([
-  {src:'/assets/sfi/instruments/SFI_OBSERVATORY_HERO_LAYER.png',role:'structure',depth:3,motion:'pointer-parallax',alpha:true},
+  {src:'/assets/sfi/instruments/08102026_07.png',role:'structure',depth:3,motion:'pointer-parallax',alpha:true},
 ] satisfies readonly SceneAsset[]);
 
 const ROOT_ASSETS = Object.freeze([
-  {src:'/assets/sfi/instruments/SFI_ROOT_HERO_LAYER.png',role:'structure',depth:3,motion:'pointer-parallax',alpha:true},
+  {src:'/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_18-1.png',role:'structure',depth:3,motion:'pointer-parallax',alpha:true},
 ] satisfies readonly SceneAsset[]);
 
 const ACCESS_ASSETS = Object.freeze([
@@ -98,9 +94,9 @@ export const SCENES: readonly Scene[] = [
     ],
     actions:[{label:'Enter Observatory',href:'/observatory',kind:'primary'}],
     tiles:[
-      {label:'REGISTRY',title:'Institutional registry',description:'Methods, records, publications and Discovery Mesh.',image:'/sfi/nyc/runtime/structure.avif',href:'/publications'},
+      {label:'REGISTRY',title:'Institutional registry',description:'Methods, records, publications and Discovery Mesh.',image:'/sfi/nyc/runtime/structure.avif',href:'/repository'},
       {label:'AI WEEK NYC 2026',title:'October 8 · 7:00 PM ET',description:'After AI Governance: Evidence, Authority & RETURN in Real Institutions.',image:'/sfi/nyc/runtime/earth.avif',href:'https://gomry.com/l/Kzcb3xl'},
-      {label:'FRICTION NOTES',title:'Field notes',description:'Short-form institutional observations on friction, evidence and consequence.',image:'/sfi/nyc/runtime/lines.avif',href:'/publications'},
+      {label:'FRICTION NOTES',title:'Field notes',description:'Short-form institutional observations on friction, evidence and consequence.',image:'/sfi/nyc/runtime/lines.avif',href:'/repository'},
       {label:'OBSERVATORY',title:'World & institutional state',description:'Satellite, hypotheses, trajectory, RETURN and live sources.',image:'/sfi/nyc/runtime/moon.avif',href:'/observatory'},
     ],
   },
@@ -124,10 +120,10 @@ export const SCENES: readonly Scene[] = [
     ],
     actions:[{label:'Enter ROOT',href:'/root',kind:'primary'}],
     tiles:[
-      {label:'Governance',title:'Governance',description:'Inspect governed decisions.',image:'/assets/sfi/instruments/SFI_ROOT_ICON_GOVERNANCE.png',href:'/governance'},
-      {label:'Cases & Projects',title:'Cases & Projects',description:'Reconstruct institutional work.',image:'/assets/sfi/instruments/SFI_ROOT_ICON_CASES_PROJECTS.png',href:'/cases'},
-      {label:'Institutional Attractor',title:'Institutional Attractor',description:'Read institutional direction.',image:'/assets/sfi/instruments/SFI_ROOT_ICON_ATTRACTOR.png',href:'/root'},
-      {label:'Authority Boundary',title:'Authority Boundary',description:'Inspect permission to act.',image:'/assets/sfi/instruments/SFI_ROOT_ICON_AUTHORITY_BOUNDARY.png',href:'/root?reading=HIERARCHY'},
+      {label:'Governance',title:'Governance',description:'Inspect governed decisions.',image:'/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_18-1.png',href:'/governance'},
+      {label:'Cases & Projects',title:'Cases & Projects',description:'Reconstruct institutional work.',image:'/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_18-1.png',href:'/cases'},
+      {label:'Institutional Attractor',title:'Institutional Attractor',description:'Read institutional direction.',image:'/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_18-1.png',href:'/root'},
+      {label:'Authority Boundary',title:'Authority Boundary',description:'Inspect permission to act.',image:'/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_18-1.png',href:'/root?reading=HIERARCHY'},
     ],
   },
 
@@ -144,6 +140,7 @@ export const SCENES: readonly Scene[] = [
       {label:'SOURCES',title:'The live field remains source-bound.',text:'Every source remains identifiable instead of disappearing into one feed.'},
       {label:'SOURCE HEALTH / FRESHNESS',title:'SFI shows what it can currently see.',text:'Fresh, stale, degraded, unavailable and unknown sources remain explicit.'},
       {label:'FIELD',title:'Live conditions remain bounded observations.',text:'The field never pretends completeness and retains unavailable or degraded regions.'},
+      {label:'TERRITORIAL TENSIONS',title:'Geography can be aggregated without becoming causality.',text:'Geo-bound observations may be grouped into derived display regions while unmapped observations and coverage limits remain explicit.'},
       {label:'SIGNALS',title:'Something changed.',text:'Signals are detected changes that require attention; they are not evidence by themselves.'},
       {label:'OBSERVATIONS',title:'What was actually observed remains dated.',text:'Observed state remains distinct from signal, hypothesis and later interpretation.'},
       {label:'HYPOTHESES',title:'Possible explanations remain hypotheses.',text:'Support, contradiction, missing observations and discriminating tests remain visible.'},
@@ -197,7 +194,7 @@ export const SCENES: readonly Scene[] = [
       {label:'SIMULATION',title:'SIMULATION ≠ OBSERVATION',text:'Synthetic or model-generated outcomes remain simulated until reality provides observed RETURN.'},
       {label:'COUNTERFACTUALS',title:'Counterfactuals expose dependence on assumptions.',text:'Changed variables remain explicit so alternate outcomes can be compared without becoming observed history.'},
       {label:'REPRODUCIBILITY',title:'A result must survive re-entry.',text:'Re-running the method exposes changes in evidence, model context and output instead of hiding variation.'},
-      {label:'PROVIDER / MODEL',title:'Model identity remains inspectable.',text:'Provider and model are part of the run receipt rather than invisible infrastructure.'},
+      {label:'MCP PEER / MODEL',title:'Model access enters through MCP.',text:'External model peers connect through the authenticated MCP gateway; provider credentials are not a Method Lab UI dependency and model capability never expands authority.'},
       {label:'PARAMETERS',title:'Parameters remain reconstructible.',text:'The conditions under which a result was produced remain addressable.'},
       {label:'HASHES',title:'A result remains content-addressable.',text:'Data, configuration, code and result hashes preserve reproducibility and provenance.'},
       {label:'RESULTS',title:'Results remain separate from real-world RETURN.',text:'A run may complete while external reality has not yet answered.'},
@@ -205,27 +202,8 @@ export const SCENES: readonly Scene[] = [
     actions:[{label:'Enter Method Lab',href:'/method-lab',kind:'primary'}],
   },
   {
-    id:'world-vector',
-    number:'05',
-    eyebrow:'WORLD VECTOR / LONGITUDINAL FIELD',
-    title:'WORLD',
-    accent:'VECTOR',
-    lead:'The longitudinal state of the environment and its trajectories.',
-    background:'/sfi/nyc/runtime/background.avif',
-    assets:WORLD_VECTOR_ASSETS,
-    frames:[
-      {label:'DOMAINS',title:'Multiple domains move at different rates.',text:'Political, economic, technological and institutional signals remain separate until a method justifies aggregation.'},
-      {label:'NOW',title:'Current state is a dated observation.',text:'The present reading is not timeless truth; it is the most recent bounded state available to the instrument.'},
-      {label:'TENSIONS',title:'Friction becomes visible as relation and change.',text:'Contradictions, gradients and pressure points remain inspectable instead of being collapsed into one score.'},
-      {label:'TRAJECTORIES',title:'Direction matters more than a snapshot.',text:'Longitudinal movement distinguishes persistent change from transient noise.'},
-      {label:'HISTORICAL RECONSTRUCTION',title:'Past frames remain past frames.',text:'Historical reconstruction uses evidence available at that time and does not project future knowledge backward.'},
-      {label:'PROJECTION',title:'Projection remains explicitly non-observed.',text:'Possible futures are useful only while their simulated or inferred status remains visible.'},
-    ],
-    actions:[{label:'Enter World Vector',href:'/observatory#trajectory',kind:'primary'}],
-  },
-  {
     id:'repository',
-    number:'06',
+    number:'05',
     eyebrow:'REPOSITORY / PROVENANCE',
     title:'REPO',
     accent:'SITORY',
@@ -243,11 +221,11 @@ export const SCENES: readonly Scene[] = [
       {label:'LINEAGE',title:'Derivation remains visible.',text:'Lineage shows what an object derives from, what transformed it and what it later produced.'},
       {label:'MANIFESTS',title:'Packages declare what they contain.',text:'Machine-readable manifests keep collections inspectable and portable.'},
     ],
-    actions:[{label:'Enter Repository',href:'/publications?view=registry',kind:'primary'}],
+    actions:[{label:'Enter Repository',href:'/repository',kind:'primary'}],
   },
   {
     id:'timeline',
-    number:'07',
+    number:'06',
     eyebrow:'TIMELINE / LONGITUDINAL MEMORY',
     title:'TIME',
     accent:'LINE',
@@ -266,7 +244,7 @@ export const SCENES: readonly Scene[] = [
   },
   {
     id:'access',
-    number:'08',
+    number:'07',
     eyebrow:'ACCESS / INSTITUTIONAL ENTRY',
     title:'ACCESS',
     accent:'',

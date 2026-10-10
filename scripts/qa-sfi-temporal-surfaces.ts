@@ -119,6 +119,12 @@ assert.equal(observatoryPage.includes("redirect('/')"), false, 'public_observato
 assert.equal(observatoryUi.includes('ObservatoryInterpretiveFlow'), false, 'legacy_interpretive_flow_must_not_render_below_internal_observatory');
 assert.ok(observatoryUi.includes('SFI SATELLITE → HUB'), 'satellite_hub_internal_interpretation_owner_missing');
 assert.ok(observatoryUi.includes('LATEST HYPOTHESES'), 'satellite_hub_latest_hypothesis_lens_missing');
+assert.ok(observatoryUi.includes("08102026_07.png"), 'observatory_world_map_artwork_missing');
+assert.ok(observatoryUi.includes("deriveTerritorialTensions"), 'territorial_tension_model_missing');
+assert.ok(observatoryUi.includes("TERRITORIAL TENSIONS") && observatoryUi.includes("GEO COVERAGE"), 'territorial_observatory_ui_missing');
+const territorialModel=read('src/lib/observatory/public/territorialTensions.ts');
+for(const token of ['north-america','latin-america','europe','africa','middle-east','asia','indo-pacific','epistemicState:\'DERIVED\'']) assert.ok(territorialModel.includes(token), `territorial_model_missing:${token}`);
+assert.ok(territorialModel.includes('systemic_friction') && territorialModel.includes('unmappedCount'), 'territorial tension must derive from persisted friction where available and preserve unmapped observations');
 assert.ok(observatoryUi.includes('.slice(0,8)'), 'public_hypothesis_visual_budget_missing');
 assert.ok(worldReadModel.includes('PUBLIC_HYPOTHESIS_LIMIT=8'), 'public_hypothesis_query_budget_missing');
 assert.ok(worldReadModel.includes('LIVE_WORLD_MAX_AGE_HOURS=48'), 'live_world_freshness_window_missing');
@@ -133,7 +139,7 @@ for (const token of [
   'fieldEdgeLineage',
   'fieldEdgeDerived',
   'fieldEdgeInferred',
-  'WORLD FIELD · GEOGRAPHIC OBSERVATIONS + INTERFACE ORBITS · ORBITAL POSITION ≠ GEOGRAPHY ≠ CAUSALITY',
+  'WORLD FIELD · GEO-BOUND OBSERVATIONS + DERIVED TERRITORIAL BUCKETS · DENSITY ≠ IMPORTANCE · TENSION ≠ CAUSALITY',
   "kind==='SYSTEM'||kind==='HYPOTHESIS'",
 ]) assert.ok(observatoryWorldField.includes(token), `world_field_contract_missing:${token}`);
 assert.ok(observatoryWorldField.includes("selectedGraphEdges.filter"), 'world_field_must_not_render_unbounded_graph_edges');
@@ -179,13 +185,15 @@ assert.ok(worldObservatoryCron.includes('persistWorldHypothesisClosureReport({ h
 assert.ok(worldObservatoryCron.includes('Closure-report generation is downstream narrative projection only and cannot change classification.'), 'manual_closure_report_boundary_missing');
 assert.ok(worldObservatoryCron.includes('Hypothesis closure reports are downstream narrative projections of classifications already persisted by calibration and cannot change them.'), 'scheduled_closure_report_boundary_missing');
 
-// One bounded refresh reads the three existing public owners. Returning to the surface reuses a recent snapshot.
+// One bounded staged refresh reads the existing owners once each. Primary field/state cannot be blocked by optional World Vector/history.
+// Regression marker: observatory_second_read_owner_detected now means duplicate endpoint ownership, not two staged Promise.all reads.
 for (const endpoint of [
   "fetchJson('/api/observatory/world')",
-  "fetchJson('/api/observatory/state')",
+  "fetchJson('/api/observatory/state?view=observatory')",
   "fetchJson('/api/observatory/timeline')",
 ]) assert.equal(occurrences(observatoryUi, endpoint), 1, `observatory_duplicate_equivalent_read:${endpoint}`);
-assert.equal(occurrences(observatoryUi, 'Promise.all(['), 1, 'observatory_second_read_owner_detected');
+assert.equal(occurrences(observatoryUi, 'Promise.all(['), 2, 'observatory_must_stage_primary_and_optional_reads_without_duplicate_endpoint_ownership');
+assert.equal(occurrences(observatoryUi, "fetchJson('/api/world-vector/today')"),1,'world_vector_must_remain_one_bounded_observatory_reader');
 assert.match(observatoryUi, /OBSERVATORY_CACHE_TTL_MS=120_000/, 'observatory_recent_snapshot_cache_missing');
 assert.match(observatoryUi, /observatorySnapshotCache/, 'observatory_snapshot_reuse_missing');
 assert.match(observatoryUi, /pull\(false\)/, 'observatory_initial_bounded_read_missing');
@@ -194,8 +202,8 @@ assert.doesNotMatch(observatoryUi, /setInterval\(pull|setInterval\([^\n]*fetchJs
 const requestTimeout = observatoryUi.match(/const OBSERVATORY_REQUEST_TIMEOUT_MS=(\d+);/);
 assert.ok(requestTimeout && Number(requestTimeout[1]) > 0, 'observatory_request_timeout_missing');
 
-// A 1-second visual clock is allowed because it performs no network or database read.
-assert.match(observatoryUi, /setInterval\(tick,1000\)/, 'observatory_visual_clock_missing');
+// A sampled minute clock avoids global graph recalculation every second without polling data.
+assert.match(observatoryUi, /setInterval\(tick,60_000\)/, 'observatory_render_clock_must_be_throttled');
 
 // Availability is epistemic state, not an empty-array alias.
 for (const token of [

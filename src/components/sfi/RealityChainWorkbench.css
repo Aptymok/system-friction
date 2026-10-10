@@ -14,8 +14,7 @@
 .rcOperationalHead button:hover,.rcOperationalFooter button:hover{border-color:var(--rc-gold);color:#fff}
 .rcOperationalScroller{position:absolute;inset:52px 0 56px;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;scrollbar-width:thin;scrollbar-color:var(--rc-gold) transparent;touch-action:pan-x}
 .rcOperationalTrack{position:relative;display:flex;height:100%;width:max-content;min-width:225vw;isolation:isolate}
-.rcBackdrop{position:absolute;inset:0;z-index:-1;pointer-events:none;overflow:hidden}
-.rcBackdrop img{display:block;position:absolute;height:100%;width:100%;object-fit:cover;object-position:center;filter:saturate(.74) brightness(.38) contrast(1.09)}
+.rcBackdrop{position:absolute;inset:0;z-index:-1;pointer-events:none;overflow:hidden;background:radial-gradient(ellipse at 55% 54%,rgba(173,131,72,.16),transparent 40%),radial-gradient(ellipse at 25% 19%,rgba(51,95,116,.25),transparent 31%),repeating-linear-gradient(90deg,transparent 0,transparent 175px,rgba(200,169,81,.07) 176px,transparent 177px),repeating-linear-gradient(0deg,transparent 0,transparent 135px,rgba(200,169,81,.04) 136px,transparent 137px),linear-gradient(130deg,#05090c,#111c22 53%,#05090b)}
 .rcBackdrop:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(4,5,5,.63),transparent 35%,rgba(4,5,5,.55) 55%,rgba(4,5,5,.78)),linear-gradient(180deg,rgba(4,5,5,.12),rgba(4,5,5,.04) 48%,rgba(4,5,5,.83))}
 .rcHorizon{flex:0 0 112.5vw;height:100%;padding:clamp(12px,2vw,30px);position:relative;scroll-snap-align:start;display:flex;gap:clamp(12px,1.2vw,22px)}
 .rcFieldHorizon{padding-left:2vw}

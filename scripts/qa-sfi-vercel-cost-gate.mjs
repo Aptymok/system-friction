@@ -39,7 +39,7 @@ const publicWorld = fs.readFileSync('src/app/api/observatory/world/route.ts', 'u
 const publicState = fs.readFileSync('src/app/api/observatory/state/route.ts', 'utf8');
 const publicTimelineRoute = fs.readFileSync('src/app/api/observatory/timeline/route.ts', 'utf8');
 const publicTimelineReader = fs.readFileSync('src/lib/observatory/public/worldSnapshotTimeline.ts', 'utf8');
-const publicLibrary = fs.readFileSync('src/app/library/page.tsx', 'utf8');
+const publicRepository = fs.readFileSync('src/app/repository/page.tsx', 'utf8');
 const publicObservatoryClient = fs.readFileSync('src/components/sfi/ObservatoryConsole.tsx', 'utf8');
 
 for (const [name, source] of [
@@ -54,8 +54,8 @@ assert.match(publicWorld, /s-maxage=300/, 'public world response must have a fiv
 assert.match(publicWorld, /const LIMIT=240;/, 'public world database fanout must remain row-bounded');
 assert.match(publicState, /s-maxage=300/, 'public state response must have a five-minute CDN cache');
 assert.match(publicTimelineRoute, /s-maxage=900/, 'public timeline response must have a fifteen-minute CDN cache');
-assert.match(publicLibrary, /unstable_cache/, 'public Library graph projection must use the Next data cache');
-assert.match(publicLibrary, /revalidate:\s*900/, 'public Library graph data cache must revalidate at fifteen minutes');
+assert.match(publicRepository, /SFI_CANONICAL_OBJECT_REGISTRY/, 'public Repository must read the canonical object registry, not a parallel Library read owner');
+assert.doesNotMatch(publicRepository, /createServiceSupabaseClient|\.from\(/, 'public Repository must not create an unbounded database read owner');
 assert.match(publicTimelineReader, /const MAX_FRAMES = 180;/, 'public timeline must have a hard persisted-frame cap');
 assert.doesNotMatch(publicTimelineReader, /for \(;;\)/, 'public timeline may not page through the full persisted history');
 assert.doesNotMatch(publicObservatoryClient, /cache:\s*['"]no-store['"]/, 'public Observatory client may not force cache bypass');

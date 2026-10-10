@@ -5,7 +5,8 @@ import path from 'node:path';
 const root = process.cwd();
 const read = (relative: string) => readFileSync(path.join(root, relative), 'utf8');
 
-const publicPage = read('src/app/library/page.tsx');
+const repositoryPage = read('src/app/repository/page.tsx');
+const repositoryUi = read('src/app/repository/RepositoryConsole.tsx');
 const documentaryCatalog = read('src/lib/sfi/library/documentaryCatalog.ts');
 const dynamicScenePage = read('src/app/[scene]/page.tsx');
 const scenes = read('src/components/sfi/scenes.ts');
@@ -13,16 +14,16 @@ const consoleUi = read('src/components/sfi/SfiConsole.tsx');
 const inspector = read('src/lib/sfi/library/cognitiveSpineImpactContext.ts');
 const route = read('src/app/api/root/library/cognitive-spine/route.ts');
 
-// The public /library surface is retired into /publications.
+// The public /library and legacy /publications surfaces are retired into the single canonical /repository.
 // The canonical documentary corpus remains an internal read-only capability and
 // must not infer private Cognitive Spine state or pretend compact metadata contains full bodies.
-assert.ok(publicPage.includes("redirect('/publications')"), 'library_public_surface_must_redirect_to_publications');
+assert.ok(repositoryPage.includes('SFI_CANONICAL_OBJECT_REGISTRY') && repositoryUi.includes('SOURCE RECORDS'), 'documentary_capability_must_project_through_unified_repository');
 assert.ok(documentaryCatalog.includes('sf_docs_frontmatter.json'), 'library_canonical_catalog_source_missing');
 assert.ok(documentaryCatalog.includes('LIBRARY · DOCUMENTARY CORPUS'), 'library_documentary_surface_contract_missing');
 assert.ok(documentaryCatalog.includes('CANONICAL DOCUMENTARY CATALOG'), 'library_canonical_catalog_contract_missing');
 assert.ok(documentaryCatalog.includes('full bodies are not assumed to be materialized'), 'library_compact_body_boundary_missing');
 assert.ok(documentaryCatalog.includes('FULL DOCUMENT BODY READER = NOT MATERIALIZED'), 'library_full_body_reader_boundary_missing');
-assert.equal(publicPage.includes("redirect('/archive')"), false, 'library_must_not_remain_archive_redirect_alias');
+assert.ok(!repositoryPage.includes("redirect('/archive')"), 'library_must_not_remain_archive_redirect_alias');
 assert.ok(scenes.includes("LEGACY_INTERNAL_SCENES=['systems','archive'"), 'archive_legacy_lens_registry_missing');
 assert.equal(scenes.includes("archive:{key:'archive'"), false, 'archive_must_not_reappear_as_independent_live_scene');
 assert.ok(dynamicScenePage.includes('LEGACY_INTERNAL_SCENES'), 'shared_scene_router_legacy_registry_missing');
@@ -52,7 +53,7 @@ assert.ok(route.includes('Cache-Control'), 'library_root_inspection_cache_bounda
 console.log(JSON.stringify({
   ok: true,
   profile: 'LIBRARY_IMPACT_CONTEXT_V1.1',
-  publicLibrarySurface: 'REDIRECT_TO_PUBLICATIONS',
+  publicLibrarySurface: 'UNIFIED_REPOSITORY',
   canonicalDocumentaryCatalog: 'INTERNAL_READ_ONLY_CAPABILITY',
   archiveIndependentSurface: false,
   libraryCatalogReadsPrivateCt: false,

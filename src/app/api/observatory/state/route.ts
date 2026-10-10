@@ -141,7 +141,24 @@ async function readPlatformMetricSummary() {
 }
 
 
-export async function GET() {
+export async function GET(request: Request) {
+  // The panoramic Observatory needs only WorldSpect and platform summary.
+  // The full institutional state retains its existing response for other callers.
+  if (new URL(request.url).searchParams.get('view') === 'observatory') {
+    const [worldspect, platformMetrics] = await Promise.all([
+      getLatestWorldSpectSnapshot(),
+      readPlatformMetricSummary(),
+    ]);
+    return NextResponse.json({
+      ok: true,
+      data: {
+        worldspect: worldspect ? snapshotRowToApiData(worldspect) : null,
+        platformMetrics: platformMetrics.data,
+        loadedAt: new Date().toISOString(),
+        warnings: [platformMetrics.error, ...(worldspect ? [] : ['worldspect_snapshot_missing'])].filter(Boolean),
+      },
+    }, { headers: PUBLIC_CDN_CACHE });
+  }
   const [
     worldspect,
     graph,
