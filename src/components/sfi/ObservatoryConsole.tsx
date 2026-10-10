@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { ObservatoryWorldField } from './ObservatoryWorldField';
 import { ObservatorySemanticGpuLayer } from './ObservatorySemanticGpuLayer';
 import { HypothesisClosureDiff } from './HypothesisClosureDiff';
@@ -70,9 +71,11 @@ export function ObservatoryConsole(){
   const[world,setWorld]=useState<Row|null>(null),[obs,setObs]=useState<Row|null>(null),[worldVector,setWorldVector]=useState<Row|null>(null),[timeline,setTimeline]=useState<TimelineFrame[]>([]);
   const[availability,setAvailability]=useState<ObservatoryAvailability>(INITIAL_AVAILABILITY);
   const[refreshing,setRefreshing]=useState(false);
-  const[lens,setLens]=useState<Lens>(initialLens),[satelliteOpen,setSatelliteOpen]=useState(true),[selectedNodeId,setSelectedNodeId]=useState<string|null>(null),[selectedHypothesisId,setSelectedHypothesisId]=useState<string|null>(null);
+  const[lens,setLens]=useState<Lens>(initialLens),[satelliteOpen,setSatelliteOpen]=useState(false),[selectedNodeId,setSelectedNodeId]=useState<string|null>(null),[selectedHypothesisId,setSelectedHypothesisId]=useState<string|null>(null);
   const[sourceFamily,setSourceFamily]=useState('ALL'),[systemFilter,setSystemFilter]=useState('ALL'),[statusFilter,setStatusFilter]=useState('ALL'),[windowHours,setWindowHours]=useState(168),[minConfidence,setMinConfidence]=useState(0),[query,setQuery]=useState('');
   const[baselineTime,setBaselineTime]=useState(0),[time,setTime]=useState(100),[clock,setClock]=useState('');
+  // Sampling this clock once per minute prevents a global node/graph redraw every second.
+  const[observationNow,setObservationNow]=useState(()=>Date.now());
 
   const applySnapshot=useCallback((snapshot:ObservatorySnapshot)=>{
     setAvailability(snapshot.availability);setWorld(snapshot.world);setObs(snapshot.obs);setWorldVector(snapshot.worldVector);setTimeline(snapshot.timeline);
@@ -88,7 +91,7 @@ export function ObservatoryConsole(){
     }finally{setRefreshing(false)}
   },[applySnapshot]);
 
-  useEffect(()=>{const tick=()=>setClock(new Date().toISOString());tick();const t=setInterval(tick,1000);return()=>clearInterval(t)},[]);
+  useEffect(()=>{const tick=()=>{setClock(new Date().toISOString());setObservationNow(Date.now())};tick();const t=setInterval(tick,60_000);return()=>clearInterval(t)},[]);
   useEffect(()=>{void pull(false)},[pull]);
 
   const allNodes=useMemo<WorldNode[]>(()=>rows(world?.nodes).map((o)=>({
@@ -97,7 +100,7 @@ export function ObservatoryConsole(){
   const hypotheses=useMemo<Hypothesis[]>(()=>rows(world?.hypotheses)
     .sort((a,b)=>dateMs(b.cutoff_at??b.created_at)-dateMs(a.cutoff_at??a.created_at))
     .slice(0,8) as Hypothesis[],[world]);
-  const cutoff=Date.now()-windowHours*3600000;
+  const cutoff=useMemo(()=>observationNow-windowHours*3600000,[observationNow,windowHours]);
   const q=query.trim().toLowerCase();
   const nodes=useMemo(()=>allNodes.filter(node=>{
     if((dateMs(node.fetchedAt)||dateMs(node.observedAt))<cutoff)return false;
@@ -202,7 +205,27 @@ export function ObservatoryConsole(){
         ? `The selected hypothesis is an inference, not a fact: ${selectedHypothesis.statement??'no statement'}. Its trace uses ${selectedEvidenceIds.size} source records, affects ${arr(selectedHypothesis.aiInference?.affectedSystems).length} systems, and preserves explicit contradiction signals.`
         : `The field contains ${nodes.length} visible observations and ${filteredHypotheses.length} traceable hypotheses under the current filters.`;
 
-  return <><main className="obsShell" data-world-availability={availability.world} data-state-availability={availability.state} data-timeline-availability={availability.timeline}><section className={`obsScene lens-${lens}`}><div className="starfield"/><div className="deepSpace"/>
+  return <><main className="obsShell" data-world-availability={availability.world} data-state-availability={availability.state} data-timeline-availability={availability.timeline}><section className={`obsScene lens-${lens}`}>
+    <header className="obsOperationalHeader">
+      <Link href="/" className="obsOperationalIdentity" aria-label="SFI home"><span>S F I</span><i/> <small>SYSTEM FRICTION INSTITUTE</small></Link>
+      <nav aria-label="Operational SFI instruments">
+        <Link href="/root">ROOT</Link>
+        <Link href="/observatory" aria-current="page">OBSERVATORY</Link>
+        <Link href="/reality-chain">REALITY CHAIN</Link>
+        <Link href="/method-lab">METHOD LAB</Link>
+        <Link href="/repository">REPOSITORY</Link>
+        <Link href="/root?reading=RETROLONGITUDINAL">TIMELINE</Link>
+        <Link href="/root/access">ACCESS</Link>
+      </nav>
+      <span className="obsOperationalStamp">{clock.slice(0,10) || '—'} · {clock.slice(11,16) || '—'} UTC</span>
+    </header>
+    <div className="obsOperationalTitle"><strong>OBSERVATORY</strong><small>LIVE FIELD · WORLD VECTOR · SOURCES · TRAJECTORIES</small><span>NOTHING ACTS ALONE.<br/>REALITY ANSWERS BACK.</span></div>
+    <nav className="obsOperationalLenses" aria-label="Operational Observatory lenses">
+      {(['field','sources','territories','hypotheses','trajectory','world-vector'] as Lens[]).map(value=>
+        <button key={value} type="button" className={lens===value?'active':''} aria-pressed={lens===value} onClick={()=>{setLens(value);setSatelliteOpen(value!=='field')}}>{value==='world-vector'?'WORLD VECTOR':value==='territories'?'TENSIONS':value.toUpperCase()}</button>
+      )}
+    </nav>
+    <div className="starfield"/><div className="deepSpace"/>
     <button className={`satelliteActor satellite-${lens}`} onClick={()=>{setSatelliteOpen(v=>!v);if(!selectedHypothesisId&&filteredHypotheses[0])setSelectedHypothesisId(String(filteredHypotheses[0].id))}} aria-label={ui('Open SFI satellite instrument')}>
       <img src="/sfi-scenes/satellite.png" alt={ui('SFI observatory satellite')}/><span className="scanBeam"/>
     </button>
@@ -239,11 +262,11 @@ export function ObservatoryConsole(){
       /></>:<div className="worldUnavailable"><small>PERSISTED WORLD</small><strong>{availability.world}</strong><p>No live world is rendered without recent persisted observations. Historical hypotheses may remain inspectable in the Satellite Hub without being presented as a live world.</p></div>}
     </div>
 
-    <aside className="hud hudLeft"><section><small>SFI-OBS-LIVE</small><h3>{'LIVE FIELD'}</h3><p className="good">● {clock.slice(11,19)} UTC</p><dl><dt>{ui('OBSERVATIONS')}</dt><dd data-availability={availability.world}>{worldMetric(nodes.length)}</dd><dt>{ui('ACTIVE SOURCES')}</dt><dd data-availability={availability.world}>{worldMetric(sourceIds.length)}</dd><dt>{ui('HYPOTHESES')}</dt><dd data-availability={availability.world}>{worldMetric(filteredHypotheses.length)}</dd><dt>{ui('IN RETURN')}</dt><dd data-availability={availability.world}>{worldMetric(openHypotheses)}</dd></dl><button onClick={()=>setSatelliteOpen(true)}>{ui('OPEN SATELLITE')}</button></section>
+    <aside className="hud hudLeft"><section><small>SFI-OBS-LIVE</small><h3>{'LIVE FIELD'}</h3><p className="good">● {clock.slice(11,16)} UTC</p><dl><dt>{ui('OBSERVATIONS')}</dt><dd data-availability={availability.world}>{worldMetric(nodes.length)}</dd><dt>{ui('ACTIVE SOURCES')}</dt><dd data-availability={availability.world}>{worldMetric(sourceIds.length)}</dd><dt>{ui('HYPOTHESES')}</dt><dd data-availability={availability.world}>{worldMetric(filteredHypotheses.length)}</dd><dt>{ui('IN RETURN')}</dt><dd data-availability={availability.world}>{worldMetric(openHypotheses)}</dd></dl><button onClick={()=>setSatelliteOpen(true)}>{ui('OPEN SATELLITE')}</button></section>
       <section><small>{'DERIVED METRICS'}</small><dl><dt>Fₛ</dt><dd data-availability={availability.world}>{avgFs==null?'—':avgFs.toFixed(3)}</dd><dt>NTI</dt><dd data-availability={availability.world}>{avgNti==null?'—':avgNti.toFixed(3)}</dd><dt>Φ</dt><dd data-availability={availability.world}>{avgPhi==null?'—':avgPhi.toFixed(3)}</dd><dt>GEO MAPPED</dt><dd>{territorialModel.mappedCount}</dd><dt>UNMAPPED</dt><dd>{territorialModel.unmappedCount}</dd><dt>GEO COVERAGE</dt><dd>{pct(territorialModel.coverage)}</dd></dl><p style={{fontSize:11,opacity:.62,lineHeight:1.5}}>{'Territorial buckets are derived from persisted geocoded observations. Coverage ≠ completeness; density ≠ importance; tension ≠ causality.'}</p></section>
     </aside>
 
-    <div style={{...panel,left:'50%',transform:'translateX(-50%)',bottom:102,width:'min(94vw,980px)',padding:'10px 12px',display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
+    <div className="obsOperationalFilters" style={{...panel,left:'50%',transform:'translateX(-50%)',top:101,bottom:'auto',width:'min(77vw,1030px)',padding:'9px 12px',display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
       <span style={micro}>{'FILTERS'}</span>
       <select style={selectStyle} value={windowHours} onChange={e=>setWindowHours(Number(e.target.value))}><option value={6}>6h</option><option value={24}>24h</option><option value={72}>72h</option><option value={168}>7d</option><option value={720}>30d</option></select>
       <select style={selectStyle} value={sourceFamily} onChange={e=>setSourceFamily(e.target.value)}><option value="ALL">{'All source families'}</option>{sourceFamilies.map(v=><option key={v} value={v}>{v}</option>)}</select>
@@ -346,6 +369,61 @@ export function ObservatoryConsole(){
 
       <hr style={{border:0,borderTop:'1px solid rgba(214,180,120,.14)',margin:'16px 0'}}/><div style={{fontSize:11,lineHeight:1.55,opacity:.52}}>{world?.graph?.boundary||'Source ≠ evidence; derived relation ≠ observed causality; hypothesis ≠ truth.'}</div>
     </aside>}
+
+
+    <section className="obsOperationalGrid" aria-label="Live Observatory analytical instruments">
+      <article className="obsOperationalCard">
+        <header><span>01 / FIELD</span><button onClick={()=>{setLens('field');setSatelliteOpen(true)}} aria-label="Inspect field">↗</button></header>
+        <div className="obsOperationalCardStat" data-availability={availability.world}>{worldMetric(nodes.length)} <small>OBSERVATIONS</small></div>
+        <p>Live world field · {sourceIds.length && availability.world==='AVAILABLE'?sourceIds.length+' attributed sources':availability.world}</p>
+        <div className="obsOperationalMiniTrack" aria-hidden="true">{nodes.slice(0,18).map(n=><i key={n.id}/>)}</div>
+        <button className="obsOperationalOpen" onClick={()=>{setLens('territories');setSatelliteOpen(true)}}>EXPLORE FIELD & TENSIONS →</button>
+      </article>
+      <article className="obsOperationalCard">
+        <header><span>02 / SIGNALS</span><button onClick={()=>{setLens('sources');setSatelliteOpen(true)}} aria-label="Inspect source signals">↗</button></header>
+        <strong className="obsOperationalCardHeadline">SOURCE READINGS</strong>
+        {nodes.slice(0,4).map(node=><button className="obsOperationalRow" key={node.id} onClick={()=>setSelectedNodeId(node.id)} title={node.title}><span className="obsOperationalDot"/> {short(node.title,45)}</button>)}
+        {nodes.length===0&&<p data-availability={availability.world}>{availability.world==='AVAILABLE'?'NO RECENT OBSERVATIONS':availability.world}</p>}
+        <small>SIGNAL ≠ EVIDENCE</small>
+      </article>
+      <article className="obsOperationalCard">
+        <header><span>03 / OBSERVATIONS</span><button onClick={()=>{setLens('sources');setSatelliteOpen(true)}} aria-label="Inspect observations">↗</button></header>
+        <div className="obsOperationalCardStat" data-availability={availability.world}>{worldMetric(nodes.length)} <small>RECORDS</small></div>
+        {nodes.slice(0,4).map(node=><button className="obsOperationalRow" key={node.id} onClick={()=>setSelectedNodeId(node.id)} title={node.title}>{short(node.publisher,14)} · {short(node.title,37)}</button>)}
+        {nodes.length===0&&<p>NO OBSERVATIONS UNDER CURRENT FILTERS</p>}
+      </article>
+      <article className="obsOperationalCard">
+        <header><span>04 / HYPOTHESES</span><button onClick={()=>{setLens('hypotheses');setSatelliteOpen(true)}} aria-label="Inspect hypotheses">↗</button></header>
+        <div className="obsOperationalCardStat" data-availability={availability.world}>{worldMetric(filteredHypotheses.length)} <small>VISIBLE</small></div>
+        {filteredHypotheses.slice(0,3).map(h=><button className="obsOperationalRow" key={String(h.id)} onClick={()=>{setSelectedHypothesisId(String(h.id));setLens('hypotheses');setSatelliteOpen(true)}} title={txt(h.statement)}>{short(h.statement,65)}</button>)}
+        {filteredHypotheses.length===0&&<p>NOT OBSERVED UNDER CURRENT FILTERS</p>}
+        <small>INFERENCE ≠ OBSERVATION</small>
+      </article>
+      <article className="obsOperationalCard">
+        <header><span>05 / TRAJECTORY</span><button onClick={()=>{setLens('trajectory');setSatelliteOpen(true)}} aria-label="Compare historical snapshots">↗</button></header>
+        <div className="obsOperationalCardStat" data-availability={availability.timeline}>{timelineMetric(timeline.length)} <small>FRAMES</small></div>
+        <p>{baselineFrame?.observedAt?baselineFrame.observedAt.slice(0,10):availability.timeline} → {frame?.observedAt?frame.observedAt.slice(0,10):'—'}</p>
+        <div className="obsOperationalMiniTrack" aria-hidden="true">{timeline.slice(-18).map((f,i)=><i key={f.observedAt+'-'+i}/>)}</div>
+        <small>PROJECTION ≠ REALIZED OUTCOME</small>
+      </article>
+      <article className="obsOperationalCard">
+        <header><span>06 / DEGRADED STATES</span><button onClick={()=>{setLens('sources');setSatelliteOpen(true)}} aria-label="Inspect degraded sources">↗</button></header>
+        <strong className="obsOperationalCardHeadline">OBSERVATION LIMITS</strong>
+        <p>WORLD · {availability.world}</p>
+        <p>STATE · {availability.state}</p>
+        <p>TIMELINE · {availability.timeline}</p>
+        <p>UNMAPPED · {availability.world==='AVAILABLE'?territorialModel.unmappedCount:'—'}</p>
+        <small>NO DATA ≠ NO EVENT</small>
+      </article>
+    </section>
+    <footer className="obsOperationalTimeline" aria-label="Persisted Observatory history">
+      <div className="obsOperationalTimelineLabel"><strong>OBSERVATORY HISTORY</strong><span>{availability.timeline==='AVAILABLE'?timeline.length+' PERSISTED FRAMES':availability.timeline}</span></div>
+      <div className="obsOperationalTimelineControl">
+        <input aria-label="Select the historical T1 observation" type="range" min="0" max="100" step="1" value={time} onChange={event=>{const t=Number(event.target.value);setTime(t);if(baselineTime>t)setBaselineTime(t)}} disabled={!timeline.length}/>
+        <span>{frame?.observedAt?frame.observedAt.slice(0,16).replace('T',' '):'NO PERSISTED FRAMES'}</span>
+      </div>
+      <button type="button" disabled={!timeline.length} onClick={()=>{setLens('trajectory');setSatelliteOpen(true)}}>EXPLORE HISTORY ↗</button>
+    </footer>
 
     <div style={{position:'absolute',zIndex:15,left:'50%',transform:'translateX(-50%)',top:88,pointerEvents:'none',fontSize:11,letterSpacing:'.08em',opacity:.62}} data-availability={availability.world}>{'LIVE FLOW'} · {world?.generatedAt?.slice?.(11,19)||availability.world} · {worldMetric(sourceIds.length)} {'observed sources'} · {worldMetric(selectedGraphEdges.length)} {'visible relations'}</div>
   </section></main></>;
