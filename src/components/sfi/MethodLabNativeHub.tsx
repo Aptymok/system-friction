@@ -180,7 +180,6 @@ export function MethodLabNativeHub({ initialState, initialSessions, evidenceOpti
         parameters: {
           objective: objective.trim(),
           preparationMode: selectedEvidence.length ? 'MANUAL_EVIDENCE_OVERRIDE' : 'AUTO_EVIDENCE_SELECTION',
-          modelTransport: 'MCP',
         },
         cognitiveSpineContextRefs: [],
       });
