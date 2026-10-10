@@ -309,7 +309,7 @@ export function RealityChainWorkbench(){
 
   <div className="rcOperationalScroller" ref={scroll} aria-label="Reality Chain three-screen horizontal reconstruction">
     <div className="rcOperationalTrack">
-      <div className="rcBackdrop" aria-hidden="true"><img src="/assets/sfi/instruments/RealityChain.png" alt=""/></div>
+      <div className="rcBackdrop" aria-hidden="true"/>
 
       <section className="rcHorizon rcThreeHorizon" aria-label="Screen 1 · World, Signal, Observation">
         <div className="rcThreeHorizonTop">
