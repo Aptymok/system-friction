@@ -13,6 +13,12 @@ const evidence=read('src/components/sfi/RootEvidenceReviewConsole.tsx');
 const evidenceCss=read('src/components/sfi/RootEvidenceReviewConsole.css');
 const access=read('src/app/root/access/page.tsx');
 const accessCss=read('src/app/root/access/root-access.css');
+const observatory=read('src/components/sfi/ObservatoryConsole.tsx');
+const observatoryCss=read('src/components/sfi/ObservatoryConsole.css');
+const realityCss=read('src/components/sfi/RealityChainWorkbench.css');
+const methodCss=read('src/components/sfi/MethodLabUnifiedSurface.css');
+const publicationsCss=read('src/app/publications/publications.css');
+const instruments=read('src/components/sfi/PublicInstrumentSurface.tsx');
 
 for(const token of ['ROOT','LABORATORY','DISCOVERY','EVIDENCE','ACCESS']) assert.ok(rail.includes(token),'institutional_surface_missing:'+token);
 for(const token of ['ACCESS ≠ AUTHORITY','SIMULATED ≠ OBSERVED','EXPOSURE ≠ DISCOVERY','SOURCE ≠ EVIDENCE']) assert.ok(rail.includes(token),'institutional_boundary_missing:'+token);
@@ -34,6 +40,18 @@ assert.ok(evidenceCss.includes('.rootEvidenceShell'),'evidence_visual_shell_miss
 assert.ok(access.includes('Invite access without manufacturing authority.'),'access_chamber_identity_missing');
 assert.ok(access.includes('ACCESS ≠ AUTHORITY'),'access_chamber_boundary_missing');
 assert.ok(accessCss.includes('.rootAccessShell'),'access_visual_shell_missing');
+
+for(const [name,source,contract] of [
+  ['observatory',observatoryCss,'SFI-INSTRUMENT-OBSERVATORY-1.0'],
+  ['reality-chain',realityCss,'SFI-INSTRUMENT-REALITY-CHAIN-1.0'],
+  ['method-lab',methodCss,'SFI-INSTRUMENT-METHOD-LAB-1.0'],
+  ['access',accessCss,'SFI-INSTRUMENT-ACCESS-1.0'],
+  ['repository',publicationsCss,'SFI-INSTRUMENT-REPOSITORY-1.0'],
+] as const) assert.ok(source.includes(contract),`canonical_visual_contract_missing:${name}`);
+assert.ok(observatory.includes("fetchJson('/api/observatory/world')") && observatory.includes("fetchJson('/api/observatory/state')") && observatory.includes("fetchJson('/api/observatory/timeline')"),'observatory_visual_must_remain_live');
+assert.ok(observatory.includes('useSearchParams') && observatory.includes('requestedLens'),'observatory_lens_deeplink_missing');
+assert.ok(instruments.includes("href:'/observatory?lens=trajectory'") && instruments.includes("href:'/observatory?lens=trajectory&focus=timeline'"),'world_vector_timeline_must_resolve_to_live_observatory');
+assert.ok(realityCss.includes('blur(11px)') && realityCss.includes('width:300vw'),'reality_chain_reference_must_not_read_as_fake_ui');
 
 for(const source of [rail,evidence,access]) assert.equal(/createServiceSupabaseClient|\.from\(|\.insert\(|\.update\(|\.upsert\(/.test(source),false,'visual convergence must not create a new data owner');
 
