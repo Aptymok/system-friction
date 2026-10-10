@@ -81,13 +81,38 @@ export function ObservatoryConsole(){
     setAvailability(snapshot.availability);setWorld(snapshot.world);setObs(snapshot.obs);setWorldVector(snapshot.worldVector);setTimeline(snapshot.timeline);
   },[]);
   const pull=useCallback(async(force=false)=>{
-    if(!force&&observatorySnapshotCache&&Date.now()-observatorySnapshotCache.at<OBSERVATORY_CACHE_TTL_MS){applySnapshot(observatorySnapshotCache);return;}
+    if(!force&&observatorySnapshotCache&&Date.now()-observatorySnapshotCache.at<OBSERVATORY_CACHE_TTL_MS){
+      applySnapshot(observatorySnapshotCache);return;
+    }
     setRefreshing(true);
     try{
-      const[worldR,obsR,timeR,vectorR]=await Promise.all([fetchJson('/api/observatory/world'),fetchJson('/api/observatory/state'),fetchJson('/api/observatory/timeline'),fetchJson('/api/world-vector/today')]);
-      const nextAvailability:ObservatoryAvailability={world:classifyObservatoryRead(worldR,'WORLD'),state:classifyObservatoryRead(obsR,'STATE'),timeline:classifyObservatoryRead(timeR,'TIMELINE')};
-      const snapshot:ObservatorySnapshot={at:Date.now(),availability:nextAvailability,world:(nextAvailability.world==='AVAILABLE'||nextAvailability.world==='DEGRADED')?row(worldR.data):null,obs:nextAvailability.state==='AVAILABLE'?row(obsR.data):null,worldVector:vectorR.ok?row(vectorR.data?.data):null,timeline:nextAvailability.timeline==='AVAILABLE'&&Array.isArray(timeR.data?.frames)?timeR.data.frames:[]};
-      observatorySnapshotCache=snapshot;applySnapshot(snapshot);
+      // First paint only waits for the primary world and state readers.
+      // Historical frames and bounded World Vector arrive later and cannot block it.
+      const [worldR,obsR]=await Promise.all([fetchJson('/api/observatory/world'),fetchJson('/api/observatory/state')]);
+      const nextAvailability:ObservatoryAvailability={
+        world:classifyObservatoryRead(worldR,'WORLD'),
+        state:classifyObservatoryRead(obsR,'STATE'),
+        timeline:'LOADING',
+      };
+      const snapshot:ObservatorySnapshot={
+        at:Date.now(),availability:nextAvailability,
+        world:(nextAvailability.world==='AVAILABLE'||nextAvailability.world==='DEGRADED')?row(worldR.data):null,
+        obs:nextAvailability.state==='AVAILABLE'?row(obsR.data):null,
+        worldVector:null,timeline:[],
+      };
+      observatorySnapshotCache=snapshot;
+      applySnapshot(snapshot);
+      void Promise.all([fetchJson('/api/observatory/timeline'),fetchJson('/api/world-vector/today')]).then(([timeR,vectorR])=>{
+        // A later refresh supersedes a pending history read.
+        if(observatorySnapshotCache!==snapshot)return;
+        const complete:ObservatorySnapshot={
+          ...snapshot,
+          availability:{...snapshot.availability,timeline:classifyObservatoryRead(timeR,'TIMELINE')},
+          timeline:timeR.ok&&Array.isArray(timeR.data?.frames)?timeR.data.frames:[],
+          worldVector:vectorR.ok?row(vectorR.data?.data):null,
+        };
+        observatorySnapshotCache=complete;applySnapshot(complete);
+      });
     }finally{setRefreshing(false)}
   },[applySnapshot]);
 
