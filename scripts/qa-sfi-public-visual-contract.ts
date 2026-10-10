@@ -25,10 +25,10 @@ check('institutional screen palette is canonical',
   && chromeCss.includes('#C8A951')
   && chromeCss.includes('#E8DDC3'));
 
-for(const label of ['ROOT','OBSERVATORY','REALITY CHAIN','METHOD LAB','WORLD VECTOR','REPOSITORY','TIMELINE','ACCESS']){
+for(const label of ['ROOT','OBSERVATORY','REALITY CHAIN','METHOD LAB','REPOSITORY','TIMELINE','ACCESS']){
   check(`fixed canonical menu exposes ${label}`,chrome.includes(`label:'${label}'`));
 }
-for(const id of ['root','observatory','reality-chain','method-lab','world-vector','repository','timeline','access']){
+for(const id of ['root','observatory','reality-chain','method-lab','repository','timeline','access']){
   check(`menu routes independently to ${id}`,chrome.includes(`href:'/instruments/${id}'`));
 }
 check('menu is physically fixed',chromeCss.includes('position:fixed!important')&&chromeCss.includes('.sfiPublicPageNav'));
@@ -61,11 +61,14 @@ check('home keeps canonical Reality Chain order in micro-orientation',
     .every(token=>landing.includes(`'${token}'`)));
 
 check('home exposes all eight independent instrument routes',
-  ['root','observatory','reality-chain','method-lab','world-vector','repository','timeline','access']
-    .every(id=>landing.includes(`href:'/instruments/${id}'`)));
+  ['root','observatory','reality-chain','method-lab','repository','timeline','access']
+    .every(id=>landing.includes(`href:'/instruments/${id}'`))
+  && !landing.includes("href:'/instruments/world-vector'"));
 
-check('instrument route accepts exactly canonical eight surfaces',
-  route.includes("['root','observatory','reality-chain','method-lab','world-vector','repository','timeline','access']"));
+check('instrument route exposes seven canonical surfaces and redirects legacy World Vector',
+  route.includes("['root','observatory','reality-chain','method-lab','repository','timeline','access']")
+  && route.includes("surface==='world-vector'")
+  && route.includes("redirect('/instruments/observatory')"));
 
 check('each public instrument is a five-screen horizontal surface',
   surfaceCss.includes('width:500vw')
@@ -77,7 +80,7 @@ check('each public instrument is a five-screen horizontal surface',
 check('one existing artwork is assigned per public surface',
   [
     '11_40_18-1.png','11_40_22-2.png','RealityChain.png','11_40_26-3.png',
-    '11_40_30-4.png','11_40_34-5.png','11_40_38-6.png','11_40_42-7.png'
+    '11_40_34-5.png','11_40_38-6.png','11_40_42-7.png'
   ].every(asset=>surface.includes(asset)));
 
 check('public instrument artwork preserves source luminosity and color',
@@ -118,9 +121,11 @@ for(const [name,ok] of checks)console.log(`${ok?'PASS':'FAIL'} · ${name}`);
 if(failed.length)process.exit(1);
 
 import { SCENES } from '../src/components/sfi/publicSceneManifest';
-const surfaces=['root','observatory','reality-chain','method-lab','world-vector','repository','timeline','access'];
+const surfaces=['root','observatory','reality-chain','method-lab','repository','timeline','access'];
 const reality=['REAL WORLD','SIGNAL','OBSERVATION','EVIDENCE','INFERENCE','AUTHORITY','EXECUTION','RETURN'];
 const assert=(ok:boolean,message:string)=>{if(!ok)throw new Error(message);};
-assert(JSON.stringify(SCENES.slice(1).map(scene=>scene.id))===JSON.stringify(surfaces),'surface sequence drift');
+assert(JSON.stringify(SCENES.slice(1).filter(scene=>scene.id!=='world-vector').map(scene=>scene.id))===JSON.stringify(surfaces),'public surface sequence drift');
 assert(JSON.stringify(SCENES.find(scene=>scene.id==='reality-chain')?.frames.map(frame=>frame.label))===JSON.stringify(reality),'Reality Chain sequence drift');
-console.log('PASS · independent horizontal public SFI visual contract');
+assert(SCENES.find(scene=>scene.id==='observatory')?.frames.some(frame=>frame.label==='TRAJECTORY'),'Observatory trajectory missing');
+assert(surface.includes('WORLD VECTOR / TENSIONS')&&surface.includes('World Vector remains an Observatory capability'),'World Vector context not absorbed into Observatory');
+console.log('PASS · horizontal public SFI visual contract with World Vector owned by Observatory');
