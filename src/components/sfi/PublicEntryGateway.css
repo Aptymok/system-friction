@@ -552,7 +552,7 @@
 .sfiHomeStatement em{display:block;margin-top:20px;font:650 8px/1.55 var(--mono);font-style:normal;letter-spacing:.12em;color:rgba(200,169,81,.8)}
 .sfiHomeRightNotes{position:absolute;z-index:10;right:7.5vw;top:28%;width:27vw;display:flex;justify-content:space-between;gap:5vw;pointer-events:none}
 .sfiHomeRightNotes p{margin:0;font:600 8px/1.6 var(--mono);letter-spacing:.13em;color:rgba(232,221,195,.58)}
-.sfiHomeSurfaceRail{position:absolute;z-index:18;left:4vw;right:4vw;bottom:112px;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));border-top:1px solid rgba(232,221,195,.18);border-left:1px solid rgba(232,221,195,.13);background:rgba(6,6,5,.25);backdrop-filter:blur(4px)}
+.sfiHomeSurfaceRail{position:absolute;z-index:18;left:4vw;right:4vw;bottom:112px;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border-top:1px solid rgba(232,221,195,.18);border-left:1px solid rgba(232,221,195,.13);background:rgba(6,6,5,.25);backdrop-filter:blur(4px)}
 .sfiHomeSurfaceRail a{position:relative;min-width:0;min-height:132px;padding:18px 16px 16px;border-right:1px solid rgba(232,221,195,.13);border-bottom:1px solid rgba(232,221,195,.11);background:linear-gradient(180deg,rgba(6,6,5,.18),rgba(6,6,5,.5));color:var(--cream)}
 .sfiHomeSurfaceRail a:hover{background:rgba(6,6,5,.66)}
 .sfiHomeSurfaceRail small{display:block;font:650 9px/1 var(--mono);letter-spacing:.12em;color:var(--gold)}
