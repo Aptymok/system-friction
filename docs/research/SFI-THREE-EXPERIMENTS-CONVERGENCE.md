@@ -129,3 +129,13 @@ A future Hub representation should reference this Markdown and each original exp
 `RESEARCH_HUB_PUBLICATION = NOT_CONFIRMED`
 
 This file is the single **documentary follow-up index**. Individual methodology and preregistration remain authoritative in their own original files.
+
+---
+
+## Independent methodological challenge — incoming review
+
+[PEMS Adversarial Review 001](./SFI-PEMS-ADVERSARIAL-REVIEW-001.md) preserves Claude's user-supplied critique together with independently checked source-contract corrections and bounded Method Lab observations.
+
+**Review state:** `DOCUMENTARY_ADVERSARIAL_REVIEW / PARTIALLY_VERIFIED`. The reviewer explicitly had no source-file or SFI MCP access; the linked addendum distinguishes suggestions from verified implementation facts. In particular it records the **remaining export timestamp omission**, acknowledges PR #459's resolved controls/variants gap, and prevents SFI-A institutional identity episodes from being confused with successful LCI metrics.
+
+The review is an additional research input only. It does **not** alter the frozen experiments, resolve the open X-01–X-09 tasks or authorize Hub publication.
