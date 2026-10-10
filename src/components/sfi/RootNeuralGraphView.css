@@ -723,3 +723,217 @@
 .rootPassportScientificCandidates strong,.rootPassportScientificCandidates span{font:500 15px/1.4 "Noto Sans",Arial,sans-serif;color:#F7F4EA}
 .rootPassportScientificCandidates small{font:400 12px/1.4 "Noto Sans",Arial,sans-serif;color:#E8DDC3}
 @media(max-width:1650px){.rootPassportScientificProperties{grid-template-columns:minmax(0,1fr)}}
+
+
+/* ROOT fixed-cockpit invariant · no page/panel scrolling · sustained dark field. */
+.rootReferenceCockpit.rootFieldMode{
+  position:fixed!important;
+  inset:0!important;
+  width:100vw!important;
+  height:100dvh!important;
+  min-height:0!important;
+  overflow:hidden!important;
+  background:#060605!important;
+  background-image:none!important;
+}
+.rootReferenceCockpit .rootHorizontalRail{
+  position:absolute!important;
+  inset:64px 0 80px!important;
+  width:100%!important;
+  height:auto!important;
+  display:grid!important;
+  grid-template-columns:minmax(200px,232px) minmax(320px,1fr) minmax(420px,.92fr)!important;
+  overflow:hidden!important;
+  overscroll-behavior:none!important;
+  scroll-snap-type:none!important;
+  background:#060605!important;
+}
+.rootReferenceCockpit .rootReferenceSidebar,
+.rootReferenceCockpit .rootHorizontalGraph,
+.rootReferenceCockpit .rootGovernanceConsole,
+.rootReferenceCockpit .rootGovernanceSingleReading,
+.rootReferenceCockpit .rootPassportRelations{
+  overflow:hidden!important;
+  overscroll-behavior:none!important;
+  scrollbar-width:none!important;
+}
+.rootReferenceCockpit .rootReferenceSidebar::-webkit-scrollbar,
+.rootReferenceCockpit .rootGovernanceConsole::-webkit-scrollbar,
+.rootReferenceCockpit .rootPassportRelations::-webkit-scrollbar{display:none!important}
+
+.rootExplorerViewTabs,
+.rootPassportViewTabs{
+  display:grid;
+  grid-auto-flow:column;
+  grid-auto-columns:1fr;
+  gap:1px;
+  background:rgba(200,169,81,.22);
+}
+.rootExplorerViewTabs{margin:14px 0 10px}
+.rootExplorerViewTabs button,
+.rootPassportViewTabs button{
+  min-height:36px;
+  border:0;
+  background:#090908;
+  color:#bdb29c;
+  font:600 11px/1.2 "Noto Sans",Arial,sans-serif;
+  letter-spacing:.045em;
+  cursor:pointer;
+}
+.rootExplorerViewTabs button[aria-pressed=true],
+.rootPassportViewTabs button[aria-pressed=true]{
+  background:#1a170d;
+  color:#f7f4ea;
+  box-shadow:inset 0 -2px 0 #d4af37;
+}
+.rootExplorerFilterGrid{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:7px;
+}
+.rootExplorerFilterGrid .rootExplorerLabel{margin:0}
+.rootExplorerFilterGrid .rootExplorerLabel select{min-height:38px;padding:7px 9px}
+.rootReferenceFilters button{min-height:38px!important;padding:7px 5px!important}
+.rootReferenceSidebarNote{margin:12px 0 0!important}
+
+.rootReferenceCockpit .rootGovernanceConsole{
+  display:grid!important;
+  grid-template-rows:auto auto minmax(0,1fr)!important;
+  padding:0!important;
+  background:#060605!important;
+}
+.rootReferenceCockpit .rootGovernanceHead{
+  position:relative!important;
+  top:auto!important;
+  padding:14px 18px 10px!important;
+}
+.rootReferenceCockpit .rootGovernanceHead h1{font-size:clamp(26px,2vw,34px)!important;margin:4px 0 5px!important}
+.rootReferenceCockpit .rootGovernanceHead p{font-size:13px!important;line-height:1.35!important}
+.rootPassportViewTabs{margin:0 18px 8px}
+.rootReferenceCockpit .rootGovernanceSingleReading{
+  min-height:0!important;
+  height:100%!important;
+  padding:8px 18px 12px!important;
+  display:block!important;
+}
+.rootPassportIdentity,
+.rootPassportQuestion,
+.rootPassportAgents,
+.rootPassportGovernance{
+  display:none!important;
+}
+.rootGovernanceConsole[data-passport-view="SUMMARY"] .rootPassportViewSummary,
+.rootGovernanceConsole[data-passport-view="TIME"] .rootPassportViewTime,
+.rootGovernanceConsole[data-passport-view="CHAIN"] .rootPassportViewChain,
+.rootGovernanceConsole[data-passport-view="CONTRAST"] .rootPassportViewContrast,
+.rootGovernanceConsole[data-passport-view="RELATIONS"] .rootPassportViewRelations,
+.rootGovernanceConsole[data-passport-view="ACTIONS"] .rootPassportViewActions{
+  display:block!important;
+}
+.rootGovernanceConsole[data-passport-view="SUMMARY"] .rootPassportViewSummary + .rootPassportViewSummary{margin-top:0}
+.rootGovernanceConsole[data-passport-view="CHAIN"] .rootGovernanceSingleReading{
+  display:grid!important;
+  grid-template-columns:1fr 1fr;
+  grid-auto-rows:minmax(0,1fr);
+  gap:10px;
+}
+.rootGovernanceConsole[data-passport-view="CHAIN"] .rootPassportViewChain{
+  min-height:0!important;
+  padding:12px!important;
+  border:1px solid rgba(200,169,81,.2)!important;
+  background:#0b0b0a;
+}
+.rootGovernanceConsole[data-passport-view="TIME"] .rootGovernanceSingleReading{
+  display:grid!important;
+  grid-template-rows:minmax(0,.75fr) minmax(0,1.25fr);
+  gap:8px;
+}
+.rootGovernanceConsole[data-passport-view="TIME"] .rootPassportViewTime{
+  min-height:0!important;
+  overflow:hidden!important;
+  padding:10px 0!important;
+}
+.rootGovernanceConsole[data-passport-view="RELATIONS"] .rootPassportRelations{
+  max-height:none!important;
+  display:grid!important;
+  grid-template-columns:1fr 1fr;
+  gap:5px;
+}
+.rootGovernanceConsole[data-passport-view="RELATIONS"] .rootPassportRelations button{
+  min-height:0!important;
+  padding:8px!important;
+}
+.rootGovernanceConsole[data-passport-view="ACTIONS"] .rootGovernanceSingleReading{
+  display:grid!important;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+.rootGovernanceConsole[data-passport-view="ACTIONS"] .rootPassportViewActions{
+  min-height:0!important;
+  padding:10px!important;
+}
+.rootGovernanceConsole[data-passport-view="ACTIONS"] .rootPassportGovernance{
+  margin:0!important;
+}
+.rootPassportQuestion{padding:12px 0!important}
+.rootPassportQuestion h3{font-size:17px!important;margin-bottom:8px!important}
+.rootPassportQuestion p,.rootPassportWaiting p{font-size:13px!important;line-height:1.42!important;margin:5px 0!important}
+.rootPassportIdentity{padding-bottom:12px!important}
+.rootPassportIdentity h2{font-size:25px!important;margin:6px 0 9px!important}
+.rootPassportIdentity dl div,.rootPassportContrast dl div{padding:5px 0!important}
+.rootPassportIdentity dt,.rootPassportContrast dt{font-size:11px!important}
+.rootPassportIdentity dd,.rootPassportContrast dd{font-size:12px!important}
+.rootPassportScientificProperties{grid-template-columns:1fr 1fr!important;gap:6px!important;margin:8px 0!important}
+.rootPassportScientificProperties>span{padding:7px 9px!important;font-size:10px!important}
+.rootPassportScientificProperties strong{font-size:12px!important}
+.rootPassportScientificCandidates{display:none!important}
+.rootPassportKnowledgeGrid{grid-template-columns:1fr 1fr!important;gap:7px!important;margin:8px 0!important}
+.rootPassportKnowledgeMoment{padding:8px!important}
+.rootPassportKnowledgeMoment h4{font-size:17px!important;margin-bottom:8px!important}
+.rootPassportKnowledgeMoment dl div{padding:4px 0!important}
+.rootPassportKnowledgeMoment dt{font-size:10px!important}
+.rootPassportKnowledgeMoment dd{font-size:11px!important;line-height:1.3!important}
+.rootPassportKnowledgeMoment p,.rootPassportKnowledgeMoment small{font-size:11px!important;line-height:1.3!important}
+.rootPassportKnowledgeDelta{padding:7px 10px!important;margin:6px 0!important}
+.rootPassportKnowledgeDelta p{font-size:11px!important;line-height:1.3!important}
+.rootPassportHistory{margin:6px 0!important}
+.rootPassportHistory li{padding:5px 0!important;font-size:11px!important}
+.rootPassportAgentList{grid-template-columns:1fr 1fr!important;gap:6px!important}
+.rootPassportAgentList article{padding:5px 8px!important}
+.rootPassportAgentList article p{font-size:11px!important;margin:3px 0!important}
+.rootPassportAgentList article strong{font-size:13px!important}
+.rootPassportAgentList article span,.rootPassportAgentList article small{font-size:10px!important}
+
+@media(max-width:1070px){
+  .rootReferenceCockpit.rootFieldMode{
+    position:fixed!important;
+    height:100dvh!important;
+    min-height:0!important;
+    overflow:hidden!important;
+  }
+  .rootReferenceCockpit .rootHorizontalRail{
+    position:absolute!important;
+    inset:56px 0 68px!important;
+    margin:0!important;
+    grid-template-columns:180px minmax(260px,1fr) 360px!important;
+    grid-template-rows:1fr!important;
+    overflow:hidden!important;
+  }
+  .rootReferenceCockpit .rootGovernanceConsole,
+  .rootReferenceCockpit .rootHorizontalGraph{
+    grid-column:auto!important;
+    grid-row:auto!important;
+    height:100%!important;
+    min-height:0!important;
+    overflow:hidden!important;
+  }
+}
+@media(max-width:720px){
+  .rootReferenceCockpit .rootHorizontalRail{
+    grid-template-columns:150px minmax(220px,1fr) 320px!important;
+  }
+  .rootReferenceSidebar{padding:10px 8px!important}
+  .rootReferenceSidebarTitle strong{font-size:23px!important}
+  .rootReferenceSearch{min-height:36px!important}
+  .rootPassportViewTabs button,.rootExplorerViewTabs button{font-size:9px!important}
+}
