@@ -47,7 +47,7 @@ for(const [name,source,contract] of [
   ['reality-chain',realityCss,'SFI-INSTRUMENT-REALITY-CHAIN-1.0'],
   ['method-lab',methodCss,'SFI-INSTRUMENT-METHOD-LAB-1.0'],
   ['access',accessCss,'SFI-INSTRUMENT-ACCESS-1.0'],
-  ['repository',repositoryCss,'Imagen de ChatGPT 8 oct 2026, 11_40_42-7.png'],
+  ['repository',repositoryCss,'SFI-LIVE-REPOSITORY-1.0'],
 ] as const) assert.ok(source.includes(contract),`canonical_visual_contract_missing:${name}`);
 assert.ok(observatory.includes("fetchJson('/api/observatory/world')") && observatory.includes("fetchJson('/api/observatory/state')") && observatory.includes("fetchJson('/api/observatory/timeline')"),'observatory_visual_must_remain_live');
 assert.ok(observatory.includes('useSearchParams') && observatory.includes('requestedLens'),'observatory_lens_deeplink_missing');
