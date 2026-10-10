@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import './PublicEntryGateway.css';
+import { createBrowserSupabaseClient } from '@/runtime/supabase/client';
 
 const SURFACE_RAIL=[
   {label:'ROOT',number:'01',sceneId:'root',href:'/instruments/root',line:'Canonical field · authority · RETURN'},
@@ -21,6 +22,41 @@ const YEARS=['2023','2024','2025','2026','2027','2028','2029'] as const;
 export function PublicEntryGateway(){
   const scroller=useRef<HTMLDivElement|null>(null);
   const [progress,setProgress]=useState(0);
+
+  useEffect(() => {
+    // Supabase may fall back to its Site URL when its redirect allowlist is
+    // incomplete. Recover an *already-verified* invitation or recovery session
+    // only when its one-time callback actually reaches the public home.
+    const fragment = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    const kind = fragment.get('type');
+    const accessToken = fragment.get('access_token');
+    const refreshToken = fragment.get('refresh_token');
+    if ((kind !== 'invite' && kind !== 'recovery') || !accessToken || !refreshToken) return;
+
+    const supabase = createBrowserSupabaseClient();
+    // Drop credentials from browser history immediately, before async work.
+    window.history.replaceState(window.history.state, '', window.location.pathname + window.location.search);
+    if (!supabase) {
+      window.location.replace('/reset?mode=invite&error=auth_unavailable');
+      return;
+    }
+    let active = true;
+    void supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+      .then(({ data, error }) => {
+        if (!active) return;
+        if (error || !data.session) {
+          window.location.replace('/reset?mode=invite&error=invalid_or_expired');
+          return;
+        }
+        // Recovery without an institutional invitation is not this flow.
+        if (kind === 'recovery' && data.user?.user_metadata?.sfi_invitation !== true) return;
+        window.location.replace('/reset?mode=invite');
+      })
+      .catch(() => {
+        if (active) window.location.replace('/reset?mode=invite&error=invalid_or_expired');
+      });
+    return () => { active = false; };
+  }, []);
 
   useEffect(()=>{
     const host=scroller.current;

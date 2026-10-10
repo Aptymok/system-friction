@@ -9,6 +9,7 @@ type DeliveryInput = {
   title: string;
   accessClass: InstitutionalAccessClass;
   redirectTo: string;
+  existingAuthUserId?: string | null;
 };
 
 export type InstitutionalInvitationDelivery =
@@ -186,6 +187,19 @@ export async function deliverInstitutionalInvitation(input: DeliveryInput): Prom
     redirectTo: input.redirectTo,
     data: metadata,
   });
+  if (invitation.error && /already (been )?registered|already exists/i.test(invitation.error.message) && input.existingAuthUserId) {
+    // Existing invited identity: issue a fresh provider-managed recovery email instead
+    // of attempting to create another auth user. Never create or send passwords.
+    const existing = await input.service.auth.admin.getUserById(input.existingAuthUserId);
+    if (existing.error || !existing.data.user || existing.data.user.email?.toLowerCase() !== input.email.toLowerCase()) {
+      return { ok: false, channel: 'AUTH_PROVIDER_DEFAULT', error: 'existing_invitation_identity_mismatch' };
+    }
+    const recovery = await input.service.auth.resetPasswordForEmail(input.email, { redirectTo: input.redirectTo });
+    if (recovery.error) {
+      return { ok: false, channel: 'AUTH_PROVIDER_DEFAULT', error: recovery.error.message };
+    }
+    return { ok: true, channel: 'AUTH_PROVIDER_DEFAULT', userId: existing.data.user.id };
+  }
   if (invitation.error || !invitation.data.user) {
     return {
       ok: false,
