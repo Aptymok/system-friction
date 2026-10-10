@@ -49,7 +49,7 @@ function routeContext(pathname:string):ChromeContext{
   if(pathname.startsWith('/instruments/access')) return {title:'ACCESS',statement:'IDENTITY ≠ AUTHORITY.',stage:'AUTHORITY',href:'/instruments/access',navKey:'access'};
   if(pathname.startsWith('/root')) return {title:'ROOT',statement:'AUTHORITY REMAINS EXPLICIT.',stage:'AUTHORITY',href:'/root',navKey:'root'};
   if(pathname.startsWith('/repository')) return {title:'REPOSITORY',statement:'PROVENANCE REMAINS ADDRESSABLE.',stage:'EVIDENCE',href:'/repository',navKey:'repository'};
-  if(pathname.startsWith('/publications')) return {title:'REPOSITORY',statement:'PUBLICATION = EXPOSURE.',stage:'EVIDENCE',href:'/publications',navKey:'repository'};
+  if(pathname.startsWith('/publications')) return {title:'REPOSITORY',statement:'PUBLICATION = EXPOSURE.',stage:'EVIDENCE',href:'/repository',navKey:'repository'};
   if(pathname.startsWith('/root/access')) return {title:'ACCESS',statement:'ACCESS ≠ AUTHORITY.',stage:'AUTHORITY',href:'/root/access',navKey:'access'};
   if(pathname.startsWith('/field')||pathname.startsWith('/observatory')) return {title:'OBSERVATORY',statement:'A SIGNAL IS NOT EVIDENCE.',stage:'OBSERVATION',href:'/observatory',navKey:'observatory'};
   if(pathname.startsWith('/method-lab')) return {title:'METHOD LAB',statement:'GOVERNANCE IS ONLY THE BEGINNING.',stage:'INFERENCE',href:'/method-lab',navKey:'method-lab'};
