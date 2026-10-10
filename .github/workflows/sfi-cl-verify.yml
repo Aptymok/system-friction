@@ -27,5 +27,7 @@ jobs:
           for f in scripts/cognitive-olympics/*.mjs scripts/cognitive-olympics/lib/*.mjs; do node --check "$f"; done
       - name: Cognitive Olympics smoke tests
         run: node --test scripts/cognitive-olympics/smoke.test.mjs
+      - name: Synthetic AI Week case lab safety and time-cutoff tests
+        run: node --test scripts/cognitive-olympics/case-lab/run.test.mjs
       - name: Typecheck SFI agent bridge
         run: npx tsc --noEmit --pretty false --incremental false
