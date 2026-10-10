@@ -27,9 +27,9 @@ assert.ok(repositoryUi.includes('PUBLICATION = EXPOSURE')&&repositoryUi.includes
 assert.ok(repositoryUi.includes('NOT MATERIALIZED')&&repositoryUi.includes('NOT OBSERVED'),'missing_state_must_remain_explicit');
 assert.ok(repositoryUi.includes('SHA-256')&&repositoryUi.includes('renditions'),'publication_integrity_not_exposed_in_unified_reader');
 
-assert.ok(repositoryCss.includes("Imagen de ChatGPT 8 oct 2026, 11_40_42-7.png"),'requested_repository_artwork_missing');
-assert.ok(repositoryCss.includes('filter:none'),'repository_artwork_must_preserve_source_pixels');
-assert.ok(repositoryCss.includes('background:rgba(5,6,6,.08)'),'repository_global_veil_must_remain_below_ten_percent');
+assert.ok(repositoryCss.includes('SFI-LIVE-REPOSITORY-1.0'),'operational_repository_must_have_live_projection_contract');
+assert.equal(repositoryCss.includes("url('/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_42-7.png')"),false,'operational_repository_must_not_fake_dashboards_with_screenshot');
+assert.ok(repositoryCss.includes('.repositoryBackdrop')&&repositoryCss.includes('radial-gradient'),'operational_repository_requires_structural_atmosphere');
 assert.ok(repositoryCss.includes('.repoReader')&&repositoryCss.includes('.repoDiscovery'),'repository_integrated_layers_missing');
 assert.ok(repositoryCss.includes('@media'),'repository_responsive_boundary_missing');
 
