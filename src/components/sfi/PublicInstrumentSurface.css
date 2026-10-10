@@ -3,14 +3,14 @@
   position:relative;height:calc(100svh - 154px);min-height:620px;overflow:hidden;background:var(--void);color:var(--cream);isolation:isolate;
 }
 .sfiInstrumentArtwork{position:absolute;inset:0;z-index:0;overflow:hidden;background:#060605}
-.sfiInstrumentArtwork img{width:100%;height:100%;object-fit:cover;object-position:center;filter:saturate(.72) contrast(1.05) brightness(.72);transform:scale(1.01)}
-.sfiInstrumentArtworkVeil{position:absolute;inset:0;background:linear-gradient(90deg,rgba(6,6,5,.82) 0%,rgba(6,6,5,.42) 25%,rgba(6,6,5,.10) 55%,rgba(6,6,5,.34) 100%),linear-gradient(180deg,rgba(6,6,5,.12),rgba(6,6,5,.05) 58%,rgba(6,6,5,.62))}
+.sfiInstrumentArtwork img{width:100%;height:100%;object-fit:cover;object-position:center;filter:none;transform:scale(1.01)}
+.sfiInstrumentArtworkVeil{position:absolute;inset:0;background:rgba(6,6,5,.08)}
 .sfiInstrumentHorizontal{position:absolute;inset:0;z-index:2;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain;touch-action:pan-x}
 .sfiInstrumentHorizontal::-webkit-scrollbar{display:none}
 .sfiInstrumentTrack{display:flex;width:500vw;height:100%}
 .sfiInstrumentFifth{position:relative;width:100vw;height:100%;flex:0 0 100vw;scroll-snap-align:start;display:flex;align-items:center;padding:6vh 7vw 7vh}
 .sfiInstrumentFifth:after{content:"";position:absolute;right:0;top:8%;bottom:8%;width:1px;background:linear-gradient(transparent,rgba(200,169,81,.36),transparent)}
-.sfiInstrumentCopy{width:min(680px,78vw);padding:28px 30px 30px;border-left:1px solid rgba(200,169,81,.68);background:linear-gradient(90deg,rgba(6,6,5,.66),rgba(6,6,5,.25) 76%,transparent);backdrop-filter:blur(2px);text-shadow:0 3px 28px rgba(0,0,0,.82)}
+.sfiInstrumentCopy{width:min(680px,78vw);padding:28px 30px 30px;border-left:1px solid rgba(200,169,81,.68);background:linear-gradient(90deg,rgba(6,6,5,.10),rgba(6,6,5,.06) 76%,transparent);backdrop-filter:none;text-shadow:0 2px 18px rgba(0,0,0,.62)}
 .sfiInstrumentCopy>small,.sfiInstrumentCopy>span{display:block;font:650 10px/1.25 var(--mono);letter-spacing:.18em}
 .sfiInstrumentCopy>small{color:rgba(232,221,195,.58);margin-bottom:18px}.sfiInstrumentCopy>span{color:var(--gold);margin-bottom:14px}
 .sfiInstrumentCopy h1{margin:0;max-width:660px;font:400 clamp(36px,4vw,72px)/1.02 var(--display);letter-spacing:-.035em;color:#f5efe5}
