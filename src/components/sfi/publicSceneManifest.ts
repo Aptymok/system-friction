@@ -144,6 +144,7 @@ export const SCENES: readonly Scene[] = [
       {label:'SOURCES',title:'The live field remains source-bound.',text:'Every source remains identifiable instead of disappearing into one feed.'},
       {label:'SOURCE HEALTH / FRESHNESS',title:'SFI shows what it can currently see.',text:'Fresh, stale, degraded, unavailable and unknown sources remain explicit.'},
       {label:'FIELD',title:'Live conditions remain bounded observations.',text:'The field never pretends completeness and retains unavailable or degraded regions.'},
+      {label:'TERRITORIAL TENSIONS',title:'Geography can be aggregated without becoming causality.',text:'Geo-bound observations may be grouped into derived display regions while unmapped observations and coverage limits remain explicit.'},
       {label:'SIGNALS',title:'Something changed.',text:'Signals are detected changes that require attention; they are not evidence by themselves.'},
       {label:'OBSERVATIONS',title:'What was actually observed remains dated.',text:'Observed state remains distinct from signal, hypothesis and later interpretation.'},
       {label:'HYPOTHESES',title:'Possible explanations remain hypotheses.',text:'Support, contradiction, missing observations and discriminating tests remain visible.'},
