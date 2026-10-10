@@ -119,6 +119,12 @@ assert.equal(observatoryPage.includes("redirect('/')"), false, 'public_observato
 assert.equal(observatoryUi.includes('ObservatoryInterpretiveFlow'), false, 'legacy_interpretive_flow_must_not_render_below_internal_observatory');
 assert.ok(observatoryUi.includes('SFI SATELLITE → HUB'), 'satellite_hub_internal_interpretation_owner_missing');
 assert.ok(observatoryUi.includes('LATEST HYPOTHESES'), 'satellite_hub_latest_hypothesis_lens_missing');
+assert.ok(observatoryUi.includes("SFI_WORLD_VECTOR_HERO_LAYER.png"), 'observatory_world_instrument_asset_missing');
+assert.ok(observatoryUi.includes("deriveTerritorialTensions"), 'territorial_tension_model_missing');
+assert.ok(observatoryUi.includes("TERRITORIAL TENSIONS") && observatoryUi.includes("GEO COVERAGE"), 'territorial_observatory_ui_missing');
+const territorialModel=read('src/lib/observatory/public/territorialTensions.ts');
+for(const token of ['north-america','latin-america','europe','africa','middle-east','asia','indo-pacific','epistemicState:\'DERIVED\'']) assert.ok(territorialModel.includes(token), `territorial_model_missing:${token}`);
+assert.ok(territorialModel.includes('systemic_friction') && territorialModel.includes('unmappedCount'), 'territorial tension must derive from persisted friction where available and preserve unmapped observations');
 assert.ok(observatoryUi.includes('.slice(0,8)'), 'public_hypothesis_visual_budget_missing');
 assert.ok(worldReadModel.includes('PUBLIC_HYPOTHESIS_LIMIT=8'), 'public_hypothesis_query_budget_missing');
 assert.ok(worldReadModel.includes('LIVE_WORLD_MAX_AGE_HOURS=48'), 'live_world_freshness_window_missing');
