@@ -208,7 +208,7 @@ export function ObservatoryConsole(){
     </button>
 
     <div className="earthStage" data-persisted-live={worldIsPersistedLive?'true':'false'}>
-      {worldIsPersistedLive?<><img className="worldActor" src="/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_22-2.png" alt={ui('SFI world observation field')}/>
+      {worldIsPersistedLive?<><img className="worldActor" src="/assets/sfi/instruments/08102026_07.png" alt={ui('SFI world observation field')}/>
       <ObservatorySemanticGpuLayer
         lens={lens}
         nodes={nodes.map((node)=>({id:node.id,position:positions.get(node.id)??orbitalPosition(node.id,0,1)}))}
