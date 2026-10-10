@@ -245,6 +245,18 @@ function representedText(value: unknown, fallback='NOT REPRESENTED'): string {
   return fallback;
 }
 
+function representedValue(value: unknown, fallback='NOT REPRESENTED'): string {
+  const primitive=representedText(value,'');
+  if(primitive) return primitive;
+  if(value && typeof value==='object'){
+    try{
+      const serialized=JSON.stringify(value);
+      return serialized && serialized!=='{}' ? serialized : fallback;
+    }catch{return fallback;}
+  }
+  return fallback;
+}
+
 type Position = { x: number; y: number };
 
 function hash(value: string) {
@@ -844,8 +856,8 @@ export function RootNeuralGraphView({
                   <dl className="rootPassportCompactGrid">
                     <div><dt>DECISION</dt><dd>{selected.realityPassport?.decision ?? 'NOT REPRESENTED'}</dd></div>
                     <div><dt>VERIFICATION</dt><dd>{selected.realityPassport?.verification.state ?? selected.reality?.verificationState ?? 'NOT REPRESENTED'}</dd></div>
-                    <div><dt>VERIFICATION COST</dt><dd>{representedText(selected.realityPassport?.verification.cost ?? selected.reality?.verificationCost)}</dd></div>
-                    <div><dt>VERIFICATION BUDGET</dt><dd>{representedText(selected.realityPassport?.verification.budget ?? selected.reality?.verificationBudget)}</dd></div>
+                    <div><dt>VERIFICATION COST</dt><dd>{representedValue(selected.realityPassport?.verification.cost ?? selected.reality?.verificationCost)}</dd></div>
+                    <div><dt>VERIFICATION BUDGET</dt><dd>{representedValue(selected.realityPassport?.verification.budget ?? selected.reality?.verificationBudget)}</dd></div>
                     <div><dt>NEXT BEST OBSERVATION</dt><dd>{selected.realityPassport?.verification.nextBestObservation ?? selected.reality?.nextBestObservation ?? 'NOT REPRESENTED'}</dd></div>
                     <div><dt>SUPPORTING RELATIONS</dt><dd>{selected.realityPassport?.provenance.supportingRelationCount ?? qualifiedRelationCount(selected,graph.edges)}</dd></div>
                     <div><dt>CONTRADICTIONS</dt><dd>{selected.realityPassport?.provenance.contradictionCount ?? 0}</dd></div>
