@@ -8,7 +8,7 @@ type Node={id:string;position:Position};
 type Vector={id:string;label:string;value:number|null;sourceCount:number;trust:number|null};
 
 type Props={
-  lens:'field'|'hypotheses'|'trajectory'|'world-vector'|'sources';
+  lens:'field'|'sources'|'territories'|'hypotheses'|'trajectory'|'world-vector';
   nodes:readonly Node[];
   graphNodes:readonly Row[];
   selectedGraphEdges:readonly Row[];
