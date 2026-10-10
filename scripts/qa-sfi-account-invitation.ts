@@ -55,13 +55,13 @@ assert.match(rootAccess, /inviteInstitutionalAccountAction/);
 assert.match(rootAccess, /listInstitutionalAccountAccessGrants/);
 assert.doesNotMatch(rootAccess, /createServiceSupabaseClient/);
 assert.doesNotMatch(rootAccess, /\.from\(/, 'human interface must not own raw persistence access');
-assert.match(rootAccess, /Observador — puede consultar/);
-assert.match(rootAccess, /Operador — puede trabajar/);
-assert.match(rootAccess, /no autoridad soberana/i);
+assert.match(rootAccess, /Observer — may read/);
+assert.match(rootAccess, /Operator — may work/);
+assert.match(rootAccess, /does not create ROOT, sovereignty or institutional authority/i);
 assert.match(rootAccess, /limite_correo/);
 assert.match(rootAccess, /lastInviteError/);
 assert.match(rootAccess, /NEON_CONTINUITY/, 'ROOT access must visibly distinguish continuity reads');
-assert.match(rootAccess, /No se modificó ningún acceso/, 'unavailable read planes must not imply a successful mutation');
+assert.match(rootAccess, /No access was modified/, 'unavailable read planes must not imply a successful mutation');
 
 assert.match(forgot, /forgotPasswordAction/);
 assert.match(reset, /updateUser\(\{ password \}\)/);
