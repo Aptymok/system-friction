@@ -33,6 +33,7 @@ const continuityStore = read('src/lib/sfi/continuityPostgres.ts');
 const canonicalGraphRuntime = read('src/lib/graph/canonicalGraph.ts');
 const neuralGraphView = read('src/components/sfi/RootNeuralGraphView.tsx');
 const cognitiveFieldPixi = read('src/components/sfi/RootCognitiveFieldPixi.tsx');
+const rootAgentRegistry = read('src/lib/root/telemetry/agentRegistry.ts');
 
 const knowledgeTimeSource=read('src/lib/graph/knowledgeTimeContrast.ts');
 check('ROOT Reality Passport presents both dated knowledge perspectives', neuralGraphView.includes('KNEW THEN / KNOWN NOW') && neuralGraphView.includes('KNOWLEDGE RECORDED') && neuralGraphView.includes('WORLD EVENT / EFFECTIVE') && neuralGraphView.includes('RECORD LAST UPDATED') && neuralGraphView.includes('HISTORICAL KNOWLEDGE CUT-OFF'));
@@ -173,6 +174,11 @@ check('ROOT readings change deterministic projection rather than object identity
 
 check('ROOT contextual HUB exposes bounded local dynamical attractor while retaining property discovery data', neuralGraphView.includes('<span>LOCAL DYNAMICAL ATTRACTOR<strong>') && neuralGraphView.includes('selected.scientificReading?.attractor.state') && neuralGraphView.includes('propertyDiscovery:'));
 check('ROOT retains method competition and next discriminating observation in field data', neuralGraphView.includes('methodCompetition:') && neuralGraphView.includes('nextObservation:string|null'));
+
+check('ROOT field visual grammar is self-describing and selection remains discoverable', neuralGraphView.includes('FIELD LEGEND') && neuralGraphView.includes('Every visible node is selectable') && neuralGraphView.includes('geometric distance is not confidence') && cognitiveFieldPixi.includes("g.on('pointerover'") && cognitiveFieldPixi.includes("g.cursor='pointer'"));
+check('ROOT exposes verification cost budget and next-best observation in the Reality Passport', neuralGraphView.includes('REALITY PASSPORT · OPERATIONAL SNAPSHOT') && neuralGraphView.includes('VERIFICATION COST') && neuralGraphView.includes('VERIFICATION BUDGET') && neuralGraphView.includes('NEXT BEST OBSERVATION'));
+check('ROOT keeps canonical cognitive registration separate from runtime telemetry and execution', rootAgentRegistry.includes('SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY') && rootAgentRegistry.includes('canonicalCount') && rootAgentRegistry.includes('runtimeRecordCount') && rootAgentRegistry.includes('lastRunObservedCount') && neuralGraphView.includes('CANONICAL AGENTS') && neuralGraphView.includes('RUNTIME RECORDS') && neuralGraphView.includes('LAST RUN OBSERVED') && !neuralGraphView.includes('<dt>REGISTERED AGENTS</dt>'));
+check('ROOT layout modes state their epistemic boundary instead of implying unsupported hierarchy', neuralGraphView.includes('Type-layer grouping only. This is not an authority hierarchy') && neuralGraphView.includes('deterministic spread has no epistemic meaning.'));
 
 const failed = checks.filter((item) => !item.ok);
 for (const item of checks) console.log(`${item.ok ? 'PASS' : 'FAIL'} · ${item.name}`);
