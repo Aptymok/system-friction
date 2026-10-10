@@ -1,10 +1,43 @@
 'use client';
 
-import Link from 'next/link';
 import { useMemo, useState } from 'react';
+
+export type RepositoryEditorial={
+  editorialKind:string;
+  collection:string;
+  observationKind:string|null;
+  language:string;
+  series:string;
+  issue:string;
+  subtitle:string;
+  motto:string;
+  deck:string;
+  publishedAt:string;
+  mediumUrl:string|null;
+  coverImage:string|null;
+  contentState:string;
+  visuals:Array<{id:string;src:string;alt:string;caption:string}>;
+  renditions:Array<{kind:string;mediaType:string;filename:string;byteLength:number;sha256:string;publicUrl:string|null;state:string}>;
+  sections:Array<{id:string;title:string;paragraphs:string[];items?:string[]}>;
+  cadence:Array<{interval:string;name:string;scope:string}>;
+  domains:string[];
+  epistemicBoundary:string[];
+  temporalProfile:({code:string;coordinate:string;year:number;month:number;phase:string;state:string;returnState:string;cutoffLabel:string;scopeLabel:string;authorityLabel:string;nextAuthority:string;followUpPrompts:string[]})|null;
+};
+
+export type RepositoryDiscovery={
+  ownedMachineSurfaceCount:number;
+  channels:Array<{id:string;state:string;basis:string}>;
+  lifecycle:Array<{id:string;meaning:string;state:string}>;
+  machineLinks:Array<{label:string;href:string}>;
+  crawlerBots:string[];
+  trainingReuse:string;
+  publicApiPaths:string[];
+};
 
 export type RepositoryObject={
   id:string;
+  slug:string;
   objectKey:string;
   objectType:string;
   canonicalUrl:string;
@@ -25,6 +58,7 @@ export type RepositoryObject={
   updatedAt:string;
   limitations:string[];
   missing:Array<{field:string;reason:string;sourceRef:string}>;
+  editorial:RepositoryEditorial|null;
 };
 
 type Filter='ALL'|'PUBLICATION'|'OBSERVATION'|'REPORT'|'PAPER'|'METHOD'|'DATASET'|'RETURN';
@@ -46,10 +80,24 @@ function year(value:string){
   return Number.isFinite(parsed.valueOf())?String(parsed.getFullYear()):'—';
 }
 
-export function RepositoryConsole({objects}:{objects:readonly RepositoryObject[]}){
-  const [selectedId,setSelectedId]=useState(objects[0]?.id??'');
+export function RepositoryConsole({objects,initialObject,discovery}:{objects:readonly RepositoryObject[];initialObject:string|null;discovery:RepositoryDiscovery}){
+  const initial=objects.find((object)=>object.slug===initialObject||object.id===initialObject)??objects[0];
+  const [selectedId,setSelectedId]=useState(initial?.id??'');
   const [filter,setFilter]=useState<Filter>('ALL');
   const [query,setQuery]=useState('');
+  const [readerOpen,setReaderOpen]=useState(Boolean(initialObject));
+
+  const selectObject=(object:RepositoryObject,openReader=false)=>{
+    setSelectedId(object.id);
+    if(openReader)setReaderOpen(true);
+    if(typeof window!=='undefined'){
+      const next=new URL(window.location.href);
+      next.pathname='/repository';
+      next.search='';
+      next.searchParams.set('object',object.slug);
+      window.history.replaceState({},'',next.pathname+next.search);
+    }
+  };
 
   const filtered=useMemo(()=>{
     const q=query.trim().toLowerCase();
@@ -97,7 +145,7 @@ export function RepositoryConsole({objects}:{objects:readonly RepositoryObject[]
         <div className="repoRailColumn repoSources">
           <header><span>SOURCE RECORDS</span><b>{sourceRefs.length}</b></header>
           <div className="repoRailScroll">
-            {sourceRefs.slice(0,12).map((ref,index)=><button type="button" key={ref} onClick={()=>{const hit=objects.find((object)=>object.sourceRefs.includes(ref));if(hit)setSelectedId(hit.id)}}><i data-index={index%4}/><span>{shortRef(ref)}</span><small>SOURCE REF</small></button>)}
+            {sourceRefs.slice(0,12).map((ref,index)=><button type="button" key={ref} onClick={()=>{const hit=objects.find((object)=>object.sourceRefs.includes(ref));if(hit)selectObject(hit)}}><i data-index={index%4}/><span>{shortRef(ref)}</span><small>SOURCE REF</small></button>)}
             {!sourceRefs.length?<p>NO SOURCE RECORDS OBSERVED</p>:null}
           </div>
         </div>
@@ -105,7 +153,7 @@ export function RepositoryConsole({objects}:{objects:readonly RepositoryObject[]
         <div className="repoRailColumn repoEvidence">
           <header><span>EVIDENCE</span><b>{evidenceRefs.length}</b></header>
           <div className="repoRailScroll">
-            {objects.slice(0,10).map((object)=><button type="button" key={object.id} data-active={object.id===selected?.id?'true':undefined} onClick={()=>setSelectedId(object.id)}><i data-state={object.epistemicState}/><span>{object.id}</span><small>{object.epistemicState} · {object.evidenceRefs.length} refs</small></button>)}
+            {objects.slice(0,10).map((object)=><button type="button" key={object.id} data-active={object.id===selected?.id?'true':undefined} onClick={()=>selectObject(object)}><i data-state={object.epistemicState}/><span>{object.id}</span><small>{object.epistemicState} · {object.evidenceRefs.length} refs</small></button>)}
           </div>
         </div>
 
@@ -115,7 +163,7 @@ export function RepositoryConsole({objects}:{objects:readonly RepositoryObject[]
             {(['ALL','PUBLICATION','OBSERVATION','REPORT','PAPER','METHOD','DATASET','RETURN'] as Filter[]).map((value)=><button type="button" key={value} data-active={filter===value?'true':undefined} onClick={()=>setFilter(value)}>{value}</button>)}
           </div>
           <div className="repoRailScroll">
-            {filtered.slice(0,18).map((object)=><button type="button" key={object.id} data-active={object.id===selected?.id?'true':undefined} onClick={()=>setSelectedId(object.id)}><i/><span>{object.title}</span><small>{object.objectType} · {object.id}</small></button>)}
+            {filtered.slice(0,18).map((object)=><button type="button" key={object.id} data-active={object.id===selected?.id?'true':undefined} onClick={()=>selectObject(object)}><i/><span>{object.title}</span><small>{object.objectType} · {object.id}</small></button>)}
             {!filtered.length?<p>NO OBJECTS MATCH THIS FILTER</p>:null}
           </div>
         </div>
@@ -137,7 +185,7 @@ export function RepositoryConsole({objects}:{objects:readonly RepositoryObject[]
           <dt>STATE</dt><dd>{selected.epistemicState}</dd>
           <dt>LICENSE</dt><dd>{selected.license??'UNKNOWN'}</dd>
         </dl>
-        <Link className="repoPrimaryAction" href={selected.canonicalUrl}>OPEN OBJECT <span>→</span></Link>
+        <button className="repoPrimaryAction" type="button" onClick={()=>setReaderOpen(true)}>{selected.editorial?'READ PUBLICATION':'OPEN OBJECT RECORD'} <span>→</span></button>
         <div className="repoObjectActions"><button type="button" disabled>DOWNLOAD · NOT MATERIALIZED</button><button type="button" onClick={()=>navigator.clipboard?.writeText(selected.canonicalUrl)}>COPY CANONICAL URL</button></div>
       </section>:null}
 
@@ -171,13 +219,58 @@ export function RepositoryConsole({objects}:{objects:readonly RepositoryObject[]
           <section><header><span>CASE / RELATED OBJECTS</span><b>{selected.relatedObjects.length}</b></header>{selected.relatedObjects.slice(0,4).map((object)=><div className="repoRelated" key={object}>{object}</div>)}{!selected.relatedObjects.length?<div className="repoEmpty">NOT OBSERVED IN PUBLIC REGISTRY</div>:null}</section>
           <section><header><span>MANIFEST</span><b>READ</b></header><div className="repoManifest"><span>METADATA</span><b>{selected.objectKey}</b><span>SOURCE LIST</span><b>{selected.sourceRefs.length}</b><span>LINEAGE</span><b>{selected.relatedObjects.length}</b><span>MISSING</span><b>{selected.missing.length}</b></div></section>
         </div>
+
+        <section className="repoDiscovery">
+          <header><span>DISCOVERY MESH</span><b>{discovery.ownedMachineSurfaceCount} OWNED SURFACES</b></header>
+          <div className="repoDiscoveryChannels">{discovery.channels.map((channel)=><div key={channel.id}><span>{channel.id}</span><b>{channel.state}</b><small>{channel.basis}</small></div>)}</div>
+          <div className="repoDiscoveryLifecycle">{discovery.lifecycle.map((stage,index)=><div key={stage.id} data-observed={stage.id==='EXPOSURE'?'true':undefined}><i>{String(index+1).padStart(2,'0')}</i><span>{stage.id}</span><b>{stage.state}</b></div>)}</div>
+          <nav className="repoDiscoveryLinks">{discovery.machineLinks.map((link)=><a key={link.label} href={link.href}>{link.label}</a>)}</nav>
+          <p>PUBLICATION = EXPOSURE · EXPOSURE ≠ DISCOVERY ≠ RECOGNITION ≠ INTERACTION ≠ RELATION ≠ PROPAGATION ≠ PULL ≠ RETURN</p>
+        </section>
       </aside>:null}
+
+      {selected&&readerOpen?<section className="repoReader" role="dialog" aria-modal="true" aria-label={selected.title}>
+        <button className="repoReaderClose" type="button" onClick={()=>setReaderOpen(false)}>CLOSE ×</button>
+        <article>
+          <header>
+            <span>{selected.editorial?.collection??selected.objectType} · {selected.id}</span>
+            <h2>{selected.title}</h2>
+            {selected.editorial?.subtitle?<h3>{selected.editorial.subtitle}</h3>:null}
+            <p>{selected.editorial?.deck??selected.summary}</p>
+            <div><b>{selected.epistemicState}</b><b>{selected.publicationState}</b><b>v{selected.version}</b><b>{selected.license??'LICENSE UNKNOWN'}</b></div>
+          </header>
+
+          {selected.editorial?.coverImage?<figure><img src={selected.editorial.coverImage} alt={selected.title}/></figure>:null}
+          {selected.editorial?.motto?<blockquote>{selected.editorial.motto}</blockquote>:null}
+
+          {selected.editorial?.sections.map((section)=><section key={section.id}>
+            <small>{section.id.toUpperCase()}</small>
+            <h4>{section.title}</h4>
+            {section.paragraphs.map((paragraph)=><p key={paragraph}>{paragraph}</p>)}
+            {section.items?.length?<ul>{section.items.map((item)=><li key={item}>{item}</li>)}</ul>:null}
+          </section>)}
+
+          {selected.editorial?.visuals.map((visual)=><figure key={visual.id}><img src={visual.src} alt={visual.alt}/><figcaption>{visual.caption}</figcaption></figure>)}
+
+          {selected.editorial?.renditions.length?<section>
+            <small>RENDITIONS / INTEGRITY</small>
+            {selected.editorial.renditions.map((rendition)=><div className="repoRendition" key={rendition.filename}><b>{rendition.kind} · {rendition.state}</b><span>{rendition.filename}</span><code>SHA-256 {rendition.sha256}</code>{rendition.publicUrl?<a href={rendition.publicUrl} target="_blank" rel="noreferrer">OPEN RENDITION ↗</a>:<em>NOT PUBLICLY MATERIALIZED</em>}</div>)}
+          </section>:null}
+
+          <section className="repoReaderBoundary">
+            <small>EPISTEMIC / DISCOVERY BOUNDARY</small>
+            {selected.editorial?.epistemicBoundary.map((boundary)=><p key={boundary}>{boundary}</p>)}
+            {selected.limitations.map((boundary)=><p key={boundary}>{boundary}</p>)}
+            <p>Publication establishes EXPOSURE only. Discovery, Recognition, Interaction, PULL and RETURN require separate observations.</p>
+          </section>
+        </article>
+      </section>:null}
 
       <footer className="repoTimeline">
         <div className="repoTimelineIdentity"><span>REPOSITORY HISTORY</span><b>{objects.length} PUBLIC CANONICAL OBJECTS</b></div>
         <div className="repoTimelineTrack">
           <div className="repoTimelineLine"/>
-          {timeline.slice(-9).map((object,index)=><button type="button" key={object.id} style={{left:(6+(index*(88/Math.max(1,Math.min(8,timeline.length-1)))))+'%'}} data-active={object.id===selected?.id?'true':undefined} onClick={()=>setSelectedId(object.id)}><i/><time>{formatDate(object.updatedAt)}</time><span>{object.objectType}</span><small>{object.id}</small></button>)}
+          {timeline.slice(-9).map((object,index)=><button type="button" key={object.id} style={{left:(6+(index*(88/Math.max(1,Math.min(8,timeline.length-1)))))+'%'}} data-active={object.id===selected?.id?'true':undefined} onClick={()=>selectObject(object)}><i/><time>{formatDate(object.updatedAt)}</time><span>{object.objectType}</span><small>{object.id}</small></button>)}
         </div>
         <div className="repoTimelineMode"><span>YEAR</span><b>{year(selected?.updatedAt??'')}</b></div>
       </footer>
