@@ -244,7 +244,7 @@ export const SCENES: readonly Scene[] = [
       {label:'LINEAGE',title:'Derivation remains visible.',text:'Lineage shows what an object derives from, what transformed it and what it later produced.'},
       {label:'MANIFESTS',title:'Packages declare what they contain.',text:'Machine-readable manifests keep collections inspectable and portable.'},
     ],
-    actions:[{label:'Enter Repository',href:'/publications?view=registry',kind:'primary'}],
+    actions:[{label:'Enter Repository',href:'/repository',kind:'primary'}],
   },
   {
     id:'timeline',
