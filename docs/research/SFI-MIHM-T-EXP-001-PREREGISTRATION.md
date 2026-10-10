@@ -148,12 +148,12 @@ Si el modelo no demuestra ventaja, el resultado institucional válido es `NO_INC
 
 ### Referencias internas, no nuevos contratos
 
-- [Transferencia dimensional MIHM — experimental](../../architecture/sfi/MIHM-DIMENSIONAL-TRANSFER-MODEL-0.md)
-- [Selección de método MIHM — canon](../../canon/05_MIHM_METHOD_SELECTION.md)
-- [Familia Phi — canon](../../canon/06_MIHM_PHI_FAMILY.md)
-- [Hipótesis, proposiciones y predicciones — canon](../../canon/08_HYPOTHESES_PROPOSITIONS_PREDICTIONS.md)
-- [Preregistro/ejecución Method Lab](../../../src/lib/method-lab/experimentContract.ts)
-- [Exportación de preregistro](../../../src/lib/method-lab/preregistrationExport.ts)
+- [Transferencia dimensional MIHM — experimental](../architecture/sfi/MIHM-DIMENSIONAL-TRANSFER-MODEL-0.md)
+- [Selección de método MIHM — canon](../canon/05_MIHM_METHOD_SELECTION.md)
+- [Familia Phi — canon](../canon/06_MIHM_PHI_FAMILY.md)
+- [Hipótesis, proposiciones y predicciones — canon](../canon/08_HYPOTHESES_PROPOSITIONS_PREDICTIONS.md)
+- [Preregistro/ejecución Method Lab](../../src/lib/method-lab/experimentContract.ts)
+- [Exportación de preregistro](../../src/lib/method-lab/preregistrationExport.ts)
 - [Referencia de protocolo experimental preexistente](./decision-transfer/SFI-DT-EXP-001-FREEZE-CURRENT.md)
 
 **Regla editorial:** este es un borrador de trabajo vivo, no un resultado, no un reporte de laboratorio, no una publicación científica y no una afirmación de preregistro externo.
