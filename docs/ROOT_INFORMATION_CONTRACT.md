@@ -30,9 +30,10 @@ Shows: direction, persistence, supporting observations, contradiction and affect
 Must not create visual attractors only to fill the field.
 
 ### Agents
-Consumes: `SFI_COGNITIVE_AGENT_REGISTRY`, real agentic capabilities, runtime execution traces and provider state.
-Shows: every registered agent, its purpose, layer, authority, availability, missing capability, last execution and provider when observed.
-Must not use subsystem rows as a substitute for the agent inventory.
+Consumes: `SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY` as the canonical cognitive-agent inventory, plus runtime telemetry and execution traces as separate observational planes.
+Shows: every canonically registered cognitive agent, its purpose, layer, authority, missing capability and—only when observed—runtime state and last execution.
+Counters are distinct: `CANONICAL REGISTERED` = converged registry entries; `RUNTIME RECORDS` = telemetry rows; `LAST RUN OBSERVED` = canonical agents with an observed execution timestamp. A subsystem, service row or execution trace must never inflate the canonical agent count.
+Object-specific assignment must be shown only from a persisted binding; ROOT must not infer assignment from proximity, shared vocabulary or graph layout.
 
 ### History
 Consumes: audit events, governed proposals, mutations, execution events, prediction outcomes and learning events.
