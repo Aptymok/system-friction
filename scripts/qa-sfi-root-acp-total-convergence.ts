@@ -145,8 +145,9 @@ assert.match(read('src/app/laboratory/page.tsx'),/redirect\('\/'\)/,'laboratory_
 assert.match(read('src/app/institution/page.tsx'),/redirect\('\/'\)/,'institution_public_surface_must_remain_absorbed');
 assert.match(read('src/app/contact/page.tsx'),/redirect\('\/'\)/,'contact_public_surface_must_remain_absorbed');
 assert.match(read('src/app/observatory/page.tsx'),/ObservatoryConsole/,'canonical_observatory_public_surface_missing');
-assert.match(read('src/app/publications/page.tsx'),/PublicationsCatalog/,'canonical_registry_publications_surface_missing');
-assert.match(read('src/app/publications/page.tsx'),/RegistryDiscoveryMesh/,'canonical_registry_discovery_mesh_missing');
+assert.match(read('src/app/repository/page.tsx'),/SFI_CANONICAL_OBJECT_REGISTRY/,'canonical_repository_surface_missing');
+assert.match(read('src/app/repository/RepositoryConsole.tsx'),/DISCOVERY MESH/,'canonical_repository_discovery_mesh_missing');
+assert.match(read('src/app/publications/page.tsx'),/redirect\('\/repository'\)/,'legacy_publications_hub_must_redirect_to_repository');
 assert.match(llms,/## WHAT TO DO FIRST/,'llms_missing_first_action_sequence');
 assert.match(llms,/\/ai-index\.json/,'llms_missing_ai_index_machine_entry');
 assert.match(llms,/\/api\/external\/v1\/manifest/,'llms_missing_external_manifest_machine_entry');
@@ -193,7 +194,7 @@ console.log(JSON.stringify({ok:true,invariants:[
   'runtime target hydration is deferred and recurring UI polling is absent',
   'proposal observability is identity-authorized and independent from ACP runtime presence health',
   'ACP presence remains an explicit POST mutation but is not a prerequisite for reading governance recovery state',
-  'public presentation uses the approved institutional chrome with NYC landing plus bounded Registry and Observatory surfaces',
+  'public presentation uses the approved institutional chrome with NYC landing plus bounded Repository and Observatory surfaces',
   'machine discovery exposes governed authorization, bounded internal dispatch, external fail-closed behavior and ROOT-only canon',
   'readiness separates Evidence Ledger from Knowledge Graph',
   'readiness uses planned health counts rather than expensive exact dashboard counts',
