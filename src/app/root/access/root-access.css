@@ -6,3 +6,13 @@
 .rootAccessGrantList{display:grid;margin-top:6px}.rootAccessGrantList article{display:grid;grid-template-columns:1fr auto;gap:5px 16px;padding:14px 2px;border-bottom:1px solid rgba(181,154,215,.09)}.rootAccessGrantList article>div{display:grid;gap:3px}.rootAccessGrantList strong{font-size:12px;color:#ded5e3}.rootAccessGrantList span,.rootAccessGrantList small,.rootAccessGrantList p{font-size:9px;color:#817685}.rootAccessGrantList code{font-size:9px;color:#aa96bd}.rootAccessGrantList small{grid-column:1/-1;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.rootAccessGrantList p{grid-column:1/-1;margin:0}.rootAccessGrantList article[data-state="INVITE_FAILED"] small,.rootAccessGrantList article[data-state="SUSPENDED"] small{color:#c78f83}.rootAccessEmpty{padding:30px 0;color:#786e7c;font-size:11px}
 @media(max-width:900px){.rootAccessHeader,.rootAccessLayout{grid-template-columns:1fr}.rootAccessLayout{padding:0 18px 50px}.rootAccessHeader{padding:32px 18px 26px}.rootAccessBoundary{margin:12px 18px 0;flex-direction:column}.rootAccessBoundary span{text-align:left}}
 @media(prefers-reduced-motion:reduce){.rootAccessShell *{animation:none!important;transition:none!important}}
+
+
+/* SFI-INSTRUMENT-ACCESS-1.0 · access remains a live registry, never a static mock. */
+.rootAccessShell{position:relative;isolation:isolate;background:radial-gradient(circle at 76% 18%,rgba(181,154,215,.10),transparent 28%),radial-gradient(circle at 24% 72%,rgba(200,169,81,.045),transparent 31%),linear-gradient(180deg,#070609,#09070b 55%,#050506)!important}
+.rootAccessShell:before,.rootAccessShell:after{content:"";position:fixed;z-index:-1;left:3.2vw;right:3.2vw;height:1px;background:linear-gradient(90deg,transparent,rgba(181,154,215,.34),rgba(200,169,81,.18),transparent);pointer-events:none}.rootAccessShell:before{top:82px}.rootAccessShell:after{bottom:86px}
+.rootAccessHeader{padding-top:88px!important}
+.rootAccessPanel,.rootAccessPrinciple{background:rgba(10,8,13,.38)!important;backdrop-filter:blur(14px);box-shadow:none!important}
+.rootAccessPanel{border-color:rgba(181,154,215,.18)!important}
+.rootAccessForm input,.rootAccessForm select{background:rgba(7,6,9,.62)!important}
+.rootAccessGrantList article{background:transparent!important}

@@ -27,3 +27,11 @@
 /* Institutional membership is a provenance relation, not a causal edge. */
 .pubGraphEdges line[data-kind="INSTITUTIONAL_MEMBERSHIP"]{stroke-width:.18;stroke-dasharray:1.2 1.6;opacity:.28}
 .pubGraphLegend i[data-edge="INSTITUTIONAL_MEMBERSHIP"]{border-top-style:dotted;opacity:.72}
+
+
+/* SFI-INSTRUMENT-REPOSITORY-1.0 · repository visual grammar over real publication/provenance objects. */
+.publicationsHub{position:relative;isolation:isolate;background:radial-gradient(circle at 44% 34%,rgba(200,169,81,.05),transparent 24%),radial-gradient(circle at 72% 58%,rgba(74,122,170,.045),transparent 30%),#060605!important}
+.publicationsHub:before{content:"";position:fixed;z-index:-1;inset:0;pointer-events:none;background:linear-gradient(rgba(200,169,81,.022) 1px,transparent 1px),linear-gradient(90deg,rgba(200,169,81,.022) 1px,transparent 1px);background-size:46px 46px;mask-image:linear-gradient(90deg,transparent 2%,#000 24% 78%,transparent 98%)}
+.pubGraphHero aside,.pubGraphLegend,.pubGraph,.pubRegistryInspector,.pubPersistedGrid article,.registryDiscoveryMesh,.registryDiscoveryChannels article{background-color:rgba(8,8,7,.58)!important;backdrop-filter:blur(10px);box-shadow:none!important}
+.pubGraph{background:radial-gradient(circle at 50% 50%,rgba(200,169,81,.055),transparent 24%),radial-gradient(circle at 50% 50%,transparent 0 34%,rgba(74,122,170,.028) 35% 36%,transparent 37%),rgba(7,7,6,.46)!important}
+.pubRegistryInspector{background:rgba(9,9,8,.56)!important}

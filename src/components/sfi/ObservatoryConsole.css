@@ -15,3 +15,26 @@
 @keyframes satelliteFloat{0%,100%{transform:translate3d(-8px,4px,0) rotate(-1deg)}50%{transform:translate3d(18px,-10px,0) rotate(1.5deg)}}@keyframes satelliteTension{0%,100%{transform:translate3d(-3px,5px,0) rotate(-3deg) scale(.94)}50%{transform:translate3d(26px,-16px,0) rotate(2deg) scale(.96)}}@keyframes satelliteTime{0%,100%{transform:translate3d(-10px,0,0) rotate(2deg) scale(1.02)}50%{transform:translate3d(30px,-5px,0) rotate(-1deg) scale(1.02)}}@keyframes satelliteEvidence{0%,100%{transform:translate3d(0,7px,0) rotate(-1deg) scale(.9)}50%{transform:translate3d(-18px,-13px,0) rotate(1deg) scale(.92)}}@keyframes satelliteLab{0%,100%{transform:translate3d(-4px,12px,0) rotate(5deg) scale(.96)}50%{transform:translate3d(24px,-20px,0) rotate(1deg) scale(.98)}}@keyframes satelliteRoot{0%,100%{transform:translate3d(0,5px,0) scale(.88)}50%{transform:translate3d(10px,-8px,0) scale(.89)}}@keyframes geoPulse{50%{r:18;opacity:.12}}@keyframes dash{to{stroke-dashoffset:-80}}@keyframes stars{to{background-position:114px 130px,221px 168px,316px 330px}}
 
 @media(max-width:1100px){.obsTop{grid-template-columns:1fr auto}.obsTop nav{position:absolute;top:68px;left:12px;right:12px;justify-content:center;background:rgba(2,3,3,.5);backdrop-filter:blur(9px)}.obsIdentity{display:none}.hud{top:118px}.hudLeft{width:190px}.hudRight{width:220px}.earthStage{width:min(88vw,1000px);left:54%;top:56%}.satelliteActor{left:10vw;top:12vh;width:clamp(210px,29vw,410px)}.obsBottom{grid-template-columns:1fr}.legend{display:none}.viewControls{display:none}}@media(max-width:760px){.hudLeft{left:10px;top:120px;width:168px}.hudLeft section:nth-child(2){display:none}.hudRight{right:10px;top:auto;bottom:92px;width:190px}.hudRight section:not(.meaning){display:none}.obsBrand span,.obsBrand small{display:none}.obsTop nav{overflow-x:auto;justify-content:flex-start}.earthStage{width:138vw;left:59%;top:55%}.satelliteActor{width:46vw;left:5vw;top:18vh}.scanBeam{height:28vh}.obsBottom{padding:8px 12px}.timeline{grid-template-columns:1fr}.timeline span{display:none}}
+
+
+/* SFI-INSTRUMENT-OBSERVATORY-1.0 · canonical operational convergence · 2026-10-10
+   Reference images define composition only. Live components remain the rendered source of truth. */
+.obsShell[data-canonical-visual="SFI-INSTRUMENT-OBSERVATORY-1.0"] .obsScene{
+  background:
+    linear-gradient(90deg,rgba(3,4,4,.68) 0%,rgba(3,4,4,.22) 19%,rgba(3,4,4,.08) 56%,rgba(3,4,4,.42) 100%),
+    radial-gradient(circle at 55% 48%,rgba(63,88,89,.18),transparent 31%),
+    url('/assets/sfi/system/reference/02_03_world_background.png') center/cover no-repeat;
+}
+.obsShell[data-canonical-visual="SFI-INSTRUMENT-OBSERVATORY-1.0"] .starfield{opacity:.12;animation:none}
+.obsShell[data-canonical-visual="SFI-INSTRUMENT-OBSERVATORY-1.0"] .deepSpace{opacity:.24;mix-blend-mode:screen}
+.obsShell[data-canonical-visual="SFI-INSTRUMENT-OBSERVATORY-1.0"] .obsScene:after{background:linear-gradient(90deg,rgba(3,4,4,.7),transparent 23%,transparent 72%,rgba(3,4,4,.62)),linear-gradient(180deg,rgba(3,4,4,.25),transparent 18%,transparent 75%,rgba(3,4,4,.7));box-shadow:none}
+.obsShell[data-canonical-visual="SFI-INSTRUMENT-OBSERVATORY-1.0"] .hud{width:236px}
+.obsShell[data-canonical-visual="SFI-INSTRUMENT-OBSERVATORY-1.0"] .hud section{border-radius:0;background:rgba(4,6,6,.34);border-color:rgba(200,169,81,.2);backdrop-filter:blur(11px);box-shadow:none}
+.obsShell[data-canonical-visual="SFI-INSTRUMENT-OBSERVATORY-1.0"] .satelliteActor{opacity:.34;filter:drop-shadow(0 18px 30px rgba(0,0,0,.62));}
+.obsShell[data-canonical-visual="SFI-INSTRUMENT-OBSERVATORY-1.0"] .earthStage{left:53%;top:51%;width:min(72vw,1120px)}
+.obsShell[data-canonical-visual="SFI-INSTRUMENT-OBSERVATORY-1.0"] .obsBottom{min-height:84px;background:linear-gradient(0deg,rgba(4,5,5,.9),rgba(4,5,5,.28));border-top-color:rgba(200,169,81,.24);box-shadow:none}
+.obsShell[data-canonical-visual="SFI-INSTRUMENT-OBSERVATORY-1.0"][data-temporal-focus="true"] .obsBottom{border-top-color:rgba(200,169,81,.56);background:rgba(4,5,5,.9)}
+.obsShell[data-canonical-visual="SFI-INSTRUMENT-OBSERVATORY-1.0"] aside[style]{border-radius:0!important;background:rgba(5,6,6,.54)!important;box-shadow:none!important;backdrop-filter:blur(14px)!important}
+.obsShell[data-canonical-visual="SFI-INSTRUMENT-OBSERVATORY-1.0"] select,
+.obsShell[data-canonical-visual="SFI-INSTRUMENT-OBSERVATORY-1.0"] input{border-radius:0!important}
+@media(max-width:760px){.obsShell[data-canonical-visual="SFI-INSTRUMENT-OBSERVATORY-1.0"] .hud{width:168px}.obsShell[data-canonical-visual="SFI-INSTRUMENT-OBSERVATORY-1.0"] .earthStage{width:136vw;left:60%}}
