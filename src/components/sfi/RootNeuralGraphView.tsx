@@ -897,7 +897,7 @@ export function RootNeuralGraphView({ graph, agents=[], agentRegistryState='UNAV
             <section className="rootPassportQuestion rootPassportAgents rootPassportViewActions">
               <h3>INSTITUTIONAL AGENTS / RUNTIME REGISTRY</h3>
               <p>Registry read: {agentRegistryState}. These are registered capabilities, not automatically agents assigned to the selected object.</p>
-              {agents.length?<div className="rootPassportAgentList">{agents.map(agent=><article key={agent.agentKey}><strong>{agent.name}</strong><span>{agent.entityKind} · {agent.status} · {agent.lifecycleState}</span><p>{agent.capability}</p><small>{agent.permissions} · LAST RUN: {agent.lastRunAt ?? 'NOT OBSERVED'}</small></article>)}</div>:<p>AGENT REGISTRY NOT AVAILABLE OR NO REGISTERED RECORDS OBSERVED.</p>}
+              {agents.length?<div className="rootPassportAgentList">{agents.slice(0,4).map(agent=><article key={agent.agentKey}><strong>{agent.name}</strong><span>{agent.entityKind} · {agent.status} · {agent.lifecycleState}</span><p>{agent.capability}</p><small>{agent.permissions} · LAST RUN: {agent.lastRunAt ?? 'NOT OBSERVED'}</small></article>)}</div>:<p>AGENT REGISTRY NOT AVAILABLE OR NO REGISTERED RECORDS OBSERVED.</p>}
             </section>
             <details className="rootPassportGovernance rootPassportViewActions" open={Boolean(searchParams.get('decision'))}>
               <summary>GOVERNED DECISIONS / AUTHORIZATION</summary>
