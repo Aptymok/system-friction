@@ -89,7 +89,7 @@ export function ObservatoryConsole(){
     try{
       // First paint only waits for the primary world and state readers.
       // Historical frames and bounded World Vector arrive later and cannot block it.
-      const [worldR,obsR]=await Promise.all([fetchJson('/api/observatory/world'),fetchJson('/api/observatory/state')]);
+      const [worldR,obsR]=await Promise.all([fetchJson('/api/observatory/world'),fetchJson('/api/observatory/state?view=observatory')]);
       const nextAvailability:ObservatoryAvailability={
         world:classifyObservatoryRead(worldR,'WORLD'),
         state:classifyObservatoryRead(obsR,'STATE'),
