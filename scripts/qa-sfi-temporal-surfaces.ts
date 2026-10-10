@@ -139,7 +139,7 @@ for (const token of [
   'fieldEdgeLineage',
   'fieldEdgeDerived',
   'fieldEdgeInferred',
-  'WORLD FIELD · GEOGRAPHIC OBSERVATIONS + INTERFACE ORBITS · ORBITAL POSITION ≠ GEOGRAPHY ≠ CAUSALITY',
+  'WORLD FIELD · GEO-BOUND OBSERVATIONS + DERIVED TERRITORIAL BUCKETS · DENSITY ≠ IMPORTANCE · TENSION ≠ CAUSALITY',
   "kind==='SYSTEM'||kind==='HYPOTHESIS'",
 ]) assert.ok(observatoryWorldField.includes(token), `world_field_contract_missing:${token}`);
 assert.ok(observatoryWorldField.includes("selectedGraphEdges.filter"), 'world_field_must_not_render_unbounded_graph_edges');
