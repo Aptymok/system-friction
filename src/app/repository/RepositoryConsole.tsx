@@ -220,7 +220,7 @@ export function RepositoryConsole({objects,initialObject,discovery}:{objects:rea
           <section><header><span>MANIFEST</span><b>READ</b></header><div className="repoManifest"><span>METADATA</span><b>{selected.objectKey}</b><span>SOURCE LIST</span><b>{selected.sourceRefs.length}</b><span>LINEAGE</span><b>{selected.relatedObjects.length}</b><span>MISSING</span><b>{selected.missing.length}</b></div></section>
         </div>
 
-        <section className="repoDiscovery">
+        <section className="repoDiscovery" id="discovery">
           <header><span>DISCOVERY MESH</span><b>{discovery.ownedMachineSurfaceCount} OWNED SURFACES</b></header>
           <div className="repoDiscoveryChannels">{discovery.channels.map((channel)=><div key={channel.id}><span>{channel.id}</span><b>{channel.state}</b><small>{channel.basis}</small></div>)}</div>
           <div className="repoDiscoveryLifecycle">{discovery.lifecycle.map((stage,index)=><div key={stage.id} data-observed={stage.id==='EXPOSURE'?'true':undefined}><i>{String(index+1).padStart(2,'0')}</i><span>{stage.id}</span><b>{stage.state}</b></div>)}</div>
