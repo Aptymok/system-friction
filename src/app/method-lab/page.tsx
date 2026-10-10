@@ -1,12 +1,9 @@
 import { redirect } from 'next/navigation';
 import { MethodLabNativeHub } from '@/components/sfi/MethodLabNativeHub';
-import { MethodLabResearchReview } from '@/components/sfi/MethodLabResearchReview';
-import { MethodLabUnifiedSurface } from '@/components/sfi/MethodLabUnifiedSurface';
-import { MethodLabExperimentWorkbench } from '@/components/sfi/MethodLabExperimentWorkbench';
 import { PersonalCognitiveLabWorkspace } from '@/components/sfi/PersonalCognitiveLabWorkspace';
+import { MethodLabExperimentWorkbench } from '@/components/sfi/MethodLabExperimentWorkbench';
 import { readMethodLabState } from '@/lib/method-lab/readModel';
 import { readMethodLabEvidenceOptions } from '@/lib/method-lab/readHubEvidence';
-import { readMethodLabResearchState } from '@/lib/method-lab/researchObjects';
 import { getCognitiveLabSession, listCognitiveLabSessions } from '@/lib/cognitive-lab/service';
 import { requireRootObserverPage } from '@/lib/root/server';
 import { AccessDeniedError, requireUserProfile } from '@/lib/system/access/server';
@@ -33,10 +30,6 @@ export default async function MethodLabPage() {
   const role = String(account.profile.role || '').toLowerCase();
   const institutional = Boolean(account.member) || role === 'root' || role === 'system';
 
-  // Normal accounts use the same Method Lab surface, but every case, evidence,
-  // cognitive run, Twin state selection and experiment row is bound to their
-  // auth user. They do not read the institutional Cognitive Spine, ROOT evidence
-  // or governance queue.
   if (!institutional) return (
     <>
       <PersonalCognitiveLabWorkspace />
@@ -44,14 +37,12 @@ export default async function MethodLabPage() {
     </>
   );
 
-  // Institutional observers/controllers and ROOT retain the canonical SFI Lab.
   await requireRootObserverPage('/method-lab');
 
-  const [state, sessions, evidence, research] = await Promise.all([
+  const [state, sessions, evidence] = await Promise.all([
     readMethodLabState(),
-    listCognitiveLabSessions(30),
-    readMethodLabEvidenceOptions(80),
-    readMethodLabResearchState(),
+    listCognitiveLabSessions(18),
+    readMethodLabEvidenceOptions(120),
   ]);
 
   const sessionViews = await Promise.all((sessions as Row[]).map(async (session) => {
@@ -64,7 +55,7 @@ export default async function MethodLabPage() {
         eventCount = detail.events.length;
         analysisCount = detail.analyses.length;
       } catch {
-        // Keep the session visible even when its detail read is degraded.
+        // A degraded detail read must not hide the session from the Lab.
       }
     }
     return {
@@ -82,16 +73,11 @@ export default async function MethodLabPage() {
   }));
 
   return (
-    <MethodLabUnifiedSurface
-      status={state.status}
-      experiment={<MethodLabExperimentWorkbench />}
-      operations={<MethodLabNativeHub
-        initialState={state}
-        initialSessions={sessionViews}
-        evidenceOptions={evidence.options}
-        evidenceWarnings={evidence.warnings}
-      />}
-      research={<MethodLabResearchReview research={research} />}
+    <MethodLabNativeHub
+      initialState={state}
+      initialSessions={sessionViews}
+      evidenceOptions={evidence.options}
+      evidenceWarnings={evidence.warnings}
     />
   );
 }
