@@ -194,7 +194,7 @@ export const SCENES: readonly Scene[] = [
       {label:'SIMULATION',title:'SIMULATION ≠ OBSERVATION',text:'Synthetic or model-generated outcomes remain simulated until reality provides observed RETURN.'},
       {label:'COUNTERFACTUALS',title:'Counterfactuals expose dependence on assumptions.',text:'Changed variables remain explicit so alternate outcomes can be compared without becoming observed history.'},
       {label:'REPRODUCIBILITY',title:'A result must survive re-entry.',text:'Re-running the method exposes changes in evidence, model context and output instead of hiding variation.'},
-      {label:'PROVIDER / MODEL',title:'Model identity remains inspectable.',text:'Provider and model are part of the run receipt rather than invisible infrastructure.'},
+      {label:'MCP PEER / MODEL',title:'Model access enters through MCP.',text:'External model peers connect through the authenticated MCP gateway; provider credentials are not a Method Lab UI dependency and model capability never expands authority.'},
       {label:'PARAMETERS',title:'Parameters remain reconstructible.',text:'The conditions under which a result was produced remain addressable.'},
       {label:'HASHES',title:'A result remains content-addressable.',text:'Data, configuration, code and result hashes preserve reproducibility and provenance.'},
       {label:'RESULTS',title:'Results remain separate from real-world RETURN.',text:'A run may complete while external reality has not yet answered.'},
