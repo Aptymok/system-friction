@@ -124,3 +124,15 @@ TARGET_REGISTRATION = AWAITING_NATURALISTIC_TARGET
 CONFIRMATORY_RUN = BLOCKED_UNTIL_TARGET
 PR_220 = SUPERSEDED_AFTER_PORT
 ```
+
+---
+
+## Documentary convergence follow-up (NON-NORMATIVE)
+
+**Shared research tracking:** [SFI · Three-Experiment Convergence — LCI / SFI-DT / MIHM-T / PEMS](../SFI-THREE-EXPERIMENTS-CONVERGENCE.md).
+
+This is a **navigation and follow-up note only**. It does **not** amend the experimentally frozen arms, weights, endpoint, `N_subject=1`, epistemic gates, target registration, timing or authority. The next confirmatory gate remains: **register a genuine future naturalistic target before reveal**, freeze admissible context and evidence, verify timing and score only after reveal. Historical case reconstruction and exploratory minimal-sufficiency (PEMS) ablations do not satisfy that requirement.
+
+LCI tracks agent developmental-biography specificity; MIHM-T tracks systems and temporal interventions. Their results do not validate this Decision Transfer experiment, and this experiment cannot automatically validate either. The master follow-up matrix records `X-01`, `X-02`, `X-05`, `X-07`, `X-08` and `X-09`.
+
+**Hub boundary:** this Markdown link is not a published governed Research Hub object. Publication or promotion requires the existing Method Lab / ROOT authority and independent receipts.
