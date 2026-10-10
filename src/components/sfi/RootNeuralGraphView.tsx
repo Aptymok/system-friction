@@ -197,12 +197,24 @@ type GraphPayload = {
 type RootAgentRecord = {
   agentKey: string;
   name: string;
-  entityKind: string;
+  layer: string;
+  domain: string;
   capability: string;
-  permissions: string;
-  status: string;
-  lifecycleState: string;
+  authority: string;
+  humanApprovalRequired: boolean;
+  operationalMode: boolean;
+  missingCapability: boolean;
+  runtimeObserved: boolean;
+  runtimeStatus: string;
+  runtimeLifecycleState: string;
   lastRunAt: string | null;
+};
+
+type RootAgentRegistrySummary = {
+  canonicalCount: number;
+  runtimeRecordCount: number;
+  runtimeMatchedCount: number;
+  lastRunObservedCount: number;
 };
 
 const FIELD_CATEGORIES = [
@@ -269,6 +281,38 @@ function nodeShape(node: GraphNode): 'circle'|'rounded'|'diamond'|'hex'|'triangl
   if(type==='case'||type.includes('case')) return 'pill';
   if(type.includes('twin')||type.includes('method')) return 'triangle';
   return 'rounded';
+}
+
+function nodeToneMeaning(node: GraphNode) {
+  const epistemic = String(node.reality?.state ?? node.attributes.epistemicClass ?? node.attributes.state ?? 'UNKNOWN').toUpperCase();
+  const type = node.type.toLowerCase();
+  if (/FAIL|BREACH|REJECT|CONTRADICT|DEGRADED|FALSIF/.test(epistemic)) return 'RED · contradiction, failure, degradation or falsification emphasis';
+  if (type.includes('return') || type.includes('outcome') || /DECLARED/.test(epistemic)) return 'GOLD · RETURN, outcome or declared-state emphasis';
+  if (type.includes('hypothesis') || type.includes('evidence') || /OBSERVED|HYPOTHESIZED|SIMULATED/.test(epistemic)) return 'BLUE · evidence/observed or model-state emphasis; shape and passport disambiguate';
+  return 'IVORY · structural/context object without a stronger epistemic emphasis';
+}
+
+function nodeShapeMeaning(node: GraphNode) {
+  const shape=nodeShape(node);
+  if(shape==='circle') return 'EVIDENCE';
+  if(shape==='diamond') return 'HYPOTHESIS';
+  if(shape==='ring') return 'RETURN / OUTCOME';
+  if(shape==='hex') return 'LEARNING';
+  if(shape==='pill') return 'CASE';
+  if(shape==='triangle') return 'TWIN / METHOD';
+  if(shape==='rounded') return node.type.toLowerCase().includes('case_object') ? 'CASE OBJECT' : 'OTHER ADMITTED OBJECT';
+  return 'OTHER ADMITTED OBJECT';
+}
+
+function readingMeaning(reading: string) {
+  if(reading==='TRAJECTORY') return 'Temporal ordering from represented sequence/cycle/recurrence/phase/chronology. Unknown time remains visually neutral.';
+  if(reading==='HIERARCHY') return 'Type-layer grouping only. This is not an authority hierarchy unless authority is explicitly represented in the object.';
+  if(reading==='RETURN_CONTRAST') return 'Objects are anchored around RETURN → contrast → learning → memory → canon signals when represented.';
+  if(reading==='REALITY_CHAIN') return 'Objects are positioned by Reality Passport stage from world/capture through RETURN, contrast and learning.';
+  if(reading==='RETROLONGITUDINAL') return 'Temporal reading reversed for reconstruction; it does not rewrite what was known at the earlier cut-off.';
+  if(reading==='PROJECTION') return 'Temporal field with modeled/expected states visually displaced; projection remains non-observational.';
+  if(reading==='FRICTION_REGIME') return 'Visual separation by represented missing/failure/contradiction/degradation signals.';
+  return 'Relational field grouped by admitted object type. Observed relation weight may tighten local geometry; deterministic spread has no epistemic meaning.';
 }
 
 function qualifiedRelationCount(node: GraphNode, edges: GraphEdge[]) {
@@ -528,7 +572,17 @@ function buildPositions(nodes: GraphNode[], reading: 'CURRENT_STATE'|'HIERARCHY'
   return { positions, types, width, height };
 }
 
-export function RootNeuralGraphView({ graph, agents=[], agentRegistryState='UNAVAILABLE' }: { graph: GraphPayload; agents?: RootAgentRecord[]; agentRegistryState?: string }) {
+export function RootNeuralGraphView({
+  graph,
+  agents=[],
+  agentRegistryState='UNAVAILABLE',
+  agentRegistrySummary={canonicalCount:agents.length,runtimeRecordCount:0,runtimeMatchedCount:0,lastRunObservedCount:0},
+}: {
+  graph: GraphPayload;
+  agents?: RootAgentRecord[];
+  agentRegistryState?: string;
+  agentRegistrySummary?: RootAgentRegistrySummary;
+}) {
   const searchParams=useSearchParams();
   const requestedReading=searchParams.get('reading');
   const allowedReadings=['CURRENT_STATE','HIERARCHY','TRAJECTORY','RETROLONGITUDINAL','PROJECTION','FRICTION_REGIME','REALITY_CHAIN','RETURN_CONTRAST'] as const;
@@ -697,30 +751,54 @@ export function RootNeuralGraphView({ graph, agents=[], agentRegistryState='UNAV
           <div className="rootReferenceModes" aria-label="Field perspective">
             {([['FIELD','CURRENT_STATE'],['TRAJECTORIES','TRAJECTORY'],['HIERARCHY','HIERARCHY'],['CONTRAST','RETURN_CONTRAST']] as const).map(([label,mode])=><button type="button" key={mode} aria-pressed={reading===mode} onClick={()=>setReading(mode)}>{label}</button>)}
           </div>
+          <details className="rootSemanticLegend" open>
+            <summary>FIELD LEGEND · {reading.replaceAll('_',' ')}</summary>
+            <p className="rootSemanticLegendReading">{readingMeaning(reading)}</p>
+            <div className="rootSemanticLegendGrid">
+              <span><i className="rootLegendSwatch rootLegendBlue"/>BLUE</span><b>evidence / observed or model-state emphasis</b>
+              <span><i className="rootLegendSwatch rootLegendGold"/>GOLD</span><b>RETURN / outcome / declared emphasis</b>
+              <span><i className="rootLegendSwatch rootLegendRed"/>RED</span><b>contradiction / degraded / failed / falsified</b>
+              <span><i className="rootLegendSwatch rootLegendIvory"/>IVORY</span><b>structural / context / other admitted object</b>
+            </div>
+            <div className="rootSemanticShapeLegend" aria-label="Node shape meanings">
+              <span>● EVIDENCE</span><span>◆ HYPOTHESIS</span><span>◎ RETURN</span><span>⬡ LEARNING</span><span>▰ CASE</span><span>▲ TWIN / METHOD</span>
+            </div>
+            <p><strong>SELECTION</strong> · Every visible node is selectable. Hover enlarges its glyph; selection adds a persistent halo and brightens connected relations.</p>
+            <p><strong>LINES</strong> · Thin line = admitted graph relation. Brighter = touches selected object. Thickness uses represented edge weight; geometric distance is not confidence.</p>
+          </details>
           <div className="rootFieldInstitutionIdentity" aria-hidden="true"><span>SYSTEM</span><span>FRICTION</span><span>INSTITUTE</span></div>
           <RootCognitiveFieldPixi nodes={fieldNodes} edges={fieldEdges} width={topology.width} height={topology.height} onSelect={id=>setSelectedId(id)} />
           <div className="rootFieldLiveDeck" aria-label="Live ROOT field summaries">
             <section>
-              <header><span>FIELD SIGNALS</span><b>LIVE</b></header>
+              <header><span>FIELD SUMMARY</span><b>CURRENT VIEW</b></header>
               <dl>
                 <div><dt>VISIBLE OBJECTS</dt><dd>{visibleNodes.length}</dd></div>
-                <div><dt>RELATIONS</dt><dd>{visibleEdges.length}</dd></div>
+                <div><dt>VISIBLE RELATIONS</dt><dd>{visibleEdges.length}</dd></div>
+                <div><dt>READING</dt><dd>{reading.replaceAll('_',' ')}</dd></div>
                 <div><dt>EVIDENCE-LINKED</dt><dd>{visibleNodes.filter(node=>node.lineage.length>0 || (node.realityPassport?.provenance.supportingRelationCount ?? 0)>0).length}</dd></div>
               </dl>
+              <p>SCOPE · current filtered field, not the whole institutional database.</p>
             </section>
             <section>
-              <header><span>{selected?'SELECTED RELATIONS':'FIELD FOCUS'}</span><b>{selected?selectedEdges.length:'—'}</b></header>
-              {selected
-                ? <div className="rootFieldDeckRelations">{selectedEdges.slice(0,3).map(edge=>{const other=edge.source===selected.id?nodeById.get(edge.target):nodeById.get(edge.source);return <button type="button" key={edge.id} onClick={()=>other&&setSelectedId(other.id)}><span>{humanize(edge.relation)}</span><strong>{other?.label ?? 'UNRESOLVED NODE'}</strong></button>})}</div>
-                : <p>Select a cognitive object to expose its trace without manufacturing a relation.</p>}
+              <header><span>SELECTED OBJECT TRACE</span><b>{selected?selectedEdges.length:'—'}</b></header>
+              {selected ? <>
+                <dl>
+                  <div><dt>OBJECT</dt><dd>{short(selected.label,28)}</dd></div>
+                  <div><dt>PROVENANCE</dt><dd>{selected.provenance?'REPRESENTED':'NOT REPRESENTED'}</dd></div>
+                  <div><dt>RETURN</dt><dd>{selected.realityPassport?.returnState.status ?? 'UNKNOWN'}</dd></div>
+                </dl>
+                <div className="rootFieldDeckRelations">{selectedEdges.slice(0,2).map(edge=>{const other=edge.source===selected.id?nodeById.get(edge.target):nodeById.get(edge.source);return <button type="button" key={edge.id} onClick={()=>other&&setSelectedId(other.id)}><span>{humanize(edge.relation)}</span><strong>{other?.label ?? 'UNRESOLVED NODE'}</strong></button>})}</div>
+              </> : <p>Select a visible node. Selection exposes its persisted trace; it does not manufacture a relation.</p>}
             </section>
             <section>
-              <header><span>RUNTIME / BOUNDARIES</span><b>{agentRegistryState}</b></header>
+              <header><span>RUNTIME REGISTRY</span><b>{agentRegistryState}</b></header>
               <dl>
-                <div><dt>REGISTERED AGENTS</dt><dd>{agents.length}</dd></div>
-                <div><dt>SOURCE STATE</dt><dd>{graph.sourceState.toUpperCase()}</dd></div>
-                <div><dt>READ PLANE</dt><dd>{graph.readPlane}</dd></div>
+                <div><dt>CANONICAL AGENTS</dt><dd>{agentRegistrySummary.canonicalCount}</dd></div>
+                <div><dt>RUNTIME RECORDS</dt><dd>{agentRegistrySummary.runtimeRecordCount}</dd></div>
+                <div><dt>CANONICAL MATCHED</dt><dd>{agentRegistrySummary.runtimeMatchedCount}</dd></div>
+                <div><dt>LAST RUN OBSERVED</dt><dd>{agentRegistrySummary.lastRunObservedCount}</dd></div>
               </dl>
+              <p>SCOPE · cognitive agent registry. Subsystems and execution traces are not counted as agents.</p>
             </section>
           </div>
           {!visibleNodes.length ? <div className="rootFieldEmpty">NO COGNITIVE OBJECTS MATCH THE SELECTED FILTERS.</div> : null}
@@ -752,6 +830,31 @@ export function RootNeuralGraphView({ graph, agents=[], agentRegistryState='UNAV
                     <div><dt>EPISTEMIC STATE</dt><dd>{selected.reality?.state ?? representedText(selected.attributes.epistemicClass,'UNKNOWN')}</dd></div>
                   </dl>
                 </header>
+                <section className="rootPassportQuestion rootPassportDecoding" aria-label="Visual decoding for selected object">
+                  <h3>VISUAL DECODING</h3>
+                  <dl className="rootPassportCompactGrid">
+                    <div><dt>COLOR</dt><dd>{nodeToneMeaning(selected)}</dd></div>
+                    <div><dt>SHAPE</dt><dd>{nodeShape(selected).toUpperCase()} · {nodeShapeMeaning(selected)}</dd></div>
+                    <div><dt>FIELD ORGANIZATION</dt><dd>{readingMeaning(reading)}</dd></div>
+                    <div><dt>SELECTABLE</dt><dd>YES · all currently visible admitted nodes are selectable.</dd></div>
+                  </dl>
+                </section>
+                <section className="rootPassportQuestion rootPassportSnapshot" aria-label="Reality Passport snapshot">
+                  <h3>REALITY PASSPORT · OPERATIONAL SNAPSHOT</h3>
+                  <dl className="rootPassportCompactGrid">
+                    <div><dt>DECISION</dt><dd>{selected.realityPassport?.decision ?? 'NOT REPRESENTED'}</dd></div>
+                    <div><dt>VERIFICATION</dt><dd>{selected.realityPassport?.verification.state ?? selected.reality?.verificationState ?? 'NOT REPRESENTED'}</dd></div>
+                    <div><dt>VERIFICATION COST</dt><dd>{representedText(selected.realityPassport?.verification.cost ?? selected.reality?.verificationCost)}</dd></div>
+                    <div><dt>VERIFICATION BUDGET</dt><dd>{representedText(selected.realityPassport?.verification.budget ?? selected.reality?.verificationBudget)}</dd></div>
+                    <div><dt>NEXT BEST OBSERVATION</dt><dd>{selected.realityPassport?.verification.nextBestObservation ?? selected.reality?.nextBestObservation ?? 'NOT REPRESENTED'}</dd></div>
+                    <div><dt>SUPPORTING RELATIONS</dt><dd>{selected.realityPassport?.provenance.supportingRelationCount ?? qualifiedRelationCount(selected,graph.edges)}</dd></div>
+                    <div><dt>CONTRADICTIONS</dt><dd>{selected.realityPassport?.provenance.contradictionCount ?? 0}</dd></div>
+                    <div><dt>AUTHORITY</dt><dd>{selected.realityPassport?.authority.state ?? selected.reality?.authority ?? 'UNKNOWN'}</dd></div>
+                    <div><dt>EXECUTION</dt><dd>{selected.realityPassport?.authority.executionState ?? selected.reality?.executionState ?? 'NOT OBSERVED'}</dd></div>
+                    <div><dt>RETURN</dt><dd>{selected.realityPassport?.returnState.status ?? 'UNKNOWN'}</dd></div>
+                  </dl>
+                  <p>World → evidence → claim → verification → authority → execution → RETURN remain separate states. A complete-looking object is not automatically verified or authorized.</p>
+                </section>
                 <section className="rootPassportQuestion rootPassportScientific" aria-label="Scientific temporal and dynamical reading">
                   <h3>SCIENTIFIC TEMPORAL READING</h3>
                   <p>Temporal resolution is derived from observed sequence, cycle, recurrence, phase or chronology as available, not inferred from database creation time.</p>
@@ -890,9 +993,26 @@ export function RootNeuralGraphView({ graph, agents=[], agentRegistryState='UNAV
               </>
             ) : <div className="rootPassportWaiting">{requestedNode?<><h2>THIS CASE IS NOT ADMITTED AS A CANONICAL GRAPH NODE</h2><p>This reference does not identify an admitted canonical node. No Reality Passport is fabricated.</p><p><a href={'/reality-chain?case='+encodeURIComponent(requestedNode)}>Inspect the authorized Case Platform record in Reality Chain ↗</a></p></>:<><h2>SELECT AN OBJECT IN THE GRAPH</h2><p>The Reality Passport will appear here. Structural orientation does not manufacture observations or relations.</p></>}<p>{graph.nodes.length} admitted nodes · {graph.edges.length} admitted edges.</p></div>}
             <section className="rootPassportQuestion rootPassportAgents">
-              <h3>INSTITUTIONAL AGENTS / RUNTIME REGISTRY</h3>
-              <p>Registry read: {agentRegistryState}. These are registered capabilities, not automatically agents assigned to the selected object.</p>
-              {agents.length?<div className="rootPassportAgentList">{agents.map(agent=><article key={agent.agentKey}><strong>{agent.name}</strong><span>{agent.entityKind} · {agent.status} · {agent.lifecycleState}</span><p>{agent.capability}</p><small>{agent.permissions} · LAST RUN: {agent.lastRunAt ?? 'NOT OBSERVED'}</small></article>)}</div>:<p>AGENT REGISTRY NOT AVAILABLE OR NO REGISTERED RECORDS OBSERVED.</p>}
+              <h3>INSTITUTIONAL COGNITIVE AGENTS</h3>
+              <p>Registry projection: {agentRegistryState}. Canonical registration, runtime telemetry and observed execution are deliberately separate.</p>
+              <dl className="rootPassportCompactGrid rootAgentRegistrySummary">
+                <div><dt>CANONICAL REGISTERED</dt><dd>{agentRegistrySummary.canonicalCount}</dd></div>
+                <div><dt>RUNTIME RECORDS</dt><dd>{agentRegistrySummary.runtimeRecordCount}</dd></div>
+                <div><dt>CANONICAL MATCHED</dt><dd>{agentRegistrySummary.runtimeMatchedCount}</dd></div>
+                <div><dt>LAST RUN OBSERVED</dt><dd>{agentRegistrySummary.lastRunObservedCount}</dd></div>
+              </dl>
+              {agents.length?<div className="rootPassportAgentList">{agents.map(agent=><article key={agent.agentKey}>
+                <strong>{agent.name}</strong>
+                <span>{agent.layer.toUpperCase()} · {agent.domain.toUpperCase()} · AUTHORITY {agent.authority.toUpperCase()}</span>
+                <p>{agent.capability}</p>
+                <small>
+                  RUNTIME {agent.runtimeObserved ? agent.runtimeStatus+' / '+agent.runtimeLifecycleState : 'NOT OBSERVED'}
+                  {' · '}LAST RUN: {agent.lastRunAt ?? 'NOT OBSERVED'}
+                  {agent.humanApprovalRequired?' · HUMAN APPROVAL REQUIRED':''}
+                  {agent.missingCapability?' · MISSING CAPABILITY':''}
+                </small>
+              </article>)}</div>:<p>CANONICAL COGNITIVE REGISTRY IS EMPTY.</p>}
+              <p>Object-specific agent assignment is shown only when a persisted binding exists; ROOT does not infer assignment from visual proximity or semantic similarity.</p>
             </section>
             <details className="rootPassportGovernance" open={Boolean(searchParams.get('decision'))}>
               <summary>GOVERNED DECISIONS / AUTHORIZATION</summary>
