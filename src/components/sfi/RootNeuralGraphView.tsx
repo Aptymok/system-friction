@@ -217,6 +217,19 @@ type RootAgentRegistrySummary = {
   lastRunObservedCount: number;
 };
 
+type ColorEncoding = 'EPISTEMIC' | 'CATEGORY' | 'DOMAIN' | 'AUTHORITY';
+
+const COLOR_ENCODING_PALETTE = ['#4A7AAA','#C8A951','#B85050','#E8DDC3','#6F88A6','#9B7B54','#7E8D6B','#8B6E8E'] as const;
+const CATEGORY_TONES: Record<string,string> = {
+  'GOVERNANCE':'#C8A951',
+  'CASES & PROJECTS':'#E8DDC3',
+  'INSTITUTIONAL ATTRACTOR':'#D4AF37',
+  'EXTERNAL REALITY':'#4A7AAA',
+  'AUTHORITY BOUNDARY':'#B85050',
+  'PROJECTIONS':'#6F88A6',
+  'UNCLASSIFIED':'#7C7770',
+};
+
 const FIELD_CATEGORIES = [
   'GOVERNANCE',
   'CASES & PROJECTS',
@@ -268,6 +281,18 @@ function hash(value: string) {
   return result >>> 0;
 }
 
+function stablePaletteTone(value:string) {
+  return COLOR_ENCODING_PALETTE[hash(value) % COLOR_ENCODING_PALETTE.length];
+}
+
+function authorityTone(value:string) {
+  const state=value.toUpperCase();
+  if (/DENY|BLOCK|RESTRICT|REJECT|REVOK|EXPIRED|MISSING/.test(state)) return '#B85050';
+  if (/AUTHOR|ALLOW|ACTIVE|GRANTED|APPROVED|ROOT/.test(state)) return '#C8A951';
+  if (/PENDING|REVIEW|REQUEST|PROPOSED/.test(state)) return '#E8DDC3';
+  return '#7C7770';
+}
+
 function nodeTone(node: GraphNode) {
   const epistemic = String(node.reality?.state ?? node.attributes.epistemicClass ?? node.attributes.state ?? 'UNKNOWN').toUpperCase();
   const type = node.type.toLowerCase();
@@ -281,6 +306,52 @@ function nodeTone(node: GraphNode) {
   if (/DECLARED/.test(epistemic)) return '#C8A951';
   if (/HYPOTHESIZED|SIMULATED/.test(epistemic)) return '#4A7AAA';
   return '#E8DDC3';
+}
+
+function nodeColorKey(node:GraphNode, encoding:ColorEncoding) {
+  if(encoding==='CATEGORY') return fieldCategory(node);
+  if(encoding==='DOMAIN') return node.origin || 'UNKNOWN';
+  if(encoding==='AUTHORITY') return String(node.realityPassport?.authority.state ?? node.reality?.authority ?? 'UNKNOWN').toUpperCase();
+  const epistemic = String(node.reality?.state ?? node.attributes.epistemicClass ?? node.attributes.state ?? 'UNKNOWN').toUpperCase();
+  const type = node.type.toLowerCase();
+  if (/FAIL|BREACH|REJECT|CONTRADICT|DEGRADED|FALSIF/.test(epistemic)) return 'CONTRADICTION / FAILURE';
+  if (type.includes('return') || type.includes('outcome') || /DECLARED/.test(epistemic)) return 'RETURN / DECLARED';
+  if (type.includes('hypothesis') || type.includes('evidence') || /OBSERVED|HYPOTHESIZED|SIMULATED/.test(epistemic)) return 'EVIDENCE / MODEL STATE';
+  return 'STRUCTURAL / CONTEXT';
+}
+
+function nodeColorTone(node:GraphNode, encoding:ColorEncoding) {
+  if(encoding==='EPISTEMIC') return nodeTone(node);
+  if(encoding==='CATEGORY') return CATEGORY_TONES[fieldCategory(node)] ?? '#7C7770';
+  if(encoding==='DOMAIN') return stablePaletteTone(node.origin || 'UNKNOWN');
+  return authorityTone(String(node.realityPassport?.authority.state ?? node.reality?.authority ?? 'UNKNOWN'));
+}
+
+function nodeColorMeaning(node:GraphNode, encoding:ColorEncoding) {
+  if(encoding==='EPISTEMIC') return nodeToneMeaning(node);
+  if(encoding==='CATEGORY') return `${fieldCategory(node)} · presentation grouping derived from admitted node type; not an epistemic state.`;
+  if(encoding==='DOMAIN') return `${node.origin || 'UNKNOWN'} · deterministic origin/domain grouping; color has no confidence or authority meaning.`;
+  const state=String(node.realityPassport?.authority.state ?? node.reality?.authority ?? 'UNKNOWN').toUpperCase();
+  return `${state} · represented authority state only; color does not grant authority.`;
+}
+
+function colorLegendEntries(encoding:ColorEncoding, nodes:GraphNode[]) {
+  if(encoding==='EPISTEMIC') return [
+    {key:'EVIDENCE / MODEL STATE',tone:'#4A7AAA',meaning:'evidence / observed or model-state emphasis'},
+    {key:'RETURN / DECLARED',tone:'#D4AF37',meaning:'RETURN / outcome / declared emphasis'},
+    {key:'CONTRADICTION / FAILURE',tone:'#B85050',meaning:'contradiction / degraded / failed / falsified'},
+    {key:'STRUCTURAL / CONTEXT',tone:'#E8DDC3',meaning:'structural / context / other admitted object'},
+  ];
+  const keys=[...new Set(nodes.map(node=>nodeColorKey(node,encoding)))].sort();
+  return keys.map(key=>({
+    key,
+    tone: encoding==='CATEGORY' ? (CATEGORY_TONES[key] ?? '#7C7770') : encoding==='DOMAIN' ? stablePaletteTone(key) : authorityTone(key),
+    meaning: encoding==='CATEGORY'
+      ? 'presentation grouping derived from admitted node type'
+      : encoding==='DOMAIN'
+        ? 'represented origin/domain; palette is deterministic and non-epistemic'
+        : 'represented authority state; color does not confer authority',
+  }));
 }
 
 function nodeShape(node: GraphNode): 'circle'|'rounded'|'diamond'|'hex'|'triangle'|'ring'|'pill' {
@@ -601,6 +672,7 @@ export function RootNeuralGraphView({
   const initialReading=(allowedReadings as readonly string[]).includes(requestedReading||'') ? requestedReading as typeof allowedReadings[number] : 'CURRENT_STATE';
   const [query, setQuery] = useState('');
   const [activeType, setActiveType] = useState('ALL');
+  const [colorEncoding,setColorEncoding]=useState<ColorEncoding>('EPISTEMIC');
   const [knowledgeCutoffSelection,setKnowledgeCutoffSelection]=useState<{nodeId:string;cutoff:string}|null>(null);
   const [activeCategory,setActiveCategory]=useState('ALL');
   const [authorityFilter,setAuthorityFilter]=useState('ALL');
@@ -670,6 +742,7 @@ export function RootNeuralGraphView({
     });
   }, [activeType, activeCategory, authorityFilter, evidenceFilter, relationFilter, returnFilter, domainFilter, degree, graph.nodes, query, temporalResolution,focusIds]);
 
+  const encodingLegend = useMemo(()=>colorLegendEntries(colorEncoding,visibleNodes),[colorEncoding,visibleNodes]);
   const visibleNodeIds = useMemo(() => new Set(visibleNodes.map((node) => node.id)), [visibleNodes]);
   const visibleEdges = useMemo(
     () => graph.edges.filter((edge) => visibleNodeIds.has(edge.source) && visibleNodeIds.has(edge.target)),
@@ -711,12 +784,12 @@ export function RootNeuralGraphView({
   const graphObserved = graph.sourceState === 'observed';
   const typeCount = allTypes.length;
 
-  const fieldNodes=visibleNodes.map((node)=>{const p=topology.positions.get(node.id)??{x:topology.width/2,y:topology.height/2};const qualified=qualifiedRelationCount(node,graph.edges);const evidence=Number(node.methodSignal?.evidenceBoundRelationCount??0);return {id:node.id,label:node.label,type:node.type,tone:nodeTone(node),shape:nodeShape(node),x:p.x,y:p.y,radius:selectedId===node.id?10:5.2+Math.min(4.6,qualified*.32+evidence*.24),selected:selectedId===node.id};});
+  const fieldNodes=visibleNodes.map((node)=>{const p=topology.positions.get(node.id)??{x:topology.width/2,y:topology.height/2};const qualified=qualifiedRelationCount(node,graph.edges);const evidence=Number(node.methodSignal?.evidenceBoundRelationCount??0);return {id:node.id,label:node.label,type:node.type,tone:nodeColorTone(node,colorEncoding),shape:nodeShape(node),x:p.x,y:p.y,radius:selectedId===node.id?10:5.2+Math.min(4.6,qualified*.32+evidence*.24),selected:selectedId===node.id};});
   const fieldEdges=visibleEdges.map((edge)=>({id:edge.id,source:edge.source,target:edge.target,weight:edge.weight,selected:selectedId===edge.source||selectedId===edge.target}));
 
 
   return (
-    <main className="neuralGraphShell rootFieldMode rootReferenceCockpit" data-root-layout="ONE-FIELD-ONE-CONSOLE" data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0" data-neural-graph-contract="SFI-ROOT-NEURAL-GRAPH-1.1">
+    <main className="neuralGraphShell rootFieldMode rootReferenceCockpit" data-root-layout="ONE-FIELD-ONE-CONSOLE" data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0" data-color-encoding={colorEncoding} data-neural-graph-contract="SFI-ROOT-NEURAL-GRAPH-1.1">
       <div className="rootHorizontalRail" aria-label="ROOT cognitive field and governance console">
         <aside className="rootReferenceSidebar" aria-label="Field explorer">
           <div className="rootReferenceSidebarTitle"><strong>ROOT</strong><span>FIELD EXPLORER</span></div>
@@ -732,6 +805,15 @@ export function RootNeuralGraphView({
             {graph.nodes.some(node=>fieldCategory(node)==='UNCLASSIFIED')?<button type="button" aria-pressed={activeCategory==='UNCLASSIFIED'} onClick={()=>setActiveCategory(activeCategory==='UNCLASSIFIED'?'ALL':'UNCLASSIFIED')}><span>UNCLASSIFIED</span><b>{graph.nodes.filter(node=>fieldCategory(node)==='UNCLASSIFIED').length}</b></button>:null}
           </nav>
           <div className="rootReferenceSidebarKicker">ADDITIONAL FILTERS</div>
+          <label className="rootExplorerLabel">COLOR ENCODING
+            <select value={colorEncoding} onChange={event=>setColorEncoding(event.target.value as ColorEncoding)}>
+              <option value="EPISTEMIC">EPISTEMIC / OBJECT ROLE</option>
+              <option value="CATEGORY">COGNITIVE CATEGORY</option>
+              <option value="DOMAIN">ORIGIN / DOMAIN</option>
+              <option value="AUTHORITY">AUTHORITY STATE</option>
+            </select>
+          </label>
+          <p className="rootReferenceSidebarNote">COLOR IS A REVERSIBLE READING AID. CHANGING ENCODING DOES NOT CHANGE THE CANONICAL OBJECT, ITS EVIDENCE, AUTHORITY, OR RELATIONS.</p>
           <label className="rootExplorerLabel">DOMAIN
             <select value={domainFilter} onChange={event=>setDomainFilter(event.target.value)}><option value="ALL">ALL DOMAINS</option>{domains.map(domain=><option key={domain} value={domain}>{domain}</option>)}</select>
           </label>
@@ -756,7 +838,7 @@ export function RootNeuralGraphView({
             <select value={returnFilter} onChange={event=>setReturnFilter(event.target.value)}><option value="ALL">ALL RETURN STATES</option>{['OBSERVED','PENDING','NOT_APPLICABLE','UNKNOWN'].map(state=><option key={state} value={state}>{state.replaceAll('_',' ')}</option>)}</select>
           </label>
           <p className="rootReferenceSidebarNote">SOURCE INDEPENDENCE: NOT ESTABLISHED UNLESS PROVENANCE IDENTIFIES DISTINCT ORIGINAL SOURCES. Reference count is not independence.</p>
-          <button className="rootExplorerReset" type="button" onClick={()=>{setQuery('');setActiveType('ALL');setActiveCategory('ALL');setAuthorityFilter('ALL');setEvidenceFilter('ALL');setRelationFilter('ALL');setReturnFilter('ALL');setDomainFilter('ALL');setTemporalResolution('ALL');setFocusId(null);setSelectedId(null);}}>SHOW COMPLETE FIELD</button>
+          <button className="rootExplorerReset" type="button" onClick={()=>{setQuery('');setActiveType('ALL');setActiveCategory('ALL');setAuthorityFilter('ALL');setEvidenceFilter('ALL');setRelationFilter('ALL');setReturnFilter('ALL');setDomainFilter('ALL');setTemporalResolution('ALL');setColorEncoding('EPISTEMIC');setFocusId(null);setSelectedId(null);}}>SHOW COMPLETE FIELD</button>
         </aside>
 
         <section className="rootFieldStage rootHorizontalGraph" aria-label="Canonical Neural Graph">
@@ -766,11 +848,9 @@ export function RootNeuralGraphView({
           <details className="rootSemanticLegend" open>
             <summary>FIELD LEGEND · {reading.replaceAll('_',' ')}</summary>
             <p className="rootSemanticLegendReading">{readingMeaning(reading)}</p>
+            <p><strong>COLOR ENCODING · {colorEncoding}</strong> · Reversible presentation only. It does not alter epistemic state, authority, persistence or graph relations.</p>
             <div className="rootSemanticLegendGrid">
-              <span><i className="rootLegendSwatch rootLegendBlue"/>BLUE</span><b>evidence / observed or model-state emphasis</b>
-              <span><i className="rootLegendSwatch rootLegendGold"/>GOLD</span><b>RETURN / outcome / declared emphasis</b>
-              <span><i className="rootLegendSwatch rootLegendRed"/>RED</span><b>contradiction / degraded / failed / falsified</b>
-              <span><i className="rootLegendSwatch rootLegendIvory"/>IVORY</span><b>structural / context / other admitted object</b>
+              {encodingLegend.map(entry=><span className="rootEncodingLegendEntry" key={entry.key}><i className="rootLegendSwatch" style={{background:entry.tone}}/><b>{entry.key}</b><em>{entry.meaning}</em></span>)}
             </div>
             <div className="rootSemanticShapeLegend" aria-label="Node shape meanings">
               <span>● EVIDENCE</span><span>◆ HYPOTHESIS</span><span>◎ RETURN</span><span>⬡ LEARNING</span><span>▰ CASE</span><span>▲ TWIN / METHOD</span>
@@ -787,6 +867,7 @@ export function RootNeuralGraphView({
                 <div><dt>VISIBLE OBJECTS</dt><dd>{visibleNodes.length}</dd></div>
                 <div><dt>VISIBLE RELATIONS</dt><dd>{visibleEdges.length}</dd></div>
                 <div><dt>READING</dt><dd>{reading.replaceAll('_',' ')}</dd></div>
+                <div><dt>COLOR BY</dt><dd>{colorEncoding}</dd></div>
                 <div><dt>EVIDENCE-LINKED</dt><dd>{visibleNodes.filter(node=>node.lineage.length>0 || (node.realityPassport?.provenance.supportingRelationCount ?? 0)>0).length}</dd></div>
               </dl>
               <p>SCOPE · current filtered field, not the whole institutional database.</p>
@@ -845,7 +926,7 @@ export function RootNeuralGraphView({
                 <section className="rootPassportQuestion rootPassportDecoding" aria-label="Visual decoding for selected object">
                   <h3>VISUAL DECODING</h3>
                   <dl className="rootPassportCompactGrid">
-                    <div><dt>COLOR</dt><dd>{nodeToneMeaning(selected)}</dd></div>
+                    <div><dt>COLOR</dt><dd>{colorEncoding} · {nodeColorMeaning(selected,colorEncoding)}</dd></div>
                     <div><dt>SHAPE</dt><dd>{nodeShape(selected).toUpperCase()} · {nodeShapeMeaning(selected)}</dd></div>
                     <div><dt>FIELD ORGANIZATION</dt><dd>{readingMeaning(reading)}</dd></div>
                     <div><dt>SELECTABLE</dt><dd>YES · all currently visible admitted nodes are selectable.</dd></div>
