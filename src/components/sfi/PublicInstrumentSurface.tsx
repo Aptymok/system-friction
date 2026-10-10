@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { SCENES, type Scene } from './publicSceneManifest';
 import './PublicInstrumentSurface.css';
 
@@ -82,6 +82,7 @@ export function PublicInstrumentSurface({surface}:{surface:SurfaceId}){
   const host=useRef<HTMLElement|null>(null);
   const scene=useMemo(()=>sceneFor(surface),[surface]);
   const panels=PANELS[surface];
+  const [activeIndex,setActiveIndex]=useState(0);
 
   useEffect(()=>{
     const el=host.current;
@@ -91,9 +92,27 @@ export function PublicInstrumentSurface({surface}:{surface:SurfaceId}){
       event.preventDefault();
       el.scrollBy({left:event.deltaY,behavior:'auto'});
     };
+    const onScroll=()=>{
+      const width=Math.max(1,el.clientWidth);
+      const next=Math.max(0,Math.min(panels.length-1,Math.round(el.scrollLeft/width)));
+      setActiveIndex(next);
+    };
     el.addEventListener('wheel',onWheel,{passive:false});
-    return()=>el.removeEventListener('wheel',onWheel);
-  },[]);
+    el.addEventListener('scroll',onScroll,{passive:true});
+    onScroll();
+    return()=>{
+      el.removeEventListener('wheel',onWheel);
+      el.removeEventListener('scroll',onScroll);
+    };
+  },[panels.length]);
+
+  const goTo=(index:number)=>{
+    const el=host.current;
+    if(!el)return;
+    const next=Math.max(0,Math.min(panels.length-1,index));
+    el.scrollTo({left:next*el.clientWidth,behavior:'smooth'});
+    setActiveIndex(next);
+  };
 
   return <main className="sfiInstrumentPage" data-surface={surface}>
     <div className="sfiInstrumentArtwork" aria-hidden="true">
@@ -113,12 +132,24 @@ export function PublicInstrumentSurface({surface}:{surface:SurfaceId}){
             {panel.note?<em>{panel.note}</em>:null}
             {panel.action?<Link href={panel.action.href}>{panel.action.label} <b>→</b></Link>:null}
           </div>
-          <div className="sfiInstrumentFifthIndex" aria-hidden="true">{String(index+1).padStart(2,'0')} / 05</div>
+          <div className="sfiInstrumentFifthIndex" aria-hidden="true">{String(index+1).padStart(2,'0')} / {String(panels.length).padStart(2,'0')}</div>
         </article>)}
       </div>
     </section>
 
-    <div className="sfiInstrumentScrollCue" aria-hidden="true"><span>SCROLL</span><i>←</i><b>HORIZONTAL</b><i>→</i></div>
+    {surface==='timeline'?<nav className="sfiTimelineDock" aria-label="Timeline navigation">
+      <div className="sfiTimelineDockHead"><span>GLOBAL TIMELINE</span><b>{String(activeIndex+1).padStart(2,'0')} / {String(panels.length).padStart(2,'0')}</b></div>
+      <div className="sfiTimelineDockTrack">
+        <div className="sfiTimelineDockLine"/>
+        {panels.map((panel,index)=><button type="button" key={panel.kicker} data-active={index===activeIndex?'true':undefined} onClick={()=>goTo(index)} style={{left:`${6+(index*(88/Math.max(1,panels.length-1)))}%`}}>
+          <i/><small>{String(index+1).padStart(2,'0')}</small><span>{panel.kicker.replace(/^\d+\s·\s/,'')}</span>
+        </button>)}
+      </div>
+      <div className="sfiTimelineDockControls">
+        <button type="button" disabled={activeIndex===0} onClick={()=>goTo(activeIndex-1)}>← PREVIOUS</button>
+        <button type="button" disabled={activeIndex===panels.length-1} onClick={()=>goTo(activeIndex+1)}>NEXT →</button>
+      </div>
+    </nav>:<div className="sfiInstrumentScrollCue" aria-hidden="true"><span>SCROLL</span><i>←</i><b>HORIZONTAL</b><i>→</i></div>}
   </main>;
 }
 
