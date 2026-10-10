@@ -98,9 +98,9 @@ export const SCENES: readonly Scene[] = [
     ],
     actions:[{label:'Enter Observatory',href:'/observatory',kind:'primary'}],
     tiles:[
-      {label:'REGISTRY',title:'Institutional registry',description:'Methods, records, publications and Discovery Mesh.',image:'/sfi/nyc/runtime/structure.avif',href:'/publications'},
+      {label:'REGISTRY',title:'Institutional registry',description:'Methods, records, publications and Discovery Mesh.',image:'/sfi/nyc/runtime/structure.avif',href:'/repository'},
       {label:'AI WEEK NYC 2026',title:'October 8 · 7:00 PM ET',description:'After AI Governance: Evidence, Authority & RETURN in Real Institutions.',image:'/sfi/nyc/runtime/earth.avif',href:'https://gomry.com/l/Kzcb3xl'},
-      {label:'FRICTION NOTES',title:'Field notes',description:'Short-form institutional observations on friction, evidence and consequence.',image:'/sfi/nyc/runtime/lines.avif',href:'/publications'},
+      {label:'FRICTION NOTES',title:'Field notes',description:'Short-form institutional observations on friction, evidence and consequence.',image:'/sfi/nyc/runtime/lines.avif',href:'/repository'},
       {label:'OBSERVATORY',title:'World & institutional state',description:'Satellite, hypotheses, trajectory, RETURN and live sources.',image:'/sfi/nyc/runtime/moon.avif',href:'/observatory'},
     ],
   },
