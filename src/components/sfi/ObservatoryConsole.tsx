@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { ObservatoryWorldField } from './ObservatoryWorldField';
 import { ObservatorySemanticGpuLayer } from './ObservatorySemanticGpuLayer';
 import { HypothesisClosureDiff } from './HypothesisClosureDiff';
@@ -13,7 +14,7 @@ import {
 import './ObservatoryConsole.css';
 import './ObservatoryWorldLayer.css';
 
-type Lens='field'|'hypotheses'|'trajectory'|'sources';
+type Lens='field'|'hypotheses'|'trajectory'|'world-vector'|'sources';
 type Row=Record<string,any>;
 type WorldNode={
   id:string;kind:string;sourceId:string;sourceFamily:string;publisher:string;observationKind:string;title:string;summary?:string|null;
@@ -27,7 +28,7 @@ type Hypothesis=Row&{
 type TimelineFrame={observedAt:string;wsi:number|null;nti:number|null;confidence:number|null;sourceState:string;ingestMode:string;vectors:Array<{id:string;label:string;value:number|null;sourceCount:number;trust:number|null}>};
 type Position={x:number;y:number;geo:boolean};
 type ObservatoryAvailability={world:ObservatoryReadAvailability;state:ObservatoryReadAvailability;timeline:ObservatoryReadAvailability};
-type ObservatorySnapshot={at:number;world:Row|null;obs:Row|null;timeline:TimelineFrame[];availability:ObservatoryAvailability};
+type ObservatorySnapshot={at:number;world:Row|null;obs:Row|null;worldVector:Row|null;timeline:TimelineFrame[];availability:ObservatoryAvailability};
 
 const arr=(v:unknown):unknown[]=>Array.isArray(v)?v:[];
 const row=(v:unknown):Row|null=>v&&typeof v==='object'&&!Array.isArray(v)?v as Row:null;
@@ -59,25 +60,28 @@ async function fetchJson(path:string){
 }
 
 export function ObservatoryConsole(){
+  const searchParams=useSearchParams();
+  const requestedLens=searchParams.get('lens');
+  const initialLens:Lens=requestedLens==='world-vector'?'world-vector':requestedLens==='trajectory'?'trajectory':requestedLens==='hypotheses'?'hypotheses':requestedLens==='sources'?'sources':'field';
   const language='en' as const;
   const ui=(value:string)=>translateUiText(value,language);
-  const[world,setWorld]=useState<Row|null>(null),[obs,setObs]=useState<Row|null>(null),[timeline,setTimeline]=useState<TimelineFrame[]>([]);
+  const[world,setWorld]=useState<Row|null>(null),[obs,setObs]=useState<Row|null>(null),[worldVector,setWorldVector]=useState<Row|null>(null),[timeline,setTimeline]=useState<TimelineFrame[]>([]);
   const[availability,setAvailability]=useState<ObservatoryAvailability>(INITIAL_AVAILABILITY);
   const[refreshing,setRefreshing]=useState(false);
-  const[lens,setLens]=useState<Lens>('field'),[satelliteOpen,setSatelliteOpen]=useState(true),[selectedNodeId,setSelectedNodeId]=useState<string|null>(null),[selectedHypothesisId,setSelectedHypothesisId]=useState<string|null>(null);
+  const[lens,setLens]=useState<Lens>(initialLens),[satelliteOpen,setSatelliteOpen]=useState(true),[selectedNodeId,setSelectedNodeId]=useState<string|null>(null),[selectedHypothesisId,setSelectedHypothesisId]=useState<string|null>(null);
   const[sourceFamily,setSourceFamily]=useState('ALL'),[systemFilter,setSystemFilter]=useState('ALL'),[statusFilter,setStatusFilter]=useState('ALL'),[windowHours,setWindowHours]=useState(168),[minConfidence,setMinConfidence]=useState(0),[query,setQuery]=useState('');
   const[baselineTime,setBaselineTime]=useState(0),[time,setTime]=useState(100),[clock,setClock]=useState('');
 
   const applySnapshot=useCallback((snapshot:ObservatorySnapshot)=>{
-    setAvailability(snapshot.availability);setWorld(snapshot.world);setObs(snapshot.obs);setTimeline(snapshot.timeline);
+    setAvailability(snapshot.availability);setWorld(snapshot.world);setObs(snapshot.obs);setWorldVector(snapshot.worldVector);setTimeline(snapshot.timeline);
   },[]);
   const pull=useCallback(async(force=false)=>{
     if(!force&&observatorySnapshotCache&&Date.now()-observatorySnapshotCache.at<OBSERVATORY_CACHE_TTL_MS){applySnapshot(observatorySnapshotCache);return;}
     setRefreshing(true);
     try{
-      const[worldR,obsR,timeR]=await Promise.all([fetchJson('/api/observatory/world'),fetchJson('/api/observatory/state'),fetchJson('/api/observatory/timeline')]);
+      const[worldR,obsR,timeR,vectorR]=await Promise.all([fetchJson('/api/observatory/world'),fetchJson('/api/observatory/state'),fetchJson('/api/observatory/timeline'),fetchJson('/api/world-vector/today')]);
       const nextAvailability:ObservatoryAvailability={world:classifyObservatoryRead(worldR,'WORLD'),state:classifyObservatoryRead(obsR,'STATE'),timeline:classifyObservatoryRead(timeR,'TIMELINE')};
-      const snapshot:ObservatorySnapshot={at:Date.now(),availability:nextAvailability,world:(nextAvailability.world==='AVAILABLE'||nextAvailability.world==='DEGRADED')?row(worldR.data):null,obs:nextAvailability.state==='AVAILABLE'?row(obsR.data):null,timeline:nextAvailability.timeline==='AVAILABLE'&&Array.isArray(timeR.data?.frames)?timeR.data.frames:[]};
+      const snapshot:ObservatorySnapshot={at:Date.now(),availability:nextAvailability,world:(nextAvailability.world==='AVAILABLE'||nextAvailability.world==='DEGRADED')?row(worldR.data):null,obs:nextAvailability.state==='AVAILABLE'?row(obsR.data):null,worldVector:vectorR.ok?row(vectorR.data?.data):null,timeline:nextAvailability.timeline==='AVAILABLE'&&Array.isArray(timeR.data?.frames)?timeR.data.frames:[]};
       observatorySnapshotCache=snapshot;applySnapshot(snapshot);
     }finally{setRefreshing(false)}
   },[applySnapshot]);
@@ -162,6 +166,16 @@ export function ObservatoryConsole(){
   const aiAssistantSessions=num(ga4Metrics?.aiAssistantSessions);
   const worldIsPersistedLive=availability.world==='AVAILABLE'&&world?.liveWorld?.state==='LIVE'&&nodes.length>0;
 
+  const worldVectorObservation=row(worldVector?.observation);
+  const worldVectorCycle=row(worldVector?.cycle_day);
+  const worldVectorRange=row(worldVector?.cycle_range);
+  const worldVectorPersistence=row(worldVector?.persistence);
+  const worldVectorReadProvenance=row(worldVector?.read_provenance);
+  const worldVectorDomains=rows(worldVectorObservation?.domain_values);
+  const worldVectorStatus=txt(worldVectorObservation?.status)||'NOT AVAILABLE';
+  const worldVectorConfidence=num(worldVectorObservation?.confidence);
+  const worldVectorSignal=txt(worldVectorObservation?.dominant_signal)||'No dominant signal represented.';
+  const worldVectorInterpretation=txt(worldVectorObservation?.interpretation)||'No bounded World Vector interpretation is available.';
   const narrative=availability.world!=='AVAILABLE'
     ? `Authoritative field read: ${availability.world}. Counts remain non-numeric until a successful read.`
     : selectedHypothesis
@@ -221,9 +235,9 @@ export function ObservatoryConsole(){
     {selectedNode&&<aside style={{...panel,left:20,bottom:170,width:'min(360px,38vw)',padding:14}}><div style={micro}>{selectedNode.sourceFamily} · {selectedNode.publisher}</div><h3 style={{margin:'7px 0 6px'}}>{selectedNode.title}</h3><p style={{fontSize:12,lineHeight:1.55,opacity:.78}}>{selectedNode.summary||'No published summary.'}</p><div style={{display:'flex',gap:6,flexWrap:'wrap'}}>{selectedNode.affectedSystems.map(v=><span key={v} style={chip}>{v}</span>)}</div><hr style={{border:0,borderTop:'1px solid rgba(214,180,120,.14)',margin:'12px 0'}}/><div style={{fontSize:11,lineHeight:1.6,opacity:.72}}><b>{'Provenance'}:</b> {selectedNode.provenance?.sourceRole||'SOURCE_RECORD'}<br/><b>{'Verification'}:</b> {selectedNode.provenance?.verificationState||'NOT_RECORDED'}<br/><b>{'Source confidence'}:</b> {pct(selectedNode.confidence)}<br/>{selectedNode.provenance?.sourceUrl&&<a href={selectedNode.provenance.sourceUrl} target="_blank" rel="noreferrer" style={{color:'inherit'}}>{'open source'}</a>}</div></aside>}
 
     {satelliteOpen&&<aside style={{...panel,right:18,top:92,bottom:112,width:'min(520px,46vw)',padding:16,overflowY:'auto',scrollbarWidth:'none'}}>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10}}><div><div style={micro}>SFI SATELLITE → HUB · {lens.toUpperCase()}</div><h2 style={{fontSize:18,margin:'5px 0 0'}}>{lens==='field'?'FIELD READING':lens==='hypotheses'?'LATEST HYPOTHESES':lens==='trajectory'?'TRAJECTORY & RETURN':'LIVE SOURCES'}</h2></div><button onClick={()=>setSatelliteOpen(false)} style={{...selectStyle,padding:'6px 9px'}}>×</button></div>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10}}><div><div style={micro}>SFI SATELLITE → HUB · {lens.toUpperCase()}</div><h2 style={{fontSize:18,margin:'5px 0 0'}}>{lens==='field'?'FIELD READING':lens==='hypotheses'?'LATEST HYPOTHESES':lens==='trajectory'?'TRAJECTORY & RETURN':lens==='world-vector'?'WORLD VECTOR':'LIVE SOURCES'}</h2></div><button onClick={()=>setSatelliteOpen(false)} style={{...selectStyle,padding:'6px 9px'}}>×</button></div>
       <div className="hubRail" aria-label="Observatory hub lenses">
-        {(['field','hypotheses','trajectory','sources'] as Lens[]).map(k=><button key={k} className={lens===k?'active':''} onClick={()=>setLens(k)}><b>{k==='field'?'FIELD':k==='hypotheses'?'HYPOTHESES':k==='trajectory'?'TRAJECTORY':'SOURCES'}</b><span>{k==='hypotheses'?'latest governed readings only':k==='trajectory'?'persisted T0 → T1':'satellite hub'}</span></button>)}
+        {(['field','hypotheses','trajectory','world-vector','sources'] as Lens[]).map(k=><button key={k} className={lens===k?'active':''} onClick={()=>setLens(k)}><b>{k==='field'?'FIELD':k==='hypotheses'?'HYPOTHESES':k==='trajectory'?'TRAJECTORY':k==='world-vector'?'WORLD VECTOR':'SOURCES'}</b><span>{k==='hypotheses'?'latest governed readings only':k==='trajectory'?'persisted T0 → T1':k==='world-vector'?'context · cycles · tensions':'satellite hub'}</span></button>)}
       </div>
       <button onClick={()=>void pull(true)} disabled={refreshing} style={{...selectStyle,width:'100%',marginBottom:10}}>{refreshing?'READING PERSISTED STATE…':'REFRESH PERSISTED STATE'}</button>
       <p style={{fontSize:12,lineHeight:1.6,opacity:.74}} data-availability={availability.world}>{narrative}</p>
@@ -276,6 +290,20 @@ export function ObservatoryConsole(){
         <p style={{fontSize:11,lineHeight:1.55,opacity:.56,marginTop:12}}>T0/T1 compares persisted WorldSpect snapshots only. The current source/hypothesis graph is not backdated or rewritten by this control.</p>
         <div style={{...micro,marginTop:14}}>HYPOTHESIS LIFECYCLE · CURRENT READ MODEL</div>
         {filteredHypotheses.slice(0,8).map(h=><div key={String(h.id)} style={{padding:'9px 0',borderBottom:'1px solid rgba(214,180,120,.1)'}}><b style={{fontSize:11}}>{short(h.statement,110)}</b><div style={{fontSize:11,opacity:.6}}>{h.cutoff_at} → {h.validation_ends_at} · {h.status} · {pct(num(h.current_confidence))}</div></div>)}
+      </>}
+
+      {lens==='world-vector'&&<>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:8,margin:'12px 0'}}>
+          <div style={{padding:10,border:'1px solid rgba(214,180,120,.12)',borderRadius:9}}><div style={micro}>CURRENT SECTOR</div><b>{txt(worldVectorCycle?.sectorLabel)||txt(worldVectorCycle?.sector)||'—'}</b></div>
+          <div style={{padding:10,border:'1px solid rgba(214,180,120,.12)',borderRadius:9}}><div style={micro}>STATUS / CONFIDENCE</div><b>{worldVectorStatus} · {pct(worldVectorConfidence)}</b></div>
+          <div style={{padding:10,border:'1px solid rgba(214,180,120,.12)',borderRadius:9}}><div style={micro}>CYCLE</div><b>{txt(worldVectorRange?.cycle_start_date)||'—'} → {txt(worldVectorRange?.cycle_end_date)||'—'}</b></div>
+          <div style={{padding:10,border:'1px solid rgba(214,180,120,.12)',borderRadius:9}}><div style={micro}>MEMORY</div><b>{worldVectorPersistence?.enabled===true?'AVAILABLE':txt(worldVectorPersistence?.reason)||'NOT AVAILABLE'}</b></div>
+        </div>
+        <div style={micro}>DOMINANT SIGNAL</div><p style={{fontSize:12,lineHeight:1.6}}>{worldVectorSignal}</p>
+        <div style={micro}>BOUNDED INTERPRETATION · DERIVED CONTEXT</div><p style={{fontSize:12,lineHeight:1.6}}>{worldVectorInterpretation}</p>
+        <div style={{...micro,marginTop:14}}>DOMAIN VECTORS</div>
+        {worldVectorDomains.length?worldVectorDomains.slice(0,12).map((domain)=><div key={String(domain.domain)} style={{display:'grid',gridTemplateColumns:'1fr auto auto',gap:10,padding:'7px 0',borderBottom:'1px solid rgba(214,180,120,.08)',fontSize:11}}><span>{String(domain.domain)}</span><b>{pct(num(domain.value))}</b><small style={{opacity:.55}}>{pct(num(domain.confidence))} conf.</small></div>):<p style={{fontSize:11,opacity:.62}}>No domain vectors are represented in the current read.</p>}
+        <div style={{...micro,marginTop:14}}>READ PROVENANCE</div><p style={{fontSize:11,lineHeight:1.55,opacity:.66}}>Latest: {txt(row(worldVectorReadProvenance?.latest)?.plane)||'UNKNOWN'} · History: {txt(row(worldVectorReadProvenance?.history)?.plane)||'UNKNOWN'}. World Vector contextualizes observation; it does not convert context into evidence or causality.</p>
       </>}
 
       {lens==='sources'&&<><div style={{...micro,marginTop:12}}>{'SOURCES THAT ACTUALLY PERSISTED OBSERVATIONS'}</div>{availability.world!=='AVAILABLE'&&<p data-availability={availability.world} style={{fontSize:11,opacity:.72}}>{availability.world}</p>}{rows(world?.sourceSummary).slice(0,80).map(source=><div key={String(source.sourceId)} style={{display:'flex',justifyContent:'space-between',gap:10,padding:'7px 0',borderBottom:'1px solid rgba(214,180,120,.08)',fontSize:11}}><span>{source.sourceId}</span><b>{source.count}</b></div>)}<p style={{fontSize:11,lineHeight:1.55,opacity:.62,marginTop:12}}>{'Configured sources are not presented as live. This list contains only sources that actually left persisted records inside the selected horizon.'}</p></>}
