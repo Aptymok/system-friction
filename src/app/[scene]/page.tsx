@@ -114,7 +114,7 @@ export default async function ScenePage({ params }:{ params:Promise<{scene:strin
     const distributedPhenomena = deriveDistributedPhenomena(graph.nodes, graph.edges);
     const distributedPhenomenonProjection = projectDistributedPhenomenaForRoot(distributedPhenomena, graph.loadedAt);
 
-    const { agents, state: agentRegistryState } = await readRootFieldAgentRegistry();
+    const { agents, state: agentRegistryState, summary: agentRegistrySummary } = await readRootFieldAgentRegistry();
 
     return (
       <main className="sfiOperatingShell sfiAuthenticatedViewport" data-root-primary-interface="CANONICAL_COGNITIVE_FIELD">
@@ -122,6 +122,7 @@ export default async function ScenePage({ params }:{ params:Promise<{scene:strin
         <div className="sfiAuthenticatedViewportContent"><RootNeuralGraphView
           agents={agents}
           agentRegistryState={agentRegistryState}
+          agentRegistrySummary={agentRegistrySummary}
           graph={{
             sourceState: graph.sourceState,
             degradedReason: graph.degradedReason,

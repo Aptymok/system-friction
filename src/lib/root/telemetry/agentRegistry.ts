@@ -2,6 +2,7 @@ import 'server-only';
 import { randomUUID } from 'crypto';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { InstitutionalMemoryWriter } from '@/core/memory/InstitutionalMemoryWriter';
+import { SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY } from '@/lib/sfi/cognitive-runtime/convergedRegistry';
 
 /**
  * ROOT Runtime Telemetry Layer.
@@ -529,27 +530,91 @@ export async function getRootTelemetryCore(): Promise<RootTelemetryCore> {
  * ensureAgentRegistrySeeded(): opening a graph must not seed or mutate agents.
  */
 export async function readRootFieldAgentRegistry() {
-  type FieldAgent={
-    agentKey:string; name:string; entityKind:string; capability:string;
-    permissions:string; status:string; lifecycleState:string; lastRunAt:string|null;
+  type FieldAgent = {
+    agentKey: string;
+    name: string;
+    layer: string;
+    domain: string;
+    capability: string;
+    authority: string;
+    humanApprovalRequired: boolean;
+    operationalMode: boolean;
+    missingCapability: boolean;
+    runtimeObserved: boolean;
+    runtimeStatus: string;
+    runtimeLifecycleState: string;
+    lastRunAt: string | null;
   };
-  const unavailable:{agents:FieldAgent[];state:'UNAVAILABLE'}={agents:[],state:'UNAVAILABLE'};
+
+  const canonicalAgents = SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.map((agent): FieldAgent => ({
+    agentKey: agent.id,
+    name: agent.name,
+    layer: agent.layer,
+    domain: agent.domain,
+    capability: agent.purpose,
+    authority: agent.authorityLevel,
+    humanApprovalRequired: agent.humanApprovalRequired,
+    operationalMode: agent.operationalMode,
+    missingCapability: agent.missingCapability,
+    runtimeObserved: false,
+    runtimeStatus: 'NOT OBSERVED',
+    runtimeLifecycleState: 'NOT OBSERVED',
+    lastRunAt: null,
+  }));
+
   try {
-    const {data,error}=await createServiceSupabaseClient().from('root_agents')
-      .select('agent_key,name,entity_kind,capability,permissions,status,lifecycle_state,last_run_at')
-      .order('agent_key',{ascending:true})
-      .limit(80);
-    if(error)return unavailable;
-    const agents:FieldAgent[]=(data??[]).map(row=>({
-      agentKey:String(row.agent_key),
-      name:String(row.name??row.agent_key),
-      entityKind:String(row.entity_kind??'UNKNOWN'),
-      capability:String(row.capability??'NOT REPRESENTED'),
-      permissions:String(row.permissions??'UNKNOWN'),
-      status:String(row.status??'UNKNOWN'),
-      lifecycleState:String(row.lifecycle_state??'UNKNOWN'),
-      lastRunAt:typeof row.last_run_at==='string'?row.last_run_at:null,
-    }));
-    return {agents,state:agents.length?'AVAILABLE' as const:'EMPTY' as const};
-  }catch{return unavailable}
+    const { data, error } = await createServiceSupabaseClient()
+      .from('root_agents')
+      .select('agent_key,status,lifecycle_state,last_run_at')
+      .order('agent_key', { ascending: true })
+      .limit(120);
+
+    if (error) {
+      return {
+        agents: canonicalAgents,
+        state: 'CANONICAL_ONLY' as const,
+        summary: {
+          canonicalCount: canonicalAgents.length,
+          runtimeRecordCount: 0,
+          runtimeMatchedCount: 0,
+          lastRunObservedCount: 0,
+        },
+      };
+    }
+
+    const runtimeRows = data ?? [];
+    const runtimeByKey = new Map(runtimeRows.map((row) => [String(row.agent_key), row]));
+    const agents = canonicalAgents.map((agent) => {
+      const runtime = runtimeByKey.get(agent.agentKey);
+      return runtime ? {
+        ...agent,
+        runtimeObserved: true,
+        runtimeStatus: String(runtime.status ?? 'UNKNOWN'),
+        runtimeLifecycleState: String(runtime.lifecycle_state ?? 'UNKNOWN'),
+        lastRunAt: typeof runtime.last_run_at === 'string' ? runtime.last_run_at : null,
+      } : agent;
+    });
+
+    return {
+      agents,
+      state: runtimeRows.length ? 'CANONICAL+RUNTIME' as const : 'CANONICAL+EMPTY_RUNTIME' as const,
+      summary: {
+        canonicalCount: canonicalAgents.length,
+        runtimeRecordCount: runtimeRows.length,
+        runtimeMatchedCount: agents.filter((agent) => agent.runtimeObserved).length,
+        lastRunObservedCount: agents.filter((agent) => Boolean(agent.lastRunAt)).length,
+      },
+    };
+  } catch {
+    return {
+      agents: canonicalAgents,
+      state: 'CANONICAL_ONLY' as const,
+      summary: {
+        canonicalCount: canonicalAgents.length,
+        runtimeRecordCount: 0,
+        runtimeMatchedCount: 0,
+        lastRunObservedCount: 0,
+      },
+    };
+  }
 }

@@ -40,7 +40,11 @@ export function RootCognitiveFieldPixi({nodes,edges,width,height,onSelect}:{node
         else if(n.shape==='ring') g.circle(0,0,r).stroke({color:n.tone,width:Math.max(2,r*.28),alpha:n.selected?.95:.82});
         else g.circle(0,0,r).fill({color:n.tone,alpha:n.selected?.95:.82});
         g.circle(0,0,r+8).stroke({color:n.tone,width:n.selected?1.4:.45,alpha:n.selected?.5:.14});
-        g.eventMode='static'; g.cursor='pointer'; g.on('pointertap',()=>onSelect(n.id));
+        g.eventMode='static';
+        g.cursor='pointer';
+        g.on('pointerover',()=>{g.scale.set(n.selected?1.08:1.16);});
+        g.on('pointerout',()=>{g.scale.set(1);});
+        g.on('pointertap',()=>onSelect(n.id));
         const t=new Text({text:n.label,style:{fontFamily:'Helvetica,Arial,sans-serif',fontSize:10,fill:0xd8d4cc}});
         t.alpha=n.selected?1:.7; t.x=10; t.y=-8;
         const group=new Container(); group.addChild(g,t); nodeLayer.addChild(group);
