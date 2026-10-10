@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { SCENES, type Scene } from './publicSceneManifest';
 import './PublicInstrumentSurface.css';
 
-type SurfaceId='root'|'observatory'|'reality-chain'|'method-lab'|'world-vector'|'repository'|'timeline'|'access';
+type SurfaceId='root'|'observatory'|'reality-chain'|'method-lab'|'world-vector'|'timeline'|'access';
 
 type Panel={
   kicker:string;
@@ -22,7 +22,6 @@ const SURFACE_IMAGE:Record<SurfaceId,string>={
   'reality-chain':'/assets/sfi/instruments/RealityChain.png',
   'method-lab':'/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_26-3.png',
   'world-vector':'/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_30-4.png',
-  repository:'/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_42-7.png',
   timeline:'/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_38-6.png',
   access:'/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_42-7.png',
 };
@@ -64,13 +63,6 @@ const PANELS:Record<SurfaceId,Panel[]>={
     {kicker:'03 · TRAJECTORY',title:'Direction matters more than a snapshot.',lead:'Persistent change and transient noise should not be treated as the same phenomenon.',bullets:['Trajectory preserves sequence.','Temporal relations remain explicit.','External change can alter institutional assumptions.']},
     {kicker:'04 · PROJECTION',title:'Projection is not observation.',lead:'Possible futures can support planning only while their inferred or simulated status remains visible.',bullets:['No future state is back-projected as past knowledge.','Projection can be contrasted later with observed RETURN.']},
     {kicker:'05 · RETURN TO WORLD',title:'Institutional action re-enters the environment.',lead:'Observed external consequence becomes a new world observation only when actually measured.',bullets:['Action ≠ impact.','Deployment ≠ outcome.','Measurement determines the next state.'],action:{label:'OPEN WORLD VIEW',href:'/observatory#trajectory'}},
-  ],
-  repository:[
-    {kicker:'01 · INSTITUTIONAL ARCHIVE',title:'The source remains distinct from the claim.',lead:'Repository preserves source records, evidence, publications and case objects without flattening their roles.',bullets:['Source origin.','Access conditions.','Observed time.','Case relation.']},
-    {kicker:'02 · PROVENANCE / INDEPENDENCE',title:'Trace where a record came from — and whether it is actually independent.',lead:'Lineage must show when multiple records derive from the same upstream observation.',bullets:['Original source.','Derived copy.','Transformation.','Shared dependency.','Independent corroboration when established.']},
-    {kicker:'03 · VERSIONED EVIDENCE',title:'New evidence should not erase old knowledge states.',lead:'Versions preserve what a case contained at each effective time.',bullets:['Version.','Hash.','Lineage.','Manifest.','Effective / observed timestamps.']},
-    {kicker:'04 · INTEGRITY',title:'Timestamp alone does not make a log immutable.',lead:'Integrity claims require preservation, access controls and detectable modification in addition to time.',bullets:['Content-addressable objects.','Version history.','Access boundary.','Modification detection where implemented.']},
-    {kicker:'05 · PUBLICATION',title:'Exposure is not adoption.',lead:'Publication, discovery, citation, institutional use and external recognition remain different observations.',bullets:['Publications remain addressable.','Evidence remains linked to claims.','Case objects retain provenance.'],action:{label:'OPEN REPOSITORY',href:'/repository'}},
   ],
   timeline:[
     {kicker:'01 · LONGITUDINAL MEMORY',title:'Everything the institution can reconstruct over time.',lead:'Timeline preserves sequence without rewriting older states from current knowledge.',bullets:['Institution clock.','World clock.','Case clock.','Project clock.']},
