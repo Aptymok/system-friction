@@ -9,7 +9,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 function bearer(request: NextRequest) {
-  return (request.headers.get('authorization') ?? '').match(/^Bearer\\s+(.+)$/i)?.[1]?.trim() ?? '';
+  return (request.headers.get('authorization') ?? '').match(/^Bearer\s+(.+)$/i)?.[1]?.trim() ?? '';
 }
 
 async function authorized(request: NextRequest) {
