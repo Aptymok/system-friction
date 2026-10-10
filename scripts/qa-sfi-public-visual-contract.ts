@@ -96,10 +96,11 @@ check('one existing artwork is assigned per public surface',
     '11_40_18-1.png','11_40_22-2.png','RealityChain.png',
     '11_40_26-3.png','11_40_38-6.png','11_40_42-7.png'
   ].every(asset=>surface.includes(asset)));
-check('Repository exists only as unified operational/public surface and uses requested artwork',
+check('Repository is a live operational surface rather than a screenshot',
   !surface.includes("repository:'/assets/sfi/instruments/")
-  && fs.existsSync('public/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_42-7.png')
-  && repositoryCss.includes("Imagen de ChatGPT 8 oct 2026, 11_40_42-7.png"));
+  && repositoryCss.includes('SFI-LIVE-REPOSITORY-1.0')
+  && !repositoryCss.includes("url('/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_42-7.png')")
+  && repositoryPage.includes('SFI_CANONICAL_OBJECT_REGISTRY'));
 
 check('public instrument artwork preserves source luminosity and color',
   surfaceCss.includes('.sfiInstrumentArtwork img{width:100%;height:100%;object-fit:cover;object-position:center;filter:none')
