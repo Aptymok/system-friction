@@ -55,11 +55,7 @@ const TIMELINE_ASSETS = Object.freeze([
 ] satisfies readonly SceneAsset[]);
 
 const REPOSITORY_ASSETS = Object.freeze([
-  {src:'/assets/sfi/instruments/SFI_REPOSITORY_HERO_LAYER.png',role:'structure',depth:3,motion:'pointer-parallax',alpha:true},
-] satisfies readonly SceneAsset[]);
-
-const WORLD_VECTOR_ASSETS = Object.freeze([
-  {src:'/assets/sfi/instruments/SFI_WORLD_VECTOR_HERO_LAYER.png',role:'structure',depth:3,motion:'pointer-parallax',alpha:true},
+  {src:'/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_42-7.png',role:'structure',depth:3,motion:'static',alpha:false},
 ] satisfies readonly SceneAsset[]);
 
 const METHOD_LAB_ASSETS = Object.freeze([
@@ -206,27 +202,8 @@ export const SCENES: readonly Scene[] = [
     actions:[{label:'Enter Method Lab',href:'/method-lab',kind:'primary'}],
   },
   {
-    id:'world-vector',
-    number:'05',
-    eyebrow:'WORLD VECTOR / LONGITUDINAL FIELD',
-    title:'WORLD',
-    accent:'VECTOR',
-    lead:'The longitudinal state of the environment and its trajectories.',
-    background:'/sfi/nyc/runtime/background.avif',
-    assets:WORLD_VECTOR_ASSETS,
-    frames:[
-      {label:'DOMAINS',title:'Multiple domains move at different rates.',text:'Political, economic, technological and institutional signals remain separate until a method justifies aggregation.'},
-      {label:'NOW',title:'Current state is a dated observation.',text:'The present reading is not timeless truth; it is the most recent bounded state available to the instrument.'},
-      {label:'TENSIONS',title:'Friction becomes visible as relation and change.',text:'Contradictions, gradients and pressure points remain inspectable instead of being collapsed into one score.'},
-      {label:'TRAJECTORIES',title:'Direction matters more than a snapshot.',text:'Longitudinal movement distinguishes persistent change from transient noise.'},
-      {label:'HISTORICAL RECONSTRUCTION',title:'Past frames remain past frames.',text:'Historical reconstruction uses evidence available at that time and does not project future knowledge backward.'},
-      {label:'PROJECTION',title:'Projection remains explicitly non-observed.',text:'Possible futures are useful only while their simulated or inferred status remains visible.'},
-    ],
-    actions:[{label:'Enter World Vector',href:'/observatory#trajectory',kind:'primary'}],
-  },
-  {
     id:'repository',
-    number:'06',
+    number:'05',
     eyebrow:'REPOSITORY / PROVENANCE',
     title:'REPO',
     accent:'SITORY',
@@ -248,7 +225,7 @@ export const SCENES: readonly Scene[] = [
   },
   {
     id:'timeline',
-    number:'07',
+    number:'06',
     eyebrow:'TIMELINE / LONGITUDINAL MEMORY',
     title:'TIME',
     accent:'LINE',
@@ -267,7 +244,7 @@ export const SCENES: readonly Scene[] = [
   },
   {
     id:'access',
-    number:'08',
+    number:'07',
     eyebrow:'ACCESS / INSTITUTIONAL ENTRY',
     title:'ACCESS',
     accent:'',
