@@ -17,7 +17,7 @@
 @media(max-width:1100px){.obsTop{grid-template-columns:1fr auto}.obsTop nav{position:absolute;top:68px;left:12px;right:12px;justify-content:center;background:rgba(2,3,3,.5);backdrop-filter:blur(9px)}.obsIdentity{display:none}.hud{top:118px}.hudLeft{width:190px}.hudRight{width:220px}.earthStage{width:min(96vw,1120px);left:56%;top:53%}.satelliteActor{left:10vw;top:12vh;width:clamp(210px,29vw,410px)}.obsBottom{grid-template-columns:1fr}.legend{display:none}.viewControls{display:none}}@media(max-width:760px){.hudLeft{left:10px;top:120px;width:168px}.hudLeft section:nth-child(2){display:none}.hudRight{right:10px;top:auto;bottom:92px;width:190px}.hudRight section:not(.meaning){display:none}.obsBrand span,.obsBrand small{display:none}.obsTop nav{overflow-x:auto;justify-content:flex-start}.earthStage{width:172vw;left:60%;top:52%}.satelliteActor{width:46vw;left:5vw;top:18vh}.scanBeam{height:28vh}.obsBottom{padding:8px 12px}.timeline{grid-template-columns:1fr}.timeline span{display:none}}
 
 
-/* SFI Observatory operational panorama. SOURCE and world-state endpoints remain the data owners. */
+/* SFI-INSTRUMENT-OBSERVATORY-1.0 — operational panorama. SOURCE and world-state endpoints remain the data owners. */
 .obsOperationalHeader{
  position:absolute;top:0;left:0;right:0;height:54px;z-index:44;
  display:flex;align-items:center;justify-content:space-between;gap:20px;
