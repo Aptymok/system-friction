@@ -14,6 +14,9 @@ const surface=read('src/components/sfi/PublicInstrumentSurface.tsx');
 const surfaceCss=read('src/components/sfi/PublicInstrumentSurface.css');
 const route=read('src/app/instruments/[surface]/page.tsx');
 const manifest=read('src/components/sfi/publicSceneManifest.ts');
+const repositoryPage=read('src/app/repository/page.tsx');
+const repositoryUi=read('src/app/repository/RepositoryConsole.tsx');
+const repositoryCss=read('src/app/repository/repository.css');
 
 check('canonical SFI mark is shared and never redrawn',
   chrome.includes('/library/assets/sfi-mark.svg')
@@ -28,9 +31,10 @@ check('institutional screen palette is canonical',
 for(const label of ['ROOT','OBSERVATORY','REALITY CHAIN','METHOD LAB','REPOSITORY','TIMELINE','ACCESS']){
   check(`fixed canonical menu exposes ${label}`,chrome.includes(`label:'${label}'`));
 }
-for(const id of ['root','observatory','reality-chain','method-lab','repository','timeline','access']){
+for(const id of ['root','observatory','reality-chain','method-lab','timeline','access']){
   check(`menu routes independently to ${id}`,chrome.includes(`href:'/instruments/${id}'`));
 }
+check('Repository menu enters the canonical repository console',chrome.includes("{key:'repository',label:'REPOSITORY',href:'/repository'}"));
 check('menu is physically fixed',chromeCss.includes('position:fixed!important')&&chromeCss.includes('.sfiPublicPageNav'));
 
 check('home is independent from operational instrument deck',
@@ -60,9 +64,10 @@ check('home keeps canonical Reality Chain order in micro-orientation',
   ['REAL WORLD','SIGNAL','OBSERVATION','EVIDENCE','INFERENCE','AUTHORITY','EXECUTION','RETURN']
     .every(token=>landing.includes(`'${token}'`)));
 
-check('home exposes all eight independent instrument routes',
-  ['root','observatory','reality-chain','method-lab','repository','timeline','access']
+check('home exposes canonical surfaces and enters Repository console',
+  ['root','observatory','reality-chain','method-lab','timeline','access']
     .every(id=>landing.includes(`href:'/instruments/${id}'`))
+  && landing.includes("sceneId:'repository',href:'/repository'")
   && !landing.includes("href:'/instruments/world-vector'"));
 
 check('instrument route exposes seven canonical surfaces and redirects legacy World Vector',
@@ -80,8 +85,12 @@ check('each public instrument is a five-screen horizontal surface',
 check('one existing artwork is assigned per public surface',
   [
     '11_40_18-1.png','11_40_22-2.png','RealityChain.png','11_40_26-3.png',
-    '11_40_34-5.png','11_40_38-6.png','11_40_42-7.png'
+    '11_40_38-6.png','11_40_42-7.png'
   ].every(asset=>surface.includes(asset)));
+check('Repository preview and operational surface use the requested 11_40_42-7 artwork',
+  surface.includes("repository:'/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_42-7.png'")
+  && fs.existsSync('public/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_42-7.png')
+  && read('src/app/repository/repository.css').includes("Imagen de ChatGPT 8 oct 2026, 11_40_42-7.png"));
 
 check('public instrument artwork preserves source luminosity and color',
   surfaceCss.includes('.sfiInstrumentArtwork img{width:100%;height:100%;object-fit:cover;object-position:center;filter:none')
@@ -110,6 +119,26 @@ check('surface keeps public/operational boundary',
   && surface.includes("href:'/observatory'")
   && surface.includes("href:'/method-lab'")
   && surface.includes("href:'/login'"));
+
+check('Repository is a canonical-registry read surface rather than fabricated archive counts',
+  repositoryPage.includes('SFI_CANONICAL_OBJECT_REGISTRY')
+  && repositoryPage.includes('canonicalPublicationDisposition')
+  && repositoryUi.includes('SOURCE RECORDS')
+  && repositoryUi.includes('PROVENANCE')
+  && repositoryUi.includes('LINEAGE')
+  && repositoryUi.includes('VERSIONS')
+  && repositoryUi.includes('HASHES')
+  && repositoryUi.includes('NOT MATERIALIZED')
+  && repositoryUi.includes('NOT OBSERVED'));
+
+check('Repository reconstructs the supplied panoramic layout as UI components',
+  repositoryCss.includes('.repoIdentity')
+  && repositoryCss.includes('.repoArchiveRail')
+  && repositoryCss.includes('.repoObjectInspector')
+  && repositoryCss.includes('.repoProvenance')
+  && repositoryCss.includes('.repoTimeline')
+  && repositoryCss.includes('background:rgba(5,6,6,.08)')
+  && repositoryCss.includes('filter:none'));
 
 check('public visual stack has no baked human asset role',
   !manifest.includes("role:'human'")
