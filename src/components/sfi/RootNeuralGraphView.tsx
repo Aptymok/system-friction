@@ -650,7 +650,7 @@ export function RootNeuralGraphView({ graph, agents=[], agentRegistryState='UNAV
 
 
   return (
-    <main className="neuralGraphShell rootFieldMode rootReferenceCockpit" data-root-layout="ONE-FIELD-ONE-CONSOLE" data-neural-graph-contract="SFI-ROOT-NEURAL-GRAPH-1.1">
+    <main className="neuralGraphShell rootFieldMode rootReferenceCockpit" data-root-layout="ONE-FIELD-ONE-CONSOLE" data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0" data-neural-graph-contract="SFI-ROOT-NEURAL-GRAPH-1.1">
       <div className="rootHorizontalRail" aria-label="ROOT cognitive field and governance console">
         <aside className="rootReferenceSidebar" aria-label="Field explorer">
           <div className="rootReferenceSidebarTitle"><strong>ROOT</strong><span>FIELD EXPLORER</span></div>
@@ -699,6 +699,30 @@ export function RootNeuralGraphView({ graph, agents=[], agentRegistryState='UNAV
           </div>
           <div className="rootFieldInstitutionIdentity" aria-hidden="true"><span>SYSTEM</span><span>FRICTION</span><span>INSTITUTE</span></div>
           <RootCognitiveFieldPixi nodes={fieldNodes} edges={fieldEdges} width={topology.width} height={topology.height} onSelect={id=>setSelectedId(id)} />
+          <div className="rootFieldLiveDeck" aria-label="Live ROOT field summaries">
+            <section>
+              <header><span>FIELD SIGNALS</span><b>LIVE</b></header>
+              <dl>
+                <div><dt>VISIBLE OBJECTS</dt><dd>{visibleNodes.length}</dd></div>
+                <div><dt>RELATIONS</dt><dd>{visibleEdges.length}</dd></div>
+                <div><dt>EVIDENCE-LINKED</dt><dd>{visibleNodes.filter(node=>node.lineage.length>0 || (node.realityPassport?.provenance.supportingRelationCount ?? 0)>0).length}</dd></div>
+              </dl>
+            </section>
+            <section>
+              <header><span>{selected?'SELECTED RELATIONS':'FIELD FOCUS'}</span><b>{selected?selectedEdges.length:'—'}</b></header>
+              {selected
+                ? <div className="rootFieldDeckRelations">{selectedEdges.slice(0,3).map(edge=>{const other=edge.source===selected.id?nodeById.get(edge.target):nodeById.get(edge.source);return <button type="button" key={edge.id} onClick={()=>other&&setSelectedId(other.id)}><span>{humanize(edge.relation)}</span><strong>{other?.label ?? 'UNRESOLVED NODE'}</strong></button>})}</div>
+                : <p>Select a cognitive object to expose its trace without manufacturing a relation.</p>}
+            </section>
+            <section>
+              <header><span>RUNTIME / BOUNDARIES</span><b>{agentRegistryState}</b></header>
+              <dl>
+                <div><dt>REGISTERED AGENTS</dt><dd>{agents.length}</dd></div>
+                <div><dt>SOURCE STATE</dt><dd>{graph.sourceState.toUpperCase()}</dd></div>
+                <div><dt>READ PLANE</dt><dd>{graph.readPlane}</dd></div>
+              </dl>
+            </section>
+          </div>
           {!visibleNodes.length ? <div className="rootFieldEmpty">NO COGNITIVE OBJECTS MATCH THE SELECTED FILTERS.</div> : null}
           <div className="rootFieldTimelineFooter" aria-label="Field state and chronology">
             <span>{reading.replaceAll('_',' ')} · {graph.sourceState.toUpperCase()} · {graph.readPlane}</span>
