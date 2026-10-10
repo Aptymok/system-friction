@@ -93,3 +93,28 @@
   .sfiAuthTimeline{grid-template-columns:1fr;min-height:72px;padding:8px 12px}
   .sfiAuthTimelineIdentity,.sfiAuthTimelineMode{display:none}
 }
+
+
+/* SFI-ROOT-SPATIAL-FIDELITY-2.0 · authenticated chrome becomes part of the panoramic field on ROOT. */
+body:has(.rootReferenceCockpit) .sfiAuthCanonicalNav{
+  min-height:52px;height:52px;padding:0 2.25vw;
+  grid-template-columns:minmax(250px,.88fr) minmax(0,3.2fr) 38px;
+  background:linear-gradient(180deg,rgba(4,5,5,.72),rgba(4,5,5,.24));
+  border-bottom-color:rgba(232,221,195,.15);backdrop-filter:blur(9px) saturate(.78)
+}
+body:has(.rootReferenceCockpit) .sfiAuthSurfaceNav a{padding:19px 0 16px;font-size:7.5px}
+body:has(.rootReferenceCockpit) .sfiAuthBrand img{width:21px;height:21px}
+body:has(.rootReferenceCockpit) .sfiAuthBrand strong{font-size:18px}
+body:has(.rootReferenceCockpit) .sfiAuthBrand span{font-size:7px}
+body:has(.rootReferenceCockpit) .sfiDiamondTrigger{width:29px;height:29px}
+body:has(.rootReferenceCockpit) .sfiAuthTimeline{
+  min-height:72px;height:72px;padding:7px 2.25vw 6px;
+  grid-template-columns:minmax(220px,.72fr) minmax(0,3.3fr) minmax(120px,.45fr);
+  background:linear-gradient(0deg,rgba(4,5,5,.78),rgba(4,5,5,.30));
+  border-top-color:rgba(232,221,195,.16);backdrop-filter:blur(9px) saturate(.78)
+}
+body:has(.rootReferenceCockpit) .sfiAuthTimelineTrack{height:38px}
+body:has(.rootReferenceCockpit) .sfiAuthTimelineTrack:before{top:14px}
+body:has(.rootReferenceCockpit) .sfiAuthTicks{top:7px}
+body:has(.rootReferenceCockpit) .sfiAuthYears span,body:has(.rootReferenceCockpit) .sfiAuthTimelineMode,body:has(.rootReferenceCockpit) .sfiAuthTimelineIdentity strong{font-size:7px}
+body:has(.rootReferenceCockpit) .sfiAuthTimelineTrack>b{top:3px;width:22px;height:22px}
