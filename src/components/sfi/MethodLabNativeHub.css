@@ -9,3 +9,12 @@
 .mlh-card,.mlh-panel,.mlh-session{background:rgba(5,8,9,.82);border-color:rgba(218,191,133,.2);backdrop-filter:blur(7px)}
 @media(max-width:760px){.mlh-shell{background-size:auto 900px}.mlh-hero{min-height:280px;padding-top:65px}.mlh-card,.mlh-panel,.mlh-session{backdrop-filter:none}}
 @media(prefers-reduced-motion:reduce){.mlh-card,.mlh-panel,.mlh-session{backdrop-filter:none}}
+
+.mlh-auto-experiment{display:grid;gap:13px;margin:0 0 20px;padding:22px;background:linear-gradient(115deg,rgba(18,24,24,.89),rgba(10,14,14,.91));border-color:rgba(218,176,110,.43)}
+.mlh-auto-experiment>label{display:grid;gap:9px;font-size:10px;letter-spacing:.14em;color:#d7c39b}
+.mlh-auto-experiment textarea{width:100%;min-height:94px;resize:vertical;border:1px solid rgba(218,187,133,.25);border-radius:0;background:rgba(1,3,4,.8);padding:14px;color:#eee5d2;font:16px/1.5 system-ui,sans-serif;letter-spacing:normal}
+.mlh-auto-reading{display:flex;flex-wrap:wrap;gap:12px;color:#b5ab99;font:10px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}
+.mlh-auto-reading span{padding:7px 10px;border:1px solid rgba(222,185,127,.18);background:rgba(0,0,0,.15)}
+.mlh-auto-experiment>.mlh-action{max-width:340px}
+.mlh-auto-experiment>.mlh-boundary{margin:0;font:11px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;color:#bdac95}
+@media(max-width:760px){.mlh-auto-experiment{padding:15px}.mlh-auto-experiment>.mlh-action{max-width:none}}
