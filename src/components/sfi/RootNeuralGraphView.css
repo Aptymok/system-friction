@@ -723,3 +723,157 @@
 .rootPassportScientificCandidates strong,.rootPassportScientificCandidates span{font:500 15px/1.4 "Noto Sans",Arial,sans-serif;color:#F7F4EA}
 .rootPassportScientificCandidates small{font:400 12px/1.4 "Noto Sans",Arial,sans-serif;color:#E8DDC3}
 @media(max-width:1650px){.rootPassportScientificProperties{grid-template-columns:minmax(0,1fr)}}
+
+
+/* SFI-ROOT-SPATIAL-FIDELITY-2.0
+   Acceptance target: one continuous panoramic field with translucent instruments.
+   Data components stay live; scenic artwork never substitutes for graph/passport state. */
+.rootReferenceCockpit.rootFieldMode{
+  isolation:isolate;
+  background:
+    linear-gradient(180deg,rgba(4,5,5,.28) 0%,rgba(4,5,5,.06) 24%,rgba(4,5,5,.05) 62%,rgba(4,5,5,.32) 100%),
+    linear-gradient(90deg,rgba(4,5,5,.38) 0%,rgba(4,5,5,.08) 20%,rgba(4,5,5,.04) 70%,rgba(4,5,5,.24) 100%),
+    url('/assets/sfi/instruments/08102026_04.png') center 54%/cover no-repeat!important;
+}
+.rootReferenceCockpit.rootFieldMode:before{
+  content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
+  background:
+    repeating-linear-gradient(90deg,rgba(232,221,195,.055) 0 1px,transparent 1px 7.7vw),
+    repeating-linear-gradient(180deg,rgba(232,221,195,.04) 0 1px,transparent 1px 82px);
+  opacity:.72;
+}
+.rootReferenceCockpit.rootFieldMode:after{
+  content:"";position:absolute;inset:auto 0 0 0;height:38%;z-index:0;pointer-events:none;
+  background:linear-gradient(180deg,transparent,rgba(3,4,4,.22) 45%,rgba(3,4,4,.5));
+}
+.rootReferenceCockpit .rootHorizontalRail{
+  z-index:2;
+  inset:52px 0 72px!important;
+  grid-template-columns:minmax(172px,12.7vw) minmax(0,54.6vw) minmax(420px,32.7vw)!important;
+  background:transparent!important;
+  border-top:1px solid rgba(232,221,195,.08);
+}
+.rootReferenceSidebar{
+  padding:15px 13px 22px!important;
+  background:linear-gradient(90deg,rgba(4,5,5,.48),rgba(4,5,5,.23))!important;
+  border-right:1px solid rgba(232,221,195,.16)!important;
+  backdrop-filter:blur(7px) saturate(.82);
+}
+.rootReferenceSidebarTitle{padding-bottom:10px!important;border-bottom-color:rgba(200,169,81,.28)!important}
+.rootReferenceSidebarTitle strong{font-size:23px!important}
+.rootReferenceSidebarTitle span{font-size:9px!important;letter-spacing:.12em!important}
+.rootReferenceSource{padding:10px 0!important;font-size:9px!important}
+.rootReferenceSource small{font-size:8px!important;color:rgba(232,221,195,.64)!important}
+.rootReferenceSearchLabel,.rootReferenceSidebarKicker{margin:12px 0 6px!important;font-size:8px!important;letter-spacing:.1em!important}
+.rootReferenceSearch,.rootExplorerLabel select{min-height:34px!important;padding:7px 8px!important;background:rgba(5,6,6,.34)!important;border-color:rgba(200,169,81,.25)!important;font-size:9px!important;backdrop-filter:blur(8px)}
+.rootReferenceFilters button{min-height:31px!important;padding:6px 3px!important;font-size:9px!important;border-bottom-color:rgba(232,221,195,.08)!important}
+.rootReferenceFilters button b{font-size:8px!important}
+.rootExplorerLabel{margin-top:8px!important;font-size:8px!important}
+.rootReferenceSidebarNote{margin:12px 0 8px!important;font-size:8px!important;line-height:1.45!important;color:rgba(232,221,195,.58)!important}
+.rootExplorerReset{min-height:34px!important;margin-top:8px!important;font-size:8px!important;background:rgba(5,6,6,.18)!important;border-color:rgba(200,169,81,.32)!important}
+
+.rootReferenceCockpit .rootHorizontalGraph{
+  border-right:1px solid rgba(232,221,195,.13)!important;
+  background:radial-gradient(circle at 56% 45%,rgba(212,175,55,.055),transparent 31%)!important;
+}
+.rootReferenceCockpit .rootHorizontalGraph:before{
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:1;
+  background:radial-gradient(circle at 49% 48%,transparent 0 44%,rgba(4,5,5,.10) 72%,rgba(4,5,5,.24) 100%);
+}
+.rootReferenceCockpit .rootHorizontalGraph .rootCognitivePixi{
+  inset:64px -3.2vw 112px!important;
+  z-index:4!important;
+  filter:drop-shadow(0 12px 24px rgba(0,0,0,.32));
+}
+.rootReferenceModes{
+  top:10px!important;left:18px!important;right:18px!important;
+  gap:0!important;justify-content:stretch!important;flex-wrap:nowrap!important;
+  border-bottom:1px solid rgba(232,221,195,.14);
+}
+.rootReferenceModes button{
+  position:relative;flex:1;min-width:0;min-height:46px!important;
+  display:flex!important;flex-direction:column;align-items:flex-start;justify-content:center;
+  padding:7px 12px!important;border:0!important;border-right:1px solid rgba(232,221,195,.08)!important;
+  background:rgba(4,5,5,.12)!important;color:rgba(232,221,195,.7)!important;text-align:left;
+}
+.rootReferenceModes button:last-child{border-right:0!important}
+.rootReferenceModes button strong{font:650 8px/1.1 "Liberation Mono",ui-monospace,monospace;letter-spacing:.09em}
+.rootReferenceModes button small{margin-top:4px;font:550 6.5px/1.1 "Liberation Mono",ui-monospace,monospace;letter-spacing:.07em;color:rgba(232,221,195,.43)}
+.rootReferenceModes button:after{content:"";position:absolute;left:12px;right:12px;bottom:-1px;height:1px;background:transparent}
+.rootReferenceModes button[aria-pressed=true]{background:rgba(200,169,81,.035)!important;color:#ead7a5!important}
+.rootReferenceModes button[aria-pressed=true]:after{background:#d4af37;box-shadow:0 0 10px rgba(212,175,55,.42)}
+.rootReferenceModes button[aria-pressed=true] small{color:rgba(232,221,195,.64)}
+.rootFieldInstitutionIdentity{display:none!important}
+.rootFieldTimelineFooter{display:none!important}
+
+.rootReferenceTelemetry{
+  position:absolute;z-index:10;left:12px;right:12px;bottom:12px;
+  display:grid;grid-template-columns:1.05fr 1fr 1fr 1.1fr;gap:5px;
+  pointer-events:none;
+}
+.rootReferenceTelemetry article{
+  min-height:76px;padding:10px 11px;
+  display:grid;grid-template-columns:1fr auto;grid-template-rows:auto 1fr;column-gap:9px;align-items:start;
+  border:1px solid rgba(232,221,195,.14);
+  border-top-color:rgba(200,169,81,.35);
+  background:linear-gradient(180deg,rgba(5,6,6,.52),rgba(5,6,6,.28));
+  backdrop-filter:blur(9px) saturate(.75);
+}
+.rootReferenceTelemetry span{grid-column:1/-1;font:650 7px/1 "Liberation Mono",ui-monospace,monospace;letter-spacing:.11em;color:#c8a951}
+.rootReferenceTelemetry strong{align-self:end;font:400 24px/1 "Noto Serif Display",Georgia,serif;color:#eee5d3}
+.rootReferenceTelemetry small{align-self:end;text-align:right;font:600 6.5px/1.35 "Liberation Mono",ui-monospace,monospace;color:rgba(232,221,195,.55)}
+
+.rootReferenceCockpit .rootGovernanceConsole{
+  background:linear-gradient(90deg,rgba(5,6,6,.18),rgba(5,6,6,.38))!important;
+  border-left:0!important;
+  backdrop-filter:blur(7px) saturate(.78);
+}
+.rootReferenceCockpit .rootGovernanceHead{
+  position:relative!important;
+  padding:15px 18px 13px!important;
+  background:rgba(4,5,5,.22)!important;
+  border-bottom:1px solid rgba(232,221,195,.14)!important;
+  backdrop-filter:blur(8px);
+}
+.rootReferenceCockpit .rootGovernanceHead>span{font-size:8px!important;letter-spacing:.11em!important}
+.rootReferenceCockpit .rootGovernanceHead h1{margin:5px 0 5px!important;font-size:26px!important;line-height:1!important}
+.rootReferenceCockpit .rootGovernanceHead p{font-size:9px!important;line-height:1.35!important;color:rgba(232,221,195,.7)!important}
+.rootGovernanceSingleReading{padding:10px 12px 24px!important}
+.rootPassportWaiting,.rootPassportQuestion,.rootPassportIdentity,.rootPassportGovernance{
+  background:linear-gradient(180deg,rgba(5,6,6,.44),rgba(5,6,6,.25))!important;
+  border:1px solid rgba(232,221,195,.12)!important;
+  border-top-color:rgba(200,169,81,.32)!important;
+  box-shadow:none!important;
+  backdrop-filter:blur(8px) saturate(.76);
+}
+.rootPassportWaiting{padding:18px!important;margin:0 0 8px!important}
+.rootPassportWaiting h2{font-size:22px!important;line-height:1.03!important;margin:0 0 8px!important}
+.rootPassportWaiting p{font-size:9px!important;line-height:1.45!important}
+.rootPassportIdentity{padding:14px!important;margin-bottom:7px!important}
+.rootPassportIdentity h2{font-size:22px!important;margin:7px 0 10px!important}
+.rootPassportIdentity dl div{padding:5px 0!important}
+.rootPassportQuestion{padding:12px 13px!important;margin:7px 0!important}
+.rootPassportQuestion h3{font-size:8px!important;letter-spacing:.1em!important;margin:0 0 8px!important}
+.rootPassportQuestion h4{font-size:8px!important}
+.rootPassportQuestion p,.rootPassportQuestion li,.rootPassportQuestion dd,.rootPassportQuestion dt{font-size:8px!important;line-height:1.45!important}
+.rootPassportAgentList article{padding:9px 10px!important;background:rgba(4,5,5,.28)!important;border-left:1px solid rgba(200,169,81,.42)!important}
+.rootPassportAgentList article strong{font-size:9px!important}
+.rootPassportAgentList article span,.rootPassportAgentList article p,.rootPassportAgentList article small{font-size:7px!important;line-height:1.4!important}
+.rootPassportAgents{max-height:31vh;overflow:auto}
+.rootPassportGovernance summary{font-size:8px!important}
+.rootReferenceActionLinks a{font-size:7px!important;padding:8px!important;background:rgba(4,5,5,.18)!important}
+
+@media(min-width:1450px){
+  .rootReferenceCockpit .rootHorizontalRail{grid-template-columns:12.4vw 55.3vw 32.3vw!important}
+  .rootReferenceCockpit .rootHorizontalGraph .rootCognitivePixi{inset:58px -4.5vw 112px!important}
+}
+@media(max-width:1180px){
+  .rootReferenceCockpit .rootHorizontalRail{grid-template-columns:190px minmax(0,1fr) minmax(360px,38vw)!important}
+  .rootReferenceTelemetry{grid-template-columns:1fr 1fr}
+}
+@media(max-width:860px){
+  .rootReferenceCockpit .rootHorizontalRail{grid-template-columns:155px minmax(0,1fr)!important}
+  .rootReferenceCockpit .rootGovernanceConsole{display:none}
+  .rootReferenceTelemetry{grid-template-columns:1fr 1fr;bottom:8px}
+  .rootReferenceCockpit .rootHorizontalGraph .rootCognitivePixi{inset:58px -10vw 160px!important}
+}
