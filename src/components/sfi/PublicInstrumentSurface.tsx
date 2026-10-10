@@ -20,8 +20,8 @@ const SURFACE_IMAGE:Record<SurfaceId,string>={
   root:'/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_18-1.png',
   observatory:'/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_22-2.png',
   'reality-chain':'/assets/sfi/instruments/RealityChain.png',
-  'method-lab':'/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_26-3.png',
-  timeline:'/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_38-6.png',
+  'method-lab':'/assets/sfi/instruments/SFI_METHOD_LAB_HERO_LAYER.png',
+  timeline:'/assets/sfi/instruments/SFI_TIMELINE_HERO_LAYER.png',
   access:'/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_42-7.png',
 };
 
