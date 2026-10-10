@@ -65,6 +65,7 @@ async function fetchJson(path:string){
 export function ObservatoryConsole(){
   const searchParams=useSearchParams();
   const requestedLens=searchParams.get('lens');
+  const requestedFocus=searchParams.get('focus');
   const initialLens:Lens=requestedLens==='world-vector'?'world-vector':requestedLens==='trajectory'?'trajectory':requestedLens==='hypotheses'?'hypotheses':requestedLens==='territories'?'territories':requestedLens==='sources'?'sources':'field';
   const language='en' as const;
   const ui=(value:string)=>translateUiText(value,language);
@@ -117,6 +118,7 @@ export function ObservatoryConsole(){
   },[applySnapshot]);
 
   useEffect(()=>{const tick=()=>{setClock(new Date().toISOString());setObservationNow(Date.now())};tick();const t=setInterval(tick,60_000);return()=>clearInterval(t)},[]);
+  useEffect(()=>{setLens(initialLens);if(requestedFocus==='timeline')setSatelliteOpen(true)},[requestedLens,requestedFocus]);
   useEffect(()=>{void pull(false)},[pull]);
 
   const allNodes=useMemo<WorldNode[]>(()=>rows(world?.nodes).map((o)=>({
@@ -230,7 +232,7 @@ export function ObservatoryConsole(){
         ? `The selected hypothesis is an inference, not a fact: ${selectedHypothesis.statement??'no statement'}. Its trace uses ${selectedEvidenceIds.size} source records, affects ${arr(selectedHypothesis.aiInference?.affectedSystems).length} systems, and preserves explicit contradiction signals.`
         : `The field contains ${nodes.length} visible observations and ${filteredHypotheses.length} traceable hypotheses under the current filters.`;
 
-  return <><main className="obsShell" data-world-availability={availability.world} data-state-availability={availability.state} data-timeline-availability={availability.timeline}><section className={`obsScene lens-${lens}`}>
+  return <><main className="obsShell" data-canonical-visual="SFI-INSTRUMENT-OBSERVATORY-1.0" data-temporal-focus={requestedFocus==='timeline'?'true':'false'} data-world-availability={availability.world} data-state-availability={availability.state} data-timeline-availability={availability.timeline}><section className={`obsScene lens-${lens}`}>
     <header className="obsOperationalHeader">
       <Link href="/" className="obsOperationalIdentity" aria-label="SFI home"><span>S F I</span><i/> <small>SYSTEM FRICTION INSTITUTE</small></Link>
       <nav aria-label="Operational SFI instruments">
