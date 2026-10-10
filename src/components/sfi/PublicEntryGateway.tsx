@@ -9,7 +9,7 @@ const SURFACE_RAIL=[
   {label:'OBSERVATORY',number:'02',sceneId:'observatory',href:'/instruments/observatory',line:'Sources · signals · World Vector · trajectories'},
   {label:'REALITY CHAIN',number:'03',sceneId:'reality-chain',href:'/instruments/reality-chain',line:'Evidence · justification · Reality Passport'},
   {label:'METHOD LAB',number:'04',sceneId:'method-lab',href:'/instruments/method-lab',line:'Protocols · abstention · reproducibility'},
-  {label:'REPOSITORY',number:'05',sceneId:'repository',href:'/instruments/repository',line:'Sources · provenance · versions'},
+  {label:'REPOSITORY',number:'05',sceneId:'repository',href:'/repository',line:'Sources · provenance · versions'},
   {label:'TIMELINE',number:'06',sceneId:'timeline',href:'/instruments/timeline',line:'Epistemic time · reconstruction'},
   {label:'ACCESS',number:'07',sceneId:'access',href:'/instruments/access',line:'Identity · scope · authority'},
 ] as const;
