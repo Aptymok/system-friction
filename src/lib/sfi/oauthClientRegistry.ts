@@ -13,6 +13,13 @@ type Row = Record<string, unknown>;
 
 const CHATGPT_CIMD_CLIENT_ID = 'https://chatgpt.com/oauth/client.json';
 const CHATGPT_CIMD_REDIRECT_URI = 'https://chatgpt.com/connector_platform_oauth_redirect';
+// Canonical Claude web MCP identity and callback are pinned for this public OAuth client.
+// Pinning both prevents callback substitution and avoids arbitrary URL fetches/SSRF.
+const CLAUDE_CIMD_CLIENT_IDS = new Set([
+  'https://claude.ai/oauth/mcp-oauth-client-metadata',
+  'https://claude.ai/api/oauth/mcp-oauth-client-metadata',
+]);
+const CLAUDE_CIMD_REDIRECT_URI = 'https://claude.ai/api/mcp/auth_callback';
 
 export type ResolvedSfiOAuthClient = {
   clientId: string;
@@ -21,7 +28,7 @@ export type ResolvedSfiOAuthClient = {
   allowedScopes: string[];
   audience: 'OWNER_ONLY' | 'TRUSTED_MULTI_USER';
   ownerId: string | null;
-  source: 'registry' | 'continuity_registry' | 'legacy_env' | 'chatgpt_cimd' | 'dcr_stateless';
+  source: 'registry' | 'continuity_registry' | 'legacy_env' | 'chatgpt_cimd' | 'claude_cimd' | 'dcr_stateless';
   secretHash?: string;
   legacySecret?: string;
 };
@@ -75,6 +82,19 @@ async function chatGptCimdClient(clientId: string): Promise<ResolvedSfiOAuthClie
     audience: 'TRUSTED_MULTI_USER',
     ownerId: null,
     source: 'chatgpt_cimd',
+  };
+}
+
+function claudeCimdClient(clientId: string): ResolvedSfiOAuthClient | null {
+  if (!CLAUDE_CIMD_CLIENT_IDS.has(clientId)) return null;
+  return {
+    clientId,
+    name: 'Claude MCP client (CIMD)',
+    redirectUris: [CLAUDE_CIMD_REDIRECT_URI],
+    allowedScopes: [...SFI_ROOT_SCOPES],
+    audience: 'TRUSTED_MULTI_USER',
+    ownerId: null,
+    source: 'claude_cimd',
   };
 }
 
@@ -203,6 +223,8 @@ function resolveStatelessSfiDcrClient(clientId: string): ResolvedSfiOAuthClient 
 export async function resolveSfiOAuthClient(clientId: string): Promise<ResolvedSfiOAuthClient | null> {
   if (!clientId) return null;
 
+  const claude = claudeCimdClient(clientId);
+  if (claude) return claude;
   const cimd = await chatGptCimdClient(clientId);
   if (cimd) return cimd;
   const dcr = resolveStatelessSfiDcrClient(clientId);
@@ -266,7 +288,7 @@ export function canSfiOAuthClientAuthorizeSubject(client: ResolvedSfiOAuthClient
 }
 
 export function validateSfiOAuthClientSecret(client: ResolvedSfiOAuthClient, clientSecret: string) {
-  if (client.source === 'chatgpt_cimd') return clientSecret === '';
+  if (client.source === 'chatgpt_cimd' || client.source === 'claude_cimd') return clientSecret === '';
   if (client.source === 'dcr_stateless') {
     if (client.legacySecret === 'PUBLIC_PKCE') return clientSecret === '';
     return safeEqual(hashSfiOAuthClientSecret(clientSecret), client.secretHash || '');
