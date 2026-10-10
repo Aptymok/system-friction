@@ -7,6 +7,7 @@ import { authorizeExternalRequest, externalAuthError } from '@/lib/sfi/externalA
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { deliverInstitutionalInvitation } from '@/lib/auth/institutionalInvitationDelivery';
 import { readDataPlaneReconciliationStatus, attemptBoundedDataPlaneReconciliation } from '@/lib/persistence/dataPlaneReconciliationControl';
+import { replayVerifiedSourceObservations } from '@/lib/persistence/verifiedObservationReplay';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -347,6 +348,7 @@ export async function POST(req: Request) {
         { id: 'account_invite', effect: 'EXTERNAL_REVERSIBLE', description: 'Send one institutional account invitation without granting sovereign authority.' },
         { id: 'data_plane_status', effect: 'READ', description: 'Read primary/continuity reconciliation status, backlog, conflicts, and safety gates.' },
         { id: 'data_plane_emergency', effect: 'GOVERNED_RECOVERY', description: 'Attempt a bounded and conflict-gated recovery now. Never force a primary switch or erase evidence.' },
+        { id: 'data_plane_copy_verified', effect: 'GOVERNED_INSERT_ONLY_REPLAY', description: 'Copy at most 20 exact, immutable world source observations via the existing canonical replay RPC; reject divergent inserts, never switch planes.' },
         { id: 'pending', effect: 'READ', description: 'Read sovereign pending proposals and founder-rule candidates with next-step boundary.' },
         { id: 'sfi_state', effect: 'READ', description: 'Read one bounded cross-institution control-plane projection: WORLD hypotheses/outcomes/learning, Cases, health, incidents and commercial state.' },
         { id: 'capability_map', effect: 'READ', description: 'Describe the canonical surfaces ROOT can orchestrate without duplicating their authority.' },
@@ -362,7 +364,7 @@ export async function POST(req: Request) {
       },
       rootControlPlane: {
         accounts: 'root:operate',
-        dataPlane: 'root:operate/data_plane_status + data_plane_emergency; no forced failover',
+        dataPlane: 'root:operate/data_plane_status + data_plane_emergency + data_plane_copy_verified; no forced failover',
         pending: 'root:operate read + governance:decide mutation',
         institution: 'root:operate sfi_state + observe/read surfaces',
         registryPublications: 'canonical publication/registry services; mutation adapter pending',
@@ -381,7 +383,7 @@ export async function POST(req: Request) {
   if (operation === 'capability_map') {
     return NextResponse.json({ok:true,operation,controlPlane:{
       accounts:{read:'root:operate/accounts_list',invite:'root:operate/account_invite'},
-      dataPlane:{read:'root:operate/data_plane_status',emergency:'root:operate/data_plane_emergency',forceSwitchAllowed:false},
+      dataPlane:{read:'root:operate/data_plane_status',emergency:'root:operate/data_plane_emergency',verifiedInsertReplay:'root:operate/data_plane_copy_verified',forceSwitchAllowed:false},
       pending:{read:'root:operate/pending',decide:'governance:decide'},
       institution:{read:'root:operate/sfi_state'},
       reports:{read:'root:operate/reports'},
@@ -451,6 +453,18 @@ export async function POST(req: Request) {
     }
   }
 
+  if (operation === 'data_plane_copy_verified') {
+    try {
+      const result = await replayVerifiedSourceObservations({ maxEntries: body.maxEntries === undefined ? 12 : Number(body.maxEntries) });
+      return NextResponse.json({ ...result, operation, initiatedBy: 'SOVEREIGN_ROOT_OAUTH' }, {
+        status: result.ok ? 200 : 409,
+        headers: { 'Cache-Control': 'no-store' },
+      });
+    } catch {
+      return NextResponse.json({ ok: false, operation, error: 'verified_source_copy_failed' }, { status: 503 });
+    }
+  }
+
   if (operation === 'data_plane_emergency') {
     try {
       const result = await attemptBoundedDataPlaneReconciliation(32);
@@ -473,6 +487,6 @@ export async function POST(req: Request) {
   return NextResponse.json({
     ok: false,
     error: 'unsupported_root_operation',
-    allowed: ['capabilities','capability_map','pending','sfi_state','reports','accounts_list','account_invite','data_plane_status','data_plane_emergency'],
+    allowed: ['capabilities','capability_map','pending','sfi_state','reports','accounts_list','account_invite','data_plane_status','data_plane_emergency','data_plane_copy_verified'],
   }, { status: 400 });
 }
