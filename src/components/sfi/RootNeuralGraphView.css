@@ -980,14 +980,17 @@
 .rootSemanticLegend p strong{color:#D4AF37;font-weight:650}
 .rootSemanticLegendReading{color:#F7F4EA!important}
 .rootSemanticLegendGrid{
-  display:grid;grid-template-columns:82px minmax(0,1fr);gap:5px 9px;
+  display:grid;grid-template-columns:minmax(0,1fr);gap:7px;
+  max-height:190px;overflow:auto;
   margin:10px 0;padding:8px 0;border-top:1px solid rgba(200,169,81,.18);border-bottom:1px solid rgba(200,169,81,.18);
 }
-.rootSemanticLegendGrid span,.rootSemanticLegendGrid b{
+.rootEncodingLegendEntry{
+  display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 7px;align-items:center;
   font:500 10px/1.35 "Noto Sans",Arial,sans-serif;color:#E8DDC3;
 }
-.rootSemanticLegendGrid b{font-weight:400;color:#CFC8B8}
-.rootLegendSwatch{display:inline-block;width:8px;height:8px;margin-right:6px;border-radius:50%;vertical-align:0}
+.rootEncodingLegendEntry b{font-weight:650;color:#F7F4EA}
+.rootEncodingLegendEntry em{grid-column:2;font-style:normal;font-weight:400;color:#AFA99D}
+.rootLegendSwatch{display:inline-block;width:8px;height:8px;border-radius:50%;vertical-align:0}
 .rootLegendBlue{background:#4A7AAA}.rootLegendGold{background:#D4AF37}.rootLegendRed{background:#B85050}.rootLegendIvory{background:#E8DDC3}
 .rootSemanticShapeLegend{display:flex;flex-wrap:wrap;gap:6px 10px}
 .rootSemanticShapeLegend span{font:600 10px/1.35 "Noto Sans",Arial,sans-serif;color:#F7F4EA}
