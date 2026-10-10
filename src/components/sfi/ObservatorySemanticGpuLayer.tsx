@@ -125,8 +125,10 @@ export function ObservatorySemanticGpuLayer({lens,nodes,graphNodes,selectedGraph
           }
         };
 
-        app.ticker.maxFPS=24;
-        app.ticker.add(draw);
+        // GPU is a bounded decorative snapshot; the canonical SVG/DOM field is interactive.
+        // Do not keep a perpetual Pixi render loop that competes with input and scrolling.
+        app.ticker.stop();
+        draw();
       }catch{
         // GPU enhancement is optional. SVG/DOM remains the complete canonical interaction surface.
       }
