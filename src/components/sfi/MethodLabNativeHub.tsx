@@ -309,7 +309,7 @@ export function MethodLabNativeHub({ initialState, initialSessions, evidenceOpti
           </section>
 
           <section className="mlh-result-card">
-            <header><span>RESULT / CONTRAST</span><b>{initialState.decisionTransfer.status}</b></header>
+            <header><span>DECISION TRANSFER / RESULT / CONTRAST</span><b>{initialState.decisionTransfer.status}</b></header>
             <div className="mlh-result-metrics">
               <div><b>{initialState.decisionTransfer.passCount}</b><span>PASS</span></div>
               <div><b>{initialState.decisionTransfer.failCount}</b><span>FAIL</span></div>
