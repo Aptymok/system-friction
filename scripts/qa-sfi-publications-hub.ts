@@ -54,9 +54,20 @@ assert.match(publicState,/\.not\('published_at', 'is', null\)/);
 
 assert.ok(globals.includes('--sfi-display:"Noto Serif Display"')&&globals.includes('--sfi-narrative:"EB Garamond"')&&globals.includes('--sfi-trace:"Liberation Mono"')&&globals.includes('--sfi-screen:"Noto Sans"'),'identity_global_typography_roles_missing');
 
-const sitemapUrls=sitemapProjection().map((entry)=>entry.url);
-assert.ok(sitemapUrls.includes('https://systemfriction.org/repository'),'repository_missing_from_sitemap');
-assert.equal(sitemapUrls.includes('https://systemfriction.org/publications'),false,'retired_publications_hub_must_not_remain_in_sitemap');
+// Compare parsed URL components, not arbitrary URL substrings.
+// A hostile hostname such as systemfriction.org.example must never pass.
+const sitemapPaths=sitemapProjection()
+  .map((entry)=>{
+    try {
+      const url=new URL(entry.url);
+      if(url.protocol!=='https:'||url.hostname!=='systemfriction.org'||url.port||url.username||url.password)return null;
+      return url.pathname.replace(/\\/+$/,'')||'/';
+    } catch {
+      return null;
+    }
+  });
+assert.ok(sitemapPaths.includes('/repository'),'repository_missing_from_sitemap');
+assert.equal(sitemapPaths.includes('/publications'),false,'retired_publications_hub_must_not_remain_in_sitemap');
 
 console.log(JSON.stringify({
   ok:true,
