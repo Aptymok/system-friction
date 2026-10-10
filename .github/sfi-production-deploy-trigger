@@ -46,3 +46,19 @@ return_minting=false
 canonical_promotion=false
 schema_change=false
 release_gate=prebuilt_production_workflow
+
+SFI Production Release 2026-10-10 · Governed data-plane reconciliation
+base=da966c76ba7326ae940fbe29f4e3a828b80bebe6
+reason=scheduled_supabase_neon_reconciliation_and_root_emergency_command
+source_pr=728
+scope=authorized_oidc_sync_check_plus_sovereign_root_recover_once
+data_plane_switch_forced=false
+conflict_override=false
+journal_deletion=false
+schema_change=false
+authority_expansion=false
+persistence_owner_changed=false
+return_minting=false
+canonical_promotion=false
+qa_contract_check=pr_728_ci_7_workflows_success_typecheck_build_success
+release_gate=prebuilt_production_workflow
