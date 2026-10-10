@@ -119,7 +119,7 @@ assert.equal(observatoryPage.includes("redirect('/')"), false, 'public_observato
 assert.equal(observatoryUi.includes('ObservatoryInterpretiveFlow'), false, 'legacy_interpretive_flow_must_not_render_below_internal_observatory');
 assert.ok(observatoryUi.includes('SFI SATELLITE → HUB'), 'satellite_hub_internal_interpretation_owner_missing');
 assert.ok(observatoryUi.includes('LATEST HYPOTHESES'), 'satellite_hub_latest_hypothesis_lens_missing');
-assert.ok(observatoryUi.includes("Imagen de ChatGPT 8 oct 2026, 11_40_22-2.png"), 'observatory_canonical_world_artwork_missing');
+assert.ok(observatoryUi.includes("08102026_07.png"), 'observatory_world_map_artwork_missing');
 assert.ok(observatoryUi.includes("deriveTerritorialTensions"), 'territorial_tension_model_missing');
 assert.ok(observatoryUi.includes("TERRITORIAL TENSIONS") && observatoryUi.includes("GEO COVERAGE"), 'territorial_observatory_ui_missing');
 const territorialModel=read('src/lib/observatory/public/territorialTensions.ts');
