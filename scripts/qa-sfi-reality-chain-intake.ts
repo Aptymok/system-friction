@@ -22,6 +22,6 @@ assert.match(ui,/NOT AN AUTHORITY OR SCIENTIFIC VALIDATION/,'Report cannot claim
 assert.match(ui,/claims:\[\]/,'Governed receipt cannot invent substantive claims');
 assert.match(ui,/persistTraceManifest/,'Source-linked trace manifest must be persistable without source files');
 assert.match(ui,/DERIVED_RECORD_NOT_AUTHORIZED_REPORT/,'Trace snapshot is never promoted to institutional authority');
-assert.match(ui,/RealityChain\.png/,'Use committed visual background, no generated image');
+assert.doesNotMatch(ui,/src="\/assets\/sfi\/instruments\/RealityChain\\.png"/,'Operative case reconstruction cannot fake panels with a flattened reference image');
 assert.match(publicSurface,/label:'RECONSTRUCT A CASE',href:'\/reality-chain'/,'Public introduction should lead to account-scoped workspace');
 console.log('PASS · Reality Chain case access, source-only intake, parser reuse, non-promotion, report boundaries and existing assets');
