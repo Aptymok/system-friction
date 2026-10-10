@@ -202,7 +202,7 @@ export function ObservatoryWorldField({
         const confidence=territory.confidence==null?.35:Math.max(.18,Math.min(1,territory.confidence));
         const radius=18+(friction*28);
         const delta=territory.activityDelta;
-        return <g key={territory.id} className="territoryTension" style={{'--territory-confidence':confidence,'--territory-friction':friction} as CSSProperties}>
+        return <g key={territory.id} className="territoryTension" data-level={friction>=.66?'high':friction>=.45?'medium':'low'} style={{'--territory-confidence':confidence,'--territory-friction':friction} as CSSProperties}>
           <circle cx={p.x} cy={p.y} r={radius+10} className="territoryHalo"/>
           <circle cx={p.x} cy={p.y} r={radius} className="territoryRing"/>
           <circle cx={p.x} cy={p.y} r={5+friction*5} className="territoryCore"/>
