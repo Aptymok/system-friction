@@ -104,3 +104,10 @@
  .obsShell .obsScene .starfield{animation:none;opacity:.06}
 }
 @media(prefers-reduced-motion:reduce){.obsOperationalCard,.obsOperationalHeader,.obsOperationalTimeline{backdrop-filter:none}}
+
+/* Operational WorldSpect panorama: independently scrollable live instruments, not a screenshot. */
+.obsShell .obsScene{background-image:linear-gradient(180deg,rgba(1,3,5,.56),rgba(1,3,5,.79)),url('/assets/sfi/instruments/08102026_07.png')!important;background-size:cover!important;background-position:center!important}
+.obsOperationalGrid{display:flex!important;overflow-x:auto!important;overflow-y:hidden!important;scroll-snap-type:x proximity;overscroll-behavior-x:contain;scrollbar-width:thin;scrollbar-color:rgba(216,178,112,.55) transparent}
+.obsOperationalGrid>*{flex:0 0 clamp(220px,23vw,360px);min-width:0;scroll-snap-align:start}
+@media(max-width:760px){.obsOperationalGrid>*{flex-basis:min(78vw,340px)}}
+@media(prefers-reduced-motion:reduce){.obsShell .starfield,.obsShell .geoHalo,.obsShell .tensionLayer path{animation:none!important}}
