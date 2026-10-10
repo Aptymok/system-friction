@@ -153,7 +153,7 @@ for (const protocol of ['chronos_olympics', 'cognitive_relational_lab', 'ct_reen
 
 const readModel = read('src/lib/method-lab/readModel.ts');
 assert.match(readModel, /ct_reentry: \(\) => Boolean\(COGNITIVE_TWIN_REENTRY\.subjectId/, 'CT reentry implementation gate must bind to the reintroduced longitudinal runtime.');
-assert.match(readModel, /GATED means no Method Lab evaluation row has yet validated it/, 'Implemented CT reentry must remain explicitly distinct from validated operation.');
+assert.match(readModel, /AVAILABLE means the instrument can be exercised even when no qualifying Method Lab evaluation has yet been observed/, 'Implemented CT reentry must remain available without pretending it is validated.');
 assert.match(readModel, /it does not mean individuation is demonstrated/, 'Method Lab must not promote reentry implementation into an individuation claim.');
 assert.match(readModel, /CRL protocol-specific migration remains experimental/, 'CRL persistence governance conflict must remain visible.');
 assert.match(readModel, /missingDependencies/, 'Protocol dependency health must be observable.');
@@ -197,10 +197,15 @@ assert.match(methodLabPage, /readMethodLabState/, 'Method Lab native hub must re
 assert.match(methodLabPage, /readMethodLabEvidenceOptions/, 'Method Lab native hub must expose persisted evidence through a server-owned reader.');
 assert.match(methodLabPage, /MethodLabNativeHub/, 'Method Lab declared execution surface must render its native hub.');
 assert.doesNotMatch(methodLabPage, /createServiceSupabaseClient|\.from\(/, 'Method Lab page must not bypass interface persistence boundaries.');
-for (const route of ['/api/root/method-lab/simulate','/api/root/cognitive-lab/sessions','/blind','/contrast','/events','/interact']) assert.ok(methodLabHub.includes(route), `method_lab_native_hub_missing_control:${route}`);
+assert.ok(methodLabHub.includes('/api/root/method-lab/simulate'), 'Method Lab simplified hub must preserve the bounded simulation execution route.');
+assert.ok(methodLabHub.includes('WHAT DO YOU WANT TO TEST?') && methodLabHub.includes('RUN EXPERIMENT'), 'Method Lab must expose one clear automatic execution path.');
+assert.ok(methodLabHub.includes('AUTO_EVIDENCE_SELECTION') && methodLabHub.includes('chooseProtocol'), 'Method Lab must automate protocol/evidence preparation when the user does not override it.');
 assert.ok(methodLabHub.includes('SIMULATED ≠ OBSERVED'), 'Method Lab native hub must state its epistemic boundary.');
-assert.ok(methodLabHub.includes('FOUNDER_AUTHORIZATION is not equivalent to FOUNDER_ORIGINATED.'), 'CRL provenance boundary must remain visible to ROOT.');
-assert.ok(methodLabHub.includes('FOUNDER_MODEL'), 'Method Lab must retain explicit model-comparison conditions after MODELS scene absorption.');
+assert.ok(methodLabHub.includes('MODEL ACCESS · MCP') && methodLabHub.includes('/api/mcp/authenticated') === false, 'MCP endpoint ownership must come from the server read model rather than a duplicated client literal.');
+assert.match(readModel, /endpoint: '\/api\/mcp\/authenticated'/, 'Method Lab model access must use authenticated MCP.');
+assert.match(readModel, /localProviderCredentialsRequired: false/, 'Method Lab must not wait on local model-provider credentials.');
+assert.doesNotMatch(readModel, /getLlmProviderStatus/, 'Method Lab read state must not be gated by local provider configuration.');
+assert.doesNotMatch(read('src/lib/method-lab/contracts.ts'), /\| 'GATED'/, 'GATED must not remain a Method Lab protocol availability state.');
 
 assert.ok(methodLabWorkbench.includes('<MethodLabInstrumentRoom'), 'instrument_room_must_be_mounted_on_existing_method_lab_surface');
 for (const token of [
