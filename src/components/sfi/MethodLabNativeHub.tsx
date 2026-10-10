@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import './MethodLabNativeHub.css';
+import { MethodLabPanorama } from './MethodLabPanorama';
 
 type Protocol = {
   id: string;
@@ -160,6 +161,8 @@ export function MethodLabNativeHub({ initialState, initialSessions, evidenceOpti
         <Link href="/root" className="mlh-return">RETURN TO ROOT ↖</Link>
       </header>
 
+      <MethodLabPanorama protocols={initialState.protocols} sessions={initialSessions} evidenceCount={evidenceOptions.length} decisionTransfer={initialState.decisionTransfer} status={initialState.status} generatedAt={initialState.generatedAt}/>
+
       <section className="mlh-hero">
         <div>
           <span className="mlh-kicker">PROTOCOL · EVIDENCE · RUN · RETURN · CONTRAST</span>
@@ -174,7 +177,7 @@ export function MethodLabNativeHub({ initialState, initialSessions, evidenceOpti
         </div>
       </section>
 
-      <section className="mlh-section">
+      <section id="mlh-instruments" className="mlh-section">
         <div className="mlh-section-head"><div><span>01 / REGISTRY</span><h2>Registered instruments</h2></div><p>{initialState.promotionRule}</p></div>
         <div className="mlh-protocol-grid">
           {initialState.protocols.map((protocol) => (
@@ -193,7 +196,7 @@ export function MethodLabNativeHub({ initialState, initialSessions, evidenceOpti
         </div>
       </section>
 
-      <section className="mlh-section">
+      <section id="mlh-simulation" className="mlh-section">
         <div className="mlh-section-head"><div><span>02 / SIMULATION</span><h2>Run with persisted evidence</h2></div><p>Only `sociotechnical_simulation` and `economic_simulation` use this runner. The result remains SIMULATED.</p></div>
         <div className="mlh-panel mlh-auto-experiment">
           <label>WHAT DO YOU WANT TO TEST?<textarea value={automaticObjective} onChange={event=>setAutomaticObjective(event.target.value)} placeholder="Describe the question, hypothesis or systemic friction…" /></label>
@@ -241,7 +244,7 @@ export function MethodLabNativeHub({ initialState, initialSessions, evidenceOpti
         </div>
       </section>
 
-      <section className="mlh-section">
+      <section id="mlh-sessions" className="mlh-section">
         <div className="mlh-section-head"><div><span>03 / COGNITIVE RELATIONAL LAB</span><h2>Session → events → blind → founder → contrast</h2></div><p>BLIND always runs before receiving the founder reading.</p></div>
 
         <div className="mlh-three-col">
@@ -279,7 +282,7 @@ export function MethodLabNativeHub({ initialState, initialSessions, evidenceOpti
 
         <div className="mlh-session-list">
           {initialSessions.map((session) => (
-            <article className="mlh-session" data-state={session.status} key={session.id}>
+            <article id={"mlh-session-"+session.id} className="mlh-session" data-state={session.status} key={session.id}>
               <header><div><span>{session.condition}</span><h3>{session.sessionKey}</h3><p>{session.title}</p></div><b>{session.status}</b></header>
               <p>{session.objective}</p>
               <dl><div><dt>EVENTS</dt><dd>{session.eventCount}</dd></div><div><dt>ANALYSES</dt><dd>{session.analysisCount}</dd></div><div><dt>START</dt><dd>{formatTime(session.startedAt)}</dd></div><div><dt>END</dt><dd>{formatTime(session.endedAt)}</dd></div></dl>
