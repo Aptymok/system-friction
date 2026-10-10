@@ -647,6 +647,11 @@ export function RootNeuralGraphView({ graph, agents=[], agentRegistryState='UNAV
 
   const fieldNodes=visibleNodes.map((node)=>{const p=topology.positions.get(node.id)??{x:topology.width/2,y:topology.height/2};const qualified=qualifiedRelationCount(node,graph.edges);const evidence=Number(node.methodSignal?.evidenceBoundRelationCount??0);return {id:node.id,label:node.label,type:node.type,tone:nodeTone(node),shape:nodeShape(node),x:p.x,y:p.y,radius:selectedId===node.id?10:5.2+Math.min(4.6,qualified*.32+evidence*.24),selected:selectedId===node.id};});
   const fieldEdges=visibleEdges.map((edge)=>({id:edge.id,source:edge.source,target:edge.target,weight:edge.weight,selected:selectedId===edge.source||selectedId===edge.target}));
+  const evidenceBoundCount=visibleNodes.filter(node=>(node.realityPassport?.provenance.supportingRelationCount??0)>0 || (node.methodSignal?.evidenceBoundRelationCount??0)>0).length;
+  const observedReturnCount=visibleNodes.filter(node=>node.realityPassport?.returnState.status==='OBSERVED').length;
+  const pendingReturnCount=visibleNodes.filter(node=>node.realityPassport?.returnState.status==='PENDING').length;
+  const abstainCount=visibleNodes.filter(node=>node.realityPassport?.decision==='ABSTAIN').length;
+  const blockedCount=visibleNodes.filter(node=>node.realityPassport?.decision==='BLOCKED').length;
 
 
   return (
@@ -695,10 +700,16 @@ export function RootNeuralGraphView({ graph, agents=[], agentRegistryState='UNAV
 
         <section className="rootFieldStage rootHorizontalGraph" aria-label="Canonical Neural Graph">
           <div className="rootReferenceModes" aria-label="Field perspective">
-            {([['FIELD','CURRENT_STATE'],['TRAJECTORIES','TRAJECTORY'],['HIERARCHY','HIERARCHY'],['CONTRAST','RETURN_CONTRAST']] as const).map(([label,mode])=><button type="button" key={mode} aria-pressed={reading===mode} onClick={()=>setReading(mode)}>{label}</button>)}
+            {([['FIELD','CURRENT_STATE','LIVE RELATIONAL FIELD'],['TRAJECTORIES','TRAJECTORY','CHANGE THROUGH TIME'],['HIERARCHY','HIERARCHY','STRUCTURAL READING'],['CONTRAST','RETURN_CONTRAST','EXPECTED / RETURN']] as const).map(([label,mode,detail])=><button type="button" key={mode} aria-pressed={reading===mode} onClick={()=>setReading(mode)}><strong>{label}</strong><small>{detail}</small></button>)}
           </div>
           <div className="rootFieldInstitutionIdentity" aria-hidden="true"><span>SYSTEM</span><span>FRICTION</span><span>INSTITUTE</span></div>
           <RootCognitiveFieldPixi nodes={fieldNodes} edges={fieldEdges} width={topology.width} height={topology.height} onSelect={id=>setSelectedId(id)} />
+          <div className="rootReferenceTelemetry" aria-label="Current governed field summary">
+            <article><span>FIELD STATE</span><strong>{visibleNodes.length}</strong><small>{visibleEdges.length} RELATIONS · {graph.sourceState.toUpperCase()}</small></article>
+            <article><span>EVIDENCE-BOUND</span><strong>{evidenceBoundCount}</strong><small>OBJECTS WITH REPRESENTED SUPPORT</small></article>
+            <article><span>RETURN</span><strong>{observedReturnCount}</strong><small>{pendingReturnCount} PENDING · OBSERVED ≠ EXECUTED</small></article>
+            <article><span>ABSTENTION / BLOCK</span><strong>{abstainCount + blockedCount}</strong><small>{abstainCount} ABSTAIN · {blockedCount} BLOCKED</small></article>
+          </div>
           {!visibleNodes.length ? <div className="rootFieldEmpty">NO COGNITIVE OBJECTS MATCH THE SELECTED FILTERS.</div> : null}
           <div className="rootFieldTimelineFooter" aria-label="Field state and chronology">
             <span>{reading.replaceAll('_',' ')} · {graph.sourceState.toUpperCase()} · {graph.readPlane}</span>
