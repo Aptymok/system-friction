@@ -189,7 +189,7 @@ assert.ok(worldObservatoryCron.includes('Hypothesis closure reports are downstre
 // Regression marker: observatory_second_read_owner_detected now means duplicate endpoint ownership, not two staged Promise.all reads.
 for (const endpoint of [
   "fetchJson('/api/observatory/world')",
-  "fetchJson('/api/observatory/state')",
+  "fetchJson('/api/observatory/state?view=observatory')",
   "fetchJson('/api/observatory/timeline')",
 ]) assert.equal(occurrences(observatoryUi, endpoint), 1, `observatory_duplicate_equivalent_read:${endpoint}`);
 assert.equal(occurrences(observatoryUi, 'Promise.all(['), 2, 'observatory_must_stage_primary_and_optional_reads_without_duplicate_endpoint_ownership');
