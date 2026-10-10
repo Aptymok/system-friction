@@ -49,3 +49,7 @@
 @media(max-width:680px){.repoReader{inset:54px 0 0;padding:58px 18px 90px}.repoReaderClose{top:66px;right:16px}.repoDiscoveryChannels{grid-template-columns:1fr}}
 
 /* SFI-LIVE-REPOSITORY-1.0: live canonical registry data on a structural, non-screenshot backdrop. */
+
+/* Reference atmosphere; repository records remain real interactive DOM. */
+.repositoryBackdrop{background:linear-gradient(90deg,rgba(3,5,6,.65),rgba(3,5,6,.42)),url("/assets/sfi/instruments/Imagen%20de%20ChatGPT%208%20oct%202026%2C%2011_40_42-7.png") center / cover no-repeat!important}
+.repositoryScene{background:transparent}
