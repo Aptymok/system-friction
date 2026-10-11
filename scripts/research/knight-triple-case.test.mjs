@@ -119,3 +119,22 @@ test('a fabricated institutional source entry and a synthetic label are rejected
  x.dataClass='SIMULATED';
  assert.throws(()=>assertTripleBoundaries(x),/INVALID_REAL_TRIPLE_CASE/);
 });
+
+test('historical triple case is accepted for retrocausal operations without requiring a future human decision',()=>{
+ const dt=view('2013-10-17').tracks[2];
+ assert.equal(dt.studyMode,'RETROLONGITUDINAL_RETROCAUSAL_OPERATION_RECONSTRUCTION');
+ assert.equal(dt.actualCaseAdmission,'ACCEPTED_FOR_DOCUMENTARY_RECONSTRUCTION');
+ assert.equal(dt.researchCaseAccepted,true);
+ assert.equal(dt.humanDecisionTargetRequiredForThisCase,false);
+ assert.equal(dt.realWorldOutcome.evidence.factId,'F12');
+ assert.equal(dt.historicalActorCognition,'NOT_OBSERVED');
+ assert.equal(dt.historicalAuthorization,'UNKNOWN_NOT_ESTABLISHED_BY_SOURCED_RECORDS');
+ assert.equal(dt.confirmatoryEligible,false);
+});
+test('a return not yet publicly documented cannot be backcast as present historical evidence',()=>{
+ const dt=view('2012-08-01').tracks[2];
+ assert.equal(dt.actualCaseAdmission,'BLOCKED_NO_DOCUMENTED_OUTCOME_AT_CUTOFF');
+ assert.equal(dt.researchCaseAccepted,false);
+ assert.equal(dt.realWorldOutcome.evidence,null);
+ assert.equal(dt.humanDecisionTargetRequiredForThisCase,false);
+});
