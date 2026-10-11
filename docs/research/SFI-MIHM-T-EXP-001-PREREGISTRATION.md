@@ -189,3 +189,9 @@ The first official-document case is [Knight Capital 2012 — Official SEC/EDGAR 
 **Scientific scope:** valid for documentary historical reconstruction and exploratory calibration. The regulator's findings were publicly released in October 2013, so they cannot be used as information publicly available to an external analyst on August 1, 2012. The event's historic occurrence time is not a public knowledge timestamp. No blind confirmatory prediction, calibrated probability, competent M0 comparison or observed prospective RETURN is claimed.
 
 This new real-data case **does not freeze or otherwise amend** the `DRAFT_UNFROZEN` MIHM-T EXP-001 protocol. Source registration in Method Lab is a documentary research act, not automatic canonical evidence admission to Reality Chain.
+
+---
+
+## Shared Knight 2012 case: three separate research lenses (NON-NORMATIVE)
+
+The [real SEC/EDGAR dossier](./cases/SFI-MIHMT-KNIGHT-2012-OFFICIAL-DOSSIER.json) now has a [three-experiment crosswalk](./cases/SFI-KNIGHT-2012-TRIPLE-EXPERIMENT-CASE.md) and a read-only, source-vintage-safe analysis. MIHM-T can study the real historical deployment, signals and intervention sequence without importing imaginary risk probabilities. LCI requires actual CT-A01 lineage and controls; SFI-DT requires a different future naturalistic target. No common empirical validation or confirmed counterfactual effect is inferred. MIHM-T remains `DRAFT_UNFROZEN`.
