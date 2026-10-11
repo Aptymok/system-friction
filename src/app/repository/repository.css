@@ -49,3 +49,46 @@
 @media(max-width:680px){.repoReader{inset:54px 0 0;padding:58px 18px 90px}.repoReaderClose{top:66px;right:16px}.repoDiscoveryChannels{grid-template-columns:1fr}}
 
 /* SFI-LIVE-REPOSITORY-1.0: live canonical registry data on a structural, non-screenshot backdrop. */
+
+/* Reference atmosphere; repository records remain real interactive DOM. */
+.repositoryBackdrop{background:linear-gradient(90deg,rgba(3,5,6,.65),rgba(3,5,6,.42)),url("/assets/sfi/instruments/Imagen%20de%20ChatGPT%208%20oct%202026%2C%2011_40_42-7.png") center / cover no-repeat!important}
+.repositoryScene{background:transparent}
+
+/* Two full-width horizontally scrollable screens over existing live repository data. */
+.repositoryShell .repositoryScene{height:calc(100svh - 64px);min-height:650px;overflow:hidden;isolation:isolate}
+.repositoryShell .repositoryBackdrop{z-index:-3}
+.repoHorizontal{position:absolute;inset:0;display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scroll-behavior:smooth;overscroll-behavior-x:contain;scrollbar-width:thin;scrollbar-color:rgba(210,170,95,.7) transparent}
+.repoHorizon{position:relative;flex:0 0 100%;width:100%;min-width:100%;height:100%;scroll-snap-align:start;overflow:hidden}
+.repoHorizonSwitch{position:absolute;top:14px;right:24px;z-index:8;display:flex;align-items:center;gap:14px;padding:9px 13px;border:1px solid rgba(225,193,128,.35);background:rgba(3,5,6,.83);font:600 10px/1.4 ui-monospace,monospace;letter-spacing:.09em;color:#d2aa5f}
+.repoHorizonSwitch a{color:#f2d7a0;text-decoration:none}.repoHorizonSwitch a:hover{text-decoration:underline}
+.repoHorizon--archive .repoIdentity{left:2%;width:21%;top:72px;bottom:122px;overflow-y:auto}
+.repoHorizon--archive .repoArchiveRail{left:25%;right:3%;top:94px;bottom:122px;grid-template-columns:repeat(3,minmax(230px,1fr));overflow-x:auto}
+.repoHorizon--inspection .repoObjectInspector{left:3%;right:auto;top:86px;bottom:122px;width:36%;overflow:auto}
+.repoHorizon--inspection .repoProvenance{left:41%;right:3%;top:86px;bottom:122px;width:auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:min-content;gap:12px;overflow-y:auto;align-content:start}
+.repoHorizon--inspection .repoProvenance>.repoDiscovery{grid-column:1/-1}
+.repoHorizon--inspection .repoTwinCards{grid-column:1/-1}
+.repositoryShell .repoTimeline{z-index:7;bottom:11px;height:88px;pointer-events:auto}
+.repoHorizon--inspection .repoObjectInspector h2{font-size:clamp(23px,2.3vw,37px)}
+.repoHorizon--inspection .repoObjectInspector>p{font-size:clamp(12px,1vw,16px)}
+.repoHorizon--inspection .repoProvenanceRows div,.repoHorizon--inspection .repoProvenance header b{font-size:10px}
+@media(max-width:1000px){
+ .repoHorizon--archive .repoIdentity{left:2%;width:28%}
+ .repoHorizon--archive .repoArchiveRail{left:32%;right:2%;grid-template-columns:repeat(3,minmax(205px,53vw))}
+ .repoHorizon--inspection .repoObjectInspector{left:2%;width:41%}
+ .repoHorizon--inspection .repoProvenance{left:45%;right:2%;grid-template-columns:1fr}
+}
+@media(max-width:680px){
+ .repoHorizonSwitch{right:8px;left:8px;justify-content:space-between;font-size:9px}
+ .repoHorizon--archive .repoIdentity{position:absolute;left:2%;right:2%;width:auto;top:63px;bottom:auto;height:170px;overflow:auto;margin:0}
+ .repoHorizon--archive .repoArchiveRail{position:absolute;left:2%;right:2%;top:240px;bottom:110px;height:auto;margin:0;grid-template-columns:repeat(3,minmax(210px,70vw))}
+ .repoHorizon--inspection .repoObjectInspector{position:absolute;left:2%;right:2%;width:auto;top:65px;bottom:110px;margin:0}
+ .repoHorizon--inspection .repoProvenance{position:absolute;left:2%;right:2%;top:65px;bottom:110px;width:auto;margin:0;opacity:0;pointer-events:none}
+ .repositoryShell .repoTimeline{height:90px;position:absolute;left:8px;right:8px;bottom:8px;margin:0;grid-template-columns:1fr}
+}
+
+/* Keep the provenance pane accessible on narrow screens rather than hiding its data. */
+@media(max-width:680px){
+ .repoHorizon--inspection{display:flex;overflow-x:auto;scroll-snap-type:x proximity}
+ .repoHorizon--inspection .repoObjectInspector{position:relative;top:65px;left:auto;right:auto;bottom:auto;margin:0 10px;flex:0 0 calc(100vw - 20px);height:calc(100% - 175px);scroll-snap-align:start}
+ .repoHorizon--inspection .repoProvenance{position:relative;top:65px;left:auto;right:auto;bottom:auto;margin:0 10px;flex:0 0 calc(100vw - 20px);height:calc(100% - 175px);opacity:1;pointer-events:auto;overflow-y:auto;scroll-snap-align:start}
+}

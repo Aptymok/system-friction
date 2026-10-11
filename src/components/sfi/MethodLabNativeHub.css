@@ -18,3 +18,22 @@
 .mlh-auto-experiment>.mlh-action{max-width:340px}
 .mlh-auto-experiment>.mlh-boundary{margin:0;font:11px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;color:#bdac95}
 @media(max-width:760px){.mlh-auto-experiment{padding:15px}.mlh-auto-experiment>.mlh-action{max-width:none}}
+
+/* Image under existing operational Method Lab controls and persisted runs. */
+.mlh-shell{background:linear-gradient(90deg,rgba(4,6,7,.88),rgba(4,6,7,.66)),url("/assets/sfi/instruments/Imagen%20de%20ChatGPT%208%20oct%202026%2C%2011_40_34-5.png") center top / cover fixed no-repeat!important}
+
+/* Two real horizontally scrollable operational horizons; all original actions preserved. */
+.mlh-shell{height:100svh;min-height:620px;overflow:hidden;padding-bottom:0!important;display:flex;flex-direction:column}
+.mlh-shell>.mlh-topbar{flex:0 0 auto;position:relative;min-height:62px}
+.mlh-horizontal{flex:1;min-height:0;width:100%;display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scroll-behavior:smooth;overscroll-behavior-x:contain;scrollbar-width:thin;scrollbar-color:#c8a951 #060705}
+.mlh-horizon{flex:0 0 100vw;width:100vw;min-width:100vw;min-height:0;scroll-snap-align:start;position:relative}
+.mlh-horizon--overview{overflow-y:auto;overflow-x:hidden}
+.mlh-horizon--workspace{overflow-y:auto;overflow-x:hidden;padding:0 clamp(15px,2.5vw,42px) 50px;background:linear-gradient(90deg,rgba(4,6,7,.82),rgba(4,6,7,.60))}
+.mlh-horizon--workspace .mlh-hero{max-width:none;padding:22px 0 26px;gap:24px}
+.mlh-horizon--workspace .mlh-hero h1{font-size:clamp(26px,2.6vw,46px)}
+.mlh-horizon--workspace .mlh-section{max-width:none;padding:22px 0}
+.mlh-horizon--workspace .mlh-protocol-grid{display:flex;overflow-x:auto;gap:12px;scroll-snap-type:x proximity}
+.mlh-horizon--workspace .mlh-protocol-grid>.mlh-card{flex:0 0 clamp(240px,22vw,330px);scroll-snap-align:start}
+.mlh-screen-switch{position:sticky;top:0;z-index:19;display:flex;justify-content:space-between;gap:12px;padding:12px 16px;background:rgba(5,7,8,.95);border-bottom:1px solid rgba(200,169,81,.38);font:600 11px/1.3 ui-monospace,monospace;letter-spacing:.1em}
+.mlh-screen-switch a{color:#d9c08b;text-decoration:none}.mlh-screen-switch span{color:#b5ab95}
+@media(max-width:850px){.mlh-horizon--workspace .mlh-hero{display:block}.mlh-horizon--workspace .mlh-protocol-grid>.mlh-card{flex-basis:78vw}}

@@ -161,8 +161,13 @@ export function MethodLabNativeHub({ initialState, initialSessions, evidenceOpti
         <Link href="/root" className="mlh-return">RETURN TO ROOT ↖</Link>
       </header>
 
+      <div className="mlh-horizontal" aria-label="Two horizontal Method Lab screens">
+      <section className="mlh-horizon mlh-horizon--overview" id="mlh-overview">
       <MethodLabPanorama protocols={initialState.protocols} sessions={initialSessions} evidenceCount={evidenceOptions.length} decisionTransfer={initialState.decisionTransfer} status={initialState.status} generatedAt={initialState.generatedAt}/>
 
+      </section>
+      <section className="mlh-horizon mlh-horizon--workspace" id="mlh-workspace">
+      <nav className="mlh-screen-switch" aria-label="Method Lab navigation"><a href="#mlh-overview">← OVERVIEW</a><span>02 / 02 · LIVE WORKSPACE</span><a href="#mlh-simulation">SIMULATION ↓</a></nav>
       <section className="mlh-hero">
         <div>
           <span className="mlh-kicker">PROTOCOL · EVIDENCE · RUN · RETURN · CONTRAST</span>
@@ -306,6 +311,8 @@ export function MethodLabNativeHub({ initialState, initialSessions, evidenceOpti
 
       {message ? <div className="mlh-toast" data-error={!message.endsWith(': OK')}>{message}</div> : null}
       {result ? <details className="mlh-result"><summary>LATEST RESULT</summary><pre>{JSON.stringify(result, null, 2)}</pre></details> : null}
+      </section>
+      </div>
     </main>
   );
 }
