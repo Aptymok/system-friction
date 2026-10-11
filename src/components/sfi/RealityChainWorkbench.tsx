@@ -88,7 +88,7 @@ export function RealityChainWorkbench(){
  useEffect(()=>{loadCase(caseId).catch(e=>{setError(String(e.message??e));setCaseData(null);});setExtraction(null);setSourceRef(null);setChosen([]);setSelectedObject(null);},[caseId,loadCase]);
  useEffect(()=>{
    const element=scroll.current;if(!element)return;
-   const update=()=>setScreen(Math.max(0,Math.min(2,Math.round(element.scrollLeft/Math.max(element.clientWidth,1)))));
+   const update=()=>setScreen(Math.max(0,Math.min(2,Math.round(element.scrollLeft/Math.max(element.scrollWidth/3,1)))));
    element.addEventListener('scroll',update,{passive:true});
    const wheel=(event:WheelEvent)=>{
      const node=event.target as HTMLElement;
@@ -113,7 +113,7 @@ export function RealityChainWorkbench(){
  const focused=asOfObjects.find(o=>o.id===selectedObject)??null;
  const sourceObjects=asOfObjects.filter(o=>o.kind==='SOURCE');
  const stageCoverage=STEPS.map((_,index)=>asOfObjects.filter(o=>stageFor(o)===index).length);
- const scrollTo=(part:number)=>{const target=Math.max(0,Math.min(2,part));const el=scroll.current;el?.scrollTo({left:el.clientWidth*target,behavior:'smooth'});setScreen(target);};
+ const scrollTo=(part:number)=>{const target=Math.max(0,Math.min(2,part));const el=scroll.current;const section=el?.querySelectorAll<HTMLElement>('.rcThreeHorizon')[target];if(el)el.scrollTo({left:section?.offsetLeft??el.scrollWidth*target/3,behavior:'smooth'});setScreen(target);};
  const makeCase=async()=>{
   if(!title.trim()||!scope.trim()||!profileId){setError('Subject, scope and an existing service profile are required.');return;}
   setWorking(true);setError('');
@@ -302,12 +302,13 @@ export function RealityChainWorkbench(){
 
   <div className="rcOperationalScroller" ref={scroll} aria-label="Reality Chain three-screen horizontal reconstruction">
     <div className="rcOperationalTrack">
-      <div className="rcBackdrop" aria-hidden="true"/>
+
 
       <section className="rcHorizon rcThreeHorizon" aria-label="Screen 1 · Full Reality Chain overview">
+        <img className="rcThreeScene" src="/assets/sfi/instruments/Imagen%20de%20ChatGPT%208%20oct%202026%2C%2011_40_18-1.png" alt="" aria-hidden="true" loading="eager" decoding="async"/>
         <div className="rcThreeHorizonTop">
           <div className="rcThreeStageBand rcFullChainStages" aria-label="Eight linked stages, horizontally scrollable">
-            {STEPS.slice(0,3).concat(STEPS.slice(3,6),STEPS.slice(6,8)).map((stage,index)=><button key={stage.name} type="button" onClick={()=>{setActiveStep(index);setSelectedObject(null)}} aria-pressed={activeStep===index}>
+            {STEPS.slice(0,3).concat(STEPS.slice(3,6),STEPS.slice(6,8)).map((stage,index)=><button key={stage.name} type="button" onClick={()=>{setActiveStep(index);setSelectedObject(null)}} title={stage.role} aria-pressed={activeStep===index}>
               <small>0{index+1}</small><strong>{stage.name}</strong><span>{stage.role}</span><em>{stageCoverage[index]} REPRESENTED</em>
             </button>)}
           </div>
@@ -338,12 +339,13 @@ export function RealityChainWorkbench(){
       </section>
 
       <section className="rcHorizon rcThreeHorizon" aria-label="Screen 2 · Evidence, Inference, Authority">
+        <img className="rcThreeScene" src="/assets/sfi/instruments/Imagen%20de%20ChatGPT%208%20oct%202026%2C%2011_40_22-2.png" alt="" aria-hidden="true" loading="eager" decoding="async"/>
         <div className="rcThreeHorizonTop">
           <div className="rcScreenIdentifier">02 / 03</div>
           <h1>EVIDENCE · INFERENCE · AUTHORITY</h1>
           <p>What the records support, what remains an interpretation, and who may decide.</p>
           <div className="rcThreeStageBand">
-            {STEPS.slice(3,6).map((stage,index)=><button key={stage.name} type="button" onClick={()=>{setActiveStep(index+3);setSelectedObject(null)}} aria-pressed={activeStep===index+3}>
+            {STEPS.slice(3,6).map((stage,index)=><button key={stage.name} type="button" onClick={()=>{setActiveStep(index+3);setSelectedObject(null)}} title={stage.role} aria-pressed={activeStep===index+3}>
               <small>0{index+4}</small><strong>{stage.name}</strong><span>{stage.role}</span><em>{stageCoverage[index+3]} REPRESENTED</em>
             </button>)}
           </div>
@@ -400,12 +402,13 @@ export function RealityChainWorkbench(){
       </section>
 
       <section className="rcHorizon rcThreeHorizon" aria-label="Screen 3 · Execution, Return, Learning">
+        <img className="rcThreeScene" src="/assets/sfi/instruments/Imagen%20de%20ChatGPT%208%20oct%202026%2C%2011_40_26-3.png" alt="" aria-hidden="true" loading="eager" decoding="async"/>
         <div className="rcThreeHorizonTop">
           <div className="rcScreenIdentifier">03 / 03</div>
           <h1>EXECUTION · RETURN · LEARNING</h1>
           <p>What was done, what reality returned, and what was actually integrated.</p>
           <div className="rcThreeStageBand">
-            {STEPS.slice(6,9).map((stage,index)=><button key={stage.name} type="button" onClick={()=>{setActiveStep(index+6);setSelectedObject(null)}} aria-pressed={activeStep===index+6}>
+            {STEPS.slice(6,9).map((stage,index)=><button key={stage.name} type="button" onClick={()=>{setActiveStep(index+6);setSelectedObject(null)}} title={stage.role} aria-pressed={activeStep===index+6}>
               <small>0{index+7}</small><strong>{stage.name}{stage.name==='LEARNING'?<svg className="rcLearningIcon" viewBox="0 0 48 48" role="img" aria-label="Learning"><path d="M24 11c-6-4-12-4-19-2v27c7-2 13-2 19 2 6-4 12-4 19-2V9c-7-2-13-2-19 2Z" fill="none" stroke="currentColor" strokeWidth="2"/><path d="M24 11v27M29 23l4 4 8-10" fill="none" stroke="currentColor" strokeWidth="2"/></svg>:null}</strong>
               <span>{stage.role}</span><em>{stageCoverage[index+6]} REPRESENTED</em>
             </button>)}
