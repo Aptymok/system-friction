@@ -85,3 +85,10 @@
  .repoHorizon--inspection .repoProvenance{position:absolute;left:2%;right:2%;top:65px;bottom:110px;width:auto;margin:0;opacity:0;pointer-events:none}
  .repositoryShell .repoTimeline{height:90px;position:absolute;left:8px;right:8px;bottom:8px;margin:0;grid-template-columns:1fr}
 }
+
+/* Keep the provenance pane accessible on narrow screens rather than hiding its data. */
+@media(max-width:680px){
+ .repoHorizon--inspection{display:flex;overflow-x:auto;scroll-snap-type:x proximity}
+ .repoHorizon--inspection .repoObjectInspector{position:relative;top:65px;left:auto;right:auto;bottom:auto;margin:0 10px;flex:0 0 calc(100vw - 20px);height:calc(100% - 175px);scroll-snap-align:start}
+ .repoHorizon--inspection .repoProvenance{position:relative;top:65px;left:auto;right:auto;bottom:auto;margin:0 10px;flex:0 0 calc(100vw - 20px);height:calc(100% - 175px);opacity:1;pointer-events:auto;overflow-y:auto;scroll-snap-align:start}
+}
