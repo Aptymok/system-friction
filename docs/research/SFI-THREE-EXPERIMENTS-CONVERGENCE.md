@@ -139,3 +139,9 @@ This file is the single **documentary follow-up index**. Individual methodology 
 **Review state:** `DOCUMENTARY_ADVERSARIAL_REVIEW / PARTIALLY_VERIFIED`. The reviewer explicitly had no source-file or SFI MCP access; the linked addendum distinguishes suggestions from verified implementation facts. In particular it records the **remaining export timestamp omission**, acknowledges PR #459's resolved controls/variants gap, and prevents SFI-A institutional identity episodes from being confused with successful LCI metrics.
 
 The review is an additional research input only. It does **not** alter the frozen experiments, resolve the open X-01–X-09 tasks or authorize Hub publication.
+
+---
+
+## MIHM-T synthetic vector pilot — diagnostic only
+
+[MIHM-T Vector & Temporal Transfer Pilot 001](./MIHM-T-VECTOR-PILOT-001.md) introduces a bounded software QA exercise for one existing dimensional-transfer representation, with `T0` filtering, lag, latent-dependency ablations, case-bound synthetic score and no authority/evidence mutation. It is **not** another confirmatory research protocol, nor a validation of MIHM-T, LCI or SFI-DT. The study convergence is still `WORKING / NOT_TESTED` and PEMS remains proposed.
