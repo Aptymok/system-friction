@@ -66,6 +66,7 @@ function stringList(value: unknown) {
 }
 
 function finiteConfidence(value: unknown): number | null {
+  if (value === null || value === undefined || typeof value === 'boolean' || (typeof value === 'string' && value.trim() === '')) return null;
   const candidate = typeof value === 'number' ? value : Number(value);
   return Number.isFinite(candidate) && candidate >= 0 && candidate <= 1 ? candidate : null;
 }
@@ -169,7 +170,9 @@ export function normalizeMethodLabResearchObject(value: unknown, fallback?: Meth
     publicationState: ['PRIVATE', 'WORKING', 'PUBLIC_DERIVATIVE_READY', 'PROMOTION_REQUESTED', 'HUB_PUBLISHED', 'RELEASE_CANDIDATE', 'RELEASED'].includes(publicationState) ? publicationState as MethodLabResearchPublicationState : fallback?.publicationState ?? 'PRIVATE',
     summary: text(row.summary) || fallback?.summary || '',
     publicSummary: text(row.publicSummary) || fallback?.publicSummary || text(row.summary) || '',
-    confidence: finiteConfidence(row.confidence) ?? fallback?.confidence ?? null,
+    confidence: Object.prototype.hasOwnProperty.call(row, 'confidence')
+      ? finiteConfidence(row.confidence)
+      : fallback?.confidence ?? null,
     evidenceRefs: stringList(row.evidenceRefs).length ? stringList(row.evidenceRefs) : fallback?.evidenceRefs ?? [],
     findings: Array.isArray(row.findings) ? findingList(row.findings) : fallback?.findings ?? [],
     publicFindings: Array.isArray(row.publicFindings) ? findingList(row.publicFindings) : fallback?.publicFindings ?? [],
@@ -295,7 +298,7 @@ export function buildMethodLabPublicationPackage(object: MethodLabResearchObject
     },
     {
       path: 'PUBLIC_TRACE.md',
-      content: `# SFI / ${object.objectClass} / ${object.objectId}\n\n## Object\n${object.publicTitle}\n\n## Observed state\n${object.state}\n\n## Summary\n${object.publicSummary}\n\n## Return\n${object.returnState}\n\n## Confidence\n${object.confidence ?? 'UNASSESSED'}\n\n## What cannot be asserted\n${object.publicLimitations.map((item) => `- ${item}`).join('\n') || '- No public limitations supplied; release requires review.'}\n\n## Version / lineage\nVersion: ${object.version}\n\n${publicObject.lineage.map((item) => `- ${item}`).join('\n')}`,
+      content: `# SFI / ${object.objectClass} / ${object.objectId}\n\n## Object\n${object.publicTitle}\n\n## Observed state\n${object.state}\n\n## Summary\n${object.publicSummary}\n\n## Return\n${object.returnState}\n\n## Confidence\n${object.confidence === null ? 'NOT_ASSESSED' : object.confidence}\n\n## What cannot be asserted\n${object.publicLimitations.map((item) => `- ${item}`).join('\n') || '- No public limitations supplied; release requires review.'}\n\n## Version / lineage\nVersion: ${object.version}\n\n${publicObject.lineage.map((item) => `- ${item}`).join('\n')}`,
     },
     { path: 'METRICS.json', content: JSON.stringify(object.publicMetrics, null, 2) },
     { path: 'PROVENANCE.md', content: `# Provenance — ${object.objectId}\n\n${publicObject.lineage.map((item, index) => `${index + 1}. ${item}`).join('\n') || 'No lineage registered.'}\n\nEvidence references retained by Method Lab: ${object.evidenceRefs.length}. Raw restricted records are not exported.` },
