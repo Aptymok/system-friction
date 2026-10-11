@@ -1,10 +1,10 @@
 import { createHash } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { readMethodLabState } from '@/lib/method-lab/readModel';
-import { buildMethodLabPublicationPackage, readMethodLabResearchState } from '@/lib/method-lab/researchObjects';
+import { buildMethodLabPublicationPackage, methodLabResearchHubTarget, persistMethodLabResearchObject, readMethodLabResearchState } from '@/lib/method-lab/researchObjects';
 import { runMethodLabSimulation } from '@/lib/method-lab/simulationRun';
 import { appendEpistemicEvent } from '@/lib/events/eventStore';
-import { appendOperationalEvent, recordValue, sha256 } from '@/lib/operational/common';
+import { appendOperationalEvent, createActionProposal, recordValue, sha256 } from '@/lib/operational/common';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { authorizeExternalRequest, externalActor } from '@/lib/sfi/externalAuth';
 
@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
-type LabOperation = 'state' | 'report' | 'persist' | 'run';
+type LabOperation = 'state' | 'report' | 'persist' | 'run' | 'promote';
 type PersistSemanticInput = {
   title: string;
   content: string;
@@ -24,7 +24,7 @@ type PersistSemanticInput = {
 
 function operationScope(operation: LabOperation) {
   if (operation === 'state' || operation === 'report') return 'lab:read';
-  if (operation === 'persist') return 'lab:write';
+  if (operation === 'persist' || operation === 'promote') return 'lab:write';
   return 'lab:run';
 }
 
@@ -89,7 +89,7 @@ function idempotentPersistResponse(input: {
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({})) as Record<string, unknown>;
   const operation = String(body.operation || 'state') as LabOperation;
-  if (!['state', 'report', 'persist', 'run'].includes(operation)) {
+  if (!['state', 'report', 'persist', 'run', 'promote'].includes(operation)) {
     return NextResponse.json({ ok: false, error: 'unsupported_lab_operation' }, { status: 400 });
   }
 
@@ -150,6 +150,87 @@ export async function POST(req: Request) {
       transportBoundary: 'Method Lab is source of truth. Hub/Zenodo mutation requires governed promotion plus an authorized external transport agent.',
       warnings,
     });
+  }
+
+
+  if (operation === 'promote') {
+    // This is only a REQUEST for the canonical research_hub_promotion proposal.
+    // It does not approve ROOT, transport files, publish in the Hub or release a DOI.
+    // A user-bound institutional ROOT must meet the same sovereign profile check
+    // used by /api/external/v1/governance/proposals/[id]/decision.
+    const hasProposalScope = Boolean(authorizeExternalRequest(req, 'propose').credential);
+    if (!hasProposalScope || cred.authMethod !== 'oauth' || cred.role !== 'root_delegate' ||
+        cred.tenantId !== 'sfi' || !cred.subjectId) {
+      return NextResponse.json({ ok: false, error: 'institutional_root_oauth_and_propose_scope_required' }, { status: 403 });
+    }
+    const db = createServiceSupabaseClient();
+    const profileResult = await db.from('profiles')
+      .select('user_id,role,module_access')
+      .eq('user_id', cred.subjectId)
+      .maybeSingle();
+    if (profileResult.error) return NextResponse.json({
+      ok: false, error: 'sovereign_root_profile_read_failed', details: profileResult.error.message,
+    }, { status: 503 });
+    const profile = recordValue(profileResult.data);
+    const access = recordValue(profile.module_access);
+    if (!['root', 'system'].includes(String(profile.role ?? '').toLowerCase()) ||
+        access.full_access !== true || access.root !== true) {
+      return NextResponse.json({ ok: false, error: 'sovereign_root_authority_required' }, { status: 403 });
+    }
+    const objectId = typeof body.objectId === 'string' ? body.objectId.trim() : '';
+    const expectedVersion = typeof body.expectedVersion === 'string' ? body.expectedVersion.trim() : '';
+    const expectedPackageHash = typeof body.expectedPackageHash === 'string' ? body.expectedPackageHash.trim() : '';
+    if (!objectId || !expectedVersion || !/^[a-f0-9]{64}$/.test(expectedPackageHash)) {
+      return NextResponse.json({
+        ok: false, error: 'object_id_exact_version_and_package_hash_required',
+      }, { status: 400 });
+    }
+    const research = await readMethodLabResearchState();
+    const object = research.objects.find(item => item.objectId === objectId);
+    if (!object) return NextResponse.json({ ok: false, error: 'research_object_not_found' }, { status: 404 });
+    if (object.publicationState !== 'PUBLIC_DERIVATIVE_READY') {
+      return NextResponse.json({ ok: false, error: 'public_derivative_not_ready', publicationState: object.publicationState }, { status: 409 });
+    }
+    const publicationPackage = buildMethodLabPublicationPackage(object);
+    if (object.version !== expectedVersion || publicationPackage.packageHash !== expectedPackageHash) {
+      return NextResponse.json({ ok: false, error: 'research_publication_snapshot_mismatch',
+        currentVersion: object.version, currentPackageHash: publicationPackage.packageHash }, { status: 409 });
+    }
+    const proposal = await createActionProposal({
+      proposalType: 'research_hub_promotion',
+      actorId: cred.subjectId,
+      title: `Promote ${object.objectId} to Research Hub`,
+      objective: `Publish the governed public derivative for ${object.objectId}; do not export restricted raw evidence.`,
+      status: 'proposed',
+      contentHash: publicationPackage.packageHash,
+      payload: {
+        objectId: object.objectId,
+        objectClass: object.objectClass,
+        version: object.version,
+        publicationState: object.publicationState,
+        packageHash: publicationPackage.packageHash,
+        target: `SFI-RESEARCH-HUB/${methodLabResearchHubTarget(object)}`,
+        transport: 'EXTERNAL_AGENT_GITHUB_CONNECTOR',
+        allowedAgents: ['ChatGPT', 'Gemini', 'Claude'],
+        rawDataIncluded: false,
+        files: publicationPackage.files.map(file => ({ path: file.path, sha256: file.sha256 })),
+      },
+    });
+    if (!proposal.ok) return NextResponse.json(proposal, { status: 500 });
+    const promoted = { ...object, publicationState: 'PROMOTION_REQUESTED' as const, updatedAt: new Date().toISOString() };
+    const persisted = await persistMethodLabResearchObject({
+      object: promoted,
+      actorId: cred.subjectId,
+      refs: [`proposal:${proposal.data.id}`, `package:${publicationPackage.packageHash}`],
+    });
+    return NextResponse.json({
+      ok: Boolean(persisted.ok), operation, actor: actorId,
+      proposal: proposal.data,
+      researchObject: promoted,
+      packageHash: publicationPackage.packageHash,
+      persisted: persisted.ok ? persisted.data : persisted,
+      next: 'Sovereign ROOT decision and separately attested exact-package Hub transport remain required. No automatic publication or DOI.',
+    }, { status: persisted.ok ? 201 : 500 });
   }
 
   if (operation === 'persist') {

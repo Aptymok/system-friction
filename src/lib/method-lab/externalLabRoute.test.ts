@@ -59,6 +59,27 @@ function harness(runError?: string) {
   return { events, runs, manifest: async () => (await load('src/app/api/external/v1/manifest/route.ts').GET()).json(), post: async (body: unknown, scope = 'lab:write') => exports.POST(new Request('https://sfi.test/api/external/v1/lab', { method: 'POST', headers: { 'x-test-scope': scope, 'content-type': 'application/json' }, body: JSON.stringify(body) })) as Promise<Response> };
 }
 
+test('research promotion rejects a Lab-write-only credential without creating authority', async () => {
+  const h = harness();
+  const result = await h.post({
+    operation: 'promote', objectId: 'SFI-KNIGHT-2012-TRIPLE-RESEARCH-001',
+    expectedVersion: '0.4.0', expectedPackageHash: 'a'.repeat(64),
+  }, 'lab:write');
+  assert.equal(result.status, 403);
+  assert.equal((await result.json()).error, 'institutional_root_oauth_and_propose_scope_required');
+  assert.equal(h.events.length, 0);
+});
+
+test('research promotion scope stays lab:write; governance and ROOT checks are additional server-side gates', () => {
+  const request = buildAuthenticatedGatewayRequest({
+    operationId: 'operateSfiLab',
+    body: { operation: 'promote', objectId: 'SFI-KNIGHT-2012-TRIPLE-RESEARCH-001',
+      expectedVersion: '0.4.0', expectedPackageHash: 'a'.repeat(64) },
+  });
+  assert.equal(request.scope, 'lab:write');
+  assert.equal(request.body.operation, 'promote');
+});
+
 test('persist rejects non-string title/content without coercing objects into evidence', async () => {
   for (const body of [{ title: {}, content: 'text' }, { title: 'title', content: { text: 'nested' } }]) {
     const h = harness();
