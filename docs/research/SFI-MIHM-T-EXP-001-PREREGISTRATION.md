@@ -167,3 +167,13 @@ Si el modelo no demuestra ventaja, el resultado institucional válido es `NO_INC
 MIHM-T's distinctive object is the **bounded system trajectory**, not the individual's decision structure (SFI-DT) or the artificial-agent developmental lineage (LCI). The candidate PEMS property asks which relations, historical dependencies, temporal coordinates and hard invariants must persist for a defined trajectory-reconstruction/intervention task. There is **no universal accepted percent difference**; per-task loss, unit, error costs, falsification and non-negotiable authority/evidence invariants must be fixed before test.
 
 The master follow-up matrix records `X-01`, `X-02`, `X-03`, `X-04`, `X-07`, `X-08` and `X-09`. This tracking note does **not** freeze missing MIHM-T preregistration fields, authorize a confirmatory run, equate cross-method Phi variables or create a live Research Hub entry. The scientific status remains `DRAFT_UNFROZEN`.
+
+---
+
+## Synthetic dimensional-transfer vector pilot (NON-NORMATIVE)
+
+See [MIHM-T Vector & Temporal Transfer Pilot 001](./MIHM-T-VECTOR-PILOT-001.md) for an exploratory, code-executable **synthetic** diagnostic built over the existing `SfiDimensionalTransferV0` contract. It tests time-admissibility and two ablations against a constructed vector scenario.
+
+The baseline without interaction in this pilot is **NOT** the competent conventional `M0` needed by this unfrozen MIHM-T preregistration. The demonstration tolerance `0.01`, chosen fixture weights and constructed outcome do **not** establish empirical thresholds, causality, individuation, PEMS minimality or forecast value.
+
+**Registration status remains `DRAFT_UNFROZEN`, and confirmatory endpoints, controls and eligibility remain to be finalized separately.**
