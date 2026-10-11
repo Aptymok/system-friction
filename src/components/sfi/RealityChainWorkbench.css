@@ -231,3 +231,13 @@
 .rcThreeMode .rcThreeStageBand button[aria-pressed=true]{background:rgba(25,24,18,.42)!important}
 .rcThreeMode .rcBackdrop{background:linear-gradient(90deg,rgba(3,5,7,.36),rgba(3,5,7,.2)),url('/assets/sfi/instruments/Imagen%20de%20ChatGPT%208%20oct%202026%2C%2011_40_18-1.png') center center / contain no-repeat!important}
 .rcThreeMode .rcBackdrop:after{background:linear-gradient(180deg,rgba(4,4,4,.08),transparent 38%,rgba(4,4,4,.3))!important}
+
+/* SFI 3840 panorama: one uninterrupted horizontal instrument, not 3 snapped slides. */
+.rcThreeMode .rcOperationalScroller{scroll-snap-type:none!important;scroll-behavior:smooth!important}
+.rcThreeMode .rcOperationalTrack{width:max(3840px,200vw)!important;min-width:max(3840px,200vw)!important;gap:0!important;display:flex!important}
+.rcThreeMode .rcHorizon.rcThreeHorizon{flex:0 0 33.333333%!important;width:33.333333%!important;min-width:0!important;scroll-snap-align:none!important}
+.rcThreeMode .rcFullChainStages{grid-auto-columns:minmax(145px,17%)!important;gap:8px!important}
+.rcThreeMode .rcThreeHorizonTop{min-height:0}
+.rcThreeMode .rcThreeHorizonBottom{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+.rcThreeMode .rcThreePane{padding:clamp(10px,1vw,18px)!important;overflow:auto!important}
+@media(max-width:900px){.rcThreeMode .rcOperationalTrack{width:3840px!important;min-width:3840px!important}.rcThreeMode .rcHorizon.rcThreeHorizon{width:1280px!important;flex-basis:1280px!important}}
