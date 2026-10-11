@@ -140,3 +140,18 @@ test('synthetic outcome scoring is separate from predicting and never returns ob
     caseId:x.caseId,outcomeClass:'SIMULATED',aggravation:false,
   }),/SCORING_REQUIRES_READY/);
 });
+
+test('fictional observation cannot be known before its own occurrence',()=>{
+  const f=clone();
+  f.readings[0].knownAt='2026-10-05T00:00:00Z';
+  const v=evaluateSyntheticTemporalVector(f);
+  assert.equal(v.status,'BLOCKED');
+  assert.ok(v.reasons.includes('READINGS_NOT_SYNTHETIC_OR_TEMPORALLY_VALID'));
+});
+test('proposed intervention after T0 cannot leak into a hypothetical T0 forecast',()=>{
+  const f=clone();
+  f.intervention.proposedAt='2026-10-08T00:00:00Z';
+  const v=evaluateSyntheticTemporalVector(f);
+  assert.equal(v.status,'BLOCKED');
+  assert.ok(v.reasons.includes('INTERVENTION_NOT_PROPOSED_BEFORE_T0'));
+});
