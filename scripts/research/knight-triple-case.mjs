@@ -6,6 +6,7 @@
  */
 import { pathToFileURL } from 'node:url';
 import { loadOfficialDossier, sourceViewAsOf } from './mihmt-knight-official.mjs';
+import { reconstructKnightFromReturn } from './knight-retrolongitudinal.mjs';
 
 export const TRIPLE_CASE_CONTRACT = 'SFI-REAL-HISTORICAL-TRIPLE-CASE-1.0';
 const KNIGHT_CASE='SFI-MIHMT-KNIGHT-2012-SEC-001';
@@ -124,12 +125,21 @@ export function evaluateKnightTripleCase(dossier,{asOfLocal='2013-10-17'}={}){
    methodologicalUse:'Documentary scenario may define a common task stimulus AFTER a genuine CT-A01 history is supplied; never substitute public case chronology for that history.',
  };
 
+ const retrocausal=reconstructKnightFromReturn(dossier,{asOfLocal});
  const DECISION_TRANSFER={
    trackId:'SFI-DT EXP-001',
    owningProtocol:'docs/research/decision-transfer/SFI-DT-EXP-001-FREEZE-CURRENT.md',
    protocolStatus:'EXPERIMENTALLY_FROZEN_AWAITING_NATURALISTIC_TARGET',
-   question:'What can the surviving real-world records establish about the structure of the historical human response decision?',
-   studyMode:'RETROSPECTIVE_DESCRIPTIVE_DECISION_TRACE_ONLY',
+   question:'Starting from an official documented real-world outcome, which prior conditions, signals and interventions are supportable under retrolongitudinal reconstruction? No future human decision is needed for this task.',
+   studyMode:'RETROLONGITUDINAL_RETROCAUSAL_OPERATION_RECONSTRUCTION',
+   actualCaseAdmission:retrocausal.status,
+   researchCaseAccepted:retrocausal.status==='ACCEPTED_FOR_DOCUMENTARY_RECONSTRUCTION',
+   humanDecisionTargetRequiredForThisCase:false,
+   retrocausalReverseSequence:retrocausal.reverseSequence.map(v=>({stage:v.stage,status:v.status,factIds:v.sourceFacts.map(x=>x.factId)})),
+   realWorldOutcome:retrocausal.outcome,
+   historicalActorCognition:retrocausal.historicalInternalInference.status,
+   historicalAuthorization:retrocausal.historicalAuthority.status,
+   separateFrozenConfirmatoryProtocolRequirement:'UNAFFECTED_AND_NOT_THIS_HISTORICAL_CASE',
    stage:contains(view,'F09')?'PARTIAL_DECISION_OPERATION_DOCUMENTED_WITHOUT_INTERNAL_HUMAN_TRACE':'NO_HISTORICAL_ACTION_VISIBLE_AS_OF_CUTOFF',
    historicalAction:contains(view,'F09')?{
      kind:'REMOVAL_OF_RLP_CODE_ON_SEVEN_UPDATED_SERVERS',
@@ -180,7 +190,7 @@ export function evaluateKnightTripleCase(dossier,{asOfLocal='2013-10-17'}={}){
        'Conduct full source/paragraph audit and identify missing primary receipts for time, action, authorization.',
        'Run a documented conventional M0 retrospective explanation before considering incremental MIHM-T model claims.',
        'Acquire real agent developmental logs and independent holdouts before LCI scoring.',
-       'Register a genuinely future naturalistic human target for frozen SFI-DT EXP-001.',
+       'Complete the RETROLONGITUDINAL historical operation reconstruction from documented outcome to prior constraints, retaining all unknowable authorizers and cognition as unknown.',
      ],
    }
  };
@@ -199,6 +209,8 @@ export function assertTripleBoundaries(result){
  if(lci.knightIsArtificialSubject!==false || lci.subjectRunVerified!==false ||
     lci.metricsNotComputable?.length!==6 || dt.confirmatoryEligible!==false ||
     dt.validatedStructuralFidelity!==null || dt.frozenArmsModified!==false ||
+    dt.humanDecisionTargetRequiredForThisCase!==false ||
+    !['ACCEPTED_FOR_DOCUMENTARY_RECONSTRUCTION','BLOCKED_NO_DOCUMENTED_OUTCOME_AT_CUTOFF'].includes(dt.actualCaseAdmission) ||
     mihm.prospectiveTest!==false || mihm.competentM0Executed!==false)throw Error('INVALID_EXPERIMENTAL_PROMOTION');
  return true;
 }
