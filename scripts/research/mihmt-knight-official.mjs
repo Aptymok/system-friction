@@ -121,7 +121,7 @@ export function summaryOfCase(d){
 }
 
 export function loadOfficialDossier() {
-  const url=new URL('../../../docs/research/cases/SFI-MIHMT-KNIGHT-2012-OFFICIAL-DOSSIER.json',import.meta.url);
+  const url=new URL('../../docs/research/cases/SFI-MIHMT-KNIGHT-2012-OFFICIAL-DOSSIER.json',import.meta.url);
   return validateOfficialDossier(JSON.parse(readFileSync(url,'utf8')));
 }
 if(process.argv[1] && import.meta.url===pathToFileURL(process.argv[1]).href) {
