@@ -378,6 +378,7 @@ test('authenticated gateway projection resolves bounded scopes without authority
   assert.equal(requiredScopeForAuthenticatedGatewayInvocation({ operationId: 'readSfiConsole' }), 'observe');
   assert.equal(requiredScopeForAuthenticatedGatewayInvocation({ operationId: 'operateSfiLab', body: { operation: 'state' } }), 'lab:read');
   assert.equal(requiredScopeForAuthenticatedGatewayInvocation({ operationId: 'operateSfiLab', body: { operation: 'persist' } }), 'lab:write');
+  assert.equal(requiredScopeForAuthenticatedGatewayInvocation({ operationId: 'operateSfiLab', body: { operation: 'promote' } }), 'lab:write');
   assert.equal(requiredScopeForAuthenticatedGatewayInvocation({ operationId: 'operateSfiLab', body: { operation: 'run' } }), 'lab:run');
   assert.equal(requiredScopeForAuthenticatedGatewayInvocation({ operationId: 'operateSfiCaseWorkspace', body: { operation: 'list' } }), 'cases:read');
   assert.equal(requiredScopeForAuthenticatedGatewayInvocation({ operationId: 'operateSfiCaseWorkspace', body: { operation: 'transition' } }), 'cases:write');
