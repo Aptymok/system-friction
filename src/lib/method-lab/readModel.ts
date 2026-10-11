@@ -5,6 +5,7 @@ import { SFI_AGENT_EXECUTION_MAP } from '@/lib/sfi/cognitive-runtime/agentExecut
 import { COGNITIVE_TWIN_REENTRY } from '@/core/cognitive-twin/reentry/runtime';
 import { METHOD_LAB_CONTRACT_VERSION, type MethodLabProtocolId, type MethodLabProtocolStatus } from './contracts';
 import { METHOD_LAB_PROTOCOLS } from './registry';
+import { evaluateMihmFoundationMissingness } from './mihmFoundationDiagnostic';
 import { assertMethodLabExperimentPreregistration, projectMethodLabMethodResult, type MethodLabExperimentPreregistration, type MethodLabExperimentRun } from './experimentContract';
 import { readUniversalLearningQuarantine } from '@/lib/sfi/universalLearningQuarantine';
 import { methodLabPreregistrationId } from './experimentPersistence';
