@@ -177,3 +177,15 @@ See [MIHM-T Vector & Temporal Transfer Pilot 001](./MIHM-T-VECTOR-PILOT-001.md) 
 The baseline without interaction in this pilot is **NOT** the competent conventional `M0` needed by this unfrozen MIHM-T preregistration. The demonstration tolerance `0.01`, chosen fixture weights and constructed outcome do **not** establish empirical thresholds, causality, individuation, PEMS minimality or forecast value.
 
 **Registration status remains `DRAFT_UNFROZEN`, and confirmatory endpoints, controls and eligibility remain to be finalized separately.**
+
+---
+
+## Official historical Knight Capital case (REAL DATA, retrospective only)
+
+The first official-document case is [Knight Capital 2012 — Official SEC/EDGAR Evidence](./cases/SFI-MIHMT-KNIGHT-2012-OFFICIAL-CASE.md), with a [source-indexed historical dossier](./cases/SFI-MIHMT-KNIGHT-2012-OFFICIAL-DOSSIER.json) and pure as-of chronology tests.
+
+**Real incident, real official documents:** 5 official SEC/EDGAR sources, 15 source-located documented findings, 11 real dated quantitative readings, 8 historical relations. This is not the synthetic MIHM transfer QA fixture; the two must remain distinct.
+
+**Scientific scope:** valid for documentary historical reconstruction and exploratory calibration. The regulator's findings were publicly released in October 2013, so they cannot be used as information publicly available to an external analyst on August 1, 2012. The event's historic occurrence time is not a public knowledge timestamp. No blind confirmatory prediction, calibrated probability, competent M0 comparison or observed prospective RETURN is claimed.
+
+This new real-data case **does not freeze or otherwise amend** the `DRAFT_UNFROZEN` MIHM-T EXP-001 protocol. Source registration in Method Lab is a documentary research act, not automatic canonical evidence admission to Reality Chain.
