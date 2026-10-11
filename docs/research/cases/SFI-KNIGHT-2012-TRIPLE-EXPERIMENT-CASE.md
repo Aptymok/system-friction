@@ -3,10 +3,20 @@
 **Document status:** `WORKING_REAL_HISTORICAL_TRIPLE_CASE / DOCUMENTARY_DIAGNOSTIC`  
 **Case ID:** `SFI-MIHMT-KNIGHT-2012-SEC-001`  
 **Evidence:** REAL HISTORICAL OFFICIAL SOURCE DOCUMENTS — **not synthetic**.  
-**Experimental validity:** NOT YET ESTABLISHED for LCI, SFI-DT EXP-001 or MIHM-T EXP-001.  
+**Experimental validity:** The Knight retrospective-reconstruction case is admissible; confirmatory experimental validation remains NOT ESTABLISHED for LCI, frozen SFI-DT EXP-001 or MIHM-T EXP-001.  
 **Authority boundary:** NO Reality Chain admission, no institutional world RETURN, no new Phi, no policy/protocol rewrite, no automatic Research Hub publication.  
 **Shared original sources:** [Existing SEC/EDGAR dossier](./SFI-MIHMT-KNIGHT-2012-OFFICIAL-DOSSIER.json) and [official source narrative](./SFI-MIHMT-KNIGHT-2012-OFFICIAL-CASE.md).  
 **Executable diagnostic:** `scripts/research/knight-triple-case.mjs` and [tests](../../scripts/research/knight-triple-case.test.mjs).
+
+## 2026-10-11 Scope correction — historical retrocausal study is ACCEPTED
+
+**Correct research instruction:** Start with an actual externally documented historical RETURN; reconstruct earlier states, operational interventions and source-constrained rival explanations **backward** (`RETROLONGITUDINAL`, `RECONSTRUCTED_TIME`); then select a historical `T0` and perform a time-filtered **hindsight replay** as a diagnostic. A new future human decision is **not required** for this case.
+
+**Admissibility:** `ACCEPTED_FOR_RETROCAUSAL_HISTORICAL_LAB_RECONSTRUCTION`, Method Lab CASE `SFI-CASE-KNIGHT-2012-DT-001` version `1.1.0`. The earlier `1.0.0 NOT_ACCEPTED` applied **only** to treating Knight as a target of the unrelated *frozen SFI-DT EXP-001* confirmatory protocol, not to the intended historical research. Both scope-specific decisions remain in the append-only ledger.
+
+**Temporal contract:** [SFI-TEMPORAL-CONTRACT-1.0](../../architecture/sfi/SFI-TEMPORAL-CONTRACT-1.0.md); method `DIOL_RETROLONGITUDINAL` in [SFI Methods](../../../scripts/cognitive-olympics/lib/sfi-methods.mjs). **Retrocausal means inverse explanatory inquiry from consequence to preceding conditions, not physical backwards causation.**
+
+**Executable reconstruction:** [knight-retrolongitudinal.mjs](../../../scripts/research/knight-retrolongitudinal.mjs) and [QA](../../../scripts/research/knight-retrolongitudinal.test.mjs). No source evidence, historical agent thought, authorizer, physical execution or institutional RETURN is created by the function.
 
 ## Scientific distinction
 
@@ -16,7 +26,7 @@ The same **real August 1, 2012 market-routing incident** is a defensible study o
 |---|---|---|---|
 | **MIHM-T** | Bounded socio-technical system, latent conditions, multiple operational clocks, intervention propagation | Real SEC findings of hidden Power Peg functionality, staggered deployment, 97 warning emails, routing failure, insufficient controls and worsening rollback | Identifiable causal counterfactual, prespecified predictive endpoint, properly capable same-data M0, unseen/negative cases, genuine prospective RETURN |
 | **LCI** | **Artificial agent CT-A01**, contrasted with controlled lineages CT-B01 and CT-C01 | **Task/case stimulus**: an official historical dossier with distinct publication vintages. Does *not* equal the CT subject's developmental biography | Actual CT-A01 versioned longitudinal ledger, agent's historical execution/output receipts, seed/model controls, other-lineage biography, sealed out-of-sample targets. No BPA/CLS/TCI/CAE/RRA/ALI score eligible here |
-| **SFI-DT EXP-001** | A **future naturalistic human decision** under its fixed arm matrix and structural fidelity | Historical human intervention **operation** (removal of RLP code from seven servers) reported by SEC; some system variables. **No recoverable complete decision process or authorizer receipt** | A different genuinely *future* person/decision target, registered prior to reveal, blinded model outputs, context/target proof and the frozen CT_FULL-vs-B5 validation |
+| **RETROLONGITUDINAL operations (DT-related diagnostic)** | **Backward reconstruction from independently documented RETURN**, with earlier configurations, signals, actions and unknowns | SEC-reported real historical outcome and operational aggravation, source-dated and reconstructed backward; **no inferred decision-maker identity or intentions** | Historical record gaps, rival explanatory paths and original operation/authorization receipts; the separate frozen SFI-DT EXP-001 confirmatory protocol is not scored here |
 
 ### Why this matters
 
@@ -63,7 +73,7 @@ The five SFI-DT structural fields remain versioned and weighted as in the **orig
 | Rejected conditions | Alternative remedies that operator explicitly rejected | **UNKNOWN** |
 | Decision-change cues | Conditions that would have caused the operator to decide otherwise | **UNKNOWN** |
 
-There is **no** honest structural fidelity score from this partial record; `validatedStructuralFidelity=null` and `primaryComparisonCTvsB5=null` remain mandatory. Recording a human historical operation does **not** register a new naturalistic future target.
+There is **no** honest structural fidelity score from this partial record; `validatedStructuralFidelity=null` and `primaryComparisonCTvsB5=null` remain mandatory. **This retrocausal historical case does not require a future human decision**, and these fields are a descriptive audit only. The separate frozen SFI-DT EXP-001 cannot be validated using it.
 
 ## LCI gate — actual biography is not a real incident's historical timeline
 
@@ -100,7 +110,7 @@ For real-case measurements, documentary classification remains `REAL_HISTORICAL_
 
 - **MIHM-T:** complete a conventional same-information M0 documentary reading on this case; identify mechanisms and negative controls; define predictive eligibility for genuinely unseen cases.
 - **LCI:** acquire a true CT-A01 subject history and measured CT-B01/CT-C01 controls, not a synthetic or borrowed biography.
-- **SFI-DT:** register a genuinely future human naturalistic target; keep the frozen arm matrix and weights.
+- **Retrocausal operations:** start with the externally documented real RETURN, reconstruct historical configurations, signals and actions backward with DIOL-RETROLONGITUDINAL, and flag unknown human inference/authorization without imputing them. The separate frozen SFI-DT confirmatory protocol is unchanged and is *not a prerequisite for this retrospective case*.
 - **Cross-experiment:** keep a shared **source registry**, but separate raw case facts, subject-specific agent ledger, decision cutoffs, output receipts, scientific comparisons and empirical RETURN adjudications.
 
 **Research coordination:** [Three-Experiment Convergence](../SFI-THREE-EXPERIMENTS-CONVERGENCE.md).
