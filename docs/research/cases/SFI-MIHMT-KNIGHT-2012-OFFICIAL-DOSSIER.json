@@ -1,0 +1,443 @@
+{
+  "contract": "SFI-MIHMT-OFFICIAL-HISTORICAL-CASE-1.0",
+  "caseId": "SFI-MIHMT-KNIGHT-2012-SEC-001",
+  "caseTitle": "Knight Capital SMARS failure — August 1, 2012",
+  "dataClass": "REAL_HISTORICAL_OFFICIAL_DOCUMENTATION",
+  "studyRole": "RETROSPECTIVE_RECONSTRUCTION_AND_CALIBRATION_ONLY",
+  "eventOutcomeKnowledge": "KNOWN_TO_RESEARCHERS_AND_LLM_POSSIBLE_PRETRAINING",
+  "institution": "Knight Capital Americas LLC",
+  "jurisdiction": "United States",
+  "primaryRegulator": "U.S. Securities and Exchange Commission",
+  "sourcePolicies": {
+    "acceptedForWorkingAnalysis": true,
+    "acceptedIntoCanonicalRealityChain": false,
+    "canonicalEvidenceMinted": false,
+    "sourceDocumentIsReal": true,
+    "regulatoryFindingIsDirectSfiObservation": false,
+    "documentFoundTodayIsNotAvailableAtHistoricalT0": true,
+    "sourceDocumentDateDoesNotProveTimeOfInternalHumanKnowledge": true,
+    "actualAgentInferenceRecorded": false,
+    "forecastConfirmatoryEligible": false,
+    "comparisonAgainstCompetentM0Completed": false,
+    "preserveContradictionsAndEstimateRevisions": true,
+    "originalSecuritiesOrdersOrSystemLogsAccessibleToSfi": false,
+    "noFabricatedTimestampOrAuthority": true
+  },
+  "temporalCuts": [
+    {
+      "id": "PRE_INCIDENT_PUBLIC",
+      "asOfLocal": "2012-08-01",
+      "boundary": "Strictly published before date, not during incident",
+      "purpose": "Historical public knowledge only; SEC July 2012 regulatory context allowed, 2013 SEC incident findings excluded."
+    },
+    {
+      "id": "POST_INITIAL_DISCLOSURE",
+      "asOfLocal": "2012-08-03",
+      "boundary": "Source available by prior calendar day",
+      "purpose": "Public release with initial loss estimate available; 2013 root cause remains excluded."
+    },
+    {
+      "id": "POST_SEC_FINDINGS",
+      "asOfLocal": "2013-10-17",
+      "boundary": "Source available by prior calendar day",
+      "purpose": "2013 regulatory retrospective reconstruction now possible; not an 2012 prediction."
+    }
+  ],
+  "officialSources": [
+    {
+      "id": "SEC-RLP-67347",
+      "kind": "SEC_REGULATORY_ORDER",
+      "title": "NYSE Retail Liquidity Program approval",
+      "issuer": "U.S. Securities and Exchange Commission",
+      "documentDate": "2012-07-03",
+      "publicAvailableFrom": "2012-07-10",
+      "dateBasis": "Federal Register publication date stated by SEC",
+      "url": "https://www.sec.gov/rules-regulations/self-regulatory-organization-rulemaking/sr-nyse-2011-55",
+      "context": "Only public rulemaking context; NOT Knight-specific engineering evidence"
+    },
+    {
+      "id": "KCG-8K-20120802",
+      "kind": "SEC_EDGAR_ISSUER_FILING",
+      "title": "Knight Capital Group Form 8-K for August 2, 2012",
+      "issuer": "Knight Capital Group Inc., SEC EDGAR archive",
+      "documentDate": "2012-08-02",
+      "publicAvailableFrom": "2012-08-02",
+      "dateBasis": "8-K report/event date; no intra-day public availability proof",
+      "url": "https://www.sec.gov/Archives/edgar/data/1060749/000119312512332176/d391111d8k.htm",
+      "context": "Contemporaneous issuer disclosure; not independent SEC finding"
+    },
+    {
+      "id": "KCG-EX-99.1-20120802",
+      "kind": "SEC_EDGAR_ISSUER_EXHIBIT",
+      "title": "Knight Capital Group update on August 1 disruption",
+      "issuer": "Knight Capital Group Inc., SEC EDGAR archive",
+      "documentDate": "2012-08-02",
+      "publicAvailableFrom": "2012-08-02",
+      "dateBasis": "Issuer press release dated August 2, 2012",
+      "url": "https://www.sec.gov/Archives/edgar/data/1060749/000119312512332176/d391111dex991.htm",
+      "context": "Company's preliminary loss estimate"
+    },
+    {
+      "id": "KCG-8K-20120806",
+      "kind": "SEC_EDGAR_ISSUER_FILING",
+      "title": "Knight Capital Group August 6 2012 $400 million financing Form 8-K",
+      "issuer": "Knight Capital Group Inc., SEC EDGAR archive",
+      "documentDate": "2012-08-06",
+      "publicAvailableFrom": "2012-08-06",
+      "dateBasis": "Issuer's Form 8-K dated August 6, 2012; no intra-day publication proof",
+      "url": "https://www.sec.gov/Archives/edgar/data/1060749/000119312512338098/d392396d8k.htm",
+      "context": "Issuer disclosure of subsequent financing"
+    },
+    {
+      "id": "SEC-KNIGHT-70694",
+      "kind": "SEC_ADMINISTRATIVE_ORDER",
+      "title": "In the Matter of Knight Capital Americas LLC, Exchange Act Release 34-70694",
+      "issuer": "U.S. Securities and Exchange Commission",
+      "documentDate": "2013-10-16",
+      "publicAvailableFrom": "2013-10-16",
+      "dateBasis": "SEC order dated October 16, 2013",
+      "url": "https://www.sec.gov/Archives/edgar/data/1569391/000119312513401173/d613486dex101.htm",
+      "context": "Regulatory findings on an accepted settlement order; respondent did not admit/deny findings except jurisdiction. Facts described retrospectively, not public pre-incident evidence"
+    }
+  ],
+  "documentedFindings": [
+    {
+      "id": "F01",
+      "stage": "PUBLIC_CONTEXT",
+      "eventOn": "2012-07-03",
+      "sourceId": "SEC-RLP-67347",
+      "locator": "SEC 34-67347 title + July 3 issuance",
+      "statement": "SEC approved NYSE Retail Liquidity Program rules; this was publicly documented before the Knight incident.",
+      "assertionClass": "REGULATORY_ORDER",
+      "relevance": "Public policy context, not proof of Knight's deployment state."
+    },
+    {
+      "id": "F02",
+      "stage": "HISTORICAL_DEPENDENCY",
+      "eventOn": "2003",
+      "sourceId": "SEC-KNIGHT-70694",
+      "locator": "SEC order ¶14",
+      "statement": "Knight had stopped using Power Peg in 2003; residual functionality later remained callable.",
+      "assertionClass": "REGULATORY_FINDING",
+      "subjectKnowledgeAtEvent": "NOT_ESTABLISHED_BY_PUBLIC_DOCUMENT"
+    },
+    {
+      "id": "F03",
+      "stage": "HISTORICAL_DEPENDENCY",
+      "eventOn": "2005",
+      "sourceId": "SEC-KNIGHT-70694",
+      "locator": "SEC order ¶14",
+      "statement": "The cumulative-share counting function was moved earlier in SMARS in 2005; Power Peg was not retested after this change.",
+      "assertionClass": "REGULATORY_FINDING"
+    },
+    {
+      "id": "F04",
+      "stage": "DEPLOYMENT",
+      "eventOn": "2012-07-27",
+      "sourceId": "SEC-KNIGHT-70694",
+      "locator": "SEC order ¶15",
+      "statement": "Beginning July 27, RLP code was deployed on seven of eight SMARS servers; the eighth retained old code because the new code was not copied; the process lacked second-technician review.",
+      "assertionClass": "REGULATORY_FINDING",
+      "eventOnScope": "START_DATE_DEPLOYMENT_STAGGERED"
+    },
+    {
+      "id": "F05",
+      "stage": "WEAK_SIGNAL",
+      "eventOn": "2012-08-01",
+      "sourceId": "SEC-KNIGHT-70694",
+      "locator": "SEC order ¶19",
+      "statement": "Beginning at approximately 08:01 ET, an internal system generated 97 BNET reject emails referencing 'Power Peg disabled' before the 09:30 ET market open.",
+      "assertionClass": "REGULATORY_FINDING",
+      "eventTimeLocal": "08:01",
+      "eventTimePrecision": "APPROXIMATE_START",
+      "sourceSystem": "BNET",
+      "recipients": "Knight personnel group; identities not disclosed",
+      "actorKnowledge": "GENERALLY_NOT_REVIEWED; NO PROOF_ANY_RECIPIENT_ACTED"
+    },
+    {
+      "id": "F06",
+      "stage": "INITIAL_FAULT",
+      "eventOn": "2012-08-01",
+      "sourceId": "SEC-KNIGHT-70694",
+      "locator": "SEC order ¶16",
+      "statement": "Orders routed to the eighth server activated dormant defective Power Peg code; the other seven servers initially processed the new RLP code correctly.",
+      "assertionClass": "REGULATORY_FINDING"
+    },
+    {
+      "id": "F07",
+      "stage": "EXECUTION",
+      "eventOn": "2012-08-01",
+      "sourceId": "SEC-KNIGHT-70694",
+      "locator": "SEC order ¶¶1,17",
+      "statement": "Over approximately 45 minutes, SMARS obtained over four million executions in 154 stocks for over 397 million shares while processing 212 parent orders.",
+      "assertionClass": "REGULATORY_FINDING",
+      "quantity": {
+        "parentOrders": 212,
+        "executionsLowerBound": 4000000,
+        "executionComparison": ">",
+        "stocks": 154,
+        "sharesLowerBound": 397000000,
+        "sharesComparison": ">",
+        "periodMinutesApprox": 45
+      },
+      "distinction": "Executions are not synonymous with child orders sent."
+    },
+    {
+      "id": "F08",
+      "stage": "LATENT_CONTROL",
+      "eventOn": "2012-08-01",
+      "sourceId": "SEC-KNIGHT-70694",
+      "locator": "SEC order ¶¶20–26",
+      "statement": "SMARS lacked sufficient output-order monitoring and automated safeguards that could halt erroneous outgoing orders; firm-wide aggregate capital thresholds were not linked to preventive controls.",
+      "assertionClass": "REGULATORY_FINDING"
+    },
+    {
+      "id": "F09",
+      "stage": "INCIDENT_RESPONSE",
+      "eventOn": "2012-08-01",
+      "sourceId": "SEC-KNIGHT-70694",
+      "locator": "SEC order ¶27",
+      "statement": "During the live incident, Knight uninstalled RLP code from seven correctly updated servers; the SEC states this worsened the problem by activating residual Power Peg code on those servers.",
+      "assertionClass": "REGULATORY_FINDING",
+      "authorityActor": "UNKNOWN",
+      "authorizationReceipt": "NOT_AVAILABLE_IN_OFFICIAL_SOURCE",
+      "executionReceipt": "NOT_AVAILABLE_TO_SFI; REGULATOR_REPORTS_ACTION",
+      "relativeTime": "DURING_INCIDENT; EXACT_TIME_NOT_STATED",
+      "causalAttribution": "REGULATORY_FINDING_NOT_RANDOMIZED_EXPERIMENT"
+    },
+    {
+      "id": "F10",
+      "stage": "POST_INCIDENT_DISCLOSURE",
+      "eventOn": "2012-08-02",
+      "sourceId": "KCG-EX-99.1-20120802",
+      "locator": "Exhibit 99.1; press release dated August 2",
+      "statement": "Knight announced a realized pretax loss of approximately $440 million resulting from the August 1 software disruption and reported removal of the faulty software.",
+      "assertionClass": "ISSUER_DISCLOSURE",
+      "amountUSDApprox": 440000000,
+      "financialCategory": "PRETAX_REALIZED_ISSUER_INITIAL_ESTIMATE"
+    },
+    {
+      "id": "F11",
+      "stage": "FINANCIAL_RETURN",
+      "eventOn": "2012-08-06",
+      "sourceId": "KCG-8K-20120806",
+      "locator": "Item 1.01, Securities Purchase Agreement",
+      "statement": "Knight disclosed completion of a $400 million financing through convertible preferred stock on August 6, 2012.",
+      "assertionClass": "ISSUER_DISCLOSURE",
+      "amountUSD": 400000000,
+      "distinction": "Financing is not a trading-loss figure."
+    },
+    {
+      "id": "F12",
+      "stage": "REGULATORY_FINDING",
+      "eventOn": "2012-08-01",
+      "sourceId": "SEC-KNIGHT-70694",
+      "locator": "SEC order ¶¶1,17",
+      "statement": "The SEC later found a loss exceeding $460 million from the unwanted positions; this figure differs from the company's August 2 preliminary $440 million estimate.",
+      "assertionClass": "REGULATORY_FINDING",
+      "amountUSDLowerBound": 460000000,
+      "lossComparison": ">",
+      "note": "Temporal update, not necessarily a contradiction; values refer to different publication dates and estimates."
+    },
+    {
+      "id": "F13",
+      "stage": "HISTORICAL_WARNING",
+      "eventOn": "2011-10",
+      "sourceId": "SEC-KNIGHT-70694",
+      "locator": "SEC order ¶33",
+      "statement": "An earlier Knight disaster-recovery test-data failure in October 2011 resulted in a loss of nearly $7.5 million; the SEC reported it did not trigger a firmwide review of order-entry controls.",
+      "assertionClass": "REGULATORY_FINDING",
+      "subjectKnowledgeAtEvent": "EXISTENCE_OF_INCIDENT_PRESUMED_AT_FIRM; DOCUMENTATION_ACCESS_AT_T0_UNVERIFIED"
+    },
+    {
+      "id": "F14",
+      "stage": "MONITORING",
+      "eventOn": "2012-08-01",
+      "sourceId": "SEC-KNIGHT-70694",
+      "locator": "SEC order ¶25",
+      "statement": "PMON was a post-execution position-monitoring tool, not an automated order-entry stop; reports could be delayed or inaccurate during high-volume incidents.",
+      "assertionClass": "REGULATORY_FINDING"
+    },
+    {
+      "id": "F15",
+      "stage": "MARKET_POSITION",
+      "eventOn": "2012-08-01",
+      "sourceId": "SEC-KNIGHT-70694",
+      "locator": "SEC order ¶1",
+      "statement": "At cessation of the erroneous routing, Knight had about $3.5 billion net long and $3.15 billion net short positions.",
+      "assertionClass": "REGULATORY_FINDING",
+      "longUSDApprox": 3500000000,
+      "shortUSDApprox": 3150000000
+    }
+  ],
+  "dimensionalReadings": [
+    {
+      "id": "D01",
+      "dimension": "DEPLOYMENT",
+      "measure": "smars_servers_total",
+      "value": 8,
+      "operator": "EQUALS",
+      "unit": "servers",
+      "findingRef": "F04"
+    },
+    {
+      "id": "D02",
+      "dimension": "DEPLOYMENT",
+      "measure": "correctly_updated_servers",
+      "value": 7,
+      "operator": "EQUALS",
+      "unit": "servers",
+      "findingRef": "F04"
+    },
+    {
+      "id": "D03",
+      "dimension": "DEPLOYMENT",
+      "measure": "servers_with_remaining_defective_code",
+      "value": 1,
+      "operator": "EQUALS",
+      "unit": "servers",
+      "findingRef": "F04"
+    },
+    {
+      "id": "D04",
+      "dimension": "SIGNALS",
+      "measure": "pre_open_bnet_reject_emails",
+      "value": 97,
+      "operator": "EQUALS",
+      "unit": "emails",
+      "findingRef": "F05"
+    },
+    {
+      "id": "D05",
+      "dimension": "EXECUTION",
+      "measure": "incoming_parent_orders",
+      "value": 212,
+      "operator": "EQUALS",
+      "unit": "orders",
+      "findingRef": "F07"
+    },
+    {
+      "id": "D06",
+      "dimension": "EXECUTION",
+      "measure": "market_executions",
+      "value": 4000000,
+      "operator": "GREATER_THAN",
+      "unit": "executions",
+      "findingRef": "F07"
+    },
+    {
+      "id": "D07",
+      "dimension": "EXECUTION",
+      "measure": "executed_share_quantity",
+      "value": 397000000,
+      "operator": "GREATER_THAN",
+      "unit": "shares",
+      "findingRef": "F07"
+    },
+    {
+      "id": "D08",
+      "dimension": "TIME",
+      "measure": "estimated_problem_window",
+      "value": 45,
+      "operator": "APPROXIMATELY",
+      "unit": "minutes",
+      "findingRef": "F07"
+    },
+    {
+      "id": "D09",
+      "dimension": "FINANCE",
+      "measure": "aug2_preliminary_pretax_loss",
+      "value": 440000000,
+      "operator": "APPROXIMATELY",
+      "unit": "USD",
+      "findingRef": "F10"
+    },
+    {
+      "id": "D10",
+      "dimension": "FINANCE",
+      "measure": "sec_final_loss_lower_bound",
+      "value": 460000000,
+      "operator": "GREATER_THAN",
+      "unit": "USD",
+      "findingRef": "F12"
+    },
+    {
+      "id": "D11",
+      "dimension": "FINANCE",
+      "measure": "aug6_financing",
+      "value": 400000000,
+      "operator": "EQUALS",
+      "unit": "USD",
+      "findingRef": "F11"
+    }
+  ],
+  "relationships": [
+    {
+      "id": "R01",
+      "source": "F03",
+      "target": "F06",
+      "type": "DOCUMENTED_HISTORICAL_DEPENDENCY",
+      "qualifier": "SEC_2013_RETROSPECTIVE",
+      "interpretation": "Moving the cumulative counter in 2005 affected dormant Power Peg behavior."
+    },
+    {
+      "id": "R02",
+      "source": "F04",
+      "target": "F06",
+      "type": "DOCUMENTED_CONFIGURATION_SEQUENCE",
+      "qualifier": "SEC_2013_RETROSPECTIVE"
+    },
+    {
+      "id": "R03",
+      "source": "F05",
+      "target": "F06",
+      "type": "PRE_OPEN_SIGNAL_OF_DEPLOYMENT_PROBLEM",
+      "qualifier": "SEC_2013_RETROSPECTIVE; NOT_ASSERTED_REVIEWED_BY_HUMAN"
+    },
+    {
+      "id": "R04",
+      "source": "F06",
+      "target": "F07",
+      "type": "DOCUMENTED_TRADING_ERROR_PROPAGATION",
+      "qualifier": "SEC_2013_RETROSPECTIVE"
+    },
+    {
+      "id": "R05",
+      "source": "F09",
+      "target": "F07",
+      "type": "DOCUMENTED_AGGRAVATION_DURING_INCIDENT",
+      "qualifier": "SEC_2013_FINDING_NOT_COUNTERFACTUAL_EFFECT_QUANTIFICATION"
+    },
+    {
+      "id": "R06",
+      "source": "F07",
+      "target": "F10",
+      "type": "DOCUMENTED_SUBSEQUENT_ISSUER_LOSS_ESTIMATE",
+      "qualifier": "ISSUER_DISCLOSED_AUG2"
+    },
+    {
+      "id": "R07",
+      "source": "F07",
+      "target": "F12",
+      "type": "DOCUMENTED_LATER_SEC_ESTIMATE",
+      "qualifier": "SEC_OCT2013"
+    },
+    {
+      "id": "R08",
+      "source": "F10",
+      "target": "F11",
+      "type": "FINANCIAL_RESPONSE_SEQUENCE",
+      "qualifier": "SEQUENCE_ONLY_NO_CAUSAL_EFFECT_ESTIMATE"
+    }
+  ],
+  "outstanding": {
+    "internalChangeTicket": "NOT_IN_PUBLIC_RECORDS_INSPECTED",
+    "operatorIdentityForReversal": "NOT_IN_PUBLIC_RECORDS_INSPECTED",
+    "incidentRollbackClockTime": "UNKNOWN",
+    "authenticatedSignOffForReversal": "UNKNOWN",
+    "exactSourceDocumentReleaseHours": "UNKNOWN",
+    "contemporaneousMachineLogs": "NOT_AVAILABLE_TO_THIS_DOSSIER",
+    "counterfactualAlternateIncidentOutcome": "NOT_OBSERVED",
+    "prospectiveForecastFrom2012": "NOT_PERFORMED"
+  }
+}
