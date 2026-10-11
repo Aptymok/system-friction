@@ -133,6 +133,7 @@ test('synthetic outcome scoring is separate from predicting and never returns ob
   assert.equal(scored.noInteractionAblation,0.64);
   assert.equal(scored.fullVectorClockCandidate,0.169085);
   assert.equal(scored.resultIsScientificValidation,false);
+  assert.throws(()=>scoreSyntheticOutcome(prediction,{caseId:'LAB-SYN-OTHER-CASE',outcomeClass:'SIMULATED',aggravation:true}),/SCORING_REQUIRES_READY/);
   assert.equal(scored.realityChainEligible,false);
   const x=clone();x.latent.knownAt='2026-10-08T00:00:00Z';
   assert.throws(()=>scoreSyntheticOutcome(evaluateSyntheticTemporalVector(x),{
