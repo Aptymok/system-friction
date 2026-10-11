@@ -111,3 +111,15 @@
 .obsOperationalGrid>*{flex:0 0 clamp(220px,23vw,360px);min-width:0;scroll-snap-align:start}
 @media(max-width:760px){.obsOperationalGrid>*{flex-basis:min(78vw,340px)}}
 @media(prefers-reduced-motion:reduce){.obsShell .starfield,.obsShell .geoHalo,.obsShell .tensionLayer path{animation:none!important}}
+
+/* Prevent Observatory controls and the timeline from occupying the same space. */
+.obsOperationalHeader{grid-template-columns:minmax(170px,1fr) auto!important}
+.obsOperationalLenses{top:70px!important;left:32%!important;right:2%!important;flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:thin;max-width:66vw}
+.obsShell .obsScene .obsOperationalFilters{top:128px!important;left:32%!important;width:66vw!important;max-height:112px!important;overflow:auto!important}
+.obsOperationalGrid{bottom:100px!important;height:185px!important}
+.obsOperationalTimeline{min-height:76px!important;z-index:45!important}
+@media(max-width:950px){
+ .obsOperationalLenses{left:12px!important;right:12px!important;max-width:calc(100vw - 24px);top:72px!important}
+ .obsShell .obsScene .obsOperationalFilters{left:12px!important;top:127px!important;width:calc(100vw - 24px)!important}
+ .obsOperationalGrid{bottom:86px!important;height:170px!important}
+}
