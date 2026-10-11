@@ -268,13 +268,6 @@ export function RealityChainWorkbench(){
   };
 
  return <main className="rcOperational rcThreeMode" aria-label="Authenticated Reality Chain">
-  <header className="rcOperationalHead">
-    <span>REALITY CHAIN · INSTITUTIONAL RECONSTRUCTION</span>
-    <strong>KNOWN THEN ≠ KNOWN NOW</strong>
-    <button type="button" aria-current={screen===0?'step':undefined} onClick={()=>scrollTo(0)}>01 · OBSERVE</button>
-    <button type="button" aria-current={screen===1?'step':undefined} onClick={()=>scrollTo(1)}>02 · ASSESS</button>
-    <button type="button" aria-current={screen===2?'step':undefined} onClick={()=>scrollTo(2)}>03 · ACT & LEARN</button>
-  </header>
 
   <div className="rcGlobalCaseBar">
     <label>PROJECT
@@ -313,9 +306,6 @@ export function RealityChainWorkbench(){
 
       <section className="rcHorizon rcThreeHorizon" aria-label="Screen 1 · Full Reality Chain overview">
         <div className="rcThreeHorizonTop">
-          <div className="rcScreenIdentifier">01 / 03</div>
-          <h1>REAL WORLD → SIGNAL → OBSERVATION → EVIDENCE → INFERENCE → AUTHORITY → EXECUTION → RETURN</h1>
-          <p>Inspect the complete institutional chain. Select any stage; the recorded case and its provenance remain live.</p>
           <div className="rcThreeStageBand rcFullChainStages" aria-label="Eight linked stages, horizontally scrollable">
             {STEPS.slice(0,3).concat(STEPS.slice(3,6),STEPS.slice(6,8)).map((stage,index)=><button key={stage.name} type="button" onClick={()=>{setActiveStep(index);setSelectedObject(null)}} aria-pressed={activeStep===index}>
               <small>0{index+1}</small><strong>{stage.name}</strong><span>{stage.role}</span><em>{stageCoverage[index]} REPRESENTED</em>
@@ -461,12 +451,6 @@ export function RealityChainWorkbench(){
     </div>
   </div>
 
-  <footer className="rcOperationalFooter">
-    <div><strong>REALITY CHAIN · THREE COGNITIVE SCREENS</strong><span>ORIGIN · LINEAGE · AUTHORITY · TIME · RETURN</span></div>
-    <button type="button" onClick={()=>scrollTo(Math.max(0,screen-1))} disabled={screen===0}>← PREVIOUS</button>
-    <div className="rcOperationalFooterRail"><span>{screen===0?'WORLD · SIGNAL · OBSERVATION':screen===1?'EVIDENCE · INFERENCE · AUTHORITY':'EXECUTION · RETURN · LEARNING'}</span></div>
-    <button type="button" onClick={()=>scrollTo(Math.min(2,screen+1))} disabled={screen===2}>NEXT →</button>
-  </footer>
   {message?<div className="rcToast" role="status">{message}<button onClick={()=>setMessage('')} aria-label="Dismiss message">×</button></div>:null}
   {error?<div className="rcToast rcToastError" role="alert">{error}<button onClick={()=>setError('')} aria-label="Dismiss error">×</button></div>:null}
  </main>;
