@@ -56,6 +56,8 @@ jobs:
 
       - name: Verify MIHM method selection
         run: npx tsx scripts/qa-sfi-method-selection.ts
+      - name: Verify synthetic MIHM-T temporal vector boundaries
+        run: node --import tsx --test src/lib/mihm/experimentalTemporalVectorPilot.test.ts
 
       - name: Verify Cognitive Twin authority contract
         run: node --import tsx --test src/core/cognitive-twin/contract.test.ts
