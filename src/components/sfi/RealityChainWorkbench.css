@@ -204,3 +204,19 @@
 
 /* Three live horizontal screens remain interactive; illustration is not evidence. */
 .rcBackdrop{background:linear-gradient(90deg,rgba(4,5,5,.76),rgba(4,5,5,.47)),url("/assets/sfi/instruments/RealityChain.png") center / cover no-repeat!important}
+
+/* Panoramic reconstruction: three EXISTING operational screens, not one compressed dashboard. */
+.rcThreeMode .rcOperationalScroller{overflow-x:auto!important;overflow-y:hidden!important;scroll-snap-type:x mandatory!important;overscroll-behavior-x:contain;scroll-behavior:smooth}
+.rcThreeMode .rcOperationalTrack{width:300vw!important;min-width:300vw!important;display:flex!important}
+.rcThreeMode .rcHorizon.rcThreeHorizon{flex:0 0 100vw!important;width:100vw!important;min-width:100vw!important;scroll-snap-align:start;padding:clamp(14px,1.8vw,28px)!important;gap:clamp(10px,1.4vh,20px)!important}
+.rcThreeMode .rcThreeHorizonTop{gap:clamp(6px,.75vh,12px)}
+.rcThreeMode .rcThreeHorizonTop h1{font-size:clamp(20px,2vw,32px)!important;line-height:1.14!important}
+.rcThreeMode .rcThreeHorizonTop>p{font-size:clamp(12px,.95vw,15px)!important}
+.rcThreeMode .rcFullChainStages{grid-template-columns:none!important;grid-auto-flow:column;grid-auto-columns:minmax(180px,22vw);display:grid!important;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x proximity;overscroll-behavior-x:contain;scrollbar-width:thin;scrollbar-color:#C8A951 transparent;padding-bottom:8px;max-height:200px}
+.rcThreeMode .rcFullChainStages button{min-width:0!important;min-height:152px!important;scroll-snap-align:start;padding:10px 13px!important}
+.rcThreeMode .rcFullChainStages strong{font-size:clamp(16px,1.3vw,23px)!important}
+.rcThreeMode .rcFullChainStages span{font-size:12px!important}
+.rcThreeMode .rcThreeHorizonBottom{display:grid!important;grid-template-columns:repeat(3,minmax(260px,1fr))!important;gap:clamp(12px,1.2vw,23px)!important;flex:1;min-height:0}
+.rcThreeMode .rcThreePane{overflow-y:auto!important;overflow-x:hidden!important;min-height:0!important;border:1px solid rgba(212,175,55,.35)!important;background:rgba(4,6,7,.79)!important;backdrop-filter:none!important}
+.rcThreeMode .rcBackdrop{background:linear-gradient(90deg,rgba(3,5,7,.76),rgba(3,5,7,.54)),url('/assets/sfi/instruments/RealityChain.png') center / cover no-repeat!important}
+@media(max-width:900px){.rcThreeMode .rcThreeHorizonBottom{grid-template-columns:repeat(3,minmax(260px,78vw))!important;overflow-x:auto!important;scroll-snap-type:x proximity}.rcThreeMode .rcFullChainStages{grid-auto-columns:minmax(160px,52vw)}}
