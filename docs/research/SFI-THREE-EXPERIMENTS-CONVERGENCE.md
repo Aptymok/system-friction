@@ -153,3 +153,9 @@ The review is an additional research input only. It does **not** alter the froze
 [Knight Capital 2012 — One Real Case / Three Independent Research Lenses](./cases/SFI-KNIGHT-2012-TRIPLE-EXPERIMENT-CASE.md) is the first **single shared real-data dossier** intentionally mapped to MIHM-T, LCI, and SFI-DT without inventing equivalent subjects, experimental outcomes or cross-program validation.
 
 The SEC/EDGAR history is real. MIHM-T may reconstruct documented system interactions, **LCI still needs real CT-A01 developmental history**, and **SFI-DT remains frozen pending a genuinely future naturalistic human decision**. The shared as-of source view prohibits 2013 SEC findings from appearing as publicly known in August 2012. A GitHub QA pass is a software result, not experimental verification of LCI, Decision Transfer or MIHM-T.
+
+---
+
+## SFI MIHM parent is independent of MIHM-T and CIMPS 2026
+
+The [SFI MIHM Foundational Research Program](./SFI-MIHM-FOUNDATION-RESEARCH-PROGRAM-001.md) is a parent general systemic formalism with its own boundary, variable, evidence, hypothesis and validation obligations. `MIHM-T` studies a subset of the parent's temporal relations. Neither MIHM-T nor the separate CIMPS 2026 paper defines the whole MIHM or automatically validates it. LCI, SFI-DT and PEMS retain separate scientific ownership, subject identity, endpoints and research states.
