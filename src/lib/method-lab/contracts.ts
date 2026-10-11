@@ -5,7 +5,8 @@ export type MethodLabProtocolId =
   | 'cognitive_relational_lab'
   | 'ct_reentry'
   | 'sociotechnical_simulation'
-  | 'economic_simulation';
+  | 'economic_simulation'
+  | 'mihm_foundation_diagnostic';
 
 export type MethodLabValidationLevel = 'STRUCTURAL' | 'LOGICAL' | 'SIMULATION' | 'RETROSPECTIVE' | 'PROSPECTIVE';
 export type MethodLabProtocolStatus = 'REGISTERED' | 'AVAILABLE' | 'OPERATIONAL' | 'DEGRADED';
