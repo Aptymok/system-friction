@@ -31,3 +31,9 @@ Do **not** change `preregistration-v0.1.json` implicitly, redefine its metrics o
 ## Research Hub status
 
 This Markdown is a repository research companion, not proof that the experiment has a published entry in the governed Hub. Hub representation requires the existing Method Lab research-object lifecycle and appropriate authority.
+
+---
+
+## Real historical cross-case stimulus — Knight 2012 (NON-NORMATIVE)
+
+[Knight Capital 2012: one real source dossier, three bounded research lenses](../../docs/research/cases/SFI-KNIGHT-2012-TRIPLE-EXPERIMENT-CASE.md) can inform the design of a controlled historic **task stimulus** for CT-A01. This documentary incident does **not** supply CT-A01's developmental biography or a sealed agent-specific future outcome. BPA/CLS/TCI/CAE/RRA/ALI remain **NOT COMPUTABLE** from the incident record alone. The preregistration JSON and its lineages/controls are unchanged.
