@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 const read=(path:string)=>readFileSync(path,'utf8');
 const route=read('src/app/api/reality-chain/extract/route.ts');
 const parser=read('src/lib/studio/multimodal/textAnalyzer.ts');
@@ -24,4 +24,14 @@ assert.match(ui,/persistTraceManifest/,'Source-linked trace manifest must be per
 assert.match(ui,/DERIVED_RECORD_NOT_AUTHORIZED_REPORT/,'Trace snapshot is never promoted to institutional authority');
 assert.doesNotMatch(ui,/src="\/assets\/sfi\/instruments\/RealityChain\\.png"/,'Operative case reconstruction cannot fake panels with a flattened reference image');
 assert.match(publicSurface,/label:'RECONSTRUCT A CASE',href:'\/reality-chain'/,'Public introduction should lead to account-scoped workspace');
+const sceneImages=[...ui.matchAll(/className="rcThreeScene" src="([^"]+)"/g)];
+assert.equal(sceneImages.length,3,'Each section of the 3840px workbench requires its own explicit atmospheric image');
+for(const [,src] of sceneImages){
+  assert.ok(existsSync('public'+decodeURIComponent(src)),'Reality Chain scene image must exist in tracked public assets: '+src);
+}
+const layout=read('src/components/sfi/RealityChainWorkbench.css');
+assert.match(layout,/width:max\(3840px,200vw\)/,'Panoramic workbench must retain its 3840px minimum width');
+assert.match(layout,/\.rcThreeMode \.rcThreeScene\{/,'Atmospheric scene images must be explicitly styled rather than hidden behind a backdrop');
+assert.doesNotMatch(layout,/rcBackdrop[^\n]*contain no-repeat/,'No full-track contain letterboxing that makes background images disappear');
+
 console.log('PASS · Reality Chain case access, source-only intake, parser reuse, non-promotion, report boundaries and existing assets');
