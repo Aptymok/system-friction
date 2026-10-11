@@ -14,6 +14,7 @@ type Row = Record<string, unknown>;
 type DependencyState = { table: string; available: boolean; error: string | null };
 
 const IMPLEMENTATION_GATES: Record<MethodLabProtocolId, () => boolean> = {
+  mihm_foundation_diagnostic: () => typeof evaluateMihmFoundationMissingness === 'function',
   chronos_olympics: () => true,
   cognitive_relational_lab: () => true,
   ct_reentry: () => Boolean(COGNITIVE_TWIN_REENTRY.subjectId && COGNITIVE_TWIN_REENTRY.lineageId),
