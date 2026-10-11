@@ -317,7 +317,7 @@ export function RealityChainWorkbench(){
           <h1>REAL WORLD → SIGNAL → OBSERVATION → EVIDENCE → INFERENCE → AUTHORITY → EXECUTION → RETURN</h1>
           <p>Inspect the complete institutional chain. Select any stage; the recorded case and its provenance remain live.</p>
           <div className="rcThreeStageBand rcFullChainStages" aria-label="Eight linked stages, horizontally scrollable">
-            {STEPS.slice(0,8).map((stage,index)=><button key={stage.name} type="button" onClick={()=>{setActiveStep(index);setSelectedObject(null)}} aria-pressed={activeStep===index}>
+            {STEPS.slice(0,3).concat(STEPS.slice(3,6),STEPS.slice(6,8)).map((stage,index)=><button key={stage.name} type="button" onClick={()=>{setActiveStep(index);setSelectedObject(null)}} aria-pressed={activeStep===index}>
               <small>0{index+1}</small><strong>{stage.name}</strong><span>{stage.role}</span><em>{stageCoverage[index]} REPRESENTED</em>
             </button>)}
           </div>
