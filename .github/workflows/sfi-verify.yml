@@ -58,6 +58,8 @@ jobs:
         run: npx tsx scripts/qa-sfi-method-selection.ts
       - name: Verify official historical MIHM-T source chronology
         run: node --test scripts/research/mihmt-knight-official.test.mjs && node scripts/research/mihmt-knight-official.mjs
+      - name: Verify real Knight triple-case experiment boundaries
+        run: node --test scripts/research/knight-triple-case.test.mjs && node scripts/research/knight-triple-case.mjs
       - name: Verify synthetic MIHM-T temporal vector boundaries
         run: node --import tsx --test src/lib/mihm/experimentalTemporalVectorPilot.test.ts
 
