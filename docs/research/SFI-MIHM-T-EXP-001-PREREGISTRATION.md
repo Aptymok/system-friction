@@ -195,3 +195,11 @@ This new real-data case **does not freeze or otherwise amend** the `DRAFT_UNFROZ
 ## Shared Knight 2012 case: three separate research lenses (NON-NORMATIVE)
 
 The [real SEC/EDGAR dossier](./cases/SFI-MIHMT-KNIGHT-2012-OFFICIAL-DOSSIER.json) now has a [three-experiment crosswalk](./cases/SFI-KNIGHT-2012-TRIPLE-EXPERIMENT-CASE.md) and a read-only, source-vintage-safe analysis. MIHM-T can study the real historical deployment, signals and intervention sequence without importing imaginary risk probabilities. LCI requires actual CT-A01 lineage and controls; SFI-DT requires a different future naturalistic target. No common empirical validation or confirmed counterfactual effect is inferred. MIHM-T remains `DRAFT_UNFROZEN`.
+
+---
+
+## Parent MIHM scientific research program (non-normative cross-reference)
+
+`MIHM-T EXP-001` is **derived from**, and scientifically subordinate to, the [independent SFI MIHM foundation research program](./SFI-MIHM-FOUNDATION-RESEARCH-PROGRAM-001.md). Before any MIHM-T temporal-transfer research claim, the parent must specify a bounded `SfiSystemModelV1`, its `SfiSystemBoundaryV1`, actual source/target dimension IDs, applicable primary method, source vintage and evidence admissibility. The [parent-child research gate](../../src/lib/mihm/foundationResearchContract.ts) checks these requirements without computing Phi or asserting scientific validity.
+
+CIMPS 2026 is a separately versioned scholarly submission, **not** the owner or scientific definition of SFI MIHM. This link does not freeze the still-`DRAFT_UNFROZEN` MIHM-T hypothesis, scoring or publication status.
