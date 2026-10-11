@@ -220,3 +220,14 @@
 .rcThreeMode .rcThreePane{overflow-y:auto!important;overflow-x:hidden!important;min-height:0!important;border:1px solid rgba(212,175,55,.35)!important;background:rgba(4,6,7,.79)!important;backdrop-filter:none!important}
 .rcThreeMode .rcBackdrop{background:linear-gradient(90deg,rgba(3,5,7,.76),rgba(3,5,7,.54)),url('/assets/sfi/instruments/RealityChain.png') center / cover no-repeat!important}
 @media(max-width:900px){.rcThreeMode .rcThreeHorizonBottom{grid-template-columns:repeat(3,minmax(260px,78vw))!important;overflow-x:auto!important;scroll-snap-type:x proximity}.rcThreeMode .rcFullChainStages{grid-auto-columns:minmax(160px,52vw)}}
+
+/* Operational decluttering: no duplicate navigation, no footer obstructing controls. */
+.rcThreeMode .rcGlobalCaseBar{top:0!important}
+.rcThreeMode .rcOperationalScroller{inset:82px 0 0!important;scrollbar-width:thin!important;scrollbar-color:rgba(218,175,83,.6) rgba(0,0,0,.12)!important}
+.rcThreeMode .rcOperationalScroller::-webkit-scrollbar{display:block!important;height:8px}
+.rcThreeMode .rcOperationalScroller::-webkit-scrollbar-thumb{background:rgba(218,175,83,.62);border-radius:10px}
+.rcThreeMode .rcThreePane{background:rgba(6,7,8,.24)!important;backdrop-filter:none!important}
+.rcThreeMode .rcThreeStageBand button{background:rgba(8,9,10,.12)!important;backdrop-filter:none!important}
+.rcThreeMode .rcThreeStageBand button[aria-pressed=true]{background:rgba(25,24,18,.42)!important}
+.rcThreeMode .rcBackdrop{background:linear-gradient(90deg,rgba(3,5,7,.36),rgba(3,5,7,.2)),url('/assets/sfi/instruments/Imagen%20de%20ChatGPT%208%20oct%202026%2C%2011_40_18-1.png') center center / contain no-repeat!important}
+.rcThreeMode .rcBackdrop:after{background:linear-gradient(180deg,rgba(4,4,4,.08),transparent 38%,rgba(4,4,4,.3))!important}
