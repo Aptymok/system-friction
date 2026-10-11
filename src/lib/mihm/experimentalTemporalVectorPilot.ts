@@ -54,6 +54,7 @@ export type MihmTemporalVectorPilotInput = {
 
 export type SyntheticPilotPrediction = {
   status: 'READY' | 'BLOCKED';
+  caseId: string;
   reasons: string[];
   epistemicClass: 'SIMULATED';
   prospective: false;
@@ -90,7 +91,7 @@ const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
 
 function blocked(reasons: string[], input: MihmTemporalVectorPilotInput): SyntheticPilotPrediction {
   return {
-    status: 'BLOCKED', reasons, epistemicClass: 'SIMULATED', prospective: false,
+    status: 'BLOCKED', caseId: input?.caseId ?? 'UNKNOWN', reasons, epistemicClass: 'SIMULATED', prospective: false,
     sourceReadingId: null, targetReadingId: null,
     predictedAggravationRisk: {
       noInteractionAblation: null, fullVectorClockCandidate: null,
@@ -148,10 +149,13 @@ export function evaluateSyntheticTemporalVector(input: MihmTemporalVectorPilotIn
   }
   if (!Array.isArray(input.readings) || input.readings.length < 2 ||
       input.readings.some(v=>!v || v.epistemicClass !== 'SIMULATED' || !finite01(v.value) ||
-        !isIso(v.occurredAt) || !isIso(v.knownAt) || !v.id?.startsWith('LAB-SYN-'))) {
+        !isIso(v.occurredAt) || !isIso(v.knownAt) ||
+        Date.parse(v.knownAt) < Date.parse(v.occurredAt) ||
+        !v.id?.startsWith('LAB-SYN-'))) {
     fail.push('READINGS_NOT_SYNTHETIC_OR_TEMPORALLY_VALID');
   }
   if (fail.length) return blocked(fail, input);
+  if (!source || !target) return blocked(['DIMENSION_PAIR_INVALID'],input);
   const allowed = input.readings.filter(r =>
     Date.parse(r.occurredAt) <= Date.parse(input.cutoffAt) &&
     Date.parse(r.knownAt) <= Date.parse(input.cutoffAt));
@@ -172,7 +176,7 @@ export function evaluateSyntheticTemporalVector(input: MihmTemporalVectorPilotIn
   if (Math.abs(full - baseline) > equivalence) needed.push('source','latent_dependency');
   if (Math.abs(full - noClock) > equivalence) needed.push('clock');
   return {
-    status:'READY',reasons:[],epistemicClass:'SIMULATED',prospective:false,
+    status:'READY',caseId:input.caseId,reasons:[],epistemicClass:'SIMULATED',prospective:false,
     sourceReadingId:s.id,targetReadingId:d.id,
     predictedAggravationRisk:{
       noInteractionAblation:round(baseline),
@@ -195,11 +199,13 @@ export function evaluateSyntheticTemporalVector(input: MihmTemporalVectorPilotIn
 /** Score ONLY after sealing prediction; never pass outcome into predictor. */
 export function scoreSyntheticOutcome(prediction: SyntheticPilotPrediction,
   outcome: {caseId:string; outcomeClass:'SIMULATED'; aggravation: boolean}) {
-  if (prediction.status !== 'READY' || outcome.outcomeClass !== 'SIMULATED' ||
+  if (prediction.status !== 'READY' || prediction.caseId !== outcome.caseId ||
+      outcome.outcomeClass !== 'SIMULATED' ||
       typeof outcome.aggravation !== 'boolean') throw Error('SCORING_REQUIRES_READY_SYNTHETIC_PREDICTION_AND_OUTCOME');
   const score = (p:number|null) => p===null?null:round((p-Number(outcome.aggravation))**2);
   return {
     scoringClass:'SYNTHETIC_DEMONSTRATION_ONLY' as const,
+    caseId:prediction.caseId,
     objective:'Brier loss, lower is better; no empirical validation',
     noInteractionAblation:score(prediction.predictedAggravationRisk.noInteractionAblation),
     fullVectorClockCandidate:score(prediction.predictedAggravationRisk.fullVectorClockCandidate),
