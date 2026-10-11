@@ -16,6 +16,7 @@ const accessCss=read('src/app/root/access/root-access.css');
 const observatory=read('src/components/sfi/ObservatoryConsole.tsx');
 const observatoryCss=read('src/components/sfi/ObservatoryConsole.css');
 const realityCss=read('src/components/sfi/RealityChainWorkbench.css');
+const realityUi=read('src/components/sfi/RealityChainWorkbench.tsx');
 const methodCss=read('src/components/sfi/MethodLabUnifiedSurface.css');
 const repositoryCss=read('src/app/repository/repository.css');
 const repositoryUi=read('src/app/repository/RepositoryConsole.tsx');
@@ -62,7 +63,13 @@ assert.ok(timelinePage.includes('readPublicWorldSnapshotTimeline') && timelinePa
 assert.equal(methodNativeCss.includes("url('/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_26-3.png')"),false,'method_lab_must_not_render_screenshot_as_dashboard');
 assert.equal(repositoryCss.includes("url('/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_42-7.png')"),false,'repository_must_not_render_screenshot_as_dashboard');
 assert.ok(repositoryUi.includes('SOURCE RECORDS') && repositoryUi.includes('DISCOVERY MESH') && repositoryUi.includes('REPOSITORY HISTORY') && repositoryCss.includes('.repoReader') && repositoryCss.includes('.repoDiscovery'), 'unified_repository_operational_visual_contract_missing');
-assert.ok(realityCss.includes('blur(11px)') && realityCss.includes('width:300vw'),'reality_chain_reference_must_not_read_as_fake_ui');
+assert.ok(
+  realityCss.includes('width:max(3840px,200vw)') &&
+  realityCss.includes('.rcThreeMode .rcThreeScene{') &&
+  realityUi.includes('className="rcThreeScene"') &&
+  !realityUi.includes('<div className="rcBackdrop"'),
+  'reality_chain_must_render_distinct_photographic_scenes_behind_live_workbench_on_3840_canvas'
+);
 
 for(const source of [rail,evidence,access]) assert.equal(/createServiceSupabaseClient|\.from\(|\.insert\(|\.update\(|\.upsert\(/.test(source),false,'visual convergence must not create a new data owner');
 
