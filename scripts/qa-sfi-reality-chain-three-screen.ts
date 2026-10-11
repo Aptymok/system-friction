@@ -10,9 +10,9 @@ const stageNames=['WORLD','SIGNAL','OBSERVATION','EVIDENCE','INFERENCE','AUTHORI
 for(const label of stageNames) assert(ui.includes("name:'"+label+"'"),'missing stage '+label);
 assert.equal((ui.match(/className="rcHorizon rcThreeHorizon"/g)||[]).length,3,'exactly three screen groups');
 assert(ui.includes('STEPS.slice(0,3)')&&ui.includes('STEPS.slice(3,6)')&&ui.includes('STEPS.slice(6,9)'),'three groups of three');
-assert(css.includes('width:300vw')&&css.includes('flex:0 0 100vw'),'three viewport-wide stages, not 225vw scroll');
-assert(css.includes('scrollbar-width:none')&&css.includes('::-webkit-scrollbar{display:none}'),'invisible horizontal scrollbar');
-assert(ui.includes('className="rcBackdrop"')&&!ui.includes('<img src="/assets/sfi/instruments/RealityChain.png"'),'operational chain uses live UI rather than a screenshot backdrop');
+assert(css.includes('width:max(3840px,200vw)')&&css.includes('flex:0 0 33.333333%'),'three live chapters require a continuous panoramic 3840px track');
+assert(css.includes('scrollbar-width:thin')&&css.includes('::-webkit-scrollbar{display:block'),'horizontal scrolling must remain visually discoverable');
+assert((ui.match(/className="rcThreeScene"/g)||[]).length===3&&!ui.includes('<div className="rcBackdrop"')&&!ui.includes('<img src="/assets/sfi/instruments/RealityChain.png"'),'three actual scene images must sit behind interactive case controls, not replace them');
 assert(ui.includes('rcLearningIcon')&&ui.includes('aria-label="Learning"'),'semantic LEARNING icon inside screen three');
 assert(ui.includes("requestJson('/api/cases')")&&ui.includes("requestJson('/api/cases/'+encodeURIComponent(id))"),'existing case/tenant API');
 assert(ui.includes('EXTRACT TEXT TEMPORARILY')&&ui.includes('STORE SOURCE PRIVATELY'),'both transient extraction and direct upload');
