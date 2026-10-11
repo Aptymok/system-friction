@@ -237,15 +237,7 @@ export function ObservatoryConsole(){
   return <><main className="obsShell" data-canonical-visual="SFI-INSTRUMENT-OBSERVATORY-1.0" data-temporal-focus={requestedFocus==='timeline'?'true':'false'} data-world-availability={availability.world} data-state-availability={availability.state} data-timeline-availability={availability.timeline}><section className={`obsScene lens-${lens}`}>
     <header className="obsOperationalHeader">
       <Link href="/" className="obsOperationalIdentity" aria-label="SFI home"><span>S F I</span><i/> <small>SYSTEM FRICTION INSTITUTE</small></Link>
-      <nav aria-label="Operational SFI instruments">
-        <Link href="/root">ROOT</Link>
-        <Link href="/observatory" aria-current="page">OBSERVATORY</Link>
-        <Link href="/reality-chain">REALITY CHAIN</Link>
-        <Link href="/method-lab">METHOD LAB</Link>
-        <Link href="/repository">REPOSITORY</Link>
-        <Link href="/timeline">TIMELINE</Link>
-        <Link href="/root/access">ACCESS</Link>
-      </nav>
+
       <span className="obsOperationalStamp">{clock.slice(0,10) || '—'} · {clock.slice(11,16) || '—'} UTC</span>
     </header>
     <div className="obsOperationalTitle"><strong>OBSERVATORY</strong><small>LIVE FIELD · WORLD VECTOR · SOURCES · TRAJECTORIES</small><span>NOTHING ACTS ALONE.<br/>REALITY ANSWERS BACK.</span></div>
