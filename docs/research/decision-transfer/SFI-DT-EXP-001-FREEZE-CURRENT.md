@@ -136,3 +136,11 @@ This is a **navigation and follow-up note only**. It does **not** amend the expe
 LCI tracks agent developmental-biography specificity; MIHM-T tracks systems and temporal interventions. Their results do not validate this Decision Transfer experiment, and this experiment cannot automatically validate either. The master follow-up matrix records `X-01`, `X-02`, `X-05`, `X-07`, `X-08` and `X-09`.
 
 **Hub boundary:** this Markdown link is not a published governed Research Hub object. Publication or promotion requires the existing Method Lab / ROOT authority and independent receipts.
+
+---
+
+## Knight 2012 real-case retrospective trace — outside EXP-001 (NON-NORMATIVE)
+
+[One Real Case / Three Research Lenses](../cases/SFI-KNIGHT-2012-TRIPLE-EXPERIMENT-CASE.md) documents a human *historical operation* reported by SEC (removal of RLP code during the 2012 incident). The actual authorizer, recorded disposition, rejected conditions and decision-change cues remain **UNKNOWN** in the sourced dossier. **No structural fidelity score or CT_FULL–B5 contrast is available** for this historic trace.
+
+This navigation link **does not** change frozen arms/weights, register a new prospective target, grant new authority or claim an EXP-001 confirmatory run. `AWAITING_NATURALISTIC_TARGET` remains the only accurate target state.
