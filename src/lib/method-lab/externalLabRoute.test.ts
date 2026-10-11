@@ -181,6 +181,28 @@ test('published research metadata survives MCP, receipt and real object projecti
   assert.equal(h.events.length, 1);
 });
 
+test('explicit null research confidence survives source normalization and public package as NOT_ASSESSED', async () => {
+  const h = harness();
+  const objectId = 'qa-confidence-null';
+  const initial = { objectId, objectClass: 'RESEARCH', title: 'Confidence boundary',
+    publicationState: 'PUBLIC_DERIVATIVE_READY', confidence: 0,
+    epistemicState: 'NOT_TESTED', returnState: 'NOT_APPLICABLE', version: '1.0.0' };
+  assert.equal((await h.post({operation:'persist',commandId:'qa-confidence-zero',title:'Confidence boundary',
+    content:'Explicitly calibrated zero in test fixture',metadata:{kind:'METHOD_LAB_RESEARCH_OBJECT',researchObject:initial}})).status, 201);
+  const corrected = { ...initial, version:'1.0.1', confidence:null };
+  assert.equal((await h.post({operation:'persist',commandId:'qa-confidence-null',title:'Confidence boundary',
+    content:'Explicitly unassessed confidence, not zero',metadata:{kind:'METHOD_LAB_RESEARCH_OBJECT',researchObject:corrected}})).status, 201);
+  const result = await h.post({operation:'report',objectId},'lab:read');
+  assert.equal(result.status,200);
+  const json = await result.json();
+  assert.equal(json.researchObject.version,'1.0.1');
+  assert.equal(json.researchObject.confidence,null,'null must override earlier assessed zero');
+  assert.equal(json.publicationPackage.manifest.object.confidence,null);
+  const trace = json.publicationPackage.files.find((f: {path:string})=>f.path==='PUBLIC_TRACE.md');
+  assert.ok(trace.content.includes('## Confidence\\nNOT_ASSESSED\\n'));
+  assert.ok(!trace.content.includes('## Confidence\\n0\\n'));
+});
+
 test('malformed or ambiguous metadata is rejected instead of silently discarded', async () => {
   for (const metadata of [[], 'text', null]) {
     const h = harness();
