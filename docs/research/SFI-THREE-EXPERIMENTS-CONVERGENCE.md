@@ -145,3 +145,11 @@ The review is an additional research input only. It does **not** alter the froze
 ## MIHM-T synthetic vector pilot — diagnostic only
 
 [MIHM-T Vector & Temporal Transfer Pilot 001](./MIHM-T-VECTOR-PILOT-001.md) introduces a bounded software QA exercise for one existing dimensional-transfer representation, with `T0` filtering, lag, latent-dependency ablations, case-bound synthetic score and no authority/evidence mutation. It is **not** another confirmatory research protocol, nor a validation of MIHM-T, LCI or SFI-DT. The study convergence is still `WORKING / NOT_TESTED` and PEMS remains proposed.
+
+---
+
+## First real triple-case crosswalk: Knight Capital 2012
+
+[Knight Capital 2012 — One Real Case / Three Independent Research Lenses](./cases/SFI-KNIGHT-2012-TRIPLE-EXPERIMENT-CASE.md) is the first **single shared real-data dossier** intentionally mapped to MIHM-T, LCI, and SFI-DT without inventing equivalent subjects, experimental outcomes or cross-program validation.
+
+The SEC/EDGAR history is real. MIHM-T may reconstruct documented system interactions, **LCI still needs real CT-A01 developmental history**, and **SFI-DT remains frozen pending a genuinely future naturalistic human decision**. The shared as-of source view prohibits 2013 SEC findings from appearing as publicly known in August 2012. A GitHub QA pass is a software result, not experimental verification of LCI, Decision Transfer or MIHM-T.
