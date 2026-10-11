@@ -58,6 +58,8 @@ jobs:
         run: npx tsx scripts/qa-sfi-method-selection.ts
       - name: Verify MIHM foundation missingness diagnostic
         run: npx tsx scripts/qa-sfi-mihm-foundation-missingness.ts
+      - name: Verify MIHM research passport preview boundaries
+        run: node --import tsx --test src/lib/method-lab/researchPassportPreview.test.ts
       - name: Verify independent SFI MIHM foundation and MIHM-T parent-child boundary
         run: node --import tsx --test src/lib/mihm/foundationResearchContract.test.ts
       - name: Verify official historical MIHM-T source chronology
