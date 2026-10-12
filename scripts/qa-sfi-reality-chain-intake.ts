@@ -27,6 +27,18 @@ assert.ok(panorama,'One photographic panorama must remain in the authenticated o
 assert.equal(panorama?.[1],'/assets/sfi/instruments/RealityChain.png','Use the explicitly requested RealityChain.png');
 assert.ok(existsSync('public'+panorama![1]),'The single panorama file must exist in tracked assets');
 assert.equal((ui.match(/className="rcPanoramaImage"/g)||[]).length,1,'The background must not be repeated');
+// All eight source assets are canonical, not substituted vector lookalikes.
+const canonicalStages=['WORLD','SIGNAL','OBSERVATION','EVIDENCE','INFERENCE','AUTHORITY','EXECUTION','RETURN'];
+for(let index=1;index<=8;index++){
+  const basename='SFI_RCH_'+String(index).padStart(2,'0')+'.png';
+  const uri='/assets/sfi/instruments/'+basename;
+  assert.ok(existsSync('public'+uri),'Canonical stage icon missing: '+basename);
+  assert.ok(ui.includes("'"+uri+"'"),'Canonical stage icon not referenced in the workbench: '+basename);
+  assert.ok(ui.includes("name:'"+canonicalStages[index-1]+"'"),'Stage order must stay aligned with icon '+basename);
+}
+assert.match(ui,/className="rcHubArtwork"/,'Canonical art must render on operational stage hubs');
+assert.match(ui,/step<8\?HUB_ARTWORK\[step\]:undefined/,'LEARNING must not invent a ninth canonical stage icon');
+
 assert.equal((ui.match(/className="rcThreeScene"/g)||[]).length,0,'No separate repeated screen images');
 const layout=read('src/components/sfi/RealityChainWorkbench.css');
 assert.ok(layout.includes('width:var(--rc-canvas-width,3840px)'),'Canvas size must be bounded to image native width');
