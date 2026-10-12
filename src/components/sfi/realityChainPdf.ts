@@ -5,7 +5,7 @@
  */
 export type RealityPdfRecord={
  kind:string;role:string;observedAt:string|null;recordedAt:string;
- id:string;hash:string|null;sourceIds:string[];description:string;locator:string;
+ id:string;hash:string|null;sourceIds:string[];recordIds:string[];evidenceIds:string[];description:string;locator:string;payloadJson:string;
 };
 export type RealityPdfInput={
  caseId:string;subject:string;status:string;cutoff:string;generatedAt:string;
@@ -71,6 +71,7 @@ export function createRealityChainPdf(input:RealityPdfInput):Blob{
  }
  lines.push('');
  add('CASE-SCOPED LEARNING / NOT AUTOMATICALLY PROMOTED');
+ if(!input.learning.some(o=>o.state==='ADOPTED'))add('NO GOVERNED LEARNING RECORDED UNLESS AN AUTHORIZED ADOPTION IS PRESENT BELOW.');
  if(input.learning.length===0)add('NO GOVERNED LEARNING RECORDED. No learning candidate was found in this case snapshot.');
  for(const item of input.learning){
   add('STATE: '+item.state+'  /  ID: '+item.id);
@@ -85,6 +86,9 @@ export function createRealityChainPdf(input:RealityPdfInput):Blob{
   add('ID: '+o.id+'  /  HASH: '+(o.hash||'NOT RECORDED'));
   add('OBSERVED: '+(o.observedAt||'NOT DATED')+'  /  RECORDED: '+o.recordedAt);
   add('SOURCES: '+(o.sourceIds.join(', ')||'NOT REPRESENTED'));
+  add('RECORD REFS: '+(o.recordIds.join(', ')||'NOT REPRESENTED'));
+  add('EVIDENCE REFS: '+(o.evidenceIds.join(', ')||'NOT REPRESENTED'));
+  add('PAYLOAD (AS REPRESENTED): '+o.payloadJson);
   add('LOCATOR: '+o.locator);
   add('CONTENT: '+o.description);
  }
