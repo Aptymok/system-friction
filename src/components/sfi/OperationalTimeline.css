@@ -33,3 +33,6 @@
 @media(max-width:1100px){.sfiTemporalMain{grid-template-columns:185px minmax(0,1fr)}.sfiTemporalInspector{grid-column:1/-1;max-height:none}.sfiTemporalHeader{display:block}.sfiTemporalHeader nav{margin-top:15px}}
 @media(max-width:650px){.sfiTemporalMain{display:block;padding:12px}.sfiTemporalIndex,.sfiTemporalInspector{margin-bottom:12px}.sfiTemporalField{min-height:520px}.sfiTemporalLane{grid-template-columns:72px 1fr}.sfiTemporalLaneLabel{padding:3px}.sfiTemporalLaneLabel strong{font-size:9px}.sfiTemporalLaneLabel span{font-size:7px}.sfiTemporalRail{grid-template-columns:1fr}.sfiTemporalBrand small{display:none}.sfiTemporalHeader nav{overflow-x:auto;flex-wrap:nowrap;padding-bottom:6px}.sfiTemporalInspector{max-height:unset}}
 @media(prefers-reduced-motion:reduce){.sfiTemporalIndex,.sfiTemporalInspector{backdrop-filter:none}}
+
+/* Preserve actual dated event nodes: image is atmosphere, never the timeline data. */
+.sfiTemporalAtmosphere{background:linear-gradient(90deg,rgba(3,6,8,.64),rgba(3,6,8,.30)),url("/assets/sfi/instruments/08102026_10.png") center / cover no-repeat!important}

@@ -53,7 +53,7 @@ export function PublicEntryGateway(){
     <div className="sfiHomePanoramaScroller" ref={scroller} aria-label="SFI horizontal panorama">
       <div className="sfiHomePanoramaTrack">
         <img
-          src="/assets/sfi/instruments/SFI_HOME_PANORAMA.png"
+          src="/assets/sfi/instruments/Horizonte futurista bajo lunas gigantes.png"
           alt=""
           draggable={false}
         />
@@ -88,15 +88,6 @@ export function PublicEntryGateway(){
       <p>MULTIPLE LAYERS<br/>OF REALITY.<br/><br/>INTERCONNECTED<br/>CONSEQUENCES.</p>
       <p>UNDERSTAND TODAY.<br/>RECONSTRUCT TOMORROW.</p>
     </section>
-
-    <nav className="sfiHomeSurfaceRail" aria-label="Explore SFI">
-      {SURFACE_RAIL.map((surface)=><Link key={surface.sceneId} href={surface.href}>
-        <small>{surface.number}</small>
-        <strong>{surface.label}</strong>
-        <span>{surface.line}</span>
-        <b>→</b>
-      </Link>)}
-    </nav>
 
     <footer className="sfiHomeTimeline">
       <div><strong>SFI / GLOBAL TIMELINE</strong><span>RECONSTRUCTIBLE INSTITUTIONAL MEMORY</span></div>

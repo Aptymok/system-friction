@@ -16,6 +16,7 @@ const accessCss=read('src/app/root/access/root-access.css');
 const observatory=read('src/components/sfi/ObservatoryConsole.tsx');
 const observatoryCss=read('src/components/sfi/ObservatoryConsole.css');
 const realityCss=read('src/components/sfi/RealityChainWorkbench.css');
+const realityUi=read('src/components/sfi/RealityChainWorkbench.tsx');
 const methodCss=read('src/components/sfi/MethodLabUnifiedSurface.css');
 const repositoryCss=read('src/app/repository/repository.css');
 const repositoryUi=read('src/app/repository/RepositoryConsole.tsx');
@@ -62,7 +63,14 @@ assert.ok(timelinePage.includes('readPublicWorldSnapshotTimeline') && timelinePa
 assert.equal(methodNativeCss.includes("url('/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_26-3.png')"),false,'method_lab_must_not_render_screenshot_as_dashboard');
 assert.equal(repositoryCss.includes("url('/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_42-7.png')"),false,'repository_must_not_render_screenshot_as_dashboard');
 assert.ok(repositoryUi.includes('SOURCE RECORDS') && repositoryUi.includes('DISCOVERY MESH') && repositoryUi.includes('REPOSITORY HISTORY') && repositoryCss.includes('.repoReader') && repositoryCss.includes('.repoDiscovery'), 'unified_repository_operational_visual_contract_missing');
-assert.ok(realityCss.includes('blur(11px)') && realityCss.includes('width:300vw'),'reality_chain_reference_must_not_read_as_fake_ui');
+assert.ok(
+  realityCss.includes('width:var(--rc-canvas-width,3840px)') &&
+  realityCss.includes('.rcThreeMode .rcPanoramaImage{') &&
+  realityUi.includes('className="rcPanoramaImage"') &&
+  realityUi.includes('Math.min(3840,e.currentTarget.naturalWidth)') &&
+  !realityUi.includes('className="rcThreeScene"'),
+  'reality_chain_native_bounded_original_backdrop_over_live_operational_hubs'
+);
 
 for(const source of [rail,evidence,access]) assert.equal(/createServiceSupabaseClient|\.from\(|\.insert\(|\.update\(|\.upsert\(/.test(source),false,'visual convergence must not create a new data owner');
 

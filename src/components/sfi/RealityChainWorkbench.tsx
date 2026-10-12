@@ -1,6 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { BookOpenCheck, FileDown, PanelRightClose, ScanSearch } from 'lucide-react';
+import { createRealityChainPdf } from './realityChainPdf';
 import './RealityChainWorkbench.css';
 
 type Ref={id:string;hash?:string|null;version?:string|null};
@@ -22,6 +24,29 @@ const STEPS=[
   {name:'RETURN',role:'Observed effects and contrast against prior expectations; an action receipt is not a measured outcome.'},
   {name:'LEARNING',role:'Governed integration of what changed after a real-world RETURN; case closure is not automatically learning.'},
 ] as const;
+// Canonical imagery supplied in public/assets/sfi/instruments/SFI_RCH_01–08.png.
+// LEARNING is an additional operational reading, not a fabricated ninth canonical icon.
+const HUB_ARTWORK=[
+ '/assets/sfi/instruments/SFI_RCH_01.png',
+ '/assets/sfi/instruments/SFI_RCH_02.png',
+ '/assets/sfi/instruments/SFI_RCH_03.png',
+ '/assets/sfi/instruments/SFI_RCH_04.png',
+ '/assets/sfi/instruments/SFI_RCH_05.png',
+ '/assets/sfi/instruments/SFI_RCH_06.png',
+ '/assets/sfi/instruments/SFI_RCH_07.png',
+ '/assets/sfi/instruments/SFI_RCH_08.png',
+] as const;
+function HubHeading({step,title,selected,onSelect}:{step:number;title:string;selected:boolean;onSelect:()=>void}){
+ const artwork=step<8?HUB_ARTWORK[step]:undefined;
+ return <div className="rcHubHeading">
+   <button className="rcHubStage" type="button" onClick={onSelect} aria-label={`Inspect ${STEPS[step].name} stage`} aria-pressed={selected} title={STEPS[step].role}>
+     {artwork
+       ?<img className="rcHubArtwork" src={artwork} alt="" aria-hidden="true" loading="lazy" decoding="async"/>
+       :<BookOpenCheck size={38} strokeWidth={1.45} aria-hidden="true"/>}
+   </button>
+   <div className="rcHubHeadingText"><small>{String(step+1).padStart(2,'0')} · {STEPS[step].name}{step===3?' · SOURCE ≠ EVIDENCE':''}</small><h2>{title}</h2></div>
+ </div>;
+}
 const FULL_METHOD=['WORLD','CAPTURE','EVIDENCE','TRANSFORMATION','INFERENCE (CONDITIONAL)','VERIFICATION','AUTHORITY','ACTION','RETURN'] as const;
 const TRANSVERSAL=['PROVENANCE','UNCERTAINTY','SIGNAL','COUNTEREVIDENCE','APPLICABLE OBLIGATION','ABSTAIN / ESCALATE / REJECT'] as const;
 const KIND_TO_STEP:Record<string,number>={SOURCE:-1,RECORD:-1,OBSERVATION:2,EVIDENCE:3,HYPOTHESIS:4,ANALYSIS:4,EPISTEMIC_ASSESSMENT:4,UNRESOLVED_QUESTION:4,CONTRADICTION:4,GOVERNANCE_DECISION:5,RECOMMENDATION:4,INTERVENTION:6,INSTRUMENT_RUN:4,RETURN:7,TRAJECTORY:4};
@@ -54,10 +79,14 @@ export function RealityChainWorkbench(){
  const [caseId,setCaseId]=useState('');
  const [caseToLink,setCaseToLink]=useState('');
  const [screen,setScreen]=useState(0);
+  const [artworkWidth,setArtworkWidth]=useState(3840);
  const [projectId,setProjectId]=useState('ALL');
  const [caseData,setCaseData]=useState<CaseEnvelope|null>(null);
  const [reports,setReports]=useState<unknown[]>([]);
  const [activeStep,setActiveStep]=useState(0);
+ const [inspectionOpen,setInspectionOpen]=useState(false);
+ const [learningDraft,setLearningDraft]=useState('');
+ const [selectedReturnId,setSelectedReturnId]=useState('');
  const [selectedObject,setSelectedObject]=useState<string|null>(null);
  const [newCase,setNewCase]=useState(false);
  const [title,setTitle]=useState('');
@@ -88,7 +117,7 @@ export function RealityChainWorkbench(){
  useEffect(()=>{loadCase(caseId).catch(e=>{setError(String(e.message??e));setCaseData(null);});setExtraction(null);setSourceRef(null);setChosen([]);setSelectedObject(null);},[caseId,loadCase]);
  useEffect(()=>{
    const element=scroll.current;if(!element)return;
-   const update=()=>setScreen(Math.max(0,Math.min(2,Math.round(element.scrollLeft/Math.max(element.clientWidth,1)))));
+   const update=()=>setScreen(Math.max(0,Math.min(2,Math.round(element.scrollLeft/Math.max(element.scrollWidth/3,1)))));
    element.addEventListener('scroll',update,{passive:true});
    const wheel=(event:WheelEvent)=>{
      const node=event.target as HTMLElement;
@@ -110,10 +139,15 @@ export function RealityChainWorkbench(){
    (!o.observedAt||Date.parse(o.observedAt)<=Date.parse(cutoff+'T23:59:59Z'))
  )),[ordered,cutoff]);
  const stageObjects=asOfObjects.filter(o=>stageFor(o)===activeStep);
+ const returnObjects=asOfObjects.filter(o=>o.kind==='RETURN');
+ const candidateLearningRecords=asOfObjects.filter(o=>o.kind==='RECORD'&&o.payload.contract==='SFI-CASE-LEARNING-CANDIDATE-1.0');
+ // A governed learning adoption requires a persisted authorized governance decision.
+ const governedLearningRecords=asOfObjects.filter(o=>o.kind==='GOVERNANCE_DECISION'&&o.payload.learningDisposition==='ADOPTED'&&o.payload.governedLearning===true);
+ const learningRecords=[...candidateLearningRecords,...governedLearningRecords];
  const focused=asOfObjects.find(o=>o.id===selectedObject)??null;
  const sourceObjects=asOfObjects.filter(o=>o.kind==='SOURCE');
  const stageCoverage=STEPS.map((_,index)=>asOfObjects.filter(o=>stageFor(o)===index).length);
- const scrollTo=(part:number)=>{const target=Math.max(0,Math.min(2,part));const el=scroll.current;el?.scrollTo({left:el.clientWidth*target,behavior:'smooth'});setScreen(target);};
+ const scrollTo=(part:number)=>{const target=Math.max(0,Math.min(2,part));const el=scroll.current;const section=el?.querySelectorAll<HTMLElement>('.rcThreeHorizon')[target];if(el)el.scrollTo({left:section?.offsetLeft??el.scrollWidth*target/3,behavior:'smooth'});setScreen(target);};
  const makeCase=async()=>{
   if(!title.trim()||!scope.trim()||!profileId){setError('Subject, scope and an existing service profile are required.');return;}
   setWorking(true);setError('');
@@ -267,14 +301,70 @@ export function RealityChainWorkbench(){
     }catch(e){setError(String((e as Error).message));}finally{setWorking(false);}
   };
 
+
+  const persistLearningCandidate=async()=>{
+    if(!caseId||!caseData){setError('Select an authorized case before recording learning.');return;}
+    const selectedReturn=returnObjects.find(o=>o.id===selectedReturnId);
+    if(!selectedReturn){setError('Select a specific recorded RETURN before proposing learning.');return;}
+    if(learningDraft.trim().length<15){setError('Describe the change in at least 15 characters and identify what was learned.');return;}
+    setWorking(true);setError('');setMessage('');
+    const candidateId='case-learning-candidate:'+crypto.randomUUID();
+    try{
+      await requestJson('/api/cases/'+encodeURIComponent(caseId)+'/objects',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          kind:'RECORD',canonicalRef:{id:candidateId,version:'1.0',hash:null},
+          sourceRefs:selectedReturn.sourceRefs,
+          recordRefs:[selectedReturn.canonicalRef],
+          payload:{
+            contract:'SFI-CASE-LEARNING-CANDIDATE-1.0',
+            statement:learningDraft.trim(),
+            learningState:'CANDIDATE',
+            promotionState:'NOT_PROMOTED',
+            returnRefs:[selectedReturn.canonicalRef.id],
+            sourceCutoff:cutoff||null,
+            evidenceBoundary:'RETURN_REFERENCE_DOES_NOT_ESTABLISH_CAUSALITY',
+            authorityBoundary:'CASE_RECORD_NOT_GOVERNED_LEARNING',
+            createdAt:new Date().toISOString()
+          }
+        })
+      });
+      await loadCase(caseId);
+      setLearningDraft('');setSelectedReturnId('');
+      setMessage('Learning candidate persisted as an unpromoted RECORD linked to represented RETURN. Institutional adoption remains governed separately.');
+    }catch(e){setError('Learning candidate: '+String((e as Error).message));}finally{setWorking(false);}
+  };
+  const downloadPdf=()=>{
+    if(!caseData||!caseId){setError('Select a case before exporting PDF.');return;}
+    if(asOfObjects.length>5000){setError('PDF export is bounded to 5000 represented objects. Export lossless JSON for larger case sets.');return;}
+    const generated=new Date().toISOString();
+    const pdf=createRealityChainPdf({
+      caseId,subject:caseData.caseRecord.subject,status:caseData.caseRecord.status,
+      cutoff:cutoff||'ALL REPRESENTED HISTORY',generatedAt:generated,
+      stages:STEPS.slice(0,8).map((stage,index)=>({name:stage.name,role:stage.role,count:stageCoverage[index]})),
+      objects:asOfObjects.map(o=>({
+        kind:o.kind,role:o.epistemicRole,id:o.canonicalRef.id,
+        hash:o.canonicalRef.hash??null,recordedAt:o.createdAt,observedAt:o.observedAt,
+        sourceIds:o.sourceRefs.map(r=>r.id),recordIds:o.recordRefs.map(r=>r.id),evidenceIds:o.evidenceRefs.map(r=>r.id),
+        description:payloadDescription(o),locator:JSON.stringify(o.payload.locator??'NOT REPRESENTED'),payloadJson:JSON.stringify(o.payload)
+      })),
+      learning:learningRecords.map(o=>({
+        id:o.canonicalRef.id,state:o.kind==='RECORD'?'CANDIDATE_NOT_ADOPTED':safeText(o.payload.learningDisposition,'GOVERNED_STATUS_UNREPRESENTED'),
+        statement:payloadDescription(o),
+        returnRefs:Array.isArray(o.payload.returnRefs)?o.payload.returnRefs.map(x=>String(x)):[]
+      })),
+      reportReceipts:reports.length
+    });
+    const url=URL.createObjectURL(pdf);
+    const link=document.createElement('a');
+    link.href=url;link.download='SFI-REALITY-CHAIN-'+caseId.slice(0,12)+'.pdf';
+    document.body.appendChild(link);link.click();link.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+    setGeneratedAt(generated);
+    setMessage('Direct PDF download prepared from the recorded case snapshot. This is a derived report, not certification or learning promotion.');
+  };
+
  return <main className="rcOperational rcThreeMode" aria-label="Authenticated Reality Chain">
-  <header className="rcOperationalHead">
-    <span>REALITY CHAIN · INSTITUTIONAL RECONSTRUCTION</span>
-    <strong>KNOWN THEN ≠ KNOWN NOW</strong>
-    <button type="button" aria-current={screen===0?'step':undefined} onClick={()=>scrollTo(0)}>01 · OBSERVE</button>
-    <button type="button" aria-current={screen===1?'step':undefined} onClick={()=>scrollTo(1)}>02 · ASSESS</button>
-    <button type="button" aria-current={screen===2?'step':undefined} onClick={()=>scrollTo(2)}>03 · ACT & LEARN</button>
-  </header>
 
   <div className="rcGlobalCaseBar">
     <label>PROJECT
@@ -307,60 +397,58 @@ export function RealityChainWorkbench(){
     </div>:null}
   </div>
 
-  <div className="rcOperationalScroller" ref={scroll} aria-label="Reality Chain three-screen horizontal reconstruction">
-    <div className="rcOperationalTrack">
-      <div className="rcBackdrop" aria-hidden="true"/>
 
-      <section className="rcHorizon rcThreeHorizon" aria-label="Screen 1 · World, Signal, Observation">
-        <div className="rcThreeHorizonTop">
-          <div className="rcScreenIdentifier">01 / 03</div>
-          <h1>WORLD · SIGNAL · OBSERVATION</h1>
-          <p>What existed, what attracted attention, and what was actually recorded.</p>
-          <div className="rcThreeStageBand">
-            {STEPS.slice(0,3).map((stage,index)=><button key={stage.name} type="button" onClick={()=>{setActiveStep(index);setSelectedObject(null)}} aria-pressed={activeStep===index}>
-              <small>0{index+1}</small><strong>{stage.name}</strong><span>{stage.role}</span><em>{stageCoverage[index]} REPRESENTED</em>
-            </button>)}
-          </div>
-        </div>
-        <div className="rcThreeHorizonBottom">
-          <section className="rcThreePane">
-            <h2>CASE / OBSERVATION CONTEXT</h2>
+  <div className="rcOperationalScroller" ref={scroll} aria-label="Reality Chain panoramic artwork — horizontal exploration">
+    <div className="rcOperationalTrack" style={{'--rc-canvas-width':`${artworkWidth}px`} as CSSProperties}>
+      <img className="rcPanoramaImage" src="/assets/sfi/instruments/RealityChain.png" alt="The eight stages of the Reality Chain, Real World to Return" decoding="async" loading="eager" onLoad={e=>setArtworkWidth(Math.min(3840,e.currentTarget.naturalWidth))}/>
+    </div>
+  </div>
+  <button className="rcInspectionLauncher" type="button" onClick={()=>setInspectionOpen(true)} aria-expanded={inspectionOpen} aria-controls="rc-case-inspection">
+    <ScanSearch size={23} aria-hidden="true"/><span>CASE INSPECTION</span><small>8 STAGES · LEARNING &amp; REPORT</small>
+  </button>
+  {inspectionOpen?<section id="rc-case-inspection" className="rcInspectionShell" aria-label="Case Inspection independent workspace">
+    <header className="rcInspectionHeader">
+      <div><small>SFI / REALITY CHAIN / AUTHENTICATED CASE WORKSPACE</small><h1>CASE INSPECTION</h1><p>{caseData?.caseRecord.subject??'Select a persisted case in the fixed bar above.'}</p></div>
+      <button type="button" onClick={()=>setInspectionOpen(false)} aria-label="Close Case Inspection and return to panoramic image"><PanelRightClose size={24} aria-hidden="true"/> CLOSE</button>
+    </header>
+    <nav className="rcInspectionStages" aria-label="Inspect one of eight canonical stages or learning and report">
+      {STEPS.map((stage,index)=><HubHeading key={stage.name} step={index} title={index===8?'LEARNING & REPORT':stage.name} selected={activeStep===index} onSelect={()=>{setActiveStep(index);setSelectedObject(null)}}/>)}
+    </nav>
+    <div className="rcInspectionBody" key={activeStep}>
+      {activeStep<8?<div className="rcInspectionStageIntro">
+        <small>STAGE {String(activeStep+1).padStart(2,'0')} / 08 · AUTHENTICATED RECONSTRUCTION</small>
+        <h2>{STEPS[activeStep].name}</h2>
+        <p>{STEPS[activeStep].role}</p>
+        <strong>{stageObjects.length} recorded objects represented at this stage, as of {cutoff||'current recorded history'}.</strong>
+      </div>:null}
+      {activeStep<8?<section className="rcThreePane rcInspectionLedger">
+        <h3>STAGE OBJECTS · EPISTEMIC LEDGER</h3>
+        {stageObjects.length?<div className="rcRecordList">{stageObjects.map(o=><button key={o.id} type="button" onClick={()=>{setSelectedObject(o.id);setActiveStep(3)}}><time>{date(o.createdAt)}</time><strong>{o.kind} · {o.epistemicRole}</strong><span>{payloadDescription(o).slice(0,450)}</span></button>)}</div>:<p>NO OBSERVATIONS IN THIS STAGE OF THE PERSISTED CASE. Missing records do not establish absence in the world.</p>}
+      </section>:null}
+      <div className="rcInspectionModules">
+        {activeStep===0?<><section className="rcThreePane">
+            <h3>CASE / OBSERVATION CONTEXT</h3>
             <strong>{caseData?.caseRecord.subject??'SELECT A CASE ABOVE'}</strong>
             <p>{caseData?.caseRecord.scope??'Only cases authorized for this account will be readable here.'}</p>
             <dl><div><dt>STATE</dt><dd>{caseData?.caseRecord.status??'NOT SELECTED'}</dd></div>
             <div><dt>SYSTEM BOUNDARY</dt><dd>{caseData?.caseRecord.serviceProfileId??'NOT REPRESENTED'}</dd></div>
             <div><dt>KNOWLEDGE CUTOFF</dt><dd>{cutoff||'ALL REPRESENTED HISTORY'}</dd></div></dl>
-          </section>
-          <section className="rcThreePane">
-            <h2>INSPECT THE SELECTED BOUNDARY</h2>
+          </section></>:null}
+        {activeStep===1?<><section className="rcThreePane">
+            <h3>INSPECT THE SELECTED BOUNDARY</h3>
             <strong>{STEPS[activeStep].name}</strong><p>{STEPS[activeStep].role}</p>
             <p>{stageObjects.length} objects represented in this epistemic stage.</p>
-            <div className="rcRecordList">{stageObjects.slice(0,12).map(o=><button key={o.id} type="button" onClick={()=>{setSelectedObject(o.id);scrollTo(1)}}><time>{date(o.createdAt)}</time><strong>{safeText(o.payload.label??o.payload.statement??o.kind)}</strong></button>)}</div>
+            <div className="rcRecordList">{stageObjects.slice(0,12).map(o=><button key={o.id} type="button" onClick={()=>{setSelectedObject(o.id);setActiveStep(3)}}><time>{date(o.createdAt)}</time><strong>{safeText(o.payload.label??o.payload.statement??o.kind)}</strong></button>)}</div>
             {!stageObjects.length?<p>NOT OBSERVED IN THE CURRENT CASE RECORD.</p>:null}
-          </section>
-          <section className="rcThreePane">
-            <h2>LONGITUDINAL TRACE</h2>
+          </section></>:null}
+        {activeStep===2?<><section className="rcThreePane">
+            <h3>LONGITUDINAL TRACE</h3>
             <p>Recorded time is not necessarily event time. A later receipt does not retroactively change prior knowledge.</p>
-            <div className="rcTimelineEntries">{asOfObjects.slice(0,16).map(o=><button key={o.id} type="button" onClick={()=>{setSelectedObject(o.id);scrollTo(1)}}><time>{date(o.createdAt)}</time><strong>{o.kind} · {o.epistemicRole}</strong></button>)}</div>
+            <div className="rcTimelineEntries">{asOfObjects.slice(0,16).map(o=><button key={o.id} type="button" onClick={()=>{setSelectedObject(o.id);setActiveStep(3)}}><time>{date(o.createdAt)}</time><strong>{o.kind} · {o.epistemicRole}</strong></button>)}</div>
             {!asOfObjects.length?<p>NO PERSISTED OBJECTS FOR THIS HISTORICAL READING.</p>:null}
-          </section>
-        </div>
-      </section>
-
-      <section className="rcHorizon rcThreeHorizon" aria-label="Screen 2 · Evidence, Inference, Authority">
-        <div className="rcThreeHorizonTop">
-          <div className="rcScreenIdentifier">02 / 03</div>
-          <h1>EVIDENCE · INFERENCE · AUTHORITY</h1>
-          <p>What the records support, what remains an interpretation, and who may decide.</p>
-          <div className="rcThreeStageBand">
-            {STEPS.slice(3,6).map((stage,index)=><button key={stage.name} type="button" onClick={()=>{setActiveStep(index+3);setSelectedObject(null)}} aria-pressed={activeStep===index+3}>
-              <small>0{index+4}</small><strong>{stage.name}</strong><span>{stage.role}</span><em>{stageCoverage[index+3]} REPRESENTED</em>
-            </button>)}
-          </div>
-        </div>
-        <div className="rcThreeHorizonBottom">
-          <section className="rcThreePane">
-            <h2>SOURCE INTAKE / FILE UPLOAD</h2>
+          </section></>:null}
+        {activeStep===3?<><section className="rcThreePane">
+            <h3>SOURCE INTAKE / FILE UPLOAD</h3>
             <p>Choose whether to extract a document without storing its bytes, or preserve the original in authorized private Case Storage.</p>
             <label>DOCUMENT · PDF, DOCX, TXT, CSV, JSON
               <input type="file" accept=".pdf,.docx,.txt,.md,.csv,.tsv,.json,.xlsx,.zip,.png,.jpg" onChange={e=>setFile(e.target.files?.[0]??null)}/>
@@ -380,9 +468,8 @@ export function RealityChainWorkbench(){
               <div className="rcExtracted">{extraction.extraction.fragments.map((part,index)=><label key={index} className="rcExtractedItem"><input type="checkbox" checked={chosen.includes(index)} onChange={e=>setChosen(old=>e.target.checked?[...old,index]:old.filter(x=>x!==index))}/><span><b>{part.page===null?'PAGE UNKNOWN':'PAGE '+part.page} · PARAGRAPH {part.paragraph}</b><p>{part.text}</p><small>TEXT OFFSETS: {part.start??'UNKNOWN'}–{part.end??'UNKNOWN'}</small></span></label>)}</div>
               <button type="button" disabled={!sourceRef||!chosen.length||working} onClick={savePassages}>PRESERVE SELECTED PASSAGES AS RECORDS</button>
             </>:null}
-          </section>
-          <section className="rcThreePane">
-            <h2>DOCUMENTARY LEDGER / PROVENANCE</h2>
+          </section><section className="rcThreePane">
+            <h3>DOCUMENTARY LEDGER / PROVENANCE</h3>
             <p>Known then ≠ known now. An unverified quote remains a RECORD, not EVIDENCE.</p>
             {focused?<div className="rcFocused">
               <strong>{focused.kind} · {focused.epistemicRole}</strong>
@@ -395,9 +482,9 @@ export function RealityChainWorkbench(){
               <button type="button" onClick={()=>setSelectedObject(null)}>BACK TO ALL RECORDS</button>
             </div>:<div className="rcRecordList">{asOfObjects.map(o=><button key={o.id} type="button" onClick={()=>setSelectedObject(o.id)}><time>{date(o.createdAt)}</time><strong>{o.kind} · {o.epistemicRole}</strong><span>{payloadDescription(o).slice(0,240)}</span></button>)}</div>}
             <div className="rcThreeDataLine">{sourceObjects.length} SOURCES · {asOfObjects.filter(o=>o.kind==='EVIDENCE').length} ADMITTED EVIDENCE · {asOfObjects.filter(o=>o.kind==='CONTRADICTION').length} CONTRADICTIONS</div>
-          </section>
-          <section className="rcThreePane">
-            <h2>HYPOTHESIS / AUTHORITY</h2>
+          </section></>:null}
+        {activeStep===4?<><section className="rcThreePane">
+            <h3>HYPOTHESIS / AUTHORITY</h3>
             <p>Interpretation does not authorize intervention. Independent sources and calibration are not inferred from document counts.</p>
             <dl><div><dt>HYPOTHESES</dt><dd>{asOfObjects.filter(o=>o.kind==='HYPOTHESIS').length} REPRESENTED</dd></div>
               <div><dt>GOVERNANCE DECISIONS</dt><dd>{asOfObjects.filter(o=>o.kind==='GOVERNANCE_DECISION').length} RECORDED</dd></div>
@@ -405,25 +492,19 @@ export function RealityChainWorkbench(){
               <div><dt>CALIBRATED CONFIDENCE</dt><dd>NOT CALIBRATED</dd></div>
               <div><dt>ABSTENTION</dt><dd>REQUIRED WHERE EVIDENCE OR AUTHORITY IS INSUFFICIENT</dd></div></dl>
             <a className="rcThreeLink" href="/root/evidence-review">OPEN GOVERNED EVIDENCE REVIEW ↗</a>
-          </section>
-        </div>
-      </section>
-
-      <section className="rcHorizon rcThreeHorizon" aria-label="Screen 3 · Execution, Return, Learning">
-        <div className="rcThreeHorizonTop">
-          <div className="rcScreenIdentifier">03 / 03</div>
-          <h1>EXECUTION · RETURN · LEARNING</h1>
-          <p>What was done, what reality returned, and what was actually integrated.</p>
-          <div className="rcThreeStageBand">
-            {STEPS.slice(6,9).map((stage,index)=><button key={stage.name} type="button" onClick={()=>{setActiveStep(index+6);setSelectedObject(null)}} aria-pressed={activeStep===index+6}>
-              <small>0{index+7}</small><strong>{stage.name}{stage.name==='LEARNING'?<svg className="rcLearningIcon" viewBox="0 0 48 48" role="img" aria-label="Learning"><path d="M24 11c-6-4-12-4-19-2v27c7-2 13-2 19 2 6-4 12-4 19-2V9c-7-2-13-2-19 2Z" fill="none" stroke="currentColor" strokeWidth="2"/><path d="M24 11v27M29 23l4 4 8-10" fill="none" stroke="currentColor" strokeWidth="2"/></svg>:null}</strong>
-              <span>{stage.role}</span><em>{stageCoverage[index+6]} REPRESENTED</em>
-            </button>)}
-          </div>
-        </div>
-        <div className="rcThreeHorizonBottom">
-          <section className="rcThreePane">
-            <h2>CHAIN-TO-CHAIN SOURCE REFERENCES</h2>
+          </section></>:null}
+        {activeStep===5?<><section className="rcThreePane">
+            <h3>HYPOTHESIS / AUTHORITY</h3>
+            <p>Interpretation does not authorize intervention. Independent sources and calibration are not inferred from document counts.</p>
+            <dl><div><dt>HYPOTHESES</dt><dd>{asOfObjects.filter(o=>o.kind==='HYPOTHESIS').length} REPRESENTED</dd></div>
+              <div><dt>GOVERNANCE DECISIONS</dt><dd>{asOfObjects.filter(o=>o.kind==='GOVERNANCE_DECISION').length} RECORDED</dd></div>
+              <div><dt>INDEPENDENT CONFIRMATION</dt><dd>NOT ESTABLISHED FROM COUNTS</dd></div>
+              <div><dt>CALIBRATED CONFIDENCE</dt><dd>NOT CALIBRATED</dd></div>
+              <div><dt>ABSTENTION</dt><dd>REQUIRED WHERE EVIDENCE OR AUTHORITY IS INSUFFICIENT</dd></div></dl>
+            <a className="rcThreeLink" href="/root/evidence-review">OPEN GOVERNED EVIDENCE REVIEW ↗</a>
+          </section></>:null}
+        {activeStep===6?<><section className="rcThreePane">
+            <h3>CHAIN-TO-CHAIN SOURCE REFERENCES</h3>
             <p>One case may become an inspectable source for another. A reference does not automatically validate its claims as EVIDENCE.</p>
             <label>REFERENCE ANOTHER AUTHORIZED CASE
               <select value={caseToLink} onChange={e=>setCaseToLink(e.target.value)}>
@@ -434,19 +515,52 @@ export function RealityChainWorkbench(){
             <button type="button" disabled={working||!caseToLink} onClick={linkExistingCase}>ADD GOVERNED CROSS-CASE REFERENCE</button>
             <div className="rcRecordList">{linkedCaseObjects.map(o=><div className="rcRecordItem" key={o.id}><strong>{safeText(o.payload.referencedCaseSubject,'CROSS-CASE SOURCE')}</strong><small>{safeText(o.payload.referencedCaseId)}</small><span>NOT YET QUALIFIED AS EVIDENCE</span></div>)}</div>
             {!linkedCaseObjects.length?<p>NO CROSS-CASE REFERENCES OBSERVED.</p>:null}
+          </section></>:null}
+        {activeStep===7?<><section className="rcThreePane">
+            <h3>LONGITUDINAL TRACE</h3>
+            <p>Recorded time is not necessarily event time. A later receipt does not retroactively change prior knowledge.</p>
+            <div className="rcTimelineEntries">{asOfObjects.slice(0,16).map(o=><button key={o.id} type="button" onClick={()=>{setSelectedObject(o.id);setActiveStep(3)}}><time>{date(o.createdAt)}</time><strong>{o.kind} · {o.epistemicRole}</strong></button>)}</div>
+            {!asOfObjects.length?<p>NO PERSISTED OBJECTS FOR THIS HISTORICAL READING.</p>:null}
+          </section></>:null}
+        {activeStep===8?<>
+          <section className="rcThreePane rcLearningPanel">
+            <div className="rcLearningTitle"><BookOpenCheck size={36} strokeWidth={1.3} aria-hidden="true"/><div><small>INDEPENDENT INSTRUMENT / NOT A NINTH CHAIN STAGE</small><h2>LEARNING &amp; REPORT</h2></div></div>
+            <p>Read what this case actually recorded as learning. An observed RETURN does not automatically become institutional knowledge.</p>
+            <div className="rcThreeDataLine">{returnObjects.length} RETURN OBJECTS · {candidateLearningRecords.length} CANDIDATES · {governedLearningRecords.length} GOVERNED ADOPTIONS</div>
+            {!governedLearningRecords.length?<p role="status">NO GOVERNED LEARNING RECORDED.</p>:null}
+            {learningRecords.length?<div className="rcRecordList">{learningRecords.map(o=><article className="rcLearningRecord" key={o.id}>
+              <small>{o.kind==='RECORD'?'CANDIDATE · NOT ADOPTED':safeText(o.payload.learningDisposition,'GOVERNED STATUS UNREPRESENTED')} · {date(o.createdAt)}</small>
+              <strong>{payloadDescription(o)}</strong><small>RECORD ID: {o.canonicalRef.id}</small>
+              <small>RETURN REFS: {Array.isArray(o.payload.returnRefs)?o.payload.returnRefs.map(r=>String(r)).join(', '):'NOT REPRESENTED'}</small>
+            </article>)}</div>:<p role="status">NO GOVERNED LEARNING RECORDED. No case-scoped learning candidate was found at this cutoff.</p>}
+            <label>RETURN SUPPORTING THE LEARNING CANDIDATE
+              <select value={selectedReturnId} onChange={e=>setSelectedReturnId(e.target.value)}>
+                <option value="">SELECT A PERSISTED RETURN</option>
+                {returnObjects.map(o=><option key={o.id} value={o.id}>{o.canonicalRef.id} · {date(o.createdAt)}</option>)}
+              </select>
+            </label>
+            <label>PROPOSE WHAT CHANGED AFTER RECORDED RETURN
+              <textarea rows={4} value={learningDraft} onChange={e=>setLearningDraft(e.target.value)} maxLength={2000} placeholder="What changed, which RETURN was observed, and what still requires validation?"/>
+            </label>
+            <button type="button" onClick={persistLearningCandidate} disabled={!caseId||!selectedReturnId||learningDraft.trim().length<15||working}>PERSIST LEARNING CANDIDATE · NOT CANON</button>
+            {!returnObjects.length?<small>At least one persisted RETURN is required before saving a learning candidate.</small>:null}
           </section>
-          <section className="rcThreePane">
-            <h2>RECONSTRUCT / TRACE / DELIVER</h2>
-            <p>The same case can be reconstructed as known at a particular time. A report does not manufacture a decision or external RETURN.</p>
-            <div className="rcThreeDataLine">{asOfObjects.length} HISTORICAL OBJECTS · {reports.length} RECORDED REPORTS</div>
-            <button type="button" disabled={!caseData||working} onClick={makeReport}>EXPORT TRACE · JSON + PRINTABLE HTML</button>
-            <button type="button" disabled={!caseData||working} onClick={persistTraceManifest}>PERSIST TRACE MANIFEST AS RECORD</button>
-            <button type="button" disabled={!caseData||working} onClick={createInstitutionalReport}>REQUEST GOVERNED REPORT RECEIPT</button>
+          <section className="rcThreePane rcReportPanel">
+            <div className="rcLearningTitle"><FileDown size={34} aria-hidden="true"/><div><small>CASE REPORT / ACCOUNT-SCOPED</small><h2>EXPORT &amp; ATTACH</h2></div></div>
+            <p>Download the recorded chain, provenance, observation dates, limitations and learning as a derived PDF. The source bytes are not embedded.</p>
+            <button type="button" onClick={downloadPdf} disabled={!caseData||working}><FileDown size={18} aria-hidden="true"/> DOWNLOAD COMPLETE CASE PDF</button>
+            <button type="button" onClick={makeReport} disabled={!caseData||working}>EXPORT LOSSLESS JSON + PRINTABLE HTML</button>
+            <button type="button" onClick={persistTraceManifest} disabled={!caseData||working}>PERSIST SOURCE-LINKED TRACE MANIFEST</button>
+            <button type="button" onClick={createInstitutionalReport} disabled={!caseData||working}>REQUEST GOVERNED REPORT RECEIPT</button>
             {generatedAt?<p>LAST LOCAL EXPORT: {date(generatedAt)}</p>:null}
-            <dl><div><dt>EXECUTION RECORDS</dt><dd>{asOfObjects.filter(o=>o.kind==='INTERVENTION').length}</dd></div><div><dt>RETURN RECORDS</dt><dd>{asOfObjects.filter(o=>o.kind==='RETURN').length}</dd></div></dl>
+            <label>ATTACH A REPORT AS A PRIVATE SOURCE
+              <input type="file" accept=".pdf,.docx,.txt,.json" onChange={e=>setFile(e.target.files?.[0]??null)}/>
+            </label>
+            <button type="button" onClick={uploadOriginal} disabled={!caseId||!file||working}>UPLOAD REPORT AS SOURCE · MAX 25 MB</button>
+            <small>Attaching a PDF creates a SOURCE record, not an approved institutional report and not learning promotion.</small>
           </section>
           <section className="rcThreePane">
-            <h2>REALITY PASSPORT / LEARNING</h2>
+            <h3>REALITY PASSPORT / LEARNING</h3>
             <p>Inspect the selected case in ROOT using its existing identifier. No duplicate passport or authority is created.</p>
             {caseId?<a className="rcThreeLink" href={'/root?reading=REALITY_CHAIN&node='+encodeURIComponent(caseId)}>OPEN SELECTED CASE IN ROOT ↗</a>:<p>SELECT A CASE TO OPEN ITS PASSPORT.</p>}
             <dl><div><dt>WHAT WAS KNOWN?</dt><dd>{asOfObjects.filter(o=>o.kind==='EVIDENCE').length} ADMITTED EVIDENCE OBJECTS</dd></div>
@@ -456,17 +570,11 @@ export function RealityChainWorkbench(){
             <div><dt>WHAT DID REALITY RETURN?</dt><dd>{asOfObjects.filter(o=>o.kind==='RETURN').length} RETURN RECORDS</dd></div>
             <div><dt>WHAT WAS LEARNED?</dt><dd>GOVERNED INTEGRATION NOT INFERRED FROM CASE CLOSURE</dd></div></dl>
           </section>
-        </div>
-      </section>
+        </>:null}
+      </div>
     </div>
-  </div>
+  </section>:null}
 
-  <footer className="rcOperationalFooter">
-    <div><strong>REALITY CHAIN · THREE COGNITIVE SCREENS</strong><span>ORIGIN · LINEAGE · AUTHORITY · TIME · RETURN</span></div>
-    <button type="button" onClick={()=>scrollTo(Math.max(0,screen-1))} disabled={screen===0}>← PREVIOUS</button>
-    <div className="rcOperationalFooterRail"><span>{screen===0?'WORLD · SIGNAL · OBSERVATION':screen===1?'EVIDENCE · INFERENCE · AUTHORITY':'EXECUTION · RETURN · LEARNING'}</span></div>
-    <button type="button" onClick={()=>scrollTo(Math.min(2,screen+1))} disabled={screen===2}>NEXT →</button>
-  </footer>
   {message?<div className="rcToast" role="status">{message}<button onClick={()=>setMessage('')} aria-label="Dismiss message">×</button></div>:null}
   {error?<div className="rcToast rcToastError" role="alert">{error}<button onClick={()=>setError('')} aria-label="Dismiss error">×</button></div>:null}
  </main>;

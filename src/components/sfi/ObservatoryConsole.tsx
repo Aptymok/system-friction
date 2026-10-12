@@ -36,6 +36,8 @@ const arr=(v:unknown):unknown[]=>Array.isArray(v)?v:[];
 const row=(v:unknown):Row|null=>v&&typeof v==='object'&&!Array.isArray(v)?v as Row:null;
 const rows=(v:unknown):Row[]=>arr(v).filter((x):x is Row=>Boolean(x)&&typeof x==='object'&&!Array.isArray(x));
 const num=(v:unknown)=>Number.isFinite(Number(v))?Number(v):null;
+// Missing coordinates must never be converted into an invented point at 0°, 0°.
+const geoNum=(v:unknown)=>v===null||v===undefined||v===''?null:num(v);
 const txt=(v:unknown)=>typeof v==='string'&&v.trim()?v.trim():'';
 const clamp=(n:number,a:number,b:number)=>Math.max(a,Math.min(b,n));
 const uniq=(v:string[])=>[...new Set(v.filter(Boolean))];
@@ -122,7 +124,7 @@ export function ObservatoryConsole(){
   useEffect(()=>{void pull(false)},[pull]);
 
   const allNodes=useMemo<WorldNode[]>(()=>rows(world?.nodes).map((o)=>({
-    id:String(o.id),kind:String(o.kind||'observed'),sourceId:String(o.sourceId||'unknown'),sourceFamily:String(o.sourceFamily||'unknown'),publisher:String(o.publisher||'unknown'),observationKind:String(o.observationKind||'unknown'),title:String(o.title||'Untitled observation'),summary:typeof o.summary==='string'?o.summary:null,observedAt:String(o.observedAt||''),fetchedAt:String(o.fetchedAt||o.observedAt||''),lat:num(o.lat),lng:num(o.lng),countryCodes:arr(o.countryCodes).filter((v):v is string=>typeof v==='string'),affectedSystems:arr(o.affectedSystems).filter((v):v is string=>typeof v==='string'),actors:arr(o.actors).filter((v):v is string=>typeof v==='string'),confidence:num(o.confidence),reading:o.reading&&typeof o.reading==='object'?o.reading:null,provenance:o.provenance&&typeof o.provenance==='object'?o.provenance:null,
+    id:String(o.id),kind:String(o.kind||'observed'),sourceId:String(o.sourceId||'unknown'),sourceFamily:String(o.sourceFamily||'unknown'),publisher:String(o.publisher||'unknown'),observationKind:String(o.observationKind||'unknown'),title:String(o.title||'Untitled observation'),summary:typeof o.summary==='string'?o.summary:null,observedAt:String(o.observedAt||''),fetchedAt:String(o.fetchedAt||o.observedAt||''),lat:geoNum(o.lat),lng:geoNum(o.lng),countryCodes:arr(o.countryCodes).filter((v):v is string=>typeof v==='string'),affectedSystems:arr(o.affectedSystems).filter((v):v is string=>typeof v==='string'),actors:arr(o.actors).filter((v):v is string=>typeof v==='string'),confidence:num(o.confidence),reading:o.reading&&typeof o.reading==='object'?o.reading:null,provenance:o.provenance&&typeof o.provenance==='object'?o.provenance:null,
   })),[world]);
   const hypotheses=useMemo<Hypothesis[]>(()=>rows(world?.hypotheses)
     .sort((a,b)=>dateMs(b.cutoff_at??b.created_at)-dateMs(a.cutoff_at??a.created_at))
@@ -235,15 +237,7 @@ export function ObservatoryConsole(){
   return <><main className="obsShell" data-canonical-visual="SFI-INSTRUMENT-OBSERVATORY-1.0" data-temporal-focus={requestedFocus==='timeline'?'true':'false'} data-world-availability={availability.world} data-state-availability={availability.state} data-timeline-availability={availability.timeline}><section className={`obsScene lens-${lens}`}>
     <header className="obsOperationalHeader">
       <Link href="/" className="obsOperationalIdentity" aria-label="SFI home"><span>S F I</span><i/> <small>SYSTEM FRICTION INSTITUTE</small></Link>
-      <nav aria-label="Operational SFI instruments">
-        <Link href="/root">ROOT</Link>
-        <Link href="/observatory" aria-current="page">OBSERVATORY</Link>
-        <Link href="/reality-chain">REALITY CHAIN</Link>
-        <Link href="/method-lab">METHOD LAB</Link>
-        <Link href="/repository">REPOSITORY</Link>
-        <Link href="/timeline">TIMELINE</Link>
-        <Link href="/root/access">ACCESS</Link>
-      </nav>
+
       <span className="obsOperationalStamp">{clock.slice(0,10) || '—'} · {clock.slice(11,16) || '—'} UTC</span>
     </header>
     <div className="obsOperationalTitle"><strong>OBSERVATORY</strong><small>LIVE FIELD · WORLD VECTOR · SOURCES · TRAJECTORIES</small><span>NOTHING ACTS ALONE.<br/>REALITY ANSWERS BACK.</span></div>

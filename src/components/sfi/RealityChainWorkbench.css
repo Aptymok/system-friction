@@ -189,15 +189,352 @@
 @media(prefers-reduced-motion:reduce){.rcThreeMode .rcOperationalScroller{scroll-behavior:auto}}
 
 
-/* SFI-INSTRUMENT-REALITY-CHAIN-1.0 · real case workbench over a de-componentized reference atmosphere. */
-.rcOperational{--rc-panel:rgba(5,6,6,.42);--rc-panel-strong:rgba(5,6,6,.58)}
-.rcOperationalTrack{width:300vw!important;min-width:300vw!important}
-.rcThreeHorizon{flex:0 0 100vw!important}
-.rcBackdrop img{opacity:.36;filter:blur(11px) saturate(.58) brightness(.44) contrast(1.03)!important;transform:scale(1.07)}
-.rcBackdrop:after{background:linear-gradient(90deg,rgba(5,6,6,.58),rgba(5,6,6,.16) 35%,rgba(5,6,6,.12) 64%,rgba(5,6,6,.54)),linear-gradient(180deg,rgba(5,6,6,.18),transparent 55%,rgba(5,6,6,.62))!important}
-.rcCaseRail,.rcPanel,.rcMethodDetails{background:var(--rc-panel)!important;backdrop-filter:blur(12px)!important;box-shadow:none!important}
-.rcCaseRail{border-left-color:rgba(200,169,81,.48)!important;border-right-color:rgba(200,169,81,.15)!important}
-.rcPanel{border-color:rgba(200,169,81,.21)!important}
-.rcStageBand button{background:linear-gradient(180deg,rgba(5,6,6,.48),rgba(5,6,6,.15))!important;border-color:rgba(200,169,81,.16)!important}
-.rcStageBand button[data-active="true"]{background:linear-gradient(180deg,rgba(200,169,81,.16),rgba(5,6,6,.28))!important;border-top-color:var(--rc-gold)!important}
-.rcOperationalHead{background:rgba(5,6,6,.58)!important;backdrop-filter:blur(12px)!important}
+
+/* SFI-INSTRUMENT-REALITY-CHAIN-1.0
+   ONE native-sized RealityChain.png atmosphere; no tile, duplication or independent section backgrounds.
+   The panorama never grows wider than the source bitmap (hard ceiling 3840px).
+   Fixed-position-in-workbench intake controls and horizontally discoverable canvas. */
+.rcThreeMode{
+  --rc-gold:#d5b877;
+  --rc-cream:#f4f0e6;
+  height:calc(100dvh - 130px);
+  min-height:0;
+  background:#090b0e;
+  overflow:hidden;
+  isolation:isolate;
+}
+.rcThreeMode .rcGlobalCaseBar{
+  position:absolute;
+  z-index:50;
+  top:0;
+  left:0;
+  right:0;
+  min-height:84px;
+  height:84px;
+  padding:10px clamp(16px,2vw,38px);
+  box-sizing:border-box;
+  display:flex;
+  flex-wrap:nowrap;
+  align-items:center;
+  gap:clamp(12px,1.2vw,25px);
+  overflow:visible;
+  border-bottom:1px solid rgba(213,184,119,.45);
+  background:rgba(8,10,13,.96);
+}
+.rcThreeMode .rcGlobalCaseBar>label{gap:5px;min-width:0;color:#ddbf83;white-space:nowrap}
+.rcThreeMode .rcGlobalCaseBar>label:nth-child(1){flex:1}
+.rcThreeMode .rcGlobalCaseBar>label:nth-child(2){flex:2}
+.rcThreeMode .rcGlobalCaseBar>label:nth-child(3){flex:1}
+.rcThreeMode .rcGlobalCaseBar select,
+.rcThreeMode .rcGlobalCaseBar input{
+  width:100%;
+  min-height:36px;
+  padding:5px 9px;
+  background:#101316;
+  border:1px solid rgba(213,184,119,.52);
+  color:#fff9ed;
+}
+.rcThreeMode .rcGlobalCaseBar>button{min-height:42px;flex-shrink:0}
+.rcThreeMode .rcGlobalCaseBar>span{font-size:11px}
+.rcThreeMode .rcGlobalNewCase{top:calc(100% - 1px);right:2vw}
+.rcThreeMode .rcOperationalScroller{
+  position:absolute;
+  inset:84px 0 0;
+  overflow-x:auto;
+  overflow-y:hidden;
+  touch-action:pan-x;
+  overscroll-behavior-x:contain;
+  scroll-snap-type:none;
+  scroll-behavior:smooth;
+  scrollbar-width:thin;
+  scrollbar-color:#c1a367 rgba(5,6,8,.5);
+}
+.rcThreeMode .rcOperationalScroller::-webkit-scrollbar{display:block;height:9px}
+.rcThreeMode .rcOperationalScroller::-webkit-scrollbar-thumb{background:#c1a367;border-radius:8px}
+.rcThreeMode .rcOperationalTrack{
+  position:relative;
+  display:flex;
+  align-items:stretch;
+  width:var(--rc-canvas-width,3840px);
+  min-width:var(--rc-canvas-width,3840px);
+  height:100%;
+  max-width:3840px;
+  gap:0;
+  isolation:isolate;
+  overflow:hidden;
+  background:#090b0e;
+}
+.rcThreeMode .rcPanoramaImage{
+  display:block;
+  position:absolute;
+  inset:0;
+  z-index:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  object-position:center center;
+  opacity:1;
+  filter:none;
+  pointer-events:none;
+}
+.rcThreeMode .rcHorizon.rcThreeHorizon{
+  box-sizing:border-box;
+  display:flex;
+  position:relative;
+  z-index:1;
+  flex:0 0 33.333333%;
+  width:33.333333%;
+  min-width:0;
+  height:100%;
+  flex-direction:column;
+  justify-content:flex-end;
+  overflow:hidden;
+  scroll-snap-align:none;
+  padding:clamp(25px,2vw,42px);
+  gap:0;
+  background:transparent;
+}
+.rcThreeMode .rcThreeHorizon::before{
+  content:"";
+  position:absolute;
+  z-index:-1;
+  inset:0;
+  background:linear-gradient(180deg,rgba(5,8,12,.02),rgba(4,8,12,.05) 46%,rgba(5,8,12,.30) 67%,rgba(4,6,9,.60) 100%);
+  pointer-events:none;
+}
+.rcThreeMode .rcThreeHorizonTop{
+  display:block;
+  flex:1 1 auto;
+  min-height:0;
+}
+.rcThreeMode .rcThreeHorizonBottom{
+  flex:0 0 min(46%,410px);
+  width:100%;
+  min-height:260px;
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:clamp(13px,1.35vw,24px);
+  overflow:visible;
+  align-items:stretch;
+}
+.rcThreeMode .rcThreePane{
+  min-width:0;
+  min-height:0;
+  overflow-y:auto;
+  overflow-x:hidden;
+  padding:clamp(14px,1.25vw,24px);
+  background:rgba(6,9,12,.57);
+  border:1px solid rgba(224,190,124,.39);
+  box-shadow:0 12px 30px rgba(0,0,0,.1);
+  backdrop-filter:blur(5px);
+  scrollbar-width:thin;
+  scrollbar-color:rgba(226,201,151,.65) transparent;
+  color:#f4f0e6;
+  font:400 14px/1.52 "Noto Sans",Arial,sans-serif;
+}
+.rcThreeMode .rcHubHeading{
+  display:flex;
+  gap:12px;
+  align-items:center;
+  margin:0 0 19px;
+  min-height:55px;
+}
+.rcThreeMode .rcHubStage{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:76px;
+  height:76px;
+  min-height:76px;
+  flex:0 0 76px;
+  padding:5px;
+  margin:0;
+  overflow:hidden;
+  color:#ecd29a;
+  background:rgba(9,14,17,.54);
+  border:1px solid rgba(222,186,121,.72);
+  border-radius:12px;
+  cursor:pointer;
+  transition:background .17s ease,border-color .17s ease;
+}
+.rcThreeMode .rcHubArtwork{
+  display:block;
+  width:100%;
+  height:100%;
+  max-width:100%;
+  max-height:100%;
+  object-fit:contain;
+  object-position:center;
+  border-radius:7px;
+  pointer-events:none;
+}
+.rcThreeMode .rcHubStage[aria-pressed=true],
+.rcThreeMode .rcHubStage:hover,
+.rcThreeMode .rcHubStage:focus-visible{
+  color:#fff8e6;
+  background:rgba(79,59,23,.78);
+  border-color:#ffe1a1;
+}
+.rcThreeMode .rcHubHeadingText{display:grid;min-width:0;gap:6px}
+.rcThreeMode .rcHubHeadingText small{
+  font:650 10px/1.3 "Liberation Mono",monospace;
+  color:#e6c589;
+  letter-spacing:.08em;
+}
+.rcThreeMode .rcHubHeadingText h2{
+  margin:0;
+  color:#ffefd0;
+  font:500 clamp(15px,1.08vw,21px)/1.14 "Noto Serif Display",Georgia,serif;
+  overflow-wrap:anywhere;
+}
+.rcThreeMode .rcThreePane p,
+.rcThreeMode .rcThreePane li{color:#f2ede6;line-height:1.5}
+.rcThreeMode .rcThreePane>strong{font-size:clamp(17px,1.12vw,22px)}
+.rcThreeMode .rcThreePane dl div{padding:9px 0}
+.rcThreeMode .rcThreePane button:not(.rcHubStage),
+.rcThreeMode .rcThreeLink{
+  background:rgba(7,10,13,.83);
+  border-color:rgba(213,184,119,.56);
+}
+.rcThreeMode .rcRecordList,
+.rcThreeMode .rcTimelineEntries,
+.rcThreeMode .rcExtracted{
+  background:rgba(3,7,11,.54);
+  border-color:rgba(213,184,119,.22);
+}
+.rcThreeMode :focus-visible{outline:2px solid #ffdb96;outline-offset:2px}
+@media(max-width:820px){
+  .rcThreeMode .rcGlobalCaseBar{
+    height:114px;
+    min-height:114px;
+    gap:12px;
+    padding:10px 12px;
+    overflow-x:auto;
+    overflow-y:hidden;
+    flex-wrap:nowrap;
+  }
+  .rcThreeMode .rcGlobalCaseBar>label{min-width:175px;flex:0 0 175px}
+  .rcThreeMode .rcGlobalCaseBar>label:nth-child(2){min-width:240px;flex:0 0 240px}
+  .rcThreeMode .rcGlobalCaseBar>span{display:none}
+  .rcThreeMode .rcOperationalScroller{inset:114px 0 0}
+  .rcThreeMode .rcHorizon.rcThreeHorizon{padding:24px 30px}
+  .rcThreeMode .rcThreeHorizonBottom{grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+  .rcThreeMode .rcHubStage{width:56px;height:56px;min-height:56px;flex-basis:56px}
+  .rcThreeMode .rcHubStage svg{width:25px;height:25px}
+}
+@media(prefers-reduced-motion:reduce){
+  .rcThreeMode .rcOperationalScroller{scroll-behavior:auto}
+  .rcThreeMode .rcHubStage{transition:none}
+}
+
+/* SFI CASE INSPECTION · independent layered operational hub, not a ninth panorama panel */
+.rcThreeMode .rcInspectionLauncher{
+ position:absolute;z-index:15;right:clamp(24px,3vw,54px);bottom:clamp(24px,4vh,58px);
+ display:flex;align-items:center;gap:16px;padding:16px 22px;
+ border:1px solid #e2bf79;background:rgba(5,9,13,.87);
+ color:#fff3d9;box-shadow:0 14px 50px rgba(0,0,0,.42);
+ backdrop-filter:blur(11px);cursor:pointer;font:600 16px/1.3 "Noto Sans",Arial,sans-serif;
+ letter-spacing:.04em;
+}
+.rcThreeMode .rcInspectionLauncher small{font:600 11px/1.4 "Liberation Mono",monospace;color:#e6c589;letter-spacing:.08em}
+.rcThreeMode .rcInspectionLauncher:hover{background:rgba(25,21,13,.94)}
+.rcThreeMode .rcInspectionShell{
+ position:absolute;z-index:30;top:84px;left:clamp(8px,2.2vw,45px);right:clamp(8px,2.2vw,45px);bottom:14px;
+ display:flex;flex-direction:column;min-height:0;overflow:hidden;
+ border:1px solid rgba(225,193,123,.65);
+ background:rgba(7,10,14,.97);color:#f9f2e3;
+ box-shadow:0 26px 88px rgba(0,0,0,.67);
+ backdrop-filter:blur(17px);
+}
+.rcThreeMode .rcInspectionHeader{
+ flex:0 0 auto;min-height:105px;display:flex;align-items:center;justify-content:space-between;gap:22px;
+ padding:20px clamp(18px,2.6vw,48px);
+ border-bottom:1px solid rgba(224,192,125,.28);
+}
+.rcThreeMode .rcInspectionHeader small{font:600 10px/1.3 "Liberation Mono",monospace;letter-spacing:.13em;color:#bfa56e}
+.rcThreeMode .rcInspectionHeader h1{margin:4px 0 7px;font:400 clamp(27px,2.7vw,42px)/1.05 "Noto Serif Display",Georgia,serif;color:#fff9ef}
+.rcThreeMode .rcInspectionHeader p{margin:0;font:400 13px/1.5 "Noto Sans",Arial,sans-serif;color:#ddd3bd}
+.rcThreeMode .rcInspectionHeader>button{
+ display:inline-flex;align-items:center;justify-content:center;gap:10px;min-width:110px;min-height:44px;
+ border:1px solid rgba(224,192,125,.54);background:transparent;color:#fff2d3;cursor:pointer;
+}
+.rcThreeMode .rcInspectionStages{
+ display:flex;flex:0 0 auto;align-items:stretch;gap:clamp(8px,.85vw,16px);
+ padding:18px clamp(16px,2.6vw,48px) 16px;overflow-x:auto;overflow-y:hidden;
+ border-bottom:1px solid rgba(224,192,125,.27);
+ scrollbar-width:thin;scrollbar-color:rgba(217,187,119,.8) transparent;
+}
+.rcThreeMode .rcInspectionStages .rcHubHeading{
+ display:flex;flex:1 0 112px;min-width:112px;max-width:182px;flex-direction:column;
+ align-items:center;justify-content:flex-start;text-align:center;gap:8px;margin:0;padding:0;
+}
+.rcThreeMode .rcInspectionStages .rcHubHeading:last-child{
+ margin-left:12px;padding-left:12px;
+ border-left:1px solid rgba(228,191,117,.55);max-width:210px;min-width:154px;
+}
+.rcThreeMode .rcInspectionStages .rcHubStage{width:73px;height:73px;min-height:73px;flex:0 0 73px;padding:5px}
+.rcThreeMode .rcInspectionStages .rcHubHeadingText{gap:4px;align-items:center;justify-items:center}
+.rcThreeMode .rcInspectionStages .rcHubHeadingText h2{font:600 12px/1.2 "Noto Sans",Arial,sans-serif;letter-spacing:.07em;color:#f6eedc;overflow-wrap:normal}
+.rcThreeMode .rcInspectionStages .rcHubHeadingText small{font:600 9px/1.3 "Liberation Mono",monospace;color:#d3b57b}
+.rcThreeMode .rcInspectionBody{
+ flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;
+ padding:clamp(18px,2.25vw,40px) clamp(18px,2.6vw,48px) 55px;
+ overscroll-behavior-y:contain;scrollbar-width:thin;scrollbar-color:#baa272 #141b1e;
+}
+.rcThreeMode .rcInspectionStageIntro{max-width:1150px;margin:0 0 25px}
+.rcThreeMode .rcInspectionStageIntro>small,.rcThreeMode .rcLearningTitle small{
+ font:600 11px/1.3 "Liberation Mono",monospace;letter-spacing:.09em;color:#e5c78a;
+}
+.rcThreeMode .rcInspectionStageIntro h2{margin:7px 0 13px;font:400 clamp(29px,2.6vw,45px)/1.08 "Noto Serif Display",Georgia,serif;color:#f8edda}
+.rcThreeMode .rcInspectionStageIntro p{max-width:840px;margin:0 0 10px;font:400 15px/1.6 "Noto Sans",Arial,sans-serif;color:#dfd7c7}
+.rcThreeMode .rcInspectionStageIntro strong{font:500 13px/1.55 "Noto Sans",Arial,sans-serif;color:#d5b877}
+.rcThreeMode .rcInspectionModules{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;
+ gap:clamp(15px,1.5vw,28px);max-width:1550px;
+}
+.rcThreeMode .rcInspectionBody>.rcInspectionLedger{
+ max-width:1550px;margin:0 0 25px;
+}
+.rcThreeMode .rcInspectionBody .rcThreePane{
+ display:block;max-height:none;min-height:190px;height:auto;
+ padding:clamp(22px,2vw,36px);
+ overflow:visible;
+ background:rgba(19,22,23,.68);border:1px solid rgba(216,185,119,.39);
+}
+.rcThreeMode .rcInspectionBody .rcThreePane h3{
+ margin:0 0 19px;color:#ead0a1;
+ font:500 clamp(19px,1.4vw,26px)/1.25 "Noto Serif Display",Georgia,serif;
+}
+.rcThreeMode .rcInspectionBody .rcThreePane p{max-width:800px}
+.rcThreeMode .rcInspectionBody .rcRecordList,.rcThreeMode .rcInspectionBody .rcTimelineEntries{
+ max-height:440px;overflow-y:auto;
+}
+.rcThreeMode .rcLearningTitle{display:flex;gap:17px;align-items:center;margin:0 0 23px;color:#e6c78d}
+.rcThreeMode .rcLearningTitle h2{margin:4px 0;font:400 28px/1.12 "Noto Serif Display",Georgia,serif;color:#fff6e3}
+.rcThreeMode .rcLearningPanel textarea{
+ display:block;width:100%;max-width:100%;min-height:95px;margin:9px 0 18px;padding:13px;
+ color:#f9f2e3;background:#0a0e12;border:1px solid rgba(222,189,120,.68);
+ font:400 14px/1.5 "Noto Sans",Arial,sans-serif;
+}
+.rcThreeMode .rcLearningRecord{
+ display:grid;gap:8px;padding:17px 15px;border-bottom:1px solid rgba(224,192,125,.22);overflow-wrap:anywhere;
+}
+.rcThreeMode .rcLearningRecord strong{font:500 15px/1.5 "Noto Sans",Arial,sans-serif;color:#f9f2e3}
+.rcThreeMode .rcLearningRecord small{font:400 12px/1.5 "Liberation Mono",monospace;color:#d8b875}
+.rcThreeMode .rcReportPanel button{display:flex;align-items:center;gap:10px;width:100%;margin:9px 0;text-align:left;justify-content:flex-start}
+.rcThreeMode .rcInspectionBody .rcThreePane button:focus-visible{outline:2px solid #efce92;outline-offset:3px}
+@media(max-width:1000px){
+ .rcThreeMode .rcInspectionShell{left:9px;right:9px}
+ .rcThreeMode .rcInspectionModules{grid-template-columns:1fr}
+ .rcThreeMode .rcInspectionStages .rcHubHeading{flex:0 0 125px}
+ .rcThreeMode .rcInspectionBody .rcThreePane{min-height:0}
+}
+@media(max-width:820px){
+ .rcThreeMode .rcInspectionShell{top:114px;bottom:7px}
+ .rcThreeMode .rcInspectionHeader{padding:14px 16px;min-height:85px}
+ .rcThreeMode .rcInspectionStages{padding:12px;gap:8px}
+ .rcThreeMode .rcInspectionStages .rcHubStage{height:61px;min-height:61px;width:61px;flex-basis:61px}
+ .rcThreeMode .rcInspectionLauncher{left:14px;right:14px;bottom:22px;justify-content:center;padding:12px;font-size:14px}
+ .rcThreeMode .rcInspectionLauncher small{display:none}
+ .rcThreeMode .rcInspectionBody{padding:16px 12px 32px}
+}

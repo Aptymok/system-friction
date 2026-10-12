@@ -18,11 +18,20 @@ type Panel={
 
 const SURFACE_IMAGE:Record<SurfaceId,string>={
   root:'/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_18-1.png',
-  observatory:'/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_22-2.png',
+  observatory:'/assets/sfi/instruments/08102026_07.png',
   'reality-chain':'/assets/sfi/instruments/RealityChain.png',
-  'method-lab':'/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_26-3.png',
-  timeline:'/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_38-6.png',
-  access:'/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_42-7.png',
+  'method-lab':'/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_34-5.png',
+  timeline:'/assets/sfi/instruments/08102026_10.png',
+  access:'/assets/sfi/instruments/08102026_11.png',
+};
+
+const PANEL_TARGETS:Record<SurfaceId,readonly string[]>={
+  root:['/root','/root','/root/access','/root','/root'],
+  observatory:['/observatory','/observatory?lens=sources','/observatory?lens=world-vector','/observatory?lens=hypotheses','/observatory?lens=trajectory'],
+  'reality-chain':['/reality-chain','/reality-chain','/reality-chain','/root/access','/reality-chain'],
+  'method-lab':['/method-lab','/method-lab','/method-lab','/method-lab','/method-lab'],
+  timeline:['/timeline','/timeline','/timeline','/timeline','/timeline'],
+  access:['/root/access','/root/access','/root/access','/root/access','/root/access'],
 };
 
 const COMMON_NOTE='TRACEABILITY ≠ JUSTIFICATION';
@@ -89,6 +98,12 @@ export function PublicInstrumentSurface({surface}:{surface:SurfaceId}){
     if(!el)return;
     const onWheel=(event:WheelEvent)=>{
       if(Math.abs(event.deltaY)<=Math.abs(event.deltaX))return;
+      // Do not hijack scroll from a nested interactive or scrollable element.
+      const target=event.target;
+      if(target instanceof Element && target.closest('button, a, input, select, textarea, [role="dialog"], [data-horizontal-scroll]'))return;
+      const atStart=el.scrollLeft<=1 && event.deltaY<0;
+      const atEnd=el.scrollLeft+el.clientWidth>=el.scrollWidth-1 && event.deltaY>0;
+      if(atStart||atEnd)return;
       event.preventDefault();
       el.scrollBy({left:event.deltaY,behavior:'auto'});
     };
@@ -130,7 +145,7 @@ export function PublicInstrumentSurface({surface}:{surface:SurfaceId}){
             <p>{panel.lead}</p>
             <ul>{panel.bullets.map(item=><li key={item}>{item}</li>)}</ul>
             {panel.note?<em>{panel.note}</em>:null}
-            {panel.action?<Link href={panel.action.href}>{panel.action.label} <b>→</b></Link>:null}
+            <Link href={panel.action?.href??PANEL_TARGETS[surface][index]}>{panel.action?.label??'EXPLORE LIVE INSTRUMENT'} <b>→</b></Link>
           </div>
           <div className="sfiInstrumentFifthIndex" aria-hidden="true">{String(index+1).padStart(2,'0')} / {String(panels.length).padStart(2,'0')}</div>
         </article>)}

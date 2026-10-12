@@ -131,6 +131,8 @@ export function RepositoryConsole({objects,initialObject,discovery}:{objects:rea
     <section className="repositoryScene" aria-label="SFI Repository">
       <div className="repositoryBackdrop" aria-hidden="true"/>
 
+      <div className="repoHorizontal" aria-label="Repository two-screen horizontal panorama">
+      <div className="repoHorizon repoHorizon--archive" id="repo-archive">
       <aside className="repoIdentity">
         <span>REPOSITORY</span>
         <h1>Durable memory<br/>for a moving institution.</h1>
@@ -169,6 +171,10 @@ export function RepositoryConsole({objects,initialObject,discovery}:{objects:rea
         </div>
       </section>
 
+      <nav className="repoHorizonSwitch"><span>01 / 02 · ARCHIVE</span><a href="#repo-inspection">INSPECT SELECTED OBJECT →</a></nav>
+      </div>
+      <div className="repoHorizon repoHorizon--inspection" id="repo-inspection">
+      <nav className="repoHorizonSwitch"><a href="#repo-archive">← SOURCE RECORDS / PUBLICATIONS</a><span>02 / 02 · OBJECT INSPECTION</span></nav>
       {selected?<section className="repoObjectInspector" aria-live="polite">
         <div className="repoObjectState"><span>{selected.objectType}</span><b>{selected.publicationState}</b></div>
         <h2>{selected.title}</h2>
@@ -229,6 +235,8 @@ export function RepositoryConsole({objects,initialObject,discovery}:{objects:rea
         </section>
       </aside>:null}
 
+      </div>
+      </div>
       {selected&&readerOpen?<section className="repoReader" role="dialog" aria-modal="true" aria-label={selected.title}>
         <button className="repoReaderClose" type="button" onClick={()=>setReaderOpen(false)}>CLOSE ×</button>
         <article>
