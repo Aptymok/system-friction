@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { Globe2, RadioTower, ScanEye, FileCheck2, BrainCircuit, Scale, Zap, RotateCcw, BookOpenCheck } from 'lucide-react';
 import './RealityChainWorkbench.css';
 
@@ -314,7 +314,7 @@ export function RealityChainWorkbench(){
   </div>
 
   <div className="rcOperationalScroller" ref={scroll} aria-label="Reality Chain three-screen horizontal reconstruction">
-    <div className="rcOperationalTrack" style={{'--rc-canvas-width':`${artworkWidth}px`} as React.CSSProperties}>
+    <div className="rcOperationalTrack" style={{'--rc-canvas-width':`${artworkWidth}px`} as CSSProperties}>
       <img className="rcPanoramaImage" src="/assets/sfi/instruments/RealityChain.png" alt="" aria-hidden="true" decoding="async" loading="eager" onLoad={e=>setArtworkWidth(Math.min(3840,e.currentTarget.naturalWidth))}/>
 
 
