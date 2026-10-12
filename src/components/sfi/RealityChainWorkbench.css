@@ -201,3 +201,34 @@
 .rcStageBand button{background:linear-gradient(180deg,rgba(5,6,6,.48),rgba(5,6,6,.15))!important;border-color:rgba(200,169,81,.16)!important}
 .rcStageBand button[data-active="true"]{background:linear-gradient(180deg,rgba(200,169,81,.16),rgba(5,6,6,.28))!important;border-top-color:var(--rc-gold)!important}
 .rcOperationalHead{background:rgba(5,6,6,.58)!important;backdrop-filter:blur(12px)!important}
+
+
+/* Reality Chain visual rail · stage art belongs to its corresponding persisted stage. */
+.rcThreeMode {height:calc(100svh - 130px);min-height:0;overflow:hidden}
+.rcThreeMode .rcOperationalScroller {overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;scrollbar-color:#D4AF37 transparent}
+.rcThreeMode .rcOperationalScroller::-webkit-scrollbar {display:block;height:7px}
+.rcThreeMode .rcBackdrop {
+  background-color:#05090d;
+  background-image:linear-gradient(180deg,rgba(2,6,10,.22),rgba(2,6,10,.05) 38%,rgba(2,6,10,.52)),
+   url('/assets/sfi/instruments/Umbral futurista entre Tierra y amanecer.png');
+  background-size:100% 100%,33.333333% 100%;
+  background-repeat:no-repeat,repeat-x;
+  background-position:center,top left;
+}
+.rcThreeMode .rcBackdrop:after {
+  background:linear-gradient(180deg,rgba(3,7,13,.2),rgba(3,7,13,.08) 40%,rgba(3,7,13,.64))!important;
+}
+.rcThreeMode .rcThreeStageBand button {min-width:0;justify-content:flex-start;background:rgba(4,9,15,.72);backdrop-filter:blur(5px)}
+.rcThreeMode .rcThreeStageBand button[aria-pressed=true] {background:rgba(19,25,28,.92)}
+.rcThreeMode .rcStageArtwork {
+  display:block;align-self:center;max-width:100%;width:auto;height:clamp(42px,7vh,86px);
+  object-fit:contain;filter:drop-shadow(0 2px 12px rgba(0,0,0,.5));
+}
+.rcThreeMode .rcThreeStageBand button {min-height:clamp(160px,24vh,226px)}
+.rcThreeMode .rcThreePane {background:rgba(3,8,13,.76)}
+@media(max-width:820px){
+ .rcThreeMode .rcThreeStageBand button {min-height:170px}
+ .rcThreeMode .rcStageArtwork {height:46px}
+ .rcThreeMode .rcHorizon.rcThreeHorizon {overflow-y:hidden}
+ .rcThreeMode .rcThreeHorizonBottom {grid-template-columns:repeat(3,minmax(260px,1fr));overflow-x:auto;overflow-y:hidden}
+}
