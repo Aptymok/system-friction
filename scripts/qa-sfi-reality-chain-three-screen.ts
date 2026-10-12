@@ -8,10 +8,10 @@ const root=read('src/components/sfi/RootNeuralGraphView.tsx');
 const nav=read('src/components/sfi/AuthenticatedSfiMenu.tsx');
 const stageNames=['WORLD','SIGNAL','OBSERVATION','EVIDENCE','INFERENCE','AUTHORITY','EXECUTION','RETURN','LEARNING'];
 for(const label of stageNames) assert(ui.includes("name:'"+label+"'"),'missing stage '+label);
-assert.equal((ui.match(/className="rcHorizon rcThreeHorizon"/g)||[]).length,3,'exactly three screen groups');
-assert.equal((ui.match(/<HubHeading step=/g)||[]).length,9,'Nine live hubs contain the eight canonical-stage glyphs plus learning');
+assert.equal((ui.match(/className="rcHorizon rcThreeHorizon"/g)||[]).length,0,'No compressed repeated panels over the real panorama');
+assert(ui.includes('<HubHeading key={stage.name} step={index}')&&ui.includes('index===8?\'LEARNING & REPORT\':stage.name'),'All eight icons and independent learning/report access must be in Case Inspection');
 assert.equal((ui.match(/className="rcThreeStageBand"/g)||[]).length,0,'No duplicated stage button strips');
-assert(css.includes('width:var(--rc-canvas-width,3840px)')&&css.includes('max-width:3840px')&&css.includes('flex:0 0 33.333333%'),'Three live chapters must fit the native-image bounded panorama');
+assert(css.includes('width:var(--rc-canvas-width,3840px)')&&css.includes('max-width:3840px'),'One native-image bounded panorama remains intact');
 assert(css.includes('scrollbar-width:thin')&&css.includes('::-webkit-scrollbar{display:block'),'horizontal scrolling must remain visually discoverable');
 assert((ui.match(/className="rcPanoramaImage"/g)||[]).length===1 && ui.includes('src="/assets/sfi/instruments/RealityChain.png"'),'One un-repeated original panorama sits behind live operational hubs');
 assert(ui.includes('BookOpenCheck')&&ui.includes('aria-label={`Inspect ${STEPS[step].name} stage`}'),'Each hub exposes an accessible stage-specific vector glyph, including learning');
@@ -22,7 +22,7 @@ assert(ui.includes("kind:'RECORD'")&&ui.includes('sourceRefs:[sourceRef]'),'extr
 assert(ui.includes('Date.parse(o.createdAt)<=Date.parse(cutoff'),'do not introduce future records into historical T0');
 assert(ui.includes('const stageObjects=asOfObjects.filter'),'T0 applied to stages, not only ledger');
 assert(ui.includes('Date.parse(o.createdAt)<=Date.parse(cutoff')&&ui.includes('Date.parse(o.observedAt)<=Date.parse(cutoff'),'T0 requires recorded and observed boundaries');
-assert(ui.includes('BookOpenCheck')&&ui.includes('NOT AUTOMATICALLY')===false,'learning displayed without fabricated promotion claim');
+assert(ui.includes('BookOpenCheck')&&ui.includes('NOT AUTOMATICALLY')===false&&ui.includes('NO GOVERNED LEARNING RECORDED'),'Learning cannot be silently inferred from RETURN or case closure');
 assert(ui.includes("const sourceObjects=asOfObjects.filter"),'T0 applied to persisted trace manifest');
 assert(ui.includes("function" )||ui.includes("const linkExistingCase"),'existing case link');
 assert(link.includes("readOperationalCase(referencedCaseId,user.id)"),'permission check on referenced case');
@@ -36,4 +36,4 @@ assert(root.includes('THIS CASE IS NOT ADMITTED AS A CANONICAL GRAPH NODE'),'ROO
 assert(nav.includes("{label:'REALITY CHAIN',href:'/reality-chain'}"),'authenticated menu points to one actual case workbench');
 assert(!ui.includes('Coastal Resilience Finance Shift')&&!ui.includes('C-2026-0417'),'no image mock case');
 assert(!ui.includes('CONFIDENCE 87%')&&!ui.includes('RISK 13%'),'no invented confidence');
-console.log('PASS · Three real Reality Chain screens, traceability, safe case linkage and inherited operational intake');
+console.log('PASS · One original panorama and an independent inspected Reality Chain, persistence, guarded learning and reporting');
