@@ -146,7 +146,7 @@ void main(){
   return <div className="obsGlobeInstrument" style={{'--globe-scale':scale} as CSSProperties}>
     <div className="obsGlobeCage" aria-hidden="true"><i/><i/><i/><i/></div>
     {failed?<img className="obsGlobeFallback" src={OBSERVATORY_GLOBE_TEXTURE} alt="Illustrative world map; 3D unavailable"/>:
-      <canvas ref={canvas} className="obsGlobeCanvas" role="img" aria-label="Interactive rotating holographic Earth. Drag to rotate, scroll to zoom, click to inspect geographical coordinates."
+      <canvas ref={canvas} className={ready?'obsGlobeCanvas is-ready':'obsGlobeCanvas'} role="img" aria-label="Interactive rotating holographic Earth. Drag to rotate, scroll to zoom, click to inspect geographical coordinates."
         onPointerDown={e=>{pointer.current={id:e.pointerId,x:e.clientX,y:e.clientY,moved:false};e.currentTarget.setPointerCapture(e.pointerId)}}
         onPointerMove={e=>{const p=pointer.current;if(!p||p.id!==e.pointerId)return;const dx=e.clientX-p.x,dy=e.clientY-p.y;if(Math.abs(dx)+Math.abs(dy)>2)p.moved=true;if(p.moved){yaw.current-=dx*.006;pitch.current=Math.max(-.9,Math.min(.9,pitch.current+dy*.004));p.x=e.clientX;p.y=e.clientY}}}
         onPointerUp={endPointer} onPointerCancel={()=>{pointer.current=null}}
@@ -387,6 +387,7 @@ export function ObservatoryConsole(){
     </nav>
     <div className="obsPanoramaEnvironment" aria-hidden="true">
       <div className="obsPanoramaSky"/>
+      <div className="obsScenicMoon" style={{backgroundPosition:`${(moonSpriteIndex%4)*100/3}% ${Math.floor(moonSpriteIndex/4)*100}%`}}/>
       <div className="obsPanoramaCity"/>
       <div className="obsPanoramaNature"/>
       <div className="obsProjectionFloor"/>
