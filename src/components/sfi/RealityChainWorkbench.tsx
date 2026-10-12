@@ -349,7 +349,7 @@ export function RealityChainWorkbench(){
         description:payloadDescription(o),locator:JSON.stringify(o.payload.locator??'NOT REPRESENTED'),payloadJson:JSON.stringify(o.payload)
       })),
       learning:learningRecords.map(o=>({
-        id:o.canonicalRef.id,state:safeText(o.payload.learningDisposition??o.payload.promotionState??o.payload.learningState,'UNVERIFIED'),
+        id:o.canonicalRef.id,state:o.kind==='RECORD'?'CANDIDATE_NOT_ADOPTED':safeText(o.payload.learningDisposition,'GOVERNED_STATUS_UNREPRESENTED'),
         statement:payloadDescription(o),
         returnRefs:Array.isArray(o.payload.returnRefs)?o.payload.returnRefs.map(x=>String(x)):[]
       })),
@@ -529,7 +529,7 @@ export function RealityChainWorkbench(){
             <div className="rcThreeDataLine">{returnObjects.length} RETURN OBJECTS · {candidateLearningRecords.length} CANDIDATES · {governedLearningRecords.length} GOVERNED ADOPTIONS</div>
             {!governedLearningRecords.length?<p role="status">NO GOVERNED LEARNING RECORDED.</p>:null}
             {learningRecords.length?<div className="rcRecordList">{learningRecords.map(o=><article className="rcLearningRecord" key={o.id}>
-              <small>{safeText(o.payload.promotionState??o.payload.learningState,'UNVERIFIED')} · {date(o.createdAt)}</small>
+              <small>{o.kind==='RECORD'?'CANDIDATE · NOT ADOPTED':safeText(o.payload.learningDisposition,'GOVERNED STATUS UNREPRESENTED')} · {date(o.createdAt)}</small>
               <strong>{payloadDescription(o)}</strong><small>RECORD ID: {o.canonicalRef.id}</small>
               <small>RETURN REFS: {Array.isArray(o.payload.returnRefs)?o.payload.returnRefs.map(r=>String(r)).join(', '):'NOT REPRESENTED'}</small>
             </article>)}</div>:<p role="status">NO GOVERNED LEARNING RECORDED. No case-scoped learning candidate was found at this cutoff.</p>}
