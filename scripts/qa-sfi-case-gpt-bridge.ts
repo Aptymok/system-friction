@@ -132,8 +132,13 @@ assert.ok(observatoryPage.includes('ObservatoryConsole'), 'observatory_public_su
 assert.equal(observatoryPage.includes("redirect('/')"), false, 'observatory_public_surface_must_not_redirect_home');
 assert.equal(observatoryPage.includes('ObservatoryInterpretiveFlow'), false, 'observatory_page_must_not_mount_duplicate_interpretive_owner');
 assert.equal(observatoryConsole.includes('ObservatoryInterpretiveFlow'), false, 'observatory_internal_console_must_not_mount_a_second_interpretive_surface');
-for (const token of ['SFI SATELLITE → HUB','LATEST HYPOTHESES','HypothesisClosureDiff','world?.liveWorld?.state']) {
+// The single-background recovery retains the same read authority while removing
+// the former animated Earth and its second menu.
+for (const token of ['SFI OBSERVATORY ·','LATEST HYPOTHESES','HypothesisClosureDiff','data-world-availability={availability.world}']) {
   assert.ok(observatoryConsole.includes(token), `observatory_internal_console_capability_missing:${token}`);
+}
+for (const forbidden of ['SFI SATELLITE → HUB','<canvas','<ObservatorySemanticGpuLayer','<ObservatoryWorldField','obsOperationalLenses']) {
+  assert.equal(observatoryConsole.includes(forbidden),false,`observatory_retired_graphical_layer_still_mounted:${forbidden}`);
 }
 
 assert.ok(merge.includes("operationId: 'readSfiCase'"), 'openapi_merge_read_case_action_missing');

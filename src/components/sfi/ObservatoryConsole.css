@@ -1,4 +1,4 @@
-.obsShell{width:100vw;height:100vh;overflow:hidden;background:#010203;color:#d7c7ad;font-family:"Noto Sans",system-ui,sans-serif}.obsScene{position:relative;width:100%;height:100%;overflow:hidden;isolation:isolate;background:linear-gradient(180deg,rgba(1,2,3,.34),rgba(1,2,3,.76)),radial-gradient(circle at 58% 44%,rgba(15,25,32,.72) 0,rgba(4,8,11,.62) 43%,rgba(1,2,3,.86) 76%,#000 100%),url('/assets/sfi/system/reference/02_03_world_background.png') center/cover no-repeat}.obsScene:after{content:"";position:absolute;inset:0;z-index:5;pointer-events:none;background:linear-gradient(90deg,rgba(0,0,0,.76),transparent 21%,transparent 76%,rgba(0,0,0,.68)),linear-gradient(180deg,rgba(0,0,0,.2),transparent 18%,transparent 73%,rgba(0,0,0,.62)),radial-gradient(circle at 82% 34%,rgba(217,167,95,.11),transparent 20%);box-shadow:inset 0 0 150px rgba(0,0,0,.76)}.starfield{position:absolute;inset:-10%;z-index:0;background-image:radial-gradient(circle,#fff 0 1px,transparent 1.2px),radial-gradient(circle,#6ab9da 0 1px,transparent 1.3px),radial-gradient(circle,#d9ae70 0 1px,transparent 1.3px);background-size:101px 101px,163px 163px,219px 219px;background-position:13px 29px,58px 4px,97px 111px;opacity:.32;animation:stars 65s linear infinite}.deepSpace{position:absolute;inset:0;z-index:0;pointer-events:none;background:url('/assets/sfi/system/reference/02_03_overlay_network.png') center/cover no-repeat,radial-gradient(ellipse at 66% 16%,rgba(30,74,98,.12),transparent 30%),radial-gradient(ellipse at 31% 34%,rgba(80,54,28,.08),transparent 34%);opacity:.48;mix-blend-mode:screen}
+.obsShell{width:100vw;height:100vh;overflow:hidden;background:#010203;color:#d7c7ad;font-family:"Noto Sans",system-ui,sans-serif}.obsScene{position:relative;width:100%;height:100%;overflow:hidden;isolation:isolate;background:linear-gradient(180deg,rgba(1,2,3,.34),rgba(1,2,3,.76)),radial-gradient(circle at 58% 44%,rgba(15,25,32,.72) 0,rgba(4,8,11,.62) 43%,rgba(1,2,3,.86) 76%,#000 100%),none center/cover no-repeat}.obsScene:after{content:"";position:absolute;inset:0;z-index:5;pointer-events:none;background:linear-gradient(90deg,rgba(0,0,0,.76),transparent 21%,transparent 76%,rgba(0,0,0,.68)),linear-gradient(180deg,rgba(0,0,0,.2),transparent 18%,transparent 73%,rgba(0,0,0,.62)),radial-gradient(circle at 82% 34%,rgba(217,167,95,.11),transparent 20%);box-shadow:inset 0 0 150px rgba(0,0,0,.76)}.starfield{position:absolute;inset:-10%;z-index:0;background-image:radial-gradient(circle,#fff 0 1px,transparent 1.2px),radial-gradient(circle,#6ab9da 0 1px,transparent 1.3px),radial-gradient(circle,#d9ae70 0 1px,transparent 1.3px);background-size:101px 101px,163px 163px,219px 219px;background-position:13px 29px,58px 4px,97px 111px;opacity:.32;animation:stars 65s linear infinite}.deepSpace{position:absolute;inset:0;z-index:0;pointer-events:none;background:none center/cover no-repeat,radial-gradient(ellipse at 66% 16%,rgba(30,74,98,.12),transparent 30%),radial-gradient(ellipse at 31% 34%,rgba(80,54,28,.08),transparent 34%);opacity:.48;mix-blend-mode:screen}
 
 .earthStage{position:absolute;z-index:2;left:55%;top:49%;width:min(84vw,1360px);aspect-ratio:16/9;transform:translate(-50%,-50%) scale(var(--earthZoom,1)) rotate(var(--earthTilt,0deg));transform-origin:50% 55%;transition:transform .55s cubic-bezier(.2,.7,.2,1),filter .4s ease;pointer-events:none}.worldActor{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center;filter:drop-shadow(0 0 28px rgba(40,178,255,.18)) drop-shadow(0 32px 76px rgba(0,0,0,.66));user-select:none;pointer-events:none}.earthOverlay{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}.geoNode{pointer-events:auto;cursor:pointer}.geoNode text{font-size:13px;fill:#e8d8bd;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;paint-order:stroke;stroke:#020304;stroke-width:5px;stroke-linejoin:round}.geoHalo{fill:transparent;stroke-width:2;opacity:.72;animation:geoPulse 2.4s ease-in-out infinite}.geoCore{filter:url(#glow)}.geoNode.observed .geoHalo,.geoNode.observed .geoCore{stroke:#f2b95d;fill:#f2b95d}.geoNode.persistent .geoHalo,.geoNode.persistent .geoCore{stroke:#35d6ff;fill:#35d6ff}.geoNode.emergent .geoHalo,.geoNode.emergent .geoCore{stroke:#ff4e72;fill:#ff4e72}.geoNode.inferred .geoHalo,.geoNode.inferred .geoCore{stroke:#d5d5d5;fill:#d5d5d5}.tensionLayer path{fill:none;stroke:#ff634c;stroke-width:3;stroke-dasharray:8 8;opacity:.75;animation:dash 8s linear infinite}.tensionLayer circle{fill:rgba(122,34,23,.16);stroke:#ff735a;stroke-width:2}.tensionLayer text{fill:#f0ad7c;font-size:16px;letter-spacing:.16em}
 
@@ -122,7 +122,7 @@
 .obsPanoramaSky{
   position:absolute;inset:0;
   background-image:linear-gradient(180deg,rgba(5,11,20,.12) 0%,rgba(13,22,35,.33) 51%,rgba(7,11,16,.7) 100%),
-    url('/assets/sfi/instruments/SFI_HOME_PANORAMA.png');
+    none;
   background-position:center; background-size:cover;opacity:.68;
 }
 .obsScene[data-scene-daypart="day"] .obsPanoramaSky{filter:brightness(1.08) saturate(.76);opacity:.77}
@@ -316,7 +316,7 @@
 .obsShell .obsPanoramaEnvironment{inset:54px 0 65px;z-index:0}
 .obsShell .obsPanoramaSky{
   background-image:linear-gradient(180deg,rgba(2,5,8,.13),rgba(3,6,9,.14) 60%,rgba(4,6,7,.5)),
-    url('/assets/sfi/instruments/OBSERVATORY_BACKGROUND.png');
+    none;
   background-size:100% 100%,cover;
   background-repeat:no-repeat;
   background-position:center,center;
@@ -371,7 +371,7 @@
 .obsShell .obsProjectionEmitter{
  position:absolute;bottom:-7%;left:16%;width:68%;height:15%;
  background:radial-gradient(ellipse,rgba(110,197,243,.32),transparent 70%),
- url('/assets/sfi/instruments/OBSERVATORY_PROJECTOR.png') center bottom /contain no-repeat;
+ none center bottom /contain no-repeat;
  border:0;filter:drop-shadow(0 0 14px #8acfea);z-index:-1;
 }
 .obsGlobeControlRail{position:absolute;right:-14px;bottom:10%;display:grid;gap:5px;z-index:9;min-width:34px}
@@ -402,7 +402,7 @@
  bottom:310px!important;
  border:1px solid rgba(223,188,123,.39)!important;border-radius:2px!important;
  background-image:linear-gradient(165deg,rgba(3,8,13,.85),rgba(4,9,13,.88)),
-  url('/assets/sfi/instruments/OBSERVATORY_MONITOR.png')!important;
+  none!important;
  background-size:cover,100% 100%!important;
  background-position:center!important;
  box-shadow:0 10px 45px rgba(0,0,0,.45),0 0 0 5px rgba(8,12,14,.46)!important;
@@ -413,7 +413,7 @@
  transform:none;z-index:45!important;background:rgba(4,9,14,.97)!important;
 }
 .obsShell .obsOperationalGrid{
-  background-image:linear-gradient(rgba(2,6,10,.42),rgba(2,6,10,.42)),url('/assets/sfi/instruments/OBSERVATORY_DASHBOARD.png');
+  background-image:linear-gradient(rgba(2,6,10,.42),rgba(2,6,10,.42)),none;
   background-size:100% 100%;background-repeat:no-repeat;padding:11px;
   transform:perspective(1850px) rotateX(6deg);
   transform-origin:center bottom;bottom:76px;height:222px;
@@ -425,7 +425,7 @@
 }
 .obsShell .obsOperationalCard:focus-within{background:rgba(3,9,16,.97);box-shadow:0 0 0 1px #c8a951}
 .obsShell .obsAstronomyMoon{
-  background:url('/assets/sfi/instruments/OBSERVATORY_MOONS.png') 0 0/400% 200% no-repeat;
+  background:none 0 0/400% 200% no-repeat;
   width:52px;height:52px;flex-basis:52px;
 }
 .obsShell .obsAstronomyMoon circle,.obsShell .obsAstronomyMoon path{opacity:0}
@@ -471,7 +471,7 @@
 .obsShell .obsPanoramaEnvironment .obsScenicMoon{
   position:absolute;z-index:2;top:4%;left:53%;width:clamp(74px,9vw,190px);
   aspect-ratio:1;border-radius:50%;pointer-events:none;
-  background-image:url('/assets/sfi/instruments/OBSERVATORY_MOONS.png');
+  background-image:none;
   background-repeat:no-repeat;background-size:400% 200%;
   opacity:.85;filter:drop-shadow(0 0 18px rgba(211,223,234,.26));
 }
@@ -495,3 +495,200 @@
  transform:scale(var(--globe-scale,1));transition:transform .15s ease;
 }
 @media(prefers-reduced-motion:reduce){.obsShell .obsGlobeSourcePins{transition:none}}
+
+
+/* SFI OBSERVATORY / SINGLE-BACKGROUND RECOVERY, 2026-10-12
+   Exactly one active image is permitted: OBSERVATORY_BACKGROUND.png.
+   The 5760px stage scrolls horizontally; vertical document scrolling is disabled.
+   No WebGL, canvas, image layers, backdrop blurs, or animations are mounted. */
+.obsShell{
+  position:relative!important;
+  width:100vw!important;
+  height:100dvh!important;
+  min-height:0!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  overscroll-behavior-x:contain;
+  scrollbar-width:thin;
+  background:#020508!important;
+}
+.obsShell .obsScene{
+  position:relative!important;
+  width:5760px!important;
+  min-width:5760px!important;
+  max-width:none!important;
+  height:100%!important;
+  min-height:0!important;
+  overflow:visible!important;
+  isolation:auto!important;
+  background:#020508 url('/assets/sfi/instruments/OBSERVATORY_BACKGROUND.png') left center / 5760px 100% no-repeat!important;
+}
+.obsShell .obsScene::before,.obsShell .obsScene::after{
+  content:none!important;
+  display:none!important;
+  background:none!important;
+  filter:none!important;
+  box-shadow:none!important;
+}
+.obsShell .obsScene *,.obsShell .obsScene *::before,.obsShell .obsScene *::after{
+  animation:none!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+  filter:none!important;
+  transition:none!important;
+}
+.obsShell .obsScene .obsOperationalHeader{
+  position:sticky!important;
+  top:0!important;
+  left:0!important;
+  right:auto!important;
+  width:min(100vw,1650px)!important;
+  height:58px!important;
+  max-width:none!important;
+  z-index:70!important;
+  padding:0 24px!important;
+  background:rgba(4,9,14,.96)!important;
+  border-bottom:1px solid rgba(200,169,81,.37)!important;
+  box-shadow:none!important;
+  transform:none!important;
+}
+.obsShell .obsOperationalHeader nav{
+  display:flex!important;min-width:0;max-width:none!important;
+  overflow-x:auto!important;overflow-y:hidden!important;
+  scrollbar-width:none;white-space:nowrap;
+}
+.obsShell .obsOperationalTitle{
+  position:absolute!important;
+  left:128px!important;top:142px!important;
+  right:auto!important;width:620px!important;max-width:620px!important;
+  z-index:19!important;
+  text-align:left!important;
+}
+.obsShell .obsScene .hudLeft{
+  display:grid!important;
+  position:absolute!important;
+  left:128px!important;top:305px!important;
+  width:630px!important;max-width:none!important;
+  bottom:60px!important;right:auto!important;
+  overflow-y:auto!important;overflow-x:hidden!important;
+  align-content:start;gap:14px;z-index:20!important;
+}
+.obsShell .obsScene .hudLeft section{
+  display:block!important;
+  position:relative;
+  width:100%;
+  padding:19px!important;
+  background:rgba(3,9,14,.9)!important;
+  border:1px solid rgba(200,169,81,.35)!important;
+  border-radius:2px!important;
+  box-shadow:none!important;
+}
+.obsShell .obsScene .obsResearchConsole{
+  display:block!important;
+  position:absolute!important;
+  top:147px!important;left:925px!important;right:auto!important;
+  bottom:58px!important;width:1690px!important;max-width:none!important;
+  height:auto!important;padding:24px 28px!important;z-index:25!important;
+  background:rgba(3,9,14,.94)!important;
+  background-image:none!important;
+  border:1px solid rgba(200,169,81,.42)!important;
+  border-radius:2px!important;
+  box-shadow:none!important;
+  transform:none!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  scrollbar-width:thin!important;
+}
+.obsShell .obsScene .obsResearchConsole:focus-within{
+  transform:none!important;
+  background:rgba(3,9,14,.97)!important;
+}
+.obsShell .obsScene .obsResearchConsole .obsOperationalFilters{
+  position:static!important;
+  left:auto!important;top:auto!important;right:auto!important;bottom:auto!important;
+  width:100%!important;max-width:none!important;
+  height:auto!important;max-height:none!important;
+  margin:16px 0!important;
+  padding:12px!important;
+  display:flex!important;flex-wrap:wrap!important;
+  transform:none!important;
+  overflow:visible!important;
+  background:rgba(10,18,23,.9)!important;
+  background-image:none!important;
+  border:1px solid rgba(200,169,81,.25)!important;
+  border-radius:2px!important;
+  box-shadow:none!important;
+}
+.obsShell .obsScene .obsResearchConsole .obsSelectedObservation{
+  position:relative!important;
+  left:auto!important;top:auto!important;right:auto!important;bottom:auto!important;
+  width:100%!important;max-width:none!important;max-height:none!important;
+  margin:18px 0!important;
+  padding:16px!important;
+  border:1px solid rgba(200,169,81,.32)!important;
+  background:rgba(8,15,20,.95)!important;
+  box-shadow:none!important;
+  overflow:visible!important;
+  z-index:auto!important;
+}
+.obsShell .obsOperationalGrid{
+  display:grid!important;
+  position:absolute!important;
+  left:2850px!important;right:auto!important;
+  top:155px!important;bottom:auto!important;
+  width:2780px!important;
+  height:calc(100% - 210px)!important;
+  min-height:0!important;
+  padding:0!important;
+  overflow:visible!important;
+  gap:18px!important;
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  grid-template-rows:repeat(2,minmax(0,1fr))!important;
+  background:transparent!important;
+  background-image:none!important;
+  border:none!important;
+  box-shadow:none!important;
+  transform:none!important;
+  scroll-snap-type:none!important;
+  z-index:23!important;
+}
+.obsShell .obsOperationalGrid .obsOperationalCard{
+  position:relative;
+  min-width:0!important;
+  min-height:0!important;
+  overflow-y:auto!important;overflow-x:hidden!important;
+  background:rgba(3,10,15,.92)!important;
+  background-image:none!important;
+  border:1px solid rgba(200,169,81,.4)!important;
+  border-radius:2px!important;
+  padding:20px!important;
+  box-shadow:none!important;
+  transform:none!important;
+  scroll-snap-align:none!important;
+}
+.obsShell .obsOperationalGrid .obsOperationalCard::before{
+  content:none!important;
+}
+.obsShell .obsOperationalCard header span{font-size:13px!important;letter-spacing:.07em}
+.obsShell .obsOperationalCard p,
+.obsShell .obsOperationalCard small{font-size:12px!important;line-height:1.5}
+.obsShell .obsOperationalCard .obsOperationalCardStat{font-size:clamp(27px,2vw,44px)!important}
+.obsShell .obsOperationalCard button{min-height:30px}
+.obsShell .obsOperationalMiniTrack i{animation:none!important}
+.obsShell .obsScene .obsAmbientBoundary,
+.obsShell .obsScene .obsOperationalTimeline,
+.obsShell .obsScene .obsOperationalLenses,
+.obsShell .obsScene .obsPanoramaEnvironment,
+.obsShell .obsScene .obsAstronomyReadout,
+.obsShell .obsScene .earthStage,
+.obsShell .obsScene .satelliteActor,
+.obsShell .obsScene .hubRail{display:none!important}
+@media(max-width:820px){
+  .obsShell .obsScene .obsOperationalHeader{
+    padding:0 12px!important;
+    width:100vw!important;
+  }
+  .obsShell .obsOperationalHeader nav a{font-size:10px!important}
+}
+/* Do not apply previous viewport-width responsive rules to the 5760px stage.
+   Smaller screens scroll sideways through the same institutional instrument. */
