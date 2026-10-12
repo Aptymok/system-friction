@@ -215,12 +215,12 @@ export function ObservatoryConsole(){
   const aiAssistantSessions=num(ga4Metrics?.aiAssistantSessions);
   const worldIsPersistedLive=availability.world==='AVAILABLE'&&world?.liveWorld?.state==='LIVE'&&nodes.length>0;
   // Visual NYC daypart and approximate synodic moon phase are ambient context, never world observations.
-  const sceneDate=new Date(clock||new Date(observationNow).toISOString());
-  const nycClock=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(sceneDate);
-  const nycHour=Number(new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',hour:'numeric',hourCycle:'h23'}).format(sceneDate));
+  const sceneDate=clock?new Date(clock):null;
+  const nycClock=sceneDate?new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(sceneDate):'SYNCING';
+  const nycHour=sceneDate?Number(new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',hour:'numeric',hourCycle:'h23'}).format(sceneDate)):12;
   const sceneDaypart=nycHour>=7&&nycHour<17?'day':nycHour>=17&&nycHour<20?'dusk':nycHour>=5&&nycHour<7?'dawn':'night';
   const synodicMonth=29.53058867;
-  const moonAge=((sceneDate.getTime()-Date.UTC(2000,0,6,18,14))/86400000%synodicMonth+synodicMonth)%synodicMonth;
+  const moonAge=sceneDate?(((sceneDate.getTime()-Date.UTC(2000,0,6,18,14))/86400000%synodicMonth+synodicMonth)%synodicMonth):0;
   const moonPhase=moonAge/synodicMonth;
   const moonIllumination=Math.round((1-Math.cos(moonPhase*Math.PI*2))*50);
   const moonPhaseName=moonPhase<.035||moonPhase>.965?'NEW MOON':moonPhase<.215?'WAXING CRESCENT':moonPhase<.285?'FIRST QUARTER':moonPhase<.465?'WAXING GIBBOUS':moonPhase<.535?'FULL MOON':moonPhase<.715?'WANING GIBBOUS':moonPhase<.785?'LAST QUARTER':'WANING CRESCENT';
@@ -275,7 +275,7 @@ export function ObservatoryConsole(){
         <circle cx="25" cy="25" r="22" fill="#152335" stroke="#82909a" strokeWidth=".8"/>
         <path d={moonIlluminatedPath(moonPhase)} fill="#e8e5df"/>
       </svg>
-      <span><strong>{nycClock} · NEW YORK</strong><small>{moonPhaseName} · ≈{moonIllumination}% ILLUMINATED</small><small>SCENE CLOCK / APPROX. PHASE · NOT LIVE WEATHER</small></span>
+      <span><strong>{nycClock} · NEW YORK</strong><small>{sceneDate?`${moonPhaseName} · ≈${moonIllumination}% ILLUMINATED`:'SYNCHRONIZING LUNAR DISPLAY'}</small><small>SCENE CLOCK / APPROX. PHASE · NOT LIVE WEATHER</small></span>
     </div>
     <div className="starfield"/><div className="deepSpace"/>
     <button className={`satelliteActor satellite-${lens}`} onClick={()=>{setSatelliteOpen(v=>!v);if(!selectedHypothesisId&&filteredHypotheses[0])setSelectedHypothesisId(String(filteredHypotheses[0].id))}} aria-label={ui('Open SFI satellite instrument')}>
