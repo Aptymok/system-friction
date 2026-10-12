@@ -25,7 +25,6 @@ type Hypothesis=Row&{
   evidence_ids?:string[];expected_signals?:string[];contradiction_signals?:string[];aiInference?:Row;graphSnapshot?:Row;outcome?:Row|null;learning?:Row|null;
 };
 type TimelineFrame={observedAt:string;wsi:number|null;nti:number|null;confidence:number|null;sourceState:string;ingestMode:string;vectors:Array<{id:string;label:string;value:number|null;sourceCount:number;trust:number|null}>};
-type Position={x:number;y:number;geo:boolean};
 type ObservatoryAvailability={world:ObservatoryReadAvailability;state:ObservatoryReadAvailability;timeline:ObservatoryReadAvailability};
 type ObservatorySnapshot={at:number;world:Row|null;obs:Row|null;worldVector:Row|null;timeline:TimelineFrame[];availability:ObservatoryAvailability};
 
@@ -34,12 +33,7 @@ const row=(v:unknown):Row|null=>v&&typeof v==='object'&&!Array.isArray(v)?v as R
 const rows=(v:unknown):Row[]=>arr(v).filter((x):x is Row=>Boolean(x)&&typeof x==='object'&&!Array.isArray(x));
 const num=(v:unknown)=>Number.isFinite(Number(v))?Number(v):null;
 const txt=(v:unknown)=>typeof v==='string'&&v.trim()?v.trim():'';
-const clamp=(n:number,a:number,b:number)=>Math.max(a,Math.min(b,n));
 const uniq=(v:string[])=>[...new Set(v.filter(Boolean))];
-function project(lat:number,lng:number){return{x:clamp(800+(lng*3.05),260,1340),y:clamp(470-(lat*2.35),220,745),geo:true}}
-function idHash(value:string){let h=2166136261;for(let i=0;i<value.length;i++){h^=value.charCodeAt(i);h=Math.imul(h,16777619)}return Math.abs(h)}
-function orbitalPosition(id:string,index:number,total:number):Position{const seed=idHash(id);const angle=((seed%360)+(index/Math.max(1,total))*120)*Math.PI/180;const radius=285+(seed%95);return{x:800+Math.cos(angle)*radius,y:470+Math.sin(angle)*radius*.62,geo:false}}
-function nodePosition(node:WorldNode,index:number,total:number):Position{return node.lat!=null&&node.lng!=null?project(node.lat,node.lng):orbitalPosition(node.id,index,total)}
 function short(value:unknown,max=160){const t=txt(value);return t.length>max?`${t.slice(0,max-1)}…`:t}
 
 
