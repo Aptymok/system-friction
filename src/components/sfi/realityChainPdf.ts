@@ -124,5 +124,8 @@ export function createRealityChainPdf(input:RealityPdfInput):Blob{
  text+='xref\n0 '+objects.length+'\n0000000000 65535 f \n';
  for(let id=1;id<objects.length;id++)text+=String(offsets[id]).padStart(10,'0')+' 00000 n \n';
  text+='trailer\n<< /Size '+objects.length+' /Root 1 0 R >>\nstartxref\n'+xref+'\n%%EOF\n';
- return new Blob([pdfBytes(text)],{type:'application/pdf'});
+ const bytes=pdfBytes(text);
+ const buffer=new ArrayBuffer(bytes.byteLength);
+ new Uint8Array(buffer).set(bytes);
+ return new Blob([buffer],{type:'application/pdf'});
 }
