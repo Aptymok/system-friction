@@ -465,3 +465,27 @@
 .obsShell .earthStage .obsGlobeCanvas{outline-offset:5px}
 .obsShell .earthStage .obsGlobeControlRail button:focus-visible,
 .obsShell .earthStage .obsEarthModeToggle button:focus-visible{outline:2px solid #e3c282;outline-offset:2px}
+
+/* A prominent lunar witness sits BEHIND the globe and monitors; phase is an
+   approximate astronomical visualization, not an observation of moon altitude. */
+.obsShell .obsPanoramaEnvironment .obsScenicMoon{
+  position:absolute;z-index:2;top:4%;left:53%;width:clamp(74px,9vw,190px);
+  aspect-ratio:1;border-radius:50%;pointer-events:none;
+  background-image:url('/assets/sfi/instruments/OBSERVATORY_MOONS.png');
+  background-repeat:no-repeat;background-size:400% 200%;
+  opacity:.85;filter:drop-shadow(0 0 18px rgba(211,223,234,.26));
+}
+.obsShell .obsScene[data-scene-daypart="day"] .obsScenicMoon{opacity:.25}
+.obsShell .obsScene[data-scene-daypart="dawn"] .obsScenicMoon{opacity:.44}
+.obsShell .obsScene[data-scene-daypart="dusk"] .obsScenicMoon{opacity:.72}
+.obsShell .obsScene[data-scene-daypart="night"] .obsScenicMoon{opacity:.9}
+@keyframes obsHologramMaterialize{
+  0%{opacity:0;clip-path:inset(100% 0 0 0);filter:brightness(1.7)}
+  38%{opacity:.6;clip-path:inset(50% 0 0 0);filter:brightness(1.48)}
+  75%{opacity:.92;clip-path:inset(0 0 0 0);filter:brightness(1.2)}
+  100%{opacity:1;clip-path:inset(0 0 0 0);filter:brightness(1)}
+}
+.obsShell .obsGlobeCanvas.is-ready{animation:obsHologramMaterialize 1.6s cubic-bezier(.26,.68,.31,1) both}
+@media(prefers-reduced-motion:reduce){
+  .obsShell .obsGlobeCanvas.is-ready{animation:none}
+}
