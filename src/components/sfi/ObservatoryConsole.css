@@ -454,3 +454,14 @@
  .obsShell .obsGlobeCanvas{transition:none}
  .obsShell .obsOperationalGrid,.obsShell .obsScene .obsResearchConsole{transform:none!important}
 }
+
+/* Existing earth-stage shell historically disables pointer input. Re-enable it
+   only for the new real controls; the ambient illustration stays click-through. */
+.obsShell .earthStage .obsGlobeCanvas,
+.obsShell .earthStage .obsGlobeControlRail,
+.obsShell .earthStage .obsGlobeControlRail button,
+.obsShell .earthStage .obsEarthModeToggle,
+.obsShell .earthStage .obsEarthModeToggle button {pointer-events:auto}
+.obsShell .earthStage .obsGlobeCanvas{outline-offset:5px}
+.obsShell .earthStage .obsGlobeControlRail button:focus-visible,
+.obsShell .earthStage .obsEarthModeToggle button:focus-visible{outline:2px solid #e3c282;outline-offset:2px}
