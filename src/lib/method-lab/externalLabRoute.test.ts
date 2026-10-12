@@ -208,8 +208,8 @@ test('explicit null research confidence survives source normalization and public
   assert.equal(json.researchObject.confidence,null,'null must override earlier assessed zero');
   assert.equal(json.publicationPackage.manifest.object.confidence,null);
   const trace = json.publicationPackage.files.find((f: {path:string})=>f.path==='PUBLIC_TRACE.md');
-  assert.ok(trace.content.includes('## Confidence\\nNOT_ASSESSED\\n'));
-  assert.ok(!trace.content.includes('## Confidence\\n0\\n'));
+  assert.ok(trace.content.includes('## Confidence\nNOT_ASSESSED\n'));
+  assert.ok(!trace.content.includes('## Confidence\n0\n'));
 });
 
 test('malformed or ambiguous metadata is rejected instead of silently discarded', async () => {
