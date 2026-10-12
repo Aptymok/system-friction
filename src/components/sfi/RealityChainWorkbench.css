@@ -343,18 +343,30 @@
   display:flex;
   align-items:center;
   justify-content:center;
-  width:55px;
-  height:55px;
-  min-height:55px;
-  flex:0 0 55px;
-  padding:8px;
+  width:76px;
+  height:76px;
+  min-height:76px;
+  flex:0 0 76px;
+  padding:5px;
   margin:0;
+  overflow:hidden;
   color:#ecd29a;
   background:rgba(9,14,17,.54);
   border:1px solid rgba(222,186,121,.72);
-  border-radius:50%;
+  border-radius:12px;
   cursor:pointer;
   transition:background .17s ease,border-color .17s ease;
+}
+.rcThreeMode .rcHubArtwork{
+  display:block;
+  width:100%;
+  height:100%;
+  max-width:100%;
+  max-height:100%;
+  object-fit:contain;
+  object-position:center;
+  border-radius:7px;
+  pointer-events:none;
 }
 .rcThreeMode .rcHubStage[aria-pressed=true],
 .rcThreeMode .rcHubStage:hover,
@@ -407,7 +419,7 @@
   .rcThreeMode .rcOperationalScroller{inset:114px 0 0}
   .rcThreeMode .rcHorizon.rcThreeHorizon{padding:24px 30px}
   .rcThreeMode .rcThreeHorizonBottom{grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
-  .rcThreeMode .rcHubStage{width:42px;height:42px;min-height:42px;flex-basis:42px}
+  .rcThreeMode .rcHubStage{width:56px;height:56px;min-height:56px;flex-basis:56px}
   .rcThreeMode .rcHubStage svg{width:25px;height:25px}
 }
 @media(prefers-reduced-motion:reduce){
