@@ -519,7 +519,7 @@
   max-width:none!important;
   height:100%!important;
   min-height:0!important;
-  overflow:hidden!important;
+  overflow:visible!important;
   isolation:auto!important;
   background:#020508 url('/assets/sfi/instruments/OBSERVATORY_BACKGROUND.png') left center / 5760px 100% no-repeat!important;
 }
