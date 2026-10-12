@@ -76,6 +76,7 @@ export function ObservatoryConsole(){
   const[lens,setLens]=useState<Lens>(initialLens),[satelliteOpen,setSatelliteOpen]=useState(true),[selectedNodeId,setSelectedNodeId]=useState<string|null>(null),[selectedHypothesisId,setSelectedHypothesisId]=useState<string|null>(null);
   const[sourceFamily,setSourceFamily]=useState('ALL'),[systemFilter,setSystemFilter]=useState('ALL'),[statusFilter,setStatusFilter]=useState('ALL'),[windowHours,setWindowHours]=useState(168),[minConfidence,setMinConfidence]=useState(0),[query,setQuery]=useState('');
   const[baselineTime,setBaselineTime]=useState(0),[time,setTime]=useState(100),[clock,setClock]=useState('');
+  const[selectedTerritoryId,setSelectedTerritoryId]=useState<string|null>(null);
   // Sampling this clock once per minute prevents a global node/graph redraw every second.
   const[observationNow,setObservationNow]=useState(()=>Date.now());
 
@@ -168,6 +169,7 @@ export function ObservatoryConsole(){
     affectedSystems:node.affectedSystems,
     reading:node.reading,
   }))),[nodes]);
+  const selectedTerritory=territorialModel.territories.find(territory=>territory.id===selectedTerritoryId)??null;
   const territorialField=useMemo(()=>territorialModel.territories.map(territory=>({
     ...territory,
     position:project(territory.anchor.lat,territory.anchor.lng),
@@ -310,8 +312,10 @@ export function ObservatoryConsole(){
         vectors={frame?.vectors??[]}
         ghostVectors={baselineFrame?.vectors??[]}
         territories={territorialField}
-        onSelectNode={setSelectedNodeId}
+        onSelectNode={(id)=>{setSelectedNodeId(id);setSatelliteOpen(true)}}
         onSelectHypothesis={setSelectedHypothesisId}
+        onSelectTerritory={(id)=>{setSelectedTerritoryId(id);setLens('territories');setSatelliteOpen(true)}}
+        selectedTerritoryId={selectedTerritoryId}
       /></>:<div className="obsAmbientWorld"><img className="worldActor obsAmbientArtwork" src="/assets/sfi/instruments/08102026_07.png" alt="Conceptual Earth artwork; no current world observations are represented"/><div className="worldUnavailable"><small>VISUAL SUBSTRATE · NO LIVE DATA CLAIM</small><strong>{availability.world}</strong><p>No live field is rendered without recent persisted observations. Historical hypotheses remain separately inspectable.</p></div></div>}
     </div>
 
@@ -409,12 +413,19 @@ export function ObservatoryConsole(){
           <div style={{padding:10,border:'1px solid rgba(214,180,120,.12)',borderRadius:9}}><div style={micro}>UNMAPPED</div><b>{territorialModel.unmappedCount}</b></div>
           <div style={{padding:10,border:'1px solid rgba(214,180,120,.12)',borderRadius:9}}><div style={micro}>COVERAGE</div><b>{pct(territorialModel.coverage)}</b></div>
         </div>
-        <div style={micro}>DERIVED TERRITORIAL TENSIONS</div>
-        {territorialModel.territories.length?territorialModel.territories.map(territory=><div key={territory.id} style={{padding:'10px 0',borderBottom:'1px solid rgba(214,180,120,.1)'}}>
+        <div style={micro}>DERIVED TERRITORIAL TENSIONS · SELECT A REGION</div>
+        {selectedTerritory&&<section className="obsTerritorySelected" aria-label="Selected geocoded territory reading">
+          <strong>{selectedTerritory.label} · DERIVED</strong>
+          <p>{selectedTerritory.observationCount} SOURCE OBSERVATIONS · {selectedTerritory.sourceCount} SOURCES · Fₛ {selectedTerritory.systemicFriction==null?'UNAVAILABLE':selectedTerritory.systemicFriction.toFixed(3)}</p>
+          <small>Basis: {selectedTerritory.basisIds.length} referenced observation IDs. Territory groups and friction averages are analytical readings, not observed causality.</small>
+          <button type="button" onClick={()=>setSelectedTerritoryId(null)}>CLEAR REGIONAL SELECTION</button>
+        </section>}
+
+        {territorialModel.territories.length?territorialModel.territories.map(territory=><button type="button" key={territory.id} aria-pressed={selectedTerritoryId===territory.id} onClick={()=>setSelectedTerritoryId(territory.id)} className="obsTerritorySelect" style={{padding:'10px 0',borderBottom:'1px solid rgba(214,180,120,.1)'}}>
           <div style={{display:'flex',justifyContent:'space-between',gap:12,alignItems:'baseline'}}><b style={{fontSize:12}}>{territory.label}</b><span style={chip}>Fₛ {territory.systemicFriction==null?'—':territory.systemicFriction.toFixed(3)}</span></div>
           <div style={{display:'grid',gridTemplateColumns:'repeat(4,auto)',gap:8,marginTop:6,fontSize:10,opacity:.62}}><span>{territory.observationCount} obs</span><span>{territory.sourceCount} src</span><span>{pct(territory.confidence)} conf</span><span>Δ activity {signedPct(territory.activityDelta)}</span></div>
           <div style={{fontSize:10,marginTop:6,opacity:.48}}>{territory.affectedSystems.join(' · ')||'no affected systems represented'}</div>
-        </div>):<p style={{fontSize:11,opacity:.62}}>No geocoded observations are available under the current filters.</p>}
+        </button>):<p style={{fontSize:11,opacity:.62}}>No geocoded observations are available under the current filters.</p>}
         <p style={{fontSize:11,lineHeight:1.55,opacity:.58,marginTop:12}}>Display regions are analytical buckets, not geopolitical claims. Fₛ is averaged only where a persisted friction reading exists. Activity change counts observations; it does not estimate severity.</p>
       </>}
 
