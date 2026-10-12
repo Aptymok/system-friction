@@ -4,6 +4,7 @@ import { readMethodLabState } from '@/lib/method-lab/readModel';
 import { buildMethodLabPublicationPackage, methodLabResearchHubTarget, persistMethodLabResearchObject, readMethodLabResearchState } from '@/lib/method-lab/researchObjects';
 import { runMethodLabSimulation } from '@/lib/method-lab/simulationRun';
 import { runMihmFoundationDiagnostic } from '@/lib/method-lab/mihmFoundationDiagnosticRun';
+import { previewMethodLabRealityPassport } from '@/lib/method-lab/researchPassportPreview';
 import { appendEpistemicEvent } from '@/lib/events/eventStore';
 import { appendOperationalEvent, createActionProposal, recordValue, sha256 } from '@/lib/operational/common';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
@@ -136,6 +137,7 @@ export async function POST(req: Request) {
     const objectId = typeof body.objectId === 'string' ? body.objectId.trim() : '';
     const researchObject = objectId ? research.objects.find((item) => item.objectId === objectId) ?? null : null;
     const publicationPackage = researchObject ? buildMethodLabPublicationPackage(researchObject) : null;
+    const researchPassportPreview = researchObject ? previewMethodLabRealityPassport(researchObject) : null;
     if (objectId && !researchObject) {
       return NextResponse.json({ ok: false, error: 'research_object_not_found', objectId }, { status: 404 });
     }
@@ -148,6 +150,7 @@ export async function POST(req: Request) {
       data: { analyses: analyses.data ?? [], evaluations: evaluations.data ?? [], research },
       researchObject,
       publicationPackage,
+      researchPassportPreview,
       transportBoundary: 'Method Lab is source of truth. Hub/Zenodo mutation requires governed promotion plus an authorized external transport agent.',
       warnings,
     });
