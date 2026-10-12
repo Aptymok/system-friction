@@ -22,16 +22,15 @@ assert.match(ui,/NOT AN AUTHORITY OR SCIENTIFIC VALIDATION/,'Report cannot claim
 assert.match(ui,/claims:\[\]/,'Governed receipt cannot invent substantive claims');
 assert.match(ui,/persistTraceManifest/,'Source-linked trace manifest must be persistable without source files');
 assert.match(ui,/DERIVED_RECORD_NOT_AUTHORIZED_REPORT/,'Trace snapshot is never promoted to institutional authority');
-assert.doesNotMatch(ui,/src="\/assets\/sfi\/instruments\/RealityChain\\.png"/,'Operative case reconstruction cannot fake panels with a flattened reference image');
-assert.match(publicSurface,/label:'RECONSTRUCT A CASE',href:'\/reality-chain'/,'Public introduction should lead to account-scoped workspace');
-const sceneImages=[...ui.matchAll(/className="rcThreeScene" src="([^"]+)"/g)];
-assert.equal(sceneImages.length,3,'Each section of the 3840px workbench requires its own explicit atmospheric image');
-for(const [,src] of sceneImages){
-  assert.ok(existsSync('public'+decodeURIComponent(src)),'Reality Chain scene image must exist in tracked public assets: '+src);
-}
+const panorama=ui.match(/className="rcPanoramaImage" src="([^"]+)"/);
+assert.ok(panorama,'One photographic panorama must remain in the authenticated operational UI');
+assert.equal(panorama?.[1],'/assets/sfi/instruments/RealityChain.png','Use the explicitly requested RealityChain.png');
+assert.ok(existsSync('public'+panorama![1]),'The single panorama file must exist in tracked assets');
+assert.equal((ui.match(/className="rcPanoramaImage"/g)||[]).length,1,'The background must not be repeated');
+assert.equal((ui.match(/className="rcThreeScene"/g)||[]).length,0,'No separate repeated screen images');
 const layout=read('src/components/sfi/RealityChainWorkbench.css');
-assert.match(layout,/width:max\(3840px,200vw\)/,'Panoramic workbench must retain its 3840px minimum width');
-assert.match(layout,/\.rcThreeMode \.rcThreeScene\{/,'Atmospheric scene images must be explicitly styled rather than hidden behind a backdrop');
-assert.doesNotMatch(layout,/rcBackdrop[^\n]*contain no-repeat/,'No full-track contain letterboxing that makes background images disappear');
-
+assert.match(layout,/width:var\\(--rc-canvas-width,3840px\\)/,'Canvas size must be bounded to image native width');
+assert.match(ui,/Math.min\\(3840,e.currentTarget.naturalWidth\\)/,'Prevent exceeding the source image natural width');
+assert.match(layout,/object-fit:cover/,'Original panorama uses one continuous, proportional backdrop');
+assert.match(layout,/scroll-snap-type:none/,'Horizontal progression must be continuous');
 console.log('PASS · Reality Chain case access, source-only intake, parser reuse, non-promotion, report boundaries and existing assets');
