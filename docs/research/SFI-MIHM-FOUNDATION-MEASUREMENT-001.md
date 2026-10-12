@@ -99,3 +99,11 @@ A formal theory claim requires a demonstrated causal/mechanistic account or clea
 - **G5 — Contrast:** run blinded holdout and publish results including negative/null outcomes. No implication of external replication.
 
 **Present gate:** G1 + G2 OPEN. **Empirical performance:** NOT_OBSERVED. **Canonical change:** NONE. **Prospective RETURN:** NONE.
+
+## 10. Reality Passport integration and G1 verification boundary
+
+Method Lab persisted `SFI-MIHM-FOUNDATION-001` as an event-ledger research object; this is not a graph node, evidence admission or scientific RETURN. `src/lib/method-lab/researchPassportPreview.ts` now offers a read-only diagnostic view using the existing `buildRealityPassport` function. It does not write or project into the canonical graph automatically, nor is it yet wired to the operational screen. Its purpose is to verify abstention, lineage and authority boundaries before any frontend coupling.
+
+The 2026-10-11 G1 diagnostic step passed in workflow 4984, demonstrating the programmed null-versus-zero equivalence check. The later workflow 4987 stopped at the canonical PR preflight before executing the added preview test; the PR preflight record has now been completed. Neither a passing diagnostic nor a passing projection unit test would imply a complete reality passport or empirical validation.
+
+**Further gate:** select an existing authorized *read* path to expose the persisted Lab object by ID on the operational Reality Chain screen; do not add a shadow DB reader or import server-only research code into client components. Explicitly show unavailable graph linkage and distinguish WORKING research record from authorized OBSERVED evidence. A graph write, if ever required, must go through the existing graph owner with source-supported admission and human governance as applicable.
