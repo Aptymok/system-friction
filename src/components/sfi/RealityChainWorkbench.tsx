@@ -345,11 +345,11 @@ export function RealityChainWorkbench(){
       objects:asOfObjects.map(o=>({
         kind:o.kind,role:o.epistemicRole,id:o.canonicalRef.id,
         hash:o.canonicalRef.hash??null,recordedAt:o.createdAt,observedAt:o.observedAt,
-        sourceIds:o.sourceRefs.map(r=>r.id),description:payloadDescription(o),
-        locator:JSON.stringify(o.payload.locator??'NOT REPRESENTED')
+        sourceIds:o.sourceRefs.map(r=>r.id),recordIds:o.recordRefs.map(r=>r.id),evidenceIds:o.evidenceRefs.map(r=>r.id),
+        description:payloadDescription(o),locator:JSON.stringify(o.payload.locator??'NOT REPRESENTED'),payloadJson:JSON.stringify(o.payload)
       })),
       learning:learningRecords.map(o=>({
-        id:o.canonicalRef.id,state:safeText(o.payload.promotionState??o.payload.learningState,'UNVERIFIED'),
+        id:o.canonicalRef.id,state:safeText(o.payload.learningDisposition??o.payload.promotionState??o.payload.learningState,'UNVERIFIED'),
         statement:payloadDescription(o),
         returnRefs:Array.isArray(o.payload.returnRefs)?o.payload.returnRefs.map(x=>String(x)):[]
       })),
