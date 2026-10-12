@@ -107,7 +107,7 @@ void main(){
     gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
     gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([15,32,45,255]));
     const img=new Image();
-    img.onload=()=>{if(stopped)return;gl.bindTexture(gl.TEXTURE_2D,tex);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,1);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,img);textureReady=true;setReady(true)};
+    img.onload=()=>{if(stopped)return;gl.bindTexture(gl.TEXTURE_2D,tex);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,0);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,img);textureReady=true;setReady(true)};
     img.onerror=()=>{if(!stopped)setFailed(true)};
     img.src=OBSERVATORY_GLOBE_TEXTURE;
     const uniform=(name:string)=>gl.getUniformLocation(program,name);
