@@ -15,6 +15,12 @@ function harness(runError?: string) {
   const mocks: Record<string, unknown> = {
     'next/server': { NextResponse: { json: (body: unknown, init?: ResponseInit) => Response.json(body, init) } },
     '@/lib/method-lab/readModel': { readMethodLabState: async () => ({}) },
+    '@/lib/method-lab/mihmFoundationDiagnosticRun': { runMihmFoundationDiagnostic: async (input: Record<string, any>) => {
+      if (runError) throw new Error(runError);
+      runs.push({ ...input, protocolId: 'mihm_foundation_diagnostic' });
+      return { labAnalysisId: 'qa-mihm-analysis', run: { labRunId: 'qa-mihm-run', resultHash: 'qa-mihm-hash', epistemicClass: 'SIMULATED' } };
+    } },
+    '@/lib/method-lab/researchPassportPreview': { previewMethodLabRealityPassport: (object: Record<string, any>) => ({ representation: 'READ_ONLY_METHOD_LAB_PREVIEW', sourceObjectId: object.objectId, graphPersisted: false, canonicalAuthority: false }) },
     '@/lib/method-lab/simulationRun': { runMethodLabSimulation: async (input: Record<string, any>) => {
       if (runError) throw new Error(runError);
       runs.push(input);
@@ -144,7 +150,7 @@ test('run rejects unsupported protocols and mixed/blank evidence IDs rather than
   }
   const invalid = await h.post({ operation: 'run', protocolId: 'chronos_olympics', evidenceIds: ['valid'] }, 'lab:run');
   assert.equal(invalid.status, 400);
-  assert.deepEqual((await invalid.json()).acceptedProtocolIds, ['sociotechnical_simulation', 'economic_simulation']);
+  assert.deepEqual((await invalid.json()).acceptedProtocolIds, ['sociotechnical_simulation', 'economic_simulation', 'mihm_foundation_diagnostic']);
   assert.equal(h.runs.length, 0);
 });
 
@@ -174,6 +180,9 @@ test('published research metadata survives MCP, receipt and real object projecti
   assert.equal(object.state, 'EXPERIMENTAL');
   assert.equal(object.source, 'EXTERNAL_AGENT');
   assert.equal(object.returnState, 'PENDING');
+  const passportReport = await (await h.post({ operation: 'report', objectId: 'qa-research' }, 'lab:read')).json();
+  assert.equal(passportReport.researchPassportPreview?.representation, 'READ_ONLY_METHOD_LAB_PREVIEW');
+  assert.equal(passportReport.researchPassportPreview?.graphPersisted, false);
   const { researchMetadata: ignored, ...canonical } = body;
   assert.equal((await h.post({ ...canonical, metadata: researchMetadata })).status, 200);
   assert.equal(h.events.length, 1);
