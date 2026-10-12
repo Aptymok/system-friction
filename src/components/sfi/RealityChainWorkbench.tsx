@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { Globe2, RadioTower, ScanEye, FileCheck2, BrainCircuit, Scale, Zap, RotateCcw, BookOpenCheck } from 'lucide-react';
+import { BookOpenCheck } from 'lucide-react';
 import './RealityChainWorkbench.css';
 
 type Ref={id:string;hash?:string|null;version?:string|null};
@@ -23,13 +23,25 @@ const STEPS=[
   {name:'RETURN',role:'Observed effects and contrast against prior expectations; an action receipt is not a measured outcome.'},
   {name:'LEARNING',role:'Governed integration of what changed after a real-world RETURN; case closure is not automatically learning.'},
 ] as const;
-// Distinct vector symbols are a temporary functional fallback until the original SFI_RCH assets are supplied.
-const HUB_ICONS=[Globe2,RadioTower,ScanEye,FileCheck2,BrainCircuit,Scale,Zap,RotateCcw,BookOpenCheck] as const;
+// Canonical imagery supplied in public/assets/sfi/instruments/SFI_RCH_01–08.png.
+// LEARNING is an additional operational reading, not a fabricated ninth canonical icon.
+const HUB_ARTWORK=[
+ '/assets/sfi/instruments/SFI_RCH_01.png',
+ '/assets/sfi/instruments/SFI_RCH_02.png',
+ '/assets/sfi/instruments/SFI_RCH_03.png',
+ '/assets/sfi/instruments/SFI_RCH_04.png',
+ '/assets/sfi/instruments/SFI_RCH_05.png',
+ '/assets/sfi/instruments/SFI_RCH_06.png',
+ '/assets/sfi/instruments/SFI_RCH_07.png',
+ '/assets/sfi/instruments/SFI_RCH_08.png',
+] as const;
 function HubHeading({step,title,selected,onSelect}:{step:number;title:string;selected:boolean;onSelect:()=>void}){
- const Icon=HUB_ICONS[step];
+ const artwork=step<8?HUB_ARTWORK[step]:undefined;
  return <div className="rcHubHeading">
    <button className="rcHubStage" type="button" onClick={onSelect} aria-label={`Inspect ${STEPS[step].name} stage`} aria-pressed={selected} title={STEPS[step].role}>
-     <Icon size={34} strokeWidth={1.45} aria-hidden="true"/>
+     {artwork
+       ?<img className="rcHubArtwork" src={artwork} alt="" aria-hidden="true" loading="lazy" decoding="async"/>
+       :<BookOpenCheck size={38} strokeWidth={1.45} aria-hidden="true"/>}
    </button>
    <div className="rcHubHeadingText"><small>{String(step+1).padStart(2,'0')} · {STEPS[step].name}{step===3?' · SOURCE ≠ EVIDENCE':''}</small><h2>{title}</h2></div>
  </div>;
