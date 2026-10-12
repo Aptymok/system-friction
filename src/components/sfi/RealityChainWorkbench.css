@@ -114,7 +114,17 @@
 .rcThreeMode .rcOperationalScroller{inset:132px 0 56px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;scroll-behavior:smooth;overscroll-behavior-x:contain;touch-action:pan-x}
 .rcThreeMode .rcOperationalScroller::-webkit-scrollbar{display:none}
 .rcThreeMode .rcOperationalTrack{height:100%;width:300vw;min-width:300vw;display:flex;align-items:stretch;gap:0}
-.rcThreeMode .rcBackdrop{inset:0;z-index:-1}
+/* Reality Chain: display the exact existing canonical artwork, once only. */
+.rcThreeMode .rcBackdrop{
+  inset:0;
+  z-index:0;
+  background-image:url('/assets/sfi/instruments/RealityChain.png');
+  background-position:center center;
+  background-size:contain;
+  background-repeat:no-repeat;
+}
+.rcThreeMode .rcBackdrop::after{display:none!important}
+.rcThreeMode .rcHorizon.rcThreeHorizon{position:relative;z-index:1}
 .rcThreeMode .rcBackdrop img{object-fit:cover;object-position:center;filter:saturate(.85) brightness(.72) contrast(1.06)}
 .rcThreeMode .rcBackdrop:after{background:linear-gradient(180deg,rgba(6,6,5,.34),rgba(6,6,5,.08) 36%,rgba(6,6,5,.54))}
 .rcThreeMode .rcHorizon.rcThreeHorizon{flex:0 0 100vw;width:100vw;min-width:0;height:100%;display:flex;flex-direction:column;gap:10px;padding:clamp(12px,1.5vw,23px);box-sizing:border-box;scroll-snap-align:start;overflow:hidden}
