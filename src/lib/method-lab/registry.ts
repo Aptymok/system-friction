@@ -2,6 +2,20 @@ import type { MethodLabProtocolDefinition, MethodLabProtocolId } from './contrac
 
 export const METHOD_LAB_PROTOCOLS: MethodLabProtocolDefinition[] = [
   {
+    id: 'mihm_foundation_diagnostic',
+    name: 'MIHM Foundation — Missingness G1',
+    purpose: 'Controlled null-versus-zero ablation of SFI MIHM reduced kernel with persisted research receipt and explicit abstention from empirical claims.',
+    version: '2026-10-11.mihm-g1.v1',
+    implementationPath: 'src/lib/method-lab/mihmFoundationDiagnosticRun.ts',
+    executionSurface: '/method-lab',
+    persistence: ['sfi_lab_analyses', 'epistemic_events'],
+    epistemicClass: 'SIMULATED',
+    maximumValidationLevel: 'SIMULATION',
+    promotionRequiresRoot: true,
+    canonicalMutationAllowed: false,
+    externalExecutionAllowed: false,
+  },
+  {
     id: 'chronos_olympics',
     name: 'SFI CHRONOS / Cognitive Olympics',
     purpose: 'Evaluate cognitive constitutions under sealed historical, shadow-world and prospective temporal conditions.',

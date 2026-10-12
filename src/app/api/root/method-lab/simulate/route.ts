@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auditRootAction, requireRootActor } from '@/lib/root/server';
 import { runMethodLabSimulation } from '@/lib/method-lab/simulationRun';
+import { runMihmFoundationDiagnostic } from '@/lib/method-lab/mihmFoundationDiagnosticRun';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -11,7 +12,7 @@ export async function POST(request: Request) {
   if (!gate.ok) return NextResponse.json(gate.body, { status: gate.status });
 
   const body = await request.json().catch(() => ({})) as Record<string, unknown>;
-  const protocolId = body.protocolId === 'sociotechnical_simulation' || body.protocolId === 'economic_simulation'
+  const protocolId = body.protocolId === 'sociotechnical_simulation' || body.protocolId === 'economic_simulation' || body.protocolId === 'mihm_foundation_diagnostic'
     ? body.protocolId
     : null;
   if (!protocolId) return NextResponse.json({ ok: false, error: 'supported_protocol_required' }, { status: 400 });
@@ -27,13 +28,16 @@ export async function POST(request: Request) {
     : [];
 
   try {
-    const result = await runMethodLabSimulation({
-      protocolId,
-      evidenceIds,
-      actorId: gate.ctx.user.id,
-      parameters,
-      cognitiveSpineContextRefs,
-    });
+    const result = protocolId === 'mihm_foundation_diagnostic'
+      ? await runMihmFoundationDiagnostic({ actorId: gate.ctx.user.id, evidenceIds, parameters })
+      : await runMethodLabSimulation({
+          protocolId,
+          evidenceIds,
+          actorId: gate.ctx.user.id,
+          parameters,
+          cognitiveSpineContextRefs,
+        });
+    const cognitiveSpine = 'cognitiveSpine' in result ? result.cognitiveSpine : null;
     const audit = await auditRootAction({
       actorId: gate.ctx.user.id,
       action: 'method_lab.simulation.executed',
@@ -45,11 +49,11 @@ export async function POST(request: Request) {
         evidenceIds,
         epistemicClass: result.run.epistemicClass,
         validationLevel: result.run.validationLevel,
-        cognitiveSpineSnapshotId: result.cognitiveSpine.snapshotId,
-        cognitiveSpineSnapshotHash: result.cognitiveSpine.snapshotHash,
-        cognitiveSpineProfile: result.cognitiveSpine.profile,
-        cognitiveSpineConsumed: result.cognitiveSpine.consumed,
-        cognitiveSpineContextRefs: result.cognitiveSpine.requestedContextRefs,
+        cognitiveSpineSnapshotId: cognitiveSpine?.snapshotId ?? null,
+        cognitiveSpineSnapshotHash: cognitiveSpine?.snapshotHash ?? null,
+        cognitiveSpineProfile: cognitiveSpine?.profile ?? null,
+        cognitiveSpineConsumed: cognitiveSpine?.consumed ?? false,
+        cognitiveSpineContextRefs: cognitiveSpine?.requestedContextRefs ?? [],
       },
       request,
     });

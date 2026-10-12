@@ -5,6 +5,7 @@ import { SFI_AGENT_EXECUTION_MAP } from '@/lib/sfi/cognitive-runtime/agentExecut
 import { COGNITIVE_TWIN_REENTRY } from '@/core/cognitive-twin/reentry/runtime';
 import { METHOD_LAB_CONTRACT_VERSION, type MethodLabProtocolId, type MethodLabProtocolStatus } from './contracts';
 import { METHOD_LAB_PROTOCOLS } from './registry';
+import { evaluateMihmFoundationMissingness } from './mihmFoundationDiagnostic';
 import { assertMethodLabExperimentPreregistration, projectMethodLabMethodResult, type MethodLabExperimentPreregistration, type MethodLabExperimentRun } from './experimentContract';
 import { readUniversalLearningQuarantine } from '@/lib/sfi/universalLearningQuarantine';
 import { methodLabPreregistrationId } from './experimentPersistence';
@@ -13,6 +14,7 @@ type Row = Record<string, unknown>;
 type DependencyState = { table: string; available: boolean; error: string | null };
 
 const IMPLEMENTATION_GATES: Record<MethodLabProtocolId, () => boolean> = {
+  mihm_foundation_diagnostic: () => typeof evaluateMihmFoundationMissingness === 'function',
   chronos_olympics: () => true,
   cognitive_relational_lab: () => true,
   ct_reentry: () => Boolean(COGNITIVE_TWIN_REENTRY.subjectId && COGNITIVE_TWIN_REENTRY.lineageId),
@@ -21,6 +23,7 @@ const IMPLEMENTATION_GATES: Record<MethodLabProtocolId, () => boolean> = {
 };
 
 const PROTOCOL_DEPENDENCIES: Record<MethodLabProtocolId, string[]> = {
+  mihm_foundation_diagnostic: ['root_evidence_entries', 'sfi_evidence_ledger', 'sfi_lab_analyses'],
   chronos_olympics: [],
   cognitive_relational_lab: ['sfi_cognitive_lab_sessions', 'sfi_cognitive_lab_events', 'sfi_cognitive_lab_analyses'],
   ct_reentry: ['sfi_amv_memory', 'sfi_cognitive_twin_decisions', 'sfi_cognitive_twin_model_registry', 'sfi_cognitive_twin_evaluations', 'sfi_cognitive_twin_runs'],

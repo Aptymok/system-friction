@@ -112,7 +112,7 @@ export function MethodLabNativeHub({ initialState, initialSessions, evidenceOpti
   const [evidenceSearch, setEvidenceSearch] = useState('');
   const [automaticObjective,setAutomaticObjective] = useState('');
   const [selectedEvidence, setSelectedEvidence] = useState<string[]>([]);
-  const [simulationProtocol, setSimulationProtocol] = useState<'sociotechnical_simulation' | 'economic_simulation'>('sociotechnical_simulation');
+  const [simulationProtocol, setSimulationProtocol] = useState<'sociotechnical_simulation' | 'economic_simulation' | 'mihm_foundation_diagnostic'>('sociotechnical_simulation');
   const [newSession, setNewSession] = useState({ title: '', objective: '', condition: 'FOUNDER_TWIN' });
   const [eventDraft, setEventDraft] = useState({ sessionId: initialSessions.find((item) => item.status === 'OPEN')?.id ?? '', eventKind: 'OBSERVATION', provenance: 'FOUNDER_ORIGINATED', actorKey: 'FOUNDER', content: '' });
   const [interactionPrompts, setInteractionPrompts] = useState<Record<string, string>>({});
@@ -197,7 +197,7 @@ export function MethodLabNativeHub({ initialState, initialSessions, evidenceOpti
       </section>
 
       <section id="mlh-simulation" className="mlh-section">
-        <div className="mlh-section-head"><div><span>02 / SIMULATION</span><h2>Run with persisted evidence</h2></div><p>Only `sociotechnical_simulation` and `economic_simulation` use this runner. The result remains SIMULATED.</p></div>
+        <div className="mlh-section-head"><div><span>02 / SIMULATION</span><h2>Run with persisted evidence</h2></div><p>Sociotechnical, Economic, and MIHM Foundation G1 diagnostics run with persisted evidence. MIHM G1 uses controlled synthetic fixtures and does not measure real-world homeostasis; all outputs remain SIMULATED.</p></div>
         <div className="mlh-panel mlh-auto-experiment">
           <label>WHAT DO YOU WANT TO TEST?<textarea value={automaticObjective} onChange={event=>setAutomaticObjective(event.target.value)} placeholder="Describe the question, hypothesis or systemic friction…" /></label>
           <div className="mlh-auto-reading"><span>AUTO PROTOCOL · {automaticProtocol.replaceAll('_',' ')}</span><span>EVIDENCE · {preparedEvidence.length} persisted references</span><span>MODEL ACCESS · MCP · {initialState.modelAccess?.status ?? 'UNKNOWN'}</span></div>
@@ -213,6 +213,7 @@ export function MethodLabNativeHub({ initialState, initialSessions, evidenceOpti
               <select value={simulationProtocol} onChange={(event) => setSimulationProtocol(event.target.value as typeof simulationProtocol)}>
                 <option value="sociotechnical_simulation">Sociotechnical Simulation</option>
                 <option value="economic_simulation">Observable Economic Simulation</option>
+                <option value="mihm_foundation_diagnostic">MIHM Foundation · G1 Missingness (synthetic)</option>
               </select>
             </label>
             <label>SEARCH EVIDENCE
@@ -230,6 +231,7 @@ export function MethodLabNativeHub({ initialState, initialSessions, evidenceOpti
               {busy === 'METHOD LAB RUN' ? 'RUNNING…' : `RUN WITH ${selectedEvidence.length} EVIDENCE ITEMS`}
             </button>
             {simulationProtocol === 'economic_simulation' ? <p className="mlh-boundary">Economic Simulation runs only with genuinely admissible economic or world evidence; execution count alone is not a validation target.</p> : null}
+            {simulationProtocol === 'mihm_foundation_diagnostic' ? <p className="mlh-boundary">MIHM G1 runs fixed synthetic null-versus-zero variants. Selected persisted evidence anchors the research trace only; its values are NOT used as real-world MIHM measurements. No observed RETURN or canonical promotion.</p> : null}
           </div>
           <div className="mlh-panel mlh-readout">
             <span>BOUNDARY</span>

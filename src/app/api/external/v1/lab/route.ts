@@ -3,6 +3,8 @@ import { NextResponse } from 'next/server';
 import { readMethodLabState } from '@/lib/method-lab/readModel';
 import { buildMethodLabPublicationPackage, methodLabResearchHubTarget, persistMethodLabResearchObject, readMethodLabResearchState } from '@/lib/method-lab/researchObjects';
 import { runMethodLabSimulation } from '@/lib/method-lab/simulationRun';
+import { runMihmFoundationDiagnostic } from '@/lib/method-lab/mihmFoundationDiagnosticRun';
+import { previewMethodLabRealityPassport } from '@/lib/method-lab/researchPassportPreview';
 import { appendEpistemicEvent } from '@/lib/events/eventStore';
 import { appendOperationalEvent, createActionProposal, recordValue, sha256 } from '@/lib/operational/common';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
@@ -135,6 +137,7 @@ export async function POST(req: Request) {
     const objectId = typeof body.objectId === 'string' ? body.objectId.trim() : '';
     const researchObject = objectId ? research.objects.find((item) => item.objectId === objectId) ?? null : null;
     const publicationPackage = researchObject ? buildMethodLabPublicationPackage(researchObject) : null;
+    const researchPassportPreview = researchObject ? previewMethodLabRealityPassport(researchObject) : null;
     if (objectId && !researchObject) {
       return NextResponse.json({ ok: false, error: 'research_object_not_found', objectId }, { status: 404 });
     }
@@ -147,6 +150,7 @@ export async function POST(req: Request) {
       data: { analyses: analyses.data ?? [], evaluations: evaluations.data ?? [], research },
       researchObject,
       publicationPackage,
+      researchPassportPreview,
       transportBoundary: 'Method Lab is source of truth. Hub/Zenodo mutation requires governed promotion plus an authorized external transport agent.',
       warnings,
     });
@@ -309,13 +313,13 @@ export async function POST(req: Request) {
   // Reaching this branch already proves the presented credential carries
   // `lab:run`. That scope is the run authorization. Requiring a second boolean
   // would make the human approve routine internal experimentation twice.
-  const protocolId = body.protocolId === 'sociotechnical_simulation' || body.protocolId === 'economic_simulation' ? body.protocolId : null;
+  const protocolId = body.protocolId === 'sociotechnical_simulation' || body.protocolId === 'economic_simulation' || body.protocolId === 'mihm_foundation_diagnostic' ? body.protocolId : null;
   const evidenceIds = Array.isArray(body.evidenceIds) && body.evidenceIds.every((value) => typeof value === 'string' && value.trim().length > 0)
     ? [...new Set((body.evidenceIds as string[]).map((value) => value.trim()))] : [];
   if (!protocolId || !evidenceIds.length) return NextResponse.json({
     ok: false, error: 'protocolId_and_persisted_evidenceIds_required',
     required: ['protocolId', 'evidenceIds'],
-    acceptedProtocolIds: ['sociotechnical_simulation', 'economic_simulation'],
+    acceptedProtocolIds: ['sociotechnical_simulation', 'economic_simulation', 'mihm_foundation_diagnostic'],
     evidenceIds: 'Nonempty array of persisted root_evidence_entries or sfi_evidence_ledger IDs; every entry must be a nonempty string.',
   }, { status: 400 });
 
@@ -323,7 +327,9 @@ export async function POST(req: Request) {
   const cognitiveSpineContextRefs = Array.isArray(body.cognitiveSpineContextRefs) ? body.cognitiveSpineContextRefs.filter((value): value is string => typeof value === 'string' && value.trim().length > 0) : [];
 
   try {
-    const result = await runMethodLabSimulation({ protocolId, evidenceIds, actorId, parameters: { ...parameters, externalLabBridge: true, credentialLabel: cred.label ?? null }, cognitiveSpineContextRefs });
+    const result = protocolId === 'mihm_foundation_diagnostic'
+      ? await runMihmFoundationDiagnostic({ actorId, evidenceIds, parameters: { ...parameters, externalLabBridge: true, credentialLabel: cred.label ?? null } })
+      : await runMethodLabSimulation({ protocolId, evidenceIds, actorId, parameters: { ...parameters, externalLabBridge: true, credentialLabel: cred.label ?? null }, cognitiveSpineContextRefs });
     const trace = await appendOperationalEvent({ eventName: 'external.method_lab.runtime.executed', actorId, confidence: 1, payload: { labAnalysisId: result.labAnalysisId, labRunId: result.run.labRunId, resultHash: result.run.resultHash, protocolId, evidenceIds, credentialLabel: cred.label ?? null, delegatedRole: cred.role, duplicateHumanConfirmationRequired: false }, lineage: [result.labAnalysisId, ...evidenceIds] });
     return NextResponse.json({ ok: true, operation, actor: actorId, result, trace: trace.ok ? trace.data : trace, authorityBoundary: { labRunScopeRequired: true, duplicateHumanConfirmationRequired: false, canonicalPromotionAllowed: false } });
   } catch (error) {
