@@ -84,6 +84,9 @@ export function RealityChainWorkbench(){
  const [caseData,setCaseData]=useState<CaseEnvelope|null>(null);
  const [reports,setReports]=useState<unknown[]>([]);
  const [activeStep,setActiveStep]=useState(0);
+ const [inspectionOpen,setInspectionOpen]=useState(false);
+ const [learningDraft,setLearningDraft]=useState('');
+ const [selectedReturnId,setSelectedReturnId]=useState('');
  const [selectedObject,setSelectedObject]=useState<string|null>(null);
  const [newCase,setNewCase]=useState(false);
  const [title,setTitle]=useState('');
@@ -136,6 +139,11 @@ export function RealityChainWorkbench(){
    (!o.observedAt||Date.parse(o.observedAt)<=Date.parse(cutoff+'T23:59:59Z'))
  )),[ordered,cutoff]);
  const stageObjects=asOfObjects.filter(o=>stageFor(o)===activeStep);
+ const returnObjects=asOfObjects.filter(o=>o.kind==='RETURN');
+ const candidateLearningRecords=asOfObjects.filter(o=>o.kind==='RECORD'&&o.payload.contract==='SFI-CASE-LEARNING-CANDIDATE-1.0');
+ // A governed learning adoption requires a persisted authorized governance decision.
+ const governedLearningRecords=asOfObjects.filter(o=>o.kind==='GOVERNANCE_DECISION'&&o.payload.learningDisposition==='ADOPTED'&&o.payload.governedLearning===true);
+ const learningRecords=[...candidateLearningRecords,...governedLearningRecords];
  const focused=asOfObjects.find(o=>o.id===selectedObject)??null;
  const sourceObjects=asOfObjects.filter(o=>o.kind==='SOURCE');
  const stageCoverage=STEPS.map((_,index)=>asOfObjects.filter(o=>stageFor(o)===index).length);
@@ -296,7 +304,8 @@ export function RealityChainWorkbench(){
 
   const persistLearningCandidate=async()=>{
     if(!caseId||!caseData){setError('Select an authorized case before recording learning.');return;}
-    if(!returnObjects.length){setError('A recorded RETURN is required before registering a learning candidate.');return;}
+    const selectedReturn=returnObjects.find(o=>o.id===selectedReturnId);
+    if(!selectedReturn){setError('Select a specific recorded RETURN before proposing learning.');return;}
     if(learningDraft.trim().length<15){setError('Describe the change in at least 15 characters and identify what was learned.');return;}
     setWorking(true);setError('');setMessage('');
     const candidateId='case-learning-candidate:'+crypto.randomUUID();
@@ -305,14 +314,14 @@ export function RealityChainWorkbench(){
         method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({
           kind:'RECORD',canonicalRef:{id:candidateId,version:'1.0',hash:null},
-          sourceRefs:sourceObjects.slice(0,100).map(o=>o.canonicalRef),
-          recordRefs:returnObjects.slice(0,100).map(o=>o.canonicalRef),
+          sourceRefs:selectedReturn.sourceRefs,
+          recordRefs:[selectedReturn.canonicalRef],
           payload:{
             contract:'SFI-CASE-LEARNING-CANDIDATE-1.0',
             statement:learningDraft.trim(),
             learningState:'CANDIDATE',
             promotionState:'NOT_PROMOTED',
-            returnRefs:returnObjects.slice(0,100).map(o=>o.canonicalRef.id),
+            returnRefs:[selectedReturn.canonicalRef.id],
             sourceCutoff:cutoff||null,
             evidenceBoundary:'RETURN_REFERENCE_DOES_NOT_ESTABLISH_CAUSALITY',
             authorityBoundary:'CASE_RECORD_NOT_GOVERNED_LEARNING',
@@ -321,7 +330,7 @@ export function RealityChainWorkbench(){
         })
       });
       await loadCase(caseId);
-      setLearningDraft('');
+      setLearningDraft('');setSelectedReturnId('');
       setMessage('Learning candidate persisted as an unpromoted RECORD linked to represented RETURN. Institutional adoption remains governed separately.');
     }catch(e){setError('Learning candidate: '+String((e as Error).message));}finally{setWorking(false);}
   };
@@ -517,16 +526,23 @@ export function RealityChainWorkbench(){
           <section className="rcThreePane rcLearningPanel">
             <div className="rcLearningTitle"><BookOpenCheck size={36} strokeWidth={1.3} aria-hidden="true"/><div><small>INDEPENDENT INSTRUMENT / NOT A NINTH CHAIN STAGE</small><h2>LEARNING &amp; REPORT</h2></div></div>
             <p>Read what this case actually recorded as learning. An observed RETURN does not automatically become institutional knowledge.</p>
-            <div className="rcThreeDataLine">{returnObjects.length} RETURN OBJECTS · {learningRecords.length} CASE LEARNING RECORDS</div>
+            <div className="rcThreeDataLine">{returnObjects.length} RETURN OBJECTS · {candidateLearningRecords.length} CANDIDATES · {governedLearningRecords.length} GOVERNED ADOPTIONS</div>
+            {!governedLearningRecords.length?<p role="status">NO GOVERNED LEARNING RECORDED.</p>:null}
             {learningRecords.length?<div className="rcRecordList">{learningRecords.map(o=><article className="rcLearningRecord" key={o.id}>
               <small>{safeText(o.payload.promotionState??o.payload.learningState,'UNVERIFIED')} · {date(o.createdAt)}</small>
               <strong>{payloadDescription(o)}</strong><small>RECORD ID: {o.canonicalRef.id}</small>
               <small>RETURN REFS: {Array.isArray(o.payload.returnRefs)?o.payload.returnRefs.map(r=>String(r)).join(', '):'NOT REPRESENTED'}</small>
             </article>)}</div>:<p role="status">NO GOVERNED LEARNING RECORDED. No case-scoped learning candidate was found at this cutoff.</p>}
+            <label>RETURN SUPPORTING THE LEARNING CANDIDATE
+              <select value={selectedReturnId} onChange={e=>setSelectedReturnId(e.target.value)}>
+                <option value="">SELECT A PERSISTED RETURN</option>
+                {returnObjects.map(o=><option key={o.id} value={o.id}>{o.canonicalRef.id} · {date(o.createdAt)}</option>)}
+              </select>
+            </label>
             <label>PROPOSE WHAT CHANGED AFTER RECORDED RETURN
               <textarea rows={4} value={learningDraft} onChange={e=>setLearningDraft(e.target.value)} maxLength={2000} placeholder="What changed, which RETURN was observed, and what still requires validation?"/>
             </label>
-            <button type="button" onClick={persistLearningCandidate} disabled={!caseId||!returnObjects.length||learningDraft.trim().length<15||working}>PERSIST LEARNING CANDIDATE · NOT CANON</button>
+            <button type="button" onClick={persistLearningCandidate} disabled={!caseId||!selectedReturnId||learningDraft.trim().length<15||working}>PERSIST LEARNING CANDIDATE · NOT CANON</button>
             {!returnObjects.length?<small>At least one persisted RETURN is required before saving a learning candidate.</small>:null}
           </section>
           <section className="rcThreePane rcReportPanel">
