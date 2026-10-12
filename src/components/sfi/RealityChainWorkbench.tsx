@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Globe2, RadioTower, ScanEye, FileCheck2, BrainCircuit, Scale, Zap, RotateCcw, BookOpenCheck } from 'lucide-react';
 import './RealityChainWorkbench.css';
 
 type Ref={id:string;hash?:string|null;version?:string|null};
@@ -22,6 +23,17 @@ const STEPS=[
   {name:'RETURN',role:'Observed effects and contrast against prior expectations; an action receipt is not a measured outcome.'},
   {name:'LEARNING',role:'Governed integration of what changed after a real-world RETURN; case closure is not automatically learning.'},
 ] as const;
+// Distinct vector symbols are a temporary functional fallback until the original SFI_RCH assets are supplied.
+const HUB_ICONS=[Globe2,RadioTower,ScanEye,FileCheck2,BrainCircuit,Scale,Zap,RotateCcw,BookOpenCheck] as const;
+function HubHeading({step,title,selected,onSelect}:{step:number;title:string;selected:boolean;onSelect:()=>void}){
+ const Icon=HUB_ICONS[step];
+ return <div className="rcHubHeading">
+   <button className="rcHubStage" type="button" onClick={onSelect} aria-label={`Inspect ${STEPS[step].name} stage`} aria-pressed={selected} title={STEPS[step].role}>
+     <Icon size={34} strokeWidth={1.45} aria-hidden="true"/>
+   </button>
+   <div className="rcHubHeadingText"><small>{String(step+1).padStart(2,'0')} · {STEPS[step].name}{step===3?' · SOURCE ≠ EVIDENCE':''}</small><h2>{title}</h2></div>
+ </div>;
+}
 const FULL_METHOD=['WORLD','CAPTURE','EVIDENCE','TRANSFORMATION','INFERENCE (CONDITIONAL)','VERIFICATION','AUTHORITY','ACTION','RETURN'] as const;
 const TRANSVERSAL=['PROVENANCE','UNCERTAINTY','SIGNAL','COUNTEREVIDENCE','APPLICABLE OBLIGATION','ABSTAIN / ESCALATE / REJECT'] as const;
 const KIND_TO_STEP:Record<string,number>={SOURCE:-1,RECORD:-1,OBSERVATION:2,EVIDENCE:3,HYPOTHESIS:4,ANALYSIS:4,EPISTEMIC_ASSESSMENT:4,UNRESOLVED_QUESTION:4,CONTRADICTION:4,GOVERNANCE_DECISION:5,RECOMMENDATION:4,INTERVENTION:6,INSTRUMENT_RUN:4,RETURN:7,TRAJECTORY:4};
@@ -54,6 +66,7 @@ export function RealityChainWorkbench(){
  const [caseId,setCaseId]=useState('');
  const [caseToLink,setCaseToLink]=useState('');
  const [screen,setScreen]=useState(0);
+  const [artworkWidth,setArtworkWidth]=useState(3840);
  const [projectId,setProjectId]=useState('ALL');
  const [caseData,setCaseData]=useState<CaseEnvelope|null>(null);
  const [reports,setReports]=useState<unknown[]>([]);
@@ -301,21 +314,16 @@ export function RealityChainWorkbench(){
   </div>
 
   <div className="rcOperationalScroller" ref={scroll} aria-label="Reality Chain three-screen horizontal reconstruction">
-    <div className="rcOperationalTrack">
+    <div className="rcOperationalTrack" style={{'--rc-canvas-width':`${artworkWidth}px`} as React.CSSProperties}>
+      <img className="rcPanoramaImage" src="/assets/sfi/instruments/RealityChain.png" alt="" aria-hidden="true" decoding="async" loading="eager" onLoad={e=>setArtworkWidth(Math.min(3840,e.currentTarget.naturalWidth))}/>
 
 
       <section className="rcHorizon rcThreeHorizon" aria-label="Screen 1 · Full Reality Chain overview">
-        <img className="rcThreeScene" src="/assets/sfi/instruments/Imagen%20de%20ChatGPT%208%20oct%202026%2C%2011_40_18-1.png" alt="" aria-hidden="true" loading="eager" decoding="async"/>
-        <div className="rcThreeHorizonTop">
-          <div className="rcThreeStageBand rcFullChainStages" aria-label="Eight linked stages, horizontally scrollable">
-            {STEPS.slice(0,3).concat(STEPS.slice(3,6),STEPS.slice(6,8)).map((stage,index)=><button key={stage.name} type="button" onClick={()=>{setActiveStep(index);setSelectedObject(null)}} title={stage.role} aria-pressed={activeStep===index}>
-              <small>0{index+1}</small><strong>{stage.name}</strong><span>{stage.role}</span><em>{stageCoverage[index]} REPRESENTED</em>
-            </button>)}
-          </div>
-        </div>
+        
+        <div className="rcThreeHorizonTop" aria-hidden="true"/>
         <div className="rcThreeHorizonBottom">
           <section className="rcThreePane">
-            <h2>CASE / OBSERVATION CONTEXT</h2>
+            <HubHeading step={0} title="CASE / OBSERVATION CONTEXT" selected={activeStep===0} onSelect={()=>{setActiveStep(0);setSelectedObject(null)}}/>
             <strong>{caseData?.caseRecord.subject??'SELECT A CASE ABOVE'}</strong>
             <p>{caseData?.caseRecord.scope??'Only cases authorized for this account will be readable here.'}</p>
             <dl><div><dt>STATE</dt><dd>{caseData?.caseRecord.status??'NOT SELECTED'}</dd></div>
@@ -323,14 +331,14 @@ export function RealityChainWorkbench(){
             <div><dt>KNOWLEDGE CUTOFF</dt><dd>{cutoff||'ALL REPRESENTED HISTORY'}</dd></div></dl>
           </section>
           <section className="rcThreePane">
-            <h2>INSPECT THE SELECTED BOUNDARY</h2>
+            <HubHeading step={1} title="INSPECT THE SELECTED BOUNDARY" selected={activeStep===1} onSelect={()=>{setActiveStep(1);setSelectedObject(null)}}/>
             <strong>{STEPS[activeStep].name}</strong><p>{STEPS[activeStep].role}</p>
             <p>{stageObjects.length} objects represented in this epistemic stage.</p>
             <div className="rcRecordList">{stageObjects.slice(0,12).map(o=><button key={o.id} type="button" onClick={()=>{setSelectedObject(o.id);scrollTo(1)}}><time>{date(o.createdAt)}</time><strong>{safeText(o.payload.label??o.payload.statement??o.kind)}</strong></button>)}</div>
             {!stageObjects.length?<p>NOT OBSERVED IN THE CURRENT CASE RECORD.</p>:null}
           </section>
           <section className="rcThreePane">
-            <h2>LONGITUDINAL TRACE</h2>
+            <HubHeading step={2} title="LONGITUDINAL TRACE" selected={activeStep===2} onSelect={()=>{setActiveStep(2);setSelectedObject(null)}}/>
             <p>Recorded time is not necessarily event time. A later receipt does not retroactively change prior knowledge.</p>
             <div className="rcTimelineEntries">{asOfObjects.slice(0,16).map(o=><button key={o.id} type="button" onClick={()=>{setSelectedObject(o.id);scrollTo(1)}}><time>{date(o.createdAt)}</time><strong>{o.kind} · {o.epistemicRole}</strong></button>)}</div>
             {!asOfObjects.length?<p>NO PERSISTED OBJECTS FOR THIS HISTORICAL READING.</p>:null}
@@ -339,20 +347,11 @@ export function RealityChainWorkbench(){
       </section>
 
       <section className="rcHorizon rcThreeHorizon" aria-label="Screen 2 · Evidence, Inference, Authority">
-        <img className="rcThreeScene" src="/assets/sfi/instruments/Imagen%20de%20ChatGPT%208%20oct%202026%2C%2011_40_22-2.png" alt="" aria-hidden="true" loading="eager" decoding="async"/>
-        <div className="rcThreeHorizonTop">
-          <div className="rcScreenIdentifier">02 / 03</div>
-          <h1>EVIDENCE · INFERENCE · AUTHORITY</h1>
-          <p>What the records support, what remains an interpretation, and who may decide.</p>
-          <div className="rcThreeStageBand">
-            {STEPS.slice(3,6).map((stage,index)=><button key={stage.name} type="button" onClick={()=>{setActiveStep(index+3);setSelectedObject(null)}} title={stage.role} aria-pressed={activeStep===index+3}>
-              <small>0{index+4}</small><strong>{stage.name}</strong><span>{stage.role}</span><em>{stageCoverage[index+3]} REPRESENTED</em>
-            </button>)}
-          </div>
-        </div>
+        
+        <div className="rcThreeHorizonTop" aria-hidden="true"/>
         <div className="rcThreeHorizonBottom">
           <section className="rcThreePane">
-            <h2>SOURCE INTAKE / FILE UPLOAD</h2>
+            <HubHeading step={3} title="SOURCE INTAKE / FILE UPLOAD" selected={activeStep===3} onSelect={()=>{setActiveStep(3);setSelectedObject(null)}}/>
             <p>Choose whether to extract a document without storing its bytes, or preserve the original in authorized private Case Storage.</p>
             <label>DOCUMENT · PDF, DOCX, TXT, CSV, JSON
               <input type="file" accept=".pdf,.docx,.txt,.md,.csv,.tsv,.json,.xlsx,.zip,.png,.jpg" onChange={e=>setFile(e.target.files?.[0]??null)}/>
@@ -374,7 +373,7 @@ export function RealityChainWorkbench(){
             </>:null}
           </section>
           <section className="rcThreePane">
-            <h2>DOCUMENTARY LEDGER / PROVENANCE</h2>
+            <HubHeading step={4} title="DOCUMENTARY LEDGER / PROVENANCE" selected={activeStep===4} onSelect={()=>{setActiveStep(4);setSelectedObject(null)}}/>
             <p>Known then ≠ known now. An unverified quote remains a RECORD, not EVIDENCE.</p>
             {focused?<div className="rcFocused">
               <strong>{focused.kind} · {focused.epistemicRole}</strong>
@@ -389,7 +388,7 @@ export function RealityChainWorkbench(){
             <div className="rcThreeDataLine">{sourceObjects.length} SOURCES · {asOfObjects.filter(o=>o.kind==='EVIDENCE').length} ADMITTED EVIDENCE · {asOfObjects.filter(o=>o.kind==='CONTRADICTION').length} CONTRADICTIONS</div>
           </section>
           <section className="rcThreePane">
-            <h2>HYPOTHESIS / AUTHORITY</h2>
+            <HubHeading step={5} title="HYPOTHESIS / AUTHORITY" selected={activeStep===5} onSelect={()=>{setActiveStep(5);setSelectedObject(null)}}/>
             <p>Interpretation does not authorize intervention. Independent sources and calibration are not inferred from document counts.</p>
             <dl><div><dt>HYPOTHESES</dt><dd>{asOfObjects.filter(o=>o.kind==='HYPOTHESIS').length} REPRESENTED</dd></div>
               <div><dt>GOVERNANCE DECISIONS</dt><dd>{asOfObjects.filter(o=>o.kind==='GOVERNANCE_DECISION').length} RECORDED</dd></div>
@@ -402,21 +401,11 @@ export function RealityChainWorkbench(){
       </section>
 
       <section className="rcHorizon rcThreeHorizon" aria-label="Screen 3 · Execution, Return, Learning">
-        <img className="rcThreeScene" src="/assets/sfi/instruments/Imagen%20de%20ChatGPT%208%20oct%202026%2C%2011_40_26-3.png" alt="" aria-hidden="true" loading="eager" decoding="async"/>
-        <div className="rcThreeHorizonTop">
-          <div className="rcScreenIdentifier">03 / 03</div>
-          <h1>EXECUTION · RETURN · LEARNING</h1>
-          <p>What was done, what reality returned, and what was actually integrated.</p>
-          <div className="rcThreeStageBand">
-            {STEPS.slice(6,9).map((stage,index)=><button key={stage.name} type="button" onClick={()=>{setActiveStep(index+6);setSelectedObject(null)}} title={stage.role} aria-pressed={activeStep===index+6}>
-              <small>0{index+7}</small><strong>{stage.name}{stage.name==='LEARNING'?<svg className="rcLearningIcon" viewBox="0 0 48 48" role="img" aria-label="Learning"><path d="M24 11c-6-4-12-4-19-2v27c7-2 13-2 19 2 6-4 12-4 19-2V9c-7-2-13-2-19 2Z" fill="none" stroke="currentColor" strokeWidth="2"/><path d="M24 11v27M29 23l4 4 8-10" fill="none" stroke="currentColor" strokeWidth="2"/></svg>:null}</strong>
-              <span>{stage.role}</span><em>{stageCoverage[index+6]} REPRESENTED</em>
-            </button>)}
-          </div>
-        </div>
+        
+        <div className="rcThreeHorizonTop" aria-hidden="true"/>
         <div className="rcThreeHorizonBottom">
           <section className="rcThreePane">
-            <h2>CHAIN-TO-CHAIN SOURCE REFERENCES</h2>
+            <HubHeading step={6} title="CHAIN-TO-CHAIN SOURCE REFERENCES" selected={activeStep===6} onSelect={()=>{setActiveStep(6);setSelectedObject(null)}}/>
             <p>One case may become an inspectable source for another. A reference does not automatically validate its claims as EVIDENCE.</p>
             <label>REFERENCE ANOTHER AUTHORIZED CASE
               <select value={caseToLink} onChange={e=>setCaseToLink(e.target.value)}>
@@ -429,7 +418,7 @@ export function RealityChainWorkbench(){
             {!linkedCaseObjects.length?<p>NO CROSS-CASE REFERENCES OBSERVED.</p>:null}
           </section>
           <section className="rcThreePane">
-            <h2>RECONSTRUCT / TRACE / DELIVER</h2>
+            <HubHeading step={7} title="RECONSTRUCT / TRACE / DELIVER" selected={activeStep===7} onSelect={()=>{setActiveStep(7);setSelectedObject(null)}}/>
             <p>The same case can be reconstructed as known at a particular time. A report does not manufacture a decision or external RETURN.</p>
             <div className="rcThreeDataLine">{asOfObjects.length} HISTORICAL OBJECTS · {reports.length} RECORDED REPORTS</div>
             <button type="button" disabled={!caseData||working} onClick={makeReport}>EXPORT TRACE · JSON + PRINTABLE HTML</button>
@@ -439,7 +428,7 @@ export function RealityChainWorkbench(){
             <dl><div><dt>EXECUTION RECORDS</dt><dd>{asOfObjects.filter(o=>o.kind==='INTERVENTION').length}</dd></div><div><dt>RETURN RECORDS</dt><dd>{asOfObjects.filter(o=>o.kind==='RETURN').length}</dd></div></dl>
           </section>
           <section className="rcThreePane">
-            <h2>REALITY PASSPORT / LEARNING</h2>
+            <HubHeading step={8} title="REALITY PASSPORT / LEARNING" selected={activeStep===8} onSelect={()=>{setActiveStep(8);setSelectedObject(null)}}/>
             <p>Inspect the selected case in ROOT using its existing identifier. No duplicate passport or authority is created.</p>
             {caseId?<a className="rcThreeLink" href={'/root?reading=REALITY_CHAIN&node='+encodeURIComponent(caseId)}>OPEN SELECTED CASE IN ROOT ↗</a>:<p>SELECT A CASE TO OPEN ITS PASSPORT.</p>}
             <dl><div><dt>WHAT WAS KNOWN?</dt><dd>{asOfObjects.filter(o=>o.kind==='EVIDENCE').length} ADMITTED EVIDENCE OBJECTS</dd></div>
