@@ -489,3 +489,9 @@
 @media(prefers-reduced-motion:reduce){
   .obsShell .obsGlobeCanvas.is-ready{animation:none}
 }
+
+.obsShell .obsGlobeSourcePins{
+ position:absolute;inset:1%;width:98%;height:98%;display:block;z-index:2;pointer-events:none;
+ transform:scale(var(--globe-scale,1));transition:transform .15s ease;
+}
+@media(prefers-reduced-motion:reduce){.obsShell .obsGlobeSourcePins{transition:none}}
