@@ -55,6 +55,8 @@ type Props={
   territories:readonly ObservatoryTerritory[];
   onSelectNode:(id:string)=>void;
   onSelectHypothesis:(id:string)=>void;
+  onSelectTerritory:(id:string)=>void;
+  selectedTerritoryId:string|null;
 };
 
 const cx=800;
@@ -91,7 +93,7 @@ function edgeClass(edge:Row){
 
 export function ObservatoryWorldField({
   lens,nodes,selectedNodeId,selectedHypothesis,selectedEvidenceIds,selectedAffectedIds,
-  selectedGraphEdges,graphNodes,vectors,ghostVectors,territories,onSelectNode,onSelectHypothesis,
+  selectedGraphEdges,graphNodes,vectors,ghostVectors,territories,onSelectNode,onSelectHypothesis,onSelectTerritory,selectedTerritoryId,
 }:Props){
   const positionMap=new Map<string,Position>(nodes.map((node)=>[node.id,node.position]));
   const graphById=new Map(graphNodes.map((node)=>[asText(node.id),node]));
@@ -202,7 +204,10 @@ export function ObservatoryWorldField({
         const confidence=territory.confidence==null?.35:Math.max(.18,Math.min(1,territory.confidence));
         const radius=18+(friction*28);
         const delta=territory.activityDelta;
-        return <g key={territory.id} className="territoryTension" data-level={friction>=.66?'high':friction>=.45?'medium':'low'} style={{'--territory-confidence':confidence,'--territory-friction':friction} as CSSProperties}>
+        return <g key={territory.id} className="territoryTension" data-level={friction>=.66?'high':friction>=.45?'medium':'low'} data-selected={selectedTerritoryId===territory.id?'true':'false'} style={{'--territory-confidence':confidence,'--territory-friction':friction} as CSSProperties}
+          onClick={()=>onSelectTerritory(territory.id)}
+          onKeyDown={(event)=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();onSelectTerritory(territory.id)}}}
+          role="button" tabIndex={0} aria-label={'Inspect derived geographic readings for '+territory.label}>
           <circle cx={p.x} cy={p.y} r={radius+10} className="territoryHalo"/>
           <circle cx={p.x} cy={p.y} r={radius} className="territoryRing"/>
           <circle cx={p.x} cy={p.y} r={5+friction*5} className="territoryCore"/>
