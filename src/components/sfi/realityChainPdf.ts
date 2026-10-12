@@ -5,7 +5,7 @@
  */
 export type RealityPdfRecord={
  kind:string;role:string;observedAt:string|null;recordedAt:string;
- id:string;hash:string|null;sourceIds:string[];recordIds:string[];evidenceIds:string[];description:string;locator:string;payloadJson:string;
+ id:string;hash:string|null;sourceIds:string[];recordIds?:string[];evidenceIds?:string[];description:string;locator:string;payloadJson?:string;
 };
 export type RealityPdfInput={
  caseId:string;subject:string;status:string;cutoff:string;generatedAt:string;
@@ -86,9 +86,9 @@ export function createRealityChainPdf(input:RealityPdfInput):Blob{
   add('ID: '+o.id+'  /  HASH: '+(o.hash||'NOT RECORDED'));
   add('OBSERVED: '+(o.observedAt||'NOT DATED')+'  /  RECORDED: '+o.recordedAt);
   add('SOURCES: '+(o.sourceIds.join(', ')||'NOT REPRESENTED'));
-  add('RECORD REFS: '+(o.recordIds.join(', ')||'NOT REPRESENTED'));
-  add('EVIDENCE REFS: '+(o.evidenceIds.join(', ')||'NOT REPRESENTED'));
-  add('PAYLOAD (AS REPRESENTED): '+o.payloadJson);
+  add('RECORD REFS: '+((o.recordIds??[]).join(', ')||'NOT REPRESENTED'));
+  add('EVIDENCE REFS: '+((o.evidenceIds??[]).join(', ')||'NOT REPRESENTED'));
+  add('PAYLOAD (AS REPRESENTED): '+(o.payloadJson??'NOT PROVIDED BY THIS RECORD'));
   add('LOCATOR: '+o.locator);
   add('CONTENT: '+o.description);
  }
