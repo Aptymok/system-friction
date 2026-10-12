@@ -44,7 +44,7 @@ function idHash(value:string){let h=2166136261;for(let i=0;i<value.length;i++){h
 function orbitalPosition(id:string,index:number,total:number):Position{const seed=idHash(id);const angle=((seed%360)+(index/Math.max(1,total))*120)*Math.PI/180;const radius=285+(seed%95);return{x:800+Math.cos(angle)*radius,y:470+Math.sin(angle)*radius*.62,geo:false}}
 function nodePosition(node:WorldNode,index:number,total:number):Position{return node.lat!=null&&node.lng!=null?project(node.lat,node.lng):orbitalPosition(node.id,index,total)}
 function short(value:unknown,max=160){const t=txt(value);return t.length>max?`${t.slice(0,max-1)}…`:t}
-function moonIlluminatedPath(phase:number){const r=22;const curve=r*(1-4*(phase<=.5?phase:phase-.5));return phase<=.5?`M25 3 A22 22 0 0 1 25 47 Q${25+curve} 25 25 3Z`:`M25 3 A22 22 0 0 0 25 47 Q${25-curve} 25 25 3Z`}
+
 
 /* The globe is a real GPU-rendered sphere, not an animated flat PNG. OBSERVATORY_MAPS
    is a temporary ART texture only; geographic coordinates are derived mathematically.
@@ -344,6 +344,7 @@ export function ObservatoryConsole(){
   const moonAge=sceneDate?(((sceneDate.getTime()-Date.UTC(2000,0,6,18,14))/86400000%synodicMonth+synodicMonth)%synodicMonth):0;
   const moonPhase=moonAge/synodicMonth;
   const moonIllumination=Math.round((1-Math.cos(moonPhase*Math.PI*2))*50);
+  const moonSpriteIndex=Math.round(moonPhase*8)%8;
   const moonPhaseName=moonPhase<.035||moonPhase>.965?'NEW MOON':moonPhase<.215?'WAXING CRESCENT':moonPhase<.285?'FIRST QUARTER':moonPhase<.465?'WAXING GIBBOUS':moonPhase<.535?'FULL MOON':moonPhase<.715?'WANING GIBBOUS':moonPhase<.785?'LAST QUARTER':'WANING CRESCENT';
 
   const worldVectorObservation=row(worldVector?.observation);
@@ -392,10 +393,8 @@ export function ObservatoryConsole(){
       <div className="obsPanoramaForeground"/>
     </div>
     <div className="obsAstronomyReadout" aria-label="Approximate moon phase and New York scene clock">
-      <svg className="obsAstronomyMoon" viewBox="0 0 50 50" aria-hidden="true">
-        <circle cx="25" cy="25" r="22" fill="#152335" stroke="#82909a" strokeWidth=".8"/>
-        <path d={moonIlluminatedPath(moonPhase)} fill="#e8e5df"/>
-      </svg>
+      <div className="obsAstronomyMoon" role="img" aria-label={moonPhaseName+' approximate lunar phase'}
+        style={{backgroundPosition:`${(moonSpriteIndex%4)*100/3}% ${Math.floor(moonSpriteIndex/4)*100}%`}}/>
       <span><strong>{nycClock} · NEW YORK</strong><small>{sceneDate?`${moonPhaseName} · ≈${moonIllumination}% ILLUMINATED`:'SYNCHRONIZING LUNAR DISPLAY'}</small><small>SCENE CLOCK / APPROX. PHASE · NOT LIVE WEATHER</small></span>
     </div>
     <div className="starfield"/><div className="deepSpace"/>
