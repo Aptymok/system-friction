@@ -278,3 +278,29 @@
  .obsShell .obsScene .satelliteActor,.obsScene .starfield{animation:none!important}
  .obsShell .obsScene .obsResearchConsole{backdrop-filter:none!important}
 }
+
+/* Existing geo-bound tension markers now open their persisted reading on click. */
+.obsScene .territorialTensionLayer .territoryTension{pointer-events:auto;cursor:pointer;outline:none}
+.obsScene .territorialTensionLayer .territoryTension:hover .territoryRing,
+.obsScene .territorialTensionLayer .territoryTension:focus-visible .territoryRing,
+.obsScene .territorialTensionLayer .territoryTension[data-selected="true"] .territoryRing{
+  stroke:#E8DDC3;stroke-width:3;filter:drop-shadow(0 0 9px rgba(200,169,81,.7));
+}
+.obsScene .territorialTensionLayer .territoryTension:focus-visible .territoryHalo{
+  stroke:#E8DDC3;stroke-width:3;
+}
+.obsTerritorySelect{
+  display:block;width:100%;color:inherit;background:transparent;border:0;border-radius:0;
+  font:inherit;text-align:left;cursor:pointer;
+}
+.obsTerritorySelect:hover,.obsTerritorySelect:focus-visible,.obsTerritorySelect[aria-pressed="true"]{
+  background:rgba(74,122,170,.13);outline:1px solid rgba(200,169,81,.42);
+}
+.obsTerritorySelected{
+  padding:12px;margin:11px 0;background:rgba(10,22,32,.9);border-left:2px solid #C8A951;
+  color:#E8DDC3;
+}
+.obsTerritorySelected strong{font:600 12px/1.4 "Noto Sans",Arial,sans-serif}
+.obsTerritorySelected p{font:11px/1.5 "Noto Sans",Arial,sans-serif}
+.obsTerritorySelected small{display:block;font:10px/1.5 "Liberation Mono",monospace;color:#a5b5bf}
+.obsTerritorySelected button{margin-top:10px;background:transparent;color:#E8DDC3;border:1px solid rgba(200,169,81,.42);padding:9px 11px;cursor:pointer}
