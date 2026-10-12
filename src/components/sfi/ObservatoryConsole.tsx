@@ -50,9 +50,12 @@ function short(value:unknown,max=160){const t=txt(value);return t.length>max?`${
    is a temporary ART texture only; geographic coordinates are derived mathematically.
    No location, evidence or World Vector record is synthesized by this renderer. */
 const OBSERVATORY_GLOBE_TEXTURE='/assets/sfi/instruments/OBSERVATORY_MAPS.png';
-type GlobePick={lat:number;lng:number};
-function ObservatoryGlobe({onPick}:{onPick:(location:GlobePick)=>void}){
+type GlobePick={lat:number;lng:number;observationId?:string};
+type GlobeSourcePin={id:string;lat:number;lng:number};
+function ObservatoryGlobe({onPick,pins}:{onPick:(location:GlobePick)=>void;pins:GlobeSourcePin[]}){
   const canvas=useRef<HTMLCanvasElement|null>(null);
+  const pinsCanvas=useRef<HTMLCanvasElement|null>(null);
+  const pinsRef=useRef(pins);pinsRef.current=pins;
   const yaw=useRef(-1.45),pitch=useRef(0),zoom=useRef(1);
   const pointer=useRef<{id:number;x:number;y:number;moved:boolean}|null>(null);
   const onPickRef=useRef(onPick);onPickRef.current=onPick;
@@ -64,6 +67,7 @@ function ObservatoryGlobe({onPick}:{onPick:(location:GlobePick)=>void}){
   },[]);
   useEffect(()=>{
     const el=canvas.current;if(!el)return;
+    const overlay=pinsCanvas.current;const ink=overlay?.getContext('2d')??null;
     const gl=el.getContext('webgl',{alpha:true,antialias:true,premultipliedAlpha:false});
     if(!gl){setFailed(true);return;}
     let stopped=false,frame=0,last=0,textureReady=false;
@@ -123,6 +127,24 @@ void main(){
       gl.viewport(0,0,pixels,pixels);gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);
       gl.uniform2f(resolution,pixels,pixels);gl.uniform1f(heading,yaw.current);gl.uniform1f(tilt,pitch.current);gl.uniform1f(size,.94);gl.uniform1i(map,0);
       gl.drawArrays(gl.TRIANGLES,0,6);
+      if(ink&&overlay){
+        if(overlay.width!==pixels||overlay.height!==pixels){overlay.width=pixels;overlay.height=pixels;}
+        ink.clearRect(0,0,pixels,pixels);
+        const cy=Math.cos(yaw.current),sy=Math.sin(yaw.current),cp=Math.cos(pitch.current),sp=Math.sin(pitch.current);
+        for(const pin of pinsRef.current.slice(0,160)){
+          if(!Number.isFinite(pin.lat)||!Number.isFinite(pin.lng))continue;
+          const lat=pin.lat*Math.PI/180,lng=pin.lng*Math.PI/180;
+          const qx=Math.cos(lat)*Math.sin(lng),qy=Math.sin(lat),qz=Math.cos(lat)*Math.cos(lng);
+          const xx=qx*cy-qz*sy,zz=qx*sy+qz*cy;
+          const yy=qy*cp-zz*sp,depth=qy*sp+zz*cp;
+          if(depth<=0.03)continue;
+          const x=pixels*(.5+.47*xx),y=pixels*(.5-.47*yy);
+          ink.beginPath();ink.arc(x,y,3.2,0,Math.PI*2);
+          ink.fillStyle='rgba(226,188,114,.9)';ink.fill();
+          ink.beginPath();ink.arc(x,y,7,0,Math.PI*2);
+          ink.strokeStyle='rgba(130,205,228,.54)';ink.lineWidth=1;ink.stroke();
+        }
+      }
     };
     frame=requestAnimationFrame(render);
     return()=>{stopped=true;cancelAnimationFrame(frame);img.onload=null;img.onerror=null;gl.deleteTexture(tex);gl.deleteBuffer(buf);gl.deleteProgram(program);gl.deleteShader(vs);gl.deleteShader(fs)};
@@ -141,7 +163,13 @@ void main(){
     const cy=Math.cos(yaw.current),sy=Math.sin(yaw.current);
     const xx=x*cy+qz*sy,zz=-x*sy+qz*cy;
     const lng=((Math.atan2(xx,zz)*180/Math.PI+540)%360)-180;
-    onPickRef.current({lat:Math.asin(Math.max(-1,Math.min(1,qy)))*180/Math.PI,lng});
+    const lat=Math.asin(Math.max(-1,Math.min(1,qy)))*180/Math.PI;
+    const closest=pinsRef.current.reduce<{id:string;distance:number}|null>((best,pin)=>{
+      if(!Number.isFinite(pin.lat)||!Number.isFinite(pin.lng))return best;
+      const angle=Math.acos(Math.max(-1,Math.min(1,Math.sin(pin.lat*Math.PI/180)*Math.sin(lat*Math.PI/180)+Math.cos(pin.lat*Math.PI/180)*Math.cos(lat*Math.PI/180)*Math.cos((pin.lng-lng)*Math.PI/180))));
+      return !best||angle<best.distance?{id:pin.id,distance:angle}:best;
+    },null);
+    onPickRef.current({lat,lng,observationId:closest&&closest.distance<.11?closest.id:undefined});
   };
   return <div className="obsGlobeInstrument" style={{'--globe-scale':scale} as CSSProperties}>
     <div className="obsGlobeCage" aria-hidden="true"><i/><i/><i/><i/></div>
@@ -151,6 +179,7 @@ void main(){
         onPointerMove={e=>{const p=pointer.current;if(!p||p.id!==e.pointerId)return;const dx=e.clientX-p.x,dy=e.clientY-p.y;if(Math.abs(dx)+Math.abs(dy)>2)p.moved=true;if(p.moved){yaw.current-=dx*.006;pitch.current=Math.max(-.9,Math.min(.9,pitch.current+dy*.004));p.x=e.clientX;p.y=e.clientY}}}
         onPointerUp={endPointer} onPointerCancel={()=>{pointer.current=null}}
         onWheel={e=>{adjustZoom(e.deltaY<0?.08:-.08)}}/>}
+    <canvas ref={pinsCanvas} className="obsGlobeSourcePins" aria-hidden="true"/>
     {!ready&&!failed?<div className="obsGlobeLoading">MATERIALIZING EARTH · VISUAL TEXTURE</div>:null}
     <div className="obsGlobeControlRail">
       <button type="button" onClick={()=>adjustZoom(.12)} aria-label="Zoom toward Earth">+</button>
@@ -409,8 +438,10 @@ export function ObservatoryConsole(){
         <button type="button" aria-pressed={globeMode==='GLOBE'} onClick={()=>setGlobeMode('GLOBE')}>3D EARTH</button>
         <button type="button" aria-pressed={globeMode==='FIELD'} onClick={()=>setGlobeMode('FIELD')}>FIELD GRAPH</button>
       </div>
-      {globeMode==='GLOBE'?<ObservatoryGlobe onPick={(p)=>{
+      {globeMode==='GLOBE'?<ObservatoryGlobe pins={nodes.flatMap(n=>n.lat==null||n.lng==null?[]:[{id:n.id,lat:n.lat,lng:n.lng}])} onPick={(p)=>{
         setGlobePoint(p);
+        if(p.observationId){setSelectedNodeId(p.observationId);setSatelliteOpen(true);setLens('sources');return;}
+
         const nearest=territorialField.map(t=>({id:t.id,angle:Math.acos(Math.max(-1,Math.min(1,Math.sin(t.anchor.lat*Math.PI/180)*Math.sin(p.lat*Math.PI/180)+Math.cos(t.anchor.lat*Math.PI/180)*Math.cos(p.lat*Math.PI/180)*Math.cos((t.anchor.lng-p.lng)*Math.PI/180))))})).sort((a,b)=>a.angle-b.angle)[0];
         setSelectedTerritoryId(nearest&&nearest.angle<.65?nearest.id:null);
         setLens('territories');setSatelliteOpen(true);
