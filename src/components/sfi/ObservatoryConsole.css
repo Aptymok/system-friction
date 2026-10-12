@@ -156,7 +156,7 @@
     radial-gradient(ellipse at 92% 22%,rgba(10,18,17,.98),transparent 24%);
 }
 .obsAstronomyReadout{
-  position:absolute;z-index:29;top:170px;left:clamp(18px,2.5vw,42px);
+  position:absolute;z-index:29;top:212px;left:clamp(18px,2.5vw,42px);
   display:flex;align-items:center;gap:11px;pointer-events:none;
   padding:8px 12px;border-left:1px solid rgba(200,169,81,.4);
   background:rgba(3,7,10,.57);backdrop-filter:blur(7px);color:#E8DDC3;
@@ -268,7 +268,7 @@
  .obsScene .worldUnavailable{left:26%;right:18%;bottom:4%;font-size:9px}
 }
 @media(max-height:750px) and (min-width:821px){
- .obsAstronomyReadout{top:145px}
+ .obsAstronomyReadout{top:190px}
  .obsShell .obsScene .obsResearchConsole{top:170px!important;bottom:260px!important}
  .obsOperationalGrid{height:175px}
  .obsAmbientBoundary{bottom:255px}
