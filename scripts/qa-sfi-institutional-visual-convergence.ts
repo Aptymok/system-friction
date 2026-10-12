@@ -64,11 +64,12 @@ assert.equal(methodNativeCss.includes("url('/assets/sfi/instruments/Imagen de Ch
 assert.equal(repositoryCss.includes("url('/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_42-7.png')"),false,'repository_must_not_render_screenshot_as_dashboard');
 assert.ok(repositoryUi.includes('SOURCE RECORDS') && repositoryUi.includes('DISCOVERY MESH') && repositoryUi.includes('REPOSITORY HISTORY') && repositoryCss.includes('.repoReader') && repositoryCss.includes('.repoDiscovery'), 'unified_repository_operational_visual_contract_missing');
 assert.ok(
-  realityCss.includes('width:max(3840px,200vw)') &&
-  realityCss.includes('.rcThreeMode .rcThreeScene{') &&
-  realityUi.includes('className="rcThreeScene"') &&
-  !realityUi.includes('<div className="rcBackdrop"'),
-  'reality_chain_must_render_distinct_photographic_scenes_behind_live_workbench_on_3840_canvas'
+  realityCss.includes('width:var(--rc-canvas-width,3840px)') &&
+  realityCss.includes('.rcThreeMode .rcPanoramaImage{') &&
+  realityUi.includes('className="rcPanoramaImage"') &&
+  realityUi.includes('Math.min(3840,e.currentTarget.naturalWidth)') &&
+  !realityUi.includes('className="rcThreeScene"'),
+  'reality_chain_native_bounded_original_backdrop_over_live_operational_hubs'
 );
 
 for(const source of [rail,evidence,access]) assert.equal(/createServiceSupabaseClient|\.from\(|\.insert\(|\.update\(|\.upsert\(/.test(source),false,'visual convergence must not create a new data owner');
