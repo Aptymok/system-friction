@@ -93,7 +93,7 @@ void main(){
   color+=vec3(.23,.18,.08)*pow(max(0.,dot(n,normalize(vec3(.3,-.25,.92)))),10.)*.16;
   float alpha=(1.0-smoothstep(.978,1.01,rad))*.93;
   gl_FragColor=vec4(color,alpha);
-}\`);
+}`);
     for(const shader of [vs,fs]){gl.compileShader(shader);if(!gl.getShaderParameter(shader,gl.COMPILE_STATUS)){setFailed(true);gl.deleteShader(vs);gl.deleteShader(fs);return;}}
     const program=gl.createProgram()!;gl.attachShader(program,vs);gl.attachShader(program,fs);gl.linkProgram(program);
     if(!gl.getProgramParameter(program,gl.LINK_STATUS)){setFailed(true);return;}
