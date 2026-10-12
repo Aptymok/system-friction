@@ -304,3 +304,194 @@
 .obsTerritorySelected p{font:11px/1.5 "Noto Sans",Arial,sans-serif}
 .obsTerritorySelected small{display:block;font:10px/1.5 "Liberation Mono",monospace;color:#a5b5bf}
 .obsTerritorySelected button{margin-top:10px;background:transparent;color:#E8DDC3;border:1px solid rgba(200,169,81,.42);padding:9px 11px;cursor:pointer}
+
+
+/* Observatory final composition · uses approved existing OBSERVATORY_* media.
+   All displayed field observations, hypotheses, cases and time frames still come from readers.
+   Art texture never serves as an evidentiary geospatial base. */
+.obsShell .obsScene{
+  --obs-art:'/assets/sfi/instruments/OBSERVATORY_BACKGROUND.png';
+  background:#04080c;
+}
+.obsShell .obsPanoramaEnvironment{inset:54px 0 65px;z-index:0}
+.obsShell .obsPanoramaSky{
+  background-image:linear-gradient(180deg,rgba(2,5,8,.13),rgba(3,6,9,.14) 60%,rgba(4,6,7,.5)),
+    url('/assets/sfi/instruments/OBSERVATORY_BACKGROUND.png');
+  background-size:100% 100%,cover;
+  background-repeat:no-repeat;
+  background-position:center,center;
+  filter:none;opacity:1;
+}
+.obsShell .obsScene[data-scene-daypart="day"] .obsPanoramaSky{filter:brightness(1.09) saturate(.92);opacity:1}
+.obsShell .obsScene[data-scene-daypart="dawn"] .obsPanoramaSky{filter:sepia(.1) brightness(.97);opacity:1}
+.obsShell .obsScene[data-scene-daypart="dusk"] .obsPanoramaSky{filter:saturate(.95) brightness(.88);opacity:1}
+.obsShell .obsScene[data-scene-daypart="night"] .obsPanoramaSky{filter:brightness(.42) saturate(.7);opacity:1}
+.obsShell .obsPanoramaCity,.obsShell .obsPanoramaNature,.obsShell .obsProjectionFloor{display:none}
+.obsShell .obsPanoramaForeground{opacity:.23;filter:blur(12px);height:16%}
+.obsShell .obsScene:after{
+  background:linear-gradient(90deg,rgba(2,4,7,.28),transparent 20%,transparent 65%,rgba(2,5,9,.46)),
+             linear-gradient(180deg,rgba(2,4,5,.04),transparent 65%,rgba(3,5,8,.38));
+  box-shadow:inset 0 0 48px rgba(0,0,0,.28);
+}
+.obsShell .obsScene .earthStage{
+  left:31.5%;top:47%;width:min(44vw,940px);aspect-ratio:1;
+  max-height:min(66vh,830px);max-width:66vh;
+  transform:translate(-50%,-50%);z-index:18;
+  overflow:visible;
+}
+.obsShell .obsScene .earthStage:before{inset:12%;background:none;box-shadow:none}
+.obsShell .earthStage .obsLegacyField{position:absolute;inset:0;opacity:0;visibility:hidden;pointer-events:none}
+.obsShell .earthStage .obsLegacyField.is-active{opacity:1;visibility:visible;pointer-events:auto}
+.obsShell .earthStage[data-globe-mode="FIELD"] .obsGlobeInstrument,
+.obsShell .earthStage[data-globe-mode="FIELD"] .obsGlobeCoordinate{display:none}
+.obsShell .earthStage .obsLegacyField .obsAmbientWorld{pointer-events:none}
+.obsShell .obsGlobeInstrument{
+ position:absolute;inset:1%;isolation:isolate;
+ filter:drop-shadow(0 0 24px rgba(173,214,241,.25));
+}
+.obsShell .obsGlobeCanvas,.obsShell .obsGlobeFallback{
+ position:absolute;inset:1%;width:98%;height:98%;object-fit:cover;
+ border-radius:50%;display:block;touch-action:none;cursor:grab;
+ transform:scale(var(--globe-scale,1));transition:transform .15s ease;
+}
+.obsShell .obsGlobeCanvas:active{cursor:grabbing}
+.obsShell .obsGlobeCage{position:absolute;inset:12% 13%;pointer-events:none;z-index:4;transform:perspective(850px) rotateY(-15deg)}
+.obsShell .obsGlobeCage:before{
+ content:"";position:absolute;inset:3%;
+ border:1px solid rgba(217,179,111,.45);
+ background:linear-gradient(90deg,transparent 49.87%,rgba(234,222,195,.38) 50%,transparent 50.13%),
+            linear-gradient(0deg,transparent 49.87%,rgba(234,222,195,.18) 50%,transparent 50.13%);
+ box-shadow:0 0 18px rgba(211,181,121,.13),inset 0 0 18px rgba(211,181,121,.08);
+}
+.obsShell .obsGlobeCage:after{content:"";position:absolute;inset:0;border:1px solid rgba(233,203,153,.25);transform:translate3d(16px,-16px,0)}
+.obsShell .obsGlobeCage i{position:absolute;width:25px;height:25px;border-left:1px solid #dfbd79;border-top:1px solid #dfbd79;filter:drop-shadow(0 0 4px #d4b773)}
+.obsShell .obsGlobeCage i:nth-child(1){top:0;left:0}.obsShell .obsGlobeCage i:nth-child(2){top:0;right:0;transform:rotate(90deg)}
+.obsShell .obsGlobeCage i:nth-child(3){bottom:0;right:0;transform:rotate(180deg)}
+.obsShell .obsGlobeCage i:nth-child(4){bottom:0;left:0;transform:rotate(270deg)}
+.obsShell .obsProjectionEmitter{
+ position:absolute;bottom:-7%;left:16%;width:68%;height:15%;
+ background:radial-gradient(ellipse,rgba(110,197,243,.32),transparent 70%),
+ url('/assets/sfi/instruments/OBSERVATORY_PROJECTOR.png') center bottom /contain no-repeat;
+ border:0;filter:drop-shadow(0 0 14px #8acfea);z-index:-1;
+}
+.obsGlobeControlRail{position:absolute;right:-14px;bottom:10%;display:grid;gap:5px;z-index:9;min-width:34px}
+.obsGlobeControlRail button{
+ background:rgba(2,9,15,.83);border:1px solid rgba(216,179,111,.45);color:#efdfbc;
+ min-height:34px;min-width:34px;cursor:pointer;font-size:15px;
+}
+.obsGlobeControlRail button:hover,.obsGlobeControlRail button:focus-visible{background:rgba(27,59,70,.9);outline:1px solid #ddd0ba}
+.obsGlobeControlRail span{font:9px/1.5 ui-monospace,monospace;color:#eedbb6;text-align:center}
+.obsGlobeEpistemic{
+ position:absolute;bottom:1%;left:10%;right:10%;text-align:center;z-index:8;
+ font:8px/1.5 ui-monospace,monospace;letter-spacing:.08em;color:#c5c7c6;
+ background:rgba(2,7,10,.53);pointer-events:none
+}
+.obsGlobeLoading{position:absolute;inset:40% 0 auto;text-align:center;font:11px ui-monospace,monospace;color:#ded5bf}
+.obsEarthModeToggle{position:absolute;top:-9%;left:17%;right:17%;display:flex;gap:4px;justify-content:center;z-index:11}
+.obsEarthModeToggle button{cursor:pointer;font:10px/1.4 ui-monospace,monospace;letter-spacing:.09em;padding:7px 11px;border:1px solid rgba(204,174,102,.45);background:rgba(3,9,13,.84);color:#ddd5c6}
+.obsEarthModeToggle button[aria-pressed="true"]{background:rgba(203,169,103,.23);border-color:#debe7b}
+.obsGlobeCoordinate{
+ position:absolute;bottom:15%;left:-2%;max-width:45%;display:grid;gap:4px;z-index:12;
+ background:rgba(2,8,13,.87);border-left:2px solid #dec07e;padding:7px 9px;
+ font:11px ui-monospace,monospace;color:#f0e8d9;
+}
+.obsGlobeCoordinate b{font-size:9px;letter-spacing:.07em}
+.obsGlobeCoordinate small{font-size:9px;color:#a1afb8}
+.obsShell .obsScene .obsResearchConsole{
+ top:157px!important;right:2.1vw!important;width:35.5vw!important;
+ bottom:310px!important;
+ border:1px solid rgba(223,188,123,.39)!important;border-radius:2px!important;
+ background-image:linear-gradient(165deg,rgba(3,8,13,.85),rgba(4,9,13,.88)),
+  url('/assets/sfi/instruments/OBSERVATORY_MONITOR.png')!important;
+ background-size:cover,100% 100%!important;
+ background-position:center!important;
+ box-shadow:0 10px 45px rgba(0,0,0,.45),0 0 0 5px rgba(8,12,14,.46)!important;
+ transform:perspective(2400px) rotateY(-3deg);transform-origin:right center;
+ scrollbar-width:thin!important;
+}
+.obsShell .obsScene .obsResearchConsole:focus-within{
+ transform:none;z-index:45!important;background:rgba(4,9,14,.97)!important;
+}
+.obsShell .obsOperationalGrid{
+  background-image:linear-gradient(rgba(2,6,10,.42),rgba(2,6,10,.42)),url('/assets/sfi/instruments/OBSERVATORY_DASHBOARD.png');
+  background-size:100% 100%;background-repeat:no-repeat;padding:11px;
+  transform:perspective(1850px) rotateX(6deg);
+  transform-origin:center bottom;bottom:76px;height:222px;
+  grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;
+}
+.obsShell .obsOperationalGrid:focus-within{transform:none}
+.obsShell .obsOperationalCard{
+  background:rgba(3,8,13,.87);border:1px solid rgba(203,172,111,.42);box-shadow:inset 0 0 16px rgba(5,12,20,.66)
+}
+.obsShell .obsOperationalCard:focus-within{background:rgba(3,9,16,.97);box-shadow:0 0 0 1px #c8a951}
+.obsShell .obsAstronomyMoon{
+  background:url('/assets/sfi/instruments/OBSERVATORY_MOONS.png') 0 0/400% 200% no-repeat;
+  width:52px;height:52px;flex-basis:52px;
+}
+.obsShell .obsAstronomyMoon circle,.obsShell .obsAstronomyMoon path{opacity:0}
+.obsShell .obsAstronomyReadout{top:155px;left:2%;z-index:38}
+.obsShell .obsScene .hudLeft{top:255px;z-index:27;width:clamp(130px,11vw,195px)}
+.obsShell .obsScene .obsOperationalFilters{z-index:46;top:105px!important;left:52%!important;width:46%!important}
+.obsShell .obsOperationalLenses{z-index:47;left:32%;right:2%}
+.obsShell .obsAmbientBoundary{bottom:304px;left:2%;right:2%;z-index:36}
+@media(max-width:1450px){
+ .obsShell .obsScene .earthStage{left:28%;width:42vw;max-width:56vh}
+ .obsShell .obsScene .obsResearchConsole{width:40vw!important;top:160px!important;bottom:300px!important}
+ .obsShell .obsOperationalGrid{overflow-x:auto;grid-template-columns:repeat(7,minmax(200px,24vw))}
+ .obsShell .obsScene .hudLeft{display:none}
+}
+@media(max-width:820px){
+ .obsShell .obsScene .earthStage{left:50%;top:42%;width:min(84vw,52vh);max-width:none}
+ .obsEarthModeToggle{top:-11%}
+ .obsShell .obsScene .obsResearchConsole{left:10px!important;right:10px!important;width:auto!important;top:275px!important;bottom:260px!important;transform:none}
+ .obsShell .obsOperationalGrid{bottom:65px;height:180px;grid-template-columns:repeat(7,minmax(205px,70vw));padding:5px}
+ .obsShell .obsAstronomyReadout{top:120px;left:10px}
+ .obsShell .obsOperationalLenses{left:10px;right:10px}
+ .obsShell .obsScene .obsOperationalFilters{top:217px!important;left:10px!important;width:calc(100% - 20px)!important}
+ .obsGlobeEpistemic{font-size:7px}
+}
+@media(prefers-reduced-motion:reduce){
+ .obsShell .obsGlobeCanvas{transition:none}
+ .obsShell .obsOperationalGrid,.obsShell .obsScene .obsResearchConsole{transform:none!important}
+}
+
+/* Existing earth-stage shell historically disables pointer input. Re-enable it
+   only for the new real controls; the ambient illustration stays click-through. */
+.obsShell .earthStage .obsGlobeCanvas,
+.obsShell .earthStage .obsGlobeControlRail,
+.obsShell .earthStage .obsGlobeControlRail button,
+.obsShell .earthStage .obsEarthModeToggle,
+.obsShell .earthStage .obsEarthModeToggle button {pointer-events:auto}
+.obsShell .earthStage .obsGlobeCanvas{outline-offset:5px}
+.obsShell .earthStage .obsGlobeControlRail button:focus-visible,
+.obsShell .earthStage .obsEarthModeToggle button:focus-visible{outline:2px solid #e3c282;outline-offset:2px}
+
+/* A prominent lunar witness sits BEHIND the globe and monitors; phase is an
+   approximate astronomical visualization, not an observation of moon altitude. */
+.obsShell .obsPanoramaEnvironment .obsScenicMoon{
+  position:absolute;z-index:2;top:4%;left:53%;width:clamp(74px,9vw,190px);
+  aspect-ratio:1;border-radius:50%;pointer-events:none;
+  background-image:url('/assets/sfi/instruments/OBSERVATORY_MOONS.png');
+  background-repeat:no-repeat;background-size:400% 200%;
+  opacity:.85;filter:drop-shadow(0 0 18px rgba(211,223,234,.26));
+}
+.obsShell .obsScene[data-scene-daypart="day"] .obsScenicMoon{opacity:.25}
+.obsShell .obsScene[data-scene-daypart="dawn"] .obsScenicMoon{opacity:.44}
+.obsShell .obsScene[data-scene-daypart="dusk"] .obsScenicMoon{opacity:.72}
+.obsShell .obsScene[data-scene-daypart="night"] .obsScenicMoon{opacity:.9}
+@keyframes obsHologramMaterialize{
+  0%{opacity:0;clip-path:inset(100% 0 0 0);filter:brightness(1.7)}
+  38%{opacity:.6;clip-path:inset(50% 0 0 0);filter:brightness(1.48)}
+  75%{opacity:.92;clip-path:inset(0 0 0 0);filter:brightness(1.2)}
+  100%{opacity:1;clip-path:inset(0 0 0 0);filter:brightness(1)}
+}
+.obsShell .obsGlobeCanvas.is-ready{animation:obsHologramMaterialize 1.6s cubic-bezier(.26,.68,.31,1) both}
+@media(prefers-reduced-motion:reduce){
+  .obsShell .obsGlobeCanvas.is-ready{animation:none}
+}
+
+.obsShell .obsGlobeSourcePins{
+ position:absolute;inset:1%;width:98%;height:98%;display:block;z-index:2;pointer-events:none;
+ transform:scale(var(--globe-scale,1));transition:transform .15s ease;
+}
+@media(prefers-reduced-motion:reduce){.obsShell .obsGlobeSourcePins{transition:none}}
