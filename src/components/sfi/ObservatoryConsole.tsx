@@ -69,7 +69,7 @@ function ObservatoryGlobe({onPick}:{onPick:(location:GlobePick)=>void}){
     let stopped=false,frame=0,last=0,textureReady=false;
     const vs=gl.createShader(gl.VERTEX_SHADER)!,fs=gl.createShader(gl.FRAGMENT_SHADER)!;
     gl.shaderSource(vs,'attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}');
-    gl.shaderSource(fs,String.raw\`
+    gl.shaderSource(fs,String.raw`
 precision highp float;
 uniform vec2 res;uniform sampler2D map;uniform float yaw;uniform float tilt;uniform float size;
 const float PI=3.141592653589793;
@@ -91,7 +91,7 @@ void main(){
   float light=.58+.38*max(0.,dot(n,normalize(vec3(-.45,.5,.85))));
   color=color*light+vec3(.45,.67,.78)*rim*.78;
   color+=vec3(.23,.18,.08)*pow(max(0.,dot(n,normalize(vec3(.3,-.25,.92)))),10.)*.16;
-  float alpha=smoothstep(1.01,.978,rad)*.93;
+  float alpha=(1.0-smoothstep(.978,1.01,rad))*.93;
   gl_FragColor=vec4(color,alpha);
 }\`);
     for(const shader of [vs,fs]){gl.compileShader(shader);if(!gl.getShaderParameter(shader,gl.COMPILE_STATUS)){setFailed(true);gl.deleteShader(vs);gl.deleteShader(fs);return;}}
