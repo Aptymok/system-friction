@@ -192,9 +192,9 @@ export function ObservatoryConsole(){
       return[{id:vector.id,label:vector.label,from:prior.value,to:vector.value,delta:vector.value-prior.value}];
     }).sort((a,b)=>Math.abs(b.delta)-Math.abs(a.delta)).slice(0,6);
   },[baselineFrame,frame]);
-  const avgFs=mean(nodes.map(n=>num(n.reading?.systemic_friction)));
-  const avgNti=mean(nodes.map(n=>num(n.reading?.interaction_density)));
-  const avgPhi=mean(nodes.map(n=>num(n.reading?.systemic_coherence)));
+  const avgFs=mean(nodes.map(n=>n.reading?.systemic_friction==null?null:num(n.reading.systemic_friction)));
+  const avgNti=mean(nodes.map(n=>n.reading?.interaction_density==null?null:num(n.reading.interaction_density)));
+  const avgPhi=mean(nodes.map(n=>n.reading?.systemic_coherence==null?null:num(n.reading.systemic_coherence)));
   const sourceIds=uniq(nodes.map(n=>n.sourceId));
   const sourceFamilies=arr(world?.filters?.sourceFamilies).map(String);
   const systems=arr(world?.filters?.systems).map(String);
