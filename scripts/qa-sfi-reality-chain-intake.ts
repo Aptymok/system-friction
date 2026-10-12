@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
+import { createRealityChainPdf } from '../src/components/sfi/realityChainPdf';
 const read=(path:string)=>readFileSync(path,'utf8');
 const route=read('src/app/api/reality-chain/extract/route.ts');
 const parser=read('src/lib/studio/multimodal/textAnalyzer.ts');
@@ -46,3 +47,30 @@ assert.ok(ui.includes('Math.min(3840,e.currentTarget.naturalWidth)'),'Prevent ex
 assert.match(layout,/object-fit:cover/,'Original panorama uses one continuous, proportional backdrop');
 assert.match(layout,/scroll-snap-type:none/,'Horizontal progression must be continuous');
 console.log('PASS · Reality Chain case access, source-only intake, parser reuse, non-promotion, report boundaries and existing assets');
+
+
+// Direct-PDF smoke test: real binary structure, page tree, source lineage and
+// full represented payload, without fake approval or learning adoption.
+const pdf=createRealityChainPdf({
+  caseId:'QA-CASE-001',subject:'SOURCE LINKED CASE',status:'OPEN',cutoff:'2026-10-12',
+  generatedAt:'2026-10-12T00:00:00.000Z',
+  stages:[{name:'WORLD',role:'Grounded state',count:1}],
+  objects:[{kind:'RECORD',role:'RECORD',observedAt:null,recordedAt:'2026-10-11T23:00:00.000Z',
+    id:'qa:record-1',hash:null,sourceIds:['source:qa'],recordIds:['record:qa'],evidenceIds:[],
+    description:'Original observation record',locator:'PAGE 1',payloadJson:'{"statement":"Full represented source content"}'}],
+  learning:[],reportReceipts:0
+});
+assert.equal(pdf.type,'application/pdf','Case export must be a native PDF Blob');
+assert.ok(pdf.size>500,'Case export must not be an empty file');
+pdf.arrayBuffer().then(buffer=>{
+  const raw=Buffer.from(buffer).toString('latin1');
+  assert.ok(raw.startsWith('%PDF-1.4'),'PDF header missing');
+  assert.match(raw,/\/Type \/Page\b/,'At least one A4 page required');
+  assert.match(raw,/source:qa/,'Source provenance must remain inspectable');
+  assert.match(raw,/Full represented source content/,'Do not drop source payload from PDF');
+  const start=raw.lastIndexOf('startxref\n');
+  assert.ok(start>0,'Missing PDF cross reference pointer');
+  const offset=Number(raw.slice(start+10).split(/\s/)[0]);
+  assert.equal(raw.slice(offset,offset+4),'xref','Cross reference must point at the correct byte offset');
+  console.log('PASS · downloadable native PDF preserves derived case provenance and cross-reference structure');
+}).catch(error=>{console.error(error);process.exitCode=1;});
