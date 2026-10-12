@@ -29,8 +29,8 @@ assert.ok(existsSync('public'+panorama![1]),'The single panorama file must exist
 assert.equal((ui.match(/className="rcPanoramaImage"/g)||[]).length,1,'The background must not be repeated');
 assert.equal((ui.match(/className="rcThreeScene"/g)||[]).length,0,'No separate repeated screen images');
 const layout=read('src/components/sfi/RealityChainWorkbench.css');
-assert.match(layout,/width:var\\(--rc-canvas-width,3840px\\)/,'Canvas size must be bounded to image native width');
-assert.match(ui,/Math.min\\(3840,e.currentTarget.naturalWidth\\)/,'Prevent exceeding the source image natural width');
+assert.ok(layout.includes('width:var(--rc-canvas-width,3840px)'),'Canvas size must be bounded to image native width');
+assert.ok(ui.includes('Math.min(3840,e.currentTarget.naturalWidth)'),'Prevent exceeding source image natural width');
 assert.match(layout,/object-fit:cover/,'Original panorama uses one continuous, proportional backdrop');
 assert.match(layout,/scroll-snap-type:none/,'Horizontal progression must be continuous');
 console.log('PASS · Reality Chain case access, source-only intake, parser reuse, non-promotion, report boundaries and existing assets');
