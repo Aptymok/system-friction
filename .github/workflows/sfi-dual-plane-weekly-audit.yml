@@ -1,0 +1,29 @@
+name: SFI dual-plane weekly read-only audit
+on:
+  schedule:
+    - cron: '17 9 * * 1'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Inspect both planes without mutations
+        env:
+          DATABASE_URL: ${{ secrets.SFI_PRIMARY_DATABASE_URL }}
+          SFI_CONTINUITY_DATABASE_URL: ${{ secrets.SFI_CONTINUITY_DATABASE_URL }}
+        run: node scripts/data-continuity-audit.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sfi-dual-plane-audit
+          path: artifacts/sfi-dual-plane-audit.json
+          retention-days: 30
