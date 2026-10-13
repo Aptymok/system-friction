@@ -37,7 +37,7 @@ for(const hidden of ['/observatory','/laboratory','/publications','/institution'
 
 requireText(layout,'<html lang="en">','root document English declaration');
 requireText(layout,'<SfiPublicHeader global/>','global institutional header');
-requireText(layout,'<SfiPublicFooter global/>','global institutional footer');
+rejectText(layout,'<SfiPublicFooter','global institutional timeline must not mount');
 rejectText(publicChrome,'SFI_PUBLIC_NAV.map','NYC chrome must not render legacy route menu');
 requireText(publicChrome,'sfiPublicPageNav','institutional public page navigator');
 for(const label of ['TIMELINE','REPOSITORY','METHOD LAB','REALITY CHAIN','OBSERVATORY','ROOT','ACCESS']) requireText(publicChrome,`label:'${label}'`,`institutional menu label ${label}`);
@@ -46,11 +46,9 @@ requireText(publicChrome,'context.statement','header principle statement');
 requireText(publicChrome,'context.stage','header institutional stage');
 requireText(publicChrome,"timeZone:'UTC'",'live UTC public clock');
 requireText(publicChrome,'href="/login"','shared public chrome sign-in');
-requireText(publicChrome,'SFI / GLOBAL TIMELINE','canonical footer timeline identity');
-requireText(publicChrome,'NOTHING ACTS ALONE. REALITY ANSWERS BACK.','canonical institutional slogan');
-requireText(publicChrome,'sfiGlobalTimeline','global timeline footer');
-requireText(publicChrome,"['2023','2024','2025','2026','2027','2028','2029']",'global timeline years');
-rejectText(publicChrome,'<b>{context.statement}</b>','footer duplicate active title or statement');
+rejectText(publicChrome,'SfiPublicFooter','retired timeline footer must not exist as reusable component');
+rejectText(publicChrome,'sfiGlobalTimeline','no global floating timeline');
+requireText(publicChrome,"href:'/instruments/timeline'",'dedicated timeline navigation retained');
 rejectText(entry,'SFI_PUBLIC_NAV.map','home duplicate public navigation');
 rejectText(observatory,'SFI_PUBLIC_NAV.filter','Observatory duplicate public navigation');
 requireText(laboratory,"redirect('/')",'former Laboratory public surface converges to NYC landing');
