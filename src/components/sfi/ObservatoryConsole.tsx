@@ -248,7 +248,7 @@ export function ObservatoryConsole(){
               <div className="sfiInfoLine"><span>ATTRIBUTED SOURCES</span><b>{worldMetric(sourceIds.length)}</b></div>
               <div className="sfiInfoLine"><span>HYPOTHESES</span><b>{worldMetric(filteredHypotheses.length)}</b></div>
               <div className="sfiInfoLine"><span>OPEN / AWAITING RETURN</span><b>{worldMetric(openHypotheses)}</b></div>
-              <p>{narrative}</p>
+              <p>{narrative}</p><p>DERIVED METRICS · Fₛ {avgFs==null?'—':avgFs.toFixed(3)} · NTI {avgNti==null?'—':avgNti.toFixed(3)} · Φ {avgPhi==null?'—':avgPhi.toFixed(3)}</p>
             </>}
             {lens==='world-vector'&&<>
               <div className="sfiInfoLine"><span>STATUS</span><b>{worldVectorStatus}</b></div>
@@ -263,7 +263,7 @@ export function ObservatoryConsole(){
               <div className="sfiInfoLine"><span>GEO COVERAGE</span><b>{pct(territorialModel.coverage)}</b></div>
               {selectedTerritory&&<p>SELECTED: {selectedTerritory.label} · {selectedTerritory.observationCount} observations · Fₛ {selectedTerritory.systemicFriction==null?'UNAVAILABLE':selectedTerritory.systemicFriction.toFixed(3)}</p>}
               {territorialModel.territories.slice(0,12).map(t=><button key={t.id} className="sfiMonitorRow" onClick={()=>setSelectedTerritoryId(t.id)} aria-pressed={t.id===selectedTerritoryId}><span>{t.label}</span><span>{t.observationCount} obs</span></button>)}
-              <p>TERRITORIAL TENSIONS · DERIVED REGIONS · NO CAUSALITY CLAIM</p>
+              <p>Territorial buckets are derived from persisted geocoded observations. Coverage ≠ completeness; density ≠ importance; tension ≠ causality.</p>
             </>}
             {lens==='sources'&&<>
               {selectedNode&&<p>SELECTED: {selectedNode.title} · {selectedNode.publisher} · {selectedNode.provenance?.verificationState||'NOT_RECORDED'} {selectedNode.provenance?.sourceUrl&&<a href={selectedNode.provenance.sourceUrl} target="_blank" rel="noreferrer">SOURCE ↗</a>}</p>}
@@ -271,7 +271,7 @@ export function ObservatoryConsole(){
               {nodes.length===0&&<p>NO SOURCE OBSERVATIONS IN THIS WINDOW.</p>}
             </>}
             {lens==='hypotheses'&&<>
-              {selectedHypothesis&&<><p>{selectedHypothesis.statement} · {selectedHypothesis.status}</p><p>{selectedHypothesis.aiInference?.mechanism||'Mechanism not established.'}</p><p>RETURN: {selectedHypothesis.outcome?.classification||'NOT OBSERVED'}</p></>}
+              {selectedHypothesis&&<><p>{selectedHypothesis.statement} · {selectedHypothesis.status}</p><p>PROPOSED MECHANISM · INFERENCE: {selectedHypothesis.aiInference?.mechanism||'Mechanism not established.'}</p><p>CONSEQUENCE TRACE · {arr(selectedHypothesis.aiInference?.consequenceChain).length} declared links</p><p>RETURN: {selectedHypothesis.outcome?.classification||'NOT OBSERVED'}</p></>}
               {filteredHypotheses.slice(0,8).map(h=><button className="sfiMonitorRow" key={String(h.id)} onClick={()=>setSelectedHypothesisId(String(h.id))}><span>{short(h.statement,78)}</span><span>{h.status}</span></button>)}
             </>}
             {lens==='trajectory'&&<>
