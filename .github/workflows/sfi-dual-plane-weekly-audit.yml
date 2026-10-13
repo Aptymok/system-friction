@@ -1,7 +1,6 @@
-name: SFI dual-plane weekly read-only audit
+name: SFI dual-plane read-only audit (manual until schedule consolidated)
 on:
-  schedule:
-    - cron: '17 9 * * 1'
+  # Reuse the hourly SFI reconciliation; do not introduce another scheduler.
   workflow_dispatch:
 permissions:
   contents: read
