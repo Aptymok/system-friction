@@ -42,27 +42,13 @@
   transform:translateX(-50%);z-index:7;
   pointer-events:none;
 }
-.sfiGlobeCube{
-  position:absolute;inset:2%;z-index:8;pointer-events:none;
-  border:1px solid rgba(232,191,122,.5);
-  background-image:linear-gradient(90deg,transparent 49.9%,rgba(237,213,176,.18) 50%,transparent 50.1%),
-  linear-gradient(transparent 49.9%,rgba(237,213,176,.17) 50%,transparent 50.1%);
-  transform:perspective(1200px) rotateY(-13deg);
-  box-shadow:0 0 19px rgba(239,198,126,.13),inset 0 0 8px rgba(246,216,150,.08);
+.sfiGlobeGeometry{
+  position:absolute;inset:-2%;width:104%;height:104%;z-index:12;
+  overflow:visible;pointer-events:none;color:rgba(214,183,115,.5);
+  filter:drop-shadow(0 0 2px rgba(203,173,105,.14));
 }
-.sfiGlobeCube::before{
-  content:"";position:absolute;inset:0;
-  border:1px solid rgba(221,185,118,.45);transform:translate(30px,-24px);
-}
-.sfiGlobeCube::after{
-  content:"";position:absolute;inset:0;
-  background:linear-gradient(139deg,transparent calc(50% - .5px),rgba(220,180,103,.4) 50%,transparent calc(50% + .5px));
-  opacity:.35;
-}
-.sfiGlobeCube span{position:absolute;width:25px;height:25px;border-top:2px solid rgba(238,198,119,.8);border-left:2px solid rgba(238,198,119,.8)}
-.sfiGlobeCube span:first-child{top:0;left:0}
-.sfiGlobeCube span:nth-child(2){top:0;right:0;transform:rotate(90deg)}
-.sfiGlobeCube span:nth-child(3){bottom:0;right:0;transform:rotate(180deg)}
+.sfiCubeWireframe{opacity:.72;vector-effect:non-scaling-stroke}
+.sfiOrbitalLines{opacity:.52;vector-effect:non-scaling-stroke}
 .sfiGlobeSphere{
   position:absolute;left:9%;top:7%;width:82%;height:82%;z-index:9;
   border-radius:50%;pointer-events:auto;cursor:crosshair;overflow:hidden;
@@ -93,14 +79,16 @@
   background:rgba(5,13,20,.63);
 }
 .sfiMonitor{
-  position:absolute;left:72%;top:8%;width:26.5%;height:64%;z-index:11;
-  background:url('/assets/sfi/instruments/OBSERVATORY_MONITOR.png') center center / 100% 100% no-repeat;
-  transform:perspective(1700px) rotateY(-4deg);transform-origin:right center;
+  position:absolute;left:73.3%;top:13%;width:24.2%;height:53%;z-index:11;
+  background:none;
+  transform:perspective(2200px) rotateY(-5deg);transform-origin:right center;
 }
 .sfiMonitorBody{
-  position:absolute;left:9%;right:8%;top:12%;bottom:10%;padding:8px 12px;
+  position:absolute;left:6%;right:6%;top:5%;bottom:5%;padding:8px 12px;
   display:flex;flex-direction:column;overflow:hidden;
-  background:rgba(2,9,14,.76);border:1px solid rgba(206,173,112,.23);
+  background:linear-gradient(90deg,rgba(2,8,12,.08),rgba(2,8,12,.28) 90%);
+  border:none;border-radius:0;box-shadow:none;
+  text-shadow:0 1px 3px rgba(0,0,0,.9);
 }
 .sfiMonitorHeader{display:flex;justify-content:space-between;gap:8px;padding-bottom:8px;border-bottom:1px solid rgba(221,175,92,.4)}
 .sfiMonitorHeader span{font:10px/1.4 "Noto Sans",sans-serif;letter-spacing:.16em}
@@ -120,23 +108,29 @@
 .sfiTimeControl input{accent-color:#d4b276}
 .sfiDashboard{
   position:absolute;left:1.2%;right:1.2%;bottom:0;height:24%;z-index:20;
-  padding:14px 28px 20px;
-  background:url('/assets/sfi/instruments/OBSERVATORY_DASHBOARD.png') center center / 100% 100% no-repeat;
-  transform:perspective(2100px) rotateX(7deg);transform-origin:bottom center;
-  display:flex;flex-direction:column;justify-content:flex-end;gap:14px;
+  padding:18px 32px 16px;
+  background:transparent;
+  transform:none;
+  display:flex;flex-direction:column;justify-content:flex-end;gap:12px;
   color:#e5d9be;
 }
-.sfiDashboardModes{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:15px;margin:0 4%}
+.sfiBottomMonitorImage{
+  position:absolute;left:0;bottom:0;width:100%;height:100%;
+  max-width:100%;max-height:100%;display:block;
+  object-fit:contain;object-position:center bottom;
+  z-index:0;pointer-events:none;user-select:none;
+  filter:drop-shadow(0 8px 12px rgba(0,0,0,.19));
+}
+.sfiDashboardModes{position:relative;z-index:2;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:15px;margin:0 4%}
 .sfiDashboardModes button{
   border:1px solid rgba(223,185,118,.35);background:rgba(2,9,14,.79);
   min-height:38px;cursor:pointer;color:#d6d9d8;
   letter-spacing:.14em;font:11px/1.4 "Noto Sans",sans-serif;
 }
 .sfiDashboardModes button[aria-pressed=true]{background:rgba(207,157,81,.22);border-color:#e2c084;color:#fff1cc}
-.sfiDashboardFilters{display:flex;justify-content:space-around;align-items:center;gap:12px;margin:0 4%}
+.sfiDashboardFilters{position:relative;z-index:2;display:flex;justify-content:space-around;align-items:center;gap:12px;margin:0 4%}
 .sfiDashboardFilters label{display:flex;align-items:center;gap:7px;min-width:0;flex:1;font:10px/1.3 monospace;letter-spacing:.08em}
 .sfiDashboardFilters select,.sfiDashboardFilters input{max-width:180px;width:100%;min-width:0;padding:6px;background:rgba(4,14,20,.93);color:#e9ddc9;border:1px solid rgba(220,182,110,.45);font:12px monospace}
-.sfiDashboardFooter{margin:0 4%;font:9px/1.3 monospace;letter-spacing:.12em;text-align:center;color:#cfba8f}
 @media(max-height:750px){
  .sfiMonitor{top:6%;height:65%}
  .sfiMonitorBody{top:10%;bottom:8%}
@@ -144,10 +138,9 @@
  .sfiDashboard{height:25%;gap:5px;padding-top:4px}
  .sfiDashboardModes button{min-height:29px}
  .sfiDashboardFilters label{font-size:9px}
- .sfiDashboardFooter{font-size:8px}
  .sfiLunarWitness{top:4%;transform:scale(.78);transform-origin:top left}
 }
-@media(prefers-reduced-motion:reduce){.sfiGlobeSphere{animation:none;transition:none}.sfiMonitor,.sfiDashboard{transform:none}}
+@media(prefers-reduced-motion:reduce){.sfiGlobeSphere{animation:none;transition:none}.sfiMonitor{transform:none}}
 
 /* The shared site header remains visible; Observatory itself has no vertical page scroll. */
 body:has(>.obsShell),body:has(.obsShell){overflow-y:hidden!important}
