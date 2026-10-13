@@ -263,7 +263,7 @@ export function ObservatoryConsole(){
               <div className="sfiInfoLine"><span>GEO COVERAGE</span><b>{pct(territorialModel.coverage)}</b></div>
               {selectedTerritory&&<p>SELECTED: {selectedTerritory.label} · {selectedTerritory.observationCount} observations · Fₛ {selectedTerritory.systemicFriction==null?'UNAVAILABLE':selectedTerritory.systemicFriction.toFixed(3)}</p>}
               {territorialModel.territories.slice(0,12).map(t=><button key={t.id} className="sfiMonitorRow" onClick={()=>setSelectedTerritoryId(t.id)} aria-pressed={t.id===selectedTerritoryId}><span>{t.label}</span><span>{t.observationCount} obs</span></button>)}
-              <p>Territorial buckets are derived from persisted geocoded observations. Coverage ≠ completeness; density ≠ importance; tension ≠ causality.</p>
+              <p>TERRITORIAL TENSIONS. Territorial buckets are derived from persisted geocoded observations. Coverage ≠ completeness; density ≠ importance; tension ≠ causality.</p>
             </>}
             {lens==='sources'&&<>
               {selectedNode&&<p>SELECTED: {selectedNode.title} · {selectedNode.publisher} · {selectedNode.provenance?.verificationState||'NOT_RECORDED'} {selectedNode.provenance?.sourceUrl&&<a href={selectedNode.provenance.sourceUrl} target="_blank" rel="noreferrer">SOURCE ↗</a>}</p>}
