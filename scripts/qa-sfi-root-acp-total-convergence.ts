@@ -127,8 +127,7 @@ assert.ok(
   && publicChrome.includes("label:'OBSERVATORY'")
   && publicChrome.includes("label:'ROOT'")
   && publicChrome.includes("label:'ACCESS'")
-  && publicChrome.includes('SFI / GLOBAL TIMELINE')
-  && publicChrome.includes('NOTHING ACTS ALONE. REALITY ANSWERS BACK.'),
+  && publicChrome.includes("href:'/instruments/timeline'"),
   'global_public_chrome_must_expose_canonical_institutional_menu',
 );
 assert.equal(publicChrome.includes("label:'WORLD VECTOR'"),false,'world_vector_must_be_owned_by_observatory_not_public_parallel_surface');
