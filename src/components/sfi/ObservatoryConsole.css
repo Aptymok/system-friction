@@ -75,7 +75,7 @@
   background-size:100% 100%,100% 100%,210% 100%;
   background-position:center,center,0% center;
   box-shadow:inset -28px -16px 42px rgba(2,12,21,.54),inset 12px 12px 20px rgba(238,245,245,.22),0 0 23px rgba(212,232,245,.65),0 0 56px rgba(238,200,146,.22);
-  animation:sfiVisualEarthDrift 220s linear infinite;
+  animation:sfiVisualEarthDrift 220s steps(180,end) infinite;
 }
 @keyframes sfiVisualEarthDrift{
   from{background-position:center,center,0% center}
