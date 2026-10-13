@@ -29,9 +29,6 @@ const ITEMS=[
   {label:'H1, HR, CONTRAST & LEARNING',href:'/root?reading=REALITY_CHAIN'},
 ] as const;
 
-const YEARS=['2023','2024','2025','2026','2027','2028','2029'] as const;
-const TICKS=Array.from({length:37},(_,index)=>index);
-
 export function AuthenticatedSfiMenu(){
   const [open,setOpen]=useState(false);
 
@@ -53,14 +50,5 @@ export function AuthenticatedSfiMenu(){
       </nav>:null}
     </header>
 
-    <footer className="sfiAuthTimeline" aria-label="SFI institutional timeline">
-      <div className="sfiAuthTimelineIdentity"><strong>JR / FIELD HISTORY</strong><span>NOTHING ACTS ALONE. REALITY ANSWERS BACK.</span></div>
-      <div className="sfiAuthTimelineTrack">
-        <div className="sfiAuthTicks" aria-hidden="true">{TICKS.map((tick)=><i key={tick} data-major={tick%6===0?'true':undefined}/>)}</div>
-        <div className="sfiAuthYears">{YEARS.map((year)=><span key={year} data-current={year==='2026'?'true':undefined}>{year}</span>)}</div>
-        <b aria-hidden="true">▶</b>
-      </div>
-      <div className="sfiAuthTimelineMode"><span>MONTH</span><strong>YEAR</strong><span>ALL</span></div>
-    </footer>
   </>;
 }
