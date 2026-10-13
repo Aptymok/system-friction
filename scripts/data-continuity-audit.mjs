@@ -8,13 +8,14 @@ if (!primaryUrl || !standbyUrl) { console.error('Missing primary or continuity d
 const primary = postgres(primaryUrl, { max: 1, connect_timeout: 8, prepare: false });
 const standby = postgres(standbyUrl, { max: 1, connect_timeout: 8, prepare: false });
 const tables = ['sfi_cases','sfi_cognitive_twin_runs','sfi_world_source_observations','sfi_continuity_runs','sfi_governance_proposals','sfi_discovery_runs','sfi_worldspect_snapshots'];
+// Fixed allowlist; any missing table is reported, never inferred as zero.
 async function inventory(sql) {
   const rows = await sql`select table_name from information_schema.tables where table_schema='public' and table_type='BASE TABLE'`;
   return new Set(rows.map(r => r.table_name));
 }
 async function count(sql, table) {
   // table names are from the fixed allowlist above, never from user input.
-  const rows = await sql`select count(*)::bigint as n from ${sql(table)}`;
+  const rows = await sql`select count(*)::bigint as n from ${sql('public', table)}`;
   return Number(rows[0].n);
 }
 const report = { contract: 'SFI-DUAL-PLANE-AUDIT-1.0', observedAt: new Date().toISOString(), mode: 'READ_ONLY', primary: 'SUPABASE', contingency: 'NEON', tables: [], equalCounts: false, errors: [], limitations: ['Count equality does not prove row equivalence','No automatic failover or replay is performed'] };
@@ -27,6 +28,7 @@ try {
   }
   report.equalCounts = report.tables.every(t => t.equalCount);
   report.status = report.equalCounts ? 'COUNTS_EQUAL_NOT_CERTIFIED' : 'DIVERGENCE_OR_MISSING_TABLE';
+  if (!report.equalCounts) process.exitCode = 1;
 } catch (e) { report.status = 'AUDIT_FAILED'; report.errors.push(String(e?.message ?? e).slice(0,300)); process.exitCode = 1; }
 finally {
   mkdirSync('artifacts',{recursive:true});
