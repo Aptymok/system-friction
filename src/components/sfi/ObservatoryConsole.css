@@ -38,7 +38,7 @@
   background:url('/assets/sfi/instruments/OBSERVATORY_PROJECTOR.png') center center/100% 100% no-repeat;
 }
 .sfiGlobeAssembly{
-  position:absolute;left:27%;top:9%;width:min(670px,66dvh);height:min(670px,66dvh);
+  position:absolute;left:30%;top:7%;width:min(610px,58dvh);height:min(610px,58dvh);
   transform:translateX(-50%);z-index:7;
   pointer-events:none;
 }
