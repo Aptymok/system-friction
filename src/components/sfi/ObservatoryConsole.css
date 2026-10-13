@@ -2,7 +2,7 @@
    All media are the existing OBSERVATORY_* assets. No alternative decorative imagery.
    Semantic content from authoritative read-only Observatory readers only. */
 .obsShell{
-  width:100vw;height:100dvh;min-height:0;overflow-x:auto;overflow-y:hidden;
+  width:100vw;height:calc(100dvh - 64px);min-height:0;overflow-x:auto;overflow-y:hidden;
   overscroll-behavior-x:contain;scrollbar-width:thin;
   background:#050809;color:#e2d7c4;font-family:"Noto Sans",Arial,sans-serif;
 }
