@@ -232,12 +232,22 @@ export function ObservatoryConsole(){
       </div>
       <div className="sfiProjector" aria-hidden="true"/>
       <div className="sfiGlobeAssembly">
-        <div className="sfiGlobeCube" aria-hidden="true"><span/><span/><span/></div>
+        <svg className="sfiGlobeGeometry" viewBox="0 0 600 600" aria-hidden="true" focusable="false">
+          <g className="sfiCubeWireframe" fill="none" stroke="currentColor" strokeWidth="0.72" strokeLinejoin="miter">
+            <path d="M98 73 H549 V513 H98 Z M65 110 H516 V550 H65 Z"/>
+            <path d="M98 73 L65 110 M549 73 L516 110 M549 513 L516 550 M98 513 L65 550"/>
+          </g>
+          <g className="sfiOrbitalLines" fill="none" stroke="currentColor" strokeWidth="0.58">
+            <ellipse cx="303" cy="312" rx="266" ry="73" transform="rotate(-19 303 312)"/>
+            <ellipse cx="303" cy="312" rx="250" ry="84" transform="rotate(62 303 312)"/>
+            <ellipse cx="303" cy="312" rx="264" ry="61" transform="rotate(124 303 312)"/>
+          </g>
+        </svg>
         <div className="sfiGlobeSphere" style={{transform:'scale('+earthZoom+')'}} role="img" aria-label="Illustrative holographic Earth skin inside a projection cube, 75 percent opacity" onClick={()=>changeLens('territories')}/>
         <div className="sfiGlobeControl"><button onClick={()=>setEarthZoom(v=>Math.min(1.5,v+.1))} aria-label="Zoom in">+</button><button onClick={()=>setEarthZoom(v=>Math.max(.8,v-.1))} aria-label="Zoom out">−</button></div>
         <span className="sfiGlobeBoundary">MAP SKIN: ILLUSTRATIVE · NOT GEOREFERENCED</span>
       </div>
-      <div className="sfiMonitor" aria-label="OBSERVATORY_MONITOR live selected information">
+      <div className="sfiMonitor" aria-label="SFI Observatory selected data over the existing right-hand scene console">
         <div className="sfiMonitorBody">
           <div className="sfiMonitorHeader"><span>SFI OBSERVATORY · {lens.toUpperCase()}</span><span>{lens.toUpperCase()} · {clock.slice(11,16)||'—'} UTC</span></div>
           <h2>{lens==='field'?'LIVE OBSERVATIONS':lens==='sources'?'SOURCES':lens==='territories'?'GEOGRAPHICAL FRICTION':lens==='hypotheses'?'LATEST HYPOTHESES':lens==='trajectory'?'RECONSTRUCT / RETURN':'WORLD VECTOR'}</h2>
@@ -286,7 +296,8 @@ export function ObservatoryConsole(){
           <button className="sfiMonitorRefresh" onClick={()=>void pull(true)} disabled={refreshing}>{refreshing?'REFRESHING…':'REFRESH RECORDS ↻'}</button>
         </div>
       </div>
-      <div className="sfiDashboard" aria-label="OBSERVATORY_DASHBOARD controls">
+      <div className="sfiDashboard" aria-label="OBSERVATORY_MONITOR lower console and selection controls">
+        <img className="sfiBottomMonitorImage" src="/assets/sfi/instruments/OBSERVATORY_MONITOR.png" alt="" aria-hidden="true" decoding="async"/>
         <nav className="sfiDashboardModes" aria-label="Select Observatory instrument">
           {(['field','sources','territories','hypotheses','trajectory','world-vector'] as Lens[]).map(mode=><button key={mode} type="button" aria-pressed={lens===mode} onClick={()=>changeLens(mode)}>{mode==='field'?'FIELD':mode==='sources'?'SOURCES':mode==='territories'?'FRICTION MAP':mode==='hypotheses'?'HYPOTHESES':mode==='trajectory'?'TRAJECTORY':'WORLD VECTOR'}</button>)}
         </nav>
@@ -296,7 +307,6 @@ export function ObservatoryConsole(){
           <label>SYSTEM <select value={systemFilter} onChange={e=>setSystemFilter(e.target.value)}><option value="ALL">ALL</option>{systems.map(v=><option key={v}>{v}</option>)}</select></label>
           <label>SEARCH <input value={query} onChange={e=>setQuery(e.target.value)} placeholder="source / hypothesis"/></label>
         </div>
-        <p className="sfiDashboardFooter">SFI OBSERVATORY · OBSERVED / DERIVED / HYPOTHESIZED / UNKNOWN</p>
       </div>
     </section>
   </main>;
