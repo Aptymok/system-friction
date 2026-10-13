@@ -27,9 +27,9 @@ export function makeEntryUnit({prNumber,commit,run,cutoff,priorRuns=[]}) {
   const categories={tests:0,docs:0,workflows:0,source:0};
   for (const f of files) {
     const n=String(f.filename??'');
-    if (/(^|\\/)(test|tests|__tests__)(\\/|\\.)|\\.test\\.|\\.spec\\./i.test(n)) categories.tests++;
-    else if (/^docs\\/|\\.md$/i.test(n)) categories.docs++;
-    else if (/^\\.github\\/workflows\\//.test(n)) categories.workflows++;
+    if (n.includes('/test/') || n.includes('/tests/') || n.includes('/__tests__/') || n.includes('.test.') || n.includes('.spec.')) categories.tests++;
+    else if (n.startsWith('docs/') || n.endsWith('.md')) categories.docs++;
+    else if (n.startsWith('.github/workflows/')) categories.workflows++;
     else categories.source++;
   }
   const latest=prior.slice().sort((a,b)=>Date.parse(b.updated_at)-Date.parse(a.updated_at))[0];
