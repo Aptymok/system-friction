@@ -1,0 +1,40 @@
+name: MIHM EXP-001 G2b CI-entry Chronology
+on:
+  pull_request:
+    paths:
+      - 'scripts/research/mihm-exp001-timezero.mjs'
+      - 'scripts/research/mihm-exp001-timezero.test.mjs'
+      - '.github/workflows/mihm-exp001-g2b.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  pull-requests: read
+  actions: read
+jobs:
+  chronology:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Test pre-CI chronological admissibility
+        run: node --test scripts/research/mihm-exp001-timezero.test.mjs
+      - name: Collect real GitHub CI-entry evidence
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MIHM_G2B_PR_LIMIT: '5'
+          MIHM_G2B_COMMIT_LIMIT: '10'
+          MIHM_CUTOFF: '2026-10-11T23:59:59Z'
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/mihm-exp001
+          node scripts/research/mihm-exp001-timezero.mjs > artifacts/mihm-exp001/g2b-ci-entry.json
+          node -e "const a=require('./artifacts/mihm-exp001/g2b-ci-entry.json'); console.log(JSON.stringify({contract:a.contract,counts:a.counts,warnings:a.warnings,validation:a.validation},null,2))"
+      - name: Upload research audit artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mihm-exp001-g2b-ci-entry
+          path: artifacts/mihm-exp001/g2b-ci-entry.json
+          retention-days: 14
