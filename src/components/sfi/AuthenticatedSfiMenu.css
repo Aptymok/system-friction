@@ -47,35 +47,6 @@
 .sfiDiamondMenu a:last-child{border-bottom:0}
 .sfiDiamondMenu a:hover{color:#c8a951;background:rgba(214,170,87,.055)}
 
-.sfiAuthTimeline{
-  position:fixed;
-  left:0;right:0;bottom:0;
-  z-index:1190;
-  min-height:84px;
-  display:grid;
-  grid-template-columns:minmax(230px,.8fr) minmax(0,3fr) minmax(150px,.5fr);
-  align-items:center;
-  gap:22px;
-  padding:10px 3.2vw 9px;
-  border-top:1px solid rgba(232,221,195,.18);
-  background:linear-gradient(0deg,rgba(6,6,5,.96),rgba(6,6,5,.72) 76%,rgba(6,6,5,.26));
-  pointer-events:auto
-}
-.sfiAuthTimelineIdentity{display:flex;flex-direction:column;gap:6px}
-.sfiAuthTimelineIdentity strong{font:650 9px/1 ui-monospace,monospace;letter-spacing:.12em;color:#d8c9a3}
-.sfiAuthTimelineIdentity span{font:650 8px/1.3 ui-monospace,monospace;letter-spacing:.08em;color:#69645c}
-.sfiAuthTimelineTrack{position:relative;height:46px}
-.sfiAuthTimelineTrack:before{content:"";position:absolute;left:0;right:0;top:17px;height:1px;background:linear-gradient(90deg,rgba(232,221,195,.18),rgba(200,169,81,.78),rgba(232,221,195,.2))}
-.sfiAuthTicks{position:absolute;left:0;right:0;top:10px;display:grid;grid-template-columns:repeat(37,1fr)}
-.sfiAuthTicks i{justify-self:center;width:1px;height:7px;background:rgba(232,221,195,.32)}
-.sfiAuthTicks i[data-major="true"]{height:15px;background:#c8a951;box-shadow:0 0 8px rgba(200,169,81,.28)}
-.sfiAuthYears{position:absolute;left:0;right:0;bottom:0;display:grid;grid-template-columns:repeat(7,1fr);text-align:center}
-.sfiAuthYears span{font:650 8px/1 ui-monospace,monospace;color:#706a62}
-.sfiAuthYears span[data-current="true"]{color:#e2cb92}
-.sfiAuthTimelineTrack>b{position:absolute;left:50%;top:6px;transform:translateX(-50%);width:24px;height:24px;display:grid;place-items:center;border:1px solid #c8a951;border-radius:50%;background:#090908;color:#e5cc8d;font:650 8px/1 ui-monospace,monospace}
-.sfiAuthTimelineMode{display:flex;justify-content:flex-end;gap:12px;font:650 8px/1 ui-monospace,monospace;color:#6e685f}
-.sfiAuthTimelineMode strong{color:#e0c788;font-weight:650}
-
 .sfiAuthenticatedViewport{height:100dvh;min-height:0;overflow:hidden}
 .sfiAuthenticatedViewportContent{height:100%;min-height:0;overflow:hidden}
 
@@ -83,13 +54,9 @@
   .sfiAuthCanonicalNav{grid-template-columns:150px minmax(0,1fr) 36px;padding:0 18px}
   .sfiAuthBrand img,.sfiAuthBrand span,.sfiAuthBrand i{display:none}
   .sfiAuthSurfaceNav{justify-content:flex-start;gap:18px}
-  .sfiAuthTimeline{grid-template-columns:160px 1fr 110px;padding-left:18px;padding-right:18px}
-  .sfiAuthTimelineIdentity span{display:none}
 }
 @media(max-width:820px){
   .sfiAuthCanonicalNav{grid-template-columns:auto 1fr 34px;padding:0 12px}
   .sfiAuthSurfaceNav{gap:16px}
   .sfiAuthSurfaceNav a{font-size:8px}
-  .sfiAuthTimeline{grid-template-columns:1fr;min-height:72px;padding:8px 12px}
-  .sfiAuthTimelineIdentity,.sfiAuthTimelineMode{display:none}
 }
