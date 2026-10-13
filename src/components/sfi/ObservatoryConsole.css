@@ -148,3 +148,6 @@
  .sfiLunarWitness{top:4%;transform:scale(.78);transform-origin:top left}
 }
 @media(prefers-reduced-motion:reduce){.sfiGlobeSphere{animation:none;transition:none}.sfiMonitor,.sfiDashboard{transform:none}}
+
+/* The shared site header remains visible; Observatory itself has no vertical page scroll. */
+body:has(>.obsShell),body:has(.obsShell){overflow-y:hidden!important}
