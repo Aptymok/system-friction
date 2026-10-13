@@ -224,7 +224,7 @@ export function ObservatoryConsole(){
   const moonName=moonFraction<.04||moonFraction>.96?'NEW MOON':moonFraction<.21?'WAXING CRESCENT':moonFraction<.29?'FIRST QUARTER':moonFraction<.46?'WAXING GIBBOUS':moonFraction<.54?'FULL MOON':moonFraction<.71?'WANING GIBBOUS':moonFraction<.79?'LAST QUARTER':'WANING CRESCENT';
   const changeLens=(value:Lens)=>{setLens(value);setSatelliteOpen(true)};
   return <main className="obsShell" data-canonical-visual="SFI-INSTRUMENT-OBSERVATORY-1.0" data-world-availability={availability.world}>
-    <section className="obsScene lens-{lens}">
+    <section className={'obsScene lens-'+lens}>
       <Link href="/" className="sfiObservatoryBrand"><strong>S F I</strong><span>OBSERVATORY</span><small>NOTHING ACTS ALONE. REALITY ANSWERS BACK.</small></Link>
       <div className="sfiLunarWitness" aria-label={'Approximate lunar phase '+moonName}>
         <div className="sfiMoonSprite" style={{backgroundPosition:String((moonFrame%4)*100/3)+'% '+String(Math.floor(moonFrame/4)*100)+'%'}}/>
@@ -239,8 +239,8 @@ export function ObservatoryConsole(){
       </div>
       <div className="sfiMonitor" aria-label="OBSERVATORY_MONITOR live selected information">
         <div className="sfiMonitorBody">
-          <div className="sfiMonitorHeader"><span>SFI / OBSERVATORY</span><span>{lens.toUpperCase()} · {clock.slice(11,16)||'—'} UTC</span></div>
-          <h2>{lens==='field'?'LIVE OBSERVATIONS':lens==='sources'?'SOURCES':lens==='territories'?'GEOGRAPHICAL FRICTION':lens==='hypotheses'?'HYPOTHESES':lens==='trajectory'?'RECONSTRUCT / RETURN':'WORLD VECTOR'}</h2>
+          <div className="sfiMonitorHeader"><span>SFI OBSERVATORY · {lens.toUpperCase()}</span><span>{lens.toUpperCase()} · {clock.slice(11,16)||'—'} UTC</span></div>
+          <h2>{lens==='field'?'LIVE OBSERVATIONS':lens==='sources'?'SOURCES':lens==='territories'?'GEOGRAPHICAL FRICTION':lens==='hypotheses'?'LATEST HYPOTHESES':lens==='trajectory'?'RECONSTRUCT / RETURN':'WORLD VECTOR'}</h2>
           <p className="sfiSourceStatus" data-availability={availability.world}>WORLD {availability.world} · STATE {availability.state} · HISTORY {availability.timeline}</p>
           <div className="sfiMonitorReading">
             {lens==='field'&&<>
@@ -263,7 +263,7 @@ export function ObservatoryConsole(){
               <div className="sfiInfoLine"><span>GEO COVERAGE</span><b>{pct(territorialModel.coverage)}</b></div>
               {selectedTerritory&&<p>SELECTED: {selectedTerritory.label} · {selectedTerritory.observationCount} observations · Fₛ {selectedTerritory.systemicFriction==null?'UNAVAILABLE':selectedTerritory.systemicFriction.toFixed(3)}</p>}
               {territorialModel.territories.slice(0,12).map(t=><button key={t.id} className="sfiMonitorRow" onClick={()=>setSelectedTerritoryId(t.id)} aria-pressed={t.id===selectedTerritoryId}><span>{t.label}</span><span>{t.observationCount} obs</span></button>)}
-              <p>DERIVED REGIONS · NO CAUSALITY CLAIM</p>
+              <p>TERRITORIAL TENSIONS · DERIVED REGIONS · NO CAUSALITY CLAIM</p>
             </>}
             {lens==='sources'&&<>
               {selectedNode&&<p>SELECTED: {selectedNode.title} · {selectedNode.publisher} · {selectedNode.provenance?.verificationState||'NOT_RECORDED'} {selectedNode.provenance?.sourceUrl&&<a href={selectedNode.provenance.sourceUrl} target="_blank" rel="noreferrer">SOURCE ↗</a>}</p>}
@@ -280,7 +280,7 @@ export function ObservatoryConsole(){
               <label className="sfiTimeControl">T1 <input type="range" min={0} max={100} value={time} onChange={e=>setTime(Math.max(Number(e.target.value),baselineTime))}/><span>{frame?.observedAt?.slice(0,10)||'NO FRAME'}</span></label>
               <div className="sfiInfoLine"><span>WSI · T0 / T1</span><b>{baselineFrame?.wsi?.toFixed(3)||'—'} / {frame?.wsi?.toFixed(3)||'—'}</b></div>
               <div className="sfiInfoLine"><span>NTI · T0 / T1</span><b>{baselineFrame?.nti?.toFixed(3)||'—'} / {frame?.nti?.toFixed(3)||'—'}</b></div>
-              <p>NO BACKDATING · PROJECTION ≠ OBSERVED OUTCOME</p>
+              <p>T0/T1 compares persisted WorldSpect snapshots only. The current source/hypothesis graph is not backdated or rewritten by this control.</p>
             </>}
           </div>
           <button className="sfiMonitorRefresh" onClick={()=>void pull(true)} disabled={refreshing}>{refreshing?'REFRESHING…':'REFRESH RECORDS ↻'}</button>
