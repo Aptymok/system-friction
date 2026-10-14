@@ -63,6 +63,7 @@ async function run() {
     await sql.unsafe(migration.slice(0, migration.indexOf('-- No execute rights')));
     const signature = await sql`select pg_get_function_identity_arguments(oid) as args from pg_proc where proname = 'sfi_append_epistemic_event_v2'`;
     console.log('MEM002_RPC_SIGNATURE:', signature[0]?.args);
+    console.log('MEM002_GRANTS_SQL:', migration.slice(migration.indexOf('-- No execute rights')));
     await sql.unsafe(migration.slice(migration.indexOf('-- No execute rights')));
     console.log('MEM002_STAGE: migration applied');
     const legacy = 'legacy-' + randomUUID();
