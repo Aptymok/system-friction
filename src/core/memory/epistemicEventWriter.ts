@@ -59,7 +59,7 @@ export async function emitEpistemicEvent(
       occurredAt: input.occurredAt,
     });
     if (!result.ok) return { ok: false, error: result.error };
-    if (!result.data) return { ok: false, error: 'epistemic_event_insert_missing_receipt' };
+    if (!result.data || !('id' in result.data)) return { ok: false, error: 'epistemic_event_insert_missing_receipt' };
     return { ok: true, event: result.data as EpistemicEventRow };
   } catch {
     return { ok: false, error: 'epistemic_event_append_exception' };
