@@ -67,9 +67,9 @@ export async function collect({fetchJson,start=DEFAULT_START,cutoff=DEFAULT_CUTO
   targetPRs=bounded(targetPRs,24,40);maxPages=bounded(maxPages,8,12);
   maxCommitsPerPR=bounded(maxCommitsPerPR,3,8);
   let requestCount=0,pagesScanned=0,reachedWindowEnd=false;
-  const warnings=[],errors=[],prs=[],records=[];
+  const warnings=[],errors=[],candidates=[],records=[];
   const api=async path=>{requestCount++;return fetchJson(path);};
-  for(let page=1;page<=maxPages && prs.length<targetPRs;page++) {
+  for(let page=1;page<=maxPages;page++) {
     const list=await api('/pulls?state=all&sort=created&direction=desc&per_page=100&page='+page);
     pagesScanned++;
     if(!Array.isArray(list))throw Error('PR_LIST_INVALID');
@@ -77,12 +77,15 @@ export async function collect({fetchJson,start=DEFAULT_START,cutoff=DEFAULT_CUTO
     for(const pr of list) {
       if(!pr.number || !atOrBefore(pr.created_at,cutoff))continue;
       if(before(pr.created_at,start)){reachedWindowEnd=true;break;}
-      prs.push(pr);
-      if(prs.length>=targetPRs)break;
+      candidates.push(pr);
     }
     if(reachedWindowEnd || list.length<100){reachedWindowEnd=true;break;}
   }
-  if(!reachedWindowEnd && prs.length<targetPRs)warnings.push('PR_COHORT_PAGINATION_BOUND_REACHED');
+  if(!reachedWindowEnd)warnings.push('PR_COHORT_WINDOW_NOT_FULLY_SCANNED');
+  // Uniform indices across all window-eligible PRs; never select by CI outcome or current PR state.
+  const prs=candidates.length<=targetPRs?candidates:
+    Array.from({length:targetPRs},(_,i)=>candidates[
+      Math.floor(i*(candidates.length-1)/Math.max(1,targetPRs-1))]);
   for(const pr of prs) {
     let commits;
     try{commits=await api('/pulls/'+pr.number+'/commits?per_page=100&page=1');}
@@ -127,8 +130,8 @@ export async function collect({fetchJson,start=DEFAULT_START,cutoff=DEFAULT_CUTO
     contract:'SFI-MIHM-EXP001-G2C-INDEPENDENCE-AUDIT-1.0',epistemicClass:'DERIVED',
     validation:'NOT_PERFORMED',frozenProtocol:false,generatedAt:new Date().toISOString(),
     source:'GitHub PR/commit/Actions event metadata only',
-    cohort:{start,cutoff,targetPRs,maxPages,maxCommitsPerPR,selectedPRs:prs.length,
-      selection:'PR creation date, all current PR states; first K commits per PR; earliest CI per SHA/workflow'},
+    cohort:{start,cutoff,targetPRs,maxPages,maxCommitsPerPR,windowCandidatePRs:candidates.length,selectedPRs:prs.length,
+      selection:'Uniformly spaced PR creation dates across eligible study window, outcome-blind; first K commits per PR; earliest CI per SHA/workflow'},
     counts:{ciEntries:records.length,eligibleDescriptiveEntries:deduped.length,distinctPRs,distinctCommits,
       observedBinaryOutcomes:binary.length,ciOutcomeCategories:outcomes,heldoutScientificValidations:0},
     risk:{scientificGate:'G2C_DESCRIPTIVE_ONLY',empiricalMIHMImprovement:'NOT_OBSERVED',shortfalls},
