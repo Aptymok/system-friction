@@ -69,9 +69,9 @@ function HolographicEarth({zoom,onInspect}:{zoom:number;onInspect:(lat:number,ln
       'vec3 v=vec3(t.x*cy+t.z*sy,t.y,-t.x*sy+t.z*cy);',
       'vec2 uv=vec2(fract(.5+atan(v.x,v.z)/(2.0*PI)),clamp(.5-asin(clamp(v.y,-1.,1.))/PI,.001,.999));',
       'vec3 color=texture2D(skin,uv).rgb;',
-      'float light=.64+.30*max(0.,dot(n,normalize(vec3(-.36,.45,.84))));',
+      'float light=.84+.31*max(0.,dot(n,normalize(vec3(-.36,.45,.84))));',
       'float rim=pow(1.0-n.z,3.0);',
-      'color=color*light+vec3(.58,.73,.79)*rim*.63;',
+      'color=color*light+vec3(.67,.81,.88)*rim*.90;',
       'gl_FragColor=vec4(color,1.0-smoothstep(.95,.99,r2));',
       '}'
     ].join('\n'));
