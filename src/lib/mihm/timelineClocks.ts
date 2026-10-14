@@ -47,7 +47,7 @@ export type TimelineClockProfile = {
 };
 
 function strictInstant(value:unknown):string|null {
-  if(typeof value!=='string'||!/^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d(?:\\.\\d+)?(?:Z|[+-]\\d\\d:\\d\\d)$/.test(value))return null;
+  if(typeof value!=='string'||!/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?(?:Z|[+-]\d\d:\d\d)$/.test(value))return null;
   const ms=Date.parse(value);
   return Number.isFinite(ms)?new Date(ms).toISOString():null;
 }
