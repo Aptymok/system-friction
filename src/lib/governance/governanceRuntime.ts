@@ -113,7 +113,7 @@ export async function recordBlindModePolicyBlock(actorId: string | null, action:
   const eventError = inserted.ok ? null : inserted.error;
   const hashSelf = event?.hash_self ?? null;
 
-  if (!eventError && event?.id) {
+  if (!eventError && event?.id && typeof hashSelf === 'string') {
     await service.from('policy_decisions').insert({
       event_id: event.id,
       allow_llm: false,
@@ -174,7 +174,7 @@ export async function recordAcpSeen(actorId: string | null, actorEmail: string |
     return { ok: false as const, error: 'governance_event_insert_failed', details: eventError };
   }
 
-  if (!event) return { ok: false as const, error: 'governance_event_missing_receipt' };
+  if (!event || typeof hashSelf !== 'string') return { ok: false as const, error: 'governance_event_missing_receipt' };
 
   const nextState = stateFromEvent({
     id: event.id,
