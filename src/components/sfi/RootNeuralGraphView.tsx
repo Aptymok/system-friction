@@ -842,10 +842,7 @@ export function RootNeuralGraphView({
         </aside>
 
         <section className="rootFieldStage rootHorizontalGraph" aria-label="Canonical Neural Graph">
-          <div className="rootReferenceModes" aria-label="Field perspective">
-            {([['FIELD','CURRENT_STATE'],['TRAJECTORIES','TRAJECTORY'],['HIERARCHY','HIERARCHY'],['CONTRAST','RETURN_CONTRAST']] as const).map(([label,mode])=><button type="button" key={mode} aria-pressed={reading===mode} onClick={()=>setReading(mode)}>{label}</button>)}
-          </div>
-          <details className="rootSemanticLegend" open>
+          <details className="rootSemanticLegend">
             <summary>FIELD LEGEND · {reading.replaceAll('_',' ')}</summary>
             <p className="rootSemanticLegendReading">{readingMeaning(reading)}</p>
             <p><strong>COLOR ENCODING · {colorEncoding}</strong> · Reversible presentation only. It does not alter epistemic state, authority, persistence or graph relations.</p>
@@ -858,7 +855,9 @@ export function RootNeuralGraphView({
             <p><strong>SELECTION</strong> · Every visible node is selectable. Hover enlarges its glyph; selection adds a persistent halo and brightens connected relations.</p>
             <p><strong>LINES</strong> · Thin line = admitted graph relation. Brighter = touches selected object. Thickness uses represented edge weight; geometric distance is not confidence.</p>
           </details>
-          <div className="rootFieldInstitutionIdentity" aria-hidden="true"><span>SYSTEM</span><span>FRICTION</span><span>INSTITUTE</span></div>
+          <div className="rootReferenceModes" aria-label="Field perspective">
+            {([['FIELD','CURRENT_STATE'],['TRAJECTORIES','TRAJECTORY'],['HIERARCHY','HIERARCHY'],['CONTRAST','RETURN_CONTRAST']] as const).map(([label,mode])=><button type="button" key={mode} aria-pressed={reading===mode} onClick={()=>setReading(mode)}>{label}</button>)}
+          </div>
           <RootCognitiveFieldPixi nodes={fieldNodes} edges={fieldEdges} width={topology.width} height={topology.height} onSelect={id=>setSelectedId(id)} />
           <div className="rootFieldLiveDeck" aria-label="Live ROOT field summaries">
             <section>
