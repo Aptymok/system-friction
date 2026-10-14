@@ -171,7 +171,7 @@ export async function recordAcpSeen(actorId: string | null, actorEmail: string |
   const hashSelf = event?.hash_self ?? null;
 
   if (eventError) {
-    return { ok: false as const, error: 'governance_event_insert_failed', details: eventError.message };
+    return { ok: false as const, error: 'governance_event_insert_failed', details: eventError };
   }
 
   if (!event) return { ok: false as const, error: 'governance_event_missing_receipt' };
