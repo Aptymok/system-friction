@@ -41,7 +41,7 @@ function short(value:unknown,max=160){const t=txt(value);return t.length>max?`${
 /* Bounded 3D sphere for the existing Observatory stage. The texture is illustrative,
    not a verified geospatial reference; evidence, node coordinates and decisions stay
    in their existing read-only institutional services. No fabricated globe markers. */
-function HolographicEarth({zoom,onInspect}:{zoom:number;onInspect:()=>void}){
+function HolographicEarth({zoom,onInspect}:{zoom:number;onInspect:(lat:number,lng:number)=>void}){
   const canvasRef=useRef<HTMLCanvasElement|null>(null);
   const orientation=useRef({yaw:-1.45,pitch:.06,drag:false,wasDrag:false,x:0,y:0});
   const [failed,setFailed]=useState(false),[paused,setPaused]=useState(false);
@@ -123,7 +123,19 @@ function HolographicEarth({zoom,onInspect}:{zoom:number;onInspect:()=>void}){
       <canvas ref={canvasRef} className="sfiLiveGlobeCanvas" style={{transform:'scale('+zoom+')'}} aria-label="Rotating globe. Drag to change view, use zoom controls and click to inspect territorial records."
         onPointerDown={e=>{const p=orientation.current;p.drag=true;p.wasDrag=false;p.x=e.clientX;p.y=e.clientY;e.currentTarget.setPointerCapture(e.pointerId);}}
         onPointerMove={e=>{const p=orientation.current;if(!p.drag)return;const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;if(Math.abs(dx)+Math.abs(dy)>1)p.wasDrag=true;p.yaw-=dx*.007;p.pitch=Math.max(-.85,Math.min(.85,p.pitch+dy*.005));}}
-        onPointerUp={()=>{const p=orientation.current;p.drag=false;if(!p.wasDrag)onInspect();}}
+        onPointerUp={e=>{const p=orientation.current;p.drag=false;if(!p.wasDrag){
+          const b=e.currentTarget.getBoundingClientRect();
+          const x=2*(e.clientX-b.left)/b.width-1,y=1-2*(e.clientY-b.top)/b.height;
+          if(x*x+y*y<.98){
+            const z=Math.sqrt(1-x*x-y*y),cp=Math.cos(p.pitch),sp=Math.sin(p.pitch);
+            const latComponent=y*cp+z*sp,depth=-y*sp+z*cp;
+            const lngComponent=x*Math.cos(p.yaw)+depth*Math.sin(p.yaw);
+            const forward=-x*Math.sin(p.yaw)+depth*Math.cos(p.yaw);
+            const lat=Math.asin(Math.max(-1,Math.min(1,latComponent)))*180/Math.PI;
+            const lng=((Math.atan2(lngComponent,forward)*180/Math.PI+540)%360)-180;
+            onInspect(lat,lng);
+          }
+        }}}
         onPointerCancel={()=>{orientation.current.drag=false;}}
       />}
     <button type="button" className="sfiGlobePause" aria-label={paused?'Resume Earth rotation':'Pause Earth rotation'} onClick={()=>{pausedRef.current=!pausedRef.current;setPaused(pausedRef.current);}}>{paused?'▶':'Ⅱ'}</button>
@@ -336,7 +348,16 @@ export function ObservatoryConsole(){
             <ellipse cx="303" cy="312" rx="264" ry="61" transform="rotate(124 303 312)"/>
           </g>
         </svg>
-        <HolographicEarth zoom={earthZoom} onInspect={()=>changeLens('territories')}/>
+        <HolographicEarth zoom={earthZoom} onInspect={(lat,lng)=>{
+          changeLens('territories');
+          const best=territorialModel.territories
+            .map(territory=>({territory,distance:Math.acos(Math.max(-1,Math.min(1,
+              Math.sin(lat*Math.PI/180)*Math.sin(territory.anchor.lat*Math.PI/180)+
+              Math.cos(lat*Math.PI/180)*Math.cos(territory.anchor.lat*Math.PI/180)*Math.cos((lng-territory.anchor.lng)*Math.PI/180)
+            )))}))
+            .sort((a,b)=>a.distance-b.distance)[0];
+          setSelectedTerritoryId(best&&best.distance<.35?best.territory.id:null);
+        }}/>
         <div className="sfiGlobeControl"><button onClick={()=>setEarthZoom(v=>Math.min(1.5,v+.1))} aria-label="Zoom in">+</button><button onClick={()=>setEarthZoom(v=>Math.max(.8,v-.1))} aria-label="Zoom out">−</button></div>
         <span className="sfiGlobeBoundary">MAP SKIN: ILLUSTRATIVE · NOT GEOREFERENCED</span>
       </div>
