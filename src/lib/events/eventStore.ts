@@ -118,7 +118,10 @@ export async function appendEpistemicEvent(
   input: Partial<SFIEvent> & { logbookId?: string; schemaVersion?: string; returnMode?: 'full'|'receipt'; actorId?: string | null; nodeId?: string | null }
 ) {
   const service = createServiceSupabaseClient();
-  const event = normalizeEvent(input);
+  let event: ReturnType<typeof normalizeEvent>;
+  try { event = normalizeEvent(input); } catch (error) {
+    return { ok: false as const, error: 'invalid_epistemic_event', details: String(error) };
+  }
 
   if (!validateEpistemicEventShape(event)) {
     return {
