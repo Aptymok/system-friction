@@ -86,3 +86,30 @@ test('old PR outside observation window excluded',async()=>{
   const a=await collect({fetchJson:async x=>data[x],targetPRs:5,maxPages:1,maxCommitsPerPR:2,cutoff});
   assert.equal(a.cohort.selectedPRs,2);
 });
+test('uniform date coverage includes middle and old PR rather than only most recent',async()=>{
+  const cutoff='2026-10-11T23:59:59Z';
+  const prs=[300,299,298,297,296].map((number,i)=>({
+    number,created_at:'2026-10-0'+(9-i)+'T08:00:00Z'}));
+  const replies={
+    '/pulls?state=all&sort=created&direction=desc&per_page=100&page=1':prs
+  };
+  for(const number of [300,298,296]) {
+    const sha='SHA'+number,created=prs.find(x=>x.number===number).created_at;
+    replies['/pulls/'+number+'/commits?per_page=100&page=1']=[{sha}];
+    replies['/commits/'+sha]={
+      sha,commit:{committer:{date:created}},files:[{filename:'src/x.ts',additions:1,deletions:0}],parents:[{}]
+    };
+    replies['/actions/runs?head_sha='+sha+'&per_page=100']={
+      workflow_runs:[{id:number,workflow_id:20,name:'CI',event:'pull_request',head_sha:sha,
+        created_at:'2026-10-10T12:00:00Z',updated_at:'2026-10-10T12:05:00Z',
+        status:'completed',conclusion:'success'}],total_count:1
+    };
+  }
+  const a=await collect({fetchJson:async path=>{
+    assert.ok(path in replies,'Unexpected API path: '+path);return replies[path];
+  },targetPRs:3,maxPages:1,maxCommitsPerPR:1,cutoff});
+  assert.equal(a.cohort.windowCandidatePRs,5);
+  assert.equal(a.cohort.selectedPRs,3);
+  assert.deepEqual(a.records.map(x=>x.group.prNumber),[300,298,296]);
+  assert.equal(a.counts.distinctPRs,3);
+});
