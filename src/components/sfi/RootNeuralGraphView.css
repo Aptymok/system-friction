@@ -1115,3 +1115,43 @@
  .rootReferenceCockpit .rootHorizontalGraph .rootReferenceModes{left:243px!important}
  .rootReferenceCockpit .rootHorizontalGraph .rootReferenceModes button{font-size:10px!important}
 }
+
+/* One 2880px horizontal ROOT cockpit. Geometry, root authority, selected graph
+   relations and Reality Passport readers stay within their original components. */
+html:has(.rootReferenceCockpit),body:has(.rootReferenceCockpit){overflow-y:hidden!important}
+.rootReferenceCockpit.rootFieldMode{
+ width:100vw!important;min-width:0!important;
+ height:100dvh!important;min-height:0!important;max-height:100dvh!important;
+ overflow-x:auto!important;overflow-y:hidden!important;
+ overscroll-behavior-x:contain;scroll-behavior:smooth;
+ scrollbar-width:thin;scrollbar-color:#c8a951 rgba(4,9,13,.75);
+}
+.rootReferenceCockpit .rootHorizontalRail{
+ position:relative!important;inset:auto!important;
+ display:grid!important;
+ grid-template-columns:260px 1480px 1140px!important;
+ grid-template-rows:100%!important;gap:0!important;
+ width:2880px!important;min-width:2880px!important;
+ height:100%!important;min-height:0!important;
+ overflow:visible!important;scroll-snap-type:none!important;
+ background:transparent!important;
+}
+.rootReferenceCockpit .rootHorizontalGraph,
+.rootReferenceCockpit[data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0"] .rootGovernanceConsole{
+ position:relative!important;inset:auto!important;
+ width:100%!important;max-width:none!important;height:100%!important;
+ min-height:0!important;scroll-snap-align:none!important;
+}
+.rootReferenceCockpit .rootReferenceSidebar{min-height:0;overflow-y:auto}
+.rootReferenceCockpit .rootHorizontalGraph .rootCognitivePixi{
+ inset:52px 0 164px!important;width:auto!important;height:auto!important;
+}
+.rootReferenceCockpit .rootFieldTimelineFooter{display:none!important}
+.rootReferenceCockpit .rootGovernanceConsole{overflow-y:auto!important}
+.rootReferenceCockpit .rootReferenceModes button{flex:0 0 auto}
+@media(max-width:900px){
+ .rootReferenceCockpit .rootHorizontalRail{grid-template-columns:260px 1480px 1140px!important}
+ .rootReferenceCockpit .rootGovernanceConsole{width:100%!important}
+ .rootReferenceCockpit .rootReferenceModes button{font-size:11px!important}
+}
+@media(prefers-reduced-motion:reduce){.rootReferenceCockpit.rootFieldMode{scroll-behavior:auto}}
