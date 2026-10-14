@@ -121,11 +121,27 @@ export async function collect({fetchJson,start=DEFAULT_START,cutoff=DEFAULT_CUTO
   const binary=deduped.filter(x=>x.outcomeAsOfCutoff.binaryLabel!==null);
   const outcomes={};
   for(const x of deduped)outcomes[x.outcomeAsOfCutoff.category]=(outcomes[x.outcomeAsOfCutoff.category]??0)+1;
+  const selectedPrCoverage=prs.map(pr=>{
+    const n=records.filter(row=>row.group.prNumber===pr.number).length;
+    const sourceError=errors.some(e=>e.prNumber===pr.number);
+    return {prNumber:pr.number,prCreatedAt:pr.created_at??null,ciEntries:n,
+      sourceObservation:sourceError?'SOURCE_FETCH_ERROR':n?'QUALIFYING_CI_OBSERVED':'NO_QUALIFYING_CI_OBSERVED'};
+  });
+  const byWorkflow=[...new Set(deduped.map(x=>x.source.workflowName))].sort().map(name=>{
+    const rows=deduped.filter(x=>x.source.workflowName===name);
+    return {name,ciEntries:rows.length,distinctPRs:new Set(rows.map(x=>x.group.prNumber)).size,
+      distinctFailurePRs:new Set(rows.filter(x=>x.outcomeAsOfCutoff.binaryLabel===1)
+        .map(x=>x.group.prNumber)).size,
+      success:rows.filter(x=>x.outcomeAsOfCutoff.category==='SUCCESS').length,
+      failure:rows.filter(x=>x.outcomeAsOfCutoff.category==='FAILURE').length};
+  });
   const shortfalls=[];
   if(distinctPRs<10)shortfalls.push('FEWER_THAN_10_DISTINCT_PR_GROUPS');
   if(!binary.some(x=>x.outcomeAsOfCutoff.binaryLabel===1))shortfalls.push('NO_OBSERVED_FAILURE');
   if(!binary.some(x=>x.outcomeAsOfCutoff.binaryLabel===0))shortfalls.push('NO_OBSERVED_SUCCESS');
   if(errors.length)shortfalls.push('SOURCE_FETCH_ERRORS');
+  if(byWorkflow.length>1)shortfalls.push('MIXED_WORKFLOWS_REQUIRE_ONE_PRECOMMITTED_TARGET');
+  shortfalls.push('TYPED_PRE_T0_MIHM_RELATIONS_NOT_COLLECTED');
   return {
     contract:'SFI-MIHM-EXP001-G2C-INDEPENDENCE-AUDIT-1.0',epistemicClass:'DERIVED',
     validation:'NOT_PERFORMED',frozenProtocol:false,generatedAt:new Date().toISOString(),
@@ -133,15 +149,19 @@ export async function collect({fetchJson,start=DEFAULT_START,cutoff=DEFAULT_CUTO
     cohort:{start,cutoff,targetPRs,maxPages,maxCommitsPerPR,windowCandidatePRs:candidates.length,selectedPRs:prs.length,
       selection:'Uniformly spaced PR creation dates across eligible study window, outcome-blind; first K commits per PR; earliest CI per SHA/workflow'},
     counts:{ciEntries:records.length,eligibleDescriptiveEntries:deduped.length,distinctPRs,distinctCommits,
-      observedBinaryOutcomes:binary.length,ciOutcomeCategories:outcomes,heldoutScientificValidations:0},
+      observedBinaryOutcomes:binary.length,ciOutcomeCategories:outcomes,heldoutScientificValidations:0,
+      selectedPRsWithQualifyingCI:selectedPrCoverage.filter(x=>x.ciEntries>0).length,
+      selectedPRsWithoutQualifyingCI:selectedPrCoverage.filter(x=>x.ciEntries===0).length},
     risk:{scientificGate:'G2C_DESCRIPTIVE_ONLY',empiricalMIHMImprovement:'NOT_OBSERVED',shortfalls},
     apiRequestCount:requestCount,pagesScanned,selectionScannedToWindowEnd:reachedWindowEnd,
+    selectedPrCoverage,byWorkflow,
     limitations:[
       'PR commit lists and currently returned metadata may reflect later changes.',
       'GitHub timestamps do not verify actor knowledge or push-time provenance.',
       'CI updated_at is a conservative upper bound, not an exact completion receipt.',
       'PR groups, commits and CI workflows are clustered, not independent observations.',
       'First K historical commits per PR create a bounded and potentially biased sample.',
+      'Missing PR-level CI is unknown eligibility, not evidence of successful CI.',
       'No model fit, matched comparator, frozen protocol, blind holdout or RETURN.',
       'No raw logs, source code or secret-bearing metadata are harvested.'
     ],warnings,errors,records
