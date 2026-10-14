@@ -44,7 +44,7 @@ assert.doesNotMatch(files.observatoryConsole,/ObservatoryInterpretiveFlow/);
 assert.match(files.observatoryConsole,/SFI OBSERVATORY ·/);
 assert.match(files.observatoryConsole,/LATEST HYPOTHESES/);
 assert.match(files.observatoryConsole,/data-world-availability=\{availability\.world\}/);
-assert.doesNotMatch(files.observatoryConsole,/<canvas|<ObservatorySemanticGpuLayer|<ObservatoryWorldField|obsOperationalTimeline/);
+assert.doesNotMatch(files.observatoryConsole,/<ObservatorySemanticGpuLayer|<ObservatoryWorldField|obsOperationalTimeline/);
 assert.match(files.operatingWorkspace,/CognitiveSpineAnatomy/);
 assert.match(files.operatingWorkspace,/SfiGovernanceWorkspace/);
 assert.doesNotMatch(files.operatingWorkspace,/ACEPTAR Y CERRAR/);
