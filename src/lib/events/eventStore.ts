@@ -216,7 +216,7 @@ export async function streamEpistemicEvents(
 
   if (error) {
     return {
-      ok: true as const,
+      ok: false as const,
       data: [],
       warnings: ['epistemic_event_stream_not_ready'],
       details: error.message,
@@ -259,7 +259,7 @@ export async function verifyEpistemicEventChain(
 ) {
   const streamed = await streamEpistemicEvents(logbookId, limit);
 
-  if (!streamed.ok) return streamed;
+  if (!streamed.ok) return { ok: false as const, error: 'epistemic_event_stream_failed', details: streamed.details };
 
   const failures: Array<{
     eventId: string;
