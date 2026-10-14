@@ -36,8 +36,8 @@ export async function appendAtomicEpistemicEvent(service: SupabaseClient, event:
     return { ok: false as const, error: 'invalid_epistemic_node_id', details: 'nodeId must be a UUID' };
   }
 
-  // The RPC uses pg_advisory_xact_lock and validates the predecessor against the
-  // current database head before insertion. Client-supplied hash is not trusted.
+  // The RPC serializes the head lookup and insertion. Cross-runtime hashing
+  // parity is an explicit release gate, not an assumed property.
   const { data, error } = await service.rpc('sfi_append_epistemic_event_v2', {
     p_event_id: event.eventId,
     p_event_name: event.eventName,
