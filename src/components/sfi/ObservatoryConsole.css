@@ -144,3 +144,24 @@
 
 /* The shared site header remains visible; Observatory itself has no vertical page scroll. */
 body:has(>.obsShell),body:has(.obsShell){overflow-y:hidden!important}
+
+/* Low-power REAL spherical Observatory renderer replaces the CSS scroll-map illusion.
+   The external cubical rig stays fixed while the Earth rotates and can be manipulated.
+   No second world renderer or continuously repainted instrumentation is mounted. */
+.sfiLiveGlobeCanvas{
+ position:absolute;left:9%;top:7%;width:82%;height:82%;z-index:9;
+ display:block;aspect-ratio:1;border-radius:50%;opacity:.75;
+ pointer-events:auto;touch-action:none;cursor:grab;
+ filter:drop-shadow(0 0 25px rgba(212,232,245,.35));
+ transform-origin:center;transition:transform .16s ease;
+}
+.sfiLiveGlobeCanvas:active{cursor:grabbing}
+.sfiLiveGlobeCanvas:focus-visible{outline:2px solid #e4c27f;outline-offset:4px}
+.sfiGlobeStaticFallback{animation:none!important;opacity:.75}
+.sfiGlobePause{
+ position:absolute;right:-35px;bottom:7%;z-index:18;pointer-events:auto;
+ min-width:32px;min-height:32px;border:1px solid #bca06f;
+ background:rgba(4,10,17,.92);color:#e4d5b5;cursor:pointer;
+}
+.sfiGlobePause:focus-visible{outline:2px solid #e4c27f;outline-offset:2px}
+@media(prefers-reduced-motion:reduce){.sfiLiveGlobeCanvas{transition:none}}
