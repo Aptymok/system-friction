@@ -268,3 +268,28 @@
 @media(prefers-reduced-motion:reduce){
  .rcThreeMode .rcObservatoryWallMonitor{transition:none;transform:none}
 }
+
+/* Unified horizontal operational panorama — no decorative lower dock. */
+html:has(.rcThreeMode),body:has(.rcThreeMode){overflow-y:hidden!important}
+.rcThreeMode.rcOperational{
+ height:calc(100dvh - 64px)!important;
+ min-height:0!important;
+ max-height:calc(100dvh - 64px)!important;
+}
+.rcThreeMode .rcOperationalScroller{
+ inset:132px 0 0!important;
+ overflow-x:auto!important;overflow-y:hidden!important;
+ scroll-snap-type:none!important;scroll-behavior:smooth;
+ scrollbar-width:thin!important;scrollbar-color:#c8a951 rgba(4,9,13,.76);
+}
+.rcThreeMode .rcOperationalScroller::-webkit-scrollbar{display:block!important;height:7px}
+.rcThreeMode .rcOperationalScroller::-webkit-scrollbar-thumb{background:rgba(200,169,81,.7)}
+.rcThreeMode .rcThreeHorizon{scroll-snap-align:none!important}
+.rcThreeMode .rcOperationalFooter{display:none!important}
+.rcThreeMode .rcToast{bottom:18px}
+@media(max-width:820px){
+ .rcThreeMode .rcOperationalScroller{top:184px!important}
+ .rcThreeMode .rcGlobalCaseBar{min-height:132px}
+ .rcThreeMode .rcHorizon.rcThreeHorizon{overflow-y:auto}
+}
+@media(prefers-reduced-motion:reduce){.rcThreeMode .rcOperationalScroller{scroll-behavior:auto}}
