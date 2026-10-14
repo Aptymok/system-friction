@@ -123,3 +123,12 @@ html:has(.sfiTemporalShell),body:has(.sfiTemporalShell){overflow-y:hidden!import
 .sfiTemporalRanges button{min-height:35px!important;min-width:64px}
 .sfiTemporalRail{display:none!important}
 @media(prefers-reduced-motion:reduce){.sfiTemporalShell{scroll-behavior:auto}}
+
+/* Place the 3:1 landscape on the 2880px temporal canvas, not the narrow
+   scrolling viewport. Preserve aspect ratio across desktop and mobile. */
+.sfiTemporalShell{
+ background:#050a0d!important;
+}
+.sfiTemporalMain{
+ background:linear-gradient(90deg,rgba(2,7,12,.58),rgba(2,7,12,.14) 50%,rgba(2,7,12,.68)),url('/assets/sfi/instruments/OBSERVATORY_BACKGROUND.png') center center / cover no-repeat!important;
+}
