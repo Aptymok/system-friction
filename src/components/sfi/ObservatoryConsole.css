@@ -9,7 +9,7 @@
 .obsScene{
   position:relative;width:2880px;min-width:2880px;max-width:2880px;
   height:100%;min-height:0;overflow:hidden;
-  background:#080b0c url('/assets/sfi/instruments/OBSERVATORY_BACKGROUND.png') center center / 100% 100% no-repeat;
+  background:#080b0c url('/assets/sfi/instruments/OBSERVATORY_BACKGROUND.png') center center / cover no-repeat;
   isolation:isolate;
 }
 .sfiObservatoryBrand{
