@@ -1080,3 +1080,38 @@
   .rootPassportCompactGrid>div{grid-template-columns:118px minmax(0,1fr)}
   .rootFieldLiveDeck{height:185px}
 }
+
+/* ROOT operational toolbar alignment, without changing neural field, data or authority. */
+.rootReferenceCockpit .rootHorizontalGraph .rootSemanticLegend{
+ top:12px!important;left:12px!important;width:268px!important;
+ padding:0!important;min-height:40px;max-height:40px;
+ border:1px solid rgba(200,169,81,.46);background:rgba(5,10,15,.94);
+ backdrop-filter:none!important;z-index:32!important;overflow:visible;
+}
+.rootReferenceCockpit .rootHorizontalGraph .rootSemanticLegend summary{
+ display:flex;align-items:center;min-height:38px;padding:0 12px;
+ color:#E8DDC3;font:600 11px/1.2 "Noto Sans",Arial,sans-serif;letter-spacing:.035em;
+ white-space:nowrap;cursor:pointer;list-style-position:inside;
+}
+.rootReferenceCockpit .rootHorizontalGraph .rootSemanticLegend[open]{
+ max-height:none;box-shadow:0 18px 44px rgba(0,0,0,.5);
+}
+.rootReferenceCockpit .rootHorizontalGraph .rootSemanticLegend[open] > :not(summary){
+ position:relative;background:rgba(5,10,15,.98);padding:10px 12px;margin:0;
+}
+.rootReferenceCockpit .rootHorizontalGraph .rootSemanticLegend[open] .rootSemanticLegendGrid{max-height:170px}
+.rootReferenceCockpit .rootHorizontalGraph .rootReferenceModes{
+ top:12px!important;left:292px!important;right:12px!important;
+ justify-content:flex-start!important;flex-wrap:nowrap!important;gap:6px!important;
+ overflow-x:auto;scrollbar-width:thin;z-index:29!important;
+}
+.rootReferenceCockpit .rootHorizontalGraph .rootReferenceModes button{
+ min-height:40px!important;white-space:nowrap;font-size:11px!important;
+ background:rgba(5,10,15,.9)!important;
+}
+@media(max-width:780px){
+ .rootReferenceCockpit .rootHorizontalGraph .rootSemanticLegend{width:225px!important}
+ .rootReferenceCockpit .rootHorizontalGraph .rootSemanticLegend summary{font-size:9px!important;padding:0 6px}
+ .rootReferenceCockpit .rootHorizontalGraph .rootReferenceModes{left:243px!important}
+ .rootReferenceCockpit .rootHorizontalGraph .rootReferenceModes button{font-size:10px!important}
+}
