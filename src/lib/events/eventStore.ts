@@ -36,10 +36,11 @@ function normalizeEvent(
 
   const payload = input.payload ?? {};
 
-  const checksum =
-    typeof input.checksum === 'string' && input.checksum.length > 0
-      ? input.checksum
-      : sha256(payload);
+  const checksum = sha256(payload);
+  // A caller-supplied checksum must not contradict the canonical payload.
+  if (typeof input.checksum === 'string' && input.checksum.length > 0 && input.checksum !== checksum) {
+    throw new Error('epistemic_checksum_mismatch');
+  }
 
   return {
     eventId:
