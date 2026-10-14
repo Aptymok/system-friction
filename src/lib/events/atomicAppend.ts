@@ -1,16 +1,11 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { createHash } from 'node:crypto';
-import { canonicalizeEventPayload, type EpistemicEventRecord } from '../../../packages/events/src/schema';
+import { type EpistemicEventRecord } from '../../../packages/events/src/schema';
 
 type AtomicInput = Omit<EpistemicEventRecord, 'hashPrev' | 'hashSelf' | 'createdAt'> & {
   actorId: string | null;
   nodeId: string | null;
   returnMode: 'full' | 'receipt';
 };
-
-function hash(value: unknown): string {
-  return createHash('sha256').update(JSON.stringify(canonicalizeEventPayload(value))).digest('hex');
-}
 
 function canonicalMaterial(event: AtomicInput, hashPrev: string | null) {
   return {
@@ -49,7 +44,7 @@ export async function appendAtomicEpistemicEvent(service: SupabaseClient, event:
     p_node_id: event.nodeId,
     p_confidence: event.confidence,
     p_payload: event.payload,
-    p_checksum: hash(event.payload),
+    p_checksum: event.checksum ?? null,
     p_lineage: event.lineage ?? [],
     p_uncertainty: event.uncertainty ?? null,
     p_occurred_at: event.occurredAt,
