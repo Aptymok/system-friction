@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { type EpistemicEventRecord } from '../../../packages/events/src/schema';
+import { canonicalizeEventPayload, type EpistemicEventRecord } from '../../../packages/events/src/schema';
 
 type AtomicInput = Omit<EpistemicEventRecord, 'hashPrev' | 'hashSelf' | 'createdAt'> & {
   actorId: string | null;
@@ -53,6 +53,7 @@ export async function appendAtomicEpistemicEvent(service: SupabaseClient, event:
     // Client submits canonical attributes; the server computes the hash
     // using the same deterministic JSON object. See migration fixture tests.
     p_canonical_attributes: canonicalMaterial(event, null),
+    p_canonical_utf8: JSON.stringify(canonicalizeEventPayload(canonicalMaterial(event, null))),
     p_receipt_only: event.returnMode === 'receipt',
   });
   if (error) return { ok: false as const, error: 'epistemic_atomic_append_failed', details: error.message };
