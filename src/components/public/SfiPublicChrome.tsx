@@ -35,8 +35,6 @@ const SUBJECTS:Record<string,ChromeContext>={
   access:{title:'ACCESS',statement:'IDENTITY IS NOT AUTHORITY.',stage:'AUTHORITY',href:'/instruments/access',navKey:'access'},
 }
 
-const TIMELINE_YEARS=['2023','2024','2025','2026','2027','2028','2029'] as const;
-const TIMELINE_TICKS=Array.from({length:37},(_,index)=>index);
 
 function routeContext(pathname:string):ChromeContext{
   if(pathname.startsWith('/instruments/root')) return {title:'ROOT',statement:'REASONING IS DIFFERENT FROM AUTHORITY.',stage:'AUTHORITY',href:'/instruments/root',navKey:'root'};
@@ -142,31 +140,3 @@ export function SfiPublicHeader({global=false,active}:{active?:string;global?:bo
   </>;
 }
 
-export function SfiPublicFooter({global=false}:{global?:boolean}){
-  const {pathname,context}=usePublicChromeContext();
-  const privateShell=pathname==='/'||pathname==='/root'||pathname==='/governance'||pathname.startsWith('/studio')||['/repository','/observatory','/reality-chain','/method-lab','/timeline'].includes(pathname);
-
-  if(privateShell) return null;
-
-  return <footer className={global?'sfiPublicFooter sfiGlobalInstitutionalFooter':'sfiPublicFooter'} data-sfi-public-chrome="SFI-HORIZONTAL-CHROME-5.0">
-    <div className="sfiTimelineIdentity">
-      <strong>SFI / GLOBAL TIMELINE</strong>
-      <span>NOTHING ACTS ALONE. REALITY ANSWERS BACK.</span>
-    </div>
-
-    <div className="sfiGlobalTimeline" aria-label="SFI global timeline">
-      <div className="sfiTimelineTicks" aria-hidden="true">
-        {TIMELINE_TICKS.map((tick)=><i key={tick} data-major={tick%6===0?'true':undefined}/>)}
-      </div>
-      <div className="sfiTimelineYears">
-        {TIMELINE_YEARS.map((year)=><span key={year} data-current={year==='2026'?'true':undefined}>{year}</span>)}
-      </div>
-      <div className="sfiTimelinePlay" aria-hidden="true">▶</div>
-    </div>
-
-    <div className="sfiTimelineContext">
-      <strong>{context.title}</strong>
-      <span>{context.stage}</span>
-    </div>
-  </footer>;
-}
