@@ -17,6 +17,7 @@ CREATE OR REPLACE FUNCTION public.sfi_append_epistemic_event_v2(
   p_uncertainty text,
   p_occurred_at timestamptz,
   p_canonical_attributes jsonb,
+  p_canonical_utf8 text,
   p_receipt_only boolean DEFAULT false
 )
 RETURNS jsonb
@@ -80,10 +81,16 @@ BEGIN
   -- SHA-256 must be supplied with its exact canonical UTF-8 serialization,
   -- preserving the JS ordering. This avoids hashing jsonb::text (different
   -- serializer) and delegates only digest computation to PostgreSQL.
-  IF p_canonical_attributes ? '__canonical_utf8' THEN
-    RAISE EXCEPTION 'SFI_EPIS_UNSAFE_MATERIAL_EXTENSION';
+  IF p_canonical_attributes ? '__canonical_utf8' OR p_canonical_utf8 IS NULL THEN
+    RAISE EXCEPTION 'SFI_EPIS_CANONICAL_SERIALIZATION_REQUIRED';
   END IF;
-  RAISE EXCEPTION 'SFI_MEM002_CANONICAL_HASH_MATERIAL_NOT_YET_SUBMITTED';
+  -- Exact canonical bytes are recomputed client-side from the immutable
+  -- event attributes plus the head returned by the RPC read phase. A client
+  -- cannot supply a new hash without explicitly attesting this material.
+  IF p_canonical_utf8::jsonb IS DISTINCT FROM p_canonical_attributes THEN
+    RAISE EXCEPTION 'SFI_EPIS_CANONICAL_SERIALIZATION_MISMATCH';
+  END IF;
+  v_event_hash := encode(digest(convert_to(p_canonical_utf8, 'UTF8'), 'sha256'), 'hex');
 
   INSERT INTO public.epistemic_events (
     event_id, event_name, logbook_id, epistemic_class, schema_version,
@@ -105,7 +112,7 @@ $$;
 
 -- No execute rights for PUBLIC, anonymous or user-session callers.
 REVOKE ALL ON FUNCTION public.sfi_append_epistemic_event_v2(
-  text,text,text,text,text,jsonb,text,uuid,numeric,jsonb,text,text[],text,timestamptz,jsonb,boolean
+  text,text,text,text,text,jsonb,text,uuid,numeric,jsonb,text,text[],text,timestamptz,jsonb,text,boolean
 ) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.sfi_append_epistemic_event_v2(
   text,text,text,text,text,jsonb,text,uuid,numeric,jsonb,text,text[],text,timestamptz,jsonb,boolean
