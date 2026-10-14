@@ -144,7 +144,7 @@ export function SfiPublicHeader({global=false,active}:{active?:string;global?:bo
 
 export function SfiPublicFooter({global=false}:{global?:boolean}){
   const {pathname,context}=usePublicChromeContext();
-  const privateShell=pathname==='/'||pathname==='/root'||pathname==='/governance'||pathname.startsWith('/studio')||pathname==='/repository';
+  const privateShell=pathname==='/'||pathname==='/root'||pathname==='/governance'||pathname.startsWith('/studio')||['/repository','/observatory','/reality-chain','/method-lab','/timeline'].includes(pathname);
 
   if(privateShell) return null;
 
