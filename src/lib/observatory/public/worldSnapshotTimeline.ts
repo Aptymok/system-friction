@@ -81,6 +81,8 @@ function vectorAt(snapshotSources: Row[], definition: DomainDefinition) {
 
 export type PublicWorldTemporalFrame = {
   observedAt: string;
+  observedTimeSource: 'observed_at' | 'created_at_fallback';
+  recordCreatedAt: string | null;
   wsi: number | null;
   nti: number | null;
   confidence: number | null;
@@ -101,6 +103,8 @@ export async function readPublicWorldSnapshotTimeline() {
     const snapshotSources = rows(snapshot.sources);
     return {
       observedAt: text(snapshot.observed_at ?? snapshot.created_at),
+      observedTimeSource: text(snapshot.observed_at) ? 'observed_at' as const : 'created_at_fallback' as const,
+      recordCreatedAt: text(snapshot.created_at) || null,
       wsi: normalize(snapshot.wsi),
       nti: normalize(snapshot.nti),
       confidence: normalize(snapshot.confidence),
