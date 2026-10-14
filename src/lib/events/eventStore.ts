@@ -130,8 +130,8 @@ export async function appendEpistemicEvent(
     };
   }
 
-  // The database serializes competing writers under one transaction-scoped
-  // advisory lock. The client must not choose a predecessor outside the lock.
+  // The database serializes competing writers under a transaction-scoped lock;
+  // the client supplies an expected predecessor, then retries stale attempts.
   const result = await appendAtomicEpistemicEvent(service, {
     ...event,
     actorId: input.actorId ?? null,
