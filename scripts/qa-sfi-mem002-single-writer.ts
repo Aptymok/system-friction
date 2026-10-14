@@ -1,0 +1,14 @@
+import { strict as assert } from 'node:assert';
+import { readFileSync } from 'node:fs';
+const writer = readFileSync('src/core/memory/epistemicEventWriter.ts', 'utf8');
+const store = readFileSync('src/lib/events/eventStore.ts', 'utf8');
+const schema = readFileSync('packages/events/src/schema.ts', 'utf8');
+assert.match(writer, /appendEpistemicEvent\(/);
+assert.doesNotMatch(writer, /createHash|hashPayload|getLatestEventHash|\.insert\(/);
+assert.match(store, /\.eq\('logbook_id', event\.logbookId\)/);
+assert.match(store, /if \(latestError\)/);
+assert.match(store, /actor_id: input\.actorId/);
+assert.match(store, /node_id: input\.nodeId/);
+assert.match(writer, /import type \{ EpistemicClass \}/);
+assert.match(schema, /'canonical'/);
+console.log('MEM-002 static contract checks passed (not a database or concurrency test)');
