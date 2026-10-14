@@ -58,7 +58,9 @@ async function run() {
     for (const role of ['anon', 'authenticated', 'service_role']) {
       await sql.unsafe(`CREATE ROLE ${role}`);
     }
+    console.log('MEM002_STAGE: applying SQL migration');
     await sql.unsafe(readFileSync('supabase/migrations/20261014193000_mem002_atomic_epistemic_append.sql', 'utf8'));
+    console.log('MEM002_STAGE: migration applied');
     const legacy = 'legacy-' + randomUUID();
     await sql`insert into public.epistemic_events
       (event_id,event_name,logbook_id,epistemic_class,schema_version,source,confidence,payload,checksum,lineage,occurred_at,hash_prev,hash_self)
