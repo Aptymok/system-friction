@@ -68,7 +68,7 @@ export async function appendAtomicEpistemicEvent(service: SupabaseClient, event:
       if (!data || typeof data !== 'object') {
         return { ok: false as const, error: 'epistemic_atomic_append_missing_receipt', details: 'No row returned by RPC' };
       }
-      return { ok: true as const, data: data as Record<string, unknown> };
+      return { ok: true as const, data: data as { id: string; event_id: string; event_name: string; logbook_id: string; epistemic_class: string; confidence: number; payload: Record<string, unknown>; occurred_at: string; created_at: string; hash_self: string; sequence: number } };
     }
     // SQLSTATE P0001 / PostgREST message: head changed while waiting on lock.
     if (!error.message?.includes('SFI_EPIS_HEAD_STALE_RETRY')) {
