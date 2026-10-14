@@ -36,3 +36,9 @@ The output is **not** a city time-zone display or a substitute for `SFI-MIHM-T-E
 MIHM-T v0.2 should connect the existing authenticated Reality Chain source reader or Method Lab experiment record by **explicit authority**, preserving event/knowledge/authorization/execution/RETURN receipts, and only then present lag maps and bounded interventions. Confirmatory MIHM-T advantages require the separately frozen comparative experiment and independently observed future outcomes.
 
 **Rollback:** revert branch/PR. **Production deployed:** NO until reviewed and merged. **MIHM scientific advantage established:** NO. **Cost/authority changed:** none outside ordinary GitHub CI review.
+
+## 2026-10-14 implementation QA and governance review
+
+The dedicated GitHub Actions job `MIHM-T Timeline Clocks v0.1 Review`, run `38582788228`, completed successfully: seven-clock source/unknown controls, existing temporal-surface QA, existing institutional visual convergence QA, and complete TypeScript typecheck all PASSED. The broader `SFI Verify` preflight initially correctly blocked admission of a structural research helper because 13 canonical `SFI PRECHECK` tokens were not present in PR #752's description; the PR body has now been supplemented with the explicit P17 architecture plan. A new normal CI run is required to verify this governance correction. This is a documentation compliance fix, not a change to model definitions, recorded events or clinical/physical systems.
+
+**Scientific status unchanged:** MIHM-T is an unfrozen research child. The only delivered v0.1 capability is observational clock source distinction. All missing clock readings remain UNKNOWN and the project cannot assert lag propagation, calibration, actor knowledge or RETURN.
