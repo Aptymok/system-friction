@@ -37,3 +37,13 @@ The **first G2c run** (GitHub Actions run 38533632933, artifact 11878956749) com
 The original archive is retained, unchanged, in the existing private MIHM institutional Drive folder as `MIHM-EXP-001-G2c-2026-10-14-original.zip`, SHA-256 `4b06788def79b527df6a57462ad50c0e8e53fd33d2585b7fb892f2af6c2667cc`.
 
 We therefore changed the **sampling strategy**, not the outcome labels or MIHM model, to spread creation dates across the full study window. This is a transparent, post-hoc **coverage repair**, to be separately rerun, archived and contrasted against the original G2c result. Both runs remain exploratory; the later run must not be described as confirmatory or as improved MIHM prediction.
+
+## 2026-10-14 — Stratified rerun: observed coverage gains, not MIHM validation
+
+The creation-date-stratified run `38534047737` (archive `11879387131`) completed with **14/14 tests**, zero GitHub retrieval errors and no pagination warnings. It scanned 227 candidate PRs within the predeclared exploratory window, selected 24 evenly spaced PRs and returned **68 CI entries from 15 distinct PRs and 21 commits**: 56 successes, 12 failures. The CI dates now span 2026-09-15 through 2026-10-11 (10 distinct dates), rather than October 10–11 only.
+
+Cross-workflow pooling remains scientifically inadmissible. The **SFI Verify** subset comprises 21 CI entries across 15 PRs, with 7 failures in only 4 PRs. This makes SFI Verify a **possible future single-workflow endpoint**, not a statistically adequate or frozen prediction experiment. Source-level dependency/constraint relations that would constitute MIHM-specific inputs were not reconstructed. No difference in performance between M0 and MIHM has been observed.
+
+The untouched stratified artifact is backed up to the existing MIHM Drive folder, at https://drive.google.com/file/d/1FJwjBo_lSWXiE1lDfhs8FDGdOWn2-H9d/view?usp=drivesdk , ZIP SHA-256 `b42900315295e87fe1a668fa0357d1f83e8ed022858df2d3fbc4fbc49cbe372f`.
+
+**Further G2c correction:** prior JSON only included selected PRs with qualifying CI records. A source-completeness record for *all 24 selected PRs* is now part of the output, distinguishing no qualifying CI observed from failed CI. It also explicitly prohibits pooling heterogeneous workflows or inferring MIHM-relational superiority from file-change metadata alone. That amendment is still descriptive and exploratory, subject to independent CI execution.
