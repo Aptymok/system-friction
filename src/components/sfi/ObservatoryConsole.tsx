@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { HypothesisClosureDiff } from './HypothesisClosureDiff';
@@ -36,6 +36,99 @@ const txt=(v:unknown)=>typeof v==='string'&&v.trim()?v.trim():'';
 const uniq=(v:string[])=>[...new Set(v.filter(Boolean))];
 function short(value:unknown,max=160){const t=txt(value);return t.length>max?`${t.slice(0,max-1)}…`:t}
 
+
+
+/* Bounded 3D sphere for the existing Observatory stage. The texture is illustrative,
+   not a verified geospatial reference; evidence, node coordinates and decisions stay
+   in their existing read-only institutional services. No fabricated globe markers. */
+function HolographicEarth({zoom,onInspect}:{zoom:number;onInspect:()=>void}){
+  const canvasRef=useRef<HTMLCanvasElement|null>(null);
+  const orientation=useRef({yaw:-1.45,pitch:.06,drag:false,wasDrag:false,x:0,y:0});
+  const [failed,setFailed]=useState(false),[paused,setPaused]=useState(false);
+  const pausedRef=useRef(false);
+  useEffect(()=>{
+    const element=canvasRef.current;
+    if(!element)return;
+    const gl=element.getContext('webgl',{alpha:true,antialias:false,powerPreference:'low-power',premultipliedAlpha:false});
+    if(!gl){setFailed(true);return;}
+    let stopped=false,visible=true,loaded=false,last=0,raf=0,delay=0;
+    const vertex=gl.createShader(gl.VERTEX_SHADER),fragment=gl.createShader(gl.FRAGMENT_SHADER);
+    if(!vertex||!fragment){setFailed(true);return;}
+    gl.shaderSource(vertex,'attribute vec2 position; void main(){gl_Position=vec4(position,0.0,1.0);}');
+    gl.shaderSource(fragment,[
+      'precision mediump float;',
+      'uniform sampler2D skin; uniform vec2 resolution; uniform float yaw; uniform float pitch;',
+      'const float PI=3.141592653589793;',
+      'void main(){',
+      'vec2 xy=(gl_FragCoord.xy/resolution-.5)*2.0;',
+      'float r2=dot(xy,xy); if(r2>0.98)discard;',
+      'vec3 n=vec3(xy,sqrt(max(0.0,1.0-r2)));',
+      'float cp=cos(pitch),sp=sin(pitch);',
+      'vec3 t=vec3(n.x,n.y*cp+n.z*sp,-n.y*sp+n.z*cp);',
+      'float cy=cos(yaw),sy=sin(yaw);',
+      'vec3 v=vec3(t.x*cy+t.z*sy,t.y,-t.x*sy+t.z*cy);',
+      'vec2 uv=vec2(fract(.5+atan(v.x,v.z)/(2.0*PI)),clamp(.5-asin(clamp(v.y,-1.,1.))/PI,.001,.999));',
+      'vec3 color=texture2D(skin,uv).rgb;',
+      'float light=.64+.30*max(0.,dot(n,normalize(vec3(-.36,.45,.84))));',
+      'float rim=pow(1.0-n.z,3.0);',
+      'color=color*light+vec3(.58,.73,.79)*rim*.63;',
+      'gl_FragColor=vec4(color,1.0-smoothstep(.95,.99,r2));',
+      '}'
+    ].join('\n'));
+    const compile=(shader:WebGLShader)=>{gl.compileShader(shader);return Boolean(gl.getShaderParameter(shader,gl.COMPILE_STATUS));};
+    if(!compile(vertex)||!compile(fragment)){setFailed(true);gl.deleteShader(vertex);gl.deleteShader(fragment);return;}
+    const program=gl.createProgram();
+    if(!program){setFailed(true);return;}
+    gl.attachShader(program,vertex);gl.attachShader(program,fragment);gl.linkProgram(program);
+    if(!gl.getProgramParameter(program,gl.LINK_STATUS)){setFailed(true);return;}
+    gl.useProgram(program);
+    const buffer=gl.createBuffer(),texture=gl.createTexture();
+    if(!buffer||!texture){setFailed(true);return;}
+    gl.bindBuffer(gl.ARRAY_BUFFER,buffer);
+    gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,-1,1,1,-1,1]),gl.STATIC_DRAW);
+    const pos=gl.getAttribLocation(program,'position');gl.enableVertexAttribArray(pos);gl.vertexAttribPointer(pos,2,gl.FLOAT,false,0,0);
+    gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,texture);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([14,36,54,255]));
+    const image=new Image();
+    image.onload=()=>{if(stopped)return;gl.bindTexture(gl.TEXTURE_2D,texture);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,0);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,image);loaded=true;};
+    image.onerror=()=>{if(!stopped)setFailed(true);};
+    image.src='/assets/sfi/instruments/OBSERVATORY_MAPS.png';
+    const resolution=gl.getUniformLocation(program,'resolution'),heading=gl.getUniformLocation(program,'yaw'),tilt=gl.getUniformLocation(program,'pitch'),sampler=gl.getUniformLocation(program,'skin');
+    const wantsMotion=!window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const observer=new IntersectionObserver(entries=>{visible=Boolean(entries[0]?.isIntersecting);},{threshold:.05});observer.observe(element);
+    const lost=(event:Event)=>{event.preventDefault();setFailed(true);stopped=true;cancelAnimationFrame(raf);window.clearTimeout(delay);};
+    element.addEventListener('webglcontextlost',lost);
+    const render=(time:number)=>{
+      if(stopped)return;
+      const dt=Math.min((time-last)/1000,.17);last=time;
+      if(visible&&!document.hidden){
+        if(wantsMotion&&!pausedRef.current&&loaded&&!orientation.current.drag)orientation.current.yaw=(orientation.current.yaw+dt*.02)%(Math.PI*2);
+        const px=Math.min(420,Math.max(200,Math.round(element.clientWidth)));
+        if(element.width!==px||element.height!==px){element.width=px;element.height=px;}
+        gl.viewport(0,0,px,px);gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.uniform2f(resolution,px,px);gl.uniform1f(heading,orientation.current.yaw);gl.uniform1f(tilt,orientation.current.pitch);gl.uniform1i(sampler,0);
+        gl.drawArrays(gl.TRIANGLES,0,6);
+      }
+      delay=window.setTimeout(()=>{raf=window.requestAnimationFrame(render);},140);
+    };
+    raf=window.requestAnimationFrame(render);
+    return()=>{stopped=true;observer.disconnect();element.removeEventListener('webglcontextlost',lost);cancelAnimationFrame(raf);window.clearTimeout(delay);image.onload=null;image.onerror=null;gl.deleteTexture(texture);gl.deleteBuffer(buffer);gl.deleteProgram(program);gl.deleteShader(vertex);gl.deleteShader(fragment);};
+  },[]);
+  return <>
+    {failed?<div className="sfiGlobeSphere sfiGlobeStaticFallback" role="img" aria-label="Static Earth illustration; WebGL unavailable" onClick={onInspect}/>:
+      <canvas ref={canvasRef} className="sfiLiveGlobeCanvas" style={{transform:'scale('+zoom+')'}} aria-label="Rotating globe. Drag to change view, use zoom controls and click to inspect territorial records."
+        onPointerDown={e=>{const p=orientation.current;p.drag=true;p.wasDrag=false;p.x=e.clientX;p.y=e.clientY;e.currentTarget.setPointerCapture(e.pointerId);}}
+        onPointerMove={e=>{const p=orientation.current;if(!p.drag)return;const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;if(Math.abs(dx)+Math.abs(dy)>1)p.wasDrag=true;p.yaw-=dx*.007;p.pitch=Math.max(-.85,Math.min(.85,p.pitch+dy*.005));}}
+        onPointerUp={()=>{const p=orientation.current;p.drag=false;if(!p.wasDrag)onInspect();}}
+        onPointerCancel={()=>{orientation.current.drag=false;}}
+      />}
+    <button type="button" className="sfiGlobePause" aria-label={paused?'Resume Earth rotation':'Pause Earth rotation'} onClick={()=>{pausedRef.current=!pausedRef.current;setPaused(pausedRef.current);}}>{paused?'▶':'Ⅱ'}</button>
+  </>;
+}
 
 function dateMs(value:unknown){const n=Date.parse(txt(value));return Number.isFinite(n)?n:0}
 function mean(values:Array<number|null>){const valid=values.filter((v):v is number=>typeof v==='number'&&Number.isFinite(v));return valid.length?valid.reduce((a,b)=>a+b,0)/valid.length:null}
@@ -243,7 +336,7 @@ export function ObservatoryConsole(){
             <ellipse cx="303" cy="312" rx="264" ry="61" transform="rotate(124 303 312)"/>
           </g>
         </svg>
-        <div className="sfiGlobeSphere" style={{transform:'scale('+earthZoom+')'}} role="img" aria-label="Illustrative holographic Earth skin inside a projection cube, 75 percent opacity" onClick={()=>changeLens('territories')}/>
+        <HolographicEarth zoom={earthZoom} onInspect={()=>changeLens('territories')}/>
         <div className="sfiGlobeControl"><button onClick={()=>setEarthZoom(v=>Math.min(1.5,v+.1))} aria-label="Zoom in">+</button><button onClick={()=>setEarthZoom(v=>Math.max(.8,v-.1))} aria-label="Zoom out">−</button></div>
         <span className="sfiGlobeBoundary">MAP SKIN: ILLUSTRATIVE · NOT GEOREFERENCED</span>
       </div>
