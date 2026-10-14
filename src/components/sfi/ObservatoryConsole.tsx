@@ -119,7 +119,7 @@ function HolographicEarth({zoom,onInspect}:{zoom:number;onInspect:(lat:number,ln
     return()=>{stopped=true;observer.disconnect();element.removeEventListener('webglcontextlost',lost);cancelAnimationFrame(raf);window.clearTimeout(delay);image.onload=null;image.onerror=null;gl.deleteTexture(texture);gl.deleteBuffer(buffer);gl.deleteProgram(program);gl.deleteShader(vertex);gl.deleteShader(fragment);};
   },[]);
   return <>
-    {failed?<div className="sfiGlobeSphere sfiGlobeStaticFallback" role="img" aria-label="Static Earth illustration; WebGL unavailable" onClick={onInspect}/>:
+    {failed?<div className="sfiGlobeSphere sfiGlobeStaticFallback" role="img" aria-label="Static Earth illustration; WebGL unavailable; use the dashboard to select territorial readings"/>:
       <canvas ref={canvasRef} className="sfiLiveGlobeCanvas" style={{transform:'scale('+zoom+')'}} aria-label="Rotating globe. Drag to change view, use zoom controls and click to inspect territorial records."
         onPointerDown={e=>{const p=orientation.current;p.drag=true;p.wasDrag=false;p.x=e.clientX;p.y=e.clientY;e.currentTarget.setPointerCapture(e.pointerId);}}
         onPointerMove={e=>{const p=orientation.current;if(!p.drag)return;const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;if(Math.abs(dx)+Math.abs(dy)>1)p.wasDrag=true;p.yaw-=dx*.007;p.pitch=Math.max(-.85,Math.min(.85,p.pitch+dy*.005));}}
