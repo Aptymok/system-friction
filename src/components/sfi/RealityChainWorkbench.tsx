@@ -338,7 +338,7 @@ export function RealityChainWorkbench(){
             <div className="rcRecordList">{stageObjects.slice(0,12).map(o=><button key={o.id} type="button" onClick={()=>{setSelectedObject(o.id);scrollTo(1)}}><time>{date(o.createdAt)}</time><strong>{safeText(o.payload.label??o.payload.statement??o.kind)}</strong></button>)}</div>
             {!stageObjects.length?<p>NOT OBSERVED IN THE CURRENT CASE RECORD.</p>:null}
           </section>
-          <section className="rcThreePane">
+          <section className="rcThreePane rcObservatoryWallMonitor">
             <h2>LONGITUDINAL TRACE</h2>
             <p>Recorded time is not necessarily event time. A later receipt does not retroactively change prior knowledge.</p>
             <div className="rcTimelineEntries">{asOfObjects.slice(0,16).map(o=><button key={o.id} type="button" onClick={()=>{setSelectedObject(o.id);scrollTo(1)}}><time>{date(o.createdAt)}</time><strong>{o.kind} · {o.epistemicRole}</strong></button>)}</div>
@@ -396,7 +396,7 @@ export function RealityChainWorkbench(){
             </div>:<div className="rcRecordList">{asOfObjects.map(o=><button key={o.id} type="button" onClick={()=>setSelectedObject(o.id)}><time>{date(o.createdAt)}</time><strong>{o.kind} · {o.epistemicRole}</strong><span>{payloadDescription(o).slice(0,240)}</span></button>)}</div>}
             <div className="rcThreeDataLine">{sourceObjects.length} SOURCES · {asOfObjects.filter(o=>o.kind==='EVIDENCE').length} ADMITTED EVIDENCE · {asOfObjects.filter(o=>o.kind==='CONTRADICTION').length} CONTRADICTIONS</div>
           </section>
-          <section className="rcThreePane">
+          <section className="rcThreePane rcObservatoryWallMonitor">
             <h2>HYPOTHESIS / AUTHORITY</h2>
             <p>Interpretation does not authorize intervention. Independent sources and calibration are not inferred from document counts.</p>
             <dl><div><dt>HYPOTHESES</dt><dd>{asOfObjects.filter(o=>o.kind==='HYPOTHESIS').length} REPRESENTED</dd></div>
@@ -445,7 +445,7 @@ export function RealityChainWorkbench(){
             {generatedAt?<p>LAST LOCAL EXPORT: {date(generatedAt)}</p>:null}
             <dl><div><dt>EXECUTION RECORDS</dt><dd>{asOfObjects.filter(o=>o.kind==='INTERVENTION').length}</dd></div><div><dt>RETURN RECORDS</dt><dd>{asOfObjects.filter(o=>o.kind==='RETURN').length}</dd></div></dl>
           </section>
-          <section className="rcThreePane">
+          <section className="rcThreePane rcObservatoryWallMonitor">
             <h2>REALITY PASSPORT / LEARNING</h2>
             <p>Inspect the selected case in ROOT using its existing identifier. No duplicate passport or authority is created.</p>
             {caseId?<a className="rcThreeLink" href={'/root?reading=REALITY_CHAIN&node='+encodeURIComponent(caseId)}>OPEN SELECTED CASE IN ROOT ↗</a>:<p>SELECT A CASE TO OPEN ITS PASSPORT.</p>}
