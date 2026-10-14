@@ -42,12 +42,12 @@ BEGIN
   IF p_confidence IS NULL OR p_confidence < 0 OR p_confidence > 1 THEN
     RAISE EXCEPTION 'SFI_CONFIDENCE_OUT_OF_RANGE';
   END IF;
-  IF p_checksum IS DISTINCT FROM encode(digest(convert_to(p_payload::text, 'UTF8'), 'sha256'), 'hex') THEN
-    -- IMPORTANT: checksum validation must use the *same* canonical serializer.
-    -- This SQL text representation differs from JavaScript JSON in some cases.
-    -- Until parity is proven, intentionally fail closed on mismatch.
-    RAISE EXCEPTION 'SFI_CHECKSUM_CANONICAL_PARITY_NOT_ESTABLISHED';
-  END IF;
+  -- The existing TypeScript canonical hash serializes lexicographically sorted
+  -- keys. PostgreSQL jsonb text is not guaranteed to serialize identically.
+  -- The caller's hash algorithm is therefore NOT transparently portable.
+  -- Migration intentionally fails closed until the exact serializer has been
+  -- implemented and proven with golden vectors; no live writes are permitted.
+  RAISE EXCEPTION 'SFI_MEM002_CANONICAL_HASH_SERIALIZER_NOT_VERIFIED';
 
   PERFORM pg_advisory_xact_lock(hashtextextended('SFI-EPISTEMIC-LEDGER:' || p_logbook_id, 0));
 
