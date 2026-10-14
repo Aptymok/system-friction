@@ -73,3 +73,53 @@
 .sfiTemporalRail{background:rgba(3,9,14,.94)!important;border-top:1px solid rgba(200,169,81,.4)}
 @media(max-width:1100px){.sfiTemporalMain{grid-template-columns:210px minmax(0,1fr)}.sfiTemporalInspector{grid-column:1/-1;transform:none}}
 @media(max-width:690px){.sfiTemporalMain{display:block!important}.sfiTemporalIndex,.sfiTemporalField,.sfiTemporalInspector{margin:10px 0!important;transform:none}.sfiTemporalShell{background-attachment:scroll}}
+
+/* TIME is spatial: native, continuous 2880px horizontal workspace. */
+html:has(.sfiTemporalShell),body:has(.sfiTemporalShell){overflow-y:hidden!important}
+.sfiTemporalShell{
+ width:100vw!important;height:calc(100dvh - 64px)!important;
+ min-height:0!important;max-height:calc(100dvh - 64px)!important;
+ overflow-x:auto!important;overflow-y:hidden!important;
+ scroll-behavior:smooth;overscroll-behavior-x:contain;
+ scrollbar-width:thin;scrollbar-color:#c8a951 rgba(4,9,13,.72);
+ background-attachment:scroll!important;
+}
+.sfiTemporalHeader{
+ width:2880px!important;height:63px!important;min-height:63px!important;
+ padding:10px 27px!important;box-sizing:border-box;
+ display:flex!important;flex-wrap:nowrap!important;
+}
+.sfiTemporalHeader nav{flex-wrap:nowrap!important}
+.sfiTemporalMain{
+ display:grid!important;
+ width:2880px!important;height:calc(100% - 63px)!important;
+ min-height:0!important;max-height:calc(100% - 63px)!important;
+ grid-template-columns:320px 1910px 560px!important;
+ grid-template-rows:minmax(0,1fr)!important;
+ padding:14px 27px!important;gap:18px!important;
+ margin:0!important;box-sizing:border-box;
+}
+.sfiTemporalIndex,.sfiTemporalField,.sfiTemporalInspector{
+ min-height:0!important;max-height:100%!important;
+ margin:0!important;overflow-y:auto!important;
+ scrollbar-width:thin;scrollbar-color:#c8a951 transparent;
+ grid-column:auto!important;
+}
+.sfiTemporalIndex{padding:20px 18px!important}
+.sfiTemporalField{padding:14px 18px!important}
+.sfiTemporalInspector{padding:20px 24px!important}
+.sfiTemporalYears{min-height:48px!important}
+.sfiTemporalLane{min-height:122px!important}
+.sfiTemporalRailTicks{
+ flex:0 0 38px;position:relative;height:38px!important;
+ border-top:1px solid rgba(200,169,81,.28);
+ border-bottom:1px solid rgba(200,169,81,.28);
+ margin:4px 0 16px;
+}
+.sfiTemporalRanges{
+ display:flex!important;justify-content:flex-start!important;gap:7px;
+ margin:12px 0 8px;
+}
+.sfiTemporalRanges button{min-height:35px!important;min-width:64px}
+.sfiTemporalRail{display:none!important}
+@media(prefers-reduced-motion:reduce){.sfiTemporalShell{scroll-behavior:auto}}
