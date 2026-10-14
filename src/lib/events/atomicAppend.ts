@@ -31,10 +31,18 @@ export async function appendAtomicEpistemicEvent(service: SupabaseClient, event:
     return { ok: false as const, error: 'invalid_epistemic_node_id', details: 'nodeId must be a UUID' };
   }
 
-  // Compatibility-safe SHA256 material is computed in SQL only after the
-  // transaction lock. This adapter passes the canonical key order explicitly.
-  // The RPC serializes the head lookup and insertion. Cross-runtime hashing
-  // parity is an explicit release gate, not an assumed property.
+  const { data: head, error: headError } = await service
+    .from('epistemic_events')
+    .select('hash_self')
+    .eq('logbook_id', event.logbookId)
+    .order('sequence', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (headError) return { ok: false as const, error: 'epistemic_event_head_read_failed', details: headError.message };
+  const currentHead = typeof head?.hash_self === 'string' ? head.hash_self : null;
+  const material = canonicalMaterial(event, currentHead);
+  const canonicalUtf8 = JSON.stringify(canonicalizeEventPayload(material));
+
   const { data, error } = await service.rpc('sfi_append_epistemic_event_v2', {
     p_event_id: event.eventId,
     p_event_name: event.eventName,
@@ -52,8 +60,8 @@ export async function appendAtomicEpistemicEvent(service: SupabaseClient, event:
     p_occurred_at: event.occurredAt,
     // Client submits canonical attributes; the server computes the hash
     // using the same deterministic JSON object. See migration fixture tests.
-    p_canonical_attributes: canonicalMaterial(event, null),
-    p_canonical_utf8: JSON.stringify(canonicalizeEventPayload(canonicalMaterial(event, null))),
+    p_canonical_attributes: material,
+    p_canonical_utf8: canonicalUtf8,
     p_receipt_only: event.returnMode === 'receipt',
   });
   if (error) return { ok: false as const, error: 'epistemic_atomic_append_failed', details: error.message };
