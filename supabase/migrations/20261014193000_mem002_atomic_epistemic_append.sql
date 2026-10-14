@@ -110,10 +110,22 @@ BEGIN
 END;
 $$;
 
--- No execute rights for PUBLIC, anonymous or user-session callers.
-REVOKE ALL ON FUNCTION public.sfi_append_epistemic_event_v2(
-  text,text,text,text,text,jsonb,text,uuid,numeric,jsonb,text,text[],text,timestamptz,jsonb,text,boolean
-) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.sfi_append_epistemic_event_v2(
-  text,text,text,text,text,jsonb,text,uuid,numeric,jsonb,text,text[],text,timestamptz,jsonb,boolean
-) TO service_role;
+-- Scope grants to the exact created 17-argument function; avoid brittle
+-- hand-maintained signature lists when parameters are added.
+DO $mem002$
+DECLARE
+  v_signature text;
+BEGIN
+  SELECT oid::regprocedure::text INTO v_signature
+  FROM pg_proc
+  WHERE pronamespace = 'public'::regnamespace
+    AND proname = 'sfi_append_epistemic_event_v2'
+    AND pronargs = 17
+  LIMIT 1;
+  IF v_signature IS NULL THEN
+    RAISE EXCEPTION 'SFI_MEM002_RPC_SIGNATURE_MISSING';
+  END IF;
+  EXECUTE 'REVOKE ALL ON FUNCTION ' || v_signature || ' FROM PUBLIC, anon, authenticated';
+  EXECUTE 'GRANT EXECUTE ON FUNCTION ' || v_signature || ' TO service_role';
+END
+$mem002$;
