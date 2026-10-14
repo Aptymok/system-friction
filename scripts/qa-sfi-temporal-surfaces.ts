@@ -131,11 +131,13 @@ assert.deepEqual(loadedArt,[
   '/assets/sfi/instruments/OBSERVATORY_PROJECTOR.png',
   '/assets/sfi/instruments/OBSERVATORY_MAPS.png',
 ], 'observatory_must_use_only_approved_composition_assets');
-for(const forbidden of ['<canvas','<ObservatoryWorldField','<ObservatorySemanticGpuLayer','requestAnimationFrame','getContext','obsOperationalLenses','hubRail','obsOperationalTimeline']) {
+for(const forbidden of ['<ObservatoryWorldField','<ObservatorySemanticGpuLayer','obsOperationalLenses','hubRail','obsOperationalTimeline']) {
   assert.equal(observatoryUi.includes(forbidden),false,`observatory_recovery_forbidden_rendered_layer:${forbidden}`);
 }
 assert.ok(observatoryUi.includes('sfiGlobeGeometry') && observatoryUi.includes('sfiOrbitalLines') && observatoryUi.includes('strokeWidth="0.58"'),'fine_orbital_lines_and_cube_required');
-assert.ok(observatoryCss.includes('sfiVisualEarthDrift 220s steps(180,end) infinite') && observatoryCss.includes('opacity:.75'),'approved_globe_rotation_and_opacity_must_remain');
+assert.ok(observatoryUi.includes('<HolographicEarth') && observatoryUi.includes('<canvas') && observatoryCss.includes('.sfiLiveGlobeCanvas') && observatoryCss.includes('opacity:.75'),'interactive_spherical_globe_and_75_percent_visual_opacity_required');
+assert.ok(observatoryUi.includes("powerPreference:'low-power'") && observatoryUi.includes('Math.min(420,') && observatoryUi.includes('},140)') && observatoryUi.includes('IntersectionObserver') && observatoryUi.includes('gl.deleteProgram(program)'),'interactive_globe_must_have_gpu_resolution_rate_visibility_and_cleanup_bounds');
+assert.ok(!observatoryUi.includes('ObservatorySemanticGpuLayer') && !observatoryUi.includes('ObservatoryWorldField'),'globe_must_not_mount_old_duplicate_gpu_graphs');
 assert.ok(observatoryUi.includes('sfiBottomMonitorImage') && observatoryUi.includes('OBSERVATORY_MONITOR.png') && observatoryCss.includes('object-fit:contain'),'lower_monitor_must_retain_aspect_ratio');
 assert.ok(!observatoryCss.includes('OBSERVATORY_DASHBOARD.png') && observatoryCss.includes('background:none;'),'legacy_duplicate_console_background_must_not_return');
 assert.ok(observatoryUi.includes('sfiDashboardModes') && observatoryUi.includes('sfiMonitorReading') && observatoryUi.includes('fetchJson(\'/api/observatory/world\')'),'observatory_existing_readers_must_be_connected_to_composited_controls');
