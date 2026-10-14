@@ -55,6 +55,9 @@ async function run() {
         occurred_at timestamptz not null, created_at timestamptz not null default now(),
         hash_prev text, hash_self text not null unique
       );`);
+    for (const role of ['anon', 'authenticated', 'service_role']) {
+      await sql.unsafe(`DO $ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '${role}') THEN CREATE ROLE ${role}; END IF; END $;`);
+    }
     await sql.unsafe(readFileSync('supabase/migrations/20261014193000_mem002_atomic_epistemic_append.sql', 'utf8'));
     const legacy = 'legacy-' + randomUUID();
     await sql`insert into public.epistemic_events
