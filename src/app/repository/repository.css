@@ -90,3 +90,58 @@
 }
 @media(max-width:1160px){.repoObjectInspector{transform:none}}
 @media(max-width:720px){.repositoryScene{background-size:auto 100%}.repoObjectInspector{transform:none}.repoIdentity,.repoArchiveRail{backdrop-filter:none!important}}
+
+/* Repository as one native horizontal instrument; real historical clicks are in
+   the upper navigation, not a decorative page footer. */
+html:has(.repositoryShell),body:has(.repositoryShell){overflow-y:hidden!important}
+.repositoryShell{
+ width:100vw!important;height:calc(100dvh - 64px)!important;
+ min-height:0!important;max-height:calc(100dvh - 64px)!important;
+ overflow-x:auto!important;overflow-y:hidden!important;
+ scroll-behavior:smooth;overscroll-behavior-x:contain;
+ scrollbar-width:thin;scrollbar-color:#c8a951 rgba(4,9,13,.72);
+}
+.repositoryScene{
+ position:relative!important;width:2880px!important;min-width:2880px!important;
+ height:100%!important;min-height:0!important;max-height:100%!important;
+ overflow:hidden!important;box-sizing:border-box;
+}
+.repoIdentity{
+ position:absolute!important;left:26px!important;top:22px!important;
+ width:265px!important;bottom:22px!important;height:auto!important;
+ margin:0!important;padding:18px!important;
+ overflow-y:auto;scrollbar-width:thin;
+}
+.repoTimeline{
+ position:absolute!important;left:318px!important;right:28px!important;
+ top:12px!important;bottom:auto!important;height:68px!important;
+ display:grid!important;grid-template-columns:205px minmax(0,1fr) 94px!important;
+ gap:14px!important;margin:0!important;padding:6px 14px!important;
+ align-items:center!important;overflow:hidden!important;
+ border:1px solid rgba(200,169,81,.38)!important;
+ border-top:1px solid rgba(200,169,81,.58)!important;
+ background:rgba(3,9,15,.91)!important;
+ box-shadow:none!important;backdrop-filter:none!important;
+}
+.repoTimelineTrack{display:block!important;min-width:0!important;height:53px!important}
+.repoTimelineTrack button{top:8px!important}
+.repoTimelineMode{display:grid!important}
+.repoArchiveRail{
+ position:absolute!important;left:318px!important;right:845px!important;
+ top:95px!important;bottom:22px!important;height:auto!important;
+ margin:0!important;display:grid!important;
+ grid-template-columns:.82fr .92fr 1.08fr!important;gap:13px!important;
+}
+.repoObjectInspector{
+ position:absolute!important;right:468px!important;left:auto!important;
+ width:342px!important;top:95px!important;bottom:22px!important;
+ margin:0!important;overflow-y:auto!important;
+}
+.repoProvenance{
+ position:absolute!important;right:27px!important;left:auto!important;
+ width:415px!important;top:95px!important;bottom:22px!important;
+ margin:0!important;overflow-y:auto!important;
+}
+.repoRailColumn{min-height:0!important}
+.repoReader{overflow-y:auto!important}
+@media(prefers-reduced-motion:reduce){.repositoryShell{scroll-behavior:auto}}
