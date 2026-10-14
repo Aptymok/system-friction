@@ -103,7 +103,7 @@ BEGIN
   ) RETURNING * INTO v_row;
 
   RETURN CASE WHEN p_receipt_only THEN
-    jsonb_build_object('event_id', v_row.event_id, 'event_name', v_row.event_name,
+    jsonb_build_object('id', v_row.id, 'event_id', v_row.event_id, 'event_name', v_row.event_name,
       'logbook_id', v_row.logbook_id, 'epistemic_class', v_row.epistemic_class,
       'occurred_at', v_row.occurred_at, 'sequence', v_row.sequence, 'hash_self', v_row.hash_self)
   ELSE to_jsonb(v_row) END;
