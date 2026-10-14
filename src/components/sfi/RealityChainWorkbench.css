@@ -206,7 +206,7 @@
    Observatory's wall monitor is reused as visual grammar; Case Platform remains sole authority. */
 .rcThreeMode.rcOperational{--rc-gold:#c8a951;--rc-cream:#e8ddc3;min-height:580px}
 .rcThreeMode .rcBackdrop{
- background:#06090c url('/assets/sfi/instruments/RealityChain.png') center center/100% 100% no-repeat!important;
+ background:#06090c url('/assets/sfi/instruments/RealityChain.png') center center/cover no-repeat!important;
  opacity:1;filter:none!important;
 }
 .rcThreeMode .rcBackdrop:after{
