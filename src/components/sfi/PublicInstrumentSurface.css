@@ -5,8 +5,8 @@
 .sfiInstrumentArtwork{position:absolute;inset:0;z-index:0;overflow:hidden;background:#060605}
 .sfiInstrumentArtwork img{width:100%;height:100%;object-fit:cover;object-position:center;filter:none;transform:scale(1.01)}
 .sfiInstrumentArtworkVeil{position:absolute;inset:0;background:rgba(6,6,5,.08)}
-.sfiInstrumentHorizontal{position:absolute;inset:0;z-index:2;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain;touch-action:pan-x}
-.sfiInstrumentHorizontal::-webkit-scrollbar{display:none}
+.sfiInstrumentHorizontal{position:absolute;inset:0;z-index:2;overflow-x:auto;overflow-y:hidden;scroll-snap-type:none;scrollbar-width:thin;scrollbar-color:#c8a951 #080c10;overscroll-behavior-x:contain;scroll-behavior:smooth;touch-action:pan-x}
+.sfiInstrumentHorizontal::-webkit-scrollbar{display:block!important;height:10px!important}
 .sfiInstrumentTrack{display:flex;width:500vw;height:100%}
 .sfiInstrumentFifth{position:relative;width:100vw;height:100%;flex:0 0 100vw;scroll-snap-align:start;display:flex;align-items:center;padding:6vh 7vw 7vh}
 .sfiInstrumentFifth:after{content:"";position:absolute;right:0;top:8%;bottom:8%;width:1px;background:linear-gradient(transparent,rgba(200,169,81,.36),transparent)}
@@ -42,3 +42,6 @@
 .sfiTimelineDockControls button{min-width:78px;padding:7px;border:1px solid rgba(200,169,81,.24);background:rgba(6,6,5,.62);color:#cfbb8b;font:650 6px/1 var(--mono);letter-spacing:.08em;cursor:pointer}
 .sfiTimelineDockControls button:disabled{opacity:.28;cursor:not-allowed}
 @media(max-width:880px){.sfiInstrumentPage[data-surface="timeline"] .sfiInstrumentFifth{padding-bottom:22vh}.sfiTimelineDock{left:10px;right:10px;height:126px}.sfiTimelineDockTrack{margin-right:0}.sfiTimelineDockTrack button{width:72px}.sfiTimelineDockTrack button span{font-size:6px}.sfiTimelineDockControls{left:12px;right:12px;top:auto;bottom:8px;display:flex;justify-content:space-between}}
+
+/* The native gold scrollbar replaces decorative horizontal-scroll instructions. */
+.sfiInstrumentScrollCue{display:none!important}
