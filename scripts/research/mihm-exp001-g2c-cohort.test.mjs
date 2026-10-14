@@ -113,3 +113,25 @@ test('uniform date coverage includes middle and old PR rather than only most rec
   assert.deepEqual(a.records.map(x=>x.group.prNumber),[300,298,296]);
   assert.equal(a.counts.distinctPRs,3);
 });
+
+test('PRs with no qualifying CI remain visible; not counted as successful CI',async()=>{
+  const data=mock();
+  data['/actions/runs?head_sha=DEF&per_page=100']={workflow_runs:[],total_count:0};
+  const a=await collect({fetchJson:async p=>data[p],targetPRs:5,maxPages:1,
+    maxCommitsPerPR:2,cutoff});
+  assert.equal(a.counts.selectedPRsWithQualifyingCI,1);
+  assert.equal(a.counts.selectedPRsWithoutQualifyingCI,1);
+  const missing=a.selectedPrCoverage.find(x=>x.prNumber===299);
+  assert.equal(missing.sourceObservation,'NO_QUALIFYING_CI_OBSERVED');
+  assert.equal(a.counts.ciOutcomeCategories.SUCCESS??0,0);
+});
+test('mixed workflows are blocked from pooling as one scientific endpoint',async()=>{
+  const data=mock();
+  data['/actions/runs?head_sha=ABC&per_page=100'].workflow_runs.push(
+    {...run,id:9,workflow_id:13,name:'Different Workflow'});
+  const a=await collect({fetchJson:async p=>data[p],targetPRs:5,maxPages:1,
+    maxCommitsPerPR:2,cutoff});
+  assert.equal(a.byWorkflow.length,2);
+  assert.ok(a.risk.shortfalls.includes('MIXED_WORKFLOWS_REQUIRE_ONE_PRECOMMITTED_TARGET'));
+  assert.ok(a.risk.shortfalls.includes('TYPED_PRE_T0_MIHM_RELATIONS_NOT_COLLECTED'));
+});
