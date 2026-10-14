@@ -229,7 +229,7 @@ export async function verifyEpistemicEventChain(logbookId = 'default', _limit = 
     // Nothing here certifies a stable external receipt, and historical mixed
     // chains must not become VERIFIED by inference.
     return {
-      ok: failures.length === 0,
+      ok: status === 'STRUCTURALLY_LINEAR' && failures.length === 0,
       data: { logbookId, checked: rows.length, total, complete: true, valid: false,
         status, canonicalMatch, legacyFormat, forks, missingLocalParents, failures },
     } as const;
