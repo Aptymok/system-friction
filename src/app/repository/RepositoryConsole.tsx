@@ -266,14 +266,14 @@ export function RepositoryConsole({objects,initialObject,discovery}:{objects:rea
         </article>
       </section>:null}
 
-      <footer className="repoTimeline">
+      <nav className="repoTimeline" aria-label="Select recorded repository history">
         <div className="repoTimelineIdentity"><span>REPOSITORY HISTORY</span><b>{objects.length} PUBLIC CANONICAL OBJECTS</b></div>
         <div className="repoTimelineTrack">
           <div className="repoTimelineLine"/>
           {timeline.slice(-9).map((object,index)=><button type="button" key={object.id} style={{left:(6+(index*(88/Math.max(1,Math.min(8,timeline.length-1)))))+'%'}} data-active={object.id===selected?.id?'true':undefined} onClick={()=>selectObject(object)}><i/><time>{formatDate(object.updatedAt)}</time><span>{object.objectType}</span><small>{object.id}</small></button>)}
         </div>
         <div className="repoTimelineMode"><span>YEAR</span><b>{year(selected?.updatedAt??'')}</b></div>
-      </footer>
+      </nav>
     </section>
   </main>;
 }
