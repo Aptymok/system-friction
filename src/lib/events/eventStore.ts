@@ -261,6 +261,18 @@ export async function verifyEpistemicEventChain(
 
   if (!streamed.ok) return { ok: false as const, error: 'epistemic_event_stream_failed', details: streamed.details };
 
+  // A prefix is not proof of a complete chain. Count independently and fail closed.
+  const service = createServiceSupabaseClient();
+  const { count: total, error: countError } = await service
+    .from('epistemic_events')
+    .select('event_id', { count: 'exact', head: true })
+    .eq('logbook_id', logbookId);
+  if (countError || total === null) {
+    return { ok: false as const, error: 'epistemic_event_count_failed', details: countError?.message };
+  }
+  const complete = streamed.data.length === total;
+
+
   const failures: Array<{
     eventId: string;
     reason: string;
@@ -311,11 +323,14 @@ export async function verifyEpistemicEventChain(
   }
 
   return {
-    ok: failures.length === 0,
+    ok: complete && failures.length === 0,
     data: {
       logbookId,
       checked: streamed.data.length,
-      valid: failures.length === 0,
+      total,
+      complete,
+      status: !complete ? 'PARTIAL' : failures.length > 0 ? 'BROKEN' : total === 0 ? 'EMPTY_CONFIRMED' : 'VERIFIED',
+      valid: complete && failures.length === 0,
       failures,
     },
   } as const;
