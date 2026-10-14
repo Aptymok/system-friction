@@ -143,7 +143,7 @@
 @media(prefers-reduced-motion:reduce){.sfiGlobeSphere{animation:none;transition:none}.sfiMonitor{transform:none}}
 
 /* The shared site header remains visible; Observatory itself has no vertical page scroll. */
-body:has(>.obsShell),body:has(.obsShell){overflow-y:hidden!important}
+html:has(.obsShell),body:has(.obsShell){overflow-y:hidden!important}
 
 /* Low-power REAL spherical Observatory renderer replaces the CSS scroll-map illusion.
    The external cubical rig stays fixed while the Earth rotates and can be manipulated.
