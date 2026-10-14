@@ -201,3 +201,70 @@
 .rcStageBand button{background:linear-gradient(180deg,rgba(5,6,6,.48),rgba(5,6,6,.15))!important;border-color:rgba(200,169,81,.16)!important}
 .rcStageBand button[data-active="true"]{background:linear-gradient(180deg,rgba(200,169,81,.16),rgba(5,6,6,.28))!important;border-top-color:var(--rc-gold)!important}
 .rcOperationalHead{background:rgba(5,6,6,.58)!important;backdrop-filter:blur(12px)!important}
+
+/* Authenticated /reality-chain: actual operational background, not /instruments.
+   Observatory's wall monitor is reused as visual grammar; Case Platform remains sole authority. */
+.rcThreeMode.rcOperational{--rc-gold:#c8a951;--rc-cream:#e8ddc3;min-height:580px}
+.rcThreeMode .rcBackdrop{
+ background:#06090c url('/assets/sfi/instruments/RealityChain.png') center center/100% 100% no-repeat!important;
+ opacity:1;filter:none!important;
+}
+.rcThreeMode .rcBackdrop:after{
+ content:"";position:absolute;inset:0;
+ background:linear-gradient(90deg,rgba(2,6,10,.12),rgba(2,7,11,.34) 28%,rgba(2,7,11,.17) 67%,rgba(2,6,10,.45)),
+ linear-gradient(180deg,rgba(2,6,9,.06),transparent 42%,rgba(3,6,8,.35))!important;
+}
+.rcThreeMode .rcOperationalHead{background:rgba(3,9,14,.93)!important;backdrop-filter:none!important}
+.rcThreeMode .rcGlobalCaseBar{background:rgba(2,9,15,.88)!important;border-color:rgba(200,169,81,.4)!important}
+.rcThreeMode .rcThreeHorizon{padding:clamp(14px,1.8vw,28px)!important;gap:16px!important}
+.rcThreeMode .rcThreeHorizonTop{max-width:92%;align-self:center;width:100%}
+.rcThreeMode .rcThreeHorizonTop>p{color:#eadfcd}
+.rcThreeMode .rcThreeStageBand button{
+ min-height:105px;border:1px solid rgba(200,169,81,.3);
+ border-top:1px solid rgba(200,169,81,.52);
+ background:rgba(4,11,17,.72);padding:13px;
+}
+.rcThreeMode .rcThreeStageBand button[data-active=true]{border-top:2px solid #d4af68;background:rgba(29,34,31,.88)}
+.rcThreeMode .rcThreeHorizonBottom{
+ grid-template-columns:minmax(0,.84fr) minmax(0,1fr) minmax(0,1.12fr);
+ gap:clamp(10px,1.35vw,24px);
+ align-items:stretch;
+}
+.rcThreeMode .rcThreePane{
+ background:rgba(3,10,16,.85)!important;
+ border:1px solid rgba(200,169,81,.34)!important;
+ border-radius:1px!important;
+ box-shadow:none!important;
+ backdrop-filter:none!important;
+ scrollbar-width:thin;
+}
+.rcThreeMode .rcThreePane h2{
+ font:500 clamp(15px,1.18vw,22px)/1.25 "Noto Serif Display",Georgia,serif;
+ color:#e1c58a;padding-bottom:12px;border-bottom:1px solid rgba(200,169,81,.36);
+}
+.rcThreeMode .rcThreePane p,.rcThreeMode .rcThreePane li{color:#e8ddc3}
+.rcThreeMode .rcObservatoryWallMonitor{
+ border:1px solid rgba(216,181,112,.62)!important;
+ border-left:2px solid rgba(216,181,112,.78)!important;
+ border-top:2px solid rgba(200,169,81,.55)!important;
+ background:linear-gradient(165deg,rgba(3,9,15,.91),rgba(4,12,18,.82))!important;
+ box-shadow:inset 0 0 0 5px rgba(7,17,21,.28),0 14px 35px rgba(0,0,0,.32)!important;
+ transform:perspective(2200px) rotateY(-4deg);
+ transform-origin:right center;
+ transition:transform .17s ease,border-color .17s ease;
+ padding:clamp(15px,1.45vw,25px)!important;
+}
+.rcThreeMode .rcObservatoryWallMonitor:focus-within,
+.rcThreeMode .rcObservatoryWallMonitor:hover{transform:perspective(2200px) rotateY(-1deg);border-color:#d4af68!important}
+.rcThreeMode .rcObservatoryWallMonitor>h2{
+ letter-spacing:.075em;font-size:clamp(17px,1.4vw,25px);
+}
+.rcThreeMode .rcOperationalFooter{background:rgba(3,8,12,.94)!important}
+@media(max-width:900px){
+ .rcThreeMode .rcThreeHorizonBottom{grid-template-columns:1fr!important}
+ .rcThreeMode .rcObservatoryWallMonitor{transform:none!important}
+ .rcThreeMode .rcThreeStageBand button{min-height:100px}
+}
+@media(prefers-reduced-motion:reduce){
+ .rcThreeMode .rcObservatoryWallMonitor{transition:none;transform:none}
+}
