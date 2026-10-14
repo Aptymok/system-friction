@@ -18,3 +18,55 @@
 .mlh-auto-experiment>.mlh-action{max-width:340px}
 .mlh-auto-experiment>.mlh-boundary{margin:0;font:11px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;color:#bdac95}
 @media(max-width:760px){.mlh-auto-experiment{padding:15px}.mlh-auto-experiment>.mlh-action{max-width:none}}
+
+/* Authenticated /method-lab — Observatory monitor grammar, original governed actions.
+   Visual background reused; simulation never becomes observation/RETURN. */
+.mlh-shell{
+ background:#050a0d url('/assets/sfi/instruments/OBSERVATORY_BACKGROUND.png') center top/cover fixed no-repeat!important;
+ color:#e8ddc3;
+}
+.mlh-topbar{
+ background:rgba(3,9,14,.96)!important;
+ border-bottom:1px solid rgba(200,169,81,.45)!important;
+ backdrop-filter:none!important;
+}
+.mlh-hero{
+ min-height:clamp(320px,42vh,560px);
+ background:linear-gradient(90deg,rgba(3,9,14,.65),rgba(3,9,14,.10) 66%,rgba(3,9,14,.35));
+}
+.mlh-hero::before{background:transparent!important}
+.mlh-section{
+ border-top:1px solid rgba(200,169,81,.42)!important;
+ background:rgba(3,9,14,.74);margin-top:24px;
+ border-left:1px solid rgba(200,169,81,.18);
+ border-right:1px solid rgba(200,169,81,.18);
+}
+.mlh-section-head{border-bottom:1px solid rgba(200,169,81,.3);padding-bottom:16px}
+.mlh-section-head h2{font-size:clamp(26px,2.2vw,38px);color:#e8ddc3}
+.mlh-metrics{background:rgba(200,169,81,.16);border:1px solid rgba(200,169,81,.4)}
+.mlh-metrics article{background:rgba(3,9,14,.91);border-top:1px solid rgba(200,169,81,.29)}
+.mlh-card,.mlh-panel,.mlh-session{
+ background:linear-gradient(165deg,rgba(4,11,17,.93),rgba(4,10,15,.85))!important;
+ border:1px solid rgba(200,169,81,.34)!important;
+ border-radius:1px;backdrop-filter:none!important;box-shadow:none!important;
+}
+.mlh-card-head,.mlh-session header{border-bottom:1px solid rgba(200,169,81,.23);padding-bottom:12px}
+.mlh-panel input,.mlh-panel select,.mlh-panel textarea,.mlh-contrast textarea,.mlh-inline-action textarea{
+ background:rgba(2,7,12,.9)!important;
+ border:1px solid rgba(200,169,81,.42)!important;color:#e8ddc3!important
+}
+.mlh-readout{
+ background:linear-gradient(163deg,rgba(2,8,14,.95),rgba(5,12,19,.87))!important;
+ border:1px solid rgba(221,184,111,.69)!important;
+ border-left:2px solid #d4af68!important;
+ box-shadow:inset 0 0 0 5px rgba(8,18,23,.36),0 14px 34px rgba(0,0,0,.3)!important;
+ transform:perspective(2200px) rotateY(-3deg);transform-origin:right center;
+}
+.mlh-readout:focus-within{transform:none;border-color:#e0bd75!important}
+.mlh-readout h3{font-family:"Noto Serif Display",Georgia,serif;font-size:clamp(24px,2.3vw,34px)!important}
+.mlh-readout dl div,.mlh-session dl div{border-top:1px solid rgba(200,169,81,.23)}
+.mlh-readout dt,.mlh-readout dd{font-size:11px!important}
+.mlh-auto-experiment{background:linear-gradient(165deg,rgba(4,11,17,.93),rgba(4,10,15,.89))!important}
+.mlh-result,.mlh-toast{backdrop-filter:none!important}
+@media(max-width:1100px){.mlh-readout{transform:none}}
+@media(prefers-reduced-motion:reduce){.mlh-readout{transition:none}}
