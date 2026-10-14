@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from 'crypto';
+import { appendAtomicEpistemicEvent } from './atomicAppend';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import {
   canonicalizeEventPayload,
@@ -126,79 +127,19 @@ export async function appendEpistemicEvent(
     };
   }
 
-  const { data: latest, error: latestError } = await service
-    .from('epistemic_events')
-    .select('hash_self')
-    .eq('logbook_id', event.logbookId)
-    .order('sequence', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (latestError) {
-    return { ok: false as const, error: 'epistemic_event_head_read_failed', details: latestError.message };
-  }
-
-  const hashPrev =
-    typeof latest?.hash_self === 'string'
-      ? latest.hash_self
-      : null;
-
-  const hashSelf = hashEpistemicEvent({
+  // The database serializes competing writers under one transaction-scoped
+  // advisory lock. The client must not choose a predecessor outside the lock.
+  const result = await appendAtomicEpistemicEvent(service, {
     ...event,
-    hashPrev,
+    actorId: input.actorId ?? null,
+    nodeId: input.nodeId ?? null,
+    returnMode: input.returnMode ?? 'full',
   });
-
-  const insertRow = {
-    event_id: event.eventId,
-    actor_id: input.actorId ?? null,
-    node_id: input.nodeId ?? null,
-    event_name: event.eventName,
-    logbook_id: event.logbookId,
-    epistemic_class: event.epistemicClass,
-    schema_version: event.schemaVersion,
-    source: event.source,
-    confidence: event.confidence,
-    payload: event.payload,
-    checksum: event.checksum,
-    lineage: event.lineage,
-    uncertainty: event.uncertainty ?? null,
-    occurred_at: event.occurredAt,
-    hash_prev: hashPrev,
-    hash_self: hashSelf,
-  };
-
-  let data: any;
-  let error: any;
-  if (input.returnMode === 'receipt') {
-    const result = await service
-      .from('epistemic_events')
-      .insert(insertRow)
-      .select('event_id,event_name,logbook_id,epistemic_class,occurred_at,sequence,hash_self')
-      .single();
-    data = result.data;
-    error = result.error;
-  } else {
-    const result = await service
-      .from('epistemic_events')
-      .insert(insertRow)
-      .select('*')
-      .single();
-    data = result.data;
-    error = result.error;
+  if (!result.ok) {
+    return { ok: false as const, error: result.error, details: result.details };
   }
+  return { ok: true as const, data: result.data };
 
-  if (error) {
-    return {
-      ok: false as const,
-      error: 'epistemic_event_append_failed',
-      details: error.message,
-    };
-  }
-
-  return {
-    ok: true as const,
-    data,
-  };
 }
 
 export async function streamEpistemicEvents(
