@@ -32,3 +32,29 @@ The named check **Enforce canonical development preflight** is a **candidate exp
 ## Explicit non-effects
 
 No new methods, formulas, data tables, code owner, execution authority, grant, SFI database writer or material-world intervention. The read-only audit runs as an isolated research workflow and writes temporary GitHub Actions artifact only. Institutional archiving requires separate integrity/readback verification. Publication/CI success cannot mint scientific validity or empirical RETURN.
+
+## 2026-10-14 G3a executed and archived (source-linked)
+
+**Actual GitHub Actions run:** `38547376017`; **10/10 anti-leakage and unknown-state QA tests passed**, 21 real SFI Verify jobs inspected, 15 PR groups, 9 head-commit workflow source versions; zero source or job read errors. G3a original ZIP SHA256 `2bd9b3c34f7d3fd8de50ef43a7bf77b73527b32b04a6bacee101a4c48273c383`. Institutional original archive: https://drive.google.com/file/d/1r5qDpsuZ38ai2ClEpngFSG9BUfZuFYtf/view?usp=drivesdk (readback/hash verified). Source: GitHub Actions artifact `11884937440`, 30-day ephemeral retention.
+
+Per-check observed receipts: domain-boundary check **21 PASS / 0 FAIL**; architecture preflight **18 PASS / 3 FAIL across 2 PRs**; MIHM selection **18 PASS / 3 SKIPPED / 0 FAIL**; Neon fallback **13 PASS / 2 FAIL across 1 PR / 3 SKIPPED / 3 ABSENT**; ROOT navigation **17 PASS / 1 FAIL / 3 SKIPPED**; ROOT reports **16 PASS / 1 FAIL / 4 SKIPPED**. The three architecture failures are PR #670 run `36073833796` and PR #680 runs `36114751141`, `36114960487`. No check is an admissible scientific predictive endpoint from the current sample. Head SHA workflow source is not proven to match the actual PR merge-ref execution.
+
+## 2026-10-14 G3b bounded historical reconstruction: repeated architectural violation
+
+**OBSERVED FROM ACTUAL HISTORICAL JOB LOGS (not code inference):**
+
+- [PR #670 / CI run 36073833796](https://github.com/Aptymok/system-friction/actions/runs/36073833796) — canonical preflight rejected two rules: `P12_INTERFACE_NO_SUPABASE` and `P12_INTERFACE_NO_RAW_TABLE_ACCESS` in `src/app/publications/page.tsx`.
+- [PR #680 / CI run 36114751141](https://github.com/Aptymok/system-friction/actions/runs/36114751141) and [second run 36114960487](https://github.com/Aptymok/system-friction/actions/runs/36114960487) — same two violations at the same path.
+- Git blob `be0e113344cb267976942a57fdfa0e76d604c1f3` of that file at both #670 and #680 source HEADs is identical. It explicitly imports `createServiceSupabaseClient` from `@/runtime/supabase/server`, calls the factory, and queries `.from('sfi_publications')`. [Original failing source at #670](https://github.com/Aptymok/system-friction/blob/7b700123df31de14bc62f9f9274447b3c9c8ff7b/src/app/publications/page.tsx).
+- The same canonical preflight script blob `d9223b305fe732e6267f3f1bfea842cb4e5a611b` is present at failed PR #670/#680 **and** at sampled passing PR #640 and #740 source HEADs. [Script version](https://github.com/Aptymok/system-friction/blob/7b700123df31de14bc62f9f9274447b3c9c8ff7b/scripts/qa-canonical-architecture.mjs). This constrains one explanation: changed detector source is *not needed* to explain those differences, although runtime/merge-ref differences remain possible.
+- The publication page at sampled [PR #640 passing source](https://github.com/Aptymok/system-friction/blob/fea33e4150e4f9ebe70cb76be26cb29d7d129267/src/app/publications/page.tsx) has blob `76078f3f3b48402282525ab629dc10afadedbb37` with no inspected Supabase client or `.from()` marker. The later [PR #740 passing source](https://github.com/Aptymok/system-friction/blob/2aee155d124f74b858ceb16a7c404647dbec7fd3/src/app/publications/page.tsx) has distinct blob `0bd23b415213f23f5bcf44af2e347e937d54810a`, also lacking these markers.
+
+**DERIVED:** Three observed failed CI checks arose in two PR groups with the **same source violation**, not three independent failure mechanisms. A bounded documentary relation can be reconstructed:
+
+`CI workflow -> declared canonical-preflight script -> P12 architectural constraint -> publications UI file -> server Supabase import/direct table access -> failed preflight receipt`.
+
+Each arrow here has a source-backed **declared invocation, source-code observation or error receipt**, *not* a demonstrated causal graph for MIHM predictive inference. GitHub artifact/document receipt is source provenance; the real executed PR merge-ref remains a separate provenance limitation.
+
+**INFERRED/HYPOTHESIS:** A relation-aware MIHM representation *might* group repeat failures under a common perturbation/constraint better than a node-only count. To test that, construct a matched conventional rule-based or graph model that can see the **same** file path, code imports and P12 rule. Simply grouping three failure logs under one file is not evidence that MIHM outperforms ordinary incident triage.
+
+**Result:** G3b *retrospective source reconstruction* advanced with one bounded positive evidence chain; G3 performance test **still blocked** by inadequate independent PR failure groups, missing prospective experiment freeze and absence of complete, independent, as-of-T0 relation/constraint inputs on broader samples. The original G2c/G3a archives remain unmodified.
