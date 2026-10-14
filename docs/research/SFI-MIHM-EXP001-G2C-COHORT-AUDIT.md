@@ -47,3 +47,17 @@ Cross-workflow pooling remains scientifically inadmissible. The **SFI Verify** s
 The untouched stratified artifact is backed up to the existing MIHM Drive folder, at https://drive.google.com/file/d/1FJwjBo_lSWXiE1lDfhs8FDGdOWn2-H9d/view?usp=drivesdk , ZIP SHA-256 `b42900315295e87fe1a668fa0357d1f83e8ed022858df2d3fbc4fbc49cbe372f`.
 
 **Further G2c correction:** prior JSON only included selected PRs with qualifying CI records. A source-completeness record for *all 24 selected PRs* is now part of the output, distinguishing no qualifying CI observed from failed CI. It also explicitly prohibits pooling heterogeneous workflows or inferring MIHM-relational superiority from file-change metadata alone. That amendment is still descriptive and exploratory, subject to independent CI execution.
+
+## 2026-10-14 — G2c source coverage closed (descriptive, research only)
+
+**Final audit:** GitHub Actions run `38534497119`, artifact `11879152257`, **16/16 anti-leakage/source-coverage tests passed**, source requests 145, no retrieval errors or pagination warnings. Among 227 window-candidate PRs, 24 creation-date-spaced PRs were examined: 15 had at least one qualifying CI run and **9 had no qualifying CI observed** (unknown coverage, not successful CI). The final research manifest records all 24 PR coverage states without inventing missing results. Distinct observed groups: 15 PRs, 21 SHA commits, 68 workflow runs; 56 success, 12 failure, 0 prospective predictions.
+
+**Workflow comparability:** Nine named workflows appeared. For a narrowly defined future SFI Verify experiment there are 21 workflow runs across 15 PRs, 7 failure events in **4 distinct PR groups** and 14 successful runs. A baseline across all workflows would be invalid because workflow identities/tasks differ. Group-level independent failure sample is currently too limited for a defensible predictive advantage claim.
+
+**G2c result:** Evidence-acquisition and source-coverage gates *operationally exercised*; scientific model advantage remains **NOT_OBSERVED**. The G3 matched-comparator experiment is **BLOCKED** until independently admissible, pre-T0 node/edge/constraint data can be reconstructed and one comparable endpoint/horizon and sufficient holdout groups are chosen without outcome leakage. No MIHM computational values or Φ scores were calculated from this data.
+
+**Final archive:** Original artifact ZIP preserved without modification in existing MIHM Google Drive folder:
+https://drive.google.com/file/d/1SKfh5Ed3wdEAFH4ZLw-2XNx_OlifFs9L/view?usp=drivesdk
+SHA-256 of the archived ZIP `ed432026d254bed860cdbf95b233855055ea5d86217f7f9b5a133bc6819ad3ef`. Readback from Drive matched GitHub artifact digest. Retain original versioned audits and distinguish each post-hoc research change.
+
+**Next action:** specifically audit and construct as-of-T0 source dependency/constraint relations for the **SFI Verify** subgroup, with meaningful observable constructs. If typed relations cannot be grounded from pre-cutoff sources, record **ABSTAIN / G3 BLOCKED** rather than fit a nominal “MIHM” model to file counts.
