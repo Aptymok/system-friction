@@ -1,0 +1,50 @@
+name: MIHM EXP-001 G3a Named Check Evidence
+on:
+  pull_request:
+    paths:
+      - 'scripts/research/mihm-exp001-g3-check-audit.mjs'
+      - 'scripts/research/mihm-exp001-g3-check-audit.test.mjs'
+      - '.github/workflows/mihm-exp001-g3.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+jobs:
+  g3_source_checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test historical check and missingness boundaries
+        run: node --test scripts/research/mihm-exp001-g3-check-audit.test.mjs
+      - name: Retrieve and verify immutable G2c source artifact
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/mihm-exp001
+          curl --fail --silent --show-error --location \
+            --header "Authorization: Bearer ${GITHUB_TOKEN}" \
+            --header "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/Aptymok/system-friction/actions/artifacts/11879152257/zip" \
+            --output artifacts/mihm-exp001/g2c-original.zip
+          echo "ed432026d254bed860cdbf95b233855055ea5d86217f7f9b5a133bc6819ad3ef  artifacts/mihm-exp001/g2c-original.zip" | sha256sum --check
+          unzip -p artifacts/mihm-exp001/g2c-original.zip g2c-cohort.json > artifacts/mihm-exp001/g2c-cohort.json
+      - name: Observe real CI check receipts and workflow-source chronology
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          node scripts/research/mihm-exp001-g3-check-audit.mjs artifacts/mihm-exp001/g2c-cohort.json > artifacts/mihm-exp001/g3-source-checks.json
+          node -e "const a=require('./artifacts/mihm-exp001/g3-source-checks.json');console.log(JSON.stringify({contract:a.contract,summary:a.summary,errors:a.errors.length,validated:a.validated},null,2))"
+      - name: Save bounded research-only artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mihm-exp001-g3a-source-checks
+          path: artifacts/mihm-exp001/g3-source-checks.json
+          retention-days: 30
+          if-no-files-found: error
