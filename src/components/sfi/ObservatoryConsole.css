@@ -165,3 +165,10 @@ html:has(.obsShell),body:has(.obsShell){overflow-y:hidden!important}
 }
 .sfiGlobePause:focus-visible{outline:2px solid #e4c27f;outline-offset:2px}
 @media(prefers-reduced-motion:reduce){.sfiLiveGlobeCanvas{transition:none}}
+
+/* Match the rest of SFI's native fluid horizontal panorama. */
+.obsShell{
+ scroll-behavior:smooth;
+ scrollbar-color:#c8a951 rgba(4,9,13,.72);
+}
+@media(prefers-reduced-motion:reduce){.obsShell{scroll-behavior:auto}}
