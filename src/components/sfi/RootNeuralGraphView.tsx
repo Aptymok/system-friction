@@ -844,6 +844,7 @@ export function RootNeuralGraphView({
         <section className="rootFieldStage rootHorizontalGraph" aria-label="Canonical Neural Graph">
           <details className="rootSemanticLegend">
             <summary>FIELD LEGEND · {reading.replaceAll('_',' ')}</summary>
+            <p>FIELD STATUS · {graph.sourceState.toUpperCase()} · {graph.readPlane} · {visibleNodes.length} OBJECTS · {visibleEdges.length} RELATIONS · {date(graph.loadedAt)}</p>
             <p className="rootSemanticLegendReading">{readingMeaning(reading)}</p>
             <p><strong>COLOR ENCODING · {colorEncoding}</strong> · Reversible presentation only. It does not alter epistemic state, authority, persistence or graph relations.</p>
             <div className="rootSemanticLegendGrid">
@@ -857,6 +858,7 @@ export function RootNeuralGraphView({
           </details>
           <div className="rootReferenceModes" aria-label="Field perspective">
             {([['FIELD','CURRENT_STATE'],['TRAJECTORIES','TRAJECTORY'],['HIERARCHY','HIERARCHY'],['CONTRAST','RETURN_CONTRAST']] as const).map(([label,mode])=><button type="button" key={mode} aria-pressed={reading===mode} onClick={()=>setReading(mode)}>{label}</button>)}
+            {selectedId?<button type="button" onClick={()=>setFocusId(focusId===selectedId?null:selectedId)}>{focusId===selectedId?'SHOW ALL RELATIONS':'ISOLATE RELATIONS'}</button>:null}
           </div>
           <RootCognitiveFieldPixi nodes={fieldNodes} edges={fieldEdges} width={topology.width} height={topology.height} onSelect={id=>setSelectedId(id)} />
           <div className="rootFieldLiveDeck" aria-label="Live ROOT field summaries">
@@ -894,11 +896,7 @@ export function RootNeuralGraphView({
             </section>
           </div>
           {!visibleNodes.length ? <div className="rootFieldEmpty">NO COGNITIVE OBJECTS MATCH THE SELECTED FILTERS.</div> : null}
-          <div className="rootFieldTimelineFooter" aria-label="Field state and chronology">
-            <span>{reading.replaceAll('_',' ')} · {graph.sourceState.toUpperCase()} · {graph.readPlane}</span>
-            <span>{visibleNodes.length} OBJECTS · {visibleEdges.length} RELATIONS · {date(graph.loadedAt)}</span>
-            {selectedId?<button type="button" onClick={()=>setFocusId(focusId===selectedId?null:selectedId)}>{focusId===selectedId?'SHOW ALL RELATIONS':'ISOLATE RELATIONS'}</button>:null}
-          </div>
+
         </section>
 
         <section className="rootGovernanceConsole" aria-label="Governance Console and Reality Passport">
