@@ -60,12 +60,13 @@ export function projectTimelineClockProfile(input:{
     const complete=Boolean(when&&evidence?.sourceRef?.trim()&&evidence?.meaning?.trim()&&
       (evidence.basis==='OBSERVED_TIME'||evidence.basis==='RECONSTRUCTED_TIME')&&
       (evidence.epistemicClass==='OBSERVED'||evidence.epistemicClass==='RECONSTRUCTED'));
-    return {clock:clock.id,label:clock.label,at:complete?when:null,
+    const reading:TimelineClockReading={clock:clock.id,label:clock.label,at:complete?when:null,
       state:complete?'SOURCE_DATED':'UNKNOWN',
       sourceRef:complete?evidence!.sourceRef:null,
       meaning:complete?evidence!.meaning:'No independently dated source for this clock.',
       basis:complete?evidence!.basis:null,
       epistemicClass:complete?evidence!.epistemicClass:'UNKNOWN'};
+    return reading;
   });
   const by=(id:TimelineClockId)=>readings.find(x=>x.clock===id)!;
   // Only show directly computed ordering when both independent clocks are observed.
