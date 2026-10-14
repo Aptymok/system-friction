@@ -31,6 +31,8 @@ export async function appendAtomicEpistemicEvent(service: SupabaseClient, event:
     return { ok: false as const, error: 'invalid_epistemic_node_id', details: 'nodeId must be a UUID' };
   }
 
+  // Compatibility-safe SHA256 material is computed in SQL only after the
+  // transaction lock. This adapter passes the canonical key order explicitly.
   // The RPC serializes the head lookup and insertion. Cross-runtime hashing
   // parity is an explicit release gate, not an assumed property.
   const { data, error } = await service.rpc('sfi_append_epistemic_event_v2', {
