@@ -47,7 +47,7 @@ export function summarize(rows,errors=[]){
   for(const name of CHECKS){
     const statuses=rows.map(x=>x.checks[name]?.status??'UNKNOWN');
     const failurePrs=[...new Set(rows.filter(x=>x.checks[name]?.status==='FAIL').map(x=>x.pr))];
-    const commands=[...new Set(rows.map(x=>x.sourceCommands[name]).filter(Boolean))];
+    const commands=[...new Set(rows.map(x=>x.sourceCommands?.[name]).filter(Boolean))];
     byCheck[name]={
       pass:statuses.filter(s=>s==='PASS').length,
       fail:statuses.filter(s=>s==='FAIL').length,
