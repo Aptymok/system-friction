@@ -1,0 +1,46 @@
+name: MEM-002 PostgreSQL Integration
+on:
+  push:
+    branches:
+      - fix/mem-002-single-epistemic-writer
+  pull_request:
+    paths:
+      - 'src/lib/events/**'
+      - 'src/core/memory/epistemicEventWriter.ts'
+      - 'src/lib/governance/**'
+      - 'supabase/migrations/20261014193000_mem002_atomic_epistemic_append.sql'
+      - 'scripts/qa-sfi-mem002-*'
+      - '.github/workflows/mem002-postgres.yml'
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: mem002
+          POSTGRES_PASSWORD: mem002
+          POSTGRES_DB: mem002
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U mem002 -d mem002"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      MEM002_TEST_DATABASE_URL: postgres://mem002:mem002@localhost:5432/mem002
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Static contract guards
+        run: npx tsx scripts/qa-sfi-mem002-single-writer.ts
+      - name: PostgreSQL concurrency and canonical integrity
+        run: npx tsx scripts/qa-sfi-mem002-postgres.ts
+      - name: TypeScript typecheck
+        run: npm run typecheck

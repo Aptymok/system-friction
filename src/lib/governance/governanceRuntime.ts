@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+import { appendEpistemicEvent } from '@/lib/events/eventStore';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { processEpistemicEvent } from '@/core/memory/institutionalEventPipeline';
 
@@ -35,10 +35,6 @@ const SCHEMA_VERSION = '2026-05-27.sfi-governance-d1';
 
 function nowIso() {
   return new Date().toISOString();
-}
-
-function hashPayload(payload: unknown) {
-  return crypto.createHash('sha256').update(JSON.stringify(payload)).digest('hex');
 }
 
 function hoursSince(iso: string | null, now: Date) {
@@ -101,51 +97,23 @@ export async function readGovernanceRuntime(): Promise<GovernanceRuntimeState> {
   return stateFromEvent(data as EpistemicEventRow | null);
 }
 
-async function getLatestEventHash() {
-  const service = createServiceSupabaseClient();
-  const { data } = await service
-    .from('epistemic_events')
-    .select('hash_self')
-    .order('sequence', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  return typeof data?.hash_self === 'string' ? data.hash_self : null;
-}
-
 export async function recordBlindModePolicyBlock(actorId: string | null, action: string, governance: GovernanceRuntimeState) {
   const service = createServiceSupabaseClient();
   const occurredAt = nowIso();
   const eventId = `governance:blind:block:${action}:${occurredAt}`;
   const payload = { governanceKey: GOVERNANCE_KEY, action, governance };
-  const checksum = hashPayload(payload);
-  const hashPrev = await getLatestEventHash();
-  const hashSelf = hashPayload({ event_id: eventId, payload, hash_prev: hashPrev, occurred_at: occurredAt });
+  const inserted = await appendEpistemicEvent({
+    eventId, eventName: 'governance.blind_mode.blocked', logbookId: 'BR',
+    epistemicClass: 'observed', schemaVersion: SCHEMA_VERSION,
+    source: { sourceId: 'SFI_RUNTIME', sourceType: 'governance' },
+    actorId, nodeId: null, confidence: 1, payload,
+    lineage: governance.eventId ? [governance.eventId] : [], occurredAt,
+  });
+  const event = inserted.ok ? inserted.data : null;
+  const eventError = inserted.ok ? null : inserted.error;
+  const hashSelf = event?.hash_self ?? null;
 
-  const { data: event, error: eventError } = await service
-    .from('epistemic_events')
-    .insert({
-      event_id: eventId,
-      event_name: 'governance.blind_mode.blocked',
-      logbook_id: 'BR',
-      epistemic_class: 'observed',
-      schema_version: SCHEMA_VERSION,
-      source: { sourceId: 'SFI_RUNTIME', sourceType: 'governance' },
-      actor_id: actorId,
-      node_id: null,
-      confidence: 1,
-      payload,
-      checksum,
-      lineage: governance.eventId ? [governance.eventId] : [],
-      uncertainty: null,
-      occurred_at: occurredAt,
-      hash_prev: hashPrev,
-      hash_self: hashSelf,
-    })
-    .select('id')
-    .single();
-
-  if (!eventError && event?.id) {
+  if (!eventError && event?.id && typeof hashSelf === 'string') {
     await service.from('policy_decisions').insert({
       event_id: event.id,
       allow_llm: false,
@@ -191,52 +159,22 @@ export async function recordAcpSeen(actorId: string | null, actorEmail: string |
     actorEmail,
     previous,
   };
-  const checksum = hashPayload(payload);
-  const hashPrev = await getLatestEventHash();
-  const hashSelf = hashPayload({
-    event_id: eventId,
-    event_name: eventName,
-    logbook_id: 'BR',
-    epistemic_class: 'observed',
-    schema_version: SCHEMA_VERSION,
+  const inserted = await appendEpistemicEvent({
+    eventId, eventName, logbookId: 'BR', epistemicClass: 'observed',
+    schemaVersion: SCHEMA_VERSION,
     source: { sourceId: 'SFI_RUNTIME', sourceType: 'governance' },
-    actor_id: actorId,
-    node_id: null,
-    confidence: 1,
-    payload,
-    checksum,
-    lineage: previous.eventId ? [previous.eventId] : [],
-    uncertainty: null,
-    occurred_at: occurredAt,
-    hash_prev: hashPrev,
+    actorId, nodeId: null, confidence: 1, payload,
+    lineage: previous.eventId ? [previous.eventId] : [], occurredAt,
   });
-
-  const { data: event, error: eventError } = await service
-    .from('epistemic_events')
-    .insert({
-      event_id: eventId,
-      event_name: eventName,
-      logbook_id: 'BR',
-      epistemic_class: 'observed',
-      schema_version: SCHEMA_VERSION,
-      source: { sourceId: 'SFI_RUNTIME', sourceType: 'governance' },
-      actor_id: actorId,
-      node_id: null,
-      confidence: 1,
-      payload,
-      checksum,
-      lineage: previous.eventId ? [previous.eventId] : [],
-      uncertainty: null,
-      occurred_at: occurredAt,
-      hash_prev: hashPrev,
-      hash_self: hashSelf,
-    })
-    .select('id')
-    .single();
+  const event = inserted.ok ? inserted.data : null;
+  const eventError = inserted.ok ? null : inserted.error;
+  const hashSelf = event?.hash_self ?? null;
 
   if (eventError) {
-    return { ok: false as const, error: 'governance_event_insert_failed', details: eventError.message };
+    return { ok: false as const, error: 'governance_event_insert_failed', details: eventError };
   }
+
+  if (!event || typeof hashSelf !== 'string') return { ok: false as const, error: 'governance_event_missing_receipt' };
 
   const nextState = stateFromEvent({
     id: event.id,

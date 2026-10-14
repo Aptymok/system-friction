@@ -28,13 +28,14 @@ export async function GET(
 
   return NextResponse.json({
 
-    ok: true,
+    ok: result.ok,
 
     logbookId,
 
     data:
-      result.data
+      result.data,
+    ...(result.ok ? {} : { error: 'epistemic_event_stream_failed' })
 
-  });
+  }, { status: result.ok ? 200 : 503 });
 
 }

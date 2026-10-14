@@ -1,25 +1,9 @@
-import crypto from 'crypto';
+import { appendEpistemicEvent } from '@/lib/events/eventStore';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { readGovernanceRuntime } from './governanceRuntime';
 import { processEpistemicEvent } from '@/core/memory/institutionalEventPipeline';
 
 const SCHEMA_VERSION = '2026-05-27.sfi-governance-d3';
-
-function hashPayload(payload: unknown) {
-  return crypto.createHash('sha256').update(JSON.stringify(payload)).digest('hex');
-}
-
-async function latestHash() {
-  const service = createServiceSupabaseClient();
-  const { data } = await service
-    .from('epistemic_events')
-    .select('hash_self')
-    .order('sequence', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  return typeof data?.hash_self === 'string' ? data.hash_self : null;
-}
 
 export type ThoughtInhibitionInput = {
   actorId: string | null;
@@ -72,36 +56,28 @@ export async function evaluateThoughtInhibition(input: ThoughtInhibitionInput) {
     reason,
     ...input.payload,
   };
-  const checksum = hashPayload(payload);
-  const hashPrev = await latestHash();
-  const hashSelf = hashPayload({ event_id: eventId, payload, hash_prev: hashPrev, occurred_at: occurredAt });
-
-  const { data: event, error } = await service
-    .from('epistemic_events')
-    .insert({
-      event_id: eventId,
-      event_name: 'governance.thought.inhibited',
-      logbook_id: 'BR',
-      epistemic_class: 'observed',
-      schema_version: SCHEMA_VERSION,
-      source: { sourceId: 'SFI_RUNTIME', sourceType: 'governance' },
-      actor_id: input.actorId,
-      node_id: null,
-      confidence: 1,
-      payload,
-      checksum,
-      lineage: governance.eventId ? [governance.eventId] : [],
-      uncertainty: null,
-      occurred_at: occurredAt,
-      hash_prev: hashPrev,
-      hash_self: hashSelf,
-    })
-    .select('id')
-    .single();
-
-  if (error) {
-    return { ok: false as const, inhibited: true, error: 'thought_inhibition_event_failed', details: error.message, governance };
+  const inserted = await appendEpistemicEvent({
+    eventId,
+    eventName: 'governance.thought.inhibited',
+    logbookId: 'BR',
+    epistemicClass: 'observed',
+    schemaVersion: SCHEMA_VERSION,
+    source: { sourceId: 'SFI_RUNTIME', sourceType: 'governance' },
+    actorId: input.actorId,
+    nodeId: null,
+    confidence: 1,
+    payload,
+    lineage: governance.eventId ? [governance.eventId] : [],
+    occurredAt,
+  });
+  if (!inserted.ok) {
+    return { ok: false as const, inhibited: true, error: 'thought_inhibition_event_failed', details: inserted.details ?? inserted.error, governance };
   }
+  const event = inserted.data;
+  if (!event?.id) {
+    return { ok: false as const, inhibited: true, error: 'thought_inhibition_event_receipt_missing', governance };
+  }
+  const hashSelf = event.hash_self;
 
   await service.from('policy_decisions').insert({
     event_id: event.id,

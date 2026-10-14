@@ -12,7 +12,7 @@ export async function GET() {
     eventCount: events.data?.length ?? 0,
     events: events.data ?? [],
     ...(events.ok ? {} : { error: 'sfi_event_stream_failed' }),
-  });
+  }, { status: events.ok ? 200 : 503 });
 }
 
 export async function POST(request: Request) {
