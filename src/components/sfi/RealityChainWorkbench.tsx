@@ -461,12 +461,7 @@ export function RealityChainWorkbench(){
     </div>
   </div>
 
-  <footer className="rcOperationalFooter">
-    <div><strong>REALITY CHAIN · THREE COGNITIVE SCREENS</strong><span>ORIGIN · LINEAGE · AUTHORITY · TIME · RETURN</span></div>
-    <button type="button" onClick={()=>scrollTo(Math.max(0,screen-1))} disabled={screen===0}>← PREVIOUS</button>
-    <div className="rcOperationalFooterRail"><span>{screen===0?'WORLD · SIGNAL · OBSERVATION':screen===1?'EVIDENCE · INFERENCE · AUTHORITY':'EXECUTION · RETURN · LEARNING'}</span></div>
-    <button type="button" onClick={()=>scrollTo(Math.min(2,screen+1))} disabled={screen===2}>NEXT →</button>
-  </footer>
+
   {message?<div className="rcToast" role="status">{message}<button onClick={()=>setMessage('')} aria-label="Dismiss message">×</button></div>:null}
   {error?<div className="rcToast rcToastError" role="alert">{error}<button onClick={()=>setError('')} aria-label="Dismiss error">×</button></div>:null}
  </main>;
