@@ -27,7 +27,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p artifacts/mihm-exp001
-          curl --fail --silent --show-error --location \
+          curl --fail --silent --show-error --location --retry 3 --retry-all-errors --retry-delay 2 --retry-max-time 30 \
             --header "Authorization: Bearer ${GITHUB_TOKEN}" \
             --header "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/Aptymok/system-friction/actions/artifacts/11884937440/zip" \
