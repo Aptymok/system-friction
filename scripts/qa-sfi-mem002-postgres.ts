@@ -59,7 +59,11 @@ async function run() {
       await sql.unsafe(`CREATE ROLE ${role}`);
     }
     console.log('MEM002_STAGE: applying SQL migration');
-    await sql.unsafe(readFileSync('supabase/migrations/20261014193000_mem002_atomic_epistemic_append.sql', 'utf8'));
+    const migration = readFileSync('supabase/migrations/20261014193000_mem002_atomic_epistemic_append.sql', 'utf8');
+    await sql.unsafe(migration.slice(0, migration.indexOf('-- No execute rights')));
+    const signature = await sql`select pg_get_function_identity_arguments(oid) as args from pg_proc where proname = 'sfi_append_epistemic_event_v2'`;
+    console.log('MEM002_RPC_SIGNATURE:', signature[0]?.args);
+    await sql.unsafe(migration.slice(migration.indexOf('-- No execute rights')));
     console.log('MEM002_STAGE: migration applied');
     const legacy = 'legacy-' + randomUUID();
     await sql`insert into public.epistemic_events
