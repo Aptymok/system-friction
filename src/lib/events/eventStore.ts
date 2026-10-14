@@ -114,7 +114,7 @@ export function hashEpistemicEvent(
 }
 
 export async function appendEpistemicEvent(
-  input: Partial<SFIEvent> & { logbookId?: string; schemaVersion?: string; returnMode?: 'full'|'receipt' }
+  input: Partial<SFIEvent> & { logbookId?: string; schemaVersion?: string; returnMode?: 'full'|'receipt'; actorId?: string | null; nodeId?: string | null }
 ) {
   const service = createServiceSupabaseClient();
   const event = normalizeEvent(input);
@@ -126,13 +126,17 @@ export async function appendEpistemicEvent(
     };
   }
 
-  const { data: latest } = await service
+  const { data: latest, error: latestError } = await service
     .from('epistemic_events')
     .select('hash_self')
     .eq('logbook_id', event.logbookId)
     .order('sequence', { ascending: false })
     .limit(1)
     .maybeSingle();
+
+  if (latestError) {
+    return { ok: false as const, error: 'epistemic_event_head_read_failed', details: latestError.message };
+  }
 
   const hashPrev =
     typeof latest?.hash_self === 'string'
@@ -146,6 +150,8 @@ export async function appendEpistemicEvent(
 
   const insertRow = {
     event_id: event.eventId,
+    actor_id: input.actorId ?? null,
+    node_id: input.nodeId ?? null,
     event_name: event.eventName,
     logbook_id: event.logbookId,
     epistemic_class: event.epistemicClass,
