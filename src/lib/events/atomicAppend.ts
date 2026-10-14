@@ -31,7 +31,7 @@ export async function appendAtomicEpistemicEvent(service: SupabaseClient, event:
     return { ok: false as const, error: 'invalid_epistemic_node_id', details: 'nodeId must be a UUID' };
   }
 
-  // All contention retries retain event identity and immutable payload.
+  // Retry only explicitly stale head errors; all other errors fail closed.
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const { data: head, error: headError } = await service
       .from('epistemic_events')
