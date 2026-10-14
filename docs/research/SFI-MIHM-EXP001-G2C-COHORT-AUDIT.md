@@ -61,3 +61,29 @@ https://drive.google.com/file/d/1SKfh5Ed3wdEAFH4ZLw-2XNx_OlifFs9L/view?usp=drive
 SHA-256 of the archived ZIP `ed432026d254bed860cdbf95b233855055ea5d86217f7f9b5a133bc6819ad3ef`. Readback from Drive matched GitHub artifact digest. Retain original versioned audits and distinguish each post-hoc research change.
 
 **Next action:** specifically audit and construct as-of-T0 source dependency/constraint relations for the **SFI Verify** subgroup, with meaningful observable constructs. If typed relations cannot be grounded from pre-cutoff sources, record **ABSTAIN / G3 BLOCKED** rather than fit a nominal “MIHM” model to file counts.
+
+## 2026-10-14 — G3 source-lineage feasibility: SFI Verify workflow drift
+
+Research-only audit of **all 21 SFI Verify CI entries** from the finalized 68-entry G2c source manifest. For each observed CI entry, `.github/workflows/sfi-verify.yml` was fetched at the corresponding immutable **commit SHA** through GitHub. The declared workflow file takes **9 distinct Git blob versions**, with **64–81 named YAML steps** across observed commits. This is a **source-version proxy**, not proof that a PR-triggered merge-ref ran byte-for-byte the exact head-commit workflow content.
+
+| Workflow Git blob prefix | Source PR groups | SFI Verify entries | Success / failure | Named steps in source |
+|---|---|---:|---|---:|
+| `c21808bc` | #510 | 2 | 0 / 2 | 64 |
+| `66b71d1b` | #530 | 1 | 1 / 0 | 65 |
+| `d58aa346` | #541, #562, #571 | 3 | 3 / 0 | 69 |
+| `d210b2c1` | #601, #611, #621 | 4 | 2 / 2 | 70 |
+| `28c3d5ee` | #630, #640, #670, #680 | 6 | 3 / 3 | 71 |
+| `125c7f95` | #691 | 1 | 1 / 0 | 72 |
+| `f40616ec` | #711 | 1 | 1 / 0 | 73 |
+| `7f2a8831` | #740 | 2 | 2 / 0 | 80 |
+| `d694fc78` | #740 | 1 | 1 / 0 | 81 |
+
+This is *documentary audit evidence of shifting test definitions*. It is not evidence that changing the workflow caused failures or successes. Comparisons of overall workflow conclusion as a stable, single target would confound changes in the check battery, code, and intervention context.
+
+Additional **actual GitHub Actions job-step receipts**, inspected without collecting raw execution logs:
+
+- [PR #510, workflow run 34927473562](https://github.com/Aptymok/system-friction/actions/runs/34927473562): the main SFI Verify job failed at **Verify ROOT graph and navigation convergence**, whereas **Check domain boundaries passed**. The job exposed 60 steps including setup/cleanup.
+- [PR #640, workflow run 35783444197](https://github.com/Aptymok/system-friction/actions/runs/35783444197): main SFI Verify job passed, with 67 exposed job steps; **Check domain boundaries passed**.
+- [PR #740, workflow run 38180740372](https://github.com/Aptymok/system-friction/actions/runs/38180740372): main SFI Verify job passed, with 76 exposed job steps; **Check domain boundaries passed**.
+
+**G3 decision:** Block pooled workflow-level predictive claims. Before any baseline-versus-MIHM experiment, choose a versioned and sufficiently observable endpoint at the *named check/constraint level*, reconstruct stable code/test provenance as of T0, predeclare outcome and abstention rules, and collect actual pre-T0 node/edge relationships from source or equivalent auditable receipts. A correct result may be *insufficient data*; this cannot be solved by adding heuristics or an ungrounded universal Φ.
