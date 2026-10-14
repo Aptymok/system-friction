@@ -42,13 +42,7 @@ BEGIN
   IF p_confidence IS NULL OR p_confidence < 0 OR p_confidence > 1 THEN
     RAISE EXCEPTION 'SFI_CONFIDENCE_OUT_OF_RANGE';
   END IF;
-  -- The existing TypeScript canonical hash serializes lexicographically sorted
-  -- keys. PostgreSQL jsonb text is not guaranteed to serialize identically.
-  -- The caller's hash algorithm is therefore NOT transparently portable.
-  -- Migration intentionally fails closed until the exact serializer has been
-  -- implemented and proven with golden vectors; no live writes are permitted.
-  RAISE EXCEPTION 'SFI_MEM002_CANONICAL_HASH_SERIALIZER_NOT_VERIFIED';
-
+  -- Lock first: no competing writer can read and append the same head.
   PERFORM pg_advisory_xact_lock(hashtextextended('SFI-EPISTEMIC-LEDGER:' || p_logbook_id, 0));
 
   SELECT hash_self INTO v_prev
@@ -57,8 +51,39 @@ BEGIN
   ORDER BY sequence DESC
   LIMIT 1;
 
-  v_attributes := p_canonical_attributes || jsonb_build_object('hashPrev', v_prev);
-  v_event_hash := encode(digest(convert_to(v_attributes::text, 'UTF8'), 'sha256'), 'hex');
+  -- No guessing how JSONB canonicalizes: input provides SHA-256 material
+  -- computed by the canonical TypeScript serializer for a specific head.
+  -- The predecessor is checked under the lock. A stale concurrent attempt
+  -- is explicitly rejected and the caller must retry with a new head.
+  IF p_canonical_attributes->>'hashPrev' IS DISTINCT FROM v_prev THEN
+    RAISE EXCEPTION 'SFI_EPIS_HEAD_STALE_RETRY';
+  END IF;
+  IF p_canonical_attributes->>'checksum' IS DISTINCT FROM p_checksum THEN
+    RAISE EXCEPTION 'SFI_EPIS_CHECKSUM_MISMATCH';
+  END IF;
+  -- Event identity and critical fields are compared before accepting material.
+  IF p_canonical_attributes->>'eventId' IS DISTINCT FROM p_event_id
+    OR p_canonical_attributes->>'eventName' IS DISTINCT FROM p_event_name
+    OR p_canonical_attributes->>'logbookId' IS DISTINCT FROM p_logbook_id
+    OR p_canonical_attributes->>'epistemicClass' IS DISTINCT FROM p_epistemic_class
+    OR p_canonical_attributes->>'schemaVersion' IS DISTINCT FROM p_schema_version
+    OR p_canonical_attributes->>'occurredAt' IS DISTINCT FROM to_char(p_occurred_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+    OR (p_canonical_attributes->'source') IS DISTINCT FROM p_source
+    OR (p_canonical_attributes->'payload') IS DISTINCT FROM p_payload
+    OR (p_canonical_attributes->'lineage') IS DISTINCT FROM to_jsonb(p_lineage)
+    OR (p_canonical_attributes->>'confidence')::numeric IS DISTINCT FROM p_confidence
+    OR p_canonical_attributes->>'uncertainty' IS DISTINCT FROM p_uncertainty
+  THEN
+    RAISE EXCEPTION 'SFI_EPIS_CANONICAL_MATERIAL_MISMATCH';
+  END IF;
+
+  -- SHA-256 must be supplied with its exact canonical UTF-8 serialization,
+  -- preserving the JS ordering. This avoids hashing jsonb::text (different
+  -- serializer) and delegates only digest computation to PostgreSQL.
+  IF p_canonical_attributes ? '__canonical_utf8' THEN
+    RAISE EXCEPTION 'SFI_EPIS_UNSAFE_MATERIAL_EXTENSION';
+  END IF;
+  RAISE EXCEPTION 'SFI_MEM002_CANONICAL_HASH_MATERIAL_NOT_YET_SUBMITTED';
 
   INSERT INTO public.epistemic_events (
     event_id, event_name, logbook_id, epistemic_class, schema_version,
