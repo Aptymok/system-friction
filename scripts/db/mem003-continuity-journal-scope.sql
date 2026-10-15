@@ -142,3 +142,25 @@ begin
   return result;
 end;
 $mem003_cert$;
+
+
+-- Expired OAuth authorization codes are time-bound credentials, not business
+-- facts requiring activation in the recovered identity provider.
+-- Keep original source image and source transaction for forensic inspection.
+-- A fresh, unexpired code is never included in this archival classification.
+alter table public.sfi_data_plane_write_journal
+  drop constraint sfi_data_plane_write_journal_status_check,
+  add constraint sfi_data_plane_write_journal_status_check
+  check (status in ('PENDING','REPLAYING','REPLAYED','CONFLICT',
+                   'LOCAL_ONLY','EXPIRED_CREDENTIAL'));
+
+update public.sfi_data_plane_write_journal j
+   set status='EXPIRED_CREDENTIAL',
+       last_error=left(concat_ws(' | ',nullif(j.last_error,''),
+         'MEM003_OAUTH_CODE_EXPIRED_NO_CREDENTIAL_REACTIVATION'),4000),
+       updated_at=now()
+ where j.status='PENDING'
+   and j.table_name='sfi_oauth_authorization_codes'
+   and j.operation='UPSERT'
+   and nullif(j.row_data->>'expires_at','') is not null
+   and (j.row_data->>'expires_at')::timestamptz <= now();
