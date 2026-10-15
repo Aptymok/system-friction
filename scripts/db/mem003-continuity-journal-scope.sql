@@ -185,3 +185,68 @@ update public.sfi_data_plane_write_journal j
    and j.row_data->>'code_hash'=c.code_hash
    and c.expires_at<=now()
    and (j.row_data->>'expires_at')::timestamptz<=now();
+
+
+-- MEM003 EMPTY_PUBLIC_INTAKE_SCHEMA_PARITY
+-- Reproduce two zero-row primary intake tables on the continuity plane.
+-- Source: supabase/migrations/20260929175019_public_contact_and_newsletter_intake.sql.
+-- Neon uses sfi_continuity_service rather than Supabase's service_role.
+create table if not exists public.sfi_public_contact_submissions (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  email text not null,
+  organization text,
+  subject text not null,
+  message text not null,
+  consent boolean not null default false,
+  source text not null default 'PUBLIC',
+  status text not null default 'RECEIVED' check (status in ('RECEIVED','REVIEWED','ARCHIVED')),
+  created_at timestamptz not null default now()
+);
+create table if not exists public.sfi_public_newsletter_subscribers (
+  id uuid primary key default gen_random_uuid(),
+  email text not null unique,
+  consent boolean not null default false,
+  source text not null default 'PUBLIC',
+  status text not null default 'ACTIVE' check (status in ('ACTIVE','UNSUBSCRIBED')),
+  consented_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  created_at timestamptz not null default now()
+);
+create index if not exists sfi_public_contact_created_idx
+  on public.sfi_public_contact_submissions(created_at desc);
+create index if not exists sfi_public_newsletter_status_idx
+  on public.sfi_public_newsletter_subscribers(status, updated_at desc);
+alter table public.sfi_public_contact_submissions enable row level security;
+alter table public.sfi_public_newsletter_subscribers enable row level security;
+revoke all on public.sfi_public_contact_submissions from public, authenticated;
+revoke all on public.sfi_public_newsletter_subscribers from public, authenticated;
+grant select, insert, update on public.sfi_public_contact_submissions to sfi_continuity_service;
+grant select, insert, update on public.sfi_public_newsletter_subscribers to sfi_continuity_service;
+drop policy if exists sfi_intake_service_restricted on public.sfi_public_contact_submissions;
+create policy sfi_intake_service_restricted on public.sfi_public_contact_submissions
+  for all to sfi_continuity_service using (true) with check (true);
+drop policy if exists sfi_intake_service_restricted on public.sfi_public_newsletter_subscribers;
+create policy sfi_intake_service_restricted on public.sfi_public_newsletter_subscribers
+  for all to sfi_continuity_service using (true) with check (true);
+-- Attach to the existing journal writer, so any future submitted intake row
+-- is captured and recovered; no public or anonymous role is granted access.
+do $mem003_public_triggers$
+declare tbl text; trig text;
+begin
+ for tbl in select unnest(array[
+    'sfi_public_contact_submissions','sfi_public_newsletter_subscribers'
+ ]) loop
+    trig := 'sfi_data_plane_capture_' || substr(md5(tbl),1,12);
+    if not exists (
+      select 1 from pg_trigger t join pg_class c on c.oid=t.tgrelid
+      where c.relnamespace='public'::regnamespace and c.relname=tbl
+        and t.tgname=trig and not t.tgisinternal
+    ) then
+      execute format(
+       'create trigger %I after insert or update or delete on public.%I for each row execute function public.sfi_capture_data_plane_write()',
+       trig,tbl);
+    end if;
+ end loop;
+end;
+$mem003_public_triggers$;
