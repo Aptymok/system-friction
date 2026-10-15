@@ -250,3 +250,61 @@ begin
  end loop;
 end;
 $mem003_public_triggers$;
+
+
+-- MEM003 SEMANTIC_FINGERPRINT_V2
+-- Versioned recovery fingerprint; original v1 remains available for audit.
+-- Expired one-time OAuth challenges are excluded from the *active* auth state,
+-- while unexpired challenges remain fingerprinted. The table and all source
+-- records remain intact on their respective plane.
+-- Numeric value canonicalization is limited to the verified two numeric
+-- columns on platform_metric_snapshots (same values, different text scale).
+create or replace function public.sfi_data_plane_fingerprint_v2()
+returns table(table_name text,row_count bigint,hash_a numeric,hash_b numeric)
+language plpgsql
+security definer
+set search_path = public, pg_catalog
+as $mem003_fp$
+declare r record; c bigint; a numeric; b numeric; expr text; where_clause text;
+begin
+ for r in
+  select cls.relname
+  from pg_class cls join pg_namespace ns on ns.oid=cls.relnamespace
+  where ns.nspname='public' and cls.relkind='r'
+   and cls.relname not in (
+    'sfi_continuity_state','sfi_continuity_runs','sfi_capability_health_checks',
+    'sfi_institutional_incidents','sfi_founder_decision_queue','sfi_continuity_reports',
+    'sfi_data_plane_state','sfi_data_plane_write_journal',
+    'sfi_continuity_applied_operations','sfi_data_plane_primary_outbox',
+    'sfi_primary_mirror_applied_operations'
+   )
+  order by cls.relname
+ loop
+  expr := 'to_jsonb(t)::text';
+  where_clause := '';
+  if r.relname='platform_metric_snapshots' then
+    expr := $canonical$(
+       jsonb_set(
+         jsonb_set(to_jsonb(t),'{reliability}',
+           coalesce(to_jsonb(trim_scale(t.reliability)),'null'::jsonb),true),
+         '{metric_value}',
+         coalesce(to_jsonb(trim_scale(t.metric_value)),'null'::jsonb),true
+       )::text
+    )$canonical$;
+  elsif r.relname='sfi_oauth_authorization_codes' then
+    where_clause := ' where t.expires_at > now()';
+  end if;
+  execute format(
+    'select count(*)::bigint,
+      coalesce(sum(((''x''||substr(md5(%1$s),1,16))::bit(64)::bigint)::numeric),0),
+      coalesce(sum(((''x''||substr(md5(%1$s),17,16))::bit(64)::bigint)::numeric),0)
+     from public.%2$I t%3$s',expr,r.relname,where_clause
+  ) into c,a,b;
+  table_name:=r.relname; row_count:=c; hash_a:=a; hash_b:=b;
+  return next;
+ end loop;
+end;
+$mem003_fp$;
+-- Grant execution on Supabase only to service_role and on Neon only
+-- to sfi_continuity_service; avoid exposing a SECURITY DEFINER function to
+-- anonymous callers.
