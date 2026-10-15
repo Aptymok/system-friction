@@ -2,6 +2,7 @@ import 'server-only';
 
 import { readDataPlaneState, journalBacklog } from '@/lib/persistence/dataPlaneContinuityStore';
 import { readPrimaryOutboxStatus } from '@/lib/persistence/primaryMirror';
+import { replayVerifiedSourceObservations } from '@/lib/persistence/verifiedObservationReplay';
 import { recoverPrimaryDataPlane } from '@/lib/persistence/continuityRecovery';
 import { continuityDatabase } from '@/lib/sfi/continuityPostgres';
 
@@ -80,12 +81,29 @@ export async function readDataPlaneReconciliationStatus() {
 export async function attemptBoundedDataPlaneReconciliation(maxTransactions: number) {
   const before = await readDataPlaneReconciliationStatus();
   if (!before.safeRecoveryEligible) {
+    // The global recovery gate remains closed. Only the pre-existing,
+    // insert-only verified source-observation lane may make incremental
+    // progress; it cannot change authority, clear conflicts or promote PRIMARY.
+    const canCopy = before.dataPlane.mode !== 'PRIMARY'
+      && before.journal.pending > 0
+      && before.blocker !== 'PRIMARY_OUTBOX_UNAVAILABLE';
+    const copyLimit = Math.max(1, Math.min(12, Number.isFinite(maxTransactions) ? Math.floor(maxTransactions) : 8));
+    const verifiedSourceReplay = canCopy
+      ? await replayVerifiedSourceObservations({ maxEntries: copyLimit })
+      : null;
+    const after = canCopy ? await readDataPlaneReconciliationStatus() : before;
+    const progress = Number(verifiedSourceReplay?.recovered ?? 0) + Number(verifiedSourceReplay?.alreadyApplied ?? 0);
     return {
-      ok: true as const,
-      attempted: false as const,
-      outcome: 'BLOCKED_BY_SAFETY_GATE' as const,
+      ok: verifiedSourceReplay?.ok !== false,
+      attempted: verifiedSourceReplay?.attempted === true,
+      outcome: verifiedSourceReplay?.ok === false
+        ? 'VERIFIED_SOURCE_REPLAY_PARTIAL_OR_FAILED' as const
+        : progress > 0
+          ? 'VERIFIED_SOURCE_REPLAY_PROGRESS' as const
+          : 'BLOCKED_BY_SAFETY_GATE' as const,
+      verifiedSourceReplay,
       before,
-      after: before,
+      after,
     };
   }
 
