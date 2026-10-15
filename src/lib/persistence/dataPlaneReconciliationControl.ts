@@ -25,7 +25,8 @@ export async function readDataPlaneReconciliationStatus() {
 
   const journalRows = await continuityDatabase()`
     select table_name, status, count(*)::int as entries,
-           min(created_at)::text as oldest_at
+           min(created_at)::text as oldest_at,
+           sum(count(*)) filter (where table_name in ('profiles','sfi_account_access_grants','sfi_tenant_members','action_proposals') and status in ('PENDING','REPLAYING')) over () as protected_pending
     from public.sfi_data_plane_write_journal
     where status in ('PENDING', 'REPLAYING', 'CONFLICT')
     group by table_name, status
@@ -39,6 +40,7 @@ export async function readDataPlaneReconciliationStatus() {
     oldestAt: String(value.oldest_at),
   }));
 
+  const protectedPending = Number(journalRows[0]?.protected_pending ?? 0);
   const mirror = mirrorResult.ok ? mirrorResult.status : null;
   const blocker = state.mode === 'PRIMARY'
     ? 'PRIMARY_ALREADY_ACTIVE'
@@ -48,7 +50,9 @@ export async function readDataPlaneReconciliationStatus() {
         ? 'PRIMARY_OUTBOX_RECONCILIATION_REQUIRED'
         : journal.conflicts > 0
           ? 'CONTINUITY_JOURNAL_CONFLICT_REQUIRES_REVIEW'
-          : null;
+          : protectedPending > 0
+            ? 'MEM003_PROTECTED_AUTHORITY_RECONCILIATION_REQUIRED'
+            : null;
 
   return {
     observedAt: new Date().toISOString(),
@@ -63,6 +67,7 @@ export async function readDataPlaneReconciliationStatus() {
     journal: {
       pending: journal.pending,
       conflicts: journal.conflicts,
+      protectedPending,
       pendingByTable,
     },
     primaryOutbox: mirror,
