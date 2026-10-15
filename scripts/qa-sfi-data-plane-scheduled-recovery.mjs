@@ -71,6 +71,11 @@ for (const table of operationalLocalTables) {
 }
 assert.ok(scopedJournal.includes('return coalesce(new,old);'), 'plane-local events must remain in their originating database');
 assert.ok(scopedJournal.includes('create or replace function public.sfi_capture_data_plane_write()'), 'reuse the canonical trigger instead of creating another writer');
-assert.doesNotMatch(scopedJournal, /^\s*(?:delete|truncate|update)\s+public\.sfi_data_plane_write_journal/im, 'the patch must not erase or falsely acknowledge historical journal entries');
+assert.doesNotMatch(scopedJournal, /^\\s*(?:delete|truncate)\\s+(?:from\\s+)?public\\.sfi_data_plane_write_journal/im, 'no historical journal entries may be deleted');
+assert.ok(scopedJournal.includes("'LOCAL_ONLY'"), 'local-only status must not be called REPLAYED');
+assert.ok(scopedJournal.includes("j.status in ('PENDING','CONFLICT')"), 'only unresolved local rows are reclassified');
+assert.ok(scopedJournal.includes('MEM003_LOCAL_CONTROL_PLANE_EXCLUDED_FROM_BILATERAL_REPLAY'), 'source status reclassification requires retained evidence');
+assert.ok(scopedJournal.includes("and j.table_name in ("), 'must restrict updates to plane-local table allowlist');
+assert.ok(!/update\\s+public\\.sfi_data_plane_write_journal[\\s\\S]*set\\s+status\\s*=\\s*'REPLAYED'/i.test(scopedJournal), 'no false replay acknowledgements');
 
 console.log('PASS SFI scheduled data-plane recovery: independent calendar, ROOT manual action, journal/mirror gates, no forced promotion');
