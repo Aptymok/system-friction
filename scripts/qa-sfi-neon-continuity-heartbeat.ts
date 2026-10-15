@@ -118,7 +118,9 @@ check('high-frequency ingest and signal reads use bounded actor-scoped canonical
 
 check('actor command writers converge on the canonical epistemic writer with deterministic idempotency where declared',
   epistemicEventWriter.includes('eventId?: string')
-  && epistemicEventWriter.includes("from('epistemic_events')")
+  && epistemicEventWriter.includes("import { appendEpistemicEvent } from '@/lib/events/eventStore'")
+  && epistemicEventWriter.includes('appendEpistemicEvent({')
+  && !epistemicEventWriter.includes("from('epistemic_events')")
   && signalsRoute.includes('emitEpistemicEvent')
   && signalsRoute.includes('eventId: canonicalEventId')
   && signalsRoute.includes("epistemicClass: 'declared'")
