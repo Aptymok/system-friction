@@ -34,6 +34,9 @@ assert.ok(control.includes('recoverPrimaryDataPlane({ maxTransactions: limit })'
 assert.ok(control.includes('Math.min(32'));
 assert.ok(!control.includes('DELETE FROM'));
 assert.ok(!control.includes("set mode = 'PRIMARY'"));
+assert.ok(mirror.includes("plane.mode === 'PRIMARY'"), 'mirror certification may not be true during RECOVERY');
+assert.ok(mirror.includes('journal.pending === 0'), 'journal must be clear before mirror certification');
+assert.ok(mirror.includes('return { ok: outboxClear, certified,'), 'outbox drain must proceed independently of global certification');
 assert.ok(mirror.includes("detail.includes('SFI_PRIMARY_MIRROR_INSERT_CONFLICT')"),
   'insert collisions must not be retried as transient errors');
 
