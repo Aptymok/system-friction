@@ -55,4 +55,20 @@ assert.ok(verifiedReplay.includes("journalConflictOverride: false"));
 assert.ok(root.includes("operation === 'data_plane_copy_verified'"));
 assert.ok(root.includes("replayVerifiedSourceObservations({ maxEntries:"));
 
+
+const scopedJournal = read('scripts/db/mem003-continuity-journal-scope.sql');
+const operationalLocalTables = [
+  'sfi_continuity_state','sfi_continuity_runs','sfi_capability_health_checks',
+  'sfi_institutional_incidents','sfi_founder_decision_queue','sfi_continuity_reports',
+  'sfi_data_plane_state','sfi_data_plane_write_journal',
+  'sfi_continuity_applied_operations','sfi_data_plane_primary_outbox',
+  'sfi_primary_mirror_applied_operations',
+];
+for (const table of operationalLocalTables) {
+  assert.ok(scopedJournal.includes("'" + table + "'"), 'MEM-003 must keep plane-local ' + table + ' out of future business-data journal');
+}
+assert.ok(scopedJournal.includes('return coalesce(new,old);'), 'plane-local events must remain in their originating database');
+assert.ok(scopedJournal.includes('create or replace function public.sfi_capture_data_plane_write()'), 'reuse the canonical trigger instead of creating another writer');
+assert.doesNotMatch(scopedJournal, /^\s*(?:delete|truncate|update)\s+public\.sfi_data_plane_write_journal/im, 'the patch must not erase or falsely acknowledge historical journal entries');
+
 console.log('PASS SFI scheduled data-plane recovery: independent calendar, ROOT manual action, journal/mirror gates, no forced promotion');
