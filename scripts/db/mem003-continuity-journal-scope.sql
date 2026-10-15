@@ -79,3 +79,66 @@ update public.sfi_data_plane_write_journal j
      'sfi_primary_mirror_applied_operations'
    );
 -- No PRIMARY promotion or outbox acknowledgement occurs here.
+
+-- Defense in depth: older live deployments can call certification(true) as
+-- soon as the primary outbox is drained, before Neon -> Supabase recovery ends.
+-- Enforce the actual recovery boundary inside the Neon RPC itself.
+create or replace function public.sfi_set_primary_mirror_certification_v1(
+  p_certified boolean,
+  p_backlog integer,
+  p_error text default null
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, pg_catalog
+as $mem003_cert$
+declare
+  result jsonb;
+  current_mode text;
+  journal_open boolean;
+  effective boolean;
+begin
+  select mode into current_mode
+  from public.sfi_data_plane_state
+  where id='institution'
+  for update;
+  if current_mode is null then
+    raise exception 'MEM003_DATA_PLANE_STATE_MISSING';
+  end if;
+
+  select exists (
+    select 1 from public.sfi_data_plane_write_journal
+    where status in ('PENDING','REPLAYING','CONFLICT')
+  ) into journal_open;
+
+  -- MEM003_CERTIFICATE_ONLY_AFTER_FULL_RECOVERY
+  effective := coalesce(p_certified,false)
+               and current_mode='PRIMARY'
+               and not journal_open;
+
+  update public.sfi_data_plane_state
+  set primary_mirror_certified=effective,
+      primary_mirror_verified_at=case when effective then now() else primary_mirror_verified_at end,
+      primary_mirror_backlog=greatest(coalesce(p_backlog,0),0),
+      primary_mirror_last_error=case
+        when coalesce(p_certified,false) and not effective then
+          left(concat('MEM003_CERTIFICATION_BLOCKED:mode=',current_mode,
+                      ':journalOpen=',journal_open,
+                      case when p_error is not null then concat(':',p_error) else '' end),4000)
+        else left(p_error,4000)
+      end,
+      updated_at=now()
+  where id='institution'
+  returning jsonb_build_object(
+    'mode',mode,
+    'baselineCertifiedAt',baseline_certified_at,
+    'mirrorCertified',primary_mirror_certified,
+    'mirrorVerifiedAt',primary_mirror_verified_at,
+    'mirrorBacklog',primary_mirror_backlog,
+    'mirrorError',primary_mirror_last_error
+  ) into result;
+
+  return result;
+end;
+$mem003_cert$;
