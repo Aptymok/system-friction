@@ -164,3 +164,24 @@ update public.sfi_data_plane_write_journal j
    and j.operation='UPSERT'
    and nullif(j.row_data->>'expires_at','') is not null
    and (j.row_data->>'expires_at')::timestamptz <= now();
+
+
+-- MEM003 EXPIRED_OAUTH_NONREPLAYABLE
+-- An OAuth authorization code is a short-lived one-time authorization
+-- challenge, not durable entitlement. An expired one must never be revived
+-- through the recovery path. Preserve the entire source row and old journal
+-- image while recording a distinct LOCAL_ONLY reason.
+update public.sfi_data_plane_write_journal j
+   set status='LOCAL_ONLY',
+       last_error=left(
+         concat_ws(' | ',nullif(j.last_error,''),
+         'MEM003_EXPIRED_OAUTH_AUTHORIZATION_CODE_NOT_REPLAYED'),4000),
+       updated_at=now()
+  from public.sfi_oauth_authorization_codes c
+ where j.status='PENDING'
+   and j.table_name='sfi_oauth_authorization_codes'
+   and j.operation='UPSERT'
+   and j.row_data->>'id'=c.id::text
+   and j.row_data->>'code_hash'=c.code_hash
+   and c.expires_at<=now()
+   and (j.row_data->>'expires_at')::timestamptz<=now();
