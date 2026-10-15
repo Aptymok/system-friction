@@ -76,6 +76,9 @@ assert.ok(scopedJournal.includes('return coalesce(new,old);'), 'plane-local even
 assert.ok(scopedJournal.includes('create or replace function public.sfi_capture_data_plane_write()'), 'reuse the canonical trigger instead of creating another writer');
 assert.doesNotMatch(scopedJournal, /^\\s*(?:delete|truncate)\\s+(?:from\\s+)?public\\.sfi_data_plane_write_journal/im, 'no historical journal entries may be deleted');
 assert.ok(scopedJournal.includes("'LOCAL_ONLY'"), 'local-only status must not be called REPLAYED');
+assert.ok(scopedJournal.includes('MEM003_CERTIFICATE_ONLY_AFTER_FULL_RECOVERY'), 'Neon must enforce recovery certification independently of deployed app version');
+assert.ok(scopedJournal.includes("current_mode='PRIMARY'"), 'cannot certify during continuity RECOVERY');
+assert.ok(scopedJournal.includes("status in ('PENDING','REPLAYING','CONFLICT')"), 'journal conflicts and backlog must block certification');
 assert.ok(scopedJournal.includes("j.status in ('PENDING','CONFLICT')"), 'only unresolved local rows are reclassified');
 assert.ok(scopedJournal.includes('MEM003_LOCAL_CONTROL_PLANE_EXCLUDED_FROM_BILATERAL_REPLAY'), 'source status reclassification requires retained evidence');
 assert.ok(scopedJournal.includes("and j.table_name in ("), 'must restrict updates to plane-local table allowlist');
