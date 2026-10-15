@@ -45,6 +45,7 @@ assert.ok(root.includes("operation === 'data_plane_emergency'"));
 assert.ok(root.includes('requireSovereignRoot(req)'));
 assert.ok(root.includes('attemptBoundedDataPlaneReconciliation(32)'));
 assert.ok(recover.includes('fingerprintsMatch()'));
+assert.ok(recover.includes("'sfi_data_plane_fingerprint_v2'"), 'recovery must use semantic fingerprint v2');
 assert.ok(recover.includes('completeRecoveryMode()'));
 assert.ok(recover.includes('CONTINUITY_JOURNAL_NOT_EMPTY'));
 
@@ -83,5 +84,9 @@ assert.ok(scopedJournal.includes("j.status in ('PENDING','CONFLICT')"), 'only un
 assert.ok(scopedJournal.includes('MEM003_LOCAL_CONTROL_PLANE_EXCLUDED_FROM_BILATERAL_REPLAY'), 'source status reclassification requires retained evidence');
 assert.ok(scopedJournal.includes("and j.table_name in ("), 'must restrict updates to plane-local table allowlist');
 assert.ok(!/update\\s+public\\.sfi_data_plane_write_journal[\\s\\S]*set\\s+status\\s*=\\s*'REPLAYED'/i.test(scopedJournal), 'no false replay acknowledgements');
+
+assert.ok(scopedJournal.includes('function public.sfi_data_plane_fingerprint_v2()'));
+assert.ok(scopedJournal.includes('trim_scale(t.reliability)'));
+assert.ok(scopedJournal.includes('where t.expires_at > now()'));
 
 console.log('PASS SFI scheduled data-plane recovery: independent calendar, ROOT manual action, journal/mirror gates, no forced promotion');
