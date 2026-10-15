@@ -28,6 +28,8 @@ assert.ok(control.includes('journal.conflicts > 0'));
 assert.ok(control.includes('mirror!.pending > 0 || mirror!.conflicts > 0'));
 assert.ok(control.includes('PRIMARY_OUTBOX_UNAVAILABLE'));
 assert.ok(control.includes('if (!before.safeRecoveryEligible)'));
+assert.ok(control.includes('verifiedSourceReplay:'), 'blocked normal recovery must expose bounded verified-source progress without declaring full RECOVERY');
+assert.ok(control.includes('replayVerifiedSourceObservations({ maxEntries:'), 'reuse governed insert-only observation replay; do not create another writer');
 assert.ok(control.includes('recoverPrimaryDataPlane({ maxTransactions: limit })'));
 assert.ok(control.includes('Math.min(32'));
 assert.ok(!control.includes('DELETE FROM'));
