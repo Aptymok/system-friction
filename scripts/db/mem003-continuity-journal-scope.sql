@@ -1,5 +1,5 @@
 -- MEM-003 / phase 1: stop treating plane-local governance and health state
--- as business-data replay. This patch does not mutate journal history.
+-- as business-data replay. Preserves source images and classification evidence.
 -- Tested and deployed only through the existing governed migration path.
 create or replace function public.sfi_capture_data_plane_write()
 returns trigger
@@ -47,5 +47,35 @@ begin
 end;
 $sfi_mem003$;
 
--- Intentionally no UPDATE/DELETE or REPLAYED assertions against existing journal.
--- The existing 30k+ history needs separate provenance-preserving classification.
+
+-- Existing operations retain their payload, original before image, ID, epoch and
+-- source transaction. LOCAL_ONLY means intentionally NOT applied to Supabase.
+-- The conflict is real but out of scope of bilateral business-data replay.
+alter table public.sfi_data_plane_write_journal
+  drop constraint sfi_data_plane_write_journal_status_check,
+  add constraint sfi_data_plane_write_journal_status_check
+  check (status in ('PENDING','REPLAYING','REPLAYED','CONFLICT','LOCAL_ONLY'));
+
+-- A bounded update of the exact same plane-local table set as the trigger guard
+-- above. Existing REPLAYED receipts remain REPLAYED; no journal rows are deleted.
+update public.sfi_data_plane_write_journal j
+   set status='LOCAL_ONLY',
+       last_error=left(
+         concat_ws(' | ',nullif(j.last_error,''),
+           'MEM003_LOCAL_CONTROL_PLANE_EXCLUDED_FROM_BILATERAL_REPLAY'),4000),
+       updated_at=now()
+ where j.status in ('PENDING','CONFLICT')
+   and j.table_name in (
+     'sfi_continuity_state',
+     'sfi_continuity_runs',
+     'sfi_capability_health_checks',
+     'sfi_institutional_incidents',
+     'sfi_founder_decision_queue',
+     'sfi_continuity_reports',
+     'sfi_data_plane_state',
+     'sfi_data_plane_write_journal',
+     'sfi_continuity_applied_operations',
+     'sfi_data_plane_primary_outbox',
+     'sfi_primary_mirror_applied_operations'
+   );
+-- No PRIMARY promotion or outbox acknowledgement occurs here.
