@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { postNeonDataPlaneRpc, postPrimaryDataPlaneRpc } from '@/lib/persistence/dataPlaneRpc';
+import { journalBacklog, readDataPlaneState } from '@/lib/persistence/dataPlaneContinuityStore';
 
 type OutboxEntry = {
   operation_id: string;
@@ -89,14 +90,25 @@ export async function flushPrimaryMirror(input: { maxTransactions?: number } = {
     }
 
     const status = await readPrimaryOutboxStatus();
-    const certified = status.pending === 0 && status.conflicts === 0;
+    const outboxClear = status.pending === 0 && status.conflicts === 0;
+    // Mirror drain is not a recovered/certified two-plane state. This remains
+    // false throughout RECOVERY, even when PRIMARY -> Neon is fully settled.
+    const [plane, journal] = await Promise.all([readDataPlaneState(), journalBacklog()]);
+    const certified = outboxClear
+      && plane.mode === 'PRIMARY'
+      && journal.pending === 0
+      && journal.conflicts === 0;
     await setPrimaryMirrorCertification(
       certified,
       status.pending,
-      certified ? null : `PRIMARY_OUTBOX_PENDING_OR_CONFLICT:pending=${status.pending}:conflicts=${status.conflicts}`,
+      certified
+        ? null
+        : `SFI_MIRROR_CERTIFICATION_GATED:mode=${plane.mode}:outboxPending=${status.pending}:outboxConflicts=${status.conflicts}:journalPending=${journal.pending}:journalConflicts=${journal.conflicts}`,
     );
 
-    return { ok: certified, conflict: status.conflicts > 0, status, mirroredTransactions, mirroredRows };
+    // Preserve the independent outbox result. Recovery must still be able to
+    // replay the continuity journal while certification is intentionally false.
+    return { ok: outboxClear, certified, conflict: status.conflicts > 0, status, mirroredTransactions, mirroredRows };
   } catch (error) {
     const detail = message(error);
     await setPrimaryMirrorCertification(false, 1, detail).catch(() => null);
