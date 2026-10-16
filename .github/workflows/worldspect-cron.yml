@@ -76,8 +76,18 @@ jobs:
           printf '%s\n' "$body"
           status="$(BODY="$body" node - <<'NODE'
           const body = JSON.parse(process.env.BODY || '{}');
-          if (body.ok !== true) process.exit(2);
-          process.stdout.write(body.status === 'EGRESS_RESTRICTED' ? 'EGRESS_RESTRICTED' : 'EXECUTED');
+          if (body.ok === true) {
+            process.stdout.write(body.status === 'EGRESS_RESTRICTED' ? 'EGRESS_RESTRICTED' : 'EXECUTED');
+          } else if (
+            body.observation?.ok === true
+            && Number(body.observation?.persisted || 0) > 0
+            && body.hypothesis?.ok === false
+          ) {
+            console.error('::warning::SFI_WORLD_OBSERVATION_PERSISTED_HYPOTHESIS_BLOCKED; no hypothesis was fabricated.');
+            process.stdout.write('OBSERVATION_PERSISTED_HYPOTHESIS_BLOCKED');
+          } else {
+            process.exit(2);
+          }
           NODE
           )"
           echo "status=$status" >> "$GITHUB_OUTPUT"
@@ -117,7 +127,15 @@ jobs:
           let state = 'INVALID';
           if (restricted === stages.length) state = 'BLOCKED_BY_EGRESS_POLICY';
           else if (executed === stages.length) state = 'EXECUTED';
-          else {
+          else if (stages[0] === 'EXECUTED' && stages[1] === 'OBSERVATION_PERSISTED_HYPOTHESIS_BLOCKED'
+            && (stages[2] === 'EXECUTED' || stages[2] === 'EGRESS_RESTRICTED')) {
+            state = 'PARTIAL_OBSERVED_HYPOTHESIS_BLOCKED';
+            console.warn('SFI_WORLD_HYPOTHESIS_DEFERRED: collected evidence remains valid; inference blocked, no synthetic fallback.');
+          } else if (stages[0] === 'EXECUTED' && stages[1] === 'EXECUTED'
+            && stages[2] === 'EGRESS_RESTRICTED') {
+            state = 'OBSERVED_INSTITUTIONAL_DEFERRED';
+            console.warn('SFI_INSTITUTIONAL_CYCLE_DEFERRED_BY_EGRESS_POLICY: world measurement remains recorded.');
+          } else {
             console.error(`SFI_WORLD_CYCLE_MIXED_EGRESS_STATE stages=${stages.join(',')}`);
             process.exit(1);
           }
