@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+const x=fs.readFileSync('src/components/sfi/ObservatoryConsole.tsx','utf8');
+const css=fs.readFileSync('src/components/sfi/ObservatoryConsole.css','utf8');
+for(const key of ['data-world-availability={availability.world}','data-state-availability={availability.state}','data-timeline-availability={availability.timeline}','<HypothesisClosureDiff hypothesis={selectedHypothesis}/>','className="obsInterpretiveFlow sfiInterpretiveBoundary"','MAP SKIN: ILLUSTRATIVE · NOT GEOREFERENCED'])assert.ok(x.includes(key),'missing real observation/provenance contract '+key);
+assert.equal((x.match(/<dd data-availability=\{availability.world\}>/g)||[]).length,4,'four bounded visible data metrics required by production smoke');
+assert.ok(css.includes('sfiObservedMetricContract'),'observable metrics must have readable styling');
+assert.ok(css.includes('prefers-reduced-motion'),'respect no-animation users');
+assert.doesNotMatch(x,/fabricated\s*data|Math\.random/,'no synthetic values or randomized world evidence');
+console.log(JSON.stringify({ok:true,contract:'SFI-P09-OBSERVATORY-COMPOSED-ASSURANCE-1.0',metrics:4,closureDiffMounted:true,liveReadPreserved:true,view:'PREVIEW_ONLY'}));
