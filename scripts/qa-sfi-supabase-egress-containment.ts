@@ -10,6 +10,7 @@ const jr=read('src/lib/mihm/jrFieldCycle.ts');
 const returns=read('src/lib/mihm/jrReturnReconciliation.ts');
 const world=read('src/app/api/external/v1/world/route.ts');
 const events=read('src/lib/events/eventStore.ts');
+const atomicAppend=read('src/lib/events/atomicAppend.ts');
 const worldMap=read('src/app/api/field/map/world/route.ts');
 const journal=read('src/core/cognitive-twin/reentry/journal.ts');
 const governance=read('src/lib/governance/readGovernanceHealth.ts');
@@ -71,7 +72,13 @@ assert.ok(studioAutonomy.includes('SFI_SUPABASE_READ_BUDGET.studioAutonomyArchiv
 assert.ok(!studioAutonomy.includes("from('studio_hypotheses').select('*')"), 'studio_autonomy_hypotheses_must_not_use_wildcard_reads');
 
 assert.ok(events.includes("returnMode?: 'full'|'receipt'"), 'event_store_must_support_compact_receipts');
-assert.ok(events.includes("event_id,event_name,logbook_id,epistemic_class,occurred_at,sequence,hash_self"), 'compact_receipt_projection_missing');
+// Compact receipt projection is owned by the canonical PostgreSQL RPC, not eventStore.ts.
+// Assert the TS caller reaches the governed atomic writer and passes its receipt flag.
+// The deployed SQL definition must separately verify the exact response columns.
+assert.ok(events.includes("appendAtomicEpistemicEvent(service, {"), 'compact_receipt_atomic_writer_missing');
+assert.ok(events.includes("returnMode: input.returnMode ?? 'full'"), 'compact_receipt_mode_not_forwarded');
+assert.ok(atomicAppend.includes("rpc('sfi_append_epistemic_event_v2'"), 'compact_receipt_rpc_missing');
+assert.ok(atomicAppend.includes("p_receipt_only: event.returnMode === 'receipt'"), 'compact_receipt_rpc_flag_missing');
 
 for(const path of [
   'src/lib/mihm/fieldTemporalPersistence.ts',

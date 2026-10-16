@@ -30,8 +30,8 @@ function fingerprintKey(row: FingerprintRow) {
 
 async function fingerprintsMatch() {
   const [primary, continuity] = await Promise.all([
-    postPrimaryDataPlaneRpc<FingerprintRow[]>('sfi_data_plane_fingerprint'),
-    postNeonDataPlaneRpc<FingerprintRow[]>('sfi_data_plane_fingerprint'),
+    postPrimaryDataPlaneRpc<FingerprintRow[]>('sfi_data_plane_fingerprint_v2'),
+    postNeonDataPlaneRpc<FingerprintRow[]>('sfi_data_plane_fingerprint_v2'),
   ]);
   const left = [...(primary ?? [])].map(fingerprintKey).sort();
   const right = [...(continuity ?? [])].map(fingerprintKey).sort();

@@ -2,6 +2,7 @@ import 'server-only';
 
 import { readDataPlaneState, journalBacklog } from '@/lib/persistence/dataPlaneContinuityStore';
 import { readPrimaryOutboxStatus } from '@/lib/persistence/primaryMirror';
+import { replayVerifiedSourceObservations } from '@/lib/persistence/verifiedObservationReplay';
 import { recoverPrimaryDataPlane } from '@/lib/persistence/continuityRecovery';
 import { continuityDatabase } from '@/lib/sfi/continuityPostgres';
 
@@ -24,7 +25,8 @@ export async function readDataPlaneReconciliationStatus() {
 
   const journalRows = await continuityDatabase()`
     select table_name, status, count(*)::int as entries,
-           min(created_at)::text as oldest_at
+           min(created_at)::text as oldest_at,
+           sum(count(*)) filter (where table_name in ('profiles','sfi_account_access_grants','sfi_tenant_members','action_proposals') and status in ('PENDING','REPLAYING')) over () as protected_pending
     from public.sfi_data_plane_write_journal
     where status in ('PENDING', 'REPLAYING', 'CONFLICT')
     group by table_name, status
@@ -38,6 +40,7 @@ export async function readDataPlaneReconciliationStatus() {
     oldestAt: String(value.oldest_at),
   }));
 
+  const protectedPending = Number(journalRows[0]?.protected_pending ?? 0);
   const mirror = mirrorResult.ok ? mirrorResult.status : null;
   const blocker = state.mode === 'PRIMARY'
     ? 'PRIMARY_ALREADY_ACTIVE'
@@ -47,7 +50,9 @@ export async function readDataPlaneReconciliationStatus() {
         ? 'PRIMARY_OUTBOX_RECONCILIATION_REQUIRED'
         : journal.conflicts > 0
           ? 'CONTINUITY_JOURNAL_CONFLICT_REQUIRES_REVIEW'
-          : null;
+          : protectedPending > 0
+            ? 'MEM003_PROTECTED_AUTHORITY_RECONCILIATION_REQUIRED'
+            : null;
 
   return {
     observedAt: new Date().toISOString(),
@@ -62,6 +67,7 @@ export async function readDataPlaneReconciliationStatus() {
     journal: {
       pending: journal.pending,
       conflicts: journal.conflicts,
+      protectedPending,
       pendingByTable,
     },
     primaryOutbox: mirror,
@@ -80,12 +86,29 @@ export async function readDataPlaneReconciliationStatus() {
 export async function attemptBoundedDataPlaneReconciliation(maxTransactions: number) {
   const before = await readDataPlaneReconciliationStatus();
   if (!before.safeRecoveryEligible) {
+    // The global recovery gate remains closed. Only the pre-existing,
+    // insert-only verified source-observation lane may make incremental
+    // progress; it cannot change authority, clear conflicts or promote PRIMARY.
+    const canCopy = before.dataPlane.mode !== 'PRIMARY'
+      && before.journal.pending > 0
+      && before.blocker !== 'PRIMARY_OUTBOX_UNAVAILABLE';
+    const copyLimit = Math.max(1, Math.min(12, Number.isFinite(maxTransactions) ? Math.floor(maxTransactions) : 8));
+    const verifiedSourceReplay = canCopy
+      ? await replayVerifiedSourceObservations({ maxEntries: copyLimit })
+      : null;
+    const after = canCopy ? await readDataPlaneReconciliationStatus() : before;
+    const progress = Number(verifiedSourceReplay?.recovered ?? 0) + Number(verifiedSourceReplay?.alreadyApplied ?? 0);
     return {
-      ok: true as const,
-      attempted: false as const,
-      outcome: 'BLOCKED_BY_SAFETY_GATE' as const,
+      ok: verifiedSourceReplay?.ok !== false,
+      attempted: verifiedSourceReplay?.attempted === true,
+      outcome: verifiedSourceReplay?.ok === false
+        ? 'VERIFIED_SOURCE_REPLAY_PARTIAL_OR_FAILED' as const
+        : progress > 0
+          ? 'VERIFIED_SOURCE_REPLAY_PROGRESS' as const
+          : 'BLOCKED_BY_SAFETY_GATE' as const,
+      verifiedSourceReplay,
       before,
-      after: before,
+      after,
     };
   }
 
