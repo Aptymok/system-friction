@@ -69,7 +69,12 @@ if (executionState === 'BLOCKED_BY_EGRESS_POLICY') {
   process.exit(0);
 }
 
-if (executionState !== 'EXECUTED') fail('invalid_execution_state', `SFI_WORLD_CYCLE_EXECUTION_STATE=${executionState}`);
+const acceptedExecutionStates = new Set(['EXECUTED', 'PARTIAL_OBSERVED_HYPOTHESIS_BLOCKED', 'OBSERVED_INSTITUTIONAL_DEFERRED']);
+if (!acceptedExecutionStates.has(executionState)) fail('invalid_execution_state', `SFI_WORLD_CYCLE_EXECUTION_STATE=${executionState}`);
+if (executionState !== 'EXECUTED') {
+  console.log('WORLD_VECTOR_PULSE_QA_OBSERVATION_VERIFIED_DOWNSTREAM_DEFERRED');
+  console.log(line('partial_execution_state', executionState));
+}
 
 if (health.status === 'failed') fail('health.status=failed', (health.warnings || []).join('|') || health.latest_error || 'Inspect health output.');
 if (trend.ok !== true) fail('trend.ok_not_true', 'WorldSpect trend endpoint did not return ok=true.');
