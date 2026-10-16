@@ -46,19 +46,20 @@ check('home is independent from operational instrument deck',
   && !landing.includes('SCENES.map')
   && !landing.includes('sfiSceneDeck'));
 
-check('home uses fixed UI over a two-part horizontal panorama',
+check('home uses a scrollable two-part panorama without fake timeline footer',
   landing.includes('sfiHomePanoramaScroller')
   && landing.includes('sfiHomePanoramaTrack')
   && landing.includes('window.addEventListener(\'wheel\'')
   && landingCss.includes('width:200vw')
   && landingCss.includes('.sfiHomeHeader')
   && landingCss.includes('.sfiHomeSurfaceRail')
-  && landingCss.includes('.sfiHomeTimeline'));
+  && landingCss.includes('scrollbar-color:#c8a951')
+  && !landing.includes('<footer className="sfiHomeTimeline">'));
 
 check('home removes fabricated live identity and event claims',
   !landing.includes('ANNA MARIN')
   && !landing.includes('1,236 EVENTS')
-  && landing.includes('RECONSTRUCTIBLE INSTITUTIONAL MEMORY'));
+  && landing.includes('SFI observes how signals become evidence'));
 
 check('home keeps canonical Reality Chain order in micro-orientation',
   ['REAL WORLD','SIGNAL','OBSERVATION','EVIDENCE','INFERENCE','AUTHORITY','EXECUTION','RETURN']

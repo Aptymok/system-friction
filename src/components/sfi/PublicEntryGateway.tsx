@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import './PublicEntryGateway.css';
 
 const SURFACE_RAIL=[
@@ -15,7 +15,6 @@ const SURFACE_RAIL=[
 ] as const;
 
 const CHAIN=['REAL WORLD','SIGNAL','OBSERVATION','EVIDENCE','INFERENCE','AUTHORITY','EXECUTION','RETURN'] as const;
-const YEARS=['2023','2024','2025','2026','2027','2028','2029'] as const;
 
 export function PublicEntryGateway(){
   const scroller=useRef<HTMLDivElement|null>(null);
@@ -98,14 +97,7 @@ export function PublicEntryGateway(){
       </Link>)}
     </nav>
 
-    <footer className="sfiHomeTimeline">
-      <div><strong>SFI / GLOBAL TIMELINE</strong><span>RECONSTRUCTIBLE INSTITUTIONAL MEMORY</span></div>
-      <div className="sfiHomeTimelineRail">
-        <i style={{'--progress':progress} as CSSProperties}/>
-        <div>{YEARS.map((year)=><span key={year} data-current={year==='2026'?'true':undefined}>{year}</span>)}</div>
-      </div>
-      <div className="sfiHomePanoramaState"><b>{progress<.5?'01':'02'}</b><span>/ 02</span></div>
-    </footer>
+
 
     <button className="sfiHomePanoramaArrow sfiHomePanoramaArrow--left" type="button" onClick={()=>go(-1)} disabled={progress<.02} aria-label="Pan left">←</button>
     <button className="sfiHomePanoramaArrow sfiHomePanoramaArrow--right" type="button" onClick={()=>go(1)} disabled={progress>.98} aria-label="Pan right">→</button>

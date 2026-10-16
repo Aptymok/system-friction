@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import './MethodLabPanorama.css';
 
 type ProtocolView={
@@ -44,7 +44,6 @@ export function MethodLabPanorama({
   const unresolved=sessions.filter(session=>!['CLOSED','REJECTED'].includes(session.status)).length;
   const blindReady=sessions.filter(session=>session.status==='READY_FOR_BLIND').length;
   const blindComplete=sessions.filter(session=>['BLIND_COMPLETE','CONTRAST_PENDING'].includes(session.status)).length;
-  const temporal=useMemo(()=>sessions.filter(session=>session.startedAt&&Number.isFinite(Date.parse(session.startedAt))).slice().sort((a,b)=>Date.parse(a.startedAt!)-Date.parse(b.startedAt!)).slice(-8),[sessions]);
   const chosenProtocol=protocols.find(protocol=>protocol.id===selectedProtocol)??protocols[0]??null;
   const values:Record<PhaseKey,string>={
     PROTOCOLS:String(protocols.length), EVIDENCE:String(evidenceCount),
@@ -108,16 +107,6 @@ export function MethodLabPanorama({
         <a href="#mlh-sessions" className="mlp-link">INSPECT SESSION RECORDS <span>↗</span></a>
       </aside>
     </div>
-    <footer className="mlp-timeline" aria-label="Recorded session timeline">
-      <div><span>RUN HISTORY</span><strong>{sessions.length} RECORDED SESSIONS</strong></div>
-      <div className="mlp-timeline-track">
-        <div className="mlp-timeline-line"/>
-        {temporal.map((session,index)=><a key={session.id} href={'#mlh-session-'+session.id}
-          style={{left:(4+(index*92/Math.max(1,temporal.length-1)))+'%'}} title={session.title}>
-          <i/><span>{time(session.startedAt)}</span><small>{session.sessionKey}</small></a>)}
-        {!temporal.length?<span className="mlp-timeline-empty">NO DATED SESSION HISTORY — NOTHING SYNTHESIZED</span>:null}
-      </div>
-      <div className="mlp-timeline-asof"><span>TIME BASIS</span><strong>RECORDED</strong></div>
-    </footer>
+
   </section>;
 }

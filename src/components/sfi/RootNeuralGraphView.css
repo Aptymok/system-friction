@@ -1080,3 +1080,78 @@
   .rootPassportCompactGrid>div{grid-template-columns:118px minmax(0,1fr)}
   .rootFieldLiveDeck{height:185px}
 }
+
+/* ROOT operational toolbar alignment, without changing neural field, data or authority. */
+.rootReferenceCockpit .rootHorizontalGraph .rootSemanticLegend{
+ top:12px!important;left:12px!important;width:268px!important;
+ padding:0!important;min-height:40px;max-height:40px;
+ border:1px solid rgba(200,169,81,.46);background:rgba(5,10,15,.94);
+ backdrop-filter:none!important;z-index:32!important;overflow:visible;
+}
+.rootReferenceCockpit .rootHorizontalGraph .rootSemanticLegend summary{
+ display:flex;align-items:center;min-height:38px;padding:0 12px;
+ color:#E8DDC3;font:600 11px/1.2 "Noto Sans",Arial,sans-serif;letter-spacing:.035em;
+ white-space:nowrap;cursor:pointer;list-style-position:inside;
+}
+.rootReferenceCockpit .rootHorizontalGraph .rootSemanticLegend[open]{
+ max-height:none;box-shadow:0 18px 44px rgba(0,0,0,.5);
+}
+.rootReferenceCockpit .rootHorizontalGraph .rootSemanticLegend[open] > :not(summary){
+ position:relative;background:rgba(5,10,15,.98);padding:10px 12px;margin:0;
+}
+.rootReferenceCockpit .rootHorizontalGraph .rootSemanticLegend[open] .rootSemanticLegendGrid{max-height:170px}
+.rootReferenceCockpit .rootHorizontalGraph .rootReferenceModes{
+ top:12px!important;left:292px!important;right:12px!important;
+ justify-content:flex-start!important;flex-wrap:nowrap!important;gap:6px!important;
+ overflow-x:auto;scrollbar-width:thin;z-index:29!important;
+}
+.rootReferenceCockpit .rootHorizontalGraph .rootReferenceModes button{
+ min-height:40px!important;white-space:nowrap;font-size:11px!important;
+ background:rgba(5,10,15,.9)!important;
+}
+@media(max-width:780px){
+ .rootReferenceCockpit .rootHorizontalGraph .rootSemanticLegend{width:225px!important}
+ .rootReferenceCockpit .rootHorizontalGraph .rootSemanticLegend summary{font-size:9px!important;padding:0 6px}
+ .rootReferenceCockpit .rootHorizontalGraph .rootReferenceModes{left:243px!important}
+ .rootReferenceCockpit .rootHorizontalGraph .rootReferenceModes button{font-size:10px!important}
+}
+
+/* One 2880px horizontal ROOT cockpit. Geometry, root authority, selected graph
+   relations and Reality Passport readers stay within their original components. */
+html:has(.rootReferenceCockpit),body:has(.rootReferenceCockpit){overflow-y:hidden!important}
+.rootReferenceCockpit.rootFieldMode{
+ width:100vw!important;min-width:0!important;
+ height:100dvh!important;min-height:0!important;max-height:100dvh!important;
+ overflow-x:auto!important;overflow-y:hidden!important;
+ overscroll-behavior-x:contain;scroll-behavior:smooth;
+ scrollbar-width:thin;scrollbar-color:#c8a951 rgba(4,9,13,.75);
+}
+.rootReferenceCockpit .rootHorizontalRail{
+ position:relative!important;inset:auto!important;
+ display:grid!important;
+ grid-template-columns:260px 1480px 1140px!important;
+ grid-template-rows:100%!important;gap:0!important;
+ width:2880px!important;min-width:2880px!important;
+ height:100%!important;min-height:0!important;
+ overflow:visible!important;scroll-snap-type:none!important;
+ background:transparent!important;
+}
+.rootReferenceCockpit .rootHorizontalGraph,
+.rootReferenceCockpit[data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0"] .rootGovernanceConsole{
+ position:relative!important;inset:auto!important;
+ width:100%!important;max-width:none!important;height:100%!important;
+ min-height:0!important;scroll-snap-align:none!important;
+}
+.rootReferenceCockpit .rootReferenceSidebar{min-height:0;overflow-y:auto}
+.rootReferenceCockpit .rootHorizontalGraph .rootCognitivePixi{
+ inset:52px 0 164px!important;width:auto!important;height:auto!important;
+}
+.rootReferenceCockpit .rootFieldTimelineFooter{display:none!important}
+.rootReferenceCockpit .rootGovernanceConsole{overflow-y:auto!important}
+.rootReferenceCockpit .rootReferenceModes button{flex:0 0 auto}
+@media(max-width:900px){
+ .rootReferenceCockpit .rootHorizontalRail{grid-template-columns:260px 1480px 1140px!important}
+ .rootReferenceCockpit .rootGovernanceConsole{width:100%!important}
+ .rootReferenceCockpit .rootReferenceModes button{font-size:11px!important}
+}
+@media(prefers-reduced-motion:reduce){.rootReferenceCockpit.rootFieldMode{scroll-behavior:auto}}

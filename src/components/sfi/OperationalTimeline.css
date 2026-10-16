@@ -33,3 +33,102 @@
 @media(max-width:1100px){.sfiTemporalMain{grid-template-columns:185px minmax(0,1fr)}.sfiTemporalInspector{grid-column:1/-1;max-height:none}.sfiTemporalHeader{display:block}.sfiTemporalHeader nav{margin-top:15px}}
 @media(max-width:650px){.sfiTemporalMain{display:block;padding:12px}.sfiTemporalIndex,.sfiTemporalInspector{margin-bottom:12px}.sfiTemporalField{min-height:520px}.sfiTemporalLane{grid-template-columns:72px 1fr}.sfiTemporalLaneLabel{padding:3px}.sfiTemporalLaneLabel strong{font-size:9px}.sfiTemporalLaneLabel span{font-size:7px}.sfiTemporalRail{grid-template-columns:1fr}.sfiTemporalBrand small{display:none}.sfiTemporalHeader nav{overflow-x:auto;flex-wrap:nowrap;padding-bottom:6px}.sfiTemporalInspector{max-height:unset}}
 @media(prefers-reduced-motion:reduce){.sfiTemporalIndex,.sfiTemporalInspector{backdrop-filter:none}}
+
+/* /timeline · Observatory-grade longitudinal reader over a common SFI landscape.
+   Dated real registry and WorldSpect snapshots only; public access remains unchanged. */
+.sfiTemporalShell{
+ min-height:calc(100svh - 64px);
+ background:#060a0e url('/assets/sfi/instruments/OBSERVATORY_BACKGROUND.png') center center/cover fixed no-repeat!important;
+ color:#e8ddc3;
+}
+.sfiTemporalAtmosphere{background:linear-gradient(90deg,rgba(3,8,13,.58),rgba(3,8,13,.25) 40%,rgba(3,8,13,.66))!important}
+.sfiTemporalHeader{background:rgba(3,9,14,.94)!important;border-bottom:1px solid rgba(200,169,81,.45)!important}
+.sfiTemporalMain{
+ grid-template-columns:minmax(210px,255px) minmax(0,1.4fr) minmax(340px,.72fr);
+ gap:clamp(12px,1.6vw,28px);
+ padding:clamp(18px,2.2vw,34px);
+}
+.sfiTemporalIndex{
+ background:linear-gradient(165deg,rgba(3,10,16,.92),rgba(5,12,19,.86))!important;
+ border:1px solid rgba(200,169,81,.35)!important;backdrop-filter:none!important;
+}
+.sfiTemporalField{
+ min-width:0;padding:18px 13px;
+ border:1px solid rgba(200,169,81,.32);
+ background:linear-gradient(160deg,rgba(3,9,14,.88),rgba(5,11,17,.71));
+}
+.sfiTemporalFieldHead{padding-bottom:16px;border-bottom:1px solid rgba(200,169,81,.3)}
+.sfiTemporalLane{border-top:1px solid rgba(200,169,81,.27)}
+.sfiTemporalInspector{
+ background:linear-gradient(165deg,rgba(2,8,14,.97),rgba(6,13,19,.89))!important;
+ border:1px solid rgba(218,181,110,.68)!important;border-left:2px solid #d4af68!important;
+ box-shadow:inset 0 0 0 5px rgba(8,18,23,.29),0 17px 39px rgba(0,0,0,.29);
+ backdrop-filter:none!important;
+ transform:perspective(2200px) rotateY(-3deg);
+ transform-origin:right center;
+}
+.sfiTemporalInspector:focus-within{transform:none;border-color:#e6c481!important}
+.sfiTemporalInspectorTitle{border-bottom:1px solid rgba(200,169,81,.35);padding-bottom:14px}
+.sfiTemporalInspector h2{color:#e8ddc3;font-family:"Noto Serif Display",Georgia,serif}
+.sfiTemporalRail{background:rgba(3,9,14,.94)!important;border-top:1px solid rgba(200,169,81,.4)}
+@media(max-width:1100px){.sfiTemporalMain{grid-template-columns:210px minmax(0,1fr)}.sfiTemporalInspector{grid-column:1/-1;transform:none}}
+@media(max-width:690px){.sfiTemporalMain{display:block!important}.sfiTemporalIndex,.sfiTemporalField,.sfiTemporalInspector{margin:10px 0!important;transform:none}.sfiTemporalShell{background-attachment:scroll}}
+
+/* TIME is spatial: native, continuous 2880px horizontal workspace. */
+html:has(.sfiTemporalShell),body:has(.sfiTemporalShell){overflow-y:hidden!important}
+.sfiTemporalShell{
+ width:100vw!important;height:calc(100dvh - 64px)!important;
+ min-height:0!important;max-height:calc(100dvh - 64px)!important;
+ overflow-x:auto!important;overflow-y:hidden!important;
+ scroll-behavior:smooth;overscroll-behavior-x:contain;
+ scrollbar-width:thin;scrollbar-color:#c8a951 rgba(4,9,13,.72);
+ background-attachment:scroll!important;
+}
+.sfiTemporalHeader{
+ width:2880px!important;height:63px!important;min-height:63px!important;
+ padding:10px 27px!important;box-sizing:border-box;
+ display:flex!important;flex-wrap:nowrap!important;
+}
+.sfiTemporalHeader nav{flex-wrap:nowrap!important}
+.sfiTemporalMain{
+ display:grid!important;
+ width:2880px!important;height:calc(100% - 63px)!important;
+ min-height:0!important;max-height:calc(100% - 63px)!important;
+ grid-template-columns:320px 1910px 560px!important;
+ grid-template-rows:minmax(0,1fr)!important;
+ padding:14px 27px!important;gap:18px!important;
+ margin:0!important;box-sizing:border-box;
+}
+.sfiTemporalIndex,.sfiTemporalField,.sfiTemporalInspector{
+ min-height:0!important;max-height:100%!important;
+ margin:0!important;overflow-y:auto!important;
+ scrollbar-width:thin;scrollbar-color:#c8a951 transparent;
+ grid-column:auto!important;
+}
+.sfiTemporalIndex{padding:20px 18px!important}
+.sfiTemporalField{padding:14px 18px!important}
+.sfiTemporalInspector{padding:20px 24px!important}
+.sfiTemporalYears{min-height:48px!important}
+.sfiTemporalLane{min-height:122px!important}
+.sfiTemporalRailTicks{
+ flex:0 0 38px;position:relative;height:38px!important;
+ border-top:1px solid rgba(200,169,81,.28);
+ border-bottom:1px solid rgba(200,169,81,.28);
+ margin:4px 0 16px;
+}
+.sfiTemporalRanges{
+ display:flex!important;justify-content:flex-start!important;gap:7px;
+ margin:12px 0 8px;
+}
+.sfiTemporalRanges button{min-height:35px!important;min-width:64px}
+.sfiTemporalRail{display:none!important}
+@media(prefers-reduced-motion:reduce){.sfiTemporalShell{scroll-behavior:auto}}
+
+/* Place the 3:1 landscape on the 2880px temporal canvas, not the narrow
+   scrolling viewport. Preserve aspect ratio across desktop and mobile. */
+.sfiTemporalShell{
+ background:#050a0d!important;
+}
+.sfiTemporalMain{
+ background:linear-gradient(90deg,rgba(2,7,12,.58),rgba(2,7,12,.14) 50%,rgba(2,7,12,.68)),url('/assets/sfi/instruments/OBSERVATORY_BACKGROUND.png') center center / cover no-repeat!important;
+}

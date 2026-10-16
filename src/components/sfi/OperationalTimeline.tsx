@@ -42,12 +42,14 @@ export function OperationalTimeline({items,worldReadPlane}:{items:readonly Timel
       <aside className="sfiTemporalIndex">
         <h1>TIMELINE</h1><p>INSTITUTIONAL MEMORY IN TEMPORAL CONTEXT</p>
         <div className="sfiTemporalCounters">{LANES.map(lane=><button key={lane.id} type="button" onClick={()=>setLaneFilter(laneFilter===lane.id?'ALL':lane.id)} aria-pressed={laneFilter===lane.id}><i data-lane={lane.id}/><span>{lane.title}</span><b>{byLane(lane.id).length}</b></button>)}</div>
+        <nav className="sfiTemporalRanges" aria-label="Recorded-time window">{([{value:30,label:'MONTH'},{value:365,label:'YEAR'},{value:0,label:'ALL'}] as const).map(x=><button type="button" key={x.value} className={windowDays===x.value?'active':''} onClick={()=>setWindowDays(x.value)}>{x.label}</button>)}</nav>
         <div className="sfiTemporalBoundary"><strong>SOURCE BOUNDARY</strong><p>Published institutional records are not evidence of their external effects. World snapshots are dated readings, not causal outcomes. Private cases and projects are not synthesized.</p></div>
         <Link href="/reality-chain">AUTHORIZED CASE PLATFORM ↗</Link>
       </aside>
       <div className="sfiTemporalField">
-        <div className="sfiTemporalFieldHead"><span>OBSERVED / RECORDED TIME</span><small>WORLD READ: {worldReadPlane}</small></div>
+        <div className="sfiTemporalFieldHead"><span>OBSERVED / RECORDED TIME</span><small>WORLD READ: {worldReadPlane} · {visible.length} DATED RECORDS</small></div>
         <div className="sfiTemporalYears">{years.map(year=><b key={year}>{year}</b>)}</div>
+        <nav className="sfiTemporalRailTicks" aria-label="Select a dated record">{visible.slice(-26).map(e=><button key={e.id} type="button" onClick={()=>setSelectedId(e.id)} style={{left:pos(e.at)+'%'}} title={fmt(e.at)+' · '+e.title} aria-label={fmt(e.at)+' · '+e.title} data-active={e.id===selected?.id}><i/></button>)}</nav>
         {LANES.map(lane=><div className="sfiTemporalLane" key={lane.id} data-lane={lane.id}>
           <div className="sfiTemporalLaneLabel"><strong>{lane.title}</strong><span>{lane.subtitle}</span></div>
           <div className="sfiTemporalLaneTrack">
@@ -55,7 +57,7 @@ export function OperationalTimeline({items,worldReadPlane}:{items:readonly Timel
             {!byLane(lane.id).length?<p>{lane.id==='CASE'||lane.id==='PROJECT'?'NOT EXPOSED BY CURRENT PUBLIC READER':'NO RECORDED ENTRIES IN SELECTED WINDOW'}</p>:null}
           </div>
         </div>)}
-        <div className="sfiTemporalFieldFooter"><span>{visible.length} DATED RECORDS IN WINDOW</span><span>OBSERVATION ≠ EVIDENCE ≠ RETURN</span></div>
+
       </div>
       <aside className="sfiTemporalInspector">
         <div className="sfiTemporalInspectorTitle"><small>RECORD INSPECTOR</small><strong>{selected?'RECORDED':'UNAVAILABLE'}</strong></div>
@@ -67,10 +69,6 @@ export function OperationalTimeline({items,worldReadPlane}:{items:readonly Timel
         </>:<p className="sfiTemporalAbsent">No dated record returned for this selection. The interface does not fabricate historical events.</p>}
       </aside>
     </section>
-    <footer className="sfiTemporalRail">
-      <div>GLOBAL TIMELINE <strong>{visible.length} RECORDS</strong></div>
-      <div className="sfiTemporalRailTicks">{visible.slice(-26).map(e=><button key={e.id} type="button" onClick={()=>setSelectedId(e.id)} style={{left:pos(e.at)+'%'}} title={fmt(e.at)+' · '+e.title} data-active={e.id===selected?.id}><i/></button>)}</div>
-      <div className="sfiTemporalRanges">{([{value:30,label:'MONTH'},{value:365,label:'YEAR'},{value:0,label:'ALL'}] as const).map(x=><button type="button" key={x.value} className={windowDays===x.value?'active':''} onClick={()=>setWindowDays(x.value)}>{x.label}</button>)}</div>
-    </footer>
+
   </main>;
 }
