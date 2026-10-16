@@ -119,6 +119,6 @@ $$;
 -- Neon continuity Data API uses JWT role sfi_continuity_service, not Supabase service_role.
 -- The function is invoker-security, retains the same canonical 17-argument body.
 -- On fresh environment, this should be applied once only.
-REVOKE ALL ON FUNCTION public.sfi_append_epistemic_event_v2(text,text,text,text,text,jsonb,text,uuid,numeric,jsonb,text[],text,timestamptz,jsonb,text,boolean) FROM PUBLIC, authenticated;
-GRANT EXECUTE ON FUNCTION public.sfi_append_epistemic_event_v2(text,text,text,text,text,jsonb,text,uuid,numeric,jsonb,text[],text,timestamptz,jsonb,text,boolean) TO sfi_continuity_service;
+REVOKE ALL ON FUNCTION public.sfi_append_epistemic_event_v2(text,text,text,text,text,jsonb,text,uuid,numeric,jsonb,text,text[],text,timestamptz,jsonb,text,boolean) FROM PUBLIC, authenticated;
+GRANT EXECUTE ON FUNCTION public.sfi_append_epistemic_event_v2(text,text,text,text,text,jsonb,text,uuid,numeric,jsonb,text,text[],text,timestamptz,jsonb,text,boolean) TO sfi_continuity_service;
 NOTIFY pgrst, 'reload schema';
