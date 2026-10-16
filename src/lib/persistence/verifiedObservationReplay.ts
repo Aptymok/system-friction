@@ -22,7 +22,7 @@ export async function replayVerifiedSourceObservations(input: { maxEntries?: num
   }
 
   const sql = continuityDatabase();
-  const candidates = await sql`
+  let candidates = await sql`
     select j.operation_id::text as operation_id,
            j.epoch::text as epoch,
            j.source_txid::text as source_txid,
@@ -38,6 +38,28 @@ export async function replayVerifiedSourceObservations(input: { maxEntries?: num
     limit ${limit}
   `;
 
+  // The same canonical, insert-only replay lane may recover immutable friction
+  // readings only after source observations have been selected. This is not a
+  // general UPSERT/update replay and never bypasses the protected conflict gate.
+  if (candidates.length < limit) {
+    const frictionCandidates = await sql`
+      select j.operation_id::text as operation_id,
+             j.epoch::text as epoch,
+             j.source_txid::text as source_txid,
+             j.table_name, j.operation, j.row_data, j.before_data
+      from public.sfi_data_plane_write_journal j
+      join public.world_friction_readings f on f.id::text = j.row_data->>'id'
+      where j.status = 'PENDING'
+        and j.table_name = 'world_friction_readings'
+        and j.operation = 'UPSERT'
+        and j.before_data is null
+        and j.row_data = to_jsonb(f)
+      order by j.sequence asc
+      limit ${limit - candidates.length}
+    `;
+    candidates = [...candidates, ...frictionCandidates];
+  }
+
   let recovered = 0, alreadyApplied = 0, conflicts = 0;
   const failures: Array<{ type: string; reason: string }> = [];
 
@@ -46,18 +68,34 @@ export async function replayVerifiedSourceObservations(input: { maxEntries?: num
     const epoch = String(entry.epoch);
     const sourceTxid = String(entry.source_txid);
     const rowData = entry.row_data as Record<string, unknown>;
+    const tableName = String(entry.table_name);
+    // Explicit two-table allowlist. The RPC is not a general-purpose public writer.
+    if (tableName !== 'world_source_observations' && tableName !== 'world_friction_readings') {
+      failures.push({ type: 'TABLE_NOT_ALLOWED', reason: 'Verified replay only admits two immutable world tables' });
+      break;
+    }
 
-    // Re-check source freshness just before each remote write.
-    const current = await sql`
-      select 1 as matching
-      from public.sfi_data_plane_write_journal j
-      join public.world_source_observations o on o.id::text = j.row_data->>'id'
-      where j.operation_id = ${operationId}::uuid
-        and j.status = 'PENDING'
-        and j.row_data = to_jsonb(o)
-        and j.before_data is null
-      limit 1
-    `;
+    // Re-check the original insert image just before remote application. The
+    // primary RPC applies exactly one guarded operation or rejects divergence.
+    const current = tableName === 'world_source_observations'
+      ? await sql`
+        select 1 as matching
+        from public.sfi_data_plane_write_journal j
+        join public.world_source_observations o on o.id::text = j.row_data->>'id'
+        where j.operation_id = ${operationId}::uuid
+          and j.status = 'PENDING' and j.table_name = 'world_source_observations'
+          and j.row_data = to_jsonb(o) and j.before_data is null
+        limit 1
+      `
+      : await sql`
+        select 1 as matching
+        from public.sfi_data_plane_write_journal j
+        join public.world_friction_readings f on f.id::text = j.row_data->>'id'
+        where j.operation_id = ${operationId}::uuid
+          and j.status = 'PENDING' and j.table_name = 'world_friction_readings'
+          and j.row_data = to_jsonb(f) and j.before_data is null
+        limit 1
+      `;
     if (!current.length) {
       failures.push({ type: 'SOURCE_CHANGED', reason: 'Source no longer matches the historical insert image' });
       continue;
@@ -66,7 +104,7 @@ export async function replayVerifiedSourceObservations(input: { maxEntries?: num
       const result = await postPrimaryDataPlaneRpc<{ ok?: boolean; applied?: number; alreadyApplied?: number }>(
         'sfi_apply_continuity_batch_v1',
         { p_epoch: epoch, p_source_txid: sourceTxid, p_entries: [{
-          operation_id: operationId, table_name: 'world_source_observations',
+          operation_id: operationId, table_name: tableName,
           operation: 'UPSERT', row_data: rowData, before_data: null,
         }] },
       );
@@ -79,7 +117,7 @@ export async function replayVerifiedSourceObservations(input: { maxEntries?: num
         update public.sfi_data_plane_write_journal
         set status='REPLAYED', replayed_at=now(), last_error=null, updated_at=now()
         where operation_id=${operationId}::uuid and status='PENDING'
-          and table_name='world_source_observations'
+          and table_name=${tableName}
           and operation='UPSERT'
           and before_data is null
         returning operation_id
@@ -107,6 +145,12 @@ export async function replayVerifiedSourceObservations(input: { maxEntries?: num
     where status='PENDING'
       and table_name='world_source_observations'
   `;
+  const remainingFrictionRows = await sql`
+    select count(*)::int as pending
+    from public.sfi_data_plane_write_journal
+    where status='PENDING'
+      and table_name='world_friction_readings'
+  `;
   return {
     ok: failures.length === 0,
     attempted: candidates.length > 0,
@@ -116,9 +160,10 @@ export async function replayVerifiedSourceObservations(input: { maxEntries?: num
     conflicts,
     failures,
     remainingSourceObservations: Number(remainingRows[0]?.pending ?? 0),
+    remainingFrictionReadings: Number(remainingFrictionRows[0]?.pending ?? 0),
     dataPlaneSwitched: false,
     journalConflictOverride: false,
     primaryOutboxConflictOverride: false,
-    boundary: 'Only immutable source rows with exact current image; canonical primary RPC validates existence and never overwrites a divergent insert. State promotion remains governed by the existing full recovery gate.',
+    boundary: 'Only immutable world source/reading INSERT rows with exact current image; canonical primary RPC validates existence and never overwrites a divergent insert. State promotion remains governed by the existing full recovery gate.',
   };
 }
