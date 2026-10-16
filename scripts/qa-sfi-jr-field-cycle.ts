@@ -120,6 +120,10 @@ for(const token of [
   'returnFabricated:false',
 ]) assert.ok(jr.includes(token),`jr_field_cycle_boundary_missing:${token}`);
 
+assert.ok(jr.includes("const cycleReceiptFailed = cycleReceipt.ok !== true;"), 'jr_cycle_receipt_failure_must_block_complete');
+assert.ok(jr.includes("&& !cycleReceiptFailed"), 'jr_return_requires_persisted_cycle_receipt');
+assert.ok(jr.includes("status: complete ? 'COMPLETE' as const : 'DEGRADED' as const"), 'jr_cannot_report_complete_after_failed_append');
+
 assert.ok(world.includes('runJrFieldCycle'), 'world_mcp_must_continue_into_jr');
 assert.ok(cron.includes('runJrFieldCycle'), 'world_cron_must_continue_into_jr');
 assert.ok(root.includes('projectDistributedPhenomenaForRoot'), 'root_must_project_distributed_phenomena');
