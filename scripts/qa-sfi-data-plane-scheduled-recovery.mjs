@@ -59,6 +59,11 @@ assert.ok(verifiedReplay.includes("j.before_data is null"), 'only original inser
 assert.ok(verifiedReplay.includes("sfi_apply_continuity_batch_v1"), 'canonical primary RPC must own writes');
 assert.ok(verifiedReplay.includes("status='REPLAYED'"), 'journal must acknowledge confirmed primary writes');
 assert.ok(verifiedReplay.includes("Math.min(20"), 'maximum manual batch size must remain bounded');
+assert.ok(verifiedReplay.includes("j.table_name = 'world_friction_readings'"), 'friction reading insert must be explicitly scoped');
+assert.ok(verifiedReplay.includes('j.row_data = to_jsonb(f)'), 'friction source image must remain exact');
+assert.ok(verifiedReplay.includes("tableName !== 'world_source_observations' && tableName !== 'world_friction_readings'"), 'no table outside two immutable world classes may enter verified replay');
+assert.ok(verifiedReplay.includes("and table_name=\${tableName}"), 'journal acknowledgement must be scoped to actual replayed table');
+assert.ok(verifiedReplay.includes('remainingFrictionReadings:'), 'bounded recovery must report unresolved friction reads');
 assert.ok(verifiedReplay.includes("dataPlaneSwitched: false"), 'manual copy never promotes the primary');
 assert.ok(verifiedReplay.includes("journalConflictOverride: false"));
 assert.ok(root.includes("operation === 'data_plane_copy_verified'"));
