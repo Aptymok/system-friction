@@ -122,14 +122,31 @@ assert.ok(observatoryUi.includes('SFI OBSERVATORY ·'), 'observatory_reader_sing
 assert.ok(observatoryUi.includes('LATEST HYPOTHESES'), 'satellite_hub_latest_hypothesis_lens_missing');
 // Recovery contract: one background asset, one navigation, no continuous visual renderer.
 assert.ok(!observatoryUi.includes("08102026_07.png"), 'obsolete_world_artwork_must_not_load');
-assert.ok(observatoryCss.includes("width:5760px!important") && observatoryCss.includes("overflow-x:auto!important"), 'observatory_5760_horizontal_scroll_missing');
-assert.ok(observatoryCss.includes("overflow-y:hidden!important"), 'observatory_vertical_viewport_must_remain_fixed');
+assert.ok(observatoryCss.includes("width:2880px") && observatoryCss.includes("overflow-x:auto"), 'observatory_2880_horizontal_scroll_missing');
+assert.ok(observatoryCss.includes("overflow-y:hidden"), 'observatory_vertical_viewport_must_remain_fixed');
 const loadedArt = [...observatoryCss.matchAll(/url\(['"]?(\/assets\/[^)'"]+)['"]?\)/g)].map(match=>match[1]);
-assert.deepEqual(loadedArt,['/assets/sfi/instruments/OBSERVATORY_BACKGROUND.png'], 'observatory_must_use_only_the_requested_background_image');
-for(const forbidden of ['<img','<canvas','<svg','<ObservatoryWorldField','<ObservatorySemanticGpuLayer','requestAnimationFrame','getContext','obsOperationalLenses','hubRail','obsOperationalTimeline']) {
+assert.deepEqual([...new Set(loadedArt)].sort(),[
+  '/assets/sfi/instruments/OBSERVATORY_BACKGROUND.png',
+  '/assets/sfi/instruments/OBSERVATORY_MOONS.png',
+  '/assets/sfi/instruments/OBSERVATORY_PROJECTOR.png',
+  '/assets/sfi/instruments/OBSERVATORY_MAPS.png',
+].sort(), 'observatory_must_use_only_approved_composition_assets');
+for(const forbidden of ['<ObservatoryWorldField','<ObservatorySemanticGpuLayer','obsOperationalLenses','hubRail','obsOperationalTimeline']) {
   assert.equal(observatoryUi.includes(forbidden),false,`observatory_recovery_forbidden_rendered_layer:${forbidden}`);
 }
-assert.ok(observatoryUi.includes('obsOperationalGrid') && observatoryUi.includes('obsResearchConsole'),'observatory_existing_readers_must_remain_available');
+assert.ok(observatoryUi.includes('sfiGlobeGeometry') && observatoryUi.includes('sfiOrbitalLines') && observatoryUi.includes('strokeWidth="0.58"'),'fine_orbital_lines_and_cube_required');
+assert.ok(observatoryUi.includes('<HolographicEarth') && observatoryUi.includes('<canvas') && observatoryCss.includes('.sfiLiveGlobeCanvas') && observatoryCss.includes('opacity:.75'),'interactive_spherical_globe_and_75_percent_visual_opacity_required');
+assert.ok(observatoryUi.includes("powerPreference:'low-power'") && observatoryUi.includes('Math.min(420,') && observatoryUi.includes('},140)') && observatoryUi.includes('IntersectionObserver') && observatoryUi.includes('gl.deleteProgram(program)'),'interactive_globe_must_have_gpu_resolution_rate_visibility_and_cleanup_bounds');
+assert.ok(!observatoryUi.includes('ObservatorySemanticGpuLayer') && !observatoryUi.includes('ObservatoryWorldField'),'globe_must_not_mount_old_duplicate_gpu_graphs');
+assert.ok(observatoryUi.includes('sfiBottomMonitorImage') && observatoryUi.includes('OBSERVATORY_MONITOR.png') && observatoryCss.includes('object-fit:contain'),'lower_monitor_must_retain_aspect_ratio');
+assert.ok(!observatoryCss.includes('OBSERVATORY_DASHBOARD.png') && observatoryCss.includes('background:none;'),'legacy_duplicate_console_background_must_not_return');
+assert.ok(observatoryUi.includes('sfiDashboardModes') && observatoryUi.includes('sfiMonitorReading') && observatoryUi.includes('fetchJson(\'/api/observatory/world\')'),'observatory_existing_readers_must_be_connected_to_composited_controls');
+assert.ok(observatoryUi.includes('<HypothesisClosureDiff hypothesis={selectedHypothesis}/>'), 'hypothesis_closure_diff_must_be_mounted_inside_visible_monitor');
+for (const token of ['data-world-availability={availability.world}','data-state-availability={availability.state}','data-timeline-availability={availability.timeline}','obsInterpretiveFlow sfiInterpretiveBoundary']) {
+  assert.ok(observatoryUi.includes(token), 'production_smoke_read_contract_missing:' + token);
+}
+assert.equal((observatoryUi.match(/<dd data-availability=\\{availability.world\\}>/g) || []).length, 4, 'production_smoke_four_real_visible_field_metrics');
+
 assert.ok(observatoryUi.includes("deriveTerritorialTensions"), 'territorial_tension_model_missing');
 assert.ok(observatoryUi.includes("TERRITORIAL TENSIONS") && observatoryUi.includes("GEO COVERAGE"), 'territorial_observatory_ui_missing');
 const territorialModel=read('src/lib/observatory/public/territorialTensions.ts');
@@ -174,7 +191,7 @@ assert.ok(observatoryUi.includes('T0/T1 compares persisted WorldSpect snapshots 
 assert.ok(observatoryUi.includes('T0 → T1 · PERSISTED WORLDSPECT'), 'temporal_comparison_identity_missing');
 assert.ok(observatoryWorldField.includes('worldSpectrumGhost') && observatoryWorldField.includes('ghostVectors'), 'worldspect_temporal_ghost_projection_missing');
 
-assert.ok(observatoryUi.includes('<HypothesisClosureDiff hypothesis={selectedHypothesis}/>'), 'hypothesis_closure_return_diff_missing');
+assert.ok(observatoryUi.includes('selectedHypothesis.outcome?.classification') && hypothesisClosureDiff.includes('REPORT ≠ RETURN'), 'hypothesis_return_read_and_dossier_capability_must_be_preserved');
 for (const token of ['T0 CLAIM','RETURN WINDOW','LATER EVIDENCE','CLASSIFICATION','LEARNING','EXPECTED ≠ OBSERVED','INCONCLUSIVE ≠ FALSE','REPORT ≠ RETURN']) {
   assert.ok(hypothesisClosureDiff.includes(token), `hypothesis_closure_diff_contract_missing:${token}`);
 }
@@ -283,7 +300,7 @@ console.log(JSON.stringify({
     typedWorldFieldProjectionMounted:false,
     semanticGpuLayerMounted:false,
     gpuCreatesEvidence:false,
-    static5760SingleBackground:true,
+    composited2880ApprovedAssets:true,
     horizontalViewportOnly:true,
     operationalReadOnlyDomSurface:true,
     persistedT0T1Comparison:true,
