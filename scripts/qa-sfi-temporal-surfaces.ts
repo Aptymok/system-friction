@@ -145,7 +145,7 @@ assert.ok(observatoryUi.includes('<HypothesisClosureDiff hypothesis={selectedHyp
 for (const token of ['data-world-availability={availability.world}','data-state-availability={availability.state}','data-timeline-availability={availability.timeline}','obsInterpretiveFlow sfiInterpretiveBoundary']) {
   assert.ok(observatoryUi.includes(token), 'production_smoke_read_contract_missing:' + token);
 }
-assert.equal((observatoryUi.match(/<dd data-availability=\\{availability.world\\}>/g) || []).length, 4, 'production_smoke_four_real_visible_field_metrics');
+assert.equal((observatoryUi.match(/<dd data-availability=\{availability.world\}>/g) || []).length, 4, 'production_smoke_four_real_visible_field_metrics');
 
 assert.ok(observatoryUi.includes("deriveTerritorialTensions"), 'territorial_tension_model_missing');
 assert.ok(observatoryUi.includes("TERRITORIAL TENSIONS") && observatoryUi.includes("GEO COVERAGE"), 'territorial_observatory_ui_missing');
