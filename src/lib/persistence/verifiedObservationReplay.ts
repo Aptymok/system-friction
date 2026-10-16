@@ -22,7 +22,7 @@ export async function replayVerifiedSourceObservations(input: { maxEntries?: num
   }
 
   const sql = continuityDatabase();
-  let candidates = await sql`
+  let candidates = [...(await sql`
     select j.operation_id::text as operation_id,
            j.epoch::text as epoch,
            j.source_txid::text as source_txid,
@@ -36,7 +36,7 @@ export async function replayVerifiedSourceObservations(input: { maxEntries?: num
       and j.row_data = to_jsonb(o)
     order by j.sequence asc
     limit ${limit}
-  `;
+  `)];
 
   // The same canonical, insert-only replay lane may recover immutable friction
   // readings only after source observations have been selected. This is not a
