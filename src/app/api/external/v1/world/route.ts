@@ -25,13 +25,14 @@ function requiredScope(operation: WorldOperation) {
 
 async function readWorldState() {
   const db = createServiceSupabaseClient();
-  const [observation, reading, hypothesis, receipt] = await Promise.all([
+  const [observation, reading, hypothesis, receipt, partialReceipt] = await Promise.all([
     db.from('world_source_observations').select('id,source_id,fetched_at').order('fetched_at', { ascending: false }).limit(1).maybeSingle(),
     db.from('world_friction_readings').select('id,created_at,systemic_friction,interaction_density,systemic_coherence').order('created_at', { ascending: false }).limit(1).maybeSingle(),
     db.from('world_hypotheses').select('id,status,created_at,cutoff_at,validation_ends_at,current_confidence').order('created_at', { ascending: false }).limit(1).maybeSingle(),
     db.from('epistemic_events').select('event_id,event_name,occurred_at').eq('event_name', 'external.world.daily_cycle.completed').order('occurred_at', { ascending: false }).limit(1).maybeSingle(),
+    db.from('epistemic_events').select('event_id,event_name,occurred_at').eq('event_name', 'external.world.daily_cycle.partial').order('occurred_at', { ascending: false }).limit(1).maybeSingle(),
   ]);
-  const warnings = [observation.error?.message, reading.error?.message, hypothesis.error?.message, receipt.error?.message].filter(Boolean);
+  const warnings = [observation.error?.message, reading.error?.message, hypothesis.error?.message, receipt.error?.message, partialReceipt.error?.message].filter(Boolean);
   const latestObservationAt = observation.data?.fetched_at ?? null;
   const ageHours = latestObservationAt ? Math.max(0, (Date.now() - Date.parse(String(latestObservationAt))) / 3_600_000) : null;
   return {
@@ -40,6 +41,7 @@ async function readWorldState() {
     latestReading: reading.data ?? null,
     latestHypothesis: hypothesis.data ?? null,
     latestDailyCycleReceipt: receipt.data ?? null,
+    latestPartialCycleReceipt: partialReceipt.data ?? null,
     freshness: ageHours === null ? 'ABSENT' : ageHours < 24 ? 'LIVE' : ageHours <= 48 ? 'AGING' : 'STALE',
     ageHours,
     warnings,
@@ -347,9 +349,21 @@ export async function POST(req: Request) {
     error: error instanceof Error ? error.message : String(error),
   }));
 
+  // World observations remain valid even when hypotheses, calibration or JR fail.
+  // Only a fully checked cycle may mint the historical "completed" event.
+  const preReceiptState = await readWorldState();
+  const stagesComplete = observation.ok === true
+    && hypothesis.ok === true
+    && calibration.ok === true
+    && jrFieldCycle.ok === true
+    && instrumentSweep.ok === true
+    && (closureReport === null || closureReport.ok === true)
+    && preReceiptState.ok === true
+    && preReceiptState.freshness === 'LIVE';
+
   const receipt = await appendEpistemicEvent({
     returnMode:'receipt',
-    eventName: 'external.world.daily_cycle.completed',
+    eventName: stagesComplete ? 'external.world.daily_cycle.completed' : 'external.world.daily_cycle.partial',
     epistemicClass: 'derived',
     confidence: 1,
     occurredAt: new Date().toISOString(),
@@ -358,6 +372,16 @@ export async function POST(req: Request) {
     lineage: [],
     payload: {
       contract: 'SFI-WORLD-DAILY-CYCLE-1.0',
+      completionState: stagesComplete ? 'COMPLETE' : 'PARTIAL',
+      stageChecks: {
+        observation: observation.ok === true,
+        hypothesis: hypothesis.ok === true,
+        calibration: calibration.ok === true,
+        jrReceipt: jrFieldCycle.ok === true,
+        instruments: instrumentSweep.ok === true,
+        closureReport: closureReport === null || closureReport.ok === true,
+        freshRead: preReceiptState.ok === true && preReceiptState.freshness === 'LIVE',
+      },
       actorId,
       startedAt,
       completedAt: new Date().toISOString(),
@@ -378,12 +402,13 @@ export async function POST(req: Request) {
   });
 
   const reread = await readWorldState();
-  const ok = observation.ok && hypothesis.ok && calibration.ok && receipt.ok && jrFieldCycle.ok !== false && reread.freshness === 'LIVE';
+  const ok = stagesComplete && receipt.ok === true && reread.ok === true && reread.freshness === 'LIVE';
   return NextResponse.json({
     ok,
     operation,
     actor: actorId,
     contract: 'SFI-WORLD-DAILY-CYCLE-1.0',
+    status: ok ? 'COMPLETE' : 'PARTIAL',
     worldSignalObserver,
     hypothesis,
     calibration,

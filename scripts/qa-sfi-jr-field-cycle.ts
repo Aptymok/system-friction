@@ -124,6 +124,11 @@ assert.ok(jr.includes("const cycleReceiptFailed = cycleReceipt.ok !== true;"), '
 assert.ok(jr.includes("&& !cycleReceiptFailed"), 'jr_return_requires_persisted_cycle_receipt');
 assert.ok(jr.includes("status: complete ? 'COMPLETE' as const : 'DEGRADED' as const"), 'jr_cannot_report_complete_after_failed_append');
 
+assert.ok(world.includes("eventName: stagesComplete ? 'external.world.daily_cycle.completed' : 'external.world.daily_cycle.partial'"), 'world_must_not_mint_complete_cycle_receipt_when_downstream_failed');
+assert.ok(world.includes("latestPartialCycleReceipt: partialReceipt.data ?? null"), 'world_state_must_report_failed_cycle_receipts_without_relabeling');
+assert.ok(world.includes("jrReceipt: jrFieldCycle.ok === true"), 'world_completion_must_require_jr_verified_receipt');
+assert.ok(world.includes("const ok = stagesComplete && receipt.ok === true"), 'world_success_requires_both_verified_stages_and_receipt');
+
 assert.ok(world.includes('runJrFieldCycle'), 'world_mcp_must_continue_into_jr');
 assert.ok(cron.includes('runJrFieldCycle'), 'world_cron_must_continue_into_jr');
 assert.ok(root.includes('projectDistributedPhenomenaForRoot'), 'root_must_project_distributed_phenomena');
