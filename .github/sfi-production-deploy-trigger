@@ -104,3 +104,26 @@ return_minting=false
 canonical_promotion=false
 schema_change=false
 release_gate=prebuilt_production_workflow
+
+
+SFI Production Release 2026-10-15 · MEM-003 protected recovery
+base=75538577592474e566341f99bd2810c16ba1f5d0
+source_pr=754
+reason=enable_governed_row_by_row_exact_world_source_and_friction_insert_recovery
+scope=bounded_source_observations_friction_readings_neon_to_supabase
+existing_writer=sfi_apply_continuity_batch_v1
+source_image_required=true
+insert_only=true
+historical_update_replay_not_claimed=true
+identity_grants_unmodified=true
+conflict_override=false
+primary_promotion=false
+journal_deletion=false
+authority_expansion=false
+persistence_owner_changed=false
+schema_change_in_release=false
+return_minting=false
+canonical_promotion=false
+qa_contract_check=pr_754_all_checks_success_main_sha_7553857_build_studio_audio_success
+release_gate=prebuilt_production_workflow
+production_return=NOT_OBSERVED_UNTIL_DEPLOY_AND_DB_RECEIPT
