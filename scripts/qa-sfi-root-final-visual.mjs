@@ -5,6 +5,7 @@ const workspace = fs.readFileSync('src/components/sfi/SfiRootWorkspace.tsx', 'ut
 const css = fs.readFileSync('src/components/sfi/SfiRootWorkspace.css', 'utf8');
 const scenePage = fs.readFileSync('src/app/[scene]/page.tsx', 'utf8');
 const consoleSource = fs.readFileSync('src/components/sfi/SfiConsole.tsx', 'utf8');
+const rail = fs.readFileSync('src/components/sfi/InstitutionalSurfaceRail.tsx', 'utf8');
 
 assert.match(scenePage, /SfiConsole/, 'root must remain on canonical scene surface');
 // ROOT uses an explicit early return so its authenticated workspace stays
@@ -12,17 +13,18 @@ assert.match(scenePage, /SfiConsole/, 'root must remain on canonical scene surfa
 // than an obsolete ternary spelling. Do not weaken the workspace contract.
 assert.match(consoleSource, /if\s*\(current==='root'\)\s*return\s*<main[^>]*>\s*<SfiRootWorkspace enabled\/>\s*<\/main>/, 'canonical root scene must mount existing root workspace');
 assert.match(workspace, /SFI-ROOT-VISUAL-2\.0/, 'final root visual contract missing');
-assert.match(workspace, /data-root-module-count=\{OBSERVE_LINKS\.length\}/, 'module count must be derived from canonical links');
+assert.match(workspace, /data-root-module-count="dynamic"/, 'ROOT must declare dynamic operational lenses, not a fabricated fixed count');
+assert.match(workspace, /<InstitutionalSurfaceRail surface="ROOT" state=\{readState\}/, 'ROOT must mount the shared governed institutional rail');
 
-const hrefs = [...workspace.matchAll(/\{ href: '([^']+)', label:/g)].map((match) => match[1]);
-assert.equal(hrefs.length, 10, 'root elected composition must expose exactly ten canonical module lenses');
-assert.equal(new Set(hrefs).size, 10, 'root module lenses must not be duplicates');
-for (const href of ['/observatory','/cases','/method-lab','/twin','/studio','/library','/governance','/root/evidence-review','/history/mutations']) {
-  assert.ok(hrefs.includes(href), `root canonical module missing:${href}`);
+const hrefs = [...rail.matchAll(/\{href:'([^']+)',label:/g)].map((match) => match[1]);
+assert.equal(hrefs.length, 5, 'shared institutional rail must expose five current canonical chambers');
+assert.equal(new Set(hrefs).size, 5, 'institutional chambers must not be duplicated');
+for (const href of ['/root','/method-lab','/root/discovery','/root/evidence-review','/root/access']) {
+  assert.ok(hrefs.includes(href), `institutional chamber missing:${href}`);
 }
 
-assert.match(workspace, /OBSERVACIÓN ≠ INFERENCIA/, 'root epistemic distinction missing');
-assert.match(workspace, /SIMULACIÓN ≠ OBSERVACIÓN/, 'root simulation boundary missing');
+assert.match(rail, /OBSERVE ≠ DECIDE · OPERATE ≠ GOVERN/, 'ROOT must display observation/authority boundary');
+assert.match(rail, /SIMULATED ≠ OBSERVED · REPLAY ≠ RETURN/, 'Lab simulation/return boundary must remain explicit');
 assert.match(workspace, /rootActionRequired === true/, 'root sovereign work queue semantics must remain data-driven');
 assert.match(workspace, /jsonFetch\('\/api\/root\/interactive\?surface=root'\)/, 'root must retain canonical live read contract');
 assert.match(workspace, /jsonFetch\('\/api\/root\/decisions'/, 'root decision writes must retain canonical writer');
@@ -43,7 +45,7 @@ console.log(JSON.stringify({
   ok: true,
   contract: 'SFI-ROOT-VISUAL-2.0',
   canonicalSurface: '/root -> SfiConsole -> SfiRootWorkspace',
-  moduleCount: hrefs.length,
+  chamberCount: hrefs.length,
   topology: ['OBSERVATION','AUTHORITY','RETURN'],
   unavailableState: 'MISSING_OR_DEGRADED_NOT_ZERO',
   simulatedMetrics: false,
