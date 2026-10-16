@@ -525,8 +525,8 @@
   position:relative;width:100%;height:100svh;min-height:720px;overflow:hidden;background:var(--void);color:var(--cream);isolation:isolate;
 }
 .sfiHomeExperience *{box-sizing:border-box}
-.sfiHomePanoramaScroller{position:absolute;inset:0;z-index:0;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain;touch-action:pan-x}
-.sfiHomePanoramaScroller::-webkit-scrollbar{display:none}
+.sfiHomePanoramaScroller{position:absolute;inset:0;z-index:0;overflow-x:auto;overflow-y:hidden;scroll-snap-type:none;scrollbar-width:thin;scrollbar-color:#c8a951 #080c10;overscroll-behavior-x:contain;scroll-behavior:smooth;touch-action:pan-x}
+.sfiHomePanoramaScroller::-webkit-scrollbar{display:block!important;height:10px!important}
 .sfiHomePanoramaTrack{width:200vw;height:100%;scroll-snap-align:start}
 .sfiHomePanoramaTrack img{display:block;width:200vw;height:100%;object-fit:cover;object-position:center 42%;filter:none;user-select:none;-webkit-user-drag:none}
 .sfiHomePanoramaVeil{position:absolute;inset:0;z-index:1;pointer-events:none;background:rgba(6,6,5,.08)}
@@ -575,3 +575,7 @@
 @media(max-width:1180px){.sfiHomeHeader{grid-template-columns:180px minmax(0,1fr) 22px;padding-left:20px;padding-right:20px}.sfiHomeBrand img,.sfiHomeBrand i,.sfiHomeBrand span{display:none}.sfiHomeHeader nav{justify-content:flex-start;overflow-x:auto;scrollbar-width:none}.sfiHomeSurfaceRail{left:20px;right:20px;overflow-x:auto;grid-template-columns:repeat(8,180px)}.sfiHomeRightNotes{display:none}.sfiHomeStatement{left:46%;width:min(680px,58vw)}}
 @media(max-width:760px){.sfiHomeExperience{min-height:640px}.sfiHomeHeader{height:56px;grid-template-columns:42px minmax(0,1fr) 20px;gap:9px;padding:0 12px}.sfiHomeBrand strong{font-size:18px}.sfiHomeHeader nav a{font-size:8px;padding-top:20px}.sfiHomeChain{display:none}.sfiHomeStatement{left:24px;right:24px;top:22%;width:auto;transform:none}.sfiHomeStatement h1{font-size:clamp(34px,9vw,52px)}.sfiHomeStatement p{font-size:16px}.sfiHomeSurfaceRail{bottom:82px}.sfiHomeTimeline{height:70px;grid-template-columns:1fr 50px;padding:8px 14px}.sfiHomeTimeline>div:first-child{display:none}.sfiHomePanoramaArrow{display:none}}
 @media(prefers-reduced-motion:reduce){.sfiHomePanoramaScroller{scroll-behavior:auto}.sfiHomeHeader nav a:after{transition:none}}
+
+/* The decorative home time strip is absent; retain usable panoramic navigation. */
+.sfiHomeSurfaceRail{bottom:18px!important}
+.sfiHomePanoramaArrow{bottom:24px!important}

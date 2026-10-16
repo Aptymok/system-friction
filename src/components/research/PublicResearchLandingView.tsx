@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import type { SfiPublicResearchLanding } from '@/lib/research/publicResearchLanding';
-import { SfiPublicHeader, SfiPublicFooter } from '@/components/public/SfiPublicChrome';
+import { SfiPublicHeader } from '@/components/public/SfiPublicChrome';
 
 function SourceRef({ value }: { value: string }) {
   if (/^https?:\/\//i.test(value)) {
@@ -108,7 +108,7 @@ export function PublicResearchLandingView({ landing }: { landing: SfiPublicResea
             <p>This page is a read-only projection of an explicitly public canonical object. Rendering it does not create publication status, evidence, external validation, Discovery, PULL or RETURN.</p>
           </section>
         </div></div>
-        <SfiPublicFooter/>
+
       </main>
     </>
   );
