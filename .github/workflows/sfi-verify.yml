@@ -97,6 +97,9 @@ jobs:
       - name: Verify Field and Observatory temporal surfaces
         run: npx tsx scripts/qa-sfi-temporal-surfaces.ts
 
+      - name: Verify P09 Observatory evidentiary panorama boundary
+        run: node scripts/qa-sfi-observatory-composed-assurance.mjs
+
       - name: Verify canonical discovery object integrity
         run: npx tsx scripts/qa-sfi-discovery-integrity.ts && npx tsx scripts/qa-sfi-discovery-operational.ts && node --import tsx --test src/lib/discovery/canonicalObjectRegistry.test.ts src/lib/discovery/discoveryMesh.test.ts
 
