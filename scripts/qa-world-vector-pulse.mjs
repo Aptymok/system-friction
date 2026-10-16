@@ -69,7 +69,14 @@ if (executionState === 'BLOCKED_BY_EGRESS_POLICY') {
   process.exit(0);
 }
 
-if (executionState !== 'EXECUTED') fail('invalid_execution_state', `SFI_WORLD_CYCLE_EXECUTION_STATE=${executionState}`);
+if (executionState !== 'EXECUTED') {
+  if (executionState === 'PARTIAL_OBSERVED_HYPOTHESIS_BLOCKED'
+      || executionState === 'OBSERVED_INSTITUTIONAL_DEFERRED') {
+    console.warn('WORLD_VECTOR_PULSE_QA_DOWNSTREAM_DEFERRED: validating WorldSpect measurement freshness only');
+  } else {
+    fail('invalid_execution_state', `SFI_WORLD_CYCLE_EXECUTION_STATE=${executionState}`);
+  }
+}
 
 if (health.status === 'failed') fail('health.status=failed', (health.warnings || []).join('|') || health.latest_error || 'Inspect health output.');
 if (trend.ok !== true) fail('trend.ok_not_true', 'WorldSpect trend endpoint did not return ok=true.');

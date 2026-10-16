@@ -42,6 +42,9 @@ assert.match(pulse, /WORLD_VECTOR_PULSE_QA_BLOCKED_BY_EGRESS_POLICY/, 'pulse QA 
 assert.match(pulse, /restricted_read_plane_unavailable/, 'blocked scheduled cycle must still fail when the WorldSpect read plane is unavailable');
 assert.match(worldCron, /SFI_WORLD_CYCLE_EXECUTION_STATE/, 'world cron must propagate scheduled execution state into pulse QA');
 assert.match(worldCron, /SFI_WORLD_CYCLE_MIXED_EGRESS_STATE/, 'world cron must fail closed when only part of the scheduled cycle is egress-restricted');
+assert.match(worldCron, /OBSERVATION_PERSISTED_HYPOTHESIS_BLOCKED/, 'World observation status must remain distinct from hypothesis inference status');
+assert.match(worldCron, /PARTIAL_OBSERVED_HYPOTHESIS_BLOCKED/, 'partial world cycle status must be visible');
+assert.match(pulse, /WORLD_VECTOR_PULSE_QA_DOWNSTREAM_DEFERRED/, 'pulse must explicitly label deferred downstream inference while measuring WorldSpect freshness');
 assert.match(worldVectorReadModel, /getLatestWorldSpectSnapshotRead/, 'World Vector latest observation must preserve WorldSpect read-plane provenance');
 assert.match(worldVectorReadModel, /getWorldSpectPublicHistoryRead/, 'World Vector history must preserve WorldSpect read-plane provenance through the lightweight shared reader');
 assert.doesNotMatch(worldVectorReadModel, /getRecentWorldSpectSnapshotsRead/, 'World Vector history must not require full WorldSpect rows merely to preserve read-plane provenance');
