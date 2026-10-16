@@ -49,3 +49,99 @@
 @media(max-width:680px){.repoReader{inset:54px 0 0;padding:58px 18px 90px}.repoReaderClose{top:66px;right:16px}.repoDiscoveryChannels{grid-template-columns:1fr}}
 
 /* SFI-LIVE-REPOSITORY-1.0: live canonical registry data on a structural, non-screenshot backdrop. */
+
+/* /repository — SFI Observatory visual grammar. Canonical registry remains the source,
+   and the existing public publication reader / discovery state stay intact. */
+.repositoryShell{background:#050a0d!important;color:#e8ddc3}
+.repositoryScene{
+ background:#060a0e url('/assets/sfi/instruments/OBSERVATORY_BACKGROUND.png') center center/cover no-repeat!important;
+}
+.repositoryBackdrop{
+ background:linear-gradient(90deg,rgba(2,7,12,.65),rgba(2,7,12,.24) 44%,rgba(2,7,12,.7))!important;
+}
+.repoIdentity,.repoRailColumn,.repoProvenance>section,.repoTwinCards>section{
+ background:linear-gradient(160deg,rgba(3,10,16,.91),rgba(5,12,18,.82))!important;
+ border:1px solid rgba(200,169,81,.32)!important;
+ backdrop-filter:none!important;
+}
+.repoArchiveRail{gap:12px}
+.repoRailColumn header,.repoProvenance header{border-bottom:1px solid rgba(200,169,81,.31)!important}
+.repoRailScroll>button{border-bottom:1px solid rgba(200,169,81,.19)}
+.repoObjectInspector{
+ border:1px solid rgba(218,181,112,.64)!important;
+ border-left:2px solid #d4af68!important;
+ background:linear-gradient(162deg,rgba(3,9,15,.96),rgba(4,11,18,.88))!important;
+ box-shadow:inset 0 0 0 4px rgba(7,17,23,.28),0 12px 34px rgba(0,0,0,.32);
+ backdrop-filter:none!important;
+ transform:perspective(1800px) rotateY(-3deg);
+ transform-origin:right center;
+}
+.repoObjectInspector:focus-within{transform:none;border-color:#e1c17a!important}
+.repoObjectInspector h2{
+ font-family:"Noto Serif Display",Georgia,serif;
+ font-size:clamp(22px,1.9vw,30px);line-height:1.14;
+ color:#ede1c9;
+}
+.repoObjectInspector>p{color:#d6cbb8;font-size:12px;line-height:1.52}
+.repoTimeline{background:rgba(3,9,14,.9)!important;border-top:1px solid rgba(200,169,81,.41);backdrop-filter:none!important}
+.repoReader{
+ background:linear-gradient(175deg,rgba(3,8,13,.98),rgba(3,11,17,.97))!important;
+ backdrop-filter:none!important;
+}
+@media(max-width:1160px){.repoObjectInspector{transform:none}}
+@media(max-width:720px){.repositoryScene{background-size:auto 100%}.repoObjectInspector{transform:none}.repoIdentity,.repoArchiveRail{backdrop-filter:none!important}}
+
+/* Repository as one native horizontal instrument; real historical clicks are in
+   the upper navigation, not a decorative page footer. */
+html:has(.repositoryShell),body:has(.repositoryShell){overflow-y:hidden!important}
+.repositoryShell{
+ width:100vw!important;height:calc(100dvh - 64px)!important;
+ min-height:0!important;max-height:calc(100dvh - 64px)!important;
+ overflow-x:auto!important;overflow-y:hidden!important;
+ scroll-behavior:smooth;overscroll-behavior-x:contain;
+ scrollbar-width:thin;scrollbar-color:#c8a951 rgba(4,9,13,.72);
+}
+.repositoryScene{
+ position:relative!important;width:2880px!important;min-width:2880px!important;
+ height:100%!important;min-height:0!important;max-height:100%!important;
+ overflow:hidden!important;box-sizing:border-box;
+}
+.repoIdentity{
+ position:absolute!important;left:26px!important;top:22px!important;
+ width:265px!important;bottom:22px!important;height:auto!important;
+ margin:0!important;padding:18px!important;
+ overflow-y:auto;scrollbar-width:thin;
+}
+.repoTimeline{
+ position:absolute!important;left:318px!important;right:28px!important;
+ top:12px!important;bottom:auto!important;height:68px!important;
+ display:grid!important;grid-template-columns:205px minmax(0,1fr) 94px!important;
+ gap:14px!important;margin:0!important;padding:6px 14px!important;
+ align-items:center!important;overflow:hidden!important;
+ border:1px solid rgba(200,169,81,.38)!important;
+ border-top:1px solid rgba(200,169,81,.58)!important;
+ background:rgba(3,9,15,.91)!important;
+ box-shadow:none!important;backdrop-filter:none!important;
+}
+.repoTimelineTrack{display:block!important;min-width:0!important;height:53px!important}
+.repoTimelineTrack button{top:8px!important}
+.repoTimelineMode{display:grid!important}
+.repoArchiveRail{
+ position:absolute!important;left:318px!important;right:845px!important;
+ top:95px!important;bottom:22px!important;height:auto!important;
+ margin:0!important;display:grid!important;
+ grid-template-columns:.82fr .92fr 1.08fr!important;gap:13px!important;
+}
+.repoObjectInspector{
+ position:absolute!important;right:468px!important;left:auto!important;
+ width:342px!important;top:95px!important;bottom:22px!important;
+ margin:0!important;overflow-y:auto!important;
+}
+.repoProvenance{
+ position:absolute!important;right:27px!important;left:auto!important;
+ width:415px!important;top:95px!important;bottom:22px!important;
+ margin:0!important;overflow-y:auto!important;
+}
+.repoRailColumn{min-height:0!important}
+.repoReader{overflow-y:auto!important}
+@media(prefers-reduced-motion:reduce){.repositoryShell{scroll-behavior:auto}}

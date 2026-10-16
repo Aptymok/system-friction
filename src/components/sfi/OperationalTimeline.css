@@ -87,3 +87,45 @@
 @media(max-width:1200px){.sfiTemporalMain{grid-template-columns:minmax(175px,210px) minmax(0,1fr)}.sfiTemporalInspector{grid-column:1/-1;max-height:none}}
 @media(max-width:750px){.sfiTemporalMain{display:block;padding:10px}.sfiTemporalIndex,.sfiTemporalInspector{margin-bottom:10px}.sfiTemporalClockStage{margin:0 4px;padding:12px}.sfiTemporalClockStageIntro{display:grid}.sfiTemporalClockStageIntro span{text-align:left;max-width:none}.sfiTemporalClockRow{grid-template-columns:28px minmax(85px,.75fr) minmax(120px,1fr);gap:8px;padding:9px 5px}.sfiTemporalClockName small{font-size:8px}.sfiTemporalClockValue b{font-size:10px}.sfiTemporalClockValue small{font-size:8px}.sfiTemporalScrubber{grid-template-columns:1fr;margin:15px 4px}.sfiTemporalScrubberTicks{width:100%}.sfiTemporalLens{margin:10px 4px}}
 @media(prefers-reduced-motion:reduce){.sfiTemporalLens button{transition:none}}
+
+
+/* /timeline · Observatory-grade longitudinal reader over a common SFI landscape.
+   Dated canonical registry and WorldSpect evidence under the authenticated seven-clock MIHM-T view. */
+.sfiTemporalShell{
+ min-height:calc(100svh - 64px);
+ background:#060a0e url('/assets/sfi/instruments/OBSERVATORY_BACKGROUND.png') center center/cover fixed no-repeat!important;
+ color:#e8ddc3;
+}
+.sfiTemporalAtmosphere{background:linear-gradient(90deg,rgba(3,8,13,.58),rgba(3,8,13,.25) 40%,rgba(3,8,13,.66))!important}
+.sfiTemporalHeader{background:rgba(3,9,14,.94)!important;border-bottom:1px solid rgba(200,169,81,.45)!important}
+.sfiTemporalMain{
+ grid-template-columns:minmax(210px,255px) minmax(0,1.4fr) minmax(340px,.72fr);
+ gap:clamp(12px,1.6vw,28px);
+ padding:clamp(18px,2.2vw,34px);
+}
+.sfiTemporalIndex{
+ background:linear-gradient(165deg,rgba(3,10,16,.92),rgba(5,12,19,.86))!important;
+ border:1px solid rgba(200,169,81,.35)!important;backdrop-filter:none!important;
+}
+.sfiTemporalField{
+ min-width:0;padding:18px 13px;
+ border:1px solid rgba(200,169,81,.32);
+ background:linear-gradient(160deg,rgba(3,9,14,.88),rgba(5,11,17,.71));
+}
+.sfiTemporalFieldHead{padding-bottom:16px;border-bottom:1px solid rgba(200,169,81,.3)}
+.sfiTemporalLane{border-top:1px solid rgba(200,169,81,.27)}
+.sfiTemporalInspector{
+ background:linear-gradient(165deg,rgba(2,8,14,.97),rgba(6,13,19,.89))!important;
+ border:1px solid rgba(218,181,110,.68)!important;border-left:2px solid #d4af68!important;
+ box-shadow:inset 0 0 0 5px rgba(8,18,23,.29),0 17px 39px rgba(0,0,0,.29);
+ backdrop-filter:none!important;
+ transform:perspective(2200px) rotateY(-3deg);
+ transform-origin:right center;
+}
+.sfiTemporalInspector:focus-within{transform:none;border-color:#e6c481!important}
+.sfiTemporalInspectorTitle{border-bottom:1px solid rgba(200,169,81,.35);padding-bottom:14px}
+.sfiTemporalInspector h2{color:#e8ddc3;font-family:"Noto Serif Display",Georgia,serif}
+.sfiTemporalRail{background:rgba(3,9,14,.94)!important;border-top:1px solid rgba(200,169,81,.4)}
+@media(max-width:1100px){.sfiTemporalMain{grid-template-columns:210px minmax(0,1fr)}.sfiTemporalInspector{grid-column:1/-1;transform:none}}
+@media(max-width:690px){.sfiTemporalMain{display:block!important}.sfiTemporalIndex,.sfiTemporalField,.sfiTemporalInspector{margin:10px 0!important;transform:none}.sfiTemporalShell{background-attachment:scroll}}
+
