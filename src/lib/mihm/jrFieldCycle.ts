@@ -314,10 +314,14 @@ export async function runJrFieldCycle(input: JrCycleInput) {
   const degradedDispatches = methodDispatches.filter((item) => typeof item === 'object' && item !== null && (item as {state?:string}).state === 'DEGRADED').length;
   const returnDegraded = returnReconciliation.ok === false;
   const historyDegraded = historyReadError !== null;
+  // An executed graph calculation is not a completed cycle until its append-only
+  // completion event receives a durable, hash-linked persistence receipt.
+  const cycleReceiptFailed = cycleReceipt.ok !== true;
+  const complete = degradedDispatches === 0 && !returnDegraded && !historyDegraded && !cycleReceiptFailed;
 
   return {
-    ok: degradedDispatches === 0 && !returnDegraded && !historyDegraded,
-    status: (degradedDispatches || returnDegraded || historyDegraded) ? 'DEGRADED' as const : 'COMPLETE' as const,
+    ok: complete,
+    status: complete ? 'COMPLETE' as const : 'DEGRADED' as const,
     contract:SFI_JR_FIELD_CYCLE_CONTRACT,
     startedAt,
     completedAt,
