@@ -2,18 +2,20 @@ import { SFI_AUTHENTICATED_MCP_SCOPES } from '@/lib/mcp/authenticatedGatewayProj
 
 export const dynamic = 'force-dynamic';
 
-const oauthIssuer = 'https://www.systemfriction.org';
-const resourceOrigin = 'https://www.systemfriction.org';
+const PUBLIC_ORIGIN = 'https://www.systemfriction.org';
+const WORKPLACE_ORIGIN = 'https://system-friction.vercel.app';
 
-export async function GET() {
+export async function GET(request: Request) {
+  const requestedOrigin = new URL(request.url).origin;
+  const origin = requestedOrigin === WORKPLACE_ORIGIN ? WORKPLACE_ORIGIN : PUBLIC_ORIGIN;
   return Response.json({
-    resource: `${resourceOrigin}/api/mcp/authenticated`,
-    authorization_servers: [oauthIssuer],
+    resource: `${origin}/api/mcp/authenticated`,
+    authorization_servers: [origin],
     bearer_methods_supported: ['header'],
     scopes_supported: [...SFI_AUTHENTICATED_MCP_SCOPES],
   }, {
     headers: {
-      'Cache-Control': 'public, max-age=300, stale-while-revalidate=300',
+      'Cache-Control': 'no-store',
     },
   });
 }
