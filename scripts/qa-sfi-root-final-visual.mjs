@@ -7,7 +7,10 @@ const scenePage = fs.readFileSync('src/app/[scene]/page.tsx', 'utf8');
 const consoleSource = fs.readFileSync('src/components/sfi/SfiConsole.tsx', 'utf8');
 
 assert.match(scenePage, /SfiConsole/, 'root must remain on canonical scene surface');
-assert.match(consoleSource, /current==='root'\?<SfiRootWorkspace enabled\/>/, 'canonical root scene must mount existing root workspace');
+// ROOT uses an explicit early return so its authenticated workspace stays
+// isolated from the other scene viewport; validate the actual mount rather
+// than an obsolete ternary spelling. Do not weaken the workspace contract.
+assert.match(consoleSource, /if\s*\(current==='root'\)\s*return\s*<main[^>]*>\s*<SfiRootWorkspace enabled\/>\s*<\/main>/, 'canonical root scene must mount existing root workspace');
 assert.match(workspace, /SFI-ROOT-VISUAL-2\.0/, 'final root visual contract missing');
 assert.match(workspace, /data-root-module-count=\{OBSERVE_LINKS\.length\}/, 'module count must be derived from canonical links');
 
