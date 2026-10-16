@@ -2,9 +2,12 @@ import { SFI_ROOT_SCOPES } from '@/lib/sfi/oauthConfig';
 
 export const dynamic = 'force-dynamic';
 
-const issuer = 'https://www.systemfriction.org';
+const PUBLIC_ORIGIN = 'https://www.systemfriction.org';
+const WORKPLACE_ORIGIN = 'https://system-friction.vercel.app';
 
-export async function GET() {
+export async function GET(request: Request) {
+  const requestedOrigin = new URL(request.url).origin;
+  const issuer = requestedOrigin === WORKPLACE_ORIGIN ? WORKPLACE_ORIGIN : PUBLIC_ORIGIN;
   return Response.json({
     issuer,
     authorization_endpoint: `${issuer}/api/oauth/authorize`,
@@ -19,7 +22,7 @@ export async function GET() {
     authorization_response_iss_parameter_supported: true,
   }, {
     headers: {
-      'Cache-Control': 'public, max-age=300, stale-while-revalidate=300',
+      'Cache-Control': 'no-store',
     },
   });
 }
