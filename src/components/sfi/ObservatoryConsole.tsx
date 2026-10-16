@@ -405,7 +405,7 @@ export function ObservatoryConsole(){
               {nodes.length===0&&<p>NO SOURCE OBSERVATIONS IN THIS WINDOW.</p>}
             </>}
             {lens==='hypotheses'&&<>
-              {selectedHypothesis&&<><p>{selectedHypothesis.statement} · {selectedHypothesis.status}</p><p>PROPOSED MECHANISM · INFERENCE: {selectedHypothesis.aiInference?.mechanism||'Mechanism not established.'}</p><p>CONSEQUENCE TRACE · {arr(selectedHypothesis.aiInference?.consequenceChain).length} declared links</p><p>RETURN: {selectedHypothesis.outcome?.classification||'NOT OBSERVED'}</p><HypothesisClosureDiff hypothesis={selectedHypothesis}/></>
+              {selectedHypothesis&&<><p>{selectedHypothesis.statement} · {selectedHypothesis.status}</p><p>PROPOSED MECHANISM · INFERENCE: {selectedHypothesis.aiInference?.mechanism||'Mechanism not established.'}</p><p>CONSEQUENCE TRACE · {arr(selectedHypothesis.aiInference?.consequenceChain).length} declared links</p><p>RETURN: {selectedHypothesis.outcome?.classification||'NOT OBSERVED'}</p><HypothesisClosureDiff hypothesis={selectedHypothesis}/></>}
               {filteredHypotheses.slice(0,8).map(h=><button className="sfiMonitorRow" key={String(h.id)} onClick={()=>setSelectedHypothesisId(String(h.id))}><span>{short(h.statement,78)}</span><span>{h.status}</span></button>)}
             </>}
             {lens==='trajectory'&&<>
