@@ -10,7 +10,7 @@
 .sfiTemporalIndex h1{font-weight:500;font-size:22px;letter-spacing:.2em;margin:0 0 8px}.sfiTemporalIndex>p{color:#a8a49b;font-size:10px;letter-spacing:.1em;line-height:1.6}
 .sfiTemporalCounters{display:grid;gap:4px;margin-top:32px}.sfiTemporalCounters button{cursor:pointer;border:0;border-bottom:1px solid rgba(217,177,106,.12);color:#c8bca9;background:transparent;padding:11px 0;display:grid;grid-template-columns:10px 1fr auto;gap:10px;align-items:center;text-align:left;font-size:10px}.sfiTemporalCounters button[aria-pressed=true]{color:var(--tgold);background:rgba(217,177,106,.07)}.sfiTemporalCounters i{width:5px;height:5px;background:#c9a562;border-radius:50%}.sfiTemporalCounters i[data-lane=WORLD]{background:#88bee7}.sfiTemporalCounters i[data-lane=CASE]{background:#9cceaa}.sfiTemporalCounters i[data-lane=PROJECT]{background:#b9a3d4}
 .sfiTemporalCounters b{font-size:11px;font-weight:400}.sfiTemporalBoundary{padding:12px;margin-top:36px;border:1px solid var(--tline);font-size:10px;line-height:1.6;color:#ada59a}.sfiTemporalBoundary strong{font-size:8px;letter-spacing:.13em;color:var(--tgold)}.sfiTemporalIndex>a{display:block;margin-top:20px;color:#d7b77b;font-size:9px;text-decoration:none}
-.sfiTemporalField{min-width:0;display:flex;flex-direction:column;padding:13px 0}.sfiTemporalFieldHead,.sfiTemporalFieldFooter{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;font-size:9px;letter-spacing:.1em;color:#a8a59f;padding:0 13px}.sfiTemporalFieldHead small{color:var(--tgold)}
+.sfiTemporalField{min-width:0;display:flex;flex-direction:column;padding:13px 0}.sfiTemporalFieldHead,.sfiTemporalFieldStatus{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;font-size:9px;letter-spacing:.1em;color:#a8a59f;padding:0 13px}.sfiTemporalFieldHead small{color:var(--tgold)}
 .sfiTemporalYears{display:flex;justify-content:space-around;gap:12px;align-items:center;color:#d6b47f;min-height:65px;font-size:11px}
 .sfiTemporalLane{display:grid;grid-template-columns:110px minmax(0,1fr);min-height:116px;align-items:stretch;border-top:1px solid rgba(217,177,106,.14)}
 .sfiTemporalLaneLabel{display:flex;flex-direction:column;justify-content:center;gap:8px;padding:0 10px}.sfiTemporalLaneLabel strong{font-size:11px;letter-spacing:.1em}.sfiTemporalLaneLabel span{font-size:8px;line-height:1.5;color:#958e84}
@@ -22,14 +22,68 @@
 .sfiTemporalLaneTrack>button span{display:none;position:absolute;bottom:21px;left:50%;transform:translateX(-50%);white-space:nowrap;max-width:170px;overflow:hidden;text-overflow:ellipsis;color:#f6dfb0;font-size:9px;background:#101519;padding:5px 8px;border:1px solid var(--tline)}
 .sfiTemporalLaneTrack>button:hover span,.sfiTemporalLaneTrack>button.isSelected span{display:block}
 .sfiTemporalLaneTrack>p{font-size:9px;line-height:1.6;letter-spacing:.08em;text-align:center;position:relative;z-index:1;padding:38px 8px;color:#777f81}
-.sfiTemporalFieldFooter{padding-top:20px}.sfiTemporalInspector{max-height:calc(100svh - 195px);overflow:auto}.sfiTemporalInspectorTitle{display:flex;align-items:center;justify-content:space-between;padding-bottom:18px;border-bottom:1px solid var(--tline);gap:8px}.sfiTemporalInspectorTitle small{font-size:9px;color:var(--tgold)}.sfiTemporalInspectorTitle strong{font-size:9px;color:#8ac69b}
+.sfiTemporalFieldStatus{padding-top:20px}.sfiTemporalInspector{max-height:calc(100svh - 195px);overflow:auto}.sfiTemporalInspectorTitle{display:flex;align-items:center;justify-content:space-between;padding-bottom:18px;border-bottom:1px solid var(--tline);gap:8px}.sfiTemporalInspectorTitle small{font-size:9px;color:var(--tgold)}.sfiTemporalInspectorTitle strong{font-size:9px;color:#8ac69b}
 .sfiTemporalInspector time{display:block;color:var(--tgold);font-size:10px;margin-top:20px}.sfiTemporalInspector h2{font:400 25px/1.1 Georgia,serif;margin:11px 0}.sfiTemporalInspector p{font-size:12px;line-height:1.55;color:#b2ad9d}
 .sfiTemporalInspector dl{display:grid;gap:12px;margin:25px 0}.sfiTemporalInspector dl div{display:grid;grid-template-columns:95px 1fr;gap:10px;border-bottom:1px solid rgba(218,176,108,.1);padding-bottom:8px}.sfiTemporalInspector dt{font-size:9px;color:#a19687}.sfiTemporalInspector dd{font-size:10px;overflow-wrap:anywhere;margin:0;color:#d8c5a7}
 .sfiTemporalInspector section{border-top:1px solid var(--tline);padding:15px 0}.sfiTemporalInspector h3{font-size:10px;color:var(--tgold)}.sfiTemporalVector{display:flex;gap:10px;justify-content:space-between;align-items:center;padding:5px 0;font-size:9px;color:#b9b2a5}.sfiTemporalVector b{color:#c1ddfa;font-weight:400}.sfiTemporalVector small{color:#797c80}
 .sfiTemporalInspectLink{display:flex;padding:13px;margin-top:15px;border:1px solid var(--tline);text-decoration:none;color:#dec79b;font-size:9px;justify-content:center}.sfiTemporalAbsent{color:#a19a8b}
-.sfiTemporalRail{min-height:90px;display:grid;grid-template-columns:170px minmax(0,1fr) 190px;gap:14px;align-items:center;padding:16px 2.5vw;background:rgba(4,7,9,.86);border-top:1px solid var(--tline);font-size:10px}
-.sfiTemporalRail>div:first-child{display:grid;gap:8px;color:#d6c6a8}.sfiTemporalRail strong{color:#918b83;font-weight:400}.sfiTemporalRailTicks{position:relative;height:50px;min-width:0}.sfiTemporalRailTicks:before{content:"";position:absolute;top:13px;left:0;right:0;border-top:1px solid rgba(218,176,108,.45)}.sfiTemporalRailTicks button{position:absolute;top:7px;border:0;background:transparent;cursor:pointer;padding:0}.sfiTemporalRailTicks button i{display:block;width:7px;height:13px;background:#d2b17d;box-shadow:0 0 8px rgba(230,180,103,.5)}.sfiTemporalRailTicks button[data-active=true] i{height:21px;background:#fff4d5}
+.sfiTemporalScrubber{min-height:90px;display:grid;grid-template-columns:170px minmax(0,1fr) 190px;gap:14px;align-items:center;padding:16px 2.5vw;background:rgba(4,7,9,.86);border-top:1px solid var(--tline);font-size:10px}
+.sfiTemporalScrubber>div:first-child{display:grid;gap:8px;color:#d6c6a8}.sfiTemporalScrubber strong{color:#918b83;font-weight:400}.sfiTemporalScrubberTicks{position:relative;height:50px;min-width:0}.sfiTemporalScrubberTicks:before{content:"";position:absolute;top:13px;left:0;right:0;border-top:1px solid rgba(218,176,108,.45)}.sfiTemporalScrubberTicks button{position:absolute;top:7px;border:0;background:transparent;cursor:pointer;padding:0}.sfiTemporalScrubberTicks button i{display:block;width:7px;height:13px;background:#d2b17d;box-shadow:0 0 8px rgba(230,180,103,.5)}.sfiTemporalScrubberTicks button[data-active=true] i{height:21px;background:#fff4d5}
 .sfiTemporalRanges{display:flex;gap:5px;justify-content:end}.sfiTemporalRanges button{padding:9px 11px;color:#aaa49a;border:1px solid rgba(217,177,106,.17);background:rgba(5,9,12,.65);font-size:9px;cursor:pointer}.sfiTemporalRanges button.active{color:var(--tgold);border-color:var(--tgold)}
 @media(max-width:1100px){.sfiTemporalMain{grid-template-columns:185px minmax(0,1fr)}.sfiTemporalInspector{grid-column:1/-1;max-height:none}.sfiTemporalHeader{display:block}.sfiTemporalHeader nav{margin-top:15px}}
-@media(max-width:650px){.sfiTemporalMain{display:block;padding:12px}.sfiTemporalIndex,.sfiTemporalInspector{margin-bottom:12px}.sfiTemporalField{min-height:520px}.sfiTemporalLane{grid-template-columns:72px 1fr}.sfiTemporalLaneLabel{padding:3px}.sfiTemporalLaneLabel strong{font-size:9px}.sfiTemporalLaneLabel span{font-size:7px}.sfiTemporalRail{grid-template-columns:1fr}.sfiTemporalBrand small{display:none}.sfiTemporalHeader nav{overflow-x:auto;flex-wrap:nowrap;padding-bottom:6px}.sfiTemporalInspector{max-height:unset}}
+@media(max-width:650px){.sfiTemporalMain{display:block;padding:12px}.sfiTemporalIndex,.sfiTemporalInspector{margin-bottom:12px}.sfiTemporalField{min-height:520px}.sfiTemporalLane{grid-template-columns:72px 1fr}.sfiTemporalLaneLabel{padding:3px}.sfiTemporalLaneLabel strong{font-size:9px}.sfiTemporalLaneLabel span{font-size:7px}.sfiTemporalScrubber{grid-template-columns:1fr}.sfiTemporalBrand small{display:none}.sfiTemporalHeader nav{overflow-x:auto;flex-wrap:nowrap;padding-bottom:6px}.sfiTemporalInspector{max-height:unset}}
 @media(prefers-reduced-motion:reduce){.sfiTemporalIndex,.sfiTemporalInspector{backdrop-filter:none}}
+
+/* MIHM-T operational Observatory of Clocks · functional scrubber stays INSIDE the field, not as a fake footer. */
+.sfiTemporalShell{overflow-x:hidden}
+.sfiTemporalMain{min-height:calc(100svh - 63px);grid-template-columns:minmax(210px,250px) minmax(0,1fr) minmax(280px,355px);align-items:start}
+.sfiTemporalField{min-height:580px}
+.sfiTemporalKicker{display:block;color:#d8b77e;letter-spacing:.17em;font-size:8px;margin-bottom:14px}
+.sfiTemporalIndex h1{font-size:clamp(22px,2vw,34px);letter-spacing:.22em}
+.sfiTemporalIndex>p{color:#dac49f}
+.sfiTemporalLens{display:flex;flex-wrap:wrap;gap:7px;margin:18px 12px 14px}
+.sfiTemporalLens button{border:1px solid rgba(218,176,108,.24);background:rgba(3,6,8,.58);color:#989b9a;cursor:pointer;padding:11px 14px;letter-spacing:.13em;font-size:9px;transition:color .2s,border-color .2s,background .2s}
+.sfiTemporalLens button.active,.sfiTemporalLens button[aria-pressed=true]{border-color:rgba(225,184,114,.7);background:rgba(177,127,54,.13);color:#eed5a4}
+.sfiTemporalClockStage{margin:0 12px;background:linear-gradient(155deg,rgba(8,16,21,.85),rgba(5,7,9,.76));border:1px solid rgba(218,176,108,.25);min-height:490px;padding:18px 18px 14px}
+.sfiTemporalClockStageIntro{display:flex;align-items:center;justify-content:space-between;gap:15px;border-bottom:1px solid rgba(219,177,108,.16);padding:3px 0 15px}
+.sfiTemporalClockStageIntro strong{color:#d4b279;font-size:10px;letter-spacing:.13em}
+.sfiTemporalClockStageIntro span{font:italic 16px/1.3 Georgia,serif;color:#bcb6aa;max-width:55%;text-align:right}
+.sfiTemporalClockGrid{display:grid;gap:4px;margin-top:14px}
+.sfiTemporalClockRow{display:grid;grid-template-columns:38px minmax(145px,.9fr) minmax(180px,1.2fr);align-items:center;gap:12px;min-height:61px;padding:9px 10px;border:1px solid rgba(218,176,108,.09);background:rgba(12,20,26,.52)}
+.sfiTemporalClockGlyph{width:31px;height:31px;border:1px solid rgba(221,175,101,.44);border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle,rgba(213,161,81,.12),transparent)}
+.sfiTemporalClockGlyph i{width:9px;height:9px;border:1px solid #d9ae69;border-radius:50%;box-shadow:0 0 8px rgba(224,177,100,.42)}
+.sfiTemporalClockRow[data-state=UNKNOWN] .sfiTemporalClockGlyph{border-color:rgba(129,146,159,.24);background:none}
+.sfiTemporalClockRow[data-state=UNKNOWN] .sfiTemporalClockGlyph i{border-color:#68747c;box-shadow:none}
+.sfiTemporalClockName{display:grid;gap:6px}.sfiTemporalClockName strong{font-size:10px;letter-spacing:.08em;color:#e3ceab}
+.sfiTemporalClockName small{font-size:9px;line-height:1.35;color:#a7a9a7;letter-spacing:0}
+.sfiTemporalClockValue{display:grid;justify-items:end;gap:5px;text-align:right;min-width:0}
+.sfiTemporalClockValue b{font-size:12px;color:#e3d2b6;overflow-wrap:anywhere;font-weight:500}
+.sfiTemporalClockValue small{font-size:9px;line-height:1.3;color:#959fa3}
+.sfiTemporalClockRow[data-state=UNKNOWN] .sfiTemporalClockValue b{color:#7d909e;letter-spacing:.11em}
+.sfiTemporalClockSummary{display:flex;justify-content:space-between;flex-wrap:wrap;gap:9px;margin-top:15px;padding:12px 0;border-top:1px solid rgba(218,176,108,.15);font-size:9px;color:#8d9695;letter-spacing:.06em}
+.sfiTemporalClockSummary b{font-weight:500;color:#d3b27c}
+.sfiTemporalClockChooser{display:flex;overflow-x:auto;gap:8px;padding:13px 0 7px;scrollbar-color:#b38d58 rgba(20,26,32,.7);scrollbar-width:thin}
+.sfiTemporalClockChooser button{flex:0 0 195px;min-height:63px;padding:9px;text-align:left;white-space:normal;border:1px solid rgba(218,176,108,.2);background:rgba(3,9,12,.65);color:#c1bcb1;font-size:10px;cursor:pointer}
+.sfiTemporalClockChooser button[aria-pressed=true]{border-color:#cfad73;background:rgba(160,116,58,.18)}
+.sfiTemporalClockChooser button span{display:block;font-size:8px;color:#a6b5c1;letter-spacing:.11em;margin-bottom:6px}
+.sfiTemporalViewport{width:100%;max-width:100%;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;scrollbar-color:#d3ab67 rgba(28,39,46,.72);border:1px solid rgba(217,177,106,.14);background:rgba(5,12,17,.46);margin:0}
+.sfiTemporalViewport::-webkit-scrollbar,.sfiTemporalClockChooser::-webkit-scrollbar{height:9px}
+.sfiTemporalViewport::-webkit-scrollbar-track,.sfiTemporalClockChooser::-webkit-scrollbar-track{background:#1b2830}
+.sfiTemporalViewport::-webkit-scrollbar-thumb,.sfiTemporalClockChooser::-webkit-scrollbar-thumb{background:#bb955c;border-radius:10px}
+.sfiTemporalCanvas{min-width:1050px;padding:4px 0 12px}
+.sfiTemporalScrubber{display:grid;grid-template-columns:140px minmax(130px,1fr) 190px;min-height:78px;margin:18px 12px 6px;padding:14px;gap:12px;border:1px solid rgba(218,176,108,.22);background:rgba(6,13,17,.65);font-size:9px}
+.sfiTemporalScrubber>div:first-child{display:grid;gap:5px;align-content:center}
+.sfiTemporalScrubber strong{font-weight:400;color:#a9a096}
+.sfiTemporalScrubberTicks{position:relative;height:45px;min-width:0}
+.sfiTemporalScrubberTicks:before{content:"";position:absolute;top:14px;left:0;right:0;border-top:1px solid rgba(218,176,108,.45)}
+.sfiTemporalScrubberTicks button{position:absolute;top:7px;border:0;background:transparent;cursor:pointer;padding:0}
+.sfiTemporalScrubberTicks button i{display:block;width:7px;height:13px;background:#d2b17d;box-shadow:0 0 8px rgba(230,180,103,.5)}
+.sfiTemporalScrubberTicks button[data-active=true] i{height:21px;background:#fff4d5}
+.sfiTemporalIntervalPanel{margin:15px 0}
+.sfiTemporalInterval{border:1px solid rgba(218,176,108,.17);padding:9px 11px;margin:8px 0;display:grid;gap:7px;font-size:10px}
+.sfiTemporalInterval span{color:#d2b581}.sfiTemporalInterval b{color:#e8ddca;font-weight:400}
+.sfiTemporalInterval small{color:#a1a49f}
+.sfiTemporalInspector{max-height:calc(100svh - 115px)}
+@media(max-width:1200px){.sfiTemporalMain{grid-template-columns:minmax(175px,210px) minmax(0,1fr)}.sfiTemporalInspector{grid-column:1/-1;max-height:none}}
+@media(max-width:750px){.sfiTemporalMain{display:block;padding:10px}.sfiTemporalIndex,.sfiTemporalInspector{margin-bottom:10px}.sfiTemporalClockStage{margin:0 4px;padding:12px}.sfiTemporalClockStageIntro{display:grid}.sfiTemporalClockStageIntro span{text-align:left;max-width:none}.sfiTemporalClockRow{grid-template-columns:28px minmax(85px,.75fr) minmax(120px,1fr);gap:8px;padding:9px 5px}.sfiTemporalClockName small{font-size:8px}.sfiTemporalClockValue b{font-size:10px}.sfiTemporalClockValue small{font-size:8px}.sfiTemporalScrubber{grid-template-columns:1fr;margin:15px 4px}.sfiTemporalScrubberTicks{width:100%}.sfiTemporalLens{margin:10px 4px}}
+@media(prefers-reduced-motion:reduce){.sfiTemporalLens button{transition:none}}
