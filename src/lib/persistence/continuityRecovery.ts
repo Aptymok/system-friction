@@ -11,6 +11,7 @@ import {
   readDataPlaneState,
 } from '@/lib/persistence/dataPlaneContinuityStore';
 import { flushPrimaryMirror } from '@/lib/persistence/primaryMirror';
+import { currentAuthorityParityVerified } from '@/lib/persistence/authorityJournalSupersession';
 import { postNeonDataPlaneRpc, postPrimaryDataPlaneRpc, probePrimaryDataPlane } from '@/lib/persistence/dataPlaneRpc';
 
 type FingerprintRow = {
@@ -33,9 +34,23 @@ async function fingerprintsMatch() {
     postPrimaryDataPlaneRpc<FingerprintRow[]>('sfi_data_plane_fingerprint_v2'),
     postNeonDataPlaneRpc<FingerprintRow[]>('sfi_data_plane_fingerprint_v2'),
   ]);
-  const left = [...(primary ?? [])].map(fingerprintKey).sort();
-  const right = [...(continuity ?? [])].map(fingerprintKey).sort();
-  return left.length === right.length && left.every((value, index) => value === right[index]);
+  if (!Array.isArray(primary) || !Array.isArray(continuity) || primary.length === 0) return false;
+  const counterpart = new Map(continuity.map((row) => [row.table_name, row]));
+  if (primary.length !== counterpart.size) return false;
+  for (const row of primary) {
+    const other = counterpart.get(row.table_name);
+    if (!other) return false;
+    if (fingerprintKey(row) === fingerprintKey(other)) continue;
+
+    // Timestamp/history-only drift is allowed for the two account tables
+    // ONLY when every current identity/role/permission field is independently
+    // verified on PRIMARY and Neon. Global epistemic/business fingerprints
+    // remain exact and cannot be waived by this exception.
+    const protectedTable = row.table_name === 'profiles' || row.table_name === 'sfi_account_access_grants';
+    if (!protectedTable || String(row.row_count) !== String(other.row_count)) return false;
+    if (!await currentAuthorityParityVerified(row.table_name)) return false;
+  }
+  return true;
 }
 
 export async function recoverPrimaryDataPlane(input: { maxTransactions?: number } = {}) {
