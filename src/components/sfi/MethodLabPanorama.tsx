@@ -60,42 +60,47 @@ export function MethodLabPanorama({
   return <section className="mlp-shell" aria-label="Operational Method Lab panoramic instrument" data-sfi-instrument="METHOD-LAB-LIVE-1.0">
     <div className="mlp-atmosphere" aria-hidden="true"/>
     <header className="mlp-heading">
-      <div><small>SFI / OPERATIVE INSTRUMENT</small><h1>METHOD LAB</h1><p>SCIENCE <span>×</span> FORESIGHT <span>×</span> INTELLIGENCE</p></div>
+      <div><small>SFI / METHOD LAB</small><p className="mlp-operational-instruction">Selecciona un método → incorpora evidencia → ejecuta → contrasta.</p></div>
       <div className="mlp-status"><i data-status={status}/><span>INSTITUTIONAL READ</span><strong>{status}</strong><small>LAST READ · {time(generatedAt)}</small></div>
     </header>
     <div className="mlp-viewport">
-      <aside className="mlp-library">
-        <div className="mlp-panel-head"><span>METHOD FAMILIES</span><small>{protocols.length} REGISTERED</small></div>
+      <details className="mlp-library mlp-tile" data-tone="gold" open>
+        <summary className="mlp-panel-head"><span>Selecciona un protocolo.</span><small>{protocols.length} REGISTRADOS · ABRIR / CERRAR</small></summary>
         {protocols.length?protocols.map(protocol=><button key={protocol.id} type="button"
           className={selectedProtocol===protocol.id?'mlp-selected':''}
           onClick={()=>{setSelectedProtocol(protocol.id);setFocus('PROTOCOLS')}}>
           <i data-status={protocol.status}/><span>{protocol.name}</span><small>{protocol.status}</small>
         </button>):<p className="mlp-empty">NO REGISTERED PROTOCOLS IN THIS READ</p>}
         <a href="#mlh-instruments" className="mlp-link">OPEN PROTOCOL REGISTRY <span>↗</span></a>
-      </aside>
+      </details>
 
       <div className="mlp-process" aria-label="Governed laboratory stages">
-        <div className="mlp-process-top"><span>ACTIVE ORCHESTRATION</span><b>REGISTER → TEST → CONTRAST</b></div>
+        <div className="mlp-process-top"><span>SECUENCIA DE TRABAJO</span><b>REGISTRA → PRUEBA → CONTRASTA</b></div>
         <div className="mlp-process-connection" aria-hidden="true"/>
         <div className="mlp-phases">
-          {phaseKeys.map((phase,index)=><button key={phase} type="button" className={phase===focus?'mlp-phase-active':''}
-            onClick={()=>setFocus(phase)} aria-pressed={phase===focus}>
-            <small>0{index+1}</small><span>{phase}</span><strong>{values[phase]}</strong><em>{index===0?'REGISTRY':index===1?'PERSISTED REFERENCES':index===2?'REPORTED RUNS':index===3?'SESSION STATE':'EVALUATIONS'}</em>
-          </button>)}
+          {phaseKeys.map((phase,index)=><details key={phase} className={phase===focus?'mlp-phase-active mlp-tile':'mlp-tile'}
+            data-tone={index===0?'gold':index===1?'teal':index===2?'blue':index===3?'red':'gold'}
+            data-weight={index<2?'major':'minor'} open={index===0}>
+            <summary onClick={()=>setFocus(phase)}>
+              <small>0{index+1} · DESPLEGAR</small><span>{phase}</span><strong>{values[phase]}</strong>
+              <em>{index===0?'REGISTRO':index===1?'EVIDENCIA':index===2?'EJECUCIONES':index===3?'LECTURA CIEGA':'EVALUACIONES'}</em>
+            </summary>
+            <div className="mlp-phase-content"><p>{detail[phase]}</p><a href={jump[phase]}>ABRIR ESPACIO ↗</a></div>
+          </details>)}
         </div>
         <div className="mlp-inspection">
-          <span className="mlp-eyebrow">CURRENT INSPECTION / {focus}</span>
-          {focus==='PROTOCOLS'&&chosenProtocol?<><h2>{chosenProtocol.name}</h2><p>{chosenProtocol.purpose}</p>
+          <span className="mlp-eyebrow">COMPRUEBA LA ETAPA / {focus}</span>
+          {focus==='PROTOCOLS'&&chosenProtocol?<><p className="mlp-inspect-instruction">{chosenProtocol.name}</p><p>{chosenProtocol.purpose}</p>
             <dl><div><dt>STATE</dt><dd>{chosenProtocol.status}</dd></div><div><dt>CLASS</dt><dd>{chosenProtocol.epistemicClass}</dd></div><div><dt>RUNS</dt><dd>{chosenProtocol.runCount}</dd></div><div><dt>VALIDATION</dt><dd>{chosenProtocol.lastValidationLevel??'NOT OBSERVED'}</dd></div></dl></>
-            :<><h2>{focus==='PROTOCOLS'?'NO REGISTERED PROTOCOL':focus}</h2><p>{detail[focus]}</p>
+            :<><p className="mlp-inspect-instruction">{focus==='PROTOCOLS'?'Selecciona un protocolo.':detail[focus]}</p>
               <div className="mlp-primary-value">{values[focus]} <small>{focus==='EVIDENCE'?'REFERENCES':focus==='RUNS'?'REPORTED EXECUTIONS':focus==='BLIND'?'QUALIFYING SESSION STATES':focus==='CONTRAST'?'EVALUATIONS':'REGISTERED'}</small></div></>}
           <a href={jump[focus]} className="mlp-enter">OPEN WORKSPACE <span>↗</span></a>
         </div>
         <div className="mlp-process-boundary">SIMULATION ≠ OBSERVATION <span>·</span> APPROVAL ≠ AUTHORITY <span>·</span> EXECUTION ≠ RETURN</div>
       </div>
 
-      <aside className="mlp-runtime">
-        <div className="mlp-panel-head"><span>RUN / GOVERNANCE</span><small>{status}</small></div>
+      <details className="mlp-runtime mlp-tile" data-tone="blue">
+        <summary className="mlp-panel-head"><span>Comprueba la ejecución y la autoridad.</span><small>{status} · ABRIR / CERRAR</small></summary>
         <dl><div><dt>OPERATIONAL PROTOCOLS</dt><dd>{operational}</dd></div>
           <div><dt>GATED PROTOCOLS</dt><dd>{gated}</dd></div>
           <div><dt>OPEN SESSIONS</dt><dd>{unresolved}</dd></div>
@@ -105,7 +110,7 @@ export function MethodLabPanorama({
         {sessions.length?sessions.slice(0,5).map(session=><a key={session.id} href={'#mlh-session-'+session.id} className="mlp-session">
           <span>{session.sessionKey||session.id}</span><b>{session.title}</b><small>{session.status} · {session.eventCount} EVENTS</small></a>):<p className="mlp-empty">NO PERSISTED SESSIONS RETURNED</p>}
         <a href="#mlh-sessions" className="mlp-link">INSPECT SESSION RECORDS <span>↗</span></a>
-      </aside>
+      </details>
     </div>
 
   </section>;
