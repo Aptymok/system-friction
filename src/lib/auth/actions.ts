@@ -176,7 +176,7 @@ export async function forgotPasswordAction(formData: FormData) {
   const email = formValue(formData, 'email').trim().toLowerCase()
   const limit = checkRateLimit(rateLimitKey('forgot', email), 4, 60_000)
   if (!limit.allowed) redirect('/forgot?error=rate_limit')
-  const origin = (process.env.NEXT_PUBLIC_APP_URL || 'https://systemfriction.org').replace(/\\/$/, '')
+  const origin = (process.env.NEXT_PUBLIC_APP_URL || 'https://systemfriction.org').replace(/[/]$/, '')
 
   // Institutional invitations are owned by Supabase Auth. Neon recovery cannot
   // issue a usable credential for an invited Supabase-only identity.
