@@ -34,6 +34,14 @@ assert.match(invitationDelivery, /System Friction Institute · Invitación de ac
 assert.match(invitationDelivery, /ACCESS ≠ AUTHORITY/);
 assert.match(invitationDelivery, /CONFIRMAR Y ACTIVAR/);
 assert.match(invitationDelivery, /auth\.admin\.inviteUserByEmail/, 'default provider fallback must remain available when branded mail is not configured');
+assert.match(invitationDelivery, /existingUserId/, 'reinvite must reuse existing Supabase Auth identity');
+assert.match(invitationDelivery, /type: 'recovery'/, 'existing invited user must receive recovery rather than duplicate invite token');
+assert.match(invitationDelivery, /auth\.resetPasswordForEmail/, 'default mail recovery is required for already registered users');
+assert.match(invite, /existingUserId: existingGrant\.data\?\.user_id/, 'founder resend must bind to the existing auth identity');
+assert.match(externalRootOperate, /existingUserId: existingGrant\.data\?\.user_id/, 'ROOT API resend must reuse existing identity');
+assert.match(authActions, /institutionalGrant\?\.user_id/, 'forgot password must resolve institutional grant first');
+assert.match(authActions, /resetPasswordForEmail/, 'invited Supabase accounts must recover through Supabase Auth');
+assert.match(authActions, /mode=invite/, 'institutional recovery must land on the activation screen');
 assert.doesNotMatch(invitationDelivery, /password\s*:/i, 'delivery must never generate or transmit a temporary password');
 assert.match(externalRootOperate, /deliverInstitutionalInvitation/, 'external ROOT invitation must share the canonical delivery path');
 assert.match(invite, /listInstitutionalAccountAccessGrants/);
