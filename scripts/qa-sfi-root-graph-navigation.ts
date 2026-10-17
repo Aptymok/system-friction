@@ -183,6 +183,16 @@ check('ROOT exposes verification cost budget and next-best observation in the Re
 check('ROOT keeps canonical cognitive registration separate from runtime telemetry and execution', rootAgentRegistry.includes('SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY') && rootAgentRegistry.includes('canonicalCount') && rootAgentRegistry.includes('runtimeRecordCount') && rootAgentRegistry.includes('lastRunObservedCount') && neuralGraphView.includes('CANONICAL AGENTS') && neuralGraphView.includes('RUNTIME RECORDS') && neuralGraphView.includes('LAST RUN OBSERVED') && !neuralGraphView.includes('<dt>REGISTERED AGENTS</dt>'));
 check('ROOT layout modes state their epistemic boundary instead of implying unsupported hierarchy', neuralGraphView.includes('Type-layer grouping only. This is not an authority hierarchy') && neuralGraphView.includes('deterministic spread has no epistemic meaning.'));
 
+check('ROOT uses a bounded selected-object reality-to-RETURN panel without inventing a complete institutional cycle',
+  neuralGraphView.includes('aria-label="Observed-to-RETURN cross-instrument boundary"')
+  && neuralGraphView.includes('SOURCE INDEPENDENCE UNKNOWN')
+  && neuralGraphView.includes('GOVERNED AUTHORITY')
+  && neuralGraphView.includes('EMPIRICAL RETURN / REENTRY')
+  && neuralGraphView.includes('Method Lab, Repository, Cognitive Twin and World are not declared connected')
+  && neuralGraphView.includes('Method Lab execution is not inferred from verification state')
+  && read('src/components/sfi/RootNeuralGraphView.css').includes('.rootOperationalSnapshot article')
+);
+
 const failed = checks.filter((item) => !item.ok);
 for (const item of checks) console.log(`${item.ok ? 'PASS' : 'FAIL'} · ${item.name}`);
 if (failed.length) {
