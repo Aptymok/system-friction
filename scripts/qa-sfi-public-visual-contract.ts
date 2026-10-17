@@ -156,6 +156,17 @@ check('public visual stack has no baked human asset role',
   && !manifest.includes('observer.png')
   && !manifest.includes('people.png'));
 
+check('home institutional reading follows observation-to-return without losing institutional access',()=>{
+  const order=['OBSERVATORY','REPOSITORY','METHOD LAB','ROOT','REALITY CHAIN','TIMELINE','ACCESS'];
+  const start=landing.indexOf('const SURFACE_RAIL=[');
+  const rail=landing.slice(start,landing.indexOf('] as const;',start));
+  return start>=0
+    && order.every((label,i)=>rail.includes(`label:'${label}',number:'${String(i+1).padStart(2,'0')}'`))
+    && order.every((label,i)=>i===0||rail.indexOf(`label:'${order[i-1]}'`)<rail.indexOf(`label:'${label}'`))
+    && rail.includes("sceneId:'access',href:'/instruments/access'")
+    && rail.includes('World Vector');
+}());
+
 const failed=checks.filter(([,ok])=>!ok);
 for(const [name,ok] of checks)console.log(`${ok?'PASS':'FAIL'} · ${name}`);
 if(failed.length)process.exit(1);
