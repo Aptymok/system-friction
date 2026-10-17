@@ -157,6 +157,7 @@ export async function inviteInstitutionalAccountAction(formData: FormData) {
     displayName,
     title,
     accessClass,
+    existingUserId: existingGrant.data?.user_id ?? null,
     redirectTo: `${origin}/reset?mode=invite`,
   });
 
