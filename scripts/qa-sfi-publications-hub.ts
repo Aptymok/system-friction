@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import sitemapProjection from '../src/app/sitemap';
+import { projectRepositoryMihmTimeline, repositoryAxisAt } from '../src/lib/repository/repositoryTemporalProjection';
 
 const read=(path:string)=>readFileSync(path,'utf8');
 const repositoryPage=read('src/app/repository/page.tsx');
@@ -80,6 +81,35 @@ const sitemapPaths=sitemapProjection()
   });
 assert.ok(sitemapPaths.includes('/repository'),'repository_missing_from_sitemap');
 assert.equal(sitemapPaths.includes('/publications'),false,'retired_publications_hub_must_not_remain_in_sitemap');
+
+// MIHM-T chronology truth: editorial publication cannot fabricate an event,
+// knowledge, authority, execution, independent observation or RETURN clock.
+const temporalFixture=[{id:'published-fixture',title:'Published test record',
+  createdAt:'2026-10-01T00:00:00Z',updatedAt:'2026-10-03T00:00:00Z',
+  editorial:{publishedAt:'2026-10-02T00:00:00Z'}}];
+const [defaultClock]=projectRepositoryMihmTimeline(temporalFixture,{});
+assert.equal(defaultClock.profile.readings.length,7,'mihmt_must_reuse_exact_seven_distinct_axes');
+assert.equal(repositoryAxisAt(defaultClock,'PUBLICATION'),'2026-10-02T00:00:00.000Z');
+assert.equal(repositoryAxisAt(defaultClock,'RECORD'),'2026-10-03T00:00:00.000Z');
+for(const missing of ['EVENT','OBSERVATION','KNOWLEDGE','AUTHORITY','EXECUTION','RETURN'] as const){
+  assert.equal(repositoryAxisAt(defaultClock,missing),null,'editorial_or_registry_date_must_not_mint_clock:'+missing);
+}
+const [eventClock]=projectRepositoryMihmTimeline(temporalFixture,{
+  'published-fixture':{publishedAt:'2026-10-02T00:00:00Z',clockEvidence:{
+    EVENT:{at:'2026-09-30T00:00:00Z',sourceRef:'source:explicit-event',
+      meaning:'Explicitly verified event timestamp',basis:'OBSERVED_TIME',epistemicClass:'OBSERVED'},
+  }},
+});
+assert.equal(repositoryAxisAt(eventClock,'EVENT'),'2026-09-30T00:00:00.000Z');
+assert.equal(repositoryAxisAt(eventClock,'RETURN'),null);
+assert.equal(eventClock.profile.documentedIntervals[0].state,'DATED_ORDER');
+const [fakeClock]=projectRepositoryMihmTimeline(temporalFixture,{
+  'published-fixture':{publishedAt:'2026-10-02T00:00:00Z',clockEvidence:{
+    KNOWLEDGE:{at:'2026-09-30T00:00:00Z',sourceRef:'source:synthetic',
+      meaning:'Simulation only',basis:'SIMULATED_TIME',epistemicClass:'OBSERVED'},
+  } as never},
+});
+assert.equal(repositoryAxisAt(fakeClock,'KNOWLEDGE'),null,'simulated_time_must_not_claim_documented_actor_knowledge');
 
 console.log(JSON.stringify({
   ok:true,
