@@ -27,7 +27,7 @@ export function VerifyEmailSurface({ next, state, error }: {
         if (accessToken && refreshToken && session?.access_token !== accessToken) {
           const result = await sb.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
           session = result.data.session;
-        } else if (code && !session) {
+        } else if (code && (!session || !session.user.email_confirmed_at)) {
           const exchanged = await sb.auth.exchangeCodeForSession(code);
           session = exchanged.data.session;
         }
