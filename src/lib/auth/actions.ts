@@ -58,10 +58,14 @@ async function resolvePostLoginPath(userId: string, requestedNext: string) {
     ? null
     : await readContinuityProfile(userId).catch(() => null)
   const profile = primaryProfile ?? continuityProfile
-  // The destination must never manufacture a member role. /entry resolves
-  // every non-founder session to the public Observatory, from which protected
-  // surfaces independently verify their own grants.
-  void profile
+  // A self-registered identity with no governed profile goes through /entry
+  // (public Observatory), never directly into a protected workspace.
+  const access = record(profile?.module_access)
+  const role = typeof profile?.role === 'string' ? profile.role.toLowerCase() : ''
+  if (['operator','observer'].includes(role)
+      && access.institutional_account === true && access.field === true) {
+    return '/field'
+  }
   return '/entry'
 }
 
