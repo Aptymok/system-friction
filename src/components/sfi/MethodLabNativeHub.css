@@ -132,3 +132,183 @@ html:has(.mlh-shell),body:has(.mlh-shell){overflow-y:hidden!important}
 .mlh-horizontalTrack .mlh-three-col{grid-template-columns:1fr 1fr .7fr!important}
 .mlh-horizontalTrack .mlh-status-section>div{width:100%}
 @media(prefers-reduced-motion:reduce){.mlh-horizontalTrack{scroll-behavior:auto}}
+
+
+/* SFI OPERATIVE TILE SYSTEM · review proposal 2026-10-17
+   Keep 0.30 alpha only on functional solid tile backplates. Previous ambient
+   translucent coverings are invisible, never the actionable content.
+   All tile summaries are native keyboard-operable accordions. */
+.mlh-shell{
+  --mlh-tile-gold:200,169,81;
+  --mlh-tile-teal:83,173,180;
+  --mlh-tile-red:194,87,100;
+  --mlh-tile-blue:113,149,207;
+  --mlh-tile-clear:transparent;
+}
+.mlh-shell .mlh-horizontalTrack .mlp-shell{
+  flex:0 0 740px!important;width:740px!important;max-width:740px!important;
+  background:transparent!important;
+}
+.mlh-shell .mlh-horizontalTrack .mlh-hero{
+  flex:0 0 370px!important;width:370px!important;
+  background:transparent!important;padding:24px 18px!important;
+}
+.mlh-shell .mlh-horizontalTrack #mlh-instruments{
+  flex:0 0 520px!important;width:520px!important;
+}
+.mlh-shell .mlh-horizontalTrack #mlh-simulation{
+  flex:0 0 770px!important;width:770px!important;
+}
+.mlh-shell .mlh-horizontalTrack #mlh-sessions{
+  flex:0 0 810px!important;width:810px!important;
+}
+.mlh-shell .mlh-horizontalTrack .mlh-status-section{
+  flex:0 0 310px!important;width:310px!important;
+}
+.mlh-shell .mlh-horizontalTrack .mlh-section:not([id]):not(.mlh-status-section){
+  flex:0 0 310px!important;width:310px!important;
+}
+.mlh-shell .mlh-horizontalTrack .mlh-section{
+  background:transparent!important;
+  padding:18px 16px!important;
+}
+.mlh-shell .mlh-horizontalTrack .mlh-section-head{
+  display:grid;gap:7px;align-content:start;margin:0 0 16px;
+  border:0;padding:0;
+}
+.mlh-shell .mlh-section-head>div{display:flex;align-items:center;gap:10px}
+.mlh-shell .mlh-section-head>div>span{
+  flex:0 0 auto;color:#d7b878;font:600 9px/1.5 ui-monospace,monospace;
+}
+.mlh-shell .mlh-section-instruction{
+  margin:0!important;font:500 13px/1.5 system-ui,sans-serif!important;
+  max-width:57ch;color:#e8ddc3!important;
+}
+.mlh-shell .mlh-section-head>p:not(.mlh-section-instruction){
+  margin:0!important;max-width:70ch;
+  text-align:left!important;font:10px/1.5 ui-monospace,monospace!important;color:#b4b6b5;
+}
+.mlh-shell .mlh-operational-instruction{
+  font:500 clamp(16px,1.3vw,21px)/1.5 system-ui,sans-serif!important;
+  max-width:27ch;letter-spacing:normal!important;
+  margin:14px 0 12px!important;color:#f2e6d1!important;
+}
+.mlh-shell .mlh-hero .mlh-kicker{font:700 9px/1.6 ui-monospace,monospace;letter-spacing:.09em}
+.mlh-shell .mlh-hero>div:first-child>p:not(.mlh-operational-instruction){
+  font:11px/1.5 system-ui,sans-serif;color:#b7b8b4;
+}
+.mlh-shell .mlh-hero::before,
+.mlh-shell .mlh-horizontalTrack .mlh-metrics,
+.mlh-shell .mlh-panel:not(.mlh-tile),
+.mlh-shell .mlh-readout:not(.mlh-tile){
+  background:transparent!important;
+  backdrop-filter:none!important;
+  box-shadow:none!important;
+}
+.mlh-shell .mlh-metrics{gap:6px}
+.mlh-shell .mlh-metrics article{
+  border:1px solid rgba(200,169,81,.22);
+  background:rgba(5,11,16,.30)!important;
+  border-radius:12px;padding:12px;
+  min-height:80px!important;
+}
+.mlh-shell .mlh-metrics article strong{font-size:clamp(14px,1.3vw,21px)!important;overflow-wrap:anywhere}
+.mlh-shell .mlh-horizontalTrack .mlh-protocol-grid{
+  display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;
+  grid-auto-flow:row dense;gap:9px;
+}
+.mlh-shell .mlh-protocol-grid>.mlh-tile{grid-column:span 3;min-width:0}
+.mlh-shell .mlh-protocol-grid>.mlh-tile[data-weight=wide]{grid-column:span 4}
+.mlh-shell .mlh-protocol-grid>.mlh-tile[data-weight=compact]{grid-column:span 2}
+.mlh-shell .mlh-horizontalTrack .mlh-session-list{
+  display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;
+  grid-auto-flow:row dense;gap:9px;
+}
+.mlh-shell .mlh-session-list>.mlh-tile{grid-column:span 3;min-width:0}
+.mlh-shell .mlh-session-list>.mlh-tile:nth-child(3n+1){grid-column:span 4}
+.mlh-shell .mlh-session-list>.mlh-tile:nth-child(3n+2){grid-column:span 2}
+.mlh-shell .mlh-horizontalTrack .mlh-two-col,
+.mlh-shell .mlh-horizontalTrack .mlh-three-col{gap:10px}
+.mlh-shell .mlh-horizontalTrack .mlh-two-col{grid-template-columns:1.2fr .8fr!important}
+.mlh-shell .mlh-horizontalTrack .mlh-three-col{grid-template-columns:1fr 1fr!important}
+.mlh-shell .mlh-three-col>.mlh-tile:last-child{grid-column:1/-1}
+.mlh-shell .mlh-tile{
+  --tile-rgb:var(--mlh-tile-gold);
+  position:relative;min-width:0;min-height:0;
+  padding:0!important;margin:0!important;overflow:visible;
+  background:rgba(5,11,16,.30)!important;
+  background-image:none!important;
+  border:1px solid rgba(var(--tile-rgb),.48)!important;
+  border-radius:15px!important;
+  box-shadow:none!important;backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+  color:#eee5d6;transform:none!important;
+}
+.mlh-shell .mlh-tile[data-tone=teal]{--tile-rgb:var(--mlh-tile-teal)}
+.mlh-shell .mlh-tile[data-tone=red]{--tile-rgb:var(--mlh-tile-red)}
+.mlh-shell .mlh-tile[data-tone=blue]{--tile-rgb:var(--mlh-tile-blue)}
+.mlh-shell .mlh-tile::before{
+  content:"";position:absolute;inset:0 auto 0 0;width:4px;
+  border-radius:14px 0 0 14px;background:rgb(var(--tile-rgb));
+  pointer-events:none;
+}
+.mlh-shell .mlh-tile[open]{
+  background:rgba(5,11,16,.30)!important;
+  border-color:rgba(var(--tile-rgb),.85)!important;
+}
+.mlh-shell .mlh-tile-trigger{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  min-height:74px;padding:12px 15px 12px 17px;
+  list-style:none;cursor:pointer;
+  border-radius:14px;color:#f2ebdc;
+}
+.mlh-shell .mlh-tile-trigger::-webkit-details-marker{display:none}
+.mlh-shell .mlh-tile-trigger>span:first-child{display:grid;gap:6px;min-width:0}
+.mlh-shell .mlh-tile-trigger strong{
+  font:650 12px/1.45 system-ui,sans-serif!important;
+  color:#f0e7d8;overflow-wrap:anywhere;
+}
+.mlh-shell .mlh-tile-trigger small{
+  font:500 9px/1.4 ui-monospace,monospace;color:rgb(var(--tile-rgb));
+  letter-spacing:.03em;overflow-wrap:anywhere;
+}
+.mlh-shell .mlh-tile-chevron{
+  color:rgb(var(--tile-rgb));font-size:20px;transition:transform .17s ease;
+}
+.mlh-shell .mlh-tile[open]>.mlh-tile-trigger .mlh-tile-chevron{transform:rotate(180deg)}
+.mlh-shell .mlh-tile-trigger:hover{background:rgba(var(--tile-rgb),.12)}
+.mlh-shell .mlh-tile-trigger:focus-visible{outline:2px solid rgb(var(--tile-rgb));outline-offset:3px}
+.mlh-shell .mlh-tile-body,
+.mlh-shell .mlh-tile[open]>.mlh-panel,
+.mlh-shell .mlh-tile[open]>.mlh-tile-trigger~p,
+.mlh-shell .mlh-tile[open]>.mlh-tile-trigger~dl{
+  padding:8px 14px 16px 17px;
+}
+.mlh-shell .mlh-tile-body{overflow-wrap:anywhere}
+.mlh-shell .mlh-tile dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.mlh-shell .mlh-tile dl div{min-width:0;overflow-wrap:anywhere}
+.mlh-shell .mlh-tile .mlh-action{min-width:0;max-width:100%}
+.mlh-shell .mlh-tile input,.mlh-shell .mlh-tile textarea,.mlh-shell .mlh-tile select{
+  background:rgba(2,7,12,.30)!important;
+  color:#f2eee5!important;
+}
+.mlh-shell .mlh-tile.mlh-auto-experiment{display:block}
+.mlh-shell .mlh-auto-experiment>label,.mlh-shell .mlh-auto-experiment>.mlh-auto-reading,
+.mlh-shell .mlh-auto-experiment>.mlh-action,.mlh-shell .mlh-auto-experiment>.mlh-boundary{
+  margin:12px 16px;
+}
+.mlh-shell .mlh-tile.mlh-panel>label,
+.mlh-shell .mlh-tile.mlh-panel>.mlh-evidence-list,
+.mlh-shell .mlh-tile.mlh-panel>.mlh-action,
+.mlh-shell .mlh-tile.mlh-panel>p,
+.mlh-shell .mlh-tile.mlh-panel>dl{margin:12px 15px;max-width:calc(100% - 30px)}
+.mlh-shell .mlh-tile .mlh-panel{
+  border:0!important;background:transparent!important;box-shadow:none!important;
+  padding:4px 15px 17px;
+}
+.mlh-shell .mlh-status-section{display:flex!important;flex-direction:column;gap:10px}
+.mlh-shell .mlh-status-section>.mlh-tile{width:100%}
+.mlh-shell .mlh-status-section>.mlh-tile p{padding:0 13px 14px;line-height:1.5}
+@media(prefers-reduced-motion:reduce){
+  .mlh-shell .mlh-tile-chevron{transition:none}
+}
