@@ -58,11 +58,11 @@ async function resolvePostLoginPath(userId: string, requestedNext: string) {
     ? null
     : await readContinuityProfile(userId).catch(() => null)
   const profile = primaryProfile ?? continuityProfile
-  const role = typeof profile?.role === 'string' ? profile.role : null
-  const access = record(profile?.module_access)
-  const rootObserverRole = role === 'root' || role === 'system' || role === 'observer' || role === 'controller'
-  if (rootObserverRole && (access.root === true || access.root_observe === true || access.full_access === true)) return '/root'
-  return '/field'
+  // The destination must never manufacture a member role. /entry resolves
+  // every non-founder session to the public Observatory, from which protected
+  // surfaces independently verify their own grants.
+  void profile
+  return '/entry'
 }
 
 export async function registerAction(formData: FormData) {
