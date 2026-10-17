@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import './PublicEntryGateway.css';
+import { createBrowserSupabaseClient } from '@/runtime/supabase/client';
 
 const SURFACE_RAIL=[
   {label:'ROOT',number:'01',sceneId:'root',href:'/instruments/root',line:'Canonical field · authority · RETURN'},
@@ -58,7 +59,6 @@ export function PublicEntryGateway(){
         // institutional invitations without an identity marked by SFI.
         const metadata = result.data.session.user.user_metadata ?? {};
         if (kind !== 'invite' && metadata.sfi_invitation !== true) {
-          await supabase.auth.signOut();
           if (active) window.location.replace('/login?error=invalid_credentials');
           return;
         }
