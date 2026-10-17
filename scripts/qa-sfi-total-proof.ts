@@ -23,8 +23,8 @@ assert.equal(verifyField(fieldCase,fieldReturn,{...fieldOutcome,intervention_id:
 assert.equal(verifyField(fieldCase,fieldReturn,{...fieldOutcome,evidence_ids:['unrelated']},intervention),false,'evidence lineage must be shared');
 assert.equal(verifyField({...fieldCase,consent:false},fieldReturn,fieldOutcome,intervention),false,'no independent consent means no Field proof');
 assert.equal(verifyField(fieldCase,fieldReturn,fieldOutcome,{...intervention,status:'PENDING'}),false,'non-executed intervention cannot prove external RETURN');
-assert.match(fullCycleSource,/order\\('recorded_at'/,'Field outcome query must use its actual recorded_at column');
-assert.match(fullCycleSource,/\.eq\\('intervention_id',interventionId\\)/,'Field return query must constrain the same intervention');
+assert.ok(fullCycleSource.includes("order('recorded_at'"), 'Field outcome query must use its actual recorded_at column');
+assert.ok(fullCycleSource.includes(".eq('intervention_id',interventionId)"), 'Field return query must constrain the same intervention');
 
 const readiness = fs.readFileSync('src/lib/root/closure/readInstitutionalReadiness.ts','utf8');
 const route = fs.readFileSync('src/app/api/root/readiness/route.ts','utf8');
