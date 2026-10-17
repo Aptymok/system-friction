@@ -17,6 +17,12 @@ assert.match(repositoryPage,/canonicalPublicationDisposition/);
 assert.match(repositoryPage,/SFI_EDITORIAL_PUBLICATIONS/);
 assert.match(repositoryPage,/discoveryMachineResources/);
 assert.match(repositoryPage,/SFI_DISCOVERY_LIFECYCLE/);
+assert.ok(repositoryPage.includes('readPublishedRepositoryPassports'),'repository_must_have_allowlisted_public_persisted_passport_projection');
+const publicPassport=read('src/lib/repository/publicPassportProjection.ts');
+assert.ok(publicPassport.includes("eq('status','PUBLISHED')")&&publicPassport.includes("not('approved_by','is',null)")&&publicPassport.includes("FIELDS.has(v)"),'repository_persisted_T0_T1_and_questions_must_fail_closed_to_explicit_public_fields');
+assert.ok(repositoryUi.includes('T0 / T1')&&repositoryUi.includes('6 PREGUNTAS')&&repositoryUi.includes('HIPÓTESIS'),'repository_must_rebuild_contextual_passport_from_record_type');
+assert.ok(repositoryUi.includes('repoReader')&&repositoryUi.includes('repoFieldScroll'),'repository_reader_must_remain_inline_with_horizontal_viewport');
+
 assert.doesNotMatch(repositoryPage,/createServiceSupabaseClient|\.from\(|\.insert\(|\.upsert\(|\.update\(/,'Repository UI must remain a read projection, not a persistence owner');
 
 for(const token of ['SOURCE RECORDS','EVIDENCE','PUBLICATIONS / OBJECTS','PROVENANCE','LINEAGE','VERSIONS','HASHES','MANIFEST','DISCOVERY MESH','REPOSITORY HISTORY']){
@@ -28,7 +34,7 @@ assert.ok(repositoryUi.includes('NOT MATERIALIZED')&&repositoryUi.includes('NOT 
 assert.ok(repositoryUi.includes('SHA-256')&&repositoryUi.includes('renditions'),'publication_integrity_not_exposed_in_unified_reader');
 
 assert.ok(repositoryCss.includes('SFI-LIVE-REPOSITORY-1.0'),'operational_repository_must_have_live_projection_contract');
-assert.equal(repositoryCss.includes("url('/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_42-7.png')"),false,'operational_repository_must_not_fake_dashboards_with_screenshot');
+assert.ok(repositoryCss.includes("url('/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_42-7.png')"),'repository_must_reuse_original_access_instrument_artwork');
 assert.ok(repositoryCss.includes('.repositoryBackdrop')&&repositoryCss.includes('radial-gradient'),'operational_repository_requires_structural_atmosphere');
 assert.ok(repositoryCss.includes('.repoReader')&&repositoryCss.includes('.repoDiscovery'),'repository_integrated_layers_missing');
 assert.ok(repositoryCss.includes('@media'),'repository_responsive_boundary_missing');
