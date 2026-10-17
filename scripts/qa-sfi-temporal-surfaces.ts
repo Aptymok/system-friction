@@ -140,6 +140,26 @@ assert.ok(worldReadModel.includes('PUBLIC_HYPOTHESIS_LIMIT=8'), 'public_hypothes
 assert.ok(worldReadModel.includes('LIVE_WORLD_MAX_AGE_HOURS=48'), 'live_world_freshness_window_missing');
 assert.ok(worldReadModel.includes("liveWorldState=nodes.length>0?'LIVE':'STALE_OR_ABSENT'"), 'live_world_persisted_state_contract_missing');
 assert.ok(observatoryUi.includes('data-world-availability={availability.world}') && observatoryUi.includes('worldMetric('), 'world_metrics_must_respect_authoritative_availability');
+assert.ok(
+  observatoryUi.includes('worldMetric(territorialModel.mappedCount)') &&
+  observatoryUi.includes('worldMetric(territorialModel.unmappedCount)') &&
+  observatoryUi.includes("availability.world==='AVAILABLE'?pct(territorialModel.coverage):'—'"),
+  'observatory_unavailable_territorial_coverage_must_not_be_false_zero',
+);
+assert.ok(
+  observatoryUi.includes("WORLD READ: ${availability.world}") &&
+  observatoryUi.includes("availability.world==='AVAILABLE'?'NO OBSERVATIONS UNDER CURRENT FILTERS'"),
+  'observatory_unknown_source_read_must_not_be_issued_as_no_observations',
+);
+const operationalTimeline=read('src/components/sfi/OperationalTimeline.tsx');
+assert.ok(
+  operationalTimeline.includes('aria-label="Select recorded event by time"') &&
+  operationalTimeline.includes('aria-label="Select a recorded-time window"') &&
+  operationalTimeline.includes('aria-pressed={windowDays===x.value}') &&
+  operationalTimeline.includes('aria-pressed={e.id===selected?.id}'),
+  'recorded_time_selection_must_be_keyboard_labelled_and_expose_selected_state',
+);
+
 assert.ok(observatoryUi.includes("const geoNum=(v:unknown)=>v===null||v===undefined||v===''?null:num(v)"), 'missing territorial coordinates must remain unknown');
 assert.ok(observatoryUi.includes('lat:geoNum(o.lat),lng:geoNum(o.lng)'), 'Observatory must not project missing coordinates as 0°,0°');
 

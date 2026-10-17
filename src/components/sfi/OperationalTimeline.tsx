@@ -154,12 +154,12 @@ export function OperationalTimeline({items,worldReadPlane}:{
           <span>OBSERVATION ≠ EVIDENCE ≠ RETURN</span></div>
         <div className="sfiTemporalScrubber" role="group" aria-label="Temporal range and selection controls">
           <div>RECORDED WINDOW <strong>{visible.length} RECORDS</strong></div>
-          <div className="sfiTemporalRailTicks">{visible.slice(-26).map(e=><button key={e.id}
+          <nav className="sfiTemporalRailTicks" aria-label="Select recorded event by time">{visible.slice(-26).map(e=><button key={e.id}
             type="button" onClick={()=>setSelectedId(e.id)} style={{left:pos(e.at)+'%'}}
-            title={fmt(e.at)+' · '+e.title} data-active={e.id===selected?.id}><i/></button>)}</div>
-          <div className="sfiTemporalRanges">{([{value:30,label:'MONTH'},{value:365,label:'YEAR'},{value:0,label:'ALL'}] as const).map(x=>
-            <button type="button" key={x.value} className={windowDays===x.value?'active':''}
-              onClick={()=>setWindowDays(x.value)}>{x.label}</button>)}</div>
+            title={fmt(e.at)+' · '+e.title} aria-label={fmt(e.at)+' · '+e.title} aria-pressed={e.id===selected?.id} data-active={e.id===selected?.id}><i/></button>)}</nav>
+          <nav className="sfiTemporalRanges" aria-label="Select a recorded-time window">{([{value:30,label:'MONTH'},{value:365,label:'YEAR'},{value:0,label:'ALL'}] as const).map(x=>
+            <button type="button" key={x.value} className={windowDays===x.value?'active':''} aria-pressed={windowDays===x.value}
+              onClick={()=>setWindowDays(x.value)}>{x.label}</button>)}</nav>
         </div>
       </div>
       <aside className="sfiTemporalInspector">

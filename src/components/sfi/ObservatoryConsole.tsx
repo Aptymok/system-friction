@@ -232,7 +232,7 @@ export function ObservatoryConsole(){
     </header>
     <div className="obsOperationalTitle"><strong>OBSERVATORY</strong><small>LIVE FIELD · WORLD VECTOR · SOURCES · TRAJECTORIES</small><span>NOTHING ACTS ALONE.<br/>REALITY ANSWERS BACK.</span></div>
     <aside className="hud hudLeft"><section><small>SFI-OBS-LIVE</small><h3>{'LIVE FIELD'}</h3><p className="good">● {clock.slice(11,16)} UTC</p><dl><dt>{ui('OBSERVATIONS')}</dt><dd data-availability={availability.world}>{worldMetric(nodes.length)}</dd><dt>{ui('ACTIVE SOURCES')}</dt><dd data-availability={availability.world}>{worldMetric(sourceIds.length)}</dd><dt>{ui('HYPOTHESES')}</dt><dd data-availability={availability.world}>{worldMetric(filteredHypotheses.length)}</dd><dt>{ui('IN RETURN')}</dt><dd data-availability={availability.world}>{worldMetric(openHypotheses)}</dd></dl><button onClick={()=>setSatelliteOpen(true)}>{ui('OPEN READER')}</button></section>
-      <section><small>{'DERIVED METRICS'}</small><dl><dt>Fₛ</dt><dd data-availability={availability.world}>{avgFs==null?'—':avgFs.toFixed(3)}</dd><dt>NTI</dt><dd data-availability={availability.world}>{avgNti==null?'—':avgNti.toFixed(3)}</dd><dt>Φ</dt><dd data-availability={availability.world}>{avgPhi==null?'—':avgPhi.toFixed(3)}</dd><dt>GEO MAPPED</dt><dd>{territorialModel.mappedCount}</dd><dt>UNMAPPED</dt><dd>{territorialModel.unmappedCount}</dd><dt>GEO COVERAGE</dt><dd>{pct(territorialModel.coverage)}</dd></dl><p style={{fontSize:11,opacity:.62,lineHeight:1.5}}>{'Territorial buckets are derived from persisted geocoded observations. Coverage ≠ completeness; density ≠ importance; tension ≠ causality.'}</p></section>
+      <section><small>{'DERIVED METRICS'}</small><dl><dt>Fₛ</dt><dd data-availability={availability.world}>{avgFs==null?'—':avgFs.toFixed(3)}</dd><dt>NTI</dt><dd data-availability={availability.world}>{avgNti==null?'—':avgNti.toFixed(3)}</dd><dt>Φ</dt><dd data-availability={availability.world}>{avgPhi==null?'—':avgPhi.toFixed(3)}</dd><dt>GEO MAPPED</dt><dd data-availability={availability.world}>{worldMetric(territorialModel.mappedCount)}</dd><dt>UNMAPPED</dt><dd data-availability={availability.world}>{worldMetric(territorialModel.unmappedCount)}</dd><dt>GEO COVERAGE</dt><dd data-availability={availability.world}>{availability.world==='AVAILABLE'?pct(territorialModel.coverage):'—'}</dd></dl><p style={{fontSize:11,opacity:.62,lineHeight:1.5}}>{'Territorial buckets are derived from persisted geocoded observations. Coverage ≠ completeness; density ≠ importance; tension ≠ causality.'}</p></section>
     </aside>
 
     {satelliteOpen&&<aside className="obsResearchConsole" style={{...panel,right:18,top:92,bottom:112,width:'min(520px,46vw)',padding:16,overflowY:'auto',scrollbarWidth:'none'}}>
@@ -361,13 +361,13 @@ export function ObservatoryConsole(){
         <header><span>03 / OBSERVATIONS</span><button onClick={()=>{setLens('sources');setSatelliteOpen(true)}} aria-label="Inspect observations">↗</button></header>
         <div className="obsOperationalCardStat" data-availability={availability.world}>{worldMetric(nodes.length)} <small>RECORDS</small></div>
         {nodes.slice(0,4).map(node=><button className="obsOperationalRow" key={node.id} onClick={()=>setSelectedNodeId(node.id)} title={node.title}>{short(node.publisher,14)} · {short(node.title,37)}</button>)}
-        {nodes.length===0&&<p>NO OBSERVATIONS UNDER CURRENT FILTERS</p>}
+        {nodes.length===0&&<p data-availability={availability.world}>{availability.world==='AVAILABLE'?'NO OBSERVATIONS UNDER CURRENT FILTERS':`WORLD READ: ${availability.world}`}</p>}
       </article>
       <article className="obsOperationalCard">
         <header><span>04 / HYPOTHESES</span><button onClick={()=>{setLens('hypotheses');setSatelliteOpen(true)}} aria-label="Inspect hypotheses">↗</button></header>
         <div className="obsOperationalCardStat" data-availability={availability.world}>{worldMetric(filteredHypotheses.length)} <small>VISIBLE</small></div>
         {filteredHypotheses.slice(0,3).map(h=><button className="obsOperationalRow" key={String(h.id)} onClick={()=>{setSelectedHypothesisId(String(h.id));setLens('hypotheses');setSatelliteOpen(true)}} title={txt(h.statement)}>{short(h.statement,65)}</button>)}
-        {filteredHypotheses.length===0&&<p>NOT OBSERVED UNDER CURRENT FILTERS</p>}
+        {filteredHypotheses.length===0&&<p data-availability={availability.world}>{availability.world==='AVAILABLE'?'NOT OBSERVED UNDER CURRENT FILTERS':`WORLD READ: ${availability.world}`}</p>}
         <small>INFERENCE ≠ OBSERVATION</small>
       </article>
       <article className="obsOperationalCard">
@@ -380,7 +380,7 @@ export function ObservatoryConsole(){
       <article className="obsOperationalCard">
         <header><span>06 / FRICTION READINGS</span><button type="button" onClick={()=>{setLens('territories');setSatelliteOpen(true)}} aria-label="Inspect persisted territorial friction readings">↗</button></header>
         <div className="obsOperationalCardStat" data-availability={availability.world}>{availability.world==='AVAILABLE'&&avgFs!=null?avgFs.toFixed(3):'—'} <small>FIELD Fₛ</small></div>
-        <p>{worldMetric(territorialModel.mappedCount)} GEO-BOUND OBSERVATIONS</p>
+        <p data-availability={availability.world}>{worldMetric(territorialModel.mappedCount)} GEO-BOUND OBSERVATIONS</p>
         <small>PUBLIC READINGS · NOT A UNIVERSAL FRICTION INDEX</small>
       </article>
       <article className="obsOperationalCard">
