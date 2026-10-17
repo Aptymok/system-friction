@@ -233,7 +233,9 @@ export function PasswordResetSurface({
           : 'The link did not create a valid institutional session. Request a new recovery link.');
       }
     };
-    void check();
+    void check().catch(() => {
+      if (active) { setReady(false); setAttention(true); setMessage('Unable to verify this link. Request a new one.'); }
+    });
     const { data: listener } = sb.auth.onAuthStateChange((event, session) => {
       if (!active || !session || session.user.user_metadata?.sfi_invitation !== true) return;
       if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
@@ -346,6 +348,9 @@ export function PasswordResetSurface({
         <button disabled={!ready || busy}>
           {busy ? 'ACTIVANDO…' : 'CONFIRMAR Y ACTIVAR'}
         </button>
+        {attention && !ready ? <a href="/forgot" className="sfiAuthLink">
+          Link expired or failed? Request a new one without another founder invitation.
+        </a> : null}
 
         <p className="sfiAuthPrivacy">
           Your password remains private. SFI does not generate it, know it or share it.
