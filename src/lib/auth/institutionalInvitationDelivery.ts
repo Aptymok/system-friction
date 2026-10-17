@@ -169,17 +169,24 @@ export async function deliverInstitutionalInvitation(input: DeliveryInput): Prom
   };
 
   if (brandedEmailConfigured()) {
-    const generated = input.existingUserId
+    let generated = input.existingUserId
       ? await input.service.auth.admin.generateLink({
-          type: 'recovery',
-          email: input.email,
+          type: 'recovery', email: input.email,
           options: { redirectTo: input.redirectTo },
         })
       : await input.service.auth.admin.generateLink({
-          type: 'invite',
-          email: input.email,
+          type: 'invite', email: input.email,
           options: { redirectTo: input.redirectTo, data: metadata },
         });
+    // A self-registered personal identity may later receive an institutional
+    // invitation. Reuse it with a verified email recovery token, never duplicate.
+    if (!input.existingUserId && generated.error &&
+        /already (?:been )?registered|already exists|user_already_exists/i.test(generated.error.message)) {
+      generated = await input.service.auth.admin.generateLink({
+        type: 'recovery', email: input.email,
+        options: { redirectTo: input.redirectTo },
+      });
+    }
 
     const actionLink = generated.data?.properties?.action_link;
     const userId = generated.data?.user?.id;
@@ -218,6 +225,23 @@ export async function deliverInstitutionalInvitation(input: DeliveryInput): Prom
     redirectTo: input.redirectTo,
     data: metadata,
   });
+  if (invitation.error && /already (?:been )?registered|already exists|user_already_exists/i.test(invitation.error.message)) {
+    const linked = await input.service.auth.admin.generateLink({
+      type: 'recovery', email: input.email,
+      options: { redirectTo: input.redirectTo },
+    });
+    const linkedUserId = linked.data?.user?.id;
+    if (linked.error || !linkedUserId ||
+        linked.data.user.email?.trim().toLowerCase() !== input.email.trim().toLowerCase()) {
+      return { ok: false, channel: 'AUTH_PROVIDER_DEFAULT',
+        error: linked.error?.message ?? 'existing_user_identity_unverified' };
+    }
+    const sent = await input.service.auth.resetPasswordForEmail(input.email, {
+      redirectTo: input.redirectTo,
+    });
+    if (sent.error) return { ok: false, channel: 'AUTH_PROVIDER_DEFAULT', error: sent.error.message };
+    return { ok: true, channel: 'AUTH_PROVIDER_DEFAULT', userId: linkedUserId };
+  }
   if (invitation.error || !invitation.data.user) {
     return {
       ok: false,
