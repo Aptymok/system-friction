@@ -90,6 +90,25 @@ vm.runInNewContext(ts.transpileModule(oauthRegistry, {
   require: (id: string) => id === 'node:crypto' ? registryRequire(id) : {},
 });
 const redirectAllowed = (registered: string, requested: string) => registryExports.isAllowedSfiOAuthRedirect({ redirectUris: [registered] }, requested);
+const claude = await registryExports.resolveSfiOAuthClient('https://claude.ai/oauth/mcp-oauth-client-metadata');
+assert.equal(claude?.source, 'claude_cimd', 'Claude CIMD identity must resolve without arbitrary callback');
+assert.equal(claude?.clientId, 'https://claude.ai/oauth/mcp-oauth-client-metadata');
+assert.deepEqual(Array.from(claude?.redirectUris ?? []), ['https://claude.ai/api/mcp/auth_callback']);
+assert.equal(registryExports.isAllowedSfiOAuthRedirect(claude, 'https://claude.ai/api/mcp/auth_callback'), true);
+for (const bad of [
+  'https://evil.claude.ai/api/mcp/auth_callback',
+  'https://claude.ai.evil.test/api/mcp/auth_callback',
+  'https://claude.ai/api/mcp/auth_callback/extra',
+  'https://claude.ai/api/mcp/auth_callback?next=evil',
+]) {
+  assert.equal(registryExports.isAllowedSfiOAuthRedirect(claude, bad), false, 'Claude callback must be exact:' + bad);
+}
+assert.equal(registryExports.validateSfiOAuthClientSecret(claude, ''), true, 'Claude CIMD requires public PKCE');
+assert.equal(registryExports.validateSfiOAuthClientSecret(claude, 'arbitrary-secret'), false, 'Claude CIMD rejects extraneous secrets');
+assert.ok(authorize.includes("client.source === 'claude_cimd'"), 'Claude PKCE requirement must be in authorize route');
+assert.ok(authorize.includes("codeChallengeMethod !== 'S256'"), 'PKCE S256 must be enforced');
+assert.ok(authorize.includes("const rootDelegate = profileRole === 'root' || profileRole === 'system'"), 'ROOT identity remains profile-bound');
+
 assert.equal(redirectAllowed('https://example.test/callback', 'https://example.test/callback'), true);
 for (const requested of ['https://evil.test/callback', 'https://example.test/callback/extra', 'https://example.test/callback?extra=1', 'https://example.test:8443/callback']) {
   assert.equal(redirectAllowed('https://example.test/callback', requested), false, `non_loopback_redirect_must_be_exact:${requested}`);
