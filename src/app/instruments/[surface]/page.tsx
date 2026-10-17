@@ -9,6 +9,7 @@ export function generateStaticParams(){
 
 export default async function PublicInstrumentPage({params}:{params:Promise<{surface:string}>}){
   const {surface}=await params;
+  if(surface==='timeline')redirect('/timeline');
   if(surface==='world-vector')redirect('/instruments/observatory');
   if(surface==='repository')redirect('/repository');
   if(!SURFACES.includes(surface as SurfaceId))notFound();
