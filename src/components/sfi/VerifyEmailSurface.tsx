@@ -18,7 +18,8 @@ export function VerifyEmailSurface({ next, state, error }: {
     const accessToken = fragment.get('access_token');
     const refreshToken = fragment.get('refresh_token');
     const hasCallback = Boolean(code || (accessToken && refreshToken));
-    if (!hasCallback) return;
+    // The browser Supabase SDK may have consumed callback tokens already.
+    // Re-read the authenticated session even when the URL was normalized.
     let active = true;
     void (async () => {
       try {
@@ -34,7 +35,9 @@ export function VerifyEmailSurface({ next, state, error }: {
         window.history.replaceState(window.history.state, '', '/verify');
         if (!active) return;
         if (!session || !session.user.email_confirmed_at) {
-          setNotice('The verification link is invalid or expired. Request another confirmation link.');
+          setNotice(hasCallback
+            ? 'The verification link is invalid or expired. Request another confirmation link.'
+            : 'Check your email and open the confirmation link. If already confirmed, sign in.');
           return;
         }
         window.location.replace(next);
