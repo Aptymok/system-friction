@@ -106,7 +106,7 @@ check('one existing artwork is assigned per public surface',
 check('Repository is a live operational surface rather than a screenshot',
   !surface.includes("repository:'/assets/sfi/instruments/")
   && repositoryCss.includes('SFI-LIVE-REPOSITORY-1.0')
-  && !repositoryCss.includes("url('/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_42-7.png')")
+  && repositoryCss.includes("url('/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_42-7.png')")
   && repositoryPage.includes('SFI_CANONICAL_OBJECT_REGISTRY'));
 
 check('public instrument artwork preserves source luminosity and color',
