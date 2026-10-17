@@ -31,9 +31,14 @@ check('institutional screen palette is canonical',
 for(const label of ['ROOT','OBSERVATORY','REALITY CHAIN','METHOD LAB','REPOSITORY','TIMELINE','ACCESS']){
   check(`fixed canonical menu exposes ${label}`,chrome.includes(`label:'${label}'`));
 }
-for(const id of ['root','observatory','reality-chain','method-lab','timeline','access']){
+for(const id of ['root','observatory','reality-chain','method-lab','access']){
   check(`menu routes independently to ${id}`,chrome.includes(`href:'/instruments/${id}'`));
 }
+check('TIMELINE menu goes to the canonical temporal instrument, not Observatory or a display-only deck',
+  chrome.includes("{key:'timeline',label:'TIMELINE',href:'/timeline'}")
+  && landing.includes("sceneId:'timeline',href:'/timeline'")
+  && route.includes("surface==='timeline')redirect('/timeline')")
+  && surface.includes("label:'OPEN INSTITUTIONAL TIMELINE',href:'/timeline'"));
 check('Repository menu enters the canonical repository console',chrome.includes("{key:'repository',label:'REPOSITORY',href:'/repository'}"));
 check('menu is physically fixed',chromeCss.includes('position:fixed!important')&&chromeCss.includes('.sfiPublicPageNav'));
 
@@ -66,8 +71,9 @@ check('home keeps canonical Reality Chain order in micro-orientation',
     .every(token=>landing.includes(`'${token}'`)));
 
 check('home exposes canonical surfaces and enters Repository console',
-  ['root','observatory','reality-chain','method-lab','timeline','access']
+  ['root','observatory','reality-chain','method-lab','access']
     .every(id=>landing.includes(`href:'/instruments/${id}'`))
+  && landing.includes("sceneId:'timeline',href:'/timeline'")
   && landing.includes("sceneId:'repository',href:'/repository'")
   && !landing.includes("href:'/instruments/world-vector'"));
 
