@@ -137,7 +137,8 @@ assert.equal(observatoryConsole.includes('ObservatoryInterpretiveFlow'), false, 
 for (const token of ['SFI OBSERVATORY ·','LATEST HYPOTHESES','HypothesisClosureDiff','data-world-availability={availability.world}']) {
   assert.ok(observatoryConsole.includes(token), `observatory_internal_console_capability_missing:${token}`);
 }
-for (const forbidden of ['SFI SATELLITE → HUB','<canvas','<ObservatorySemanticGpuLayer','<ObservatoryWorldField','obsOperationalLenses']) {
+assert.ok(observatoryConsole.includes('<HolographicEarth') && observatoryConsole.includes("powerPreference:'low-power'") && observatoryConsole.includes('gl.deleteProgram(program)'), 'allowed_preview_canvas_must_be_bounded_and_cleaned_up');
+for (const forbidden of ['SFI SATELLITE → HUB','<ObservatorySemanticGpuLayer','<ObservatoryWorldField','obsOperationalLenses']) {
   assert.equal(observatoryConsole.includes(forbidden),false,`observatory_retired_graphical_layer_still_mounted:${forbidden}`);
 }
 
