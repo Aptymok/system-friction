@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { readDataPlaneState, journalBacklog } from '@/lib/persistence/dataPlaneContinuityStore';
-import { readPrimaryOutboxStatus } from '@/lib/persistence/primaryMirror';
+import { readPrimaryOutboxStatus, flushPrimaryMirror } from '@/lib/persistence/primaryMirror';
 import { replayVerifiedSourceObservations } from '@/lib/persistence/verifiedObservationReplay';
 import { recoverPrimaryDataPlane } from '@/lib/persistence/continuityRecovery';
 import { continuityDatabase } from '@/lib/sfi/continuityPostgres';
@@ -85,6 +85,47 @@ export async function readDataPlaneReconciliationStatus() {
 }
 
 export async function attemptBoundedDataPlaneReconciliation(maxTransactions: number) {
+  const before = await readDataPlaneReconciliationStatus();
+  // Already PRIMARY is not a recovery blocker for continuing forward mirror
+  // delivery. Reuse the same 2/hour OIDC-authorized reconciliation endpoint;
+  // never reopen RECOVERY, elevate authority, erase journal history, or mint
+  // certification when any independent mirror gate remains unresolved.
+  if (before.dataPlane.mode === 'PRIMARY') {
+    const conflict = before.journal.pending > 0
+      || before.journal.conflicts > 0
+      || before.journal.protectedPending > 0
+      || (before.primaryOutbox?.conflicts ?? 0) > 0
+      || before.primaryOutboxError !== null;
+    if (conflict) {
+      return {
+        ok: false as const,
+        attempted: false as const,
+        outcome: 'PRIMARY_MIRROR_REQUIRES_REVIEW' as const,
+        primaryMirror: null,
+        authoritySupersession: null,
+        before,
+        after: before,
+      };
+    }
+
+    const limit = Math.max(1, Math.min(8, Number.isFinite(maxTransactions) ? Math.floor(maxTransactions) : 8));
+    const primaryMirror = await flushPrimaryMirror({ maxTransactions: limit });
+    const after = await readDataPlaneReconciliationStatus();
+    return {
+      ok: primaryMirror.ok === true && primaryMirror.certified === true,
+      attempted: true as const,
+      outcome: primaryMirror.ok && primaryMirror.certified
+        ? 'PRIMARY_MIRROR_CERTIFIED' as const
+        : primaryMirror.conflict
+          ? 'PRIMARY_MIRROR_CONFLICT' as const
+          : 'PRIMARY_MIRROR_PENDING' as const,
+      primaryMirror,
+      authoritySupersession: null,
+      before,
+      after,
+    };
+  }
+
   // Reconcile only authority records whose current identity, role, grants and
   // scopes agree independently on both providers. No relaxed security gate:
   // a mismatched authority record still blocks recovery.
@@ -96,7 +137,6 @@ export async function attemptBoundedDataPlaneReconciliation(maxTransactions: num
     credentialsModified: false, authorityModified: false,
     policy: 'Unable to verify primary independently; no source row was modified',
   }));
-  const before = await readDataPlaneReconciliationStatus();
   if (!before.safeRecoveryEligible) {
     // The global recovery gate remains closed. Only the pre-existing,
     // insert-only verified source-observation lane may make incremental
