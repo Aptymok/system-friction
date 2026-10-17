@@ -145,3 +145,259 @@ html:has(.repositoryShell),body:has(.repositoryShell){overflow-y:hidden!importan
 .repoRailColumn{min-height:0!important}
 .repoReader{overflow-y:auto!important}
 @media(prefers-reduced-motion:reduce){.repositoryShell{scroll-behavior:auto}}
+
+
+/* SFI REPOSITORY / HORIZONTAL FLOATING FIELD 2.0
+ * Original Instruments/Access image; never use a screenshot of an interface.
+ * Fixed operational dock, horizontally explorable floating modules,
+ * source-bound graph and same-field document viewer.
+ */
+.repoLiveV2{
+  --repo-gold:#d7ae69;--repo-teal:#76bac1;--repo-mint:#91bba5;
+  --repo-blue:#96abc8;--repo-red:#d78b92;
+  position:relative;height:calc(100svh - 64px);min-height:640px!important;
+  overflow:hidden;background:#060b0e;color:#e8ddca;
+  font-family:var(--sfi-screen),Inter,system-ui,sans-serif;
+}
+.repoLiveV2 *{box-sizing:border-box}
+.repoLiveV2 button,.repoLiveV2 select,.repoLiveV2 input{font:inherit;color:inherit}
+.repoLiveV2 button{cursor:pointer}
+.repoLiveV2 :is(button,select,input,summary):focus-visible{outline:2px solid var(--repo-gold);outline-offset:2px}
+.repoLiveV2 .repoToolbar{
+  position:absolute;top:0;left:0;right:0;height:64px;z-index:14;
+  display:flex;align-items:center;gap:12px;padding:10px 19px;
+  border-bottom:1px solid rgba(215,174,105,.36);
+  background:rgba(2,7,11,.75);backdrop-filter:blur(5px);
+}
+.repoLiveV2 .repoToolbarIdentity{
+  flex:0 0 auto;display:grid;gap:4px;padding-right:14px;
+  font:600 14px/1 var(--sfi-trace),monospace;letter-spacing:.19em;color:#f3d9a4
+}
+.repoLiveV2 .repoToolbarIdentity small{font:9px/1.3 var(--sfi-trace),monospace;letter-spacing:.06em;color:#c0b29a}
+.repoLiveV2 .repoQuery{display:flex;gap:9px;align-items:center;padding:0 12px;min-width:150px;max-width:680px;flex:1;border:1px solid rgba(215,174,105,.47);background:rgba(4,9,14,.3);height:39px}
+.repoLiveV2 .repoQuery>span{font-size:24px;color:#d8b875}
+.repoLiveV2 .repoQuery input{background:transparent;border:0;outline:none;width:100%;font:12px/1.3 system-ui,sans-serif}
+.repoLiveV2 .repoQuery input::placeholder{color:#d2c5ab;opacity:.7}
+.repoLiveV2 .repoToolbar select,.repoLiveV2 .repoToolbar>button{
+  flex:none;border:1px solid rgba(215,174,105,.37);height:37px;
+  padding:0 12px;background:rgba(5,10,13,.65);color:#f0deb9;
+  font:10px/1.2 ui-monospace,monospace
+}
+.repoLiveV2 .repoToolbar select option{color:#0a1114;background:#eadbc4}
+.repoLiveV2 .repoFieldScroll{
+  position:absolute;left:0;right:0;top:64px;bottom:92px;
+  overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;
+  scroll-behavior:smooth;scrollbar-color:rgba(214,170,96,.7) rgba(3,10,14,.4);
+  scrollbar-width:thin;
+  background-image:linear-gradient(90deg,rgba(2,7,10,.12),rgba(2,7,10,.22)),
+    url('/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_42-7.png');
+  background-repeat:no-repeat,no-repeat;background-position:center,center;
+  background-size:cover,cover;background-attachment:local,local;
+  isolation:isolate;
+}
+.repoLiveV2 .repoFieldScroll::before{
+  content:"";position:sticky;display:block;top:0;left:0;width:100%;height:0;z-index:0;
+}
+.repoLiveV2 .repoFieldTrack{
+  position:relative;z-index:1;min-width:2080px;
+  width:max(100%,2080px);height:100%;
+  padding:19px 28px 21px;
+  display:grid;grid-template-columns:210px 740px 435px minmax(510px,1fr);
+  gap:15px;align-items:stretch;
+}
+.repoLiveV2 .repoFloating{
+  position:relative!important;inset:auto!important;top:auto!important;right:auto!important;
+  bottom:auto!important;left:auto!important;width:auto!important;max-width:none!important;
+  min-width:0;min-height:0;overflow:auto;
+  margin:0!important;padding:14px!important;
+  border:1px solid rgba(215,174,105,.4)!important;border-radius:3px!important;
+  background:rgba(5,10,14,.30)!important;
+  backdrop-filter:none!important;box-shadow:0 22px 40px rgba(0,0,0,.24)!important;
+  scrollbar-width:thin;scrollbar-color:#a78548 transparent;
+}
+.repoLiveV2 .repoIdentity{display:flex!important;flex-direction:column;gap:13px;align-items:stretch}
+.repoLiveV2 .repoIdentity>span{color:var(--repo-gold);font:600 12px/1.4 ui-monospace,monospace;letter-spacing:.2em}
+.repoLiveV2 .repoIdentity>p{font:11px/1.55 system-ui,sans-serif;color:#f0e3ce;margin:0}
+.repoLiveV2 .repoCategoryList{margin:5px 0;gap:6px}
+.repoLiveV2 .repoCategoryList div{font:9px/1.4 ui-monospace,monospace;color:#ecdebe;grid-template-columns:8px minmax(0,1fr) auto;letter-spacing:0}
+.repoLiveV2 .repoCategoryList b{color:#e1c994}
+.repoLiveV2 .repoNarrowFilters{display:flex;flex-wrap:wrap;gap:5px}
+.repoLiveV2 .repoNarrowFilters button{font:9px/1.2 ui-monospace,monospace;padding:8px 7px;border:1px solid rgba(211,175,104,.31);background:rgba(2,8,11,.25);color:#decfaf}
+.repoLiveV2 .repoNarrowFilters button[data-active="true"]{border-color:#e1b772;background:rgba(206,158,75,.2)}
+.repoLiveV2 .repoScopeNote{font-size:10px!important;opacity:.75}
+.repoLiveV2 .repoPhaseButton{
+  display:block;margin-top:12px;min-height:39px;width:100%;
+  border:1px solid rgba(221,183,102,.7);padding:10px;background:rgba(9,11,13,.32);
+  text-align:center;font:10px/1.3 ui-monospace,monospace;color:#f3d7a0
+}
+.repoLiveV2 .repoArchiveRail{
+  display:flex!important;flex-direction:column;gap:12px;
+  overflow-x:hidden!important;overflow-y:auto!important;
+}
+.repoLiveV2 .repoHero{
+  min-height:138px;display:flex;flex-direction:column;justify-content:center;
+  padding:16px 20px;position:relative;overflow:hidden;
+  border:1px solid rgba(215,174,105,.25);background:rgba(0,5,7,.12)
+}
+.repoLiveV2 .repoHero::after{
+  content:"";position:absolute;right:10%;top:10%;width:110px;height:110px;border:1px solid rgba(221,174,94,.24);
+  border-radius:50%;pointer-events:none
+}
+.repoLiveV2 .repoHero small{font:9px/1.5 ui-monospace,monospace;color:#d2b876;letter-spacing:.12em}
+.repoLiveV2 .repoHero p{font:500 19px/1.25 system-ui,sans-serif;letter-spacing:.035em;color:#f8ead0;margin:11px 0 7px}
+.repoLiveV2 .repoHero>span{font:10px/1.4 ui-monospace,monospace;color:#edd6a5}
+.repoLiveV2 .repoCategoryDoors{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;min-height:94px}
+.repoLiveV2 .repoCategoryDoors button{
+  display:flex;flex-direction:column;justify-content:flex-end;gap:8px;
+  padding:13px;background:linear-gradient(160deg,rgba(212,163,76,.1),rgba(1,5,7,.34));
+  border:1px solid rgba(212,171,102,.4);text-align:left;color:#ead1a0;
+}
+.repoLiveV2 .repoCategoryDoors button[data-active="true"]{border-color:#f2d9a8;box-shadow:inset 0 0 15px rgba(215,174,105,.12)}
+.repoLiveV2 .repoCategoryDoors strong{font:600 11px/1.4 ui-monospace,monospace;letter-spacing:.07em}
+.repoLiveV2 .repoCategoryDoors small{font:9px/1.4 ui-monospace,monospace;color:#d5c7ad}
+.repoLiveV2 .repoArchiveHead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 2px;border-bottom:1px solid rgba(229,194,119,.25);font:10px/1.5 ui-monospace,monospace;letter-spacing:.07em}
+.repoLiveV2 .repoArchiveHead button{font:10px/1.4 ui-monospace,monospace;padding:6px 9px;border:1px solid rgba(220,176,99,.24)}
+.repoLiveV2 .repoArchiveHead button[data-active="true"]{border-color:var(--repo-gold);color:#f4d89b}
+.repoLiveV2 .repoObjectCards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;align-content:start}
+.repoLiveV2 .repoObjectCard{
+  min-height:178px;display:flex;flex-direction:column;align-items:stretch;
+  gap:5px;overflow:hidden;text-align:left;padding:8px!important;
+  border:1px solid rgba(215,174,105,.37);background:rgba(3,9,12,.30);
+  color:#f3e0c1;transition:border-color .15s,background .15s
+}
+.repoLiveV2 .repoObjectCard:hover,.repoLiveV2 .repoObjectCard[data-active="true"]{border-color:#f3d6a0;background:rgba(43,31,17,.33)}
+.repoLiveV2 .repoObjectCard[data-tone="teal"]{border-color:rgba(118,186,193,.52)}
+.repoLiveV2 .repoObjectCard[data-tone="blue"]{border-color:rgba(150,171,200,.52)}
+.repoLiveV2 .repoObjectCard[data-tone="red"]{border-color:rgba(215,139,146,.52)}
+.repoLiveV2 .repoObjectCard .repoObjectVisual{
+  width:100%;height:70px;display:grid;place-items:center;overflow:hidden;
+  position:relative;background:rgba(12,24,30,.34);border:1px solid rgba(208,177,117,.23)
+}
+.repoLiveV2 .repoObjectCard .repoObjectVisual:before,.repoLiveV2 .repoObjectCard .repoObjectVisual:after{display:none!important}
+.repoLiveV2 .repoObjectCard .repoObjectVisual img{height:100%;width:100%;object-fit:cover;display:block}
+.repoLiveV2 .repoObjectCard .repoObjectVisual i{position:relative!important;top:auto!important;left:auto!important;width:auto!important;height:auto!important;transform:none!important;background:none!important;box-shadow:none!important;font:38px/1 Georgia,serif;color:#bda573}
+.repoLiveV2 .repoObjectCard small{font:9px/1.25 ui-monospace,monospace;color:#ecd29a}
+.repoLiveV2 .repoObjectCard strong{font:650 11px/1.3 system-ui,sans-serif;color:#f8e4c3}
+.repoLiveV2 .repoObjectCard>span:not(.repoObjectVisual){font:10px/1.5 system-ui,sans-serif;color:#d7cdba}
+.repoLiveV2 .repoObjectCard em{font:9px/1.3 ui-monospace,monospace;color:#bca986;margin-top:auto}
+.repoLiveV2 .repoGraphWrap{position:relative;border:1px solid rgba(210,169,104,.33);background:rgba(2,8,12,.24);min-height:250px}
+.repoLiveV2 .repoGraphWrap svg{width:100%;height:auto;min-height:250px}
+.repoLiveV2 .repoGraphWrap>span{display:block;padding:8px 12px;color:#e9d7b7;font:10px/1.5 ui-monospace,monospace}
+.repoLiveV2 .repoArchiveLower{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.repoLiveV2 .repoArchiveLower .repoRailColumn{
+  position:relative!important;min-height:120px;height:auto;max-height:145px;
+  display:flex;flex-direction:column;overflow:hidden;background:rgba(5,10,14,.30)!important;
+  backdrop-filter:none!important;
+}
+.repoLiveV2 .repoArchiveLower .repoRailColumn .repoRailScroll{min-height:0;overflow:auto}
+.repoLiveV2 .repoArchiveLower .repoRailColumn button{display:block;padding:7px;font-size:10px}
+.repoLiveV2 .repoArchiveLower .repoRailColumn button span,.repoLiveV2 .repoArchiveLower .repoRailColumn button small{display:block}
+.repoLiveV2 .repoNothing{font:12px/1.55 system-ui,sans-serif;padding:18px;color:#efddc1}
+.repoLiveV2 .repoObjectInspector{display:flex;flex-direction:column;gap:8px;overflow-y:auto}
+.repoLiveV2 .repoObjectState{display:flex;justify-content:space-between;gap:8px;font:10px/1.5 ui-monospace,monospace}
+.repoLiveV2 .repoObjectState span{color:#ebc982;letter-spacing:.07em}
+.repoLiveV2 .repoObjectState b{font:9px/1.4 ui-monospace,monospace;color:#a2d1ad;padding:5px}
+.repoLiveV2 .repoPassportTitle{font:500 19px/1.3 system-ui,sans-serif;color:#f7e8c9;overflow-wrap:anywhere}
+.repoLiveV2 .repoObjectInspector>p{font:11px/1.55 system-ui,sans-serif;color:#ecdecc;max-height:130px;overflow:auto;margin:0}
+.repoLiveV2 .repoPassportTiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;align-items:start}
+.repoLiveV2 .repoPassportTile{
+  min-width:0;--tile:rgba(215,174,105,.7);
+  border:1px solid var(--tile);background:rgba(4,9,14,.30);border-radius:10px;
+  overflow:hidden;grid-column:span 1;
+}
+.repoLiveV2 .repoPassportTile[data-tone="teal"]{--tile:rgba(118,186,193,.78)}
+.repoLiveV2 .repoPassportTile[data-tone="mint"]{--tile:rgba(145,187,165,.78)}
+.repoLiveV2 .repoPassportTile[data-tone="blue"]{--tile:rgba(150,171,200,.78)}
+.repoLiveV2 .repoPassportTile[data-tone="red"]{--tile:rgba(215,139,146,.78)}
+.repoLiveV2 .repoPassportTile[data-tone="gold"]{--tile:rgba(215,174,105,.78)}
+.repoLiveV2 .repoPassportTile:nth-child(3n+1){grid-column:span 2}
+.repoLiveV2 .repoPassportTile summary{
+  cursor:pointer;display:flex;align-items:center;justify-content:space-between;
+  gap:7px;list-style:none;padding:10px 9px;
+  font:650 9px/1.4 ui-monospace,monospace;color:#f3ddb3;letter-spacing:.05em
+}
+.repoLiveV2 .repoPassportTile summary::-webkit-details-marker{display:none}
+.repoLiveV2 .repoPassportTile summary span{font-size:15px}
+.repoLiveV2 .repoPassportTile[open] summary span{transform:rotate(180deg)}
+.repoLiveV2 .repoTileContent{padding:4px 10px 12px;font:10px/1.55 system-ui,sans-serif;color:#ded5c6;overflow-wrap:anywhere}
+.repoLiveV2 .repoTileContent>p{margin:6px 0 10px}
+.repoLiveV2 .repoFieldRow{display:grid;grid-template-columns:80px minmax(0,1fr);gap:7px;padding:5px 0;border-bottom:1px solid rgba(225,193,128,.18);align-items:start}
+.repoLiveV2 .repoFieldRow span{font:9px/1.3 ui-monospace,monospace;color:#baad95}
+.repoLiveV2 .repoFieldRow strong{font:500 10px/1.5 system-ui,sans-serif;color:#f5e7d0;overflow-wrap:anywhere}
+.repoLiveV2 .repoPassportLink{display:block;width:100%;padding:8px;border-bottom:1px solid rgba(213,174,103,.2);text-align:left;font:9px/1.5 ui-monospace,monospace;color:#e2c795;overflow-wrap:anywhere}
+.repoLiveV2 .repoQA{padding:7px 0;border-bottom:1px solid rgba(213,174,103,.2)}
+.repoLiveV2 .repoPrimaryAction{margin-top:5px!important;min-height:36px}
+.repoLiveV2 .repoProvenance{display:flex!important;flex-direction:column;gap:11px;overflow:auto}
+.repoLiveV2 .repoReader{
+  position:relative!important;inset:auto!important;z-index:auto!important;
+  padding:0!important;margin:0!important;
+  flex:1;min-height:280px;display:flex;flex-direction:column;
+  overflow:hidden!important;
+  background:rgba(4,10,15,.30)!important;backdrop-filter:none!important;
+  border:1px solid rgba(215,174,105,.52);
+}
+.repoLiveV2 .repoViewerHeading{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:11px 12px;border-bottom:1px solid rgba(213,174,103,.29);font:650 11px/1.4 ui-monospace,monospace;color:#f4dfa9}
+.repoLiveV2 .repoViewerHeading button{border:1px solid rgba(220,181,104,.35);padding:7px;font:9px ui-monospace,monospace}
+.repoLiveV2 .repoReaderTabs{display:flex;border-bottom:1px solid rgba(213,174,103,.28)}
+.repoLiveV2 .repoReaderTabs button{flex:1;padding:10px 6px;border-bottom:2px solid transparent;font:9px/1.3 ui-monospace,monospace;color:#d5cab4}
+.repoLiveV2 .repoReaderTabs button[data-active="true"]{border-bottom-color:#e5b96d;color:#f9e4bb}
+.repoLiveV2 .repoViewerBody{flex:1;overflow:auto;min-height:0;padding:16px 18px 35px;font:12px/1.7 system-ui,sans-serif;scrollbar-width:thin}
+.repoLiveV2 .repoViewerBody>h2{font:500 21px/1.35 system-ui,sans-serif;margin:10px 0 16px}
+.repoLiveV2 .repoViewerBody p{color:#e7dbca}
+.repoLiveV2 .repoDocType{font:9px ui-monospace,monospace;color:#daba7a}
+.repoLiveV2 .repoDocCover,.repoLiveV2 .repoViewerBody figure img{max-width:100%;height:auto;display:block}
+.repoLiveV2 .repoDocumentTile{border:1px solid rgba(212,175,103,.28);margin:12px 0;background:rgba(8,13,18,.28)}
+.repoLiveV2 .repoDocumentTile summary{cursor:pointer;padding:10px;color:#f3d6a1}
+.repoLiveV2 .repoDocumentTile>div{padding:0 12px 12px}
+.repoLiveV2 .repoDocumentFrame{min-height:380px;height:65vh;width:100%;border:1px solid #a98d5e;background:#fff}
+.repoLiveV2 .repoSourceItem{display:flex;flex-direction:column;gap:7px;padding:12px 0;border-bottom:1px solid rgba(212,175,103,.25);overflow-wrap:anywhere}
+.repoLiveV2 .repoSourceItem button{text-align:left;color:#f5d69b;font-size:11px}
+.repoLiveV2 .repoSourceItem a{font:10px ui-monospace,monospace;color:#9ecad0}
+.repoLiveV2 .repoDiscovery{padding:10px!important;border:1px solid rgba(215,174,105,.4);background:rgba(5,10,14,.30)!important;backdrop-filter:none!important}
+.repoLiveV2 .repoDiscovery h3{margin:0;font:650 10px/1.4 ui-monospace,monospace;color:#efc986}
+.repoLiveV2 .repoDiscovery p{font:10px/1.5 system-ui,sans-serif;color:#e6d6bb}
+.repoLiveV2 .repoMachineLinks{display:flex;gap:6px;flex-wrap:wrap}
+.repoLiveV2 .repoMachineLinks a{padding:6px;border:1px solid rgba(215,174,105,.36);color:#edd5a5;font:9px/1.3 ui-monospace,monospace}
+.repoLiveV2 .repoTimeline{
+  position:absolute!important;left:0!important;right:0!important;bottom:0!important;top:auto!important;
+  height:92px!important;padding:10px 25px!important;
+  display:grid!important;grid-template-columns:190px minmax(0,1fr) 205px!important;
+  gap:14px;align-items:center;background:rgba(2,7,11,.82)!important;
+  border-top:1px solid rgba(215,174,105,.48);backdrop-filter:blur(5px)
+}
+.repoLiveV2 .repoTimelineIdentity span{font:650 11px/1.4 ui-monospace,monospace;color:#e8c48a}
+.repoLiveV2 .repoTimelineIdentity b{font:9px/1.3 ui-monospace,monospace;color:#e9d7b6}
+.repoLiveV2 .repoTimelineTrack button{top:10px!important;width:92px!important}
+.repoLiveV2 .repoTimelineTrack time{font-size:8px}
+.repoLiveV2 .repoTimelineTrack span{font-size:8px;color:#f3ddb1}
+.repoLiveV2 .repoTimelineMode{display:flex;align-items:center;justify-content:flex-end;gap:5px}
+.repoLiveV2 .repoTimelineMode span{color:#ead5af}
+.repoLiveV2 .repoTimelineMode select,.repoLiveV2 .repoTimelineMode button{padding:8px;border:1px solid rgba(215,174,105,.47);background:#0b1216;color:#eccf97;font:10px/1.2 ui-monospace,monospace}
+@media(max-width:1120px){
+ .repoLiveV2 .repoToolbar{padding:8px 9px;gap:7px}
+ .repoLiveV2 .repoToolbarIdentity small{display:none}
+ .repoLiveV2 .repoToolbar select{max-width:135px}
+ .repoLiveV2 .repoFieldTrack{grid-template-columns:175px 610px 400px 500px;min-width:1780px}
+ .repoLiveV2 .repoTimeline{grid-template-columns:130px minmax(0,1fr) 100px!important;padding:10px!important}
+ .repoLiveV2 .repoTimelineMode span{display:none}
+}
+@media(max-width:650px){
+ .repoLiveV2{height:calc(100svh - 54px);min-height:600px!important}
+ .repoLiveV2 .repoToolbar{height:86px;flex-wrap:wrap;justify-content:space-between;align-content:center}
+ .repoLiveV2 .repoQuery{order:4;max-width:none;width:100%;flex:1 1 100%;height:31px}
+ .repoLiveV2 .repoToolbar select{display:none}
+ .repoLiveV2 .repoToolbar>button{height:29px}
+ .repoLiveV2 .repoFieldScroll{top:86px;bottom:94px}
+ .repoLiveV2 .repoFieldTrack{grid-template-columns:155px 500px 360px 430px;min-width:1540px;padding:10px;gap:9px}
+ .repoLiveV2 .repoFloating{padding:10px!important}
+ .repoLiveV2 .repoObjectCards{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .repoLiveV2 .repoPassportTiles{grid-template-columns:1fr}
+ .repoLiveV2 .repoPassportTile:nth-child(3n+1){grid-column:1}
+ .repoLiveV2 .repoTimeline{grid-template-columns:70px minmax(0,1fr) 70px!important;gap:4px}
+ .repoLiveV2 .repoTimelineIdentity b{display:none}
+ .repoLiveV2 .repoTimelineTrack button{width:52px!important}
+ .repoLiveV2 .repoTimelineTrack button span{display:none}
+ .repoLiveV2 .repoTimelineMode select{max-width:55px;padding:4px}
+ .repoLiveV2 .repoTimelineMode button{display:none}
+}
+@media(prefers-reduced-motion:reduce){.repoLiveV2 .repoFieldScroll{scroll-behavior:auto}.repoLiveV2 *{transition:none!important}}
