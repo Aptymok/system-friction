@@ -22,6 +22,8 @@ const STEPS=[
   {name:'RETURN',role:'Observed effects and contrast against prior expectations; an action receipt is not a measured outcome.'},
   {name:'LEARNING',role:'Governed integration of what changed after a real-world RETURN; case closure is not automatically learning.'},
 ] as const;
+// Reuses eight existing visual assets from PR #744, leaving LEARNING without a fabricated ninth image.
+const STAGE_ARTWORK=Array.from({length:8},(_,index)=>`/assets/sfi/instruments/SFI_RCH_${String(index+1).padStart(2,'0')}.png`);
 const FULL_METHOD=['WORLD','CAPTURE','EVIDENCE','TRANSFORMATION','INFERENCE (CONDITIONAL)','VERIFICATION','AUTHORITY','ACTION','RETURN'] as const;
 const TRANSVERSAL=['PROVENANCE','UNCERTAINTY','SIGNAL','COUNTEREVIDENCE','APPLICABLE OBLIGATION','ABSTAIN / ESCALATE / REJECT'] as const;
 const KIND_TO_STEP:Record<string,number>={SOURCE:-1,RECORD:-1,OBSERVATION:2,EVIDENCE:3,HYPOTHESIS:4,ANALYSIS:4,EPISTEMIC_ASSESSMENT:4,UNRESOLVED_QUESTION:4,CONTRADICTION:4,GOVERNANCE_DECISION:5,RECOMMENDATION:4,INTERVENTION:6,INSTRUMENT_RUN:4,RETURN:7,TRAJECTORY:4};
@@ -318,7 +320,7 @@ export function RealityChainWorkbench(){
           <p>What existed, what attracted attention, and what was actually recorded.</p>
           <div className="rcThreeStageBand">
             {STEPS.slice(0,3).map((stage,index)=><button key={stage.name} type="button" onClick={()=>{setActiveStep(index);setSelectedObject(null)}} aria-pressed={activeStep===index}>
-              <small>0{index+1}</small><strong>{stage.name}</strong><span>{stage.role}</span><em>{stageCoverage[index]} REPRESENTED</em>
+              <small>0{index+1}</small><img className="rcStageArtwork" src={STAGE_ARTWORK[index]} alt="" loading="lazy"/><strong>{stage.name}</strong><span>{stage.role}</span><em>{stageCoverage[index]} REPRESENTED</em>
             </button>)}
           </div>
         </div>
@@ -354,7 +356,7 @@ export function RealityChainWorkbench(){
           <p>What the records support, what remains an interpretation, and who may decide.</p>
           <div className="rcThreeStageBand">
             {STEPS.slice(3,6).map((stage,index)=><button key={stage.name} type="button" onClick={()=>{setActiveStep(index+3);setSelectedObject(null)}} aria-pressed={activeStep===index+3}>
-              <small>0{index+4}</small><strong>{stage.name}</strong><span>{stage.role}</span><em>{stageCoverage[index+3]} REPRESENTED</em>
+              <small>0{index+4}</small><img className="rcStageArtwork" src={STAGE_ARTWORK[index+3]} alt="" loading="lazy"/><strong>{stage.name}</strong><span>{stage.role}</span><em>{stageCoverage[index+3]} REPRESENTED</em>
             </button>)}
           </div>
         </div>
@@ -416,7 +418,7 @@ export function RealityChainWorkbench(){
           <p>What was done, what reality returned, and what was actually integrated.</p>
           <div className="rcThreeStageBand">
             {STEPS.slice(6,9).map((stage,index)=><button key={stage.name} type="button" onClick={()=>{setActiveStep(index+6);setSelectedObject(null)}} aria-pressed={activeStep===index+6}>
-              <small>0{index+7}</small><strong>{stage.name}{stage.name==='LEARNING'?<svg className="rcLearningIcon" viewBox="0 0 48 48" role="img" aria-label="Learning"><path d="M24 11c-6-4-12-4-19-2v27c7-2 13-2 19 2 6-4 12-4 19-2V9c-7-2-13-2-19 2Z" fill="none" stroke="currentColor" strokeWidth="2"/><path d="M24 11v27M29 23l4 4 8-10" fill="none" stroke="currentColor" strokeWidth="2"/></svg>:null}</strong>
+              <small>0{index+7}</small>{index<2?<img className="rcStageArtwork" src={STAGE_ARTWORK[index+6]} alt="" loading="lazy"/>:null}<strong>{stage.name}{stage.name==='LEARNING'?<svg className="rcLearningIcon" viewBox="0 0 48 48" role="img" aria-label="Learning"><path d="M24 11c-6-4-12-4-19-2v27c7-2 13-2 19 2 6-4 12-4 19-2V9c-7-2-13-2-19 2Z" fill="none" stroke="currentColor" strokeWidth="2"/><path d="M24 11v27M29 23l4 4 8-10" fill="none" stroke="currentColor" strokeWidth="2"/></svg>:null}</strong>
               <span>{stage.role}</span><em>{stageCoverage[index+6]} REPRESENTED</em>
             </button>)}
           </div>
