@@ -9,6 +9,7 @@ const externalRootOperate = read('src/app/api/external/v1/root/operate/route.ts'
 const rootAccess = read('src/app/root/access/page.tsx');
 const forgot = read('src/app/forgot/page.tsx');
 const reset = read('src/components/sfi/PasswordResetSurface.tsx');
+const publicGateway = read('src/components/sfi/PublicEntryGateway.tsx');
 const activate = read('src/app/api/account/activate/route.ts');
 const accessServer = read('src/lib/system/access/server.ts');
 const productionBackend = read('src/lib/server/productionBackend.ts');
@@ -36,6 +37,13 @@ assert.match(invitationDelivery, /ACCESS ≠ AUTHORITY/);
 assert.match(invitationDelivery, /CONFIRMAR Y ACTIVAR/);
 assert.match(invitationDelivery, /auth\.admin\.inviteUserByEmail/, 'default provider fallback must remain available when branded mail is not configured');
 assert.match(invitationDelivery, /existingUserId/, 'reinvite must reuse existing Supabase Auth identity');
+assert.ok(invitationDelivery.includes('auth.admin.getUserById'), 'resend must verify Auth user ID before issuing recovery');
+assert.ok(invitationDelivery.includes('existing_invitation_identity_mismatch'), 'identity mismatch must fail closed');
+assert.ok(publicGateway.includes('window.history.replaceState'), 'one-time callback credentials must be cleared from browser history');
+assert.ok(publicGateway.includes('auth.setSession'), 'implicit callback must verify session');
+assert.ok(publicGateway.includes('exchangeCodeForSession'), 'PKCE callback must verify code');
+assert.ok(publicGateway.includes("metadata.sfi_invitation !== true"), 'recovery callback must be institutional');
+
 assert.match(invitationDelivery, /type: 'recovery'/, 'existing invited user must receive recovery rather than duplicate invite token');
 assert.match(invitationDelivery, /auth\.resetPasswordForEmail/, 'default mail recovery is required for already registered users');
 assert.match(invite, /existingUserId: existingGrant\.data\?\.user_id/, 'founder resend must bind to the existing auth identity');
