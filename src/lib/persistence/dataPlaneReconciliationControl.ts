@@ -5,6 +5,7 @@ import { readPrimaryOutboxStatus } from '@/lib/persistence/primaryMirror';
 import { replayVerifiedSourceObservations } from '@/lib/persistence/verifiedObservationReplay';
 import { recoverPrimaryDataPlane } from '@/lib/persistence/continuityRecovery';
 import { continuityDatabase } from '@/lib/sfi/continuityPostgres';
+import { reconcileSupersededAuthorityJournal } from '@/lib/persistence/authorityJournalSupersession';
 
 /**
  * A single bounded recovery authority for the existing SFI two-plane system.
@@ -84,6 +85,17 @@ export async function readDataPlaneReconciliationStatus() {
 }
 
 export async function attemptBoundedDataPlaneReconciliation(maxTransactions: number) {
+  // Reconcile only authority records whose current identity, role, grants and
+  // scopes agree independently on both providers. No relaxed security gate:
+  // a mismatched authority record still blocks recovery.
+  const authoritySupersession = await reconcileSupersededAuthorityJournal({
+    maxEntries: 12,
+  }).catch(() => ({
+    checked: 0, superseded: 0, protectedMismatches: 0,
+    primaryUnavailable: true, primaryPromoted: false,
+    credentialsModified: false, authorityModified: false,
+    policy: 'Unable to verify primary independently; no source row was modified',
+  }));
   const before = await readDataPlaneReconciliationStatus();
   if (!before.safeRecoveryEligible) {
     // The global recovery gate remains closed. Only the pre-existing,
@@ -107,6 +119,7 @@ export async function attemptBoundedDataPlaneReconciliation(maxTransactions: num
           ? 'VERIFIED_SOURCE_REPLAY_PROGRESS' as const
           : 'BLOCKED_BY_SAFETY_GATE' as const,
       verifiedSourceReplay,
+      authoritySupersession,
       before,
       after,
     };
@@ -126,6 +139,7 @@ export async function attemptBoundedDataPlaneReconciliation(maxTransactions: num
         ? 'RECOVERY_NOOP' as const
         : 'RECOVERY_NOT_COMPLETE' as const,
     recovery,
+    authoritySupersession,
     before,
     after,
   };
