@@ -24,7 +24,9 @@ if(!proof||typeof proof!=='object'||Array.isArray(proof)||proof.complete!==true)
   console.error(JSON.stringify({ok:false,error:'cycle_does_not_contain_complete_full_cycle_proof',cycleId:result.data.id,cycleCode:result.data.cycle_code,status:result.data.status,proof:proof??null},null,2));
   process.exit(1);
 }
-const required=['evidence','studio','method_lab','field','cognitive_twin','institutional_cycle','readiness'];
+// Mirror the canonical fullCycleVerification owner: Studio is an optional
+// specialized lane. The institutional core MUST still pass all six organs.
+const required=['evidence','method_lab','field','cognitive_twin','institutional_cycle','readiness'];
 const steps=Array.isArray(proof.steps)?proof.steps:[];
 for(const id of required){
   const step=steps.find(item=>item&&typeof item==='object'&&item.id===id);
