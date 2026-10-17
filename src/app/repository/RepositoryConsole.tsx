@@ -2,6 +2,9 @@
 
 import { useMemo, useRef, useState, type ReactNode } from 'react';
 import type { PublicPassportReading } from '@/lib/repository/publicPassportProjection';
+import { projectRepositoryMihmTimeline } from '@/lib/repository/repositoryTemporalProjection';
+import { TIMELINE_CLOCKS } from '@/lib/mihm/timelineClocks';
+import { RepositoryMihmTimeline } from './RepositoryMihmTimeline';
 
 export type RepositoryEditorial={
   editorialKind:string;
@@ -85,7 +88,6 @@ export function RepositoryConsole({objects,initialObject,discovery,publicReading
   const [readerOpen,setReaderOpen]=useState(true);
   const [readerMode,setReaderMode]=useState<ReaderMode>('LECTURA');
   const [zoom,setZoom]=useState(1);
-  const [timelineYear,setTimelineYear]=useState<number|null>(null);
   const horizontal=useRef<HTMLDivElement>(null);
   const readerRef=useRef<HTMLDivElement>(null);
   const selectedObject=objects.find(x=>x.id===selection.id)||null;
@@ -102,10 +104,9 @@ export function RepositoryConsole({objects,initialObject,discovery,publicReading
     return objects.filter(o=>
       (filter==='ALL'||o.objectType===filter)&&
       (platform==='ALL'||(platform==='MEDIUM'?Boolean(o.editorial?.mediumUrl):platform==='SFI'?Boolean(o.canonicalUrl):false))&&
-      (!timelineYear||new Date(o.createdAt).getFullYear()===timelineYear)&&
       (!q||[o.title,o.summary,o.id,o.objectKey,o.objectType,...o.sourceRefs,...o.evidenceRefs,...o.methods].join(' ').toLocaleLowerCase().includes(q))
     ).sort((a,b)=>order==='name'?a.title.localeCompare(b.title):order==='old'?Date.parse(a.createdAt)-Date.parse(b.createdAt):Date.parse(b.createdAt)-Date.parse(a.createdAt));
-  },[objects,filter,platform,query,order,timelineYear]);
+  },[objects,filter,platform,query,order]);
   const select=(kind:Selection['kind'],id:string)=>{
     setSelection({kind,id});setReaderOpen(true);setReaderMode('LECTURA');
     const ref=kind==='object'?objects.find(o=>o.id===id):null;
@@ -113,7 +114,6 @@ export function RepositoryConsole({objects,initialObject,discovery,publicReading
   };
   const goto=(index:number)=>horizontal.current?.scrollTo({left:index*590,behavior:'smooth'});
   const jumpReader=()=>{setReaderOpen(true);readerRef.current?.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'})};
-  const yearList=uniq(objects.map(o=>String(new Date(o.createdAt).getFullYear())).filter(y=>y!=='NaN')).sort();
   const categories:[string,number|string][]=[['SOURCE RECORDS',sources.length],['EVIDENCE',evidence.length],['PUBLICATIONS',objects.filter(o=>o.objectType==='PUBLICATION').length],['CASE OBJECTS',related.length],['PROVENANCE',sources.length],['VERSIONS',versions.length],['HASHES','NOT MATERIALIZED'],['LINEAGE',related.length],['MANIFESTS',objects.length]];
   const safeDoc=selection.kind==='object'?active?.editorial?.renditions.find(r=>r.publicUrl&&safeURL(r.publicUrl) && (r.mediaType==='application/pdf'||r.filename.toLowerCase().endsWith('.pdf')))||null:null;
   const graphObjects=matched.slice(0,15);
@@ -127,7 +127,12 @@ export function RepositoryConsole({objects,initialObject,discovery,publicReading
   const stateText=selection.kind==='object'?active?.epistemicState:'REFERENCIA';
   const showRow=(label:string,text:string|null|undefined)=><div className="repoFieldRow" key={label}><span>{label}</span><strong>{value(text)}</strong></div>;
   const selectSource=(ref:string)=>select('source',ref);
-  const activateTimeline=(id:string)=>{select('object',id);goto(2)};
+  const onTemporalSelect=(id:string)=>{select('object',id);goto(2)};
+  const temporal=projectRepositoryMihmTimeline(objects,Object.fromEntries(objects.flatMap(o=>{
+    const read=publicReadings[o.id]??publicReadings[o.slug]??publicReadings[o.objectKey];
+    return read?[[o.id,read]]:[];
+  })));
+  const selectedTemporal=selection.kind==='object'?temporal.find(t=>t.id===selection.id):null;
   return <main className="repositoryShell repoLiveV2">
     <div className="repoToolbar">
       <span className="repoToolbarIdentity">REPOSITORY <small>ARCHIVO PÚBLICO · PASSPORT CONTEXTUAL</small></span>
@@ -167,6 +172,17 @@ export function RepositoryConsole({objects,initialObject,discovery,publicReading
           <div className="repoPassportTiles">
             {passportTile('id','IDENTIDAD · ESTADO · AUTORIDAD','gold',<>{showRow('ID',selection.id)}{showRow('TIPO',selection.kind==='object'?active?.objectType:selection.kind.toUpperCase())}{showRow('ESTADO EPISTÉMICO',stateText)}{showRow('PUBLICACIÓN',selection.kind==='object'?active?.publicationState:null)}{showRow('IDIOMA',selection.kind==='object'?active?.language:null)}{showRow('LICENCIA',selection.kind==='object'?active?.license:null)}{showRow('FECHA DE REGISTRO',selection.kind==='object'&&active?date(active.createdAt):null)}{showRow('VERSIÓN',selection.kind==='object'?active?.version:null)}</>,true)}
             {passportTile('prov','PROVENANCE · ORIGEN','blue',<><p>Los enlaces citados identifican procedencia; no demuestran independencia ni veracidad del evento.</p>{(selection.kind==='source'?[selection.id]:active?.sourceRefs||[]).map(s=><button className="repoPassportLink" key={s} onClick={()=>selectSource(s)}>{short(s,55)} <span>↗</span></button>)}{!(active?.sourceRefs.length)&&selection.kind!=='source'?<p>NOT OBSERVED · Sin fuentes explícitas</p>:null}</>)}
+            {selection.kind==='object'?passportTile('clocks','MIHM-T · 7 RELOJES FUENTE-FECHADOS','teal',<>
+              <p>El registro editorial no sustituye tiempo de evento, observación, conocimiento, autoridad, ejecución ni RETURN.</p>
+              {TIMELINE_CLOCKS.map(clock=>{
+                const reading=selectedTemporal?.profile.readings.find(r=>r.clock===clock.id);
+                return <div className="repoFieldRow" key={clock.id}>
+                  <span title={clock.description}>{clock.id}</span>
+                  <strong>{reading?.at??'UNKNOWN'} {reading?.sourceRef?' · '+reading.sourceRef:''}</strong>
+                </div>;
+              })}
+              <p>{selectedTemporal?.profile.sourceCompleteness??'NO_CLOCK_EVIDENCE'} · NO_INFERRED_TIMESTAMPS · NO VALIDATED MIHM-T</p>
+            </>):null}
             {passportTile('t0','T0 / T1 · CONTRASTE TEMPORAL','teal',<>{reading&&(reading.t0||reading.t1)?<>{showRow('T0',reading.t0)}{showRow('T1',reading.t1)}</>:<p>NOT OBSERVED IN PUBLIC PROJECTION · No existe un T0/T1 publicado para este objeto. Su fecha de edición no sustituye la fecha de conocimiento.</p>}</>)}
             {reading?.sixQuestions.length?passportTile('six','6 PREGUNTAS · EVALUACIÓN','gold',<>{reading.sixQuestions.map((q,i)=><div key={i} className="repoQA"><b>{i+1}. {q.question}</b><p>{value(q.answer)}</p></div>)}</>):null}
             {reading?.hypothesis||reading?.rivalHypotheses.length?passportTile('h','HIPÓTESIS · RIVALES','red',<>{showRow('HIPÓTESIS',reading.hypothesis)}{reading.rivalHypotheses.map((h,i)=><p key={i}>Rival {i+1}: {h}</p>)}</>):null}
@@ -193,10 +209,13 @@ export function RepositoryConsole({objects,initialObject,discovery,publicReading
         </section>
       </div>
     </div>
-    <nav className="repoTimeline" aria-label="REPOSITORY HISTORY · cronología registrada">
-      <div className="repoTimelineIdentity"><span>REPOSITORY HISTORY</span><b>{objects.length} OBJETOS PÚBLICOS</b></div>
-      <div className="repoTimelineTrack"><div className="repoTimelineLine"/>{objects.slice().sort((a,b)=>Date.parse(a.createdAt)-Date.parse(b.createdAt)).slice(-12).map((o,i,arr)=><button key={o.id} style={{left:(4+i*92/Math.max(1,arr.length-1))+'%'}} data-active={selection.id===o.id} onClick={()=>activateTimeline(o.id)}><i/><time>{date(o.createdAt)}</time><span>{short(o.title,15)}</span></button>)}</div>
-      <div className="repoTimelineMode"><span>TIEMPO</span><select aria-label="Filtrar año" value={timelineYear??'ALL'} onChange={e=>setTimelineYear(e.target.value==='ALL'?null:Number(e.target.value))}><option value="ALL">TODOS</option>{yearList.map(y=><option key={y} value={y}>{y}</option>)}</select><button onClick={()=>goto(0)} title="Volver al inicio">←</button><button onClick={()=>horizontal.current?.scrollBy({left:640,behavior:'smooth'})} title="Avanzar en el campo">→</button></div>
-    </nav>
+    <RepositoryMihmTimeline
+      objects={objects}
+      publicReadings={publicReadings}
+      selectedId={selection.kind==='object'?selection.id:null}
+      onSelect={onTemporalSelect}
+      onBackward={()=>goto(0)}
+      onForward={()=>horizontal.current?.scrollBy({left:640,behavior:'smooth'})}
+    />
   </main>;
 }
