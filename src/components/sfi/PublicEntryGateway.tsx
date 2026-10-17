@@ -21,6 +21,19 @@ export function PublicEntryGateway(){
   const [progress,setProgress]=useState(0);
 
   useEffect(()=>{
+    // Supabase falls back to Site URL when an Auth redirect URL is not allowlisted.
+    // Preserve the token fragment and restore the intended password/activation gate.
+    const fragment = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    if (
+      (fragment.get('type') === 'invite' || fragment.get('type') === 'recovery') &&
+      fragment.has('access_token') &&
+      fragment.has('refresh_token')
+    ) {
+      window.location.replace(`/reset?mode=invite${window.location.hash}`);
+    }
+  },[]);
+
+  useEffect(()=>{
     const host=scroller.current;
     if(!host)return;
     const onScroll=()=>{
