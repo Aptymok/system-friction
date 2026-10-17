@@ -248,6 +248,7 @@ async function inviteInstitutionalAccount(
     displayName,
     title,
     accessClass,
+    existingUserId: existingGrant.data?.user_id ?? null,
     redirectTo: `${origin}/reset?mode=invite`,
   });
 

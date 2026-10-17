@@ -21,6 +21,27 @@ export function PublicEntryGateway(){
   const [progress,setProgress]=useState(0);
 
   useEffect(()=>{
+    // Supabase falls back to Site URL when an Auth redirect URL is not allowlisted.
+    // Preserve the token fragment and restore the intended password/activation gate.
+    const fragment = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    if (
+      (fragment.get('type') === 'invite' || fragment.get('type') === 'recovery') &&
+      fragment.has('access_token') &&
+      fragment.has('refresh_token')
+    ) {
+      window.location.replace(`/reset?mode=invite${window.location.hash}`);
+      return;
+    }
+    // PKCE email links may return an authorization code, not implicit tokens.
+    // Keep the one-time code in the first-party /reset flow for session exchange.
+    const callback = new URLSearchParams(window.location.search);
+    const code = callback.get('code');
+    if (code) {
+      window.location.replace(`/reset?mode=invite&code=${encodeURIComponent(code)}`);
+    }
+  },[]);
+
+  useEffect(()=>{
     const host=scroller.current;
     if(!host)return;
     const onScroll=()=>{

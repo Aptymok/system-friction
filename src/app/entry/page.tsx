@@ -29,6 +29,8 @@ export default async function EntryPage({
   }
 
   if (requested) redirect(requested);
-  if (ctx.canObserveRoot) redirect('/root');
+  // /root is founder-gated by requireFounderPage. Observer eligibility alone
+  // does not authorize the operational ROOT route.
+  if (ctx.isRoot) redirect('/root');
   redirect('/observatory');
 }

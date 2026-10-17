@@ -13,6 +13,7 @@ const activate = read('src/app/api/account/activate/route.ts');
 const accessServer = read('src/lib/system/access/server.ts');
 const productionBackend = read('src/lib/server/productionBackend.ts');
 const login = read('src/components/sfi/LoginSurface.tsx');
+const entry = read('src/app/entry/page.tsx');
 const continuityAccess = read('src/app/continuity-access/page.tsx');
 const authActions = read('src/lib/auth/actions.ts');
 const neonPasswordBootstrap = read('src/lib/auth/neonPasswordBootstrap.ts');
@@ -34,6 +35,14 @@ assert.match(invitationDelivery, /System Friction Institute · Invitación de ac
 assert.match(invitationDelivery, /ACCESS ≠ AUTHORITY/);
 assert.match(invitationDelivery, /CONFIRMAR Y ACTIVAR/);
 assert.match(invitationDelivery, /auth\.admin\.inviteUserByEmail/, 'default provider fallback must remain available when branded mail is not configured');
+assert.match(invitationDelivery, /existingUserId/, 'reinvite must reuse existing Supabase Auth identity');
+assert.match(invitationDelivery, /type: 'recovery'/, 'existing invited user must receive recovery rather than duplicate invite token');
+assert.match(invitationDelivery, /auth\.resetPasswordForEmail/, 'default mail recovery is required for already registered users');
+assert.match(invite, /existingUserId: existingGrant\.data\?\.user_id/, 'founder resend must bind to the existing auth identity');
+assert.match(externalRootOperate, /existingUserId: existingGrant\.data\?\.user_id/, 'ROOT API resend must reuse existing identity');
+assert.match(authActions, /institutionalGrant\?\.user_id/, 'forgot password must resolve institutional grant first');
+assert.match(authActions, /resetPasswordForEmail/, 'invited Supabase accounts must recover through Supabase Auth');
+assert.match(authActions, /mode=invite/, 'institutional recovery must land on the activation screen');
 assert.doesNotMatch(invitationDelivery, /password\s*:/i, 'delivery must never generate or transmit a temporary password');
 assert.match(externalRootOperate, /deliverInstitutionalInvitation/, 'external ROOT invitation must share the canonical delivery path');
 assert.match(invite, /listInstitutionalAccountAccessGrants/);
@@ -110,6 +119,8 @@ assert.match(productionBackend, /hasActiveInstitutionalAccountGrant/);
 assert.match(productionBackend, /observerRoleAuthorized/);
 assert.match(productionBackend, /Boolean\(institutionalMember\) \|\| activeInstitutionalAccount/);
 
+assert.match(entry, /if \(ctx\.isRoot\) redirect\('\/root'\)/, 'only founder ROOT may be the automatic post-login destination');
+assert.doesNotMatch(entry, /if \(ctx\.canObserveRoot\) redirect\('\/root'\)/, 'operator/observer must not be misrouted to founder-only ROOT');
 assert.match(login, /\/forgot/);
 assert.doesNotMatch(
   authActions.match(/export async function loginAction[\s\S]*?export async function activateContinuityPasswordAction/)?.[0] ?? '',

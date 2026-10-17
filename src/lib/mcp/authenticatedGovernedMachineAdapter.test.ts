@@ -11,7 +11,7 @@ test('OAuth discovery paths identify the same canonical MCP resource on every de
     assert.equal(specific.status, 200);
     const expected = await root.json();
     const actual = await specific.json();
-    assert.equal(actual.resource, 'https://www.systemfriction.org/api/mcp/authenticated');
+    assert.equal(actual.resource, `${origin}/api/mcp/authenticated`, 'OAuth resource must match the explicitly supported origin');
     assert.deepEqual(actual, expected, 'path discovery must not advertise an audience rejected by the canonical issuer');
   }
 });
