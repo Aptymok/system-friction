@@ -90,6 +90,7 @@ vm.runInNewContext(ts.transpileModule(oauthRegistry, {
   require: (id: string) => id === 'node:crypto' ? registryRequire(id) : {},
 });
 const redirectAllowed = (registered: string, requested: string) => registryExports.isAllowedSfiOAuthRedirect({ redirectUris: [registered] }, requested);
+void (async () => {
 const claude = await registryExports.resolveSfiOAuthClient('https://claude.ai/oauth/mcp-oauth-client-metadata');
 assert.equal(claude?.source, 'claude_cimd', 'Claude CIMD identity must resolve without arbitrary callback');
 assert.equal(claude?.clientId, 'https://claude.ai/oauth/mcp-oauth-client-metadata');
@@ -109,6 +110,10 @@ assert.ok(authorize.includes("client.source === 'claude_cimd'"), 'Claude PKCE re
 assert.ok(authorize.includes("codeChallengeMethod !== 'S256'"), 'PKCE S256 must be enforced');
 assert.ok(authorize.includes("const rootDelegate = profileRole === 'root' || profileRole === 'system'"), 'ROOT identity remains profile-bound');
 
+})().catch((error: unknown) => {
+  console.error('Claude OAuth CIMD boundary check failed:', error);
+  process.exitCode = 1;
+});
 assert.equal(redirectAllowed('https://example.test/callback', 'https://example.test/callback'), true);
 for (const requested of ['https://evil.test/callback', 'https://example.test/callback/extra', 'https://example.test/callback?extra=1', 'https://example.test:8443/callback']) {
   assert.equal(redirectAllowed('https://example.test/callback', requested), false, `non_loopback_redirect_must_be_exact:${requested}`);
