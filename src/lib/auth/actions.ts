@@ -173,10 +173,43 @@ export async function activateContinuityPasswordAction(formData: FormData) {
 }
 
 export async function forgotPasswordAction(formData: FormData) {
-  const email = formValue(formData, 'email')
+  const email = formValue(formData, 'email').trim().toLowerCase()
   const limit = checkRateLimit(rateLimitKey('forgot', email), 4, 60_000)
   if (!limit.allowed) redirect('/forgot?error=rate_limit')
-  const origin = process.env.NEXT_PUBLIC_APP_URL || 'https://systemfriction.org'
+  const origin = (process.env.NEXT_PUBLIC_APP_URL || 'https://systemfriction.org').replace(/\\/$/, '')
+
+  // Institutional invitations are owned by Supabase Auth. Neon recovery cannot
+  // issue a usable credential for an invited Supabase-only identity.
+  let institutionalGrant: { status: string; user_id: string | null } | null = null
+  try {
+    const registry = await createServiceSupabaseClient()
+      .from('sfi_account_access_grants')
+      .select('status,user_id')
+      .eq('email', email)
+      .maybeSingle()
+    if (!registry.error) institutionalGrant = registry.data
+  } catch {
+    // Neon recovery remains available to non-institutional identities.
+  }
+
+  if (
+    institutionalGrant?.user_id &&
+    (institutionalGrant.status === 'INVITED' || institutionalGrant.status === 'ACTIVE')
+  ) {
+    let sent = false
+    try {
+      const service = createServiceSupabaseClient()
+      const result = await service.auth.resetPasswordForEmail(email, {
+        redirectTo: `${origin}/reset?mode=invite`,
+      })
+      sent = !result.error
+    } catch {
+      sent = false
+    }
+    if (!sent) redirect('/forgot?error=auth_unavailable')
+    redirect('/forgot?state=sent')
+  }
+
   try {
     await requestNeonPasswordReset(email, `${origin}/reset`)
   } catch {
