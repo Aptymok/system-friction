@@ -217,31 +217,45 @@ export function PasswordResetSurface({
       if (hasCallback) window.history.replaceState(window.history.state, '', '/reset?mode=invite');
       if (!active) return;
 
-      // An authenticated unrelated user is NOT an invitation. Never allow
-      // this surface to change their password as a side effect of a callback.
-      const markedInstitutional = session?.user.user_metadata?.sfi_invitation === true;
+      // Metadata is not authority. Existing personal users may be invited
+      // later, and must pass the same server-side grant + identity check.
       const callbackExpected = !hasTokenPair || callbackType === 'invite' || callbackType === 'recovery';
-      if (session && markedInstitutional && callbackExpected) {
+      const response = session && callbackExpected
+        ? await fetch('/api/account/invitation-session', {
+            credentials: 'same-origin', cache: 'no-store',
+          }).catch(() => null)
+        : null;
+      const verdict = response?.ok ? await response.json().catch(() => null) as { eligible?: boolean } | null : null;
+      if (!active) return;
+      if (session && verdict?.eligible === true) {
         setReady(true);
         setAttention(false);
-        setMessage('Email verified. Define your credential to complete access.');
+        setMessage('Identity and invitation verified. Define your credential to complete access.');
       } else {
         setReady(false);
         setAttention(true);
-        setMessage(session && !markedInstitutional
-          ? 'This signed-in identity is not the invited institutional account. Open the invitation in a private window.'
-          : 'The link did not create a valid institutional session. Request a new recovery link.');
+        setMessage('No verified invitation was found for this session. Request a new link or sign in with the invited account.');
       }
     };
     void check().catch(() => {
       if (active) { setReady(false); setAttention(true); setMessage('Unable to verify this link. Request a new one.'); }
     });
     const { data: listener } = sb.auth.onAuthStateChange((event, session) => {
-      if (!active || !session || session.user.user_metadata?.sfi_invitation !== true) return;
-      if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
-        setReady(true);
-        setAttention(false);
-        setMessage('Email verified. Define your credential to complete access.');
+      if (!active || !session) return;
+      if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
+        // Do not declare readiness from an Auth event alone. Verify the
+        // existing institutional grant through the governed server route.
+        void fetch('/api/account/invitation-session', {
+          credentials: 'same-origin', cache: 'no-store',
+        }).then(async response => {
+          const data = response.ok ? await response.json() as { eligible?: boolean } : null;
+          if (!active) return;
+          if (data?.eligible === true) {
+            setReady(true);
+            setAttention(false);
+            setMessage('Identity and invitation verified. Define your credential to complete access.');
+          }
+        }).catch(() => null);
       }
     });
     return () => {
