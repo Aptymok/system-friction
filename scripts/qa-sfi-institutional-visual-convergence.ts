@@ -15,6 +15,9 @@ const access=read('src/app/root/access/page.tsx');
 const accessCss=read('src/app/root/access/root-access.css');
 const observatory=read('src/components/sfi/ObservatoryConsole.tsx');
 const observatoryCss=read('src/components/sfi/ObservatoryConsole.css');
+const observatoryGlobe=read('src/components/sfi/ObservatoryGlobe.tsx');
+const publicChrome=read('src/components/public/SfiPublicChrome.tsx');
+const publicEntry=read('src/components/sfi/PublicEntryGateway.tsx');
 const realityCss=read('src/components/sfi/RealityChainWorkbench.css');
 const methodCss=read('src/components/sfi/MethodLabUnifiedSurface.css');
 const repositoryCss=read('src/app/repository/repository.css');
@@ -55,7 +58,12 @@ for(const [name,source,contract] of [
 ] as const) assert.ok(source.includes(contract),`canonical_visual_contract_missing:${name}`);
 assert.ok(observatory.includes("fetchJson('/api/observatory/world')") && observatory.includes("fetchJson('/api/observatory/state?view=observatory')") && observatory.includes("fetchJson('/api/observatory/timeline')"),'observatory_visual_must_remain_live');
 assert.ok(observatory.includes('useSearchParams') && observatory.includes('requestedLens'),'observatory_lens_deeplink_missing');
-assert.ok(instruments.includes("href:'/observatory?lens=world-vector'") && instruments.includes("href:'/observatory?lens=trajectory&focus=timeline'"),'world_vector_timeline_must_resolve_to_live_observatory');
+assert.ok(instruments.includes("href:'/observatory?lens=world-vector'") && instruments.includes("label:'OPEN INSTITUTIONAL TIMELINE',href:'/timeline'"),'world_vector_goes_to_observatory_but_timeline_must_go_to_timeline');
+assert.ok(observatory.includes('<ObservatoryGlobe') && observatory.includes('data-earth-surface="RESTORED-WEBGL-1"'),'live_earth_must_be_mounted_in_observatory');
+assert.ok(observatoryGlobe.includes("getContext('webgl'") && observatoryGlobe.includes('onPointerMove') && observatoryGlobe.includes('Pause rotation') && observatoryGlobe.includes('pinsRef.current'),'accepted_interactive_globe_controls_and_sourced_pins_missing');
+assert.ok(observatoryGlobe.includes('IntersectionObserver') && observatoryGlobe.includes('gl.CLAMP_TO_EDGE'),'globe_must_throttle_offscreen_and_support_npot_webgl_texture');
+assert.ok(observatoryCss.includes('.earthStage[data-earth-surface="RESTORED-WEBGL-1"]') && observatoryCss.includes('display:block!important'),'legacy_single_background_override_must_not_hide_accepted_globe');
+assert.ok(publicChrome.includes("{key:'timeline',label:'TIMELINE',href:'/timeline'}") && publicEntry.includes("sceneId:'timeline',href:'/timeline'"),'public_timeline_must_open_operational_timeline_directly');
 
 assert.ok(methodPanorama.includes('protocols.reduce') && methodPanorama.includes('sessions.filter') && methodPanorama.includes('evidenceCount') && methodPanorama.includes('SIMULATION ≠ OBSERVATION'),'method_lab_panorama_requires_persisted_operating_data');
 assert.ok(timelinePage.includes('readPublicWorldSnapshotTimeline') && timelinePage.includes('SFI_CANONICAL_OBJECT_REGISTRY') && timelineUi.includes('NO RECORDED ENTRIES IN SELECTED WINDOW'),'timeline_must_preserve_real_data_and_empty_states');
