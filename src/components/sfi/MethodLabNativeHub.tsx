@@ -171,10 +171,10 @@ export function MethodLabNativeHub({ initialState, initialSessions, evidenceOpti
           <p>{initialState.epistemicRule}</p>
         </div>
         <div className="mlh-metrics">
-          <article><small>PROTOCOLS</small><strong>{initialState.protocols.length}</strong><span>{operational} operational</span></article>
-          <article><small>GATED</small><strong>{gated}</strong><span>{degraded} degraded</span></article>
-          <article><small>CRL SESSIONS</small><strong>{initialSessions.length}</strong><span>{initialSessions.filter((item) => item.status === 'CLOSED').length} closed</span></article>
-          <article><small>DECISION TRANSFER</small><strong>{initialState.decisionTransfer.status}</strong><span>{initialState.decisionTransfer.totalEvaluations} evaluations</span></article>
+          <details className="mlh-tile mlh-metric-tile" data-tone="gold"><summary className="mlh-tile-trigger"><span><small>PROTOCOLOS</small><strong>{initialState.protocols.length}</strong></span><span className="mlh-tile-chevron" aria-hidden="true">⌄</span></summary><p>{operational} operativos. Despliega el registro para conocer el estado de cada método.</p></details>
+          <details className="mlh-tile mlh-metric-tile" data-tone="red"><summary className="mlh-tile-trigger"><span><small>DEPENDENCIAS</small><strong>{gated} gated</strong></span><span className="mlh-tile-chevron" aria-hidden="true">⌄</span></summary><p>{degraded} degradados. Verifica las dependencias antes de ejecutar.</p></details>
+          <details className="mlh-tile mlh-metric-tile" data-tone="teal"><summary className="mlh-tile-trigger"><span><small>SESIONES CRL</small><strong>{initialSessions.length}</strong></span><span className="mlh-tile-chevron" aria-hidden="true">⌄</span></summary><p>{initialSessions.filter((item) => item.status === 'CLOSED').length} cerradas. Revisa BLIND y contraste en sus registros.</p></details>
+          <details className="mlh-tile mlh-metric-tile" data-tone="blue"><summary className="mlh-tile-trigger"><span><small>TRANSFERENCIA</small><strong>{initialState.decisionTransfer.status}</strong></span><span className="mlh-tile-chevron" aria-hidden="true">⌄</span></summary><p>{initialState.decisionTransfer.totalEvaluations} evaluaciones. Inspecciona las reglas de transferencia y autoridad.</p></details>
         </div>
       </section>
 
