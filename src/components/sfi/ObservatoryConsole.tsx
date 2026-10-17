@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'r
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { HypothesisClosureDiff } from './HypothesisClosureDiff';
+import { ObservatoryGlobe } from './ObservatoryGlobe';
 import { deriveTerritorialTensions } from '@/lib/observatory/public/territorialTensions';
 import { translateUiText } from '@/components/i18n/SfiLanguageProvider';
 import {
@@ -231,6 +232,21 @@ export function ObservatoryConsole(){
       <span className="obsOperationalStamp">{clock.slice(0,10) || '—'} · {clock.slice(11,16) || '—'} UTC</span>
     </header>
     <div className="obsOperationalTitle"><strong>OBSERVATORY</strong><small>LIVE FIELD · WORLD VECTOR · SOURCES · TRAJECTORIES</small><span>NOTHING ACTS ALONE.<br/>REALITY ANSWERS BACK.</span></div>
+    <section className="earthStage" aria-label="SFI Observatory · interactive holographic Earth" data-earth-surface="RESTORED-WEBGL-1">
+      <div className="obsEarthStageLabel"><strong>PLANETARY OBSERVATORY</strong><span>3D EARTH · SOURCE-BOUND PINS</span></div>
+      <ObservatoryGlobe
+        pins={nodes.flatMap(node=>node.lat==null||node.lng==null||!Number.isFinite(node.lat)||!Number.isFinite(node.lng)||Math.abs(node.lat)>90||Math.abs(node.lng)>180?[]:[{id:node.id,lat:node.lat,lng:node.lng}])}
+        onPick={point=>{
+          if(point.observationId){
+            setSelectedNodeId(point.observationId);
+            setLens('sources');
+            setSatelliteOpen(true);
+          }
+          setSelectedTerritoryId(null);
+        }}
+      />
+      <span className="obsEarthStageFooter">SOURCE COORDINATES ONLY · UNKNOWN LOCATIONS REMAIN UNMAPPED</span>
+    </section>
     <aside className="hud hudLeft"><section><small>SFI-OBS-LIVE</small><h3>{'LIVE FIELD'}</h3><p className="good">● {clock.slice(11,16)} UTC</p><dl><dt>{ui('OBSERVATIONS')}</dt><dd data-availability={availability.world}>{worldMetric(nodes.length)}</dd><dt>{ui('ACTIVE SOURCES')}</dt><dd data-availability={availability.world}>{worldMetric(sourceIds.length)}</dd><dt>{ui('HYPOTHESES')}</dt><dd data-availability={availability.world}>{worldMetric(filteredHypotheses.length)}</dd><dt>{ui('IN RETURN')}</dt><dd data-availability={availability.world}>{worldMetric(openHypotheses)}</dd></dl><button onClick={()=>setSatelliteOpen(true)}>{ui('OPEN READER')}</button></section>
       <section><small>{'DERIVED METRICS'}</small><dl><dt>Fₛ</dt><dd data-availability={availability.world}>{avgFs==null?'—':avgFs.toFixed(3)}</dd><dt>NTI</dt><dd data-availability={availability.world}>{avgNti==null?'—':avgNti.toFixed(3)}</dd><dt>Φ</dt><dd data-availability={availability.world}>{avgPhi==null?'—':avgPhi.toFixed(3)}</dd><dt>GEO MAPPED</dt><dd data-availability={availability.world}>{worldMetric(territorialModel.mappedCount)}</dd><dt>UNMAPPED</dt><dd data-availability={availability.world}>{worldMetric(territorialModel.unmappedCount)}</dd><dt>GEO COVERAGE</dt><dd data-availability={availability.world}>{availability.world==='AVAILABLE'?pct(territorialModel.coverage):'—'}</dd></dl><p style={{fontSize:11,opacity:.62,lineHeight:1.5}}>{'Territorial buckets are derived from persisted geocoded observations. Coverage ≠ completeness; density ≠ importance; tension ≠ causality.'}</p></section>
     </aside>

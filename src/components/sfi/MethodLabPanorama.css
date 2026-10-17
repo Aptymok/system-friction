@@ -50,3 +50,117 @@
 @media(max-width:1250px){.mlp-viewport{grid-template-columns:175px minmax(0,1fr);min-height:0}.mlp-runtime{grid-column:1/-1;max-height:none;display:grid;grid-template-columns:1fr 1fr;gap:8px 20px}.mlp-runtime .mlp-panel-head,.mlp-runtime .mlp-link{grid-column:1/-1}.mlp-runtime dl{margin:8px}.mlp-timeline{grid-template-columns:160px 1fr}}
 @media(max-width:760px){.mlp-shell{min-height:0}.mlp-heading{padding:20px 15px;align-items:start;flex-direction:column}.mlp-heading h1{font-size:26px}.mlp-viewport{display:flex;flex-direction:column;padding:12px;gap:11px}.mlp-library{max-height:220px}.mlp-process{padding:8px 0}.mlp-process-top{flex-wrap:wrap}.mlp-phases{grid-template-columns:repeat(5,minmax(108px,1fr));overflow-x:auto;padding-bottom:12px}.mlp-phases button{min-height:130px}.mlp-process-connection{display:none}.mlp-inspection{padding:14px;min-height:0}.mlp-inspection .mlp-enter{grid-column:1/-1;grid-row:auto;margin-top:12px;justify-self:start}.mlp-process-boundary{font-size:8px}.mlp-runtime{display:block}.mlp-timeline{grid-template-columns:1fr;min-height:140px;height:auto}.mlp-timeline>div:first-child{display:flex;gap:12px;align-items:center}.mlp-timeline-track{min-height:70px}.mlp-timeline-asof{display:none}}
 @media(prefers-reduced-motion:reduce){.mlp-shell *{animation:none!important;transition:none!important}.mlp-library,.mlp-runtime{backdrop-filter:none}}
+
+
+/* Weighted instruction-first Method Lab mosaic. Independent from authority and
+   persistence. Fully interactive native details/summary, no decorative heading. */
+.mlh-shell .mlp-shell{
+  --mlp-tile-gold:200,169,81;--mlp-tile-teal:83,173,180;
+  --mlp-tile-blue:113,149,207;--mlp-tile-red:194,87,100;
+  min-height:0!important;background:transparent!important;color:#eee7dc;
+  overflow-y:auto;scrollbar-width:thin;scrollbar-color:#c8a951 transparent;
+}
+.mlh-shell .mlp-atmosphere,.mlh-shell .mlp-atmosphere:before,
+.mlh-shell .mlp-atmosphere:after,.mlh-shell .mlp-process-connection{
+  opacity:0!important;visibility:hidden!important;pointer-events:none!important;
+}
+.mlh-shell .mlp-heading{padding:20px 17px 10px!important;gap:10px}
+.mlh-shell .mlp-heading h1{display:none!important}
+.mlh-shell .mlp-operational-instruction{
+  font:600 13px/1.55 system-ui,sans-serif;
+  margin:8px 0 0;max-width:55ch;color:#f0e6d5;
+}
+.mlh-shell .mlp-status{font:9px/1.4 ui-monospace,monospace}
+.mlh-shell .mlp-viewport{
+  display:grid!important;
+  grid-template-columns:minmax(160px,.75fr) minmax(0,1.8fr)!important;
+  gap:10px!important;padding:12px 14px 18px!important;
+  min-height:0!important;align-items:start;
+}
+.mlh-shell .mlp-process{
+  grid-column:2;grid-row:1 / span 2;
+  gap:10px;padding:4px 0!important;
+}
+.mlh-shell .mlp-process-top{display:grid;gap:4px}
+.mlh-shell .mlp-process-top b{font-size:11px;line-height:1.5;white-space:normal}
+.mlh-shell .mlp-library{grid-column:1;grid-row:1}
+.mlh-shell .mlp-runtime{grid-column:1;grid-row:2}
+.mlh-shell .mlp-tile{
+  --tile-rgb:var(--mlp-tile-gold);
+  position:relative;min-width:0;margin:0!important;
+  padding:0!important;border-radius:14px!important;
+  border:1px solid rgba(var(--tile-rgb),.5)!important;
+  background:rgba(5,11,16,.30)!important;
+  background-image:none!important;
+  backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
+  box-shadow:none!important;overflow:visible;
+}
+.mlh-shell .mlp-tile[data-tone=teal]{--tile-rgb:var(--mlp-tile-teal)}
+.mlh-shell .mlp-tile[data-tone=blue]{--tile-rgb:var(--mlp-tile-blue)}
+.mlh-shell .mlp-tile[data-tone=red]{--tile-rgb:var(--mlp-tile-red)}
+.mlh-shell .mlp-tile[open]{border-color:rgba(var(--tile-rgb),.82)!important}
+.mlh-shell .mlp-tile>summary{
+  display:grid;align-content:center;gap:5px;
+  padding:13px 10px;min-height:52px;cursor:pointer;
+  list-style:none;border-radius:13px;color:#f0e8d9;
+  background:transparent!important;
+}
+.mlh-shell .mlp-tile>summary::-webkit-details-marker{display:none}
+.mlh-shell .mlp-tile>summary:hover{background:rgba(var(--tile-rgb),.12)!important}
+.mlh-shell .mlp-tile>summary:focus-visible{outline:2px solid rgb(var(--tile-rgb));outline-offset:2px}
+.mlh-shell .mlp-panel-head span{font:600 10px/1.4 system-ui,sans-serif;letter-spacing:0}
+.mlh-shell .mlp-panel-head small{font:9px/1.5 ui-monospace,monospace;color:rgb(var(--tile-rgb))}
+.mlh-shell .mlp-library,.mlh-shell .mlp-runtime{max-height:none;min-height:0}
+.mlh-shell .mlp-library button{padding:8px 8px}
+.mlh-shell .mlp-library>.mlp-link,.mlh-shell .mlp-runtime>.mlp-link{display:block;margin:12px 8px}
+.mlh-shell .mlp-runtime dl{padding:6px 10px;display:grid;gap:3px}
+.mlh-shell .mlp-runtime-subtitle{margin:10px 8px}
+.mlh-shell .mlp-session{display:grid;padding:9px 10px}
+.mlh-shell .mlp-phases{
+  display:grid!important;
+  grid-template-columns:repeat(6,minmax(0,1fr))!important;
+  gap:7px!important;margin-top:2px;
+}
+.mlh-shell .mlp-phases>.mlp-tile{
+  grid-column:span 2;min-height:0;max-width:none;
+}
+.mlh-shell .mlp-phases>.mlp-tile[data-weight=major]{grid-column:span 3}
+.mlh-shell .mlp-phases>.mlp-tile summary{min-height:70px;gap:2px}
+.mlh-shell .mlp-phases>.mlp-tile summary small{
+  font:8px/1.3 ui-monospace,monospace;color:rgb(var(--tile-rgb));
+}
+.mlh-shell .mlp-phases>.mlp-tile summary span{
+  font:700 10px/1.5 ui-monospace,monospace;letter-spacing:.04em;
+  color:#ece0d0;
+}
+.mlh-shell .mlp-phases>.mlp-tile summary strong{
+  font:650 clamp(14px,1.4vw,22px)/1.3 system-ui,sans-serif;color:#f4e9d9;
+}
+.mlh-shell .mlp-phases>.mlp-tile summary em{
+  font:8px/1.4 ui-monospace,monospace;color:#b3b7b7;
+}
+.mlh-shell .mlp-phase-content{padding:3px 9px 12px;font-size:10px;line-height:1.5}
+.mlh-shell .mlp-phase-content p{margin:0 0 7px}
+.mlh-shell .mlp-phase-content a{color:rgb(var(--tile-rgb));font-size:9px}
+.mlh-shell .mlp-inspection{
+  min-height:0!important;margin:0!important;padding:12px!important;
+  grid-template-columns:minmax(0,1fr)!important;
+  border:1px solid rgba(113,149,207,.5)!important;
+  border-radius:14px!important;
+  background:rgba(5,11,16,.30)!important;
+  box-shadow:none!important;
+}
+.mlh-shell .mlp-inspect-instruction{
+  font:600 12px/1.45 system-ui,sans-serif;color:#efeadf;
+  margin:5px 0;overflow-wrap:anywhere;
+}
+.mlh-shell .mlp-inspection dl{grid-column:1!important;grid-template-columns:repeat(2,minmax(0,1fr))}
+.mlh-shell .mlp-inspection .mlp-enter{grid-column:1;grid-row:auto;justify-self:start;margin-top:8px}
+.mlh-shell .mlp-process-boundary{font:9px/1.45 ui-monospace,monospace;color:#d5be90}
+@media(max-width:800px){
+ .mlh-shell .mlp-heading{display:grid}
+ .mlh-shell .mlp-viewport{grid-template-columns:minmax(0,1fr)!important}
+ .mlh-shell .mlp-library{grid-column:1;grid-row:auto}
+ .mlh-shell .mlp-process{grid-column:1;grid-row:auto}
+ .mlh-shell .mlp-runtime{grid-column:1;grid-row:auto}
+}

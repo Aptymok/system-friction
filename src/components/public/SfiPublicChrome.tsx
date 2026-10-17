@@ -19,13 +19,13 @@ const NAV_SURFACES=[
   {key:'reality-chain',label:'REALITY CHAIN',href:'/instruments/reality-chain'},
   {key:'method-lab',label:'METHOD LAB',href:'/instruments/method-lab'},
   {key:'repository',label:'REPOSITORY',href:'/repository'},
-  {key:'timeline',label:'TIMELINE',href:'/instruments/timeline'},
+  {key:'timeline',label:'TIMELINE',href:'/timeline'},
   {key:'access',label:'ACCESS',href:'/instruments/access'},
 ] as const;
 
 const SUBJECTS:Record<string,ChromeContext>={
   intro:{title:'SYSTEM FRICTION INSTITUTE',statement:'INSTITUTIONAL INTELLIGENCE MUST REMAIN RECONSTRUCTIBLE.',stage:'OBSERVATION',href:'/',navKey:'home'},
-  timeline:{title:'TIMELINE',statement:'EVERYTHING THE INSTITUTION CAN RECONSTRUCT OVER TIME.',stage:'OBSERVATION',href:'/instruments/timeline',navKey:'timeline'},
+  timeline:{title:'TIMELINE',statement:'EVERYTHING THE INSTITUTION CAN RECONSTRUCT OVER TIME.',stage:'OBSERVATION',href:'/timeline',navKey:'timeline'},
   repository:{title:'REPOSITORY',statement:'PROVENANCE REMAINS ADDRESSABLE.',stage:'EVIDENCE',href:'/repository',navKey:'repository'},
   'world-vector':{title:'OBSERVATORY',statement:'THE WORLD DOES NOT HAVE THE SAME TIME.',stage:'OBSERVATION',href:'/instruments/observatory',navKey:'observatory'},
   'method-lab':{title:'METHOD LAB',statement:'SIMULATION ≠ OBSERVATION.',stage:'INFERENCE',href:'/instruments/method-lab',navKey:'method-lab'},
@@ -45,6 +45,7 @@ function routeContext(pathname:string):ChromeContext{
   if(pathname.startsWith('/instruments/repository')) return {title:'REPOSITORY',statement:'PROVENANCE REMAINS ADDRESSABLE.',stage:'EVIDENCE',href:'/repository',navKey:'repository'};
   if(pathname.startsWith('/instruments/timeline')) return {title:'TIMELINE',statement:'KNOWN THEN ≠ KNOWN NOW.',stage:'OBSERVATION',href:'/instruments/timeline',navKey:'timeline'};
   if(pathname.startsWith('/instruments/access')) return {title:'ACCESS',statement:'IDENTITY ≠ AUTHORITY.',stage:'AUTHORITY',href:'/instruments/access',navKey:'access'};
+  if(pathname.startsWith('/timeline')) return {title:'TIMELINE',statement:'KNOWN THEN ≠ KNOWN NOW.',stage:'OBSERVATION',href:'/timeline',navKey:'timeline'};
   if(pathname.startsWith('/root')) return {title:'ROOT',statement:'AUTHORITY REMAINS EXPLICIT.',stage:'AUTHORITY',href:'/root',navKey:'root'};
   if(pathname.startsWith('/repository')) return {title:'REPOSITORY',statement:'PROVENANCE REMAINS ADDRESSABLE.',stage:'EVIDENCE',href:'/repository',navKey:'repository'};
   if(pathname.startsWith('/publications')) return {title:'REPOSITORY',statement:'PUBLICATION = EXPOSURE.',stage:'EVIDENCE',href:'/repository',navKey:'repository'};
