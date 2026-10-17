@@ -109,9 +109,12 @@ export function SfiPublicHeader({global=false,active}:{active?:string;global?:bo
   const {pathname,context,clock}=usePublicChromeContext();
   const title=active||context.title;
   const privateShell=pathname==='/'||pathname==='/root'||pathname==='/governance'||pathname.startsWith('/studio');
+  // Credential and account-confirmation screens must not inherit public navigation.
+  const identityGate=['/login','/forgot','/reset','/verify','/signup','/continuity-access','/auth-unavailable']
+    .some(route=>pathname===route||pathname.startsWith(route+'/'));
   const reserveSpace=pathname!=='/';
 
-  if(global&&privateShell) return null;
+  if(global&&(privateShell||identityGate)) return null;
 
   return <>
     <header className={global?'sfiPublicTopbar sfiGlobalHeader':'sfiPublicTopbar'} data-sfi-public-chrome="SFI-NYC-CHROME-4.0">
