@@ -88,7 +88,7 @@ assert.match(oauthAuthorizationMetadata, /token_endpoint_auth_methods_supported:
 assert.match(oauthClientRegistry, /https:\/\/chatgpt\.com\/oauth\/client\.json/, 'chatgpt_stable_cimd_client_id_required');
 assert.match(oauthClientRegistry, /https:\/\/chatgpt\.com\/connector_platform_oauth_redirect/, 'chatgpt_stable_redirect_required');
 assert.match(oauthClientRegistry, /source:\s*'chatgpt_cimd'/, 'chatgpt_cimd_client_must_be_explicitly_bounded');
-assert.match(oauthClientRegistry, /client\.source === 'chatgpt_cimd'\) return clientSecret === ''/, 'chatgpt_cimd_must_use_public_client_token_exchange');
+assert.match(oauthClientRegistry, /client\.source === 'chatgpt_cimd' \|\| client\.source === 'claude_cimd'\) return clientSecret === ''/, 'chatgpt_cimd_must_use_public_client_token_exchange');
 assert.match(authorizeRoute, /client\.source === 'chatgpt_cimd'[\s\S]*PKCE S256 is required for the ChatGPT MCP client/, 'chatgpt_cimd_authorization_must_require_pkce_s256');
 assert.match(tokenRoute, /client\.source === 'chatgpt_cimd'[\s\S]*!found\.record\.code_challenge/, 'chatgpt_cimd_token_exchange_must_fail_closed_without_pkce');
 assert.match(externalAuth, /clientId: session\.clientId/, 'gateway_credential_must_expose_verified_client_id');
