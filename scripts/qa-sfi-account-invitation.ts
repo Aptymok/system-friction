@@ -4,6 +4,11 @@ import { existsSync, readFileSync } from 'node:fs';
 const read = (path: string) => readFileSync(path, 'utf8');
 const migration = read('supabase/migrations/20260911013000_sfi_account_access_grants.sql');
 const invite = read('src/lib/auth/institutionalInvitation.ts');
+const signup = read('src/app/signup/page.tsx');
+const verify = read('src/components/sfi/VerifyEmailSurface.tsx');
+const authoritySupersession = read('src/lib/persistence/authorityJournalSupersession.ts');
+const invitationEligibility = read('src/app/api/account/invitation-session/route.ts');
+const supersessionMigration = read('scripts/db/mem003-authority-semantic-supersession.sql');
 const invitationDelivery = read('src/lib/auth/institutionalInvitationDelivery.ts');
 const externalRootOperate = read('src/app/api/external/v1/root/operate/route.ts');
 const rootAccess = read('src/app/root/access/page.tsx');
@@ -42,7 +47,7 @@ assert.ok(invitationDelivery.includes('existing_invitation_identity_mismatch'), 
 assert.ok(publicGateway.includes('window.history.replaceState'), 'one-time callback credentials must be cleared from browser history');
 assert.ok(publicGateway.includes('auth.setSession'), 'implicit callback must verify session');
 assert.ok(publicGateway.includes('exchangeCodeForSession'), 'PKCE callback must verify code');
-assert.ok(publicGateway.includes("metadata.sfi_invitation !== true"), 'recovery callback must be institutional');
+assert.ok(publicGateway.includes("metadata.sfi_invitation === true"), 'marked institutional sessions must resolve to invite recovery, while personal signup resolves to /entry');
 
 assert.match(invitationDelivery, /type: 'recovery'/, 'existing invited user must receive recovery rather than duplicate invite token');
 assert.match(invitationDelivery, /auth\.resetPasswordForEmail/, 'default mail recovery is required for already registered users');
@@ -171,17 +176,34 @@ assert.match(neonPasswordBootstrap, /FOUNDER_SUPERSEDED_CREDENTIAL_DIGEST/, 'fou
 assert.match(neonPasswordBootstrap, /managedHash === existingHash/, 'activation must verify that Neon actually replaced the credential hash');
 assert.match(neonPasswordBootstrap, /Remove this seal after observed login RETURN/, 'recovery seal must be explicitly temporary');
 assert.doesNotMatch(neonPasswordBootstrap, /scrypt|SCRYPT_N|hashBetterAuthPassword/, 'SFI must not implement password hashing locally');
-assert.equal(existsSync('src/app/signup/page.tsx'), false, 'public signup surface must remain absent');
+assert.equal(existsSync('src/app/signup/page.tsx'), true, 'public personal account signup must be available');
+assert.match(signup, /registerAction/);
+assert.match(signup, /does not confer ROOT/, 'self-service signup must not grant ROOT');
+assert.match(verify, /exchangeCodeForSession/, 'email verification must handle provider PKCE callbacks');
+assert.match(verify, /setSession/, 'email verification must handle implicit callbacks');
+assert.match(invite, /recoverInstitutionalAccountAction/, 'existing grants need a separate founder recovery path');
+assert.match(externalRootOperate, /operation === 'account_recover'/, 'ROOT API must support identity-preserving recovery');
+assert.match(reset, /exchangeCodeForSession/, 'invited users need direct PKCE recovery on /reset');
+assert.match(reset, /\/api\/account\/invitation-session/, 'password setup requires server-verified grant and identity');
+assert.match(invitationEligibility, /context.authProvider !== 'supabase'/, 'institutional password setup must require canonical provider identity');
+assert.match(invitationEligibility, /grant.data\?\.user_id === context.user.id/, 'invitation session must bind grant to verified user id');
+assert.match(invitationDelivery, /type: 'recovery'/, 'existing personal registrant may receive later operator invitation without duplicate identity');
+assert.match(authoritySupersession, /readPrimaryAuthorityRow/, 'protected parity must be checked against the real Supabase PRIMARY');
+assert.match(authoritySupersession, /semanticProjection/, 'administrative timestamps must not alter semantic authority equivalence');
+assert.match(publicGateway, /\/api\/account\/invitation-session/, 'Home auth redirect fallback must check institutional identity from canonical grant');
+assert.match(authoritySupersession, /SUPERSEDED_BY_PRIMARY/, 'superseded source images must never be mislabeled as replayed');
+assert.match(supersessionMigration, /SUPERSEDED_BY_PRIMARY/);
+assert.doesNotMatch(authoritySupersession, /status='REPLAYED'/, 'semantic supersession is not a primary replay receipt');
 
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-ACCOUNT-INVITATION-LIFECYCLE-1.6',
-  invitationOnly: true,
+  contract: 'SFI-ACCOUNT-INVITATION-LIFECYCLE-1.7',
+  institutionalAccessInvitationOnly: true,
   temporaryPasswordGenerated: false,
   founderAdminRequired: true,
   accountAccessCreatesAppointment: false,
   sovereignAuthorityGrantedByInvite: false,
-  publicSignupEnabled: false,
+  publicSignupEnabled: true,
   verifiedPasswordResetAvailable: true,
   humanInterfaceOwnsPersistence: false,
   activationFailureCanBeSilent: false,

@@ -1,0 +1,72 @@
+name: SFI Prune Integrated Branches
+
+# Run once when this audited cleanup workflow first lands on main;
+# subsequently only by explicit manual dispatch. Does not run on every push.
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/sfi-prune-integrated-branches.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: read
+
+concurrency:
+  group: sfi-integrated-branch-prune
+  cancel-in-progress: false
+
+jobs:
+  prune:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Remove only ancestry-merged branches; preserve research and live PR heads
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const keepByName = /(^main$|^research\/|^experiment\/|mihm|mihm-t|knight|aiweek|synthetic|pilot|prototype|draft|wip|lci|chronos|method-lab)/i;
+            const [branches, openPrs] = await Promise.all([
+              github.paginate(github.rest.repos.listBranches, {owner, repo, per_page: 100}),
+              github.paginate(github.rest.pulls.list, {owner, repo, state: 'open', per_page: 100}),
+            ]);
+            const activePrBranches = new Set(openPrs
+              .filter(pr => pr.head.repo?.full_name === `${owner}/${repo}`)
+              .map(pr => pr.head.ref));
+            const removed = [], preserved = [], failures = [];
+            for (const current of branches) {
+              const name = current.name;
+              if (current.protected || keepByName.test(name) || activePrBranches.has(name)) {
+                preserved.push({name, reason: 'protected/research/active-pr'});
+                continue;
+              }
+              try {
+                const comparison = await github.rest.repos.compareCommitsWithBasehead({
+                  owner, repo, basehead: `main...${name}`, per_page: 1,
+                });
+                if (comparison.data.ahead_by !== 0) {
+                  preserved.push({name, reason: `${comparison.data.ahead_by} unique commits`});
+                  continue;
+                }
+                // Double-check the exact tip (TOCTOU guard): a new write after
+                // compare must not be pruned, even on a previously merged branch.
+                const fresh = await github.rest.repos.getBranch({owner, repo, branch: name});
+                if (fresh.data.commit.sha !== current.commit.sha) {
+                  preserved.push({name, reason: 'branch moved during verification'});
+                  continue;
+                }
+                await github.rest.git.deleteRef({owner, repo, ref: `heads/${name}`});
+                removed.push(name);
+              } catch (error) {
+                failures.push({name, error: String(error?.message || error).slice(0, 160)});
+              }
+            }
+            core.info(JSON.stringify({removed, removedCount: removed.length,
+              preservedCount: preserved.length, preserved, failures}));
+            await core.summary
+              .addHeading('SFI merged branch cleanup')
+              .addRaw(`Deleted ${removed.length} branches with no commits ahead of main. Preserved ${preserved.length} protected, research, PR, or nonmerged branches. Failures: ${failures.length}.`)
+              .write();
+            if (failures.length) core.setFailed('Some verified candidate branches could not be processed; see audit log.');

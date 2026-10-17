@@ -58,24 +58,28 @@ async function resolvePostLoginPath(userId: string, requestedNext: string) {
     ? null
     : await readContinuityProfile(userId).catch(() => null)
   const profile = primaryProfile ?? continuityProfile
-  const role = typeof profile?.role === 'string' ? profile.role : null
+  // A self-registered identity with no governed profile goes through /entry
+  // (public Observatory), never directly into a protected workspace.
   const access = record(profile?.module_access)
-  const rootObserverRole = role === 'root' || role === 'system' || role === 'observer' || role === 'controller'
-  if (rootObserverRole && (access.root === true || access.root_observe === true || access.full_access === true)) return '/root'
-  return '/field'
+  const role = typeof profile?.role === 'string' ? profile.role.toLowerCase() : ''
+  if (['operator','observer'].includes(role)
+      && access.institutional_account === true && access.field === true) {
+    return '/field'
+  }
+  return '/entry'
 }
 
 export async function registerAction(formData: FormData) {
   const input = { email: formValue(formData, 'email'), password: formValue(formData, 'password') }
   const next = safeInternalRedirect(formValue(formData, 'next'))
   const parsed = authSchema.safeParse(input)
-  if (!parsed.success) redirect(`/signup?error=entrada_invalida&next=${encodeURIComponent(next)}`)
+  if (!parsed.success || parsed.data.password.length < 12) redirect(`/signup?error=entrada_invalida&next=${encodeURIComponent(next)}`)
   const limit = checkRateLimit(rateLimitKey('register', input.email), 5, 60_000)
   if (!limit.allowed) redirect(`/signup?error=rate_limit&next=${encodeURIComponent(next)}`)
 
   const supabase = await createServerSupabaseClient()
   if (!supabase) redirect(`/signup?error=supabase_no_configurado&next=${encodeURIComponent(next)}`)
-  const origin = process.env.NEXT_PUBLIC_APP_URL || 'https://www.systemfriction.org'
+  const origin = (process.env.NEXT_PUBLIC_APP_URL || 'https://www.systemfriction.org').replace(/\/$/, '')
   const { error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,

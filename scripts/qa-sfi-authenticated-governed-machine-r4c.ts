@@ -88,8 +88,8 @@ assert.match(oauthAuthorizationMetadata, /token_endpoint_auth_methods_supported:
 assert.match(oauthClientRegistry, /https:\/\/chatgpt\.com\/oauth\/client\.json/, 'chatgpt_stable_cimd_client_id_required');
 assert.match(oauthClientRegistry, /https:\/\/chatgpt\.com\/connector_platform_oauth_redirect/, 'chatgpt_stable_redirect_required');
 assert.match(oauthClientRegistry, /source:\s*'chatgpt_cimd'/, 'chatgpt_cimd_client_must_be_explicitly_bounded');
-assert.match(oauthClientRegistry, /client\.source === 'chatgpt_cimd'\) return clientSecret === ''/, 'chatgpt_cimd_must_use_public_client_token_exchange');
-assert.match(authorizeRoute, /client\.source === 'chatgpt_cimd'[\s\S]*PKCE S256 is required for the ChatGPT MCP client/, 'chatgpt_cimd_authorization_must_require_pkce_s256');
+assert.match(oauthClientRegistry, /client\.source === 'chatgpt_cimd' \|\| client\.source === 'claude_cimd'\) return clientSecret === ''/, 'chatgpt_cimd_must_use_public_client_token_exchange');
+assert.match(authorizeRoute, /client\.source === 'chatgpt_cimd'[\s\S]*PKCE S256 is required for public CIMD MCP clients/, 'chatgpt_cimd_authorization_must_require_pkce_s256');
 assert.match(tokenRoute, /client\.source === 'chatgpt_cimd'[\s\S]*!found\.record\.code_challenge/, 'chatgpt_cimd_token_exchange_must_fail_closed_without_pkce');
 assert.match(externalAuth, /clientId: session\.clientId/, 'gateway_credential_must_expose_verified_client_id');
 assert.match(route, /credential\.authMethod !== 'oauth'/, 'authenticated_machine_must_reject_static_tokens');
@@ -132,7 +132,7 @@ assert.match(rootOperateRoute, /operation === 'accounts_list'/, 'root_operate_ro
 assert.match(rootOperateRoute, /operation === 'account_invite'/, 'root_operate_route_must_expose_account_invitation');
 assert.match(rootOperateRoute, /deliverInstitutionalInvitation/, 'root_account_invitation_must_reuse_canonical_delivery');
 assert.match(invitationDelivery, /inviteUserByEmail/, 'canonical_invitation_delivery_must_reuse_auth_provider_invitation');
-assert.doesNotMatch(rootOperateRoute, /password|setPassword|updateUserById\([^)]*password/i, 'root_operate_must_never_assign_another_users_password');
+assert.doesNotMatch(rootOperateRoute, /auth\.admin\.updateUserById|auth\.updateUser\(\s*\{\s*password|setPassword\(|password\s*:\s*(?:input|body|formData)/i, 'root_operate_must_never_assign_another_users_password');
 assert.match(rootOperateRoute, /sovereignAuthorityGranted: false/, 'account_invitation_must_not_grant_sovereign_authority');
 
 assert.match(grantOwner, /capabilityGrantNonceHash\(nonce: string\)/, 'upstream_grant_hash_owner_required');

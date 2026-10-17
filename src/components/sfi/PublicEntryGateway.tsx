@@ -31,8 +31,8 @@ export function PublicEntryGateway(){
     const accessToken = fragment.get('access_token');
     const refreshToken = fragment.get('refresh_token');
     const code = query.get('code');
-    const hasInviteTokens = (kind === 'invite' || kind === 'recovery') && Boolean(accessToken && refreshToken);
-    if (!hasInviteTokens && !code) return;
+    const hasAuthTokens = ['invite', 'recovery', 'signup', 'email'].includes(kind || '') && Boolean(accessToken && refreshToken);
+    if (!hasAuthTokens && !code) return;
 
     const supabase = createBrowserSupabaseClient();
     // Remove one-time credentials immediately, before any async verification.
@@ -46,7 +46,7 @@ export function PublicEntryGateway(){
     void (async()=>{
       try {
         const existing = await supabase.auth.getSession();
-        const result = hasInviteTokens
+        const result = hasAuthTokens
           ? existing.data.session?.access_token === accessToken
             ? existing
             : await supabase.auth.setSession({access_token:accessToken!,refresh_token:refreshToken!})
@@ -61,11 +61,21 @@ export function PublicEntryGateway(){
         // Do not repurpose ordinary Supabase recovery/PKCE callbacks as
         // institutional invitations without an identity marked by SFI.
         const metadata = result.data.session.user.user_metadata ?? {};
-        if (kind !== 'invite' && metadata.sfi_invitation !== true) {
-          if (active) window.location.replace('/login?error=invalid_credentials');
-          return;
+        const eligibleResponse = await fetch('/api/account/invitation-session', {
+          credentials: 'same-origin', cache: 'no-store',
+        }).catch(() => null);
+        const eligibility = eligibleResponse?.ok
+          ? await eligibleResponse.json().catch(() => null) as { eligible?: boolean } | null
+          : null;
+        if (!active) return;
+        if ((kind === 'invite' || kind === 'recovery' || metadata.sfi_invitation === true
+          || eligibility?.eligible === true) && eligibility?.eligible === true) {
+          window.location.replace('/reset?mode=invite');
+        } else {
+          // A public signup remains personal, unless a valid separate
+          // institutional grant is already bound to the verified identity.
+          window.location.replace('/entry');
         }
-        window.location.replace('/reset?mode=invite');
       } catch {
         if (active) window.location.replace('/reset?mode=invite&error=auth_unavailable');
       }

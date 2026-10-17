@@ -54,6 +54,7 @@ export function LoginSurface({
 
         <div className="loginSupport">
           <a href="/forgot">Cannot sign in? Recover access</a>
+          <a href="/signup">Create your own account</a>
         </div>
 
         <div className="loginMeta">

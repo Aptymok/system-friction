@@ -190,24 +190,72 @@ export function PasswordResetSurface({
     }
     let active = true;
     const check = async () => {
-      const { data } = await sb.auth.getSession();
+      // Both Supabase implicit-token and PKCE-code links may land directly on
+      // /reset?mode=invite, even when the provider ignored the requested origin.
+      // Handle both here rather than depending on the public Home fallback.
+      const query = new URLSearchParams(window.location.search);
+      const fragment = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+      const code = query.get('code');
+      const accessToken = fragment.get('access_token');
+      const refreshToken = fragment.get('refresh_token');
+      const callbackType = fragment.get('type');
+      const hasTokenPair = Boolean(accessToken && refreshToken);
+      const hasCallback = Boolean(code || hasTokenPair);
+      let { data: { session } } = await sb.auth.getSession();
+
+      if (hasTokenPair && (!session || session.access_token !== accessToken)) {
+        const result = await sb.auth.setSession({
+          access_token: accessToken!, refresh_token: refreshToken!,
+        });
+        session = result.data.session;
+      } else if (code && (!session || session.user.user_metadata?.sfi_invitation !== true)) {
+        const result = await sb.auth.exchangeCodeForSession(code);
+        session = result.data.session;
+      }
+
+      // Scrub any one-use token or exchange code from browser history.
+      if (hasCallback) window.history.replaceState(window.history.state, '', '/reset?mode=invite');
       if (!active) return;
-      if (data.session) {
+
+      // Metadata is not authority. Existing personal users may be invited
+      // later, and must pass the same server-side grant + identity check.
+      const callbackExpected = !hasTokenPair || callbackType === 'invite' || callbackType === 'recovery';
+      const response = session && callbackExpected
+        ? await fetch('/api/account/invitation-session', {
+            credentials: 'same-origin', cache: 'no-store',
+          }).catch(() => null)
+        : null;
+      const verdict = response?.ok ? await response.json().catch(() => null) as { eligible?: boolean } | null : null;
+      if (!active) return;
+      if (session && verdict?.eligible === true) {
         setReady(true);
         setAttention(false);
-        setMessage('Email verified. Define your credential to complete access.');
+        setMessage('Identity and invitation verified. Define your credential to complete access.');
       } else {
+        setReady(false);
         setAttention(true);
-        setMessage('The link did not create a valid session. It may have expired or already been used.');
+        setMessage('No verified invitation was found for this session. Request a new link or sign in with the invited account.');
       }
     };
-    void check();
+    void check().catch(() => {
+      if (active) { setReady(false); setAttention(true); setMessage('Unable to verify this link. Request a new one.'); }
+    });
     const { data: listener } = sb.auth.onAuthStateChange((event, session) => {
       if (!active || !session) return;
-      if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
-        setReady(true);
-        setAttention(false);
-        setMessage('Email verified. Define your credential to complete access.');
+      if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
+        // Do not declare readiness from an Auth event alone. Verify the
+        // existing institutional grant through the governed server route.
+        void fetch('/api/account/invitation-session', {
+          credentials: 'same-origin', cache: 'no-store',
+        }).then(async response => {
+          const data = response.ok ? await response.json() as { eligible?: boolean } : null;
+          if (!active) return;
+          if (data?.eligible === true) {
+            setReady(true);
+            setAttention(false);
+            setMessage('Identity and invitation verified. Define your credential to complete access.');
+          }
+        }).catch(() => null);
       }
     });
     return () => {
@@ -314,6 +362,9 @@ export function PasswordResetSurface({
         <button disabled={!ready || busy}>
           {busy ? 'ACTIVANDO…' : 'CONFIRMAR Y ACTIVAR'}
         </button>
+        {attention && !ready ? <a href="/forgot" className="sfiAuthLink">
+          Link expired or failed? Request a new one without another founder invitation.
+        </a> : null}
 
         <p className="sfiAuthPrivacy">
           Your password remains private. SFI does not generate it, know it or share it.
