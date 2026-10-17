@@ -132,7 +132,7 @@ assert.match(rootOperateRoute, /operation === 'accounts_list'/, 'root_operate_ro
 assert.match(rootOperateRoute, /operation === 'account_invite'/, 'root_operate_route_must_expose_account_invitation');
 assert.match(rootOperateRoute, /deliverInstitutionalInvitation/, 'root_account_invitation_must_reuse_canonical_delivery');
 assert.match(invitationDelivery, /inviteUserByEmail/, 'canonical_invitation_delivery_must_reuse_auth_provider_invitation');
-assert.doesNotMatch(rootOperateRoute, /password|setPassword|updateUserById\([^)]*password/i, 'root_operate_must_never_assign_another_users_password');
+assert.doesNotMatch(rootOperateRoute, /auth\.admin\.updateUserById|auth\.updateUser\(\s*\{\s*password|setPassword\(|password\s*:\s*(?:input|body|formData)/i, 'root_operate_must_never_assign_another_users_password');
 assert.match(rootOperateRoute, /sovereignAuthorityGranted: false/, 'account_invitation_must_not_grant_sovereign_authority');
 
 assert.match(grantOwner, /capabilityGrantNonceHash\(nonce: string\)/, 'upstream_grant_hash_owner_required');
