@@ -1,5 +1,6 @@
 import 'server-only';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { TIMELINE_CLOCKS, type TimelineClockInputs } from '@/lib/mihm/timelineClocks';
 
 /**
  * REPOSITORY PUBLIC PASSPORT / READ ONLY.
@@ -21,6 +22,7 @@ export type PublicPassportReading = {
   expectedReturn: string | null;
   observedReturn: string | null;
   limitations: string[];
+  clockEvidence: TimelineClockInputs;
 };
 
 const asRow = (v: unknown): Record<string, unknown> =>
@@ -31,7 +33,7 @@ const strings = (v: unknown, max=12): string[] =>
   Array.isArray(v) ? v.slice(0,max).map(safeString).filter((s):s is string=>Boolean(s)) : [];
 const FIELDS = new Set([
   't0','t1','sixQuestions','questions','hypothesis','primaryHypothesis',
-  'rivalHypotheses','observations','expectedReturn','observedReturn','limitations',
+  'rivalHypotheses','observations','expectedReturn','observedReturn','limitations','clockEvidence',
 ]);
 
 export async function readPublishedRepositoryPassports(knownIds: readonly string[]): Promise<Record<string, PublicPassportReading>> {
@@ -64,6 +66,20 @@ export async function readPublishedRepositoryPassports(knownIds: readonly string
         const q=asRow(item);
         return {question:safeString(q.question??q.prompt)??'',answer:safeString(q.answer??q.response)};
       }).filter(x=>x.question):[];
+      // Only explicitly approved clock fields may be transferred. Each axis
+      // must carry its own source, date basis and epistemic meaning.
+      const clockEvidence:TimelineClockInputs={};
+      const approvedClocks=asRow(disclosed('clockEvidence'));
+      for (const clock of TIMELINE_CLOCKS) {
+        const entry=asRow(approvedClocks[clock.id]);
+        const at=safeString(entry.at),sourceRef=safeString(entry.sourceRef),meaning=safeString(entry.meaning);
+        const basis=entry.basis,epistemicClass=entry.epistemicClass;
+        if(at&&sourceRef&&meaning&&
+          (basis==='OBSERVED_TIME'||basis==='RECONSTRUCTED_TIME')&&
+          (epistemicClass==='OBSERVED'||epistemicClass==='RECONSTRUCTED')) {
+          clockEvidence[clock.id]={at,sourceRef,meaning,basis,epistemicClass};
+        }
+      }
       output[sourceId]={
         sourcePublicationId:String(raw.id),snapshotVersion:safeString(raw.snapshot_version),
         publishedAt:String(raw.published_at),
@@ -74,6 +90,7 @@ export async function readPublishedRepositoryPassports(knownIds: readonly string
         expectedReturn:picked('expectedReturn'),
         observedReturn:picked('observedReturn'),
         limitations:strings(disclosed('limitations')),
+        clockEvidence,
       };
     }
     return output;
