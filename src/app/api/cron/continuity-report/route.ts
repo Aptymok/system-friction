@@ -23,7 +23,30 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: false, error: 'unauthorized_continuity_report' }, { status: 401 });
   }
   const egressGuard = scheduledEgressGuardResponse();
-  if (egressGuard) return egressGuard;
+  if (egressGuard) {
+    // The general circuit remains restricted; only one zero-key Discovery
+    // observation is allowed within this existing cron. No other lane is run.
+    try {
+      const discoveryAutonomy = await runDiscoveryAutonomyCycle(new Date(), { restrictedObservationOnly: true });
+      const persisted = Boolean(discoveryAutonomy.observation?.runId);
+      return NextResponse.json({
+        ok: persisted,
+        status: persisted ? 'DISCOVERY_RESTRICTED_OBSERVATION_PERSISTED' : 'DISCOVERY_RESTRICTED_OBSERVATION_NOT_PERSISTED',
+        generalEgress: 'RESTRICTED',
+        discoveryAutonomy,
+        otherLanesExecuted: false,
+        boundary: 'Only one zero-key, non-LLM, non-paid-provider retrieval and its bounded Discovery persistence; the general scheduled egress restriction remains active.',
+      }, { status: persisted ? 200 : 503, headers: { 'Cache-Control': 'no-store' } });
+    } catch (error) {
+      return NextResponse.json({
+        ok: false,
+        status: 'DISCOVERY_RESTRICTED_OBSERVATION_FAILED',
+        generalEgress: 'RESTRICTED',
+        otherLanesExecuted: false,
+        error: error instanceof Error ? error.message : 'unknown_error',
+      }, { status: 503, headers: { 'Cache-Control': 'no-store' } });
+    }
+  }
   try {
     const report = await createDailyContinuityReport();
     const cognitiveTwinInstitutionalSync = await syncSfiInstitutionalStateToCognitiveTwin().catch((error) => ({
