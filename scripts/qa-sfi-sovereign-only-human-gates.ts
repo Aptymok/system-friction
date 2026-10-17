@@ -120,9 +120,12 @@ assert.match(hostBoundOpenapi, /const SFI_ACTIONS_ORIGIN = 'https:\/\/www\.syste
 assert.match(hostBoundOpenapi, /authorizationCode\.authorizationUrl/);
 assert.match(hostBoundOpenapi, /authorizationCode\.tokenUrl/);
 assert.doesNotMatch(hostBoundOpenapi, /delete document\.components\.securitySchemes\.sfiOAuth/);
-assert.match(oauthMetadata, /const issuer = 'https:\/\/www\.systemfriction\.org'/);
-assert.match(protectedResourceMetadata, /const oauthIssuer = 'https:\/\/www\.systemfriction\.org'/);
-assert.match(protectedResourceMetadata, /const resourceOrigin = 'https:\/\/www\.systemfriction\.org'/);
+assert.match(oauthMetadata, /const PUBLIC_ORIGIN = 'https:\\/\\/www\\.systemfriction\\.org'/);
+assert.match(oauthMetadata, /const WORKPLACE_ORIGIN = 'https:\\/\\/system-friction\\.vercel\\.app'/);
+assert.match(oauthMetadata, /requestedOrigin === WORKPLACE_ORIGIN/, 'OAuth issuer must match an explicitly allowed origin');
+assert.match(protectedResourceMetadata, /const PUBLIC_ORIGIN = 'https:\\/\\/www\\.systemfriction\\.org'/);
+assert.match(protectedResourceMetadata, /const WORKPLACE_ORIGIN = 'https:\\/\\/system-friction\\.vercel\\.app'/);
+assert.match(protectedResourceMetadata, /requestedOrigin === WORKPLACE_ORIGIN/, 'MCP resource audience must be bounded to an allowlisted origin');
 
 console.log(JSON.stringify({
   ok: true,
