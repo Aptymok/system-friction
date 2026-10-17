@@ -147,7 +147,7 @@ export type SfiDataPlaneJournalEntry = {
   operation: 'UPSERT' | 'DELETE';
   row_data: Record<string, unknown>;
   before_data: Record<string, unknown> | null;
-  status: 'PENDING' | 'REPLAYING' | 'REPLAYED' | 'CONFLICT';
+  status: 'PENDING' | 'REPLAYING' | 'REPLAYED' | 'CONFLICT' | 'LOCAL_ONLY' | 'EXPIRED_CREDENTIAL' | 'SUPERSEDED_BY_PRIMARY';
   replay_attempts: number;
   last_error: string | null;
 };
