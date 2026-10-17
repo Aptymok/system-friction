@@ -6,6 +6,8 @@ const read=(path:string)=>readFileSync(path,'utf8');
 const repositoryPage=read('src/app/repository/page.tsx');
 const repositoryUi=read('src/app/repository/RepositoryConsole.tsx');
 const repositoryCss=read('src/app/repository/repository.css');
+const repoClockUi=read('src/app/repository/RepositoryMihmTimeline.tsx');
+const repoClockProjection=read('src/lib/repository/repositoryTemporalProjection.ts');
 const publicationsRedirect=read('src/app/publications/page.tsx');
 const publicationRedirect=read('src/app/publications/[slug]/page.tsx');
 const editorial=read('src/lib/publications/editorialContent.ts');
@@ -25,9 +27,13 @@ assert.ok(repositoryUi.includes('repoReader')&&repositoryUi.includes('repoFieldS
 
 assert.doesNotMatch(repositoryPage,/createServiceSupabaseClient|\.from\(|\.insert\(|\.upsert\(|\.update\(/,'Repository UI must remain a read projection, not a persistence owner');
 
-for(const token of ['SOURCE RECORDS','EVIDENCE','PUBLICATIONS / OBJECTS','PROVENANCE','LINEAGE','VERSIONS','HASHES','MANIFEST','DISCOVERY MESH','REPOSITORY HISTORY']){
+for(const token of ['SOURCE RECORDS','EVIDENCE','PUBLICATIONS / OBJECTS','PROVENANCE','LINEAGE','VERSIONS','HASHES','MANIFEST','DISCOVERY MESH']){
   assert.ok(repositoryUi.includes(token),`repository_missing:${token}`);
 }
+assert.ok(repositoryUi.includes('RepositoryMihmTimeline')&&repoClockUi.includes('MIHM-T · RELOJES')&&repoClockUi.includes('TIMELINE_CLOCKS'),'repository_requires_integrated_MIHMT_seven_clock_timeline');
+assert.ok(repoClockProjection.includes('projectTimelineClockProfile')&&repoClockProjection.includes('editorial')&&repoClockProjection.includes('recordClock'),'repository_must_reuse_mihmt_without_confusing_publication_with_record');
+assert.ok(repoClockUi.includes('NO HAY FECHAS INDEPENDIENTES PUBLICADAS')&&repoClockUi.includes('UNKNOWN'),'repository_missing_temporal_evidence_must_be_visible');
+assert.ok(repositoryCss.includes('.repoMihmAxes')&&repositoryCss.includes('.repoMihmClockInspector'),'repository_clock_controls_and_inspector_must_be_functional');
 assert.ok(repositoryUi.includes('READ PUBLICATION')&&repositoryUi.includes('repoReader'),'publication_reader_not_absorbed_into_repository');
 assert.ok(repositoryUi.includes('PUBLICATION = EXPOSURE')&&repositoryUi.includes('EXPOSURE ≠ DISCOVERY'),'discovery_boundary_missing_from_repository');
 assert.ok(repositoryUi.includes('NOT MATERIALIZED')&&repositoryUi.includes('NOT OBSERVED'),'missing_state_must_remain_explicit');
