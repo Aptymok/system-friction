@@ -190,20 +190,52 @@ export function PasswordResetSurface({
     }
     let active = true;
     const check = async () => {
-      const { data } = await sb.auth.getSession();
+      // Both Supabase implicit-token and PKCE-code links may land directly on
+      // /reset?mode=invite, even when the provider ignored the requested origin.
+      // Handle both here rather than depending on the public Home fallback.
+      const query = new URLSearchParams(window.location.search);
+      const fragment = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+      const code = query.get('code');
+      const accessToken = fragment.get('access_token');
+      const refreshToken = fragment.get('refresh_token');
+      const callbackType = fragment.get('type');
+      const hasTokenPair = Boolean(accessToken && refreshToken);
+      const hasCallback = Boolean(code || hasTokenPair);
+      let { data: { session } } = await sb.auth.getSession();
+
+      if (hasTokenPair && (!session || session.access_token !== accessToken)) {
+        const result = await sb.auth.setSession({
+          access_token: accessToken!, refresh_token: refreshToken!,
+        });
+        session = result.data.session;
+      } else if (code && (!session || session.user.user_metadata?.sfi_invitation !== true)) {
+        const result = await sb.auth.exchangeCodeForSession(code);
+        session = result.data.session;
+      }
+
+      // Scrub any one-use token or exchange code from browser history.
+      if (hasCallback) window.history.replaceState(window.history.state, '', '/reset?mode=invite');
       if (!active) return;
-      if (data.session) {
+
+      // An authenticated unrelated user is NOT an invitation. Never allow
+      // this surface to change their password as a side effect of a callback.
+      const markedInstitutional = session?.user.user_metadata?.sfi_invitation === true;
+      const callbackExpected = !hasTokenPair || callbackType === 'invite' || callbackType === 'recovery';
+      if (session && markedInstitutional && callbackExpected) {
         setReady(true);
         setAttention(false);
         setMessage('Email verified. Define your credential to complete access.');
       } else {
+        setReady(false);
         setAttention(true);
-        setMessage('The link did not create a valid session. It may have expired or already been used.');
+        setMessage(session && !markedInstitutional
+          ? 'This signed-in identity is not the invited institutional account. Open the invitation in a private window.'
+          : 'The link did not create a valid institutional session. Request a new recovery link.');
       }
     };
     void check();
     const { data: listener } = sb.auth.onAuthStateChange((event, session) => {
-      if (!active || !session) return;
+      if (!active || !session || session.user.user_metadata?.sfi_invitation !== true) return;
       if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
         setReady(true);
         setAttention(false);
