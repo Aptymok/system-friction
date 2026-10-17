@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState, type ReactNode } from 'react';
 import type { PublicPassportReading } from '@/lib/repository/publicPassportProjection';
 
 export type RepositoryEditorial={
@@ -72,7 +72,7 @@ const date=(x:string)=>Number.isFinite(Date.parse(x))?new Intl.DateTimeFormat('e
 const short=(s:string,n=44)=>s.length>n?s.slice(0,n-1)+'…':s;
 const safeURL=(s:string)=>{try{const url=new URL(s);return url.protocol==='https:'||url.protocol==='http:'?url.href:null}catch{return null}};
 const value=(s:string|null|undefined)=>s&&s.trim()?s:'No consta';
-const passportTile=(key:string,label:string,tone:string,children:React.ReactNode,open=false)=><details key={key} className="repoPassportTile" data-tone={tone} open={open}><summary>{label}<span aria-hidden="true">⌄</span></summary><div className="repoTileContent">{children}</div></details>;
+const passportTile=(key:string,label:string,tone:string,children:ReactNode,open=false)=><details key={key} className="repoPassportTile" data-tone={tone} open={open}><summary>{label}<span aria-hidden="true">⌄</span></summary><div className="repoTileContent">{children}</div></details>;
 
 export function RepositoryConsole({objects,initialObject,discovery,publicReadings}:{objects:readonly RepositoryObject[];initialObject:string|null;discovery:RepositoryDiscovery;publicReadings:Record<string,PublicPassportReading>}){
   const initial=objects.find(x=>x.id===initialObject||x.slug===initialObject)||objects[0];
@@ -185,7 +185,7 @@ export function RepositoryConsole({objects,initialObject,discovery,publicReading
               {readerMode==='LECTURA'?active?.editorial?.sections.length?<><span className="repoDocType">{active.editorial.collection} · {active.id}</span><h2>{active.title}</h2><p>{active.editorial.deck||active.summary}</p>{active.editorial.coverImage?<img className="repoDocCover" src={active.editorial.coverImage} alt={active.title}/>:null}{active.editorial.sections.map(sec=><details key={sec.id} className="repoDocumentTile" open><summary>{sec.title}</summary><div>{sec.paragraphs.map((p,i)=><p key={i}>{p}</p>)}{sec.items?.map((item,i)=><p key={i}>{item}</p>)}</div></details>)}{active.editorial.visuals.map(v=><figure key={v.id}><img src={v.src} alt={v.alt}/><figcaption>{v.caption}</figcaption></figure>)}</>:
                 safeDoc?.publicUrl?<><h2>{safeDoc.filename}</h2><iframe src={safeDoc.publicUrl} title="Documento materializado" sandbox="allow-scripts allow-same-origin allow-downloads" referrerPolicy="no-referrer" loading="lazy" className="repoDocumentFrame"/><p>Si el origen impide ser incrustado, consulta la fuente pública autorizada.</p></>:
                 <><h2>{objectTitle}</h2><p>{description}</p><p>NOT MATERIALIZED · No existe contenido de lectura público asociado a esta selección.</p></>:
-                readerMode==='FUENTES'?<><h2>Fuente y material de apoyo</h2>{(active?.sourceRefs||[]).map(s=><div key={s} className="repoSourceItem"><button onClick={()=>selectSource(s)}>{short(s,70)}</button>{safeURL(s)?<a href={safeURL(s)!} target="_blank" rel="noopener noreferrer">VER FUENTE ORIGINAL ↗</a>:null}</div>)}{!active?.sourceRefs.length?<p>NOT OBSERVED · Sin fuentes publicables.</p>:null}{active?.editorial?.renditions.map(r=><div key={r.filename} className="repoSourceItem"><b>{r.filename}</b><span>{r.state}</span>{r.publicUrl&&safeURL(r.publicUrl)?<a href={r.publicUrl} rel="noopener noreferrer" target="_blank">ABRIR FORMATO ↗</a>:null}</div>)}</>:
+                readerMode==='FUENTES'?<><h2>Fuente y material de apoyo</h2>{(active?.sourceRefs||[]).map(s=><div key={s} className="repoSourceItem"><button onClick={()=>selectSource(s)}>{short(s,70)}</button>{safeURL(s)?<a href={safeURL(s)!} target="_blank" rel="noopener noreferrer">VER FUENTE ORIGINAL ↗</a>:null}</div>)}{!active?.sourceRefs.length?<p>NOT OBSERVED · Sin fuentes publicables.</p>:null}{active?.editorial?.renditions.map(r=><div key={r.filename} className="repoSourceItem"><b>{r.filename}</b><span>{r.state}</span><code>SHA-256 {r.sha256 || 'NOT MATERIALIZED'}</code>{r.publicUrl&&safeURL(r.publicUrl)?<a href={r.publicUrl} rel="noopener noreferrer" target="_blank">ABRIR FORMATO ↗</a>:null}</div>)}</>:
                 <><h2>Ficha documental</h2>{showRow('OBJETO',active?.id)}{showRow('VERSIÓN',active?.version)}{showRow('AUTORES',active?.authors.join(', '))}{showRow('MÉTODOS',active?.methods.join(', '))}{showRow('ESTADO',active?.epistemicState)}{showRow('CANONICAL URL',active?.canonicalUrl)}{reading?showRow('PUBLICACIÓN PERSISTIDA',date(reading.publishedAt)):null}{(active?.limitations||[]).map((s,i)=><p key={i}>{s}</p>)}</>}
             </div></>:null}
           </div>
