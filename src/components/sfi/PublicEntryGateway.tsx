@@ -6,13 +6,14 @@ import './PublicEntryGateway.css';
 import { createBrowserSupabaseClient } from '@/runtime/supabase/client';
 
 const SURFACE_RAIL=[
-  {label:'ROOT',number:'01',sceneId:'root',href:'/instruments/root',line:'Canonical field · authority · RETURN'},
-  {label:'OBSERVATORY',number:'02',sceneId:'observatory',href:'/instruments/observatory',line:'Sources · signals · World Vector · trajectories'},
-  {label:'REALITY CHAIN',number:'03',sceneId:'reality-chain',href:'/instruments/reality-chain',line:'Evidence · justification · Reality Passport'},
-  {label:'METHOD LAB',number:'04',sceneId:'method-lab',href:'/instruments/method-lab',line:'Protocols · abstention · reproducibility'},
-  {label:'REPOSITORY',number:'05',sceneId:'repository',href:'/repository',line:'Sources · provenance · versions'},
-  {label:'TIMELINE',number:'06',sceneId:'timeline',href:'/instruments/timeline',line:'Epistemic time · reconstruction'},
-  {label:'ACCESS',number:'07',sceneId:'access',href:'/instruments/access',line:'Identity · scope · authority'},
+  // Public explanatory sequence; access permissions remain governed by backend identity.
+  {label:'OBSERVATORY',number:'01',sceneId:'observatory',href:'/instruments/observatory',line:'Sources · signals · World Vector · trajectories'},
+  {label:'REPOSITORY',number:'02',sceneId:'repository',href:'/repository',line:'Source records · evidence · provenance · versions'},
+  {label:'METHOD LAB',number:'03',sceneId:'method-lab',href:'/instruments/method-lab',line:'Protocols · tests · reproducibility'},
+  {label:'ROOT',number:'04',sceneId:'root',href:'/instruments/root',line:'Governance · authority · cognitive field'},
+  {label:'REALITY CHAIN',number:'05',sceneId:'reality-chain',href:'/instruments/reality-chain',line:'Reconstruction · execution · empirical RETURN'},
+  {label:'TIMELINE',number:'06',sceneId:'timeline',href:'/instruments/timeline',line:'Contrast · epistemic time · reentry'},
+  {label:'ACCESS',number:'07',sceneId:'access',href:'/instruments/access',line:'Institutional identity · scope · authority'},
 ] as const;
 
 const CHAIN=['REAL WORLD','SIGNAL','OBSERVATION','EVIDENCE','INFERENCE','AUTHORITY','EXECUTION','RETURN'] as const;
