@@ -1155,3 +1155,27 @@ html:has(.rootReferenceCockpit),body:has(.rootReferenceCockpit){overflow-y:hidde
  .rootReferenceCockpit .rootReferenceModes button{font-size:11px!important}
 }
 @media(prefers-reduced-motion:reduce){.rootReferenceCockpit.rootFieldMode{scroll-behavior:auto}}
+
+/* PR #720 selective reconciliation: expose real object boundaries only.
+   This does not assert whole-institutional-cycle completion. */
+.rootOperationalSnapshot {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+  margin:0 0 18px;
+}
+.rootOperationalSnapshotTitle {grid-column:1/-1;padding:10px 2px 4px}
+.rootOperationalSnapshotTitle strong {font:600 13px/1.4 "Noto Sans",Arial,sans-serif;color:#D4AF37;letter-spacing:.06em}
+.rootOperationalSnapshotTitle p {font:400 12px/1.5 "Noto Sans",Arial,sans-serif;color:#E8DDC3;max-width:65ch}
+.rootOperationalSnapshot article{
+  min-width:0;padding:12px 13px;
+  border:1px solid rgba(200,169,81,.28);border-top:2px solid rgba(200,169,81,.5);
+  background:rgba(6,6,5,.44);
+}
+.rootOperationalSnapshot article[data-plane="OBSERVATION"]{border-top-color:#4A7AAA}
+.rootOperationalSnapshot article[data-plane="AUTHORITY"]{border-top-color:#B85050}
+.rootOperationalSnapshot article[data-plane="RETURN"]{border-top-color:#D4AF37}
+.rootOperationalSnapshot article span{display:block;margin-bottom:6px;color:#D4AF37;font:700 10px/1.4 "Noto Sans",Arial,sans-serif;letter-spacing:.06em}
+.rootOperationalSnapshot article strong{display:block;color:#F7F4EA;font:500 16px/1.4 "Noto Sans",Arial,sans-serif;overflow-wrap:anywhere}
+.rootOperationalSnapshot article p{margin:7px 0 0;color:#E8DDC3;font:400 12px/1.5 "Noto Sans",Arial,sans-serif}
+@media(max-width:1330px){.rootOperationalSnapshot{grid-template-columns:minmax(0,1fr)}}
