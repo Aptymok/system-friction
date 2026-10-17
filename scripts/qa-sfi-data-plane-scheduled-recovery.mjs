@@ -32,7 +32,7 @@ assert.ok(control.includes("if (before.dataPlane.mode === 'PRIMARY')"), 'the exi
 assert.ok(control.includes('flushPrimaryMirror({ maxTransactions: limit })'), 'must reuse canonical bounded primary outbox drain, not a separate writer or cron');
 assert.ok(control.includes("Math.min(8,"), 'forward mirror batch must remain bounded to 8 source transactions');
 assert.ok(control.includes("outcome: 'PRIMARY_MIRROR_REQUIRES_REVIEW'"), 'active conflicts or journal drift must prevent blind primary mirroring');
-assert.ok(control.includes("outcome: 'PRIMARY_MIRROR_CERTIFIED'"), 'mirror status must be confirmed and certified independently');
+assert.ok(control.includes("'PRIMARY_MIRROR_CERTIFIED' as const"), 'mirror status must be confirmed and certified independently');
 assert.ok(control.includes("primaryMirror.ok === true && primaryMirror.certified === true"), 'no false success for partial outbox drain');
 assert.ok(control.indexOf("if (before.dataPlane.mode === 'PRIMARY')") < control.indexOf("if (!before.safeRecoveryEligible)"), 'PRIMARY mirror delivery must precede RECOVERY-only safety-gate branch');
 
