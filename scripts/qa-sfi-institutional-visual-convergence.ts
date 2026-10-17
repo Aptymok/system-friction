@@ -26,6 +26,9 @@ const methodPanorama=read('src/components/sfi/MethodLabPanorama.tsx');
 const timelineUi=read('src/components/sfi/OperationalTimeline.tsx');
 const timelinePage=read('src/app/timeline/page.tsx');
 const methodNativeCss=read('src/components/sfi/MethodLabNativeHub.css');
+const methodNativeUi=read('src/components/sfi/MethodLabNativeHub.tsx');
+const methodPanoramaUi=read('src/components/sfi/MethodLabPanorama.tsx');
+const methodPanoramaCss=read('src/components/sfi/MethodLabPanorama.css');
 const instruments=read('src/components/sfi/PublicInstrumentSurface.tsx');
 
 for(const token of ['ROOT','LABORATORY','DISCOVERY','EVIDENCE','ACCESS']) assert.ok(rail.includes(token),'institutional_surface_missing:'+token);
@@ -68,6 +71,14 @@ assert.ok(publicChrome.includes("{key:'timeline',label:'TIMELINE',href:'/timelin
 assert.ok(methodPanorama.includes('protocols.reduce') && methodPanorama.includes('sessions.filter') && methodPanorama.includes('evidenceCount') && methodPanorama.includes('SIMULATION ≠ OBSERVATION'),'method_lab_panorama_requires_persisted_operating_data');
 assert.ok(timelinePage.includes('readPublicWorldSnapshotTimeline') && timelinePage.includes('SFI_CANONICAL_OBJECT_REGISTRY') && timelineUi.includes('NO RECORDED ENTRIES IN SELECTED WINDOW'),'timeline_must_preserve_real_data_and_empty_states');
 assert.equal(methodNativeCss.includes("url('/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_26-3.png')"),false,'method_lab_must_not_render_screenshot_as_dashboard');
+assert.ok(!/<h[1-6]\\b/.test(methodNativeUi) && !/<h[1-6]\\b/.test(methodPanoramaUi),'method_lab_operational_headlines_must_be_replaced_with_instructions');
+assert.ok((methodNativeUi.match(/<details/g)||[]).length>=10 && methodNativeUi.includes('mlh-tile-trigger'),'method_lab_registry_and_workflow_tiles_must_use_native_accessible_accordions');
+assert.ok(methodPanoramaUi.includes('mlp-tile') && methodPanoramaUi.includes('mlp-phase-content'),'method_lab_panorama_must_use_weighted_expandable_stage_tiles');
+assert.ok(methodNativeUi.includes("'/api/root/method-lab/simulate'") && methodNativeUi.includes("'/api/root/cognitive-lab/sessions'"),'method_lab_actual_governed_actions_must_survive_visual_update');
+for(const width of ['740px','370px','520px','770px','810px','310px'])assert.ok(methodNativeCss.includes(width),'method_lab_oversized_horizontal_section_must_be_narrowed:'+width);
+assert.ok(methodNativeCss.includes('background:rgba(5,11,16,.30)!important') && methodPanoramaCss.includes('background:rgba(5,11,16,.30)!important'),'functional_method_lab_tiles_must_have_30_percent_alpha_not_text_opacity');
+assert.ok(methodNativeCss.includes('.mlh-tile-trigger:focus-visible') && methodPanoramaCss.includes('.mlp-tile>summary:focus-visible'),'accordion_keyboard_focus_must_remain_visible');
+
 assert.equal(repositoryCss.includes("url('/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_42-7.png')"),false,'repository_must_not_render_screenshot_as_dashboard');
 assert.ok(repositoryUi.includes('SOURCE RECORDS') && repositoryUi.includes('DISCOVERY MESH') && repositoryUi.includes('REPOSITORY HISTORY') && repositoryCss.includes('.repoReader') && repositoryCss.includes('.repoDiscovery'), 'unified_repository_operational_visual_contract_missing');
 assert.ok(realityCss.includes('blur(11px)') && realityCss.includes('width:300vw'),'reality_chain_reference_must_not_read_as_fake_ui');
