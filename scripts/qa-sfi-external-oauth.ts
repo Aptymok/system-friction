@@ -82,12 +82,23 @@ assert.match(oauthRegistryMigration, /grant select, insert, update, delete[\s\S]
 // Exercise the existing matcher, including the previously shipped RFC 8252
 // loopback-port exception, instead of requiring the obsolete .includes spelling.
 const registryExports: Record<string, any> = {};
+const oauthConfigExports: Record<string, any> = {};
 const registryRequire = createRequire(import.meta.url);
+vm.runInNewContext(ts.transpileModule(oauthConfig, {
+  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+}).outputText, {
+  exports: oauthConfigExports,
+  require: () => ({}),
+});
 vm.runInNewContext(ts.transpileModule(oauthRegistry, {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
 }).outputText, {
   exports: registryExports, URL,
-  require: (id: string) => id === 'node:crypto' ? registryRequire(id) : {},
+  require: (id: string) => id === 'node:crypto'
+    ? registryRequire(id)
+    : id === '@/lib/sfi/oauthConfig'
+      ? oauthConfigExports
+      : {},
 });
 const redirectAllowed = (registered: string, requested: string) => registryExports.isAllowedSfiOAuthRedirect({ redirectUris: [registered] }, requested);
 void (async () => {
