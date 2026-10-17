@@ -61,10 +61,19 @@ export function PublicEntryGateway(){
         // Do not repurpose ordinary Supabase recovery/PKCE callbacks as
         // institutional invitations without an identity marked by SFI.
         const metadata = result.data.session.user.user_metadata ?? {};
-        if (kind === 'invite' || kind === 'recovery' || metadata.sfi_invitation === true) {
+        const eligibleResponse = await fetch('/api/account/invitation-session', {
+          credentials: 'same-origin', cache: 'no-store',
+        }).catch(() => null);
+        const eligibility = eligibleResponse?.ok
+          ? await eligibleResponse.json().catch(() => null) as { eligible?: boolean } | null
+          : null;
+        if (!active) return;
+        if ((kind === 'invite' || kind === 'recovery' || metadata.sfi_invitation === true
+          || eligibility?.eligible === true) && eligibility?.eligible === true) {
           window.location.replace('/reset?mode=invite');
         } else {
-          // A public signup is a personal identity, never an institutional grant.
+          // A public signup remains personal, unless a valid separate
+          // institutional grant is already bound to the verified identity.
           window.location.replace('/entry');
         }
       } catch {
