@@ -31,8 +31,11 @@ type GraphNode = {
     reasons: string[];
     temporal: { sourceVersion:string|null; captureTime:string|null; nodeUpdatedAt:string|null };
     epistemic: { uncertainty:unknown|null };
-    provenance: { declared:string; lineageCount:number; lineageRefs:string[]; supportingRelationCount:number; supportingRelationRefs:string[]; contradictionCount:number; contradictionRefs:string[] };
-    verification: { state:string; cost:unknown|null; budget:unknown|null; nextBestObservation:string|null };
+    provenance: { declared:string; lineageCount:number; lineageRefs:string[]; supportingRelationCount:number; supportingRelationRefs:string[]; contradictionCount:number; contradictionRefs:string[];
+      independence?:{state:'REPRESENTED'|'UNKNOWN';independentRootCount:number|null;rootRefs:string[];duplicateSupportCount:number|null;boundary:string};
+      contentBinding?:{method:string|null;result:unknown|null;verificationPerturbation:unknown|null;boundary:string};
+    };
+    verification: { state:string; cost:unknown|null; budget:unknown|null; nextBestObservation:string|null; method?:string|null; verifier?:string|null; selectionReason?:string|null; costUnit?:string|null; budgetUnit?:string|null; expectedInformationGain?:unknown|null; falseAcceptBoundary?:unknown|null; falseRejectBoundary?:unknown|null; processImpact?:unknown|null; boundary?:string };
     authority: { state:string; executionState:string; authorityExpanded:boolean|null; mayMintReturn:boolean|null; mayPromoteCanon:boolean|null };
     persistence: { represented:boolean; refs:string[]; boundary:string };
     returnState: { expected:unknown|null; observed:unknown|null; status:'OBSERVED'|'PENDING'|'NOT_APPLICABLE'|'UNKNOWN' };
@@ -955,6 +958,11 @@ export function RootNeuralGraphView({
                     <div><dt>VERIFICATION BUDGET</dt><dd>{representedValue(selected.realityPassport?.verification.budget ?? selected.reality?.verificationBudget)}</dd></div>
                     <div><dt>NEXT BEST OBSERVATION</dt><dd>{selected.realityPassport?.verification.nextBestObservation ?? selected.reality?.nextBestObservation ?? 'NOT REPRESENTED'}</dd></div>
                     <div><dt>SUPPORTING RELATIONS</dt><dd>{selected.realityPassport?.provenance.supportingRelationCount ?? qualifiedRelationCount(selected,graph.edges)}</dd></div>
+                    <div><dt>REPRESENTED SOURCE ROOTS</dt><dd>{selected.realityPassport?.provenance.independence?.state==='REPRESENTED' ? selected.realityPassport.provenance.independence.independentRootCount : 'UNKNOWN'}</dd></div>
+                    <div><dt>REPEATED SOURCE SUPPORT</dt><dd>{selected.realityPassport?.provenance.independence?.state==='REPRESENTED' ? selected.realityPassport.provenance.independence.duplicateSupportCount : 'UNKNOWN'}</dd></div>
+                    <div><dt>VERIFICATION METHOD</dt><dd>{selected.realityPassport?.verification.method ?? 'NOT REPRESENTED'}</dd></div>
+                    <div><dt>VERIFIER</dt><dd>{selected.realityPassport?.verification.verifier ?? 'NOT REPRESENTED'}</dd></div>
+                    <div><dt>PROVENANCE BINDING</dt><dd>{selected.realityPassport?.provenance.contentBinding?.method ?? 'NOT REPRESENTED'}</dd></div>
                     <div><dt>CONTRADICTIONS</dt><dd>{selected.realityPassport?.provenance.contradictionCount ?? 0}</dd></div>
                     <div><dt>AUTHORITY</dt><dd>{selected.realityPassport?.authority.state ?? selected.reality?.authority ?? 'UNKNOWN'}</dd></div>
                     <div><dt>EXECUTION</dt><dd>{selected.realityPassport?.authority.executionState ?? selected.reality?.executionState ?? 'NOT OBSERVED'}</dd></div>
