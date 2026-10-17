@@ -65,7 +65,7 @@ assert.equal(governanceSurface.includes("jsonFetch('/api/acp/proposals')"),false
 assert.ok(rootSurface.includes("jsonFetch('/api/root/interactive?surface=root')"));
 assert.ok(rootSurface.includes("jsonFetch('/api/root/decisions'"));
 assert.ok(rootSurface.includes('/request-evidence'));
-assert.ok(rootSurface.includes('Las decisiones humanas viven aquí en ROOT.'));
+assert.ok(rootSurface.includes('data-root-decision-interface="SFI-ROOT-SOVEREIGN-DECISION-1.0"') && rootSurface.includes('Only authority-bound changes appear here'), 'ROOT sovereign human decision workspace contract missing');
 assert.ok(sceneRegistry.includes("root:{key:'root'"));
 assert.ok(workflow.includes('permissions:\n  contents: read'));
 console.log(JSON.stringify({ok:true,contract:'SFI-CT-INSTITUTIONAL-INTEGRATION-2.0',organs:7,canonicalExperienceBridge:true,canonicalMemoryTerminalFiltering:true,canonicalMemoryDistinctKeyPaging:true,methodLabEpistemicBoundary:true,newestFirstSync:true,nativeCognitiveTwinSurface:'TWIN_SPINE_CONVERGED_WORKSPACE',governanceSurface:'SfiGovernanceWorkspace',humanDecisionSurface:'SfiRootWorkspace',authority:['ROOT_DECISION','GOVERNANCE_RUNTIME'],longitudinalSubject:'CT-A01'},null,2));
