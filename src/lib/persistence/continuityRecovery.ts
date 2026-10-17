@@ -48,7 +48,7 @@ async function fingerprintsMatch() {
     // remain exact and cannot be waived by this exception.
     const protectedTable = row.table_name === 'profiles' || row.table_name === 'sfi_account_access_grants';
     if (!protectedTable || String(row.row_count) !== String(other.row_count)) return false;
-    if (!await currentAuthorityParityVerified(row.table_name)) return false;
+    if (!await currentAuthorityParityVerified(row.table_name as 'profiles' | 'sfi_account_access_grants')) return false;
   }
   return true;
 }
