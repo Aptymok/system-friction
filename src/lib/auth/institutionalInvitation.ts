@@ -207,3 +207,43 @@ export async function inviteInstitutionalAccountAction(formData: FormData) {
 
   redirect(accessStatePath('enviada'));
 }
+
+/**
+ * Founder-requested credential recovery for an EXISTING institutional identity.
+ * Never deletes the Auth user, resets the grant, modifies authority, or claims
+ * that email delivery proves activation.
+ */
+export async function recoverInstitutionalAccountAction(formData: FormData) {
+  const founder = await requireFounder();
+  const parsed = z.string().trim().email().safeParse(String(formData.get('email') || '').toLowerCase());
+  if (!parsed.success) redirect(accessStatePath('entrada_invalida'));
+
+  const service = createServiceSupabaseClient();
+  const grant = await service.from('sfi_account_access_grants')
+    .select('id,email,user_id,status,display_name,title,access_class')
+    .eq('email', parsed.data).maybeSingle();
+  if (grant.error || !grant.data) redirect(accessStatePath('registro_no_disponible'));
+  if (grant.data.status === 'SUSPENDED') redirect(accessStatePath('suspendida'));
+  if (!grant.data.user_id || !['ACTIVE','INVITED'].includes(grant.data.status))
+    redirect(accessStatePath('identidad_no_recuperable'));
+
+  const origin = (process.env.NEXT_PUBLIC_APP_URL || 'https://www.systemfriction.org').replace(/\/$/, '');
+  const sent = await deliverInstitutionalInvitation({
+    service, email: grant.data.email, displayName: grant.data.display_name,
+    title: grant.data.title, accessClass: grant.data.access_class,
+    existingUserId: grant.data.user_id,
+    redirectTo: `${origin}/reset?mode=invite`,
+  });
+  if (!sent.ok) redirect(accessStatePath('recuperacion_no_enviada'));
+
+  await service.from('sfi_audit_events').insert({
+    actor_id: founder.user.id,
+    action: 'ACCOUNT_CREDENTIAL_RECOVERY_REQUESTED',
+    target_type: 'sfi_account_access_grant',
+    target_id: grant.data.id,
+    after_state: { email: grant.data.email, status: grant.data.status, userIdPreserved: true },
+    context: { source: 'root_access_surface', deliveryChannel: sent.channel,
+      grantUnchanged: true, authorityGranted: false, accessProved: false },
+  });
+  redirect(accessStatePath('recuperacion_enviada'));
+}
