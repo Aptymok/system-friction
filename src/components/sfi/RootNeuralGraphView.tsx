@@ -970,6 +970,42 @@ export function RootNeuralGraphView({
                   </dl>
                   <p>World → evidence → claim → verification → authority → execution → RETURN remain separate states. A complete-looking object is not automatically verified or authorized.</p>
                 </section>
+                <section className="rootOperationalSnapshot" aria-label="Observed-to-RETURN cross-instrument boundary">
+                  <header className="rootOperationalSnapshotTitle">
+                    <strong>REALITY TO RETURN · SELECTED OBJECT</strong>
+                    <p>These are readings of one recorded object. Method Lab, Repository, Cognitive Twin and World are not declared connected by this panel without a shared persisted cycle receipt.</p>
+                  </header>
+                  <article data-plane="OBSERVATION">
+                    <span>OBSERVATION / EPISTEMIC STATE</span>
+                    <strong>{selected.reality?.state ?? representedText(selected.attributes.epistemicClass,'UNKNOWN')}</strong>
+                    <p>{selected.realityPassport?.stage ? `Reality stage: ${humanize(selected.realityPassport.stage)}` : 'REALITY STAGE NOT REPRESENTED'}</p>
+                  </article>
+                  <article data-plane="PROVENANCE">
+                    <span>EVIDENCE / PROVENANCE</span>
+                    <strong>{selected.realityPassport?.provenance.independence?.state==='REPRESENTED' ? `${selected.realityPassport.provenance.independence.independentRootCount} represented roots` : 'SOURCE INDEPENDENCE UNKNOWN'}</strong>
+                    <p>{selected.realityPassport?.provenance.supportingRelationCount ?? 0} supporting relations. Repeated source references are not independent confirmations.</p>
+                  </article>
+                  <article data-plane="VERIFICATION">
+                    <span>METHOD / VERIFICATION</span>
+                    <strong>{selected.realityPassport?.verification.state ?? 'UNKNOWN'}</strong>
+                    <p>Method: {selected.realityPassport?.verification.method ?? 'NOT REPRESENTED'}. Method Lab execution is not inferred from verification state.</p>
+                  </article>
+                  <article data-plane="AUTHORITY">
+                    <span>GOVERNED AUTHORITY</span>
+                    <strong>{selected.realityPassport?.authority.state ?? selected.reality?.authority ?? 'UNKNOWN'}</strong>
+                    <p>Decision: {selected.realityPassport?.decision ?? 'UNKNOWN'}. Recorded approval does not extend execution authority.</p>
+                  </article>
+                  <article data-plane="EXECUTION">
+                    <span>EXECUTION</span>
+                    <strong>{selected.realityPassport?.authority.executionState ?? selected.reality?.executionState ?? 'NOT OBSERVED'}</strong>
+                    <p>Internal execution does not establish an external-world effect.</p>
+                  </article>
+                  <article data-plane="RETURN">
+                    <span>EMPIRICAL RETURN / REENTRY</span>
+                    <strong>{selected.realityPassport?.returnState.status ?? 'UNKNOWN'}</strong>
+                    <p>{selected.realityPassport?.verification.nextBestObservation ?? 'NEXT INDEPENDENT OBSERVATION NOT REPRESENTED'}</p>
+                  </article>
+                </section>
                 <section className="rootPassportQuestion rootPassportScientific" aria-label="Scientific temporal and dynamical reading">
                   <h3>SCIENTIFIC TEMPORAL READING</h3>
                   <p>Temporal resolution is derived from observed sequence, cycle, recurrence, phase or chronology as available, not inferred from database creation time.</p>
