@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 const read = (path: string) => readFileSync(path, 'utf8');
 const evolution = read('src/lib/institution/institutionalEvolution.ts');
 const integrated = read('src/core/cognitive-twin/integratedInstitutionalCycle.ts');
+const institutionalCycle = read('src/lib/institution/institutionalCycle.ts');
 const assignments = read('src/lib/sfi/cognitive-runtime/institutionalAssignments.ts');
 const outcome = read('src/lib/governance/proposalOutcome.ts');
 const lifecycle = read('src/lib/governance/proposalLifecycle.ts');
@@ -74,6 +75,13 @@ assert.ok(approve.includes("if (String((decision.data as Record<string, unknown>
 assert.ok(approve.includes("next: 'institutional_candidate_adopted_without_redispatch'"), 'approve_route_must_not_redispatch_adopted_candidate');
 
 assert.ok(integrated.includes('runInstitutionalEvolutionObservation'), 'scheduled_institutional_cycle_must_run_evolution_observer');
+assert.ok(institutionalCycle.includes('sourceEventRefs: linkedRootEvents'), 'institutional_evidence_refs_must_be_backed_by_observed_event_ids');
+assert.ok(institutionalCycle.includes('eventById.has(ref)'), 'unresolved_event_ids_must_not_be_treated_as_verified');
+assert.ok(institutionalCycle.includes("crossInstrumentCycleCorrelation: 'NOT_CERTIFIED'"), 'routine_cycle_must_not_forge_full_sfi_cycle_completion');
+assert.ok(institutionalCycle.includes('SOURCE_REFERENCE_DOES_NOT_ESTABLISH_SAME_CYCLE_OR_AUTHORIZE_CANON'), 'source_ref_must_not_promote_evidence');
+assert.ok(institutionalCycle.includes('evidenceLineage: cycleEvidence.lineage'), 'institutional_cycle_must_persist_lineage_in_existing_input_and_output_owner');
+assert.ok(institutionalCycle.includes('root.error ? null : rootRows.length'), 'read_failure_must_not_be_falsely_zero_root_count');
+
 assert.ok(assignments.includes('repair or absorb work into an existing owner before proposing a new module'), 'project_manager_absorption_rule_missing');
 
 // Evolution is absorbed by existing schedulers/workflows. It must not create a parallel institutional-evolution cron.
