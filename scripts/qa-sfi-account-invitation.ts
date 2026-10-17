@@ -13,6 +13,7 @@ const activate = read('src/app/api/account/activate/route.ts');
 const accessServer = read('src/lib/system/access/server.ts');
 const productionBackend = read('src/lib/server/productionBackend.ts');
 const login = read('src/components/sfi/LoginSurface.tsx');
+const entry = read('src/app/entry/page.tsx');
 const continuityAccess = read('src/app/continuity-access/page.tsx');
 const authActions = read('src/lib/auth/actions.ts');
 const neonPasswordBootstrap = read('src/lib/auth/neonPasswordBootstrap.ts');
@@ -118,6 +119,8 @@ assert.match(productionBackend, /hasActiveInstitutionalAccountGrant/);
 assert.match(productionBackend, /observerRoleAuthorized/);
 assert.match(productionBackend, /Boolean\(institutionalMember\) \|\| activeInstitutionalAccount/);
 
+assert.match(entry, /if \(ctx\.isRoot\) redirect\('\/root'\)/, 'only founder ROOT may be the automatic post-login destination');
+assert.doesNotMatch(entry, /if \(ctx\.canObserveRoot\) redirect\('\/root'\)/, 'operator/observer must not be misrouted to founder-only ROOT');
 assert.match(login, /\/forgot/);
 assert.doesNotMatch(
   authActions.match(/export async function loginAction[\s\S]*?export async function activateContinuityPasswordAction/)?.[0] ?? '',
