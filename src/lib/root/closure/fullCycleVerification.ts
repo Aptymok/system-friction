@@ -12,6 +12,41 @@ type Step = { id:string; label:string; status:'PASS'|'BLOCKED'; required:boolean
 function rec(value: unknown): Row { return value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {}; }
 function text(value: unknown) { return typeof value === 'string' && value.trim() ? value.trim() : ''; }
 
+/**
+ * Observed Field RETURN admission for the existing full-cycle verifier.
+ * A pending return, unmatched intervention, missing T1 or unaccepted evidence
+ * is not a completed empirical response, even when a SQL row exists.
+ */
+export function hasObservedFieldReturn(fieldCase:Row|null, fieldReturn:Row|null, fieldOutcome:Row|null, intervention:Row|null){
+  if(!fieldCase||!fieldReturn||!fieldOutcome||!intervention)return false;
+  const caseId=text(fieldCase.id);
+  const interventionId=text(intervention.id);
+  const returnAt=Date.parse(text(fieldReturn.returned_at));
+  const expectedAt=Date.parse(text(fieldReturn.expected_at));
+  const outcomeRecordedAt=Date.parse(text(fieldOutcome.recorded_at));
+  const evidenceRefs=Array.isArray(fieldReturn.evidence_ids)?fieldReturn.evidence_ids.map(text).filter(Boolean):[];
+  const outcomeRefs=Array.isArray(fieldOutcome.evidence_ids)?fieldOutcome.evidence_ids.map(text).filter(Boolean):[];
+  return Boolean(caseId&&interventionId
+    && fieldCase.consent===true
+    && !fieldCase.deleted_at
+    && ['CLOSED_OBSERVED','CLOSED_VERIFIED'].includes(text(fieldCase.status))
+    && text(fieldReturn.status)==='RETURN_ACCEPTED'
+    && text(intervention.status)==='EXECUTION_RECORDED'
+    && text(fieldReturn.case_id)===caseId
+    && text(fieldOutcome.case_id)===caseId
+    && text(intervention.case_id)===caseId
+    && text(fieldReturn.intervention_id)===interventionId
+    && text(fieldOutcome.intervention_id)===interventionId
+    && Number.isFinite(returnAt)&&Number.isFinite(expectedAt)&&Number.isFinite(outcomeRecordedAt)
+    && returnAt>=expectedAt
+    && outcomeRecordedAt>=returnAt
+    && evidenceRefs.some(ref=>outcomeRefs.includes(ref))
+    && text(fieldOutcome.actual)
+    && text(fieldOutcome.expected)
+  );
+}
+
+
 export async function runFullCycleVerification(input:{ ownerId:string; operatingCycleId:string }) {
   const db=createServiceSupabaseClient();
   const startedAt=new Date().toISOString();
@@ -61,20 +96,25 @@ export async function runFullCycleVerification(input:{ ownerId:string; operating
 
   // 4. Field is verified against an actual already-returned case. We do not synthesize a return
   // or bypass its temporal window just to make this QA green.
-  const latestOutcome=await db.from('field_outcomes').select('*').eq('owner_id',input.ownerId).order('created_at',{ascending:false}).limit(1).maybeSingle();
-  let fieldCase:Row|null=null;let fieldReturn:Row|null=null;
+  // The schema has recorded_at, not created_at. A wrong sort used to fail the
+  // query and silently hide valid Field outcomes from the institutional proof.
+  const latestOutcome=await db.from('field_outcomes').select('*').eq('owner_id',input.ownerId).order('recorded_at',{ascending:false}).limit(1).maybeSingle();
+  let fieldCase:Row|null=null;let fieldReturn:Row|null=null;let intervention:Row|null=null;
   if(latestOutcome.data){
-    const caseId=text((latestOutcome.data as Row).case_id);
-    const [caseRow,returnRow]=await Promise.all([
+    const candidate=latestOutcome.data as Row;
+    const caseId=text(candidate.case_id);
+    const interventionId=text(candidate.intervention_id);
+    const [caseRow,returnRow,interventionRow]=await Promise.all([
       db.from('field_cases').select('*').eq('id',caseId).eq('owner_id',input.ownerId).maybeSingle(),
-      db.from('field_returns').select('*').eq('case_id',caseId).eq('owner_id',input.ownerId).order('created_at',{ascending:false}).limit(1).maybeSingle(),
+      db.from('field_returns').select('*').eq('case_id',caseId).eq('intervention_id',interventionId).eq('owner_id',input.ownerId).order('returned_at',{ascending:false}).limit(1).maybeSingle(),
+      db.from('field_interventions').select('*').eq('id',interventionId).eq('case_id',caseId).eq('owner_id',input.ownerId).maybeSingle(),
     ]);
-    fieldCase=caseRow.data as Row|null;fieldReturn=returnRow.data as Row|null;
+    fieldCase=caseRow.data as Row|null;fieldReturn=returnRow.data as Row|null;intervention=interventionRow.data as Row|null;
   }
   const fieldOutcome=latestOutcome.data as Row|null;
-  const fieldComplete=Boolean(fieldCase&&fieldReturn&&fieldOutcome&&text(fieldReturn.status)&&text(fieldOutcome.id));
-  if(fieldComplete) steps.push({id:'field',label:'Field + retorno',status:'PASS',required:true,ref:text(fieldCase?.id),detail:`Retorno ${text(fieldReturn?.status)} · outcome ${text(fieldOutcome?.id).slice(0,12)}…`});
-  else steps.push({id:'field',label:'Field + retorno',status:'BLOCKED',required:true,ref:null,detail:'No existe un caso Field real con retorno y outcome persistidos para verificar.'});
+  const fieldComplete=latestOutcome.error===null&&hasObservedFieldReturn(fieldCase,fieldReturn,fieldOutcome,intervention);
+  if(fieldComplete) steps.push({id:'field',label:'Field + retorno',status:'PASS',required:true,ref:text(fieldCase?.id),detail:`Retorno ${text(fieldReturn?.status)} · outcome ${text(fieldOutcome?.id).slice(0,12)}… · ${fieldOutcome?.verified===true?'VERIFIED':'OBSERVED_NOT_INDEPENDENTLY_VERIFIED'}`});
+  else steps.push({id:'field',label:'Field + retorno',status:'BLOCKED',required:true,ref:null,detail:latestOutcome.error?.message??'Field requires a consented case, matching EXECUTION_RECORDED intervention, accepted time-valid T1 RETURN, shared evidence reference and corresponding outcome; pending/unverified returns do not certify a full cycle.'});
 
   // 5. Preserve the verification replay as candidate memory, not as new observed reality.
   const proofKey=`SFI:FULL_CYCLE_VERIFICATION:${input.operatingCycleId}:${startedAt}`;
