@@ -25,7 +25,19 @@ function clamp01(value: unknown, fallback = 0) {
   return Number.isFinite(parsed) ? Math.max(0, Math.min(1, parsed)) : fallback;
 }
 
-async function readCycleEvidence(limit = 80): Promise<{ evidence: KernelEvidence[]; refs: string[]; warnings: string[] }> {
+type InstitutionalEvidenceLineage = {
+  rootRecords: number|null;
+  rootRecordsWithVerifiedEvent: number|null;
+  importedLedgerRecords: number|null;
+  sourceEventRefs: string[];
+  crossInstrumentCycleCorrelation: 'NOT_CERTIFIED';
+  boundary: 'SOURCE_REFERENCE_DOES_NOT_ESTABLISH_SAME_CYCLE_OR_AUTHORIZE_CANON';
+};
+
+async function readCycleEvidence(limit = 80): Promise<{
+  evidence: KernelEvidence[]; refs: string[]; warnings: string[];
+  lineage: InstitutionalEvidenceLineage;
+}> {
   const db = createServiceSupabaseClient();
   const [root, ledger] = await Promise.all([
     db.from('root_evidence_entries')
@@ -90,10 +102,26 @@ async function readCycleEvidence(limit = 80): Promise<{ evidence: KernelEvidence
     });
   }
 
+  // This records source coverage without guessing that unrelated events or
+  // distinct tenant/case cycles belong to one institutional trajectory.
+  const linkedRootEvents = rootRows.filter((item)=>{
+    const ref=text(item.epistemic_event_id);
+    return ref!==null && eventById.has(ref);
+  });
+  const lineage: InstitutionalEvidenceLineage = {
+    rootRecords: root.error ? null : rootRows.length,
+    rootRecordsWithVerifiedEvent: root.error || events.error ? null : linkedRootEvents.length,
+    importedLedgerRecords: ledger.error ? null : rows(ledger.data).length,
+    sourceEventRefs: linkedRootEvents.map((item)=>text(item.epistemic_event_id)).filter((id):id is string=>Boolean(id)),
+    crossInstrumentCycleCorrelation: 'NOT_CERTIFIED',
+    boundary: 'SOURCE_REFERENCE_DOES_NOT_ESTABLISH_SAME_CYCLE_OR_AUTHORIZE_CANON',
+  };
+
   return {
     evidence,
     refs: [...new Set(evidence.map((item) => item.id))],
     warnings: [...new Set(warnings)],
+    lineage,
   };
 }
 
@@ -151,6 +179,7 @@ export async function runInstitutionalCycle(trigger = 'scheduled') {
         blocked: automaticPpoi.blocked,
       },
       evidenceCountAtStart: cycleEvidence.evidence.length,
+      evidenceLineage: cycleEvidence.lineage,
       rule: 'This cycle may observe, extract, derive, simulate and propose. It cannot publish, claim attainment, spend, grant access, change canon or execute irreversible external action.',
     },
   };
@@ -186,6 +215,7 @@ export async function runInstitutionalCycle(trigger = 'scheduled') {
     result: {
       executedAgents: result.executedAgents,
       evidenceAtStart: cycleEvidence.evidence.length,
+      evidenceLineage: cycleEvidence.lineage,
       evidenceAtEnd: result.context.evidence.length,
       hypotheses: result.context.hypotheses.length,
       predictions: result.context.predictions.length,
@@ -237,6 +267,7 @@ export async function runInstitutionalCycle(trigger = 'scheduled') {
       'The consumed Cognitive Spine snapshot is sealed at the cycle-start cutoff; agents may not enrich the same run from live Twin state.',
       'Automatic PPOI registration is workflow state only; it does not constitute evidence, approval, intervention or outcome.',
       'Evidence coverage measures whether a dimension is evidenced or contradicted; it is not an attainment percentage.',
+      'Source evidence admission does not itself certify that Universal, Observatory, Method Lab and institutional cycles share one complete causal/authority/RETURN trajectory.',
       ...cycleEvidence.warnings,
       ...memoryWarnings,
       ...phenomenonWarnings,
@@ -272,6 +303,7 @@ export async function runInstitutionalCycle(trigger = 'scheduled') {
       cycleId,
       logbookId,
       evidenceRefs: cycleEvidence.refs,
+      evidenceLineage: cycleEvidence.lineage,
       attractorKey: SFI_INSTITUTIONAL_ATTRACTOR_KEY,
       cognitiveSpine: {
         snapshot: cognitiveSpine.snapshot,
