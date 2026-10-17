@@ -14,6 +14,8 @@ export const runtime = 'nodejs';
 
 const REQUIRED_SCOPE = 'root:operate' as const;
 
+const recoverySchema = z.object({ email: z.string().trim().email().transform((value) => value.toLowerCase()) });
+
 const invitationSchema = z.object({
   email: z.string().trim().email().transform((value) => value.toLowerCase()),
   displayName: z.string().trim().min(2).max(120),
@@ -146,6 +148,42 @@ async function listInstitutionalAccounts(service: ReturnType<typeof createServic
     ok: true as const,
     accounts: read.data ?? [],
   };
+}
+
+async function recoverInstitutionalAccount(
+  service: ReturnType<typeof createServiceSupabaseClient>,
+  actorId: string,
+  body: unknown,
+) {
+  const parsed = recoverySchema.safeParse(body);
+  if (!parsed.success) return { ok: false as const, status: 400, error: 'invalid_account_recovery' };
+  const grant = await service.from('sfi_account_access_grants')
+    .select('id,email,user_id,status,display_name,title,access_class')
+    .eq('email', parsed.data.email).maybeSingle();
+  if (grant.error || !grant.data) return { ok: false as const, status: 404, error: 'account_not_found' };
+  if (grant.data.status === 'SUSPENDED') return { ok: false as const, status: 403, error: 'account_suspended' };
+  if (!grant.data.user_id || !['ACTIVE','INVITED'].includes(grant.data.status)) {
+    return { ok: false as const, status: 409, error: 'account_identity_not_recoverable' };
+  }
+  const origin = (process.env.NEXT_PUBLIC_APP_URL || 'https://www.systemfriction.org').replace(/\/$/, '');
+  const sent = await deliverInstitutionalInvitation({
+    service, email: grant.data.email, displayName: grant.data.display_name,
+    title: grant.data.title, accessClass: grant.data.access_class,
+    existingUserId: grant.data.user_id,
+    redirectTo: `${origin}/reset?mode=invite`,
+  });
+  if (!sent.ok) return { ok: false as const, status: 502, error: 'recovery_email_not_sent', details: sent.error };
+
+  await service.from('sfi_audit_events').insert({
+    actor_id: actorId, action: 'ACCOUNT_CREDENTIAL_RECOVERY_REQUESTED',
+    target_type: 'sfi_account_access_grant', target_id: grant.data.id,
+    after_state: { email: grant.data.email, status: grant.data.status, userIdPreserved: true },
+    context: { source: 'external_root_operate', deliveryChannel: sent.channel,
+      grantUnchanged: true, authorityGranted: false, accessProved: false },
+  });
+  return { ok: true as const, status: 200, email: grant.data.email,
+    existingGrantPreserved: true, existingIdentityPreserved: true,
+    recoveryRequested: true, accessConfirmed: false };
 }
 
 async function inviteInstitutionalAccount(
@@ -347,6 +385,7 @@ export async function POST(req: Request) {
         { id: 'reports', effect: 'READ', description: 'Read normalized ROOT report inbox and report health.' },
         { id: 'accounts_list', effect: 'READ', description: 'List ROOT-administered institutional account access grants.' },
         { id: 'account_invite', effect: 'EXTERNAL_REVERSIBLE', description: 'Send one institutional account invitation without granting sovereign authority.' },
+        { id: 'account_recover', effect: 'EXTERNAL_REVERSIBLE', description: 'Re-send password setup to an existing verified institutional identity without altering its grant.' },
         { id: 'data_plane_status', effect: 'READ', description: 'Read primary/continuity reconciliation status, backlog, conflicts, and safety gates.' },
         { id: 'data_plane_emergency', effect: 'GOVERNED_RECOVERY', description: 'Attempt a bounded and conflict-gated recovery now. Never force a primary switch or erase evidence.' },
         { id: 'data_plane_copy_verified', effect: 'GOVERNED_INSERT_ONLY_REPLAY', description: 'Copy at most 20 exact, immutable world source observations via the existing canonical replay RPC; reject divergent inserts, never switch planes.' },
@@ -383,7 +422,7 @@ export async function POST(req: Request) {
 
   if (operation === 'capability_map') {
     return NextResponse.json({ok:true,operation,controlPlane:{
-      accounts:{read:'root:operate/accounts_list',invite:'root:operate/account_invite'},
+      accounts:{read:'root:operate/accounts_list',invite:'root:operate/account_invite',recover:'root:operate/account_recover'},
       dataPlane:{read:'root:operate/data_plane_status',emergency:'root:operate/data_plane_emergency',verifiedInsertReplay:'root:operate/data_plane_copy_verified',forceSwitchAllowed:false},
       pending:{read:'root:operate/pending',decide:'governance:decide'},
       institution:{read:'root:operate/sfi_state'},
@@ -477,6 +516,14 @@ export async function POST(req: Request) {
     }
   }
 
+  if (operation === 'account_recover') {
+    const result = await recoverInstitutionalAccount(root.service, root.credential.subjectId!, body.recovery);
+    return NextResponse.json(result, {
+      status: result.ok ? 200 : result.status,
+      headers: { 'Cache-Control': 'no-store' },
+    });
+  }
+
   if (operation === 'account_invite') {
     const result = await inviteInstitutionalAccount(root.service, root.credential.subjectId!, body.invitation);
     return NextResponse.json(result, {
@@ -488,6 +535,6 @@ export async function POST(req: Request) {
   return NextResponse.json({
     ok: false,
     error: 'unsupported_root_operation',
-    allowed: ['capabilities','capability_map','pending','sfi_state','reports','accounts_list','account_invite','data_plane_status','data_plane_emergency','data_plane_copy_verified'],
+    allowed: ['capabilities','capability_map','pending','sfi_state','reports','accounts_list','account_invite','account_recover','data_plane_status','data_plane_emergency','data_plane_copy_verified'],
   }, { status: 400 });
 }
