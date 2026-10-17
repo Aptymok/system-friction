@@ -148,3 +148,28 @@ export async function reconcileSupersededAuthorityJournal(input: { maxEntries?: 
     primaryPromoted: false, credentialsModified: false, authorityModified: false,
     policy: 'Current authority must match directly across both planes; original history retained' };
 }
+
+/**
+ * Final certification lane for the two protected tables: tolerate only known
+ * administrative metadata drift, NEVER role/grant/identity/scope drift.
+ * Every Neon record is checked against the independent Supabase primary
+ * before a fingerprint mismatch can be considered semantically equivalent.
+ * Count parity is separately required by the global fingerprint gate.
+ */
+export async function currentAuthorityParityVerified(table: AuthorityTable): Promise<boolean> {
+  const sql = continuityDatabase();
+  const neonRows = table === 'profiles'
+    ? await sql`select to_jsonb(p) as row from public.profiles p order by p.user_id limit 501`
+    : await sql`select to_jsonb(g) as row from public.sfi_account_access_grants g order by g.id limit 501`;
+  if (neonRows.length > 500) return false; // bounded safety gate, not silent certification
+
+  for (const entry of neonRows) {
+    const neon = record(entry.row);
+    const rowId = table === 'profiles' ? neon.user_id : neon.id;
+    if (typeof rowId !== 'string') return false;
+    let primary: RecordValue | null = null;
+    try { primary = await readPrimaryAuthorityRow(table, rowId); } catch { return false; }
+    if (!primary || semanticProjection(table, primary) !== semanticProjection(table, neon)) return false;
+  }
+  return true;
+}
