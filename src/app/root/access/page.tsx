@@ -1,5 +1,6 @@
 import {
   inviteInstitutionalAccountAction,
+  recoverInstitutionalAccountAction,
   listInstitutionalAccountAccessGrants,
 } from '@/lib/auth/institutionalInvitation';
 import { requireFounderPage } from '@/lib/system/access/server';
@@ -10,6 +11,9 @@ export const dynamic = 'force-dynamic';
 
 const STATES: Record<string, string> = {
   enviada: 'Invitation sent. The person must open the email and define their own password.',
+  recuperacion_enviada: 'Credential recovery requested. The user must open the new email, set a password and sign in. Their existing permissions were not changed.',
+  recuperacion_no_enviada: 'The authentication provider did not confirm recovery email delivery. The existing account and permissions were not changed.',
+  identidad_no_recuperable: 'This entry has no verified linked Auth identity; it was not reset or deleted.',
   entrada_invalida: 'Review name, email, title and access type.',
   ya_activa: 'That account is already active.',
   suspendida: 'That account is suspended. It was not reactivated automatically.',
@@ -106,6 +110,10 @@ export default async function RootAccessPage({
                   <code>{grant.email}</code>
                   <small>{statusText(grant.status)} · {grant.accessClass === 'INSTITUTIONAL_OBSERVER' ? 'Observer' : 'Operator'}</small>
                   {detail ? <p>{detail}</p> : null}
+                  {['ACTIVE','INVITED'].includes(grant.status) ? <form action={recoverInstitutionalAccountAction}>
+                    <input type="hidden" name="email" value={grant.email}/>
+                    <button type="submit">RESEND PASSWORD SETUP LINK</button>
+                  </form> : null}
                 </article>;
               })}
             </div>
