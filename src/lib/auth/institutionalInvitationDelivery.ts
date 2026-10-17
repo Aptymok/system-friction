@@ -149,6 +149,19 @@ async function sendBrandedEmail(input: {
 }
 
 export async function deliverInstitutionalInvitation(input: DeliveryInput): Promise<InstitutionalInvitationDelivery> {
+  if (input.existingUserId) {
+    // A grant may only resend to its already-bound Supabase Auth identity.
+    // Fail closed if an imported/recovered grant refers to a different user.
+    const existing = await input.service.auth.admin.getUserById(input.existingUserId);
+    if (
+      existing.error ||
+      !existing.data.user ||
+      existing.data.user.email?.trim().toLowerCase() !== input.email.trim().toLowerCase()
+    ) {
+      return { ok: false, channel: 'AUTH_PROVIDER_DEFAULT', error: 'existing_invitation_identity_mismatch' };
+    }
+  }
+
   const metadata = {
     display_name: input.displayName,
     sfi_access_class: input.accessClass,

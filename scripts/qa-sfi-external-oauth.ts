@@ -82,14 +82,49 @@ assert.match(oauthRegistryMigration, /grant select, insert, update, delete[\s\S]
 // Exercise the existing matcher, including the previously shipped RFC 8252
 // loopback-port exception, instead of requiring the obsolete .includes spelling.
 const registryExports: Record<string, any> = {};
+const oauthConfigExports: Record<string, any> = {};
 const registryRequire = createRequire(import.meta.url);
+vm.runInNewContext(ts.transpileModule(oauthConfig, {
+  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+}).outputText, {
+  exports: oauthConfigExports,
+  require: () => ({}),
+});
 vm.runInNewContext(ts.transpileModule(oauthRegistry, {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
 }).outputText, {
   exports: registryExports, URL,
-  require: (id: string) => id === 'node:crypto' ? registryRequire(id) : {},
+  require: (id: string) => id === 'node:crypto'
+    ? registryRequire(id)
+    : id === '@/lib/sfi/oauthConfig'
+      ? oauthConfigExports
+      : {},
 });
 const redirectAllowed = (registered: string, requested: string) => registryExports.isAllowedSfiOAuthRedirect({ redirectUris: [registered] }, requested);
+void (async () => {
+const claude = await registryExports.resolveSfiOAuthClient('https://claude.ai/oauth/mcp-oauth-client-metadata');
+assert.equal(claude?.source, 'claude_cimd', 'Claude CIMD identity must resolve without arbitrary callback');
+assert.equal(claude?.clientId, 'https://claude.ai/oauth/mcp-oauth-client-metadata');
+assert.deepEqual(Array.from(claude?.redirectUris ?? []), ['https://claude.ai/api/mcp/auth_callback']);
+assert.equal(registryExports.isAllowedSfiOAuthRedirect(claude, 'https://claude.ai/api/mcp/auth_callback'), true);
+for (const bad of [
+  'https://evil.claude.ai/api/mcp/auth_callback',
+  'https://claude.ai.evil.test/api/mcp/auth_callback',
+  'https://claude.ai/api/mcp/auth_callback/extra',
+  'https://claude.ai/api/mcp/auth_callback?next=evil',
+]) {
+  assert.equal(registryExports.isAllowedSfiOAuthRedirect(claude, bad), false, 'Claude callback must be exact:' + bad);
+}
+assert.equal(registryExports.validateSfiOAuthClientSecret(claude, ''), true, 'Claude CIMD requires public PKCE');
+assert.equal(registryExports.validateSfiOAuthClientSecret(claude, 'arbitrary-secret'), false, 'Claude CIMD rejects extraneous secrets');
+assert.ok(authorize.includes("client.source === 'claude_cimd'"), 'Claude PKCE requirement must be in authorize route');
+assert.ok(authorize.includes("codeChallengeMethod !== 'S256'"), 'PKCE S256 must be enforced');
+assert.ok(authorize.includes("const rootDelegate = profileRole === 'root' || profileRole === 'system'"), 'ROOT identity remains profile-bound');
+
+})().catch((error: unknown) => {
+  console.error('Claude OAuth CIMD boundary check failed:', error);
+  process.exitCode = 1;
+});
 assert.equal(redirectAllowed('https://example.test/callback', 'https://example.test/callback'), true);
 for (const requested of ['https://evil.test/callback', 'https://example.test/callback/extra', 'https://example.test/callback?extra=1', 'https://example.test:8443/callback']) {
   assert.equal(redirectAllowed('https://example.test/callback', requested), false, `non_loopback_redirect_must_be_exact:${requested}`);
