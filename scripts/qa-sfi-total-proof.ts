@@ -1,7 +1,31 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import vm from 'node:vm';
+import ts from 'typescript';
 
 const proof = fs.readFileSync('src/lib/root/closure/totalProof.ts','utf8');
+const fullCycleSource = fs.readFileSync('src/lib/root/closure/fullCycleVerification.ts','utf8');
+const fullCycleExports:Record<string, any>={};
+vm.runInNewContext(ts.transpileModule(fullCycleSource,{
+  compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022},
+}).outputText,{exports:fullCycleExports,require:()=>({}),Date,Boolean,Number,Array,String,JSON});
+const verifyField = fullCycleExports.hasObservedFieldReturn as (caseRow:object,returnRow:object,outcomeRow:object,interventionRow:object)=>boolean;
+assert.equal(typeof verifyField,'function','full_cycle_field_return_admission_missing');
+const fieldCase={id:'case-1',status:'CLOSED_OBSERVED',consent:true,deleted_at:null};
+const fieldReturn={case_id:'case-1',intervention_id:'int-1',status:'RETURN_ACCEPTED',expected_at:'2026-10-10T12:00:00Z',returned_at:'2026-10-12T12:00:00Z',evidence_ids:['evidence-1']};
+const fieldOutcome={id:'outcome-1',case_id:'case-1',intervention_id:'int-1',recorded_at:'2026-10-12T12:02:00Z',expected:'bounded expected change',actual:'observed change',evidence_ids:['evidence-1'],verified:false};
+const intervention={id:'int-1',case_id:'case-1',status:'EXECUTION_RECORDED'};
+assert.equal(verifyField(fieldCase,fieldReturn,fieldOutcome,intervention),true,'real accepted observed outcome may pass without claiming independent verification');
+assert.equal(verifyField(fieldCase,{...fieldReturn,status:'WAITING_RETURN'},fieldOutcome,intervention),false,'pending return must not certify a cycle');
+assert.equal(verifyField(fieldCase,{...fieldReturn,status:'RETURN_RECORDED_UNVERIFIED'},fieldOutcome,intervention),false,'unaccepted return must remain blocked');
+assert.equal(verifyField(fieldCase,{...fieldReturn,returned_at:'2026-10-09T12:00:00Z'},fieldOutcome,intervention),false,'return before T1 must not certify a cycle');
+assert.equal(verifyField(fieldCase,fieldReturn,{...fieldOutcome,intervention_id:'unrelated'},intervention),false,'outcome intervention must match the acknowledged execution');
+assert.equal(verifyField(fieldCase,fieldReturn,{...fieldOutcome,evidence_ids:['unrelated']},intervention),false,'evidence lineage must be shared');
+assert.equal(verifyField({...fieldCase,consent:false},fieldReturn,fieldOutcome,intervention),false,'no independent consent means no Field proof');
+assert.equal(verifyField(fieldCase,fieldReturn,fieldOutcome,{...intervention,status:'PENDING'}),false,'non-executed intervention cannot prove external RETURN');
+assert.match(fullCycleSource,/order\\('recorded_at'/,'Field outcome query must use its actual recorded_at column');
+assert.match(fullCycleSource,/\.eq\\('intervention_id',interventionId\\)/,'Field return query must constrain the same intervention');
+
 const readiness = fs.readFileSync('src/lib/root/closure/readInstitutionalReadiness.ts','utf8');
 const route = fs.readFileSync('src/app/api/root/readiness/route.ts','utf8');
 const continuityRoute = fs.readFileSync('src/app/api/root/continuity/route.ts','utf8');
