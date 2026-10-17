@@ -293,3 +293,19 @@ html:has(.rcThreeMode),body:has(.rcThreeMode){overflow-y:hidden!important}
  .rcThreeMode .rcHorizon.rcThreeHorizon{overflow-y:auto}
 }
 @media(prefers-reduced-motion:reduce){.rcThreeMode .rcOperationalScroller{scroll-behavior:auto}}
+
+
+/* PR #744 reconciliation: preserved canonical backdrop, added stage-specific
+   images only to the genuine authenticated three-horizon controls. */
+.rcThreeMode .rcStageArtwork {
+  display: block;
+  align-self: center;
+  max-width: 100%;
+  width: auto;
+  height: clamp(42px, 7vh, 82px);
+  object-fit: contain;
+  filter: drop-shadow(0 2px 12px rgba(0,0,0,.5));
+}
+@media (max-width:820px) {
+  .rcThreeMode .rcStageArtwork {height:46px}
+}

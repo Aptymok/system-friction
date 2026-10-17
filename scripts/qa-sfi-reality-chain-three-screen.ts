@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {readFileSync, existsSync} from 'node:fs';
 const read=(p:string)=>readFileSync(p,'utf8');
 const ui=read('src/components/sfi/RealityChainWorkbench.tsx');
 const css=read('src/components/sfi/RealityChainWorkbench.css');
@@ -7,6 +7,19 @@ const link=read('src/app/api/cases/[caseId]/linked-cases/route.ts');
 const root=read('src/components/sfi/RootNeuralGraphView.tsx');
 const nav=read('src/components/sfi/AuthenticatedSfiMenu.tsx');
 const stageNames=['WORLD','SIGNAL','OBSERVATION','EVIDENCE','INFERENCE','AUTHORITY','EXECUTION','RETURN','LEARNING'];
+// Reconciled visual stages from legacy PR #744: eight real assets, never an
+// invented LEARNING ninth asset or replacement of the live case workbench.
+assert(ui.includes('const STAGE_ARTWORK=Array.from({length:8}'), 'eight authored Reality Chain visual stages required');
+assert(ui.includes('index<2?<img className="rcStageArtwork"'), 'LEARNING must preserve its separate semantics');
+assert(css.includes('.rcThreeMode .rcStageArtwork'), 'stage artwork must be legible in authentic three-horizon reader');
+for(let number=1; number<=8; number+=1) {
+  const asset=`public/assets/sfi/instruments/SFI_RCH_${String(number).padStart(2,'0')}.png`;
+  assert(existsSync(asset), `missing real stage artwork: ${asset}`);
+}
+// Reconciled ROOT reading from legacy PR #704 on the current cognitive field.
+assert(root.includes('aria-label="Reality stage"'), 'ROOT must expose the represented Reality Passport stage');
+assert(root.includes('activeStage !== \'ALL\' && realityPassportStage(node) !== activeStage'), 'ROOT stage filtering must affect actual graph nodes');
+
 for(const label of stageNames) assert(ui.includes("name:'"+label+"'"),'missing stage '+label);
 assert.equal((ui.match(/className="rcHorizon rcThreeHorizon"/g)||[]).length,3,'exactly three screen groups');
 assert(ui.includes('STEPS.slice(0,3)')&&ui.includes('STEPS.slice(3,6)')&&ui.includes('STEPS.slice(6,9)'),'three groups of three');

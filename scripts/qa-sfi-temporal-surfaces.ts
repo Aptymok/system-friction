@@ -140,6 +140,8 @@ assert.ok(worldReadModel.includes('PUBLIC_HYPOTHESIS_LIMIT=8'), 'public_hypothes
 assert.ok(worldReadModel.includes('LIVE_WORLD_MAX_AGE_HOURS=48'), 'live_world_freshness_window_missing');
 assert.ok(worldReadModel.includes("liveWorldState=nodes.length>0?'LIVE':'STALE_OR_ABSENT'"), 'live_world_persisted_state_contract_missing');
 assert.ok(observatoryUi.includes('data-world-availability={availability.world}') && observatoryUi.includes('worldMetric('), 'world_metrics_must_respect_authoritative_availability');
+assert.ok(observatoryUi.includes("const geoNum=(v:unknown)=>v===null||v===undefined||v===''?null:num(v)"), 'missing territorial coordinates must remain unknown');
+assert.ok(observatoryUi.includes('lat:geoNum(o.lat),lng:geoNum(o.lng)'), 'Observatory must not project missing coordinates as 0°,0°');
 
 // Capability is retained for future gated reactivation; no SVG field is mounted during recovery.
 assert.ok(!observatoryUi.includes('<ObservatoryWorldField'), 'world_field_must_be_unmounted_in_static_recovery');
