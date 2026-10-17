@@ -46,7 +46,7 @@ assert.ok(invitationDelivery.includes('existing_invitation_identity_mismatch'), 
 assert.ok(publicGateway.includes('window.history.replaceState'), 'one-time callback credentials must be cleared from browser history');
 assert.ok(publicGateway.includes('auth.setSession'), 'implicit callback must verify session');
 assert.ok(publicGateway.includes('exchangeCodeForSession'), 'PKCE callback must verify code');
-assert.ok(publicGateway.includes("metadata.sfi_invitation !== true"), 'recovery callback must be institutional');
+assert.ok(publicGateway.includes("metadata.sfi_invitation === true"), 'marked institutional sessions must resolve to invite recovery, while personal signup resolves to /entry');
 
 assert.match(invitationDelivery, /type: 'recovery'/, 'existing invited user must receive recovery rather than duplicate invite token');
 assert.match(invitationDelivery, /auth\.resetPasswordForEmail/, 'default mail recovery is required for already registered users');
