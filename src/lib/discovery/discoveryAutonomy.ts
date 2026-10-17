@@ -177,8 +177,24 @@ async function persistEditorialCandidate(input: { runId: string; query: string; 
     : { state: 'PERSIST_FAILED' as const, recommendationKey: key, proposal: null, error: result.error };
 }
 
-export async function runDiscoveryAutonomyCycle(now = new Date()) {
-  const observation = await runAutomaticDiscoveryObservationCycle(now);
+export async function runDiscoveryAutonomyCycle(
+  now = new Date(),
+  options: { restrictedObservationOnly?: boolean } = {},
+) {
+  const observation = await runAutomaticDiscoveryObservationCycle(now, { zeroKeyOnly: options.restrictedObservationOnly });
+  // A restricted cost-circuit may persist one independent retrieval observation,
+  // but cannot run other cognitive lanes, development proposals or publications.
+  if (options.restrictedObservationOnly) {
+    return {
+      ok: Boolean(observation.runId),
+      contract: SFI_DISCOVERY_AUTONOMY_CONTRACT,
+      observation,
+      restrictedObservationOnly: true,
+      developmentCandidates: [],
+      editorialCandidate: null,
+      boundary: 'One GDELT no-key retrieval only; no LLM synthesis, no paid fallback, no governance proposals, no external action, no canon promotion. A persisted UNAVAILABLE is not evidence of retrieval.',
+    };
+  }
   if (!observation.ok || !observation.runId) {
     return { ok: false as const, contract: SFI_DISCOVERY_AUTONOMY_CONTRACT, observation, developmentCandidates: [], editorialCandidate: null, boundary: 'Discovery observation failed or produced no persisted run. No candidate, discovery, recognition, PULL or RETURN is inferred.' };
   }
