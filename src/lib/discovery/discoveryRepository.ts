@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { createHash } from 'node:crypto';
-import { runPublicResearch } from '@/lib/agents/publicResearch';
+import { runPublicResearch, runZeroKeyDiscoveryResearch } from '@/lib/agents/publicResearch';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import type { SfiDiscoveryObservationInput, SfiDiscoveryRetrievalObservation } from './discoveryMesh';
 import { observeDiscovery } from './discoveryMesh';
@@ -109,16 +109,22 @@ export async function persistDiscoveryObservation(input: SfiDiscoveryObservation
   return { result, queryId: String(queryRow.data.id), runId: String(runRow.data.id), replay: false };
 }
 
-export async function runAutomaticDiscoveryObservationCycle(now = new Date()) {
+export async function runAutomaticDiscoveryObservationCycle(
+  now = new Date(),
+  options: { zeroKeyOnly?: boolean } = {},
+) {
   const selected = automaticQueryFor(now);
   const unbranded = !/\b(system friction institute|systemfriction|\bsfi\b)/i.test(selected.query);
-  const research = await runPublicResearch({
-    prompt: `Observe public retrieval for System Friction Institute without manufacturing discovery. Query: ${selected.query}. Return sources only as search/retrieval observations. A source result is not recognition, relation, PULL or RETURN.`,
-    queries: [selected.query],
-    country: 'US',
-    searchLang: 'en',
-    timezone: 'America/New_York',
-  });
+  // Restricted egress never calls a paid search provider or a synthesis model.
+  const research = options.zeroKeyOnly
+    ? await runZeroKeyDiscoveryResearch(selected.query)
+    : await runPublicResearch({
+        prompt: `Observe public retrieval for System Friction Institute without manufacturing discovery. Query: ${selected.query}. Return sources only as search/retrieval observations. A source result is not recognition, relation, PULL or RETURN.`,
+        queries: [selected.query],
+        country: 'US',
+        searchLang: 'en',
+        timezone: 'America/New_York',
+      });
   const own = research.sources.map((source) => ({ source, canonicalUrl: canonicalSfiUrl(source.url) })).find((item) => item.canonicalUrl) ?? null;
   const observedAt = now.toISOString();
   const externalReferences = research.sources
