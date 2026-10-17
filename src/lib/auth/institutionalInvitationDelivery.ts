@@ -9,6 +9,7 @@ type DeliveryInput = {
   title: string;
   accessClass: InstitutionalAccessClass;
   redirectTo: string;
+  existingUserId?: string | null;
 };
 
 export type InstitutionalInvitationDelivery =
@@ -155,15 +156,21 @@ export async function deliverInstitutionalInvitation(input: DeliveryInput): Prom
   };
 
   if (brandedEmailConfigured()) {
-    const generated = await input.service.auth.admin.generateLink({
-      type: 'invite',
-      email: input.email,
-      options: { redirectTo: input.redirectTo, data: metadata },
-    });
+    const generated = input.existingUserId
+      ? await input.service.auth.admin.generateLink({
+          type: 'recovery',
+          email: input.email,
+          options: { redirectTo: input.redirectTo },
+        })
+      : await input.service.auth.admin.generateLink({
+          type: 'invite',
+          email: input.email,
+          options: { redirectTo: input.redirectTo, data: metadata },
+        });
 
     const actionLink = generated.data?.properties?.action_link;
     const userId = generated.data?.user?.id;
-    if (generated.error || !actionLink || !userId) {
+    if (generated.error || !actionLink || !userId || (input.existingUserId && userId !== input.existingUserId)) {
       return {
         ok: false,
         channel: 'SFI_BRANDED_EMAIL',
@@ -180,6 +187,18 @@ export async function deliverInstitutionalInvitation(input: DeliveryInput): Prom
     });
     if (!delivered.ok) return { ok: false, channel: 'SFI_BRANDED_EMAIL', error: delivered.error };
     return { ok: true, channel: 'SFI_BRANDED_EMAIL', userId };
+  }
+
+  if (input.existingUserId) {
+    // A pending grant is already bound to an Auth user. Never reinvite via
+    // inviteUserByEmail: Supabase correctly rejects a duplicate account.
+    const recovery = await input.service.auth.resetPasswordForEmail(input.email, {
+      redirectTo: input.redirectTo,
+    });
+    if (recovery.error) {
+      return { ok: false, channel: 'AUTH_PROVIDER_DEFAULT', error: recovery.error.message };
+    }
+    return { ok: true, channel: 'AUTH_PROVIDER_DEFAULT', userId: input.existingUserId };
   }
 
   const invitation = await input.service.auth.admin.inviteUserByEmail(input.email, {
