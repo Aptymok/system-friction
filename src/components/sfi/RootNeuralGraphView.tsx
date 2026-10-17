@@ -672,6 +672,7 @@ export function RootNeuralGraphView({
   const initialReading=(allowedReadings as readonly string[]).includes(requestedReading||'') ? requestedReading as typeof allowedReadings[number] : 'CURRENT_STATE';
   const [query, setQuery] = useState('');
   const [activeType, setActiveType] = useState('ALL');
+  const [activeStage, setActiveStage] = useState<'ALL'|RealityPassportStage>('ALL');
   const [colorEncoding,setColorEncoding]=useState<ColorEncoding>('EPISTEMIC');
   const [knowledgeCutoffSelection,setKnowledgeCutoffSelection]=useState<{nodeId:string;cutoff:string}|null>(null);
   const [activeCategory,setActiveCategory]=useState('ALL');
@@ -704,6 +705,15 @@ export function RootNeuralGraphView({
     [graph.nodes],
   );
 
+  const stageCounts=useMemo(()=>{
+    const counts=new Map<RealityPassportStage,number>();
+    graph.nodes.forEach(node=>{
+      const stage=realityPassportStage(node);
+      counts.set(stage,(counts.get(stage)??0)+1);
+    });
+    return counts;
+  },[graph.nodes]);
+
   const domains=useMemo(()=>[...new Set(graph.nodes.map(node=>node.origin).filter(Boolean))].sort(),[graph.nodes]);
 
   const focusIds=useMemo(()=>{
@@ -726,6 +736,7 @@ export function RootNeuralGraphView({
     return graph.nodes.filter((node) => {
       if (focusIds && !focusIds.has(node.id)) return false;
       if (activeType !== 'ALL' && node.type !== activeType) return false;
+      if (activeStage !== 'ALL' && realityPassportStage(node) !== activeStage) return false;
       if (activeCategory !== 'ALL' && fieldCategory(node) !== activeCategory) return false;
       if (domainFilter !== 'ALL' && node.origin !== domainFilter) return false;
       if (authorityFilter !== 'ALL' && (node.realityPassport?.authority.state ?? 'UNKNOWN') !== authorityFilter) return false;
@@ -740,7 +751,7 @@ export function RootNeuralGraphView({
       return [node.label, node.type, node.origin, node.provenance, ...node.lineage]
         .some((value) => value.toLowerCase().includes(needle));
     });
-  }, [activeType, activeCategory, authorityFilter, evidenceFilter, relationFilter, returnFilter, domainFilter, degree, graph.nodes, query, temporalResolution,focusIds]);
+  }, [activeStage, activeType, activeCategory, authorityFilter, evidenceFilter, relationFilter, returnFilter, domainFilter, degree, graph.nodes, query, temporalResolution,focusIds]);
 
   const encodingLegend = useMemo(()=>colorLegendEntries(colorEncoding,visibleNodes),[colorEncoding,visibleNodes]);
   const visibleNodeIds = useMemo(() => new Set(visibleNodes.map((node) => node.id)), [visibleNodes]);
@@ -805,6 +816,12 @@ export function RootNeuralGraphView({
             {graph.nodes.some(node=>fieldCategory(node)==='UNCLASSIFIED')?<button type="button" aria-pressed={activeCategory==='UNCLASSIFIED'} onClick={()=>setActiveCategory(activeCategory==='UNCLASSIFIED'?'ALL':'UNCLASSIFIED')}><span>UNCLASSIFIED</span><b>{graph.nodes.filter(node=>fieldCategory(node)==='UNCLASSIFIED').length}</b></button>:null}
           </nav>
           <div className="rootReferenceSidebarKicker">ADDITIONAL FILTERS</div>
+          <label className="rootExplorerLabel">REALITY STAGE
+            <select aria-label="Reality stage" value={activeStage} onChange={event=>setActiveStage(event.target.value as 'ALL'|RealityPassportStage)}>
+              <option value="ALL">ALL STAGES ({graph.nodes.length})</option>
+              {REALITY_PASSPORT_STAGES.map(stage=><option key={stage} value={stage}>{stage.toUpperCase()} ({stageCounts.get(stage)??0})</option>)}
+            </select>
+          </label>
           <label className="rootExplorerLabel">COLOR ENCODING
             <select value={colorEncoding} onChange={event=>setColorEncoding(event.target.value as ColorEncoding)}>
               <option value="EPISTEMIC">EPISTEMIC / OBJECT ROLE</option>
