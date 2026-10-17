@@ -144,3 +144,59 @@ test('passport explicitly preserves the public Reality Chain Method boundary',()
   assert.equal(passport.methodBoundary,'PROJECTS_REALITY_WITHOUT_REDEFINING_REALITY_CHAIN_METHOD');
   assert.equal(passport.boundary,'DERIVED_PROJECTION_NOT_CANONICAL_TRUTH');
 });
+
+test('represented repeated evidence root is disclosed, never double-counted as independent confirmation',()=>{
+  const subject=node({nodeId:'claim-repeated-evidence',ontologyType:'CLAIM',attributes:{epistemicClass:'DERIVED',verificationState:'VERIFIED'}});
+  const edges=[
+    edge({edgeId:'support-1',sourceNodeId:'doc-1',targetNodeId:subject.nodeId,relation:'supports',attributes:{sourceRootId:'original-source-1'}}),
+    edge({edgeId:'support-2',sourceNodeId:'doc-2',targetNodeId:subject.nodeId,relation:'supports',attributes:{sourceRootId:'original-source-1'}}),
+  ];
+  const passport=buildRealityPassport(subject,edges);
+  assert.equal(passport.contract,'SFI-REALITY-PASSPORT-1.1','do not roll contract back to 1.0');
+  assert.equal(passport.provenance.independence.state,'REPRESENTED');
+  assert.equal(passport.provenance.independence.independentRootCount,1);
+  assert.equal(passport.provenance.independence.duplicateSupportCount,1);
+  assert.match(passport.reasons.join(' '),/not independent observations/i);
+  assert.equal(passport.provenance.independence.boundary,'MATERIAL_OR_HASH_DIVERSITY_DOES_NOT_PROVE_EVIDENCE_INDEPENDENCE');
+});
+
+test('unrepresented evidence roots remain UNKNOWN rather than invented as independent',()=>{
+  const subject=node({nodeId:'claim-unknown-roots',ontologyType:'CLAIM',attributes:{epistemicClass:'INFERRED'}});
+  const supporting=edge({edgeId:'support-unknown',sourceNodeId:'source-unknown',targetNodeId:subject.nodeId,relation:'supports'});
+  const passport=buildRealityPassport(subject,[supporting]);
+  assert.equal(passport.provenance.independence.state,'UNKNOWN');
+  assert.equal(passport.provenance.independence.independentRootCount,null);
+  assert.equal(passport.provenance.independence.duplicateSupportCount,null);
+});
+
+test('verification provenance exposes method, verifier, cost units and process impact without asserting truth',()=>{
+  const subject=node({
+    nodeId:'claim-verification-trail',
+    ontologyType:'CLAIM',
+    attributes:{
+      epistemicClass:'DERIVED',
+      verificationState:'VERIFIED',
+      verificationMethod:'bounded-evidence-check',
+      verifier:'authorized-checker',
+      verifierSelectionReason:'separation-of-duties',
+      verificationCostUnit:'MXN',
+      verificationBudgetUnit:'MXN',
+      expectedInformationGain:0.2,
+      falseAcceptBoundary:'not quantified',
+      falseRejectBoundary:'not quantified',
+      verificationPerturbation:'minimal',
+      provenanceBindingMethod:'sha256',
+      provenanceBindingResult:'matched-document',
+    },
+  });
+  const passport=buildRealityPassport(subject,[]);
+  assert.equal(passport.verification.method,'bounded-evidence-check');
+  assert.equal(passport.verification.verifier,'authorized-checker');
+  assert.equal(passport.verification.selectionReason,'separation-of-duties');
+  assert.equal(passport.verification.costUnit,'MXN');
+  assert.equal(passport.verification.expectedInformationGain,0.2);
+  assert.equal(passport.verification.processImpact,'minimal');
+  assert.equal(passport.provenance.contentBinding.method,'sha256');
+  assert.equal(passport.provenance.contentBinding.boundary,'PROVENANCE_BINDING_DOES_NOT_PROVE_EVENT_TRUTH');
+  assert.equal(passport.methodBoundary,'PROJECTS_REALITY_WITHOUT_REDEFINING_REALITY_CHAIN_METHOD');
+});
