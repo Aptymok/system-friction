@@ -4,6 +4,8 @@ import { readFileSync } from 'node:fs';
 const read = (path: string) => readFileSync(path, 'utf8');
 const evolution = read('src/lib/institution/institutionalEvolution.ts');
 const integrated = read('src/core/cognitive-twin/integratedInstitutionalCycle.ts');
+const fullCycle = read('src/lib/root/closure/fullCycleVerification.ts');
+const proofExporter = read('scripts/db/export-sfi-full-cycle-proof.mjs');
 const institutionalCycle = read('src/lib/institution/institutionalCycle.ts');
 const assignments = read('src/lib/sfi/cognitive-runtime/institutionalAssignments.ts');
 const outcome = read('src/lib/governance/proposalOutcome.ts');
@@ -75,6 +77,11 @@ assert.ok(approve.includes("if (String((decision.data as Record<string, unknown>
 assert.ok(approve.includes("next: 'institutional_candidate_adopted_without_redispatch'"), 'approve_route_must_not_redispatch_adopted_candidate');
 
 assert.ok(integrated.includes('runInstitutionalEvolutionObservation'), 'scheduled_institutional_cycle_must_run_evolution_observer');
+assert.ok(fullCycle.includes("id:'studio',label:'Studio · rama opcional',status:'BLOCKED',required:false"), 'studio_must_remain_an_optional_specialized_lane');
+assert.ok(proofExporter.includes("const required=['evidence','method_lab','field','cognitive_twin','institutional_cycle','readiness']"), 'full_cycle_export_must_match_required_core_organs');
+assert.ok(!proofExporter.includes("'evidence','studio','method_lab'"), 'export_must_not_reintroduce_optional_studio_gate');
+assert.ok(proofExporter.includes("proof.complete!==true"), 'exporter_must_require_persisted_complete_proof');
+
 assert.ok(institutionalCycle.includes('sourceEventRefs: linkedRootEvents'), 'institutional_evidence_refs_must_be_backed_by_observed_event_ids');
 assert.ok(institutionalCycle.includes('eventById.has(ref)'), 'unresolved_event_ids_must_not_be_treated_as_verified');
 assert.ok(institutionalCycle.includes("crossInstrumentCycleCorrelation: 'NOT_CERTIFIED'"), 'routine_cycle_must_not_forge_full_sfi_cycle_completion');
