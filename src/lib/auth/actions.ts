@@ -69,13 +69,13 @@ export async function registerAction(formData: FormData) {
   const input = { email: formValue(formData, 'email'), password: formValue(formData, 'password') }
   const next = safeInternalRedirect(formValue(formData, 'next'))
   const parsed = authSchema.safeParse(input)
-  if (!parsed.success) redirect(`/signup?error=entrada_invalida&next=${encodeURIComponent(next)}`)
+  if (!parsed.success || parsed.data.password.length < 12) redirect(`/signup?error=entrada_invalida&next=${encodeURIComponent(next)}`)
   const limit = checkRateLimit(rateLimitKey('register', input.email), 5, 60_000)
   if (!limit.allowed) redirect(`/signup?error=rate_limit&next=${encodeURIComponent(next)}`)
 
   const supabase = await createServerSupabaseClient()
   if (!supabase) redirect(`/signup?error=supabase_no_configurado&next=${encodeURIComponent(next)}`)
-  const origin = process.env.NEXT_PUBLIC_APP_URL || 'https://www.systemfriction.org'
+  const origin = (process.env.NEXT_PUBLIC_APP_URL || 'https://www.systemfriction.org').replace(/\/$/, '')
   const { error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
