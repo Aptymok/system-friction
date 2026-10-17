@@ -1,0 +1,50 @@
+name: MIHM EXP-001 G3b P12 Documentary Trace
+on:
+  pull_request:
+    paths:
+      - 'scripts/research/mihm-exp001-g3b-p12.mjs'
+      - 'scripts/research/mihm-exp001-g3b-p12.test.mjs'
+      - '.github/workflows/mihm-exp001-g3b.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+jobs:
+  p12_trace:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test matched conventional P12 rule and bounded documentary relations
+        run: node --test scripts/research/mihm-exp001-g3b-p12.test.mjs
+      - name: Download and verify fixed G3a source audit
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/mihm-exp001
+          curl --fail --silent --show-error --location --retry 3 --retry-all-errors --retry-delay 2 --retry-max-time 30 \
+            --header "Authorization: Bearer ${GITHUB_TOKEN}" \
+            --header "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/Aptymok/system-friction/actions/artifacts/11884937440/zip" \
+            --output artifacts/mihm-exp001/g3a-original.zip
+          echo "2bd9b3c34f7d3fd8de50ef43a7bf77b73527b32b04a6bacee101a4c48273c383  artifacts/mihm-exp001/g3a-original.zip" | sha256sum --check
+          unzip -p artifacts/mihm-exp001/g3a-original.zip g3-source-checks.json > artifacts/mihm-exp001/g3-source-checks.json
+      - name: Bounded historical page/guard evidence audit
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          node scripts/research/mihm-exp001-g3b-p12.mjs artifacts/mihm-exp001/g3-source-checks.json > artifacts/mihm-exp001/g3b-p12-evidence.json
+          node -e "const a=require('./artifacts/mihm-exp001/g3b-p12-evidence.json');console.log(JSON.stringify({contract:a.contract,summary:a.summary,errors:a.errors.length,validated:a.validated},null,2))"
+      - name: Save research-only provenance audit artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mihm-exp001-g3b-p12-evidence
+          path: artifacts/mihm-exp001/g3b-p12-evidence.json
+          retention-days: 30
+          if-no-files-found: error
