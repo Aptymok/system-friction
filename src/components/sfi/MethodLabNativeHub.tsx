@@ -167,7 +167,7 @@ export function MethodLabNativeHub({ initialState, initialSessions, evidenceOpti
       <section className="mlh-hero">
         <div>
           <span className="mlh-kicker">PROTOCOL · EVIDENCE · RUN · RETURN · CONTRAST</span>
-          <h1>Operational laboratory without confusing simulation with the world.</h1>
+          <p className="mlh-operational-instruction">Define el objetivo → selecciona evidencia → ejecuta → contrasta resultados.</p>
           <p>{initialState.epistemicRule}</p>
         </div>
         <div className="mlh-metrics">
@@ -179,27 +179,28 @@ export function MethodLabNativeHub({ initialState, initialSessions, evidenceOpti
       </section>
 
       <section id="mlh-instruments" className="mlh-section">
-        <div className="mlh-section-head"><div><span>01 / REGISTRY</span><h2>Registered instruments</h2></div><p>{initialState.promotionRule}</p></div>
+        <div className="mlh-section-head"><div><span>01 / REGISTRY</span><p className="mlh-section-instruction">Selecciona un protocolo y despliega su evidencia.</p></div><p>{initialState.promotionRule}</p></div>
         <div className="mlh-protocol-grid">
-          {initialState.protocols.map((protocol) => (
-            <article className="mlh-card" data-state={protocol.status} key={protocol.id}>
-              <div className="mlh-card-head"><span>{protocol.epistemicClass}</span><b>{protocol.status}</b></div>
-              <h3>{protocol.name}</h3>
-              <p>{protocol.purpose}</p>
+          {initialState.protocols.map((protocol,index) => (
+            <details className="mlh-card mlh-tile" data-tone={protocol.status==='GATED'?'red':protocol.status==='OPERATIONAL'?'teal':'gold'} data-weight={index%3===0?'wide':index%3===1?'compact':'balanced'} data-state={protocol.status} key={protocol.id} open={index===0}>
+              <summary className="mlh-tile-trigger"><span><strong>{protocol.name}</strong><small>{protocol.epistemicClass} · {protocol.status}</small></span><span className="mlh-tile-chevron" aria-hidden="true">⌄</span></summary>
+              <div className="mlh-tile-body"><p>{protocol.purpose}</p>
               <dl>
                 <div><dt>RUNS</dt><dd>{protocol.runCount}</dd></div>
                 <div><dt>LAST</dt><dd>{formatTime(protocol.lastRunAt)}</dd></div>
                 <div><dt>VALIDATION</dt><dd>{protocol.lastValidationLevel ?? 'NO QUALIFYING RUN'}</dd></div>
               </dl>
               {protocol.missingDependencies.length ? <small className="mlh-warning">MISSING: {protocol.missingDependencies.join(' · ')}</small> : <small>DEPENDENCIES AVAILABLE</small>}
-            </article>
+              </div>
+            </details>
           ))}
         </div>
       </section>
 
       <section id="mlh-simulation" className="mlh-section">
-        <div className="mlh-section-head"><div><span>02 / SIMULATION</span><h2>Run with persisted evidence</h2></div><p>Sociotechnical, Economic, and MIHM Foundation G1 diagnostics run with persisted evidence. MIHM G1 uses controlled synthetic fixtures and does not measure real-world homeostasis; all outputs remain SIMULATED.</p></div>
-        <div className="mlh-panel mlh-auto-experiment">
+        <div className="mlh-section-head"><div><span>02 / SIMULATION</span><p className="mlh-section-instruction">Formula una hipótesis, vincula evidencia y ejecuta una simulación gobernada.</p></div><p>Sociotechnical, Economic, and MIHM Foundation G1 diagnostics run with persisted evidence. MIHM G1 uses controlled synthetic fixtures and does not measure real-world homeostasis; all outputs remain SIMULATED.</p></div>
+        <details className="mlh-panel mlh-auto-experiment mlh-tile" data-tone="gold" open>
+          <summary className="mlh-tile-trigger"><span><strong>Define qué deseas comprobar.</strong><small>OBJETIVO → PROTOCOLO → EVIDENCIA → RUN</small></span><span className="mlh-tile-chevron" aria-hidden="true">⌄</span></summary>
           <label>WHAT DO YOU WANT TO TEST?<textarea value={automaticObjective} onChange={event=>setAutomaticObjective(event.target.value)} placeholder="Describe the question, hypothesis or systemic friction…" /></label>
           <div className="mlh-auto-reading"><span>AUTO PROTOCOL · {automaticProtocol.replaceAll('_',' ')}</span><span>EVIDENCE · {preparedEvidence.length} persisted references</span><span>MODEL ACCESS · MCP · {initialState.modelAccess?.status ?? 'UNKNOWN'}</span></div>
           <button type="button" className="mlh-action" disabled={Boolean(busy)||!automaticObjective.trim()||preparedEvidence.length===0} onClick={()=>void execute('AUTO METHOD LAB RUN',()=>postJson('/api/root/method-lab/simulate',{
@@ -207,9 +208,10 @@ export function MethodLabNativeHub({ initialState, initialSessions, evidenceOpti
             parameters:{objective:automaticObjective.trim(),preparationMode:selectedEvidence.length?'MANUAL_EVIDENCE_OVERRIDE':'AUTO_EVIDENCE_SELECTION'},cognitiveSpineContextRefs:[],
           }))}>{busy==='AUTO METHOD LAB RUN'?'RUNNING EXPERIMENT…':'RUN EXPERIMENT'}</button>
           <p className="mlh-boundary">SIMULATED ≠ OBSERVED · The automatically chosen protocol and persisted sources do not prove validation or a real-world RETURN.</p>
-        </div>
+        </details>
         <div className="mlh-two-col">
-          <div className="mlh-panel">
+          <details className="mlh-panel mlh-tile" data-tone="teal">
+            <summary className="mlh-tile-trigger"><span><strong>Elige el protocolo y las fuentes.</strong><small>SELECCIÓN MANUAL · EVIDENCIA PERSISTIDA</small></span><span className="mlh-tile-chevron" aria-hidden="true">⌄</span></summary>
             <label>PROTOCOL
               <select value={simulationProtocol} onChange={(event) => setSimulationProtocol(event.target.value as typeof simulationProtocol)}>
                 <option value="sociotechnical_simulation">Sociotechnical Simulation</option>
@@ -233,24 +235,27 @@ export function MethodLabNativeHub({ initialState, initialSessions, evidenceOpti
             </button>
             {simulationProtocol === 'economic_simulation' ? <p className="mlh-boundary">Economic Simulation runs only with genuinely admissible economic or world evidence; execution count alone is not a validation target.</p> : null}
             {simulationProtocol === 'mihm_foundation_diagnostic' ? <p className="mlh-boundary">MIHM G1 runs fixed synthetic null-versus-zero variants. Selected persisted evidence anchors the research trace only; its values are NOT used as real-world MIHM measurements. No observed RETURN or canonical promotion.</p> : null}
-          </div>
-          <div className="mlh-panel mlh-readout">
+          </details>
+          <details className="mlh-panel mlh-readout mlh-tile" data-tone="red" open>
+            <summary className="mlh-tile-trigger"><span><strong>Comprueba los límites del resultado.</strong><small>SIMULADO ≠ OBSERVADO</small></span><span className="mlh-tile-chevron" aria-hidden="true">⌄</span></summary>
             <span>BOUNDARY</span>
-            <h3>SIMULATED ≠ OBSERVED</h3>
+            <p>Una simulación no demuestra un cambio del mundo real.</p>
             <p>A run tests the instrument and leaves a reproducible result. Only a later RETURN can raise validation.</p>
             <dl>
               <div><dt>SELECTED EVIDENCE</dt><dd>{selectedEvidence.length}</dd></div>
               <div><dt>PERSISTENCE</dt><dd>{initialState.sharedPersistence}</dd></div>
               <div><dt>DT</dt><dd>{initialState.decisionTransfer.passCount} PASS / {initialState.decisionTransfer.failCount} FAIL / {initialState.decisionTransfer.blockedCount} BLOCKED</dd></div>
             </dl>
-          </div>
+          </details>
         </div>
       </section>
 
       <section id="mlh-sessions" className="mlh-section">
-        <div className="mlh-section-head"><div><span>03 / COGNITIVE RELATIONAL LAB</span><h2>Session → events → blind → founder → contrast</h2></div><p>BLIND always runs before receiving the founder reading.</p></div>
+        <div className="mlh-section-head"><div><span>03 / COGNITIVE RELATIONAL LAB</span><p className="mlh-section-instruction">Abre una sesión → registra hechos → realiza BLIND → contrasta.</p></div><p>BLIND always runs before receiving the founder reading.</p></div>
 
         <div className="mlh-three-col">
+          <details className="mlh-tile mlh-form-tile" data-tone="gold" open>
+          <summary className="mlh-tile-trigger"><span><strong>Activa una sesión.</strong><small>INDICA OBJETIVO Y CONDICIÓN</small></span><span className="mlh-tile-chevron" aria-hidden="true">⌄</span></summary>
           <form className="mlh-panel" onSubmit={(event) => { event.preventDefault(); void execute('CREATE CRL SESSION', () => postJson('/api/root/cognitive-lab/sessions', newSession)); }}>
             <h3>ACTIVATE SESSION</h3>
             <label>TITLE<input value={newSession.title} onChange={(event) => setNewSession({ ...newSession, title: event.target.value })} /></label>
@@ -264,8 +269,10 @@ export function MethodLabNativeHub({ initialState, initialSessions, evidenceOpti
               <option value="OTHER">OTHER</option>
             </select></label>
             <button className="mlh-action" disabled={Boolean(busy) || !newSession.title.trim() || !newSession.objective.trim()}>ACTIVATE SESSION</button>
-          </form>
+          </form></details>
 
+          <details className="mlh-tile mlh-form-tile" data-tone="teal">
+          <summary className="mlh-tile-trigger"><span><strong>Registra un evento verificable.</strong><small>ACTOR · PROVENIENCIA · EVIDENCIA</small></span><span className="mlh-tile-chevron" aria-hidden="true">⌄</span></summary>
           <form className="mlh-panel" onSubmit={(event) => { event.preventDefault(); if (!eventDraft.sessionId) return; void execute('RECORD CRL EVENT', () => postJson(`/api/root/cognitive-lab/sessions/${eventDraft.sessionId}/events`, { eventKind: eventDraft.eventKind, provenance: eventDraft.provenance, actorKey: eventDraft.actorKey, payload: { content: eventDraft.content }, evidenceRefs: selectedEvidence })); }}>
             <h3>RECORD EVENT</h3>
             <label>SESSION<select value={eventDraft.sessionId} onChange={(event) => setEventDraft({ ...eventDraft, sessionId: event.target.value })}><option value="">SELECT…</option>{initialSessions.filter((item) => !['CLOSED', 'REJECTED'].includes(item.status)).map((item) => <option value={item.id} key={item.id}>{item.sessionKey} · {item.status}</option>)}</select></label>
@@ -274,35 +281,35 @@ export function MethodLabNativeHub({ initialState, initialSessions, evidenceOpti
             <label>ACTOR<input value={eventDraft.actorKey} onChange={(event) => setEventDraft({ ...eventDraft, actorKey: event.target.value })} /></label>
             <label>CONTENT<textarea value={eventDraft.content} onChange={(event) => setEventDraft({ ...eventDraft, content: event.target.value })} /></label>
             <button className="mlh-action" disabled={Boolean(busy) || !eventDraft.sessionId || !eventDraft.content.trim()}>RECORD</button>
-          </form>
+          </form></details>
 
-          <div className="mlh-panel mlh-readout">
-            <span>CRL STATE</span><h3>{initialSessions.length} sessions</h3>
+          <details className="mlh-panel mlh-readout mlh-tile" data-tone="blue">
+            <summary className="mlh-tile-trigger"><span><strong>Revisa las sesiones y sus estados.</strong><small>{initialSessions.length} SESIONES · BLIND / CONTRASTE</small></span><span className="mlh-tile-chevron" aria-hidden="true">⌄</span></summary>
             <p>{initialSessions.filter((item) => item.status === 'READY_FOR_BLIND').length} ready for BLIND · {initialSessions.filter((item) => item.status === 'BLIND_COMPLETE').length} ready for contrast.</p>
             <p className="mlh-boundary">FOUNDER_AUTHORIZATION is not equivalent to FOUNDER_ORIGINATED.</p>
-          </div>
+          </details>
         </div>
 
         <div className="mlh-session-list">
           {initialSessions.map((session) => (
-            <article id={"mlh-session-"+session.id} className="mlh-session" data-state={session.status} key={session.id}>
-              <header><div><span>{session.condition}</span><h3>{session.sessionKey}</h3><p>{session.title}</p></div><b>{session.status}</b></header>
-              <p>{session.objective}</p>
+            <details id={"mlh-session-"+session.id} className="mlh-session mlh-tile" data-tone={session.status==='READY_FOR_BLIND'?'gold':session.status==='CLOSED'?'teal':'blue'} data-state={session.status} key={session.id} open={session.status==='READY_FOR_BLIND'}>
+              <summary className="mlh-tile-trigger"><span><strong>{session.sessionKey||session.title}</strong><small>{session.condition} · {session.status}</small></span><span className="mlh-tile-chevron" aria-hidden="true">⌄</span></summary>
+              <div className="mlh-tile-body"><p>{session.title} · {session.objective}</p>
               <dl><div><dt>EVENTS</dt><dd>{session.eventCount}</dd></div><div><dt>ANALYSES</dt><dd>{session.analysisCount}</dd></div><div><dt>START</dt><dd>{formatTime(session.startedAt)}</dd></div><div><dt>END</dt><dd>{formatTime(session.endedAt)}</dd></div></dl>
 
               {!['CLOSED', 'REJECTED'].includes(session.status) && ['FOUNDER_MODEL', 'FOUNDER_TWIN', 'TWIN_ONLY'].includes(session.condition) ? <div className="mlh-inline-action"><textarea value={interactionPrompts[session.id] ?? ''} onChange={(event) => setInteractionPrompts({ ...interactionPrompts, [session.id]: event.target.value })} placeholder="Real prompt to record interaction…"/><button disabled={Boolean(busy) || !(interactionPrompts[session.id] ?? '').trim()} onClick={() => execute('CRL INTERACTION', () => postJson(`/api/root/cognitive-lab/sessions/${session.id}/interact`, { prompt: interactionPrompts[session.id] ?? '', history: [] }))}>INTERACT</button></div> : null}
 
               {session.status === 'READY_FOR_BLIND' ? <button className="mlh-action" disabled={Boolean(busy)} onClick={() => execute('CRL BLIND', () => postJson(`/api/root/cognitive-lab/sessions/${session.id}/blind`, {}))}>RUN BLIND</button> : null}
 
-              {['BLIND_COMPLETE', 'CONTRAST_PENDING'].includes(session.status) ? <div className="mlh-contrast"><label>FOUNDER READING<textarea value={founderReadings[session.id] ?? ''} onChange={(event) => setFounderReadings({ ...founderReadings, [session.id]: event.target.value })} placeholder="Post-BLIND reading: agreements, divergences, omissions, causal claims and observed influence…" /></label><button className="mlh-action" disabled={Boolean(busy) || !(founderReadings[session.id] ?? '').trim()} onClick={() => execute('CRL CONTRAST', () => postJson(`/api/root/cognitive-lab/sessions/${session.id}/contrast`, { founderReading: founderReadings[session.id] ?? '' }))}>CONTRAST AND CLOSE</button></div> : null}
-            </article>
+              {['BLIND_COMPLETE', 'CONTRAST_PENDING'].includes(session.status) ? <div className="mlh-contrast"><label>FOUNDER READING<textarea value={founderReadings[session.id] ?? ''} onChange={(event) => setFounderReadings({ ...founderReadings, [session.id]: event.target.value })} placeholder="Post-BLIND reading: agreements, divergences, omissions, causal claims and observed influence…" /></label><button className="mlh-action" disabled={Boolean(busy) || !(founderReadings[session.id] ?? '').trim()} onClick={() => execute('CRL CONTRAST', () => postJson(`/api/root/cognitive-lab/sessions/${session.id}/contrast`, { founderReading: founderReadings[session.id] ?? '' }))}>CONTRAST AND CLOSE</button></div> : null}</div>
+            </details>
           ))}
         </div>
       </section>
 
       <section className="mlh-section mlh-status-section">
-        <div><span>DECISION TRANSFER</span><strong>{initialState.decisionTransfer.status}</strong><p>{initialState.decisionTransfer.validationRule}</p></div>
-        <div><span>AUTHORITY</span><strong>ROOT</strong><p>{initialState.decisionTransfer.authorityRule}</p></div>
+        <details className="mlh-tile" data-tone="blue"><summary className="mlh-tile-trigger"><span><strong>Comprueba la transferencia.</strong><small>{initialState.decisionTransfer.status}</small></span><span className="mlh-tile-chevron" aria-hidden="true">⌄</span></summary><p>{initialState.decisionTransfer.validationRule}</p></details>
+        <details className="mlh-tile" data-tone="red"><summary className="mlh-tile-trigger"><span><strong>Verifica la autoridad antes de actuar.</strong><small>ROOT · DECISIÓN GOBERNADA</small></span><span className="mlh-tile-chevron" aria-hidden="true">⌄</span></summary><p>{initialState.decisionTransfer.authorityRule}</p></details>
       </section>
 
       {[...initialState.warnings, ...evidenceWarnings].length ? <section className="mlh-section"><div className="mlh-warning-box"><span>WARNINGS</span>{[...initialState.warnings, ...evidenceWarnings].map((warning) => <p key={warning}>{warning}</p>)}</div></section> : null}
