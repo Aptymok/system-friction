@@ -46,8 +46,10 @@ export function PublicEntryGateway(){
       try {
         const existing = await supabase.auth.getSession();
         const result = hasInviteTokens
-          ? await supabase.auth.setSession({access_token:accessToken!,refresh_token:refreshToken!})
-          : existing.data.session
+          ? existing.data.session?.access_token === accessToken
+            ? existing
+            : await supabase.auth.setSession({access_token:accessToken!,refresh_token:refreshToken!})
+          : existing.data.session?.user.user_metadata?.sfi_invitation === true
             ? existing
             : await supabase.auth.exchangeCodeForSession(code!);
         if (!active) return;
