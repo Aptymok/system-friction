@@ -257,7 +257,7 @@ export function MethodLabNativeHub({ initialState, initialSessions, evidenceOpti
           <details className="mlh-tile mlh-form-tile" data-tone="gold" open>
           <summary className="mlh-tile-trigger"><span><strong>Activa una sesión.</strong><small>INDICA OBJETIVO Y CONDICIÓN</small></span><span className="mlh-tile-chevron" aria-hidden="true">⌄</span></summary>
           <form className="mlh-panel" onSubmit={(event) => { event.preventDefault(); void execute('CREATE CRL SESSION', () => postJson('/api/root/cognitive-lab/sessions', newSession)); }}>
-            <h3>ACTIVATE SESSION</h3>
+            <p className="mlh-form-instruction">Indica el objetivo, establece la condición y activa la sesión.</p>
             <label>TITLE<input value={newSession.title} onChange={(event) => setNewSession({ ...newSession, title: event.target.value })} /></label>
             <label>OBJECTIVE<textarea value={newSession.objective} onChange={(event) => setNewSession({ ...newSession, objective: event.target.value })} /></label>
             <label>CONDITION<select value={newSession.condition} onChange={(event) => setNewSession({ ...newSession, condition: event.target.value })}>
@@ -274,7 +274,7 @@ export function MethodLabNativeHub({ initialState, initialSessions, evidenceOpti
           <details className="mlh-tile mlh-form-tile" data-tone="teal">
           <summary className="mlh-tile-trigger"><span><strong>Registra un evento verificable.</strong><small>ACTOR · PROVENIENCIA · EVIDENCIA</small></span><span className="mlh-tile-chevron" aria-hidden="true">⌄</span></summary>
           <form className="mlh-panel" onSubmit={(event) => { event.preventDefault(); if (!eventDraft.sessionId) return; void execute('RECORD CRL EVENT', () => postJson(`/api/root/cognitive-lab/sessions/${eventDraft.sessionId}/events`, { eventKind: eventDraft.eventKind, provenance: eventDraft.provenance, actorKey: eventDraft.actorKey, payload: { content: eventDraft.content }, evidenceRefs: selectedEvidence })); }}>
-            <h3>RECORD EVENT</h3>
+            <p className="mlh-form-instruction">Asocia un evento a su sesión, actor y proveniencia.</p>
             <label>SESSION<select value={eventDraft.sessionId} onChange={(event) => setEventDraft({ ...eventDraft, sessionId: event.target.value })}><option value="">SELECT…</option>{initialSessions.filter((item) => !['CLOSED', 'REJECTED'].includes(item.status)).map((item) => <option value={item.id} key={item.id}>{item.sessionKey} · {item.status}</option>)}</select></label>
             <label>EVENT<select value={eventDraft.eventKind} onChange={(event) => setEventDraft({ ...eventDraft, eventKind: event.target.value })}>{['OBSERVATION','FOUNDER_DECISION','TOOL_EXECUTION','ARTIFACT','OUTCOME','FRICTION','OMISSION','OTHER'].map((value) => <option key={value}>{value}</option>)}</select></label>
             <label>PROVENANCE<select value={eventDraft.provenance} onChange={(event) => setEventDraft({ ...eventDraft, provenance: event.target.value })}>{['FOUNDER_ORIGINATED','MODEL_PROPOSED','CO_DEVELOPED','SYSTEM_EMERGENT','EXTERNAL','FOUNDER_AUTHORIZATION','UNKNOWN'].map((value) => <option key={value}>{value}</option>)}</select></label>
