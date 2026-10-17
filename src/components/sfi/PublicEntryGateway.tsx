@@ -21,24 +21,53 @@ export function PublicEntryGateway(){
   const [progress,setProgress]=useState(0);
 
   useEffect(()=>{
-    // Supabase falls back to Site URL when an Auth redirect URL is not allowlisted.
-    // Preserve the token fragment and restore the intended password/activation gate.
+    // A misconfigured Supabase redirect allowlist can land an invite callback
+    // on Home. Do not carry raw access/refresh tokens to another URL.
     const fragment = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-    if (
-      (fragment.get('type') === 'invite' || fragment.get('type') === 'recovery') &&
-      fragment.has('access_token') &&
-      fragment.has('refresh_token')
-    ) {
-      window.location.replace(`/reset?mode=invite${window.location.hash}`);
+    const query = new URLSearchParams(window.location.search);
+    const kind = fragment.get('type');
+    const accessToken = fragment.get('access_token');
+    const refreshToken = fragment.get('refresh_token');
+    const code = query.get('code');
+    const hasInviteTokens = (kind === 'invite' || kind === 'recovery') && Boolean(accessToken && refreshToken);
+    if (!hasInviteTokens && !code) return;
+
+    const supabase = createBrowserSupabaseClient();
+    // Remove one-time credentials immediately, before any async verification.
+    window.history.replaceState(window.history.state, '', window.location.pathname);
+    if (!supabase) {
+      window.location.replace('/reset?mode=invite&error=auth_unavailable');
       return;
     }
-    // PKCE email links may return an authorization code, not implicit tokens.
-    // Keep the one-time code in the first-party /reset flow for session exchange.
-    const callback = new URLSearchParams(window.location.search);
-    const code = callback.get('code');
-    if (code) {
-      window.location.replace(`/reset?mode=invite&code=${encodeURIComponent(code)}`);
-    }
+
+    let active = true;
+    void (async()=>{
+      try {
+        const existing = await supabase.auth.getSession();
+        const result = hasInviteTokens
+          ? await supabase.auth.setSession({access_token:accessToken!,refresh_token:refreshToken!})
+          : existing.data.session
+            ? existing
+            : await supabase.auth.exchangeCodeForSession(code!);
+        if (!active) return;
+        if (result.error || !result.data.session) {
+          window.location.replace('/reset?mode=invite&error=invalid_or_expired');
+          return;
+        }
+        // Do not repurpose ordinary Supabase recovery/PKCE callbacks as
+        // institutional invitations without an identity marked by SFI.
+        const metadata = result.data.session.user.user_metadata ?? {};
+        if (kind !== 'invite' && metadata.sfi_invitation !== true) {
+          await supabase.auth.signOut();
+          if (active) window.location.replace('/login?error=invalid_credentials');
+          return;
+        }
+        window.location.replace('/reset?mode=invite');
+      } catch {
+        if (active) window.location.replace('/reset?mode=invite&error=auth_unavailable');
+      }
+    })();
+    return ()=>{active=false};
   },[]);
 
   useEffect(()=>{
