@@ -60,6 +60,19 @@ assert.match(publicTimelineReader, /const MAX_FRAMES = 180;/, 'public timeline m
 assert.doesNotMatch(publicTimelineReader, /for \(;;\)/, 'public timeline may not page through the full persisted history');
 assert.doesNotMatch(publicObservatoryClient, /cache:\s*['"]no-store['"]/, 'public Observatory client may not force cache bypass');
 
+// Restricted Discovery must not open the full Supabase egress circuit or use a paid model.
+const restrictedDiscoveryCron = fs.readFileSync('src/app/api/cron/continuity-report/route.ts', 'utf8');
+const restrictedDiscoveryAutonomy = fs.readFileSync('src/lib/discovery/discoveryAutonomy.ts', 'utf8');
+const restrictedDiscoveryRepository = fs.readFileSync('src/lib/discovery/discoveryRepository.ts', 'utf8');
+const zeroKeyResearch = fs.readFileSync('src/lib/agents/publicResearch.ts', 'utf8');
+assert.match(restrictedDiscoveryCron, /restrictedObservationOnly: true/, 'only the Discovery observation may bypass restricted general cron');
+assert.match(restrictedDiscoveryCron, /otherLanesExecuted: false/, 'general cost gate must not silently enable other scheduled lanes');
+assert.match(restrictedDiscoveryAutonomy, /if \(options\.restrictedObservationOnly\)/, 'Discovery restricted mode must bypass development side effects');
+assert.match(restrictedDiscoveryAutonomy, /developmentCandidates: \[\]/, 'restricted Discovery must create no proposals');
+assert.match(restrictedDiscoveryRepository, /runZeroKeyDiscoveryResearch\(selected\.query\)/, 'restricted Discovery must avoid paid search fallback');
+assert.match(zeroKeyResearch, /export async function runZeroKeyDiscoveryResearch/, 'zero-key-only Discovery provider must exist');
+assert.match(zeroKeyResearch, /await gdeltQuery\(query, 120\)/, 'single no-key query must retain bounded lookback');
+
 const scheduledEgressGuard = fs.readFileSync('src/lib/continuity/scheduledEgressGuard.ts', 'utf8');
 assert.match(scheduledEgressGuard, /SFI_SCHEDULED_EGRESS_MODE/, 'scheduled Supabase egress must require an explicit runtime enablement');
 assert.match(scheduledEgressGuard, /\?\? 'restricted'/, 'scheduled egress must fail closed by default');

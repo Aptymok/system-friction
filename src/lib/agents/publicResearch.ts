@@ -606,3 +606,30 @@ export async function runPublicResearch(input: {
     ]),
   };
 }
+
+
+/** One zero-key, zero-LLM web retrieval for cost-restricted Discovery. No paid-provider fallback. */
+export async function runZeroKeyDiscoveryResearch(query: string): Promise<PublicResearchResult> {
+  try {
+    const sources = dedupeSources(await gdeltQuery(query, 120), 18);
+    return {
+      ok: sources.length > 0,
+      provider: sources.length > 0 ? 'gdelt_doc' : 'unavailable',
+      answer: '',
+      sources,
+      queries: [query],
+      warnings: sources.length > 0
+        ? ['ZERO_KEY_DISCOVERY_ONLY', 'GDELT_INDEXED_SOURCE: source claims need independent verification']
+        : ['ZERO_KEY_DISCOVERY_UNAVAILABLE: no eligible GDELT sources; paid providers not attempted'],
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      provider: 'unavailable',
+      answer: '',
+      sources: [],
+      queries: [query],
+      warnings: [`ZERO_KEY_DISCOVERY_UNAVAILABLE: ${error instanceof Error ? error.message : 'unknown error'}`],
+    };
+  }
+}
