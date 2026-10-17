@@ -79,7 +79,7 @@ for(const width of ['740px','370px','520px','770px','810px','310px'])assert.ok(m
 assert.ok(methodNativeCss.includes('background:rgba(5,11,16,.30)!important') && methodPanoramaCss.includes('background:rgba(5,11,16,.30)!important'),'functional_method_lab_tiles_must_have_30_percent_alpha_not_text_opacity');
 assert.ok(methodNativeCss.includes('.mlh-tile-trigger:focus-visible') && methodPanoramaCss.includes('.mlp-tile>summary:focus-visible'),'accordion_keyboard_focus_must_remain_visible');
 
-assert.equal(repositoryCss.includes("url('/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_42-7.png')"),false,'repository_must_not_render_screenshot_as_dashboard');
+assert.ok(repositoryCss.includes("url('/assets/sfi/instruments/Imagen de ChatGPT 8 oct 2026, 11_40_42-7.png')"),'repository_must_reuse_original_access_instrument_artwork');
 assert.ok(repositoryUi.includes('SOURCE RECORDS') && repositoryUi.includes('DISCOVERY MESH') && repositoryUi.includes('REPOSITORY HISTORY') && repositoryCss.includes('.repoReader') && repositoryCss.includes('.repoDiscovery'), 'unified_repository_operational_visual_contract_missing');
 assert.ok(realityCss.includes('blur(11px)') && realityCss.includes('width:300vw'),'reality_chain_reference_must_not_read_as_fake_ui');
 
