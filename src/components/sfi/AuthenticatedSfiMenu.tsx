@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import './AuthenticatedSfiMenu.css';
 
@@ -34,6 +35,11 @@ const TICKS=Array.from({length:37},(_,index)=>index);
 
 export function AuthenticatedSfiMenu(){
   const [open,setOpen]=useState(false);
+  const pathname=usePathname()||'';
+  // Authentication gates own the full viewport; no operation nav or timeline.
+  const identityGate=['/login','/forgot','/reset','/verify','/signup','/continuity-access','/auth-unavailable']
+    .some(route=>pathname===route||pathname.startsWith(route+'/'));
+  if(identityGate) return null;
 
   return <>
     <header className="sfiAuthCanonicalNav" data-sfi-auth-navigation="DIAMOND-1.0">
