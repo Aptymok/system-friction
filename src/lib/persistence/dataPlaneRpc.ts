@@ -55,6 +55,34 @@ export async function postNeonDataPlaneRpc<T = unknown>(name: string, body: Json
   return await jsonResponse(response, `SFI_NEON_RPC_${name}`) as T;
 }
 
+
+/**
+ * Direct, credentialed primary read for governed recovery of ONLY existing
+ * institutional grants and profiles. Never falls back to Neon: a fallback
+ * would compare Neon against itself and falsely certify convergence.
+ */
+export async function readPrimaryAuthorityRow(
+  table: 'profiles' | 'sfi_account_access_grants',
+  rowId: string,
+): Promise<Record<string, unknown> | null> {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rowId))
+    throw new Error('SFI_AUTHORITY_RECONCILIATION_INVALID_ROW_ID');
+  const { url, key } = primaryCredentials();
+  const selector = table === 'profiles' ? 'user_id' : 'id';
+  const query = new URLSearchParams({ select: '*', [selector]: `eq.${rowId}`, limit: '1' });
+  const response = await fetch(`${url}/rest/v1/${table}?${query.toString()}`, {
+    method: 'GET',
+    headers: {
+      apikey: key, Authorization: `Bearer ${key}`,
+      'X-Client-Info': 'sfi-governed-authority-reconciliation-primary-direct',
+    },
+    cache: 'no-store',
+  });
+  const rows = await jsonResponse(response, 'SFI_PRIMARY_AUTHORITY_DIRECT_READ');
+  if (!Array.isArray(rows)) throw new Error('SFI_PRIMARY_AUTHORITY_INVALID_RESPONSE');
+  return rows.length === 1 && rows[0] && typeof rows[0] === 'object' ? rows[0] : null;
+}
+
 export async function probePrimaryDataPlane() {
   const { url, key } = primaryCredentials();
   const response = await fetch(`${url}/rest/v1/profiles?select=user_id&limit=1`, {
