@@ -27,7 +27,25 @@ export function ObservatoryGlobe({onPick,pins}:{onPick:(location:GlobePick)=>voi
     const gl=el.getContext('webgl',{alpha:true,antialias:true,premultipliedAlpha:false});
     if(!gl){setFailed(true);return;}
     let stopped=false,frame=0,last=0,textureReady=false,visible=true;
-    const observer=new IntersectionObserver(([entry])=>{visible=Boolean(entry?.isIntersecting);},{threshold:0.02});
+    if(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches){
+      isPaused.current=true;setPaused(true);
+    }
+    // Stop the RAF entirely when horizontally scrolled offscreen or the tab
+    // is hidden. Restart only on a genuine visibility transition.
+    let render: (now:number)=>void;
+    const resume=()=>{
+      if(!stopped&&visible&&!document.hidden&&frame===0)frame=requestAnimationFrame(render);
+    };
+    const observer=new IntersectionObserver(([entry])=>{
+      visible=Boolean(entry?.isIntersecting);
+      if(!visible&&frame){cancelAnimationFrame(frame);frame=0;}
+      else resume();
+    },{threshold:0.02});
+    const visibilityChanged=()=>{
+      if(document.hidden&&frame){cancelAnimationFrame(frame);frame=0;}
+      else resume();
+    };
+    document.addEventListener('visibilitychange',visibilityChanged);
     observer.observe(el);
     const vs=gl.createShader(gl.VERTEX_SHADER)!,fs=gl.createShader(gl.FRAGMENT_SHADER)!;
     gl.shaderSource(vs,'attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}');
@@ -75,10 +93,11 @@ void main(){
     img.src=OBSERVATORY_GLOBE_TEXTURE;
     const uniform=(name:string)=>gl.getUniformLocation(program,name);
     const resolution=uniform('res'),heading=uniform('yaw'),tilt=uniform('tilt'),size=uniform('size'),map=uniform('map');
-    const render=(now:number)=>{
-      if(stopped)return;
+    render=(now:number)=>{
+      frame=0;
+      if(stopped||!visible||document.hidden)return;
       frame=requestAnimationFrame(render);
-      if(!visible||document.hidden||now-last<33)return;
+      if(now-last<33)return;
       const dt=Math.min((now-last)/1000,.1);last=now;
       if(textureReady&&!isPaused.current)yaw.current=(yaw.current+dt*.022)%(Math.PI*2);
       const pixels=Math.min(960,Math.max(256,Math.floor(el.clientWidth*Math.min(devicePixelRatio||1,1.6))));
@@ -105,8 +124,8 @@ void main(){
         }
       }
     };
-    frame=requestAnimationFrame(render);
-    return()=>{stopped=true;observer.disconnect();cancelAnimationFrame(frame);img.onload=null;img.onerror=null;gl.deleteTexture(tex);gl.deleteBuffer(buf);gl.deleteProgram(program);gl.deleteShader(vs);gl.deleteShader(fs)};
+    resume();
+    return()=>{stopped=true;document.removeEventListener('visibilitychange',visibilityChanged);observer.disconnect();cancelAnimationFrame(frame);img.onload=null;img.onerror=null;gl.deleteTexture(tex);gl.deleteBuffer(buf);gl.deleteProgram(program);gl.deleteShader(vs);gl.deleteShader(fs)};
   },[]);
   const endPointer=(e:PointerEvent<HTMLCanvasElement>)=>{
     const p=pointer.current;if(!p||p.id!==e.pointerId)return;
