@@ -28,6 +28,14 @@ assert.ok(control.includes('journal.conflicts > 0'));
 assert.ok(control.includes('mirror!.pending > 0 || mirror!.conflicts > 0'));
 assert.ok(control.includes('PRIMARY_OUTBOX_UNAVAILABLE'));
 assert.ok(control.includes('if (!before.safeRecoveryEligible)'));
+assert.ok(control.includes("if (before.dataPlane.mode === 'PRIMARY')"), 'the existing hourly OIDC scheduler must maintain primary-to-Neon mirror when mode is PRIMARY');
+assert.ok(control.includes('flushPrimaryMirror({ maxTransactions: limit })'), 'must reuse canonical bounded primary outbox drain, not a separate writer or cron');
+assert.ok(control.includes("Math.min(8,"), 'forward mirror batch must remain bounded to 8 source transactions');
+assert.ok(control.includes("outcome: 'PRIMARY_MIRROR_REQUIRES_REVIEW'"), 'active conflicts or journal drift must prevent blind primary mirroring');
+assert.ok(control.includes("'PRIMARY_MIRROR_CERTIFIED' as const"), 'mirror status must be confirmed and certified independently');
+assert.ok(control.includes("primaryMirror.ok === true && primaryMirror.certified === true"), 'no false success for partial outbox drain');
+assert.ok(control.indexOf("if (before.dataPlane.mode === 'PRIMARY')") < control.indexOf("if (!before.safeRecoveryEligible)"), 'PRIMARY mirror delivery must precede RECOVERY-only safety-gate branch');
+
 assert.ok(control.includes('MEM003_PROTECTED_AUTHORITY_RECONCILIATION_REQUIRED'), 'guarded recovery may not automatically replay permissions and proposals');
 assert.ok(control.includes('protected_pending'), 'guard status must expose unresolved protected operation count');
 assert.ok(control.includes("'sfi_account_access_grants','sfi_tenant_members','action_proposals'"), 'protect grants, memberships and proposals');
