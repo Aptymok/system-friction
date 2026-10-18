@@ -23,16 +23,20 @@ execFileSync(process.execPath, ['--import', 'tsx', '--test', 'src/lib/persistenc
 
 assert.ok(workflow.includes("cron: '15 * * * *'"));
 assert.ok(workflow.includes("cron: '45 * * * *'"));
-assert.ok(workflow.includes('Synchronize data planes when existing recovery gates permit'));
+assert.ok(workflow.includes('Drain primary mirror through bounded sequential reconciliation calls'));
+assert.ok(workflow.includes('for round in 1 2 3 4'), 'four consecutive guarded rounds on the existing OIDC lane');
+assert.ok(workflow.includes('STOP: mirror conflict requires investigation'), 'stop rather than bypass mirrored conflict');
+assert.ok(workflow.includes("int(m.get('mirroredTransactions') or 0)==0"), 'stop loop when delivery makes no progress');
 assert.ok(workflow.includes('/api/cron/data-plane-reconcile'));
 assert.ok(workflow.includes('-X POST'));
-assert.ok(workflow.indexOf('Synchronize data planes when existing recovery gates permit') <
+assert.ok(workflow.indexOf('Drain primary mirror through bounded sequential reconciliation calls') <
   workflow.indexOf('Check whether continuity has real work'),
   'scheduled recovery must run even if no cognitive work is ready');
 
 assert.ok(cron.includes('verifyGitHubActionsOidcToken'));
 assert.ok(cron.includes("error: 'authorized_scheduler_required'"));
-assert.ok(cron.includes('attemptBoundedDataPlaneReconciliation(8)'));
+assert.ok(cron.includes('attemptBoundedDataPlaneReconciliation(32)'));
+assert.ok(workflow.includes('Up to four calls x 32 transactions'), 'cron capacity documentation must match the effective runtime bound');
 assert.ok(!cron.includes('completeRecoveryMode('),
   'cron may only call the canonical gated recovery service');
 
@@ -42,7 +46,8 @@ assert.ok(control.includes('PRIMARY_OUTBOX_UNAVAILABLE'));
 assert.ok(control.includes('if (!before.safeRecoveryEligible)'));
 assert.ok(control.includes("if (before.dataPlane.mode === 'PRIMARY')"), 'the existing hourly OIDC scheduler must maintain primary-to-Neon mirror when mode is PRIMARY');
 assert.ok(control.includes('flushPrimaryMirror({ maxTransactions: limit })'), 'must reuse canonical bounded primary outbox drain, not a separate writer or cron');
-assert.ok(control.includes("Math.min(8,"), 'forward mirror batch must remain bounded to 8 source transactions');
+assert.ok(control.includes('Math.min(32, Number.isFinite(maxTransactions)'), 'forward mirror lane must honor existing capped 32 source-transaction request');
+assert.ok(mirror.includes('Math.min(input.maxTransactions ?? 8, 32)'), 'canonical flush remains capped at 32; never remove physical safety gate');
 assert.ok(control.includes("outcome: 'PRIMARY_MIRROR_REQUIRES_REVIEW'"), 'active conflicts or journal drift must prevent blind primary mirroring');
 assert.ok(control.includes("'PRIMARY_MIRROR_CERTIFIED' as const"), 'mirror status must be confirmed and certified independently');
 assert.ok(control.includes("primaryMirror.ok === true && primaryMirror.certified === true"), 'no false success for partial outbox drain');
