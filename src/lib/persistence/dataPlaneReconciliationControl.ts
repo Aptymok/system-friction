@@ -141,8 +141,7 @@ export async function attemptBoundedDataPlaneReconciliation(maxTransactions: num
     // The global recovery gate remains closed. Only the pre-existing,
     // insert-only verified source-observation lane may make incremental
     // progress; it cannot change authority, clear conflicts or promote PRIMARY.
-    const canCopy = before.dataPlane.mode !== 'PRIMARY'
-      && before.journal.pending > 0
+    const canCopy = before.journal.pending > 0
       && before.blocker !== 'PRIMARY_OUTBOX_UNAVAILABLE';
     const copyLimit = Math.max(1, Math.min(12, Number.isFinite(maxTransactions) ? Math.floor(maxTransactions) : 8));
     const verifiedSourceReplay = canCopy
