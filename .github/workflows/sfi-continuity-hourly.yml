@@ -85,41 +85,64 @@ jobs:
           echo "::add-mask::$token"
           echo "token=$token" >> "$GITHUB_OUTPUT"
 
-      - name: Synchronize data planes when existing recovery gates permit
+      - name: Drain primary mirror through bounded sequential reconciliation calls
         shell: bash
-        # Sync monitoring must run even when the separate cognitive wakeup gate is idle.
-        # A bounded reconciliation cannot bypass a divergent journal or mirror outbox.
+        # Reuse the governed OIDC route; no direct database writes or bypass of safety gates.
+        # Up to four calls x 32 transactions, stopping early on no progress or conflict.
         env:
           OIDC_TOKEN: ${{ steps.oidc.outputs.token }}
           SFI_SYNC_ENDPOINT: https://system-friction.vercel.app/api/cron/data-plane-reconcile
         run: |
           set -euo pipefail
-          receipt="$RUNNER_TEMP/sfi-data-plane-reconciliation.json"
-          status="$(curl --silent --show-error --connect-timeout 15 --max-time 120 \
-            -X POST \
-            -H "Authorization: Bearer ${OIDC_TOKEN}" \
-            -H "X-SFI-Continuity-Trigger: github-actions-oidc" \
-            -o "$receipt" -w '%{http_code}' "$SFI_SYNC_ENDPOINT")"
-          python - "$receipt" "$status" "$GITHUB_STEP_SUMMARY" <<'PY'
+          for round in 1 2 3 4; do
+            receipt="$RUNNER_TEMP/sfi-data-plane-reconciliation-$round.json"
+            status="$(curl --silent --show-error --connect-timeout 15 --max-time 120 \
+              -X POST \
+              -H "Authorization: Bearer ${OIDC_TOKEN}" \
+              -H "X-SFI-Continuity-Trigger: github-actions-oidc" \
+              -o "$receipt" -w '%{http_code}' "$SFI_SYNC_ENDPOINT")"
+            python - "$receipt" "$status" "$round" "$GITHUB_STEP_SUMMARY" <<'PY'
           import json, sys
-          path, http, summary = sys.argv[1:]
+          path, http, round_number, summary = sys.argv[1:]
           with open(path, encoding='utf-8') as stream:
               payload = json.load(stream)
           before = payload.get('before') or {}
-          journal = before.get('journal') or {}
+          after = payload.get('after') or {}
+          primary = payload.get('primaryMirror') or {}
+          outbox = after.get('primaryOutbox') or {}
+          journal = after.get('journal') or {}
           result = {
-              'http': int(http), 'attempted': payload.get('attempted'),
-              'outcome': payload.get('outcome'), 'blocker': before.get('blocker'),
-              'pending': journal.get('pending'), 'conflicts': journal.get('conflicts'),
+              'round': int(round_number), 'http': int(http),
+              'attempted': payload.get('attempted'), 'outcome': payload.get('outcome'),
+              'mirroredTransactions': primary.get('mirroredTransactions'),
+              'pending': outbox.get('pending'), 'conflicts': outbox.get('conflicts'),
+              'journalPending': journal.get('pending'),
+              'journalConflicts': journal.get('conflicts'),
+              'certified': (after.get('dataPlane') or {}).get('primaryMirrorCertified'),
               'forcedFailover': payload.get('forcedFailover') is True,
           }
           print(json.dumps(result, separators=(',', ':')))
-          with open(summary, 'a', encoding='utf-8') as f:
-              f.write('## SFI data-plane synchronization\n\n')
-              f.write('Status: ' + json.dumps(result) + '\n\n')
-          if http not in ('200', '409'):
-              raise SystemExit('SFI data-plane reconciliation transport/authority failed')
+          with open(summary, 'a', encoding='utf-8') as file:
+              file.write('SFI primary mirror round: ' + json.dumps(result) + '\\n\\n')
+          if http not in ('200', '409') or payload.get('attempted') is not True:
+              raise SystemExit('STOP: reconciliation transport or safety gate failed')
+          if primary.get('conflict') is True or int(outbox.get('conflicts') or 0) > 0:
+              raise SystemExit('STOP: mirror conflict requires investigation')
+          if primary.get('ok') is False and int(primary.get('mirroredTransactions') or 0) == 0:
+              raise SystemExit('STOP: mirror failed without progress')
           PY
+            next_step="$(python - "$receipt" <<'PY'
+          import json,sys
+          p=json.load(open(sys.argv[1],encoding='utf-8'))
+          m=p.get('primaryMirror') or {}
+          out=(p.get('after') or {}).get('primaryOutbox') or {}
+          if int(out.get('pending') or 0)==0: print('stop')
+          elif int(m.get('mirroredTransactions') or 0)==0: print('stop')
+          else: print('continue')
+          PY
+            )"
+            if [ "$next_step" = stop ]; then break; fi
+          done
 
       - name: Check whether continuity has real work
         id: wakeup
