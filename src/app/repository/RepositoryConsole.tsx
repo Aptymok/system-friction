@@ -1,6 +1,10 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState, type ReactNode } from 'react';
+import type { PublicPassportReading } from '@/lib/repository/publicPassportProjection';
+import { projectRepositoryMihmTimeline } from '@/lib/repository/repositoryTemporalProjection';
+import { TIMELINE_CLOCKS } from '@/lib/mihm/timelineClocks';
+import { RepositoryMihmTimeline } from './RepositoryMihmTimeline';
 
 export type RepositoryEditorial={
   editorialKind:string;
@@ -61,219 +65,157 @@ export type RepositoryObject={
   editorial:RepositoryEditorial|null;
 };
 
-type Filter='ALL'|'PUBLICATION'|'OBSERVATION'|'REPORT'|'PAPER'|'METHOD'|'DATASET'|'RETURN';
 
-function formatDate(value:string){
-  const date=new Date(value);
-  if(!Number.isFinite(date.valueOf())) return value;
-  return new Intl.DateTimeFormat('en-CA',{year:'numeric',month:'2-digit',day:'2-digit'}).format(date);
-}
-function shortRef(value:string){
-  const clean=value.replace(/^https?:\/\//,'');
-  return clean.length>42?clean.slice(0,39)+'…':clean;
-}
-function unique(values:readonly string[]){
-  return [...new Set(values.filter(Boolean))];
-}
-function year(value:string){
-  const parsed=new Date(value);
-  return Number.isFinite(parsed.valueOf())?String(parsed.getFullYear()):'—';
-}
+type Filter='ALL'|'PUBLICATION'|'OBSERVATION'|'REPORT'|'PAPER'|'METHOD'|'DATASET'|'RETURN'|'INSTRUMENT'|'SOFTWARE';
+type Selection={kind:'object'|'source'|'evidence';id:string};
+type ReaderMode='LECTURA'|'FUENTES'|'FICHA';
+const palette:Record<string,string>={PUBLICATION:'gold',REPORT:'teal',PAPER:'blue',METHOD:'violet',DATASET:'mint',RETURN:'red',OBSERVATION:'teal',SOFTWARE:'blue',INSTRUMENT:'gold',SOURCE:'blue',EVIDENCE:'mint'};
+const uniq=(arr:readonly string[])=>[...new Set(arr.filter(Boolean))];
+const date=(x:string)=>Number.isFinite(Date.parse(x))?new Intl.DateTimeFormat('es-MX',{dateStyle:'medium'}).format(new Date(x)):'No consta';
+const short=(s:string,n=44)=>s.length>n?s.slice(0,n-1)+'…':s;
+const safeURL=(s:string)=>{try{const url=new URL(s);return url.protocol==='https:'||url.protocol==='http:'?url.href:null}catch{return null}};
+const value=(s:string|null|undefined)=>s&&s.trim()?s:'No consta';
+const passportTile=(key:string,label:string,tone:string,children:ReactNode,open=false)=><details key={key} className="repoPassportTile" data-tone={tone} open={open}><summary>{label}<span aria-hidden="true">⌄</span></summary><div className="repoTileContent">{children}</div></details>;
 
-export function RepositoryConsole({objects,initialObject,discovery}:{objects:readonly RepositoryObject[];initialObject:string|null;discovery:RepositoryDiscovery}){
-  const initial=objects.find((object)=>object.slug===initialObject||object.id===initialObject)??objects[0];
-  const [selectedId,setSelectedId]=useState(initial?.id??'');
-  const [filter,setFilter]=useState<Filter>('ALL');
+export function RepositoryConsole({objects,initialObject,discovery,publicReadings}:{objects:readonly RepositoryObject[];initialObject:string|null;discovery:RepositoryDiscovery;publicReadings:Record<string,PublicPassportReading>}){
+  const initial=objects.find(x=>x.id===initialObject||x.slug===initialObject)||objects[0];
+  const [selection,setSelection]=useState<Selection>({kind:'object',id:initial?.id||''});
   const [query,setQuery]=useState('');
-  const [readerOpen,setReaderOpen]=useState(Boolean(initialObject));
-
-  const selectObject=(object:RepositoryObject,openReader=false)=>{
-    setSelectedId(object.id);
-    if(openReader)setReaderOpen(true);
-    if(typeof window!=='undefined'){
-      const next=new URL(window.location.href);
-      next.pathname='/repository';
-      next.search='';
-      next.searchParams.set('object',object.slug);
-      window.history.replaceState({},'',next.pathname+next.search);
-    }
+  const [filter,setFilter]=useState<Filter>('ALL');
+  const [platform,setPlatform]=useState('ALL');
+  const [order,setOrder]=useState<'new'|'old'|'name'>('new');
+  const [view,setView]=useState<'cards'|'graph'>('cards');
+  const [readerOpen,setReaderOpen]=useState(true);
+  const [readerMode,setReaderMode]=useState<ReaderMode>('LECTURA');
+  const [zoom,setZoom]=useState(1);
+  const horizontal=useRef<HTMLDivElement>(null);
+  const readerRef=useRef<HTMLDivElement>(null);
+  const selectedObject=objects.find(x=>x.id===selection.id)||null;
+  const connected=selection.kind==='object'?selectedObject:
+    objects.find(o=>(selection.kind==='source'?o.sourceRefs:o.evidenceRefs).includes(selection.id))||null;
+  const active=selectedObject||connected;
+  const reading=selection.kind==='object'&&active?(publicReadings[active.id]||publicReadings[active.slug]||publicReadings[active.objectKey]):null;
+  const sources=useMemo(()=>uniq(objects.flatMap(o=>o.sourceRefs)),[objects]);
+  const evidence=useMemo(()=>uniq(objects.flatMap(o=>o.evidenceRefs)),[objects]);
+  const related=useMemo(()=>uniq(objects.flatMap(o=>o.relatedObjects)),[objects]);
+  const versions=useMemo(()=>uniq(objects.map(o=>o.version)),[objects]);
+  const matched=useMemo(()=>{
+    const q=query.toLocaleLowerCase().trim();
+    return objects.filter(o=>
+      (filter==='ALL'||o.objectType===filter)&&
+      (platform==='ALL'||(platform==='MEDIUM'?Boolean(o.editorial?.mediumUrl):platform==='SFI'?Boolean(o.canonicalUrl):false))&&
+      (!q||[o.title,o.summary,o.id,o.objectKey,o.objectType,...o.sourceRefs,...o.evidenceRefs,...o.methods].join(' ').toLocaleLowerCase().includes(q))
+    ).sort((a,b)=>order==='name'?a.title.localeCompare(b.title):order==='old'?Date.parse(a.createdAt)-Date.parse(b.createdAt):Date.parse(b.createdAt)-Date.parse(a.createdAt));
+  },[objects,filter,platform,query,order]);
+  const select=(kind:Selection['kind'],id:string)=>{
+    setSelection({kind,id});setReaderOpen(true);setReaderMode('LECTURA');
+    const ref=kind==='object'?objects.find(o=>o.id===id):null;
+    if(ref&&typeof window!=='undefined')window.history.replaceState({},'', '/repository?object='+encodeURIComponent(ref.slug));
   };
-
-  const filtered=useMemo(()=>{
-    const q=query.trim().toLowerCase();
-    return objects.filter((object)=>{
-      const typeOk=filter==='ALL'||object.objectType===filter;
-      const queryOk=!q||[object.id,object.objectKey,object.title,object.summary,object.objectType,...object.sourceRefs,...object.methods].join(' ').toLowerCase().includes(q);
-      return typeOk&&queryOk;
-    });
-  },[objects,filter,query]);
-
-  const selected=objects.find((object)=>object.id===selectedId)??filtered[0]??objects[0]??null;
-  const sourceRefs=useMemo(()=>unique(objects.flatMap((object)=>object.sourceRefs)),[objects]);
-  const evidenceRefs=useMemo(()=>unique(objects.flatMap((object)=>object.evidenceRefs)),[objects]);
-  const relatedObjects=useMemo(()=>unique(objects.flatMap((object)=>object.relatedObjects)),[objects]);
-  const versions=useMemo(()=>unique(objects.map((object)=>object.version)),[objects]);
-  const timeline=useMemo(()=>[...objects].sort((a,b)=>Date.parse(a.updatedAt)-Date.parse(b.updatedAt)),[objects]);
-
-  const categories=[
-    ['SOURCE RECORDS',sourceRefs.length],
-    ['EVIDENCE',evidenceRefs.length],
-    ['PUBLICATIONS',objects.filter((object)=>object.objectType==='PUBLICATION').length],
-    ['CASE OBJECTS',relatedObjects.length||'NOT OBSERVED'],
-    ['PROVENANCE',sourceRefs.length],
-    ['VERSIONS',versions.length],
-    ['HASHES','NOT MATERIALIZED'],
-    ['LINEAGE',relatedObjects.length],
-    ['MANIFESTS',objects.length],
-  ] as const;
-
-  return <main className="repositoryShell">
-    <section className="repositoryScene" aria-label="SFI Repository">
-      <div className="repositoryBackdrop" aria-hidden="true"/>
-
-      <aside className="repoIdentity">
-        <span>REPOSITORY</span>
-        <h1>Durable memory<br/>for a moving institution.</h1>
-        <p>Source records, evidence, publications and canonical objects remain distinguishable, addressable and reconstructible.</p>
-        <div className="repoCategoryList">
-          {categories.map(([label,value])=><div key={label}><i/><span>{label}</span><b>{value}</b></div>)}
-        </div>
-        <label className="repoSearch"><span>FILTERS</span><input value={query} onChange={(event)=>setQuery(event.target.value)} placeholder="Search object / source / method"/></label>
-      </aside>
-
-      <section className="repoArchiveRail" aria-label="Repository object rail">
-        <div className="repoRailColumn repoSources">
-          <header><span>SOURCE RECORDS</span><b>{sourceRefs.length}</b></header>
-          <div className="repoRailScroll">
-            {sourceRefs.slice(0,12).map((ref,index)=><button type="button" key={ref} onClick={()=>{const hit=objects.find((object)=>object.sourceRefs.includes(ref));if(hit)selectObject(hit)}}><i data-index={index%4}/><span>{shortRef(ref)}</span><small>SOURCE REF</small></button>)}
-            {!sourceRefs.length?<p>NO SOURCE RECORDS OBSERVED</p>:null}
-          </div>
-        </div>
-
-        <div className="repoRailColumn repoEvidence">
-          <header><span>EVIDENCE</span><b>{evidenceRefs.length}</b></header>
-          <div className="repoRailScroll">
-            {objects.slice(0,10).map((object)=><button type="button" key={object.id} data-active={object.id===selected?.id?'true':undefined} onClick={()=>selectObject(object)}><i data-state={object.epistemicState}/><span>{object.id}</span><small>{object.epistemicState} · {object.evidenceRefs.length} refs</small></button>)}
-          </div>
-        </div>
-
-        <div className="repoRailColumn repoPublications">
-          <header><span>PUBLICATIONS / OBJECTS</span><b>{filtered.length}</b></header>
-          <div className="repoFilterStrip">
-            {(['ALL','PUBLICATION','OBSERVATION','REPORT','PAPER','METHOD','DATASET','RETURN'] as Filter[]).map((value)=><button type="button" key={value} data-active={filter===value?'true':undefined} onClick={()=>setFilter(value)}>{value}</button>)}
-          </div>
-          <div className="repoRailScroll">
-            {filtered.slice(0,18).map((object)=><button type="button" key={object.id} data-active={object.id===selected?.id?'true':undefined} onClick={()=>selectObject(object)}><i/><span>{object.title}</span><small>{object.objectType} · {object.id}</small></button>)}
-            {!filtered.length?<p>NO OBJECTS MATCH THIS FILTER</p>:null}
-          </div>
-        </div>
-      </section>
-
-      {selected?<section className="repoObjectInspector" aria-live="polite">
-        <div className="repoObjectState"><span>{selected.objectType}</span><b>{selected.publicationState}</b></div>
-        <h2>{selected.title}</h2>
-        <p>{selected.summary}</p>
-        <div className="repoObjectVisual" aria-hidden="true">
-          <i/><i/><i/><i/><i/><i/><i/><i/><i/>
-        </div>
-        <dl>
-          <dt>TYPE</dt><dd>{selected.objectType}</dd>
-          <dt>CREATED</dt><dd>{formatDate(selected.createdAt)}</dd>
-          <dt>UPDATED</dt><dd>{formatDate(selected.updatedAt)}</dd>
-          <dt>AUTHORS</dt><dd>{selected.authors.join(', ')||'NOT REPRESENTED'}</dd>
-          <dt>VERSION</dt><dd>{selected.version}</dd>
-          <dt>STATE</dt><dd>{selected.epistemicState}</dd>
-          <dt>LICENSE</dt><dd>{selected.license??'UNKNOWN'}</dd>
-        </dl>
-        <button className="repoPrimaryAction" type="button" onClick={()=>setReaderOpen(true)}>{selected.editorial?'READ PUBLICATION':'OPEN OBJECT RECORD'} <span>→</span></button>
-        <div className="repoObjectActions"><button type="button" disabled>DOWNLOAD · NOT MATERIALIZED</button><button type="button" onClick={()=>navigator.clipboard?.writeText(selected.canonicalUrl)}>COPY CANONICAL URL</button></div>
-      </section>:null}
-
-      {selected?<aside className="repoProvenance">
-        <section>
-          <header><span>PROVENANCE</span><b>{selected.sourceRefs.length} SOURCES</b></header>
-          <div className="repoProvenanceRows">
-            <div><i data-tone="gold"/><span>CREATED</span><b>{formatDate(selected.createdAt)}</b></div>
-            <div><i data-tone="blue"/><span>EPISTEMIC STATE</span><b>{selected.epistemicState}</b></div>
-            <div><i data-tone="cream"/><span>PUBLICATION</span><b>{selected.publicationState}</b></div>
-            <div><i data-tone="green"/><span>EVIDENCE IDENTITY</span><b>{selected.evidenceRefs.length?'VALIDATED REFS':'NOT REPRESENTED'}</b></div>
-          </div>
+  const goto=(index:number)=>horizontal.current?.scrollTo({left:index*590,behavior:'smooth'});
+  const jumpReader=()=>{setReaderOpen(true);readerRef.current?.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'})};
+  const categories:[string,number|string][]=[['SOURCE RECORDS',sources.length],['EVIDENCE',evidence.length],['PUBLICATIONS',objects.filter(o=>o.objectType==='PUBLICATION').length],['CASE OBJECTS',related.length],['PROVENANCE',sources.length],['VERSIONS',versions.length],['HASHES','NOT MATERIALIZED'],['LINEAGE',related.length],['MANIFESTS',objects.length]];
+  const safeDoc=selection.kind==='object'?active?.editorial?.renditions.find(r=>r.publicUrl&&safeURL(r.publicUrl) && (r.mediaType==='application/pdf'||r.filename.toLowerCase().endsWith('.pdf')))||null:null;
+  const graphObjects=matched.slice(0,15);
+  const graphSources=uniq(graphObjects.flatMap(o=>o.sourceRefs)).slice(0,10);
+  const graphLayout=new Map<string,{x:number,y:number}>();
+  graphObjects.forEach((o,i)=>graphLayout.set(o.id,{x:120+(i%5)*150+(Math.floor(i/5)%2)*27,y:80+Math.floor(i/5)*112}));
+  graphSources.forEach((s,i)=>graphLayout.set('source:'+s,{x:100+(i%5)*170,y:405+Math.floor(i/5)*65}));
+  const nodeEdges=graphObjects.flatMap(o=>o.sourceRefs.filter(s=>graphLayout.has('source:'+s)).map(s=>({a:o.id,b:'source:'+s})));
+  const description=selection.kind==='object'?active?.summary:selection.kind==='source'?'Fuente citada en el registro público. La cita no equivale a evidencia independiente.':'Identificador de evidencia referido por el objeto. Su contenido no se publica automáticamente.';
+  const objectTitle=selection.kind==='object'?active?.title||'Sin objeto':short(selection.id,68);
+  const stateText=selection.kind==='object'?active?.epistemicState:'REFERENCIA';
+  const showRow=(label:string,text:string|null|undefined)=><div className="repoFieldRow" key={label}><span>{label}</span><strong>{value(text)}</strong></div>;
+  const selectSource=(ref:string)=>select('source',ref);
+  const onTemporalSelect=(id:string)=>{select('object',id);goto(2)};
+  const temporal=projectRepositoryMihmTimeline(objects,Object.fromEntries(objects.flatMap(o=>{
+    const read=publicReadings[o.id]??publicReadings[o.slug]??publicReadings[o.objectKey];
+    return read?[[o.id,read]]:[];
+  })));
+  const selectedTemporal=selection.kind==='object'?temporal.find(t=>t.id===selection.id):null;
+  return <main className="repositoryShell repoLiveV2">
+    <div className="repoToolbar">
+      <span className="repoToolbarIdentity">REPOSITORY <small>ARCHIVO PÚBLICO · PASSPORT CONTEXTUAL</small></span>
+      <label className="repoQuery"><span aria-hidden="true">⌕</span><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar publicaciones, métodos, fuentes y evidencia..." aria-label="Buscar registros"/></label>
+      <select aria-label="Filtrar plataforma" value={platform} onChange={e=>setPlatform(e.target.value)}><option value="ALL">Todas las plataformas</option><option value="SFI">SFI</option><option value="MEDIUM">Medium</option></select>
+      <select aria-label="Ordenar" value={order} onChange={e=>setOrder(e.target.value as 'new'|'old'|'name')}><option value="new">Más recientes</option><option value="old">Más antiguos</option><option value="name">Título A–Z</option></select>
+      <button type="button" onClick={()=>setView(view==='cards'?'graph':'cards')} aria-pressed={view==='graph'}>{view==='cards'?'VER GRAFO':'VER TARJETAS'}</button>
+    </div>
+    <div className="repoFieldScroll" ref={horizontal} aria-label="Campo horizontal del Repository" tabIndex={0}>
+      <div className="repoFieldTrack">
+        <aside className="repoIdentity repoFloating">
+          <span>EXPLORA</span><p>Selecciona una clase de objeto. El Passport se construye con la información autorizada que exista.</p>
+          <div className="repoCategoryList">{categories.map(([k,count])=><div key={k}><i/><span>{k}</span><b>{count}</b></div>)}</div>
+          <div className="repoNarrowFilters">{(['ALL','PUBLICATION','OBSERVATION','REPORT','PAPER','METHOD','DATASET','RETURN','INSTRUMENT','SOFTWARE'] as Filter[]).map(t=><button key={t} data-active={filter===t} onClick={()=>setFilter(t)}>{t==='ALL'?'TODOS':t}</button>)}</div>
+          <p className="repoScopeNote">Conteos del registro admitido, no del inventario privado de SFI.</p>
+          <button className="repoPhaseButton" onClick={()=>goto(1)}>EXPLORAR ARCHIVO →</button>
+        </aside>
+        <section className="repoArchiveRail repoFloating" aria-label="Explorar material canónico">
+          <div className="repoHero"><small>REPOSITORIO · NAVEGACIÓN INSTITUCIONAL</small><p>Selecciona un registro.<br/>Reconstruye su procedencia.</p><span>{matched.length} OBJETOS PÚBLICOS · SIN CIFRAS ILUSTRATIVAS</span></div>
+          <div className="repoCategoryDoors">{(['PUBLICATION','METHOD','REPORT','DATASET'] as Filter[]).map(t=><button key={t} data-active={filter===t} onClick={()=>setFilter(t)}><strong>{t}</strong><small>{objects.filter(o=>o.objectType===t).length} objetos</small></button>)}</div>
+          <div className="repoArchiveHead"><span>PUBLICATIONS / OBJECTS · {matched.length}</span><div><button data-active={view==='cards'} onClick={()=>setView('cards')}>TARJETAS</button><button data-active={view==='graph'} onClick={()=>setView('graph')}>CONEXIONES</button></div></div>
+          {view==='cards'?<div className="repoObjectCards">{matched.map(o=><button key={o.id} className="repoObjectCard" data-tone={palette[o.objectType]||'gold'} data-active={o.id===selection.id} onClick={()=>select('object',o.id)}>
+            <span className="repoObjectVisual">{o.editorial?.coverImage?<img src={o.editorial.coverImage} alt=""/>:<i aria-hidden="true">◇</i>}</span>
+            <small>{o.objectType} · {o.epistemicState}</small><strong>{o.title}</strong><span>{short(o.summary,110)}</span><em>{date(o.createdAt)} · v{o.version}</em>
+          </button>)}{!matched.length?<p className="repoNothing">No hay objetos públicos admitidos para este filtro. No se completan registros mediante inferencia.</p>:null}</div>:
+            <div className="repoGraphWrap"><svg viewBox="0 0 900 560" role="img" aria-label="Conexiones verificadas entre objetos públicos y referencias de origen">
+              {nodeEdges.map((edge,i)=>{const a=graphLayout.get(edge.a)!,b=graphLayout.get(edge.b)!;return <line key={i} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="#c9aa74" strokeOpacity=".34" strokeWidth="1"/>})}
+              {graphObjects.map(o=>{const p=graphLayout.get(o.id)!;return <g key={o.id} onClick={()=>select('object',o.id)} role="button" tabIndex={0} aria-label={'Abrir '+o.title} onKeyDown={e=>{if(e.key==='Enter'||e.key===' ')select('object',o.id)}} style={{cursor:'pointer'}}><circle cx={p.x} cy={p.y} r={o.id===selection.id?20:14} fill="#0c1317" stroke="#d3af68" strokeWidth="2"/><text x={p.x} y={p.y+32} fontSize="9" textAnchor="middle" fill="#f0ddba">{short(o.title,20)}</text></g>})}
+              {graphSources.map(s=>{const p=graphLayout.get('source:'+s)!;return <g key={s} role="button" tabIndex={0} onClick={()=>selectSource(s)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' ')selectSource(s)}} style={{cursor:'pointer'}}><rect x={p.x-9} y={p.y-9} width="18" height="18" fill="#0e171d" stroke="#74b4c9" transform={`rotate(45 ${p.x} ${p.y})`}/><text x={p.x} y={p.y+29} textAnchor="middle" fontSize="8" fill="#acc0c8">{short(s.replace('https://',''),24)}</text></g>})}
+            </svg><span>Solo se dibujan referencias efectivamente registradas. La conexión de origen no prueba corroboración.</span></div>}
+          <div className="repoArchiveLower"><div className="repoRailColumn repoSources"><header><span>SOURCE RECORDS</span><b>{sources.length}</b></header><div className="repoRailScroll">{sources.slice(0,12).map(s=><button key={s} onClick={()=>selectSource(s)}><span>{short(s)}</span><small>REFERENCIA REGISTRADA</small></button>)}</div></div><div className="repoRailColumn repoEvidence"><header><span>EVIDENCE</span><b>{evidence.length}</b></header><div className="repoRailScroll">{evidence.slice(0,12).map(e=><button key={e} onClick={()=>select('evidence',e)}><span>{short(e)}</span><small>REFERENCIA · NO PUBLICA CONTENIDO</small></button>)}</div></div></div>
+          <button className="repoPhaseButton" onClick={()=>goto(2)}>ABRIR PASSPORT →</button>
         </section>
-
-        <section className="repoLineage">
-          <header><span>LINEAGE</span><b>{selected.relatedObjects.length} RELATED</b></header>
-          <div className="repoLineageGraph">
-            <div><i/>DATA / SOURCE<small>{selected.sourceRefs.length} refs</small></div><em>→</em>
-            <div><i/>PROCESS<small>{selected.methods.length} methods</small></div><em>→</em>
-            <div data-current="true"><i/>THIS OBJECT<small>{selected.id}</small></div><em>→</em>
-            <div><i/>DERIVATIVES<small>{selected.relatedObjects.length} objects</small></div>
+        <section className="repoObjectInspector repoFloating" aria-live="polite">
+          <div className="repoObjectState"><span>PASSPORT / {selection.kind.toUpperCase()}</span><b>{stateText}</b></div>
+          <div className="repoPassportTitle">{objectTitle}</div><p>{description}</p>
+          <div className="repoPassportTiles">
+            {passportTile('id','IDENTIDAD · ESTADO · AUTORIDAD','gold',<>{showRow('ID',selection.id)}{showRow('TIPO',selection.kind==='object'?active?.objectType:selection.kind.toUpperCase())}{showRow('ESTADO EPISTÉMICO',stateText)}{showRow('PUBLICACIÓN',selection.kind==='object'?active?.publicationState:null)}{showRow('IDIOMA',selection.kind==='object'?active?.language:null)}{showRow('LICENCIA',selection.kind==='object'?active?.license:null)}{showRow('FECHA DE REGISTRO',selection.kind==='object'&&active?date(active.createdAt):null)}{showRow('VERSIÓN',selection.kind==='object'?active?.version:null)}</>,true)}
+            {passportTile('prov','PROVENANCE · ORIGEN','blue',<><p>Los enlaces citados identifican procedencia; no demuestran independencia ni veracidad del evento.</p>{(selection.kind==='source'?[selection.id]:active?.sourceRefs||[]).map(s=><button className="repoPassportLink" key={s} onClick={()=>selectSource(s)}>{short(s,55)} <span>↗</span></button>)}{!(active?.sourceRefs.length)&&selection.kind!=='source'?<p>NOT OBSERVED · Sin fuentes explícitas</p>:null}</>)}
+            {selection.kind==='object'?passportTile('clocks','MIHM-T · 7 RELOJES FUENTE-FECHADOS','teal',<>
+              <p>El registro editorial no sustituye tiempo de evento, observación, conocimiento, autoridad, ejecución ni RETURN.</p>
+              {TIMELINE_CLOCKS.map(clock=>{
+                const reading=selectedTemporal?.profile.readings.find(r=>r.clock===clock.id);
+                return <div className="repoFieldRow" key={clock.id}>
+                  <span title={clock.description}>{clock.id}</span>
+                  <strong>{reading?.at??'UNKNOWN'} {reading?.sourceRef?' · '+reading.sourceRef:''}</strong>
+                </div>;
+              })}
+              <p>{selectedTemporal?.profile.sourceCompleteness??'NO_CLOCK_EVIDENCE'} · NO_INFERRED_TIMESTAMPS · NO VALIDATED MIHM-T</p>
+            </>):null}
+            {passportTile('t0','T0 / T1 · CONTRASTE TEMPORAL','teal',<>{reading&&(reading.t0||reading.t1)?<>{showRow('T0',reading.t0)}{showRow('T1',reading.t1)}</>:<p>NOT OBSERVED IN PUBLIC PROJECTION · No existe un T0/T1 publicado para este objeto. Su fecha de edición no sustituye la fecha de conocimiento.</p>}</>)}
+            {reading?.sixQuestions.length?passportTile('six','6 PREGUNTAS · EVALUACIÓN','gold',<>{reading.sixQuestions.map((q,i)=><div key={i} className="repoQA"><b>{i+1}. {q.question}</b><p>{value(q.answer)}</p></div>)}</>):null}
+            {reading?.hypothesis||reading?.rivalHypotheses.length?passportTile('h','HIPÓTESIS · RIVALES','red',<>{showRow('HIPÓTESIS',reading.hypothesis)}{reading.rivalHypotheses.map((h,i)=><p key={i}>Rival {i+1}: {h}</p>)}</>):null}
+            {reading?.expectedReturn||reading?.observedReturn?passportTile('returns','RESULTADO · RETURN','mint',<>{showRow('ESPERADO',reading.expectedReturn)}{showRow('OBSERVADO',reading.observedReturn)}</>):null}
+            {passportTile('lin','LINEAGE · CONEXIONES','mint',<><p>{active?.relatedObjects.length||0} objetos relacionados explícitos</p>{(active?.relatedObjects||[]).map(id=><button className="repoPassportLink" key={id} onClick={()=>select('object',id)}>{id}</button>)}{!(active?.relatedObjects.length)?<p>NOT OBSERVED · No se dibuja una relación inexistente.</p>:null}{showRow('EVIDENCIAS REFERIDAS',String(active?.evidenceRefs.length||0))}</>)}
+            {passportTile('versions','VERSIONS · HASHES · MANIFEST','blue',<>{showRow('VERSIÓN',selection.kind==='object'?active?.version:null)}{showRow('OBJETO QUE LO REFERENCIA',active?.id)}{showRow('OBJECT KEY',selection.kind==='object'?active?.objectKey:null)}{showRow('HASHES','NOT MATERIALIZED')}{showRow('INTEGRIDAD','Object identity ≠ content hash.')}{showRow('FUENTES',String(active?.sourceRefs.length||0))}{showRow('MISSING',String(active?.missing.length||0))}{active?.missing.map(m=><p key={m.field}>{m.field}: {m.reason}</p>)}</>)}
+            {passportTile('discovery','DISCOVERY MESH · EXPOSICIÓN','gold',<><p>{discovery.ownedMachineSurfaceCount} OWNED SURFACES</p>{discovery.channels.map(c=><div key={c.id} className="repoFieldRow"><span>{c.id}</span><strong>{c.state}</strong></div>)}<p>PUBLICATION = EXPOSURE · EXPOSURE ≠ DISCOVERY ≠ RECOGNITION ≠ INTERACTION ≠ RELATION ≠ PROPAGATION ≠ PULL ≠ RETURN</p></>)}
           </div>
+          <button type="button" className="repoPrimaryAction" onClick={jumpReader}>READ PUBLICATION / ABRIR VISOR →</button>
         </section>
-
-        <div className="repoTwinCards">
-          <section><header><span>VERSIONS</span><b>VIEW</b></header><div className="repoVersionCurrent"><i/>v{selected.version}<span>CURRENT VERSION ONLY</span><time>{formatDate(selected.updatedAt)}</time></div></section>
-          <section><header><span>HASHES</span><b>INTEGRITY</b></header><div className="repoHashEmpty">CONTENT HASH<br/><strong>NOT MATERIALIZED</strong><small>Object identity ≠ content hash.</small></div></section>
-        </div>
-
-        <div className="repoTwinCards">
-          <section><header><span>CASE / RELATED OBJECTS</span><b>{selected.relatedObjects.length}</b></header>{selected.relatedObjects.slice(0,4).map((object)=><div className="repoRelated" key={object}>{object}</div>)}{!selected.relatedObjects.length?<div className="repoEmpty">NOT OBSERVED IN PUBLIC REGISTRY</div>:null}</section>
-          <section><header><span>MANIFEST</span><b>READ</b></header><div className="repoManifest"><span>METADATA</span><b>{selected.objectKey}</b><span>SOURCE LIST</span><b>{selected.sourceRefs.length}</b><span>LINEAGE</span><b>{selected.relatedObjects.length}</b><span>MISSING</span><b>{selected.missing.length}</b></div></section>
-        </div>
-
-        <section className="repoDiscovery" id="discovery">
-          <header><span>DISCOVERY MESH</span><b>{discovery.ownedMachineSurfaceCount} OWNED SURFACES</b></header>
-          <div className="repoDiscoveryChannels">{discovery.channels.map((channel)=><div key={channel.id}><span>{channel.id}</span><b>{channel.state}</b><small>{channel.basis}</small></div>)}</div>
-          <div className="repoDiscoveryLifecycle">{discovery.lifecycle.map((stage,index)=><div key={stage.id} data-observed={stage.id==='EXPOSURE'?'true':undefined}><i>{String(index+1).padStart(2,'0')}</i><span>{stage.id}</span><b>{stage.state}</b></div>)}</div>
-          <nav className="repoDiscoveryLinks">{discovery.machineLinks.map((link)=><a key={link.label} href={link.href}>{link.label}</a>)}</nav>
-          <p>PUBLICATION = EXPOSURE · EXPOSURE ≠ DISCOVERY ≠ RECOGNITION ≠ INTERACTION ≠ RELATION ≠ PROPAGATION ≠ PULL ≠ RETURN</p>
+        <section className="repoProvenance repoFloating" ref={readerRef}>
+          <div className="repoReader" aria-label="Visor integrado de documentos y registros">
+            <div className="repoViewerHeading"><span>VISOR / {selection.kind.toUpperCase()}</span><button onClick={()=>setReaderOpen(!readerOpen)} aria-expanded={readerOpen}>{readerOpen?'CONTRAER −':'DESPLEGAR +'}</button></div>
+            {readerOpen?<><nav className="repoReaderTabs">{(['LECTURA','FUENTES','FICHA'] as ReaderMode[]).map(mode=><button key={mode} onClick={()=>setReaderMode(mode)} data-active={readerMode===mode}>{mode}</button>)}</nav>
+            <div className="repoViewerBody">
+              {readerMode==='LECTURA'?selection.kind==='object'&&active?.editorial?.sections.length?<><span className="repoDocType">{active.editorial.collection} · {active.id}</span><h2>{active.title}</h2><p>{active.editorial.deck||active.summary}</p>{active.editorial.coverImage?<img className="repoDocCover" src={active.editorial.coverImage} alt={active.title}/>:null}{active.editorial.sections.map(sec=><details key={sec.id} className="repoDocumentTile" open><summary>{sec.title}</summary><div>{sec.paragraphs.map((p,i)=><p key={i}>{p}</p>)}{sec.items?.map((item,i)=><p key={i}>{item}</p>)}</div></details>)}{active.editorial.visuals.map(v=><figure key={v.id}><img src={v.src} alt={v.alt}/><figcaption>{v.caption}</figcaption></figure>)}</>:
+                safeDoc?.publicUrl?<><h2>{safeDoc.filename}</h2><iframe src={safeDoc.publicUrl} title="Documento materializado" sandbox="allow-scripts allow-same-origin allow-downloads" referrerPolicy="no-referrer" loading="lazy" className="repoDocumentFrame"/><p>Si el origen impide ser incrustado, consulta la fuente pública autorizada.</p></>:
+                <><h2>{objectTitle}</h2><p>{description}</p><p>NOT MATERIALIZED · No existe contenido de lectura público asociado a esta selección.</p></>:
+                readerMode==='FUENTES'?<><h2>Fuente y material de apoyo</h2>{(active?.sourceRefs||[]).map(s=><div key={s} className="repoSourceItem"><button onClick={()=>selectSource(s)}>{short(s,70)}</button>{safeURL(s)?<a href={safeURL(s)!} target="_blank" rel="noopener noreferrer">VER FUENTE ORIGINAL ↗</a>:null}</div>)}{!active?.sourceRefs.length?<p>NOT OBSERVED · Sin fuentes publicables.</p>:null}{active?.editorial?.renditions.map(r=><div key={r.filename} className="repoSourceItem"><b>{r.filename}</b><span>{r.state}</span><code>SHA-256 {r.sha256 || 'NOT MATERIALIZED'}</code>{r.publicUrl&&safeURL(r.publicUrl)?<a href={r.publicUrl} rel="noopener noreferrer" target="_blank">ABRIR FORMATO ↗</a>:null}</div>)}</>:
+                <><h2>Ficha documental</h2>{showRow('OBJETO',active?.id)}{showRow('VERSIÓN',active?.version)}{showRow('AUTORES',active?.authors.join(', '))}{showRow('MÉTODOS',active?.methods.join(', '))}{showRow('ESTADO',active?.epistemicState)}{showRow('CANONICAL URL',active?.canonicalUrl)}{reading?showRow('PUBLICACIÓN PERSISTIDA',date(reading.publishedAt)):null}{(active?.limitations||[]).map((s,i)=><p key={i}>{s}</p>)}</>}
+            </div></>:null}
+          </div>
+          <div className="repoDiscovery"><h3>DISCOVERY MESH</h3><p>Machine-readable public resources are an exposure mechanism, not proof of recognition.</p><div className="repoMachineLinks">{discovery.machineLinks.map(l=><a key={l.label} href={l.href} target="_blank" rel="noopener noreferrer">{l.label} ↗</a>)}</div></div>
         </section>
-      </aside>:null}
-
-      {selected&&readerOpen?<section className="repoReader" role="dialog" aria-modal="true" aria-label={selected.title}>
-        <button className="repoReaderClose" type="button" onClick={()=>setReaderOpen(false)}>CLOSE ×</button>
-        <article>
-          <header>
-            <span>{selected.editorial?.collection??selected.objectType} · {selected.id}</span>
-            <h2>{selected.title}</h2>
-            {selected.editorial?.subtitle?<h3>{selected.editorial.subtitle}</h3>:null}
-            <p>{selected.editorial?.deck??selected.summary}</p>
-            <div><b>{selected.epistemicState}</b><b>{selected.publicationState}</b><b>v{selected.version}</b><b>{selected.license??'LICENSE UNKNOWN'}</b></div>
-          </header>
-
-          {selected.editorial?.coverImage?<figure><img src={selected.editorial.coverImage} alt={selected.title}/></figure>:null}
-          {selected.editorial?.motto?<blockquote>{selected.editorial.motto}</blockquote>:null}
-
-          {selected.editorial?.sections.map((section)=><section key={section.id}>
-            <small>{section.id.toUpperCase()}</small>
-            <h4>{section.title}</h4>
-            {section.paragraphs.map((paragraph)=><p key={paragraph}>{paragraph}</p>)}
-            {section.items?.length?<ul>{section.items.map((item)=><li key={item}>{item}</li>)}</ul>:null}
-          </section>)}
-
-          {selected.editorial?.visuals.map((visual)=><figure key={visual.id}><img src={visual.src} alt={visual.alt}/><figcaption>{visual.caption}</figcaption></figure>)}
-
-          {selected.editorial?.renditions.length?<section>
-            <small>RENDITIONS / INTEGRITY</small>
-            {selected.editorial.renditions.map((rendition)=><div className="repoRendition" key={rendition.filename}><b>{rendition.kind} · {rendition.state}</b><span>{rendition.filename}</span><code>SHA-256 {rendition.sha256}</code>{rendition.publicUrl?<a href={rendition.publicUrl} target="_blank" rel="noreferrer">OPEN RENDITION ↗</a>:<em>NOT PUBLICLY MATERIALIZED</em>}</div>)}
-          </section>:null}
-
-          <section className="repoReaderBoundary">
-            <small>EPISTEMIC / DISCOVERY BOUNDARY</small>
-            {selected.editorial?.epistemicBoundary.map((boundary)=><p key={boundary}>{boundary}</p>)}
-            {selected.limitations.map((boundary)=><p key={boundary}>{boundary}</p>)}
-            <p>Publication establishes EXPOSURE only. Discovery, Recognition, Interaction, PULL and RETURN require separate observations.</p>
-          </section>
-        </article>
-      </section>:null}
-
-      <nav className="repoTimeline" aria-label="Select recorded repository history">
-        <div className="repoTimelineIdentity"><span>REPOSITORY HISTORY</span><b>{objects.length} PUBLIC CANONICAL OBJECTS</b></div>
-        <div className="repoTimelineTrack">
-          <div className="repoTimelineLine"/>
-          {timeline.slice(-9).map((object,index)=><button type="button" key={object.id} style={{left:(6+(index*(88/Math.max(1,Math.min(8,timeline.length-1)))))+'%'}} data-active={object.id===selected?.id?'true':undefined} onClick={()=>selectObject(object)}><i/><time>{formatDate(object.updatedAt)}</time><span>{object.objectType}</span><small>{object.id}</small></button>)}
-        </div>
-        <div className="repoTimelineMode"><span>YEAR</span><b>{year(selected?.updatedAt??'')}</b></div>
-      </nav>
-    </section>
+      </div>
+    </div>
+    <RepositoryMihmTimeline
+      objects={objects}
+      publicReadings={publicReadings}
+      selectedId={selection.kind==='object'?selection.id:null}
+      onSelect={onTemporalSelect}
+      onBackward={()=>goto(0)}
+      onForward={()=>horizontal.current?.scrollBy({left:640,behavior:'smooth'})}
+    />
   </main>;
 }

@@ -11,6 +11,7 @@ import {
 import { discoveryExposurePlan } from '@/lib/discovery/exposureProjection';
 import { discoveryMachineResources } from '@/lib/discovery/discoveryEmitter';
 import { SFI_DISCOVERY_LIFECYCLE } from '@/lib/discovery/institutionalDiscoveryMesh';
+import { readPublishedRepositoryPassports } from '@/lib/repository/publicPassportProjection';
 import { RepositoryConsole, type RepositoryObject, type RepositoryDiscovery } from './RepositoryConsole';
 import './repository.css';
 
@@ -83,6 +84,9 @@ export default async function RepositoryPage({searchParams}:PageProps){
     })
     .sort((a,b)=>Date.parse(b.updatedAt)-Date.parse(a.updatedAt)||a.title.localeCompare(b.title));
 
+  // Published snapshots may enhance public Passports. Operational/private data never does.
+  const publicReadings=await readPublishedRepositoryPassports(objects.flatMap(object=>[object.id,object.slug,object.objectKey]));
+
   const resources=discoveryMachineResources();
   const exposure=discoveryExposurePlan();
   const discovery:RepositoryDiscovery={
@@ -112,5 +116,5 @@ export default async function RepositoryPage({searchParams}:PageProps){
     publicApiPaths:[...SFI_PUBLIC_DISCOVERY_API_PATHS],
   };
 
-  return <RepositoryConsole objects={objects} initialObject={requestedObject??null} discovery={discovery}/>;
+  return <RepositoryConsole objects={objects} initialObject={requestedObject??null} discovery={discovery} publicReadings={publicReadings}/>;
 }

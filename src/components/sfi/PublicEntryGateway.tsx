@@ -12,7 +12,7 @@ const SURFACE_RAIL=[
   {label:'METHOD LAB',number:'03',sceneId:'method-lab',href:'/instruments/method-lab',line:'Protocols · tests · reproducibility'},
   {label:'ROOT',number:'04',sceneId:'root',href:'/instruments/root',line:'Governance · authority · cognitive field'},
   {label:'REALITY CHAIN',number:'05',sceneId:'reality-chain',href:'/instruments/reality-chain',line:'Reconstruction · execution · empirical RETURN'},
-  {label:'TIMELINE',number:'06',sceneId:'timeline',href:'/instruments/timeline',line:'Contrast · epistemic time · reentry'},
+  {label:'TIMELINE',number:'06',sceneId:'timeline',href:'/timeline',line:'Contrast · epistemic time · reentry'},
   {label:'ACCESS',number:'07',sceneId:'access',href:'/instruments/access',line:'Institutional identity · scope · authority'},
 ] as const;
 
