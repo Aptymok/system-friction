@@ -126,7 +126,10 @@ export async function attemptBoundedDataPlaneReconciliation(maxTransactions: num
       };
     }
 
-    const limit = Math.max(1, Math.min(8, Number.isFinite(maxTransactions) ? Math.floor(maxTransactions) : 8));
+    // The OIDC cron invokes four sequential, guarded calls of at most 32 source
+    // transactions each. Match the canonical flushPrimaryMirror cap (32);
+    // the previous cap of 8 silently made its documented 128-tx budget 32.
+    const limit = Math.max(1, Math.min(32, Number.isFinite(maxTransactions) ? Math.floor(maxTransactions) : 8));
     const primaryMirror = await flushPrimaryMirror({ maxTransactions: limit });
     const after = await readDataPlaneReconciliationStatus();
     return {
