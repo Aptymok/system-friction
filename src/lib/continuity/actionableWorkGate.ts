@@ -33,24 +33,25 @@ async function readMirrorMaintenanceRequirement() {
   }
 
   try {
-    const { readDataPlaneState } = await import('@/lib/persistence/dataPlaneContinuityStore');
-    const state = await readDataPlaneState();
-    const verifiedAt = state.primary_mirror_verified_at ? Date.parse(state.primary_mirror_verified_at) : Number.NaN;
-    const stale = !Number.isFinite(verifiedAt) || (Date.now() - verifiedAt) > 60 * 60 * 1000;
-    const required = state.mode === 'PRIMARY' && (
-      state.primary_mirror_certified !== true
-      || Number(state.primary_mirror_backlog ?? 0) > 0
-      || stale
-    );
+    // The last Neon certificate is historical. Consult the bounded, live
+    // outbox/read-plane projection before deciding whether a heartbeat can
+    // sleep. Otherwise new Supabase writes can remain invisible to the gate.
+    const { readDataPlaneReconciliationStatus } = await import('@/lib/persistence/dataPlaneReconciliationControl');
+    const snapshot = await readDataPlaneReconciliationStatus();
+    const certificate = snapshot.primaryMirrorCertificate;
+    const required = snapshot.dataPlane.mode === 'PRIMARY' && !certificate.certified;
     return {
       required,
       configured: true as const,
       state: {
-        mode: state.mode,
-        certified: state.primary_mirror_certified,
-        verifiedAt: state.primary_mirror_verified_at,
-        backlog: Number(state.primary_mirror_backlog ?? 0),
-        stale,
+        mode: snapshot.dataPlane.mode,
+        certified: certificate.certified,
+        recordedCertified: certificate.recordedCertified,
+        verifiedAt: certificate.verifiedAt,
+        backlog: certificate.primaryPendingAtRead,
+        stale: certificate.reason === 'VERIFICATION_STALE',
+        certificateReason: certificate.reason,
+        observedAt: certificate.observedAt,
       },
       diagnostic: null,
     };
