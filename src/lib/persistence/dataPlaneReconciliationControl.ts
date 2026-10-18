@@ -2,6 +2,7 @@ import 'server-only';
 
 import { readDataPlaneState, journalBacklog } from '@/lib/persistence/dataPlaneContinuityStore';
 import { readPrimaryOutboxStatus, flushPrimaryMirror } from '@/lib/persistence/primaryMirror';
+import { deriveLiveMirrorCertification } from '@/lib/persistence/primaryMirrorCertification';
 import { replayVerifiedSourceObservations } from '@/lib/persistence/verifiedObservationReplay';
 import { recoverPrimaryDataPlane } from '@/lib/persistence/continuityRecovery';
 import { continuityDatabase } from '@/lib/sfi/continuityPostgres';
@@ -43,6 +44,19 @@ export async function readDataPlaneReconciliationStatus() {
 
   const protectedPending = Number(journalRows[0]?.protected_pending ?? 0);
   const mirror = mirrorResult.ok ? mirrorResult.status : null;
+  const observedAt = new Date().toISOString();
+  // Never equate Neon's last certification receipt with *current* parity.
+  // Reading the live primary outbox invalidates its effective status when
+  // pending writes, conflicts or a stale verification are observed.
+  const mirrorCertificate = deriveLiveMirrorCertification({
+    mode: state.mode,
+    recordedCertified: state.primary_mirror_certified,
+    recordedBacklog: Number(state.primary_mirror_backlog ?? 0),
+    verifiedAt: state.primary_mirror_verified_at,
+    outbox: mirror,
+    journal: { pending: journal.pending, conflicts: journal.conflicts, protectedPending },
+    observedAt,
+  });
   const blocker = state.mode === 'PRIMARY'
     ? 'PRIMARY_ALREADY_ACTIVE'
     : !mirrorResult.ok
@@ -56,14 +70,17 @@ export async function readDataPlaneReconciliationStatus() {
             : null;
 
   return {
-    observedAt: new Date().toISOString(),
+    observedAt,
     dataPlane: {
       mode: state.mode,
       epoch: state.epoch,
       primaryLastOkAt: state.primary_last_ok_at,
       primaryErrorCode: state.primary_error_code,
-      primaryMirrorCertified: state.primary_mirror_certified,
-      primaryMirrorBacklog: state.primary_mirror_backlog,
+      primaryMirrorCertified: mirrorCertificate.certified,
+      primaryMirrorRecordedCertified: state.primary_mirror_certified,
+      primaryMirrorCertificateReason: mirrorCertificate.reason,
+      primaryMirrorVerifiedAt: state.primary_mirror_verified_at,
+      primaryMirrorBacklog: mirror?.pending ?? state.primary_mirror_backlog,
     },
     journal: {
       pending: journal.pending,
@@ -72,6 +89,7 @@ export async function readDataPlaneReconciliationStatus() {
       pendingByTable,
     },
     primaryOutbox: mirror,
+    primaryMirrorCertificate: mirrorCertificate,
     primaryOutboxError: mirrorResult.ok ? null : mirrorResult.error,
     safeRecoveryEligible: blocker === null,
     blocker,

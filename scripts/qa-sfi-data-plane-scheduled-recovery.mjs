@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 
 const read = (file) => fs.readFileSync(file, 'utf8');
 const control = read('src/lib/persistence/dataPlaneReconciliationControl.ts');
@@ -8,6 +9,17 @@ const workflow = read('.github/workflows/sfi-continuity-hourly.yml');
 const root = read('src/app/api/external/v1/root/operate/route.ts');
 const mirror = read('src/lib/persistence/primaryMirror.ts');
 const recover = read('src/lib/persistence/continuityRecovery.ts');
+const certificate = read('src/lib/persistence/primaryMirrorCertification.ts');
+const actionGate = read('src/lib/continuity/actionableWorkGate.ts');
+
+assert.ok(control.includes('deriveLiveMirrorCertification'), 'ROOT reconciliation status must show the effective live certification');
+assert.ok(control.includes('primaryMirrorRecordedCertified'), 'preserve independently the historical Neon receipt');
+assert.ok(control.includes('primaryMirrorCertificateReason'), 'expose why a stale stored certificate does not hold now');
+assert.ok(actionGate.includes('readDataPlaneReconciliationStatus'), 'heartbeat must test live outbox before assuming Neon receipt is current');
+assert.ok(!actionGate.includes("state.primary_mirror_certified !== true"), 'heartbeat cannot rely only on last recorded Neon certificate');
+assert.ok(certificate.includes("'INDEPENDENT_NON_ATOMIC_PLANE_READS'"), 'no claim of atomic parity from separate provider reads');
+execFileSync(process.execPath, ['--import', 'tsx', '--test', 'src/lib/persistence/primaryMirrorCertification.test.ts'], { stdio: 'inherit' });
+
 
 assert.ok(workflow.includes("cron: '15 * * * *'"));
 assert.ok(workflow.includes("cron: '45 * * * *'"));
