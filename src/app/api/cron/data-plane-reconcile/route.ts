@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: 'authorized_scheduler_required' }, { status: 401 });
   }
   try {
-    const receipt = await attemptBoundedDataPlaneReconciliation(8);
+    const receipt = await attemptBoundedDataPlaneReconciliation(32);
     return NextResponse.json({
       ...receipt,
       execution: 'SCHEDULED_BOUNDED_RECONCILIATION',
