@@ -530,7 +530,9 @@ check('primary mirror maintenance is owned by the existing continuity heartbeat'
   && runtime.includes('primaryMirror'));
 
 check('idle wakeup cannot suppress required data-plane mirror certification maintenance',
-  gate.includes("import('@/lib/persistence/dataPlaneContinuityStore')")
+  gate.includes("import('@/lib/persistence/dataPlaneReconciliationControl')")
+  && gate.includes('readDataPlaneReconciliationStatus')
+  && gate.includes('!certificate.certified')
   && gate.includes('mirrorMaintenanceRequired')
   && gate.includes('DATA_PLANE_MIRROR_MAINTENANCE_REQUIRED'));
 
