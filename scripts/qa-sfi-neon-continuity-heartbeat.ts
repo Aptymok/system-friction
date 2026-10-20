@@ -536,9 +536,8 @@ check('idle wakeup cannot suppress required data-plane mirror certification main
   && gate.includes('mirrorMaintenanceRequired')
   && gate.includes('DATA_PLANE_MIRROR_MAINTENANCE_REQUIRED'));
 
-check('existing half-hour continuity scheduler is sufficient for the two-hour mirror freshness gate',
-  hourlyContinuity.includes("cron: '15 * * * *'")
-  && hourlyContinuity.includes("cron: '45 * * * *'"));
+check('staggered four-times-hourly continuity scheduler supports the two-hour mirror freshness gate',
+  hourlyContinuity.includes("cron: '7,22,37,52 * * * *'"));
 
 check('continuity heartbeat is the explicit scheduled fallback caller',
   heartbeat.includes('scheduledEgressGuardResponse({ allowContinuityFallback: true })'));
