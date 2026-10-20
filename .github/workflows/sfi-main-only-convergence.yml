@@ -86,11 +86,11 @@ jobs:
             if [ "$branch" = main ]; then continue; fi
             digest="$(python -c 'import sys,hashlib; print(hashlib.sha256(sys.argv[1].encode()).hexdigest()[:24])' "$branch")"
             tag="refs/tags/sfi-main-archive-20261019/${digest}"
-            existing="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/sfi-main-archive-20261019/${digest}" --jq '.object.sha' 2>/dev/null || true)"
-            if [ -n "$existing" ]; then
-              test "$existing" = "$sha" || { echo "ARCHIVE_TAG_CONFLICT:$branch"; exit 1; }
-            else
-              gh api -X POST "repos/${GITHUB_REPOSITORY}/git/refs" -f ref="$tag" -f sha="$sha" --silent
+            # GitHub can return an ambiguous prefix response for non-existing refs;
+            # make the immutable creation attempt authoritative and check exact SHA on collision.
+            if ! gh api -X POST "repos/${GITHUB_REPOSITORY}/git/refs" -f ref="$tag" -f sha="$sha" --silent 2>"$RUNNER_TEMP/sfi-archive-tag-error.txt"; then
+              existing="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/sfi-main-archive-20261019/${digest}" --jq '.object.sha' 2>/dev/null || true)"
+              test "$existing" = "$sha" || { echo "ARCHIVE_TAG_FAILED:$branch"; cat "$RUNNER_TEMP/sfi-archive-tag-error.txt"; exit 1; }
             fi
           done < "$manifest"
           echo "Archived all secondary branch heads before destructive cleanup"
