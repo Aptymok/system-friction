@@ -2,8 +2,8 @@ name: SFI Continuity Hourly
 
 on:
   schedule:
-    - cron: '15 * * * *'
-    - cron: '45 * * * *'
+    # Quarter-hour-offset retries reduce dependence on GitHub's best-effort scheduled delivery.
+    - cron: '7,22,37,52 * * * *'
   workflow_dispatch:
     inputs:
       cycle_id:
@@ -88,7 +88,7 @@ jobs:
       - name: Drain primary mirror through bounded sequential reconciliation calls
         shell: bash
         # Reuse the governed OIDC route; no direct database writes or bypass of safety gates.
-        # Up to eight calls x 32 transactions, with a seven-minute drain budget.
+        # Up to 32 calls x 32 transactions, within the existing seven-minute drain budget.
         # Stop early on no progress, conflict, or time budget; preserve the existing safety gates.
         env:
           OIDC_TOKEN: ${{ steps.oidc.outputs.token }}
@@ -96,7 +96,7 @@ jobs:
         run: |
           set -euo pipefail
           drain_started=$SECONDS
-          for round in 1 2 3 4 5 6 7 8; do
+          for round in {1..32}; do
             if (( SECONDS - drain_started >= 420 )); then
               echo 'SFI_MIRROR_DRAIN_TIME_BUDGET_REACHED'
               break
