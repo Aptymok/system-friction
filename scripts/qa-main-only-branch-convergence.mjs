@@ -6,7 +6,7 @@ const repo = process.env.GITHUB_REPOSITORY || 'Aptymok/system-friction';
 const token = process.env.GITHUB_TOKEN || '';
 const convergenceBranch = process.env.SFI_CONVERGENCE_BRANCH || process.env.GITHUB_HEAD_REF || '';
 const manifestPath = '.github/sfi-main-convergence-20260827.json';
-const supplementalReviewPaths = ['.github/sfi-main-convergence-reviews-20260909.json'];
+const supplementalReviewPaths = ['.github/sfi-main-convergence-reviews-20260909.json', '.github/sfi-main-convergence-reviews-20261019.json'];
 const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
 const reviewedDeltas = {};
 for (const [sourcePath, source] of [

@@ -1,0 +1,261 @@
+{
+  "contract": "SFI-MAIN-CONVERGENCE-REVIEW-2026-10-19",
+  "observedAgainstMain": "b85fd861e2f22c9496c19fff2448d4a61f03da38",
+  "policy": "Review historical divergence; avoid reinstating obsolete implementations. Branch snapshots are preserved by annotated retention tags before branch deletion.",
+  "reviewedDeltas": {
+    "ac0cf69d18984051": {
+      "decision": "ARCHIVED",
+      "branches": [
+        "aiweek-home-registration-2026-10-07"
+      ],
+      "evidence": [
+        "La versión de main conserva PublicEntryGateway con navegación pública y recuperación de callbacks; la rama mantiene el enlace de registro a evento de octubre ya celebrado.",
+        "Auditor group ac0cf69d18984051: 4 historical patch-unique commits; source fix(home): keep registration overlay above public chrome; review preserves original branch head for traceability."
+      ],
+      "reason": "Registro y superposición de AI Week NYC del 7 de octubre; el sitio actual prioriza entrada institucional y recuperación segura de autenticación."
+    },
+    "05947373d7e2ad02": {
+      "decision": "SUPERSEDED_BY_LATER_MAIN",
+      "branches": [
+        "experiment/aiweeknyc-synthetic-case-lab-20261010"
+      ],
+      "evidence": [
+        "Los cinco blobs del PR #732 fueron comparados por SHA e igualan main; PR #732 cerrado por absorción exacta.",
+        "Auditor group 05947373d7e2ad02: 7 historical patch-unique commits; source Keep linked real event artifact identifier private in lab-only source metadata; review preserves original branch head for traceability."
+      ],
+      "reason": "Laboratorio CHRONOS incorporado directamente a main, incluido ejecutor, caso, documentación, pruebas y workflow."
+    },
+    "dc056783a29e392b": {
+      "decision": "SUPERSEDED_BY_LATER_MAIN",
+      "branches": [
+        "feat/reality-chain-three-screens-cases-20261009"
+      ],
+      "evidence": [
+        "main mantiene linked-cases/route.ts idéntica; qa-sfi-reality-chain-three-screen.ts exige nueve etapas, ocho activos auténticos y tres horizontes en el workbench vigente.",
+        "Auditor group dc056783a29e392b: 10 historical patch-unique commits; source ci(reality-chain): run three-screen temporal/case lineage QA before typecheck; review preserves original branch head for traceability."
+      ],
+      "reason": "El circuito actual de Reality Chain conserva tres horizontes operativos y enlaces autenticados sin el renderer de demostración antiguo."
+    },
+    "3b5df8949ed358ae": {
+      "decision": "SUPERSEDED_BY_LATER_MAIN",
+      "branches": [
+        "feat/reality-passport-v1-current-main"
+      ],
+      "evidence": [
+        "src/lib/graph/realityChainProjection.ts declara SFI-REALITY-PASSPORT-1.1 en main; la rama candidata conserva 1.0.",
+        "Auditor group 3b5df8949ed358ae: 7 historical patch-unique commits; source fix: lock ROOT to sustained dark no-scroll viewport; review preserves original branch head for traceability."
+      ],
+      "reason": "El contrato actual de Reality Passport avanzó a 1.1 y conserva trazabilidad, métodos y límites de verificación."
+    },
+    "59156dbed3e9afa0": {
+      "decision": "REJECTED_ALTERNATE_IMPLEMENTATION",
+      "branches": [
+        "feat/reality-passport-v1-experimental",
+        "feat/reality-passport-verification-provenance-v12"
+      ],
+      "evidence": [
+        "Ambas ramas del grupo comparten el experimento v1.0; main ya implementa 1.1 y sus pruebas de procedencia.",
+        "Auditor group 59156dbed3e9afa0: 7 historical patch-unique commits; source fix: keep Reality Passport experimental contract at v1.0; review preserves original branch head for traceability."
+      ],
+      "reason": "Congelar el contrato de pasaporte en 1.0 revierte la identidad y las protecciones de 1.1 aceptadas en main."
+    },
+    "3bac6dc5c0e2f8aa": {
+      "decision": "SUPERSEDED_BY_LATER_MAIN",
+      "branches": [
+        "fix/continuity-mirror-bounded-drain-20261018"
+      ],
+      "evidence": [
+        "main contiene ocho rondas de 32 transacciones, presupuesto de 420 segundos, recibo mirroredRows y timeout 18 minutos; SFI Verify del commit 468a018c fue exitoso.",
+        "Auditor group 3bac6dc5c0e2f8aa: 1 historical patch-unique commits; source fix(continuity): bounded adaptive mirror drain and row throughput receipt; review preserves original branch head for traceability."
+      ],
+      "reason": "PR #789 incorporado a main junto con corrección de QA y timeout suficiente para el heartbeat; PR cerrado."
+    },
+    "fa1b1cc36a1b9143": {
+      "decision": "SUPERSEDED_BY_LATER_MAIN",
+      "branches": [
+        "fix/instrument-backdrops-horizontal-20261010"
+      ],
+      "evidence": [
+        "qa-sfi-reality-chain-three-screen.ts de main exige ocho SFI_RCH_01..08 existentes; PR #784 fusionó después las pantallas visuales, y GitHub CI verifica el código de main.",
+        "Auditor group fa1b1cc36a1b9143: 54 historical patch-unique commits; source fix(pdf): tolerate legacy case object refs in pagination QA without losing present provenance; review preserves original branch head for traceability."
+      ],
+      "reason": "Los fondos de instrumentos, ocho assets SFI_RCH y operación de casos están implementados y evolucionados en el árbol actual."
+    },
+    "27cfdecec9ac00d6": {
+      "decision": "REJECTED_ALTERNATE_IMPLEMENTATION",
+      "branches": [
+        "fix/reality-chain-background-20261012"
+      ],
+      "evidence": [
+        "RealityChainWorkbench.css en main utiliza RealityChain.png con fondo cover y sombreado para lectura; la rama anterior fuerza contain y elimina el overlay.",
+        "Auditor group 27cfdecec9ac00d6: 1 historical patch-unique commits; source fix(reality-chain): show original RealityChain.png as the sole non-repeating background; review preserves original branch head for traceability."
+      ],
+      "reason": "La rama propone fondo aislado sin overlay; la implementación operativa vigente conserva el arte real con gradientes de legibilidad."
+    },
+    "cc8a133bced013fe": {
+      "decision": "SUPERSEDED_BY_LATER_MAIN",
+      "branches": [
+        "fix/root-observation-governance-20261009"
+      ],
+      "evidence": [
+        "main integra PR #784, ROOT gobernado, Observatory real y Repository; comparación del PR #720 confirma que es un corte histórico anterior a esos contratos, no una actualización compatible para reproducción indiscriminada.",
+        "Auditor group cc8a133bced013fe: 118 historical patch-unique commits; source fix(observatory): preserve URL-driven history lens and canonical visual boundary; review preserves original branch head for traceability."
+      ],
+      "reason": "Gran convergencia histórica de ROOT, World, Discovery y publicaciones; el árbol vigente contiene sus sucesores y los instrumentos actualizados."
+    },
+    "d2ab599d18baecdd": {
+      "decision": "SUPERSEDED_BY_LATER_MAIN",
+      "branches": [
+        "fix/root-spatial-fidelity-20261010"
+      ],
+      "evidence": [
+        "PR #723 es presentación panorámica de tres archivos, sin escritores; PR #784 se fusionó después y el ROOT autenticado actual ya está instrumentado.",
+        "Auditor group d2ab599d18baecdd: 3 historical patch-unique commits; source Integrate authenticated chrome into ROOT panoramic field; review preserves original branch head for traceability."
+      ],
+      "reason": "Corrección espacial ROOT anterior a las versiones integradas posteriormente en main."
+    },
+    "960aea2afd18b4f6": {
+      "decision": "SUPERSEDED_BY_LATER_MAIN",
+      "branches": [
+        "fix/sfi-claude-cimd-oauth-20261010"
+      ],
+      "evidence": [
+        "El SHA de src/app/api/oauth/authorize/route.ts es idéntico a main; las diferencias revisadas de oauthClientRegistry.ts son comentarios, no un cambio de política.",
+        "Auditor group 960aea2afd18b4f6: 3 historical patch-unique commits; source test(oauth): exercise Claude CIMD recognition, strict callback, PKCE and ROOT scope boundary; review preserves original branch head for traceability."
+      ],
+      "reason": "La implementación OAuth vigente preserva el endpoint, con revisión posterior del registro de clientes."
+    },
+    "5e28d79adf0bf6fb": {
+      "decision": "SUPERSEDED_BY_LATER_MAIN",
+      "branches": [
+        "fix/sfi-invite-onboarding-recovery-20261010"
+      ],
+      "evidence": [
+        "institutionalInvitationDelivery.ts en main vincula existingUserId, valida coincidencia de correo y evita duplicación; la rama antigua usa el contrato más limitado existingAuthUserId.",
+        "Auditor group 5e28d79adf0bf6fb: 5 historical patch-unique commits; source test(auth): assert invite rescue and existing-user recovery boundaries; review preserves original branch head for traceability."
+      ],
+      "reason": "La recuperación institucional actual cubre identidad existente, enlace de recuperación y email verificado con guardas adicionales."
+    },
+    "b28e10a77d16496f": {
+      "decision": "SUPERSEDED_BY_LATER_MAIN",
+      "branches": [
+        "fix/world-observation-partial-return-20261016"
+      ],
+      "evidence": [
+        "worldspect-cron.yml contiene las mismas condiciones de observación persistida e hipótesis bloqueada; las diferencias revisadas son textos de advertencia.",
+        "Auditor group b28e10a77d16496f: 2 historical patch-unique commits; source fix(world): distinguish persisted external observation from provider-blocked hypothesis; review preserves original branch head for traceability."
+      ],
+      "reason": "World actual diferencia observación real de hipótesis bloqueada, y mantiene los dos casos de retorno parcial."
+    },
+    "c6300281ce7e5afd": {
+      "decision": "SUPERSEDED_BY_LATER_MAIN",
+      "branches": [
+        "integrate/p09-observatory-2880-reconciled-20261016"
+      ],
+      "evidence": [
+        "El ensayo histórico exige exactamente cuatro valores dd; main presenta diez, con disponibilidad de WORLD/STATE/TIMELINE e HypothesisClosureDiff preservados.",
+        "Auditor group c6300281ce7e5afd: 5 historical patch-unique commits; source test(observatory): permit only bounded composited globe, forbid retired duplicate renderers; review preserves original branch head for traceability."
+      ],
+      "reason": "La vista previa P09 de Observatory fue sucedida por el diseño aceptado #784 y un lector de métricas más amplio."
+    },
+    "edf6f9b71b01cc3e": {
+      "decision": "DIAGNOSTIC_ONLY",
+      "branches": [
+        "integrate/p09-observatory-evidence-safe-20261016"
+      ],
+      "evidence": [
+        "qa-sfi-observatory-composed-assurance.mjs no existe en main y requiere cuatro métricas; ObservatoryConsole de main expone diez, sin valores sintéticos.",
+        "Auditor group edf6f9b71b01cc3e: 4 historical patch-unique commits; source test(observatory): correct literal JSX availability regex; review preserves original branch head for traceability."
+      ],
+      "reason": "Ensayo experimental de assurance P09 basado en un conteo que no corresponde al contrato actual."
+    },
+    "e51295cd0d7be299": {
+      "decision": "SUPERSEDED_BY_LATER_MAIN",
+      "branches": [
+        "sfi/canonical-social-identity"
+      ],
+      "evidence": [
+        "institutionProfile.ts en main ya declara socialImage /og/sfi-institutional.jpg y /repository; la rama sólo conserva el vínculo editorial antiguo a /publications.",
+        "Auditor group e51295cd0d7be299: 6 historical patch-unique commits; source web(metadata): broaden canonical institutional discovery; review preserves original branch head for traceability."
+      ],
+      "reason": "Identidad y metadatos sociales actuales incorporan Repository como fuente canónica y la imagen institucional."
+    },
+    "04a9a391c49fec3a": {
+      "decision": "SUPERSEDED_BY_LATER_MAIN",
+      "branches": [
+        "sfi/observatory-2880-composited-preview-20261012"
+      ],
+      "evidence": [
+        "src/app/scrollbar.css comparte SHA exacto entre esta rama y main; diseño actual de Observatory evolucionó después.",
+        "Auditor group 04a9a391c49fec3a: 38 historical patch-unique commits; source Restore visible native SFI gold-on-graphite scrollbar across all scrollable views and panoramic routes; review preserves original branch head for traceability."
+      ],
+      "reason": "Panorama de Observatory previo al PR #784, con correcciones de scroll posteriormente integradas."
+    },
+    "e1cd57750314ee07": {
+      "decision": "SUPERSEDED_BY_LATER_MAIN",
+      "branches": [
+        "sfi/operational-surfaces-observatory-grammar-20261013"
+      ],
+      "evidence": [
+        "PR #751 es draft anterior; PR #784 integró el diseño operativo revisado y SFI Verify confirmó la compilación actual.",
+        "Auditor group e1cd57750314ee07: 31 historical patch-unique commits; source Align ROOT public-chrome certification with truthful home slogan and absence of invented global timeline; review preserves original branch head for traceability."
+      ],
+      "reason": "Variación anterior de gramática visual operativa de Observatory, ROOT y Method Lab."
+    },
+    "77547e48d1b28d3c": {
+      "decision": "SUPERSEDED_BY_LATER_MAIN",
+      "branches": [
+        "sfi/reality-chain-umbral-eight-icons-20261012"
+      ],
+      "evidence": [
+        "RealityChainWorkbench.tsx de main conserva tres rcThreePane y qa exige ocho activos SFI_RCH, mientras la rama añade el antiguo footer de navegación.",
+        "Auditor group 77547e48d1b28d3c: 2 historical patch-unique commits; source Use Umbral horizon background and keep Reality Chain viewport vertically fixed; review preserves original branch head for traceability."
+      ],
+      "reason": "Umbral de ocho imágenes y tres pantallas ya implementado con una navegación posterior."
+    },
+    "964d362fdb3256bf": {
+      "decision": "SUPERSEDED_BY_LATER_MAIN",
+      "branches": [
+        "sfi/root-operational-horizontal-console-20261008"
+      ],
+      "evidence": [
+        "PR #712 es draft anterior; el runtime actual de ROOT mantiene grafo gobernado, Reality Passport, trazabilidad y controles de autoridad; diseño #784 está integrado.",
+        "Auditor group 964d362fdb3256bf: 23 historical patch-unique commits; source Preserve explicit non-epistemic fallback boundary in grouped ROOT geometry; review preserves original branch head for traceability."
+      ],
+      "reason": "Consola ROOT horizontal experimental sustituida por el campo cognitivo soberano actual."
+    },
+    "65da2e014aac619c": {
+      "decision": "SUPERSEDED_BY_LATER_MAIN",
+      "branches": [
+        "site-convergence-p0-2026-10-07"
+      ],
+      "evidence": [
+        "PR #703 se basó en 7 de octubre; main ha integrado posteriormente la identidad y la interfaz pública con callback seguro de autenticación.",
+        "Auditor group 65da2e014aac619c: 11 historical patch-unique commits; source test(observatory): accept memoized canonical graph projection; review preserves original branch head for traceability."
+      ],
+      "reason": "P0 de Home/Observatory anterior al frontend institucional integrado."
+    },
+    "0b3ee7f25f1e6860": {
+      "decision": "SUPERSEDED_BY_LATER_MAIN",
+      "branches": [
+        "site-convergence-public-cycle-2026-10-07"
+      ],
+      "evidence": [
+        "main tiene PublicEntryGateway de navegación institucional y gestión de retorno de tokens, ausentes de la rama temprana.",
+        "Auditor group 0b3ee7f25f1e6860: 14 historical patch-unique commits; source test(home): lock observation-first public journey; review preserves original branch head for traceability."
+      ],
+      "reason": "El flujo público de observación y sus pruebas evolucionaron tras el P0 de octubre."
+    },
+    "5119707d7d404639": {
+      "decision": "SUPERSEDED_BY_LATER_MAIN",
+      "branches": [
+        "site-convergence-root-ux-2026-10-07"
+      ],
+      "evidence": [
+        "main declara Reality Passport 1.1 y filtro de etapas por nodos; PR #784 y QA de navegación autenticada preservan las superficies aceptadas.",
+        "Auditor group 5119707d7d404639: 12 historical patch-unique commits; source feat(root): expose stage and object categories and surface passport; review preserves original branch head for traceability."
+      ],
+      "reason": "Pasaporte y categorías de ROOT disponibles en su proyección posterior y sin reinstalar la versión antigua."
+    }
+  }
+}

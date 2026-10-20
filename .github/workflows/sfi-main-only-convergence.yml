@@ -73,6 +73,85 @@ jobs:
           count="$(gh api "repos/${GITHUB_REPOSITORY}/pulls?state=open&per_page=100" --jq 'length')"
           echo "open_pull_requests=${count}"
           test "${count}" = "0"
+      - name: Archive exact non-main heads as durable Git tags before deletion
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          manifest="$RUNNER_TEMP/sfi-predelete-branch-heads.tsv"
+          gh api --paginate "repos/${GITHUB_REPOSITORY}/branches?per_page=100" --jq '.[] | [.name,.commit.sha] | @tsv' > "$manifest"
+          test -s "$manifest"
+          while IFS=
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          mapfile -t branches < <(gh api --paginate "repos/${GITHUB_REPOSITORY}/branches?per_page=100" --jq '.[].name')
+          for branch in "${branches[@]}"; do
+            if [ "${branch}" = "main" ]; then
+              continue
+            fi
+            encoded="$(python -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "${branch}")"
+            echo "deleting ${branch}"
+            gh api -X DELETE "repos/${GITHUB_REPOSITORY}/git/refs/heads/${encoded}"
+          done
+      - name: Prove main is the only branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          mapfile -t survivors < <(gh api --paginate "repos/${GITHUB_REPOSITORY}/branches?per_page=100" --jq '.[].name')
+          printf 'survivors=%s\n' "${survivors[*]}"
+          test "${#survivors[@]}" -eq 1
+          test "${survivors[0]}" = "main"
+\\t' read -r branch sha; do
+            test -n "$branch" && test -n "$sha"
+            if [ "$branch" = main ]; then continue; fi
+            digest="$(python -c 'import sys,hashlib; print(hashlib.sha256(sys.argv[1].encode()).hexdigest()[:24])' "$branch")"
+            tag="refs/tags/sfi-main-archive-20261019/${digest}"
+            existing="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/sfi-main-archive-20261019/${digest}" --jq '.object.sha' 2>/dev/null || true)"
+            if [ -n "$existing" ]; then
+              test "$existing" = "$sha" || { echo "ARCHIVE_TAG_CONFLICT:$branch"; exit 1; }
+            else
+              gh api -X POST "repos/${GITHUB_REPOSITORY}/git/refs" -f ref="$tag" -f sha="$sha" --silent
+            fi
+          done < "$manifest"
+          echo "Archived all secondary branch heads before destructive cleanup"
+      - name: Verify no branch advanced after the archival snapshot
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          manifest="$RUNNER_TEMP/sfi-predelete-branch-heads.tsv"
+          while IFS=
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          mapfile -t branches < <(gh api --paginate "repos/${GITHUB_REPOSITORY}/branches?per_page=100" --jq '.[].name')
+          for branch in "${branches[@]}"; do
+            if [ "${branch}" = "main" ]; then
+              continue
+            fi
+            encoded="$(python -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "${branch}")"
+            echo "deleting ${branch}"
+            gh api -X DELETE "repos/${GITHUB_REPOSITORY}/git/refs/heads/${encoded}"
+          done
+      - name: Prove main is the only branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          mapfile -t survivors < <(gh api --paginate "repos/${GITHUB_REPOSITORY}/branches?per_page=100" --jq '.[].name')
+          printf 'survivors=%s\n' "${survivors[*]}"
+          test "${#survivors[@]}" -eq 1
+          test "${survivors[0]}" = "main"
+\\t' read -r branch sha; do
+            [ "$branch" = main ] && continue
+            encoded="$(python -c 'import sys,urllib.parse;print(urllib.parse.quote(sys.argv[1],safe=""))' "$branch")"
+            actual="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/${encoded}" --jq '.object.sha')"
+            test "$actual" = "$sha" || { echo "BRANCH_MOVED_AFTER_ARCHIVE:$branch"; exit 1; }
+          done < "$manifest"
       - name: Delete every non-main branch after successful audit
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

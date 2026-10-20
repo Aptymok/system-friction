@@ -1,0 +1,336 @@
+{
+  "contract": "SFI-SECONDARY-BRANCH-RETENTION-2026-10-19",
+  "capturedAtSource": "GitHub branches API",
+  "sourceMain": "b85fd861e2f22c9496c19fff2448d4a61f03da38",
+  "policy": "No secondary branch may be removed before a Git tag pointing to its exact source SHA is created; full review and zero open PRs are mandatory.",
+  "branches": [
+    {
+      "branch": "aiweek-home-registration-2026-10-07",
+      "head": "13bd8bbe100d286893eb05a65ac15731db651958"
+    },
+    {
+      "branch": "aiweeknyc-workshop-2026",
+      "head": "679c262d6b14402855f2b85f2b17899f71612c59"
+    },
+    {
+      "branch": "experiment/aiweeknyc-synthetic-case-lab-20261010",
+      "head": "083f25936b3d2aaec1007d5e64a1571262a0158f"
+    },
+    {
+      "branch": "experiment/mihm-temporal-vector-pilot-20261010",
+      "head": "181cd5f2237f08965eefd6d06c5d05fa42a1b358"
+    },
+    {
+      "branch": "feat/canonical-instrument-convergence-20261010",
+      "head": "969be1791c068351cc3590b3dd06a5aab120b51d"
+    },
+    {
+      "branch": "feat/digital-contact-card-2026-10-07",
+      "head": "c72cc753a38371a9c0e7eea1f4b6d761e0a3337a"
+    },
+    {
+      "branch": "feat/external-cognitive-peer-20261002",
+      "head": "6ec7b153e921c152a7c3884eb16e1b7d5a433e90"
+    },
+    {
+      "branch": "feat/institutional-og-identity",
+      "head": "5f0ff617e41360afb99bdf1fc9afd43323c0cddc"
+    },
+    {
+      "branch": "feat/mihm-t-timeline-clocks-v01-20261014",
+      "head": "ee197fef746945294ba97c6c0ca66eb07eb777ad"
+    },
+    {
+      "branch": "feat/reality-chain-converged-three-screen-20261009",
+      "head": "d3c3739ad7b644213af1f7bbd70922901ac3ce6a"
+    },
+    {
+      "branch": "feat/reality-chain-three-screens-cases-20261009",
+      "head": "2f85b07d316bfb2b969cd656b05db90dd635eb99"
+    },
+    {
+      "branch": "feat/reality-operating-layer-passport",
+      "head": "7c20dc3cc2d9d15d7f1f86efe6219efd51a4eb75"
+    },
+    {
+      "branch": "feat/reality-passport-v1-current-main",
+      "head": "1ac17fc588d4da3ec1f1489b9db704f438fe1775"
+    },
+    {
+      "branch": "feat/reality-passport-v1-experimental",
+      "head": "ef2b2ed2cbe17078b5d498906b7291d7f57f0467"
+    },
+    {
+      "branch": "feat/reality-passport-verification-provenance-v12",
+      "head": "ef2b2ed2cbe17078b5d498906b7291d7f57f0467"
+    },
+    {
+      "branch": "fix/continuity-mirror-bounded-drain-20261018",
+      "head": "c8f6aec534f9a0bc45ab9639a4761bcd507b7dd3"
+    },
+    {
+      "branch": "fix/discovery-restricted-zero-key-20261017",
+      "head": "e4d60e35cb5167cbb1fccf13e25d7c21b63c53f9"
+    },
+    {
+      "branch": "fix/full-cycle-export-optional-studio-20261017",
+      "head": "dcf919e318f9c6119def76dc5f3e6fcf58b7f0fb"
+    },
+    {
+      "branch": "fix/institutional-invite-recovery-20261016",
+      "head": "b8c22f55e5137c3b0b0d62735b0c95a8f4b7a553"
+    },
+    {
+      "branch": "fix/instrument-backdrops-horizontal-20261010",
+      "head": "3faeb51bebfa4f147ac2f14c363035bb574ea132"
+    },
+    {
+      "branch": "fix/mcp-add-vercel-workplace-access-20261016",
+      "head": "ad03014de218fc2e99d332fb3e5aab6c3bfcddfb"
+    },
+    {
+      "branch": "fix/mem002-neon-atomic-rpc-20261016",
+      "head": "e4c0a21170de3b55e908b154f0a19bed3d5baa50"
+    },
+    {
+      "branch": "fix/mem003-recovery-integrity",
+      "head": "2f73fcb0df2136d5b0326fa6c9cb5ec510da504b"
+    },
+    {
+      "branch": "fix/method-lab-external-research-promotion-20261011",
+      "head": "9a01c707f220147090f23c8846b0b4f3f853ed29"
+    },
+    {
+      "branch": "fix/oauth-integration-qa-copy-20261002",
+      "head": "69c3444df55d3450e68de53c9ec2974e934e02fc"
+    },
+    {
+      "branch": "fix/observatory-restore-functional-earth-timeline-20261017",
+      "head": "2329e2029006a3f6443f69dfb7e21328aa665a7c"
+    },
+    {
+      "branch": "fix/primary-mirror-32-tx-20261018",
+      "head": "ab0c85c9ba13af78c69fb8ff18c54cb878408752"
+    },
+    {
+      "branch": "fix/primary-mirror-throughput-bounded-20261018",
+      "head": "79428252325e17fc1f53fe746dd64f72f1e42c7a"
+    },
+    {
+      "branch": "fix/primary-outbox-hourly-mirror-20261017",
+      "head": "23527076eff217f007e803d5a1c860b384880242"
+    },
+    {
+      "branch": "fix/qa-root-current-chambers-20261016",
+      "head": "ce40a047678a076dd0adfe1331f56de17f995d7d"
+    },
+    {
+      "branch": "fix/qa-root-real-mount-20261016",
+      "head": "3869005de09f0a0982624fe1e95a5392b963eb25"
+    },
+    {
+      "branch": "fix/reality-chain-background-20261012",
+      "head": "0b9e092d7bf4a52471552ef10e912e078aae06a0"
+    },
+    {
+      "branch": "fix/research-confidence-unassessed-20261011",
+      "head": "a95d5b49755d68e988d77dc6ac1d96eeb34aba0d"
+    },
+    {
+      "branch": "fix/root-health-order-columns-20261002-v2",
+      "head": "995375d54714b8b89f350e5d1e0e0b841a2e16cd"
+    },
+    {
+      "branch": "fix/root-health-order-columns-20261002",
+      "head": "be933759cfb94eb5e2d13563759ddf4176df1310"
+    },
+    {
+      "branch": "fix/root-mirror-certification-live-snapshot-20261018",
+      "head": "85658406ba192dba135ec4f802ca1eebb09a3a0f"
+    },
+    {
+      "branch": "fix/root-observation-governance-20261009",
+      "head": "f01d60a5a91f58f8b88946ac0e061a1e968ac63c"
+    },
+    {
+      "branch": "fix/root-reference-spatial-convergence-20261010",
+      "head": "70e463d77d8c482344069b92aaa4ce5bbfd2b2cd"
+    },
+    {
+      "branch": "fix/root-spatial-fidelity-20261010",
+      "head": "1573ed572e4ad642128bef3d83b6672f70ac39e9"
+    },
+    {
+      "branch": "fix/sfi-bounded-observation-replay-20261010",
+      "head": "f1947d14381add84267b972ec314d72cf2e2df8d"
+    },
+    {
+      "branch": "fix/sfi-claude-cimd-oauth-20261010",
+      "head": "2f5daf02cb2bc22fb493f096641449b237cdca61"
+    },
+    {
+      "branch": "fix/sfi-data-plane-reconciliation-schedule-20261010",
+      "head": "25cca95f1a293565a60fa953e35634ed473d408d"
+    },
+    {
+      "branch": "fix/sfi-invite-onboarding-recovery-20261010",
+      "head": "f2d84b10060dbdcbb537bc7f924a1c8b6c6a5731"
+    },
+    {
+      "branch": "fix/world-honest-daily-return-20261016",
+      "head": "8e421771da21942b87b322199c144c0ba1a4fea4"
+    },
+    {
+      "branch": "fix/world-observation-partial-return-20261016",
+      "head": "33c38114b698a3d8900b05bcc0de59cc996fcfda"
+    },
+    {
+      "branch": "fix/world-observation-return-20261016",
+      "head": "249f66c38a85d7de3b64302ef2c48fba338ddb08"
+    },
+    {
+      "branch": "integrate/p09-observatory-2880-reconciled-20261016",
+      "head": "87f921ce33bb252e6d67f049f8a94f6f86370ec8"
+    },
+    {
+      "branch": "integrate/p09-observatory-evidence-safe-20261016",
+      "head": "721445a8a0f3d88dac5061cc74b8a189ffda1a5e"
+    },
+    {
+      "branch": "integrate/p09-operational-surfaces-20261016",
+      "head": "4a07c7c57aea4f1eeebd55f19494488ede99792c"
+    },
+    {
+      "branch": "reconcile/auth-cimd-20261017",
+      "head": "aadf3835718b8c6c78dff5ba86d40d72a2b09cbd"
+    },
+    {
+      "branch": "reconcile/full-cycle-field-return-truth-20261017",
+      "head": "bc0a032a8f9a613ecd09a95f4564da149a96ca78"
+    },
+    {
+      "branch": "reconcile/home-observation-first-20261017",
+      "head": "da460bc1afca1797ec718ba68f6bc2da5a0e2038"
+    },
+    {
+      "branch": "reconcile/institutional-cycle-evidence-lineage-20261017",
+      "head": "197bcaaad86a4eee6930bc4917964ca936c31c0a"
+    },
+    {
+      "branch": "reconcile/observatory-timeline-read-20261017",
+      "head": "2d7c813af770c8dc9118bc875f9ccafefc16fab8"
+    },
+    {
+      "branch": "reconcile/passport-evidence-20261017",
+      "head": "0555b74a32475812af3383179aec4c49efb1a571"
+    },
+    {
+      "branch": "reconcile/root-operational-snapshot-20261017",
+      "head": "6abb46002094266ec579d2b8b55fa24e9b9dd082"
+    },
+    {
+      "branch": "reconcile/sfi-autonomous-cycle-and-branches-20261017",
+      "head": "daf45194a9dacf68cc9bcc45034aa63feca64fb8"
+    },
+    {
+      "branch": "research/knight-retrocausal-correction-20261011",
+      "head": "b6f14da72cfacdc27ab8416071eef067ca1e9105"
+    },
+    {
+      "branch": "research/knight-triple-case-lci-dt-mihmt-20261011",
+      "head": "d8573188f1b0b9d2c5c4ea2800d81905d1abeb11"
+    },
+    {
+      "branch": "research/mihm-exp001-g2b-timezero-20261013",
+      "head": "71379f13b4c98eefc6622c8030df13dfecd9f391"
+    },
+    {
+      "branch": "research/mihm-exp001-sfi-observation",
+      "head": "35e99bd830b1059e136fd03533d6b1538d0fcacd"
+    },
+    {
+      "branch": "research/mihm-foundation-measurement-001",
+      "head": "f525808ed3faba30bce2b3dbe3a560ca7c783900"
+    },
+    {
+      "branch": "research/mihmt-knight-official-historical-evidence-20261011",
+      "head": "d013a4ed9aed9762ca362155bd6c960da58800cc"
+    },
+    {
+      "branch": "research/sfi-mihm-foundation-v01-20261011",
+      "head": "f80a401686396858d4bfb8c01d1db7c7501018c8"
+    },
+    {
+      "branch": "root-color-encoding-2026-10-10",
+      "head": "3fb9f6cf9ba0774550c33fd6ef6b9d6b47a2e7c6"
+    },
+    {
+      "branch": "sfi/canonical-social-identity",
+      "head": "1d0f60948b61a93c5ff764d3032de8972fca05e3"
+    },
+    {
+      "branch": "sfi/data-continuity-audit-20261013",
+      "head": "46d50a8f6fd70758ba2dfc0d75727917203b2628"
+    },
+    {
+      "branch": "sfi/material-action-handoff-20261007",
+      "head": "00184ee48a24cc2bb3a9fedeafb50bde3e50df72"
+    },
+    {
+      "branch": "sfi/observatory-2880-composited-preview-20261012",
+      "head": "9b61526d24ba4cd966de2c08227f9284ea7199c0"
+    },
+    {
+      "branch": "sfi/observatory-live-globe-skin-20261012",
+      "head": "028bfeb993f491133bd886cc77ab642111feaf9a"
+    },
+    {
+      "branch": "sfi/observatory-panorama-existing-hub-20261012",
+      "head": "7e8e358118cd44a7a118de6dc13a8c018456f35d"
+    },
+    {
+      "branch": "sfi/observatory-single-background-perf-20261012",
+      "head": "42ca3d97d3ce93d2ea40122c107983494ed52509"
+    },
+    {
+      "branch": "sfi/operational-surfaces-observatory-grammar-20261013",
+      "head": "77d12d40a51e0628f53c49d82335c8ff87345f7e"
+    },
+    {
+      "branch": "sfi/public-instrument-screens-20261006",
+      "head": "1b5d73970e0681bd27d1cc27c24bbc07cbd7c5fa"
+    },
+    {
+      "branch": "sfi/reality-chain-operational-intake-20261009",
+      "head": "ecd2fd46fc73bc7dc655393c64654ed16dd6780f"
+    },
+    {
+      "branch": "sfi/reality-chain-umbral-eight-icons-20261012",
+      "head": "cbab8dbe2c16f1920a6d96b75265e0682e1db95b"
+    },
+    {
+      "branch": "sfi/root-operational-horizontal-console-20261008",
+      "head": "c28e9e80c22930943b0e3affe01dfce7c2b1f504"
+    },
+    {
+      "branch": "sfi/root-reference-cockpit-20261008",
+      "head": "b7cb31ff1ee46a7a998f032104dbed490e21f9db"
+    },
+    {
+      "branch": "sfi/visual-convergence-material-actions-20261006",
+      "head": "210ff25d1d603a2a8ce74b5c2c0cef1838a861e9"
+    },
+    {
+      "branch": "site-convergence-p0-2026-10-07",
+      "head": "7a6b25927bdce5184efcb5a0ce02708d5b78ab27"
+    },
+    {
+      "branch": "site-convergence-public-cycle-2026-10-07",
+      "head": "707c9c8ee44c00b9f5de9e2ed211c2a094f471ce"
+    },
+    {
+      "branch": "site-convergence-root-ux-2026-10-07",
+      "head": "179ed4467a818df9410a4c10aac84784f7992dd5"
+    }
+  ]
+}
