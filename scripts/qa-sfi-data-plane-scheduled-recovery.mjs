@@ -22,6 +22,8 @@ execFileSync(process.execPath, ['--import', 'tsx', '--test', 'src/lib/persistenc
 
 
 assert.ok(workflow.includes("cron: '7,22,37,52 * * * *'"), 'bounded mirror recovery must have four staggered scheduled opportunities per hour');
+assert.ok(workflow.includes('- SFI Verify') && workflow.includes('- SFI World + Institutional Observation Cycle') && workflow.includes('- World Vector Agents'), 'successfully verified or observed main work must wake guarded mirror recovery independently of scheduled cron');
+assert.ok(workflow.includes("github.event.workflow_run.head_branch == 'main'") && workflow.includes("github.event.workflow_run.head_repository.full_name == github.repository"), 'workflow_run trigger must reject forks and non-main branches');
 assert.ok(workflow.includes('Drain primary mirror through bounded sequential reconciliation calls'));
 assert.ok(workflow.includes('for round in {1..32}; do'), 'allow up to 32 sequential guarded rounds under the existing seven-minute time budget');
 assert.ok(workflow.includes('STOP: mirror conflict requires investigation'), 'stop rather than bypass mirrored conflict');

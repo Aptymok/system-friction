@@ -13,6 +13,9 @@ on:
   workflow_run:
     workflows:
       - SFI Vercel Prebuilt Production
+      - SFI Verify
+      - SFI World + Institutional Observation Cycle
+      - World Vector Agents
     types:
       - completed
 
@@ -27,7 +30,11 @@ concurrency:
 
 jobs:
   heartbeat:
-    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    if: >-
+      github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'main' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
     concurrency:
       group: ${{ github.event_name == 'workflow_run' && format('sfi-post-deploy-assurance-{0}', github.event.workflow_run.id) || format('sfi-continuity-heartbeat-{0}', github.run_id) }}
       cancel-in-progress: false
