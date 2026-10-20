@@ -33,7 +33,7 @@ jobs:
       cancel-in-progress: false
       queue: max
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 18
     steps:
       - name: Resolve optional existing-cycle proof target
         id: target
@@ -88,13 +88,19 @@ jobs:
       - name: Drain primary mirror through bounded sequential reconciliation calls
         shell: bash
         # Reuse the governed OIDC route; no direct database writes or bypass of safety gates.
-        # Up to four calls x 32 transactions, stopping early on no progress or conflict.
+        # Up to eight calls x 32 transactions, with a seven-minute drain budget.
+        # Stop early on no progress, conflict, or time budget; preserve the existing safety gates.
         env:
           OIDC_TOKEN: ${{ steps.oidc.outputs.token }}
           SFI_SYNC_ENDPOINT: https://system-friction.vercel.app/api/cron/data-plane-reconcile
         run: |
           set -euo pipefail
-          for round in 1 2 3 4; do
+          drain_started=$SECONDS
+          for round in 1 2 3 4 5 6 7 8; do
+            if (( SECONDS - drain_started >= 420 )); then
+              echo 'SFI_MIRROR_DRAIN_TIME_BUDGET_REACHED'
+              break
+            fi
             receipt="$RUNNER_TEMP/sfi-data-plane-reconciliation-$round.json"
             status="$(curl --silent --show-error --connect-timeout 15 --max-time 120 \
               -X POST \
@@ -115,6 +121,7 @@ jobs:
               'round': int(round_number), 'http': int(http),
               'attempted': payload.get('attempted'), 'outcome': payload.get('outcome'),
               'mirroredTransactions': primary.get('mirroredTransactions'),
+              'mirroredRows': primary.get('mirroredRows'),
               'pending': outbox.get('pending'), 'conflicts': outbox.get('conflicts'),
               'journalPending': journal.get('pending'),
               'journalConflicts': journal.get('conflicts'),

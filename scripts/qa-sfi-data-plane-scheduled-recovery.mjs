@@ -24,7 +24,7 @@ execFileSync(process.execPath, ['--import', 'tsx', '--test', 'src/lib/persistenc
 assert.ok(workflow.includes("cron: '15 * * * *'"));
 assert.ok(workflow.includes("cron: '45 * * * *'"));
 assert.ok(workflow.includes('Drain primary mirror through bounded sequential reconciliation calls'));
-assert.ok(workflow.includes('for round in 1 2 3 4'), 'four consecutive guarded rounds on the existing OIDC lane');
+assert.ok(workflow.includes('for round in 1 2 3 4 5 6 7 8'), 'eight consecutive guarded rounds on the existing OIDC lane');
 assert.ok(workflow.includes('STOP: mirror conflict requires investigation'), 'stop rather than bypass mirrored conflict');
 assert.ok(workflow.includes("int(m.get('mirroredTransactions') or 0)==0"), 'stop loop when delivery makes no progress');
 assert.ok(workflow.includes('/api/cron/data-plane-reconcile'));
@@ -36,7 +36,12 @@ assert.ok(workflow.indexOf('Drain primary mirror through bounded sequential reco
 assert.ok(cron.includes('verifyGitHubActionsOidcToken'));
 assert.ok(cron.includes("error: 'authorized_scheduler_required'"));
 assert.ok(cron.includes('attemptBoundedDataPlaneReconciliation(32)'));
-assert.ok(workflow.includes('Up to four calls x 32 transactions'), 'cron capacity documentation must match the effective runtime bound');
+assert.ok(workflow.includes('Up to eight calls x 32 transactions'), 'cron capacity documentation must match the effective runtime bound');
+assert.ok(workflow.includes('timeout-minutes: 18'), 'job timeout must accommodate bounded mirror calls followed by the existing five-minute heartbeat');
+assert.ok(workflow.includes('drain_started=$SECONDS'), 'mirror drain must record its start time');
+assert.ok(workflow.includes('if (( SECONDS - drain_started >= 420 ))'), 'mirror drain must stop after seven minutes');
+assert.ok(workflow.includes('SFI_MIRROR_DRAIN_TIME_BUDGET_REACHED'), 'mirror time budget exit must be auditable');
+assert.ok(workflow.includes("'mirroredRows': primary.get('mirroredRows')"), 'mirror receipts must separately expose row and transaction counts');
 assert.ok(!cron.includes('completeRecoveryMode('),
   'cron may only call the canonical gated recovery service');
 
