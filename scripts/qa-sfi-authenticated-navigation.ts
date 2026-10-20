@@ -14,4 +14,8 @@ if(!css.includes('height:100dvh')||!css.includes('overflow:hidden')||!css.includ
 if(!scene.includes('<AuthenticatedSfiMenu/>')||!consoleUi.includes('<AuthenticatedSfiMenu/>')) throw new Error('authenticated surfaces must use diamond navigation');
 if(consoleUi.includes('sfiOperatingNav')) throw new Error('legacy authenticated top navigation remains');
 if(!rootUi.includes("searchParams.get('reading')")) throw new Error('ROOT readings are not addressable from diamond navigation');
+const access=read('src/lib/system/access/server.ts');
+const denied=read('src/app/unauthorized/page.tsx');
+if(!access.includes("redirect('/unauthorized')")) throw new Error('access-denial redirect must lead to an implemented route');
+if(!denied.includes('Institutional access required')||!denied.includes('/observatory')) throw new Error('denied access must be explained without bypassing institutional authority');
 console.log('PASS · authenticated diamond navigation contract');
