@@ -81,30 +81,7 @@ jobs:
           manifest="$RUNNER_TEMP/sfi-predelete-branch-heads.tsv"
           gh api --paginate "repos/${GITHUB_REPOSITORY}/branches?per_page=100" --jq '.[] | [.name,.commit.sha] | @tsv' > "$manifest"
           test -s "$manifest"
-          while IFS=
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          mapfile -t branches < <(gh api --paginate "repos/${GITHUB_REPOSITORY}/branches?per_page=100" --jq '.[].name')
-          for branch in "${branches[@]}"; do
-            if [ "${branch}" = "main" ]; then
-              continue
-            fi
-            encoded="$(python -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "${branch}")"
-            echo "deleting ${branch}"
-            gh api -X DELETE "repos/${GITHUB_REPOSITORY}/git/refs/heads/${encoded}"
-          done
-      - name: Prove main is the only branch
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          mapfile -t survivors < <(gh api --paginate "repos/${GITHUB_REPOSITORY}/branches?per_page=100" --jq '.[].name')
-          printf 'survivors=%s\n' "${survivors[*]}"
-          test "${#survivors[@]}" -eq 1
-          test "${survivors[0]}" = "main"
-\\t' read -r branch sha; do
+          while IFS=$'\t' read -r branch sha; do
             test -n "$branch" && test -n "$sha"
             if [ "$branch" = main ]; then continue; fi
             digest="$(python -c 'import sys,hashlib; print(hashlib.sha256(sys.argv[1].encode()).hexdigest()[:24])' "$branch")"
@@ -123,30 +100,7 @@ jobs:
         run: |
           set -euo pipefail
           manifest="$RUNNER_TEMP/sfi-predelete-branch-heads.tsv"
-          while IFS=
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          mapfile -t branches < <(gh api --paginate "repos/${GITHUB_REPOSITORY}/branches?per_page=100" --jq '.[].name')
-          for branch in "${branches[@]}"; do
-            if [ "${branch}" = "main" ]; then
-              continue
-            fi
-            encoded="$(python -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "${branch}")"
-            echo "deleting ${branch}"
-            gh api -X DELETE "repos/${GITHUB_REPOSITORY}/git/refs/heads/${encoded}"
-          done
-      - name: Prove main is the only branch
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          mapfile -t survivors < <(gh api --paginate "repos/${GITHUB_REPOSITORY}/branches?per_page=100" --jq '.[].name')
-          printf 'survivors=%s\n' "${survivors[*]}"
-          test "${#survivors[@]}" -eq 1
-          test "${survivors[0]}" = "main"
-\\t' read -r branch sha; do
+          while IFS=$'\t' read -r branch sha; do
             [ "$branch" = main ] && continue
             encoded="$(python -c 'import sys,urllib.parse;print(urllib.parse.quote(sys.argv[1],safe=""))' "$branch")"
             actual="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/${encoded}" --jq '.object.sha')"
