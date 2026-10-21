@@ -24,6 +24,11 @@ assert.ok(externalRoot.includes("process.env.SFI_RESTRICTED_REPORTS_MODE !== 'en
 const scheduled = read('src/lib/reports/scheduledAgentReports.ts');
 const evidenceReports = read('src/lib/reports/restrictedEvidenceReports.ts');
 const continuityCron = read('src/app/api/cron/continuity-report/route.ts');
+assert.ok(evidenceReports.includes("insert.error?.code === '23505'"),'restricted report concurrent writer must handle existing receipt');
+assert.ok(evidenceReports.includes("existingAfterConflict.data?.id"),'restricted report must confirm actual winner before marking skipped');
+assert.ok(scheduled.includes("inserted.error?.code === '23505'"),'canonical report writer must handle unique constraint conflicts');
+assert.ok(scheduled.includes("winner.data?.id"),'canonical report writer must confirm actual winning row');
+
 assert.ok(continuityCron.includes('reportStatus:'),'cron must disclose separate report status');
 assert.ok(continuityCron.includes('discoveryStatus:'),'cron must disclose separate Discovery status');
 assert.ok(continuityCron.includes('RESTRICTED_REPORT_CYCLE_FAILED'),'report failures must not be masked by Discovery persistence');
