@@ -58,7 +58,7 @@
     "qa:sfi-authenticated-navigation": "tsx scripts/qa-sfi-authenticated-navigation.ts",
     "qa:sfi-root-public-field": "tsx scripts/qa-sfi-root-public-field.ts",
     "qa:sfi-contextual-return": "tsx scripts/qa-sfi-contextual-return.ts",
-    "qa:sfi-site-lock": "npm run qa:sfi-authenticated-navigation && npm run qa:sfi-root-public-field && npm run qa:sfi-contextual-return",
+    "qa:sfi-site-lock": "npm run qa:sfi-authenticated-navigation && npm run qa:sfi-root-public-field && npm run qa:sfi-contextual-return && npm run qa:sfi-hypothesis-possibilities",
     "qa:sfi-operating-field": "tsx scripts/qa-sfi-operating-field-closure.ts",
     "qa:sfi-operational-reset": "tsx scripts/qa-sfi-operational-reset.ts",
     "qa:sfi-authenticated-machine": "node --import tsx --test src/lib/mcp/authenticatedGovernedMachineAdapter.test.ts src/lib/method-lab/externalLabRoute.test.ts && npx tsx scripts/qa-sfi-authenticated-governed-machine-r4c.ts",
@@ -74,7 +74,8 @@
     "db:retire:unconsumed:safe": "node scripts/db/run-retirement-with-snapshot.mjs",
     "db:reset:sfi": "node scripts/db/reset-sfi-operational-tables.mjs",
     "db:seed:sfi": "node scripts/db/seed-sfi-canonical-history.mjs",
-    "db:verify:sfi": "node scripts/db/verify-sfi-database.mjs"
+    "db:verify:sfi": "node scripts/db/verify-sfi-database.mjs",
+    "qa:sfi-hypothesis-possibilities": "node --import tsx --test src/lib/world-observatory/hypothesisConditionalExplore.test.ts"
   },
   "dependencies": {
     "@headlessui/react": "^2.0.0",
