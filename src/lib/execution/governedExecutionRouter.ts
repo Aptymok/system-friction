@@ -195,6 +195,17 @@ export function classifyGovernedProposalWork(row: Row) {
 }
 
 function routeAgentsForProposal(row: Row) {
+  // The existing cognitive executor is reused with a two-agent diagnostic
+  // (plus its mandatory meta_orchestrator). A 21-agent fanout would manufacture
+  // activity instead of explaining why legitimate work was previously absent.
+  const payload = proposalPayload(row);
+  if (proposalTypeOf(row) === 'institutional_mutation_candidate'
+    && stringValue(payload.target) === 'cognitive-runtime-activity'
+    && stringValue(payload.kind) === 'EVIDENCE_ACQUISITION'
+    && stringValue(payload.requiredExecutor) === 'cognitive_runtime_v1'
+    && stringValue(payload.developmentMode) === 'COGNITIVE_INTERNAL') {
+    return ['evidence_hunter', 'temporal_resolver'];
+  }
   const text = proposalText(row);
   const actionType = stringValue(requestedAction(row).type)?.toLowerCase() ?? '';
   if (/(research|investig|evidence|mapping|map_|ecosystem)/.test(`${actionType} ${text}`)) {

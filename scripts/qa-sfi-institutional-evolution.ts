@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 
 const read = (path: string) => readFileSync(path, 'utf8');
 const evolution = read('src/lib/institution/institutionalEvolution.ts');
+const cognitionAdmission = read('src/lib/institution/cognitiveActivityDiagnosis.ts');
 const integrated = read('src/core/cognitive-twin/integratedInstitutionalCycle.ts');
 const fullCycle = read('src/lib/root/closure/fullCycleVerification.ts');
 const proofExporter = read('scripts/db/export-sfi-full-cycle-proof.mjs');
@@ -17,6 +18,16 @@ const selfDevelopmentRoute = read('src/app/api/cron/self-development/route.ts');
 const router = read('src/lib/execution/governedExecutionRouter.ts');
 const vercel = read('vercel.json');
 
+// Bounded self-diagnosis: GATED is inactivity, never inferred rejection of execution authority.
+assert.ok(evolution.includes('assessCognitiveActivity(runtime)'), 'inactivity_diagnostic_must_read_real_runtime');
+assert.ok(evolution.includes("target: 'cognitive-runtime-activity'"), 'inactivity_must_be_absorbed_by_existing_runtime');
+assert.ok(evolution.includes("kind: 'EVIDENCE_ACQUISITION'"), 'inactivity_diagnostic_must_be_reversible_cognitive_work');
+assert.ok(evolution.includes("activity.state === 'DIAGNOSTIC_ELIGIBLE'"), 'inactivity_diagnostic_admission_gate_missing');
+assert.ok(cognitionAdmission.includes('inactivityMeansDenial:false'), 'gated_must_not_be_equated_with_authority_denial');
+assert.ok(cognitionAdmission.includes("NO_RECENT_DIAGNOSTIC_INPUT"), 'no_demand_must_not_generate_artificial_agent_tasks');
+assert.ok(cognitionAdmission.includes('COGNITIVE_DIAGNOSTIC_WINDOW_MS'), 'bounded_event_freshness_required');
+assert.ok(router.includes("return ['evidence_hunter', 'temporal_resolver']"), 'diagnostic_must_not_trigger_unbounded_agent_fanout');
+assert.ok(router.includes("stringValue(payload.target) === 'cognitive-runtime-activity'"), 'special_routing_requires_exact_existing_owner');
 assert.ok(evolution.includes('readObservedSfiCognitiveRuntime'), 'self_observation_must_read_cognitive_runtime');
 assert.ok(evolution.includes('readContinuityDashboard'), 'self_observation_must_read_continuity');
 assert.ok(evolution.includes('getPredictiveEngineHealth'), 'self_observation_must_read_predictive_engine');
