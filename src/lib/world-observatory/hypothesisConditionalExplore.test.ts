@@ -41,7 +41,7 @@ test('qualified hypothetical numbers never get labeled observed', () => {
 });
 test('declared source families require provenance verification even with sufficient counts', () => {
   const result=evaluatePossibility({...branch,sourceFamilies:['technology_discourse']},10,1,sample);
-  assert.equal(result.state,'SAMPLING_INSUFFICIENT');
+  assert.equal(result.state,'PROVENANCE_UNVERIFIED');
   assert.ok(result.missing.some(x=>x.includes('technology_discourse')));
 });
 test('presence and absence criteria are evaluated without synthetic numeric measurement', () => {
