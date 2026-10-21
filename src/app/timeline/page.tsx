@@ -3,6 +3,8 @@ import { AccessDeniedError, requireUserProfile } from '@/lib/system/access/serve
 import { SFI_CANONICAL_OBJECT_REGISTRY, canonicalPublicationDisposition } from '@/lib/discovery/canonicalObjectRegistry';
 import { readPublicWorldSnapshotTimeline } from '@/lib/observatory/public/worldSnapshotTimeline';
 import { OperationalTimeline, type TimelineItem } from '@/components/sfi/OperationalTimeline';
+import { readHypothesisConditionalBranches } from '@/lib/world-observatory/hypothesisConditionalBranches';
+import { HypothesisConditionalLab } from '@/components/sfi/HypothesisConditionalLab';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -78,5 +80,12 @@ export default async function TimelinePage() {
     // Do not fabricate frames or synthesize missing clocks.
   }
 
-  return <OperationalTimeline items={[...institution, ...world]} worldReadPlane={worldReadPlane} />;
+  const conditional = await readHypothesisConditionalBranches()
+    .then(model=>({model,error:null})).catch(error=>({model:null,error:error instanceof Error?error.message:'CONDITIONAL_HYPOTHESIS_READ_FAILED'}));
+
+  return <>
+    <OperationalTimeline items={[...institution, ...world]} worldReadPlane={worldReadPlane} />
+    {conditional.model ? <HypothesisConditionalLab model={conditional.model} context="TIMELINE" />
+      : <section role="status">Hypothesis branch timeline unavailable: {conditional.error}. No projected ticks are displayed.</section>}
+  </>;
 }
