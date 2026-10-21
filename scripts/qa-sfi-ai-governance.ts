@@ -10,6 +10,7 @@ import { buildAiGovernancePreflight, evaluateAgentAiGovernance, SFI_AI_GOVERNANC
 const root=process.cwd();
 const read=(file:string)=>fs.readFileSync(path.join(root,file),'utf8');
 const runtime=read('src/lib/sfi/cognitive-runtime/runtimeAgentExecutor.ts');
+const modelAdmission=read('src/lib/sfi/cognitive-runtime/llmAugmentationPolicy.ts');
 const cycle=read('src/lib/sfi/cognitive-runtime/cognitiveCycle.ts');
 const spine=read('src/lib/institution/cognitiveSpineRuntimeExecution.ts');
 const calibration=read('src/lib/sfi/cognitive-runtime/agents/realityCalibrationAgent.ts');
@@ -58,7 +59,10 @@ assert.match(cycle,/missingAgents/);
 assert.match(cycle,/completed = metaExecuted && missingAgents\.length === 0/);
 assert.match(runtime,/evaluateAgentAiGovernance/);
 assert.match(runtime,/AI_GOVERNANCE_BLOCK/);
-assert.match(runtime,/llmAugmentationAgents/);
+assert.match(modelAdmission,/llmAugmentationAgents/);
+assert.match(modelAdmission,/llmAugmentation === false/);
+assert.match(runtime,/agentLlmAugmentationAllowed/);
+assert.match(agentLlm,/agentLlmAugmentationAllowed/);
 
 const sensitiveContext:KernelContext={
   cycleId:'cycle-governance-m2',logbookId:'log-governance-m2',currentEvent:'SFI_ROOT_MANUAL_AGENT_REQUESTED',
