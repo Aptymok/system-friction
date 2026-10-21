@@ -817,6 +817,7 @@ export function RootNeuralGraphView({
     <main className="neuralGraphShell rootFieldMode rootReferenceCockpit" data-root-layout="ONE-FIELD-ONE-CONSOLE" data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0" data-color-encoding={colorEncoding} data-neural-graph-contract="SFI-ROOT-NEURAL-GRAPH-1.1">
       <div className="rootHorizontalRail" ref={railRef} tabIndex={0}
         onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==='ArrowRight'||event.key==='ArrowLeft')){event.preventDefault();event.currentTarget.scrollBy({left:event.key==='ArrowRight'?430:-430,behavior:'smooth'});}}}
+        onWheel={event=>{if(Math.abs(event.deltaY)>Math.abs(event.deltaX)){event.currentTarget.scrollLeft+=event.deltaY;}}}
         aria-label="Campo ROOT. Desplázate horizontalmente hacia el grafo y el pasaporte.">
         <aside className="rootReferenceSidebar" aria-label="Field explorer">
           <div className="rootReferenceSidebarTitle"><strong>ROOT</strong><span>FIELD EXPLORER</span></div>
