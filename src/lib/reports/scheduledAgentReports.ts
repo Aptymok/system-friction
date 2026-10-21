@@ -120,6 +120,16 @@ async function persistScheduledReport(input: {
     started_at: startedAt,
     finished_at: new Date().toISOString(),
   }).select('id').single();
+  if (inserted.error?.code === '23505') {
+    // Concurrent routine insertion is resolved by the persisted database
+    // receipt, not by optimistic success or duplicate content.
+    const winner = await db.from('sfi_cognitive_twin_runs')
+      .select('id').in('role', ['report_agent', 'report_scheduler'])
+      .eq('task_id', id).maybeSingle();
+    if (!winner.error && winner.data?.id) {
+      return { id: String(winner.data.id), skipped: true };
+    }
+  }
   if (inserted.error || !inserted.data?.id) throw new Error(`scheduled_report_persistence_failed:${inserted.error?.message ?? 'unknown'}`);
   return { id: String(inserted.data.id), skipped: false };
 }
