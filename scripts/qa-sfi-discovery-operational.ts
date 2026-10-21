@@ -73,6 +73,8 @@ async function main() {
   for (const key of ['DISCOVERY_UNBRANDED_RETRIEVAL_COVERAGE','DISCOVERY_AI_RETRIEVAL_COVERAGE','DISCOVERY_ENTITY_RECONSTRUCTION_COVERAGE','DISCOVERY_REFERENCE_DENSITY_COVERAGE','DISCOVERY_PROPAGATION_COVERAGE']) {
     assert(autonomy.includes(key), `development recommendation missing:${key}`);
   }
+  assert(continuityRoute.includes('DISCOVERY_RESTRICTED_SOURCE_UNAVAILABLE_PERSISTED'), 'failed retrieval must remain visible even when failure was persisted');
+  assert(continuityRoute.includes('observationAvailable: observed'), 'persisting an unavailable source must not be counted as observed retrieval');
   assert(continuityRoute.includes('runDiscoveryAutonomyCycle'), 'existing continuity cron must own discovery autonomy cadence');
   assert(!continuityRoute.includes('runAutomaticDiscoveryObservationCycle'), 'continuity route must not bypass autonomy wrapper');
   assert(continuityRoute.includes('No additional Vercel cron invocation'), 'autonomy must not create timer proliferation');
