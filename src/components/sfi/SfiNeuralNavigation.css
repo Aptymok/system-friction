@@ -1,0 +1,32 @@
+/* One navigation instance for authenticated SFI operating surfaces. */
+.sfiNeuralNavigation{position:fixed;z-index:10000;top:6px;right:clamp(12px,2vw,32px);font-family:"Noto Sans",Inter,Arial,sans-serif;color:#e8ddc3;pointer-events:none}
+.sfiNeuralNavigation>*{pointer-events:auto}
+.sfiNeuralTrigger{display:flex;gap:11px;align-items:center;min-height:49px;padding:5px 14px 5px 6px;border:1px solid rgba(200,169,81,.58);background:#060d13f5;color:#d3b371;cursor:pointer;box-shadow:0 9px 35px #0009;backdrop-filter:blur(12px)}
+.sfiNeuralTrigger svg{height:36px;width:42px}.sfiNeuralTrigger svg circle{fill:#d3b371}
+.sfiNeuralTrigger span{display:grid;gap:2px;text-align:left}.sfiNeuralTrigger b{font:700 13px "Noto Serif Display",Georgia,serif;letter-spacing:.2em}.sfiNeuralTrigger small{font-size:10px;color:#e2d8c4}
+.sfiNeuralOverlay{position:absolute;right:0;top:57px;width:min(980px,calc(100vw - 24px));max-height:calc(100dvh - 78px);min-height:460px;box-sizing:border-box;overflow:hidden;background:linear-gradient(128deg,#040b10f9,#10191ffb 60%,#050b11f9);border:1px solid #be9c59;box-shadow:0 35px 90px #000e;animation:sfiNeuralOpen .24s ease both}
+.sfiNeuralHeading{display:flex;gap:20px;justify-content:space-between;align-items:flex-start;padding:24px 27px 12px;border-bottom:1px solid #c8a95138}
+.sfiNeuralHeading small,.sfiNeuralDestinationHeading{font:700 10px "Noto Sans",Arial,sans-serif;letter-spacing:.18em;color:#c8a951}.sfiNeuralHeading h2{font:400 clamp(19px,2.3vw,29px) "Noto Serif Display",Georgia,serif;margin:7px 0}.sfiNeuralHeading p,.sfiNeuralBoundary{font:400 11px/1.55 "Noto Sans",Arial,sans-serif;color:#b4bbb9;margin:5px 0}.sfiNeuralHeading>button{background:transparent;border:1px solid #c8a95188;color:#e7d1ad;min-width:38px;height:38px;cursor:pointer;font-size:24px}
+.sfiNeuralGraph{height:min(410px,calc(100dvh - 225px));min-height:270px;position:relative;display:grid;grid-template-columns:14% 28% minmax(0,1fr);gap:3%;align-items:center;padding:10px 22px;box-sizing:border-box}
+.sfiNeuralLines{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;opacity:.73}
+.sfiNeuralLine{fill:none;stroke:#d9b876;stroke-width:1.5;stroke-dasharray:8 12;animation:sfiNeuralFlow 10s linear infinite;vector-effect:non-scaling-stroke}
+.sfiNeuralSecondary{stroke:#567581;opacity:.3}.sfiNeuralSecondary.isConnected{stroke:#d9b876;opacity:.9;stroke-width:2}
+.sfiNeuralOrigin,.sfiNeuralBranches,.sfiNeuralDestinations{position:relative;z-index:1}
+.sfiNeuralOrigin{display:flex;flex-direction:column;align-items:flex-start;gap:10px;color:#d6c6a3;font-size:11px}
+.sfiNeuralNodeMark{display:grid;place-items:center;width:58px;height:58px;border:1px solid #dab66f;border-radius:50%;background:#111b20;color:#f2d8a3;font:600 16px Georgia,serif;box-shadow:0 0 0 9px #d9b87610,0 0 32px #c7a05b25}
+.sfiNeuralBranches{display:flex;flex-direction:column;justify-content:space-around;height:100%;gap:7px}
+.sfiNeuralBranches button{color:#d9d6c9;background:#071016d9;border:1px solid #b7a37855;text-align:left;cursor:pointer;display:grid;grid-template-columns:12px 1fr;gap:4px 8px;padding:12px;transition:background .18s,border-color .18s,transform .18s}
+.sfiNeuralBranches button:hover,.sfiNeuralBranches button[aria-pressed=true]{border-color:#d9b876;background:#15252b;transform:translateX(4px)}
+.sfiNeuralBranches i,.sfiNeuralLinks i{display:block;width:9px;height:9px;border:1px solid #d9b876;border-radius:50%;background:#101b22;align-self:center}
+.sfiNeuralBranches strong{font:550 15px Georgia,serif}.sfiNeuralBranches span{grid-column:2;color:#a3b2af;font-size:10px;line-height:1.4}
+.sfiNeuralDestinations{height:100%;display:flex;flex-direction:column;gap:11px;min-width:0}
+.sfiNeuralDestinationHeading{padding:8px 0}
+.sfiNeuralLinks{display:grid;grid-auto-flow:column;grid-template-rows:repeat(3,minmax(0,1fr));grid-auto-columns:minmax(175px,1fr);gap:8px;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;scrollbar-color:#c8a951 #111a1f;max-height:100%;padding-bottom:8px}
+.sfiNeuralLinks a{display:flex;align-items:center;gap:9px;padding:8px;color:#e6ddcb;text-decoration:none;background:#0a171cd9;border:1px solid #b3a07453;min-width:0;transition:background .18s,border-color .18s,transform .18s}
+.sfiNeuralLinks a:hover,.sfiNeuralLinks a[aria-current=page]{background:#233035;border-color:#ddb96d;transform:translateX(3px)}
+.sfiNeuralLinks a span{display:grid;gap:3px;flex:1;min-width:0}.sfiNeuralLinks a small{font-size:9px;color:#adbaaf}.sfiNeuralLinks a strong{font-size:12px;font-weight:600}.sfiNeuralLinks a em{font-size:10px;font-style:normal;color:#9daba7}.sfiNeuralLinks a>b{font-weight:400;color:#d3b371}
+.sfiNeuralBoundary{border-top:1px solid #c8a95138;padding:8px 23px;margin:0}
+@keyframes sfiNeuralFlow{from{stroke-dashoffset:0}to{stroke-dashoffset:-80}}
+@keyframes sfiNeuralOpen{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:660px){.sfiNeuralNavigation{top:3px;right:6px}.sfiNeuralTrigger{min-height:45px;padding-right:7px}.sfiNeuralTrigger svg{width:33px;height:32px}.sfiNeuralTrigger small{display:none}.sfiNeuralOverlay{top:51px;width:calc(100vw - 12px)}.sfiNeuralHeading{padding:14px}.sfiNeuralGraph{grid-template-columns:46px 31% minmax(0,1fr);gap:3%;padding:6px}.sfiNeuralNodeMark{width:42px;height:42px;font-size:12px}.sfiNeuralOrigin strong{display:none}.sfiNeuralBranches button{padding:6px}.sfiNeuralBranches strong{font-size:12px}.sfiNeuralBranches span{font-size:9px}.sfiNeuralLinks{grid-auto-columns:minmax(142px,1fr)}.sfiNeuralLinks a{padding:5px}.sfiNeuralLinks a em{display:none}}
+@media(prefers-reduced-motion:reduce){.sfiNeuralLine,.sfiNeuralOverlay{animation:none!important}.sfiNeuralBranches button,.sfiNeuralLinks a{transition:none!important}}
