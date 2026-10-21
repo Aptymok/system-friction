@@ -17,7 +17,8 @@ export async function GET() {
   ]);
 
   return NextResponse.json({
-    ok: inventory.warnings.length === 0 && caseIndex.warnings.length === 0,
+    ok: true,
+    status: inventory.warnings.length === 0 && caseIndex.warnings.length === 0 ? 'READY' : 'DEGRADED',
     inventory,
     cases: (caseIndex.cases ?? []).map((item) => ({
       id: item.id, subject: item.subject, status: item.status, updatedAt: item.updatedAt,
