@@ -8,6 +8,8 @@ import { SfiConsentBanner } from '@/components/analytics/SfiConsentBanner';
 import { SfiLanguageProvider } from '@/components/i18n/SfiLanguageProvider';
 import { SFI_PUBLIC_PROFILE } from '@/lib/public/institutionProfile';
 import { SfiPublicHeader } from '@/components/public/SfiPublicChrome';
+import { SfiNeuralNavigation } from '@/components/sfi/SfiNeuralNavigation';
+import '@/components/sfi/SfiUnifiedSurfaces.css';
 
 const BASE = SFI_PUBLIC_PROFILE.institution.canonicalUrl;
 const INSTITUTION_NAME = SFI_PUBLIC_PROFILE.institution.name;
@@ -126,7 +128,7 @@ gtag('config', '${GA_ID}');`}
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
         <SfiLanguageProvider>
           <SfiPublicHeader global/>
-          <div className="sfiPageContent"><AuthProvider>{children}</AuthProvider></div>
+          <div className="sfiPageContent"><AuthProvider><SfiNeuralNavigation />{children}</AuthProvider></div>
           <SfiConsentBanner />
         </SfiLanguageProvider>
       </body>
