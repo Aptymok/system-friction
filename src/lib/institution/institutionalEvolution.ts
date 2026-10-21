@@ -6,6 +6,7 @@ import { getPredictiveEngineHealth } from '@/lib/predictive-engine/service';
 import { readObservedSfiCognitiveRuntime } from '@/lib/sfi/cognitive-runtime/observedRuntime';
 import { buildWorldVectorOperationalState } from '@/lib/world-vector/operationalState';
 import type { refreshInstitutionalAttractorTrajectory } from './institutionalAttractor';
+import { assessCognitiveActivity } from './cognitiveActivityDiagnosis';
 
 export const SFI_INSTITUTIONAL_EVOLUTION_CONTRACT = 'SFI-INSTITUTIONAL-EVOLUTION-1.2' as const;
 export const SFI_INSTITUTIONAL_MUTATION_PROPOSAL_TYPE = 'institutional_mutation_candidate' as const;
@@ -157,49 +158,11 @@ function existingEvolutionProposals(value: unknown[]): PersistedProposal[] {
   });
 }
 
-// An absence of recent SFI_AGENT_EXECUTED receipts does NOT establish permission denial.
-// Admit a bounded diagnostic only when a *recent* institutional signal supplies a reason
-// to investigate. Never create 21 artificial tasks merely to make the dashboard green.
-const COGNITIVE_DIAGNOSTIC_SIGNALS = new Set([
-  'SFI_TASK_CREATED',
-  'SFI_UNIVERSAL_RETURN_CONTRASTED',
-  'SFI_JR_FIELD_CYCLE_COMPLETED',
-]);
-const COGNITIVE_DIAGNOSTIC_WINDOW_MS = 24 * 60 * 60 * 1000;
-
-function cognitiveActivityDiagnosis(runtime: Awaited<ReturnType<typeof readObservedSfiCognitiveRuntime>>) {
-  const allBoundButInactive = runtime.agents.length > 0
-    && runtime.agents.every((agent) => agent.status === 'gated')
-    && runtime.contract.executorAgents === runtime.agents.length;
-  const provenanceAvailable = runtime.eventGraph.warnings.length === 0
-    && runtime.eventGraph.status !== 'degraded';
-  const generatedMs = Date.parse(runtime.generatedAt);
-  const signals = provenanceAvailable && Number.isFinite(generatedMs)
-    ? runtime.eventGraph.recentEvents.filter((event) =>
-        COGNITIVE_DIAGNOSTIC_SIGNALS.has(event.eventName)
-        && Boolean(event.eventId)
-        && Boolean(event.occurredAt)
-        && Number.isFinite(Date.parse(event.occurredAt!))
-        && Date.parse(event.occurredAt!) <= generatedMs
-        && generatedMs - Date.parse(event.occurredAt!) <= COGNITIVE_DIAGNOSTIC_WINDOW_MS,
-      ).slice(0, 12)
-    : [];
-  return {
-    state: !provenanceAvailable ? 'EVENT_READ_UNAVAILABLE'
-      : !allBoundButInactive ? 'NO_COLLECTIVE_INACTIVITY'
-      : !signals.length ? 'NO_RECENT_DIAGNOSTIC_INPUT'
-      : 'DIAGNOSTIC_ELIGIBLE',
-    signals,
-    agentCount: runtime.agents.length,
-    inactivityMeansDenial: false,
-  };
-}
-
 function runtimeCandidates(runtime: Awaited<ReturnType<typeof readObservedSfiCognitiveRuntime>>): EvolutionCandidate[] {
   const missing = runtime.agents.filter((agent) => agent.status === 'missing');
   const degraded = runtime.agents.filter((agent) => agent.status === 'degraded');
   const result: EvolutionCandidate[] = [];
-  const activity = cognitiveActivityDiagnosis(runtime);
+  const activity = assessCognitiveActivity(runtime);
   if (activity.state === 'DIAGNOSTIC_ELIGIBLE') {
     result.push({
       kind: 'EVIDENCE_ACQUISITION',
@@ -419,6 +382,7 @@ export async function runInstitutionalEvolutionObservation(input: {
     ...predictiveCandidates(predictive),
   ];
 
+  const activityDiagnosis = assessCognitiveActivity(runtime);
   const context = {
     observedAt,
     world: worldContext(world),
@@ -437,9 +401,9 @@ export async function runInstitutionalEvolutionObservation(input: {
       degraded: runtime.agents.filter((agent) => agent.status === 'degraded').length,
       missing: runtime.agents.filter((agent) => agent.status === 'missing').length,
       cognitiveActivityDiagnosis: {
-        ...cognitiveActivityDiagnosis(runtime),
+        ...activityDiagnosis,
         // Signal IDs are provenance, not proof that a cognitive execution was denied.
-        signals: cognitiveActivityDiagnosis(runtime).signals.map((event) => ({
+        signals: activityDiagnosis.signals.map((event) => ({
           eventId: event.eventId,
           eventName: event.eventName,
           occurredAt: event.occurredAt,
