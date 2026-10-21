@@ -1,9 +1,7 @@
-import Link from 'next/link';
 import { requireRootObserverPage } from '@/lib/root/server';
 import { readDiscoveryControlPlane } from '@/lib/discovery/discoveryControlPlane';
 import { readInstitutionalDiscoveryMesh } from '@/lib/discovery/institutionalDiscoveryReadModel';
 import './discovery.css';
-import { InstitutionalSurfaceRail } from '@/components/sfi/InstitutionalSurfaceRail';
 
 export const dynamic = 'force-dynamic';
 
@@ -48,10 +46,9 @@ export default async function RootDiscoveryPage() {
   const latestDiscoveryRun = data.searchHealth.latestRun;
 
   return <main className="discoveryRoot">
-    <InstitutionalSurfaceRail surface="DISCOVERY" state={data.availability} detail={'REALITY '+mesh.reality.state}/>
     <header className="discoveryHeader">
       <div><p className="discoveryKicker">DISCOVERY MESH · WHAT HAPPENS AFTER PUBLICATION</p><h1>How far it went.</h1><p>SFI separates exposure, discovery, recognition, interaction, relation, propagation, PULL and RETURN. Publishing a piece only starts the trajectory; no later state is invented to complete the graph.</p></div>
-      <div className="discoveryHeaderActions"><span className={statusClass(data.availability)}>{data.availability}</span><Link href="/root">ROOT</Link><Link href="/publications">PUBLICATIONS</Link></div>
+      <div className="discoveryHeaderActions"><span className={statusClass(data.availability)}>{data.availability}</span></div>
     </header>
 
     <section className="discoveryMetricsGrid" aria-label="Discovery summary">
@@ -104,6 +101,6 @@ export default async function RootDiscoveryPage() {
       <pre>{JSON.stringify({ propagations:data.propagations,collisions:data.collisions,autonomy:data.autonomy,readPlan:{controlPlane:data.readPlan,institutional:institutional.readPlan} }, null, 2)}</pre>
     </details>
 
-    <footer className="discoveryFooter"><span>{data.contract} · {institutional.contract}</span><span>Observed: {data.observedAt}</span><span>PUBLICATION ≠ DISCOVERY ≠ PULL ≠ RETURN</span></footer>
+    <section className="discoveryProvenanceTile" aria-label="Procedencia institucional"><span>{data.contract} · {institutional.contract}</span><span>Observed: {data.observedAt}</span><span>PUBLICATION ≠ DISCOVERY ≠ PULL ≠ RETURN</span></section>
   </main>;
 }
