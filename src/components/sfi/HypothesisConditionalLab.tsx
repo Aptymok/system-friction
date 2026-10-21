@@ -68,12 +68,12 @@ export function HypothesisConditionalLab({model,context}:Props){
         <div className="sfiHypLabClaim">
           <small>HIPÓTESIS ORIGINAL · NO REESCRIBIBLE</small>
           <h3>{selection.statement}</h3>
-          <p>RESULTADO CANÓNICO: <strong>{selection.outcomeClassification??'NO REGISTRADO'}</strong></p>
+          <p>RESULTADO HISTÓRICO (LECTURA ACTUAL): <strong>{selection.outcomeClassification??'NO REGISTRADO'}</strong></p>
           <p>ESTADO TEMPORAL: <strong>{selection.methodState==='HISTORICAL_TEST_CLOSED'?'HORIZONTE CERRADO':'VALIDACIÓN PREREGISTRADA'}</strong></p>
         </div>
         <div className="sfiHypLabEvidence">
           <span>MUESTRA ORIGINAL <strong>{selection.baselineEvidenceCount}</strong></span>
-          <span>RETURN ADMISIBLES RECONSTRUIDOS <strong>{selection.postCutoffEvidenceCount}/{selection.evidenceMinimum}</strong></span>
+          <span>RETURN ADMISIBLES RECONSTRUIDOS <strong>{selection.postCutoffEvidenceCount??'UNKNOWN'}/{selection.evidenceMinimum}</strong></span>
           <span>FAMILIAS DE FUENTE <strong>{selection.distinctPostCutoffSourceFamilies??'UNKNOWN'}/{selection.sourceFamilyMinimum}</strong></span>
         </div>
       </div>
@@ -87,12 +87,13 @@ export function HypothesisConditionalLab({model,context}:Props){
           </article>
           <article>
             <small>QUÉ NO PUDIMOS DETERMINAR</small>
-            <strong>{selection.postCutoffEvidenceCount < selection.evidenceMinimum
+            <strong>{selection.postCutoffEvidenceCount === null
+              ? 'PROCEDENCIA NO DISPONIBLE' : selection.postCutoffEvidenceCount < selection.evidenceMinimum
               ? 'EVIDENCIA INSUFICIENTE' : selection.distinctPostCutoffSourceFamilies===null
                 ? 'PROCEDENCIA DESCONOCIDA'
                 : selection.distinctPostCutoffSourceFamilies < selection.sourceFamilyMinimum
                   ? 'FUENTES INSUFICIENTES' : 'REVISAR CRITERIOS Y CONTRASTES'}</strong>
-            <p>{selection.postCutoffEvidenceCount}/{selection.evidenceMinimum} registros admisibles; {selection.distinctPostCutoffSourceFamilies??'desconocidas'}/{selection.sourceFamilyMinimum} familias de fuente. Estos datos no demuestran que la posibilidad no existiera.</p>
+            <p>{selection.postCutoffEvidenceCount??'UNKNOWN'}/{selection.evidenceMinimum} registros admisibles; {selection.distinctPostCutoffSourceFamilies??'desconocidas'}/{selection.sourceFamilyMinimum} familias de fuente. Estos datos no demuestran que la posibilidad no existiera.</p>
           </article>
           <article>
             <small>QUÉ QUEDÓ FUERA DEL EXPERIMENTO</small>
