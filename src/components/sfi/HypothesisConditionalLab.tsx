@@ -99,6 +99,11 @@ export function HypothesisConditionalLab({model,context}:Props){
             <strong>POSIBILIDADES NO PROBADAS</strong>
             <p>Las condiciones no preregistradas y las restricciones que no cuentan con evidencia directa siguen como UNKNOWN. No se presume un bloqueo de autorización ni una causa.</p>
           </article>
+          <article>
+            <small>LO EMERGENTE NO SE PREDETERMINA</small>
+            <strong>VARIABLE NO CONTROLADA</strong>
+            <p>SFI puede diseñar qué observar, pero no ordenar lo que emergerá. Un acontecimiento imprevisto se registrará como observación nueva, no como confirmación retroactiva del ensayo.</p>
+          </article>
         </div>
       </section>
       <div className="sfiHypLabTicks">
