@@ -17,6 +17,13 @@ assert.ok(externalRoot.includes('operationalQueueCount:operationalQueue.length')
 assert.ok(externalRoot.includes('assignedExecutor:assignment.executorId'), 'queued process inventory must expose actual executor assignments, not pretend completed work');
 
 const scheduled = read('src/lib/reports/scheduledAgentReports.ts');
+const evidenceReports = read('src/lib/reports/restrictedEvidenceReports.ts');
+const continuityCron = read('src/app/api/cron/continuity-report/route.ts');
+assert.ok(evidenceReports.includes('SFI-RESTRICTED-EVIDENCE-REPORTS-1.0'),'source-only reporting contract absent');
+assert.ok(continuityCron.includes("SFI_RESTRICTED_REPORTS_MODE === 'enabled'"),'restricted report opt-in absent');
+assert.ok(evidenceReports.includes("'RESTRICTED_EVIDENCE_ONLY'"),'reports must carry explicit non-LLM mode');
+assert.ok(evidenceReports.includes('unavailable:'),'non-present evidence must not create reports');
+
 for (const lane of ['world_daily', 'world_weekly', 'internal_daily', 'prospect_weekly', 'attractor_daily']) {
   assert.ok(scheduled.includes(`'${lane}'`), `scheduled lane missing: ${lane}`);
 }
