@@ -133,7 +133,11 @@ function inferCandidate(title: string) {
 
 function deterministicModel(input: ProspectRadarInput, sources: PublicResearchSource[]): JsonRecord {
   const suppliedCompany = text(input.company);
-  const inferred = unique(sources.map((source) => inferCandidate(source.title)).filter(Boolean)).slice(0, 3);
+  // Scheduled research without an independently named organization cannot
+  // promote a headline fragment to a real company or qualified prospect.
+  const inferred = input.strictEvidenceOnly && !suppliedCompany
+    ? []
+    : unique(sources.map((source) => inferCandidate(source.title)).filter(Boolean)).slice(0, 3);
   const company = suppliedCompany || inferred[0] || 'NO_VERIFIED_COMPANY';
   const today = new Date();
   const confidence = Math.min(0.52, 0.14 + sources.length * 0.025);
@@ -349,7 +353,7 @@ function reportFromModel(input: ProspectRadarInput, model: JsonRecord, sources: 
       caveat: 'Proyección no validada. No representa una fecha de colapso ni una predicción históricamente calibrada.',
     },
     sfiFit: {
-      eligible: sources.length >= offer.minimumEvidenceSources,
+      eligible: !(input.strictEvidenceOnly && !input.company) && sources.length >= offer.minimumEvidenceSources,
       offerId: offer.id,
       offerName: offer.name,
       offerStatus: offer.status,
