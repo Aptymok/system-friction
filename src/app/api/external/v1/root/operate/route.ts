@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 import { humanReportText } from '@/lib/reports/humanReport';
 import { readRootReportHealth, readRootReportInbox } from '@/lib/reports/rootReportInbox';
+import { runRestrictedEvidenceReports } from '@/lib/reports/restrictedEvidenceReports';
 import { authorizeExternalRequest, externalAuthError } from '@/lib/sfi/externalAuth';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { deliverInstitutionalInvitation } from '@/lib/auth/institutionalInvitationDelivery';
@@ -410,6 +411,7 @@ export async function POST(req: Request) {
       scope: REQUIRED_SCOPE,
       operations: [
         { id: 'reports', effect: 'READ', description: 'Read normalized ROOT report inbox and report health.' },
+        { id: 'reports_run_restricted', effect: 'BOUNDED_SOURCE_REPORT_PERSISTENCE', description: 'Persist source-backed reports with ROOT OAuth, execute scope, separate opt-in and explicit confirmation. No models or external actions.' },
         { id: 'accounts_list', effect: 'READ', description: 'List ROOT-administered institutional account access grants.' },
         { id: 'account_invite', effect: 'EXTERNAL_REVERSIBLE', description: 'Send one institutional account invitation without granting sovereign authority.' },
         { id: 'account_recover', effect: 'EXTERNAL_REVERSIBLE', description: 'Re-send password setup to an existing verified institutional identity without altering its grant.' },
@@ -435,7 +437,7 @@ export async function POST(req: Request) {
         pending: 'root:operate read + governance:decide mutation',
         institution: 'root:operate sfi_state + observe/read surfaces',
         registryPublications: 'canonical publication/registry services; mutation adapter pending',
-        reports: 'root:operate reports',
+        reports: 'root:operate reports (read) + reports_run_restricted (execute + explicit opt-in)',
         methodLab: 'operateSfiLab',
         agents: 'cognitive-runtime + invoke_cognitive_capability',
         health: 'root:operate sfi_state health + canonical QA/CI surfaces',
@@ -453,7 +455,7 @@ export async function POST(req: Request) {
       dataPlane:{read:'root:operate/data_plane_status',emergency:'root:operate/data_plane_emergency',verifiedInsertReplay:'root:operate/data_plane_copy_verified',forceSwitchAllowed:false},
       pending:{read:'root:operate/pending',decide:'governance:decide'},
       institution:{read:'root:operate/sfi_state'},
-      reports:{read:'root:operate/reports'},
+      reports:{read:'root:operate/reports',restrictedRun:'root:operate/reports_run_restricted (execute + explicit opt-in)'},
       lab:{delegate:'operateSfiLab'},
       agents:{delegate:'cognitive-runtime/invoke_cognitive_capability'},
       studio:{delegate:'SFI Studio MCP'},
@@ -500,6 +502,24 @@ export async function POST(req: Request) {
         error: 'root_reports_read_failed',
         details: error instanceof Error ? error.message : String(error),
       }, { status: 503 });
+    }
+  }
+
+  if (operation === 'reports_run_restricted') {
+    const scopes=root.credential.scopes??[];
+    if (!scopes.includes('execute') || body.confirmation !== true) {
+      return NextResponse.json({ok:false,operation,error:'execute_scope_and_explicit_confirmation_required'}, {status:403});
+    }
+    if (process.env.SFI_RESTRICTED_REPORTS_MODE !== 'enabled') {
+      return NextResponse.json({ok:false,operation,error:'restricted_report_lane_not_enabled'}, {status:409});
+    }
+    try {
+      const result=await runRestrictedEvidenceReports();
+      return NextResponse.json({ ...result, operation, initiatedBy:'SOVEREIGN_ROOT_OAUTH', bypassedGeneralEgress:false }, {
+        status:result.ok?200:207, headers:{'Cache-Control':'no-store'},
+      });
+    } catch {
+      return NextResponse.json({ok:false,operation,error:'restricted_report_execution_failed'}, {status:503});
     }
   }
 
@@ -562,6 +582,6 @@ export async function POST(req: Request) {
   return NextResponse.json({
     ok: false,
     error: 'unsupported_root_operation',
-    allowed: ['capabilities','capability_map','pending','sfi_state','reports','accounts_list','account_invite','account_recover','data_plane_status','data_plane_emergency','data_plane_copy_verified'],
+    allowed: ['capabilities','capability_map','pending','sfi_state','reports','reports_run_restricted','accounts_list','account_invite','account_recover','data_plane_status','data_plane_emergency','data_plane_copy_verified'],
   }, { status: 400 });
 }
