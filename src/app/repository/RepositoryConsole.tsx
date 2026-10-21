@@ -112,7 +112,7 @@ export function RepositoryConsole({objects,initialObject,discovery,publicReading
     const ref=kind==='object'?objects.find(o=>o.id===id):null;
     if(ref&&typeof window!=='undefined')window.history.replaceState({},'', '/repository?object='+encodeURIComponent(ref.slug));
   };
-  const goto=(index:number)=>horizontal.current?.scrollTo({left:index*590,behavior:'smooth'});
+  const goto=(index:number)=>horizontal.current?.querySelectorAll<HTMLElement>('.repoFloating')[index]?.scrollIntoView({behavior:'smooth',block:'nearest',inline:'start'});
   const jumpReader=()=>{setReaderOpen(true);readerRef.current?.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'})};
   const categories:[string,number|string][]=[['SOURCE RECORDS',sources.length],['EVIDENCE',evidence.length],['PUBLICATIONS',objects.filter(o=>o.objectType==='PUBLICATION').length],['CASE OBJECTS',related.length],['PROVENANCE',sources.length],['VERSIONS',versions.length],['HASHES','NOT MATERIALIZED'],['LINEAGE',related.length],['MANIFESTS',objects.length]];
   const safeDoc=selection.kind==='object'?active?.editorial?.renditions.find(r=>r.publicUrl&&safeURL(r.publicUrl) && (r.mediaType==='application/pdf'||r.filename.toLowerCase().endsWith('.pdf')))||null:null;
@@ -150,7 +150,7 @@ export function RepositoryConsole({objects,initialObject,discovery,publicReading
           <p className="repoScopeNote">Conteos del registro admitido, no del inventario privado de SFI.</p>
           <button className="repoPhaseButton" onClick={()=>goto(1)}>EXPLORAR ARCHIVO →</button>
         </aside>
-        <section className="repoArchiveRail repoFloating" aria-label="Explorar material canónico">
+        <section className="repoArchiveRail repoFloating" data-view={view} aria-label="Explorar material canónico">
           <div className="repoHero"><small>REPOSITORIO · NAVEGACIÓN INSTITUCIONAL</small><p>Selecciona un registro.<br/>Reconstruye su procedencia.</p><span>{matched.length} OBJETOS PÚBLICOS · SIN CIFRAS ILUSTRATIVAS</span></div>
           <div className="repoCategoryDoors">{(['PUBLICATION','METHOD','REPORT','DATASET'] as Filter[]).map(t=><button key={t} data-active={filter===t} onClick={()=>setFilter(t)}><strong>{t}</strong><small>{objects.filter(o=>o.objectType===t).length} objetos</small></button>)}</div>
           <div className="repoArchiveHead"><span>PUBLICATIONS / OBJECTS · {matched.length}</span><div><button data-active={view==='cards'} onClick={()=>setView('cards')}>TARJETAS</button><button data-active={view==='graph'} onClick={()=>setView('graph')}>CONEXIONES</button></div></div>
@@ -163,8 +163,7 @@ export function RepositoryConsole({objects,initialObject,discovery,publicReading
               {graphObjects.map(o=>{const p=graphLayout.get(o.id)!;return <g key={o.id} onClick={()=>select('object',o.id)} role="button" tabIndex={0} aria-label={'Abrir '+o.title} onKeyDown={e=>{if(e.key==='Enter'||e.key===' ')select('object',o.id)}} style={{cursor:'pointer'}}><circle cx={p.x} cy={p.y} r={o.id===selection.id?20:14} fill="#0c1317" stroke="#d3af68" strokeWidth="2"/><text x={p.x} y={p.y+32} fontSize="9" textAnchor="middle" fill="#f0ddba">{short(o.title,20)}</text></g>})}
               {graphSources.map(s=>{const p=graphLayout.get('source:'+s)!;return <g key={s} role="button" tabIndex={0} onClick={()=>selectSource(s)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' ')selectSource(s)}} style={{cursor:'pointer'}}><rect x={p.x-9} y={p.y-9} width="18" height="18" fill="#0e171d" stroke="#74b4c9" transform={`rotate(45 ${p.x} ${p.y})`}/><text x={p.x} y={p.y+29} textAnchor="middle" fontSize="8" fill="#acc0c8">{short(s.replace('https://',''),24)}</text></g>})}
             </svg><span>Solo se dibujan referencias efectivamente registradas. La conexión de origen no prueba corroboración.</span></div>}
-          <div className="repoArchiveLower"><div className="repoRailColumn repoSources"><header><span>SOURCE RECORDS</span><b>{sources.length}</b></header><div className="repoRailScroll">{sources.slice(0,12).map(s=><button key={s} onClick={()=>selectSource(s)}><span>{short(s)}</span><small>REFERENCIA REGISTRADA</small></button>)}</div></div><div className="repoRailColumn repoEvidence"><header><span>EVIDENCE</span><b>{evidence.length}</b></header><div className="repoRailScroll">{evidence.slice(0,12).map(e=><button key={e} onClick={()=>select('evidence',e)}><span>{short(e)}</span><small>REFERENCIA · NO PUBLICA CONTENIDO</small></button>)}</div></div></div>
-          <button className="repoPhaseButton" onClick={()=>goto(2)}>ABRIR PASSPORT →</button>
+                    <div className="repoArchiveActions"><button className="repoPhaseButton" onClick={()=>goto(2)}>ABRIR PASSPORT →</button><button className="repoPhaseButton" onClick={()=>goto(3)}>VER FUENTES Y EVIDENCIA →</button></div>
         </section>
         <section className="repoObjectInspector repoFloating" aria-live="polite">
           <div className="repoObjectState"><span>PASSPORT / {selection.kind.toUpperCase()}</span><b>{stateText}</b></div>
@@ -193,10 +192,14 @@ export function RepositoryConsole({objects,initialObject,discovery,publicReading
           </div>
           <button type="button" className="repoPrimaryAction" onClick={jumpReader}>READ PUBLICATION / ABRIR VISOR →</button>
         </section>
+        <aside className="repoSourceDrawer repoFloating" aria-label="Referencias de origen y evidencia">
+          <div className="repoSourceDrawerHead"><small>FUENTES Y EVIDENCIA</small><h2>Procedencia registrada</h2><p>Selecciona una referencia para revisarla en el pasaporte. Las fuentes no cubren el grafo de publicaciones.</p></div>
+          <div className="repoArchiveLower"><div className="repoRailColumn repoSources"><header><span>SOURCE RECORDS</span><b>{sources.length}</b></header><div className="repoRailScroll">{sources.slice(0,12).map(s=><button key={s} onClick={()=>selectSource(s)}><span>{short(s)}</span><small>REFERENCIA REGISTRADA</small></button>)}</div></div><div className="repoRailColumn repoEvidence"><header><span>EVIDENCE</span><b>{evidence.length}</b></header><div className="repoRailScroll">{evidence.slice(0,12).map(e=><button key={e} onClick={()=>select('evidence',e)}><span>{short(e)}</span><small>REFERENCIA · NO PUBLICA CONTENIDO</small></button>)}</div></div></div>
+        </aside>
         <section className="repoProvenance repoFloating" ref={readerRef}>
           <div className="repoReader" aria-label="Visor integrado de documentos y registros">
             <div className="repoViewerHeading"><span>VISOR / {selection.kind.toUpperCase()}</span><button onClick={()=>setReaderOpen(!readerOpen)} aria-expanded={readerOpen}>{readerOpen?'CONTRAER −':'DESPLEGAR +'}</button></div>
-            {readerOpen?<><nav className="repoReaderTabs">{(['LECTURA','FUENTES','FICHA'] as ReaderMode[]).map(mode=><button key={mode} onClick={()=>setReaderMode(mode)} data-active={readerMode===mode}>{mode}</button>)}</nav>
+            {readerOpen?<><div className="repoReaderTabs" role="tablist" aria-label="Lectura del documento">{(['LECTURA','FUENTES','FICHA'] as ReaderMode[]).map(mode=><button key={mode} onClick={()=>setReaderMode(mode)} data-active={readerMode===mode}>{mode}</button>)}</div>
             <div className="repoViewerBody">
               {readerMode==='LECTURA'?selection.kind==='object'&&active?.editorial?.sections.length?<><span className="repoDocType">{active.editorial.collection} · {active.id}</span><h2>{active.title}</h2><p>{active.editorial.deck||active.summary}</p>{active.editorial.coverImage?<img className="repoDocCover" src={active.editorial.coverImage} alt={active.title}/>:null}{active.editorial.sections.map(sec=><details key={sec.id} className="repoDocumentTile" open><summary>{sec.title}</summary><div>{sec.paragraphs.map((p,i)=><p key={i}>{p}</p>)}{sec.items?.map((item,i)=><p key={i}>{item}</p>)}</div></details>)}{active.editorial.visuals.map(v=><figure key={v.id}><img src={v.src} alt={v.alt}/><figcaption>{v.caption}</figcaption></figure>)}</>:
                 safeDoc?.publicUrl?<><h2>{safeDoc.filename}</h2><iframe src={safeDoc.publicUrl} title="Documento materializado" sandbox="allow-scripts allow-same-origin allow-downloads" referrerPolicy="no-referrer" loading="lazy" className="repoDocumentFrame"/><p>Si el origen impide ser incrustado, consulta la fuente pública autorizada.</p></>:
