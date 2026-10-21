@@ -3,6 +3,8 @@ import { MethodLabNativeHub } from '@/components/sfi/MethodLabNativeHub';
 import { PersonalCognitiveLabWorkspace } from '@/components/sfi/PersonalCognitiveLabWorkspace';
 import { MethodLabExperimentWorkbench } from '@/components/sfi/MethodLabExperimentWorkbench';
 import { readMethodLabState } from '@/lib/method-lab/readModel';
+import { readHypothesisConditionalBranches } from '@/lib/world-observatory/hypothesisConditionalBranches';
+import { HypothesisConditionalLab } from '@/components/sfi/HypothesisConditionalLab';
 import { readMethodLabEvidenceOptions } from '@/lib/method-lab/readHubEvidence';
 import { getCognitiveLabSession, listCognitiveLabSessions } from '@/lib/cognitive-lab/service';
 import { requireRootObserverPage } from '@/lib/root/server';
@@ -39,10 +41,11 @@ export default async function MethodLabPage() {
 
   await requireRootObserverPage('/method-lab');
 
-  const [state, sessions, evidence] = await Promise.all([
+  const [state, sessions, evidence, conditional] = await Promise.all([
     readMethodLabState(),
     listCognitiveLabSessions(18),
     readMethodLabEvidenceOptions(120),
+    readHypothesisConditionalBranches().then(model=>({model,error:null})).catch(error=>({model:null,error:error instanceof Error?error.message:'CONDITIONAL_HYPOTHESIS_READ_FAILED'})),
   ]);
 
   const sessionViews = await Promise.all((sessions as Row[]).map(async (session) => {
@@ -73,11 +76,15 @@ export default async function MethodLabPage() {
   }));
 
   return (
-    <MethodLabNativeHub
-      initialState={state}
-      initialSessions={sessionViews}
-      evidenceOptions={evidence.options}
-      evidenceWarnings={evidence.warnings}
-    />
+    <>
+      <MethodLabNativeHub
+        initialState={state}
+        initialSessions={sessionViews}
+        evidenceOptions={evidence.options}
+        evidenceWarnings={evidence.warnings}
+      />
+      {conditional.model ? <HypothesisConditionalLab model={conditional.model} context="METHOD_LAB" />
+        : <section role="status">Hypothesis conditional laboratory unavailable: {conditional.error}. No conditional branches have been inferred.</section>}
+    </>
   );
 }
