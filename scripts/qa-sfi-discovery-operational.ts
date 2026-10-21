@@ -84,6 +84,8 @@ async function main() {
   assert(opportunity.includes("from('prospect_opportunity_reports')"), 'success must be checked against persisted existing report');
   assert(opportunity.includes('runNoKeyProspectRadar'), 'research must reuse existing Prospect Radar owner');
   assert(opportunity.includes("allowModelSynthesis: false"), 'scheduled research must work without any LLM');
+  assert(opportunity.includes("strictEvidenceOnly: true"), 'scheduled scan must not infer company identity from RSS headlines');
+  assert(prospectRadar.includes('input.strictEvidenceOnly && !suppliedCompany'), 'a headline prefix may not become an institutional identity');
   assert(opportunity.includes("contactsMade: 0"), 'scheduled discovery cannot perform external contact');
   assert(opportunity.includes("publicationPerformed: false"), 'scheduled discovery must not self-publish');
   assert(opportunity.includes("institutionalActionExecuted: false"), 'candidate detection cannot self-adopt');
