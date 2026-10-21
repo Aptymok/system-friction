@@ -308,3 +308,28 @@ body:has([data-sfi-unified-nav]) .mlh-shell .mlh-horizontalTrack{height:calc(100
 @media(prefers-reduced-motion:reduce){
  body:has([data-sfi-unified-nav]) :is(.neuralGraphShell,.discoveryRoot,.rootEvidenceShell,.sfiTemporalShell,.rcOperational) *{scroll-behavior:auto!important}
 }
+
+/* ROOT: visible, keyboard-accessible passport cross-panel controls.
+   The scroll target is a real DOM measurement, not an assumed slide width. */
+body:has([data-sfi-unified-nav]) .rootReferenceCockpit .rootOpenPassport{
+ position:absolute!important;z-index:50!important;bottom:143px!important;right:14px!important;top:auto!important;
+ padding:12px 18px!important;min-height:44px!important;display:flex!important;align-items:center;justify-content:center;gap:11px;
+ background:#061721ef!important;border:1px solid #d4b16d!important;border-radius:12px!important;color:#f1daaa!important;
+ font:650 12px/1.3 "Noto Sans",Arial,sans-serif!important;letter-spacing:.045em;cursor:pointer;
+ box-shadow:0 4px 25px rgba(0,0,0,.6);
+}
+body:has([data-sfi-unified-nav]) .rootReferenceCockpit .rootOpenPassport:hover{background:#1e3139!important}
+body:has([data-sfi-unified-nav]) .rootReferenceCockpit .rootGovernanceHead .rootBackToGraph{
+ position:relative!important;inset:auto!important;display:inline-flex!important;margin:8px 0 0!important;
+ border:1px solid #c8a951;color:#f2daab;background:rgba(12,22,30,.9);border-radius:10px;padding:8px 12px;
+ cursor:pointer;font:600 11px "Noto Sans",Arial,sans-serif;
+}
+body:has([data-sfi-unified-nav]) .rootReferenceCockpit .rootGovernanceSingleReading :is(.rootPassportQuestion,.rootPassportGovernance,.rootPassportIdentity){
+ background:rgba(4,11,17,.83);border:1px solid #c8a9515c;border-radius:11px;padding:12px;
+}
+body:has([data-sfi-unified-nav]) .rootReferenceCockpit .rootHorizontalRail{scroll-behavior:smooth!important}
+body:has([data-sfi-unified-nav]) .rootReferenceCockpit .rootGovernanceConsole .rootGovernanceSingleReading{
+ column-count:auto!important;column-width:auto!important;overflow-x:visible!important;
+}
+body:has([data-sfi-unified-nav]) .rootReferenceCockpit .rootGovernanceConsole{overscroll-behavior-x:contain!important}
+body:has([data-sfi-unified-nav]) .rootReferenceCockpit .rootGovernanceHead{z-index:4!important}
