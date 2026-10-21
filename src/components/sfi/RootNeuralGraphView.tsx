@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { SfiRootWorkspace } from './SfiRootWorkspace';
 import { RootCognitiveFieldPixi } from './RootCognitiveFieldPixi';
@@ -670,6 +670,17 @@ export function RootNeuralGraphView({
   agentRegistrySummary?: RootAgentRegistrySummary;
 }) {
   const searchParams=useSearchParams();
+  const railRef=useRef<HTMLDivElement>(null);
+  const passportRef=useRef<HTMLElement>(null);
+  const graphRef=useRef<HTMLElement>(null);
+  const revealPanel=(destination:HTMLElement|null)=>{
+    const rail=railRef.current;
+    if(!rail||!destination)return;
+    // Horizontal navigation is measured in the actual rendered geometry;
+    // it never assumes fixed tile widths or synthetic offsets.
+    const delta=destination.getBoundingClientRect().left-rail.getBoundingClientRect().left;
+    rail.scrollTo({left:rail.scrollLeft+delta,behavior:'smooth'});
+  };
   const requestedReading=searchParams.get('reading');
   const allowedReadings=['CURRENT_STATE','HIERARCHY','TRAJECTORY','RETROLONGITUDINAL','PROJECTION','FRICTION_REGIME','REALITY_CHAIN','RETURN_CONTRAST'] as const;
   const initialReading=(allowedReadings as readonly string[]).includes(requestedReading||'') ? requestedReading as typeof allowedReadings[number] : 'CURRENT_STATE';
@@ -804,7 +815,9 @@ export function RootNeuralGraphView({
 
   return (
     <main className="neuralGraphShell rootFieldMode rootReferenceCockpit" data-root-layout="ONE-FIELD-ONE-CONSOLE" data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0" data-color-encoding={colorEncoding} data-neural-graph-contract="SFI-ROOT-NEURAL-GRAPH-1.1">
-      <div className="rootHorizontalRail" aria-label="ROOT cognitive field and governance console">
+      <div className="rootHorizontalRail" ref={railRef} tabIndex={0}
+        onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==='ArrowRight'||event.key==='ArrowLeft')){event.preventDefault();event.currentTarget.scrollBy({left:event.key==='ArrowRight'?430:-430,behavior:'smooth'});}}}
+        aria-label="Campo ROOT. Desplázate horizontalmente hacia el grafo y el pasaporte.">
         <aside className="rootReferenceSidebar" aria-label="Field explorer">
           <div className="rootReferenceSidebarTitle"><strong>ROOT</strong><span>FIELD EXPLORER</span></div>
           <div className="rootReferenceSource" data-state={graph.sourceState}>
@@ -861,7 +874,9 @@ export function RootNeuralGraphView({
           <button className="rootExplorerReset" type="button" onClick={()=>{setQuery('');setActiveType('ALL');setActiveCategory('ALL');setAuthorityFilter('ALL');setEvidenceFilter('ALL');setRelationFilter('ALL');setReturnFilter('ALL');setDomainFilter('ALL');setTemporalResolution('ALL');setColorEncoding('EPISTEMIC');setFocusId(null);setSelectedId(null);}}>SHOW COMPLETE FIELD</button>
         </aside>
 
-        <section className="rootFieldStage rootHorizontalGraph" aria-label="Canonical Neural Graph">
+        <section className="rootFieldStage rootHorizontalGraph" ref={graphRef} aria-label="Grafo cognitivo canónico">
+          <button type="button" className="rootOpenPassport" onClick={()=>revealPanel(passportRef.current)}
+            aria-label="Abrir el Pasaporte de Realidad del objeto seleccionado">ABRIR PASAPORTE <span aria-hidden="true">→</span></button>
           <details className="rootSemanticLegend">
             <summary>FIELD LEGEND · {reading.replaceAll('_',' ')}</summary>
             <p>FIELD STATUS · {graph.sourceState.toUpperCase()} · {graph.readPlane} · {visibleNodes.length} OBJECTS · {visibleEdges.length} RELATIONS · {date(graph.loadedAt)}</p>
@@ -919,10 +934,11 @@ export function RootNeuralGraphView({
 
         </section>
 
-        <section className="rootGovernanceConsole" aria-label="Governance Console and Reality Passport">
+        <section className="rootGovernanceConsole" ref={passportRef} aria-label="Pasaporte de realidad y consola de gobierno">
           <header className="rootGovernanceHead">
             <span>ROOT / GOVERNANCE CONSOLE</span>
             <h1>Reality Passport</h1>
+            <button type="button" className="rootBackToGraph" onClick={()=>revealPanel(graphRef.current)}>← VOLVER AL GRAFO</button>
             <p>Evidence, inference, authority, execution and RETURN remain distinct.</p>
           </header>
           <div className="rootGovernanceSingleReading">
