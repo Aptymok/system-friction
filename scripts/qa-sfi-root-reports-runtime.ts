@@ -16,6 +16,11 @@ assert.ok(externalRoot.includes("safe('world_hypothesis_outcomes','id,hypothesis
 assert.ok(externalRoot.includes('operationalQueueCount:operationalQueue.length'), 'ROOT must disclose non-sovereign queued processes alongside sovereign decisions');
 assert.ok(externalRoot.includes('assignedExecutor:assignment.executorId'), 'queued process inventory must expose actual executor assignments, not pretend completed work');
 
+assert.ok(externalRoot.includes("operation === 'reports_run_restricted'"),'ROOT must expose bounded source-only manual report execution');
+assert.ok(externalRoot.includes("scopes.includes('execute')"),'ROOT read scope alone cannot persist reports');
+assert.ok(externalRoot.includes("body.confirmation !== true"),'manual report execution must require explicit confirmation');
+assert.ok(externalRoot.includes("process.env.SFI_RESTRICTED_REPORTS_MODE !== 'enabled'"),'manual report execution must retain separate opt-in');
+
 const scheduled = read('src/lib/reports/scheduledAgentReports.ts');
 const evidenceReports = read('src/lib/reports/restrictedEvidenceReports.ts');
 const continuityCron = read('src/app/api/cron/continuity-report/route.ts');
