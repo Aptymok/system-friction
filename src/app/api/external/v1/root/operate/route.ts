@@ -126,7 +126,34 @@ async function readRootPending(service: ReturnType<typeof createServiceSupabaseC
  const state=await readRootControlPlane(service);
  const pendingProposals=(state.proposals.rows as unknown as Record<string,unknown>[]).filter(r=>['proposed','conflicted','pending'].includes(String(r.status??'').toLowerCase()));
  const pendingRules=(state.founderRules.rows as unknown as Record<string,unknown>[]).filter(r=>String(r.status??'').toUpperCase()==='CANDIDATE');
- return {generatedAt:state.generatedAt,proposals:pendingProposals,founderRules:pendingRules,nextStep:'Use governance:decide for sovereign proposal decisions; operational work remains outside the sovereign queue.'};
+ // Make already-queued operational work visible, but never conflate its
+ // executor/RETURN obligations with a new sovereign approval decision.
+ const operationalQueue=(state.proposals.rows as unknown as Record<string,unknown>[])
+   .filter(r=>['queued','waiting_evidence','design_approved','frozen'].includes(String(r.status??'').toLowerCase()))
+   .map(r=>{
+     const outcome=record(r.outcome);
+     const payload=record(outcome.payloadPatch);
+     const assignment=record(payload.assignment);
+     return {
+       id:r.id,
+       proposalType:r.proposal_type,
+       title:r.title,
+       status:r.status,
+       executionState:payload.executionState??null,
+       assignedExecutor:assignment.executorId??null,
+       returnRequired:payload.requiresExecutorReturn??payload.returnRequiredBeforeAdoption??null,
+       adoptionRecorded:payload.institutionalAdoptionRecorded??false,
+     };
+   });
+ return {
+   generatedAt:state.generatedAt,
+   proposals:pendingProposals,
+   founderRules:pendingRules,
+   operationalQueue,
+   operationalQueueCount:operationalQueue.length,
+   operationalQueueBoundary:'READ_ONLY: operational queue is not a sovereign decision queue; assignment is not execution and closure requires verified RETURN.',
+   nextStep:'Use governance:decide only for sovereign decisions; inspect operationalQueue and its executor/RETURN requirements separately.',
+ };
 }
 
 async function listInstitutionalAccounts(service: ReturnType<typeof createServiceSupabaseClient>) {
