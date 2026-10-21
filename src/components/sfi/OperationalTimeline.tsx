@@ -69,12 +69,6 @@ export function OperationalTimeline({items,worldReadPlane}:{
     <div className="sfiTemporalAtmosphere" aria-hidden="true"/>
     <header className="sfiTemporalHeader">
       <Link href="/" className="sfiTemporalBrand">S F I <span>——</span> <small>SYSTEM FRICTION INSTITUTE</small></Link>
-      <nav aria-label="Institutional operational navigation">
-        <Link href="/root">ROOT</Link><Link href="/observatory">OBSERVATORY</Link>
-        <Link href="/reality-chain">REALITY CHAIN</Link><Link href="/method-lab">METHOD LAB</Link>
-        <Link href="/repository">REPOSITORY</Link><Link href="/timeline" aria-current="page">TIMELINE</Link>
-        <Link href="/root/access">ACCESS</Link>
-      </nav>
     </header>
     <section className="sfiTemporalMain">
       <aside className="sfiTemporalIndex">
