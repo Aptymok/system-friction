@@ -13,6 +13,8 @@ assert.match(proxy, /\/root\/agents/, 'Agent surfaces must remain covered by ROO
 // the outcome pane while the rest of the sovereign state returned success.
 const externalRoot = read('src/app/api/external/v1/root/operate/route.ts');
 assert.ok(externalRoot.includes("safe('world_hypothesis_outcomes','id,hypothesis_id,classification,observed_outcome,evidence_ids,evaluated_at',80,'evaluated_at')"), 'ROOT World outcomes must select/order by evaluated_at, never nonexistent created_at');
+assert.ok(externalRoot.includes('operationalQueueCount:operationalQueue.length'), 'ROOT must disclose non-sovereign queued processes alongside sovereign decisions');
+assert.ok(externalRoot.includes('assignedExecutor:assignment.executorId'), 'queued process inventory must expose actual executor assignments, not pretend completed work');
 
 const scheduled = read('src/lib/reports/scheduledAgentReports.ts');
 for (const lane of ['world_daily', 'world_weekly', 'internal_daily', 'prospect_weekly', 'attractor_daily']) {
