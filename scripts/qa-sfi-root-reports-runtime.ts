@@ -19,6 +19,11 @@ assert.ok(externalRoot.includes('assignedExecutor:assignment.executorId'), 'queu
 const scheduled = read('src/lib/reports/scheduledAgentReports.ts');
 const evidenceReports = read('src/lib/reports/restrictedEvidenceReports.ts');
 const continuityCron = read('src/app/api/cron/continuity-report/route.ts');
+assert.ok(continuityCron.includes('reportStatus:'),'cron must disclose separate report status');
+assert.ok(continuityCron.includes('discoveryStatus:'),'cron must disclose separate Discovery status');
+assert.ok(continuityCron.includes('RESTRICTED_REPORT_CYCLE_FAILED'),'report failures must not be masked by Discovery persistence');
+assert.ok(continuityCron.includes('overallOk = observed && reportsHealthy'),'overall success requires both independent lanes');
+
 assert.ok(evidenceReports.includes('SFI-RESTRICTED-EVIDENCE-REPORTS-1.0'),'source-only reporting contract absent');
 assert.ok(continuityCron.includes("SFI_RESTRICTED_REPORTS_MODE === 'enabled'"),'restricted report opt-in absent');
 assert.ok(evidenceReports.includes("'RESTRICTED_EVIDENCE_ONLY'"),'reports must carry explicit non-LLM mode');
