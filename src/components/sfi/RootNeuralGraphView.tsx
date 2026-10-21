@@ -813,11 +813,11 @@ export function RootNeuralGraphView({
           <label className="rootReferenceSearchLabel" htmlFor="root-reference-search">SEARCH THE FIELD</label>
           <input className="rootReferenceSearch" id="root-reference-search" value={query} onChange={event=>setQuery(event.target.value)} placeholder="Objects, cases, actors, evidence, dates" />
           <div className="rootReferenceSidebarKicker">COGNITIVE GROUPS · DERIVED FROM TYPES</div>
-          <nav className="rootReferenceFilters" aria-label="Cognitive groups">
+          <div className="rootReferenceFilters" role="group" aria-label="Cognitive groups">
             <button type="button" aria-pressed={activeCategory==='ALL'} onClick={()=>setActiveCategory('ALL')}><span>ALL COGNITIVE OBJECTS</span><b>{graph.nodes.length}</b></button>
             {FIELD_CATEGORIES.map(category=><button key={category} type="button" aria-pressed={activeCategory===category} onClick={()=>setActiveCategory(activeCategory===category?'ALL':category)}><span>{category}</span><b>{graph.nodes.filter(node=>fieldCategory(node)===category).length}</b></button>)}
             {graph.nodes.some(node=>fieldCategory(node)==='UNCLASSIFIED')?<button type="button" aria-pressed={activeCategory==='UNCLASSIFIED'} onClick={()=>setActiveCategory(activeCategory==='UNCLASSIFIED'?'ALL':'UNCLASSIFIED')}><span>UNCLASSIFIED</span><b>{graph.nodes.filter(node=>fieldCategory(node)==='UNCLASSIFIED').length}</b></button>:null}
-          </nav>
+          </div>
           <div className="rootReferenceSidebarKicker">ADDITIONAL FILTERS</div>
           <label className="rootExplorerLabel">REALITY STAGE
             <select aria-label="Reality stage" value={activeStage} onChange={event=>setActiveStage(event.target.value as 'ALL'|RealityPassportStage)}>
