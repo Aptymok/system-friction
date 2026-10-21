@@ -83,9 +83,13 @@ export default async function TimelinePage() {
   const conditional = await readHypothesisConditionalBranches()
     .then(model=>({model,error:null})).catch(error=>({model:null,error:error instanceof Error?error.message:'CONDITIONAL_HYPOTHESIS_READ_FAILED'}));
 
-  return <>
-    <OperationalTimeline items={[...institution, ...world]} worldReadPlane={worldReadPlane} />
-    {conditional.model ? <HypothesisConditionalLab model={conditional.model} context="TIMELINE" />
-      : <section role="status">Hypothesis branch timeline unavailable: {conditional.error}. No projected ticks are displayed.</section>}
-  </>;
+  return <div className="sfiUnifiedTimelineTrack" data-sfi-timeline-panorama="ORIGINAL-EVIDENCE-ONLY">
+    <section className="sfiUnifiedTimelinePanel" aria-label="Relojes y acontecimientos registrados">
+      <OperationalTimeline items={[...institution, ...world]} worldReadPlane={worldReadPlane} />
+    </section>
+    <section className="sfiUnifiedTimelinePanel sfiUnifiedTimelineAnalysis" aria-label="Ramas de hipótesis bajo condiciones">
+      {conditional.model ? <HypothesisConditionalLab model={conditional.model} context="TIMELINE" />
+        : <div role="status">Las ramas de hipótesis no están disponibles: {conditional.error}. No se muestran resultados inventados.</div>}
+    </section>
+  </div>;
 }
