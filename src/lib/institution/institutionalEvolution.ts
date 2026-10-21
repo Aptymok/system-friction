@@ -157,10 +157,63 @@ function existingEvolutionProposals(value: unknown[]): PersistedProposal[] {
   });
 }
 
+// An absence of recent SFI_AGENT_EXECUTED receipts does NOT establish permission denial.
+// Admit a bounded diagnostic only when a *recent* institutional signal supplies a reason
+// to investigate. Never create 21 artificial tasks merely to make the dashboard green.
+const COGNITIVE_DIAGNOSTIC_SIGNALS = new Set([
+  'SFI_TASK_CREATED',
+  'SFI_UNIVERSAL_RETURN_CONTRASTED',
+  'SFI_JR_FIELD_CYCLE_COMPLETED',
+]);
+const COGNITIVE_DIAGNOSTIC_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+function cognitiveActivityDiagnosis(runtime: Awaited<ReturnType<typeof readObservedSfiCognitiveRuntime>>) {
+  const allBoundButInactive = runtime.agents.length > 0
+    && runtime.agents.every((agent) => agent.status === 'gated')
+    && runtime.contract.executorAgents === runtime.agents.length;
+  const provenanceAvailable = runtime.eventGraph.warnings.length === 0
+    && runtime.eventGraph.status !== 'degraded';
+  const generatedMs = Date.parse(runtime.generatedAt);
+  const signals = provenanceAvailable && Number.isFinite(generatedMs)
+    ? runtime.eventGraph.recentEvents.filter((event) =>
+        COGNITIVE_DIAGNOSTIC_SIGNALS.has(event.eventName)
+        && Boolean(event.eventId)
+        && Boolean(event.occurredAt)
+        && Number.isFinite(Date.parse(event.occurredAt!))
+        && Date.parse(event.occurredAt!) <= generatedMs
+        && generatedMs - Date.parse(event.occurredAt!) <= COGNITIVE_DIAGNOSTIC_WINDOW_MS,
+      ).slice(0, 12)
+    : [];
+  return {
+    state: !provenanceAvailable ? 'EVENT_READ_UNAVAILABLE'
+      : !allBoundButInactive ? 'NO_COLLECTIVE_INACTIVITY'
+      : !signals.length ? 'NO_RECENT_DIAGNOSTIC_INPUT'
+      : 'DIAGNOSTIC_ELIGIBLE',
+    signals,
+    agentCount: runtime.agents.length,
+    inactivityMeansDenial: false,
+  };
+}
+
 function runtimeCandidates(runtime: Awaited<ReturnType<typeof readObservedSfiCognitiveRuntime>>): EvolutionCandidate[] {
   const missing = runtime.agents.filter((agent) => agent.status === 'missing');
   const degraded = runtime.agents.filter((agent) => agent.status === 'degraded');
   const result: EvolutionCandidate[] = [];
+  const activity = cognitiveActivityDiagnosis(runtime);
+  if (activity.state === 'DIAGNOSTIC_ELIGIBLE') {
+    result.push({
+      kind: 'EVIDENCE_ACQUISITION',
+      target: 'cognitive-runtime-activity',
+      title: 'Diagnosticar inactividad cognitiva con ejecutores disponibles',
+      objective: 'Investigar, con los agentes internos ya registrados, por qué no hay ejecuciones recientes atribuibles pese a existir señales institucionales actuales. Distinguir demanda, despacho, evidencia, controles de autoridad y registro; no inferir una denegación por GATED. Producir un diagnóstico trazable y la siguiente observación discriminante, sin efectos externos ni promoción canónica.',
+      priority: 0.83,
+      // Stable reasons keep the proposal fingerprint unchanged across routine ticks;
+      // ephemeral event IDs remain provenance, never deduplication keys.
+      reasons: ['all_registered_executors_bound_but_inactive', 'recent_institutional_signal', 'diagnostic_not_capability_repair'],
+      evidenceRefs: activity.signals.map((event) => event.eventId),
+      ownerResolution: 'ABSORB_IN_EXISTING_OWNER',
+    });
+  }
 
   if (missing.length) {
     result.push({
@@ -383,6 +436,15 @@ export async function runInstitutionalEvolutionObservation(input: {
       gated: runtime.agents.filter((agent) => agent.status === 'gated').length,
       degraded: runtime.agents.filter((agent) => agent.status === 'degraded').length,
       missing: runtime.agents.filter((agent) => agent.status === 'missing').length,
+      cognitiveActivityDiagnosis: {
+        ...cognitiveActivityDiagnosis(runtime),
+        // Signal IDs are provenance, not proof that a cognitive execution was denied.
+        signals: cognitiveActivityDiagnosis(runtime).signals.map((event) => ({
+          eventId: event.eventId,
+          eventName: event.eventName,
+          occurredAt: event.occurredAt,
+        })),
+      },
     },
     continuity: {
       openIncidents: continuity.incidents.length,
