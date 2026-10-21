@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="145 135 910 940" role="img" aria-labelledby="title desc">
+<title id="title">Logotipo System Friction Institute</title><desc id="desc">Estructura hexagonal dorada, retícula de conexiones y siete nodos.</desc>
+<defs><radialGradient id="orb" cx="37%" cy="27%" r="71%"><stop stop-color="#fff7b8"/><stop offset=".34" stop-color="#ffe787"/><stop offset=".73" stop-color="#eabf36"/><stop offset="1" stop-color="#a97808"/></radialGradient></defs>
+<g fill="none" stroke="#f7d770" stroke-linejoin="round" stroke-linecap="round">
+<path stroke-width="8" d="M600 178 964 388 964 809 600 1019 235 809 235 389Z"/>
+<path stroke-width="7" d="M600 178V1019M235 389l365 211 364-212M235 809l365-209 364 209"/>
+<path stroke-width="7" d="M600 300 862 451V750L600 900 337 751V450Z"/>
+<path stroke-width="6" d="M600 359 391 480V719L600 839 808 719V480L600 359Z"/>
+<path stroke-width="5" d="M337 450 391 480 600 359 808 480 861 450M337 750l54-31L600 839l208-120 54 31M600 300V359M600 839V899M391 480 600 600 808 480M391 719 600 600 808 719M600 359V839"/>
+</g>
+<g fill="url(#orb)" stroke="#ffe681" stroke-width="3">
+<circle cx="600" cy="359" r="20"/><circle cx="391" cy="480" r="20"/><circle cx="808" cy="480" r="20"/><circle cx="391" cy="719" r="20"/><circle cx="808" cy="719" r="20"/><circle cx="600" cy="839" r="21"/><circle cx="876" cy="600" r="19"/>
+</g>
+</svg>
