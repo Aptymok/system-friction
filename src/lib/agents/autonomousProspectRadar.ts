@@ -13,6 +13,8 @@ export type ProspectRadarInput = {
   lookbackDays?: number;
   maxCandidates?: number;
   allowProvisionalOffers?: boolean;
+  /** Allows existing no-key radar to run without any model provider. */
+  allowModelSynthesis?: boolean;
 };
 
 export type ProspectRadarReport = {
