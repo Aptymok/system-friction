@@ -62,6 +62,15 @@ assert.doesNotMatch(publicObservatoryClient, /cache:\s*['"]no-store['"]/, 'publi
 
 // Restricted Discovery must not open the full Supabase egress circuit or use a paid model.
 const restrictedDiscoveryCron = fs.readFileSync('src/app/api/cron/continuity-report/route.ts', 'utf8');
+const evidenceReports = fs.readFileSync('src/lib/reports/restrictedEvidenceReports.ts', 'utf8');
+assert.match(restrictedDiscoveryCron, /SFI_RESTRICTED_REPORTS_MODE === 'enabled'/, 'restricted reports must have an independent explicit opt-in');
+assert.match(restrictedDiscoveryCron, /runRestrictedEvidenceReports/, 'bounded reports must reuse existing cron');
+assert.match(evidenceReports, /SFI-RESTRICTED-EVIDENCE-REPORTS-1.0/, 'evidence-only reporting must have a stable contract');
+assert.doesNotMatch(evidenceReports, /runReportAgent|runNoKeyProspectRadar|refreshInstitutionalAttractorTrajectory|runLlmTask|runGovernedExecutionRouter/, 'restricted evidence reports must never call models, search, attractor refresh or governed execution');
+assert.match(evidenceReports, /'scheduled-report:'/, 'reports must retain current-period task ID used by ROOT inbox');
+assert.match(evidenceReports, /'source_state'|source_state/, 'World records must verify observed source state');
+assert.match(restrictedDiscoveryCron, /otherLanesExecuted: false/, 'general restricted mode cannot enable other scheduled lanes');
+
 const restrictedDiscoveryAutonomy = fs.readFileSync('src/lib/discovery/discoveryAutonomy.ts', 'utf8');
 const restrictedDiscoveryRepository = fs.readFileSync('src/lib/discovery/discoveryRepository.ts', 'utf8');
 const zeroKeyResearch = fs.readFileSync('src/lib/agents/publicResearch.ts', 'utf8');
