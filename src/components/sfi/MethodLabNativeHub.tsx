@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import './MethodLabNativeHub.css';
@@ -155,10 +154,10 @@ export function MethodLabNativeHub({ initialState, initialSessions, evidenceOpti
   return (
     <main className="mlh-shell">
       <header className="mlh-topbar">
-        <Link href="/root" className="mlh-brand">SFI.</Link>
+        <span className="mlh-brand">SFI.</span>
         <div><span>METHOD LAB</span><b>{initialState.status}</b></div>
         <div><span>CONTRACT</span><b>{initialState.contractVersion}</b></div>
-        <Link href="/root" className="mlh-return">RETURN TO ROOT ↖</Link>
+        <span className="mlh-return">Métodos · Evidencia · Resultados</span>
       </header>
 
       <div className="mlh-horizontalTrack" aria-label="Method Lab horizontal operational workspaces">
