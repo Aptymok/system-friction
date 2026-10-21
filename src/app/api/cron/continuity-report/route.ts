@@ -25,33 +25,56 @@ export async function GET(request: NextRequest) {
   }
   const egressGuard = scheduledEgressGuardResponse();
   if (egressGuard) {
-    // Independent opt-in, bounded local-evidence reports. General egress stays restricted.
-    const restrictedReports = process.env.SFI_RESTRICTED_REPORTS_MODE === 'enabled'
-      ? await runRestrictedEvidenceReports().catch(() => ({ok:false,failed:1,generated:0,error:'RESTRICTED_REPORT_EXECUTION_FAILED'}))
+    // Independent opt-in: compute source-backed reports without opening the
+    // GENERAL lane. Receipt and failure are independent from Discovery.
+    const reportOptIn = process.env.SFI_RESTRICTED_REPORTS_MODE === 'enabled';
+    const restrictedReports = reportOptIn
+      ? await runRestrictedEvidenceReports().catch((error) => ({
+          ok: false, generated: 0, skipped: 0, failed: 1,
+          error: error instanceof Error ? error.message : 'RESTRICTED_REPORT_EXECUTION_FAILED',
+        }))
       : null;
+    const reportsHealthy = !reportOptIn || restrictedReports?.ok === true;
     try {
       const discoveryAutonomy = await runDiscoveryAutonomyCycle(new Date(), { restrictedObservationOnly: true });
       const persisted = Boolean(discoveryAutonomy.observation?.runId);
       const observed = persisted && discoveryAutonomy.observation?.ok === true;
+      const overallOk = observed && reportsHealthy;
+      const status = !reportsHealthy
+        ? 'RESTRICTED_REPORT_CYCLE_FAILED'
+        : !persisted
+          ? 'DISCOVERY_RESTRICTED_OBSERVATION_NOT_PERSISTED'
+          : observed
+            ? 'DISCOVERY_RESTRICTED_SOURCE_OBSERVED'
+            : 'DISCOVERY_RESTRICTED_SOURCE_UNAVAILABLE_PERSISTED';
       return NextResponse.json({
-        ok: observed,
-        status: !persisted ? 'DISCOVERY_RESTRICTED_OBSERVATION_NOT_PERSISTED' : observed ? 'DISCOVERY_RESTRICTED_SOURCE_OBSERVED' : 'DISCOVERY_RESTRICTED_SOURCE_UNAVAILABLE_PERSISTED',
+        ok: overallOk,
+        status,
+        discoveryStatus: !persisted ? 'NOT_PERSISTED' : observed ? 'OBSERVED' : 'UNAVAILABLE_PERSISTED',
+        reportStatus: !reportOptIn ? 'NOT_ENABLED'
+          : !reportsHealthy ? 'FAILED'
+          : (restrictedReports?.generated ?? 0) > 0 ? 'GENERATED'
+          : (restrictedReports?.skipped ?? 0) > 0 ? 'SKIPPED_EXISTING'
+          : 'NO_QUALIFYING_EVIDENCE',
         observationAvailable: observed,
         generalEgress: 'RESTRICTED',
         discoveryAutonomy,
         restrictedReports,
         otherLanesExecuted: false,
-        boundary: 'General execution stays restricted. Optional reports only read existing evidence, do not call models or perform external actions; Discovery uses the original restricted retrieval.',
-      }, { status: persisted ? 200 : 503, headers: { 'Cache-Control': 'no-store' } });
+        boundary: 'General egress remains restricted. Independent source-only reporting is explicitly opt-in; no model, external contact, governance decision or material execution is authorized.',
+      }, { status: overallOk ? 200 : persisted || reportOptIn ? 207 : 503, headers: { 'Cache-Control': 'no-store' } });
     } catch (error) {
       return NextResponse.json({
         ok: false,
         status: 'DISCOVERY_RESTRICTED_OBSERVATION_FAILED',
+        discoveryStatus: 'EXECUTION_FAILED',
+        reportStatus: !reportOptIn ? 'NOT_ENABLED' : !reportsHealthy ? 'FAILED'
+          : (restrictedReports?.generated ?? 0) > 0 ? 'GENERATED' : 'NO_QUALIFYING_EVIDENCE',
         generalEgress: 'RESTRICTED',
         restrictedReports,
         otherLanesExecuted: false,
         error: error instanceof Error ? error.message : 'unknown_error',
-      }, { status: 503, headers: { 'Cache-Control': 'no-store' } });
+      }, { status: reportOptIn && reportsHealthy ? 207 : 503, headers: { 'Cache-Control': 'no-store' } });
     }
   }
   try {
