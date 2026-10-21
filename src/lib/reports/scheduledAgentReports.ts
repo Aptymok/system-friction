@@ -378,3 +378,149 @@ export async function runScheduledAgentReportCycle() {
     results,
   };
 }
+
+
+/**
+ * Explicitly enabled, bounded REPORT-ONLY lane for restricted scheduled egress.
+ * Consumes persisted WorldSpect snapshots and Cognitive Twin receipts ONLY.
+ * Never calls an LLM, external search, Prospect Radar, the attractor refresh
+ * writer, governed execution or institutional mutation mechanisms.
+ *
+ * This is an honest PARTIAL REPORT RESUMPTION: no prospect or attractor
+ * report is fabricated while those owners remain gated.
+ */
+export async function runRestrictedDeterministicReportCycle(now = new Date()) {
+  const dateKey = mexicoDateKey(now);
+  const weekKey = isoWeekKey(dateKey);
+  const db = createServiceSupabaseClient();
+  const since = new Date(now.getTime() - 7 * 86_400_000).toISOString();
+  const runsSince = new Date(now.getTime() - 86_400_000).toISOString();
+  const [snapshotsRead, cognitiveRead] = await Promise.all([
+    db.from('worldspect_snapshots')
+      .select('id,observed_at,source_state,evidence_level,confidence,wsi,nti')
+      .gte('observed_at', since)
+      .order('observed_at', { ascending: false })
+      .limit(40),
+    db.from('sfi_cognitive_twin_runs')
+      .select('id,role,status,created_at')
+      .gte('created_at', runsSince)
+      .order('created_at', { ascending: false })
+      .limit(60),
+  ]);
+  const failures = [
+    snapshotsRead.error ? 'WORLDSPECT_READ_FAILED' : null,
+    cognitiveRead.error ? 'COGNITIVE_RUN_RECEIPT_READ_FAILED' : null,
+  ].filter((value): value is string => Boolean(value));
+  if (failures.length) return {
+    ok: false,
+    mode: 'RESTRICTED_DETERMINISTIC_REPORTS_V1',
+    generated: 0, skipped: 0, failed: 1,
+    results: [],
+    errors: failures,
+    modelInvoked: false,
+    externalContactPerformed: false,
+  };
+
+  const snapshots = (snapshotsRead.data ?? []).filter((item) => (
+    String(item.source_state).toLowerCase() === 'observed'
+      && item.id
+      && item.observed_at
+      && Number.isFinite(Date.parse(item.observed_at))
+      && Date.parse(item.observed_at) <= now.getTime()
+  ));
+  const fresh = snapshots.filter((item) => now.getTime() - Date.parse(item.observed_at) <= 36 * 3_600_000);
+  const today = fresh.filter((item) => mexicoDateKey(new Date(item.observed_at)) === dateKey);
+  const thisWeek = snapshots.filter((item) => isoWeekKey(mexicoDateKey(new Date(item.observed_at))) === weekKey);
+  const recentRuns = (cognitiveRead.data ?? []).filter((item) => item.id && item.created_at);
+  const fmt = (value: unknown) => Number.isFinite(Number(value)) ? Number(value).toFixed(4) : 'UNKNOWN';
+  const sourceReport = (key: 'world_daily' | 'world_weekly', cohort: typeof snapshots, label: string): ReportEnvelope => {
+    const current = cohort[0];
+    const previous = cohort[cohort.length - 1];
+    return {
+      ok: true, type: key, title: label,
+      body: [
+        `SFI · ${label} · ${key === 'world_daily' ? dateKey : weekKey}`,
+        `Snapshots WorldSpect observados: ${cohort.length} (máximo 40 inspeccionados).`,
+        `Primera observación del conjunto: ${previous.observed_at}.`,
+        `Última observación del conjunto: ${current.observed_at}.`,
+        `WSI primera/última: ${fmt(previous.wsi)} → ${fmt(current.wsi)}.`,
+        `NTI primera/última: ${fmt(previous.nti)} → ${fmt(current.nti)}.`,
+        `Confianza reportada del último snapshot: ${fmt(current.confidence)}.`,
+        'Los valores son mediciones instrumentales; no prueban estabilidad del mundo, causalidad ni éxito institucional.',
+        'La evolución se describe exclusivamente entre observaciones disponibles, sin inventar datos ausentes.',
+      ].join('\n'),
+      evidence: cohort.slice(0, 12).map((item) => String(item.id)),
+      provider: 'deterministic:worldspect-persisted-only',
+      warnings: ['NO_LLM', 'NO_NEW_WORLD_OBSERVATION', 'HISTORY_WINDOW_MAX_7D', 'SNAPSHOT_SAMPLE_MAX_40'],
+      trace: {
+        firstObservedAt: previous.observed_at, latestObservedAt: current.observed_at,
+        sourceState: current.source_state, evidenceLevel: current.evidence_level,
+        inspected: snapshotsRead.data?.length ?? 0,
+      },
+      approval_queue: {},
+    };
+  };
+
+  const eligible: Array<{
+    key: ScheduledReportKey;
+    title: string;
+    generate: () => Promise<ReportEnvelope>;
+  }> = [];
+  if (today.length) eligible.push({
+    key: 'world_daily', title: `Mundo · reporte diario · ${dateKey}`,
+    generate: async () => sourceReport('world_daily', today, 'Mundo · reporte diario'),
+  });
+  if (thisWeek.length && fresh.length) eligible.push({
+    key: 'world_weekly', title: `Mundo · reporte semanal · ${weekKey}`,
+    generate: async () => sourceReport('world_weekly', thisWeek, 'Mundo · reporte semanal'),
+  });
+  if (today.length) eligible.push({
+    key: 'internal_daily', title: `SFI interno · reporte de continuidad observada · ${dateKey}`,
+    generate: async () => {
+      const byRole: Record<string, number> = {};
+      for (const run of recentRuns) {
+        // Keep report receipts OUT of cognitive activity counts.
+        if (run.role === 'report_agent' || run.role === 'report_scheduler') continue;
+        const role = String(run.role ?? 'untyped');
+        byRole[role] = (byRole[role] ?? 0) + 1;
+      }
+      const nonReportCount = Object.values(byRole).reduce((a, b) => a + b, 0);
+      return {
+        ok: true, type: 'internal_daily', title: `SFI interno · ${dateKey}`,
+        body: [
+          `SFI · REPORTE INTERNO DE LECTURA RESTRINGIDA · ${dateKey}`,
+          `Snapshots WorldSpect observados hoy: ${today.length}.`,
+          `Recibos de Cognitive Twin distintos de reportes en 24 h: ${nonReportCount} (hasta 60 filas inspeccionadas).`,
+          `Distribución por rol: ${JSON.stringify(byRole)}.`,
+          'No se ejecutaron agentes para elaborar este informe.',
+          'No hay en esta lectura verificación de ejecución de los 21 agentes, de RETURN externo ni de promoción de aprendizaje.',
+          'Cero recibos no es prueba de cero actividad fuera de las tablas consultadas.',
+        ].join('\n'),
+        evidence: [String(today[0].id), ...recentRuns.filter((v) => v.role !== 'report_agent' && v.role !== 'report_scheduler').slice(0,8).map((v) => String(v.id))],
+        provider: 'deterministic:institutional-persisted-only',
+        warnings: ['NO_LLM','PARTIAL_INTERNAL_REPORT','NO_EXTERNAL_EXECUTION','NO_GOVERNANCE_CHANGE','NO_CLAIM_OF_COGNITIVE_AUTONOMY'],
+        trace: { worldObservedAt: today[0].observed_at, nonReportReceipts: nonReportCount, maxInspectedRuns: 60 },
+        approval_queue: {},
+      };
+    },
+  });
+
+  const results: ScheduledResult[] = [];
+  for (const item of eligible) results.push(await ensure({
+    key: item.key, dateKey, weekKey, title: item.title, generate: item.generate,
+    extraInput: { reportMode: 'RESTRICTED_DETERMINISTIC_REPORTS_V1', noLlm: true },
+  }));
+  return {
+    ok: results.every((item) => item.state !== 'FAILED'),
+    mode: 'RESTRICTED_DETERMINISTIC_REPORTS_V1',
+    generated: results.filter((item) => item.state === 'GENERATED').length,
+    skipped: results.filter((item) => item.state === 'SKIPPED_EXISTING').length,
+    failed: results.filter((item) => item.state === 'FAILED').length,
+    results,
+    notGenerated: ['prospect_weekly', 'attractor_daily',
+      ...(!today.length ? ['world_daily','internal_daily'] : []),
+      ...(!thisWeek.length || !fresh.length ? ['world_weekly'] : [])],
+    modelInvoked: false, externalContactPerformed: false,
+    boundary: 'Only source-backed bounded reports. No prospect or attractor assertions without their canonical owner and evidence.',
+  };
+}
