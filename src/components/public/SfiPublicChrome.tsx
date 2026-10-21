@@ -115,7 +115,7 @@ export function SfiPublicHeader({global=false,active}:{active?:string;global?:bo
     .some(route=>pathname===route||pathname.startsWith(route+'/'));
   const reserveSpace=pathname!=='/';
 
-  const singleNeuralSurface=pathname==='/root'||pathname.startsWith('/root/')||pathname==='/method-lab'||pathname==='/timeline'||pathname==='/reality-chain'||pathname==='/observatory';
+  const singleNeuralSurface=pathname==='/root'||pathname.startsWith('/root/')||pathname==='/method-lab'||pathname==='/timeline'||pathname==='/reality-chain'||pathname==='/observatory'||pathname==='/repository';
   if(global&&(privateShell||identityGate||singleNeuralSurface)) return null;
 
   return <>
