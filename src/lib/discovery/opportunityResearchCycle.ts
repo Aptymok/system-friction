@@ -83,6 +83,7 @@ export async function runDiscoveryOpportunityResearchCycle(now = new Date()) {
       maxCandidates: 3,
       allowProvisionalOffers: false,
       allowModelSynthesis: false,
+      strictEvidenceOnly: true,
     }, null);
 
     // The existing writer may legitimately be unavailable. A generated
