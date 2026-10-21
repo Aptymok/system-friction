@@ -5,7 +5,6 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import { useSearchParams } from 'next/navigation';
 import { useAuthState } from '@/components/auth/AuthProvider';
 import { SfiFriccionautaPanel } from './SfiFriccionautaPanel';
-import { InstitutionalSurfaceRail } from './InstitutionalSurfaceRail';
 import './SfiRootWorkspace.css';
 
 type Row = Record<string, any>;
@@ -166,8 +165,6 @@ export function SfiRootWorkspace({ enabled, decisionOnly = false }: { enabled: b
   return <div className="rootWorkspace" data-root-visual-contract="SFI-ROOT-VISUAL-2.0" data-root-module-count="dynamic">
     {(error || notice) && <div className={`rootToast ${error ? 'error' : ''}`}><span>{error || notice}</span><button onClick={() => { setError(null); setNotice(null); }}>×</button></div>}
 
-    <InstitutionalSurfaceRail surface="ROOT" state={readState} detail={lastReadAt ? 'LAST READ '+when(lastReadAt) : 'AWAITING FIRST READ'}/>
-
     <header className="rootHeader"><div className="rootHeaderCopy"><span>ROOT · INSTITUTIONAL SOVEREIGNTY · AUTHORITY / OBSERVATION / RETURN</span><h1>Decide what is sovereign. Observe and read the rest.</h1><p>SFI operates, searches for evidence, executes already-authorized capabilities, records RETURN and closes routine work without asking permission. ROOT intervenes when a real authority decision exists and retains complete visibility over reports, cases, learning and RETURN.</p></div><div className="rootReadState"><span>READ STATE</span><b>{lastReadAt ? `${readState} · ${when(lastReadAt)}` : `${readState} · waiting for first observation`}</b><button onClick={() => void loadBase(true)}>Refresh</button></div></header>
 
     <section className="rootPulse" aria-label="Observable institutional state"><article data-epistemic-state={readState}><span>ROOT decisions</span><b>{pulseValue(actionable.length)}</b><small>Sovereign changes only.</small></article><article data-epistemic-state={readState}><span>Active cases</span><b>{pulseValue(activeCases.length)}</b><small>Observed; not approved.</small></article><article data-epistemic-state={readState}><span>Open cycles</span><b>{pulseValue(cycles.length)}</b><small>May close autonomously.</small></article><article data-epistemic-state={readState}><span>Observable work</span><b>{pulseValue(observable.length)}</b><small>SFI continues within its authority.</small></article></section>
@@ -188,6 +185,6 @@ export function SfiRootWorkspace({ enabled, decisionOnly = false }: { enabled: b
       </div>}
     </details>
 
-    <footer className="rootFooter"><span>PROJECTS {base ? projects.length : 'MISSING'}</span><span>CASES {base ? cases.length : 'MISSING'}</span><span>DECISION / EVIDENCE / REPORTS / RETURN</span><span>RULE: ROOT DECIDES; SFI DOES THE WORK.</span></footer>
+    <section className="rootSummaryTile" aria-label="Resumen operativo"><span>PROJECTS {base ? projects.length : 'MISSING'}</span><span>CASES {base ? cases.length : 'MISSING'}</span><span>DECISION / EVIDENCE / REPORTS / RETURN</span><span>RULE: ROOT DECIDES; SFI DOES THE WORK.</span></section>
   </div>;
 }
