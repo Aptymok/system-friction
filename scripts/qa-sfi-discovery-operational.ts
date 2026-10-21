@@ -8,6 +8,8 @@ async function main() {
   const mesh = await text('src/lib/discovery/discoveryMesh.ts');
   const repository = await text('src/lib/discovery/discoveryRepository.ts');
   const autonomy = await text('src/lib/discovery/discoveryAutonomy.ts');
+  const opportunity = await text('src/lib/discovery/opportunityResearchCycle.ts');
+  const prospectRadar = await text('src/lib/agents/noKeyProspectRadar.ts');
   const controlPlane = await text('src/lib/discovery/discoveryControlPlane.ts');
   const rootPage = await text('src/app/root/discovery/page.tsx');
   const continuityRoute = await text('src/app/api/cron/continuity-report/route.ts');
@@ -73,6 +75,23 @@ async function main() {
   for (const key of ['DISCOVERY_UNBRANDED_RETRIEVAL_COVERAGE','DISCOVERY_AI_RETRIEVAL_COVERAGE','DISCOVERY_ENTITY_RECONSTRUCTION_COVERAGE','DISCOVERY_REFERENCE_DENSITY_COVERAGE','DISCOVERY_PROPAGATION_COVERAGE']) {
     assert(autonomy.includes(key), `development recommendation missing:${key}`);
   }
+  // Existing Cron and Prospect Radar are the only writers/entrypoints; no
+  // new database tables, side-channel cron, mandatory LLM or external outreach.
+  assert(opportunity.includes('SFI-DISCOVERY-OPPORTUNITY-CYCLE-1.0'));
+  assert(opportunity.includes("SFI_DISCOVERY_OPPORTUNITY_RESEARCH"));
+  assert(opportunity.includes("DAYS_BETWEEN_SCANS = 7"));
+  assert(opportunity.includes("from('prospect_research_runs')"), 'weekly reuse cadence must read existing prospect source');
+  assert(opportunity.includes("from('prospect_opportunity_reports')"), 'success must be checked against persisted existing report');
+  assert(opportunity.includes('runNoKeyProspectRadar'), 'research must reuse existing Prospect Radar owner');
+  assert(opportunity.includes("allowModelSynthesis: false"), 'scheduled research must work without any LLM');
+  assert(opportunity.includes("contactsMade: 0"), 'scheduled discovery cannot perform external contact');
+  assert(opportunity.includes("publicationPerformed: false"), 'scheduled discovery must not self-publish');
+  assert(opportunity.includes("institutionalActionExecuted: false"), 'candidate detection cannot self-adopt');
+  assert(prospectRadar.includes('input.allowModelSynthesis === false'), 'no-key radar must actually skip local model when requested');
+  assert(continuityRoute.includes('runDiscoveryOpportunityResearchCycle'), 'existing continuity cron must own weekly research');
+  assert(continuityRoute.includes("DISCOVERY_RESTRICTED_SOURCE_UNAVAILABLE_PERSISTED"), 'restricted failed retrieval must not be presented as successful observation');
+  assert(!continuityRoute.includes('runDiscoveryOpportunityResearchCycle(new Date(), { restrictedObservationOnly: true })'), 'restricted general egress cannot start prospect RSS research');
+
   assert(continuityRoute.includes('runDiscoveryAutonomyCycle'), 'existing continuity cron must own discovery autonomy cadence');
   assert(!continuityRoute.includes('runAutomaticDiscoveryObservationCycle'), 'continuity route must not bypass autonomy wrapper');
   assert(continuityRoute.includes('No additional Vercel cron invocation'), 'autonomy must not create timer proliferation');
