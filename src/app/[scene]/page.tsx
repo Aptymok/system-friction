@@ -6,7 +6,7 @@ import { readCanonicalGraphState } from '@/lib/graph/canonicalGraph';
 import { projectCognitiveGraph } from '@/lib/graph/cognitiveGraphAdmission';
 import { buildRealityPassport, readRealityPassportNode, readRealityChainEdge, realityPassportCoverage } from '@/lib/graph/realityChainProjection';
 import { requireFounderPage } from '@/lib/system/access/server';
-import { AuthenticatedSfiMenu } from '@/components/sfi/AuthenticatedSfiMenu';
+
 import { readRootFieldAgentRegistry } from '@/lib/root/telemetry/agentRegistry';
 import { deriveCanonicalFieldMethodSignal, planCanonicalUnknownResolution, resolveCanonicalFieldMethodology } from '@/lib/mihm/rootCaseMethodology';
 import { proposeMethodLabFieldProtocol, resolveMethodLabFieldProjection } from '@/lib/method-lab/fieldProjection';
@@ -118,7 +118,7 @@ export default async function ScenePage({ params }:{ params:Promise<{scene:strin
 
     return (
       <main className="sfiOperatingShell sfiAuthenticatedViewport" data-root-primary-interface="CANONICAL_COGNITIVE_FIELD">
-        <AuthenticatedSfiMenu/>
+        
         <div className="sfiAuthenticatedViewportContent"><RootNeuralGraphView
           agents={agents}
           agentRegistryState={agentRegistryState}
