@@ -15,7 +15,7 @@ if(!layout.includes('<SfiNeuralNavigation />')) throw new Error('neural navigati
 if((layout.match(/<SfiNeuralNavigation \/>/g)||[]).length!==1) throw new Error('duplicate neural navigation mount');
 if(scene.includes('<AuthenticatedSfiMenu/>')) throw new Error('obsolete authenticated menu still mounted in ROOT');
 if(publicUi.includes('singleNeuralSurface')===false) throw new Error('global public menu must respect unified surfaces');
-if(!nav.includes('SFI_NEURAL_SURFACES')||!nav.includes('sfiNeuralLines')||!css.includes('sfiNeuralFlow'))
+if(!nav.includes('SFI_NEURAL_SURFACES')||!nav.includes('sfiNeuralOrbitLines')||!css.includes('sfiNeuralRingLink'))
   throw new Error('interconnected animated neural branches missing');
 if(!rootUi.includes("searchParams.get('reading')")) throw new Error('ROOT readings no longer addressable');
 if(!surfaceCss.includes('earthStage[data-earth-surface="RESTORED-WEBGL-1"]'))
