@@ -8,6 +8,12 @@ assert.match(proxy, /X-Frame-Options', permitsRootInternalFrame\(pathname\) \? '
 assert.match(proxy, /\/root\/reports/, 'Report surface must remain covered by ROOT internal frame policy');
 assert.match(proxy, /\/root\/agents/, 'Agent surfaces must remain covered by ROOT internal frame policy');
 
+// ROOT must read the actual World outcome schema. The evaluated_at timestamp
+// is not a created_at alias: a missing column once silently disconnected
+// the outcome pane while the rest of the sovereign state returned success.
+const externalRoot = read('src/app/api/external/v1/root/operate/route.ts');
+assert.ok(externalRoot.includes("safe('world_hypothesis_outcomes','id,hypothesis_id,classification,observed_outcome,evidence_ids,evaluated_at',80,'evaluated_at')"), 'ROOT World outcomes must select/order by evaluated_at, never nonexistent created_at');
+
 const scheduled = read('src/lib/reports/scheduledAgentReports.ts');
 for (const lane of ['world_daily', 'world_weekly', 'internal_daily', 'prospect_weekly', 'attractor_daily']) {
   assert.ok(scheduled.includes(`'${lane}'`), `scheduled lane missing: ${lane}`);
