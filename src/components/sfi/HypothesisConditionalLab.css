@@ -14,3 +14,33 @@
 .sfiHypLabInvariants{margin-top:18px;padding:14px;border:1px solid var(--hypLine);font-size:12px}.sfiHypLabInvariants summary{cursor:pointer;font-size:11px;font-weight:650;letter-spacing:.07em}.sfiHypLabInvariants ul{padding-left:17px;line-height:1.8}.sfiHypLabInvariants strong{display:block;margin-top:16px;font-size:10px;color:#a9c6bb}
 .sfiHypLab footer{border-top:1px solid var(--hypLine);margin-top:20px;padding-top:14px;font-size:10px}
 @media(max-width:700px){.sfiHypLabHeader,.sfiHypLabCore{display:block}.sfiHypLabCounts{margin-top:15px;justify-content:start}.sfiHypLabEvidence{margin-top:18px}.sfiHypLabTickRail{margin-left:26px;margin-right:26px}.sfiHypLabTick span{font-size:8px;letter-spacing:0}.sfiHypLab{margin:18px 0}}
+
+
+/* The possibility field extends the existing instrument; no separate app, runtime or data writer. */
+.sfiHypLabPossibilityOverview{border-top:1px solid var(--hypLine);padding:20px 0 4px}
+.sfiHypLabFieldGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:14px 0 4px}
+.sfiHypLabFieldGrid article{border:1px solid var(--hypLine);background:#ffffff06;padding:14px;min-width:0;border-radius:4px}
+.sfiHypLabFieldGrid small,.sfiHypLabScenarioResult small{font-size:10px;font-weight:700;letter-spacing:.1em;color:#a6c5b8;display:block}
+.sfiHypLabFieldGrid strong{font-size:13px;display:block;color:#e3eee7;margin:10px 0}
+.sfiHypLabFieldGrid p,.sfiHypLabExplorer p{font-size:12px;line-height:1.7;color:#aec4bb;margin:8px 0}
+.sfiHypLabTemporalCursor{padding:12px;margin:6px 0 14px;border:1px solid var(--hypLine);border-radius:4px;background:#ffffff07}
+.sfiHypLabTemporalCursor label{display:block;color:#d7e5dd;font-size:10px;font-weight:700;letter-spacing:.08em}
+.sfiHypLabTemporalCursor input{display:block;width:100%;margin:16px 0;accent-color:#a9d0bc}
+.sfiHypLabTemporalCursor p{font-size:12px;line-height:1.65;color:#d4e6db}
+.sfiHypLabTemporalCursor small{color:#9eb6ac;font-size:10px;line-height:1.6}
+.sfiHypLabExplorer{margin-top:22px;padding:20px;border:1px solid var(--hypLine);border-radius:5px;background:linear-gradient(110deg,#152326,#121b1e)}
+.sfiHypLabExplorerControls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:18px 0}
+.sfiHypLabExplorerControls label{min-width:0;font-size:10px;font-weight:650;letter-spacing:.06em;color:#c9ded5;display:flex;flex-direction:column;gap:8px}
+.sfiHypLabExplorerControls label:first-child{grid-column:span 2}
+.sfiHypLabExplorerControls input,.sfiHypLabExplorerControls select{width:100%;min-width:0;box-sizing:border-box;padding:11px;color:#e5eee8;background:#0d181b;border:1px solid #96aea155;border-radius:4px;font:inherit;font-size:12px;letter-spacing:normal}
+.sfiHypLabExplorerControls select option{color:#e5eee8;background:#0d181b}
+.sfiHypLabExplorerControls input:focus-visible,.sfiHypLabExplorerControls select:focus-visible,.sfiHypLabTemporalCursor input:focus-visible{outline:2px solid #c1dbc7;outline-offset:3px}
+.sfiHypLabScenarioResult{border-left:3px solid #a1bdb1;background:#ffffff08;padding:14px;margin-top:12px}
+.sfiHypLabScenarioResult[data-state=CONDITION_POSSIBLE_IN_SCENARIO]{border-left-color:#8ebc9f}
+.sfiHypLabScenarioResult[data-state=CRITERION_NOT_MET]{border-left-color:#c3a280}
+.sfiHypLabScenarioResult strong{display:block;margin:9px 0;font-weight:500;font-size:14px;line-height:1.5}
+.sfiHypLabScenarioGaps span{font-size:10px;color:#b7d2c2;letter-spacing:.07em}
+.sfiHypLabScenarioGaps ul{margin:8px 0;padding-left:18px;color:#d7e0d9;font-size:11px;line-height:1.7}
+.sfiHypLabExplorer .sfiHypLabMethodCaution{margin-top:18px;border-top:1px solid var(--hypLine);padding-top:12px;color:#e1cda5}
+@media(max-width:800px){.sfiHypLabFieldGrid{grid-template-columns:1fr}.sfiHypLabExplorerControls{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){.sfiHypLabExplorer{padding:14px}.sfiHypLabExplorerControls{grid-template-columns:1fr}.sfiHypLabExplorerControls label:first-child{grid-column:auto}}
