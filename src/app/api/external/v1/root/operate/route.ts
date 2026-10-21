@@ -111,7 +111,7 @@ async function readRootControlPlane(service: ReturnType<typeof createServiceSupa
     safe('action_proposals','id,proposal_type,title,description,status,expected_field_delta,proportionality_check,outcome,created_at',120),
     safe('sfi_cognitive_twin_decisions','id,decision_id,situation,rejected_condition,correct_state,general_rule,required_evidence,evidence_refs,status,decision_kind,created_at,updated_at',100),
     safe('world_hypotheses','id,phenomenon_key,statement,status,current_confidence,validation_starts_at,validation_ends_at,created_at',80),
-    safe('world_hypothesis_outcomes','id,hypothesis_id,classification,observed_outcome,evidence_ids,evaluated_at,created_at',80),
+    safe('world_hypothesis_outcomes','id,hypothesis_id,classification,observed_outcome,evidence_ids,evaluated_at',80,'evaluated_at'),
     safe('world_learning_events','id,hypothesis_id,outcome_id,retained_assumptions,rejected_assumptions,missing_variables,graph_adjustments,confidence_before,confidence_after,created_at',80),
     safe('sfi_cases','id,subject,scope,status,uncertainty,governance,created_at,updated_at,closed_at',80),
     safe('sfi_capability_health_checks','*',80,'checked_at'),
