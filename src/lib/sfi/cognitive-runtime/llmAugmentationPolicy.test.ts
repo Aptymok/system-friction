@@ -23,3 +23,8 @@ test('explicit augmentation is still permitted when governed and allowlisted',()
 test('the spine may not silently bypass an agent allowlist',()=>{
   assert.equal(agentLlmAugmentationAllowed('temporal_resolver',{...spine,llmAugmentationAgents:['evidence_hunter']}),false);
 });
+
+test('partial Cognitive Spine provenance does not unlock model execution by default',()=>{
+  assert.equal(agentLlmAugmentationAllowed('evidence_hunter',{ctSnapshotConsumed:true,aiGovernancePolicyId:'UNVERIFIED'}),false);
+  assert.equal(agentLlmAugmentationAllowed('evidence_hunter',{ctSnapshotConsumed:false,aiGovernancePolicyId:'SFI-AIMS-2026-08'}),false);
+});
