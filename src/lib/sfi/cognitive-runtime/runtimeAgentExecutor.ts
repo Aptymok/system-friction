@@ -1,4 +1,5 @@
 import type { KernelContext } from './kernelContext';
+import { agentLlmAugmentationAllowed } from './llmAugmentationPolicy';
 import { executeRegisteredAgent } from './agentExecutionMap';
 import { emitGovernedProposalsFromAgentInsight } from './governedProposalEmitter';
 import { recordAgentExecutionEvent } from '@/infrastructure/events/cognitiveRuntimeEventRepository';
@@ -28,15 +29,6 @@ export type RuntimeAgentExecutorDependencies = {
 
 function row(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
-}
-
-function llmAugmentationEnabled(agentId: string, context: KernelContext) {
-  const governedUniversalAi = context.metadata?.ctSnapshotConsumed === true
-    && context.metadata?.aiGovernancePolicyId === 'SFI-AIMS-2026-08';
-  if (context.metadata?.llmAugmentation !== true && !governedUniversalAi) return false;
-  const allowlist = context.metadata?.llmAugmentationAgents;
-  if (!Array.isArray(allowlist)) return true;
-  return allowlist.includes(agentId);
 }
 
 function preserveRuntimeModelCallIdentity(context: KernelContext, callId: string | null) {
@@ -158,7 +150,7 @@ export async function runCognitiveAgent(
     },
   };
 
-  const llmRequested = executed && llmAugmentationEnabled(agentId, updatedContext);
+  const llmRequested = executed && agentLlmAugmentationAllowed(agentId, updatedContext.metadata);
   if (llmRequested) {
     const reservation = reserveRuntimeModelCall(updatedContext, agentId, nowMs());
     if (!reservation.allowed) {
