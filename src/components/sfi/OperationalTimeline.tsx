@@ -144,8 +144,8 @@ export function OperationalTimeline({items,worldReadPlane}:{
             </div>)}
           </div>
         </div>}
-        <div className="sfiTemporalFieldFooter"><span>{visible.length} DATED RECORDS IN WINDOW</span>
-          <span>OBSERVATION ≠ EVIDENCE ≠ RETURN</span></div>
+        <div className="sfiTemporalFieldFooter" aria-label="Registros del periodo"><span>{visible.length} registros con fecha en esta selección</span>
+          <span>Observación ≠ evidencia ≠ resultado</span></div>
         <div className="sfiTemporalScrubber" role="group" aria-label="Temporal range and selection controls">
           <div>RECORDED WINDOW <strong>{visible.length} RECORDS</strong></div>
           <nav className="sfiTemporalRailTicks" aria-label="Select recorded event by time">{visible.slice(-26).map(e=><button key={e.id}
