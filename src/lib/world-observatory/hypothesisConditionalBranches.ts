@@ -57,11 +57,11 @@ export type HypothesisConditionalProjection = {
   outcomeClassification:string|null;
   outcomeEvidenceIds:string[];
   baselineEvidenceCount:number;
-  postCutoffEvidenceCount:number;
+  postCutoffEvidenceCount:number|null;
   distinctPostCutoffSourceFamilies:number|null;
   evidenceMinimum:number;
   sourceFamilyMinimum:number;
-  observationalGap:{evidence:number;sourceFamilies:number|null};
+  observationalGap:{evidence:number|null;sourceFamilies:number|null};
   contractHorizonHours:number;
   horizonBasis:string;
   invariantConditions:string[];
@@ -143,7 +143,7 @@ export async function readHypothesisConditionalBranches():Promise<HypothesisCond
         && Date.parse(date(source.fetched_at)!)>=Date.parse(startAt)
         && Date.parse(date(source.fetched_at)!)<=Date.parse(endAt)));
     const families=sourceRead.error?null:new Set(eligibleSources.map(s=>String(s.source_family)).filter(Boolean)).size;
-    const evidenceCount=eligibleSources.length;
+    const evidenceCount=sourceRead.error?null:eligibleSources.length;
     const closed=Date.parse(endAt)<=Date.parse(generatedAt)||!['OPEN','AWAITING_OUTCOME'].includes(String(h.status));
     const ticks:HypothesisConditionalTick[]=[
       {id:id+':cutoff',kind:'CUTOFF',at:cutoffAt,epistemicClass:'RECORDED',meaning:'Frozen hypothesis cutoff / T0; not outcome.'},
@@ -162,7 +162,7 @@ export async function readHypothesisConditionalBranches():Promise<HypothesisCond
       outcomeEvidenceIds:returnedEvidence,baselineEvidenceCount:originalEvidence.length,
       postCutoffEvidenceCount:evidenceCount,distinctPostCutoffSourceFamilies:families,
       evidenceMinimum:contract.minimumEvidenceCount,sourceFamilyMinimum:contract.minimumSourceFamilies,
-      observationalGap:{evidence:Math.max(0,contract.minimumEvidenceCount-evidenceCount),sourceFamilies:families===null?null:Math.max(0,contract.minimumSourceFamilies-families)},
+      observationalGap:{evidence:evidenceCount===null?null:Math.max(0,contract.minimumEvidenceCount-evidenceCount),sourceFamilies:families===null?null:Math.max(0,contract.minimumSourceFamilies-families)},
       contractHorizonHours:contract.horizonHours,horizonBasis:contract.horizonBasis,
       invariantConditions:[
         'Frozen T0: '+cutoffAt,
