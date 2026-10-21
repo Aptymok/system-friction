@@ -6,6 +6,8 @@ import { readMethodLabState } from '@/lib/method-lab/readModel';
 import { readHypothesisConditionalBranches } from '@/lib/world-observatory/hypothesisConditionalBranches';
 import { HypothesisConditionalLab } from '@/components/sfi/HypothesisConditionalLab';
 import { readMethodLabEvidenceOptions } from '@/lib/method-lab/readHubEvidence';
+import { readInstitutionalEvidenceInventory } from '@/lib/evidence/readInstitutionalEvidenceInventory';
+import { InstitutionalEvidenceInventory } from '@/components/sfi/InstitutionalEvidenceInventory';
 import { getCognitiveLabSession, listCognitiveLabSessions } from '@/lib/cognitive-lab/service';
 import { requireRootObserverPage } from '@/lib/root/server';
 import { AccessDeniedError, requireUserProfile } from '@/lib/system/access/server';
@@ -41,11 +43,12 @@ export default async function MethodLabPage() {
 
   await requireRootObserverPage('/method-lab');
 
-  const [state, sessions, evidence, conditional] = await Promise.all([
+  const [state, sessions, evidence, conditional, inventory] = await Promise.all([
     readMethodLabState(),
     listCognitiveLabSessions(18),
     readMethodLabEvidenceOptions(120),
     readHypothesisConditionalBranches().then(model=>({model,error:null})).catch(error=>({model:null,error:error instanceof Error?error.message:'CONDITIONAL_HYPOTHESIS_READ_FAILED'})),
+    readInstitutionalEvidenceInventory(12),
   ]);
 
   const sessionViews = await Promise.all((sessions as Row[]).map(async (session) => {
@@ -77,6 +80,7 @@ export default async function MethodLabPage() {
 
   return (
     <>
+      <InstitutionalEvidenceInventory inventory={inventory} context="METHOD_LAB" />
       <MethodLabNativeHub
         initialState={state}
         initialSessions={sessionViews}
