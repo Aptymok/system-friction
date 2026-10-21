@@ -1135,11 +1135,7 @@ export function RootNeuralGraphView({
                 <section className="rootPassportQuestion">
                   <h3>GOVERNED ACTIONS</h3>
                   <p>Actions open existing workspaces. Selecting an object does not authorize execution or change its canonical record.</p>
-                  <nav className="rootReferenceActionLinks" aria-label="Governed actions">
-                    <a href="/root/evidence-review">REVIEW EVIDENCE ↗</a>
-                    <a href="/method-lab">OPEN METHOD LAB ↗</a>
-                    <a href="/root?reading=REALITY_CHAIN">RECONSTRUCT REALITY CHAIN ↗</a>
-                  </nav>
+                  <p className="rootReferenceActionLinks">Abre la conexión correspondiente en el mapa neuronal único: Evidencia, Method Lab o Reality Chain. El pasaporte no concede permisos adicionales.</p>
                 </section>
               </>
             ) : <div className="rootPassportWaiting">{requestedNode?<><h2>THIS CASE IS NOT ADMITTED AS A CANONICAL GRAPH NODE</h2><p>This reference does not identify an admitted canonical node. No Reality Passport is fabricated.</p><p><a href={'/reality-chain?case='+encodeURIComponent(requestedNode)}>Inspect the authorized Case Platform record in Reality Chain ↗</a></p></>:<><h2>SELECT AN OBJECT IN THE GRAPH</h2><p>The Reality Passport will appear here. Structural orientation does not manufacture observations or relations.</p></>}<p>{graph.nodes.length} admitted nodes · {graph.edges.length} admitted edges.</p></div>}
