@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { requireRootObserverPage } from '@/lib/root/server';
 import { readDiscoveryControlPlane } from '@/lib/discovery/discoveryControlPlane';
 import { readInstitutionalDiscoveryMesh } from '@/lib/discovery/institutionalDiscoveryReadModel';
