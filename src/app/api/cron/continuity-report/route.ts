@@ -29,9 +29,11 @@ export async function GET(request: NextRequest) {
     try {
       const discoveryAutonomy = await runDiscoveryAutonomyCycle(new Date(), { restrictedObservationOnly: true });
       const persisted = Boolean(discoveryAutonomy.observation?.runId);
+      const observed = persisted && discoveryAutonomy.observation?.ok === true;
       return NextResponse.json({
-        ok: persisted,
-        status: persisted ? 'DISCOVERY_RESTRICTED_OBSERVATION_PERSISTED' : 'DISCOVERY_RESTRICTED_OBSERVATION_NOT_PERSISTED',
+        ok: observed,
+        status: !persisted ? 'DISCOVERY_RESTRICTED_OBSERVATION_NOT_PERSISTED' : observed ? 'DISCOVERY_RESTRICTED_SOURCE_OBSERVED' : 'DISCOVERY_RESTRICTED_SOURCE_UNAVAILABLE_PERSISTED',
+        observationAvailable: observed,
         generalEgress: 'RESTRICTED',
         discoveryAutonomy,
         otherLanesExecuted: false,
