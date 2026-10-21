@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createDailyContinuityReport } from '@/lib/continuity/runtime';
 import { runDiscoveryAutonomyCycle } from '@/lib/discovery/discoveryAutonomy';
+import { runDiscoveryOpportunityResearchCycle } from '@/lib/discovery/opportunityResearchCycle';
 import { runGovernedExecutionRouter } from '@/lib/execution/governedExecutionRouter';
 import { runScheduledAgentReportCycle } from '@/lib/reports/scheduledAgentReports';
 import { runCognitiveTwinDevelopmentalHeartbeat } from '@/core/cognitive-twin/reentry/runtime';
@@ -29,9 +30,11 @@ export async function GET(request: NextRequest) {
     try {
       const discoveryAutonomy = await runDiscoveryAutonomyCycle(new Date(), { restrictedObservationOnly: true });
       const persisted = Boolean(discoveryAutonomy.observation?.runId);
+      const sourceAvailable = persisted && discoveryAutonomy.observation?.ok === true;
       return NextResponse.json({
-        ok: persisted,
-        status: persisted ? 'DISCOVERY_RESTRICTED_OBSERVATION_PERSISTED' : 'DISCOVERY_RESTRICTED_OBSERVATION_NOT_PERSISTED',
+        ok: sourceAvailable,
+        status: !persisted ? 'DISCOVERY_RESTRICTED_OBSERVATION_NOT_PERSISTED' : sourceAvailable ? 'DISCOVERY_RESTRICTED_SOURCE_OBSERVED' : 'DISCOVERY_RESTRICTED_SOURCE_UNAVAILABLE_PERSISTED',
+        observationAvailable: sourceAvailable,
         generalEgress: 'RESTRICTED',
         discoveryAutonomy,
         otherLanesExecuted: false,
@@ -53,7 +56,7 @@ export async function GET(request: NextRequest) {
       ok:false, synced:0, failed:1, sources:[], integration:null,
       error:error instanceof Error ? error.message : String(error),
     }));
-    const [scheduledReports, discoveryAutonomy, cognitiveTwinHeartbeat, cognitiveTwinMutation, governedExecution] = await Promise.all([
+    const [scheduledReports, discoveryAutonomy, opportunityResearch, cognitiveTwinHeartbeat, cognitiveTwinMutation, governedExecution] = await Promise.all([
       runScheduledAgentReportCycle().catch((error) => ({ ok:false, generated:0, skipped:0, failed:1, results:[], error:error instanceof Error ? error.message : String(error) })),
       runDiscoveryAutonomyCycle().catch((error) => ({
         ok:false,
@@ -64,6 +67,7 @@ export async function GET(request: NextRequest) {
         error:error instanceof Error ? error.message : String(error),
         boundary:'DISCOVERY_AUTONOMY_FAILED: no candidate, publication, discovery, recognition, PULL or RETURN may be inferred.',
       })),
+      runDiscoveryOpportunityResearchCycle().catch(() => ({ contract: 'SFI-DISCOVERY-OPPORTUNITY-CYCLE-1.0', state: 'FAILED', reason: 'OPPORTUNITY_RESEARCH_EXCEPTION', writesPerformed: false })),
       runCognitiveTwinDevelopmentalHeartbeat().catch((error) => ({ ok:false, skipped:false, error:error instanceof Error ? error.message : String(error) })),
       considerCognitiveTwinMutationProposal().catch((error) => ({ considered:false, proposed:false, error:error instanceof Error ? error.message : String(error) })),
       runGovernedExecutionRouter({ limit: 10 }).catch((error) => ({ ok:false, processed:0, results:[], error:error instanceof Error ? error.message : String(error) })),
@@ -75,10 +79,11 @@ export async function GET(request: NextRequest) {
       scheduledReports,
       discoveryObservation: discoveryAutonomy.observation,
       discoveryAutonomy,
+      opportunityResearch,
       cognitiveTwinHeartbeat,
       cognitiveTwinMutation,
       governedExecution,
-      schedulingRule:'No additional Vercel cron invocation. Uses the existing continuity-report cron; one bounded Discovery self-observation is attempted per cycle, candidates use the canonical governed proposal lifecycle, material work without a real executor remains blocked, SFI organ sync occurs before CT heartbeat, and queued governed work is retried/rerouted here.',
+      schedulingRule:'No additional Vercel cron invocation. Uses the existing continuity-report cron; one bounded Discovery self-observation is attempted per cycle; an explicitly enabled, weekly, no-LLM opportunity research check reuses Prospect Radar ONLY under unrestricted general egress; candidates use the canonical governed proposal lifecycle, material work without a real executor remains blocked, SFI organ sync occurs before CT heartbeat, and queued governed work is retried/rerouted here.',
     });
   } catch (error) {
     return NextResponse.json({ ok:false, error:'continuity_report_failed', details:error instanceof Error ? error.message : String(error) }, { status:500 });
