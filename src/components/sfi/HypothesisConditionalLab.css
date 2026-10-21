@@ -18,7 +18,7 @@
 
 /* The possibility field extends the existing instrument; no separate app, runtime or data writer. */
 .sfiHypLabPossibilityOverview{border-top:1px solid var(--hypLine);padding:20px 0 4px}
-.sfiHypLabFieldGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:14px 0 4px}
+.sfiHypLabFieldGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0 4px}
 .sfiHypLabFieldGrid article{border:1px solid var(--hypLine);background:#ffffff06;padding:14px;min-width:0;border-radius:4px}
 .sfiHypLabFieldGrid small,.sfiHypLabScenarioResult small{font-size:10px;font-weight:700;letter-spacing:.1em;color:#a6c5b8;display:block}
 .sfiHypLabFieldGrid strong{font-size:13px;display:block;color:#e3eee7;margin:10px 0}
