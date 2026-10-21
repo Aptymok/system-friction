@@ -1,3 +1,4 @@
+import { agentLlmAugmentationAllowed } from '@/lib/sfi/cognitive-runtime/llmAugmentationPolicy';
 import 'server-only';
 
 import {
@@ -271,9 +272,7 @@ function projectContextForAgent(agentId: string, context: KernelContext, twin: S
 }
 
 export async function augmentAgentWithLlm(agentId: string, context: KernelContext): Promise<KernelContext> {
-  const governedUniversalAi = context.metadata?.ctSnapshotConsumed === true
-    && context.metadata?.aiGovernancePolicyId === 'SFI-AIMS-2026-08';
-  if (context.metadata?.llmAugmentation !== true && !governedUniversalAi) return context;
+  if (!agentLlmAugmentationAllowed(agentId, context.metadata)) return context;
   if (agentId === 'meta_orchestrator') return context;
 
   const contract = SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.find((item) => item.id === agentId);
