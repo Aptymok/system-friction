@@ -133,6 +133,17 @@ export async function runRestrictedEvidenceReports(now=new Date()) {
       output_envelope:content,evidence_refs:content.evidence,limitations:d.warnings,
       started_at:now.toISOString(),finished_at:new Date().toISOString(),
     }).select('id').single();
+    if (insert.error?.code === '23505') {
+      // Another cron invocation won the same-period race. Read the real row
+      // protected by the database partial unique index; never declare a
+      // failed write successful without a persisted existing receipt.
+      const existingAfterConflict = await db.from('sfi_cognitive_twin_runs')
+        .select('id').eq('task_id',taskId).in('role',['report_agent','report_scheduler']).maybeSingle();
+      if (!existingAfterConflict.error && existingAfterConflict.data?.id) {
+        results.push({lane:d.lane,state:'SKIPPED_EXISTING'});
+        continue;
+      }
+    }
     results.push(insert.error?{lane:d.lane,state:'FAILED',error:'REPORT_PERSISTENCE_FAILED'}:{lane:d.lane,state:'GENERATED'});
   }
   return {ok:!results.some(x=>x.state==='FAILED'),contract:SFI_RESTRICTED_REPORT_CONTRACT,
