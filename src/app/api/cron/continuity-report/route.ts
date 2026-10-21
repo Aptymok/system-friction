@@ -3,6 +3,7 @@ import { createDailyContinuityReport } from '@/lib/continuity/runtime';
 import { runDiscoveryAutonomyCycle } from '@/lib/discovery/discoveryAutonomy';
 import { runGovernedExecutionRouter } from '@/lib/execution/governedExecutionRouter';
 import { runScheduledAgentReportCycle } from '@/lib/reports/scheduledAgentReports';
+import { runRestrictedEvidenceReports } from '@/lib/reports/restrictedEvidenceReports';
 import { runCognitiveTwinDevelopmentalHeartbeat } from '@/core/cognitive-twin/reentry/runtime';
 import { considerCognitiveTwinMutationProposal } from '@/core/cognitive-twin/reentry/experiments';
 import { syncSfiInstitutionalStateToCognitiveTwin } from '@/core/cognitive-twin/institutionalIntegration';
@@ -24,8 +25,10 @@ export async function GET(request: NextRequest) {
   }
   const egressGuard = scheduledEgressGuardResponse();
   if (egressGuard) {
-    // The general circuit remains restricted; only one zero-key Discovery
-    // observation is allowed within this existing cron. No other lane is run.
+    // Independent opt-in, bounded local-evidence reports. General egress stays restricted.
+    const restrictedReports = process.env.SFI_RESTRICTED_REPORTS_MODE === 'enabled'
+      ? await runRestrictedEvidenceReports().catch(() => ({ok:false,failed:1,generated:0,error:'RESTRICTED_REPORT_EXECUTION_FAILED'}))
+      : null;
     try {
       const discoveryAutonomy = await runDiscoveryAutonomyCycle(new Date(), { restrictedObservationOnly: true });
       const persisted = Boolean(discoveryAutonomy.observation?.runId);
@@ -36,14 +39,16 @@ export async function GET(request: NextRequest) {
         observationAvailable: observed,
         generalEgress: 'RESTRICTED',
         discoveryAutonomy,
+        restrictedReports,
         otherLanesExecuted: false,
-        boundary: 'Only one zero-key, non-LLM, non-paid-provider retrieval and its bounded Discovery persistence; the general scheduled egress restriction remains active.',
+        boundary: 'General execution stays restricted. Optional reports only read existing evidence, do not call models or perform external actions; Discovery uses the original restricted retrieval.',
       }, { status: persisted ? 200 : 503, headers: { 'Cache-Control': 'no-store' } });
     } catch (error) {
       return NextResponse.json({
         ok: false,
         status: 'DISCOVERY_RESTRICTED_OBSERVATION_FAILED',
         generalEgress: 'RESTRICTED',
+        restrictedReports,
         otherLanesExecuted: false,
         error: error instanceof Error ? error.message : 'unknown_error',
       }, { status: 503, headers: { 'Cache-Control': 'no-store' } });
