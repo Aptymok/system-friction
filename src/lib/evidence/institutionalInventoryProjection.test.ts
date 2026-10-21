@@ -46,3 +46,10 @@ test('missing metadata remains missing rather than fabricating an evidence id or
   assert.equal(item.recordedAt, null);
   assert.equal(item.admission, 'EVENT_NOT_ADMITTED');
 });
+
+test('a captured record with missing hash does not fabricate cryptographic integrity', () => {
+  const item = projectRootEvidence({ id: 'root-without-hash', title: 'Source without digest' });
+  assert.equal(item.contentHash, null);
+  assert.equal(item.recordedAt, null);
+  assert.equal(item.admission, 'ROOT_CAPTURED_UNVERIFIED_CLAIMS');
+});
