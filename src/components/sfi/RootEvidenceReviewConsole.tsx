@@ -1,10 +1,8 @@
 'use client';
 
-import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuthState } from '@/components/auth/AuthProvider';
 import { RootEvidenceCandidateLane } from '@/components/sfi/RootEvidenceCandidateLane';
-import { InstitutionalSurfaceRail } from '@/components/sfi/InstitutionalSurfaceRail';
 import './RootEvidenceReviewConsole.css';
 
 type Proposal = { id: string; title?: string; status?: string; proposalType?: string };
@@ -44,14 +42,13 @@ export function RootEvidenceReviewConsole() {
     .map((proposal) => ({ id: proposal.id, title: proposal.title || proposal.proposalType || 'Proposal waiting for evidence' })), [proposals]);
 
   return <main className="rootEvidenceShell">
-    <InstitutionalSurfaceRail surface="EVIDENCE" state={error?'DEGRADED':loading?'READING':'OBSERVED'} detail={String(waiting.length)+' WAITING EVIDENCE'}/>
     <header className="rootEvidenceHeader">
       <div>
         <small>ROOT · EVIDENCE GOVERNANCE</small>
         <h1>Evidence is admitted, not assumed.</h1>
         <p>Search and agents may propose sources. No source becomes eligible evidence until ROOT admits it.</p>
       </div>
-      <div className="rootEvidenceActions"><button type="button" disabled={loading} onClick={()=>void pull(true)}>{loading?'READING…':'REFRESH'}</button><Link href="/root">← ROOT</Link></div>
+      <div className="rootEvidenceActions"><button type="button" disabled={loading} onClick={()=>void pull(true)}>{loading?'READING…':'REFRESH'}</button></div>
     </header>
     <section className="rootEvidenceBoundary"><b>SOURCE ≠ EVIDENCE</b><span>CANDIDATE ≠ ADMITTED · SEARCH ≠ TRUTH · ADMISSION ≠ AUTHORITY</span></section>
     <div className="rootEvidenceBody">
