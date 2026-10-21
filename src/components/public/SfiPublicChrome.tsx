@@ -115,7 +115,8 @@ export function SfiPublicHeader({global=false,active}:{active?:string;global?:bo
     .some(route=>pathname===route||pathname.startsWith(route+'/'));
   const reserveSpace=pathname!=='/';
 
-  if(global&&(privateShell||identityGate)) return null;
+  const singleNeuralSurface=pathname==='/root'||pathname.startsWith('/root/')||pathname==='/method-lab'||pathname==='/timeline'||pathname==='/reality-chain'||pathname==='/observatory';
+  if(global&&(privateShell||identityGate||singleNeuralSurface)) return null;
 
   return <>
     <header className={global?'sfiPublicTopbar sfiGlobalHeader':'sfiPublicTopbar'} data-sfi-public-chrome="SFI-NYC-CHROME-4.0">
