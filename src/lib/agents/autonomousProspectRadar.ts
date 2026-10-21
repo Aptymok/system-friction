@@ -15,6 +15,8 @@ export type ProspectRadarInput = {
   allowProvisionalOffers?: boolean;
   /** Allows existing no-key radar to run without any model provider. */
   allowModelSynthesis?: boolean;
+  /** Scheduled source-only research must never invent corporate identity from headlines. */
+  strictEvidenceOnly?: boolean;
 };
 
 export type ProspectRadarReport = {
