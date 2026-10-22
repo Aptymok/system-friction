@@ -53,7 +53,15 @@ export async function POST(request: NextRequest) {
     );
     const admittedEvidenceRefs=admittedEvidence.map(object=>object.canonicalRef.id);
     const caseIsActive=['OPEN','OBSERVING','ANALYZING'].includes(caseEnvelope.caseRecord.status);
-    const hasDeclaredAttractor=caseEnvelope.caseRecord.attractorRefs.length>0;
+    // The caller's narrative cannot silently rename an elected attractor.
+    // Only an admitted Case ATTRACTOR object with the same explicit declaration
+    // can justify a governed draft. Mere references or metric scores do not.
+    const hasDeclaredAttractor=caseEnvelope.objects.some(object=>{
+      if(object.kind!=='ATTRACTOR' || object.epistemicRole!=='INFERENCE') return false;
+      const declared=object.payload.declaredAttractor ??
+        object.payload.chosenAttractor ?? object.payload.attractorStatement;
+      return typeof declared==='string' && declared.trim()===chosenAttractor;
+    });
     const hypothesis = deriveHypothesisIntakeFromNarrative(narrative);
     const state = await buildOperationalCycle({
       case_id:caseId,scope:'project',
