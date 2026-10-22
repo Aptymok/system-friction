@@ -5,6 +5,8 @@ import { deriveAdaptiveTrajectoryPlan, evaluateRegimeWatch } from '@/lib/scorefr
 import { deriveHypothesisIntakeFromNarrative } from '@/lib/sfi/caseIntakeResolver';
 import { createActionProposal, sha256 } from '@/lib/operational/common';
 import { auditRootAction, requireRootActor } from '@/lib/root/server';
+import { readUniversalCycleHistory } from '@/lib/sfi/universalSignalCycle';
+import { hasVerifiedLatestUniversalReturnCalibration } from '@/lib/sfi/universalCalibrationState';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,10 +43,41 @@ export async function POST(request: NextRequest) {
       analysis_modes:['MIHM','PSI','WORLDSPECT','SCOREFRICTION','AMV'],
       run_contrast:true,
     });
+    const priorCycleId=typeof body.priorUniversalCycleId==='string' ? body.priorUniversalCycleId.trim() : '';
+    let verifiedPreviousReturn:null|{
+      classification:'CONFIRMED'|'PARTIAL'|'CONTRADICTED';
+      eventId:string;evidenceRefs:string[];
+    }=null;
+    if (priorCycleId) {
+      const history=await readUniversalCycleHistory(priorCycleId);
+      if (!history.ok) return NextResponse.json({ok:false,error:'PRIOR_CYCLE_READ_FAILED',
+        details:history.error??null},{status:503});
+      const opening=history.opened?.payload && typeof history.opened.payload==='object'
+        ? history.opened.payload as Record<string,unknown>:{};
+      if (opening.objectKey!==caseId || opening.tenantId!=='sfi') {
+        return NextResponse.json({ok:false,error:'PRIOR_CYCLE_CASE_OR_TENANT_MISMATCH'},{status:409});
+      }
+      if (hasVerifiedLatestUniversalReturnCalibration(history.events)) {
+        const latest=history.returnContrasts?.at(-1);
+        const payload=latest?.payload && typeof latest.payload==='object'
+          ? latest.payload as Record<string,unknown>:{};
+        const classification=String(payload.classification??'');
+        const evidenceRefs=Array.isArray(payload.returnEvidenceRefs)
+          ? payload.returnEvidenceRefs.filter((id):id is string=>typeof id==='string'&&Boolean(id.trim())) : [];
+        if (['CONFIRMED','PARTIAL','CONTRADICTED'].includes(classification) &&
+          typeof latest?.event_id==='string' && evidenceRefs.length) {
+          verifiedPreviousReturn={
+            classification:classification as 'CONFIRMED'|'PARTIAL'|'CONTRADICTED',
+            eventId:latest.event_id,evidenceRefs,
+          };
+        }
+      }
+    }
     const plan = deriveAdaptiveTrajectoryPlan({
       state,electedAttractor:chosenAttractor,
       hypothesisPrimary:hypothesis.proposedHypothesis,
       hypothesisRival:hypothesis.proposedRival,
+      verifiedPreviousReturn,
     });
     const sourceSnapshot = state.world_vector && typeof state.world_vector === 'object'
       ? state.world_vector as Record<string,unknown> : {};
@@ -56,6 +89,7 @@ export async function POST(request: NextRequest) {
       primary:hypothesis.proposedHypothesis,rival:hypothesis.proposedRival,
       observation:plan.observation.watch,
       route:plan.routes.find(route=>route.id===plan.selectedRouteId),
+      previouslyVerifiedReturn:verifiedPreviousReturn?.eventId??null,
       weakSignals:plan.observation.weakSignalCount,
       caseEvidenceRefs:state.evidence.map(value=>{
         const entry=value && typeof value==='object' ? value as Record<string,unknown> : {};
@@ -102,6 +136,7 @@ export async function POST(request: NextRequest) {
         testContract:hypothesis.proposedTestContract,
         trigger:plan.observation.watch,evidenceBefore:state.evidence,
         worldSnapshotRef:snapshotRef,
+        priorVerifiedReturn:verifiedPreviousReturn,
         authorization:'GOVERNED_DRAFT_ONLY',externalExecutionAllowed:false,
         requiresIndependentWorldReturn:true,
       },
