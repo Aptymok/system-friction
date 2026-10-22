@@ -1,4 +1,5 @@
 import { loginAction } from '@/lib/auth/actions';
+import { AlternativeSignIn } from '@/components/sfi/AlternativeSignIn';
 
 function readableAuthError(error?: string) {
   if (!error) return '';
@@ -62,6 +63,7 @@ export function LoginSurface({
           <a href="/observatory">OBSERVATORY is public and does not require sign-in.</a>
         </div>
       </form>
+      <AlternativeSignIn />
     </main>
   );
 }

@@ -9,6 +9,6 @@ export function createBrowserSupabaseClient() {
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   const normalizedUrl = tryNormalizeSupabaseUrl(url)
   if (!normalizedUrl || !key) return null
-  browserClient ??= createBrowserClient(normalizedUrl, key)
+  browserClient ??= createBrowserClient(normalizedUrl, key, { auth: { experimental: { passkey: true } } })
   return browserClient
 }
