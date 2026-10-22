@@ -4,7 +4,15 @@ import { createHash } from 'node:crypto';
 import { assessMethodLabResearchAssurance } from './researchAssurance';
 import type { MethodLabResearchObject } from './researchObjects';
 
-const hash = (s: string) => createHash('sha256').update(s).digest('hex');
+function canonical(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonical);
+  if (value === null || typeof value !== 'object') return value;
+  return Object.keys(value as Record<string, unknown>).sort().reduce<Record<string, unknown>>((out, key) => {
+    out[key] = canonical((value as Record<string, unknown>)[key]);
+    return out;
+  }, {});
+}
+const hash = (v: unknown) => createHash('sha256').update(JSON.stringify(canonical(v))).digest('hex');
 function object(overrides: Partial<MethodLabResearchObject> = {}): MethodLabResearchObject {
   return {
     objectId: 'QA-PUBLIC-DERIVATIVE', objectClass: 'AUDIT', title: 'Test',
@@ -20,11 +28,19 @@ function object(overrides: Partial<MethodLabResearchObject> = {}): MethodLabRese
   };
 }
 function pkg(o: MethodLabResearchObject) {
-  return { objectId: o.objectId, version: o.version, packageHash: hash('package'),
-    files: ['README.md','FINDINGS.md','PUBLIC_TRACE.md','METRICS.json','PROVENANCE.md','THREATS_TO_VALIDITY.md','manifest.json']
-      .map(path=>({path,sha256:hash(path)})),
-    manifest: {rawDataIncluded:false,promotionRequired:true},
+  const manifest = {
+    schema: 'SFI-METHOD-LAB-RESEARCH-PACKAGE-1.0',
+    generatedAt: o.updatedAt,
+    sourceOfTruth: 'METHOD_LAB_EVENT_LEDGER',
+    promotionRequired: true,
+    rawDataIncluded: false,
+    object: { objectId: o.objectId, version: o.version },
   };
+  const files = ['README.md','FINDINGS.md','PUBLIC_TRACE.md','METRICS.json','PROVENANCE.md','THREATS_TO_VALIDITY.md','manifest.json']
+    .map(path => ({ path, content: path === 'manifest.json' ? JSON.stringify(manifest, null, 2) : 'Test public derivative: '+path }))
+    .map(file => ({ ...file, sha256: hash(file.content) }));
+  return { objectId: o.objectId, version: o.version,
+    packageHash: hash(files.map(f => ({ path: f.path, sha256: f.sha256 }))), files, manifest };
 }
 
 test('eligible public derivative is reviewable but NEVER certified or published', () => {
@@ -62,6 +78,37 @@ test('invalid package fingerprints or duplicate entries are rejected', () => {
   assert.ok(bad.failed.includes('P1_PACKAGE_INTEGRITY'));
   const mismatch=assessMethodLabResearchAssurance(o,{...pkg(o),packageHash:'fake'});
   assert.ok(mismatch.failed.includes('P1_PACKAGE_INTEGRITY'));
+});
+test('tampering with file bytes is rejected even when the original hash has a valid shape', () => {
+  const o = object(), p = pkg(o);
+  p.files[0].content = 'Unexpected replacement';
+  const r = assessMethodLabResearchAssurance(o, p);
+  assert.ok(r.failed.includes('P1_PACKAGE_INTEGRITY'));
+  assert.equal(r.eligibleForGovernedReview, false);
+});
+test('tampering with an SHA and recomputing aggregate still fails independent file verification', () => {
+  const o = object(), p = pkg(o);
+  p.files[0].sha256 = hash('unrelated');
+  p.packageHash = hash(p.files.map(f => ({ path: f.path, sha256: f.sha256 })));
+  const r = assessMethodLabResearchAssurance(o, p);
+  assert.ok(r.failed.includes('P1_PACKAGE_INTEGRITY'));
+});
+test('a self-consistent package for another object is rejected by manifest binding', () => {
+  const o = object(), p = pkg(o);
+  p.manifest.object.objectId = 'UNRELATED-OBJECT';
+  const f = p.files.find(f => f.path === 'manifest.json')!;
+  f.content = JSON.stringify(p.manifest, null, 2);
+  f.sha256 = hash(f.content);
+  p.packageHash = hash(p.files.map(v => ({ path: v.path, sha256: v.sha256 })));
+  const r = assessMethodLabResearchAssurance(o, p);
+  assert.equal(r.p1StructuralStatus, 'FAIL');
+  assert.ok(r.failed.includes('P1_MANIFEST_BINDING'));
+});
+test('mismatch between manifest representation and content is rejected', () => {
+  const o = object(), p = pkg(o);
+  p.manifest.generatedAt = '2000-01-01T00:00:00Z';
+  const r = assessMethodLabResearchAssurance(o, p);
+  assert.ok(r.failed.includes('P1_MANIFEST_BINDING'));
 });
 test('review does not promote a merely published object or invent certification', () => {
   const o=object({publicationState:'HUB_PUBLISHED',source:'EXTERNAL_AGENT'});
