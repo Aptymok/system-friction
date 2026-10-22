@@ -55,7 +55,7 @@ assert.ok(control.includes("before.blocker === 'PRIMARY_OUTBOX_RECONCILIATION_RE
 assert.ok(control.includes("before.journal.pending === 0"), 'CONTINUITY outbox replay may not compete with unresolved journal mutations');
 assert.ok(control.includes("'CONTINUITY_OUTBOX_DRAIN_PROGRESS'"), 'use distinct, non-certifying continuity outbox receipt');
 assert.ok(workflow.includes("old_mode in ('CONTINUITY','RECOVERY')"), 'workflow must handle CONTINUITY before replay, without a new scheduler');
-assert.ok(workflow.includes("continuity outbox drain cannot promote or certify continuity mode"), 'workflow may not claim a certificate or primary promotion from drain alone');
+assert.ok(workflow.includes("outbox drain cannot promote or certify continuity mode"), 'workflow may not claim a certificate or primary promotion from drain alone');
 
 assert.ok(control.includes("if (before.dataPlane.mode === 'PRIMARY')"), 'the existing hourly OIDC scheduler must maintain primary-to-Neon mirror when mode is PRIMARY');
 assert.ok(control.includes('flushPrimaryMirror({ maxTransactions: limit })'), 'must reuse canonical bounded primary outbox drain, not a separate writer or cron');
