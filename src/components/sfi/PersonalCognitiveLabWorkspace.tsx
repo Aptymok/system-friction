@@ -74,7 +74,7 @@ async function request(body?: Row) {
   return payload;
 }
 
-export function PersonalCognitiveLabWorkspace() {
+export function PersonalCognitiveLabWorkspace({intakeOnly=false}:{intakeOnly?:boolean}={}) {
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [selectedCase, setSelectedCase] = useState('');
   const [busy, setBusy] = useState(false);
@@ -118,7 +118,7 @@ export function PersonalCognitiveLabWorkspace() {
     }
   }, [selectedCase]);
 
-  useEffect(() => { void refresh(); }, [refresh]);
+  useEffect(() => { if (!intakeOnly) void refresh(); }, [refresh,intakeOnly]);
 
   const selectedEvidenceIds = useMemo(() => {
     if (!workspace || !selectedCase) return [];
@@ -141,18 +141,8 @@ export function PersonalCognitiveLabWorkspace() {
     }
   }
 
-  return (
-    <main style={{ minHeight: '100vh', padding: '32px clamp(18px, 4vw, 56px) 64px', color: '#f4f4f4', background: '#050608' }}>
-      <div style={{ maxWidth: 1180, margin: '0 auto', display: 'grid', gap: 18 }}>
-        <header style={{ padding: '18px 0 8px' }}>
-          <div style={{ fontSize: 12, letterSpacing: '.18em', opacity: .58 }}>SFI · PERSONAL WORKSPACE</div>
-          <h1 style={{ margin: '8px 0', fontSize: 'clamp(30px, 5vw, 58px)', fontWeight: 500 }}>Lab + Cognitive</h1>
-          <p style={{ maxWidth: 820, margin: 0, opacity: .72, lineHeight: 1.55 }}>
-            Your cases, evidence, simulations and cognitive runs remain owner-scoped. Cognitive automations may be auto-selected for the task, but they cannot acquire institutional, publication, spending or ROOT authority.
-          </p>
-        </header>
-
-        <section style={{...panel,display:'grid',gap:12}} aria-label="Orientación y conocimiento para SFI" data-sfi-workspace="QUALITATIVE_ATTRACTOR_INTAKE">
+  const intakeForm = (
+<section style={{...panel,display:'grid',gap:12}} aria-label="Orientación y conocimiento para SFI" data-sfi-workspace="QUALITATIVE_ATTRACTOR_INTAKE">
           <div style={{fontSize:12,letterSpacing:'.16em',opacity:.65}}>SFI / CASES / ANTES DEL PROYECTO</div>
           <h2 style={{fontSize:24,fontWeight:500,margin:0}}>Cuéntanos qué quieres lograr</h2>
           <p style={{margin:0,opacity:.75,maxWidth:820}}>
@@ -202,6 +192,21 @@ export function PersonalCognitiveLabWorkspace() {
             <small style={{opacity:.7}}>BORRADOR NO PREREGISTRADO. SFI necesita verificar fuentes y calibrar la ventana antes de sellar el contraste. No se crea ni modifica un Case empresarial.</small>
           </div>:null}
         </section>
+  );
+  if (intakeOnly) return <div style={{padding:'16px clamp(18px,4vw,56px)',maxWidth:1180,margin:'0 auto'}}>{intakeForm}</div>;
+
+  return (
+    <main style={{ minHeight: '100vh', padding: '32px clamp(18px, 4vw, 56px) 64px', color: '#f4f4f4', background: '#050608' }}>
+      <div style={{ maxWidth: 1180, margin: '0 auto', display: 'grid', gap: 18 }}>
+        <header style={{ padding: '18px 0 8px' }}>
+          <div style={{ fontSize: 12, letterSpacing: '.18em', opacity: .58 }}>SFI · PERSONAL WORKSPACE</div>
+          <h1 style={{ margin: '8px 0', fontSize: 'clamp(30px, 5vw, 58px)', fontWeight: 500 }}>Lab + Cognitive</h1>
+          <p style={{ maxWidth: 820, margin: 0, opacity: .72, lineHeight: 1.55 }}>
+            Your cases, evidence, simulations and cognitive runs remain owner-scoped. Cognitive automations may be auto-selected for the task, but they cannot acquire institutional, publication, spending or ROOT authority.
+          </p>
+        </header>
+
+        {intakeForm}
 
         <section style={{ ...panel, display: 'grid', gap: 12 }}>
           <strong>Case</strong>
