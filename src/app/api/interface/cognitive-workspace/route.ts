@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { deriveHypothesisIntakeFromNarrative } from '@/lib/sfi/caseIntakeResolver';
 import { AccessDeniedError, requireUserProfile } from '@/lib/system/access/server';
 import {
   createPersonalCase,
@@ -60,6 +61,12 @@ export async function POST(req: Request) {
     const context = await requireUserProfile();
     const body = await req.json().catch(() => ({})) as Row;
     const operation = String(body.operation || 'state');
+
+    if (operation === 'hypothesis_intake_preview') {
+      const plan = deriveHypothesisIntakeFromNarrative(record(body.narrative));
+      return NextResponse.json({ ok:true, operation, plan,
+        boundary:'Owner-authenticated preflight only. No Case write, preregistration, RETURN, evidence admission or project execution.' });
+    }
 
     if (operation === 'state') {
       const workspace = await readPersonalCognitiveWorkspace(context.user.id);
