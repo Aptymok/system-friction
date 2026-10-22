@@ -129,6 +129,8 @@ assert.ok(world.includes("latestPartialCycleReceipt: partialReceipt.data ?? null
 for(const invariant of [
   "latestHypothesisResumeReceipt: hypothesisResumeReceipt.data ?? null",
   "const lastAttemptAt=Math.max(",
+  "const priorRetryFailed=",
+  "(priorRetryFailed ? 4 : 1)",
   "completedAt,partialAt,resumedAt",
   "lastAttemptReceiptAt:new Date(lastAttemptAt).toISOString()",
   "const latestWasPartial=",
