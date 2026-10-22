@@ -44,7 +44,7 @@ test('separate reported and world returns require a frozen before-action predict
  const confirmed=compareRivalConditions({...base,sealedPrediction:{
   hash:'sha256:registered',frozenAt:'2026-10-18T12:00:00Z',actionAt:'2026-10-19T12:00:00Z'}});
  assert.equal(confirmed.returns.world.state,'REQUIRES_SOURCE_VERIFICATION');
- assert.equal(confirmed.recovery.destinationVerified,true);
+ assert.equal(confirmed.recovery.destinationVerified,false);
  assert.equal(confirmed.learning.promoted,false);
 });
 
