@@ -153,6 +153,24 @@ assert.ok(world.includes("const ok = stagesComplete && receipt.ok === true"), 'w
 
 assert.ok(world.includes('runJrFieldCycle'), 'world_mcp_must_continue_into_jr');
 assert.ok(cron.includes('runJrFieldCycle'), 'world_cron_must_continue_into_jr');
+for(const requirement of [
+  "partialAt>completedAt && sourcesLive && !resumeAlreadyCompleted",
+  "eventName:resumed?'external.world.hypothesis_resume.completed':'external.world.hypothesis_resume.partial'",
+  "status:resumed&&receipt.ok?'HYPOTHESIS_STAGE_RESUMED':'HYPOTHESIS_STAGE_STILL_PARTIAL'",
+  "const priorRetryFailed=",
+  "(priorRetryFailed?4:1)",
+  "status:'COOLDOWN_SKIPPED'",
+  "status:'PROVIDERS_UNAVAILABLE'",
+  "const hypothesis=await runWorldHypothesisCycle()",
+  "sourcePartialEventId:partial.data?.event_id",
+  "No new collection, JR, instrument sweep",
+]) assert.ok(cron.includes(requirement),`world_cron_recovery_contract_missing:${requirement}`);
+assert.ok(cron.indexOf("if(resumeOnly){")<cron.indexOf('const worldSignalObserver = await executeWorldSignalObserverAgent()'),
+  'world_cron_must_resume_from_persisted_sources_before_any_recollection');
+assert.ok(world.includes("'external.world.hypothesis_resume.partial'") &&
+  cron.includes("'external.world.hypothesis_resume.partial'"),
+  'user_bound_world_and_scheduled_cron_must_share_persisted_retry_receipts');
+
 assert.ok(root.includes('projectDistributedPhenomenaForRoot'), 'root_must_project_distributed_phenomena');
 assert.ok(root.includes('readFieldEpochHistories'), 'root_must_hydrate_persisted_field_epochs');
 assert.ok(root.includes('fieldHistory: fieldHistorySummaries.get(node.nodeId)'), 'root_must_bind_epoch_history_to_field_node');
