@@ -126,6 +126,28 @@ assert.ok(jr.includes("status: complete ? 'COMPLETE' as const : 'DEGRADED' as co
 
 assert.ok(world.includes("eventName: stagesComplete ? 'external.world.daily_cycle.completed' : 'external.world.daily_cycle.partial'"), 'world_must_not_mint_complete_cycle_receipt_when_downstream_failed');
 assert.ok(world.includes("latestPartialCycleReceipt: partialReceipt.data ?? null"), 'world_state_must_report_failed_cycle_receipts_without_relabeling');
+for(const invariant of [
+  "latestHypothesisResumeReceipt: hypothesisResumeReceipt.data ?? null",
+  "const lastAttemptAt=Math.max(",
+  "const priorRetryFailed=",
+  "(priorRetryFailed ? 4 : 1)",
+  "completedAt,partialAt,resumedAt",
+  "lastAttemptReceiptAt:new Date(lastAttemptAt).toISOString()",
+  "const latestWasPartial=",
+  "const alreadyResumed=",
+  "if(latestWasPartial){",
+  "getLlmProviderStatus()",
+  "status:'PROVIDERS_UNAVAILABLE'",
+  "const hypothesis=await runWorldHypothesisCycle()",
+  "eventName:resumed?'external.world.hypothesis_resume.completed':'external.world.hypothesis_resume.partial'",
+  "status:resumed && receipt.ok?'HYPOTHESIS_STAGE_RESUMED':'HYPOTHESIS_STAGE_STILL_PARTIAL'",
+  "A hypothesis-stage retry is not a complete World daily cycle.",
+]) assert.ok(world.includes(invariant),`partial_world_resume_contract_missing:${invariant}`);
+assert.ok(world.indexOf("if(lastAttemptAt > 0") < world.indexOf("const worldSignalObserver = await executeWorldSignalObserverAgent()"),
+ 'world_cooldown_must_run_before_any_new_source_collection');
+assert.ok(world.indexOf("if(latestWasPartial){") < world.indexOf("const worldSignalObserver = await executeWorldSignalObserverAgent()"),
+ 'hypothesis_resume_must_reuse_source_without_recollecting');
+
 assert.ok(world.includes("jrReceipt: jrFieldCycle.ok === true"), 'world_completion_must_require_jr_verified_receipt');
 assert.ok(world.includes("const ok = stagesComplete && receipt.ok === true"), 'world_success_requires_both_verified_stages_and_receipt');
 
