@@ -1,9 +1,70 @@
 import { strict as assert } from 'node:assert';
 import { readFileSync } from 'node:fs';
+import { parseHypothesisTestContract } from '../src/lib/world-observatory/hypothesisTestContract';
 import {
+  deriveHypothesisIntakeFromNarrative,
   normalizeCasePlatformActionInput,
   resolveCasePlatformCreationIntakeFromAction,
 } from '../src/lib/sfi/caseIntakeResolver';
+
+
+const ordinaryKnowledge = {
+  subjectKind:'ORGANIZATION',
+  subject:'Service operations',
+  chosenAttractor:'Sustainable daily service',
+  intendedDestination:'A response to each approved request',
+  currentSituation:'Requests remain in a queue',
+  participatingNodes:'requester;operator;queue',
+  previousAttempts:'Manual reminders',
+  possibleAction:'Execute a bounded dispatch step',
+  visibleDifference:'A response record appears for the authorized request',
+  limitsToPreserve:'No unauthorized disclosures',
+  availableRecords:'request ledger and independently observed response',
+};
+const generated = deriveHypothesisIntakeFromNarrative(ordinaryKnowledge);
+assert.equal(generated.status,'CANDIDATE_REQUIRES_METHOD_REVIEW');
+assert.equal(generated.preregistered,false);
+assert.equal(generated.proposedGraph.nodes.some(n=>n.kind==='PROPOSED_PROCEDURE'),true);
+assert.equal(generated.proposedGraph.relations.some(e=>e.kind==='HYPOTHESIZED_NOT_CAUSAL_FACT'),true);
+assert.equal(generated.proposedTestContract?.minimumSourceFamilies,2);
+assert.equal(generated.proposedTestContract?.contradictionCriteria.some(c=>c.id==='BOUNDARY_BREACH'),true);
+assert.equal(generated.primaryMethod,'PPOI');
+assert.equal(generated.proposedGraph.verified,false);
+assert.equal(generated.proposedTestContract?.contract,'SFI-HYPOTHESIS-TEST-1.0');
+assert(parseHypothesisTestContract(generated.proposedTestContract), 'SFI-authored candidate must satisfy frozen hypothesis-test schema');
+assert.equal(generated.proposedTestContract?.expectedCriteria.length,2);
+assert(generated.proposedTestContract?.contradictionCriteria.some(c=>c.id==='RIVAL_WITHOUT_ACTION'));
+assert(generated.proposedTestContract?.expectedCriteria.some(c=>c.signal.includes(ordinaryKnowledge.visibleDifference)));
+assert.equal(generated.userAskedToDefineScientificCriteria,false);
+const incompleteNarrative = deriveHypothesisIntakeFromNarrative({
+  subject:'System',chosenAttractor:'Desired state',currentSituation:'Current state',
+});
+assert.equal(incompleteNarrative.status,'NEEDS_NARRATIVE_CONTEXT');
+assert.equal(incompleteNarrative.proposedTestContract,null,'no invented preregistration without observable anchors');
+const qualitativeUi = readFileSync('src/components/sfi/PersonalCognitiveLabWorkspace.tsx','utf8');
+const personalApi = readFileSync('src/app/api/interface/cognitive-workspace/route.ts','utf8');
+const caseApi = readFileSync('src/app/api/external/v1/cases/intake/route.ts','utf8');
+const methodPage = readFileSync('src/app/method-lab/page.tsx','utf8');
+assert(qualitativeUi.includes('SFI: construir condiciones de contraste'));
+assert(qualitativeUi.includes("operation:'hypothesis_intake_preview'"));
+assert(methodPage.includes('<PersonalCognitiveLabWorkspace intakeOnly />'));
+assert(personalApi.includes("operation === 'hypothesis_intake_preview'"));
+assert(caseApi.includes("text(body.operation) === 'hypothesis_intake_preview'"));
+const preRegistrationApi=readFileSync('src/app/api/interface/cognitive-workspace/route.ts','utf8');
+assert(preRegistrationApi.includes("operation === 'preregister_generated_conditions'"));
+assert(preRegistrationApi.includes("SERVER_OBSERVED_72H_BASELINE_REQUIRED"));
+assert(preRegistrationApi.includes('persistMethodLabUiPreregistration'));
+assert(preRegistrationApi.includes("hypothesisTestContract:{...contract,horizonBasis:"));
+const labOwner = readFileSync('src/lib/method-lab/uiProjection.ts','utf8');
+assert(labOwner.includes("hypothesisTestContract:generatedContract"), 'the immutable preregistration must retain structured criteria');
+assert(labOwner.includes('parseHypothesisTestContract(definition.hypothesisTestContract)'));
+assert(preRegistrationApi.includes("daySegments.size<3"));
+assert(qualitativeUi.includes("Preregistrar condiciones construidas por SFI"));
+assert(qualitativeUi.includes("Crear expediente personal de observación"));
+assert(qualitativeUi.includes("Registrar observación"));
+const realityChain = readFileSync('src/components/sfi/RealityChainWorkbench.tsx','utf8');
+assert(!realityChain.includes('SFI-NARRATIVE-HYPOTHESIS-INTAKE-1.0'),'enterprise workbench must not depend on narrative intake');
+assert(!realityChain.includes('deriveHypothesisIntakeFromNarrative'),'do not couple enterprise Reality Chain to personal intake');
 
 const nestedResolved = {
   operation: 'intake_plan',

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { authorizeExternalRequest, externalAuthError } from '@/lib/sfi/externalAuth';
 import {
+  deriveHypothesisIntakeFromNarrative,
   normalizeCasePlatformActionInput,
   resolveCasePlatformCreationIntake,
 } from '@/lib/sfi/caseIntakeResolver';
@@ -32,6 +33,11 @@ export async function POST(request: Request) {
   }
 
   try {
+    if (text(body.operation) === 'hypothesis_intake_preview') {
+      const plan = deriveHypothesisIntakeFromNarrative(row(body.narrative));
+      return NextResponse.json({ok:true, operation:'hypothesis_intake_preview',plan,
+        epistemicBoundary:'Separated from enterprise Case creation and Reality Chain. Candidate only; no new case, preregistration, evidence or action.'});
+    }
     const normalized = normalizeCasePlatformActionInput(body);
     const intakePlan = resolveCasePlatformCreationIntake(normalized);
     const normalizedBoundary = row(normalized.systemBoundaryRef);

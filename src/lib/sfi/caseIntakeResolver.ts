@@ -245,3 +245,130 @@ export function normalizeCasePlatformActionInput(inputValue: unknown): Row {
 export function resolveCasePlatformCreationIntakeFromAction(inputValue: unknown) {
   return resolveCasePlatformCreationIntake(normalizeCasePlatformActionInput(inputValue));
 }
+
+/**
+ * Epistemic intake: participants supply ordinary language about their chosen
+ * direction, situation, actors, actions and observable changes. SFI authors the
+ * discriminating conditions; participants are never asked to engineer criteria.
+ * The output is a reviewable DRAFT, not an immutable preregistration.
+ */
+export const SFI_NARRATIVE_HYPOTHESIS_INTAKE_CONTRACT = 'SFI-NARRATIVE-HYPOTHESIS-INTAKE-1.0' as const;
+
+export type SfiNarrativeIntake = {
+  subjectKind?: string;
+  subject?: string;
+  chosenAttractor?: string;
+  intendedDestination?: string;
+  currentSituation?: string;
+  participatingNodes?: string;
+  previousAttempts?: string;
+  possibleAction?: string;
+  visibleDifference?: string;
+  limitsToPreserve?: string;
+  availableRecords?: string;
+};
+
+export function deriveHypothesisIntakeFromNarrative(inputValue: unknown) {
+  const input = row(inputValue) as SfiNarrativeIntake;
+  const field = (key: keyof SfiNarrativeIntake) => text(input[key])?.slice(0, 1800) ?? '';
+  const goal = field('chosenAttractor');
+  const destination = field('intendedDestination');
+  const current = field('currentSituation');
+  const action = field('possibleAction');
+  const visible = field('visibleDifference');
+  const subject = field('subject');
+  const nodes = field('participatingNodes').split(/\n|;/).map(x=>x.trim()).filter(Boolean).slice(0, 12);
+  const attempts = field('previousAttempts');
+  const limits = field('limitsToPreserve');
+  const records = field('availableRecords');
+  const missing = [
+    !goal ? 'CHOSEN_ATTRACTOR' : null,
+    !destination ? 'INTENDED_DESTINATION' : null,
+    !subject ? 'SUBJECT' : null,
+    !current ? 'CURRENT_SITUATION' : null,
+    !nodes.length ? 'PARTICIPATING_NODES' : null,
+    !limits ? 'PRESERVED_CONDITIONS' : null,
+    !action ? 'POSSIBLE_ACTION' : null,
+    !visible ? 'VISIBLE_DIFFERENCE' : null,
+    !records ? 'AVAILABLE_RECORDS' : null,
+  ].filter((x):x is string=>Boolean(x));
+  const complete = missing.length === 0;
+  const scene = { subject, nodes, currentSituation:current, previouslyAttempted:attempts,
+    action, electedAttractor:goal, destination, preservedConditions:limits,
+    sourcesNamedByParticipant:records, epistemicClass:'DECLARED' as const };
+  // Nodes and relations are a provenance-labelled proposal, never an observed causal graph.
+  const proposedGraph = {
+    nodes:[
+      {id:'SUBJECT',kind:'SUBJECT',description:subject,epistemicClass:'DECLARED'},
+      {id:'BASELINE',kind:'CONTEXT',description:current,epistemicClass:'DECLARED'},
+      ...nodes.map((description,index)=>({id:'PARTICIPANT_NODE_'+(index+1),kind:'PARTICIPANT_NODE',description,epistemicClass:'DECLARED'})),
+      {id:'ACTION',kind:'PROPOSED_PROCEDURE',description:action,epistemicClass:'DECLARED'},
+      {id:'EXPECTED_WORLD_SIGNAL',kind:'OBSERVABLE_CHANGE',description:visible,epistemicClass:'DECLARED'},
+      {id:'ATTRACTOR',kind:'ELECTED_TARGET',description:goal,epistemicClass:'DECLARED'},
+    ],
+    relations:[
+      {from:'BASELINE',to:'ACTION',kind:'MOTIVATES_TEST',epistemicClass:'INFERRED'},
+      {from:'ACTION',to:'EXPECTED_WORLD_SIGNAL',kind:'HYPOTHESIZED_NOT_CAUSAL_FACT',epistemicClass:'INFERRED'},
+      {from:'EXPECTED_WORLD_SIGNAL',to:'ATTRACTOR',kind:'POTENTIAL_TRAJECTORY_NOT_ARRIVAL',epistemicClass:'INFERRED'},
+    ],
+    verified:false,
+  };
+  const primaryMethod = field('subjectKind').toUpperCase() === 'PERSON' ? 'MOP_H'
+    : ['ORGANIZATION','PROJECT'].includes(field('subjectKind').toUpperCase()) ? 'PPOI'
+    : field('subjectKind').toUpperCase() === 'SFI_SYSTEM' ? 'SFI_INSTITUTIONAL'
+    : 'SCOREFRICTION';
+  const hypothesis=complete
+    ? 'En '+subject+', ejecutar «'+action+'» podría producir «'+visible+'» en dirección al atractor «'+goal+'», conservando «'+limits+'».'
+    : null;
+  const rival=complete
+    ? 'En '+subject+', el cambio «'+visible+'» podría no producirse pese a ejecutar «'+action+'», o producirse sin esa acción por condiciones previas o externas.'
+    : null;
+  // SFI generates these as candidate tests. The minimum counts below are
+  // methodological *proposals*, not empirically calibrated thresholds.
+  const make = (id:string,signal:string,operator:'PRESENCE'|'ABSENCE')=>({
+    id,signal,metric:null,operator,threshold:null,unit:null,
+    required:true,minimumObservations:1,sourceFamilies:[] as string[],
+  });
+  const testContract = complete ? {
+    contract:'SFI-HYPOTHESIS-TEST-1.0' as const,
+    horizonHours:72,
+    horizonBasis:'CANDIDATE_ONLY: prospectively calibrate a separate post-action window after the required 72h baseline',
+    horizonClass:'SHORT' as const,
+    minimumEvidenceCount:2,
+    minimumSourceFamilies:2,
+    expectedCriteria:[
+      make('EXECUTION_TRACE','Documented execution of: '+action,'PRESENCE'),
+      make('WORLD_CHANGE','Observable post-action difference: '+visible,'PRESENCE'),
+    ],
+    contradictionCriteria:[
+      make('EXPECTED_CHANGE_ABSENT','Post-action difference remains absent: '+visible,'PRESENCE'),
+      make('RIVAL_WITHOUT_ACTION','The same change appears without executing: '+action,'PRESENCE'),
+      ...(limits?[make('BOUNDARY_BREACH','Required preserved condition is breached: '+limits,'PRESENCE')]:[]),
+    ],
+    passRule:'Both a trace of execution and independently documented world change, in the same prospective window, without satisfied contradictions',
+    failRule:'An admissible preregistered contradiction is observed after the freeze; absence must be documented, not inferred from missing records',
+    inconclusiveRule:'Missing provenance, incompatible observations or no decisive discrimination',
+  } : null;
+
+  return {
+    contract:SFI_NARRATIVE_HYPOTHESIS_INTAKE_CONTRACT,
+    status:complete?'CANDIDATE_REQUIRES_METHOD_REVIEW':'NEEDS_NARRATIVE_CONTEXT',
+    missing,
+    scene,
+    primaryMethod,
+    proposedGraph,
+    proposedHypothesis:hypothesis,
+    proposedRival:rival,
+    proposedTestContract:testContract,
+    acceptanceLogic:complete?{
+      support:'Execution and its expected effect are both observed through traceable sources, with constraints respected.',
+      contradiction:'The expected effect is demonstrably absent, appears without the action, or a preserved condition fails.',
+      rivalry:'Contrast rival and primary on matching system boundary, observation window, sources and action fidelity.',
+      returnToAttractor:'A losing hypothesis does not revoke the elected attractor; propose a new bounded route and test its observed return.',
+    }:null,
+    preregistered:false,
+    eligibleForAutomaticFreeze:false,
+    userAskedToDefineScientificCriteria:false,
+    boundary:'SFI GENERATED CANDIDATE, NOT PREREGISTERED. No metric calibration, source validation, observed RETURN, causal effect, autonomous governance or execution is inferred. User direction is not scored by external valuation.',
+  };
+}

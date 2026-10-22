@@ -1,4 +1,5 @@
 import 'server-only';
+import { parseHypothesisTestContract } from '@/lib/world-observatory/hypothesisTestContract';
 
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import {
@@ -16,6 +17,7 @@ export const METHOD_LAB_UI_EXECUTABLE_TYPES = ['SIMULATION'] as const;
 export type MethodLabUiPreregistrationInput = {
   experimentId: string;
   experimentType: MethodLabExperimentType;
+  hypothesisTestContract?: unknown;
   caseRef: string;
   evidenceRefs: string[];
   twinStateRef: string | null;
@@ -193,6 +195,10 @@ export async function persistMethodLabUiPreregistration(input: {
   const closesAt = iso(definition.returnWindow.closesAt, 'return_closes_at');
   if (Date.parse(closesAt) < Date.parse(opensAt)) throw new Error('METHOD_LAB_UI_RETURN_WINDOW_INVALID');
   const evidenceRefs = unique(definition.evidenceRefs);
+  const hasGeneratedContract = definition.hypothesisTestContract !== undefined;
+  const generatedContract = hasGeneratedContract
+    ? parseHypothesisTestContract(definition.hypothesisTestContract) : null;
+  if (hasGeneratedContract && !generatedContract) throw new Error('METHOD_LAB_UI_HYPOTHESIS_TEST_CONTRACT_INVALID');
   const variants = unique(definition.variantDescriptions);
   const expectedMeasures = unique(definition.expectedMeasures);
   if (!variants.length) throw new Error('METHOD_LAB_UI_VARIANT_REQUIRED');
@@ -255,7 +261,7 @@ export async function persistMethodLabUiPreregistration(input: {
     VARIANTS: variants.map((description, index) => ({
       variantId: `variant-${index + 1}`,
       description,
-      changes: { declaredByUi: true },
+      changes: { declaredByUi: true, ...(generatedContract?{hypothesisTestContract:generatedContract, epistemicState:'PREREGISTERED_NOT_OBSERVED'}:{}) },
     })),
     EXPECTED_SIGNAL: {
       description: definition.expectedSignal.trim() || 'Declared experimental signal.',
