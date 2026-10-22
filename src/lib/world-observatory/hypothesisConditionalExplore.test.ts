@@ -93,7 +93,7 @@ const adaptiveBaseline = {
   case_id:'CASE-OBSERVED-1',
   object_presence:'provided',
   evidence:[{ id:'persisted-evidence-1' }],
-  technical_state:{worldspect_ok:true,supabase_ok:true,fallback_used:false,warnings:[]},
+  technical_state:{worldspect_ok:true,scorefriction_ok:true,supabase_ok:true,fallback_used:false,warnings:[]},
   degradation:{level:0.64,trend:'rising',notes:[]},
   regime:{changed:true,previous:'stable',vector:'tension',world:'tension'},
   direction:{current:'stable',projected:'rising',confidence:0.7},
