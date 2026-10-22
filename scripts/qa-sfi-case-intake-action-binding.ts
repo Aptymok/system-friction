@@ -26,7 +26,10 @@ assert.equal(nested.readyForProjectExecution, false, 'observational case is not 
 const projectReady = resolveCasePlatformCreationIntakeFromAction({
   ...nestedResolved,subjectKind:'PERSON',declaredAttractor:'Elected destination',
   intendedDestination:'Operating institution',attractorObservation:{
-    startedAt:'2026-10-15T09:00:00Z',closedAt:'2026-10-19T09:00:00Z',evidenceRefs:['participant:observation-1'],
+    startedAt:'2026-10-15T09:00:00Z',closedAt:'2026-10-19T09:00:00Z',evidenceRefs:['participant:1','participant:2','participant:3'],
+    marks:[{observedAt:'2026-10-15T10:00:00Z',evidenceRef:'participant:1'},
+      {observedAt:'2026-10-16T10:00:00Z',evidenceRef:'participant:2'},
+      {observedAt:'2026-10-17T10:00:00Z',evidenceRef:'participant:3'}],
   },sedimentationReflection:'Observed repeated obstacles',
   projectObjective:'Demonstrate a bounded execution',
   projectExecutionPlace:'User-authorized environment',
