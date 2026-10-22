@@ -61,6 +61,7 @@ function harness(runError?: string) {
     return moduleExports;
   };
   mocks['@/lib/method-lab/researchObjects'] = load('src/lib/method-lab/researchObjects.ts');
+  mocks['@/lib/method-lab/researchAssurance'] = load('src/lib/method-lab/researchAssurance.ts');
   vm.runInNewContext(compiled, { exports, require: (id: string) => id in mocks ? mocks[id] : require(id), Response, Date });
   return { events, runs, manifest: async () => (await load('src/app/api/external/v1/manifest/route.ts').GET()).json(), post: async (body: unknown, scope = 'lab:write') => exports.POST(new Request('https://sfi.test/api/external/v1/lab', { method: 'POST', headers: { 'x-test-scope': scope, 'content-type': 'application/json' }, body: JSON.stringify(body) })) as Promise<Response> };
 }
