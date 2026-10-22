@@ -4,12 +4,29 @@ import {
   listInstitutionalAccountAccessGrants,
 } from '@/lib/auth/institutionalInvitation';
 import { requireFounderPage } from '@/lib/system/access/server';
+import { changeInstitutionalAccountPermissionsAction, suspendInstitutionalAccountAction, deleteInstitutionalAccountAction } from '@/lib/auth/institutionalAccountAdministration';
 import { InstitutionalSurfaceRail } from '@/components/sfi/InstitutionalSurfaceRail';
 import './root-access.css';
 
 export const dynamic = 'force-dynamic';
 
 const STATES: Record<string, string> = {
+  permisos_actualizados: 'Permisos de acceso actualizados. No se otorgó autoridad ROOT.',
+  cuenta_suspendida: 'Acceso institucional suspendido. La evidencia histórica permanece.',
+  suspendida_revisar_perfil: 'Acceso suspendido; la restricción del perfil requiere revisión.',
+  cuenta_eliminada: 'Identidad eliminada de Auth y del registro de ACCESS; evidencia conservada.',
+  eliminada_pendiente_depuracion: 'Identidad eliminada; el registro de ACCESS requiere revisión.',
+  identidad_no_eliminada: 'El acceso se suspendió; la eliminación de Auth no se completó.',
+  identidad_no_verificada: 'La identidad de Auth no coincide con el registro. No se eliminó.',
+  eliminacion_no_confirmada: 'Confirma la eliminación escribiendo exactamente el correo.',
+  cuenta_protegida: 'Las identidades ROOT y soberanas están protegidas.',
+  cuenta_no_encontrada: 'La cuenta no existe en ACCESS.',
+  cuenta_no_editable: 'El estado actual no permite modificar los permisos.',
+  conflicto_permisos: 'La cuenta cambió; recarga ACCESS antes de intentar de nuevo.',
+  perfil_no_actualizado: 'No se logró actualizar el perfil institucional.',
+  perfil_no_disponible: 'El perfil institucional no está disponible.',
+  sin_cambios: 'No hubo cambios en permisos.',
+
   enviada: 'Invitation sent. The person must open the email and define their own password.',
   recuperacion_enviada: 'Credential recovery requested. The user must open the new email, set a password and sign in. Their existing permissions were not changed.',
   recuperacion_no_enviada: 'The authentication provider did not confirm recovery email delivery. The existing account and permissions were not changed.',
@@ -114,6 +131,33 @@ export default async function RootAccessPage({
                     <input type="hidden" name="email" value={grant.email}/>
                     <button type="submit">RESEND PASSWORD SETUP LINK</button>
                   </form> : null}
+                  {grant.email.trim().toLowerCase() !== 'jmarin@systemfriction.org' ? <>
+                    {['ACTIVE','INVITED'].includes(grant.status) ? <form action={changeInstitutionalAccountPermissionsAction} className="rootAccessForm">
+                      <input type="hidden" name="grantId" value={grant.id}/>
+                      <label>PERMISOS DE LA CUENTA
+                        <select name="accessClass" defaultValue={grant.accessClass}>
+                          <option value="INSTITUTIONAL_OBSERVER">Observador</option>
+                          <option value="INSTITUTIONAL_OPERATOR">Operador</option>
+                        </select>
+                      </label>
+                      <button type="submit">CAMBIAR PERMISOS</button>
+                    </form> : null}
+                    {grant.status !== 'SUSPENDED' ? <form action={suspendInstitutionalAccountAction}>
+                      <input type="hidden" name="grantId" value={grant.id}/>
+                      <button type="submit">SUSPENDER ACCESO</button>
+                    </form> : null}
+                    <details>
+                      <summary>ELIMINAR CUENTA</summary>
+                      <p>Elimina la identidad de autenticación y su acceso institucional. Los registros científicos y auditorías se conservan.</p>
+                      <form action={deleteInstitutionalAccountAction} className="rootAccessForm">
+                        <input type="hidden" name="grantId" value={grant.id}/>
+                        <label>Escribe el correo completo para confirmar
+                          <input name="confirmation" type="email" required placeholder={grant.email} autoComplete="off"/>
+                        </label>
+                        <button type="submit">CONFIRMAR ELIMINACIÓN</button>
+                      </form>
+                    </details>
+                  </> : null}
                 </article>;
               })}
             </div>
