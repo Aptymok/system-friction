@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 
 const read = (file) => fs.readFileSync(file, 'utf8');
 const control = read('src/lib/persistence/dataPlaneReconciliationControl.ts');
@@ -24,10 +24,10 @@ execFileSync(process.execPath, ['--import', 'tsx', '--test', 'src/lib/persistenc
 assert.ok(workflow.includes("cron: '7,22,37,52 * * * *'"), 'bounded mirror recovery must have four staggered scheduled opportunities per hour');
 assert.ok(workflow.includes('- SFI Verify') && workflow.includes('- SFI World + Institutional Observation Cycle') && workflow.includes('- World Vector Agents'), 'successfully verified or observed main work must wake guarded mirror recovery independently of scheduled cron');
 assert.ok(workflow.includes("github.event.workflow_run.head_branch == 'main'") && workflow.includes("github.event.workflow_run.head_repository.full_name == github.repository"), 'workflow_run trigger must reject forks and non-main branches');
-assert.ok(workflow.includes('Drain primary mirror through bounded sequential reconciliation calls'));
+assert.ok(workflow.includes('Drain primary mirror or recovery journal through bounded reconciliation'));
 assert.ok(workflow.includes('for round in {1..32}; do'), 'allow up to 32 sequential guarded rounds under the existing seven-minute time budget');
 assert.ok(workflow.includes('STOP: mirror conflict requires investigation'), 'stop rather than bypass mirrored conflict');
-assert.ok(workflow.includes("int(m.get('mirroredTransactions') or 0)==0"), 'stop loop when delivery makes no progress');
+assert.ok(workflow.includes("stop_unsafe('primary mirror made no progress')"), 'stop rather than retry a primary mirror with no progress');
 assert.ok(workflow.includes('/api/cron/data-plane-reconcile'));
 assert.ok(workflow.includes('-X POST'));
 assert.ok(workflow.indexOf('Drain primary mirror through bounded sequential reconciliation calls') <
@@ -43,6 +43,7 @@ assert.ok(workflow.includes('drain_started=$SECONDS'), 'mirror drain must record
 assert.ok(workflow.includes('if (( SECONDS - drain_started >= 420 ))'), 'mirror drain must stop after seven minutes');
 assert.ok(workflow.includes('SFI_MIRROR_DRAIN_TIME_BUDGET_REACHED'), 'mirror time budget exit must be auditable');
 assert.ok(workflow.includes("'mirroredRows': primary.get('mirroredRows')"), 'mirror receipts must separately expose row and transaction counts');
+assert.ok(workflow.includes("'replayedRows': recovery.get('replayedRows')"), 'RECOVERY receipts must separately expose replayed rows and transactions');
 assert.ok(!cron.includes('completeRecoveryMode('),
   'cron may only call the canonical gated recovery service');
 
@@ -127,5 +128,99 @@ assert.ok(!/update\\s+public\\.sfi_data_plane_write_journal[\\s\\S]*set\\s+statu
 assert.ok(scopedJournal.includes('function public.sfi_data_plane_fingerprint_v2()'));
 assert.ok(scopedJournal.includes('trim_scale(t.reliability)'));
 assert.ok(scopedJournal.includes('where t.expires_at > now()'));
+
+
+// Exercise the actual embedded workflow decision against mocked OIDC receipts.
+// A green static source assertion alone previously missed the RECOVERY early-stop defect.
+const decisionMatch = workflow.match(/next_step="\$\(python - "\$receipt" <<'PY'\n([\s\S]*?)\n          PY\n\s+\)"/);
+assert.ok(decisionMatch, 'bounded drain decision must remain present and testable');
+const decisionPython = decisionMatch[1]
+  .split('\n')
+  .map((line) => line.startsWith('          ') ? line.slice(10) : line)
+  .join('\n')
+  .replace(
+    "p=json.load(open(sys.argv[1],encoding='utf-8'))",
+    "p=json.loads(sys.stdin.read())",
+  );
+
+function drainDecision(payload) {
+  const run = spawnSync('python3', ['-c', decisionPython], {
+    input: JSON.stringify(payload),
+    encoding: 'utf8',
+    timeout: 5000,
+  });
+  assert.ifError(run.error);
+  return { exit: run.status, output: run.stdout.trim(), error: run.stderr.trim() };
+}
+
+function receipt(mode, outcome, overrides = {}) {
+  const base = {
+    attempted: true,
+    forcedFailover: false,
+    outcome,
+    before: {
+      dataPlane: { mode },
+      journal: { pending: mode === 'RECOVERY' ? 790 : 0, conflicts: 0, protectedPending: 0 },
+      primaryOutbox: { pending: mode === 'PRIMARY' ? 75 : 0, conflicts: 0 },
+      safeRecoveryEligible: true,
+    },
+    after: {
+      dataPlane: { mode, primaryMirrorCertified: false },
+      journal: { pending: mode === 'RECOVERY' ? 758 : 0, conflicts: 0, protectedPending: 0 },
+      primaryOutbox: { pending: mode === 'PRIMARY' ? 43 : 0, conflicts: 0 },
+      safeRecoveryEligible: true,
+    },
+    primaryMirror: { ok: true, mirroredTransactions: mode === 'PRIMARY' ? 32 : 0 },
+    recovery: { recovered: false, reason: 'CONTINUITY_JOURNAL_NOT_EMPTY', replayedTransactions: 32, replayedRows: 32 },
+  };
+  return {
+    ...base, ...overrides,
+    before: { ...base.before, ...overrides.before },
+    after: { ...base.after, ...overrides.after },
+    primaryMirror: { ...base.primaryMirror, ...overrides.primaryMirror },
+    recovery: { ...base.recovery, ...overrides.recovery },
+  };
+}
+
+const cases = [
+  ['RECOVERY reduces journal while outbox is empty', receipt('RECOVERY', 'RECOVERY_NOT_COMPLETE'), 'continue'],
+  ['RECOVERY journal does not decrease', receipt('RECOVERY', 'RECOVERY_NOT_COMPLETE', { after: { journal: { pending: 790, conflicts: 0, protectedPending: 0 } } }), 'fail'],
+  ['RECOVERY replay receipt missing', receipt('RECOVERY', 'RECOVERY_NOT_COMPLETE', { recovery: { replayedRows: 0 } }), 'fail'],
+  ['RECOVERY returns transient retry', receipt('RECOVERY', 'RECOVERY_NOT_COMPLETE', { recovery: { reason: 'CONTINUITY_REPLAY_RETRY_REQUIRED' } }), 'fail'],
+  ['RECOVERY safety gate closes', receipt('RECOVERY', 'RECOVERY_NOT_COMPLETE', { after: { safeRecoveryEligible: false } }), 'fail'],
+  ['RECOVERY journal conflict', receipt('RECOVERY', 'RECOVERY_NOT_COMPLETE', { after: { journal: { pending: 758, conflicts: 1, protectedPending: 0 } } }), 'fail'],
+  ['RECOVERY authority record pending', receipt('RECOVERY', 'RECOVERY_NOT_COMPLETE', { after: { journal: { pending: 758, conflicts: 0, protectedPending: 1 } } }), 'fail'],
+  ['RECOVERY clears journal and certifies PRIMARY', receipt('RECOVERY', 'PRIMARY_RECOVERED', {
+    recovery: { recovered: true }, after: { dataPlane: { mode: 'PRIMARY', primaryMirrorCertified: true }, journal: { pending: 0, conflicts: 0, protectedPending: 0 } },
+  }), 'stop'],
+  ['RECOVERY cannot claim PRIMARY without cert', receipt('RECOVERY', 'PRIMARY_RECOVERED', {
+    recovery: { recovered: true }, after: { dataPlane: { mode: 'PRIMARY', primaryMirrorCertified: false }, journal: { pending: 0, conflicts: 0, protectedPending: 0 } },
+  }), 'fail'],
+  ['PRIMARY progresses with mirrored transactions', receipt('PRIMARY', 'PRIMARY_MIRROR_PENDING'), 'continue'],
+  ['PRIMARY completes only with cert', receipt('PRIMARY', 'PRIMARY_MIRROR_CERTIFIED', {
+    after: { dataPlane: { mode: 'PRIMARY', primaryMirrorCertified: true }, primaryOutbox: { pending: 0, conflicts: 0 } },
+  }), 'stop'],
+  ['PRIMARY empty outbox without cert', receipt('PRIMARY', 'PRIMARY_MIRROR_PENDING', {
+    after: { primaryOutbox: { pending: 0, conflicts: 0 } }, primaryMirror: { mirroredTransactions: 0 },
+  }), 'fail'],
+  ['PRIMARY no progress', receipt('PRIMARY', 'PRIMARY_MIRROR_PENDING', {
+    after: { primaryOutbox: { pending: 75, conflicts: 0 } },
+  }), 'fail'],
+  ['PRIMARY mirror conflict', receipt('PRIMARY', 'PRIMARY_MIRROR_PENDING', {
+    after: { primaryOutbox: { pending: 43, conflicts: 1 } },
+  }), 'fail'],
+  ['unauthorized forced-failover receipt', receipt('RECOVERY', 'RECOVERY_NOT_COMPLETE', { forcedFailover: true }), 'fail'],
+  ['unexpected mode', receipt('UNKNOWN', 'RECOVERY_NOT_COMPLETE'), 'fail'],
+];
+for (const [name, mock, expected] of cases) {
+  const result = drainDecision(mock);
+  if (expected === 'fail') {
+    assert.notEqual(result.exit, 0, name + ' must fail closed');
+    assert.match(result.error, /STOP:/, name + ' must explain safe stop');
+  } else {
+    assert.equal(result.exit, 0, name + ': ' + result.error);
+    assert.equal(result.output, expected, name);
+  }
+}
 
 console.log('PASS SFI scheduled data-plane recovery: independent calendar, ROOT manual action, journal/mirror gates, no forced promotion');
