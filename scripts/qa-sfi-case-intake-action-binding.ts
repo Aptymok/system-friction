@@ -23,6 +23,25 @@ assert.equal(nested.readyForCreate, true, 'canonical nested Action fields must r
 assert.deepEqual(nested.missingContext, []);
 assert.equal(nested.readyForProjectExecution, false, 'observational case is not yet authorized as an execution project');
 
+const projectReady = resolveCasePlatformCreationIntakeFromAction({
+  ...nestedResolved,subjectKind:'PERSON',declaredAttractor:'Elected destination',
+  intendedDestination:'Operating institution',attractorObservation:{
+    startedAt:'2026-10-15T09:00:00Z',closedAt:'2026-10-19T09:00:00Z',evidenceRefs:['participant:observation-1'],
+  },sedimentationReflection:'Observed repeated obstacles',
+  projectObjective:'Demonstrate a bounded execution',
+  projectExecutionPlace:'User-authorized environment',
+  projectAcceptanceCriteria:'A recorded and independently verified RETURN',
+});
+assert.equal(projectReady.attractorOnboarding.primaryMethod,'MOP_H');
+assert.equal(projectReady.readyForProjectExecution,true);
+const shortWindow=resolveCasePlatformCreationIntakeFromAction({
+  ...nestedResolved,declaredAttractor:'Elected',intendedDestination:'Outcome',
+  attractorObservation:{startedAt:'2026-10-18T08:00:00Z',closedAt:'2026-10-18T10:00:00Z',evidenceRefs:['user:1']},
+  sedimentationReflection:'Reflection',projectObjective:'Work',projectExecutionPlace:'Here',
+  projectAcceptanceCriteria:'Observations',
+});
+assert.equal(shortWindow.readyForProjectExecution,false,'a two-hour sample is not 72-hour sedimentation');
+
 const flatResolved = {
   operation: 'intake_plan',
   serviceProfileId: 'SERVICE_OBSERVABILITY',
