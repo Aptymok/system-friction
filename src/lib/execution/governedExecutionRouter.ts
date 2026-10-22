@@ -165,6 +165,22 @@ export function classifyGovernedProposalWork(row: Row) {
     return { executionClass: 'INTERNAL_PLATFORM' as const, adapterId: 'self_healing_bootstrap_v1', reason: 'The deployed remediation path is the bounded internal capability being verified.' };
   }
 
+  // Defense in depth: even if an older ROOT draft is manually queued or the
+  // originating planner was bypassed, a material adaptive step must never fall
+  // through to the cognitive/internal executor solely because the proposal title
+  // lacks an explicit action type.
+  if (proposalTypeOf(row) === 'trajectory_reconfiguration') {
+    const step = recordValue(proposalPayload(row).selectedRoute);
+    const action = stringValue(step.action) ?? '';
+    const materialStep = isMaterialExternalAction('action', action) ||
+      /publicar|publicaci[oó]n|difundir|distribuir|enviar (?:correo|mensaje)|desplegar|producci[oó]n|fusionar|pagar|comprar|intervenir materialmente/i.test(action);
+    if (materialStep) return {
+      executionClass:'EXTERNAL_ACTION' as const,
+      adapterId:'external_connector_handoff_v1',
+      reason:'The selected adaptive route contains a material action. Internal cognition cannot execute it; a separately authorized external handoff and observed-world RETURN are required.',
+    };
+  }
+
   const adapterId = declaredAdapter(row);
   if (adapterId === 'sfi_self_development_v1') {
     return {

@@ -190,3 +190,18 @@ test('a case-linked independently calibrated contradiction triggers a prospectiv
  assert.equal(unverified.observation.previousWorldReturnVerified,false);
  assert.equal(unverified.selectedRouteId,'BOUNDED_TEST');
 });
+
+test('publishing or deploying is never a reversible internal adaptive route',()=>{
+ for(const materialAction of ['Publicar una pieza de prueba del objeto', 'Deploy to production', 'Enviar correo a terceros']){
+  const state={...adaptiveBaseline,recommended_experiments:[{
+    ...adaptiveBaseline.recommended_experiments![0],action:materialAction,
+  }]} as OperationalCycleState;
+  const plan=deriveAdaptiveTrajectoryPlan({...adaptiveInput,state});
+  assert.equal(plan.canCreateDraftProposal,false);
+  assert.equal(plan.selectedRouteId,'OBSERVE');
+  assert.equal(plan.observation.proposedMaterialAction,true);
+  assert(plan.blockers.includes('EXTERNAL_OR_MATERIAL_ACTION_REQUIRES_SEPARATE_EXECUTION_AUTHORITY'));
+  assert.equal(plan.routes.find(x=>x.id==='RECONFIGURE')?.reversibility,'UNASSESSED');
+  assert.equal(plan.routes.find(x=>x.id==='BOUNDED_TEST')?.reversibility,'UNASSESSED');
+ }
+});
