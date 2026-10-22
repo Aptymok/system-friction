@@ -96,7 +96,7 @@ jobs:
         shell: bash
         # Reuse the governed OIDC route; no direct database writes or bypass of safety gates.
         # Up to 32 calls x 32 transactions, within the existing seven-minute drain budget.
-        # Distinguish PRIMARY outbox drain from RECOVERY journal replay; stop on no progress,\n        # conflict, invalid promotion receipt, or time budget. Never force a plane switch.
+        # Distinguish PRIMARY mirroring, guarded CONTINUITY outbox drain and\n        # RECOVERY journal replay; stop on no progress, conflict or time budget.
         env:
           OIDC_TOKEN: ${{ steps.oidc.outputs.token }}
           SFI_SYNC_ENDPOINT: https://system-friction.vercel.app/api/cron/data-plane-reconcile
@@ -187,7 +187,26 @@ jobs:
           if exact_count(outbox, 'conflicts') != 0:
               stop_unsafe('primary outbox conflict')
 
-          if old_mode == 'RECOVERY':
+          if old_mode in ('CONTINUITY','RECOVERY') and before.get('blocker') == 'PRIMARY_OUTBOX_RECONCILIATION_REQUIRED':
+              # The guarded primary outbox must drain before recovering from
+              # an unexpected transition to CONTINUITY. A historical mirror
+              # certificate is not a sufficient receipt.
+              pending_before=exact_count(old_outbox, 'pending')
+              pending_after=exact_count(outbox, 'pending')
+              if exact_count(old_journal, 'pending') != 0 or exact_count(journal, 'pending') != 0:
+                  stop_unsafe('continuity outbox drain cannot bypass pending journal')
+              if new_mode != old_mode or new_plane.get('primaryMirrorCertified') is True:
+                  stop_unsafe('outbox drain cannot promote or certify continuity mode')
+              if p.get('outcome') not in ('CONTINUITY_OUTBOX_DRAIN_PROGRESS','CONTINUITY_OUTBOX_DRAINED'):
+                  stop_unsafe('continuity outbox drain stopped without guarded progress')
+              if pending_before <= pending_after or exact_count(mirror, 'mirroredTransactions') == 0:
+                  stop_unsafe('continuity outbox drain made no progress')
+              if p.get('outcome') == 'CONTINUITY_OUTBOX_DRAINED' and pending_after != 0:
+                  stop_unsafe('continuity outbox was declared clear but remains pending')
+              if p.get('outcome') == 'CONTINUITY_OUTBOX_DRAIN_PROGRESS' and pending_after == 0:
+                  stop_unsafe('continuity outbox progress mislabeled complete')
+              print('continue')
+          elif old_mode in ('CONTINUITY','RECOVERY'):
               if before.get('safeRecoveryEligible') is not True:
                   stop_unsafe('recovery not eligible before replay')
               pending_before=exact_count(old_journal, 'pending')
