@@ -1,0 +1,20 @@
+.sfiEvidenceInventory{max-width:1500px;margin:24px auto;padding:24px;border:1px solid rgba(116,186,216,.23);background:linear-gradient(145deg,#071018,#05090e);color:#dcebf3}
+.sfiEvidenceInventory header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:18px}
+.sfiEvidenceInventory header small,.sfiEvidenceInventory header time,.sfiEvidenceInventory footer small{font:600 10px/1.5 ui-monospace,monospace;letter-spacing:.05em;color:#8faeba}
+.sfiEvidenceInventory h2{font:400 clamp(20px,3vw,32px)/1.2 Georgia,serif;margin:4px 0 8px}
+.sfiEvidenceInventory p{font-size:12px;line-height:1.6;color:#a4bbc5;max-width:900px;margin:4px 0 12px}
+.sfiEvidenceInventoryColumns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.sfiEvidenceInventoryGroup{min-width:0;border:1px solid rgba(126,190,220,.16);background:rgba(27,48,61,.18);padding:14px}
+.sfiEvidenceInventoryGroup summary{display:flex;cursor:pointer;align-items:center;justify-content:space-between;gap:10px;color:#abd7e9;list-style-position:inside;font:600 11px/1.5 ui-monospace,monospace}
+.sfiEvidenceInventoryGroup summary strong{font-size:23px;font-variant-numeric:tabular-nums;color:#eff9fc}
+.sfiEvidenceInventoryList{padding:0;list-style:none;max-height:330px;overflow:auto;margin:12px 0 0}
+.sfiEvidenceInventoryRow{border-top:1px solid rgba(145,196,215,.1);padding:10px 0;min-width:0;overflow-wrap:anywhere}
+.sfiEvidenceInventoryRow strong{display:block;font-size:12px;line-height:1.4}
+.sfiEvidenceInventoryRow small{display:block;font:10px/1.5 ui-monospace,monospace;color:#87a6b4;margin-top:5px}
+.sfiEvidenceInventoryRow>span{display:inline-block;font:600 9px/1.4 ui-monospace,monospace;color:#d4bb84;letter-spacing:.02em;margin-top:6px}
+.sfiEvidenceInventoryEmpty{font-style:italic}
+.sfiEvidenceInventoryCases{margin-top:14px}
+.sfiEvidenceInventoryWarning{border-left:2px solid #c8944b;padding:9px 12px;margin-bottom:12px;color:#e1bf81;background:rgba(178,124,50,.09);font-size:12px}
+.sfiEvidenceInventory footer{border-top:1px solid rgba(126,190,220,.16);padding-top:12px;margin-top:14px}
+@media(max-width:980px){.sfiEvidenceInventoryColumns{grid-template-columns:1fr}}
+@media(max-width:650px){.sfiEvidenceInventory{margin:14px;padding:14px}.sfiEvidenceInventory header{display:block}}
