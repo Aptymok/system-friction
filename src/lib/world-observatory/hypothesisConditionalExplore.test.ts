@@ -32,6 +32,22 @@ test('rival wins a criterion but attractor remains a conditional destination', (
 });
 
 
+test('separate reported and world returns require a frozen before-action prediction',()=>{
+ const base={primary:branch,rival:branch,primaryScenario:sample,rivalScenario:sample,
+  primaryWindowRef:'same',rivalWindowRef:'same',minimumEvidence:5,minimumSourceFamilies:1,electedAttractor:'Chosen',
+  participantReturn:{claimedAction:'I acted',evidenceRefs:['claim:1']},
+  worldReturn:{observedAt:'2026-10-21T12:00:00Z',evidenceRefs:['world:1'],independentlyVerified:true,
+   predictedSignalMatched:'YES' as const,attractorObserved:'YES' as const}};
+ const reported=compareRivalConditions(base);
+ assert.equal(reported.returns.participant.state,'USER_REPORTED');
+ assert.equal(reported.returns.world.state,'NOT_VERIFIED');
+ const confirmed=compareRivalConditions({...base,sealedPrediction:{
+  hash:'sha256:registered',frozenAt:'2026-10-18T12:00:00Z',actionAt:'2026-10-19T12:00:00Z'}});
+ assert.equal(confirmed.returns.world.state,'SUPPORTED');
+ assert.equal(confirmed.recovery.destinationVerified,true);
+ assert.equal(confirmed.learning.promoted,false);
+});
+
 test('the original frozen branch is never mutated', () => {
   const before = JSON.stringify(branch);
   evaluatePossibility(branch,10,1,sample);
