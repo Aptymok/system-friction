@@ -92,11 +92,11 @@ jobs:
           echo "::add-mask::$token"
           echo "token=$token" >> "$GITHUB_OUTPUT"
 
-      - name: Drain primary mirror through bounded sequential reconciliation calls
+      - name: Drain primary mirror or recovery journal through bounded reconciliation
         shell: bash
         # Reuse the governed OIDC route; no direct database writes or bypass of safety gates.
         # Up to 32 calls x 32 transactions, within the existing seven-minute drain budget.
-        # Stop early on no progress, conflict, or time budget; preserve the existing safety gates.
+        # Distinguish PRIMARY outbox drain from RECOVERY journal replay; stop on no progress,\n        # conflict, invalid promotion receipt, or time budget. Never force a plane switch.
         env:
           OIDC_TOKEN: ${{ steps.oidc.outputs.token }}
           SFI_SYNC_ENDPOINT: https://system-friction.vercel.app/api/cron/data-plane-reconcile
@@ -124,14 +124,24 @@ jobs:
           primary = payload.get('primaryMirror') or {}
           outbox = after.get('primaryOutbox') or {}
           journal = after.get('journal') or {}
+          recovery = payload.get('recovery') or {}
           result = {
               'round': int(round_number), 'http': int(http),
               'attempted': payload.get('attempted'), 'outcome': payload.get('outcome'),
+              'beforeMode': (before.get('dataPlane') or {}).get('mode'),
+              'afterMode': (after.get('dataPlane') or {}).get('mode'),
               'mirroredTransactions': primary.get('mirroredTransactions'),
               'mirroredRows': primary.get('mirroredRows'),
+              'replayedTransactions': recovery.get('replayedTransactions'),
+              'replayedRows': recovery.get('replayedRows'),
+              'recoveryReason': recovery.get('reason'),
               'pending': outbox.get('pending'), 'conflicts': outbox.get('conflicts'),
+              'journalBefore': (before.get('journal') or {}).get('pending'),
               'journalPending': journal.get('pending'),
               'journalConflicts': journal.get('conflicts'),
+              'journalProtectedPending': journal.get('protectedPending'),
+              'safeRecoveryEligible': after.get('safeRecoveryEligible'),
+              'blocker': after.get('blocker'),
               'certified': (after.get('dataPlane') or {}).get('primaryMirrorCertified'),
               'forcedFailover': payload.get('forcedFailover') is True,
           }
@@ -148,11 +158,71 @@ jobs:
             next_step="$(python - "$receipt" <<'PY'
           import json,sys
           p=json.load(open(sys.argv[1],encoding='utf-8'))
-          m=p.get('primaryMirror') or {}
-          out=(p.get('after') or {}).get('primaryOutbox') or {}
-          if int(out.get('pending') or 0)==0: print('stop')
-          elif int(m.get('mirroredTransactions') or 0)==0: print('stop')
-          else: print('continue')
+          before=p.get('before') or {}
+          after=p.get('after') or {}
+          old_plane=before.get('dataPlane') or {}
+          new_plane=after.get('dataPlane') or {}
+          old_mode=old_plane.get('mode')
+          new_mode=new_plane.get('mode')
+          old_journal=before.get('journal') or {}
+          journal=after.get('journal') or {}
+          old_outbox=before.get('primaryOutbox') or {}
+          outbox=after.get('primaryOutbox') or {}
+          mirror=p.get('primaryMirror') or {}
+          recovery=p.get('recovery') or {}
+
+          def stop_unsafe(reason):
+              raise SystemExit('STOP: '+reason)
+
+          def exact_count(record, key):
+              value=record.get(key)
+              if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+                  stop_unsafe('invalid receipt count '+key)
+              return value
+
+          if p.get('forcedFailover') is not False or p.get('attempted') is not True:
+              stop_unsafe('reconciliation missing guarded execution receipt')
+          if exact_count(journal, 'conflicts') != 0 or exact_count(journal, 'protectedPending') != 0:
+              stop_unsafe('journal conflict or protected authority pending')
+          if exact_count(outbox, 'conflicts') != 0:
+              stop_unsafe('primary outbox conflict')
+
+          if old_mode == 'RECOVERY':
+              if before.get('safeRecoveryEligible') is not True:
+                  stop_unsafe('recovery not eligible before replay')
+              pending_before=exact_count(old_journal, 'pending')
+              pending_after=exact_count(journal, 'pending')
+              if p.get('outcome') == 'PRIMARY_RECOVERED':
+                  if new_mode != 'PRIMARY' or pending_after != 0 or new_plane.get('primaryMirrorCertified') is not True or recovery.get('recovered') is not True:
+                      stop_unsafe('primary promotion lacks completed certified recovery')
+                  print('stop')
+              elif p.get('outcome') == 'RECOVERY_NOT_COMPLETE' and recovery.get('reason') == 'CONTINUITY_JOURNAL_NOT_EMPTY':
+                  if new_mode != 'RECOVERY' or after.get('safeRecoveryEligible') is not True:
+                      stop_unsafe('recovery mode or safety gate changed')
+                  if pending_after >= pending_before:
+                      stop_unsafe('recovery journal made no progress')
+                  if exact_count(recovery, 'replayedTransactions') == 0 or exact_count(recovery, 'replayedRows') == 0:
+                      stop_unsafe('recovery has no verified replay receipts')
+                  print('continue')
+              else:
+                  stop_unsafe('recovery incomplete or unexpected outcome')
+          elif old_mode == 'PRIMARY':
+              if new_mode != 'PRIMARY' or exact_count(journal, 'pending') != 0:
+                  stop_unsafe('primary mirror requires review')
+              pending_before=exact_count(old_outbox, 'pending')
+              pending_after=exact_count(outbox, 'pending')
+              if p.get('outcome') == 'PRIMARY_MIRROR_CERTIFIED':
+                  if pending_after != 0 or new_plane.get('primaryMirrorCertified') is not True:
+                      stop_unsafe('primary mirror certification unverified')
+                  print('stop')
+              elif p.get('outcome') == 'PRIMARY_MIRROR_PENDING':
+                  if pending_after >= pending_before or exact_count(mirror, 'mirroredTransactions') == 0:
+                      stop_unsafe('primary mirror made no progress')
+                  print('continue')
+              else:
+                  stop_unsafe('primary mirror incomplete or unexpected outcome')
+          else:
+              stop_unsafe('unrecognized data plane mode')
           PY
             )"
             if [ "$next_step" = stop ]; then break; fi
