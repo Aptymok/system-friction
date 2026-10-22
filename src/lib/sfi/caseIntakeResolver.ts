@@ -133,8 +133,11 @@ export function resolveCasePlatformCreationIntake(inputValue: unknown) {
     && end !== null && end <= Date.now() && observationRefs.length > 0;
   const sedimented = Boolean(baselineComplete && text(input.sedimentationReflection));
   const projectDefined = Boolean(text(input.projectObjective) && text(input.projectExecutionPlace) && text(input.projectAcceptanceCriteria));
+  const subjectKind = (text(input.subjectKind) ?? 'UNKNOWN').toUpperCase();
+  const primaryMethod = subjectKind === 'PERSON' ? 'MOP_H' : subjectKind === 'SFI_SYSTEM' ? 'SFI_INSTITUTIONAL' : ['ORGANIZATION','PROJECT','CASE'].includes(subjectKind) ? 'PPOI' : ['OBJECT','ARTIFACT','SYSTEM','AI_AGENT'].includes(subjectKind) ? 'SCOREFRICTION' : 'UNRESOLVED';
   const attractorOnboarding = {
     contract: 'SFI-ATTRACTOR-ONBOARDING-1.0',
+    subjectKind, primaryMethod,
     declaredAttractor, intendedDestination,
     requiredObservationHours: 72,
     elapsedObservationHours: elapsedHours,
