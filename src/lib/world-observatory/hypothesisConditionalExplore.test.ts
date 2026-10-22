@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { evaluatePossibility, type PossibilityInput } from './hypothesisConditionalExplore';
+import { evaluatePossibility, compareRivalConditions, type PossibilityInput } from './hypothesisConditionalExplore';
 import type { HypothesisConditionalBranch } from './hypothesisConditionalBranches';
 
 const branch: HypothesisConditionalBranch = {
