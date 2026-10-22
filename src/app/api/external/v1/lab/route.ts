@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { readMethodLabState } from '@/lib/method-lab/readModel';
 import { buildMethodLabPublicationPackage, methodLabResearchHubTarget, persistMethodLabResearchObject, readMethodLabResearchState } from '@/lib/method-lab/researchObjects';
 import { assessMethodLabResearchAssurance } from '@/lib/method-lab/researchAssurance';
+import { buildMethodLabIndependentReviewDossier } from '@/lib/method-lab/researchReviewDossier';
 import { runMethodLabSimulation } from '@/lib/method-lab/simulationRun';
 import { runMihmFoundationDiagnostic } from '@/lib/method-lab/mihmFoundationDiagnosticRun';
 import { previewMethodLabRealityPassport } from '@/lib/method-lab/researchPassportPreview';
@@ -139,6 +140,7 @@ export async function POST(req: Request) {
     const researchObject = objectId ? research.objects.find((item) => item.objectId === objectId) ?? null : null;
     const publicationPackage = researchObject ? buildMethodLabPublicationPackage(researchObject) : null;
     const researchAssurance = researchObject && publicationPackage ? assessMethodLabResearchAssurance(researchObject, publicationPackage) : null;
+    const researchReviewDossier = researchObject && researchAssurance ? buildMethodLabIndependentReviewDossier(researchObject, researchAssurance) : null;
     const researchPassportPreview = researchObject ? previewMethodLabRealityPassport(researchObject) : null;
     if (objectId && !researchObject) {
       return NextResponse.json({ ok: false, error: 'research_object_not_found', objectId }, { status: 404 });
@@ -153,6 +155,7 @@ export async function POST(req: Request) {
       researchObject,
       publicationPackage,
       researchAssurance,
+      researchReviewDossier,
       researchPassportPreview,
       transportBoundary: 'Method Lab is source of truth. Hub/Zenodo mutation requires governed promotion plus an authorized external transport agent.',
       warnings,

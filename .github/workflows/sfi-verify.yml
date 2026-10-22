@@ -62,7 +62,7 @@ jobs:
       - name: Verify MIHM foundation missingness diagnostic
         run: npx tsx scripts/qa-sfi-mihm-foundation-missingness.ts
       - name: Verify Method Lab research assurance package bytes and public boundaries
-        run: node --import tsx --test src/lib/method-lab/researchAssurance.test.ts src/lib/method-lab/externalLabRoute.test.ts
+        run: node --import tsx --test src/lib/method-lab/researchAssurance.test.ts src/lib/method-lab/researchReviewDossier.test.ts src/lib/method-lab/externalLabRoute.test.ts
 
       - name: Verify native MIHM G1 Method Lab experiment
         run: node --import tsx --test src/lib/method-lab/mihmFoundationDiagnostic.test.ts
