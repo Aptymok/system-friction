@@ -83,6 +83,34 @@ export async function readPrimaryAuthorityRow(
   return rows.length === 1 && rows[0] && typeof rows[0] === 'object' ? rows[0] : null;
 }
 
+/**
+ * Exact scoped primary read for a single tenant membership. No fallback.
+ * Never query by email, role alone, or an unchecked user-supplied URL.
+ */
+export async function readPrimaryTenantMembershipRow(
+  tenantId: string,
+  userId: string,
+): Promise<Record<string, unknown> | null> {
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuid.test(tenantId) || !uuid.test(userId))
+    throw new Error('SFI_TENANT_MEMBERSHIP_RECONCILIATION_INVALID_ID');
+  const { url, key } = primaryCredentials();
+  const query = new URLSearchParams({
+    select: '*', tenant_id: `eq.${tenantId}`, user_id: `eq.${userId}`, limit: '2',
+  });
+  const response = await fetch(`${url}/rest/v1/sfi_tenant_members?${query.toString()}`, {
+    method: 'GET',
+    headers: {
+      apikey: key, Authorization: `Bearer ${key}`,
+      'X-Client-Info': 'sfi-protected-tenant-membership-primary-direct',
+    },
+    cache: 'no-store',
+  });
+  const rows = await jsonResponse(response, 'SFI_PRIMARY_TENANT_MEMBER_DIRECT_READ');
+  if (!Array.isArray(rows) || rows.length > 1) throw new Error('SFI_TENANT_MEMBER_PRIMARY_AMBIGUOUS');
+  return rows.length === 1 && rows[0] && typeof rows[0] === 'object' ? rows[0] : null;
+}
+
 export async function probePrimaryDataPlane() {
   const { url, key } = primaryCredentials();
   const response = await fetch(`${url}/rest/v1/profiles?select=user_id&limit=1`, {

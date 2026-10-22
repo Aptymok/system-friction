@@ -9,6 +9,21 @@ const workflow = read('.github/workflows/sfi-continuity-hourly.yml');
 const root = read('src/app/api/external/v1/root/operate/route.ts');
 const mirror = read('src/lib/persistence/primaryMirror.ts');
 const recover = read('src/lib/persistence/continuityRecovery.ts');
+const authority = read('src/lib/persistence/authorityJournalSupersession.ts');
+const primaryRpc = read('src/lib/persistence/dataPlaneRpc.ts');
+const proof = read('src/lib/persistence/tenantMemberAuthorityProof.ts');
+
+assert.ok(authority.includes("'profiles','sfi_account_access_grants','sfi_tenant_members'"), 'MEM003 must enumerate tenant membership in existing protected authority scope');
+assert.ok(authority.includes('tenantMemberHistoricalParity(primary, neon, beforeImage, historical)'), 'every tenant membership journal image must be tested against both current planes and BEFORE');
+assert.ok(authority.includes("j.status='PENDING' and j.operation='UPSERT'"), 'only pending historical upserts may be superseded');
+assert.ok(authority.includes("j.row_data->>'role'=j.before_data->>'role'"), 'role changes cannot be reclassified as timestamp-only');
+assert.ok(authority.includes("j.row_data->>'status'=j.before_data->>'status'"), 'membership state changes cannot be reclassified');
+assert.ok(authority.includes("'SUPERSEDED_BY_PRIMARY'"), 'historical images must be preserved rather than marked REPLAYED');
+assert.ok(primaryRpc.includes('readPrimaryTenantMembershipRow(') && primaryRpc.includes("cache: 'no-store'"), 'authority comparison must perform a fresh direct PRIMARY read');
+assert.ok(recover.includes("row.table_name === 'sfi_tenant_members'"), 'full fingerprint check must evaluate tenant membership using current independent semantic proof');
+assert.ok(proof.includes("key !== 'created_at' && key !== 'updated_at'"), 'only administrative timestamps are excluded from comparison');
+execFileSync(process.execPath, ['--import', 'tsx', '--test', 'src/lib/persistence/tenantMemberAuthorityProof.test.ts'], { stdio: 'inherit' });
+
 const certificate = read('src/lib/persistence/primaryMirrorCertification.ts');
 const actionGate = read('src/lib/continuity/actionableWorkGate.ts');
 
