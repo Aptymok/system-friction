@@ -160,6 +160,8 @@ test('adaptive proposal goes through authenticated ROOT, idempotent draft and ex
  assert.match(route,/!plan\.canCreateDraftProposal/);
  assert.match(route,/proposalType:'trajectory_reconfiguration'/);
  assert.match(route,/createActionProposal\(/);
+ assert.match(route,/hasVerifiedLatestUniversalReturnCalibration\(history\.events\)/);
+ assert.match(route,/PRIOR_CYCLE_CASE_OR_TENANT_MISMATCH/);
  assert.match(route,/approvalRequired:true/);
  assert.match(route,/auditRootAction\(/);
  assert.match(route,/worldReturnVerified:false/);
@@ -167,4 +169,24 @@ test('adaptive proposal goes through authenticated ROOT, idempotent draft and ex
  const enterprise=readFileSync('src/components/sfi/RealityChainWorkbench.tsx','utf8');
  assert.equal(enterprise.includes('deriveAdaptiveTrajectoryPlan'),false);
  assert.equal(enterprise.includes('trajectory_reconfiguration'),false);
+});
+
+test('a case-linked independently calibrated contradiction triggers a prospective replan',()=>{
+ const stable={...adaptiveBaseline,
+   regime:{changed:false,previous:'stable',world:'stable',vector:'stable'},
+   direction:{current:'stable',projected:'stable',confidence:0.8},
+   degradation:{level:0.25,trend:'stable',notes:[]}} as OperationalCycleState;
+ const verifiedPreviousReturn={classification:'CONTRADICTED' as const,
+   eventId:'registered-contrast-1',evidenceRefs:['world:observed:1']};
+ const replan=deriveAdaptiveTrajectoryPlan({...adaptiveInput,state:stable,verifiedPreviousReturn});
+ assert.equal(replan.observation.previousWorldReturnVerified,true);
+ assert.equal(replan.selectedRouteId,'RECONFIGURE');
+ assert.equal(replan.execution.automaticExternalExecution,false);
+ const confirmed=deriveAdaptiveTrajectoryPlan({...adaptiveInput,state:stable,
+   verifiedPreviousReturn:{...verifiedPreviousReturn,classification:'CONFIRMED'}});
+ assert.equal(confirmed.selectedRouteId,'OBSERVE','do not automatically repeat a successful route');
+ const unverified=deriveAdaptiveTrajectoryPlan({...adaptiveInput,state:stable,
+   verifiedPreviousReturn:{...verifiedPreviousReturn,evidenceRefs:[]}});
+ assert.equal(unverified.observation.previousWorldReturnVerified,false);
+ assert.equal(unverified.selectedRouteId,'BOUNDED_TEST');
 });
