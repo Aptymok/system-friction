@@ -1,9 +1,10 @@
 import 'server-only';
 
 import { continuityDatabase } from '@/lib/sfi/continuityPostgres';
-import { readPrimaryAuthorityRow } from '@/lib/persistence/dataPlaneRpc';
+import { readPrimaryAuthorityRow, readPrimaryTenantMembershipRow } from '@/lib/persistence/dataPlaneRpc';
+import { tenantMemberHistoricalParity } from '@/lib/persistence/tenantMemberAuthorityProof';
 
-type AuthorityTable = 'profiles' | 'sfi_account_access_grants';
+type AuthorityTable = 'profiles' | 'sfi_account_access_grants' | 'sfi_tenant_members';
 type RecordValue = Record<string, unknown>;
 
 function record(value: unknown): RecordValue {
@@ -71,11 +72,11 @@ export async function reconcileSupersededAuthorityJournal(input: { maxEntries?: 
   const limit = Math.max(1, Math.min(12, Math.floor(input.maxEntries ?? 8)));
   const sql = continuityDatabase();
   const journal = await sql`
-    select operation_id::text, table_name, operation, row_data, status
+    select operation_id::text, table_name, operation, row_data, before_data, status
     from public.sfi_data_plane_write_journal
     where status in ('PENDING','CONFLICT')
       and operation='UPSERT'
-      and table_name in ('profiles','sfi_account_access_grants')
+      and table_name in ('profiles','sfi_account_access_grants','sfi_tenant_members')
     order by sequence asc
     limit ${limit}
   `;
@@ -84,6 +85,68 @@ export async function reconcileSupersededAuthorityJournal(input: { maxEntries?: 
   for (const entry of journal) {
     const table = String(entry.table_name) as AuthorityTable;
     const historical = record(entry.row_data);
+    if (table === 'sfi_tenant_members') {
+      // Tenant membership is an authorization boundary. Preserve historical
+      // changes verbatim and supersede ONLY timestamp-only UPSERT images
+      // whose before/after/current PRIMARY/current Neon authority all agree.
+      const beforeImage = record(entry.before_data);
+      const tenantId = historical.tenant_id;
+      const userId = historical.user_id;
+      const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (entry.status !== 'PENDING' || typeof tenantId !== 'string' ||
+          typeof userId !== 'string' || !uuid.test(tenantId) || !uuid.test(userId) ||
+          Object.keys(beforeImage).length === 0) {
+        protectedMismatches++;
+        continue;
+      }
+      let primary: RecordValue | null;
+      try {
+        primary = await readPrimaryTenantMembershipRow(tenantId, userId);
+      } catch {
+        primaryUnavailable = true;
+        break;
+      }
+      const present = await sql`
+        select to_jsonb(m) as row,
+               md5((to_jsonb(m)-'created_at'-'updated_at')::text) as stable_hash
+        from public.sfi_tenant_members m
+        where m.tenant_id=${tenantId}::uuid and m.user_id=${userId}::uuid limit 2
+      `;
+      const neon = record(present[0]?.row);
+      if (!primary || present.length !== 1 ||
+          !tenantMemberHistoricalParity(primary, neon, beforeImage, historical)) {
+        protectedMismatches++;
+        continue;
+      }
+      // The secondary DB rechecks the full semantic image immediately at
+      // journal status transition. No authority row is updated or replayed.
+      const stableHash = String(present[0].stable_hash ?? '');
+      const operationId = String(entry.operation_id);
+      const archived = await sql`
+        update public.sfi_data_plane_write_journal j
+        set status='SUPERSEDED_BY_PRIMARY',
+            last_error=left(coalesce(nullif(j.last_error,'') || ' | ', '') ||
+              'MEM003_TENANT_MEMBERSHIP_BILATERAL_SEMANTIC_PARITY:historical_image_preserved;never_replayed',4000),
+            updated_at=now()
+        where j.operation_id=${operationId}::uuid
+          and j.status='PENDING' and j.operation='UPSERT'
+          and j.table_name='sfi_tenant_members'
+          and j.row_data->>'tenant_id'=${tenantId}
+          and j.row_data->>'user_id'=${userId}
+          and j.before_data is not null
+          and j.row_data->>'role'=j.before_data->>'role'
+          and j.row_data->>'status'=j.before_data->>'status'
+          and exists (
+            select 1 from public.sfi_tenant_members m
+            where m.tenant_id=${tenantId}::uuid and m.user_id=${userId}::uuid
+              and md5((to_jsonb(m)-'created_at'-'updated_at')::text)=${stableHash}
+          )
+        returning j.operation_id
+      `;
+      if (archived.length === 1) superseded++;
+      else protectedMismatches++;
+      continue;
+    }
     const rowId = table === 'profiles' ? historical.user_id : historical.id;
     if (typeof rowId !== 'string') { protectedMismatches++; continue; }
 
@@ -150,7 +213,7 @@ export async function reconcileSupersededAuthorityJournal(input: { maxEntries?: 
 }
 
 /**
- * Final certification lane for the two protected tables: tolerate only known
+ * Final certification lane for protected authority tables: tolerate only known
  * administrative metadata drift, NEVER role/grant/identity/scope drift.
  * Every Neon record is checked against the independent Supabase primary
  * before a fingerprint mismatch can be considered semantically equivalent.
@@ -160,11 +223,22 @@ export async function currentAuthorityParityVerified(table: AuthorityTable): Pro
   const sql = continuityDatabase();
   const neonRows = table === 'profiles'
     ? await sql`select to_jsonb(p) as row from public.profiles p order by p.user_id limit 501`
-    : await sql`select to_jsonb(g) as row from public.sfi_account_access_grants g order by g.id limit 501`;
+    : table === 'sfi_tenant_members'
+      ? await sql`select to_jsonb(m) as row from public.sfi_tenant_members m order by m.tenant_id,m.user_id limit 501`
+      : await sql`select to_jsonb(g) as row from public.sfi_account_access_grants g order by g.id limit 501`;
   if (neonRows.length > 500) return false; // bounded safety gate, not silent certification
 
   for (const entry of neonRows) {
     const neon = record(entry.row);
+    if (table === 'sfi_tenant_members') {
+      const tenantId = neon.tenant_id;
+      const userId = neon.user_id;
+      if (typeof tenantId !== 'string' || typeof userId !== 'string') return false;
+      let primary: RecordValue | null = null;
+      try { primary = await readPrimaryTenantMembershipRow(tenantId, userId); } catch { return false; }
+      if (!primary || !tenantMemberHistoricalParity(primary, neon, neon, neon)) return false;
+      continue;
+    }
     const rowId = table === 'profiles' ? neon.user_id : neon.id;
     if (typeof rowId !== 'string') return false;
     let primary: RecordValue | null = null;
