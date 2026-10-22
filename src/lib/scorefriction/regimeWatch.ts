@@ -88,11 +88,17 @@ export function deriveAdaptiveTrajectoryPlan(input: {
     !state.technical_state.fallback_used);
   const technicalWarnings = state.technical_state.warnings.slice(0, 8);
   const availableCaseEvidence = Array.isArray(state.evidence) && state.evidence.length > 0;
+  // Readiness for an *internal* proposal is not a license to publish, contact,
+  // mutate infrastructure, pay, or perform a material intervention. ScoreFriction
+  // experiment templates can suggest publication in ordinary Spanish.
+  const proposedAction=candidate?.action ?? '';
+  const materialAction=/(?:\bpublish\b|\bpost\b|\bupload\b|\bsend\b|\bdeploy\b|\bmerge\b|\bpurchase\b|\bpayment\b|\bcontact\b|publicar|publicaci[oó]n|difundir|distribuir|subir contenido|enviar (?:correo|mensaje)|desplegar|implementar en producci[oó]n|fusionar|pagar|comprar|intervenir materialmente)/i.test(proposedAction);
   const blockers = [
     !electedAttractor ? 'ELECTED_ATTRACTOR_REQUIRED' : null,
     !hasObject ? 'CASE_OBJECT_REQUIRED' : null,
     !sourcesReady ? 'WORLD_SOURCE_READ_NOT_VERIFIED' : null,
     !availableCaseEvidence ? 'PERSISTED_CASE_EVIDENCE_REQUIRED' : null,
+    materialAction ? 'EXTERNAL_OR_MATERIAL_ACTION_REQUIRES_SEPARATE_EXECUTION_AUTHORITY' : null,
     !input.hypothesisPrimary?.trim() ? 'PREREGISTRATION_CANDIDATE_REQUIRED' : null,
     !input.hypothesisRival?.trim() ? 'RIVAL_HYPOTHESIS_REQUIRED' : null,
   ].filter((value):value is string=>Boolean(value));
@@ -124,7 +130,7 @@ export function deriveAdaptiveTrajectoryPlan(input: {
     expectedWorldSignal:candidate?.expected_effect ?? 'A discriminating observed signal against the frozen test contract.',
     verificationWindow:candidate?.verification_window ?? 'Prospective bounded window to be preregistered.',
     stoppingCondition:candidate?.failure_condition ?? 'Stop at a preregistered contradiction or boundary breach.',
-    reversibility:'REVERSIBLE',
+    reversibility:materialAction ? 'UNASSESSED' : 'REVERSIBLE',
     evidenceRequired:[...(candidate?.evidence_required ?? []),'registered H1/H2 test','independent world RETURN'],
     expectedDisplacement:null,worldReturnVerified:false,externalExecutionAuthorized:false,
   };
@@ -138,7 +144,7 @@ export function deriveAdaptiveTrajectoryPlan(input: {
     expectedWorldSignal:candidate?.expected_effect ?? 'A later-world observation distinguishes the reconfigured route from its rival.',
     verificationWindow:candidate?.verification_window ?? 'New prospective T0 and observation interval required.',
     stoppingCondition:candidate?.failure_condition ?? 'Stop if outcome is unobservable or constraints are breached.',
-    reversibility:candidate ? 'REVERSIBLE' : 'UNASSESSED',
+    reversibility:candidate && !materialAction ? 'REVERSIBLE' : 'UNASSESSED',
     evidenceRequired:[...(candidate?.evidence_required??[]),'frozen criteria','independent outcome evidence'],
     expectedDisplacement:null,worldReturnVerified:false,externalExecutionAuthorized:false,
   };
@@ -154,6 +160,7 @@ export function deriveAdaptiveTrajectoryPlan(input: {
       rival:input.hypothesisRival?.trim()||null,
       status:'CANDIDATE_NOT_OBSERVED_OR_VERIFIED' as const},
     observation:{watch,weakSignalCount,caseEvidenceAvailable:availableCaseEvidence,
+      proposedMaterialAction:materialAction,
       technicalWarnings,sourceReadReady:sourcesReady,
       previousWorldReturnVerified:previousReturnVerified,
       previousReturn:previousReturnVerified ? previous : null},
@@ -163,6 +170,6 @@ export function deriveAdaptiveTrajectoryPlan(input: {
     execution:{automaticExternalExecution:false as const,internalExecutionPerformed:false as const,
       existingGovernanceQueueRequired:true as const,requiresFutureIndependentReturn:true as const,
       learningPromoted:false as const},
-    boundary:'Routes are candidate actions only. Weak signals do not refute H1, prove H2, establish displacement, or change the elected attractor. No draft/approval can mutate Canon or authorize an external act without existing SFI governance.',
+    boundary:'Routes are candidate actions only. Weak signals do not refute H1, prove H2, establish displacement, or change the elected attractor. External/material actions require an independently authorized execution contract and are not labeled reversible by this read model. No draft/approval can mutate Canon or authorize an external act without existing SFI governance.',
   };
 }
