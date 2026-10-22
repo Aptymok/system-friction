@@ -318,10 +318,10 @@ export function deriveHypothesisIntakeFromNarrative(inputValue: unknown) {
     : field('subjectKind').toUpperCase() === 'SFI_SYSTEM' ? 'SFI_INSTITUTIONAL'
     : 'SCOREFRICTION';
   const hypothesis=complete
-    ? 'If the proposed action is carried out in the bounded system, the reported observable change may occur along the chosen direction.'
+    ? 'En '+subject+', ejecutar «'+action+'» podría producir «'+visible+'» en dirección al atractor «'+goal+'», conservando «'+limits+'».'
     : null;
   const rival=complete
-    ? 'The visible change may fail to occur after the action, or may occur without it due to another process or baseline variation.'
+    ? 'En '+subject+', el cambio «'+visible+'» podría no producirse pese a ejecutar «'+action+'», o producirse sin esa acción por condiciones previas o externas.'
     : null;
   // SFI generates these as candidate tests. The minimum counts below are
   // methodological *proposals*, not empirically calibrated thresholds.
