@@ -54,7 +54,13 @@ export async function POST(request: NextRequest) {
       contract:plan.contract,caseId,attractor:chosenAttractor,
       chosenRoute:plan.selectedRouteId,sourceSnapshot:snapshotRef,
       primary:hypothesis.proposedHypothesis,rival:hypothesis.proposedRival,
+      observation:plan.observation.watch,
+      route:plan.routes.find(route=>route.id===plan.selectedRouteId),
       weakSignals:plan.observation.weakSignalCount,
+      caseEvidenceRefs:state.evidence.map(value=>{
+        const entry=value && typeof value==='object' ? value as Record<string,unknown> : {};
+        return typeof entry.id==='string' ? entry.id : null;
+      }).filter(Boolean),
     });
     const selected=plan.routes.find(route=>route.id===plan.selectedRouteId)!;
     if (body.commitDraft !== true) return NextResponse.json({
