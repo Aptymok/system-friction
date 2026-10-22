@@ -141,16 +141,14 @@ export function compareRivalConditions(input:{
     sealed && Date.parse(world!.observedAt)>=Date.parse(sealed.actionAt));
   const worldPrediction=worldVerifiable?(world?.predictedSignalMatched==='YES'?'REQUIRES_SOURCE_VERIFICATION':
     world?.predictedSignalMatched==='NO'?'REQUIRES_SOURCE_VERIFICATION':'INCONCLUSIVE'):'NOT_VERIFIED';
-  const attractorState=worldVerifiable && world?.attractorObserved==='YES'
-    ? 'OBSERVED_DESTINATION_REACHED' : 'NOT_VERIFIED';
+  const attractorState='NOT_VERIFIED';
   return {
     contract:'SFI-RIVAL-CONDITIONAL-ATTRACTOR-1.0',
     electedAttractor:input.electedAttractor,
     primary:{criterionId:input.primary.criterionId,scenario:primary},
     rival:{criterionId:input.rival.criterionId,scenario:rival},
     comparison:{comparable,advantage,epistemicClass:'CONDITIONAL_NOT_OBSERVED' as const},
-    recovery:{state:false?'WORLD_RETURN_SUPPORTS_ATTRACTOR':
-      routeReady?'CONDITIONAL_REENTRY_NOT_EXECUTED':'NO_ADMISSIBLE_ROUTE',
+    recovery:{state:routeReady?'CONDITIONAL_REENTRY_NOT_EXECUTED':'NO_ADMISSIBLE_ROUTE',
       condition:recovery?.condition??null,expectedWorldSignal:recovery?.expectedWorldSignal??null,
       possibleDespitePrimaryLoss:advantage==='RIVAL_CONDITION_ADVANTAGE' && routeReady,
       destinationVerified:false},
