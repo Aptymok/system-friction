@@ -129,8 +129,22 @@ export function resolveCasePlatformCreationIntake(inputValue: unknown) {
   const observationRefs = Array.isArray(observation.evidenceRefs)
     ? observation.evidenceRefs.filter((ref): ref is string => typeof ref === 'string' && Boolean(ref.trim()))
     : [];
+  const observedDays = new Set<number>();
+  if (start !== null && end !== null && Array.isArray(observation.marks)) {
+    for (const rawMark of observation.marks) {
+      const mark = row(rawMark);
+      const recordedAt = text(mark.observedAt);
+      const evidenceRef = text(mark.evidenceRef);
+      if (!recordedAt || !evidenceRef || !Number.isFinite(Date.parse(recordedAt))) continue;
+      const time = Date.parse(recordedAt);
+      if (time < start || time > end) continue;
+      const day = Math.floor((time - start) / 86_400_000);
+      if (day >= 0 && day <= 2) observedDays.add(day);
+    }
+  }
   const baselineComplete = elapsedHours !== null && elapsedHours >= 72
-    && end !== null && end <= Date.now() && observationRefs.length > 0;
+    && end !== null && end <= Date.now() && observationRefs.length > 0
+    && observedDays.size === 3;
   const sedimented = Boolean(baselineComplete && text(input.sedimentationReflection));
   const projectDefined = Boolean(text(input.projectObjective) && text(input.projectExecutionPlace) && text(input.projectAcceptanceCriteria));
   const subjectKind = (text(input.subjectKind) ?? 'UNKNOWN').toUpperCase();
@@ -149,6 +163,7 @@ export function resolveCasePlatformCreationIntake(inputValue: unknown) {
     declaredAttractor, intendedDestination,
     requiredObservationHours: 72,
     elapsedObservationHours: elapsedHours,
+    observedDailySegments: observedDays.size,
     observationEvidenceRefs: observationRefs,
     baselineComplete, sedimented,
     readyForProjectExecution: Boolean(declaredAttractor && intendedDestination && sedimented && projectDefined),
