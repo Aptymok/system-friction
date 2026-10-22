@@ -61,6 +61,7 @@ function harness(runError?: string) {
     return moduleExports;
   };
   mocks['@/lib/method-lab/researchObjects'] = load('src/lib/method-lab/researchObjects.ts');
+  mocks['@/lib/method-lab/researchAssurance'] = load('src/lib/method-lab/researchAssurance.ts');
   vm.runInNewContext(compiled, { exports, require: (id: string) => id in mocks ? mocks[id] : require(id), Response, Date });
   return { events, runs, manifest: async () => (await load('src/app/api/external/v1/manifest/route.ts').GET()).json(), post: async (body: unknown, scope = 'lab:write') => exports.POST(new Request('https://sfi.test/api/external/v1/lab', { method: 'POST', headers: { 'x-test-scope': scope, 'content-type': 'application/json' }, body: JSON.stringify(body) })) as Promise<Response> };
 }
@@ -182,6 +183,9 @@ test('published research metadata survives MCP, receipt and real object projecti
   assert.equal(object.returnState, 'PENDING');
   const passportReport = await (await h.post({ operation: 'report', objectId: 'qa-research' }, 'lab:read')).json();
   assert.equal(passportReport.researchPassportPreview?.representation, 'READ_ONLY_METHOD_LAB_PREVIEW');
+  assert.equal(passportReport.researchAssurance?.p3CertificationStatus, 'NOT_CERTIFIED');
+  assert.equal(passportReport.researchAssurance?.p5PublicationStatus, 'NOT_PUBLISHED_BY_ASSESSMENT');
+  assert.equal(passportReport.researchAssurance?.eligibleForGovernedReview, false, 'a private research object cannot pass a public assurance boundary');
   assert.equal(passportReport.researchPassportPreview?.graphPersisted, false);
   const { researchMetadata: ignored, ...canonical } = body;
   assert.equal((await h.post({ ...canonical, metadata: researchMetadata })).status, 200);
