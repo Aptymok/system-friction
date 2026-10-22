@@ -21,6 +21,30 @@ const nestedResolved = {
 const nested = resolveCasePlatformCreationIntakeFromAction(nestedResolved);
 assert.equal(nested.readyForCreate, true, 'canonical nested Action fields must remain supported');
 assert.deepEqual(nested.missingContext, []);
+assert.equal(nested.readyForProjectExecution, false, 'observational case is not yet authorized as an execution project');
+
+const projectReady = resolveCasePlatformCreationIntakeFromAction({
+  ...nestedResolved,subjectKind:'PERSON',declaredAttractor:'Elected destination',
+  intendedDestination:'Operating institution',attractorObservation:{
+    startedAt:'2026-10-15T09:00:00Z',closedAt:'2026-10-19T09:00:00Z',evidenceRefs:['participant:1','participant:2','participant:3'],
+    marks:[{observedAt:'2026-10-15T10:00:00Z',evidenceRef:'participant:1'},
+      {observedAt:'2026-10-16T10:00:00Z',evidenceRef:'participant:2'},
+      {observedAt:'2026-10-17T10:00:00Z',evidenceRef:'participant:3'}],
+  },sedimentationReflection:'Observed repeated obstacles',
+  projectObjective:'Demonstrate a bounded execution',
+  projectExecutionPlace:'User-authorized environment',
+  projectAcceptanceCriteria:'A recorded and independently verified RETURN',
+});
+assert.equal(projectReady.attractorOnboarding.primaryMethod,'MOP_H');
+assert.equal(projectReady.candidateReadyForProjectReview,true);
+assert.equal(projectReady.readyForProjectExecution,false,'participant-supplied marks are not independent server verification');
+const shortWindow=resolveCasePlatformCreationIntakeFromAction({
+  ...nestedResolved,declaredAttractor:'Elected',intendedDestination:'Outcome',
+  attractorObservation:{startedAt:'2026-10-18T08:00:00Z',closedAt:'2026-10-18T10:00:00Z',evidenceRefs:['user:1']},
+  sedimentationReflection:'Reflection',projectObjective:'Work',projectExecutionPlace:'Here',
+  projectAcceptanceCriteria:'Observations',
+});
+assert.equal(shortWindow.readyForProjectExecution,false,'a two-hour sample is not 72-hour sedimentation');
 
 const flatResolved = {
   operation: 'intake_plan',

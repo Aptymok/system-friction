@@ -56,6 +56,9 @@ jobs:
 
       - name: Verify MIHM method selection
         run: npx tsx scripts/qa-sfi-method-selection.ts
+
+      - name: Verify elected-attractor onboarding and rival RETURN separation
+        run: npx tsx scripts/qa-sfi-case-intake-action-binding.ts && node --import tsx --test src/lib/world-observatory/hypothesisConditionalExplore.test.ts
       - name: Verify MIHM foundation missingness diagnostic
         run: npx tsx scripts/qa-sfi-mihm-foundation-missingness.ts
       - name: Verify native MIHM G1 Method Lab experiment

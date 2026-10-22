@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { evaluatePossibility, type PossibilityInput } from './hypothesisConditionalExplore';
+import { evaluatePossibility, compareRivalConditions, type PossibilityInput } from './hypothesisConditionalExplore';
 import type { HypothesisConditionalBranch } from './hypothesisConditionalBranches';
 
 const branch: HypothesisConditionalBranch = {
@@ -11,9 +11,42 @@ const branch: HypothesisConditionalBranch = {
   contextRule:'Frozen original validation window only.',
   verificationState:'NOT_EVALUATED_HERE',
 };
+assert.throws(() => compareRivalConditions({ electedAttractor: '' } as any), /ELECTED_ATTRACTOR_REQUIRED/);
+
 const sample: PossibilityInput = {
   value:'0.75', presence:'UNKNOWN', observations:'5', evidence:'10', sourceFamilies:'1',
 };
+
+
+test('rival wins a criterion but attractor remains a conditional destination', () => {
+ const r=compareRivalConditions({
+   primary:branch,rival:{...branch,id:'R',operator:'LT',threshold:0.4},
+   primaryScenario:{...sample,value:'0.2'},rivalScenario:{...sample,value:'0.2'},
+   primaryWindowRef:'same',rivalWindowRef:'same',minimumEvidence:5,minimumSourceFamilies:1,
+   electedAttractor:'Chosen',recovery:{action:'Bounded move',condition:'If possible',expectedWorldSignal:'Return',reversible:true}
+ });
+ assert.equal(r.comparison.advantage,'RIVAL_CONDITION_ADVANTAGE');
+ assert.equal(r.recovery.possibleDespitePrimaryLoss,true);
+ assert.equal(r.recovery.destinationVerified,false);
+ assert.equal(r.returns.world.state,'NOT_VERIFIED');
+});
+
+
+test('separate reported and world returns require a frozen before-action prediction',()=>{
+ const base={primary:branch,rival:branch,primaryScenario:sample,rivalScenario:sample,
+  primaryWindowRef:'same',rivalWindowRef:'same',minimumEvidence:5,minimumSourceFamilies:1,electedAttractor:'Chosen',
+  participantReturn:{claimedAction:'I acted',evidenceRefs:['claim:1']},
+  worldReturn:{observedAt:'2026-10-21T12:00:00Z',evidenceRefs:['world:1'],independentlyVerified:true,
+   predictedSignalMatched:'YES' as const,attractorObserved:'YES' as const}};
+ const reported=compareRivalConditions(base);
+ assert.equal(reported.returns.participant.state,'USER_REPORTED');
+ assert.equal(reported.returns.world.state,'NOT_VERIFIED');
+ const confirmed=compareRivalConditions({...base,sealedPrediction:{
+  hash:'sha256:registered',frozenAt:'2026-10-18T12:00:00Z',actionAt:'2026-10-19T12:00:00Z'}});
+ assert.equal(confirmed.returns.world.state,'REQUIRES_SOURCE_VERIFICATION');
+ assert.equal(confirmed.recovery.destinationVerified,false);
+ assert.equal(confirmed.learning.promoted,false);
+});
 
 test('the original frozen branch is never mutated', () => {
   const before = JSON.stringify(branch);
