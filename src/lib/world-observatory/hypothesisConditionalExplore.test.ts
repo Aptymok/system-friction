@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { evaluatePossibility, compareRivalConditions, type PossibilityInput } from './hypothesisConditionalExplore';
 import type { HypothesisConditionalBranch } from './hypothesisConditionalBranches';
 import { deriveAdaptiveTrajectoryPlan } from '@/lib/scorefriction/regimeWatch';
@@ -149,4 +150,21 @@ test('a regime warning without viable bounded experiment only asks for evidence'
     state:{...adaptiveBaseline,recommended_experiments:[{...adaptiveBaseline.recommended_experiments![0],status:'watch_only'}]} as OperationalCycleState});
   assert.equal(plan.selectedRouteId,'OBSERVE');
   assert.equal(plan.canCreateDraftProposal,false);
+});
+
+test('adaptive proposal goes through authenticated ROOT, idempotent draft and existing governance queue',()=>{
+ const route=readFileSync('src/app/api/scorefriction/regime-watch/route.ts','utf8');
+ assert.match(route,/body\?\.operation === 'adaptive_plan'/);
+ assert.match(route,/requireRootActor\('scorefriction\.adaptive\.plan'\)/);
+ assert.match(route,/if \(body\.commitDraft !== true\)/);
+ assert.match(route,/!plan\.canCreateDraftProposal/);
+ assert.match(route,/proposalType:'trajectory_reconfiguration'/);
+ assert.match(route,/createActionProposal\(/);
+ assert.match(route,/approvalRequired:true/);
+ assert.match(route,/auditRootAction\(/);
+ assert.match(route,/worldReturnVerified:false/);
+ assert.equal(route.includes('executeAuthorizedSfiAction'),false);
+ const enterprise=readFileSync('src/components/sfi/RealityChainWorkbench.tsx','utf8');
+ assert.equal(enterprise.includes('deriveAdaptiveTrajectoryPlan'),false);
+ assert.equal(enterprise.includes('trajectory_reconfiguration'),false);
 });
