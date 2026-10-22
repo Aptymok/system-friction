@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { appendLogbookEntry } from '@/lib/logbook/query';
 import { buildOperationalCycle } from '@/lib/scorefriction/operationalCycle';
-import { deriveAdaptiveTrajectoryPlan, evaluateRegimeWatch } from '@/lib/scorefriction/regimeWatch';
+import { assessAdaptiveCaseBaseline, deriveAdaptiveTrajectoryPlan, evaluateRegimeWatch } from '@/lib/scorefriction/regimeWatch';
 import { deriveHypothesisIntakeFromNarrative } from '@/lib/sfi/caseIntakeResolver';
 import { createActionProposal, sha256 } from '@/lib/operational/common';
 import { auditRootAction, requireRootActor } from '@/lib/root/server';
@@ -56,11 +56,16 @@ export async function POST(request: NextRequest) {
     // The caller's narrative cannot silently rename an elected attractor.
     // Only an admitted Case ATTRACTOR object with the same explicit declaration
     // can justify a governed draft. Mere references or metric scores do not.
-    const hasDeclaredAttractor=caseEnvelope.objects.some(object=>{
+    const electedAttractorObject=caseEnvelope.objects.find(object=>{
       if(object.kind!=='ATTRACTOR' || object.epistemicRole!=='INFERENCE') return false;
       const declared=object.payload.declaredAttractor ??
         object.payload.chosenAttractor ?? object.payload.attractorStatement;
       return typeof declared==='string' && declared.trim()===chosenAttractor;
+    });
+    const hasDeclaredAttractor=Boolean(electedAttractorObject);
+    const baseline=assessAdaptiveCaseBaseline({
+      objects:caseEnvelope.objects,
+      electedAttractorRef:electedAttractorObject?.canonicalRef.id??null,
     });
     const hypothesis = deriveHypothesisIntakeFromNarrative(narrative);
     const state = await buildOperationalCycle({
@@ -120,6 +125,8 @@ export async function POST(request: NextRequest) {
       casePreconditions:{
         lifecycleEligible:caseIsActive,
         declaredAttractorPresent:hasDeclaredAttractor,
+        baseline72hComplete:baseline.baselineComplete,
+        sedimentationCandidateRecorded:baseline.sedimentationCandidateRecorded,
       },
     });
     const sourceSnapshot = state.world_vector && typeof state.world_vector === 'object'
@@ -151,6 +158,7 @@ export async function POST(request: NextRequest) {
         admittedEvidenceCount:admittedEvidenceRefs.length,
         nonAdmittedScoreFrictionObservationCount:scoreFrictionObservationCount,
         hasDeclaredAttractor,
+        baseline,
         objectKinds:caseEnvelope.objects.map(object=>object.kind),
       },
       next:'To register a governed, non-executing draft, explicitly request commitDraft=true.',

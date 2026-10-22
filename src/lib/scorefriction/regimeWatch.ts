@@ -52,6 +52,57 @@ export function evaluateRegimeWatch(state: OperationalCycleState): RegimeWatchRe
  */
 export const SFI_ADAPTIVE_TRAJECTORY_CONTRACT = 'SFI-ADAPTIVE-TRAJECTORY-1.0' as const;
 
+/**
+ * Admission prerequisite for governed trajectory drafts. Uses server-assigned
+ * Case object createdAt, never editable observedAt, for the 72-hour minimum.
+ * Entries remain DECLARED/RECORD until separately admitted as evidence.
+ */
+export function assessAdaptiveCaseBaseline(input:{
+  objects:Array<{
+    kind:string;createdAt:string;
+    canonicalRef:{id:string};
+    sourceRefs:Array<{id:string}>;
+    recordRefs:Array<{id:string}>;
+    payload:Record<string,unknown>;
+  }>;
+  electedAttractorRef:string|null;
+  nowMs?:number;
+}) {
+  const now=input.nowMs??Date.now();
+  const markers=input.objects.filter(object=>object.kind==='OBSERVATION' &&
+    (object.sourceRefs.length>0 || object.recordRefs.length>0) &&
+    Number.isFinite(Date.parse(object.createdAt)) &&
+    Date.parse(object.createdAt)<=now
+  ).sort((a,b)=>Date.parse(a.createdAt)-Date.parse(b.createdAt));
+  const first=markers[0]?Date.parse(markers[0].createdAt):null;
+  const last=markers.length?Date.parse(markers[markers.length-1].createdAt):null;
+  const distinctDaySegments=first===null?0:new Set(markers.map(object=>
+    Math.floor((Date.parse(object.createdAt)-first)/86_400_000)
+  ).filter(day=>day>=0&&day<=2)).size;
+  const elapsedHours=first!==null && last!==null?(last-first)/3_600_000:null;
+  const baselineComplete=elapsedHours!==null && elapsedHours>=72 && distinctDaySegments===3;
+  const sedimentationRecorded=baselineComplete && Boolean(input.electedAttractorRef) && input.objects.some(object=>{
+    if(object.kind!=='ANALYSIS' || first===null || last===null) return false;
+    const reflection=object.payload.sedimentationReflection;
+    const ref=object.payload.electedAttractorRef;
+    const recorded=Date.parse(object.createdAt);
+    return typeof reflection==='string' && reflection.trim().length>0 &&
+      ref===input.electedAttractorRef && Number.isFinite(recorded) && recorded>=last && recorded<=now;
+  });
+  return {
+    contract:'SFI-ADAPTIVE-BASELINE-72H-1.0' as const,
+    recordedObservationCount:markers.length,
+    observedDailySegments:distinctDaySegments,
+    elapsedRecordedHours:elapsedHours,
+    baselineComplete,
+    sedimentationCandidateRecorded:sedimentationRecorded,
+    temporality:'SERVER_ASSIGNED_CASE_OBJECT_CREATED_AT' as const,
+    evidenceClaim:'NO_INDEPENDENT_WORLD_RETURN_ESTABLISHED' as const,
+    boundary:'72h of server-recorded, referenced self-observations is an admission prerequisite, not empirical validation. Sedimentation is a participant reflection candidate and still requires governed review.',
+  };
+}
+
+
 export type SfiAdaptiveRoute = {
   id: 'OBSERVE' | 'BOUNDED_TEST' | 'RECONFIGURE';
   eligibility: 'READY_FOR_GOVERNED_PROPOSAL' | 'REQUIRES_EVIDENCE' | 'CONDITIONAL_ONLY';
@@ -81,6 +132,8 @@ export function deriveAdaptiveTrajectoryPlan(input: {
   casePreconditions?: {
     lifecycleEligible:boolean;
     declaredAttractorPresent:boolean;
+    baseline72hComplete?:boolean;
+    sedimentationCandidateRecorded?:boolean;
   };
 }) {
   const state = input.state;
@@ -107,6 +160,10 @@ export function deriveAdaptiveTrajectoryPlan(input: {
       ? 'CASE_NOT_OPEN_FOR_GOVERNED_PLANNING' : null,
     input.casePreconditions && !input.casePreconditions.declaredAttractorPresent
       ? 'PERSISTED_ELECTED_ATTRACTOR_REQUIRED' : null,
+    input.casePreconditions && input.casePreconditions.baseline72hComplete!==true
+      ? 'CASE_72H_RECORDED_BASELINE_REQUIRED' : null,
+    input.casePreconditions && input.casePreconditions.sedimentationCandidateRecorded!==true
+      ? 'ATTRACTOR_SEDIMENTATION_CANDIDATE_REQUIRED' : null,
     materialAction ? 'EXTERNAL_OR_MATERIAL_ACTION_REQUIRES_SEPARATE_EXECUTION_AUTHORITY' : null,
     !input.hypothesisPrimary?.trim() ? 'PREREGISTRATION_CANDIDATE_REQUIRED' : null,
     !input.hypothesisRival?.trim() ? 'RIVAL_HYPOTHESIS_REQUIRED' : null,

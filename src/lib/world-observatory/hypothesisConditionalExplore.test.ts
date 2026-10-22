@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { evaluatePossibility, compareRivalConditions, type PossibilityInput } from './hypothesisConditionalExplore';
 import type { HypothesisConditionalBranch } from './hypothesisConditionalBranches';
-import { deriveAdaptiveTrajectoryPlan } from '@/lib/scorefriction/regimeWatch';
+import { assessAdaptiveCaseBaseline, deriveAdaptiveTrajectoryPlan } from '@/lib/scorefriction/regimeWatch';
 import type { OperationalCycleState } from '@/lib/scorefriction/contracts/operationalCycle';
 
 const branch: HypothesisConditionalBranch = {
@@ -217,7 +217,7 @@ test('governed adaptive drafts need a live Case and a persisted elected-attracto
  assert.equal(closed.canCreateDraftProposal,false);
  assert(closed.blockers.includes('CASE_NOT_OPEN_FOR_GOVERNED_PLANNING'));
  const eligible=deriveAdaptiveTrajectoryPlan({...adaptiveInput,
-   casePreconditions:{lifecycleEligible:true,declaredAttractorPresent:true}});
+   casePreconditions:{lifecycleEligible:true,declaredAttractorPresent:true,baseline72hComplete:true,sedimentationCandidateRecorded:true}});
  assert.equal(eligible.canCreateDraftProposal,true);
  assert.equal(eligible.execution.automaticExternalExecution,false);
 });
@@ -232,4 +232,49 @@ test('adaptive Case evidence gate never upgrades source, hypothesis or ScoreFric
  assert.match(route,/PERSISTED_ELECTED_ATTRACTOR_REQUIRED|hasDeclaredAttractor/);
  assert.match(route,/nonAdmittedScoreFrictionObservationCount/);
  assert.match(route,/declared\.trim\(\)===chosenAttractor/);
+});
+
+test('baseline requires 72 hours of server-recorded observation, three daily segments and post-baseline sedimentation',()=>{
+  const start=Date.parse('2026-10-01T00:00:00.000Z');
+  const toIso=(hours:number)=>new Date(start+hours*3_600_000).toISOString();
+  const observation=(hours:number)=>({kind:'OBSERVATION',createdAt:toIso(hours),
+    canonicalRef:{id:'observation-'+hours},sourceRefs:[{id:'source:'+hours}],
+    recordRefs:[],payload:{note:'bounded source-attributed diary'}});
+  const attractor={kind:'ATTRACTOR',createdAt:toIso(0),canonicalRef:{id:'elected:1'},
+    sourceRefs:[],recordRefs:[],payload:{declaredAttractor:'Elected direction'}};
+  const sedimentation={kind:'ANALYSIS',createdAt:toIso(76),canonicalRef:{id:'sedimentation:1'},
+    sourceRefs:[],recordRefs:[],payload:{electedAttractorRef:'elected:1',
+      sedimentationReflection:'Three-day monitoring changes the recommended experimental sequence.'}};
+  const now=start+96*3_600_000;
+  const marks=[observation(0),observation(26),observation(51),observation(74)];
+  const missing=assessAdaptiveCaseBaseline({objects:[attractor,...marks.slice(0,3)],
+    electedAttractorRef:'elected:1',nowMs:now});
+  assert.equal(missing.baselineComplete,false);
+  assert.equal(missing.sedimentationCandidateRecorded,false);
+  const complete=assessAdaptiveCaseBaseline({objects:[attractor,...marks,sedimentation],
+    electedAttractorRef:'elected:1',nowMs:now});
+  assert.equal(complete.baselineComplete,true);
+  assert.equal(complete.observedDailySegments,3);
+  assert.equal(complete.sedimentationCandidateRecorded,true);
+  assert.equal(complete.evidenceClaim,'NO_INDEPENDENT_WORLD_RETURN_ESTABLISHED');
+  const wrongAttractor=assessAdaptiveCaseBaseline({objects:[attractor,...marks,sedimentation],
+    electedAttractorRef:'elected:OTHER',nowMs:now});
+  assert.equal(wrongAttractor.sedimentationCandidateRecorded,false);
+  const backdated=assessAdaptiveCaseBaseline({objects:marks.map((m,index)=>({
+    ...m, createdAt:toIso(1+index),observedAt:toIso(index*30)})),electedAttractorRef:'elected:1',nowMs:now});
+  assert.equal(backdated.baselineComplete,false,'client-supplied observedAt cannot satisfy server duration');
+});
+
+test('governed adaptive proposals cannot skip the 72h baseline or sedimentation',()=>{
+ const casePreconditions={lifecycleEligible:true,declaredAttractorPresent:true,
+   baseline72hComplete:false,sedimentationCandidateRecorded:false};
+ const plan=deriveAdaptiveTrajectoryPlan({...adaptiveInput,casePreconditions});
+ assert.equal(plan.selectedRouteId,'OBSERVE');
+ assert.equal(plan.canCreateDraftProposal,false);
+ assert(plan.blockers.includes('CASE_72H_RECORDED_BASELINE_REQUIRED'));
+ assert(plan.blockers.includes('ATTRACTOR_SEDIMENTATION_CANDIDATE_REQUIRED'));
+ const route=readFileSync('src/app/api/scorefriction/regime-watch/route.ts','utf8');
+ assert.match(route,/assessAdaptiveCaseBaseline\(/);
+ assert.match(route,/baseline72hComplete:baseline\.baselineComplete/);
+ assert.match(route,/sedimentationCandidateRecorded:baseline\.sedimentationCandidateRecorded/);
 });
