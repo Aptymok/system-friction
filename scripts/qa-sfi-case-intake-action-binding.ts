@@ -1,5 +1,6 @@
 import { strict as assert } from 'node:assert';
 import { readFileSync } from 'node:fs';
+import { parseHypothesisTestContract } from '../src/lib/world-observatory/hypothesisTestContract';
 import {
   deriveHypothesisIntakeFromNarrative,
   normalizeCasePlatformActionInput,
@@ -30,6 +31,7 @@ assert.equal(generated.proposedTestContract?.contradictionCriteria.some(c=>c.id=
 assert.equal(generated.primaryMethod,'PPOI');
 assert.equal(generated.proposedGraph.verified,false);
 assert.equal(generated.proposedTestContract?.contract,'SFI-HYPOTHESIS-TEST-1.0');
+assert(parseHypothesisTestContract(generated.proposedTestContract), 'SFI-authored candidate must satisfy frozen hypothesis-test schema');
 assert.equal(generated.proposedTestContract?.expectedCriteria.length,2);
 assert(generated.proposedTestContract?.contradictionCriteria.some(c=>c.id==='RIVAL_WITHOUT_ACTION'));
 assert(generated.proposedTestContract?.expectedCriteria.some(c=>c.signal.includes(ordinaryKnowledge.visibleDifference)));
@@ -52,6 +54,10 @@ const preRegistrationApi=readFileSync('src/app/api/interface/cognitive-workspace
 assert(preRegistrationApi.includes("operation === 'preregister_generated_conditions'"));
 assert(preRegistrationApi.includes("SERVER_OBSERVED_72H_BASELINE_REQUIRED"));
 assert(preRegistrationApi.includes('persistMethodLabUiPreregistration'));
+assert(preRegistrationApi.includes("hypothesisTestContract:{...contract,horizonBasis:"));
+const labOwner = readFileSync('src/lib/method-lab/uiProjection.ts','utf8');
+assert(labOwner.includes("hypothesisTestContract:generatedContract"), 'the immutable preregistration must retain structured criteria');
+assert(labOwner.includes('parseHypothesisTestContract(definition.hypothesisTestContract)'));
 assert(preRegistrationApi.includes("daySegments.size<3"));
 assert(qualitativeUi.includes("Preregistrar condiciones construidas por SFI"));
 assert(qualitativeUi.includes("Crear expediente personal de observación"));
