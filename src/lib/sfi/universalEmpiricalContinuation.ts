@@ -319,6 +319,30 @@ async function contrastLatestReturn(history: UniversalCycleHistory, cycleId: str
     ...strings(lastReturn.lineage),
   ].filter((value, index, values) => values.indexOf(value) === index);
   const evidenceValidation = await validateReturnEvidenceRefs({ refs: declaredReturnEvidenceRefs, cycleId, tenantId, history });
+  // Reuse an inconclusive contrast when its observable inputs have not changed.
+  // A later evidence link, revised hypothesis/prediction, or changed RETURN
+  // still permits a new attempt; the existing calibration guard remains above.
+  if (existingContrast && evidenceValidation.ok) {
+    const prior = payload(existingContrast);
+    const equal = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+    const sameInputs =
+      equal(prior.observedReturn ?? null, returnPayload.outcome ?? null) &&
+      equal(prior.primaryHypothesis ?? null, hypotheses[0] ?? null) &&
+      equal(prior.rivalHypotheses ?? [], hypotheses.slice(1)) &&
+      equal(prior.predictions ?? [], predictions) &&
+      equal(prior.discriminatingObservations ?? [], discriminatingObservations) &&
+      equal(prior.stoppingConditions ?? [], stoppingConditions) &&
+      equal(prior.expectedSignals ?? [], signals.expectedSignals) &&
+      equal(prior.contradictionSignals ?? [], signals.contradictionSignals) &&
+      equal(prior.observationWindows ?? [], signals.observationWindows) &&
+      equal(prior.declaredReturnEvidenceRefs ?? [], declaredReturnEvidenceRefs) &&
+      equal(prior.returnEvidenceRefs ?? [], evidenceValidation.verified) &&
+      equal(prior.rejectedReturnEvidenceRefs ?? [], evidenceValidation.rejected) &&
+      (prior.evidenceValidationWarning ?? null) === evidenceValidation.warning;
+    if (sameInputs && text(prior.calibrationStatus) !== 'CONTRAST_RECORDED') {
+      return { ok: true as const, reused: true as const, event: existingContrast, data: existingContrast };
+    }
+  }
   const classification = await classifyReturnWithAi(history, cycleId, lastReturn);
   const hasPrediction = predictions.length > 0;
   const hasDiscriminatingObservation = discriminatingObservations.length > 0;
