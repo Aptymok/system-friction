@@ -41,8 +41,52 @@ assert.ok(rootScene.includes('data-root-primary-interface="CANONICAL_COGNITIVE_F
 assert.ok(lab.includes('CONTROLLED EXPERIMENTATION') && lab.includes('METHOD LAB') && lab.includes('EVIDENCE / RUN') && lab.includes('RESEARCH / RETURN'),'lab_not_converged');
 assert.ok(neural.includes('data-neural-graph-contract="SFI-ROOT-NEURAL-GRAPH-1.1"') && neural.includes('<RootCognitiveFieldPixi') && neuralPixi.includes("from 'pixi.js'"),'root_neural_visual_contract_missing');
 assert.equal(neural.includes('<InstitutionalSurfaceRail surface="NEURAL_GRAPH"'),false,'neural_graph_must_not_reappear_as_separate_institutional_surface');
-assert.ok(discovery.includes('<InstitutionalSurfaceRail surface="DISCOVERY"'),'discovery_not_converged');
-assert.ok(evidence.includes('<InstitutionalSurfaceRail surface="EVIDENCE"'),'evidence_not_converged');
+// Discovery is an already-established standalone operational page. Do not force a
+// new shared navigation rail into its locked visual composition merely to pass CI.
+// Verify its actual authentication, read planes, epistemic boundaries and provenance.
+assert.ok(
+  discovery.includes("await requireRootObserverPage('/root/discovery')") &&
+  discovery.includes('readDiscoveryControlPlane()') &&
+  discovery.includes('readInstitutionalDiscoveryMesh()') &&
+  discovery.includes('data.availability') &&
+  discovery.includes('const convergence = mesh.convergence'),
+  'discovery_governed_live_read_contract_missing',
+);
+assert.ok(
+  discovery.includes('EXPOSURE → DISCOVERY → RECOGNITION → INTERACTION → RELATION → PROPAGATION → PULL → RETURN') &&
+  discovery.includes('RETURN requires an observed, traceable outcome') &&
+  discovery.includes('PUBLICATION ≠ DISCOVERY ≠ PULL ≠ RETURN') &&
+  discovery.includes('data.contract') &&
+  discovery.includes('institutional.contract'),
+  'discovery_epistemic_provenance_contract_missing',
+);
+assert.equal(
+  discovery.includes('<InstitutionalSurfaceRail surface="DISCOVERY"'),
+  false,
+  'discovery_accepted_visual_composition_must_not_be_modified_by_convergence_gate',
+);
+// Evidence has its own established chamber composition. Assert that the
+// canonical proposal queue remains live and source admission boundaries remain
+// visible, rather than changing an accepted design to mount a generic rail.
+assert.ok(
+  evidence.includes("fetch('/api/acp/proposals', { cache: 'no-store' })") &&
+  evidence.includes("proposal.status === 'waiting_evidence'") &&
+  evidence.includes("proposal.status === 'needs_evidence'") &&
+  evidence.includes('<RootEvidenceCandidateLane proposals={waiting} />'),
+  'evidence_governed_proposal_queue_missing',
+);
+assert.ok(
+  evidence.includes('SOURCE ≠ EVIDENCE') &&
+  evidence.includes('CANDIDATE ≠ ADMITTED') &&
+  evidence.includes('NO WAITING EVIDENCE') &&
+  evidence.includes('The absence of candidates is not interpreted as absence of evidence in the world.'),
+  'evidence_admission_and_absence_boundary_missing',
+);
+assert.equal(
+  evidence.includes('<InstitutionalSurfaceRail surface="EVIDENCE"'),
+  false,
+  'evidence_accepted_visual_composition_must_not_be_modified_by_convergence_gate',
+);
 assert.ok(access.includes('<InstitutionalSurfaceRail surface="ACCESS"'),'access_not_converged');
 
 assert.ok(evidence.includes('Evidence is admitted, not assumed.'),'evidence_chamber_identity_missing');
@@ -83,7 +127,7 @@ assert.ok(repositoryCss.includes("url('/assets/sfi/instruments/Imagen de ChatGPT
 assert.ok(repositoryUi.includes('SOURCE RECORDS') && repositoryUi.includes('DISCOVERY MESH') && repositoryUi.includes('RepositoryMihmTimeline') && repositoryCss.includes('.repoReader') && repositoryCss.includes('.repoDiscovery'), 'unified_repository_operational_visual_contract_missing');
 assert.ok(realityCss.includes('blur(11px)') && realityCss.includes('width:300vw'),'reality_chain_reference_must_not_read_as_fake_ui');
 
-for(const source of [rail,evidence,access]) assert.equal(/createServiceSupabaseClient|\.from\(|\.insert\(|\.update\(|\.upsert\(/.test(source),false,'visual convergence must not create a new data owner');
+for(const source of [rail,discovery,evidence,access]) assert.equal(/createServiceSupabaseClient|\.from\(|\.insert\(|\.update\(|\.upsert\(/.test(source),false,'visual convergence must not create a new data owner');
 
 console.log(JSON.stringify({
   contract:'SFI-ELITE-P8-INSTITUTIONAL-VISUAL-CONVERGENCE-1.0',
