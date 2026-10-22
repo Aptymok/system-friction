@@ -86,6 +86,7 @@ export function deriveAdaptiveTrajectoryPlan(input: {
     !electedAttractor ? 'ELECTED_ATTRACTOR_REQUIRED' : null,
     !hasObject ? 'CASE_OBJECT_REQUIRED' : null,
     !sourcesReady ? 'WORLD_SOURCE_READ_NOT_VERIFIED' : null,
+    !availableCaseEvidence ? 'PERSISTED_CASE_EVIDENCE_REQUIRED' : null,
     !input.hypothesisPrimary?.trim() ? 'PREREGISTRATION_CANDIDATE_REQUIRED' : null,
     !input.hypothesisRival?.trim() ? 'RIVAL_HYPOTHESIS_REQUIRED' : null,
   ].filter((value):value is string=>Boolean(value));
