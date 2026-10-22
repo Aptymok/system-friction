@@ -91,7 +91,7 @@ export function PersonalCognitiveLabWorkspace({intakeOnly=false}:{intakeOnly?:bo
     currentSituation:'',participatingNodes:'',previousAttempts:'',possibleAction:'',
     visibleDifference:'',limitsToPreserve:'',availableRecords:'',
   });
-  const [intakePlan,setIntakePlan] = useState<ApiResponse['plan']>(null);
+  const [intakePlan,setIntakePlan] = useState<ApiResponse['plan'] | null>(null);
   const updateKnowledge = (key:keyof typeof knowledge,value:string) =>
     setKnowledge(previous=>({...previous,[key]:value}));
   const [planning,setPlanning] = useState(false);
