@@ -29,6 +29,12 @@ requireText(router, "'COGNITIVE_INTERNAL'", 'internal-class');
 requireText(router, "'MATERIAL_INTERNAL'", 'material-internal-class');
 requireText(router, "'EXTERNAL_ACTION'", 'external-class');
 requireText(router, 'runCognitiveAgent', 'reuse-cognitive-runtime');
+requireText(router, "proposalTypeOf(row) === 'trajectory_reconfiguration'", 'adaptive-proposal-classified-by-existing-router');
+requireText(router, "'trajectory_agent'", 'adaptive-reuses-trajectory-agent');
+requireText(router, 'adaptiveTrajectory: {', 'adaptive-route-reaches-cognitive-context');
+requireText(router, "epistemicClass: 'DERIVED_PROPOSAL_NOT_WORLD_OUTCOME'", 'adaptive-stays-derived');
+requireText(router, "externalExecutionAllowed: false", 'adaptive-no-external-side-effect');
+
 requireText(router, 'MAX_RETRIES_PER_AGENT = 1', 'bounded-retry');
 requireText(router, 'openRemediationChild', 'self-healing-remediation');
 requireText(router, 'findExistingRemediation', 'remediation-dedup');
