@@ -80,6 +80,7 @@ export default async function MethodLabPage() {
 
   return (
     <>
+      <PersonalCognitiveLabWorkspace intakeOnly />
       <InstitutionalEvidenceInventory inventory={inventory} context="METHOD_LAB" />
       <MethodLabNativeHub
         initialState={state}
