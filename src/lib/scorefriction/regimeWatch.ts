@@ -72,6 +72,11 @@ export function deriveAdaptiveTrajectoryPlan(input: {
   electedAttractor: string;
   hypothesisPrimary?: string | null;
   hypothesisRival?: string | null;
+  verifiedPreviousReturn?: {
+    classification:'CONFIRMED'|'PARTIAL'|'CONTRADICTED';
+    eventId:string;
+    evidenceRefs:string[];
+  } | null;
 }) {
   const state = input.state;
   const electedAttractor = input.electedAttractor.trim();
@@ -92,8 +97,13 @@ export function deriveAdaptiveTrajectoryPlan(input: {
     !input.hypothesisRival?.trim() ? 'RIVAL_HYPOTHESIS_REQUIRED' : null,
   ].filter((value):value is string=>Boolean(value));
   // Weak signals and even critical warnings cannot self-verify action efficacy.
-  const drift = Boolean(watch.direction_shift || watch.changed_regime || watch.severity === 'critical' ||
-    watch.severity === 'warning');
+  const previous=input.verifiedPreviousReturn;
+  const previousReturnVerified=Boolean(previous?.eventId.trim() && previous.evidenceRefs.length &&
+    ['CONFIRMED','PARTIAL','CONTRADICTED'].includes(previous.classification));
+  const previousContradicted=previousReturnVerified && previous?.classification==='CONTRADICTED';
+  const previousConfirmed=previousReturnVerified && previous?.classification==='CONFIRMED';
+  const drift = Boolean(previousContradicted || watch.direction_shift || watch.changed_regime ||
+    watch.severity === 'critical' || watch.severity === 'warning');
   const weakSignalCount = Array.isArray(state.weak_signals) ? state.weak_signals.length : 0;
   const observation:SfiAdaptiveRoute = {
     id:'OBSERVE',
@@ -134,6 +144,7 @@ export function deriveAdaptiveTrajectoryPlan(input: {
   };
   const routes:SfiAdaptiveRoute[]=[observation,bounded,reconfigure];
   const selected=(!blockers.length && drift && candidate) ? reconfigure
+    : (previousConfirmed && !drift) ? observation
     : (!blockers.length && candidate) ? bounded : observation;
   const canPropose = selected.eligibility === 'READY_FOR_GOVERNED_PROPOSAL';
   return {
@@ -144,7 +155,8 @@ export function deriveAdaptiveTrajectoryPlan(input: {
       status:'CANDIDATE_NOT_OBSERVED_OR_VERIFIED' as const},
     observation:{watch,weakSignalCount,caseEvidenceAvailable:availableCaseEvidence,
       technicalWarnings,sourceReadReady:sourcesReady,
-      previousWorldReturnVerified:false as const},
+      previousWorldReturnVerified,
+      previousReturn:previousReturnVerified ? previous : null},
     routes,selectedRouteId:selected.id,blockers,
     state:canPropose?'PROPOSABLE_GOVERNED_RECONFIGURATION': 'OBSERVE_OR_REPREREGISTER',
     canCreateDraftProposal:canPropose,
