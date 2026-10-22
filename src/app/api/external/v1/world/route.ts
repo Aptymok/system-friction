@@ -320,7 +320,12 @@ export async function POST(req: Request) {
   const partialAt=receiptTime(preflight.latestPartialCycleReceipt);
   const resumedAt=receiptTime(preflight.latestHypothesisResumeReceipt);
   const lastAttemptAt=Math.max(...[completedAt,partialAt,resumedAt].filter(Number.isFinite),0);
-  const cooldownMs=SFI_SUPABASE_READ_BUDGET.worldRunCooldownMinutes*60_000;
+  // A provider-limited hypothesis retry needs a longer durable backoff than
+  // an ordinary observation. The previous retry receipt survives serverless restarts.
+  const priorRetryFailed=preflight.latestHypothesisResumeReceipt?.event_name==='external.world.hypothesis_resume.partial' &&
+    Number.isFinite(resumedAt) && resumedAt>=Math.max(partialAt||0,completedAt||0);
+  const cooldownMs=SFI_SUPABASE_READ_BUDGET.worldRunCooldownMinutes*60_000*
+    (priorRetryFailed ? 4 : 1);
   if(lastAttemptAt > 0 && Date.now()-lastAttemptAt<cooldownMs){
     return NextResponse.json({
       ok:true,
