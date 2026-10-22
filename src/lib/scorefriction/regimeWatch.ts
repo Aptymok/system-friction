@@ -79,7 +79,8 @@ export function deriveAdaptiveTrajectoryPlan(input: {
   const candidate = state.recommended_experiments?.find((item) => item.status === 'ready_for_test');
   const hasObject = state.object_presence === 'provided';
   const sourcesReady = Boolean(state.technical_state.worldspect_ok &&
-    state.technical_state.supabase_ok && !state.technical_state.fallback_used);
+    state.technical_state.scorefriction_ok && state.technical_state.supabase_ok &&
+    !state.technical_state.fallback_used);
   const technicalWarnings = state.technical_state.warnings.slice(0, 8);
   const availableCaseEvidence = Array.isArray(state.evidence) && state.evidence.length > 0;
   const blockers = [
