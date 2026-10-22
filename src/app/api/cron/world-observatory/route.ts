@@ -7,6 +7,9 @@ import { executeWorldSignalObserverAgent } from '@/lib/world-observatory/worldSi
 import { scheduledEgressGuardResponse } from '@/lib/continuity/scheduledEgressGuard';
 import { persistWorldHypothesisClosureReport } from '@/lib/reports/worldHypothesisClosureReport';
 import { runJrFieldCycle } from '@/lib/mihm/jrFieldCycle';
+import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { appendEpistemicEvent } from '@/lib/events/eventStore';
+import { SFI_SUPABASE_READ_BUDGET } from '@/lib/supabase/readBudget';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -98,6 +101,85 @@ export async function POST(request: NextRequest) {
       boundary: 'Authorized manual readjudication executes only the existing World calibration owner. Unavailable or incomplete model assessment leaves targeted historical hypotheses AWAITING_OUTCOME; it does not fabricate INCONCLUSIVE. Closure-report generation is downstream narrative projection only and cannot change classification. It does not collect observations, generate hypotheses, run institutional cycles, or enable scheduled egress globally.',
     }, { status: 200 });
   }
+
+  // Keep the scheduled route coherent with the user-bound World gateway:
+  // a prior partial cycle is not permission to recollect already valid sources.
+  // Respect the same persisted receipt family and persistent provider backoff.
+  const db=createServiceSupabaseClient();
+  const [partial,complete,resume,latestObservation]=await Promise.all([
+    db.from('epistemic_events').select('event_id,event_name,occurred_at')
+      .eq('event_name','external.world.daily_cycle.partial')
+      .order('occurred_at',{ascending:false}).limit(1).maybeSingle(),
+    db.from('epistemic_events').select('event_id,event_name,occurred_at')
+      .eq('event_name','external.world.daily_cycle.completed')
+      .order('occurred_at',{ascending:false}).limit(1).maybeSingle(),
+    db.from('epistemic_events').select('event_id,event_name,occurred_at')
+      .in('event_name',['external.world.hypothesis_resume.partial','external.world.hypothesis_resume.completed'])
+      .order('occurred_at',{ascending:false}).limit(1).maybeSingle(),
+    db.from('world_source_observations').select('fetched_at')
+      .order('fetched_at',{ascending:false}).limit(1).maybeSingle(),
+  ]);
+  if(partial.error||complete.error||resume.error||latestObservation.error)
+    return NextResponse.json({ok:false,status:'WORLD_PREVIOUS_RECEIPT_READ_UNAVAILABLE',
+      writesPerformed:false,boundary:'Fail closed when the chronology needed for safe retry is unavailable.'},{status:503});
+  const receiptTime=(t:unknown)=>{
+    const parsed=typeof t==='string'?Date.parse(t):Number.NaN;
+    return Number.isFinite(parsed)?parsed:0;
+  };
+  const partialAt=receiptTime(partial.data?.occurred_at);
+  const completedAt=receiptTime(complete.data?.occurred_at);
+  const resumedAt=receiptTime(resume.data?.occurred_at);
+  const newestAt=Math.max(partialAt,completedAt,resumedAt);
+  const priorRetryFailed=resume.data?.event_name==='external.world.hypothesis_resume.partial' &&
+    resumedAt>=Math.max(partialAt,completedAt) && resumedAt>0;
+  const cooldownMs=SFI_SUPABASE_READ_BUDGET.worldRunCooldownMinutes*60_000*
+    (priorRetryFailed?4:1);
+  if(newestAt>0 && Date.now()-newestAt<cooldownMs) return NextResponse.json({
+    ok:true,status:'COOLDOWN_SKIPPED',writesPerformed:false,
+    lastAttemptReceiptAt:new Date(newestAt).toISOString(),
+    retryAfterSeconds:Math.max(1,Math.ceil((cooldownMs-(Date.now()-newestAt))/1000)),
+    boundary:'Cron follows persisted full/partial/retry receipts and does not recollect sources during provider cooldown.',
+  });
+  const observationAt=receiptTime(latestObservation.data?.fetched_at);
+  const sourcesLive=observationAt>0 && Date.now()-observationAt<24*60*60*1000;
+  const resumeAlreadyCompleted=resume.data?.event_name==='external.world.hypothesis_resume.completed' &&
+    resumedAt>=partialAt;
+  const resumeOnly=partialAt>completedAt && sourcesLive && !resumeAlreadyCompleted;
+  if(resumeOnly){
+    const availableProviders=getLlmProviderStatus().filter(p=>p.available &&
+      !p.circuitOpen && p.state!=='UNCONFIGURED' && p.state!=='BLOCKED');
+    if(!availableProviders.length) return NextResponse.json({
+      ok:false,status:'PROVIDERS_UNAVAILABLE',retryOnly:true,writesPerformed:false,
+      boundary:'No synthetic hypotheses and no repeated source collection when all governed model routes are blocked.',
+    },{status:503});
+    const hypothesis=await runWorldHypothesisCycle();
+    const calibration=hypothesis.ok?await runWorldCalibrationCycle():null;
+    const resumed=hypothesis.ok && (!calibration || calibration.ok);
+    const receipt=await appendEpistemicEvent({
+      returnMode:'receipt',
+      eventName:resumed?'external.world.hypothesis_resume.completed':'external.world.hypothesis_resume.partial',
+      epistemicClass:'derived',confidence:resumed?1:0.5,
+      occurredAt:new Date().toISOString(),
+      source:{sourceId:'SYSTEM_FRICTION_INSTITUTE',sourceType:'operational_runtime'},
+      logbookId:'WORLD',lineage:[],
+      payload:{
+        contract:'SFI-WORLD-HYPOTHESIS-RESUME-1.0',
+        actorId:'sfi:cron:world-observatory',trigger:'SCHEDULED_WORLD_OBSERVATION',
+        sourcePartialEventId:partial.data?.event_id??null,
+        hypothesis,calibration,
+        boundary:'Reuse existing observations and evaluate hypotheses only. No new collection, JR, instrument sweep, material act, canon mutation, synthetic fallback or historical T0 rewrite.',
+      },
+    });
+    return NextResponse.json({
+      ok:resumed&&receipt.ok,retryOnly:true,
+      status:resumed&&receipt.ok?'HYPOTHESIS_STAGE_RESUMED':'HYPOTHESIS_STAGE_STILL_PARTIAL',
+      hypothesis,calibration,
+      receipt:receipt.ok?receipt.data:receipt,
+      writesPerformed:receipt.ok||(hypothesis.created??0)>0||(calibration?.calibrated??0)>0,
+      boundary:'A scheduled hypothesis-stage recovery cannot retroactively mint a complete World daily-cycle receipt or establish empirical truth.',
+    },{status:resumed&&receipt.ok?200:207});
+  }
+
   const worldSignalObserver = await executeWorldSignalObserverAgent();
   const observation = worldSignalObserver.observation;
   const hypothesis = await runWorldHypothesisCycle();
