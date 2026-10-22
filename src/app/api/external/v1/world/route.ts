@@ -336,9 +336,11 @@ export async function POST(req: Request) {
     });
   }
 
+  const alreadyResumed=preflight.latestHypothesisResumeReceipt?.event_name==='external.world.hypothesis_resume.completed' &&
+    Number.isFinite(resumedAt) && resumedAt>=partialAt;
   const latestWasPartial=Number.isFinite(partialAt) && partialAt>0 &&
     (!Number.isFinite(completedAt)||partialAt>completedAt) &&
-    preflight.freshness==='LIVE';
+    !alreadyResumed && preflight.freshness==='LIVE';
   const explicitResume=body.resumeHypothesesOnly===true;
   if(explicitResume && !latestWasPartial) return NextResponse.json({
     ok:false,operation,actor:actorId,status:'NO_FRESH_PARTIAL_WORLD_CYCLE',
