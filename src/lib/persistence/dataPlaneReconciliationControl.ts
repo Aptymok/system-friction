@@ -159,9 +159,50 @@ export async function attemptBoundedDataPlaneReconciliation(maxTransactions: num
     policy: 'Unable to verify primary independently; no source row was modified',
   }));
   if (!before.safeRecoveryEligible) {
-    // The global recovery gate remains closed. Only the pre-existing,
-    // insert-only verified source-observation lane may make incremental
-    // progress; it cannot change authority, clear conflicts or promote PRIMARY.
+    // P0: in CONTINUITY/RECOVERY, the source PRIMARY outbox must be drained
+    // *before* the recovery gate can open. A leftover pre-failover transaction
+    // otherwise blocks recovery indefinitely. Reuse the existing CAS/BEFORE
+    // guarded mirror receiver; never mint a certificate or change plane here.
+    const canDrainContinuityOutbox =
+      (before.dataPlane.mode === 'CONTINUITY' || before.dataPlane.mode === 'RECOVERY')
+      && before.blocker === 'PRIMARY_OUTBOX_RECONCILIATION_REQUIRED'
+      && before.primaryOutboxError === null
+      && (before.primaryOutbox?.pending ?? 0) > 0
+      && (before.primaryOutbox?.conflicts ?? 0) === 0
+      && before.journal.pending === 0
+      && before.journal.conflicts === 0
+      && before.journal.protectedPending === 0;
+    if (canDrainContinuityOutbox) {
+      const limit = Math.max(1, Math.min(32, Number.isFinite(maxTransactions) ? Math.floor(maxTransactions) : 8));
+      const primaryMirror = await flushPrimaryMirror({ maxTransactions: limit });
+      const after = await readDataPlaneReconciliationStatus();
+      const previousPending = before.primaryOutbox!.pending;
+      const pending = after.primaryOutbox?.pending;
+      const safeProgress = primaryMirror.conflict !== true
+        && after.dataPlane.mode === before.dataPlane.mode
+        && after.journal.conflicts === 0
+        && after.journal.protectedPending === 0
+        && after.primaryOutbox?.conflicts === 0
+        && typeof pending === 'number'
+        && pending < previousPending
+        && primaryMirror.mirroredTransactions > 0;
+      return {
+        ok: safeProgress && pending === 0,
+        attempted: true as const,
+        outcome: primaryMirror.conflict
+          ? 'CONTINUITY_OUTBOX_CONFLICT' as const
+          : safeProgress
+            ? (pending === 0 ? 'CONTINUITY_OUTBOX_DRAINED' as const : 'CONTINUITY_OUTBOX_DRAIN_PROGRESS' as const)
+            : 'CONTINUITY_OUTBOX_DRAIN_STALLED' as const,
+        primaryMirror,
+        authoritySupersession,
+        before,
+        after,
+      };
+    }
+    // Other safety blockers retain the pre-existing insert-only source
+    // observation lane; it does not change authority, clear conflicts or
+    // promote PRIMARY.
     const canCopy = before.journal.pending > 0
       && before.blocker !== 'PRIMARY_OUTBOX_UNAVAILABLE';
     const copyLimit = Math.max(1, Math.min(12, Number.isFinite(maxTransactions) ? Math.floor(maxTransactions) : 8));
