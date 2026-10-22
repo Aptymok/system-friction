@@ -113,6 +113,7 @@ export async function POST(req: Request) {
       const contract=plan.proposedTestContract;
       const definition={
         experimentId,experimentType:'OBSERVATIONAL' as const,caseRef:caseId,evidenceRefs:[] as string[],
+        hypothesisTestContract:{...contract,horizonBasis:'PROSPECTIVE_72H_AFTER_SERVER_VERIFIED_BASELINE'},
         twinStateRef:null,hypothesis:plan.proposedHypothesis,nullHypothesis:plan.proposedRival,
         t0Cutoff:periodStart.toISOString(),timezone:'UTC',
         methodDescription:'SFI-authored bounded prospective test from qualitative intake; primary method '+plan.primaryMethod+
