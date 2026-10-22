@@ -3,15 +3,37 @@
  * public derivatives. This assessment is NOT a certificate or external validation.
  * Owner: Method Lab; publication and institutional authority remain separate.
  */
+import { createHash } from 'node:crypto';
 import type { MethodLabResearchObject } from './researchObjects';
 
 export const SFI_RESEARCH_ASSURANCE_CONTRACT = 'SFI-RESEARCH-ASSURANCE-REVIEW-1.0' as const;
 
 type Finding = { code: string; status: 'PASS' | 'FAIL' | 'REVIEW'; explanation: string };
 
+const REQUIRED_PUBLIC_FILES = [
+  'README.md', 'FINDINGS.md', 'PUBLIC_TRACE.md', 'METRICS.json',
+  'PROVENANCE.md', 'THREATS_TO_VALIDITY.md', 'manifest.json',
+] as const;
+
+// Independent recomputation of the existing package builder's canonical
+// SHA256(JSON.stringify(canonicalize(value))) format. Do not hash raw UTF-8
+// content: that would silently disagree with Method Lab's existing lineage.
+function canonical(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonical);
+  if (value === null || typeof value !== 'object') return value;
+  return Object.keys(value as Record<string, unknown>).sort().reduce<Record<string, unknown>>((record, key) => {
+    record[key] = canonical((value as Record<string, unknown>)[key]);
+    return record;
+  }, {});
+}
+
+function contentHash(value: unknown): string {
+  return createHash('sha256').update(JSON.stringify(canonical(value))).digest('hex');
+}
+
 export function assessMethodLabResearchAssurance(
   object: MethodLabResearchObject,
-  publicationPackage: { objectId: string; version: string; packageHash: string; files: { path: string; sha256: string }[]; manifest: { rawDataIncluded: boolean; promotionRequired: boolean } },
+  publicationPackage: { objectId: string; version: string; packageHash: string; files: { path: string; content: string; sha256: string }[]; manifest: { schema: string; rawDataIncluded: boolean; promotionRequired: boolean; object: { objectId: string; version: string } } },
 ) {
   const checks: Finding[] = [];
   const add = (code: string, condition: boolean, explanation: string): void => {
@@ -22,11 +44,29 @@ export function assessMethodLabResearchAssurance(
   add('P1_IDENTITY_VERSION', Boolean(object.objectId.trim() && object.version.trim() &&
     publicationPackage.objectId === object.objectId && publicationPackage.version === object.version),
     'Identity and version must agree with the immutable package target.');
-  add('P1_PACKAGE_INTEGRITY', /^[a-f0-9]{64}$/.test(publicationPackage.packageHash) &&
-    publicationPackage.files.length >= 7 &&
-    new Set(publicationPackage.files.map(f => f.path)).size === publicationPackage.files.length &&
-    publicationPackage.files.every(f => /^[a-f0-9]{64}$/.test(f.sha256)),
-    'Content hashes and unique required files must be present; cryptographic recomputation is owned by the package builder.');
+  const files = publicationPackage.files;
+  const exactFiles = files.length === REQUIRED_PUBLIC_FILES.length &&
+    new Set(files.map(f => f.path)).size === files.length &&
+    REQUIRED_PUBLIC_FILES.every(path => files.some(f => f.path === path));
+  const actualFileHashes = files.every(f => typeof f.content === 'string' &&
+    /^[a-f0-9]{64}$/.test(f.sha256) && contentHash(f.content) === f.sha256);
+  const actualPackageHash = /^[a-f0-9]{64}$/.test(publicationPackage.packageHash) &&
+    contentHash(files.map(f => ({ path: f.path, sha256: f.sha256 }))) === publicationPackage.packageHash;
+  add('P1_PACKAGE_INTEGRITY', exactFiles && actualFileHashes && actualPackageHash,
+    'All seven expected files must be unique and their SHA256 values and aggregate package hash must be recomputed from their actual contents.');
+  const manifestFile = files.find(f => f.path === 'manifest.json');
+  let manifestMatches = false;
+  try {
+    const parsed = JSON.parse(manifestFile?.content ?? 'null');
+    manifestMatches = contentHash(parsed) === contentHash(publicationPackage.manifest);
+  } catch {
+    manifestMatches = false;
+  }
+  add('P1_MANIFEST_BINDING', manifestMatches &&
+    publicationPackage.manifest.schema === 'SFI-METHOD-LAB-RESEARCH-PACKAGE-1.0' &&
+    publicationPackage.manifest.object?.objectId === object.objectId &&
+    publicationPackage.manifest.object?.version === object.version,
+    'The hashed manifest must match the exact package object, version and schema; a valid hash alone cannot claim another research identity.');
   add('P1_PUBLIC_BOUNDARY', publicationPackage.manifest.rawDataIncluded === false &&
     publicationPackage.manifest.promotionRequired === true &&
     object.publicationState === 'PUBLIC_DERIVATIVE_READY',
