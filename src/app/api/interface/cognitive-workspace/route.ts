@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 import { deriveHypothesisIntakeFromNarrative } from '@/lib/sfi/caseIntakeResolver';
+import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { persistMethodLabUiPreregistration } from '@/lib/method-lab/uiProjection';
+import { readOwnedMethodLabExperimentPreregistration } from '@/lib/method-lab/experimentPersistence';
 import { AccessDeniedError, requireUserProfile } from '@/lib/system/access/server';
 import {
   createPersonalCase,
@@ -61,6 +64,74 @@ export async function POST(req: Request) {
     const context = await requireUserProfile();
     const body = await req.json().catch(() => ({})) as Row;
     const operation = String(body.operation || 'state');
+
+    if (operation === 'preregister_generated_conditions') {
+      const caseId = typeof body.caseId === 'string' ? body.caseId.trim() : '';
+      if (!caseId) return NextResponse.json({ok:false,error:'CASE_ID_REQUIRED'}, {status:400});
+      const plan = deriveHypothesisIntakeFromNarrative(record(body.narrative));
+      if (!plan.proposedHypothesis || !plan.proposedTestContract || !plan.proposedRival) {
+        return NextResponse.json({ok:false,error:'NARRATIVE_CONTEXT_INSUFFICIENT',missing:plan.missing}, {status:409});
+      }
+      const db = createServiceSupabaseClient();
+      const caseRead = await db.from('field_cases').select('id,owner_id,created_at')
+        .eq('id',caseId).eq('owner_id',context.user.id).is('deleted_at',null).maybeSingle();
+      if (caseRead.error) throw new Error('CASE_BASELINE_READ_FAILED:'+caseRead.error.message);
+      if (!caseRead.data) return NextResponse.json({ok:false,error:'CASE_OWNER_SCOPE_REQUIRED'},{status:404});
+      const baselineRead=await db.from('field_case_evidence').select('id,created_at')
+        .eq('case_id',caseId).eq('owner_id',context.user.id)
+        .order('created_at',{ascending:true}).limit(250);
+      if (baselineRead.error) throw new Error('BASELINE_READ_FAILED:'+baselineRead.error.message);
+      const marks=(baselineRead.data??[]).filter(item=>typeof item.created_at==='string' && Number.isFinite(Date.parse(item.created_at)));
+      const first=marks[0],baselineT0=first?Date.parse(first.created_at):null;
+      const daySegments=new Set<number>();
+      if (baselineT0!==null) for (const mark of marks) {
+        const delta=Date.parse(String(mark.created_at))-baselineT0;
+        const day=Math.floor(delta/86400000);
+        if (delta>=0 && day>=0 && day<3) daySegments.add(day);
+      }
+      const windowMature=baselineT0!==null && Date.now()-baselineT0>=72*3600000;
+      if (!windowMature || daySegments.size<3) return NextResponse.json({
+        ok:false,error:'SERVER_OBSERVED_72H_BASELINE_REQUIRED',daySegments:daySegments.size,
+        hoursElapsed:baselineT0===null?null:Math.max(0,(Date.now()-baselineT0)/3600000),
+        boundary:'Only server-created timestamps on owner-scoped baseline records count. Client-submitted observation times alone cannot close the window.'
+      },{status:409});
+
+      // A preregistration may freeze a candidate before any intervention; it grants
+      // neither permission to act nor evidence/RETURN status to participant notes.
+      const experimentId='sfi-generated-'+caseId+'-'+String(first.id);
+      try {
+        const existing=await readOwnedMethodLabExperimentPreregistration({ownerId:context.user.id,experimentId});
+        return NextResponse.json({ok:true,operation,alreadyPreregistered:true,
+          preregistrationRef:existing.preregistrationRef,definitionHash:existing.definitionHash,
+          boundary:'Immutable original registration reused; repeated calls do not rewrite T0.'});
+      } catch(error) {
+        if (!(error instanceof Error) || !error.message.includes('OWNER_SCOPE_REQUIRED')) throw error;
+      }
+      const now=Date.now();
+      const periodStart=new Date(now);
+      const periodEnd=new Date(now+72*3600000);
+      const contract=plan.proposedTestContract;
+      const definition={
+        experimentId,experimentType:'OBSERVATIONAL' as const,caseRef:caseId,evidenceRefs:[] as string[],
+        twinStateRef:null,hypothesis:plan.proposedHypothesis,nullHypothesis:plan.proposedRival,
+        t0Cutoff:periodStart.toISOString(),timezone:'UTC',
+        methodDescription:'SFI-authored bounded prospective test from qualitative intake; primary method '+plan.primaryMethod+
+          '. Baseline record IDs '+marks.filter(x=>Date.parse(String(x.created_at))<baselineT0+72*3600000).map(x=>x.id).join(','),
+        controlDescription:'Existing 72-hour participant-record baseline; retained as DECLARED records, not automatically admitted evidence.',
+        variantDescriptions:['Proposed bounded action: '+String(plan.scene.action),'Baseline/no-action rival condition'],
+        expectedSignal:contract.expectedCriteria.map(x=>x.signal).join(' | '),
+        expectedMeasures:contract.expectedCriteria.map(x=>x.id),
+        falsificationCondition:contract.contradictionCriteria.map(x=>x.signal).join(' | '),
+        stoppingCondition:'Stop after first governed 72-hour prospective interval. Repreregister if the horizon proves insufficient.',
+        maxExecutions:1,
+        returnWindow:{opensAt:periodStart.toISOString(),closesAt:periodEnd.toISOString(),required:true},
+      };
+      const persisted=await persistMethodLabUiPreregistration({ownerId:context.user.id,definition});
+      return NextResponse.json({ok:true,operation,alreadyPreregistered:false,
+        preregistrationRef:persisted.preregistrationRef,definitionHash:persisted.definitionHash,
+        baseline:{daySegments:daySegments.size,windowMature},
+        boundary:'SFI constructed and sealed the scientific conditions, not the participant. Observational registration grants no external execution, causal proof, evidence admission or autonomous learning.'},{status:201});
+    }
 
     if (operation === 'hypothesis_intake_preview') {
       const plan = deriveHypothesisIntakeFromNarrative(record(body.narrative));
