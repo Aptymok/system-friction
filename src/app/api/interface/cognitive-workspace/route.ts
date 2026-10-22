@@ -128,7 +128,7 @@ export async function POST(req: Request) {
       };
       const persisted=await persistMethodLabUiPreregistration({ownerId:context.user.id,definition});
       return NextResponse.json({ok:true,operation,alreadyPreregistered:false,
-        preregistrationRef:persisted.preregistrationRef,definitionHash:persisted.definitionHash,
+        preregistrationRef:persisted.analysisId,definitionHash:persisted.definitionHash,
         baseline:{daySegments:daySegments.size,windowMature},
         boundary:'SFI constructed and sealed the scientific conditions, not the participant. Observational registration grants no external execution, causal proof, evidence admission or autonomous learning.'},{status:201});
     }
