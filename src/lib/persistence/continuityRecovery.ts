@@ -42,13 +42,15 @@ async function fingerprintsMatch() {
     if (!other) return false;
     if (fingerprintKey(row) === fingerprintKey(other)) continue;
 
-    // Timestamp/history-only drift is allowed for the two account tables
-    // ONLY when every current identity/role/permission field is independently
-    // verified on PRIMARY and Neon. Global epistemic/business fingerprints
-    // remain exact and cannot be waived by this exception.
-    const protectedTable = row.table_name === 'profiles' || row.table_name === 'sfi_account_access_grants';
+    // Timestamp-only drift is allowed for strictly enumerated authority
+    // records ONLY after independent, row-by-row current PRIMARY vs Neon
+    // semantic verification. Identity, tenant, role, status and scope MUST
+    // match. Global epistemic/business fingerprints remain strictly exact.
+    const protectedTable = row.table_name === 'profiles'
+      || row.table_name === 'sfi_account_access_grants'
+      || row.table_name === 'sfi_tenant_members';
     if (!protectedTable || String(row.row_count) !== String(other.row_count)) return false;
-    if (!await currentAuthorityParityVerified(row.table_name as 'profiles' | 'sfi_account_access_grants')) return false;
+    if (!await currentAuthorityParityVerified(row.table_name as 'profiles' | 'sfi_account_access_grants' | 'sfi_tenant_members')) return false;
   }
   return true;
 }
