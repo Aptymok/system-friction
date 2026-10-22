@@ -32,6 +32,11 @@ requireText(router, 'runCognitiveAgent', 'reuse-cognitive-runtime');
 requireText(router, "proposalTypeOf(row) === 'trajectory_reconfiguration'", 'adaptive-proposal-classified-by-existing-router');
 requireText(router, "'trajectory_agent'", 'adaptive-reuses-trajectory-agent');
 requireText(router, 'adaptiveTrajectory: {', 'adaptive-route-reaches-cognitive-context');
+requireText(router, "if (proposalTypeOf(row) === 'trajectory_reconfiguration')", 'adaptive-proposal-material-defense');
+requireText(router, "executionClass:'EXTERNAL_ACTION' as const", 'adaptive-material-external-routing');
+requireText(router, "adapterId:'external_connector_handoff_v1'", 'adaptive-external-handoff-only');
+requireText(router, "selectedRoute", 'material-guard-reads-selected-route');
+
 requireText(router, "epistemicClass: 'DERIVED_PROPOSAL_NOT_WORLD_OUTCOME'", 'adaptive-stays-derived');
 requireText(router, "externalExecutionAllowed: false", 'adaptive-no-external-side-effect');
 
