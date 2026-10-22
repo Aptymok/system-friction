@@ -21,6 +21,7 @@ type ApiResponse = {
   runId?: string;
   labAnalysisId?: string;
   output?: Row;
+  preregistrationRef?: string;
   plan?: {
     status:string;
     missing:string[];
@@ -95,6 +96,7 @@ export function PersonalCognitiveLabWorkspace({intakeOnly=false}:{intakeOnly?:bo
   const updateKnowledge = (key:keyof typeof knowledge,value:string) =>
     setKnowledge(previous=>({...previous,[key]:value}));
   const [planning,setPlanning] = useState(false);
+  const [observationNote,setObservationNote] = useState('');
   async function buildConditions() {
     setPlanning(true);
     setMessage('');
@@ -118,7 +120,7 @@ export function PersonalCognitiveLabWorkspace({intakeOnly=false}:{intakeOnly?:bo
     }
   }, [selectedCase]);
 
-  useEffect(() => { if (!intakeOnly) void refresh(); }, [refresh,intakeOnly]);
+  useEffect(() => { void refresh(); }, [refresh]);
 
   const selectedEvidenceIds = useMemo(() => {
     if (!workspace || !selectedCase) return [];
@@ -179,6 +181,58 @@ export function PersonalCognitiveLabWorkspace({intakeOnly=false}:{intakeOnly?:bo
           <button type="button" style={{...button,justifySelf:'start'}}
             disabled={planning || !knowledge.chosenAttractor.trim() || !knowledge.subject.trim()}
             onClick={()=>void buildConditions()}>{planning?'Analizando...':'SFI: construir condiciones de contraste'}</button>
+
+          <div style={{...panel,display:'grid',gap:10}}>
+            <strong>Expediente y autoobservación · 72 horas</strong>
+            <p style={{margin:0,opacity:.75}}>
+              SFI registra cuándo llegó cada observación. Registra lo que ocurra durante tres días;
+              no hace falta que inventes mediciones o criterios científicos.
+            </p>
+            <label>Expediente personal de observación
+              <select style={input} value={selectedCase} onChange={event=>setSelectedCase(event.target.value)}>
+                <option value="">Elige un expediente o crea uno nuevo</option>
+                {(workspace?.cases??[]).map(item=>
+                  <option key={String(item.id)} value={String(item.id)}>{text(item.title)||String(item.id)}</option>)}
+              </select>
+            </label>
+            <button type="button" style={{...button,justifySelf:'start'}}
+              disabled={busy||!knowledge.subject.trim()||!knowledge.chosenAttractor.trim()}
+              onClick={()=>void execute(async()=>{
+                const result=await request({operation:'create_case',title:knowledge.subject,
+                  objective:knowledge.chosenAttractor,baseline:knowledge.currentSituation,
+                  verificationWindow:'72h',domain:'systemic_friction'});
+                if(result.case?.id)setSelectedCase(String(result.case.id));
+                return result;
+              },'Expediente de observación creado. Registra lo ocurrido durante las próximas 72 horas.')}>
+              Crear expediente personal de observación
+            </button>
+            <label>¿Qué ocurrió desde la última vez?
+              <textarea style={{...input,minHeight:80,resize:'vertical'}} value={observationNote}
+                onChange={event=>setObservationNote(event.target.value)}
+                placeholder="Hechos, actividad y resultado; sin necesidad de porcentajes ni suposiciones"/>
+            </label>
+            <button type="button" style={{...button,justifySelf:'start'}}
+              disabled={busy||!selectedCase||!observationNote.trim()}
+              onClick={()=>void execute(async()=>{
+                const result=await request({operation:'persist',caseId:selectedCase,
+                  label:'Registro de autoobservación',content:observationNote,
+                  source:'participant_self_observation',evidenceType:'participant_mark',reliability:0.5});
+                setObservationNote('');
+                return result;
+              },'Registro de observación recibido. No equivale a un RETURN mundial verificado.')}>
+              Registrar observación
+            </button>
+            <button type="button" style={{...button,justifySelf:'start'}}
+              disabled={busy||!selectedCase||intakePlan?.status!=='CANDIDATE_REQUIRES_METHOD_REVIEW'}
+              onClick={()=>void execute(()=>request({operation:'preregister_generated_conditions',
+                caseId:selectedCase,narrative:knowledge}),
+                'SFI preregistró las condiciones generadas con una ventana de 72 horas verificada del servidor.')}>
+              Preregistrar condiciones construidas por SFI
+            </button>
+            <small style={{opacity:.68}}>El último botón exige registros persistidos en los tres tramos diarios
+              de una ventana completa de 72 horas. Antes, permanece bloqueado en servidor.
+              La preregistración no ejecuta intervenciones ni certifica un resultado.</small>
+          </div>
           {intakePlan?<div style={{...panel,display:'grid',gap:10}} role="status" aria-live="polite">
             <strong>Lectura preliminar · {intakePlan.status}</strong>
             {intakePlan.proposedHypothesis?<p style={{margin:0}}>HIPÓTESIS: {intakePlan.proposedHypothesis}</p>:null}
@@ -193,7 +247,7 @@ export function PersonalCognitiveLabWorkspace({intakeOnly=false}:{intakeOnly?:bo
           </div>:null}
         </section>
   );
-  if (intakeOnly) return <div style={{padding:'16px clamp(18px,4vw,56px)',maxWidth:1180,margin:'0 auto'}}>{intakeForm}</div>;
+  if (intakeOnly) return <div style={{padding:'16px clamp(18px,4vw,56px)',maxWidth:1180,margin:'0 auto',color:'#f4f4f4'}}>{intakeForm}</div>;
 
   return (
     <main style={{ minHeight: '100vh', padding: '32px clamp(18px, 4vw, 56px) 64px', color: '#f4f4f4', background: '#050608' }}>
