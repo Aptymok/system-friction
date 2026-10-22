@@ -98,7 +98,7 @@ export async function POST(req: Request) {
 
       // A preregistration may freeze a candidate before any intervention; it grants
       // neither permission to act nor evidence/RETURN status to participant notes.
-      const experimentId='sfi-generated-'+caseId+'-'+String(first.id);
+      const experimentId='sfi-generated-'+caseId+'-'+String(first?.id);
       try {
         const existing=await readOwnedMethodLabExperimentPreregistration({ownerId:context.user.id,experimentId});
         return NextResponse.json({ok:true,operation,alreadyPreregistered:true,
@@ -116,7 +116,7 @@ export async function POST(req: Request) {
         twinStateRef:null,hypothesis:plan.proposedHypothesis,nullHypothesis:plan.proposedRival,
         t0Cutoff:periodStart.toISOString(),timezone:'UTC',
         methodDescription:'SFI-authored bounded prospective test from qualitative intake; primary method '+plan.primaryMethod+
-          '. Baseline record IDs '+marks.filter(x=>Date.parse(String(x.created_at))<baselineT0+72*3600000).map(x=>x.id).join(','),
+          '. Baseline record IDs '+marks.filter(x=>Date.parse(String(x.created_at))<(baselineT0??0)+72*3600000).map(x=>x.id).join(','),
         controlDescription:'Existing 72-hour participant-record baseline; retained as DECLARED records, not automatically admitted evidence.',
         variantDescriptions:['Proposed bounded action: '+String(plan.scene.action),'Baseline/no-action rival condition'],
         expectedSignal:contract.expectedCriteria.map(x=>x.signal).join(' | '),
