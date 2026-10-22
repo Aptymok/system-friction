@@ -286,6 +286,8 @@ export function deriveHypothesisIntakeFromNarrative(inputValue: unknown) {
     !destination ? 'INTENDED_DESTINATION' : null,
     !subject ? 'SUBJECT' : null,
     !current ? 'CURRENT_SITUATION' : null,
+    !nodes.length ? 'PARTICIPATING_NODES' : null,
+    !limits ? 'PRESERVED_CONDITIONS' : null,
     !action ? 'POSSIBLE_ACTION' : null,
     !visible ? 'VISIBLE_DIFFERENCE' : null,
     !records ? 'AVAILABLE_RECORDS' : null,
