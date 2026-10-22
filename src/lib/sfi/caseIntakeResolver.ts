@@ -166,7 +166,9 @@ export function resolveCasePlatformCreationIntake(inputValue: unknown) {
     observedDailySegments: observedDays.size,
     observationEvidenceRefs: observationRefs,
     baselineComplete, sedimented,
-    readyForProjectExecution: Boolean(declaredAttractor && intendedDestination && sedimented && projectDefined),
+    candidateReadyForProjectReview: Boolean(declaredAttractor && intendedDestination && sedimented && projectDefined && primaryMethod !== 'UNRESOLVED'),
+    readyForProjectExecution: false,
+    verificationState: 'AWAITING_SERVER_SIDE_SOURCE_AND_AUTHORITY_CHECK',
     principle: 'Register an observational Case first, then complete attractor declaration, 72h baseline, sedimentation and explicit project criteria before governed execution. User RETURN and independently observed world RETURN must remain separate.',
   };
 
@@ -177,6 +179,7 @@ export function resolveCasePlatformCreationIntake(inputValue: unknown) {
     attractorOnboarding,
     attractorQuestions,
     readyForProjectExecution: attractorOnboarding.readyForProjectExecution,
+    candidateReadyForProjectReview: attractorOnboarding.candidateReadyForProjectReview,
     readyForCreate: questions.length === 0,
     principle: 'Operational Case creation is downstream of universal observation/classification. Create the Case only when its service contract is resolvable; do not use Case creation as the universal ingestion gate.',
   };
