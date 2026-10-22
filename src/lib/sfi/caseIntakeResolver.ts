@@ -294,6 +294,27 @@ export function deriveHypothesisIntakeFromNarrative(inputValue: unknown) {
   const scene = { subject, nodes, currentSituation:current, previouslyAttempted:attempts,
     action, electedAttractor:goal, destination, preservedConditions:limits,
     sourcesNamedByParticipant:records, epistemicClass:'DECLARED' as const };
+  // Nodes and relations are a provenance-labelled proposal, never an observed causal graph.
+  const proposedGraph = {
+    nodes:[
+      {id:'SUBJECT',kind:'SUBJECT',description:subject,epistemicClass:'DECLARED'},
+      {id:'BASELINE',kind:'CONTEXT',description:current,epistemicClass:'DECLARED'},
+      ...nodes.map((description,index)=>({id:'PARTICIPANT_NODE_'+(index+1),kind:'PARTICIPANT_NODE',description,epistemicClass:'DECLARED'})),
+      {id:'ACTION',kind:'PROPOSED_PROCEDURE',description:action,epistemicClass:'DECLARED'},
+      {id:'EXPECTED_WORLD_SIGNAL',kind:'OBSERVABLE_CHANGE',description:visible,epistemicClass:'DECLARED'},
+      {id:'ATTRACTOR',kind:'ELECTED_TARGET',description:goal,epistemicClass:'DECLARED'},
+    ],
+    relations:[
+      {from:'BASELINE',to:'ACTION',kind:'MOTIVATES_TEST',epistemicClass:'INFERRED'},
+      {from:'ACTION',to:'EXPECTED_WORLD_SIGNAL',kind:'HYPOTHESIZED_NOT_CAUSAL_FACT',epistemicClass:'INFERRED'},
+      {from:'EXPECTED_WORLD_SIGNAL',to:'ATTRACTOR',kind:'POTENTIAL_TRAJECTORY_NOT_ARRIVAL',epistemicClass:'INFERRED'},
+    ],
+    verified:false,
+  };
+  const primaryMethod = field('subjectKind').toUpperCase() === 'PERSON' ? 'MOP_H'
+    : ['ORGANIZATION','PROJECT'].includes(field('subjectKind').toUpperCase()) ? 'PPOI'
+    : field('subjectKind').toUpperCase() === 'SFI_SYSTEM' ? 'SFI_INSTITUTIONAL'
+    : 'SCOREFRICTION';
   const hypothesis=complete
     ? 'If the proposed action is carried out in the bounded system, the reported observable change may occur along the chosen direction.'
     : null;
@@ -332,6 +353,8 @@ export function deriveHypothesisIntakeFromNarrative(inputValue: unknown) {
     status:complete?'CANDIDATE_REQUIRES_METHOD_REVIEW':'NEEDS_NARRATIVE_CONTEXT',
     missing,
     scene,
+    primaryMethod,
+    proposedGraph,
     proposedHypothesis:hypothesis,
     proposedRival:rival,
     proposedTestContract:testContract,
