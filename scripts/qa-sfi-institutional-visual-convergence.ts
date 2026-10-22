@@ -65,7 +65,28 @@ assert.equal(
   false,
   'discovery_accepted_visual_composition_must_not_be_modified_by_convergence_gate',
 );
-assert.ok(evidence.includes('<InstitutionalSurfaceRail surface="EVIDENCE"'),'evidence_not_converged');
+// Evidence has its own established chamber composition. Assert that the
+// canonical proposal queue remains live and source admission boundaries remain
+// visible, rather than changing an accepted design to mount a generic rail.
+assert.ok(
+  evidence.includes("fetch('/api/acp/proposals', { cache: 'no-store' })") &&
+  evidence.includes("proposal.status === 'waiting_evidence'") &&
+  evidence.includes("proposal.status === 'needs_evidence'") &&
+  evidence.includes('<RootEvidenceCandidateLane proposals={waiting} />'),
+  'evidence_governed_proposal_queue_missing',
+);
+assert.ok(
+  evidence.includes('SOURCE ≠ EVIDENCE') &&
+  evidence.includes('CANDIDATE ≠ ADMITTED') &&
+  evidence.includes('NO WAITING EVIDENCE') &&
+  evidence.includes('The absence of candidates is not interpreted as absence of evidence in the world.'),
+  'evidence_admission_and_absence_boundary_missing',
+);
+assert.equal(
+  evidence.includes('<InstitutionalSurfaceRail surface="EVIDENCE"'),
+  false,
+  'evidence_accepted_visual_composition_must_not_be_modified_by_convergence_gate',
+);
 assert.ok(access.includes('<InstitutionalSurfaceRail surface="ACCESS"'),'access_not_converged');
 
 assert.ok(evidence.includes('Evidence is admitted, not assumed.'),'evidence_chamber_identity_missing');
