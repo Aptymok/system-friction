@@ -6,6 +6,7 @@ import { getPredictiveEngineHealth } from '@/lib/predictive-engine/service';
 import { readObservedSfiCognitiveRuntime } from '@/lib/sfi/cognitive-runtime/observedRuntime';
 import { buildWorldVectorOperationalState } from '@/lib/world-vector/operationalState';
 import type { refreshInstitutionalAttractorTrajectory } from './institutionalAttractor';
+import { assessCognitiveActivity } from './cognitiveActivityDiagnosis';
 
 export const SFI_INSTITUTIONAL_EVOLUTION_CONTRACT = 'SFI-INSTITUTIONAL-EVOLUTION-1.2' as const;
 export const SFI_INSTITUTIONAL_MUTATION_PROPOSAL_TYPE = 'institutional_mutation_candidate' as const;
@@ -161,6 +162,21 @@ function runtimeCandidates(runtime: Awaited<ReturnType<typeof readObservedSfiCog
   const missing = runtime.agents.filter((agent) => agent.status === 'missing');
   const degraded = runtime.agents.filter((agent) => agent.status === 'degraded');
   const result: EvolutionCandidate[] = [];
+  const activity = assessCognitiveActivity(runtime);
+  if (activity.state === 'DIAGNOSTIC_ELIGIBLE') {
+    result.push({
+      kind: 'EVIDENCE_ACQUISITION',
+      target: 'cognitive-runtime-activity',
+      title: 'Diagnosticar inactividad cognitiva con ejecutores disponibles',
+      objective: 'Investigar, con los agentes internos ya registrados, por qué no hay ejecuciones recientes atribuibles pese a existir señales institucionales actuales. Distinguir demanda, despacho, evidencia, controles de autoridad y registro; no inferir una denegación por GATED. Producir un diagnóstico trazable y la siguiente observación discriminante, sin efectos externos ni promoción canónica.',
+      priority: 0.83,
+      // Stable reasons keep the proposal fingerprint unchanged across routine ticks;
+      // ephemeral event IDs remain provenance, never deduplication keys.
+      reasons: ['all_registered_executors_bound_but_inactive', 'recent_institutional_signal', 'diagnostic_not_capability_repair'],
+      evidenceRefs: activity.signals.map((event) => event.eventId),
+      ownerResolution: 'ABSORB_IN_EXISTING_OWNER',
+    });
+  }
 
   if (missing.length) {
     result.push({
@@ -366,6 +382,7 @@ export async function runInstitutionalEvolutionObservation(input: {
     ...predictiveCandidates(predictive),
   ];
 
+  const activityDiagnosis = assessCognitiveActivity(runtime);
   const context = {
     observedAt,
     world: worldContext(world),
@@ -383,6 +400,15 @@ export async function runInstitutionalEvolutionObservation(input: {
       gated: runtime.agents.filter((agent) => agent.status === 'gated').length,
       degraded: runtime.agents.filter((agent) => agent.status === 'degraded').length,
       missing: runtime.agents.filter((agent) => agent.status === 'missing').length,
+      cognitiveActivityDiagnosis: {
+        ...activityDiagnosis,
+        // Signal IDs are provenance, not proof that a cognitive execution was denied.
+        signals: activityDiagnosis.signals.map((event) => ({
+          eventId: event.eventId,
+          eventName: event.eventName,
+          occurredAt: event.occurredAt,
+        })),
+      },
     },
     continuity: {
       openIncidents: continuity.incidents.length,

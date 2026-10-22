@@ -1,0 +1,14 @@
+.sfiAlternateAuth{display:grid;gap:1rem;margin:1.5rem auto 2rem;padding:1.5rem;max-width:540px;border:1px solid rgba(200,169,110,.28);color:#e4dccf;background:#100f0da6}
+.sfiAlternateAuth>p{font-size:.87rem;letter-spacing:.08em}
+.sfiAlternateAuthProviders{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.65rem}
+.sfiAlternateAuth button{font:inherit;color:#e7d5b4;background:#181610;border:1px solid #96845e;padding:.75rem .65rem;cursor:pointer}
+.sfiAlternateAuth button:hover{background:#30291b}
+.sfiAlternateAuth button:disabled{cursor:wait;opacity:.5}
+.sfiAlternateAuthMagic{display:grid;gap:.5rem}
+.sfiAlternateAuthMagic label{font-size:.75rem;letter-spacing:.04em}
+.sfiAlternateAuthEmail{display:flex;gap:.5rem}
+.sfiAlternateAuthEmail input{width:100%;min-width:0;color:#eee;background:#141312;border:1px solid #746e66;padding:.7rem}
+.sfiAlternateAuthEmail button{white-space:nowrap}
+.sfiAlternateAuth>a{color:#dcc28d;text-decoration:underline;font-size:.82rem}
+.sfiAlternateAuth .authMessage{font-size:.8rem}
+@media(max-width:500px){.sfiAlternateAuthProviders{grid-template-columns:1fr}.sfiAlternateAuthEmail{flex-direction:column}}
