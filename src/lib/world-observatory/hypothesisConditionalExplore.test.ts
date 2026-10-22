@@ -17,6 +17,21 @@ const sample: PossibilityInput = {
   value:'0.75', presence:'UNKNOWN', observations:'5', evidence:'10', sourceFamilies:'1',
 };
 
+
+test('rival wins a criterion but attractor remains a conditional destination', () => {
+ const r=compareRivalConditions({
+   primary:branch,rival:{...branch,id:'R',operator:'LT',threshold:0.4},
+   primaryScenario:{...sample,value:'0.2'},rivalScenario:{...sample,value:'0.2'},
+   primaryWindowRef:'same',rivalWindowRef:'same',minimumEvidence:5,minimumSourceFamilies:1,
+   electedAttractor:'Chosen',recovery:{action:'Bounded move',condition:'If possible',expectedWorldSignal:'Return',reversible:true}
+ });
+ assert.equal(r.comparison.advantage,'RIVAL_CONDITION_ADVANTAGE');
+ assert.equal(r.recovery.possibleDespitePrimaryLoss,true);
+ assert.equal(r.recovery.destinationVerified,false);
+ assert.equal(r.returns.world.state,'NOT_VERIFIED');
+});
+
+
 test('the original frozen branch is never mutated', () => {
   const before = JSON.stringify(branch);
   evaluatePossibility(branch,10,1,sample);
