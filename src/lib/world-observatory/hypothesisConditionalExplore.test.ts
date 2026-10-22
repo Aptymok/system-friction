@@ -11,6 +11,8 @@ const branch: HypothesisConditionalBranch = {
   contextRule:'Frozen original validation window only.',
   verificationState:'NOT_EVALUATED_HERE',
 };
+assert.throws(() => compareRivalConditions({ electedAttractor: '' } as any), /ELECTED_ATTRACTOR_REQUIRED/);
+
 const sample: PossibilityInput = {
   value:'0.75', presence:'UNKNOWN', observations:'5', evidence:'10', sourceFamilies:'1',
 };
