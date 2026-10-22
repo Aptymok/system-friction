@@ -30,7 +30,7 @@ assert.ok(workflow.includes('STOP: mirror conflict requires investigation'), 'st
 assert.ok(workflow.includes("stop_unsafe('primary mirror made no progress')"), 'stop rather than retry a primary mirror with no progress');
 assert.ok(workflow.includes('/api/cron/data-plane-reconcile'));
 assert.ok(workflow.includes('-X POST'));
-assert.ok(workflow.indexOf('Drain primary mirror through bounded sequential reconciliation calls') <
+assert.ok(workflow.indexOf('Drain primary mirror or recovery journal through bounded reconciliation') <
   workflow.indexOf('Check whether continuity has real work'),
   'scheduled recovery must run even if no cognitive work is ready');
 
@@ -51,6 +51,12 @@ assert.ok(control.includes('journal.conflicts > 0'));
 assert.ok(control.includes('mirror!.pending > 0 || mirror!.conflicts > 0'));
 assert.ok(control.includes('PRIMARY_OUTBOX_UNAVAILABLE'));
 assert.ok(control.includes('if (!before.safeRecoveryEligible)'));
+assert.ok(control.includes("before.blocker === 'PRIMARY_OUTBOX_RECONCILIATION_REQUIRED'"), 'CONTINUITY must be able to drain an otherwise deadlocked primary outbox');
+assert.ok(control.includes("before.journal.pending === 0"), 'CONTINUITY outbox replay may not compete with unresolved journal mutations');
+assert.ok(control.includes("'CONTINUITY_OUTBOX_DRAIN_PROGRESS'"), 'use distinct, non-certifying continuity outbox receipt');
+assert.ok(workflow.includes("old_mode in ('CONTINUITY','RECOVERY')"), 'workflow must handle CONTINUITY before replay, without a new scheduler');
+assert.ok(workflow.includes("continuity outbox drain cannot promote or certify continuity mode"), 'workflow may not claim a certificate or primary promotion from drain alone');
+
 assert.ok(control.includes("if (before.dataPlane.mode === 'PRIMARY')"), 'the existing hourly OIDC scheduler must maintain primary-to-Neon mirror when mode is PRIMARY');
 assert.ok(control.includes('flushPrimaryMirror({ maxTransactions: limit })'), 'must reuse canonical bounded primary outbox drain, not a separate writer or cron');
 assert.ok(control.includes('Math.min(32, Number.isFinite(maxTransactions)'), 'forward mirror lane must honor existing capped 32 source-transaction request');
@@ -195,6 +201,47 @@ const cases = [
   }), 'stop'],
   ['RECOVERY cannot claim PRIMARY without cert', receipt('RECOVERY', 'PRIMARY_RECOVERED', {
     recovery: { recovered: true }, after: { dataPlane: { mode: 'PRIMARY', primaryMirrorCertified: false }, journal: { pending: 0, conflicts: 0, protectedPending: 0 } },
+  }), 'fail'],
+  // P0 failover regression: the PRIMARY outbox is still pending after an
+  // unexpected transport-triggered CONTINUITY transition, without journal work.
+  ['CONTINUITY drains guarded old PRIMARY outbox', receipt('CONTINUITY', 'CONTINUITY_OUTBOX_DRAIN_PROGRESS', {
+    before: { primaryOutbox: { pending: 13, conflicts: 0 }, blocker: 'PRIMARY_OUTBOX_RECONCILIATION_REQUIRED', safeRecoveryEligible: false },
+    after: { dataPlane: { mode: 'CONTINUITY', primaryMirrorCertified: false }, journal: { pending: 0, conflicts: 0, protectedPending: 0 }, primaryOutbox: { pending: 8, conflicts: 0 } },
+    primaryMirror: { ok: false, mirroredTransactions: 5, mirroredRows: 5 },
+  }), 'continue'],
+  ['CONTINUITY drained outbox can immediately proceed to recovery', receipt('CONTINUITY', 'CONTINUITY_OUTBOX_DRAINED', {
+    before: { primaryOutbox: { pending: 13, conflicts: 0 }, blocker: 'PRIMARY_OUTBOX_RECONCILIATION_REQUIRED', safeRecoveryEligible: false },
+    after: { dataPlane: { mode: 'CONTINUITY', primaryMirrorCertified: false }, journal: { pending: 0, conflicts: 0, protectedPending: 0 }, primaryOutbox: { pending: 0, conflicts: 0 } },
+    primaryMirror: { ok: true, mirroredTransactions: 13, mirroredRows: 13 },
+  }), 'continue'],
+  ['CONTINUITY does not claim PRIMARY during outbox drain', receipt('CONTINUITY', 'CONTINUITY_OUTBOX_DRAINED', {
+    before: { primaryOutbox: { pending: 13, conflicts: 0 }, blocker: 'PRIMARY_OUTBOX_RECONCILIATION_REQUIRED', safeRecoveryEligible: false },
+    after: { dataPlane: { mode: 'PRIMARY', primaryMirrorCertified: true }, journal: { pending: 0, conflicts: 0, protectedPending: 0 }, primaryOutbox: { pending: 0, conflicts: 0 } },
+    primaryMirror: { ok: true, mirroredTransactions: 13 },
+  }), 'fail'],
+  ['CONTINUITY outbox no progress stops', receipt('CONTINUITY', 'CONTINUITY_OUTBOX_DRAIN_PROGRESS', {
+    before: { primaryOutbox: { pending: 13, conflicts: 0 }, blocker: 'PRIMARY_OUTBOX_RECONCILIATION_REQUIRED', safeRecoveryEligible: false },
+    after: { dataPlane: { mode: 'CONTINUITY', primaryMirrorCertified: false }, journal: { pending: 0, conflicts: 0, protectedPending: 0 }, primaryOutbox: { pending: 13, conflicts: 0 } },
+    primaryMirror: { ok: false, mirroredTransactions: 0 },
+  }), 'fail'],
+  ['CONTINUITY outbox conflict stops', receipt('CONTINUITY', 'CONTINUITY_OUTBOX_CONFLICT', {
+    before: { primaryOutbox: { pending: 13, conflicts: 0 }, blocker: 'PRIMARY_OUTBOX_RECONCILIATION_REQUIRED', safeRecoveryEligible: false },
+    after: { dataPlane: { mode: 'CONTINUITY', primaryMirrorCertified: false }, journal: { pending: 0, conflicts: 0, protectedPending: 0 }, primaryOutbox: { pending: 8, conflicts: 1 } },
+    primaryMirror: { conflict: true, mirroredTransactions: 5 },
+  }), 'fail'],
+  ['CONTINUITY refuses to drain with pending journal', receipt('CONTINUITY', 'CONTINUITY_OUTBOX_DRAIN_PROGRESS', {
+    before: { primaryOutbox: { pending: 13, conflicts: 0 }, journal: { pending: 3, conflicts: 0, protectedPending: 0 }, blocker: 'PRIMARY_OUTBOX_RECONCILIATION_REQUIRED', safeRecoveryEligible: false },
+    after: { dataPlane: { mode: 'CONTINUITY', primaryMirrorCertified: false }, journal: { pending: 3, conflicts: 0, protectedPending: 0 }, primaryOutbox: { pending: 8, conflicts: 0 } },
+    primaryMirror: { ok: false, mirroredTransactions: 5 },
+  }), 'fail'],
+  ['CONTINUITY safely recovers PRIMARY after clear outbox and certified fingerprints', receipt('CONTINUITY', 'PRIMARY_RECOVERED', {
+    before: { primaryOutbox: { pending: 0, conflicts: 0 }, safeRecoveryEligible: true, blocker: null },
+    after: { dataPlane: { mode: 'PRIMARY', primaryMirrorCertified: true }, journal: { pending: 0, conflicts: 0, protectedPending: 0 }, primaryOutbox: { pending: 0, conflicts: 0 } },
+    recovery: { recovered: true, replayedTransactions: 0, replayedRows: 0 },
+  }), 'stop'],
+  ['CONTINUITY aborts if primary transport probe still unavailable', receipt('CONTINUITY', 'RECOVERY_NOT_COMPLETE', {
+    before: { primaryOutbox: { pending: 0, conflicts: 0 }, safeRecoveryEligible: true, blocker: null },
+    recovery: { recovered: false, reason: 'PRIMARY_STILL_UNAVAILABLE' },
   }), 'fail'],
   ['PRIMARY progresses with mirrored transactions', receipt('PRIMARY', 'PRIMARY_MIRROR_PENDING'), 'continue'],
   ['PRIMARY completes only with cert', receipt('PRIMARY', 'PRIMARY_MIRROR_CERTIFIED', {
