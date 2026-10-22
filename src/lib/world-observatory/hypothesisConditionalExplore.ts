@@ -99,3 +99,68 @@ export function evaluatePossibility(
   return { state:'CONDITION_POSSIBLE_IN_SCENARIO', matchesCriterion, missing,
     label:'El escenario cumple el umbral y los mínimos numéricos declarados. La procedencia y la comparación real siguen sin verificar.', boundary };
 }
+
+
+/** A bounded, non-persistent two-hypothesis scenario, not a factual verdict. */
+export function compareRivalConditions(input:{
+  primary:HypothesisConditionalBranch;
+  rival:HypothesisConditionalBranch;
+  primaryScenario:PossibilityInput;
+  rivalScenario:PossibilityInput;
+  primaryWindowRef:string;
+  rivalWindowRef:string;
+  minimumEvidence:number;
+  minimumSourceFamilies:number;
+  electedAttractor:string;
+  recovery?:{action:string;condition:string;expectedWorldSignal:string;reversible:boolean}|null;
+  participantReturn?:{claimedAction:string;evidenceRefs:string[]}|null;
+  worldReturn?:{observedAt:string;evidenceRefs:string[];independentlyVerified:boolean;predictedSignalMatched:'YES'|'NO'|'UNKNOWN';attractorObserved:'YES'|'NO'|'UNKNOWN'}|null;
+  sealedPrediction?:{hash:string;frozenAt:string;actionAt:string}|null;
+}) {
+  if (!input.electedAttractor.trim()) throw new Error('ELECTED_ATTRACTOR_REQUIRED');
+  const primary=evaluatePossibility(input.primary,input.minimumEvidence,input.minimumSourceFamilies,input.primaryScenario);
+  const rival=evaluatePossibility(input.rival,input.minimumEvidence,input.minimumSourceFamilies,input.rivalScenario);
+  const comparable=Boolean(input.primaryWindowRef.trim() && input.primaryWindowRef===input.rivalWindowRef);
+  // Only a criterion-level conditional advantage, never victory of a whole hypothesis.
+  const p=primary.state==='CONDITION_POSSIBLE_IN_SCENARIO' && input.primary.relation==='SUPPORT_IF';
+  const r=rival.state==='CONDITION_POSSIBLE_IN_SCENARIO' && input.rival.relation==='SUPPORT_IF';
+  const pFails=primary.state==='CRITERION_NOT_MET';
+  const rFails=rival.state==='CRITERION_NOT_MET';
+  const advantage=!comparable?'NOT_COMPARABLE':p&&rFails?'PRIMARY_CONDITION_ADVANTAGE':
+    r&&pFails?'RIVAL_CONDITION_ADVANTAGE':'UNDETERMINED';
+  const recovery=input.recovery;
+  const routeReady=Boolean(recovery?.reversible && recovery.action.trim() &&
+    recovery.condition.trim() && recovery.expectedWorldSignal.trim());
+  const claimed=Boolean(input.participantReturn?.claimedAction.trim());
+  const world=input.worldReturn;
+  const sealed=input.sealedPrediction;
+  const frozenBeforeAction=Boolean(sealed?.hash.trim() && Number.isFinite(Date.parse(sealed.frozenAt)) &&
+    Number.isFinite(Date.parse(sealed.actionAt)) && Date.parse(sealed.frozenAt)<Date.parse(sealed.actionAt));
+  const worldVerifiable=Boolean(world?.independentlyVerified && world.evidenceRefs.length>0 &&
+    Number.isFinite(Date.parse(world.observedAt)) && frozenBeforeAction &&
+    sealed && Date.parse(world!.observedAt)>=Date.parse(sealed.actionAt));
+  const worldPrediction=worldVerifiable?(world?.predictedSignalMatched==='YES'?'SUPPORTED':
+    world?.predictedSignalMatched==='NO'?'CONTRADICTED':'INCONCLUSIVE'):'NOT_VERIFIED';
+  const attractorState=worldVerifiable && world?.attractorObserved==='YES'
+    ? 'OBSERVED_DESTINATION_REACHED' : 'NOT_VERIFIED';
+  return {
+    contract:'SFI-RIVAL-CONDITIONAL-ATTRACTOR-1.0',
+    electedAttractor:input.electedAttractor,
+    primary:{criterionId:input.primary.criterionId,scenario:primary},
+    rival:{criterionId:input.rival.criterionId,scenario:rival},
+    comparison:{comparable,advantage,epistemicClass:'CONDITIONAL_NOT_OBSERVED' as const},
+    recovery:{state:attractorState==='OBSERVED_DESTINATION_REACHED'?'WORLD_RETURN_SUPPORTS_ATTRACTOR':
+      routeReady?'CONDITIONAL_REENTRY_NOT_EXECUTED':'NO_ADMISSIBLE_ROUTE',
+      condition:recovery?.condition??null,expectedWorldSignal:recovery?.expectedWorldSignal??null,
+      possibleDespitePrimaryLoss:advantage==='RIVAL_CONDITION_ADVANTAGE' && routeReady,
+      destinationVerified:attractorState==='OBSERVED_DESTINATION_REACHED'},
+    returns:{
+      participant:{state:claimed?'USER_REPORTED':'NOT_REPORTED',evidenceRefs:input.participantReturn?.evidenceRefs??[],epistemicClass:'DECLARED'},
+      world:{state:worldPrediction,attractorState,evidenceRefs:world?.evidenceRefs??[],epistemicClass:worldVerifiable?'VERIFIED_OBSERVATION':'NOT_VERIFIED'},
+    },
+    internalContrast:{predictionSealedBeforeAction:frozenBeforeAction,detailsWithheld:true,
+      notice:'An internal preregistered prediction is assessed separately. Its existence and use must be disclosed to the participant.'},
+    learning:{eligibleForGovernedReview:worldVerifiable && worldPrediction!=='INCONCLUSIVE',promoted:false},
+    boundary:'Condition-level what-if, not observed hypothesis victory. Never infer consent, automatic project action, verified causality, real-world return or canon promotion from hypothetical inputs.',
+  };
+}
