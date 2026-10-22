@@ -36,7 +36,8 @@ const projectReady = resolveCasePlatformCreationIntakeFromAction({
   projectAcceptanceCriteria:'A recorded and independently verified RETURN',
 });
 assert.equal(projectReady.attractorOnboarding.primaryMethod,'MOP_H');
-assert.equal(projectReady.readyForProjectExecution,true);
+assert.equal(projectReady.candidateReadyForProjectReview,true);
+assert.equal(projectReady.readyForProjectExecution,false,'participant-supplied marks are not independent server verification');
 const shortWindow=resolveCasePlatformCreationIntakeFromAction({
   ...nestedResolved,declaredAttractor:'Elected',intendedDestination:'Outcome',
   attractorObservation:{startedAt:'2026-10-18T08:00:00Z',closedAt:'2026-10-18T10:00:00Z',evidenceRefs:['user:1']},
