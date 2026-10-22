@@ -21,6 +21,16 @@ type ApiResponse = {
   runId?: string;
   labAnalysisId?: string;
   output?: Row;
+  plan?: {
+    status:string;
+    missing:string[];
+    proposedHypothesis:string|null;
+    proposedRival:string|null;
+    proposedTestContract:{ expectedCriteria:Array<{id:string;signal:string}>; contradictionCriteria:Array<{id:string;signal:string}> }|null;
+    acceptanceLogic?:{support:string;contradiction:string;rivalry:string;returnToAttractor:string}|null;
+    preregistered:boolean;
+    boundary:string;
+  };
 };
 
 const panel: React.CSSProperties = {
@@ -75,6 +85,27 @@ export function PersonalCognitiveLabWorkspace() {
   const [evidenceContent, setEvidenceContent] = useState('');
   const [cognitiveObjective, setCognitiveObjective] = useState('');
   const [protocol, setProtocol] = useState<'sociotechnical_simulation' | 'economic_simulation'>('sociotechnical_simulation');
+  // Independent, owner-scoped qualitative intake. Does not enter the enterprise Reality Chain.
+  const [knowledge, setKnowledge] = useState({
+    subjectKind:'PERSON',subject:'',chosenAttractor:'',intendedDestination:'',
+    currentSituation:'',participatingNodes:'',previousAttempts:'',possibleAction:'',
+    visibleDifference:'',limitsToPreserve:'',availableRecords:'',
+  });
+  const [intakePlan,setIntakePlan] = useState<ApiResponse['plan']>(null);
+  const updateKnowledge = (key:keyof typeof knowledge,value:string) =>
+    setKnowledge(previous=>({...previous,[key]:value}));
+  const [planning,setPlanning] = useState(false);
+  async function buildConditions() {
+    setPlanning(true);
+    setMessage('');
+    try {
+      const outcome=await request({operation:'hypothesis_intake_preview',narrative:knowledge});
+      setIntakePlan(outcome.plan??null);
+    } catch(error) {
+      setMessage(error instanceof Error?error.message:String(error));
+    } finally {setPlanning(false);}
+  }
+
 
   const refresh = useCallback(async () => {
     try {
@@ -120,6 +151,57 @@ export function PersonalCognitiveLabWorkspace() {
             Your cases, evidence, simulations and cognitive runs remain owner-scoped. Cognitive automations may be auto-selected for the task, but they cannot acquire institutional, publication, spending or ROOT authority.
           </p>
         </header>
+
+        <section style={{...panel,display:'grid',gap:12}} aria-label="Orientación y conocimiento para SFI" data-sfi-workspace="QUALITATIVE_ATTRACTOR_INTAKE">
+          <div style={{fontSize:12,letterSpacing:'.16em',opacity:.65}}>SFI / CASES / ANTES DEL PROYECTO</div>
+          <h2 style={{fontSize:24,fontWeight:500,margin:0}}>Cuéntanos qué quieres lograr</h2>
+          <p style={{margin:0,opacity:.75,maxWidth:820}}>
+            No necesitas formular hipótesis científicas, umbrales ni criterios de falsación.
+            Describe lo que conoces; SFI identificará nodos, acciones, alternativas y condiciones para contrastar.
+            El atractor lo eliges tú, no SFI.
+          </p>
+          <label>¿Qué estamos observando?
+            <select style={input} value={knowledge.subjectKind} onChange={event=>updateKnowledge('subjectKind',event.target.value)}>
+              <option value="PERSON">Persona</option><option value="ORGANIZATION">Organización</option>
+              <option value="SYSTEM">Sistema</option><option value="AI_AGENT">Agente de IA</option>
+              <option value="OBJECT">Objeto o artefacto</option><option value="PROJECT">Proyecto</option>
+              <option value="SFI_SYSTEM">SFI como institución</option>
+            </select>
+          </label>
+          {([
+            ['subject','¿Qué persona, sistema o proyecto es?','Describe el sujeto sin datos íntimos innecesarios.'],
+            ['chosenAttractor','¿Qué futuro eliges para ello?','La dirección que elegiste y que deseas conservar.'],
+            ['intendedDestination','¿A qué lugar o estado concreto quieres llegar?','Ejemplo: un proyecto ejecutándose con evidencia.'],
+            ['currentSituation','¿Qué pasa actualmente?','Describe hechos, repeticiones o dificultades que has visto.'],
+            ['participatingNodes','¿Qué cosas, personas, recursos o pasos intervienen?','Menciona elementos conocidos. Una línea por elemento.'],
+            ['previousAttempts','¿Qué se ha intentado hasta ahora?','Incluye qué ocurrió, si lo recuerdas.'],
+            ['possibleAction','¿Qué acción pequeña podría intentarse?','Solo una acción posible; todavía no es una autorización.'],
+            ['visibleDifference','¿Qué cambio notarías en lo cotidiano?','Descríbelo en palabras comunes, sin porcentajes ni métricas.'],
+            ['limitsToPreserve','¿Qué no debería perjudicarse al intentarlo?','Personas, recursos, restricciones o condiciones importantes.'],
+            ['availableRecords','¿Dónde se podría revisar qué pasó?','Ejemplos: bitácora, correo, documento o registro; puedes indicar que aún no sabes.'],
+          ] as Array<[keyof typeof knowledge,string,string]>).map(([key,label,placeholder])=>
+            <label key={key} style={{display:'grid',gap:6}}>{label}
+              <textarea value={knowledge[key]} onChange={event=>updateKnowledge(key,event.target.value)}
+                style={{...input,minHeight:key==='currentSituation'?96:66,resize:'vertical'}}
+                placeholder={placeholder}/>
+            </label>
+          )}
+          <button type="button" style={{...button,justifySelf:'start'}}
+            disabled={planning || !knowledge.chosenAttractor.trim() || !knowledge.subject.trim()}
+            onClick={()=>void buildConditions()}>{planning?'Analizando...':'SFI: construir condiciones de contraste'}</button>
+          {intakePlan?<div style={{...panel,display:'grid',gap:10}} role="status" aria-live="polite">
+            <strong>Lectura preliminar · {intakePlan.status}</strong>
+            {intakePlan.proposedHypothesis?<p style={{margin:0}}>HIPÓTESIS: {intakePlan.proposedHypothesis}</p>:null}
+            {intakePlan.proposedRival?<p style={{margin:0}}>RIVAL: {intakePlan.proposedRival}</p>:null}
+            {intakePlan.proposedTestContract?<><strong>Condiciones propuestas por SFI</strong>
+              <ul>{intakePlan.proposedTestContract.expectedCriteria.map(c=><li key={c.id}>{c.signal}</li>)}</ul>
+              <strong>Contradicciones que SFI propone observar</strong>
+              <ul>{intakePlan.proposedTestContract.contradictionCriteria.map(c=><li key={c.id}>{c.signal}</li>)}</ul>
+            </>:null}
+            {intakePlan.missing.length?<p>Falta contexto ordinario: {intakePlan.missing.join(' · ')}</p>:null}
+            <small style={{opacity:.7}}>BORRADOR NO PREREGISTRADO. SFI necesita verificar fuentes y calibrar la ventana antes de sellar el contraste. No se crea ni modifica un Case empresarial.</small>
+          </div>:null}
+        </section>
 
         <section style={{ ...panel, display: 'grid', gap: 12 }}>
           <strong>Case</strong>
