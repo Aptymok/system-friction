@@ -135,6 +135,13 @@ export function resolveCasePlatformCreationIntake(inputValue: unknown) {
   const projectDefined = Boolean(text(input.projectObjective) && text(input.projectExecutionPlace) && text(input.projectAcceptanceCriteria));
   const subjectKind = (text(input.subjectKind) ?? 'UNKNOWN').toUpperCase();
   const primaryMethod = subjectKind === 'PERSON' ? 'MOP_H' : subjectKind === 'SFI_SYSTEM' ? 'SFI_INSTITUTIONAL' : ['ORGANIZATION','PROJECT','CASE'].includes(subjectKind) ? 'PPOI' : ['OBJECT','ARTIFACT','SYSTEM','AI_AGENT'].includes(subjectKind) ? 'SCOREFRICTION' : 'UNRESOLVED';
+  if (!declaredAttractor) questions.push({ key:'DECLARED_ATTRACTOR',
+    question:'¿Cuál es tu atractor elegido?', reason:'Declared direction, not inferred worth.', blocking:false });
+  if (!intendedDestination) questions.push({ key:'INTENDED_DESTINATION',
+    question:'¿A dónde pretendes llegar y para qué?', reason:'Projects require elected destination and purpose.', blocking:false });
+  if (!baselineComplete) questions.push({ key:'OBSERVATION_72H',
+    question:'¿Qué observaste y registraste durante las primeras 72 horas?',
+    reason:'Elapsed time alone is not evidence.', blocking:false });
   const attractorOnboarding = {
     contract: 'SFI-ATTRACTOR-ONBOARDING-1.0',
     subjectKind, primaryMethod,
