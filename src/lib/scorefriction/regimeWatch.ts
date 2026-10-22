@@ -155,7 +155,7 @@ export function deriveAdaptiveTrajectoryPlan(input: {
       status:'CANDIDATE_NOT_OBSERVED_OR_VERIFIED' as const},
     observation:{watch,weakSignalCount,caseEvidenceAvailable:availableCaseEvidence,
       technicalWarnings,sourceReadReady:sourcesReady,
-      previousWorldReturnVerified,
+      previousWorldReturnVerified:previousReturnVerified,
       previousReturn:previousReturnVerified ? previous : null},
     routes,selectedRouteId:selected.id,blockers,
     state:canPropose?'PROPOSABLE_GOVERNED_RECONFIGURATION': 'OBSERVE_OR_REPREREGISTER',
