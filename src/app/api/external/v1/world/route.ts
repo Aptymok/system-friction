@@ -9,6 +9,7 @@ import { persistWorldHypothesisClosureReport } from '@/lib/reports/worldHypothes
 import { appendEpistemicEvent } from '@/lib/events/eventStore';
 import { runJrFieldCycle } from '@/lib/mihm/jrFieldCycle';
 import { SFI_SUPABASE_READ_BUDGET } from '@/lib/supabase/readBudget';
+import { getLlmProviderStatus } from '@/lib/ai/providerRouter';
 import { regenerateWorldVectorRetrospective } from '@/lib/world-vector/retrospective';
 import { runWorldSpectAdapters } from '@/lib/worldspect/runAdapters';
 import { recoverWorldSpectHistoricalDays } from '@/lib/worldspect/historicalRecovery';
@@ -25,14 +26,15 @@ function requiredScope(operation: WorldOperation) {
 
 async function readWorldState() {
   const db = createServiceSupabaseClient();
-  const [observation, reading, hypothesis, receipt, partialReceipt] = await Promise.all([
+  const [observation, reading, hypothesis, receipt, partialReceipt, hypothesisResumeReceipt] = await Promise.all([
     db.from('world_source_observations').select('id,source_id,fetched_at').order('fetched_at', { ascending: false }).limit(1).maybeSingle(),
     db.from('world_friction_readings').select('id,created_at,systemic_friction,interaction_density,systemic_coherence').order('created_at', { ascending: false }).limit(1).maybeSingle(),
     db.from('world_hypotheses').select('id,status,created_at,cutoff_at,validation_ends_at,current_confidence').order('created_at', { ascending: false }).limit(1).maybeSingle(),
     db.from('epistemic_events').select('event_id,event_name,occurred_at').eq('event_name', 'external.world.daily_cycle.completed').order('occurred_at', { ascending: false }).limit(1).maybeSingle(),
     db.from('epistemic_events').select('event_id,event_name,occurred_at').eq('event_name', 'external.world.daily_cycle.partial').order('occurred_at', { ascending: false }).limit(1).maybeSingle(),
+    db.from('epistemic_events').select('event_id,event_name,occurred_at').in('event_name', ['external.world.hypothesis_resume.completed','external.world.hypothesis_resume.partial']).order('occurred_at', { ascending: false }).limit(1).maybeSingle(),
   ]);
-  const warnings = [observation.error?.message, reading.error?.message, hypothesis.error?.message, receipt.error?.message, partialReceipt.error?.message].filter(Boolean);
+  const warnings = [observation.error?.message, reading.error?.message, hypothesis.error?.message, receipt.error?.message, partialReceipt.error?.message, hypothesisResumeReceipt.error?.message].filter(Boolean);
   const latestObservationAt = observation.data?.fetched_at ?? null;
   const ageHours = latestObservationAt ? Math.max(0, (Date.now() - Date.parse(String(latestObservationAt))) / 3_600_000) : null;
   return {
@@ -42,6 +44,7 @@ async function readWorldState() {
     latestHypothesis: hypothesis.data ?? null,
     latestDailyCycleReceipt: receipt.data ?? null,
     latestPartialCycleReceipt: partialReceipt.data ?? null,
+    latestHypothesisResumeReceipt: hypothesisResumeReceipt.data ?? null,
     freshness: ageHours === null ? 'ABSENT' : ageHours < 24 ? 'LIVE' : ageHours <= 48 ? 'AGING' : 'STALE',
     ageHours,
     warnings,
@@ -307,22 +310,76 @@ export async function POST(req: Request) {
   }
 
   const preflight=await readWorldState();
-  const lastReceiptAt=typeof preflight.latestDailyCycleReceipt?.occurred_at==='string'
-    ? Date.parse(preflight.latestDailyCycleReceipt.occurred_at)
-    : Number.NaN;
+  // Completed, partial, and source-reusing retry receipts all count as
+  // attempted work. Checking only completed cycles repeatedly re-ingested
+  // sources and re-sent LLM requests on provider quota failures.
+  const receiptTime = (value: { occurred_at?: unknown } | null | undefined) =>
+    typeof value?.occurred_at === 'string' && Number.isFinite(Date.parse(value.occurred_at))
+      ? Date.parse(value.occurred_at) : Number.NaN;
+  const completedAt=receiptTime(preflight.latestDailyCycleReceipt);
+  const partialAt=receiptTime(preflight.latestPartialCycleReceipt);
+  const resumedAt=receiptTime(preflight.latestHypothesisResumeReceipt);
+  const lastAttemptAt=Math.max(...[completedAt,partialAt,resumedAt].filter(Number.isFinite),0);
   const cooldownMs=SFI_SUPABASE_READ_BUDGET.worldRunCooldownMinutes*60_000;
-  if(Number.isFinite(lastReceiptAt) && Date.now()-lastReceiptAt<cooldownMs){
+  if(lastAttemptAt > 0 && Date.now()-lastAttemptAt<cooldownMs){
     return NextResponse.json({
       ok:true,
       operation,
       actor:actorId,
       status:'COOLDOWN_SKIPPED',
+      lastAttemptReceiptAt:new Date(lastAttemptAt).toISOString(),
       cooldownMinutes:SFI_SUPABASE_READ_BUDGET.worldRunCooldownMinutes,
-      retryAfterSeconds:Math.max(1,Math.ceil((cooldownMs-(Date.now()-lastReceiptAt))/1000)),
+      retryAfterSeconds:Math.max(1,Math.ceil((cooldownMs-(Date.now()-lastAttemptAt))/1000)),
       verification:preflight,
       writesPerformed:false,
-      boundary:'A recent governed World cycle already exists. Repeated world:run calls inside the cooldown window are skipped to contain primary egress and duplicate institutional work.',
+      boundary:'The latest completed, partial or hypothesis-only retry receipt controls cooldown. No repeated source collection or provider request occurs within the window.',
     });
+  }
+
+  const latestWasPartial=Number.isFinite(partialAt) && partialAt>0 &&
+    (!Number.isFinite(completedAt)||partialAt>completedAt) &&
+    preflight.freshness==='LIVE';
+  const explicitResume=body.resumeHypothesesOnly===true;
+  if(explicitResume && !latestWasPartial) return NextResponse.json({
+    ok:false,operation,actor:actorId,status:'NO_FRESH_PARTIAL_WORLD_CYCLE',
+    writesPerformed:false,
+    boundary:'Hypothesis-only resume requires a persisted partial World receipt and fresh source observations. It never invents a missing prior cycle.',
+  },{status:409});
+
+  if(latestWasPartial){
+    const providerStatus=getLlmProviderStatus();
+    const possible=providerStatus.filter(p=>p.available && !p.circuitOpen &&
+      p.state!=='UNCONFIGURED' && p.state!=='BLOCKED');
+    if(!possible.length) return NextResponse.json({
+      ok:false,operation,actor:actorId,status:'PROVIDERS_UNAVAILABLE',
+      retryOnly:true,writesPerformed:false,
+      providerSummary:providerStatus.map(p=>({id:p.id,state:p.state,circuitOpen:p.circuitOpen,available:p.available})),
+      boundary:'Retain persisted World observations and partial receipt. No calls to unavailable models and no synthetic hypotheses.',
+    },{status:503});
+    const startedAt=new Date().toISOString();
+    const hypothesis=await runWorldHypothesisCycle();
+    const calibration=hypothesis.ok ? await runWorldCalibrationCycle() : null;
+    const resumed=hypothesis.ok && (calibration===null||calibration.ok);
+    const receipt=await appendEpistemicEvent({
+      returnMode:'receipt',
+      eventName:resumed?'external.world.hypothesis_resume.completed':'external.world.hypothesis_resume.partial',
+      epistemicClass:'derived',confidence:resumed?1:0.5,
+      occurredAt:new Date().toISOString(),
+      source:{sourceId:'SYSTEM_FRICTION_INSTITUTE',sourceType:'operational_runtime'},
+      logbookId:'WORLD',lineage:[],
+      payload:{contract:'SFI-WORLD-HYPOTHESIS-RESUME-1.0',actorId,startedAt,
+        sourcePartialEventId:preflight.latestPartialCycleReceipt?.event_id??null,
+        hypothesis,calibration,
+        boundary:'Only persisted World source observations are reused. No collectors, JR, instrument sweeps, source backdating, canon promotion, publication or synthetic fallback. A resumed hypothesis stage does not retroactively turn the old partial daily cycle into completed.'},
+    });
+    return NextResponse.json({
+      ok:resumed && receipt.ok,
+      operation,actor:actorId,retryOnly:true,
+      status:resumed && receipt.ok?'HYPOTHESIS_STAGE_RESUMED':'HYPOTHESIS_STAGE_STILL_PARTIAL',
+      hypothesis,calibration,receipt:receipt.ok?receipt.data:receipt,
+      writesPerformed:receipt.ok || (hypothesis.created??0)>0 || (calibration?.calibrated??0)>0,
+      boundary:'A hypothesis-stage retry is not a complete World daily cycle. No sources or experiments are recollected, and no epistemic promotion is inferred.',
+    },{status:resumed && receipt.ok?200:207});
   }
 
   const startedAt = new Date().toISOString();
