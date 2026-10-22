@@ -139,8 +139,8 @@ export function compareRivalConditions(input:{
   const worldVerifiable=Boolean(world?.independentlyVerified && world.evidenceRefs.length>0 &&
     Number.isFinite(Date.parse(world.observedAt)) && frozenBeforeAction &&
     sealed && Date.parse(world!.observedAt)>=Date.parse(sealed.actionAt));
-  const worldPrediction=worldVerifiable?(world?.predictedSignalMatched==='YES'?'SUPPORTED':
-    world?.predictedSignalMatched==='NO'?'CONTRADICTED':'INCONCLUSIVE'):'NOT_VERIFIED';
+  const worldPrediction=worldVerifiable?(world?.predictedSignalMatched==='YES'?'REQUIRES_SOURCE_VERIFICATION':
+    world?.predictedSignalMatched==='NO'?'REQUIRES_SOURCE_VERIFICATION':'INCONCLUSIVE'):'NOT_VERIFIED';
   const attractorState=worldVerifiable && world?.attractorObserved==='YES'
     ? 'OBSERVED_DESTINATION_REACHED' : 'NOT_VERIFIED';
   return {
@@ -149,14 +149,14 @@ export function compareRivalConditions(input:{
     primary:{criterionId:input.primary.criterionId,scenario:primary},
     rival:{criterionId:input.rival.criterionId,scenario:rival},
     comparison:{comparable,advantage,epistemicClass:'CONDITIONAL_NOT_OBSERVED' as const},
-    recovery:{state:attractorState==='OBSERVED_DESTINATION_REACHED'?'WORLD_RETURN_SUPPORTS_ATTRACTOR':
+    recovery:{state:false?'WORLD_RETURN_SUPPORTS_ATTRACTOR':
       routeReady?'CONDITIONAL_REENTRY_NOT_EXECUTED':'NO_ADMISSIBLE_ROUTE',
       condition:recovery?.condition??null,expectedWorldSignal:recovery?.expectedWorldSignal??null,
       possibleDespitePrimaryLoss:advantage==='RIVAL_CONDITION_ADVANTAGE' && routeReady,
-      destinationVerified:attractorState==='OBSERVED_DESTINATION_REACHED'},
+      destinationVerified:false},
     returns:{
       participant:{state:claimed?'USER_REPORTED':'NOT_REPORTED',evidenceRefs:input.participantReturn?.evidenceRefs??[],epistemicClass:'DECLARED'},
-      world:{state:worldPrediction,attractorState,evidenceRefs:world?.evidenceRefs??[],epistemicClass:worldVerifiable?'VERIFIED_OBSERVATION':'NOT_VERIFIED'},
+      world:{state:worldPrediction,attractorState,evidenceRefs:world?.evidenceRefs??[],epistemicClass:'NOT_VERIFIED'},
     },
     internalContrast:{predictionSealedBeforeAction:frozenBeforeAction,detailsWithheld:true,
       notice:'An internal preregistered prediction is assessed separately. Its existence and use must be disclosed to the participant.'},
