@@ -33,7 +33,7 @@ export async function GET() {
     }
     const eligible = grant.data?.user_id === context.user.id
       && (grant.data?.status === 'INVITED' || grant.data?.status === 'ACTIVE');
-    return NextResponse.json({ ok: true, eligible }, { headers: { 'Cache-Control': 'no-store' } });
+    return NextResponse.json({ ok: true, eligible, status: eligible ? grant.data?.status : null }, { headers: { 'Cache-Control': 'no-store' } });
   } catch {
     return NextResponse.json({ ok: false, eligible: false }, {
       status: 401, headers: { 'Cache-Control': 'no-store' },
