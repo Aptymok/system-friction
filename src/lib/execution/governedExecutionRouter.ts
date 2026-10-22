@@ -199,6 +199,9 @@ function routeAgentsForProposal(row: Row) {
   // (plus its mandatory meta_orchestrator). A 21-agent fanout would manufacture
   // activity instead of explaining why legitimate work was previously absent.
   const payload = proposalPayload(row);
+  if (proposalTypeOf(row) === 'trajectory_reconfiguration') {
+    return ['evidence_hunter','temporal_resolver','context_builder','trajectory_agent','risk_agent','project_execution_manager'];
+  }
   if (proposalTypeOf(row) === 'institutional_mutation_candidate'
     && stringValue(payload.target) === 'cognitive-runtime-activity'
     && stringValue(payload.kind) === 'EVIDENCE_ACQUISITION'
@@ -246,6 +249,22 @@ function buildKernelContext(row: Row, agents: string[]): KernelContext {
       executionAuthority: 'proposal_scope_only',
       canonicalPromotionAllowed: false,
       externalExecutionAllowed: false,
+      ...(proposalTypeOf(row) === 'trajectory_reconfiguration' ? {
+        adaptiveTrajectory: {
+          contract: stringValue(proposalPayload(row).contract),
+          caseId: stringValue(proposalPayload(row).caseId),
+          planHash: stringValue(proposalPayload(row).planHash),
+          electedAttractor: stringValue(proposalPayload(row).electedAttractor),
+          selectedRoute: recordValue(proposalPayload(row).selectedRoute),
+          trigger: recordValue(proposalPayload(row).trigger),
+          primaryHypothesis: stringValue(proposalPayload(row).hypothesisPrimary),
+          rivalHypothesis: stringValue(proposalPayload(row).hypothesisRival),
+          testContract: recordValue(proposalPayload(row).testContract),
+          priorVerifiedReturn: recordValue(proposalPayload(row).priorVerifiedReturn),
+          epistemicClass: 'DERIVED_PROPOSAL_NOT_WORLD_OUTCOME',
+          instruction: 'Reconfigure internal cognitive steps under this authorized proposal only; do not execute external actions, promote learning, alter attractor, or assume causality.',
+        },
+      } : {}),
     },
   };
 }
