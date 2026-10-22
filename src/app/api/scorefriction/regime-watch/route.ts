@@ -7,6 +7,7 @@ import { createActionProposal, sha256 } from '@/lib/operational/common';
 import { auditRootAction, requireRootActor } from '@/lib/root/server';
 import { readUniversalCycleHistory } from '@/lib/sfi/universalSignalCycle';
 import { hasVerifiedLatestUniversalReturnCalibration } from '@/lib/sfi/universalCalibrationState';
+import { readOperationalCase } from '@/lib/sfi/case-platform/repository';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,6 +36,32 @@ export async function POST(request: NextRequest) {
     if (!caseId || caseId.length > 160 || !chosenAttractor || chosenAttractor.length > 1800) {
       return NextResponse.json({ok:false,error:'CASE_ID_AND_ELECTED_ATTRACTOR_REQUIRED'},{status:400});
     }
+    // The case ID must resolve through the same OAuth subject/tenant as the
+    // calling ROOT actor. ScoreFriction's per-case observation store is a
+    // *different* ledger: its observations cannot certify Case evidence.
+    let caseEnvelope:Awaited<ReturnType<typeof readOperationalCase>>;
+    try {
+      caseEnvelope=await readOperationalCase(caseId,gate.ctx.user.id);
+    } catch {
+      return NextResponse.json({ok:false,error:'CASE_NOT_ACCESSIBLE_OR_NOT_FOUND',
+        boundary:'No cross-tenant Case lookup or implicit Case creation.'},{status:404});
+    }
+    const admittedEvidence=caseEnvelope.objects.filter(object=>
+      object.kind==='EVIDENCE' && object.epistemicRole==='EVIDENCE' &&
+      Boolean(object.canonicalRef.id) &&
+      (object.sourceRefs.length>0 || object.recordRefs.length>0)
+    );
+    const admittedEvidenceRefs=admittedEvidence.map(object=>object.canonicalRef.id);
+    const caseIsActive=['OPEN','OBSERVING','ANALYZING'].includes(caseEnvelope.caseRecord.status);
+    // The caller's narrative cannot silently rename an elected attractor.
+    // Only an admitted Case ATTRACTOR object with the same explicit declaration
+    // can justify a governed draft. Mere references or metric scores do not.
+    const hasDeclaredAttractor=caseEnvelope.objects.some(object=>{
+      if(object.kind!=='ATTRACTOR' || object.epistemicRole!=='INFERENCE') return false;
+      const declared=object.payload.declaredAttractor ??
+        object.payload.chosenAttractor ?? object.payload.attractorStatement;
+      return typeof declared==='string' && declared.trim()===chosenAttractor;
+    });
     const hypothesis = deriveHypothesisIntakeFromNarrative(narrative);
     const state = await buildOperationalCycle({
       case_id:caseId,scope:'project',
@@ -43,6 +70,18 @@ export async function POST(request: NextRequest) {
       analysis_modes:['MIHM','PSI','WORLDSPECT','SCOREFRICTION','AMV'],
       run_contrast:true,
     });
+    // Keep cultural/ScoreFriction readings for analysis but never upgrade them
+    // to admitted Case EVIDENCE. The eligibility check consumes only canonical
+    // evidence objects admitted under the caller's Case tenant.
+    const scoreFrictionObservationCount=state.evidence.length;
+    state.evidence=admittedEvidence.map(object=>({
+      id:object.canonicalRef.id,
+      kind:object.kind,
+      epistemicRole:object.epistemicRole,
+      caseId,
+      sourceRefIds:object.sourceRefs.map(ref=>ref.id),
+      recordRefIds:object.recordRefs.map(ref=>ref.id),
+    }));
     const priorCycleId=typeof body.priorUniversalCycleId==='string' ? body.priorUniversalCycleId.trim() : '';
     let verifiedPreviousReturn:null|{
       classification:'CONFIRMED'|'PARTIAL'|'CONTRADICTED';
@@ -78,6 +117,10 @@ export async function POST(request: NextRequest) {
       hypothesisPrimary:hypothesis.proposedHypothesis,
       hypothesisRival:hypothesis.proposedRival,
       verifiedPreviousReturn,
+      casePreconditions:{
+        lifecycleEligible:caseIsActive,
+        declaredAttractorPresent:hasDeclaredAttractor,
+      },
     });
     const sourceSnapshot = state.world_vector && typeof state.world_vector === 'object'
       ? state.world_vector as Record<string,unknown> : {};
@@ -101,6 +144,15 @@ export async function POST(request: NextRequest) {
       ok:true,mode:'READ_ONLY_PLAN',plan,planHash,
       hypothesis:{status:hypothesis.status,missing:hypothesis.missing,
         proposedTestContract:hypothesis.proposedTestContract},
+      caseReadiness:{
+        caseStatus:caseEnvelope.caseRecord.status,
+        presentSourceTypes:caseEnvelope.readiness.presentSourceTypes,
+        missingSources:caseEnvelope.readiness.missingSources,
+        admittedEvidenceCount:admittedEvidenceRefs.length,
+        nonAdmittedScoreFrictionObservationCount:scoreFrictionObservationCount,
+        hasDeclaredAttractor,
+        objectKinds:caseEnvelope.objects.map(object=>object.kind),
+      },
       next:'To register a governed, non-executing draft, explicitly request commitDraft=true.',
     },{headers:{'Cache-Control':'no-store'}});
     if (!plan.canCreateDraftProposal || !hypothesis.proposedTestContract || !snapshotRef) {

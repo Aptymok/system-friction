@@ -205,3 +205,31 @@ test('publishing or deploying is never a reversible internal adaptive route',()=
   assert.equal(plan.routes.find(x=>x.id==='BOUNDED_TEST')?.reversibility,'UNASSESSED');
  }
 });
+
+test('governed adaptive drafts need a live Case and a persisted elected-attractor reference',()=>{
+ const withoutAttractor=deriveAdaptiveTrajectoryPlan({...adaptiveInput,
+   casePreconditions:{lifecycleEligible:true,declaredAttractorPresent:false}});
+ assert.equal(withoutAttractor.canCreateDraftProposal,false);
+ assert.equal(withoutAttractor.selectedRouteId,'OBSERVE');
+ assert(withoutAttractor.blockers.includes('PERSISTED_ELECTED_ATTRACTOR_REQUIRED'));
+ const closed=deriveAdaptiveTrajectoryPlan({...adaptiveInput,
+   casePreconditions:{lifecycleEligible:false,declaredAttractorPresent:true}});
+ assert.equal(closed.canCreateDraftProposal,false);
+ assert(closed.blockers.includes('CASE_NOT_OPEN_FOR_GOVERNED_PLANNING'));
+ const eligible=deriveAdaptiveTrajectoryPlan({...adaptiveInput,
+   casePreconditions:{lifecycleEligible:true,declaredAttractorPresent:true}});
+ assert.equal(eligible.canCreateDraftProposal,true);
+ assert.equal(eligible.execution.automaticExternalExecution,false);
+});
+
+test('adaptive Case evidence gate never upgrades source, hypothesis or ScoreFriction observation to accepted evidence',()=>{
+ const route=readFileSync('src/app/api/scorefriction/regime-watch/route.ts','utf8');
+ assert.match(route,/readOperationalCase\(caseId,gate\.ctx\.user\.id\)/);
+ assert.match(route,/CASE_NOT_ACCESSIBLE_OR_NOT_FOUND/);
+ assert.match(route,/object\.kind==='EVIDENCE' && object\.epistemicRole==='EVIDENCE'/);
+ assert.match(route,/object\.sourceRefs\.length>0 \|\| object\.recordRefs\.length>0/);
+ assert.match(route,/state\.evidence=admittedEvidence\.map/);
+ assert.match(route,/PERSISTED_ELECTED_ATTRACTOR_REQUIRED|hasDeclaredAttractor/);
+ assert.match(route,/nonAdmittedScoreFrictionObservationCount/);
+ assert.match(route,/declared\.trim\(\)===chosenAttractor/);
+});

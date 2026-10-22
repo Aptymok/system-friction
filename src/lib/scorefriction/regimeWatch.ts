@@ -77,6 +77,11 @@ export function deriveAdaptiveTrajectoryPlan(input: {
     eventId:string;
     evidenceRefs:string[];
   } | null;
+  /** Case Platform authorization and elected-attractor eligibility; not inferred from metrics. */
+  casePreconditions?: {
+    lifecycleEligible:boolean;
+    declaredAttractorPresent:boolean;
+  };
 }) {
   const state = input.state;
   const electedAttractor = input.electedAttractor.trim();
@@ -98,6 +103,10 @@ export function deriveAdaptiveTrajectoryPlan(input: {
     !hasObject ? 'CASE_OBJECT_REQUIRED' : null,
     !sourcesReady ? 'WORLD_SOURCE_READ_NOT_VERIFIED' : null,
     !availableCaseEvidence ? 'PERSISTED_CASE_EVIDENCE_REQUIRED' : null,
+    input.casePreconditions && !input.casePreconditions.lifecycleEligible
+      ? 'CASE_NOT_OPEN_FOR_GOVERNED_PLANNING' : null,
+    input.casePreconditions && !input.casePreconditions.declaredAttractorPresent
+      ? 'PERSISTED_ELECTED_ATTRACTOR_REQUIRED' : null,
     materialAction ? 'EXTERNAL_OR_MATERIAL_ACTION_REQUIRES_SEPARATE_EXECUTION_AUTHORITY' : null,
     !input.hypothesisPrimary?.trim() ? 'PREREGISTRATION_CANDIDATE_REQUIRED' : null,
     !input.hypothesisRival?.trim() ? 'RIVAL_HYPOTHESIS_REQUIRED' : null,
