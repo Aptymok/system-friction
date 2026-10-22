@@ -21,6 +21,7 @@ const nestedResolved = {
 const nested = resolveCasePlatformCreationIntakeFromAction(nestedResolved);
 assert.equal(nested.readyForCreate, true, 'canonical nested Action fields must remain supported');
 assert.deepEqual(nested.missingContext, []);
+assert.equal(nested.readyForProjectExecution, false, 'observational case is not yet authorized as an execution project');
 
 const flatResolved = {
   operation: 'intake_plan',
