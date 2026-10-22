@@ -117,10 +117,39 @@ export function resolveCasePlatformCreationIntake(inputValue: unknown) {
   if (!text(row(input.systemBoundaryRef).id)) questions.push({ key: 'SYSTEM_BOUNDARY', question: '¿Cuál es la referencia del sistema o frontera que se observará?', reason: 'The operational case contract requires an explicit boundary.', blocking: true });
   if (!text(temporal.cutoff)) questions.push({ key: 'TEMPORAL_CUTOFF', question: '¿Cuál es el cutoff temporal de la evidencia que debe considerarse?', reason: 'Case reconstruction must be reproducible as-of a concrete cutoff.', blocking: true });
 
+  // Pre-project attractor readiness is distinct from Case observational registration.
+  // A Case may exist to COLLECT the 72-hour baseline; that does not authorize intervention.
+  const declaredAttractor = text(input.declaredAttractor);
+  const intendedDestination = text(input.intendedDestination);
+  const observation = row(input.attractorObservation);
+  const startedAt = text(observation.startedAt), closedAt = text(observation.closedAt);
+  const start = startedAt && Number.isFinite(Date.parse(startedAt)) ? Date.parse(startedAt) : null;
+  const end = closedAt && Number.isFinite(Date.parse(closedAt)) ? Date.parse(closedAt) : null;
+  const elapsedHours = start !== null && end !== null && end >= start ? (end - start) / 3600000 : null;
+  const observationRefs = Array.isArray(observation.evidenceRefs)
+    ? observation.evidenceRefs.filter((ref): ref is string => typeof ref === 'string' && Boolean(ref.trim()))
+    : [];
+  const baselineComplete = elapsedHours !== null && elapsedHours >= 72
+    && end !== null && end <= Date.now() && observationRefs.length > 0;
+  const sedimented = Boolean(baselineComplete && text(input.sedimentationReflection));
+  const projectDefined = Boolean(text(input.projectObjective) && text(input.projectExecutionPlace) && text(input.projectAcceptanceCriteria));
+  const attractorOnboarding = {
+    contract: 'SFI-ATTRACTOR-ONBOARDING-1.0',
+    declaredAttractor, intendedDestination,
+    requiredObservationHours: 72,
+    elapsedObservationHours: elapsedHours,
+    observationEvidenceRefs: observationRefs,
+    baselineComplete, sedimented,
+    readyForProjectExecution: Boolean(declaredAttractor && intendedDestination && sedimented && projectDefined),
+    principle: 'Register an observational Case first, then complete attractor declaration, 72h baseline, sedimentation and explicit project criteria before governed execution. User RETURN and independently observed world RETURN must remain separate.',
+  };
+
   return {
     contract: SFI_CASE_INTAKE_RESOLVER_CONTRACT,
     missingContext: questions.map((item) => item.key),
     questions,
+    attractorOnboarding,
+    readyForProjectExecution: attractorOnboarding.readyForProjectExecution,
     readyForCreate: questions.length === 0,
     principle: 'Operational Case creation is downstream of universal observation/classification. Create the Case only when its service contract is resolvable; do not use Case creation as the universal ingestion gate.',
   };
