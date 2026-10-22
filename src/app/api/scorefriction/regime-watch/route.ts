@@ -134,7 +134,11 @@ export async function POST(request: NextRequest) {
         selectedRoute:selected,hypothesisPrimary:hypothesis.proposedHypothesis,
         hypothesisRival:hypothesis.proposedRival,
         testContract:hypothesis.proposedTestContract,
-        trigger:plan.observation.watch,evidenceBefore:state.evidence,
+        trigger:plan.observation.watch,
+        evidenceBeforeRefs:state.evidence.map(value=>{
+          const evidence=value && typeof value==='object' ? value as Record<string,unknown> : {};
+          return typeof evidence.id==='string' ? evidence.id : null;
+        }).filter(Boolean),
         worldSnapshotRef:snapshotRef,
         priorVerifiedReturn:verifiedPreviousReturn,
         authorization:'GOVERNED_DRAFT_ONLY',externalExecutionAllowed:false,
