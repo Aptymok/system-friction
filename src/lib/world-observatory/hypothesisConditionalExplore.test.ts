@@ -231,4 +231,5 @@ test('adaptive Case evidence gate never upgrades source, hypothesis or ScoreFric
  assert.match(route,/state\.evidence=admittedEvidence\.map/);
  assert.match(route,/PERSISTED_ELECTED_ATTRACTOR_REQUIRED|hasDeclaredAttractor/);
  assert.match(route,/nonAdmittedScoreFrictionObservationCount/);
+ assert.match(route,/declared\.trim\(\)===chosenAttractor/);
 });
