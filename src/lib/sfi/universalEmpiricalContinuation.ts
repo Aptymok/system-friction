@@ -1,4 +1,5 @@
 import 'server-only';
+import { createHash } from 'node:crypto';
 
 import { runLlmTask } from '@/lib/ai/providerRouter';
 import { appendEpistemicEvent } from '@/lib/events/eventStore';
@@ -347,6 +348,31 @@ async function contrastLatestReturn(history: UniversalCycleHistory, cycleId: str
       return { ok: true as const, reused: true as const, event: existingContrast, data: existingContrast };
     }
   }
+  // Fingerprint only observable inputs, not classifier output or timestamps.
+  // Database-level deduplication is performed under the ledger advisory lock.
+  const canonical = (value: unknown): unknown => {
+    if (Array.isArray(value)) return value.map(canonical);
+    if (value && typeof value === 'object') {
+      return Object.fromEntries(Object.entries(value as Row)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([key, item]) => [key, canonical(item)]));
+    }
+    return value;
+  };
+  const contrastInputFingerprint = createHash('sha256').update(JSON.stringify(canonical({
+    tenantId, cycleId, returnEventId,
+    observedReturn: returnPayload.outcome ?? null,
+    primaryHypothesis: hypotheses[0] ?? null,
+    rivalHypotheses: hypotheses.slice(1),
+    predictions, discriminatingObservations, stoppingConditions,
+    expectedSignals: signals.expectedSignals,
+    contradictionSignals: signals.contradictionSignals,
+    observationWindows: signals.observationWindows,
+    declaredReturnEvidenceRefs: [...declaredReturnEvidenceRefs].sort(),
+    returnEvidenceRefs: [...evidenceValidation.verified].sort(),
+    rejectedReturnEvidenceRefs: [...evidenceValidation.rejected].sort(),
+    evidenceValidationWarning: evidenceValidation.warning,
+  }))).digest('hex');
   const classification = await classifyReturnWithAi(history, cycleId, lastReturn);
   const hasPrediction = predictions.length > 0;
   const hasDiscriminatingObservation = discriminatingObservations.length > 0;
@@ -383,6 +409,7 @@ async function contrastLatestReturn(history: UniversalCycleHistory, cycleId: str
     confidence: calibrationStatus === 'CONTRAST_RECORDED' ? 0.8 : 0.5,
     payload: {
       contract: 'SFI-RETURN-CONTRAST-1.2',
+      contrastInputFingerprint,
       cycleId,
       actorId: 'sfi_empirical_continuation',
       tenantId,
