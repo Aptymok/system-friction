@@ -322,3 +322,39 @@ jobs:
 
       - name: Verify Studio harmony
         run: npm run qa:sfi-studio-harmony
+
+  return-contrast-db-concurrency:
+    name: Verify RETURN dedup in isolated PostgreSQL
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci-synthetic-only
+          POSTGRES_DB: sfi_return_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d sfi_return_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Checkout existing PR branch
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install existing postgres.js dependency (no lifecycle scripts)
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Prove RETURN semantic uniqueness under real transaction contention
+        env:
+          SFI_TEST_DB_URL: postgres://postgres:ci-synthetic-only@127.0.0.1:5432/sfi_return_ci
+        run: node scripts/qa-sfi-return-contrast-sql-concurrency.mjs
