@@ -10,6 +10,7 @@ import { runJrFieldCycle } from '@/lib/mihm/jrFieldCycle';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { appendEpistemicEvent } from '@/lib/events/eventStore';
 import { SFI_SUPABASE_READ_BUDGET } from '@/lib/supabase/readBudget';
+import { assessWorldRepeatRetryGuard } from '@/lib/world-observatory/hypothesisRetryGuard';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -146,7 +147,33 @@ export async function POST(request: NextRequest) {
     resumedAt>=partialAt;
   const resumeOnly=partialAt>completedAt && sourcesLive && !resumeAlreadyCompleted;
   if(resumeOnly){
-    const availableProviders=getLlmProviderStatus().filter(p=>p.available &&
+    const providerStatus=getLlmProviderStatus();
+    const {data:retryReceipts,error:retryReceiptError}=await db
+      .from('epistemic_events').select('event_name,occurred_at,payload')
+      .eq('event_name','external.world.hypothesis_resume.partial')
+      .gte('occurred_at',String(partial.data?.occurred_at??''))
+      .order('occurred_at',{ascending:false}).limit(30);
+    if(retryReceiptError) return NextResponse.json({
+      ok:false,status:'RETRY_RECEIPT_READ_UNAVAILABLE',writesPerformed:false,
+      error:retryReceiptError.message,
+      boundary:'Fail closed if the cron cannot establish the provenance of recent failed World inference.',
+    },{status:503});
+    const retryGate=assessWorldRepeatRetryGuard({
+      sourcePartialEventId:String(partial.data?.event_id??''),
+      retryReceipts:(retryReceipts??[]).map(entry=>({
+        event_name:String(entry.event_name??''),occurred_at:String(entry.occurred_at??''),
+        payload:entry.payload,
+      })),
+      latestObservationFetchedAt:typeof latestObservation.data?.fetched_at==='string'
+        ? latestObservation.data.fetched_at:null,
+      providerStatuses:providerStatus,
+    });
+    if(retryGate.suspended) return NextResponse.json({
+      ok:false,status:'HYPOTHESIS_RETRY_SUSPENDED_UNCHANGED_OBSERVATIONS',
+      retryOnly:true,writesPerformed:false,retryGate,
+      boundary:'The automatic World cron stops repeated source-identical inference until new observation or verifiable provider recovery. It cannot mint synthetic hypotheses or reopen a frozen T0.',
+    },{status:409});
+    const availableProviders=providerStatus.filter(p=>p.available &&
       !p.circuitOpen && p.state!=='UNCONFIGURED' && p.state!=='BLOCKED');
     if(!availableProviders.length) return NextResponse.json({
       ok:false,status:'PROVIDERS_UNAVAILABLE',retryOnly:true,writesPerformed:false,
