@@ -21,6 +21,15 @@ test('compares every table over several pages, including a final short page', as
   assert.equal(calls, 22, '161 tables at 8/page require 21 nonempty reads + final sentinel');
 });
 
+test('identically truncated catalogs never pass the institutional 161-table floor', async () => {
+  assert.equal(await comparePagedFingerprints(reader(rows.slice(0, 160)), reader(rows.slice(0, 160)), {
+    minimumTableCount: 161,
+  }), false);
+  assert.equal(await comparePagedFingerprints(reader(rows), reader(rows), {
+    minimumTableCount: 161,
+  }), true);
+});
+
 test('one divergent row count/hash anywhere blocks certification', async () => {
   const altered = rows.map((r, i) => i === 149 ? { ...r, hash_a: 8 } : r);
   assert.equal(await comparePagedFingerprints(reader(rows), reader(altered)), false);
