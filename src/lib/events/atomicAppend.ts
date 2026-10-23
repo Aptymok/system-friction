@@ -70,6 +70,8 @@ export async function appendAtomicEpistemicEvent(service: SupabaseClient, event:
       }
       return { ok: true as const, data: data as { id: string; event_id: string; event_name: string; logbook_id: string; epistemic_class: string; confidence: number; payload: Record<string, unknown>; occurred_at: string; created_at: string; hash_self: string; sequence: number } };
     }
+    // A second writer may have committed the same semantic contrast while
+    // this caller was waiting. The RPC returns the existing event receipt.
     // SQLSTATE P0001 / PostgREST message: head changed while waiting on lock.
     if (!error.message?.includes('SFI_EPIS_HEAD_STALE_RETRY')) {
       return { ok: false as const, error: 'epistemic_atomic_append_failed', details: error.message };
