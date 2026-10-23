@@ -59,6 +59,14 @@ test('any RPC transport failure propagates and cannot create a certificate', asy
   const failing = async (): Promise<FingerprintRow[]> => { throw new Error('SFI_PRIMARY_RPC_500'); };
   await assert.rejects(comparePagedFingerprints(failing, reader(rows)), /SFI_PRIMARY_RPC_500/);
 });
+test('late transport timeout cannot certify previously matching pages', async () => {
+  const lateFailure = async (after: string, limit: number) => {
+    if (after >= 'sfi_table_0015') throw new Error('statement timeout');
+    return reader(rows)(after, limit);
+  };
+  await assert.rejects(comparePagedFingerprints(reader(rows), lateFailure), /statement timeout/);
+});
+
 test('pagination limits are hard and fail closed', async () => {
   await assert.rejects(comparePagedFingerprints(reader(rows), reader(rows), { pageSize: 9 }), /INVALID_PAGE_BOUNDS/);
   await assert.rejects(comparePagedFingerprints(reader(rows), reader(rows), { maxPages: 2 }), /PAGINATION_CAP_EXCEEDED/);
