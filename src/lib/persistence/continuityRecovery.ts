@@ -31,7 +31,7 @@ async function fingerprintsMatch() {
     (afterTable, limit) => postNeonDataPlaneRpc<FingerprintRow[]>('sfi_data_plane_fingerprint_page_v1', {
       p_after_table: afterTable, p_limit: limit,
     }),
-    { verifyProtectedTable: currentAuthorityParityVerified },
+    { minimumTableCount: 161, verifyProtectedTable: currentAuthorityParityVerified },
   );
 }
 
