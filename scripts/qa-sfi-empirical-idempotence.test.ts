@@ -103,3 +103,14 @@ test('JSON object key ordering does not create another contrast', async () => {
   const h = harness(evidence); assert.equal((await h.run(history)).reused, true);
   assert.equal(h.modelCalls(), 0); assert.equal(h.writes.length, 0);
 });
+
+test('concurrent stale-history callers expose missing semantic uniqueness at writer boundary', async () => {
+  const { evidence, history } = fixture();
+  const h = harness(evidence);
+  const results = await Promise.all([h.run(history), h.run(history)]);
+  assert.equal(results.length, 2);
+  // Both callers observed the same history; the mocked append boundary has no
+  // database-level semantic uniqueness guarantee. This is a documented failing
+  // invariant, not proof that the production ledger is concurrency-safe.
+  assert.equal(h.writes.filter(e => e.eventName === 'SFI_UNIVERSAL_RETURN_CONTRASTED').length, 2);
+});
