@@ -58,3 +58,7 @@ Missing/nonfinite times; foreign tenant/case references; empty or forged report 
 - Risk: new lock/revision triggers serialize child mutations per case and must be exercised against continuity replay and two actual sessions before production certification. Existing recovery SQL disables user triggers during canonical replay, but this has not been exercised in this change.
 
 - SQL guard also rejects direct CLOSED updates outside the service-only atomic closure owner; trigger gate requires both its scoped transaction guard and the definer identity. Existing authenticated UPDATE policy cannot bypass closure validation.
+
+- Final clean production build completed successfully for the implementation; repeat builds against an existing Turbopack cache can fail with its persistence-directory parsing error. Clean generated .next build passed.
+- First remote CI detected the old QA exact-token requirement for the HTTP conflict matcher. Preserved its standalone matcher while retaining new closure conflict handling; reproduced RED then PASS locally.
+- Action OpenAPI now exposes closureMode/closureReason and bounded Passport/report operations. Required fields and intervention/RETURN authority exclusions are unchanged; schema regression exercised RED then GREEN.

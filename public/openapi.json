@@ -1909,7 +1909,9 @@
               "add_source",
               "add_object",
               "transition",
-              "reports"
+              "reports",
+              "passport",
+              "generate_report"
             ]
           },
           "draft": {
@@ -2127,6 +2129,20 @@
           },
           "status": {
             "type": "string"
+          },
+          "closureMode": {
+            "type": "string",
+            "enum": [
+              "ADMINISTRATIVE",
+              "INCONCLUSIVE",
+              "CERTIFIED"
+            ],
+            "description": "CLOSED defaults to CERTIFIED. Other dispositions require an explicit reason; INCONCLUSIVE also requires a current report documenting gaps."
+          },
+          "closureReason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
           }
         }
       },
@@ -2335,6 +2351,20 @@
               "REJECTED"
             ],
             "description": "Bounded external Case status. INTERVENING and AWAITING_RETURN are intentionally unavailable through this Action."
+          },
+          "closureMode": {
+            "type": "string",
+            "enum": [
+              "ADMINISTRATIVE",
+              "INCONCLUSIVE",
+              "CERTIFIED"
+            ],
+            "description": "CLOSED defaults to CERTIFIED. Other dispositions require an explicit reason; INCONCLUSIVE also requires a current report documenting gaps."
+          },
+          "closureReason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
           }
         }
       },

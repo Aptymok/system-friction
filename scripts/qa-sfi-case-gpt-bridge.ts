@@ -161,6 +161,8 @@ assert.ok(openapi.paths?.['/api/external/v1/cases']?.post, 'openapi_case_workspa
 assert.equal(openapi.paths?.['/api/external/v1/cases/object']?.post?.operationId, 'addSfiCaseObjectJson', 'openapi_case_object_action_missing_after_merge');
 assert.equal(openapi.paths?.['/api/external/v1/cases/read']?.post?.operationId, 'readSfiCase', 'openapi_case_read_action_missing_after_merge');
 assert.equal(openapi.paths?.['/api/external/v1/cases/transition']?.post?.operationId, 'transitionSfiCaseV2', 'openapi_case_transition_action_missing_after_merge');
+assert.deepEqual(openapi.components?.schemas?.CaseTransitionRequest?.properties?.closureMode?.enum,['ADMINISTRATIVE','INCONCLUSIVE','CERTIFIED'],'closure_dispositions_must_be_available_to_the_Action');
+assert.ok(openapi.components?.schemas?.CaseTransitionRequest?.properties?.closureReason,'closure_reason_must_be_available_to_the_Action');
 assert.notEqual(openapi.paths?.['/api/external/v1/cases/transition']?.post?.operationId, 'transitionSfiCase', 'openapi_stale_case_transition_operation_id_present');
 assert.equal(openapi.paths?.['/api/external/v1/cases/create']?.post?.operationId, 'createSfiCaseFromResolvedIntake', 'openapi_case_create_action_missing_after_merge');
 

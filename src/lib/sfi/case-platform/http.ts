@@ -6,7 +6,7 @@ export function sfiCaseApiFailure(error: unknown) {
     return NextResponse.json({ ok: false, error: error.code, details: error.message }, { status: error.status });
   }
   const details = error instanceof Error ? error.message : String(error);
-  const status = /SFI_CASE_TRANSITION_FORBIDDEN|SFI_CASE_CLOSURE_BLOCKED|SFI_CASE_CLOSURE_REPORT_REQUIRED|SFI_CASE_TRANSITION_CONFLICT|SFI_CASE_READ_CONFLICT/.test(details)
+  const status = /SFI_CASE_TRANSITION_FORBIDDEN/.test(details) || /SFI_CASE_CLOSURE_BLOCKED|SFI_CASE_CLOSURE_REPORT_REQUIRED|SFI_CASE_TRANSITION_CONFLICT|SFI_CASE_READ_CONFLICT/.test(details)
     ? 409
     : /FORBIDDEN/.test(details)
       ? 403
