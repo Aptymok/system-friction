@@ -16,6 +16,8 @@ test('unchanged inputs are semantically equal and guard precedes classifier', ()
   assert(compare(base, structuredClone(base)));
   assert(section.includes('sameInputs'));
   assert(section.includes('evidenceValidation.ok'));
+  assert(!source.includes('hasVerifiedLatestUniversalReturnCalibration(history.events)'), 'calibrated contrasts must not bypass changed-input checks');
+  assert(section.includes('if (sameInputs) {'), 'calibrated and inconclusive contrasts share the input comparison');
 });
 test('new verified evidence permits another contrast', () => {
   assert(!compare(base, {...base, returnEvidenceRefs: ['e1','e2']}));
