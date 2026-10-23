@@ -18,11 +18,13 @@ Its return value is **an eligibility preview for governed review**, not a certif
 | **P4 Delegated authority** | Fixed `NOT_GRANTED`; report read does not expand OAuth scopes or transition a proposal | ROOT-approved delegation policy with controls and periodic audit. No autonomous ability to grant ROOT, bypass ACL, sign certificates or promote canon |
 | **P5 Publication and external RETURN** | Fixed `NOT_PUBLISHED_BY_ASSESSMENT`; explicit public limits and guardrail wording | Exact-version signed promotion, separately attested external transport (Hub/Zenodo if appropriate), independent replication, citation/access measurement, RETURN and correction log |
 
-## External pilot candidate
+## Institutional disclosure boundary
 
-Existing `SFI-AUDIT-0001` was read from authenticated Method Lab, **not published** as part of this slice. As observed 2026-10-22, it has `PUBLIC_DERIVATIVE_READY`, version `1.0.1`, six public findings, three evidence references and four public limitations; `returnState=PENDING`. Its package hash from the **existing** builder is `0e11ffa84cd3ff1cd01033fe4847b09ce7f741afd989b7ca7ade3df52def5b0c`. This is a candidate for methodological review, **not** for unattended certification or deployment.
-
-The package explicitly does not include restricted raw records, does not establish contractual liability, does not validate System Friction Theory, and still lacks a post-intervention RETURN. No client or independent reproducer certification was received.
+No institutional study is authorized as a public pilot merely because its
+technical package passes deterministic P1/P2 validation. Until there is
+source-custodian approval, privacy review, and an independently verified
+disclosure basis, its report, review dossier and promotion remain withheld.
+Prior case references do not establish publication consent.
 
 ## Operation in SFI
 
