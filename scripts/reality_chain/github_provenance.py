@@ -5,12 +5,9 @@ This produces candidate RECORD objects, not admitted EVIDENCE or certified RETUR
 No network writes, case mutations, or automatic authority promotion.
 """
 import argparse
-import hashlib
 import json
 import os
-import urllib.parse
 import urllib.request
-from datetime import datetime, timezone
 
 
 def normalize_commit(source_id, repository, commit):
@@ -19,12 +16,12 @@ def normalize_commit(source_id, repository, commit):
     subject = raw.get("message", "").splitlines()[0]
     return {
         "kind": "RECORD",
-        "canonicalRef": {"id": "github-commit:" + repository + ":" + sha, "version": "1.0"},
+        "canonicalRef": {"id": "github-commit:" + source_id + ":" + repository + ":" + sha, "version": "1.0"},
         "sourceId": source_id,
         "source": {"type": "github_commit", "repository": repository, "sha": sha,
                    "url": commit.get("html_url")},
         "observed": {"timestamp": raw["committer"]["date"], "subject": subject,
-                     "declaredAuthor": raw["author"].get("name")},
+                     "declaredAuthor": (raw.get("author") or {}).get("name")},
         "epistemicStatus": "SOURCE_METADATA_ONLY",
         "authority": "UNVERIFIED",
         "returnStatus": "NOT_ASSESSED",
@@ -32,6 +29,8 @@ def normalize_commit(source_id, repository, commit):
 
 
 def collect(repository, source_id, token=None, max_pages=10):
+    if not source_id or not source_id.strip():
+        raise ValueError("source_id required for case isolation")
     if not repository or len(repository.split("/")) != 2:
         raise ValueError("repository must be owner/name")
     owner, name = repository.split("/")
@@ -66,7 +65,7 @@ def main():
         parser.error("--max-pages must be 1..100")
     records = list(collect(args.repository, args.source_id,
                            os.environ.get("GITHUB_TOKEN"), args.max_pages))
-    # Stable SHA-derived IDs permit idempotent upserts by a separately governed adapter.
+    # Source-scoped SHA IDs permit idempotent upserts without cross-case collisions.
     with open(args.output, "w", encoding="utf-8") as output:
         for record in records:
             output.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
