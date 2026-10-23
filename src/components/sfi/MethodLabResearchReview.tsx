@@ -202,7 +202,7 @@ export function MethodLabResearchReview({ research }: { research: MethodLabResea
     "researchObject": { "objectId": "SFI-AUDIT-0002", "...": "..." }
   }
 }`}</pre>
-          <p>Use <code>{`{"operation":"report","objectId":"SFI-AUDIT-0001"}`}</code> to retrieve the current review and publication package.</p>
+          <p>Use <code>{`{"operation":"report","objectId":"<AUTHORIZED_OBJECT_ID>"}`}</code> to retrieve the current review and publication package.</p>
         </div>
       </div>
 
