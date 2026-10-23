@@ -110,7 +110,36 @@ publication authority `NOT_GRANTED`, external RETURN `NOT_OBSERVED`.
 Actual P3 external review, signing or public release remain subject to
 separate controls. Do not upload this fixture as institutional observations.
 
-## 5. What comes next
+## 5. Executed laboratory receipt (Issue #825)
+
+The existing `SFI Cognitive Lab Verify` workflow **actually invokes** the
+deterministic local CHRONOS experiment twice, verifies its output and publishes
+one small source-safe `sfi-chronos-synthetic-receipt-<run-id>-<attempt>`
+GitHub Actions artifact (7-day retention).
+
+Run the same path without credentials:
+
+```bash
+node --test scripts/cognitive-olympics/case-lab/execute-review-once.test.mjs
+node scripts/cognitive-olympics/case-lab/execute-review-once.mjs
+```
+
+The receipt contains the **real code commit and GitHub Actions run ID** when
+executed in CI, two deterministic candidate hashes, overall preview and
+receipt hashes, execution timestamp and separate review/authority blockers.
+The unapproved institutional audit and private `realReference` metadata are
+**never included**. A receipt checksum is not an independent signature.
+
+**What this proves:** the deterministic lab heuristic was executed and
+reproduced in CI using a synthetic input with no canonical mutations.
+
+**What this does not prove:** that one of SFI's 21 registered cognitive
+agents executed; that a third party reviewed the output; that a research
+package is scientifically certified; or that an externally observed RETURN
+was obtained. Those remain separate, observed gates; no new agent, timer,
+database, publication service or authority was introduced.
+
+## 6. What comes next
 
 1. Execute and validate this local fixture's six tests.
 2. Have **an actual cognitive model** independently produce candidate hypotheses from the input object; record provider, version, elapsed time, prompt/cutoff and sealed response. Baseline output is not that achievement.

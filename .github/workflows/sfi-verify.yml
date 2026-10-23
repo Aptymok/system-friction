@@ -62,7 +62,7 @@ jobs:
       - name: Verify MIHM foundation missingness diagnostic
         run: npx tsx scripts/qa-sfi-mihm-foundation-missingness.ts
       - name: Verify source-safe CHRONOS synthetic review and cutoff boundaries
-        run: node --test scripts/cognitive-olympics/case-lab/run.test.mjs scripts/cognitive-olympics/case-lab/review-preview.test.mjs
+        run: node --test scripts/cognitive-olympics/case-lab/run.test.mjs scripts/cognitive-olympics/case-lab/review-preview.test.mjs scripts/cognitive-olympics/case-lab/execute-review-once.test.mjs
 
       - name: Verify Method Lab research assurance package bytes and public boundaries
         run: node --import tsx --test src/lib/method-lab/researchAssurance.test.ts src/lib/method-lab/researchReviewDossier.test.ts src/lib/method-lab/externalLabRoute.test.ts

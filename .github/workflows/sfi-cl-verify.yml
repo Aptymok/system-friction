@@ -28,6 +28,48 @@ jobs:
       - name: Cognitive Olympics smoke tests
         run: node --test scripts/cognitive-olympics/smoke.test.mjs
       - name: Synthetic AI Week case lab safety and time-cutoff tests
-        run: node --test scripts/cognitive-olympics/case-lab/run.test.mjs
+        run: node --test scripts/cognitive-olympics/case-lab/run.test.mjs scripts/cognitive-olympics/case-lab/review-preview.test.mjs
+      - name: Execute bounded CHRONOS synthetic experiment and seal CI receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test scripts/cognitive-olympics/case-lab/execute-review-once.test.mjs
+          node scripts/cognitive-olympics/case-lab/execute-review-once.mjs > "$RUNNER_TEMP/sfi-chronos-synthetic-receipt.json"
+          node --input-type=module -e '
+            import { readFileSync } from "node:fs";
+            const r=JSON.parse(readFileSync(process.argv[1],"utf8"));
+            if (r.executed !== true || r.registeredSfiAgentExecuted !== false ||
+                r.reviewAndAuthority.p3ScientificCertification !== "NOT_CERTIFIED" ||
+                r.reviewAndAuthority.p4AutonomousCognitiveCycle !== "NOT_DEMONSTRATED" ||
+                r.reviewAndAuthority.p5PublicResearchRelease !== "FORBIDDEN" ||
+                r.sourceCommit !== process.env.GITHUB_SHA ||
+                r.ciRunId !== process.env.GITHUB_RUN_ID) process.exit(1);
+            console.log("CHRONOS_RUN_RECEIPT", JSON.stringify({
+              contract:r.contract, executedAt:r.executedAt, sourceCommit:r.sourceCommit,
+              ciRunId:r.ciRunId, receiptSha256:r.receiptSha256,
+              previewDigest:r.reproduction.previewDigest, modes:r.reproduction.candidateDigests,
+              result:r.reproduction.result, agentExecuted:r.registeredSfiAgentExecuted,
+              certification:r.reviewAndAuthority.p3ScientificCertification
+            }));
+            if (process.env.GITHUB_STEP_SUMMARY) {
+              const {appendFileSync}=await import("node:fs");
+              appendFileSync(process.env.GITHUB_STEP_SUMMARY, [
+                "## CHRONOS synthetic lab execution — not SFI cognitive-agent evidence",
+                "", "- SHA: " + r.sourceCommit,
+                "- Receipt: " + r.receiptSha256,
+                "- Preview: " + r.reproduction.previewDigest,
+                "- Result: " + r.reproduction.result,
+                "- P3/P4/P5: NOT_CERTIFIED / NOT_DEMONSTRATED / FORBIDDEN",
+                ""
+              ].join(String.fromCharCode(10)));
+            }
+          ' "$RUNNER_TEMP/sfi-chronos-synthetic-receipt.json"
+      - name: Retain source-safe synthetic receipt for independent inspection
+        uses: actions/upload-artifact@v4
+        with:
+          name: sfi-chronos-synthetic-receipt-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/sfi-chronos-synthetic-receipt.json
+          if-no-files-found: error
+          retention-days: 7
       - name: Typecheck SFI agent bridge
         run: npx tsc --noEmit --pretty false --incremental false
