@@ -46,11 +46,10 @@ BEGIN
   -- Lock first: no competing writer can read and append the same head.
   PERFORM pg_advisory_xact_lock(hashtextextended('SFI-EPISTEMIC-LEDGER:' || p_logbook_id, 0));
 
-  -- Semantic idempotency for RETURN contrasts, checked while holding the
-  -- per-logbook transaction lock. The fingerprint represents observable
-  -- evidence and hypotheses, not classifier output or insertion timestamp.
-  IF p_event_name = 'SFI_UNIVERSAL_RETURN_CONTRASTED' AND
-     p_payload->>'contrastInputFingerprint' ~ '^[0-9a-f]{64}  FROM public.epistemic_events
+  -- Reuse a persisted contrast for identical observable inputs while
+  -- holding the same transaction lock that serializes hash-chain writes.
+  IF p_event_name = 'SFI_UNIVERSAL_RETURN_CONTRASTED'
+     AND p_payload->>'contrastInputFingerprint' ~ '^[0-9a-f]{64}
   WHERE logbook_id = p_logbook_id
   ORDER BY sequence DESC
   LIMIT 1;
