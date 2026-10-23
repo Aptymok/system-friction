@@ -94,5 +94,8 @@ test('paged SQL retains the existing v2 inclusion, canonicalization and digest s
   }
   assert.ok(next.includes('REVOKE ALL ON FUNCTION'));
   assert.ok(next.includes('p_limit > 8'));
-  assert.ok(next.includes('ORDER BY cls.relname'));
+  assert.ok(next.includes('(cls.relname::text COLLATE "C") > (p_after_table COLLATE "C")'),
+    'cursor ordering must not depend on locale of provider');
+  assert.ok(next.includes('ORDER BY cls.relname::text COLLATE "C"'),
+    'page order must be byte-stable across en_US.UTF-8 and C.UTF-8 databases');
 });
