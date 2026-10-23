@@ -73,7 +73,7 @@ test('unrelated and incomplete histories are never treated as proof of an unchan
   assert.equal(reusableReturnContrast({...prior,event_name:'SFI_UNIVERSAL_RETURN_RECORDED'},i),false);
   assert.equal(reusableReturnContrast({...prior,lineage:['another-return']},i),false);
   assert.equal(reusableReturnContrast({...prior,payload:{...prior.payload,contract:'SFI-RETURN-CONTRAST-1.1'}},i),false);
-  const partial={...prior.payload};delete partial.discriminatingObservations;
+  const partial: Record<string, unknown> = {...prior.payload}; delete partial.discriminatingObservations;
   assert.equal(reusableReturnContrast({...prior,payload:partial},i),false);
 });
 test('a real evidence-query degradation cannot masquerade as legacy source equivalence',()=>{
