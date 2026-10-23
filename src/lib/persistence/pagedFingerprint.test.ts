@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import { comparePagedFingerprints, type FingerprintRow } from './pagedFingerprint';
 
 function row(name: string, hash = 2): FingerprintRow {
-  return { table_name: name, row_count: 3, hash_a: hash, hash_b: hash + 1 };
+  return { table_name: name, row_count: '3', hash_a: String(hash), hash_b: String(hash + 1) };
 }
 function reader(rows: FingerprintRow[]) {
   return async (after: string, limit: number) => rows.filter(r => r.table_name > after).slice(0, limit);
@@ -30,8 +30,17 @@ test('identically truncated catalogs never pass the institutional 161-table floo
   }), true);
 });
 
+test('decimals beyond 2^53 remain distinct across PostgREST JSON transport', async () => {
+  const a = [row('sfi_precision_test')].map(r => ({ ...r, hash_a: '9007199254740992', hash_b: '-9007199254740993' }));
+  const b = [row('sfi_precision_test')].map(r => ({ ...r, hash_a: '9007199254740993', hash_b: '-9007199254740993' }));
+  assert.equal(Number(a[0].hash_a), Number(b[0].hash_a), 'this confirms the JS Number precision trap');
+  assert.equal(await comparePagedFingerprints(reader(a), reader(b)), false);
+  const lossy = b.map(r => ({ ...r, hash_a: Number(r.hash_a) as unknown as string }));
+  assert.equal(await comparePagedFingerprints(reader(a), reader(lossy)), false, 'JSON numbers must fail closed');
+});
+
 test('one divergent row count/hash anywhere blocks certification', async () => {
-  const altered = rows.map((r, i) => i === 149 ? { ...r, hash_a: 8 } : r);
+  const altered = rows.map((r, i) => i === 149 ? { ...r, hash_a: '8' } : r);
   assert.equal(await comparePagedFingerprints(reader(rows), reader(altered)), false);
 });
 test('an extra or missing table, even at the tail, blocks certification', async () => {
@@ -49,7 +58,7 @@ test('unexpected row order or provider page shape must block certification', asy
 });
 test('protected-row timestamp-only tolerance requires independent verification', async () => {
   const a = [row('profiles'), row('sfi_account_access_grants')];
-  const b = a.map(r => ({ ...r, hash_b: 9 }));
+  const b = a.map(r => ({ ...r, hash_b: '9' }));
   assert.equal(await comparePagedFingerprints(reader(a), reader(b)), false);
   assert.equal(await comparePagedFingerprints(reader(a), reader(b), {
     verifyProtectedTable: async () => false,
@@ -59,7 +68,7 @@ test('protected-row timestamp-only tolerance requires independent verification',
     verifyProtectedTable: async name => { checked.push(name); return true; },
   }), true);
   assert.deepEqual(checked, ['profiles', 'sfi_account_access_grants']);
-  const changedCount = b.map((r, i) => i === 0 ? { ...r, row_count: 7 } : r);
+  const changedCount = b.map((r, i) => i === 0 ? { ...r, row_count: '7' } : r);
   assert.equal(await comparePagedFingerprints(reader(a), reader(changedCount), {
     verifyProtectedTable: async () => true,
   }), false);
@@ -101,6 +110,10 @@ test('paged SQL retains the existing v2 inclusion, canonicalization and digest s
     assert.ok(v2.includes(feature), `v2 baseline changed: ${feature}`);
     assert.ok(next.includes(feature), `paged implementation lost: ${feature}`);
   }
+  assert.ok(next.includes('RETURNS TABLE(table_name text, row_count text, hash_a text, hash_b text)'),
+    'PostgREST must transmit checksum fields as exact decimal strings, never lossy JSON numbers');
+  assert.ok(next.includes('hash_a := a::text;') && next.includes('hash_b := b::text;') && next.includes('row_count := c::text;'),
+    'result assignments must preserve exact precision');
   assert.ok(next.includes('REVOKE ALL ON FUNCTION'));
   assert.ok(next.includes('p_limit > 8'));
   assert.ok(next.includes('(cls.relname::text COLLATE "C") > (p_after_table COLLATE "C")'),
