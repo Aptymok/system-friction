@@ -10,7 +10,7 @@ CREATE OR REPLACE FUNCTION public.sfi_data_plane_fingerprint_page_v1(
 RETURNS TABLE(table_name text, row_count text, hash_a text, hash_b text)
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public, pg_catalog
+SET search_path = pg_catalog, public
 AS $sfi_fingerprint_page$
 DECLARE
   r record;
