@@ -20,7 +20,7 @@ assert.ok(authority.includes("j.row_data->>'role'=j.before_data->>'role'"), 'rol
 assert.ok(authority.includes("j.row_data->>'status'=j.before_data->>'status'"), 'membership state changes cannot be reclassified');
 assert.ok(authority.includes("'SUPERSEDED_BY_PRIMARY'"), 'historical images must be preserved rather than marked REPLAYED');
 assert.ok(primaryRpc.includes('readPrimaryTenantMembershipRow(') && primaryRpc.includes("cache: 'no-store'"), 'authority comparison must perform a fresh direct PRIMARY read');
-assert.ok(recover.includes("row.table_name === 'sfi_tenant_members'"), 'full fingerprint check must evaluate tenant membership using current independent semantic proof');
+assert.ok(recover.includes('currentAuthorityParityVerified') || recover.includes('verifyProtectedTable: currentAuthorityParityVerified'), 'protected membership parity must still use independent semantic proof');
 assert.ok(proof.includes("key !== 'created_at' && key !== 'updated_at'"), 'only administrative timestamps are excluded from comparison');
 execFileSync(process.execPath, ['--import', 'tsx', '--test', 'src/lib/persistence/tenantMemberAuthorityProof.test.ts'], { stdio: 'inherit' });
 
@@ -101,7 +101,9 @@ assert.ok(root.includes("operation === 'data_plane_emergency'"));
 assert.ok(root.includes('requireSovereignRoot(req)'));
 assert.ok(root.includes('attemptBoundedDataPlaneReconciliation(32)'));
 assert.ok(recover.includes('fingerprintsMatch()'));
-assert.ok(recover.includes("'sfi_data_plane_fingerprint_v2'"), 'recovery must use semantic fingerprint v2');
+assert.ok(recover.includes("'sfi_data_plane_fingerprint_page_v1'"), 'recovery must use bounded v2-equivalent fingerprint pages');
+assert.ok(recover.includes('comparePagedFingerprints('), 'recovery must compare every page across both independent planes');
+execFileSync(process.execPath, ['--import', 'tsx', '--test', 'src/lib/persistence/pagedFingerprint.test.ts'], { stdio: 'inherit' });
 assert.ok(recover.includes('completeRecoveryMode()'));
 assert.ok(recover.includes('CONTINUITY_JOURNAL_NOT_EMPTY'));
 
