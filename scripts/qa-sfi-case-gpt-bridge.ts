@@ -51,7 +51,13 @@ assert.ok(route.includes("forbiddenAuthority: ['EVIDENCE', 'GOVERNANCE_DECISION'
 assert.ok(objectRoute.includes("forbiddenAuthority: ['EVIDENCE', 'GOVERNANCE_DECISION', 'INTERVENTION', 'RETURN', 'TRUTH_CLAIM']"), 'case_object_action_forbidden_authority_boundary_missing');
 assert.ok(route.includes('SFI_EXTERNAL_CASE_TRANSITION_SET'), 'generic_case_transition_must_use_shared_policy');
 assert.ok(route.includes('SFI_EXTERNAL_CASE_RESERVED_TRANSITIONS'), 'generic_case_reserved_transitions_must_use_shared_policy');
-assert.equal(route.includes('generateOperationalReport'), false, 'external_case_bridge_must_not_generate_governed_report_claims');
+// Founder-only reconstruction uses the existing report writer with no substantive
+// claims. Ordinary cases:write never gains institutional report authority.
+assert.ok(route.includes("authorizeExternalRequest(request,'root:operate')"),'external_reconstruction_requires_root_operate');
+assert.ok(route.includes("auth.credential.role !== 'root_delegate'"),'external_reconstruction_requires_bound_root_delegate');
+assert.ok(route.includes("auth.credential.tenantId !== 'sfi'"),'external_reconstruction_requires_institutional_tenant');
+assert.ok(route.includes("generateOperationalReport({caseId,userId,claims:[]"),'external_reconstruction_has_no_substantive_claims');
+assert.equal(route.includes('claims:body.claims'),false,'external_reconstruction_cannot_supply_claims');
 assert.equal(route.includes("epistemicRole: 'EVIDENCE'"), false, 'external_case_bridge_must_not_mint_evidence');
 assert.equal(route.includes("epistemicRole: 'GOVERNANCE_DECISION'"), false, 'external_case_bridge_must_not_mint_governance');
 assert.equal(objectRoute.includes("epistemicRole: 'EVIDENCE'"), false, 'case_object_action_must_not_mint_evidence');
@@ -155,6 +161,8 @@ assert.ok(openapi.paths?.['/api/external/v1/cases']?.post, 'openapi_case_workspa
 assert.equal(openapi.paths?.['/api/external/v1/cases/object']?.post?.operationId, 'addSfiCaseObjectJson', 'openapi_case_object_action_missing_after_merge');
 assert.equal(openapi.paths?.['/api/external/v1/cases/read']?.post?.operationId, 'readSfiCase', 'openapi_case_read_action_missing_after_merge');
 assert.equal(openapi.paths?.['/api/external/v1/cases/transition']?.post?.operationId, 'transitionSfiCaseV2', 'openapi_case_transition_action_missing_after_merge');
+assert.deepEqual(openapi.components?.schemas?.CaseTransitionRequest?.properties?.closureMode?.enum,['ADMINISTRATIVE','INCONCLUSIVE','CERTIFIED'],'closure_dispositions_must_be_available_to_the_Action');
+assert.ok(openapi.components?.schemas?.CaseTransitionRequest?.properties?.closureReason,'closure_reason_must_be_available_to_the_Action');
 assert.notEqual(openapi.paths?.['/api/external/v1/cases/transition']?.post?.operationId, 'transitionSfiCase', 'openapi_stale_case_transition_operation_id_present');
 assert.equal(openapi.paths?.['/api/external/v1/cases/create']?.post?.operationId, 'createSfiCaseFromResolvedIntake', 'openapi_case_create_action_missing_after_merge');
 

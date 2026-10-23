@@ -48,6 +48,8 @@ export async function POST(request: Request) {
       caseId,
       userId: auth.credential.subjectId,
       status,
+      closureMode: body.closureMode as import('@/core/case-platform').SfiCaseClosureMode | undefined,
+      closureReason: text(body.closureReason),
     });
     return NextResponse.json({
       ok: true,

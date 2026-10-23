@@ -112,3 +112,22 @@ test('detail renderer paginates long evidence lineage instead of clipping it', (
   assert.match(raw, /\/ToUnicode/);
   assert.doesNotMatch(raw, /<U\+/);
 });
+
+test('existing PDF renderer preserves full Reality Chain narrative and paginates its ledger',()=>{
+  const input: PrivateCaseBriefRenderInput & {reportLines:string[];documentTitle:string}={
+    caseId:'CASE-PASSPORT',version:'1.0',subject:'Expediente',scope:'Reconstrucción',generatedAt:'2026-10-23T00:00:00Z',evidenceRefs:[],coverBrief:buildSfiCaseCoverBrief({caseId:'CASE-PASSPORT',sourceEvidenceRefs:[]}),
+    documentTitle:'Reality Chain Passport',reportLines:['T0 - Estado inicial','T1 - Estado posterior','Ω: incertidumbre documentada',...Array.from({length:150},(_,i)=>'Registro '+i+' conserva su fuente y fecha original.')],
+  };
+  assert(requiredPrivateCaseBriefCodePoints(input).has(0x03a9));
+  const raw=renderPrivateCaseBriefPdf(input,fixtureGlyphs(input)).toString('ascii');
+  assert.match(raw,/<[0-9A-F]{2}> <03A9>/);
+  const count=Number(raw.match(/\/Count (\d+)/)?.[1]);assert(count>=5,'Complete ledger should paginate rather than clip');
+});
+
+test('eight-pixel font glyphs stay within their 500-unit advance and remain legible',()=>{
+ const input:PrivateCaseBriefRenderInput={caseId:'CASE-FONT',version:'1',subject:'Readable',scope:'Source',generatedAt:'2026-10-23',evidenceRefs:[],coverBrief:buildSfiCaseCoverBrief({caseId:'CASE-FONT',sourceEvidenceRefs:[]})};
+ const raw=renderPrivateCaseBriefPdf(input,fixtureGlyphs(input)).toString('ascii');
+ for(const match of raw.matchAll(/500 0 d0\n([\s\S]*?)\nendstream/g)) {
+   for(const rect of match[1].matchAll(/([\d.]+) [\d.]+ ([\d.]+) [\d.]+ re f/g))assert(Number(rect[1])+Number(rect[2])<=500,'Glyph exceeds advance and overlaps next character');
+ }
+});
