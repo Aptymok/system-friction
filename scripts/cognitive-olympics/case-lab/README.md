@@ -81,7 +81,36 @@ SFI can use a quarantined synthetic scenario to **practice** reconstruction, des
 
 The case's fictional return is not a real observed RETURN. The separate real recording metadata is an **external documentary reference**; its appearance under an observation heading is not a claim of canonical admission.
 
-## 4. What comes next
+## 4. Reproducible synthetic review preview (no empirical disclosure)
+
+`node scripts/cognitive-olympics/case-lab/review-preview.mjs` produces one
+deterministic, SHA-256-bound **laboratory inspection preview** using only
+the `buildLabInput` and `buildBaselineCandidate` of this *existing* Case Lab.
+
+The preview has two modes (backcast, retrospective forecast), its explicit
+input cutoffs, source-independent candidate hashes, limitations, and four
+required adversarial/reviewer checks. The existing fixture's `realReference`
+field and any metadata about real recording artifacts are **not copied** to the
+preview at all. No private file URLs, participant records, observed-world
+RETURN, external certification or public-research promotion are included.
+
+This is not the Method Lab's seven-file canonical publication package and is
+not evidence that a real presentation occurred. It is a quarantined **P1/P2
+smoke test** for whether an independently reviewable, reproducible synthetic
+artifact can be built without source disclosure or new backend ownership.
+
+Run the independent validation fixtures:
+
+```bash
+node --test scripts/cognitive-olympics/case-lab/run.test.mjs scripts/cognitive-olympics/case-lab/review-preview.test.mjs
+```
+
+**Disposition:** `SIMULATED_LAB_ONLY`, certification `NOT_CERTIFIED`,
+publication authority `NOT_GRANTED`, external RETURN `NOT_OBSERVED`.
+Actual P3 external review, signing or public release remain subject to
+separate controls. Do not upload this fixture as institutional observations.
+
+## 5. What comes next
 
 1. Execute and validate this local fixture's six tests.
 2. Have **an actual cognitive model** independently produce candidate hypotheses from the input object; record provider, version, elapsed time, prompt/cutoff and sealed response. Baseline output is not that achievement.
