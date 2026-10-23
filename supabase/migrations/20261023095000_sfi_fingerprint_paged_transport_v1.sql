@@ -10,7 +10,9 @@ CREATE OR REPLACE FUNCTION public.sfi_data_plane_fingerprint_page_v1(
 RETURNS TABLE(table_name text, row_count text, hash_a text, hash_b text)
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = pg_catalog, public
+-- Explicitly put pg_temp LAST; otherwise PostgreSQL may implicitly search
+-- the caller's temporary schema first for relation/type names in a definer.
+SET search_path = pg_catalog, public, pg_temp
 AS $sfi_fingerprint_page$
 DECLARE
   r record;
