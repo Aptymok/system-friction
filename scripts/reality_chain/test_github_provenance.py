@@ -10,7 +10,8 @@ class GitHubProvenanceTests(unittest.TestCase):
                              "author": {"name": "Example"}}}
         first = normalize_commit("case-A", "org/repo", commit)
         second = normalize_commit("case-B", "org/repo", commit)
-        self.assertEqual(first["canonicalRef"], second["canonicalRef"])
+        self.assertNotEqual(first["canonicalRef"], second["canonicalRef"])
+        self.assertEqual(first["canonicalRef"], normalize_commit("case-A", "org/repo", commit)["canonicalRef"])
         self.assertNotEqual(first["sourceId"], second["sourceId"])
         self.assertEqual(first["kind"], "RECORD")
         self.assertEqual(first["authority"], "UNVERIFIED")
