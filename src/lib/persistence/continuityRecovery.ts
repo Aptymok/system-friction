@@ -15,6 +15,10 @@ import { currentAuthorityParityVerified } from '@/lib/persistence/authorityJourn
 import { postNeonDataPlaneRpc, postPrimaryDataPlaneRpc, probePrimaryDataPlane } from '@/lib/persistence/dataPlaneRpc';
 import { comparePagedFingerprints, type FingerprintRow } from './pagedFingerprint';
 
+function message(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 async function fingerprintsMatch() {
   // v2-equivalent per-table checks, transported in bounded RPC pages because
   // the legacy all-table RPC exceeds the primary HTTP statement timeout.
