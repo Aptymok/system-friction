@@ -11,6 +11,8 @@ export const runtime = 'nodejs';
 const statusSchema = z.enum(['DRAFT','OPEN','OBSERVING','ANALYZING','AWAITING_GOVERNANCE','INTERVENING','AWAITING_RETURN','AWAITING_USER_CLOSE','CLOSED','REJECTED']);
 const patchSchema = z.object({
   status: statusSchema,
+  closureMode: z.enum(['ADMINISTRATIVE','INCONCLUSIVE','CERTIFIED']).optional(),
+  closureReason: z.string().trim().min(1).max(2000).optional(),
   note: z.string().trim().max(2000).optional(),
 }).strict();
 
@@ -65,6 +67,7 @@ async function envelope(caseId: string, userId: string) {
     caseRecord: { ...base.caseRecord, projectId: state.project_id ? String(state.project_id) : null },
     project,
     closure: {
+      ...base.realityChain.closure,
       status: String(state.status),
       closedAt: state.closed_at ? String(state.closed_at) : null,
       requiresUserDecision: false,
@@ -102,7 +105,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       }, { status: 409 });
     }
 
-    await transitionOperationalCase({ caseId, userId: user.id, status: body.status });
+    await transitionOperationalCase({ caseId, userId: user.id, status: body.status, closureMode:body.closureMode,closureReason:body.closureReason });
     return NextResponse.json({
       ok: true,
       note: body.note ?? null,

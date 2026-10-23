@@ -94,3 +94,15 @@ export async function readJrFieldOperationalStates(nodeRefs:string[]){
   }
   return states;
 }
+
+/** Case-scoped narrative interpretation; does not run the institutional Field cycle. */
+export async function readJrCaseInterpretation(caseId: string, userId: string) {
+  const { readOperationalCase } = await import('@/lib/sfi/case-platform/repository');
+  const { realityChain } = await readOperationalCase(caseId, userId);
+  return {
+    contract:'SFI-JR-CASE-INTERPRETATION-1.0',caseId,inputHash:realityChain.inputHash,
+    mode:'DETERMINISTIC_TRANSLATION',language:'es',narrative:realityChain.narrative,
+    missing:realityChain.gapExplanations,nextObservation:realityChain.nextObservation,
+    fieldCycleExecuted:false,executionAuthority:false,canonicalPromotion:false,
+  };
+}

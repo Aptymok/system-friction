@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireAuthenticatedUser, requireSfiMember } from '@/lib/system/access/server';
-import { generateOperationalReport, listOperationalReports } from '@/lib/sfi/case-platform/repository';
+import { generateOperationalReport, listOperationalReports, readOperationalCase } from '@/lib/sfi/case-platform/repository';
 import { assertReportClaimsIntegrity } from '@/lib/sfi/case-platform/integrity';
+import { renderSfiRealityPassportHtml } from '@/core/case-platform';
 import { sfiCaseApiFailure } from '@/lib/sfi/case-platform/http';
 import {
   SFI_EPISTEMIC_OUTPUT_RELATIONS,
@@ -34,11 +35,33 @@ const claimSchema = z.object({
 const reportSchema = z.object({ claims: z.array(claimSchema).max(500).optional(), deliveryFormats: z.array(z.enum(['JSON','WEB','PDF','DASHBOARD'])).min(1).max(4).optional(), limitations: z.array(z.string().trim().min(1).max(2000)).max(100).optional() }).strict();
 type RouteContext = { params: Promise<{ caseId: string }> };
 
-export async function GET(_: Request, context: RouteContext) {
+export async function GET(request: Request, context: RouteContext) {
   try {
     const { user } = await requireAuthenticatedUser();
     const { caseId } = await context.params;
-    return NextResponse.json({ ok: true, reports: await listOperationalReports(caseId, user.id) });
+    const format = new URL(request.url).searchParams.get('format');
+    if (format === 'passport-json' || format === 'passport-html' || format === 'passport-pdf') {
+      const envelope = await readOperationalCase(caseId, user.id);
+      const chain = envelope.realityChain;
+      if (format === 'passport-pdf') {
+        const {buildRealityPassportPdfInput,requiredPrivateCaseBriefCodePoints,renderPrivateCaseBriefPdf} = await import('@/lib/sfi/case-platform/privateCaseBriefContract');
+        const {loadUnifontGlyphs} = await import('@/lib/sfi/case-platform/unifontType3');
+        const renderInput=buildRealityPassportPdfInput(chain);
+        const glyphs=await loadUnifontGlyphs(requiredPrivateCaseBriefCodePoints(renderInput));
+        const bytes=renderPrivateCaseBriefPdf(renderInput,glyphs);
+        return new Response(new Uint8Array(bytes),{headers:{'Content-Type':'application/pdf','Content-Disposition':`attachment; filename="SFI-Reality-Chain-${encodeURIComponent(caseId)}.pdf"`,'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'}});
+      }
+      const content = format === 'passport-html' ? renderSfiRealityPassportHtml(chain) : JSON.stringify({
+        ...chain, objects:envelope.objects, reports:await listOperationalReports(caseId,user.id),
+      }, null, 2);
+      return new Response(content, {headers:{
+        'Content-Type':format==='passport-html'?'text/html; charset=utf-8':'application/json; charset=utf-8',
+        'Content-Disposition':`attachment; filename="SFI-Reality-Chain-${encodeURIComponent(caseId)}.${format==='passport-html'?'html':'json'}"`,
+        'Cache-Control':'private, no-store', 'X-Content-Type-Options':'nosniff',
+        'Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'; sandbox",
+      }});
+    }
+    return NextResponse.json({ ok: true, reports: await listOperationalReports(caseId, user.id) },{headers:{'Cache-Control':'private, no-store'}});
   } catch (error) {
     return sfiCaseApiFailure(error);
   }

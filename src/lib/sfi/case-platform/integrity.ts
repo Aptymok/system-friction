@@ -7,6 +7,7 @@ import type {
 } from '@/core/contracts/sfi';
 import {
   SFI_SYSTEM_AI_ASSURANCE_DOMAIN_CONTRACT,
+  isSfiEvidenceAssessmentAccepted,
   type SfiEnterpriseEntityRef,
   type SfiSystemAiEntityRef,
 } from '@/core/case-platform';
@@ -280,6 +281,12 @@ export async function assertReportClaimsIntegrity(input: { caseId: string; userI
       contradictionRefs: claim.lineage?.contradictionRefs ?? [],
     });
 
+    if (claim.lineage?.support==='SUPPORTED') {
+      const assessment=matchingRow(rows,claim.assessmentRef,r=>text(r.object_kind)==='EPISTEMIC_ASSESSMENT');
+      if (!assessment || !isSfiEvidenceAssessmentAccepted(object(assessment.payload),canonicalRefs(assessment.evidence_refs),claim.evidenceRefs,new Date().toISOString())) {
+        throw new Error(`SFI_REPORT_ASSESSMENT_EVIDENCE_MISMATCH:${claim.id}`);
+      }
+    }
     await assertClaimExecutionLineage(input.caseId, claim);
 
     if (claim.lineage && ['SUPPORTED', 'PARTIALLY_SUPPORTED'].includes(claim.lineage.support)) {

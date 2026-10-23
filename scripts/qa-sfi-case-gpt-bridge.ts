@@ -51,7 +51,13 @@ assert.ok(route.includes("forbiddenAuthority: ['EVIDENCE', 'GOVERNANCE_DECISION'
 assert.ok(objectRoute.includes("forbiddenAuthority: ['EVIDENCE', 'GOVERNANCE_DECISION', 'INTERVENTION', 'RETURN', 'TRUTH_CLAIM']"), 'case_object_action_forbidden_authority_boundary_missing');
 assert.ok(route.includes('SFI_EXTERNAL_CASE_TRANSITION_SET'), 'generic_case_transition_must_use_shared_policy');
 assert.ok(route.includes('SFI_EXTERNAL_CASE_RESERVED_TRANSITIONS'), 'generic_case_reserved_transitions_must_use_shared_policy');
-assert.equal(route.includes('generateOperationalReport'), false, 'external_case_bridge_must_not_generate_governed_report_claims');
+// Founder-only reconstruction uses the existing report writer with no substantive
+// claims. Ordinary cases:write never gains institutional report authority.
+assert.ok(route.includes("authorizeExternalRequest(request,'root:operate')"),'external_reconstruction_requires_root_operate');
+assert.ok(route.includes("auth.credential.role !== 'root_delegate'"),'external_reconstruction_requires_bound_root_delegate');
+assert.ok(route.includes("auth.credential.tenantId !== 'sfi'"),'external_reconstruction_requires_institutional_tenant');
+assert.ok(route.includes("generateOperationalReport({caseId,userId,claims:[]"),'external_reconstruction_has_no_substantive_claims');
+assert.equal(route.includes('claims:body.claims'),false,'external_reconstruction_cannot_supply_claims');
 assert.equal(route.includes("epistemicRole: 'EVIDENCE'"), false, 'external_case_bridge_must_not_mint_evidence');
 assert.equal(route.includes("epistemicRole: 'GOVERNANCE_DECISION'"), false, 'external_case_bridge_must_not_mint_governance');
 assert.equal(objectRoute.includes("epistemicRole: 'EVIDENCE'"), false, 'case_object_action_must_not_mint_evidence');

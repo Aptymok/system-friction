@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './RealityChainWorkbench.css';
+import type { SfiRealityChain } from '@/core/case-platform/reportAssembler';
 
 type Ref={id:string;hash?:string|null;version?:string|null};
 type CaseObject={id:string;kind:string;epistemicRole:string;canonicalRef:Ref;sourceRefs:Ref[];recordRefs:Ref[];evidenceRefs:Ref[];payload:Record<string,unknown>;observedAt:string|null;createdAt:string};
 type CaseRecord={id:string;subject:string;scope:string;status:string;projectId?:string|null;createdAt:string;updatedAt:string;tenantId:string;serviceProfileId:string;temporalWindow:{cutoff:string;timezone:string;basis:string}};
 type Project={id:string;name:string;caseCount:number;tenantId:string;description:string};
-type CaseEnvelope={caseRecord:CaseRecord;objects:CaseObject[];readiness?:{missingSources:string[];readyForAnalysis:boolean}};
+type CaseEnvelope={realityChain?:SfiRealityChain;caseRecord:CaseRecord;objects:CaseObject[];readiness?:{missingSources:string[];readyForAnalysis:boolean}};
 type Fragment={paragraph:number;page:number|null;pageBasis:string;text:string;start:number|null;end:number|null};
 type Extraction={source:{filename:string;mime:string;size:number;sha256:string;modifiedAt:string|null};extraction:{parser:string;pageCount:number|null;fragmentCount:number;returnedFragments:number;complete:boolean;warnings:string[];fragments:Fragment[]}};
 type Profile={id?:string;serviceProfileId?:string;name?:string;label?:string};
@@ -221,7 +222,7 @@ export function RealityChainWorkbench(){
   try{
    await requestJson('/api/cases/'+encodeURIComponent(caseId)+'/reports',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({claims:[],deliveryFormats:['JSON'],
     limitations:['No substantive claims have been approved in this report. This governed receipt records case references only.','The full trace export is a separately downloadable derived read-model, not a certified publication.']})});
-   await loadCase(caseId);setMessage('An institutional report receipt was persisted under the existing governed Case Platform; no unsupported claims were added.');
+   await loadCase(caseId);setMessage('Informe guardado con reconstrucción temporal, procedencia, límites y siguiente observación. Guardarlo no certifica las conclusiones.');
   }catch(e){setError('Institutional report gate: '+String((e as Error).message));}finally{setWorking(false);}
  };
 
@@ -443,13 +444,22 @@ export function RealityChainWorkbench(){
             <div className="rcThreeDataLine">{asOfObjects.length} HISTORICAL OBJECTS · {reports.length} RECORDED REPORTS</div>
             <button type="button" disabled={!caseData||working} onClick={makeReport}>EXPORT TRACE · JSON + PRINTABLE HTML</button>
             <button type="button" disabled={!caseData||working} onClick={persistTraceManifest}>PERSIST TRACE MANIFEST AS RECORD</button>
-            <button type="button" disabled={!caseData||working} onClick={createInstitutionalReport}>REQUEST GOVERNED REPORT RECEIPT</button>
+            <button type="button" disabled={!caseData||working} onClick={createInstitutionalReport}>GUARDAR INFORME DEL EXPEDIENTE</button>
             {generatedAt?<p>LAST LOCAL EXPORT: {date(generatedAt)}</p>:null}
             <dl><div><dt>EXECUTION RECORDS</dt><dd>{asOfObjects.filter(o=>o.kind==='INTERVENTION').length}</dd></div><div><dt>RETURN RECORDS</dt><dd>{asOfObjects.filter(o=>o.kind==='RETURN').length}</dd></div></dl>
           </section>
           <section className="rcThreePane rcObservatoryWallMonitor">
             <h2>REALITY PASSPORT / LEARNING</h2>
-            <p>Inspect the selected case in ROOT using its existing identifier. No duplicate passport or authority is created.</p>
+            {caseData?.realityChain?<>
+              <p><strong>{caseData.realityChain.closure.certified?'Integridad documental comprobada':'Sin certificación'}</strong> · {caseData.realityChain.closure.disposition==='ADMINISTRATIVE'?'Cierre administrativo':caseData.realityChain.closure.disposition==='INCONCLUSIVE'?'Conclusión inconclusa documentada':'Revisión del expediente'}</p>
+              {caseData.realityChain.narrative.map((line,i)=><p key={i}>{line}</p>)}
+              <p><b>T0</b> {caseData.realityChain.temporal.t0.cutoff??'No establecido'} · <b>T1</b> {caseData.realityChain.temporal.t1.cutoff}</p>
+              <details><summary>Qué falta para certificar</summary><ul>{caseData.realityChain.gapExplanations.map((gap,i)=><li key={i}>{gap}</li>)}</ul></details>
+              <p>{caseData.realityChain.nextObservation}</p>
+              <a className="rcThreeLink" href={'/api/cases/'+encodeURIComponent(caseId)+'/reports?format=passport-json'}>DESCARGAR EXPEDIENTE COMPLETO · JSON</a>
+              <a className="rcThreeLink" href={'/api/cases/'+encodeURIComponent(caseId)+'/reports?format=passport-pdf'}>DESCARGAR PASSPORT · PDF</a>
+              <a className="rcThreeLink" href={'/api/cases/'+encodeURIComponent(caseId)+'/reports?format=passport-html'}>DESCARGAR INFORME LEGIBLE · HTML IMPRIMIBLE</a>
+            </>:null}
             {caseId?<a className="rcThreeLink" href={'/root?reading=REALITY_CHAIN&node='+encodeURIComponent(caseId)}>OPEN SELECTED CASE IN ROOT ↗</a>:<p>SELECT A CASE TO OPEN ITS PASSPORT.</p>}
             <dl><div><dt>WHAT WAS KNOWN?</dt><dd>{asOfObjects.filter(o=>o.kind==='EVIDENCE').length} ADMITTED EVIDENCE OBJECTS</dd></div>
             <div><dt>WHAT WAS INFERRED?</dt><dd>{asOfObjects.filter(o=>o.kind==='HYPOTHESIS').length} RECORDED HYPOTHESES</dd></div>
