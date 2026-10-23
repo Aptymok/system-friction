@@ -406,6 +406,13 @@ export async function runWorldCalibrationCycle(input: {
       criterionResults,
       linkedEvidenceCount: linked.length,
       linkedSourceFamilies,
+      // Only DB-fetched observations in the original post-T0 validation window
+      // may support an individual model-assessed criterion. Counts alone are
+      // insufficient; enforce per-criterion sampling and source lineage.
+      admissibleObservations:evidenceRows.map(item=>({
+        id:String(item.id??''),
+        sourceFamily:typeof item.source_family==='string'?item.source_family:null,
+      })),
     });
     const classification = classificationResult.classification;
     const after = assessment?.confidenceAfter ?? priorConfidence;
