@@ -3,7 +3,7 @@ import 'server-only';
 import { runLlmTask } from '@/lib/ai/providerRouter';
 import { appendEpistemicEvent } from '@/lib/events/eventStore';
 import { assessUniversalClosure } from '@/lib/sfi/universalClosure';
-import { getCurrentUniversalClosureRecommendation, hasVerifiedLatestUniversalReturnCalibration } from '@/lib/sfi/universalCalibrationState';
+import { getCurrentUniversalClosureRecommendation } from '@/lib/sfi/universalCalibrationState';
 import {
   recordUniversalLearningCandidate,
   readUniversalLearningCycleState,
@@ -307,13 +307,6 @@ async function contrastLatestReturn(history: UniversalCycleHistory, cycleId: str
 
   const linkedContrasts = (history.returnContrasts ?? []).filter((value) => strings(row(value).lineage).includes(returnEventId));
   const existingContrast = linkedContrasts.length ? linkedContrasts[linkedContrasts.length - 1] : null;
-  // Reuse only a contrast that still establishes the canonical latest-RETURN
-  // calibration state. Failed or superseding defective attempts remain in
-  // history but must not block a later corrective contrast.
-  if (existingContrast && hasVerifiedLatestUniversalReturnCalibration(history.events)) {
-    return { ok: true as const, reused: true as const, event: existingContrast, data: existingContrast };
-  }
-
   const declaredReturnEvidenceRefs = [
     ...strings(returnPayload.evidenceRefs),
     ...strings(lastReturn.lineage),
@@ -321,7 +314,7 @@ async function contrastLatestReturn(history: UniversalCycleHistory, cycleId: str
   const evidenceValidation = await validateReturnEvidenceRefs({ refs: declaredReturnEvidenceRefs, cycleId, tenantId, history });
   // Reuse an inconclusive contrast when its observable inputs have not changed.
   // A later evidence link, revised hypothesis/prediction, or changed RETURN
-  // still permits a new attempt; the existing calibration guard remains above.
+  // still permits a new attempt; calibrated contrasts must also be checked.
   if (existingContrast && evidenceValidation.ok) {
     const prior = payload(existingContrast);
     const equal = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
@@ -339,7 +332,7 @@ async function contrastLatestReturn(history: UniversalCycleHistory, cycleId: str
       equal(prior.returnEvidenceRefs ?? [], evidenceValidation.verified) &&
       equal(prior.rejectedReturnEvidenceRefs ?? [], evidenceValidation.rejected) &&
       (prior.evidenceValidationWarning ?? null) === evidenceValidation.warning;
-    if (sameInputs && text(prior.calibrationStatus) !== 'CONTRAST_RECORDED') {
+    if (sameInputs) {
       return { ok: true as const, reused: true as const, event: existingContrast, data: existingContrast };
     }
   }
