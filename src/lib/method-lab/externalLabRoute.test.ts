@@ -67,6 +67,57 @@ function harness(runError?: string) {
   return { events, runs, manifest: async () => (await load('src/app/api/external/v1/manifest/route.ts').GET()).json(), post: async (body: unknown, scope = 'lab:write') => exports.POST(new Request('https://sfi.test/api/external/v1/lab', { method: 'POST', headers: { 'x-test-scope': scope, 'content-type': 'application/json' }, body: JSON.stringify(body) })) as Promise<Response> };
 }
 
+test('restricted audit is absent from external state even when an internal bootstrap record exists', async () => {
+  const h = harness();
+  const response = await h.post({ operation: 'state' }, 'lab:read');
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.ok(!body.research.objects.some((o: Record<string, unknown>) => o.objectId === 'SFI-AUDIT-0001'));
+});
+
+test('restricted audit cannot be exported or promoted with lab credentials', async () => {
+  const h = harness();
+  for (const operation of ['report', 'promote']) {
+    const response = await h.post({ operation, objectId: 'SFI-AUDIT-0001' },
+      operation === 'report' ? 'lab:read' : 'lab:write');
+    assert.equal(response.status, 403, operation);
+    assert.equal((await response.json()).error, 'research_disclosure_restricted');
+  }
+  assert.equal(h.events.length, 0);
+});
+
+test('restricted audit cannot be reintroduced into the external event ledger through metadata', async () => {
+  const h = harness();
+  const response = await h.post({
+    operation: 'persist', title: 'Unapproved study snapshot', content: 'Do not publish',
+    metadata: { kind: 'METHOD_LAB_RESEARCH_OBJECT', researchObject: {
+      objectId: 'SFI-AUDIT-0001', publicationState: 'PUBLIC_DERIVATIVE_READY',
+    } },
+  });
+  assert.equal(response.status, 403);
+  assert.equal((await response.json()).error, 'research_disclosure_restricted');
+  assert.equal(h.events.length, 0);
+});
+
+test('all-research report excludes restricted audit while preserving ordinary operation', async () => {
+  const h = harness();
+  const response = await h.post({ operation: 'report' }, 'lab:read');
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.ok(!body.data.research.objects.some((o: Record<string, unknown>) => o.objectId === 'SFI-AUDIT-0001'));
+});
+
+test('ROOT report and promotion enforce restricted study gate without erasing internal research', () => {
+  const route = readFileSync('src/app/api/root/method-lab/research/route.ts', 'utf8');
+  assert.ok(route.includes("if (isResearchDisclosureRestricted(objectId))"));
+  assert.ok(route.includes("object.publicationState !== 'PRIVATE'"));
+  const registry = readFileSync('src/lib/method-lab/researchObjects.ts','utf8');
+  assert.ok(registry.includes("objectId: 'SFI-AUDIT-0001'"));
+  assert.ok(registry.includes("publicationState: 'PRIVATE'"));
+  assert.ok(!registry.includes('2458'), 'no unverified institutional sample count in public bootstrap code');
+  assert.ok(!registry.includes('INEGI warranty workflow'), 'institutional source label not in public bootstrap');
+});
+
 test('research promotion rejects a Lab-write-only credential without creating authority', async () => {
   const h = harness();
   const result = await h.post({
