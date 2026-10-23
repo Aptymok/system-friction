@@ -209,24 +209,29 @@ export function classifyHypothesisTestContract(input: {
     const linkedFamilies=new Set([...refs].map(id=>eligible.get(id)?.sourceFamily).filter((family):family is string=>Boolean(family)));
     return criterion.sourceFamilies.every(family=>linkedFamilies.has(family));
   };
-  const unverified=frozenCriteria.filter(criterion=>{
-    const result=byId.get(criterion.id);
-    // Any unsupported claim of a SATISFIED contradiction must block
-    // validation, not be treated as evidence of its absence.
-    return !supported(criterion,result);
-  });
-  if(unverified.length){
-    return inconclusive('Frozen criteria are missing admissible, sufficiently sampled determinations: '+unverified.map(c=>c.id).join(', ')+'.');
-  }
-
-  const contradictionSatisfied=contract.contradictionCriteria.some(criterion=>
+  // A verified counterexample can refute a hypothesis without all other
+  // discriminators being determined. A *claimed* counterexample without
+  // admissible evidence may not do so, and must not be silently ignored.
+  const assertedContradictions=contract.contradictionCriteria.filter(criterion=>
     byId.get(criterion.id)?.verdict==='SATISFIED');
-  if(contradictionSatisfied){
+  if(assertedContradictions.some(criterion=>!supported(criterion,byId.get(criterion.id)))){
+    return inconclusive('An asserted contradiction lacks its own admissible observations: '+
+      assertedContradictions.filter(c=>!supported(c,byId.get(c.id))).map(c=>c.id).join(', ')+'.');
+  }
+  if(assertedContradictions.length){
     return {
       classification:'CONTRADICTED',
       reason:'At least one admissibly sourced preregistered contradiction criterion was satisfied within the validation window.',
       decisive:true,
     };
+  }
+  // Positive claims require positive observations and independently assessed
+  // non-satisfaction of *every* frozen contradiction, not merely no reported
+  // contradiction. Missing/uncertain model output cannot grant validation.
+  const unverified=frozenCriteria.filter(criterion=>!supported(criterion,byId.get(criterion.id)));
+  if(unverified.length){
+    return inconclusive('Frozen criteria are missing admissible, sufficiently sampled determinations: '+
+      unverified.map(c=>c.id).join(', ')+'.');
   }
 
   const required=contract.expectedCriteria.filter(criterion=>criterion.required);
