@@ -85,6 +85,21 @@ test('the stable hash is bound to the evidence-validation outcome, not only its 
   assert.notEqual(returnContrastInputFingerprint(i),
     returnContrastInputFingerprint({...i,evidenceValidationSucceeded:false}));
 });
+test('evidence SQL ordering changes do not produce a second classification',()=>{
+  const a=inputs();
+  const variants={...a,
+    declaredReturnEvidenceRefs:['a','b'],
+    returnEvidenceRefs:['b','a'],
+    rejectedReturnEvidenceRefs:['c','d'],
+  };
+  const reordered={...variants,
+    declaredReturnEvidenceRefs:['b','a'],
+    returnEvidenceRefs:['a','b'],
+    rejectedReturnEvidenceRefs:['d','c'],
+  };
+  assert.equal(returnContrastInputFingerprint(variants),returnContrastInputFingerprint(reordered));
+  assert.equal(reusableReturnContrast(storedLegacy(variants),reordered),true);
+});
 test('empty immutable RETURN is rejected as invalid fingerprint input',()=>{
   assert.throws(()=>returnContrastInputFingerprint({...inputs(),returnEventId:''}),/RETURN_EVENT_ID_REQUIRED/);
 });
