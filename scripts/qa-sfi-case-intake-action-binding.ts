@@ -1,6 +1,6 @@
 import { strict as assert } from 'node:assert';
 import { readFileSync } from 'node:fs';
-import { parseHypothesisTestContract } from '../src/lib/world-observatory/hypothesisTestContract';
+import { classifyHypothesisTestContract, parseHypothesisTestContract } from '../src/lib/world-observatory/hypothesisTestContract';
 import {
   deriveHypothesisIntakeFromNarrative,
   normalizeCasePlatformActionInput,
@@ -204,6 +204,60 @@ assert.match(
   /\? 409/,
   'SFI_CASE_TRANSITION_FORBIDDEN must map to HTTP 409 Conflict',
 );
+
+
+const admissibleContract=parseHypothesisTestContract(generated.proposedTestContract);
+assert(admissibleContract, 'the Case-intake candidate must parse before criterion-level evidence adjudication');
+const admittedPostT0=[
+  {id:'postT0-source-A',sourceFamily:'A'},
+  {id:'postT0-source-B',sourceFamily:'B'},
+];
+const frozen=[...admissibleContract.expectedCriteria,...admissibleContract.contradictionCriteria];
+const completeAdjudication=frozen.map(criterion=>({
+  criterionId:criterion.id,
+  verdict:admissibleContract.expectedCriteria.some(c=>c.id===criterion.id)
+    ? 'SATISFIED' as const : 'NOT_SATISFIED' as const,
+  evidenceIds:admittedPostT0.map(item=>item.id),
+  reason:'Evidence from separately fetched post-T0 source families.',
+}));
+const classify=(results:typeof completeAdjudication,observations=admittedPostT0)=>
+  classifyHypothesisTestContract({contract:admissibleContract,criterionResults:results,
+    linkedEvidenceCount:observations.length,linkedSourceFamilies:new Set(observations.map(x=>x.sourceFamily)).size,
+    admissibleObservations:observations});
+assert.equal(classify(completeAdjudication).classification,'VALIDATED',
+  'a complete supported frozen contract can be validated');
+assert.equal(classify(completeAdjudication.slice(0,-1)).classification,'INCONCLUSIVE',
+  'missing contradiction criteria must prevent a false VALIDATED verdict');
+const bogusEvidence=completeAdjudication.map((result,index)=>index===0
+  ? {...result,evidenceIds:['not-a-persisted-source-id']} : result);
+assert.equal(classify(bogusEvidence).classification,'INCONCLUSIVE',
+  'a model cannot certify one criterion using an invented evidence ID');
+const noEvidenceOnContradiction=completeAdjudication.map((result,index)=>index===completeAdjudication.length-1
+  ? {...result,evidenceIds:[]} : result);
+assert.equal(classify(noEvidenceOnContradiction).classification,'INCONCLUSIVE',
+  'a negative contradiction determination requires sampled evidence');
+const sameSource=[{id:'postT0-source-A',sourceFamily:'A'},{id:'postT0-source-B',sourceFamily:'A'}];
+assert.equal(classify(completeAdjudication,sameSource).classification,'INCONCLUSIVE',
+  'multiple observations from one family cannot satisfy independent source diversity');
+assert.equal(classify([...completeAdjudication,completeAdjudication[0]]).classification,'INCONCLUSIVE',
+  'duplicated criterion IDs in an assessment must not overwrite the frozen verdict');
+const duplicateContract={
+  ...admissibleContract,contradictionCriteria:[{
+    ...admissibleContract.contradictionCriteria[0],
+    id:admissibleContract.expectedCriteria[0].id,
+  }],
+};
+assert.equal(parseHypothesisTestContract(duplicateContract),null,
+  'a frozen test contract with duplicate discriminator IDs must be rejected');
+const impossibleSourceContract={
+  ...admissibleContract,
+  expectedCriteria:admissibleContract.expectedCriteria.map((criterion,index)=>
+    index===0?{...criterion,sourceFamilies:['nonexistent-provenance']} : criterion),
+};
+assert.equal(classifyHypothesisTestContract({
+  contract:impossibleSourceContract,criterionResults:completeAdjudication,
+  linkedEvidenceCount:2,linkedSourceFamilies:2,admissibleObservations:admittedPostT0,
+}).classification,'INCONCLUSIVE','required criterion source families must match admitted post-T0 records');
 
 console.log(JSON.stringify({
   ok: true,
