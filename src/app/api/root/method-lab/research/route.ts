@@ -6,6 +6,7 @@ import {
   normalizeMethodLabResearchObject,
   persistMethodLabResearchObject,
   readMethodLabResearchState,
+  isResearchDisclosureRestricted,
 } from '@/lib/method-lab/researchObjects';
 
 export const dynamic = 'force-dynamic';
@@ -42,6 +43,9 @@ export async function POST(req: Request) {
     const current = currentId ? (await findObject(currentId)).object ?? undefined : undefined;
     const object = normalizeMethodLabResearchObject(body.object, current);
     if (!object) return NextResponse.json({ ok: false, error: 'valid_research_object_required' }, { status: 400 });
+    if (isResearchDisclosureRestricted(object.objectId) && object.publicationState !== 'PRIVATE') {
+      return NextResponse.json({ ok: false, error: 'research_disclosure_restricted' }, { status: 403 });
+    }
     const persisted = await persistMethodLabResearchObject({ object, actorId: auth.ctx.user.id, refs: Array.isArray(body.refs) ? body.refs.filter((item): item is string => typeof item === 'string') : [] });
     return NextResponse.json(persisted.ok ? { ok: true, operation, object, event: persisted.data } : persisted, { status: persisted.ok ? 201 : 500 });
   }
@@ -52,10 +56,16 @@ export async function POST(req: Request) {
   if (!object) return NextResponse.json({ ok: false, error: 'research_object_not_found' }, { status: 404 });
 
   if (operation === 'report') {
+    if (isResearchDisclosureRestricted(objectId)) {
+      return NextResponse.json({ ok: false, error: 'research_disclosure_restricted' }, { status: 403 });
+    }
     return NextResponse.json({ ok: true, operation, object, publicationPackage: buildMethodLabPublicationPackage(object) });
   }
 
   if (operation === 'promote') {
+    if (isResearchDisclosureRestricted(objectId)) {
+      return NextResponse.json({ ok: false, error: 'research_disclosure_restricted' }, { status: 403 });
+    }
     if (!['PUBLIC_DERIVATIVE_READY', 'PROMOTION_REQUESTED', 'HUB_PUBLISHED', 'RELEASE_CANDIDATE'].includes(object.publicationState)) {
       return NextResponse.json({ ok: false, error: 'public_derivative_not_ready', publicationState: object.publicationState }, { status: 409 });
     }
