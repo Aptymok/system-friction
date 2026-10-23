@@ -114,7 +114,7 @@ test('paged SQL retains the existing v2 inclusion, canonicalization and digest s
     'PostgREST must transmit checksum fields as exact decimal strings, never lossy JSON numbers');
   assert.ok(next.includes('hash_a := a::text;') && next.includes('hash_b := b::text;') && next.includes('row_count := c::text;'),
     'result assignments must preserve exact precision');
-  assert.ok(next.includes('SET search_path = pg_catalog, public'), 'SECURITY DEFINER must resolve built-ins before objects in public');
+  assert.ok(next.includes('SET search_path = pg_catalog, public, pg_temp'), 'SECURITY DEFINER must explicitly put pg_temp last to prevent caller temp relation shadowing');
   assert.ok(next.includes('REVOKE ALL ON FUNCTION'));
   assert.ok(next.includes('p_limit > 8'));
   assert.ok(next.includes('(cls.relname::text COLLATE "C") > (p_after_table COLLATE "C")'),
