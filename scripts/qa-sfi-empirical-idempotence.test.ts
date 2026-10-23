@@ -104,13 +104,13 @@ test('JSON object key ordering does not create another contrast', async () => {
   assert.equal(h.modelCalls(), 0); assert.equal(h.writes.length, 0);
 });
 
-test('concurrent stale-history callers expose missing semantic uniqueness at writer boundary', async () => {
+test('concurrent stale-history callers reveal absent semantic uniqueness', async () => {
   const { evidence, history } = fixture();
   const h = harness(evidence);
-  const results = await Promise.all([h.run(history), h.run(history)]);
-  assert.equal(results.length, 2);
-  // Both callers observed the same history; the mocked append boundary has no
-  // database-level semantic uniqueness guarantee. This is a documented failing
-  // invariant, not proof that the production ledger is concurrency-safe.
-  assert.equal(h.writes.filter(e => e.eventName === 'SFI_UNIVERSAL_RETURN_CONTRASTED').length, 2);
+  await Promise.all([h.run(history), h.run(history)]);
+  const contrasts = h.writes.filter(e => e.eventName === 'SFI_UNIVERSAL_RETURN_CONTRASTED');
+  // This assertion MUST fail until the writer boundary provides atomic
+  // semantic deduplication. Keep the failure explicit rather than accepting
+  // two duplicates as successful behavior.
+  assert.equal(contrasts.length, 1, 'concurrent callers must persist one semantic contrast');
 });
