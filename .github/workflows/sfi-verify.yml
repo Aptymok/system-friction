@@ -43,7 +43,7 @@ jobs:
           done
 
       - name: Verify empirical RETURN idempotence behavior
-        run: node --import tsx --test scripts/qa-sfi-empirical-idempotence.test.ts
+        run: npm run qa:sfi-universal-cycle
 
       - name: Verify governed data-plane reconciliation scheduling
         run: node scripts/qa-sfi-data-plane-scheduled-recovery.mjs

@@ -317,7 +317,18 @@ async function contrastLatestReturn(history: UniversalCycleHistory, cycleId: str
   // still permits a new attempt; calibrated contrasts must also be checked.
   if (existingContrast && evidenceValidation.ok) {
     const prior = payload(existingContrast);
-    const equal = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+    // JSON objects and evidence reference sets have no significant ordering.
+    // Preserve array order elsewhere (e.g. primary/rival hypotheses).
+    const stable = (value: unknown): unknown => {
+      if (Array.isArray(value)) return value.map(stable);
+      if (value && typeof value === 'object') {
+        return Object.fromEntries(Object.entries(value as Row).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
+          .map(([key, item]) => [key, stable(item)]));
+      }
+      return value;
+    };
+    const equal = (a: unknown, b: unknown) => JSON.stringify(stable(a)) === JSON.stringify(stable(b));
+    const equalRefs = (a: unknown, b: unknown) => equal(strings(a).sort(), strings(b).sort());
     const sameInputs =
       equal(prior.observedReturn ?? null, returnPayload.outcome ?? null) &&
       equal(prior.primaryHypothesis ?? null, hypotheses[0] ?? null) &&
@@ -328,9 +339,9 @@ async function contrastLatestReturn(history: UniversalCycleHistory, cycleId: str
       equal(prior.expectedSignals ?? [], signals.expectedSignals) &&
       equal(prior.contradictionSignals ?? [], signals.contradictionSignals) &&
       equal(prior.observationWindows ?? [], signals.observationWindows) &&
-      equal(prior.declaredReturnEvidenceRefs ?? [], declaredReturnEvidenceRefs) &&
-      equal(prior.returnEvidenceRefs ?? [], evidenceValidation.verified) &&
-      equal(prior.rejectedReturnEvidenceRefs ?? [], evidenceValidation.rejected) &&
+      equalRefs(prior.declaredReturnEvidenceRefs ?? [], declaredReturnEvidenceRefs) &&
+      equalRefs(prior.returnEvidenceRefs ?? [], evidenceValidation.verified) &&
+      equalRefs(prior.rejectedReturnEvidenceRefs ?? [], evidenceValidation.rejected) &&
       (prior.evidenceValidationWarning ?? null) === evidenceValidation.warning;
     if (sameInputs) {
       return { ok: true as const, reused: true as const, event: existingContrast, data: existingContrast };

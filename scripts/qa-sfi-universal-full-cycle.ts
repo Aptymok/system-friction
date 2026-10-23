@@ -230,8 +230,9 @@ async function main() {
   assert(learning.includes("explicit === 'CALIBRATED_RETURN'"), 'requested learning class must be checked rather than trusted');
   assert(learning.includes("text(contrast.calibrationStatus) === 'CONTRAST_RECORDED'"), 'promotion must re-check persisted calibration status');
   assert(learning.includes('RETURN_EVIDENCE_UNLINKED'), 'unlinked returns must remain operational evidence rather than promotable learning');
-  assert(empiricalContinuation.includes('hasVerifiedLatestUniversalReturnCalibration(history.events)'), 'empirical continuation must reuse only a contrast that still establishes canonical calibration');
-  assert(empiricalContinuation.includes('Failed or superseding defective attempts remain in'), 'failed contrast attempts must remain reconstructible while allowing a later correction');
+  // Contrast reuse is verified by executing the real continuation in
+  // qa-sfi-empirical-idempotence.test.ts (part of qa:sfi-universal-cycle).
+  // Calibration projection remains covered by universalSignalCycle.test.ts.
   assert(empiricalContinuation.includes('CLOSURE_RECOMMENDATION_DENIED_AWAITING_REVISED_CONTRAST'), 'empirical continuation must honor a denial until a revised contrast exists');
   assert(empiricalContinuation.includes('getCurrentUniversalClosureRecommendation(history.events ?? [])'), 'empirical continuation must reuse only a current recommendation');
   assert(rootWorkboard.includes('getCurrentUniversalClosureRecommendation(history.events ?? [])'), 'ROOT workboard read and decision paths must freshness-check closure recommendations');
