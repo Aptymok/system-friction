@@ -1,0 +1,39 @@
+name: Reality Chain Provenance Snapshot
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '10 6 * * *'
+  pull_request:
+    paths:
+      - 'scripts/reality_chain/**'
+      - '.github/workflows/reality-chain-provenance.yml'
+permissions:
+  contents: read
+concurrency:
+  group: reality-chain-provenance-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify-and-snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify provenance isolation
+        run: python -m unittest discover -s scripts/reality_chain -p 'test_*.py' -v
+      - name: Collect read-only historical Hub snapshot
+        if: github.event_name != 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p .reality-chain-output
+          python scripts/reality_chain/github_provenance.py --repository Aptymok/system-friction-main --source-id SFI-HUB-ORIGINAL --output .reality-chain-output/hub-commits.jsonl
+      - uses: actions/upload-artifact@v4
+        if: github.event_name != 'pull_request'
+        with:
+          name: reality-chain-hub-snapshot-${{ github.run_id }}
+          path: .reality-chain-output/hub-commits.jsonl
+          retention-days: 30
+# Intentionally read-only: artifact snapshots are NOT automatic Case Platform admission.
