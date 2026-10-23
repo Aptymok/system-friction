@@ -28,7 +28,7 @@ BEGIN
     SELECT cls.relname
     FROM pg_class cls JOIN pg_namespace ns ON ns.oid = cls.relnamespace
     WHERE ns.nspname = 'public' AND cls.relkind = 'r'
-      AND cls.relname::text > p_after_table
+      AND (cls.relname::text COLLATE "C") > (p_after_table COLLATE "C")
       AND cls.relname NOT IN (
         'sfi_continuity_state','sfi_continuity_runs','sfi_capability_health_checks',
         'sfi_institutional_incidents','sfi_founder_decision_queue','sfi_continuity_reports',
@@ -36,7 +36,7 @@ BEGIN
         'sfi_continuity_applied_operations','sfi_data_plane_primary_outbox',
         'sfi_primary_mirror_applied_operations'
       )
-    ORDER BY cls.relname
+    ORDER BY cls.relname::text COLLATE "C"
     LIMIT p_limit
   LOOP
     expr := 'to_jsonb(t)::text';
