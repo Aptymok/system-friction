@@ -111,7 +111,7 @@ To read all current research objects:
 To generate the current review/publication package for one object:
 
 ```json
-{"operation":"report","objectId":"SFI-AUDIT-0001"}
+{"operation":"report","objectId":"<AUTHORIZED_OBJECT_ID>"}
 ```
 
 The response contains a deterministic public-safe package (`README.md`, `FINDINGS.md`, `PUBLIC_TRACE.md`, metrics, hashed provenance, threats to validity and manifest) but does **not** mutate GitHub or Zenodo. Public packages are rendered only from `publicTitle`, `publicSummary`, `publicFindings`, `publicMetrics` and `publicLimitations`; internal evidence references never cross the publication boundary.
