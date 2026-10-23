@@ -88,7 +88,7 @@ deterministic, SHA-256-bound **laboratory inspection preview** using only
 the `buildLabInput` and `buildBaselineCandidate` of this *existing* Case Lab.
 
 The preview has two modes (backcast, retrospective forecast), its explicit
-input cutoffs, source-independent candidate hashes, limitations, and eleven
+input cutoffs, source-independent candidate hashes, limitations, and four
 required adversarial/reviewer checks. The existing fixture's `realReference`
 field and any metadata about real recording artifacts are **not copied** to the
 preview at all. No private file URLs, participant records, observed-world
