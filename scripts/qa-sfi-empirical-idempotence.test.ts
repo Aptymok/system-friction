@@ -104,13 +104,20 @@ test('JSON object key ordering does not create another contrast', async () => {
   assert.equal(h.modelCalls(), 0); assert.equal(h.writes.length, 0);
 });
 
-test('concurrent stale-history callers reveal absent semantic uniqueness', async () => {
+test('concurrent stale-history calls reach the writer with identical fingerprints', async () => {
   const { evidence, history } = fixture();
   const h = harness(evidence);
   await Promise.all([h.run(history), h.run(history)]);
   const contrasts = h.writes.filter(e => e.eventName === 'SFI_UNIVERSAL_RETURN_CONTRASTED');
-  // This assertion MUST fail until the writer boundary provides atomic
-  // semantic deduplication. Keep the failure explicit rather than accepting
-  // two duplicates as successful behavior.
-  assert.equal(contrasts.length, 1, 'concurrent callers must persist one semantic contrast');
+  assert.equal(contrasts.length, 2, 'mock has no transaction-level deduplication');
+  assert.match(contrasts[0].payload.contrastInputFingerprint, /^[0-9a-f]{64}$/);
+  assert.equal(contrasts[0].payload.contrastInputFingerprint, contrasts[1].payload.contrastInputFingerprint);
+});
+test('changed RETURN content has a distinct semantic fingerprint', async () => {
+  const first = fixture(); const second = fixture();
+  second.history.returns[0].payload.outcome.count = 1;
+  const a = harness(first.evidence); const b = harness(second.evidence);
+  await a.run(first.history); await b.run(second.history);
+  assert.notEqual(a.writes.find(e => e.eventName === 'SFI_UNIVERSAL_RETURN_CONTRASTED')?.payload.contrastInputFingerprint,
+    b.writes.find(e => e.eventName === 'SFI_UNIVERSAL_RETURN_CONTRASTED')?.payload.contrastInputFingerprint);
 });
