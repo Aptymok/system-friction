@@ -6,6 +6,19 @@ import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 
 export const METHOD_LAB_RESEARCH_METADATA_KIND = 'METHOD_LAB_RESEARCH_OBJECT';
 
+/** Temporary disclosure gate, separate from source and journal retention. */
+export function isResearchDisclosureRestricted(objectId: string): boolean {
+  return objectId === 'SFI-AUDIT-0001';
+}
+
+/** Do not copy restricted entries into external research inventories. */
+export function externallyDisclosableResearchState(
+  research: MethodLabResearchState,
+): MethodLabResearchState {
+  return { ...research, objects: research.objects.filter(item => !isResearchDisclosureRestricted(item.objectId)) };
+}
+
+
 export type MethodLabResearchObjectClass = 'AUDIT' | 'RESEARCH' | 'SPECIFICATION' | 'DERIVATIVE' | 'CASE';
 export type MethodLabResearchEpistemicState = 'OBSERVED' | 'DERIVED' | 'MIXED' | 'NOT_TESTED' | 'FROZEN_CANDIDATE' | 'WITHHELD';
 export type MethodLabResearchPublicationState = 'PRIVATE' | 'WORKING' | 'PUBLIC_DERIVATIVE_READY' | 'PROMOTION_REQUESTED' | 'HUB_PUBLISHED' | 'RELEASE_CANDIDATE' | 'RELEASED';
@@ -118,33 +131,22 @@ const BOOTSTRAP_OBJECTS: MethodLabResearchObject[] = [
     summary: 'Venue-specific candidate; contribution lock pending.', publicSummary: 'Venue-specific candidate.', confidence: null, evidenceRefs: [], findings: [], publicFindings: [], metrics: {}, publicMetrics: {}, limitations: ['Anonymous review boundary must be preserved.'], publicLimitations: ['Anonymous review boundary must be preserved.'], lineage: ['SFI_RESEARCH_HUB:04_CHI_2027'], version: '0.1', source: 'HUB_BOOTSTRAP', updatedAt: null,
   },
   {
-    objectId: 'SFI-AUDIT-0001', objectClass: 'AUDIT', title: 'SFI Audit 0001 — INEGI warranty workflow', publicTitle: 'SFI Audit 0001 — Observability, Authority, and Post-Expiration Recovery in a Public-Sector Warranty Workflow',
-    objective: 'Reconstruct a bounded warranty-management workflow and test whether structured state is sufficient to recover operational state, authority, deadlines, interventions and return.', method: 'SFI_AUDIT', state: 'FINDINGS_REGISTERED', epistemicState: 'MIXED', returnState: 'PENDING', publicationState: 'PUBLIC_DERIVATIVE_READY',
-    summary: 'Retrolongitudinal reconstruction of 2,458 warranty records. Operational state, deadline regimes, authority gaps, post-expiration latency and timestamp semantic collisions were identified.',
-    publicSummary: 'A bounded public-sector warranty workflow was reconstructed from de-identified operational evidence to compare structured system state with recoverable operational state.',
-    confidence: 0.92,
-    evidenceRefs: ['SFI_AUDIT_0001_MASTER:sha256:8a558e93d515caf70bdfe9a0c12d92dcb1ca33f0c50c8ba90d565275f308ea8f'],
-    findings: [
-      { id: 'F001', title: 'Structured state is insufficient', state: 'OBSERVED', summary: 'PENDIENTE/CERRADO does not reconstruct the operational trajectory or authority handoffs.', evidenceRefs: [] },
-      { id: 'F002', title: 'Unresolved post-expiration backlog', state: 'DERIVED', summary: '36 cases explicitly recorded an expired repair period while remaining operationally open in the observed source.', evidenceRefs: [] },
-      { id: 'F003', title: 'Contract clocks are not universal', state: 'OBSERVED', summary: 'Observed warranty traces contain contract-specific 30-day, 20-day and 10-business-day regimes.', evidenceRefs: [] },
-      { id: 'F004', title: 'Post-expiration recovery latency', state: 'DERIVED', summary: 'In the temporally valid resolved cohort, median post-expiration resolution latency is approximately 51 days and P90 approximately 120 days.', evidenceRefs: [] },
-      { id: 'F005', title: 'Repair timestamp semantic collision', state: 'OBSERVED', summary: 'FECHA_EQUIPO_REPARADO sometimes records delivery of a backup asset rather than definitive repair or replacement.', evidenceRefs: [] },
-      { id: 'F006', title: 'Resolution cohorting', state: 'DERIVED', summary: 'Definitive resolutions cluster in visible batches rather than behaving only as independent ticket closures.', evidenceRefs: [] },
-    ],
-    publicFindings: [
-      { id: 'F001', title: 'Structured state is insufficient', state: 'OBSERVED', summary: 'The coarse structured case state does not reconstruct the full operational trajectory or authority handoffs.', evidenceRefs: [] },
-      { id: 'F002', title: 'Unresolved post-expiration backlog', state: 'DERIVED', summary: '36 observed cases explicitly recorded an expired repair period while remaining open in the source at observation time.', evidenceRefs: [] },
-      { id: 'F003', title: 'Contract clocks are not universal', state: 'OBSERVED', summary: 'Observed traces contain multiple contract-specific temporal regimes rather than one universal deadline.', evidenceRefs: [] },
-      { id: 'F004', title: 'Post-expiration recovery latency', state: 'DERIVED', summary: 'In the temporally valid resolved cohort, median post-expiration resolution latency is approximately 51 days and P90 approximately 120 days.', evidenceRefs: [] },
-      { id: 'F005', title: 'Repair timestamp semantic collision', state: 'OBSERVED', summary: 'A structured repair timestamp is used for more than one operational event and cannot serve as a canonical resolution clock without disambiguation.', evidenceRefs: [] },
-      { id: 'F006', title: 'Resolution cohorting', state: 'DERIVED', summary: 'Definitive resolutions visibly cluster in batches rather than behaving only as independent ticket closures.', evidenceRefs: [] },
-    ],
-    metrics: { source_records: 2458, expired_open: 36, expired_closed_cohort: 120, temporally_valid_resolved: 112, temporal_exceptions: 8, median_post_expiration_days: 51, p90_post_expiration_days: 119.9, max_post_expiration_days: 206.8, overloaded_repair_timestamp_cases: 28 },
-    publicMetrics: { source_records: 2458, expired_open: 36, expired_closed_cohort: 120, temporally_valid_resolved: 112, temporal_exceptions: 8, median_post_expiration_days: 51, p90_post_expiration_days: 119.9, max_post_expiration_days: 206.8, overloaded_repair_timestamp_cases: 28 },
-    limitations: ['No raw institutional records may be published.', 'Contractual liability is not established without primary contract and annex evidence.', 'The audit does not validate SFI-B-H01 or System Friction Theory.'],
-    publicLimitations: ['No raw institutional records are included.', 'The public derivative does not establish contractual liability.', 'The audit does not validate SFI-B-H01 or System Friction Theory.'],
-    lineage: ['MAI', 'POWER_BI_SEMANTIC_MODEL', 'DAX_EXTRACTION', 'CANONICAL_EVENT_RECONSTRUCTION', 'SFI_AUDIT'], version: '1.0.0', source: 'HUB_BOOTSTRAP', updatedAt: '2026-08-26T00:00:00.000Z',
+    // Suppressed bootstrap projection pending source authorization and
+    // de-identification review. Original internal ledger is not rewritten.
+    objectId: 'SFI-AUDIT-0001', objectClass: 'AUDIT',
+    title: 'Restricted institutional audit — disclosure review pending',
+    publicTitle: 'Restricted study — withheld',
+    objective: 'Review source custody and disclosure authorization.',
+    method: 'UNSPECIFIED', state: 'WITHHELD',
+    epistemicState: 'WITHHELD', returnState: 'PENDING',
+    publicationState: 'PRIVATE',
+    summary: 'Publication withheld pending authorization and disclosure review.',
+    publicSummary: 'No public derivative authorized.',
+    confidence: null, evidenceRefs: [], findings: [], publicFindings: [],
+    metrics: {}, publicMetrics: {},
+    limitations: ['Source permissions and de-identification have not been verified.'],
+    publicLimitations: ['Disclosure is withheld pending review.'],
+    lineage: [], version: '1.0.0', source: 'HUB_BOOTSTRAP', updatedAt: null,
   },
 ];
 
