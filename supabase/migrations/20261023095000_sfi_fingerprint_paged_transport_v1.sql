@@ -7,7 +7,7 @@ CREATE OR REPLACE FUNCTION public.sfi_data_plane_fingerprint_page_v1(
   p_after_table text DEFAULT '',
   p_limit integer DEFAULT 8
 )
-RETURNS TABLE(table_name text, row_count bigint, hash_a numeric, hash_b numeric)
+RETURNS TABLE(table_name text, row_count text, hash_a text, hash_b text)
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public, pg_catalog
@@ -60,9 +60,11 @@ BEGIN
        from public.%2$I t%3$s', expr, r.relname, where_clause
     ) INTO c, a, b;
     table_name := r.relname;
-    row_count := c;
-    hash_a := a;
-    hash_b := b;
+    -- Text transport is exact: PostgREST JSON numeric and JS Number lose
+    -- precision for institutional sums larger than 2^53.
+    row_count := c::text;
+    hash_a := a::text;
+    hash_b := b::text;
     RETURN NEXT;
   END LOOP;
 END;
