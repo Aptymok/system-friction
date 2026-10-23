@@ -53,13 +53,15 @@ jobs:
             }));
             if (process.env.GITHUB_STEP_SUMMARY) {
               const {appendFileSync}=await import("node:fs");
-              appendFileSync(process.env.GITHUB_STEP_SUMMARY,
-                "## CHRONOS synthetic lab execution — not SFI cognitive-agent evidence\\n\\n" +
-                "- SHA: \`" + r.sourceCommit + "\`\\n" +
-                "- Receipt: \`" + r.receiptSha256 + "\`\\n" +
-                "- Preview: \`" + r.reproduction.previewDigest + "\`\\n" +
-                "- Result: " + r.reproduction.result + "\\n" +
-                "- P3/P4/P5: NOT_CERTIFIED / NOT_DEMONSTRATED / FORBIDDEN\\n");
+              appendFileSync(process.env.GITHUB_STEP_SUMMARY, [
+                "## CHRONOS synthetic lab execution — not SFI cognitive-agent evidence",
+                "", "- SHA: " + r.sourceCommit,
+                "- Receipt: " + r.receiptSha256,
+                "- Preview: " + r.reproduction.previewDigest,
+                "- Result: " + r.reproduction.result,
+                "- P3/P4/P5: NOT_CERTIFIED / NOT_DEMONSTRATED / FORBIDDEN",
+                ""
+              ].join(String.fromCharCode(10)));
             }
           ' "$RUNNER_TEMP/sfi-chronos-synthetic-receipt.json"
       - name: Retain source-safe synthetic receipt for independent inspection
