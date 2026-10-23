@@ -18,6 +18,7 @@ export type FingerprintPageReader = (
 export type FingerprintParityOptions = {
   pageSize?: number;
   maxPages?: number;
+  minimumTableCount?: number;
   verifyProtectedTable?: (name: 'profiles' | 'sfi_account_access_grants' | 'sfi_tenant_members') => Promise<boolean>;
 };
 
@@ -39,8 +40,11 @@ export async function comparePagedFingerprints(
 ) {
   const pageSize = options.pageSize ?? 8;
   const maxPages = options.maxPages ?? 256;
+  const minimumTableCount = options.minimumTableCount ?? 1;
   if (!Number.isSafeInteger(pageSize) || pageSize < 1 || pageSize > 8
-    || !Number.isSafeInteger(maxPages) || maxPages < 1 || maxPages > 256) {
+    || !Number.isSafeInteger(maxPages) || maxPages < 1 || maxPages > 256
+    || !Number.isSafeInteger(minimumTableCount) || minimumTableCount < 1
+    || minimumTableCount > pageSize * maxPages) {
     throw new Error('SFI_FINGERPRINT_INVALID_PAGE_BOUNDS');
   }
 
@@ -54,7 +58,8 @@ export async function comparePagedFingerprints(
     if (!Array.isArray(primaryRows) || !Array.isArray(continuityRows)
       || primaryRows.length !== continuityRows.length
       || primaryRows.length > pageSize) return false;
-    if (primaryRows.length === 0) return seen > 0;
+    // Both providers returning the same truncated set must NOT certify parity.
+    if (primaryRows.length === 0) return seen >= minimumTableCount;
 
     let lastName = after;
     for (let i = 0; i < primaryRows.length; i += 1) {
