@@ -375,11 +375,29 @@ async function contrastLatestReturn(history: UniversalCycleHistory, cycleId: str
   }))).digest('hex');
   // Reserve a semantic fingerprint before invoking the classifier. Repeated
   // concurrent callers still use the locked database writer for uniqueness.
-  const classification = await classifyReturnWithAi(history, cycleId, lastReturn);
   const hasPrediction = predictions.length > 0;
   const hasDiscriminatingObservation = discriminatingObservations.length > 0;
   const hasDiscriminatingSignals = signals.expectedSignals.length > 0 && signals.contradictionSignals.length > 0;
   const traceableReturn = evidenceValidation.verified.length > 0;
+  // If the required observational structure is absent, an LLM result cannot
+  // change the accepted INCONCLUSIVE outcome. Preserve an explicitly declared
+  // RETURN classification (cheap, no LLM); otherwise avoid model and proposal
+  // events until evidence/predictions materially change.
+  const declaredClassification = text(returnPayload.classification)?.toUpperCase();
+  const hasDeclaredClassification = ['CONFIRMED', 'PARTIAL', 'CONTRADICTED', 'INCONCLUSIVE'].includes(declaredClassification ?? '');
+  const mayCalibrate = hasPrediction && hasDiscriminatingObservation && hasDiscriminatingSignals &&
+    evidenceValidation.ok && declaredReturnEvidenceRefs.length > 0 && traceableReturn;
+  const classification = (mayCalibrate || hasDeclaredClassification)
+    ? await classifyReturnWithAi(history, cycleId, lastReturn)
+    : {
+        classification: 'INCONCLUSIVE' as Classification,
+        source: 'STRUCTURAL_CALIBRATION_GATE' as const,
+        eventId: null,
+        provider: null,
+        model: null,
+        reason: 'Required predictions, discriminating observations/signals or verified RETURN evidence are unavailable; AI classification was not invoked.',
+        confidence: null,
+      };
   const calibrationStatus = !hasPrediction
     ? 'PREDICTION_MISSING'
     : !hasDiscriminatingObservation
