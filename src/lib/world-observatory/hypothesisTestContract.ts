@@ -113,6 +113,10 @@ export function parseHypothesisTestContract(value: unknown): HypothesisTestContr
     : [];
 
   if (!expectedCriteria.length || !contradictionCriteria.length) return null;
+  // A stable unique name is necessary for each frozen discriminator. The
+  // evaluator receives model-authored verdicts keyed by criterion ID.
+  const allCriterionIds=[...expectedCriteria,...contradictionCriteria].map(item=>item.id);
+  if(new Set(allCriterionIds).size!==allCriterionIds.length) return null;
   if (expectedCriteria.some((criterion) => !criterion.required)) {
     // Expected tests may include optional diagnostics, but at least one required discriminator must remain.
     if (!expectedCriteria.some((criterion) => criterion.required)) return null;
@@ -151,58 +155,98 @@ export function parseCriterionResults(value: unknown): HypothesisCriterionResult
   });
 }
 
+export type HypothesisAdmissibleObservation = {
+  id: string;
+  sourceFamily: string | null;
+};
+
+/**
+ * Deterministic verdict for a prospectively frozen test contract.
+ * The model may suggest criterion verdicts, but cannot certify their evidence.
+ *
+ * A verdict has support only when its evidence references belong to the
+ * allowed post-T0 observations, satisfy the criterion's sampling minimum,
+ * and cover the criterion's explicitly required source families.
+ */
 export function classifyHypothesisTestContract(input: {
   contract: HypothesisTestContract;
   criterionResults: HypothesisCriterionResult[];
   linkedEvidenceCount: number;
   linkedSourceFamilies: number;
+  admissibleObservations: HypothesisAdmissibleObservation[];
 }): { classification: HypothesisClassification; reason: string; decisive: boolean } {
   const { contract, criterionResults } = input;
-  const byId = new Map(criterionResults.map((result) => [result.criterionId, result]));
-  const coverageSatisfied = input.linkedEvidenceCount >= contract.minimumEvidenceCount
-    && input.linkedSourceFamilies >= contract.minimumSourceFamilies;
-
-  if (!coverageSatisfied) {
-    return {
-      classification: 'INCONCLUSIVE',
-      reason: `Coverage below preregistered minimum: evidence ${input.linkedEvidenceCount}/${contract.minimumEvidenceCount}, source families ${input.linkedSourceFamilies}/${contract.minimumSourceFamilies}.`,
-      decisive: false,
-    };
+  const inconclusive=(reason:string)=>({classification:'INCONCLUSIVE' as const,reason,decisive:false});
+  const frozenCriteria=[...contract.expectedCriteria,...contract.contradictionCriteria];
+  const ids=frozenCriteria.map(c=>c.id);
+  if(new Set(ids).size!==ids.length) return inconclusive('Duplicated frozen criterion IDs cannot support unambiguous adjudication.');
+  const allowedCriterionIds=new Set(ids);
+  const results=criterionResults.filter(result=>allowedCriterionIds.has(result.criterionId));
+  if(results.length!==criterionResults.length || new Set(results.map(r=>r.criterionId)).size!==results.length){
+    return inconclusive('Duplicate or unregistered criterion verdicts cannot modify the frozen evaluation contract.');
   }
 
-  const contradictionSatisfied = contract.contradictionCriteria.some((criterion) => byId.get(criterion.id)?.verdict === 'SATISFIED');
-  if (contradictionSatisfied) {
-    return {
-      classification: 'CONTRADICTED',
-      reason: 'At least one preregistered contradiction criterion was satisfied within the validation window.',
-      decisive: true,
-    };
+  const byId=new Map(results.map(result=>[result.criterionId,result]));
+  const eligible=new Map(input.admissibleObservations.filter(row=>row.id.trim()).map(row=>[row.id,row]));
+  const allLinked=new Set(results.flatMap(result=>result.evidenceIds).filter(id=>eligible.has(id)));
+  const families=new Set([...allLinked].map(id=>eligible.get(id)?.sourceFamily).filter((family):family is string=>Boolean(family)));
+  const coverageSatisfied=allLinked.size>=contract.minimumEvidenceCount &&
+    families.size>=contract.minimumSourceFamilies &&
+    input.linkedEvidenceCount>=contract.minimumEvidenceCount &&
+    input.linkedSourceFamilies>=contract.minimumSourceFamilies;
+  if(!coverageSatisfied){
+    return inconclusive(
+      `Insufficient eligible post-T0 evidence: ${allLinked.size}/${contract.minimumEvidenceCount} observations, ${families.size}/${contract.minimumSourceFamilies} source families.`,
+    );
   }
 
-  const requiredExpected = contract.expectedCriteria.filter((criterion) => criterion.required);
-  const satisfiedExpected = requiredExpected.filter((criterion) => byId.get(criterion.id)?.verdict === 'SATISFIED');
-  const undeterminedExpected = requiredExpected.filter((criterion) => !byId.has(criterion.id) || byId.get(criterion.id)?.verdict === 'NOT_DETERMINABLE');
-
-  if (requiredExpected.length > 0 && satisfiedExpected.length === requiredExpected.length) {
-    return {
-      classification: 'VALIDATED',
-      reason: 'All required preregistered expected criteria were satisfied and no contradiction criterion was satisfied.',
-      decisive: true,
-    };
-  }
-
-  // Partial validation is reserved for genuinely multi-criterion hypotheses; it is not the fallback for ambiguity.
-  if (requiredExpected.length > 1 && satisfiedExpected.length > 0 && undeterminedExpected.length < requiredExpected.length) {
-    return {
-      classification: 'PARTIALLY_VALIDATED',
-      reason: `${satisfiedExpected.length}/${requiredExpected.length} required expected criteria were satisfied without a satisfied contradiction criterion.`,
-      decisive: false,
-    };
-  }
-
-  return {
-    classification: 'INCONCLUSIVE',
-    reason: 'The preregistered test did not discriminate the hypothesis from its rivals within the available evidence.',
-    decisive: false,
+  const supported=(criterion:HypothesisCriterion,result:HypothesisCriterionResult | undefined)=>{
+    if(!result || result.verdict==='NOT_DETERMINABLE' || !result.evidenceIds.length) return false;
+    const refs=new Set(result.evidenceIds);
+    // An unrecognized ID cannot silently stand in for a persisted observation.
+    if([...refs].some(id=>!eligible.has(id))) return false;
+    if(refs.size<criterion.minimumObservations) return false;
+    const linkedFamilies=new Set([...refs].map(id=>eligible.get(id)?.sourceFamily).filter((family):family is string=>Boolean(family)));
+    return criterion.sourceFamilies.every(family=>linkedFamilies.has(family));
   };
+  const unverified=frozenCriteria.filter(criterion=>{
+    const result=byId.get(criterion.id);
+    // Any unsupported claim of a SATISFIED contradiction must block
+    // validation, not be treated as evidence of its absence.
+    return !supported(criterion,result);
+  });
+  if(unverified.length){
+    return inconclusive('Frozen criteria are missing admissible, sufficiently sampled determinations: '+unverified.map(c=>c.id).join(', ')+'.');
+  }
+
+  const contradictionSatisfied=contract.contradictionCriteria.some(criterion=>
+    byId.get(criterion.id)?.verdict==='SATISFIED');
+  if(contradictionSatisfied){
+    return {
+      classification:'CONTRADICTED',
+      reason:'At least one admissibly sourced preregistered contradiction criterion was satisfied within the validation window.',
+      decisive:true,
+    };
+  }
+
+  const required=contract.expectedCriteria.filter(criterion=>criterion.required);
+  const satisfied=required.filter(criterion=>byId.get(criterion.id)?.verdict==='SATISFIED');
+  if(required.length>0 && satisfied.length===required.length &&
+    contract.contradictionCriteria.every(criterion=>byId.get(criterion.id)?.verdict==='NOT_SATISFIED')){
+    return {
+      classification:'VALIDATED',
+      reason:'All required expected criteria have eligible evidence and all contradiction criteria have admissible negative determinations.',
+      decisive:true,
+    };
+  }
+
+  if(required.length>1 && satisfied.length>0 &&
+    contract.contradictionCriteria.every(criterion=>byId.get(criterion.id)?.verdict==='NOT_SATISFIED')){
+    return {
+      classification:'PARTIALLY_VALIDATED',
+      reason:`${satisfied.length}/${required.length} required expected criteria have support and no preregistered contradiction is satisfied.`,
+      decisive:false,
+    };
+  }
+  return inconclusive('The supported frozen criteria do not discriminate this hypothesis from its rivals.');
 }
