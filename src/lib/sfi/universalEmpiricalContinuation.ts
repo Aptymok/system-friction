@@ -373,6 +373,8 @@ async function contrastLatestReturn(history: UniversalCycleHistory, cycleId: str
     rejectedReturnEvidenceRefs: [...evidenceValidation.rejected].sort(),
     evidenceValidationWarning: evidenceValidation.warning,
   }))).digest('hex');
+  // Reserve a semantic fingerprint before invoking the classifier. Repeated
+  // concurrent callers still use the locked database writer for uniqueness.
   const classification = await classifyReturnWithAi(history, cycleId, lastReturn);
   const hasPrediction = predictions.length > 0;
   const hasDiscriminatingObservation = discriminatingObservations.length > 0;
