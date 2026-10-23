@@ -123,3 +123,44 @@ test('changed RETURN content has a distinct semantic fingerprint', async () => {
   assert.notEqual(a.writes.find(e => e.eventName === 'SFI_UNIVERSAL_RETURN_CONTRASTED')?.payload.contrastInputFingerprint,
     b.writes.find(e => e.eventName === 'SFI_UNIVERSAL_RETURN_CONTRASTED')?.payload.contrastInputFingerprint);
 });
+
+test('missing prediction suppresses unnecessary model calls and proposed classification events', async () => {
+  const { evidence, history } = fixture();
+  history.returnContrasts = [];
+  history.cognitiveRuns[0].payload.predictions = [];
+  const h = harness(evidence);
+  await h.run(history);
+  assert.equal(h.modelCalls(), 0);
+  assert.equal(h.writes.filter(e => e.eventName === 'SFI_UNIVERSAL_RETURN_AI_CLASSIFICATION_PROPOSED').length, 0);
+  const contrast = h.writes.find(e => e.eventName === 'SFI_UNIVERSAL_RETURN_CONTRASTED');
+  assert.equal(contrast?.payload.calibrationStatus, 'PREDICTION_MISSING');
+  assert.equal(contrast?.payload.classification, 'INCONCLUSIVE');
+  assert.equal(contrast?.payload.classificationSource, 'STRUCTURAL_CALIBRATION_GATE');
+});
+
+test('unverified RETURN evidence suppresses AI while preserving the evidence warning', async () => {
+  const { history } = fixture();
+  history.returnContrasts = [];
+  const h = harness([]);
+  await h.run(history);
+  assert.equal(h.modelCalls(), 0);
+  const contrast = h.writes.find(e => e.eventName === 'SFI_UNIVERSAL_RETURN_CONTRASTED');
+  assert.equal(contrast?.payload.calibrationStatus, 'RETURN_EVIDENCE_UNVERIFIED');
+  assert.equal(contrast?.payload.classification, 'INCONCLUSIVE');
+  assert.deepEqual(Array.from(contrast?.payload.rejectedReturnEvidenceRefs ?? []), ['e1', 'e2']);
+});
+
+test('declared classification remains auditable without model calls or false calibration', async () => {
+  const { evidence, history } = fixture();
+  history.returnContrasts = [];
+  history.cognitiveRuns[0].payload.predictions = [];
+  history.returns[0].payload.classification = 'CONFIRMED';
+  const h = harness(evidence);
+  await h.run(history);
+  assert.equal(h.modelCalls(), 0);
+  const contrast = h.writes.find(e => e.eventName === 'SFI_UNIVERSAL_RETURN_CONTRASTED');
+  assert.equal(contrast?.payload.requestedClassification, 'CONFIRMED');
+  assert.equal(contrast?.payload.classificationSource, 'RETURN_DECLARED');
+  assert.equal(contrast?.payload.calibrationStatus, 'PREDICTION_MISSING');
+  assert.equal(contrast?.payload.classification, 'INCONCLUSIVE');
+});
