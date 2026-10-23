@@ -244,6 +244,9 @@ jobs:
       - name: Verify universal closure RETURN disposition fallback
         run: node --import tsx --test src/lib/sfi/universalClosure.test.ts
 
+      - name: Verify unchanged RETURN contrast idempotency and new-evidence reentry
+        run: node --import tsx --test src/lib/sfi/universalReturnContrastIdempotency.test.ts
+
       - name: Verify autonomous editorial routine
         run: npx tsx scripts/qa-sfi-autonomous-editorial-routine.ts
 

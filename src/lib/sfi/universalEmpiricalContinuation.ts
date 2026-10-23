@@ -3,6 +3,7 @@ import 'server-only';
 import { runLlmTask } from '@/lib/ai/providerRouter';
 import { appendEpistemicEvent } from '@/lib/events/eventStore';
 import { assessUniversalClosure } from '@/lib/sfi/universalClosure';
+import { returnContrastInputFingerprint, reusableReturnContrast, SFI_RETURN_CONTRAST_IDEMPOTENCY } from '@/lib/sfi/universalReturnContrastIdempotency';
 import { getCurrentUniversalClosureRecommendation, hasVerifiedLatestUniversalReturnCalibration } from '@/lib/sfi/universalCalibrationState';
 import {
   recordUniversalLearningCandidate,
@@ -319,6 +320,34 @@ async function contrastLatestReturn(history: UniversalCycleHistory, cycleId: str
     ...strings(lastReturn.lineage),
   ].filter((value, index, values) => values.indexOf(value) === index);
   const evidenceValidation = await validateReturnEvidenceRefs({ refs: declaredReturnEvidenceRefs, cycleId, tenantId, history });
+  const returnTraceability = evidenceValidation.verified.length > 0
+    ? 'VERIFIED_EVIDENCE_LINKED' as const
+    : declaredReturnEvidenceRefs.length > 0
+      ? 'DECLARED_BUT_UNVERIFIED' as const
+      : 'UNLINKED_OBSERVATION' as const;
+  const contrastInputs = {
+    returnEventId,
+    primaryHypothesis: hypotheses[0] ?? null,
+    rivalHypotheses: hypotheses.slice(1),
+    predictions,
+    discriminatingObservations,
+    stoppingConditions,
+    expectedSignals: signals.expectedSignals,
+    contradictionSignals: signals.contradictionSignals,
+    observationWindows: signals.observationWindows,
+    observedReturn: returnPayload.outcome ?? null,
+    declaredReturnEvidenceRefs,
+    returnEvidenceRefs: evidenceValidation.verified,
+    rejectedReturnEvidenceRefs: evidenceValidation.rejected,
+    evidenceValidationWarning: evidenceValidation.warning,
+    evidenceValidationSucceeded: evidenceValidation.ok,
+    returnTraceability,
+  };
+  // After checking CURRENT evidence, the same immutable RETURN with the
+  // same inputs must not call another model or append another contrast.
+  if (existingContrast && reusableReturnContrast(existingContrast, contrastInputs)) {
+    return { ok: true as const, reused: true as const, event: existingContrast, data: existingContrast };
+  }
   const classification = await classifyReturnWithAi(history, cycleId, lastReturn);
   const hasPrediction = predictions.length > 0;
   const hasDiscriminatingObservation = discriminatingObservations.length > 0;
@@ -371,7 +400,9 @@ async function contrastLatestReturn(history: UniversalCycleHistory, cycleId: str
       returnEvidenceRefs: evidenceValidation.verified,
       rejectedReturnEvidenceRefs: evidenceValidation.rejected,
       evidenceValidationWarning: evidenceValidation.warning,
-      returnTraceability: traceableReturn ? 'VERIFIED_EVIDENCE_LINKED' : declaredReturnEvidenceRefs.length ? 'DECLARED_BUT_UNVERIFIED' : 'UNLINKED_OBSERVATION',
+      contrastInputFingerprint: returnContrastInputFingerprint(contrastInputs),
+      contrastInputContract: SFI_RETURN_CONTRAST_IDEMPOTENCY,
+      returnTraceability,
       requestedClassification: classification.classification,
       classification: accepted,
       classificationSource: classification.source,
