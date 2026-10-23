@@ -250,3 +250,25 @@ financial_upgrade=false
 release_gate=prebuilt_production_workflow
 release_limit=one_bounded_production_build_and_deploy
 return=NOT_OBSERVED_UNTIL_VERCEL_READY_ROOT_RECOVERY_AND_FINGERPRINTS
+
+
+SFI Production Release 2026-10-22 · Containment of unverified institutional research disclosures
+base=dba78de9f9bf0cf208d9794fffcc689ef983532b
+source_pr=821
+reason=withhold_public_disclosure_of_unverified_institutional_research
+research_object_restricted=SFI-AUDIT-0001
+public_dossier_removed_from_head=true
+external_inventory_filtered=true
+external_report_and_promotion_denied=true
+external_persist_reintroduction_denied=true
+root_publication_denied=true
+internal_ledger_deleted=false
+git_history_purged=false
+new_certificate=false
+new_data_store=false
+authority_scope_expansion=false
+credential_change=false
+new_paid_plan=false
+production_releases_this_marker=1
+release_gate=prebuilt_production_workflow
+return=VERIFY_DEPLOYED_SHA_AND_API_403
