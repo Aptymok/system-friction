@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { readMethodLabState } from '@/lib/method-lab/readModel';
-import { buildMethodLabPublicationPackage, methodLabResearchHubTarget, persistMethodLabResearchObject, readMethodLabResearchState } from '@/lib/method-lab/researchObjects';
+import { buildMethodLabPublicationPackage, methodLabResearchHubTarget, persistMethodLabResearchObject, readMethodLabResearchState, isResearchDisclosureRestricted, externallyDisclosableResearchState } from '@/lib/method-lab/researchObjects';
 import { assessMethodLabResearchAssurance } from '@/lib/method-lab/researchAssurance';
 import { buildMethodLabIndependentReviewDossier } from '@/lib/method-lab/researchReviewDossier';
 import { runMethodLabSimulation } from '@/lib/method-lab/simulationRun';
@@ -115,10 +115,15 @@ export async function POST(req: Request) {
 
   if (operation === 'state') {
     const [state, research] = await Promise.all([readMethodLabState(), readMethodLabResearchState()]);
-    return NextResponse.json({ ok: true, operation, actor: actorId, lab: state, research });
+    return NextResponse.json({ ok: true, operation, actor: actorId, lab: state, research: externallyDisclosableResearchState(research) });
   }
 
   if (operation === 'report') {
+    // Fail closed BEFORE searching the event ledger, building an export package,
+    // or returning related review material. The data remains on internal ROOT.
+    if (typeof body.objectId === 'string' && isResearchDisclosureRestricted(body.objectId.trim())) {
+      return NextResponse.json({ ok: false, error: 'research_disclosure_restricted' }, { status: 403 });
+    }
     const commandId = normalizedCommandId(body.commandId);
     if (commandId) {
       const existing = await readExistingPersist(commandId);
@@ -127,6 +132,12 @@ export async function POST(req: Request) {
       }
       if (!existing.data) {
         return NextResponse.json({ ok: false, error: 'method_lab_persist_receipt_not_found', commandId }, { status: 404 });
+      }
+      const payload = recordValue((existing.data as Record<string, unknown>).payload);
+      const meta = recordValue(payload.metadata);
+      const nested = recordValue(meta.researchObject);
+      if (isResearchDisclosureRestricted(String(nested.objectId ?? recordValue(payload.researchObject).objectId ?? ''))) {
+        return NextResponse.json({ ok: false, error: 'research_disclosure_restricted' }, { status: 403 });
       }
       return NextResponse.json({ ok: true, operation, actor: actorId, commandId, event: existing.data });
     }
@@ -151,7 +162,7 @@ export async function POST(req: Request) {
       ok: reportOk,
       operation,
       actor: actorId,
-      data: { analyses: analyses.data ?? [], evaluations: evaluations.data ?? [], research },
+      data: { analyses: analyses.data ?? [], evaluations: evaluations.data ?? [], research: externallyDisclosableResearchState(research) },
       researchObject,
       publicationPackage,
       researchAssurance,
@@ -164,6 +175,9 @@ export async function POST(req: Request) {
 
 
   if (operation === 'promote') {
+    if (typeof body.objectId === 'string' && isResearchDisclosureRestricted(body.objectId.trim())) {
+      return NextResponse.json({ ok: false, error: 'research_disclosure_restricted' }, { status: 403 });
+    }
     // This is only a REQUEST for the canonical research_hub_promotion proposal.
     // It does not approve ROOT, transport files, publish in the Hub or release a DOI.
     // A user-bound institutional ROOT must meet the same sovereign profile check
@@ -267,6 +281,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: 'method_lab_metadata_object_required' }, { status: 400 });
     }
     const metadata = metadataValue as Record<string, unknown>;
+    const researchMeta = recordValue(metadata.researchObject);
+    const directObject = recordValue(body.researchObject);
+    if (isResearchDisclosureRestricted(String(researchMeta.objectId ?? directObject.objectId ?? metadata.objectId ?? ''))) {
+      return NextResponse.json({ ok: false, error: 'research_disclosure_restricted' }, { status: 403 });
+    }
     const source = body.source ?? 'github_lab_bridge';
     const incomingFingerprint = persistFingerprint({ title, content, source, refs, metadata, confidence });
 
