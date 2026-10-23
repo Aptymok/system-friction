@@ -29,6 +29,22 @@ function canonical(value: unknown): unknown {
 function same(left: unknown, right: unknown): boolean {
   return JSON.stringify(canonical(left)) === JSON.stringify(canonical(right));
 }
+function semanticInputs(input: ReturnContrastInputs): ReturnContrastInputs {
+  // Evidence refs represent a set. Database result ordering is not an
+  // observation and must not trigger a second LLM classification.
+  return {
+    ...input,
+    declaredReturnEvidenceRefs: [...new Set(input.declaredReturnEvidenceRefs)].sort(),
+    returnEvidenceRefs: [...new Set(input.returnEvidenceRefs)].sort(),
+    rejectedReturnEvidenceRefs: [...new Set(input.rejectedReturnEvidenceRefs)].sort(),
+  };
+}
+function comparableValue(key: string, value: unknown) {
+  return ['declaredReturnEvidenceRefs','returnEvidenceRefs','rejectedReturnEvidenceRefs'].includes(key)
+    && Array.isArray(value)
+    ? [...new Set(value.filter((item): item is string => typeof item === 'string'))].sort()
+    : value;
+}
 
 export const SFI_RETURN_CONTRAST_IDEMPOTENCY = 'SFI-RETURN-CONTRAST-IDEMPOTENCY-1.0' as const;
 
@@ -72,7 +88,7 @@ export function returnContrastInputFingerprint(input: ReturnContrastInputs): str
   if (!input.returnEventId.trim()) throw new Error('RETURN_EVENT_ID_REQUIRED');
   return createHash('sha256').update(JSON.stringify(canonical({
     contract: SFI_RETURN_CONTRAST_IDEMPOTENCY,
-    ...input,
+    ...semanticInputs(input),
   }))).digest('hex');
 }
 
@@ -101,5 +117,5 @@ export function reusableReturnContrast(
   if (payload.contract !== 'SFI-RETURN-CONTRAST-1.2' || !input.evidenceValidationSucceeded) return false;
   return COMPARABLE_FIELDS.every(key =>
     Object.prototype.hasOwnProperty.call(payload, key)
-      && same(payload[key], input[key]));
+      && same(comparableValue(key, payload[key]), comparableValue(key, input[key])));
 }
