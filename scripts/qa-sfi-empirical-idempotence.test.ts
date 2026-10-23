@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
@@ -45,6 +46,7 @@ function harness(evidence: Row[], dbError: string | null = null) {
   }) };
   const exports: Row = {};
   vm.runInNewContext(compiled, { exports, require: (id: string) => {
+    if (id === 'node:crypto') return { createHash };
     if (id === 'server-only') return {};
     if (id === '@/runtime/supabase/server') return { createServiceSupabaseClient: () => ({ from: (table: string) => {
       assert.equal(table, 'epistemic_events'); return query;
