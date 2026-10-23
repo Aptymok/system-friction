@@ -74,7 +74,7 @@ export async function comparePagedFingerprints(
         || counterpart.table_name !== row.table_name
         || ![row.row_count, row.hash_a, row.hash_b, counterpart.row_count,
           counterpart.hash_a, counterpart.hash_b].every(
-            value => typeof value === 'string' && /^-?\\d+$/.test(value),
+            value => typeof value === 'string' && /^-?[0-9]+$/.test(value),
           )) return false;
 
       if (fingerprintKey(row) !== fingerprintKey(counterpart)) {
