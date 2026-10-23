@@ -13,46 +13,22 @@ import {
 import { flushPrimaryMirror } from '@/lib/persistence/primaryMirror';
 import { currentAuthorityParityVerified } from '@/lib/persistence/authorityJournalSupersession';
 import { postNeonDataPlaneRpc, postPrimaryDataPlaneRpc, probePrimaryDataPlane } from '@/lib/persistence/dataPlaneRpc';
-
-type FingerprintRow = {
-  table_name: string;
-  row_count: number | string;
-  hash_a: number | string;
-  hash_b: number | string;
-};
-
-function message(error: unknown) {
-  return error instanceof Error ? error.message : String(error);
-}
-
-function fingerprintKey(row: FingerprintRow) {
-  return `${row.table_name}|${row.row_count}|${row.hash_a}|${row.hash_b}`;
-}
+import { comparePagedFingerprints, type FingerprintRow } from './pagedFingerprint';
 
 async function fingerprintsMatch() {
-  const [primary, continuity] = await Promise.all([
-    postPrimaryDataPlaneRpc<FingerprintRow[]>('sfi_data_plane_fingerprint_v2'),
-    postNeonDataPlaneRpc<FingerprintRow[]>('sfi_data_plane_fingerprint_v2'),
-  ]);
-  if (!Array.isArray(primary) || !Array.isArray(continuity) || primary.length === 0) return false;
-  const counterpart = new Map(continuity.map((row) => [row.table_name, row]));
-  if (primary.length !== counterpart.size) return false;
-  for (const row of primary) {
-    const other = counterpart.get(row.table_name);
-    if (!other) return false;
-    if (fingerprintKey(row) === fingerprintKey(other)) continue;
-
-    // Timestamp-only drift is allowed for strictly enumerated authority
-    // records ONLY after independent, row-by-row current PRIMARY vs Neon
-    // semantic verification. Identity, tenant, role, status and scope MUST
-    // match. Global epistemic/business fingerprints remain strictly exact.
-    const protectedTable = row.table_name === 'profiles'
-      || row.table_name === 'sfi_account_access_grants'
-      || row.table_name === 'sfi_tenant_members';
-    if (!protectedTable || String(row.row_count) !== String(other.row_count)) return false;
-    if (!await currentAuthorityParityVerified(row.table_name as 'profiles' | 'sfi_account_access_grants' | 'sfi_tenant_members')) return false;
-  }
-  return true;
+  // v2-equivalent per-table checks, transported in bounded RPC pages because
+  // the legacy all-table RPC exceeds the primary HTTP statement timeout.
+  // Both providers must enumerate the same 161+ tables in the same order;
+  // any missing table, digest mismatch or RPC failure blocks certification.
+  return comparePagedFingerprints(
+    (afterTable, limit) => postPrimaryDataPlaneRpc<FingerprintRow[]>('sfi_data_plane_fingerprint_page_v1', {
+      p_after_table: afterTable, p_limit: limit,
+    }),
+    (afterTable, limit) => postNeonDataPlaneRpc<FingerprintRow[]>('sfi_data_plane_fingerprint_page_v1', {
+      p_after_table: afterTable, p_limit: limit,
+    }),
+    { verifyProtectedTable: currentAuthorityParityVerified },
+  );
 }
 
 export async function recoverPrimaryDataPlane(input: { maxTransactions?: number } = {}) {
