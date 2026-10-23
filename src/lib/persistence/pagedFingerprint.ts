@@ -5,9 +5,10 @@
  */
 export type FingerprintRow = {
   table_name: string;
-  row_count: number | string;
-  hash_a: number | string;
-  hash_b: number | string;
+  // Exact decimal text from the PostgREST RPC; never parse with JS Number.
+  row_count: string;
+  hash_a: string;
+  hash_b: string;
 };
 
 export type FingerprintPageReader = (
@@ -70,7 +71,11 @@ export async function comparePagedFingerprints(
         || typeof counterpart.table_name !== 'string'
         || !row.table_name
         || row.table_name <= lastName
-        || counterpart.table_name !== row.table_name) return false;
+        || counterpart.table_name !== row.table_name
+        || ![row.row_count, row.hash_a, row.hash_b, counterpart.row_count,
+          counterpart.hash_a, counterpart.hash_b].every(
+            value => typeof value === 'string' && /^-?\\d+$/.test(value),
+          )) return false;
 
       if (fingerprintKey(row) !== fingerprintKey(counterpart)) {
         if (!PROTECTED.has(row.table_name)
