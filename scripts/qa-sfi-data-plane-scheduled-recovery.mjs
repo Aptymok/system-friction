@@ -114,7 +114,7 @@ assert.ok(root.includes("operation === 'data_plane_emergency'"));
 assert.ok(root.includes('requireSovereignRoot(req)'));
 assert.ok(root.includes('attemptBoundedDataPlaneReconciliation(32)'));
 assert.ok(recover.includes('fingerprintsMatch()'));
-assert.ok(recover.includes("'sfi_data_plane_fingerprint_v2'"), 'recovery must use semantic fingerprint v2');
+assert.ok(read('scripts/db/mem003-continuity-journal-scope.sql').includes('function public.sfi_data_plane_fingerprint_v2()'), 'legacy semantic v2 must remain defined for audit and rollback');
 assert.ok(recover.includes("'sfi_data_plane_fingerprint_page_v1'"), 'recovery must use bounded v2-equivalent fingerprint pages');
 assert.ok(recover.includes('comparePagedFingerprints('), 'recovery must compare every page across both independent planes');
 execFileSync(process.execPath, ['--import', 'tsx', '--test', 'src/lib/persistence/pagedFingerprint.test.ts'], { stdio: 'inherit' });
