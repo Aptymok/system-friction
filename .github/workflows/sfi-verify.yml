@@ -42,6 +42,9 @@ jobs:
             sleep $((attempt * 10))
           done
 
+      - name: Verify empirical RETURN idempotence behavior
+        run: node --import tsx --test scripts/qa-sfi-empirical-idempotence.test.ts
+
       - name: Verify governed data-plane reconciliation scheduling
         run: node scripts/qa-sfi-data-plane-scheduled-recovery.mjs
 
