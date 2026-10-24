@@ -27,6 +27,13 @@ export function assessRealityChainMigrationRelease(input) {
       input?.isolatedTests?.twoSessionConcurrency !== true || input?.isolatedTests?.replicationReplay !== true) {
     blockers.push('ISOLATED_RELEASE_TESTS_INCOMPLETE');
   }
+  // Trigger-disabled replay must mirror the exact parent revision in the source
+  // transaction, with an independently matched case-object content digest.
+  // A clean journal alone cannot establish this.
+  if (input?.isolatedTests?.caseParentRevisionReplay !== true ||
+      input?.isolatedTests?.caseRowDigestParity !== true) {
+    blockers.push('CASE_REVISION_REPLAY_PARITY_UNVERIFIED');
+  }
   if (input?.explicitHumanApproval !== true) blockers.push('HUMAN_PRODUCTION_APPROVAL_REQUIRED');
   return {
     readyForHumanReviewedRelease: blockers.length === 0,
