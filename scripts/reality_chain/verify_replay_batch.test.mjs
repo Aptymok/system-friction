@@ -37,7 +37,7 @@ test('one case updated twice in a single source transaction is valid', () => {
 test('duplicate or malformed parent revisions cannot claim replay correctness', () => {
   const result = assessCaseRevisionReplayBatch([child(), parent(2, 1), parent(2, 1)]);
   assert.ok(result.blockers.includes('REPLAY_PARENT_REVISION_AMBIGUOUS'));
-  const missingRevision = assessCaseRevisionReplayBatch([child(), parent(undefined, 1)]);
+  const missingRevision = assessCaseRevisionReplayBatch([child(), parent(null, 1)]);
   assert.equal(missingRevision.validated, false);
   assert.ok(missingRevision.blockers.includes('REPLAY_PARENT_REVISION_INVALID'));
 });
