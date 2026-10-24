@@ -149,7 +149,7 @@ export function SfiGovernanceWorkspace({enabled}:{enabled:boolean}){
   return <div className="sfiGovernanceLayout">
     {(error||notice)&&<div className={`sfiToast ${error?'error':''}`}><span>{error||notice}</span><button onClick={()=>{setError(null);setNotice(null)}}>×</button></div>}
     <section className="sfiGovernancePanel agentPanel">
-      <header><span>AGENTS · MISIÓN / PASSPORT</span><b>{agents.length}</b></header>
+      <header><span>AGENTS · PASSPORT · MISIÓN</span><b>{agents.length}</b></header>
       <p role="status">{missions.length} plantillas de misión vinculadas al registro canónico · ningún trabajo se encola ni se ejecuta al consultar.</p>
       <div className="sfiAgentList">{agents.map(agent=>{
         const mission=missions.find(item=>item.agentId===agent.id);
