@@ -6,6 +6,7 @@ import { OperationalTimeline, type TimelineItem } from '@/components/sfi/Operati
 import { readHypothesisConditionalBranches } from '@/lib/world-observatory/hypothesisConditionalBranches';
 import { HypothesisConditionalLab } from '@/components/sfi/HypothesisConditionalLab';
 import { readTimelineCaseProjectState } from '@/lib/mihm/timelineCaseProjectReadModel';
+import { readTimelineInstitutionalAttractors } from '@/lib/mihm/timelineAttractorReadModel';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -85,17 +86,23 @@ export default async function TimelinePage() {
   // supplied canonical Case Platform rows. The read model scopes rows by the
   // authenticated actor's active tenant membership on each data plane.
   const { user } = await requireAuthenticatedUser();
-  const caseProject = await readTimelineCaseProjectState(user.id);
+  const [caseProject, attractorHistory] = await Promise.all([
+    readTimelineCaseProjectState(user.id),
+    readTimelineInstitutionalAttractors({ id: user.id, email: user.email }),
+  ]);
 
   const conditional = await readHypothesisConditionalBranches()
     .then(model=>({model,error:null})).catch(error=>({model:null,error:error instanceof Error?error.message:'CONDITIONAL_HYPOTHESIS_READ_FAILED'}));
 
   return <div className="sfiUnifiedTimelineTrack" data-sfi-timeline-panorama="ORIGINAL-EVIDENCE-ONLY">
     <section className="sfiUnifiedTimelinePanel" aria-label="Relojes y acontecimientos registrados">
-      <OperationalTimeline items={[...institution, ...world, ...caseProject.items]} worldReadPlane={worldReadPlane} />
+      <OperationalTimeline items={[...institution, ...world, ...caseProject.items, ...attractorHistory.items]} worldReadPlane={worldReadPlane} />
       <p role="status" data-sfi-case-project-read-plane={caseProject.readPlane}>
         CASE / PROJECT: {caseProject.readPlane}
         {caseProject.warning ? ' · ' + caseProject.warning : ''}
+      </p>
+      <p role="status" data-sfi-attractor-read-state={attractorHistory.status}>
+        ATTRACTOR: {attractorHistory.status}
       </p>
     </section>
     <section className="sfiUnifiedTimelinePanel sfiUnifiedTimelineAnalysis" aria-label="Ramas de hipótesis bajo condiciones">
