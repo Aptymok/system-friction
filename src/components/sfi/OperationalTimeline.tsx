@@ -40,12 +40,12 @@ const elapsed = (ms:number) => {
   return (ms<0?'-':'')+(abs/scale).toFixed(abs%scale===0?0:1)+' '+unit;
 };
 
-export function OperationalTimeline({items,worldReadPlane}:{
-  items:readonly TimelineItem[];worldReadPlane:string
+export function OperationalTimeline({items,worldReadPlane,focusCaseId}:{
+  items:readonly TimelineItem[];worldReadPlane:string;focusCaseId?:string|null
 }){
   const [windowDays,setWindowDays]=useState<30|365|0>(0);
-  const [laneFilter,setLaneFilter]=useState<string>('ALL');
-  const [selectedId,setSelectedId]=useState<string|null>(null);
+  const [laneFilter,setLaneFilter]=useState<string>(focusCaseId?'CASE':'ALL');
+  const [selectedId,setSelectedId]=useState<string|null>(focusCaseId?'case:'+focusCaseId:null);
   const [lens,setLens]=useState<'CHRONOLOGY'|'CLOCKS'>('CLOCKS');
   const [eventQuery,setEventQuery]=useState('');
   const [chooserLimit,setChooserLimit]=useState(50);
@@ -85,6 +85,8 @@ export function OperationalTimeline({items,worldReadPlane}:{
         <span className="sfiTemporalKicker">MIHM-T / OBSERVATION INSTRUMENT</span>
         <h1>TIMELINE</h1>
         <p>THE WORLD DOESN&apos;T HAVE THE SAME CLOCK.</p>
+        {focusCaseId&&!items.some(item=>item.id==='case:'+focusCaseId)
+          ?<p role="status">CASE FOCUS NOT AVAILABLE FOR THIS ACCOUNT OR READ PLANE. NO CASE DATA EXPOSED.</p>:null}
         <div className="sfiTemporalCounters">{LANES.map(lane=>
           <button key={lane.id} type="button" onClick={()=>setLaneFilter(laneFilter===lane.id?'ALL':lane.id)}
             aria-pressed={laneFilter===lane.id}>
