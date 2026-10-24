@@ -7,10 +7,10 @@ import {
   readContinuityInteractiveCaseIndex,
 } from '@/lib/sfi/continuityPostgres';
 import type { TimelineItem } from '@/components/sfi/OperationalTimeline';
-import { projectTimelineCaseHistory, type TimelineCaseHistoryBatch } from './timelineCaseHistory';
+import { projectTimelineCaseHistory, type TimelineCaseHistoryBatch, type TimelineAuthorizedCase } from './timelineCaseHistory';
 
 type Row = Record<string, unknown>;
-type CaseEntry = { id: string; subject: string; status: string; updatedAt: string | null; createdAt: string | null };
+type CaseEntry = { id: string; tenantId?: string; subject: string; status: string; updatedAt: string | null; createdAt: string | null };
 type ProjectEntry = { id: string; name: string; status: string; updatedAt: string | null; createdAt?: string | null; attractorRef: unknown; trajectoryRef: unknown; caseCount: number };
 
 function str(value: unknown) { return typeof value === 'string' ? value.trim() : ''; }
@@ -122,7 +122,7 @@ export async function readTimelineCaseProjectState(userId: string): Promise<Time
       if (id) countsByProject.set(id, (countsByProject.get(id) ?? 0) + 1);
     }
     const caseRows = ((cases.data ?? []) as Row[]).map(row => ({
-      id: str(row.id), subject: str(row.subject), status: str(row.status),
+      id: str(row.id), tenantId: str(row.tenant_id), subject: str(row.subject), status: str(row.status),
       updatedAt: str(row.updated_at), createdAt: str(row.created_at),
     }));
     const projectRows = ((projects.data ?? []) as Row[]).map(row => ({
@@ -172,8 +172,11 @@ export async function readTimelineCaseProjectState(userId: string): Promise<Time
           reports: (reports.data ?? []) as Row[],
         };
         historyItems = projectTimelineCaseHistory(
-          history, new Set(caseIds), new Set(ids), 'SUPABASE_CANONICAL',
-          new Map(caseRows.map(r => [r.id, r.subject])),
+          history,
+          new Map<string, TimelineAuthorizedCase>(
+            caseRows.map(r => [r.id, { tenantId: r.tenantId ?? '', subject: r.subject }]),
+          ),
+          'SUPABASE_CANONICAL',
         );
         for (const [index, rows] of results.entries()) {
           if ((rows.data ?? []).length >= bounds[index]) {

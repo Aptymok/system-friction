@@ -36,8 +36,8 @@ assert.equal((project.match(/\.in\('tenant_id', ids\)\.in\('case_id', caseIds\)/
 assert.match(project, /projectTimelineCaseHistory\(/);
 assert.match(project, /CANONICAL_CASE_HISTORY_PARTIAL_OR_UNAVAILABLE/);
 assert.match(project, /CASE_HISTORY_NOT_AVAILABLE_ON_THIS_READ_PLANE/);
-assert.match(history, /authorizedCaseIds\.has/);
-assert.match(history, /authorizedTenantIds\.has/);
+assert.match(history, /authorizedCases\.get\(str\(r\.case_id\)\)\?\.tenantId === str\(r\.tenant_id\)/);
+assert.match(project, /new Map<string, TimelineAuthorizedCase>/);
 assert.match(history, /Current status at query time/);
 assert.match(history, /not a persisted report/);
 assert.match(history, /No AUTHORITY clock from proposal state alone/);

@@ -1,6 +1,7 @@
 import type { TimelineItem } from '@/components/sfi/OperationalTimeline';
 
 export type TimelineCaseHistoryRow = Record<string, unknown>;
+export type TimelineAuthorizedCase = { tenantId: string; subject: string };
 export type TimelineCaseHistoryBatch = {
   objects: TimelineCaseHistoryRow[];
   audits: TimelineCaseHistoryRow[];
@@ -32,16 +33,17 @@ const clock = (at: string, sourceRef: string, meaning: string) => ({
  */
 export function projectTimelineCaseHistory(
   batch: TimelineCaseHistoryBatch,
-  authorizedCaseIds: ReadonlySet<string>,
-  authorizedTenantIds: ReadonlySet<string>,
+  authorizedCases: ReadonlyMap<string, TimelineAuthorizedCase>,
   provider: string,
-  caseLabels: ReadonlyMap<string,string> = new Map(),
 ): TimelineItem[] {
   const items: TimelineItem[] = [];
+  // Check the real case→tenant association, not just two independent allowlists.
+  // A forged row joining one allowed case to another allowed tenant must fail.
   const admit = (r: TimelineCaseHistoryRow) =>
-    authorizedCaseIds.has(str(r.case_id)) && authorizedTenantIds.has(str(r.tenant_id));
+    Boolean(str(r.tenant_id)) &&
+    authorizedCases.get(str(r.case_id))?.tenantId === str(r.tenant_id);
   const caseTitle = (r: TimelineCaseHistoryRow) =>
-    (caseLabels.get(str(r.case_id)) || str(r.case_id)).slice(0, 90);
+    (authorizedCases.get(str(r.case_id))?.subject || str(r.case_id)).slice(0, 90);
   const href = (r: TimelineCaseHistoryRow, objectId?: string) =>
     '/reality-chain?caseId=' + encodeURIComponent(str(r.case_id)) +
     (objectId ? '&objectId=' + encodeURIComponent(objectId) : '');
