@@ -6,6 +6,7 @@ import { readCanonicalGraphState } from '@/lib/graph/canonicalGraph';
 import { projectCognitiveGraph } from '@/lib/graph/cognitiveGraphAdmission';
 import { buildRealityPassport, readRealityPassportNode, readRealityChainEdge, realityPassportCoverage } from '@/lib/graph/realityChainProjection';
 import { requireFounderPage } from '@/lib/system/access/server';
+import { casePlatformHref, projectPlatformHref } from '@/lib/sfi/navigation/operationalLinks';
 
 import { readRootFieldAgentRegistry } from '@/lib/root/telemetry/agentRegistry';
 import { deriveCanonicalFieldMethodSignal, planCanonicalUnknownResolution, resolveCanonicalFieldMethodology } from '@/lib/mihm/rootCaseMethodology';
@@ -17,12 +18,21 @@ import { readFieldEpochHistories } from '@/lib/mihm/scientificMethodRuntime';
 
 export const dynamic = 'force-dynamic';
 
-export default async function ScenePage({ params }:{ params:Promise<{scene:string}> }){
+export default async function ScenePage({ params, searchParams }:{
+  params:Promise<{scene:string}>;
+  searchParams?:Promise<{case?:string|string[];caseId?:string|string[];projectId?:string|string[];objectId?:string|string[]}>;
+}){
   const { scene } = await params;
   // Historical top-level surfaces are now absorbed by their canonical owner.
   // APIs/data contracts remain unchanged; this only removes competing page identities.
   if (scene === 'field') redirect('/observatory');
-  if (scene === 'cases') redirect('/root?reading=CURRENT_STATE');
+  if (scene === 'cases') {
+    // Preserve legacy case/project selectors but use the canonical Case Platform.
+    const query=searchParams ? await searchParams : {};
+    const caseId=typeof query.caseId==='string'?query.caseId:query.case;
+    const target=casePlatformHref(caseId,query.objectId)??projectPlatformHref(query.projectId);
+    redirect(target??'/reality-chain');
+  }
   if (scene === 'twin') redirect('/root?reading=RETROLONGITUDINAL');
   if ((LEGACY_INTERNAL_SCENES as readonly string[]).includes(scene)) redirect('/root');
   if(!SCENE_KEYS.includes(scene as SceneKey)) notFound();
