@@ -98,6 +98,14 @@ export default async function StudioPage({ searchParams }: { searchParams?: Prom
           <p style={{ maxWidth: 800, margin: '20px 0 0', color: '#a7b0b6', lineHeight: 1.7, fontSize: 14 }}>
             This surface operates only on objects whose ownership belongs to the authenticated identity. Reading, analyzing and producing evidence here grants no canonical promotion, ROOT execution or authority over other nodes.
           </p>
+          <nav aria-label="SFI operational connections" style={{display:'flex',gap:12,flexWrap:'wrap',marginTop:18}}>
+            <Link href="/reality-chain" style={action}>Case Platform / Reality Chain</Link>
+            <Link href="/timeline" style={action}>Timeline</Link>
+            <Link href="/method-lab" style={action}>Method Lab</Link>
+          </nav>
+          <p style={{fontSize:11,color:'#9cb2be'}}>
+            Connections open canonical instruments. Studio objects are not automatically admitted into a Case.
+          </p>
         </div>
       </section>
 
