@@ -36,10 +36,12 @@ export function assessCaseRevisionReplayBatch(entries, options = {}) {
     txIds.add(String(entry.source_txid));
     if (entry.table_name === 'sfi_cases') {
       const id = String(entry.row_data.id ?? '').trim();
-      if (!id || entry.operation !== 'UPSERT' || parentById.has(id)) {
+      if (!id || entry.operation !== 'UPSERT') {
         blockers.push('REPLAY_PARENT_SNAPSHOT_INVALID');
       } else {
-        parentById.set(id, entry);
+        const versions = parentById.get(id) ?? [];
+        versions.push(entry);
+        parentById.set(id, versions);
       }
     } else if (CHILDREN.has(entry.table_name)) {
       const id = String(entry.row_data.case_id ?? entry.before_data?.case_id ?? '').trim();
@@ -49,21 +51,32 @@ export function assessCaseRevisionReplayBatch(entries, options = {}) {
   }
   if (txIds.size !== 1) blockers.push('REPLAY_TRANSACTION_MIXED');
   for (const id of touched) {
-    const parent = parentById.get(id);
-    if (!parent) {
+    const parents = parentById.get(id);
+    if (!parents?.length) {
       blockers.push('REPLAY_PARENT_REVISION_SNAPSHOT_MISSING');
       continue;
     }
-    const row = parent.row_data;
-    if (!validRevision(row.closure_revision) || !validTime(row.updated_at)) {
+    // One canonical operation may touch the case row multiple times in the
+    // same transaction. Require every parent snapshot to be well formed,
+    // but do not assume the outbox delivered duplicate updates in a stable order.
+    const validParents = parents.filter(parent =>
+      validRevision(parent.row_data.closure_revision) && validTime(parent.row_data.updated_at));
+    if (validParents.length !== parents.length) {
       blockers.push('REPLAY_PARENT_REVISION_INVALID');
       continue;
     }
-    const oldRevision = parent.before_data?.closure_revision;
-    if (oldRevision !== undefined && oldRevision !== null && validRevision(oldRevision) &&
-        BigInt(String(row.closure_revision)) <= BigInt(String(oldRevision))) {
+    const newRevisions = validParents.map(parent => BigInt(String(parent.row_data.closure_revision)));
+    const latestRevision = newRevisions.reduce((max, value) => value > max ? value : max);
+    const priorRevisions = validParents.flatMap(parent =>
+      validRevision(parent.before_data?.closure_revision)
+        ? [BigInt(String(parent.before_data.closure_revision))] : []);
+    if (priorRevisions.length && latestRevision <= priorRevisions.reduce(
+      (min, value) => value < min ? value : min)) {
       blockers.push('REPLAY_PARENT_REVISION_NOT_ADVANCED');
     }
+    const duplicateRevisions = new Set(newRevisions.map(String));
+    if (duplicateRevisions.size !== newRevisions.length) blockers.push('REPLAY_PARENT_REVISION_AMBIGUOUS');
+
   }
   if (options.requireTouchedCase === true && touched.size === 0) blockers.push('REPLAY_CASE_CHILD_REQUIRED');
   return {
