@@ -5,8 +5,8 @@ import unittest
 
 from kxtxr_manifest_preview import reconstruct
 
-SOURCE_ID = "1WmGirr_AeMwMkCNlkOBZLxsjaKul9QO-"
-CASE_ID = "9d9e4825-4951-4b4e-8a84-3ea993818f8b"
+SOURCE_ID = "SFI_TEST_MANIFEST_SOURCE_12345"
+CASE_ID = "00000000-0000-4000-8000-000000000003"
 SHA = "a" * 64
 
 
@@ -67,7 +67,7 @@ class KxtxrPreviewTests(unittest.TestCase):
         self.assertEqual(result["provenance"]["sourceSha256"], SHA)
 
     def test_unobserved_future_publication_is_not_missed(self):
-        result = inspect(as_of="2026-10-28")
+        result = inspect(as_of="2026-10-30")
         row = result["timeline"][8]
         self.assertEqual(row["contrast"], "NO_PUBLICATION_PLANNED_ACTIVITY_UNVERIFIED")
         row = result["timeline"][9]
