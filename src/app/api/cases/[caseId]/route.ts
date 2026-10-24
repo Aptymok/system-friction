@@ -45,12 +45,13 @@ async function assertUserCanWrite(userId: string, tenantId: string) {
   }
 }
 
-async function projectFor(projectId: unknown) {
+async function projectFor(projectId: unknown, tenantId: string) {
   if (!projectId) return null;
   const db = createServiceSupabaseClient();
   const result = await db.from('sfi_projects')
     .select('id,project_key,name,description,attractor_ref,trajectory_ref,status,updated_at')
     .eq('id', String(projectId))
+    .eq('tenant_id', tenantId)
     .maybeSingle();
   if (result.error) throw new Error(`SFI_PROJECT_READ_FAILED:${result.error.message}`);
   return result.data ?? null;
@@ -61,7 +62,7 @@ async function envelope(caseId: string, userId: string) {
     readOperationalCase(caseId, userId),
     caseState(caseId),
   ]);
-  const project = await projectFor(state.project_id);
+  const project = await projectFor(state.project_id, base.caseRecord.tenantId);
   return {
     ...base,
     caseRecord: { ...base.caseRecord, projectId: state.project_id ? String(state.project_id) : null },

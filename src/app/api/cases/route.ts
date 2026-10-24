@@ -5,6 +5,7 @@ import { createOperationalCase, listOperationalCases, listOperationalTenants } f
 import { sfiCaseApiFailure } from '@/lib/sfi/case-platform/http';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import type { SfiServiceProfileId, SfiTemporalWindowV1 } from '@/core/contracts/sfi';
+import { resolveCaseProjectAssignment } from '@/lib/sfi/case-platform/caseProjectAssignment';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -42,21 +43,15 @@ export async function GET(){
     const cases=await listOperationalCases(user.id);
     const tenants=await listOperationalTenants(user.id);
     const db=createServiceSupabaseClient();
-    const tenantIds=tenants.map(tenant=>tenant.id); const caseIds=cases.map(item=>item.id);
+    const tenantIds=tenants.map(tenant=>tenant.id);
     const projectRows=tenantIds.length
       ? await db.from('sfi_projects').select('id,tenant_id,project_key,name,description,attractor_ref,trajectory_ref,status,created_at,updated_at').in('tenant_id',tenantIds).order('updated_at',{ascending:false})
       : {data:[],error:null};
     if(projectRows.error)throw new Error(`SFI_PROJECT_LIST_FAILED:${projectRows.error.message}`);
-    const caseLinks=caseIds.length
-      ? await db.from('sfi_cases').select('id,project_id').in('id',caseIds)
-      : {data:[],error:null};
-    if(caseLinks.error)throw new Error(`SFI_CASE_PROJECT_LINK_READ_FAILED:${caseLinks.error.message}`);
-    const projectByCase=new Map((caseLinks.data??[]).map(row=>[String(row.id),row.project_id?String(row.project_id):null]));
-    const enrichedCases=cases.map(item=>({...item,projectId:projectByCase.get(item.id)??null}));
     const projects=(projectRows.data??[]).map(row=>({
-      id:String(row.id),tenantId:String(row.tenant_id),key:String(row.project_key),name:String(row.name),description:String(row.description??''),attractorRef:row.attractor_ref??null,trajectoryRef:row.trajectory_ref??null,status:String(row.status),createdAt:String(row.created_at),updatedAt:String(row.updated_at),caseCount:enrichedCases.filter(item=>item.projectId===String(row.id)).length,
+      id:String(row.id),tenantId:String(row.tenant_id),key:String(row.project_key),name:String(row.name),description:String(row.description??''),attractorRef:row.attractor_ref??null,trajectoryRef:row.trajectory_ref??null,status:String(row.status),createdAt:String(row.created_at),updatedAt:String(row.updated_at),caseCount:cases.filter(item=>item.projectId===String(row.id)).length,
     }));
-    return NextResponse.json({ok:true,contract:'SFI-CASE-1.0',projects,cases:enrichedCases});
+    return NextResponse.json({ok:true,contract:'SFI-CASE-1.0',projects,cases});
   }catch(error){
     if(transientPoolPressure(error))return NextResponse.json({ok:false,error:'SFI_DATA_PLANE_TEMPORARILY_UNAVAILABLE',details:'Database pool pressure; request was not retried to avoid amplifying the incident.'},{status:503,headers:{'Retry-After':'3','Cache-Control':'no-store'}});
     return sfiCaseApiFailure(error);
@@ -74,13 +69,22 @@ export async function POST(request:Request){
       return NextResponse.json({ok:true,project:inserted.data},{status:201});
     }
     const body=createCaseSchema.parse(raw);
+    let project: {id:string;tenantId:string;status:string}|null=null;
     if(body.projectId){
-      const db=createServiceSupabaseClient(); const project=await db.from('sfi_projects').select('id,tenant_id,status').eq('id',body.projectId).maybeSingle();
-      if(project.error)throw new Error(`SFI_PROJECT_READ_FAILED:${project.error.message}`); if(!project.data||project.data.status!=='ACTIVE')throw new Error('SFI_PROJECT_NOT_ACTIVE');
-      await writableTenant(user.id,String(project.data.tenant_id)); if(body.tenantId&&body.tenantId!==String(project.data.tenant_id))throw new Error('SFI_PROJECT_TENANT_MISMATCH');
+      const db=createServiceSupabaseClient();
+      const lookup=await db.from('sfi_projects').select('id,tenant_id,status')
+        .eq('id',body.projectId).maybeSingle();
+      if(lookup.error)throw new Error(`SFI_PROJECT_READ_FAILED:${lookup.error.message}`);
+      project=lookup.data ? {id:String(lookup.data.id),tenantId:String(lookup.data.tenant_id),status:String(lookup.data.status)} : null;
     }
-    const caseRecord=await createOperationalCase({userId:user.id,userEmail:user.email,tenantId:body.tenantId,clientId:body.clientId,serviceProfileId:body.serviceProfileId as SfiServiceProfileId,subject:body.subject,scope:body.scope,systemBoundaryRef:body.systemBoundaryRef,temporalWindow:body.temporalWindow as SfiTemporalWindowV1});
-    if(body.projectId){const db=createServiceSupabaseClient();const linked=await db.from('sfi_cases').update({project_id:body.projectId}).eq('id',caseRecord.id);if(linked.error)throw new Error(`SFI_CASE_PROJECT_LINK_FAILED:${linked.error.message}`)}
-    return NextResponse.json({ok:true,case:{...caseRecord,projectId:body.projectId??null}},{status:201});
+    const assignment=resolveCaseProjectAssignment(body.tenantId,body.projectId,project);
+    if(assignment.projectId&&assignment.tenantId)await writableTenant(user.id,assignment.tenantId);
+    const caseRecord=await createOperationalCase({
+      userId:user.id,userEmail:user.email,tenantId:assignment.tenantId,projectId:assignment.projectId,
+      clientId:body.clientId,serviceProfileId:body.serviceProfileId as SfiServiceProfileId,
+      subject:body.subject,scope:body.scope,systemBoundaryRef:body.systemBoundaryRef,
+      temporalWindow:body.temporalWindow as SfiTemporalWindowV1,
+    });
+    return NextResponse.json({ok:true,case:caseRecord},{status:201});
   }catch(error){return sfiCaseApiFailure(error)}
 }

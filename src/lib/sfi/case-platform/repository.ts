@@ -130,6 +130,7 @@ function caseFromRow(row: Row): SfiCaseV1 {
     id: text(row.id),
     version: text(row.version) || '1.0',
     tenantId: text(row.tenant_id),
+    projectId: nullableText(row.project_id),
     clientId: nullableText(row.client_id),
     serviceProfileId: text(row.service_profile_id) as SfiServiceProfileId,
     subject: text(row.subject),
@@ -358,6 +359,7 @@ export async function createOperationalCase(input: {
   userId: string;
   userEmail?: string | null;
   tenantId?: string | null;
+  projectId?: string | null;
   clientId?: string | null;
   serviceProfileId: SfiServiceProfileId;
   subject: string;
@@ -367,6 +369,14 @@ export async function createOperationalCase(input: {
 }) {
   const tenantId = input.tenantId?.trim() || await ensurePersonalTenant(input.userId, input.userEmail);
   await assertTenantAccess(tenantId, input.userId, 'WRITE');
+  const service = createServiceSupabaseClient();
+  const projectId = input.projectId?.trim() || null;
+  if (projectId) {
+    const selected = await service.from('sfi_projects').select('id,tenant_id,status')
+      .eq('id', projectId).eq('tenant_id', tenantId).eq('status', 'ACTIVE').maybeSingle();
+    if (selected.error) throw new Error(`SFI_CASE_PROJECT_READ_FAILED:${selected.error.message}`);
+    if (!selected.data) throw new Error('SFI_CASE_PROJECT_TENANT_MISMATCH_OR_INACTIVE');
+  }
   const createdAt = new Date().toISOString();
   const caseRecord = createSfiCaseV1({
     id: randomUUID(),
@@ -379,11 +389,11 @@ export async function createOperationalCase(input: {
     temporalWindow: input.temporalWindow,
     createdAt,
   });
-  const service = createServiceSupabaseClient();
   const inserted = await service.from('sfi_cases').insert({
     id: caseRecord.id,
     owner_id: input.userId,
     tenant_id: tenantId,
+    project_id: projectId,
     client_id: caseRecord.clientId,
     contract_version: caseRecord.contract,
     version: caseRecord.version,
