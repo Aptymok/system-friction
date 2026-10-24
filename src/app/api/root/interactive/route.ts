@@ -12,6 +12,7 @@ import { readVisibleLogbookEntries } from '@/lib/logbook/query';
 import { readUniversalLearningQuarantine } from '@/lib/sfi/universalLearningQuarantine';
 import { readObservedSfiCognitiveRuntime } from '@/lib/sfi/cognitive-runtime/observedRuntime';
 import { SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY } from '@/lib/sfi/cognitive-runtime/convergedRegistry';
+import { listBoundedCognitiveMissions } from '@/lib/sfi/cognitive-runtime/missionCatalog';
 import {
   compactExecutionContract,
   listExecutionContracts,
@@ -41,6 +42,16 @@ function runtimeProjection() {
   return {
     agents: SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.map(compactAgent),
     executionContracts: listExecutionContracts().map(compactExecutionContract),
+    missions: listBoundedCognitiveMissions(),
+    missionBoundary: {
+      definedOnly: true,
+      persistedAssignments: false,
+      executedByCatalog: false,
+      scheduledByCatalog: false,
+      externalActionAuthorityGranted: false,
+      costIncurredByCatalog: false,
+      noDuplicateAgentRegistry: true,
+    },
   };
 }
 
