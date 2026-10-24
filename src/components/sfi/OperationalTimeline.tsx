@@ -47,6 +47,8 @@ export function OperationalTimeline({items,worldReadPlane}:{
   const [laneFilter,setLaneFilter]=useState<string>('ALL');
   const [selectedId,setSelectedId]=useState<string|null>(null);
   const [lens,setLens]=useState<'CHRONOLOGY'|'CLOCKS'>('CLOCKS');
+  const [eventQuery,setEventQuery]=useState('');
+  const [chooserLimit,setChooserLimit]=useState(50);
   const temporal=useMemo(()=>items.filter(event=>Number.isFinite(Date.parse(event.at)))
     .slice().sort((a,b)=>Date.parse(a.at)-Date.parse(b.at)),[items]);
   const latest=temporal.length?Date.parse(temporal[temporal.length-1].at):Date.now();
@@ -56,6 +58,11 @@ export function OperationalTimeline({items,worldReadPlane}:{
   const visible=useMemo(()=>visibleWindow.filter(event=>
     laneFilter==='ALL'||event.lane===laneFilter
   ),[visibleWindow,laneFilter]);
+  const chooserItems=useMemo(()=>{
+    const needle=eventQuery.trim().toLocaleLowerCase();
+    return visible.filter(e=>!needle||[e.title,e.subtitle,e.origin,e.id,e.state]
+      .join(' ').toLocaleLowerCase().includes(needle)).slice().reverse();
+  },[visible,eventQuery]);
   const dates=visible.map(e=>Date.parse(e.at));
   const minimum=Math.min(...dates,latest),maximum=Math.max(...dates,latest),span=Math.max(1,maximum-minimum);
   const selected=visible.find(e=>e.id===selectedId)??visible[visible.length-1]??null;
@@ -123,12 +130,25 @@ export function OperationalTimeline({items,worldReadPlane}:{
             <b>{selectedClocks?selectedClocks.readings.length-selectedClocks.incompleteClocks.length:0} / 7 DATED</b>
             <span>NO CLOCK SUBSTITUTION · NO SIMULATED HISTORY · NO AUTOMATIC MIHM Φ</span>
           </div>
-          <div className="sfiTemporalClockChooser" aria-label="Select a dated object">
-            {visible.slice(-14).reverse().map(e=><button type="button" key={e.id}
+          <div className="sfiTemporalClockChooser" aria-label="Select a dated object"
+            style={{maxHeight:440,overflowY:'auto'}}>
+            <label style={{display:'block',width:'100%',fontSize:12}}>
+              BUSCAR EXPEDIENTE, FUENTE, DECISIÓN O REGISTRO
+              <input type="search" value={eventQuery}
+                onChange={e=>{setEventQuery(e.target.value);setChooserLimit(50);}}
+                aria-label="Buscar eventos persistidos por caso, fuente o decisión"
+                style={{display:'block',width:'100%',padding:9,marginTop:7,
+                  border:'1px solid #84735c',background:'#191b1d',color:'#f0ede7'}}
+                placeholder="Caso, registro, actor, procedencia..."/>
+            </label>
+            <p role="status">{chooserItems.length} registros coincidentes · se muestran {Math.min(chooserLimit,chooserItems.length)}.</p>
+            {chooserItems.slice(0,chooserLimit).map(e=><button type="button" key={e.id}
               aria-pressed={selected?.id===e.id} onClick={()=>setSelectedId(e.id)}>
               <span>{e.lane}</span>{e.title}
             </button>)}
-            {!visible.length?<p>NO RECORDED ENTRIES IN SELECTED WINDOW</p>:null}
+            {chooserLimit<chooserItems.length?<button type="button"
+              onClick={()=>setChooserLimit(n=>n+50)}>MOSTRAR 50 REGISTROS ANTERIORES</button>:null}
+            {!chooserItems.length?<p>NO RECORDED ENTRIES IN SELECTED WINDOW OR SEARCH.</p>:null}
           </div>
         </section>:<div className="sfiTemporalViewport" aria-label="Horizontal recorded timeline" tabIndex={0}>
           <div className="sfiTemporalCanvas">
