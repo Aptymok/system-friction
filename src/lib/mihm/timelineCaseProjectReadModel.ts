@@ -137,22 +137,28 @@ export async function readTimelineCaseProjectState(userId: string): Promise<Time
     const historyWarnings: string[] = [];
     if (caseRows.length) {
       const caseIds = caseRows.map(r => r.id);
-      const caseFilter = <T extends string>(table: T, selection: string, limit: number) =>
-        db.from(table).select(selection)
-          .in('tenant_id', ids).in('case_id', caseIds)
-          .order('created_at', { ascending: false }).limit(limit);
       const bounds = [500, 600, 200, 200, 120] as const;
       const [objects, audits, proposals, decisions, reports] = await Promise.all([
-        caseFilter('sfi_case_objects',
-          'id,case_id,tenant_id,object_kind,epistemic_role,canonical_ref,payload,observed_at,created_at', bounds[0]),
-        caseFilter('sfi_case_audit_events',
-          'id,case_id,tenant_id,action,actor_id,created_at', bounds[1]),
-        caseFilter('sfi_case_action_proposals',
-          'id,case_id,tenant_id,status,proposed_by,risk_level,created_at', bounds[2]),
-        caseFilter('sfi_case_action_decisions',
-          'id,case_id,tenant_id,proposal_id,decision,authority_role,decided_by,created_at', bounds[3]),
-        caseFilter('sfi_case_reports',
-          'id,case_id,tenant_id,report_contract,generated_at,created_at', bounds[4]),
+        db.from('sfi_case_objects')
+          .select('id,case_id,tenant_id,object_kind,epistemic_role,canonical_ref,payload,observed_at,created_at')
+          .in('tenant_id', ids).in('case_id', caseIds)
+          .order('created_at', { ascending: false }).limit(bounds[0]),
+        db.from('sfi_case_audit_events')
+          .select('id,case_id,tenant_id,action,actor_id,created_at')
+          .in('tenant_id', ids).in('case_id', caseIds)
+          .order('created_at', { ascending: false }).limit(bounds[1]),
+        db.from('sfi_case_action_proposals')
+          .select('id,case_id,tenant_id,status,proposed_by,risk_level,created_at')
+          .in('tenant_id', ids).in('case_id', caseIds)
+          .order('created_at', { ascending: false }).limit(bounds[2]),
+        db.from('sfi_case_action_decisions')
+          .select('id,case_id,tenant_id,proposal_id,decision,authority_role,decided_by,created_at')
+          .in('tenant_id', ids).in('case_id', caseIds)
+          .order('created_at', { ascending: false }).limit(bounds[3]),
+        db.from('sfi_case_reports')
+          .select('id,case_id,tenant_id,report_contract,generated_at,created_at')
+          .in('tenant_id', ids).in('case_id', caseIds)
+          .order('created_at', { ascending: false }).limit(bounds[4]),
       ]);
       const results = [objects, audits, proposals, decisions, reports];
       if (results.some(r => r.error)) {
