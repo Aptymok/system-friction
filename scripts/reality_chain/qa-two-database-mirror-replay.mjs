@@ -7,7 +7,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import postgres from 'postgres';
-import { assessCaseRevisionReplayBatch } from './verify_replay_batch.mjs';
+import { assessCaseRevisionReplayBatch, assessCaseMirrorDelivery } from './verify_replay_batch.mjs';
 
 const url = new URL(process.env.SFI_RC_TEST_DATABASE_URL ?? '');
 if (!['127.0.0.1', 'localhost', '::1'].includes(url.hostname) ||
@@ -150,11 +150,20 @@ try {
     String(e.row_data.closure_revision) === String(after.closure_revision)));
   const valid = assessCaseRevisionReplayBatch(entries, { requireTouchedCase: true });
   assert.equal(valid.validated, true, JSON.stringify(valid));
+  const delivery = assessCaseMirrorDelivery(entries, { strict: true });
+  assert.equal(delivery.enforced, true);
+  assert.equal(delivery.allowed, true, JSON.stringify(delivery));
+
   // Critical: the source transaction without the updated parent snapshot
   // MUST be rejected by the validation layer before any receiver invocation.
   const missingParent = assessCaseRevisionReplayBatch(entries.filter(e => e.table_name !== 'sfi_cases'), { requireTouchedCase: true });
   assert.equal(missingParent.validated, false);
   assert.ok(missingParent.blockers.includes('REPLAY_PARENT_REVISION_SNAPSHOT_MISSING'));
+  const blockedDelivery = assessCaseMirrorDelivery(entries.filter(e => e.table_name !== 'sfi_cases'), { strict: true });
+  assert.equal(blockedDelivery.enforced, true);
+  assert.equal(blockedDelivery.allowed, false);
+  assert.ok(blockedDelivery.blockers.includes('REPLAY_PARENT_REVISION_SNAPSHOT_MISSING'));
+
 
   const initial = await digests(target, 'sfi_cases');
   const first = await apply(entries);
