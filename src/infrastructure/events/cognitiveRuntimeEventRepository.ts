@@ -4,7 +4,8 @@
 } from "@/lib/sfi/cognitive-runtime/eventBus";
 
 import {
-  persistSFIEvent
+  persistSFIEvent,
+  type PersistedEvent
 } from "@/lib/sfi/cognitive-runtime/eventPersistence";
 
 
@@ -12,7 +13,7 @@ export async function recordAgentExecutionEvent(
   agentId: string,
   eventType: string,
   payload: unknown
-): Promise<void> {
+): Promise<PersistedEvent> {
 
 
   const event =
