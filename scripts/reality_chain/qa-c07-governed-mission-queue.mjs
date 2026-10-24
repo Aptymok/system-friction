@@ -5,6 +5,8 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import postgres from 'postgres';
+import { createKernelContext } from '../../src/lib/sfi/cognitive-runtime/createKernelContext';
+import { executeRegisteredAgent } from '../../src/lib/sfi/cognitive-runtime/agentExecutionMap';
 
 const env = process.env.SFI_RC_TEST_DATABASE_URL;
 const base = new URL(env ?? '');
@@ -45,12 +47,26 @@ const complete = (id, token, eventId, hash) => queryOne(db,
   'select public.sfi_c07_complete_mission_v1($1::uuid,$2::uuid,$3,$4) as value',
   [id, token, eventId, hash]);
 const stored = id => queryOne(db,'select * from public.sfi_c07_mission_jobs where id=$1::uuid',[id]);
-const addReceipt = (job, eventId) => db.unsafe(
-  'insert into public.epistemic_events(event_id,event_name,logbook_id,payload,source,hash_self) values ($1,$2,$3,$4::text::jsonb,$5::text::jsonb,$6)',
-  [eventId,'SFI_AGENT_EXECUTED','sfi-c07:' + job.execution_id,
-  JSON.stringify({executionId:job.execution_id,metadata:{refs:{missionId:job.mission_id}}}),
-  JSON.stringify({sourceId:job.agent_id,sourceType:'runtime'}),'isolated-event-hash']
-);
+let isolatedRegisteredAgentRuns = 0;
+const addReceipt = async (job, eventId) => {
+  // Existing SFI deterministic executor; no LLM, external data or effect.
+  const ctx = createKernelContext(job.execution_id, 'sfi-c07:' + job.execution_id,
+    'SFI_C07_ISOLATED_MISSION_TEST');
+  ctx.metadata = { executionId: job.execution_id, missionId: job.mission_id,
+    epistemicBoundary: 'ISOLATED_SYNTHETIC_NO_EXTERNAL_RETURN' };
+  const outcome = executeRegisteredAgent(job.agent_id, ctx);
+  assert.equal(outcome.metadata?.temporalResolver?.executed, true);
+  assert.equal(outcome.metadata?.temporalResolver?.materialEvidenceResolved, 0);
+  isolatedRegisteredAgentRuns++;
+  return db.unsafe(
+    'insert into public.epistemic_events(event_id,event_name,logbook_id,payload,source,hash_self) values ($1,$2,$3,$4::text::jsonb,$5::text::jsonb,$6)',
+    [eventId,'SFI_AGENT_EXECUTED','sfi-c07:' + job.execution_id,
+      JSON.stringify({executionId:job.execution_id,metadata:{
+        refs:{missionId:job.mission_id}, testAgentOutputClass:'DERIVED_NOT_EVIDENCE'
+      }}),
+      JSON.stringify({sourceId:job.agent_id,sourceType:'runtime'}),'isolated-event-hash']
+  );
+};
 async function test() {
   await controlDb.unsafe('create database ' + isolation);
   db=postgres(target.toString(),{max:2,connect_timeout:10});
@@ -177,7 +193,7 @@ async function test() {
     database:isolation, jobs:total, idempotency:true, twoSessionClaimExclusion:true,
     leaseExpiryRecovery:true, fencing:true, receiptIdentityEnforced:true,
     cancellation:true, retriesExhausted:true, tenantSeparation:true,
-    rls:true, publicRpcExecuteDenied:true, actualAgentsExecuted:0,
+    rls:true, publicRpcExecuteDenied:true, isolatedRegisteredAgentRuns, actualProductionAgentsExecuted:0,
     externalReturnObserved:false, productionDatabaseTouched:false,
   }));
 }

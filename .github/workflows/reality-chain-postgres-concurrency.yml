@@ -79,4 +79,4 @@ jobs:
       - name: Verify Case Platform project membership, tenant RLS and composite FK in disposable PostgreSQL
         run: node scripts/reality_chain/qa-case-project-tenant-isolation.mjs
       - name: Verify C07 governed mission queue with two PostgreSQL sessions and fencing
-        run: node scripts/reality_chain/qa-c07-governed-mission-queue.mjs
+        run: node --import tsx scripts/reality_chain/qa-c07-governed-mission-queue.mjs
