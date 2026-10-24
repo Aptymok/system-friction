@@ -139,6 +139,27 @@ try {
   ))[0];
   assert.equal(acl.close_allowed, false);
   assert.equal(acl.write_allowed, false);
+  // Existing continuity replay can disable user triggers. Demonstrate the
+  // revision blind spot on this DISPOSABLE database; this is a negative
+  // diagnostic, not a passing provider-to-provider replay certificate.
+  const preReplayRevision = await revision(caseC);
+  await a.unsafe('set session_replication_role = replica');
+  try {
+    await a.unsafe(
+      "insert into public.sfi_case_objects(case_id,owner_id,tenant_id,object_kind,epistemic_role,canonical_ref,payload) " +
+      "values ($1::uuid,$2::uuid,$3::uuid,'RECORD','RECORD',$4::jsonb,$5::jsonb)",
+      [caseC, user, tenant,
+        { id: 'isolated-replay-snapshot', hash: 'isolated-no-authority' },
+        { fixture: 'TRIGGER_DISABLED_REPLAY_ONLY' }],
+    );
+  } finally {
+    await a.unsafe('set session_replication_role = origin');
+  }
+  assert.equal(await count('sfi_case_objects', caseC), 1);
+  assert.equal(await revision(caseC), preReplayRevision,
+    'Trigger-disabled replay does not increment the case revision');
+  assert.equal(await count('sfi_case_audit_events', caseC), 0);
+  console.warn('REPLAY_REVISION_BLIND_SPOT_OBSERVED: trigger-disabled writes require independent replay parity checks and a governed revision reconciliation protocol.');
   console.log('PASS REAL_POSTGRES_TWO_SESSIONS: lock, stale close, post-close rejection, audit rollback, RPC ACL');
 } catch (error) {
   console.error('FAIL REAL_POSTGRES_TWO_SESSIONS:', error?.stack ?? error);
