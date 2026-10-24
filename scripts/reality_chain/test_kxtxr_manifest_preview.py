@@ -85,6 +85,19 @@ class KxtxrPreviewTests(unittest.TestCase):
         self.assertTrue(result["timeline"][9]["platformClaimInManifest"])
         self.assertFalse(result["timeline"][9]["independentlyVerifiedPublication"])
 
+    def test_preserve_secondary_legacy_counter_conflict_as_source_anomaly(self):
+        doc = fixture()
+        doc["memory_control"] = {
+            "counter_rule": "day_index = (today_local - 2026-10-14).days + 1"
+        }
+        result = inspect(doc)
+        self.assertEqual(result["t0"]["dateLocal"], "2026-10-20")
+        self.assertIn(
+            "LEGACY_COUNTER_2026_10_14_CONFLICTS_WITH_REANCHORED_RUN_WINDOW",
+            result["provenance"]["sourceAnomalies"],
+        )
+        self.assertEqual(result["counts"]["elapsedDays"], 4)
+
     def test_reject_wrong_reanchoring_and_duplicate_dates(self):
         doc = fixture()
         doc["run_window"]["start"] = "2026-10-14"
