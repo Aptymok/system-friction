@@ -214,6 +214,8 @@ jobs:
         run: npx tsx scripts/qa-sfi-cognitive-agent-missions-c06.ts
       - name: Verify durable agent execution event acknowledgements (C07)
         run: npx tsx scripts/qa-sfi-agent-persistence-c07.ts
+      - name: Verify explicit C07 mission-to-executor validation
+        run: npx tsx scripts/qa-sfi-mission-dispatch-c07.ts
       - name: Verify SFI Case Platform Operational V1
         run: npx tsx scripts/qa-sfi-case-platform-operational-v1.ts && npx tsx scripts/qa-sfi-case-platform-c03.ts && npx tsx scripts/qa-sfi-operational-navigation-c05.ts && node --import tsx --test src/core/case-platform/reportAssembler.test.ts src/lib/sfi/case-platform/privateCaseBriefContract.test.ts && node scripts/qa-sfi-reality-chain-closure-db.mjs
 
