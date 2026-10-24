@@ -96,6 +96,15 @@ def reconstruct(manifest: dict, *, source_id: str, source_sha256: str,
         })
 
     elapsed_rows = [r for r in rows if r["dateLocal"] <= cutoff.isoformat()]
+    # Preserve rather than silently rewrite conflicts found in the master.
+    # The dated 90-day sequence governs this preview; a legacy secondary
+    # counter formula does not become a repaired institutional source.
+    anomalies = []
+    memory_control = manifest.get("memory_control")
+    if isinstance(memory_control, dict):
+        counter = memory_control.get("counter_rule")
+        if isinstance(counter, str) and "2026-10-14" in counter:
+            anomalies.append("LEGACY_COUNTER_2026_10_14_CONFLICTS_WITH_REANCHORED_RUN_WINDOW")
     return {
         "contract": OUT_CONTRACT,
         "caseId": case_id,
@@ -106,6 +115,7 @@ def reconstruct(manifest: dict, *, source_id: str, source_sha256: str,
             "sourceSha256": source_sha256,
             "sourceURL": f"https://drive.google.com/file/d/{source_id}/view",
             "epistemicBoundary": "SOURCE_DECLARATIONS_ONLY_NOT_ADMITTED_EVIDENCE",
+            "sourceAnomalies": anomalies,
         },
         "t0": {"dateLocal": start.isoformat(),
                "kind": "PLANNED_BASELINE_NOT_OBSERVED_WORLD"},
