@@ -219,7 +219,7 @@ export type SfiCognitiveMission = {
   emits: (typeof SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY)[number]['emits'];
   assignmentState: 'TEMPLATE_DEFINED_NOT_QUEUED';
   executionObservation: 'NOT_EXECUTED_BY_MISSION_CATALOG';
-  dispatchState: 'NOT_CONNECTED_UNTIL_C07';
+  dispatchState: 'ROOT_MANUAL_ONLY_C07';
   scheduleState: 'NOT_CONNECTED_UNTIL_C08';
   targetBindingState: 'REQUIRES_AUTHORIZED_EXISTING_OBJECT';
   costState: 'NOT_REQUESTED_NOT_SPENT';
@@ -267,7 +267,7 @@ export function listBoundedCognitiveMissions(): SfiCognitiveMission[] {
       emits:agent.emits.map(event=>typeof event==='string'?event:event.eventName),
       assignmentState:'TEMPLATE_DEFINED_NOT_QUEUED' as const,
       executionObservation:'NOT_EXECUTED_BY_MISSION_CATALOG' as const,
-      dispatchState:'NOT_CONNECTED_UNTIL_C07' as const,
+      dispatchState:'ROOT_MANUAL_ONLY_C07' as const,
       scheduleState:'NOT_CONNECTED_UNTIL_C08' as const,
       targetBindingState:'REQUIRES_AUTHORIZED_EXISTING_OBJECT' as const,
       costState:'NOT_REQUESTED_NOT_SPENT' as const,
