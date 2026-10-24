@@ -31,8 +31,11 @@ const queryOne = async (sql, stmt, params=[]) => (await sql.unsafe(stmt,params))
 const enqueue = (key, t=tenant, d=digest, request=fakePayload) =>
   queryOne(db, 'select * from public.sfi_c07_enqueue_mission_v1($1::uuid,$2::uuid,$3,$4,$5,$6,$7::jsonb,$8::int)',
     [t, actor, 'SFI-C06:temporal_resolver', 'temporal_resolver', key, d, JSON.stringify(request), 2]);
-const claim = (sql, worker) => queryOne(sql,
-  'select * from public.sfi_c07_claim_mission_v1($1,$2::int)',[worker,60]);
+const claim = async (sql, worker) => {
+  const result = await queryOne(sql,
+    'select * from public.sfi_c07_claim_mission_v1($1,$2::int)', [worker,60]);
+  return result?.id ? result : null;
+};
 const cancel = (id, t=tenant) => queryOne(db,
   'select public.sfi_c07_cancel_mission_v1($1::uuid,$2::uuid) as value',[id,t]);
 const fail = (id, token, reason, delay=0) => queryOne(db,
