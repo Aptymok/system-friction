@@ -6,6 +6,9 @@ on:
       - 'src/components/sfi/OperationalTimeline.tsx'
       - 'src/components/sfi/OperationalTimeline.css'
       - 'src/lib/mihm/timelineClocks.ts'
+      - 'src/lib/mihm/timelineCaseProjectReadModel.ts'
+      - 'src/lib/mihm/timelineAttractorReadModel.ts'
+      - 'scripts/qa-sfi-timeline-case-project-attractor.mjs'
       - 'src/lib/observatory/public/worldSnapshotTimeline.ts'
       - 'scripts/qa-sfi-mihmt-timeline.ts'
       - '.github/workflows/mihmt-timeline-clocks-review.yml'
@@ -30,5 +33,7 @@ jobs:
         run: npx --no-install tsx scripts/qa-sfi-temporal-surfaces.ts
       - name: Existing visual convergence QA
         run: npx --no-install tsx scripts/qa-sfi-institutional-visual-convergence.ts
+      - name: Verify sourced Case, Project and Attractor lanes and authorization
+        run: node scripts/qa-sfi-timeline-case-project-attractor.mjs
       - name: TypeScript typecheck
         run: npm run typecheck
