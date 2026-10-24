@@ -216,7 +216,7 @@ export type SfiCognitiveMission = {
   humanApprovalRequired: boolean;
   simulationAllowed: boolean;
   sourceTables: string[];
-  emits: string[];
+  emits: (typeof SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY)[number]['emits'];
   assignmentState: 'TEMPLATE_DEFINED_NOT_QUEUED';
   executionObservation: 'NOT_EXECUTED_BY_MISSION_CATALOG';
   dispatchState: 'NOT_CONNECTED_UNTIL_C07';
