@@ -7,6 +7,7 @@ import { readHypothesisConditionalBranches } from '@/lib/world-observatory/hypot
 import { HypothesisConditionalLab } from '@/components/sfi/HypothesisConditionalLab';
 import { readTimelineCaseProjectState } from '@/lib/mihm/timelineCaseProjectReadModel';
 import { readTimelineInstitutionalAttractors } from '@/lib/mihm/timelineAttractorReadModel';
+import { normalizedSfiUuid } from '@/lib/sfi/navigation/operationalLinks';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -16,7 +17,11 @@ export const metadata = {
   robots: { index: false, follow: false, nocache: true },
 };
 
-export default async function TimelinePage() {
+export default async function TimelinePage({ searchParams }:{
+  searchParams?:Promise<{caseId?:string|string[]}>;
+}) {
+  const query=searchParams ? await searchParams : {};
+  const focusCaseId=normalizedSfiUuid(query.caseId);
   // Timeline is the institutional authenticated surface. Public /observatory remains separate.
   try { await requireUserProfile(); }
   catch (error) {
@@ -96,7 +101,8 @@ export default async function TimelinePage() {
 
   return <div className="sfiUnifiedTimelineTrack" data-sfi-timeline-panorama="ORIGINAL-EVIDENCE-ONLY">
     <section className="sfiUnifiedTimelinePanel" aria-label="Relojes y acontecimientos registrados">
-      <OperationalTimeline items={[...institution, ...world, ...caseProject.items, ...attractorHistory.items]} worldReadPlane={worldReadPlane} />
+      <OperationalTimeline items={[...institution, ...world, ...caseProject.items, ...attractorHistory.items]}
+        worldReadPlane={worldReadPlane} focusCaseId={focusCaseId} />
       <p role="status" data-sfi-case-project-read-plane={caseProject.readPlane}>
         CASE / PROJECT: {caseProject.readPlane}
         {caseProject.warning ? ' · ' + caseProject.warning : ''}
