@@ -80,15 +80,34 @@ export function RealityChainWorkbench(){
  const [generatedAt,setGeneratedAt]=useState('');
  const refreshCases=useCallback(async()=>{
   const [c,p]=await Promise.all([requestJson('/api/cases'),requestJson('/api/cases/service-profiles')]);
-  setCases(Array.isArray(c.cases)?c.cases:[]);setProjects(Array.isArray(c.projects)?c.projects:[]);
+  const accessibleCases=Array.isArray(c.cases)?c.cases as CaseRecord[]:[];
+  const accessibleProjects=Array.isArray(c.projects)?c.projects as Project[]:[];
+  setCases(accessibleCases);setProjects(accessibleProjects);
   setProfiles(Array.isArray(p.profiles)?p.profiles:[]);
+  return {cases:accessibleCases,projects:accessibleProjects};
  },[]);
  const loadCase=useCallback(async(id:string)=>{
   if(!id){setCaseData(null);setReports([]);return;}
   const [detail,saved]=await Promise.all([requestJson('/api/cases/'+encodeURIComponent(id)),requestJson('/api/cases/'+encodeURIComponent(id)+'/reports')]);
   setCaseData(detail);setReports(Array.isArray(saved.reports)?saved.reports:[]);
  },[]);
- useEffect(()=>{refreshCases().then(()=>{const incoming=new URLSearchParams(window.location.search).get('case');if(incoming)setCaseId(incoming);}).catch(e=>setError(String(e.message??e)));},[refreshCases]);
+ useEffect(()=>{
+  refreshCases().then(accessible=>{
+   const query=new URLSearchParams(window.location.search);
+   const requestedCase=query.get('caseId')??query.get('case');
+   const requestedProject=query.get('projectId');
+   const foundCase=requestedCase?accessible.cases.find(item=>item.id===requestedCase):null;
+   if(foundCase){
+    const linkedProject=foundCase.projectId;
+    setProjectId(linkedProject&&accessible.projects.some(p=>p.id===linkedProject)?linkedProject:'ALL');
+    setCaseId(foundCase.id);
+   }else if(requestedProject&&accessible.projects.some(p=>p.id===requestedProject)){
+    setProjectId(requestedProject);
+   }else if(requestedCase||requestedProject){
+    setError('CASE_OR_PROJECT_NOT_ACCESSIBLE_FOR_THIS_ACCOUNT');
+   }
+  }).catch(e=>setError(String(e.message??e)));
+ },[refreshCases]);
  useEffect(()=>{loadCase(caseId).catch(e=>{setError(String(e.message??e));setCaseData(null);});setExtraction(null);setSourceRef(null);setChosen([]);setSelectedObject(null);},[caseId,loadCase]);
  useEffect(()=>{
    const element=scroll.current;if(!element)return;
@@ -106,6 +125,8 @@ export function RealityChainWorkbench(){
  },[]);
  const visibleCases=useMemo(()=>cases.filter(c=>projectId==='ALL'||c.projectId===projectId),[cases,projectId]);
  const objects=caseData?.objects??[];
+ const visibleDecisions=useMemo(()=>caseData?.realityChain?.authority.filter(d=>
+  !cutoff||Date.parse(d.createdAt)<=Date.parse(cutoff+'T23:59:59Z'))??[],[caseData,cutoff]);
  const ordered=useMemo(()=>[...objects].sort((a,b)=>Date.parse(a.createdAt)-Date.parse(b.createdAt)),[objects]);
  // Known-at requires a persisted row by the selected cutoff: backdated observedAt
  // alone cannot smuggle a later document into an earlier epistemic snapshot.
@@ -462,9 +483,19 @@ export function RealityChainWorkbench(){
               <a className="rcThreeLink" href={'/api/cases/'+encodeURIComponent(caseId)+'/reports?format=passport-html'}>DESCARGAR INFORME LEGIBLE · HTML IMPRIMIBLE</a>
             </>:null}
             {caseId?<a className="rcThreeLink" href={'/root?reading=REALITY_CHAIN&node='+encodeURIComponent(caseId)}>OPEN SELECTED CASE IN ROOT ↗</a>:<p>SELECT A CASE TO OPEN ITS PASSPORT.</p>}
-            <dl><div><dt>WHAT WAS KNOWN?</dt><dd>{asOfObjects.filter(o=>o.kind==='EVIDENCE').length} ADMITTED EVIDENCE OBJECTS</dd></div>
+            <section aria-label="Decisiones y autorizaciones persistidas">
+               <h3>DECISIONES DOCUMENTADAS</h3>
+               {visibleDecisions.length ? visibleDecisions.slice(0,30).map(d=><p key={d.id}>
+                 <strong>{d.decision} · {d.authorityRole||'AUTORIDAD DESCONOCIDA'}</strong>
+                 {' · '}Actor: {d.decidedBy||'No documentado'}
+                 {' · '}Fecha: {date(d.createdAt)}
+                 {' · '}Propuesta: {d.proposalId}
+               </p>) : <p>No hay decisiones de autoridad registradas para este corte. La falta de un registro no demuestra que no existieran decisiones externas.</p>}
+               {visibleDecisions.length>30?<p>Vista limitada a 30. Consulte el expediente completo para más registros.</p>:null}
+             </section>
+             <dl><div><dt>WHAT WAS KNOWN?</dt><dd>{asOfObjects.filter(o=>o.kind==='EVIDENCE').length} ADMITTED EVIDENCE OBJECTS</dd></div>
             <div><dt>WHAT WAS INFERRED?</dt><dd>{asOfObjects.filter(o=>o.kind==='HYPOTHESIS').length} RECORDED HYPOTHESES</dd></div>
-            <div><dt>WHAT WAS AUTHORIZED?</dt><dd>{asOfObjects.filter(o=>o.kind==='GOVERNANCE_DECISION').length} RECORDED DECISIONS</dd></div>
+            <div><dt>WHAT WAS AUTHORIZED?</dt><dd>{visibleDecisions.length} PERSISTED AUTHORITY DECISIONS</dd></div>
             <div><dt>WHAT WAS EXECUTED?</dt><dd>{asOfObjects.filter(o=>o.kind==='INTERVENTION').length} INTERVENTION RECORDS</dd></div>
             <div><dt>WHAT DID REALITY RETURN?</dt><dd>{asOfObjects.filter(o=>o.kind==='RETURN').length} RETURN RECORDS</dd></div>
             <div><dt>WHAT WAS LEARNED?</dt><dd>GOVERNED INTEGRATION NOT INFERRED FROM CASE CLOSURE</dd></div></dl>

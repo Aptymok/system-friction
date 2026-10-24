@@ -1,0 +1,33 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {resolveCaseProjectAssignment} from '../src/lib/sfi/case-platform/caseProjectAssignment';
+
+const project={id:'project-1',tenantId:'tenant-B',status:'ACTIVE'};
+assert.deepEqual(resolveCaseProjectAssignment(null,null,null),{tenantId:null,projectId:null});
+assert.deepEqual(resolveCaseProjectAssignment('tenant-A',null,null),{tenantId:'tenant-A',projectId:null});
+assert.deepEqual(resolveCaseProjectAssignment(null,'project-1',project),{tenantId:'tenant-B',projectId:'project-1'});
+assert.deepEqual(resolveCaseProjectAssignment('tenant-B','project-1',project),{tenantId:'tenant-B',projectId:'project-1'});
+assert.throws(()=>resolveCaseProjectAssignment('tenant-A','project-1',project),/SFI_PROJECT_TENANT_MISMATCH/);
+assert.throws(()=>resolveCaseProjectAssignment(null,'project-1',null),/SFI_PROJECT_NOT_FOUND/);
+assert.throws(()=>resolveCaseProjectAssignment(null,'project-1',{...project,id:'other'}),/SFI_PROJECT_NOT_FOUND/);
+assert.throws(()=>resolveCaseProjectAssignment(null,'project-1',{...project,status:'CLOSED'}),/SFI_PROJECT_NOT_ACTIVE/);
+
+const read=(p:string)=>readFileSync(p,'utf8');
+const repo=read('src/lib/sfi/case-platform/repository.ts');
+const api=read('src/app/api/cases/route.ts');
+const detail=read('src/app/api/cases/[caseId]/route.ts');
+const ui=read('src/components/sfi/RealityChainWorkbench.tsx');
+assert.match(repo,/projectId: nullableText\(row\.project_id\)/);
+assert.match(repo,/\.eq\('tenant_id', tenantId\)\.eq\('status', 'ACTIVE'\)/);
+assert.match(repo,/project_id: projectId/);
+assert.ok(repo.indexOf('project_id: projectId') < repo.indexOf("action: 'CASE_CREATED'"));
+assert.match(api,/tenantId:assignment\.tenantId,projectId:assignment\.projectId/);
+assert.doesNotMatch(api,/\.from\('sfi_cases'\)\.update\(\{project_id:/);
+assert.match(api,/caseCount:cases\.filter\(item=>item\.projectId===String\(row\.id\)\)\.length/);
+assert.doesNotMatch(api,/const caseLinks=/);
+assert.match(detail,/projectFor\(state\.project_id, base\.caseRecord\.tenantId\)/);
+assert.match(ui,/query\.get\('caseId'\)\?\?query\.get\('case'\)/);
+assert.match(ui,/query\.get\('projectId'\)/);
+assert.match(ui,/visibleDecisions\.length} PERSISTED AUTHORITY DECISIONS/);
+assert.match(ui,/realityChain\?\.authority\.filter/);
+console.log('PASS C03 CASE PLATFORM: project-tenant association, one case insert, scoped detail, web links and authority');
