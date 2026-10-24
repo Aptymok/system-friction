@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './RealityChainWorkbench.css';
 import { RealityChainCaseInspector } from './RealityChainCaseInspector';
 import type { SfiRealityChain } from '@/core/case-platform/reportAssembler';
+import { caseTimelineHref } from '@/lib/sfi/navigation/operationalLinks';
 
 type Ref={id:string;hash?:string|null;version?:string|null};
 type CaseObject={id:string;kind:string;epistemicRole:string;canonicalRef:Ref;sourceRefs:Ref[];recordRefs:Ref[];evidenceRefs:Ref[];payload:Record<string,unknown>;observedAt:string|null;createdAt:string};
@@ -492,6 +493,7 @@ export function RealityChainWorkbench(){
               <a className="rcThreeLink" href={'/api/cases/'+encodeURIComponent(caseId)+'/reports?format=passport-html'}>DESCARGAR INFORME LEGIBLE · HTML IMPRIMIBLE</a>
             </>:null}
             {caseId?<a className="rcThreeLink" href={'/root?reading=REALITY_CHAIN&node='+encodeURIComponent(caseId)}>OPEN SELECTED CASE IN ROOT ↗</a>:<p>SELECT A CASE TO OPEN ITS PASSPORT.</p>}
+            {caseTimelineHref(caseId)?<a className="rcThreeLink" href={caseTimelineHref(caseId)!}>OPEN CASE HISTORY IN TIMELINE ↗</a>:null}
             <section aria-label="Decisiones y autorizaciones persistidas">
                <h3>DECISIONES DOCUMENTADAS</h3>
                {visibleDecisions.length ? visibleDecisions.slice(0,30).map(d=><p key={d.id}>
