@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { assessCaseRevisionReplayBatch } from './verify_replay_batch.mjs';
+import { assessCaseRevisionReplayBatch, assessCaseMirrorDelivery } from './verify_replay_batch.mjs';
 
 function parent(revision = 2, previous = 1, opts = {}) {
   return {
@@ -67,4 +67,33 @@ test('empty and case-unrelated batches never claim a case-replay test', () => {
     table_name: 'other_table', operation: 'UPSERT', source_txid: '101', row_data: { id: 'other' },
   }], { requireTouchedCase: true });
   assert.ok(result.blockers.includes('REPLAY_CASE_CHILD_REQUIRED'));
+});
+
+test('legacy case batches remain compatible before the closure migration activates', () => {
+  const oldBatch = [child()];
+  assert.deepEqual(assessCaseMirrorDelivery(oldBatch), {
+    allowed: true, enforced: false, blockers: [], caseCount: 0,
+  });
+});
+test('unrelated data-plane tables never require a case parent revision', () => {
+  const batch = [{ table_name: 'sfi_studio_objects', operation: 'UPSERT',
+    source_txid: '101', row_data: { id: 'studio-1' } }];
+  assert.equal(assessCaseMirrorDelivery(batch, { strict: true }).allowed, true);
+  assert.equal(assessCaseMirrorDelivery(batch, { strict: true }).enforced, false);
+});
+test('migrated parent snapshot automatically enables the case replay gate', () => {
+  const correct = assessCaseMirrorDelivery([child(), parent()]);
+  assert.equal(correct.allowed, true);
+  assert.equal(correct.enforced, true);
+  const stale = assessCaseMirrorDelivery([child(), parent(1, 1)]);
+  assert.equal(stale.allowed, false);
+  assert.ok(stale.blockers.includes('REPLAY_PARENT_REVISION_NOT_ADVANCED'));
+});
+test('explicit activation prevents silent child replay with missing parent', () => {
+  const blocked = assessCaseMirrorDelivery([child()], { strict: true });
+  assert.equal(blocked.allowed, false);
+  assert.ok(blocked.blockers.includes('REPLAY_PARENT_REVISION_SNAPSHOT_MISSING'));
+});
+test('empty replay batches fail closed even in legacy mode', () => {
+  assert.equal(assessCaseMirrorDelivery([]).allowed, false);
 });
