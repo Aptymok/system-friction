@@ -19,8 +19,8 @@ const users={a:'20000000-0000-4000-8000-000000000001',b:'20000000-0000-4000-8000
 const tenants={a:'30000000-0000-4000-8000-000000000001',b:'30000000-0000-4000-8000-000000000002'};
 const projects={a:'40000000-0000-4000-8000-000000000001',b:'40000000-0000-4000-8000-000000000002'};
 const caseId=(n)=>'50000000-0000-4000-8000-'+String(n).padStart(12,'0');
-const boundary=JSON.stringify({id:'isolated:tenant-boundary'});
-const temporal=JSON.stringify({mode:'LONGITUDINAL',basis:'OBSERVED_TIME',cutoff:'2026-10-24T10:00:00Z',timezone:'UTC',start:null,end:null});
+const boundary={id:'isolated:tenant-boundary'};
+const temporal={mode:'LONGITUDINAL',basis:'OBSERVED_TIME',cutoff:'2026-10-24T10:00:00Z',timezone:'UTC',start:null,end:null};
 const insertCase=async(tx,id,owner,tenant,project)=>
   await tx.unsafe('insert into public.sfi_cases (id,owner_id,tenant_id,project_id,service_profile_id,subject,scope,system_boundary_ref,temporal_window)'+
     ' values ($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5,$6,$7,$8::jsonb,$9::jsonb) returning id',
