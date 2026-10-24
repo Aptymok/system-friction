@@ -30,15 +30,15 @@ const migrations = [
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 const close = (sql, id, rev) => sql.unsafe(
   'select public.sfi_close_case_atomic_v1($1::uuid,$2::uuid,$3::text,$4::bigint,$5::jsonb)',
-  [id, user, 'OPEN', rev, JSON.stringify({ mode: 'ADMINISTRATIVE', reason: 'Isolated non-certified test closure' })],
+  [id, user, 'OPEN', rev, { mode: 'ADMINISTRATIVE', reason: 'Isolated non-certified test closure' }],
 );
 const write = (sql, id, objectId) => sql.unsafe(
   'select public.sfi_record_case_object_atomic_v1($1::uuid,$2::uuid,$3::jsonb)',
-  [id, user, JSON.stringify({
+  [id, user, {
     id: objectId, kind: 'RECORD', epistemicRole: 'RECORD',
     canonicalRef: { id: 'isolated-record:' + objectId, version: '1', hash: 'test-' + objectId },
     payload: { source: 'ISOLATED_TEST', notEvidence: true },
-  })],
+  }],
 );
 const revision = async id => Number((await admin.unsafe(
   'select closure_revision from public.sfi_cases where id=$1::uuid', [id],
