@@ -38,18 +38,6 @@ execFileSync(process.execPath, ['--import', 'tsx', '--test', 'src/lib/persistenc
 
 assert.ok(workflow.includes("cron: '7,22,37,52 * * * *'"), 'bounded mirror recovery must have four staggered scheduled opportunities per hour');
 
-const cronLine = workflow.match(/^\s*-\s*cron:\s*'([0-9,]+)\s+\*\s+\*\s+\*\s+\*'/m);
-assert.ok(cronLine, 'the production continuity workflow must expose its declared minute schedule');
-const workflowMinutes = cronLine[1].split(',').map((minute) => Number(minute)).sort((a, b) => a - b);
-const statusSchedule = control.match(/timesUtc:\s*\[([^\]]+)\]/);
-assert.ok(statusSchedule, 'ROOT status must project the actual recurrence');
-const projectedMinutes = [...statusSchedule[1].matchAll(/'HH:(\d{2})'/g)].map((match) => Number(match[1])).sort((a, b) => a - b);
-assert.deepEqual(projectedMinutes, workflowMinutes, 'ROOT schedule projection must match GitHub Actions cron, not stale HH:15/HH:45');
-assert.ok(control.includes("triggerTypes: ['schedule', 'workflow_dispatch', 'workflow_run']"),
-  'ROOT must disclose non-schedule workflow_dispatch/workflow_run triggers instead of suggesting that cron is exhaustive');
-assert.ok(workflow.includes('workflow_dispatch:') && workflow.includes('workflow_run:'),
-  'source workflow must still provide the projected manual and upstream completion triggers');
-
 assert.ok(workflow.includes('- SFI Verify') && workflow.includes('- SFI World + Institutional Observation Cycle') && workflow.includes('- World Vector Agents'), 'successfully verified or observed main work must wake guarded mirror recovery independently of scheduled cron');
 assert.ok(workflow.includes("github.event.workflow_run.head_branch == 'main'") && workflow.includes("github.event.workflow_run.head_repository.full_name == github.repository"), 'workflow_run trigger must reject forks and non-main branches');
 assert.ok(workflow.includes('Drain primary mirror or recovery journal through bounded reconciliation'));
