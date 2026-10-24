@@ -22,10 +22,12 @@ export const SFI_NEURAL_SURFACES = [
   {id:'laboratorio',label:'Laboratorio',description:'Experimentar, contrastar y retornar',nodes:[
     {href:'/method-lab',label:'Method Lab',description:'Protocolos y simulaciones gobernadas',branch:'Experimentación'},
     {href:'/reality-chain',label:'Reality Chain',description:'Casos y cadena de realidad',branch:'Ejecución'},
+    {href:'/cases/new',label:'Nuevo caso o proyecto',description:'Ingreso gobernado a Case Platform',branch:'Ingreso'},
+    {href:'/studio',label:'Studio',description:'Objetos privados y análisis de producción',branch:'Producción'},
   ]},
 ] as const;
 
-const ON_SURFACES=['/root','/method-lab','/timeline','/reality-chain','/observatory','/repository'] as const;
+const ON_SURFACES=['/root','/method-lab','/timeline','/reality-chain','/observatory','/repository','/studio','/cases/new'] as const;
 export function isUnifiedSurface(pathname:string):boolean {
   return ON_SURFACES.some(prefix=>pathname===prefix||pathname.startsWith(prefix+'/'));
 }
