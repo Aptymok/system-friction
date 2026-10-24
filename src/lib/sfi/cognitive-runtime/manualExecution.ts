@@ -224,8 +224,10 @@ export async function executeManualCognitiveAgent(
       sourceUrl: executionRequest.sourceUrls[0] ?? null,
       sourceUrls: executionRequest.sourceUrls,
       aiGovernancePolicyId: 'SFI-AIMS-2026-08',
-      llmAugmentation: true,
-      llmAugmentationAgents: [agentId],
+      // A C07 mission is deterministic-only until a separately governed
+      // provider budget exists. Legacy ROOT manual execution remains unchanged.
+      llmAugmentation: missionId === null,
+      llmAugmentationAgents: missionId === null ? [agentId] : [],
       executionRequest: {
         contractVersion: contract.version,
         purpose: executionRequest.purpose,
@@ -298,7 +300,7 @@ export async function executeManualCognitiveAgent(
     const internalEvidenceAlreadyAvailable = preResearchMaterial.length > 0;
     const evidenceHunterNeedsExternalSearch = agentId === 'evidence_hunter'
       && (executionRequest.sourceUrls.length > 0 || !internalEvidenceAlreadyAvailable);
-    const researchEligible = researchCapable && (agentId !== 'evidence_hunter' || evidenceHunterNeedsExternalSearch);
+    const researchEligible = missionId === null && researchCapable && (agentId !== 'evidence_hunter' || evidenceHunterNeedsExternalSearch);
     if (researchEligible) {
       const targetTitles = resolvedTargets.map((target) => target.title).join(' · ');
       const queryBase = `${targetTitles} ${executionRequest.purpose}`.slice(0, 500);
@@ -422,6 +424,7 @@ export async function executeManualCognitiveAgent(
           receiptReadback: { status: receiptVerification.status, source: 'PRIMARY_EPISTEMIC_LEDGER', eventId: receiptVerification.eventId },
           workState: result.executed ? 'EXECUTED' : 'SKIPPED',
           returnObservation: 'NOT_OBSERVED',
+          missionProviderPolicy: missionId ? 'DETERMINISTIC_ONLY_NO_EXTERNAL_MODEL_OR_RESEARCH' : 'LEGACY_MANUAL_POLICY',
           requestSource: principal.requestSource,
           contract: compactExecutionContract(contract),
           agent: compactAgent(agent),
