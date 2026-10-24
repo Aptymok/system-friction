@@ -34,3 +34,14 @@ test('complete observation coverage permits negative finding without claiming im
 test('duplicate planned IDs are rejected', () => {
   assert.throws(() => reconcilePlannedEvents({ plan: [plan[0], plan[0]], observations: [], coverage: [], asOf: '2026-10-24T08:00:00-06:00' }), /SFI_RC_INVALID_PLAN/);
 });
+
+test('future observations cannot establish a publication at the reconstruction cutoff', () => {
+  const rows = reconcilePlannedEvents({
+    plan: [plan[0]],
+    observations: [{ id: 'post-later', plannedId: 'D01', occurredAt: '2026-10-25T18:00:00-06:00', sourceRef: 'instagram:future', verified: true }],
+    coverage: [],
+    asOf: '2026-10-24T08:00:00-06:00',
+  });
+  assert.equal(rows[0].state, 'UNKNOWN');
+  assert.deepEqual(rows[0].observationRefs, []);
+});
