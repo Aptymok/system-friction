@@ -64,6 +64,7 @@ const apply = async entries => {
 try {
   // Database creation is permitted only against an exact loopback service URL
   // naming the GitHub Actions fixture DB.
+  await admin.unsafe('create role anon; create role authenticated; create role service_role; create role sfi_continuity_anonymous; create role sfi_continuity_service;');
   await admin.unsafe('create database sfi_rc_source');
   await admin.unsafe('create database sfi_rc_target');
   source = postgres(databaseUrl('sfi_rc_source'), { max: 1, connect_timeout: 10 });
@@ -71,7 +72,6 @@ try {
 
   for (const db of [source, target]) {
     await db.unsafe(
-      "create role anon; create role authenticated; create role service_role;" +
       "create schema auth; create table auth.users(id uuid primary key);" +
       "create function auth.uid() returns uuid language sql as $$" +
       "select '00000000-0000-4000-8000-000000000001'::uuid $$;",
@@ -96,7 +96,6 @@ try {
   // Install actual production receiver SQL into the disposable target, with
   // a minimal state table and strictly local service-role fixtures.
   await target.unsafe(
-    'create role sfi_continuity_anonymous; create role sfi_continuity_service;' +
     "create table public.sfi_data_plane_state(id text primary key, mode text not null," +
     "updated_at timestamptz not null default now());" +
     "insert into public.sfi_data_plane_state(id,mode) values ('institution','RECOVERY');",
