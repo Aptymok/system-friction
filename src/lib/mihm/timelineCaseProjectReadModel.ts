@@ -93,13 +93,18 @@ export async function readTimelineCaseProjectState(userId: string): Promise<Time
     if (!ids.length) return { items: [], readPlane: 'SUPABASE_CANONICAL', warning: null };
     const db = createServiceSupabaseClient();
     const [cases, projects] = await Promise.all([
-      db.from('sfi_cases').select('id,subject,status,tenant_id,created_at,updated_at')
+      db.from('sfi_cases').select('id,subject,status,tenant_id,project_id,created_at,updated_at')
         .in('tenant_id', ids).is('deleted_at', null)
         .order('updated_at', { ascending: false }).limit(250),
       db.from('sfi_projects').select('id,name,status,tenant_id,attractor_ref,trajectory_ref,updated_at')
         .in('tenant_id', ids).order('updated_at', { ascending: false }).limit(120),
     ]);
     if (cases.error || projects.error) throw new Error('CANONICAL_CASE_PROJECT_READ_FAILED');
+    const countsByProject = new Map<string, number>();
+    for (const r of (cases.data ?? []) as Row[]) {
+      const id = str(r.project_id);
+      if (id) countsByProject.set(id, (countsByProject.get(id) ?? 0) + 1);
+    }
     const caseRows = ((cases.data ?? []) as Row[]).map(row => ({
       id: str(row.id), subject: str(row.subject), status: str(row.status),
       updatedAt: str(row.updated_at), createdAt: str(row.created_at),
@@ -107,7 +112,7 @@ export async function readTimelineCaseProjectState(userId: string): Promise<Time
     const projectRows = ((projects.data ?? []) as Row[]).map(row => ({
       id: str(row.id), name: str(row.name), status: str(row.status),
       updatedAt: str(row.updated_at), attractorRef: row.attractor_ref,
-      trajectoryRef: row.trajectory_ref, caseCount: 0,
+      trajectoryRef: row.trajectory_ref, caseCount: countsByProject.get(str(row.id)) ?? 0,
     }));
     return {
       items: projectCaseProjectTimeline(caseRows, projectRows, 'SUPABASE_CANONICAL'),
