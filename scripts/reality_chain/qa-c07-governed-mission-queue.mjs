@@ -56,7 +56,7 @@ const addReceipt = async (job, eventId) => {
     epistemicBoundary: 'ISOLATED_SYNTHETIC_NO_EXTERNAL_RETURN' };
   assert.equal(job.agent_id, 'temporal_resolver');
   assert.match(readFileSync('src/lib/sfi/cognitive-runtime/agentExecutionMap.ts','utf8'),
-    /temporal_resolver:\\s*TemporalResolverAgent/,
+    /temporal_resolver:[ ]*TemporalResolverAgent/,
     'the exercised function must remain mapped in the canonical executor registry');
   const outcome = TemporalResolverAgent(ctx);
   assert.equal(outcome.metadata?.temporalResolver?.executed, true);
