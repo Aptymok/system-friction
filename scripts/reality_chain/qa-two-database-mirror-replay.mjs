@@ -107,6 +107,10 @@ try {
     "insert into public.sfi_data_plane_state(id,mode) values ('institution','RECOVERY');",
   );
   await target.unsafe(readFileSync('scripts/db/neon-primary-mirror-receiver.sql', 'utf8'));
+  // Install the actual PRIMARY outbox capture function and triggers on source
+  // only after identical fixture rows have been seeded on both providers.
+  await source.unsafe(readFileSync('supabase/migrations/20260921081000_systemic_primary_data_plane_outbox.sql', 'utf8'));
+
 
   const before = await snapshot(source, 'sfi_cases', caseId);
   assert.deepEqual(await snapshot(target, 'sfi_cases', caseId), before,
@@ -130,36 +134,32 @@ try {
   );
   assert.equal(audits.length, 1, 'Canonical writer must create one source audit row');
   assert.ok(BigInt(after.closure_revision) > BigInt(before.closure_revision));
-  const txid = '9090';
-  const entries = [
-    {
-      operation_id: '10000000-0000-4000-8000-000000000001',
-      source_txid: txid, table_name: 'sfi_case_objects', operation: 'UPSERT',
-      before_data: null, row_data: object,
-    },
-    {
-      operation_id: '10000000-0000-4000-8000-000000000002',
-      source_txid: txid, table_name: 'sfi_case_audit_events', operation: 'UPSERT',
-      before_data: null, row_data: audits[0].row,
-    },
-    {
-      operation_id: '10000000-0000-4000-8000-000000000003',
-      source_txid: txid, table_name: 'sfi_cases', operation: 'UPSERT',
-      before_data: before, row_data: after,
-    },
-  ];
+  // This packet now comes from the same SQL capture and claim functions SFI
+  // uses in PRIMARY. No hand-built operation IDs, case revisions or row data.
+  const claim = (await source.unsafe('select public.sfi_claim_primary_outbox_batch_v1() as batch'))[0].batch;
+  assert.equal(claim.ok, true);
+  assert.equal(claim.empty, false);
+  const entries = claim.entries;
+  const txid = String(claim.sourceTxid);
+  assert.equal(entries.length, Number(claim.entryCount));
+  assert.ok(entries.length >= 3, 'Canonical write must emit parent, child and audit operations');
+  assert.ok(entries.every(e => String(e.source_txid) === txid));
+  assert.ok(entries.some(e => e.table_name === 'sfi_case_objects' && e.row_data.id === objectId));
+  assert.ok(entries.some(e => e.table_name === 'sfi_case_audit_events' && e.row_data.case_id === caseId));
+  assert.ok(entries.some(e => e.table_name === 'sfi_cases' && e.row_data.id === caseId &&
+    String(e.row_data.closure_revision) === String(after.closure_revision)));
   const valid = assessCaseRevisionReplayBatch(entries, { requireTouchedCase: true });
   assert.equal(valid.validated, true, JSON.stringify(valid));
   // Critical: the source transaction without the updated parent snapshot
   // MUST be rejected by the validation layer before any receiver invocation.
-  const missingParent = assessCaseRevisionReplayBatch(entries.slice(0, 2), { requireTouchedCase: true });
+  const missingParent = assessCaseRevisionReplayBatch(entries.filter(e => e.table_name !== 'sfi_cases'), { requireTouchedCase: true });
   assert.equal(missingParent.validated, false);
   assert.ok(missingParent.blockers.includes('REPLAY_PARENT_REVISION_SNAPSHOT_MISSING'));
 
   const initial = await digests(target, 'sfi_cases');
   const first = await apply(entries);
   assert.equal(first.ok, true);
-  assert.equal(Number(first.applied), 3, 'Object + audit + revised case must be applied');
+  assert.equal(Number(first.applied), entries.length, 'Every captured source operation must be applied');
   for (const table of ['sfi_cases', 'sfi_case_objects', 'sfi_case_audit_events']) {
     assert.deepEqual(await digests(target, table), await digests(source, table),
       'Source/target exact-row digest mismatch for ' + table);
@@ -169,11 +169,13 @@ try {
 
   const second = await apply(entries);
   assert.equal(Number(second.applied), 0, 'Idempotent replay must not reapply operations');
-  assert.equal(Number(second.alreadyApplied), 3);
+  assert.equal(Number(second.alreadyApplied), entries.length);
 
   // A conflicting new update must fail, and cannot alter the recovered rows.
+  const latestParent = entries.filter(e => e.table_name === 'sfi_cases').at(-1);
+  assert.ok(latestParent);
   const conflict = [{
-    ...entries[2],
+    ...latestParent,
     operation_id: '10000000-0000-4000-8000-000000000004',
     before_data: { ...before, closure_revision: 999 },
     row_data: { ...after, closure_revision: 1000 },
@@ -193,8 +195,8 @@ try {
   assert.ok(triggers.length >= 2);
   assert.ok(triggers.every(row => row.tgenabled === 'O'),
     'Real receiver must restore user triggers on target after successful replay');
-  console.log('PASS REAL_POSTGRES_TWO_DATABASE_REPLAY: production receiver, original source writer, parent revision, object/audit digest parity, idempotency, conflict rollback, triggers restored');
-  console.log('LIMITATION: packets were constructed from source row snapshots, NOT fetched from live outbox or from Supabase/Neon; this is not production mirror certification.');
+  console.log('PASS REAL_POSTGRES_TWO_DATABASE_REPLAY: real primary outbox capture and claim, production receiver, canonical writer, parent revision, object/audit digest parity, idempotency, conflict rollback, triggers restored');
+  console.log('LIMITATION: this is a disposable primary outbox, not an online Supabase/Neon replay, and it does not certify production mirror parity.');
 } catch (error) {
   console.error('FAIL REAL_POSTGRES_TWO_DATABASE_REPLAY:', error?.stack ?? error);
   process.exitCode = 1;
