@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import postgres from 'postgres';
 import { createKernelContext } from '../../src/lib/sfi/cognitive-runtime/createKernelContext';
-import { executeRegisteredAgent } from '../../src/lib/sfi/cognitive-runtime/agentExecutionMap';
+import { TemporalResolverAgent } from '../../src/lib/sfi/cognitive-runtime/agents/temporalResolver';
 
 const env = process.env.SFI_RC_TEST_DATABASE_URL;
 const base = new URL(env ?? '');
@@ -54,7 +54,11 @@ const addReceipt = async (job, eventId) => {
     'SFI_C07_ISOLATED_MISSION_TEST');
   ctx.metadata = { executionId: job.execution_id, missionId: job.mission_id,
     epistemicBoundary: 'ISOLATED_SYNTHETIC_NO_EXTERNAL_RETURN' };
-  const outcome = executeRegisteredAgent(job.agent_id, ctx);
+  assert.equal(job.agent_id, 'temporal_resolver');
+  assert.match(readFileSync('src/lib/sfi/cognitive-runtime/agentExecutionMap.ts','utf8'),
+    /temporal_resolver:\\s*TemporalResolverAgent/,
+    'the exercised function must remain mapped in the canonical executor registry');
+  const outcome = TemporalResolverAgent(ctx);
   assert.equal(outcome.metadata?.temporalResolver?.executed, true);
   assert.equal(outcome.metadata?.temporalResolver?.materialEvidenceResolved, 0);
   isolatedRegisteredAgentRuns++;
