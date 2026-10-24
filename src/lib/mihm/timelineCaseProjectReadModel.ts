@@ -7,10 +7,11 @@ import {
   readContinuityInteractiveCaseIndex,
 } from '@/lib/sfi/continuityPostgres';
 import type { TimelineItem } from '@/components/sfi/OperationalTimeline';
+import { projectTimelineCaseHistory, type TimelineCaseHistoryBatch } from './timelineCaseHistory';
 
 type Row = Record<string, unknown>;
 type CaseEntry = { id: string; subject: string; status: string; updatedAt: string | null; createdAt: string | null };
-type ProjectEntry = { id: string; name: string; status: string; updatedAt: string | null; attractorRef: unknown; trajectoryRef: unknown; caseCount: number };
+type ProjectEntry = { id: string; name: string; status: string; updatedAt: string | null; createdAt?: string | null; attractorRef: unknown; trajectoryRef: unknown; caseCount: number };
 
 function str(value: unknown) { return typeof value === 'string' ? value.trim() : ''; }
 function iso(value: unknown) {
@@ -63,11 +64,26 @@ export function projectCaseProjectTimeline(
       attractor ? 'Declared attractor reference: ' + attractor : 'Attractor reference not registered',
       trajectory ? 'Declared trajectory reference: ' + trajectory : null,
     ].filter(Boolean).join(' · ');
+    const registered = iso(p.createdAt);
+    if (registered) projected.push({
+      id: 'project-created:' + p.id, at: registered, lane: 'PROJECT',
+      title: (p.name || 'Untitled project') + ' · registered',
+      subtitle: 'Project registration in Case Platform; declared attractor/trajectory references are not measured achievements.',
+      origin: 'CASE PLATFORM · ' + readPlane, state: 'PROJECT_REGISTRATION_RECORD',
+      href: '/reality-chain?projectId=' + encodeURIComponent(p.id),
+      clockAnchorMeaning: 'sfi_projects.created_at: project row registration, not the start of all related work or first attractor observation.',
+      clockEvidence: { RECORD: {
+        at: registered, sourceRef: 'sfi_projects:' + p.id,
+        meaning: 'Project registration timestamp; earlier project activity is not reconstructed from this date.',
+        basis: 'OBSERVED_TIME', epistemicClass: 'OBSERVED',
+      } },
+    });
     projected.push({
       id: 'project:' + p.id, at, lane: 'PROJECT',
       title: p.name || 'Untitled project', subtitle: described,
       origin: 'CASE PLATFORM · ' + readPlane, state: p.status || 'UNKNOWN',
       href: '/reality-chain?projectId=' + encodeURIComponent(p.id),
+      recordCreatedAt: iso(p.createdAt),
       clockAnchorMeaning: 'Case Platform sfi_projects.updated_at: last persisted project update; attractor/trajectory refs are identifiers, not measured outcomes.',
       clockEvidence: { RECORD: {
         at, sourceRef: 'sfi_projects:' + p.id,
@@ -96,7 +112,7 @@ export async function readTimelineCaseProjectState(userId: string): Promise<Time
       db.from('sfi_cases').select('id,subject,status,tenant_id,project_id,created_at,updated_at')
         .in('tenant_id', ids).is('deleted_at', null)
         .order('updated_at', { ascending: false }).limit(250),
-      db.from('sfi_projects').select('id,name,status,tenant_id,attractor_ref,trajectory_ref,updated_at')
+      db.from('sfi_projects').select('id,name,status,tenant_id,attractor_ref,trajectory_ref,created_at,updated_at')
         .in('tenant_id', ids).order('updated_at', { ascending: false }).limit(120),
     ]);
     if (cases.error || projects.error) throw new Error('CANONICAL_CASE_PROJECT_READ_FAILED');
@@ -111,14 +127,65 @@ export async function readTimelineCaseProjectState(userId: string): Promise<Time
     }));
     const projectRows = ((projects.data ?? []) as Row[]).map(row => ({
       id: str(row.id), name: str(row.name), status: str(row.status),
-      updatedAt: str(row.updated_at), attractorRef: row.attractor_ref,
+      updatedAt: str(row.updated_at), createdAt: str(row.created_at), attractorRef: row.attractor_ref,
       trajectoryRef: row.trajectory_ref, caseCount: countsByProject.get(str(row.id)) ?? 0,
     }));
+    // Actual historical objects, decisions and audit receipts must come from
+    // the SAME canonical provider and tenant as this page's case list.
+    // A degraded history read does not erase successfully read cases/projects.
+    let historyItems: TimelineItem[] = [];
+    const historyWarnings: string[] = [];
+    if (caseRows.length) {
+      const caseIds = caseRows.map(r => r.id);
+      const caseFilter = <T extends string>(table: T, selection: string, limit: number) =>
+        db.from(table).select(selection)
+          .in('tenant_id', ids).in('case_id', caseIds)
+          .order('created_at', { ascending: false }).limit(limit);
+      const bounds = [500, 600, 200, 200, 120] as const;
+      const [objects, audits, proposals, decisions, reports] = await Promise.all([
+        caseFilter('sfi_case_objects',
+          'id,case_id,tenant_id,object_kind,epistemic_role,canonical_ref,payload,observed_at,created_at', bounds[0]),
+        caseFilter('sfi_case_audit_events',
+          'id,case_id,tenant_id,action,actor_id,created_at', bounds[1]),
+        caseFilter('sfi_case_action_proposals',
+          'id,case_id,tenant_id,status,proposed_by,risk_level,created_at', bounds[2]),
+        caseFilter('sfi_case_action_decisions',
+          'id,case_id,tenant_id,proposal_id,decision,authority_role,decided_by,created_at', bounds[3]),
+        caseFilter('sfi_case_reports',
+          'id,case_id,tenant_id,report_contract,generated_at,created_at', bounds[4]),
+      ]);
+      const results = [objects, audits, proposals, decisions, reports];
+      if (results.some(r => r.error)) {
+        historyWarnings.push('CANONICAL_CASE_HISTORY_PARTIAL_OR_UNAVAILABLE');
+      } else {
+        const history: TimelineCaseHistoryBatch = {
+          objects: (objects.data ?? []) as Row[],
+          audits: (audits.data ?? []) as Row[],
+          proposals: (proposals.data ?? []) as Row[],
+          decisions: (decisions.data ?? []) as Row[],
+          reports: (reports.data ?? []) as Row[],
+        };
+        historyItems = projectTimelineCaseHistory(
+          history, new Set(caseIds), new Set(ids), 'SUPABASE_CANONICAL',
+        );
+        for (const [index, rows] of results.entries()) {
+          if ((rows.data ?? []).length >= bounds[index]) {
+            historyWarnings.push('BOUNDED_CASE_HISTORY_MAY_BE_INCOMPLETE');
+            break;
+          }
+        }
+      }
+    }
+    if (caseRows.length >= 250 || projectRows.length >= 120) {
+      historyWarnings.push('BOUNDED_CASE_PROJECT_INDEX_MAY_BE_INCOMPLETE');
+    }
     return {
-      items: projectCaseProjectTimeline(caseRows, projectRows, 'SUPABASE_CANONICAL'),
+      items: [
+        ...projectCaseProjectTimeline(caseRows, projectRows, 'SUPABASE_CANONICAL'),
+        ...historyItems,
+      ],
       readPlane: 'SUPABASE_CANONICAL',
-      warning: caseRows.length >= 250 || projectRows.length >= 120
-        ? 'BOUNDED_CASE_PROJECT_INDEX_MAY_BE_INCOMPLETE' : null,
+      warning: historyWarnings.join(' · ') || null,
     };
   } catch {
     // Never fall back to unscoped service-role reads or merge cross-provider
@@ -141,7 +208,7 @@ export async function readTimelineCaseProjectState(userId: string): Promise<Time
             'NEON_CONTINUITY',
           ),
           readPlane: 'NEON_CONTINUITY',
-          warning: 'RECOVERY_READ_NON_CERTIFIED_MIRROR' +
+          warning: 'RECOVERY_READ_NON_CERTIFIED_MIRROR · CASE_HISTORY_NOT_AVAILABLE_ON_THIS_READ_PLANE' +
             (index.warnings.length ? ':' + index.warnings.join(',') : ''),
         };
       } catch {
