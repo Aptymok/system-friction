@@ -149,11 +149,11 @@ export function projectTimelineCaseHistory(
     items.push({
       id: 'case-report:' + id, at, lane: 'CASE',
       title: caseTitle(r) + ' · PERSISTED REPORT · ' + (desc(r.report_contract, 65) || 'UNKNOWN'),
-      subtitle: 'Report stored in canonical report table; not execution authority or admitted evidence.',
+      subtitle: 'Report stored in canonical report table; not execution authority or admitted evidence.' +
+        (generated ? ' · Report generated_at metadata: ' + generated : ' · Report generation time UNKNOWN.'),
       origin: 'CASE PLATFORM · ' + provider + ' · ' + sourceRef,
       state: 'PERSISTED_REPORT_RECORD', href: href(r),
       clockAnchorMeaning: 'sfi_case_reports.created_at: report persistence; generated_at is separately reported as metadata, not substituted for event time.',
-      recordCreatedAt: generated,
       clockEvidence: {
         RECORD: clock(at, sourceRef, 'Report payload persisted; not proof of a model run or a verified RETURN.'),
       },

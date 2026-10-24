@@ -67,7 +67,8 @@ assert.match(pointer.title,/not a persisted report/);
 const persisted=items.find(x=>x.id==='case-report:saved-report')!;
 assert.match(persisted.title,/PERSISTED REPORT/);
 assert.equal(persisted.clockEvidence?.RECORD?.at,when);
-assert.equal(persisted.recordCreatedAt,observed,'generation metadata must not become EVENT clock');
+assert.equal(persisted.recordCreatedAt,undefined,'generated_at must not be mislabeled RECORD CREATED');
+assert.match(persisted.subtitle,/Report generated_at metadata/);
 assert.equal(project(batch,new Set(),new Set(['tenant-a'])).length,0);
 assert.equal(project(batch,new Set(['case-a']),new Set(['tenant-b'])).length,0,
   'membership from another tenant must not authorize case rows');
