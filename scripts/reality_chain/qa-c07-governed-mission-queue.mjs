@@ -29,7 +29,7 @@ const fakePayload = { mission: 'SFI-C06:temporal_resolver', objective: 'Isolated
 const wait = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
 const queryOne = async (sql, stmt, params=[]) => (await sql.unsafe(stmt,params))[0] ?? null;
 const enqueue = (key, t=tenant, d=digest, request=fakePayload) =>
-  queryOne(db, 'select * from public.sfi_c07_enqueue_mission_v1($1::uuid,$2::uuid,$3,$4,$5,$6,$7::jsonb,$8::int)',
+  queryOne(db, 'select * from public.sfi_c07_enqueue_mission_v1($1::uuid,$2::uuid,$3,$4,$5,$6,$7::text::jsonb,$8::int)',
     [t, actor, 'SFI-C06:temporal_resolver', 'temporal_resolver', key, d, JSON.stringify(request), 2]);
 const claim = async (sql, worker) => {
   const result = await queryOne(sql,
@@ -46,7 +46,7 @@ const complete = (id, token, eventId, hash) => queryOne(db,
   [id, token, eventId, hash]);
 const stored = id => queryOne(db,'select * from public.sfi_c07_mission_jobs where id=$1::uuid',[id]);
 const addReceipt = (job, eventId) => db.unsafe(
-  'insert into public.epistemic_events(event_id,event_name,logbook_id,payload,source,hash_self) values ($1,$2,$3,$4::jsonb,$5::jsonb,$6)',
+  'insert into public.epistemic_events(event_id,event_name,logbook_id,payload,source,hash_self) values ($1,$2,$3,$4::text::jsonb,$5::text::jsonb,$6)',
   [eventId,'SFI_AGENT_EXECUTED','sfi-c07:' + job.execution_id,
   JSON.stringify({executionId:job.execution_id,metadata:{refs:{missionId:job.mission_id}}}),
   JSON.stringify({sourceId:job.agent_id,sourceType:'runtime'}),'isolated-event-hash']
@@ -71,7 +71,7 @@ async function test() {
   )`);
   await db.unsafe(readFileSync('scripts/reality_chain/c07_governed_mission_queue_candidate.sql','utf8'));
   const jsonProbe = await queryOne(db,
-    "select jsonb_typeof($1::jsonb) as kind, pg_column_size($1::jsonb) as bytes, left($1::jsonb::text,120) as preview",
+    "select jsonb_typeof($1::text::jsonb) as kind, pg_column_size($1::text::jsonb) as bytes, left(($1::text::jsonb)::text,120) as preview",
     [JSON.stringify(fakePayload)]);
   console.log('C07_ISOLATED_JSON_PROBE',JSON.stringify(jsonProbe));
   assert.equal(jsonProbe.kind,'object','queue request must be a JSON object, not a string');
