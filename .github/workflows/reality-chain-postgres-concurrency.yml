@@ -76,3 +76,5 @@ jobs:
         run: node scripts/reality_chain/qa-two-database-mirror-replay.mjs
       - name: Compare original and paged fingerprint SQL across two isolated PostgreSQL servers
         run: node --import tsx scripts/reality_chain/qa-two-provider-fingerprint-pages.mjs
+      - name: Verify Case Platform project membership, tenant RLS and composite FK in disposable PostgreSQL
+        run: node scripts/reality_chain/qa-case-project-tenant-isolation.mjs
