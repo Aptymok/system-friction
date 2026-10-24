@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireRootActor } from '@/lib/root/server';
 import { SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY } from '@/lib/sfi/cognitive-runtime/convergedRegistry';
 import { listBoundedCognitiveMissions } from '@/lib/sfi/cognitive-runtime/missionCatalog';
+import { validateMissionDispatchRequest } from '@/lib/sfi/cognitive-runtime/missionDispatch';
 import {
   compactExecutionContract,
   listExecutionContracts,
@@ -63,11 +64,22 @@ export async function POST(request: Request) {
     return NextResponse.json(result);
   }
 
-  if (operation !== 'execute') {
+  if (operation !== 'execute' && operation !== 'execute_mission') {
     return NextResponse.json({ ok: false, error: 'unsupported_cognitive_operation' }, { status: 400 });
   }
 
-  const result = await executeManualCognitiveAgent(body, {
+  // Only explicit user submission under the pre-existing ROOT operation gate.
+  // Mission identity narrows the available executor/targets; it never grants
+  // capability authority, queues work, or bypasses the canonical preflight.
+  const mission = operation === 'execute_mission' ? validateMissionDispatchRequest(body) : null;
+  if (mission && !mission.ok) {
+    return NextResponse.json({ ok: false, error: mission.error }, { status: mission.status });
+  }
+  const executionBody = mission?.ok
+    ? { ...body, agentId: mission.mission.agentId, missionId: mission.mission.missionId }
+    : { ...body, missionId: null };
+
+  const result = await executeManualCognitiveAgent(executionBody, {
     userId: gate.ctx.user.id,
     actorId: gate.ctx.user.id,
     tenantId: 'sfi',
