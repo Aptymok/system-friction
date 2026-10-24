@@ -39,7 +39,7 @@ for(const mission of missions){
   }
   assert.equal(mission.assignmentState,'TEMPLATE_DEFINED_NOT_QUEUED');
   assert.equal(mission.executionObservation,'NOT_EXECUTED_BY_MISSION_CATALOG');
-  assert.equal(mission.dispatchState,'NOT_CONNECTED_UNTIL_C07');
+  assert.equal(mission.dispatchState,'ROOT_MANUAL_ONLY_C07');
   assert.equal(mission.scheduleState,'NOT_CONNECTED_UNTIL_C08');
   assert.equal(mission.targetBindingState,'REQUIRES_AUTHORIZED_EXISTING_OBJECT');
   assert.equal(mission.costState,'NOT_REQUESTED_NOT_SPENT');
