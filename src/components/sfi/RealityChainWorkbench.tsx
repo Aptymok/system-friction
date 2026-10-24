@@ -492,7 +492,7 @@ export function RealityChainWorkbench(){
               <a className="rcThreeLink" href={'/api/cases/'+encodeURIComponent(caseId)+'/reports?format=passport-pdf'}>DESCARGAR PASSPORT · PDF</a>
               <a className="rcThreeLink" href={'/api/cases/'+encodeURIComponent(caseId)+'/reports?format=passport-html'}>DESCARGAR INFORME LEGIBLE · HTML IMPRIMIBLE</a>
             </>:null}
-            {caseId?<a className="rcThreeLink" href="/root?reading=REALITY_CHAIN">OPEN ROOT FIELD · CASE NODE ASSOCIATION NOT VERIFIED ↗</a>:<p>SELECT A CASE TO OPEN ITS PASSPORT.</p>}
+            {caseId?<a className="rcThreeLink" href={'/root?reading=REALITY_CHAIN&node='+encodeURIComponent(caseId)}>CHECK CASE ADMISSION IN ROOT · NOT AUTOMATIC ↗</a>:<p>SELECT A CASE TO OPEN ITS PASSPORT.</p>}
             {caseTimelineHref(caseId)?<a className="rcThreeLink" href={caseTimelineHref(caseId)!}>OPEN CASE HISTORY IN TIMELINE ↗</a>:null}
             <section aria-label="Decisiones y autorizaciones persistidas">
                <h3>DECISIONES DOCUMENTADAS</h3>
