@@ -26,7 +26,7 @@ export function reconcilePlannedEvents(input: {
     if (!item.id || !item.sourceRef || ids.has(item.id)) throw new Error('SFI_RC_INVALID_PLAN');
     ids.add(item.id);
     const due = timestamp(item.dueAt);
-    const matches = input.observations.filter(o => o.plannedId === item.id && timestamp(o.occurredAt) <= cutoff);
+    const matches = input.observations.filter(o => o.plannedId === item.id && timestamp(o.occurredAt) <= cutoff && Boolean(o.sourceRef));
     const verified = matches.filter(o => o.verified && o.sourceRef);
     const complete = input.coverage.find(c => c.complete && c.sourceRef && timestamp(c.from) <= due && timestamp(c.through) >= cutoff);
     let state: ReconciliationState = 'UNKNOWN';
