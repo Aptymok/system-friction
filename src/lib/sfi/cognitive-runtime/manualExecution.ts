@@ -11,6 +11,7 @@ import {
   type SfiExecutionTargetKind,
 } from '@/lib/sfi/cognitive-runtime/executionContracts';
 import { materialEvidenceView } from '@/lib/sfi/cognitive-runtime/materialEvidence';
+import { verifyCognitiveExecutionReceipt } from '@/lib/sfi/cognitive-runtime/executionReceiptVerification';
 import { runCognitiveAgent } from '@/lib/sfi/cognitive-runtime/runtimeAgentExecutor';
 import { readUniversalCycleHistory } from '@/lib/sfi/universalSignalCycle';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
@@ -124,6 +125,7 @@ async function loadTarget(kind: SfiExecutionTargetKind, id: string, userId: stri
 }
 
 function errorStatus(message: string) {
+  if (message.includes('SFI_AGENT_EXECUTION_RECEIPT_')) return 503;
   if (message.includes('FORBIDDEN')) return 403;
   if (message.includes('NOT_FOUND')) return 404;
   if (message.includes('REQUIRED') || message.includes('NOT_RESOLVED')) return 400;
@@ -146,6 +148,7 @@ export async function executeManualCognitiveAgent(
   if (!contract) return { status: 409, body: { ok: false, error: 'execution_contract_not_found' } };
 
   const executionId = randomUUID();
+  let acknowledgedEventId: string | null = null;
   const executionRequest = normalizeExecutionRequest(agentId, body, executionId);
   if (!principal.allowLegacyCompatibility && executionRequest.legacyCompatibilityUsed) {
     return {
@@ -343,6 +346,29 @@ export async function executeManualCognitiveAgent(
     if (!result.receipt || result.receipt.acknowledgement !== 'PERSISTED') {
       throw new Error('SFI_AGENT_EXECUTION_RECEIPT_NOT_PERSISTED');
     }
+    acknowledgedEventId = result.receipt.eventId;
+    // The append acknowledgement and an independent PRIMARY read are distinct
+    // observations. A missing/mismatched row is never a completed mission.
+    const receiptRead = await createServiceSupabaseClient()
+      .from('epistemic_events')
+      .select('event_id,event_name,logbook_id,source,payload,hash_self')
+      .eq('event_id', result.receipt.eventId)
+      .eq('logbook_id', context.logbookId)
+      .maybeSingle();
+    if (receiptRead.error) {
+      throw new Error('SFI_AGENT_EXECUTION_RECEIPT_READBACK_FAILED:' + receiptRead.error.message);
+    }
+    const receiptVerification = verifyCognitiveExecutionReceipt(receiptRead.data, {
+      eventId: result.receipt.eventId,
+      executionId,
+      logbookId: context.logbookId,
+      agentId,
+      missionId,
+      executed: result.executed,
+    });
+    if (!receiptVerification.ok) {
+      throw new Error('SFI_AGENT_EXECUTION_RECEIPT_READBACK_REJECTED:' + receiptVerification.reason);
+    }
     const produced = result.context.evidence
       .filter((item) => !inputEvidenceIds.has(item.id))
       .map((item) => ({ id: item.id, source: item.source, confidence: item.confidence, payload: item.payload }));
@@ -393,6 +419,7 @@ export async function executeManualCognitiveAgent(
           id: executionId,
           missionId,
           receipt: result.receipt,
+          receiptReadback: { status: receiptVerification.status, source: 'PRIMARY_EPISTEMIC_LEDGER', eventId: receiptVerification.eventId },
           workState: result.executed ? 'EXECUTED' : 'SKIPPED',
           returnObservation: 'NOT_OBSERVED',
           requestSource: principal.requestSource,
@@ -463,6 +490,10 @@ export async function executeManualCognitiveAgent(
         error: 'manual_agent_execution_failed',
         message,
         requestSource: principal.requestSource,
+        executionId,
+        acknowledgedEventId,
+        reconciliationRequired: acknowledgedEventId !== null,
+        retryPolicy: acknowledgedEventId ? 'READ_RECEIPT_BEFORE_RETRY' : 'NO_AUTOMATIC_RETRY',
       },
     };
   }
