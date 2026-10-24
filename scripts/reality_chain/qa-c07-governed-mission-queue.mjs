@@ -4,6 +4,7 @@
  */
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import postgres from 'postgres';
 import { createKernelContext } from '../../src/lib/sfi/cognitive-runtime/createKernelContext';
 import { TemporalResolverAgent } from '../../src/lib/sfi/cognitive-runtime/agents/temporalResolver';
@@ -191,13 +192,57 @@ async function test() {
   const claimed=await claim(b,'worker-expires');
   assert.ok(!claimed || claimed.id!==expired.id);
   assert.equal((await stored(expired.id)).status,'BLOCKED');
+  // No other queued jobs may interfere with restart's generic claim.
+  assert.equal((await cancel(differentTenant.id,tenantOther)).value,'CANCELLED');
+
+  // A RUNNING job with a hard deadline must not linger indefinitely.
+  const deadlineJob=await enqueue('running-hard-expiration');
+  const leasedDeadline=await claim(a,'worker-deadline');
+  assert.equal(leasedDeadline.id,deadlineJob.id);
+  await db.unsafe('update public.sfi_c07_mission_jobs set expires_at=now()-interval \'1 second\' where id=$1::uuid',[deadlineJob.id]);
+  assert.equal(await claim(b,'worker-expiration-sweep'),null);
+  assert.equal((await stored(deadlineJob.id)).status,'BLOCKED');
+  assert.equal((await stored(deadlineJob.id)).last_error_code,'TASK_EXPIRED');
+
+  // Two independent OS processes reuse the same durable PostgreSQL state.
+  // First process saves its agent receipt then intentionally exits without
+  // completion; second process must reconcile, NOT execute the agent again.
+  const restartJob=await enqueue('restart-after-durable-append');
+  const spawnPhase=(mode) => {
+    const p=spawnSync(process.execPath,
+      ['--import','tsx','scripts/reality_chain/c07-isolated-restarted-worker.mjs',mode],
+      { encoding:'utf8',timeout:30000, env:{...process.env,SFI_C07_ISOLATED_JOB_ID:restartJob.id} });
+    assert.equal(p.error,undefined,p.error?.message);
+    assert.equal(p.status,0,mode+' failed: '+p.stderr+' '+p.stdout);
+    const messages=p.stdout.trim().split('\\n');
+    const parsed=JSON.parse(messages[messages.length-1]);
+    return parsed;
+  };
+  const interrupted=spawnPhase('interrupt_after_append');
+  assert.equal(interrupted.agentExecutions,1);
+  assert.equal(interrupted.persisted,true);
+  assert.equal((await stored(restartJob.id)).status,'RUNNING');
+  const persistedCount=async()=>(await queryOne(db,
+    'select count(*)::int as n from public.epistemic_events where event_id=$1',
+    ['isolated-child-receipt-1'])).n;
+  assert.equal(await persistedCount(),1);
+  await db.unsafe('update public.sfi_c07_mission_jobs set lease_until=now()-interval \'1 second\' where id=$1::uuid',[restartJob.id]);
+  const recovered=spawnPhase('resume');
+  assert.equal(recovered.reconciled,true);
+  assert.equal(recovered.agentExecutions,0);
+  assert.equal((await stored(restartJob.id)).status,'COMPLETED');
+  assert.equal(await persistedCount(),1,'restarted worker must not repeat append or agent execution');
+
   const total=(await queryOne(db,'select count(*)::int n from public.sfi_c07_mission_jobs')).n;
   console.log(JSON.stringify({
     pass:'C07_PG17_DURABLE_MISSION_QUEUE_TWO_SESSIONS',
     database:isolation, jobs:total, idempotency:true, twoSessionClaimExclusion:true,
     leaseExpiryRecovery:true, fencing:true, receiptIdentityEnforced:true,
     cancellation:true, retriesExhausted:true, tenantSeparation:true,
-    rls:true, publicRpcExecuteDenied:true, isolatedRegisteredAgentRuns, actualProductionAgentsExecuted:0,
+    rls:true, publicRpcExecuteDenied:true, isolatedRegisteredAgentRuns,
+    isolatedRestartedProcesses:2, crashAfterReceiptRecovered:true,
+    repeatedAgentExecutionsAfterRecovery:0, runningDeadlineExpires:true,
+    actualProductionAgentsExecuted:0,
     externalReturnObserved:false, productionDatabaseTouched:false,
   }));
 }
