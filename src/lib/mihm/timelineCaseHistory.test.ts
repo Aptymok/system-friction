@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { projectTimelineCaseHistory, type TimelineCaseHistoryBatch } from './timelineCaseHistory';
 import { projectTimelineClockProfile } from './timelineClocks';
 
-const when='2026-10-24T12:00:00Z', observed='2026-10-23T11:00:00Z';
+const when='2026-10-24T12:00:00.000Z', observed='2026-10-23T11:00:00.000Z';
 const row=(id:string,caseId='case-a',tenantId='tenant-a')=>({
   id, case_id:caseId,tenant_id:tenantId,created_at:when,
 });
