@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 
+/** Authorized case-object inspection. No writes or epistemic promotion. */
 type CaseObject = {
  id:string; kind:string; epistemicRole:string; canonicalRef?:{id?:string};
  payload:Record<string,unknown>; createdAt:string; observedAt?:string|null;
