@@ -1,6 +1,19 @@
 name: Reality Chain Isolated PostgreSQL Concurrency
 
 on:
+  push:
+    branches:
+      - work/reality-chain-integration-20261024
+    paths:
+      - '.github/workflows/reality-chain-postgres-concurrency.yml'
+      - 'scripts/reality_chain/**'
+      - 'scripts/qa-sfi-branch-ci-continuity.mjs'
+      - 'src/lib/mihm/**'
+      - 'src/app/timeline/**'
+      - 'src/components/sfi/OperationalTimeline.tsx'
+      - 'src/lib/sfi/case-platform/**'
+      - 'src/lib/persistence/**'
+      - 'supabase/migrations/*reality_chain*'
   pull_request:
     paths:
       - '.github/workflows/reality-chain-postgres-concurrency.yml'

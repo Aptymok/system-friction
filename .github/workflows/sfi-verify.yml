@@ -4,7 +4,9 @@ on:
   push:
     branches:
       - main
+      - work/reality-chain-integration-20261024
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -41,6 +43,9 @@ jobs:
             rm -rf node_modules/ffmpeg-static
             sleep $((attempt * 10))
           done
+
+      - name: Verify no-PR branch CI and production trigger isolation
+        run: node scripts/qa-sfi-branch-ci-continuity.mjs
 
       - name: Verify governed data-plane reconciliation scheduling
         run: node scripts/qa-sfi-data-plane-scheduled-recovery.mjs
