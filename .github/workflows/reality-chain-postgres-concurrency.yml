@@ -44,8 +44,22 @@ jobs:
           --health-interval 5s
           --health-timeout 3s
           --health-retries 8
+      fingerprint_mirror:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: isolated-test-only
+          POSTGRES_DB: sfi_rc_fp_target
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d sfi_rc_fp_target"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 8
     env:
       SFI_RC_TEST_DATABASE_URL: postgres://postgres:isolated-test-only@127.0.0.1:5432/sfi_rc_test
+      SFI_RC_FP_TARGET_URL: postgres://postgres:isolated-test-only@127.0.0.1:5433/sfi_rc_fp_target
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -60,3 +74,5 @@ jobs:
         run: node scripts/reality_chain/qa-real-postgres-concurrency.mjs
       - name: Replay a source transaction through the real mirror receiver between isolated databases
         run: node scripts/reality_chain/qa-two-database-mirror-replay.mjs
+      - name: Compare original and paged fingerprint SQL across two isolated PostgreSQL servers
+        run: node --import tsx scripts/reality_chain/qa-two-provider-fingerprint-pages.mjs
