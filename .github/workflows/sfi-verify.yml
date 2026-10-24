@@ -220,6 +220,8 @@ jobs:
         run: npx tsx scripts/qa-sfi-execution-receipt-pipeline-c07.ts
       - name: Verify independent mission execution receipt identity on readback
         run: npx tsx scripts/qa-sfi-execution-receipt-readback-c07.ts
+      - name: Verify canonical cognitive cycle checkpoints fail closed
+        run: npx tsx scripts/qa-sfi-cognitive-checkpoint-durability-c07.ts
       - name: Verify SFI Case Platform Operational V1
         run: npx tsx scripts/qa-sfi-case-platform-operational-v1.ts && npx tsx scripts/qa-sfi-case-platform-c03.ts && npx tsx scripts/qa-sfi-operational-navigation-c05.ts && node --import tsx --test src/core/case-platform/reportAssembler.test.ts src/lib/sfi/case-platform/privateCaseBriefContract.test.ts && node scripts/qa-sfi-reality-chain-closure-db.mjs
 
