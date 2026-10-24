@@ -211,6 +211,7 @@ jobs:
       - name: Verify Reality Chain plan contrast and tenant-scoped ingestion
         run: |
           node --import tsx --test src/lib/sfi/reality-chain/reconcilePlan.test.ts
+          node --test scripts/reality_chain/migration_release_gate.test.mjs
           python3 -m unittest discover -s scripts/reality_chain -p 'test_governed_case_sync.py' -v
 
       - name: Verify SFI Enterprise Assurance Domain V1
