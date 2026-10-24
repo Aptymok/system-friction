@@ -1,10 +1,11 @@
 import { redirect } from 'next/navigation';
-import { AccessDeniedError, requireUserProfile } from '@/lib/system/access/server';
+import { AccessDeniedError, requireAuthenticatedUser, requireUserProfile } from '@/lib/system/access/server';
 import { SFI_CANONICAL_OBJECT_REGISTRY, canonicalPublicationDisposition } from '@/lib/discovery/canonicalObjectRegistry';
 import { readPublicWorldSnapshotTimeline } from '@/lib/observatory/public/worldSnapshotTimeline';
 import { OperationalTimeline, type TimelineItem } from '@/components/sfi/OperationalTimeline';
 import { readHypothesisConditionalBranches } from '@/lib/world-observatory/hypothesisConditionalBranches';
 import { HypothesisConditionalLab } from '@/components/sfi/HypothesisConditionalLab';
+import { readTimelineCaseProjectState } from '@/lib/mihm/timelineCaseProjectReadModel';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -80,12 +81,22 @@ export default async function TimelinePage() {
     // Do not fabricate frames or synthesize missing clocks.
   }
 
+  // The existing timeline declared CASE/PROJECT lanes but previously never
+  // supplied canonical Case Platform rows. The read model scopes rows by the
+  // authenticated actor's active tenant membership on each data plane.
+  const { user } = await requireAuthenticatedUser();
+  const caseProject = await readTimelineCaseProjectState(user.id);
+
   const conditional = await readHypothesisConditionalBranches()
     .then(model=>({model,error:null})).catch(error=>({model:null,error:error instanceof Error?error.message:'CONDITIONAL_HYPOTHESIS_READ_FAILED'}));
 
   return <div className="sfiUnifiedTimelineTrack" data-sfi-timeline-panorama="ORIGINAL-EVIDENCE-ONLY">
     <section className="sfiUnifiedTimelinePanel" aria-label="Relojes y acontecimientos registrados">
-      <OperationalTimeline items={[...institution, ...world]} worldReadPlane={worldReadPlane} />
+      <OperationalTimeline items={[...institution, ...world, ...caseProject.items]} worldReadPlane={worldReadPlane} />
+      <p role="status" data-sfi-case-project-read-plane={caseProject.readPlane}>
+        CASE / PROJECT: {caseProject.readPlane}
+        {caseProject.warning ? ' · ' + caseProject.warning : ''}
+      </p>
     </section>
     <section className="sfiUnifiedTimelinePanel sfiUnifiedTimelineAnalysis" aria-label="Ramas de hipótesis bajo condiciones">
       {conditional.model ? <HypothesisConditionalLab model={conditional.model} context="TIMELINE" />
