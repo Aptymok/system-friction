@@ -64,7 +64,13 @@ const apply = async entries => {
 try {
   // Database creation is permitted only against an exact loopback service URL
   // naming the GitHub Actions fixture DB.
-  await admin.unsafe('create role anon; create role authenticated; create role service_role; create role sfi_continuity_anonymous; create role sfi_continuity_service;');
+  // The preceding concurrency step shares this same disposable PG cluster:
+  // roles are cluster-wide, even when fixture databases differ.
+  for (const role of ['anon', 'authenticated', 'service_role',
+    'sfi_continuity_anonymous', 'sfi_continuity_service']) {
+    const found = await admin.unsafe('select 1 from pg_roles where rolname=$1', [role]);
+    if (!found.length) await admin.unsafe('create role ' + role);
+  }
   await admin.unsafe('create database sfi_rc_source');
   await admin.unsafe('create database sfi_rc_target');
   source = postgres(databaseUrl('sfi_rc_source'), { max: 1, connect_timeout: 10 });
