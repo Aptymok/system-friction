@@ -209,7 +209,7 @@ end $$;
 create function public.sfi_c07_reconcile_mission_v1(
   p_id uuid, p_token uuid
 ) returns text language plpgsql security invoker
-set search_path = pg_catalog, public as $
+set search_path = pg_catalog, public as $c07_recover$
 declare v_job public.sfi_c07_mission_jobs;
 declare v_count bigint;
 declare v_event_id text;
@@ -239,7 +239,7 @@ begin
     where id=p_id and status='RUNNING' and lease_token=p_token
       and cancel_requested_at is null;
   return 'RECONCILED_COMPLETED';
-end $;
+end $c07_recover$;
 
 revoke all on function public.sfi_c07_enqueue_mission_v1(uuid,uuid,text,text,text,text,jsonb,int) from public, anon, authenticated;
 revoke all on function public.sfi_c07_claim_mission_v1(text,int) from public, anon, authenticated;
