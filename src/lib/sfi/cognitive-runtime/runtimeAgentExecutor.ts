@@ -3,6 +3,7 @@ import { agentLlmAugmentationAllowed } from './llmAugmentationPolicy';
 import { executeRegisteredAgent } from './agentExecutionMap';
 import { emitGovernedProposalsFromAgentInsight } from './governedProposalEmitter';
 import { recordAgentExecutionEvent } from '@/infrastructure/events/cognitiveRuntimeEventRepository';
+import type { PersistedEvent } from './eventPersistence';
 import { augmentAgentWithLlm } from '@/infrastructure/ai/agentLlmClient';
 import { evaluateAgentAiGovernance, SFI_AI_GOVERNANCE_POLICY } from '@/lib/governance/aiGovernancePolicy';
 import {
@@ -17,6 +18,7 @@ export interface AgentExecutionResult {
   executed: boolean;
   context: KernelContext;
   executedAt: string;
+  receipt?: { eventId: string; eventName: string; occurredAt: string; acknowledgement: 'PERSISTED' } | null;
 }
 
 export type RuntimeAgentExecutorDependencies = {
@@ -24,7 +26,7 @@ export type RuntimeAgentExecutorDependencies = {
   executeAgent?: typeof executeRegisteredAgent;
   augmentAgentWithLlm?: typeof augmentAgentWithLlm;
   emitGovernedProposals?: typeof emitGovernedProposalsFromAgentInsight;
-  recordExecutionEvent?: typeof recordAgentExecutionEvent;
+  recordExecutionEvent?: (agentId: string, eventType: string, payload: unknown) => Promise<PersistedEvent | void>;
 };
 
 function row(value: unknown): Record<string, unknown> {
@@ -57,6 +59,7 @@ function compactExecutionMetadata(agentId: string, context: KernelContext) {
     : null;
   const keys = [
     'executionId',
+    'missionId',
     'executionContractVersion',
     'executionRequestSource',
     'capabilityBroker',
@@ -241,7 +244,7 @@ export async function runCognitiveAgent(
     ? metadata.executionRequest as Record<string, unknown>
     : null;
 
-  await recordExecution(
+  const durableReceipt = await recordExecution(
     agentId,
     executed ? 'SFI_AGENT_EXECUTED' : 'SFI_AGENT_SKIPPED',
     {
@@ -282,5 +285,9 @@ export async function runCognitiveAgent(
     executed,
     context: updatedContext,
     executedAt: new Date().toISOString(),
+    receipt: durableReceipt && typeof durableReceipt.id === 'string'
+      ? { eventId: durableReceipt.id, eventName: durableReceipt.eventType,
+          occurredAt: durableReceipt.createdAt, acknowledgement: 'PERSISTED' as const }
+      : null,
   };
 }
