@@ -233,7 +233,10 @@ try {
       comparePagedFingerprints(rowsReader(source),delayed,{minimumTableCount:161}),
       /SFI_ISOLATED_TARGET_TRANSPORT_TIMEOUT/,
     );
-    await assert.rejects(parity({maxPages:2}),/SFI_FINGERPRINT_PAGINATION_CAP_EXCEEDED/);
+    await assert.rejects(parity({maxPages:2}),
+      /SFI_FINGERPRINT_INVALID_PAGE_BOUNDS/);
+    await assert.rejects(parity({maxPages:2,minimumTableCount:1}),
+      /SFI_FINGERPRINT_PAGINATION_CAP_EXCEEDED/);
   });
   await step('cross_provider_exact_v2_parity_after_all_recovery',async()=>{
     const [a,b]=await Promise.all([getPageReport(source,'SOURCE_FINAL'),getPageReport(target,'TARGET_FINAL')]);
