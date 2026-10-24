@@ -214,6 +214,7 @@ jobs:
           node --test scripts/reality_chain/migration_release_gate.test.mjs
           node --test scripts/reality_chain/verify_replay_batch.test.mjs
           python3 -m unittest discover -s scripts/reality_chain -p 'test_governed_case_sync.py' -v
+          python3 -m unittest discover -s scripts/reality_chain -p 'test_kxtxr_manifest_preview.py' -v
 
       - name: Verify SFI Enterprise Assurance Domain V1
         run: npx tsx scripts/qa-sfi-enterprise-assurance-domain-v1.ts
