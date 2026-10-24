@@ -16,7 +16,7 @@ function eligible() {
       supabase: { baseCaseTablesPresent: true, columnsCompatible: true },
       neon: { baseCaseTablesPresent: true, columnsCompatible: true },
     },
-    isolatedTests: { migration: true, atomicity: true, twoSessionConcurrency: true, replicationReplay: true },
+    isolatedTests: { migration: true, atomicity: true, twoSessionConcurrency: true, replicationReplay: true, caseParentRevisionReplay: true, caseRowDigestParity: true },
     explicitHumanApproval: true,
   };
 }
@@ -59,4 +59,13 @@ test('unknown queue counts and future-dated receipts never pass', () => {
   const blockers = assessRealityChainMigrationRelease(input).blockers;
   assert.ok(blockers.includes('JOURNAL_NOT_CLEAN'));
   assert.ok(blockers.includes('CURRENT_INDEPENDENT_STATUS_REQUIRED'));
+});
+
+test('trigger-disabled replay cannot pass with missing parent revision or case digest parity', () => {
+  const input = eligible();
+  input.isolatedTests.caseParentRevisionReplay = false;
+  assert.ok(assessRealityChainMigrationRelease(input).blockers.includes('CASE_REVISION_REPLAY_PARITY_UNVERIFIED'));
+  input.isolatedTests.caseParentRevisionReplay = true;
+  input.isolatedTests.caseRowDigestParity = false;
+  assert.ok(assessRealityChainMigrationRelease(input).blockers.includes('CASE_REVISION_REPLAY_PARITY_UNVERIFIED'));
 });
