@@ -10,7 +10,7 @@ import {
 import './OperationalTimeline.css';
 
 export type TimelineItem = {
-  id: string; at: string; lane: 'INSTITUTION'|'WORLD'|'CASE'|'PROJECT';
+  id: string; at: string; lane: 'INSTITUTION'|'WORLD'|'CASE'|'PROJECT'|'ATTRACTOR';
   title: string; subtitle: string; origin: string; state: string; href: string;
   clockAnchorMeaning?: string;
   clockEvidence?: TimelineClockInputs;
@@ -25,6 +25,7 @@ const LANES = [
   {id:'WORLD',title:'WORLD',subtitle:'PERSISTED WORLDSPECT SNAPSHOTS'},
   {id:'CASE',title:'CASE',subtitle:'GOVERNED CASE RECORDS'},
   {id:'PROJECT',title:'PROJECT',subtitle:'GOVERNED PROJECT RECORDS'},
+  {id:'ATTRACTOR',title:'ATTRACTOR',subtitle:'SOURCED INSTITUTIONAL TRAJECTORY READINGS'},
 ] as const;
 const fmt = (value:string) => {
   const date=new Date(value);
