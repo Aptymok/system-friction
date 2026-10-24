@@ -45,3 +45,5 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Run two independent transaction sessions on disposable PostgreSQL
         run: node scripts/reality_chain/qa-real-postgres-concurrency.mjs
+      - name: Replay a source transaction through the real mirror receiver between isolated databases
+        run: node scripts/reality_chain/qa-two-database-mirror-replay.mjs
