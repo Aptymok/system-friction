@@ -25,7 +25,7 @@ export async function recordAgentExecutionEvent(
 
   // The durable acknowledgement is authoritative; never broadcast a
   // successful execution event before the canonical append has succeeded.
-  await persistSFIEvent(event);
+  const receipt = await persistSFIEvent(event);
   try {
     emitSFIEvent(event);
   } catch (error) {
@@ -34,8 +34,8 @@ export async function recordAgentExecutionEvent(
     console.warn('SFI_AGENT_EVENT_SUBSCRIBER_FAILED', error);
   }
 
+  return receipt;
 }
-
 
 export async function recordCognitiveCycleEvent(
   payload: unknown
