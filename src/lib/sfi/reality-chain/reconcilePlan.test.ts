@@ -45,3 +45,14 @@ test('future observations cannot establish a publication at the reconstruction c
   assert.equal(rows[0].state, 'UNKNOWN');
   assert.deepEqual(rows[0].observationRefs, []);
 });
+
+test('an unsourced assertion never counts as an observation', () => {
+  const rows = reconcilePlannedEvents({
+    plan: [plan[0]],
+    observations: [{ id: 'untraceable', plannedId: 'D01', occurredAt: '2026-10-20T19:00:00-06:00', sourceRef: '', verified: true }],
+    coverage: [],
+    asOf: '2026-10-24T08:00:00-06:00',
+  });
+  assert.equal(rows[0].state, 'UNKNOWN');
+  assert.deepEqual(rows[0].observationRefs, []);
+});
