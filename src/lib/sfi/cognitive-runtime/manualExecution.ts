@@ -135,6 +135,8 @@ export async function executeManualCognitiveAgent(
   principal: SfiManualExecutionPrincipal,
 ): Promise<SfiManualExecutionResponse> {
   const agentId = text(body.agentId, 120);
+  // Only the pre-existing authenticated ROOT route may bind an explicit C07 mission.
+  const missionId = principal.requestSource === 'ROOT_MANUAL' ? text(body.missionId, 120) : null;
   if (!agentId) return { status: 400, body: { ok: false, error: 'agent_required' } };
 
   const agent = SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.find((item) => item.id === agentId);
@@ -204,6 +206,7 @@ export async function executeManualCognitiveAgent(
     context.metadata = {
       actorId: principal.actorId,
       executionId,
+      missionId,
       executionContractVersion: contract.version,
       executionRequestSource: principal.requestSource,
       tenantId: principal.tenantId,
@@ -337,6 +340,9 @@ export async function executeManualCognitiveAgent(
 
     const inputEvidenceIds = new Set(context.evidence.map((item) => item.id));
     const result = await runCognitiveAgent(agentId, context);
+    if (!result.receipt || result.receipt.acknowledgement !== 'PERSISTED') {
+      throw new Error('SFI_AGENT_EXECUTION_RECEIPT_NOT_PERSISTED');
+    }
     const produced = result.context.evidence
       .filter((item) => !inputEvidenceIds.has(item.id))
       .map((item) => ({ id: item.id, source: item.source, confidence: item.confidence, payload: item.payload }));
@@ -360,7 +366,9 @@ export async function executeManualCognitiveAgent(
     const residualMissing = produced.filter((item) => String(row(item.payload).epistemicClass ?? '').toLowerCase() === 'missing').length;
     const proposalPersistedCount = numberOrNull(proposalBridge.persistedCount) ?? 0;
 
-    const humanSummary = materialEvidenceResolved > 0
+    const humanSummary = !result.executed
+      ? 'El agente no ejecutó su tarea: SFI registró una omisión o bloqueo, no una ejecución completada. Consulte el registro y sus restricciones.'
+      : materialEvidenceResolved > 0
       ? residualMissing > 0
         ? `La ejecución reutilizó ${materialEvidenceResolved} evidencias materiales persistidas. Quedan ${residualMissing} faltantes residuales discriminantes; no se requiere volver a aportar el objeto ya procesado.`
         : `La ejecución reutilizó ${materialEvidenceResolved} evidencias materiales persistidas. No se requiere volver a subir, ingerir ni aportar de nuevo el objeto ya procesado.`
@@ -383,6 +391,10 @@ export async function executeManualCognitiveAgent(
         executionApiVersion: SFI_MANUAL_COGNITIVE_EXECUTION_VERSION,
         execution: {
           id: executionId,
+          missionId,
+          receipt: result.receipt,
+          workState: result.executed ? 'EXECUTED' : 'SKIPPED',
+          returnObservation: 'NOT_OBSERVED',
           requestSource: principal.requestSource,
           contract: compactExecutionContract(contract),
           agent: compactAgent(agent),
