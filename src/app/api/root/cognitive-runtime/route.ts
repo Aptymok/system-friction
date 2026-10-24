@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireRootActor } from '@/lib/root/server';
 import { SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY } from '@/lib/sfi/cognitive-runtime/convergedRegistry';
+import { listBoundedCognitiveMissions } from '@/lib/sfi/cognitive-runtime/missionCatalog';
 import {
   compactExecutionContract,
   listExecutionContracts,
@@ -42,6 +43,8 @@ export async function GET() {
     runtime: await readObservedSfiCognitiveRuntime(),
     agents: SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.map(compactAgent),
     executionContracts: listExecutionContracts().map(compactExecutionContract),
+    missionDefinitions: listBoundedCognitiveMissions(),
+    missionStatus: 'DEFINED_NOT_DISPATCHED',
   }, { headers: { 'Cache-Control': 'no-store' } });
 }
 
