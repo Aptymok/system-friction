@@ -94,7 +94,7 @@ begin
       then 'TASK_EXPIRED' else 'RETRY_EXHAUSTED' end,
     lease_token=null, lease_until=null, worker_id=null,
     updated_at=clock_timestamp()
-    where ((status='QUEUED' and expires_at <= clock_timestamp()) or
+    where ((status in ('QUEUED','RUNNING') and expires_at <= clock_timestamp()) or
       (status='RUNNING' and lease_until <= clock_timestamp()
        and attempts >= max_attempts and cancel_requested_at is null));
   with candidate as (
@@ -203,6 +203,44 @@ begin
   return v_id is not null;
 end $$;
 
+-- On restarted workers, reconcile an already persisted result before running
+-- the deterministic agent again. Service-role only. This is at-least-once
+-- recovery with receipt deduplication, NOT globally exactly-once side effects.
+create function public.sfi_c07_reconcile_mission_v1(
+  p_id uuid, p_token uuid
+) returns text language plpgsql security invoker
+set search_path = pg_catalog, public as $
+declare v_job public.sfi_c07_mission_jobs;
+declare v_count bigint;
+declare v_event_id text;
+declare v_hash text;
+begin
+  select * into v_job from public.sfi_c07_mission_jobs
+    where id=p_id and status='RUNNING' and lease_token=p_token
+      and lease_until>clock_timestamp() and cancel_requested_at is null
+      and (expires_at is null or expires_at>clock_timestamp())
+    for update;
+  if not found then return 'STALE_OR_NOT_RUNNING'; end if;
+  select count(*), min(e.event_id), min(e.hash_self)
+    into v_count, v_event_id, v_hash
+    from public.epistemic_events e
+    where e.logbook_id=('sfi-c07:' || v_job.execution_id::text)
+      and e.event_name='SFI_AGENT_EXECUTED'
+      and e.payload->>'executionId'=v_job.execution_id::text
+      and e.payload->'metadata'->'refs'->>'missionId'=v_job.mission_id
+      and e.source->>'sourceId'=v_job.agent_id;
+  if v_count=0 then return 'NO_RECEIPT'; end if;
+  if v_count<>1 or v_event_id is null or v_hash is null
+    or length(v_hash)=0 then return 'AMBIGUOUS_OR_INVALID_RECEIPT'; end if;
+  update public.sfi_c07_mission_jobs set status='COMPLETED',
+      receipt_event_id=v_event_id, receipt_hash=v_hash,
+      lease_token=null, lease_until=null, worker_id=null,
+      updated_at=clock_timestamp()
+    where id=p_id and status='RUNNING' and lease_token=p_token
+      and cancel_requested_at is null;
+  return 'RECONCILED_COMPLETED';
+end $;
+
 revoke all on function public.sfi_c07_enqueue_mission_v1(uuid,uuid,text,text,text,text,jsonb,int) from public, anon, authenticated;
 revoke all on function public.sfi_c07_claim_mission_v1(text,int) from public, anon, authenticated;
 revoke all on function public.sfi_c07_renew_mission_v1(uuid,uuid,int) from public, anon, authenticated;
@@ -214,4 +252,6 @@ grant execute on function public.sfi_c07_claim_mission_v1(text,int) to service_r
 grant execute on function public.sfi_c07_renew_mission_v1(uuid,uuid,int) to service_role;
 grant execute on function public.sfi_c07_cancel_mission_v1(uuid,uuid) to service_role;
 grant execute on function public.sfi_c07_fail_mission_v1(uuid,uuid,text,int) to service_role;
+revoke all on function public.sfi_c07_reconcile_mission_v1(uuid,uuid) from public, anon, authenticated;
 grant execute on function public.sfi_c07_complete_mission_v1(uuid,uuid,text,text) to service_role;
+grant execute on function public.sfi_c07_reconcile_mission_v1(uuid,uuid) to service_role;
