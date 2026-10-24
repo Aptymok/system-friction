@@ -22,7 +22,7 @@ for(const mission of missions){
   assert.equal(mission.agentName,agent.name);
   assert.equal(mission.triggerRegistered,true);
   assert.ok(agent.listensTo.includes(mission.trigger),`trigger not on agent passport: ${agent.id}`);
-  assert.ok(mission.emits.every(event=>agent.emits.includes(event)));
+  assert.ok(mission.emits.every(event=>agent.emits.some(raw=>typeof raw==='string'?raw===event:raw.eventName===event)),`emits must match canonical passport events: ${agent.id}`);
   assert.deepEqual(mission.sourceTables,agent.sourceTables);
   assert.equal(typeof SFI_AGENT_EXECUTION_MAP[agent.id],'function',`no canonical executor: ${agent.id}`);
   assert.ok(mission.inputKinds.length>0,`no target kinds for ${agent.id}`);
