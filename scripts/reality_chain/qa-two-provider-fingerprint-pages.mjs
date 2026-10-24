@@ -80,7 +80,8 @@ async function getPageReport(db, side) {
     after = rows.at(-1).table_name;
   }
   assert.ok(fetched.length >= 165,'at least 160 fixture + 5 specialized tables expected');
-  assert.deepEqual(fetched,baseline,side + ': real paged SQL differs from original V2 row semantics');
+  assert.deepEqual(fetched, Array.from(baseline),
+    side + ': real paged SQL differs from original V2 row semantics');
   return {side,count:fetched.length,pages:readCount,elapsedMs:+(performance.now()-started).toFixed(2)};
 }
 async function independentAuthority(name) {
