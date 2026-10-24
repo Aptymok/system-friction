@@ -56,7 +56,12 @@ async function test() {
   db=postgres(target.toString(),{max:2,connect_timeout:10});
   a=postgres(target.toString(),{max:1,connect_timeout:10});
   b=postgres(target.toString(),{max:1,connect_timeout:10});
-  await db.unsafe('create role anon; create role authenticated; create role service_role bypassrls;');
+  // PG roles are cluster-wide even when each CI check creates a new database.
+  await db.unsafe(`do $ begin
+    if not exists (select 1 from pg_roles where rolname='anon') then create role anon; end if;
+    if not exists (select 1 from pg_roles where rolname='authenticated') then create role authenticated; end if;
+    if not exists (select 1 from pg_roles where rolname='service_role') then create role service_role bypassrls; end if;
+  end $;`);
   await db.unsafe(`create table public.epistemic_events(
     event_id text not null primary key, event_name text not null, logbook_id text not null,
     payload jsonb not null, source jsonb not null, hash_self text not null
