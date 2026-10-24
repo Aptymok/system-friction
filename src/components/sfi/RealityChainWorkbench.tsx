@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './RealityChainWorkbench.css';
+import { RealityChainCaseInspector } from './RealityChainCaseInspector';
 import type { SfiRealityChain } from '@/core/case-platform/reportAssembler';
 
 type Ref={id:string;hash?:string|null;version?:string|null};
@@ -473,6 +474,8 @@ export function RealityChainWorkbench(){
     </div>
   </div>
 
+
+  {caseData?<RealityChainCaseInspector caseId={caseId} objects={asOfObjects}/>:null}
 
   {message?<div className="rcToast" role="status">{message}<button onClick={()=>setMessage('')} aria-label="Dismiss message">×</button></div>:null}
   {error?<div className="rcToast rcToastError" role="alert">{error}<button onClick={()=>setError('')} aria-label="Dismiss error">×</button></div>:null}
