@@ -83,6 +83,8 @@ export function SfiGovernanceWorkspace({enabled}:{enabled:boolean}){
 
   const agents=arr(runtime?.agents);
   const contracts=arr(runtime?.executionContracts);
+  const missions=arr(runtime?.missions);
+  const selectedMission=missions.find(mission=>mission.agentId===agentId)??null;
   const selectedAgent=agents.find(item=>item.id===agentId)??null;
   const contract=contracts.find(item=>item.agentId===agentId)??dossier?.contract??null;
   const state=dossier?.state??null;
@@ -146,12 +148,37 @@ export function SfiGovernanceWorkspace({enabled}:{enabled:boolean}){
 
   return <div className="sfiGovernanceLayout">
     {(error||notice)&&<div className={`sfiToast ${error?'error':''}`}><span>{error||notice}</span><button onClick={()=>{setError(null);setNotice(null)}}>×</button></div>}
-    <section className="sfiGovernancePanel agentPanel"><header><span>AGENTS · PASSPORT</span><b>{agents.length}</b></header><div className="sfiAgentList">{agents.map(agent=><button key={agent.id} className={agentId===agent.id?'selected':''} onClick={()=>setAgentId(agent.id)}><small>{agent.layer} · {agent.domain}</small><strong>{agent.name}</strong><p>{agent.purpose}</p><em>{agent.humanApprovalRequired?'Human authority is resolved in ROOT when applicable':'Model output does not expand authority'}</em></button>)}</div></section>
+    <section className="sfiGovernancePanel agentPanel">
+      <header><span>AGENTS · MISIÓN / PASSPORT</span><b>{agents.length}</b></header>
+      <p role="status">{missions.length} plantillas de misión vinculadas al registro canónico · ningún trabajo se encola ni se ejecuta al consultar.</p>
+      <div className="sfiAgentList">{agents.map(agent=>{
+        const mission=missions.find(item=>item.agentId===agent.id);
+        return <button key={agent.id} className={agentId===agent.id?'selected':''} onClick={()=>setAgentId(agent.id)}>
+          <small>{agent.layer} · {agent.domain}</small><strong>{agent.name}</strong>
+          <p>{mission?.title??'Misión no disponible'}</p>
+          <em>{mission?.assignmentState??'SIN ASIGNACIÓN VERIFICABLE'}</em>
+        </button>;
+      })}</div>
+    </section>
 
     <section className="sfiGovernancePanel operatorPanel"><header><span>RUNTIME / AGENTS · {selectedAgent?.name??'No agent selected'}</span><button className="heartbeat" disabled={busy==='heartbeat'||!agentId} onClick={()=>void heartbeat()}>{busy==='heartbeat'?'Running…':'RUN HEARTBEAT NOW'}</button></header><div className="sfiOperatorForm">
       {!agentId&&<div className="sfiAgentResult"><h3>DEFERRED HYDRATION</h3><p>Passports and contracts are available without loading Cases, Evidence, Graph, cycles or history. Select an agent to read only the targets and records needed to operate it.</p></div>}
       {agentId&&<><div className="sfiMetaGrid"><span>Infrastructure: <Status value={state?.infrastructure}/></span><span>Work: <Status value={state?.work}/></span><span>Epistemology: <Status value={state?.epistemic}/></span><span>Authority: <Status value={state?.authority}/></span><span>Latest execution: {date(state?.latestExecutionAt)}</span><span>Latest inference: {date(state?.latestInferenceAt)}</span><span>Generic interaction: {state?.latestInteractionObservation==='OBSERVED'?date(state?.latestInteractionAt):'NOT OBSERVED'}</span><span>Contract: {contract?.version??'—'}</span></div>
       <p>{dossier?.passport?.purpose??selectedAgent?.purpose}</p>
+      {selectedMission?<div className="sfiAgentResult" data-sfi-c06-agent-mission={agentId}>
+        <h3>MISIÓN DEFINIDA · {selectedMission.title}</h3>
+        <p>{selectedMission.objective}</p>
+        <p><strong>Disparador:</strong> {selectedMission.trigger} (declarado en el pasaporte; aún sin suscripción operativa C07/C08)</p>
+        <p><strong>Entrada requerida:</strong> {selectedMission.prerequisite}</p>
+        <p><strong>Objetivos permitidos:</strong> {strings(selectedMission.inputKinds).join(', ')} · mínimo {selectedMission.minimumTargets}</p>
+        <p><strong>Entregable:</strong> {selectedMission.deliverable} · destino {selectedMission.nextSurface}</p>
+        <p><strong>Límite:</strong> {selectedMission.forbiddenPromotion}</p>
+        <p><strong>Estado:</strong> {selectedMission.assignmentState} · {selectedMission.dispatchState} · {selectedMission.scheduleState}.
+          Sin gasto, asignación persistida ni recibo de ejecución generado por este catálogo.</p>
+        <button type="button" disabled={busy==='agent'} onClick={()=>setPurpose(String(selectedMission.objective))}>
+          USAR MISIÓN COMO PROPÓSITO (SIN EJECUTAR)
+        </button>
+      </div>:<p>MISIÓN NO DISPONIBLE; la ausencia de catálogo no autoriza ejecución.</p>}
       <div className="sfiMetaGrid"><span>READS: {arr(dossier?.passport?.reads).map(item=>txt(item.memory??item)).join(', ')||'—'}</span><span>WRITES: {arr(dossier?.passport?.writes).map(item=>txt(item.memory??item)).join(', ')||'—'}</span><span>EMITS: {strings(dossier?.passport?.emits).join(', ')||'—'}</span><span>Profile: {contract?.governanceProfile??'—'}</span></div>
       {state?.latestInferenceSummary&&<div className="sfiAgentResult"><h3>Latest current inference</h3><p>{state.latestInferenceSummary}</p>{state?.contextCoverage&&<p>Coverage: {state.contextCoverage.evidenceDelivered??'N/O'} / {state.contextCoverage.evidenceAvailable??'N/O'} evidence delivered · partial: {String(state.contextCoverage.partial??'N/O')}</p>}</div>}
 
