@@ -110,6 +110,15 @@ export function RealityChainWorkbench(){
  },[refreshCases]);
  useEffect(()=>{loadCase(caseId).catch(e=>{setError(String(e.message??e));setCaseData(null);});setExtraction(null);setSourceRef(null);setChosen([]);setSelectedObject(null);},[caseId,loadCase]);
  useEffect(()=>{
+  if(!caseId||caseData?.caseRecord.id!==caseId)return;
+  const requestedObject=new URLSearchParams(window.location.search).get('objectId');
+  if(!requestedObject||!caseData.objects.some(o=>o.id===requestedObject))return;
+  setSelectedObject(requestedObject);
+  setScreen(1);
+  const viewport=scroll.current;
+  if(viewport)viewport.scrollTo({left:viewport.clientWidth,behavior:'auto'});
+ },[caseData,caseId]);
+ useEffect(()=>{
    const element=scroll.current;if(!element)return;
    const update=()=>setScreen(Math.max(0,Math.min(2,Math.round(element.scrollLeft/Math.max(element.clientWidth,1)))));
    element.addEventListener('scroll',update,{passive:true});
