@@ -101,6 +101,9 @@ export default async function TimelinePage() {
         CASE / PROJECT: {caseProject.readPlane}
         {caseProject.warning ? ' · ' + caseProject.warning : ''}
       </p>
+      <p role="status" data-sfi-case-history-count={caseProject.items.filter(item=>item.id.startsWith('case-object:')||item.id.startsWith('case-audit:')||item.id.startsWith('case-decision:')||item.id.startsWith('case-proposal:')||item.id.startsWith('case-report:')).length}>
+        HISTORIA DE EXPEDIENTES: {caseProject.items.filter(item=>item.id.startsWith('case-object:')||item.id.startsWith('case-audit:')||item.id.startsWith('case-decision:')||item.id.startsWith('case-proposal:')||item.id.startsWith('case-report:')).length} eventos registrados y autorizados, sujetos a los límites y advertencias del lector.
+      </p>
       <p role="status" data-sfi-attractor-read-state={attractorHistory.status}>
         ATTRACTOR: {attractorHistory.status}
       </p>

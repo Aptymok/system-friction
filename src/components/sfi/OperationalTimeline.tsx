@@ -50,10 +50,12 @@ export function OperationalTimeline({items,worldReadPlane}:{
   const temporal=useMemo(()=>items.filter(event=>Number.isFinite(Date.parse(event.at)))
     .slice().sort((a,b)=>Date.parse(a.at)-Date.parse(b.at)),[items]);
   const latest=temporal.length?Date.parse(temporal[temporal.length-1].at):Date.now();
-  const visible=useMemo(()=>temporal.filter(event=>
-    (!windowDays||Date.parse(event.at)>=latest-windowDays*86400000)&&
-    (laneFilter==='ALL'||event.lane===laneFilter)
-  ),[temporal,latest,windowDays,laneFilter]);
+  const visibleWindow=useMemo(()=>temporal.filter(event=>
+    !windowDays||Date.parse(event.at)>=latest-windowDays*86400000
+  ),[temporal,latest,windowDays]);
+  const visible=useMemo(()=>visibleWindow.filter(event=>
+    laneFilter==='ALL'||event.lane===laneFilter
+  ),[visibleWindow,laneFilter]);
   const dates=visible.map(e=>Date.parse(e.at));
   const minimum=Math.min(...dates,latest),maximum=Math.max(...dates,latest),span=Math.max(1,maximum-minimum);
   const selected=visible.find(e=>e.id===selectedId)??visible[visible.length-1]??null;
@@ -79,7 +81,7 @@ export function OperationalTimeline({items,worldReadPlane}:{
         <div className="sfiTemporalCounters">{LANES.map(lane=>
           <button key={lane.id} type="button" onClick={()=>setLaneFilter(laneFilter===lane.id?'ALL':lane.id)}
             aria-pressed={laneFilter===lane.id}>
-            <i data-lane={lane.id}/><span>{lane.title}</span><b>{byLane(lane.id).length}</b>
+            <i data-lane={lane.id}/><span>{lane.title}</span><b>{visibleWindow.filter(e=>e.lane===lane.id).length}</b>
           </button>
         )}</div>
         <div className="sfiTemporalBoundary">
@@ -140,7 +142,7 @@ export function OperationalTimeline({items,worldReadPlane}:{
                   <i/><span>{e.title}</span>
                 </button>)}
                 {!byLane(lane.id).length?<p>{lane.id==='CASE'||lane.id==='PROJECT'
-                  ?'NOT EXPOSED BY CURRENT READER':'NO RECORDED ENTRIES IN SELECTED WINDOW'}</p>:null}
+                  ?'NO AUTHORIZED ENTRIES IN SELECTED WINDOW':'NO RECORDED ENTRIES IN SELECTED WINDOW'}</p>:null}
               </div>
             </div>)}
           </div>

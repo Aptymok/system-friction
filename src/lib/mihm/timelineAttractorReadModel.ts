@@ -10,7 +10,11 @@ function stamp(value: unknown) {
   const s = text(value);
   return s && Number.isFinite(Date.parse(s)) ? new Date(s).toISOString() : null;
 }
-function n(value: unknown) { const num = Number(value); return Number.isFinite(num) ? num : null; }
+function n(value: unknown) {
+  if (value === null || value === undefined || value === '') return null;
+  const num = Number(value);
+  return Number.isFinite(num) ? num : null;
+}
 
 /**
  * Institutional attractor observations have NO tenant_id. Therefore grant

@@ -167,6 +167,7 @@ export async function readTimelineCaseProjectState(userId: string): Promise<Time
         };
         historyItems = projectTimelineCaseHistory(
           history, new Set(caseIds), new Set(ids), 'SUPABASE_CANONICAL',
+          new Map(caseRows.map(r => [r.id, r.subject])),
         );
         for (const [index, rows] of results.entries()) {
           if ((rows.data ?? []).length >= bounds[index]) {

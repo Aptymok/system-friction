@@ -35,12 +35,16 @@ export function projectTimelineCaseHistory(
   authorizedCaseIds: ReadonlySet<string>,
   authorizedTenantIds: ReadonlySet<string>,
   provider: string,
+  caseLabels: ReadonlyMap<string,string> = new Map(),
 ): TimelineItem[] {
   const items: TimelineItem[] = [];
   const admit = (r: TimelineCaseHistoryRow) =>
     authorizedCaseIds.has(str(r.case_id)) && authorizedTenantIds.has(str(r.tenant_id));
-  const href = (r: TimelineCaseHistoryRow) =>
-    '/reality-chain?caseId=' + encodeURIComponent(str(r.case_id));
+  const caseTitle = (r: TimelineCaseHistoryRow) =>
+    (caseLabels.get(str(r.case_id)) || str(r.case_id)).slice(0, 90);
+  const href = (r: TimelineCaseHistoryRow, objectId?: string) =>
+    '/reality-chain?caseId=' + encodeURIComponent(str(r.case_id)) +
+    (objectId ? '&objectId=' + encodeURIComponent(objectId) : '');
   for (const r of batch.objects) {
     if (!admit(r)) continue;
     const at = stamp(r.created_at), id = str(r.id);
@@ -55,13 +59,13 @@ export function projectTimelineCaseHistory(
       : kind === 'EVIDENCE' ? 'EVIDENCE OBJECT · admission not implied'
       : kind + ' · object recorded';
     items.push({
-      id: 'case-object:' + id, at, lane: 'CASE', title: label,
+      id: 'case-object:' + id, at, lane: 'CASE', title: caseTitle(r) + ' · ' + label,
       subtitle: [
         detail, 'Object role: ' + (desc(r.epistemic_role, 80) || 'UNKNOWN'),
         'Canonical reference: ' + (ref(r.canonical_ref) || 'UNKNOWN'),
       ].filter(Boolean).join(' · '),
       origin: 'CASE PLATFORM · ' + provider + ' · ' + sourceRef,
-      state: 'OBJECT_PERSISTED_NOT_INDEPENDENTLY_VERIFIED', href: href(r),
+      state: 'OBJECT_PERSISTED_NOT_INDEPENDENTLY_VERIFIED', href: href(r, id),
       clockAnchorMeaning: 'sfi_case_objects.created_at: object persistence; not the date of its described historical event or an independently verified action.',
       clockEvidence: {
         RECORD: clock(at, sourceRef, 'Case object persisted at created_at; does not establish event, authority or actor knowledge time.'),
@@ -79,7 +83,7 @@ export function projectTimelineCaseHistory(
     const sourceRef = 'sfi_case_audit_events:' + id;
     items.push({
       id: 'case-audit:' + id, at, lane: 'CASE',
-      title: 'AUDIT · ' + action,
+      title: caseTitle(r) + ' · AUDIT · ' + action,
       subtitle: 'Recorded by actor ID: ' + (desc(r.actor_id, 80) || 'UNKNOWN') +
         ' · Database audit, not proof of an external action or independently observed RETURN.',
       origin: 'CASE PLATFORM · ' + provider + ' · ' + sourceRef,
@@ -97,10 +101,11 @@ export function projectTimelineCaseHistory(
     const sourceRef = 'sfi_case_action_proposals:' + id;
     items.push({
       id: 'case-proposal:' + id, at, lane: 'CASE',
-      title: 'ACTION PROPOSAL · ' + (desc(r.status, 60) || 'UNKNOWN'),
+      title: caseTitle(r) + ' · ACTION PROPOSAL REGISTERED',
       subtitle: 'Proposed by actor ID: ' + (desc(r.proposed_by, 80) || 'UNKNOWN') +
         ' · Risk: ' + (desc(r.risk_level, 35) || 'UNKNOWN') +
-        ' · A proposal alone grants no authority and records no execution.',
+        ' · Current status at query time: ' + (desc(r.status, 60) || 'UNKNOWN') +
+        ' (not necessarily status when registered). Proposal is neither authorization nor execution.',
       origin: 'CASE PLATFORM · ' + provider + ' · ' + sourceRef,
       state: 'PROPOSAL_RECORD', href: href(r),
       clockAnchorMeaning: 'sfi_case_action_proposals.created_at: proposal registration, not authorization or execution.',
@@ -119,7 +124,7 @@ export function projectTimelineCaseHistory(
     const authorityRecorded = ['OWNER','ADMIN'].includes(role) && Boolean(actor);
     items.push({
       id: 'case-decision:' + id, at, lane: 'CASE',
-      title: 'ACTION DECISION · ' + (desc(r.decision, 60) || 'UNKNOWN'),
+      title: caseTitle(r) + ' · ACTION DECISION · ' + (desc(r.decision, 60) || 'UNKNOWN'),
       subtitle: 'Authority role: ' + (role || 'UNKNOWN') +
         ' · Decided by actor ID: ' + (actor || 'UNKNOWN') +
         ' · Proposal ID: ' + (desc(r.proposal_id, 80) || 'UNKNOWN'),
@@ -143,7 +148,7 @@ export function projectTimelineCaseHistory(
     const generated = stamp(r.generated_at);
     items.push({
       id: 'case-report:' + id, at, lane: 'CASE',
-      title: 'PERSISTED REPORT · ' + (desc(r.report_contract, 65) || 'UNKNOWN'),
+      title: caseTitle(r) + ' · PERSISTED REPORT · ' + (desc(r.report_contract, 65) || 'UNKNOWN'),
       subtitle: 'Report stored in canonical report table; not execution authority or admitted evidence.',
       origin: 'CASE PLATFORM · ' + provider + ' · ' + sourceRef,
       state: 'PERSISTED_REPORT_RECORD', href: href(r),

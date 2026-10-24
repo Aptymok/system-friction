@@ -31,7 +31,9 @@ const project=(b:TimelineCaseHistoryBatch,cs=new Set(['case-a']),ts=new Set(['te
 const items=project(batch);
 assert.equal(items.length,9,'all nine genuine authorized and explicitly dated records');
 assert.ok(items.every(item=>item.lane==='CASE'));
-assert.ok(items.every(item=>item.href==='/reality-chain?caseId=case-a'));
+assert.ok(items.every(item=>item.href.startsWith('/reality-chain?caseId=case-a')));
+assert.ok(items.find(x=>x.id==='case-object:obs1')?.href.includes('&objectId=obs1'));
+assert.ok(items.find(x=>x.id==='case-audit:audit-1')?.href==='/reality-chain?caseId=case-a');
 assert.ok(items.every(item=>item.origin.includes('SUPABASE_CANONICAL')));
 assert.ok(!items.some(item=>item.id.includes('foreign')||item.id.includes('bad-time')));
 const source=items.find(x=>x.id==='case-object:record1')!;

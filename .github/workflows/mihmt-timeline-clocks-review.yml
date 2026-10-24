@@ -42,6 +42,8 @@ jobs:
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Verify MIHM-T independent clocks and authenticated route
         run: npx --no-install tsx scripts/qa-sfi-mihmt-timeline.ts
+      - name: Verify historical Case Platform source clocks, authority and tenant filtering
+        run: node --import tsx --test src/lib/mihm/timelineCaseHistory.test.ts
       - name: Existing operational temporal QA
         run: npx --no-install tsx scripts/qa-sfi-temporal-surfaces.ts
       - name: Existing visual convergence QA
