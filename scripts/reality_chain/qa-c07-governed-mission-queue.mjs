@@ -70,6 +70,12 @@ async function test() {
     payload jsonb not null, source jsonb not null, hash_self text not null
   )`);
   await db.unsafe(readFileSync('scripts/reality_chain/c07_governed_mission_queue_candidate.sql','utf8'));
+  const jsonProbe = await queryOne(db,
+    "select jsonb_typeof($1::jsonb) as kind, pg_column_size($1::jsonb) as bytes, left($1::jsonb::text,120) as preview",
+    [JSON.stringify(fakePayload)]);
+  console.log('C07_ISOLATED_JSON_PROBE',JSON.stringify(jsonProbe));
+  assert.equal(jsonProbe.kind,'object','queue request must be a JSON object, not a string');
+  assert.ok(Number(jsonProbe.bytes)<=32768,'queue request must meet the payload size limit');
   const acl=await queryOne(db,`select
     has_table_privilege('anon','public.sfi_c07_mission_jobs','select') as anon_table,
     has_function_privilege('authenticated','public.sfi_c07_claim_mission_v1(text,integer)','execute') as authenticated_claim,
