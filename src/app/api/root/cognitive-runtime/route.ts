@@ -8,9 +8,7 @@ import {
   listExecutionContracts,
 } from '@/lib/sfi/cognitive-runtime/executionContracts';
 import { executeManualCognitiveAgent } from '@/lib/sfi/cognitive-runtime/manualExecution';
-import { canonicalQueuedRequestDigest } from '@/lib/sfi/cognitive-runtime/queuedMissionWorker';
-import { readOperationalCase } from '@/lib/sfi/case-platform/repository';
-import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { enqueueAuthorizedC07Mission, readOwnedC07Mission } from '@/lib/sfi/cognitive-runtime/queuedMissionIntake';
 import { readObservedSfiCognitiveRuntime } from '@/lib/sfi/cognitive-runtime/observedRuntime';
 import { planCognitiveQuestion } from '@/lib/sfi/cognitive-runtime/planning';
 
@@ -44,19 +42,10 @@ export async function GET(request: Request) {
   if (!gate.ok) return NextResponse.json(gate.body, { status: gate.status });
   const jobId = new URL(request.url).searchParams.get('jobId')?.trim() ?? null;
   if (jobId) {
-    if (process.env.SFI_C07_MISSION_QUEUE_ENABLED !== 'true') {
-      return NextResponse.json({ok:false,error:'queue_not_released'},{status:409});
-    }
-    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(jobId)) {
-      return NextResponse.json({ok:false,error:'job_id_invalid'},{status:400});
-    }
-    const status = await createServiceSupabaseClient().from('sfi_c07_mission_jobs')
-      .select('id,mission_id,execution_id,status,attempts,max_attempts,receipt_event_id,last_error_code,updated_at,return_observation')
-      .eq('id',jobId).eq('actor_id',gate.ctx.user.id).maybeSingle();
-    if (status.error) return NextResponse.json({ok:false,error:'queue_status_unavailable'},{status:503});
-    if (!status.data) return NextResponse.json({ok:false,error:'queue_job_not_found'},{status:404});
-    return NextResponse.json({ok:true,job:status.data,boundary:'QUEUED is not EXECUTED. A verified agent receipt is not external RETURN or approved learning.'},{headers:{'Cache-Control':'private, no-store'}});
+    const result = await readOwnedC07Mission(jobId, gate.ctx.user.id);
+    return NextResponse.json(result.body, {status:result.status,headers:{'Cache-Control':'private, no-store'}});
   }
+
   return NextResponse.json({
     ok: true,
     runtime: await readObservedSfiCognitiveRuntime(),
@@ -84,48 +73,8 @@ export async function POST(request: Request) {
   }
 
   if (operation === 'queue_mission') {
-    // A ROOT operation is not a permission to enqueue across tenants.
-    // At this stage restrict queue use to exactly one existing, readable CASE.
-    if (process.env.SFI_C07_MISSION_QUEUE_ENABLED !== 'true') {
-      return NextResponse.json({ ok:false, error:'queue_not_released', instructions:'La cola aún no tiene migración y despliegue autorizados.' }, { status:409 });
-    }
-    const mission = validateMissionDispatchRequest(body);
-    if (!mission.ok) return NextResponse.json({ok:false,error:mission.error},{status:mission.status});
-    const targets = Array.isArray(body.targets) ? body.targets as Row[] : [];
-    const anchors = Array.isArray(body.anchors) ? body.anchors as Row[] : [];
-    if (targets.length !== 1 || targets[0].kind !== 'CASE' || !text(targets[0].id)
-      || !anchors.length || anchors.some(a => a.kind !== 'CASE' || a.id !== targets[0].id)
-      || !text(body.idempotencyKey,160) || text(body.idempotencyKey,160)!.length < 8
-      || (Array.isArray(body.sourceUrls) && body.sourceUrls.length)
-      || (Array.isArray(body.evidenceIds) && body.evidenceIds.length)) {
-      return NextResponse.json({ok:false,error:'queue_requires_single_case_read_only_request'},{status:400});
-    }
-    const caseRef = await readOperationalCase(String(targets[0].id), gate.ctx.user.id).catch(() => null);
-    if (!caseRef || caseRef.caseRecord.status === 'CLOSED') {
-      return NextResponse.json({ok:false,error:'case_not_authorized_or_closed'},{status:403});
-    }
-    const permittedKeys = ['agentId','missionId','purpose','anchors','targets','timeRange','direction','parameters','requestedOutputs','governanceContext'];
-    const payload = Object.fromEntries(permittedKeys.filter(key => body[key] !== undefined).map(key => [key,body[key]]));
-    const db = createServiceSupabaseClient();
-    const receipt = await db.rpc('sfi_c07_enqueue_mission_v1',{
-      p_tenant_id:caseRef.caseRecord.tenantId,
-      p_actor_id:gate.ctx.user.id,
-      p_mission_id:mission.mission.missionId,
-      p_agent_id:mission.mission.agentId,
-      p_idempotency_key:String(body.idempotencyKey),
-      p_request_digest:canonicalQueuedRequestDigest(payload),
-      p_request_payload:payload,
-      p_max_attempts:2,
-    });
-    if (receipt.error || !receipt.data) return NextResponse.json({
-      ok:false,error:'queue_write_not_confirmed',code:receipt.error?.code??null,
-    },{status:503});
-    const queued = Array.isArray(receipt.data) ? receipt.data[0] : receipt.data;
-    return NextResponse.json({
-      ok:true,operation:'queue_mission',state:queued.status,
-      jobId:queued.id,executionId:queued.execution_id,missionId:queued.mission_id,
-      boundary:'Queued does not mean executed; execution requires lease, authority recheck and independent persisted receipt. External RETURN remains NOT_OBSERVED.',
-    },{status:202});
+    const result = await enqueueAuthorizedC07Mission(body, gate.ctx.user.id);
+    return NextResponse.json(result.body, {status:result.status});
   }
 
   if (operation !== 'execute' && operation !== 'execute_mission') {
