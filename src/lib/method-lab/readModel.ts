@@ -50,8 +50,10 @@ async function probeDependencies() {
   const db = createServiceSupabaseClient();
   const tables = [...new Set(Object.values(PROTOCOL_DEPENDENCIES).flat())];
   const results = await Promise.all(tables.map(async (table): Promise<DependencyState> => {
-    const probe = await db.from(table).select('*', { count: 'exact', head: true });
-    return { table, available: !probe.error, error: probe.error?.message ?? null };
+    // Check readable table shape, not COUNT(*) over large RLS tables.
+    // head=true + limit(1) avoids an exact-count scan, while retaining errors.
+    const probe = await db.from(table).select('id', { head: true }).limit(1);
+    return { table, available: !probe.error, error: probe.error?.message || probe.error?.code || null };
   }));
   return new Map(results.map((item) => [item.table, item]));
 }
