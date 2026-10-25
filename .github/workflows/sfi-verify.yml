@@ -64,6 +64,8 @@ jobs:
 
       - name: Verify elected-attractor onboarding and rival RETURN separation
         run: npx tsx scripts/qa-sfi-case-intake-action-binding.ts && node --import tsx --test src/lib/world-observatory/hypothesisConditionalExplore.test.ts
+      - name: Verify safe falsifiable test selection and locked objective on resumption
+        run: npx tsx scripts/qa-sfi-next-discriminator.ts
       - name: Verify MIHM foundation missingness diagnostic
         run: npx tsx scripts/qa-sfi-mihm-foundation-missingness.ts
       - name: Verify source-safe CHRONOS synthetic review and cutoff boundaries
