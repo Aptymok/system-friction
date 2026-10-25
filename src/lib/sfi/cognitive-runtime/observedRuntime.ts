@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { readPrimaryCognitiveExecutionEvents } from '@/lib/persistence/dataPlaneRpc';
 import { SFI_COGNITIVE_RUNTIME_MODES, SFI_LAYER_QUESTIONS } from './registry';
 import { SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY } from './convergedRegistry';
 import { SFI_AGENT_EXECUTION_MAP } from './agentExecutionMap';
@@ -51,7 +52,7 @@ function isFresh(value: string | null) {
 async function readRuntimeEvents() {
   const db = createServiceSupabaseClient();
   const executionLimit = Math.max(100, SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.length * 8);
-  const [recentResult, executionResult] = await Promise.all([
+  const [recentResult, executionResult, primaryExecution] = await Promise.all([
     db.from('epistemic_events')
       .select(RUNTIME_EVENT_SELECT)
       .order('sequence', { ascending: false })
@@ -61,12 +62,40 @@ async function readRuntimeEvents() {
       .eq('event_name', 'SFI_AGENT_EXECUTED')
       .order('occurred_at', { ascending: false })
       .limit(executionLimit),
+    // The ordinary service client follows the continuity read-plane (Neon).
+    // C07 execution receipts are canonical in Supabase primary and are NOT
+    // cross-provider replicated by current founder policy.
+    readPrimaryCognitiveExecutionEvents()
+      .then((rows) => ({ ok: true as const, rows }))
+      .catch(() => ({ ok: false as const, rows: [] as Array<Record<string, unknown>> })),
   ]);
 
+  const routedRecent = (recentResult.data ?? []) as Array<Record<string, unknown>>;
+  const executionRows = primaryExecution.ok
+    ? primaryExecution.rows
+    : (executionResult.data ?? []) as Array<Record<string, unknown>>;
+  // Present primary receipts in the recent event list as well as agent status,
+  // or Passport will disagree with the runtime status. Dedupe by event identity.
+  const uniqueEvents = new Map<string, Record<string, unknown>>();
+  for (const item of [...(primaryExecution.ok ? primaryExecution.rows : []), ...routedRecent]) {
+    const id = typeof item.event_id === 'string' ? item.event_id : '';
+    if (id && !uniqueEvents.has(id)) uniqueEvents.set(id, item);
+  }
+  const recentRows = [...uniqueEvents.values()]
+    .sort((a, b) => (occurredAt(b) ?? '').localeCompare(occurredAt(a) ?? ''))
+    .slice(0, 80);
+  const warnings = [
+    recentResult.error ? 'ROUTED_RECENT_EVENTS_UNAVAILABLE' : null,
+    !primaryExecution.ok ? 'PRIMARY_EXECUTION_RECEIPTS_UNAVAILABLE: CONTINUITY_ONLY_NOT_COMPLETE' : null,
+    !primaryExecution.ok && executionResult.error ? 'CONTINUITY_EXECUTION_RECEIPTS_UNAVAILABLE' : null,
+  ].filter((value): value is string => Boolean(value));
+
   return {
-    recentRows: (recentResult.data ?? []) as Array<Record<string, unknown>>,
-    executionRows: (executionResult.data ?? []) as Array<Record<string, unknown>>,
-    warnings: [recentResult.error?.message, executionResult.error?.message].filter(Boolean) as string[],
+    recentRows,
+    executionRows,
+    primaryExecutionObserved: primaryExecution.ok,
+    routedRecentObserved: !recentResult.error,
+    warnings,
   };
 }
 
@@ -91,7 +120,8 @@ async function buildObservedSnapshot(): Promise<SfiCognitiveRuntimeSnapshot> {
   const eventStream = await readRuntimeEvents();
   const eventRows = eventStream.recentRows;
   const executionEvents = eventStream.executionRows;
-  const eventReadDegraded = eventStream.warnings.length > 0;
+  const executionReadDegraded = !eventStream.primaryExecutionObserved;
+  const eventReadDegraded = !eventStream.routedRecentObserved || executionReadDegraded;
 
   const agents: SfiCognitiveAgentState[] = SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.map((agent) => {
     const latestExecution = executionEvents.find((row) => sourceId(row) === agent.id) ?? null;
@@ -100,15 +130,15 @@ async function buildObservedSnapshot(): Promise<SfiCognitiveRuntimeSnapshot> {
 
     let status: SfiCognitiveRuntimeStatus;
     if (agent.missingCapability || !executorBound) status = 'missing';
-    else if (eventReadDegraded) status = 'degraded';
+    else if (executionReadDegraded) status = 'degraded';
     else if (lastExecutedAt && isFresh(lastExecutedAt)) status = 'operational';
     else status = 'gated';
 
     const warnings: string[] = [
       ...(!executorBound ? ['No existe executor enlazado para este contrato.'] : []),
-      ...(eventReadDegraded ? eventStream.warnings.map((warning) => `epistemic_events: ${warning}`) : []),
+      ...(executionReadDegraded ? ['No se pudo contrastar el historial principal de ejecuciones. Los eventos de continuidad no certifican que no existan recibos recientes.'] : []),
       ...(lastExecutedAt && !isFresh(lastExecutedAt) ? [`Última ejecución observada fuera de la ventana de ${freshnessHours} h: ${lastExecutedAt}`] : []),
-      ...(!lastExecutedAt ? ['No existe una ejecución SFI_AGENT_EXECUTED reciente atribuible a este agente.'] : []),
+      ...(!lastExecutedAt && !executionReadDegraded ? ['No existe una ejecución SFI_AGENT_EXECUTED reciente atribuible a este agente.'] : []),
       'Las tablas fuente no se sondean durante lecturas interactivas; una dependencia se declara por contrato y falla explícitamente cuando una operación real la necesita.',
     ];
 
@@ -130,7 +160,7 @@ async function buildObservedSnapshot(): Promise<SfiCognitiveRuntimeSnapshot> {
       humanApprovalRequired: agent.humanApprovalRequired,
       evidence: {
         sourceTables: agent.sourceTables,
-        observedTables: agent.sourceTables.includes('epistemic_events') && !eventReadDegraded ? ['epistemic_events'] : [],
+        observedTables: agent.sourceTables.includes('epistemic_events') && !executionReadDegraded ? ['epistemic_events'] : [],
         missingTables: [],
         warnings,
       },
@@ -184,7 +214,7 @@ async function buildObservedSnapshot(): Promise<SfiCognitiveRuntimeSnapshot> {
     generatedAt: new Date().toISOString(),
     schemaVersion: '2026-09-03.observed-runtime.v3-no-probe',
     status: runtimeStatus,
-    summary: `${operationalAgents}/${agents.length} agentes con ejecución observada en ${freshnessHours} h; ${gatedAgents} listos sin ejecución reciente; ${degradedAgents} degradados; ${missingAgents} sin executor/capacidad. Salud de tablas no se infiere mediante fan-out de probes.`,
+    summary: `${operationalAgents}/${agents.length} agentes con ejecución observada en ${freshnessHours} h; ${gatedAgents} listos sin ejecución reciente; ${degradedAgents} degradados; ${missingAgents} sin executor/capacidad. ${executionReadDegraded ? 'RECIBOS PRINCIPALES NO OBSERVABLES: continuidad no equivale a ausencia de ejecuciones.' : 'Recibos de ejecución consultados en Supabase primario.'} Salud de tablas no se infiere mediante fan-out de probes.`,
     contract: {
       registeredAgents: agents.length,
       operationalModes: modes.filter((mode) => mode.status === 'operational').length,
@@ -192,7 +222,7 @@ async function buildObservedSnapshot(): Promise<SfiCognitiveRuntimeSnapshot> {
       humanApprovalAgents: agents.filter((agent) => agent.humanApprovalRequired).length,
     },
     eventGraph: {
-      source: 'epistemic_events',
+      source: eventStream.primaryExecutionObserved ? 'epistemic_events:PRIMARY_EXECUTIONS+ROUTED_RECENT' : 'epistemic_events:CONTINUITY_ONLY_INCOMPLETE',
       status: eventReadDegraded ? 'degraded' : recentEvents.length ? 'operational' : 'gated',
       recentEvents,
       warnings: eventStream.warnings.map(String),
