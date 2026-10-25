@@ -386,7 +386,7 @@ function reportFromModel(input: ProspectRadarInput, model: JsonRecord, sources: 
   return report;
 }
 
-async function persistReport(report: ProspectRadarReport, input: ProspectRadarInput, actorId: string) {
+async function persistReport(report: ProspectRadarReport, input: ProspectRadarInput, actorId: string | null) {
   try {
     const service = createServiceSupabaseClient();
     const run = await service.from('prospect_research_runs').insert({
@@ -440,7 +440,7 @@ async function persistReport(report: ProspectRadarReport, input: ProspectRadarIn
   }
 }
 
-export async function runNoKeyProspectRadar(input: ProspectRadarInput, actorId: string): Promise<ProspectRadarReport> {
+export async function runNoKeyProspectRadar(input: ProspectRadarInput, actorId: string | null): Promise<ProspectRadarReport> {
   const queries = queryPlan(input);
   const feed = await runNoKeyNewsFeeds(queries);
   const sources = normalizeSources(feed.results);
