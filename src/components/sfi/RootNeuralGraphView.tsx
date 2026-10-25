@@ -671,15 +671,24 @@ export function RootNeuralGraphView({
 }) {
   const searchParams=useSearchParams();
   const railRef=useRef<HTMLDivElement>(null);
+  const shellRef=useRef<HTMLElement>(null);
+  const missionsRef=useRef<HTMLDetailsElement>(null);
+  const [missionsOpen,setMissionsOpen]=useState(false);
   const passportRef=useRef<HTMLElement>(null);
   const graphRef=useRef<HTMLElement>(null);
   const revealPanel=(destination:HTMLElement|null)=>{
-    const rail=railRef.current;
-    if(!rail||!destination)return;
-    // Horizontal navigation is measured in the actual rendered geometry;
-    // it never assumes fixed tile widths or synthetic offsets.
-    const delta=destination.getBoundingClientRect().left-rail.getBoundingClientRect().left;
-    rail.scrollTo({left:rail.scrollLeft+delta,behavior:'smooth'});
+    const viewport=shellRef.current;
+    if(!viewport||!destination)return;
+    // The shell owns horizontal overflow (2880px); the rail does not.
+    // Scrolling the rail silently fails and can return Passport to the graph.
+    const delta=destination.getBoundingClientRect().left-viewport.getBoundingClientRect().left;
+    viewport.scrollBy({left:delta,behavior:'smooth'});
+  };
+  const openMissions=()=>{
+    if(missionsRef.current)missionsRef.current.open=true;
+    setMissionsOpen(true);
+    revealPanel(passportRef.current);
+    passportRef.current?.scrollTo({top:0,behavior:'smooth'});
   };
   const requestedReading=searchParams.get('reading');
   const allowedReadings=['CURRENT_STATE','HIERARCHY','TRAJECTORY','RETROLONGITUDINAL','PROJECTION','FRICTION_REGIME','REALITY_CHAIN','RETURN_CONTRAST'] as const;
@@ -814,11 +823,10 @@ export function RootNeuralGraphView({
 
 
   return (
-    <main className="neuralGraphShell rootFieldMode rootReferenceCockpit" data-root-layout="ONE-FIELD-ONE-CONSOLE" data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0" data-color-encoding={colorEncoding} data-neural-graph-contract="SFI-ROOT-NEURAL-GRAPH-1.1">
+    <main className="neuralGraphShell rootFieldMode rootReferenceCockpit" ref={shellRef} data-root-layout="ONE-FIELD-ONE-CONSOLE" data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0" data-color-encoding={colorEncoding} data-neural-graph-contract="SFI-ROOT-NEURAL-GRAPH-1.1">
       <div className="rootHorizontalRail" ref={railRef} tabIndex={0}
-        onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==='ArrowRight'||event.key==='ArrowLeft')){event.preventDefault();event.currentTarget.scrollBy({left:event.key==='ArrowRight'?430:-430,behavior:'smooth'});}}}
-        onWheel={event=>{if(Math.abs(event.deltaY)>Math.abs(event.deltaX)){event.currentTarget.scrollLeft+=event.deltaY;}}}
-        aria-label="Campo ROOT. Desplázate horizontalmente hacia el grafo y el pasaporte.">
+        onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==='ArrowRight'||event.key==='ArrowLeft')){event.preventDefault();shellRef.current?.scrollBy({left:event.key==='ArrowRight'?430:-430,behavior:'smooth'});}}}
+        aria-label="Campo ROOT. Usa los controles para abrir y leer Passport o Misiones.">
         <aside className="rootReferenceSidebar" aria-label="Field explorer">
           <div className="rootReferenceSidebarTitle"><strong>ROOT</strong><span>FIELD EXPLORER</span></div>
           <div className="rootReferenceSource" data-state={graph.sourceState}>
@@ -876,8 +884,14 @@ export function RootNeuralGraphView({
         </aside>
 
         <section className="rootFieldStage rootHorizontalGraph" ref={graphRef} aria-label="Grafo cognitivo canónico">
-          <button type="button" className="rootOpenPassport" onClick={()=>revealPanel(passportRef.current)}
-            aria-label="Abrir el Pasaporte de Realidad del objeto seleccionado">ABRIR PASAPORTE <span aria-hidden="true">→</span></button>
+          <div className="rootFieldQuickAccess" aria-label="Lecturas y operaciones de ROOT">
+            <button type="button" className="rootOpenPassport" onClick={()=>{
+              revealPanel(passportRef.current);
+              passportRef.current?.scrollTo({top:0,behavior:'smooth'});
+            }} aria-label="Abrir el Pasaporte de Realidad">ABRIR PASAPORTE <span aria-hidden="true">→</span></button>
+            <button type="button" className="rootOpenMissions" onClick={openMissions}
+              aria-label="Abrir misiones y agentes en ROOT">AGENTES · MISIONES <span aria-hidden="true">→</span></button>
+          </div>
           <details className="rootSemanticLegend">
             <summary>FIELD LEGEND · {reading.replaceAll('_',' ')}</summary>
             <p>FIELD STATUS · {graph.sourceState.toUpperCase()} · {graph.readPlane} · {visibleNodes.length} OBJECTS · {visibleEdges.length} RELATIONS · {date(graph.loadedAt)}</p>
@@ -942,6 +956,12 @@ export function RootNeuralGraphView({
             <button type="button" className="rootBackToGraph" onClick={()=>revealPanel(graphRef.current)}>← VOLVER AL GRAFO</button>
             <p>Evidence, inference, authority, execution and RETURN remain distinct.</p>
           </header>
+          <details className="rootPassportMissions" ref={missionsRef}
+            onToggle={event=>setMissionsOpen(event.currentTarget.open)}
+            data-root-field-missions="SFI-C07-VISIBLE-IN-ACTUAL-ROOT-1.0">
+            <summary>AGENTES · MISIONES C07 · EJECUCIONES Y RECIBOS</summary>
+            {missionsOpen&&<SfiRootWorkspace enabled missionOnly/>}
+          </details>
           <div className="rootGovernanceSingleReading">
             {selected ? (
               <>
