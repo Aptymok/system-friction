@@ -30,6 +30,7 @@ import type {
 } from '@/core/contracts/sfi';
 import { recordCanonicalCaseObjectAtomic } from './canonicalCaseObjectWriter';
 import { computeCaseSourceReadiness } from './sourceProtocolReadiness';
+import { projectCaseTemporalProvenance } from './temporalProvenance';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 
 export type SfiTenantRole = 'OWNER' | 'ADMIN' | 'OPERATOR' | 'VIEWER' | 'AUDITOR';
@@ -486,6 +487,7 @@ export async function readOperationalCase(caseId: string, userId: string, tempor
     caseRecord,
     objects,
     realityChain,
+    temporalProvenance: projectCaseTemporalProvenance(objects, caseRecord.temporalWindow.cutoff),
     revision: row.closure_revision ?? null,
     readiness: {
       ...sourceReadiness,
