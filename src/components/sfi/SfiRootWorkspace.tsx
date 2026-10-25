@@ -79,6 +79,10 @@ export function SfiRootWorkspace({ enabled, decisionOnly = false, missionOnly = 
   const [missionBusy, setMissionBusy] = useState(false);
   const [missionActionResult, setMissionActionResult] = useState<Row | null>(null);
   const [missionActionError, setMissionActionError] = useState<string | null>(null);
+  const [missionDetailJobId,setMissionDetailJobId]=useState<string|null>(null);
+  const [missionDetail,setMissionDetail]=useState<Row|null>(null);
+  const [missionDetailLoading,setMissionDetailLoading]=useState(false);
+  const [missionDetailError,setMissionDetailError]=useState<string|null>(null);
   const [pilotEconomics, setPilotEconomics] = useState<Row | null>(null);
   const [pilotEconomicsLoading, setPilotEconomicsLoading] = useState(false);
   const [pilotEconomicsError, setPilotEconomicsError] = useState<string | null>(null);
@@ -137,6 +141,18 @@ export function SfiRootWorkspace({ enabled, decisionOnly = false, missionOnly = 
       setMissionQueueLoading(false);
     }
   }, [enabled, missionQueueLoading]);
+
+  const readMissionDetail=useCallback(async(jobId:string)=>{
+    if(missionDetailLoading)return;
+    if(missionDetailJobId===jobId){setMissionDetailJobId(null);setMissionDetail(null);return;}
+    setMissionDetailJobId(jobId);setMissionDetail(null);setMissionDetailError(null);setMissionDetailLoading(true);
+    try {
+      const data=await jsonFetch('/api/root/cognitive-runtime?jobId='+encodeURIComponent(jobId));
+      setMissionDetail(data);
+    } catch(cause) {
+      setMissionDetailError(cause instanceof Error?cause.message:String(cause));
+    } finally {setMissionDetailLoading(false);}
+  },[missionDetailLoading,missionDetailJobId]);
 
   const runMissionAction=useCallback(async (operation:'queue_mission'|'run_queue_once')=>{
     if(!enabled||missionBusy||!missionQueueEnabled)return;
@@ -399,6 +415,33 @@ export function SfiRootWorkspace({ enabled, decisionOnly = false, missionOnly = 
             <p>Execution ID: {txt(job.execution_id)} · Attempts: {Number(job.attempts ?? 0)} / {Number(job.max_attempts ?? 0)}</p>
             <p>Confirmed receipt: {txt(job.receipt_event_id, 'NOT OBSERVED')}</p>
             <small>Return observation: {txt(job.return_observation, 'NOT OBSERVED')}</small>
+            <button type="button" disabled={missionDetailLoading}
+              onClick={()=>void readMissionDetail(String(job.id))}>
+              {missionDetailJobId===String(job.id)?'Cerrar comprobación':'Leer resultado y evidencia'}
+            </button>
+            {missionDetailJobId===String(job.id)&&<div className="rootReportHealth" role="status">
+              {missionDetailLoading&&<p>Consultando recibo principal…</p>}
+              {missionDetailError&&<p role="alert">No se pudo comprobar el resultado: {missionDetailError}</p>}
+              {missionDetail&&<>
+                <article><span>Recibo independiente</span><strong>{txt(missionDetail.outcome?.verification)}</strong></article>
+                <article><span>Resultado científico</span><strong>{txt(missionDetail.outcome?.scientificResult,'NO OBSERVADO')}</strong></article>
+                <article><span>Fuentes registradas / leídas</span><strong>{
+                  String(missionDetail.outcome?.caseSourceInventory?.references??'NO MEDIDO')+' / '+
+                  String(missionDetail.outcome?.caseSourceInventory?.retrievedContents??'NO MEDIDO')
+                }</strong></article>
+                <article><span>Hipótesis del caso</span><strong>{
+                  String(missionDetail.outcome?.caseSourceInventory?.hypotheses??'NO MEDIDO')
+                }</strong></article>
+                <article><span>Faltantes identificados</span><strong>{
+                  String(missionDetail.outcome?.evidenceHunter?.missingDetected??'NO MEDIDO')
+                }</strong></article>
+                <article><span>Modelo externo / RETURN</span><strong>{
+                  txt(missionDetail.outcome?.modelExecution,'NO OBSERVADO')+' / '+
+                  txt(missionDetail.outcome?.externalReturn,'NO OBSERVADO')
+                }</strong></article>
+                <p>Un recibo COMPLETED no acredita fuente leída, contraste, adopción ni aprendizaje. Los valores NO MEDIDO no equivalen a cero.</p>
+              </>}
+            </div>}
           </article>)}
         {missionQueue?.truncated === true && <div className="rootEmpty">
           Only the most recent twenty owned jobs are shown. This is not a complete historical count.
