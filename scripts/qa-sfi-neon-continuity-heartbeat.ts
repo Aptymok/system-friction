@@ -472,7 +472,7 @@ check('continuity-state replay accepts only a monotonic same-content stale heart
 
 check('historical journal recovery is disabled and cannot change PRIMARY',
   continuityRecovery.includes('attempted:false as const')
-  && continuityRecovery.includes("reason: 'SFI_REPLICATION_RETIRED_BY_FOUNDER'")
+  && /reason:\s*'SFI_REPLICATION_RETIRED_BY_FOUNDER'/.test(continuityRecovery)
   && !continuityRecovery.includes('sfi_apply_continuity_batch_v1')
   && !runtime.includes('await recoverPrimaryDataPlane('));
 
