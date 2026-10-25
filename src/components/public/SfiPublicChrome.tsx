@@ -14,7 +14,7 @@ type ChromeContext={
 };
 
 const NAV_SURFACES=[
-  {key:'services',label:'SERVICIOS',href:'/servicios'},
+  {key:'services',label:'SERVICES',href:'/servicios'},
   {key:'root',label:'ROOT',href:'/instruments/root'},
   {key:'observatory',label:'OBSERVATORY',href:'/instruments/observatory'},
   {key:'reality-chain',label:'REALITY CHAIN',href:'/instruments/reality-chain'},
@@ -38,7 +38,7 @@ const SUBJECTS:Record<string,ChromeContext>={
 
 
 function routeContext(pathname:string):ChromeContext{
-  if(pathname.startsWith('/servicios')) return {title:'SERVICIOS',statement:'LA EVIDENCIA DA FORMA A UNA RESPUESTA.',stage:'OBSERVACIÓN',href:'/servicios',navKey:'services'};
+  if(pathname.startsWith('/servicios')) return {title:'SERVICES',statement:'EVIDENCE SHAPES WHAT CAN BE ESTABLISHED.',stage:'OBSERVATION',href:'/servicios',navKey:'services'};
   if(pathname.startsWith('/instruments/root')) return {title:'ROOT',statement:'REASONING IS DIFFERENT FROM AUTHORITY.',stage:'AUTHORITY',href:'/instruments/root',navKey:'root'};
   if(pathname.startsWith('/instruments/observatory')) return {title:'OBSERVATORY',statement:'A SIGNAL IS NOT EVIDENCE.',stage:'OBSERVATION',href:'/instruments/observatory',navKey:'observatory'};
   if(pathname.startsWith('/instruments/reality-chain')) return {title:'REALITY CHAIN',statement:'TRACEABILITY ≠ JUSTIFICATION.',stage:'RETURN',href:'/instruments/reality-chain',navKey:'reality-chain'};
