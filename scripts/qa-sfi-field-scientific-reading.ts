@@ -1,3 +1,4 @@
+import { compareMihmTopology } from '../packages/mihm-core/src/index';
 import assert from 'node:assert/strict';
 import type { CanonicalGraphEdge, CanonicalGraphNode } from '../packages/graph/src';
 import { deriveEmpiricalCapacityEnvelope, deriveFieldScientificReading, emergenceReading, relationScientificReading, scientificMethodCandidates, temporalCoordinates } from '../src/lib/mihm/fieldScientificReading';
@@ -93,5 +94,98 @@ const fakeCapacityFromGenericLineage={
 const fakeCapacityReading=deriveFieldScientificReading(fakeCapacityFromGenericLineage,[]);
 assert.equal(fakeCapacityReading.capacity,null,'generic provenance must never be treated as empirical capacity evidence');
 assert.notEqual(fakeCapacityReading.nextAction.decision,'REVIEW_PERTURBATION_CANDIDATE','perturbation review requires intervention-linked observed RETURN capacity');
+
+
+// MIHM Foundation F1: topology contrast is descriptive and cannot mint emergence/prediction claims.
+const topologyProtocol = {
+  boundaryId: 'synthetic-six-node-system',
+  relationSemanticsId: 'undirected-contact-v1',
+  observerId: 'sfi-qa',
+  resolution: 'NODE_RELATION' as const,
+  temporalResolution: 'INSTANT' as const,
+  directed: false,
+};
+const topologyNodeIds = ['a', 'b', 'c', 'd', 'e', 'f'];
+const topologyRelations = (pairs: string[][]) => pairs.map(([sourceNodeId, targetNodeId]) =>
+  ({ sourceNodeId, targetNodeId, relation: 'contact' }));
+const topologyCycle = topologyRelations([
+  ['a', 'b'], ['b', 'c'], ['c', 'd'], ['d', 'e'], ['e', 'f'], ['f', 'a'],
+]);
+const topologyTriangles = topologyRelations([
+  ['a', 'b'], ['b', 'c'], ['a', 'c'], ['d', 'e'], ['e', 'f'], ['d', 'f'],
+]);
+const topologySnapshot = (relations: typeof topologyCycle, observedAt: string) => ({
+  boundaryId: topologyProtocol.boundaryId,
+  relationSemanticsId: topologyProtocol.relationSemanticsId,
+  observedAt,
+  sourceState: 'SIMULATED' as const,
+  coverage: 'COMPLETE' as const,
+  nodeIds: topologyNodeIds,
+  relations,
+  evidenceRefs: [] as string[],
+});
+const topologyT0 = topologySnapshot(topologyCycle, '2026-10-01T00:00:00Z');
+const topologyT1 = topologySnapshot(topologyTriangles, '2026-10-02T00:00:00Z');
+const topologyCompare = (after = topologyT1, before = topologyT0, protocol = topologyProtocol) =>
+  compareMihmTopology({ before, after, protocol });
+
+const topologyChanged = topologyCompare();
+assert.equal(topologyChanged.status, 'STRUCTURAL_CHANGE', 'distinct connected components must be detectable');
+assert.equal(topologyChanged.counts?.aggregatesEqual, true, 'node/edge count aggregate remains equal');
+assert.equal(topologyChanged.delta?.weakComponentsBefore, 1);
+assert.equal(topologyChanged.delta?.weakComponentsAfter, 2);
+assert.equal(topologyChanged.epistemicClass, 'SIMULATED');
+assert.equal(topologyChanged.delta?.addedRelations.length, 2);
+assert.equal(topologyChanged.delta?.removedRelations.length, 2);
+
+assert.equal(
+  topologyCompare({ ...topologyT0, observedAt: topologyT1.observedAt, relations: topologyCycle.slice().reverse() }).status,
+  'EQUIVALENT_WITHIN_PROTOCOL',
+  'same typed multiset with new order must be equivalent only within the declared protocol',
+);
+assert.equal(
+  topologyCompare({ ...topologyT0, observedAt: topologyT1.observedAt,
+    relations: topologyCycle.map((relation) => ({
+      ...relation, sourceNodeId: relation.targetNodeId, targetNodeId: relation.sourceNodeId,
+    })) }).status,
+  'EQUIVALENT_WITHIN_PROTOCOL',
+  'undirected edges must be orientation-invariant',
+);
+assert.equal(
+  topologyCompare({ ...topologyT0, observedAt: topologyT1.observedAt,
+    relations: topologyCycle.map((relation) => ({
+      ...relation, sourceNodeId: relation.targetNodeId, targetNodeId: relation.sourceNodeId,
+    })) }, topologyT0, { ...topologyProtocol, directed: true }).status,
+  'STRUCTURAL_CHANGE',
+  'directed graph must preserve edge orientation',
+);
+for (const invalid of [
+  { ...topologyT1, coverage: 'PARTIAL' as const },
+  { ...topologyT1, boundaryId: 'changed-after-outcome' },
+  { ...topologyT1, relationSemanticsId: 'incompatible-v2' },
+  { ...topologyT1, observedAt: topologyT0.observedAt },
+  { ...topologyT1, sourceState: 'NOT_OBSERVED' as const },
+  { ...topologyT1, nodeIds: ['a', 'b'] },
+  { ...topologyT1, nodeIds: [...topologyNodeIds, 'a'] },
+]) {
+  assert.equal(topologyCompare(invalid).status, 'INDETERMINATE', 'invalid coverage/boundary/time/source cannot yield structural claim');
+}
+assert.equal(
+  topologyCompare({ ...topologyT1, sourceState: 'OBSERVED' }, { ...topologyT0, sourceState: 'OBSERVED' }).status,
+  'INDETERMINATE',
+  'OBSERVED requires evidence refs for both snapshots',
+);
+const observedTopology = topologyCompare(
+  { ...topologyT1, sourceState: 'OBSERVED', evidenceRefs: ['evidence:t1'] },
+  { ...topologyT0, sourceState: 'OBSERVED', evidenceRefs: ['evidence:t0'] },
+);
+assert.equal(observedTopology.epistemicClass, 'DERIVED', 'analytical contrast is not raw observation');
+assert.equal(observedTopology.status, 'STRUCTURAL_CHANGE');
+assert.equal(
+  topologyCompare({ ...topologyT0, observedAt: topologyT1.observedAt,
+    relations: [...topologyCycle, topologyCycle[0]] }).delta?.addedRelations[0].count,
+  1,
+  'parallel relation multiplicity must not be silently collapsed',
+);
 
 console.log('SFI field scientific reading QA passed.');
