@@ -330,7 +330,7 @@ export function SfiRootWorkspace({ enabled, decisionOnly = false, missionOnly = 
             onChange={(event)=>setSelectedMissionCaseId(event.target.value)}>
             <option value="">Selecciona un caso</option>
             {activeCases.map(item=><option key={String(item.id)} value={String(item.id)}>
-              {txt(item.title||item.name,String(item.id))} · {String(item.id).slice(0,8)}
+              {projectCaseLabel({id:String(item.id),subject:txt(item.subject,''),scope:item.scope,projectName:txt(projects.find(p=>p.id===item.projectId)?.name,''),boundary:txt(item.systemBoundaryRef?.id,'')}).title} · {String(item.id).slice(0,8)}
             </option>)}
           </select>
           <label htmlFor="sfi-c07-mission-choice">Misión</label>
