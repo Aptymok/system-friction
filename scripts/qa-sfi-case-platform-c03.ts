@@ -5,6 +5,7 @@ import {computeCaseSourceReadiness, SFI_CASE_SOURCE_PROTOCOL_CONTRACT} from '../
 import {projectCaseTemporalProvenance} from '../src/lib/sfi/case-platform/temporalProvenance';
 import {projectCaseAuthorityEvidence} from '../src/lib/sfi/case-platform/authorityEvidenceReadModel';
 import {projectCaseTrajectoryContrast} from '../src/lib/sfi/case-platform/trajectoryContrastReadModel';
+import {projectCaseReturnLearning} from '../src/lib/sfi/case-platform/returnLearningReadModel';
 
 const project={id:'project-1',tenantId:'tenant-B',status:'ACTIVE'};
 assert.deepEqual(resolveCaseProjectAssignment(null,null,null),{tenantId:null,projectId:null});
@@ -255,5 +256,51 @@ const continuityUi=read('src/components/sfi/RealityChainWorkbench.tsx');
 assert.match(continuityUi,/data-case-continuity-warning/);
 assert.match(continuityUi,/caseData\?\.readConsistency\?\.warning/);
 assert.match(continuityUi,/Un cero en esta vista no es ausencia histórica/);
+
+
+const c18Chain={
+  caseId:'case-c18-test',
+  executions:[{ref:{id:'exec-a'},verified:true},{ref:{id:'exec-b'},verified:false}],
+  returns:[
+    {ref:{id:'return-contradicted'},executionRef:{id:'exec-a'},verified:true,
+      contrast:'CONTRADICTED',expected:{metric:'streams',expected:500,tolerance:20,
+      sensitiveNotes:'NOT_FOR_READ_MODEL'},observed:180},
+    {ref:{id:'return-supported'},executionRef:{id:'exec-a'},verified:true,
+      contrast:'SUPPORTED',expected:{metric:'plays',expected:30,tolerance:2},observed:31},
+    {ref:{id:'return-unverified'},executionRef:{id:'exec-b'},verified:true,
+      contrast:'CONTRADICTED',expected:{metric:'views',expected:7,tolerance:0},observed:2},
+    {ref:{id:'return-uncomparable'},executionRef:{id:'exec-a'},verified:true,
+      contrast:'NOT_COMPARABLE',expected:{metric:'unknown'},observed:null},
+  ],gaps:[],interpreter:{mode:'DETERMINISTIC_TRANSLATION'},
+  closure:{certified:false}
+} as unknown as Parameters<typeof projectCaseReturnLearning>[0];
+const c18=projectCaseReturnLearning(c18Chain);
+assert.equal(c18.counts.recordedReturns,4);
+assert.equal(c18.counts.contradictedCandidates,1);
+assert.equal(c18.counts.supportedExpectations,1);
+assert.equal(c18.counts.unverifiedReturns,1);
+assert.equal(c18.counts.nonComparable,1);
+assert.equal(c18.records[0].state,'CONTRADICTED_CANDIDATE_FOR_REVIEW');
+assert.equal(c18.records[0].learningCandidate,'REQUIRES_INDEPENDENT_CONTRAST_AND_ROOT_GOVERNANCE');
+assert.equal(c18.records[0].promotedToCanon,false);
+assert.equal(c18.records[0].promotedToLearning,false);
+assert.equal(c18.records[0].causalEffectEstablished,false);
+assert.equal(c18.learningStatus,'NO_GOVERNED_LEARNING_PROMOTION_OBSERVED');
+assert.ok(c18.records.every(x=>!JSON.stringify(x).includes('NOT_FOR_READ_MODEL')));
+assert.equal(projectCaseReturnLearning(c18Chain,1).truncated,true);
+const c18Limited=projectCaseReturnLearning({...c18Chain,gaps:['READ_INCOMPLETE']});
+assert.equal(c18Limited.readScope,'PROVIDER_OR_PROVENANCE_INCOMPLETE');
+const c18None=projectCaseReturnLearning({...c18Chain,returns:[]});
+assert.equal(c18None.counts.recordedReturns,0);
+assert.equal(c18None.counts.contradictedCandidates,0);
+assert.equal(c18None.learningStatus,'NO_GOVERNED_LEARNING_PROMOTION_OBSERVED');
+const c18Repo=read('src/lib/sfi/case-platform/repository.ts');
+assert.match(c18Repo,/returnLearning: projectCaseReturnLearning\(realityChain\)/);
+assert.match(externalCases,/returnLearning:envelope\.returnLearning/);
+const c18Ui=read('src/components/sfi/RealityChainWorkbench.tsx');
+assert.match(c18Ui,/data-c18-return-learning-review/);
+assert.match(c18Ui,/caseData\.returnLearning\.counts\.contradictedCandidates/);
+assert.match(c18Ui,/returnLearning:caseData\.returnLearning/);
+assert.match(c18Ui,/Causalidad acreditada: NO\. Promoción institucional: NO/);
 
 console.log('PASS C03 CASE PLATFORM: project-tenant association, one case insert, scoped detail, web links and authority');
