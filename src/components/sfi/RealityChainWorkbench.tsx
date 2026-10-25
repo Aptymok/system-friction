@@ -23,10 +23,22 @@ type AuthorityEvidenceView={
   authority:{decisionId:string;proposalId:string;decision:string;authorityRole:string|null;
     decidedBy:string|null;recordedAt:string;recordIntegrity:string;meaning:string}[];
 };
+type TrajectoryContrastView={
+  declaredCaseObjective:string|null;
+  clock:{sourceCutoff:string;t1ObservedAndValidated:boolean};
+  counts:{attractors:number;trajectories:number;caseObservations:number;
+    datedCaseObservations:number;chainAcceptedEvidence:number;caseReturns:number;
+    caseContradictions:number;verifiedExecutionRecords:number};
+  attractors:{ref:string;statedGoal:string|null;status:string}[];
+  trajectories:{ref:string;statedDirection:string|null;status:string}[];
+  latestObservations:{ref:string;observedAt:string}[];
+  gaps:string[];readScope:string;attainment:string;contrast:string;truncated:boolean;boundary:string;
+};
 type CaseEnvelope={realityChain?:SfiRealityChain;caseRecord:CaseRecord;objects:CaseObject[];
   readiness?:{missingSources:string[];readyForAnalysis:boolean};
   temporalProvenance?:TemporalProvenanceView;
-  authorityEvidence?:AuthorityEvidenceView};
+  authorityEvidence?:AuthorityEvidenceView;
+  trajectoryContrast?:TrajectoryContrastView};
 type Fragment={paragraph:number;page:number|null;pageBasis:string;text:string;start:number|null;end:number|null};
 type Extraction={source:{filename:string;mime:string;size:number;sha256:string;modifiedAt:string|null};extraction:{parser:string;pageCount:number|null;fragmentCount:number;returnedFragments:number;complete:boolean;warnings:string[];fragments:Fragment[]}};
 type Profile={id?:string;serviceProfileId?:string;name?:string;label?:string};
@@ -251,6 +263,7 @@ export function RealityChainWorkbench(){
     generatedAt:new Date().toISOString(),sourceCutoff:cutoff||null,case:caseData.caseRecord,readiness:caseData.readiness,
     temporalProvenance:caseData.temporalProvenance,
     authorityEvidence:caseData.authorityEvidence,
+    trajectoryContrast:caseData.trajectoryContrast,
     presentationStages:STEPS.map((s,i)=>({name:s.name,definition:s.role,records:asOfObjects.filter(o=>stageFor(o)===i)})),
     operationalMethod:FULL_METHOD,transversalConditions:TRANSVERSAL,
     uncategorizedObjects:asOfObjects.filter(o=>stageFor(o)<0),allRecordedObjects:asOfObjects,
@@ -523,6 +536,39 @@ export function RealityChainWorkbench(){
             <h2>RECONSTRUCT / TRACE / DELIVER</h2>
             <p>The same case can be reconstructed as known at a particular time. A report does not manufacture a decision or external RETURN.</p>
             <div className="rcThreeDataLine">{asOfObjects.length} HISTORICAL OBJECTS · {reports.length} RECORDED REPORTS</div>
+            <details className="rcRecordList" data-c17-trajectory-contrast="SFI-CASE-TRAJECTORY-CONTRAST-READ-1.0">
+              <summary>C17 · ATRACTOR / TRAYECTORIA / T1 / CONTRASTE</summary>
+              {caseData?.trajectoryContrast ? <>
+                <p>Objetivo declarado: {caseData.trajectoryContrast.declaredCaseObjective??'NO DOCUMENTADO'}.
+                  {' '}Objetivo alcanzado: {caseData.trajectoryContrast.attainment}.
+                  {' '}Contraste: {caseData.trajectoryContrast.contrast}.
+                </p>
+                <p>Atractores {caseData.trajectoryContrast.counts.attractors} ·
+                  {' '}Trayectorias {caseData.trajectoryContrast.counts.trajectories} ·
+                  {' '}Observaciones fechadas {caseData.trajectoryContrast.counts.datedCaseObservations} ·
+                  {' '}Evidencias adjudicadas y aceptadas {caseData.trajectoryContrast.counts.chainAcceptedEvidence} ·
+                  {' '}RETURN registrados {caseData.trajectoryContrast.counts.caseReturns}.
+                </p>
+                <p>T1 observado y validado: {caseData.trajectoryContrast.clock.t1ObservedAndValidated?'SÍ':'NO DEMOSTRADO'}.
+                  {' '}Fecha de corte: {caseData.trajectoryContrast.clock.sourceCutoff}.
+                  {' '}Alcance de lectura: {caseData.trajectoryContrast.readScope}.
+                </p>
+                {caseData.trajectoryContrast.attractors.map(item=>
+                  <article className="rcRecordItem" key={item.ref}>
+                    <strong>ATRACTOR DECLARADO · NO CONVERGENCIA</strong>
+                    <small>{item.ref}</small><span>{item.statedGoal??'Objetivo no especificado en el objeto'}</span>
+                  </article>)}
+                {caseData.trajectoryContrast.trajectories.map(item=>
+                  <article className="rcRecordItem" key={item.ref}>
+                    <strong>TRAYECTORIA REGISTRADA · NO EFECTO VERIFICADO</strong>
+                    <small>{item.ref}</small><span>{item.statedDirection??'Dirección no especificada'}</span>
+                  </article>)}
+                {caseData.trajectoryContrast.gaps.map(gap=>
+                  <p key={gap}>POR COMPROBAR · {gap.replaceAll('_',' ')}</p>)}
+                {caseData.trajectoryContrast.truncated&&<p>Índice limitado, no es el histórico completo.</p>}
+                <p>{caseData.trajectoryContrast.boundary}</p>
+              </>:<p>La proyección de C17 no está disponible en esta lectura. No implica ausencia de objetivos ni resultados en el mundo.</p>}
+            </details>
             <details className="rcRecordList" data-c14-temporal-source-clocks="SFI-CASE-TEMPORAL-PROVENANCE-1.0">
               <summary>RECONSTRUCCIÓN DE RELOJES · DOCUMENTO / PROVEEDOR / SFI</summary>
               <p>Estos son relojes documentales independientes; la fecha mostrada por una plataforma no demuestra qué mostraba antes de la fecha de corte ni equivale a RETURN.</p>
