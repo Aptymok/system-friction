@@ -65,7 +65,7 @@ assert.match(homeCss,/sfiHomeServicePrimary/);
 assert.match(instrument,/sfiInstrumentManualNav/);
 assert.match(instrument,/PREVIOUS/);
 assert.match(instrument,/NEXT/);
-assert.match(instrument,/href="\\/servicios"/);
+assert.ok(instrument.includes('href="/servicios"'));
 assert.match(instrumentCss,/sfiInstrumentManualNav/);
 assert.match(casePage,/RC-CASE-006/);
 assert.match(casePage,/SYNTHETIC LEARNING EXERCISE/);
