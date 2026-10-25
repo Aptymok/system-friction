@@ -404,10 +404,11 @@ check('shared continuity SQL handle exists without second connector',
   postgres.includes('export function continuityDatabase()')
   && postgres.includes('return db()'));
 
-check('actionable work gate reads Neon only after primary failure',
-  gate.includes('readNeonActionableWorkSnapshot')
-  && gate.includes("dataPlane: 'NEON'")
-  && gate.indexOf('if (readError || missingContinuityState)') < gate.indexOf('const fallback = await readNeonActionableWorkSnapshot()'));
+check('actionable work gate no longer depends on Neon after primary failure',
+  !gate.includes('readNeonActionableWorkSnapshot')
+  && gate.includes("reason: 'PRIMARY_WORK_GATE_UNAVAILABLE'")
+  && gate.includes("c08MissionWork.state === 'READ_CONFIRMED'")
+  && gate.includes("export async function readC08MissionWorkRequirement()"));
 
 check('Neon Data API infrastructure contract binds institutional JWKS to the bounded service role',
   neonDataPlaneGovernor.includes('auth_provider=external')
