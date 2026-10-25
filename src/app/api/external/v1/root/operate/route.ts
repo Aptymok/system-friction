@@ -541,27 +541,20 @@ export async function POST(req: Request) {
   }
 
   if (operation === 'data_plane_copy_verified') {
-    try {
-      const result = await replayVerifiedSourceObservations({ maxEntries: body.maxEntries === undefined ? 12 : Number(body.maxEntries) });
-      return NextResponse.json({ ...result, operation, initiatedBy: 'SOVEREIGN_ROOT_OAUTH' }, {
-        status: result.ok ? 200 : 409,
-        headers: { 'Cache-Control': 'no-store' },
-      });
-    } catch {
-      return NextResponse.json({ ok: false, operation, error: 'verified_source_copy_failed' }, { status: 503 });
-    }
+    return NextResponse.json({ ok: false, operation, attempted: false,
+      code: 'SFI_REPLICATION_RETIRED_BY_FOUNDER',
+      message: 'Cross-provider data copying and replay are disabled. Observe resource costs instead.' },
+      { status: 410, headers: { 'Cache-Control': 'no-store' } });
   }
 
+
   if (operation === 'data_plane_emergency') {
-    try {
-      const result = await attemptBoundedDataPlaneReconciliation(32);
-      return NextResponse.json({
-        ...result, operation, initiatedBy: 'SOVEREIGN_ROOT_OAUTH', forcedFailover: false,
-      }, { status: result.ok ? 200 : 409, headers: { 'Cache-Control': 'no-store' } });
-    } catch {
-      return NextResponse.json({ ok: false, operation, error: 'data_plane_emergency_recovery_failed' }, { status: 503 });
-    }
+    return NextResponse.json({ ok: false, operation, attempted: false,
+      code: 'SFI_REPLICATION_RETIRED_BY_FOUNDER',
+      message: 'Cross-provider data copying and replay are disabled. Observe resource costs instead.' },
+      { status: 410, headers: { 'Cache-Control': 'no-store' } });
   }
+
 
   if (operation === 'account_recover') {
     const result = await recoverInstitutionalAccount(root.service, root.credential.subjectId!, body.recovery);
