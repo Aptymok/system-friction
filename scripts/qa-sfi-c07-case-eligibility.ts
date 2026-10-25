@@ -66,6 +66,17 @@ assert.match(heartbeatGate,/c08MissionWork\.required/);
 assert.match(heartbeatGate,/C08_MISSION_WORK_PENDING/);
 assert.match(heartbeat,/await runBoundedC07QueuedMission\(/);
 assert.match(heartbeat,/DEFERRED_PRIMARY_WRITE_REQUIRED/);
+// C09 must display the authenticated read surface in ROOT, not merely JSON.
+const rootUi=readFileSync('src/components/sfi/SfiRootWorkspace.tsx','utf8');
+assert.match(rootUi,/data-c09-actor-scoped-mission-status/);
+assert.match(rootUi,/jsonFetch\('\/api\/root\/cognitive-runtime'\)/);
+assert.match(rootUi,/setMissionQueue\(null\)/);
+assert.match(rootUi,/\[userKey\]/);
+assert.match(rootUi,/missionQueue\?\.available === false/);
+assert.match(rootUi,/missionQueue\?\.available === true/);
+assert.match(rootUi,/missionQueue\?\.truncated === true/);
+assert.match(rootUi,/receipt_event_id/);
+assert.doesNotMatch(rootUi,/fetch\('\/api\/root\/cognitive-runtime',\s*\{\s*method:\s*'POST'/);
 console.log(JSON.stringify({
   pass:'SFI_C07_CASE_REVISION_AND_ELIGIBILITY',
   approvedStates:C07_AUTONOMOUS_CASE_STATES,
