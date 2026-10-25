@@ -24,7 +24,7 @@ export function ServiceInquiryForm({initialSlug}:{initialSlug:string}){
    '',
    'I am requesting a preliminary scope review only. This inquiry is not a contract, includes no confidential attachments and authorizes no material actions.',
  ].join('\n'),[service,name,email,organization,question]);
- const subject='SFI services inquiry — '+(service?.title??'Evaluación inicial');
+ const subject='SFI services inquiry — '+(service?.title??'Initial assessment');
  const mailto='mailto:'+SFI_PUBLIC_INQUIRY_EMAIL+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(message);
  function prepare(event:FormEvent<HTMLFormElement>){event.preventDefault();setCopied(false);setPrepared(true);}
  async function copy(){
