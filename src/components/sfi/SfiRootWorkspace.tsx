@@ -335,6 +335,21 @@ export function SfiRootWorkspace({ enabled, decisionOnly = false, missionOnly = 
               {projectCaseLabel({id:String(item.id),subject:txt(item.subject,''),scope:item.scope,projectName:txt(projects.find(p=>p.id===item.projectId)?.name,''),boundary:txt(item.systemBoundaryRef?.id,'')}).title} · {txt(item.status,'SIN ESTADO')} · {String(item.id).slice(0,8)} {item.id===authorizedCanaryCaseId?'· CANARIO AUTORIZADO':'· NO HABILITADO'}
             </option>)}
           </select>
+          {caseDirectory===null&&!caseDirectoryError&&<p role="status">Cargando descripciones de los casos…</p>}
+          {caseDirectoryError&&<p role="alert">No se pudieron leer los nombres de los casos: {caseDirectoryError}. No selecciones un código desconocido.</p>}
+          {missionQueueEnabled&&!authorizedCanaryCaseId&&<p role="alert">
+            No hay ningún caso de prueba C07 asignado a esta cuenta. Las misiones permanecen bloqueadas.
+          </p>}
+          {selectedCaseRecord&&<div className="rootReportHealth" data-c07-case-confirmation="READABLE_CASE_BEFORE_ENQUEUE">
+            <article><span>Expediente seleccionado</span><strong>{
+              projectCaseLabel({id:String(selectedCaseRecord.id),subject:txt(selectedCaseRecord.subject,''),
+                scope:selectedCaseRecord.scope,
+                projectName:txt(projects.find(p=>p.id===selectedCaseRecord.projectId)?.name,''),
+                boundary:txt(selectedCaseRecord.systemBoundaryRef?.id,'')}).title
+            }</strong></article>
+            <article><span>Estado / referencia secundaria</span><strong>{txt(selectedCaseRecord.status)} · {String(selectedCaseRecord.id).slice(0,8)}</strong></article>
+            <article><span>Alcance registrado</span><strong>{txt(selectedCaseRecord.scope,'ALCANCE NO DISPONIBLE')}</strong></article>
+          </div>}
           <label htmlFor="sfi-c07-mission-choice">Misión</label>
           <select id="sfi-c07-mission-choice" value={selectedMissionId}
             onChange={(event)=>setSelectedMissionId(event.target.value)}>
