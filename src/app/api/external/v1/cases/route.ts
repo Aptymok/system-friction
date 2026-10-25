@@ -218,7 +218,8 @@ export async function POST(request: Request) {
       const caseId = requireCaseId(body);
       const envelope = await readOperationalCase(caseId, userId);
       return NextResponse.json({ok:true, operation, passport:envelope.realityChain,
-        objects:envelope.objects,reports:await listOperationalReports(caseId,userId),
+        objects:envelope.objects,temporalProvenance:envelope.temporalProvenance,
+        reports:await listOperationalReports(caseId,userId),
         readConsistency: await caseReadConsistency()}, {headers:{'Cache-Control':'private, no-store'}});
     }
     if (operation === 'generate_report') {
