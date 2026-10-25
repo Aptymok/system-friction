@@ -112,7 +112,7 @@ if (approve.indexOf('queueApprovedProposal') > approve.indexOf('dispatchQueuedPr
 requireText(dailyCron, 'runGovernedExecutionRouter({ limit: 10 })', 'daily-continuity-retry-reroute');
 requireText(hourlyCron, 'runGovernedExecutionRouter({ limit: 10 })', 'hourly-continuity-retry-reroute');
 requireText(hourlyCron, 'verifyGitHubActionsOidcToken', 'hourly-router-auth-remains-oidc-governed');
-requireText(hourlyWorkflow, "cron: '7,22,37,52 * * * *'", 'reuse-existing-guarded-continuity-scheduler');
+requireText(hourlyWorkflow, "cron: '17 * * * *'", 'reuse-existing-guarded-continuity-scheduler');
 requireText(hourlyWorkflow, 'workflow_dispatch:', 'existing-hourly-manual-trigger-retained');
 requireText(rootRunner, 'runGovernedExecutionRouter({ limit: 10 })', 'root-full-cycle-router');
 
