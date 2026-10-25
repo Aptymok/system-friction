@@ -144,3 +144,59 @@ The first Knight DOI should be a **bounded source-indexed historical research pa
 A distinct later **SFI MIHM Foundation** DOI can archive the formal model definition, methods, scientific research hypotheses, tests and an immutable versioned artifact when the separate licensing/rights and review gates are satisfied. It should not be misleadingly titled \"MIHM Scientifically Validated\". The CIMPS paper can have its own citation/DOI without becoming the parent authority.
 
 **Current repository deliverable:** one parent scientific-development program, one pure bounded parent-child verification function and CI tests. **No automatic canon, DOI, scientific validity result, operation or RETURN.**
+
+
+## 2026-10-25 — F1 topology contrast implementation (experimental, not validation)
+
+**Question:** Can a bounded MIHM-related representation detect a change in *which nodes relate to which*
+when an existing reduced aggregate retains exactly the same node and edge counts?
+
+**Status:** IMPLEMENTED_ON_WORK_BRANCH / SYNTHETIC_QA / NOT_EMPIRICALLY_VALIDATED.
+This is NOT a preregistered prediction, independent replication, canonical Phi, MIHM-T law or observed-world RETURN.
+
+**Existing capabilities reused:** packages/mihm-core/src/index.ts (reduced computation);
+src/lib/mihm/scientificMethodRuntime.ts (NETWORK_SCIENCE local measures and CHANGE_POINT screening);
+the foundation F1 cross-node-specificity hypothesis; existing SFI field scientific QA.
+No new measurement methodology, data table, route, agent, scheduler or source registry is created.
+
+**Proposed bounded comparator:** compareMihmTopology / MIHM-TOPOLOGY-CONTRAST-1.0.
+It compares two snapshots only under a predeclared boundary, observer, typed relation semantics,
+orientation and structural/temporal resolution. Inputs are explicit lists of stable node IDs and
+typed edges, coverage, epistemic source labels, source references and observation times.
+It returns STRUCTURAL_CHANGE, EQUIVALENT_WITHIN_PROTOCOL or INDETERMINATE;
+node/edge count parity is reported separately. It rejects incomplete coverage,
+unmatched boundaries and relation semantics, missing evidence references for
+observational labels, bad endpoints, duplicate node identities and nonordered timestamps.
+The structural component count is a descriptive weak-connectivity measure, not emergence.
+
+**Adversarial fixture:** a six-node cycle and two disconnected triangles both have six nodes
+and six edges. Aggregate counts remain equal while components change from one to two.
+Additional controls include identity-preserving reordered edges, orientation, parallel edges,
+unknown/partial coverage, observed-without-evidence, invalid endpoints, T0/T1 ordering
+and changed boundary. All synthetic tests are labeled SIMULATED.
+
+**Known boundaries:** node/edge labels and coverage are caller assertions; this comparator
+does not adjudicate external evidence, quantify weights, identify ontological identity,
+make predictions, or establish that a trajectory emerged. Topological difference alone is
+not meaningful forecast skill. Equivalence is solely within the predeclared node/relation
+protocol, never indistinguishability in principle. This is F1 instrumentation only,
+not F1 empirical confirmation.
+
+**Required development preflight:**
+- Owner: MIHM Foundation / existing MIHM core and Method Lab research authority.
+- Existing capability inspected: reduced MIHM computation; field NETWORK_SCIENCE and
+  CHANGE_POINT; existing research program and missingness diagnostic.
+- Absorb vs create: extend current MIHM core and existing QA; no parallel service or engine.
+- Authoritative writer: unchanged; this function is pure and has no writer.
+- Persistence / lineage: no database changes. Source lineage remains an input requirement;
+  no output is persisted as institutional evidence.
+- Front / back / DB delta: none / pure computation / none.
+- Redundancy removed: none created.
+- Execution / ROOT boundary: no action, permission, production or canon expansion.
+- Rollback: revert the additive core export, QA addition and this program note.
+- Verification: targeted synthetic QA, full typecheck and CI architecture/build required
+  before merge. Confirmatory held-out comparison against competent baselines remains OPEN.
+
+**Next gate:** compare structural features against competent graph-change baselines on
+preselected source-vintage-safe data; independently adjudicate future outcomes. If the
+structure-aware method does not improve performance, preserve the negative result.
