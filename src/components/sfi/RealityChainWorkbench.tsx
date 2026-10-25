@@ -10,7 +10,13 @@ type Ref={id:string;hash?:string|null;version?:string|null};
 type CaseObject={id:string;kind:string;epistemicRole:string;canonicalRef:Ref;sourceRefs:Ref[];recordRefs:Ref[];evidenceRefs:Ref[];payload:Record<string,unknown>;observedAt:string|null;createdAt:string};
 type CaseRecord={id:string;subject:string;scope:string;status:string;projectId?:string|null;createdAt:string;updatedAt:string;tenantId:string;serviceProfileId:string;temporalWindow:{cutoff:string;timezone:string;basis:string}};
 type Project={id:string;name:string;caseCount:number;tenantId:string;description:string};
-type CaseEnvelope={realityChain?:SfiRealityChain;caseRecord:CaseRecord;objects:CaseObject[];readiness?:{missingSources:string[];readyForAnalysis:boolean}};
+type TemporalFactView={objectRef:string;clock:string;value:string;precision:'DAY'|'TIMESTAMP';
+  interpretation:string;relationToCutoff:string;historicalStatus:string;source:string|null};
+type TemporalProvenanceView={contract:string;cutoff:string;totalFacts:number;truncated:boolean;
+  snapshotObjectCount:number;warning:string;events:TemporalFactView[]};
+type CaseEnvelope={realityChain?:SfiRealityChain;caseRecord:CaseRecord;objects:CaseObject[];
+  readiness?:{missingSources:string[];readyForAnalysis:boolean};
+  temporalProvenance?:TemporalProvenanceView};
 type Fragment={paragraph:number;page:number|null;pageBasis:string;text:string;start:number|null;end:number|null};
 type Extraction={source:{filename:string;mime:string;size:number;sha256:string;modifiedAt:string|null};extraction:{parser:string;pageCount:number|null;fragmentCount:number;returnedFragments:number;complete:boolean;warnings:string[];fragments:Fragment[]}};
 type Profile={id?:string;serviceProfileId?:string;name?:string;label?:string};
@@ -233,6 +239,7 @@ export function RealityChainWorkbench(){
   if(!caseData)return;
   const document={contract:'SFI-REALITY-CHAIN-TRACEABILITY-DRAFT-0.1',classification:'DERIVED_READ_MODEL_NOT_INSTITUTIONAL_CERTIFICATION',
     generatedAt:new Date().toISOString(),sourceCutoff:cutoff||null,case:caseData.caseRecord,readiness:caseData.readiness,
+    temporalProvenance:caseData.temporalProvenance,
     presentationStages:STEPS.map((s,i)=>({name:s.name,definition:s.role,records:asOfObjects.filter(o=>stageFor(o)===i)})),
     operationalMethod:FULL_METHOD,transversalConditions:TRANSVERSAL,
     uncategorizedObjects:asOfObjects.filter(o=>stageFor(o)<0),allRecordedObjects:asOfObjects,
@@ -474,6 +481,26 @@ export function RealityChainWorkbench(){
             <h2>RECONSTRUCT / TRACE / DELIVER</h2>
             <p>The same case can be reconstructed as known at a particular time. A report does not manufacture a decision or external RETURN.</p>
             <div className="rcThreeDataLine">{asOfObjects.length} HISTORICAL OBJECTS · {reports.length} RECORDED REPORTS</div>
+            <details className="rcRecordList" data-c14-temporal-source-clocks="SFI-CASE-TEMPORAL-PROVENANCE-1.0">
+              <summary>RECONSTRUCCIÓN DE RELOJES · DOCUMENTO / PROVEEDOR / SFI</summary>
+              <p>Estos son relojes documentales independientes; la fecha mostrada por una plataforma no demuestra qué mostraba antes de la fecha de corte ni equivale a RETURN.</p>
+              {caseData?.temporalProvenance ? <>
+                <p>{caseData.temporalProvenance.totalFacts} fechas clasificadas a partir de {caseData.temporalProvenance.snapshotObjectCount} objetos de esta lectura.
+                  {' '}Corte: {caseData.temporalProvenance.cutoff}.
+                </p>
+                {caseData.temporalProvenance.events.slice(0,40).map((event,i)=>
+                  <article className="rcRecordItem" key={event.objectRef+':'+event.clock+':'+i}>
+                    <strong>{event.clock.replaceAll('_',' ')} · {event.value}</strong>
+                    <small>{event.objectRef}</small>
+                    <span>{event.source??'SFI CASE PLATFORM'} · {event.interpretation.replaceAll('_',' ')}
+                      {' · '}{event.relationToCutoff==='AFTER_CUTOFF'?'DESPUÉS DEL CORTE':'FECHA DE CONTEXTO · NO PRUEBA RETROSPECTIVA'}
+                    </span>
+                  </article>)}
+                {(caseData.temporalProvenance.totalFacts>40||caseData.temporalProvenance.truncated) &&
+                  <p>Vista limitada. Consulte el JSON para el resto del índice recuperado.</p>}
+                <p>{caseData.temporalProvenance.warning}</p>
+              </> : <p>El índice temporal aún no está disponible en la versión de lectura o en este plano de continuidad. No se infiere que no existan fuentes.</p>}
+            </details>
             <button type="button" disabled={!caseData||working} onClick={makeReport}>EXPORT TRACE · JSON + PRINTABLE HTML</button>
             <button type="button" disabled={!caseData||working} onClick={persistTraceManifest}>PERSIST TRACE MANIFEST AS RECORD</button>
             <button type="button" disabled={!caseData||working} onClick={createInstitutionalReport}>GUARDAR INFORME DEL EXPEDIENTE</button>
