@@ -342,4 +342,18 @@ const invalidRef=preflightCaseSnapshotParity([{...snap('one'),payloadDigest:''}]
 assert.equal(invalidRef.parityVerified,false);
 assert.deepEqual(invalidRef.invalid.primary,['one']);
 
+const c19PassportRoute=read('src/app/api/cases/[caseId]/reports/route.ts');
+assert.match(c19PassportRoute,/temporalProvenance:envelope\.temporalProvenance/);
+assert.match(c19PassportRoute,/authorityEvidence:envelope\.authorityEvidence/);
+assert.match(c19PassportRoute,/trajectoryContrast:envelope\.trajectoryContrast/);
+assert.match(c19PassportRoute,/returnLearning:envelope\.returnLearning/);
+assert.match(c19PassportRoute,/readConsistency,/);
+assert.match(c19PassportRoute,/CONTINUITY_SNAPSHOT_MAY_LAG_PRIMARY_WRITES_OR_DIVERGE/);
+assert.match(c19PassportRoute,/DATA_PLANE_STATE_UNAVAILABLE/);
+assert.match(c19PassportRoute,/Cache-Control':'private, no-store'/);
+assert.match(c19PassportRoute,/X-Content-Type-Options':'nosniff'/);
+// The JSON export is a readable projection, not a license to change the
+// canonical report or produce observational RETURN from documentary closure.
+assert.doesNotMatch(c19PassportRoute,/promotedToLearning: true/);
+
 console.log('PASS C03 CASE PLATFORM: project-tenant association, one case insert, scoped detail, web links and authority');
