@@ -66,7 +66,7 @@ requireJobMutex(continuity, 'heartbeat', 'sfi-continuity-heartbeat', 'Continuity
 requireJobMutex(observatory, 'observatory-production-return', 'sfi-observatory-return', 'Observatory');
 
 // Existing Continuity cadence and manual entrypoint remain under the same global execution mutex.
-assert.ok(continuity.includes("cron: '7,22,37,52 * * * *'"), 'existing continuity schedule runs four staggered times per hour');
+assert.ok(continuity.includes("cron: '17 * * * *'"), 'continuity uses one lightweight hourly wakeup');
 assert.match(continuity, /workflow_dispatch:/);
 
 const deploymentD = '34051736919';

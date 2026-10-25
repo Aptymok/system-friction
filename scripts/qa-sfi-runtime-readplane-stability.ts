@@ -5,6 +5,7 @@ import './qa-sfi-actionable-human-inbox';
 
 const read=(path:string)=>fs.readFileSync(path,'utf8');
 const observed=read('src/lib/sfi/cognitive-runtime/observedRuntime.ts');
+const primaryRpc=read('src/lib/persistence/dataPlaneRpc.ts');
 const integration=read('src/core/cognitive-twin/institutionalIntegration.ts');
 const state=read('src/core/cognitive-twin/readState.ts');
 const canonicalMemory=read('src/core/cognitive-twin/canonicalMemoryView.ts');
@@ -18,6 +19,22 @@ assert.equal(observed.includes('SFI_CONVERGED_RUNTIME_SOURCE_TABLES'),false,'run
 assert.equal(observed.includes('readTableAvailability'),false,'runtime must not probe table availability on interactive reads');
 assert.equal(observed.includes("head: true"),false,'runtime must not use HEAD health probes');
 assert.ok(observed.includes('SNAPSHOT_TTL_MS')&&observed.includes('snapshotInFlight'),'runtime snapshot must coalesce repeated reads');
+
+// C07 is persisted in the Supabase primary; Neon continuity is not replicated.
+// A 24-hour runtime count must never silently substitute an older Neon snapshot.
+assert.ok(primaryRpc.includes('readPrimaryCognitiveExecutionEvents'),'existing direct primary read contract must expose C07 receipt observation');
+assert.ok(primaryRpc.includes("event_name: 'eq.SFI_AGENT_EXECUTED'")&&primaryRpc.includes("limit: '168'"),'primary receipt read must be narrow and bounded');
+const primaryReadStart=primaryRpc.indexOf('export async function readPrimaryCognitiveExecutionEvents');
+const primaryReadEnd=primaryRpc.indexOf('/**',primaryReadStart+12);
+const primaryRead=primaryRpc.slice(primaryReadStart,primaryReadEnd);
+assert.ok(primaryRead.includes("method: 'GET'")&&primaryRead.includes("cache: 'no-store'"),'primary execution read must be read-only and uncached');
+assert.ok(!primaryRead.includes('createSfiDataPlaneFetch')&&!primaryRead.includes('postNeonDataPlaneRpc'),'primary receipt read must not follow the continuity redirect');
+assert.ok(observed.includes('readPrimaryCognitiveExecutionEvents()'),'observed runtime must use authoritative primary event receipts');
+assert.ok(observed.includes('PRIMARY_EXECUTION_RECEIPTS_UNAVAILABLE: CONTINUITY_ONLY_NOT_COMPLETE'),'unavailable primary must not be interpreted as zero executions');
+assert.ok(observed.includes('executionReadDegraded')&&observed.includes("status = 'degraded'"),'primary failure must make agent execution observation degraded');
+assert.ok(observed.includes('PRIMARY_EXECUTIONS+ROUTED_RECENT'),'runtime must preserve provenance of mixed read-planes');
+assert.ok(observed.includes('uniqueEvents')&&observed.includes('uniqueEvents.has(id)'),'passports must not double-count the same event across planes');
+assert.ok(!observed.includes('await probePrimaryDataPlane'),'interactive read must not grow into broad infrastructure probing');
 
 // Cognitive Twin integration health is a contract by default; live probing is an
 // explicit diagnostic/sync act and is bounded rather than COUNT(*).
@@ -58,5 +75,7 @@ console.log(JSON.stringify({
     'EXHAUSTIVE_HEALTH_IS_EXPLICIT_DIAGNOSTIC_ONLY',
     'ZERO_DUPLICATE_INTERACTIVE_READS',
     'ACTIONABLE_SOVEREIGN_HUMAN_QUEUE',
+    'C07_PRIMARY_RECEIPTS_NEVER_MASKED_BY_CONTINUITY',
+    'MISSING_PRIMARY_EVENT_PLANE_IS_DEGRADED_NOT_ZERO',
   ],
 },null,2));

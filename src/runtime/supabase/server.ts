@@ -4,7 +4,6 @@ import { createClient, type SupabaseClient, type User } from '@supabase/supabase
 import { normalizeSupabaseUrl } from '@/runtime/supabase/url';
 import { readContinuityProfileByEmail } from '@/lib/sfi/continuityPostgres';
 import { canonicalFounderUserId } from '@/lib/system/access/founderAuthority';
-import { createSfiDataPlaneFetch } from '@/lib/persistence/dataPlaneFetch';
 
 export class SfiAuthUnavailableError extends Error {
   constructor(message = 'Supabase Auth is temporarily unavailable.') {
@@ -336,7 +335,9 @@ export function createServiceSupabaseClient() {
       detectSessionInUrl: false,
     },
     global: {
-      fetch: createSfiDataPlaneFetch(normalizedUrl),
+      // Supabase is the single persistence provider. Never redirect service
+      // requests to Neon, even when an obsolete continuity row says RECOVERY.
+      fetch,
       headers: {
         'X-Client-Info': 'sfi-service-role',
       },

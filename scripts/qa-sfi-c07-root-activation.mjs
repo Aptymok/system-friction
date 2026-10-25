@@ -1,0 +1,91 @@
+#!/usr/bin/env node
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+
+const route=fs.readFileSync('src/app/api/root/cognitive-runtime/route.ts','utf8');
+const workspace=fs.readFileSync('src/components/sfi/SfiRootWorkspace.tsx','utf8');
+const intake=fs.readFileSync('src/lib/sfi/cognitive-runtime/queuedMissionIntake.ts','utf8');
+const worker=fs.readFileSync('src/lib/sfi/cognitive-runtime/queuedMissionWorker.ts','utf8');
+const manual=fs.readFileSync('src/lib/sfi/cognitive-runtime/manualExecution.ts','utf8');
+const executor=fs.readFileSync('src/lib/sfi/cognitive-runtime/runtimeAgentExecutor.ts','utf8');
+const owned=fs.readFileSync('src/lib/sfi/cognitive-runtime/queuedMissionIntake.ts','utf8');
+const primary=fs.readFileSync('src/lib/persistence/dataPlaneRpc.ts','utf8');
+const cron=fs.readFileSync('src/app/api/cron/continuity-heartbeat/route.ts','utf8');
+const gate=fs.readFileSync('src/lib/continuity/actionableWorkGate.ts','utf8');
+const supabaseServer=fs.readFileSync('src/runtime/supabase/server.ts','utf8');
+const legacyNeonAdapter=fs.readFileSync('src/lib/sfi/continuityPostgres.ts','utf8');
+
+assert.match(route,/requireRootActor\('root\.cognitive-runtime\.operate'\)/);
+assert.match(route,/if \(operation === 'queue_mission'\)/);
+assert.match(route,/enqueueAuthorizedC07Mission\(body, gate\.ctx\.user\.id\)/);
+assert.match(route,/if \(operation === 'run_queue_once'\)/);
+assert.match(route,/runBoundedC07QueuedMission/);
+assert.match(workspace,/data-c07-authorized-canary-control/);
+assert.match(workspace,/operation:'queue_mission'\|'run_queue_once'/);
+assert.match(workspace,/payload\.idempotencyKey='root-canary-'/);
+assert.match(workspace,/payload\.targets=\[\{kind:'CASE',id:selectedMissionCaseId\}\]/);
+assert.match(workspace,/!selectedMissionCaseId/);
+assert.match(workspace,/mission\.humanApprovalRequired===true/);
+assert.match(intake,/SFI_C07_MISSION_QUEUE_ENABLED/);
+assert.match(intake,/SFI_C07_CANARY_CASE_ID/);
+assert.match(intake,/assertTenantAccess\(caseRecord\.caseRecord\.tenantId,actorId,'WRITE'\)/);
+assert.match(intake,/sfi_c07_enqueue_mission_v1/);
+assert.match(worker,/sfi_c07_claim_mission_v1/);
+assert.match(worker,/sfi_c07_complete_mission_v1/);
+assert.match(worker,/receipt\.status !== 'READ_BACK_CONFIRMED'/);
+assert.match(worker,/sfi_c07_renew_mission_v1/);
+assert.match(cron,/runBoundedC07QueuedMission/);
+assert.match(gate,/readC08MissionWorkRequirement/);
+assert.doesNotMatch(route,/process\.env\.SFI_C07_MISSION_QUEUE_ENABLED\s*=(?!=)/);
+assert.doesNotMatch(workspace,/SFI_C07_CANARY_CASE_ID\s*=/);
+// Reuse Case Platform objects already loaded through authorized case reads.
+// A source reference must never be mistaken for fetched content or admitted evidence.
+assert.match(manual,/loadedByKey\.get\(referenceKey\('CASE', item\.id\)\)/);
+assert.match(manual,/principal\.requestSource === 'QUEUE_WORKER' && missionId/);
+assert.match(manual,/const sourceObjects = caseObjects\.filter\(\(item\) => item\.kind === 'SOURCE'\)/);
+assert.match(manual,/const hypothesisObjects = caseObjects\.filter\(\(item\) => item\.kind === 'HYPOTHESIS'\)/);
+assert.match(manual,/const unresolvedObjects = caseObjects\.filter\(\(item\) => item\.kind === 'UNRESOLVED_QUESTION'\)/);
+assert.match(manual,/epistemicClass: 'source_reference'/);
+assert.match(manual,/SOURCE_POINTER_ONLY_CONTENT_NOT_FETCHED_NOT_ACCEPTED_EVIDENCE/);
+assert.match(manual,/context\.metadata\.materialUnresolved = missingQuestions/);
+assert.match(manual,/sourceItemsFetched: 0/);
+assert.match(manual,/llmAugmentation: missionId === null/);
+assert.match(worker,/UNAUTHORIZED_EXTRA_CAPABILITIES/);
+// C09 result must come from an owner-scoped, hash-matching primary event.
+assert.match(owned,/\.eq\('id',jobId\)\.eq\('actor_id',actorId\)/);
+assert.match(owned,/readPrimaryCognitiveExecutionReceipt\(job\.receipt_event_id\)/);
+assert.match(owned,/item\.hash_self===job\.receipt_hash/);
+assert.match(owned,/source\.sourceId===job\.agent_id/);
+assert.match(owned,/payload\.executionId===job\.execution_id/);
+assert.match(owned,/PRIMARY_READ_UNAVAILABLE/);
+assert.match(owned,/RECEIPT_READBACK_MISMATCH/);
+assert.match(owned,/INDEPENDENT_EVIDENCE_AND_RETURN_NOT_CONFIRMED/);
+assert.match(primary,/export async function readPrimaryCognitiveExecutionReceipt/);
+assert.match(primary,/event_id: `eq\.\$\{eventId\}`/);
+assert.match(primary,/method: 'GET'/);
+assert.match(executor,/refs\.caseSourceInventory =/);
+assert.match(executor,/refs\.evidenceHunterSummary =/);
+assert.match(executor,/REFERENCE_ONLY_UNVERIFIED/);
+assert.match(workspace,/Leer resultado y evidencia/);
+assert.match(workspace,/missionDetail\.outcome\?\.verification/);
+assert.match(workspace,/NO MEDIDO/);
+// Primary-only implementation: Neon may remain as unreferenced legacy code,
+// but NO ordinary SFI service request may be silently redirected there.
+assert.doesNotMatch(supabaseServer,/fetch: createSfiDataPlaneFetch\(/);
+assert.doesNotMatch(supabaseServer,/import \{ createSfiDataPlaneFetch \}/);
+assert.match(supabaseServer,/fetch,/);
+assert.match(legacyNeonAdapter,/SFI_ENABLE_LEGACY_NEON_ADAPTER !== 'true'/);
+assert.doesNotMatch(gate,/readNeonActionableWorkSnapshot/);
+assert.match(gate,/PRIMARY_WORK_GATE_UNAVAILABLE/);
+assert.match(cron,/readC08MissionWorkRequirement\(\)/);
+assert.match(cron,/C07_SUPABASE_PRIMARY_ONLY/);
+assert.match(cron,/PRIMARY_C07_QUEUE_READ_UNAVAILABLE/);
+assert.match(cron,/PRIMARY_CONTINUITY_AUTHORITY_UNAVAILABLE/);
+assert.match(cron,/primary\.data\.mode === 'EMERGENCY_HALT'/);
+assert.ok(cron.indexOf('const missionWork = await readC08MissionWorkRequirement()')
+  < cron.indexOf('const actionableGate = await readContinuityActionableWorkGate'),
+  'C08 governed primary queue must be independently routable before legacy heartbeat');
+assert.ok(cron.indexOf('scheduledEgressGuardResponse(')
+  < cron.indexOf('const missionWork = await readC08MissionWorkRequirement()'),
+  'Cost/egress budget gate must precede the primary-only mission lane');
+console.log('PASS: ROOT C07 activation is rooted in existing queue, actor-scoped canary, fenced receipt and C08 worker.');

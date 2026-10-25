@@ -3,6 +3,7 @@ import { agentLlmAugmentationAllowed } from './llmAugmentationPolicy';
 import { executeRegisteredAgent } from './agentExecutionMap';
 import { emitGovernedProposalsFromAgentInsight } from './governedProposalEmitter';
 import { recordAgentExecutionEvent } from '@/infrastructure/events/cognitiveRuntimeEventRepository';
+import type { PersistedEvent } from './eventPersistence';
 import { augmentAgentWithLlm } from '@/infrastructure/ai/agentLlmClient';
 import { evaluateAgentAiGovernance, SFI_AI_GOVERNANCE_POLICY } from '@/lib/governance/aiGovernancePolicy';
 import {
@@ -17,6 +18,7 @@ export interface AgentExecutionResult {
   executed: boolean;
   context: KernelContext;
   executedAt: string;
+  receipt?: { eventId: string; eventName: string; occurredAt: string; acknowledgement: 'PERSISTED' } | null;
 }
 
 export type RuntimeAgentExecutorDependencies = {
@@ -24,7 +26,7 @@ export type RuntimeAgentExecutorDependencies = {
   executeAgent?: typeof executeRegisteredAgent;
   augmentAgentWithLlm?: typeof augmentAgentWithLlm;
   emitGovernedProposals?: typeof emitGovernedProposalsFromAgentInsight;
-  recordExecutionEvent?: typeof recordAgentExecutionEvent;
+  recordExecutionEvent?: (agentId: string, eventType: string, payload: unknown) => Promise<PersistedEvent | void>;
 };
 
 function row(value: unknown): Record<string, unknown> {
@@ -57,6 +59,7 @@ function compactExecutionMetadata(agentId: string, context: KernelContext) {
     : null;
   const keys = [
     'executionId',
+    'missionId',
     'executionContractVersion',
     'executionRequestSource',
     'capabilityBroker',
@@ -87,6 +90,36 @@ function compactExecutionMetadata(agentId: string, context: KernelContext) {
   const refs: Record<string, unknown> = {};
   for (const key of keys) {
     if (metadata[key] !== undefined) refs[key] = metadata[key];
+  }
+  // Persist a bounded, numeric C07 outcome alongside the canonical receipt.
+  // Never place private source bodies, URLs or full case claims in this global
+  // compact ledger; the ROOT job-detail route enforces owner authorization.
+  const caseSource = metadata.caseSourceInventory && typeof metadata.caseSourceInventory === 'object'
+    ? metadata.caseSourceInventory as Record<string, unknown> : null;
+  const hunter = metadata.evidenceHunter && typeof metadata.evidenceHunter === 'object'
+    ? metadata.evidenceHunter as Record<string, unknown> : null;
+  const bounded = (value: unknown) => typeof value === 'number' && Number.isFinite(value)
+    ? Math.max(0, Math.min(1_000, Math.trunc(value))) : null;
+  if (caseSource) {
+    refs.caseSourceInventory = {
+      persistedObjectsRead: bounded(caseSource.persistedObjectsRead),
+      sourcePointers: bounded(caseSource.sourcePointers),
+      hypothesesDeclared: bounded(caseSource.hypothesesDeclared),
+      unresolvedQuestions: bounded(caseSource.unresolvedQuestions),
+      rawSourceContentsObserved: bounded(caseSource.rawSourceContentsObserved),
+      sourceItemsFetched: bounded(caseSource.sourceItemsFetched),
+      classification: 'REFERENCE_ONLY_UNVERIFIED',
+    };
+  }
+  if (hunter) {
+    refs.evidenceHunterSummary = {
+      missingEvidenceDetected: bounded(hunter.missingEvidenceDetected),
+      structuredMissingDetected: bounded(hunter.structuredMissingDetected),
+      hypothesesChecked: bounded(hunter.hypothesesChecked),
+      materialEvidenceResolved: bounded(hunter.materialEvidenceResolved),
+      externalSourceClaimsAvailable: bounded(hunter.externalSourceClaimsAvailable),
+      reuseStatus: typeof hunter.reuseStatus === 'string' ? hunter.reuseStatus.slice(0,90) : null,
+    };
   }
   return {
     refs,
@@ -241,7 +274,7 @@ export async function runCognitiveAgent(
     ? metadata.executionRequest as Record<string, unknown>
     : null;
 
-  await recordExecution(
+  const durableReceipt = await recordExecution(
     agentId,
     executed ? 'SFI_AGENT_EXECUTED' : 'SFI_AGENT_SKIPPED',
     {
@@ -282,5 +315,9 @@ export async function runCognitiveAgent(
     executed,
     context: updatedContext,
     executedAt: new Date().toISOString(),
+    receipt: durableReceipt && typeof durableReceipt.id === 'string'
+      ? { eventId: durableReceipt.id, eventName: durableReceipt.eventType,
+          occurredAt: durableReceipt.createdAt, acknowledgement: 'PERSISTED' as const }
+      : null,
   };
 }

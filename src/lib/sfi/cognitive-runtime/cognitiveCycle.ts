@@ -205,7 +205,8 @@ async function readLatestUnfinalizedCheckpoint(context: KernelContext): Promise<
     .order('sequence', { ascending: false })
     .limit(1)
     .maybeSingle();
-  if (latest.error || !latest.data) return null;
+  if (latest.error) throw new Error('SFI_COGNITIVE_CHECKPOINT_READ_FAILED:' + latest.error.message);
+  if (!latest.data) return null;
 
   const sequence = Number(latest.data.sequence ?? 0);
   const payload = row(latest.data.payload);
@@ -218,7 +219,8 @@ async function readLatestUnfinalizedCheckpoint(context: KernelContext): Promise<
     .gt('sequence', sequence)
     .order('sequence', { ascending: false })
     .limit(10);
-  const hasCompletedFinalization = !finalized.error && (finalized.data ?? []).some((item) => row(item.payload).completed === true);
+  if (finalized.error) throw new Error('SFI_COGNITIVE_FINALIZATION_READ_FAILED:' + finalized.error.message);
+  const hasCompletedFinalization = (finalized.data ?? []).some((item) => row(item.payload).completed === true);
   if (hasCompletedFinalization) return null;
 
   const storedContext = row(payload.context) as unknown as KernelContext;
@@ -293,7 +295,11 @@ export function cognitiveCheckpointEventInput(input: CognitiveCheckpointWriteInp
 }
 
 async function persistCheckpoint(input: CognitiveCheckpointWriteInput) {
-  return appendEpistemicEvent(cognitiveCheckpointEventInput(input));
+  const result = await appendEpistemicEvent(cognitiveCheckpointEventInput(input));
+  if (!result.ok || !result.data || typeof result.data.event_id !== 'string') {
+    throw new Error('SFI_COGNITIVE_CHECKPOINT_WRITE_FAILED:' + (result.ok ? 'MISSING_RECEIPT' : result.error));
+  }
+  return result.data.event_id;
 }
 
 async function persistReturnPlan(context: KernelContext, source: string) {
@@ -305,6 +311,7 @@ async function persistReturnPlan(context: KernelContext, source: string) {
     .order('sequence', { ascending: false })
     .limit(1)
     .maybeSingle();
+  if (latest.error) throw new Error('SFI_RETURN_PLAN_READ_FAILED:' + latest.error.message);
   const latestPayload = latest.data ? row(latest.data.payload) : {};
   const latestTaskId = text(latestPayload.taskId);
   const latestPlan = row(latestPayload.plan);
@@ -334,7 +341,7 @@ async function persistReturnPlan(context: KernelContext, source: string) {
   }
   context.metadata = { ...context.metadata, returnPlan: plan };
   const supersededEventId = latest.data ? text(latest.data.event_id) : null;
-  await appendEpistemicEvent({
+  const recordedReturnPlan = await appendEpistemicEvent({
     eventName: SFI_UNIVERSAL_RETURN_PLAN_RECORDED,
     epistemicClass: 'derived',
     confidence: 1,
@@ -351,6 +358,9 @@ async function persistReturnPlan(context: KernelContext, source: string) {
       epistemicBoundary: 'AI capability resolution allocates execution responsibility only. It cannot create RETURN, evidence acceptance, CONTRAST, closure, learning or canon.',
     },
   });
+  if (!recordedReturnPlan.ok || !recordedReturnPlan.data || typeof recordedReturnPlan.data.event_id !== 'string') {
+    throw new Error('SFI_RETURN_PLAN_WRITE_FAILED:' + (recordedReturnPlan.ok ? 'MISSING_RECEIPT' : recordedReturnPlan.error));
+  }
 }
 
 export async function executeCognitiveCycle(

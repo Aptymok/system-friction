@@ -1116,45 +1116,9 @@
  .rootReferenceCockpit .rootHorizontalGraph .rootReferenceModes button{font-size:10px!important}
 }
 
-/* One 2880px horizontal ROOT cockpit. Geometry, root authority, selected graph
-   relations and Reality Passport readers stay within their original components. */
-html:has(.rootReferenceCockpit),body:has(.rootReferenceCockpit){overflow-y:hidden!important}
-.rootReferenceCockpit.rootFieldMode{
- width:100vw!important;min-width:0!important;
- height:100dvh!important;min-height:0!important;max-height:100dvh!important;
- overflow-x:auto!important;overflow-y:hidden!important;
- overscroll-behavior-x:contain;scroll-behavior:smooth;
- scrollbar-width:thin;scrollbar-color:#c8a951 rgba(4,9,13,.75);
-}
-.rootReferenceCockpit .rootHorizontalRail{
- position:relative!important;inset:auto!important;
- display:grid!important;
- grid-template-columns:260px 1480px 1140px!important;
- grid-template-rows:100%!important;gap:0!important;
- width:2880px!important;min-width:2880px!important;
- height:100%!important;min-height:0!important;
- overflow:visible!important;scroll-snap-type:none!important;
- background:transparent!important;
-}
-.rootReferenceCockpit .rootHorizontalGraph,
-.rootReferenceCockpit[data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0"] .rootGovernanceConsole{
- position:relative!important;inset:auto!important;
- width:100%!important;max-width:none!important;height:100%!important;
- min-height:0!important;scroll-snap-align:none!important;
-}
-.rootReferenceCockpit .rootReferenceSidebar{min-height:0;overflow-y:auto}
-.rootReferenceCockpit .rootHorizontalGraph .rootCognitivePixi{
- inset:52px 0 164px!important;width:auto!important;height:auto!important;
-}
-.rootReferenceCockpit .rootFieldTimelineFooter{display:none!important}
-.rootReferenceCockpit .rootGovernanceConsole{overflow-y:auto!important}
-.rootReferenceCockpit .rootReferenceModes button{flex:0 0 auto}
-@media(max-width:900px){
- .rootReferenceCockpit .rootHorizontalRail{grid-template-columns:260px 1480px 1140px!important}
- .rootReferenceCockpit .rootGovernanceConsole{width:100%!important}
- .rootReferenceCockpit .rootReferenceModes button{font-size:11px!important}
-}
-@media(prefers-reduced-motion:reduce){.rootReferenceCockpit.rootFieldMode{scroll-behavior:auto}}
+/* ROOT uses one fixed viewport. The field, not horizontal pixels, is the navigation
+   surface; detailed case reading has its own vertical scroll region. */
+html:has(.rootReferenceCockpit),body:has(.rootReferenceCockpit){overflow:hidden!important}
 
 /* PR #720 selective reconciliation: expose real object boundaries only.
    This does not assert whole-institutional-cycle completion. */
@@ -1179,3 +1143,209 @@ html:has(.rootReferenceCockpit),body:has(.rootReferenceCockpit){overflow-y:hidde
 .rootOperationalSnapshot article strong{display:block;color:#F7F4EA;font:500 16px/1.4 "Noto Sans",Arial,sans-serif;overflow-wrap:anywhere}
 .rootOperationalSnapshot article p{margin:7px 0 0;color:#E8DDC3;font:400 12px/1.5 "Noto Sans",Arial,sans-serif}
 @media(max-width:1330px){.rootOperationalSnapshot{grid-template-columns:minmax(0,1fr)}}
+
+
+/* C20 cockpit correction: the real ROOT graph must surface agent missions.
+   Passport owns its vertical reader. The outer field owns ONLY horizontal navigation.
+   No document scrolling on the global body, no second neural navigation menu. */
+.rootReferenceCockpit .rootFieldQuickAccess{
+  position:absolute;z-index:45;top:12px;right:22px;
+  display:flex;align-items:center;gap:10px;max-width:calc(100% - 44px);
+}
+.rootReferenceCockpit .rootFieldQuickAccess button{
+  position:relative!important;inset:auto!important;
+  display:inline-flex!important;align-items:center;justify-content:center;gap:8px;
+  min-height:42px!important;padding:9px 15px!important;
+  border:1px solid rgba(212,175,55,.7)!important;border-radius:0!important;
+  background:rgba(6,8,9,.93)!important;color:#f7f4ea!important;
+  font:600 12px/1.35 "Noto Sans",Arial,sans-serif!important;
+  letter-spacing:.04em;white-space:nowrap;cursor:pointer;box-shadow:0 6px 20px #0008;
+}
+.rootReferenceCockpit .rootFieldQuickAccess button:focus-visible,
+.rootReferenceCockpit .rootPassportMissions summary:focus-visible{
+  outline:2px solid #d4af37;outline-offset:3px;
+}
+.rootReferenceCockpit .rootFieldQuickAccess .rootOpenMissions{
+  border-color:#d4af37!important;background:rgba(36,27,10,.95)!important;
+}
+.rootReferenceCockpit .rootGovernanceConsole{
+  overflow-x:hidden!important;overflow-y:auto!important;
+  overscroll-behavior:contain!important;scrollbar-gutter:stable;
+  scroll-behavior:auto!important;
+}
+.rootReferenceCockpit .rootPassportMissions{
+  margin:16px 20px 4px;border:1px solid rgba(212,175,55,.65);
+  background:rgba(13,14,13,.92);color:#f7f4ea;min-width:0;
+}
+.rootReferenceCockpit .rootPassportMissions>summary{
+  display:block;min-height:48px;padding:14px 16px;
+  color:#e5c675;font:650 13px/1.45 "Noto Sans",Arial,sans-serif;
+  letter-spacing:.04em;cursor:pointer;list-style:none;
+}
+.rootReferenceCockpit .rootPassportMissions>summary::-webkit-details-marker{display:none}
+.rootReferenceCockpit .rootPassportMissions>summary::after{
+  content:"  ▸";float:right;color:#d4af37;
+}
+.rootReferenceCockpit .rootPassportMissions[open]>summary::after{content:"  ▾"}
+.rootReferenceCockpit .rootMissionEmbedded{
+  width:100%;max-width:100%;min-width:0;box-sizing:border-box;
+  padding:6px 16px 18px;margin:0;background:transparent;
+}
+.rootReferenceCockpit .rootMissionEmbedded .rootReports{
+  width:100%;max-width:100%;margin:0;min-width:0;
+}
+.rootReferenceCockpit .rootMissionEmbedded .rootReportList{
+  width:100%;max-width:100%;min-width:0;overflow-wrap:anywhere;
+}
+.rootReferenceCockpit .rootMissionEmbedded select,
+.rootReferenceCockpit .rootMissionEmbedded input{
+  display:block;width:100%;max-width:100%;min-height:42px;
+  margin:6px 0 12px;border:1px solid rgba(212,175,55,.42);
+  background:#0c0d0d;color:#f7f4ea;font:400 13px "Noto Sans",Arial,sans-serif;
+}
+.rootReferenceCockpit .rootMissionEmbedded button{
+  min-height:42px;max-width:100%;margin:6px;
+  border:1px solid rgba(212,175,55,.5);background:#171811;
+  color:#f7f4ea;padding:10px 13px;cursor:pointer;
+}
+.rootReferenceCockpit .rootMissionEmbedded button:disabled{
+  opacity:.48;cursor:not-allowed;
+}
+@media(max-width:900px){
+  .rootReferenceCockpit .rootFieldQuickAccess{left:auto;right:10px;top:56px;gap:5px}
+  .rootReferenceCockpit .rootFieldQuickAccess button{padding:7px 8px!important;font-size:11px!important}
+}
+
+/* C20 · ROOT FIELD / READING
+   Do not restore the former panoramic rail or wheel-to-horizontal redirects.
+   Only the two genuine documents (explorer and Passport) scroll vertically. */
+.rootReferenceCockpit.rootFieldMode[data-root-layout="FIELD-AND-READING"]{
+  width:100%!important;max-width:100vw!important;
+  height:100dvh!important;min-height:0!important;max-height:100dvh!important;
+  overflow:hidden!important;scroll-behavior:auto!important;
+}
+.rootReferenceCockpit[data-root-layout="FIELD-AND-READING"] .rootHorizontalRail{
+  position:absolute!important;
+  inset:var(--root-top) 0 var(--root-bottom)!important;
+  display:grid!important;
+  grid-template-columns:var(--root-side) minmax(0,1fr)!important;
+  grid-template-rows:minmax(0,1fr)!important;
+  width:100%!important;min-width:0!important;max-width:100%!important;
+  height:auto!important;min-height:0!important;
+  overflow:hidden!important;scroll-snap-type:none!important;
+  background:rgba(5,6,6,.08)!important;
+}
+.rootReferenceCockpit[data-root-layout="FIELD-AND-READING"] .rootReferenceSidebar{
+  grid-column:1!important;grid-row:1!important;
+  min-height:0!important;overflow-x:hidden!important;overflow-y:auto!important;
+  scrollbar-width:thin;overscroll-behavior-y:contain;
+}
+.rootReferenceCockpit[data-root-layout="FIELD-AND-READING"] .rootHorizontalGraph{
+  grid-column:2!important;grid-row:1!important;
+  position:relative!important;inset:auto!important;
+  width:100%!important;min-width:0!important;height:100%!important;min-height:0!important;
+  overflow:hidden!important;
+}
+.rootReferenceCockpit[data-root-layout="FIELD-AND-READING"] .rootHorizontalGraph .rootCognitivePixi{
+  inset:52px clamp(220px,25vw,390px) 178px 0!important;
+}
+.rootReferenceCockpit[data-root-layout="FIELD-AND-READING"] .rootPassportScrim{
+  position:absolute;z-index:45;inset:0 0 0 var(--root-side);
+  border:0;border-radius:0;background:rgba(1,3,4,.68);
+  backdrop-filter:blur(5px);cursor:pointer;
+}
+.rootReferenceCockpit[data-root-layout="FIELD-AND-READING"] .rootGovernanceConsole{
+  position:absolute!important;z-index:46!important;
+  inset:0 0 0 auto!important;
+  top:0!important;right:0!important;bottom:0!important;left:auto!important;
+  box-sizing:border-box!important;
+  width:min(980px,calc(100% - var(--root-side) - 12px))!important;
+  min-width:0!important;max-width:100%!important;
+  height:100%!important;max-height:100%!important;min-height:0!important;
+  padding:0!important;margin:0!important;
+  overflow-x:hidden!important;overflow-y:scroll!important;
+  overscroll-behavior-y:contain!important;
+  scroll-behavior:auto!important;scrollbar-width:auto!important;
+  scrollbar-color:#c8a951 #070909;
+  border:1px solid rgba(212,175,55,.62)!important;
+  background:rgba(7,8,8,.98)!important;
+}
+.rootReferenceCockpit[data-root-layout="FIELD-AND-READING"] .rootGovernanceConsole[hidden]{
+  display:none!important;
+}
+.rootReferenceCockpit[data-root-layout="FIELD-AND-READING"] .rootGovernanceConsole::-webkit-scrollbar{width:12px}
+.rootReferenceCockpit[data-root-layout="FIELD-AND-READING"] .rootGovernanceConsole::-webkit-scrollbar-track{background:#080908}
+.rootReferenceCockpit[data-root-layout="FIELD-AND-READING"] .rootGovernanceConsole::-webkit-scrollbar-thumb{background:#c8a951;border:3px solid #080908}
+.rootReferenceCockpit[data-root-layout="FIELD-AND-READING"] .rootGovernanceHead{
+  position:sticky!important;top:0!important;z-index:3;
+  display:grid;grid-template-columns:minmax(0,1fr) auto;
+  align-items:center;gap:4px 20px;
+  padding:14px 22px!important;
+  background:#090b0b!important;
+}
+.rootReferenceCockpit[data-root-layout="FIELD-AND-READING"] .rootGovernanceHead>span,
+.rootReferenceCockpit[data-root-layout="FIELD-AND-READING"] .rootGovernanceHead>p{
+  grid-column:1/-1;
+}
+.rootReferenceCockpit[data-root-layout="FIELD-AND-READING"] .rootGovernanceHead .rootBackToGraph{
+  position:static!important;inset:auto!important;
+  min-height:44px!important;margin:0!important;padding:10px 14px!important;
+  border:1px solid rgba(212,175,55,.75)!important;
+  color:#f7f4ea!important;background:#13140f!important;
+  font:650 12px/1.35 "Noto Sans",Arial,sans-serif!important;
+  cursor:pointer;
+}
+.rootReferenceCockpit[data-root-layout="FIELD-AND-READING"] .rootGovernanceSingleReading{
+  padding:12px clamp(18px,3vw,36px) 70px!important;
+}
+.rootReferenceCockpit[data-root-layout="FIELD-AND-READING"] .rootPassportMissions{
+  margin:16px clamp(18px,3vw,36px) 4px;
+}
+.rootReferenceCockpit[data-root-layout="FIELD-AND-READING"] .rootGovernanceConsole:focus-visible{
+  outline:2px solid #d4af37;outline-offset:-3px;
+}
+@media(max-width:900px){
+  .rootReferenceCockpit[data-root-layout="FIELD-AND-READING"]{--root-side:174px}
+  .rootReferenceCockpit[data-root-layout="FIELD-AND-READING"] .rootHorizontalRail{
+    position:absolute!important;inset:var(--root-top) 0 var(--root-bottom)!important;
+    display:grid!important;grid-template-columns:var(--root-side) minmax(0,1fr)!important;
+    grid-template-rows:minmax(0,1fr)!important;margin:0!important;
+    overflow:hidden!important;min-height:0!important;
+  }
+  .rootReferenceCockpit[data-root-layout="FIELD-AND-READING"] .rootGovernanceConsole{
+    position:absolute!important;
+    width:calc(100% - var(--root-side))!important;min-height:0!important;
+  }
+  .rootReferenceCockpit[data-root-layout="FIELD-AND-READING"] .rootHorizontalGraph{
+    min-height:0!important;height:100%!important;
+  }
+}
+@media(max-width:650px){
+  .rootReferenceCockpit[data-root-layout="FIELD-AND-READING"] .rootHorizontalRail{
+    display:grid!important;grid-template-columns:minmax(0,1fr)!important;
+    grid-template-rows:minmax(0,35%) minmax(0,65%)!important;
+  }
+  .rootReferenceCockpit[data-root-layout="FIELD-AND-READING"] .rootReferenceSidebar{
+    grid-column:1!important;grid-row:1!important;max-height:none!important;
+    border-right:0;border-bottom:1px solid rgba(212,175,55,.38);
+  }
+  .rootReferenceCockpit[data-root-layout="FIELD-AND-READING"] .rootHorizontalGraph{
+    grid-column:1!important;grid-row:2!important;min-height:0!important;height:100%!important;
+  }
+  .rootReferenceCockpit[data-root-layout="FIELD-AND-READING"] .rootGovernanceConsole{
+    width:100%!important;max-width:100%!important;
+  }
+  .rootReferenceCockpit[data-root-layout="FIELD-AND-READING"] .rootPassportScrim{inset:0}
+  .rootReferenceCockpit[data-root-layout="FIELD-AND-READING"] .rootFieldQuickAccess{
+    top:8px!important;right:8px!important;left:8px!important;
+  }
+  .rootReferenceCockpit[data-root-layout="FIELD-AND-READING"] .rootFieldQuickAccess button{
+    white-space:normal!important;flex:1;min-width:0;font-size:10px!important;
+  }
+  .rootReferenceCockpit[data-root-layout="FIELD-AND-READING"] .rootGovernanceHead{
+    grid-template-columns:1fr!important;
+  }
+  .rootReferenceCockpit[data-root-layout="FIELD-AND-READING"] .rootGovernanceHead .rootBackToGraph{
+    width:100%;
+  }
+}
