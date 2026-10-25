@@ -7,6 +7,9 @@ const workspace=fs.readFileSync('src/components/sfi/SfiRootWorkspace.tsx','utf8'
 const intake=fs.readFileSync('src/lib/sfi/cognitive-runtime/queuedMissionIntake.ts','utf8');
 const worker=fs.readFileSync('src/lib/sfi/cognitive-runtime/queuedMissionWorker.ts','utf8');
 const manual=fs.readFileSync('src/lib/sfi/cognitive-runtime/manualExecution.ts','utf8');
+const executor=fs.readFileSync('src/lib/sfi/cognitive-runtime/runtimeAgentExecutor.ts','utf8');
+const owned=fs.readFileSync('src/lib/sfi/cognitive-runtime/queuedMissionIntake.ts','utf8');
+const primary=fs.readFileSync('src/lib/persistence/dataPlaneRpc.ts','utf8');
 const cron=fs.readFileSync('src/app/api/cron/continuity-heartbeat/route.ts','utf8');
 const gate=fs.readFileSync('src/lib/continuity/actionableWorkGate.ts','utf8');
 
@@ -46,4 +49,22 @@ assert.match(manual,/context\.metadata\.materialUnresolved = missingQuestions/);
 assert.match(manual,/sourceItemsFetched: 0/);
 assert.match(manual,/llmAugmentation: missionId === null/);
 assert.match(worker,/UNAUTHORIZED_EXTRA_CAPABILITIES/);
+// C09 result must come from an owner-scoped, hash-matching primary event.
+assert.match(owned,/\.eq\('id',jobId\)\.eq\('actor_id',actorId\)/);
+assert.match(owned,/readPrimaryCognitiveExecutionReceipt\(job\.receipt_event_id\)/);
+assert.match(owned,/item\.hash_self===job\.receipt_hash/);
+assert.match(owned,/source\.sourceId===job\.agent_id/);
+assert.match(owned,/payload\.executionId===job\.execution_id/);
+assert.match(owned,/PRIMARY_READ_UNAVAILABLE/);
+assert.match(owned,/RECEIPT_READBACK_MISMATCH/);
+assert.match(owned,/INDEPENDENT_EVIDENCE_AND_RETURN_NOT_CONFIRMED/);
+assert.match(primary,/export async function readPrimaryCognitiveExecutionReceipt/);
+assert.match(primary,/event_id: `eq\.\$\{eventId\}`/);
+assert.match(primary,/method: 'GET'/);
+assert.match(executor,/refs\.caseSourceInventory =/);
+assert.match(executor,/refs\.evidenceHunterSummary =/);
+assert.match(executor,/REFERENCE_ONLY_UNVERIFIED/);
+assert.match(workspace,/Leer resultado y evidencia/);
+assert.match(workspace,/missionDetail\.outcome\?\.verification/);
+assert.match(workspace,/NO MEDIDO/);
 console.log('PASS: ROOT C07 activation is rooted in existing queue, actor-scoped canary, fenced receipt and C08 worker.');
