@@ -41,7 +41,31 @@ export async function GET(request: Request, context: RouteContext) {
   try {
     const { user } = await requireAuthenticatedUser();
     const { caseId } = await context.params;
-    const format = new URL(request.url).searchParams.get('format');
+    const query = new URL(request.url).searchParams;
+    const format = query.get('format');
+    const reportId = query.get('reportId');
+    if (reportId !== null) {
+      // C19 idempotent readback: this is a READ, never an implicit generation.
+      // The existing list function enforces authenticated case/tenant access.
+      if (!z.string().uuid().safeParse(reportId).success) {
+        return NextResponse.json({ok:false,error:'INVALID_REPORT_ID'}, {status:400,headers:{'Cache-Control':'private, no-store'}});
+      }
+      const available = await listOperationalReports(caseId,user.id);
+      const match=available.find(item=>item.id===reportId);
+      if (!match) {
+        return NextResponse.json({ok:false,error:'REPORT_NOT_FOUND_IN_AUTHORIZED_CASE'},
+          {status:404,headers:{'Cache-Control':'private, no-store'}});
+      }
+      const envelope = await readOperationalCase(caseId,user.id);
+      const ref=envelope.objects.find(o=>o.kind==='REPORT' && o.canonicalRef.id===reportId);
+      let consistency=describePassportReadBoundary(null);
+      try { consistency=describePassportReadBoundary((await readDataPlaneState()).mode); } catch {}
+      return NextResponse.json({ok:true,reportId:match.id,generatedAt:match.generatedAt,
+        report:match.report, readConsistency:consistency,
+        reportObjectLinkage:ref?'PRESENT_IN_AUTHORIZED_READ':'NOT_VISIBLE_OR_NOT_RECORDED',
+        certification:'NOT_ESTABLISHED_BY_READBACK'},
+        {headers:{'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'}});
+    }
     if (format === 'passport-json' || format === 'passport-html' || format === 'passport-pdf') {
       const envelope = await readOperationalCase(caseId, user.id);
       const chain = envelope.realityChain;
