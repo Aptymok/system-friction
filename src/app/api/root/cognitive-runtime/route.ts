@@ -12,6 +12,7 @@ import { enqueueAuthorizedC07Mission, readOwnedC07Mission, readOwnedC07MissionSu
 import { runBoundedC07QueuedMission } from '@/lib/sfi/cognitive-runtime/queuedMissionWorker';
 import { readObservedSfiCognitiveRuntime } from '@/lib/sfi/cognitive-runtime/observedRuntime';
 import { planCognitiveQuestion } from '@/lib/sfi/cognitive-runtime/planning';
+import {listOperationalCases} from '@/lib/sfi/case-platform/repository';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -47,8 +48,16 @@ export async function GET(request: Request) {
     return NextResponse.json(result.body, {status:result.status,headers:{'Cache-Control':'private, no-store'}});
   }
 
+  // Only disclose the configured canary if the authenticated ROOT actor
+  // already has access to that case. Never expose another tenant's ID.
+  const configuredCanary=process.env.SFI_C07_CANARY_CASE_ID;
+  const visibleCases=configuredCanary ? await listOperationalCases(gate.ctx.user.id) : [];
+  const authorizedCanaryCaseId=visibleCases.some(item=>item.id===configuredCanary)
+    ? configuredCanary : null;
   return NextResponse.json({
     ok: true,
+    authorizedCanaryCaseId,
+    canaryCaseAvailable: Boolean(authorizedCanaryCaseId),
     runtime: await readObservedSfiCognitiveRuntime(),
     agents: SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.map(compactAgent),
     executionContracts: listExecutionContracts().map(compactExecutionContract),
