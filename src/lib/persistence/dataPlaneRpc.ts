@@ -60,6 +60,38 @@ export async function postNeonDataPlaneRpc<T = unknown>(name: string, body: Json
 
 
 /**
+ * Read ONLY bounded cognitive execution receipts from the authoritative primary
+ * ledger. The global continuity fetch can redirect ordinary reads to an older
+ * Neon snapshot; that is not evidence that a recent PRIMARY C07 job did not run.
+ *
+ * This read cannot mutate, replicate, approve, or trigger execution. Failure
+ * is explicit: callers must not silently report zero observed executions.
+ */
+export async function readPrimaryCognitiveExecutionEvents(): Promise<Array<Record<string, unknown>>> {
+  const { url, key } = primaryCredentials();
+  const query = new URLSearchParams({
+    select: 'event_id,event_name,epistemic_class,confidence,occurred_at,created_at,source',
+    event_name: 'eq.SFI_AGENT_EXECUTED',
+    order: 'occurred_at.desc',
+    limit: '168',
+  });
+  const response = await fetch(`${url}/rest/v1/epistemic_events?${query.toString()}`, {
+    method: 'GET',
+    headers: {
+      apikey: key,
+      Authorization: `Bearer ${key}`,
+      'X-Client-Info': 'sfi-primary-cognitive-execution-read',
+    },
+    cache: 'no-store',
+  });
+  const body = await jsonResponse(response, 'SFI_PRIMARY_COGNITIVE_EXECUTION_READ');
+  if (!Array.isArray(body)) throw new Error('SFI_PRIMARY_COGNITIVE_EXECUTIONS_INVALID_RESPONSE');
+  return body.filter((value): value is Record<string, unknown> =>
+    Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+    && value.event_name === 'SFI_AGENT_EXECUTED');
+}
+
+/**
  * Direct, credentialed primary read for governed recovery of ONLY existing
  * institutional grants and profiles. Never falls back to Neon: a fallback
  * would compare Neon against itself and falsely certify convergence.
