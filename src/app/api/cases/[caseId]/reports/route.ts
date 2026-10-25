@@ -5,6 +5,7 @@ import { generateOperationalReport, listOperationalReports, readOperationalCase 
 import { assertReportClaimsIntegrity } from '@/lib/sfi/case-platform/integrity';
 import { renderSfiRealityPassportHtml } from '@/core/case-platform';
 import { sfiCaseApiFailure } from '@/lib/sfi/case-platform/http';
+import { readDataPlaneState } from '@/lib/persistence/dataPlaneContinuityStore';
 import {
   SFI_EPISTEMIC_OUTPUT_RELATIONS,
   type SfiReportClaimV1,
@@ -51,8 +52,26 @@ export async function GET(request: Request, context: RouteContext) {
         const bytes=renderPrivateCaseBriefPdf(renderInput,glyphs);
         return new Response(new Uint8Array(bytes),{headers:{'Content-Type':'application/pdf','Content-Disposition':`attachment; filename="SFI-Reality-Chain-${encodeURIComponent(caseId)}.pdf"`,'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'}});
       }
+      let readConsistency:{readPlane:string;sourceInventoryComplete:boolean;warning:string};
+      try {
+        const plane=await readDataPlaneState();
+        readConsistency=plane.mode==='PRIMARY'
+          ?{readPlane:'SUPABASE_PRIMARY',sourceInventoryComplete:false,
+            warning:'PRIMARY_SNAPSHOT_NOT_CROSS_PROVIDER_CERTIFIED'}
+          :{readPlane:'NEON_CONTINUITY',sourceInventoryComplete:false,
+            warning:'CONTINUITY_SNAPSHOT_MAY_LAG_PRIMARY_WRITES_OR_DIVERGE'};
+      } catch {
+        readConsistency={readPlane:'UNVERIFIED',sourceInventoryComplete:false,
+          warning:'DATA_PLANE_STATE_UNAVAILABLE'};
+      }
       const content = format === 'passport-html' ? renderSfiRealityPassportHtml(chain) : JSON.stringify({
-        ...chain, objects:envelope.objects, reports:await listOperationalReports(caseId,user.id),
+        ...chain, objects:envelope.objects,
+        temporalProvenance:envelope.temporalProvenance,
+        authorityEvidence:envelope.authorityEvidence,
+        trajectoryContrast:envelope.trajectoryContrast,
+        returnLearning:envelope.returnLearning,
+        readConsistency,
+        reports:await listOperationalReports(caseId,user.id),
       }, null, 2);
       return new Response(content, {headers:{
         'Content-Type':format==='passport-html'?'text/html; charset=utf-8':'application/json; charset=utf-8',
