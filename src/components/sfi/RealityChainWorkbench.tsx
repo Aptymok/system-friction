@@ -34,11 +34,22 @@ type TrajectoryContrastView={
   latestObservations:{ref:string;observedAt:string}[];
   gaps:string[];readScope:string;attainment:string;contrast:string;truncated:boolean;boundary:string;
 };
+type ReturnLearningView={
+  counts:{recordedReturns:number;verifiedReturns:number;supportedExpectations:number;
+    contradictedCandidates:number;unverifiedReturns:number;nonComparable:number};
+  records:{returnRef:string;executionRef:string|null;canonicalContrast:string;
+    returnVerified:boolean;executionVerified:boolean;state:string;
+    learningCandidate:string;causalEffectEstablished:false;promotedToLearning:false;
+    promotedToCanon:false}[];
+  learningStatus:string;readScope:string;nextDiscriminator:string;
+  boundary:string;truncated:boolean;
+};
 type CaseEnvelope={realityChain?:SfiRealityChain;caseRecord:CaseRecord;objects:CaseObject[];
   readiness?:{missingSources:string[];readyForAnalysis:boolean};
   temporalProvenance?:TemporalProvenanceView;
   authorityEvidence?:AuthorityEvidenceView;
   trajectoryContrast?:TrajectoryContrastView;
+  returnLearning?:ReturnLearningView;
   readConsistency?:{readPlane:string;sourceInventoryComplete:boolean|null;
     parity:string;warning:string|null}};
 type Fragment={paragraph:number;page:number|null;pageBasis:string;text:string;start:number|null;end:number|null};
@@ -266,6 +277,7 @@ export function RealityChainWorkbench(){
     temporalProvenance:caseData.temporalProvenance,
     authorityEvidence:caseData.authorityEvidence,
     trajectoryContrast:caseData.trajectoryContrast,
+    returnLearning:caseData.returnLearning,
     presentationStages:STEPS.map((s,i)=>({name:s.name,definition:s.role,records:asOfObjects.filter(o=>stageFor(o)===i)})),
     operationalMethod:FULL_METHOD,transversalConditions:TRANSVERSAL,
     uncategorizedObjects:asOfObjects.filter(o=>stageFor(o)<0),allRecordedObjects:asOfObjects,
@@ -606,6 +618,31 @@ export function RealityChainWorkbench(){
             <dl><div><dt>EXECUTION RECORDS</dt><dd>{asOfObjects.filter(o=>o.kind==='INTERVENTION').length}</dd></div><div><dt>RETURN RECORDS</dt><dd>{asOfObjects.filter(o=>o.kind==='RETURN').length}</dd></div></dl>
           </section>
           <section className="rcThreePane rcObservatoryWallMonitor">
+            <details className="rcRecordList" data-c18-return-learning-review="SFI-CASE-RETURN-LEARNING-READ-1.0">
+              <summary>RETURN · CONTRASTE · APRENDIZAJE CANDIDATO</summary>
+              {caseData?.returnLearning ? <>
+                <p>RETURN registrados: {caseData.returnLearning.counts.recordedReturns}.
+                  {' '}Comprobados con ejecución: {caseData.returnLearning.counts.verifiedReturns}.
+                  {' '}Predicciones contradichas para revisión: {caseData.returnLearning.counts.contradictedCandidates}.
+                </p>
+                <p>Estado: {caseData.returnLearning.learningStatus}.
+                  {' '}Alcance: {caseData.returnLearning.readScope}.
+                </p>
+                {caseData.returnLearning.records.map((item,index)=><article className="rcRecordItem" key={item.returnRef+':'+index}>
+                  <strong>{item.state.replaceAll('_',' ')}</strong>
+                  <small>RETURN {item.returnRef} · EJECUCIÓN {item.executionRef??'NO VINCULADA'}</small>
+                  <span>Contraste {item.canonicalContrast}. Aprendizaje {item.learningCandidate}.
+                    {' '}Causalidad acreditada: NO. Promoción institucional: NO.
+                  </span>
+                </article>)}
+                {!caseData.returnLearning.counts.recordedReturns &&
+                  <p>Ningún RETURN consta en esta instantánea; si la lectura es parcial, cero no significa ausencia histórica.</p>}
+                {caseData.returnLearning.truncated&&
+                  <p>Proyección limitada: consulte el registro institucional completo.</p>}
+                <p>Próxima prueba: {caseData.returnLearning.nextDiscriminator}.</p>
+                <p>{caseData.returnLearning.boundary}</p>
+              </> : <p>La lectura aún no expone un índice contrastado de RETURN. No se infiere aprendizaje.</p>}
+            </details>
             <h2>REALITY PASSPORT / LEARNING</h2>
             {caseData?.realityChain?<>
               <p><strong>{caseData.realityChain.closure.certified?'Integridad documental comprobada':'Sin certificación'}</strong> · {caseData.realityChain.closure.disposition==='ADMINISTRATIVE'?'Cierre administrativo':caseData.realityChain.closure.disposition==='INCONCLUSIVE'?'Conclusión inconclusa documentada':'Revisión del expediente'}</p>
