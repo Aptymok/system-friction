@@ -5,6 +5,10 @@ type JsonRecord = Record<string, unknown>;
 let continuitySql: ReturnType<typeof postgres> | null = null;
 
 function connectionString() {
+  // Neon contingency has been retired as a system dependency. The legacy
+  // adapter is inert unless explicitly enabled for a separately reviewed
+  // migration/export, regardless of a stale configured Neon connection URL.
+  if (process.env.SFI_ENABLE_LEGACY_NEON_ADAPTER !== 'true') return '';
   return (process.env.SFI_CONTINUITY_DATABASE_URL || '').trim();
 }
 

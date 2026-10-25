@@ -11,6 +11,7 @@ import {
   type SfiExecutionTargetKind,
 } from '@/lib/sfi/cognitive-runtime/executionContracts';
 import { materialEvidenceView } from '@/lib/sfi/cognitive-runtime/materialEvidence';
+import { verifyCognitiveExecutionReceipt } from '@/lib/sfi/cognitive-runtime/executionReceiptVerification';
 import { runCognitiveAgent } from '@/lib/sfi/cognitive-runtime/runtimeAgentExecutor';
 import { readUniversalCycleHistory } from '@/lib/sfi/universalSignalCycle';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
@@ -30,8 +31,9 @@ export type SfiManualExecutionPrincipal = {
   userId: string;
   actorId: string;
   tenantId: string;
-  requestSource: 'ROOT_MANUAL' | 'EXTERNAL_API';
+  requestSource: 'ROOT_MANUAL' | 'EXTERNAL_API' | 'QUEUE_WORKER';
   allowLegacyCompatibility: boolean;
+  queueExecutionId?: string;
 };
 
 export type SfiManualExecutionResponse = {
@@ -124,6 +126,7 @@ async function loadTarget(kind: SfiExecutionTargetKind, id: string, userId: stri
 }
 
 function errorStatus(message: string) {
+  if (message.includes('SFI_AGENT_EXECUTION_RECEIPT_')) return 503;
   if (message.includes('FORBIDDEN')) return 403;
   if (message.includes('NOT_FOUND')) return 404;
   if (message.includes('REQUIRED') || message.includes('NOT_RESOLVED')) return 400;
@@ -135,6 +138,9 @@ export async function executeManualCognitiveAgent(
   principal: SfiManualExecutionPrincipal,
 ): Promise<SfiManualExecutionResponse> {
   const agentId = text(body.agentId, 120);
+  // QUEUE_WORKER is internal-only: its stable execution identity is supplied by
+  // a fenced, preauthorized database claim, never by a browser request body.
+  const missionId = principal.requestSource === 'ROOT_MANUAL' || principal.requestSource === 'QUEUE_WORKER' ? text(body.missionId, 120) : null;
   if (!agentId) return { status: 400, body: { ok: false, error: 'agent_required' } };
 
   const agent = SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.find((item) => item.id === agentId);
@@ -143,7 +149,14 @@ export async function executeManualCognitiveAgent(
   const contract = executionContractForAgent(agentId);
   if (!contract) return { status: 409, body: { ok: false, error: 'execution_contract_not_found' } };
 
-  const executionId = randomUUID();
+  const executionId = principal.requestSource === 'QUEUE_WORKER' ? principal.queueExecutionId : randomUUID();
+  if (!executionId || (principal.requestSource === 'QUEUE_WORKER' && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(executionId))) {
+    return { status: 409, body: { ok: false, error: 'queue_execution_identity_invalid' } };
+  }
+  if (principal.requestSource === 'QUEUE_WORKER' && !missionId) {
+    return { status: 400, body: { ok: false, error: 'queue_mission_required' } };
+  }
+  let acknowledgedEventId: string | null = null;
   const executionRequest = normalizeExecutionRequest(agentId, body, executionId);
   if (!principal.allowLegacyCompatibility && executionRequest.legacyCompatibilityUsed) {
     return {
@@ -200,10 +213,13 @@ export async function executeManualCognitiveAgent(
     });
 
     const primaryTarget = resolvedTargets[0] ?? null;
-    const context = createKernelContext(executionId, `${principal.requestSource.toLowerCase()}:${executionId}`, 'SFI_MANUAL_AGENT_REQUESTED');
+    const context = createKernelContext(executionId,
+      principal.requestSource === 'QUEUE_WORKER' ? `sfi-c07:${executionId}` : `${principal.requestSource.toLowerCase()}:${executionId}`,
+      principal.requestSource === 'QUEUE_WORKER' ? 'SFI_QUEUED_AGENT_REQUESTED' : 'SFI_MANUAL_AGENT_REQUESTED');
     context.metadata = {
       actorId: principal.actorId,
       executionId,
+      missionId,
       executionContractVersion: contract.version,
       executionRequestSource: principal.requestSource,
       tenantId: principal.tenantId,
@@ -218,8 +234,10 @@ export async function executeManualCognitiveAgent(
       sourceUrl: executionRequest.sourceUrls[0] ?? null,
       sourceUrls: executionRequest.sourceUrls,
       aiGovernancePolicyId: 'SFI-AIMS-2026-08',
-      llmAugmentation: true,
-      llmAugmentationAgents: [agentId],
+      // A C07 mission is deterministic-only until a separately governed
+      // provider budget exists. Legacy ROOT manual execution remains unchanged.
+      llmAugmentation: missionId === null,
+      llmAugmentationAgents: missionId === null ? [agentId] : [],
       executionRequest: {
         contractVersion: contract.version,
         purpose: executionRequest.purpose,
@@ -281,6 +299,60 @@ export async function executeManualCognitiveAgent(
       });
     }
 
+    // C07 may read objects ALREADY returned by the authorized Case Platform
+    // snapshot. These are source pointers and open research questions, NOT
+    // verified source contents, evidence admission or external retrieval.
+    // No new database query, connector permission or provider/model call.
+    if (principal.requestSource === 'QUEUE_WORKER' && missionId) {
+      const caseObjects = resolvedTargets
+        .filter((item) => item.kind === 'CASE')
+        .flatMap((item) => {
+          const loadedCase = loadedByKey.get(referenceKey('CASE', item.id));
+          const objects = row(loadedCase?.data).objects;
+          return Array.isArray(objects) ? objects.map(row) : [];
+        })
+        .slice(0, 32);
+      const sourceObjects = caseObjects.filter((item) => item.kind === 'SOURCE').slice(0, 16);
+      const hypothesisObjects = caseObjects.filter((item) => item.kind === 'HYPOTHESIS').slice(0, 12);
+      const unresolvedObjects = caseObjects.filter((item) => item.kind === 'UNRESOLVED_QUESTION').slice(0, 12);
+      for (const item of sourceObjects) {
+        const payload = row(item.payload);
+        const ref = row(item.canonicalRef);
+        const sourceId = text(ref.id, 200) || text(item.id, 200);
+        context.evidence.push({
+          id: `case-source-pointer:${sourceId}`,
+          source: 'EXISTING_CASE_SOURCE_REFERENCE',
+          confidence: 1, // Confidence that the reference exists, NOT that the source's claims are true.
+          payload: {
+            epistemicClass: 'source_reference',
+            sourceId,
+            title: text(payload.label, 250),
+            externalRef: text(payload.externalRef, 800),
+            rawContentPersisted: payload.rawContentPersisted === true,
+            boundary: 'SOURCE_POINTER_ONLY_CONTENT_NOT_FETCHED_NOT_ACCEPTED_EVIDENCE',
+          },
+        });
+      }
+      const missingQuestions = [
+        ...unresolvedObjects.map((item) => text(row(item.payload).question, 600)),
+        ...hypothesisObjects.map((item) => {
+          const statement = text(row(item.payload).statement, 450);
+          return statement ? `¿Qué fuente primaria o medición contrastable permite evaluar la hipótesis declarada: ${statement}?` : null;
+        }),
+      ].filter((item): item is string => Boolean(item)).slice(0, 24);
+      context.metadata.materialUnresolved = missingQuestions;
+      context.metadata.caseSourceInventory = {
+        persistedObjectsRead: caseObjects.length,
+        sourcePointers: sourceObjects.length,
+        hypothesesDeclared: hypothesisObjects.length,
+        unresolvedQuestions: unresolvedObjects.length,
+        rawSourceContentsObserved: sourceObjects.filter((item) => row(item.payload).rawContentPersisted === true).length,
+        sourceItemsFetched: 0,
+        classification: 'CASE_RECORDS_AND_SOURCE_REFERENCES_NOT_MATERIAL_EVIDENCE',
+        boundary: 'REFERENCES_DO_NOT_GRANT_EXTERNAL_ACCESS_OR_EPISTEMIC_PROMOTION',
+      };
+    }
+
     const preResearchMaterial = materialEvidenceView(context);
     context.metadata.contextCoverage = {
       ...row(context.metadata.contextCoverage),
@@ -292,7 +364,7 @@ export async function executeManualCognitiveAgent(
     const internalEvidenceAlreadyAvailable = preResearchMaterial.length > 0;
     const evidenceHunterNeedsExternalSearch = agentId === 'evidence_hunter'
       && (executionRequest.sourceUrls.length > 0 || !internalEvidenceAlreadyAvailable);
-    const researchEligible = researchCapable && (agentId !== 'evidence_hunter' || evidenceHunterNeedsExternalSearch);
+    const researchEligible = missionId === null && researchCapable && (agentId !== 'evidence_hunter' || evidenceHunterNeedsExternalSearch);
     if (researchEligible) {
       const targetTitles = resolvedTargets.map((target) => target.title).join(' · ');
       const queryBase = `${targetTitles} ${executionRequest.purpose}`.slice(0, 500);
@@ -337,6 +409,32 @@ export async function executeManualCognitiveAgent(
 
     const inputEvidenceIds = new Set(context.evidence.map((item) => item.id));
     const result = await runCognitiveAgent(agentId, context);
+    if (!result.receipt || result.receipt.acknowledgement !== 'PERSISTED') {
+      throw new Error('SFI_AGENT_EXECUTION_RECEIPT_NOT_PERSISTED');
+    }
+    acknowledgedEventId = result.receipt.eventId;
+    // The append acknowledgement and an independent PRIMARY read are distinct
+    // observations. A missing/mismatched row is never a completed mission.
+    const receiptRead = await createServiceSupabaseClient()
+      .from('epistemic_events')
+      .select('event_id,event_name,logbook_id,source,payload,hash_self')
+      .eq('event_id', result.receipt.eventId)
+      .eq('logbook_id', context.logbookId)
+      .maybeSingle();
+    if (receiptRead.error) {
+      throw new Error('SFI_AGENT_EXECUTION_RECEIPT_READBACK_FAILED:' + receiptRead.error.message);
+    }
+    const receiptVerification = verifyCognitiveExecutionReceipt(receiptRead.data, {
+      eventId: result.receipt.eventId,
+      executionId,
+      logbookId: context.logbookId,
+      agentId,
+      missionId,
+      executed: result.executed,
+    });
+    if (!receiptVerification.ok) {
+      throw new Error('SFI_AGENT_EXECUTION_RECEIPT_READBACK_REJECTED:' + receiptVerification.reason);
+    }
     const produced = result.context.evidence
       .filter((item) => !inputEvidenceIds.has(item.id))
       .map((item) => ({ id: item.id, source: item.source, confidence: item.confidence, payload: item.payload }));
@@ -360,7 +458,9 @@ export async function executeManualCognitiveAgent(
     const residualMissing = produced.filter((item) => String(row(item.payload).epistemicClass ?? '').toLowerCase() === 'missing').length;
     const proposalPersistedCount = numberOrNull(proposalBridge.persistedCount) ?? 0;
 
-    const humanSummary = materialEvidenceResolved > 0
+    const humanSummary = !result.executed
+      ? 'El agente no ejecutó su tarea: SFI registró una omisión o bloqueo, no una ejecución completada. Consulte el registro y sus restricciones.'
+      : materialEvidenceResolved > 0
       ? residualMissing > 0
         ? `La ejecución reutilizó ${materialEvidenceResolved} evidencias materiales persistidas. Quedan ${residualMissing} faltantes residuales discriminantes; no se requiere volver a aportar el objeto ya procesado.`
         : `La ejecución reutilizó ${materialEvidenceResolved} evidencias materiales persistidas. No se requiere volver a subir, ingerir ni aportar de nuevo el objeto ya procesado.`
@@ -383,6 +483,12 @@ export async function executeManualCognitiveAgent(
         executionApiVersion: SFI_MANUAL_COGNITIVE_EXECUTION_VERSION,
         execution: {
           id: executionId,
+          missionId,
+          receipt: result.receipt,
+          receiptReadback: { status: receiptVerification.status, source: 'PRIMARY_EPISTEMIC_LEDGER', eventId: receiptVerification.eventId, hash: receiptVerification.hash },
+          workState: result.executed ? 'EXECUTED' : 'SKIPPED',
+          returnObservation: 'NOT_OBSERVED',
+          missionProviderPolicy: missionId ? 'DETERMINISTIC_ONLY_NO_EXTERNAL_MODEL_OR_RESEARCH' : 'LEGACY_MANUAL_POLICY',
           requestSource: principal.requestSource,
           contract: compactExecutionContract(contract),
           agent: compactAgent(agent),
@@ -451,6 +557,10 @@ export async function executeManualCognitiveAgent(
         error: 'manual_agent_execution_failed',
         message,
         requestSource: principal.requestSource,
+        executionId,
+        acknowledgedEventId,
+        reconciliationRequired: acknowledgedEventId !== null,
+        retryPolicy: acknowledgedEventId ? 'READ_RECEIPT_BEFORE_RETRY' : 'NO_AUTOMATIC_RETRY',
       },
     };
   }

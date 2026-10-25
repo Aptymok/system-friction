@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { SfiRootWorkspace } from './SfiRootWorkspace';
 import { RootCognitiveFieldPixi } from './RootCognitiveFieldPixi';
@@ -670,17 +670,29 @@ export function RootNeuralGraphView({
   agentRegistrySummary?: RootAgentRegistrySummary;
 }) {
   const searchParams=useSearchParams();
-  const railRef=useRef<HTMLDivElement>(null);
+  const shellRef=useRef<HTMLElement>(null);
+  const missionsRef=useRef<HTMLDetailsElement>(null);
+  const [missionsOpen,setMissionsOpen]=useState(false);
   const passportRef=useRef<HTMLElement>(null);
   const graphRef=useRef<HTMLElement>(null);
-  const revealPanel=(destination:HTMLElement|null)=>{
-    const rail=railRef.current;
-    if(!rail||!destination)return;
-    // Horizontal navigation is measured in the actual rendered geometry;
-    // it never assumes fixed tile widths or synthetic offsets.
-    const delta=destination.getBoundingClientRect().left-rail.getBoundingClientRect().left;
-    rail.scrollTo({left:rail.scrollLeft+delta,behavior:'smooth'});
+  // ROOT is a fixed viewport with independent readers; no horizontal navigation.
+  const [passportOpen,setPassportOpen]=useState(false);
+  const openPassport=()=>setPassportOpen(true);
+  const closePassport=()=>{
+    setPassportOpen(false);
+    graphRef.current?.focus();
   };
+  const openMissions=()=>{
+    if(missionsRef.current)missionsRef.current.open=true;
+    setMissionsOpen(true);
+    setPassportOpen(true);
+  };
+  useEffect(()=>{
+    if(passportOpen){
+      passportRef.current?.scrollTo({top:0,behavior:'auto'});
+      passportRef.current?.focus();
+    }
+  },[passportOpen]);
   const requestedReading=searchParams.get('reading');
   const allowedReadings=['CURRENT_STATE','HIERARCHY','TRAJECTORY','RETROLONGITUDINAL','PROJECTION','FRICTION_REGIME','REALITY_CHAIN','RETURN_CONTRAST'] as const;
   const initialReading=(allowedReadings as readonly string[]).includes(requestedReading||'') ? requestedReading as typeof allowedReadings[number] : 'CURRENT_STATE';
@@ -814,11 +826,8 @@ export function RootNeuralGraphView({
 
 
   return (
-    <main className="neuralGraphShell rootFieldMode rootReferenceCockpit" data-root-layout="ONE-FIELD-ONE-CONSOLE" data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0" data-color-encoding={colorEncoding} data-neural-graph-contract="SFI-ROOT-NEURAL-GRAPH-1.1">
-      <div className="rootHorizontalRail" ref={railRef} tabIndex={0}
-        onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==='ArrowRight'||event.key==='ArrowLeft')){event.preventDefault();event.currentTarget.scrollBy({left:event.key==='ArrowRight'?430:-430,behavior:'smooth'});}}}
-        onWheel={event=>{if(Math.abs(event.deltaY)>Math.abs(event.deltaX)){event.currentTarget.scrollLeft+=event.deltaY;}}}
-        aria-label="Campo ROOT. Desplázate horizontalmente hacia el grafo y el pasaporte.">
+    <main className="neuralGraphShell rootFieldMode rootReferenceCockpit" ref={shellRef} data-root-layout="FIELD-AND-READING" data-root-reader={passportOpen?'OPEN':'CLOSED'} data-root-visual="SFI-ROOT-PANORAMIC-FIELD-2.0" data-color-encoding={colorEncoding} data-neural-graph-contract="SFI-ROOT-NEURAL-GRAPH-1.1">
+      <div className="rootHorizontalRail" aria-label="Campo ROOT y lector independiente de Pasaporte">
         <aside className="rootReferenceSidebar" aria-label="Field explorer">
           <div className="rootReferenceSidebarTitle"><strong>ROOT</strong><span>FIELD EXPLORER</span></div>
           <div className="rootReferenceSource" data-state={graph.sourceState}>
@@ -875,9 +884,12 @@ export function RootNeuralGraphView({
           <button className="rootExplorerReset" type="button" onClick={()=>{setQuery('');setActiveType('ALL');setActiveCategory('ALL');setAuthorityFilter('ALL');setEvidenceFilter('ALL');setRelationFilter('ALL');setReturnFilter('ALL');setDomainFilter('ALL');setTemporalResolution('ALL');setColorEncoding('EPISTEMIC');setFocusId(null);setSelectedId(null);}}>SHOW COMPLETE FIELD</button>
         </aside>
 
-        <section className="rootFieldStage rootHorizontalGraph" ref={graphRef} aria-label="Grafo cognitivo canónico">
-          <button type="button" className="rootOpenPassport" onClick={()=>revealPanel(passportRef.current)}
-            aria-label="Abrir el Pasaporte de Realidad del objeto seleccionado">ABRIR PASAPORTE <span aria-hidden="true">→</span></button>
+        <section className="rootFieldStage rootHorizontalGraph" ref={graphRef} tabIndex={-1} aria-label="Grafo cognitivo canónico">
+          <div className="rootFieldQuickAccess" aria-label="Lecturas y operaciones de ROOT">
+            <button type="button" className="rootOpenPassport" onClick={openPassport} aria-label="Abrir el Pasaporte de Realidad">ABRIR PASAPORTE <span aria-hidden="true">→</span></button>
+            <button type="button" className="rootOpenMissions" onClick={openMissions}
+              aria-label="Abrir misiones y agentes en ROOT">AGENTES · MISIONES <span aria-hidden="true">→</span></button>
+          </div>
           <details className="rootSemanticLegend">
             <summary>FIELD LEGEND · {reading.replaceAll('_',' ')}</summary>
             <p>FIELD STATUS · {graph.sourceState.toUpperCase()} · {graph.readPlane} · {visibleNodes.length} OBJECTS · {visibleEdges.length} RELATIONS · {date(graph.loadedAt)}</p>
@@ -896,7 +908,7 @@ export function RootNeuralGraphView({
             {([['FIELD','CURRENT_STATE'],['TRAJECTORIES','TRAJECTORY'],['HIERARCHY','HIERARCHY'],['CONTRAST','RETURN_CONTRAST']] as const).map(([label,mode])=><button type="button" key={mode} aria-pressed={reading===mode} onClick={()=>setReading(mode)}>{label}</button>)}
             {selectedId?<button type="button" onClick={()=>setFocusId(focusId===selectedId?null:selectedId)}>{focusId===selectedId?'SHOW ALL RELATIONS':'ISOLATE RELATIONS'}</button>:null}
           </div>
-          <RootCognitiveFieldPixi nodes={fieldNodes} edges={fieldEdges} width={topology.width} height={topology.height} onSelect={id=>setSelectedId(id)} />
+          <RootCognitiveFieldPixi nodes={fieldNodes} edges={fieldEdges} width={topology.width} height={topology.height} onSelect={id=>{setSelectedId(id);openPassport();}} />
           <div className="rootFieldLiveDeck" aria-label="Live ROOT field summaries">
             <section>
               <header><span>FIELD SUMMARY</span><b>CURRENT VIEW</b></header>
@@ -935,13 +947,22 @@ export function RootNeuralGraphView({
 
         </section>
 
-        <section className="rootGovernanceConsole" ref={passportRef} aria-label="Pasaporte de realidad y consola de gobierno">
+        {passportOpen&&<button type="button" className="rootPassportScrim" aria-label="Cerrar el Pasaporte y volver al grafo" onClick={closePassport}/>}
+        <section className="rootGovernanceConsole" ref={passportRef} hidden={!passportOpen} role="dialog" aria-modal={passportOpen} tabIndex={-1}
+          onKeyDown={event=>{if(event.key==='Escape'){event.stopPropagation();closePassport();}}}
+          aria-label="Pasaporte de realidad y consola de gobierno">
           <header className="rootGovernanceHead">
             <span>ROOT / GOVERNANCE CONSOLE</span>
             <h1>Reality Passport</h1>
-            <button type="button" className="rootBackToGraph" onClick={()=>revealPanel(graphRef.current)}>← VOLVER AL GRAFO</button>
+            <button type="button" className="rootBackToGraph" onClick={closePassport}>← VOLVER AL GRAFO</button>
             <p>Evidence, inference, authority, execution and RETURN remain distinct.</p>
           </header>
+          <details className="rootPassportMissions" ref={missionsRef}
+            onToggle={event=>setMissionsOpen(event.currentTarget.open)}
+            data-root-field-missions="SFI-C07-VISIBLE-IN-ACTUAL-ROOT-1.0">
+            <summary>AGENTES · MISIONES C07 · EJECUCIONES Y RECIBOS</summary>
+            {missionsOpen&&<SfiRootWorkspace enabled missionOnly/>}
+          </details>
           <div className="rootGovernanceSingleReading">
             {selected ? (
               <>

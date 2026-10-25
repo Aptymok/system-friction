@@ -36,7 +36,7 @@ assert.ok(certificate.includes("'INDEPENDENT_NON_ATOMIC_PLANE_READS'"), 'no clai
 execFileSync(process.execPath, ['--import', 'tsx', '--test', 'src/lib/persistence/primaryMirrorCertification.test.ts'], { stdio: 'inherit' });
 
 
-assert.ok(workflow.includes("cron: '7,22,37,52 * * * *'"), 'bounded mirror recovery must have four staggered scheduled opportunities per hour');
+assert.ok(workflow.includes("cron: '17 * * * *'"), 'single hourly wakeup without mirror replication');
 
 const cronLine = workflow.match(/^\s*-\s*cron:\s*'([0-9,]+)\s+\*\s+\*\s+\*\s+\*'/m);
 assert.ok(cronLine, 'the production continuity workflow must expose its declared minute schedule');

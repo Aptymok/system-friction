@@ -2,8 +2,9 @@ name: SFI Continuity Hourly
 
 on:
   schedule:
-    # Quarter-hour-offset retries reduce dependence on GitHub's best-effort scheduled delivery.
-    - cron: '7,22,37,52 * * * *'
+    # One inexpensive wakeup per hour, plus event/manual triggers.
+    # Retired provider replication is never retried on this cadence.
+    - cron: '17 * * * *'
   workflow_dispatch:
     inputs:
       cycle_id:

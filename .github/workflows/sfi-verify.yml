@@ -62,6 +62,12 @@ jobs:
       - name: Verify SFI Verify parallel topology
         run: npx tsx scripts/qa-sfi-verify-parallelism.ts
 
+      - name: Verify SFI ROOT governed missions and Passport
+        run: node scripts/qa-sfi-root-missions-passport-navigation.mjs && node scripts/qa-sfi-c07-root-activation.mjs
+
+      - name: Verify SFI cost limits, disabled polling and retained Neon
+        run: node scripts/qa-sfi-cost-meter.mjs
+
       - name: Check domain boundaries
         run: npm run check:boundaries
 
