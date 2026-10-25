@@ -6,6 +6,7 @@ import {projectCaseTemporalProvenance} from '../src/lib/sfi/case-platform/tempor
 import {projectCaseAuthorityEvidence} from '../src/lib/sfi/case-platform/authorityEvidenceReadModel';
 import {projectCaseTrajectoryContrast} from '../src/lib/sfi/case-platform/trajectoryContrastReadModel';
 import {projectCaseReturnLearning} from '../src/lib/sfi/case-platform/returnLearningReadModel';
+import {preflightCaseSnapshotParity} from '../src/lib/persistence/caseSnapshotParityPreflight';
 
 const project={id:'project-1',tenantId:'tenant-B',status:'ACTIVE'};
 assert.deepEqual(resolveCaseProjectAssignment(null,null,null),{tenantId:null,projectId:null});
@@ -302,5 +303,43 @@ assert.match(c18Ui,/data-c18-return-learning-review/);
 assert.match(c18Ui,/caseData\.returnLearning\.counts\.contradictedCandidates/);
 assert.match(c18Ui,/returnLearning:caseData\.returnLearning/);
 assert.match(c18Ui,/Causalidad acreditada: NO\. Promoción institucional: NO/);
+
+
+const snap=(ref:string)=>({
+  canonicalRefId:ref,rowId:'row:'+ref,objectKind:'SOURCE',
+  payloadDigest:'digest:'+ref,canonicalVersion:null as string|null,
+});
+const both=['ref-common-1','ref-common-2','ref-conflict-1','ref-conflict-2'];
+const primaryOnly=Array.from({length:11},(_,i)=>'primary-'+i);
+const neonOnly=Array.from({length:6},(_,i)=>'neon-'+i);
+const primarySnap=[...both,...primaryOnly].map(snap);
+const neonSnap=[...both,...neonOnly].map(ref=>{
+  const row=snap(ref);
+  return ref.startsWith('ref-conflict-')
+    ?{...row,rowId:'different:'+ref,payloadDigest:'new:'+ref}:row;
+});
+const fork=preflightCaseSnapshotParity(primarySnap,neonSnap);
+assert.equal(fork.counts.primary,15);
+assert.equal(fork.counts.continuity,10);
+assert.equal(fork.counts.exactMatches,2);
+assert.equal(fork.counts.conflictingRefs,2);
+assert.equal(fork.counts.primaryOnly,11);
+assert.equal(fork.counts.continuityOnly,6);
+assert.equal(fork.parityVerified,false);
+assert.equal(fork.permitsMirrorDrain,false);
+assert.equal(fork.permitsAuthorityReplay,false);
+assert.equal(fork.permitsSourcePromotion,false);
+assert.equal(fork.sharedConflicts[0].reasons.includes('ROW_ID_MISMATCH'),true);
+assert.equal(fork.sharedConflicts[0].reasons.includes('CONTENT_DIGEST_MISMATCH'),true);
+const matched=preflightCaseSnapshotParity([snap('one')],[snap('one')]);
+assert.equal(matched.parityVerified,true);
+assert.equal(matched.permitsMirrorDrain,false); // parity does not confer permission
+assert.equal(preflightCaseSnapshotParity([],[]).parityVerified,false);
+const duplicate=preflightCaseSnapshotParity([snap('one'),snap('one')],[snap('one')]);
+assert.equal(duplicate.parityVerified,false);
+assert.deepEqual(duplicate.duplicate.primary,['one']);
+const invalidRef=preflightCaseSnapshotParity([{...snap('one'),payloadDigest:''}],[snap('one')]);
+assert.equal(invalidRef.parityVerified,false);
+assert.deepEqual(invalidRef.invalid.primary,['one']);
 
 console.log('PASS C03 CASE PLATFORM: project-tenant association, one case insert, scoped detail, web links and authority');
