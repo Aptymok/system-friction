@@ -377,6 +377,17 @@ assert.match(c19Pdf,/buildRealityPassportPdfInput\(chain:SfiRealityChain, readCo
 assert.match(c19Pdf,/readConsistency\?\.humanWarning/);
 assert.match(c19Pdf,/PARIDAD ENTRE BASES NO CERTIFICADA/);
 
+const c19ReadbackRoute=read('src/app/api/cases/[caseId]/reports/route.ts');
+assert.match(c19ReadbackRoute,/const reportId = query.get\('reportId'\)/);
+assert.match(c19ReadbackRoute,/z\.string\(\)\.uuid\(\)\.safeParse\(reportId\)/);
+assert.match(c19ReadbackRoute,/await listOperationalReports\(caseId,user\.id\)/);
+assert.match(c19ReadbackRoute,/available\.find\(item=>item\.id===reportId\)/);
+assert.match(c19ReadbackRoute,/REPORT_NOT_FOUND_IN_AUTHORIZED_CASE/);
+assert.match(c19ReadbackRoute,/o\.kind==='REPORT' && o\.canonicalRef\.id===reportId/);
+assert.match(c19ReadbackRoute,/reportObjectLinkage:ref\?'PRESENT_IN_AUTHORIZED_READ':'NOT_VISIBLE_OR_NOT_RECORDED'/);
+assert.match(c19ReadbackRoute,/certification:'NOT_ESTABLISHED_BY_READBACK'/);
+assert.match(c19ReadbackRoute,/readConsistency:consistency/);
+assert.match(c19ReadbackRoute,/Cache-Control':'private, no-store'/);
 const c19PassportRoute=read('src/app/api/cases/[caseId]/reports/route.ts');
 assert.match(c19PassportRoute,/temporalProvenance:envelope\.temporalProvenance/);
 assert.match(c19PassportRoute,/authorityEvidence:envelope\.authorityEvidence/);
