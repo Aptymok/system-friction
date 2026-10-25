@@ -22,7 +22,8 @@ export type CaseSourceReadiness = {
 
 function validRequiredTypes(raw: unknown): string[] | null {
   if (!Array.isArray(raw) || raw.length < 2 || raw.length > 6) return null;
-  if (!raw.every(v => typeof v === 'string' && /^[A-Z][A-Z0-9_]{2,49}$/.test(v))) return null;
+  if (!raw.every(v => typeof v === 'string' && /^[A-Z][A-Z0-9_]{2,49}$/.test(v)
+    && !['DECLARED_BY_PROTOCOL','SOURCE_PROTOCOL_UNAVAILABLE','SOURCE_PROTOCOL_INVALID'].includes(v))) return null;
   const unique = [...new Set(raw as string[])];
   return unique.length === raw.length ? unique : null;
 }
