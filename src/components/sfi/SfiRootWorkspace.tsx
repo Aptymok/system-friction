@@ -69,6 +69,9 @@ export function SfiRootWorkspace({ enabled, decisionOnly = false }: { enabled: b
   const [pilotEconomics, setPilotEconomics] = useState<Row | null>(null);
   const [pilotEconomicsLoading, setPilotEconomicsLoading] = useState(false);
   const [pilotEconomicsError, setPilotEconomicsError] = useState<string | null>(null);
+  const [worldSpectClocks, setWorldSpectClocks] = useState<Row | null>(null);
+  const [worldSpectClocksLoading, setWorldSpectClocksLoading] = useState(false);
+  const [worldSpectClocksError, setWorldSpectClocksError] = useState<string | null>(null);
 
   const loadBase = useCallback(async (force=false) => {
     if (!enabled) return;
@@ -133,12 +136,29 @@ export function SfiRootWorkspace({ enabled, decisionOnly = false }: { enabled: b
     }
   }, [enabled, pilotEconomicsLoading]);
 
+  const loadWorldSpectClocks = useCallback(async () => {
+    if(!enabled || worldSpectClocksLoading)return;
+    setWorldSpectClocksLoading(true);
+    setWorldSpectClocksError(null);
+    try {
+      const data=await jsonFetch('/api/root/continuity?worldspect_planes=1');
+      setWorldSpectClocks(data);
+    } catch(cause) {
+      setWorldSpectClocks(null);
+      setWorldSpectClocksError(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      setWorldSpectClocksLoading(false);
+    }
+  },[enabled,worldSpectClocksLoading]);
+
   useEffect(() => {
     // Never reuse a previous ROOT principal's actor-scoped job snapshot.
     setMissionQueue(null);
     setMissionQueueError(null);
     setPilotEconomics(null);
     setPilotEconomicsError(null);
+    setWorldSpectClocks(null);
+    setWorldSpectClocksError(null);
   }, [userKey]);
 
   useEffect(() => { void loadBase(false); }, [loadBase]);
@@ -273,6 +293,38 @@ export function SfiRootWorkspace({ enabled, decisionOnly = false }: { enabled: b
         {pilotEconomics?.errors?.primary && <p role="alert">PRIMARY: medición incompleta.</p>}
         <p>Las lecturas de consumo provienen del ledger de PRIMARY; no son una factura.
           Una tarifa y cuota deben venir de cada proveedor. Neon conserva su información propia sin reflejar Supabase.</p>
+      </div>
+    </details>
+
+    <details className="rootReports" data-sfi-worldspect-provider-clocks="SFI-WORLDSPECT-INDEPENDENT-PLANE-CLOCK-1.0"
+      onToggle={(event) => {if(event.currentTarget.open)void loadWorldSpectClocks();}}>
+      <summary>WORLDSPECT · RELOJES DE OBSERVACIÓN POR PROVEEDOR</summary>
+      <div className="rootReportList">
+        <p>Supabase PRIMARY y Neon mantienen observaciones independientes. Esta comparación no replica datos,
+          no cambia el proveedor de escritura ni acredita que las observaciones sean equivalentes.</p>
+        <button type="button" disabled={worldSpectClocksLoading} onClick={()=>void loadWorldSpectClocks()}>
+          {worldSpectClocksLoading?'Comparando…':'Comparar ahora'}
+        </button>
+        {worldSpectClocksError && <p role="alert">Lectura no disponible: {worldSpectClocksError}</p>}
+        {worldSpectClocks && <div className="rootReportHealth">
+          <article><span>Diagnóstico de relojes</span><State value={worldSpectClocks.status}/></article>
+          <article><span>Supabase PRIMARY · última observación</span><strong>{when(worldSpectClocks.primary?.observedAt)}</strong></article>
+          <article><span>Neon · última observación</span><strong>{when(worldSpectClocks.neon?.observedAt)}</strong></article>
+          <article><span>Diferencia Neon − PRIMARY</span><strong>
+            {typeof worldSpectClocks.differenceMinutes==='number'
+              ? worldSpectClocks.differenceMinutes.toLocaleString()+' min'
+              : 'SIN DATOS SUFICIENTES'}
+          </strong></article>
+        </div>}
+        {worldSpectClocks && <p>{worldSpectClocks.status==='NEON_NEWER'
+          ? 'Neon tiene una medición más reciente; la lectura de PRIMARY no demuestra ausencia de observación.'
+          : worldSpectClocks.status==='PRIMARY_NEWER'
+            ? 'PRIMARY registra una medición posterior a la última observación conocida en Neon.'
+            : worldSpectClocks.status==='SAME_OBSERVED_TIME_UNVERIFIED'
+              ? 'Los relojes coinciden; esto no certifica igualdad de contenido ni replicación.'
+              : 'No es posible atribuir una observación más reciente con la evidencia disponible.'}</p>}
+        {(worldSpectClocks?.readWarnings?.primary || worldSpectClocks?.readWarnings?.neon) &&
+          <p role="alert">Al menos una consulta fue indisponible. No se atribuye un valor cero ni paridad.</p>}
       </div>
     </details>
 
