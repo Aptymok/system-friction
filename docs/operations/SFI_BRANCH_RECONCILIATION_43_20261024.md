@@ -33,7 +33,7 @@
 | `fix/assurance-verify-contents-20261022` | Control de contenido y restricciones de assurance en CI | **PARCIAL PRESENTE** | Módulo y pruebas coinciden; preservar pipeline CI posterior. |
 | `fix/ci-discovery-p8-locked-operational-20261021` | Regresión de integración visual Discovery P8 | **PRESENTE · LIMPIEZA PENDIENTE** | QA idéntica; historia contenida pero la eliminación inicial no tuvo confirmación. |
 | `fix/continuity-outbox-drain-20261022` | Drenaje limitado de PRIMARY/Neon, controles de cron | **PARCIAL PRESENTE** | Workflow igual; QA y lógica de reconciliación posteriores difieren. Requiere pruebas de data plane. |
-| `fix/empirical-contrast-idempotence-20261022` | Fingerprint de RETURN, RPC transaccional y test de concurrencia | **ALTO RIESGO · POR INTEGRAR** | Migraciones y pruebas exclusivas ausentes del árbol actual; no desplegar SQL sin validar permisos/contratos. |
+| `fix/empirical-contrast-idempotence-20261022` | Fingerprint de RETURN, RPC transaccional y test de concurrencia | **RESCATADA COMO FIXTURE · PG17 AISLADO SUCCESS; RPC PRODUCTIVA NO INSTALADA** | SQL histórico y ensayo recuperados en `scripts/reconciliation/`, sin registrar migración ejecutable. Dos CI PostgreSQL aislados prueban deduplicación real y stale-head rechazo; PRIMARY/Neon aún carecen de deduplicación semántica, por lo que requiere migración gobernada y validación del escritor moderno. |
 | `fix/evidence-inventory-method-lab-20261021` | Inventario institucional de evidencia, panel y lectores | **PARCIAL PRESENTE** | Siete componentes nucleares coinciden; diferencias sólo de paquete y montaje de Method Lab. |
 | `fix/explicit-llm-off-cognitive-20261021` | Cognitive runtime con opt-out de modelo y política LLM | **PARCIAL PRESENTE** | Política/pruebas exactas; verificar cambio al ejecutor sin perder controles actuales. |
 | `fix/mem003-tenant-members-semantic-recovery` | Rescate semántico de membresías y autoridad multi-tenant | **PARCIAL PRESENTE** | Cinco módulos/pruebas exactos; recuperación específica divergente de código reciente. |
@@ -105,3 +105,16 @@ La limpieza de 41 referencias no bastaba para afirmar que cada capacidad descart
 - `be36e260`, `6415761f`: prueba de preservación por ascendencia de los **41 HEAD** de ramas eliminadas y presencia de los activos, conectada a CI en la rama de integración. Protege el historial, no acredita equivalencia funcional completa.
 
 La corrida de comprobación exact-head asociada al nuevo código es [SFI Verify #40164743269](https://github.com/Aptymok/system-friction/actions/runs/40164743269). Consultar su veredicto final antes de cerrar la recuperación funcional. Las cinco fuentes históricas diferidas (migraciones de deduplicación, tests SQL y dossier restringido) permanecen accesibles como ancestros; ninguna se ha desplegado, ocultado ni calificado falsamente de instalada. La necesidad de pruebas de equivalencia de los restantes contratos en sus superficies reales continúa registrada.
+
+
+## RETURN semántico histórico — prueba recuperada y límite real (2026-10-25)
+
+La deduplicación por huella semántica de RETURN era una capacidad experimental única de `fix/empirical-contrast-idempotence-20261022` que no se había instalado en ninguna base real. Se preservó el SQL ancestral como **fixture de ensayo, no migración**, y se recuperó la prueba de carrera entre dos sesiones con base PostgreSQL 17 desechable:
+
+- `scripts/reconciliation/fixtures/20261023060000_return_contrast_deduplication.sql` (SQL histórico, sin su activación en `supabase/migrations` ni `neon/migrations`).
+- `scripts/reconciliation/qa-return-contrast-sql-concurrency.mjs` (rechaza URLs que no sean `localhost:.../sfi_return_ci`).
+- CI `Reality Chain Isolated PostgreSQL Concurrency`, [run 40165280304](https://github.com/Aptymok/system-friction/actions/runs/40165280304) y [run 40165290761](https://github.com/Aptymok/system-friction/actions/runs/40165290761), `completed/success`, paso de deduplicación PASS.
+- Hubo **fallos de ensayo** ([40164971574](https://github.com/Aptymok/system-friction/actions/runs/40164971574), [40165175464](https://github.com/Aptymok/system-friction/actions/runs/40165175464)) porque el cliente double-serializaba parámetros jsonb y perdía `checksum`. Se corrigió el parámetro `sql.json`; no se redujeron las validaciones SQL.
+- Consulta read-only de `pg_proc` en ambas bases: `sfi_append_epistemic_event_v2` tiene el bloqueo advisory de escritura pero **no** el predicado `contrastInputFingerprint`. Un `PASS` aislado no es migración ni aceptación del escritor real. C02/C07/C18/C20 siguen sin esa garantía productiva.
+
+Quedan explícitamente diferidos los permisos/migración del RPC, la divergencia PRIMARY-Neon, la adopción real de un canario C07 y la aceptación C20. La eliminación de 41 referencias auxiliares ha sido confirmada por GitHub REST pero no se representa como aprobación científica, causalidad o funcionamiento autónomo.
