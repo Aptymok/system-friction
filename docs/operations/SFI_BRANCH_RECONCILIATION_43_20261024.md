@@ -43,7 +43,7 @@
 | `fix/world-criterion-evidence-adjudication-20261022` | Criterios y decisión de evidencia en World | **INTEGRADA · ELIMINADA** | Tres archivos coinciden; historia preservada. |
 | `fix/world-cron-hypothesis-resume-gates-20261022` | Reanudación de hipótesis bajo guardas de cron World | **INTEGRADA · ELIMINADA** | Cron y prueba exactos; historia preservada. |
 | `fix/world-partial-resume-cooldown-20261022` | Cooldown ante resultados World parciales | **PARCIAL PRESENTE** | Ruta idéntica; QA histórica distinta. |
-| `fix/world-repeat-retry-evidence-gate-20261022` | Suspensión de reintentos repetidos sin observación nueva | **RESCATADA · CABLEADO PENDIENTE** | Helper ausente restaurado; falta confirmar instalación en cron/OAuth actual. |
+| `fix/world-repeat-retry-evidence-gate-20261022` | Suspensión de reintentos repetidos sin observación nueva | **RESCATADA · CABLEADA EN RAMA; CI POR CONFIRMAR** | Helper recuperado, cableado a World cron y OAuth en commits `69c124f2` y `0b0f564b` sin sustituir lógica moderna; regresión `9cd3ca79`/`90cb6a57`, CI `aab692df` y prueba de preservación `6415761f`. Sin afirmación de ejecución en producción. |
 | `fix/804-recovery-journal-drain` | Coordinación del diario de continuidad y QA | **PARCIAL PRESENTE** | QA de coordinación coincide; cron/recovery posteriores diferentes. |
 | `fix/825-return-contrast-idempotency-20261022` | Evitar duplicación de RETURN por input semántico idéntico | **PARCIAL PRESENTE** | Tres archivos núcleo idénticos; CI divergente (preferir nueva). |
 | `release/continuity-outbox-gate-20261022` | Disparador histórico de despliegue de continuidad | **HISTORIA · ELIMINADA** | Solo cambia marcador de deploy; no reintroducir trigger productivo antiguo. |
@@ -93,3 +93,15 @@
 - Persisten versiones distintas de algunas funciones de ScoreFriction, protección de datos, recuperación, intake y Method Lab. El árbol activo actualizado prevalece hasta que un diff semántico y QA demuestren la necesidad de un parche adicional. **No se borró su fuente histórica**.
 
 **Estado de aceptación:** referencias del repositorio reconciliadas, sí. Historia preservada, comprobada por ascendencia, sí. Ninguna capacidad productiva existente se eliminó deliberadamente con esta limpieza (rama `main` intacta); **equivalencia funcional completa de todos los cambios experimentales antiguos y aceptación de C20, NO demostradas**. No afirmar las últimas sin pruebas runtime/CI y contraste de fuentes. Los 18 issues del programa siguen abiertos y deben cerrarse por evidencias separadas.
+
+
+## Recuperación funcional posterior a la limpieza — 2026-10-25
+
+La limpieza de 41 referencias no bastaba para afirmar que cada capacidad descartada seguía activa. La auditoría encontró un ejemplo concreto: `src/lib/world-observatory/hypothesisRetryGuard.ts` estaba preservado en el árbol, pero sus dos ejecutores World no lo invocaban. Se integró selectivamente la protección de la rama archivada `fix/world-repeat-retry-evidence-gate-20261022`, conservando los controles posteriores en ambos ejecutores:
+
+- `69c124f2`: cron World ahora consulta recibos del ciclo y suspende reintentos repetidos sin fuentes nuevas, antes de realizar inferencia.
+- `0b0f564b`: OAuth `world:run` aplica el mismo control; no concede permisos nuevos ni emite RETURN.
+- `9cd3ca79`, `90cb6a57`, `aab692df`: prueba unitaria y cableado en SFI Verify para repetición, ciclo distinto, observación nueva, canario posterior a fallo y aborto antes de inferencia.
+- `be36e260`, `6415761f`: prueba de preservación por ascendencia de los **41 HEAD** de ramas eliminadas y presencia de los activos, conectada a CI en la rama de integración. Protege el historial, no acredita equivalencia funcional completa.
+
+La corrida de comprobación exact-head asociada al nuevo código es [SFI Verify #40164743269](https://github.com/Aptymok/system-friction/actions/runs/40164743269). Consultar su veredicto final antes de cerrar la recuperación funcional. Las cinco fuentes históricas diferidas (migraciones de deduplicación, tests SQL y dossier restringido) permanecen accesibles como ancestros; ninguna se ha desplegado, ocultado ni calificado falsamente de instalada. La necesidad de pruebas de equivalencia de los restantes contratos en sus superficies reales continúa registrada.
