@@ -51,9 +51,16 @@ export async function GET(request: Request) {
   // Only disclose the configured canary if the authenticated ROOT actor
   // already has access to that case. Never expose another tenant's ID.
   const configuredCanary=process.env.SFI_C07_CANARY_CASE_ID;
-  const visibleCases=configuredCanary ? await listOperationalCases(gate.ctx.user.id) : [];
-  const authorizedCanaryCaseId=visibleCases.some(item=>item.id===configuredCanary)
-    ? configuredCanary : null;
+  let authorizedCanaryCaseId:string|null=null;
+  if(configuredCanary){
+    try {
+      const visibleCases=await listOperationalCases(gate.ctx.user.id);
+      if(visibleCases.some(item=>item.id===configuredCanary))authorizedCanaryCaseId=configuredCanary;
+    } catch {
+      // Fail closed on case-access read failures, but preserve ROOT's
+      // independent read-only agent catalogue and queue diagnostics.
+    }
+  }
   return NextResponse.json({
     ok: true,
     authorizedCanaryCaseId,
