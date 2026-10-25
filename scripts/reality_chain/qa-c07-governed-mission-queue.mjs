@@ -185,6 +185,8 @@ async function test() {
   const differentTenant=await enqueue('same-client-attempt',tenantOther);
   assert.notEqual(differentTenant.id,first.id);
   assert.equal(differentTenant.tenant_id,tenantOther);
+  // Isolate expiration from unrelated tenant work before any generic claim.
+  assert.equal((await cancel(differentTenant.id,tenantOther)).value,'CANCELLED');
 
   // An expired job cannot start.
   const expired=await enqueue('expiry-test');
@@ -192,9 +194,6 @@ async function test() {
   const claimed=await claim(b,'worker-expires');
   assert.ok(!claimed || claimed.id!==expired.id);
   assert.equal((await stored(expired.id)).status,'BLOCKED');
-  // No other queued jobs may interfere with restart's generic claim.
-  assert.equal((await cancel(differentTenant.id,tenantOther)).value,'CANCELLED');
-
   // A RUNNING job with a hard deadline must not linger indefinitely.
   const deadlineJob=await enqueue('running-hard-expiration');
   const leasedDeadline=await claim(a,'worker-deadline');
@@ -214,7 +213,7 @@ async function test() {
       { encoding:'utf8',timeout:30000, env:{...process.env,SFI_C07_ISOLATED_JOB_ID:restartJob.id} });
     assert.equal(p.error,undefined,p.error?.message);
     assert.equal(p.status,0,mode+' failed: '+p.stderr+' '+p.stdout);
-    const messages=p.stdout.trim().split('\\n');
+    const messages=p.stdout.trim().split(String.fromCharCode(10));
     const parsed=JSON.parse(messages[messages.length-1]);
     return parsed;
   };
