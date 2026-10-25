@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {readFileSync} from 'node:fs';
 import { assessWorldRepeatRetryGuard } from './hypothesisRetryGuard';
 
 const receipt = (at:string,sourcePartialEventId='partial-a') => ({
@@ -57,9 +58,8 @@ test('provider recovery needs a successful post-failure canary',()=>{
 });
 
 test('both OAuth and scheduled World entrypoints enforce retry provenance before inference',()=>{
-  const fs = require('node:fs') as typeof import('node:fs');
-  const oauth=fs.readFileSync('src/app/api/external/v1/world/route.ts','utf8');
-  const cron=fs.readFileSync('src/app/api/cron/world-observatory/route.ts','utf8');
+  const oauth=readFileSync('src/app/api/external/v1/world/route.ts','utf8');
+  const cron=readFileSync('src/app/api/cron/world-observatory/route.ts','utf8');
   for(const source of [oauth,cron]){
     assert.match(source,/assessWorldRepeatRetryGuard\(/);
     assert.match(source,/RETRY_RECEIPT_READ_UNAVAILABLE/);
