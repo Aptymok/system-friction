@@ -43,6 +43,15 @@ assert.match(worker,/text\(payload\.caseRevision\)/);
 assert.match(worker,/\.eq\('tenant_id',tenantId\)\.is\('deleted_at',null\)/);
 assert.match(worker,/CASE_REVISION_AND_ANCHORS_REQUIRED/);
 assert.match(worker,/if \(checked\.mission\.humanApprovalRequired\)/);
+const rootRoute=readFileSync('src/app/api/root/cognitive-runtime/route.ts','utf8');
+assert.match(rootRoute,/await readOwnedC07MissionSummary\(gate\.ctx\.user\.id\)/);
+assert.match(rootRoute,/requireRootActor\('root\.cognitive-runtime\.read'\)/);
+const queueIntake=readFileSync('src/lib/sfi/cognitive-runtime/queuedMissionIntake.ts','utf8');
+assert.match(queueIntake,/export async function readOwnedC07MissionSummary/);
+assert.match(queueIntake,/\.eq\('actor_id',actorId\)/);
+assert.match(queueIntake,/\.limit\(20\)/);
+assert.match(queueIntake,/QUEUE_DISABLED/);
+assert.match(queueIntake,/OWNER_SCOPED_SNAPSHOT_NOT_COMPLETE_QUEUE_OR_EXTERNAL_RETURN/);
 console.log(JSON.stringify({
   pass:'SFI_C07_CASE_REVISION_AND_ELIGIBILITY',
   approvedStates:C07_AUTONOMOUS_CASE_STATES,
