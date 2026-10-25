@@ -38,7 +38,9 @@ type CaseEnvelope={realityChain?:SfiRealityChain;caseRecord:CaseRecord;objects:C
   readiness?:{missingSources:string[];readyForAnalysis:boolean};
   temporalProvenance?:TemporalProvenanceView;
   authorityEvidence?:AuthorityEvidenceView;
-  trajectoryContrast?:TrajectoryContrastView};
+  trajectoryContrast?:TrajectoryContrastView;
+  readConsistency?:{readPlane:string;sourceInventoryComplete:boolean|null;
+    parity:string;warning:string|null}};
 type Fragment={paragraph:number;page:number|null;pageBasis:string;text:string;start:number|null;end:number|null};
 type Extraction={source:{filename:string;mime:string;size:number;sha256:string;modifiedAt:string|null};extraction:{parser:string;pageCount:number|null;fragmentCount:number;returnedFragments:number;complete:boolean;warnings:string[];fragments:Fragment[]}};
 type Profile={id?:string;serviceProfileId?:string;name?:string;label?:string};
@@ -342,6 +344,14 @@ export function RealityChainWorkbench(){
     <button type="button" aria-current={screen===1?'step':undefined} onClick={()=>scrollTo(1)}>02 · ASSESS</button>
     <button type="button" aria-current={screen===2?'step':undefined} onClick={()=>scrollTo(2)}>03 · ACT & LEARN</button>
   </header>
+  {caseData?.readConsistency?.warning && <section className="rcRecordList"
+    data-case-continuity-warning="SFI-CASE-CONTINUITY-SNAPSHOT-1.0" role="status">
+    <strong>LECTURA DE CONTINUIDAD · INVENTARIO NO CERTIFICADO</strong>
+    <p>Este expediente se está leyendo desde {caseData.readConsistency.readPlane}.
+      No se puede afirmar que las fuentes, pruebas, decisiones o resultados mostrados
+      representen todo lo persistido en PRIMARY. Un cero en esta vista no es ausencia histórica.</p>
+    <small>{caseData.readConsistency.warning}</small>
+  </section>}
 
   <div className="rcGlobalCaseBar">
     <label>PROJECT
