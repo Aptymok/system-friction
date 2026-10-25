@@ -470,11 +470,11 @@ check('continuity-state replay accepts only a monotonic same-content stale heart
   && continuityRecoveryMigration.includes("<= (before_data->>'updated_at')::timestamptz")
   && continuityRecoveryMigration.includes("'staleAncestorsReconciled', stale_ancestor_count"));
 
-check('recovery cannot return to PRIMARY until journal is empty and fingerprints converge',
-  continuityRecovery.includes("reason: 'CONTINUITY_JOURNAL_NOT_EMPTY'")
-  && continuityRecovery.includes("reason: 'POST_RECOVERY_FINGERPRINT_MISMATCH'")
-  && continuityRecovery.includes('completeRecoveryMode()')
-  && dataPlaneContinuityStore.includes("status in ('PENDING','REPLAYING','CONFLICT')"));
+check('historical journal recovery is disabled and cannot change PRIMARY',
+  continuityRecovery.includes('attempted:false as const')
+  && continuityRecovery.includes("reason:'SFI_REPLICATION_RETIRED_BY_FOUNDER'")
+  && !continuityRecovery.includes('sfi_apply_continuity_batch_v1')
+  && !runtime.includes('await recoverPrimaryDataPlane('));
 
 check('primary outbox trigger function is not directly executable by public API roles',
   primaryOutboxAclMigration.includes('revoke all on function public.sfi_capture_primary_data_plane_write() from public, anon, authenticated')
