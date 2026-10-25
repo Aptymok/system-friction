@@ -54,6 +54,9 @@ jobs:
       - name: Verify Method Lab dependency health probes are bounded
         run: node --import tsx scripts/qa-sfi-method-lab-dependency-read.ts
 
+      - name: Verify WorldSpect independent-provider clock reads remain on-demand
+        run: node --import tsx --test src/lib/worldspect/independentPlaneClock.test.ts
+
       - name: Verify Pilot Light economics is read-only and provider costs are not invented
         run: node --import tsx --test src/lib/persistence/pilotLightEconomicsPolicy.test.ts
 
