@@ -28,41 +28,10 @@ function hasOpenUniversalCycle(events: Row[]) {
 }
 
 async function readMirrorMaintenanceRequirement() {
-  if (!isSfiContinuityConfigured()) {
-    return { required: false as const, configured: false as const, state: null, diagnostic: null };
-  }
-
-  try {
-    // The last Neon certificate is historical. Consult the bounded, live
-    // outbox/read-plane projection before deciding whether a heartbeat can
-    // sleep. Otherwise new Supabase writes can remain invisible to the gate.
-    const { readDataPlaneReconciliationStatus } = await import('@/lib/persistence/dataPlaneReconciliationControl');
-    const snapshot = await readDataPlaneReconciliationStatus();
-    const certificate = snapshot.primaryMirrorCertificate;
-    const required = snapshot.dataPlane.mode === 'PRIMARY' && !certificate.certified;
-    return {
-      required,
-      configured: true as const,
-      state: {
-        mode: snapshot.dataPlane.mode,
-        certified: certificate.certified,
-        recordedCertified: certificate.recordedCertified,
-        verifiedAt: certificate.verifiedAt,
-        backlog: certificate.primaryPendingAtRead,
-        stale: certificate.reason === 'VERIFICATION_STALE',
-        certificateReason: certificate.reason,
-        observedAt: certificate.observedAt,
-      },
-      diagnostic: null,
-    };
-  } catch (error) {
-    return {
-      required: true as const,
-      configured: true as const,
-      state: null,
-      diagnostic: error instanceof Error ? error.message : String(error),
-    };
-  }
+  // Mirror backlog is historical only; never wake a heartbeat to reconcile it.
+  return { required: false as const, configured: false as const,
+    state: { replicationEnabled: false, policy: 'SFI_REPLICATION_RETIRED_BY_FOUNDER' },
+    diagnostic: null };
 }
 
 export async function readContinuityActionableWorkGate(input?: { requestedCycleId?: string | null }) {
