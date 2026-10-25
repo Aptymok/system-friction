@@ -13,6 +13,8 @@ export type ProspectRadarInput = {
   lookbackDays?: number;
   maxCandidates?: number;
   allowProvisionalOffers?: boolean;
+  /** Explicit opt-out for model-assisted analysis; existing clients default unchanged. */
+  allowModelSynthesis?: boolean;
 };
 
 export type ProspectRadarReport = {
