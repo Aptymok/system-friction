@@ -29,6 +29,7 @@ import type {
   SfiTemporalWindowV1,
 } from '@/core/contracts/sfi';
 import { recordCanonicalCaseObjectAtomic } from './canonicalCaseObjectWriter';
+import { computeCaseSourceReadiness } from './sourceProtocolReadiness';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 
 export type SfiTenantRole = 'OWNER' | 'ADMIN' | 'OPERATOR' | 'VIEWER' | 'AUDITOR';
@@ -478,23 +479,17 @@ export async function readOperationalCase(caseId: string, userId: string, tempor
   const afterRead = await caseRow(caseId);
   if (row.closure_revision !== afterRead.closure_revision || row.updated_at !== afterRead.updated_at) throw new Error('SFI_CASE_READ_CONFLICT');
   const profile = getSfiServiceProfile(caseRecord.serviceProfileId);
-  const presentSourceTypes = Array.from(new Set(objects
-    .filter((object) => object.kind === 'SOURCE')
-    .map((object) => text(object.payload.sourceType))
-    .filter(Boolean))).sort();
-  const requiredSources = profile ? [...profile.requiredSources] : [];
-  const missingSources = requiredSources.filter((source) => !presentSourceTypes.includes(source));
+  const sourceReadiness = computeCaseSourceReadiness(
+    profile?.requiredSources ?? [], objects, caseRecord.temporalWindow.cutoff,
+  );
   return {
     caseRecord,
     objects,
     realityChain,
     revision: row.closure_revision ?? null,
     readiness: {
-      requiredSources,
-      presentSourceTypes,
-      missingSources,
-      sourceCoverage: requiredSources.length ? (requiredSources.length - missingSources.length) / requiredSources.length : 1,
-      readyForAnalysis: Boolean(profile) && missingSources.length === 0,
+      ...sourceReadiness,
+      readyForAnalysis: Boolean(profile) && sourceReadiness.readyForAnalysis,
     },
   };
 }
