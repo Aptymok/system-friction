@@ -223,8 +223,8 @@ export function SfiRootWorkspace({ enabled, decisionOnly = false }: { enabled: b
       onToggle={(event) => { if (event.currentTarget.open) void loadPilotEconomics(); }}>
       <summary>CONTINUIDAD ECONÓMICA · COSTOS Y CAPACIDAD</summary>
       <div className="rootReportList">
-        <p>Neon es contingencia selectiva propuesta, no una réplica que debamos mantener idéntica a cualquier coste.
-          Esta lectura se realiza sólo al solicitarla. No modifica servicios, tablas, presupuestos ni replicación.</p>
+        <p>Supabase y Neon son proveedores independientes. La replicación automática está retirada por decisión del fundador.
+          Medición sólo bajo solicitud explícita: actividad real, espacio ocupado y unidades registradas. Sin cobros inferidos.</p>
         <button type="button" disabled={pilotEconomicsLoading} onClick={() => void loadPilotEconomics()}>
           {pilotEconomicsLoading ? 'Midiendo…' : 'Medir ahora'}
         </button>
@@ -236,23 +236,31 @@ export function SfiRootWorkspace({ enabled, decisionOnly = false }: { enabled: b
               ? (pilotEconomics.neonStorage.databaseBytes / 1_000_000).toFixed(1) + ' MB'
               : 'NO OBSERVADO'}
           </strong></article>
-          <article><span>Diario de réplica Neon</span><strong>
+          <article><span>Histórico de diario Neon (sin obligación de réplica)</span><strong>
             {typeof pilotEconomics.neonStorage?.journalBytes === 'number'
               ? (pilotEconomics.neonStorage.journalBytes / 1_000_000).toFixed(1) + ' MB'
               : 'NO OBSERVADO'}
           </strong></article>
-          <article><span>Pendientes PRIMARY</span><strong>
+          <article><span>Outbox histórico PRIMARY (no requiere vaciado)</span><strong>
             {typeof pilotEconomics.primaryOutbox?.pending === 'number'
               ? pilotEconomics.primaryOutbox.pending
               : 'NO OBSERVADO'}
           </strong></article>
-          <article><span>Costo monetario y cuota restante</span><strong>NO VERIFICADOS EN PROVEEDOR</strong></article>
-          <article><span>Adopción Pilot Light</span><strong>EN EVALUACIÓN · SIN CAMBIOS DE RÉPLICA</strong></article>
+          <article><span>Contabilidad de consumo</span><strong>
+            {pilotEconomics.measuredUsage?.status==='OBSERVED'
+              ? String(pilotEconomics.measuredUsage.eventCount)+' eventos medidos (últimos 30 días)'
+              : 'SIN LECTURA'}
+          </strong></article>
+          <article><span>Coste monetario y cuota restante</span><strong>DESCONOCIDOS · FALTA FACTURACIÓN DEL PROVEEDOR</strong></article>
+          <article><span>Política de bases</span><strong>SIN REPLICACIÓN · PROVEEDORES INDEPENDIENTES</strong></article>
+          {Array.isArray(pilotEconomics.measuredUsage?.units)&&pilotEconomics.measuredUsage.units.slice(0,12).map((item,i)=>
+            <article key={'cost-ledger-'+i}><span>{txt(item.kind,'TIPO')} · {txt(item.unit,'UNIDAD')}</span>
+              <strong>{Number(item.amount).toLocaleString()} unidades medidas</strong></article>)}
         </div>}
         {pilotEconomics?.errors?.neon && <p role="alert">Neon: medición incompleta.</p>}
         {pilotEconomics?.errors?.primary && <p role="alert">PRIMARY: medición incompleta.</p>}
-        <p>Para decidir una optimización: contrastar la factura/cuotas del proveedor, inventariar dependencias,
-          probar recuperación mínima y autorizar la nueva política. La paridad completa no es una meta económica automática.</p>
+        <p>Las lecturas de consumo provienen del ledger de PRIMARY; no son una factura.
+          Una tarifa y cuota deben venir de cada proveedor. Neon conserva su información propia sin reflejar Supabase.</p>
       </div>
     </details>
 
