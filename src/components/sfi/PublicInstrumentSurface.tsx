@@ -149,7 +149,14 @@ export function PublicInstrumentSurface({surface}:{surface:SurfaceId}){
         <button type="button" disabled={activeIndex===0} onClick={()=>goTo(activeIndex-1)}>← PREVIOUS</button>
         <button type="button" disabled={activeIndex===panels.length-1} onClick={()=>goTo(activeIndex+1)}>NEXT →</button>
       </div>
-    </nav>:<div className="sfiInstrumentScrollCue" aria-hidden="true"><span>SCROLL</span><i>←</i><b>HORIZONTAL</b><i>→</i></div>}
+    </nav>:<nav className="sfiInstrumentManualNav" aria-label="Manual instrument observation">
+      <span>MANUAL OBSERVATION · {String(activeIndex+1).padStart(2,'0')} / {String(panels.length).padStart(2,'0')}</span>
+      <div>
+        <Link href="/servicios">EXPLORE SERVICES ↗</Link>
+        <button type="button" disabled={activeIndex===0} onClick={()=>goTo(activeIndex-1)}>← PREVIOUS</button>
+        <button type="button" disabled={activeIndex===panels.length-1} onClick={()=>goTo(activeIndex+1)}>NEXT →</button>
+      </div>
+    </nav>}
   </main>;
 }
 
