@@ -1,6 +1,4 @@
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
-import { isSfiContinuityConfigured } from '@/lib/sfi/continuityPostgres';
-import { readNeonActionableWorkSnapshot } from './neonHeartbeatStore';
 
 type Row = Record<string, unknown>;
 
@@ -39,7 +37,7 @@ async function readMirrorMaintenanceRequirement() {
  * when all unrelated operational signals are idle. This does NOT enqueue,
  * claim, authorize, execute, or enable the queue.
  */
-async function readC08MissionWorkRequirement() {
+export async function readC08MissionWorkRequirement() {
   if (process.env.SFI_C07_MISSION_QUEUE_ENABLED !== 'true') {
     return { required: false, state: 'DISABLED' as const };
   }
@@ -97,68 +95,16 @@ export async function readContinuityActionableWorkGate(input?: { requestedCycleI
   const continuityState = state.data;
   const missingContinuityState = !state.error && !continuityState;
   if (readError || missingContinuityState) {
-    if (isSfiContinuityConfigured()) {
-      try {
-        const fallback = await readNeonActionableWorkSnapshot();
-        const continuityMode = typeof fallback?.continuity_mode === 'string' ? fallback.continuity_mode : null;
-        if (continuityMode) {
-          const activeProposal = fallback?.active_proposal === true;
-          const activeCase = fallback?.active_case === true;
-          const openUniversalCycle = fallback?.open_universal_cycle === true;
-          const activeStudioExperiment = fallback?.active_studio_experiment === true;
-          const nonNormalContinuityMode = continuityMode !== 'NORMAL';
-          const mirrorMaintenanceRequired = mirrorMaintenance.required;
-          const shouldRun = activeProposal || activeCase || openUniversalCycle || activeStudioExperiment || nonNormalContinuityMode || mirrorMaintenanceRequired || c08MissionWork.required;
-          return {
-            shouldRun,
-            reason: mirrorMaintenanceRequired
-              ? 'DATA_PLANE_MIRROR_MAINTENANCE_REQUIRED' as const
-              : c08MissionWork.required
-                ? 'C08_MISSION_WORK_PENDING_NEON_FALLBACK' as const
-              : shouldRun
-                ? 'ACTIONABLE_CONTINUITY_WORK_NEON_FALLBACK' as const
-                : 'IDLE_NO_ACTIONABLE_WORK_NEON_FALLBACK' as const,
-            requestedCycleId: null,
-            dataPlane: 'NEON' as const,
-            state: {
-              continuityMode,
-              activeProposal,
-              activeCase,
-              openUniversalCycle,
-              activeStudioExperiment,
-              mirrorMaintenanceRequired,
-              mirrorMaintenance,
-              c08MissionWork,
-            },
-            primaryDiagnostic: readError
-              ? { code: readError.code ?? null, message: readError.message }
-              : { code: 'CONTINUITY_STATE_MISSING', message: 'Primary continuity state row is absent.' },
-          };
-        }
-      } catch (fallbackError) {
-        return {
-          shouldRun: true as const,
-          reason: 'WORK_GATE_READ_FAILED_FAIL_OPEN' as const,
-          requestedCycleId: null,
-          state: null,
-          diagnostic: {
-            primary: readError
-              ? { code: readError.code ?? null, message: readError.message }
-              : { code: 'CONTINUITY_STATE_MISSING', message: 'Required sfi_continuity_state institution row is absent.' },
-            continuity: fallbackError instanceof Error ? fallbackError.message : String(fallbackError),
-          },
-        };
-      }
-    }
-
+    // Primary-only policy. An unavailable Supabase read is NOT a reason to
+    // consult the retired Neon mirror or initiate unrelated autonomous work.
     return {
-      shouldRun: true as const,
-      reason: 'WORK_GATE_READ_FAILED_FAIL_OPEN' as const,
+      shouldRun: c08MissionWork.state === 'READ_CONFIRMED' && c08MissionWork.required,
+      reason: 'PRIMARY_WORK_GATE_UNAVAILABLE' as const,
       requestedCycleId: null,
-      state: null,
+      state: { c08MissionWork, primaryReadAvailable: false },
       diagnostic: readError
         ? { code: readError.code ?? null, message: readError.message }
-        : { code: 'CONTINUITY_STATE_MISSING', message: 'Required sfi_continuity_state institution row is absent.' },
+        : { code: 'CONTINUITY_STATE_MISSING', message: 'Primary sfi_continuity_state row absent.' },
     };
   }
 
