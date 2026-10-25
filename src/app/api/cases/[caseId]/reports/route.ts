@@ -6,6 +6,7 @@ import { assertReportClaimsIntegrity } from '@/lib/sfi/case-platform/integrity';
 import { renderSfiRealityPassportHtml } from '@/core/case-platform';
 import { sfiCaseApiFailure } from '@/lib/sfi/case-platform/http';
 import { readDataPlaneState } from '@/lib/persistence/dataPlaneContinuityStore';
+import { describePassportReadBoundary } from '@/lib/sfi/case-platform/passportReadBoundary';
 import {
   SFI_EPISTEMIC_OUTPUT_RELATIONS,
   type SfiReportClaimV1,
@@ -44,27 +45,24 @@ export async function GET(request: Request, context: RouteContext) {
     if (format === 'passport-json' || format === 'passport-html' || format === 'passport-pdf') {
       const envelope = await readOperationalCase(caseId, user.id);
       const chain = envelope.realityChain;
+      // All three download formats share the same fail-closed boundary.
+      // Do not render a seemingly certified PDF while JSON alone warns of lag.
+      let readConsistency = describePassportReadBoundary(null);
+      try {
+        const plane = await readDataPlaneState();
+        readConsistency = describePassportReadBoundary(plane.mode);
+      } catch {
+        readConsistency = describePassportReadBoundary(null);
+      }
       if (format === 'passport-pdf') {
         const {buildRealityPassportPdfInput,requiredPrivateCaseBriefCodePoints,renderPrivateCaseBriefPdf} = await import('@/lib/sfi/case-platform/privateCaseBriefContract');
         const {loadUnifontGlyphs} = await import('@/lib/sfi/case-platform/unifontType3');
-        const renderInput=buildRealityPassportPdfInput(chain);
+        const renderInput=buildRealityPassportPdfInput(chain, readConsistency);
         const glyphs=await loadUnifontGlyphs(requiredPrivateCaseBriefCodePoints(renderInput));
         const bytes=renderPrivateCaseBriefPdf(renderInput,glyphs);
         return new Response(new Uint8Array(bytes),{headers:{'Content-Type':'application/pdf','Content-Disposition':`attachment; filename="SFI-Reality-Chain-${encodeURIComponent(caseId)}.pdf"`,'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'}});
       }
-      let readConsistency:{readPlane:string;sourceInventoryComplete:boolean;warning:string};
-      try {
-        const plane=await readDataPlaneState();
-        readConsistency=plane.mode==='PRIMARY'
-          ?{readPlane:'SUPABASE_PRIMARY',sourceInventoryComplete:false,
-            warning:'PRIMARY_SNAPSHOT_NOT_CROSS_PROVIDER_CERTIFIED'}
-          :{readPlane:'NEON_CONTINUITY',sourceInventoryComplete:false,
-            warning:'CONTINUITY_SNAPSHOT_MAY_LAG_PRIMARY_WRITES_OR_DIVERGE'};
-      } catch {
-        readConsistency={readPlane:'UNVERIFIED',sourceInventoryComplete:false,
-          warning:'DATA_PLANE_STATE_UNAVAILABLE'};
-      }
-      const content = format === 'passport-html' ? renderSfiRealityPassportHtml(chain) : JSON.stringify({
+      const content = format === 'passport-html' ? renderSfiRealityPassportHtml(chain, readConsistency) : JSON.stringify({
         ...chain, objects:envelope.objects,
         temporalProvenance:envelope.temporalProvenance,
         authorityEvidence:envelope.authorityEvidence,
