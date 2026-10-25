@@ -216,8 +216,8 @@ jobs:
         run: npx tsx scripts/qa-sfi-cognitive-agent-missions-c06.ts
       - name: Verify durable agent execution event acknowledgements (C07)
         run: npx tsx scripts/qa-sfi-agent-persistence-c07.ts
-      - name: Verify explicit C07 mission-to-executor validation
-        run: npx tsx scripts/qa-sfi-mission-dispatch-c07.ts
+      - name: Verify C07 mission dispatch and unchanged Case Platform authority
+        run: npx tsx scripts/qa-sfi-mission-dispatch-c07.ts && npx tsx scripts/qa-sfi-c07-case-eligibility.ts
       - name: Verify canonical runtime receipts for C07
         run: npx tsx scripts/qa-sfi-execution-receipt-pipeline-c07.ts
       - name: Verify independent mission execution receipt identity on readback
