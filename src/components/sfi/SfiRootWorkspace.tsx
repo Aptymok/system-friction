@@ -72,6 +72,10 @@ export function SfiRootWorkspace({ enabled, decisionOnly = false, missionOnly = 
   const [missionQueueEnabled, setMissionQueueEnabled] = useState(false);
   const [selectedMissionId, setSelectedMissionId] = useState('SFI-C06:meta_orchestrator');
   const [selectedMissionCaseId, setSelectedMissionCaseId] = useState('');
+  const [authorizedCanaryCaseId,setAuthorizedCanaryCaseId]=useState<string|null>(null);
+  const [caseDirectory,setCaseDirectory]=useState<Row[]|null>(null);
+  const [projectDirectory,setProjectDirectory]=useState<Row[]>([]);
+  const [caseDirectoryError,setCaseDirectoryError]=useState<string|null>(null);
   const [missionBusy, setMissionBusy] = useState(false);
   const [missionActionResult, setMissionActionResult] = useState<Row | null>(null);
   const [missionActionError, setMissionActionError] = useState<string | null>(null);
