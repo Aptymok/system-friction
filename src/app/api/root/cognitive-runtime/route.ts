@@ -8,6 +8,9 @@ import {
   listExecutionContracts,
 } from '@/lib/sfi/cognitive-runtime/executionContracts';
 import { executeManualCognitiveAgent } from '@/lib/sfi/cognitive-runtime/manualExecution';
+import { canonicalQueuedRequestDigest } from '@/lib/sfi/cognitive-runtime/queuedMissionWorker';
+import { readOperationalCase } from '@/lib/sfi/case-platform/repository';
+import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { readObservedSfiCognitiveRuntime } from '@/lib/sfi/cognitive-runtime/observedRuntime';
 import { planCognitiveQuestion } from '@/lib/sfi/cognitive-runtime/planning';
 
@@ -46,6 +49,7 @@ export async function GET() {
     executionContracts: listExecutionContracts().map(compactExecutionContract),
     missionDefinitions: listBoundedCognitiveMissions(),
     missionStatus: 'DEFINED_NOT_DISPATCHED',
+    queuedMissionEnabled: process.env.SFI_C07_MISSION_QUEUE_ENABLED === 'true',
   }, { headers: { 'Cache-Control': 'no-store' } });
 }
 
@@ -62,6 +66,51 @@ export async function POST(request: Request) {
     const result = await planCognitiveQuestion(question, gate.ctx.user.id);
     if (!result.ok) return NextResponse.json(result, { status: 503 });
     return NextResponse.json(result);
+  }
+
+  if (operation === 'queue_mission') {
+    // A ROOT operation is not a permission to enqueue across tenants.
+    // At this stage restrict queue use to exactly one existing, readable CASE.
+    if (process.env.SFI_C07_MISSION_QUEUE_ENABLED !== 'true') {
+      return NextResponse.json({ ok:false, error:'queue_not_released', instructions:'La cola aún no tiene migración y despliegue autorizados.' }, { status:409 });
+    }
+    const mission = validateMissionDispatchRequest(body);
+    if (!mission.ok) return NextResponse.json({ok:false,error:mission.error},{status:mission.status});
+    const targets = Array.isArray(body.targets) ? body.targets as Row[] : [];
+    const anchors = Array.isArray(body.anchors) ? body.anchors as Row[] : [];
+    if (targets.length !== 1 || targets[0].kind !== 'CASE' || !text(targets[0].id)
+      || !anchors.length || anchors.some(a => a.kind !== 'CASE' || a.id !== targets[0].id)
+      || !text(body.idempotencyKey,160) || text(body.idempotencyKey,160)!.length < 8
+      || (Array.isArray(body.sourceUrls) && body.sourceUrls.length)
+      || (Array.isArray(body.evidenceIds) && body.evidenceIds.length)) {
+      return NextResponse.json({ok:false,error:'queue_requires_single_case_read_only_request'},{status:400});
+    }
+    const caseRef = await readOperationalCase(String(targets[0].id), gate.ctx.user.id).catch(() => null);
+    if (!caseRef || caseRef.caseRecord.status === 'CLOSED') {
+      return NextResponse.json({ok:false,error:'case_not_authorized_or_closed'},{status:403});
+    }
+    const permittedKeys = ['agentId','missionId','purpose','anchors','targets','timeRange','direction','parameters','requestedOutputs','governanceContext'];
+    const payload = Object.fromEntries(permittedKeys.filter(key => body[key] !== undefined).map(key => [key,body[key]]));
+    const db = createServiceSupabaseClient();
+    const receipt = await db.rpc('sfi_c07_enqueue_mission_v1',{
+      p_tenant_id:caseRef.caseRecord.tenantId,
+      p_actor_id:gate.ctx.user.id,
+      p_mission_id:mission.mission.missionId,
+      p_agent_id:mission.mission.agentId,
+      p_idempotency_key:String(body.idempotencyKey),
+      p_request_digest:canonicalQueuedRequestDigest(payload),
+      p_request_payload:payload,
+      p_max_attempts:2,
+    });
+    if (receipt.error || !receipt.data) return NextResponse.json({
+      ok:false,error:'queue_write_not_confirmed',code:receipt.error?.code??null,
+    },{status:503});
+    const queued = Array.isArray(receipt.data) ? receipt.data[0] : receipt.data;
+    return NextResponse.json({
+      ok:true,operation:'queue_mission',state:queued.status,
+      jobId:queued.id,executionId:queued.execution_id,missionId:queued.mission_id,
+      boundary:'Queued does not mean executed; execution requires lease, authority recheck and independent persisted receipt. External RETURN remains NOT_OBSERVED.',
+    },{status:202});
   }
 
   if (operation !== 'execute' && operation !== 'execute_mission') {
