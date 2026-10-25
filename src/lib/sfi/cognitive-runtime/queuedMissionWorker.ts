@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { executeManualCognitiveAgent } from './manualExecution';
 import { validateMissionDispatchRequest } from './missionDispatch';
+import { checkC07CaseQueueState } from './queuedMissionCaseGate';
 
 export const SFI_C07_QUEUE_WORKER_CONTRACT = 'SFI-C07-QUEUED-CANONICAL-WORKER-1.0' as const;
 type Row = Record<string, unknown>;
@@ -61,8 +62,12 @@ export function checkQueuedMissionClaim(value: unknown, nowMs: number = Date.now
   const targets = (payload.targets as unknown[]).map(row);
   const anchors = (payload.anchors as unknown[]).map(row);
   const refs = [...targets,...anchors];
-  if (!refs.length || refs.some(v => !['CASE','PROJECT'].includes(String(v.kind)) || !text(v.id))) {
-    return fail('TENANT_CHECKABLE_TARGETS_REQUIRED');
+  // Current C07 intake admits only one CASE and same-CASE anchors.
+  if (targets.length !== 1 || targets[0].kind !== 'CASE' || !text(targets[0].id)
+    || anchors.length === 0
+    || anchors.some(v => v.kind !== 'CASE' || v.id !== targets[0].id)
+    || !text(payload.caseRevision)) {
+    return fail('CANONICAL_CASE_REVISION_AND_ANCHORS_REQUIRED');
   }
   return {
     ok: true as const, id, leaseToken, leaseUntil, tenantId, actorId, executionId,
@@ -108,9 +113,14 @@ export async function runBoundedC07QueuedMission(workerId: string) {
     if (active.error || active.data?.status !== 'ACTIVE') throw new Error('TENANT_ACTOR_AUTHORITY_REQUIRED');
     for (const target of gate.refs) {
       const table = target.kind === 'CASE' ? 'sfi_cases' : 'sfi_projects';
-      const targetRead = await db.from(table).select('id,tenant_id')
-        .eq('id',target.id).eq('tenant_id',tenantId).maybeSingle();
+      const targetRead = await db.from(table).select('id,tenant_id,status,updated_at,deleted_at')
+        .eq('id',target.id).eq('tenant_id',tenantId).is('deleted_at',null).maybeSingle();
       if (targetRead.error || !targetRead.data) throw new Error('TENANT_TARGET_ISOLATION_REQUIRED');
+      const caseGate = checkC07CaseQueueState({
+        status:targetRead.data.status,updatedAt:targetRead.data.updated_at,
+        deletedAt:targetRead.data.deleted_at,
+      },text(payload.caseRevision));
+      if (!caseGate.ok) throw new Error(caseGate.reason);
     }
     const renewal = await db.rpc('sfi_c07_renew_mission_v1', {
       p_id: id, p_token: leaseToken, p_lease_seconds: 900,
