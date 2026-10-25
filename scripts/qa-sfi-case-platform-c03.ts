@@ -3,6 +3,7 @@ import {readFileSync} from 'node:fs';
 import {resolveCaseProjectAssignment} from '../src/lib/sfi/case-platform/caseProjectAssignment';
 import {computeCaseSourceReadiness, SFI_CASE_SOURCE_PROTOCOL_CONTRACT} from '../src/lib/sfi/case-platform/sourceProtocolReadiness';
 import {projectCaseTemporalProvenance} from '../src/lib/sfi/case-platform/temporalProvenance';
+import {projectCaseAuthorityEvidence} from '../src/lib/sfi/case-platform/authorityEvidenceReadModel';
 
 const project={id:'project-1',tenantId:'tenant-B',status:'ACTIVE'};
 assert.deepEqual(resolveCaseProjectAssignment(null,null,null),{tenantId:null,projectId:null});
@@ -131,5 +132,56 @@ assert.match(c14Ui,/data-c14-temporal-source-clocks/);
 assert.match(c14Ui,/caseData\.temporalProvenance\.events/);
 assert.match(c14Ui,/temporalProvenance:caseData\.temporalProvenance/);
 assert.match(c14Ui,/FECHA DE CONTEXTO · NO PRUEBA RETROSPECTIVA/);
+
+
+const chainFixture={
+  caseId:'KXTXR-TEST',
+  provenance:{adjudications:[
+    {evidenceRef:{id:'evidence-1'},state:'PENDING',
+      sourceRoots:[{id:'authored-doc-1'}],assessmentRefs:[]},
+    {evidenceRef:{id:'evidence-2'},state:'ACCEPTED',
+      sourceRoots:[{id:'provider-1'}],assessmentRefs:[{id:'assessment-1'}]},
+    {evidenceRef:{id:'evidence-3'},state:'REJECTED',
+      sourceRoots:[],assessmentRefs:[{id:'assessment-2'}]},
+  ]},
+  authority:[
+    {id:'decision-1',proposalId:'proposal-1',decision:'ACCEPT',authorityRole:'ROOT',
+      decidedBy:'actor-1',createdAt:'2026-10-24T20:00:00Z'},
+    {id:'decision-2',proposalId:'proposal-2',decision:'DENY',authorityRole:'',
+      decidedBy:'',createdAt:'2026-10-24T21:00:00Z'},
+  ],
+  executions:[{verified:false},{verified:true}],
+  gaps:['READ_INCOMPLETE','EVIDENCE_ASSESSMENT_MISSING','UNRESOLVED_REFERENCE:missing'],
+} as unknown as Parameters<typeof projectCaseAuthorityEvidence>[0];
+const assurance=projectCaseAuthorityEvidence(chainFixture);
+assert.equal(assurance.counts.evidenceItems,3);
+assert.equal(assurance.counts.accepted,1);
+assert.equal(assurance.counts.rejected,1);
+assert.equal(assurance.counts.pending,1);
+assert.equal(assurance.counts.authorityDecisions,2);
+assert.equal(assurance.counts.authorityRecordsComplete,1);
+assert.equal(assurance.counts.executionRecords,2);
+assert.equal(assurance.counts.verifiedExecutions,1);
+assert.equal(assurance.snapshotIntegrity,'LIMITED_BY_READ_OR_PROVENANCE');
+assert.equal(assurance.integrityGaps.length,2);
+assert.equal(assurance.evidence[0].state,'PENDING');
+assert.equal(assurance.evidence[1].meaning,'CHAIN_ADJUDICATION_ACCEPTED_ONLY');
+assert.equal(assurance.authority[0].meaning,'CASE_DECISION_RECORD_NOT_UNIVERSAL_EXECUTION_PERMISSION');
+assert.equal(assurance.authority[1].recordIntegrity,'FIELDS_INCOMPLETE');
+assert.equal(projectCaseAuthorityEvidence(chainFixture,1).truncated,true);
+assert.equal(projectCaseAuthorityEvidence(chainFixture,1).evidence.length,1);
+assert.equal(projectCaseAuthorityEvidence(chainFixture,1).authority.length,1);
+assert.equal(projectCaseAuthorityEvidence({caseId:'EMPTY',provenance:{adjudications:[]},
+  authority:[],executions:[],gaps:['READ_INCOMPLETE']} as unknown as Parameters<typeof projectCaseAuthorityEvidence>[0]).snapshotIntegrity,
+  'LIMITED_BY_READ_OR_PROVENANCE');
+const authorityRepo=read('src/lib/sfi/case-platform/repository.ts');
+assert.match(authorityRepo,/authorityEvidence: projectCaseAuthorityEvidence\(realityChain\)/);
+assert.match(externalCases,/authorityEvidence:envelope\.authorityEvidence/);
+const authorityUi=read('src/components/sfi/RealityChainWorkbench.tsx');
+assert.match(authorityUi,/data-c15-c16-authority-evidence-ledger/);
+assert.match(authorityUi,/caseData\.authorityEvidence\.counts\.accepted/);
+assert.match(authorityUi,/caseData\.authorityEvidence\.counts\.authorityDecisions/);
+assert.match(authorityUi,/authorityEvidence:caseData\.authorityEvidence/);
+assert.doesNotMatch(authorityUi,/\.length} ADMITTED EVIDENCE/);
 
 console.log('PASS C03 CASE PLATFORM: project-tenant association, one case insert, scoped detail, web links and authority');
