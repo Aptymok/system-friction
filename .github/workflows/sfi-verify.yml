@@ -51,6 +51,9 @@ jobs:
         if: github.ref == 'refs/heads/work/reality-chain-integration-20261024'
         run: node scripts/qa-sfi-branch-reconciliation-ancestry.mjs
 
+      - name: Verify Pilot Light economics is read-only and provider costs are not invented
+        run: node --import tsx --test src/lib/persistence/pilotLightEconomicsPolicy.test.ts
+
       - name: Verify governed data-plane reconciliation scheduling
         run: node scripts/qa-sfi-data-plane-scheduled-recovery.mjs
 
