@@ -253,6 +253,8 @@ export function SfiRootWorkspace({ enabled, decisionOnly = false, missionOnly = 
   const cases = missionOnly ? (caseDirectory ?? []) : rows(base?.caseIndex?.cases);
   const projects = missionOnly ? projectDirectory : rows(base?.caseIndex?.projects);
   const activeCases = useMemo(() => cases.filter((item) => !['CLOSED', 'REJECTED'].includes(String(item.status).toUpperCase())), [cases]);
+  const selectedCaseRecord=activeCases.find(item=>item.id===selectedMissionCaseId);
+  const selectedMissionRecord=missionDefinitions.find(item=>item.missionId===selectedMissionId);
   const eligibleCaseMissions=missionDefinitions.filter((mission)=>{
     if(mission.executorBound!==true||mission.humanApprovalRequired===true||
       mission.minimumTargets>1||mission.maximumTargets<1||
