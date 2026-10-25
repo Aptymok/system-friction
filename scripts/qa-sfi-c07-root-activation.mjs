@@ -12,6 +12,8 @@ const owned=fs.readFileSync('src/lib/sfi/cognitive-runtime/queuedMissionIntake.t
 const primary=fs.readFileSync('src/lib/persistence/dataPlaneRpc.ts','utf8');
 const cron=fs.readFileSync('src/app/api/cron/continuity-heartbeat/route.ts','utf8');
 const gate=fs.readFileSync('src/lib/continuity/actionableWorkGate.ts','utf8');
+const supabaseServer=fs.readFileSync('src/runtime/supabase/server.ts','utf8');
+const legacyNeonAdapter=fs.readFileSync('src/lib/sfi/continuityPostgres.ts','utf8');
 
 assert.match(route,/requireRootActor\('root\.cognitive-runtime\.operate'\)/);
 assert.match(route,/if \(operation === 'queue_mission'\)/);
@@ -67,4 +69,23 @@ assert.match(executor,/REFERENCE_ONLY_UNVERIFIED/);
 assert.match(workspace,/Leer resultado y evidencia/);
 assert.match(workspace,/missionDetail\.outcome\?\.verification/);
 assert.match(workspace,/NO MEDIDO/);
+// Primary-only implementation: Neon may remain as unreferenced legacy code,
+// but NO ordinary SFI service request may be silently redirected there.
+assert.doesNotMatch(supabaseServer,/fetch: createSfiDataPlaneFetch\(/);
+assert.doesNotMatch(supabaseServer,/import \{ createSfiDataPlaneFetch \}/);
+assert.match(supabaseServer,/fetch,/);
+assert.match(legacyNeonAdapter,/SFI_ENABLE_LEGACY_NEON_ADAPTER !== 'true'/);
+assert.doesNotMatch(gate,/readNeonActionableWorkSnapshot/);
+assert.match(gate,/PRIMARY_WORK_GATE_UNAVAILABLE/);
+assert.match(cron,/readC08MissionWorkRequirement\(\)/);
+assert.match(cron,/C07_SUPABASE_PRIMARY_ONLY/);
+assert.match(cron,/PRIMARY_C07_QUEUE_READ_UNAVAILABLE/);
+assert.match(cron,/PRIMARY_CONTINUITY_AUTHORITY_UNAVAILABLE/);
+assert.match(cron,/primary\.data\.mode === 'EMERGENCY_HALT'/);
+assert.ok(cron.indexOf('const missionWork = await readC08MissionWorkRequirement()')
+  < cron.indexOf('const actionableGate = await readContinuityActionableWorkGate'),
+  'C08 governed primary queue must be independently routable before legacy heartbeat');
+assert.ok(cron.indexOf('scheduledEgressGuardResponse(')
+  < cron.indexOf('const missionWork = await readC08MissionWorkRequirement()'),
+  'Cost/egress budget gate must precede the primary-only mission lane');
 console.log('PASS: ROOT C07 activation is rooted in existing queue, actor-scoped canary, fenced receipt and C08 worker.');
