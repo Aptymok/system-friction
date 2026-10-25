@@ -39,9 +39,24 @@ function compactAgent(agent: (typeof SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY)[num
   };
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const gate = await requireRootActor('root.cognitive-runtime.read');
   if (!gate.ok) return NextResponse.json(gate.body, { status: gate.status });
+  const jobId = new URL(request.url).searchParams.get('jobId')?.trim() ?? null;
+  if (jobId) {
+    if (process.env.SFI_C07_MISSION_QUEUE_ENABLED !== 'true') {
+      return NextResponse.json({ok:false,error:'queue_not_released'},{status:409});
+    }
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(jobId)) {
+      return NextResponse.json({ok:false,error:'job_id_invalid'},{status:400});
+    }
+    const status = await createServiceSupabaseClient().from('sfi_c07_mission_jobs')
+      .select('id,mission_id,execution_id,status,attempts,max_attempts,receipt_event_id,last_error_code,updated_at,return_observation')
+      .eq('id',jobId).eq('actor_id',gate.ctx.user.id).maybeSingle();
+    if (status.error) return NextResponse.json({ok:false,error:'queue_status_unavailable'},{status:503});
+    if (!status.data) return NextResponse.json({ok:false,error:'queue_job_not_found'},{status:404});
+    return NextResponse.json({ok:true,job:status.data,boundary:'QUEUED is not EXECUTED. A verified agent receipt is not external RETURN or approved learning.'},{headers:{'Cache-Control':'private, no-store'}});
+  }
   return NextResponse.json({
     ok: true,
     runtime: await readObservedSfiCognitiveRuntime(),
