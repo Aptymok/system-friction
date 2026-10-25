@@ -30,4 +30,14 @@ assert.match(ui,/query\.get\('caseId'\)\?\?query\.get\('case'\)/);
 assert.match(ui,/query\.get\('projectId'\)/);
 assert.match(ui,/visibleDecisions\.length} PERSISTED AUTHORITY DECISIONS/);
 assert.match(ui,/realityChain\?\.authority\.filter/);
+const externalCases = read('src/app/api/external/v1/cases/route.ts');
+// Case read/Passport must declare stale continuity without mutating, implying
+// full inventory, or smuggling SOURCE / RETURN across the data plane.
+assert.match(externalCases, /async function caseReadConsistency\(\)/);
+assert.match(externalCases, /state\.mode !== 'PRIMARY'/);
+assert.match(externalCases, /readPlane: 'NEON_CONTINUITY'/);
+assert.match(externalCases, /sourceInventoryComplete: false/);
+assert.match(externalCases, /CONTINUITY_SNAPSHOT_MAY_LAG_PRIMARY_WRITES/);
+assert.match(externalCases, /readConsistency: await caseReadConsistency\(\)/);
+assert.match(externalCases, /Cache-Control': 'private, no-store'/);
 console.log('PASS C03 CASE PLATFORM: project-tenant association, one case insert, scoped detail, web links and authority');
