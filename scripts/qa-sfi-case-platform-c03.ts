@@ -126,4 +126,10 @@ const c14Repository=read('src/lib/sfi/case-platform/repository.ts');
 assert.match(c14Repository,/temporalProvenance: projectCaseTemporalProvenance\(objects, caseRecord\.temporalWindow\.cutoff\)/);
 assert.match(externalCases,/temporalProvenance:envelope\.temporalProvenance/);
 
+const c14Ui=read('src/components/sfi/RealityChainWorkbench.tsx');
+assert.match(c14Ui,/data-c14-temporal-source-clocks/);
+assert.match(c14Ui,/caseData\.temporalProvenance\.events/);
+assert.match(c14Ui,/temporalProvenance:caseData\.temporalProvenance/);
+assert.match(c14Ui,/FECHA DE CONTEXTO · NO PRUEBA RETROSPECTIVA/);
+
 console.log('PASS C03 CASE PLATFORM: project-tenant association, one case insert, scoped detail, web links and authority');
