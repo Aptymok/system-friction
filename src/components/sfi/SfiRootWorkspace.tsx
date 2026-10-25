@@ -503,8 +503,7 @@ export function SfiRootWorkspace({ enabled, decisionOnly = false, missionOnly = 
 
     {decisionSurface}
 
-    <details className="rootReports" data-sfi-pilot-light-economics="SFI-PILOT-LIGHT-ECONOMICS-OBSERVE-1.0"
-      onToggle={(event) => { if (event.currentTarget.open) void loadPilotEconomics(); }}>
+    <details className="rootReports" data-sfi-pilot-light-economics="SFI-PILOT-LIGHT-ECONOMICS-OBSERVE-1.0">
       <summary>CONTINUIDAD ECONÓMICA · COSTOS Y CAPACIDAD</summary>
       <div className="rootReportList">
         <p>Supabase y Neon son proveedores independientes. La replicación automática está retirada por decisión del fundador.
@@ -561,7 +560,7 @@ export function SfiRootWorkspace({ enabled, decisionOnly = false, missionOnly = 
     </details>
 
     <details className="rootReports" data-sfi-worldspect-provider-clocks="SFI-WORLDSPECT-INDEPENDENT-PLANE-CLOCK-1.0"
-      onToggle={(event) => {if(event.currentTarget.open)void loadWorldSpectClocks();}}>
+      >
       <summary>WORLDSPECT · RELOJES DE OBSERVACIÓN POR PROVEEDOR</summary>
       <div className="rootReportList">
         <p>Supabase PRIMARY y Neon mantienen observaciones independientes. Esta comparación no replica datos,
