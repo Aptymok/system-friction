@@ -69,3 +69,13 @@
 **Criterio que no se debe falsificar:** que una rama esté integrada como historia Git no significa que su parche se haya incorporado al árbol actual, ni que la capacidad se haya verificado en producción. Ninguna rama divergente se borrará como «funcionalmente resuelta» por el único hecho de conservar sus commits. Una rama que ya no sea necesaria puede preservarse como historia antes de su eliminación, pero su exclusión del árbol activo debe tener motivo documentado. El objetivo de reducción de referencias no justifica perder capacidad, derechos, autoridad ni evidencia.
 
 **Barrera operacional actual**: PRIMARY/Neon divergen y KXTXR no tiene un canario C07 ni informe C19 recuperado. La reconciliación de ramas no modifica esos datos. No fusionar `main`, no publicar, no gastar, no promover RETURN durante esta limpieza.
+
+
+## Archivo inmutable y limpieza posterior (verificación del 25-oct)
+
+- Commit `4b80c0ce27ffb8abbe4405c0fe04a49dd257aa23` incorpora como padres Git los **17 HEAD divergentes restantes** sin reemplazar el árbol moderno; los 17 commits y sus archivos originales son navegables por historia, incluso si se borra la referencia corta.
+- SFI Verify exact-head `40161124588`: **SUCCESS**. No demuestra aún equivalencia funcional de cada variante antigua ni funcionamiento productivo.
+- Permanecen **rutas con estado de aceptación pendiente**: ScoreFriction/adaptive, evidencia/calibración, outbox/membresía, investigación independiente y deduplicación SQL. No ejecutar migraciones antiguas ni reemplazar código de autorización por versiones pasadas durante la limpieza.
+- Las capacidades realmente agregadas al árbol moderno incluyen la recuperación opt-in del ciclo Discovery (sin LLM), el guard de reintentos de World y el contrato documental de ingesta gobernada. El código adicional de migraciones de fingerprint/RETURN y algunos tests del histórico están conservados en ancestros, **no instalados**.
+- **La eliminación de una referencia remota es higiene de Git, no certificado de cobertura funcional**. El programa C01–C20, la paridad Supabase/Neon y las pruebas de cliente siguen abiertos.
+- A partir de esta auditoría, las decisiones históricas PENDIENTE de la tabla significan **conservar la versión activa actual y archivar la alternativa**, no restaurar un parche antiguo a ciegas. Cualquier cambio posterior precisa diff por función, pruebas y autoridad.
