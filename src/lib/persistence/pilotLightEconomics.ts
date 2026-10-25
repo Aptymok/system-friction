@@ -6,14 +6,15 @@
  * migration, mirroring policy switch, or scheduled request is introduced.
  */
 import 'server-only';
+import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { continuityDatabase, isSfiContinuityConfigured } from '@/lib/sfi/continuityPostgres';
 import { readPrimaryOutboxStatus } from '@/lib/persistence/primaryMirror';
-import { interpretPilotLightEconomics, observedBytes, type PilotStorageSnapshot } from '@/lib/persistence/pilotLightEconomicsPolicy';
+import { interpretPilotLightEconomics, observedBytes, type MeasuredUsageRow, type PilotStorageSnapshot } from '@/lib/persistence/pilotLightEconomicsPolicy';
 
 export async function readPilotLightEconomicObservation() {
   // Only called upon explicit ROOT GET ?economics=1, never by the scheduler.
   const observedAt=new Date().toISOString();
-  const [neonRead,primaryRead]=await Promise.allSettled([
+  const [neonRead,primaryRead,usageRead]=await Promise.allSettled([
     (async ():Promise<PilotStorageSnapshot>=>{
       if(!isSfiContinuityConfigured())throw new Error('NEON_CONNECTION_NOT_CONFIGURED');
       const sql=continuityDatabase();
@@ -38,6 +39,19 @@ export async function readPilotLightEconomicObservation() {
       };
     })(),
     readPrimaryOutboxStatus(),
+    (async ():Promise<MeasuredUsageRow[]>=>{
+      // On-demand only; no extra scheduled jobs or additional replicas.
+      // Source contains measured resource units, not verified provider charges.
+      const from=new Date(Date.now()-30*24*60*60*1000).toISOString();
+      const result=await createServiceSupabaseClient()
+        .from('usage_ledger').select('kind,amount,unit,created_at')
+        .gte('created_at',from).order('created_at',{ascending:false}).limit(250);
+      if(result.error)throw new Error('USAGE_LEDGER_READ_UNAVAILABLE');
+      return (result.data??[]).map(x=>({
+        kind:String(x.kind??''),amount:Number(x.amount),unit:String(x.unit??''),
+        created_at:String(x.created_at??''),
+      }));
+    })(),
   ]);
   const neon=neonRead.status==='fulfilled'?neonRead.value:null;
   const outbox=primaryRead.status==='fulfilled'?{
@@ -46,8 +60,13 @@ export async function readPilotLightEconomicObservation() {
   const errorText=(e:unknown)=>e instanceof Error?e.message.slice(0,120):'PROVIDER_READ_UNAVAILABLE';
   return {
     observedAt,
+    windowDays:30,
+    usageLedgerLimit:250,
+    usageLedgerTruncated:usageRead.status==='fulfilled'&&usageRead.value.length===250,
     ...interpretPilotLightEconomics({
       neon,primaryOutbox:outbox,
+      usageLedger:usageRead.status==='fulfilled'?usageRead.value:null,
+      usageError:usageRead.status==='rejected'?'USAGE_LEDGER_READ_UNAVAILABLE':null,
       neonError:neonRead.status==='rejected'?errorText(neonRead.reason):null,
       primaryError:primaryRead.status==='rejected'?errorText(primaryRead.reason):null,
     }),
