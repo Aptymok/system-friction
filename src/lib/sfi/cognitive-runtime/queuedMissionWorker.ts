@@ -6,6 +6,7 @@ import { assertTenantAccess } from '@/lib/sfi/case-platform/repository';
 import { executeManualCognitiveAgent } from './manualExecution';
 import { validateMissionDispatchRequest } from './missionDispatch';
 import { checkC07CaseQueueState } from './queuedMissionCaseGate';
+import { readSfiMissionQuota } from '@/lib/operations/sfiCostMeter';
 
 export const SFI_C07_QUEUE_WORKER_CONTRACT = 'SFI-C07-QUEUED-CANONICAL-WORKER-1.0' as const;
 type Row = Record<string, unknown>;
@@ -93,6 +94,14 @@ export async function runBoundedC07QueuedMission(workerId: string) {
   }
   if (!/^[-_a-zA-Z0-9]{3,80}$/.test(workerId)) {
     return { ok: false, state: 'INVALID_WORKER_ID', processed: 0 };
+  }
+  // A fast quota check precedes claiming/renewing a job. Explicit ROOT
+  // tests obey the same daily cap as scheduled execution.
+  const quota=await readSfiMissionQuota();
+  if (!quota.ok) return {ok:false,state:'COST_METER_UNAVAILABLE',processed:0,reason:quota.reason};
+  if (!quota.scheduledExecutionAllowed) {
+    return {ok:true,state:'DAILY_MISSION_BUDGET_REACHED',processed:0,
+      limit:quota.limits.perDay,completedToday:quota.completedToday};
   }
   const db = createServiceSupabaseClient();
   const claim = await db.rpc('sfi_c07_claim_mission_v1', { p_worker_id: workerId, p_lease_seconds: 900 });
