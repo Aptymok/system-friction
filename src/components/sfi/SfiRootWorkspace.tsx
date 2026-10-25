@@ -352,28 +352,22 @@ export function SfiRootWorkspace({ enabled, decisionOnly = false, missionOnly = 
           onClick={() => void loadMissionQueue()}>Actualizar estado de misiones</button>
         <section className="rootReportItem" data-sfi-cost-meter="PRIMARY_ON_DEMAND_NO_SYNC">
           <strong>COSTE Y LÍMITES · SFI</strong>
-          <p>Sin sincronización Neon ni sondeos automáticos. Este contador consulta Supabase solo cuando lo solicitas; no sustituye las facturas de los proveedores.</p>
+          <p>Medición bajo demanda, sin sincronización con Neon. Los gastos externos no medidos nunca equivalen a cero.</p>
           <button type="button" disabled={costMeterBusy} onClick={()=>void loadCostMeter()}>
-            {costMeterBusy?'Leyendo consumo…':'Consultar consumo y presupuesto'}
+            {costMeterBusy?'Consultando…':'Consultar coste y presupuesto'}
           </button>
-          {costMeterError&&<p role="alert">Consumo no verificable: {costMeterError}. No se supone que es cero.</p>}
+          {costMeterError&&<p role="alert">Lectura no disponible: {costMeterError}</p>}
           {costMeter&&<div className="rootReportHealth" role="status">
-            <article><span>Misiones admitidas hoy</span><strong>
-              {String(costMeter.quota?.admittedToday??'NO MEDIDO')} / {String(costMeter.quota?.limits?.perDay??'NO DEFINIDO')}
-            </strong></article>
-            <article><span>Misiones admitidas este mes</span><strong>
-              {String(costMeter.quota?.admittedMonth??'NO MEDIDO')} / {String(costMeter.quota?.limits?.perMonth??'NO DEFINIDO')}
-            </strong></article>
-            <article><span>Cupo restante hoy / mes</span><strong>
-              {String(costMeter.quota?.remainingToday??'NO MEDIDO')} / {String(costMeter.quota?.remainingMonth??'NO MEDIDO')}
-            </strong></article>
-            <article><span>Admisión de nuevas misiones</span>
-              <strong>{costMeter.quota?.admissionAllowed===true?'DISPONIBLE':'LIMITADA'}</strong></article>
-            <article><span>Modelos externos en las ejecuciones registradas</span>
-              <strong>{String(costMeter.providerSpending?.modelCalls??'NO MEDIDO')}</strong></article>
-            <article><span>Coste de modelos observado</span>
-              <strong>{costMeter.providerSpending?.observedUsd!==null&&costMeter.providerSpending?.observedUsd!==undefined
-                ? '
+            <article><span>Misiones hoy</span><strong>{String(costMeter.quota?.admittedToday??'NO MEDIDO')} / {String(costMeter.quota?.limits?.perDay??'NO MEDIDO')}</strong></article>
+            <article><span>Misiones mes</span><strong>{String(costMeter.quota?.admittedMonth??'NO MEDIDO')} / {String(costMeter.quota?.limits?.perMonth??'NO MEDIDO')}</strong></article>
+            <article><span>Cupo restante hoy / mes</span><strong>{String(costMeter.quota?.remainingToday??'NO MEDIDO')} / {String(costMeter.quota?.remainingMonth??'NO MEDIDO')}</strong></article>
+            <article><span>Nuevas misiones</span><strong>{costMeter.quota?.admissionAllowed===true?'DISPONIBLES':'LIMITADAS'}</strong></article>
+            <article><span>Llamadas a modelos observadas</span><strong>{String(costMeter.providerSpending?.modelCalls??'NO MEDIDO')}</strong></article>
+            <article><span>Coste de modelos, USD</span><strong>{costMeter.providerSpending?.observedUsd===null||costMeter.providerSpending?.observedUsd===undefined?'NO MEDIDO':String(costMeter.providerSpending.observedUsd)+' USD (solo C07)'}</strong></article>
+            <article><span>Costes facturados de Supabase y Vercel</span><strong>NO CONECTADOS</strong></article>
+            <small>Consulta {when(costMeter.snapshotAt)}. Este contador mide el trabajo C07 y el gasto de modelos reportado, no la factura total de infraestructura.</small>
+          </div>}
+        </section>
         <div className="rootReportItem" data-c07-authorized-canary-control="SFI-C07-OPERATOR-CANARY-1.0">
           <strong>CANARIO GOBERNADO · AGENTES C06/C07</strong>
           <p>Agentes disponibles por contrato: {missionDefinitions.length || 'SIN LECTURA'} de 21. Seleccionar un agente no acredita una ejecución. La API comprueba pertenencia, WRITE, revisión exacta,
