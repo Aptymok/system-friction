@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import { useSearchParams } from 'next/navigation';
 import { useAuthState } from '@/components/auth/AuthProvider';
 import { SfiFriccionautaPanel } from './SfiFriccionautaPanel';
+import {projectCaseLabel} from '@/lib/root/caseDisplayName';
 import './SfiRootWorkspace.css';
 
 type Row = Record<string, any>;
