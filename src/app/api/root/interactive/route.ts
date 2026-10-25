@@ -43,6 +43,7 @@ function runtimeProjection() {
     agents: SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.map(compactAgent),
     executionContracts: listExecutionContracts().map(compactExecutionContract),
     missions: listBoundedCognitiveMissions(),
+    queuedMissionEnabled: process.env.SFI_C07_MISSION_QUEUE_ENABLED === 'true',
     missionBoundary: {
       definedOnly: true,
       persistedAssignments: false,
