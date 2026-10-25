@@ -215,7 +215,7 @@ export async function readContinuityInteractiveCaseIndex(userId: string) {
 
   const [caseRows, projectRows] = await Promise.all([
     sql`
-      select id,tenant_id,project_id,subject,status,updated_at
+      select id,tenant_id,project_id,subject,scope,status,updated_at
         from sfi_cases
        where tenant_id = any(${tenantIds}::uuid[])
          and deleted_at is null
@@ -238,6 +238,7 @@ export async function readContinuityInteractiveCaseIndex(userId: string) {
       tenantId: String(row.tenant_id),
       projectId: row.project_id ? String(row.project_id) : null,
       subject: String(row.subject ?? ''),
+      scope: String(row.scope ?? ''),
       status: String(row.status ?? ''),
       updatedAt: row.updated_at ? String(row.updated_at) : null,
     };
