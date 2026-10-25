@@ -14,7 +14,7 @@ import { interpretPilotLightEconomics, observedBytes, type MeasuredUsageRow, typ
 export async function readPilotLightEconomicObservation() {
   // Only called upon explicit ROOT GET ?economics=1, never by the scheduler.
   const observedAt=new Date().toISOString();
-  const [neonRead,primaryRead,usageRead]=await Promise.allSettled([
+  const [neonRead,primaryRead,usageRead,runsRead]=await Promise.allSettled([
     (async ():Promise<PilotStorageSnapshot>=>{
       if(!isSfiContinuityConfigured())throw new Error('NEON_CONNECTION_NOT_CONFIGURED');
       const sql=continuityDatabase();
@@ -52,6 +52,25 @@ export async function readPilotLightEconomicObservation() {
         created_at:String(x.created_at??''),
       }));
     })(),
+    (async ()=>{
+      const from=new Date(Date.now()-30*24*60*60*1000).toISOString();
+      const result=await createServiceSupabaseClient().from('sfi_continuity_runs')
+        .select('id,started_at,completed_at,status,capability_count')
+        .gte('started_at',from).order('started_at',{ascending:false}).limit(250);
+      if(result.error)throw new Error('CONTINUITY_RUNS_READ_UNAVAILABLE');
+      const rows=result.data??[];
+      return {
+        observedRuns:rows.length,
+        truncated:rows.length===250,
+        executedCapabilityChecks:rows.reduce((n,row)=>n+Math.max(0,Number(row.capability_count)||0),0),
+        observedDurationMs:rows.reduce((n,row)=>{
+          const a=Date.parse(String(row.started_at??''));
+          const b=Date.parse(String(row.completed_at??''));
+          return n+(Number.isFinite(a)&&Number.isFinite(b)&&b>=a?b-a:0);
+        },0),
+        boundary:'Observed persisted operations, not billed CPU time or monetary charges',
+      };
+    })(),
   ]);
   const neon=neonRead.status==='fulfilled'?neonRead.value:null;
   const outbox=primaryRead.status==='fulfilled'?{
@@ -63,6 +82,8 @@ export async function readPilotLightEconomicObservation() {
     windowDays:30,
     usageLedgerLimit:250,
     usageLedgerTruncated:usageRead.status==='fulfilled'&&usageRead.value.length===250,
+    operationalConsumption:runsRead.status==='fulfilled'?runsRead.value:null,
+    operationalConsumptionStatus:runsRead.status==='fulfilled'?'OBSERVED':'READ_UNAVAILABLE',
     ...interpretPilotLightEconomics({
       neon,primaryOutbox:outbox,
       usageLedger:usageRead.status==='fulfilled'?usageRead.value:null,
