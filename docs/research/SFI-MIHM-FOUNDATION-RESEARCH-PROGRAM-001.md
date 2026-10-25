@@ -200,3 +200,61 @@ not F1 empirical confirmation.
 **Next gate:** compare structural features against competent graph-change baselines on
 preselected source-vintage-safe data; independently adjudicate future outcomes. If the
 structure-aware method does not improve performance, preserve the negative result.
+
+
+### 2026-10-25 — F1 matched-M0 null control and Manhattan source feasibility
+
+**New exploratory QA:** The existing SFI field-scientific QA now runs an eight-case,
+fully synthetic, fixed-reference topology suite: identical, permuted edge order,
+reversed undirected orientation, same-count rewiring, edge deletion, parallel
+edge addition, node addition and node relabeling. The MIHM topology comparator
+is scored against a separately implemented **competent conventional graph-set
+edit detector (M0)** with the **same** typed edges, nodes and orientation.
+**Expected test outcome:** M0 and topology comparator both classify all eight
+constructed cases, with zero disagreements. This is an intentionally preserved
+**null incremental result**, not a win for MIHM. It verifies software semantics
+and does **not** establish independent empirical, out-of-sample or forecast skill.
+Relabeling highlights that stable identifiers must be validated externally.
+
+**Manhattan candidate data sources checked in public catalogs (source registration
+only; source rows not ingested):**
+
+| Candidate | Official source | What is observed | Resolution/limitations |
+|---|---|---|---|
+| 311 service requests (2020 onward) | NYC Open Data [erm2-nwe9](https://data.cityofnewyork.us/d/erm2-nwe9) | Service-request records, complaint type, time, geographic fields | Daily updated, records and field values can change; request activity is not a direct measurement of infrastructure failure |
+| Subway hourly ridership 2020-2024 | NY Open Data [wujg-7c2s](https://data.ny.gov/d/wujg-7c2s) | MTA estimated ridership by hour/station complex/fare class | Historical stationary release; estimates rather than individual movements; station coverage and geography are not community-district boundaries |
+| Subway hourly ridership beginning 2025 | NY Open Data [5wq4-mkjj](https://data.ny.gov/d/5wq4-mkjj) | Continued hourly estimated station activity | Mutable publication with operational delays and revisions |
+
+**Candidate question, NOT frozen:** At a declared Manhattan spatial unit,
+do relationship-level changes in prior admissible observed sources improve
+prediction of subsequent independently documented service disruption or
+complaint surges beyond well-tuned temporal regression and standard dynamic
+network/change-point baselines? An increase in 311 complaints is not automatically
+an independently adjudicated physical incident, and should be interpreted as a
+reporting/operational endpoint unless an incident reference is established.
+
+**Admission blockers before a real MIHM contrast:**
+1. Freeze spatial boundary, crosswalk between station complexes and geography,
+   and one target endpoint *without* inspecting holdout outcomes.
+2. Define historical original release time versus event/capture time, revisions,
+   API extraction time and evidence vintage; do not call historical public rows
+   a prospective, as-of-T0 forecast merely because their event times are old.
+3. Align hour/day/week clocks in America/New_York with DST, missing intervals,
+   selection exposure and reporting/footfall volumes. Never infer a causal
+   connection between two nodes merely from correlated movements.
+4. Choose M0 with equal evidence (seasonal/count time-series models and dynamic
+   network/change-point baseline where relational data exist), and a node-only
+   MIHM ablation. Include a random-rewiring negative control.
+5. Preselect lead time, labels, thresholds, cost of false alarms, group/time split,
+   decision utility and abstention penalties. No metric or meaningful-win margin
+   is frozen yet.
+6. Freeze immutable permitted extracts/checksums and versioned queries in the
+   authorized research workspace; preserve provenance and privacy safeguards
+   (aggregate location analyses rather than individual household-level claims).
+7. Use an independent future prospective holdout and replication before any
+   predictive, causal, transportability or scientific validation claim.
+
+**Next authorized action:** complete source feasibility and freeze the
+candidate unit/endpoint/comparators under the existing Method Lab research
+governance before data-dependent tuning. No raw data, case record, external
+action, DOI or canon was created by this source registration.
