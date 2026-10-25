@@ -142,7 +142,7 @@ export function PublicEntryGateway(){
 
     <section className="sfiHomeStatement">
       <small>OBSERVE · QUESTION · UNDERSTAND</small>
-      <h1>EVERY DECISION HAS A HISTORY.<br/><b>START WITH THE QUESTION.</b></h1>
+      <h1>NOTHING ACTS ALONE.<br/><b>REALITY ANSWERS BACK.</b></h1>
       <p>We investigate decisions, organizations and systems. Explore what SFI can help you understand, then observe the methods behind the work.</p><div className="sfiHomeServiceActions"><Link href="/servicios" className="sfiHomeServicePrimary">EXPLORE SERVICES ↗</Link><Link href="/servicios/case-study/ai-week-nyc-2026" className="sfiHomeServiceSecondary">TRY THE AI WEEK NYC CASE →</Link></div>
       <em>TRACEABILITY ≠ JUSTIFICATION · EVIDENCE INDEPENDENCE · TEMPORAL STATE · AUTHORITY · RETURN</em>
     </section>
