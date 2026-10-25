@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {resolveCaseProjectAssignment} from '../src/lib/sfi/case-platform/caseProjectAssignment';
+import {computeCaseSourceReadiness, SFI_CASE_SOURCE_PROTOCOL_CONTRACT} from '../src/lib/sfi/case-platform/sourceProtocolReadiness';
 
 const project={id:'project-1',tenantId:'tenant-B',status:'ACTIVE'};
 assert.deepEqual(resolveCaseProjectAssignment(null,null,null),{tenantId:null,projectId:null});
@@ -40,4 +41,44 @@ assert.match(externalCases, /sourceInventoryComplete: false/);
 assert.match(externalCases, /CONTINUITY_SNAPSHOT_MAY_LAG_PRIMARY_WRITES/);
 assert.match(externalCases, /readConsistency: await caseReadConsistency\(\)/);
 assert.match(externalCases, /Cache-Control': 'private, no-store'/);
+
+const sourceCutoff='2026-10-23';
+const kxtxrProtocol={kind:'RECORD',canonicalRef:{id:'KXTXR-SOURCE-PROTOCOL-20261024'},
+  payload:{contract:SFI_CASE_SOURCE_PROTOCOL_CONTRACT,caseCutoff:sourceCutoff,
+    observationMode:'READ_ONLY',question:'Which releases are independently verified?',
+    requiredSourceTypes:['AUTHORED_DOCUMENT','PUBLIC_PROVIDER_CATALOG']}};
+const realSources=[
+  {kind:'SOURCE',payload:{sourceType:'AUTHORED_DOCUMENT'}},
+  {kind:'SOURCE',payload:{sourceType:'PUBLIC_PROVIDER_CATALOG'}},
+];
+const declared=computeCaseSourceReadiness(['DECLARED_BY_PROTOCOL'],
+  [kxtxrProtocol,...realSources],sourceCutoff);
+assert.equal(declared.protocolStatus,'DECLARED');
+assert.equal(declared.sourceCoverage,1);
+assert.equal(declared.readyForAnalysis,true);
+assert.deepEqual(declared.missingSources,[]);
+assert.equal(declared.sourceProtocolRef,'KXTXR-SOURCE-PROTOCOL-20261024');
+// Documentary readiness does not imply accepted evidence or institutional authority.
+assert.equal(declared.boundary,'SOURCE_TYPES_PRESENT_NOT_ACCEPTED_EVIDENCE_OR_ROOT_AUTHORITY');
+const missingProtocol=computeCaseSourceReadiness(['DECLARED_BY_PROTOCOL'],realSources,sourceCutoff);
+assert.equal(missingProtocol.readyForAnalysis,false);
+assert.equal(missingProtocol.protocolStatus,'DECLARATION_MISSING');
+const conflicting=computeCaseSourceReadiness(['DECLARED_BY_PROTOCOL'],
+  [kxtxrProtocol,kxtxrProtocol,...realSources],sourceCutoff);
+assert.equal(conflicting.readyForAnalysis,false);
+assert.equal(conflicting.protocolStatus,'DECLARATION_CONFLICT');
+const cutoffDrift=computeCaseSourceReadiness(['DECLARED_BY_PROTOCOL'],
+  [{...kxtxrProtocol,payload:{...kxtxrProtocol.payload,caseCutoff:'2026-10-25'}},...realSources],sourceCutoff);
+assert.equal(cutoffDrift.readyForAnalysis,false);
+assert.equal(cutoffDrift.protocolStatus,'DECLARATION_INVALID');
+const syntheticSentinel=computeCaseSourceReadiness(['DECLARED_BY_PROTOCOL'],
+  [{...kxtxrProtocol,payload:{...kxtxrProtocol.payload,requiredSourceTypes:['AUTHORED_DOCUMENT','DECLARED_BY_PROTOCOL']}},...realSources],sourceCutoff);
+assert.equal(syntheticSentinel.readyForAnalysis,false);
+assert.equal(syntheticSentinel.protocolStatus,'DECLARATION_INVALID');
+const oneSource=computeCaseSourceReadiness(['DECLARED_BY_PROTOCOL'],
+  [kxtxrProtocol,realSources[0]],sourceCutoff);
+assert.equal(oneSource.readyForAnalysis,false);
+assert.deepEqual(oneSource.missingSources,['PUBLIC_PROVIDER_CATALOG']);
+assert.equal(oneSource.sourceCoverage,0.5);
+
 console.log('PASS C03 CASE PLATFORM: project-tenant association, one case insert, scoped detail, web links and authority');
