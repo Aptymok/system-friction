@@ -265,7 +265,7 @@ export function SfiRootWorkspace({ enabled, decisionOnly = false }: { enabled: b
           </strong></article>
           <article><span>Coste monetario y cuota restante</span><strong>DESCONOCIDOS · FALTA FACTURACIÓN DEL PROVEEDOR</strong></article>
           <article><span>Política de bases</span><strong>SIN REPLICACIÓN · PROVEEDORES INDEPENDIENTES</strong></article>
-          {Array.isArray(pilotEconomics.measuredUsage?.units)&&pilotEconomics.measuredUsage.units.slice(0,12).map((item,i)=>
+          {Array.isArray(pilotEconomics.measuredUsage?.units)&&pilotEconomics.measuredUsage.units.slice(0,12).map((item: Row, i: number)=>
             <article key={'cost-ledger-'+i}><span>{txt(item.kind,'TIPO')} · {txt(item.unit,'UNIDAD')}</span>
               <strong>{Number(item.amount).toLocaleString()} unidades medidas</strong></article>)}
         </div>}
