@@ -17,6 +17,7 @@ import {
   transitionOperationalCase,
 } from '@/lib/sfi/case-platform/repository';
 import { sfiCaseApiFailure } from '@/lib/sfi/case-platform/http';
+import { readDataPlaneState } from '@/lib/persistence/dataPlaneContinuityStore';
 import {
   SFI_EXTERNAL_CASE_RESERVED_TRANSITIONS,
   SFI_EXTERNAL_CASE_TRANSITION_SET,
@@ -113,6 +114,41 @@ function operationScope(operation: Operation) {
   return READ_OPERATIONS.has(operation) ? 'cases:read' : 'cases:write';
 }
 
+/**
+ * A read during CONTINUITY/RECOVERY is a real continuity snapshot, not
+ * a certified current inventory of PRIMARY writes. Expose that boundary
+ * to clients without bypassing routing or consulting the other provider.
+ */
+async function caseReadConsistency() {
+  try {
+    const state = await readDataPlaneState();
+    if (state.mode !== 'PRIMARY') {
+      return {
+        readPlane: 'NEON_CONTINUITY',
+        dataPlaneMode: state.mode,
+        crossProviderParity: 'NOT_VERIFIED',
+        sourceInventoryComplete: false,
+        warning: 'CONTINUITY_SNAPSHOT_MAY_LAG_PRIMARY_WRITES',
+      };
+    }
+    return {
+      readPlane: 'SUPABASE_PRIMARY',
+      dataPlaneMode: 'PRIMARY',
+      crossProviderParity: 'NOT_ASSERTED',
+      sourceInventoryComplete: null,
+      warning: null,
+    };
+  } catch {
+    return {
+      readPlane: 'UNVERIFIED',
+      dataPlaneMode: 'UNKNOWN',
+      crossProviderParity: 'NOT_VERIFIED',
+      sourceInventoryComplete: false,
+      warning: 'DATA_PLANE_STATE_UNAVAILABLE',
+    };
+  }
+}
+
 function requireCaseId(body: Row) {
   const caseId = text(body.caseId);
   if (!caseId) throw new Error('SFI_CASE_ID_REQUIRED');
@@ -171,14 +207,19 @@ export async function POST(request: Request) {
 
     if (operation === 'read') {
       const caseId = requireCaseId(body);
-      return NextResponse.json({ ok: true, operation, ...(await readOperationalCase(caseId, userId)) });
+      const envelope = await readOperationalCase(caseId, userId);
+      return NextResponse.json(
+        { ok: true, operation, ...envelope, readConsistency: await caseReadConsistency() },
+        { headers: { 'Cache-Control': 'private, no-store' } },
+      );
     }
 
     if (operation === 'passport') {
       const caseId = requireCaseId(body);
       const envelope = await readOperationalCase(caseId, userId);
       return NextResponse.json({ok:true, operation, passport:envelope.realityChain,
-        objects:envelope.objects,reports:await listOperationalReports(caseId,userId)}, {headers:{'Cache-Control':'private, no-store'}});
+        objects:envelope.objects,reports:await listOperationalReports(caseId,userId),
+        readConsistency: await caseReadConsistency()}, {headers:{'Cache-Control':'private, no-store'}});
     }
     if (operation === 'generate_report') {
       // This is the same institutional report writer, not a personal evidence or
