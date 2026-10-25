@@ -66,6 +66,14 @@ export function SfiRootWorkspace({ enabled, decisionOnly = false }: { enabled: b
   const [missionQueue, setMissionQueue] = useState<Row | null>(null);
   const [missionQueueLoading, setMissionQueueLoading] = useState(false);
   const [missionQueueError, setMissionQueueError] = useState<string | null>(null);
+  const [missionDefinitions, setMissionDefinitions] = useState<Row[]>([]);
+  const [missionExecutionContracts, setMissionExecutionContracts] = useState<Row[]>([]);
+  const [missionQueueEnabled, setMissionQueueEnabled] = useState(false);
+  const [selectedMissionId, setSelectedMissionId] = useState('SFI-C06:meta_orchestrator');
+  const [selectedMissionCaseId, setSelectedMissionCaseId] = useState('');
+  const [missionBusy, setMissionBusy] = useState(false);
+  const [missionActionResult, setMissionActionResult] = useState<Row | null>(null);
+  const [missionActionError, setMissionActionError] = useState<string | null>(null);
   const [pilotEconomics, setPilotEconomics] = useState<Row | null>(null);
   const [pilotEconomicsLoading, setPilotEconomicsLoading] = useState(false);
   const [pilotEconomicsError, setPilotEconomicsError] = useState<string | null>(null);
@@ -113,6 +121,9 @@ export function SfiRootWorkspace({ enabled, decisionOnly = false }: { enabled: b
     try {
       const data = await jsonFetch('/api/root/cognitive-runtime');
       setMissionQueue(data.ownerQueue ?? { available: false, state: 'READ_UNAVAILABLE', jobs: [] });
+      setMissionDefinitions(rows(data.missionDefinitions));
+      setMissionExecutionContracts(rows(data.executionContracts));
+      setMissionQueueEnabled(data.queuedMissionEnabled === true);
     } catch (cause) {
       setMissionQueue(null);
       setMissionQueueError(cause instanceof Error ? cause.message : String(cause));
@@ -120,6 +131,41 @@ export function SfiRootWorkspace({ enabled, decisionOnly = false }: { enabled: b
       setMissionQueueLoading(false);
     }
   }, [enabled, missionQueueLoading]);
+
+  const runMissionAction=useCallback(async (operation:'queue_mission'|'run_queue_once')=>{
+    if(!enabled||missionBusy||!missionQueueEnabled)return;
+    const mission=missionDefinitions.find(m=>m.missionId===selectedMissionId);
+    if(operation==='queue_mission'&&(!mission||!selectedMissionCaseId)) {
+      setMissionActionError('Selecciona una misión y un caso autorizado.');
+      return;
+    }
+    setMissionBusy(true);setMissionActionError(null);setMissionActionResult(null);
+    try {
+      const payload:Row={operation};
+      if(operation==='queue_mission'&&mission){
+        payload.missionId=mission.missionId;
+        payload.agentId=mission.agentId;
+        payload.idempotencyKey='root-canary-'+crypto.randomUUID();
+        payload.purpose='Analyze the selected authorized case for '+mission.title+
+          '. Preserve provenance, missing evidence and authority; propose next agent handoff where appropriate. No material action, external RETURN, or promotion.';
+        payload.targets=[{kind:'CASE',id:selectedMissionCaseId}];
+        payload.anchors=[{kind:'CASE',id:selectedMissionCaseId}];
+        payload.governanceContext={
+          subjectType:'NOT_DECLARED', jurisdiction:null,
+          containsPersonalData:null, containsSensitiveData:null,
+          affectsDecisionAboutPersons:null, declaredPurposeBasis:null,
+        };
+      }
+      const result=await jsonFetch('/api/root/cognitive-runtime',{
+        method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),
+      });
+      setMissionActionResult(result);
+      await loadMissionQueue();
+    }catch(cause){
+      setMissionActionError(cause instanceof Error?cause.message:String(cause));
+      await loadMissionQueue();
+    }finally{setMissionBusy(false);}
+  },[enabled,missionBusy,missionQueueEnabled,missionDefinitions,selectedMissionId,selectedMissionCaseId,loadMissionQueue]);
 
   const loadPilotEconomics = useCallback(async () => {
     if (!enabled || pilotEconomicsLoading) return;
@@ -155,6 +201,11 @@ export function SfiRootWorkspace({ enabled, decisionOnly = false }: { enabled: b
     // Never reuse a previous ROOT principal's actor-scoped job snapshot.
     setMissionQueue(null);
     setMissionQueueError(null);
+    setMissionDefinitions([]);
+    setMissionExecutionContracts([]);
+    setMissionQueueEnabled(false);
+    setMissionActionResult(null);
+    setMissionActionError(null);
     setPilotEconomics(null);
     setPilotEconomicsError(null);
     setWorldSpectClocks(null);
@@ -172,6 +223,16 @@ export function SfiRootWorkspace({ enabled, decisionOnly = false }: { enabled: b
   const cases = rows(base?.caseIndex?.cases);
   const projects = rows(base?.caseIndex?.projects);
   const activeCases = useMemo(() => cases.filter((item) => !['CLOSED', 'REJECTED'].includes(String(item.status).toUpperCase())), [cases]);
+  const eligibleCaseMissions=missionDefinitions.filter((mission)=>{
+    if(mission.executorBound!==true||mission.humanApprovalRequired===true||
+      mission.minimumTargets>1||mission.maximumTargets<1||
+      !Array.isArray(mission.inputKinds)||!mission.inputKinds.includes('CASE'))return false;
+    const contract=missionExecutionContracts.find(c=>c.agentId===mission.agentId);
+    return contract&&Array.isArray(contract.requiredParameters)&&contract.requiredParameters.length===0
+      &&contract.timeRange!=='REQUIRED'
+      &&Array.isArray(contract.allowedAnchorKinds)&&contract.allowedAnchorKinds.includes('CASE');
+  });
+
   const readState = base ? (error ? 'DEGRADED' : 'OBSERVED') : (error ? 'DEGRADED' : 'MISSING');
   const pulseValue = (value: number) => base ? value : 'MISSING';
 
@@ -332,10 +393,47 @@ export function SfiRootWorkspace({ enabled, decisionOnly = false }: { enabled: b
       onToggle={(event) => { if (event.currentTarget.open) void loadMissionQueue(); }}>
       <summary>MISSIONS · GOVERNED QUEUE · RECEIPTS</summary>
       <div className="rootReportList">
-        <p>Only your authorized mission jobs are shown. A queued job is not an executed task;
-          a receipt is not an external RETURN. This panel cannot enable or dispatch the worker.</p>
+        <p>Esta cola conserva autoridad, idempotencia, leases y recibos reales. Encolar no equivale a ejecutar.
+          El operador ROOT puede iniciar un canario autorizado, y el trabajador C08 debe proseguir la cola bajo la política desplegada.</p>
         <button type="button" disabled={missionQueueLoading}
           onClick={() => void loadMissionQueue()}>Refresh mission status</button>
+        {missionQueueEnabled && <div className="rootReportItem" data-c07-authorized-canary-control="SFI-C07-OPERATOR-CANARY-1.0">
+          <strong>CANARIO GOBERNADO · AGENTES C06/C07</strong>
+          <p>Solo casos y misiones verificables; la API comprueba pertenencia, WRITE, revisión exacta,
+            identidad del canario, alcance, lease y recibo. Esta interfaz no activa permisos ni elimina GATED.</p>
+          <label htmlFor="sfi-c07-case-choice">Caso autorizado</label>
+          <select id="sfi-c07-case-choice" value={selectedMissionCaseId}
+            onChange={(event)=>setSelectedMissionCaseId(event.target.value)}>
+            <option value="">Selecciona un caso</option>
+            {activeCases.map(item=><option key={String(item.id)} value={String(item.id)}>
+              {txt(item.title||item.name,String(item.id))} · {String(item.id).slice(0,8)}
+            </option>)}
+          </select>
+          <label htmlFor="sfi-c07-mission-choice">Misión</label>
+          <select id="sfi-c07-mission-choice" value={selectedMissionId}
+            onChange={(event)=>setSelectedMissionId(event.target.value)}>
+            {eligibleCaseMissions.map(m=><option key={String(m.missionId)} value={String(m.missionId)}>
+              {txt(m.agentName,txt(m.agentId))} · {txt(m.title)}
+            </option>)}
+          </select>
+          <button type="button" disabled={missionBusy||!selectedMissionCaseId||
+            !eligibleCaseMissions.some(m=>m.missionId===selectedMissionId)}
+            onClick={()=>void runMissionAction('queue_mission')}>
+            {missionBusy?'Procesando…':'Encolar misión autorizada'}
+          </button>
+          <button type="button" disabled={missionBusy} onClick={()=>void runMissionAction('run_queue_once')}>
+            Ejecutar una misión pendiente (prueba gobernada)
+          </button>
+          {missionActionError&&<p role="alert">Canario no ejecutado: {missionActionError}</p>}
+          {missionActionResult&&<div className="rootReportHealth">
+            <article><span>Operación</span><strong>{txt(missionActionResult.operation)}</strong></article>
+            <article><span>Estado observado</span><State value={missionActionResult.state||missionActionResult.result?.state}/></article>
+            <article><span>Recibo</span><strong>{txt(missionActionResult.jobId||missionActionResult.result?.executionId,'NO CONFIRMADO')}</strong></article>
+          </div>}
+        </div>}
+        {!missionQueueEnabled&&missionQueue&&<p role="alert">
+          C07 no está habilitado en este entorno. Se conserva el bloqueo; no se intenta ejecutar ni encolar.
+        </p>}
         {missionQueueLoading && <div className="rootEmpty">Checking governed mission queue…</div>}
         {missionQueueError && <div className="rootEmpty" role="alert">Queue read unavailable: {missionQueueError}. No zero count is inferred.</div>}
         {missionQueue && <div className="rootReportHealth">
