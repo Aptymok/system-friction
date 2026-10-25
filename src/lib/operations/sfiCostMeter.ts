@@ -55,15 +55,17 @@ export async function readSfiMissionQuota(now = new Date()) {
   const completedToday = jobs.filter(job => job.status === 'COMPLETED' && job.updated_at >= start.day).length;
   // 241 records => the bounded read is incomplete. Never infer that budget
   // remains available when the complete cardinality is unknown.
-  const complete = jobs.length < 241;
-  return {
-    ok: complete as boolean,
-    reason: complete ? 'BOUNDED_PRIMARY_C07_SNAPSHOT' : 'C07_USAGE_TRUNCATED_BUDGET_CLOSED',
+  if (jobs.length === 241) return {
+    ok: false as const, reason: 'C07_USAGE_TRUNCATED_BUDGET_CLOSED',
     limits, admittedToday, admittedMonth, completedToday,
-    remainingToday: complete ? Math.max(0, limits.perDay - admittedToday) : 0,
-    remainingMonth: complete ? Math.max(0, limits.perMonth - admittedMonth) : 0,
-    admissionAllowed: complete && admittedToday < limits.perDay && admittedMonth < limits.perMonth,
-    scheduledExecutionAllowed: complete && completedToday < limits.perDay,
+  };
+  return {
+    ok: true as const, reason: 'BOUNDED_PRIMARY_C07_SNAPSHOT',
+    limits, admittedToday, admittedMonth, completedToday,
+    remainingToday: Math.max(0, limits.perDay - admittedToday),
+    remainingMonth: Math.max(0, limits.perMonth - admittedMonth),
+    admissionAllowed: admittedToday < limits.perDay && admittedMonth < limits.perMonth,
+    scheduledExecutionAllowed: completedToday < limits.perDay,
     period: start, snapshotAt: now.toISOString(),
   };
 }
