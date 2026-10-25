@@ -357,6 +357,11 @@ export function SfiRootWorkspace({ enabled, decisionOnly = false, missionOnly = 
               {txt(m.agentName,txt(m.agentId))} · {txt(m.title)}
             </option>)}
           </select>
+          {selectedMissionRecord&&<div className="rootReportHealth" data-c07-agent-confirmation="EXPLAIN_AGENT_BEFORE_ENQUEUE">
+            <article><span>Agente / misión</span><strong>{txt(selectedMissionRecord.agentName,txt(selectedMissionRecord.agentId))} · {txt(selectedMissionRecord.title)}</strong></article>
+            <article><span>Qué realizará</span><strong>{txt(selectedMissionRecord.objective)}</strong></article>
+            <article><span>Requisito previo</span><strong>{txt(selectedMissionRecord.prerequisite)}</strong></article>
+          </div>}
           <button type="button" disabled={!missionQueueEnabled||missionBusy||!selectedMissionCaseId||
             !eligibleCaseMissions.some(m=>m.missionId===selectedMissionId)}
             onClick={()=>void runMissionAction('queue_mission')}>
