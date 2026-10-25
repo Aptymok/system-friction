@@ -440,12 +440,10 @@ check('heartbeat determines physical primary provenance with a direct non-fallba
   && runtime.includes('primaryPhysicalProbe')
   && runtime.includes("dataPlane = 'NEON'"));
 
-check('continuity recovery is owned by the existing heartbeat and only attempted after a direct healthy primary probe',
-  continuityRecovery.includes('export async function recoverPrimaryDataPlane')
-  && runtime.includes("import('@/lib/persistence/continuityRecovery')")
-  && runtime.includes('recoverPrimaryDataPlane')
-  && runtime.includes('primaryPhysicalProbe.ok')
-  && runtime.includes('recoveryAttempt'));
+check('independent providers do not automatically replay Neon journal into PRIMARY',
+  continuityRecovery.includes("reason: 'SFI_REPLICATION_RETIRED_BY_FOUNDER'")
+  && !runtime.includes('await recoverPrimaryDataPlane(')
+  && runtime.includes("reason: 'SFI_REPLICATION_RETIRED_BY_FOUNDER'"));
 
 check('continuity replay claims one source transaction at a time in journal sequence order and recovers stale replay leases',
   dataPlaneContinuityStore.includes("pg_try_advisory_xact_lock(hashtext('sfi_data_plane_recovery'))")
@@ -523,21 +521,19 @@ check('scheduled egress guard requires explicit continuity opt-in',
   && guard.includes('input.allowContinuityFallback && isSfiContinuityConfigured()'));
 
 
-check('primary mirror maintenance is owned by the existing continuity heartbeat',
-  primaryMirror.includes('export async function flushPrimaryMirror')
-  && runtime.includes("import('@/lib/persistence/primaryMirror')")
-  && runtime.includes('flushPrimaryMirror')
-  && runtime.includes('primaryMirror'));
+check('continuity heartbeat no longer chases replica certification',
+  primaryMirror.includes("reason: 'SFI_REPLICATION_RETIRED_BY_FOUNDER'")
+  && runtime.includes('const primaryMirrorFailed = false')
+  && !runtime.includes('await flushPrimaryMirror('));
 
-check('idle wakeup cannot suppress required data-plane mirror certification maintenance',
-  gate.includes("import('@/lib/persistence/dataPlaneReconciliationControl')")
-  && gate.includes('readDataPlaneReconciliationStatus')
-  && gate.includes('!certificate.certified')
-  && gate.includes('mirrorMaintenanceRequired')
-  && gate.includes('DATA_PLANE_MIRROR_MAINTENANCE_REQUIRED'));
+check('idle wakeup ignores historical mirror backlog',
+  gate.includes('required: false as const')
+  && gate.includes('SFI_REPLICATION_RETIRED_BY_FOUNDER')
+  && !gate.includes('readDataPlaneReconciliationStatus'));
 
-check('staggered four-times-hourly continuity scheduler supports the two-hour mirror freshness gate',
-  hourlyContinuity.includes("cron: '7,22,37,52 * * * *'"));
+check('heartbeat schedule never runs a provider replica drain',
+  !hourlyContinuity.includes('SFI_SYNC_ENDPOINT')
+  && hourlyContinuity.includes('Retired replication'));
 
 check('continuity heartbeat is the explicit scheduled fallback caller',
   heartbeat.includes('scheduledEgressGuardResponse({ allowContinuityFallback: true })'));
