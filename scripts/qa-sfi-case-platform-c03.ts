@@ -138,9 +138,9 @@ const chainFixture={
   caseId:'KXTXR-TEST',
   provenance:{adjudications:[
     {evidenceRef:{id:'evidence-1'},state:'PENDING',
-      sourceRoots:[{id:'authored-doc-1'}],assessmentRefs:[]},
+      sourceRoots:['authored-doc-1'],assessmentRefs:[]},
     {evidenceRef:{id:'evidence-2'},state:'ACCEPTED',
-      sourceRoots:[{id:'provider-1'}],assessmentRefs:[{id:'assessment-1'}]},
+      sourceRoots:['provider-1'],assessmentRefs:[{id:'assessment-1'}]},
     {evidenceRef:{id:'evidence-3'},state:'REJECTED',
       sourceRoots:[],assessmentRefs:[{id:'assessment-2'}]},
   ]},
@@ -165,6 +165,7 @@ assert.equal(assurance.counts.verifiedExecutions,1);
 assert.equal(assurance.snapshotIntegrity,'LIMITED_BY_READ_OR_PROVENANCE');
 assert.equal(assurance.integrityGaps.length,2);
 assert.equal(assurance.evidence[0].state,'PENDING');
+assert.deepEqual(assurance.evidence[1].rootSources,['provider-1']);
 assert.equal(assurance.evidence[1].meaning,'CHAIN_ADJUDICATION_ACCEPTED_ONLY');
 assert.equal(assurance.authority[0].meaning,'CASE_DECISION_RECORD_NOT_UNIVERSAL_EXECUTION_PERMISSION');
 assert.equal(assurance.authority[1].recordIntegrity,'FIELDS_INCOMPLETE');
