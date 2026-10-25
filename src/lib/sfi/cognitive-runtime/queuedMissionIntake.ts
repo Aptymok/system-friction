@@ -4,6 +4,7 @@ import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { readOperationalCase } from '@/lib/sfi/case-platform/repository';
 import { validateMissionDispatchRequest } from './missionDispatch';
 import { canonicalQueuedRequestDigest } from './queuedMissionWorker';
+import { checkC07CaseQueueState } from './queuedMissionCaseGate';
 
 type Row = Record<string, unknown>;
 function text(v:unknown,max=160) {
@@ -44,11 +45,20 @@ export async function enqueueAuthorizedC07Mission(value:Row,actorId:string):Prom
     return {status:400,body:{ok:false,error:'queue_requires_single_case_read_only_request'}};
   }
   const caseRecord=await readOperationalCase(String(targets[0].id),actorId).catch(()=>null);
-  if (!caseRecord || caseRecord.caseRecord.status==='CLOSED') {
-    return {status:403,body:{ok:false,error:'case_not_authorized_or_closed'}};
+  if (!caseRecord) {
+    return {status:403,body:{ok:false,error:'case_not_authorized'}};
+  }
+  const eligible = checkC07CaseQueueState({
+    status:caseRecord.caseRecord.status,
+    updatedAt:caseRecord.caseRecord.updatedAt,
+    deletedAt:null,
+  });
+  if (!eligible.ok) {
+    return {status:409,body:{ok:false,error:eligible.reason}};
   }
   const permittedKeys=['agentId','missionId','purpose','anchors','targets','timeRange','direction','parameters','requestedOutputs','governanceContext'];
-  const payload=Object.fromEntries(permittedKeys.filter(k=>value[k]!==undefined).map(k=>[k,value[k]]));
+  const payload={ ...Object.fromEntries(permittedKeys.filter(k=>value[k]!==undefined).map(k=>[k,value[k]])),
+    caseRevision:eligible.revision };
   const receipt=await createServiceSupabaseClient().rpc('sfi_c07_enqueue_mission_v1',{
     p_tenant_id:caseRecord.caseRecord.tenantId,
     p_actor_id:actorId,p_mission_id:mission.mission.missionId,
