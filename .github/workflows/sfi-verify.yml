@@ -57,8 +57,8 @@ jobs:
       - name: Verify Pilot Light economics is read-only and provider costs are not invented
         run: node --import tsx --test src/lib/persistence/pilotLightEconomicsPolicy.test.ts
 
-      - name: Verify governed data-plane reconciliation scheduling
-        run: node scripts/qa-sfi-data-plane-scheduled-recovery.mjs
+      - name: Verify no cross-provider replication (founder policy)
+        run: node scripts/qa-sfi-no-replication.mjs
 
       - name: Verify SFI Verify parallel topology
         run: npx tsx scripts/qa-sfi-verify-parallelism.ts
