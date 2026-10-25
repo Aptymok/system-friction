@@ -1179,3 +1179,75 @@ html:has(.rootReferenceCockpit),body:has(.rootReferenceCockpit){overflow-y:hidde
 .rootOperationalSnapshot article strong{display:block;color:#F7F4EA;font:500 16px/1.4 "Noto Sans",Arial,sans-serif;overflow-wrap:anywhere}
 .rootOperationalSnapshot article p{margin:7px 0 0;color:#E8DDC3;font:400 12px/1.5 "Noto Sans",Arial,sans-serif}
 @media(max-width:1330px){.rootOperationalSnapshot{grid-template-columns:minmax(0,1fr)}}
+
+
+/* C20 cockpit correction: the real ROOT graph must surface agent missions.
+   Passport owns its vertical reader. The outer field owns ONLY horizontal navigation.
+   No document scrolling on the global body, no second neural navigation menu. */
+.rootReferenceCockpit .rootFieldQuickAccess{
+  position:absolute;z-index:45;top:12px;right:22px;
+  display:flex;align-items:center;gap:10px;max-width:calc(100% - 44px);
+}
+.rootReferenceCockpit .rootFieldQuickAccess button{
+  position:relative!important;inset:auto!important;
+  display:inline-flex!important;align-items:center;justify-content:center;gap:8px;
+  min-height:42px!important;padding:9px 15px!important;
+  border:1px solid rgba(212,175,55,.7)!important;border-radius:0!important;
+  background:rgba(6,8,9,.93)!important;color:#f7f4ea!important;
+  font:600 12px/1.35 "Noto Sans",Arial,sans-serif!important;
+  letter-spacing:.04em;white-space:nowrap;cursor:pointer;box-shadow:0 6px 20px #0008;
+}
+.rootReferenceCockpit .rootFieldQuickAccess button:focus-visible,
+.rootReferenceCockpit .rootPassportMissions summary:focus-visible{
+  outline:2px solid #d4af37;outline-offset:3px;
+}
+.rootReferenceCockpit .rootFieldQuickAccess .rootOpenMissions{
+  border-color:#d4af37!important;background:rgba(36,27,10,.95)!important;
+}
+.rootReferenceCockpit .rootGovernanceConsole{
+  overflow-x:hidden!important;overflow-y:auto!important;
+  overscroll-behavior:contain!important;scrollbar-gutter:stable;
+  scroll-behavior:auto!important;
+}
+.rootReferenceCockpit .rootPassportMissions{
+  margin:16px 20px 4px;border:1px solid rgba(212,175,55,.65);
+  background:rgba(13,14,13,.92);color:#f7f4ea;min-width:0;
+}
+.rootReferenceCockpit .rootPassportMissions>summary{
+  display:block;min-height:48px;padding:14px 16px;
+  color:#e5c675;font:650 13px/1.45 "Noto Sans",Arial,sans-serif;
+  letter-spacing:.04em;cursor:pointer;list-style:none;
+}
+.rootReferenceCockpit .rootPassportMissions>summary::-webkit-details-marker{display:none}
+.rootReferenceCockpit .rootPassportMissions>summary::after{
+  content:"  ▸";float:right;color:#d4af37;
+}
+.rootReferenceCockpit .rootPassportMissions[open]>summary::after{content:"  ▾"}
+.rootReferenceCockpit .rootMissionEmbedded{
+  width:100%;max-width:100%;min-width:0;box-sizing:border-box;
+  padding:6px 16px 18px;margin:0;background:transparent;
+}
+.rootReferenceCockpit .rootMissionEmbedded .rootReports{
+  width:100%;max-width:100%;margin:0;min-width:0;
+}
+.rootReferenceCockpit .rootMissionEmbedded .rootReportList{
+  width:100%;max-width:100%;min-width:0;overflow-wrap:anywhere;
+}
+.rootReferenceCockpit .rootMissionEmbedded select,
+.rootReferenceCockpit .rootMissionEmbedded input{
+  display:block;width:100%;max-width:100%;min-height:42px;
+  margin:6px 0 12px;border:1px solid rgba(212,175,55,.42);
+  background:#0c0d0d;color:#f7f4ea;font:400 13px "Noto Sans",Arial,sans-serif;
+}
+.rootReferenceCockpit .rootMissionEmbedded button{
+  min-height:42px;max-width:100%;margin:6px;
+  border:1px solid rgba(212,175,55,.5);background:#171811;
+  color:#f7f4ea;padding:10px 13px;cursor:pointer;
+}
+.rootReferenceCockpit .rootMissionEmbedded button:disabled{
+  opacity:.48;cursor:not-allowed;
+}
+@media(max-width:900px){
+  .rootReferenceCockpit .rootFieldQuickAccess{left:auto;right:10px;top:56px;gap:5px}
+  .rootReferenceCockpit .rootFieldQuickAccess button{padding:7px 8px!important;font-size:11px!important}
+}
