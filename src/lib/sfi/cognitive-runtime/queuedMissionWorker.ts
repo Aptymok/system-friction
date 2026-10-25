@@ -53,6 +53,7 @@ export function checkQueuedMissionClaim(value: unknown, nowMs: number = Date.now
     || text(claim.agent_id) !== text(payload.agentId)) return fail('MISSION_IDENTITY_MISMATCH');
   const checked = validateMissionDispatchRequest(payload);
   if (!checked.ok) return fail('MISSION_CONTRACT_REJECTED:' + checked.error);
+  if (checked.mission.humanApprovalRequired) return fail('RESERVED_HUMAN_APPROVAL_REQUIRED');
   if (payload.llmAugmentation === true
     || (Array.isArray(payload.sourceUrls) && payload.sourceUrls.length)
     || (Array.isArray(payload.evidenceIds) && payload.evidenceIds.length)) return fail('UNAUTHORIZED_EXTRA_CAPABILITIES');
