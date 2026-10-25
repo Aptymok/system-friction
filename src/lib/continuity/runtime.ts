@@ -5,6 +5,8 @@ import { createKernelContext } from '@/lib/sfi/cognitive-runtime/createKernelCon
 import { runCognitiveAgent } from '@/lib/sfi/cognitive-runtime/runtimeAgentExecutor';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { isSfiContinuityConfigured } from '@/lib/sfi/continuityPostgres';
+import { scheduledEgressEnabled } from './scheduledEgressGuard';
+import { selectContinuityDataPlane } from './continuityDataPlanePolicy';
 import {
   createNeonContinuityRun,
   finalizeNeonContinuityRun,
@@ -317,9 +319,18 @@ export async function runContinuityHeartbeat(trigger = 'scheduled') {
     .eq('id', 'institution')
     .single();
 
-  let dataPlane: 'SUPABASE' | 'NEON' = systemicDataPlaneState && systemicDataPlaneState.mode !== 'PRIMARY'
-    ? 'NEON'
-    : 'SUPABASE';
+  // Neon continuity's pre-retirement RECOVERY bit is not proof of a failed
+  // canonical primary. Retain the cost guard: restricted egress can only run the
+  // existing Neon continuity/health lane, never unlock primary effectful writes.
+  // If autonomous primary egress is explicitly enabled, prefer Supabase ONLY
+  // after both physical health and the canonical continuity-state read succeed.
+  let dataPlane: 'SUPABASE' | 'NEON' = selectContinuityDataPlane({
+    scheduledEgressEnabled: scheduledEgressEnabled(),
+    continuityConfigured: isSfiContinuityConfigured(),
+    primaryPhysicalOk: primaryPhysicalProbe.ok,
+    primaryContinuityStateReadable: !primaryState.error && Boolean(primaryState.data),
+    legacyNeonMode: systemicDataPlaneState?.mode ?? null,
+  });
   let stateRow: Row;
   let primaryDiagnostic: string | null = null;
 
