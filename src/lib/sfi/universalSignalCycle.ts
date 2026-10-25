@@ -26,7 +26,7 @@ export const SFI_SIGNAL_KINDS = [
 export type SfiSignalKind = typeof SFI_SIGNAL_KINDS[number];
 type RecordValue = Record<string, unknown>;
 
-type HypothesisInput = { statement: string; confidence?: number; role?: 'primary' | 'rival' };
+type HypothesisInput = { id?: string; statement: string; confidence?: number; role?: 'primary' | 'rival' };
 type OpenUniversalCycle = RecordValue & {
   eventId: string;
   occurredAt: string | null;
@@ -387,6 +387,14 @@ export async function runUniversalCognitiveCycle(input: UniversalCycleInput, act
     input = { ...input, objective: originalObjective ?? undefined };
   }
   const testCandidates = Array.isArray(input.candidateTests) ? input.candidateTests : [];
+  if (testCandidates.length) {
+    const declaredHypothesisIds = new Set((input.hypotheses ?? [])
+      .map(h => typeof h.id === 'string' ? h.id.trim() : '').filter(Boolean));
+    if (testCandidates.some(test => !declaredHypothesisIds.has(test.hypothesisId)
+      || !declaredHypothesisIds.has(test.rivalHypothesisId))) {
+      throw new Error('SFI_DISCRIMINATOR_REFERENCES_UNDECLARED_HYPOTHESIS');
+    }
+  }
   const nextDiscriminatingTest = testCandidates.length
     ? selectNextDiscriminatingTest(testCandidates)
     : null;
