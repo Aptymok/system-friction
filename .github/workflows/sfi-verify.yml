@@ -54,6 +54,9 @@ jobs:
       - name: Verify Method Lab dependency health probes are bounded
         run: node --import tsx scripts/qa-sfi-method-lab-dependency-read.ts
 
+      - name: Verify C07 ROOT canary activation and fenced autonomous worker
+        run: node scripts/qa-sfi-c07-root-activation.mjs
+
       - name: Verify WorldSpect independent-provider clock reads remain on-demand
         run: node --import tsx --test src/lib/worldspect/independentPlaneClock.test.ts
 
