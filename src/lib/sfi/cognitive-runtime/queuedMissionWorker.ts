@@ -63,6 +63,10 @@ export function checkQueuedMissionClaim(value: unknown, nowMs: number = Date.now
   const targets = (payload.targets as unknown[]).map(row);
   const anchors = (payload.anchors as unknown[]).map(row);
   const refs = [...targets,...anchors];
+  const canaryCase = process.env.SFI_C07_CANARY_CASE_ID;
+  if (!canaryCase || !targets[0] || targets[0].id !== canaryCase) {
+    return fail('CASE_OUTSIDE_AUTHORIZED_CANARY');
+  }
   // Current C07 intake admits only one CASE and same-CASE anchors.
   if (targets.length !== 1 || targets[0].kind !== 'CASE' || !text(targets[0].id)
     || anchors.length === 0
