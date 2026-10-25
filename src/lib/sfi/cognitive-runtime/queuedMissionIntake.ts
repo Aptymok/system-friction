@@ -44,6 +44,11 @@ export async function enqueueAuthorizedC07Mission(value:Row,actorId:string):Prom
     || (Array.isArray(value.evidenceIds)&&value.evidenceIds.length)) {
     return {status:400,body:{ok:false,error:'queue_requires_single_case_read_only_request'}};
   }
+  // Canary releases fail closed outside the one authorized case.
+  const canaryCase = process.env.SFI_C07_CANARY_CASE_ID;
+  if (!canaryCase || String(targets[0].id) !== canaryCase) {
+    return {status:403,body:{ok:false,error:'case_outside_authorized_canary'}};
+  }
   const caseRecord=await readOperationalCase(String(targets[0].id),actorId).catch(()=>null);
   if (!caseRecord) {
     return {status:403,body:{ok:false,error:'case_not_authorized'}};
