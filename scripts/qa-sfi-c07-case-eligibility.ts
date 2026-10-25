@@ -32,6 +32,10 @@ assert.match(caseRepository,/\['OWNER', 'ADMIN', 'OPERATOR'\]\.includes\(role\)/
 assert.match(intake,/assertTenantAccess\(caseRecord\.caseRecord\.tenantId,actorId,'WRITE'\)/);
 assert.match(worker,/assertTenantAccess\(tenantId, actorId, 'WRITE'\)/);
 assert.doesNotMatch(worker,/\.from\('sfi_tenant_members'\)/);
+assert.match(intake,/SFI_C07_CANARY_CASE_ID/);
+assert.match(intake,/case_outside_authorized_canary/);
+assert.match(worker,/SFI_C07_CANARY_CASE_ID/);
+assert.match(worker,/CASE_OUTSIDE_AUTHORIZED_CANARY/);
 assert.match(intake,/checkC07CaseQueueState/);
 assert.match(intake,/caseRevision:eligible\.revision/);
 assert.match(worker,/checkC07CaseQueueState/);
