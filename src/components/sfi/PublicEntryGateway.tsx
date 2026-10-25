@@ -130,6 +130,7 @@ export function PublicEntryGateway(){
         <strong>SFI</strong><i>—</i><span>SYSTEM FRICTION INSTITUTE</span>
       </Link>
       <nav aria-label="SFI instruments">
+        <Link href="/servicios" lang="es">SERVICIOS</Link>
         {SURFACE_RAIL.map((surface)=><Link key={surface.sceneId} href={surface.href}>{surface.label}</Link>)}
       </nav>
       <Link className="sfiHomeAccessDot" href="/instruments/access" aria-label="Access"><span>ACCESS</span></Link>
