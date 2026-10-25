@@ -30,6 +30,6 @@ assert.match(worker,/receipt\.status !== 'READ_BACK_CONFIRMED'/);
 assert.match(worker,/sfi_c07_renew_mission_v1/);
 assert.match(cron,/runBoundedC07QueuedMission/);
 assert.match(gate,/readC08MissionWorkRequirement/);
-assert.doesNotMatch(route,/process\.env\.SFI_C07_MISSION_QUEUE_ENABLED\s*=/);
+assert.doesNotMatch(route,/process\.env\.SFI_C07_MISSION_QUEUE_ENABLED\s*=(?!=)/);
 assert.doesNotMatch(workspace,/SFI_C07_CANARY_CASE_ID\s*=/);
 console.log('PASS: ROOT C07 activation is rooted in existing queue, actor-scoped canary, fenced receipt and C08 worker.');
