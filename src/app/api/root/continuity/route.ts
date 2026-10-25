@@ -10,6 +10,7 @@ import { runUniversalEmpiricalContinuation } from '@/lib/sfi/universalEmpiricalC
 import { runUniversalReturnPlanUpgrade } from '@/lib/sfi/universalReturnPlanUpgrade';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { readPilotLightEconomicObservation } from '@/lib/persistence/pilotLightEconomics';
+import {readIndependentWorldSpectPlaneClock} from '@/lib/worldspect/readIndependentPlaneClock';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -119,6 +120,10 @@ export async function GET(request: NextRequest) {
   try {
     // Explicit operator demand only: never add provider probes to normal ROOT
     // reads, cron, queue workers or execution gates.
+    if(request.nextUrl.searchParams.get('worldspect_planes') === '1') {
+      return NextResponse.json({ok:true,...(await readIndependentWorldSpectPlaneClock())},
+        {headers:{'Cache-Control':'private, no-store'}});
+    }
     if (request.nextUrl.searchParams.get('economics') === '1') {
       return NextResponse.json({ ok: true, ...(await readPilotLightEconomicObservation()) },
         { headers: { 'Cache-Control': 'private, no-store' } });
