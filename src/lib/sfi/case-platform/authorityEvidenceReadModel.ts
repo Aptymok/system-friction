@@ -39,7 +39,7 @@ export function projectCaseAuthorityEvidence(
     evidence:evidence.slice(0,cap).map(x=>({
       evidenceRef:x.evidenceRef.id,
       state:x.state,
-      rootSources:x.sourceRoots.map(r=>r.id),
+      rootSources:x.sourceRoots,
       assessments:x.assessmentRefs.map(r=>r.id),
       assessmentCount:x.assessmentRefs.length,
       // A source is not an adjudication, and a recorded assessment alone
