@@ -5,6 +5,7 @@ import { readOperationalCase, assertTenantAccess } from '@/lib/sfi/case-platform
 import { validateMissionDispatchRequest } from './missionDispatch';
 import { canonicalQueuedRequestDigest } from './queuedMissionWorker';
 import { checkC07CaseQueueState } from './queuedMissionCaseGate';
+import { readPrimaryCognitiveExecutionReceipt } from '@/lib/persistence/dataPlaneRpc';
 
 type Row = Record<string, unknown>;
 function text(v:unknown,max=160) {
@@ -47,11 +48,66 @@ export async function readOwnedC07Mission(jobId:string,actorId:string):Promise<Q
     return {status:400,body:{ok:false,error:'job_id_invalid'}};
   }
   const status=await createServiceSupabaseClient().from('sfi_c07_mission_jobs')
-    .select('id,mission_id,execution_id,status,attempts,max_attempts,receipt_event_id,last_error_code,updated_at,return_observation')
+    .select('id,mission_id,agent_id,execution_id,status,attempts,max_attempts,receipt_event_id,receipt_hash,last_error_code,updated_at,return_observation')
     .eq('id',jobId).eq('actor_id',actorId).maybeSingle();
   if (status.error) return {status:503,body:{ok:false,error:'queue_status_unavailable'}};
   if (!status.data) return {status:404,body:{ok:false,error:'queue_job_not_found'}};
-  return {status:200,body:{ok:true,job:status.data,boundary:'A queued job is not a verified execution or observed external RETURN.'}};
+  const job = status.data;
+  if (job.status !== 'COMPLETED' || !job.receipt_event_id || !job.receipt_hash) {
+    return {status:200,body:{ok:true,job,
+      outcome:{verification:'NO_COMPLETED_RECEIPT',scientificResult:'NOT_OBSERVED'},
+      boundary:'A queued job is not a verified execution or observed external RETURN.'}};
+  }
+  // This call follows the exact actor-scoped queue read, never the broad queue.
+  // Fail closed on a divergent receipt or unreadable PRIMARY ledger.
+  let persisted:Row|null=null;
+  try {
+    persisted=await readPrimaryCognitiveExecutionReceipt(job.receipt_event_id);
+  } catch {
+    return {status:200,body:{ok:true,job,
+      outcome:{verification:'PRIMARY_READ_UNAVAILABLE',scientificResult:'NOT_OBSERVED'},
+      boundary:'Primary receipt unavailable does not mean zero execution; no outcome inferred.'}};
+  }
+  const item=persisted??{};
+  const source=item.source&&typeof item.source==='object'&&!Array.isArray(item.source)?item.source as Row:{};
+  const payload=item.payload&&typeof item.payload==='object'&&!Array.isArray(item.payload)?item.payload as Row:{};
+  const metadata=payload.metadata&&typeof payload.metadata==='object'&&!Array.isArray(payload.metadata)?payload.metadata as Row:{};
+  const refs=metadata.refs&&typeof metadata.refs==='object'&&!Array.isArray(metadata.refs)?metadata.refs as Row:{};
+  const numeric=(value:unknown):number|null=>typeof value==='number'&&Number.isFinite(value)?value:null;
+  const receiptMatches=item.event_id===job.receipt_event_id && item.event_name==='SFI_AGENT_EXECUTED'
+    && item.hash_self===job.receipt_hash && source.sourceId===job.agent_id
+    && payload.executionId===job.execution_id;
+  if (!receiptMatches) {
+    return {status:200,body:{ok:true,job,
+      outcome:{verification:'RECEIPT_READBACK_MISMATCH',scientificResult:'NOT_OBSERVED'},
+      boundary:'Job completion does not override a mismatched primary event.'}};
+  }
+  const sourceInventory=refs.caseSourceInventory&&typeof refs.caseSourceInventory==='object'
+    &&!Array.isArray(refs.caseSourceInventory)?refs.caseSourceInventory as Row:{};
+  const hunter=refs.evidenceHunterSummary&&typeof refs.evidenceHunterSummary==='object'
+    &&!Array.isArray(refs.evidenceHunterSummary)?refs.evidenceHunterSummary as Row:{};
+  return {status:200,body:{ok:true,job,
+    outcome:{
+      verification:'PRIMARY_RECEIPT_CONFIRMED',
+      eventId:job.receipt_event_id,
+      scientificResult:'INDEPENDENT_EVIDENCE_AND_RETURN_NOT_CONFIRMED',
+      caseSourceInventory:{
+        references:numeric(sourceInventory.sourcePointers),
+        hypotheses:numeric(sourceInventory.hypothesesDeclared),
+        unresolvedQuestions:numeric(sourceInventory.unresolvedQuestions),
+        retrievedContents:numeric(sourceInventory.rawSourceContentsObserved),
+        sourcesFetched:numeric(sourceInventory.sourceItemsFetched),
+      },
+      evidenceHunter:{
+        missingDetected:numeric(hunter.missingEvidenceDetected),
+        hypothesesChecked:numeric(hunter.hypothesesChecked),
+        materialEvidenceResolved:numeric(hunter.materialEvidenceResolved),
+      },
+      modelExecution:typeof payload.llmAugmentationStatus==='string'?payload.llmAugmentationStatus:'NOT_OBSERVED',
+      externalReturn:job.return_observation,
+    },
+    boundary:'Execution, source reference, admitted evidence, external RETURN and learning are separate assertions.'}};
+
 }
 
 export async function enqueueAuthorizedC07Mission(value:Row,actorId:string):Promise<QueuedMissionIntakeResponse> {
