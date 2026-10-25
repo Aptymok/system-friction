@@ -246,4 +246,14 @@ assert.match(c17Ui,/caseData\.trajectoryContrast\.attainment/);
 assert.match(c17Ui,/trajectoryContrast:caseData\.trajectoryContrast/);
 assert.doesNotMatch(c17Ui,/caseData\.trajectoryContrast\.attainment==='ACHIEVED'/);
 
+const internalCaseDetail=read('src/app/api/cases/[caseId]/route.ts');
+assert.match(internalCaseDetail,/readDataPlaneState\(\)/);
+assert.match(internalCaseDetail,/CONTINUITY_SNAPSHOT_MAY_LAG_PRIMARY_WRITES/);
+assert.match(internalCaseDetail,/readConsistency: consistency/);
+assert.match(internalCaseDetail,/Cache-Control': 'private, no-store'/);
+const continuityUi=read('src/components/sfi/RealityChainWorkbench.tsx');
+assert.match(continuityUi,/data-case-continuity-warning/);
+assert.match(continuityUi,/caseData\?\.readConsistency\?\.warning/);
+assert.match(continuityUi,/Un cero en esta vista no es ausencia histórica/);
+
 console.log('PASS C03 CASE PLATFORM: project-tenant association, one case insert, scoped detail, web links and authority');
