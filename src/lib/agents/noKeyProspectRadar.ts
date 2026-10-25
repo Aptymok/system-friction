@@ -444,7 +444,9 @@ export async function runNoKeyProspectRadar(input: ProspectRadarInput, actorId: 
   const queries = queryPlan(input);
   const feed = await runNoKeyNewsFeeds(queries);
   const sources = normalizeSources(feed.results);
-  const ollama = await ollamaModel(input, sources);
+  const ollama = input.allowModelSynthesis === false
+    ? { model: null as JsonRecord | null, warning: 'MODEL_DISABLED_BY_CALLER: deterministic synthesis only' }
+    : await ollamaModel(input, sources);
   const model = ollama.model ?? deterministicModel(input, sources);
   const warnings = unique([
     ...feed.warnings,
