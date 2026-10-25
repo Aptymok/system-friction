@@ -362,12 +362,19 @@ export function sha256Hex(bytes: Uint8Array) {
 }
 
 /** Uses the same PDF renderer and Unicode font custody as existing private briefs. */
-export function buildRealityPassportPdfInput(chain:SfiRealityChain):PrivateCaseBriefRenderInput {
+export function buildRealityPassportPdfInput(chain:SfiRealityChain, readConsistency?:{humanWarning:string;warning:string}):PrivateCaseBriefRenderInput {
   const evidenceRefs=chain.provenance.adjudications.map(a=>a.evidenceRef);
   return {caseId:chain.caseId,version:chain.inputHash.slice(0,12),subject:chain.subject,scope:chain.scope,generatedAt:new Date().toISOString(),evidenceRefs,
           coverBrief:buildSfiCaseCoverBrief({caseId:chain.caseId,sourceEvidenceRefs:evidenceRefs}),
           paper:'A4',documentTitle:'SYSTEM FRICTION INSTITUTE / REALITY CHAIN PASSPORT',
-          reportLines:[chain.closure.certified?'Integridad documental comprobada para este alcance':'Sin certificación',chain.subject,chain.scope,'',...chain.narrative,'',
+          reportLines:[
+            'ESTADO DE LA LECTURA - PARIDAD ENTRE BASES NO CERTIFICADA',
+            readConsistency?.humanWarning ??
+              'Estado de los proveedores no verificado; un cero o una omisión no demuestra ausencia en PRIMARY.',
+            'Código de consistencia: '+(readConsistency?.warning??'DATA_PLANE_STATE_UNAVAILABLE'),
+            '',
+            chain.closure.certified?'Integridad documental comprobada para este alcance (no acredita paridad entre bases)':'Sin certificación',
+            chain.subject,chain.scope,'',...chain.narrative,'',
             'T0: '+(chain.temporal.t0.cutoff??'No establecido'),'T1: '+chain.temporal.t1.cutoff,'',
             'Qué falta',...chain.gapExplanations,chain.nextObservation,'',
             'Reconstrucción temporal',...chain.timeline.flatMap(e=>[
