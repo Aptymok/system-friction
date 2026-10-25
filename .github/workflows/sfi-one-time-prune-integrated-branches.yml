@@ -44,22 +44,22 @@ jobs:
               echo "| \`$branch\` | DELETE_REF_FAILED |" >> "$GITHUB_STEP_SUMMARY"
             fi
           done <<'BRANCHES'
-feat/reality-chain-private-reconciliation-20261024|71a7a8c41691a09d9c0fb038a5d7849e6de1fa5a
-fix/access-authentication-20261021|5e37124bfb1b9e8c088c4bc0770e81fa3232f383
-fix/adaptive-72h-sedimentation-gates-20261022|ee140872ce4d7cd9ecf193348575fbe17e5f19b4
-fix/ci-discovery-p8-locked-operational-20261021|f1871a5a15d15915cf107e633d82b290753fa00c
-fix/method-lab-disclosure-guard-20261022|1dcc08a98446508cd7221b76884322d293058ac7
-fix/world-criterion-evidence-adjudication-20261022|6a1e4cd775d7c17c2326c5038d1620b7ad67ae01
-fix/world-cron-hypothesis-resume-gates-20261022|12b12c654e5ad0ef01b5f4bb3078b34f86308656
-release/p4-return-contrast-idempotency-20261022|95f4aeea0371942083067c1d1b8d95c70f23629e
-work/reality-chain-generic-ingestion-20261023|ec10d02f7be770c3f67f1da174b9a911b0e3c7c9
-work/reality-chain-multitenant-governed-sync-20261023|59261c5074de21f2d65fdce9706b28a3d846c670
-release/continuity-outbox-gate-20261022|6bdbed97f6f3e1abbfd2b544145bf81df089b504
-release/mem003-tenant-parity-20261022|d7159ebefcdf8496f9360d9cff22af70925cc035
-release/security-restrict-method-lab-audit-20261022|1480475196060f4d9103a182d24567d49e8b70b6
-release/sfi-assurance-integrity-20261022|c7e0283c2ea50726a32340590d2c94b389acdae0
-fix/p0-paged-fingerprint-recovery-20261023|eeaf22aca57900ca83d957cf7ff257cd63616cac
-fix/root-schedule-projection-20261023|32a5cbb3998afd7cde7f44b28b70954ab496cdd2
-work/reality-chain-integrity-20261023|3ea76325afbaa6055c6a5845989b84f6650a3ce9
-work/timeline-canonical-cases-projects-20261024|b9ae405f1311ecafae4b51d6e00becd5cff167e6
-BRANCHES
+          feat/reality-chain-private-reconciliation-20261024|71a7a8c41691a09d9c0fb038a5d7849e6de1fa5a
+          fix/access-authentication-20261021|5e37124bfb1b9e8c088c4bc0770e81fa3232f383
+          fix/adaptive-72h-sedimentation-gates-20261022|ee140872ce4d7cd9ecf193348575fbe17e5f19b4
+          fix/ci-discovery-p8-locked-operational-20261021|f1871a5a15d15915cf107e633d82b290753fa00c
+          fix/method-lab-disclosure-guard-20261022|1dcc08a98446508cd7221b76884322d293058ac7
+          fix/world-criterion-evidence-adjudication-20261022|6a1e4cd775d7c17c2326c5038d1620b7ad67ae01
+          fix/world-cron-hypothesis-resume-gates-20261022|12b12c654e5ad0ef01b5f4bb3078b34f86308656
+          release/p4-return-contrast-idempotency-20261022|95f4aeea0371942083067c1d1b8d95c70f23629e
+          work/reality-chain-generic-ingestion-20261023|ec10d02f7be770c3f67f1da174b9a911b0e3c7c9
+          work/reality-chain-multitenant-governed-sync-20261023|59261c5074de21f2d65fdce9706b28a3d846c670
+          release/continuity-outbox-gate-20261022|6bdbed97f6f3e1abbfd2b544145bf81df089b504
+          release/mem003-tenant-parity-20261022|d7159ebefcdf8496f9360d9cff22af70925cc035
+          release/security-restrict-method-lab-audit-20261022|1480475196060f4d9103a182d24567d49e8b70b6
+          release/sfi-assurance-integrity-20261022|c7e0283c2ea50726a32340590d2c94b389acdae0
+          fix/p0-paged-fingerprint-recovery-20261023|eeaf22aca57900ca83d957cf7ff257cd63616cac
+          fix/root-schedule-projection-20261023|32a5cbb3998afd7cde7f44b28b70954ab496cdd2
+          work/reality-chain-integrity-20261023|3ea76325afbaa6055c6a5845989b84f6650a3ce9
+          work/timeline-canonical-cases-projects-20261024|b9ae405f1311ecafae4b51d6e00becd5cff167e6
+          BRANCHES
