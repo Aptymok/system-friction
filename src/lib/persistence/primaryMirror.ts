@@ -59,6 +59,11 @@ export async function readPrimaryOutboxStatus() {
 }
 
 export async function flushPrimaryMirror(input: { maxTransactions?: number } = {}) {
+  void input;
+  return { ok: true as const, skipped: true as const, certified: false as const,
+    reason: 'SFI_REPLICATION_RETIRED_BY_FOUNDER' as const,
+    mirroredTransactions: 0, mirroredRows: 0, replicationEnabled: false as const };
+
   const maxTransactions = Math.max(1, Math.min(input.maxTransactions ?? 8, 32));
   let mirroredTransactions = 0;
   let mirroredRows = 0;
