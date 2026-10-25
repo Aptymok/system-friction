@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyGitHubActionsOidcToken } from '@/lib/continuity/githubActionsOidc';
 import {
   readDataPlaneReconciliationStatus,
-  attemptBoundedDataPlaneReconciliation,
 } from '@/lib/persistence/dataPlaneReconciliationControl';
 
 export const runtime = 'nodejs';
@@ -36,21 +35,11 @@ export async function POST(request: NextRequest) {
   if (!await authorized(request)) {
     return NextResponse.json({ ok: false, error: 'authorized_scheduler_required' }, { status: 401 });
   }
-  try {
-    const receipt = await attemptBoundedDataPlaneReconciliation(32);
-    return NextResponse.json({
-      ...receipt,
-      execution: 'SCHEDULED_BOUNDED_RECONCILIATION',
-      forcedFailover: false,
-    }, {
-      status: receipt.ok ? 200 : 409,
-      headers: { 'Cache-Control': 'no-store' },
-    });
-  } catch {
-    return NextResponse.json({
-      ok: false,
-      error: 'bounded_reconciliation_failed',
-      forcedFailover: false,
-    }, { status: 503 });
-  }
+  return NextResponse.json({
+    ok: false,
+    attempted: false,
+    replicationEnabled: false,
+    reason: 'SFI_REPLICATION_RETIRED_BY_FOUNDER',
+    boundary: 'No Supabase-Neon copying, draining, mirroring, replay or parity maintenance.',
+  }, { status: 410, headers: { 'Cache-Control': 'no-store' } });
 }
