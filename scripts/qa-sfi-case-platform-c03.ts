@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {resolveCaseProjectAssignment} from '../src/lib/sfi/case-platform/caseProjectAssignment';
 import {computeCaseSourceReadiness, SFI_CASE_SOURCE_PROTOCOL_CONTRACT} from '../src/lib/sfi/case-platform/sourceProtocolReadiness';
+import {projectCaseTemporalProvenance} from '../src/lib/sfi/case-platform/temporalProvenance';
 
 const project={id:'project-1',tenantId:'tenant-B',status:'ACTIVE'};
 assert.deepEqual(resolveCaseProjectAssignment(null,null,null),{tenantId:null,projectId:null});
@@ -80,5 +81,49 @@ const oneSource=computeCaseSourceReadiness(['DECLARED_BY_PROTOCOL'],
 assert.equal(oneSource.readyForAnalysis,false);
 assert.deepEqual(oneSource.missingSources,['PUBLIC_PROVIDER_CATALOG']);
 assert.equal(oneSource.sourceCoverage,0.5);
+
+
+const multiClockObjects=[
+  {kind:'SOURCE',createdAt:'2026-10-25T01:30:00Z',
+    canonicalRef:{id:'document-declaration'},payload:{
+      sourceType:'AUTHORED_DOCUMENT',label:'KXTXR authored songs',
+      metadata:{fileCreatedAt:'2026-09-04T10:21:49Z',
+        fileModifiedAt:'2026-09-07T04:01:31Z'}}},
+  {kind:'SOURCE',createdAt:'2026-10-25T01:36:00Z',
+    canonicalRef:{id:'catalog-source'},payload:{
+      sourceType:'PUBLIC_PROVIDER_CATALOG',
+      metadata:{supplier:'Apple Music',providerDisplayedReleaseDate:'2026-08-25'}}},
+  {kind:'OBSERVATION',createdAt:'2026-10-25T01:37:00Z',observedAt:null,
+    canonicalRef:{id:'catalog-observation'},payload:{
+      provider:'Amazon Music',providerDisplayedReleaseDate:'2026-10-03',
+      sourceUrl:'https://example.test/should-not-be-reexported'}}},
+];
+const clocks=projectCaseTemporalProvenance(multiClockObjects,sourceCutoff);
+assert.equal(clocks.snapshotObjectCount,3);
+assert.equal(clocks.totalFacts,7);
+assert.equal(clocks.events.filter(e=>e.clock==='DOCUMENT_CREATED').length,1);
+assert.equal(clocks.events.filter(e=>e.clock==='DOCUMENT_MODIFIED').length,1);
+assert.equal(clocks.events.filter(e=>e.clock==='PROVIDER_DISPLAYED_RELEASE').length,2);
+assert.equal(clocks.events.filter(e=>e.clock==='CASE_OBJECT_PERSISTED').length,3);
+assert.ok(clocks.events.filter(e=>e.clock==='CASE_OBJECT_PERSISTED')
+  .every(e=>e.relationToCutoff==='AFTER_CUTOFF'));
+assert.ok(clocks.events.filter(e=>e.clock==='PROVIDER_DISPLAYED_RELEASE')
+  .every(e=>e.interpretation==='PROVIDER_CLAIM'
+    && e.historicalStatus==='NO_RETROSPECTIVE_VERIFICATION'));
+assert.ok(clocks.events.every(e=>!JSON.stringify(e).includes('example.test')));
+assert.ok(!clocks.events.some(e=>e.clock==='OBSERVATION_RECORDED'));
+assert.ok(clocks.events.filter(e=>e.precision==='DAY').every(e=>!e.value.includes('T')));
+const capped=projectCaseTemporalProvenance(multiClockObjects,sourceCutoff,2);
+assert.equal(capped.totalFacts,7);
+assert.equal(capped.events.length,2);
+assert.equal(capped.truncated,true);
+const invalid=projectCaseTemporalProvenance([{kind:'SOURCE',createdAt:'2026-10-25T01:37:00Z',
+  canonicalRef:{id:'invalid-source'},payload:{sourceType:'AUTHORED_DOCUMENT',
+    metadata:{fileCreatedAt:'2026-13-99'}}}],sourceCutoff);
+assert.equal(invalid.skippedInvalid,1);
+assert.equal(invalid.totalFacts,1);
+const c14Repository=read('src/lib/sfi/case-platform/repository.ts');
+assert.match(c14Repository,/temporalProvenance: projectCaseTemporalProvenance\(objects, caseRecord\.temporalWindow\.cutoff\)/);
+assert.match(externalCases,/temporalProvenance:envelope\.temporalProvenance/);
 
 console.log('PASS C03 CASE PLATFORM: project-tenant association, one case insert, scoped detail, web links and authority');
