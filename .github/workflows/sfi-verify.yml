@@ -63,6 +63,9 @@ jobs:
       - name: Verify C07 ROOT canary activation and fenced autonomous worker
         run: node scripts/qa-sfi-c07-root-activation.mjs
 
+      - name: Verify SFI cost counter and workload circuit breaker
+        run: node scripts/qa-sfi-cost-meter.mjs
+
       - name: Verify WorldSpect independent-provider clock reads remain on-demand
         run: node --import tsx --test src/lib/worldspect/independentPlaneClock.test.ts
 
