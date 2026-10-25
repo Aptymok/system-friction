@@ -91,6 +91,36 @@ function compactExecutionMetadata(agentId: string, context: KernelContext) {
   for (const key of keys) {
     if (metadata[key] !== undefined) refs[key] = metadata[key];
   }
+  // Persist a bounded, numeric C07 outcome alongside the canonical receipt.
+  // Never place private source bodies, URLs or full case claims in this global
+  // compact ledger; the ROOT job-detail route enforces owner authorization.
+  const caseSource = metadata.caseSourceInventory && typeof metadata.caseSourceInventory === 'object'
+    ? metadata.caseSourceInventory as Record<string, unknown> : null;
+  const hunter = metadata.evidenceHunter && typeof metadata.evidenceHunter === 'object'
+    ? metadata.evidenceHunter as Record<string, unknown> : null;
+  const bounded = (value: unknown) => typeof value === 'number' && Number.isFinite(value)
+    ? Math.max(0, Math.min(1_000, Math.trunc(value))) : null;
+  if (caseSource) {
+    refs.caseSourceInventory = {
+      persistedObjectsRead: bounded(caseSource.persistedObjectsRead),
+      sourcePointers: bounded(caseSource.sourcePointers),
+      hypothesesDeclared: bounded(caseSource.hypothesesDeclared),
+      unresolvedQuestions: bounded(caseSource.unresolvedQuestions),
+      rawSourceContentsObserved: bounded(caseSource.rawSourceContentsObserved),
+      sourceItemsFetched: bounded(caseSource.sourceItemsFetched),
+      classification: 'REFERENCE_ONLY_UNVERIFIED',
+    };
+  }
+  if (hunter) {
+    refs.evidenceHunterSummary = {
+      missingEvidenceDetected: bounded(hunter.missingEvidenceDetected),
+      structuredMissingDetected: bounded(hunter.structuredMissingDetected),
+      hypothesesChecked: bounded(hunter.hypothesesChecked),
+      materialEvidenceResolved: bounded(hunter.materialEvidenceResolved),
+      externalSourceClaimsAvailable: bounded(hunter.externalSourceClaimsAvailable),
+      reuseStatus: typeof hunter.reuseStatus === 'string' ? hunter.reuseStatus.slice(0,90) : null,
+    };
+  }
   return {
     refs,
     aiGovernance: metadata.aiGovernance ?? null,
