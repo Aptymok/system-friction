@@ -4,6 +4,7 @@ import { requireAuthenticatedUser } from '@/lib/system/access/server';
 import { readOperationalCase, transitionOperationalCase } from '@/lib/sfi/case-platform/repository';
 import { sfiCaseApiFailure } from '@/lib/sfi/case-platform/http';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { readDataPlaneState } from '@/lib/persistence/dataPlaneContinuityStore';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -83,7 +84,17 @@ export async function GET(_: Request, context: RouteContext) {
   try {
     const { user } = await requireAuthenticatedUser();
     const { caseId } = await context.params;
-    return NextResponse.json({ ok: true, ...(await envelope(caseId, user.id)) });
+    const [snapshot, consistency] = await Promise.all([
+      envelope(caseId, user.id),
+      readDataPlaneState().then(state => state.mode === 'PRIMARY'
+        ? { readPlane: 'SUPABASE_PRIMARY', sourceInventoryComplete: null, parity: 'NOT_ASSERTED', warning: null }
+        : { readPlane: 'NEON_CONTINUITY', sourceInventoryComplete: false, parity: 'NOT_VERIFIED',
+          warning: 'CONTINUITY_SNAPSHOT_MAY_LAG_PRIMARY_WRITES' })
+        .catch(() => ({ readPlane: 'UNKNOWN', sourceInventoryComplete: false,
+          parity: 'NOT_VERIFIED', warning: 'DATA_PLANE_STATE_UNAVAILABLE' })),
+    ]);
+    return NextResponse.json({ ok: true, ...snapshot, readConsistency: consistency },
+      { headers: { 'Cache-Control': 'private, no-store' } });
   } catch (error) {
     return sfiCaseApiFailure(error);
   }
