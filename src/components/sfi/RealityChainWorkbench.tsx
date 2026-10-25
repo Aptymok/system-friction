@@ -257,7 +257,8 @@ export function RealityChainWorkbench(){
     previousInstitutionalReports:reports,
     limitations:['Missing stage does not prove a control failed.','A document and its copies are not independent sources.','An extracted passage is a record, not verified evidence.',
       'No causal RETURN is inferred from execution.','Original files are not contained in this report; their source hashes and recorded excerpts are preserved.',
-      'This is an account-scoped inspection draft, not an institutionally approved publication or certification.']};
+      'This is an account-scoped inspection draft, not an institutionally approved publication or certification.',
+      'Authority/evidence read model represents the current case read and is not a reconstructed adjudication at the selected historical cutoff.']};
   const base='SFI-REALITY-CHAIN-'+caseData.caseRecord.id.slice(0,12);
   download(base+'.json',JSON.stringify(document,null,2),'application/json');
   const cells=asOfObjects.map(o=>'<tr><td>'+htmlSafe(date(o.observedAt))+'</td><td>'+htmlSafe(date(o.createdAt))+'</td><td>'+htmlSafe(o.kind)+' / '+htmlSafe(o.epistemicRole)+'</td><td>'+htmlSafe(payloadDescription(o))+'</td><td>'+htmlSafe(o.canonicalRef.id)+'<hr>'+htmlSafe(o.sourceRefs.map(r=>r.id).join(', ')||'NO SOURCE REF')+'</td><td>'+htmlSafe(o.canonicalRef.hash??'NOT RECORDED')+'</td><td>'+htmlSafe(JSON.stringify(o.payload.locator??'NOT REPRESENTED'))+'<hr>FILE MODIFIED: '+htmlSafe(((o.payload.metadata??{}) as Record<string,unknown>).fileModifiedAt??'NOT RECORDED')+'</td></tr>').join('');
@@ -460,6 +461,7 @@ export function RealityChainWorkbench(){
             <a className="rcThreeLink" href="/root/evidence-review">OPEN GOVERNED EVIDENCE REVIEW ↗</a>
             <details className="rcRecordList" data-c15-c16-authority-evidence-ledger="SFI-CASE-AUTHORITY-EVIDENCE-READ-1.0">
               <summary>C15 / C16 · AUTORIDAD Y ADJUDICACIÓN DE PRUEBAS</summary>
+              {cutoff && <p>ATENCIÓN: el índice de decisiones y adjudicaciones describe la lectura completa actual, no reconstruye su estado al corte histórico seleccionado ({cutoff}). No utilizar sus totales como datos de T0.</p>}
               {caseData?.authorityEvidence ? <>
                 <p>{caseData.authorityEvidence.counts.accepted} aceptadas ·
                   {' '}{caseData.authorityEvidence.counts.rejected} rechazadas ·
