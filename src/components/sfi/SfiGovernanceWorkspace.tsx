@@ -57,6 +57,8 @@ export function SfiGovernanceWorkspace({enabled}:{enabled:boolean}){
   const [purposeBasis,setPurposeBasis]=useState('');
   const [agentResult,setAgentResult]=useState<Row|null>(null);
   const [queueAttemptId,setQueueAttemptId]=useState<string|null>(null);
+  const [queuedJobId,setQueuedJobId]=useState<string|null>(null);
+  const [queuedJobStatus,setQueuedJobStatus]=useState<Row|null>(null);
   const [busy,setBusy]=useState<string|null>(null);
   const [error,setError]=useState<string|null>(null);
   const [notice,setNotice]=useState<string|null>(null);
@@ -170,8 +172,19 @@ export function SfiGovernanceWorkspace({enabled}:{enabled:boolean}){
       const receipt=await jsonFetch('/api/root/cognitive-runtime',{
         method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body),
       });
+      setQueuedJobId(receipt.jobId);setQueuedJobStatus({status:receipt.state,id:receipt.jobId});
       setNotice(`Misión registrada en la cola: ${receipt.jobId}. Estado ${receipt.state}. No implica ejecución ni RETURN.`);
       setQueueAttemptId(null);
+    }catch(error){setError(error instanceof Error?error.message:String(error))}
+    finally{setBusy(null)}
+  };
+
+  const refreshQueuedMission=async()=>{
+    if(!queuedJobId||busy)return;
+    setBusy('queue-status');setError(null);
+    try {
+      const result=await jsonFetch(`/api/root/cognitive-runtime?jobId=${encodeURIComponent(queuedJobId)}`);
+      setQueuedJobStatus(result.job);
     }catch(error){setError(error instanceof Error?error.message:String(error))}
     finally{setBusy(null)}
   };
@@ -232,6 +245,14 @@ export function SfiGovernanceWorkspace({enabled}:{enabled:boolean}){
       {queuedMissionEnabled&&<button type="button" className="primaryAction" disabled={!canQueue}
         onClick={()=>void queueAgent()}>{busy==='queue'?'Registrando misión…':'ENVIAR MISIÓN AL SERVIDOR'}</button>}
       {queuedMissionEnabled&&<p>El envío a la cola requiere exactamente un CASE, sin archivos ni búsqueda externa. Registro ≠ ejecución; el servidor verificará permisos, costo y recibo.</p>}
+      {queuedMissionEnabled&&queuedJobId&&<div className="sfiAgentResult" role="status">
+        <p><strong>Misión en servidor:</strong> {queuedJobId}</p>
+        <p>Estado: {String(queuedJobStatus?.status??'SIN CONSULTAR')} · Intentos: {String(queuedJobStatus?.attempts??'—')}</p>
+        <p>Recibo: {String(queuedJobStatus?.receipt_event_id??'NO OBSERVADO')} · RETURN: {String(queuedJobStatus?.return_observation??'NOT_OBSERVED')}</p>
+        <button type="button" disabled={Boolean(busy)} onClick={()=>void refreshQueuedMission()}>
+          {busy==='queue-status'?'Consultando…':'CONSULTAR ESTADO'}
+        </button>
+      </div>}
       {missingRequiredParameters.length>0&&<p>Missing required parameters: {missingRequiredParameters.join(', ')}.</p>}
       {agentResult&&<div className="sfiAgentResult"><h3>{agentResult.agent?.name}</h3><p>{agentResult.humanSummary}</p><p>executionId: {agentResult.id}</p><p>Estado: {agentResult.workState??'NOT_OBSERVED'} · Recibo persistido: {agentResult.receipt?.eventId??'NO DISPONIBLE'} · Lectura independiente: {agentResult.receiptReadback?.status??'NO VERIFICADA'} · RETURN: {agentResult.returnObservation??'NOT_OBSERVED'}</p><Trace value={agentResult}/></div>}
 
