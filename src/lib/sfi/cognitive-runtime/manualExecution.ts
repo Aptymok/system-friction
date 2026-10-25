@@ -31,8 +31,9 @@ export type SfiManualExecutionPrincipal = {
   userId: string;
   actorId: string;
   tenantId: string;
-  requestSource: 'ROOT_MANUAL' | 'EXTERNAL_API';
+  requestSource: 'ROOT_MANUAL' | 'EXTERNAL_API' | 'QUEUE_WORKER';
   allowLegacyCompatibility: boolean;
+  queueExecutionId?: string;
 };
 
 export type SfiManualExecutionResponse = {
@@ -137,8 +138,9 @@ export async function executeManualCognitiveAgent(
   principal: SfiManualExecutionPrincipal,
 ): Promise<SfiManualExecutionResponse> {
   const agentId = text(body.agentId, 120);
-  // Only the pre-existing authenticated ROOT route may bind an explicit C07 mission.
-  const missionId = principal.requestSource === 'ROOT_MANUAL' ? text(body.missionId, 120) : null;
+  // QUEUE_WORKER is internal-only: its stable execution identity is supplied by
+  // a fenced, preauthorized database claim, never by a browser request body.
+  const missionId = principal.requestSource === 'ROOT_MANUAL' || principal.requestSource === 'QUEUE_WORKER' ? text(body.missionId, 120) : null;
   if (!agentId) return { status: 400, body: { ok: false, error: 'agent_required' } };
 
   const agent = SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY.find((item) => item.id === agentId);
@@ -147,7 +149,13 @@ export async function executeManualCognitiveAgent(
   const contract = executionContractForAgent(agentId);
   if (!contract) return { status: 409, body: { ok: false, error: 'execution_contract_not_found' } };
 
-  const executionId = randomUUID();
+  const executionId = principal.requestSource === 'QUEUE_WORKER' ? principal.queueExecutionId : randomUUID();
+  if (!executionId || (principal.requestSource === 'QUEUE_WORKER' && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(executionId))) {
+    return { status: 409, body: { ok: false, error: 'queue_execution_identity_invalid' } };
+  }
+  if (principal.requestSource === 'QUEUE_WORKER' && !missionId) {
+    return { status: 400, body: { ok: false, error: 'queue_mission_required' } };
+  }
   let acknowledgedEventId: string | null = null;
   const executionRequest = normalizeExecutionRequest(agentId, body, executionId);
   if (!principal.allowLegacyCompatibility && executionRequest.legacyCompatibilityUsed) {
@@ -205,7 +213,9 @@ export async function executeManualCognitiveAgent(
     });
 
     const primaryTarget = resolvedTargets[0] ?? null;
-    const context = createKernelContext(executionId, `${principal.requestSource.toLowerCase()}:${executionId}`, 'SFI_MANUAL_AGENT_REQUESTED');
+    const context = createKernelContext(executionId,
+      principal.requestSource === 'QUEUE_WORKER' ? `sfi-c07:${executionId}` : `${principal.requestSource.toLowerCase()}:${executionId}`,
+      principal.requestSource === 'QUEUE_WORKER' ? 'SFI_QUEUED_AGENT_REQUESTED' : 'SFI_MANUAL_AGENT_REQUESTED');
     context.metadata = {
       actorId: principal.actorId,
       executionId,
@@ -421,7 +431,7 @@ export async function executeManualCognitiveAgent(
           id: executionId,
           missionId,
           receipt: result.receipt,
-          receiptReadback: { status: receiptVerification.status, source: 'PRIMARY_EPISTEMIC_LEDGER', eventId: receiptVerification.eventId },
+          receiptReadback: { status: receiptVerification.status, source: 'PRIMARY_EPISTEMIC_LEDGER', eventId: receiptVerification.eventId, hash: receiptVerification.hash },
           workState: result.executed ? 'EXECUTED' : 'SKIPPED',
           returnObservation: 'NOT_OBSERVED',
           missionProviderPolicy: missionId ? 'DETERMINISTIC_ONLY_NO_EXTERNAL_MODEL_OR_RESEARCH' : 'LEGACY_MANUAL_POLICY',
