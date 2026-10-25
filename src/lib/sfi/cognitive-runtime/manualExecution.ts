@@ -299,6 +299,60 @@ export async function executeManualCognitiveAgent(
       });
     }
 
+    // C07 may read objects ALREADY returned by the authorized Case Platform
+    // snapshot. These are source pointers and open research questions, NOT
+    // verified source contents, evidence admission or external retrieval.
+    // No new database query, connector permission or provider/model call.
+    if (principal.requestSource === 'QUEUE_WORKER' && missionId) {
+      const caseObjects = resolvedTargets
+        .filter((item) => item.kind === 'CASE')
+        .flatMap((item) => {
+          const loadedCase = loadedByKey.get(referenceKey('CASE', item.id));
+          const objects = row(loadedCase?.data).objects;
+          return Array.isArray(objects) ? objects.map(row) : [];
+        })
+        .slice(0, 32);
+      const sourceObjects = caseObjects.filter((item) => item.kind === 'SOURCE').slice(0, 16);
+      const hypothesisObjects = caseObjects.filter((item) => item.kind === 'HYPOTHESIS').slice(0, 12);
+      const unresolvedObjects = caseObjects.filter((item) => item.kind === 'UNRESOLVED_QUESTION').slice(0, 12);
+      for (const item of sourceObjects) {
+        const payload = row(item.payload);
+        const ref = row(item.canonicalRef);
+        const sourceId = text(ref.id, 200) || text(item.id, 200);
+        context.evidence.push({
+          id: `case-source-pointer:${sourceId}`,
+          source: 'EXISTING_CASE_SOURCE_REFERENCE',
+          confidence: 1, // Confidence that the reference exists, NOT that the source's claims are true.
+          payload: {
+            epistemicClass: 'source_reference',
+            sourceId,
+            title: text(payload.label, 250),
+            externalRef: text(payload.externalRef, 800),
+            rawContentPersisted: payload.rawContentPersisted === true,
+            boundary: 'SOURCE_POINTER_ONLY_CONTENT_NOT_FETCHED_NOT_ACCEPTED_EVIDENCE',
+          },
+        });
+      }
+      const missingQuestions = [
+        ...unresolvedObjects.map((item) => text(row(item.payload).question, 600)),
+        ...hypothesisObjects.map((item) => {
+          const statement = text(row(item.payload).statement, 450);
+          return statement ? `¿Qué fuente primaria o medición contrastable permite evaluar la hipótesis declarada: ${statement}?` : null;
+        }),
+      ].filter((item): item is string => Boolean(item)).slice(0, 24);
+      context.metadata.materialUnresolved = missingQuestions;
+      context.metadata.caseSourceInventory = {
+        persistedObjectsRead: caseObjects.length,
+        sourcePointers: sourceObjects.length,
+        hypothesesDeclared: hypothesisObjects.length,
+        unresolvedQuestions: unresolvedObjects.length,
+        rawSourceContentsObserved: sourceObjects.filter((item) => row(item.payload).rawContentPersisted === true).length,
+        sourceItemsFetched: 0,
+        classification: 'CASE_RECORDS_AND_SOURCE_REFERENCES_NOT_MATERIAL_EVIDENCE',
+        boundary: 'REFERENCES_DO_NOT_GRANT_EXTERNAL_ACCESS_OR_EPISTEMIC_PROMOTION',
+      };
+    }
+
     const preResearchMaterial = materialEvidenceView(context);
     context.metadata.contextCoverage = {
       ...row(context.metadata.contextCoverage),
