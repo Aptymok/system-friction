@@ -9,6 +9,7 @@ import {
 } from '@/lib/sfi/cognitive-runtime/executionContracts';
 import { executeManualCognitiveAgent } from '@/lib/sfi/cognitive-runtime/manualExecution';
 import { enqueueAuthorizedC07Mission, readOwnedC07Mission, readOwnedC07MissionSummary } from '@/lib/sfi/cognitive-runtime/queuedMissionIntake';
+import { runBoundedC07QueuedMission } from '@/lib/sfi/cognitive-runtime/queuedMissionWorker';
 import { readObservedSfiCognitiveRuntime } from '@/lib/sfi/cognitive-runtime/observedRuntime';
 import { planCognitiveQuestion } from '@/lib/sfi/cognitive-runtime/planning';
 
@@ -71,6 +72,16 @@ export async function POST(request: Request) {
     const result = await planCognitiveQuestion(question, gate.ctx.user.id);
     if (!result.ok) return NextResponse.json(result, { status: 503 });
     return NextResponse.json(result);
+  }
+
+  if (operation === 'run_queue_once') {
+    // This is an explicit ROOT canary action, not a bypass of the job lease,
+    // persisted authorization, canary-case gate, or receipt readback.
+    // The worker remains disabled unless the preview queue flag is enabled.
+    const result=await runBoundedC07QueuedMission('root-canary-' + gate.ctx.user.id.replace(/[^-_a-zA-Z0-9]/g,'').slice(0,48));
+    return NextResponse.json({ok:result.ok, operation, result,
+      boundary:'Manual preview canary does not certify autonomous scheduling or observed external RETURN.'},
+      {status:result.ok?200:503,headers:{'Cache-Control':'private, no-store'}});
   }
 
   if (operation === 'queue_mission') {
