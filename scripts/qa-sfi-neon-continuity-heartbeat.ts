@@ -441,7 +441,7 @@ check('heartbeat determines physical primary provenance with a direct non-fallba
   && runtime.includes("dataPlane = 'NEON'"));
 
 check('independent providers do not automatically replay Neon journal into PRIMARY',
-  continuityRecovery.includes("reason: 'SFI_REPLICATION_RETIRED_BY_FOUNDER'")
+  /reason:\\s*'SFI_REPLICATION_RETIRED_BY_FOUNDER'/.test(continuityRecovery)
   && !runtime.includes('await recoverPrimaryDataPlane(')
   && runtime.includes("reason: 'SFI_REPLICATION_RETIRED_BY_FOUNDER'"));
 
