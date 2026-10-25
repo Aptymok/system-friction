@@ -31,6 +31,7 @@ import type {
 import { recordCanonicalCaseObjectAtomic } from './canonicalCaseObjectWriter';
 import { computeCaseSourceReadiness } from './sourceProtocolReadiness';
 import { projectCaseTemporalProvenance } from './temporalProvenance';
+import { projectCaseAuthorityEvidence } from './authorityEvidenceReadModel';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 
 export type SfiTenantRole = 'OWNER' | 'ADMIN' | 'OPERATOR' | 'VIEWER' | 'AUDITOR';
@@ -488,6 +489,7 @@ export async function readOperationalCase(caseId: string, userId: string, tempor
     objects,
     realityChain,
     temporalProvenance: projectCaseTemporalProvenance(objects, caseRecord.temporalWindow.cutoff),
+    authorityEvidence: projectCaseAuthorityEvidence(realityChain),
     revision: row.closure_revision ?? null,
     readiness: {
       ...sourceReadiness,
