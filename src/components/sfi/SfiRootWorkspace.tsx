@@ -329,8 +329,8 @@ export function SfiRootWorkspace({ enabled, decisionOnly = false, missionOnly = 
           <select id="sfi-c07-case-choice" value={selectedMissionCaseId}
             onChange={(event)=>setSelectedMissionCaseId(event.target.value)}>
             <option value="">Selecciona un caso</option>
-            {activeCases.map(item=><option key={String(item.id)} value={String(item.id)}>
-              {projectCaseLabel({id:String(item.id),subject:txt(item.subject,''),scope:item.scope,projectName:txt(projects.find(p=>p.id===item.projectId)?.name,''),boundary:txt(item.systemBoundaryRef?.id,'')}).title} · {String(item.id).slice(0,8)}
+            {activeCases.map(item=><option key={String(item.id)} value={String(item.id)} disabled={item.id!==authorizedCanaryCaseId}>
+              {projectCaseLabel({id:String(item.id),subject:txt(item.subject,''),scope:item.scope,projectName:txt(projects.find(p=>p.id===item.projectId)?.name,''),boundary:txt(item.systemBoundaryRef?.id,'')}).title} · {txt(item.status,'SIN ESTADO')} · {String(item.id).slice(0,8)} {item.id===authorizedCanaryCaseId?'· CANARIO AUTORIZADO':'· NO HABILITADO'}
             </option>)}
           </select>
           <label htmlFor="sfi-c07-mission-choice">Misión</label>
