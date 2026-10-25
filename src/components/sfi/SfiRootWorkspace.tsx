@@ -48,7 +48,7 @@ function HumanReportBody({ value }: { value: unknown }) {
   })}</div>;
 }
 
-export function SfiRootWorkspace({ enabled, decisionOnly = false }: { enabled: boolean; decisionOnly?: boolean }) {
+export function SfiRootWorkspace({ enabled, decisionOnly = false, missionOnly = false }: { enabled: boolean; decisionOnly?: boolean; missionOnly?: boolean }) {
   const search = useSearchParams();
   const auth=useAuthState();
   const userKey=auth.identity?.userId??'unknown';
@@ -198,6 +198,11 @@ export function SfiRootWorkspace({ enabled, decisionOnly = false }: { enabled: b
   },[enabled,worldSpectClocksLoading]);
 
   useEffect(() => {
+    if (!enabled || !missionOnly || missionQueue || missionQueueLoading || missionQueueError) return;
+    void loadMissionQueue();
+  }, [enabled, missionOnly, missionQueue, missionQueueLoading, missionQueueError, loadMissionQueue]);
+
+  useEffect(() => {
     // Never reuse a previous ROOT principal's actor-scoped job snapshot.
     setMissionQueue(null);
     setMissionQueueError(null);
@@ -280,6 +285,85 @@ export function SfiRootWorkspace({ enabled, decisionOnly = false }: { enabled: b
       </main>
     </div>
   );
+
+  const missionSurface = (
+    <details className="rootReports" data-c09-actor-scoped-mission-status="SFI-C09-READ-ONLY-1.0"
+      open={missionOnly ? true : undefined}
+      onToggle={(event) => { if (event.currentTarget.open && !missionQueue && !missionQueueLoading) void loadMissionQueue(); }}>
+      <summary>MISSIONS · GOVERNED QUEUE · RECEIPTS</summary>
+      <div className="rootReportList">
+        <p>Esta cola conserva autoridad, idempotencia, leases y recibos reales. Encolar no equivale a ejecutar.
+          El operador ROOT puede iniciar un canario autorizado, y el trabajador C08 debe proseguir la cola bajo la política desplegada.</p>
+        <button type="button" disabled={missionQueueLoading}
+          onClick={() => void loadMissionQueue()}>Refresh mission status</button>
+        <div className="rootReportItem" data-c07-authorized-canary-control="SFI-C07-OPERATOR-CANARY-1.0">
+          <strong>CANARIO GOBERNADO · AGENTES C06/C07</strong>
+          <p>Agentes disponibles por contrato: {missionDefinitions.length || 'SIN LECTURA'} de 21. Seleccionar un agente no acredita una ejecución. La API comprueba pertenencia, WRITE, revisión exacta,
+            identidad del canario, alcance, lease y recibo. Esta interfaz no activa permisos ni elimina GATED.</p>
+          <label htmlFor="sfi-c07-case-choice">Caso autorizado</label>
+          <select id="sfi-c07-case-choice" value={selectedMissionCaseId}
+            onChange={(event)=>setSelectedMissionCaseId(event.target.value)}>
+            <option value="">Selecciona un caso</option>
+            {activeCases.map(item=><option key={String(item.id)} value={String(item.id)}>
+              {txt(item.title||item.name,String(item.id))} · {String(item.id).slice(0,8)}
+            </option>)}
+          </select>
+          <label htmlFor="sfi-c07-mission-choice">Misión</label>
+          <select id="sfi-c07-mission-choice" value={selectedMissionId}
+            onChange={(event)=>setSelectedMissionId(event.target.value)}>
+            {eligibleCaseMissions.map(m=><option key={String(m.missionId)} value={String(m.missionId)}>
+              {txt(m.agentName,txt(m.agentId))} · {txt(m.title)}
+            </option>)}
+          </select>
+          <button type="button" disabled={!missionQueueEnabled||missionBusy||!selectedMissionCaseId||
+            !eligibleCaseMissions.some(m=>m.missionId===selectedMissionId)}
+            onClick={()=>void runMissionAction('queue_mission')}>
+            {missionBusy?'Procesando…':'Encolar misión autorizada'}
+          </button>
+          <button type="button" disabled={!missionQueueEnabled||missionBusy} onClick={()=>void runMissionAction('run_queue_once')}>
+            Ejecutar una misión pendiente (prueba gobernada)
+          </button>
+          {missionActionError&&<p role="alert">Canario no ejecutado: {missionActionError}</p>}
+          {missionActionResult&&<div className="rootReportHealth">
+            <article><span>Operación</span><strong>{txt(missionActionResult.operation)}</strong></article>
+            <article><span>Estado observado</span><State value={missionActionResult.state||missionActionResult.result?.state}/></article>
+            <article><span>Recibo</span><strong>{txt(missionActionResult.jobId||missionActionResult.result?.executionId,'NO CONFIRMADO')}</strong></article>
+          </div>}
+        </div>
+        {!missionQueueEnabled&&missionQueue&&<p role="alert">
+          C07 está deshabilitado o no liberado en este entorno. Puedes inspeccionar agentes y contratos, pero no iniciar ejecuciones; las acciones permanecen bloqueadas.
+        </p>}
+        {missionQueueLoading && <div className="rootEmpty">Checking governed mission queue…</div>}
+        {missionQueueError && <div className="rootEmpty" role="alert">Queue read unavailable: {missionQueueError}. No zero count is inferred.</div>}
+        {missionQueue && <div className="rootReportHealth">
+          <article><span>Queue status</span><State value={missionQueue.state}/></article>
+          <article><span>Result scope</span><strong>Authenticated operator · latest 20</strong></article>
+          <article><span>External RETURN</span><strong>NOT INFERRED FROM JOB STATUS</strong></article>
+        </div>}
+        {missionQueue?.available === false && <div className="rootEmpty">
+          The mission queue is disabled or unavailable. No tasks or executions are inferred.
+        </div>}
+        {missionQueue?.available === true && rows(missionQueue.jobs).length === 0 &&
+          <div className="rootEmpty">No owned jobs returned in this bounded snapshot.</div>}
+        {missionQueue?.available === true && rows(missionQueue.jobs).map((job) =>
+          <article className="rootReportItem" key={String(job.id)}>
+            <div><State value={job.status}/><small>{when(job.updated_at)}</small></div>
+            <strong>{txt(job.mission_id, 'Unidentified mission')}</strong>
+            <p>Execution ID: {txt(job.execution_id)} · Attempts: {Number(job.attempts ?? 0)} / {Number(job.max_attempts ?? 0)}</p>
+            <p>Confirmed receipt: {txt(job.receipt_event_id, 'NOT OBSERVED')}</p>
+            <small>Return observation: {txt(job.return_observation, 'NOT OBSERVED')}</small>
+          </article>)}
+        {missionQueue?.truncated === true && <div className="rootEmpty">
+          Only the most recent twenty owned jobs are shown. This is not a complete historical count.
+        </div>}
+      </div>
+    </details>
+  );
+
+  if (missionOnly) return <section className="rootWorkspace rootMissionEmbedded"
+    data-root-missions-panel="SFI-ROOT-ACTUAL-FIELD-MISSION-CONSOLE-1.0">
+    {missionSurface}
+  </section>;
 
   if (decisionOnly) return <section className="rootWorkspace rootDecisionEmbedded" data-root-decision-interface="SFI-ROOT-SOVEREIGN-DECISION-1.0">
     {(error || notice) && <div className={`rootToast ${error ? 'error' : ''}`}><span>{error || notice}</span><button onClick={() => { setError(null); setNotice(null); }}>×</button></div>}
@@ -389,76 +473,7 @@ export function SfiRootWorkspace({ enabled, decisionOnly = false }: { enabled: b
       </div>
     </details>
 
-    <details className="rootReports" data-c09-actor-scoped-mission-status="SFI-C09-READ-ONLY-1.0"
-      onToggle={(event) => { if (event.currentTarget.open) void loadMissionQueue(); }}>
-      <summary>MISSIONS · GOVERNED QUEUE · RECEIPTS</summary>
-      <div className="rootReportList">
-        <p>Esta cola conserva autoridad, idempotencia, leases y recibos reales. Encolar no equivale a ejecutar.
-          El operador ROOT puede iniciar un canario autorizado, y el trabajador C08 debe proseguir la cola bajo la política desplegada.</p>
-        <button type="button" disabled={missionQueueLoading}
-          onClick={() => void loadMissionQueue()}>Refresh mission status</button>
-        {missionQueueEnabled && <div className="rootReportItem" data-c07-authorized-canary-control="SFI-C07-OPERATOR-CANARY-1.0">
-          <strong>CANARIO GOBERNADO · AGENTES C06/C07</strong>
-          <p>Solo casos y misiones verificables; la API comprueba pertenencia, WRITE, revisión exacta,
-            identidad del canario, alcance, lease y recibo. Esta interfaz no activa permisos ni elimina GATED.</p>
-          <label htmlFor="sfi-c07-case-choice">Caso autorizado</label>
-          <select id="sfi-c07-case-choice" value={selectedMissionCaseId}
-            onChange={(event)=>setSelectedMissionCaseId(event.target.value)}>
-            <option value="">Selecciona un caso</option>
-            {activeCases.map(item=><option key={String(item.id)} value={String(item.id)}>
-              {txt(item.title||item.name,String(item.id))} · {String(item.id).slice(0,8)}
-            </option>)}
-          </select>
-          <label htmlFor="sfi-c07-mission-choice">Misión</label>
-          <select id="sfi-c07-mission-choice" value={selectedMissionId}
-            onChange={(event)=>setSelectedMissionId(event.target.value)}>
-            {eligibleCaseMissions.map(m=><option key={String(m.missionId)} value={String(m.missionId)}>
-              {txt(m.agentName,txt(m.agentId))} · {txt(m.title)}
-            </option>)}
-          </select>
-          <button type="button" disabled={missionBusy||!selectedMissionCaseId||
-            !eligibleCaseMissions.some(m=>m.missionId===selectedMissionId)}
-            onClick={()=>void runMissionAction('queue_mission')}>
-            {missionBusy?'Procesando…':'Encolar misión autorizada'}
-          </button>
-          <button type="button" disabled={missionBusy} onClick={()=>void runMissionAction('run_queue_once')}>
-            Ejecutar una misión pendiente (prueba gobernada)
-          </button>
-          {missionActionError&&<p role="alert">Canario no ejecutado: {missionActionError}</p>}
-          {missionActionResult&&<div className="rootReportHealth">
-            <article><span>Operación</span><strong>{txt(missionActionResult.operation)}</strong></article>
-            <article><span>Estado observado</span><State value={missionActionResult.state||missionActionResult.result?.state}/></article>
-            <article><span>Recibo</span><strong>{txt(missionActionResult.jobId||missionActionResult.result?.executionId,'NO CONFIRMADO')}</strong></article>
-          </div>}
-        </div>}
-        {!missionQueueEnabled&&missionQueue&&<p role="alert">
-          C07 no está habilitado en este entorno. Se conserva el bloqueo; no se intenta ejecutar ni encolar.
-        </p>}
-        {missionQueueLoading && <div className="rootEmpty">Checking governed mission queue…</div>}
-        {missionQueueError && <div className="rootEmpty" role="alert">Queue read unavailable: {missionQueueError}. No zero count is inferred.</div>}
-        {missionQueue && <div className="rootReportHealth">
-          <article><span>Queue status</span><State value={missionQueue.state}/></article>
-          <article><span>Result scope</span><strong>Authenticated operator · latest 20</strong></article>
-          <article><span>External RETURN</span><strong>NOT INFERRED FROM JOB STATUS</strong></article>
-        </div>}
-        {missionQueue?.available === false && <div className="rootEmpty">
-          The mission queue is disabled or unavailable. No tasks or executions are inferred.
-        </div>}
-        {missionQueue?.available === true && rows(missionQueue.jobs).length === 0 &&
-          <div className="rootEmpty">No owned jobs returned in this bounded snapshot.</div>}
-        {missionQueue?.available === true && rows(missionQueue.jobs).map((job) =>
-          <article className="rootReportItem" key={String(job.id)}>
-            <div><State value={job.status}/><small>{when(job.updated_at)}</small></div>
-            <strong>{txt(job.mission_id, 'Unidentified mission')}</strong>
-            <p>Execution ID: {txt(job.execution_id)} · Attempts: {Number(job.attempts ?? 0)} / {Number(job.max_attempts ?? 0)}</p>
-            <p>Confirmed receipt: {txt(job.receipt_event_id, 'NOT OBSERVED')}</p>
-            <small>Return observation: {txt(job.return_observation, 'NOT OBSERVED')}</small>
-          </article>)}
-        {missionQueue?.truncated === true && <div className="rootEmpty">
-          Only the most recent twenty owned jobs are shown. This is not a complete historical count.
-        </div>}
-      </div>
-    </details>
+    {missionSurface}
 
     <details className="rootReports" onToggle={(event) => { if (event.currentTarget.open) void loadReportArchive(false); }}>
       <summary>REPORTS · OBSERVATIONS · HYPOTHESES · LEARNING · RETURN</summary>
