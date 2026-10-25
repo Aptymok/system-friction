@@ -220,6 +220,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ok:true, operation, passport:envelope.realityChain,
         objects:envelope.objects,temporalProvenance:envelope.temporalProvenance,
         authorityEvidence:envelope.authorityEvidence,
+        trajectoryContrast:envelope.trajectoryContrast,
         reports:await listOperationalReports(caseId,userId),
         readConsistency: await caseReadConsistency()}, {headers:{'Cache-Control':'private, no-store'}});
     }
