@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { readContinuityActionableWorkGate } from '@/lib/continuity/actionableWorkGate';
+import { readC08MissionWorkRequirement, readContinuityActionableWorkGate } from '@/lib/continuity/actionableWorkGate';
 import { scheduledEgressGuardResponse } from '@/lib/continuity/scheduledEgressGuard';
 import { runContinuityHeartbeat, runOperationalTransitionWatchdog } from '@/lib/continuity/runtime';
 import { runOperationalAutoAdvance } from '@/lib/continuity/operationalAutoAdvance';
@@ -197,6 +197,47 @@ export async function GET(request: NextRequest) {
   if (egressGuard) return egressGuard;
 
   const requestedCycleId = request.nextUrl.searchParams.get('cycleId')?.trim() || undefined;
+
+  // C08 direct-Supabase lane, independent of legacy Neon continuity state.
+  // This is an existing authenticated heartbeat, not another scheduler. It
+  // never executes a queue item unless the persisted canary, lease, tenant,
+  // case revision and the cost/egress gate all accept the operation.
+  if (!requestedCycleId && process.env.SFI_C07_MISSION_QUEUE_ENABLED === 'true') {
+    const missionWork = await readC08MissionWorkRequirement();
+    if (missionWork.state === 'READ_UNAVAILABLE') {
+      return NextResponse.json({
+        ok:false,status:'PRIMARY_C07_QUEUE_READ_UNAVAILABLE',writesPerformed:false,
+        executionRule:'Fail closed: a missing primary read is not an empty queue and never authorizes Neon fallback.',
+      }, { status:503,headers:{'Cache-Control':'no-store'} });
+    }
+    if (missionWork.required) {
+      const primary = await createServiceSupabaseClient().from('sfi_continuity_state')
+        .select('mode').eq('id','institution').maybeSingle();
+      if (primary.error || !primary.data) {
+        return NextResponse.json({
+          ok:false,status:'PRIMARY_CONTINUITY_AUTHORITY_UNAVAILABLE',writesPerformed:false,
+          executionRule:'No primary continuity authority state means no agent execution.',
+        }, {status:503,headers:{'Cache-Control':'no-store'}});
+      }
+      if (primary.data.mode === 'EMERGENCY_HALT') {
+        return NextResponse.json({
+          ok:true,status:'EMERGENCY_HALT',c07QueuedMission:{state:'HALTED',processed:0},
+          writesPerformed:false,
+        }, {headers:{'Cache-Control':'no-store'}});
+      }
+      const c07QueuedMission=await runBoundedC07QueuedMission(
+        'c08-primary-'+Date.now().toString(36)
+      ).catch(()=>({ok:false as const,state:'WORKER_RUNTIME_ERROR',processed:0}));
+      return NextResponse.json({
+        ok:c07QueuedMission.ok,trigger:authorization.trigger,status:c07QueuedMission.ok?'C07_PRIMARY_STEP_COMPLETE':'C07_PRIMARY_STEP_FAILED',
+        continuityScope:'C07_SUPABASE_PRIMARY_ONLY',c07QueuedMission,
+        laneStatus:{c07QueuedMission:c07QueuedMission.state},
+        writesPerformed:c07QueuedMission.processed>0,
+        executionRule:'One previously authorized case mission per heartbeat. Queue fencing, actor WRITE, exact canary, SHA receipt and external RETURN boundaries remain mandatory.',
+      },{status:c07QueuedMission.ok?200:503,headers:{'Cache-Control':'no-store'}});
+    }
+  }
+
   const actionableGate = await readContinuityActionableWorkGate({ requestedCycleId });
 
   if (!actionableGate.shouldRun) {
