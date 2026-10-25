@@ -47,6 +47,10 @@ jobs:
       - name: Verify no-PR branch CI and production trigger isolation
         run: node scripts/qa-sfi-branch-ci-continuity.mjs
 
+      - name: Verify archived branch ancestry and restored features
+        if: github.ref == 'refs/heads/work/reality-chain-integration-20261024'
+        run: node scripts/qa-sfi-branch-reconciliation-ancestry.mjs
+
       - name: Verify governed data-plane reconciliation scheduling
         run: node scripts/qa-sfi-data-plane-scheduled-recovery.mjs
 
