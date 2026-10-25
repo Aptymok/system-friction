@@ -219,6 +219,7 @@ export async function POST(request: Request) {
       const envelope = await readOperationalCase(caseId, userId);
       return NextResponse.json({ok:true, operation, passport:envelope.realityChain,
         objects:envelope.objects,temporalProvenance:envelope.temporalProvenance,
+        authorityEvidence:envelope.authorityEvidence,
         reports:await listOperationalReports(caseId,userId),
         readConsistency: await caseReadConsistency()}, {headers:{'Cache-Control':'private, no-store'}});
     }
