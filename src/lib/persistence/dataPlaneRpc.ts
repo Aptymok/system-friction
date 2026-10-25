@@ -1,4 +1,5 @@
 import 'server-only';
+import { assertCrossProviderReplicationRetired } from '@/lib/persistence/replicationRetirementPolicy';
 
 import { mintSfiDataPlaneServiceJwt } from '@/lib/persistence/dataPlaneIdentity';
 import { sfiNeonDataApiUrl } from '@/lib/persistence/dataPlaneConfig';
@@ -26,6 +27,7 @@ function primaryCredentials() {
 }
 
 export async function postPrimaryDataPlaneRpc<T = unknown>(name: string, body: JsonRecord = {}): Promise<T> {
+  assertCrossProviderReplicationRetired(name);
   const { url, key } = primaryCredentials();
   const response = await fetch(`${url}/rest/v1/rpc/${name}`, {
     method: 'POST',
@@ -42,6 +44,7 @@ export async function postPrimaryDataPlaneRpc<T = unknown>(name: string, body: J
 }
 
 export async function postNeonDataPlaneRpc<T = unknown>(name: string, body: JsonRecord = {}): Promise<T> {
+  assertCrossProviderReplicationRetired(name);
   const response = await fetch(`${sfiNeonDataApiUrl()}/rpc/${name}`, {
     method: 'POST',
     headers: {
