@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { readC08MissionWorkRequirement, readContinuityActionableWorkGate } from '@/lib/continuity/actionableWorkGate';
 import { scheduledEgressGuardResponse } from '@/lib/continuity/scheduledEgressGuard';
 import { runContinuityHeartbeat, runOperationalTransitionWatchdog } from '@/lib/continuity/runtime';
