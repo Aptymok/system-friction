@@ -4,6 +4,7 @@ import {resolveCaseProjectAssignment} from '../src/lib/sfi/case-platform/casePro
 import {computeCaseSourceReadiness, SFI_CASE_SOURCE_PROTOCOL_CONTRACT} from '../src/lib/sfi/case-platform/sourceProtocolReadiness';
 import {projectCaseTemporalProvenance} from '../src/lib/sfi/case-platform/temporalProvenance';
 import {projectCaseAuthorityEvidence} from '../src/lib/sfi/case-platform/authorityEvidenceReadModel';
+import {projectCaseTrajectoryContrast} from '../src/lib/sfi/case-platform/trajectoryContrastReadModel';
 
 const project={id:'project-1',tenantId:'tenant-B',status:'ACTIVE'};
 assert.deepEqual(resolveCaseProjectAssignment(null,null,null),{tenantId:null,projectId:null});
@@ -185,5 +186,64 @@ assert.match(authorityUi,/caseData\.authorityEvidence\.counts\.accepted/);
 assert.match(authorityUi,/caseData\.authorityEvidence\.counts\.authorityDecisions/);
 assert.match(authorityUi,/authorityEvidence:caseData\.authorityEvidence/);
 assert.doesNotMatch(authorityUi,/\.length} ADMITTED EVIDENCE/);
+
+
+const c17Case={id:'KXTXR-TEST',subject:'KXTXR',scope:'Test declared objective',
+  temporalWindow:{start:'2026-02-01',end:null,cutoff:'2026-10-23',horizon:null}};
+const c17Unknown=projectCaseTrajectoryContrast(c17Case,[],
+  {provenance:{adjudications:[]},executions:[],gaps:['READ_INCOMPLETE']});
+assert.equal(c17Unknown.attainment,'NOT_ESTABLISHED');
+assert.equal(c17Unknown.contrast,'NOT_CALIBRATED');
+assert.equal(c17Unknown.counts.attractors,0);
+assert.equal(c17Unknown.counts.caseReturns,0);
+assert.equal(c17Unknown.readScope,'PROVIDER_OR_PROVENANCE_INCOMPLETE');
+assert.ok(c17Unknown.gaps.includes('NO_CASE_ATTRACTOR_REGISTERED_IN_SNAPSHOT'));
+assert.ok(c17Unknown.gaps.includes('CURRENT_PROVIDER_READ_OR_PROVENANCE_INCOMPLETE'));
+assert.equal(c17Unknown.clock.t1ObservedAndValidated,false);
+const c17Objects=[
+ {kind:'ATTRACTOR',canonicalRef:{id:'attractor-1'},payload:{goal:'Reach sustainable adoption'},
+    createdAt:'2026-09-05T12:00:00Z'},
+ {kind:'TRAJECTORY',canonicalRef:{id:'trajectory-1'},payload:{direction:'Release songs in sequence'},
+    createdAt:'2026-09-10T12:00:00Z'},
+ {kind:'OBSERVATION',canonicalRef:{id:'obs-1'},payload:{sourceType:'PUBLIC_PROVIDER_CATALOG'},
+    observedAt:'2026-10-24T09:00:00Z',createdAt:'2026-10-24T09:01:00Z'},
+ {kind:'OBSERVATION',canonicalRef:{id:'obs-undated'},payload:{sourceType:'PUBLIC_PROVIDER_CATALOG'},
+    observedAt:'not a timestamp',createdAt:'2026-10-24T09:02:00Z'},
+ {kind:'RETURN',canonicalRef:{id:'return-1'},payload:{status:'recorded'},
+    createdAt:'2026-10-24T09:03:00Z'},
+ {kind:'CONTRADICTION',canonicalRef:{id:'contradiction-1'},payload:{status:'unresolved'},
+    createdAt:'2026-10-24T09:04:00Z'},
+];
+const c17Present=projectCaseTrajectoryContrast(c17Case,c17Objects,
+  {provenance:{adjudications:[{state:'ACCEPTED'},{state:'PENDING'}]},
+    executions:[{verified:true},{verified:false}],gaps:[]});
+assert.equal(c17Present.counts.attractors,1);
+assert.equal(c17Present.counts.trajectories,1);
+assert.equal(c17Present.counts.caseObservations,2);
+assert.equal(c17Present.counts.datedCaseObservations,1);
+assert.equal(c17Present.counts.chainAcceptedEvidence,1);
+assert.equal(c17Present.counts.caseReturns,1);
+assert.equal(c17Present.counts.verifiedExecutionRecords,1);
+assert.equal(c17Present.counts.caseContradictions,1);
+assert.equal(c17Present.attractors[0].status,'DECLARED_ATTRACTOR_NOT_PROOF_OF_CONVERGENCE');
+assert.equal(c17Present.trajectories[0].status,'RECORDED_TRAJECTORY_NOT_OBSERVED_EFFECT');
+assert.equal(c17Present.latestObservations.length,1);
+assert.equal(c17Present.attainment,'NOT_ESTABLISHED');
+assert.equal(c17Present.contrast,'NOT_CALIBRATED');
+assert.equal(c17Present.clock.t1ObservedAndValidated,false);
+assert.equal(c17Present.gaps.length,0);
+const c17Limited=projectCaseTrajectoryContrast(c17Case,c17Objects,
+  {provenance:{adjudications:[]},executions:[],gaps:[]},1);
+assert.equal(c17Limited.latestObservations.length,1);
+assert.equal(c17Limited.counts.caseObservations,2);
+assert.ok(c17Limited.gaps.includes('NO_ACCEPTED_CHAIN_EVIDENCE_IN_SNAPSHOT'));
+const c17Repo=read('src/lib/sfi/case-platform/repository.ts');
+assert.match(c17Repo,/trajectoryContrast: projectCaseTrajectoryContrast\(caseRecord, objects, realityChain\)/);
+assert.match(externalCases,/trajectoryContrast:envelope\.trajectoryContrast/);
+const c17Ui=read('src/components/sfi/RealityChainWorkbench.tsx');
+assert.match(c17Ui,/data-c17-trajectory-contrast/);
+assert.match(c17Ui,/caseData\.trajectoryContrast\.attainment/);
+assert.match(c17Ui,/trajectoryContrast:caseData\.trajectoryContrast/);
+assert.doesNotMatch(c17Ui,/caseData\.trajectoryContrast\.attainment==='ACHIEVED'/);
 
 console.log('PASS C03 CASE PLATFORM: project-tenant association, one case insert, scoped detail, web links and authority');
