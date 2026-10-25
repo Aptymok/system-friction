@@ -8,7 +8,7 @@ import {
   listExecutionContracts,
 } from '@/lib/sfi/cognitive-runtime/executionContracts';
 import { executeManualCognitiveAgent } from '@/lib/sfi/cognitive-runtime/manualExecution';
-import { enqueueAuthorizedC07Mission, readOwnedC07Mission } from '@/lib/sfi/cognitive-runtime/queuedMissionIntake';
+import { enqueueAuthorizedC07Mission, readOwnedC07Mission, readOwnedC07MissionSummary } from '@/lib/sfi/cognitive-runtime/queuedMissionIntake';
 import { readObservedSfiCognitiveRuntime } from '@/lib/sfi/cognitive-runtime/observedRuntime';
 import { planCognitiveQuestion } from '@/lib/sfi/cognitive-runtime/planning';
 
@@ -54,6 +54,7 @@ export async function GET(request: Request) {
     missionDefinitions: listBoundedCognitiveMissions(),
     missionStatus: 'DEFINED_NOT_DISPATCHED',
     queuedMissionEnabled: process.env.SFI_C07_MISSION_QUEUE_ENABLED === 'true',
+    ownerQueue: await readOwnedC07MissionSummary(gate.ctx.user.id),
   }, { headers: { 'Cache-Control': 'no-store' } });
 }
 
