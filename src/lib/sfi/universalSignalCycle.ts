@@ -379,7 +379,7 @@ export async function runUniversalCognitiveCycle(input: UniversalCycleInput, act
     if (text(opened.objectKey) !== signal.objectKey) {
       throw new Error('SFI_RESUME_OBJECT_MISMATCH');
     }
-    const originalObjective = text(opened.objective);
+    const originalObjective = text(opened.objective) ?? text(record(opened.input).objective);
     const requestedObjective = text(input.objective);
     if (requestedObjective !== null && requestedObjective !== originalObjective) {
       throw new Error('SFI_RESUME_OBJECTIVE_CHANGE_REQUIRES_AUTHORITY');
