@@ -188,4 +188,60 @@ assert.equal(
   'parallel relation multiplicity must not be silently collapsed',
 );
 
+
+// F1 adversarial standard-graph benchmark: an ordinary graph edit detector is a
+// competent M0 for structural change. MIHM must not claim superiority from ties.
+const standardGraphM0 = (before: MihmTopologySnapshot, after: MihmTopologySnapshot, directed: boolean): boolean => {
+  const edgeKey = (e: {sourceNodeId:string;targetNodeId:string;relation:string}) => {
+    const pair = directed || e.sourceNodeId <= e.targetNodeId
+      ? [e.sourceNodeId,e.targetNodeId] : [e.targetNodeId,e.sourceNodeId];
+    return JSON.stringify([pair[0],pair[1],e.relation]);
+  };
+  const edges = (s: MihmTopologySnapshot) => s.relations.map(edgeKey).sort();
+  const nodeDiff = JSON.stringify([...before.nodeIds].sort()) !== JSON.stringify([...after.nodeIds].sort());
+  return nodeDiff || JSON.stringify(edges(before)) !== JSON.stringify(edges(after));
+};
+const changeCases: Array<{
+  label: string; expectedChange: boolean; snapshot: MihmTopologySnapshot;
+}> = [
+  { label:'identical',expectedChange:false,snapshot:{...topologyT0,observedAt:topologyT1.observedAt}},
+  { label:'permuted-order',expectedChange:false,snapshot:{...topologyT0,observedAt:topologyT1.observedAt,relations:[...topologyCycle].reverse()}},
+  { label:'reversed-undirected',expectedChange:false,snapshot:{...topologyT0,observedAt:topologyT1.observedAt,relations:topologyCycle.map(e=>({ ...e,sourceNodeId:e.targetNodeId,targetNodeId:e.sourceNodeId }))}},
+  { label:'rewired-same-counts',expectedChange:true,snapshot:topologyT1 },
+  { label:'deleted-one-relation',expectedChange:true,snapshot:{...topologyT0,observedAt:topologyT1.observedAt,relations:topologyCycle.slice(1)}},
+  { label:'added-parallel-relation',expectedChange:true,snapshot:{...topologyT0,observedAt:topologyT1.observedAt,relations:[...topologyCycle,topologyCycle[0]]}},
+  { label:'added-node',expectedChange:true,snapshot:{...topologyT0,observedAt:topologyT1.observedAt,nodeIds:[...topologyNodeIds,'g']}},
+  { label:'renamed-node',expectedChange:true,snapshot:{
+    ...topologyT0,observedAt:topologyT1.observedAt,
+    nodeIds:['z',...topologyNodeIds.slice(1)],
+    relations:topologyCycle.map(e=>({
+      ...e,
+      sourceNodeId:e.sourceNodeId==='a'?'z':e.sourceNodeId,
+      targetNodeId:e.targetNodeId==='a'?'z':e.targetNodeId,
+    })),
+  }},
+];
+const comparativeCounts={miHmCorrect:0,m0Correct:0,miHmVsM0Disagreements:0};
+for(const candidate of changeCases){
+  const actual=topologyCompare(candidate.snapshot);
+  assert.notEqual(actual.status,'INDETERMINATE','every constructed case is complete: '+candidate.label);
+  const mihmChange=actual.status==='STRUCTURAL_CHANGE';
+  const m0Change=standardGraphM0(topologyT0,candidate.snapshot,topologyProtocol.directed);
+  assert.equal(mihmChange,candidate.expectedChange,'MIHM topology contrast should match fixture label: '+candidate.label);
+  assert.equal(m0Change,candidate.expectedChange,'competent conventional M0 should match fixture label: '+candidate.label);
+  comparativeCounts.miHmCorrect+=Number(mihmChange===candidate.expectedChange);
+  comparativeCounts.m0Correct+=Number(m0Change===candidate.expectedChange);
+  comparativeCounts.miHmVsM0Disagreements+=Number(mihmChange!==m0Change);
+}
+assert.deepEqual(comparativeCounts,{
+  miHmCorrect:changeCases.length,
+  m0Correct:changeCases.length,
+  miHmVsM0Disagreements:0,
+},'a graph-set difference is not novel predictive skill: matched standard M0 ties on constructed cases');
+assert.equal(changeCases.length,8);
+console.log('MIHM F1 adversarial standard-graph benchmark (SIMULATED, descriptive only):',
+  JSON.stringify({cases:changeCases.length,...comparativeCounts,
+    conclusion:'NO_INCREMENTAL_SKILL_DEMONSTRATED; outcome independent/held-out evaluation NOT_PERFORMED'}));
+
+
 console.log('SFI field scientific reading QA passed.');
