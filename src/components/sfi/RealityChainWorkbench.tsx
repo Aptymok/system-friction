@@ -571,9 +571,9 @@ export function RealityChainWorkbench(){
                </p>) : <p>No hay decisiones de autoridad registradas para este corte. La falta de un registro no demuestra que no existieran decisiones externas.</p>}
                {visibleDecisions.length>30?<p>Vista limitada a 30. Consulte el expediente completo para más registros.</p>:null}
              </section>
-             <dl><div><dt>WHAT WAS KNOWN?</dt><dd>{asOfObjects.filter(o=>o.kind==='EVIDENCE').length} ADMITTED EVIDENCE OBJECTS</dd></div>
+             <dl><div><dt>WHAT EVIDENCE WAS ACCEPTED?</dt><dd>{caseData?.authorityEvidence ? caseData.authorityEvidence.counts.accepted+' CANONICALLY ADJUDICATED' : 'ADJUDICATION NOT AVAILABLE'}</dd></div>
             <div><dt>WHAT WAS INFERRED?</dt><dd>{asOfObjects.filter(o=>o.kind==='HYPOTHESIS').length} RECORDED HYPOTHESES</dd></div>
-            <div><dt>WHAT WAS AUTHORIZED?</dt><dd>{visibleDecisions.length} PERSISTED AUTHORITY DECISIONS</dd></div>
+            <div><dt>WHAT DECISIONS WERE RECORDED?</dt><dd>{caseData?.authorityEvidence ? caseData.authorityEvidence.counts.authorityDecisions+' RECORDED CASE DECISIONS' : 'AUTHORITY READ NOT AVAILABLE'}</dd></div>
             <div><dt>WHAT WAS EXECUTED?</dt><dd>{asOfObjects.filter(o=>o.kind==='INTERVENTION').length} INTERVENTION RECORDS</dd></div>
             <div><dt>WHAT DID REALITY RETURN?</dt><dd>{asOfObjects.filter(o=>o.kind==='RETURN').length} RETURN RECORDS</dd></div>
             <div><dt>WHAT WAS LEARNED?</dt><dd>GOVERNED INTEGRATION NOT INFERRED FROM CASE CLOSURE</dd></div></dl>
