@@ -6,6 +6,7 @@ import {projectCaseTemporalProvenance} from '../src/lib/sfi/case-platform/tempor
 import {projectCaseAuthorityEvidence} from '../src/lib/sfi/case-platform/authorityEvidenceReadModel';
 import {projectCaseTrajectoryContrast} from '../src/lib/sfi/case-platform/trajectoryContrastReadModel';
 import {projectCaseReturnLearning} from '../src/lib/sfi/case-platform/returnLearningReadModel';
+import {describePassportReadBoundary} from '../src/lib/sfi/case-platform/passportReadBoundary';
 import {preflightCaseSnapshotParity} from '../src/lib/persistence/caseSnapshotParityPreflight';
 
 const project={id:'project-1',tenantId:'tenant-B',status:'ACTIVE'};
@@ -342,14 +343,48 @@ const invalidRef=preflightCaseSnapshotParity([{...snap('one'),payloadDigest:''}]
 assert.equal(invalidRef.parityVerified,false);
 assert.deepEqual(invalidRef.invalid.primary,['one']);
 
+
+const c19Primary=describePassportReadBoundary('PRIMARY');
+assert.equal(c19Primary.readPlane,'SUPABASE_PRIMARY');
+assert.equal(c19Primary.crossProviderParity,'NOT_VERIFIED');
+assert.equal(c19Primary.sourceInventoryComplete,false);
+assert.equal(c19Primary.warning,'PRIMARY_SNAPSHOT_NOT_CROSS_PROVIDER_CERTIFIED');
+const c19Continuity=describePassportReadBoundary('CONTINUITY');
+assert.equal(c19Continuity.readPlane,'NEON_CONTINUITY');
+assert.equal(c19Continuity.dataPlaneMode,'CONTINUITY');
+assert.equal(c19Continuity.sourceInventoryComplete,false);
+assert.equal(c19Continuity.warning,'CONTINUITY_SNAPSHOT_MAY_LAG_PRIMARY_WRITES_OR_DIVERGE');
+assert.match(c19Continuity.humanWarning,/Puede omitir escrituras de PRIMARY/);
+const c19Recovery=describePassportReadBoundary('RECOVERY');
+assert.equal(c19Recovery.dataPlaneMode,'RECOVERY');
+assert.equal(c19Recovery.crossProviderParity,'NOT_VERIFIED');
+const c19Unknown=describePassportReadBoundary(null);
+assert.equal(c19Unknown.readPlane,'UNVERIFIED');
+assert.equal(c19Unknown.sourceInventoryComplete,false);
+assert.equal(c19Unknown.warning,'DATA_PLANE_STATE_UNAVAILABLE');
+const c19RouteConsistency=read('src/app/api/cases/[caseId]/reports/route.ts');
+assert.match(c19RouteConsistency,/const plane = await readDataPlaneState\(\)/);
+assert.match(c19RouteConsistency,/buildRealityPassportPdfInput\(chain, readConsistency\)/);
+assert.match(c19RouteConsistency,/renderSfiRealityPassportHtml\(chain, readConsistency\)/);
+assert.match(c19RouteConsistency,/readConsistency,/);
+assert.match(c19RouteConsistency,/describePassportReadBoundary\(null\)/);
+const c19Html=read('src/core/case-platform/reportAssembler.ts');
+assert.match(c19Html,/data-c19-read-consistency/);
+assert.match(c19Html,/esc\(consistencyMessage\)/);
+assert.match(c19Html,/CROSS_PROVIDER_PARITY_NOT_VERIFIED/);
+const c19Pdf=read('src/lib/sfi/case-platform/privateCaseBriefContract.ts');
+assert.match(c19Pdf,/buildRealityPassportPdfInput\(chain:SfiRealityChain, readConsistency\?/);
+assert.match(c19Pdf,/readConsistency\?\.humanWarning/);
+assert.match(c19Pdf,/PARIDAD ENTRE BASES NO CERTIFICADA/);
+
 const c19PassportRoute=read('src/app/api/cases/[caseId]/reports/route.ts');
 assert.match(c19PassportRoute,/temporalProvenance:envelope\.temporalProvenance/);
 assert.match(c19PassportRoute,/authorityEvidence:envelope\.authorityEvidence/);
 assert.match(c19PassportRoute,/trajectoryContrast:envelope\.trajectoryContrast/);
 assert.match(c19PassportRoute,/returnLearning:envelope\.returnLearning/);
 assert.match(c19PassportRoute,/readConsistency,/);
-assert.match(c19PassportRoute,/CONTINUITY_SNAPSHOT_MAY_LAG_PRIMARY_WRITES_OR_DIVERGE/);
-assert.match(c19PassportRoute,/DATA_PLANE_STATE_UNAVAILABLE/);
+assert.match(read('src/lib/sfi/case-platform/passportReadBoundary.ts'),/CONTINUITY_SNAPSHOT_MAY_LAG_PRIMARY_WRITES_OR_DIVERGE/);
+assert.match(read('src/lib/sfi/case-platform/passportReadBoundary.ts'),/DATA_PLANE_STATE_UNAVAILABLE/);
 assert.match(c19PassportRoute,/Cache-Control':'private, no-store'/);
 assert.match(c19PassportRoute,/X-Content-Type-Options':'nosniff'/);
 // The JSON export is a readable projection, not a license to change the
