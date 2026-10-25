@@ -129,6 +129,7 @@ export function SfiRootWorkspace({ enabled, decisionOnly = false, missionOnly = 
       setMissionDefinitions(rows(data.missionDefinitions));
       setMissionExecutionContracts(rows(data.executionContracts));
       setMissionQueueEnabled(data.queuedMissionEnabled === true);
+      setAuthorizedCanaryCaseId(txt(data.authorizedCanaryCaseId,'')||null);
     } catch (cause) {
       setMissionQueue(null);
       setMissionQueueError(cause instanceof Error ? cause.message : String(cause));
@@ -139,6 +140,10 @@ export function SfiRootWorkspace({ enabled, decisionOnly = false, missionOnly = 
 
   const runMissionAction=useCallback(async (operation:'queue_mission'|'run_queue_once')=>{
     if(!enabled||missionBusy||!missionQueueEnabled)return;
+    if(operation==='queue_mission'&&(!authorizedCanaryCaseId||selectedMissionCaseId!==authorizedCanaryCaseId)){
+      setMissionActionError('Selecciona únicamente el caso autorizado para la prueba C07.');
+      return;
+    }
     const mission=missionDefinitions.find(m=>m.missionId===selectedMissionId);
     if(operation==='queue_mission'&&(!mission||!selectedMissionCaseId)) {
       setMissionActionError('Selecciona una misión y un caso autorizado.');
@@ -170,7 +175,7 @@ export function SfiRootWorkspace({ enabled, decisionOnly = false, missionOnly = 
       setMissionActionError(cause instanceof Error?cause.message:String(cause));
       await loadMissionQueue();
     }finally{setMissionBusy(false);}
-  },[enabled,missionBusy,missionQueueEnabled,missionDefinitions,selectedMissionId,selectedMissionCaseId,loadMissionQueue]);
+  },[enabled,missionBusy,missionQueueEnabled,missionDefinitions,selectedMissionId,selectedMissionCaseId,authorizedCanaryCaseId,loadMissionQueue]);
 
   const loadPilotEconomics = useCallback(async () => {
     if (!enabled || pilotEconomicsLoading) return;
