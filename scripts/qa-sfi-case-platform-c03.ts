@@ -31,7 +31,8 @@ assert.doesNotMatch(api,/const caseLinks=/);
 assert.match(detail,/projectFor\(state\.project_id, base\.caseRecord\.tenantId\)/);
 assert.match(ui,/query\.get\('caseId'\)\?\?query\.get\('case'\)/);
 assert.match(ui,/query\.get\('projectId'\)/);
-assert.match(ui,/visibleDecisions\.length} PERSISTED AUTHORITY DECISIONS/);
+assert.match(ui,/caseData\?\.authorityEvidence \? caseData\.authorityEvidence\.counts\.authorityDecisions/);
+assert.doesNotMatch(ui,/visibleDecisions\.length} PERSISTED AUTHORITY DECISIONS/);
 assert.match(ui,/realityChain\?\.authority\.filter/);
 const externalCases = read('src/app/api/external/v1/cases/route.ts');
 // Case read/Passport must declare stale continuity without mutating, implying
