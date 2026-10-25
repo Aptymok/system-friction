@@ -246,6 +246,18 @@ export function SfiRootWorkspace({ enabled, decisionOnly = false }: { enabled: b
               ? pilotEconomics.primaryOutbox.pending
               : 'NO OBSERVADO'}
           </strong></article>
+          <article><span>Ejecuciones institucionales registradas (30 días, máximo 250)</span>
+            <strong>{typeof pilotEconomics.operationalConsumption?.observedRuns==='number'
+              ? pilotEconomics.operationalConsumption.observedRuns.toLocaleString()
+              : 'NO OBSERVADAS'}</strong></article>
+          <article><span>Tiempo transcurrido de ejecuciones observadas</span>
+            <strong>{typeof pilotEconomics.operationalConsumption?.observedDurationMs==='number'
+              ? (pilotEconomics.operationalConsumption.observedDurationMs/60000).toFixed(1)+' min'
+              : 'NO OBSERVADO'}</strong></article>
+          <article><span>Operaciones de capacidades registradas</span>
+            <strong>{typeof pilotEconomics.operationalConsumption?.executedCapabilityChecks==='number'
+              ? pilotEconomics.operationalConsumption.executedCapabilityChecks.toLocaleString()
+              : 'NO OBSERVADAS'}</strong></article>
           <article><span>Contabilidad de consumo</span><strong>
             {pilotEconomics.measuredUsage?.status==='OBSERVED'
               ? String(pilotEconomics.measuredUsage.eventCount)+' eventos medidos (últimos 30 días)'
