@@ -6,6 +6,7 @@ const route=fs.readFileSync('src/app/api/root/cognitive-runtime/route.ts','utf8'
 const workspace=fs.readFileSync('src/components/sfi/SfiRootWorkspace.tsx','utf8');
 const intake=fs.readFileSync('src/lib/sfi/cognitive-runtime/queuedMissionIntake.ts','utf8');
 const worker=fs.readFileSync('src/lib/sfi/cognitive-runtime/queuedMissionWorker.ts','utf8');
+const manual=fs.readFileSync('src/lib/sfi/cognitive-runtime/manualExecution.ts','utf8');
 const cron=fs.readFileSync('src/app/api/cron/continuity-heartbeat/route.ts','utf8');
 const gate=fs.readFileSync('src/lib/continuity/actionableWorkGate.ts','utf8');
 
@@ -32,4 +33,17 @@ assert.match(cron,/runBoundedC07QueuedMission/);
 assert.match(gate,/readC08MissionWorkRequirement/);
 assert.doesNotMatch(route,/process\.env\.SFI_C07_MISSION_QUEUE_ENABLED\s*=(?!=)/);
 assert.doesNotMatch(workspace,/SFI_C07_CANARY_CASE_ID\s*=/);
+// Reuse Case Platform objects already loaded through authorized case reads.
+// A source reference must never be mistaken for fetched content or admitted evidence.
+assert.match(manual,/loadedByKey\.get\(referenceKey\('CASE', item\.id\)\)/);
+assert.match(manual,/principal\.requestSource === 'QUEUE_WORKER' && missionId/);
+assert.match(manual,/const sourceObjects = caseObjects\.filter\(\(item\) => item\.kind === 'SOURCE'\)/);
+assert.match(manual,/const hypothesisObjects = caseObjects\.filter\(\(item\) => item\.kind === 'HYPOTHESIS'\)/);
+assert.match(manual,/const unresolvedObjects = caseObjects\.filter\(\(item\) => item\.kind === 'UNRESOLVED_QUESTION'\)/);
+assert.match(manual,/epistemicClass: 'source_reference'/);
+assert.match(manual,/SOURCE_POINTER_ONLY_CONTENT_NOT_FETCHED_NOT_ACCEPTED_EVIDENCE/);
+assert.match(manual,/context\.metadata\.materialUnresolved = missingQuestions/);
+assert.match(manual,/sourceItemsFetched: 0/);
+assert.match(manual,/llmAugmentation: missionId === null/);
+assert.match(worker,/UNAUTHORIZED_EXTRA_CAPABILITIES/);
 console.log('PASS: ROOT C07 activation is rooted in existing queue, actor-scoped canary, fenced receipt and C08 worker.');
