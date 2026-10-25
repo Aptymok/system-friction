@@ -104,6 +104,15 @@ export async function readDataPlaneReconciliationStatus() {
 }
 
 export async function attemptBoundedDataPlaneReconciliation(maxTransactions: number) {
+  void maxTransactions;
+  // Retired by founder: no mirror, outbox drain, journal replay, authority
+  // supersession, baseline parity, or cross-provider recovery is attempted.
+  return { ok:false as const, attempted:false as const,
+    outcome:'SFI_REPLICATION_RETIRED_BY_FOUNDER' as const,
+    replicationEnabled:false as const,
+    primaryMirror:null,authoritySupersession:null,before:null,after:null,
+    forcedFailover:false as const };
+
   const before = await readDataPlaneReconciliationStatus();
   // Already PRIMARY is not a recovery blocker for continuing forward mirror
   // delivery. Reuse the same 2/hour OIDC-authorized reconciliation endpoint;
