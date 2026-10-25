@@ -208,6 +208,21 @@ export function SfiRootWorkspace({ enabled, decisionOnly = false, missionOnly = 
   },[enabled,worldSpectClocksLoading]);
 
   useEffect(() => {
+    if(!enabled||!missionOnly)return;
+    let cancelled=false;
+    void jsonFetch('/api/cases').then(data=>{
+      if(cancelled)return;
+      setCaseDirectory(rows(data.cases));
+      setProjectDirectory(rows(data.projects));
+      setCaseDirectoryError(null);
+    }).catch(cause=>{
+      if(cancelled)return;
+      setCaseDirectoryError(cause instanceof Error?cause.message:String(cause));
+    });
+    return ()=>{cancelled=true};
+  },[enabled,missionOnly,userKey]);
+
+  useEffect(() => {
     if (!enabled || !missionOnly || missionQueue || missionQueueLoading || missionQueueError) return;
     void loadMissionQueue();
   }, [enabled, missionOnly, missionQueue, missionQueueLoading, missionQueueError, loadMissionQueue]);
