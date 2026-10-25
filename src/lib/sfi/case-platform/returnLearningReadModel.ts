@@ -34,8 +34,14 @@ export function projectCaseReturnLearning(chain:CanonicalChain,maxRows=60){
     return {
       returnRef:r.ref.id,
       executionRef:r.executionRef?.id??null,
-      expected:r.expected,
-      observed:r.observed,
+      // Only metric and bounded numeric comparison survive this projection.
+      // Narrative fields inside action details are not published by default.
+      metric:typeof r.expected?.metric==='string'?r.expected.metric.slice(0,120):null,
+      expectedValue:typeof r.expected?.expected==='number'
+        && Number.isFinite(r.expected.expected)?r.expected.expected:null,
+      tolerance:typeof r.expected?.tolerance==='number'
+        && Number.isFinite(r.expected.tolerance)?r.expected.tolerance:null,
+      observedValue:typeof r.observed==='number'&&Number.isFinite(r.observed)?r.observed:null,
       canonicalContrast:r.contrast,
       returnVerified:r.verified,
       executionVerified,
