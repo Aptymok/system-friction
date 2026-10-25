@@ -33,6 +33,33 @@ const intakeSchema = z.object({
     objective: z.string().trim().max(2000).optional(),
     declaredFunction: z.string().trim().max(1000).optional(),
     systemType: z.string().trim().max(500).optional(),
+    hypotheses: z.array(z.object({
+      id: z.string().trim().min(1).max(120),
+      statement: z.string().trim().min(1).max(1600),
+      confidence: z.number().min(0).max(1).optional(),
+      role: z.enum(['primary','rival']).optional(),
+    }).strict()).max(12).optional(),
+    candidateTests: z.array(z.object({
+      hypothesisId: z.string().trim().min(1).max(120),
+      rivalHypothesisId: z.string().trim().min(1).max(120),
+      statement: z.string().trim().min(1).max(1600),
+      priorPlausibility: z.number().min(0).max(1),
+      estimatedDiscrimination: z.number().min(0).max(1),
+      estimatedDurationHours: z.number().positive().max(8760),
+      estimatedCostUnits: z.number().min(0).max(1000000),
+      estimatedRisk: z.number().min(0).max(1),
+      sourceRefs: z.array(z.string().trim().min(1).max(500)).min(1).max(20),
+      testContract: z.object({
+        contract: z.literal('SFI-HYPOTHESIS-TEST-1.0'),
+        horizonHours: z.number().min(1).max(8760),
+        horizonBasis: z.string().trim().min(1).max(1200),
+        minimumEvidenceCount: z.number().int().min(1).max(100),
+        minimumSourceFamilies: z.number().int().min(1).max(20),
+        expectedCriteria: z.array(z.unknown()).min(1).max(12),
+        contradictionCriteria: z.array(z.unknown()).min(1).max(12),
+      }).passthrough(),
+      observationMode: z.literal('READ_ONLY'),
+    }).strict()).max(12).optional(),
   }).strict(),
 }).strict();
 const statusSchema = z.object({ operation: z.literal('status'), cycleId: z.string().uuid() }).strict();
@@ -49,6 +76,8 @@ function compactHistory(history: Awaited<ReturnType<typeof readOwnedHumanUnivers
     evidenceCount: history.events.filter((event) => event.event_name === 'SFI_UNIVERSAL_CYCLE_EVIDENCE_LINKED').length,
     cognitiveRunCount: history.cognitiveRuns?.length ?? 0,
     returnCount: history.returns?.length ?? 0,
+    objective: (() => { const opened = history.opened?.payload as Record<string, unknown> | undefined; const nested = opened?.input as Record<string, unknown> | undefined; return opened?.objective ?? nested?.objective ?? null; })(),
+    nextDiscriminatingTest: (() => { const latest = [...(history.cognitiveRuns ?? [])].reverse().find(event => Boolean((event.payload as Record<string,unknown> | undefined)?.nextDiscriminatingTest)); return (latest?.payload as Record<string,unknown> | undefined)?.nextDiscriminatingTest ?? null; })(),
     latestEvent: history.events.length ? {
       eventId: history.events[history.events.length - 1]?.event_id ?? null,
       eventName: history.events[history.events.length - 1]?.event_name ?? null,
@@ -99,7 +128,7 @@ export async function POST(request: Request) {
     if (body.operation === 'run') {
       const result = await runOwnedHumanUniversalCycle(body.cycleId, user.id, tenantId);
       const history = await readOwnedHumanUniversalCycle(body.cycleId, user.id);
-      return NextResponse.json({ ok: true, operation: 'run', cycleId: result.cycleId, taskId: result.taskId, executedAgents: result.result.executedAgents, missingAgents: result.result.missingAgents, cycle: compactHistory(history) }, { status: 201 });
+      return NextResponse.json({ ok: true, operation: 'run', cycleId: result.cycleId, taskId: result.taskId, nextDiscriminatingTest: result.nextDiscriminatingTest, executedAgents: result.result.executedAgents, missingAgents: result.result.missingAgents, cycle: compactHistory(history) }, { status: 201 });
     }
     const returned = await recordOwnedHumanUniversalReturn({ cycleId: body.cycleId, outcome: body.outcome, notes: body.notes }, user.id, tenantId);
     if (!returned.ok) throw new Error('SFI_HUMAN_SIGNAL_RETURN_FAILED');
