@@ -63,6 +63,9 @@ export function SfiRootWorkspace({ enabled, decisionOnly = false }: { enabled: b
   const [notice, setNotice] = useState<string | null>(null);
   const [note, setNote] = useState('');
   const [lastReadAt, setLastReadAt] = useState<string | null>(null);
+  const [missionQueue, setMissionQueue] = useState<Row | null>(null);
+  const [missionQueueLoading, setMissionQueueLoading] = useState(false);
+  const [missionQueueError, setMissionQueueError] = useState<string | null>(null);
 
   const loadBase = useCallback(async (force=false) => {
     if (!enabled) return;
@@ -96,6 +99,27 @@ export function SfiRootWorkspace({ enabled, decisionOnly = false }: { enabled: b
     catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
     finally { setReportArchiveLoading(false); }
   }, [reportArchive, reportArchiveLoading,userKey]);
+
+  const loadMissionQueue = useCallback(async () => {
+    if (!enabled || missionQueueLoading) return;
+    setMissionQueueLoading(true);
+    setMissionQueueError(null);
+    try {
+      const data = await jsonFetch('/api/root/cognitive-runtime');
+      setMissionQueue(data.ownerQueue ?? { available: false, state: 'READ_UNAVAILABLE', jobs: [] });
+    } catch (cause) {
+      setMissionQueue(null);
+      setMissionQueueError(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      setMissionQueueLoading(false);
+    }
+  }, [enabled, missionQueueLoading]);
+
+  useEffect(() => {
+    // Never reuse a previous ROOT principal's actor-scoped job snapshot.
+    setMissionQueue(null);
+    setMissionQueueError(null);
+  }, [userKey]);
 
   useEffect(() => { void loadBase(false); }, [loadBase]);
   useEffect(() => { if (selectedId) void loadDossier(selectedId,false); else setDossier(null); setNote(''); }, [selectedId, loadDossier]);
@@ -174,6 +198,40 @@ export function SfiRootWorkspace({ enabled, decisionOnly = false }: { enabled: b
     <SfiFriccionautaPanel />
 
     {decisionSurface}
+
+    <details className="rootReports" data-c09-actor-scoped-mission-status="SFI-C09-READ-ONLY-1.0"
+      onToggle={(event) => { if (event.currentTarget.open) void loadMissionQueue(); }}>
+      <summary>MISSIONS · GOVERNED QUEUE · RECEIPTS</summary>
+      <div className="rootReportList">
+        <p>Only your authorized mission jobs are shown. A queued job is not an executed task;
+          a receipt is not an external RETURN. This panel cannot enable or dispatch the worker.</p>
+        <button type="button" disabled={missionQueueLoading}
+          onClick={() => void loadMissionQueue()}>Refresh mission status</button>
+        {missionQueueLoading && <div className="rootEmpty">Checking governed mission queue…</div>}
+        {missionQueueError && <div className="rootEmpty" role="alert">Queue read unavailable: {missionQueueError}. No zero count is inferred.</div>}
+        {missionQueue && <div className="rootReportHealth">
+          <article><span>Queue status</span><State value={missionQueue.state}/></article>
+          <article><span>Result scope</span><strong>Authenticated operator · latest 20</strong></article>
+          <article><span>External RETURN</span><strong>NOT INFERRED FROM JOB STATUS</strong></article>
+        </div>}
+        {missionQueue?.available === false && <div className="rootEmpty">
+          The mission queue is disabled or unavailable. No tasks or executions are inferred.
+        </div>}
+        {missionQueue?.available === true && rows(missionQueue.jobs).length === 0 &&
+          <div className="rootEmpty">No owned jobs returned in this bounded snapshot.</div>}
+        {missionQueue?.available === true && rows(missionQueue.jobs).map((job) =>
+          <article className="rootReportItem" key={String(job.id)}>
+            <div><State value={job.status}/><small>{when(job.updated_at)}</small></div>
+            <strong>{txt(job.mission_id, 'Unidentified mission')}</strong>
+            <p>Execution ID: {txt(job.execution_id)} · Attempts: {Number(job.attempts ?? 0)} / {Number(job.max_attempts ?? 0)}</p>
+            <p>Confirmed receipt: {txt(job.receipt_event_id, 'NOT OBSERVED')}</p>
+            <small>Return observation: {txt(job.return_observation, 'NOT OBSERVED')}</small>
+          </article>)}
+        {missionQueue?.truncated === true && <div className="rootEmpty">
+          Only the most recent twenty owned jobs are shown. This is not a complete historical count.
+        </div>}
+      </div>
+    </details>
 
     <details className="rootReports" onToggle={(event) => { if (event.currentTarget.open) void loadReportArchive(false); }}>
       <summary>REPORTS · OBSERVATIONS · HYPOTHESES · LEARNING · RETURN</summary>
