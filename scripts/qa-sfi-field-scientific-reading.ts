@@ -1,4 +1,4 @@
-import { compareMihmTopology } from '../packages/mihm-core/src/index';
+import { compareMihmTopology, type MihmTopologySnapshot, type MihmTopologyProtocol } from '../packages/mihm-core/src/index';
 import assert from 'node:assert/strict';
 import type { CanonicalGraphEdge, CanonicalGraphNode } from '../packages/graph/src';
 import { deriveEmpiricalCapacityEnvelope, deriveFieldScientificReading, emergenceReading, relationScientificReading, scientificMethodCandidates, temporalCoordinates } from '../src/lib/mihm/fieldScientificReading';
@@ -126,7 +126,7 @@ const topologySnapshot = (relations: typeof topologyCycle, observedAt: string) =
 });
 const topologyT0 = topologySnapshot(topologyCycle, '2026-10-01T00:00:00Z');
 const topologyT1 = topologySnapshot(topologyTriangles, '2026-10-02T00:00:00Z');
-const topologyCompare = (after = topologyT1, before = topologyT0, protocol = topologyProtocol) =>
+const topologyCompare = (after: MihmTopologySnapshot = topologyT1, before: MihmTopologySnapshot = topologyT0, protocol: MihmTopologyProtocol = topologyProtocol) =>
   compareMihmTopology({ before, after, protocol });
 
 const topologyChanged = topologyCompare();
