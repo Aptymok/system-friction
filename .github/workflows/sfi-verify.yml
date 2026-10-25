@@ -51,6 +51,9 @@ jobs:
         if: github.ref == 'refs/heads/work/reality-chain-integration-20261024'
         run: node scripts/qa-sfi-branch-reconciliation-ancestry.mjs
 
+      - name: Verify Method Lab dependency health probes are bounded
+        run: node --import tsx scripts/qa-sfi-method-lab-dependency-read.ts
+
       - name: Verify Pilot Light economics is read-only and provider costs are not invented
         run: node --import tsx --test src/lib/persistence/pilotLightEconomicsPolicy.test.ts
 
