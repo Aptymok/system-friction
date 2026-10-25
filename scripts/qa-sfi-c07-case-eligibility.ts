@@ -26,6 +26,12 @@ assert.deepEqual(checkC07CaseQueueState({...current,updatedAt:'2026-10-24T20:00:
 });
 const intake=readFileSync('src/lib/sfi/cognitive-runtime/queuedMissionIntake.ts','utf8');
 const worker=readFileSync('src/lib/sfi/cognitive-runtime/queuedMissionWorker.ts','utf8');
+const caseRepository=readFileSync('src/lib/sfi/case-platform/repository.ts','utf8');
+assert.match(caseRepository,/export async function assertTenantAccess/);
+assert.match(caseRepository,/\['OWNER', 'ADMIN', 'OPERATOR'\]\.includes\(role\)/);
+assert.match(intake,/assertTenantAccess\(caseRecord\.caseRecord\.tenantId,actorId,'WRITE'\)/);
+assert.match(worker,/assertTenantAccess\(tenantId, actorId, 'WRITE'\)/);
+assert.doesNotMatch(worker,/\.from\('sfi_tenant_members'\)/);
 assert.match(intake,/checkC07CaseQueueState/);
 assert.match(intake,/caseRevision:eligible\.revision/);
 assert.match(worker,/checkC07CaseQueueState/);

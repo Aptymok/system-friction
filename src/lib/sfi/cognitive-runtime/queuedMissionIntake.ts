@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
-import { readOperationalCase } from '@/lib/sfi/case-platform/repository';
+import { readOperationalCase, assertTenantAccess } from '@/lib/sfi/case-platform/repository';
 import { validateMissionDispatchRequest } from './missionDispatch';
 import { canonicalQueuedRequestDigest } from './queuedMissionWorker';
 import { checkC07CaseQueueState } from './queuedMissionCaseGate';
@@ -48,6 +48,9 @@ export async function enqueueAuthorizedC07Mission(value:Row,actorId:string):Prom
   if (!caseRecord) {
     return {status:403,body:{ok:false,error:'case_not_authorized'}};
   }
+  // Case Platform READ permission is insufficient to order autonomous work.
+  const writeRole=await assertTenantAccess(caseRecord.caseRecord.tenantId,actorId,'WRITE').catch(()=>null);
+  if (!writeRole) return {status:403,body:{ok:false,error:'case_write_authority_required'}};
   const eligible = checkC07CaseQueueState({
     status:caseRecord.caseRecord.status,
     updatedAt:caseRecord.caseRecord.updatedAt,

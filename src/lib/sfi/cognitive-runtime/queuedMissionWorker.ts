@@ -2,6 +2,7 @@ import 'server-only';
 
 import { createHash } from 'node:crypto';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { assertTenantAccess } from '@/lib/sfi/case-platform/repository';
 import { executeManualCognitiveAgent } from './manualExecution';
 import { validateMissionDispatchRequest } from './missionDispatch';
 import { checkC07CaseQueueState } from './queuedMissionCaseGate';
@@ -108,9 +109,9 @@ export async function runBoundedC07QueuedMission(workerId: string) {
     return { ok: false, state: 'RECEIPT_REQUIRES_REVIEW', reason: receiptFirst.data, processed: 0 };
   }
   try {
-    const active = await db.from('sfi_tenant_members').select('status')
-      .eq('tenant_id',tenantId).eq('user_id',actorId).maybeSingle();
-    if (active.error || active.data?.status !== 'ACTIVE') throw new Error('TENANT_ACTOR_AUTHORITY_REQUIRED');
+    // Recheck exactly the canonical Case Platform WRITE authority, not just
+    // active tenant membership (which could include READ-only viewers).
+    await assertTenantAccess(tenantId, actorId, 'WRITE');
     for (const target of gate.refs) {
       const table = target.kind === 'CASE' ? 'sfi_cases' : 'sfi_projects';
       const targetRead = await db.from(table).select('id,tenant_id,status,updated_at,deleted_at')

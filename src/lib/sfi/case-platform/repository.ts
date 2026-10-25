@@ -332,7 +332,7 @@ async function ensurePersonalTenant(userId: string, email?: string | null) {
   return tenantId;
 }
 
-async function assertTenantAccess(tenantId: string, userId: string, mode: 'READ' | 'WRITE') {
+export async function assertTenantAccess(tenantId: string, userId: string, mode: 'READ' | 'WRITE') {
   const service = createServiceSupabaseClient();
   const membership = await service
     .from('sfi_tenant_members')
