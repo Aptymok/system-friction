@@ -14,9 +14,19 @@ type TemporalFactView={objectRef:string;clock:string;value:string;precision:'DAY
   interpretation:string;relationToCutoff:string;historicalStatus:string;source:string|null};
 type TemporalProvenanceView={contract:string;cutoff:string;totalFacts:number;truncated:boolean;
   snapshotObjectCount:number;warning:string;events:TemporalFactView[]};
+type AuthorityEvidenceView={
+  counts:{evidenceItems:number;accepted:number;rejected:number;pending:number;
+    authorityDecisions:number;authorityRecordsComplete:number;executionRecords:number;verifiedExecutions:number};
+  snapshotIntegrity:string; integrityGaps:string[]; truncated:boolean;
+  boundary:string;
+  evidence:{evidenceRef:string;state:string;rootSources:string[];assessments:string[];assessmentCount:number;meaning:string}[];
+  authority:{decisionId:string;proposalId:string;decision:string;authorityRole:string|null;
+    decidedBy:string|null;recordedAt:string;recordIntegrity:string;meaning:string}[];
+};
 type CaseEnvelope={realityChain?:SfiRealityChain;caseRecord:CaseRecord;objects:CaseObject[];
   readiness?:{missingSources:string[];readyForAnalysis:boolean};
-  temporalProvenance?:TemporalProvenanceView};
+  temporalProvenance?:TemporalProvenanceView;
+  authorityEvidence?:AuthorityEvidenceView};
 type Fragment={paragraph:number;page:number|null;pageBasis:string;text:string;start:number|null;end:number|null};
 type Extraction={source:{filename:string;mime:string;size:number;sha256:string;modifiedAt:string|null};extraction:{parser:string;pageCount:number|null;fragmentCount:number;returnedFragments:number;complete:boolean;warnings:string[];fragments:Fragment[]}};
 type Profile={id?:string;serviceProfileId?:string;name?:string;label?:string};
@@ -240,6 +250,7 @@ export function RealityChainWorkbench(){
   const document={contract:'SFI-REALITY-CHAIN-TRACEABILITY-DRAFT-0.1',classification:'DERIVED_READ_MODEL_NOT_INSTITUTIONAL_CERTIFICATION',
     generatedAt:new Date().toISOString(),sourceCutoff:cutoff||null,case:caseData.caseRecord,readiness:caseData.readiness,
     temporalProvenance:caseData.temporalProvenance,
+    authorityEvidence:caseData.authorityEvidence,
     presentationStages:STEPS.map((s,i)=>({name:s.name,definition:s.role,records:asOfObjects.filter(o=>stageFor(o)===i)})),
     operationalMethod:FULL_METHOD,transversalConditions:TRANSVERSAL,
     uncategorizedObjects:asOfObjects.filter(o=>stageFor(o)<0),allRecordedObjects:asOfObjects,
@@ -436,17 +447,46 @@ export function RealityChainWorkbench(){
               <small>SOURCE REFS: {focused.sourceRefs.map(r=>r.id).join(', ')||'NOT REPRESENTED'}</small>
               <button type="button" onClick={()=>setSelectedObject(null)}>BACK TO ALL RECORDS</button>
             </div>:<div className="rcRecordList">{asOfObjects.map(o=><button key={o.id} type="button" onClick={()=>setSelectedObject(o.id)}><time>{date(o.createdAt)}</time><strong>{o.kind} · {o.epistemicRole}</strong><span>{payloadDescription(o).slice(0,240)}</span></button>)}</div>}
-            <div className="rcThreeDataLine">{sourceObjects.length} SOURCES · {asOfObjects.filter(o=>o.kind==='EVIDENCE').length} ADMITTED EVIDENCE · {asOfObjects.filter(o=>o.kind==='CONTRADICTION').length} CONTRADICTIONS</div>
+            <div className="rcThreeDataLine">{sourceObjects.length} SOURCES · {caseData?.authorityEvidence ? caseData.authorityEvidence.counts.accepted+' CHAIN-ACCEPTED EVIDENCE' : 'EVIDENCE ADJUDICATION NOT AVAILABLE'} · {asOfObjects.filter(o=>o.kind==='CONTRADICTION').length} CONTRADICTIONS</div>
           </section>
           <section className="rcThreePane rcObservatoryWallMonitor">
             <h2>HYPOTHESIS / AUTHORITY</h2>
             <p>Interpretation does not authorize intervention. Independent sources and calibration are not inferred from document counts.</p>
             <dl><div><dt>HYPOTHESES</dt><dd>{asOfObjects.filter(o=>o.kind==='HYPOTHESIS').length} REPRESENTED</dd></div>
-              <div><dt>GOVERNANCE DECISIONS</dt><dd>{asOfObjects.filter(o=>o.kind==='GOVERNANCE_DECISION').length} RECORDED</dd></div>
+              <div><dt>GOVERNANCE DECISIONS</dt><dd>{caseData?.authorityEvidence ? caseData.authorityEvidence.counts.authorityDecisions+' CASE DECISIONS RECORDED' : 'AUTHORITY READ UNAVAILABLE'}</dd></div>
               <div><dt>INDEPENDENT CONFIRMATION</dt><dd>NOT ESTABLISHED FROM COUNTS</dd></div>
               <div><dt>CALIBRATED CONFIDENCE</dt><dd>NOT CALIBRATED</dd></div>
               <div><dt>ABSTENTION</dt><dd>REQUIRED WHERE EVIDENCE OR AUTHORITY IS INSUFFICIENT</dd></div></dl>
             <a className="rcThreeLink" href="/root/evidence-review">OPEN GOVERNED EVIDENCE REVIEW ↗</a>
+            <details className="rcRecordList" data-c15-c16-authority-evidence-ledger="SFI-CASE-AUTHORITY-EVIDENCE-READ-1.0">
+              <summary>C15 / C16 · AUTORIDAD Y ADJUDICACIÓN DE PRUEBAS</summary>
+              {caseData?.authorityEvidence ? <>
+                <p>{caseData.authorityEvidence.counts.accepted} aceptadas ·
+                  {' '}{caseData.authorityEvidence.counts.rejected} rechazadas ·
+                  {' '}{caseData.authorityEvidence.counts.pending} pendientes por el evaluador institucional.</p>
+                <p>Decisiones de autoridad registradas: {caseData.authorityEvidence.counts.authorityDecisions}.
+                  {' '}Ejecuciones verificadas: {caseData.authorityEvidence.counts.verifiedExecutions}.
+                </p>
+                <p>Integridad: {caseData.authorityEvidence.snapshotIntegrity}.
+                  {' '}Estos registros no conceden permisos nuevos ni prueban un RETURN externo.
+                </p>
+                {caseData.authorityEvidence.evidence.map((item,index)=>
+                  <article className="rcRecordItem" key={item.evidenceRef+':'+index}>
+                    <strong>PRUEBA · {item.state}</strong>
+                    <small>{item.evidenceRef}</small>
+                    <span>{item.rootSources.length} fuentes vinculadas · {item.assessmentCount} evaluaciones</span>
+                  </article>)}
+                {caseData.authorityEvidence.authority.map((item,index)=>
+                  <article className="rcRecordItem" key={item.decisionId+':'+index}>
+                    <strong>{item.decision} · {item.recordIntegrity}</strong>
+                    <small>Propuesta: {item.proposalId} · Actor: {item.decidedBy??'NO REGISTRADO'}</small>
+                    <span>Rol: {item.authorityRole??'NO REGISTRADO'} · Registro: {date(item.recordedAt)}</span>
+                  </article>)}
+                {caseData.authorityEvidence.truncated && <p>Listado limitado; no equivale al histórico completo.</p>}
+                <p>{caseData.authorityEvidence.boundary}</p>
+              </> : <p>El índice de autoridad y pruebas no está disponible en este plano o versión del sistema. No se interpreta como ausencia de registros.</p>}
+            </details>
+
           </section>
         </div>
       </section>
