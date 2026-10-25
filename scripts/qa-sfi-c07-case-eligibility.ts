@@ -52,6 +52,20 @@ assert.match(queueIntake,/\.eq\('actor_id',actorId\)/);
 assert.match(queueIntake,/\.limit\(20\)/);
 assert.match(queueIntake,/QUEUE_DISABLED/);
 assert.match(queueIntake,/OWNER_SCOPED_SNAPSHOT_NOT_COMPLETE_QUEUE_OR_EXTERNAL_RETURN/);
+// C08 must wake the existing authorized scheduler for due, but only
+// feature-enabled, C07 work. It must never create a second scheduler.
+const heartbeatGate=readFileSync('src/lib/continuity/actionableWorkGate.ts','utf8');
+const heartbeat=readFileSync('src/app/api/cron/continuity-heartbeat/route.ts','utf8');
+assert.match(heartbeatGate,/readC08MissionWorkRequirement/);
+assert.match(heartbeatGate,/SFI_C07_MISSION_QUEUE_ENABLED !== 'true'/);
+assert.match(heartbeatGate,/\.eq\('status', 'QUEUED'\)/);
+assert.match(heartbeatGate,/\.lte\('available_at', now\)/);
+assert.match(heartbeatGate,/\.eq\('status', 'RUNNING'\)/);
+assert.match(heartbeatGate,/\.lte\('lease_until', now\)/);
+assert.match(heartbeatGate,/c08MissionWork\.required/);
+assert.match(heartbeatGate,/C08_MISSION_WORK_PENDING/);
+assert.match(heartbeat,/await runBoundedC07QueuedMission\(/);
+assert.match(heartbeat,/DEFERRED_PRIMARY_WRITE_REQUIRED/);
 console.log(JSON.stringify({
   pass:'SFI_C07_CASE_REVISION_AND_ELIGIBILITY',
   approvedStates:C07_AUTONOMOUS_CASE_STATES,
