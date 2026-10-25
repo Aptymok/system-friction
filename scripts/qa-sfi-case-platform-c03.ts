@@ -96,7 +96,7 @@ const multiClockObjects=[
   {kind:'OBSERVATION',createdAt:'2026-10-25T01:37:00Z',observedAt:null,
     canonicalRef:{id:'catalog-observation'},payload:{
       provider:'Amazon Music',providerDisplayedReleaseDate:'2026-10-03',
-      sourceUrl:'https://example.test/should-not-be-reexported'}}},
+      sourceUrl:'https://example.test/should-not-be-reexported'}}
 ];
 const clocks=projectCaseTemporalProvenance(multiClockObjects,sourceCutoff);
 assert.equal(clocks.snapshotObjectCount,3);
