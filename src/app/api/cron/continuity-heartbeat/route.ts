@@ -14,6 +14,7 @@ import {
 import { runUniversalEmpiricalContinuation } from '@/lib/sfi/universalEmpiricalContinuation';
 import { runUniversalReturnPlanUpgrade } from '@/lib/sfi/universalReturnPlanUpgrade';
 import { readUniversalCycleHistory } from '@/lib/sfi/universalSignalCycle';
+import { runBoundedC07QueuedMission } from '@/lib/sfi/cognitive-runtime/queuedMissionWorker';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -324,6 +325,18 @@ export async function GET(request: NextRequest) {
             error: error instanceof Error ? error.message : String(error),
           }));
 
+    // Reuse the existing authenticated heartbeat; no second scheduler.
+    // Mission claims are feature-disabled unless a separately authorized
+    // migration and release have been completed.
+    const c07QueuedMission = emergencyHalt
+      ? { ok: true as const, state: 'HALTED', processed: 0 }
+      : neonCoreOnly
+        ? { ok: true as const, state: 'DEFERRED_PRIMARY_WRITE_REQUIRED', processed: 0 }
+        : await runBoundedC07QueuedMission('continuity-' + String(result.runId ?? 'heartbeat')
+            .replace(/[^-_a-zA-Z0-9]/g, '').slice(0, 55)).catch(() => ({
+            ok: false as const, state: 'WORKER_RUNTIME_ERROR', processed: 0,
+          }));
+
     const targetCycleState = requestedCycleId
       ? neonCoreOnly
         ? { ...deferredEffectfulLane('targetCycleState', requestedCycleId), cycleId: requestedCycleId, state: null }
@@ -342,6 +355,7 @@ export async function GET(request: NextRequest) {
       || returnPlanUpgradeBefore.ok === false
       || returnPlanUpgradeAfter.ok === false
       || universalEmpiricalContinuation.ok === false
+      || c07QueuedMission.ok === false
       || targetCycleState?.ok === false
       || studioAutonomy.status === 'DEGRADED';
     const gateReceipt = deriveContinuityHeartbeatGateReceipt({
@@ -365,6 +379,7 @@ export async function GET(request: NextRequest) {
       operationalAutoAdvance: isDeferred(operationalAutoAdvance) ? 'OPERATIONAL_AUTO_ADVANCE_DEFERRED_PRIMARY_WRITE_REQUIRED' : operationalAutoAdvance.ok === false ? 'OPERATIONAL_AUTO_ADVANCE_FAIL' : 'OPERATIONAL_AUTO_ADVANCE_PASS',
       governedExecution: isDeferred(governedExecution) ? 'GOVERNED_EXECUTION_DEFERRED_PRIMARY_WRITE_REQUIRED' : governedExecution.ok === false ? 'GOVERNED_EXECUTION_FAIL' : 'GOVERNED_EXECUTION_PASS',
       studioAutonomy: isDeferred(studioAutonomy) ? 'STUDIO_AUTONOMY_DEFERRED_PRIMARY_WRITE_REQUIRED' : studioAutonomy.status === 'DEGRADED' ? 'STUDIO_AUTONOMY_FAIL' : 'STUDIO_AUTONOMY_PASS',
+      c07QueuedMission: c07QueuedMission.state,
       targetCycleState: isDeferred(targetCycleState) ? 'TARGET_CYCLE_PROOF_DEFERRED_PRIMARY_WRITE_REQUIRED' : targetCycleState?.ok === false ? 'TARGET_CYCLE_PROOF_FAIL' : 'TARGET_CYCLE_PROOF_PASS',
     };
 
@@ -387,6 +402,7 @@ export async function GET(request: NextRequest) {
       universalCycleContinuation,
       returnPlanUpgradeAfter,
       universalEmpiricalContinuation,
+      c07QueuedMission,
       targetCycleState,
       executionRule: emergencyHalt
         ? 'EMERGENCY_HALT suppresses transition writes, operational auto-advance, governed execution dispatch, universal cognitive continuation, empirical continuation and learning writes. Continuity probes may record the halted heartbeat only.'
