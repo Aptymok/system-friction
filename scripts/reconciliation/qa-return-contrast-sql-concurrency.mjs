@@ -1,3 +1,5 @@
+// The postgres driver serializes JSON values using sql.json(object); passing a JSON
+// string to a jsonb typed parameter would encode it twice and erase its fields.
 // Recovered from archived branch 892b704bbbf65595c91d14756d38592f81431cc5. Disposable localhost-only SQL test; never deploy.
 // Isolated PostgreSQL transaction test for the existing MEM-002 event append owner.
 // The URL is deliberately restricted to the ephemeral GitHub Actions database.
@@ -60,10 +62,10 @@ async function append({ fingerprint, eventId = randomUUID(), hashPrev = null, te
   };
   const rows = await sql`SELECT public.sfi_append_epistemic_event_v2(
     ${eventId}::text, ${eventName}::text, ${ledger}::text, 'derived'::text,
-    'qa'::text, ${JSON.stringify(source)}::jsonb, 'qa'::text, NULL::uuid,
-    0.5::numeric, ${JSON.stringify(payload)}::jsonb, 'qa-checksum'::text,
+    'qa'::text, ${sql.json(source)}::jsonb, 'qa'::text, NULL::uuid,
+    0.5::numeric, ${sql.json(payload)}::jsonb, 'qa-checksum'::text,
     ARRAY['return-qa']::text[], NULL::text, ${occurredAt}::timestamptz,
-    ${JSON.stringify(canonical)}::jsonb, ${JSON.stringify(canonical)}::text, false::boolean
+    ${sql.json(canonical)}::jsonb, ${JSON.stringify(canonical)}::text, false::boolean
   ) AS receipt`;
   return rows[0].receipt;
 }
