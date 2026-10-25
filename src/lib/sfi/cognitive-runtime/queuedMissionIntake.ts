@@ -5,6 +5,7 @@ import { readOperationalCase, assertTenantAccess } from '@/lib/sfi/case-platform
 import { validateMissionDispatchRequest } from './missionDispatch';
 import { canonicalQueuedRequestDigest } from './queuedMissionWorker';
 import { checkC07CaseQueueState } from './queuedMissionCaseGate';
+import { readSfiMissionQuota } from '@/lib/operations/sfiCostMeter';
 import { readPrimaryCognitiveExecutionReceipt } from '@/lib/persistence/dataPlaneRpc';
 
 type Row = Record<string, unknown>;
@@ -150,6 +151,15 @@ export async function enqueueAuthorizedC07Mission(value:Row,actorId:string):Prom
   const permittedKeys=['agentId','missionId','purpose','anchors','targets','timeRange','direction','parameters','requestedOutputs','governanceContext'];
   const payload={ ...Object.fromEntries(permittedKeys.filter(k=>value[k]!==undefined).map(k=>[k,value[k]])),
     caseRevision:eligible.revision };
+  // Cost is not inferred from a successful job: reserve scarce daily/monthly
+  // operation slots before the bounded queue claim. Unknown usage fails closed.
+  const quota=await readSfiMissionQuota();
+  if (!quota.ok) return {status:503,body:{ok:false,error:'cost_usage_unavailable',reason:quota.reason}};
+  if (!quota.admissionAllowed) {
+    return {status:429,body:{ok:false,error:'sfi_cost_quota_reached',
+      admittedToday:quota.admittedToday,admittedMonth:quota.admittedMonth,limits:quota.limits,
+      boundary:'Admission workload cap; no unobserved USD cost inferred.'}};
+  }
   const receipt=await createServiceSupabaseClient().rpc('sfi_c07_enqueue_mission_v1',{
     p_tenant_id:caseRecord.caseRecord.tenantId,
     p_actor_id:actorId,p_mission_id:mission.mission.missionId,
