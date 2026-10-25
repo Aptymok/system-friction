@@ -1217,7 +1217,7 @@ html:has(.rootReferenceCockpit),body:has(.rootReferenceCockpit){overflow:hidden!
 }
 
 /* C20 · ROOT FIELD / READING
-   Do not restore the former 2880px rail or wheel-to-horizontal redirects.
+   Do not restore the former panoramic rail or wheel-to-horizontal redirects.
    Only the two genuine documents (explorer and Passport) scroll vertically. */
 .rootReferenceCockpit.rootFieldMode[data-root-layout="FIELD-AND-READING"]{
   width:100%!important;max-width:100vw!important;
