@@ -42,8 +42,22 @@ jobs:
             sleep $((attempt * 10))
           done
 
-      - name: Verify governed data-plane reconciliation scheduling
-        run: node scripts/qa-sfi-data-plane-scheduled-recovery.mjs
+      - name: Verify no cross-provider replication (founder policy)
+        run: |
+          node --input-type=module -e "
+            import assert from 'node:assert/strict';
+            import {readFileSync as read} from 'node:fs';
+            const policy=read('src/lib/persistence/replicationRetirementPolicy.ts','utf8');
+            const workflow=read('.github/workflows/sfi-continuity-hourly.yml','utf8');
+            const rpc=read('src/lib/persistence/dataPlaneRpc.ts','utf8');
+            const runtime=read('src/lib/continuity/runtime.ts','utf8');
+            assert.match(policy,/NO_CROSS_PROVIDER_REPLICATION/);
+            assert.doesNotMatch(workflow,/SFI_SYNC_ENDPOINT/);
+            assert.equal((rpc.match(/assertCrossProviderReplicationRetired\\(name\\);/g)||[]).length,2);
+            assert.doesNotMatch(runtime,/await flushPrimaryMirror\\(/);
+            assert.doesNotMatch(runtime,/await recoverPrimaryDataPlane\\(/);
+            console.log('PASS SFI NO REPLICATION');
+          "
 
       - name: Verify SFI Verify parallel topology
         run: npx tsx scripts/qa-sfi-verify-parallelism.ts
