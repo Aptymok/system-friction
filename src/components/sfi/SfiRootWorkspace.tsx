@@ -66,6 +66,9 @@ export function SfiRootWorkspace({ enabled, decisionOnly = false }: { enabled: b
   const [missionQueue, setMissionQueue] = useState<Row | null>(null);
   const [missionQueueLoading, setMissionQueueLoading] = useState(false);
   const [missionQueueError, setMissionQueueError] = useState<string | null>(null);
+  const [pilotEconomics, setPilotEconomics] = useState<Row | null>(null);
+  const [pilotEconomicsLoading, setPilotEconomicsLoading] = useState(false);
+  const [pilotEconomicsError, setPilotEconomicsError] = useState<string | null>(null);
 
   const loadBase = useCallback(async (force=false) => {
     if (!enabled) return;
@@ -115,10 +118,27 @@ export function SfiRootWorkspace({ enabled, decisionOnly = false }: { enabled: b
     }
   }, [enabled, missionQueueLoading]);
 
+  const loadPilotEconomics = useCallback(async () => {
+    if (!enabled || pilotEconomicsLoading) return;
+    setPilotEconomicsLoading(true);
+    setPilotEconomicsError(null);
+    try {
+      const data = await jsonFetch('/api/root/continuity?economics=1');
+      setPilotEconomics(data);
+    } catch (cause) {
+      setPilotEconomics(null);
+      setPilotEconomicsError(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      setPilotEconomicsLoading(false);
+    }
+  }, [enabled, pilotEconomicsLoading]);
+
   useEffect(() => {
     // Never reuse a previous ROOT principal's actor-scoped job snapshot.
     setMissionQueue(null);
     setMissionQueueError(null);
+    setPilotEconomics(null);
+    setPilotEconomicsError(null);
   }, [userKey]);
 
   useEffect(() => { void loadBase(false); }, [loadBase]);
@@ -198,6 +218,43 @@ export function SfiRootWorkspace({ enabled, decisionOnly = false }: { enabled: b
     <SfiFriccionautaPanel />
 
     {decisionSurface}
+
+    <details className="rootReports" data-sfi-pilot-light-economics="SFI-PILOT-LIGHT-ECONOMICS-OBSERVE-1.0"
+      onToggle={(event) => { if (event.currentTarget.open) void loadPilotEconomics(); }}>
+      <summary>CONTINUIDAD ECONÓMICA · COSTOS Y CAPACIDAD</summary>
+      <div className="rootReportList">
+        <p>Neon es contingencia selectiva propuesta, no una réplica que debamos mantener idéntica a cualquier coste.
+          Esta lectura se realiza sólo al solicitarla. No modifica servicios, tablas, presupuestos ni replicación.</p>
+        <button type="button" disabled={pilotEconomicsLoading} onClick={() => void loadPilotEconomics()}>
+          {pilotEconomicsLoading ? 'Midiendo…' : 'Medir ahora'}
+        </button>
+        {pilotEconomicsError && <p role="alert">Medición no disponible: {pilotEconomicsError}</p>}
+        {pilotEconomics && <div className="rootReportHealth">
+          <article><span>Plano actual</span><strong>{txt(pilotEconomics.neonMode,'NO OBSERVADO')}</strong></article>
+          <article><span>Neon PostgreSQL</span><strong>
+            {typeof pilotEconomics.neonStorage?.databaseBytes === 'number'
+              ? (pilotEconomics.neonStorage.databaseBytes / 1_000_000).toFixed(1) + ' MB'
+              : 'NO OBSERVADO'}
+          </strong></article>
+          <article><span>Diario de réplica Neon</span><strong>
+            {typeof pilotEconomics.neonStorage?.journalBytes === 'number'
+              ? (pilotEconomics.neonStorage.journalBytes / 1_000_000).toFixed(1) + ' MB'
+              : 'NO OBSERVADO'}
+          </strong></article>
+          <article><span>Pendientes PRIMARY</span><strong>
+            {typeof pilotEconomics.primaryOutbox?.pending === 'number'
+              ? pilotEconomics.primaryOutbox.pending
+              : 'NO OBSERVADO'}
+          </strong></article>
+          <article><span>Costo monetario y cuota restante</span><strong>NO VERIFICADOS EN PROVEEDOR</strong></article>
+          <article><span>Adopción Pilot Light</span><strong>EN EVALUACIÓN · SIN CAMBIOS DE RÉPLICA</strong></article>
+        </div>}
+        {pilotEconomics?.errors?.neon && <p role="alert">Neon: medición incompleta.</p>}
+        {pilotEconomics?.errors?.primary && <p role="alert">PRIMARY: medición incompleta.</p>}
+        <p>Para decidir una optimización: contrastar la factura/cuotas del proveedor, inventariar dependencias,
+          probar recuperación mínima y autorizar la nueva política. La paridad completa no es una meta económica automática.</p>
+      </div>
+    </details>
 
     <details className="rootReports" data-c09-actor-scoped-mission-status="SFI-C09-READ-ONLY-1.0"
       onToggle={(event) => { if (event.currentTarget.open) void loadMissionQueue(); }}>
