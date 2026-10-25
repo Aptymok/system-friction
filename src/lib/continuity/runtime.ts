@@ -360,12 +360,11 @@ export async function runContinuityHeartbeat(trigger = 'scheduled') {
     reason: dataPlane === 'NEON' ? 'PRIMARY_UNAVAILABLE' : 'CONTINUITY_NOT_CONFIGURED',
   };
 
-  if (dataPlane === 'SUPABASE' && mode !== 'EMERGENCY_HALT' && isSfiContinuityConfigured()) {
-    const { flushPrimaryMirror } = await import('@/lib/persistence/primaryMirror');
-    primaryMirror = await flushPrimaryMirror({ maxTransactions: 8 });
-  }
+  // Two providers are independent. Replication is not a health requirement.
+  primaryMirror = { ok: true, skipped: true, reason: 'SFI_REPLICATION_RETIRED_BY_FOUNDER',
+    certified: false, replicationEnabled: false };
+  const primaryMirrorFailed = false;
 
-  const primaryMirrorFailed = dataPlane === 'SUPABASE' && primaryMirror.ok !== true;
   let runId: string;
 
   if (dataPlane === 'SUPABASE') {
@@ -446,7 +445,7 @@ export async function runContinuityHeartbeat(trigger = 'scheduled') {
       latencyMs: item.latencyMs,
       dataPlane,
     })),
-    { capabilityId: 'systemic_data_plane_primary_mirror', status: primaryMirrorFailed ? 'FAILED' : 'OPERATIONAL', dataPlane, primaryMirror },
+    { capabilityId: 'systemic_data_plane_primary_mirror', status: 'SKIPPED', dataPlane, primaryMirror },
   ];
   const errors = [
     ...results
@@ -500,17 +499,9 @@ export async function runContinuityHeartbeat(trigger = 'scheduled') {
           : 'NOT_REQUIRED',
   };
 
-  if (dataPlane === 'NEON' && primaryPhysicalProbe.ok && mode !== 'EMERGENCY_HALT') {
-    const { recoverPrimaryDataPlane } = await import('@/lib/persistence/continuityRecovery');
-    recoveryAttempt = {
-      attempted: true,
-      ...await recoverPrimaryDataPlane({ maxTransactions: 16 }).catch((error) => ({
-        ok: false,
-        recovered: false,
-        reason: 'RECOVERY_ATTEMPT_FAILED',
-        error: error instanceof Error ? error.message : String(error),
-      })),
-    };
+  // No automated Neon -> PRIMARY journal replay.
+  if (dataPlane === 'NEON') {
+    recoveryAttempt = { attempted: false, reason: 'SFI_REPLICATION_RETIRED_BY_FOUNDER' };
   }
 
   return {
