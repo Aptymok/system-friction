@@ -36,6 +36,10 @@ async function fingerprintsMatch() {
 }
 
 export async function recoverPrimaryDataPlane(input: { maxTransactions?: number } = {}) {
+  void input;
+  return { ok: false as const, recovered: false as const, attempted: false as const,
+    reason: 'SFI_REPLICATION_RETIRED_BY_FOUNDER' as const };
+
   const current = await readDataPlaneState();
   if (current.mode === 'PRIMARY') return { ok: true as const, recovered: false as const, reason: 'PRIMARY_ALREADY_ACTIVE' };
 
