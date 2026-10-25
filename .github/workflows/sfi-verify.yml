@@ -54,6 +54,9 @@ jobs:
       - name: Verify Method Lab dependency health probes are bounded
         run: node --import tsx scripts/qa-sfi-method-lab-dependency-read.ts
 
+      - name: Verify readable C07 case descriptions
+        run: node --import tsx --test src/lib/root/caseDisplayName.test.ts
+
       - name: Verify ROOT mission access and Passport navigation
         run: node scripts/qa-sfi-root-missions-passport-navigation.mjs
 
