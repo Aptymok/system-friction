@@ -250,7 +250,7 @@ export function SfiRootWorkspace({ enabled, decisionOnly = false, missionOnly = 
   const cycles = rows(operational.cycles);
   const actionable = items.filter((item) => item.rootActionRequired === true);
   const observable = items.filter((item) => item.rootActionRequired !== true);
-  const cases = rows(base?.caseIndex?.cases);
+  const cases = missionOnly ? (caseDirectory ?? []) : rows(base?.caseIndex?.cases);
   const projects = rows(base?.caseIndex?.projects);
   const activeCases = useMemo(() => cases.filter((item) => !['CLOSED', 'REJECTED'].includes(String(item.status).toUpperCase())), [cases]);
   const eligibleCaseMissions=missionDefinitions.filter((mission)=>{
