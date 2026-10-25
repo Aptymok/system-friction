@@ -12,6 +12,33 @@ function text(v:unknown,max=160) {
 }
 export type QueuedMissionIntakeResponse = {status:number;body:Row};
 
+/**
+ * C09 read-only operator projection. The actor filter is mandatory; no
+ * service-role result from another owner or tenant is ever returned.
+ * A count of jobs must never be mistaken for execution or external RETURN.
+ */
+export async function readOwnedC07MissionSummary(actorId:string) {
+  if (process.env.SFI_C07_MISSION_QUEUE_ENABLED !== 'true') {
+    return { available:false, state:'QUEUE_DISABLED', jobs:[], counts:{}, boundary:'NO_QUEUE_EXECUTION_OR_RETURN_ASSERTED' };
+  }
+  const result=await createServiceSupabaseClient().from('sfi_c07_mission_jobs')
+    .select('id,mission_id,execution_id,status,attempts,max_attempts,receipt_event_id,updated_at,return_observation')
+    .eq('actor_id',actorId).order('updated_at',{ascending:false}).limit(20);
+  if (result.error) {
+    return {available:false,state:'READ_UNAVAILABLE',jobs:[],counts:{},
+      boundary:'NO_QUEUE_EXECUTION_OR_RETURN_ASSERTED'};
+  }
+  const jobs=result.data??[];
+  const counts=jobs.reduce<Record<string,number>>((acc,item)=>{
+    const status=typeof item.status==='string'?item.status:'UNKNOWN';
+    acc[status]=(acc[status]??0)+1;
+    return acc;
+  },{});
+  return {available:true,state:'OBSERVED_OWNER_JOBS_LIMIT_20',jobs,counts,
+    truncated:jobs.length===20,
+    boundary:'OWNER_SCOPED_SNAPSHOT_NOT_COMPLETE_QUEUE_OR_EXTERNAL_RETURN'};
+}
+
 export async function readOwnedC07Mission(jobId:string,actorId:string):Promise<QueuedMissionIntakeResponse> {
   if (process.env.SFI_C07_MISSION_QUEUE_ENABLED !== 'true') {
     return {status:409,body:{ok:false,error:'queue_not_released'}};
