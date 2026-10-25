@@ -7,6 +7,7 @@ on:
     paths:
       - '.github/workflows/reality-chain-postgres-concurrency.yml'
       - 'scripts/reality_chain/**'
+      - 'scripts/reconciliation/**'
       - 'scripts/qa-sfi-branch-ci-continuity.mjs'
       - 'src/lib/mihm/**'
       - 'src/app/timeline/**'
@@ -18,6 +19,7 @@ on:
     paths:
       - '.github/workflows/reality-chain-postgres-concurrency.yml'
       - 'scripts/reality_chain/**'
+      - 'scripts/reconciliation/**'
       - 'supabase/migrations/20261023123624_reality_chain_closure_integrity.sql'
       - 'supabase/migrations/20260909080500_sfi_case_object_atomic_writer_v1.sql'
   workflow_dispatch:
@@ -78,5 +80,11 @@ jobs:
         run: node --import tsx scripts/reality_chain/qa-two-provider-fingerprint-pages.mjs
       - name: Verify Case Platform project membership, tenant RLS and composite FK in disposable PostgreSQL
         run: node scripts/reality_chain/qa-case-project-tenant-isolation.mjs
+      - name: Verify archived RETURN fingerprint deduplication on disposable local PostgreSQL
+        env:
+          SFI_TEST_DB_URL: postgres://postgres:isolated-test-only@127.0.0.1:5432/sfi_return_ci
+        run: |
+          node --input-type=module -e "import postgres from 'postgres'; const sql=postgres('postgres://postgres:isolated-test-only@127.0.0.1:5432/postgres', { max: 1 }); await sql.unsafe('CREATE DATABASE sfi_return_ci'); await sql.end();"
+          node scripts/reconciliation/qa-return-contrast-sql-concurrency.mjs
       - name: Verify C07 governed mission queue with two PostgreSQL sessions and fencing
         run: node --import tsx scripts/reality_chain/qa-c07-governed-mission-queue.mjs
