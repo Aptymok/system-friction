@@ -31,7 +31,7 @@ for(const op of ['data_plane_copy_verified','data_plane_emergency']){
 const mirror=read('src/lib/persistence/primaryMirror.ts');
 assert.match(mirror,/reason: 'SFI_REPLICATION_RETIRED_BY_FOUNDER'/);
 const recovery=read('src/lib/persistence/continuityRecovery.ts');
-assert.match(recovery,/reason: 'SFI_REPLICATION_RETIRED_BY_FOUNDER'/);
+assert.match(recovery,/reason:\s*'SFI_REPLICATION_RETIRED_BY_FOUNDER'/);
 const runtime=read('src/lib/continuity/runtime.ts');
 assert.doesNotMatch(runtime,/await flushPrimaryMirror\(/);
 assert.doesNotMatch(runtime,/await recoverPrimaryDataPlane\(/);
