@@ -92,6 +92,36 @@ export async function readPrimaryCognitiveExecutionEvents(): Promise<Array<Recor
 }
 
 /**
+ * Owner-scoped C07 UI callers can independently verify one exact execution
+ * event against the primary receipt. This function does not establish owner
+ * access by itself: it MUST be called only after the owner-job predicate.
+ * Never fall back to a stale Neon continuity record to certify completion.
+ */
+export async function readPrimaryCognitiveExecutionReceipt(eventId: string): Promise<Record<string, unknown> | null> {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(eventId))
+    throw new Error('SFI_C07_RECEIPT_INVALID_EVENT_ID');
+  const { url, key } = primaryCredentials();
+  const query = new URLSearchParams({
+    select: 'event_id,event_name,hash_self,source,payload',
+    event_id: `eq.${eventId}`,
+    limit: '1',
+  });
+  const response = await fetch(`${url}/rest/v1/epistemic_events?${query.toString()}`, {
+    method: 'GET',
+    headers: {
+      apikey: key,
+      Authorization: `Bearer ${key}`,
+      'X-Client-Info': 'sfi-c07-owner-receipt-primary-read',
+    },
+    cache: 'no-store',
+  });
+  const body = await jsonResponse(response, 'SFI_PRIMARY_C07_RECEIPT_READ');
+  if (!Array.isArray(body) || body.length > 1) throw new Error('SFI_PRIMARY_C07_RECEIPT_RESPONSE_INVALID');
+  const item = body[0];
+  return item && typeof item === 'object' && !Array.isArray(item) ? item as Record<string, unknown> : null;
+}
+
+/**
  * Direct, credentialed primary read for governed recovery of ONLY existing
  * institutional grants and profiles. Never falls back to Neon: a fallback
  * would compare Neon against itself and falsely certify convergence.
