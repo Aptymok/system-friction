@@ -221,6 +221,7 @@ export async function POST(request: Request) {
         objects:envelope.objects,temporalProvenance:envelope.temporalProvenance,
         authorityEvidence:envelope.authorityEvidence,
         trajectoryContrast:envelope.trajectoryContrast,
+        returnLearning:envelope.returnLearning,
         reports:await listOperationalReports(caseId,userId),
         readConsistency: await caseReadConsistency()}, {headers:{'Cache-Control':'private, no-store'}});
     }
