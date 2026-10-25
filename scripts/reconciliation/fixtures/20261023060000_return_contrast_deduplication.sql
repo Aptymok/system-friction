@@ -85,7 +85,8 @@ BEGIN
     RAISE EXCEPTION 'SFI_EPIS_HEAD_STALE_RETRY';
   END IF;
   IF p_canonical_attributes->>'checksum' IS DISTINCT FROM p_checksum THEN
-    RAISE EXCEPTION 'SFI_EPIS_CHECKSUM_MISMATCH';
+    RAISE EXCEPTION 'SFI_EPIS_CHECKSUM_MISMATCH observed_checksum=% supplied_checksum=%',
+      p_canonical_attributes->>'checksum', p_checksum;
   END IF;
   -- Event identity and critical fields are compared before accepting material.
   IF p_canonical_attributes->>'eventId' IS DISTINCT FROM p_event_id
