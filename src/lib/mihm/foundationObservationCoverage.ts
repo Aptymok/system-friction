@@ -56,7 +56,7 @@ export function assessMihmObservationCoverage(input: ReducedMihmInput): MihmObse
   const missingValues = count - observedValues.length;
   const missingNti = count - observedNti.length;
   const warnings = [
-    ...(count === 0 ? ['no_node_entries'] : []),
+    ...(count === 0 ? ['no_node_entries', 'empty_kernel_numeric_default_is_not_measurement'] : []),
     ...(missingValues ? ['value_missing_not_zero'] : []),
     ...(missingNti ? ['nti_missing_not_zero'] : []),
     ...(input.campo.sourceState !== 'observed' ? ['campo_source_not_observed'] : []),
@@ -88,7 +88,7 @@ export function assessMihmObservationCoverage(input: ReducedMihmInput): MihmObse
       : missingValues || missingNti
         ? 'PARTIAL_MEASUREMENT'
         : 'MEASURED_INPUTS_ONLY',
-    missingZeroConflationRisk: Boolean(missingValues || missingNti),
+    missingZeroConflationRisk: count === 0 || Boolean(missingValues || missingNti),
     canonicalPhiCalculated: false,
     empiricalHomeostasisClaimed: false,
     warnings,
