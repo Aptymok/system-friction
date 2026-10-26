@@ -42,3 +42,6 @@ jobs:
 
       - name: MIHM formula, Phi and variable registry tests
         run: node --import tsx --test src/core/formulas/canonicalFormulas.test.ts src/lib/mihm/phiContract.test.ts src/lib/mihm/canonicalVariableRegistry.test.ts
+
+      - name: MIHM foundation measurement coverage research tests
+        run: node --import tsx --test src/lib/mihm/foundationObservationCoverage.test.ts
