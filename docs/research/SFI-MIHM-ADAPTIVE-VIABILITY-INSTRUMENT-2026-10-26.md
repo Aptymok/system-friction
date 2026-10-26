@@ -66,3 +66,9 @@ Una primera aplicación útil y legítima sería que MIHM distinga `SFI no ejecu
 - Wolf et al., *Interpretable and Efficient Data-Driven Discovery and Control of Distributed Systems* (2025): https://doi.org/10.1017/dce.2025.10027
 
 Estas fuentes muestran que calibración adaptativa, control con incertidumbre, observabilidad y coordinación multinodo **ya existen**. La hipótesis defendible para MIHM es valor incremental reproducible de su combinación bajo restricciones de evidencia y autoridad, no la invención aislada de esos conceptos.
+
+## 7. Verificación de integración y preflight institucional (2026-10-26)
+
+La primera ejecución de `SFI Verify` del PR #848 (`40399608257`) **falló**, aunque `MIHM Contract Validation` (`40399608239`) aprobó. Los logs de `Verify SFI boundaries and build` localizaron el fallo en el control arquitectónico `P17_PR_PREFLIGHT_REQUIRED`: el PR incorpora dos archivos estructurales nuevos y su descripción no incluía los 13 campos de preflight exigidos por `scripts/qa-canonical-architecture.mjs`. No se observó en ese intento un fallo de la fórmula MIHM; la verificación general se detuvo antes de las fases restantes.
+
+**Corrección aplicada:** se incorporó al cuerpo del PR #848 el bloque `SFI PRECHECK` con propietario, reutilización de capacidades, escritor, persistencia, cambios front/back/DB, redundancia, límites ROOT, reversión y verificación. Se conserva el carácter borrador; no se alteran fórmulas, canon, producción, base de datos ni permisos. Este registro diferencia un fallo de cumplimiento arquitectónico de un fallo científico del instrumento y permite comprobar de nuevo CI tras sincronizar la rama. La aprobación completa de CI solo podrá afirmarse después de observar el resultado de la nueva ejecución.
