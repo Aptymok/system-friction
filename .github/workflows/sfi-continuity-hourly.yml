@@ -230,6 +230,19 @@ jobs:
                   handle.write(json.dumps(summary, ensure_ascii=False, indent=2))
                   handle.write('\n```\n')
 
+          # The scheduled egress guard intentionally returns HTTP 200 / ok=true
+          # with a blocked status. This is not a continuity runtime receipt.
+          # Report the actual policy boundary instead of a misleading missing-core error.
+          if payload.get('status') == 'EGRESS_RESTRICTED':
+              if payload.get('writesPerformed') is not False:
+                  raise SystemExit('SFI_EGRESS_GUARD_CONTRACT_INVALID: blocked response must have writesPerformed=false')
+              raise SystemExit(
+                  'SFI_SCHEDULED_EGRESS_BLOCKED: no continuity heartbeat, dataPlane, '
+                  'agent execution, universal continuation or RETURN was observed. '
+                  'General scheduled egress requires a separately authorized '
+                  'configuration and cost review; retired Neon fallback stays disabled.'
+              )
+
           if core.get('ok') is not True:
               raise SystemExit(f"{core.get('receipt') or 'CORE_HEARTBEAT_FAIL'}: runtimeStatus={core.get('runtimeStatus')}")
 
