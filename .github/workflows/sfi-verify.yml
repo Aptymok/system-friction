@@ -252,6 +252,9 @@ jobs:
       - name: Verify bounded Neon continuity heartbeat fallback
         run: npx tsx scripts/qa-sfi-neon-continuity-heartbeat.ts
 
+      - name: Verify universal-cycle wakeup for opened-only work
+        run: node --import tsx --test src/lib/continuity/universalLifecycleGate.test.ts
+
       - name: Verify Neon read-plane continuity and deferred effectful lanes
         run: node scripts/qa-sfi-neon-readplane-deferred-lanes.mjs
 
