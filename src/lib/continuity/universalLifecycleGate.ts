@@ -23,7 +23,7 @@ export function hasOpenUniversalCycle(events: LifecycleEvent[]): boolean {
   for (const event of events) {
     const logbookId = typeof event.logbook_id === 'string' ? event.logbook_id : '';
     const eventName = typeof event.event_name === 'string' ? event.event_name : '';
-    if (!logbookId.startsWith('universal-cycle:') || !eventName || latestByLogbook.has(logbookId)) continue;
+    if (!logbookId || !eventName || latestByLogbook.has(logbookId)) continue;
     latestByLogbook.set(logbookId, eventName);
   }
   return [...latestByLogbook.values()].some((eventName) => eventName !== 'SFI_UNIVERSAL_CYCLE_CLOSED');
