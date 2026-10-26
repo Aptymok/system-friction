@@ -39,6 +39,8 @@ test('empty readings abstain rather than fabricate a measured zero', () => {
   assert.equal(result.completeCaseValueMean, null);
   assert.equal(result.zeroImputedValueMean, null);
   assert.equal(result.readiness, 'NO_MEASURED_NODES');
+  assert.equal(result.missingZeroConflationRisk, true);
+  assert.ok(result.warnings.includes('empty_kernel_numeric_default_is_not_measurement'));
 });
 
 test('rejects out-of-range measurements instead of silently clamping', () => {
