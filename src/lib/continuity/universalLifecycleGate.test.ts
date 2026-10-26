@@ -31,10 +31,10 @@ test('an open second cycle remains actionable when another is closed', () => {
   ]), true);
 });
 
-test('unrelated logbooks cannot spuriously wake the universal-cycle lane', () => {
+test('events without a logbook do not represent a reconstructable cycle', () => {
   assert.equal(hasOpenUniversalCycle([
-    { logbook_id: 'BR', event_name: 'SFI_UNIVERSAL_CYCLE_OPENED' },
-    { logbook_id: 'structured-result:example', event_name: 'SFI_UNIVERSAL_COGNITIVE_CHECKPOINT' },
+    { logbook_id: '', event_name: 'SFI_UNIVERSAL_CYCLE_OPENED' },
+    { event_name: 'SFI_UNIVERSAL_COGNITIVE_CHECKPOINT' },
   ]), false);
 });
 
