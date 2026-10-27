@@ -133,6 +133,14 @@ jobs:
           if type(payload.get('shouldRun')) is not bool:
               raise SystemExit('SFI_CONTINUITY_WAKEUP_CONTRACT_INVALID: shouldRun must be boolean; no idle receipt is claimed')
           should_run = payload['shouldRun']
+          # Do not mark an hour idle when the same gate reports actionable work.
+          if not should_run and any(payload.get(key) is True for key in (
+              'activeProposal', 'activeCase', 'openUniversalCycle', 'dueC07Job'
+          )):
+              raise SystemExit(
+                  'SFI_CONTINUITY_WAKEUP_CONTRADICTORY: shouldRun=false with actionable work; '
+                  'no idle receipt is claimed'
+              )
           with open(output_path, 'a', encoding='utf-8') as handle:
               handle.write(f"should_run={'true' if should_run else 'false'}\n")
           print(json.dumps(payload, ensure_ascii=False, separators=(',', ':')))
