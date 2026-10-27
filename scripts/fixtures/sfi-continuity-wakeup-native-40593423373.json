@@ -1,0 +1,29 @@
+{
+  "ok": true,
+  "trigger": "github_actions_oidc",
+  "shouldRun": true,
+  "reason": "ACTIONABLE_CONTINUITY_WORK",
+  "requestedCycleId": null,
+  "state": {
+    "continuityMode": "NORMAL",
+    "activeProposal": true,
+    "activeCase": true,
+    "openUniversalCycle": true,
+    "activeStudioExperiment": false,
+    "mirrorMaintenanceRequired": false,
+    "mirrorMaintenance": {
+      "required": false,
+      "configured": false,
+      "state": {
+        "replicationEnabled": false,
+        "policy": "SFI_REPLICATION_RETIRED_BY_FOUNDER"
+      },
+      "diagnostic": null
+    },
+    "c08MissionWork": {
+      "required": false,
+      "state": "DISABLED"
+    }
+  },
+  "boundary": "Read-only scheduler gate. It never creates continuity runs, health checks, evidence, memory, RETURN, learning, canon, or external actions."
+}
