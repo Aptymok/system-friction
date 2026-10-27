@@ -159,8 +159,8 @@ assert.match(continuity, /gate_state\.get\('continuityMode'\) not in \(None, 'NO
 
 // Targeted manual recovery must not pass solely because old lifecycle events exist.
 // This is a source-level guard: it does not prove any new RETURN or action.
-assert.match(continuity, /selected_results = universal\\.get\\('results'\\)/);
-assert.match(continuity, /item\\.get\\('cycleId'\\) == requested/);
+assert.match(continuity, /selected_results = universal\.get\('results'\)/);
+assert.match(continuity, /item\.get\('cycleId'\) == requested/);
 assert.match(continuity, /SFI_TARGETED_CYCLE_NOT_SELECTED/);
 assert.match(continuity, /historical events alone do not prove/);
 
