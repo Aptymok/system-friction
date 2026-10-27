@@ -129,7 +129,10 @@ jobs:
               payload = json.load(handle)
           if payload.get('ok') is not True:
               raise SystemExit('continuity wakeup gate returned ok=false')
-          should_run = payload.get('shouldRun') is True
+          # A missing or malformed work decision is not evidence of an idle hour.
+          if type(payload.get('shouldRun')) is not bool:
+              raise SystemExit('SFI_CONTINUITY_WAKEUP_CONTRACT_INVALID: shouldRun must be boolean; no idle receipt is claimed')
+          should_run = payload['shouldRun']
           with open(output_path, 'a', encoding='utf-8') as handle:
               handle.write(f"should_run={'true' if should_run else 'false'}\n")
           print(json.dumps(payload, ensure_ascii=False, separators=(',', ':')))
