@@ -20,6 +20,11 @@ export type MihmObservationCoverage = {
   observedNti: number;
   missingNti: number;
   explicitZeroNti: number;
+  pairedObservedNodes: number;
+  pairedCoverage: number | null;
+  pairedValueMean: number | null;
+  pairedNtiMean: number | null;
+  jointReadiness: 'NO_PAIRED_MEASUREMENTS' | 'PARTIAL_PAIRED_MEASUREMENTS' | 'PAIRED_INPUTS_ONLY';
   valueCoverage: number | null;
   ntiCoverage: number | null;
   completeCaseValueMean: number | null;
@@ -52,6 +57,9 @@ export function assessMihmObservationCoverage(input: ReducedMihmInput): MihmObse
   const nti = nodes.map((node) => node.nti);
   const observedValues = measured(values, 'VALUE');
   const observedNti = measured(nti, 'NTI');
+  // Marginal coverage can be nonzero for both dimensions while no single
+  // node has both readings. Never treat that as joint measurement evidence.
+  const paired = nodes.filter((node) => node.value !== null && node.nti !== null);
   const count = nodes.length;
   const missingValues = count - observedValues.length;
   const missingNti = count - observedNti.length;
@@ -59,6 +67,8 @@ export function assessMihmObservationCoverage(input: ReducedMihmInput): MihmObse
     ...(count === 0 ? ['no_node_entries', 'empty_kernel_numeric_default_is_not_measurement'] : []),
     ...(missingValues ? ['value_missing_not_zero'] : []),
     ...(missingNti ? ['nti_missing_not_zero'] : []),
+    ...(count > 0 && paired.length === 0 ? ['no_joint_value_nti_observation'] : []),
+    ...(count > 0 && paired.length < count ? ['joint_measurement_coverage_incomplete'] : []),
     ...(input.campo.sourceState !== 'observed' ? ['campo_source_not_observed'] : []),
     ...(input.graph.sourceState !== 'observed' ? ['graph_source_not_observed'] : []),
     ...(nodes.some((node) => node.simulated) ? ['simulated_inputs_present'] : []),
@@ -75,6 +85,15 @@ export function assessMihmObservationCoverage(input: ReducedMihmInput): MihmObse
     observedNti: observedNti.length,
     missingNti,
     explicitZeroNti: observedNti.filter((value) => value === 0).length,
+    pairedObservedNodes: paired.length,
+    pairedCoverage: count ? paired.length / count : null,
+    pairedValueMean: mean(paired.map((node) => node.value as number)),
+    pairedNtiMean: mean(paired.map((node) => node.nti as number)),
+    jointReadiness: paired.length === 0
+      ? 'NO_PAIRED_MEASUREMENTS'
+      : paired.length < count
+        ? 'PARTIAL_PAIRED_MEASUREMENTS'
+        : 'PAIRED_INPUTS_ONLY',
     valueCoverage: count ? observedValues.length / count : null,
     ntiCoverage: count ? observedNti.length / count : null,
     completeCaseValueMean: mean(observedValues),
