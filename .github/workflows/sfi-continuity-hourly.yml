@@ -123,7 +123,7 @@ jobs:
             "$endpoint" > "$response_file"
 
           python - "$response_file" "$GITHUB_OUTPUT" "$GITHUB_STEP_SUMMARY" <<'PY'
-          import json, sys
+          import json, re, sys
           response_file, output_path, summary_path = sys.argv[1], sys.argv[2], sys.argv[3]
           with open(response_file, encoding='utf-8') as handle:
               payload = json.load(handle)
@@ -141,7 +141,7 @@ jobs:
           if payload.get('reason') == 'PRIMARY_WORK_GATE_UNAVAILABLE':
               diagnostic = payload.get('diagnostic') or {}
               code = str(diagnostic.get('code') or 'UNKNOWN')
-              safe_code = code if __import__('re').fullmatch(r'[A-Za-z0-9_]{1,40}', code) else 'UNCLASSIFIED'
+              safe_code = code if re.fullmatch(r'[A-Za-z0-9_]{1,40}', code) else 'UNCLASSIFIED'
               raise SystemExit(
                   'SFI_CONTINUITY_PRIMARY_WORK_GATE_UNAVAILABLE: '
                   f'code={safe_code}; primary read did not establish whether continuity work exists; '
