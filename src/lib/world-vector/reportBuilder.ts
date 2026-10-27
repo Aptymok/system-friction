@@ -57,13 +57,17 @@ export function buildWorldVectorInternalReport(input: {
     observation.warnings.length ? observation.warnings.join('\n') : 'none',
   ].join('\n');
 
+  // Daily identity follows the observed UTC date, not the enclosing weekly cycle.
+  // Without a dated observation, retain the prior cycle key rather than inventing a fresh timestamp.
+  const observationDay = observation.observed_at?.slice(0, 10) ?? cycleRange.cycle_start_date;
+
   return {
     title: `World Vector internal daily - ${observation.day_of_week} - ${observation.sector}`,
     body,
     report_type: 'internal_daily',
     target_audience: 'founder',
-    period_start: cycleRange.cycle_start_date,
-    period_end: cycleRange.cycle_end_date,
+    period_start: observationDay,
+    period_end: observationDay,
     json_payload: { observation, cycleRange },
   };
 }
