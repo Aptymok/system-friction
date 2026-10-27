@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 
 const continuityPath = '.github/workflows/sfi-continuity-hourly.yml';
 const observatoryPath = '.github/workflows/sfi-production-observatory-smoke.yml';
@@ -156,6 +159,67 @@ assert.match(continuity, /'activeProposal', 'activeCase', 'openUniversalCycle'/)
 assert.match(continuity, /'activeStudioExperiment', 'mirrorMaintenanceRequired'/);
 assert.match(continuity, /mission = gate_state\.get\('c08MissionWork'\)/);
 assert.match(continuity, /gate_state\.get\('continuityMode'\) not in \(None, 'NORMAL'\)/);
+
+
+// SFI-CONTINUITY-WAKEUP-NATIVE-REPLAY-1.0
+// Native, unaltered wakeup response from GitHub Actions run #40593423373,
+// job #122503164874, 2026-10-27 22:15:43 UTC. The fixture is an observed
+// receipt, not a generated runtime result. Negative controls below modify
+// only in-memory copies; they are NOT observations or institutional writes.
+// Execute the Python classifier embedded in the workflow itself so this test
+// detects drift between CI's claimed safety checks and actual runner logic.
+const wakeupPythonMatch = continuity.match(
+  /python - "\$response_file" "\$GITHUB_OUTPUT" "\$GITHUB_STEP_SUMMARY" <<'PY'\r?\n([\s\S]*?)\r?\n {10}PY/,
+);
+assert.ok(wakeupPythonMatch, 'actual wakeup Python classifier must remain extractable');
+const wakeupPython = wakeupPythonMatch[1].split('\n')
+  .map((line) => line.replace(/^ {10}/, '')).join('\n') + '\n';
+const nativeWakeup = JSON.parse(fs.readFileSync(
+  'scripts/fixtures/sfi-continuity-wakeup-native-40593423373.json', 'utf8',
+));
+assert.equal(nativeWakeup.reason, 'ACTIONABLE_CONTINUITY_WORK');
+assert.equal(nativeWakeup.shouldRun, true);
+
+function replayWakeupClassifier(input) {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'sfi-continuity-wakeup-'));
+  try {
+    const responsePath = path.join(directory, 'response.json');
+    const outputPath = path.join(directory, 'output.txt');
+    const summaryPath = path.join(directory, 'summary.md');
+    fs.writeFileSync(responsePath, JSON.stringify(input));
+    const execution = spawnSync('python3', ['-', responsePath, outputPath, summaryPath], {
+      input: wakeupPython, encoding: 'utf8', timeout: 15000, maxBuffer: 1024 * 1024,
+    });
+    assert.equal(execution.error, undefined, 'Python replay process must launch');
+    return {
+      status: execution.status,
+      stdout: execution.stdout,
+      stderr: execution.stderr,
+      output: fs.existsSync(outputPath) ? fs.readFileSync(outputPath, 'utf8') : '',
+    };
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+}
+
+const observedReplay = replayWakeupClassifier(nativeWakeup);
+assert.equal(observedReplay.status, 0, observedReplay.stderr);
+assert.equal(observedReplay.output, 'should_run=true\n');
+assert.deepEqual(JSON.parse(observedReplay.stdout.trim()), nativeWakeup);
+
+// Negative control 1: a missing decision must never become a green idle.
+const noDecision = { ...nativeWakeup };
+delete noDecision.shouldRun;
+const noDecisionReplay = replayWakeupClassifier(noDecision);
+assert.notEqual(noDecisionReplay.status, 0);
+assert.match(noDecisionReplay.stderr, /SFI_CONTINUITY_WAKEUP_CONTRACT_INVALID/);
+
+// Negative control 2: a false idle decision contradicting real actionable
+// flags must fail closed. This mutation is not a claimed live response.
+const contradictoryIdle = { ...nativeWakeup, shouldRun: false };
+const contradictoryReplay = replayWakeupClassifier(contradictoryIdle);
+assert.notEqual(contradictoryReplay.status, 0);
+assert.match(contradictoryReplay.stderr, /SFI_CONTINUITY_WAKEUP_CONTRADICTORY/);
 
 // Targeted manual recovery must not pass solely because old lifecycle events exist.
 // This is a source-level guard: it does not prove any new RETURN or action.
