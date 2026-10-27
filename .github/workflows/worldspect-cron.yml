@@ -77,7 +77,24 @@ jobs:
           status="$(BODY="$body" node - <<'NODE'
           const body = JSON.parse(process.env.BODY || '{}');
           if (body.ok === true) {
-            process.stdout.write(body.status === 'EGRESS_RESTRICTED' ? 'EGRESS_RESTRICTED' : 'EXECUTED');
+            // An HTTP-successful cooldown or hypothesis-only resume is NOT a
+            // completed observation/hypothesis/calibration cycle.
+            if (body.status === 'EGRESS_RESTRICTED') process.stdout.write('EGRESS_RESTRICTED');
+            else if (body.status === 'COOLDOWN_SKIPPED') process.stdout.write('COOLDOWN_SKIPPED');
+            else if (body.retryOnly === true && body.status === 'HYPOTHESIS_STAGE_RESUMED')
+              process.stdout.write('HYPOTHESIS_RESUMED');
+            else if (body.retryOnly === true) process.exit(2);
+            else process.stdout.write('EXECUTED');
+          } else if (body.retryOnly === true
+              && body.status === 'HYPOTHESIS_STAGE_STILL_PARTIAL'
+              && body.hypothesis?.ok === false
+              && Number(body.hypothesis.created || 0) === 0
+              && typeof body.receipt?.id === 'string'
+              && body.writesPerformed === true) {
+            // Canonical retry persisted a DERIVED partial receipt; it did not
+            // create a hypothesis, recollect sources or complete a daily cycle.
+            console.error('::warning::WORLD_HYPOTHESIS_RETRY_PARTIAL: persisted derived retry receipt; no hypothesis or RETURN');
+            process.stdout.write('HYPOTHESIS_RECOVERY_PARTIAL');
           } else if (body.observation?.ok === true
               && Number(body.observation.persisted || 0) > 0
               && body.hypothesis?.ok === false) {
@@ -126,10 +143,17 @@ jobs:
           if (restricted === stages.length) state = 'BLOCKED_BY_EGRESS_POLICY';
           else if (executed === stages.length) state = 'EXECUTED';
           else if (stages[0] === 'EXECUTED'
-              && stages[1] === 'OBSERVATION_PERSISTED_HYPOTHESIS_BLOCKED'
+              && ['OBSERVATION_PERSISTED_HYPOTHESIS_BLOCKED', 'HYPOTHESIS_RECOVERY_PARTIAL'].includes(stages[1])
               && (stages[2] === 'EXECUTED' || stages[2] === 'EGRESS_RESTRICTED')) {
             state = 'PARTIAL_OBSERVED_HYPOTHESIS_BLOCKED';
-            console.warn('WORLD_HYPOTHESIS_DEFERRED: external observations persist; inference unavailable.');
+            console.warn('WORLD_HYPOTHESIS_DEFERRED: WorldSpect observation persists; World inference remains unverified.');
+          } else if (stages[0] === 'EXECUTED'
+              && ['COOLDOWN_SKIPPED', 'HYPOTHESIS_RESUMED'].includes(stages[1])
+              && (stages[2] === 'EXECUTED' || stages[2] === 'EGRESS_RESTRICTED')) {
+            state = stages[1] === 'COOLDOWN_SKIPPED'
+              ? 'WORLDSPECT_OBSERVED_WORLD_OBSERVATORY_COOLDOWN'
+              : 'WORLDSPECT_OBSERVED_HYPOTHESIS_RESUMED';
+            console.warn('WORLD_DAILY_CYCLE_NOT_COMPLETED: successful WorldSpect measurement does not imply a complete World cycle.');
           } else if (stages[0] === 'EXECUTED' && stages[1] === 'EXECUTED'
               && stages[2] === 'EGRESS_RESTRICTED') {
             state = 'OBSERVED_INSTITUTIONAL_DEFERRED';
