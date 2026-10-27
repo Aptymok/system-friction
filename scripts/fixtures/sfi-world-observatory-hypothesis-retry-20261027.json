@@ -1,0 +1,122 @@
+{
+  "ok": false,
+  "retryOnly": true,
+  "status": "HYPOTHESIS_STAGE_STILL_PARTIAL",
+  "hypothesis": {
+    "ok": false,
+    "created": 0,
+    "considered": 157,
+    "clusters": 12,
+    "warnings": [
+      "groq:openai/gpt-oss-20b_failed:rate_limit; gemini:gemini-3.8-flash_failed:transient; openai:gpt-4o-mini_failed:quota; synthetic_fallback_suppressed",
+      "groq:openai/gpt-oss-120b_failed:rate_limit; synthetic_fallback_suppressed",
+      "groq:openai/gpt-oss-20b_failed:rate_limit; synthetic_fallback_suppressed",
+      "groq:openai/gpt-oss-120b:circuit_open:rate_limit; groq:openai/gpt-oss-20b:circuit_open:rate_limit; gemini:gemini-3.8-flash:circuit_open:transient; anthropic:no_model_matches_operation_requirements; openai:gpt-4o-mini:circuit_open:quota; huggingface:no_model_matches_operation_requirements; ollama:unconfigured; synthetic_fallback_suppressed"
+    ],
+    "results": [
+      {
+        "phenomenonKey": "ai-field:d6ff80f98ce4786406c0dccadf01cb7d",
+        "state": "NO_HYPOTHESIS",
+        "warning": null
+      },
+      {
+        "phenomenonKey": "ai-field:0c0ecd19b64282112071f78d48bf221e",
+        "state": "NO_HYPOTHESIS",
+        "warning": null
+      },
+      {
+        "phenomenonKey": "ai-field:ae9809ae87478f5f52c72068b6991736",
+        "state": "NO_HYPOTHESIS",
+        "warning": "groq:openai/gpt-oss-20b_failed:rate_limit; gemini:gemini-3.8-flash_failed:transient; openai:gpt-4o-mini_failed:quota; synthetic_fallback_suppressed"
+      },
+      {
+        "phenomenonKey": "ai-field:5b5de1110bdcadca6cb753c0d3a70845",
+        "state": "NO_HYPOTHESIS",
+        "warning": "groq:openai/gpt-oss-120b_failed:rate_limit; synthetic_fallback_suppressed"
+      },
+      {
+        "phenomenonKey": "ai-field:1fcb92e37e40ea7234d04bd0fd8c919a",
+        "state": "NO_HYPOTHESIS",
+        "warning": "groq:openai/gpt-oss-20b_failed:rate_limit; synthetic_fallback_suppressed"
+      },
+      {
+        "phenomenonKey": "ai-field:b69851bedb8d53df65370d80df9e2adf",
+        "state": "NO_HYPOTHESIS",
+        "warning": "groq:openai/gpt-oss-120b:circuit_open:rate_limit; groq:openai/gpt-oss-20b:circuit_open:rate_limit; gemini:gemini-3.8-flash:circuit_open:transient; anthropic:no_model_matches_operation_requirements; openai:gpt-4o-mini:circuit_open:quota; huggingface:no_model_matches_operation_requirements; ollama:unconfigured; synthetic_fallback_suppressed"
+      },
+      {
+        "phenomenonKey": "ai-field:aba8c684e83ce5217e6e305524e8c068",
+        "state": "NO_HYPOTHESIS",
+        "warning": "groq:openai/gpt-oss-120b:circuit_open:rate_limit; groq:openai/gpt-oss-20b:circuit_open:rate_limit; gemini:gemini-3.8-flash:circuit_open:transient; anthropic:no_model_matches_operation_requirements; openai:gpt-4o-mini:circuit_open:quota; huggingface:no_model_matches_operation_requirements; ollama:unconfigured; synthetic_fallback_suppressed"
+      },
+      {
+        "phenomenonKey": "ai-field:7da2cf782c466d0928bbba6a846d68bb",
+        "state": "NO_HYPOTHESIS",
+        "warning": "groq:openai/gpt-oss-120b:circuit_open:rate_limit; groq:openai/gpt-oss-20b:circuit_open:rate_limit; gemini:gemini-3.8-flash:circuit_open:transient; anthropic:no_model_matches_operation_requirements; openai:gpt-4o-mini:circuit_open:quota; huggingface:no_model_matches_operation_requirements; ollama:unconfigured; synthetic_fallback_suppressed"
+      },
+      {
+        "phenomenonKey": "ai-field:900ee612f175b1b08e6307c21c5dc803",
+        "state": "NO_HYPOTHESIS",
+        "warning": "groq:openai/gpt-oss-120b:circuit_open:rate_limit; groq:openai/gpt-oss-20b:circuit_open:rate_limit; gemini:gemini-3.8-flash:circuit_open:transient; anthropic:no_model_matches_operation_requirements; openai:gpt-4o-mini:circuit_open:quota; huggingface:no_model_matches_operation_requirements; ollama:unconfigured; synthetic_fallback_suppressed"
+      },
+      {
+        "phenomenonKey": "ai-field:00a0992bae03dd59dac66e1c51b929f2",
+        "state": "NO_HYPOTHESIS",
+        "warning": "groq:openai/gpt-oss-120b:circuit_open:rate_limit; groq:openai/gpt-oss-20b:circuit_open:rate_limit; gemini:gemini-3.8-flash:circuit_open:transient; anthropic:no_model_matches_operation_requirements; openai:gpt-4o-mini:circuit_open:quota; huggingface:no_model_matches_operation_requirements; ollama:unconfigured; synthetic_fallback_suppressed"
+      },
+      {
+        "phenomenonKey": "ai-field:c0935e5543960c8764f47027c4a04015",
+        "state": "NO_HYPOTHESIS",
+        "warning": "groq:openai/gpt-oss-120b:circuit_open:rate_limit; groq:openai/gpt-oss-20b:circuit_open:rate_limit; gemini:gemini-3.8-flash:circuit_open:transient; anthropic:no_model_matches_operation_requirements; openai:gpt-4o-mini:circuit_open:quota; huggingface:no_model_matches_operation_requirements; ollama:unconfigured; synthetic_fallback_suppressed"
+      },
+      {
+        "phenomenonKey": "ai-field:27938ccd3ae61ad50bbab3a55e465019",
+        "state": "NO_HYPOTHESIS",
+        "warning": "groq:openai/gpt-oss-120b:circuit_open:rate_limit; groq:openai/gpt-oss-20b:circuit_open:rate_limit; gemini:gemini-3.8-flash:circuit_open:transient; anthropic:no_model_matches_operation_requirements; openai:gpt-4o-mini:circuit_open:quota; huggingface:no_model_matches_operation_requirements; ollama:unconfigured; synthetic_fallback_suppressed"
+      }
+    ],
+    "metaLearning": {
+      "sampleSize": 120,
+      "classificationCounts": {
+        "INCONCLUSIVE": 38,
+        "PARTIALLY_VALIDATED": 82
+      },
+      "partialValidationRate": 0.6833333333333333,
+      "decisiveRate": 0,
+      "inconclusiveRate": 0.31666666666666665,
+      "tightenDiscrimination": true,
+      "topMissingVariables": [
+        "natural_event",
+        "event",
+        "displacement",
+        "persistence_now",
+        "environment",
+        "residual_effect",
+        "fragmentation",
+        "measurement"
+      ],
+      "boundaries": {
+        "historicalOutcomesAreMethodFeedback": true,
+        "doesNotChangeAttractors": true,
+        "doesNotPromoteTruth": true,
+        "doesNotCreateEvidence": true,
+        "rootPromotionStillRequired": true
+      }
+    },
+    "generatedAt": "2026-10-27T11:44:29.484Z",
+    "rule": "New world hypotheses are governed AI inferences over persisted source records and derived structural relations. A PROPOSE result must preregister measurable expected/contradiction criteria, evidence coverage and a claim-derived validation horizon before RETURN is observed. Historical outcomes may tighten future test discrimination but cannot change attractors or promote truth."
+  },
+  "calibration": null,
+  "receipt": {
+    "id": "e3488c5d-8bce-4895-9a6d-8f3781549760",
+    "event_id": "5070a8cc-dea0-4ac9-a0df-82be971cff50",
+    "sequence": 1938,
+    "hash_self": "97dc97dc1a33a5cba6043c3c49bb657a69526ceb0ed322598c5e7fcdae5ff7e0",
+    "event_name": "external.world.hypothesis_resume.partial",
+    "logbook_id": "WORLD",
+    "occurred_at": "2026-10-27T11:44:29.484+00:00",
+    "epistemic_class": "derived"
+  },
+  "writesPerformed": true,
+  "boundary": "A scheduled hypothesis-stage recovery cannot retroactively mint a complete World daily-cycle receipt or establish empirical truth."
+}
