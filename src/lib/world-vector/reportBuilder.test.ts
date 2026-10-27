@@ -242,3 +242,21 @@ test('public weekly draft retains the enclosing cycle as its persistence identit
   assert.deepEqual([weekly.period_start, weekly.period_end], ['2026-10-26', '2026-11-01']);
   assert.equal(weekly.report_type, 'public_weekly');
 });
+
+test('daily report normalizes offset-bearing timestamps to their actual UTC date', () => {
+  const offsetObservation: WorldVectorObservation = {
+    ...tuesday,
+    observed_at: '2026-10-27T00:30:00+03:00',
+  };
+  const report = buildWorldVectorInternalReport({ observation: offsetObservation, cycleRange });
+  assert.deepEqual([report.period_start, report.period_end], ['2026-10-26', '2026-10-26']);
+  assert.match(report.body, /Observed at: 2026-10-27T00:30:00\+03:00/);
+});
+
+test('daily report retains legacy cycle identity when observation timestamp is invalid or absent', () => {
+  for (const observed_at of ['not-a-timestamp', undefined]) {
+    const observation: WorldVectorObservation = { ...tuesday, observed_at };
+    const report = buildWorldVectorInternalReport({ observation, cycleRange });
+    assert.deepEqual([report.period_start, report.period_end], ['2026-10-26', '2026-10-26']);
+  }
+});
