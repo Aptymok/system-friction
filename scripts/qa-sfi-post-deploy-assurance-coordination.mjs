@@ -137,7 +137,11 @@ assert.match(continuity, /no heartbeat or RETURN is claimed/);
 assert.match(continuity, /type\(payload\.get\('shouldRun'\)\) is not bool/);
 assert.match(continuity, /SFI_CONTINUITY_WAKEUP_CONTRACT_INVALID/);
 assert.match(continuity, /SFI_CONTINUITY_WAKEUP_CONTRADICTORY/);
-assert.match(continuity, /'activeProposal', 'activeCase', 'openUniversalCycle', 'dueC07Job'/);
+assert.match(continuity, /gate_state = payload\.get\('state'\)/);
+assert.match(continuity, /'activeProposal', 'activeCase', 'openUniversalCycle'/);
+assert.match(continuity, /'activeStudioExperiment', 'mirrorMaintenanceRequired'/);
+assert.match(continuity, /mission = gate_state\.get\('c08MissionWork'\)/);
+assert.match(continuity, /gate_state\.get\('continuityMode'\) not in \(None, 'NORMAL'\)/);
 
 // One assurance result cannot fabricate or hide the other workflow receipt.
 assert.match(observatory, /SFI_PRODUCTION_RETURN_PASS/);
