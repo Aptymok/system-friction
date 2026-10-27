@@ -306,6 +306,18 @@ jobs:
                   raise SystemExit('targeted cycleId was not acknowledged by the live heartbeat')
               if universal.get('requestedCycleId') != requested:
                   raise SystemExit('targeted cycleId was not acknowledged by the cognitive continuation lane')
+              # A historical cycle can have events even when this invocation selected
+              # no candidate. Require an actual same-cycle continuation result.
+              # Selection is NOT proof of a new event, RETURN, or learning.
+              selected_results = universal.get('results')
+              if not isinstance(selected_results, list) or not any(
+                  isinstance(item, dict) and item.get('cycleId') == requested
+                  for item in selected_results
+              ):
+                  raise SystemExit(
+                      'SFI_TARGETED_CYCLE_NOT_SELECTED: historical events alone do not prove '
+                      'this heartbeat continued the requested cycle; no RETURN is claimed'
+                  )
               if not isinstance(target, dict) or target.get('ok') is not True or target.get('cycleId') != requested:
                   raise SystemExit('targeted existing cycle was not processed or reconstructed successfully')
               if int(target.get('eventCount') or 0) < 1:
