@@ -133,6 +133,12 @@ assert.match(continuity, /payload\.get\('reason'\) == 'PRIMARY_WORK_GATE_UNAVAIL
 assert.match(continuity, /SFI_CONTINUITY_PRIMARY_WORK_GATE_UNAVAILABLE/);
 assert.match(continuity, /no heartbeat or RETURN is claimed/);
 
+// A malformed or contradictory wakeup must fail closed rather than report idle.
+assert.match(continuity, /type\(payload\.get\('shouldRun'\)\) is not bool/);
+assert.match(continuity, /SFI_CONTINUITY_WAKEUP_CONTRACT_INVALID/);
+assert.match(continuity, /SFI_CONTINUITY_WAKEUP_CONTRADICTORY/);
+assert.match(continuity, /'activeProposal', 'activeCase', 'openUniversalCycle', 'dueC07Job'/);
+
 // One assurance result cannot fabricate or hide the other workflow receipt.
 assert.match(observatory, /SFI_PRODUCTION_RETURN_PASS/);
 assert.match(observatory, /SFI_PRODUCTION_RETURN_FAIL/);
