@@ -129,7 +129,7 @@ assert.doesNotMatch(combined, /cancel-in-progress:\s*true/);
 
 // The read-only wakeup must not report a green idle pulse when primary work eligibility is unreadable.
 // This does not authorize a heartbeat, primary egress, database write or RETURN.
-assert.match(continuity, /payload\.get\('reason'\) == 'PRIMARY_WORK_GATE_UNAVAILABLE'/);
+assert.match(continuity, /payload\.get\('reason'\) == 'PRIMARY_WORK_GATE_UNAVAILABLE' and not should_run/);
 assert.match(continuity, /SFI_CONTINUITY_PRIMARY_WORK_GATE_UNAVAILABLE/);
 assert.match(continuity, /no heartbeat or RETURN is claimed/);
 
