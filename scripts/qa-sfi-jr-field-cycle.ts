@@ -193,7 +193,7 @@ const observatoryStep = worldCronWorkflow
   .split('      - name: Execute World Observatory Observation Hypothesis Calibration Cycle\n')[1]
   ?.split('      - name: Execute SFI Institutional Cognitive Cycle')[0];
 assert.ok(observatoryStep, 'world_observatory_step_missing');
-const classifierMatch = observatoryStep.match(/node - <<'NODE'\\r?\\n([\\s\\S]*?)\\r?\\n          NODE/);
+const classifierMatch = observatoryStep.match(/node - <<'NODE'\r?\n([\s\S]*?)\r?\n          NODE/);
 assert.ok(classifierMatch, 'world_observatory_embedded_classifier_missing');
 const recordedRetry = JSON.parse(read('scripts/fixtures/sfi-world-observatory-hypothesis-retry-20261027.json'));
 assert.equal(recordedRetry.receipt?.event_name, 'external.world.hypothesis_resume.partial');
