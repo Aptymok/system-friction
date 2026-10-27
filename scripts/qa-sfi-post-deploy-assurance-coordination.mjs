@@ -127,6 +127,12 @@ assert.equal((combined.match(/cancel-in-progress:\s*false/g) || []).length, 4);
 assert.equal((combined.match(/queue:\s*max/g) || []).length, 4);
 assert.doesNotMatch(combined, /cancel-in-progress:\s*true/);
 
+// The read-only wakeup must not report a green idle pulse when primary work eligibility is unreadable.
+// This does not authorize a heartbeat, primary egress, database write or RETURN.
+assert.match(continuity, /payload\.get\('reason'\) == 'PRIMARY_WORK_GATE_UNAVAILABLE'/);
+assert.match(continuity, /SFI_CONTINUITY_PRIMARY_WORK_GATE_UNAVAILABLE/);
+assert.match(continuity, /no heartbeat or RETURN is claimed/);
+
 // One assurance result cannot fabricate or hide the other workflow receipt.
 assert.match(observatory, /SFI_PRODUCTION_RETURN_PASS/);
 assert.match(observatory, /SFI_PRODUCTION_RETURN_FAIL/);
