@@ -138,6 +138,15 @@ jobs:
                   handle.write('## SFI Continuity wakeup gate\n\n```json\n')
                   handle.write(json.dumps(payload, ensure_ascii=False, indent=2))
                   handle.write('\n```\n')
+          if payload.get('reason') == 'PRIMARY_WORK_GATE_UNAVAILABLE':
+              diagnostic = payload.get('diagnostic') or {}
+              code = str(diagnostic.get('code') or 'UNKNOWN')
+              safe_code = code if __import__('re').fullmatch(r'[A-Za-z0-9_]{1,40}', code) else 'UNCLASSIFIED'
+              raise SystemExit(
+                  'SFI_CONTINUITY_PRIMARY_WORK_GATE_UNAVAILABLE: '
+                  f'code={safe_code}; primary read did not establish whether continuity work exists; '
+                  'no heartbeat or RETURN is claimed'
+              )
           PY
 
       - name: Record idle pulse without heavy runtime execution
