@@ -551,3 +551,19 @@ html:has(.repositoryShell),body:has(.repositoryShell){overflow-y:hidden!importan
 .repoLiveV2 .repoSourceDrawer .repoRailScroll button{flex:0 0 250px;text-align:left;padding:10px!important;border:1px solid rgba(214,174,102,.26);background:#07141c}
 .repoLiveV2 .repoToolbar{padding-right:92px!important}
 @media(max-width:750px){.repoLiveV2 .repoFieldTrack{grid-template-columns:220px 760px 440px 355px 530px!important;min-width:2370px!important}.repoLiveV2 .repoToolbar{padding-right:66px!important}}
+
+/* SFI public reading accessibility: preserve the horizontal archive panorama,
+   while allowing long source/evidence collections to scroll vertically inside
+   their own bounded panes. */
+.repoLiveV2 .repoSourceDrawer .repoRailScroll{
+  overflow-x:auto!important;
+  overflow-y:auto!important;
+  overscroll-behavior:contain;
+  scrollbar-width:thin;
+}
+.repoLiveV2 .repoSourceDrawer .repoArchiveLower .repoRailColumn{
+  min-height:0!important;
+}
+.repoLiveV2 .repoSourceDrawer .repoRailScroll button{
+  align-self:start;
+}
