@@ -73,11 +73,11 @@ assert.match(continuity, /workflow_dispatch:/);
 // Regression: #791 was previously repaired, then a subsequent cost-driven cadence change
 // made the projection stale again. This asserts metadata only; no scheduler is invoked.
 const projection = fs.readFileSync('src/lib/persistence/dataPlaneReconciliationControl.ts', 'utf8');
-const scheduledMinutes = continuity.match(/^\\s*-\\s*cron:\\s*'(\\d{1,2}(?:,\\d{1,2})*) \\* \\* \\* \\*'/m);
-const projectedSchedule = projection.match(/timesUtc:\\s*\\[([^\\]]+)\\]/);
+const scheduledMinutes = continuity.match(/^\s*-\s*cron:\s*'(\d{1,2}(?:,\d{1,2})*) \* \* \* \*'/m);
+const projectedSchedule = projection.match(/timesUtc:\s*\[([^\]]+)\]/);
 assert.ok(scheduledMinutes && projectedSchedule, 'ROOT and workflow must declare a schedule');
 const actualMinutes = scheduledMinutes[1].split(',').map(Number).sort((a, b) => a - b);
-const declaredMinutes = [...projectedSchedule[1].matchAll(/'HH:(\\d{2})'/g)]
+const declaredMinutes = [...projectedSchedule[1].matchAll(/'HH:(\d{2})'/g)]
   .map((match) => Number(match[1])).sort((a, b) => a - b);
 assert.deepEqual(declaredMinutes, actualMinutes, 'ROOT timesUtc must equal the real workflow cron');
 assert.ok(projection.includes("triggerTypes: ['schedule', 'workflow_dispatch', 'workflow_run']"),
