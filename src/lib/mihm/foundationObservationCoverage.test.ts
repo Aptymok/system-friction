@@ -55,3 +55,36 @@ test('source flag does not override missingness or synthetic provenance', () => 
   assert.ok(result.warnings.includes('simulated_inputs_present'));
   assert.ok(result.warnings.includes('graph_edge_weights_do_not_establish_provenance_or_viability'));
 });
+
+test('marginal coverage cannot conceal zero jointly measured nodes', () => {
+  const result = assessMihmObservationCoverage(fixture([0.8, null], [null, 0.6]));
+  assert.equal(result.valueCoverage, 0.5);
+  assert.equal(result.ntiCoverage, 0.5);
+  assert.equal(result.pairedObservedNodes, 0);
+  assert.equal(result.pairedCoverage, 0);
+  assert.equal(result.pairedValueMean, null);
+  assert.equal(result.pairedNtiMean, null);
+  assert.equal(result.jointReadiness, 'NO_PAIRED_MEASUREMENTS');
+  assert.ok(result.warnings.includes('no_joint_value_nti_observation'));
+  assert.equal(result.empiricalHomeostasisClaimed, false);
+});
+
+test('joint means use only nodes with both measured dimensions', () => {
+  const result = assessMihmObservationCoverage(fixture([0.8, 0.2, null], [0.4, null, 0.9]));
+  assert.equal(result.pairedObservedNodes, 1);
+  assert.equal(result.pairedCoverage, 1 / 3);
+  assert.equal(result.pairedValueMean, 0.8);
+  assert.equal(result.pairedNtiMean, 0.4);
+  assert.equal(result.jointReadiness, 'PARTIAL_PAIRED_MEASUREMENTS');
+  assert.ok(result.warnings.includes('joint_measurement_coverage_incomplete'));
+});
+
+test('complete numeric pairs are not by themselves verified empirical evidence', () => {
+  const result = assessMihmObservationCoverage(fixture([0, 1], [1, 0]));
+  assert.equal(result.pairedObservedNodes, 2);
+  assert.equal(result.pairedCoverage, 1);
+  assert.equal(result.jointReadiness, 'PAIRED_INPUTS_ONLY');
+  assert.ok(result.warnings.includes('simulated_inputs_present'));
+  assert.equal(result.canonicalPhiCalculated, false);
+  assert.equal(result.empiricalHomeostasisClaimed, false);
+});
