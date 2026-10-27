@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 
 const read=(path:string)=>readFileSync(path,'utf8');
@@ -181,6 +182,39 @@ assert.ok(rootView.includes("closesAt: string | null"), 'root_method_result_must
 assert.equal(/runGovernedExecutionRouter|transitionOperationalCase|governanceDecision/.test(jr),false,'jr_must_not_execute_governed_or_material_actions');
 assert.equal(/\.from\('graph_nodes'\).*insert|\.from\('graph_edges'\).*insert/.test(jr),false,'jr_must_not_mutate_canonical_graph_store_directly');
 assert.equal(/materialPerturbationExecuted:true|executionPerformed:true/.test(jr+perturbation+activeObservation),false,'jr_must_not_claim_material_execution');
+
+
+ 
+// Exact native response replay: GitHub Actions run 40498295996, job 122169254233,
+// 2026-10-27T11:44:30Z. Fixture is the recorded HTTP 207 response, not a mock.
+// The classifier is extracted from the actual workflow, so CI detects drift.
+const worldCronWorkflow = read('.github/workflows/worldspect-cron.yml');
+const observatoryStep = worldCronWorkflow
+  .split('      - name: Execute World Observatory Observation Hypothesis Calibration Cycle\n')[1]
+  ?.split('      - name: Execute SFI Institutional Cognitive Cycle')[0];
+assert.ok(observatoryStep, 'world_observatory_step_missing');
+const classifierMatch = observatoryStep.match(/node - <<'NODE'\\r?\\n([\\s\\S]*?)\\r?\\n          NODE/);
+assert.ok(classifierMatch, 'world_observatory_embedded_classifier_missing');
+const recordedRetry = JSON.parse(read('scripts/fixtures/sfi-world-observatory-hypothesis-retry-20261027.json'));
+assert.equal(recordedRetry.receipt?.event_name, 'external.world.hypothesis_resume.partial');
+assert.equal(recordedRetry.retryOnly, true);
+assert.equal(recordedRetry.hypothesis?.created, 0);
+const runClassifier = (body: Record<string, unknown>) => spawnSync(
+  process.execPath, ['-e', classifierMatch[1]], {
+    encoding: 'utf8',
+    env: { ...process.env, BODY: JSON.stringify(body) },
+    timeout: 10000,
+  },
+);
+const replay = runClassifier(recordedRetry);
+assert.equal(replay.status, 0, `recorded_world_retry_must_be_recognized: ${replay.stderr}`);
+assert.equal(replay.stdout, 'HYPOTHESIS_RECOVERY_PARTIAL',
+  'recorded_retry_must_not_be_misclassified_as_full_execution');
+const negativeControl = structuredClone(recordedRetry);
+delete negativeControl.receipt;
+const rejected = runClassifier(negativeControl);
+assert.equal(rejected.status, 2,
+  'negative_control_without_persisted_receipt_must_fail_closed');
 
 console.log(JSON.stringify({
   ok:true,
