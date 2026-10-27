@@ -138,7 +138,7 @@ jobs:
                   handle.write('## SFI Continuity wakeup gate\n\n```json\n')
                   handle.write(json.dumps(payload, ensure_ascii=False, indent=2))
                   handle.write('\n```\n')
-          if payload.get('reason') == 'PRIMARY_WORK_GATE_UNAVAILABLE':
+          if payload.get('reason') == 'PRIMARY_WORK_GATE_UNAVAILABLE' and not should_run:
               diagnostic = payload.get('diagnostic') or {}
               code = str(diagnostic.get('code') or 'UNKNOWN')
               safe_code = code if re.fullmatch(r'[A-Za-z0-9_]{1,40}', code) else 'UNCLASSIFIED'
