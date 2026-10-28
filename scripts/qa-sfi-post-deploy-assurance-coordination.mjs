@@ -229,6 +229,27 @@ const missingStateReplay = replayWakeupClassifier(missingStateIdle);
 assert.notEqual(missingStateReplay.status, 0);
 assert.match(missingStateReplay.stderr, /SFI_CONTINUITY_WAKEUP_CONTRACT_INVALID: idle decision missing state/);
 
+// Negative control 4: a non-idle reason cannot be silently accepted as idle,
+// even when the work flags in a test copy are all cleared. These are mutated
+// fields of a genuine recorded wakeup, NOT a claimed institutional receipt.
+const contradictoryReasonIdle = {
+  ...nativeWakeup,
+  shouldRun: false,
+  state: {
+    ...nativeWakeup.state,
+    continuityMode: 'NORMAL',
+    activeProposal: false,
+    activeCase: false,
+    openUniversalCycle: false,
+    activeStudioExperiment: false,
+    mirrorMaintenanceRequired: false,
+    c08MissionWork: { ...nativeWakeup.state.c08MissionWork, required: false },
+  },
+};
+const contradictoryReasonReplay = replayWakeupClassifier(contradictoryReasonIdle);
+assert.notEqual(contradictoryReasonReplay.status, 0);
+assert.match(contradictoryReasonReplay.stderr, /SFI_CONTINUITY_WAKEUP_REASON_CONTRADICTORY/);
+
 // Targeted manual recovery must not pass solely because old lifecycle events exist.
 // This is a source-level guard: it does not prove any new RETURN or action.
 assert.match(continuity, /selected_results = universal\.get\('results'\)/);
