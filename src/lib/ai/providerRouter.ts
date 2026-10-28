@@ -913,6 +913,7 @@ export async function probeLlmProviders(input: { provider?: Exclude<LlmProviderI
           system: 'SFI provider canary. Return exactly OK.',
           prompt: 'OK',
           maxTokens: 8,
+          structuredOutput: false,
         });
         if (!output.result.trim()) throw new Error('empty_canary_result');
         markModelSuccess(config.id, candidate.model, Date.now() - started);
