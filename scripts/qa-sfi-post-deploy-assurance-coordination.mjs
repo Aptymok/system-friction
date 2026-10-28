@@ -221,6 +221,14 @@ const contradictoryReplay = replayWakeupClassifier(contradictoryIdle);
 assert.notEqual(contradictoryReplay.status, 0);
 assert.match(contradictoryReplay.stderr, /SFI_CONTINUITY_WAKEUP_CONTRADICTORY/);
 
+// Negative control 3: the canonical gate never establishes idle without a
+// state object. A truncated response must not become a successful idle pulse.
+const missingStateIdle = { ...nativeWakeup, shouldRun: false };
+delete missingStateIdle.state;
+const missingStateReplay = replayWakeupClassifier(missingStateIdle);
+assert.notEqual(missingStateReplay.status, 0);
+assert.match(missingStateReplay.stderr, /SFI_CONTINUITY_WAKEUP_CONTRACT_INVALID: idle decision missing state/);
+
 // Targeted manual recovery must not pass solely because old lifecycle events exist.
 // This is a source-level guard: it does not prove any new RETURN or action.
 assert.match(continuity, /selected_results = universal\.get\('results'\)/);
