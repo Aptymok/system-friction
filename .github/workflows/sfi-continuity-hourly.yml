@@ -140,10 +140,6 @@ jobs:
           # Missing state cannot establish that there is no actionable work.
           if not should_run and not isinstance(gate_state, dict):
               raise SystemExit('SFI_CONTINUITY_WAKEUP_CONTRACT_INVALID: idle decision missing state; no idle receipt is claimed')
-          # An idle receipt requires the canonical idle reason; an unknown reason
-          # must not silently become a green no-work result.
-          if not should_run and payload.get('reason') not in ('IDLE_NO_ACTIONABLE_WORK', 'PRIMARY_WORK_GATE_UNAVAILABLE'):
-              raise SystemExit('SFI_CONTINUITY_WAKEUP_REASON_CONTRADICTORY: idle decision has non-idle reason; no idle receipt is claimed')
           if isinstance(gate_state, dict) and not should_run:
               actionable_flags = (
                   'activeProposal', 'activeCase', 'openUniversalCycle',
@@ -157,6 +153,10 @@ jobs:
                       'SFI_CONTINUITY_WAKEUP_CONTRADICTORY: shouldRun=false with actionable work; '
                       'no idle receipt is claimed'
                   )
+          # An idle receipt requires the canonical idle reason; an unknown reason
+          # must not silently become a green no-work result.
+          if not should_run and payload.get('reason') not in ('IDLE_NO_ACTIONABLE_WORK', 'PRIMARY_WORK_GATE_UNAVAILABLE'):
+              raise SystemExit('SFI_CONTINUITY_WAKEUP_REASON_CONTRADICTORY: idle decision has non-idle reason; no idle receipt is claimed')
           with open(output_path, 'a', encoding='utf-8') as handle:
               handle.write(f"should_run={'true' if should_run else 'false'}\n")
           print(json.dumps(payload, ensure_ascii=False, separators=(',', ':')))
