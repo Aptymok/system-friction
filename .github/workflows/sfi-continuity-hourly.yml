@@ -231,6 +231,8 @@ jobs:
               'trigger': payload.get('trigger'),
               'mode': payload.get('mode'),
               'status': payload.get('status'),
+              'continuityScope': payload.get('continuityScope'),
+              'c07QueuedMission': payload.get('c07QueuedMission'),
               'guardContract': payload.get('contract'),
               'guardLane': payload.get('lane'),
               'guardReason': payload.get('reason'),
@@ -281,6 +283,32 @@ jobs:
                   'agent execution, universal continuation or RETURN was observed. '
                   'General scheduled egress requires a separately authorized '
                   'configuration and cost review; retired Neon fallback stays disabled.'
+              )
+
+          # The existing C07 Supabase queue returns before coreHeartbeat.
+          # Its receipt is not evidence of universal RETURN or learning.
+          if payload.get('continuityScope') == 'C07_SUPABASE_PRIMARY_ONLY':
+              mission = payload.get('c07QueuedMission')
+              if not isinstance(mission, dict):
+                  raise SystemExit('SFI_C07_PRIMARY_RECEIPT_INVALID: missing mission envelope')
+              processed = mission.get('processed')
+              if type(processed) is not int or processed not in (0, 1):
+                  raise SystemExit('SFI_C07_PRIMARY_RECEIPT_INVALID: processed must be 0 or 1')
+              if payload.get('writesPerformed') is not (processed == 1):
+                  raise SystemExit('SFI_C07_PRIMARY_RECEIPT_INVALID: writesPerformed disagrees with processed')
+              if payload.get('status') != 'C07_PRIMARY_STEP_COMPLETE' or payload.get('ok') is not True or mission.get('ok') is not True:
+                  raise SystemExit('SFI_C07_PRIMARY_STEP_FAILED: C07 queue step did not complete')
+              if requested:
+                  raise SystemExit('SFI_C07_TARGETED_CYCLE_NOT_CONTINUED: C07 queue step is not targeted universal cycle proof')
+              if processed == 0:
+                  raise SystemExit('SFI_C07_PRIMARY_NO_PROGRESS: zero processed; universal lanes and RETURN not observed')
+              if mission.get('state') not in ('COMPLETED', 'COMPLETED_BY_PERSISTED_RECEIPT'):
+                  raise SystemExit('SFI_C07_PRIMARY_RECEIPT_INVALID: processed=1 without completed or reconciled state')
+              if not isinstance(mission.get('executionId'), str) or not mission['executionId'].strip():
+                  raise SystemExit('SFI_C07_PRIMARY_RECEIPT_INVALID: missing executionId')
+              raise SystemExit(
+                  'SFI_C07_PRIMARY_STEP_ONLY: one C07 mission completed or reconciled; '
+                  'universal continuation, RETURN, contrast and learning not observed'
               )
 
           if core.get('ok') is not True:
