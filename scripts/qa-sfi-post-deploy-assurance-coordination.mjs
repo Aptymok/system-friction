@@ -263,6 +263,31 @@ assert.match(observatory, /SFI_PRODUCTION_RETURN_FAIL/);
 assert.match(continuity, /UNIVERSAL_CONTINUATION_FAIL/);
 assert.match(continuity, /continuity heartbeat reported ok=false/);
 
+// Source-contract regression: C07's bounded Supabase queue returns before coreHeartbeat.
+// Verify the actual workflow classifier, not fabricated C07 execution receipts.
+const c07Route = fs.readFileSync('src/app/api/cron/continuity-heartbeat/route.ts', 'utf8');
+assert.match(c07Route, /continuityScope:'C07_SUPABASE_PRIMARY_ONLY'/);
+assert.match(c07Route, /status:c07QueuedMission\.ok\?'C07_PRIMARY_STEP_COMPLETE'/);
+const c07Branch = continuity.indexOf("if payload.get('continuityScope') == 'C07_SUPABASE_PRIMARY_ONLY':");
+const coreBranch = continuity.indexOf("if core.get('ok') is not True:");
+assert.ok(c07Branch >= 0 && coreBranch > c07Branch, 'C07-specific receipt classifier must precede generic core fallback');
+assert.match(continuity, /'c07QueuedMission': payload\.get\('c07QueuedMission'\)/);
+assert.match(continuity, /SFI_C07_PRIMARY_RECEIPT_INVALID/);
+assert.match(continuity, /SFI_C07_PRIMARY_STEP_ONLY/);
+assert.match(continuity, /SFI_C07_PRIMARY_NO_PROGRESS/);
+assert.match(continuity, /SFI_C07_TARGETED_CYCLE_NOT_CONTINUED/);
+const heartbeatPythonMatch = continuity.match(
+  /python - "\$response_file" "\$CYCLE_ID" "\$TARGET_SOURCE" <<'PY'\r?\n([\s\S]*?)\r?\n {10}PY/,
+);
+assert.ok(heartbeatPythonMatch, 'actual heartbeat classifier must remain extractable');
+const heartbeatPython = heartbeatPythonMatch[1].split('\n')
+  .map((line) => line.startsWith('          ') ? line.slice(10) : line).join('\n');
+const heartbeatSyntax = spawnSync('python3', ['-c', 'import ast,sys; ast.parse(sys.stdin.read())'], {
+  input: heartbeatPython, encoding: 'utf8', timeout: 15000,
+});
+assert.equal(heartbeatSyntax.error, undefined, 'Python parser must launch');
+assert.equal(heartbeatSyntax.status, 0, heartbeatSyntax.stderr);
+
 // Preserve #386: READ retry remains bounded at 2 and no effectful heartbeat retry is introduced.
 assert.match(universal, /LEDGER_READ_MAX_ATTEMPTS\s*=\s*2/);
 assert.doesNotMatch(continuity, /--retry-all-errors/);
