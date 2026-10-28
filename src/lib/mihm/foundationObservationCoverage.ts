@@ -8,7 +8,7 @@
  * Inputs are caller-provided readings, not invented observations. Results are
  * DERIVED diagnostics, not empirical homeostasis, Phi, RETURN or validation.
  */
-import type { ReducedMihmInput } from '../../../packages/mihm-core/src';
+import { computeReducedMihm, type ReducedMihmInput } from '../../../packages/mihm-core/src';
 
 export type MihmObservationCoverage = {
   epistemicClass: 'DERIVED';
@@ -111,5 +111,60 @@ export function assessMihmObservationCoverage(input: ReducedMihmInput): MihmObse
     canonicalPhiCalculated: false,
     empiricalHomeostasisClaimed: false,
     warnings,
+  };
+}
+
+
+/**
+ * Fail-closed research adapter: the historical reduced kernel is unchanged.
+ *
+ * Never produce a numeric diagnostic from absent, partially paired, simulated
+ * or structurally inconsistent inputs. Even when numeric output is available,
+ * it is a legacy REDUCED_KERNEL_CONTINUITY diagnostic, NOT an empirical
+ * measurement of homeostasis, a canonical Phi, or an intervention decision.
+ *
+ * This is deliberately caller-owned and research-only until an approved
+ * instrument route uses it. No source flag alone authenticates provenance.
+ */
+export type MihmGatedResearchReading = {
+  epistemicClass: 'DERIVED';
+  decision: 'ABSTAIN' | 'LEGACY_DIAGNOSTIC_ONLY';
+  reasons: string[];
+  coverage: MihmObservationCoverage;
+  legacyDiagnostic: import('../../../packages/mihm-core/src').ReducedMihmResult | null;
+  canonicalPhiCalculated: false;
+  empiricalHomeostasisClaimed: false;
+  sourceProvenanceVerified: false;
+  realWorldInterventionAuthorized: false;
+};
+
+export function evaluateReducedMihmResearchInput(input: ReducedMihmInput): MihmGatedResearchReading {
+  const coverage = assessMihmObservationCoverage(input);
+  const reasons: string[] = [];
+  if (coverage.nodeEntries === 0) reasons.push('NO_NODE_MEASUREMENTS');
+  if (coverage.pairedCoverage !== 1) reasons.push('MISSING_OR_UNPAIRED_NODE_MEASUREMENTS');
+  if (input.campo.sourceState !== 'observed') reasons.push('CAMPO_SOURCE_NOT_OBSERVED');
+  if (input.graph.sourceState !== 'observed') reasons.push('GRAPH_SOURCE_NOT_OBSERVED');
+  if (input.campo.nodes.some((node) => node.simulated)) reasons.push('SIMULATED_INPUTS_NOT_EMPIRICAL');
+  if (input.graph.nodes.length !== coverage.nodeEntries) reasons.push('GRAPH_NODE_COUNT_MISMATCH');
+  if (!input.observedAt || !Number.isFinite(Date.parse(input.observedAt))) reasons.push('OBSERVATION_TIMESTAMP_INVALID');
+  if (!Number.isFinite(input.campo.confidence) || input.campo.confidence < 0 || input.campo.confidence > 1) {
+    reasons.push('CAMPO_CONFIDENCE_INVALID');
+  }
+  if (input.campo.nodes.some((node) => !Number.isFinite(node.weight) || node.weight < 0 || node.weight > 1)) {
+    reasons.push('NODE_WEIGHT_INVALID');
+  }
+  // This legacy numerical result has no empirical provenance or future T1
+  // verification. An observed source flag is not a proof of observed-world truth.
+  return {
+    epistemicClass: 'DERIVED',
+    decision: reasons.length ? 'ABSTAIN' : 'LEGACY_DIAGNOSTIC_ONLY',
+    reasons,
+    coverage,
+    legacyDiagnostic: reasons.length ? null : computeReducedMihm(input),
+    canonicalPhiCalculated: false,
+    empiricalHomeostasisClaimed: false,
+    sourceProvenanceVerified: false,
+    realWorldInterventionAuthorized: false,
   };
 }
