@@ -136,6 +136,10 @@ jobs:
           # Actionable-work flags are nested under state by the canonical gate.
           # Fail closed on a contradictory idle result without authorizing work.
           gate_state = payload.get('state')
+          # The canonical gate returns a state object for every idle decision.
+          # Missing state cannot establish that there is no actionable work.
+          if not should_run and not isinstance(gate_state, dict):
+              raise SystemExit('SFI_CONTINUITY_WAKEUP_CONTRACT_INVALID: idle decision missing state; no idle receipt is claimed')
           if isinstance(gate_state, dict) and not should_run:
               actionable_flags = (
                   'activeProposal', 'activeCase', 'openUniversalCycle',
