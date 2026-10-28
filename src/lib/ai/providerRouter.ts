@@ -258,7 +258,7 @@ export function getLlmModelCatalog(): LlmModelCapability[] {
     { provider: 'groq', model: DEFAULTS.groqReasoning, role: 'open-weight high-quality reasoning', contextTokens: 131_072, reasoning: true, reasoningClass: 'HIGH', structuredOutput: true, web: false, multimodal: false, computer: false, code: true, latencyClass: 'NORMAL', costClass: 'QUALITY', privacyClasses: hostedPrivacy, priority: 'quality', configuredBy: ['GROQ_REASONING_MODEL'] },
     { provider: 'groq', model: DEFAULTS.groqWeb, role: 'current web research / multi-tool compound', contextTokens: 131_072, reasoning: true, reasoningClass: 'HIGH', structuredOutput: false, web: true, multimodal: false, computer: false, code: false, latencyClass: 'NORMAL', costClass: 'QUALITY', privacyClasses: hostedPrivacy, priority: 'quality', configuredBy: ['GROQ_WEB_MODEL'] },
     { provider: 'groq', model: DEFAULTS.groqWebFast, role: 'current web research / low-latency compound', contextTokens: 131_072, reasoning: true, reasoningClass: 'MEDIUM', structuredOutput: false, web: true, multimodal: false, computer: false, code: false, latencyClass: 'INTERACTIVE', costClass: 'ECONOMY', privacyClasses: hostedPrivacy, priority: 'speed', configuredBy: ['GROQ_WEB_FAST_MODEL'] },
-    { provider: 'ollama', model: DEFAULTS.ollama, role: 'local/private model', contextTokens: null, reasoning: true, reasoningClass: 'MEDIUM', structuredOutput: false, web: false, multimodal: false, computer: false, code: true, latencyClass: 'NORMAL', costClass: 'PRIVATE_LOCAL', privacyClasses: localPrivacy, priority: 'balanced', configuredBy: ['OLLAMA_MODEL'] },
+    { provider: 'ollama', model: DEFAULTS.ollama, role: 'local/private model', contextTokens: null, reasoning: true, reasoningClass: 'MEDIUM', structuredOutput: true, web: false, multimodal: false, computer: false, code: true, latencyClass: 'NORMAL', costClass: 'PRIVATE_LOCAL', privacyClasses: localPrivacy, priority: 'balanced', configuredBy: ['OLLAMA_MODEL'] },
     { provider: 'huggingface', model: DEFAULTS.huggingface, role: 'experimental open-model route via Inference Providers', contextTokens: null, reasoning: true, reasoningClass: 'MEDIUM', structuredOutput: false, web: false, multimodal: false, computer: false, code: false, latencyClass: 'BATCH', costClass: 'ECONOMY', privacyClasses: hostedPrivacy, priority: 'balanced', configuredBy: ['HUGGINGFACE_TEXT_MODEL', 'HF_TEXT_MODEL'] },
   ];
 }
@@ -614,6 +614,7 @@ async function callProvider(config: ProviderConfig, model: string, input: {
   system: string;
   prompt: string;
   maxTokens: number;
+  structuredOutput: boolean;
   deadlineAtMs?: number;
 }): Promise<{ result: string; usage: Record<string, unknown> | null }> {
   if (config.id === 'openai') {
@@ -693,7 +694,13 @@ async function callProvider(config: ProviderConfig, model: string, input: {
     const json = await fetchJson(`${base}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, stream: false, messages: [{ role: 'system', content: input.system }, { role: 'user', content: input.prompt }] }),
+      body: JSON.stringify({
+        model,
+        stream: false,
+        // Ollama native /api/chat supports JSON mode; the existing SFI schema validator remains authoritative.
+        ...(input.structuredOutput ? { format: 'json' } : {}),
+        messages: [{ role: 'system', content: input.system }, { role: 'user', content: input.prompt }],
+      }),
     }, 18_000, input.deadlineAtMs);
     const record = json as Record<string, unknown>;
     const message = record.message as Record<string, unknown> | undefined;
@@ -805,6 +812,7 @@ export async function runLlmTask(input: {
         system: input.system ?? 'You are an SFI operational agent. Return concise, evidence-bound analysis. Do not claim external facts unless provided in context.',
         prompt: input.prompt,
         maxTokens: input.maxTokens ?? 700,
+        structuredOutput: operationPlan.requirements.structuredOutput === true,
         deadlineAtMs: input.deadlineAtMs,
       });
       const latency = Date.now() - attemptStarted;
