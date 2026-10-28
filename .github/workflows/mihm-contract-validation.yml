@@ -4,6 +4,10 @@ on:
   pull_request:
     paths:
       - 'src/lib/mihm/**'
+      - 'src/lib/method-lab/mihmFoundationDiagnostic.ts'
+      - 'src/lib/method-lab/mihmFoundationDiagnosticRun.ts'
+      - 'src/lib/method-lab/mihmFoundationDiagnostic.test.ts'
+      - 'src/lib/method-lab/registry.ts'
       - 'src/lib/sfi/**'
       - 'src/core/formulas/**'
       - 'src/lib/evaluator/derivedMihmRuntime.ts'
@@ -42,3 +46,12 @@ jobs:
 
       - name: MIHM formula, Phi and variable registry tests
         run: node --import tsx --test src/core/formulas/canonicalFormulas.test.ts src/lib/mihm/phiContract.test.ts src/lib/mihm/canonicalVariableRegistry.test.ts
+
+      - name: MIHM foundation measurement coverage research tests
+        run: node --import tsx --test src/lib/mihm/foundationObservationCoverage.test.ts
+
+      - name: MIHM v2 historical P0 arithmetic reproduction (no canonical mutation)
+        run: node --import tsx --test src/lib/mihm/historicalV2Arithmetic.test.ts
+
+      - name: MIHM G1 native Method Lab guard regression
+        run: node --import tsx --test src/lib/method-lab/mihmFoundationDiagnostic.test.ts
