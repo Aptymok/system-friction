@@ -47,4 +47,4 @@ jobs:
         run: node --import tsx --test src/lib/mihm/foundationObservationCoverage.test.ts
 
       - name: MIHM v2 historical P0 arithmetic reproduction (no canonical mutation)
-        run: node --import tsx --test src/lib/mihm/legacyV2Arithmetic.test.ts
+        run: node --import tsx --test src/lib/mihm/historicalV2Arithmetic.test.ts
