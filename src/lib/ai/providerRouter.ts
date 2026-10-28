@@ -860,6 +860,11 @@ export async function runLlmTask(input: {
       }
       const reason = markModelFailure(config.id, candidate.model, message, latency, error instanceof ProviderHttpError ? error.safeHttpDiagnostic : null);
       warnings.push(`${config.id}:${candidate.model}_failed:${reason}`);
+      // The existing warnings receipt is persisted by World hypothesis retries.
+      // Only bounded allowlisted HTTP metadata is exposed; no raw headers or keys.
+      if (error instanceof ProviderHttpError) {
+        warnings.push(`${config.id}:${candidate.model}_http_diagnostic:${error.safeHttpDiagnostic}`);
+      }
     }
   }
 
