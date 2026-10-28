@@ -5,6 +5,7 @@ on:
     paths:
       - 'src/lib/mihm/**'
       - 'src/lib/method-lab/mihmFoundationDiagnostic.ts'
+      - 'src/lib/method-lab/mihmFoundationDiagnosticRun.ts'
       - 'src/lib/method-lab/mihmFoundationDiagnostic.test.ts'
       - 'src/lib/method-lab/registry.ts'
       - 'src/lib/sfi/**'
