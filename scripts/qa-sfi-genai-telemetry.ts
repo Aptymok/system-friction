@@ -169,6 +169,20 @@ assert.match(agentClient, /result\.telemetry\.latency_ms/);
 assert.match(agentClient, /semanticModelOutputAccepted:\s*result\.ok/);
 assert.match(providerRouter, /telemetry:\s*terminalTelemetry/);
 assert.match(providerRouter, /source:\s*'PROVIDER_RESPONSE'/);
+// Source-level guard only: this does not simulate a provider receipt or claim
+// that a live provider has returned rate-limit headers.
+assert.match(providerRouter, /class ProviderHttpError extends Error/);
+for (const header of [
+  'retry-after',
+  'x-ratelimit-remaining-requests',
+  'x-ratelimit-remaining-tokens',
+  'x-ratelimit-reset-requests',
+  'x-ratelimit-reset-tokens',
+]) assert.ok(providerRouter.includes(`['${header}',`), `safe_provider_header_allowlist_missing:${header}`);
+assert.match(providerRouter, /const reason = blockProvider\(provider, model, message\)/, 'original error message must retain circuit classification authority');
+assert.match(providerRouter, /_http_diagnostic:\$\{error\.safeHttpDiagnostic\}/, 'diagnostics must reach existing hypothesis warning receipts');
+assert.doesNotMatch(providerRouter, /response\.headers\.forEach\(/, 'never collect arbitrary provider headers');
+
 assert.doesNotMatch(agentClient, /observedInputTokens:\s*null/);
 assert.doesNotMatch(agentClient, /observedOutputTokens:\s*null/);
 assert.doesNotMatch(agentClient, /observedProviderCost:\s*null/);
