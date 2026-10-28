@@ -1,6 +1,6 @@
 # MIHM v2.0 — auditoría aritmética de legado (P0, NO adopción)
 
-**Fecha de auditoría:** 2026-10-28. **Programa:** `SFI-MIHM-FOUNDATION-001`. **Fuente primaria:** `MIHM_v2_final.pdf`, manuscrito de 23 febrero 2026, tablas 2/6, ecuación (6), sección 6 y Listing 1. **Código de contraste:** `src/lib/mihm/legacyV2Arithmetic.test.ts`.
+**Fecha de auditoría:** 2026-10-28. **Programa:** `SFI-MIHM-FOUNDATION-001`. **Fuente primaria:** `MIHM_v2_final.pdf`, manuscrito de 23 febrero 2026, tablas 2/6, ecuación (6), sección 6 y Listing 1. **Código de contraste:** `src/lib/mihm/historicalV2Arithmetic.test.ts`.
 
 ## Qué se hizo
 
