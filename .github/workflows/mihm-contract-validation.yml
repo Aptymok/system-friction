@@ -45,3 +45,6 @@ jobs:
 
       - name: MIHM foundation measurement coverage research tests
         run: node --import tsx --test src/lib/mihm/foundationObservationCoverage.test.ts
+
+      - name: MIHM v2 historical P0 arithmetic reproduction (no canonical mutation)
+        run: node --import tsx --test src/lib/mihm/legacyV2Arithmetic.test.ts
