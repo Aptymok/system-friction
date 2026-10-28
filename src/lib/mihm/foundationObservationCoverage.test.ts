@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { assessMihmObservationCoverage } from './foundationObservationCoverage';
+import { assessMihmObservationCoverage, evaluateReducedMihmResearchInput } from './foundationObservationCoverage';
 import type { ReducedMihmInput } from '../../../packages/mihm-core/src';
 
 function fixture(values: Array<number | null>, nti: Array<number | null>): ReducedMihmInput {
@@ -88,3 +88,62 @@ test('complete numeric pairs are not by themselves verified empirical evidence',
   assert.equal(result.canonicalPhiCalculated, false);
   assert.equal(result.empiricalHomeostasisClaimed, false);
 });
+
+
+test('gated adapter abstains on null readings, unlike legacy numeric default', () => {
+  const { evaluateReducedMihmResearchInput } = requireGated();
+  const input = fixture([0.8, 0.6, null], [0.2, 0.4, null]);
+  input.campo.nodes.forEach((n) => { n.simulated = false; });
+  const reading = evaluateReducedMihmResearchInput(input);
+  assert.equal(reading.decision, 'ABSTAIN');
+  assert.equal(reading.legacyDiagnostic, null);
+  assert.ok(reading.reasons.includes('MISSING_OR_UNPAIRED_NODE_MEASUREMENTS'));
+  assert.equal(reading.canonicalPhiCalculated, false);
+  assert.equal(reading.empiricalHomeostasisClaimed, false);
+});
+
+test('gated adapter keeps measured zero distinct and permits ONLY legacy diagnostic', () => {
+  const { evaluateReducedMihmResearchInput } = requireGated();
+  const input = fixture([0, 0.6], [0, 0.4]);
+  input.campo.nodes.forEach((n) => { n.simulated = false; });
+  const reading = evaluateReducedMihmResearchInput(input);
+  assert.equal(reading.decision, 'LEGACY_DIAGNOSTIC_ONLY');
+  assert.equal(reading.coverage.explicitZeroValues, 1);
+  assert.equal(reading.coverage.explicitZeroNti, 1);
+  assert.equal(reading.legacyDiagnostic?.metricContract.canonicalPhi, false);
+  assert.equal(reading.sourceProvenanceVerified, false);
+  assert.equal(reading.realWorldInterventionAuthorized, false);
+});
+
+test('gated adapter refuses synthetic, unobserved and structurally mismatched inputs', () => {
+  const { evaluateReducedMihmResearchInput } = requireGated();
+  const synthetic = evaluateReducedMihmResearchInput(fixture([0.4], [0.8]));
+  assert.equal(synthetic.decision, 'ABSTAIN');
+  assert.ok(synthetic.reasons.includes('SIMULATED_INPUTS_NOT_EMPIRICAL'));
+  const mismatched = fixture([0.4], [0.8]);
+  mismatched.campo.nodes[0].simulated = false;
+  mismatched.graph.nodes = [];
+  mismatched.graph.sourceState = 'degraded';
+  const result = evaluateReducedMihmResearchInput(mismatched);
+  assert.ok(result.reasons.includes('GRAPH_NODE_COUNT_MISMATCH'));
+  assert.ok(result.reasons.includes('GRAPH_SOURCE_NOT_OBSERVED'));
+  assert.equal(result.legacyDiagnostic, null);
+});
+
+test('gated adapter rejects invalid metadata without silent clamping', () => {
+  const { evaluateReducedMihmResearchInput } = requireGated();
+  const input = fixture([0.4], [0.8]);
+  input.campo.nodes[0].simulated = false;
+  input.campo.confidence = 1.4;
+  input.observedAt = 'invalid-time';
+  input.campo.nodes[0].weight = -1;
+  const result = evaluateReducedMihmResearchInput(input);
+  assert.equal(result.decision, 'ABSTAIN');
+  assert.ok(result.reasons.includes('CAMPO_CONFIDENCE_INVALID'));
+  assert.ok(result.reasons.includes('NODE_WEIGHT_INVALID'));
+  assert.ok(result.reasons.includes('OBSERVATION_TIMESTAMP_INVALID'));
+});
+
+function requireGated() {
+  return { evaluateReducedMihmResearchInput };
+}
