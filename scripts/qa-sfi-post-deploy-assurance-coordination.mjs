@@ -270,7 +270,19 @@ assert.match(c07Route, /continuityScope:'C07_SUPABASE_PRIMARY_ONLY'/);
 assert.match(c07Route, /status:c07QueuedMission\.ok\?'C07_PRIMARY_STEP_COMPLETE'/);
 const c07Branch = continuity.indexOf("if payload.get('continuityScope') == 'C07_SUPABASE_PRIMARY_ONLY':");
 const coreBranch = continuity.indexOf("if core.get('ok') is not True:");
-assert.ok(c07Branch >= 0 && coreBranch > c07Branch, 'C07-specific receipt classifier must precede generic core fallback');
+const egressBranch = continuity.indexOf("if payload.get('status') == 'EGRESS_RESTRICTED':");
+assert.ok(egressBranch >= 0 && c07Branch > egressBranch && coreBranch > c07Branch,
+  'scheduled-egress denial must be classified before C07 and generic core receipts');
+assert.match(continuity, /if payload\.get\('writesPerformed'\) is not False:/,
+  'restricted egress cannot claim a write or an unknown write state');
+assert.match(continuity, /SFI_EGRESS_GUARD_CONTRACT_INVALID/);
+assert.match(continuity, /SFI_SCHEDULED_EGRESS_BLOCKED/);
+const scheduledGuardIndex = c07Route.indexOf('const egressGuard = scheduledEgressGuardResponse({ allowContinuityFallback: true });');
+const c07QueueIndex = c07Route.indexOf("if (!requestedCycleId && process.env.SFI_C07_MISSION_QUEUE_ENABLED === 'true') {");
+assert.ok(scheduledGuardIndex >= 0 && c07QueueIndex > scheduledGuardIndex,
+  'the existing scheduled-egress guard must precede even the C07 primary queue');
+assert.match(c07Route, /if \(egressGuard\) return egressGuard;/,
+  'the existing policy denial must return before effectful queue execution');
 assert.match(continuity, /'c07QueuedMission': payload\.get\('c07QueuedMission'\)/);
 assert.match(continuity, /SFI_C07_PRIMARY_RECEIPT_INVALID/);
 assert.match(continuity, /SFI_C07_PRIMARY_STEP_ONLY/);
