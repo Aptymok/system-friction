@@ -30,6 +30,15 @@ export async function runMihmFoundationDiagnostic(input: {
   const result = evaluateMihmFoundationMissingness();
   if (!result.observations.controlNumericPerturbationChangesOutput) throw new Error('MIHM_G1_DIAGNOSTIC_CONTROL_INERT');
   if (result.decision !== 'ABSTAIN_FROM_EMPIRICAL_HOMEOSTASIS_CLAIM') throw new Error('MIHM_G1_UNSAFE_INFERENCE');
+  // The native Lab runner must fail before persisting a successful receipt if
+  // the candidate safety gate regresses. Unit tests alone are insufficient.
+  if (!result.observations.guardedMissingAbstains ||
+      !result.observations.guardedSyntheticZeroAbstains ||
+      !result.observations.guardedEmptyAbstains ||
+      result.outputs.gatedResearchCandidate.canonicalPhiCalculated !== false ||
+      result.outputs.gatedResearchCandidate.sourceProvenanceVerified !== false) {
+    throw new Error('MIHM_G1_ABSTENTION_GATE_REGRESSION');
+  }
   const resultHash = hash({ experiment: result.experiment, observations: result.observations, outputs: result.outputs, evidenceIds });
   const envelope = assertMethodLabRunEnvelope({
     contractVersion: METHOD_LAB_CONTRACT_VERSION,

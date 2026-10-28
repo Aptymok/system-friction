@@ -8,6 +8,14 @@ test('MIHM G1 detects null-vs-zero observational equivalence in current reduced 
   assert.equal(result.validationLevel, 'SIMULATION');
   assert.equal(result.measuredSystemClaim, false);
   assert.equal(result.observations.nullVsZeroIdentical, true);
+  assert.equal(result.observations.guardedMissingAbstains, true);
+  assert.equal(result.observations.guardedSyntheticZeroAbstains, true);
+  assert.equal(result.observations.guardedEmptyAbstains, true);
+  assert.equal(result.outputs.gatedResearchCandidate.missing.decision, 'ABSTAIN');
+  assert.equal(result.outputs.gatedResearchCandidate.measuredZeroSynthetic.decision, 'ABSTAIN');
+  assert.equal(result.outputs.gatedResearchCandidate.empty.decision, 'ABSTAIN');
+  assert.equal(result.outputs.gatedResearchCandidate.canonicalPhiCalculated, false);
+  assert.equal(result.outputs.gatedResearchCandidate.sourceProvenanceVerified, false);
   assert.equal(result.observations.nullInputsExplicitlyWarned, false);
   assert.equal(result.observations.measuredCoverage, 2 / 3);
   assert.ok(Math.abs(result.observations.meanZeroImputed - (1.4 / 3)) < 1e-12);
