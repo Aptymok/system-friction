@@ -264,6 +264,9 @@ jobs:
       - name: Verify WorldSpect Neon read-plane continuity
         run: node scripts/qa-sfi-worldspect-neon-readplane.mjs
 
+      - name: Verify World Vector daily report temporal identity
+        run: node --import tsx --test src/lib/world-vector/reportBuilder.test.ts
+
       - name: Verify read-plane efficiency and query coalescing
         run: node --import tsx --test src/lib/sfi/readPlaneCache.test.ts && npx tsx scripts/qa-sfi-readplane-efficiency.ts
 
