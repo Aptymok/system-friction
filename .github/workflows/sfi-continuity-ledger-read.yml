@@ -4,6 +4,10 @@ name: SFI Continuity Ledger Read Hardening
 on:
   pull_request:
     paths:
+      - 'src/lib/continuity/contracts.ts'
+      - 'src/lib/continuity/contracts.test.ts'
+      - 'src/lib/continuity/runtime.ts'
+      - 'src/lib/continuity/runtime.test.ts'
       - 'src/lib/sfi/universalCycleContinuation.ts'
       - 'src/lib/sfi/universalCycleContinuation.test.ts'
       - 'src/app/api/cron/continuity-heartbeat/route.ts'
@@ -36,6 +40,8 @@ jobs:
           mkdir -p node_modules/server-only
           printf '%s\n' '{"name":"server-only","version":"0.0.0-test","main":"index.js"}' > node_modules/server-only/package.json
           printf '%s\n' 'module.exports = {};' > node_modules/server-only/index.js
+      - name: Test bounded primary cycle trial and authority envelope
+        run: node --import tsx --test src/lib/continuity/contracts.test.ts src/lib/continuity/runtime.test.ts
       - name: Test bounded universal ledger read recovery
         run: node --import tsx --test src/lib/sfi/universalCycleContinuation.test.ts
       - name: Verify post-deploy assurance coordination

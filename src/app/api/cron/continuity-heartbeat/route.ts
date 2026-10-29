@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { readC08MissionWorkRequirement, readContinuityActionableWorkGate } from '@/lib/continuity/actionableWorkGate';
 import { scheduledEgressGuardResponse } from '@/lib/continuity/scheduledEgressGuard';
-import { runContinuityHeartbeat, runOperationalTransitionWatchdog } from '@/lib/continuity/runtime';
+import { runBoundedContinuityCycleTrial, runContinuityHeartbeat, runOperationalTransitionWatchdog } from '@/lib/continuity/runtime';
 import { runOperationalAutoAdvance } from '@/lib/continuity/operationalAutoAdvance';
 import { runStudioAutonomyContinuation } from '@/lib/continuity/studioAutonomy';
 import { verifyGitHubActionsOidcToken } from '@/lib/continuity/githubActionsOidc';
@@ -194,6 +194,17 @@ function isDeferred(value: unknown) {
 export async function GET(request: NextRequest) {
   const authorization = await authorize(request);
   if (!authorization.ok) return NextResponse.json({ ok: false, error: 'unauthorized_continuity_cron' }, { status: 401 });
+  // Separate, server-owned finite grant. An expired/invalid trial never falls
+  // through into general automation, and the shared egress guard is unchanged.
+  if (process.env.SFI_CONTINUITY_CYCLE_TRIAL?.trim()) {
+    const trial = await runBoundedContinuityCycleTrial({
+      raw: process.env.SFI_CONTINUITY_CYCLE_TRIAL,
+      requestedCycleId: request.nextUrl.searchParams.get('cycleId')?.trim() || undefined,
+      trigger: authorization.trigger,
+    });
+    return NextResponse.json(trial, { status: trial.ok ? 200 : 503,
+      headers: { 'Cache-Control': 'no-store' } });
+  }
   const egressGuard = scheduledEgressGuardResponse({ allowContinuityFallback: true });
   if (egressGuard) return egressGuard;
 
