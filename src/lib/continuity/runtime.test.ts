@@ -72,7 +72,7 @@ test('a failed stage consumes its reservation and suppresses subsequent stages',
   assert.equal(f.effects.length,2);
 });
 test('unavailable primary reservation fails closed without continuation',async()=>{
-  const f=fixture();f.setReserveReadable(false);assert.equal((await run(f)).ok,false);assert.equal(f.effects.length,0);
+  const f=fixture();f.setReserveReadable(false);const receipt=await run(f);assert.equal(receipt.ok,false);assert.equal(receipt.writesPerformed,null);assert.equal(receipt.primaryReservationUncertain,true);assert.equal(f.effects.length,0);
 });
 test('unconfirmed final receipt is never presented as completed',async()=>{
   const f=fixture();f.setFinalize(false);

@@ -743,7 +743,7 @@ export async function runBoundedContinuityCycleTrial(
   try { reservation = await ports.reserve(id,schedule,authority.mode,input.trigger); }
   catch { reservation = 'UNAVAILABLE'; }
   if(reservation==='DUPLICATE') return response('CONTINUITY_TRIAL_SLOT_ALREADY_RESERVED',true,{priorAttemptMayHaveEffects:true});
-  if(reservation!=='CLAIMED') return response('CONTINUITY_TRIAL_RESERVATION_UNAVAILABLE',false);
+  if(reservation!=='CLAIMED') return response('CONTINUITY_TRIAL_RESERVATION_UNAVAILABLE',false,{writesPerformed:null,primaryReservationUncertain:true});
   const lanes: Row = {};
   let failure: string|null = null;
   for(const name of ['returnPlanUpgradeBefore','universalCycleContinuation','returnPlanUpgradeAfter','universalEmpiricalContinuation']) {
