@@ -61,6 +61,7 @@ export type MihmFieldRelation = {
   sourceRefs: SfiCanonicalRef[];
 };
 export type MihmResourceReading = {
+  id: string;
   cycleRef: SfiCanonicalRef;
   resource: 'TOKENS' | 'CPU_TIME' | 'API_CALLS' | 'MONEY' | 'ENERGY' | 'OTHER';
   unit: string;
@@ -260,11 +261,21 @@ export function auditMihmTypedField(input: MihmTypedFieldAuditInput): MihmTypedF
     });
   }
   const resourceGroup=new Map<string,MihmResourceReading[]>();
+  const resourceIdentity=new Set<string>(),conflictedResources=new Set<string>();
   for(const r of input.resources){
-    if(!validRef(r.cycleRef)||!r.unit?.trim()||!['TOKENS','CPU_TIME','API_CALLS','MONEY','ENERGY','OTHER'].includes(r.resource)||
+    const key=r.resource+'|'+r.unit;
+    const identity=r.id+'|'+r.cycleRef?.id+'|'+r.resource+'|'+r.unit+'|'+r.observedAt;
+    if(resourceIdentity.has(identity)){
+      reasons.push('DUPLICATE_RESOURCE_RECEIPT:'+r.id);
+      conflictedResources.add(key);
+    }
+    resourceIdentity.add(identity);
+    if(!r.id?.trim()||!validRef(r.cycleRef)||!r.unit?.trim()||!['TOKENS','CPU_TIME','API_CALLS','MONEY','ENERGY','OTHER'].includes(r.resource)||
       !validIso(r.observedAt)||(r.availableAt!==null&&!validIso(r.availableAt))||
       r.amount!==null&&(!Number.isFinite(r.amount)||r.amount<0)||
-      (r.state==='MISSING'||r.state==='CONTRADICTED')&&r.amount!==null)
+      (r.state==='MISSING'||r.state==='CONTRADICTED')&&r.amount!==null||
+      (r.state==='MEASURED'&&r.amount===null)||
+      validIso(r.availableAt)&&validIso(r.observedAt)&&Date.parse(r.availableAt)<Date.parse(r.observedAt))
       reasons.push('INVALID_RESOURCE_READING:'+r.cycleRef?.id);
     const k=r.resource+'|'+r.unit;
     const a=resourceGroup.get(k)??[];a.push(r);resourceGroup.set(k,a);
@@ -277,7 +288,7 @@ export function auditMihmTypedField(input: MihmTypedFieldAuditInput): MihmTypedF
       ['REAL_TELEMETRY','REAL_DOCUMENTARY'].includes(sourceClasses.get(r.sourceRef!.id)??'')&&
       Date.parse(r.availableAt)<=cut&&
       Date.parse(r.availableAt)>=Date.parse(r.observedAt)&&Date.parse(r.observedAt)<=cut);
-    const complete=good.length===entries.length;
+    const complete=good.length===entries.length&&!conflictedResources.has(key);
     resourceTotals.push({resource:entries[0].resource,unit:entries[0].unit,
       amount:complete?good.reduce((n,r)=>n+(r.amount as number),0):null,
       measuredEntries:good.length,missingEntries:entries.length-good.length,
