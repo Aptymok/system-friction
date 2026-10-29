@@ -44,6 +44,7 @@ export type MihmFieldViabilityLimit = {
 export type MihmFieldAttractor = {
   id: string;
   attractorRef: SfiCanonicalRef;
+  nodeRef: SfiCanonicalRef;
   dimensionRef: SfiCanonicalRef;
   unit: string;
   lower: number;
@@ -152,6 +153,7 @@ export function auditMihmTypedField(input: MihmTypedFieldAuditInput): MihmTypedF
   const nodeIds=asIds(m.nodeRefs),dimensionIds=asIds(m.dimensionRefs);
   const relIds=asIds(m.relationRefs),attractorIds=asIds(m.attractorRefs);
   const sourceIds=new Set(parent.admittedSourceIds);
+  const sourceClasses=new Map(frame.sourceVintages.map(v=>[v.sourceId,v.sourceClass]));
   if(input.contract!==SFI_MIHM_TYPED_FIELD_AUDIT) reasons.push('TYPED_FIELD_CONTRACT_REQUIRED');
   const measured:MihmFieldSample[]=[];
   const excludedSampleIds:string[]=[];
@@ -179,10 +181,14 @@ export function auditMihmTypedField(input: MihmTypedFieldAuditInput): MihmTypedF
       reasons.push('FUTURE_OBSERVATION_AT_CUT:'+s.id);
     if(s.state==='MEASURED'&&validIso(s.observedAt)&&validIso(s.availableAt)&&
        Date.parse(s.availableAt)<Date.parse(s.observedAt)) reasons.push('SOURCE_AVAILABLE_BEFORE_OBSERVATION:'+s.id);
+    if(s.state==='MEASURED'&&validRef(s.sourceRef)&&
+      !['REAL_TELEMETRY','REAL_DOCUMENTARY'].includes(sourceClasses.get(s.sourceRef.id)??''))
+      reasons.push('MEASURED_FROM_NON_REAL_SOURCE:'+s.id);
     if(s.state==='MEASURED'&&validRef(s.sourceRef)&&!sourceIds.has(s.sourceRef.id))
       reasons.push('SOURCE_NOT_ADMISSIBLE_IN_PARENT:'+s.id);
     if(eligibleSample(s,cut)&&validIso(s.observedAt)&&Date.parse(s.availableAt as string)>=Date.parse(s.observedAt) &&
        sourceIds.has(s.sourceRef!.id) &&
+       ['REAL_TELEMETRY','REAL_DOCUMENTARY'].includes(sourceClasses.get(s.sourceRef!.id)??'') &&
        validIso(s.observedAt)&&Date.parse(s.observedAt)<=cut) measured.push(s);
     else excludedSampleIds.push(s.id);
   }
@@ -240,11 +246,12 @@ export function auditMihmTypedField(input: MihmTypedFieldAuditInput): MihmTypedF
   }
   const attractorChecks:MihmTypedFieldAudit['attractorChecks']=[];
   for(const a of input.attractors){
-    if(!attractorIds.has(a.attractorRef?.id)||!dimensionIds.has(a.dimensionRef?.id)||
+    if(!attractorIds.has(a.attractorRef?.id)||!nodeIds.has(a.nodeRef?.id)||
+      !dimensionIds.has(a.dimensionRef?.id)||
       !Number.isFinite(a.lower)||!Number.isFinite(a.upper)||a.lower>a.upper||
       !a.unit?.trim()||units.has(a.dimensionRef.id)&&units.get(a.dimensionRef.id)!==a.unit)
       reasons.push('INVALID_ATTRACTOR:'+a.id);
-    const records=measured.filter(s=>s.dimensionRef.id===a.dimensionRef.id)
+    const records=measured.filter(s=>s.nodeRef.id===a.nodeRef.id&&s.dimensionRef.id===a.dimensionRef.id)
       .sort((x,y)=>Date.parse(x.observedAt)-Date.parse(y.observedAt));
     const inBand=records.slice(-3).filter(s=>s.value!==null&&s.value>=a.lower&&s.value<=a.upper).length;
     attractorChecks.push({attractorId:a.id,repeatedInBand:inBand,
@@ -265,7 +272,10 @@ export function auditMihmTypedField(input: MihmTypedFieldAuditInput): MihmTypedF
   const resourceTotals:MihmTypedFieldAudit['resourceTotals']=[];
   for(const [key,entries] of resourceGroup){
     const good=entries.filter(r=>r.state==='MEASURED'&&r.amount!==null&&validRef(r.sourceRef)&&
-      validIso(r.availableAt)&&validIso(r.observedAt)&&Date.parse(r.availableAt)<=cut&&
+      validIso(r.availableAt)&&validIso(r.observedAt)&&
+      sourceIds.has(r.sourceRef!.id)&&
+      ['REAL_TELEMETRY','REAL_DOCUMENTARY'].includes(sourceClasses.get(r.sourceRef!.id)??'')&&
+      Date.parse(r.availableAt)<=cut&&
       Date.parse(r.availableAt)>=Date.parse(r.observedAt)&&Date.parse(r.observedAt)<=cut);
     const complete=good.length===entries.length;
     resourceTotals.push({resource:entries[0].resource,unit:entries[0].unit,
