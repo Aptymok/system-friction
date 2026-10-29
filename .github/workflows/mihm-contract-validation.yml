@@ -58,3 +58,15 @@ jobs:
 
       - name: MIHM G1 native Method Lab guard regression
         run: node --import tsx --test src/lib/method-lab/mihmFoundationDiagnostic.test.ts
+
+      - name: Typed MIHM instrument and existing scientific caller
+        run: |
+          node --import tsx --test src/lib/mihm/foundationTypedFieldAudit.test.ts
+          node --test src/lib/mihm/scientificMethodRuntime.test.mjs
+          node --import tsx --test packages/mihm-core/src/integrated.test.ts
+
+      - name: MIHM cultural measurement provenance and missingness
+        run: node --import tsx --test src/lib/studio/cultural-lab/agents/mihmAgent.test.ts
+
+      - name: Typed instrument compatibility and decision contradictions
+        run: node --import tsx --test src/lib/mihm/instrumentCompatibility.test.ts

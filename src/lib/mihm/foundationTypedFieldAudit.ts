@@ -1,3 +1,5 @@
+import { assessMihmInstrumentCompatibility, type MihmInstrumentState, type MihmInstrumentLink } from './instrumentContract';
+import { calculateMihmNodeState, simulateMihmRedistribution, projectMihmDynamics, compareMihmForecasts, sampleMihmUncertainty, screenMihmPathologies } from '../../../packages/mihm-core/src';
 /**
  * MIHM Foundation typed-field audit (research-only adapter).
  *
@@ -214,6 +216,7 @@ export function auditMihmTypedField(input: MihmTypedFieldAuditInput): MihmTypedF
   const limitByDimension=new Map<string,MihmFieldViabilityLimit[]>();
   for(const lim of input.viabilityLimits){
     if(!lim.id?.trim()||!dimensionIds.has(lim.dimensionRef?.id)||
+       !['HIGHER_IS_BETTER','LOWER_IS_BETTER','UNKNOWN'].includes(lim.direction)||
        !lim.unit?.trim()||lim.lower===null&&lim.upper===null||
        lim.lower!==null&&!Number.isFinite(lim.lower)||
        lim.upper!==null&&!Number.isFinite(lim.upper)||
@@ -233,7 +236,7 @@ export function auditMihmTypedField(input: MihmTypedFieldAuditInput): MihmTypedF
     if(durationMs<=0)continue;
     const limits=limitByDimension.get(first.dimensionRef.id)??[];
     let oriented:'HIGHER_IS_BETTER'|'LOWER_IS_BETTER'|'UNKNOWN'='UNKNOWN';
-    if(limits.length===1)oriented=limits[0].direction;
+    if(limits.length===1 && ['HIGHER_IS_BETTER','LOWER_IS_BETTER','UNKNOWN'].includes(limits[0].direction))oriented=limits[0].direction;
     const delta=(last.value as number)-(first.value as number);
     const interpreted=oriented==='UNKNOWN'?'DIRECTION_UNKNOWN':
       (delta*(oriented==='HIGHER_IS_BETTER'?1:-1)<0?'DEGRADATION_CANDIDATE':'IMPROVEMENT_CANDIDATE');
@@ -328,4 +331,70 @@ export function auditMihmTypedField(input: MihmTypedFieldAuditInput): MihmTypedF
     causalPropagationEstablished:false,observedReturnCreated:false,
     externalActionAuthorized:false,resourceCostsIndependentlyVerified:false,
   };
+}
+
+/** Consume an explicit persisted graph declaration; never infer missing samples. */
+export function executeMihmTypedFieldForNode(node: {
+  nodeId: string; lineage: string[]; attributes: Record<string, unknown>;
+}, executedAt: string) {
+  const raw=node.attributes?.mihmTypedFieldAudit;
+  if(raw===undefined)return null;
+  const evidenceRefs=[...new Set(node.lineage??[])];
+  const boundary='Derived typed-input screening only; persisted declarations are not independent verification of source values, calibrated dynamics, causality or RETURN.';
+  const base={family:'MIHM_TYPED_FIELD' as const,executionLevel:'BOUNDED_SCREENING' as const,
+    limitations:[boundary],evidenceRefs,historyEventIds:[] as string[],boundary};
+  const blocked=(reason:string)=>({...base,status:'ABSTAINED' as const,
+    result:{audit:null,calibration:{status:'NOT_CALIBRATED'},sourceValuesIndependentlyVerified:false},missing:[reason]});
+  try {
+    if(!raw||typeof raw!=='object'||Array.isArray(raw))return blocked('INVALID_TYPED_FIELD_ENVELOPE');
+    const envelope=raw as {caseRef:SfiCanonicalRef;cycleRef:SfiCanonicalRef;input:MihmTypedFieldAuditInput};
+    const input=envelope.input;
+    if(!validRef(envelope.caseRef)||!validRef(envelope.cycleRef)||!input?.frame ||
+       !['samples','resources','relations','attractors','viabilityLimits'].every(k=>Array.isArray((input as unknown as Record<string,unknown>)[k])))
+      return blocked('INVALID_TYPED_FIELD_INPUT');
+    if(!evidenceRefs.includes(envelope.caseRef.id)||!evidenceRefs.includes(envelope.cycleRef.id))
+      return blocked('TYPED_FIELD_CASE_CYCLE_LINEAGE_REQUIRED');
+    if(input.frame.boundary?.subjectRef?.id!==node.nodeId)return blocked('TYPED_FIELD_SUBJECT_MISMATCH');
+    if(!validIso(executedAt)||!validIso(input.frame.timeCut)||Date.parse(input.frame.timeCut)>Date.parse(executedAt))
+      return blocked('TYPED_FIELD_CUTOFF_NOT_AVAILABLE');
+    if(!Array.isArray(input.frame.sourceVintages)||input.frame.sourceVintages.some(s=>!s||!evidenceRefs.includes(s.recordRef)))
+      return blocked('TYPED_FIELD_SOURCE_LINEAGE_REQUIRED');
+    const audit=auditMihmTypedField(input);
+    const spec=(raw as {mechanisms?:{
+      sourceRef:SfiCanonicalRef;
+      normalizedNodes?:Parameters<typeof calculateMihmNodeState>[0];
+      arithmeticVersion?:Parameters<typeof calculateMihmNodeState>[1];
+      redistribution?:{nodes:Parameters<typeof simulateMihmRedistribution>[0];transfers:Parameters<typeof simulateMihmRedistribution>[1]};
+      dynamics?:Parameters<typeof projectMihmDynamics>[0];
+      forecasts?:Parameters<typeof compareMihmForecasts>[0];
+      uncertainty?:Parameters<typeof sampleMihmUncertainty>[0];
+      pathologies?:Parameters<typeof screenMihmPathologies>[0];
+    }}).mechanisms;
+    if(spec&&(!validRef(spec.sourceRef)||!evidenceRefs.includes(spec.sourceRef.id)||!input.frame.sourceVintages.some(v=>v.recordRef===spec.sourceRef.id&&v.availableAt!==null&&validIso(v.availableAt)&&Date.parse(v.availableAt)<=Date.parse(input.frame.timeCut))))return blocked('MECHANISM_SOURCE_LINEAGE_REQUIRED');
+    // Never execute additional models from a blocked metrology frame.
+    const mechanisms=spec&&audit.readiness!=='BLOCKED'?{
+      mathematics:spec.normalizedNodes?calculateMihmNodeState(spec.normalizedNodes,spec.arithmeticVersion):null,
+      redistribution:spec.redistribution?simulateMihmRedistribution(spec.redistribution.nodes,spec.redistribution.transfers):null,
+      dynamics:spec.dynamics?projectMihmDynamics(spec.dynamics):null,
+      forecastComparison:spec.forecasts?compareMihmForecasts(spec.forecasts,executedAt):null,
+      uncertainty:spec.uncertainty?sampleMihmUncertainty(spec.uncertainty):null,
+      pathologies:spec.pathologies?screenMihmPathologies(spec.pathologies):null,
+      epistemicBoundary:'Declared-model computations and simulations; no canonical Phi, empirical calibration, external action or scientific validation.'
+    }:null;
+    const linked=raw as {instrumentReadings?:MihmInstrumentState[];instrumentLinks?:MihmInstrumentLink[]};
+    const interpretationContradictions=mechanisms?.mathematics?.status==='DERIVED'
+      ? (spec?.normalizedNodes??[]).filter(n=>n.E>n.C&&n.L>0).map(n=>'SIGNED_IHG_LATENCY_MASKS_OVERLOAD:'+n.id)
+      : [];
+    const instrumentCompatibility=assessMihmInstrumentCompatibility({
+      readings:linked.instrumentReadings??[],links:linked.instrumentLinks??[],timeCut:input.frame.timeCut,
+      contradictions:interpretationContradictions,
+    });
+    const contradicted=instrumentCompatibility.readiness==='CONTRADICTED';
+    return {...base,status:audit.readiness==='BLOCKED'?'ABSTAINED' as const:'EXECUTED' as const,
+      result:{caseRef:envelope.caseRef,cycleRef:envelope.cycleRef,audit,mechanisms,instrumentCompatibility,decisionUseBlocked:instrumentCompatibility.readiness!=='COMPATIBLE_FOR_REVIEW',
+        calibration:{status:'NOT_CALIBRATED'},sourceValuesIndependentlyVerified:false},
+      missing:audit.readiness==='BLOCKED'?audit.reasons:contradicted?instrumentCompatibility.contradictions:[]};
+  } catch {
+    return blocked('MALFORMED_TYPED_FIELD_INPUT');
+  }
 }

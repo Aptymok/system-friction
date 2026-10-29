@@ -62,7 +62,7 @@ export async function runJrFieldCycle(input: JrCycleInput) {
 
   const phenomena = deriveDistributedPhenomena(graph.nodes, graph.edges);
   const scientificTargets = nodeReadings
-    .filter((item) => item.reading.methodCompetition.state !== 'NO_CANDIDATE')
+    .filter((item) => item.reading.methodCompetition.state !== 'NO_CANDIDATE' || item.node.attributes.mihmTypedFieldAudit !== undefined)
     .slice(0, SFI_SUPABASE_READ_BUDGET.jrScientificTargets);
   const nextObservations = uniqueStrings(nodeReadings.map((item) => item.reading.methodCompetition.nextObservation));
   const perturbationReviewCandidates = nodeReadings

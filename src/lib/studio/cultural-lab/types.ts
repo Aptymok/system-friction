@@ -36,6 +36,10 @@ export type StudioArtifactInput = {
   desiredShift?: string;
   constraints?: string[];
   createdAt?: string;
+  mihmMeasurement?: {
+    caseId: string; sourceRef: string; methodVersion: string; observedAt: string;
+    scale: '0-1'; values: Record<string, number | null>;
+  };
 };
 
 export type CulturalArtifactInput = StudioArtifactInput;
@@ -45,6 +49,7 @@ export type StudioStageResult<T = unknown> = {
   label: string;
   status: StudioStageStatus;
   mode: StudioStageMode;
+  epistemicClass?: 'DECLARED' | 'INFERRED' | 'SIMULATED';
   inputRefs: string[];
   outputRefs: string[];
   explanation: string;
@@ -83,6 +88,7 @@ export type MihmDeepElement = {
   vector: Record<string, number>;
   explanation: string;
   evidence: string[];
+  measurementProvenance?: {caseId:string;sourceRef:string;methodVersion:string;observedAt:string;scale:'0-1';epistemicClass:'DECLARED';independentlyVerified:false};
 };
 
 export type WorldSpectrumPlacement = {

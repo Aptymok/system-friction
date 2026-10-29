@@ -49,7 +49,8 @@ async function runStage<T>(
       mode: provenance.mode,
       inputRefs: provenance.inputRefs,
       explanation: `Stage ${label} completed with provenance traced.`,
-      confidence: 0.72,
+      confidence: null,
+      epistemicClass: id==='mihm_deep_evaluation'?'DECLARED':id==='input_archaeology'?'INFERRED':'SIMULATED',
       data,
       basedOn: provenance.basedOn,
       why: provenance.why,
@@ -83,7 +84,7 @@ export async function runStudioCulturalPipeline(input: CulturalArtifactInput): P
   const createdAt = new Date().toISOString();
   const artifactId = `${input.kind}:${(input.title || 'untitled').slice(0, 32)}`;
   const sourceOrigin = input.sourceUrl ? 'connector' : 'manual_input';
-  const warnings: string[] = [];
+  const warnings: string[] = ['CULTURAL_PIPELINE_NOT_EMPIRICALLY_CALIBRATED','DOWNSTREAM_POSITIONS_AND_PROBABILITIES_ARE_EXPLORATORY_SIMULATIONS_NOT_OBSERVATIONS'];
 
   const archaeology = await runStage<InputArchaeologyResult>(
     'input_archaeology',
@@ -107,17 +108,20 @@ export async function runStudioCulturalPipeline(input: CulturalArtifactInput): P
     'MIHM Deep Evaluation',
     async () => mihmAgent(input, archaeology.data as InputArchaeologyResult),
     {
-      inputRefs: archaeology.outputRefs,
+      inputRefs: [...archaeology.outputRefs,...(input.mihmMeasurement?[input.mihmMeasurement.caseId,input.mihmMeasurement.sourceRef]:[])],
       basedOn: archaeology.basedOn,
       mode: 'scorefriction',
-      why: ['Estimate friction, narrative torsion and intervention latency.'],
+      why: ['Read explicit bounded MIHM values from a declared analysis receipt.'],
       whatIf: ['What if the artifact already contains its own counter-signal?'],
       thenWhat: ['Place artifact in World Spectrum field.'],
-      how: ['Use MIHM-oriented local scoring over extracted structures.'],
+      how: ['Preserve supplied values and source/method identity; abstain without measurements.'],
       limits: ['Scores are provisional until external validation.'],
     },
   );
-  if (mihm.status !== 'complete') warnings.push('mihm_deep_evaluation_incomplete');
+  if (mihm.status !== 'complete') {
+    warnings.push('mihm_deep_evaluation_incomplete','downstream_stages_not_executed_without_mihm_measurements');
+    return {runId,artifactId,createdAt,sourceOrigin,stages:[archaeology,mihm],warnings};
+  }
 
   const spectrum = await runStage<WorldSpectrumPlacement>(
     'world_spectrum_comparison',
