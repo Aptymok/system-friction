@@ -45,3 +45,13 @@
 
 /* The native gold scrollbar replaces decorative horizontal-scroll instructions. */
 .sfiInstrumentScrollCue{display:none!important}
+
+
+.sfiInstrumentManualNav{position:absolute;z-index:16;left:5.7vw;right:5.7vw;bottom:18px;display:flex;align-items:center;justify-content:space-between;gap:15px;padding:11px 15px;background:rgba(9,9,8,.8);border:1px solid rgba(200,169,81,.35);backdrop-filter:blur(5px)}
+.sfiInstrumentManualNav>span{font:650 10px var(--mono);letter-spacing:.09em;color:#e1c58a}
+.sfiInstrumentManualNav>div{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.sfiInstrumentManualNav button,.sfiInstrumentManualNav a{font:650 10px var(--mono);padding:10px 12px;background:transparent;color:#ece0c4;border:1px solid rgba(205,176,114,.48);cursor:pointer}
+.sfiInstrumentManualNav a{color:#dfbf7f}
+.sfiInstrumentManualNav button:disabled{opacity:.28;cursor:not-allowed}
+.sfiInstrumentManualNav button:focus-visible,.sfiInstrumentManualNav a:focus-visible{outline:2px solid #efd6a7;outline-offset:2px}
+@media(max-width:760px){.sfiInstrumentManualNav{left:10px;right:10px;bottom:10px;align-items:stretch;flex-direction:column}.sfiInstrumentManualNav>div{justify-content:space-between;gap:5px}.sfiInstrumentManualNav button,.sfiInstrumentManualNav a{font-size:9px;padding:9px 7px}}

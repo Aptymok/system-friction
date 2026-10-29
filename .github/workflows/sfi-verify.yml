@@ -68,6 +68,9 @@ jobs:
       - name: Verify SFI cost limits, disabled polling and retained Neon
         run: node scripts/qa-sfi-cost-meter.mjs
 
+      - name: Verify public Servicios catalog, no-account intake and privacy boundaries
+        run: node scripts/qa-sfi-public-services.mjs
+
       - name: Check domain boundaries
         run: npm run check:boundaries
 
