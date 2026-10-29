@@ -7,6 +7,8 @@ import { buildWorldVectorOperationalState } from '@/lib/world-vector/operational
 import { readObservedSfiCognitiveRuntime } from '@/lib/sfi/cognitive-runtime/observedRuntime';
 import { readContinuityDashboard } from '@/lib/continuity/runtime';
 import { readInstitutionalAttractor, refreshInstitutionalAttractorTrajectory } from '@/lib/institution/institutionalAttractor';
+import { readSfiCostMeter } from '@/lib/operations/sfiCostMeter';
+import { assessSfiResourcePosture } from '@/lib/operations/resourceSelfObservation';
 
 export type ScheduledReportKey = 'world_daily' | 'world_weekly' | 'internal_daily' | 'prospect_weekly' | 'attractor_daily';
 
@@ -138,6 +140,7 @@ function internalEnvelope(input: {
   runtime: Awaited<ReturnType<typeof readObservedSfiCognitiveRuntime>>;
   continuity: Awaited<ReturnType<typeof readContinuityDashboard>>;
   attractor: Awaited<ReturnType<typeof readInstitutionalAttractor>>;
+  meter: unknown;
   dateKey: string;
 }): ReportEnvelope {
   const operational = input.runtime.agents.filter((agent) => agent.status === 'operational');
@@ -145,6 +148,11 @@ function internalEnvelope(input: {
   const missing = input.runtime.agents.filter((agent) => agent.status === 'missing');
   const gated = input.runtime.agents.filter((agent) => agent.status === 'gated');
   const latestTrajectory = rec(input.attractor.latestTrajectory);
+  const resources = assessSfiResourcePosture({
+    meter: input.meter,
+    cognitiveExecutionCount24h: operational.length,
+    registeredCognitiveAgents: input.runtime.agents.length,
+  });
   const body = [
     `SFI · REPORTE INTERNO DIARIO · ${input.dateKey}`,
     '',
@@ -163,6 +171,14 @@ function internalEnvelope(input: {
     `Dimensiones faltantes: ${strings(latestTrajectory.missing_dimensions).join(', ') || 'ninguna declarada'}.`,
     `Dimensiones contradichas/conflictivas: ${strings(latestTrajectory.contradicted_dimensions).join(', ') || 'ninguna declarada'}.`,
     '',
+    'AUTOBSERVACION DE RECURSOS (NO ES FACTURA)',
+    `C07: ${resources.c07.state}. Misiones disponibles hoy: ${resources.c07.remainingToday ?? 'NO VERIFICADO'}; este mes: ${resources.c07.remainingMonth ?? 'NO VERIFICADO'}.`,
+    `Componentes de consumo de modelo: ${resources.provider.status}; USD observados solo en recibos de agentes: ${resources.provider.reportedComponentUsd ?? 'NO VERIFICADO'}.`,
+    'Facturacion Vercel/Supabase/proveedores: NO VERIFICADA. No inferir coste cero ni disponibilidad infinita.',
+    `Ejecucion cognitiva reciente: ${resources.cognitiveExecution.state} (${resources.cognitiveExecution.observed24h ?? 'NO OBSERVADO'}/${resources.cognitiveExecution.registered ?? 'NO OBSERVADO'}).`,
+    ...resources.plan.map((item) => `Propietario ${item.owner}: ${item.decision}; ${item.reason}`),
+    `Siguiente observacion: ${resources.nextObservation}`,
+    '',
     'SIGUIENTE LECTURA',
     degraded.length || missing.length
       ? 'Primero reconciliar dependencias/contratos del runtime; no elevar capacidad por presencia de código.'
@@ -178,11 +194,12 @@ function internalEnvelope(input: {
       ...strings(latestTrajectory.evidence_refs),
     ]),
     provider: 'deterministic:sfi-internal-observer',
-    warnings: unique([...input.runtime.eventGraph.warnings.map(String), ...input.continuity.errors.map(String), ...input.attractor.warnings]),
+    warnings: unique([...input.runtime.eventGraph.warnings.map(String), ...input.continuity.errors.map(String), ...input.attractor.warnings, ...resources.warnings]),
     trace: {
       runtimeSchema: input.runtime.schemaVersion,
       continuityRuns: input.continuity.runs.length,
       attractorSnapshot: latestTrajectory.id ?? null,
+      resourceSelfObservation: resources,
     },
     approval_queue: {},
   };
@@ -330,12 +347,17 @@ export async function runScheduledAgentReportCycle() {
   results.push(await ensure({
     key: 'internal_daily', dateKey, weekKey, title: `SFI interno · ${dateKey}`,
     generate: async () => {
-      const [runtime, continuity, attractor] = await Promise.all([
+      const [runtime, continuity, attractor, meter] = await Promise.all([
         readObservedSfiCognitiveRuntime(),
         readContinuityDashboard(),
         readInstitutionalAttractor(),
+        readSfiCostMeter().catch(() => ({
+          ok: false as const,
+          reason: 'RESOURCE_METER_UNAVAILABLE',
+          boundary: 'UNAVAILABLE_IS_NOT_ZERO',
+        })),
       ]);
-      return internalEnvelope({ runtime, continuity, attractor, dateKey });
+      return internalEnvelope({ runtime, continuity, attractor, meter, dateKey });
     },
   }));
 
