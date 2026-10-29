@@ -36,7 +36,7 @@ function fixture():MihmTypedFieldAuditInput {
     sourceVintages:[{
       sourceId:'source:log',sourceKind:'ORIGINAL_LOG' as const,
       eventAt:'2026-10-25T00:00:00Z',availableAt:'2026-10-28T01:00:00Z',
-      recordRef:'fixture:no-independent-original',sourceClass:'SIMULATED' as const,
+      recordRef:'fixture:claimed-real-provenance-not-independently-verified',sourceClass:'REAL_TELEMETRY' as const,
     }],
   };
   const sample=(id:string,node:string,dim:string,value:number,at:string,unit:string,
@@ -57,7 +57,7 @@ function fixture():MihmTypedFieldAuditInput {
     viabilityLimits:[{id:'limit:a',dimensionRef:ref('dim:availability'),
       unit:'ratio',lower:.9,upper:null,direction:'HIGHER_IS_BETTER'}],
     attractors:[{id:'a:1',attractorRef:ref('attractor:availability'),
-      dimensionRef:ref('dim:availability'),unit:'ratio',lower:.7,upper:1}],
+      nodeRef:ref('node:a'),dimensionRef:ref('dim:availability'),unit:'ratio',lower:.7,upper:1}],
     relations:[{relationRef:ref('rel:a-b'),sourceNodeRef:ref('node:a'),
       targetNodeRef:ref('node:b'),sourceDimensionRef:ref('dim:availability'),
       targetDimensionRef:ref('dim:retries'),status:'HYPOTHESIZED',lagMs:null,
@@ -107,6 +107,14 @@ test('explicit zero is measured; unknown, contradicting and simulated values can
   const d=fixture();d.samples[2].state='CONTRADICTED';
   assert.equal(auditMihmTypedField(d).readiness,'BLOCKED');
   assert(d!==undefined);
+});
+
+test('a simulation-labelled parent source cannot be laundered into a MEASURED reading',()=>{
+  const a=fixture();a.frame.sourceVintages[0].sourceClass='SIMULATED';
+  const r=auditMihmTypedField(a);
+  assert.equal(r.readiness,'BLOCKED');
+  assert.equal(r.acceptedSampleIds.length,0);
+  assert(r.reasons.includes('MEASURED_FROM_NON_REAL_SOURCE:m1'));
 });
 
 test('unavailable source times or fabricated time order block measured interpretation',()=>{
