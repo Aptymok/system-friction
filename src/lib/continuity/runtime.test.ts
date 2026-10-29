@@ -123,3 +123,33 @@ test('real hourly receipt validator accepts executed, duplicate, closed and expi
     }
   }finally{rmSync(directory,{recursive:true,force:true});}
 });
+
+test('primary reservation adapter distinguishes unique conflicts and storage failure',async()=>{
+  const factory=(runtime as any).continuityTrialPorts;
+  assert.equal(typeof factory,'function');
+  let receipt:any={error:{code:'23505'},data:null};
+  const db:any={from:()=>{const q:any={insert:()=>q,select:()=>q,single:async()=>receipt};return q;}};
+  const ports=factory(db);
+  const scope={cycleId:cycle,startsAt:'2026-10-29T04:17:00.000Z',slot:0};
+  assert.equal(await ports.reserve('run-1',scope,'NORMAL','github_actions_oidc'),'DUPLICATE');
+  receipt={error:{code:'08006'},data:null};
+  assert.equal(await ports.reserve('run-1',scope,'NORMAL','github_actions_oidc'),'UNAVAILABLE');
+  receipt={error:null,data:{id:'run-1'}};
+  assert.equal(await ports.reserve('run-1',scope,'NORMAL','github_actions_oidc'),'CLAIMED');
+});
+test('primary finalize adapter compares the complete persisted evidence despite JSON key order',async()=>{
+  const factory=(runtime as any).continuityTrialPorts;assert.equal(typeof factory,'function');
+  const evidence={trialRunId:'run-1',cycleId:cycle,slot:0,lanes:{cognitive:{ok:true,processed:1}}};
+  let stored:any={cycleId:cycle,trialRunId:'run-1',lanes:{cognitive:{processed:1,ok:true}},slot:0};
+  const db:any={from:()=>{
+    let writing=false;const q:any={
+      update:()=>{writing=true;return q;},eq:()=>q,select:()=>q,
+      maybeSingle:async()=>({error:null,data:{id:'run-1',status:'COMPLETED',evidence:[stored]}}),
+      then:(resolve:(v:unknown)=>unknown)=>Promise.resolve({error:writing?null:{code:'UNEXPECTED'}}).then(resolve)
+    };return q;
+  }};
+  const ports=factory(db);
+  assert.equal(await ports.finalize('run-1','COMPLETED',evidence),true);
+  stored={...stored,lanes:{cognitive:{ok:true,processed:99}}};
+  assert.equal(await ports.finalize('run-1','COMPLETED',evidence),false);
+});

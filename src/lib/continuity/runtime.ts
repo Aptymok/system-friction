@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from 'node:util';
 import { createHash } from 'node:crypto';
 import { readEvidenceReadiness, searchEvidenceCandidates } from '@/lib/evidence/evidenceCandidates';
 import { classifyGovernedProposalWork } from '@/lib/execution/governedExecutionRouter';
@@ -647,8 +648,7 @@ type ContinuityTrialPorts = {
   finalize: (id: string, status: 'COMPLETED' | 'FAILED', evidence: Row) => Promise<boolean>;
 };
 
-function continuityTrialPorts(): ContinuityTrialPorts {
-  const db = createServiceSupabaseClient();
+export function continuityTrialPorts(db = createServiceSupabaseClient()): ContinuityTrialPorts {
   return {
     now: Date.now,
     inspect: async (cycleId) => {
@@ -693,7 +693,7 @@ function continuityTrialPorts(): ContinuityTrialPorts {
       const reread = await db.from('sfi_continuity_runs').select('id,status,evidence').eq('id',id).maybeSingle();
       const stored = Array.isArray(reread.data?.evidence) ? reread.data.evidence[0] : null;
       return !reread.error && reread.data?.id === id && reread.data?.status === status
-        && stored?.trialRunId === id && stored?.cycleId === evidence.cycleId;
+        && isDeepStrictEqual(stored,evidence);
     },
   };
 }
