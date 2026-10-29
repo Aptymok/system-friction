@@ -63,10 +63,10 @@ function fixture():MihmTypedFieldAuditInput {
       targetDimensionRef:ref('dim:retries'),status:'HYPOTHESIZED',lagMs:null,
       sourceRefs:[ref('source:log')]}],
     resources:[
-      {cycleRef:ref('cycle:1'),resource:'TOKENS',unit:'token',amount:100,
+      {id:'resource:1',cycleRef:ref('cycle:1'),resource:'TOKENS',unit:'token',amount:100,
        state:'MEASURED',sourceRef:ref('source:log'),observedAt:'2026-10-27T10:00:00Z',
        availableAt:'2026-10-28T02:00:00Z'},
-      {cycleRef:ref('cycle:2'),resource:'TOKENS',unit:'token',amount:0,
+      {id:'resource:2',cycleRef:ref('cycle:2'),resource:'TOKENS',unit:'token',amount:0,
        state:'MEASURED',sourceRef:ref('source:log'),observedAt:'2026-10-27T11:00:00Z',
        availableAt:'2026-10-28T02:00:00Z'},
     ],
@@ -149,6 +149,16 @@ test('incomplete resource receipts never masquerade as zero spend',()=>{
   const totals=auditMihmTypedField(b).resourceTotals;
   assert.equal(totals.length,2);
   assert(totals.some(x=>x.unit==='ms'));
+});
+
+test('duplicate resource receipts do not become duplicated costs',()=>{
+  const a=fixture();a.resources.push(structuredClone(a.resources[1]));
+  const r=auditMihmTypedField(a);
+  assert.equal(r.readiness,'BLOCKED');
+  assert(r.reasons.includes('DUPLICATE_RESOURCE_RECEIPT:resource:2'));
+  assert.equal(r.resourceTotals[0].amount,null);
+  const b=fixture();b.resources[0].availableAt='2026-10-26T00:00:00Z';
+  assert.equal(auditMihmTypedField(b).resourceTotals[0].amount,null);
 });
 
 test('no projective number or authorized return can be inferred from two measured points',()=>{
