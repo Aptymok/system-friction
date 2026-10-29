@@ -169,3 +169,48 @@ test('no projective number or authorized return can be inferred from two measure
   assert.equal(x.externalActionAuthorized,false);
   assert.equal(x.resourceCostsIndependentlyVerified,false);
 });
+
+test('equivalent offset and fractional timestamps cannot multiply resource receipts',()=>{
+  for(const at of ['2026-10-27T10:00:00+00:00','2026-10-27T12:00:00+02:00','2026-10-27T10:00:00.000Z']){
+    const a=fixture();a.resources.push({...a.resources[0],observedAt:at});
+    const o=auditMihmTypedField(a);
+    assert(o.reasons.includes('DUPLICATE_RESOURCE_RECEIPT:resource:1'));
+    assert.equal(o.resourceTotals[0].amount,null);
+  }
+});
+
+test('one observation instant cannot establish repeated occupancy through timestamp aliases',()=>{
+  const a=fixture();const first=a.samples[0];
+  a.samples=[
+    first,
+    {...first,id:'alias:1',observedAt:'2026-10-25T02:00:00+02:00'},
+    {...first,id:'alias:2',observedAt:'2026-10-25T00:00:00.000Z'},
+  ];
+  const o=auditMihmTypedField(a);
+  assert(o.reasons.some(x=>x.startsWith('DUPLICATE_SAMPLE:')));
+  assert.equal(o.acceptedSampleIds.length,1);
+  assert.equal(o.dimensionTrajectories.length,0);
+  assert.equal(o.attractorChecks[0].state,'INSUFFICIENT_OBSERVATIONS');
+});
+
+test('negative and nonfinite resource amounts never advertise complete totals',()=>{
+  for(const amount of [-100,NaN,Infinity,-Infinity]){
+    const a=fixture();a.resources[0].amount=amount;
+    const o=auditMihmTypedField(a);
+    assert.equal(o.resourceTotals[0].amount,null);
+    assert.equal(o.resourceTotals[0].missingEntries,1);
+    assert.equal(o.resourceTotals[0].status,'PARTIAL_OR_UNTRUSTED');
+  }
+});
+
+test('unit or family conflicts suppress accepted samples, trajectories, bands and propagation',()=>{
+  for(const mutation of [{unit:'ms'},{fieldFamily:'DIGITAL' as const}]){
+    const a=fixture();Object.assign(a.samples[2],mutation);
+    const o=auditMihmTypedField(a);
+    assert.equal(o.acceptedSampleIds.some(id=>['m1','m2','m3'].includes(id)),false);
+    assert.equal(o.dimensionTrajectories.some(t=>t.dimensionId==='dim:availability'),false);
+    assert.equal(o.attractorChecks[0].state,'INSUFFICIENT_OBSERVATIONS');
+    assert.equal(o.propagation[0].state,'NOT_IDENTIFIABLE');
+    assert.equal(o.dimensionTrajectories.some(t=>t.dimensionId==='dim:retries'),true);
+  }
+});

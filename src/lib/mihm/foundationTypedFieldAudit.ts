@@ -156,14 +156,20 @@ export function auditMihmTypedField(input: MihmTypedFieldAuditInput): MihmTypedF
   const sourceIds=new Set(parent.admittedSourceIds);
   const sourceClasses=new Map(frame.sourceVintages.map(v=>[v.sourceId,v.sourceClass]));
   if(input.contract!==SFI_MIHM_TYPED_FIELD_AUDIT) reasons.push('TYPED_FIELD_CONTRACT_REQUIRED');
-  const measured:MihmFieldSample[]=[];
+  let measured:MihmFieldSample[]=[];
   const excludedSampleIds:string[]=[];
   const keys=new Set<string>();
   const units=new Map<string,string>();
   const families=new Map<string,MihmFieldFamily>();
+  const conflictedDimensions=new Set<string>();
   for(const s of input.samples) {
-    const k=s.nodeRef?.id+'|'+s.dimensionRef?.id+'|'+s.observedAt;
-    if(keys.has(k)) reasons.push('DUPLICATE_SAMPLE:'+k);
+    const k=s.nodeRef?.id+'|'+s.dimensionRef?.id+'|'+
+      (validIso(s.observedAt)?Date.parse(s.observedAt):s.observedAt);
+    if(keys.has(k)) {
+      reasons.push('DUPLICATE_SAMPLE:'+k);
+      excludedSampleIds.push(s.id);
+      continue;
+    }
     keys.add(k);
     if(!s.id?.trim()||!nodeIds.has(s.nodeRef?.id)||!dimensionIds.has(s.dimensionRef?.id)||
        !s.unit?.trim()||!validIso(s.observedAt)||!['STATE','DIMENSION'].includes(s.entityKind)||
@@ -174,9 +180,15 @@ export function auditMihmTypedField(input: MihmTypedFieldAuditInput): MihmTypedF
        (s.state==='MEASURED'&&s.value===null)||
        (s.availableAt!==null&&!validIso(s.availableAt))) reasons.push('INVALID_TYPED_SAMPLE:'+s.id);
     const unitKey=s.dimensionRef?.id;
-    if(units.has(unitKey)&&units.get(unitKey)!==s.unit)reasons.push('DIMENSION_UNIT_CONFLICT:'+unitKey);
+    if(units.has(unitKey)&&units.get(unitKey)!==s.unit){
+      reasons.push('DIMENSION_UNIT_CONFLICT:'+unitKey);
+      conflictedDimensions.add(unitKey);
+    }
     units.set(unitKey,s.unit);
-    if(families.has(unitKey)&&families.get(unitKey)!==s.fieldFamily)reasons.push('DIMENSION_FAMILY_CONFLICT:'+unitKey);
+    if(families.has(unitKey)&&families.get(unitKey)!==s.fieldFamily){
+      reasons.push('DIMENSION_FAMILY_CONFLICT:'+unitKey);
+      conflictedDimensions.add(unitKey);
+    }
     families.set(unitKey,s.fieldFamily);
     if(validIso(s.observedAt)&&Number.isFinite(cut)&&Date.parse(s.observedAt)>cut)
       reasons.push('FUTURE_OBSERVATION_AT_CUT:'+s.id);
@@ -193,6 +205,12 @@ export function auditMihmTypedField(input: MihmTypedFieldAuditInput): MihmTypedF
        validIso(s.observedAt)&&Date.parse(s.observedAt)<=cut) measured.push(s);
     else excludedSampleIds.push(s.id);
   }
+  // A conflicting dimension invalidates the whole series, including earlier samples.
+  measured=measured.filter(s=>{
+    if(!conflictedDimensions.has(s.dimensionRef.id))return true;
+    excludedSampleIds.push(s.id);
+    return false;
+  });
   const limitByDimension=new Map<string,MihmFieldViabilityLimit[]>();
   for(const lim of input.viabilityLimits){
     if(!lim.id?.trim()||!dimensionIds.has(lim.dimensionRef?.id)||
@@ -264,7 +282,8 @@ export function auditMihmTypedField(input: MihmTypedFieldAuditInput): MihmTypedF
   const resourceIdentity=new Set<string>(),conflictedResources=new Set<string>();
   for(const r of input.resources){
     const key=r.resource+'|'+r.unit;
-    const identity=r.id+'|'+r.cycleRef?.id+'|'+r.resource+'|'+r.unit+'|'+r.observedAt;
+    const identity=r.id+'|'+r.cycleRef?.id+'|'+r.resource+'|'+r.unit+'|'+
+      (validIso(r.observedAt)?Date.parse(r.observedAt):r.observedAt);
     if(resourceIdentity.has(identity)){
       reasons.push('DUPLICATE_RESOURCE_RECEIPT:'+r.id);
       conflictedResources.add(key);
@@ -282,7 +301,7 @@ export function auditMihmTypedField(input: MihmTypedFieldAuditInput): MihmTypedF
   }
   const resourceTotals:MihmTypedFieldAudit['resourceTotals']=[];
   for(const [key,entries] of resourceGroup){
-    const good=entries.filter(r=>r.state==='MEASURED'&&r.amount!==null&&validRef(r.sourceRef)&&
+    const good=entries.filter(r=>r.state==='MEASURED'&&r.amount!==null&&Number.isFinite(r.amount)&&r.amount>=0&&validRef(r.sourceRef)&&
       validIso(r.availableAt)&&validIso(r.observedAt)&&
       sourceIds.has(r.sourceRef!.id)&&
       ['REAL_TELEMETRY','REAL_DOCUMENTARY'].includes(sourceClasses.get(r.sourceRef!.id)??'')&&
