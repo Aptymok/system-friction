@@ -1,0 +1,191 @@
+{
+  "contract": "MIHM-DEC2025-HOLIDAY-NEGATIVE-CONTROL-0.1",
+  "scientificStatus": "POST_HOC_DESCRIPTIVE_COUNTEREXAMPLE_TO_NAIVE_STORM_COUPLING",
+  "source": {
+    "archivedOfficialAnnualPanel": "docs/research/evidence/MIHM-MANHATTAN-365D-2025-10-2026-09.json",
+    "sourceResponseFingerprints": [
+      {
+        "source": "NYC311",
+        "sha256": "a48f937fda84128e2bfa4cd61f22b0509031c8332d8ecdc49a3f34a551c74d4f"
+      },
+      {
+        "source": "FDNY",
+        "sha256": "fcdf0b6f97d219d216701d061f01f149ee9701c6a1f3ae6f0eb92893e7b97192"
+      },
+      {
+        "source": "MTA_CBD_CRZ",
+        "sha256": "70d8e2e1ed023b68389553c36af516ba3bb16c07eb2d7d5b6d6309bd88b6134e"
+      }
+    ],
+    "weather": "https://mesonet.agron.iastate.edu/sites/hist.phtml?month=12&network=NYCLIMATE&station=NYTNYC&year=2025",
+    "weatherNwsEvent": "https://www.weather.gov/okx/20251226_27",
+    "historicT0SourceVintage": "NOT_VERIFIED"
+  },
+  "comparison": "Actual daily Manhattan borough 311/FDNY counts and nested-area MTA CBD/CRZ daily entry counts vs mean of two prior same weekdays; also one-week sensitivity",
+  "dates": [
+    {
+      "day": "2025-12-24",
+      "referenceSameWeekdays": [
+        "2025-12-10",
+        "2025-12-17"
+      ],
+      "class": "CHRISTMAS_EVE_BEFORE_WINTER_STORM",
+      "observedCentralParkSnowInches": 0,
+      "indicators": {
+        "service311": {
+          "observed": 1469,
+          "twoWeekReferenceMean": 2128,
+          "twoWeekDeviationPct": -30.968,
+          "oneWeekDeviationPct": -33.227
+        },
+        "fdnyCount": {
+          "observed": 446,
+          "twoWeekReferenceMean": 521.5,
+          "twoWeekDeviationPct": -14.477,
+          "oneWeekDeviationPct": -16.323
+        },
+        "cbdEntries": {
+          "observed": 507081,
+          "twoWeekReferenceMean": 583236,
+          "twoWeekDeviationPct": -13.057,
+          "oneWeekDeviationPct": -12.622
+        },
+        "crzEntries": {
+          "observed": 441283,
+          "twoWeekReferenceMean": 522993.5,
+          "twoWeekDeviationPct": -15.624,
+          "oneWeekDeviationPct": -14.904
+        }
+      }
+    },
+    {
+      "day": "2025-12-25",
+      "referenceSameWeekdays": [
+        "2025-12-11",
+        "2025-12-18"
+      ],
+      "class": "CHRISTMAS_DAY_BEFORE_WINTER_STORM",
+      "observedCentralParkSnowInches": 0,
+      "indicators": {
+        "service311": {
+          "observed": 1124,
+          "twoWeekReferenceMean": 2015,
+          "twoWeekDeviationPct": -44.218,
+          "oneWeekDeviationPct": -43.659
+        },
+        "fdnyCount": {
+          "observed": 341,
+          "twoWeekReferenceMean": 534.5,
+          "twoWeekDeviationPct": -36.202,
+          "oneWeekDeviationPct": -39.646
+        },
+        "cbdEntries": {
+          "observed": 399140,
+          "twoWeekReferenceMean": 601464,
+          "twoWeekDeviationPct": -33.639,
+          "oneWeekDeviationPct": -32.97
+        },
+        "crzEntries": {
+          "observed": 345539,
+          "twoWeekReferenceMean": 540109.5,
+          "twoWeekDeviationPct": -36.024,
+          "oneWeekDeviationPct": -35.159
+        }
+      }
+    },
+    {
+      "day": "2025-12-26",
+      "referenceSameWeekdays": [
+        "2025-12-12",
+        "2025-12-19"
+      ],
+      "class": "POST_CHRISTMAS_STORM_EVENING_ONSET",
+      "observedCentralParkSnowInches": 1.7,
+      "indicators": {
+        "service311": {
+          "observed": 1538,
+          "twoWeekReferenceMean": 2123.5,
+          "twoWeekDeviationPct": -27.572,
+          "oneWeekDeviationPct": -22.519
+        },
+        "fdnyCount": {
+          "observed": 399,
+          "twoWeekReferenceMean": 512,
+          "twoWeekDeviationPct": -22.07,
+          "oneWeekDeviationPct": -25.141
+        },
+        "cbdEntries": {
+          "observed": 424537,
+          "twoWeekReferenceMean": 602539.5,
+          "twoWeekDeviationPct": -29.542,
+          "oneWeekDeviationPct": -27.895
+        },
+        "crzEntries": {
+          "observed": 374312,
+          "twoWeekReferenceMean": 541675.5,
+          "twoWeekDeviationPct": -30.897,
+          "oneWeekDeviationPct": -29.18
+        }
+      }
+    },
+    {
+      "day": "2025-12-27",
+      "referenceSameWeekdays": [
+        "2025-12-13",
+        "2025-12-20"
+      ],
+      "class": "WINTER_STORM_DAY_TWO",
+      "observedCentralParkSnowInches": 2.6,
+      "indicators": {
+        "service311": {
+          "observed": 1645,
+          "twoWeekReferenceMean": 1808.5,
+          "twoWeekDeviationPct": -9.041,
+          "oneWeekDeviationPct": -1.379
+        },
+        "fdnyCount": {
+          "observed": 423,
+          "twoWeekReferenceMean": 431,
+          "twoWeekDeviationPct": -1.856,
+          "oneWeekDeviationPct": 4.963
+        },
+        "cbdEntries": {
+          "observed": 367604,
+          "twoWeekReferenceMean": 583484.5,
+          "twoWeekDeviationPct": -36.998,
+          "oneWeekDeviationPct": -35.823
+        },
+        "crzEntries": {
+          "observed": 331594,
+          "twoWeekReferenceMean": 523992.5,
+          "twoWeekDeviationPct": -36.718,
+          "oneWeekDeviationPct": -35.396
+        }
+      }
+    }
+  ],
+  "holidayNegativeControl": {
+    "christmasBeforeStormHadStronger311TotalDecreaseThanStormOnset": true,
+    "christmasBeforeStormHadStrongerCBDDecreaseThanStormOnset": true,
+    "holidayAlsoStronglyChangesFDNYCount": true,
+    "eventSpecificityOfAggregateCoupling": "NOT_IDENTIFIED",
+    "otherExplanations": [
+      "Christmas holiday behavior",
+      "business and city agency closure",
+      "Nonessential trip and report reporting suppression",
+      "Weather onset evening Dec26 and December 27 precipitation",
+      "Different spatial catchments for borough and CBD",
+      "Original historical T0 source vintages not reconstructed"
+    ]
+  },
+  "categoryControls": {
+    "selectedStormCategoryResults": "docs/research/evidence/MIHM-311-DEC2025-SNOW-TRANSFER-OBSERVED.json",
+    "christmasDayCategoryVectorAvailable": false,
+    "cannotFalsifyNonHeatingSpecificCategoryLawFromHolidayAggregateOnly": true
+  },
+  "historicalPredictionIssued": false,
+  "causalStormImpactEstimated": false,
+  "canonicalMihmValidated": false,
+  "allSourceReadsAlreadyArchived": true,
+  "noAdditionalPublicSourceReads": true
+}

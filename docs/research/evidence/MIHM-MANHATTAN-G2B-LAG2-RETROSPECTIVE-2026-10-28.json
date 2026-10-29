@@ -1,0 +1,128 @@
+{
+  "schema": "SFI-MIHM-G2B-LAG2-RETROSPECTIVE-0.1",
+  "recordedAt": "2026-10-28",
+  "classification": "DERIVED_FROM_HISTORIC_OFFICIAL_SOURCE_ARCHIVE__POSTHOC_EXPLORATORY",
+  "studyStatus": "RETRAINED_RETROSPECTIVE_NOT_ISSUED_PROSPECTIVE",
+  "source": {
+    "officialProviderDerivedArchive": "docs/research/evidence/MIHM-MANHATTAN-365D-2025-10-2026-09.json",
+    "archiveSHA256": "41e384e3199ca8d6878b39cdca51425b82e01a4d5fec6121d6494d53c5ceacc5",
+    "originalAsOfAvailability": "NOT_VERIFIED",
+    "modelSource": "scripts/research/mihm-manhattan-365d-contrast.mjs",
+    "codeCommit": "2593fb16c738a53edbd9ccf4730ed444ec02829d",
+    "exactCommand": "node scripts/research/mihm-manhattan-365d-contrast.mjs --evaluate-lag2",
+    "executionEnvironment": "Vercel temporary sandbox, node; public GitHub raw source downloaded and self-test passed",
+    "upstream": "https://github.com/Aptymok/system-friction/pull/841"
+  },
+  "design": {
+    "lineage": "G2B LAG2 day-ahead candidate; not equivalent to original G2 preregistration",
+    "windows": {
+      "training": [
+        "2025-11-12",
+        "2026-04-30"
+      ],
+      "calibration": [
+        "2026-05-01",
+        "2026-06-30"
+      ],
+      "evaluation": [
+        "2026-07-01",
+        "2026-09-30"
+      ]
+    },
+    "sampleSizes": {
+      "train": 170,
+      "calibration": 61,
+      "test": 92
+    },
+    "comparison": "Train/validate all M0/M1/M2/PLACEBO on same fixed windows with each feature offset +1 day vs original (minimum lag 2); independent alpha choices on calibration data. Weekly-naive lag7 retained.",
+    "featureCounts": {
+      "M0": 16,
+      "M1": 26,
+      "M2": 32,
+      "PLACEBO": 32
+    },
+    "metrics": "Daily MAE and RMSE in native count units. Seven-day block bootstrap exploratory, not calibrated confirmatory interval.",
+    "forecastIssuanceCount": 0,
+    "independentlyVerifiedSourceVintages": false
+  },
+  "targets": [
+    {
+      "target": "service311",
+      "geography": "Manhattan borough",
+      "unit": "requests/day",
+      "nTest": 92,
+      "MAE": {
+        "M0": 146.44626487445547,
+        "M1": 187.05565455751636,
+        "M2": 185.94483292134447,
+        "PLACEBO": 191.5635715049295,
+        "lag7": 170.02173913043478
+      },
+      "M2MinusBestBaselineMAE": 39.498568046889,
+      "M2PlaceboGainCI95": [
+        -1.132514006494405,
+        13.078398849902264
+      ],
+      "winner": "M0"
+    },
+    {
+      "target": "fdnyCount",
+      "geography": "Manhattan borough",
+      "unit": "dispatches/day",
+      "nTest": 92,
+      "MAE": {
+        "M0": 37.03907774647222,
+        "M1": 39.509444603538356,
+        "M2": 39.63461709795954,
+        "PLACEBO": 39.89969866156684,
+        "lag7": 53.51086956521739
+      },
+      "M2MinusBestBaselineMAE": 2.59553935148732,
+      "M2PlaceboGainCI95": [
+        -0.012373415099688763,
+        0.45868857880381225
+      ],
+      "winner": "M0"
+    },
+    {
+      "target": "cbdEntries",
+      "geography": "CBD nested geographic area",
+      "unit": "vehicle entries/day",
+      "nTest": 92,
+      "MAE": {
+        "M0": 21101.648883399455,
+        "M1": 21733.296100901876,
+        "M2": 21687.00199129586,
+        "PLACEBO": 21075.253063606175,
+        "lag7": 21891.934782608696
+      },
+      "M2MinusBestBaselineMAE": 611.748927689684,
+      "M2PlaceboGainCI95": [
+        -1140.6795459720583,
+        -56.14293749140431
+      ],
+      "winner": "PLACEBO"
+    }
+  ],
+  "result": {
+    "primaryClaim": "M2 improves over best adequate controls",
+    "status": "NOT_SUPPORTED_BY_THIS_RETROSPECTIVE_VARIANT",
+    "winsM2": 0,
+    "targets": 3,
+    "interpretation": "The exploratory MIHM-inspired engineered shock features fail to outperform best historical controls in all three targets; the placebo wins the mobility target.",
+    "causalOrPhysicalHomeostasisValidated": false,
+    "canonicalMIHMExecuted": false,
+    "futureT1OutcomeObserved": false,
+    "actionAuthorized": false,
+    "externalReturnObserved": false,
+    "originalG2ProtocolChanged": false,
+    "limitations": [
+      "Model selection and lag2 policy post-date original retrospective evaluation, so this is post-hoc exploratory research",
+      "Original as-of-T0 data release vintages absent; no real time forecast performance proven",
+      "M2 is an engineered feature model inspired by MIHM, not the full canonical MIHM instrument",
+      "Geographic support differs across NYC311/FDNY and CBD mobility; do not aggregate error units",
+      "CI code verification does not substitute independent third-party replication"
+    ]
+  },
+  "disposition": "PRESERVE_ADVERSE_RESULT__RETRAINING_ONLY__NO_PUBLIC_VALIDATION"
+}

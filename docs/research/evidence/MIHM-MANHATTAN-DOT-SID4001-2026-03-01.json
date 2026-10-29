@@ -1,0 +1,81 @@
+{
+  "contract": "MIHM-MANHATTAN-DOT-FIXED-LINK-EVIDENCE-0.1",
+  "evidenceClass": "OBSERVED_HISTORICAL_AGGREGATED_SOURCE",
+  "scope": "ONE ROAD SEGMENT ONLY, NOT MANHATTAN REPRESENTATIVE",
+  "source": "https://data.cityofnewyork.us/d/6a2s-2t65",
+  "provenance": {
+    "run": "https://github.com/Aptymok/system-friction/actions/runs/40194831381",
+    "job": "121173319059",
+    "script": "scripts/research/mihm-dot-fixed-link-probe.mjs",
+    "queryUrl": "https://data.cityofnewyork.us/resource/6a2s-2t65.json?%24select=date_trunc_ymd%28median_calculation_timestamp%29+as+day%2C+count%28*%29+as+readings%2C+sum%28n_samples%29+as+samples%2C+avg%28median_speed_fps%29+as+unweighted_fps%2C+sum%28median_speed_fps+*+n_samples%29+%2F+sum%28n_samples%29+as+sample_weighted_fps&%24where=borough+%3D+%27Manhattan%27+AND+sid+%3D+4001+AND+median_calculation_timestamp+%3E%3D+%272026-03-01T00%3A00%3A00%27+AND+median_calculation_timestamp+%3C+%272026-03-08T00%3A00%3A00%27+AND+median_speed_fps+%3E+0+AND+n_samples+%3E+0&%24limit=16&%24group=day&%24order=day+ASC",
+    "rawResponseSha256": "707a96696f87fa0914d158e7bbba9e266f29ca41304cda939ef0dfc9546746a5",
+    "candidateSelectionSha256": "17b44ecb81a7a042ffa365f74b01874d943107e07164f9dfd60dc8785dfee966",
+    "selection": "first 40 matching development-day DOT readings, deterministic first 2 distinct SID after numeric sort, nonprobability sample"
+  },
+  "link": {
+    "sid": "4001",
+    "name": "42nd Street - Westbound - 3rd Ave to Lexington Ave"
+  },
+  "temporalRange": [
+    "2026-03-01",
+    "2026-03-07"
+  ],
+  "daysCovered": 7,
+  "totalReadings": 8533,
+  "units": "feet per second",
+  "daily": {
+    "2026-03-01": {
+      "readings": 1231,
+      "samples": 58257,
+      "unweightedFps": 7.542022745735174,
+      "sampleWeightedFps": 7.317560979796419
+    },
+    "2026-03-02": {
+      "readings": 1212,
+      "samples": 53100,
+      "unweightedFps": 9.146914191419143,
+      "sampleWeightedFps": 9.16622033898305
+    },
+    "2026-03-03": {
+      "readings": 1218,
+      "samples": 55118,
+      "unweightedFps": 8.32952380952381,
+      "sampleWeightedFps": 8.571543778801843
+    },
+    "2026-03-04": {
+      "readings": 1204,
+      "samples": 50166,
+      "unweightedFps": 7.888504983388704,
+      "sampleWeightedFps": 7.9845315552366145
+    },
+    "2026-03-05": {
+      "readings": 1219,
+      "samples": 62195,
+      "unweightedFps": 7.804405250205086,
+      "sampleWeightedFps": 7.73470166412091
+    },
+    "2026-03-06": {
+      "readings": 1215,
+      "samples": 49127,
+      "unweightedFps": 8.583308641975309,
+      "sampleWeightedFps": 8.64170049056527
+    },
+    "2026-03-07": {
+      "readings": 1234,
+      "samples": 60923,
+      "unweightedFps": 8.449173419773096,
+      "sampleWeightedFps": 8.523699259721287
+    }
+  },
+  "exclusions": {
+    "secondSid": "2001",
+    "reason": "SOURCE_TIMEOUT_NOT_DATA_ABSENCE"
+  },
+  "limits": {
+    "trueSpatialRepresentativeness": false,
+    "asOfT0Verified": false,
+    "predictiveSkillDemonstrated": false,
+    "experimentalTreatment": false,
+    "linkSelectionIsNonrandom": true
+  }
+}

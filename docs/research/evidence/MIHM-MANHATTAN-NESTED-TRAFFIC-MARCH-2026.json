@@ -1,0 +1,309 @@
+{
+  "contract": "MIHM-MANHATTAN-HETEROGENEOUS-DAILY-2026-03-v1",
+  "status": "OBSERVED_31_DAYS_SPATIAL_SUPPORTS_DIFFER",
+  "class": "RETROSPECTIVE_FOUR_METRICS_THREE_SOURCES_NOT_CAUSAL",
+  "declaredPeriod": [
+    "2026-03-01",
+    "2026-03-31"
+  ],
+  "agencySources": [
+    {
+      "source": "NYC311",
+      "dataset": "erm2-nwe9",
+      "measurement": "service request counts",
+      "spatial": "Manhattan borough",
+      "responseSha256": "f720fef985823598165dc4b4caea3fd892d28a3ceb6580ed597792229c137aa0"
+    },
+    {
+      "source": "FDNY",
+      "dataset": "8m42-w767",
+      "measurement": "dispatched events",
+      "spatial": "Manhattan borough",
+      "responseSha256": "7aea7193b6ac97a00dfd01f7dbf05c701e4e06c9e2370d998b0fea1a3c555c9d"
+    },
+    {
+      "source": "MTA",
+      "dataset": "sayj-mze2",
+      "measurement": "vehicle entries: CBD / CRZ",
+      "spatial": "Manhattan CBD and nested tolling zone, NOT entire borough",
+      "responseSha256": "81a33b315281be8e849ff1d2af71d38650a6dd4a59c73132829000d1b04ba68a"
+    }
+  ],
+  "sourceReadReceipts": [
+    "https://github.com/Aptymok/system-friction/actions/runs/40190948687",
+    "https://github.com/Aptymok/system-friction/actions/runs/40195066391"
+  ],
+  "sourceAsOfT0": "NOT_VERIFIED",
+  "responseUpdatesMayReviseHistoricalEvents": true,
+  "spatialCompatibility": "HETEROGENEOUS_NESTED_AREA_NOT_DIRECTLY_EQUIVALENT",
+  "temporalCompatibility": "DAILY_EVENT_DATE; DST and original publication cutoffs not independently audited",
+  "semantics": {
+    "CBD": "All entries counted into Central Business District including excluded roadways",
+    "CRZ": "Entries into Congestion Relief Zone excluding roadways exempted from tolling",
+    "derivedDifference": "CBD Entries minus CRZ Entries; definitional arithmetic, not physically verified distinct road category",
+    "roadSpeed": "NOT MEASURED IN THIS PANEL",
+    "subwayBoardings": "NOT MEASURED IN THIS 31-DAY PANEL",
+    "causalLinkage": "NOT OBSERVED OR INFERRED"
+  },
+  "coverage": {
+    "days": 31,
+    "missingDays": [],
+    "boroughSourceDays": 31,
+    "nestedCBDSourceDays": 31
+  },
+  "rows": [
+    {
+      "day": "2026-03-01",
+      "service311": 1778,
+      "fdnyCount": 400,
+      "cbdEntries": 476864,
+      "crzEntries": 418874,
+      "estimatedExcludedRoadwayEntries": 57990
+    },
+    {
+      "day": "2026-03-02",
+      "service311": 2117,
+      "fdnyCount": 421,
+      "cbdEntries": 510717,
+      "crzEntries": 454834,
+      "estimatedExcludedRoadwayEntries": 55883
+    },
+    {
+      "day": "2026-03-03",
+      "service311": 1961,
+      "fdnyCount": 427,
+      "cbdEntries": 520964,
+      "crzEntries": 461838,
+      "estimatedExcludedRoadwayEntries": 59126
+    },
+    {
+      "day": "2026-03-04",
+      "service311": 2078,
+      "fdnyCount": 454,
+      "cbdEntries": 548319,
+      "crzEntries": 486701,
+      "estimatedExcludedRoadwayEntries": 61618
+    },
+    {
+      "day": "2026-03-05",
+      "service311": 1884,
+      "fdnyCount": 476,
+      "cbdEntries": 546505,
+      "crzEntries": 487815,
+      "estimatedExcludedRoadwayEntries": 58690
+    },
+    {
+      "day": "2026-03-06",
+      "service311": 2357,
+      "fdnyCount": 456,
+      "cbdEntries": 559119,
+      "crzEntries": 496942,
+      "estimatedExcludedRoadwayEntries": 62177
+    },
+    {
+      "day": "2026-03-07",
+      "service311": 2033,
+      "fdnyCount": 445,
+      "cbdEntries": 540698,
+      "crzEntries": 489214,
+      "estimatedExcludedRoadwayEntries": 51484
+    },
+    {
+      "day": "2026-03-08",
+      "service311": 2021,
+      "fdnyCount": 460,
+      "cbdEntries": 492368,
+      "crzEntries": 431771,
+      "estimatedExcludedRoadwayEntries": 60597
+    },
+    {
+      "day": "2026-03-09",
+      "service311": 2428,
+      "fdnyCount": 510,
+      "cbdEntries": 522932,
+      "crzEntries": 463389,
+      "estimatedExcludedRoadwayEntries": 59543
+    },
+    {
+      "day": "2026-03-10",
+      "service311": 2545,
+      "fdnyCount": 505,
+      "cbdEntries": 538506,
+      "crzEntries": 478387,
+      "estimatedExcludedRoadwayEntries": 60119
+    },
+    {
+      "day": "2026-03-11",
+      "service311": 2154,
+      "fdnyCount": 524,
+      "cbdEntries": 550356,
+      "crzEntries": 489571,
+      "estimatedExcludedRoadwayEntries": 60785
+    },
+    {
+      "day": "2026-03-12",
+      "service311": 2283,
+      "fdnyCount": 469,
+      "cbdEntries": 554366,
+      "crzEntries": 493269,
+      "estimatedExcludedRoadwayEntries": 61097
+    },
+    {
+      "day": "2026-03-13",
+      "service311": 2165,
+      "fdnyCount": 444,
+      "cbdEntries": 569140,
+      "crzEntries": 504653,
+      "estimatedExcludedRoadwayEntries": 64487
+    },
+    {
+      "day": "2026-03-14",
+      "service311": 1956,
+      "fdnyCount": 435,
+      "cbdEntries": 558787,
+      "crzEntries": 497580,
+      "estimatedExcludedRoadwayEntries": 61207
+    },
+    {
+      "day": "2026-03-15",
+      "service311": 1881,
+      "fdnyCount": 371,
+      "cbdEntries": 493358,
+      "crzEntries": 441681,
+      "estimatedExcludedRoadwayEntries": 51677
+    },
+    {
+      "day": "2026-03-16",
+      "service311": 2033,
+      "fdnyCount": 410,
+      "cbdEntries": 514439,
+      "crzEntries": 453459,
+      "estimatedExcludedRoadwayEntries": 60980
+    },
+    {
+      "day": "2026-03-17",
+      "service311": 2250,
+      "fdnyCount": 411,
+      "cbdEntries": 531119,
+      "crzEntries": 470462,
+      "estimatedExcludedRoadwayEntries": 60657
+    },
+    {
+      "day": "2026-03-18",
+      "service311": 2273,
+      "fdnyCount": 428,
+      "cbdEntries": 563879,
+      "crzEntries": 500234,
+      "estimatedExcludedRoadwayEntries": 63645
+    },
+    {
+      "day": "2026-03-19",
+      "service311": 2139,
+      "fdnyCount": 388,
+      "cbdEntries": 566080,
+      "crzEntries": 501759,
+      "estimatedExcludedRoadwayEntries": 64321
+    },
+    {
+      "day": "2026-03-20",
+      "service311": 2087,
+      "fdnyCount": 415,
+      "cbdEntries": 554092,
+      "crzEntries": 488144,
+      "estimatedExcludedRoadwayEntries": 65948
+    },
+    {
+      "day": "2026-03-21",
+      "service311": 1998,
+      "fdnyCount": 477,
+      "cbdEntries": 545995,
+      "crzEntries": 482945,
+      "estimatedExcludedRoadwayEntries": 63050
+    },
+    {
+      "day": "2026-03-22",
+      "service311": 1890,
+      "fdnyCount": 428,
+      "cbdEntries": 512898,
+      "crzEntries": 447172,
+      "estimatedExcludedRoadwayEntries": 65726
+    },
+    {
+      "day": "2026-03-23",
+      "service311": 1993,
+      "fdnyCount": 403,
+      "cbdEntries": 516624,
+      "crzEntries": 455890,
+      "estimatedExcludedRoadwayEntries": 60734
+    },
+    {
+      "day": "2026-03-24",
+      "service311": 2142,
+      "fdnyCount": 433,
+      "cbdEntries": 538226,
+      "crzEntries": 476699,
+      "estimatedExcludedRoadwayEntries": 61527
+    },
+    {
+      "day": "2026-03-25",
+      "service311": 2060,
+      "fdnyCount": 403,
+      "cbdEntries": 547902,
+      "crzEntries": 485294,
+      "estimatedExcludedRoadwayEntries": 62608
+    },
+    {
+      "day": "2026-03-26",
+      "service311": 2337,
+      "fdnyCount": 472,
+      "cbdEntries": 566589,
+      "crzEntries": 502673,
+      "estimatedExcludedRoadwayEntries": 63916
+    },
+    {
+      "day": "2026-03-27",
+      "service311": 2017,
+      "fdnyCount": 424,
+      "cbdEntries": 571064,
+      "crzEntries": 506317,
+      "estimatedExcludedRoadwayEntries": 64747
+    },
+    {
+      "day": "2026-03-28",
+      "service311": 1995,
+      "fdnyCount": 463,
+      "cbdEntries": 554879,
+      "crzEntries": 491770,
+      "estimatedExcludedRoadwayEntries": 63109
+    },
+    {
+      "day": "2026-03-29",
+      "service311": 2075,
+      "fdnyCount": 401,
+      "cbdEntries": 510072,
+      "crzEntries": 447696,
+      "estimatedExcludedRoadwayEntries": 62376
+    },
+    {
+      "day": "2026-03-30",
+      "service311": 2197,
+      "fdnyCount": 439,
+      "cbdEntries": 526558,
+      "crzEntries": 462414,
+      "estimatedExcludedRoadwayEntries": 64144
+    },
+    {
+      "day": "2026-03-31",
+      "service311": 2381,
+      "fdnyCount": 472,
+      "cbdEntries": 537876,
+      "crzEntries": 472488,
+      "estimatedExcludedRoadwayEntries": 65388
+    }
+  ],
+  "limitations": [
+    "Three public agency sources; four metrics (two nested entry counts); not four independent systems",
+    "31 days is inadequate for the previously specified 2025-07 through 2026-09 validation protocol",
+    "No out-of-time scientific MIHM advantage, calibration or causal propagation demonstrated"
+  ]
+}

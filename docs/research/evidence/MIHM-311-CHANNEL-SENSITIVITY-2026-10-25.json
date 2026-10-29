@@ -1,0 +1,156 @@
+{
+  "contract": "MIHM-311-CHANNEL-SENSITIVITY-DIAGNOSTIC-2026-0.1",
+  "scientificClassification": "RETROSPECTIVE_CATEGORY_CONTROL_SELECTED_POST_INSPECTION",
+  "sourceArtifact": "docs/research/evidence/MIHM-311-JAN-FEB-COMPOSITION-CORRECTED-2026.json",
+  "sourceResponseSHA256": [
+    {
+      "window": "JAN",
+      "sha256": "afd4323e8ddf8858d9a360110430781cba0211f4c62339944617e8a6075847bc"
+    },
+    {
+      "window": "FEB",
+      "sha256": "90c7a10e210b0ba9d2bec18e9941ac5d453f10df327fb8b71a6ea79fe4b70cd3"
+    }
+  ],
+  "comparisonProtocol": "Mean of two earlier same weekdays, no weather-matched counterfactual",
+  "mechanism": "Potential category and reporting-channel heterogeneity, NOT a confirmed causal lag",
+  "findings": {
+    "originalUnadjustedStormDaySignsDiffer": true,
+    "bothStormEventDaysHaveNegativeNonHeatDelta": true,
+    "bothNextDaysHavePositiveSnowOrIceReportIncrease": true,
+    "bothNextDaysHaveNegativeRemainderAfterExcludingHeatAndSnow": true,
+    "JanuaryTotalIncreaseExplainedByHeatingCategory": true,
+    "weakness": "2 storms studied and target categories selected after inspecting their outcomes; cannot establish reproducibility or ex ante forecasting",
+    "prospectiveMIHMAdvantageEstablished": false
+  },
+  "episodes": [
+    {
+      "name": "JAN",
+      "event": {
+        "date": "2026-01-25",
+        "total": {
+          "observed": 2402,
+          "priorTwoWeekdayMean": 1480.5,
+          "delta": 921.5
+        },
+        "heatHotWater": {
+          "observed": 1293,
+          "priorMean": 301,
+          "delta": 992
+        },
+        "nonHeat": {
+          "observed": 1109,
+          "priorMean": 1179.5,
+          "delta": -70.5,
+          "relativeChangePct": -6
+        },
+        "snowIce": {
+          "observed": 59,
+          "priorMean": 0,
+          "delta": 59
+        },
+        "otherExcludingHeatAndSnow": {
+          "observed": 1050,
+          "priorMean": 1179.5,
+          "delta": -129.5
+        }
+      },
+      "following": {
+        "date": "2026-01-26",
+        "total": {
+          "observed": 2592,
+          "priorTwoWeekdayMean": 2005,
+          "delta": 587
+        },
+        "heatHotWater": {
+          "observed": 1028,
+          "priorMean": 445,
+          "delta": 583
+        },
+        "nonHeat": {
+          "observed": 1564,
+          "priorMean": 1560,
+          "delta": 4,
+          "relativeChangePct": 0.3
+        },
+        "snowIce": {
+          "observed": 374,
+          "priorMean": 38.5,
+          "delta": 335.5
+        },
+        "otherExcludingHeatAndSnow": {
+          "observed": 1190,
+          "priorMean": 1521.5,
+          "delta": -331.5
+        }
+      }
+    },
+    {
+      "name": "FEB",
+      "event": {
+        "date": "2026-02-23",
+        "total": {
+          "observed": 1844,
+          "priorTwoWeekdayMean": 2329,
+          "delta": -485
+        },
+        "heatHotWater": {
+          "observed": 494,
+          "priorMean": 707.5,
+          "delta": -213.5
+        },
+        "nonHeat": {
+          "observed": 1350,
+          "priorMean": 1621.5,
+          "delta": -271.5,
+          "relativeChangePct": -16.7
+        },
+        "snowIce": {
+          "observed": 146,
+          "priorMean": 21.5,
+          "delta": 124.5
+        },
+        "otherExcludingHeatAndSnow": {
+          "observed": 1204,
+          "priorMean": 1600,
+          "delta": -396
+        }
+      },
+      "following": {
+        "date": "2026-02-24",
+        "total": {
+          "observed": 2787,
+          "priorTwoWeekdayMean": 2217,
+          "delta": 570
+        },
+        "heatHotWater": {
+          "observed": 396,
+          "priorMean": 479,
+          "delta": -83
+        },
+        "nonHeat": {
+          "observed": 2391,
+          "priorMean": 1738,
+          "delta": 653,
+          "relativeChangePct": 37.6
+        },
+        "snowIce": {
+          "observed": 868,
+          "priorMean": 27.5,
+          "delta": 840.5
+        },
+        "otherExcludingHeatAndSnow": {
+          "observed": 1523,
+          "priorMean": 1710.5,
+          "delta": -187.5
+        }
+      }
+    }
+  ],
+  "governance": {
+    "canonicalMIHMPhiChanged": false,
+    "productionTouched": false,
+    "personalRequestRowsFetched": false,
+    "requiresIndependentCohort": true
+  }
+}

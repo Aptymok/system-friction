@@ -1,0 +1,756 @@
+{
+  "contract": "MIHM-311-COMPLAINT-COMPOSITION-CORRECTED-2026-10-25-v2",
+  "sourceReceipt": "docs/research/evidence/MIHM-311-JAN-FEB-SNOW-COMPOSITION-OBSERVED-2026.json",
+  "initialGroupingPreservedThere": true,
+  "correction": "Any 311 category containing NOISE, including Noise - Street/Sidewalk, is NOISE before street access matching. This correction was made AFTER original data inspection and is not independent validation.",
+  "officialSourceSHA256": [
+    {
+      "window": "JAN",
+      "sha256": "afd4323e8ddf8858d9a360110430781cba0211f4c62339944617e8a6075847bc"
+    },
+    {
+      "window": "FEB",
+      "sha256": "90c7a10e210b0ba9d2bec18e9941ac5d453f10df327fb8b71a6ea79fe4b70cd3"
+    }
+  ],
+  "sourceDailyTotalsReconciledExactly": true,
+  "studyType": "RETROSPECTIVE_TWO_SEVERE_SNOW_EVENT_CHANNEL_COMPOSITION_EXPLORATION",
+  "sourceAvailableAtOriginalHistoricalT0": "UNKNOWN",
+  "datesSelectedBeforeThisCategoryRead": true,
+  "eventsSelectedBeforeInspectingAnnualOutcomes": false,
+  "results": [
+    {
+      "id": "JAN_SNOW",
+      "date": "2026-01-25",
+      "baselineDays": [
+        "2026-01-11",
+        "2026-01-18"
+      ],
+      "priorMean": 1480.5,
+      "observedTotal": 2402,
+      "allCategoryDelta": 921.5,
+      "relativeToTwoEarlierSameWeekdaysPct": 62.242,
+      "coarseGroupContributions": {
+        "HEAT_OR_HOT_WATER": {
+          "current": 1293,
+          "priorMean": 301,
+          "delta": 992
+        },
+        "NOISE": {
+          "current": 356,
+          "priorMean": 438.5,
+          "delta": -82.5
+        },
+        "WINTER_OR_STREET_ACCESS": {
+          "current": 123,
+          "priorMean": 163,
+          "delta": -40
+        },
+        "OTHER": {
+          "current": 630,
+          "priorMean": 578,
+          "delta": 52
+        }
+      },
+      "topPositiveDeltaCategories": [
+        {
+          "category": "HEAT/HOT WATER",
+          "group": "HEAT_OR_HOT_WATER",
+          "current": 1274,
+          "baselineMean": 297,
+          "difference": 977
+        },
+        {
+          "category": "Homeless Person Assistance",
+          "group": "OTHER",
+          "current": 109,
+          "baselineMean": 28,
+          "difference": 81
+        },
+        {
+          "category": "Snow or Ice",
+          "group": "WINTER_OR_STREET_ACCESS",
+          "current": 59,
+          "baselineMean": 0,
+          "difference": 59
+        },
+        {
+          "category": "PLUMBING",
+          "group": "OTHER",
+          "current": 81,
+          "baselineMean": 32,
+          "difference": 49
+        },
+        {
+          "category": "DOOR/WINDOW",
+          "group": "OTHER",
+          "current": 41,
+          "baselineMean": 18,
+          "difference": 23
+        },
+        {
+          "category": "Noise - Residential",
+          "group": "NOISE",
+          "current": 242,
+          "baselineMean": 228,
+          "difference": 14
+        },
+        {
+          "category": "UNSANITARY CONDITION",
+          "group": "OTHER",
+          "current": 56,
+          "baselineMean": 43,
+          "difference": 13
+        },
+        {
+          "category": "GENERAL",
+          "group": "OTHER",
+          "current": 18,
+          "baselineMean": 9.5,
+          "difference": 8.5
+        },
+        {
+          "category": "Non-Residential Heat",
+          "group": "HEAT_OR_HOT_WATER",
+          "current": 9,
+          "baselineMean": 0.5,
+          "difference": 8.5
+        },
+        {
+          "category": "APPLIANCE",
+          "group": "OTHER",
+          "current": 13,
+          "baselineMean": 5,
+          "difference": 8
+        }
+      ],
+      "topNegativeDeltaCategories": [
+        {
+          "category": "Illegal Parking",
+          "group": "WINTER_OR_STREET_ACCESS",
+          "current": 42,
+          "baselineMean": 121,
+          "difference": -79
+        },
+        {
+          "category": "Noise - Commercial",
+          "group": "NOISE",
+          "current": 50,
+          "baselineMean": 87,
+          "difference": -37
+        },
+        {
+          "category": "Encampment",
+          "group": "OTHER",
+          "current": 30,
+          "baselineMean": 66.5,
+          "difference": -36.5
+        },
+        {
+          "category": "Noise - Street/Sidewalk",
+          "group": "NOISE",
+          "current": 25,
+          "baselineMean": 52.5,
+          "difference": -27.5
+        },
+        {
+          "category": "Noise - Helicopter",
+          "group": "NOISE",
+          "current": 0,
+          "baselineMean": 17,
+          "difference": -17
+        },
+        {
+          "category": "For Hire Vehicle Complaint",
+          "group": "OTHER",
+          "current": 3,
+          "baselineMean": 15,
+          "difference": -12
+        },
+        {
+          "category": "Rodent",
+          "group": "OTHER",
+          "current": 4,
+          "baselineMean": 16,
+          "difference": -12
+        },
+        {
+          "category": "Street Condition",
+          "group": "WINTER_OR_STREET_ACCESS",
+          "current": 3,
+          "baselineMean": 14.5,
+          "difference": -11.5
+        },
+        {
+          "category": "Noise",
+          "group": "NOISE",
+          "current": 21,
+          "baselineMean": 31,
+          "difference": -10
+        },
+        {
+          "category": "Taxi Complaint",
+          "group": "OTHER",
+          "current": 4,
+          "baselineMean": 14,
+          "difference": -10
+        }
+      ],
+      "allCategoriesIncluded": true,
+      "categoryCount": 111,
+      "fullCategoryCountInReanalysis": 111
+    },
+    {
+      "id": "JAN_FOLLOWING",
+      "date": "2026-01-26",
+      "baselineDays": [
+        "2026-01-12",
+        "2026-01-19"
+      ],
+      "priorMean": 2005,
+      "observedTotal": 2592,
+      "allCategoryDelta": 587,
+      "relativeToTwoEarlierSameWeekdaysPct": 29.277,
+      "coarseGroupContributions": {
+        "HEAT_OR_HOT_WATER": {
+          "current": 1028,
+          "priorMean": 445,
+          "delta": 583
+        },
+        "NOISE": {
+          "current": 244,
+          "priorMean": 404,
+          "delta": -160
+        },
+        "WINTER_OR_STREET_ACCESS": {
+          "current": 477,
+          "priorMean": 243,
+          "delta": 234
+        },
+        "OTHER": {
+          "current": 843,
+          "priorMean": 913,
+          "delta": -70
+        }
+      },
+      "topPositiveDeltaCategories": [
+        {
+          "category": "HEAT/HOT WATER",
+          "group": "HEAT_OR_HOT_WATER",
+          "current": 1004,
+          "baselineMean": 442,
+          "difference": 562
+        },
+        {
+          "category": "Snow or Ice",
+          "group": "WINTER_OR_STREET_ACCESS",
+          "current": 374,
+          "baselineMean": 38.5,
+          "difference": 335.5
+        },
+        {
+          "category": "PLUMBING",
+          "group": "OTHER",
+          "current": 79,
+          "baselineMean": 47.5,
+          "difference": 31.5
+        },
+        {
+          "category": "Homeless Person Assistance",
+          "group": "OTHER",
+          "current": 52,
+          "baselineMean": 24,
+          "difference": 28
+        },
+        {
+          "category": "DOOR/WINDOW",
+          "group": "OTHER",
+          "current": 58,
+          "baselineMean": 34,
+          "difference": 24
+        },
+        {
+          "category": "WATER LEAK",
+          "group": "OTHER",
+          "current": 53,
+          "baselineMean": 32,
+          "difference": 21
+        },
+        {
+          "category": "Bus Stop Shelter Complaint",
+          "group": "OTHER",
+          "current": 20,
+          "baselineMean": 1,
+          "difference": 19
+        },
+        {
+          "category": "For Hire Vehicle Complaint",
+          "group": "OTHER",
+          "current": 31,
+          "baselineMean": 16.5,
+          "difference": 14.5
+        },
+        {
+          "category": "Non-Residential Heat",
+          "group": "HEAT_OR_HOT_WATER",
+          "current": 15,
+          "baselineMean": 1,
+          "difference": 14
+        },
+        {
+          "category": "Maintenance or Facility",
+          "group": "OTHER",
+          "current": 24,
+          "baselineMean": 13,
+          "difference": 11
+        }
+      ],
+      "topNegativeDeltaCategories": [
+        {
+          "category": "Illegal Parking",
+          "group": "WINTER_OR_STREET_ACCESS",
+          "current": 75,
+          "baselineMean": 146,
+          "difference": -71
+        },
+        {
+          "category": "Encampment",
+          "group": "OTHER",
+          "current": 32,
+          "baselineMean": 89,
+          "difference": -57
+        },
+        {
+          "category": "Traffic",
+          "group": "OTHER",
+          "current": 0,
+          "baselineMean": 47.5,
+          "difference": -47.5
+        },
+        {
+          "category": "Noise",
+          "group": "NOISE",
+          "current": 11,
+          "baselineMean": 58,
+          "difference": -47
+        },
+        {
+          "category": "Noise - Street/Sidewalk",
+          "group": "NOISE",
+          "current": 14,
+          "baselineMean": 56,
+          "difference": -42
+        },
+        {
+          "category": "Noise - Helicopter",
+          "group": "NOISE",
+          "current": 0,
+          "baselineMean": 39,
+          "difference": -39
+        },
+        {
+          "category": "Dirty Condition",
+          "group": "OTHER",
+          "current": 15,
+          "baselineMean": 37,
+          "difference": -22
+        },
+        {
+          "category": "Noise - Commercial",
+          "group": "NOISE",
+          "current": 18,
+          "baselineMean": 39.5,
+          "difference": -21.5
+        },
+        {
+          "category": "Obstruction",
+          "group": "OTHER",
+          "current": 2,
+          "baselineMean": 23,
+          "difference": -21
+        },
+        {
+          "category": "Vendor Enforcement",
+          "group": "OTHER",
+          "current": 9,
+          "baselineMean": 28,
+          "difference": -19
+        }
+      ],
+      "allCategoriesIncluded": true,
+      "categoryCount": 110,
+      "fullCategoryCountInReanalysis": 110
+    },
+    {
+      "id": "FEB_BLIZZARD",
+      "date": "2026-02-23",
+      "baselineDays": [
+        "2026-02-09",
+        "2026-02-16"
+      ],
+      "priorMean": 2329,
+      "observedTotal": 1844,
+      "allCategoryDelta": -485,
+      "relativeToTwoEarlierSameWeekdaysPct": -20.824,
+      "coarseGroupContributions": {
+        "HEAT_OR_HOT_WATER": {
+          "current": 494,
+          "priorMean": 707.5,
+          "delta": -213.5
+        },
+        "NOISE": {
+          "current": 207,
+          "priorMean": 349.5,
+          "delta": -142.5
+        },
+        "WINTER_OR_STREET_ACCESS": {
+          "current": 239,
+          "priorMean": 236.5,
+          "delta": 2.5
+        },
+        "OTHER": {
+          "current": 904,
+          "priorMean": 1035.5,
+          "delta": -131.5
+        }
+      },
+      "topPositiveDeltaCategories": [
+        {
+          "category": "Damaged Tree",
+          "group": "OTHER",
+          "current": 353,
+          "baselineMean": 1,
+          "difference": 352
+        },
+        {
+          "category": "Snow or Ice",
+          "group": "WINTER_OR_STREET_ACCESS",
+          "current": 146,
+          "baselineMean": 21.5,
+          "difference": 124.5
+        },
+        {
+          "category": "Traffic Signal Condition",
+          "group": "OTHER",
+          "current": 92,
+          "baselineMean": 31,
+          "difference": 61
+        },
+        {
+          "category": "Wood Pile Remaining",
+          "group": "OTHER",
+          "current": 24,
+          "baselineMean": 0,
+          "difference": 24
+        },
+        {
+          "category": "Sewer",
+          "group": "OTHER",
+          "current": 18,
+          "baselineMean": 2,
+          "difference": 16
+        },
+        {
+          "category": "Maintenance or Facility",
+          "group": "OTHER",
+          "current": 14,
+          "baselineMean": 4,
+          "difference": 10
+        },
+        {
+          "category": "Bus Stop Shelter Complaint",
+          "group": "OTHER",
+          "current": 8,
+          "baselineMean": 1.5,
+          "difference": 6.5
+        },
+        {
+          "category": "Industrial Waste",
+          "group": "OTHER",
+          "current": 3,
+          "baselineMean": 0,
+          "difference": 3
+        },
+        {
+          "category": "Residential Disposal Complaint",
+          "group": "OTHER",
+          "current": 6,
+          "baselineMean": 3,
+          "difference": 3
+        },
+        {
+          "category": "Sidewalk Condition",
+          "group": "WINTER_OR_STREET_ACCESS",
+          "current": 9,
+          "baselineMean": 6,
+          "difference": 3
+        }
+      ],
+      "topNegativeDeltaCategories": [
+        {
+          "category": "HEAT/HOT WATER",
+          "group": "HEAT_OR_HOT_WATER",
+          "current": 489,
+          "baselineMean": 688,
+          "difference": -199
+        },
+        {
+          "category": "Illegal Parking",
+          "group": "WINTER_OR_STREET_ACCESS",
+          "current": 47,
+          "baselineMean": 152,
+          "difference": -105
+        },
+        {
+          "category": "PLUMBING",
+          "group": "OTHER",
+          "current": 32,
+          "baselineMean": 116,
+          "difference": -84
+        },
+        {
+          "category": "Noise - Residential",
+          "group": "NOISE",
+          "current": 137,
+          "baselineMean": 184.5,
+          "difference": -47.5
+        },
+        {
+          "category": "UNSANITARY CONDITION",
+          "group": "OTHER",
+          "current": 48,
+          "baselineMean": 92,
+          "difference": -44
+        },
+        {
+          "category": "PAINT/PLASTER",
+          "group": "OTHER",
+          "current": 27,
+          "baselineMean": 70,
+          "difference": -43
+        },
+        {
+          "category": "WATER LEAK",
+          "group": "OTHER",
+          "current": 24,
+          "baselineMean": 64.5,
+          "difference": -40.5
+        },
+        {
+          "category": "Encampment",
+          "group": "OTHER",
+          "current": 0,
+          "baselineMean": 33.5,
+          "difference": -33.5
+        },
+        {
+          "category": "Noise",
+          "group": "NOISE",
+          "current": 24,
+          "baselineMean": 56.5,
+          "difference": -32.5
+        },
+        {
+          "category": "DOOR/WINDOW",
+          "group": "OTHER",
+          "current": 30,
+          "baselineMean": 62,
+          "difference": -32
+        }
+      ],
+      "allCategoriesIncluded": true,
+      "categoryCount": 116,
+      "fullCategoryCountInReanalysis": 116
+    },
+    {
+      "id": "FEB_FOLLOWING",
+      "date": "2026-02-24",
+      "baselineDays": [
+        "2026-02-10",
+        "2026-02-17"
+      ],
+      "priorMean": 2217,
+      "observedTotal": 2787,
+      "allCategoryDelta": 570,
+      "relativeToTwoEarlierSameWeekdaysPct": 25.71,
+      "coarseGroupContributions": {
+        "HEAT_OR_HOT_WATER": {
+          "current": 396,
+          "priorMean": 479,
+          "delta": -83
+        },
+        "NOISE": {
+          "current": 242,
+          "priorMean": 355.5,
+          "delta": -113.5
+        },
+        "WINTER_OR_STREET_ACCESS": {
+          "current": 1055,
+          "priorMean": 281.5,
+          "delta": 773.5
+        },
+        "OTHER": {
+          "current": 1094,
+          "priorMean": 1101,
+          "delta": -7
+        }
+      },
+      "topPositiveDeltaCategories": [
+        {
+          "category": "Snow or Ice",
+          "group": "WINTER_OR_STREET_ACCESS",
+          "current": 868,
+          "baselineMean": 27.5,
+          "difference": 840.5
+        },
+        {
+          "category": "Traffic Signal Condition",
+          "group": "OTHER",
+          "current": 116,
+          "baselineMean": 27,
+          "difference": 89
+        },
+        {
+          "category": "Maintenance or Facility",
+          "group": "OTHER",
+          "current": 83,
+          "baselineMean": 8,
+          "difference": 75
+        },
+        {
+          "category": "Damaged Tree",
+          "group": "OTHER",
+          "current": 68,
+          "baselineMean": 0,
+          "difference": 68
+        },
+        {
+          "category": "Bus Stop Shelter Complaint",
+          "group": "OTHER",
+          "current": 21,
+          "baselineMean": 2,
+          "difference": 19
+        },
+        {
+          "category": "Consumer Complaint",
+          "group": "OTHER",
+          "current": 22,
+          "baselineMean": 12,
+          "difference": 10
+        },
+        {
+          "category": "For Hire Vehicle Complaint",
+          "group": "OTHER",
+          "current": 49,
+          "baselineMean": 39,
+          "difference": 10
+        },
+        {
+          "category": "Non-Emergency Police Matter",
+          "group": "WINTER_OR_STREET_ACCESS",
+          "current": 18,
+          "baselineMean": 12,
+          "difference": 6
+        },
+        {
+          "category": "Bridge Condition",
+          "group": "OTHER",
+          "current": 6,
+          "baselineMean": 0.5,
+          "difference": 5.5
+        },
+        {
+          "category": "UNSANITARY CONDITION",
+          "group": "OTHER",
+          "current": 95,
+          "baselineMean": 89.5,
+          "difference": 5.5
+        }
+      ],
+      "topNegativeDeltaCategories": [
+        {
+          "category": "HEAT/HOT WATER",
+          "group": "HEAT_OR_HOT_WATER",
+          "current": 387,
+          "baselineMean": 467.5,
+          "difference": -80.5
+        },
+        {
+          "category": "Illegal Parking",
+          "group": "WINTER_OR_STREET_ACCESS",
+          "current": 110,
+          "baselineMean": 166.5,
+          "difference": -56.5
+        },
+        {
+          "category": "Noise - Residential",
+          "group": "NOISE",
+          "current": 133,
+          "baselineMean": 181,
+          "difference": -48
+        },
+        {
+          "category": "Encampment",
+          "group": "OTHER",
+          "current": 0,
+          "baselineMean": 40.5,
+          "difference": -40.5
+        },
+        {
+          "category": "Noise",
+          "group": "NOISE",
+          "current": 25,
+          "baselineMean": 65,
+          "difference": -40
+        },
+        {
+          "category": "PLUMBING",
+          "group": "OTHER",
+          "current": 59,
+          "baselineMean": 92,
+          "difference": -33
+        },
+        {
+          "category": "Dirty Condition",
+          "group": "OTHER",
+          "current": 27,
+          "baselineMean": 50,
+          "difference": -23
+        },
+        {
+          "category": "Water System",
+          "group": "OTHER",
+          "current": 14,
+          "baselineMean": 36.5,
+          "difference": -22.5
+        },
+        {
+          "category": "WATER LEAK",
+          "group": "OTHER",
+          "current": 37,
+          "baselineMean": 55.5,
+          "difference": -18.5
+        },
+        {
+          "category": "Homeless Person Assistance",
+          "group": "OTHER",
+          "current": 2,
+          "baselineMean": 19,
+          "difference": -17
+        }
+      ],
+      "allCategoriesIncluded": true,
+      "categoryCount": 116,
+      "fullCategoryCountInReanalysis": 116
+    }
+  ],
+  "decision": {
+    "rejected": "A universal shock→same-sign 311 total response; undifferentiated 311 total as a direct physical disruption severity indicator",
+    "observed": "Jan25 spike dominated by HEAT/HOT WATER, Feb23 low total coexisted with high Damaged Tree counts, and Snow or Ice peaked next day in both events.",
+    "newHypothesis": "Category-specific observation channels and reporting lags may mediate apparent multi-system temporal sequence",
+    "notIdentified": "Physical damage incidence, causal weather versus travel-ban effects, reporting availability changes, and canonical MIHM benefit",
+    "nextTest": "Independent future or geographically separate severe storm cohort with pre-event category-specific predictions, source-vintage control, and dynamic regression/event-study comparators."
+  },
+  "noRawIncidentRows": true,
+  "permissionsAndProductionUnchanged": true
+}
