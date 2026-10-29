@@ -1,6 +1,8 @@
 import 'server-only';
+import { executeMihmTypedFieldForNode } from './foundationTypedFieldAudit';
 
 import { createHash } from 'node:crypto';
+import { isDeepStrictEqual } from 'node:util';
 import type { CanonicalGraphEdge, CanonicalGraphNode } from '../../../packages/graph/src';
 import { appendEpistemicEvent } from '@/lib/events/eventStore';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
@@ -18,7 +20,7 @@ type EpochRecord = {
 };
 
 export type ScientificMethodExecution = {
-  family: ScientificMethodCandidate['family'];
+  family: ScientificMethodCandidate['family'] | 'MIHM_TYPED_FIELD';
   status: 'EXECUTED'|'ABSTAINED';
   executionLevel: 'DESCRIPTIVE_EMPIRICAL'|'BOUNDED_SCREENING'|'MODEL_REQUIRED'|'INSUFFICIENT';
   result: Record<string, unknown> | null;
@@ -39,6 +41,7 @@ function strings(value: unknown) {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string' && Boolean(item.trim())).map((item) => item.trim()) : [];
 }
 function num(value: unknown) {
+  if(typeof value!=='number' && (typeof value!=='string'||!value.trim()||!/^[-+]?(?:\d+\.?\d*|\.\d+)(?:e[-+]?\d+)?$/i.test(value.trim())))return null;
   const parsed=Number(value);
   return Number.isFinite(parsed) ? parsed : null;
 }
@@ -252,6 +255,8 @@ export function executeScientificMethodsForNode(input:{
     else if(family==='NETWORK_SCIENCE')executions.push(executeNetwork(input.node,input.edges,input.history));
     else if(family==='ACTIVE_LEARNING')executions.push(executeActiveLearning(input.reading,input.history));
   }
+  const typed=executeMihmTypedFieldForNode(input.node,new Date().toISOString());
+  if(typed)executions.push(typed);
   return executions;
 }
 
@@ -265,12 +270,25 @@ export async function persistScientificMethodExecutions(input:{
   const fingerprint=sha256({
     contract:SFI_SCIENTIFIC_METHOD_RUNTIME_CONTRACT,
     nodeId:input.nodeId,
-    executions:input.executions.map(x=>({family:x.family,status:x.status,result:x.result,historyEventIds:x.historyEventIds})),
+    executions:input.executions,
   });
   const eventId=`jr-science:${fingerprint}`;
   const db=createServiceSupabaseClient();
-  const existing=await db.from('epistemic_events').select('event_id').eq('event_id',eventId).maybeSingle();
-  if(existing.data?.event_id)return {ok:true as const,persisted:false as const,skipped:true as const,reason:'IDENTICAL_METHOD_RESULT_ALREADY_PERSISTED',eventId,fingerprint};
+  const expectedExecutions=JSON.parse(JSON.stringify(input.executions));
+  const expectedLineage=unique(input.executions.flatMap(x=>[...x.evidenceRefs,...x.historyEventIds]));
+  const matches=(event:Record<string,unknown>)=>{
+    const payload=row(event.payload);
+    return event.epistemic_class==='derived'&&payload.canonicalMutation===false&&payload.observedClaim===false&&payload.causalClaim===false&&event.event_id===eventId&&event.event_name==='SFI_FIELD_SCIENTIFIC_METHODS_EXECUTED'&&
+      event.logbook_id===`FIELD_METHOD:${input.nodeId}`&&payload.nodeId===input.nodeId&&
+      payload.contract===SFI_SCIENTIFIC_METHOD_RUNTIME_CONTRACT&&payload.fingerprint===fingerprint&&
+      isDeepStrictEqual(payload.executions,expectedExecutions)&&isDeepStrictEqual(event.lineage,expectedLineage);
+  };
+  const existing=await db.from('epistemic_events').select('event_id,event_name,epistemic_class,logbook_id,payload,lineage').eq('event_id',eventId).maybeSingle();
+  if(existing.error)return {ok:false as const,persisted:false as const,skipped:false as const,eventId,fingerprint,error:'METHOD_RECEIPT_LOOKUP_UNAVAILABLE'};
+  if(existing.data?.event_id){
+    if(!matches(existing.data as Record<string,unknown>))return {ok:false as const,persisted:false as const,skipped:false as const,eventId,fingerprint,error:'METHOD_EXISTING_RECEIPT_MISMATCH'};
+    return {ok:true as const,persisted:false as const,skipped:true as const,reason:'IDENTICAL_METHOD_RESULT_ALREADY_PERSISTED',eventId,fingerprint,receiptReadBackConfirmed:true};
+  }
 
   const event=await appendEpistemicEvent({
     returnMode:'receipt',
@@ -295,7 +313,11 @@ export async function persistScientificMethodExecutions(input:{
       boundary:'Scientific runtime results are DERIVED analyses over persisted field history. An executed descriptive/screening method is not observation, evidence admission, causality, regime establishment, canon or RETURN.',
     },
   });
-  return event.ok
-    ? {ok:true as const,persisted:true as const,skipped:false as const,eventId,fingerprint}
-    : {ok:false as const,persisted:false as const,skipped:false as const,eventId,fingerprint,error:event.error};
+  if(!event.ok)return {ok:false as const,persisted:false as const,skipped:false as const,eventId,fingerprint,error:event.error};
+  const reread=await db.from('epistemic_events').select('event_id,event_name,epistemic_class,logbook_id,payload,lineage').eq('event_id',eventId).maybeSingle();
+  if(reread.error||!reread.data||!matches(reread.data as Record<string,unknown>))return {
+    ok:false as const,persisted:false as const,skipped:false as const,eventId,fingerprint,
+    writeMayHaveOccurred:true,receiptReadBackConfirmed:false,error:'METHOD_RECEIPT_NOT_CONFIRMED',
+  };
+  return {ok:true as const,persisted:true as const,skipped:false as const,eventId,fingerprint,receiptReadBackConfirmed:true};
 }

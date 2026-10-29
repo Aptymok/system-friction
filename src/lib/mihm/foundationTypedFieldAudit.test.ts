@@ -1,4 +1,56 @@
 import test from 'node:test';
+import * as typedField from './foundationTypedFieldAudit';
+
+function runtimeFixture() {
+  const input=fixture();
+  return {
+    nodeId:'system:sfi',
+    lineage:['fixture:claimed-real-provenance-not-independently-verified','case:1','cycle:1'],
+    attributes:{mihmTypedFieldAudit:{caseRef:{id:'case:1'},cycleRef:{id:'cycle:1'},input}},
+  };
+}
+function executeNode(node:unknown,now='2026-10-29T00:00:00Z'):any {
+  const execute=(typedField as any).executeMihmTypedFieldForNode;
+  assert.equal(typeof execute,'function','existing scientific caller has no typed MIHM executor');
+  return execute(node,now);
+}
+test('persisted-node MIHM execution computes a bounded result with case/cycle lineage',()=>{
+  const out=executeNode(runtimeFixture());
+  assert.equal(out.status,'EXECUTED');
+  assert.equal(out.family,'MIHM_TYPED_FIELD');
+  assert.equal(out.executionLevel,'BOUNDED_SCREENING');
+  assert.equal(out.result.caseRef.id,'case:1');
+  assert.equal(out.result.cycleRef.id,'cycle:1');
+  assert.equal(out.result.audit.acceptedSampleIds.length,5);
+  assert.equal(out.result.audit.dimensionTrajectories[0].observedLimitViolations,1);
+  assert.equal(out.result.calibration.status,'NOT_CALIBRATED');
+  assert.equal(out.result.audit.homeostasisEstablished,false);
+  assert.equal(out.result.sourceValuesIndependentlyVerified,false);
+  assert(out.evidenceRefs.includes('fixture:claimed-real-provenance-not-independently-verified'));
+});
+test('a node without typed observations stays absent instead of inventing an input',()=>{
+  assert.equal(executeNode({nodeId:'none',lineage:[],attributes:{}}),null);
+});
+test('foreign subject, absent source lineage, future cut and malformed input abstain',()=>{
+  for(const change of ['subject','lineage','future','malformed']) {
+    const n=runtimeFixture();
+    if(change==='subject')n.nodeId='another:subject';
+    if(change==='lineage')n.lineage=[];
+    if(change==='future')n.attributes.mihmTypedFieldAudit.input.frame.timeCut='2099-01-01T00:00:00Z';
+    if(change==='malformed')(n.attributes.mihmTypedFieldAudit as any).input={samples:[null]};
+    const out=executeNode(n);
+    assert.equal(out.status,'ABSTAINED',change);
+    assert.equal(out.result.audit,null,change);
+    assert(out.missing.length>0);
+  }
+});
+test('invalid audit remains abstained with diagnostics rather than advertising a computed capability',()=>{
+  const n=runtimeFixture();n.attributes.mihmTypedFieldAudit.input.samples[0].unit='seconds';
+  const out=executeNode(n);
+  assert.equal(out.status,'ABSTAINED');
+  assert.equal(out.result.audit.readiness,'BLOCKED');
+  assert.equal(out.result.audit.homeostasisEstablished,false);
+});
 import assert from 'node:assert/strict';
 import { SFI_SYSTEM_CONTRACT } from '../../core/contracts/system';
 import { SFI_MIHM_FOUNDATION_RESEARCH_CONTRACT } from './foundationResearchContract';
@@ -213,4 +265,54 @@ test('unit or family conflicts suppress accepted samples, trajectories, bands an
     assert.equal(o.propagation[0].state,'NOT_IDENTIFIABLE');
     assert.equal(o.dimensionTrajectories.some(t=>t.dimensionId==='dim:retries'),true);
   }
+});
+
+test('case and cycle cannot be rebound to unrelated persisted identities',()=>{
+  for(const field of ['caseRef','cycleRef']) {
+    const n=runtimeFixture();
+    (n.attributes.mihmTypedFieldAudit as any)[field]={id:'unrelated:id'};
+    const out=executeNode(n);
+    assert.equal(out.status,'ABSTAINED');
+    assert(out.missing.includes('TYPED_FIELD_CASE_CYCLE_LINEAGE_REQUIRED'));
+  }
+});
+
+test('invalid viability direction cannot reverse the meaning of degradation',()=>{
+  const a=fixture();(a.viabilityLimits[0] as any).direction='TYPO';
+  const o=auditMihmTypedField(a);
+  assert.equal(o.readiness,'BLOCKED');
+  assert(o.reasons.includes('INVALID_VIABILITY_LIMIT:limit:a'));
+  assert.equal(o.dimensionTrajectories[0].interpretation,'DIRECTION_UNKNOWN');
+});
+
+test('existing node caller executes mathematical, redistribution and dynamic mechanisms together',()=>{
+ const n=runtimeFixture();
+ (n.attributes.mihmTypedFieldAudit as any).mechanisms={sourceRef:{id:n.lineage[0]},
+  normalizedNodes:[{id:'a',C:0,E:1,L:0,M:1}],
+  redistribution:{nodes:[{id:'a',capacity:10,load:12},{id:'b',capacity:10,load:5}],transfers:[{from:'a',to:'b',amount:3}]},
+  dynamics:{state:[2],transition:[[.5]],forcing:[0],steps:2}};
+ const out=executeNode(n);
+ assert.equal(out.result.mechanisms.mathematics.ihg,-1);
+ assert.equal(out.result.mechanisms.redistribution.totalAfter,17);
+ assert.deepEqual(out.result.mechanisms.dynamics.trajectory,[[2],[1],[.5]]);
+ assert.equal(out.result.audit.homeostasisEstablished,false);
+});
+
+test('mechanism parameters cannot use a future vintage merely present in graph lineage',()=>{
+ const n=runtimeFixture();n.lineage.push('future:parameters');
+ n.attributes.mihmTypedFieldAudit.input.frame.sourceVintages.push({sourceId:'future',sourceKind:'ORIGINAL_LOG',eventAt:'2026-10-29T00:00:00Z',availableAt:'2026-10-29T00:00:00Z',recordRef:'future:parameters',sourceClass:'REAL_TELEMETRY'});
+ (n.attributes.mihmTypedFieldAudit as any).mechanisms={sourceRef:{id:'future:parameters'},normalizedNodes:[]};
+ assert.equal(executeNode(n).status,'ABSTAINED');
+});
+
+test('signed IHG cannot turn worsening coherence in an overloaded node into decision permission',()=>{
+ const n=runtimeFixture();
+ (n.attributes.mihmTypedFieldAudit as any).mechanisms={sourceRef:{id:n.lineage[0]},normalizedNodes:[{id:'overloaded',C:.2,E:.8,L:.5,M:0,R:.4,K:.5}]};
+ const out=executeNode(n);
+ assert.equal(out.status,'EXECUTED');
+ assert.equal(out.result.decisionUseBlocked,true);
+ assert.equal(out.result.instrumentCompatibility.readiness,'CONTRADICTED');
+ assert.equal(out.result.instrumentCompatibility.decisionAuthorized,false);
+ assert(out.result.instrumentCompatibility.contradictions.some((x:string)=>x.includes('LATENCY_MASKS_OVERLOAD')));
+ assert.equal(out.result.mechanisms.mathematics.ihg,0);
 });

@@ -26,6 +26,8 @@ export async function worldVectorToInstrumentState(): Promise<MihmInstrumentStat
     instrument: 'WORLD_VECTOR',
     instrumentType: 'WORLD',
     objectId: snapshot.id,
+    comparisonSubjectId: 'worldspect:global-context',
+    snapshotRef: snapshot.id,
     variables: [
       { key: 'WSI', value: snapshot.wsi, scale: '0-1' },
       { key: 'NTI', value: snapshot.nti, scale: '0-1' },

@@ -393,3 +393,104 @@ export function compareMihmTopology(input: {
     },
   };
 }
+
+
+/** Versioned historical arithmetic, not a replacement for any canonical Phi. */
+export type MihmNormalizedNode = {id:string;C:number;E:number;L:number;M?:number;R?:number;K?:number};
+export function calculateMihmNodeState(nodes:MihmNormalizedNode[],version:'LEGACY_V1_5'|'LEGACY_V2'='LEGACY_V2') {
+  const valid=nodes.length>0&&new Set(nodes.map(n=>n.id)).size===nodes.length&&nodes.every(n=>n.id&&(version==='LEGACY_V1_5'?[n.C,n.E,n.L]:[n.C,n.E,n.L,n.M]).every(v=>typeof v==='number'&&Number.isFinite(v)&&v>=0&&v<=1));
+  if(!valid||nodes.length>256||!['LEGACY_V1_5','LEGACY_V2'].includes(version))return {crm:null,crmStatus:'MISSING_OR_INVALID',status:'BLOCKED' as const,ihg:null,ice:null,sensitivity:[],formula:version==='LEGACY_V1_5'?'LEGACY_V1_5_DOCUMENTED_EQUATION':'LEGACY_V2_DOCUMENTED_EQUATION',canonicalPhiCalculated:false};
+  const terms=nodes.map(n=>{const effective=n.L*(version==='LEGACY_V1_5'?1:2-(n.M as number)),factor=1-Math.min(effective,1);return{nodeId:n.id,contribution:(n.C-n.E)*factor,
+    dC:factor/nodes.length,dE:-factor/nodes.length,
+    dL:effective<1?-(n.C-n.E)*(version==='LEGACY_V1_5'?1:2-(n.M as number))/nodes.length:null,
+    dM:version==='LEGACY_V1_5'?null:effective<1?(n.C-n.E)*n.L/nodes.length:null};});
+  const total=nodes.reduce((s,n)=>s+n.E,0);
+  const crmValid=nodes.every(n=>[n.R,n.K].every(v=>typeof v==='number'&&Number.isFinite(v)&&v>=0&&v<=1));
+  return {crm:crmValid?nodes.reduce((sum,n)=>sum+(n.R as number)*(n.K as number),0)/nodes.length:null,crmStatus:crmValid?'DERIVED':'MISSING_OR_INVALID',status:'DERIVED' as const,ihg:terms.reduce((s,n)=>s+n.contribution,0)/nodes.length,
+    ice:total===0?null:Math.max(...nodes.map(n=>n.E))/total,sensitivity:terms,
+    formula:version==='LEGACY_V1_5'?'LEGACY_V1_5_DOCUMENTED_EQUATION':'LEGACY_V2_DOCUMENTED_EQUATION',canonicalPhiCalculated:false};
+}
+
+export function simulateMihmRedistribution(nodes:Array<{id:string;capacity:number;load:number}>,transfers:Array<{from:string;to:string;amount:number}>) {
+  const blocked=(reason:string)=>({status:'BLOCKED' as const,reason,nodes:[] as typeof nodes,totalBefore:null,totalAfter:null,externalActionAuthorized:false});
+  if(!nodes.length||nodes.length>256||transfers.length>4096||new Set(nodes.map(n=>n.id)).size!==nodes.length||nodes.some(n=>!n.id||![n.capacity,n.load].every(v=>typeof v==='number'&&Number.isFinite(v)&&v>=0)))return blocked('INVALID_NODE_MEASUREMENTS');
+  const draft=nodes.map(n=>({...n}));const index=new Map(draft.map(n=>[n.id,n]));
+  const outgoing=new Map<string,number>(),incoming=new Map<string,number>();
+  for(const t of transfers){
+    if(!index.has(t.from)||!index.has(t.to)||t.from===t.to||typeof t.amount!=='number'||!Number.isFinite(t.amount)||t.amount<0)return blocked('INVALID_TRANSFER');
+    outgoing.set(t.from,(outgoing.get(t.from)??0)+t.amount);incoming.set(t.to,(incoming.get(t.to)??0)+t.amount);
+  }
+  for(const n of draft){
+    if((outgoing.get(n.id)??0)>n.load)return blocked('TRANSFER_EXCEEDS_SOURCE_LOAD');
+    n.load=n.load-(outgoing.get(n.id)??0)+(incoming.get(n.id)??0);
+    if(!Number.isFinite(n.load)||((incoming.get(n.id)??0)>0&&n.load>n.capacity))return blocked('RECIPIENT_CAPACITY_EXCEEDED');
+  }
+  const totalBefore=nodes.reduce((s,n)=>s+n.load,0),totalAfter=draft.reduce((s,n)=>s+n.load,0);
+  if(!Number.isFinite(totalAfter)||Math.abs(totalBefore-totalAfter)>1e-10*Math.max(1,totalBefore))return blocked('LOAD_CONSERVATION_FAILED');
+  return {status:'SIMULATED' as const,reason:null,nodes:draft,totalBefore,totalAfter,externalActionAuthorized:false};
+}
+
+export function projectMihmDynamics(input:{state:number[];transition:number[][];forcing:number[];steps:number}) {
+  const n=input.state.length;
+  const blocked=(reason:string)=>({status:'BLOCKED' as const,reason,trajectory:[] as number[][],stability:'NOT_ESTABLISHED',realWorldHomeostasisEstablished:false});
+  if(n<1||n>64||!Number.isInteger(input.steps)||input.steps<1||input.steps>1000||input.forcing.length!==n||input.transition.length!==n||input.transition.some(r=>r.length!==n)||[...input.state,...input.forcing,...input.transition.flat()].some(v=>typeof v!=='number'||!Number.isFinite(v)))return blocked('INVALID_OR_UNBOUNDED_MODEL');
+  const trajectory=[input.state.slice()];
+  for(let k=0;k<input.steps;k++){
+    const prev=trajectory[trajectory.length-1];
+    const next=input.transition.map((r,i)=>r.reduce((sum,a,j)=>sum+a*prev[j],input.forcing[i]));
+    if(next.some(v=>!Number.isFinite(v)))return blocked('MODEL_NUMERIC_OVERFLOW');
+    trajectory.push(next);
+  }
+  const contractionBound=Math.max(...input.transition.map(r=>r.reduce((s,v)=>s+Math.abs(v),0)));
+  if(!Number.isFinite(contractionBound))return blocked('MODEL_NORM_OVERFLOW');
+  return {status:'SIMULATED' as const,reason:null,trajectory,contractionBound,
+    stability:contractionBound<1?'SUFFICIENT_CONTRACTION_OF_DECLARED_MODEL':'NOT_ESTABLISHED',realWorldHomeostasisEstablished:false};
+}
+
+export type MihmForecastPair={id:string;unit:string;issuedAt:string;availableAt:string;targetAt:string;outcomeAvailableAt:string;observed:number;candidate:number;baseline:number};
+function mihmIso(value:string) {
+  if(typeof value!=='string'||!/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?(?:Z|[+-]\d\d:\d\d)$/.test(value))return false;
+  const time=Date.parse(value);if(!Number.isFinite(time))return false;
+  const zone=value.endsWith('Z')?null:value.slice(-6);
+  if(zone&&(Number(zone.slice(1,3))>23||Number(zone.slice(4))>59))return false;
+  const shift=zone?(zone[0]==='-'?-1:1)*(Number(zone.slice(1,3))*60+Number(zone.slice(4))):0;
+  return new Date(time+shift*60000).toISOString().slice(0,10)===value.slice(0,10);
+}
+export function compareMihmForecasts(rows:MihmForecastPair[],evaluatedAt=new Date().toISOString()) {
+  const base={scientificValidation:false,canonicalPhiCalculated:false};
+  if(!mihmIso(evaluatedAt)||rows.length>10000||new Set(rows.map(r=>r.unit)).size>1||new Set(rows.map(r=>r.id)).size!==rows.length)return {...base,status:'BLOCKED',n:0,candidateMAE:null,baselineMAE:null,relativeImprovement:null,excluded:rows.map(r=>r.id)};
+  const accepted=rows.filter(r=>{
+    const times=[r.issuedAt,r.availableAt,r.targetAt,r.outcomeAvailableAt].map(t=>typeof t==='string'?Date.parse(t):NaN);
+    return r.id&&r.unit&&[r.issuedAt,r.availableAt,r.targetAt,r.outcomeAvailableAt].every(mihmIso)&&times[3]<=Date.parse(evaluatedAt)&&times.every(Number.isFinite)&&times[1]<=times[0]&&times[0]<times[2]&&times[2]<=times[3]&&[r.observed,r.candidate,r.baseline].every(v=>typeof v==='number'&&Number.isFinite(v));
+  });
+  const excluded=rows.filter(r=>!accepted.includes(r)).map(r=>r.id);
+  const n=accepted.length;if(!n)return {...base,status:'INSUFFICIENT',n:0,candidateMAE:null,baselineMAE:null,relativeImprovement:null,excluded};
+  const candidateMAE=accepted.reduce((s,r)=>s+Math.abs(r.observed-r.candidate),0)/n;
+  const baselineMAE=accepted.reduce((s,r)=>s+Math.abs(r.observed-r.baseline),0)/n;
+  if(!Number.isFinite(candidateMAE)||!Number.isFinite(baselineMAE))return {...base,status:'BLOCKED',n:0,candidateMAE:null,baselineMAE:null,relativeImprovement:null,excluded:rows.map(r=>r.id)};
+  return {...base,status:'DERIVED',n,candidateMAE,baselineMAE,relativeImprovement:baselineMAE===0||!Number.isFinite(1-candidateMAE/baselineMAE)?null:1-candidateMAE/baselineMAE,excluded};
+}
+
+/** Reproducible declared measurement-range propagation, NOT empirical confidence. */
+export function sampleMihmUncertainty(input:{nodes:MihmNormalizedNode[];radius:number;samples:number;seed:number}) {
+  if(calculateMihmNodeState(input.nodes).ihg===null||!Number.isFinite(input.radius)||input.radius<0||input.radius>1||!Number.isInteger(input.samples)||input.samples<2||input.samples>10000||!Number.isInteger(input.seed))return {status:'BLOCKED' as const,ihg:null};
+  let seed=input.seed>>>0;const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
+  const values:number[]=[];
+  for(let i=0;i<input.samples;i++){
+    const sample=input.nodes.map(n=>({...n,C:clamp01(n.C+(2*random()-1)*input.radius),E:clamp01(n.E+(2*random()-1)*input.radius),L:clamp01(n.L+(2*random()-1)*input.radius),M:clamp01((n.M as number)+(2*random()-1)*input.radius)}));
+    values.push(calculateMihmNodeState(sample).ihg as number);
+  }
+  values.sort((a,b)=>a-b);
+  return {status:'SIMULATED' as const,ihg:{min:values[0],median:values[Math.floor(values.length/2)],max:values[values.length-1]},seed:input.seed,samples:input.samples,distribution:'INDEPENDENT_UNIFORM_CLIPPED_DECLARED_RANGES',empiricalConfidenceInterval:false};
+}
+
+export function screenMihmPathologies(input:{nodes:Array<{id:string;capacity:number;declaredCapacity:number;load:number;previousCapacity:number;latency:number;previousLatency:number}>;edges:Array<{from:string;to:string}>;limits:{phantomCapacityGap:number;latencyIncrease:number}}) {
+  const ids=new Set(input.nodes.map(n=>n.id));
+  if(!input.nodes.length||input.nodes.length>256||input.edges.length>4096||ids.size!==input.nodes.length||input.nodes.some(n=>!n.id||[n.capacity,n.declaredCapacity,n.load,n.previousCapacity,n.latency,n.previousLatency].some(v=>typeof v!=='number'||!Number.isFinite(v)||v<0))||[input.limits.phantomCapacityGap,input.limits.latencyIncrease].some(v=>typeof v!=='number'||!Number.isFinite(v)||v<0)||input.edges.some(e=>!ids.has(e.from)||!ids.has(e.to)||e.from===e.to))return {status:'BLOCKED' as const,phantomCapacity:[],silentFatigue:[],exposedRecipients:[],causalSepsisEstablished:false};
+  const phantomCapacity=input.nodes.filter(n=>n.declaredCapacity-n.capacity>input.limits.phantomCapacityGap).map(n=>n.id);
+  const silentFatigue=input.nodes.filter(n=>n.capacity<n.previousCapacity&&n.latency-n.previousLatency>input.limits.latencyIncrease).map(n=>n.id);
+  const overloaded=new Set(input.nodes.filter(n=>n.load>n.capacity).map(n=>n.id));
+  const reached=new Set(overloaded);let changed=true;
+  while(changed){changed=false;for(const e of input.edges)if(reached.has(e.from)&&!reached.has(e.to)){reached.add(e.to);changed=true;}}
+  return {status:'DERIVED_SCREENING' as const,phantomCapacity,silentFatigue,exposedRecipients:[...reached].filter(id=>!overloaded.has(id)),causalSepsisEstablished:false,calibratedThresholds:false};
+}
