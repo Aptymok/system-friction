@@ -167,6 +167,13 @@ type ProviderCircuit = {
   failures: number;
 };
 
+class ProviderHttpError extends Error {
+  constructor(message: string, readonly safeHttpDiagnostic: string) {
+    super(message);
+    this.name = 'ProviderHttpError';
+  }
+}
+
 type ModelTelemetry = {
   lastSuccessAt: string | null;
   lastFailureAt: string | null;
@@ -251,7 +258,7 @@ export function getLlmModelCatalog(): LlmModelCapability[] {
     { provider: 'groq', model: DEFAULTS.groqReasoning, role: 'open-weight high-quality reasoning', contextTokens: 131_072, reasoning: true, reasoningClass: 'HIGH', structuredOutput: true, web: false, multimodal: false, computer: false, code: true, latencyClass: 'NORMAL', costClass: 'QUALITY', privacyClasses: hostedPrivacy, priority: 'quality', configuredBy: ['GROQ_REASONING_MODEL'] },
     { provider: 'groq', model: DEFAULTS.groqWeb, role: 'current web research / multi-tool compound', contextTokens: 131_072, reasoning: true, reasoningClass: 'HIGH', structuredOutput: false, web: true, multimodal: false, computer: false, code: false, latencyClass: 'NORMAL', costClass: 'QUALITY', privacyClasses: hostedPrivacy, priority: 'quality', configuredBy: ['GROQ_WEB_MODEL'] },
     { provider: 'groq', model: DEFAULTS.groqWebFast, role: 'current web research / low-latency compound', contextTokens: 131_072, reasoning: true, reasoningClass: 'MEDIUM', structuredOutput: false, web: true, multimodal: false, computer: false, code: false, latencyClass: 'INTERACTIVE', costClass: 'ECONOMY', privacyClasses: hostedPrivacy, priority: 'speed', configuredBy: ['GROQ_WEB_FAST_MODEL'] },
-    { provider: 'ollama', model: DEFAULTS.ollama, role: 'local/private model', contextTokens: null, reasoning: true, reasoningClass: 'MEDIUM', structuredOutput: false, web: false, multimodal: false, computer: false, code: true, latencyClass: 'NORMAL', costClass: 'PRIVATE_LOCAL', privacyClasses: localPrivacy, priority: 'balanced', configuredBy: ['OLLAMA_MODEL'] },
+    { provider: 'ollama', model: DEFAULTS.ollama, role: 'local/private model', contextTokens: null, reasoning: true, reasoningClass: 'MEDIUM', structuredOutput: true, web: false, multimodal: false, computer: false, code: true, latencyClass: 'NORMAL', costClass: 'PRIVATE_LOCAL', privacyClasses: localPrivacy, priority: 'balanced', configuredBy: ['OLLAMA_MODEL'] },
     { provider: 'huggingface', model: DEFAULTS.huggingface, role: 'experimental open-model route via Inference Providers', contextTokens: null, reasoning: true, reasoningClass: 'MEDIUM', structuredOutput: false, web: false, multimodal: false, computer: false, code: false, latencyClass: 'BATCH', costClass: 'ECONOMY', privacyClasses: hostedPrivacy, priority: 'balanced', configuredBy: ['HUGGINGFACE_TEXT_MODEL', 'HF_TEXT_MODEL'] },
   ];
 }
@@ -322,14 +329,14 @@ function markModelSuccess(provider: LlmProviderId, model: string, latencyMs: num
   clearProviderCircuit(provider, model);
 }
 
-function markModelFailure(provider: LlmProviderId, model: string, message: string, latencyMs: number) {
+function markModelFailure(provider: LlmProviderId, model: string, message: string, latencyMs: number, safeHttpDiagnostic: string | null = null) {
   const now = new Date().toISOString();
   const reason = blockProvider(provider, model, message);
   modelTelemetry.set(routeKey(provider, model), {
     ...telemetryFor(provider, model),
     lastFailureAt: now,
     lastCheckedAt: now,
-    lastError: message.slice(0, 320),
+    lastError: safeHttpDiagnostic ? `${safeHttpDiagnostic};error=${message}`.slice(0, 320) : message.slice(0, 320),
     lastErrorClass: reason,
     lastLatencyMs: latencyMs,
   });
@@ -576,7 +583,25 @@ async function fetchJson(url: string, init: RequestInit, timeoutMs = 20_000, dea
       const message = json && typeof json === 'object' && 'error' in json
         ? JSON.stringify((json as { error: unknown }).error).slice(0, 320)
         : `http_${response.status}`;
-      throw new Error(message);
+      // Preserve only bounded, allowlisted rate-limit metadata. Never record
+      // arbitrary headers, credentials, request bodies, or provider responses.
+      const safeHttpFields = [`http_status=${response.status}`];
+      const headers = [
+        ['retry-after', 'retry_after'],
+        ['x-ratelimit-remaining-requests', 'remaining_requests'],
+        ['x-ratelimit-remaining-tokens', 'remaining_tokens'],
+        ['x-ratelimit-reset-requests', 'reset_requests'],
+        ['x-ratelimit-reset-tokens', 'reset_tokens'],
+      ] as const;
+      for (const [header, field] of headers) {
+        const value = response.headers.get(header)?.trim();
+        if (value && /^[0-9][0-9A-Za-z.:+-]{0,47}$/.test(value)) {
+          safeHttpFields.push(`${field}=${value}`);
+        }
+      }
+      // Keep the original error message for existing circuit classification.
+      // Metadata is observational only: no retry, cost or routing change.
+      throw new ProviderHttpError(message, safeHttpFields.join(';'));
     }
     return json;
   } finally {
@@ -589,6 +614,7 @@ async function callProvider(config: ProviderConfig, model: string, input: {
   system: string;
   prompt: string;
   maxTokens: number;
+  structuredOutput: boolean;
   deadlineAtMs?: number;
 }): Promise<{ result: string; usage: Record<string, unknown> | null }> {
   if (config.id === 'openai') {
@@ -668,7 +694,13 @@ async function callProvider(config: ProviderConfig, model: string, input: {
     const json = await fetchJson(`${base}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, stream: false, messages: [{ role: 'system', content: input.system }, { role: 'user', content: input.prompt }] }),
+      body: JSON.stringify({
+        model,
+        stream: false,
+        // Ollama native /api/chat supports JSON mode; the existing SFI schema validator remains authoritative.
+        ...(input.structuredOutput ? { format: 'json' } : {}),
+        messages: [{ role: 'system', content: input.system }, { role: 'user', content: input.prompt }],
+      }),
     }, 18_000, input.deadlineAtMs);
     const record = json as Record<string, unknown>;
     const message = record.message as Record<string, unknown> | undefined;
@@ -780,6 +812,7 @@ export async function runLlmTask(input: {
         system: input.system ?? 'You are an SFI operational agent. Return concise, evidence-bound analysis. Do not claim external facts unless provided in context.',
         prompt: input.prompt,
         maxTokens: input.maxTokens ?? 700,
+        structuredOutput: operationPlan.requirements.structuredOutput === true,
         deadlineAtMs: input.deadlineAtMs,
       });
       const latency = Date.now() - attemptStarted;
@@ -833,8 +866,13 @@ export async function runLlmTask(input: {
         warnings.push('trajectory_deadline_reached');
         break;
       }
-      const reason = markModelFailure(config.id, candidate.model, message, latency);
+      const reason = markModelFailure(config.id, candidate.model, message, latency, error instanceof ProviderHttpError ? error.safeHttpDiagnostic : null);
       warnings.push(`${config.id}:${candidate.model}_failed:${reason}`);
+      // The existing warnings receipt is persisted by World hypothesis retries.
+      // Only bounded allowlisted HTTP metadata is exposed; no raw headers or keys.
+      if (error instanceof ProviderHttpError) {
+        warnings.push(`${config.id}:${candidate.model}_http_diagnostic:${error.safeHttpDiagnostic}`);
+      }
     }
   }
 
@@ -875,13 +913,14 @@ export async function probeLlmProviders(input: { provider?: Exclude<LlmProviderI
           system: 'SFI provider canary. Return exactly OK.',
           prompt: 'OK',
           maxTokens: 8,
+          structuredOutput: false,
         });
         if (!output.result.trim()) throw new Error('empty_canary_result');
         markModelSuccess(config.id, candidate.model, Date.now() - started);
         results.push({ provider: config.id, model: candidate.model, ok: true, error: null });
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        markModelFailure(config.id, candidate.model, message, Date.now() - started);
+        markModelFailure(config.id, candidate.model, message, Date.now() - started, error instanceof ProviderHttpError ? error.safeHttpDiagnostic : null);
         results.push({ provider: config.id, model: candidate.model, ok: false, error: message.slice(0, 240) });
       }
     }
@@ -918,7 +957,7 @@ export async function createEmbedding(input: string): Promise<EmbeddingResult> {
       return { ok: true, provider: 'openai', model: DEFAULTS.openaiEmbedding, embedding: normalizeEmbedding(data[0]?.embedding), warnings, latency_ms: Date.now() - started };
     } catch (error) {
       const message = error instanceof Error ? error.message : 'unknown';
-      const reason = markModelFailure('openai', DEFAULTS.openaiEmbedding, message, Date.now() - attemptStarted);
+      const reason = markModelFailure('openai', DEFAULTS.openaiEmbedding, message, Date.now() - attemptStarted, error instanceof ProviderHttpError ? error.safeHttpDiagnostic : null);
       warnings.push(`openai_embedding_failed:${reason}`);
     }
   }
@@ -936,7 +975,7 @@ export async function createEmbedding(input: string): Promise<EmbeddingResult> {
       return { ok: true, provider: 'huggingface', model: DEFAULTS.huggingfaceEmbedding, embedding: normalizeEmbedding(json), warnings, latency_ms: Date.now() - started };
     } catch (error) {
       const message = error instanceof Error ? error.message : 'unknown';
-      const reason = markModelFailure('huggingface', DEFAULTS.huggingfaceEmbedding, message, Date.now() - attemptStarted);
+      const reason = markModelFailure('huggingface', DEFAULTS.huggingfaceEmbedding, message, Date.now() - attemptStarted, error instanceof ProviderHttpError ? error.safeHttpDiagnostic : null);
       warnings.push(`huggingface_embedding_failed:${reason}`);
     }
   }
@@ -955,7 +994,7 @@ export async function createEmbedding(input: string): Promise<EmbeddingResult> {
       return { ok: true, provider: 'ollama', model: DEFAULTS.ollamaEmbedding, embedding: normalizeEmbedding((json as Record<string, unknown>).embedding), warnings, latency_ms: Date.now() - started };
     } catch (error) {
       const message = error instanceof Error ? error.message : 'unknown';
-      const reason = markModelFailure('ollama', DEFAULTS.ollamaEmbedding, message, Date.now() - attemptStarted);
+      const reason = markModelFailure('ollama', DEFAULTS.ollamaEmbedding, message, Date.now() - attemptStarted, error instanceof ProviderHttpError ? error.safeHttpDiagnostic : null);
       warnings.push(`ollama_embedding_failed:${reason}`);
     }
   }
