@@ -70,6 +70,7 @@ type ReadRecovery = {
 };
 
 type UniversalContinuationDependencies = {
+  db?: ReturnType<typeof createServiceSupabaseClient>;
   readTracks?: () => Promise<TrackReadResult>;
   continueCandidate?: (track: CycleTrack) => Promise<unknown>;
   sleep?: (milliseconds: number) => Promise<void>;
@@ -256,10 +257,10 @@ function signalFromObjectKey(payload: Row): UniversalCycleInput['signal'] {
   return { kind, name, objectHash, content: null, extracted: {}, provenance: {} };
 }
 
-async function readTracksOnce(): Promise<TrackReadResult> {
+async function readTracksOnce(cycleId?: string | null, suppliedDb?: ReturnType<typeof createServiceSupabaseClient>): Promise<TrackReadResult> {
   try {
-    const db = createServiceSupabaseClient();
-    const result = await db.from('epistemic_events')
+    const db = suppliedDb ?? createServiceSupabaseClient();
+    let query = db.from('epistemic_events')
       .select('sequence,event_id,event_name,payload,logbook_id')
       .in('event_name', [
         'SFI_UNIVERSAL_CYCLE_RESUMED',
@@ -269,8 +270,9 @@ async function readTracksOnce(): Promise<TrackReadResult> {
         SFI_UNIVERSAL_RETURN_PLAN_RECORDED,
         'SFI_UNIVERSAL_RETURN_RECORDED',
         'SFI_UNIVERSAL_CYCLE_CLOSED',
-      ])
-      .order('sequence', { ascending: false })
+      ]);
+    if (cycleId) query = query.eq('logbook_id', `universal-cycle:${cycleId}`);
+    const result = await query.order('sequence', { ascending: false })
       .limit(EVENT_SCAN_LIMIT);
     if (result.error) return { ok: false, tracks: [], error: result.error };
 
@@ -309,8 +311,8 @@ async function readTracksOnce(): Promise<TrackReadResult> {
   }
 }
 
-async function readTracksWithRecovery(dependencies: UniversalContinuationDependencies) {
-  const readTracks = dependencies.readTracks ?? readTracksOnce;
+async function readTracksWithRecovery(dependencies: UniversalContinuationDependencies, cycleId?: string | null) {
+  const readTracks = dependencies.readTracks ?? (() => readTracksOnce(cycleId,dependencies.db));
   const sleep = dependencies.sleep ?? ((milliseconds: number) => new Promise<void>((resolve) => setTimeout(resolve, milliseconds)));
   const random = dependencies.random ?? Math.random;
   let lastFailure: UniversalContinuationErrorReceipt | null = null;
@@ -787,7 +789,7 @@ export async function runUniversalCycleContinuation(
   const schedulingPolicy = requestedCycleId
     ? 'TARGETED_SAME_CYCLE_RECOVERY'
     : 'FAIR_OLDEST_PROGRESS_FIRST_ROUND_ROBIN';
-  const scan = await readTracksWithRecovery(dependencies);
+  const scan = await readTracksWithRecovery(dependencies,requestedCycleId);
   if (!scan.ok) {
     return {
       ok: false as const,

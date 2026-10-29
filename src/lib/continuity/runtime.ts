@@ -1,3 +1,5 @@
+import { isDeepStrictEqual } from 'node:util';
+import { createHash } from 'node:crypto';
 import { readEvidenceReadiness, searchEvidenceCandidates } from '@/lib/evidence/evidenceCandidates';
 import { classifyGovernedProposalWork } from '@/lib/execution/governedExecutionRouter';
 import { appendOperationalEvent, recordValue, stringValue, updateActionProposalRisk, type ProposalRiskLevel } from '@/lib/operational/common';
@@ -16,6 +18,7 @@ import {
 } from './neonHeartbeatStore';
 import {
   CONTINUITY_CAPABILITIES,
+  readContinuityTrialSchedule,
   type CapabilityHealth,
   type ContinuityCapability,
   type ContinuityMode,
@@ -634,4 +637,147 @@ export async function createDailyContinuityReport() {
   if (error) throw new Error(`continuity_report_failed:${error.message}`);
   await db.from('sfi_continuity_state').update({ last_report_at: periodEnd.toISOString(), updated_at: periodEnd.toISOString() }).eq('id', 'institution');
   return data;
+}
+
+type ContinuityTrialInput = { raw: string | undefined; requestedCycleId?: string; trigger: string };
+type ContinuityTrialPorts = {
+  now: () => number;
+  inspect: (cycleId: string) => Promise<{ ok: boolean; mode: string; closed: boolean }>;
+  reserve: (id: string, scope: { cycleId: string; startsAt: string; slot: number }, mode: string, trigger: string) => Promise<'CLAIMED' | 'DUPLICATE' | 'UNAVAILABLE'>;
+  step: (name: string, cycleId: string) => Promise<{ ok: boolean; processed: number; [key: string]: unknown }>;
+  finalize: (id: string, status: 'COMPLETED' | 'FAILED', evidence: Row) => Promise<boolean>;
+};
+
+export function continuityTrialPorts(db = createServiceSupabaseClient()): ContinuityTrialPorts {
+  return {
+    now: Date.now,
+    inspect: async (cycleId) => {
+      const state = await db.from('sfi_continuity_state').select('mode').eq('id','institution').maybeSingle();
+      const lifecycle = await db.from('epistemic_events').select('event_name')
+        .eq('logbook_id','universal-cycle:'+cycleId)
+        .in('event_name',['SFI_UNIVERSAL_CYCLE_OPENED','SFI_UNIVERSAL_CYCLE_RESUMED','SFI_UNIVERSAL_CYCLE_CLOSED'])
+        .order('sequence',{ascending:false}).limit(1).maybeSingle();
+      return { ok: !state.error && Boolean(state.data) && !lifecycle.error && Boolean(lifecycle.data),
+        mode: typeof state.data?.mode === 'string' ? state.data.mode : 'UNKNOWN',
+        closed: lifecycle.data?.event_name === 'SFI_UNIVERSAL_CYCLE_CLOSED' };
+    },
+    reserve: async (id, scope, mode, trigger) => {
+      const receipt = await db.from('sfi_continuity_runs').insert({
+        id, trigger: 'bounded_cycle_trial:' + trigger, mode, status: 'RUNNING',
+        evidence: [{ contract: 'SFI-CONTINUITY-CYCLE-TRIAL-1.0', ...scope }],
+      }).select('id').single();
+      if (receipt.error?.code === '23505') return 'DUPLICATE';
+      return !receipt.error && receipt.data?.id === id ? 'CLAIMED' : 'UNAVAILABLE';
+    },
+    step: async (name, cycleId) => {
+      let value: { ok: boolean; processed: number };
+      if (name === 'returnPlanUpgradeBefore' || name === 'returnPlanUpgradeAfter') {
+        const { runUniversalReturnPlanUpgrade } = await import('@/lib/sfi/universalReturnPlanUpgrade');
+        value = await runUniversalReturnPlanUpgrade({limit:1,cycleId});
+      } else if (name === 'universalCycleContinuation') {
+        const { runUniversalCycleContinuation } = await import('@/lib/sfi/universalCycleContinuation');
+        value = await runUniversalCycleContinuation({limit:1,cycleId});
+      } else if (name === 'universalEmpiricalContinuation') {
+        const { runUniversalEmpiricalContinuation } = await import('@/lib/sfi/universalEmpiricalContinuation');
+        value = await runUniversalEmpiricalContinuation({limit:1,cycleId});
+      } else return {ok:false,processed:0};
+      // The called owners preserve their detailed events. Do not duplicate raw
+      // prompts, provider errors or private source content in the cron response.
+      return {ok:value.ok,processed:value.processed};
+    },
+    finalize: async (id, status, evidence) => {
+      const write = await db.from('sfi_continuity_runs').update({
+        status,completed_at:new Date().toISOString(),evidence:[evidence],
+      }).eq('id',id);
+      if (write.error) return false;
+      const reread = await db.from('sfi_continuity_runs').select('id,status,evidence').eq('id',id).maybeSingle();
+      const stored = Array.isArray(reread.data?.evidence) ? reread.data.evidence[0] : null;
+      return !reread.error && reread.data?.id === id && reread.data?.status === status
+        && isDeepStrictEqual(stored,evidence);
+    },
+  };
+}
+
+/** A finite permission on the existing heartbeat, not a second scheduler or
+ * general egress grant. The existing primary run PK fences concurrent/replayed
+ * requests. A failed/crashed attempt consumes its slot; it is never retried.
+ */
+export async function runBoundedContinuityCycleTrial(
+  input: ContinuityTrialInput,
+  dependencies?: ContinuityTrialPorts,
+): Promise<{ok:boolean;status:string;processed:number;[key:string]:unknown}> {
+  const now = dependencies?.now ?? Date.now;
+  const schedule = readContinuityTrialSchedule(input.raw,now());
+  const response = (status:string,ok:boolean,extra:Row={}) => ({
+    ok,status,processed:0,writesPerformed:false,
+    continuityScope:'TARGETED_CYCLE_TRIAL',
+    requestedCycleId:'cycleId' in schedule?schedule.cycleId:null,
+    universalCycleContinuation:{ok:true,processed:0,requestedCycleId:'cycleId' in schedule?schedule.cycleId:null,availability:'NOT_EXECUTED'},
+    coreHeartbeat:{ok,receipt:status,runtimeStatus:status},
+    scientificValidationClaimed:false,canonicalPromotionAllowed:false,...extra,
+  });
+  if(schedule.state!=='READY') return response('CONTINUITY_TRIAL_'+schedule.state,schedule.state!=='INVALID');
+  if(!['github_actions_oidc','vercel_cron','development'].includes(input.trigger))
+    return response('CONTINUITY_TRIAL_UNAUTHORIZED_TRIGGER',false);
+  if(input.requestedCycleId && input.requestedCycleId.toLowerCase()!==schedule.cycleId)
+    return response('CONTINUITY_TRIAL_TARGET_MISMATCH',false);
+  const sameSlot = () => {
+    const current = readContinuityTrialSchedule(input.raw,now());
+    return current.state==='READY' && current.startsAt===schedule.startsAt && current.slot===schedule.slot;
+  };
+  const ports = dependencies ?? continuityTrialPorts();
+  let authority;
+  try { authority = await ports.inspect(schedule.cycleId); }
+  catch { return response('CONTINUITY_TRIAL_AUTHORITY_UNAVAILABLE',false); }
+  if(!authority.ok) return response('CONTINUITY_TRIAL_AUTHORITY_UNAVAILABLE',false);
+  if(!['NORMAL','FOUNDER_ABSENT_PREP','FOUNDER_ABSENT_ACTIVE'].includes(authority.mode))
+    return response('CONTINUITY_TRIAL_AUTHORITY_HALTED',false);
+  if(authority.closed) return response('CONTINUITY_TRIAL_ALREADY_CLOSED',true);
+  if(!sameSlot()) return response('CONTINUITY_TRIAL_SLOT_ENDED',false);
+  // Canonical timestamps prevent alternate spelling from resetting a slot.
+  const digest = createHash('sha256').update(
+    'sfi-continuity-cycle-trial-v1|'+schedule.cycleId+'|'+schedule.startsAt+'|'+schedule.slot
+  ).digest('hex');
+  const id = digest.slice(0,8)+'-'+digest.slice(8,12)+'-4'+digest.slice(13,16)+'-8'+digest.slice(17,20)+'-'+digest.slice(20,32);
+  let reservation: 'CLAIMED'|'DUPLICATE'|'UNAVAILABLE';
+  try { reservation = await ports.reserve(id,schedule,authority.mode,input.trigger); }
+  catch { reservation = 'UNAVAILABLE'; }
+  if(reservation==='DUPLICATE') return response('CONTINUITY_TRIAL_SLOT_ALREADY_RESERVED',true,{priorAttemptMayHaveEffects:true});
+  if(reservation!=='CLAIMED') return response('CONTINUITY_TRIAL_RESERVATION_UNAVAILABLE',false,{writesPerformed:null,primaryReservationUncertain:true});
+  const lanes: Row = {};
+  let failure: string|null = null;
+  for(const name of ['returnPlanUpgradeBefore','universalCycleContinuation','returnPlanUpgradeAfter','universalEmpiricalContinuation']) {
+    const current = readContinuityTrialSchedule(input.raw,now());
+    if(current.state!=='READY' || current.slot!==schedule.slot) {failure='TRIAL_SLOT_ENDED';break;}
+    try {
+      const check = await ports.inspect(schedule.cycleId);
+      if(!check.ok || !['NORMAL','FOUNDER_ABSENT_PREP','FOUNDER_ABSENT_ACTIVE'].includes(check.mode)){
+        failure='TRIAL_AUTHORITY_CHANGED';break;
+      }
+      if(check.closed) break;
+      if(!sameSlot()){failure='TRIAL_SLOT_ENDED';break;}
+      const result = await ports.step(name,schedule.cycleId);
+      lanes[name] = {ok:result.ok,processed:result.processed};
+      if(result.ok!==true){failure='TRIAL_STAGE_FAILED';break;}
+    } catch {failure='TRIAL_STAGE_UNAVAILABLE';break;}
+  }
+  const evidence = {contract:'SFI-CONTINUITY-CYCLE-TRIAL-1.0',trialRunId:id,
+    cycleId:schedule.cycleId,startsAt:schedule.startsAt,expiresAt:schedule.expiresAt,
+    slot:schedule.slot,lanes,failure,
+    budget:'ONE_RESERVED_ATTEMPT_PER_HOURLY_SLOT_MAX_THREE;STAGE_LIMIT_ONE;NO_EFFECT_RETRY',
+    providerCostUsd:null,providerCostStatus:'NOT_VERIFIED_NOT_ZERO',
+    scope:'EXISTING_SINGLE_CYCLE_INTERNAL_CONTINUATION_ONLY;NO_GENERAL_EGRESS_OR_OTHER_WORKFLOWS',
+    observedReturnClaimed:false};
+  let confirmed=false;
+  try {confirmed=await ports.finalize(id,failure?'FAILED':'COMPLETED',evidence);} catch {confirmed=false;}
+  if(!confirmed) return response('CONTINUITY_TRIAL_RECEIPT_NOT_CONFIRMED',false,{
+    runId:id,processed:1,writesPerformed:true,slot:schedule.slot,lanes});
+  return response(failure?'CONTINUITY_TRIAL_STAGE_FAILED':'CONTINUITY_TRIAL_ATTEMPT_RECORDED',!failure,{
+    runId:id,processed:1,writesPerformed:true,slot:schedule.slot,lanes,
+    requestedCycleId:schedule.cycleId,receiptReadBackConfirmed:true,
+    ...lanes,
+    universalCycleContinuation:lanes.universalCycleContinuation
+      ? {...lanes.universalCycleContinuation as Row,requestedCycleId:schedule.cycleId}
+      : {ok:true,processed:0,requestedCycleId:schedule.cycleId,availability:'NOT_EXECUTED'},
+  });
 }
