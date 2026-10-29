@@ -14,6 +14,9 @@ on:
       - 'src/lib/sfi/universalCycleContinuation.ts'
       - 'src/lib/sfi/universalCycleContinuation.test.ts'
       - 'src/app/api/cron/continuity-heartbeat/route.ts'
+      - 'src/lib/continuity/runtime.ts'
+      - 'src/lib/continuity/continuityDataPlanePolicy.ts'
+      - 'src/lib/continuity/continuityDataPlanePolicy.test.ts'
       - '.github/workflows/sfi-continuity-hourly.yml'
       - '.github/workflows/sfi-production-observatory-smoke.yml'
       - '.github/workflows/sfi-continuity-ledger-read.yml'
@@ -47,6 +50,8 @@ jobs:
         run: node --import tsx --test src/lib/continuity/contracts.test.ts src/lib/continuity/runtime.test.ts src/lib/sfi/cycleTargetRead.test.ts
       - name: Test bounded universal ledger read recovery
         run: node --import tsx --test src/lib/sfi/universalCycleContinuation.test.ts
+      - name: Test primary authority and scheduled-cost ownership
+        run: node --import tsx --test src/lib/continuity/continuityDataPlanePolicy.test.ts
       - name: Verify post-deploy assurance coordination
         run: node scripts/qa-sfi-post-deploy-assurance-coordination.mjs
       - name: Verify existing universal continuation scheduling contract
