@@ -157,6 +157,7 @@ export function auditMihmTypedField(input: MihmTypedFieldAuditInput): MihmTypedF
   const excludedSampleIds:string[]=[];
   const keys=new Set<string>();
   const units=new Map<string,string>();
+  const families=new Map<string,MihmFieldFamily>();
   for(const s of input.samples) {
     const k=s.nodeRef?.id+'|'+s.dimensionRef?.id+'|'+s.observedAt;
     if(keys.has(k)) reasons.push('DUPLICATE_SAMPLE:'+k);
@@ -172,11 +173,16 @@ export function auditMihmTypedField(input: MihmTypedFieldAuditInput): MihmTypedF
     const unitKey=s.dimensionRef?.id;
     if(units.has(unitKey)&&units.get(unitKey)!==s.unit)reasons.push('DIMENSION_UNIT_CONFLICT:'+unitKey);
     units.set(unitKey,s.unit);
+    if(families.has(unitKey)&&families.get(unitKey)!==s.fieldFamily)reasons.push('DIMENSION_FAMILY_CONFLICT:'+unitKey);
+    families.set(unitKey,s.fieldFamily);
     if(validIso(s.observedAt)&&Number.isFinite(cut)&&Date.parse(s.observedAt)>cut)
       reasons.push('FUTURE_OBSERVATION_AT_CUT:'+s.id);
+    if(s.state==='MEASURED'&&validIso(s.observedAt)&&validIso(s.availableAt)&&
+       Date.parse(s.availableAt)<Date.parse(s.observedAt)) reasons.push('SOURCE_AVAILABLE_BEFORE_OBSERVATION:'+s.id);
     if(s.state==='MEASURED'&&validRef(s.sourceRef)&&!sourceIds.has(s.sourceRef.id))
       reasons.push('SOURCE_NOT_ADMISSIBLE_IN_PARENT:'+s.id);
-    if(eligibleSample(s,cut)&&sourceIds.has(s.sourceRef!.id) &&
+    if(eligibleSample(s,cut)&&validIso(s.observedAt)&&Date.parse(s.availableAt as string)>=Date.parse(s.observedAt) &&
+       sourceIds.has(s.sourceRef!.id) &&
        validIso(s.observedAt)&&Date.parse(s.observedAt)<=cut) measured.push(s);
     else excludedSampleIds.push(s.id);
   }
@@ -259,7 +265,8 @@ export function auditMihmTypedField(input: MihmTypedFieldAuditInput): MihmTypedF
   const resourceTotals:MihmTypedFieldAudit['resourceTotals']=[];
   for(const [key,entries] of resourceGroup){
     const good=entries.filter(r=>r.state==='MEASURED'&&r.amount!==null&&validRef(r.sourceRef)&&
-      validIso(r.availableAt)&&Date.parse(r.availableAt)<=cut&&validIso(r.observedAt)&&Date.parse(r.observedAt)<=cut);
+      validIso(r.availableAt)&&validIso(r.observedAt)&&Date.parse(r.availableAt)<=cut&&
+      Date.parse(r.availableAt)>=Date.parse(r.observedAt)&&Date.parse(r.observedAt)<=cut);
     const complete=good.length===entries.length;
     resourceTotals.push({resource:entries[0].resource,unit:entries[0].unit,
       amount:complete?good.reduce((n,r)=>n+(r.amount as number),0):null,
