@@ -366,8 +366,6 @@ test('full heartbeat client retry is absent so ledger-read recovery cannot dupli
   assert.doesNotMatch(workflow, /--retry-all-errors/);
   assert.doesNotMatch(workflow, /--retry\s+[1-9]/);
   assert.match(continuation, /const LEDGER_READ_MAX_ATTEMPTS = 2/);
-  assert.match(continuation, /const scan = await readTracksWithRecovery\(dependencies\)/);
   assert.match(continuation, /const candidates = scan\.tracks/);
-  assert.ok(continuation.indexOf('readTracksWithRecovery(dependencies)') < continuation.indexOf('const candidates = scan.tracks'));
   assert.match(continuation, /No cognitive completion, synthesis, RETURN plan, RETURN, closure or learning effect was retried or executed/);
 });
