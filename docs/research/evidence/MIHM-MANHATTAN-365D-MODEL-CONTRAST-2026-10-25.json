@@ -1,0 +1,323 @@
+{
+  "contract": "MIHM-MANHATTAN-365D-MODEL-CONTRAST-0.1",
+  "provenance": {
+    "githubAction": "https://github.com/Aptymok/system-friction/actions/runs/40196827713",
+    "jobId": 121179357153,
+    "code": "scripts/research/mihm-manhattan-365d-contrast.mjs",
+    "input": "docs/research/evidence/MIHM-MANHATTAN-365D-2025-10-2026-09.json"
+  },
+  "scientificDisposition": {
+    "testType": "EXPLORATORY_RETROSPECTIVE",
+    "actualHistoricalPredictionIssued": false,
+    "crossSourceMechanismEstablished": false,
+    "canonicalMihmValidated": false,
+    "modelChoiceBasedOnTestForbidden": true,
+    "note": "M2 apparent 311 benefit relative to M1 does not exceed the equal-budget older-shock placebo; M0 wins FDNY and CBD. All targets and losing comparisons retained."
+  },
+  "sourceFixtureSHA256": "41e384e3199ca8d6878b39cdca51425b82e01a4d5fec6121d6494d53c5ceacc5",
+  "status": "OBSERVED_HISTORICAL_RETROSPECTIVE_NOT_PROSPECTIVE",
+  "claim": "NO_INFERRED_CAUSAL_LINK_OR_CANONICAL_MIHM",
+  "boundary": "Manhattan borough (311 and FDNY) vs nested CBD (road entries)",
+  "covariateAvailabilityAtHistoricT0": "NOT_VERIFIED",
+  "preregistration": "INTERNAL_PROTOCOL_FROZEN_PRE_COLLECTION_NOT_INDEPENDENT",
+  "allTargetsReported": true,
+  "methodology": "log-count ridge, train-only scaling, independent per-model validation alpha, fixed July-September evaluation",
+  "sourceProvenance": [
+    {
+      "source": "NYC311",
+      "sourceResponseSha256": "a48f937fda84128e2bfa4cd61f22b0509031c8332d8ecdc49a3f34a551c74d4f"
+    },
+    {
+      "source": "FDNY",
+      "sourceResponseSha256": "fcdf0b6f97d219d216701d061f01f149ee9701c6a1f3ae6f0eb92893e7b97192"
+    },
+    {
+      "source": "MTA_CBD_CRZ",
+      "sourceResponseSha256": "70d8e2e1ed023b68389553c36af516ba3bb16c07eb2d7d5b6d6309bd88b6134e"
+    }
+  ],
+  "results": [
+    {
+      "target": "service311",
+      "trainingDates": [
+        "2025-11-12",
+        "2026-04-30"
+      ],
+      "calibrationDates": [
+        "2026-05-01",
+        "2026-06-30"
+      ],
+      "evaluationDates": [
+        "2026-07-01",
+        "2026-09-30"
+      ],
+      "n": {
+        "train": 170,
+        "calibration": 61,
+        "test": 92
+      },
+      "weeklyNaive": {
+        "MAE": 170.02173913043478,
+        "RMSE": 221.19910370130543,
+        "signedBias": 1.2608695652173914
+      },
+      "models": {
+        "M0": {
+          "selectedAlpha": 100,
+          "featureCount": 16,
+          "calibrationMAE": 141.914105033952,
+          "test": {
+            "MAE": 144.7874810481696,
+            "RMSE": 179.75762146335055,
+            "signedBias": -20.99013680729829
+          }
+        },
+        "M1": {
+          "selectedAlpha": 1,
+          "featureCount": 26,
+          "calibrationMAE": 142.83087787194668,
+          "test": {
+            "MAE": 151.93931904225542,
+            "RMSE": 192.09666988979228,
+            "signedBias": 91.42746623834583
+          }
+        },
+        "M2": {
+          "selectedAlpha": 10,
+          "featureCount": 32,
+          "calibrationMAE": 151.39848333652355,
+          "test": {
+            "MAE": 142.00704837994508,
+            "RMSE": 180.53413190298147,
+            "signedBias": 50.958081709215605
+          }
+        },
+        "PLACEBO": {
+          "selectedAlpha": 10,
+          "featureCount": 32,
+          "calibrationMAE": 142.5341923739381,
+          "test": {
+            "MAE": 136.90290805128782,
+            "RMSE": 175.4281532648896,
+            "signedBias": 32.670974932359066
+          }
+        }
+      },
+      "multiAgencyGainOverOwnHistory": {
+        "candidateMinusReferenceMAEGain": -7.151837994085717,
+        "sevenDayBlockCI95": [
+          -29.30735357561398,
+          11.355280624121981
+        ],
+        "candidateBetterDays": 41,
+        "candidateWorseDays": 51
+      },
+      "experimentalShockGainOverM1": {
+        "candidateMinusReferenceMAEGain": 9.932270662310286,
+        "sevenDayBlockCI95": [
+          1.518813650008237,
+          20.43699839769675
+        ],
+        "candidateBetterDays": 55,
+        "candidateWorseDays": 37
+      },
+      "experimentalShockGainOverEqualSizePlacebo": {
+        "candidateMinusReferenceMAEGain": -5.104140328657281,
+        "sevenDayBlockCI95": [
+          -11.739642120628899,
+          1.886385390834621
+        ],
+        "candidateBetterDays": 41,
+        "candidateWorseDays": 51
+      }
+    },
+    {
+      "target": "fdnyCount",
+      "trainingDates": [
+        "2025-11-12",
+        "2026-04-30"
+      ],
+      "calibrationDates": [
+        "2026-05-01",
+        "2026-06-30"
+      ],
+      "evaluationDates": [
+        "2026-07-01",
+        "2026-09-30"
+      ],
+      "n": {
+        "train": 170,
+        "calibration": 61,
+        "test": 92
+      },
+      "weeklyNaive": {
+        "MAE": 53.51086956521739,
+        "RMSE": 69.83855606356333,
+        "signedBias": 1.3804347826086956
+      },
+      "models": {
+        "M0": {
+          "selectedAlpha": 1000,
+          "featureCount": 16,
+          "calibrationMAE": 42.45782145676409,
+          "test": {
+            "MAE": 35.416226072545825,
+            "RMSE": 50.76060137836589,
+            "signedBias": -22.358457918586538
+          }
+        },
+        "M1": {
+          "selectedAlpha": 1000,
+          "featureCount": 26,
+          "calibrationMAE": 43.30627389901732,
+          "test": {
+            "MAE": 37.326763660178145,
+            "RMSE": 53.057742954440386,
+            "signedBias": -26.20264723421419
+          }
+        },
+        "M2": {
+          "selectedAlpha": 1000,
+          "featureCount": 32,
+          "calibrationMAE": 43.128203005396024,
+          "test": {
+            "MAE": 37.26475356641468,
+            "RMSE": 52.99053326958604,
+            "signedBias": -26.054425624894282
+          }
+        },
+        "PLACEBO": {
+          "selectedAlpha": 1000,
+          "featureCount": 32,
+          "calibrationMAE": 43.20866259004961,
+          "test": {
+            "MAE": 37.44972053883529,
+            "RMSE": 53.4009778125766,
+            "signedBias": -26.336538297887618
+          }
+        }
+      },
+      "multiAgencyGainOverOwnHistory": {
+        "candidateMinusReferenceMAEGain": -1.9105375876323094,
+        "sevenDayBlockCI95": [
+          -3.650450597947429,
+          -0.5455895270367886
+        ],
+        "candidateBetterDays": 31,
+        "candidateWorseDays": 61
+      },
+      "experimentalShockGainOverM1": {
+        "candidateMinusReferenceMAEGain": 0.06201009376342657,
+        "sevenDayBlockCI95": [
+          -0.11446978336343744,
+          0.17770208280194003
+        ],
+        "candidateBetterDays": 46,
+        "candidateWorseDays": 46
+      },
+      "experimentalShockGainOverEqualSizePlacebo": {
+        "candidateMinusReferenceMAEGain": 0.18496697242057814,
+        "sevenDayBlockCI95": [
+          -0.16874867405771926,
+          0.46138942199548655
+        ],
+        "candidateBetterDays": 51,
+        "candidateWorseDays": 41
+      }
+    },
+    {
+      "target": "cbdEntries",
+      "trainingDates": [
+        "2025-11-12",
+        "2026-04-30"
+      ],
+      "calibrationDates": [
+        "2026-05-01",
+        "2026-06-30"
+      ],
+      "evaluationDates": [
+        "2026-07-01",
+        "2026-09-30"
+      ],
+      "n": {
+        "train": 170,
+        "calibration": 61,
+        "test": 92
+      },
+      "weeklyNaive": {
+        "MAE": 21891.934782608696,
+        "RMSE": 39826.66801850893,
+        "signedBias": 1981.891304347826
+      },
+      "models": {
+        "M0": {
+          "selectedAlpha": 100,
+          "featureCount": 16,
+          "calibrationMAE": 20282.42247953675,
+          "test": {
+            "MAE": 16538.32075727955,
+            "RMSE": 27257.303597770588,
+            "signedBias": 2634.7943896616425
+          }
+        },
+        "M1": {
+          "selectedAlpha": 100,
+          "featureCount": 26,
+          "calibrationMAE": 26171.900550781804,
+          "test": {
+            "MAE": 18812.35567897856,
+            "RMSE": 29705.095020807115,
+            "signedBias": 3654.20436435204
+          }
+        },
+        "M2": {
+          "selectedAlpha": 100,
+          "featureCount": 32,
+          "calibrationMAE": 26753.192477186287,
+          "test": {
+            "MAE": 19952.258737388987,
+            "RMSE": 31389.157424159708,
+            "signedBias": 6472.404885748995
+          }
+        },
+        "PLACEBO": {
+          "selectedAlpha": 100,
+          "featureCount": 32,
+          "calibrationMAE": 26211.134918227508,
+          "test": {
+            "MAE": 19015.594597779695,
+            "RMSE": 30219.564423828728,
+            "signedBias": 8672.096274634207
+          }
+        }
+      },
+      "multiAgencyGainOverOwnHistory": {
+        "candidateMinusReferenceMAEGain": -2274.034921699011,
+        "sevenDayBlockCI95": [
+          -5008.631983810062,
+          -85.39371356798549
+        ],
+        "candidateBetterDays": 42,
+        "candidateWorseDays": 50
+      },
+      "experimentalShockGainOverM1": {
+        "candidateMinusReferenceMAEGain": -1139.903058410416,
+        "sevenDayBlockCI95": [
+          -2964.9632304510237,
+          521.5969987128318
+        ],
+        "candidateBetterDays": 36,
+        "candidateWorseDays": 56
+      },
+      "experimentalShockGainOverEqualSizePlacebo": {
+        "candidateMinusReferenceMAEGain": -936.6641396092884,
+        "sevenDayBlockCI95": [
+          -2866.764315315116,
+          583.2356750974141
+        ],
+        "candidateBetterDays": 40,
+        "candidateWorseDays": 52
+      }
+    }
+  ]
+}

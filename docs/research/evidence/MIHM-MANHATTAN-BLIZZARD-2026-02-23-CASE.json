@@ -1,0 +1,325 @@
+{
+  "contract": "MIHM-MANHATTAN-EXTERNAL-EVENT-FEB2026-0.1",
+  "status": "RETROSPECTIVE_REAL_WORLD_EVENT_POST_HOC_SELECTED_NOT_INDEPENDENT_VALIDATION",
+  "externalAuthority": [
+    {
+      "eventDate": "2026-02-21",
+      "type": "OFFICIAL_HAZARDOUS_TRAVEL_ADVISORY",
+      "url": "https://www.nyc.gov/site/em/about/press-releases/20262102_pr_nycem-issues-hazardous-travel-advisory.page"
+    },
+    {
+      "effectiveStart": "2026-02-22T21:00:00-05:00",
+      "effectiveEnd": "2026-02-23T12:00:00-05:00",
+      "type": "OFFICIAL_NONESSENTIAL_TRAVEL_RESTRICTION",
+      "url": "https://www.nyc.gov/mayors-office/news/2026/02/emergency-executive-order-no--3"
+    },
+    {
+      "effectiveStart": "2026-02-24T00:00:00-05:00",
+      "type": "OFFICIAL_EMERGENCY_TERMINATION_ORDER",
+      "url": "https://www.nyc.gov/mayors-office/news/2026/02/emergency-executive-order-no--3-1"
+    }
+  ],
+  "selection": "Feb 23 selected AFTER searching the lowest CBD count within Oct2025-Sep2026; selection bias explicit",
+  "sourceProvenance": {
+    "officialDailyPanel": "docs/research/evidence/MIHM-MANHATTAN-365D-2025-10-2026-09.json",
+    "sourceSHA256": [
+      {
+        "source": "NYC311",
+        "sha256": "a48f937fda84128e2bfa4cd61f22b0509031c8332d8ecdc49a3f34a551c74d4f"
+      },
+      {
+        "source": "FDNY",
+        "sha256": "fcdf0b6f97d219d216701d061f01f149ee9701c6a1f3ae6f0eb92893e7b97192"
+      },
+      {
+        "source": "MTA_CBD_CRZ",
+        "sha256": "70d8e2e1ed023b68389553c36af516ba3bb16c07eb2d7d5b6d6309bd88b6134e"
+      }
+    ],
+    "reproducer": "scripts/research/mihm-manhattan-feb-blizzard-case.mjs"
+  },
+  "comparisonBaseline": {
+    "period": [
+      "2026-01-01",
+      "2026-02-21"
+    ],
+    "nCalendarDays": 52,
+    "method": "Median by same day of week",
+    "notCausalCounterfactual": true,
+    "includesEarlierJanSnowEvent": true
+  },
+  "temporalObservationDays": 12,
+  "trajectory": [
+    {
+      "day": "2026-02-20",
+      "observed": {
+        "cbdEntries": 541886,
+        "crzEntries": 482704,
+        "service311": 2007,
+        "fdnyCount": 424
+      },
+      "weekdayBaseline": {
+        "cbdEntries": 544391,
+        "crzEntries": 482704,
+        "service311": 2185,
+        "fdnyCount": 454
+      },
+      "deviationPct": {
+        "cbdEntries": -0.5,
+        "crzEntries": 0,
+        "service311": -8.1,
+        "fdnyCount": -6.6
+      }
+    },
+    {
+      "day": "2026-02-21",
+      "observed": {
+        "cbdEntries": 546787,
+        "crzEntries": 486865,
+        "service311": 1755,
+        "fdnyCount": 467
+      },
+      "weekdayBaseline": {
+        "cbdEntries": 523206,
+        "crzEntries": 471370,
+        "service311": 1969,
+        "fdnyCount": 486
+      },
+      "deviationPct": {
+        "cbdEntries": 4.5,
+        "crzEntries": 3.3,
+        "service311": -10.9,
+        "fdnyCount": -3.9
+      }
+    },
+    {
+      "day": "2026-02-22",
+      "observed": {
+        "cbdEntries": 318476,
+        "crzEntries": 281665,
+        "service311": 1523,
+        "fdnyCount": 485
+      },
+      "weekdayBaseline": {
+        "cbdEntries": 444822,
+        "crzEntries": 393194,
+        "service311": 1828,
+        "fdnyCount": 452
+      },
+      "deviationPct": {
+        "cbdEntries": -28.4,
+        "crzEntries": -28.4,
+        "service311": -16.7,
+        "fdnyCount": 7.3
+      }
+    },
+    {
+      "day": "2026-02-23",
+      "observed": {
+        "cbdEntries": 72721,
+        "crzEntries": 64681,
+        "service311": 1844,
+        "fdnyCount": 684
+      },
+      "weekdayBaseline": {
+        "cbdEntries": 477323,
+        "crzEntries": 417850,
+        "service311": 2400,
+        "fdnyCount": 432
+      },
+      "deviationPct": {
+        "cbdEntries": -84.8,
+        "crzEntries": -84.5,
+        "service311": -23.2,
+        "fdnyCount": 58.3
+      }
+    },
+    {
+      "day": "2026-02-24",
+      "observed": {
+        "cbdEntries": 401283,
+        "crzEntries": 358145,
+        "service311": 2787,
+        "fdnyCount": 536
+      },
+      "weekdayBaseline": {
+        "cbdEntries": 517426,
+        "crzEntries": 456927,
+        "service311": 2373,
+        "fdnyCount": 462
+      },
+      "deviationPct": {
+        "cbdEntries": -22.4,
+        "crzEntries": -21.6,
+        "service311": 17.4,
+        "fdnyCount": 16
+      }
+    },
+    {
+      "day": "2026-02-25",
+      "observed": {
+        "cbdEntries": 476617,
+        "crzEntries": 427177,
+        "service311": 2378,
+        "fdnyCount": 554
+      },
+      "weekdayBaseline": {
+        "cbdEntries": 525829,
+        "crzEntries": 465133,
+        "service311": 2064,
+        "fdnyCount": 452
+      },
+      "deviationPct": {
+        "cbdEntries": -9.4,
+        "crzEntries": -8.2,
+        "service311": 15.2,
+        "fdnyCount": 22.6
+      }
+    },
+    {
+      "day": "2026-02-26",
+      "observed": {
+        "cbdEntries": 530728,
+        "crzEntries": 472779,
+        "service311": 2219,
+        "fdnyCount": 462
+      },
+      "weekdayBaseline": {
+        "cbdEntries": 542784,
+        "crzEntries": 483636,
+        "service311": 2159,
+        "fdnyCount": 469
+      },
+      "deviationPct": {
+        "cbdEntries": -2.2,
+        "crzEntries": -2.2,
+        "service311": 2.8,
+        "fdnyCount": -1.5
+      }
+    },
+    {
+      "day": "2026-02-27",
+      "observed": {
+        "cbdEntries": 539322,
+        "crzEntries": 482126,
+        "service311": 2192,
+        "fdnyCount": 522
+      },
+      "weekdayBaseline": {
+        "cbdEntries": 544391,
+        "crzEntries": 482704,
+        "service311": 2185,
+        "fdnyCount": 454
+      },
+      "deviationPct": {
+        "cbdEntries": -0.9,
+        "crzEntries": -0.1,
+        "service311": 0.3,
+        "fdnyCount": 15
+      }
+    },
+    {
+      "day": "2026-02-28",
+      "observed": {
+        "cbdEntries": 530383,
+        "crzEntries": 473177,
+        "service311": 1961,
+        "fdnyCount": 476
+      },
+      "weekdayBaseline": {
+        "cbdEntries": 523206,
+        "crzEntries": 471370,
+        "service311": 1969,
+        "fdnyCount": 486
+      },
+      "deviationPct": {
+        "cbdEntries": 1.4,
+        "crzEntries": 0.4,
+        "service311": -0.4,
+        "fdnyCount": -2.1
+      }
+    },
+    {
+      "day": "2026-03-01",
+      "observed": {
+        "cbdEntries": 476864,
+        "crzEntries": 418874,
+        "service311": 1778,
+        "fdnyCount": 400
+      },
+      "weekdayBaseline": {
+        "cbdEntries": 444822,
+        "crzEntries": 393194,
+        "service311": 1828,
+        "fdnyCount": 452
+      },
+      "deviationPct": {
+        "cbdEntries": 7.2,
+        "crzEntries": 6.5,
+        "service311": -2.7,
+        "fdnyCount": -11.5
+      }
+    },
+    {
+      "day": "2026-03-02",
+      "observed": {
+        "cbdEntries": 510717,
+        "crzEntries": 454834,
+        "service311": 2117,
+        "fdnyCount": 421
+      },
+      "weekdayBaseline": {
+        "cbdEntries": 477323,
+        "crzEntries": 417850,
+        "service311": 2400,
+        "fdnyCount": 432
+      },
+      "deviationPct": {
+        "cbdEntries": 7,
+        "crzEntries": 8.9,
+        "service311": -11.8,
+        "fdnyCount": -2.5
+      }
+    },
+    {
+      "day": "2026-03-03",
+      "observed": {
+        "cbdEntries": 520964,
+        "crzEntries": 461838,
+        "service311": 1961,
+        "fdnyCount": 427
+      },
+      "weekdayBaseline": {
+        "cbdEntries": 517426,
+        "crzEntries": 456927,
+        "service311": 2373,
+        "fdnyCount": 462
+      },
+      "deviationPct": {
+        "cbdEntries": 0.7,
+        "crzEntries": 1.1,
+        "service311": -17.4,
+        "fdnyCount": -7.6
+      }
+    }
+  ],
+  "scientificInterpretation": {
+    "travelBanAndSevereWeatherConfounded": true,
+    "observedConcurrentSystemResponse": true,
+    "plausibleDifferentialReturnPattern": true,
+    "identifiedCauseOfAnyResponse": false,
+    "MIHMCanonicalValidated": false,
+    "prospectivePredictionIssued": false,
+    "worldReturnVerified": false,
+    "officialEmergencyOrderAsExternalSource": true,
+    "competingExplanations": [
+      "Storm intensity",
+      "Travel prohibition",
+      "School and business closures",
+      "Service scheduling",
+      "Data reporting latency",
+      "Original publication revisions"
+    ]
+  },
+  "noProductionMutations": true
+}

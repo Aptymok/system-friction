@@ -1,0 +1,288 @@
+{
+  "execution": "ONE_OFFICIAL_311_AGGREGATE_READ",
+  "responseSHA256": "38700800b8bb126f79cd2a00d6dd187dd15a153d5cb7a3ffca13e0641abb60a7",
+  "responseBytes": 44099,
+  "sourceAggregateRows": 554,
+  "sourceQueryUrl": "https://data.cityofnewyork.us/resource/erm2-nwe9.json?%24select=date_trunc_ymd%28created_date%29+as+day%2Ccomplaint_type%2Ccount%28*%29+as+n&%24where=borough+%3D+%27MANHATTAN%27+AND+%28%28created_date+%3E%3D+%272025-12-10T00%3A00%3A00%27+AND+created_date+%3C+%272025-12-12T00%3A00%3A00%27%29+OR+%28created_date+%3E%3D+%272025-12-17T00%3A00%3A00%27+AND+created_date+%3C+%272025-12-19T00%3A00%3A00%27%29+OR+%28created_date+%3E%3D+%272025-12-24T00%3A00%3A00%27+AND+created_date+%3C+%272025-12-26T00%3A00%3A00%27%29%29&%24group=day%2Ccomplaint_type&%24order=day+ASC%2Ccomplaint_type+ASC&%24limit=1200",
+  "contract": "MIHM-311-CHRISTMAS-CATEGORY-NOSNOW-FALSIFICATION-0.1",
+  "status": "OBSERVED_HOLIDAY_CATEGORY_NEGATIVE_CONTROL",
+  "basis": "Protocol frozen prior to this category read; full annual daily totals and snowstorm day categories previously inspected",
+  "source": {
+    "official311": "https://data.cityofnewyork.us/d/erm2-nwe9",
+    "oneTimeGroupBy": "Manhattan created_date local daily / complaint_type",
+    "originalPublicationAtT0": "NOT_VERIFIED",
+    "priorFrozenSnowReceipt": "docs/research/evidence/MIHM-311-DEC2025-SNOW-TRANSFER-OBSERVED.json",
+    "yearIndependentTotal": "docs/research/evidence/MIHM-MANHATTAN-365D-2025-10-2026-09.json"
+  },
+  "categoryClassifier": "Frozen regex classifier identical to prior Dec 26/27 transfer",
+  "sourceRevisionVsAnnual": [],
+  "dates": {
+    "2025-12-10": {
+      "date": "2025-12-10",
+      "total": 2056,
+      "byGroup": {
+        "HEAT_OR_HOT_WATER": 481,
+        "NOISE": 301,
+        "WINTER_OR_STREET_ACCESS": 282,
+        "OTHER": 992
+      },
+      "snowOrIce": 0,
+      "nonHeating": 1575,
+      "categoryCount": 103
+    },
+    "2025-12-11": {
+      "date": "2025-12-11",
+      "total": 2035,
+      "byGroup": {
+        "HEAT_OR_HOT_WATER": 429,
+        "NOISE": 361,
+        "WINTER_OR_STREET_ACCESS": 248,
+        "OTHER": 997
+      },
+      "snowOrIce": 1,
+      "nonHeating": 1606,
+      "categoryCount": 102
+    },
+    "2025-12-17": {
+      "date": "2025-12-17",
+      "total": 2200,
+      "byGroup": {
+        "HEAT_OR_HOT_WATER": 500,
+        "NOISE": 401,
+        "WINTER_OR_STREET_ACCESS": 290,
+        "OTHER": 1009
+      },
+      "snowOrIce": 21,
+      "nonHeating": 1700,
+      "categoryCount": 93
+    },
+    "2025-12-18": {
+      "date": "2025-12-18",
+      "total": 1995,
+      "byGroup": {
+        "HEAT_OR_HOT_WATER": 288,
+        "NOISE": 479,
+        "WINTER_OR_STREET_ACCESS": 285,
+        "OTHER": 943
+      },
+      "snowOrIce": 7,
+      "nonHeating": 1707,
+      "categoryCount": 98
+    },
+    "2025-12-24": {
+      "date": "2025-12-24",
+      "total": 1469,
+      "byGroup": {
+        "HEAT_OR_HOT_WATER": 275,
+        "NOISE": 403,
+        "WINTER_OR_STREET_ACCESS": 181,
+        "OTHER": 610
+      },
+      "snowOrIce": 0,
+      "nonHeating": 1194,
+      "categoryCount": 88
+    },
+    "2025-12-25": {
+      "date": "2025-12-25",
+      "total": 1124,
+      "byGroup": {
+        "HEAT_OR_HOT_WATER": 285,
+        "NOISE": 414,
+        "WINTER_OR_STREET_ACCESS": 100,
+        "OTHER": 325
+      },
+      "snowOrIce": 0,
+      "nonHeating": 839,
+      "categoryCount": 70
+    }
+  },
+  "negativeControls": [
+    {
+      "date": "2025-12-24",
+      "referenceDates": [
+        "2025-12-10",
+        "2025-12-17"
+      ],
+      "noSnowInCentralParkInches": 0,
+      "change": {
+        "total": {
+          "actual": 1469,
+          "priorTwoWeekMean": 2128,
+          "difference": -659,
+          "pct": -30.968,
+          "priorOneWeek": 2200,
+          "oneWeekDifference": -731
+        },
+        "nonHeating": {
+          "actual": 1194,
+          "priorTwoWeekMean": 1637.5,
+          "difference": -443.5,
+          "pct": -27.084,
+          "priorOneWeek": 1700,
+          "oneWeekDifference": -506
+        },
+        "snowOrIce": {
+          "actual": 0,
+          "priorTwoWeekMean": 10.5,
+          "difference": -10.5,
+          "pct": -100,
+          "priorOneWeek": 21,
+          "oneWeekDifference": -21
+        },
+        "heat": {
+          "actual": 275,
+          "priorTwoWeekMean": 490.5,
+          "difference": -215.5,
+          "pct": -43.935,
+          "priorOneWeek": 500,
+          "oneWeekDifference": -225
+        },
+        "noise": {
+          "actual": 403,
+          "priorTwoWeekMean": 351,
+          "difference": 52,
+          "pct": 14.815,
+          "priorOneWeek": 401,
+          "oneWeekDifference": 2
+        },
+        "winter": {
+          "actual": 181,
+          "priorTwoWeekMean": 286,
+          "difference": -105,
+          "pct": -36.713,
+          "priorOneWeek": 290,
+          "oneWeekDifference": -109
+        },
+        "other": {
+          "actual": 610,
+          "priorTwoWeekMean": 1000.5,
+          "difference": -390.5,
+          "pct": -39.03,
+          "priorOneWeek": 1009,
+          "oneWeekDifference": -399
+        }
+      },
+      "groupTotals": {
+        "HEAT_OR_HOT_WATER": 275,
+        "NOISE": 403,
+        "WINTER_OR_STREET_ACCESS": 181,
+        "OTHER": 610
+      },
+      "actualSnowOrIce": 0
+    },
+    {
+      "date": "2025-12-25",
+      "referenceDates": [
+        "2025-12-11",
+        "2025-12-18"
+      ],
+      "noSnowInCentralParkInches": 0,
+      "change": {
+        "total": {
+          "actual": 1124,
+          "priorTwoWeekMean": 2015,
+          "difference": -891,
+          "pct": -44.218,
+          "priorOneWeek": 1995,
+          "oneWeekDifference": -871
+        },
+        "nonHeating": {
+          "actual": 839,
+          "priorTwoWeekMean": 1656.5,
+          "difference": -817.5,
+          "pct": -49.351,
+          "priorOneWeek": 1707,
+          "oneWeekDifference": -868
+        },
+        "snowOrIce": {
+          "actual": 0,
+          "priorTwoWeekMean": 4,
+          "difference": -4,
+          "pct": -100,
+          "priorOneWeek": 7,
+          "oneWeekDifference": -7
+        },
+        "heat": {
+          "actual": 285,
+          "priorTwoWeekMean": 358.5,
+          "difference": -73.5,
+          "pct": -20.502,
+          "priorOneWeek": 288,
+          "oneWeekDifference": -3
+        },
+        "noise": {
+          "actual": 414,
+          "priorTwoWeekMean": 420,
+          "difference": -6,
+          "pct": -1.429,
+          "priorOneWeek": 479,
+          "oneWeekDifference": -65
+        },
+        "winter": {
+          "actual": 100,
+          "priorTwoWeekMean": 266.5,
+          "difference": -166.5,
+          "pct": -62.477,
+          "priorOneWeek": 285,
+          "oneWeekDifference": -185
+        },
+        "other": {
+          "actual": 325,
+          "priorTwoWeekMean": 970,
+          "difference": -645,
+          "pct": -66.495,
+          "priorOneWeek": 943,
+          "oneWeekDifference": -618
+        }
+      },
+      "groupTotals": {
+        "HEAT_OR_HOT_WATER": 285,
+        "NOISE": 414,
+        "WINTER_OR_STREET_ACCESS": 100,
+        "OTHER": 325
+      },
+      "actualSnowOrIce": 0
+    }
+  ],
+  "comparatorStorm": {
+    "date": "2025-12-26",
+    "observedNonHeating": 1015,
+    "percentageChangeVsPriorFridays": -39.78,
+    "followingSnowOrIceOnDec27": 44
+  },
+  "hypotheses": {
+    "H1_holidayNonheatingDeclinesWithoutSnow": true,
+    "H2_snowChannelDoesNotSpikeOnChristmas": true,
+    "H3_holidayNonheatingDeclineAtLeastAsStrongAsStormOnset": true,
+    "reliableConclusion": "NO_SNOW_HOLIDAY_ALSO_SUPPRESSES_NONHEATING_311",
+    "allPredeclaredOutcomesReported": true
+  },
+  "limitations": [
+    "This is not a natural experiment isolating holiday from snow; adjacent calendar days may carry delayed requests",
+    "Previous 311 totals and December storm category outcomes were already seen",
+    "Original source publication vintage at each event was not available",
+    "Zero exact Snow or Ice category is admissible only with full-day category reconciliation",
+    "Baseline is only two prior same weekdays; low counts are not stable percentage-change estimands",
+    "Observed requests reflect reporting and classification, not physical disruption",
+    "No canonical MIHM, governance causation, prospective skill or controlled RETURN has been demonstrated"
+  ],
+  "noProductionActions": true,
+  "canonicalMIHMValidated": false,
+  "evidenceClass": "OFFICIAL_PUBLIC_AGGREGATE_HISTORICAL_RETROSPECTIVE",
+  "provenance": {
+    "githubAction": "https://github.com/Aptymok/system-friction/actions/runs/40222241580",
+    "githubJob": 121256121952,
+    "code": "scripts/research/mihm-311-christmas-category-control.mjs",
+    "frozenProtocolInDoc": "docs/research/SFI-MIHM-FOUNDATION-RESEARCH-PROGRAM-001.md",
+    "preSourceCommit": "f4de8e3a91a958f31914e5bcc99c7bac8ac867ed"
+  },
+  "disposition": {
+    "broadNonheatingDeclineIsSpecificToSnow": false,
+    "zeroExactSnowOrIceOnChristmasConfirmed": true,
+    "decemberStormExactSnowOrIceNextDay": 44,
+    "historicalAsOfAvailabilityEstablished": false,
+    "causalityIdentified": false,
+    "canonicalMIHMEstablished": false,
+    "futureIndependentProspectiveValidation": false
+  }
+}

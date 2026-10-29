@@ -1,0 +1,199 @@
+{
+  "contract": "MIHM-MANHATTAN-PARTIAL-2026-03-v1",
+  "sourceKind": "OFFICIAL_OBSERVED_DAILY_AGGREGATES_READ_ONLY",
+  "area": "MANHATTAN_BOROUGH",
+  "dates": [
+    "2026-03-01",
+    "2026-03-31"
+  ],
+  "epistemicStatus": "OBSERVED_PARTIAL_NOT_COMPARABLE_FOUR_SYSTEMS",
+  "sourceVintage": "ORIGINAL_AS_OF_T0_UNKNOWN",
+  "provenance": {
+    "run": "https://github.com/Aptymok/system-friction/actions/runs/40190948687",
+    "code": "scripts/research/mihm-manhattan-march-panel.mjs",
+    "NYC311": {
+      "dataset": "erm2-nwe9",
+      "sha256": "f720fef985823598165dc4b4caea3fd892d28a3ceb6580ed597792229c137aa0",
+      "unit": "daily requests"
+    },
+    "FDNY": {
+      "dataset": "8m42-w767",
+      "sha256": "7aea7193b6ac97a00dfd01f7dbf05c701e4e06c9e2370d998b0fea1a3c555c9d",
+      "unit": "daily dispatch events"
+    },
+    "MTA": {
+      "dataset": "5wq4-mkjj",
+      "status": "31 daily dates fetched in previous run; values NOT preserved in this artifact",
+      "run": "https://github.com/Aptymok/system-friction/actions/runs/40190221769",
+      "sha256": "193cb65a17d47c8bbc8de125c1762466208392b12ceca04483a96735038bb613"
+    },
+    "DOT": {
+      "dataset": "6a2s-2t65",
+      "status": "NOT_OBSERVED_FOR_FULL_MONTH; monthly and weekly routes timed out"
+    }
+  },
+  "admissibility": {
+    "alignedSystems": 2,
+    "expectedSystems": 4,
+    "completeFourDomainPanel": false,
+    "predictiveEvaluation": false,
+    "noMissingInSavedSources": true
+  },
+  "rows": [
+    {
+      "day": "2026-03-01",
+      "service311": 1778,
+      "fdnyCount": 400
+    },
+    {
+      "day": "2026-03-02",
+      "service311": 2117,
+      "fdnyCount": 421
+    },
+    {
+      "day": "2026-03-03",
+      "service311": 1961,
+      "fdnyCount": 427
+    },
+    {
+      "day": "2026-03-04",
+      "service311": 2078,
+      "fdnyCount": 454
+    },
+    {
+      "day": "2026-03-05",
+      "service311": 1884,
+      "fdnyCount": 476
+    },
+    {
+      "day": "2026-03-06",
+      "service311": 2357,
+      "fdnyCount": 456
+    },
+    {
+      "day": "2026-03-07",
+      "service311": 2033,
+      "fdnyCount": 445
+    },
+    {
+      "day": "2026-03-08",
+      "service311": 2021,
+      "fdnyCount": 460
+    },
+    {
+      "day": "2026-03-09",
+      "service311": 2428,
+      "fdnyCount": 510
+    },
+    {
+      "day": "2026-03-10",
+      "service311": 2545,
+      "fdnyCount": 505
+    },
+    {
+      "day": "2026-03-11",
+      "service311": 2154,
+      "fdnyCount": 524
+    },
+    {
+      "day": "2026-03-12",
+      "service311": 2283,
+      "fdnyCount": 469
+    },
+    {
+      "day": "2026-03-13",
+      "service311": 2165,
+      "fdnyCount": 444
+    },
+    {
+      "day": "2026-03-14",
+      "service311": 1956,
+      "fdnyCount": 435
+    },
+    {
+      "day": "2026-03-15",
+      "service311": 1881,
+      "fdnyCount": 371
+    },
+    {
+      "day": "2026-03-16",
+      "service311": 2033,
+      "fdnyCount": 410
+    },
+    {
+      "day": "2026-03-17",
+      "service311": 2250,
+      "fdnyCount": 411
+    },
+    {
+      "day": "2026-03-18",
+      "service311": 2273,
+      "fdnyCount": 428
+    },
+    {
+      "day": "2026-03-19",
+      "service311": 2139,
+      "fdnyCount": 388
+    },
+    {
+      "day": "2026-03-20",
+      "service311": 2087,
+      "fdnyCount": 415
+    },
+    {
+      "day": "2026-03-21",
+      "service311": 1998,
+      "fdnyCount": 477
+    },
+    {
+      "day": "2026-03-22",
+      "service311": 1890,
+      "fdnyCount": 428
+    },
+    {
+      "day": "2026-03-23",
+      "service311": 1993,
+      "fdnyCount": 403
+    },
+    {
+      "day": "2026-03-24",
+      "service311": 2142,
+      "fdnyCount": 433
+    },
+    {
+      "day": "2026-03-25",
+      "service311": 2060,
+      "fdnyCount": 403
+    },
+    {
+      "day": "2026-03-26",
+      "service311": 2337,
+      "fdnyCount": 472
+    },
+    {
+      "day": "2026-03-27",
+      "service311": 2017,
+      "fdnyCount": 424
+    },
+    {
+      "day": "2026-03-28",
+      "service311": 1995,
+      "fdnyCount": 463
+    },
+    {
+      "day": "2026-03-29",
+      "service311": 2075,
+      "fdnyCount": 401
+    },
+    {
+      "day": "2026-03-30",
+      "service311": 2197,
+      "fdnyCount": 439
+    },
+    {
+      "day": "2026-03-31",
+      "service311": 2381,
+      "fdnyCount": 472
+    }
+  ]
+}
