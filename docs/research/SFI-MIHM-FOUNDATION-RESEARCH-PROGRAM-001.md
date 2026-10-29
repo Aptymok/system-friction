@@ -144,3 +144,117 @@ The first Knight DOI should be a **bounded source-indexed historical research pa
 A distinct later **SFI MIHM Foundation** DOI can archive the formal model definition, methods, scientific research hypotheses, tests and an immutable versioned artifact when the separate licensing/rights and review gates are satisfied. It should not be misleadingly titled \"MIHM Scientifically Validated\". The CIMPS paper can have its own citation/DOI without becoming the parent authority.
 
 **Current repository deliverable:** one parent scientific-development program, one pure bounded parent-child verification function and CI tests. **No automatic canon, DOI, scientific validity result, operation or RETURN.**
+
+
+## 2026-10-25 — F1 topology contrast implementation (experimental, not validation)
+
+**Question:** Can a bounded MIHM-related representation detect a change in *which nodes relate to which*
+when an existing reduced aggregate retains exactly the same node and edge counts?
+
+**Status:** IMPLEMENTED_ON_WORK_BRANCH / SYNTHETIC_QA / NOT_EMPIRICALLY_VALIDATED.
+This is NOT a preregistered prediction, independent replication, canonical Phi, MIHM-T law or observed-world RETURN.
+
+**Existing capabilities reused:** packages/mihm-core/src/index.ts (reduced computation);
+src/lib/mihm/scientificMethodRuntime.ts (NETWORK_SCIENCE local measures and CHANGE_POINT screening);
+the foundation F1 cross-node-specificity hypothesis; existing SFI field scientific QA.
+No new measurement methodology, data table, route, agent, scheduler or source registry is created.
+
+**Proposed bounded comparator:** compareMihmTopology / MIHM-TOPOLOGY-CONTRAST-1.0.
+It compares two snapshots only under a predeclared boundary, observer, typed relation semantics,
+orientation and structural/temporal resolution. Inputs are explicit lists of stable node IDs and
+typed edges, coverage, epistemic source labels, source references and observation times.
+It returns STRUCTURAL_CHANGE, EQUIVALENT_WITHIN_PROTOCOL or INDETERMINATE;
+node/edge count parity is reported separately. It rejects incomplete coverage,
+unmatched boundaries and relation semantics, missing evidence references for
+observational labels, bad endpoints, duplicate node identities and nonordered timestamps.
+The structural component count is a descriptive weak-connectivity measure, not emergence.
+
+**Adversarial fixture:** a six-node cycle and two disconnected triangles both have six nodes
+and six edges. Aggregate counts remain equal while components change from one to two.
+Additional controls include identity-preserving reordered edges, orientation, parallel edges,
+unknown/partial coverage, observed-without-evidence, invalid endpoints, T0/T1 ordering
+and changed boundary. All synthetic tests are labeled SIMULATED.
+
+**Known boundaries:** node/edge labels and coverage are caller assertions; this comparator
+does not adjudicate external evidence, quantify weights, identify ontological identity,
+make predictions, or establish that a trajectory emerged. Topological difference alone is
+not meaningful forecast skill. Equivalence is solely within the predeclared node/relation
+protocol, never indistinguishability in principle. This is F1 instrumentation only,
+not F1 empirical confirmation.
+
+**Required development preflight:**
+- Owner: MIHM Foundation / existing MIHM core and Method Lab research authority.
+- Existing capability inspected: reduced MIHM computation; field NETWORK_SCIENCE and
+  CHANGE_POINT; existing research program and missingness diagnostic.
+- Absorb vs create: extend current MIHM core and existing QA; no parallel service or engine.
+- Authoritative writer: unchanged; this function is pure and has no writer.
+- Persistence / lineage: no database changes. Source lineage remains an input requirement;
+  no output is persisted as institutional evidence.
+- Front / back / DB delta: none / pure computation / none.
+- Redundancy removed: none created.
+- Execution / ROOT boundary: no action, permission, production or canon expansion.
+- Rollback: revert the additive core export, QA addition and this program note.
+- Verification: targeted synthetic QA, full typecheck and CI architecture/build required
+  before merge. Confirmatory held-out comparison against competent baselines remains OPEN.
+
+**Next gate:** compare structural features against competent graph-change baselines on
+preselected source-vintage-safe data; independently adjudicate future outcomes. If the
+structure-aware method does not improve performance, preserve the negative result.
+
+
+### 2026-10-25 — F1 matched-M0 null control and Manhattan source feasibility
+
+**New exploratory QA:** The existing SFI field-scientific QA now runs an eight-case,
+fully synthetic, fixed-reference topology suite: identical, permuted edge order,
+reversed undirected orientation, same-count rewiring, edge deletion, parallel
+edge addition, node addition and node relabeling. The MIHM topology comparator
+is scored against a separately implemented **competent conventional graph-set
+edit detector (M0)** with the **same** typed edges, nodes and orientation.
+**Expected test outcome:** M0 and topology comparator both classify all eight
+constructed cases, with zero disagreements. This is an intentionally preserved
+**null incremental result**, not a win for MIHM. It verifies software semantics
+and does **not** establish independent empirical, out-of-sample or forecast skill.
+Relabeling highlights that stable identifiers must be validated externally.
+
+**Manhattan candidate data sources checked in public catalogs (source registration
+only; source rows not ingested):**
+
+| Candidate | Official source | What is observed | Resolution/limitations |
+|---|---|---|---|
+| 311 service requests (2020 onward) | NYC Open Data [erm2-nwe9](https://data.cityofnewyork.us/d/erm2-nwe9) | Service-request records, complaint type, time, geographic fields | Daily updated, records and field values can change; request activity is not a direct measurement of infrastructure failure |
+| Subway hourly ridership 2020-2024 | NY Open Data [wujg-7c2s](https://data.ny.gov/d/wujg-7c2s) | MTA estimated ridership by hour/station complex/fare class | Historical stationary release; estimates rather than individual movements; station coverage and geography are not community-district boundaries |
+| Subway hourly ridership beginning 2025 | NY Open Data [5wq4-mkjj](https://data.ny.gov/d/5wq4-mkjj) | Continued hourly estimated station activity | Mutable publication with operational delays and revisions |
+
+**Candidate question, NOT frozen:** At a declared Manhattan spatial unit,
+do relationship-level changes in prior admissible observed sources improve
+prediction of subsequent independently documented service disruption or
+complaint surges beyond well-tuned temporal regression and standard dynamic
+network/change-point baselines? An increase in 311 complaints is not automatically
+an independently adjudicated physical incident, and should be interpreted as a
+reporting/operational endpoint unless an incident reference is established.
+
+**Admission blockers before a real MIHM contrast:**
+1. Freeze spatial boundary, crosswalk between station complexes and geography,
+   and one target endpoint *without* inspecting holdout outcomes.
+2. Define historical original release time versus event/capture time, revisions,
+   API extraction time and evidence vintage; do not call historical public rows
+   a prospective, as-of-T0 forecast merely because their event times are old.
+3. Align hour/day/week clocks in America/New_York with DST, missing intervals,
+   selection exposure and reporting/footfall volumes. Never infer a causal
+   connection between two nodes merely from correlated movements.
+4. Choose M0 with equal evidence (seasonal/count time-series models and dynamic
+   network/change-point baseline where relational data exist), and a node-only
+   MIHM ablation. Include a random-rewiring negative control.
+5. Preselect lead time, labels, thresholds, cost of false alarms, group/time split,
+   decision utility and abstention penalties. No metric or meaningful-win margin
+   is frozen yet.
+6. Freeze immutable permitted extracts/checksums and versioned queries in the
+   authorized research workspace; preserve provenance and privacy safeguards
+   (aggregate location analyses rather than individual household-level claims).
+7. Use an independent future prospective holdout and replication before any
+   predictive, causal, transportability or scientific validation claim.
+
+**Next authorized action:** complete source feasibility and freeze the
+candidate unit/endpoint/comparators under the existing Method Lab research
+governance before data-dependent tuning. No raw data, case record, external
+action, DOI or canon was created by this source registration.
