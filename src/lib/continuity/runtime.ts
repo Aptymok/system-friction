@@ -711,6 +711,8 @@ export async function runBoundedContinuityCycleTrial(
   const response = (status:string,ok:boolean,extra:Row={}) => ({
     ok,status,processed:0,writesPerformed:false,
     continuityScope:'TARGETED_CYCLE_TRIAL',
+    requestedCycleId:'cycleId' in schedule?schedule.cycleId:null,
+    universalCycleContinuation:{ok:true,processed:0,requestedCycleId:'cycleId' in schedule?schedule.cycleId:null,availability:'NOT_EXECUTED'},
     coreHeartbeat:{ok,receipt:status,runtimeStatus:status},
     scientificValidationClaimed:false,canonicalPromotionAllowed:false,...extra,
   });
@@ -719,6 +721,10 @@ export async function runBoundedContinuityCycleTrial(
     return response('CONTINUITY_TRIAL_UNAUTHORIZED_TRIGGER',false);
   if(input.requestedCycleId && input.requestedCycleId.toLowerCase()!==schedule.cycleId)
     return response('CONTINUITY_TRIAL_TARGET_MISMATCH',false);
+  const sameSlot = () => {
+    const current = readContinuityTrialSchedule(input.raw,now());
+    return current.state==='READY' && current.startsAt===schedule.startsAt && current.slot===schedule.slot;
+  };
   const ports = dependencies ?? continuityTrialPorts();
   let authority;
   try { authority = await ports.inspect(schedule.cycleId); }
@@ -727,6 +733,7 @@ export async function runBoundedContinuityCycleTrial(
   if(!['NORMAL','FOUNDER_ABSENT_PREP','FOUNDER_ABSENT_ACTIVE'].includes(authority.mode))
     return response('CONTINUITY_TRIAL_AUTHORITY_HALTED',false);
   if(authority.closed) return response('CONTINUITY_TRIAL_ALREADY_CLOSED',true);
+  if(!sameSlot()) return response('CONTINUITY_TRIAL_SLOT_ENDED',false);
   // Canonical timestamps prevent alternate spelling from resetting a slot.
   const digest = createHash('sha256').update(
     'sfi-continuity-cycle-trial-v1|'+schedule.cycleId+'|'+schedule.startsAt+'|'+schedule.slot
@@ -748,6 +755,7 @@ export async function runBoundedContinuityCycleTrial(
         failure='TRIAL_AUTHORITY_CHANGED';break;
       }
       if(check.closed) break;
+      if(!sameSlot()){failure='TRIAL_SLOT_ENDED';break;}
       const result = await ports.step(name,schedule.cycleId);
       lanes[name] = {ok:result.ok,processed:result.processed};
       if(result.ok!==true){failure='TRIAL_STAGE_FAILED';break;}
@@ -767,6 +775,9 @@ export async function runBoundedContinuityCycleTrial(
   return response(failure?'CONTINUITY_TRIAL_STAGE_FAILED':'CONTINUITY_TRIAL_ATTEMPT_RECORDED',!failure,{
     runId:id,processed:1,writesPerformed:true,slot:schedule.slot,lanes,
     requestedCycleId:schedule.cycleId,receiptReadBackConfirmed:true,
-    universal:lanes.universalCycleContinuation??{ok:true,processed:0},
+    ...lanes,
+    universalCycleContinuation:lanes.universalCycleContinuation
+      ? {...lanes.universalCycleContinuation as Row,requestedCycleId:schedule.cycleId}
+      : {ok:true,processed:0,requestedCycleId:schedule.cycleId,availability:'NOT_EXECUTED'},
   });
 }

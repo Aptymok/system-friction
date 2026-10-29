@@ -202,7 +202,12 @@ export async function GET(request: NextRequest) {
       requestedCycleId: request.nextUrl.searchParams.get('cycleId')?.trim() || undefined,
       trigger: authorization.trigger,
     });
-    return NextResponse.json(trial, { status: trial.ok ? 200 : 503,
+    const targetId = typeof trial.requestedCycleId === 'string' ? trial.requestedCycleId : null;
+    const targetCycleState = targetId
+      ? await readTargetCycleProof(targetId).catch(() => ({ok:false,cycleId:targetId,error:'TRIAL_TARGET_PROOF_UNAVAILABLE'}))
+      : null;
+    const proofOk = !targetId || targetCycleState?.ok === true;
+    return NextResponse.json({...trial,ok:trial.ok && proofOk,targetCycleState}, { status: trial.ok && proofOk ? 200 : 503,
       headers: { 'Cache-Control': 'no-store' } });
   }
   const egressGuard = scheduledEgressGuardResponse({ allowContinuityFallback: true });

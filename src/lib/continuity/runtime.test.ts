@@ -84,3 +84,42 @@ test('expiry during an execution stops later stages while preserving the spent s
   f.deps.step=async(name,id)=>{const r=await step(name,id);f.setTime(Date.parse('2026-10-29T07:17:00Z'));return r;};
   const a=await run(f);assert.equal(a.ok,false);assert.equal(f.effects.length,1);assert.equal(f.claims.size,1);
 });
+
+test('authority reads crossing the grant end cannot start an effect',async()=>{
+  const f=fixture();let reads=0;const original=f.deps.inspect;
+  f.deps.inspect=async()=>{const value=await original();if(++reads===2)f.setTime(Date.parse('2026-10-29T07:17:00Z'));return value;};
+  const a=await run(f);assert.equal(a.ok,false);assert.equal(f.effects.length,0);
+});
+test('initial authority read crossing the slot cannot consume the old slot',async()=>{
+  const f=fixture();const original=f.deps.inspect;
+  f.deps.inspect=async()=>{const value=await original();f.setTime(Date.parse('2026-10-29T05:17:00Z'));return value;};
+  assert.equal((await run(f)).processed,0);assert.equal(f.claims.size,0);assert.equal(f.effects.length,0);
+});
+
+import {readFileSync,mkdtempSync,writeFileSync,rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {spawnSync} from 'node:child_process';
+test('real hourly receipt validator accepts executed, duplicate, closed and expired trial envelopes',async()=>{
+  const workflow=readFileSync('.github/workflows/sfi-continuity-hourly.yml','utf8');
+  const marker='python - "$response_file" "$CYCLE_ID" "$TARGET_SOURCE" <<\'PY\'';
+  const start=workflow.indexOf(marker);
+  assert(start>=0,'actual receipt parser must be available');
+  const rest=workflow.slice(start+marker.length);
+  const end=rest.indexOf('\n          PY');
+  assert(end>=0);
+  const parser=rest.slice(0,end).split('\n').map(line=>line.startsWith('          ')?line.slice(10):line).join('\n');
+  const f=fixture();const outputs=[await run(f),await run(f)];
+  const closed=fixture();closed.setClosed(true);outputs.push(await run(closed));
+  const expired=fixture();expired.setTime(Date.parse('2026-10-29T07:17:00Z'));outputs.push(await run(expired));
+  const directory=mkdtempSync(join(tmpdir(),'sfi-trial-receipt-'));
+  try{
+    for(const output of outputs){
+      const file=join(directory,'receipt.json');
+      // The route attaches the existing canonical readTargetCycleProof result.
+      writeFileSync(file,JSON.stringify({...output,targetCycleState:{ok:true,cycleId:cycle,eventCount:24,state:'AWAITING_RETURN'}}));
+      const checked=spawnSync('python3',['-',file,cycle,'workflow_dispatch'],{input:parser,encoding:'utf8'});
+      assert.equal(checked.status,0,output.status+': '+checked.stderr);
+    }
+  }finally{rmSync(directory,{recursive:true,force:true});}
+});

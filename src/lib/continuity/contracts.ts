@@ -42,7 +42,8 @@ export const SAFE_ABSENCE_RULES = {
 } as const;
 
 export type ContinuityTrialSchedule =
-  | { state: 'DISABLED' | 'INVALID' | 'NOT_STARTED' | 'EXPIRED' }
+  | { state: 'DISABLED' | 'INVALID' }
+  | { state: 'NOT_STARTED' | 'EXPIRED'; cycleId: string; startsAt: string; expiresAt: string }
   | { state: 'READY'; cycleId: string; startsAt: string; expiresAt: string; slot: number };
 
 /** Server-owned, finite authority envelope for the existing heartbeat only.
@@ -70,10 +71,10 @@ export function readContinuityTrialSchedule(raw: string | undefined, nowMs = Dat
     };
     const start = instant(item.startsAt), end = instant(item.expiresAt);
     if (!Number.isFinite(start) || !Number.isFinite(end) || end - start !== 3 * 3600000) return { state: 'INVALID' };
-    if (nowMs < start) return { state: 'NOT_STARTED' };
-    if (nowMs >= end) return { state: 'EXPIRED' };
-    return { state: 'READY', cycleId: item.cycleId.toLowerCase(),
-      startsAt: new Date(start).toISOString(), expiresAt: new Date(end).toISOString(),
+    const scope = {cycleId:item.cycleId.toLowerCase(),startsAt:new Date(start).toISOString(),expiresAt:new Date(end).toISOString()};
+    if (nowMs < start) return { state: 'NOT_STARTED',...scope };
+    if (nowMs >= end) return { state: 'EXPIRED',...scope };
+    return { state: 'READY',...scope,
       slot: Math.floor((nowMs - start) / 3600000) };
   } catch { return { state: 'INVALID' }; }
 }
