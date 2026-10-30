@@ -1,0 +1,352 @@
+{
+  "schema": "SFI-MIHM-FOUNDATION-P2-RETROSPECTIVE-REPLAY-0.1",
+  "classification": "DERIVED_POSTHOC_REAL_SOURCE_ARCHIVE__NOT_INDEPENDENT_PROSPECTIVE",
+  "sourceArchive": "docs/research/evidence/MIHM-MANHATTAN-365D-2025-10-2026-09.json",
+  "sourceArchiveSHA256": "41e384e3199ca8d6878b39cdca51425b82e01a4d5fec6121d6494d53c5ceacc5",
+  "sourceOriginalAsOfVintage": "NOT_VERIFIED",
+  "originalResponseBytesIndependentlyReverified": false,
+  "originalDataAtHistoricT0IndependentlyVerified": false,
+  "experimentalModelNotEquivalentToCanonicalMIHM": true,
+  "notCausalProof": true,
+  "notHomeostasis": true,
+  "notExternalReturn": true,
+  "productionPromotionAllowed": false,
+  "summary": {
+    "contract": "SFI-MIHM-FOUNDATION-P2-LAGGED-CONTRAST-0.1",
+    "status": "RETROSPECTIVE_DIAGNOSTIC__VINTAGE_BLOCKED",
+    "sourceArchiveSHA256": "41e384e3199ca8d6878b39cdca51425b82e01a4d5fec6121d6494d53c5ceacc5",
+    "chronology": {
+      "training": [
+        "2025-10-24",
+        "2026-04-30"
+      ],
+      "validation": [
+        "2026-05-01",
+        "2026-06-30"
+      ],
+      "historicalAuditAlreadyInspected": [
+        "2026-07-01",
+        "2026-09-30"
+      ],
+      "featureMinimumLagDays": 2,
+      "datedResponseVintagesVerified": false
+    },
+    "fixedMethod": {
+      "historicalWeeklyBaseline": true,
+      "ridgeAlpha": 25,
+      "trainedOnlyThrough": "2026-04-30",
+      "placeboLagDays": 16,
+      "placeboFeatureCountMatchesCross": true,
+      "calibrationWasChosenAfterExposureToArchive": true
+    },
+    "reasons": [
+      "ALL_SOURCE_VINTAGES_AT_HISTORICAL_T0_UNVERIFIED",
+      "FDNY_ANNUAL_PUBLICATION_BLOCKS_DAY_AHEAD_AS_OF_CLAIMS",
+      "PREVIOUS_G2B_AND_JULY_SEPTEMBER_HISTORIC_OUTCOMES_ALREADY_INSPECTED",
+      "CRZ_CBD_STRUCTURAL_NESTING_IS_A_NEGATIVE_CONTROL_NOT_INDEPENDENT_CAUSAL_EVIDENCE",
+      "POSTHOC_RESEARCH_DIAGNOSTIC_NO_PROSPECTIVE_MODEL_PROMOTION"
+    ],
+    "targets": [
+      {
+        "target": "service311",
+        "driver": "fdnyCount",
+        "declaredRelation": "CROSS_DOMAIN_HYPOTHESIS",
+        "targetUnit": "service_request_records/day",
+        "driverUnit": "fire_incident_dispatch_rows/day",
+        "samples": {
+          "train": 189,
+          "validation": 61,
+          "historicalAudit": 92
+        },
+        "validation": {
+          "WEEKLY_NAIVE": {
+            "mae": 229.622951,
+            "rmse": 320.305771,
+            "bias": -10.081967,
+            "days": 61
+          },
+          "OWN_LAG": {
+            "mae": 220.810551,
+            "rmse": 295.192024,
+            "bias": -16.606728,
+            "days": 61
+          },
+          "CROSS_LAG2": {
+            "mae": 216.052172,
+            "rmse": 290.046097,
+            "bias": -18.349296,
+            "days": 61
+          },
+          "AGE_SHIFT_PLACEBO": {
+            "mae": 220.968085,
+            "rmse": 295.21022,
+            "bias": -16.731726,
+            "days": 61
+          }
+        },
+        "historicalAuditAlreadyInspected": {
+          "WEEKLY_NAIVE": {
+            "mae": 170.021739,
+            "rmse": 221.199104,
+            "bias": 1.26087,
+            "days": 92
+          },
+          "OWN_LAG": {
+            "mae": 184.638904,
+            "rmse": 232.493668,
+            "bias": -2.860233,
+            "days": 92
+          },
+          "CROSS_LAG2": {
+            "mae": 190.24832,
+            "rmse": 239.783696,
+            "bias": -2.416719,
+            "days": 92
+          },
+          "AGE_SHIFT_PLACEBO": {
+            "mae": 184.584661,
+            "rmse": 232.581098,
+            "bias": -2.853097,
+            "days": 92
+          }
+        },
+        "validationGain": {
+          "crossMinusOwn": 4.758379,
+          "crossMinusEqualSizePlacebo": 4.915913
+        },
+        "historicalAuditGain": {
+          "crossMinusOwn": -5.609416,
+          "crossMinusEqualSizePlacebo": -5.663659
+        },
+        "causalPropagationEstablished": false,
+        "realWorldForecastEligible": false
+      },
+      {
+        "target": "fdnyCount",
+        "driver": "service311",
+        "declaredRelation": "CROSS_DOMAIN_HYPOTHESIS",
+        "targetUnit": "fire_incident_dispatch_rows/day",
+        "driverUnit": "service_request_records/day",
+        "samples": {
+          "train": 189,
+          "validation": 61,
+          "historicalAudit": 92
+        },
+        "validation": {
+          "WEEKLY_NAIVE": {
+            "mae": 53.114754,
+            "rmse": 69.301432,
+            "bias": -5.409836,
+            "days": 61
+          },
+          "OWN_LAG": {
+            "mae": 54.733883,
+            "rmse": 65.921139,
+            "bias": -5.374138,
+            "days": 61
+          },
+          "CROSS_LAG2": {
+            "mae": 49.731048,
+            "rmse": 61.542139,
+            "bias": -5.470002,
+            "days": 61
+          },
+          "AGE_SHIFT_PLACEBO": {
+            "mae": 54.75803,
+            "rmse": 65.937032,
+            "bias": -5.354716,
+            "days": 61
+          }
+        },
+        "historicalAuditAlreadyInspected": {
+          "WEEKLY_NAIVE": {
+            "mae": 53.51087,
+            "rmse": 69.838556,
+            "bias": 1.380435,
+            "days": 92
+          },
+          "OWN_LAG": {
+            "mae": 50.880972,
+            "rmse": 68.339767,
+            "bias": 0.435848,
+            "days": 92
+          },
+          "CROSS_LAG2": {
+            "mae": 52.123735,
+            "rmse": 69.07985,
+            "bias": 1.243297,
+            "days": 92
+          },
+          "AGE_SHIFT_PLACEBO": {
+            "mae": 50.891098,
+            "rmse": 68.341067,
+            "bias": 0.412677,
+            "days": 92
+          }
+        },
+        "validationGain": {
+          "crossMinusOwn": 5.002835,
+          "crossMinusEqualSizePlacebo": 5.026982
+        },
+        "historicalAuditGain": {
+          "crossMinusOwn": -1.242763,
+          "crossMinusEqualSizePlacebo": -1.232637
+        },
+        "causalPropagationEstablished": false,
+        "realWorldForecastEligible": false
+      },
+      {
+        "target": "cbdEntries",
+        "driver": "service311",
+        "declaredRelation": "CROSS_DOMAIN_HYPOTHESIS",
+        "targetUnit": "estimated_vehicle_entries/day",
+        "driverUnit": "service_request_records/day",
+        "samples": {
+          "train": 189,
+          "validation": 61,
+          "historicalAudit": 92
+        },
+        "validation": {
+          "WEEKLY_NAIVE": {
+            "mae": 20687.836066,
+            "rmse": 33065.261589,
+            "bias": 600.229508,
+            "days": 61
+          },
+          "OWN_LAG": {
+            "mae": 18738.559358,
+            "rmse": 29707.228638,
+            "bias": -133.263611,
+            "days": 61
+          },
+          "CROSS_LAG2": {
+            "mae": 19378.912762,
+            "rmse": 27375.675118,
+            "bias": 21.394672,
+            "days": 61
+          },
+          "AGE_SHIFT_PLACEBO": {
+            "mae": 19095.70078,
+            "rmse": 29644.523639,
+            "bias": -164.504056,
+            "days": 61
+          }
+        },
+        "historicalAuditAlreadyInspected": {
+          "WEEKLY_NAIVE": {
+            "mae": 21891.934783,
+            "rmse": 39826.668019,
+            "bias": 1981.891304,
+            "days": 92
+          },
+          "OWN_LAG": {
+            "mae": 20900.682946,
+            "rmse": 37982.094848,
+            "bias": 917.403994,
+            "days": 92
+          },
+          "CROSS_LAG2": {
+            "mae": 21892.35862,
+            "rmse": 39008.75338,
+            "bias": 1225.724947,
+            "days": 92
+          },
+          "AGE_SHIFT_PLACEBO": {
+            "mae": 20803.418835,
+            "rmse": 37906.46334,
+            "bias": 971.29672,
+            "days": 92
+          }
+        },
+        "validationGain": {
+          "crossMinusOwn": -640.353404,
+          "crossMinusEqualSizePlacebo": -283.211982
+        },
+        "historicalAuditGain": {
+          "crossMinusOwn": -991.675674,
+          "crossMinusEqualSizePlacebo": -1088.939785
+        },
+        "causalPropagationEstablished": false,
+        "realWorldForecastEligible": false
+      },
+      {
+        "target": "crzEntries",
+        "driver": "cbdEntries",
+        "declaredRelation": "STRUCTURAL_NESTING_NEGATIVE_CONTROL",
+        "targetUnit": "estimated_vehicle_entries/day",
+        "driverUnit": "estimated_vehicle_entries/day",
+        "samples": {
+          "train": 189,
+          "validation": 61,
+          "historicalAudit": 92
+        },
+        "validation": {
+          "WEEKLY_NAIVE": {
+            "mae": 19437.590164,
+            "rmse": 30663.622208,
+            "bias": 1062.934426,
+            "days": 61
+          },
+          "OWN_LAG": {
+            "mae": 16684.653407,
+            "rmse": 27055.673733,
+            "bias": 345.991586,
+            "days": 61
+          },
+          "CROSS_LAG2": {
+            "mae": 16714.408298,
+            "rmse": 27024.857311,
+            "bias": 361.637119,
+            "days": 61
+          },
+          "AGE_SHIFT_PLACEBO": {
+            "mae": 16529.208519,
+            "rmse": 27097.034165,
+            "bias": 246.767353,
+            "days": 61
+          }
+        },
+        "historicalAuditAlreadyInspected": {
+          "WEEKLY_NAIVE": {
+            "mae": 19905,
+            "rmse": 33781.448302,
+            "bias": 1326.347826,
+            "days": 92
+          },
+          "OWN_LAG": {
+            "mae": 18585.940899,
+            "rmse": 31805.282299,
+            "bias": 456.543119,
+            "days": 92
+          },
+          "CROSS_LAG2": {
+            "mae": 18676.503779,
+            "rmse": 31863.49397,
+            "bias": 431.438163,
+            "days": 92
+          },
+          "AGE_SHIFT_PLACEBO": {
+            "mae": 18802.260701,
+            "rmse": 32090.210886,
+            "bias": 468.753964,
+            "days": 92
+          }
+        },
+        "validationGain": {
+          "crossMinusOwn": -29.754891,
+          "crossMinusEqualSizePlacebo": -185.199779
+        },
+        "historicalAuditGain": {
+          "crossMinusOwn": -90.56288,
+          "crossMinusEqualSizePlacebo": 125.756922
+        },
+        "causalPropagationEstablished": false,
+        "realWorldForecastEligible": false
+      }
+    ],
+    "canonicalPhiCalculated": false,
+    "homeostasisEstablished": false,
+    "independentProspectiveValidation": false,
+    "productionPromotionAllowed": false
+  }
+}

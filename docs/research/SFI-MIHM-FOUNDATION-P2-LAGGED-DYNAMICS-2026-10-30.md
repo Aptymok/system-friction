@@ -55,8 +55,30 @@ node --import tsx --test src/lib/mihm/foundationLaggedDynamics.test.ts
 node --import tsx scripts/research/mihm-foundation-p2-lagged-dynamics.ts
 ```
 
-**Destino:** `docs/research/evidence/MIHM-FOUNDATION-P2-LAGGED-DYNAMICS-2026-10-30.json` cuando los valores reales recalculados se registren desde CI. **Estado de P2:** dinámica descriptiva calibrada *sobre archivo retrospectivo*; por verificar versión histórica real, transporte, perturbaciones y recuperación. El marco homeostático y las proyecciones causales siguen en investigación.
+**Recibo reproducible:** `docs/research/evidence/MIHM-FOUNDATION-P2-LAGGED-DYNAMICS-2026-10-30.json` (el script compara exactamente los resultados contra el archivo). **Estado de P2:** dinámica descriptiva calibrada *sobre archivo retrospectivo*; por verificar versión histórica real, transporte, perturbaciones y recuperación. El marco homeostático y las proyecciones causales siguen en investigación.
 
 ## 6. Decisión científica previa a P3/P4
 
 Hasta obtener datos capturados en vivo con recibos firmados o verificables de `observedAt`, `availableAt`, `capturedAt` y `issuedAt`, cualquier señal de relación retardada queda en `HYPOTHESIS / DERIVED_RETROSPECTIVE`; nunca promoverla a `OBSERVED_CAUSAL` ni recomendar un cambio operativo basándose en esta evidencia. Los umbrales P0 se conservan como variación estacional, **no límites de viabilidad**.
+
+## 7. Resultado P2 reproducido en CI (archivado y post hoc)
+
+**Interpretación del signo:** ganancia positiva = el modelo con lag de otra fuente tiene MAE menor que el comparador; ganancia negativa = **empeora**. Se reportan pérdidas separadas por unidad original de cada salida. La primera ventana es mayo-junio de 2026; la última columna compara el bloque julio-septiembre **ya observado anteriormente**, por lo que no constituye prueba confirmatoria.
+
+| Salida ← auxiliar | MAE own (valid.) | MAE cross (valid.) | MAE placebo (valid.) | Cross−own: ganancia val. | Cross−placebo: ganancia val. | Cross−own: ganancia aud. | Cross−placebo: ganancia aud. |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `service311` ← `fdnyCount` | 220.81 | 216.05 | 220.97 | +4.76 | +4.92 | -5.61 | -5.66 |
+| `fdnyCount` ← `service311` | 54.73 | 49.73 | 54.76 | +5.00 | +5.03 | -1.24 | -1.23 |
+| `cbdEntries` ← `service311` | 18,738.56 | 19,378.91 | 19,095.70 | -640.35 | -283.21 | -991.68 | -1,088.94 |
+| `crzEntries` ← `cbdEntries` | 16,684.65 | 16,714.41 | 16,529.21 | -29.75 | -185.20 | -90.56 | +125.76 |
+
+En las tres hipótesis entre dominios, **2/3** superaron tanto a la historia propia como al placebo en validación descriptiva, pero **0/3** mantuvieron ambas ventajas en el bloque histórico de auditoría. La ausencia de estabilidad es un **resultado adverso**, no prueba de inexistencia de toda relación o mecanismo. En CRZ ← CBD, la estructura anidada impide interpretar cualquier mejora como efecto causal o aportación multinodo independiente.
+
+Algunos MAE pueden ser inferiores al error estacional semanal; eso solo demuestra que el ajuste retrospectivo de un residuo supera una referencia simple en esas fechas. No comprueba disponibilidad de covariables, pre-registro, generalización, utilidad institucional, recuperación tras perturbación ni homeostasis.
+
+**Datos auditablemente archivados:** `docs/research/evidence/MIHM-FOUNDATION-P2-LAGGED-DYNAMICS-2026-10-30.json`. `scripts/research/mihm-foundation-p2-lagged-dynamics.ts` debe rechazar cambios del archivo de 365 días, del modelo o de cualquier MAE registrado.
+
+## 8. Decisión científica posterior a P2
+
+P2 **identifica inestabilidad de un candidato retrospectivo con covariables retardadas**. Por ahora, no alcanza evidencia para promover un mecanismo de propagación, equilibrio homeostático o predicción. La siguiente prueba científicamente significativa requiere nuevas emisiones con trazas T0, disponibilidad real de fuentes, reglas congeladas antes de los desenlaces, perturbaciones verificadas y comparadores con igual presupuesto de datos. Se preserva el resultado negativo previo G2B-LAG2 como evidencia independiente de la fragilidad de esta hipótesis, sin sumarlos como si fueran réplicas prospectivas.
+

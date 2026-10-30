@@ -40,4 +40,17 @@ const summary={
   independentProspectiveValidation:result.independentProspectiveValidation,
   productionPromotionAllowed:result.productionPromotionAllowed,
 };
-console.log(JSON.stringify({ok:true,summary},null,2));
+// The research receipt is a reproducible derived record, not a real-world return.
+const receipt=JSON.parse(readFileSync(
+  'docs/research/evidence/MIHM-FOUNDATION-P2-LAGGED-DYNAMICS-2026-10-30.json','utf8',
+));
+assert.equal(receipt.schema,'SFI-MIHM-FOUNDATION-P2-RETROSPECTIVE-REPLAY-0.1');
+assert.equal(receipt.classification,'DERIVED_POSTHOC_REAL_SOURCE_ARCHIVE__NOT_INDEPENDENT_PROSPECTIVE');
+assert.equal(receipt.sourceArchiveSHA256,archiveSHA256);
+assert.equal(receipt.sourceOriginalAsOfVintage,'NOT_VERIFIED');
+assert.equal(receipt.originalResponseBytesIndependentlyReverified,false);
+assert.equal(receipt.originalDataAtHistoricT0IndependentlyVerified,false);
+assert.equal(receipt.experimentalModelNotEquivalentToCanonicalMIHM,true);
+assert.equal(receipt.productionPromotionAllowed,false);
+assert.deepEqual(summary,receipt.summary,'P2 experimental receipt drift; fail closed on source or code change');
+console.log(JSON.stringify({ok:true,receiptVerified:true,summary},null,2));
