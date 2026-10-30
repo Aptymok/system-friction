@@ -6,6 +6,9 @@ on:
       - 'src/lib/mihm/**'
       - 'packages/mihm-core/**'
       - 'scripts/research/mihm-foundation-calibration-t0.ts'
+      - 'scripts/research/mihm-foundation-p1-metrology.ts'
+      - 'docs/research/evidence/MIHM-FOUNDATION-P1-SOURCE-METROLOGY-2026-10-30.json'
+      - 'docs/research/SFI-MIHM-FOUNDATION-P1-SOURCE-METROLOGY-2026-10-30.md'
       - 'docs/research/evidence/MIHM-FOUNDATION-T0-CALIBRATION-2026-10-29.json'
       - 'docs/research/SFI-MIHM-FOUNDATION-CALIBRATION-T0-2026-10-29.md'
       - 'src/lib/method-lab/mihmFoundationDiagnostic.ts'
@@ -71,6 +74,9 @@ jobs:
 
       - name: MIHM P0 historical measurement calibration replay (real archived cohort; no promotion)
         run: node --import tsx scripts/research/mihm-foundation-calibration-t0.ts
+
+      - name: MIHM P1 publisher semantics, historical release clocks and source metrology
+        run: node --import tsx --test src/lib/mihm/foundationSourceMetrology.test.ts && node --import tsx scripts/research/mihm-foundation-p1-metrology.ts
 
       - name: MIHM cultural measurement provenance and missingness
         run: node --import tsx --test src/lib/studio/cultural-lab/agents/mihmAgent.test.ts

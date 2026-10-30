@@ -99,6 +99,9 @@ jobs:
       - name: Verify MIHM P0 historical calibration source, replay, and abstention
         run: node --import tsx --test packages/mihm-core/src/integrated.test.ts && node --import tsx scripts/research/mihm-foundation-calibration-t0.ts
 
+      - name: Verify MIHM P1 frozen source metrology and strict historical time-vintage gate
+        run: node --import tsx --test src/lib/mihm/foundationSourceMetrology.test.ts && node --import tsx scripts/research/mihm-foundation-p1-metrology.ts
+
       - name: Verify official historical MIHM-T source chronology
         run: node --test scripts/research/mihmt-knight-official.test.mjs && node scripts/research/mihmt-knight-official.mjs
       - name: Verify real Knight triple-case experiment boundaries
