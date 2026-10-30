@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './RealityChainWorkbench.css';
+import { RealityChainCaseInspector } from './RealityChainCaseInspector';
 
 type Ref={id:string;hash?:string|null;version?:string|null};
 type CaseObject={id:string;kind:string;epistemicRole:string;canonicalRef:Ref;sourceRefs:Ref[];recordRefs:Ref[];evidenceRefs:Ref[];payload:Record<string,unknown>;observedAt:string|null;createdAt:string};
@@ -464,6 +465,7 @@ export function RealityChainWorkbench(){
   </div>
 
 
+  {caseId && caseData ? <details style={{position:'relative',zIndex:3,margin:'1rem 2vw',border:'1px solid rgba(200,169,81,.35)',background:'#060605',color:'#E8DDC3'}}><summary style={{cursor:'pointer',padding:'1rem',color:'#C8A951'}}>EXPEDIENTE / INSPECTOR DE OBJETOS · {asOfObjects.length} REGISTROS</summary><RealityChainCaseInspector key={caseId} caseId={caseId} objects={asOfObjects}/></details> : null}
   {message?<div className="rcToast" role="status">{message}<button onClick={()=>setMessage('')} aria-label="Dismiss message">×</button></div>:null}
   {error?<div className="rcToast rcToastError" role="alert">{error}<button onClick={()=>setError('')} aria-label="Dismiss error">×</button></div>:null}
  </main>;
