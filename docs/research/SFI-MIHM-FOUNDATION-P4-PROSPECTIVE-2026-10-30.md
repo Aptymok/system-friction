@@ -39,7 +39,7 @@ Los errores se calculan por parejas del mismo día y unidad:
  \Delta MAE=MAE_{M0}-MAE_{MIHM}.
 ]
 
-También se informa cobertura empírica de las bandas nominales del 90%, cantidad de registros bloqueados y pendientes. Una ganancia positiva es una mejora descriptiva de MAE; **no demuestra por sí sola superioridad estadística, perturbación causal, atractor, viabilidad o homeostasis**. Se declaran por adelantado al menos 30 parejas verificadas para habilitar una revisión descriptiva. No hay promoción canónica automática incluso con 30.
+También se informa cobertura empírica de las bandas nominales del 90%, cantidad de registros bloqueados y pendientes. Un único MAE agregado se calcula solamente dentro de una cohorte con **igual observable, unidad y territorio**; si las unidades difieren, no se calcula ni se publica ese MAE. Las predicciones duplicadas del mismo observable/fecha/frontera no cuentan como muestras independientes. La ventana de la verificación debe coincidir con la regla declarada antes del resultado. Una ganancia positiva es una mejora descriptiva de MAE; **no demuestra por sí sola superioridad estadística, perturbación causal, atractor, viabilidad o homeostasis**. Se declaran por adelantado al menos 30 parejas verificadas para habilitar una revisión descriptiva. No hay promoción canónica automática incluso con 30.
 
 ## 4. Comparadores y refutación
 
