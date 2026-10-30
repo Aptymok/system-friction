@@ -451,7 +451,7 @@ export function RealityChainWorkbench(){
           <section className="rcThreePane rcObservatoryWallMonitor">
             <h2>REALITY PASSPORT / LEARNING</h2>
             <p>Inspect the selected case in ROOT using its existing identifier. No duplicate passport or authority is created.</p>
-            {caseId?<a className="rcThreeLink" href={'/root?reading=REALITY_CHAIN&node='+encodeURIComponent(caseId)}>OPEN SELECTED CASE IN ROOT ↗</a>:<p>SELECT A CASE TO OPEN ITS PASSPORT.</p>}
+            {caseId?<><a className="rcThreeLink" href={'/root?reading=REALITY_CHAIN&node='+encodeURIComponent(caseId)}>OPEN SELECTED CASE IN ROOT ↗</a><a className="rcThreeLink" href={'/api/cases/'+encodeURIComponent(caseId)+'/reports?format=passport'} target="_blank" rel="noopener noreferrer">VIEW PRIVATE REALITY PASSPORT · AS-RECORDED</a></>:<p>SELECT A CASE TO OPEN ITS PASSPORT.</p>}
             <dl><div><dt>WHAT WAS KNOWN?</dt><dd>{asOfObjects.filter(o=>o.kind==='EVIDENCE').length} ADMITTED EVIDENCE OBJECTS</dd></div>
             <div><dt>WHAT WAS INFERRED?</dt><dd>{asOfObjects.filter(o=>o.kind==='HYPOTHESIS').length} RECORDED HYPOTHESES</dd></div>
             <div><dt>WHAT WAS AUTHORIZED?</dt><dd>{asOfObjects.filter(o=>o.kind==='GOVERNANCE_DECISION').length} RECORDED DECISIONS</dd></div>
