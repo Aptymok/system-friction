@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {evaluateMihmP4ExistingRegistry,MIHM_P4_CONTRACT} from './foundationProspectiveScoring';
+import {evaluateMihmP4ExistingRegistry,MIHM_P4_CONTRACT,validateMihmP4IssuePacket} from './foundationProspectiveScoring';
 import type {SfiPredictionEntry,SfiPredictionVerification} from '../sfi/predictions/types';
 
 /** Arithmetic fixtures are TEST ONLY and never persisted as observations. */
@@ -138,4 +138,30 @@ test('P4 verification rule must be in the declared return window and registered 
    created_at:'2026-11-02T12:00:00.000Z',
  })]);
  assert.equal(lateRule.scored,0);
+});
+
+test('P4 ROOT issue boundary accepts a future T0 packet but does not claim source truth',()=>{
+ const x=validateMihmP4IssuePacket(JSON.stringify(packet()),issued);
+ assert.equal(x.ok,true);
+ assert.equal(x.blockers.length,0);
+ assert.equal(x.packet?.targetAt,target);
+});
+test('P4 ROOT issue boundary rejects past, stale, nonnumeric, unequal-source and fake-vintage packets',()=>{
+ const cases=[
+  packet({targetAt:issued}),
+  packet({targetAt:'2026-12-01T12:00:00.000Z'}),
+  packet({snapshots:[{...packet().snapshots[0],capturedAt:'2026-10-31T12:00:00.000Z'}]}),
+  packet({snapshots:[{...packet().snapshots[0],sha256:'invalid'}]}),
+  packet({snapshots:[{...packet().snapshots[0],availableAt:'2026-10-31T12:00:00.000Z'}]}),
+  packet({baseline:{...packet().baseline,value:100.2,lower90:101}}),
+  packet({mihm:{...packet().mihm,inputSourceRefs:['another-source']}}),
+  packet({metric:'RMSE'}),
+ ];
+ for(const item of cases){
+  const checked=validateMihmP4IssuePacket(JSON.stringify(item),issued);
+  assert.equal(checked.ok,false);
+  assert(checked.blockers.length>0);
+ }
+ assert.equal(validateMihmP4IssuePacket('not json',issued).ok,false);
+ assert.equal(validateMihmP4IssuePacket('{}',issued).ok,false);
 });
