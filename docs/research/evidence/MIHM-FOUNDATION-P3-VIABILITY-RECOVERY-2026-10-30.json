@@ -1,0 +1,1344 @@
+{
+  "schema": "SFI-MIHM-FOUNDATION-P3-VIABILITY-RECOVERY-REPLAY-0.1",
+  "classification": "HISTORICAL_SOURCE_BACKED__POSTHOC_PROXY_NOT_OP_VIABILITY",
+  "sourceArchiveSHA256": "41e384e3199ca8d6878b39cdca51425b82e01a4d5fec6121d6494d53c5ceacc5",
+  "nwsEvidenceGitBlobSha1": "e0d3ce098c6ccb261e25511369589b5d8788792e",
+  "originalDataAtEventTimeAvailabilityIndependentlyVerified": false,
+  "normativeViabilityConstraintAdmitted": false,
+  "recoveryCausalityEstablished": false,
+  "institutionalReturnVerified": false,
+  "scientificHomeostasisEstablished": false,
+  "productionPromotionAllowed": false,
+  "reading": {
+    "contract": "SFI-MIHM-FOUNDATION-P3-PROXY-RECOVERY-0.1",
+    "status": "RETROSPECTIVE_PROXY_ONLY__VIABILITY_NOT_ADMITTED",
+    "sourceArchiveSHA256": "41e384e3199ca8d6878b39cdca51425b82e01a4d5fec6121d6494d53c5ceacc5",
+    "nwsEvidenceGitBlobSha1": "e0d3ce098c6ccb261e25511369589b5d8788792e",
+    "fourEpisodesEvaluated": 4,
+    "corridors": [
+      0.1,
+      0.2,
+      0.3
+    ],
+    "stableConsecutiveDays": 2,
+    "frozenReferenceDaysBeforeAnchor": 56,
+    "primaryIllustrativeCorridor": 0.2,
+    "blockers": [
+      "NO_PREDECLARED_NORMATIVE_OPERATIONAL_VIABILITY_CONSTRAINT",
+      "NO_INDEPENDENT_OPERATIONAL_RECOVERY_OUTCOME",
+      "UNVERIFIED_PROVIDER_SOURCE_VINTAGES_AT_HISTORIC_T0",
+      "BAND_WIDTH_AND_EVENT_WINDOWS_CHOSEN_AFTER_HISTORICAL_INSPECTION",
+      "NWS_MAY_EVENT_GEOGRAPHICALLY_REMOTE_FROM_MANHATTAN",
+      "FDNY_INCIDENT_COUNT_NOT_VALIDATED_INSTITUTIONAL_CAPACITY"
+    ],
+    "episodes": [
+      {
+        "eventId": "NWS_2026_01_25_MAJOR_SNOW",
+        "anchor": "2026-01-25",
+        "spatialRelevance": "MANHATTAN_WEATHER_EVENT",
+        "corridorPct": 10,
+        "conventionalTrafficOnly": {
+          "departureAt": "2026-01-25",
+          "firstTwoDayReentryAt": "2026-01-31",
+          "daysFromFirstDepartureToReentry": 6,
+          "rebreachAfterReentry": true,
+          "departureDays": 7,
+          "status": "TWO_DAY_PROXY_REENTRY"
+        },
+        "threeSeriesAnyDeparture": {
+          "departureAt": "2026-01-25",
+          "firstTwoDayReentryAt": null,
+          "daysFromFirstDepartureToReentry": null,
+          "rebreachAfterReentry": null,
+          "departureDays": 15,
+          "status": "NO_TWO_DAY_REENTRY_WITHIN_HORIZON"
+        },
+        "firstThreeDaysWithTrafficSignal": 3,
+        "firstThreeDaysWithAnySignal": 3,
+        "firstThreeDays": [
+          {
+            "day": "2026-01-25",
+            "metrics": [
+              {
+                "source": "cbdEntries",
+                "reference": 470646.5,
+                "actual": 129658,
+                "deviationPct": -72.451086,
+                "outsideCorridor": true
+              },
+              {
+                "source": "service311",
+                "reference": 1701.5,
+                "actual": 2402,
+                "deviationPct": 41.169556,
+                "outsideCorridor": true
+              },
+              {
+                "source": "fdnyCount",
+                "reference": 406,
+                "actual": 486,
+                "deviationPct": 19.704433,
+                "outsideCorridor": true
+              }
+            ]
+          },
+          {
+            "day": "2026-01-26",
+            "metrics": [
+              {
+                "source": "cbdEntries",
+                "reference": 526186.5,
+                "actual": 218798,
+                "deviationPct": -58.418165,
+                "outsideCorridor": true
+              },
+              {
+                "source": "service311",
+                "reference": 2185.5,
+                "actual": 2592,
+                "deviationPct": 18.599863,
+                "outsideCorridor": true
+              },
+              {
+                "source": "fdnyCount",
+                "reference": 446,
+                "actual": 486,
+                "deviationPct": 8.96861,
+                "outsideCorridor": false
+              }
+            ]
+          },
+          {
+            "day": "2026-01-27",
+            "metrics": [
+              {
+                "source": "cbdEntries",
+                "reference": 537076.5,
+                "actual": 423316,
+                "deviationPct": -21.181433,
+                "outsideCorridor": true
+              },
+              {
+                "source": "service311",
+                "reference": 2033.5,
+                "actual": 3122,
+                "deviationPct": 53.528399,
+                "outsideCorridor": true
+              },
+              {
+                "source": "fdnyCount",
+                "reference": 445,
+                "actual": 467,
+                "deviationPct": 4.94382,
+                "outsideCorridor": false
+              }
+            ]
+          }
+        ],
+        "providerEventTimeVintageAtHistoricT0Verified": false,
+        "causalImpactIdentified": false,
+        "operationalRecoveryCertified": false,
+        "institutionalReturnCertified": false
+      },
+      {
+        "eventId": "NWS_2026_01_25_MAJOR_SNOW",
+        "anchor": "2026-01-25",
+        "spatialRelevance": "MANHATTAN_WEATHER_EVENT",
+        "corridorPct": 20,
+        "conventionalTrafficOnly": {
+          "departureAt": "2026-01-25",
+          "firstTwoDayReentryAt": "2026-01-28",
+          "daysFromFirstDepartureToReentry": 3,
+          "rebreachAfterReentry": false,
+          "departureDays": 3,
+          "status": "TWO_DAY_PROXY_REENTRY"
+        },
+        "threeSeriesAnyDeparture": {
+          "departureAt": "2026-01-25",
+          "firstTwoDayReentryAt": "2026-02-05",
+          "daysFromFirstDepartureToReentry": 11,
+          "rebreachAfterReentry": true,
+          "departureDays": 12,
+          "status": "TWO_DAY_PROXY_REENTRY"
+        },
+        "firstThreeDaysWithTrafficSignal": 3,
+        "firstThreeDaysWithAnySignal": 3,
+        "firstThreeDays": [
+          {
+            "day": "2026-01-25",
+            "metrics": [
+              {
+                "source": "cbdEntries",
+                "reference": 470646.5,
+                "actual": 129658,
+                "deviationPct": -72.451086,
+                "outsideCorridor": true
+              },
+              {
+                "source": "service311",
+                "reference": 1701.5,
+                "actual": 2402,
+                "deviationPct": 41.169556,
+                "outsideCorridor": true
+              },
+              {
+                "source": "fdnyCount",
+                "reference": 406,
+                "actual": 486,
+                "deviationPct": 19.704433,
+                "outsideCorridor": false
+              }
+            ]
+          },
+          {
+            "day": "2026-01-26",
+            "metrics": [
+              {
+                "source": "cbdEntries",
+                "reference": 526186.5,
+                "actual": 218798,
+                "deviationPct": -58.418165,
+                "outsideCorridor": true
+              },
+              {
+                "source": "service311",
+                "reference": 2185.5,
+                "actual": 2592,
+                "deviationPct": 18.599863,
+                "outsideCorridor": false
+              },
+              {
+                "source": "fdnyCount",
+                "reference": 446,
+                "actual": 486,
+                "deviationPct": 8.96861,
+                "outsideCorridor": false
+              }
+            ]
+          },
+          {
+            "day": "2026-01-27",
+            "metrics": [
+              {
+                "source": "cbdEntries",
+                "reference": 537076.5,
+                "actual": 423316,
+                "deviationPct": -21.181433,
+                "outsideCorridor": true
+              },
+              {
+                "source": "service311",
+                "reference": 2033.5,
+                "actual": 3122,
+                "deviationPct": 53.528399,
+                "outsideCorridor": true
+              },
+              {
+                "source": "fdnyCount",
+                "reference": 445,
+                "actual": 467,
+                "deviationPct": 4.94382,
+                "outsideCorridor": false
+              }
+            ]
+          }
+        ],
+        "providerEventTimeVintageAtHistoricT0Verified": false,
+        "causalImpactIdentified": false,
+        "operationalRecoveryCertified": false,
+        "institutionalReturnCertified": false
+      },
+      {
+        "eventId": "NWS_2026_01_25_MAJOR_SNOW",
+        "anchor": "2026-01-25",
+        "spatialRelevance": "MANHATTAN_WEATHER_EVENT",
+        "corridorPct": 30,
+        "conventionalTrafficOnly": {
+          "departureAt": "2026-01-25",
+          "firstTwoDayReentryAt": "2026-01-27",
+          "daysFromFirstDepartureToReentry": 2,
+          "rebreachAfterReentry": false,
+          "departureDays": 2,
+          "status": "TWO_DAY_PROXY_REENTRY"
+        },
+        "threeSeriesAnyDeparture": {
+          "departureAt": "2026-01-25",
+          "firstTwoDayReentryAt": "2026-02-03",
+          "daysFromFirstDepartureToReentry": 9,
+          "rebreachAfterReentry": true,
+          "departureDays": 10,
+          "status": "TWO_DAY_PROXY_REENTRY"
+        },
+        "firstThreeDaysWithTrafficSignal": 2,
+        "firstThreeDaysWithAnySignal": 3,
+        "firstThreeDays": [
+          {
+            "day": "2026-01-25",
+            "metrics": [
+              {
+                "source": "cbdEntries",
+                "reference": 470646.5,
+                "actual": 129658,
+                "deviationPct": -72.451086,
+                "outsideCorridor": true
+              },
+              {
+                "source": "service311",
+                "reference": 1701.5,
+                "actual": 2402,
+                "deviationPct": 41.169556,
+                "outsideCorridor": true
+              },
+              {
+                "source": "fdnyCount",
+                "reference": 406,
+                "actual": 486,
+                "deviationPct": 19.704433,
+                "outsideCorridor": false
+              }
+            ]
+          },
+          {
+            "day": "2026-01-26",
+            "metrics": [
+              {
+                "source": "cbdEntries",
+                "reference": 526186.5,
+                "actual": 218798,
+                "deviationPct": -58.418165,
+                "outsideCorridor": true
+              },
+              {
+                "source": "service311",
+                "reference": 2185.5,
+                "actual": 2592,
+                "deviationPct": 18.599863,
+                "outsideCorridor": false
+              },
+              {
+                "source": "fdnyCount",
+                "reference": 446,
+                "actual": 486,
+                "deviationPct": 8.96861,
+                "outsideCorridor": false
+              }
+            ]
+          },
+          {
+            "day": "2026-01-27",
+            "metrics": [
+              {
+                "source": "cbdEntries",
+                "reference": 537076.5,
+                "actual": 423316,
+                "deviationPct": -21.181433,
+                "outsideCorridor": false
+              },
+              {
+                "source": "service311",
+                "reference": 2033.5,
+                "actual": 3122,
+                "deviationPct": 53.528399,
+                "outsideCorridor": true
+              },
+              {
+                "source": "fdnyCount",
+                "reference": 445,
+                "actual": 467,
+                "deviationPct": 4.94382,
+                "outsideCorridor": false
+              }
+            ]
+          }
+        ],
+        "providerEventTimeVintageAtHistoricT0Verified": false,
+        "causalImpactIdentified": false,
+        "operationalRecoveryCertified": false,
+        "institutionalReturnCertified": false
+      },
+      {
+        "eventId": "NWS_2026_02_06_COLD_LIGHT_CITY_SNOW",
+        "anchor": "2026-02-06",
+        "spatialRelevance": "MANHATTAN_WEATHER_EVENT",
+        "corridorPct": 10,
+        "conventionalTrafficOnly": {
+          "departureAt": null,
+          "firstTwoDayReentryAt": null,
+          "daysFromFirstDepartureToReentry": null,
+          "rebreachAfterReentry": null,
+          "departureDays": 1,
+          "status": "NO_ONSET_DEPARTURE"
+        },
+        "threeSeriesAnyDeparture": {
+          "departureAt": "2026-02-06",
+          "firstTwoDayReentryAt": null,
+          "daysFromFirstDepartureToReentry": null,
+          "rebreachAfterReentry": null,
+          "departureDays": 12,
+          "status": "NO_TWO_DAY_REENTRY_WITHIN_HORIZON"
+        },
+        "firstThreeDaysWithTrafficSignal": 0,
+        "firstThreeDaysWithAnySignal": 3,
+        "firstThreeDays": [
+          {
+            "day": "2026-02-06",
+            "metrics": [
+              {
+                "source": "cbdEntries",
+                "reference": 555207,
+                "actual": 531474,
+                "deviationPct": -4.274622,
+                "outsideCorridor": false
+              },
+              {
+                "source": "service311",
+                "reference": 2208,
+                "actual": 2149,
+                "deviationPct": -2.672101,
+                "outsideCorridor": false
+              },
+              {
+                "source": "fdnyCount",
+                "reference": 440.5,
+                "actual": 494,
+                "deviationPct": 12.145289,
+                "outsideCorridor": true
+              }
+            ]
+          },
+          {
+            "day": "2026-02-07",
+            "metrics": [
+              {
+                "source": "cbdEntries",
+                "reference": 512661,
+                "actual": 497686,
+                "deviationPct": -2.921034,
+                "outsideCorridor": false
+              },
+              {
+                "source": "service311",
+                "reference": 1816.5,
+                "actual": 2093,
+                "deviationPct": 15.22158,
+                "outsideCorridor": true
+              },
+              {
+                "source": "fdnyCount",
+                "reference": 422.5,
+                "actual": 495,
+                "deviationPct": 17.159763,
+                "outsideCorridor": true
+              }
+            ]
+          },
+          {
+            "day": "2026-02-08",
+            "metrics": [
+              {
+                "source": "cbdEntries",
+                "reference": 448702.5,
+                "actual": 444822,
+                "deviationPct": -0.864827,
+                "outsideCorridor": false
+              },
+              {
+                "source": "service311",
+                "reference": 1781,
+                "actual": 2890,
+                "deviationPct": 62.268389,
+                "outsideCorridor": true
+              },
+              {
+                "source": "fdnyCount",
+                "reference": 424,
+                "actual": 583,
+                "deviationPct": 37.5,
+                "outsideCorridor": true
+              }
+            ]
+          }
+        ],
+        "providerEventTimeVintageAtHistoricT0Verified": false,
+        "causalImpactIdentified": false,
+        "operationalRecoveryCertified": false,
+        "institutionalReturnCertified": false
+      },
+      {
+        "eventId": "NWS_2026_02_06_COLD_LIGHT_CITY_SNOW",
+        "anchor": "2026-02-06",
+        "spatialRelevance": "MANHATTAN_WEATHER_EVENT",
+        "corridorPct": 20,
+        "conventionalTrafficOnly": {
+          "departureAt": null,
+          "firstTwoDayReentryAt": null,
+          "daysFromFirstDepartureToReentry": null,
+          "rebreachAfterReentry": null,
+          "departureDays": 0,
+          "status": "NO_ONSET_DEPARTURE"
+        },
+        "threeSeriesAnyDeparture": {
+          "departureAt": "2026-02-08",
+          "firstTwoDayReentryAt": "2026-02-12",
+          "daysFromFirstDepartureToReentry": 4,
+          "rebreachAfterReentry": true,
+          "departureDays": 5,
+          "status": "TWO_DAY_PROXY_REENTRY"
+        },
+        "firstThreeDaysWithTrafficSignal": 0,
+        "firstThreeDaysWithAnySignal": 1,
+        "firstThreeDays": [
+          {
+            "day": "2026-02-06",
+            "metrics": [
+              {
+                "source": "cbdEntries",
+                "reference": 555207,
+                "actual": 531474,
+                "deviationPct": -4.274622,
+                "outsideCorridor": false
+              },
+              {
+                "source": "service311",
+                "reference": 2208,
+                "actual": 2149,
+                "deviationPct": -2.672101,
+                "outsideCorridor": false
+              },
+              {
+                "source": "fdnyCount",
+                "reference": 440.5,
+                "actual": 494,
+                "deviationPct": 12.145289,
+                "outsideCorridor": false
+              }
+            ]
+          },
+          {
+            "day": "2026-02-07",
+            "metrics": [
+              {
+                "source": "cbdEntries",
+                "reference": 512661,
+                "actual": 497686,
+                "deviationPct": -2.921034,
+                "outsideCorridor": false
+              },
+              {
+                "source": "service311",
+                "reference": 1816.5,
+                "actual": 2093,
+                "deviationPct": 15.22158,
+                "outsideCorridor": false
+              },
+              {
+                "source": "fdnyCount",
+                "reference": 422.5,
+                "actual": 495,
+                "deviationPct": 17.159763,
+                "outsideCorridor": false
+              }
+            ]
+          },
+          {
+            "day": "2026-02-08",
+            "metrics": [
+              {
+                "source": "cbdEntries",
+                "reference": 448702.5,
+                "actual": 444822,
+                "deviationPct": -0.864827,
+                "outsideCorridor": false
+              },
+              {
+                "source": "service311",
+                "reference": 1781,
+                "actual": 2890,
+                "deviationPct": 62.268389,
+                "outsideCorridor": true
+              },
+              {
+                "source": "fdnyCount",
+                "reference": 424,
+                "actual": 583,
+                "deviationPct": 37.5,
+                "outsideCorridor": true
+              }
+            ]
+          }
+        ],
+        "providerEventTimeVintageAtHistoricT0Verified": false,
+        "causalImpactIdentified": false,
+        "operationalRecoveryCertified": false,
+        "institutionalReturnCertified": false
+      },
+      {
+        "eventId": "NWS_2026_02_06_COLD_LIGHT_CITY_SNOW",
+        "anchor": "2026-02-06",
+        "spatialRelevance": "MANHATTAN_WEATHER_EVENT",
+        "corridorPct": 30,
+        "conventionalTrafficOnly": {
+          "departureAt": null,
+          "firstTwoDayReentryAt": null,
+          "daysFromFirstDepartureToReentry": null,
+          "rebreachAfterReentry": null,
+          "departureDays": 0,
+          "status": "NO_ONSET_DEPARTURE"
+        },
+        "threeSeriesAnyDeparture": {
+          "departureAt": "2026-02-08",
+          "firstTwoDayReentryAt": "2026-02-12",
+          "daysFromFirstDepartureToReentry": 4,
+          "rebreachAfterReentry": false,
+          "departureDays": 4,
+          "status": "TWO_DAY_PROXY_REENTRY"
+        },
+        "firstThreeDaysWithTrafficSignal": 0,
+        "firstThreeDaysWithAnySignal": 1,
+        "firstThreeDays": [
+          {
+            "day": "2026-02-06",
+            "metrics": [
+              {
+                "source": "cbdEntries",
+                "reference": 555207,
+                "actual": 531474,
+                "deviationPct": -4.274622,
+                "outsideCorridor": false
+              },
+              {
+                "source": "service311",
+                "reference": 2208,
+                "actual": 2149,
+                "deviationPct": -2.672101,
+                "outsideCorridor": false
+              },
+              {
+                "source": "fdnyCount",
+                "reference": 440.5,
+                "actual": 494,
+                "deviationPct": 12.145289,
+                "outsideCorridor": false
+              }
+            ]
+          },
+          {
+            "day": "2026-02-07",
+            "metrics": [
+              {
+                "source": "cbdEntries",
+                "reference": 512661,
+                "actual": 497686,
+                "deviationPct": -2.921034,
+                "outsideCorridor": false
+              },
+              {
+                "source": "service311",
+                "reference": 1816.5,
+                "actual": 2093,
+                "deviationPct": 15.22158,
+                "outsideCorridor": false
+              },
+              {
+                "source": "fdnyCount",
+                "reference": 422.5,
+                "actual": 495,
+                "deviationPct": 17.159763,
+                "outsideCorridor": false
+              }
+            ]
+          },
+          {
+            "day": "2026-02-08",
+            "metrics": [
+              {
+                "source": "cbdEntries",
+                "reference": 448702.5,
+                "actual": 444822,
+                "deviationPct": -0.864827,
+                "outsideCorridor": false
+              },
+              {
+                "source": "service311",
+                "reference": 1781,
+                "actual": 2890,
+                "deviationPct": 62.268389,
+                "outsideCorridor": true
+              },
+              {
+                "source": "fdnyCount",
+                "reference": 424,
+                "actual": 583,
+                "deviationPct": 37.5,
+                "outsideCorridor": true
+              }
+            ]
+          }
+        ],
+        "providerEventTimeVintageAtHistoricT0Verified": false,
+        "causalImpactIdentified": false,
+        "operationalRecoveryCertified": false,
+        "institutionalReturnCertified": false
+      },
+      {
+        "eventId": "NWS_2026_02_22_BLIZZARD_RESTRICTION",
+        "anchor": "2026-02-22",
+        "spatialRelevance": "MANHATTAN_WEATHER_EVENT",
+        "corridorPct": 10,
+        "conventionalTrafficOnly": {
+          "departureAt": "2026-02-22",
+          "firstTwoDayReentryAt": "2026-02-25",
+          "daysFromFirstDepartureToReentry": 3,
+          "rebreachAfterReentry": true,
+          "departureDays": 4,
+          "status": "TWO_DAY_PROXY_REENTRY"
+        },
+        "threeSeriesAnyDeparture": {
+          "departureAt": "2026-02-22",
+          "firstTwoDayReentryAt": "2026-02-28",
+          "daysFromFirstDepartureToReentry": 6,
+          "rebreachAfterReentry": true,
+          "departureDays": 8,
+          "status": "TWO_DAY_PROXY_REENTRY"
+        },
+        "firstThreeDaysWithTrafficSignal": 3,
+        "firstThreeDaysWithAnySignal": 3,
+        "firstThreeDays": [
+          {
+            "day": "2026-02-22",
+            "metrics": [
+              {
+                "source": "cbdEntries",
+                "reference": 446601.5,
+                "actual": 318476,
+                "deviationPct": -28.688999,
+                "outsideCorridor": true
+              },
+              {
+                "source": "service311",
+                "reference": 1781,
+                "actual": 1523,
+                "deviationPct": -14.486244,
+                "outsideCorridor": true
+              },
+              {
+                "source": "fdnyCount",
+                "reference": 444,
+                "actual": 485,
+                "deviationPct": 9.234234,
+                "outsideCorridor": false
+              }
+            ]
+          },
+          {
+            "day": "2026-02-23",
+            "metrics": [
+              {
+                "source": "cbdEntries",
+                "reference": 484672,
+                "actual": 72721,
+                "deviationPct": -84.995832,
+                "outsideCorridor": true
+              },
+              {
+                "source": "service311",
+                "reference": 2299.5,
+                "actual": 1844,
+                "deviationPct": -19.808654,
+                "outsideCorridor": true
+              },
+              {
+                "source": "fdnyCount",
+                "reference": 457.5,
+                "actual": 684,
+                "deviationPct": 49.508197,
+                "outsideCorridor": true
+              }
+            ]
+          },
+          {
+            "day": "2026-02-24",
+            "metrics": [
+              {
+                "source": "cbdEntries",
+                "reference": 517434,
+                "actual": 401283,
+                "deviationPct": -22.447501,
+                "outsideCorridor": true
+              },
+              {
+                "source": "service311",
+                "reference": 2217,
+                "actual": 2787,
+                "deviationPct": 25.710419,
+                "outsideCorridor": true
+              },
+              {
+                "source": "fdnyCount",
+                "reference": 450,
+                "actual": 536,
+                "deviationPct": 19.111111,
+                "outsideCorridor": true
+              }
+            ]
+          }
+        ],
+        "providerEventTimeVintageAtHistoricT0Verified": false,
+        "causalImpactIdentified": false,
+        "operationalRecoveryCertified": false,
+        "institutionalReturnCertified": false
+      },
+      {
+        "eventId": "NWS_2026_02_22_BLIZZARD_RESTRICTION",
+        "anchor": "2026-02-22",
+        "spatialRelevance": "MANHATTAN_WEATHER_EVENT",
+        "corridorPct": 20,
+        "conventionalTrafficOnly": {
+          "departureAt": "2026-02-22",
+          "firstTwoDayReentryAt": "2026-02-25",
+          "daysFromFirstDepartureToReentry": 3,
+          "rebreachAfterReentry": false,
+          "departureDays": 3,
+          "status": "TWO_DAY_PROXY_REENTRY"
+        },
+        "threeSeriesAnyDeparture": {
+          "departureAt": "2026-02-22",
+          "firstTwoDayReentryAt": "2026-02-26",
+          "daysFromFirstDepartureToReentry": 4,
+          "rebreachAfterReentry": false,
+          "departureDays": 4,
+          "status": "TWO_DAY_PROXY_REENTRY"
+        },
+        "firstThreeDaysWithTrafficSignal": 3,
+        "firstThreeDaysWithAnySignal": 3,
+        "firstThreeDays": [
+          {
+            "day": "2026-02-22",
+            "metrics": [
+              {
+                "source": "cbdEntries",
+                "reference": 446601.5,
+                "actual": 318476,
+                "deviationPct": -28.688999,
+                "outsideCorridor": true
+              },
+              {
+                "source": "service311",
+                "reference": 1781,
+                "actual": 1523,
+                "deviationPct": -14.486244,
+                "outsideCorridor": false
+              },
+              {
+                "source": "fdnyCount",
+                "reference": 444,
+                "actual": 485,
+                "deviationPct": 9.234234,
+                "outsideCorridor": false
+              }
+            ]
+          },
+          {
+            "day": "2026-02-23",
+            "metrics": [
+              {
+                "source": "cbdEntries",
+                "reference": 484672,
+                "actual": 72721,
+                "deviationPct": -84.995832,
+                "outsideCorridor": true
+              },
+              {
+                "source": "service311",
+                "reference": 2299.5,
+                "actual": 1844,
+                "deviationPct": -19.808654,
+                "outsideCorridor": false
+              },
+              {
+                "source": "fdnyCount",
+                "reference": 457.5,
+                "actual": 684,
+                "deviationPct": 49.508197,
+                "outsideCorridor": true
+              }
+            ]
+          },
+          {
+            "day": "2026-02-24",
+            "metrics": [
+              {
+                "source": "cbdEntries",
+                "reference": 517434,
+                "actual": 401283,
+                "deviationPct": -22.447501,
+                "outsideCorridor": true
+              },
+              {
+                "source": "service311",
+                "reference": 2217,
+                "actual": 2787,
+                "deviationPct": 25.710419,
+                "outsideCorridor": true
+              },
+              {
+                "source": "fdnyCount",
+                "reference": 450,
+                "actual": 536,
+                "deviationPct": 19.111111,
+                "outsideCorridor": false
+              }
+            ]
+          }
+        ],
+        "providerEventTimeVintageAtHistoricT0Verified": false,
+        "causalImpactIdentified": false,
+        "operationalRecoveryCertified": false,
+        "institutionalReturnCertified": false
+      },
+      {
+        "eventId": "NWS_2026_02_22_BLIZZARD_RESTRICTION",
+        "anchor": "2026-02-22",
+        "spatialRelevance": "MANHATTAN_WEATHER_EVENT",
+        "corridorPct": 30,
+        "conventionalTrafficOnly": {
+          "departureAt": "2026-02-23",
+          "firstTwoDayReentryAt": "2026-02-24",
+          "daysFromFirstDepartureToReentry": 1,
+          "rebreachAfterReentry": false,
+          "departureDays": 1,
+          "status": "TWO_DAY_PROXY_REENTRY"
+        },
+        "threeSeriesAnyDeparture": {
+          "departureAt": "2026-02-23",
+          "firstTwoDayReentryAt": "2026-02-24",
+          "daysFromFirstDepartureToReentry": 1,
+          "rebreachAfterReentry": false,
+          "departureDays": 1,
+          "status": "TWO_DAY_PROXY_REENTRY"
+        },
+        "firstThreeDaysWithTrafficSignal": 1,
+        "firstThreeDaysWithAnySignal": 1,
+        "firstThreeDays": [
+          {
+            "day": "2026-02-22",
+            "metrics": [
+              {
+                "source": "cbdEntries",
+                "reference": 446601.5,
+                "actual": 318476,
+                "deviationPct": -28.688999,
+                "outsideCorridor": false
+              },
+              {
+                "source": "service311",
+                "reference": 1781,
+                "actual": 1523,
+                "deviationPct": -14.486244,
+                "outsideCorridor": false
+              },
+              {
+                "source": "fdnyCount",
+                "reference": 444,
+                "actual": 485,
+                "deviationPct": 9.234234,
+                "outsideCorridor": false
+              }
+            ]
+          },
+          {
+            "day": "2026-02-23",
+            "metrics": [
+              {
+                "source": "cbdEntries",
+                "reference": 484672,
+                "actual": 72721,
+                "deviationPct": -84.995832,
+                "outsideCorridor": true
+              },
+              {
+                "source": "service311",
+                "reference": 2299.5,
+                "actual": 1844,
+                "deviationPct": -19.808654,
+                "outsideCorridor": false
+              },
+              {
+                "source": "fdnyCount",
+                "reference": 457.5,
+                "actual": 684,
+                "deviationPct": 49.508197,
+                "outsideCorridor": true
+              }
+            ]
+          },
+          {
+            "day": "2026-02-24",
+            "metrics": [
+              {
+                "source": "cbdEntries",
+                "reference": 517434,
+                "actual": 401283,
+                "deviationPct": -22.447501,
+                "outsideCorridor": false
+              },
+              {
+                "source": "service311",
+                "reference": 2217,
+                "actual": 2787,
+                "deviationPct": 25.710419,
+                "outsideCorridor": false
+              },
+              {
+                "source": "fdnyCount",
+                "reference": 450,
+                "actual": 536,
+                "deviationPct": 19.111111,
+                "outsideCorridor": false
+              }
+            ]
+          }
+        ],
+        "providerEventTimeVintageAtHistoricT0Verified": false,
+        "causalImpactIdentified": false,
+        "operationalRecoveryCertified": false,
+        "institutionalReturnCertified": false
+      },
+      {
+        "eventId": "NWS_2026_05_20_FLASH_FLOOD_SPATIAL_CHALLENGE",
+        "anchor": "2026-05-20",
+        "spatialRelevance": "OUTSIDE_CORE_AREA_NEGATIVE_CONTROL",
+        "corridorPct": 10,
+        "conventionalTrafficOnly": {
+          "departureAt": null,
+          "firstTwoDayReentryAt": null,
+          "daysFromFirstDepartureToReentry": null,
+          "rebreachAfterReentry": null,
+          "departureDays": 3,
+          "status": "NO_ONSET_DEPARTURE"
+        },
+        "threeSeriesAnyDeparture": {
+          "departureAt": "2026-05-21",
+          "firstTwoDayReentryAt": "2026-05-26",
+          "daysFromFirstDepartureToReentry": 5,
+          "rebreachAfterReentry": true,
+          "departureDays": 9,
+          "status": "TWO_DAY_PROXY_REENTRY"
+        },
+        "firstThreeDaysWithTrafficSignal": 0,
+        "firstThreeDaysWithAnySignal": 1,
+        "firstThreeDays": [
+          {
+            "day": "2026-05-20",
+            "metrics": [
+              {
+                "source": "cbdEntries",
+                "reference": 565520,
+                "actual": 574922,
+                "deviationPct": 1.662541,
+                "outsideCorridor": false
+              },
+              {
+                "source": "service311",
+                "reference": 2140.5,
+                "actual": 2217,
+                "deviationPct": 3.573931,
+                "outsideCorridor": false
+              },
+              {
+                "source": "fdnyCount",
+                "reference": 463,
+                "actual": 500,
+                "deviationPct": 7.991361,
+                "outsideCorridor": false
+              }
+            ]
+          },
+          {
+            "day": "2026-05-21",
+            "metrics": [
+              {
+                "source": "cbdEntries",
+                "reference": 589247,
+                "actual": 581962,
+                "deviationPct": -1.236324,
+                "outsideCorridor": false
+              },
+              {
+                "source": "service311",
+                "reference": 2112,
+                "actual": 1823,
+                "deviationPct": -13.683712,
+                "outsideCorridor": true
+              },
+              {
+                "source": "fdnyCount",
+                "reference": 459,
+                "actual": 417,
+                "deviationPct": -9.150327,
+                "outsideCorridor": false
+              }
+            ]
+          },
+          {
+            "day": "2026-05-22",
+            "metrics": [
+              {
+                "source": "cbdEntries",
+                "reference": 588317.5,
+                "actual": 563091,
+                "deviationPct": -4.287906,
+                "outsideCorridor": false
+              },
+              {
+                "source": "service311",
+                "reference": 2235,
+                "actual": 2083,
+                "deviationPct": -6.800895,
+                "outsideCorridor": false
+              },
+              {
+                "source": "fdnyCount",
+                "reference": 446,
+                "actual": 484,
+                "deviationPct": 8.520179,
+                "outsideCorridor": false
+              }
+            ]
+          }
+        ],
+        "providerEventTimeVintageAtHistoricT0Verified": false,
+        "causalImpactIdentified": false,
+        "operationalRecoveryCertified": false,
+        "institutionalReturnCertified": false
+      },
+      {
+        "eventId": "NWS_2026_05_20_FLASH_FLOOD_SPATIAL_CHALLENGE",
+        "anchor": "2026-05-20",
+        "spatialRelevance": "OUTSIDE_CORE_AREA_NEGATIVE_CONTROL",
+        "corridorPct": 20,
+        "conventionalTrafficOnly": {
+          "departureAt": null,
+          "firstTwoDayReentryAt": null,
+          "daysFromFirstDepartureToReentry": null,
+          "rebreachAfterReentry": null,
+          "departureDays": 0,
+          "status": "NO_ONSET_DEPARTURE"
+        },
+        "threeSeriesAnyDeparture": {
+          "departureAt": null,
+          "firstTwoDayReentryAt": null,
+          "daysFromFirstDepartureToReentry": null,
+          "rebreachAfterReentry": null,
+          "departureDays": 3,
+          "status": "NO_ONSET_DEPARTURE"
+        },
+        "firstThreeDaysWithTrafficSignal": 0,
+        "firstThreeDaysWithAnySignal": 0,
+        "firstThreeDays": [
+          {
+            "day": "2026-05-20",
+            "metrics": [
+              {
+                "source": "cbdEntries",
+                "reference": 565520,
+                "actual": 574922,
+                "deviationPct": 1.662541,
+                "outsideCorridor": false
+              },
+              {
+                "source": "service311",
+                "reference": 2140.5,
+                "actual": 2217,
+                "deviationPct": 3.573931,
+                "outsideCorridor": false
+              },
+              {
+                "source": "fdnyCount",
+                "reference": 463,
+                "actual": 500,
+                "deviationPct": 7.991361,
+                "outsideCorridor": false
+              }
+            ]
+          },
+          {
+            "day": "2026-05-21",
+            "metrics": [
+              {
+                "source": "cbdEntries",
+                "reference": 589247,
+                "actual": 581962,
+                "deviationPct": -1.236324,
+                "outsideCorridor": false
+              },
+              {
+                "source": "service311",
+                "reference": 2112,
+                "actual": 1823,
+                "deviationPct": -13.683712,
+                "outsideCorridor": false
+              },
+              {
+                "source": "fdnyCount",
+                "reference": 459,
+                "actual": 417,
+                "deviationPct": -9.150327,
+                "outsideCorridor": false
+              }
+            ]
+          },
+          {
+            "day": "2026-05-22",
+            "metrics": [
+              {
+                "source": "cbdEntries",
+                "reference": 588317.5,
+                "actual": 563091,
+                "deviationPct": -4.287906,
+                "outsideCorridor": false
+              },
+              {
+                "source": "service311",
+                "reference": 2235,
+                "actual": 2083,
+                "deviationPct": -6.800895,
+                "outsideCorridor": false
+              },
+              {
+                "source": "fdnyCount",
+                "reference": 446,
+                "actual": 484,
+                "deviationPct": 8.520179,
+                "outsideCorridor": false
+              }
+            ]
+          }
+        ],
+        "providerEventTimeVintageAtHistoricT0Verified": false,
+        "causalImpactIdentified": false,
+        "operationalRecoveryCertified": false,
+        "institutionalReturnCertified": false
+      },
+      {
+        "eventId": "NWS_2026_05_20_FLASH_FLOOD_SPATIAL_CHALLENGE",
+        "anchor": "2026-05-20",
+        "spatialRelevance": "OUTSIDE_CORE_AREA_NEGATIVE_CONTROL",
+        "corridorPct": 30,
+        "conventionalTrafficOnly": {
+          "departureAt": null,
+          "firstTwoDayReentryAt": null,
+          "daysFromFirstDepartureToReentry": null,
+          "rebreachAfterReentry": null,
+          "departureDays": 0,
+          "status": "NO_ONSET_DEPARTURE"
+        },
+        "threeSeriesAnyDeparture": {
+          "departureAt": null,
+          "firstTwoDayReentryAt": null,
+          "daysFromFirstDepartureToReentry": null,
+          "rebreachAfterReentry": null,
+          "departureDays": 0,
+          "status": "NO_ONSET_DEPARTURE"
+        },
+        "firstThreeDaysWithTrafficSignal": 0,
+        "firstThreeDaysWithAnySignal": 0,
+        "firstThreeDays": [
+          {
+            "day": "2026-05-20",
+            "metrics": [
+              {
+                "source": "cbdEntries",
+                "reference": 565520,
+                "actual": 574922,
+                "deviationPct": 1.662541,
+                "outsideCorridor": false
+              },
+              {
+                "source": "service311",
+                "reference": 2140.5,
+                "actual": 2217,
+                "deviationPct": 3.573931,
+                "outsideCorridor": false
+              },
+              {
+                "source": "fdnyCount",
+                "reference": 463,
+                "actual": 500,
+                "deviationPct": 7.991361,
+                "outsideCorridor": false
+              }
+            ]
+          },
+          {
+            "day": "2026-05-21",
+            "metrics": [
+              {
+                "source": "cbdEntries",
+                "reference": 589247,
+                "actual": 581962,
+                "deviationPct": -1.236324,
+                "outsideCorridor": false
+              },
+              {
+                "source": "service311",
+                "reference": 2112,
+                "actual": 1823,
+                "deviationPct": -13.683712,
+                "outsideCorridor": false
+              },
+              {
+                "source": "fdnyCount",
+                "reference": 459,
+                "actual": 417,
+                "deviationPct": -9.150327,
+                "outsideCorridor": false
+              }
+            ]
+          },
+          {
+            "day": "2026-05-22",
+            "metrics": [
+              {
+                "source": "cbdEntries",
+                "reference": 588317.5,
+                "actual": 563091,
+                "deviationPct": -4.287906,
+                "outsideCorridor": false
+              },
+              {
+                "source": "service311",
+                "reference": 2235,
+                "actual": 2083,
+                "deviationPct": -6.800895,
+                "outsideCorridor": false
+              },
+              {
+                "source": "fdnyCount",
+                "reference": 446,
+                "actual": 484,
+                "deviationPct": 8.520179,
+                "outsideCorridor": false
+              }
+            ]
+          }
+        ],
+        "providerEventTimeVintageAtHistoricT0Verified": false,
+        "causalImpactIdentified": false,
+        "operationalRecoveryCertified": false,
+        "institutionalReturnCertified": false
+      }
+    ],
+    "eligibleNormativeConstraints": 0,
+    "eligibleIndependentOutcomeLabels": 0,
+    "independentProviderSourceVintagesVerified": false,
+    "historicalEventsIndependentlyPreregistered": false,
+    "historicalAuditIndependent": false,
+    "causalPropagationEstablished": false,
+    "canonicalPhiCalculated": false,
+    "homeostasisEstablished": false,
+    "scientificCalibrationEstablished": false,
+    "returnVerified": false,
+    "productionPromotionAllowed": false
+  }
+}

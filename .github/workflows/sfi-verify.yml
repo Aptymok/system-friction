@@ -105,6 +105,9 @@ jobs:
       - name: Verify MIHM P2 lagged dynamics against prior archived source and placebo
         run: node --import tsx --test src/lib/mihm/foundationLaggedDynamics.test.ts && node --import tsx scripts/research/mihm-foundation-p2-lagged-dynamics.ts
 
+      - name: Verify MIHM P3 source-gated recovery hypotheses and negative controls
+        run: node --import tsx --test src/lib/mihm/foundationViabilityRecovery.test.ts && node --import tsx scripts/research/mihm-foundation-p3-viability-recovery.ts
+
       - name: Verify official historical MIHM-T source chronology
         run: node --test scripts/research/mihmt-knight-official.test.mjs && node scripts/research/mihmt-knight-official.mjs
       - name: Verify real Knight triple-case experiment boundaries
