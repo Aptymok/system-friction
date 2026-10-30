@@ -1,0 +1,95 @@
+{
+  "contract": "MIHM-MANHATTAN-FOUR-SOURCE-WEEK-0.1",
+  "class": "OBSERVED_PUBLIC_AGGREGATES",
+  "boundary": "Manhattan borough (provider labels)",
+  "interval": [
+    "2026-03-01",
+    "2026-03-07"
+  ],
+  "timezone": "provider-event-local-day-assumed; DST handling not independently audited",
+  "generatedFromRun": "https://github.com/Aptymok/system-friction/actions/runs/40188171235",
+  "queryCode": "scripts/research/mihm-manhattan-four-source-week.mjs",
+  "sourceVintages": "HISTORICAL_AS_OF_T0_UNKNOWN",
+  "sourceRecordDownloaded": false,
+  "sourceResponses": {
+    "311": {
+      "dataset": "https://data.cityofnewyork.us/d/erm2-nwe9",
+      "unit": "service_requests",
+      "sha256": "c5bf9cda61140bfda18ff7bbc0ee502d4a1c2e5afa2c56cd3df745bc776d1cc0"
+    },
+    "FDNY": {
+      "dataset": "https://data.cityofnewyork.us/d/8m42-w767",
+      "unit": "dispatch_events",
+      "sha256": "cf2a12c397d961965abea22a4fc32f321c925109384f6602b8329c2da03f09db"
+    },
+    "MTA": {
+      "dataset": "https://data.ny.gov/d/5wq4-mkjj",
+      "unit": "estimated_subway_entries",
+      "sha256": "a009d70b91d1ec0f528ab0a1643600c39af9741bbf82f2e88fbdfa986d91c4f1"
+    },
+    "DOT": {
+      "dataset": "https://data.cityofnewyork.us/d/6a2s-2t65",
+      "unit": "unweighted_sample_speed_fps",
+      "sha256": "6ffd0b5d64b4bbfd4f5d2a34708f29b357a7e39556b1992d530cd45a317d3e41"
+    }
+  },
+  "rows": [
+    {
+      "311": 1778,
+      "day": "2026-03-01",
+      "FDNY": 400,
+      "MTA": 1201238,
+      "DOT": 9.516259664774264
+    },
+    {
+      "311": 2117,
+      "day": "2026-03-02",
+      "FDNY": 421,
+      "MTA": 2172784,
+      "DOT": 8.626174586730327
+    },
+    {
+      "311": 1961,
+      "day": "2026-03-03",
+      "FDNY": 427,
+      "MTA": 2384231,
+      "DOT": 8.62592600433308
+    },
+    {
+      "311": 2078,
+      "day": "2026-03-04",
+      "FDNY": 454,
+      "MTA": 2460057,
+      "DOT": 8.503339058076847
+    },
+    {
+      "311": 1884,
+      "day": "2026-03-05",
+      "FDNY": 476,
+      "MTA": 2414048,
+      "DOT": 8.34467077020202
+    },
+    {
+      "311": 2357,
+      "day": "2026-03-06",
+      "FDNY": 456,
+      "MTA": 2172802,
+      "DOT": 8.719683651107221
+    },
+    {
+      "311": 2033,
+      "day": "2026-03-07",
+      "FDNY": 445,
+      "MTA": 1597826,
+      "DOT": 9.229170280505983
+    }
+  ],
+  "admissibility": {
+    "allFourDaysPresent": true,
+    "sourceCoverageWindowOnly": "7 days",
+    "independentAsOfT0": false,
+    "dotLinksRepresentativeness": "NOT_ESTABLISHED",
+    "causalMechanism": "NOT_ESTABLISHED",
+    "predictiveValidation": "NOT_PERFORMED"
+  }
+}

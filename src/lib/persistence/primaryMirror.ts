@@ -2,7 +2,6 @@ import 'server-only';
 
 import { postNeonDataPlaneRpc, postPrimaryDataPlaneRpc } from '@/lib/persistence/dataPlaneRpc';
 import { journalBacklog, readDataPlaneState } from '@/lib/persistence/dataPlaneContinuityStore';
-import { assessCaseMirrorDelivery } from '@/lib/persistence/realityChainReplayBatch.mjs';
 
 type OutboxEntry = {
   operation_id: string;
@@ -75,15 +74,6 @@ export async function flushPrimaryMirror(input: { maxTransactions?: number } = {
       if (!batch || batch.empty || !batch.sourceTxid || !Array.isArray(batch.entries) || batch.entries.length === 0) break;
 
       try {
-        // Existing case writes continue in legacy mode. Any migrated parent
-        // snapshot or explicitly activated release guard must satisfy the
-        // same exact-transaction parent revision gate before Neon receives it.
-        const caseReplay = assessCaseMirrorDelivery(batch.entries, {
-          strict: process.env.SFI_RC_REPLAY_REQUIRE_PARENT_SNAPSHOT === 'true',
-        });
-        if (!caseReplay.allowed) {
-          throw new Error(`SFI_CASE_REPLAY_PARENT_REVISION_REQUIRED:${caseReplay.blockers.join(',')}`);
-        }
         await postNeonDataPlaneRpc('sfi_apply_primary_mirror_batch_v1', {
           p_source_txid: batch.sourceTxid,
           p_entries: batch.entries,
@@ -93,7 +83,7 @@ export async function flushPrimaryMirror(input: { maxTransactions?: number } = {
         mirroredRows += batch.entries.length;
       } catch (error) {
         const detail = message(error);
-        if (detail.includes('SFI_PRIMARY_MIRROR_CONFLICT') || detail.includes('SFI_PRIMARY_MIRROR_INSERT_CONFLICT') || detail.includes('SFI_CASE_REPLAY_PARENT_REVISION_REQUIRED')) {
+        if (detail.includes('SFI_PRIMARY_MIRROR_CONFLICT') || detail.includes('SFI_PRIMARY_MIRROR_INSERT_CONFLICT')) {
           await acknowledge(batch.entries, 'CONFLICT', detail).catch(() => null);
           await setPrimaryMirrorCertification(false, batch.entries.length, detail).catch(() => null);
           return { ok: false as const, conflict: true as const, error: detail, mirroredTransactions, mirroredRows };

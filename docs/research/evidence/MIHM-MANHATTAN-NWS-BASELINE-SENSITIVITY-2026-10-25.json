@@ -1,0 +1,548 @@
+{
+  "contract": "MIHM-FOUR-NWS-EVENT-BASELINE-SENSITIVITY-0.1",
+  "exploratory": true,
+  "independentHistoricalConfirmation": false,
+  "sourceVintageVerified": false,
+  "causalityInferred": false,
+  "originalEventDatesSelectedAfterPreviousPanelInspection": true,
+  "baselineMethod": "same-weekday median computed from strict previous n days",
+  "baselineDayChoices": [
+    28,
+    42,
+    56,
+    70
+  ],
+  "results": [
+    {
+      "referenceDays": 28,
+      "eventResults": [
+        {
+          "event": "JAN_HEAVY_SNOW",
+          "day": "2026-01-25",
+          "score": 1404.9661189261094,
+          "cbdPct": -71.30203053550007,
+          "fdnyPct": 19.704433497536943,
+          "storm311Day0Pct": 49.19254658385093,
+          "observations": [
+            {
+              "day": "2026-01-25",
+              "cbdPct": -71.30203053550007,
+              "fdnyPct": 19.704433497536943,
+              "requestPct": 49.19254658385093,
+              "score": 1404.9661189261094
+            },
+            {
+              "day": "2026-01-26",
+              "cbdPct": -56.033361097407685,
+              "fdnyPct": 15.714285714285726,
+              "requestPct": 29.27680798004988,
+              "score": 880.5242458164071
+            },
+            {
+              "day": "2026-01-27",
+              "cbdPct": -19.70615041297703,
+              "fdnyPct": 9.6244131455399,
+              "requestPct": 54.784333168071385,
+              "score": 189.6601330826427
+            }
+          ]
+        },
+        {
+          "event": "FEB_COLD_LIGHT_SNOW",
+          "day": "2026-02-06",
+          "score": 55.20368850845592,
+          "cbdPct": -4.274621897778664,
+          "fdnyPct": 12.914285714285722,
+          "storm311Day0Pct": -3.0234657039711177,
+          "observations": [
+            {
+              "day": "2026-02-06",
+              "cbdPct": -4.274621897778664,
+              "fdnyPct": 12.914285714285722,
+              "requestPct": -3.0234657039711177,
+              "score": 55.20368850845592
+            },
+            {
+              "day": "2026-02-07",
+              "cbdPct": -2.9210335874973903,
+              "fdnyPct": 9.030837004405278,
+              "requestPct": 0.867469879518068,
+              "score": 26.379378213082134
+            },
+            {
+              "day": "2026-02-08",
+              "cbdPct": 4.611079101160587,
+              "fdnyPct": 31.602708803611733,
+              "requestPct": 48.662551440329224,
+              "score": 0
+            }
+          ]
+        },
+        {
+          "event": "FEB_BLIZZARD_BAN",
+          "day": "2026-02-23",
+          "score": 1068.1389647649974,
+          "cbdPct": -84.20264306653937,
+          "fdnyPct": 12.685337726523894,
+          "storm311Day0Pct": -42.44142101284959,
+          "observations": [
+            {
+              "day": "2026-02-22",
+              "cbdPct": -27.356998260770393,
+              "fdnyPct": -6.370656370656369,
+              "requestPct": -42.44142101284959,
+              "score": 0
+            },
+            {
+              "day": "2026-02-23",
+              "cbdPct": -84.20264306653937,
+              "fdnyPct": 12.685337726523894,
+              "requestPct": -26.665341022071985,
+              "score": 1068.1389647649974
+            },
+            {
+              "day": "2026-02-24",
+              "cbdPct": -20.98076224402088,
+              "fdnyPct": 2.78044103547459,
+              "requestPct": 16.92888609188168,
+              "score": 58.3357722988116
+            }
+          ]
+        },
+        {
+          "event": "MAY_OUTER_BOROUGH_FLOOD",
+          "day": "2026-05-22",
+          "score": 12.335000377310749,
+          "cbdPct": -5.3040501622436125,
+          "fdnyPct": 2.3255813953488413,
+          "storm311Day0Pct": 3.308480894687782,
+          "observations": [
+            {
+              "day": "2026-05-20",
+              "cbdPct": -0.0570186875271661,
+              "fdnyPct": 5.932203389830515,
+              "requestPct": 3.308480894687782,
+              "score": 0.33824645143234167
+            },
+            {
+              "day": "2026-05-21",
+              "cbdPct": -1.9108409082098543,
+              "fdnyPct": -6.3973063973064015,
+              "requestPct": -13.683712121212121,
+              "score": 0
+            },
+            {
+              "day": "2026-05-22",
+              "cbdPct": -5.3040501622436125,
+              "fdnyPct": 2.3255813953488413,
+              "requestPct": -11.43707482993197,
+              "score": 12.335000377310749
+            }
+          ]
+        }
+      ],
+      "highSnowBothGreaterThanBothControls": true
+    },
+    {
+      "referenceDays": 42,
+      "eventResults": [
+        {
+          "event": "JAN_HEAVY_SNOW",
+          "day": "2026-01-25",
+          "score": 1405.3682235053031,
+          "cbdPct": -71.32243734289415,
+          "fdnyPct": 19.704433497536943,
+          "storm311Day0Pct": 48.63861386138615,
+          "observations": [
+            {
+              "day": "2026-01-25",
+              "cbdPct": -71.32243734289415,
+              "fdnyPct": 19.704433497536943,
+              "requestPct": 48.63861386138615,
+              "score": 1405.3682235053031
+            },
+            {
+              "day": "2026-01-26",
+              "cbdPct": -57.20273920620917,
+              "fdnyPct": 9.459459459459453,
+              "requestPct": 25.2476443585407,
+              "score": 541.1069924911675
+            },
+            {
+              "day": "2026-01-27",
+              "cbdPct": -20.498737474517082,
+              "fdnyPct": 4.943820224719109,
+              "requestPct": 54.784333168071385,
+              "score": 101.34207290772505
+            }
+          ]
+        },
+        {
+          "event": "FEB_COLD_LIGHT_SNOW",
+          "day": "2026-02-06",
+          "score": 0,
+          "cbdPct": 2.9739917403649674,
+          "fdnyPct": 16.50943396226414,
+          "storm311Day0Pct": -2.672101449275366,
+          "observations": [
+            {
+              "day": "2026-02-06",
+              "cbdPct": 2.9739917403649674,
+              "fdnyPct": 16.50943396226414,
+              "requestPct": -2.672101449275366,
+              "score": 0
+            },
+            {
+              "day": "2026-02-07",
+              "cbdPct": 0.8605918253402844,
+              "fdnyPct": 17.159763313609467,
+              "requestPct": 14.590747330960863,
+              "score": 0
+            },
+            {
+              "day": "2026-02-08",
+              "cbdPct": 1.0518137539982542,
+              "fdnyPct": 37.5,
+              "requestPct": 62.2683885457608,
+              "score": 0
+            }
+          ]
+        },
+        {
+          "event": "FEB_BLIZZARD_BAN",
+          "day": "2026-02-23",
+          "score": 4151.828760004666,
+          "cbdPct": -84.69730670409518,
+          "fdnyPct": 49.01960784313726,
+          "storm311Day0Pct": -23.601705543014795,
+          "observations": [
+            {
+              "day": "2026-02-22",
+              "cbdPct": -27.356998260770393,
+              "fdnyPct": 3.4115138592750505,
+              "requestPct": -23.601705543014795,
+              "score": 93.32877871478165
+            },
+            {
+              "day": "2026-02-23",
+              "cbdPct": -84.69730670409518,
+              "fdnyPct": 49.01960784313726,
+              "requestPct": -20.448662640207072,
+              "score": 4151.828760004666
+            },
+            {
+              "day": "2026-02-24",
+              "cbdPct": -22.447500550794885,
+              "fdnyPct": 18.453038674033138,
+              "requestPct": 16.92888609188168,
+              "score": 414.2245957991982
+            }
+          ]
+        },
+        {
+          "event": "MAY_OUTER_BOROUGH_FLOOD",
+          "day": "2026-05-22",
+          "score": 11.459911258524517,
+          "cbdPct": -4.927761841165534,
+          "fdnyPct": 2.3255813953488413,
+          "storm311Day0Pct": 3.2122905027933024,
+          "observations": [
+            {
+              "day": "2026-05-20",
+              "cbdPct": 0.5758969963088001,
+              "fdnyPct": 5.932203389830515,
+              "requestPct": 3.2122905027933024,
+              "score": 0
+            },
+            {
+              "day": "2026-05-21",
+              "cbdPct": -1.5842253902220382,
+              "fdnyPct": -9.837837837837837,
+              "requestPct": -13.683712121212121,
+              "score": 0
+            },
+            {
+              "day": "2026-05-22",
+              "cbdPct": -4.927761841165534,
+              "fdnyPct": 2.3255813953488413,
+              "requestPct": -9.533116178067313,
+              "score": 11.459911258524517
+            }
+          ]
+        }
+      ],
+      "highSnowBothGreaterThanBothControls": true
+    },
+    {
+      "referenceDays": 56,
+      "eventResults": [
+        {
+          "event": "JAN_HEAVY_SNOW",
+          "day": "2026-01-25",
+          "score": 1427.6076039394482,
+          "cbdPct": -72.45108589992701,
+          "fdnyPct": 19.704433497536943,
+          "storm311Day0Pct": 41.169556273876,
+          "observations": [
+            {
+              "day": "2026-01-25",
+              "cbdPct": -72.45108589992701,
+              "fdnyPct": 19.704433497536943,
+              "requestPct": 41.169556273876,
+              "score": 1427.6076039394482
+            },
+            {
+              "day": "2026-01-26",
+              "cbdPct": -58.418165422336,
+              "fdnyPct": 8.968609865470857,
+              "requestPct": 18.59986273164036,
+              "score": 523.9297347294712
+            },
+            {
+              "day": "2026-01-27",
+              "cbdPct": -21.18143318503044,
+              "fdnyPct": 4.943820224719109,
+              "requestPct": 53.528399311531835,
+              "score": 104.71719776868997
+            }
+          ]
+        },
+        {
+          "event": "FEB_COLD_LIGHT_SNOW",
+          "day": "2026-02-06",
+          "score": 51.916520211386754,
+          "cbdPct": -4.274621897778664,
+          "fdnyPct": 12.145289443813855,
+          "storm311Day0Pct": -2.672101449275366,
+          "observations": [
+            {
+              "day": "2026-02-06",
+              "cbdPct": -4.274621897778664,
+              "fdnyPct": 12.145289443813855,
+              "requestPct": -2.672101449275366,
+              "score": 51.916520211386754
+            },
+            {
+              "day": "2026-02-07",
+              "cbdPct": -2.9210335874973903,
+              "fdnyPct": 17.159763313609467,
+              "requestPct": 15.22157996146436,
+              "score": 50.124244992558765
+            },
+            {
+              "day": "2026-02-08",
+              "cbdPct": -0.864826917612449,
+              "fdnyPct": 37.5,
+              "requestPct": 62.2683885457608,
+              "score": 32.431009410466835
+            }
+          ]
+        },
+        {
+          "event": "FEB_BLIZZARD_BAN",
+          "day": "2026-02-23",
+          "score": 4207.9903826796235,
+          "cbdPct": -84.99583223293278,
+          "fdnyPct": 49.50819672131148,
+          "storm311Day0Pct": -14.486243683323973,
+          "observations": [
+            {
+              "day": "2026-02-22",
+              "cbdPct": -28.688999029335992,
+              "fdnyPct": 9.23423423423424,
+              "requestPct": -14.486243683323973,
+              "score": 264.9209369826073
+            },
+            {
+              "day": "2026-02-23",
+              "cbdPct": -84.99583223293278,
+              "fdnyPct": 49.50819672131148,
+              "requestPct": -19.808654055229404,
+              "score": 4207.9903826796235
+            },
+            {
+              "day": "2026-02-24",
+              "cbdPct": -22.447500550794885,
+              "fdnyPct": 19.1111111111111,
+              "requestPct": 25.710419485791604,
+              "score": 428.99667719296866
+            }
+          ]
+        },
+        {
+          "event": "MAY_OUTER_BOROUGH_FLOOD",
+          "day": "2026-05-22",
+          "score": 36.53372625032157,
+          "cbdPct": -4.28790576516932,
+          "fdnyPct": 8.520179372197312,
+          "storm311Day0Pct": 3.5739313244568915,
+          "observations": [
+            {
+              "day": "2026-05-20",
+              "cbdPct": 1.662540670533308,
+              "fdnyPct": 7.9913606911447,
+              "requestPct": 3.5739313244568915,
+              "score": 0
+            },
+            {
+              "day": "2026-05-21",
+              "cbdPct": -1.2363236469595917,
+              "fdnyPct": -9.150326797385622,
+              "requestPct": -13.683712121212121,
+              "score": 0
+            },
+            {
+              "day": "2026-05-22",
+              "cbdPct": -4.28790576516932,
+              "fdnyPct": 8.520179372197312,
+              "requestPct": -6.800894854586126,
+              "score": 36.53372625032157
+            }
+          ]
+        }
+      ],
+      "highSnowBothGreaterThanBothControls": true
+    },
+    {
+      "referenceDays": 70,
+      "eventResults": [
+        {
+          "event": "JAN_HEAVY_SNOW",
+          "day": "2026-01-25",
+          "score": 1457.142395932896,
+          "cbdPct": -73.94997659359449,
+          "fdnyPct": 19.704433497536943,
+          "storm311Day0Pct": 41.045214327657064,
+          "observations": [
+            {
+              "day": "2026-01-25",
+              "cbdPct": -73.94997659359449,
+              "fdnyPct": 19.704433497536943,
+              "requestPct": 41.045214327657064,
+              "score": 1457.142395932896
+            },
+            {
+              "day": "2026-01-26",
+              "cbdPct": -59.04580341993129,
+              "fdnyPct": 10.20408163265305,
+              "requestPct": 18.59986273164036,
+              "score": 602.5081981625635
+            },
+            {
+              "day": "2026-01-27",
+              "cbdPct": -22.024810019792383,
+              "fdnyPct": 3.8932146829810943,
+              "requestPct": 53.528399311531835,
+              "score": 85.74731375892483
+            }
+          ]
+        },
+        {
+          "event": "FEB_COLD_LIGHT_SNOW",
+          "day": "2026-02-07",
+          "score": 87.87170689506641,
+          "cbdPct": -5.120799470781456,
+          "fdnyPct": 17.159763313609467,
+          "storm311Day0Pct": -2.672101449275366,
+          "observations": [
+            {
+              "day": "2026-02-06",
+              "cbdPct": -4.274621897778664,
+              "fdnyPct": 12.145289443813855,
+              "requestPct": -2.672101449275366,
+              "score": 51.916520211386754
+            },
+            {
+              "day": "2026-02-07",
+              "cbdPct": -5.120799470781456,
+              "fdnyPct": 17.159763313609467,
+              "requestPct": 15.22157996146436,
+              "score": 87.87170689506641
+            },
+            {
+              "day": "2026-02-08",
+              "cbdPct": -1.614934857400685,
+              "fdnyPct": 37.5,
+              "requestPct": 62.2683885457608,
+              "score": 60.56005715252569
+            }
+          ]
+        },
+        {
+          "event": "FEB_BLIZZARD_BAN",
+          "day": "2026-02-23",
+          "score": 4128.231310512672,
+          "cbdPct": -85.34146341463415,
+          "fdnyPct": 48.373101952277665,
+          "storm311Day0Pct": -14.486243683323973,
+          "observations": [
+            {
+              "day": "2026-02-22",
+              "cbdPct": -29.022904931441207,
+              "fdnyPct": 9.23423423423424,
+              "requestPct": -14.486243683323973,
+              "score": 268.00430229484016
+            },
+            {
+              "day": "2026-02-23",
+              "cbdPct": -85.34146341463415,
+              "fdnyPct": 48.373101952277665,
+              "requestPct": -19.808654055229404,
+              "score": 4128.231310512672
+            },
+            {
+              "day": "2026-02-24",
+              "cbdPct": -22.607614784442564,
+              "fdnyPct": 17.286652078774623,
+              "requestPct": 25.710419485791604,
+              "score": 390.80997110961994
+            }
+          ]
+        },
+        {
+          "event": "MAY_OUTER_BOROUGH_FLOOD",
+          "day": "2026-05-22",
+          "score": 33.2908260274598,
+          "cbdPct": -3.059251697049725,
+          "fdnyPct": 10.882016036655218,
+          "storm311Day0Pct": 1.6273206509282545,
+          "observations": [
+            {
+              "day": "2026-05-20",
+              "cbdPct": 2.134364882329698,
+              "fdnyPct": 7.9913606911447,
+              "requestPct": 1.6273206509282545,
+              "score": 0
+            },
+            {
+              "day": "2026-05-21",
+              "cbdPct": 0.8613637624091952,
+              "fdnyPct": -8.852459016393443,
+              "requestPct": -14.773258532024315,
+              "score": 0
+            },
+            {
+              "day": "2026-05-22",
+              "cbdPct": -3.059251697049725,
+              "fdnyPct": 10.882016036655218,
+              "requestPct": -5.7892356399819045,
+              "score": 33.2908260274598
+            }
+          ]
+        }
+      ],
+      "highSnowBothGreaterThanBothControls": true
+    }
+  ],
+  "provenance": {
+    "workflow": "https://github.com/Aptymok/system-friction/actions/runs/40226003536",
+    "jobId": 121267389959,
+    "source": "docs/research/evidence/MIHM-MANHATTAN-365D-2025-10-2026-09.json",
+    "reproducer": "scripts/research/mihm-nws-baseline-sensitivity.mjs"
+  },
+  "interpretation": {
+    "robustRelativeSeparation": true,
+    "absoluteEffectSensitivity": "February peak score ~1068 at 28-day baseline vs ~4208 at 56 days, changes because denominator includes different prior storm/calendar conditions",
+    "noIndependentReplication": true
+  }
+}

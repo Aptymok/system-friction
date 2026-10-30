@@ -129,7 +129,8 @@ export function PublicEntryGateway(){
         <img src="/assets/sfi/ui/icons/00_sfi_canonical_mark.png" alt="" aria-hidden="true"/>
         <strong>SFI</strong><i>—</i><span>SYSTEM FRICTION INSTITUTE</span>
       </Link>
-      <nav aria-label="SFI instruments">
+      <nav aria-label="SFI public navigation">
+        <Link href="/servicios">SERVICES</Link>
         {SURFACE_RAIL.map((surface)=><Link key={surface.sceneId} href={surface.href}>{surface.label}</Link>)}
       </nav>
       <Link className="sfiHomeAccessDot" href="/instruments/access" aria-label="Access"><span>ACCESS</span></Link>
@@ -140,9 +141,9 @@ export function PublicEntryGateway(){
     </aside>
 
     <section className="sfiHomeStatement">
-      <small>SYSTEMS MEET HERE.</small>
+      <small>OBSERVE · QUESTION · UNDERSTAND</small>
       <h1>NOTHING ACTS ALONE.<br/><b>REALITY ANSWERS BACK.</b></h1>
-      <p>SFI observes how signals become evidence, how evidence supports inference, how authority enables action, and what reality returns.</p>
+      <p>We investigate decisions, organizations and systems. Explore what SFI can help you understand, then observe the methods behind the work.</p><div className="sfiHomeServiceActions"><Link href="/servicios" className="sfiHomeServicePrimary">EXPLORE SERVICES ↗</Link><Link href="/servicios/case-study/ai-week-nyc-2026" className="sfiHomeServiceSecondary">TRY THE AI WEEK NYC CASE →</Link></div>
       <em>TRACEABILITY ≠ JUSTIFICATION · EVIDENCE INDEPENDENCE · TEMPORAL STATE · AUTHORITY · RETURN</em>
     </section>
 
@@ -151,7 +152,7 @@ export function PublicEntryGateway(){
       <p>UNDERSTAND TODAY.<br/>RECONSTRUCT TOMORROW.</p>
     </section>
 
-    <nav className="sfiHomeSurfaceRail" aria-label="Explore SFI">
+    <nav className="sfiHomeSurfaceRail" aria-label="Explore SFI instruments manually">
       {SURFACE_RAIL.map((surface)=><Link key={surface.sceneId} href={surface.href}>
         <small>{surface.number}</small>
         <strong>{surface.label}</strong>

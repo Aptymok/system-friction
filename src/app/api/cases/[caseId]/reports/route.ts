@@ -1,12 +1,9 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireAuthenticatedUser, requireSfiMember } from '@/lib/system/access/server';
-import { generateOperationalReport, listOperationalReports, readOperationalCase } from '@/lib/sfi/case-platform/repository';
+import { generateOperationalReport, listOperationalReports } from '@/lib/sfi/case-platform/repository';
 import { assertReportClaimsIntegrity } from '@/lib/sfi/case-platform/integrity';
-import { renderSfiRealityPassportHtml } from '@/core/case-platform';
 import { sfiCaseApiFailure } from '@/lib/sfi/case-platform/http';
-import { readDataPlaneState } from '@/lib/persistence/dataPlaneContinuityStore';
-import { describePassportReadBoundary } from '@/lib/sfi/case-platform/passportReadBoundary';
 import {
   SFI_EPISTEMIC_OUTPUT_RELATIONS,
   type SfiReportClaimV1,
@@ -37,72 +34,11 @@ const claimSchema = z.object({
 const reportSchema = z.object({ claims: z.array(claimSchema).max(500).optional(), deliveryFormats: z.array(z.enum(['JSON','WEB','PDF','DASHBOARD'])).min(1).max(4).optional(), limitations: z.array(z.string().trim().min(1).max(2000)).max(100).optional() }).strict();
 type RouteContext = { params: Promise<{ caseId: string }> };
 
-export async function GET(request: Request, context: RouteContext) {
+export async function GET(_: Request, context: RouteContext) {
   try {
     const { user } = await requireAuthenticatedUser();
     const { caseId } = await context.params;
-    const query = new URL(request.url).searchParams;
-    const format = query.get('format');
-    const reportId = query.get('reportId');
-    if (reportId !== null) {
-      // C19 idempotent readback: this is a READ, never an implicit generation.
-      // The existing list function enforces authenticated case/tenant access.
-      if (!z.string().uuid().safeParse(reportId).success) {
-        return NextResponse.json({ok:false,error:'INVALID_REPORT_ID'}, {status:400,headers:{'Cache-Control':'private, no-store'}});
-      }
-      const available = await listOperationalReports(caseId,user.id);
-      const match=available.find(item=>item.id===reportId);
-      if (!match) {
-        return NextResponse.json({ok:false,error:'REPORT_NOT_FOUND_IN_AUTHORIZED_CASE'},
-          {status:404,headers:{'Cache-Control':'private, no-store'}});
-      }
-      const envelope = await readOperationalCase(caseId,user.id);
-      const ref=envelope.objects.find(o=>o.kind==='REPORT' && o.canonicalRef.id===reportId);
-      let consistency=describePassportReadBoundary(null);
-      try { consistency=describePassportReadBoundary((await readDataPlaneState()).mode); } catch {}
-      return NextResponse.json({ok:true,reportId:match.id,generatedAt:match.generatedAt,
-        report:match.report, readConsistency:consistency,
-        reportObjectLinkage:ref?'PRESENT_IN_AUTHORIZED_READ':'NOT_VISIBLE_OR_NOT_RECORDED',
-        certification:'NOT_ESTABLISHED_BY_READBACK'},
-        {headers:{'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'}});
-    }
-    if (format === 'passport-json' || format === 'passport-html' || format === 'passport-pdf') {
-      const envelope = await readOperationalCase(caseId, user.id);
-      const chain = envelope.realityChain;
-      // All three download formats share the same fail-closed boundary.
-      // Do not render a seemingly certified PDF while JSON alone warns of lag.
-      let readConsistency = describePassportReadBoundary(null);
-      try {
-        const plane = await readDataPlaneState();
-        readConsistency = describePassportReadBoundary(plane.mode);
-      } catch {
-        readConsistency = describePassportReadBoundary(null);
-      }
-      if (format === 'passport-pdf') {
-        const {buildRealityPassportPdfInput,requiredPrivateCaseBriefCodePoints,renderPrivateCaseBriefPdf} = await import('@/lib/sfi/case-platform/privateCaseBriefContract');
-        const {loadUnifontGlyphs} = await import('@/lib/sfi/case-platform/unifontType3');
-        const renderInput=buildRealityPassportPdfInput(chain, readConsistency);
-        const glyphs=await loadUnifontGlyphs(requiredPrivateCaseBriefCodePoints(renderInput));
-        const bytes=renderPrivateCaseBriefPdf(renderInput,glyphs);
-        return new Response(new Uint8Array(bytes),{headers:{'Content-Type':'application/pdf','Content-Disposition':`attachment; filename="SFI-Reality-Chain-${encodeURIComponent(caseId)}.pdf"`,'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'}});
-      }
-      const content = format === 'passport-html' ? renderSfiRealityPassportHtml(chain, readConsistency) : JSON.stringify({
-        ...chain, objects:envelope.objects,
-        temporalProvenance:envelope.temporalProvenance,
-        authorityEvidence:envelope.authorityEvidence,
-        trajectoryContrast:envelope.trajectoryContrast,
-        returnLearning:envelope.returnLearning,
-        readConsistency,
-        reports:await listOperationalReports(caseId,user.id),
-      }, null, 2);
-      return new Response(content, {headers:{
-        'Content-Type':format==='passport-html'?'text/html; charset=utf-8':'application/json; charset=utf-8',
-        'Content-Disposition':`attachment; filename="SFI-Reality-Chain-${encodeURIComponent(caseId)}.${format==='passport-html'?'html':'json'}"`,
-        'Cache-Control':'private, no-store', 'X-Content-Type-Options':'nosniff',
-        'Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'; sandbox",
-      }});
-    }
-    return NextResponse.json({ ok: true, reports: await listOperationalReports(caseId, user.id) },{headers:{'Cache-Control':'private, no-store'}});
+    return NextResponse.json({ ok: true, reports: await listOperationalReports(caseId, user.id) });
   } catch (error) {
     return sfiCaseApiFailure(error);
   }

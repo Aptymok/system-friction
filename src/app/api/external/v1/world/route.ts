@@ -10,7 +10,6 @@ import { appendEpistemicEvent } from '@/lib/events/eventStore';
 import { runJrFieldCycle } from '@/lib/mihm/jrFieldCycle';
 import { SFI_SUPABASE_READ_BUDGET } from '@/lib/supabase/readBudget';
 import { getLlmProviderStatus } from '@/lib/ai/providerRouter';
-import { assessWorldRepeatRetryGuard } from '@/lib/world-observatory/hypothesisRetryGuard';
 import { regenerateWorldVectorRetrospective } from '@/lib/world-vector/retrospective';
 import { runWorldSpectAdapters } from '@/lib/worldspect/runAdapters';
 import { recoverWorldSpectHistoricalDays } from '@/lib/worldspect/historicalRecovery';
@@ -356,35 +355,6 @@ export async function POST(req: Request) {
 
   if(latestWasPartial){
     const providerStatus=getLlmProviderStatus();
-    // Durable, per-cycle evidence gate. Without new source observations or
-    // a successful post-failure provider signal, repeated LLM calls on the
-    // same dataset cannot improve the observed evidentiary state.
-    const {data:retryReceipts,error:retryReceiptError}=await createServiceSupabaseClient()
-      .from('epistemic_events').select('event_name,occurred_at,payload')
-      .eq('event_name','external.world.hypothesis_resume.partial')
-      .gte('occurred_at',String(preflight.latestPartialCycleReceipt?.occurred_at??''))
-      .order('occurred_at',{ascending:false}).limit(30);
-    if(retryReceiptError) return NextResponse.json({
-      ok:false,operation,actor:actorId,status:'RETRY_RECEIPT_READ_UNAVAILABLE',
-      writesPerformed:false,error:retryReceiptError.message,
-      boundary:'Fail closed when earlier attempts cannot be identified from persisted provenance.',
-    },{status:503});
-    const retryGate=assessWorldRepeatRetryGuard({
-      sourcePartialEventId:String(preflight.latestPartialCycleReceipt?.event_id??''),
-      retryReceipts:(retryReceipts??[]).map(entry=>({
-        event_name:String(entry.event_name??''),occurred_at:String(entry.occurred_at??''),
-        payload:entry.payload,
-      })),
-      latestObservationFetchedAt:typeof preflight.latestObservation?.fetched_at==='string'
-        ? preflight.latestObservation.fetched_at:null,
-      providerStatuses:providerStatus,
-    });
-    if(retryGate.suspended) return NextResponse.json({
-      ok:false,operation,actor:actorId,
-      status:'HYPOTHESIS_RETRY_SUSPENDED_UNCHANGED_OBSERVATIONS',
-      retryOnly:true,writesPerformed:false,retryGate,
-      boundary:'After repeated source-identical provider failures, recovery requires a new fetched World observation or a verified later provider recovery. No source recapture, synthetic fallback or extra LLM call is performed.',
-    },{status:409});
     const possible=providerStatus.filter(p=>p.available && !p.circuitOpen &&
       p.state!=='UNCONFIGURED' && p.state!=='BLOCKED');
     if(!possible.length) return NextResponse.json({

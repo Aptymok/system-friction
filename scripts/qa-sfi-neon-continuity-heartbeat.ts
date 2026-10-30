@@ -442,7 +442,7 @@ check('heartbeat determines physical primary provenance with a direct non-fallba
   && runtime.includes("dataPlane = 'NEON'"));
 
 check('independent providers do not automatically replay Neon journal into PRIMARY',
-  /reason:\s*'SFI_REPLICATION_RETIRED_BY_FOUNDER'/.test(continuityRecovery)
+  continuityRecovery.includes("reason: 'SFI_REPLICATION_RETIRED_BY_FOUNDER'")
   && !runtime.includes('await recoverPrimaryDataPlane(')
   && runtime.includes("reason: 'SFI_REPLICATION_RETIRED_BY_FOUNDER'"));
 
@@ -473,7 +473,7 @@ check('continuity-state replay accepts only a monotonic same-content stale heart
 
 check('historical journal recovery is disabled and cannot change PRIMARY',
   continuityRecovery.includes('attempted:false as const')
-  && /reason:\s*'SFI_REPLICATION_RETIRED_BY_FOUNDER'/.test(continuityRecovery)
+  && continuityRecovery.includes("reason: 'SFI_REPLICATION_RETIRED_BY_FOUNDER'")
   && !continuityRecovery.includes('sfi_apply_continuity_batch_v1')
   && !runtime.includes('await recoverPrimaryDataPlane('));
 

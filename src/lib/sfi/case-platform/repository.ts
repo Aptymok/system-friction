@@ -3,9 +3,6 @@ import 'server-only';
 import { createHash, randomUUID } from 'node:crypto';
 import {
   assembleSfiReportV1,
-  buildSfiRealityChain,
-  assertSfiCaseClosure,
-  type SfiCaseClosureMode,
   assertSfiCaseTransition,
   createSfiCaseV1,
   getSfiServiceProfile,
@@ -28,12 +25,6 @@ import type {
   SfiTemporalMode,
   SfiTemporalWindowV1,
 } from '@/core/contracts/sfi';
-import { recordCanonicalCaseObjectAtomic } from './canonicalCaseObjectWriter';
-import { computeCaseSourceReadiness } from './sourceProtocolReadiness';
-import { projectCaseTemporalProvenance } from './temporalProvenance';
-import { projectCaseAuthorityEvidence } from './authorityEvidenceReadModel';
-import { projectCaseTrajectoryContrast } from './trajectoryContrastReadModel';
-import { projectCaseReturnLearning } from './returnLearningReadModel';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 
 export type SfiTenantRole = 'OWNER' | 'ADMIN' | 'OPERATOR' | 'VIEWER' | 'AUDITOR';
@@ -135,7 +126,6 @@ function caseFromRow(row: Row): SfiCaseV1 {
     id: text(row.id),
     version: text(row.version) || '1.0',
     tenantId: text(row.tenant_id),
-    projectId: nullableText(row.project_id),
     clientId: nullableText(row.client_id),
     serviceProfileId: text(row.service_profile_id) as SfiServiceProfileId,
     subject: text(row.subject),
@@ -364,7 +354,6 @@ export async function createOperationalCase(input: {
   userId: string;
   userEmail?: string | null;
   tenantId?: string | null;
-  projectId?: string | null;
   clientId?: string | null;
   serviceProfileId: SfiServiceProfileId;
   subject: string;
@@ -374,14 +363,6 @@ export async function createOperationalCase(input: {
 }) {
   const tenantId = input.tenantId?.trim() || await ensurePersonalTenant(input.userId, input.userEmail);
   await assertTenantAccess(tenantId, input.userId, 'WRITE');
-  const service = createServiceSupabaseClient();
-  const projectId = input.projectId?.trim() || null;
-  if (projectId) {
-    const selected = await service.from('sfi_projects').select('id,tenant_id,status')
-      .eq('id', projectId).eq('tenant_id', tenantId).eq('status', 'ACTIVE').maybeSingle();
-    if (selected.error) throw new Error(`SFI_CASE_PROJECT_READ_FAILED:${selected.error.message}`);
-    if (!selected.data) throw new Error('SFI_CASE_PROJECT_TENANT_MISMATCH_OR_INACTIVE');
-  }
   const createdAt = new Date().toISOString();
   const caseRecord = createSfiCaseV1({
     id: randomUUID(),
@@ -394,11 +375,11 @@ export async function createOperationalCase(input: {
     temporalWindow: input.temporalWindow,
     createdAt,
   });
+  const service = createServiceSupabaseClient();
   const inserted = await service.from('sfi_cases').insert({
     id: caseRecord.id,
     owner_id: input.userId,
     tenant_id: tenantId,
-    project_id: projectId,
     client_id: caseRecord.clientId,
     contract_version: caseRecord.contract,
     version: caseRecord.version,
@@ -434,70 +415,36 @@ export async function listOperationalCases(userId: string) {
   return ((result.data ?? []) as Row[]).map(caseFromRow);
 }
 
-async function completeCaseRows(table: string, caseId: string, tenantId: string, order: string, selection = '*') {
-  const service = createServiceSupabaseClient();
-  const rows: Row[] = [];
-  const pageSize = 500;
-  for (let offset = 0; offset < 10000; offset += pageSize) {
-    const result = await service.from(table).select(selection).eq('case_id', caseId).eq('tenant_id', tenantId)
-      .order(order, { ascending: true }).order('id', { ascending: true }).range(offset, offset + pageSize - 1);
-    if (result.error) throw new Error(`SFI_CASE_COMPLETE_READ_FAILED:${table}:${result.error.message}`);
-    const page = (result.data ?? []) as unknown as Row[];
-    rows.push(...page);
-    if (page.length < pageSize) return rows;
-  }
-  throw new Error(`SFI_CASE_READ_INCOMPLETE:${table}:10000`);
-}
-
 export async function listOperationalCaseObjects(caseId: string, userId: string) {
   const row = await caseRow(caseId);
   await assertTenantAccess(text(row.tenant_id), userId, 'READ');
-  return (await completeCaseRows('sfi_case_objects', caseId, text(row.tenant_id), 'created_at')).map(objectFromRow);
+  const service = createServiceSupabaseClient();
+  const result = await service.from('sfi_case_objects').select('*').eq('case_id', caseId).order('created_at', { ascending: true });
+  if (result.error) throw new Error(`SFI_CASE_OBJECT_LIST_FAILED:${result.error.message}`);
+  return ((result.data ?? []) as Row[]).map(objectFromRow);
 }
 
-export async function readOperationalCase(caseId: string, userId: string, temporal?: { t0?: string | null; t1?: string | null }) {
+export async function readOperationalCase(caseId: string, userId: string) {
   const row = await caseRow(caseId);
   await assertTenantAccess(text(row.tenant_id), userId, 'READ');
   const objects = await listOperationalCaseObjects(caseId, userId);
   const caseRecord = hydrateCase(row, objects);
-  const [reportRows, actionRows, decisionRows, closureRows] = await Promise.all([
-    completeCaseRows('sfi_case_reports', caseId, caseRecord.tenantId, 'generated_at', 'id,generated_at,input_hash:report_payload->reconstruction->>inputHash'),
-    completeCaseRows('sfi_case_action_proposals', caseId, caseRecord.tenantId, 'created_at'),
-    completeCaseRows('sfi_case_action_decisions', caseId, caseRecord.tenantId, 'created_at'),
-    completeCaseRows('sfi_case_audit_events', caseId, caseRecord.tenantId, 'created_at'),
-  ]);
-  const closureEvent = closureRows.filter(r=>r.action==='CASE_STATUS_CHANGED').at(-1);
-  const requested = record(record(closureEvent?.after_state).closure);
-  const closureRequest = ['ADMINISTRATIVE','INCONCLUSIVE','CERTIFIED'].includes(text(requested.mode))
-    ? { mode: text(requested.mode) as SfiCaseClosureMode, reason: text(requested.reason) } : null;
-  const chainInput = {
-    caseRecord, objects, ...temporal, readComplete: true, closureRequest,atomicClosureReady:row.closure_revision!==undefined,knownReportCount:reportRows.length,
-    actions: actionRows.map(r=>({id:text(r.id),caseId:text(r.case_id),status:text(r.status),action:record(r.action_payload),createdAt:text(r.created_at),interventionRef:r.intervention_ref?canonicalRef(r.intervention_ref):null,returnRef:r.return_ref?canonicalRef(r.return_ref):null})),
-    decisions: decisionRows.map(r=>({id:text(r.id),caseId:text(r.case_id),proposalId:text(r.proposal_id),decision:text(r.decision),authorityRole:text(r.authority_role),decidedBy:text(r.decided_by),createdAt:text(r.created_at)})),
-  };
-  const baseChain=buildSfiRealityChain(chainInput);
-  const candidate=reportRows.filter(r=>r.input_hash===baseChain.inputHash).at(-1);
-  const payload=candidate ? await createServiceSupabaseClient().from('sfi_case_reports').select('report_payload').eq('id',text(candidate.id)).eq('case_id',caseId).eq('tenant_id',caseRecord.tenantId).maybeSingle() : null;
-  if(payload?.error)throw new Error(`SFI_CASE_REPORT_READ_FAILED:${payload.error.message}`);
-  const realityChain=buildSfiRealityChain({...chainInput,reports:payload?.data ? [payload.data.report_payload as SfiReportV1] : []});
-  const afterRead = await caseRow(caseId);
-  if (row.closure_revision !== afterRead.closure_revision || row.updated_at !== afterRead.updated_at) throw new Error('SFI_CASE_READ_CONFLICT');
   const profile = getSfiServiceProfile(caseRecord.serviceProfileId);
-  const sourceReadiness = computeCaseSourceReadiness(
-    profile?.requiredSources ?? [], objects, caseRecord.temporalWindow.cutoff,
-  );
+  const presentSourceTypes = Array.from(new Set(objects
+    .filter((object) => object.kind === 'SOURCE')
+    .map((object) => text(object.payload.sourceType))
+    .filter(Boolean))).sort();
+  const requiredSources = profile ? [...profile.requiredSources] : [];
+  const missingSources = requiredSources.filter((source) => !presentSourceTypes.includes(source));
   return {
     caseRecord,
     objects,
-    realityChain,
-    temporalProvenance: projectCaseTemporalProvenance(objects, caseRecord.temporalWindow.cutoff),
-    authorityEvidence: projectCaseAuthorityEvidence(realityChain),
-    trajectoryContrast: projectCaseTrajectoryContrast(caseRecord, objects, realityChain),
-    returnLearning: projectCaseReturnLearning(realityChain),
-    revision: row.closure_revision ?? null,
     readiness: {
-      ...sourceReadiness,
-      readyForAnalysis: Boolean(profile) && sourceReadiness.readyForAnalysis,
+      requiredSources,
+      presentSourceTypes,
+      missingSources,
+      sourceCoverage: requiredSources.length ? (requiredSources.length - missingSources.length) / requiredSources.length : 1,
+      readyForAnalysis: Boolean(profile) && missingSources.length === 0,
     },
   };
 }
@@ -506,8 +453,6 @@ export async function transitionOperationalCase(input: {
   caseId: string;
   userId: string;
   status: SfiCaseStatus;
-  closureMode?: SfiCaseClosureMode;
-  closureReason?: string;
 }) {
   const row = await caseRow(input.caseId);
   const tenantId = text(row.tenant_id);
@@ -515,23 +460,11 @@ export async function transitionOperationalCase(input: {
   const current = text(row.status) as SfiCaseStatus;
   assertSfiCaseTransition(current, input.status);
   if (current === input.status) return readOperationalCase(input.caseId, input.userId);
-  if (input.status === 'CLOSED') {
-    const envelope=await readOperationalCase(input.caseId,input.userId);
-    const proof=assertSfiCaseClosure(envelope.realityChain,input.closureMode,input.closureReason);
-    if(envelope.revision===null)throw new Error('SFI_CASE_CLOSURE_MIGRATION_REQUIRED');
-    const result=await createServiceSupabaseClient().rpc('sfi_close_case_atomic_v1',{
-      p_case_id:input.caseId,p_actor_id:input.userId,p_expected_status:current,
-      p_expected_revision:envelope.revision,p_closure:{...proof,gaps:envelope.realityChain.gaps,validated:envelope.realityChain.closure.certified},
-    });
-    if(result.error)throw new Error(`SFI_CASE_CLOSURE_ATOMIC_FAILED:${result.error.message}`);
-    return readOperationalCase(input.caseId,input.userId);
-  }
   const service = createServiceSupabaseClient();
   const updated = await service.from('sfi_cases').update({
     status: input.status,
-    closed_at: input.status === 'REJECTED' ? new Date().toISOString() : null,
-  }).eq('id', input.caseId).eq('status', current).eq('updated_at', row.updated_at).select('*').maybeSingle();
-  if (!updated.error && !updated.data) throw new Error('SFI_CASE_TRANSITION_CONFLICT');
+    closed_at: input.status === 'CLOSED' || input.status === 'REJECTED' ? new Date().toISOString() : null,
+  }).eq('id', input.caseId).select('*').single();
   if (updated.error || !updated.data) throw new Error(`SFI_CASE_TRANSITION_FAILED:${updated.error?.message ?? 'unknown'}`);
   await audit({
     caseId: input.caseId,
@@ -586,12 +519,45 @@ export async function recordOperationalCaseObject(input: {
     payload: input.payload ?? {},
   });
   const ref: SfiCanonicalRef = { ...input.canonicalRef, hash };
-  const result=await recordCanonicalCaseObjectAtomic({
-    service:createServiceSupabaseClient(),actorId:input.userId,
-    object:{id:randomUUID(),caseId:input.caseId,kind:input.kind,epistemicRole:input.epistemicRole,
-      canonicalRef:ref,sourceRefs:input.sourceRefs??[],recordRefs:input.recordRefs??[],evidenceRefs:input.evidenceRefs??[],payload:input.payload??{},observedAt:input.observedAt??null},
+  const service = createServiceSupabaseClient();
+  const existing = await service
+    .from('sfi_case_objects')
+    .select('*')
+    .eq('case_id', input.caseId)
+    .eq('object_kind', input.kind)
+    .contains('canonical_ref', { id: ref.id })
+    .maybeSingle();
+  if (existing.error) throw new Error(`SFI_CASE_OBJECT_IDENTITY_READ_FAILED:${existing.error.message}`);
+  if (existing.data) {
+    const existingObject = objectFromRow(existing.data as Row);
+    if (existingObject.canonicalRef.hash === hash) return existingObject;
+    throw new Error('SFI_CASE_OBJECT_ID_CONFLICT');
+  }
+
+  const inserted = await service.from('sfi_case_objects').insert({
+    case_id: input.caseId,
+    owner_id: text(row.owner_id),
+    tenant_id: tenantId,
+    object_kind: input.kind,
+    epistemic_role: input.epistemicRole,
+    canonical_ref: ref,
+    source_refs: input.sourceRefs ?? [],
+    record_refs: input.recordRefs ?? [],
+    evidence_refs: input.evidenceRefs ?? [],
+    payload: input.payload ?? {},
+    observed_at: input.observedAt ?? null,
+  }).select('*').single();
+  if (inserted.error || !inserted.data) throw new Error(`SFI_CASE_OBJECT_WRITE_FAILED:${inserted.error?.message ?? 'unknown'}`);
+  await service.from('sfi_cases').update({ updated_at: new Date().toISOString() }).eq('id', input.caseId);
+  const object = objectFromRow(inserted.data as Row);
+  await audit({
+    caseId: input.caseId,
+    tenantId,
+    actorId: input.userId,
+    action: 'CASE_OBJECT_RECORDED',
+    afterState: { kind: object.kind, epistemicRole: object.epistemicRole, canonicalRef: object.canonicalRef },
   });
-  return objectFromRow(record(result.object));
+  return object;
 }
 
 export async function registerOperationalCaseSource(input: {
@@ -632,8 +598,15 @@ export async function normalizeAndRegisterOperationalCaseSource(input: {
 export async function listOperationalReports(caseId: string, userId: string) {
   const row = await caseRow(caseId);
   await assertTenantAccess(text(row.tenant_id), userId, 'READ');
-  const rows = await completeCaseRows('sfi_case_reports', caseId, text(row.tenant_id), 'generated_at');
-  return rows.reverse().map(item=>({ id:text(item.id), report:item.report_payload as SfiReportV1, generatedAt:text(item.generated_at), createdAt:text(item.created_at) }));
+  const service = createServiceSupabaseClient();
+  const result = await service.from('sfi_case_reports').select('id,report_payload,generated_at,created_at').eq('case_id', caseId).order('generated_at', { ascending: false });
+  if (result.error) throw new Error(`SFI_CASE_REPORT_LIST_FAILED:${result.error.message}`);
+  return ((result.data ?? []) as Row[]).map((item) => ({
+    id: text(item.id),
+    report: item.report_payload as SfiReportV1,
+    generatedAt: text(item.generated_at),
+    createdAt: text(item.created_at),
+  }));
 }
 
 export async function generateOperationalReport(input: {
@@ -645,23 +618,13 @@ export async function generateOperationalReport(input: {
 }) {
   const envelope = await readOperationalCase(input.caseId, input.userId);
   await assertTenantAccess(envelope.caseRecord.tenantId, input.userId, 'WRITE');
-  // All callers, including OAuth, reuse the existing governed claim validator.
-  const { assertReportClaimsIntegrity } = await import('./integrity');
-  await assertReportClaimsIntegrity({caseId:input.caseId,userId:input.userId,claims:input.claims ?? []});
-  const chain = envelope.realityChain;
   const report = assembleSfiReportV1({
     id: randomUUID(),
     caseRecord: envelope.caseRecord,
     generatedAt: new Date().toISOString(),
     claims: input.claims ?? [],
     deliveryFormats: input.deliveryFormats ?? ['JSON'],
-    limitations: [...(input.limitations ?? []), ...chain.narrative, chain.nextObservation],
-    reconstruction: {
-      contract:'SFI-CASE-RECONSTRUCTION-1.0', inputHash:chain.inputHash,
-      t0:chain.temporal.t0.cutoff,t1:chain.temporal.t1.cutoff,
-      narrative:chain.narrative,gaps:chain.gaps,nextObservation:chain.nextObservation,
-      document:JSON.parse(JSON.stringify(chain)) as Record<string,unknown>,
-    },
+    limitations: input.limitations ?? [],
   });
   const service = createServiceSupabaseClient();
   const caseBase = await caseRow(input.caseId);

@@ -1,8 +1,6 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
-import { casePlatformHref, caseTimelineHref } from '@/lib/sfi/navigation/operationalLinks';
 import { CognitiveSpineAnatomy, type CognitiveSpineFocus } from '@/components/root/cognitive-spine/CognitiveSpineAnatomy';
 import { translateUiText, useSfiLanguage } from '@/components/i18n/SfiLanguageProvider';
 import './RootOperationalWorkboard.css';
@@ -233,8 +231,6 @@ export function RootOperationalWorkboard({ enabled }: Props) {
           <b>{short(item.action, 'Case action')}</b>
           <span>{short(item.status)} · risk {short(item.riskLevel)} · {short(item.reversibility)}</span>
           <small>case {short(item.caseId)} · intervention {item.interventionRef ? 'yes' : 'no'} · RETURN {item.returnRef ? 'yes' : 'no'}</small>
-          {casePlatformHref(item.caseId)?<Link href={casePlatformHref(item.caseId)!}>ABRIR EXPEDIENTE EN REALITY CHAIN ↗</Link>:null}
-          {caseTimelineHref(item.caseId)?<Link href={caseTimelineHref(item.caseId)!}>VER HISTORIA EN TIMELINE ↗</Link>:null}
           <small>platform external action: FALSE</small>
         </article>)}
         {!caseItems.length && <em>{data?.authority === 'root' ? 'No case actions observed.' : 'Projects/Case Execution is visible only to sovereign ROOT.'}</em>}

@@ -1,30 +1,10 @@
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { hasOpenUniversalCycle, UNIVERSAL_LIFECYCLE_EVENTS } from './universalLifecycleGate';
 
 type Row = Record<string, unknown>;
 
 const ACTIVE_PROPOSAL_STATUSES = ['proposed', 'waiting_evidence', 'design_approved', 'queued', 'accepted'];
 const TERMINAL_CASE_STATUSES = new Set(['closed', 'completed', 'cancelled', 'canceled', 'rejected', 'archived']);
-const UNIVERSAL_LIFECYCLE_EVENTS = [
-  'SFI_UNIVERSAL_CYCLE_RESUMED',
-  'SFI_UNIVERSAL_COGNITIVE_CHECKPOINT',
-  'SFI_UNIVERSAL_COGNITIVE_CYCLE_EXECUTED',
-  'SFI_UNIVERSAL_AI_SYNTHESIS_COMPLETED',
-  'SFI_UNIVERSAL_RETURN_PLAN_RECORDED',
-  'SFI_UNIVERSAL_RETURN_RECORDED',
-  'SFI_UNIVERSAL_CYCLE_CLOSED',
-];
-
-function hasOpenUniversalCycle(events: Row[]) {
-  const latestByLogbook = new Map<string, string>();
-  for (const event of events) {
-    const logbookId = typeof event.logbook_id === 'string' ? event.logbook_id : '';
-    const eventName = typeof event.event_name === 'string' ? event.event_name : '';
-    if (!logbookId || !eventName || latestByLogbook.has(logbookId)) continue;
-    latestByLogbook.set(logbookId, eventName);
-  }
-  return [...latestByLogbook.values()].some((eventName) => eventName !== 'SFI_UNIVERSAL_CYCLE_CLOSED');
-}
-
 async function readMirrorMaintenanceRequirement() {
   // Never wake an autonomous cycle to chase old mirror backlogs or parity.
   return { required: false as const, configured: false as const,

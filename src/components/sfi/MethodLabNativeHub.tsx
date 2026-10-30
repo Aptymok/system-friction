@@ -2,8 +2,6 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { casePlatformHref } from '@/lib/sfi/navigation/operationalLinks';
 import './MethodLabNativeHub.css';
 import { MethodLabPanorama } from './MethodLabPanorama';
 
@@ -225,13 +223,10 @@ export function MethodLabNativeHub({ initialState, initialSessions, evidenceOpti
             </label>
             <div className="mlh-evidence-list">
               {visibleEvidence.slice(0, 60).map((item) => (
-                <div key={item.id}>
-                  <label className="mlh-evidence-row">
-                    <input type="checkbox" checked={selectedEvidence.includes(item.id)} onChange={() => toggleEvidence(item.id)} />
-                    <span><b>{item.label}</b><small>{item.kind} · {item.caseId ?? item.source} · {item.id}</small>{item.claimBoundary ? <em>{item.claimBoundary}</em> : null}</span>
-                  </label>
-                  {casePlatformHref(item.caseId)?<Link href={casePlatformHref(item.caseId)!}>ABRIR EXPEDIENTE AUTORIZADO ↗</Link>:null}
-                </div>
+                <label key={item.id} className="mlh-evidence-row">
+                  <input type="checkbox" checked={selectedEvidence.includes(item.id)} onChange={() => toggleEvidence(item.id)} />
+                  <span><b>{item.label}</b><small>{item.kind} · {item.caseId ?? item.source} · {item.id}</small>{item.claimBoundary ? <em>{item.claimBoundary}</em> : null}</span>
+                </label>
               ))}
             </div>
             <button className="mlh-action" disabled={Boolean(busy) || selectedEvidence.length === 0} onClick={() => execute('METHOD LAB RUN', () => postJson('/api/root/method-lab/simulate', { protocolId: simulationProtocol, evidenceIds: selectedEvidence, parameters: {}, cognitiveSpineContextRefs: [] }))}>

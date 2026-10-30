@@ -1,4 +1,5 @@
 import { computeReducedMihm, type ReducedMihmInput } from '../../../packages/mihm-core/src';
+import { evaluateReducedMihmResearchInput } from '../mihm/foundationObservationCoverage';
 
 /**
  * G1 synthetic missingness contrast. Pure and repeatable.
@@ -31,6 +32,11 @@ export function evaluateMihmFoundationMissingness() {
   const zeroResult = computeReducedMihm(explicitZero);
   const highResult = computeReducedMihm(highValue);
   const emptyResult = computeReducedMihm(noNodes);
+  // G1 keeps the old computation unchanged, but exercises the gated research
+  // candidate on exactly the same synthetic fixtures. Neither is empirical.
+  const guardNull = evaluateReducedMihmResearchInput(base);
+  const guardMeasuredZero = evaluateReducedMihmResearchInput(explicitZero);
+  const guardEmpty = evaluateReducedMihmResearchInput(noNodes);
   const comparable = (value: typeof nullResult) => ({
     regime: value.regime, vector: value.vector, confidence: value.confidence,
     warnings: value.warnings, degradation: value.degradation, operationalCapacity: value.operationalCapacity,
@@ -53,12 +59,23 @@ export function evaluateMihmFoundationMissingness() {
       meanAvailableCase: avgOnlyObserved,
       noNodesProducesNumericContinuity: Number.isFinite(emptyResult.vector.continuity),
       controlNumericPerturbationChangesOutput: JSON.stringify(comparable(nullResult)) !== JSON.stringify(comparable(highResult)),
+      guardedMissingAbstains: guardNull.decision === 'ABSTAIN' && guardNull.legacyDiagnostic === null,
+      guardedSyntheticZeroAbstains: guardMeasuredZero.decision === 'ABSTAIN' && guardMeasuredZero.legacyDiagnostic === null,
+      guardedEmptyAbstains: guardEmpty.decision === 'ABSTAIN' && guardEmpty.legacyDiagnostic === null,
     },
     outputs: {
       null: comparable(nullResult),
       explicitZero: comparable(zeroResult),
       highValue: comparable(highResult),
       noNodes: comparable(emptyResult),
+      gatedResearchCandidate: {
+        missing: { decision: guardNull.decision, reasons: guardNull.reasons, pairedCoverage: guardNull.coverage.pairedCoverage },
+        measuredZeroSynthetic: { decision: guardMeasuredZero.decision, reasons: guardMeasuredZero.reasons, pairedCoverage: guardMeasuredZero.coverage.pairedCoverage },
+        empty: { decision: guardEmpty.decision, reasons: guardEmpty.reasons, pairedCoverage: guardEmpty.coverage.pairedCoverage },
+        sourceProvenanceVerified: false,
+        canonicalPhiCalculated: false,
+        realWorldInterventionAuthorized: false,
+      },
     },
     interpretation: equality
       ? 'Null and explicit zero are observationally indistinguishable in this reduced computation. This does not prove that the actual system state is zero.'
@@ -68,6 +85,7 @@ export function evaluateMihmFoundationMissingness() {
       'All node scores are controlled synthetic inputs.',
       'No real-world homeostasis, intervention, or external return was measured.',
       'The reduced continuity metric is not canonical Phi.',
+      'The candidate abstention guard is research-only and all fixtures are simulated. Its presence does not change deployed kernel callers.',
       'A null/zero diagnostic alone does not establish predictive performance, cross-node gain or causal identification.',
     ],
   };

@@ -2,56 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './RealityChainWorkbench.css';
-import { RealityChainCaseInspector } from './RealityChainCaseInspector';
-import type { SfiRealityChain } from '@/core/case-platform/reportAssembler';
-import { caseTimelineHref } from '@/lib/sfi/navigation/operationalLinks';
 
 type Ref={id:string;hash?:string|null;version?:string|null};
 type CaseObject={id:string;kind:string;epistemicRole:string;canonicalRef:Ref;sourceRefs:Ref[];recordRefs:Ref[];evidenceRefs:Ref[];payload:Record<string,unknown>;observedAt:string|null;createdAt:string};
 type CaseRecord={id:string;subject:string;scope:string;status:string;projectId?:string|null;createdAt:string;updatedAt:string;tenantId:string;serviceProfileId:string;temporalWindow:{cutoff:string;timezone:string;basis:string}};
 type Project={id:string;name:string;caseCount:number;tenantId:string;description:string};
-type TemporalFactView={objectRef:string;clock:string;value:string;precision:'DAY'|'TIMESTAMP';
-  interpretation:string;relationToCutoff:string;historicalStatus:string;source:string|null};
-type TemporalProvenanceView={contract:string;cutoff:string;totalFacts:number;truncated:boolean;
-  snapshotObjectCount:number;warning:string;events:TemporalFactView[]};
-type AuthorityEvidenceView={
-  counts:{evidenceItems:number;accepted:number;rejected:number;pending:number;
-    authorityDecisions:number;authorityRecordsComplete:number;executionRecords:number;verifiedExecutions:number};
-  snapshotIntegrity:string; integrityGaps:string[]; truncated:boolean;
-  boundary:string;
-  evidence:{evidenceRef:string;state:string;rootSources:string[];assessments:string[];assessmentCount:number;meaning:string}[];
-  authority:{decisionId:string;proposalId:string;decision:string;authorityRole:string|null;
-    decidedBy:string|null;recordedAt:string;recordIntegrity:string;meaning:string}[];
-};
-type TrajectoryContrastView={
-  declaredCaseObjective:string|null;
-  clock:{sourceCutoff:string;t1ObservedAndValidated:boolean};
-  counts:{attractors:number;trajectories:number;caseObservations:number;
-    datedCaseObservations:number;chainAcceptedEvidence:number;caseReturns:number;
-    caseContradictions:number;verifiedExecutionRecords:number};
-  attractors:{ref:string;statedGoal:string|null;status:string}[];
-  trajectories:{ref:string;statedDirection:string|null;status:string}[];
-  latestObservations:{ref:string;observedAt:string}[];
-  gaps:string[];readScope:string;attainment:string;contrast:string;truncated:boolean;boundary:string;
-};
-type ReturnLearningView={
-  counts:{recordedReturns:number;verifiedReturns:number;supportedExpectations:number;
-    contradictedCandidates:number;unverifiedReturns:number;nonComparable:number};
-  records:{returnRef:string;executionRef:string|null;canonicalContrast:string;
-    returnVerified:boolean;executionVerified:boolean;state:string;
-    learningCandidate:string;causalEffectEstablished:false;promotedToLearning:false;
-    promotedToCanon:false}[];
-  learningStatus:string;readScope:string;nextDiscriminator:string;
-  boundary:string;truncated:boolean;
-};
-type CaseEnvelope={realityChain?:SfiRealityChain;caseRecord:CaseRecord;objects:CaseObject[];
-  readiness?:{missingSources:string[];readyForAnalysis:boolean};
-  temporalProvenance?:TemporalProvenanceView;
-  authorityEvidence?:AuthorityEvidenceView;
-  trajectoryContrast?:TrajectoryContrastView;
-  returnLearning?:ReturnLearningView;
-  readConsistency?:{readPlane:string;sourceInventoryComplete:boolean|null;
-    parity:string;warning:string|null}};
+type CaseEnvelope={caseRecord:CaseRecord;objects:CaseObject[];readiness?:{missingSources:string[];readyForAnalysis:boolean}};
 type Fragment={paragraph:number;page:number|null;pageBasis:string;text:string;start:number|null;end:number|null};
 type Extraction={source:{filename:string;mime:string;size:number;sha256:string;modifiedAt:string|null};extraction:{parser:string;pageCount:number|null;fragmentCount:number;returnedFragments:number;complete:boolean;warnings:string[];fragments:Fragment[]}};
 type Profile={id?:string;serviceProfileId?:string;name?:string;label?:string};
@@ -122,44 +78,16 @@ export function RealityChainWorkbench(){
  const [generatedAt,setGeneratedAt]=useState('');
  const refreshCases=useCallback(async()=>{
   const [c,p]=await Promise.all([requestJson('/api/cases'),requestJson('/api/cases/service-profiles')]);
-  const accessibleCases=Array.isArray(c.cases)?c.cases as CaseRecord[]:[];
-  const accessibleProjects=Array.isArray(c.projects)?c.projects as Project[]:[];
-  setCases(accessibleCases);setProjects(accessibleProjects);
+  setCases(Array.isArray(c.cases)?c.cases:[]);setProjects(Array.isArray(c.projects)?c.projects:[]);
   setProfiles(Array.isArray(p.profiles)?p.profiles:[]);
-  return {cases:accessibleCases,projects:accessibleProjects};
  },[]);
  const loadCase=useCallback(async(id:string)=>{
   if(!id){setCaseData(null);setReports([]);return;}
   const [detail,saved]=await Promise.all([requestJson('/api/cases/'+encodeURIComponent(id)),requestJson('/api/cases/'+encodeURIComponent(id)+'/reports')]);
   setCaseData(detail);setReports(Array.isArray(saved.reports)?saved.reports:[]);
  },[]);
- useEffect(()=>{
-  refreshCases().then(accessible=>{
-   const query=new URLSearchParams(window.location.search);
-   const requestedCase=query.get('caseId')??query.get('case');
-   const requestedProject=query.get('projectId');
-   const foundCase=requestedCase?accessible.cases.find(item=>item.id===requestedCase):null;
-   if(foundCase){
-    const linkedProject=foundCase.projectId;
-    setProjectId(linkedProject&&accessible.projects.some(p=>p.id===linkedProject)?linkedProject:'ALL');
-    setCaseId(foundCase.id);
-   }else if(requestedProject&&accessible.projects.some(p=>p.id===requestedProject)){
-    setProjectId(requestedProject);
-   }else if(requestedCase||requestedProject){
-    setError('CASE_OR_PROJECT_NOT_ACCESSIBLE_FOR_THIS_ACCOUNT');
-   }
-  }).catch(e=>setError(String(e.message??e)));
- },[refreshCases]);
+ useEffect(()=>{refreshCases().then(()=>{const incoming=new URLSearchParams(window.location.search).get('case');if(incoming)setCaseId(incoming);}).catch(e=>setError(String(e.message??e)));},[refreshCases]);
  useEffect(()=>{loadCase(caseId).catch(e=>{setError(String(e.message??e));setCaseData(null);});setExtraction(null);setSourceRef(null);setChosen([]);setSelectedObject(null);},[caseId,loadCase]);
- useEffect(()=>{
-  if(!caseId||caseData?.caseRecord.id!==caseId)return;
-  const requestedObject=new URLSearchParams(window.location.search).get('objectId');
-  if(!requestedObject||!caseData.objects.some(o=>o.id===requestedObject))return;
-  setSelectedObject(requestedObject);
-  setScreen(1);
-  const viewport=scroll.current;
-  if(viewport)viewport.scrollTo({left:viewport.clientWidth,behavior:'auto'});
- },[caseData,caseId]);
  useEffect(()=>{
    const element=scroll.current;if(!element)return;
    const update=()=>setScreen(Math.max(0,Math.min(2,Math.round(element.scrollLeft/Math.max(element.clientWidth,1)))));
@@ -176,8 +104,6 @@ export function RealityChainWorkbench(){
  },[]);
  const visibleCases=useMemo(()=>cases.filter(c=>projectId==='ALL'||c.projectId===projectId),[cases,projectId]);
  const objects=caseData?.objects??[];
- const visibleDecisions=useMemo(()=>caseData?.realityChain?.authority.filter(d=>
-  !cutoff||Date.parse(d.createdAt)<=Date.parse(cutoff+'T23:59:59Z'))??[],[caseData,cutoff]);
  const ordered=useMemo(()=>[...objects].sort((a,b)=>Date.parse(a.createdAt)-Date.parse(b.createdAt)),[objects]);
  // Known-at requires a persisted row by the selected cutoff: backdated observedAt
  // alone cannot smuggle a later document into an earlier epistemic snapshot.
@@ -274,18 +200,13 @@ export function RealityChainWorkbench(){
   if(!caseData)return;
   const document={contract:'SFI-REALITY-CHAIN-TRACEABILITY-DRAFT-0.1',classification:'DERIVED_READ_MODEL_NOT_INSTITUTIONAL_CERTIFICATION',
     generatedAt:new Date().toISOString(),sourceCutoff:cutoff||null,case:caseData.caseRecord,readiness:caseData.readiness,
-    temporalProvenance:caseData.temporalProvenance,
-    authorityEvidence:caseData.authorityEvidence,
-    trajectoryContrast:caseData.trajectoryContrast,
-    returnLearning:caseData.returnLearning,
     presentationStages:STEPS.map((s,i)=>({name:s.name,definition:s.role,records:asOfObjects.filter(o=>stageFor(o)===i)})),
     operationalMethod:FULL_METHOD,transversalConditions:TRANSVERSAL,
     uncategorizedObjects:asOfObjects.filter(o=>stageFor(o)<0),allRecordedObjects:asOfObjects,
     previousInstitutionalReports:reports,
     limitations:['Missing stage does not prove a control failed.','A document and its copies are not independent sources.','An extracted passage is a record, not verified evidence.',
       'No causal RETURN is inferred from execution.','Original files are not contained in this report; their source hashes and recorded excerpts are preserved.',
-      'This is an account-scoped inspection draft, not an institutionally approved publication or certification.',
-      'Authority/evidence read model represents the current case read and is not a reconstructed adjudication at the selected historical cutoff.']};
+      'This is an account-scoped inspection draft, not an institutionally approved publication or certification.']};
   const base='SFI-REALITY-CHAIN-'+caseData.caseRecord.id.slice(0,12);
   download(base+'.json',JSON.stringify(document,null,2),'application/json');
   const cells=asOfObjects.map(o=>'<tr><td>'+htmlSafe(date(o.observedAt))+'</td><td>'+htmlSafe(date(o.createdAt))+'</td><td>'+htmlSafe(o.kind)+' / '+htmlSafe(o.epistemicRole)+'</td><td>'+htmlSafe(payloadDescription(o))+'</td><td>'+htmlSafe(o.canonicalRef.id)+'<hr>'+htmlSafe(o.sourceRefs.map(r=>r.id).join(', ')||'NO SOURCE REF')+'</td><td>'+htmlSafe(o.canonicalRef.hash??'NOT RECORDED')+'</td><td>'+htmlSafe(JSON.stringify(o.payload.locator??'NOT REPRESENTED'))+'<hr>FILE MODIFIED: '+htmlSafe(((o.payload.metadata??{}) as Record<string,unknown>).fileModifiedAt??'NOT RECORDED')+'</td></tr>').join('');
@@ -300,7 +221,7 @@ export function RealityChainWorkbench(){
   try{
    await requestJson('/api/cases/'+encodeURIComponent(caseId)+'/reports',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({claims:[],deliveryFormats:['JSON'],
     limitations:['No substantive claims have been approved in this report. This governed receipt records case references only.','The full trace export is a separately downloadable derived read-model, not a certified publication.']})});
-   await loadCase(caseId);setMessage('Informe guardado con reconstrucción temporal, procedencia, límites y siguiente observación. Guardarlo no certifica las conclusiones.');
+   await loadCase(caseId);setMessage('An institutional report receipt was persisted under the existing governed Case Platform; no unsupported claims were added.');
   }catch(e){setError('Institutional report gate: '+String((e as Error).message));}finally{setWorking(false);}
  };
 
@@ -356,14 +277,6 @@ export function RealityChainWorkbench(){
     <button type="button" aria-current={screen===1?'step':undefined} onClick={()=>scrollTo(1)}>02 · ASSESS</button>
     <button type="button" aria-current={screen===2?'step':undefined} onClick={()=>scrollTo(2)}>03 · ACT & LEARN</button>
   </header>
-  {caseData?.readConsistency?.warning && <section className="rcRecordList"
-    data-case-continuity-warning="SFI-CASE-CONTINUITY-SNAPSHOT-1.0" role="status">
-    <strong>LECTURA DE CONTINUIDAD · INVENTARIO NO CERTIFICADO</strong>
-    <p>Este expediente se está leyendo desde {caseData.readConsistency.readPlane}.
-      No se puede afirmar que las fuentes, pruebas, decisiones o resultados mostrados
-      representen todo lo persistido en PRIMARY. Un cero en esta vista no es ausencia histórica.</p>
-    <small>{caseData.readConsistency.warning}</small>
-  </section>}
 
   <div className="rcGlobalCaseBar">
     <label>PROJECT
@@ -483,47 +396,17 @@ export function RealityChainWorkbench(){
               <small>SOURCE REFS: {focused.sourceRefs.map(r=>r.id).join(', ')||'NOT REPRESENTED'}</small>
               <button type="button" onClick={()=>setSelectedObject(null)}>BACK TO ALL RECORDS</button>
             </div>:<div className="rcRecordList">{asOfObjects.map(o=><button key={o.id} type="button" onClick={()=>setSelectedObject(o.id)}><time>{date(o.createdAt)}</time><strong>{o.kind} · {o.epistemicRole}</strong><span>{payloadDescription(o).slice(0,240)}</span></button>)}</div>}
-            <div className="rcThreeDataLine">{sourceObjects.length} SOURCES · {caseData?.authorityEvidence ? caseData.authorityEvidence.counts.accepted+' CHAIN-ACCEPTED EVIDENCE' : 'EVIDENCE ADJUDICATION NOT AVAILABLE'} · {asOfObjects.filter(o=>o.kind==='CONTRADICTION').length} CONTRADICTIONS</div>
+            <div className="rcThreeDataLine">{sourceObjects.length} SOURCES · {asOfObjects.filter(o=>o.kind==='EVIDENCE').length} ADMITTED EVIDENCE · {asOfObjects.filter(o=>o.kind==='CONTRADICTION').length} CONTRADICTIONS</div>
           </section>
           <section className="rcThreePane rcObservatoryWallMonitor">
             <h2>HYPOTHESIS / AUTHORITY</h2>
             <p>Interpretation does not authorize intervention. Independent sources and calibration are not inferred from document counts.</p>
             <dl><div><dt>HYPOTHESES</dt><dd>{asOfObjects.filter(o=>o.kind==='HYPOTHESIS').length} REPRESENTED</dd></div>
-              <div><dt>GOVERNANCE DECISIONS</dt><dd>{caseData?.authorityEvidence ? caseData.authorityEvidence.counts.authorityDecisions+' CASE DECISIONS RECORDED' : 'AUTHORITY READ UNAVAILABLE'}</dd></div>
+              <div><dt>GOVERNANCE DECISIONS</dt><dd>{asOfObjects.filter(o=>o.kind==='GOVERNANCE_DECISION').length} RECORDED</dd></div>
               <div><dt>INDEPENDENT CONFIRMATION</dt><dd>NOT ESTABLISHED FROM COUNTS</dd></div>
               <div><dt>CALIBRATED CONFIDENCE</dt><dd>NOT CALIBRATED</dd></div>
               <div><dt>ABSTENTION</dt><dd>REQUIRED WHERE EVIDENCE OR AUTHORITY IS INSUFFICIENT</dd></div></dl>
             <a className="rcThreeLink" href="/root/evidence-review">OPEN GOVERNED EVIDENCE REVIEW ↗</a>
-            <details className="rcRecordList" data-c15-c16-authority-evidence-ledger="SFI-CASE-AUTHORITY-EVIDENCE-READ-1.0">
-              <summary>C15 / C16 · AUTORIDAD Y ADJUDICACIÓN DE PRUEBAS</summary>
-              {cutoff && <p>ATENCIÓN: el índice de decisiones y adjudicaciones describe la lectura completa actual, no reconstruye su estado al corte histórico seleccionado ({cutoff}). No utilizar sus totales como datos de T0.</p>}
-              {caseData?.authorityEvidence ? <>
-                <p>{caseData.authorityEvidence.counts.accepted} aceptadas ·
-                  {' '}{caseData.authorityEvidence.counts.rejected} rechazadas ·
-                  {' '}{caseData.authorityEvidence.counts.pending} pendientes por el evaluador institucional.</p>
-                <p>Decisiones de autoridad registradas: {caseData.authorityEvidence.counts.authorityDecisions}.
-                  {' '}Ejecuciones verificadas: {caseData.authorityEvidence.counts.verifiedExecutions}.
-                </p>
-                <p>Integridad: {caseData.authorityEvidence.snapshotIntegrity}.
-                  {' '}Estos registros no conceden permisos nuevos ni prueban un RETURN externo.
-                </p>
-                {caseData.authorityEvidence.evidence.map((item,index)=>
-                  <article className="rcRecordItem" key={item.evidenceRef+':'+index}>
-                    <strong>PRUEBA · {item.state}</strong>
-                    <small>{item.evidenceRef}</small>
-                    <span>{item.rootSources.length} fuentes vinculadas · {item.assessmentCount} evaluaciones</span>
-                  </article>)}
-                {caseData.authorityEvidence.authority.map((item,index)=>
-                  <article className="rcRecordItem" key={item.decisionId+':'+index}>
-                    <strong>{item.decision} · {item.recordIntegrity}</strong>
-                    <small>Propuesta: {item.proposalId} · Actor: {item.decidedBy??'NO REGISTRADO'}</small>
-                    <span>Rol: {item.authorityRole??'NO REGISTRADO'} · Registro: {date(item.recordedAt)}</span>
-                  </article>)}
-                {caseData.authorityEvidence.truncated && <p>Listado limitado; no equivale al histórico completo.</p>}
-                <p>{caseData.authorityEvidence.boundary}</p>
-              </> : <p>El índice de autoridad y pruebas no está disponible en este plano o versión del sistema. No se interpreta como ausencia de registros.</p>}
-            </details>
-
           </section>
         </div>
       </section>
@@ -558,117 +441,19 @@ export function RealityChainWorkbench(){
             <h2>RECONSTRUCT / TRACE / DELIVER</h2>
             <p>The same case can be reconstructed as known at a particular time. A report does not manufacture a decision or external RETURN.</p>
             <div className="rcThreeDataLine">{asOfObjects.length} HISTORICAL OBJECTS · {reports.length} RECORDED REPORTS</div>
-            <details className="rcRecordList" data-c17-trajectory-contrast="SFI-CASE-TRAJECTORY-CONTRAST-READ-1.0">
-              <summary>C17 · ATRACTOR / TRAYECTORIA / T1 / CONTRASTE</summary>
-              {caseData?.trajectoryContrast ? <>
-                <p>Objetivo declarado: {caseData.trajectoryContrast.declaredCaseObjective??'NO DOCUMENTADO'}.
-                  {' '}Objetivo alcanzado: {caseData.trajectoryContrast.attainment}.
-                  {' '}Contraste: {caseData.trajectoryContrast.contrast}.
-                </p>
-                <p>Atractores {caseData.trajectoryContrast.counts.attractors} ·
-                  {' '}Trayectorias {caseData.trajectoryContrast.counts.trajectories} ·
-                  {' '}Observaciones fechadas {caseData.trajectoryContrast.counts.datedCaseObservations} ·
-                  {' '}Evidencias adjudicadas y aceptadas {caseData.trajectoryContrast.counts.chainAcceptedEvidence} ·
-                  {' '}RETURN registrados {caseData.trajectoryContrast.counts.caseReturns}.
-                </p>
-                <p>T1 observado y validado: {caseData.trajectoryContrast.clock.t1ObservedAndValidated?'SÍ':'NO DEMOSTRADO'}.
-                  {' '}Fecha de corte: {caseData.trajectoryContrast.clock.sourceCutoff}.
-                  {' '}Alcance de lectura: {caseData.trajectoryContrast.readScope}.
-                </p>
-                {caseData.trajectoryContrast.attractors.map(item=>
-                  <article className="rcRecordItem" key={item.ref}>
-                    <strong>ATRACTOR DECLARADO · NO CONVERGENCIA</strong>
-                    <small>{item.ref}</small><span>{item.statedGoal??'Objetivo no especificado en el objeto'}</span>
-                  </article>)}
-                {caseData.trajectoryContrast.trajectories.map(item=>
-                  <article className="rcRecordItem" key={item.ref}>
-                    <strong>TRAYECTORIA REGISTRADA · NO EFECTO VERIFICADO</strong>
-                    <small>{item.ref}</small><span>{item.statedDirection??'Dirección no especificada'}</span>
-                  </article>)}
-                {caseData.trajectoryContrast.gaps.map(gap=>
-                  <p key={gap}>POR COMPROBAR · {gap.replaceAll('_',' ')}</p>)}
-                {caseData.trajectoryContrast.truncated&&<p>Índice limitado, no es el histórico completo.</p>}
-                <p>{caseData.trajectoryContrast.boundary}</p>
-              </>:<p>La proyección de C17 no está disponible en esta lectura. No implica ausencia de objetivos ni resultados en el mundo.</p>}
-            </details>
-            <details className="rcRecordList" data-c14-temporal-source-clocks="SFI-CASE-TEMPORAL-PROVENANCE-1.0">
-              <summary>RECONSTRUCCIÓN DE RELOJES · DOCUMENTO / PROVEEDOR / SFI</summary>
-              <p>Estos son relojes documentales independientes; la fecha mostrada por una plataforma no demuestra qué mostraba antes de la fecha de corte ni equivale a RETURN.</p>
-              {caseData?.temporalProvenance ? <>
-                <p>{caseData.temporalProvenance.totalFacts} fechas clasificadas a partir de {caseData.temporalProvenance.snapshotObjectCount} objetos de esta lectura.
-                  {' '}Corte: {caseData.temporalProvenance.cutoff}.
-                </p>
-                {caseData.temporalProvenance.events.slice(0,40).map((event,i)=>
-                  <article className="rcRecordItem" key={event.objectRef+':'+event.clock+':'+i}>
-                    <strong>{event.clock.replaceAll('_',' ')} · {event.value}</strong>
-                    <small>{event.objectRef}</small>
-                    <span>{event.source??'SFI CASE PLATFORM'} · {event.interpretation.replaceAll('_',' ')}
-                      {' · '}{event.relationToCutoff==='AFTER_CUTOFF'?'DESPUÉS DEL CORTE':'FECHA DE CONTEXTO · NO PRUEBA RETROSPECTIVA'}
-                    </span>
-                  </article>)}
-                {(caseData.temporalProvenance.totalFacts>40||caseData.temporalProvenance.truncated) &&
-                  <p>Vista limitada. Consulte el JSON para el resto del índice recuperado.</p>}
-                <p>{caseData.temporalProvenance.warning}</p>
-              </> : <p>El índice temporal aún no está disponible en la versión de lectura o en este plano de continuidad. No se infiere que no existan fuentes.</p>}
-            </details>
             <button type="button" disabled={!caseData||working} onClick={makeReport}>EXPORT TRACE · JSON + PRINTABLE HTML</button>
             <button type="button" disabled={!caseData||working} onClick={persistTraceManifest}>PERSIST TRACE MANIFEST AS RECORD</button>
-            <button type="button" disabled={!caseData||working} onClick={createInstitutionalReport}>GUARDAR INFORME DEL EXPEDIENTE</button>
+            <button type="button" disabled={!caseData||working} onClick={createInstitutionalReport}>REQUEST GOVERNED REPORT RECEIPT</button>
             {generatedAt?<p>LAST LOCAL EXPORT: {date(generatedAt)}</p>:null}
             <dl><div><dt>EXECUTION RECORDS</dt><dd>{asOfObjects.filter(o=>o.kind==='INTERVENTION').length}</dd></div><div><dt>RETURN RECORDS</dt><dd>{asOfObjects.filter(o=>o.kind==='RETURN').length}</dd></div></dl>
           </section>
           <section className="rcThreePane rcObservatoryWallMonitor">
-            <details className="rcRecordList" data-c18-return-learning-review="SFI-CASE-RETURN-LEARNING-READ-1.0">
-              <summary>RETURN · CONTRASTE · APRENDIZAJE CANDIDATO</summary>
-              {caseData?.returnLearning ? <>
-                <p>RETURN registrados: {caseData.returnLearning.counts.recordedReturns}.
-                  {' '}Comprobados con ejecución: {caseData.returnLearning.counts.verifiedReturns}.
-                  {' '}Predicciones contradichas para revisión: {caseData.returnLearning.counts.contradictedCandidates}.
-                </p>
-                <p>Estado: {caseData.returnLearning.learningStatus}.
-                  {' '}Alcance: {caseData.returnLearning.readScope}.
-                </p>
-                {caseData.returnLearning.records.map((item,index)=><article className="rcRecordItem" key={item.returnRef+':'+index}>
-                  <strong>{item.state.replaceAll('_',' ')}</strong>
-                  <small>RETURN {item.returnRef} · EJECUCIÓN {item.executionRef??'NO VINCULADA'}</small>
-                  <span>Contraste {item.canonicalContrast}. Aprendizaje {item.learningCandidate}.
-                    {' '}Causalidad acreditada: NO. Promoción institucional: NO.
-                  </span>
-                </article>)}
-                {!caseData.returnLearning.counts.recordedReturns &&
-                  <p>Ningún RETURN consta en esta instantánea; si la lectura es parcial, cero no significa ausencia histórica.</p>}
-                {caseData.returnLearning.truncated&&
-                  <p>Proyección limitada: consulte el registro institucional completo.</p>}
-                <p>Próxima prueba: {caseData.returnLearning.nextDiscriminator}.</p>
-                <p>{caseData.returnLearning.boundary}</p>
-              </> : <p>La lectura aún no expone un índice contrastado de RETURN. No se infiere aprendizaje.</p>}
-            </details>
             <h2>REALITY PASSPORT / LEARNING</h2>
-            {caseData?.realityChain?<>
-              <p><strong>{caseData.realityChain.closure.certified?'Integridad documental comprobada':'Sin certificación'}</strong> · {caseData.realityChain.closure.disposition==='ADMINISTRATIVE'?'Cierre administrativo':caseData.realityChain.closure.disposition==='INCONCLUSIVE'?'Conclusión inconclusa documentada':'Revisión del expediente'}</p>
-              {caseData.realityChain.narrative.map((line,i)=><p key={i}>{line}</p>)}
-              <p><b>T0</b> {caseData.realityChain.temporal.t0.cutoff??'No establecido'} · <b>T1</b> {caseData.realityChain.temporal.t1.cutoff}</p>
-              <details><summary>Qué falta para certificar</summary><ul>{caseData.realityChain.gapExplanations.map((gap,i)=><li key={i}>{gap}</li>)}</ul></details>
-              <p>{caseData.realityChain.nextObservation}</p>
-              <a className="rcThreeLink" href={'/api/cases/'+encodeURIComponent(caseId)+'/reports?format=passport-json'}>DESCARGAR EXPEDIENTE COMPLETO · JSON</a>
-              <a className="rcThreeLink" href={'/api/cases/'+encodeURIComponent(caseId)+'/reports?format=passport-pdf'}>DESCARGAR PASSPORT · PDF</a>
-              <a className="rcThreeLink" href={'/api/cases/'+encodeURIComponent(caseId)+'/reports?format=passport-html'}>DESCARGAR INFORME LEGIBLE · HTML IMPRIMIBLE</a>
-            </>:null}
-            {caseId?<a className="rcThreeLink" href={'/root?reading=REALITY_CHAIN&node='+encodeURIComponent(caseId)}>CHECK CASE ADMISSION IN ROOT · NOT AUTOMATIC ↗</a>:<p>SELECT A CASE TO OPEN ITS PASSPORT.</p>}
-            {caseTimelineHref(caseId)?<a className="rcThreeLink" href={caseTimelineHref(caseId)!}>OPEN CASE HISTORY IN TIMELINE ↗</a>:null}
-            <section aria-label="Decisiones y autorizaciones persistidas">
-               <h3>DECISIONES DOCUMENTADAS</h3>
-               {visibleDecisions.length ? visibleDecisions.slice(0,30).map(d=><p key={d.id}>
-                 <strong>{d.decision} · {d.authorityRole||'AUTORIDAD DESCONOCIDA'}</strong>
-                 {' · '}Actor: {d.decidedBy||'No documentado'}
-                 {' · '}Fecha: {date(d.createdAt)}
-                 {' · '}Propuesta: {d.proposalId}
-               </p>) : <p>No hay decisiones de autoridad registradas para este corte. La falta de un registro no demuestra que no existieran decisiones externas.</p>}
-               {visibleDecisions.length>30?<p>Vista limitada a 30. Consulte el expediente completo para más registros.</p>:null}
-             </section>
-             <dl><div><dt>WHAT EVIDENCE WAS ACCEPTED?</dt><dd>{caseData?.authorityEvidence ? caseData.authorityEvidence.counts.accepted+' CANONICALLY ADJUDICATED' : 'ADJUDICATION NOT AVAILABLE'}</dd></div>
+            <p>Inspect the selected case in ROOT using its existing identifier. No duplicate passport or authority is created.</p>
+            {caseId?<a className="rcThreeLink" href={'/root?reading=REALITY_CHAIN&node='+encodeURIComponent(caseId)}>OPEN SELECTED CASE IN ROOT ↗</a>:<p>SELECT A CASE TO OPEN ITS PASSPORT.</p>}
+            <dl><div><dt>WHAT WAS KNOWN?</dt><dd>{asOfObjects.filter(o=>o.kind==='EVIDENCE').length} ADMITTED EVIDENCE OBJECTS</dd></div>
             <div><dt>WHAT WAS INFERRED?</dt><dd>{asOfObjects.filter(o=>o.kind==='HYPOTHESIS').length} RECORDED HYPOTHESES</dd></div>
-            <div><dt>WHAT DECISIONS WERE RECORDED?</dt><dd>{caseData?.authorityEvidence ? caseData.authorityEvidence.counts.authorityDecisions+' RECORDED CASE DECISIONS' : 'AUTHORITY READ NOT AVAILABLE'}</dd></div>
+            <div><dt>WHAT WAS AUTHORIZED?</dt><dd>{asOfObjects.filter(o=>o.kind==='GOVERNANCE_DECISION').length} RECORDED DECISIONS</dd></div>
             <div><dt>WHAT WAS EXECUTED?</dt><dd>{asOfObjects.filter(o=>o.kind==='INTERVENTION').length} INTERVENTION RECORDS</dd></div>
             <div><dt>WHAT DID REALITY RETURN?</dt><dd>{asOfObjects.filter(o=>o.kind==='RETURN').length} RETURN RECORDS</dd></div>
             <div><dt>WHAT WAS LEARNED?</dt><dd>GOVERNED INTEGRATION NOT INFERRED FROM CASE CLOSURE</dd></div></dl>
@@ -678,8 +463,6 @@ export function RealityChainWorkbench(){
     </div>
   </div>
 
-
-  {caseData?<RealityChainCaseInspector caseId={caseId} objects={asOfObjects}/>:null}
 
   {message?<div className="rcToast" role="status">{message}<button onClick={()=>setMessage('')} aria-label="Dismiss message">×</button></div>:null}
   {error?<div className="rcToast rcToastError" role="alert">{error}<button onClick={()=>setError('')} aria-label="Dismiss error">×</button></div>:null}

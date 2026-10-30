@@ -2,8 +2,6 @@ import { NextResponse } from 'next/server';
 
 import { authorizeExternalRequest, externalActor, externalAuthError } from '@/lib/sfi/externalAuth';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
-import { readJrCaseInterpretation } from '@/lib/mihm/jrFieldReadModel';
-import { sfiCaseApiFailure } from '@/lib/sfi/case-platform/http';
 import { runJrFieldCycle } from '@/lib/mihm/jrFieldCycle';
 import { SFI_SUPABASE_READ_BUDGET } from '@/lib/supabase/readBudget';
 
@@ -103,13 +101,6 @@ export async function POST(req: Request) {
 
   const actorId = externalActor(auth.credential);
   const nodeRefs = boundedNodeRefs(body.nodeRefs);
-  if (operation === 'state' && typeof body.caseId === 'string' && body.caseId.trim()) {
-    const caseAuth = authorizeExternalRequest(req, 'cases:read');
-    if (!caseAuth.credential) return NextResponse.json(externalAuthError(caseAuth, 'cases:read'),{status:403});
-    try {
-      return NextResponse.json({ok:true,operation,caseInterpretation:await readJrCaseInterpretation(body.caseId.trim(),auth.credential.subjectId)}, {headers:{'Cache-Control':'private, no-store'}});
-    } catch(error) { return sfiCaseApiFailure(error); }
-  }
   if (operation === 'state') {
     return NextResponse.json({
       ...(await readJrState(nodeRefs)),

@@ -203,3 +203,294 @@ export function computeReducedMihm(input: ReducedMihmInput): ReducedMihmResult {
     operationalCapacity: Number(operationalCapacityValue.toFixed(4)),
   };
 }
+
+
+/**
+ * MIHM Foundation F1 — bounded topology contrast.
+ * Research-grade descriptive comparator only; no identity, causality, prediction or canonical Phi.
+ * Source-state and coverage flags are caller declarations, not evidence admission.
+ */
+export type MihmTopologyRelation = {
+  sourceNodeId: string;
+  targetNodeId: string;
+  relation: string;
+};
+
+export type MihmTopologySnapshot = {
+  boundaryId: string;
+  relationSemanticsId: string;
+  observedAt: string;
+  sourceState: 'OBSERVED' | 'SIMULATED' | 'NOT_OBSERVED';
+  coverage: 'COMPLETE' | 'PARTIAL' | 'UNKNOWN';
+  nodeIds: string[];
+  relations: MihmTopologyRelation[];
+  evidenceRefs: string[];
+};
+
+export type MihmTopologyProtocol = {
+  boundaryId: string;
+  relationSemanticsId: string;
+  observerId: string;
+  resolution: 'NODE_RELATION';
+  temporalResolution: 'INSTANT' | 'DAILY' | 'WEEKLY';
+  directed: boolean;
+};
+
+export type MihmTopologyContrast = {
+  contract: 'MIHM-TOPOLOGY-CONTRAST-1.0';
+  status: 'STRUCTURAL_CHANGE' | 'EQUIVALENT_WITHIN_PROTOCOL' | 'INDETERMINATE';
+  epistemicClass: 'DERIVED' | 'SIMULATED' | 'UNKNOWN';
+  protocol: MihmTopologyProtocol;
+  counts: {
+    beforeNodes: number;
+    afterNodes: number;
+    beforeRelations: number;
+    afterRelations: number;
+    aggregatesEqual: boolean;
+  } | null;
+  delta: {
+    addedNodes: string[];
+    removedNodes: string[];
+    addedRelations: Array<MihmTopologyRelation & { count: number }>;
+    removedRelations: Array<MihmTopologyRelation & { count: number }>;
+    weakComponentsBefore: number;
+    weakComponentsAfter: number;
+  } | null;
+  missing: string[];
+  limitations: string[];
+};
+
+/**
+ * Compare two complete, identity-stable, same-boundary snapshots at one declared resolution.
+ * Parallel relations are counted, orientation is predeclared, and observations never become proof
+ * of ontology. Weights, causal attribution and predictive claims are explicitly out of scope.
+ */
+export function compareMihmTopology(input: {
+  protocol: MihmTopologyProtocol;
+  before: MihmTopologySnapshot;
+  after: MihmTopologySnapshot;
+}): MihmTopologyContrast {
+  const { protocol, before, after } = input;
+  const missing: string[] = [];
+  const limitations = [
+    'Topology contrast does not establish individual identity, emergence, causality or prediction.',
+    'Stable node identifiers and relation semantics must be independently justified; relabeling can mimic change.',
+    'Relation weights and unobserved relations are not measured by this NODE_RELATION protocol.',
+    'Caller-provided OBSERVED and COMPLETE labels do not constitute independent evidence adjudication.',
+  ];
+  const epistemicClass: MihmTopologyContrast['epistemicClass'] =
+    before.sourceState === 'NOT_OBSERVED' || after.sourceState === 'NOT_OBSERVED' ? 'UNKNOWN' :
+    before.sourceState === 'SIMULATED' || after.sourceState === 'SIMULATED' ? 'SIMULATED' : 'DERIVED';
+  const base = {
+    contract: 'MIHM-TOPOLOGY-CONTRAST-1.0' as const,
+    protocol, epistemicClass, limitations,
+  };
+  const validName = (value: unknown): value is string =>
+    typeof value === 'string' && value.trim().length > 0 && value === value.trim();
+  if (!validName(protocol.boundaryId) || !validName(protocol.relationSemanticsId) || !validName(protocol.observerId) ||
+      protocol.resolution !== 'NODE_RELATION' || !['INSTANT', 'DAILY', 'WEEKLY'].includes(protocol.temporalResolution) ||
+      typeof protocol.directed !== 'boolean') {
+    missing.push('valid predeclared observer, boundary, relation semantics, temporal resolution and orientation');
+  }
+  if (before.boundaryId !== protocol.boundaryId || after.boundaryId !== protocol.boundaryId) {
+    missing.push('both snapshots must use the predeclared boundary');
+  }
+  if (before.relationSemanticsId !== protocol.relationSemanticsId || after.relationSemanticsId !== protocol.relationSemanticsId) {
+    missing.push('both snapshots must use the predeclared relation semantics');
+  }
+  if (before.coverage !== 'COMPLETE' || after.coverage !== 'COMPLETE') {
+    missing.push('complete node and edge census at both times');
+  }
+  if (!['OBSERVED', 'SIMULATED'].includes(before.sourceState) ||
+      !['OBSERVED', 'SIMULATED'].includes(after.sourceState)) {
+    missing.push('two observed or explicitly simulated snapshots');
+  }
+  const firstTime = Date.parse(before.observedAt), secondTime = Date.parse(after.observedAt);
+  if (!Number.isFinite(firstTime) || !Number.isFinite(secondTime) || secondTime <= firstTime) {
+    missing.push('valid ordered T0 and T1 observation timestamps');
+  }
+  for (const [label, snapshot] of [['T0', before], ['T1', after]] as const) {
+    if (!Array.isArray(snapshot.nodeIds) || snapshot.nodeIds.length === 0 ||
+        snapshot.nodeIds.some((id) => !validName(id)) || new Set(snapshot.nodeIds).size !== snapshot.nodeIds.length) {
+      missing.push(label + ': nonempty unique stable node identifiers');
+    }
+    if (!Array.isArray(snapshot.relations) || snapshot.relations.some((r) =>
+          !r || !validName(r.sourceNodeId) || !validName(r.targetNodeId) || !validName(r.relation) ||
+          !Array.isArray(snapshot.nodeIds) || !snapshot.nodeIds.includes(r.sourceNodeId) ||
+          !snapshot.nodeIds.includes(r.targetNodeId))) {
+      missing.push(label + ': relations with valid endpoints and typed relation labels');
+    }
+    if (snapshot.sourceState === 'OBSERVED' &&
+        (!Array.isArray(snapshot.evidenceRefs) || !snapshot.evidenceRefs.some(validName))) {
+      missing.push(label + ': evidence references for observational claim');
+    }
+  }
+  if (missing.length) return { ...base, status: 'INDETERMINATE', counts: null, delta: null, missing };
+
+  // JSON tuples prevent identifier collisions; a multiset preserves parallel edge multiplicity.
+  const keyed = (relation: MihmTopologyRelation) => {
+    const [source, target] = protocol.directed || relation.sourceNodeId <= relation.targetNodeId
+      ? [relation.sourceNodeId, relation.targetNodeId]
+      : [relation.targetNodeId, relation.sourceNodeId];
+    return JSON.stringify([source, target, relation.relation]);
+  };
+  const bag = (relations: MihmTopologyRelation[]) => {
+    const counts = new Map<string, number>();
+    for (const relation of relations) {
+      const key = keyed(relation);
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    return counts;
+  };
+  const oldBag = bag(before.relations), newBag = bag(after.relations);
+  const addedRelations: Array<MihmTopologyRelation & { count: number }> = [];
+  const removedRelations: Array<MihmTopologyRelation & { count: number }> = [];
+  for (const key of [...new Set([...oldBag.keys(), ...newBag.keys()])].sort()) {
+    const change = (newBag.get(key) ?? 0) - (oldBag.get(key) ?? 0);
+    const [sourceNodeId, targetNodeId, relation] = JSON.parse(key) as [string, string, string];
+    if (change > 0) addedRelations.push({ sourceNodeId, targetNodeId, relation, count: change });
+    if (change < 0) removedRelations.push({ sourceNodeId, targetNodeId, relation, count: -change });
+  }
+  const oldNodes = new Set(before.nodeIds), newNodes = new Set(after.nodeIds);
+  const addedNodes = after.nodeIds.filter((id) => !oldNodes.has(id)).sort();
+  const removedNodes = before.nodeIds.filter((id) => !newNodes.has(id)).sort();
+  const weakComponents = (snapshot: MihmTopologySnapshot) => {
+    const neighbors = new Map(snapshot.nodeIds.map((id) => [id, new Set<string>()]));
+    for (const edge of snapshot.relations) {
+      neighbors.get(edge.sourceNodeId)!.add(edge.targetNodeId);
+      neighbors.get(edge.targetNodeId)!.add(edge.sourceNodeId);
+    }
+    const seen = new Set<string>();
+    let components = 0;
+    for (const id of snapshot.nodeIds) {
+      if (seen.has(id)) continue;
+      components++;
+      const stack = [id];
+      while (stack.length) {
+        const current = stack.pop()!;
+        if (seen.has(current)) continue;
+        seen.add(current);
+        for (const next of neighbors.get(current)!) if (!seen.has(next)) stack.push(next);
+      }
+    }
+    return components;
+  };
+  const status: MihmTopologyContrast['status'] =
+    addedNodes.length || removedNodes.length || addedRelations.length || removedRelations.length
+      ? 'STRUCTURAL_CHANGE' : 'EQUIVALENT_WITHIN_PROTOCOL';
+  return {
+    ...base, status, missing: [],
+    counts: {
+      beforeNodes: before.nodeIds.length, afterNodes: after.nodeIds.length,
+      beforeRelations: before.relations.length, afterRelations: after.relations.length,
+      aggregatesEqual: before.nodeIds.length === after.nodeIds.length &&
+        before.relations.length === after.relations.length,
+    },
+    delta: {
+      addedNodes, removedNodes, addedRelations, removedRelations,
+      weakComponentsBefore: weakComponents(before),
+      weakComponentsAfter: weakComponents(after),
+    },
+  };
+}
+
+
+/** Versioned historical arithmetic, not a replacement for any canonical Phi. */
+export type MihmNormalizedNode = {id:string;C:number;E:number;L:number;M?:number;R?:number;K?:number};
+export function calculateMihmNodeState(nodes:MihmNormalizedNode[],version:'LEGACY_V1_5'|'LEGACY_V2'='LEGACY_V2') {
+  const valid=nodes.length>0&&new Set(nodes.map(n=>n.id)).size===nodes.length&&nodes.every(n=>n.id&&(version==='LEGACY_V1_5'?[n.C,n.E,n.L]:[n.C,n.E,n.L,n.M]).every(v=>typeof v==='number'&&Number.isFinite(v)&&v>=0&&v<=1));
+  if(!valid||nodes.length>256||!['LEGACY_V1_5','LEGACY_V2'].includes(version))return {crm:null,crmStatus:'MISSING_OR_INVALID',status:'BLOCKED' as const,ihg:null,ice:null,sensitivity:[],formula:version==='LEGACY_V1_5'?'LEGACY_V1_5_DOCUMENTED_EQUATION':'LEGACY_V2_DOCUMENTED_EQUATION',canonicalPhiCalculated:false};
+  const terms=nodes.map(n=>{const effective=n.L*(version==='LEGACY_V1_5'?1:2-(n.M as number)),factor=1-Math.min(effective,1);return{nodeId:n.id,contribution:(n.C-n.E)*factor,
+    dC:factor/nodes.length,dE:-factor/nodes.length,
+    dL:effective<1?-(n.C-n.E)*(version==='LEGACY_V1_5'?1:2-(n.M as number))/nodes.length:null,
+    dM:version==='LEGACY_V1_5'?null:effective<1?(n.C-n.E)*n.L/nodes.length:null};});
+  const total=nodes.reduce((s,n)=>s+n.E,0);
+  const crmValid=nodes.every(n=>[n.R,n.K].every(v=>typeof v==='number'&&Number.isFinite(v)&&v>=0&&v<=1));
+  return {crm:crmValid?nodes.reduce((sum,n)=>sum+(n.R as number)*(n.K as number),0)/nodes.length:null,crmStatus:crmValid?'DERIVED':'MISSING_OR_INVALID',status:'DERIVED' as const,ihg:terms.reduce((s,n)=>s+n.contribution,0)/nodes.length,
+    ice:total===0?null:Math.max(...nodes.map(n=>n.E))/total,sensitivity:terms,
+    formula:version==='LEGACY_V1_5'?'LEGACY_V1_5_DOCUMENTED_EQUATION':'LEGACY_V2_DOCUMENTED_EQUATION',canonicalPhiCalculated:false};
+}
+
+export function simulateMihmRedistribution(nodes:Array<{id:string;capacity:number;load:number}>,transfers:Array<{from:string;to:string;amount:number}>) {
+  const blocked=(reason:string)=>({status:'BLOCKED' as const,reason,nodes:[] as typeof nodes,totalBefore:null,totalAfter:null,externalActionAuthorized:false});
+  if(!nodes.length||nodes.length>256||transfers.length>4096||new Set(nodes.map(n=>n.id)).size!==nodes.length||nodes.some(n=>!n.id||![n.capacity,n.load].every(v=>typeof v==='number'&&Number.isFinite(v)&&v>=0)))return blocked('INVALID_NODE_MEASUREMENTS');
+  const draft=nodes.map(n=>({...n}));const index=new Map(draft.map(n=>[n.id,n]));
+  const outgoing=new Map<string,number>(),incoming=new Map<string,number>();
+  for(const t of transfers){
+    if(!index.has(t.from)||!index.has(t.to)||t.from===t.to||typeof t.amount!=='number'||!Number.isFinite(t.amount)||t.amount<0)return blocked('INVALID_TRANSFER');
+    outgoing.set(t.from,(outgoing.get(t.from)??0)+t.amount);incoming.set(t.to,(incoming.get(t.to)??0)+t.amount);
+  }
+  for(const n of draft){
+    if((outgoing.get(n.id)??0)>n.load)return blocked('TRANSFER_EXCEEDS_SOURCE_LOAD');
+    n.load=n.load-(outgoing.get(n.id)??0)+(incoming.get(n.id)??0);
+    if(!Number.isFinite(n.load)||((incoming.get(n.id)??0)>0&&n.load>n.capacity))return blocked('RECIPIENT_CAPACITY_EXCEEDED');
+  }
+  const totalBefore=nodes.reduce((s,n)=>s+n.load,0),totalAfter=draft.reduce((s,n)=>s+n.load,0);
+  if(!Number.isFinite(totalAfter)||Math.abs(totalBefore-totalAfter)>1e-10*Math.max(1,totalBefore))return blocked('LOAD_CONSERVATION_FAILED');
+  return {status:'SIMULATED' as const,reason:null,nodes:draft,totalBefore,totalAfter,externalActionAuthorized:false};
+}
+
+export function projectMihmDynamics(input:{state:number[];transition:number[][];forcing:number[];steps:number}) {
+  const n=input.state.length;
+  const blocked=(reason:string)=>({status:'BLOCKED' as const,reason,trajectory:[] as number[][],stability:'NOT_ESTABLISHED',realWorldHomeostasisEstablished:false});
+  if(n<1||n>64||!Number.isInteger(input.steps)||input.steps<1||input.steps>1000||input.forcing.length!==n||input.transition.length!==n||input.transition.some(r=>r.length!==n)||[...input.state,...input.forcing,...input.transition.flat()].some(v=>typeof v!=='number'||!Number.isFinite(v)))return blocked('INVALID_OR_UNBOUNDED_MODEL');
+  const trajectory=[input.state.slice()];
+  for(let k=0;k<input.steps;k++){
+    const prev=trajectory[trajectory.length-1];
+    const next=input.transition.map((r,i)=>r.reduce((sum,a,j)=>sum+a*prev[j],input.forcing[i]));
+    if(next.some(v=>!Number.isFinite(v)))return blocked('MODEL_NUMERIC_OVERFLOW');
+    trajectory.push(next);
+  }
+  const contractionBound=Math.max(...input.transition.map(r=>r.reduce((s,v)=>s+Math.abs(v),0)));
+  if(!Number.isFinite(contractionBound))return blocked('MODEL_NORM_OVERFLOW');
+  return {status:'SIMULATED' as const,reason:null,trajectory,contractionBound,
+    stability:contractionBound<1?'SUFFICIENT_CONTRACTION_OF_DECLARED_MODEL':'NOT_ESTABLISHED',realWorldHomeostasisEstablished:false};
+}
+
+export type MihmForecastPair={id:string;unit:string;issuedAt:string;availableAt:string;targetAt:string;outcomeAvailableAt:string;observed:number;candidate:number;baseline:number};
+function mihmIso(value:string) {
+  if(typeof value!=='string'||!/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?(?:Z|[+-]\d\d:\d\d)$/.test(value))return false;
+  const time=Date.parse(value);if(!Number.isFinite(time))return false;
+  const zone=value.endsWith('Z')?null:value.slice(-6);
+  if(zone&&(Number(zone.slice(1,3))>23||Number(zone.slice(4))>59))return false;
+  const shift=zone?(zone[0]==='-'?-1:1)*(Number(zone.slice(1,3))*60+Number(zone.slice(4))):0;
+  return new Date(time+shift*60000).toISOString().slice(0,10)===value.slice(0,10);
+}
+export function compareMihmForecasts(rows:MihmForecastPair[],evaluatedAt=new Date().toISOString()) {
+  const base={scientificValidation:false,canonicalPhiCalculated:false};
+  if(!mihmIso(evaluatedAt)||rows.length>10000||new Set(rows.map(r=>r.unit)).size>1||new Set(rows.map(r=>r.id)).size!==rows.length)return {...base,status:'BLOCKED',n:0,candidateMAE:null,baselineMAE:null,relativeImprovement:null,excluded:rows.map(r=>r.id)};
+  const accepted=rows.filter(r=>{
+    const times=[r.issuedAt,r.availableAt,r.targetAt,r.outcomeAvailableAt].map(t=>typeof t==='string'?Date.parse(t):NaN);
+    return r.id&&r.unit&&[r.issuedAt,r.availableAt,r.targetAt,r.outcomeAvailableAt].every(mihmIso)&&times[3]<=Date.parse(evaluatedAt)&&times.every(Number.isFinite)&&times[1]<=times[0]&&times[0]<times[2]&&times[2]<=times[3]&&[r.observed,r.candidate,r.baseline].every(v=>typeof v==='number'&&Number.isFinite(v));
+  });
+  const excluded=rows.filter(r=>!accepted.includes(r)).map(r=>r.id);
+  const n=accepted.length;if(!n)return {...base,status:'INSUFFICIENT',n:0,candidateMAE:null,baselineMAE:null,relativeImprovement:null,excluded};
+  const candidateMAE=accepted.reduce((s,r)=>s+Math.abs(r.observed-r.candidate),0)/n;
+  const baselineMAE=accepted.reduce((s,r)=>s+Math.abs(r.observed-r.baseline),0)/n;
+  if(!Number.isFinite(candidateMAE)||!Number.isFinite(baselineMAE))return {...base,status:'BLOCKED',n:0,candidateMAE:null,baselineMAE:null,relativeImprovement:null,excluded:rows.map(r=>r.id)};
+  return {...base,status:'DERIVED',n,candidateMAE,baselineMAE,relativeImprovement:baselineMAE===0||!Number.isFinite(1-candidateMAE/baselineMAE)?null:1-candidateMAE/baselineMAE,excluded};
+}
+
+/** Reproducible declared measurement-range propagation, NOT empirical confidence. */
+export function sampleMihmUncertainty(input:{nodes:MihmNormalizedNode[];radius:number;samples:number;seed:number}) {
+  if(calculateMihmNodeState(input.nodes).ihg===null||!Number.isFinite(input.radius)||input.radius<0||input.radius>1||!Number.isInteger(input.samples)||input.samples<2||input.samples>10000||!Number.isInteger(input.seed))return {status:'BLOCKED' as const,ihg:null};
+  let seed=input.seed>>>0;const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
+  const values:number[]=[];
+  for(let i=0;i<input.samples;i++){
+    const sample=input.nodes.map(n=>({...n,C:clamp01(n.C+(2*random()-1)*input.radius),E:clamp01(n.E+(2*random()-1)*input.radius),L:clamp01(n.L+(2*random()-1)*input.radius),M:clamp01((n.M as number)+(2*random()-1)*input.radius)}));
+    values.push(calculateMihmNodeState(sample).ihg as number);
+  }
+  values.sort((a,b)=>a-b);
+  return {status:'SIMULATED' as const,ihg:{min:values[0],median:values[Math.floor(values.length/2)],max:values[values.length-1]},seed:input.seed,samples:input.samples,distribution:'INDEPENDENT_UNIFORM_CLIPPED_DECLARED_RANGES',empiricalConfidenceInterval:false};
+}
+
+export function screenMihmPathologies(input:{nodes:Array<{id:string;capacity:number;declaredCapacity:number;load:number;previousCapacity:number;latency:number;previousLatency:number}>;edges:Array<{from:string;to:string}>;limits:{phantomCapacityGap:number;latencyIncrease:number}}) {
+  const ids=new Set(input.nodes.map(n=>n.id));
+  if(!input.nodes.length||input.nodes.length>256||input.edges.length>4096||ids.size!==input.nodes.length||input.nodes.some(n=>!n.id||[n.capacity,n.declaredCapacity,n.load,n.previousCapacity,n.latency,n.previousLatency].some(v=>typeof v!=='number'||!Number.isFinite(v)||v<0))||[input.limits.phantomCapacityGap,input.limits.latencyIncrease].some(v=>typeof v!=='number'||!Number.isFinite(v)||v<0)||input.edges.some(e=>!ids.has(e.from)||!ids.has(e.to)||e.from===e.to))return {status:'BLOCKED' as const,phantomCapacity:[],silentFatigue:[],exposedRecipients:[],causalSepsisEstablished:false};
+  const phantomCapacity=input.nodes.filter(n=>n.declaredCapacity-n.capacity>input.limits.phantomCapacityGap).map(n=>n.id);
+  const silentFatigue=input.nodes.filter(n=>n.capacity<n.previousCapacity&&n.latency-n.previousLatency>input.limits.latencyIncrease).map(n=>n.id);
+  const overloaded=new Set(input.nodes.filter(n=>n.load>n.capacity).map(n=>n.id));
+  const reached=new Set(overloaded);let changed=true;
+  while(changed){changed=false;for(const e of input.edges)if(reached.has(e.from)&&!reached.has(e.to)){reached.add(e.to);changed=true;}}
+  return {status:'DERIVED_SCREENING' as const,phantomCapacity,silentFatigue,exposedRecipients:[...reached].filter(id=>!overloaded.has(id)),causalSepsisEstablished:false,calibratedThresholds:false};
+}

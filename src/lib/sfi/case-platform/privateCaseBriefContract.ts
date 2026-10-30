@@ -1,4 +1,3 @@
-import type { SfiRealityChain } from '@/core/case-platform/reportAssembler';
 import { createHash } from 'node:crypto';
 import type { SfiCanonicalRef } from '@/core/contracts/sfi';
 import type { SfiUnifontGlyph } from './unifontType3';
@@ -30,9 +29,6 @@ export type PrivateCaseBriefRenderInput = {
   generatedAt: string;
   evidenceRefs: SfiCanonicalRef[];
   coverBrief: SfiCaseCoverBrief;
-  documentTitle?: string;
-  reportLines?: string[];
-  paper?: 'A4';
 };
 
 function nullableText(value: string | null | undefined) {
@@ -128,7 +124,6 @@ function chunks<T>(values: T[], size: number) {
 }
 
 function detailLines(input: PrivateCaseBriefRenderInput) {
-  if (input.reportLines) return input.reportLines.flatMap(line=>line ? wrap(line,78) : ['']);
   const evidenceLabels = input.evidenceRefs.map(formatCanonicalRef);
   return [
     `Case: ${input.caseId}`,
@@ -145,13 +140,9 @@ function detailLines(input: PrivateCaseBriefRenderInput) {
   ];
 }
 
-function detailHeader(input:PrivateCaseBriefRenderInput,index:number,count:number){
-  return input.documentTitle ? `EXPEDIENTE PRIVADO / PÁGINA ${index+1} DE ${count}` : `PRIVATE CASE BRIEF / DETAIL ${index+1} OF ${count}`;
-}
-
 function pageLineGroups(input: PrivateCaseBriefRenderInput) {
   const cover = {
-    coverLines: wrap(input.documentTitle ?? 'SYSTEM FRICTION INSTITUTE / PRIVATE CASE BRIEF', 48),
+    coverLines: wrap('SYSTEM FRICTION INSTITUTE / PRIVATE CASE BRIEF', 48),
     subjectLines: wrap(input.subject || 'Case subject not declared', 54),
     footerLines: wrap(`PRIVATE / ${input.caseId} / ${input.version}`, 60),
   };
@@ -165,7 +156,7 @@ export function requiredPrivateCaseBriefCodePoints(input: PrivateCaseBriefRender
     ...cover.coverLines,
     ...cover.subjectLines,
     ...cover.footerLines,
-    ...detailChunks.flatMap((lines, index) => [detailHeader(input,index,detailChunks.length), '', ...lines]),
+    ...detailChunks.flatMap((lines, index) => [`PRIVATE CASE BRIEF / DETAIL ${index + 1} OF ${detailChunks.length}`, '', ...lines]),
   ];
   const result = new Set<number>();
   for (const value of values) {
@@ -210,7 +201,7 @@ function utf16BeHex(codePoint: number) {
 
 function glyphStream(glyph: FontGlyph) {
   const advance = glyph.width === 8 ? 500 : 1000;
-  const pixelWidth = 62.5;
+  const pixelWidth = glyph.width === 8 ? 125 : 62.5;
   const pixelHeight = 62.5;
   const ops = [`${advance} 0 d0`];
   for (let row = 0; row < 16; row += 1) {
@@ -305,7 +296,7 @@ export function renderPrivateCaseBriefPdf(input: PrivateCaseBriefRenderInput, un
     ].join('\n'),
     ...detailChunks.map((lines, index) => [
       '0 0 0 rg',
-      textOps([detailHeader(input,index,detailChunks.length), '', ...lines], 54, 740, 13, 9, registry),
+      textOps([`PRIVATE CASE BRIEF / DETAIL ${index + 1} OF ${detailChunks.length}`, '', ...lines], 54, 740, 13, 9, registry),
     ].join('\n')),
   ];
 
@@ -327,7 +318,7 @@ export function renderPrivateCaseBriefPdf(input: PrivateCaseBriefRenderInput, un
   reserve('pages', () => `<< /Type /Pages /Kids [${pageStreams.map((_, index) => ref(`page:${index}`)).join(' ')}] /Count ${pageStreams.length} >>`);
   pageStreams.forEach((_, index) => reserve(`page:${index}`, () => {
     const resources = partitions.map((partition) => `/${partition.resource} ${ref(`font:${partition.resource}`)}`).join(' ');
-    return `<< /Type /Page /Parent ${ref('pages')} /MediaBox [0 0 ${input.paper==='A4'?'595.28 841.89':'612 792'}] /Resources << /Font << ${resources} >> >> /Contents ${ref(`content:${index}`)} >>`;
+    return `<< /Type /Page /Parent ${ref('pages')} /MediaBox [0 0 612 792] /Resources << /Font << ${resources} >> >> /Contents ${ref(`content:${index}`)} >>`;
   }));
 
   for (const partition of partitions) {
@@ -359,32 +350,4 @@ export function renderPrivateCaseBriefPdf(input: PrivateCaseBriefRenderInput, un
 
 export function sha256Hex(bytes: Uint8Array) {
   return createHash('sha256').update(bytes).digest('hex');
-}
-
-/** Uses the same PDF renderer and Unicode font custody as existing private briefs. */
-export function buildRealityPassportPdfInput(chain:SfiRealityChain, readConsistency?:{humanWarning:string;warning:string}):PrivateCaseBriefRenderInput {
-  const evidenceRefs=chain.provenance.adjudications.map(a=>a.evidenceRef);
-  return {caseId:chain.caseId,version:chain.inputHash.slice(0,12),subject:chain.subject,scope:chain.scope,generatedAt:new Date().toISOString(),evidenceRefs,
-          coverBrief:buildSfiCaseCoverBrief({caseId:chain.caseId,sourceEvidenceRefs:evidenceRefs}),
-          paper:'A4',documentTitle:'SYSTEM FRICTION INSTITUTE / REALITY CHAIN PASSPORT',
-          reportLines:[
-            'ESTADO DE LA LECTURA - PARIDAD ENTRE BASES NO CERTIFICADA',
-            readConsistency?.humanWarning ??
-              'Estado de los proveedores no verificado; un cero o una omisión no demuestra ausencia en PRIMARY.',
-            'Código de consistencia: '+(readConsistency?.warning??'DATA_PLANE_STATE_UNAVAILABLE'),
-            '',
-            chain.closure.certified?'Integridad documental comprobada para este alcance (no acredita paridad entre bases)':'Sin certificación',
-            chain.subject,chain.scope,'',...chain.narrative,'',
-            'T0: '+(chain.temporal.t0.cutoff??'No establecido'),'T1: '+chain.temporal.t1.cutoff,'',
-            'Qué falta',...chain.gapExplanations,chain.nextObservation,'',
-            'Reconstrucción temporal',...chain.timeline.flatMap(e=>[
-              e.description,'Hecho: '+(e.eventAt??'Desconocido')+'; observación: '+(e.observedAt??'Sin fecha'),
-              'Incorporación: '+e.recordedAt,'Referencia: '+e.ref.id+'; versión: '+(e.ref.version??'Sin versión')+'; huella: '+(e.ref.hash??'Sin huella'),
-              'Fuentes: '+e.sourceRefs.map(r=>r.id).join(', '),'Registros: '+e.recordRefs.map(r=>r.id).join(', '),'Pruebas: '+e.evidenceRefs.map(r=>r.id).join(', '),'',
-            ]), 'Autoridad y ejecución',...chain.executions.map(e=>e.ref.id+': '+(e.verified?'Autorización vinculada':'Sin autorización comprobada')+'; responsable: '+(e.decidedBy??'Desconocido')),
-            'Resultados',...chain.returns.map(r=>r.outcome+'; contraste: '+r.contrast+'; causalidad no establecida.'),
-            'Este documento no concede autoridad, no publica el caso ni promueve sus conclusiones a verdad institucional.',
-          ],
-        };
-
 }

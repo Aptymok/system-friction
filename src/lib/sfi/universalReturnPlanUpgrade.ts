@@ -27,8 +27,7 @@ function needsAiUpgrade(plan: Row) {
     || (Boolean(capabilityContract) && capabilityContract !== SFI_UNIVERSAL_RETURN_CAPABILITY_CONTRACT);
 }
 
-async function latestCheckpointContext(cycleId: string): Promise<KernelContext | null> {
-  const db = createServiceSupabaseClient();
+async function latestCheckpointContext(cycleId: string, db = createServiceSupabaseClient()): Promise<KernelContext | null> {
   const result = await db.from('epistemic_events')
     .select('payload')
     .eq('event_name', SFI_UNIVERSAL_COGNITIVE_CHECKPOINT)
@@ -41,16 +40,17 @@ async function latestCheckpointContext(cycleId: string): Promise<KernelContext |
   return context && context.cycleId === cycleId ? context : null;
 }
 
-export async function runUniversalReturnPlanUpgrade(input: { limit?: number; cycleId?: string } = {}) {
-  const db = createServiceSupabaseClient();
-  const result = await db.from('epistemic_events')
+export async function runUniversalReturnPlanUpgrade(input: { limit?: number; cycleId?: string } = {}, dependencies: {db?: ReturnType<typeof createServiceSupabaseClient>} = {}) {
+  const db = dependencies.db ?? createServiceSupabaseClient();
+  const requestedCycleId = text(input.cycleId);
+  let query = db.from('epistemic_events')
     .select('sequence,event_id,payload,logbook_id')
-    .eq('event_name', SFI_UNIVERSAL_RETURN_PLAN_RECORDED)
-    .order('sequence', { ascending: false })
+    .eq('event_name', SFI_UNIVERSAL_RETURN_PLAN_RECORDED);
+  if (requestedCycleId) query = query.eq('logbook_id', `universal-cycle:${requestedCycleId}`);
+  const result = await query.order('sequence', { ascending: false })
     .limit(500);
   if (result.error) return { ok: false as const, processed: 0, results: [], error: result.error.message };
 
-  const requestedCycleId = text(input.cycleId);
   const latestByCycle = new Map<string, Row>();
   for (const value of result.data ?? []) {
     const event = row(value);
@@ -69,7 +69,7 @@ export async function runUniversalReturnPlanUpgrade(input: { limit?: number; cyc
   for (const [cycleId, event] of candidates) {
     const payload = row(event.payload);
     const plan = row(payload.plan);
-    const context = await latestCheckpointContext(cycleId);
+    const context = await latestCheckpointContext(cycleId,db);
     if (!context) {
       results.push({ cycleId, state: 'RETURN_PLAN_CONTEXT_UNAVAILABLE', planEventId: text(event.event_id) });
       continue;

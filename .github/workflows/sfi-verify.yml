@@ -4,9 +4,7 @@ on:
   push:
     branches:
       - main
-      - work/reality-chain-integration-20261024
   pull_request:
-  workflow_dispatch:
 
 permissions:
   contents: read
@@ -44,39 +42,34 @@ jobs:
             sleep $((attempt * 10))
           done
 
-      - name: Verify no-PR branch CI and production trigger isolation
-        run: node scripts/qa-sfi-branch-ci-continuity.mjs
-
-      - name: Verify archived branch ancestry and restored features
-        if: github.ref == 'refs/heads/work/reality-chain-integration-20261024'
-        run: node scripts/qa-sfi-branch-reconciliation-ancestry.mjs
-
-      - name: Verify Method Lab dependency health probes are bounded
-        run: node --import tsx scripts/qa-sfi-method-lab-dependency-read.ts
-
-      - name: Verify readable C07 case descriptions
-        run: node --import tsx --test src/lib/root/caseDisplayName.test.ts
-
-      - name: Verify ROOT mission access and Passport navigation
-        run: node scripts/qa-sfi-root-missions-passport-navigation.mjs
-
-      - name: Verify C07 ROOT canary activation and fenced autonomous worker
-        run: node scripts/qa-sfi-c07-root-activation.mjs
-
-      - name: Verify SFI cost counter and workload circuit breaker
-        run: node scripts/qa-sfi-cost-meter.mjs
-
-      - name: Verify WorldSpect independent-provider clock reads remain on-demand
-        run: node --import tsx --test src/lib/worldspect/independentPlaneClock.test.ts
-
-      - name: Verify Pilot Light economics is read-only and provider costs are not invented
-        run: node --import tsx --test src/lib/persistence/pilotLightEconomicsPolicy.test.ts
-
       - name: Verify no cross-provider replication (founder policy)
-        run: node scripts/qa-sfi-no-replication.mjs
+        run: |
+          node --input-type=module -e "
+            import assert from 'node:assert/strict';
+            import {readFileSync as read} from 'node:fs';
+            const policy=read('src/lib/persistence/replicationRetirementPolicy.ts','utf8');
+            const workflow=read('.github/workflows/sfi-continuity-hourly.yml','utf8');
+            const rpc=read('src/lib/persistence/dataPlaneRpc.ts','utf8');
+            const runtime=read('src/lib/continuity/runtime.ts','utf8');
+            assert.match(policy,/NO_CROSS_PROVIDER_REPLICATION/);
+            assert.doesNotMatch(workflow,/SFI_SYNC_ENDPOINT/);
+            assert.equal((rpc.match(/assertCrossProviderReplicationRetired\\(name\\);/g)||[]).length,2);
+            assert.doesNotMatch(runtime,/await flushPrimaryMirror\\(/);
+            assert.doesNotMatch(runtime,/await recoverPrimaryDataPlane\\(/);
+            console.log('PASS SFI NO REPLICATION');
+          "
 
       - name: Verify SFI Verify parallel topology
         run: npx tsx scripts/qa-sfi-verify-parallelism.ts
+
+      - name: Verify SFI ROOT governed missions and Passport
+        run: node scripts/qa-sfi-root-missions-passport-navigation.mjs && node scripts/qa-sfi-c07-root-activation.mjs
+
+      - name: Verify SFI cost limits, disabled polling and retained Neon
+        run: node scripts/qa-sfi-cost-meter.mjs
+
+      - name: Verify public Servicios catalog, no-account intake and privacy boundaries
+        run: node scripts/qa-sfi-public-services.mjs
 
       - name: Check domain boundaries
         run: npm run check:boundaries
@@ -89,11 +82,6 @@ jobs:
 
       - name: Verify elected-attractor onboarding and rival RETURN separation
         run: npx tsx scripts/qa-sfi-case-intake-action-binding.ts && node --import tsx --test src/lib/world-observatory/hypothesisConditionalExplore.test.ts
-      - name: Verify restored World retry provenance gate on cron and OAuth
-        run: node --import tsx --test src/lib/world-observatory/hypothesisRetryGuard.test.ts
-
-      - name: Verify safe falsifiable test selection and locked objective on resumption
-        run: npx tsx scripts/qa-sfi-next-discriminator.ts
       - name: Verify MIHM foundation missingness diagnostic
         run: npx tsx scripts/qa-sfi-mihm-foundation-missingness.ts
       - name: Verify source-safe CHRONOS synthetic review and cutoff boundaries
@@ -240,28 +228,8 @@ jobs:
       - name: Verify SFI Case Platform V1 shared engine
         run: npx tsx scripts/qa-sfi-case-platform-v1.ts
 
-      - name: Verify 21 existing cognitive agent mission contracts (C06)
-        run: npx tsx scripts/qa-sfi-cognitive-agent-missions-c06.ts
-      - name: Verify durable agent execution event acknowledgements (C07)
-        run: npx tsx scripts/qa-sfi-agent-persistence-c07.ts
-      - name: Verify C07 mission dispatch and unchanged Case Platform authority
-        run: npx tsx scripts/qa-sfi-mission-dispatch-c07.ts && npx tsx scripts/qa-sfi-c07-case-eligibility.ts
-      - name: Verify canonical runtime receipts for C07
-        run: npx tsx scripts/qa-sfi-execution-receipt-pipeline-c07.ts
-      - name: Verify independent mission execution receipt identity on readback
-        run: npx tsx scripts/qa-sfi-execution-receipt-readback-c07.ts
-      - name: Verify canonical cognitive cycle checkpoints fail closed
-        run: npx tsx scripts/qa-sfi-cognitive-checkpoint-durability-c07.ts
       - name: Verify SFI Case Platform Operational V1
-        run: npx tsx scripts/qa-sfi-case-platform-operational-v1.ts && npx tsx scripts/qa-sfi-case-platform-c03.ts && npx tsx scripts/qa-sfi-operational-navigation-c05.ts && node --import tsx --test src/core/case-platform/reportAssembler.test.ts src/lib/sfi/case-platform/privateCaseBriefContract.test.ts && node scripts/qa-sfi-reality-chain-closure-db.mjs
-
-      - name: Verify Reality Chain plan contrast and tenant-scoped ingestion
-        run: |
-          node --import tsx --test src/lib/sfi/reality-chain/reconcilePlan.test.ts
-          node --test scripts/reality_chain/migration_release_gate.test.mjs
-          node --test scripts/reality_chain/verify_replay_batch.test.mjs
-          python3 -m unittest discover -s scripts/reality_chain -p 'test_governed_case_sync.py' -v
-          python3 -m unittest discover -s scripts/reality_chain -p 'test_kxtxr_manifest_preview.py' -v
+        run: npx tsx scripts/qa-sfi-case-platform-operational-v1.ts
 
       - name: Verify SFI Enterprise Assurance Domain V1
         run: npx tsx scripts/qa-sfi-enterprise-assurance-domain-v1.ts
@@ -287,11 +255,17 @@ jobs:
       - name: Verify bounded Neon continuity heartbeat fallback
         run: npx tsx scripts/qa-sfi-neon-continuity-heartbeat.ts
 
+      - name: Verify universal-cycle wakeup for opened-only work
+        run: node --import tsx --test src/lib/continuity/universalLifecycleGate.test.ts
+
       - name: Verify Neon read-plane continuity and deferred effectful lanes
         run: node scripts/qa-sfi-neon-readplane-deferred-lanes.mjs
 
       - name: Verify WorldSpect Neon read-plane continuity
         run: node scripts/qa-sfi-worldspect-neon-readplane.mjs
+
+      - name: Verify World Vector daily report temporal identity
+        run: node --import tsx --test src/lib/world-vector/reportBuilder.test.ts
 
       - name: Verify read-plane efficiency and query coalescing
         run: node --import tsx --test src/lib/sfi/readPlaneCache.test.ts && npx tsx scripts/qa-sfi-readplane-efficiency.ts

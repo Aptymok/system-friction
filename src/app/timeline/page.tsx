@@ -1,13 +1,10 @@
 import { redirect } from 'next/navigation';
-import { AccessDeniedError, requireAuthenticatedUser, requireUserProfile } from '@/lib/system/access/server';
+import { AccessDeniedError, requireUserProfile } from '@/lib/system/access/server';
 import { SFI_CANONICAL_OBJECT_REGISTRY, canonicalPublicationDisposition } from '@/lib/discovery/canonicalObjectRegistry';
 import { readPublicWorldSnapshotTimeline } from '@/lib/observatory/public/worldSnapshotTimeline';
 import { OperationalTimeline, type TimelineItem } from '@/components/sfi/OperationalTimeline';
 import { readHypothesisConditionalBranches } from '@/lib/world-observatory/hypothesisConditionalBranches';
 import { HypothesisConditionalLab } from '@/components/sfi/HypothesisConditionalLab';
-import { readTimelineCaseProjectState } from '@/lib/mihm/timelineCaseProjectReadModel';
-import { readTimelineInstitutionalAttractors } from '@/lib/mihm/timelineAttractorReadModel';
-import { normalizedSfiUuid } from '@/lib/sfi/navigation/operationalLinks';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -17,11 +14,7 @@ export const metadata = {
   robots: { index: false, follow: false, nocache: true },
 };
 
-export default async function TimelinePage({ searchParams }:{
-  searchParams?:Promise<{caseId?:string|string[]}>;
-}) {
-  const query=searchParams ? await searchParams : {};
-  const focusCaseId=normalizedSfiUuid(query.caseId);
+export default async function TimelinePage() {
   // Timeline is the institutional authenticated surface. Public /observatory remains separate.
   try { await requireUserProfile(); }
   catch (error) {
@@ -87,32 +80,12 @@ export default async function TimelinePage({ searchParams }:{
     // Do not fabricate frames or synthesize missing clocks.
   }
 
-  // The existing timeline declared CASE/PROJECT lanes but previously never
-  // supplied canonical Case Platform rows. The read model scopes rows by the
-  // authenticated actor's active tenant membership on each data plane.
-  const { user } = await requireAuthenticatedUser();
-  const [caseProject, attractorHistory] = await Promise.all([
-    readTimelineCaseProjectState(user.id),
-    readTimelineInstitutionalAttractors({ id: user.id, email: user.email }),
-  ]);
-
   const conditional = await readHypothesisConditionalBranches()
     .then(model=>({model,error:null})).catch(error=>({model:null,error:error instanceof Error?error.message:'CONDITIONAL_HYPOTHESIS_READ_FAILED'}));
 
   return <div className="sfiUnifiedTimelineTrack" data-sfi-timeline-panorama="ORIGINAL-EVIDENCE-ONLY">
     <section className="sfiUnifiedTimelinePanel" aria-label="Relojes y acontecimientos registrados">
-      <OperationalTimeline items={[...institution, ...world, ...caseProject.items, ...attractorHistory.items]}
-        worldReadPlane={worldReadPlane} focusCaseId={focusCaseId} />
-      <p role="status" data-sfi-case-project-read-plane={caseProject.readPlane}>
-        CASE / PROJECT: {caseProject.readPlane}
-        {caseProject.warning ? ' · ' + caseProject.warning : ''}
-      </p>
-      <p role="status" data-sfi-case-history-count={caseProject.items.filter(item=>item.id.startsWith('case-object:')||item.id.startsWith('case-audit:')||item.id.startsWith('case-decision:')||item.id.startsWith('case-proposal:')||item.id.startsWith('case-report:')).length}>
-        HISTORIA DE EXPEDIENTES: {caseProject.items.filter(item=>item.id.startsWith('case-object:')||item.id.startsWith('case-audit:')||item.id.startsWith('case-decision:')||item.id.startsWith('case-proposal:')||item.id.startsWith('case-report:')).length} registros históricos visibles según permisos, sujetos a los límites y advertencias del lector. No equivalen automáticamente a acciones autorizadas.
-      </p>
-      <p role="status" data-sfi-attractor-read-state={attractorHistory.status}>
-        ATTRACTOR: {attractorHistory.status}
-      </p>
+      <OperationalTimeline items={[...institution, ...world]} worldReadPlane={worldReadPlane} />
     </section>
     <section className="sfiUnifiedTimelinePanel sfiUnifiedTimelineAnalysis" aria-label="Ramas de hipótesis bajo condiciones">
       {conditional.model ? <HypothesisConditionalLab model={conditional.model} context="TIMELINE" />

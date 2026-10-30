@@ -4,8 +4,7 @@
 } from "@/lib/sfi/cognitive-runtime/eventBus";
 
 import {
-  persistSFIEvent,
-  type PersistedEvent
+  persistSFIEvent
 } from "@/lib/sfi/cognitive-runtime/eventPersistence";
 
 
@@ -13,7 +12,7 @@ export async function recordAgentExecutionEvent(
   agentId: string,
   eventType: string,
   payload: unknown
-): Promise<PersistedEvent> {
+): Promise<void> {
 
 
   const event =
@@ -24,19 +23,17 @@ export async function recordAgentExecutionEvent(
     );
 
 
-  // The durable acknowledgement is authoritative; never broadcast a
-  // successful execution event before the canonical append has succeeded.
-  const receipt = await persistSFIEvent(event);
-  try {
-    emitSFIEvent(event);
-  } catch (error) {
-    // An in-process observer is not allowed to negate a durable database
-    // receipt. Log the observer fault separately for incident investigation.
-    console.warn('SFI_AGENT_EVENT_SUBSCRIBER_FAILED', error);
-  }
+  emitSFIEvent(
+    event
+  );
 
-  return receipt;
+
+  await persistSFIEvent(
+    event
+  );
+
 }
+
 
 export async function recordCognitiveCycleEvent(
   payload: unknown

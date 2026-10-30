@@ -7,7 +7,6 @@ import { useAuthState } from '@/components/auth/AuthProvider';
 import { SFI_SERVICE_PROFILES } from '@/core/case-platform/serviceProfiles';
 import type { SfiTemporalBasis, SfiTemporalMode } from '@/core/contracts/sfi';
 import { SessionControls } from './SessionControls';
-import { casePlatformHref, projectPlatformHref } from '@/lib/sfi/navigation/operationalLinks';
 import './NewCaseIngress.css';
 
 type Row = Record<string, any>;
@@ -105,11 +104,7 @@ export function NewCaseIngress() {
         });
         const payload = await response.json().catch(() => null);
         if (!response.ok) throw new Error(messageFromFailure(payload, response.status));
-        const receivedProjectId=payload&&typeof payload==='object'&&!Array.isArray(payload)
-          ? (payload as {project?:{id?:unknown}}).project?.id : null;
-        const target=projectPlatformHref(receivedProjectId);
-        if(!target)throw new Error('SFI_PROJECT_CREATED_BUT_RECEIPT_MISSING_ID');
-        router.push(target);
+        router.push('/cases');
         router.refresh();
         return;
       }
@@ -145,9 +140,7 @@ export function NewCaseIngress() {
       if (!response.ok) throw new Error(messageFromFailure(payload, response.status));
       const caseId = payload && typeof payload === 'object' && !Array.isArray(payload) ? String((payload as { case?: { id?: unknown } }).case?.id ?? '') : '';
       if (!caseId) throw new Error('CASE_CREATE_RECEIPT_MISSING_ID');
-      const target=casePlatformHref(caseId);
-      if(!target)throw new Error('CASE_CREATED_BUT_INVALID_RECEIPT_ID');
-      router.push(target);
+      router.push(`/cases?case=${encodeURIComponent(caseId)}`);
       router.refresh();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'SFI_INGRESS_FAILED');
@@ -157,11 +150,11 @@ export function NewCaseIngress() {
   }
 
   if (auth.status !== 'authenticated') {
-    return <main className="newCaseShell"><header className="newCaseTop"><Link href="/reality-chain" className="newCaseWordmark">SFI</Link><SessionControls /></header><section className="newCaseAccess"><span>WORK SPACE</span><h1>Authentication is required.</h1><p>The authenticated identity determines which projects, cases, evidence and memory are visible or mutable.</p><SessionControls /></section></main>;
+    return <main className="newCaseShell"><header className="newCaseTop"><Link href="/cases" className="newCaseWordmark">SFI</Link><SessionControls /></header><section className="newCaseAccess"><span>WORK SPACE</span><h1>Authentication is required.</h1><p>The authenticated identity determines which projects, cases, evidence and memory are visible or mutable.</p><SessionControls /></section></main>;
   }
 
   return <main className="newCaseShell">
-    <header className="newCaseTop"><div className="newCaseIdentity"><Link href="/reality-chain" className="newCaseWordmark">SFI</Link><div><strong>NEW WORK OBJECT</strong><small>Project / Attractor or Case</small></div></div><div className="newCaseTopActions"><Link href="/reality-chain">BACK TO CASES</Link><SessionControls /></div></header>
+    <header className="newCaseTop"><div className="newCaseIdentity"><Link href="/cases" className="newCaseWordmark">SFI</Link><div><strong>NEW WORK OBJECT</strong><small>Project / Attractor or Case</small></div></div><div className="newCaseTopActions"><Link href="/cases">BACK TO CASES</Link><SessionControls /></div></header>
 
     <section className="newCaseFrame">
       <div className="newCaseIntro"><span>DECLARE → OBSERVE → CONTRAST → RETURN</span><h1>What should SFI follow?</h1><p>A Project begins with a declared target state and trajectory. A Case begins with a bounded problem, system or phenomenon that requires observation.</p></div>
@@ -184,7 +177,7 @@ export function NewCaseIngress() {
         </>}
 
         {error && <div className="newCaseError newCaseWide" role="alert">{error}</div>}
-        <div className="newCaseSubmit newCaseWide"><Link href="/reality-chain">CANCEL</Link><button type="submit" disabled={submitting || (mode === 'PROJECT' ? !attractor.trim() || !projectName.trim() || !tenantId : !subject.trim() || !scope.trim())}>{submitting ? 'PERSISTING…' : mode === 'PROJECT' ? 'CREATE PROJECT / ATTRACTOR' : 'CREATE CASE'}</button></div>
+        <div className="newCaseSubmit newCaseWide"><Link href="/cases">CANCEL</Link><button type="submit" disabled={submitting || (mode === 'PROJECT' ? !attractor.trim() || !projectName.trim() || !tenantId : !subject.trim() || !scope.trim())}>{submitting ? 'PERSISTING…' : mode === 'PROJECT' ? 'CREATE PROJECT / ATTRACTOR' : 'CREATE CASE'}</button></div>
       </form>
     </section>
   </main>;

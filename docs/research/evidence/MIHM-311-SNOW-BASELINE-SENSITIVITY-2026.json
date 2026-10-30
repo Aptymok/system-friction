@@ -1,0 +1,194 @@
+{
+  "contract": "MIHM-311-STORM-WEEKDAY-BASELINE-SENSITIVITY-0.1",
+  "status": "RETROSPECTIVE_SENSITIVITY_FROM_EXISTING_OFFICIAL_AGGREGATES",
+  "source": "docs/research/evidence/MIHM-311-JAN-FEB-SNOW-COMPOSITION-OBSERVED-2026.json",
+  "fullTypeCorrection": "docs/research/evidence/MIHM-311-JAN-FEB-COMPOSITION-CORRECTED-2026.json",
+  "noExternalSourceRead": true,
+  "originalAsOfT0Provenance": "NOT_VERIFIED",
+  "candidateScienceClaim": "An aggregated 311-report polarity can be non-identifiable without weekday-history reference and category conditioning",
+  "conclusion": "February 23 total 311 deviation switches sign between one-week and two-week same-weekday baselines. Some category-specific abnormalities (damaged tree and snow/ice) remain same-sign.",
+  "notIndependentValidation": true,
+  "causalLinkIdentified": false,
+  "fourCases": [
+    {
+      "day": "2026-01-25",
+      "oneWeekComparator": "2026-01-18",
+      "twoWeekComparators": [
+        "2026-01-11",
+        "2026-01-18"
+      ],
+      "totalRequestCount": 2402,
+      "oneWeekReference": 1486,
+      "twoWeekReferenceMean": 1480.5,
+      "oneWeekDelta": 916,
+      "twoWeekDelta": 921.5,
+      "oneWeekPercent": 61.64,
+      "twoWeekPercent": 62.24,
+      "directionStable": true,
+      "issueCategoryRobustness": [
+        {
+          "name": "HEAT/HOT WATER",
+          "current": 1274,
+          "oneWeekReference": 324,
+          "twoWeekReferenceMean": 297,
+          "oneWeekDelta": 950,
+          "twoWeekDelta": 977,
+          "sameDirection": true
+        },
+        {
+          "name": "Snow or Ice",
+          "current": 59,
+          "oneWeekReference": 0,
+          "twoWeekReferenceMean": 0,
+          "oneWeekDelta": 59,
+          "twoWeekDelta": 59,
+          "sameDirection": true
+        },
+        {
+          "name": "Damaged Tree",
+          "current": 1,
+          "oneWeekReference": 0,
+          "twoWeekReferenceMean": 0.5,
+          "oneWeekDelta": 1,
+          "twoWeekDelta": 0.5,
+          "sameDirection": true
+        }
+      ]
+    },
+    {
+      "day": "2026-01-26",
+      "oneWeekComparator": "2026-01-19",
+      "twoWeekComparators": [
+        "2026-01-12",
+        "2026-01-19"
+      ],
+      "totalRequestCount": 2592,
+      "oneWeekReference": 1811,
+      "twoWeekReferenceMean": 2005,
+      "oneWeekDelta": 781,
+      "twoWeekDelta": 587,
+      "oneWeekPercent": 43.13,
+      "twoWeekPercent": 29.28,
+      "directionStable": true,
+      "issueCategoryRobustness": [
+        {
+          "name": "HEAT/HOT WATER",
+          "current": 1004,
+          "oneWeekReference": 445,
+          "twoWeekReferenceMean": 442,
+          "oneWeekDelta": 559,
+          "twoWeekDelta": 562,
+          "sameDirection": true
+        },
+        {
+          "name": "Snow or Ice",
+          "current": 374,
+          "oneWeekReference": 77,
+          "twoWeekReferenceMean": 38.5,
+          "oneWeekDelta": 297,
+          "twoWeekDelta": 335.5,
+          "sameDirection": true
+        },
+        {
+          "name": "Damaged Tree",
+          "current": 4,
+          "oneWeekReference": 0,
+          "twoWeekReferenceMean": 1,
+          "oneWeekDelta": 4,
+          "twoWeekDelta": 3,
+          "sameDirection": true
+        }
+      ]
+    },
+    {
+      "day": "2026-02-23",
+      "oneWeekComparator": "2026-02-16",
+      "twoWeekComparators": [
+        "2026-02-09",
+        "2026-02-16"
+      ],
+      "totalRequestCount": 1844,
+      "oneWeekReference": 1789,
+      "twoWeekReferenceMean": 2329,
+      "oneWeekDelta": 55,
+      "twoWeekDelta": -485,
+      "oneWeekPercent": 3.07,
+      "twoWeekPercent": -20.82,
+      "directionStable": false,
+      "issueCategoryRobustness": [
+        {
+          "name": "HEAT/HOT WATER",
+          "current": 489,
+          "oneWeekReference": 301,
+          "twoWeekReferenceMean": 688,
+          "oneWeekDelta": 188,
+          "twoWeekDelta": -199,
+          "sameDirection": false
+        },
+        {
+          "name": "Snow or Ice",
+          "current": 146,
+          "oneWeekReference": 11,
+          "twoWeekReferenceMean": 21.5,
+          "oneWeekDelta": 135,
+          "twoWeekDelta": 124.5,
+          "sameDirection": true
+        },
+        {
+          "name": "Damaged Tree",
+          "current": 353,
+          "oneWeekReference": 1,
+          "twoWeekReferenceMean": 1,
+          "oneWeekDelta": 352,
+          "twoWeekDelta": 352,
+          "sameDirection": true
+        }
+      ]
+    },
+    {
+      "day": "2026-02-24",
+      "oneWeekComparator": "2026-02-17",
+      "twoWeekComparators": [
+        "2026-02-10",
+        "2026-02-17"
+      ],
+      "totalRequestCount": 2787,
+      "oneWeekReference": 2061,
+      "twoWeekReferenceMean": 2217,
+      "oneWeekDelta": 726,
+      "twoWeekDelta": 570,
+      "oneWeekPercent": 35.23,
+      "twoWeekPercent": 25.71,
+      "directionStable": true,
+      "issueCategoryRobustness": [
+        {
+          "name": "HEAT/HOT WATER",
+          "current": 387,
+          "oneWeekReference": 300,
+          "twoWeekReferenceMean": 467.5,
+          "oneWeekDelta": 87,
+          "twoWeekDelta": -80.5,
+          "sameDirection": false
+        },
+        {
+          "name": "Snow or Ice",
+          "current": 868,
+          "oneWeekReference": 13,
+          "twoWeekReferenceMean": 27.5,
+          "oneWeekDelta": 855,
+          "twoWeekDelta": 840.5,
+          "sameDirection": true
+        },
+        {
+          "name": "Damaged Tree",
+          "current": 68,
+          "oneWeekReference": 0,
+          "twoWeekReferenceMean": 0,
+          "oneWeekDelta": 68,
+          "twoWeekDelta": 68,
+          "sameDirection": true
+        }
+      ]
+    }
+  ]
+}

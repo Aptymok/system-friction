@@ -1,0 +1,423 @@
+{
+  "inputSHA256": "41e384e3199ca8d6878b39cdca51425b82e01a4d5fec6121d6494d53c5ceacc5",
+  "contract": "MIHM-MANHATTAN-NWS-EVENT-CONTRAST-0.1",
+  "evidenceState": "EXPLORATORY_POST_HOC_FULL_YEAR_ALREADY_CONSULTED",
+  "source": "NWS independent significant event chronology; some episodes geographically remote from Manhattan",
+  "providerDailyPanel": "docs/research/evidence/MIHM-MANHATTAN-365D-2025-10-2026-09.json",
+  "sourceResponseFingerprints": [
+    {
+      "source": "NYC311",
+      "sha256": "a48f937fda84128e2bfa4cd61f22b0509031c8332d8ecdc49a3f34a551c74d4f"
+    },
+    {
+      "source": "FDNY",
+      "sha256": "fcdf0b6f97d219d216701d061f01f149ee9701c6a1f3ae6f0eb92893e7b97192"
+    },
+    {
+      "source": "MTA_CBD_CRZ",
+      "sha256": "70d8e2e1ed023b68389553c36af516ba3bb16c07eb2d7d5b6d6309bd88b6134e"
+    }
+  ],
+  "dayRange": [
+    "2025-10-01",
+    "2026-09-30"
+  ],
+  "eventSelection": "4 fixed NWS 2026 episode dates: Jan25, Feb6, Feb22, May20. Chosen before THIS calculation, not before inspecting full panel previously",
+  "priorReference": "Eight previous same weekdays within 56 days, strictly earlier than each evaluated day",
+  "placebo": {
+    "count": 240,
+    "selection": "All eligible windows with exclusion buffers",
+    "notIndependentRandomization": true,
+    "zeroScores": 129,
+    "scoreQ50": 0,
+    "scoreQ90": 66.347,
+    "scoreQ95": 129.685,
+    "scoreQ99": 455.508
+  },
+  "events": [
+    {
+      "id": "NWS_2026_01_25_MAJOR_SNOW",
+      "anchor": "2026-01-25",
+      "class": "MAJOR_MANHATTAN_SNOW",
+      "centralParkSnowInches": 11.4,
+      "weatherSource": "https://www.weather.gov/okx/20260125_26",
+      "note": "NYC winter storm Jan25-26, city advisories; do not infer same traffic restriction as Feb22",
+      "observations": [
+        {
+          "day": "2026-01-25",
+          "actual": {
+            "cbdEntries": 129658,
+            "crzEntries": 116686,
+            "fdnyCount": 486,
+            "service311": 2402
+          },
+          "prior56DaysSameWeekdayMedian": {
+            "cbdEntries": 470646.5,
+            "crzEntries": 417472,
+            "fdnyCount": 406,
+            "service311": 1701.5
+          },
+          "deviationPct": {
+            "cbdEntries": -72.451,
+            "crzEntries": -72.049,
+            "fdnyCount": 19.704,
+            "service311": 41.17
+          },
+          "trafficEmergencyDivergence": 1427.575
+        },
+        {
+          "day": "2026-01-26",
+          "actual": {
+            "cbdEntries": 218798,
+            "crzEntries": 196081,
+            "fdnyCount": 486,
+            "service311": 2592
+          },
+          "prior56DaysSameWeekdayMedian": {
+            "cbdEntries": 526186.5,
+            "crzEntries": 464625.5,
+            "fdnyCount": 446,
+            "service311": 2185.5
+          },
+          "deviationPct": {
+            "cbdEntries": -58.418,
+            "crzEntries": -57.798,
+            "fdnyCount": 8.969,
+            "service311": 18.6
+          },
+          "trafficEmergencyDivergence": 523.951
+        },
+        {
+          "day": "2026-01-27",
+          "actual": {
+            "cbdEntries": 423316,
+            "crzEntries": 379287,
+            "fdnyCount": 467,
+            "service311": 3122
+          },
+          "prior56DaysSameWeekdayMedian": {
+            "cbdEntries": 537076.5,
+            "crzEntries": 475097,
+            "fdnyCount": 445,
+            "service311": 2033.5
+          },
+          "deviationPct": {
+            "cbdEntries": -21.181,
+            "crzEntries": -20.166,
+            "fdnyCount": 4.944,
+            "service311": 53.528
+          },
+          "trafficEmergencyDivergence": 104.719
+        }
+      ],
+      "strongestOppositeDirectionDay": "2026-01-25",
+      "strongestOppositeDirectionOffset": 0,
+      "jointDivergenceScore": 1427.575,
+      "reporting311ChangeDay0Pct": 41.17,
+      "reporting311ChangeDay1Pct": 18.6,
+      "apparentProxyReturnDay": null,
+      "returnDaysSinceAnchor": null,
+      "institutionalReturnConfirmed": false,
+      "actualCrossSystemPropagationIdentified": false,
+      "context": {
+        "comparator": "All eligible 3-day windows, minus event +/-7d buffers",
+        "placeboWindowCount": 240,
+        "fractionPlacebosAtLeastAsLarge": 0.004,
+        "percentileRankOfJointScore": 99.585,
+        "notEmpiricalRandomizationPValue": true
+      }
+    },
+    {
+      "id": "NWS_2026_02_06_COLD_LIGHT_CITY_SNOW",
+      "anchor": "2026-02-06",
+      "class": "COLD_LIGHT_MANHATTAN_SNOW",
+      "centralParkSnowInches": 0.1,
+      "weatherSource": "https://www.weather.gov/okx/20260206_08",
+      "note": "Heavier snow east of NYC; 0.1 in Central Park recorded Feb7, extreme cold across region",
+      "observations": [
+        {
+          "day": "2026-02-06",
+          "actual": {
+            "cbdEntries": 531474,
+            "crzEntries": 472338,
+            "fdnyCount": 494,
+            "service311": 2149
+          },
+          "prior56DaysSameWeekdayMedian": {
+            "cbdEntries": 555207,
+            "crzEntries": 492663.5,
+            "fdnyCount": 440.5,
+            "service311": 2208
+          },
+          "deviationPct": {
+            "cbdEntries": -4.275,
+            "crzEntries": -4.126,
+            "fdnyCount": 12.145,
+            "service311": -2.672
+          },
+          "trafficEmergencyDivergence": 51.92
+        },
+        {
+          "day": "2026-02-07",
+          "actual": {
+            "cbdEntries": 497686,
+            "crzEntries": 444570,
+            "fdnyCount": 495,
+            "service311": 2093
+          },
+          "prior56DaysSameWeekdayMedian": {
+            "cbdEntries": 512661,
+            "crzEntries": 459012.5,
+            "fdnyCount": 422.5,
+            "service311": 1816.5
+          },
+          "deviationPct": {
+            "cbdEntries": -2.921,
+            "crzEntries": -3.146,
+            "fdnyCount": 17.16,
+            "service311": 15.222
+          },
+          "trafficEmergencyDivergence": 50.124
+        },
+        {
+          "day": "2026-02-08",
+          "actual": {
+            "cbdEntries": 444822,
+            "crzEntries": 393194,
+            "fdnyCount": 583,
+            "service311": 2890
+          },
+          "prior56DaysSameWeekdayMedian": {
+            "cbdEntries": 448702.5,
+            "crzEntries": 399424,
+            "fdnyCount": 424,
+            "service311": 1781
+          },
+          "deviationPct": {
+            "cbdEntries": -0.865,
+            "crzEntries": -1.56,
+            "fdnyCount": 37.5,
+            "service311": 62.268
+          },
+          "trafficEmergencyDivergence": 32.438
+        }
+      ],
+      "strongestOppositeDirectionDay": "2026-02-06",
+      "strongestOppositeDirectionOffset": 0,
+      "jointDivergenceScore": 51.92,
+      "reporting311ChangeDay0Pct": -2.672,
+      "reporting311ChangeDay1Pct": 15.222,
+      "apparentProxyReturnDay": "2026-02-12",
+      "returnDaysSinceAnchor": 6,
+      "institutionalReturnConfirmed": false,
+      "actualCrossSystemPropagationIdentified": false,
+      "context": {
+        "comparator": "All eligible 3-day windows, minus event +/-7d buffers",
+        "placeboWindowCount": 240,
+        "fractionPlacebosAtLeastAsLarge": 0.133,
+        "percentileRankOfJointScore": 86.722,
+        "notEmpiricalRandomizationPValue": true
+      }
+    },
+    {
+      "id": "NWS_2026_02_22_BLIZZARD_RESTRICTION",
+      "anchor": "2026-02-22",
+      "class": "MAJOR_SNOW_WITH_TRAVEL_RESTRICTION",
+      "centralParkSnowInches": 19.7,
+      "weatherSource": "https://www.weather.gov/okx/20260222_23",
+      "policySource": "https://www.nyc.gov/content/dam/nycgov/mayors-office/downloads/pdf/executive-orders/2026/eeo-3.pdf",
+      "note": "Travel restriction 2026-02-22 21:00 to 2026-02-23 12:00 NYC local; confounded with intense snow",
+      "observations": [
+        {
+          "day": "2026-02-22",
+          "actual": {
+            "cbdEntries": 318476,
+            "crzEntries": 281665,
+            "fdnyCount": 485,
+            "service311": 1523
+          },
+          "prior56DaysSameWeekdayMedian": {
+            "cbdEntries": 446601.5,
+            "crzEntries": 395286.5,
+            "fdnyCount": 444,
+            "service311": 1781
+          },
+          "deviationPct": {
+            "cbdEntries": -28.689,
+            "crzEntries": -28.744,
+            "fdnyCount": 9.234,
+            "service311": -14.486
+          },
+          "trafficEmergencyDivergence": 264.914
+        },
+        {
+          "day": "2026-02-23",
+          "actual": {
+            "cbdEntries": 72721,
+            "crzEntries": 64681,
+            "fdnyCount": 684,
+            "service311": 1844
+          },
+          "prior56DaysSameWeekdayMedian": {
+            "cbdEntries": 484672,
+            "crzEntries": 425559.5,
+            "fdnyCount": 457.5,
+            "service311": 2299.5
+          },
+          "deviationPct": {
+            "cbdEntries": -84.996,
+            "crzEntries": -84.801,
+            "fdnyCount": 49.508,
+            "service311": -19.809
+          },
+          "trafficEmergencyDivergence": 4207.982
+        },
+        {
+          "day": "2026-02-24",
+          "actual": {
+            "cbdEntries": 401283,
+            "crzEntries": 358145,
+            "fdnyCount": 536,
+            "service311": 2787
+          },
+          "prior56DaysSameWeekdayMedian": {
+            "cbdEntries": 517434,
+            "crzEntries": 458019,
+            "fdnyCount": 450,
+            "service311": 2217
+          },
+          "deviationPct": {
+            "cbdEntries": -22.448,
+            "crzEntries": -21.806,
+            "fdnyCount": 19.111,
+            "service311": 25.71
+          },
+          "trafficEmergencyDivergence": 429.004
+        }
+      ],
+      "strongestOppositeDirectionDay": "2026-02-23",
+      "strongestOppositeDirectionOffset": 1,
+      "jointDivergenceScore": 4207.982,
+      "reporting311ChangeDay0Pct": -14.486,
+      "reporting311ChangeDay1Pct": -19.809,
+      "apparentProxyReturnDay": "2026-02-26",
+      "returnDaysSinceAnchor": 4,
+      "institutionalReturnConfirmed": false,
+      "actualCrossSystemPropagationIdentified": false,
+      "context": {
+        "comparator": "All eligible 3-day windows, minus event +/-7d buffers",
+        "placeboWindowCount": 240,
+        "fractionPlacebosAtLeastAsLarge": 0.004,
+        "percentileRankOfJointScore": 99.585,
+        "notEmpiricalRandomizationPValue": true
+      }
+    },
+    {
+      "id": "NWS_2026_05_20_FLASH_FLOOD_SPATIAL_CHALLENGE",
+      "anchor": "2026-05-20",
+      "class": "NYC_METRO_FLOOD_PREDOMINANTLY_QUEENS_BROOKLYN",
+      "centralParkSnowInches": null,
+      "weatherSource": "https://www.weather.gov/okx/20260520",
+      "note": "Flash flooding reported particularly Brooklyn/Queens; Manhattan impact is NOT assumed",
+      "observations": [
+        {
+          "day": "2026-05-20",
+          "actual": {
+            "cbdEntries": 574922,
+            "crzEntries": 509980,
+            "fdnyCount": 500,
+            "service311": 2217
+          },
+          "prior56DaysSameWeekdayMedian": {
+            "cbdEntries": 565520,
+            "crzEntries": 503533.5,
+            "fdnyCount": 463,
+            "service311": 2140.5
+          },
+          "deviationPct": {
+            "cbdEntries": 1.663,
+            "crzEntries": 1.28,
+            "fdnyCount": 7.991,
+            "service311": 3.574
+          },
+          "trafficEmergencyDivergence": 0
+        },
+        {
+          "day": "2026-05-21",
+          "actual": {
+            "cbdEntries": 581962,
+            "crzEntries": 517295,
+            "fdnyCount": 417,
+            "service311": 1823
+          },
+          "prior56DaysSameWeekdayMedian": {
+            "cbdEntries": 589247,
+            "crzEntries": 522224,
+            "fdnyCount": 459,
+            "service311": 2112
+          },
+          "deviationPct": {
+            "cbdEntries": -1.236,
+            "crzEntries": -0.944,
+            "fdnyCount": -9.15,
+            "service311": -13.684
+          },
+          "trafficEmergencyDivergence": 0
+        },
+        {
+          "day": "2026-05-22",
+          "actual": {
+            "cbdEntries": 563091,
+            "crzEntries": 498850,
+            "fdnyCount": 484,
+            "service311": 2083
+          },
+          "prior56DaysSameWeekdayMedian": {
+            "cbdEntries": 588317.5,
+            "crzEntries": 522270.5,
+            "fdnyCount": 446,
+            "service311": 2235
+          },
+          "deviationPct": {
+            "cbdEntries": -4.288,
+            "crzEntries": -4.484,
+            "fdnyCount": 8.52,
+            "service311": -6.801
+          },
+          "trafficEmergencyDivergence": 36.534
+        }
+      ],
+      "strongestOppositeDirectionDay": "2026-05-22",
+      "strongestOppositeDirectionOffset": 2,
+      "jointDivergenceScore": 36.534,
+      "reporting311ChangeDay0Pct": 3.574,
+      "reporting311ChangeDay1Pct": -13.684,
+      "apparentProxyReturnDay": "2026-05-20",
+      "returnDaysSinceAnchor": 0,
+      "institutionalReturnConfirmed": false,
+      "actualCrossSystemPropagationIdentified": false,
+      "context": {
+        "comparator": "All eligible 3-day windows, minus event +/-7d buffers",
+        "placeboWindowCount": 240,
+        "fractionPlacebosAtLeastAsLarge": 0.149,
+        "percentileRankOfJointScore": 85.062,
+        "notEmpiricalRandomizationPValue": true
+      }
+    }
+  ],
+  "externalEvidenceClass": "NWS_PUBLIC_WEATHER_EVENTS",
+  "historicAsOfT0Availability": "NOT_VERIFIED",
+  "predictiveClaimsAllowed": false,
+  "canonicalMihmValidated": false,
+  "causalImpactIdentified": false,
+  "eventSelectionIsIndependentOfFullYearData": false,
+  "noProductionActions": true,
+  "scientificDisposition": "DESCRIPTIVE_REPLICATION_CHALLENGE_NEEDS_NEW_INDEPENDENT_EVENT_COHORT",
+  "provenance": {
+    "code": "scripts/research/mihm-manhattan-nws-event-contrast.mjs",
+    "sourceFile": "docs/research/evidence/MIHM-MANHATTAN-365D-2025-10-2026-09.json",
+    "run": "https://github.com/Aptymok/system-friction/actions/runs/40203570776",
+    "jobId": 121199660953,
+    "academicCaveat": "Study was not independent of earlier viewing of same annual data; numbers are exploratory and cannot support unbiased p-values or uniquely prove MIHM"
+  }
+}

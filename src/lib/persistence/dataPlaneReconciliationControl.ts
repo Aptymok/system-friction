@@ -92,7 +92,7 @@ export async function readDataPlaneReconciliationStatus() {
     blocker,
     scheduling: {
       source: '.github/workflows/sfi-continuity-hourly.yml',
-      timesUtc: ['HH:07', 'HH:22', 'HH:37', 'HH:52'],
+      timesUtc: ['HH:17'],
       triggerTypes: ['schedule', 'workflow_dispatch', 'workflow_run'],
       manual: 'SFI ROOT data_plane_emergency / recover_once',
     },

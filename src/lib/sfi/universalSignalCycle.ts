@@ -9,7 +9,6 @@ import { createKernelContext } from '@/lib/sfi/cognitive-runtime/createKernelCon
 import { executeCognitiveCycle } from '@/lib/sfi/cognitive-runtime/cognitiveCycle';
 import { SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY } from '@/lib/sfi/cognitive-runtime/convergedRegistry';
 import { hasVerifiedLatestUniversalReturnCalibration } from '@/lib/sfi/universalCalibrationState';
-import { selectNextDiscriminatingTest, type HypothesisTestCandidate } from '@/lib/sfi/hypothesisNextStep';
 
 export const SFI_UNIVERSAL_SIGNAL_CONTRACT = 'SFI-UNIVERSAL-SIGNAL-1.1';
 export const SFI_UNIVERSAL_CYCLE_CONTRACT = 'SFI-UNIVERSAL-REASONING-CYCLE-1.2';
@@ -26,7 +25,7 @@ export const SFI_SIGNAL_KINDS = [
 export type SfiSignalKind = typeof SFI_SIGNAL_KINDS[number];
 type RecordValue = Record<string, unknown>;
 
-type HypothesisInput = { id?: string; statement: string; confidence?: number; role?: 'primary' | 'rival' };
+type HypothesisInput = { statement: string; confidence?: number; role?: 'primary' | 'rival' };
 type OpenUniversalCycle = RecordValue & {
   eventId: string;
   occurredAt: string | null;
@@ -65,7 +64,6 @@ export type UniversalCycleInput = {
   invariants?: unknown[];
   constraints?: unknown[];
   hypotheses?: HypothesisInput[];
-  candidateTests?: HypothesisTestCandidate[];
   requestedAgents?: string[];
   llmAugmentation?: boolean;
 };
@@ -365,39 +363,6 @@ export async function runUniversalCognitiveCycle(input: UniversalCycleInput, act
   const cycleId = resumeCycleId ?? randomUUID();
   const taskId = randomUUID();
   const logbookId = `universal-cycle:${cycleId}`;
-  // A resumed cycle inherits the original human-elected destination.
-  // Neither an LLM nor a scheduler may silently change objective or tenant.
-  if (resumed) {
-    const history = await readUniversalCycleHistory(cycleId);
-    if (!history.ok || !history.opened || history.state === 'CLOSED') {
-      throw new Error('SFI_RESUME_ORIGINAL_CYCLE_UNAVAILABLE');
-    }
-    const opened = record(record(history.opened).payload);
-    if (text(opened.tenantId) !== tenantId) {
-      throw new Error('SFI_RESUME_TENANT_MISMATCH');
-    }
-    if (text(opened.objectKey) !== signal.objectKey) {
-      throw new Error('SFI_RESUME_OBJECT_MISMATCH');
-    }
-    const originalObjective = text(opened.objective) ?? text(record(opened.input).objective);
-    const requestedObjective = text(input.objective);
-    if (requestedObjective !== null && requestedObjective !== originalObjective) {
-      throw new Error('SFI_RESUME_OBJECTIVE_CHANGE_REQUIRES_AUTHORITY');
-    }
-    input = { ...input, objective: originalObjective ?? undefined };
-  }
-  const testCandidates = Array.isArray(input.candidateTests) ? input.candidateTests : [];
-  if (testCandidates.length) {
-    const declaredHypothesisIds = new Set((input.hypotheses ?? [])
-      .map(h => typeof h.id === 'string' ? h.id.trim() : '').filter(Boolean));
-    if (testCandidates.some(test => !declaredHypothesisIds.has(test.hypothesisId)
-      || !declaredHypothesisIds.has(test.rivalHypothesisId))) {
-      throw new Error('SFI_DISCRIMINATOR_REFERENCES_UNDECLARED_HYPOTHESIS');
-    }
-  }
-  const nextDiscriminatingTest = testCandidates.length
-    ? selectNextDiscriminatingTest(testCandidates)
-    : null;
   const useWorldContext = requiresWorldContext(input);
   const worldSnapshot = useWorldContext ? await getLatestWorldSpectSnapshot() : null;
   const inputContext = record(input.context);
@@ -532,22 +497,20 @@ export async function runUniversalCognitiveCycle(input: UniversalCycleInput, act
   const lifecycleLineage = [signal.objectHash, hydrationEventId, webEvidenceEventId, text(options.resumeLineageEventId)].filter((value): value is string => Boolean(value));
   const lifecycleEvent = await appendEpistemicEvent({
     eventName: resumed ? 'SFI_UNIVERSAL_CYCLE_RESUMED' : 'SFI_UNIVERSAL_CYCLE_OPENED', epistemicClass: 'derived', confidence: 1,
-    payload: { cycleId, taskId, resumed, resumeReason: text(options.resumeReason), objectKey: signal.objectKey, objectHash: signal.objectHash, referenceHash: signal.referenceHash, objectHashBasis: signal.objectHashBasis, actorId, tenantId, question: text(input.question), objective: text(input.objective), methodPlan: methodPlan(input), agentPlan: resolvedAgentPlan, hydrationEventId, webEvidenceEventId, worldSnapshotId: worldSnapshot?.id ?? null, worldContextUsed: useWorldContext, nextDiscriminatingTest, declaredTarget: input.declaredTarget ?? null, declaredExclusions: input.declaredExclusions ?? [], invariants: input.invariants ?? [] },
+    payload: { cycleId, taskId, resumed, resumeReason: text(options.resumeReason), objectKey: signal.objectKey, objectHash: signal.objectHash, referenceHash: signal.referenceHash, objectHashBasis: signal.objectHashBasis, actorId, tenantId, question: text(input.question), objective: text(input.objective), methodPlan: methodPlan(input), agentPlan: resolvedAgentPlan, hydrationEventId, webEvidenceEventId, worldSnapshotId: worldSnapshot?.id ?? null, worldContextUsed: useWorldContext },
     occurredAt: new Date().toISOString(), source: { sourceId: 'universal_signal_gateway', sourceType: resumed ? 'cognitive_runtime_resume' : 'cognitive_runtime' }, logbookId, lineage: lifecycleLineage,
   });
 
-  if (!lifecycleEvent.ok) throw new Error('SFI_UNIVERSAL_CYCLE_OPEN_PERSISTENCE_FAILED:' + lifecycleEvent.error);
   const result = await executeCognitiveCycle(context);
   const lifecycleEventId = lifecycleEvent.ok ? String(lifecycleEvent.data.event_id) : null;
   const completedEvent = await appendEpistemicEvent({
     eventName: 'SFI_UNIVERSAL_COGNITIVE_CYCLE_EXECUTED', epistemicClass: 'derived', confidence: result.completed ? 1 : 0.5,
-    payload: { cycleId, taskId, resumed, objectKey: signal.objectKey, objectHash: signal.objectHash, referenceHash: signal.referenceHash, objectHashBasis: signal.objectHashBasis, completed: result.completed, executedAgents: result.executedAgents, missingAgents: result.missingAgents, hypotheses: result.context.hypotheses, contradictions: result.context.contradictions, predictions: result.context.predictions, risks: result.context.risks, opportunities: result.context.opportunities, simulations: result.context.simulations, metadata: result.context.metadata, nextDiscriminatingTest },
+    payload: { cycleId, taskId, resumed, objectKey: signal.objectKey, objectHash: signal.objectHash, referenceHash: signal.referenceHash, objectHashBasis: signal.objectHashBasis, completed: result.completed, executedAgents: result.executedAgents, missingAgents: result.missingAgents, hypotheses: result.context.hypotheses, contradictions: result.context.contradictions, predictions: result.context.predictions, risks: result.context.risks, opportunities: result.context.opportunities, simulations: result.context.simulations, metadata: result.context.metadata },
     occurredAt: new Date().toISOString(), source: { sourceId: 'sfi_cognitive_runtime', sourceType: 'cognitive_cycle' }, logbookId,
     lineage: [signal.objectHash, hydrationEventId, webEvidenceEventId, lifecycleEventId].filter((value): value is string => Boolean(value)),
   });
 
-  if (!completedEvent.ok) throw new Error('SFI_UNIVERSAL_CYCLE_RESULT_PERSISTENCE_FAILED:' + completedEvent.error);
-  return { signal, cycleId, taskId, logbookId, resumed, methodPlan: methodPlan(input), agentPlan: resolvedAgentPlan, worldSnapshot: worldSnapshot ? snapshotRowToApiData(worldSnapshot) : null, nextDiscriminatingTest, result, opened: lifecycleEvent, lifecycleEvent, completedEvent };
+  return { signal, cycleId, taskId, logbookId, resumed, methodPlan: methodPlan(input), agentPlan: resolvedAgentPlan, worldSnapshot: worldSnapshot ? snapshotRowToApiData(worldSnapshot) : null, result, opened: lifecycleEvent, lifecycleEvent, completedEvent };
 }
 
 export async function recordUniversalReturn(input: { cycleId: string; objectKey?: string; outcome: unknown; evidenceRefs?: string[]; classification?: string; notes?: string }, actorId: string, tenantId: string) {

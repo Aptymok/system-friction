@@ -1,0 +1,1277 @@
+{
+  "contract": "MIHM-311-HEAT-SAME-CALENDAR-DAY-CLOSURE-0.1",
+  "evidenceClass": "EXPLORATORY_ADMINISTRATIVE_PROCESS_OUTCOME_NOT_PHYSICAL_SERVICE",
+  "original48HourHypothesisTested": false,
+  "snowStormsBothAtLeastFivePPSlowdown": false,
+  "conclusion": "UNIVERSAL_FIVE_PP_SAME_DAY_SLOWDOWN_NOT_SUPPORTED",
+  "outcomes": [
+    {
+      "event": "JAN25_SNOW",
+      "date": "2026-01-25",
+      "sourceCreatedRequests": 1274,
+      "sourceClosedSameDay": 61,
+      "observedSameDayFraction": 0.048,
+      "baselineMeanSameDayFraction": 0.077,
+      "differencePercentagePoints": -2.866,
+      "predeclaredSlowdownThresholdPP": -5,
+      "meetsPredeclaredSlowdown": false,
+      "baseline": [
+        {
+          "day": "2026-01-11",
+          "created": 270,
+          "closedSameDay": 28,
+          "fraction": 0.104
+        },
+        {
+          "day": "2026-01-18",
+          "created": 324,
+          "closedSameDay": 16,
+          "fraction": 0.049
+        }
+      ],
+      "hourStandardizationSensitivity": {
+        "supportedHourCount": 23,
+        "hoursWithoutCompleteSupport": 1,
+        "equalHourWeightedDifferencePercentagePoints": -7.342
+      }
+    },
+    {
+      "event": "FEB23_SNOW_AND_TRAVEL_BAN",
+      "date": "2026-02-23",
+      "sourceCreatedRequests": 489,
+      "sourceClosedSameDay": 30,
+      "observedSameDayFraction": 0.061,
+      "baselineMeanSameDayFraction": 0.204,
+      "differencePercentagePoints": -14.217,
+      "predeclaredSlowdownThresholdPP": -5,
+      "meetsPredeclaredSlowdown": true,
+      "baseline": [
+        {
+          "day": "2026-02-09",
+          "created": 1075,
+          "closedSameDay": 134,
+          "fraction": 0.125
+        },
+        {
+          "day": "2026-02-16",
+          "created": 301,
+          "closedSameDay": 85,
+          "fraction": 0.282
+        }
+      ],
+      "hourStandardizationSensitivity": {
+        "supportedHourCount": 24,
+        "hoursWithoutCompleteSupport": 0,
+        "equalHourWeightedDifferencePercentagePoints": -16.07
+      }
+    },
+    {
+      "event": "DEC25_NOSNOW_HOLIDAY",
+      "date": "2025-12-25",
+      "sourceCreatedRequests": 285,
+      "sourceClosedSameDay": 23,
+      "observedSameDayFraction": 0.081,
+      "baselineMeanSameDayFraction": 0.076,
+      "differencePercentagePoints": 0.422,
+      "predeclaredSlowdownThresholdPP": -5,
+      "meetsPredeclaredSlowdown": false,
+      "baseline": [
+        {
+          "day": "2025-12-11",
+          "created": 419,
+          "closedSameDay": 21,
+          "fraction": 0.05
+        },
+        {
+          "day": "2025-12-18",
+          "created": 282,
+          "closedSameDay": 29,
+          "fraction": 0.103
+        }
+      ],
+      "hourStandardizationSensitivity": {
+        "supportedHourCount": 24,
+        "hoursWithoutCompleteSupport": 0,
+        "equalHourWeightedDifferencePercentagePoints": -0.412
+      }
+    }
+  ],
+  "publicTemporalProvenanceAtOriginalEventTime": "NOT_VERIFIED",
+  "observationalConfounders": [
+    "Creation-hour mixture",
+    "Snow severity",
+    "Travel restriction",
+    "Christmas/staffing calendar",
+    "Administrative closure workflow",
+    "Data-vintage revisions"
+  ],
+  "causalAttribution": false,
+  "independentProspectiveVerification": false,
+  "canonicalMIHMImprovement": false,
+  "institutionalReturn": false,
+  "observedSourceGroups": 215,
+  "sourceDailyHourAggregates": [
+    {
+      "day": "2025-12-11",
+      "created": 419,
+      "closedSameDay": 21,
+      "everClosed": 418,
+      "byHour": {
+        "0": {
+          "created": 6,
+          "everClosed": 6,
+          "closedSameDay": 0
+        },
+        "1": {
+          "created": 6,
+          "everClosed": 6,
+          "closedSameDay": 0
+        },
+        "2": {
+          "created": 1,
+          "everClosed": 1,
+          "closedSameDay": 0
+        },
+        "3": {
+          "created": 3,
+          "everClosed": 3,
+          "closedSameDay": 0
+        },
+        "4": {
+          "created": 10,
+          "everClosed": 10,
+          "closedSameDay": 0
+        },
+        "5": {
+          "created": 14,
+          "everClosed": 14,
+          "closedSameDay": 1
+        },
+        "6": {
+          "created": 6,
+          "everClosed": 6,
+          "closedSameDay": 0
+        },
+        "7": {
+          "created": 30,
+          "everClosed": 30,
+          "closedSameDay": 5
+        },
+        "8": {
+          "created": 21,
+          "everClosed": 21,
+          "closedSameDay": 3
+        },
+        "9": {
+          "created": 21,
+          "everClosed": 21,
+          "closedSameDay": 1
+        },
+        "10": {
+          "created": 30,
+          "everClosed": 30,
+          "closedSameDay": 0
+        },
+        "11": {
+          "created": 18,
+          "everClosed": 18,
+          "closedSameDay": 2
+        },
+        "12": {
+          "created": 24,
+          "everClosed": 24,
+          "closedSameDay": 3
+        },
+        "13": {
+          "created": 18,
+          "everClosed": 18,
+          "closedSameDay": 1
+        },
+        "14": {
+          "created": 16,
+          "everClosed": 16,
+          "closedSameDay": 0
+        },
+        "15": {
+          "created": 16,
+          "everClosed": 16,
+          "closedSameDay": 2
+        },
+        "16": {
+          "created": 22,
+          "everClosed": 21,
+          "closedSameDay": 0
+        },
+        "17": {
+          "created": 23,
+          "everClosed": 23,
+          "closedSameDay": 2
+        },
+        "18": {
+          "created": 18,
+          "everClosed": 18,
+          "closedSameDay": 0
+        },
+        "19": {
+          "created": 22,
+          "everClosed": 22,
+          "closedSameDay": 1
+        },
+        "20": {
+          "created": 30,
+          "everClosed": 30,
+          "closedSameDay": 0
+        },
+        "21": {
+          "created": 23,
+          "everClosed": 23,
+          "closedSameDay": 0
+        },
+        "22": {
+          "created": 19,
+          "everClosed": 19,
+          "closedSameDay": 0
+        },
+        "23": {
+          "created": 22,
+          "everClosed": 22,
+          "closedSameDay": 0
+        }
+      }
+    },
+    {
+      "day": "2025-12-18",
+      "created": 282,
+      "closedSameDay": 29,
+      "everClosed": 282,
+      "byHour": {
+        "0": {
+          "created": 9,
+          "everClosed": 9,
+          "closedSameDay": 2
+        },
+        "1": {
+          "created": 11,
+          "everClosed": 11,
+          "closedSameDay": 3
+        },
+        "2": {
+          "created": 10,
+          "everClosed": 10,
+          "closedSameDay": 6
+        },
+        "3": {
+          "created": 4,
+          "everClosed": 4,
+          "closedSameDay": 0
+        },
+        "4": {
+          "created": 7,
+          "everClosed": 7,
+          "closedSameDay": 0
+        },
+        "5": {
+          "created": 2,
+          "everClosed": 2,
+          "closedSameDay": 0
+        },
+        "6": {
+          "created": 10,
+          "everClosed": 10,
+          "closedSameDay": 2
+        },
+        "7": {
+          "created": 14,
+          "everClosed": 14,
+          "closedSameDay": 0
+        },
+        "8": {
+          "created": 10,
+          "everClosed": 10,
+          "closedSameDay": 3
+        },
+        "9": {
+          "created": 18,
+          "everClosed": 18,
+          "closedSameDay": 3
+        },
+        "10": {
+          "created": 20,
+          "everClosed": 20,
+          "closedSameDay": 3
+        },
+        "11": {
+          "created": 19,
+          "everClosed": 19,
+          "closedSameDay": 2
+        },
+        "12": {
+          "created": 10,
+          "everClosed": 10,
+          "closedSameDay": 0
+        },
+        "13": {
+          "created": 14,
+          "everClosed": 14,
+          "closedSameDay": 1
+        },
+        "14": {
+          "created": 9,
+          "everClosed": 9,
+          "closedSameDay": 1
+        },
+        "15": {
+          "created": 16,
+          "everClosed": 16,
+          "closedSameDay": 2
+        },
+        "16": {
+          "created": 16,
+          "everClosed": 16,
+          "closedSameDay": 0
+        },
+        "17": {
+          "created": 18,
+          "everClosed": 18,
+          "closedSameDay": 1
+        },
+        "18": {
+          "created": 11,
+          "everClosed": 11,
+          "closedSameDay": 0
+        },
+        "19": {
+          "created": 11,
+          "everClosed": 11,
+          "closedSameDay": 0
+        },
+        "20": {
+          "created": 13,
+          "everClosed": 13,
+          "closedSameDay": 0
+        },
+        "21": {
+          "created": 10,
+          "everClosed": 10,
+          "closedSameDay": 0
+        },
+        "22": {
+          "created": 10,
+          "everClosed": 10,
+          "closedSameDay": 0
+        },
+        "23": {
+          "created": 10,
+          "everClosed": 10,
+          "closedSameDay": 0
+        }
+      }
+    },
+    {
+      "day": "2025-12-25",
+      "created": 285,
+      "closedSameDay": 23,
+      "everClosed": 285,
+      "byHour": {
+        "0": {
+          "created": 12,
+          "everClosed": 12,
+          "closedSameDay": 0
+        },
+        "1": {
+          "created": 6,
+          "everClosed": 6,
+          "closedSameDay": 0
+        },
+        "2": {
+          "created": 2,
+          "everClosed": 2,
+          "closedSameDay": 0
+        },
+        "3": {
+          "created": 7,
+          "everClosed": 7,
+          "closedSameDay": 0
+        },
+        "4": {
+          "created": 2,
+          "everClosed": 2,
+          "closedSameDay": 0
+        },
+        "5": {
+          "created": 3,
+          "everClosed": 3,
+          "closedSameDay": 0
+        },
+        "6": {
+          "created": 5,
+          "everClosed": 5,
+          "closedSameDay": 2
+        },
+        "7": {
+          "created": 11,
+          "everClosed": 11,
+          "closedSameDay": 2
+        },
+        "8": {
+          "created": 13,
+          "everClosed": 13,
+          "closedSameDay": 0
+        },
+        "9": {
+          "created": 16,
+          "everClosed": 16,
+          "closedSameDay": 2
+        },
+        "10": {
+          "created": 23,
+          "everClosed": 23,
+          "closedSameDay": 6
+        },
+        "11": {
+          "created": 23,
+          "everClosed": 23,
+          "closedSameDay": 6
+        },
+        "12": {
+          "created": 18,
+          "everClosed": 18,
+          "closedSameDay": 1
+        },
+        "13": {
+          "created": 12,
+          "everClosed": 12,
+          "closedSameDay": 2
+        },
+        "14": {
+          "created": 15,
+          "everClosed": 15,
+          "closedSameDay": 1
+        },
+        "15": {
+          "created": 13,
+          "everClosed": 13,
+          "closedSameDay": 0
+        },
+        "16": {
+          "created": 14,
+          "everClosed": 14,
+          "closedSameDay": 0
+        },
+        "17": {
+          "created": 16,
+          "everClosed": 16,
+          "closedSameDay": 1
+        },
+        "18": {
+          "created": 12,
+          "everClosed": 12,
+          "closedSameDay": 0
+        },
+        "19": {
+          "created": 9,
+          "everClosed": 9,
+          "closedSameDay": 0
+        },
+        "20": {
+          "created": 14,
+          "everClosed": 14,
+          "closedSameDay": 0
+        },
+        "21": {
+          "created": 8,
+          "everClosed": 8,
+          "closedSameDay": 0
+        },
+        "22": {
+          "created": 14,
+          "everClosed": 14,
+          "closedSameDay": 0
+        },
+        "23": {
+          "created": 17,
+          "everClosed": 17,
+          "closedSameDay": 0
+        }
+      }
+    },
+    {
+      "day": "2026-01-11",
+      "created": 270,
+      "closedSameDay": 28,
+      "everClosed": 270,
+      "byHour": {
+        "0": {
+          "created": 1,
+          "everClosed": 1,
+          "closedSameDay": 1
+        },
+        "1": {
+          "created": 2,
+          "everClosed": 2,
+          "closedSameDay": 0
+        },
+        "2": {
+          "created": 1,
+          "everClosed": 1,
+          "closedSameDay": 1
+        },
+        "3": {
+          "created": 3,
+          "everClosed": 3,
+          "closedSameDay": 1
+        },
+        "4": {
+          "created": 4,
+          "everClosed": 4,
+          "closedSameDay": 1
+        },
+        "5": {
+          "created": 2,
+          "everClosed": 2,
+          "closedSameDay": 1
+        },
+        "7": {
+          "created": 4,
+          "everClosed": 4,
+          "closedSameDay": 0
+        },
+        "8": {
+          "created": 14,
+          "everClosed": 14,
+          "closedSameDay": 5
+        },
+        "9": {
+          "created": 7,
+          "everClosed": 7,
+          "closedSameDay": 2
+        },
+        "10": {
+          "created": 13,
+          "everClosed": 13,
+          "closedSameDay": 1
+        },
+        "11": {
+          "created": 19,
+          "everClosed": 19,
+          "closedSameDay": 4
+        },
+        "12": {
+          "created": 14,
+          "everClosed": 14,
+          "closedSameDay": 1
+        },
+        "13": {
+          "created": 18,
+          "everClosed": 18,
+          "closedSameDay": 4
+        },
+        "14": {
+          "created": 15,
+          "everClosed": 15,
+          "closedSameDay": 0
+        },
+        "15": {
+          "created": 27,
+          "everClosed": 27,
+          "closedSameDay": 2
+        },
+        "16": {
+          "created": 12,
+          "everClosed": 12,
+          "closedSameDay": 2
+        },
+        "17": {
+          "created": 19,
+          "everClosed": 19,
+          "closedSameDay": 0
+        },
+        "18": {
+          "created": 18,
+          "everClosed": 18,
+          "closedSameDay": 2
+        },
+        "19": {
+          "created": 14,
+          "everClosed": 14,
+          "closedSameDay": 0
+        },
+        "20": {
+          "created": 23,
+          "everClosed": 23,
+          "closedSameDay": 0
+        },
+        "21": {
+          "created": 18,
+          "everClosed": 18,
+          "closedSameDay": 0
+        },
+        "22": {
+          "created": 10,
+          "everClosed": 10,
+          "closedSameDay": 0
+        },
+        "23": {
+          "created": 12,
+          "everClosed": 12,
+          "closedSameDay": 0
+        }
+      }
+    },
+    {
+      "day": "2026-01-18",
+      "created": 324,
+      "closedSameDay": 16,
+      "everClosed": 323,
+      "byHour": {
+        "0": {
+          "created": 11,
+          "everClosed": 11,
+          "closedSameDay": 1
+        },
+        "1": {
+          "created": 9,
+          "everClosed": 8,
+          "closedSameDay": 0
+        },
+        "2": {
+          "created": 4,
+          "everClosed": 4,
+          "closedSameDay": 0
+        },
+        "3": {
+          "created": 7,
+          "everClosed": 7,
+          "closedSameDay": 0
+        },
+        "4": {
+          "created": 4,
+          "everClosed": 4,
+          "closedSameDay": 0
+        },
+        "5": {
+          "created": 7,
+          "everClosed": 7,
+          "closedSameDay": 1
+        },
+        "6": {
+          "created": 3,
+          "everClosed": 3,
+          "closedSameDay": 0
+        },
+        "7": {
+          "created": 4,
+          "everClosed": 4,
+          "closedSameDay": 0
+        },
+        "8": {
+          "created": 14,
+          "everClosed": 14,
+          "closedSameDay": 0
+        },
+        "9": {
+          "created": 17,
+          "everClosed": 17,
+          "closedSameDay": 4
+        },
+        "10": {
+          "created": 20,
+          "everClosed": 20,
+          "closedSameDay": 0
+        },
+        "11": {
+          "created": 18,
+          "everClosed": 18,
+          "closedSameDay": 1
+        },
+        "12": {
+          "created": 16,
+          "everClosed": 16,
+          "closedSameDay": 1
+        },
+        "13": {
+          "created": 27,
+          "everClosed": 27,
+          "closedSameDay": 0
+        },
+        "14": {
+          "created": 19,
+          "everClosed": 19,
+          "closedSameDay": 4
+        },
+        "15": {
+          "created": 22,
+          "everClosed": 22,
+          "closedSameDay": 2
+        },
+        "16": {
+          "created": 21,
+          "everClosed": 21,
+          "closedSameDay": 2
+        },
+        "17": {
+          "created": 11,
+          "everClosed": 11,
+          "closedSameDay": 0
+        },
+        "18": {
+          "created": 21,
+          "everClosed": 21,
+          "closedSameDay": 0
+        },
+        "19": {
+          "created": 14,
+          "everClosed": 14,
+          "closedSameDay": 0
+        },
+        "20": {
+          "created": 10,
+          "everClosed": 10,
+          "closedSameDay": 0
+        },
+        "21": {
+          "created": 21,
+          "everClosed": 21,
+          "closedSameDay": 0
+        },
+        "22": {
+          "created": 11,
+          "everClosed": 11,
+          "closedSameDay": 0
+        },
+        "23": {
+          "created": 13,
+          "everClosed": 13,
+          "closedSameDay": 0
+        }
+      }
+    },
+    {
+      "day": "2026-01-25",
+      "created": 1274,
+      "closedSameDay": 61,
+      "everClosed": 1229,
+      "byHour": {
+        "0": {
+          "created": 46,
+          "everClosed": 43,
+          "closedSameDay": 7
+        },
+        "1": {
+          "created": 37,
+          "everClosed": 32,
+          "closedSameDay": 4
+        },
+        "2": {
+          "created": 28,
+          "everClosed": 26,
+          "closedSameDay": 3
+        },
+        "3": {
+          "created": 19,
+          "everClosed": 17,
+          "closedSameDay": 2
+        },
+        "4": {
+          "created": 9,
+          "everClosed": 9,
+          "closedSameDay": 0
+        },
+        "5": {
+          "created": 17,
+          "everClosed": 16,
+          "closedSameDay": 1
+        },
+        "6": {
+          "created": 21,
+          "everClosed": 21,
+          "closedSameDay": 1
+        },
+        "7": {
+          "created": 40,
+          "everClosed": 39,
+          "closedSameDay": 3
+        },
+        "8": {
+          "created": 58,
+          "everClosed": 58,
+          "closedSameDay": 11
+        },
+        "9": {
+          "created": 87,
+          "everClosed": 83,
+          "closedSameDay": 10
+        },
+        "10": {
+          "created": 90,
+          "everClosed": 89,
+          "closedSameDay": 3
+        },
+        "11": {
+          "created": 102,
+          "everClosed": 100,
+          "closedSameDay": 3
+        },
+        "12": {
+          "created": 94,
+          "everClosed": 89,
+          "closedSameDay": 6
+        },
+        "13": {
+          "created": 95,
+          "everClosed": 91,
+          "closedSameDay": 5
+        },
+        "14": {
+          "created": 97,
+          "everClosed": 93,
+          "closedSameDay": 1
+        },
+        "15": {
+          "created": 85,
+          "everClosed": 84,
+          "closedSameDay": 0
+        },
+        "16": {
+          "created": 72,
+          "everClosed": 70,
+          "closedSameDay": 0
+        },
+        "17": {
+          "created": 62,
+          "everClosed": 60,
+          "closedSameDay": 0
+        },
+        "18": {
+          "created": 53,
+          "everClosed": 50,
+          "closedSameDay": 0
+        },
+        "19": {
+          "created": 44,
+          "everClosed": 41,
+          "closedSameDay": 0
+        },
+        "20": {
+          "created": 31,
+          "everClosed": 31,
+          "closedSameDay": 1
+        },
+        "21": {
+          "created": 41,
+          "everClosed": 41,
+          "closedSameDay": 0
+        },
+        "22": {
+          "created": 26,
+          "everClosed": 26,
+          "closedSameDay": 0
+        },
+        "23": {
+          "created": 20,
+          "everClosed": 20,
+          "closedSameDay": 0
+        }
+      }
+    },
+    {
+      "day": "2026-02-09",
+      "created": 1075,
+      "closedSameDay": 134,
+      "everClosed": 937,
+      "byHour": {
+        "0": {
+          "created": 31,
+          "everClosed": 29,
+          "closedSameDay": 11
+        },
+        "1": {
+          "created": 16,
+          "everClosed": 13,
+          "closedSameDay": 5
+        },
+        "2": {
+          "created": 12,
+          "everClosed": 10,
+          "closedSameDay": 4
+        },
+        "3": {
+          "created": 7,
+          "everClosed": 7,
+          "closedSameDay": 0
+        },
+        "4": {
+          "created": 12,
+          "everClosed": 10,
+          "closedSameDay": 1
+        },
+        "5": {
+          "created": 13,
+          "everClosed": 12,
+          "closedSameDay": 5
+        },
+        "6": {
+          "created": 35,
+          "everClosed": 30,
+          "closedSameDay": 7
+        },
+        "7": {
+          "created": 63,
+          "everClosed": 56,
+          "closedSameDay": 19
+        },
+        "8": {
+          "created": 66,
+          "everClosed": 61,
+          "closedSameDay": 10
+        },
+        "9": {
+          "created": 94,
+          "everClosed": 83,
+          "closedSameDay": 23
+        },
+        "10": {
+          "created": 80,
+          "everClosed": 69,
+          "closedSameDay": 10
+        },
+        "11": {
+          "created": 88,
+          "everClosed": 74,
+          "closedSameDay": 12
+        },
+        "12": {
+          "created": 61,
+          "everClosed": 50,
+          "closedSameDay": 5
+        },
+        "13": {
+          "created": 75,
+          "everClosed": 71,
+          "closedSameDay": 6
+        },
+        "14": {
+          "created": 49,
+          "everClosed": 44,
+          "closedSameDay": 1
+        },
+        "15": {
+          "created": 65,
+          "everClosed": 56,
+          "closedSameDay": 3
+        },
+        "16": {
+          "created": 42,
+          "everClosed": 37,
+          "closedSameDay": 4
+        },
+        "17": {
+          "created": 54,
+          "everClosed": 45,
+          "closedSameDay": 3
+        },
+        "18": {
+          "created": 51,
+          "everClosed": 43,
+          "closedSameDay": 2
+        },
+        "19": {
+          "created": 38,
+          "everClosed": 30,
+          "closedSameDay": 2
+        },
+        "20": {
+          "created": 34,
+          "everClosed": 27,
+          "closedSameDay": 1
+        },
+        "21": {
+          "created": 42,
+          "everClosed": 36,
+          "closedSameDay": 0
+        },
+        "22": {
+          "created": 31,
+          "everClosed": 29,
+          "closedSameDay": 0
+        },
+        "23": {
+          "created": 16,
+          "everClosed": 15,
+          "closedSameDay": 0
+        }
+      }
+    },
+    {
+      "day": "2026-02-16",
+      "created": 301,
+      "closedSameDay": 85,
+      "everClosed": 274,
+      "byHour": {
+        "0": {
+          "created": 6,
+          "everClosed": 5,
+          "closedSameDay": 2
+        },
+        "1": {
+          "created": 6,
+          "everClosed": 5,
+          "closedSameDay": 4
+        },
+        "2": {
+          "created": 3,
+          "everClosed": 3,
+          "closedSameDay": 1
+        },
+        "3": {
+          "created": 2,
+          "everClosed": 2,
+          "closedSameDay": 1
+        },
+        "4": {
+          "created": 7,
+          "everClosed": 7,
+          "closedSameDay": 5
+        },
+        "5": {
+          "created": 8,
+          "everClosed": 7,
+          "closedSameDay": 7
+        },
+        "6": {
+          "created": 7,
+          "everClosed": 7,
+          "closedSameDay": 4
+        },
+        "7": {
+          "created": 13,
+          "everClosed": 11,
+          "closedSameDay": 4
+        },
+        "8": {
+          "created": 19,
+          "everClosed": 17,
+          "closedSameDay": 7
+        },
+        "9": {
+          "created": 24,
+          "everClosed": 23,
+          "closedSameDay": 16
+        },
+        "10": {
+          "created": 18,
+          "everClosed": 17,
+          "closedSameDay": 9
+        },
+        "11": {
+          "created": 25,
+          "everClosed": 24,
+          "closedSameDay": 11
+        },
+        "12": {
+          "created": 14,
+          "everClosed": 11,
+          "closedSameDay": 3
+        },
+        "13": {
+          "created": 17,
+          "everClosed": 14,
+          "closedSameDay": 5
+        },
+        "14": {
+          "created": 13,
+          "everClosed": 12,
+          "closedSameDay": 3
+        },
+        "15": {
+          "created": 11,
+          "everClosed": 10,
+          "closedSameDay": 0
+        },
+        "16": {
+          "created": 16,
+          "everClosed": 13,
+          "closedSameDay": 3
+        },
+        "17": {
+          "created": 9,
+          "everClosed": 5,
+          "closedSameDay": 0
+        },
+        "18": {
+          "created": 14,
+          "everClosed": 13,
+          "closedSameDay": 0
+        },
+        "19": {
+          "created": 6,
+          "everClosed": 6,
+          "closedSameDay": 0
+        },
+        "20": {
+          "created": 14,
+          "everClosed": 13,
+          "closedSameDay": 0
+        },
+        "21": {
+          "created": 18,
+          "everClosed": 18,
+          "closedSameDay": 0
+        },
+        "22": {
+          "created": 12,
+          "everClosed": 12,
+          "closedSameDay": 0
+        },
+        "23": {
+          "created": 19,
+          "everClosed": 19,
+          "closedSameDay": 0
+        }
+      }
+    },
+    {
+      "day": "2026-02-23",
+      "created": 489,
+      "closedSameDay": 30,
+      "everClosed": 462,
+      "byHour": {
+        "0": {
+          "created": 12,
+          "everClosed": 11,
+          "closedSameDay": 1
+        },
+        "1": {
+          "created": 16,
+          "everClosed": 15,
+          "closedSameDay": 1
+        },
+        "2": {
+          "created": 10,
+          "everClosed": 10,
+          "closedSameDay": 0
+        },
+        "3": {
+          "created": 4,
+          "everClosed": 4,
+          "closedSameDay": 0
+        },
+        "4": {
+          "created": 10,
+          "everClosed": 9,
+          "closedSameDay": 2
+        },
+        "5": {
+          "created": 8,
+          "everClosed": 7,
+          "closedSameDay": 0
+        },
+        "6": {
+          "created": 6,
+          "everClosed": 5,
+          "closedSameDay": 0
+        },
+        "7": {
+          "created": 24,
+          "everClosed": 22,
+          "closedSameDay": 1
+        },
+        "8": {
+          "created": 14,
+          "everClosed": 12,
+          "closedSameDay": 2
+        },
+        "9": {
+          "created": 32,
+          "everClosed": 31,
+          "closedSameDay": 8
+        },
+        "10": {
+          "created": 41,
+          "everClosed": 37,
+          "closedSameDay": 2
+        },
+        "11": {
+          "created": 35,
+          "everClosed": 31,
+          "closedSameDay": 2
+        },
+        "12": {
+          "created": 31,
+          "everClosed": 31,
+          "closedSameDay": 3
+        },
+        "13": {
+          "created": 31,
+          "everClosed": 31,
+          "closedSameDay": 2
+        },
+        "14": {
+          "created": 25,
+          "everClosed": 24,
+          "closedSameDay": 0
+        },
+        "15": {
+          "created": 21,
+          "everClosed": 21,
+          "closedSameDay": 1
+        },
+        "16": {
+          "created": 34,
+          "everClosed": 33,
+          "closedSameDay": 1
+        },
+        "17": {
+          "created": 20,
+          "everClosed": 19,
+          "closedSameDay": 3
+        },
+        "18": {
+          "created": 21,
+          "everClosed": 18,
+          "closedSameDay": 0
+        },
+        "19": {
+          "created": 29,
+          "everClosed": 29,
+          "closedSameDay": 1
+        },
+        "20": {
+          "created": 18,
+          "everClosed": 16,
+          "closedSameDay": 0
+        },
+        "21": {
+          "created": 23,
+          "everClosed": 23,
+          "closedSameDay": 0
+        },
+        "22": {
+          "created": 13,
+          "everClosed": 12,
+          "closedSameDay": 0
+        },
+        "23": {
+          "created": 11,
+          "everClosed": 11,
+          "closedSameDay": 0
+        }
+      }
+    }
+  ],
+  "sourceRead": {
+    "url": "https://data.cityofnewyork.us/resource/erm2-nwe9.json?%24select=date_trunc_ymd%28created_date%29+as+day%2Cdate_extract_hh%28created_date%29+as+hour%2Ccount%28*%29+as+created%2Ccount%28closed_date%29+as+everclosed%2Csum%28case%28closed_date+is+not+null+AND+closed_date+%3E%3D+created_date+AND+date_trunc_ymd%28closed_date%29+%3D+date_trunc_ymd%28created_date%29%2C1%2Ctrue%2C0%29%29+as+closedsameday&%24where=borough+%3D+%27MANHATTAN%27+AND+complaint_type+%3D+%27HEAT%2FHOT+WATER%27+AND+%28%28created_date+%3E%3D+%272025-12-11T00%3A00%3A00%27+AND+created_date+%3C+%272025-12-12T00%3A00%3A00%27%29+OR+%28created_date+%3E%3D+%272025-12-18T00%3A00%3A00%27+AND+created_date+%3C+%272025-12-19T00%3A00%3A00%27%29+OR+%28created_date+%3E%3D+%272025-12-25T00%3A00%3A00%27+AND+created_date+%3C+%272025-12-26T00%3A00%3A00%27%29+OR+%28created_date+%3E%3D+%272026-01-11T00%3A00%3A00%27+AND+created_date+%3C+%272026-01-12T00%3A00%3A00%27%29+OR+%28created_date+%3E%3D+%272026-01-18T00%3A00%3A00%27+AND+created_date+%3C+%272026-01-19T00%3A00%3A00%27%29+OR+%28created_date+%3E%3D+%272026-01-25T00%3A00%3A00%27+AND+created_date+%3C+%272026-01-26T00%3A00%3A00%27%29+OR+%28created_date+%3E%3D+%272026-02-09T00%3A00%3A00%27+AND+created_date+%3C+%272026-02-10T00%3A00%3A00%27%29+OR+%28created_date+%3E%3D+%272026-02-16T00%3A00%3A00%27+AND+created_date+%3C+%272026-02-17T00%3A00%3A00%27%29+OR+%28created_date+%3E%3D+%272026-02-23T00%3A00%3A00%27+AND+created_date+%3C+%272026-02-24T00%3A00%3A00%27%29%29&%24group=day%2Chour&%24order=day+ASC%2Chour+ASC&%24limit=300",
+    "bytes": 21329,
+    "sha256": "4802e6e138d19ca0e637e48cd1c70af57064f4422ddf5a9bba6c0294d3b5e18a",
+    "official": "https://data.cityofnewyork.us/d/erm2-nwe9",
+    "reads": 1
+  },
+  "provenance": {
+    "action": "https://github.com/Aptymok/system-friction/actions/runs/40224324768",
+    "job": 121262368036,
+    "querySource": "scripts/research/mihm-311-heat-sameday-outcome.mjs",
+    "protocolIn": "docs/research/SFI-MIHM-FOUNDATION-RESEARCH-PROGRAM-001.md",
+    "noHistoricalAsOfVintage": true,
+    "caveat": "Same calendar date != 48 hours; closure administrative only; original 48h hypothesis UNTESTED due unsupported SoQL"
+  }
+}

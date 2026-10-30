@@ -56,9 +56,6 @@ export function SfiGovernanceWorkspace({enabled}:{enabled:boolean}){
   const [personDecision,setPersonDecision]=useState<TriState>('NOT_DECLARED');
   const [purposeBasis,setPurposeBasis]=useState('');
   const [agentResult,setAgentResult]=useState<Row|null>(null);
-  const [queueAttemptId,setQueueAttemptId]=useState<string|null>(null);
-  const [queuedJobId,setQueuedJobId]=useState<string|null>(null);
-  const [queuedJobStatus,setQueuedJobStatus]=useState<Row|null>(null);
   const [busy,setBusy]=useState<string|null>(null);
   const [error,setError]=useState<string|null>(null);
   const [notice,setNotice]=useState<string|null>(null);
@@ -86,8 +83,6 @@ export function SfiGovernanceWorkspace({enabled}:{enabled:boolean}){
 
   const agents=arr(runtime?.agents);
   const contracts=arr(runtime?.executionContracts);
-  const missions=arr(runtime?.missions);
-  const selectedMission=missions.find(mission=>mission.agentId===agentId)??null;
   const selectedAgent=agents.find(item=>item.id===agentId)??null;
   const contract=contracts.find(item=>item.agentId===agentId)??dossier?.contract??null;
   const state=dossier?.state??null;
@@ -130,13 +125,7 @@ export function SfiGovernanceWorkspace({enabled}:{enabled:boolean}){
   const minTargets=Number(contract?.minTargets??1);const maxTargets=Number(contract?.maxTargets??8);
   const targetCountValid=selectedTargets.length>=minTargets&&selectedTargets.length<=maxTargets;
   const missingRequiredParameters=requiredParameters.filter(key=>!parameters[key]?.trim());
-  const missionTargetKinds=strings(selectedMission?.inputKinds);
-  const missionTargetsCompatible=!selectedMission||selectedTargets.every(target=>missionTargetKinds.includes(target.kind));
-  const canExecute=Boolean(agentId&&contract&&purpose.trim()&&targetCountValid&&missionTargetsCompatible&&!missingRequiredParameters.length&&busy!=='agent');
-  const queuedMissionEnabled=runtime?.queuedMissionEnabled === true;
-  const queueCaseTarget=selectedTargets.length===1 && selectedTargets[0]?.kind==='CASE' ? selectedTargets[0] : null;
-  const canQueue=Boolean(queuedMissionEnabled&&selectedMission&&queueCaseTarget&&purpose.trim()
-    &&canExecute&&!file&&!url.trim()&&!busy);
+  const canExecute=Boolean(agentId&&contract&&purpose.trim()&&targetCountValid&&!missingRequiredParameters.length&&busy!=='agent');
 
   const heartbeat=async()=>{setBusy('heartbeat');try{const result=await jsonFetch('/api/root/continuity',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'heartbeat'})});setNotice(result.result?.humanSummary?.message??'Continuity round executed.');await Promise.all([loadTargets(true),agentId?loadDossier(agentId,true):Promise.resolve()])}catch(cause){setError(cause instanceof Error?cause.message:String(cause))}finally{setBusy(null)}};
 
@@ -147,84 +136,22 @@ export function SfiGovernanceWorkspace({enabled}:{enabled:boolean}){
     const anchorTarget=selectedTargets.find(item=>allowedAnchorKinds.includes(item.kind));
     const anchors=anchorTarget?[{kind:anchorTarget.kind,id:anchorTarget.id}]:[{kind:'ANALYSIS_SESSION',id:`root-ui:${agentId}:${crypto.randomUUID()}`,label:'ROOT governed analysis session'}];
     const parameterPayload=Object.fromEntries(Object.entries(parameters).filter(([,value])=>value.trim()).map(([key,value])=>[key,value.trim()]));
-    const body={operation:selectedMission?'execute_mission':'execute',missionId:selectedMission?.missionId??null,agentId,purpose:purpose.trim(),anchors,targets:selectedTargets.map(({kind,id})=>({kind,id})),evidenceIds,sourceUrls:contract.acceptsSourceUrls&&url.trim()?[url.trim()]:[],timeRange:contract.timeRange==='NOT_APPLICABLE'?null:(timeFrom||timeTo||timezone?{from:timeFrom||null,to:timeTo||null,timezone:timezone||null}:null),direction:allowedDirections.length?(direction||null):null,parameters:parameterPayload,requestedOutputs,governanceContext:{subjectType,jurisdiction:jurisdiction.trim()||null,containsPersonalData:tri(personalData),containsSensitiveData:tri(sensitiveData),affectsDecisionAboutPersons:tri(personDecision),declaredPurposeBasis:purposeBasis.trim()||null}};
+    const body={operation:'execute',agentId,purpose:purpose.trim(),anchors,targets:selectedTargets.map(({kind,id})=>({kind,id})),evidenceIds,sourceUrls:contract.acceptsSourceUrls&&url.trim()?[url.trim()]:[],timeRange:contract.timeRange==='NOT_APPLICABLE'?null:(timeFrom||timeTo||timezone?{from:timeFrom||null,to:timeTo||null,timezone:timezone||null}:null),direction:allowedDirections.length?(direction||null):null,parameters:parameterPayload,requestedOutputs,governanceContext:{subjectType,jurisdiction:jurisdiction.trim()||null,containsPersonalData:tri(personalData),containsSensitiveData:tri(sensitiveData),affectsDecisionAboutPersons:tri(personDecision),declaredPurposeBasis:purposeBasis.trim()||null}};
     const result=await jsonFetch('/api/root/cognitive-runtime',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
-    setAgentResult(result.execution);setSelectedExecutionId(result.execution?.id??null);setNotice(result.execution?.humanSummary??'The submitted task returned without a narrative. Inspect its persisted execution receipt.');await Promise.all([loadTargets(true),loadDossier(agentId,true)]);
+    setAgentResult(result.execution);setSelectedExecutionId(result.execution?.id??null);setNotice(result.execution?.humanSummary??'Agent execution completed.');await Promise.all([loadTargets(true),loadDossier(agentId,true)]);
   }catch(cause){setError(cause instanceof Error?cause.message:String(cause))}finally{setBusy(null)}};
-
-  const queueAgent=async()=>{
-    if(!canQueue||!queueCaseTarget||!selectedMission)return;
-    const intent=queueAttemptId??crypto.randomUUID();
-    setQueueAttemptId(intent);setBusy('queue');setError(null);
-    try {
-      const body={
-        operation:'queue_mission',idempotencyKey:intent,
-        missionId:selectedMission.missionId,agentId,purpose:purpose.trim(),
-        targets:[{kind:'CASE',id:queueCaseTarget.id}],
-        anchors:[{kind:'CASE',id:queueCaseTarget.id}],
-        parameters:Object.fromEntries(Object.entries(parameters).filter(([,value])=>value.trim())),
-        requestedOutputs,
-        governanceContext:{subjectType,jurisdiction:jurisdiction.trim()||null,
-          containsPersonalData:tri(personalData),containsSensitiveData:tri(sensitiveData),
-          affectsDecisionAboutPersons:tri(personDecision),
-          declaredPurposeBasis:purposeBasis.trim()||null},
-      };
-      const receipt=await jsonFetch('/api/root/cognitive-runtime',{
-        method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body),
-      });
-      setQueuedJobId(receipt.jobId);setQueuedJobStatus({status:receipt.state,id:receipt.jobId});
-      setNotice(`Misión registrada en la cola: ${receipt.jobId}. Estado ${receipt.state}. No implica ejecución ni RETURN.`);
-      setQueueAttemptId(null);
-    }catch(error){setError(error instanceof Error?error.message:String(error))}
-    finally{setBusy(null)}
-  };
-
-  const refreshQueuedMission=async()=>{
-    if(!queuedJobId||busy)return;
-    setBusy('queue-status');setError(null);
-    try {
-      const result=await jsonFetch(`/api/root/cognitive-runtime?jobId=${encodeURIComponent(queuedJobId)}`);
-      setQueuedJobStatus(result.job);
-    }catch(error){setError(error instanceof Error?error.message:String(error))}
-    finally{setBusy(null)}
-  };
 
   if(!enabled)return null;
   const parameterKeys=[...new Set([...requiredParameters,...optionalParameters])];
 
   return <div className="sfiGovernanceLayout">
     {(error||notice)&&<div className={`sfiToast ${error?'error':''}`}><span>{error||notice}</span><button onClick={()=>{setError(null);setNotice(null)}}>×</button></div>}
-    <section className="sfiGovernancePanel agentPanel">
-      <header><span>AGENTS · PASSPORT · MISIÓN</span><b>{agents.length}</b></header>
-      <p role="status">{missions.length} plantillas de misión vinculadas al registro canónico · ningún trabajo se encola ni se ejecuta al consultar.</p>
-      <div className="sfiAgentList">{agents.map(agent=>{
-        const mission=missions.find(item=>item.agentId===agent.id);
-        return <button key={agent.id} className={agentId===agent.id?'selected':''} onClick={()=>setAgentId(agent.id)}>
-          <small>{agent.layer} · {agent.domain}</small><strong>{agent.name}</strong>
-          <p>{mission?.title??'Misión no disponible'}</p>
-          <em>{mission?.assignmentState??'SIN ASIGNACIÓN VERIFICABLE'}</em>
-        </button>;
-      })}</div>
-    </section>
+    <section className="sfiGovernancePanel agentPanel"><header><span>AGENTS · PASSPORT</span><b>{agents.length}</b></header><div className="sfiAgentList">{agents.map(agent=><button key={agent.id} className={agentId===agent.id?'selected':''} onClick={()=>setAgentId(agent.id)}><small>{agent.layer} · {agent.domain}</small><strong>{agent.name}</strong><p>{agent.purpose}</p><em>{agent.humanApprovalRequired?'Human authority is resolved in ROOT when applicable':'Model output does not expand authority'}</em></button>)}</div></section>
 
     <section className="sfiGovernancePanel operatorPanel"><header><span>RUNTIME / AGENTS · {selectedAgent?.name??'No agent selected'}</span><button className="heartbeat" disabled={busy==='heartbeat'||!agentId} onClick={()=>void heartbeat()}>{busy==='heartbeat'?'Running…':'RUN HEARTBEAT NOW'}</button></header><div className="sfiOperatorForm">
       {!agentId&&<div className="sfiAgentResult"><h3>DEFERRED HYDRATION</h3><p>Passports and contracts are available without loading Cases, Evidence, Graph, cycles or history. Select an agent to read only the targets and records needed to operate it.</p></div>}
       {agentId&&<><div className="sfiMetaGrid"><span>Infrastructure: <Status value={state?.infrastructure}/></span><span>Work: <Status value={state?.work}/></span><span>Epistemology: <Status value={state?.epistemic}/></span><span>Authority: <Status value={state?.authority}/></span><span>Latest execution: {date(state?.latestExecutionAt)}</span><span>Latest inference: {date(state?.latestInferenceAt)}</span><span>Generic interaction: {state?.latestInteractionObservation==='OBSERVED'?date(state?.latestInteractionAt):'NOT OBSERVED'}</span><span>Contract: {contract?.version??'—'}</span></div>
       <p>{dossier?.passport?.purpose??selectedAgent?.purpose}</p>
-      {selectedMission?<div className="sfiAgentResult" data-sfi-c06-agent-mission={agentId}>
-        <h3>MISIÓN DEFINIDA · {selectedMission.title}</h3>
-        <p>{selectedMission.objective}</p>
-        <p><strong>Disparador:</strong> {selectedMission.trigger} (declarado en el pasaporte; aún sin suscripción operativa C07/C08)</p>
-        <p><strong>Entrada requerida:</strong> {selectedMission.prerequisite}</p>
-        <p><strong>Objetivos permitidos:</strong> {strings(selectedMission.inputKinds).join(', ')} · mínimo {selectedMission.minimumTargets}</p>
-        <p><strong>Entregable:</strong> {selectedMission.deliverable} · destino {selectedMission.nextSurface}</p>
-        <p><strong>Límite:</strong> {selectedMission.forbiddenPromotion}</p>
-        <p><strong>Estado:</strong> {selectedMission.assignmentState} · {selectedMission.dispatchState} · {selectedMission.scheduleState}.
-          Sin gasto, asignación persistida ni recibo de ejecución generado por este catálogo.</p>
-        <button type="button" disabled={busy==='agent'} onClick={()=>setPurpose(String(selectedMission.objective))}>
-          USAR MISIÓN COMO PROPÓSITO (SIN EJECUTAR)
-        </button>
-      </div>:<p>MISIÓN NO DISPONIBLE; la ausencia de catálogo no autoriza ejecución.</p>}
       <div className="sfiMetaGrid"><span>READS: {arr(dossier?.passport?.reads).map(item=>txt(item.memory??item)).join(', ')||'—'}</span><span>WRITES: {arr(dossier?.passport?.writes).map(item=>txt(item.memory??item)).join(', ')||'—'}</span><span>EMITS: {strings(dossier?.passport?.emits).join(', ')||'—'}</span><span>Profile: {contract?.governanceProfile??'—'}</span></div>
       {state?.latestInferenceSummary&&<div className="sfiAgentResult"><h3>Latest current inference</h3><p>{state.latestInferenceSummary}</p>{state?.contextCoverage&&<p>Coverage: {state.contextCoverage.evidenceDelivered??'N/O'} / {state.contextCoverage.evidenceAvailable??'N/O'} evidence delivered · partial: {String(state.contextCoverage.partial??'N/O')}</p>}</div>}
 
@@ -232,7 +159,6 @@ export function SfiGovernanceWorkspace({enabled}:{enabled:boolean}){
       <label>Work objects ({selectedTargets.length}/{maxTargets})<input value={targetQuery} onChange={event=>setTargetQuery(event.target.value)} placeholder="Search allowed case, project, cycle, evidence or node…"/></label>
       <div className="sfiTargetResults">{targetOptions.map(item=>{const selected=selectedTargets.some(target=>target.kind===item.kind&&target.id===item.id);return <button className={selected?'selected':''} key={`${item.kind}:${item.id}`} onClick={()=>toggleTarget(item)}><small>{item.kind}</small><span>{item.title}</span></button>})}</div>
       {!targetCountValid&&<p>The contract requires between {minTargets} and {maxTargets} valid targets.</p>}
-       {!missionTargetsCompatible&&<p>La misión sólo acepta: {missionTargetKinds.join(', ')}. Cambia los objetos seleccionados antes de ejecutar.</p>}
       <label>Purpose of this execution<textarea value={purpose} onChange={event=>setPurpose(event.target.value)} rows={4}/></label>
       {contract?.acceptsSourceUrls&&<label>Optional candidate URL<input value={url} onChange={event=>setUrl(event.target.value)} placeholder="https://…"/></label>}
       {contract?.acceptsEvidenceRefs&&<label className="filePicker">Optional file · a Case binding is required for intake<input type="file" onChange={event=>setFile(event.target.files?.[0]??null)}/><span>{file?.name??'Select file'}</span></label>}
@@ -241,20 +167,8 @@ export function SfiGovernanceWorkspace({enabled}:{enabled:boolean}){
       {parameterKeys.length>0&&<div><h3>Agent parameters</h3>{parameterKeys.map(key=><label key={key}>{key}{requiredParameters.includes(key)?' · required':' · optional'}<input value={parameters[key]??''} onChange={event=>setParameters(current=>({...current,[key]:event.target.value}))}/></label>)}</div>}
 
       <h3>Contextual preflight</h3><div className="sfiMetaGrid"><label>Subject<select value={subjectType} onChange={event=>setSubjectType(event.target.value)}>{['NOT_DECLARED','SYSTEM','ORGANIZATION','PERSON','GROUP','MIXED'].map(item=><option key={item}>{item}</option>)}</select></label><label>Jurisdiction<input value={jurisdiction} onChange={event=>setJurisdiction(event.target.value)} placeholder="MX, EU, internal organization…"/></label><label>Personal data<select value={personalData} onChange={event=>setPersonalData(event.target.value as TriState)}>{['NOT_DECLARED','YES','NO'].map(item=><option key={item}>{item}</option>)}</select></label><label>Sensitive data<select value={sensitiveData} onChange={event=>setSensitiveData(event.target.value as TriState)}>{['NOT_DECLARED','YES','NO'].map(item=><option key={item}>{item}</option>)}</select></label><label>Decision about people<select value={personDecision} onChange={event=>setPersonDecision(event.target.value as TriState)}>{['NOT_DECLARED','YES','NO'].map(item=><option key={item}>{item}</option>)}</select></label><label>Declared basis<input value={purposeBasis} onChange={event=>setPurposeBasis(event.target.value)} placeholder="Declared legal/organizational basis; not presumed"/></label></div>
-      <button className="primaryAction" disabled={!canExecute} onClick={()=>void runAgent()}>{busy==='agent'?'Running agent…':'RUN CONTRACT'}</button>
-      {queuedMissionEnabled&&<button type="button" className="primaryAction" disabled={!canQueue}
-        onClick={()=>void queueAgent()}>{busy==='queue'?'Registrando misión…':'ENVIAR MISIÓN AL SERVIDOR'}</button>}
-      {queuedMissionEnabled&&<p>El envío a la cola requiere exactamente un CASE, sin archivos ni búsqueda externa. Registro ≠ ejecución; el servidor verificará permisos, costo y recibo.</p>}
-      {queuedMissionEnabled&&queuedJobId&&<div className="sfiAgentResult" role="status">
-        <p><strong>Misión en servidor:</strong> {queuedJobId}</p>
-        <p>Estado: {String(queuedJobStatus?.status??'SIN CONSULTAR')} · Intentos: {String(queuedJobStatus?.attempts??'—')}</p>
-        <p>Recibo: {String(queuedJobStatus?.receipt_event_id??'NO OBSERVADO')} · RETURN: {String(queuedJobStatus?.return_observation??'NOT_OBSERVED')}</p>
-        <button type="button" disabled={Boolean(busy)} onClick={()=>void refreshQueuedMission()}>
-          {busy==='queue-status'?'Consultando…':'CONSULTAR ESTADO'}
-        </button>
-      </div>}
-      {missingRequiredParameters.length>0&&<p>Missing required parameters: {missingRequiredParameters.join(', ')}.</p>}
-      {agentResult&&<div className="sfiAgentResult"><h3>{agentResult.agent?.name}</h3><p>{agentResult.humanSummary}</p><p>executionId: {agentResult.id}</p><p>Estado: {agentResult.workState??'NOT_OBSERVED'} · Recibo persistido: {agentResult.receipt?.eventId??'NO DISPONIBLE'} · Lectura independiente: {agentResult.receiptReadback?.status??'NO VERIFICADA'} · RETURN: {agentResult.returnObservation??'NOT_OBSERVED'}</p><Trace value={agentResult}/></div>}
+      <button className="primaryAction" disabled={!canExecute} onClick={()=>void runAgent()}>{busy==='agent'?'Running agent…':'RUN CONTRACT'}</button>{missingRequiredParameters.length>0&&<p>Missing required parameters: {missingRequiredParameters.join(', ')}.</p>}
+      {agentResult&&<div className="sfiAgentResult"><h3>{agentResult.agent?.name}</h3><p>{agentResult.humanSummary}</p><p>executionId: {agentResult.id}</p><Trace value={agentResult}/></div>}
 
       <h3>EXECUTION HISTORY</h3><div className="sfiDecisionList">{history.map(item=><article key={item.eventId} className={selectedExecutionId===item.executionId?'selected':''}><Status value={item.authority}/><strong>{date(item.occurredAt)} · {item.executionId??item.eventId}</strong><p>{short(item.purpose??item.interpretation?.summary??'Execution without visible purpose')}</p><button onClick={()=>setSelectedExecutionId(item.executionId)}>OPEN EXECUTION</button></article>)}{history.length===0&&<p>No executions are observed within the read window.</p>}</div>
       {selectedExecution&&<div className="sfiAgentResult"><h3>EXECUTION LINEAGE</h3><div className="sfiMetaGrid"><span>Request: {selectedExecution.requestSource??'N/O'}</span><span>Actor: {selectedExecution.requestedBy??'N/O'}</span><span>Contract: {selectedExecution.contractVersion??'N/O'}</span><span>Authority: {humanState(selectedExecution.authority)}</span><span>Governance: {selectedExecution.governance?.disposition??'N/O'}</span><span>Provider/model: {selectedExecution.telemetry?.provider?.value??'N/O'} / {selectedExecution.telemetry?.model?.value??'N/O'}</span><span>Input tokens: {selectedExecution.telemetry?.inputTokens?.observation==='OBSERVED'?selectedExecution.telemetry.inputTokens.value:'NOT_OBSERVED'}</span><span>Cost: {selectedExecution.telemetry?.providerCost?.observation==='OBSERVED'?selectedExecution.telemetry.providerCost.value:'NOT_OBSERVED'}</span></div><p>{selectedExecution.interpretation?.summary??'No observed inference exists for this execution.'}</p><p>Context ≠ evidence · evidence before/after: {selectedExecution.evidence?.before??'N/O'} → {selectedExecution.evidence?.after??'N/O'} · partial coverage: {String(selectedExecution.contextCoverage?.partial??'N/O')}</p><Trace value={selectedExecution}/></div>}

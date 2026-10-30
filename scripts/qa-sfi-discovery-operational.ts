@@ -11,16 +11,6 @@ async function main() {
   const controlPlane = await text('src/lib/discovery/discoveryControlPlane.ts');
   const rootPage = await text('src/app/root/discovery/page.tsx');
   const continuityRoute = await text('src/app/api/cron/continuity-report/route.ts');
-  const boundedResearch = await text('src/lib/discovery/opportunityResearchCycle.ts');
-  const radar = await text('src/lib/agents/noKeyProspectRadar.ts');
-  const radarTypes = await text('src/lib/agents/autonomousProspectRadar.ts');
-  assert.match(boundedResearch, /SFI_DISCOVERY_OPPORTUNITY_RESEARCH !== 'enabled'/);
-  assert.match(boundedResearch, /allowModelSynthesis: false/);
-  assert.match(boundedResearch, /modelRequired: false/);
-  assert.match(radar, /input\.allowModelSynthesis === false/);
-  assert.match(radar, /MODEL_DISABLED_BY_CALLER/);
-  assert.match(radarTypes, /allowModelSynthesis\?: boolean/);
-
   const repositoryPage = await text('src/app/repository/page.tsx');
   const repositoryUi = await text('src/app/repository/RepositoryConsole.tsx');
   const route = await text('src/app/api/discovery/observe/route.ts');

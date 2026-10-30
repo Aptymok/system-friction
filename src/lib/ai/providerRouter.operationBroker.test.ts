@@ -166,6 +166,25 @@ test('web and code requirements route only through declared executable capabilit
   assert.equal(code.candidates[0]?.provider, 'groq');
 });
 
+test('private Ollama JSON inference is eligible for WorldSpect hypothesis requirements without hosted provider fallback', () => {
+  const plan = getLlmOperationPlan({
+    task: 'deep_report',
+    preferredProvider: 'ollama',
+    requirements: {
+      reasoning: true,
+      structuredOutput: true,
+      priority: 'quality',
+      costClass: 'PRIVATE_LOCAL',
+      privacyClass: 'PRIVATE_LOCAL',
+      providerAllowlist: ['ollama'],
+    },
+  });
+  assert.equal(plan.state, 'ATTEMPTABLE');
+  assert.deepEqual(plan.candidates.map((candidate) => candidate.provider), ['ollama']);
+  assert.equal(plan.candidates[0]?.health, 'UNTESTED');
+  assert.equal(plan.boundaries.modelOutput, 'MODEL_OUTPUT_NOT_OBSERVATION');
+});
+
 test('PRIVATE_LOCAL is only attemptable while a compatible local provider is actually configured', () => {
   const localRequirements: LlmRequirements = {
     reasoning: true,

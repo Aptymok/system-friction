@@ -4,7 +4,6 @@ import { requireAuthenticatedUser } from '@/lib/system/access/server';
 import { readOperationalCase, transitionOperationalCase } from '@/lib/sfi/case-platform/repository';
 import { sfiCaseApiFailure } from '@/lib/sfi/case-platform/http';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
-import { readDataPlaneState } from '@/lib/persistence/dataPlaneContinuityStore';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -12,8 +11,6 @@ export const runtime = 'nodejs';
 const statusSchema = z.enum(['DRAFT','OPEN','OBSERVING','ANALYZING','AWAITING_GOVERNANCE','INTERVENING','AWAITING_RETURN','AWAITING_USER_CLOSE','CLOSED','REJECTED']);
 const patchSchema = z.object({
   status: statusSchema,
-  closureMode: z.enum(['ADMINISTRATIVE','INCONCLUSIVE','CERTIFIED']).optional(),
-  closureReason: z.string().trim().min(1).max(2000).optional(),
   note: z.string().trim().max(2000).optional(),
 }).strict();
 
@@ -46,13 +43,12 @@ async function assertUserCanWrite(userId: string, tenantId: string) {
   }
 }
 
-async function projectFor(projectId: unknown, tenantId: string) {
+async function projectFor(projectId: unknown) {
   if (!projectId) return null;
   const db = createServiceSupabaseClient();
   const result = await db.from('sfi_projects')
     .select('id,project_key,name,description,attractor_ref,trajectory_ref,status,updated_at')
     .eq('id', String(projectId))
-    .eq('tenant_id', tenantId)
     .maybeSingle();
   if (result.error) throw new Error(`SFI_PROJECT_READ_FAILED:${result.error.message}`);
   return result.data ?? null;
@@ -63,13 +59,12 @@ async function envelope(caseId: string, userId: string) {
     readOperationalCase(caseId, userId),
     caseState(caseId),
   ]);
-  const project = await projectFor(state.project_id, base.caseRecord.tenantId);
+  const project = await projectFor(state.project_id);
   return {
     ...base,
     caseRecord: { ...base.caseRecord, projectId: state.project_id ? String(state.project_id) : null },
     project,
     closure: {
-      ...base.realityChain.closure,
       status: String(state.status),
       closedAt: state.closed_at ? String(state.closed_at) : null,
       requiresUserDecision: false,
@@ -84,17 +79,7 @@ export async function GET(_: Request, context: RouteContext) {
   try {
     const { user } = await requireAuthenticatedUser();
     const { caseId } = await context.params;
-    const [snapshot, consistency] = await Promise.all([
-      envelope(caseId, user.id),
-      readDataPlaneState().then(state => state.mode === 'PRIMARY'
-        ? { readPlane: 'SUPABASE_PRIMARY', sourceInventoryComplete: null, parity: 'NOT_ASSERTED', warning: null }
-        : { readPlane: 'NEON_CONTINUITY', sourceInventoryComplete: false, parity: 'NOT_VERIFIED',
-          warning: 'CONTINUITY_SNAPSHOT_MAY_LAG_PRIMARY_WRITES' })
-        .catch(() => ({ readPlane: 'UNKNOWN', sourceInventoryComplete: false,
-          parity: 'NOT_VERIFIED', warning: 'DATA_PLANE_STATE_UNAVAILABLE' })),
-    ]);
-    return NextResponse.json({ ok: true, ...snapshot, readConsistency: consistency },
-      { headers: { 'Cache-Control': 'private, no-store' } });
+    return NextResponse.json({ ok: true, ...(await envelope(caseId, user.id)) });
   } catch (error) {
     return sfiCaseApiFailure(error);
   }
@@ -117,7 +102,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       }, { status: 409 });
     }
 
-    await transitionOperationalCase({ caseId, userId: user.id, status: body.status, closureMode:body.closureMode,closureReason:body.closureReason });
+    await transitionOperationalCase({ caseId, userId: user.id, status: body.status });
     return NextResponse.json({
       ok: true,
       note: body.note ?? null,

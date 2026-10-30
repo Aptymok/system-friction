@@ -8,7 +8,6 @@ import {
 } from '@/lib/sfi/caseIntakeResolver';
 import {
   createOperationalCase,
-  generateOperationalReport,
   listOperationalCases,
   listOperationalReports,
   normalizeAndRegisterOperationalCaseSource,
@@ -17,7 +16,6 @@ import {
   transitionOperationalCase,
 } from '@/lib/sfi/case-platform/repository';
 import { sfiCaseApiFailure } from '@/lib/sfi/case-platform/http';
-import { readDataPlaneState } from '@/lib/persistence/dataPlaneContinuityStore';
 import {
   SFI_EXTERNAL_CASE_RESERVED_TRANSITIONS,
   SFI_EXTERNAL_CASE_TRANSITION_SET,
@@ -36,12 +34,12 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 type Row = Record<string, unknown>;
-type Operation = 'list' | 'read' | 'intake_plan' | 'create' | 'add_source' | 'add_object' | 'transition' | 'reports' | 'generate_report' | 'passport';
+type Operation = 'list' | 'read' | 'intake_plan' | 'create' | 'add_source' | 'add_object' | 'transition' | 'reports';
 
 type SourceInput = Parameters<typeof normalizeAndRegisterOperationalCaseSource>[0]['source'];
 
-const READ_OPERATIONS = new Set<Operation>(['list', 'read', 'reports', 'intake_plan', 'passport']);
-const WRITE_OPERATIONS = new Set<Operation>(['create', 'add_source', 'add_object', 'transition', 'generate_report']);
+const READ_OPERATIONS = new Set<Operation>(['list', 'read', 'reports', 'intake_plan']);
+const WRITE_OPERATIONS = new Set<Operation>(['create', 'add_source', 'add_object', 'transition']);
 const SAFE_OBJECT_KINDS = new Set<SfiCaseObjectKind>([
   'RECORD',
   'OBSERVATION',
@@ -114,41 +112,6 @@ function operationScope(operation: Operation) {
   return READ_OPERATIONS.has(operation) ? 'cases:read' : 'cases:write';
 }
 
-/**
- * A read during CONTINUITY/RECOVERY is a real continuity snapshot, not
- * a certified current inventory of PRIMARY writes. Expose that boundary
- * to clients without bypassing routing or consulting the other provider.
- */
-async function caseReadConsistency() {
-  try {
-    const state = await readDataPlaneState();
-    if (state.mode !== 'PRIMARY') {
-      return {
-        readPlane: 'NEON_CONTINUITY',
-        dataPlaneMode: state.mode,
-        crossProviderParity: 'NOT_VERIFIED',
-        sourceInventoryComplete: false,
-        warning: 'CONTINUITY_SNAPSHOT_MAY_LAG_PRIMARY_WRITES',
-      };
-    }
-    return {
-      readPlane: 'SUPABASE_PRIMARY',
-      dataPlaneMode: 'PRIMARY',
-      crossProviderParity: 'NOT_ASSERTED',
-      sourceInventoryComplete: null,
-      warning: null,
-    };
-  } catch {
-    return {
-      readPlane: 'UNVERIFIED',
-      dataPlaneMode: 'UNKNOWN',
-      crossProviderParity: 'NOT_VERIFIED',
-      sourceInventoryComplete: false,
-      warning: 'DATA_PLANE_STATE_UNAVAILABLE',
-    };
-  }
-}
-
 function requireCaseId(body: Row) {
   const caseId = text(body.caseId);
   if (!caseId) throw new Error('SFI_CASE_ID_REQUIRED');
@@ -207,32 +170,7 @@ export async function POST(request: Request) {
 
     if (operation === 'read') {
       const caseId = requireCaseId(body);
-      const envelope = await readOperationalCase(caseId, userId);
-      return NextResponse.json(
-        { ok: true, operation, ...envelope, readConsistency: await caseReadConsistency() },
-        { headers: { 'Cache-Control': 'private, no-store' } },
-      );
-    }
-
-    if (operation === 'passport') {
-      const caseId = requireCaseId(body);
-      const envelope = await readOperationalCase(caseId, userId);
-      return NextResponse.json({ok:true, operation, passport:envelope.realityChain,
-        objects:envelope.objects,temporalProvenance:envelope.temporalProvenance,
-        authorityEvidence:envelope.authorityEvidence,
-        trajectoryContrast:envelope.trajectoryContrast,
-        returnLearning:envelope.returnLearning,
-        reports:await listOperationalReports(caseId,userId),
-        readConsistency: await caseReadConsistency()}, {headers:{'Cache-Control':'private, no-store'}});
-    }
-    if (operation === 'generate_report') {
-      // This is the same institutional report writer, not a personal evidence or
-      // execution plane. Ordinary account tokens retain their previous boundary.
-      const reportAuth=authorizeExternalRequest(request,'root:operate');
-      if (auth.credential.tenantId !== 'sfi' || auth.credential.role !== 'root_delegate' || !reportAuth.credential) return NextResponse.json({ok:false,error:'institutional_user_bound_oauth_required'},{status:403});
-      const caseId = requireCaseId(body);
-      const report = await generateOperationalReport({caseId,userId,claims:[],deliveryFormats:['JSON','WEB']});
-      return NextResponse.json({ok:true,operation,report,executionAuthority:false},{status:201});
+      return NextResponse.json({ ok: true, operation, ...(await readOperationalCase(caseId, userId)) });
     }
 
     if (operation === 'reports') {
@@ -357,7 +295,7 @@ export async function POST(request: Request) {
           excluded: [...SFI_EXTERNAL_CASE_RESERVED_TRANSITIONS],
         }, { status: 400 });
       }
-      const envelope = await transitionOperationalCase({ caseId, userId, status, closureMode: body.closureMode as import('@/core/case-platform').SfiCaseClosureMode | undefined, closureReason: text(body.closureReason) });
+      const envelope = await transitionOperationalCase({ caseId, userId, status });
       return NextResponse.json({
         ok: true,
         operation,

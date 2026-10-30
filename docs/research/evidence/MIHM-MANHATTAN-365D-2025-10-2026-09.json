@@ -1,0 +1,2610 @@
+{
+  "contract": "MIHM-MANHATTAN-365D-RETROSPECTIVE-EVIDENCE-0.1",
+  "scope": {
+    "first": "2025-10-01",
+    "last": "2026-09-30",
+    "days": 365
+  },
+  "dataAsOfOriginalDates": "NOT_VERIFIED",
+  "scientificStatus": "RETROSPECTIVE_OBSERVED_NOT_PROSPECTIVE_PRE_REGISTERED",
+  "sourceReads": [
+    {
+      "source": "NYC311",
+      "observed": 365,
+      "missing": [],
+      "sourceResponseSha256": "a48f937fda84128e2bfa4cd61f22b0509031c8332d8ecdc49a3f34a551c74d4f",
+      "bytes": 16791,
+      "queryUrl": "https://data.cityofnewyork.us/resource/erm2-nwe9.json?%24select=date_trunc_ymd%28created_date%29+as+day%2Ccount%28*%29+as+n&%24where=created_date+%3E%3D+%272025-10-01T00%3A00%3A00%27+AND+created_date+%3C+%272026-10-01T00%3A00%3A00%27+AND+borough+%3D+%27MANHATTAN%27&%24group=day&%24order=day+ASC&%24limit=400"
+    },
+    {
+      "source": "FDNY",
+      "observed": 365,
+      "missing": [],
+      "sourceResponseSha256": "fcdf0b6f97d219d216701d061f01f149ee9701c6a1f3ae6f0eb92893e7b97192",
+      "bytes": 16426,
+      "queryUrl": "https://data.cityofnewyork.us/resource/8m42-w767.json?%24select=date_trunc_ymd%28incident_datetime%29+as+day%2Ccount%28*%29+as+n&%24where=incident_datetime+%3E%3D+%272025-10-01T00%3A00%3A00%27+AND+incident_datetime+%3C+%272026-10-01T00%3A00%3A00%27+AND+incident_borough+%3D+%27MANHATTAN%27&%24group=day&%24order=day+ASC&%24limit=400"
+    },
+    {
+      "source": "MTA_CBD_CRZ",
+      "observed": 730,
+      "missing": [],
+      "sourceResponseSha256": "70d8e2e1ed023b68389553c36af516ba3bb16c07eb2d7d5b6d6309bd88b6134e",
+      "bytes": 54019,
+      "queryUrl": "https://data.ny.gov/resource/sayj-mze2.json?%24select=date%2Cmode%2Ccount&%24where=date+%3E%3D+%272025-10-01T00%3A00%3A00%27+AND+date+%3C+%272026-10-01T00%3A00%3A00%27+AND+mode+IN+%28%27CBD+Entries%27%2C%27CRZ+Entries%27%29&%24order=date+ASC%2Cmode+ASC&%24limit=800"
+    }
+  ],
+  "geographyCompatibility": "HETEROGENEOUS_BOROUGH_VS_NESTED_CBD",
+  "sourceAreaUnits": {
+    "service311": "Manhattan borough",
+    "fdnyCount": "Manhattan borough",
+    "cbdEntries": "CBD road entrance zone",
+    "crzEntries": "nested CRZ toll zone"
+  },
+  "restriction": {
+    "causalRelations": "NOT_OBSERVED",
+    "realWorldFailures": "NOT_INFERRED",
+    "crzNestedWithinCbd": true
+  },
+  "provenance": {
+    "githubAction": "https://github.com/Aptymok/system-friction/actions/runs/40196382569",
+    "jobId": 121177998893,
+    "collector": "scripts/research/mihm-manhattan-365d-source.mjs"
+  },
+  "rows": [
+    {
+      "day": "2025-10-01",
+      "service311": 2046,
+      "fdnyCount": 469,
+      "cbdEntries": 560697,
+      "crzEntries": 498311
+    },
+    {
+      "day": "2025-10-02",
+      "service311": 2088,
+      "fdnyCount": 415,
+      "cbdEntries": 553092,
+      "crzEntries": 490470
+    },
+    {
+      "day": "2025-10-03",
+      "service311": 2173,
+      "fdnyCount": 498,
+      "cbdEntries": 598490,
+      "crzEntries": 529673
+    },
+    {
+      "day": "2025-10-04",
+      "service311": 2009,
+      "fdnyCount": 506,
+      "cbdEntries": 583914,
+      "crzEntries": 518437
+    },
+    {
+      "day": "2025-10-05",
+      "service311": 1746,
+      "fdnyCount": 494,
+      "cbdEntries": 551333,
+      "crzEntries": 483421
+    },
+    {
+      "day": "2025-10-06",
+      "service311": 2152,
+      "fdnyCount": 457,
+      "cbdEntries": 551444,
+      "crzEntries": 486140
+    },
+    {
+      "day": "2025-10-07",
+      "service311": 2022,
+      "fdnyCount": 470,
+      "cbdEntries": 557905,
+      "crzEntries": 497970
+    },
+    {
+      "day": "2025-10-08",
+      "service311": 1951,
+      "fdnyCount": 464,
+      "cbdEntries": 575977,
+      "crzEntries": 515833
+    },
+    {
+      "day": "2025-10-09",
+      "service311": 2289,
+      "fdnyCount": 417,
+      "cbdEntries": 602515,
+      "crzEntries": 537600
+    },
+    {
+      "day": "2025-10-10",
+      "service311": 2202,
+      "fdnyCount": 510,
+      "cbdEntries": 608495,
+      "crzEntries": 540819
+    },
+    {
+      "day": "2025-10-11",
+      "service311": 2020,
+      "fdnyCount": 472,
+      "cbdEntries": 579598,
+      "crzEntries": 516571
+    },
+    {
+      "day": "2025-10-12",
+      "service311": 1843,
+      "fdnyCount": 399,
+      "cbdEntries": 503137,
+      "crzEntries": 445715
+    },
+    {
+      "day": "2025-10-13",
+      "service311": 1880,
+      "fdnyCount": 390,
+      "cbdEntries": 482862,
+      "crzEntries": 424536
+    },
+    {
+      "day": "2025-10-14",
+      "service311": 2214,
+      "fdnyCount": 455,
+      "cbdEntries": 561410,
+      "crzEntries": 500796
+    },
+    {
+      "day": "2025-10-15",
+      "service311": 2290,
+      "fdnyCount": 459,
+      "cbdEntries": 579022,
+      "crzEntries": 516531
+    },
+    {
+      "day": "2025-10-16",
+      "service311": 2685,
+      "fdnyCount": 501,
+      "cbdEntries": 603387,
+      "crzEntries": 537910
+    },
+    {
+      "day": "2025-10-17",
+      "service311": 2751,
+      "fdnyCount": 545,
+      "cbdEntries": 608174,
+      "crzEntries": 540037
+    },
+    {
+      "day": "2025-10-18",
+      "service311": 1986,
+      "fdnyCount": 481,
+      "cbdEntries": 584684,
+      "crzEntries": 521608
+    },
+    {
+      "day": "2025-10-19",
+      "service311": 2050,
+      "fdnyCount": 466,
+      "cbdEntries": 554503,
+      "crzEntries": 494688
+    },
+    {
+      "day": "2025-10-20",
+      "service311": 2257,
+      "fdnyCount": 436,
+      "cbdEntries": 550200,
+      "crzEntries": 482552
+    },
+    {
+      "day": "2025-10-21",
+      "service311": 2336,
+      "fdnyCount": 465,
+      "cbdEntries": 571939,
+      "crzEntries": 505498
+    },
+    {
+      "day": "2025-10-22",
+      "service311": 2193,
+      "fdnyCount": 430,
+      "cbdEntries": 582817,
+      "crzEntries": 516915
+    },
+    {
+      "day": "2025-10-23",
+      "service311": 2522,
+      "fdnyCount": 462,
+      "cbdEntries": 599145,
+      "crzEntries": 532707
+    },
+    {
+      "day": "2025-10-24",
+      "service311": 2499,
+      "fdnyCount": 486,
+      "cbdEntries": 603692,
+      "crzEntries": 538070
+    },
+    {
+      "day": "2025-10-25",
+      "service311": 2781,
+      "fdnyCount": 449,
+      "cbdEntries": 590397,
+      "crzEntries": 525424
+    },
+    {
+      "day": "2025-10-26",
+      "service311": 2028,
+      "fdnyCount": 388,
+      "cbdEntries": 549736,
+      "crzEntries": 482934
+    },
+    {
+      "day": "2025-10-27",
+      "service311": 2765,
+      "fdnyCount": 435,
+      "cbdEntries": 553468,
+      "crzEntries": 488626
+    },
+    {
+      "day": "2025-10-28",
+      "service311": 2618,
+      "fdnyCount": 451,
+      "cbdEntries": 572714,
+      "crzEntries": 509367
+    },
+    {
+      "day": "2025-10-29",
+      "service311": 1938,
+      "fdnyCount": 456,
+      "cbdEntries": 587337,
+      "crzEntries": 523708
+    },
+    {
+      "day": "2025-10-30",
+      "service311": 2407,
+      "fdnyCount": 505,
+      "cbdEntries": 566503,
+      "crzEntries": 511434
+    },
+    {
+      "day": "2025-10-31",
+      "service311": 2989,
+      "fdnyCount": 489,
+      "cbdEntries": 596327,
+      "crzEntries": 532627
+    },
+    {
+      "day": "2025-11-01",
+      "service311": 2507,
+      "fdnyCount": 554,
+      "cbdEntries": 621682,
+      "crzEntries": 557587
+    },
+    {
+      "day": "2025-11-02",
+      "service311": 2092,
+      "fdnyCount": 501,
+      "cbdEntries": 515294,
+      "crzEntries": 471264
+    },
+    {
+      "day": "2025-11-03",
+      "service311": 2371,
+      "fdnyCount": 455,
+      "cbdEntries": 555640,
+      "crzEntries": 488652
+    },
+    {
+      "day": "2025-11-04",
+      "service311": 2095,
+      "fdnyCount": 435,
+      "cbdEntries": 546065,
+      "crzEntries": 484044
+    },
+    {
+      "day": "2025-11-05",
+      "service311": 2245,
+      "fdnyCount": 460,
+      "cbdEntries": 583942,
+      "crzEntries": 516714
+    },
+    {
+      "day": "2025-11-06",
+      "service311": 2248,
+      "fdnyCount": 452,
+      "cbdEntries": 597442,
+      "crzEntries": 532599
+    },
+    {
+      "day": "2025-11-07",
+      "service311": 2320,
+      "fdnyCount": 466,
+      "cbdEntries": 600350,
+      "crzEntries": 533036
+    },
+    {
+      "day": "2025-11-08",
+      "service311": 1918,
+      "fdnyCount": 441,
+      "cbdEntries": 582775,
+      "crzEntries": 520737
+    },
+    {
+      "day": "2025-11-09",
+      "service311": 1590,
+      "fdnyCount": 411,
+      "cbdEntries": 526060,
+      "crzEntries": 463669
+    },
+    {
+      "day": "2025-11-10",
+      "service311": 2523,
+      "fdnyCount": 473,
+      "cbdEntries": 550678,
+      "crzEntries": 485462
+    },
+    {
+      "day": "2025-11-11",
+      "service311": 2394,
+      "fdnyCount": 462,
+      "cbdEntries": 536751,
+      "crzEntries": 476524
+    },
+    {
+      "day": "2025-11-12",
+      "service311": 2302,
+      "fdnyCount": 492,
+      "cbdEntries": 578900,
+      "crzEntries": 516007
+    },
+    {
+      "day": "2025-11-13",
+      "service311": 2241,
+      "fdnyCount": 468,
+      "cbdEntries": 594707,
+      "crzEntries": 530784
+    },
+    {
+      "day": "2025-11-14",
+      "service311": 2240,
+      "fdnyCount": 498,
+      "cbdEntries": 605789,
+      "crzEntries": 540066
+    },
+    {
+      "day": "2025-11-15",
+      "service311": 1952,
+      "fdnyCount": 427,
+      "cbdEntries": 583137,
+      "crzEntries": 521945
+    },
+    {
+      "day": "2025-11-16",
+      "service311": 1672,
+      "fdnyCount": 425,
+      "cbdEntries": 533615,
+      "crzEntries": 476761
+    },
+    {
+      "day": "2025-11-17",
+      "service311": 2469,
+      "fdnyCount": 446,
+      "cbdEntries": 554861,
+      "crzEntries": 489237
+    },
+    {
+      "day": "2025-11-18",
+      "service311": 2341,
+      "fdnyCount": 447,
+      "cbdEntries": 571792,
+      "crzEntries": 508808
+    },
+    {
+      "day": "2025-11-19",
+      "service311": 2133,
+      "fdnyCount": 444,
+      "cbdEntries": 580404,
+      "crzEntries": 519015
+    },
+    {
+      "day": "2025-11-20",
+      "service311": 2256,
+      "fdnyCount": 507,
+      "cbdEntries": 600352,
+      "crzEntries": 538109
+    },
+    {
+      "day": "2025-11-21",
+      "service311": 2256,
+      "fdnyCount": 392,
+      "cbdEntries": 603042,
+      "crzEntries": 538438
+    },
+    {
+      "day": "2025-11-22",
+      "service311": 1854,
+      "fdnyCount": 437,
+      "cbdEntries": 578842,
+      "crzEntries": 518394
+    },
+    {
+      "day": "2025-11-23",
+      "service311": 1876,
+      "fdnyCount": 394,
+      "cbdEntries": 525756,
+      "crzEntries": 464483
+    },
+    {
+      "day": "2025-11-24",
+      "service311": 2031,
+      "fdnyCount": 425,
+      "cbdEntries": 550339,
+      "crzEntries": 483666
+    },
+    {
+      "day": "2025-11-25",
+      "service311": 1859,
+      "fdnyCount": 487,
+      "cbdEntries": 562677,
+      "crzEntries": 497678
+    },
+    {
+      "day": "2025-11-26",
+      "service311": 1844,
+      "fdnyCount": 440,
+      "cbdEntries": 562347,
+      "crzEntries": 495556
+    },
+    {
+      "day": "2025-11-27",
+      "service311": 1271,
+      "fdnyCount": 369,
+      "cbdEntries": 456879,
+      "crzEntries": 390566
+    },
+    {
+      "day": "2025-11-28",
+      "service311": 1770,
+      "fdnyCount": 386,
+      "cbdEntries": 486753,
+      "crzEntries": 425946
+    },
+    {
+      "day": "2025-11-29",
+      "service311": 1617,
+      "fdnyCount": 403,
+      "cbdEntries": 525888,
+      "crzEntries": 468433
+    },
+    {
+      "day": "2025-11-30",
+      "service311": 1669,
+      "fdnyCount": 391,
+      "cbdEntries": 509384,
+      "crzEntries": 448831
+    },
+    {
+      "day": "2025-12-01",
+      "service311": 2172,
+      "fdnyCount": 436,
+      "cbdEntries": 556155,
+      "crzEntries": 491033
+    },
+    {
+      "day": "2025-12-02",
+      "service311": 2038,
+      "fdnyCount": 418,
+      "cbdEntries": 546468,
+      "crzEntries": 488130
+    },
+    {
+      "day": "2025-12-03",
+      "service311": 2271,
+      "fdnyCount": 464,
+      "cbdEntries": 579621,
+      "crzEntries": 517546
+    },
+    {
+      "day": "2025-12-04",
+      "service311": 2495,
+      "fdnyCount": 478,
+      "cbdEntries": 599789,
+      "crzEntries": 537388
+    },
+    {
+      "day": "2025-12-05",
+      "service311": 2529,
+      "fdnyCount": 489,
+      "cbdEntries": 604894,
+      "crzEntries": 540817
+    },
+    {
+      "day": "2025-12-06",
+      "service311": 1976,
+      "fdnyCount": 465,
+      "cbdEntries": 581782,
+      "crzEntries": 524807
+    },
+    {
+      "day": "2025-12-07",
+      "service311": 1899,
+      "fdnyCount": 455,
+      "cbdEntries": 539866,
+      "crzEntries": 481633
+    },
+    {
+      "day": "2025-12-08",
+      "service311": 2263,
+      "fdnyCount": 493,
+      "cbdEntries": 561053,
+      "crzEntries": 496394
+    },
+    {
+      "day": "2025-12-09",
+      "service311": 2492,
+      "fdnyCount": 541,
+      "cbdEntries": 581761,
+      "crzEntries": 520030
+    },
+    {
+      "day": "2025-12-10",
+      "service311": 2056,
+      "fdnyCount": 510,
+      "cbdEntries": 586140,
+      "crzEntries": 527418
+    },
+    {
+      "day": "2025-12-11",
+      "service311": 2035,
+      "fdnyCount": 504,
+      "cbdEntries": 607466,
+      "crzEntries": 547315
+    },
+    {
+      "day": "2025-12-12",
+      "service311": 2262,
+      "fdnyCount": 491,
+      "cbdEntries": 616306,
+      "crzEntries": 554814
+    },
+    {
+      "day": "2025-12-13",
+      "service311": 1949,
+      "fdnyCount": 459,
+      "cbdEntries": 594176,
+      "crzEntries": 534711
+    },
+    {
+      "day": "2025-12-14",
+      "service311": 1845,
+      "fdnyCount": 478,
+      "cbdEntries": 449024,
+      "crzEntries": 401469
+    },
+    {
+      "day": "2025-12-15",
+      "service311": 2877,
+      "fdnyCount": 456,
+      "cbdEntries": 533157,
+      "crzEntries": 474950
+    },
+    {
+      "day": "2025-12-16",
+      "service311": 2500,
+      "fdnyCount": 452,
+      "cbdEntries": 562003,
+      "crzEntries": 503859
+    },
+    {
+      "day": "2025-12-17",
+      "service311": 2200,
+      "fdnyCount": 533,
+      "cbdEntries": 580332,
+      "crzEntries": 518569
+    },
+    {
+      "day": "2025-12-18",
+      "service311": 1995,
+      "fdnyCount": 565,
+      "cbdEntries": 595462,
+      "crzEntries": 532904
+    },
+    {
+      "day": "2025-12-19",
+      "service311": 1985,
+      "fdnyCount": 533,
+      "cbdEntries": 588773,
+      "crzEntries": 528537
+    },
+    {
+      "day": "2025-12-20",
+      "service311": 1668,
+      "fdnyCount": 403,
+      "cbdEntries": 572793,
+      "crzEntries": 513274
+    },
+    {
+      "day": "2025-12-21",
+      "service311": 1498,
+      "fdnyCount": 400,
+      "cbdEntries": 526229,
+      "crzEntries": 463841
+    },
+    {
+      "day": "2025-12-22",
+      "service311": 1940,
+      "fdnyCount": 466,
+      "cbdEntries": 535344,
+      "crzEntries": 471352
+    },
+    {
+      "day": "2025-12-23",
+      "service311": 1594,
+      "fdnyCount": 462,
+      "cbdEntries": 530079,
+      "crzEntries": 466987
+    },
+    {
+      "day": "2025-12-24",
+      "service311": 1469,
+      "fdnyCount": 446,
+      "cbdEntries": 507081,
+      "crzEntries": 441283
+    },
+    {
+      "day": "2025-12-25",
+      "service311": 1124,
+      "fdnyCount": 341,
+      "cbdEntries": 399140,
+      "crzEntries": 345539
+    },
+    {
+      "day": "2025-12-26",
+      "service311": 1538,
+      "fdnyCount": 399,
+      "cbdEntries": 424537,
+      "crzEntries": 374312
+    },
+    {
+      "day": "2025-12-27",
+      "service311": 1645,
+      "fdnyCount": 423,
+      "cbdEntries": 367604,
+      "crzEntries": 331594
+    },
+    {
+      "day": "2025-12-28",
+      "service311": 1734,
+      "fdnyCount": 436,
+      "cbdEntries": 448381,
+      "crzEntries": 397379
+    },
+    {
+      "day": "2025-12-29",
+      "service311": 1750,
+      "fdnyCount": 483,
+      "cbdEntries": 492021,
+      "crzEntries": 433269
+    },
+    {
+      "day": "2025-12-30",
+      "service311": 1885,
+      "fdnyCount": 385,
+      "cbdEntries": 519567,
+      "crzEntries": 461097
+    },
+    {
+      "day": "2025-12-31",
+      "service311": 1815,
+      "fdnyCount": 413,
+      "cbdEntries": 493343,
+      "crzEntries": 432995
+    },
+    {
+      "day": "2026-01-01",
+      "service311": 1793,
+      "fdnyCount": 493,
+      "cbdEntries": 413505,
+      "crzEntries": 369273
+    },
+    {
+      "day": "2026-01-02",
+      "service311": 2231,
+      "fdnyCount": 427,
+      "cbdEntries": 477889,
+      "crzEntries": 422730
+    },
+    {
+      "day": "2026-01-03",
+      "service311": 1969,
+      "fdnyCount": 399,
+      "cbdEntries": 484763,
+      "crzEntries": 436692
+    },
+    {
+      "day": "2026-01-04",
+      "service311": 1828,
+      "fdnyCount": 412,
+      "cbdEntries": 455223,
+      "crzEntries": 401652
+    },
+    {
+      "day": "2026-01-05",
+      "service311": 2400,
+      "fdnyCount": 408,
+      "cbdEntries": 503270,
+      "crzEntries": 442472
+    },
+    {
+      "day": "2026-01-06",
+      "service311": 2029,
+      "fdnyCount": 462,
+      "cbdEntries": 512962,
+      "crzEntries": 452806
+    },
+    {
+      "day": "2026-01-07",
+      "service311": 2195,
+      "fdnyCount": 429,
+      "cbdEntries": 525829,
+      "crzEntries": 465133
+    },
+    {
+      "day": "2026-01-08",
+      "service311": 2161,
+      "fdnyCount": 454,
+      "cbdEntries": 542784,
+      "crzEntries": 483636
+    },
+    {
+      "day": "2026-01-09",
+      "service311": 2185,
+      "fdnyCount": 421,
+      "cbdEntries": 544391,
+      "crzEntries": 481717
+    },
+    {
+      "day": "2026-01-10",
+      "service311": 1684,
+      "fdnyCount": 422,
+      "cbdEntries": 523206,
+      "crzEntries": 471370
+    },
+    {
+      "day": "2026-01-11",
+      "service311": 1475,
+      "fdnyCount": 383,
+      "cbdEntries": 486070,
+      "crzEntries": 433292
+    },
+    {
+      "day": "2026-01-12",
+      "service311": 2199,
+      "fdnyCount": 432,
+      "cbdEntries": 519216,
+      "crzEntries": 457899
+    },
+    {
+      "day": "2026-01-13",
+      "service311": 2005,
+      "fdnyCount": 414,
+      "cbdEntries": 539303,
+      "crzEntries": 477427
+    },
+    {
+      "day": "2026-01-14",
+      "service311": 2061,
+      "fdnyCount": 438,
+      "cbdEntries": 544360,
+      "crzEntries": 481634
+    },
+    {
+      "day": "2026-01-15",
+      "service311": 1975,
+      "fdnyCount": 347,
+      "cbdEntries": 563821,
+      "crzEntries": 500934
+    },
+    {
+      "day": "2026-01-16",
+      "service311": 2176,
+      "fdnyCount": 419,
+      "cbdEntries": 566023,
+      "crzEntries": 503610
+    },
+    {
+      "day": "2026-01-17",
+      "service311": 1617,
+      "fdnyCount": 399,
+      "cbdEntries": 502116,
+      "crzEntries": 446655
+    },
+    {
+      "day": "2026-01-18",
+      "service311": 1486,
+      "fdnyCount": 400,
+      "cbdEntries": 418427,
+      "crzEntries": 368442
+    },
+    {
+      "day": "2026-01-19",
+      "service311": 1811,
+      "fdnyCount": 386,
+      "cbdEntries": 477323,
+      "crzEntries": 417305
+    },
+    {
+      "day": "2026-01-20",
+      "service311": 2488,
+      "fdnyCount": 438,
+      "cbdEntries": 534850,
+      "crzEntries": 472767
+    },
+    {
+      "day": "2026-01-21",
+      "service311": 2421,
+      "fdnyCount": 428,
+      "cbdEntries": 549217,
+      "crzEntries": 487416
+    },
+    {
+      "day": "2026-01-22",
+      "service311": 2189,
+      "fdnyCount": 412,
+      "cbdEntries": 567286,
+      "crzEntries": 503540
+    },
+    {
+      "day": "2026-01-23",
+      "service311": 2247,
+      "fdnyCount": 454,
+      "cbdEntries": 567203,
+      "crzEntries": 505509
+    },
+    {
+      "day": "2026-01-24",
+      "service311": 2563,
+      "fdnyCount": 486,
+      "cbdEntries": 531173,
+      "crzEntries": 476751
+    },
+    {
+      "day": "2026-01-25",
+      "service311": 2402,
+      "fdnyCount": 486,
+      "cbdEntries": 129658,
+      "crzEntries": 116686
+    },
+    {
+      "day": "2026-01-26",
+      "service311": 2592,
+      "fdnyCount": 486,
+      "cbdEntries": 218798,
+      "crzEntries": 196081
+    },
+    {
+      "day": "2026-01-27",
+      "service311": 3122,
+      "fdnyCount": 467,
+      "cbdEntries": 423316,
+      "crzEntries": 379287
+    },
+    {
+      "day": "2026-01-28",
+      "service311": 3066,
+      "fdnyCount": 554,
+      "cbdEntries": 456274,
+      "crzEntries": 410021
+    },
+    {
+      "day": "2026-01-29",
+      "service311": 2939,
+      "fdnyCount": 516,
+      "cbdEntries": 479071,
+      "crzEntries": 429947
+    },
+    {
+      "day": "2026-01-30",
+      "service311": 3125,
+      "fdnyCount": 526,
+      "cbdEntries": 487858,
+      "crzEntries": 439904
+    },
+    {
+      "day": "2026-01-31",
+      "service311": 2466,
+      "fdnyCount": 583,
+      "cbdEntries": 475769,
+      "crzEntries": 433984
+    },
+    {
+      "day": "2026-02-01",
+      "service311": 3275,
+      "fdnyCount": 550,
+      "cbdEntries": 432003,
+      "crzEntries": 383101
+    },
+    {
+      "day": "2026-02-02",
+      "service311": 2437,
+      "fdnyCount": 728,
+      "cbdEntries": 473111,
+      "crzEntries": 417850
+    },
+    {
+      "day": "2026-02-03",
+      "service311": 2394,
+      "fdnyCount": 576,
+      "cbdEntries": 498233,
+      "crzEntries": 442214
+    },
+    {
+      "day": "2026-02-04",
+      "service311": 2064,
+      "fdnyCount": 544,
+      "cbdEntries": 512325,
+      "crzEntries": 456392
+    },
+    {
+      "day": "2026-02-05",
+      "service311": 2159,
+      "fdnyCount": 517,
+      "cbdEntries": 529216,
+      "crzEntries": 471637
+    },
+    {
+      "day": "2026-02-06",
+      "service311": 2149,
+      "fdnyCount": 494,
+      "cbdEntries": 531474,
+      "crzEntries": 472338
+    },
+    {
+      "day": "2026-02-07",
+      "service311": 2093,
+      "fdnyCount": 495,
+      "cbdEntries": 497686,
+      "crzEntries": 444570
+    },
+    {
+      "day": "2026-02-08",
+      "service311": 2890,
+      "fdnyCount": 583,
+      "cbdEntries": 444822,
+      "crzEntries": 393194
+    },
+    {
+      "day": "2026-02-09",
+      "service311": 2869,
+      "fdnyCount": 887,
+      "cbdEntries": 500179,
+      "crzEntries": 441382
+    },
+    {
+      "day": "2026-02-10",
+      "service311": 2373,
+      "fdnyCount": 619,
+      "cbdEntries": 517426,
+      "crzEntries": 459111
+    },
+    {
+      "day": "2026-02-11",
+      "service311": 1996,
+      "fdnyCount": 590,
+      "cbdEntries": 533931,
+      "crzEntries": 474286
+    },
+    {
+      "day": "2026-02-12",
+      "service311": 1963,
+      "fdnyCount": 469,
+      "cbdEntries": 549899,
+      "crzEntries": 493359
+    },
+    {
+      "day": "2026-02-13",
+      "service311": 2062,
+      "fdnyCount": 488,
+      "cbdEntries": 557152,
+      "crzEntries": 500360
+    },
+    {
+      "day": "2026-02-14",
+      "service311": 1772,
+      "fdnyCount": 506,
+      "cbdEntries": 539356,
+      "crzEntries": 485043
+    },
+    {
+      "day": "2026-02-15",
+      "service311": 1585,
+      "fdnyCount": 452,
+      "cbdEntries": 480850,
+      "crzEntries": 426696
+    },
+    {
+      "day": "2026-02-16",
+      "service311": 1789,
+      "fdnyCount": 371,
+      "cbdEntries": 447562,
+      "crzEntries": 388691
+    },
+    {
+      "day": "2026-02-17",
+      "service311": 2061,
+      "fdnyCount": 423,
+      "cbdEntries": 517442,
+      "crzEntries": 456927
+    },
+    {
+      "day": "2026-02-18",
+      "service311": 1897,
+      "fdnyCount": 452,
+      "cbdEntries": 515800,
+      "crzEntries": 455966
+    },
+    {
+      "day": "2026-02-19",
+      "service311": 2151,
+      "fdnyCount": 407,
+      "cbdEntries": 542746,
+      "crzEntries": 480575
+    },
+    {
+      "day": "2026-02-20",
+      "service311": 2007,
+      "fdnyCount": 424,
+      "cbdEntries": 541886,
+      "crzEntries": 482704
+    },
+    {
+      "day": "2026-02-21",
+      "service311": 1755,
+      "fdnyCount": 467,
+      "cbdEntries": 546787,
+      "crzEntries": 486865
+    },
+    {
+      "day": "2026-02-22",
+      "service311": 1523,
+      "fdnyCount": 485,
+      "cbdEntries": 318476,
+      "crzEntries": 281665
+    },
+    {
+      "day": "2026-02-23",
+      "service311": 1844,
+      "fdnyCount": 684,
+      "cbdEntries": 72721,
+      "crzEntries": 64681
+    },
+    {
+      "day": "2026-02-24",
+      "service311": 2787,
+      "fdnyCount": 536,
+      "cbdEntries": 401283,
+      "crzEntries": 358145
+    },
+    {
+      "day": "2026-02-25",
+      "service311": 2378,
+      "fdnyCount": 554,
+      "cbdEntries": 476617,
+      "crzEntries": 427177
+    },
+    {
+      "day": "2026-02-26",
+      "service311": 2219,
+      "fdnyCount": 462,
+      "cbdEntries": 530728,
+      "crzEntries": 472779
+    },
+    {
+      "day": "2026-02-27",
+      "service311": 2192,
+      "fdnyCount": 522,
+      "cbdEntries": 539322,
+      "crzEntries": 482126
+    },
+    {
+      "day": "2026-02-28",
+      "service311": 1961,
+      "fdnyCount": 476,
+      "cbdEntries": 530383,
+      "crzEntries": 473177
+    },
+    {
+      "day": "2026-03-01",
+      "service311": 1778,
+      "fdnyCount": 400,
+      "cbdEntries": 476864,
+      "crzEntries": 418874
+    },
+    {
+      "day": "2026-03-02",
+      "service311": 2117,
+      "fdnyCount": 421,
+      "cbdEntries": 510717,
+      "crzEntries": 454834
+    },
+    {
+      "day": "2026-03-03",
+      "service311": 1961,
+      "fdnyCount": 427,
+      "cbdEntries": 520964,
+      "crzEntries": 461838
+    },
+    {
+      "day": "2026-03-04",
+      "service311": 2078,
+      "fdnyCount": 454,
+      "cbdEntries": 548319,
+      "crzEntries": 486701
+    },
+    {
+      "day": "2026-03-05",
+      "service311": 1884,
+      "fdnyCount": 476,
+      "cbdEntries": 546505,
+      "crzEntries": 487815
+    },
+    {
+      "day": "2026-03-06",
+      "service311": 2357,
+      "fdnyCount": 456,
+      "cbdEntries": 559119,
+      "crzEntries": 496942
+    },
+    {
+      "day": "2026-03-07",
+      "service311": 2033,
+      "fdnyCount": 445,
+      "cbdEntries": 540698,
+      "crzEntries": 489214
+    },
+    {
+      "day": "2026-03-08",
+      "service311": 2021,
+      "fdnyCount": 460,
+      "cbdEntries": 492368,
+      "crzEntries": 431771
+    },
+    {
+      "day": "2026-03-09",
+      "service311": 2428,
+      "fdnyCount": 510,
+      "cbdEntries": 522932,
+      "crzEntries": 463389
+    },
+    {
+      "day": "2026-03-10",
+      "service311": 2545,
+      "fdnyCount": 505,
+      "cbdEntries": 538506,
+      "crzEntries": 478387
+    },
+    {
+      "day": "2026-03-11",
+      "service311": 2154,
+      "fdnyCount": 524,
+      "cbdEntries": 550356,
+      "crzEntries": 489571
+    },
+    {
+      "day": "2026-03-12",
+      "service311": 2283,
+      "fdnyCount": 469,
+      "cbdEntries": 554366,
+      "crzEntries": 493269
+    },
+    {
+      "day": "2026-03-13",
+      "service311": 2165,
+      "fdnyCount": 444,
+      "cbdEntries": 569140,
+      "crzEntries": 504653
+    },
+    {
+      "day": "2026-03-14",
+      "service311": 1956,
+      "fdnyCount": 435,
+      "cbdEntries": 558787,
+      "crzEntries": 497580
+    },
+    {
+      "day": "2026-03-15",
+      "service311": 1881,
+      "fdnyCount": 371,
+      "cbdEntries": 493358,
+      "crzEntries": 441681
+    },
+    {
+      "day": "2026-03-16",
+      "service311": 2033,
+      "fdnyCount": 410,
+      "cbdEntries": 514439,
+      "crzEntries": 453459
+    },
+    {
+      "day": "2026-03-17",
+      "service311": 2250,
+      "fdnyCount": 411,
+      "cbdEntries": 531119,
+      "crzEntries": 470462
+    },
+    {
+      "day": "2026-03-18",
+      "service311": 2273,
+      "fdnyCount": 428,
+      "cbdEntries": 563879,
+      "crzEntries": 500234
+    },
+    {
+      "day": "2026-03-19",
+      "service311": 2139,
+      "fdnyCount": 388,
+      "cbdEntries": 566080,
+      "crzEntries": 501759
+    },
+    {
+      "day": "2026-03-20",
+      "service311": 2087,
+      "fdnyCount": 415,
+      "cbdEntries": 554092,
+      "crzEntries": 488144
+    },
+    {
+      "day": "2026-03-21",
+      "service311": 1998,
+      "fdnyCount": 477,
+      "cbdEntries": 545995,
+      "crzEntries": 482945
+    },
+    {
+      "day": "2026-03-22",
+      "service311": 1890,
+      "fdnyCount": 428,
+      "cbdEntries": 512898,
+      "crzEntries": 447172
+    },
+    {
+      "day": "2026-03-23",
+      "service311": 1993,
+      "fdnyCount": 403,
+      "cbdEntries": 516624,
+      "crzEntries": 455890
+    },
+    {
+      "day": "2026-03-24",
+      "service311": 2142,
+      "fdnyCount": 433,
+      "cbdEntries": 538226,
+      "crzEntries": 476699
+    },
+    {
+      "day": "2026-03-25",
+      "service311": 2060,
+      "fdnyCount": 403,
+      "cbdEntries": 547902,
+      "crzEntries": 485294
+    },
+    {
+      "day": "2026-03-26",
+      "service311": 2337,
+      "fdnyCount": 472,
+      "cbdEntries": 566589,
+      "crzEntries": 502673
+    },
+    {
+      "day": "2026-03-27",
+      "service311": 2017,
+      "fdnyCount": 424,
+      "cbdEntries": 571064,
+      "crzEntries": 506317
+    },
+    {
+      "day": "2026-03-28",
+      "service311": 1995,
+      "fdnyCount": 463,
+      "cbdEntries": 554879,
+      "crzEntries": 491770
+    },
+    {
+      "day": "2026-03-29",
+      "service311": 2075,
+      "fdnyCount": 401,
+      "cbdEntries": 510072,
+      "crzEntries": 447696
+    },
+    {
+      "day": "2026-03-30",
+      "service311": 2197,
+      "fdnyCount": 439,
+      "cbdEntries": 526558,
+      "crzEntries": 462414
+    },
+    {
+      "day": "2026-03-31",
+      "service311": 2381,
+      "fdnyCount": 472,
+      "cbdEntries": 537876,
+      "crzEntries": 472488
+    },
+    {
+      "day": "2026-04-01",
+      "service311": 2209,
+      "fdnyCount": 493,
+      "cbdEntries": 544670,
+      "crzEntries": 479605
+    },
+    {
+      "day": "2026-04-02",
+      "service311": 1871,
+      "fdnyCount": 411,
+      "cbdEntries": 538761,
+      "crzEntries": 477816
+    },
+    {
+      "day": "2026-04-03",
+      "service311": 1991,
+      "fdnyCount": 411,
+      "cbdEntries": 525499,
+      "crzEntries": 466691
+    },
+    {
+      "day": "2026-04-04",
+      "service311": 1887,
+      "fdnyCount": 419,
+      "cbdEntries": 537067,
+      "crzEntries": 474886
+    },
+    {
+      "day": "2026-04-05",
+      "service311": 1379,
+      "fdnyCount": 378,
+      "cbdEntries": 494586,
+      "crzEntries": 432242
+    },
+    {
+      "day": "2026-04-06",
+      "service311": 2091,
+      "fdnyCount": 399,
+      "cbdEntries": 528710,
+      "crzEntries": 462859
+    },
+    {
+      "day": "2026-04-07",
+      "service311": 2063,
+      "fdnyCount": 407,
+      "cbdEntries": 541583,
+      "crzEntries": 478435
+    },
+    {
+      "day": "2026-04-08",
+      "service311": 2072,
+      "fdnyCount": 429,
+      "cbdEntries": 531498,
+      "crzEntries": 473008
+    },
+    {
+      "day": "2026-04-09",
+      "service311": 1894,
+      "fdnyCount": 446,
+      "cbdEntries": 559325,
+      "crzEntries": 498164
+    },
+    {
+      "day": "2026-04-10",
+      "service311": 2215,
+      "fdnyCount": 428,
+      "cbdEntries": 575695,
+      "crzEntries": 508427
+    },
+    {
+      "day": "2026-04-11",
+      "service311": 2164,
+      "fdnyCount": 429,
+      "cbdEntries": 565184,
+      "crzEntries": 503212
+    },
+    {
+      "day": "2026-04-12",
+      "service311": 1972,
+      "fdnyCount": 385,
+      "cbdEntries": 530423,
+      "crzEntries": 463779
+    },
+    {
+      "day": "2026-04-13",
+      "service311": 2236,
+      "fdnyCount": 494,
+      "cbdEntries": 536851,
+      "crzEntries": 471564
+    },
+    {
+      "day": "2026-04-14",
+      "service311": 2208,
+      "fdnyCount": 504,
+      "cbdEntries": 556133,
+      "crzEntries": 490427
+    },
+    {
+      "day": "2026-04-15",
+      "service311": 2258,
+      "fdnyCount": 532,
+      "cbdEntries": 569104,
+      "crzEntries": 506182
+    },
+    {
+      "day": "2026-04-16",
+      "service311": 2269,
+      "fdnyCount": 493,
+      "cbdEntries": 591099,
+      "crzEntries": 522814
+    },
+    {
+      "day": "2026-04-17",
+      "service311": 2207,
+      "fdnyCount": 502,
+      "cbdEntries": 590608,
+      "crzEntries": 523678
+    },
+    {
+      "day": "2026-04-18",
+      "service311": 2085,
+      "fdnyCount": 469,
+      "cbdEntries": 582910,
+      "crzEntries": 517240
+    },
+    {
+      "day": "2026-04-19",
+      "service311": 1671,
+      "fdnyCount": 412,
+      "cbdEntries": 519546,
+      "crzEntries": 456566
+    },
+    {
+      "day": "2026-04-20",
+      "service311": 2207,
+      "fdnyCount": 479,
+      "cbdEntries": 547830,
+      "crzEntries": 481659
+    },
+    {
+      "day": "2026-04-21",
+      "service311": 2135,
+      "fdnyCount": 401,
+      "cbdEntries": 560345,
+      "crzEntries": 495478
+    },
+    {
+      "day": "2026-04-22",
+      "service311": 2021,
+      "fdnyCount": 406,
+      "cbdEntries": 574156,
+      "crzEntries": 508518
+    },
+    {
+      "day": "2026-04-23",
+      "service311": 2161,
+      "fdnyCount": 479,
+      "cbdEntries": 595037,
+      "crzEntries": 527763
+    },
+    {
+      "day": "2026-04-24",
+      "service311": 2255,
+      "fdnyCount": 463,
+      "cbdEntries": 595315,
+      "crzEntries": 526829
+    },
+    {
+      "day": "2026-04-25",
+      "service311": 1719,
+      "fdnyCount": 470,
+      "cbdEntries": 548325,
+      "crzEntries": 490805
+    },
+    {
+      "day": "2026-04-26",
+      "service311": 1773,
+      "fdnyCount": 413,
+      "cbdEntries": 521156,
+      "crzEntries": 462116
+    },
+    {
+      "day": "2026-04-27",
+      "service311": 2253,
+      "fdnyCount": 433,
+      "cbdEntries": 539155,
+      "crzEntries": 474576
+    },
+    {
+      "day": "2026-04-28",
+      "service311": 2227,
+      "fdnyCount": 481,
+      "cbdEntries": 561699,
+      "crzEntries": 496799
+    },
+    {
+      "day": "2026-04-29",
+      "service311": 2068,
+      "fdnyCount": 433,
+      "cbdEntries": 561936,
+      "crzEntries": 500885
+    },
+    {
+      "day": "2026-04-30",
+      "service311": 2085,
+      "fdnyCount": 409,
+      "cbdEntries": 591561,
+      "crzEntries": 526805
+    },
+    {
+      "day": "2026-05-01",
+      "service311": 2350,
+      "fdnyCount": 483,
+      "cbdEntries": 586027,
+      "crzEntries": 520863
+    },
+    {
+      "day": "2026-05-02",
+      "service311": 2132,
+      "fdnyCount": 471,
+      "cbdEntries": 569638,
+      "crzEntries": 508353
+    },
+    {
+      "day": "2026-05-03",
+      "service311": 1814,
+      "fdnyCount": 410,
+      "cbdEntries": 504399,
+      "crzEntries": 451048
+    },
+    {
+      "day": "2026-05-04",
+      "service311": 2223,
+      "fdnyCount": 403,
+      "cbdEntries": 546221,
+      "crzEntries": 479197
+    },
+    {
+      "day": "2026-05-05",
+      "service311": 2500,
+      "fdnyCount": 499,
+      "cbdEntries": 570619,
+      "crzEntries": 502605
+    },
+    {
+      "day": "2026-05-06",
+      "service311": 2225,
+      "fdnyCount": 511,
+      "cbdEntries": 576344,
+      "crzEntries": 510700
+    },
+    {
+      "day": "2026-05-07",
+      "service311": 2139,
+      "fdnyCount": 506,
+      "cbdEntries": 587395,
+      "crzEntries": 521634
+    },
+    {
+      "day": "2026-05-08",
+      "service311": 2354,
+      "fdnyCount": 429,
+      "cbdEntries": 593946,
+      "crzEntries": 527317
+    },
+    {
+      "day": "2026-05-09",
+      "service311": 1812,
+      "fdnyCount": 432,
+      "cbdEntries": 569003,
+      "crzEntries": 506352
+    },
+    {
+      "day": "2026-05-10",
+      "service311": 1733,
+      "fdnyCount": 417,
+      "cbdEntries": 544693,
+      "crzEntries": 480093
+    },
+    {
+      "day": "2026-05-11",
+      "service311": 2205,
+      "fdnyCount": 424,
+      "cbdEntries": 555126,
+      "crzEntries": 488215
+    },
+    {
+      "day": "2026-05-12",
+      "service311": 2269,
+      "fdnyCount": 466,
+      "cbdEntries": 566238,
+      "crzEntries": 503808
+    },
+    {
+      "day": "2026-05-13",
+      "service311": 2224,
+      "fdnyCount": 516,
+      "cbdEntries": 581668,
+      "crzEntries": 518690
+    },
+    {
+      "day": "2026-05-14",
+      "service311": 2049,
+      "fdnyCount": 412,
+      "cbdEntries": 600150,
+      "crzEntries": 534361
+    },
+    {
+      "day": "2026-05-15",
+      "service311": 2511,
+      "fdnyCount": 517,
+      "cbdEntries": 609152,
+      "crzEntries": 541263
+    },
+    {
+      "day": "2026-05-16",
+      "service311": 2449,
+      "fdnyCount": 511,
+      "cbdEntries": 584841,
+      "crzEntries": 526695
+    },
+    {
+      "day": "2026-05-17",
+      "service311": 2253,
+      "fdnyCount": 530,
+      "cbdEntries": 555530,
+      "crzEntries": 492062
+    },
+    {
+      "day": "2026-05-18",
+      "service311": 2231,
+      "fdnyCount": 538,
+      "cbdEntries": 561195,
+      "crzEntries": 493402
+    },
+    {
+      "day": "2026-05-19",
+      "service311": 2352,
+      "fdnyCount": 636,
+      "cbdEntries": 574557,
+      "crzEntries": 508908
+    },
+    {
+      "day": "2026-05-20",
+      "service311": 2217,
+      "fdnyCount": 500,
+      "cbdEntries": 574922,
+      "crzEntries": 509980
+    },
+    {
+      "day": "2026-05-21",
+      "service311": 1823,
+      "fdnyCount": 417,
+      "cbdEntries": 581962,
+      "crzEntries": 517295
+    },
+    {
+      "day": "2026-05-22",
+      "service311": 2083,
+      "fdnyCount": 484,
+      "cbdEntries": 563091,
+      "crzEntries": 498850
+    },
+    {
+      "day": "2026-05-23",
+      "service311": 1485,
+      "fdnyCount": 400,
+      "cbdEntries": 498263,
+      "crzEntries": 442720
+    },
+    {
+      "day": "2026-05-24",
+      "service311": 1386,
+      "fdnyCount": 415,
+      "cbdEntries": 460532,
+      "crzEntries": 402654
+    },
+    {
+      "day": "2026-05-25",
+      "service311": 1819,
+      "fdnyCount": 435,
+      "cbdEntries": 441481,
+      "crzEntries": 384063
+    },
+    {
+      "day": "2026-05-26",
+      "service311": 2423,
+      "fdnyCount": 484,
+      "cbdEntries": 552517,
+      "crzEntries": 484480
+    },
+    {
+      "day": "2026-05-27",
+      "service311": 2216,
+      "fdnyCount": 463,
+      "cbdEntries": 550002,
+      "crzEntries": 479825
+    },
+    {
+      "day": "2026-05-28",
+      "service311": 2361,
+      "fdnyCount": 456,
+      "cbdEntries": 576882,
+      "crzEntries": 510073
+    },
+    {
+      "day": "2026-05-29",
+      "service311": 2495,
+      "fdnyCount": 461,
+      "cbdEntries": 584262,
+      "crzEntries": 517745
+    },
+    {
+      "day": "2026-05-30",
+      "service311": 2025,
+      "fdnyCount": 469,
+      "cbdEntries": 559438,
+      "crzEntries": 500314
+    },
+    {
+      "day": "2026-05-31",
+      "service311": 2257,
+      "fdnyCount": 482,
+      "cbdEntries": 525314,
+      "crzEntries": 461297
+    },
+    {
+      "day": "2026-06-01",
+      "service311": 2455,
+      "fdnyCount": 433,
+      "cbdEntries": 548707,
+      "crzEntries": 480243
+    },
+    {
+      "day": "2026-06-02",
+      "service311": 2349,
+      "fdnyCount": 488,
+      "cbdEntries": 558486,
+      "crzEntries": 494532
+    },
+    {
+      "day": "2026-06-03",
+      "service311": 2452,
+      "fdnyCount": 520,
+      "cbdEntries": 580373,
+      "crzEntries": 512712
+    },
+    {
+      "day": "2026-06-04",
+      "service311": 2166,
+      "fdnyCount": 496,
+      "cbdEntries": 593582,
+      "crzEntries": 525922
+    },
+    {
+      "day": "2026-06-05",
+      "service311": 2269,
+      "fdnyCount": 523,
+      "cbdEntries": 578365,
+      "crzEntries": 517419
+    },
+    {
+      "day": "2026-06-06",
+      "service311": 1846,
+      "fdnyCount": 568,
+      "cbdEntries": 569889,
+      "crzEntries": 510368
+    },
+    {
+      "day": "2026-06-07",
+      "service311": 2096,
+      "fdnyCount": 460,
+      "cbdEntries": 532658,
+      "crzEntries": 470578
+    },
+    {
+      "day": "2026-06-08",
+      "service311": 2261,
+      "fdnyCount": 427,
+      "cbdEntries": 546881,
+      "crzEntries": 482972
+    },
+    {
+      "day": "2026-06-09",
+      "service311": 2196,
+      "fdnyCount": 471,
+      "cbdEntries": 572667,
+      "crzEntries": 503820
+    },
+    {
+      "day": "2026-06-10",
+      "service311": 2209,
+      "fdnyCount": 532,
+      "cbdEntries": 578484,
+      "crzEntries": 513967
+    },
+    {
+      "day": "2026-06-11",
+      "service311": 1979,
+      "fdnyCount": 583,
+      "cbdEntries": 603424,
+      "crzEntries": 535476
+    },
+    {
+      "day": "2026-06-12",
+      "service311": 2001,
+      "fdnyCount": 606,
+      "cbdEntries": 589824,
+      "crzEntries": 525042
+    },
+    {
+      "day": "2026-06-13",
+      "service311": 1984,
+      "fdnyCount": 559,
+      "cbdEntries": 552365,
+      "crzEntries": 488155
+    },
+    {
+      "day": "2026-06-14",
+      "service311": 1913,
+      "fdnyCount": 574,
+      "cbdEntries": 533471,
+      "crzEntries": 466917
+    },
+    {
+      "day": "2026-06-15",
+      "service311": 2156,
+      "fdnyCount": 466,
+      "cbdEntries": 542984,
+      "crzEntries": 477019
+    },
+    {
+      "day": "2026-06-16",
+      "service311": 2056,
+      "fdnyCount": 471,
+      "cbdEntries": 549205,
+      "crzEntries": 481197
+    },
+    {
+      "day": "2026-06-17",
+      "service311": 2010,
+      "fdnyCount": 451,
+      "cbdEntries": 575925,
+      "crzEntries": 508611
+    },
+    {
+      "day": "2026-06-18",
+      "service311": 2060,
+      "fdnyCount": 573,
+      "cbdEntries": 548409,
+      "crzEntries": 491801
+    },
+    {
+      "day": "2026-06-19",
+      "service311": 2019,
+      "fdnyCount": 479,
+      "cbdEntries": 560683,
+      "crzEntries": 492019
+    },
+    {
+      "day": "2026-06-20",
+      "service311": 2166,
+      "fdnyCount": 487,
+      "cbdEntries": 548782,
+      "crzEntries": 479821
+    },
+    {
+      "day": "2026-06-21",
+      "service311": 1914,
+      "fdnyCount": 451,
+      "cbdEntries": 527294,
+      "crzEntries": 457631
+    },
+    {
+      "day": "2026-06-22",
+      "service311": 2078,
+      "fdnyCount": 440,
+      "cbdEntries": 528796,
+      "crzEntries": 462495
+    },
+    {
+      "day": "2026-06-23",
+      "service311": 1823,
+      "fdnyCount": 472,
+      "cbdEntries": 561483,
+      "crzEntries": 495844
+    },
+    {
+      "day": "2026-06-24",
+      "service311": 2168,
+      "fdnyCount": 469,
+      "cbdEntries": 576413,
+      "crzEntries": 508102
+    },
+    {
+      "day": "2026-06-25",
+      "service311": 2073,
+      "fdnyCount": 458,
+      "cbdEntries": 573603,
+      "crzEntries": 506909
+    },
+    {
+      "day": "2026-06-26",
+      "service311": 2115,
+      "fdnyCount": 479,
+      "cbdEntries": 580385,
+      "crzEntries": 513346
+    },
+    {
+      "day": "2026-06-27",
+      "service311": 1964,
+      "fdnyCount": 511,
+      "cbdEntries": 542026,
+      "crzEntries": 479979
+    },
+    {
+      "day": "2026-06-28",
+      "service311": 1975,
+      "fdnyCount": 509,
+      "cbdEntries": 525554,
+      "crzEntries": 457116
+    },
+    {
+      "day": "2026-06-29",
+      "service311": 2346,
+      "fdnyCount": 536,
+      "cbdEntries": 539149,
+      "crzEntries": 471026
+    },
+    {
+      "day": "2026-06-30",
+      "service311": 2354,
+      "fdnyCount": 470,
+      "cbdEntries": 545403,
+      "crzEntries": 477498
+    },
+    {
+      "day": "2026-07-01",
+      "service311": 2260,
+      "fdnyCount": 609,
+      "cbdEntries": 554089,
+      "crzEntries": 486301
+    },
+    {
+      "day": "2026-07-02",
+      "service311": 2360,
+      "fdnyCount": 700,
+      "cbdEntries": 546031,
+      "crzEntries": 479553
+    },
+    {
+      "day": "2026-07-03",
+      "service311": 1946,
+      "fdnyCount": 597,
+      "cbdEntries": 471744,
+      "crzEntries": 410312
+    },
+    {
+      "day": "2026-07-04",
+      "service311": 1896,
+      "fdnyCount": 530,
+      "cbdEntries": 359784,
+      "crzEntries": 340004
+    },
+    {
+      "day": "2026-07-05",
+      "service311": 2160,
+      "fdnyCount": 484,
+      "cbdEntries": 461307,
+      "crzEntries": 404670
+    },
+    {
+      "day": "2026-07-06",
+      "service311": 1846,
+      "fdnyCount": 473,
+      "cbdEntries": 510141,
+      "crzEntries": 446793
+    },
+    {
+      "day": "2026-07-07",
+      "service311": 2074,
+      "fdnyCount": 454,
+      "cbdEntries": 540154,
+      "crzEntries": 474435
+    },
+    {
+      "day": "2026-07-08",
+      "service311": 2161,
+      "fdnyCount": 506,
+      "cbdEntries": 551401,
+      "crzEntries": 488276
+    },
+    {
+      "day": "2026-07-09",
+      "service311": 1957,
+      "fdnyCount": 487,
+      "cbdEntries": 567110,
+      "crzEntries": 500251
+    },
+    {
+      "day": "2026-07-10",
+      "service311": 2083,
+      "fdnyCount": 550,
+      "cbdEntries": 575540,
+      "crzEntries": 506285
+    },
+    {
+      "day": "2026-07-11",
+      "service311": 1765,
+      "fdnyCount": 486,
+      "cbdEntries": 545961,
+      "crzEntries": 484054
+    },
+    {
+      "day": "2026-07-12",
+      "service311": 1868,
+      "fdnyCount": 474,
+      "cbdEntries": 529036,
+      "crzEntries": 459588
+    },
+    {
+      "day": "2026-07-13",
+      "service311": 2175,
+      "fdnyCount": 456,
+      "cbdEntries": 545014,
+      "crzEntries": 474883
+    },
+    {
+      "day": "2026-07-14",
+      "service311": 2153,
+      "fdnyCount": 493,
+      "cbdEntries": 555913,
+      "crzEntries": 488702
+    },
+    {
+      "day": "2026-07-15",
+      "service311": 2016,
+      "fdnyCount": 595,
+      "cbdEntries": 568445,
+      "crzEntries": 502335
+    },
+    {
+      "day": "2026-07-16",
+      "service311": 1852,
+      "fdnyCount": 496,
+      "cbdEntries": 586620,
+      "crzEntries": 519207
+    },
+    {
+      "day": "2026-07-17",
+      "service311": 1997,
+      "fdnyCount": 511,
+      "cbdEntries": 570382,
+      "crzEntries": 506327
+    },
+    {
+      "day": "2026-07-18",
+      "service311": 1645,
+      "fdnyCount": 592,
+      "cbdEntries": 520155,
+      "crzEntries": 464270
+    },
+    {
+      "day": "2026-07-19",
+      "service311": 1759,
+      "fdnyCount": 512,
+      "cbdEntries": 511038,
+      "crzEntries": 443362
+    },
+    {
+      "day": "2026-07-20",
+      "service311": 2192,
+      "fdnyCount": 502,
+      "cbdEntries": 550219,
+      "crzEntries": 479623
+    },
+    {
+      "day": "2026-07-21",
+      "service311": 2090,
+      "fdnyCount": 485,
+      "cbdEntries": 535275,
+      "crzEntries": 473141
+    },
+    {
+      "day": "2026-07-22",
+      "service311": 2046,
+      "fdnyCount": 528,
+      "cbdEntries": 566815,
+      "crzEntries": 501445
+    },
+    {
+      "day": "2026-07-23",
+      "service311": 2129,
+      "fdnyCount": 445,
+      "cbdEntries": 572269,
+      "crzEntries": 506850
+    },
+    {
+      "day": "2026-07-24",
+      "service311": 2038,
+      "fdnyCount": 475,
+      "cbdEntries": 570457,
+      "crzEntries": 502002
+    },
+    {
+      "day": "2026-07-25",
+      "service311": 1871,
+      "fdnyCount": 442,
+      "cbdEntries": 547952,
+      "crzEntries": 484656
+    },
+    {
+      "day": "2026-07-26",
+      "service311": 1957,
+      "fdnyCount": 450,
+      "cbdEntries": 519299,
+      "crzEntries": 457168
+    },
+    {
+      "day": "2026-07-27",
+      "service311": 2183,
+      "fdnyCount": 487,
+      "cbdEntries": 535123,
+      "crzEntries": 466074
+    },
+    {
+      "day": "2026-07-28",
+      "service311": 1894,
+      "fdnyCount": 429,
+      "cbdEntries": 539861,
+      "crzEntries": 476223
+    },
+    {
+      "day": "2026-07-29",
+      "service311": 2058,
+      "fdnyCount": 456,
+      "cbdEntries": 563858,
+      "crzEntries": 496634
+    },
+    {
+      "day": "2026-07-30",
+      "service311": 1814,
+      "fdnyCount": 458,
+      "cbdEntries": 576134,
+      "crzEntries": 511671
+    },
+    {
+      "day": "2026-07-31",
+      "service311": 2095,
+      "fdnyCount": 492,
+      "cbdEntries": 574219,
+      "crzEntries": 504938
+    },
+    {
+      "day": "2026-08-01",
+      "service311": 1888,
+      "fdnyCount": 549,
+      "cbdEntries": 528292,
+      "crzEntries": 474335
+    },
+    {
+      "day": "2026-08-02",
+      "service311": 1715,
+      "fdnyCount": 483,
+      "cbdEntries": 506815,
+      "crzEntries": 449951
+    },
+    {
+      "day": "2026-08-03",
+      "service311": 2041,
+      "fdnyCount": 530,
+      "cbdEntries": 511266,
+      "crzEntries": 449833
+    },
+    {
+      "day": "2026-08-04",
+      "service311": 2145,
+      "fdnyCount": 517,
+      "cbdEntries": 542937,
+      "crzEntries": 479055
+    },
+    {
+      "day": "2026-08-05",
+      "service311": 2114,
+      "fdnyCount": 475,
+      "cbdEntries": 552876,
+      "crzEntries": 487889
+    },
+    {
+      "day": "2026-08-06",
+      "service311": 1935,
+      "fdnyCount": 563,
+      "cbdEntries": 571567,
+      "crzEntries": 504572
+    },
+    {
+      "day": "2026-08-07",
+      "service311": 2141,
+      "fdnyCount": 617,
+      "cbdEntries": 557400,
+      "crzEntries": 491755
+    },
+    {
+      "day": "2026-08-08",
+      "service311": 1926,
+      "fdnyCount": 585,
+      "cbdEntries": 524016,
+      "crzEntries": 469390
+    },
+    {
+      "day": "2026-08-09",
+      "service311": 2193,
+      "fdnyCount": 537,
+      "cbdEntries": 503740,
+      "crzEntries": 440134
+    },
+    {
+      "day": "2026-08-10",
+      "service311": 2148,
+      "fdnyCount": 482,
+      "cbdEntries": 521365,
+      "crzEntries": 452895
+    },
+    {
+      "day": "2026-08-11",
+      "service311": 2047,
+      "fdnyCount": 462,
+      "cbdEntries": 536738,
+      "crzEntries": 470579
+    },
+    {
+      "day": "2026-08-12",
+      "service311": 2096,
+      "fdnyCount": 537,
+      "cbdEntries": 551664,
+      "crzEntries": 485152
+    },
+    {
+      "day": "2026-08-13",
+      "service311": 2020,
+      "fdnyCount": 517,
+      "cbdEntries": 566508,
+      "crzEntries": 497386
+    },
+    {
+      "day": "2026-08-14",
+      "service311": 2101,
+      "fdnyCount": 490,
+      "cbdEntries": 561979,
+      "crzEntries": 493360
+    },
+    {
+      "day": "2026-08-15",
+      "service311": 1839,
+      "fdnyCount": 503,
+      "cbdEntries": 518859,
+      "crzEntries": 463424
+    },
+    {
+      "day": "2026-08-16",
+      "service311": 1594,
+      "fdnyCount": 447,
+      "cbdEntries": 493716,
+      "crzEntries": 428011
+    },
+    {
+      "day": "2026-08-17",
+      "service311": 1996,
+      "fdnyCount": 469,
+      "cbdEntries": 514775,
+      "crzEntries": 447903
+    },
+    {
+      "day": "2026-08-18",
+      "service311": 2223,
+      "fdnyCount": 552,
+      "cbdEntries": 532532,
+      "crzEntries": 465601
+    },
+    {
+      "day": "2026-08-19",
+      "service311": 2180,
+      "fdnyCount": 490,
+      "cbdEntries": 545977,
+      "crzEntries": 476267
+    },
+    {
+      "day": "2026-08-20",
+      "service311": 2068,
+      "fdnyCount": 485,
+      "cbdEntries": 547539,
+      "crzEntries": 482338
+    },
+    {
+      "day": "2026-08-21",
+      "service311": 2130,
+      "fdnyCount": 486,
+      "cbdEntries": 549758,
+      "crzEntries": 481488
+    },
+    {
+      "day": "2026-08-22",
+      "service311": 1785,
+      "fdnyCount": 469,
+      "cbdEntries": 531413,
+      "crzEntries": 467645
+    },
+    {
+      "day": "2026-08-23",
+      "service311": 1936,
+      "fdnyCount": 528,
+      "cbdEntries": 497886,
+      "crzEntries": 431196
+    },
+    {
+      "day": "2026-08-24",
+      "service311": 2247,
+      "fdnyCount": 442,
+      "cbdEntries": 510447,
+      "crzEntries": 440475
+    },
+    {
+      "day": "2026-08-25",
+      "service311": 2091,
+      "fdnyCount": 437,
+      "cbdEntries": 531463,
+      "crzEntries": 463654
+    },
+    {
+      "day": "2026-08-26",
+      "service311": 2050,
+      "fdnyCount": 492,
+      "cbdEntries": 545058,
+      "crzEntries": 475435
+    },
+    {
+      "day": "2026-08-27",
+      "service311": 1819,
+      "fdnyCount": 464,
+      "cbdEntries": 547073,
+      "crzEntries": 479254
+    },
+    {
+      "day": "2026-08-28",
+      "service311": 2178,
+      "fdnyCount": 460,
+      "cbdEntries": 559625,
+      "crzEntries": 491738
+    },
+    {
+      "day": "2026-08-29",
+      "service311": 1880,
+      "fdnyCount": 463,
+      "cbdEntries": 528919,
+      "crzEntries": 471210
+    },
+    {
+      "day": "2026-08-30",
+      "service311": 1826,
+      "fdnyCount": 416,
+      "cbdEntries": 503454,
+      "crzEntries": 440850
+    },
+    {
+      "day": "2026-08-31",
+      "service311": 2117,
+      "fdnyCount": 462,
+      "cbdEntries": 525988,
+      "crzEntries": 456307
+    },
+    {
+      "day": "2026-09-01",
+      "service311": 1837,
+      "fdnyCount": 506,
+      "cbdEntries": 529346,
+      "crzEntries": 463541
+    },
+    {
+      "day": "2026-09-02",
+      "service311": 2057,
+      "fdnyCount": 415,
+      "cbdEntries": 545939,
+      "crzEntries": 479681
+    },
+    {
+      "day": "2026-09-03",
+      "service311": 2193,
+      "fdnyCount": 511,
+      "cbdEntries": 566512,
+      "crzEntries": 495655
+    },
+    {
+      "day": "2026-09-04",
+      "service311": 2188,
+      "fdnyCount": 507,
+      "cbdEntries": 562889,
+      "crzEntries": 495463
+    },
+    {
+      "day": "2026-09-05",
+      "service311": 1804,
+      "fdnyCount": 481,
+      "cbdEntries": 519073,
+      "crzEntries": 455375
+    },
+    {
+      "day": "2026-09-06",
+      "service311": 1986,
+      "fdnyCount": 442,
+      "cbdEntries": 503629,
+      "crzEntries": 436053
+    },
+    {
+      "day": "2026-09-07",
+      "service311": 1990,
+      "fdnyCount": 448,
+      "cbdEntries": 462270,
+      "crzEntries": 398441
+    },
+    {
+      "day": "2026-09-08",
+      "service311": 2419,
+      "fdnyCount": 519,
+      "cbdEntries": 563039,
+      "crzEntries": 493982
+    },
+    {
+      "day": "2026-09-09",
+      "service311": 2509,
+      "fdnyCount": 468,
+      "cbdEntries": 576181,
+      "crzEntries": 509705
+    },
+    {
+      "day": "2026-09-10",
+      "service311": 2193,
+      "fdnyCount": 541,
+      "cbdEntries": 581288,
+      "crzEntries": 518513
+    },
+    {
+      "day": "2026-09-11",
+      "service311": 2336,
+      "fdnyCount": 530,
+      "cbdEntries": 563039,
+      "crzEntries": 504586
+    },
+    {
+      "day": "2026-09-12",
+      "service311": 2339,
+      "fdnyCount": 494,
+      "cbdEntries": 571945,
+      "crzEntries": 508245
+    },
+    {
+      "day": "2026-09-13",
+      "service311": 1790,
+      "fdnyCount": 551,
+      "cbdEntries": 514929,
+      "crzEntries": 455804
+    },
+    {
+      "day": "2026-09-14",
+      "service311": 2312,
+      "fdnyCount": 472,
+      "cbdEntries": 546944,
+      "crzEntries": 482732
+    },
+    {
+      "day": "2026-09-15",
+      "service311": 2048,
+      "fdnyCount": 447,
+      "cbdEntries": 560992,
+      "crzEntries": 495283
+    },
+    {
+      "day": "2026-09-16",
+      "service311": 2417,
+      "fdnyCount": 468,
+      "cbdEntries": 575779,
+      "crzEntries": 509945
+    },
+    {
+      "day": "2026-09-17",
+      "service311": 2388,
+      "fdnyCount": 511,
+      "cbdEntries": 589799,
+      "crzEntries": 524193
+    },
+    {
+      "day": "2026-09-18",
+      "service311": 2494,
+      "fdnyCount": 522,
+      "cbdEntries": 592469,
+      "crzEntries": 528676
+    },
+    {
+      "day": "2026-09-19",
+      "service311": 2305,
+      "fdnyCount": 463,
+      "cbdEntries": 581421,
+      "crzEntries": 517220
+    },
+    {
+      "day": "2026-09-20",
+      "service311": 1760,
+      "fdnyCount": 434,
+      "cbdEntries": 509999,
+      "crzEntries": 451840
+    },
+    {
+      "day": "2026-09-21",
+      "service311": 2275,
+      "fdnyCount": 402,
+      "cbdEntries": 508009,
+      "crzEntries": 445307
+    },
+    {
+      "day": "2026-09-22",
+      "service311": 2215,
+      "fdnyCount": 443,
+      "cbdEntries": 530189,
+      "crzEntries": 467443
+    },
+    {
+      "day": "2026-09-23",
+      "service311": 2260,
+      "fdnyCount": 453,
+      "cbdEntries": 553359,
+      "crzEntries": 486768
+    },
+    {
+      "day": "2026-09-24",
+      "service311": 2164,
+      "fdnyCount": 467,
+      "cbdEntries": 571285,
+      "crzEntries": 504150
+    },
+    {
+      "day": "2026-09-25",
+      "service311": 2262,
+      "fdnyCount": 458,
+      "cbdEntries": 580418,
+      "crzEntries": 511530
+    },
+    {
+      "day": "2026-09-26",
+      "service311": 1777,
+      "fdnyCount": 471,
+      "cbdEntries": 483315,
+      "crzEntries": 435362
+    },
+    {
+      "day": "2026-09-27",
+      "service311": 1606,
+      "fdnyCount": 448,
+      "cbdEntries": 441617,
+      "crzEntries": 397795
+    },
+    {
+      "day": "2026-09-28",
+      "service311": 2181,
+      "fdnyCount": 506,
+      "cbdEntries": 526351,
+      "crzEntries": 465475
+    },
+    {
+      "day": "2026-09-29",
+      "service311": 2276,
+      "fdnyCount": 461,
+      "cbdEntries": 540415,
+      "crzEntries": 477929
+    },
+    {
+      "day": "2026-09-30",
+      "service311": 2613,
+      "fdnyCount": 494,
+      "cbdEntries": 556798,
+      "crzEntries": 499711
+    }
+  ]
+}

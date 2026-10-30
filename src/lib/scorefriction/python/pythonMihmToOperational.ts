@@ -15,6 +15,7 @@ export type PythonOperationalReading = {
 };
 
 function num(value: unknown): number | null {
+  if(typeof value!=='number' && (typeof value!=='string'||!value.trim()||!/^[-+]?(?:\d+\.?\d*|\.\d+)(?:e[-+]?\d+)?$/i.test(value.trim())))return null;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
 }
@@ -89,7 +90,9 @@ export function buildScoreFrictionOperationalReading(input: {
   const semanticField = rsem === null && csem === null
     ? 'Campo semantico insuficiente: no se proporciono texto o Whisper no produjo transcripcion.'
     : `Campo semantico ${level(csem)}: R_sem ${rsem?.toFixed(2) ?? 'sin dato'} / C_sem ${csem?.toFixed(2) ?? 'sin dato'}.`;
-  const invisibilityRisk = (fs !== null && er !== null && vi !== null && fs < 0.33 && er < 0.33 && vi < 0.45)
+  const invisibilityRisk = fs===null||er===null||vi===null
+    ? 'Riesgo de invisibilidad insuficiente: faltan mediciones de F_s, E_r o V_i.'
+    : (fs !== null && er !== null && vi !== null && fs < 0.33 && er < 0.33 && vi < 0.45)
     ? 'Riesgo de invisibilidad alto: baja friccion, baja energia y vector intencional difuso pueden hacer que la senal pase desapercibida.'
     : 'Riesgo de invisibilidad no dominante en la lectura actual.';
   const protoattractor = ihgLevel === 'alto' || (phi !== null && phi >= 0.66)

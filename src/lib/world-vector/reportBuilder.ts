@@ -57,13 +57,21 @@ export function buildWorldVectorInternalReport(input: {
     observation.warnings.length ? observation.warnings.join('\n') : 'none',
   ].join('\n');
 
+  // Daily identity follows the UTC instant of the observation, not the weekly cycle
+  // or the calendar date encoded in an offset-bearing timestamp.
+  // Missing or invalid timestamps retain the legacy cycle key; never invent today's date.
+  const observedTimestamp = observation.observed_at ? new Date(observation.observed_at) : null;
+  const observationDay = observedTimestamp && Number.isFinite(observedTimestamp.getTime())
+    ? observedTimestamp.toISOString().slice(0, 10)
+    : cycleRange.cycle_start_date;
+
   return {
     title: `World Vector internal daily - ${observation.day_of_week} - ${observation.sector}`,
     body,
     report_type: 'internal_daily',
     target_audience: 'founder',
-    period_start: cycleRange.cycle_start_date,
-    period_end: cycleRange.cycle_end_date,
+    period_start: observationDay,
+    period_end: observationDay,
     json_payload: { observation, cycleRange },
   };
 }

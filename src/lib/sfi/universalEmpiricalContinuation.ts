@@ -545,16 +545,17 @@ async function continueOne(cycleId: string) {
   };
 }
 
-export async function runUniversalEmpiricalContinuation(input: { limit?: number; cycleId?: string } = {}) {
-  const db = createServiceSupabaseClient();
-  const recent = await db.from('epistemic_events')
+export async function runUniversalEmpiricalContinuation(input: { limit?: number; cycleId?: string } = {}, dependencies: {db?: ReturnType<typeof createServiceSupabaseClient>; continueCycle?: (cycleId: string) => Promise<Row>} = {}) {
+  const db = dependencies.db ?? createServiceSupabaseClient();
+  const requestedCycleId = text(input.cycleId);
+  let query = db.from('epistemic_events')
     .select('sequence,payload')
-    .eq('event_name', 'SFI_UNIVERSAL_RETURN_RECORDED')
-    .order('sequence', { ascending: false })
+    .eq('event_name', 'SFI_UNIVERSAL_RETURN_RECORDED');
+  if (requestedCycleId) query = query.eq('logbook_id', `universal-cycle:${requestedCycleId}`);
+  const recent = await query.order('sequence', { ascending: false })
     .limit(500);
   if (recent.error) return { ok: false as const, processed: 0, results: [], error: recent.error.message };
 
-  const requestedCycleId = text(input.cycleId);
   const cycleIds: string[] = [];
   for (const value of recent.data ?? []) {
     const cycleId = text(row(value.payload).cycleId);
@@ -566,7 +567,7 @@ export async function runUniversalEmpiricalContinuation(input: { limit?: number;
   const results: Row[] = [];
   for (const cycleId of selected) {
     try {
-      results.push(await continueOne(cycleId));
+      results.push(await (dependencies.continueCycle ?? continueOne)(cycleId));
     } catch (error) {
       results.push({ cycleId, state: 'EMPIRICAL_CONTINUATION_FAILED', error: error instanceof Error ? error.message : String(error) });
     }

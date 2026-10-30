@@ -1,27 +1,11 @@
 name: MIHM-T Timeline Clocks v0.1 Review
 on:
-  push:
-    branches:
-      - work/reality-chain-integration-20261024
-    paths:
-      - '.github/workflows/mihmt-timeline-clocks-review.yml'
-      - 'scripts/reality_chain/**'
-      - 'scripts/qa-sfi-branch-ci-continuity.mjs'
-      - 'src/lib/mihm/**'
-      - 'src/app/timeline/**'
-      - 'src/components/sfi/OperationalTimeline.tsx'
-      - 'src/lib/sfi/case-platform/**'
-      - 'src/lib/persistence/**'
-      - 'supabase/migrations/*reality_chain*'
   pull_request:
     paths:
       - 'src/app/timeline/page.tsx'
       - 'src/components/sfi/OperationalTimeline.tsx'
       - 'src/components/sfi/OperationalTimeline.css'
       - 'src/lib/mihm/timelineClocks.ts'
-      - 'src/lib/mihm/timelineCaseProjectReadModel.ts'
-      - 'src/lib/mihm/timelineAttractorReadModel.ts'
-      - 'scripts/qa-sfi-timeline-case-project-attractor.mjs'
       - 'src/lib/observatory/public/worldSnapshotTimeline.ts'
       - 'scripts/qa-sfi-mihmt-timeline.ts'
       - '.github/workflows/mihmt-timeline-clocks-review.yml'
@@ -42,13 +26,9 @@ jobs:
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Verify MIHM-T independent clocks and authenticated route
         run: npx --no-install tsx scripts/qa-sfi-mihmt-timeline.ts
-      - name: Verify historical Case Platform source clocks, authority and tenant filtering
-        run: node --import tsx --test src/lib/mihm/timelineCaseHistory.test.ts
       - name: Existing operational temporal QA
         run: npx --no-install tsx scripts/qa-sfi-temporal-surfaces.ts
       - name: Existing visual convergence QA
         run: npx --no-install tsx scripts/qa-sfi-institutional-visual-convergence.ts
-      - name: Verify sourced Case, Project and Attractor lanes and authorization
-        run: node scripts/qa-sfi-timeline-case-project-attractor.mjs
       - name: TypeScript typecheck
         run: npm run typecheck

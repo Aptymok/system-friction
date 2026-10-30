@@ -579,3 +579,14 @@
 /* The decorative home time strip is absent; retain usable panoramic navigation. */
 .sfiHomeSurfaceRail{bottom:18px!important}
 .sfiHomePanoramaArrow{bottom:24px!important}
+
+
+.sfiHomeServiceActions{display:flex;gap:11px;flex-wrap:wrap;align-items:center;margin-top:24px}
+.sfiHomeServicePrimary,.sfiHomeServiceSecondary{display:inline-flex;min-height:46px;align-items:center;justify-content:center;padding:13px 17px;font:700 10px/1.3 var(--mono);letter-spacing:.04em;border:1px solid #d7af72;text-decoration:none;text-shadow:none}
+.sfiHomeServicePrimary{background:#d0af7d;color:#15130e}
+.sfiHomeServiceSecondary{background:rgba(6,6,5,.78);color:#f1d7a3}
+.sfiHomeServicePrimary:hover{background:#f1d5a6}.sfiHomeServiceSecondary:hover{background:rgba(38,34,24,.88)}
+.sfiHomeStatement{z-index:20}
+.sfiHomeSurfaceRail{opacity:.82}
+.sfiHomeSurfaceRail:before{content:"INSTRUMENTS / MANUAL EXPLORATION";position:absolute;bottom:100%;left:0;right:0;padding:7px 10px;font:650 8px var(--mono);letter-spacing:.12em;color:#d4bb8d;background:rgba(6,6,5,.65)}
+@media(max-width:760px){.sfiHomeStatement{top:20%}.sfiHomeStatement h1{font-size:clamp(30px,7.5vw,48px)}.sfiHomeServiceActions{gap:7px;margin-top:14px}.sfiHomeServicePrimary,.sfiHomeServiceSecondary{font-size:9px;padding:10px 12px;min-height:39px}.sfiHomeStatement em{display:none}.sfiHomeSurfaceRail{bottom:15px!important}}

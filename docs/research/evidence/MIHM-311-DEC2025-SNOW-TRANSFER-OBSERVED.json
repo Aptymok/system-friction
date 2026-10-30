@@ -1,0 +1,348 @@
+{
+  "execution": "READ_ONLY_SINGLE_OFFICIAL_CATEGORY_AGGREGATE",
+  "source": "https://data.cityofnewyork.us/d/erm2-nwe9",
+  "sourceQueryUrl": "https://data.cityofnewyork.us/resource/erm2-nwe9.json?%24select=date_trunc_ymd%28created_date%29+as+day%2Ccomplaint_type%2Ccount%28*%29+as+n&%24where=created_date+%3E%3D+%272025-12-12T00%3A00%3A00%27+AND+created_date+%3C+%272025-12-28T00%3A00%3A00%27+AND+borough+%3D+%27MANHATTAN%27&%24group=day%2Ccomplaint_type&%24order=day+ASC%2Ccomplaint_type+ASC&%24limit=4000",
+  "rawResponseSHA256": "d37426fe5c49ea90d8d09674e3f1f7331cd5f76ccf73a533b98fec54c0b77165",
+  "rawResponseBytes": 114829,
+  "sourceAggregateRows": 1442,
+  "sourceObservedDays": 16,
+  "contract": "MIHM-311-DEC2025-NWS-CHANNEL-TRANSFER-0.1",
+  "event": {
+    "onset": "2025-12-26",
+    "following": "2025-12-27",
+    "NWS": "https://www.weather.gov/okx/20251226_27",
+    "snowfallCentralParkInches": 4.3,
+    "snowBegan": "evening of 2025-12-26",
+    "moderation": "Moderate snow, not same severe snowfall dose as January/February cases"
+  },
+  "independentStatus": "NEW_CATEGORY_OUTCOMES_NOT_YET_INSPECTED_BEFORE_HYPOTHESIS_FREEZE_BUT_YEARLY_TOTALS_PREVIOUSLY_VIEWED",
+  "comparison": "Two prior same weekdays primary, one prior same weekday sensitivity",
+  "predeterminedOutcomes": {
+    "A": "Dec26 non-heating request count below Dec12/19 reference",
+    "B": "Dec27 exact Snow or Ice count above Dec13/20 reference"
+  },
+  "sourceRevisionVersusArchivedTotals": [],
+  "sourceReconciledToPreviouslyArchivedAnnual311": true,
+  "categories": {
+    "2025-12-12": {
+      "date": "2025-12-12",
+      "total": 2262,
+      "group": {
+        "HEAT_OR_HOT_WATER": 564,
+        "NOISE": 456,
+        "WINTER_OR_STREET_ACCESS": 323,
+        "OTHER": 919
+      },
+      "snowOrIce": 1,
+      "nonHeating": 1698
+    },
+    "2025-12-13": {
+      "date": "2025-12-13",
+      "total": 1949,
+      "group": {
+        "HEAT_OR_HOT_WATER": 435,
+        "NOISE": 603,
+        "WINTER_OR_STREET_ACCESS": 275,
+        "OTHER": 636
+      },
+      "snowOrIce": 0,
+      "nonHeating": 1514
+    },
+    "2025-12-19": {
+      "date": "2025-12-19",
+      "total": 1985,
+      "group": {
+        "HEAT_OR_HOT_WATER": 312,
+        "NOISE": 369,
+        "WINTER_OR_STREET_ACCESS": 255,
+        "OTHER": 1049
+      },
+      "snowOrIce": 1,
+      "nonHeating": 1673
+    },
+    "2025-12-20": {
+      "date": "2025-12-20",
+      "total": 1668,
+      "group": {
+        "HEAT_OR_HOT_WATER": 382,
+        "NOISE": 449,
+        "WINTER_OR_STREET_ACCESS": 257,
+        "OTHER": 580
+      },
+      "snowOrIce": 1,
+      "nonHeating": 1286
+    },
+    "2025-12-26": {
+      "date": "2025-12-26",
+      "total": 1538,
+      "group": {
+        "HEAT_OR_HOT_WATER": 523,
+        "NOISE": 271,
+        "WINTER_OR_STREET_ACCESS": 159,
+        "OTHER": 585
+      },
+      "snowOrIce": 6,
+      "nonHeating": 1015
+    },
+    "2025-12-27": {
+      "date": "2025-12-27",
+      "total": 1645,
+      "group": {
+        "HEAT_OR_HOT_WATER": 650,
+        "NOISE": 321,
+        "WINTER_OR_STREET_ACCESS": 152,
+        "OTHER": 522
+      },
+      "snowOrIce": 44,
+      "nonHeating": 995
+    }
+  },
+  "primary": {
+    "onset": {
+      "date": "2025-12-26",
+      "baselines": [
+        "2025-12-12",
+        "2025-12-19"
+      ],
+      "values": {
+        "total": {
+          "observed": 1538,
+          "baselineMean": 2123.5,
+          "change": -585.5,
+          "pct": -27.572
+        },
+        "nonHeating": {
+          "observed": 1015,
+          "baselineMean": 1685.5,
+          "change": -670.5,
+          "pct": -39.78
+        },
+        "snowOrIce": {
+          "observed": 6,
+          "baselineMean": 1,
+          "change": 5,
+          "pct": 500
+        },
+        "heat": {
+          "observed": 523,
+          "baselineMean": 438,
+          "change": 85,
+          "pct": 19.406
+        },
+        "noise": {
+          "observed": 271,
+          "baselineMean": 412.5,
+          "change": -141.5,
+          "pct": -34.303
+        },
+        "winter": {
+          "observed": 159,
+          "baselineMean": 289,
+          "change": -130,
+          "pct": -44.983
+        },
+        "other": {
+          "observed": 585,
+          "baselineMean": 984,
+          "change": -399,
+          "pct": -40.549
+        }
+      }
+    },
+    "following": {
+      "date": "2025-12-27",
+      "baselines": [
+        "2025-12-13",
+        "2025-12-20"
+      ],
+      "values": {
+        "total": {
+          "observed": 1645,
+          "baselineMean": 1808.5,
+          "change": -163.5,
+          "pct": -9.041
+        },
+        "nonHeating": {
+          "observed": 995,
+          "baselineMean": 1400,
+          "change": -405,
+          "pct": -28.929
+        },
+        "snowOrIce": {
+          "observed": 44,
+          "baselineMean": 0.5,
+          "change": 43.5,
+          "pct": 8700
+        },
+        "heat": {
+          "observed": 650,
+          "baselineMean": 408.5,
+          "change": 241.5,
+          "pct": 59.119
+        },
+        "noise": {
+          "observed": 321,
+          "baselineMean": 526,
+          "change": -205,
+          "pct": -38.973
+        },
+        "winter": {
+          "observed": 152,
+          "baselineMean": 266,
+          "change": -114,
+          "pct": -42.857
+        },
+        "other": {
+          "observed": 522,
+          "baselineMean": 608,
+          "change": -86,
+          "pct": -14.145
+        }
+      }
+    }
+  },
+  "sensitivity": {
+    "onset": {
+      "date": "2025-12-26",
+      "baselines": [
+        "2025-12-19"
+      ],
+      "values": {
+        "total": {
+          "observed": 1538,
+          "baselineMean": 1985,
+          "change": -447,
+          "pct": -22.519
+        },
+        "nonHeating": {
+          "observed": 1015,
+          "baselineMean": 1673,
+          "change": -658,
+          "pct": -39.331
+        },
+        "snowOrIce": {
+          "observed": 6,
+          "baselineMean": 1,
+          "change": 5,
+          "pct": 500
+        },
+        "heat": {
+          "observed": 523,
+          "baselineMean": 312,
+          "change": 211,
+          "pct": 67.628
+        },
+        "noise": {
+          "observed": 271,
+          "baselineMean": 369,
+          "change": -98,
+          "pct": -26.558
+        },
+        "winter": {
+          "observed": 159,
+          "baselineMean": 255,
+          "change": -96,
+          "pct": -37.647
+        },
+        "other": {
+          "observed": 585,
+          "baselineMean": 1049,
+          "change": -464,
+          "pct": -44.233
+        }
+      }
+    },
+    "following": {
+      "date": "2025-12-27",
+      "baselines": [
+        "2025-12-20"
+      ],
+      "values": {
+        "total": {
+          "observed": 1645,
+          "baselineMean": 1668,
+          "change": -23,
+          "pct": -1.379
+        },
+        "nonHeating": {
+          "observed": 995,
+          "baselineMean": 1286,
+          "change": -291,
+          "pct": -22.628
+        },
+        "snowOrIce": {
+          "observed": 44,
+          "baselineMean": 1,
+          "change": 43,
+          "pct": 4300
+        },
+        "heat": {
+          "observed": 650,
+          "baselineMean": 382,
+          "change": 268,
+          "pct": 70.157
+        },
+        "noise": {
+          "observed": 321,
+          "baselineMean": 449,
+          "change": -128,
+          "pct": -28.508
+        },
+        "winter": {
+          "observed": 152,
+          "baselineMean": 257,
+          "change": -105,
+          "pct": -40.856
+        },
+        "other": {
+          "observed": 522,
+          "baselineMean": 580,
+          "change": -58,
+          "pct": -10
+        }
+      }
+    },
+    "onsetNonHeatingStable": true,
+    "nextDaySnowOrIceStable": true
+  },
+  "hypothesis": {
+    "A_nonHeatingDecline": true,
+    "B_nextDaySnowIncrease": true,
+    "replicationPrimaryPass": true,
+    "signRobustTo1Versus2WeekBaseline": true,
+    "verdict": "BOTH_PREDECLARED_SIGNS_OBSERVED"
+  },
+  "uncertainties": [
+    "Dec26 Christmas holiday week confounding",
+    "Snow onset only evening Dec26; day1 counts depend on source reporting conventions",
+    "Dec13-14 was itself a winter storm, contaminating baseline exposure",
+    "Public data vintage at original event T0 not reconstructed",
+    "Two previous examples chosen after full-year source inspection",
+    "Provider requests do not directly measure physical weather damage",
+    "No causal mechanism or unique MIHM predictive skill established"
+  ],
+  "canonicalMihmValidated": false,
+  "causalityIdentified": false,
+  "prospectivePredictionIssued": false,
+  "provenance": {
+    "officialDataset": "https://data.cityofnewyork.us/d/erm2-nwe9",
+    "githubExecution": "https://github.com/Aptymok/system-friction/actions/runs/40220613481",
+    "githubJob": 121251179701,
+    "researchFrozenBeforeSourceReadCommit": "89c1c59fb1f162da516ce8ba2ecc248962b3763b",
+    "sourceCollector": "scripts/research/mihm-311-dec2025-snow-transfer.mjs",
+    "otherSourceTotals": "docs/research/evidence/MIHM-MANHATTAN-365D-2025-10-2026-09.json",
+    "receiptCoverage": "Six selected day-level full group totals and category Snow or Ice; 16-day API request consisted of 1442 date x category rows. Full raw 1442 category rows NOT retained in repository. Request SHA fingerprint retained.",
+    "originalAsOfDataPublication": "NOT_VERIFIED",
+    "designPartiallyIndependent": true,
+    "unobservedPerDayCategoryVectorsNotRestored": true
+  },
+  "status": "OBSERVED_AGGREGATED_OFFICIAL_PUBLIC_SOURCE_PARTIALLY_INDEPENDENT_SNOW_CHANNEL_TRANSFER",
+  "evidenceLimits": [
+    "Dec 26 Christmas holiday and evening snow timing confound event response",
+    "Dec 13-14 itself a weather event affecting weekday baselines",
+    "Exact Snow or Ice comparator mean is tiny (0.5 per Saturday); do not extrapolate percentage increase",
+    "Category partition learned after inspecting January/February episodes",
+    "Complete raw source category vectors not persisted; saved six-date group and exact Snow or Ice counts do reconcile with archived daily totals",
+    "No snow policy, causal treatment, service capacity, original T0 source vintage or unique MIHM skill identified"
+  ]
+}

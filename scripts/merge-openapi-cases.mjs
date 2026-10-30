@@ -27,7 +27,7 @@ api.components.schemas.CaseWorkspaceRequest = {
   properties: {
     operation: {
       type: 'string',
-      enum: ['list', 'read', 'intake_plan', 'create', 'add_source', 'add_object', 'transition', 'reports', 'passport', 'generate_report'],
+      enum: ['list', 'read', 'intake_plan', 'create', 'add_source', 'add_object', 'transition', 'reports'],
     },
     draft: {
       type: 'object',
@@ -99,8 +99,6 @@ api.components.schemas.CaseWorkspaceRequest = {
     payload: { type: 'object', additionalProperties: true },
     observedAt: { type: ['string', 'null'] },
     status: { type: 'string' },
-    closureMode: { type:'string', enum:['ADMINISTRATIVE','INCONCLUSIVE','CERTIFIED'], description:'CLOSED requires a validated chain by default; other modes require an explicit reason.' },
-    closureReason: { type:'string', minLength:1, maxLength:2000 },
   },
 };
 
@@ -175,8 +173,6 @@ api.components.schemas.CaseTransitionRequest = {
   additionalProperties: false,
   required: ['caseId', 'status'],
   properties: {
-    closureMode: { type:'string', enum:['ADMINISTRATIVE','INCONCLUSIVE','CERTIFIED'], description:'CLOSED defaults to CERTIFIED. ADMINISTRATIVE and INCONCLUSIVE require closureReason; inconclusive also requires a current report with gaps.' },
-    closureReason: { type:'string', minLength:1, maxLength:2000 },
     caseId: {
       type: 'string',
       minLength: 1,

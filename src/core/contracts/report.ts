@@ -38,18 +38,6 @@ export type SfiRenderedReportClaimV1 = Omit<SfiReportClaimV1, 'lineage'> & {
   lineage: SfiRenderedReportClaimLineageV1;
 };
 
-/** Content-bound reconstruction retained in the existing report, never a new evidence writer. */
-export type SfiReportReconstructionV1 = {
-  contract: 'SFI-CASE-RECONSTRUCTION-1.0';
-  inputHash: string;
-  t0: string | null;
-  t1: string | null;
-  narrative: string[];
-  gaps: string[];
-  nextObservation: string;
-  document: Record<string, unknown>;
-};
-
 export type SfiReportV1 = {
   contract: typeof SFI_REPORT_CONTRACT;
   id: string;
@@ -69,7 +57,6 @@ export type SfiReportV1 = {
   claims: SfiRenderedReportClaimV1[];
   limitations: string[];
   deliveryFormats: SfiReportDeliveryFormat[];
-  reconstruction?: SfiReportReconstructionV1;
   executionAuthority: false;
   governanceDecisionRefs: SfiCanonicalRef[];
 };

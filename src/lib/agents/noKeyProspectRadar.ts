@@ -386,7 +386,7 @@ function reportFromModel(input: ProspectRadarInput, model: JsonRecord, sources: 
   return report;
 }
 
-async function persistReport(report: ProspectRadarReport, input: ProspectRadarInput, actorId: string | null) {
+async function persistReport(report: ProspectRadarReport, input: ProspectRadarInput, actorId: string) {
   try {
     const service = createServiceSupabaseClient();
     const run = await service.from('prospect_research_runs').insert({
@@ -440,13 +440,11 @@ async function persistReport(report: ProspectRadarReport, input: ProspectRadarIn
   }
 }
 
-export async function runNoKeyProspectRadar(input: ProspectRadarInput, actorId: string | null): Promise<ProspectRadarReport> {
+export async function runNoKeyProspectRadar(input: ProspectRadarInput, actorId: string): Promise<ProspectRadarReport> {
   const queries = queryPlan(input);
   const feed = await runNoKeyNewsFeeds(queries);
   const sources = normalizeSources(feed.results);
-  const ollama = input.allowModelSynthesis === false
-    ? { model: null as JsonRecord | null, warning: 'MODEL_DISABLED_BY_CALLER: deterministic synthesis only' }
-    : await ollamaModel(input, sources);
+  const ollama = await ollamaModel(input, sources);
   const model = ollama.model ?? deterministicModel(input, sources);
   const warnings = unique([
     ...feed.warnings,

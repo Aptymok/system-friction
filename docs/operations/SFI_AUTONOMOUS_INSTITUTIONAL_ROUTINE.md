@@ -48,3 +48,51 @@ Main contains `runIntegratedInstitutionalCycle`, `continuity-heartbeat`, `runUni
 5. During `RECOVERY`, test read-only progress/deferred lanes without primary writes. Certify data-plane integrity before enabling withheld effects. Verify expected cost, provider health, safety and runtime RETURN before one controlled production release.
 
 **Do not mark this milestone complete merely because CI passed or individual components exist.**
+
+## Finite single-cycle trial — prepared release (2026-10-28)
+
+Status: implementation candidate; disabled unless an explicitly reviewed server-owned
+`SFI_CONTINUITY_CYCLE_TRIAL` envelope is set. It contains one existing cycle UUID,
+an original startsAt and expiresAt exactly three hours later. No setting is
+created by this change. The same heartbeat and schedule are reused.
+
+The envelope admits three hourly slots, at most one invocation per slot.
+The existing primary `sfi_continuity_runs` UUID primary key reserves each
+normalized cycle/start/slot atomically. Failed or interrupted slots are consumed:
+there is no whole-effect retry or replacement queue. Missed hourly slots remain
+missed, including delays from GitHub. Rewriting the start is a new authorization,
+not routine retry.
+
+Only the existing single-cycle return-plan upgrade, cognitive continuation,
+return-plan recheck and empirical continuation run, each with limit 1. Primary
+authority is rechecked before each stage. Emergency/recovery/degraded/unreadable
+state, unknown cycle, reservation error, changed slot, expiry or failed stage
+stops further stages. The receipt is reread before an attempt is reported stored.
+
+The broad scheduled-egress setting, retired Neon adapter, general router,
+unrelated proposals, Studio, publishing and canonical promotion stay outside
+this permission. Existing executors retain their own authority gates.
+A recorded attempt, zero processed work, or a green workflow is not a completed
+cycle, observed scientific RETURN, or validation of MIHM.
+
+### Design and execution plan
+
+Chosen: extend the current heartbeat with a finite cycle-bound permission.
+Rejected: general egress enablement (affects multiple routes) or reactivation of
+retired Neon (contradicts current policy). No new runtime, clock, table or writer.
+
+1. Pin disabled/invalid/scope/clock and atomic duplicate behavior in tests.
+2. Extend existing contracts, runtime run writer and authenticated heartbeat.
+3. Run the existing continuity verification plus architecture, typecheck/build.
+4. Review exact release code and authority/cost envelope before production.
+5. After a separately authorized release, use the next three admitted slots;
+   reread the original cycle before/after, record missing slots and actual
+   events, outcomes and reentry. Preserve a negative/inconclusive result.
+
+Limits: at most three attempts and four bounded owner calls per attempt;
+the existing owner may make provider requests/fallbacks. This is not a token or
+currency ceiling. No provider quota is increased. Actual token/USD/infrastructure
+consumption must remain unknown until original receipts exist; obtain a
+separately reviewed cost envelope before enabling the production trial.
+Rollback: remove the envelope to disable the trial; revert code if needed.
+Reservation and cycle history are retained.

@@ -171,7 +171,6 @@ export async function recordCaseActionReturn(input: {
   observedAt: string;
   outcome: string;
   measurements?: Record<string, unknown>;
-  evidenceRefs?: SfiCanonicalRef[];
 }) {
   const authority = await readCaseAuthorityRole(input.caseId, input.userId);
   if (!['OWNER','ADMIN','OPERATOR'].includes(authority.role)) throw new Error('SFI_TENANT_WRITE_FORBIDDEN');
@@ -180,7 +179,7 @@ export async function recordCaseActionReturn(input: {
   if (!proposal.interventionRef) throw new Error('SFI_CASE_RETURN_INTERVENTION_REQUIRED');
   if (Number.isNaN(Date.parse(input.observedAt))) throw new Error('SFI_CASE_RETURN_TIME_INVALID');
   if (!input.outcome.trim()) throw new Error('SFI_CASE_RETURN_OUTCOME_REQUIRED');
-  await assertCaseReferenceIntegrity({ caseId: input.caseId, userId: input.userId, interventionRefs: [proposal.interventionRef], evidenceRefs: input.evidenceRefs ?? [] });
+  await assertCaseReferenceIntegrity({ caseId: input.caseId, userId: input.userId, interventionRefs: [proposal.interventionRef] });
   const returnRef: SfiCanonicalRef = { id: `case-return:${input.proposalId}`, version: '1.0', hash: null };
   const returnRecord = await recordOperationalCaseObject({
     caseId: input.caseId,
@@ -189,7 +188,6 @@ export async function recordCaseActionReturn(input: {
     epistemicRole: 'RECORD',
     canonicalRef: returnRef,
     recordRefs: [proposal.interventionRef],
-    evidenceRefs: input.evidenceRefs ?? [],
     payload: {
       contract: 'SFI-CASE-ACTION-1.0',
       proposalId: input.proposalId,
