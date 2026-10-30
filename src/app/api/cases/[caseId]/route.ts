@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireAuthenticatedUser } from '@/lib/system/access/server';
-import { readOperationalCase, transitionOperationalCase } from '@/lib/sfi/case-platform/repository';
+import { readOperationalCase, readOperationalRealityChain, transitionOperationalCase } from '@/lib/sfi/case-platform/repository';
 import { sfiCaseApiFailure } from '@/lib/sfi/case-platform/http';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 
@@ -75,11 +75,25 @@ async function envelope(caseId: string, userId: string) {
   };
 }
 
-export async function GET(_: Request, context: RouteContext) {
+export async function GET(request: Request, context: RouteContext) {
   try {
     const { user } = await requireAuthenticatedUser();
     const { caseId } = await context.params;
-    return NextResponse.json({ ok: true, ...(await envelope(caseId, user.id)) });
+    const base = await envelope(caseId, user.id);
+    if (new URL(request.url).searchParams.get('includeRealityChain') !== '1') {
+      return NextResponse.json({ ok: true, ...base });
+    }
+    const projection = await readOperationalRealityChain(caseId, user.id);
+    return NextResponse.json({
+      ok: true, ...base,
+      realityChain: projection.realityChain,
+      temporalProvenance: projection.temporalProvenance,
+      authorityEvidence: projection.authorityEvidence,
+      trajectoryContrast: projection.trajectoryContrast,
+      returnLearning: projection.returnLearning,
+      sourceProtocolReadiness: projection.sourceProtocolReadiness,
+      realityChainConsistencyBoundary: projection.consistencyBoundary,
+    }, { headers: { 'Cache-Control': 'private, no-store' } });
   } catch (error) {
     return sfiCaseApiFailure(error);
   }

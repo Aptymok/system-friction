@@ -3,6 +3,7 @@ import 'server-only';
 import { createHash, randomUUID } from 'node:crypto';
 import {
   assembleSfiReportV1,
+  buildSfiRealityChain,
   assertSfiCaseTransition,
   createSfiCaseV1,
   getSfiServiceProfile,
@@ -26,6 +27,11 @@ import type {
   SfiTemporalWindowV1,
 } from '@/core/contracts/sfi';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { projectCaseTemporalProvenance } from './temporalProvenance';
+import { projectCaseAuthorityEvidence } from './authorityEvidenceReadModel';
+import { projectCaseTrajectoryContrast } from './trajectoryContrastReadModel';
+import { projectCaseReturnLearning } from './returnLearningReadModel';
+import { computeCaseSourceReadiness } from './sourceProtocolReadiness';
 
 export type SfiTenantRole = 'OWNER' | 'ADMIN' | 'OPERATOR' | 'VIEWER' | 'AUDITOR';
 export type SfiTenantType = 'PERSONAL' | 'CLIENT' | 'INTERNAL' | 'RESEARCH';
@@ -415,6 +421,24 @@ export async function listOperationalCases(userId: string) {
   return ((result.data ?? []) as Row[]).map(caseFromRow);
 }
 
+/** A complete, bounded, tenant-scoped reader. Never silently certifies a truncated collection. */
+async function readRealityChainCaseRows(table: string, caseId: string, tenantId: string, order: string) {
+  const db = createServiceSupabaseClient();
+  const rows: Row[] = [];
+  const size = 500;
+  for (let offset = 0; offset < 10000; offset += size) {
+    const result = await db.from(table).select('*')
+      .eq('case_id', caseId).eq('tenant_id', tenantId)
+      .order(order, { ascending: true }).order('id', { ascending: true })
+      .range(offset, offset + size - 1);
+    if (result.error) throw new Error(`SFI_REALITY_CHAIN_READ_FAILED:${table}:${result.error.message}`);
+    const page = (result.data ?? []) as Row[];
+    rows.push(...page);
+    if (page.length < size) return rows;
+  }
+  throw new Error(`SFI_REALITY_CHAIN_READ_INCOMPLETE:${table}:10000`);
+}
+
 export async function listOperationalCaseObjects(caseId: string, userId: string) {
   const row = await caseRow(caseId);
   await assertTenantAccess(text(row.tenant_id), userId, 'READ');
@@ -446,6 +470,71 @@ export async function readOperationalCase(caseId: string, userId: string) {
       sourceCoverage: requiredSources.length ? (requiredSources.length - missingSources.length) / requiredSources.length : 1,
       readyForAnalysis: Boolean(profile) && missingSources.length === 0,
     },
+  };
+}
+
+/** Optional, authorized Reality Chain projection; existing case readers retain their shape and behavior. */
+export async function readOperationalRealityChain(
+  caseId: string, userId: string, temporal?: { t0?: string | null; t1?: string | null },
+) {
+  const base = await readOperationalCase(caseId, userId);
+  const startingRow = await caseRow(caseId);
+  // Preserve legacy list semantics; the opt-in Reality Chain audit reads all pages.
+  const objects = (await readRealityChainCaseRows(
+    'sfi_case_objects', caseId, base.caseRecord.tenantId, 'created_at'
+  )).map(objectFromRow);
+  const caseRecord = hydrateCase(startingRow, objects);
+  const [reports, actions, decisions, audits] = await Promise.all([
+    readRealityChainCaseRows('sfi_case_reports', caseId, caseRecord.tenantId, 'generated_at'),
+    readRealityChainCaseRows('sfi_case_action_proposals', caseId, caseRecord.tenantId, 'created_at'),
+    readRealityChainCaseRows('sfi_case_action_decisions', caseId, caseRecord.tenantId, 'created_at'),
+    readRealityChainCaseRows('sfi_case_audit_events', caseId, caseRecord.tenantId, 'created_at'),
+  ]);
+  const lastClosure = audits.filter(row => row.action === 'CASE_STATUS_CHANGED').at(-1);
+  const requested = record(record(lastClosure?.after_state).closure);
+  const closureMode = text(requested.mode);
+  const closureRequest = (['ADMINISTRATIVE', 'INCONCLUSIVE', 'CERTIFIED'].includes(closureMode))
+    ? { mode: closureMode as 'ADMINISTRATIVE' | 'INCONCLUSIVE' | 'CERTIFIED', reason: text(requested.reason) }
+    : null;
+  const input = {
+    caseRecord, objects, ...temporal, readComplete: true,
+    atomicClosureReady: startingRow.closure_revision !== undefined,
+    knownReportCount: reports.length, closureRequest,
+    actions: actions.map(row => ({
+      id: text(row.id), caseId: text(row.case_id), status: text(row.status),
+      action: record(row.action_payload), createdAt: text(row.created_at),
+      interventionRef: row.intervention_ref ? canonicalRef(row.intervention_ref) : null,
+      returnRef: row.return_ref ? canonicalRef(row.return_ref) : null,
+    })),
+    decisions: decisions.map(row => ({
+      id: text(row.id), caseId: text(row.case_id), proposalId: text(row.proposal_id),
+      decision: text(row.decision), authorityRole: text(row.authority_role),
+      decidedBy: text(row.decided_by), createdAt: text(row.created_at),
+    })),
+  };
+  const preliminary = buildSfiRealityChain(input);
+  const matching = reports
+    .filter(row => record(record(row.report_payload).reconstruction).inputHash === preliminary.inputHash)
+    .map(row => row.report_payload as SfiReportV1);
+  const realityChain = buildSfiRealityChain({ ...input, reports: matching });
+  const endingRow = await caseRow(caseId);
+  if (startingRow.updated_at !== endingRow.updated_at
+    || startingRow.closure_revision !== endingRow.closure_revision) {
+    throw new Error('SFI_REALITY_CHAIN_CONCURRENT_CASE_MODIFICATION');
+  }
+  const profile = getSfiServiceProfile(caseRecord.serviceProfileId);
+  return {
+    ...base,
+    caseRecord,
+    objects,
+    realityChain,
+    temporalProvenance: projectCaseTemporalProvenance(objects, caseRecord.temporalWindow.cutoff),
+    authorityEvidence: projectCaseAuthorityEvidence(realityChain),
+    trajectoryContrast: projectCaseTrajectoryContrast(caseRecord, objects, realityChain),
+    returnLearning: projectCaseReturnLearning(realityChain),
+    sourceProtocolReadiness: computeCaseSourceReadiness(profile?.requiredSources ?? [], objects, caseRecord.temporalWindow.cutoff),
+    revision: startingRow.closure_revision ?? null,
+    consistencyBoundary: 'Cross-provider parity and live closure authority are not certified by this read.',
   };
 }
 
@@ -618,13 +707,36 @@ export async function generateOperationalReport(input: {
 }) {
   const envelope = await readOperationalCase(input.caseId, input.userId);
   await assertTenantAccess(envelope.caseRecord.tenantId, input.userId, 'WRITE');
+  const { assertReportClaimsIntegrity } = await import('./integrity');
+  await assertReportClaimsIntegrity({ caseId: input.caseId, userId: input.userId, claims: input.claims ?? [] });
+  // Retain authorized legacy report generation even when Reality Chain's
+  // optional reconstruction cannot be completed. Never fake certification.
+  let chain: Awaited<ReturnType<typeof readOperationalRealityChain>>['realityChain'] | null = null;
+  try {
+    chain = (await readOperationalRealityChain(input.caseId, input.userId)).realityChain;
+  } catch {
+    chain = null;
+  }
   const report = assembleSfiReportV1({
     id: randomUUID(),
     caseRecord: envelope.caseRecord,
     generatedAt: new Date().toISOString(),
     claims: input.claims ?? [],
     deliveryFormats: input.deliveryFormats ?? ['JSON'],
-    limitations: input.limitations ?? [],
+    limitations: [
+      ...(input.limitations ?? []),
+      ...(chain ? [] : ['REALITY_CHAIN_RECONSTRUCTION_UNAVAILABLE: Legacy report remains available, but its reconstruction and cross-provider consistency are not certified.']),
+    ],
+    ...(chain ? { reconstruction: {
+      contract: 'SFI-CASE-RECONSTRUCTION-1.0' as const,
+      inputHash: chain.inputHash,
+      t0: chain.temporal.t0.cutoff,
+      t1: chain.temporal.t1.cutoff,
+      narrative: chain.narrative,
+      gaps: chain.gaps,
+      nextObservation: chain.nextObservation,
+      document: JSON.parse(JSON.stringify(chain)) as Record<string, unknown>,
+    } } : {}),
   });
   const service = createServiceSupabaseClient();
   const caseBase = await caseRow(input.caseId);

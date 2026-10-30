@@ -291,6 +291,9 @@ jobs:
       - name: Verify Reality Chain operational three-screen convergence
         run: npx tsx scripts/qa-sfi-reality-chain-intake.ts && npx tsx scripts/qa-sfi-reality-chain-three-screen.ts
 
+      - name: Verify Reality Chain canonical reconstruction and deterministic plan reconciliation
+        run: node --import tsx --test src/core/case-platform/reportAssembler.test.ts src/lib/sfi/reality-chain/reconcilePlan.test.ts
+
       - name: Typecheck
         id: typecheck
         shell: bash
