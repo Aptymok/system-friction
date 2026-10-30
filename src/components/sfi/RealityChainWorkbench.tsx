@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './RealityChainWorkbench.css';
 import { RealityChainCaseInspector } from './RealityChainCaseInspector';
+import { RealityChainAuditPanel, type RealityChainAuditRead } from './RealityChainAuditPanel';
 
 type Ref={id:string;hash?:string|null;version?:string|null};
 type CaseObject={id:string;kind:string;epistemicRole:string;canonicalRef:Ref;sourceRefs:Ref[];recordRefs:Ref[];evidenceRefs:Ref[];payload:Record<string,unknown>;observedAt:string|null;createdAt:string};
@@ -62,6 +63,7 @@ export function RealityChainWorkbench(){
  const [caseData,setCaseData]=useState<CaseEnvelope|null>(null);
  const [reports,setReports]=useState<unknown[]>([]);
  const [chainReview,setChainReview]=useState<RealityReadReview|null>(null);
+ const [chainAudit,setChainAudit]=useState<RealityChainAuditRead|null>(null);
  const [activeStep,setActiveStep]=useState(0);
  const [selectedObject,setSelectedObject]=useState<string|null>(null);
  const [newCase,setNewCase]=useState(false);
@@ -85,7 +87,7 @@ export function RealityChainWorkbench(){
   setProfiles(Array.isArray(p.profiles)?p.profiles:[]);
  },[]);
  const loadCase=useCallback(async(id:string)=>{
-  setChainReview(null);
+  setChainReview(null);setChainAudit(null);
   if(!id){setCaseData(null);setReports([]);return;}
   const [detail,saved]=await Promise.all([requestJson('/api/cases/'+encodeURIComponent(id)),requestJson('/api/cases/'+encodeURIComponent(id)+'/reports')]);
   setCaseData(detail);setReports(Array.isArray(saved.reports)?saved.reports:[]);
@@ -113,9 +115,10 @@ export function RealityChainWorkbench(){
    const result=await requestJson('/api/cases/'+encodeURIComponent(caseId)+'?includeRealityChain=1');
    if(result.realityChain?.caseId!==caseId)throw new Error('REALITY_CHAIN_CASE_ID_MISMATCH');
    setChainReview(result.realityChain as RealityReadReview);
+   setChainAudit({temporalProvenance:result.temporalProvenance,authorityEvidence:result.authorityEvidence,trajectoryContrast:result.trajectoryContrast,returnLearning:result.returnLearning} as RealityChainAuditRead);
    setMessage('Bounded case reconstruction read. Documented gaps are not certified evidence or RETURN.');
   } catch(e){
-   setChainReview(null);setError('Reality Chain verification unavailable: '+String((e as Error).message));
+   setChainReview(null);setChainAudit(null);setError('Reality Chain verification unavailable: '+String((e as Error).message));
   } finally{setWorking(false);}
  };
  const visibleCases=useMemo(()=>cases.filter(c=>projectId==='ALL'||c.projectId===projectId),[cases,projectId]);
@@ -424,6 +427,7 @@ export function RealityChainWorkbench(){
               <div><dt>CALIBRATED CONFIDENCE</dt><dd>NOT CALIBRATED</dd></div>
               <div><dt>ABSTENTION</dt><dd>REQUIRED WHERE EVIDENCE OR AUTHORITY IS INSUFFICIENT</dd></div></dl>
             <a className="rcThreeLink" href="/root/evidence-review">OPEN GOVERNED EVIDENCE REVIEW ↗</a>
+            {chainReview?.caseId===caseId?<RealityChainAuditPanel audit={chainAudit} section="authority" cutoff={cutoff}/>:null}
           </section>
         </div>
       </section>
@@ -468,6 +472,7 @@ export function RealityChainWorkbench(){
               {chainReview.gaps.length>8?<p>Additional gaps remain in the complete read model / Passport.</p>:null}
               <p>NEXT OBSERVATION: {chainReview.nextObservation}</p>
             </div>:null}
+            {chainReview?.caseId===caseId?<><RealityChainAuditPanel audit={chainAudit} section="trajectory" cutoff={cutoff}/><RealityChainAuditPanel audit={chainAudit} section="clocks" cutoff={cutoff}/></>:null}
             <button type="button" disabled={!caseData||working} onClick={makeReport}>EXPORT TRACE · JSON + PRINTABLE HTML</button>
             <button type="button" disabled={!caseData||working} onClick={persistTraceManifest}>PERSIST TRACE MANIFEST AS RECORD</button>
             <button type="button" disabled={!caseData||working} onClick={createInstitutionalReport}>REQUEST GOVERNED REPORT RECEIPT</button>
@@ -476,6 +481,7 @@ export function RealityChainWorkbench(){
           </section>
           <section className="rcThreePane rcObservatoryWallMonitor">
             <h2>REALITY PASSPORT / LEARNING</h2>
+            {chainReview?.caseId===caseId?<RealityChainAuditPanel audit={chainAudit} section="return" cutoff={cutoff}/>:null}
             <p>Inspect the selected case in ROOT using its existing identifier. No duplicate passport or authority is created.</p>
             {caseId?<><a className="rcThreeLink" href={'/root?reading=REALITY_CHAIN&node='+encodeURIComponent(caseId)}>OPEN SELECTED CASE IN ROOT ↗</a><a className="rcThreeLink" href={'/api/cases/'+encodeURIComponent(caseId)+'/reports?format=passport'} target="_blank" rel="noopener noreferrer">VIEW PRIVATE REALITY PASSPORT · AS-RECORDED</a></>:<p>SELECT A CASE TO OPEN ITS PASSPORT.</p>}
             <dl><div><dt>WHAT WAS KNOWN?</dt><dd>{asOfObjects.filter(o=>o.kind==='EVIDENCE').length} ADMITTED EVIDENCE OBJECTS</dd></div>
