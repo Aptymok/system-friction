@@ -9,6 +9,12 @@ import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { deliverInstitutionalInvitation } from '@/lib/auth/institutionalInvitationDelivery';
 import { readDataPlaneReconciliationStatus, attemptBoundedDataPlaneReconciliation } from '@/lib/persistence/dataPlaneReconciliationControl';
 import { replayVerifiedSourceObservations } from '@/lib/persistence/verifiedObservationReplay';
+import {
+  createPredictionEntry,
+  listPredictionEntries,
+  normalizeCreatePredictionInput,
+} from '@/lib/sfi/predictions/service';
+import { validateMihmP4IssuePacket } from '@/lib/mihm/foundationProspectiveScoring';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -421,6 +427,8 @@ export async function POST(req: Request) {
         { id: 'pending', effect: 'READ', description: 'Read sovereign pending proposals and founder-rule candidates with next-step boundary.' },
         { id: 'sfi_state', effect: 'READ', description: 'Read one bounded cross-institution control-plane projection: WORLD hypotheses/outcomes/learning, Cases, health, incidents and commercial state.' },
         { id: 'capability_map', effect: 'READ', description: 'Describe the canonical surfaces ROOT can orchestrate without duplicating their authority.' },
+        { id: 'predictions_list', effect: 'READ', description: 'Read existing canonical prediction entries through sovereign OAuth; no writes.' },
+        { id: 'predictions_create_p4', effect: 'GOVERNED_PREDICTION_RECORD', description: 'Persist one P4 T0 precommitted numeric prediction via the existing prediction service with sovereign ROOT auth, explicit confirmation and strict pre-issue guards. Registration is not outcome validation.' },
       ],
       existingMachineAuthority: {
         governanceDecision: 'decideSfiGovernanceProposal',
@@ -437,6 +445,7 @@ export async function POST(req: Request) {
         pending: 'root:operate read + governance:decide mutation',
         institution: 'root:operate sfi_state + observe/read surfaces',
         registryPublications: 'canonical publication/registry services; mutation adapter pending',
+        predictions: 'root:operate/predictions_list + predictions_create_p4 delegates to existing SFI prediction service; cannot backdate or mint a verified RETURN',
         reports: 'root:operate reports (read) + reports_run_restricted (execute + explicit opt-in)',
         methodLab: 'operateSfiLab',
         agents: 'cognitive-runtime + invoke_cognitive_capability',
@@ -472,6 +481,77 @@ export async function POST(req: Request) {
 
   if (operation === 'sfi_state') {
     return NextResponse.json({ok:true,operation,state:await readRootControlPlane(root.service)},{headers:{'Cache-Control':'no-store'}});
+  }
+
+
+  if (operation === 'predictions_list') {
+    const result=await listPredictionEntries({limit:Math.max(1,Math.min(30,
+      typeof body.limit==='number'&&Number.isFinite(body.limit)?Math.floor(body.limit):20))});
+    return NextResponse.json(result.ok?{
+      ok:true,operation,entries:result.data.entries,count:result.data.count,
+      source:'EXISTING_SFI_PREDICTION_REGISTRY',readOnly:true,
+    }:{ok:false,operation,error:result.error}, {
+      status:result.ok?200:result.status??503,
+      headers:{'Cache-Control':'no-store'},
+    });
+  }
+
+  if (operation === 'predictions_create_p4') {
+    if (body.confirmation!==true) {
+      return NextResponse.json({ok:false,operation,error:'EXPLICIT_SINGLE_PREDICTION_CONFIRMATION_REQUIRED'},
+        {status:403});
+    }
+    const candidate=record(body.prediction);
+    const normalized=normalizeCreatePredictionInput(candidate);
+    if(!normalized.ok) return NextResponse.json({
+      ok:false,operation,error:normalized.error,details:normalized.details??null,
+    },{status:normalized.status??400});
+    const prediction=normalized.data;
+    const now=new Date().toISOString();
+    const p4=validateMihmP4IssuePacket(prediction.prediccion_explicita,now);
+    if(!p4.ok)return NextResponse.json({ok:false,operation,error:'MIHM_P4_T0_ADMISSION_BLOCKED',
+      blockers:p4.blockers}, {status:422});
+    // A client cannot assign a different actor, an old issued time,
+    // an intervention, a completed return, or an invented observation.
+    if(candidate.perturbation_applied_at||candidate.ssp_observada||
+       candidate.friccion_respuesta_campo||candidate.created_by||
+       candidate.resultado_72h||candidate.resultado_7d||
+       candidate.resultado_30d||candidate.resultado_90d||
+       candidate.prediction_registered_at) {
+      return NextResponse.json({ok:false,operation,error:'P4_CLIENT_CANNOT_SET_AUTHORITY_OR_OUTCOME_FIELDS'},
+        {status:422});
+    }
+    const caseRecord=await root.service.from('sfi_cases')
+      .select('id,status,scope').eq('id',prediction.case_id).maybeSingle();
+    if(caseRecord.error)return NextResponse.json({
+      ok:false,operation,error:'EXISTING_CASE_LOOKUP_FAILED',
+    },{status:503});
+    if(!caseRecord.data||!['OPEN','OBSERVING','ANALYZING','RESEARCHING'].includes(String(caseRecord.data.status))){
+      return NextResponse.json({ok:false,operation,error:'ACTIVE_SFI_CASE_REQUIRED'},
+        {status:422});
+    }
+    if(!prediction.hypothesis_id.startsWith('SFI-MIHM-')) {
+      return NextResponse.json({ok:false,operation,error:'EXISTING_MIHM_HYPOTHESIS_REFERENCE_REQUIRED'},
+        {status:422});
+    }
+    // Delegate rather than direct table INSERT. The service sets issued_at
+    // from current server clock and created_by from the sovereign OAuth subject.
+    const issued=await createPredictionEntry({
+      ...prediction,created_by:root.credential.subjectId!,
+      perturbation_applied_at:null,ssp_observada:null,friccion_respuesta_campo:null,
+      operator_mode:'MIHM_P4_PROSPECTIVE_RESEARCH',
+    });
+    if(!issued.ok)return NextResponse.json({ok:false,operation,error:issued.error,
+      details:issued.details??null},{status:issued.status??503});
+    return NextResponse.json({ok:true,operation,entry:issued.data,
+      source:'EXISTING_SFI_PREDICTION_SERVICE',
+      sourceAvailabilityAttestedByGateway:false,
+      providerResponseBytesIndependentlyReverified:false,
+      prospectiveForecastRecorded:true,realWorldOutcomeObserved:false,
+      scientificValidationEstablished:false,causalPropagationEstablished:false,
+      institutionalReturnVerified:false,
+      boundary:'Registration does not verify upstream source truth, outcome, homeostasis, causal propagation or empirical success.',
+    },{status:201,headers:{'Cache-Control':'no-store'}});
   }
 
   if (operation === 'reports') {
@@ -575,6 +655,6 @@ export async function POST(req: Request) {
   return NextResponse.json({
     ok: false,
     error: 'unsupported_root_operation',
-    allowed: ['capabilities','capability_map','pending','sfi_state','reports','reports_run_restricted','accounts_list','account_invite','account_recover','data_plane_status','data_plane_emergency','data_plane_copy_verified'],
+    allowed: ['capabilities','capability_map','pending','sfi_state','predictions_list','predictions_create_p4','reports','reports_run_restricted','accounts_list','account_invite','account_recover','data_plane_status','data_plane_emergency','data_plane_copy_verified'],
   }, { status: 400 });
 }

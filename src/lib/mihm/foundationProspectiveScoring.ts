@@ -181,3 +181,45 @@ export function evaluateMihmP4ExistingRegistry(entries:SfiPredictionEntry[],
     institutionalReturnIssued:false,productionPromotionAllowed:false,
   };
 }
+
+
+/**
+ * Boundary for the ROOT-owned P4 issue operation. It validates the input
+ * contract and time ordering BEFORE invoking the EXISTING prediction writer.
+ * A client-provided source hash is a declared identifier, not an independent
+ * attestation that the provider released these bytes at T0.
+ */
+export function validateMihmP4IssuePacket(raw:unknown,issuedAt:string):{
+  ok:boolean; blockers:string[]; packet:MihmP4FrozenPacket|null;
+} {
+  const blockers:string[]=[];
+  if(typeof raw!=='string'||raw.length>16000) return {
+    ok:false,blockers:['P4_PACKET_REQUIRED_OR_TOO_LARGE'],packet:null,
+  };
+  const packet=parsePacket(raw);
+  if(!packet)return {ok:false,blockers:['P4_FROZEN_NUMERIC_CONTRACT_REQUIRED'],packet:null};
+  const issued=stamp(issuedAt),target=stamp(packet.targetAt);
+  if(issued===null||target===null||target<=issued||target-issued>14*86400000)
+    blockers.push('TARGET_MUST_BE_FUTURE_WITHIN_14_DAYS');
+  if(!nonblank(packet.targetKey)||!nonblank(packet.scope)||!nonblank(packet.unit)||
+    !nonblank(packet.methodVersion)||packet.metric!=='MAE')
+    blockers.push('PROTOCOL_METADATA_INCOMPLETE');
+  const snaps=Array.isArray(packet.snapshots)?packet.snapshots:[];
+  if(!snaps.length||snaps.length>8||new Set(snaps.map(x=>x?.sourceRef)).size!==snaps.length||
+    snaps.some(s=>{
+      const ob=stamp(s?.observedAt),av=stamp(s?.availableAt),cap=stamp(s?.capturedAt);
+      return !nonblank(s?.sourceRef)||!HASH.test(s?.sha256??'')||
+        ob===null||av===null||cap===null||issued===null||ob>av||av>cap||cap>issued||
+        issued-cap>30*86400000;
+    }))blockers.push('SOURCE_VINTAGE_OR_CAPTURE_CHRONOLOGY_INCOMPLETE');
+  if(!checkForecast(packet.baseline,snaps)||!checkForecast(packet.mihm,snaps))
+    blockers.push('NUMERIC_MODELS_OR_INTERVALS_INVALID');
+  if(packet.baseline?.modelId===packet.mihm?.modelId&&
+    packet.baseline?.version===packet.mihm?.version)
+    blockers.push('NO_DISTINCT_BASELINE');
+  const b=packet.baseline?.inputSourceRefs??[],m=packet.mihm?.inputSourceRefs??[];
+  if(!Array.isArray(b)||!Array.isArray(m)||b.length!==m.length||
+    [...b].sort().join('|')!==[...m].sort().join('|'))
+    blockers.push('INPUT_SOURCE_BUDGET_DIFFERENT');
+  return {ok:blockers.length===0,blockers,packet};
+}
