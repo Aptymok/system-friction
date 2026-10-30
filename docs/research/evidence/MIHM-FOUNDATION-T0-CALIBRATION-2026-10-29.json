@@ -1,0 +1,90 @@
+{
+  "contract": "SFI-MIHM-HISTORICAL-VARIATION-CALIBRATION-0.1",
+  "study": "SFI-MIHM-FOUNDATION-T0-CALIBRATION-20261029",
+  "classification": "DERIVED_RETROSPECTIVE_DIAGNOSTIC_NO_EMPIRICAL_VALIDATION",
+  "sourceArchive": "docs/research/evidence/MIHM-MANHATTAN-365D-2025-10-2026-09.json",
+  "sourceArchiveSHA256": "41e384e3199ca8d6878b39cdca51425b82e01a4d5fec6121d6494d53c5ceacc5",
+  "originalT0SourceAvailability": "NOT_VERIFIED",
+  "calibrationPolicy": {
+    "variation": "ABSOLUTE_WEEKLY_LAG_7_DAYS",
+    "threshold": "FIXED_EMPIRICAL_P90_NEAREST_RANK",
+    "training": [
+      "2025-10-08",
+      "2026-04-30"
+    ],
+    "validation": [
+      "2026-05-01",
+      "2026-06-30"
+    ],
+    "historicalAuditAlreadyPreviouslyInspected": [
+      "2026-07-01",
+      "2026-09-30"
+    ],
+    "crossUnitPoolingAllowed": false
+  },
+  "readings": [
+    {
+      "metric": "service311",
+      "source": "NYC311",
+      "unit": "requests/day",
+      "boundary": "Manhattan borough",
+      "threshold": 728,
+      "nTrain": 205,
+      "nValidation": 61,
+      "nHistoricalAudit": 92,
+      "trainingExceedances": 20,
+      "validationExceedances": 3,
+      "historicalAuditExceedances": 0
+    },
+    {
+      "metric": "fdnyCount",
+      "source": "FDNY",
+      "unit": "dispatches/day",
+      "boundary": "Manhattan borough",
+      "threshold": 109,
+      "nTrain": 205,
+      "nValidation": 61,
+      "nHistoricalAudit": 92,
+      "trainingExceedances": 18,
+      "validationExceedances": 10,
+      "historicalAuditExceedances": 10
+    },
+    {
+      "metric": "cbdEntries",
+      "source": "MTA_CBD_CRZ",
+      "unit": "vehicle entries/day",
+      "boundary": "NYC CBD vehicle entries",
+      "threshold": 92943,
+      "nTrain": 205,
+      "nValidation": 61,
+      "nHistoricalAudit": 92,
+      "trainingExceedances": 20,
+      "validationExceedances": 3,
+      "historicalAuditExceedances": 5
+    },
+    {
+      "metric": "crzEntries",
+      "source": "MTA_CBD_CRZ",
+      "unit": "vehicle entries/day",
+      "boundary": "NYC CRZ nested toll zone",
+      "threshold": 80164,
+      "nTrain": 205,
+      "nValidation": 61,
+      "nHistoricalAudit": 92,
+      "trainingExceedances": 20,
+      "validationExceedances": 4,
+      "historicalAuditExceedances": 6
+    }
+  ],
+  "scientificLimits": [
+    "No independent proof of original upstream release/vintage at each historical prediction time",
+    "Out-of-sample validation dates are retrospective and no actual forecasts were issued",
+    "July-September historical audit outcomes previously inspected; cannot be reused as independent holdout",
+    "Weekly absolute movement is not a viability constraint or anomaly ground truth",
+    "No causal propagation, calibrated Φ, homeostasis, operational decision, external action or RETURN"
+  ],
+  "canonicalPhiCalculated": false,
+  "empiricalHomeostasisEstablished": false,
+  "independentProspectiveValidation": false,
+  "productionPromotionAllowed": false
+}

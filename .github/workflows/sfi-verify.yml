@@ -96,6 +96,9 @@ jobs:
         run: node --import tsx --test src/lib/method-lab/researchPassportPreview.test.ts
       - name: Verify independent SFI MIHM foundation and MIHM-T parent-child boundary
         run: node --import tsx --test src/lib/mihm/foundationResearchContract.test.ts
+      - name: Verify MIHM P0 historical calibration source, replay, and abstention
+        run: node --import tsx --test packages/mihm-core/src/integrated.test.ts && node --import tsx scripts/research/mihm-foundation-calibration-t0.ts
+
       - name: Verify official historical MIHM-T source chronology
         run: node --test scripts/research/mihmt-knight-official.test.mjs && node scripts/research/mihmt-knight-official.mjs
       - name: Verify real Knight triple-case experiment boundaries

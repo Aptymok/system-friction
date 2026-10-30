@@ -494,3 +494,123 @@ export function screenMihmPathologies(input:{nodes:Array<{id:string;capacity:num
   while(changed){changed=false;for(const e of input.edges)if(reached.has(e.from)&&!reached.has(e.to)){reached.add(e.to);changed=true;}}
   return {status:'DERIVED_SCREENING' as const,phantomCapacity,silentFatigue,exposedRecipients:[...reached].filter(id=>!overloaded.has(id)),causalSepsisEstablished:false,calibratedThresholds:false};
 }
+
+
+/**
+ * P0 MIHM empirical metrology: a seven-day same-weekday absolute-change
+ * envelope fitted on the TRAINING block alone. This is NOT a learned
+ * dynamical transition, causal propagation, calibrated canonical Phi,
+ * viability limit, prospective forecast or homeostasis certificate.
+ *
+ * Keep the original source revision and as-of availability separate:
+ * historic data collected today cannot be assumed present at past T0.
+ */
+export type MihmHistoricalDailyPoint = {
+  day: string;
+  value: number | null;
+  state: 'MEASURED' | 'MISSING' | 'INFERRED' | 'SIMULATED' | 'CONTRADICTED';
+  unit: string;
+};
+export type MihmHistoricalVariationInput = {
+  boundary: string;
+  nodeRef: string;
+  dimensionRef: string;
+  unit: string;
+  sourceResponseSha256: string;
+  originalT0SourceAvailability: 'NOT_VERIFIED' | 'DOCUMENTED';
+  sourceAvailabilityEvidenceRef?: string;
+  trainThrough: string;
+  validationThrough: string;
+  rows: MihmHistoricalDailyPoint[];
+};
+
+export function calibrateMihmHistoricalVariationEnvelope(input: MihmHistoricalVariationInput) {
+  const blocked = (reason: string) => ({
+    contract: 'SFI-MIHM-HISTORICAL-VARIATION-CALIBRATION-0.1' as const,
+    status: 'ABSTAINED' as const,
+    reason, threshold: null as number | null, nTrain: 0, nValidation: 0,
+    nHistoricalAudit: 0, validationExceedances: null as number | null,
+    validationExceedanceRate: null as number | null,
+    canonicalPhiCalculated: false as const,
+    viabilityEstablished: false as const, homeostasisEstablished: false as const,
+    prospectiveSkillEstablished: false as const,
+    externallyValidated: false as const,
+    productionPromotionAllowed: false as const,
+  });
+  if (!input || typeof input !== 'object' || !Array.isArray(input.rows) ||
+    !input.boundary?.trim() || !input.nodeRef?.trim() ||
+    !input.dimensionRef?.trim() || !input.unit?.trim() ||
+    !/^[a-f0-9]{64}$/i.test(input.sourceResponseSha256) ||
+    !['NOT_VERIFIED', 'DOCUMENTED'].includes(input.originalT0SourceAvailability) ||
+    (input.originalT0SourceAvailability === 'DOCUMENTED' &&
+      !input.sourceAvailabilityEvidenceRef?.trim())) return blocked('SOURCE_BOUNDARY_OR_LINEAGE_INCOMPLETE');
+  const toDay = (s: string) => {
+    if (typeof s !== 'string' || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(s)) return null;
+    const ms = Date.parse(s + 'T12:00:00Z');
+    return Number.isFinite(ms) && new Date(ms).toISOString().slice(0, 10) === s ? ms : null;
+  };
+  const trainEnd = toDay(input.trainThrough);
+  const validationEnd = toDay(input.validationThrough);
+  if (trainEnd === null || validationEnd === null || trainEnd >= validationEnd ||
+    input.rows.length < 60 || input.rows.length > 2000) return blocked('INVALID_OR_TOO_SMALL_CHRONOLOGICAL_COHORT');
+  let previousDay: number | null = null;
+  for (const row of input.rows) {
+    if (!row || row.state !== 'MEASURED' || row.unit !== input.unit ||
+      typeof row.value !== 'number' || !Number.isFinite(row.value) || row.value < 0) {
+      return blocked('UNOBSERVED_INFERRED_OR_UNIT_CONFLICTED_SAMPLE');
+    }
+    const day = toDay(row.day);
+    if (day === null || (previousDay !== null && day - previousDay !== 86_400_000)) {
+      return blocked('DUPLICATE_GAP_OR_INVALID_DAY');
+    }
+    previousDay = day;
+  }
+  if (toDay(input.rows[0].day)! >= trainEnd ||
+    toDay(input.rows.at(-1)!.day)! <= validationEnd) {
+    return blocked('EMPTY_CALIBRATION_OR_AUDIT_WINDOW');
+  }
+  const train: number[] = [], validation: number[] = [], historicalAudit: number[] = [];
+  for (let i = 7; i < input.rows.length; i++) {
+    const delta = Math.abs(input.rows[i].value! - input.rows[i - 7].value!);
+    const day = toDay(input.rows[i].day)!;
+    (day <= trainEnd ? train : day <= validationEnd ? validation : historicalAudit).push(delta);
+  }
+  if (train.length < 30 || validation.length < 14 || historicalAudit.length < 1) {
+    return blocked('INSUFFICIENT_SEPARATED_TRAIN_VALIDATION_AUDIT');
+  }
+  // Fixed a priori P90 rule; validation and historical-audit outcomes cannot
+  // influence the threshold. Nearest-rank empirical quantile, ties are not alarms.
+  const ordered = [...train].sort((a, b) => a - b);
+  const threshold = ordered[Math.ceil(0.9 * ordered.length) - 1];
+  const exceed = (arr: number[]) => arr.filter(value => value > threshold).length;
+  const validationExceedances = exceed(validation);
+  const historicalAuditExceedances = exceed(historicalAudit);
+  return {
+    contract: 'SFI-MIHM-HISTORICAL-VARIATION-CALIBRATION-0.1' as const,
+    status: 'RETROSPECTIVE_DERIVED_ONLY' as const,
+    reason: 'SEASONAL_NAIVE_ERROR_ENVELOPE_NOT_A_VIABILITY_LIMIT',
+    boundary: input.boundary,
+    nodeRef: input.nodeRef,
+    dimensionRef: input.dimensionRef,
+    sourceResponseSha256: input.sourceResponseSha256,
+    originalT0SourceAvailability: input.originalT0SourceAvailability,
+    unit: input.unit,
+    method: 'ABSOLUTE_CHANGE_FROM_SAME_DAY_PREVIOUS_WEEK_P90_NEAREST_RANK' as const,
+    trainThrough: input.trainThrough, validationThrough: input.validationThrough,
+    threshold, nTrain: train.length, nValidation: validation.length,
+    nHistoricalAudit: historicalAudit.length,
+    trainingExceedances: exceed(train),
+    validationExceedances,
+    validationExceedanceRate: validationExceedances / validation.length,
+    historicalAuditExceedances,
+    historicalAuditIndependentHoldout: false as const,
+    thresholdTunedOnValidationOrAudit: false as const,
+    sourceAvailabilityIndependentlyVerifiedByThisCalculation: false as const,
+    canonicalPhiCalculated: false as const,
+    viabilityEstablished: false as const,
+    homeostasisEstablished: false as const,
+    prospectiveSkillEstablished: false as const,
+    externallyValidated: false as const,
+    productionPromotionAllowed: false as const,
+  };
+}
