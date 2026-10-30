@@ -35,21 +35,21 @@ export function RealityChainCaseInspector({objects,caseId}:{objects:CaseObject[]
   return !q||[o.kind,o.epistemicRole,o.canonicalRef?.id,JSON.stringify(o.payload)].join(' ').toLocaleLowerCase().includes(q);
  }),[objects,filter,query]);
  const focused=objects.find(o=>o.id===selected);
- return <section aria-label="Explorador detallado del expediente" style={{padding:'1.5rem',background:'#171819',color:'#f0ede7',border:'1px solid #625b50',margin:'1.5rem 0'}}>
-  <h2 style={{fontSize:'1.3rem'}}>EXPEDIENTE / EXPLORADOR</h2>
+ return <section aria-label="Explorador detallado del expediente" style={{padding:'1.5rem',background:'#060605',color:'#E8DDC3',border:'1px solid rgba(200,169,81,.48)',margin:'0',fontFamily:'Noto Sans,Arial,sans-serif'}}>
+  <h2 style={{fontSize:'1.3rem',fontFamily:'Noto Serif Display,Georgia,serif',color:'#C8A951'}}>EXPEDIENTE / EXPLORADOR</h2>
   <p>Inspección de objetos persistidos. Los registros no se promueven automáticamente a evidencia ni RETURN.</p>
   <p><strong>{objects.length} objetos</strong> · Caso <code>{caseId}</code></p>
   <div style={{display:'flex',flexWrap:'wrap',gap:8,marginBottom:12}}>
-   <button type="button" aria-pressed={filter==='ALL'} onClick={()=>{setFilter('ALL');setLimit(40);}}>Todos ({objects.length})</button>
-   {CATEGORIES.map(g=><button type="button" key={g.key} aria-pressed={filter===g.key} onClick={()=>{setFilter(g.key);setLimit(40);}}>{g.label} ({objects.filter(o=>g.kinds.includes(o.kind)).length})</button>)}
+   <button type="button" aria-pressed={filter==='ALL'} onClick={()=>{setFilter('ALL');setSelected(null);setLimit(40);}}>Todos ({objects.length})</button>
+   {CATEGORIES.map(g=><button type="button" key={g.key} aria-pressed={filter===g.key} onClick={()=>{setFilter(g.key);setSelected(null);setLimit(40);}}>{g.label} ({objects.filter(o=>g.kinds.includes(o.kind)).length})</button>)}
   </div>
   <label>Buscar dentro del expediente
-   <input style={{display:'block',width:'100%',padding:10,margin:'8px 0 16px',background:'#292a2a',color:'white'}} value={query} onChange={e=>{setQuery(e.target.value);setLimit(40);}} placeholder="Referencia, contenido, tipo, decisión..." />
+   <input style={{display:'block',width:'100%',padding:10,margin:'8px 0 16px',background:'#11110f',color:'#E8DDC3',border:'1px solid rgba(200,169,81,.4)'}} value={query} onChange={e=>{setQuery(e.target.value);setSelected(null);setLimit(40);}} placeholder="Referencia, contenido, tipo, decisión..." />
   </label>
   <p>{filtered.length} coincidencias. Se muestran {Math.min(limit,filtered.length)}.</p>
   <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(min(100%,350px),1fr))',gap:16}}>
    <div style={{maxHeight:520,overflowY:'auto'}}>
-    {filtered.slice(0,limit).map(o=><button type="button" key={o.id} onClick={()=>setSelected(o.id)} aria-pressed={selected===o.id} style={{display:'block',width:'100%',textAlign:'left',marginBottom:6,padding:12,background:selected===o.id?'#514839':'#252626',color:'white',border:'1px solid #777'}}>
+    {filtered.slice(0,limit).map(o=><button type="button" key={o.id} onClick={()=>setSelected(o.id)} aria-pressed={selected===o.id} style={{display:'block',width:'100%',textAlign:'left',marginBottom:6,padding:12,background:selected===o.id?'#2b2414':'#10100e',color:'#E8DDC3',border:'1px solid rgba(200,169,81,.5)'}}>
      <strong>{o.kind} · {o.epistemicRole}</strong><span style={{display:'block',overflowWrap:'anywhere'}}>{o.canonicalRef?.id||o.id}</span><small>{o.createdAt}</small>
     </button>)}
     {limit<filtered.length&&<button type="button" onClick={()=>setLimit(n=>n+100)}>Mostrar 100 más</button>}
@@ -62,7 +62,7 @@ export function RealityChainCaseInspector({objects,caseId}:{objects:CaseObject[]
      <p><strong>Fuentes:</strong> {focused.sourceRefs?.map(r=>r.id).join(', ')||'Sin referencias'}</p>
      <p><strong>Registros relacionados:</strong> {focused.recordRefs?.map(r=>r.id).join(', ')||'Sin referencias'}</p>
      <p><strong>Evidencias relacionadas:</strong> {focused.evidenceRefs?.map(r=>r.id).join(', ')||'Sin referencias'}</p>
-     <h4>Contenido persistido</h4><pre style={{whiteSpace:'pre-wrap',overflowWrap:'anywhere',maxHeight:380,overflowY:'auto'}}>{stringify(focused.payload)}</pre>
+     <h4>Contenido persistido</h4><pre style={{whiteSpace:'pre-wrap',overflowWrap:'anywhere',maxHeight:380,overflowY:'auto',color:'#E8DDC3',background:'#10100e',padding:12,border:'1px solid rgba(200,169,81,.25)'}}>{stringify(focused.payload)}</pre>
      </>:<p>Selecciona un objeto para consultar su contenido, procedencia y referencias.</p>}
    </article>
   </div>
