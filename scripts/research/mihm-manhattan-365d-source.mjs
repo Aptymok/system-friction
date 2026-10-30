@@ -91,6 +91,71 @@ async function collect(){
     scientificValue:success?'SOURCE_COVERAGE_ONLY_NO_MODEL_YET':'NO_SCIENTIFIC_COMPARISON'
   },null,2));
 }
-if(process.argv.includes('--self-test'))trial();
+/**
+ * One-shot, source-only MIHM P4 T0 snapshot. This REUSES the same official
+ * source collector and URLs. It is never a forecast or a source-vintage
+ * certificate. No automatic scheduler, no DB writes, no personal records.
+ */
+async function collectP4Nyc(){
+  const begin='2026-10-20',end='2026-10-30',need=['2026-10-21','2026-10-23','2026-10-28'];
+  const trials=[
+    {id:'NYC311',endpoint:'https://data.cityofnewyork.us/resource/erm2-nwe9.json',
+      query:{$select:'date_trunc_ymd(created_date) as day,count(*) as n',
+       $where:"created_date >= '"+begin+"T00:00:00' AND created_date < '"+end+"T00:00:00' AND borough = 'MANHATTAN'",
+       $group:'day',$order:'day ASC',$limit:'20'}},
+    {id:'MTA_CBD',endpoint:'https://data.ny.gov/resource/sayj-mze2.json',
+      query:{$select:'date,mode,count',
+       $where:"date >= '"+begin+"T00:00:00' AND date < '"+end+"T00:00:00' AND mode = 'CBD Entries'",
+       $order:'date ASC',$limit:'20'}}
+  ];
+  const records=[],failures=[];
+  for(const trial of trials){
+    try{
+      const u=new URL(trial.endpoint);
+      for(const [key,value] of Object.entries(trial.query))u.searchParams.set(key,value);
+      const fetchStartedAt=new Date().toISOString();
+      const resp=await fetch(u,{headers:{Accept:'application/json'},signal:AbortSignal.timeout(25000)});
+      if(!resp.ok)throw Error('SOURCE_HTTP_'+resp.status);
+      const bytes=Buffer.from(await resp.arrayBuffer());
+      if(!bytes.length||bytes.length>70000)throw Error('BOUNDED_RESPONSE_BYTES_INVALID');
+      const data=JSON.parse(bytes.toString('utf8'));
+      if(!Array.isArray(data)||data.length>20)throw Error('UNEXPECTED_SOURCE_ARRAY');
+      const values={},seen=new Set();
+      for(const row of data){
+        const day=String(trial.id==='NYC311'?row.day:row.date).slice(0,10);
+        if(day<begin||day>=end||seen.has(day))throw Error('OUT_OF_RANGE_OR_DUPLICATE');
+        if(trial.id==='MTA_CBD'&&row.mode!=='CBD Entries')throw Error('MODE_MISMATCH');
+        const value=Number(trial.id==='NYC311'?row.n:row.count);
+        if(!Number.isSafeInteger(value)||value<=0)throw Error('INVALID_AGGREGATE');
+        seen.add(day);values[day]=value;
+      }
+      const missing=need.filter(day=>!seen.has(day));
+      const capturedAt=new Date().toISOString();
+      records.push({
+        sourceId:trial.id,queryUrl:u.toString(),sourceBodyUtf8:bytes.toString('utf8'),
+        responseSha256:createHash('sha256').update(bytes).digest('hex'),
+        bytes:bytes.length,fetchStartedAt,capturedAt,
+        httpDateHeader:resp.headers.get('date'),unit:trial.id==='NYC311'?'service_request_records/day':'estimated_vehicle_entries/day',
+        values,missing,
+        clockBoundary:'Available at fetch; not proof of original publication at each event date',
+      });
+    }catch(e){failures.push({source:trial.id,error:String(e)});}
+  }
+  const status=records.length===2&&failures.length===0&&records.every(r=>r.missing.length===0)?
+    'OBSERVED_SOURCE_SNAPSHOT_CANDIDATE':'BLOCKED_SOURCE_GAPS_OR_PROVIDER_UNAVAILABLE';
+  console.log('MIHM_P4_SOURCE_SNAPSHOT_JSON='+JSON.stringify({
+    contract:'SFI-MIHM-P4-OFFICIAL-PUBLIC-SNAPSHOT-0.1',status,
+    studyWindow:{begin,end,requiredDays:need},records,failures,
+    sourceOriginalReleaseTimesIndependentlyVerified:false,
+    sourceResponsesCapturedAtFetch:true,
+    prospectivePredictionIssued:false,
+    externalOutcomeObserved:false,
+    canonicalPhiChanged:false,
+    productionMutation:false,
+  }));
+}
+
+if(process.argv.includes('--collect-p4-nyc'))await collectP4Nyc();
+else if(process.argv.includes('--self-test'))trial();
 else if(process.argv.includes('--collect'))await collect();
 else throw Error('Use --self-test or explicit --collect');

@@ -10,6 +10,7 @@ on:
       - 'scripts/research/mihm-foundation-p2-lagged-dynamics.ts'
       - 'scripts/research/mihm-foundation-p3-viability-recovery.ts'
       - 'scripts/research/mihm-foundation-p4-readiness.ts'
+      - 'scripts/research/mihm-manhattan-365d-source.mjs'
       - 'docs/research/SFI-MIHM-FOUNDATION-P4-PROSPECTIVE-2026-10-30.md'
       - 'docs/research/evidence/MIHM-FOUNDATION-P3-VIABILITY-RECOVERY-2026-10-30.json'
       - 'docs/research/SFI-MIHM-FOUNDATION-P3-VIABILITY-RECOVERY-2026-10-30.md'
@@ -94,6 +95,11 @@ jobs:
 
       - name: MIHM P4 existing-registry prospective scoring with strict T0 and T1 gates
         run: node --import tsx --test src/lib/mihm/foundationProspectiveScoring.test.ts && node --import tsx scripts/research/mihm-foundation-p4-readiness.ts
+
+      - name: MIHM P4 one-time official NYC 311 and MTA source capture (not a prediction)
+        if: ${{ github.event_name == 'pull_request' && github.head_ref == 'research/mihm-p4-one-shot-source-20261030' }}
+        timeout-minutes: 2
+        run: node scripts/research/mihm-manhattan-365d-source.mjs --collect-p4-nyc
 
       - name: MIHM cultural measurement provenance and missingness
         run: node --import tsx --test src/lib/studio/cultural-lab/agents/mihmAgent.test.ts
