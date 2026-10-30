@@ -442,7 +442,10 @@ async function readRealityChainCaseRows(table: string, caseId: string, tenantId:
 export async function listOperationalCaseObjects(caseId: string, userId: string) {
   const row = await caseRow(caseId);
   await assertTenantAccess(text(row.tenant_id), userId, 'READ');
-  return (await readRealityChainCaseRows('sfi_case_objects', caseId, text(row.tenant_id), 'created_at')).map(objectFromRow);
+  const service = createServiceSupabaseClient();
+  const result = await service.from('sfi_case_objects').select('*').eq('case_id', caseId).order('created_at', { ascending: true });
+  if (result.error) throw new Error(`SFI_CASE_OBJECT_LIST_FAILED:${result.error.message}`);
+  return ((result.data ?? []) as Row[]).map(objectFromRow);
 }
 
 export async function readOperationalCase(caseId: string, userId: string) {
@@ -475,8 +478,12 @@ export async function readOperationalRealityChain(
   caseId: string, userId: string, temporal?: { t0?: string | null; t1?: string | null },
 ) {
   const base = await readOperationalCase(caseId, userId);
-  const { caseRecord, objects } = base;
   const startingRow = await caseRow(caseId);
+  // Preserve legacy list semantics; the opt-in Reality Chain audit reads all pages.
+  const objects = (await readRealityChainCaseRows(
+    'sfi_case_objects', caseId, base.caseRecord.tenantId, 'created_at'
+  )).map(objectFromRow);
+  const caseRecord = hydrateCase(startingRow, objects);
   const [reports, actions, decisions, audits] = await Promise.all([
     readRealityChainCaseRows('sfi_case_reports', caseId, caseRecord.tenantId, 'generated_at'),
     readRealityChainCaseRows('sfi_case_action_proposals', caseId, caseRecord.tenantId, 'created_at'),
@@ -518,6 +525,8 @@ export async function readOperationalRealityChain(
   const profile = getSfiServiceProfile(caseRecord.serviceProfileId);
   return {
     ...base,
+    caseRecord,
+    objects,
     realityChain,
     temporalProvenance: projectCaseTemporalProvenance(objects, caseRecord.temporalWindow.cutoff),
     authorityEvidence: projectCaseAuthorityEvidence(realityChain),
