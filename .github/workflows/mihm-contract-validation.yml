@@ -78,6 +78,9 @@ jobs:
       - name: MIHM P1 publisher semantics, historical release clocks and source metrology
         run: node --import tsx --test src/lib/mihm/foundationSourceMetrology.test.ts && node --import tsx scripts/research/mihm-foundation-p1-metrology.ts
 
+      - name: MIHM P2 source-gated lagged dynamics and feature-matched negative controls
+        run: node --import tsx --test src/lib/mihm/foundationLaggedDynamics.test.ts && node --import tsx scripts/research/mihm-foundation-p2-lagged-dynamics.ts
+
       - name: MIHM cultural measurement provenance and missingness
         run: node --import tsx --test src/lib/studio/cultural-lab/agents/mihmAgent.test.ts
 
