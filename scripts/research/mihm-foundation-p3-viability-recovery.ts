@@ -69,4 +69,19 @@ const reading={
   returnVerified:r.returnVerified,
   productionPromotionAllowed:r.productionPromotionAllowed,
 };
-console.log(JSON.stringify({ok:true,reading},null,2));
+// Replay must reproduce every recorded first-window observation, proxy
+// return and historical sensitivity result. No new source fetch or promotion.
+const receipt=JSON.parse(readFileSync(
+  'docs/research/evidence/MIHM-FOUNDATION-P3-VIABILITY-RECOVERY-2026-10-30.json',
+  'utf8',
+));
+assert.equal(receipt.schema,'SFI-MIHM-FOUNDATION-P3-VIABILITY-RECOVERY-REPLAY-0.1');
+assert.equal(receipt.classification,'HISTORICAL_SOURCE_BACKED__POSTHOC_PROXY_NOT_OP_VIABILITY');
+assert.equal(receipt.originalDataAtEventTimeAvailabilityIndependentlyVerified,false);
+assert.equal(receipt.normativeViabilityConstraintAdmitted,false);
+assert.equal(receipt.recoveryCausalityEstablished,false);
+assert.equal(receipt.institutionalReturnVerified,false);
+assert.equal(receipt.scientificHomeostasisEstablished,false);
+assert.equal(receipt.productionPromotionAllowed,false);
+assert.deepEqual(reading,receipt.reading,'P3 archived result drift: repair lineage before any claim');
+console.log(JSON.stringify({ok:true,receiptVerified:true,reading},null,2));

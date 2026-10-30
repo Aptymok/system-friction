@@ -91,4 +91,23 @@ node --import tsx --test src/lib/mihm/foundationViabilityRecovery.test.ts
 node --import tsx scripts/research/mihm-foundation-p3-viability-recovery.ts
 ```
 
-**Recibo versionado:** `docs/research/evidence/MIHM-FOUNDATION-P3-VIABILITY-RECOVERY-2026-10-30.json`, generado del replay validado y revisado antes de declararlo cerrado.
+**Recibo versionado y reproduccible:** `docs/research/evidence/MIHM-FOUNDATION-P3-VIABILITY-RECOVERY-2026-10-30.json`. El script ahora compara por igualdad profunda los doce resultados y las observaciones de inicio, rechazando cualquier deriva de archivo, método o valor.
+
+## 7. Resultado de sensibilidad y hallazgo adverso
+
+| Episodio | ±10%: M0 / M1 días desde la desviación inicial | ±20%: M0 / M1 | ±30%: M0 / M1 |
+| --- | --- | --- | --- |
+| 25-ene | 6 / **sin reingreso de dos días dentro del horizonte** | 3 / 11 | 2 / 9 |
+| 6-feb | sin señal / **sin reingreso** | sin señal / 4 | sin señal / 4 |
+| 22-feb | 3 / 6 | 3 / 4 | 1 / 1 |
+| 20-may, control espacial | sin señal / 5 | sin señal / sin señal | sin señal / sin señal |
+
+Los días se calculan desde la **primera desviación observada dentro de los tres primeros días** del episodio. «Sin señal» significa que el detector concreto no registró inicio en esa ventana; NO significa que el sistema hubiera estado sano. «Sin reingreso» significa censura al horizonte de 14 días; NO prueba daño permanente.
+
+**Inestabilidad de umbral:** para el 25 de enero, el modelo de tres indicadores no encuentra dos días seguidos en la banda ±10%, sí los encuentra con ±20% después de 11 días —pero detecta una nueva desviación antes del final de seguimiento— y con ±30% después de 9 días. Para la ventisca de febrero el tiempo multinodo pasa de 6 a 4 y a 1 días según la banda. Es imposible presentar un «tiempo homeostático» estable con estos parámetros post hoc.
+
+**Control espacial:** el episodio de lluvia del 20 de mayo, centrado principalmente fuera de Manhattan, provoca señal multinodo ilustrativa con ±10%, aunque **no** con ±20% ni ±30%. No sabemos si se trata de un falso positivo en sentido operacional porque no hay etiquetas de estado institucional independiente. Sí es una advertencia contra declarar toda divergencia como respuesta a un fenómeno de ámbito geográfico distinto.
+
+**Persistencia:** la primera reentrada en dos días no prueba que no haya recaídas. El recibo conserva el campo `rebreachAfterReentry` para ambas lecturas. En particular, el reingreso multinodo del 25-ene con ±20% muestra una nueva desviación dentro del horizonte. No se emitió ningún RETURN institucional.
+
+**Decisión:** P3 produjo una prueba funcional y adversa de medición, cobertura y recuperación descriptiva; no produjo una restricción admisible de viabilidad. La siguiente fase necesita criterios normativos fechados y un resultado externo independiente para que el número represente realmente viabilidad y no simple retorno a un corredor elegido retrospectivamente.
