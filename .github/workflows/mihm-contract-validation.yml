@@ -8,6 +8,9 @@ on:
       - 'scripts/research/mihm-foundation-calibration-t0.ts'
       - 'scripts/research/mihm-foundation-p1-metrology.ts'
       - 'scripts/research/mihm-foundation-p2-lagged-dynamics.ts'
+      - 'scripts/research/mihm-foundation-p3-viability-recovery.ts'
+      - 'docs/research/evidence/MIHM-FOUNDATION-P3-VIABILITY-RECOVERY-2026-10-30.json'
+      - 'docs/research/SFI-MIHM-FOUNDATION-P3-VIABILITY-RECOVERY-2026-10-30.md'
       - 'docs/research/evidence/MIHM-FOUNDATION-P2-LAGGED-DYNAMICS-2026-10-30.json'
       - 'docs/research/SFI-MIHM-FOUNDATION-P2-LAGGED-DYNAMICS-2026-10-30.md'
       - 'docs/research/evidence/MIHM-FOUNDATION-P1-SOURCE-METROLOGY-2026-10-30.json'
@@ -83,6 +86,9 @@ jobs:
 
       - name: MIHM P2 source-gated lagged dynamics and feature-matched negative controls
         run: node --import tsx --test src/lib/mihm/foundationLaggedDynamics.test.ts && node --import tsx scripts/research/mihm-foundation-p2-lagged-dynamics.ts
+
+      - name: MIHM P3 illustrative viability excursion, source clocks, and re-entry recovery guards
+        run: node --import tsx --test src/lib/mihm/foundationViabilityRecovery.test.ts && node --import tsx scripts/research/mihm-foundation-p3-viability-recovery.ts
 
       - name: MIHM cultural measurement provenance and missingness
         run: node --import tsx --test src/lib/studio/cultural-lab/agents/mihmAgent.test.ts
