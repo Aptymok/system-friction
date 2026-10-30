@@ -36,7 +36,7 @@ export async function readInteractiveCaseIndex(userId: string) {
 
   const [caseRows, projectRows] = await Promise.all([
     db.from('sfi_cases')
-      .select('id,tenant_id,project_id,subject,status,updated_at')
+      .select('id,tenant_id,project_id,subject,scope,status,updated_at')
       .in('tenant_id', tenantIds)
       .is('deleted_at', null)
       .order('updated_at', { ascending: false })
@@ -64,6 +64,7 @@ export async function readInteractiveCaseIndex(userId: string) {
     tenantId: String(row.tenant_id),
     projectId: row.project_id ? String(row.project_id) : null,
     subject: String(row.subject ?? ''),
+    scope: String(row.scope ?? ''),
     status: String(row.status ?? ''),
     updatedAt: text(row.updated_at),
   }));
