@@ -398,6 +398,7 @@ export function RealityChainWorkbench(){
               <button type="button" onClick={()=>setSelectedObject(null)}>BACK TO ALL RECORDS</button>
             </div>:<div className="rcRecordList">{asOfObjects.map(o=><button key={o.id} type="button" onClick={()=>setSelectedObject(o.id)}><time>{date(o.createdAt)}</time><strong>{o.kind} · {o.epistemicRole}</strong><span>{payloadDescription(o).slice(0,240)}</span></button>)}</div>}
             <div className="rcThreeDataLine">{sourceObjects.length} SOURCES · {asOfObjects.filter(o=>o.kind==='EVIDENCE').length} ADMITTED EVIDENCE · {asOfObjects.filter(o=>o.kind==='CONTRADICTION').length} CONTRADICTIONS</div>
+            {caseId && caseData ? <details style={{marginTop:12,border:'1px solid rgba(200,169,81,.4)',background:'#060605',color:'#E8DDC3'}}><summary style={{cursor:'pointer',padding:12,color:'#C8A951'}}>INSPECTOR DE EXPEDIENTE · {asOfObjects.length} OBJETOS</summary><RealityChainCaseInspector key={caseId} caseId={caseId} objects={asOfObjects}/></details> : null}
           </section>
           <section className="rcThreePane rcObservatoryWallMonitor">
             <h2>HYPOTHESIS / AUTHORITY</h2>
@@ -465,7 +466,6 @@ export function RealityChainWorkbench(){
   </div>
 
 
-  {caseId && caseData ? <details style={{position:'relative',zIndex:3,margin:'1rem 2vw',border:'1px solid rgba(200,169,81,.35)',background:'#060605',color:'#E8DDC3'}}><summary style={{cursor:'pointer',padding:'1rem',color:'#C8A951'}}>EXPEDIENTE / INSPECTOR DE OBJETOS · {asOfObjects.length} REGISTROS</summary><RealityChainCaseInspector key={caseId} caseId={caseId} objects={asOfObjects}/></details> : null}
   {message?<div className="rcToast" role="status">{message}<button onClick={()=>setMessage('')} aria-label="Dismiss message">×</button></div>:null}
   {error?<div className="rcToast rcToastError" role="alert">{error}<button onClick={()=>setError('')} aria-label="Dismiss error">×</button></div>:null}
  </main>;

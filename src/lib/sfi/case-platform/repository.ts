@@ -696,20 +696,30 @@ export async function generateOperationalReport(input: {
   deliveryFormats?: SfiReportDeliveryFormat[];
   limitations?: string[];
 }) {
-  const envelope = await readOperationalRealityChain(input.caseId, input.userId);
+  const envelope = await readOperationalCase(input.caseId, input.userId);
   await assertTenantAccess(envelope.caseRecord.tenantId, input.userId, 'WRITE');
   const { assertReportClaimsIntegrity } = await import('./integrity');
   await assertReportClaimsIntegrity({ caseId: input.caseId, userId: input.userId, claims: input.claims ?? [] });
-  const chain = envelope.realityChain;
+  // Retain authorized legacy report generation even when Reality Chain's
+  // optional reconstruction cannot be completed. Never fake certification.
+  let chain: Awaited<ReturnType<typeof readOperationalRealityChain>>['realityChain'] | null = null;
+  try {
+    chain = (await readOperationalRealityChain(input.caseId, input.userId)).realityChain;
+  } catch {
+    chain = null;
+  }
   const report = assembleSfiReportV1({
     id: randomUUID(),
     caseRecord: envelope.caseRecord,
     generatedAt: new Date().toISOString(),
     claims: input.claims ?? [],
     deliveryFormats: input.deliveryFormats ?? ['JSON'],
-    limitations: input.limitations ?? [],
-    reconstruction: {
-      contract: 'SFI-CASE-RECONSTRUCTION-1.0',
+    limitations: [
+      ...(input.limitations ?? []),
+      ...(chain ? [] : ['REALITY_CHAIN_RECONSTRUCTION_UNAVAILABLE: Legacy report remains available, but its reconstruction and cross-provider consistency are not certified.']),
+    ],
+    ...(chain ? { reconstruction: {
+      contract: 'SFI-CASE-RECONSTRUCTION-1.0' as const,
       inputHash: chain.inputHash,
       t0: chain.temporal.t0.cutoff,
       t1: chain.temporal.t1.cutoff,
@@ -717,7 +727,7 @@ export async function generateOperationalReport(input: {
       gaps: chain.gaps,
       nextObservation: chain.nextObservation,
       document: JSON.parse(JSON.stringify(chain)) as Record<string, unknown>,
-    },
+    } } : {}),
   });
   const service = createServiceSupabaseClient();
   const caseBase = await caseRow(input.caseId);
