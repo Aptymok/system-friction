@@ -101,6 +101,15 @@ jobs:
         timeout-minutes: 2
         run: node scripts/research/mihm-manhattan-365d-source.mjs --collect-p4-nyc
 
+      - name: Preserve one-time official source snapshot as short-lived audit artifact
+        if: ${{ github.event_name == 'pull_request' && github.head_ref == 'research/mihm-p4-one-shot-source-20261030' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: mihm-p4-official-source-20261030
+          path: ${{ runner.temp }}/mihm-p4-nyc-source.json
+          if-no-files-found: error
+          retention-days: 7
+
       - name: MIHM cultural measurement provenance and missingness
         run: node --import tsx --test src/lib/studio/cultural-lab/agents/mihmAgent.test.ts
 

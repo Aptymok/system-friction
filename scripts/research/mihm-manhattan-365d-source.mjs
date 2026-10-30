@@ -4,6 +4,7 @@
  * Read-only; no system state, source rows, addresses or credentials.
  */
 import assert from 'node:assert/strict';
+import {writeFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 const BEGIN='2025-10-01',END='2026-10-01';
 const DAYS=Array.from({length:365},(_,i)=>new Date(Date.parse(BEGIN+'T12:00:00Z')+i*86400000).toISOString().slice(0,10));
@@ -143,7 +144,7 @@ async function collectP4Nyc(){
   }
   const status=records.length===2&&failures.length===0&&records.every(r=>r.missing.length===0)?
     'OBSERVED_SOURCE_SNAPSHOT_CANDIDATE':'BLOCKED_SOURCE_GAPS_OR_PROVIDER_UNAVAILABLE';
-  console.log('MIHM_P4_SOURCE_SNAPSHOT_JSON='+JSON.stringify({
+  const receipt={
     contract:'SFI-MIHM-P4-OFFICIAL-PUBLIC-SNAPSHOT-0.1',status,
     studyWindow:{begin,end,requiredDays:need},records,failures,
     sourceOriginalReleaseTimesIndependentlyVerified:false,
@@ -152,7 +153,9 @@ async function collectP4Nyc(){
     externalOutcomeObserved:false,
     canonicalPhiChanged:false,
     productionMutation:false,
-  }));
+  };
+  console.log('MIHM_P4_SOURCE_SNAPSHOT_JSON='+JSON.stringify(receipt));
+  if(process.env.RUNNER_TEMP)writeFileSync(process.env.RUNNER_TEMP+'/mihm-p4-nyc-source.json',JSON.stringify(receipt,null,2)+'\n');
 }
 
 if(process.argv.includes('--collect-p4-nyc'))await collectP4Nyc();
