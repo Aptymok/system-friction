@@ -25,11 +25,11 @@ const prediction=(p=packet(),overrides:Record<string,unknown>={})=>({
 }) as unknown as SfiPredictionEntry;
 const verification=(out:Record<string,unknown>={},more:Record<string,unknown>={})=>({
  id:'v-test',prediction_entry_id:'test-entry',hypothesis_id:'hypothesis-test',
- verification_state:'CLOSED',evaluation_result:'TRUE',verified_by:'human-reviewer',
+ verification_state:'CLOSED',evaluation_result:'TRUE',verified_by:'human-reviewer',return_window:'72h',
  source_quality_tier:1,ground_truth_source_type:'official-source',
  source_snapshot_hash:b,source_checked_at:'2026-11-02T15:00:00.000Z',
  created_at:'2026-10-30T12:01:00.000Z',
- verification_rule:{observable:'daily_requests',entity:'Manhattan borough',source_query:'recorded provider series'},
+ verification_rule:{observable:'daily_requests',entity:'Manhattan borough',source_query:'recorded provider series',window:'72h'},
  source_value:{value:107,unit:'requests/day',observedAt:target,availableAt:'2026-11-02T11:00:00.000Z',
     capturedAt:'2026-11-02T12:00:00.000Z',sha256:b,sourceRef:'official-311',...out},
  ...more,
@@ -104,4 +104,38 @@ test('P4 keeps contradictory verification duplicates blocked, and no empty regis
  }})]);
  assert.equal(duplicated.blocked,1);assert.equal(duplicated.scored,0);
  assert.equal(score().independentScientificValidationEstablished,false);
+});
+
+test('P4 never combines different metrics, units or territories into one MAE',()=>{
+ const a=prediction(),b=prediction(packet({targetKey:'different_measure'}),{
+   id:'entry-second',
+ });
+ const v1=verification(),v2=verification({},{
+   id:'verification-second',prediction_entry_id:'entry-second',
+   verification_rule:{observable:'different_measure',entity:'Manhattan borough',
+     source_query:'recorded provider series',window:'72h'}
+ });
+ const out=evaluateMihmP4ExistingRegistry([a,b],[v1,v2]);
+ assert.equal(out.status,'INCOMMENSURABLE_COHORT');
+ assert.equal(out.scored,2);
+ assert.equal(out.maeGain,null);
+ assert.equal(out.baselineMAE,null);
+});
+test('P4 does not double count independent predictions of same target date and area',()=>{
+ const a=prediction(),b=prediction(packet(),{id:'entry-two'});
+ const ver=[verification(),verification({}, {id:'v2',prediction_entry_id:'entry-two'})];
+ const out=evaluateMihmP4ExistingRegistry([a,b],ver);
+ assert.equal(out.scored,0);assert.equal(out.blocked,2);
+ assert(out.evidence.every(x=>x.blockers.includes('DUPLICATED_TARGET_DATE')));
+});
+test('P4 verification rule must be in the declared return window and registered before outcome',()=>{
+ const wrongWindow=score(prediction(),[verification({},{
+   verification_rule:{observable:'daily_requests',entity:'Manhattan borough',
+     source_query:'recorded provider series',window:'7d'}
+ })]);
+ assert.equal(wrongWindow.scored,0);
+ const lateRule=score(prediction(),[verification({},{
+   created_at:'2026-11-02T12:00:00.000Z',
+ })]);
+ assert.equal(lateRule.scored,0);
 });

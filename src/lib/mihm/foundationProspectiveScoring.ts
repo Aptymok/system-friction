@@ -12,7 +12,7 @@ export const MIHM_P4_CONTRACT='SFI-MIHM-FOUNDATION-P4-FORECAST-CONTRAST-0.1' as 
 const HASH=/^[a-f0-9]{64}$/i;
 const ISO=/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/;
 const stamp=(x:unknown)=>typeof x==='string'&&ISO.test(x)&&
-  Number.isFinite(Date.parse(x))&&new Date(x).toISOString()===new Date(Date.parse(x)).toISOString()
+  Number.isFinite(Date.parse(x))&&new Date(Date.parse(x)).toISOString().slice(0,19)===x.slice(0,19)
     ?Date.parse(x):null;
 const rec=(x:unknown):Record<string,unknown>|null=>x!==null&&typeof x==='object'&&!Array.isArray(x)?x as Record<string,unknown>:null;
 const nonblank=(x:unknown)=>typeof x==='string'&&x.trim().length>0;
@@ -28,12 +28,13 @@ type Outcome={value:number;unit:string;observedAt:string;availableAt:string;capt
 export type MihmP4EntryVerdict={
   predictionId:string;caseId:string;status:'SCORED_CANDIDATE'|'BLOCKED'|'PENDING_OUTCOME';
   blockers:string[];targetAt:string|null;unit:string|null;
+  targetKey:string|null;scope:string|null;
   baselineAbsoluteError:number|null;mihmAbsoluteError:number|null;
   baselineCovered90:boolean|null;mihmCovered90:boolean|null;
 };
 export type MihmP4Score={
   contract:typeof MIHM_P4_CONTRACT;
-  status:'NO_PROSPECTIVE_PAIRS'|'INSUFFICIENT_VERIFIED_PAIRS'|'DESCRIPTIVE_PROSPECTIVE_CANDIDATE';
+  status:'NO_PROSPECTIVE_PAIRS'|'INSUFFICIENT_VERIFIED_PAIRS'|'DESCRIPTIVE_PROSPECTIVE_CANDIDATE'|'INCOMMENSURABLE_COHORT';
   registered:number;scored:number;pending:number;blocked:number;
   minPairedSamplesForReview:30;
   baselineMAE:number|null;mihmMAE:number|null;maeGain:number|null;
@@ -56,6 +57,7 @@ const result=(entry:SfiPredictionEntry,status:MihmP4EntryVerdict['status'],
   errors?:{a:number;b:number;ac:boolean;bc:boolean}):MihmP4EntryVerdict=>({
     predictionId:entry.id,caseId:entry.case_id,status,blockers,
     targetAt:packet?.targetAt??null,unit:packet?.unit??null,
+    targetKey:packet?.targetKey??null,scope:packet?.scope??null,
     baselineAbsoluteError:errors?.a??null,mihmAbsoluteError:errors?.b??null,
     baselineCovered90:errors?.ac??null,mihmCovered90:errors?.bc??null,
   });
@@ -130,7 +132,8 @@ function scoreOne(entry:SfiPredictionEntry,verifications:SfiPredictionVerificati
   // does not prove institutional authority or independence.
   const rule=rec(v.verification_rule);
   if(!rule||!nonblank(rule.observable)||rule.observable!==packet.targetKey||
-    !nonblank(rule.entity)||!nonblank(rule.source_query))
+    !nonblank(rule.entity)||!nonblank(rule.source_query)||
+    !['72h','7d','30d','90d'].includes(v.return_window)||rule.window!==v.return_window)
     return result(entry,'BLOCKED',['PREREGISTERED_VERIFICATION_RULE_MISSING'],packet);
   const y=observation.value;
   return result(entry,'SCORED_CANDIDATE',[],packet,{
@@ -142,12 +145,25 @@ function scoreOne(entry:SfiPredictionEntry,verifications:SfiPredictionVerificati
 export function evaluateMihmP4ExistingRegistry(entries:SfiPredictionEntry[],
   verifications:SfiPredictionVerification[]):MihmP4Score {
   const evidence=entries.map(e=>scoreOne(e,verifications));
+  // No fabricated information gain: duplicate dates of the same target are
+  // correlated duplicates, not additional independent validation samples.
+  const duplicates=new Map<string,MihmP4EntryVerdict[]>();
+  for(const e of evidence.filter(e=>e.status==='SCORED_CANDIDATE')){
+    const id=[e.targetKey,e.unit,e.scope,e.targetAt].join('|');
+    duplicates.set(id,[...(duplicates.get(id)??[]),e]);
+  }
+  for(const group of duplicates.values())if(group.length>1){
+    for(const e of group){e.status='BLOCKED';e.blockers.push('DUPLICATED_TARGET_DATE');}
+  }
   const scored=evidence.filter(e=>e.status==='SCORED_CANDIDATE');
-  const baselineMAE=scored.length?pairs(scored.map(e=>e.baselineAbsoluteError!)):null;
-  const mihmMAE=scored.length?pairs(scored.map(e=>e.mihmAbsoluteError!)):null;
+  const units=new Set(scored.map(e=>[e.targetKey,e.unit,e.scope].join('|')));
+  const incommensurable=units.size>1;
+  const common=incommensurable?[]:scored;
+  const baselineMAE=common.length?pairs(common.map(e=>e.baselineAbsoluteError!)):null;
+  const mihmMAE=common.length?pairs(common.map(e=>e.mihmAbsoluteError!)):null;
   return {
     contract:MIHM_P4_CONTRACT,
-    status:!scored.length?'NO_PROSPECTIVE_PAIRS':
+    status:incommensurable?'INCOMMENSURABLE_COHORT':!scored.length?'NO_PROSPECTIVE_PAIRS':
       scored.length<30?'INSUFFICIENT_VERIFIED_PAIRS':'DESCRIPTIVE_PROSPECTIVE_CANDIDATE',
     registered:entries.length,scored:scored.length,
     pending:evidence.filter(e=>e.status==='PENDING_OUTCOME').length,
@@ -155,8 +171,8 @@ export function evaluateMihmP4ExistingRegistry(entries:SfiPredictionEntry[],
     minPairedSamplesForReview:30,
     baselineMAE,mihmMAE,
     maeGain:baselineMAE!==null&&mihmMAE!==null?baselineMAE-mihmMAE:null,
-    baselineCoverage90:scored.length?pairs(scored.map(e=>e.baselineCovered90?1:0)):null,
-    mihmCoverage90:scored.length?pairs(scored.map(e=>e.mihmCovered90?1:0)):null,
+    baselineCoverage90:common.length?pairs(common.map(e=>e.baselineCovered90?1:0)):null,
+    mihmCoverage90:common.length?pairs(common.map(e=>e.mihmCovered90?1:0)):null,
     lossDefinition:'PAIRED_ABSOLUTE_ERROR_ON_SAME_TARGET_AND_UNIT',
     evidence,
     historicalP3ReclassifiedAsProspective:false,
