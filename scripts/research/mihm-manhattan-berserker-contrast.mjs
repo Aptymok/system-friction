@@ -22,6 +22,7 @@ const rows=benchmark.results.map(row=>{
   const ownHistory=rivals.find(r=>r.id==='M0');
   const placebo=rivals.find(r=>r.id==='PLACEBO');
   assert(selected&&bestTestDescriptive&&experimental&&ownHistory&&placebo);
+  assert.equal(selected.id,'M0','Frozen Manhattan benchmark must select M0 by calibration across all targets');
   return {
     target:row.target,sharedArchiveSha256:sha,sharedEvaluationDates:row.evaluationDates,
     modelResults:rivals,
