@@ -99,6 +99,9 @@ jobs:
       - name: Verify MIHM P0 historical calibration source, replay, and abstention
         run: node --import tsx --test packages/mihm-core/src/integrated.test.ts && node --import tsx scripts/research/mihm-foundation-calibration-t0.ts
 
+      - name: Evaluate MIHM Manhattan P5 scientific closure without invented validation
+        run: node scripts/research/mihm-manhattan-p5-scientific-closure.mjs
+
       - name: Reconcile Manhattan archive across MIHM P0-P2 and model contrast
         run: node scripts/research/qa-mihm-manhattan-evidence-reconciliation.mjs
 
