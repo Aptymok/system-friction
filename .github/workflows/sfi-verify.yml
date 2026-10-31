@@ -99,6 +99,9 @@ jobs:
       - name: Verify MIHM P0 historical calibration source, replay, and abstention
         run: node --import tsx --test packages/mihm-core/src/integrated.test.ts && node --import tsx scripts/research/mihm-foundation-calibration-t0.ts
 
+      - name: Exercise MIHM Manhattan E1 E2 E4 bounded diagnostics
+        run: node scripts/research/mihm-manhattan-e1-e2-e4-contrast.mjs
+
       - name: Compare MIHM Manhattan academic benchmark with bounded Berserker challenger audit
         run: node scripts/research/mihm-manhattan-berserker-contrast.mjs
 
