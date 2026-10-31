@@ -22,6 +22,14 @@ assert.equal(p1.audit.measurements,1460);
 assert.equal(p2.originalDataAtHistoricT0IndependentlyVerified,false);
 assert.equal(p3.scientificHomeostasisEstablished,false);
 assert.equal(p3.institutionalReturnVerified,false);
+const p4Source=readFileSync('scripts/research/mihm-foundation-p4-readiness.ts','utf8');
+const p4Scorer=readFileSync('src/lib/mihm/foundationProspectiveScoring.ts','utf8');
+assert(p4Source.includes("evaluateMihmP4ExistingRegistry([],[])"),'P4 offline probe must not imply registry was read');
+assert(p4Source.includes('prospectiveRegistryQueried:false'),'P4 must disclose no runtime registry query');
+assert(p4Scorer.includes('NO_PROSPECTIVE_PAIRS'),'P4 scorer must abstain when pairs are absent');
+assert(p4Scorer.includes('T0_SOURCE_VINTAGE_OR_SNAPSHOT_NOT_ADMISSIBLE'),'P4 must check original source vintage');
+assert(p4Scorer.includes('UNEQUAL_SOURCE_BUDGET__COMPARISON_NOT_FAIR'),'P4 must enforce equal input budgets');
+
 assert.equal(comparison.scientificDisposition.actualHistoricalPredictionIssued,false);
 assert.equal(comparison.scientificDisposition.canonicalMihmValidated,false);
 assert.equal(p0.empiricalHomeostasisEstablished,false);
@@ -32,7 +40,7 @@ const audit={
   archiveSha256:digest,range:archive.scope,
   sourceIds,days:archive.rows.length,measurements:p1.audit.measurements,
   p0:'RETROSPECTIVE_DIAGNOSTIC',p1:p1.audit.status,
-  p2:p2.summary.status,p3:p3.reading.status,comparison:comparison.status,
+  p2:p2.summary.status,p3:p3.reading.status,p4:'EVALUATOR_PRESENT_REAL_REGISTRY_NOT_QUERIED',comparison:comparison.status,
   prospectivePredictionVerified:false,causalMechanismVerified:false,
   scientificClosure:'NOT_ESTABLISHED',
   boundary:'DOCUMENTARY_BYTES_AND_CONSISTENCY_CHECK_NOT_CASE_PLATFORM_ADMISSION_OR_EMPIRICAL_RETURN'
