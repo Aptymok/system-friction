@@ -54,5 +54,7 @@ assert(assembler.includes('CONTEMPORANEOUS_REASON_RECORDED'),'contemporaneous de
 assert(assembler.includes('AVAILABLE_IN_CASE_RECORD_AT_DECISION_NOT_PROOF_OF_ACTOR_KNOWLEDGE'),'no hindsight knowledge attribution');
 assert(assembler.includes('NO_INTERNET_DISCOVERY_OR_PUBLICATION_PROVEN_BY_THIS_CASE_ASSEMBLY'),'no fabricated public discovery');
 assert(assembler.includes('CROSS_CASE_REFERENCE_IS_NOT_AUTOMATIC_EVIDENCE_OR_RETURN'),'no cross-case automatic evidence');
+assert(assembler.includes('DOCUMENT_EXISTENCE_AND_DECLARATION_DO_NOT_VERIFY_ASSERTED_EVENT'),'self-asserted document does not validate event');
+assert(assembler.includes('admittedEventTruth:false as const'),'document review cannot auto-admit event truth');
 assert(assembler.includes('Reconstrucción de decisiones históricas'),'decision audit in human passport');
 console.log('PASS · Three real Reality Chain screens, traceability, safe case linkage and inherited operational intake');
