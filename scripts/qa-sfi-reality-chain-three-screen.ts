@@ -48,4 +48,11 @@ assert(root.includes('THIS CASE IS NOT ADMITTED AS A CANONICAL GRAPH NODE'),'ROO
 assert(nav.includes("{label:'REALITY CHAIN',href:'/reality-chain'}"),'authenticated menu points to one actual case workbench');
 assert(!ui.includes('Coastal Resilience Finance Shift')&&!ui.includes('C-2026-0417'),'no image mock case');
 assert(!ui.includes('CONFIDENCE 87%')&&!ui.includes('RISK 13%'),'no invented confidence');
+const assembler=read('src/core/case-platform/reportAssembler.ts');
+assert(assembler.includes('HISTORICAL_MOTIVE_NOT_VERIFIED'),'unknown historical motive must remain visible');
+assert(assembler.includes('CONTEMPORANEOUS_REASON_RECORDED'),'contemporaneous decision rationale required');
+assert(assembler.includes('AVAILABLE_IN_CASE_RECORD_AT_DECISION_NOT_PROOF_OF_ACTOR_KNOWLEDGE'),'no hindsight knowledge attribution');
+assert(assembler.includes('NO_INTERNET_DISCOVERY_OR_PUBLICATION_PROVEN_BY_THIS_CASE_ASSEMBLY'),'no fabricated public discovery');
+assert(assembler.includes('CROSS_CASE_REFERENCE_IS_NOT_AUTOMATIC_EVIDENCE_OR_RETURN'),'no cross-case automatic evidence');
+assert(assembler.includes('Reconstrucción de decisiones históricas'),'decision audit in human passport');
 console.log('PASS · Three real Reality Chain screens, traceability, safe case linkage and inherited operational intake');
