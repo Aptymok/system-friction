@@ -663,7 +663,7 @@ async function callProvider(config: ProviderConfig, model: string, input: {
         contents: [{ role: 'user', parts: [{ text: input.prompt }] }],
         generationConfig,
       }),
-    }, 20_000, input.deadlineAtMs);
+    }, 35_000, input.deadlineAtMs);
     const record = json as Record<string, unknown>;
     const candidates = Array.isArray(record.candidates) ? record.candidates as Array<Record<string, unknown>> : [];
     const content = candidates[0]?.content as Record<string, unknown> | undefined;
