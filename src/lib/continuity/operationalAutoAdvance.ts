@@ -7,6 +7,7 @@ import { queueApprovedProposal } from '@/lib/governance/proposalQueue';
 import { classifyProposalDecisionBoundary } from '@/lib/governance/rootDecisionBoundary';
 import { recordValue, stringValue } from '@/lib/operational/common';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { captureShadowBatch, captureShadowResult, type ShadowObserver } from '@/lib/continuity/shadowObserver';
 
 type Row = Record<string, unknown>;
 
@@ -147,7 +148,7 @@ async function advanceOne(row: Row) {
   return authorizeAndDispatchOperational(row, proposalId);
 }
 
-export async function runOperationalAutoAdvance(input: { limit?: number } = {}) {
+export async function runOperationalAutoAdvance(input: { limit?: number; observer?: ShadowObserver } = {}) {
   const db = createServiceSupabaseClient();
   const limit = Math.max(1, Math.min(25, input.limit ?? 10));
   const read = await db.from('action_proposals')
@@ -160,13 +161,16 @@ export async function runOperationalAutoAdvance(input: { limit?: number } = {}) 
   const rows = (read.data ?? []) as Row[];
   const eligible = rows.filter((row) => proposalType(row) !== 'evidence_candidate').slice(0, limit);
   const results = [] as Awaited<ReturnType<typeof advanceOne>>[];
+  captureShadowBatch(input.observer, rows, eligible);
   for (const row of eligible) {
-    results.push(await advanceOne(row).catch((error) => ({
+    const outcome = await advanceOne(row).catch((error) => ({
       ok: false as const,
       stage: 'exception',
       proposalId: stringValue(row.id) ?? 'unknown',
       error: error instanceof Error ? error.message : String(error),
-    })));
+    }));
+    results.push(outcome);
+    captureShadowResult(input.observer, row, results.length - 1, outcome);
   }
 
   return {
