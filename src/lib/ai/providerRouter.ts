@@ -382,6 +382,8 @@ function requirementsForTask(task: LlmTask, explicit: LlmRequirements = {}): Llm
 }
 
 function providerAllowed(provider: Exclude<LlmProviderId, 'degraded'>, requirements: LlmRequirements) {
+  // Founder-controlled spending boundary: no paid fallback to other vendors.
+  if (process.env.SFI_LLM_PROVIDER_POLICY === 'gemini_only' && provider !== 'gemini') return false;
   const allowlist = requirements.providerAllowlist;
   const denylist = requirements.providerDenylist ?? [];
   if (Array.isArray(allowlist) && !allowlist.includes(provider)) return false;
