@@ -158,7 +158,7 @@ async function ask(request: Request, gate: RootActorGate, body: Row) {
 
   const llm = await runLlmTask({
     task: 'context_long',
-    preferredProvider: 'groq',
+    preferredProvider: 'gemini',
     system: [
       'You are FRICCIONAUTA, the read-only conversational interface of System Friction Institute ROOT.',
       'You operate through the Cognitive Twin contract. You are not the Cognitive Twin itself and you do not own institutional memory.',
@@ -243,6 +243,35 @@ async function ask(request: Request, gate: RootActorGate, body: Row) {
   }).select('id,task_id,status,provider,model,role,objective,evidence_refs,limitations,created_at').single();
 
   if (persisted.error) return NextResponse.json({ ok: false, error: 'friccionauta_run_persistence_failed', details: persisted.error.message, envelope }, { status: 500 });
+  // This is a source-labelled conversation record, NOT validated evidence.
+  // Reuse Cognitive Twin's governed event-to-memory pipeline instead of
+  // silently equating a successful LLM answer with institutional truth.
+  const memoryReceipt = llm.ok
+    ? await recordCognitiveTwinExperience({
+        memoryKey: `SFI-CONVERSATION:${persisted.data.id}`,
+        memoryType: 'STATE',
+        sourceKind: 'root_conversation',
+        sourceRef: String(persisted.data.id),
+        createdBy: gate.ctx.user.id,
+        operation: 'CAPTURE',
+        evidenceRefs,
+        content: {
+          epistemicClass: 'INFERRED',
+          question,
+          answer: llm.result,
+          llmProvider: llm.provider,
+          llmModel: llm.model,
+          sourceRunId: persisted.data.id,
+          evidenceRefs,
+          retrievedAt: startedAt,
+          claimBoundary: 'LLM-generated answer persisted for provenance and future retrieval. It is not an observed fact, institutional decision or independently validated RETURN.',
+        },
+      }).catch((error) => ({
+        ok: false as const,
+        reason: error instanceof Error ? error.message : 'CONVERSATION_MEMORY_WRITE_EXCEPTION',
+      }))
+    : { ok: false as const, reason: 'LLM_NOT_EXECUTED' };
+
   const audit = await auditRootAction({
     actorId: gate.ctx.user.id,
     action: 'friccionauta.ask',
@@ -279,6 +308,7 @@ async function ask(request: Request, gate: RootActorGate, body: Row) {
     run: persisted.data,
     envelope,
     audit,
+    conversationMemory: { persisted: memoryReceipt.ok === true, reason: memoryReceipt.ok === true ? null : ('reason' in memoryReceipt ? memoryReceipt.reason : 'UNKNOWN') },
   });
 }
 
