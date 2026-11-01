@@ -45,13 +45,19 @@ async function ask(request: Request, gate: RootActorGate, body: Row) {
 
   // A conversational surface must not collapse because one observational reader is degraded.
   // Each source is independently optional; the LLM still receives the context that is actually available.
-  const [rootResult, twinResult, worldResult, graphResult, amvResult, continuityResult] = await Promise.allSettled([
+  const [rootResult, twinResult, worldResult, graphResult, amvResult, continuityResult, conversationMemoryResult] = await Promise.allSettled([
     readRootSovereignState(),
     readCognitiveTwinState(),
     buildWorldVectorOperationalState(),
     runNeuralGraphAgent({ query: question, filters: ['evidence', 'amv', 'prediction', 'world_vector', 'prospect', 'report'] }),
     readAmvOperationalMemory({ query: question, limit: 14 }),
     readContinuityDashboard(),
+    gate.ctx.service.from('sfi_cognitive_twin_runs')
+      .select('id,objective,output_envelope,provider,model,created_at')
+      .eq('role', 'friccionauta')
+      .eq('input_snapshot->>requestedBy', gate.ctx.user.id)
+      .order('created_at', { ascending: false })
+      .limit(8),
   ]);
 
   const root = rootResult.status === 'fulfilled' ? rootResult.value : null;
@@ -60,6 +66,8 @@ async function ask(request: Request, gate: RootActorGate, body: Row) {
   const graph = graphResult.status === 'fulfilled' ? graphResult.value : null;
   const amv = amvResult.status === 'fulfilled' ? amvResult.value : null;
   const continuity = continuityResult.status === 'fulfilled' ? continuityResult.value : null;
+  const priorConversations = conversationMemoryResult.status === 'fulfilled' && !conversationMemoryResult.value.error
+    ? conversationMemoryResult.value.data ?? [] : [];
   const observationPlanes = {
     continuity: continuity?.readPlane ?? 'UNAVAILABLE',
     cognitiveTwin: twin?.readPlanes ?? { memory: 'UNAVAILABLE', runtime: 'UNAVAILABLE' },
@@ -76,6 +84,8 @@ async function ask(request: Request, gate: RootActorGate, body: Row) {
     rejectedWarning('neural_graph', graphResult),
     rejectedWarning('amv', amvResult),
     rejectedWarning('continuity', continuityResult),
+    rejectedWarning('conversation_memory', conversationMemoryResult),
+    ...(conversationMemoryResult.status === 'fulfilled' && conversationMemoryResult.value.error ? ['conversation_memory_query_failed'] : []),
   ].filter((item): item is string => Boolean(item));
 
   const evidenceRefs = Array.from(new Set([
@@ -146,6 +156,15 @@ async function ask(request: Request, gate: RootActorGate, body: Row) {
       errors: continuity.errors,
     } : null,
     conversation: recentConversation(body.history),
+    priorInstitutionalConversations: priorConversations.map((run) => ({
+      runId: run.id,
+      question: run.objective,
+      previousResponseEnvelope: compact(run.output_envelope, 2800),
+      model: run.model,
+      provider: run.provider,
+      occurredAt: run.created_at,
+      epistemicBoundary: 'Previous model output is context only, not independent evidence or institutional canon.',
+    })),
   };
 
   const fallback = [
