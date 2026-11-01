@@ -6,6 +6,8 @@ const experience=read('src/core/cognitive-twin/experience.ts');
 const evidenceIngestion=read('src/core/cognitive-twin/evidenceIngestion.ts');
 const studioContext=read('src/core/cognitive-twin/studioContext.ts');
 const canonicalMemory=read('src/core/cognitive-twin/canonicalMemoryView.ts');
+const institutionalEventPipeline=read('src/core/memory/institutionalEventPipeline.ts');
+const institutionalMemoryWriter=read('src/core/memory/InstitutionalMemoryWriter.ts');
 const crl=read('src/lib/cognitive-lab/service.ts');
 const field=read('src/lib/field/governedReturn.ts');
 const methodLab=read('src/lib/method-lab/simulationRun.ts');
@@ -37,6 +39,16 @@ assert.ok(experience.includes('processEpistemicEvent(emitted.event)'));
 assert.ok(canonicalMemory.includes("lifecycle === 'REJECTED'"));
 assert.ok(canonicalMemory.includes("lifecycle === 'OBSOLETE'"));
 assert.ok(canonicalMemory.includes('CONSUMABLE_MEMORY_STATUSES'));
+assert.ok(institutionalEventPipeline.includes("event.event_name === 'cognitive_twin.experience.recorded'"), 'Cognitive Twin event not indexed by canonical event pipeline');
+for (const field of ['memoryKey','memoryType','sourceKind','sourceRef','evidenceRefs']) {
+  assert.ok(institutionalEventPipeline.includes(field + ':'), 'Canonical memory writer missing index field: ' + field);
+  assert.ok(canonicalMemory.includes('raw.' + field), 'Canonical memory reader missing index field: ' + field);
+}
+assert.ok(institutionalEventPipeline.includes("memoryStatus: 'CANDIDATE'"), 'New experiences must enter as candidates');
+assert.ok(canonicalMemory.includes("new Set(['VERIFIED', 'CANONICAL'])"), 'Unverified memories must not be consumed');
+assert.ok(institutionalMemoryWriter.includes("...payload"), 'Canonical AMV writer must retain typed event payload');
+assert.ok(institutionalMemoryWriter.includes(".from('sfi_amv_memory')"), 'Canonical memory write target changed');
+
 assert.ok(canonicalMemory.includes('seenKeys.add(memory.memory_key)'));
 assert.ok(canonicalMemory.includes('.range(offset, offset + PAGE_SIZE - 1)'));
 assert.equal(canonicalMemory.includes('.limit(scanLimit)'),false);
