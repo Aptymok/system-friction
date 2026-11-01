@@ -36,6 +36,30 @@ export async function processEpistemicEvent(
       derivedFrom: 'epistemic_events',
       policySourceId: decision.policySourceId,
       storagePolicy: 'REFERENCE_ONLY',
+      // The Cognitive Twin reader needs a compact, typed index. Keep the
+      // original claims in epistemic_events and do not auto-certify them.
+      ...(event.event_name === 'cognitive_twin.experience.recorded'
+        ? {
+            raw: {
+              memoryKey: typeof (event.payload as any)?.memoryKey === 'string'
+                ? (event.payload as any).memoryKey : null,
+              memoryType: typeof (event.payload as any)?.memoryType === 'string'
+                ? (event.payload as any).memoryType : null,
+              sourceKind: typeof (event.payload as any)?.sourceKind === 'string'
+                ? (event.payload as any).sourceKind : null,
+              sourceRef: typeof (event.payload as any)?.sourceRef === 'string'
+                ? (event.payload as any).sourceRef : null,
+              evidenceRefs: Array.isArray((event.payload as any)?.evidenceRefs)
+                ? (event.payload as any).evidenceRefs.filter((ref: unknown) => typeof ref === 'string') : [],
+              content: {
+                memoryStatus: 'CANDIDATE',
+                epistemicClass: event.epistemic_class,
+                epistemicEventId: event.id,
+                claimBoundary: 'Index only; source claims remain in the epistemic ledger. No validation or automatic canon promotion.',
+              },
+            },
+          }
+        : {}),
     },
   }).catch((err) => ({ ok: false, success: false, error: String(err) }));
 
