@@ -185,7 +185,7 @@ export async function runOperationalAutoAdvance(input: { limit?: number; observe
   }
 
   let shadowReceipt: { persisted: boolean; eventId: string | null; reason: string | null } | null = null;
-  if (input.persistShadow) {
+  if (input.persistShadow && eligible.length > 0) {
     // Do not turn an audit-write failure into a repeated or altered execution.
     try {
       const event = await appendEpistemicEvent({
@@ -213,7 +213,7 @@ export async function runOperationalAutoAdvance(input: { limit?: number; observe
       });
       shadowReceipt = {
         persisted: event.ok === true,
-        eventId: event.ok === true ? (typeof event.eventId === 'string' ? event.eventId : null) : null,
+        eventId: null,
         reason: event.ok === true ? null : String(event.error ?? 'EVENT_WRITE_FAILED'),
       };
     } catch {
