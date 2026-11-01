@@ -352,7 +352,7 @@ export async function GET(request: NextRequest) {
       ? { ok: true as const, halted: true as const, processed: 0, results: [] }
       : neonCoreOnly
         ? deferredEffectfulLane('operationalAutoAdvance', requestedCycleId)
-        : await runOperationalAutoAdvance({ limit: 10 }).catch((error) => ({
+        : await runOperationalAutoAdvance({ limit: 10, persistShadow: true }).catch((error) => ({
             ok: false as const,
             processed: 0,
             results: [],
