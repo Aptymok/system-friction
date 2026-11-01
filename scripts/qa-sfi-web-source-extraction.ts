@@ -63,6 +63,20 @@ const internalWords = resolveUniversalEvidenceRequirements({
   context: {},
 });
 assert.notEqual(internalWords.webPolicy, 'WEB_REQUIRED', 'isla/traslado must not be misread as SLA');
+const internalFirstParty = resolveUniversalEvidenceRequirements({
+  signal: { kind: 'json', content: { typedAmvEntries: 0 } },
+  question: 'Verify current SFI internal memory status',
+  objective: 'Audit the latest internal technical release records',
+  context: { sourceBoundary: 'SFI_INTERNAL_FIRST_PARTY' },
+});
+assert.equal(internalFirstParty.webPolicy, 'WEB_NOT_REQUIRED', 'first-party internal audits must not be forced through external news retrieval');
+const externallyRequired = resolveUniversalEvidenceRequirements({
+  signal: { kind: 'json', content: { typedAmvEntries: 0 } },
+  question: 'Verify current SFI internal memory status',
+  context: { sourceBoundary: 'SFI_INTERNAL_FIRST_PARTY', requiresExternalVerification: true },
+});
+assert.equal(externallyRequired.webPolicy, 'WEB_REQUIRED', 'explicit external verification must retain its gate');
+
 assert.equal(internalWords.authoritySensitive, false, 'isla/traslado must not create authority-sensitive evidence requirements');
 const internalSla = resolveUniversalEvidenceRequirements({
   signal: { kind: 'dataset', name: '2025_2026.xlsx' },
