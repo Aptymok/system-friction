@@ -61,7 +61,7 @@ export async function runRootObservationJob(job: RootObservationJob) {
     result.daily = await runDailyObservationAgent({ persist: true });
     result.indicators = await persistInstitutionalIndicatorSnapshot();
     result.institutional_cycle = await runInstitutionalCycle('root_manual_observation');
-    result.operational_auto_advance = await runOperationalAutoAdvance({ limit: 10 });
+    result.operational_auto_advance = await runOperationalAutoAdvance({ limit: 10, persistShadow: true });
     result.governed_execution = await runGovernedExecutionRouter({ limit: 10 });
   }
 
