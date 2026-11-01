@@ -8,6 +8,7 @@ import { classifyProposalDecisionBoundary } from '@/lib/governance/rootDecisionB
 import { recordValue, stringValue } from '@/lib/operational/common';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { captureShadowBatch, captureShadowResult, type ShadowObserver } from '@/lib/continuity/shadowObserver';
+import { appendEpistemicEvent } from '@/lib/events/eventStore';
 
 type Row = Record<string, unknown>;
 
@@ -148,7 +149,7 @@ async function advanceOne(row: Row) {
   return authorizeAndDispatchOperational(row, proposalId);
 }
 
-export async function runOperationalAutoAdvance(input: { limit?: number; observer?: ShadowObserver } = {}) {
+export async function runOperationalAutoAdvance(input: { limit?: number; observer?: ShadowObserver; persistShadow?: boolean } = {}) {
   const db = createServiceSupabaseClient();
   const limit = Math.max(1, Math.min(25, input.limit ?? 10));
   const read = await db.from('action_proposals')
@@ -161,7 +162,17 @@ export async function runOperationalAutoAdvance(input: { limit?: number; observe
   const rows = (read.data ?? []) as Row[];
   const eligible = rows.filter((row) => proposalType(row) !== 'evidence_candidate').slice(0, limit);
   const results = [] as Awaited<ReturnType<typeof advanceOne>>[];
-  captureShadowBatch(input.observer, rows, eligible);
+  // Real, nonblocking-in-memory capture. Persistent event is written only after
+  // operational dispatch finishes, preserving existing gate and dispatch order.
+  // This is a post-hoc persistence receipt, NOT a pre-decision committed forecast.
+  const captured: { batch: unknown | null; results: unknown[] } = { batch: null, results: [] };
+  const observer: ShadowObserver | undefined = input.persistShadow
+    ? {
+        onBatch: (capture) => { captured.batch = capture; },
+        onResult: (capture) => { captured.results.push(capture); },
+      }
+    : input.observer;
+  captureShadowBatch(observer, rows, eligible);
   for (const row of eligible) {
     const outcome = await advanceOne(row).catch((error) => ({
       ok: false as const,
@@ -170,10 +181,48 @@ export async function runOperationalAutoAdvance(input: { limit?: number; observe
       error: error instanceof Error ? error.message : String(error),
     }));
     results.push(outcome);
-    captureShadowResult(input.observer, row, results.length - 1, outcome);
+    captureShadowResult(observer, row, results.length - 1, outcome);
+  }
+
+  let shadowReceipt: { persisted: boolean; eventId: string | null; reason: string | null } | null = null;
+  if (input.persistShadow) {
+    // Do not turn an audit-write failure into a repeated or altered execution.
+    try {
+      const event = await appendEpistemicEvent({
+        returnMode: 'receipt',
+        eventName: 'SFI_MIHM_OPERATIONAL_SHADOW_BATCH_OBSERVED',
+        epistemicClass: 'observed',
+        confidence: 1,
+        source: { sourceId: AUTO_ACTOR, sourceType: 'operational_auto_advance' },
+        logbookId: 'MIHM:OPERATIONAL_SHADOW',
+        occurredAt: new Date().toISOString(),
+        lineage: [],
+        payload: {
+          contract: 'SFI-MIHM-OPERATIONAL-SHADOW-0.1',
+          batch: captured.batch,
+          results: captured.results,
+          operationalSuccess: results.every((item) => item.ok !== false),
+          recordedBeforeDecision: false,
+          inputStateHash: null,
+          actionCost: null,
+          independentOutcome: null,
+          actualAdmissibilityCertified: false,
+          policyComparisonPerformed: false,
+          epistemicBoundary: 'Observed candidate window and process stages only; no counterfactual, calibrated policy or independent utility conclusion.',
+        },
+      });
+      shadowReceipt = {
+        persisted: event.ok === true,
+        eventId: event.ok === true ? (typeof event.eventId === 'string' ? event.eventId : null) : null,
+        reason: event.ok === true ? null : String(event.error ?? 'EVENT_WRITE_FAILED'),
+      };
+    } catch {
+      shadowReceipt = { persisted: false, eventId: null, reason: 'EVENT_WRITE_EXCEPTION' };
+    }
   }
 
   return {
+    shadowReceipt,
     ok: results.every((item) => item.ok !== false),
     processed: results.length,
     results,
