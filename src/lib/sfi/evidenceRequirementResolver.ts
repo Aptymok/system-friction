@@ -294,6 +294,13 @@ export function resolveUniversalEvidenceRequirements(inputValue: unknown) {
     .toLowerCase();
   const hasSlaToken = /\bsla\b/.test(blob);
   const explicit = explicitPolicy(context.webPolicy) ?? explicitPolicy(context.externalEvidencePolicy);
+  // First-party, bounded operational audits can declare their source boundary.
+  // Never infer this exemption from wording: explicit external verification still wins.
+  const firstPartyInternalAudit = context.sourceBoundary === 'SFI_INTERNAL_FIRST_PARTY'
+    && context.requiresExternalVerification !== true
+    && context.requiresCorroboration !== true
+    && context.webForbidden !== false
+    && ['json', 'dataset', 'csv', 'code', 'api_response', 'document', 'text'].includes(kind);
   const privacyBlocksWeb = context.webForbidden === true || /confidential only|private only|sin internet|no internet|no web|offline only/.test(blob);
   const internalObjectContext = ['dataset', 'csv', 'json', 'document', 'code', 'api_response'].includes(kind)
     && /internal|interno|dataset|archivo|file|registros|tickets|mesa de ayuda|repository|repo|workbook|xlsx|csv/.test(blob);
@@ -315,6 +322,7 @@ export function resolveUniversalEvidenceRequirements(inputValue: unknown) {
   let webPolicy: SfiWebEvidencePolicy;
   if (explicit) webPolicy = explicit;
   else if (privacyBlocksWeb) webPolicy = 'WEB_FORBIDDEN';
+  else if (firstPartyInternalAudit) webPolicy = 'WEB_NOT_REQUIRED';
   else if (verificationRequested || dynamicExternal) webPolicy = 'WEB_REQUIRED';
   else if (internalValidationRequested) webPolicy = 'WEB_NOT_REQUIRED';
   else if (kind === 'web_page' || kind === 'url') webPolicy = 'WEB_ALREADY_SUFFICIENT';
