@@ -233,13 +233,30 @@ export async function runOperationalAutoAdvance(input: { limit?: number; observe
           const observed = Array.isArray(payload.results) ? payload.results : [];
           const observedIds = observed.map((value) => stringValue(recordValue(value).proposalId));
           const expectedIds = eligible.map((value) => stringValue(value.id));
+          const candidateIds = Array.isArray(batch.candidateIds) ? batch.candidateIds : [];
           const matchingWindow =
             payload.contract === 'SFI-MIHM-OPERATIONAL-SHADOW-0.1'
+            && batch.contract === 'SFI-MIHM-SHADOW-A-0.2'
+            && batch.eligibilityKnown === false
             && Array.isArray(batch.processingWindowIds)
+            && expectedIds.length > 0
+            && candidateIds.every((id) => typeof id === 'string')
+            && expectedIds.every((id) => candidateIds.includes(id))
+            && new Set(expectedIds).size === expectedIds.length
+            && observed.length === expectedIds.length
+            && observed.every((value, index) => {
+              const result = recordValue(value);
+              return result.contract === 'SFI-MIHM-SHADOW-B-0.2'
+                && result.admitted === 'NOT_CERTIFIED'
+                && result.position === index
+                && typeof result.ok === 'boolean';
+            })
             && JSON.stringify(batch.processingWindowIds) === JSON.stringify(expectedIds)
             && JSON.stringify(observedIds) === JSON.stringify(expectedIds)
+            && payload.operationalSuccess === results.every((item) => item.ok !== false)
             && payload.recordedBeforeDecision === false
-            && payload.actualAdmissibilityCertified === false;
+            && payload.actualAdmissibilityCertified === false
+            && payload.policyComparisonPerformed === false;
           const verified = !readbackError && readback?.event_id === eventId && matchingWindow;
           shadowReceipt = {
             persisted: verified,
