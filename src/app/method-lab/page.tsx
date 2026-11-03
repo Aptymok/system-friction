@@ -93,8 +93,10 @@ export default async function MethodLabPage() {
     <>
       <PersonalCognitiveLabWorkspace intakeOnly />
       {mihmShadow ? (
-        <section aria-label="MIHM operational shadow audit" style={{ padding: '1rem', border: '1px solid var(--border, #777)', borderRadius: '0.75rem' }}>
-          <h2>MIHM · Observación operativa real</h2>
+        <section aria-label="MIHM operational shadow audit" className="mlh-section">
+          <header className="mlh-section-head">
+            <h2>MIHM · Observación operativa real</h2>
+          </header>
           <p>
             Estado: <strong>{mihmShadow.status}</strong>. Fuente: registro institucional de eventos.
             La consulta es de sólo lectura y no dispara propuestas ni predicciones.
