@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireRootActor } from '@/lib/root/server';
-import { readMihmOperationalShadow } from '@/lib/mihm/operationalShadowRead';
+import { readMihmOperationalShadow, readMihmRegistryInventory } from '@/lib/mihm/operationalShadowRead';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -9,9 +9,13 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   const gate = await requireRootActor('mihm.audit.read');
   if (!gate.ok) return NextResponse.json(gate.body, { status: gate.status });
-  const result = await readMihmOperationalShadow();
+  const [result, inventory] = await Promise.all([
+    readMihmOperationalShadow(),
+    readMihmRegistryInventory(),
+  ]);
   return NextResponse.json({
     ...result,
+    inventory,
     scope: 'LATEST_25',
     limitations: [
       'Post-decision batch observation is not a preregistered forecast.',
