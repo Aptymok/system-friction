@@ -211,11 +211,29 @@ export async function runOperationalAutoAdvance(input: { limit?: number; observe
           epistemicBoundary: 'Observed candidate window and process stages only; no counterfactual, calibrated policy or independent utility conclusion.',
         },
       });
-      shadowReceipt = {
-        persisted: event.ok === true,
-        eventId: null,
-        reason: event.ok === true ? null : String(event.error ?? 'EVENT_WRITE_FAILED'),
-      };
+      if (!event.ok) {
+        shadowReceipt = { persisted: false, eventId: null, reason: String(event.error ?? 'EVENT_WRITE_FAILED') };
+      } else {
+        // A successful append RPC alone does not certify that its record is
+        // recoverable. Read the exact receipt back from the canonical ledger.
+        const eventId = typeof event.data?.event_id === 'string' ? event.data.event_id : null;
+        if (!eventId) {
+          shadowReceipt = { persisted: false, eventId: null, reason: 'EVENT_RECEIPT_ID_MISSING' };
+        } else {
+          const { data: readback, error: readbackError } = await db.from('epistemic_events')
+            .select('event_id,event_name,logbook_id')
+            .eq('event_id', eventId)
+            .eq('event_name', 'SFI_MIHM_OPERATIONAL_SHADOW_BATCH_OBSERVED')
+            .eq('logbook_id', 'MIHM:OPERATIONAL_SHADOW')
+            .maybeSingle();
+          const verified = !readbackError && readback?.event_id === eventId;
+          shadowReceipt = {
+            persisted: verified,
+            eventId,
+            reason: verified ? null : (readbackError ? 'EVENT_READBACK_FAILED' : 'EVENT_READBACK_NOT_FOUND'),
+          };
+        }
+      }
     } catch {
       shadowReceipt = { persisted: false, eventId: null, reason: 'EVENT_WRITE_EXCEPTION' };
     }
