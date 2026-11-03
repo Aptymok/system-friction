@@ -58,13 +58,30 @@ export async function readMihmOperationalShadow(limit = 25) {
     const captured = Array.isArray(payload.results) ? payload.results : [];
     const windowIds = strings(batch.processingWindowIds);
     const resultIds = captured.map((value) => object(value).proposalId);
-    const matchingWindow = windowIds !== null && resultIds.every((value) => typeof value === 'string')
+    const candidateIds = strings(batch.candidateIds);
+    const matchingWindow = windowIds !== null
+      && candidateIds !== null
+      && windowIds.length > 0
+      && new Set(windowIds).size === windowIds.length
+      && windowIds.every((id) => candidateIds.includes(id))
+      && captured.length === windowIds.length
+      && captured.every((value, index) => {
+        const result = object(value);
+        return result.contract === 'SFI-MIHM-SHADOW-B-0.2'
+          && result.admitted === 'NOT_CERTIFIED'
+          && result.position === index
+          && typeof result.ok === 'boolean';
+      })
       && JSON.stringify(windowIds) === JSON.stringify(resultIds);
     const validContract = payload.contract === CONTRACT
       && batch.contract === 'SFI-MIHM-SHADOW-A-0.2'
+      && batch.eligibilityKnown === false
       && event.epistemic_class === 'observed'
+      && typeof payload.operationalSuccess === 'boolean'
+      && payload.operationalSuccess === captured.every((value) => object(value).ok !== false)
       && payload.recordedBeforeDecision === false
-      && payload.actualAdmissibilityCertified === false;
+      && payload.actualAdmissibilityCertified === false
+      && payload.policyComparisonPerformed === false;
     const recoverable = typeof event.event_id === 'string'
       && event.event_name === EVENT_NAME && event.logbook_id === LOGBOOK;
     return {
