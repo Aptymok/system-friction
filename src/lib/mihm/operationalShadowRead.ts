@@ -97,3 +97,33 @@ export async function readMihmOperationalShadow(limit = 25) {
     observations,
   };
 }
+
+
+/** Actual canonical MIHM registry counts; every unavailable count stays UNKNOWN. */
+export async function readMihmRegistryInventory() {
+  const db = createServiceSupabaseClient();
+  const tables = [
+    'field_mihm_readings',
+    'mihm_state_registry',
+    'sfi_prediction_entries',
+    'sfi_prediction_verifications',
+  ] as const;
+  const results = await Promise.all(tables.map(async (table) => {
+    try {
+      const { count, error } = await db.from(table).select('*', { head: true, count: 'exact' });
+      return {
+        table,
+        count: error || count === null ? null : count,
+        status: error || count === null ? 'UNKNOWN' as const : 'OBSERVED' as const,
+      };
+    } catch {
+      return { table, count: null, status: 'UNKNOWN' as const };
+    }
+  }));
+  return {
+    source: 'supabase_canonical_tables' as const,
+    checkedAt: new Date().toISOString(),
+    counts: results,
+    empiricalValidation: 'NOT_CERTIFIED' as const,
+  };
+}
