@@ -221,22 +221,42 @@ export async function runOperationalAutoAdvance(input: { limit?: number; observe
           shadowReceipt = { persisted: false, eventId: null, reason: 'EVENT_RECEIPT_ID_MISSING' };
         } else {
           const { data: readback, error: readbackError } = await db.from('epistemic_events')
-            .select('event_id,event_name,logbook_id')
+            .select('event_id,event_name,logbook_id,payload')
             .eq('event_id', eventId)
             .eq('event_name', 'SFI_MIHM_OPERATIONAL_SHADOW_BATCH_OBSERVED')
             .eq('logbook_id', 'MIHM:OPERATIONAL_SHADOW')
             .maybeSingle();
-          const verified = !readbackError && readback?.event_id === eventId;
+          // Confirm the recovered record describes THIS actual processing window,
+          // not just an event with a matching identifier.
+          const payload = recordValue(readback?.payload);
+          const batch = recordValue(payload.batch);
+          const observed = Array.isArray(payload.results) ? payload.results : [];
+          const observedIds = observed.map((value) => stringValue(recordValue(value).proposalId));
+          const expectedIds = eligible.map((value) => stringValue(value.id));
+          const matchingWindow =
+            payload.contract === 'SFI-MIHM-OPERATIONAL-SHADOW-0.1'
+            && Array.isArray(batch.processingWindowIds)
+            && JSON.stringify(batch.processingWindowIds) === JSON.stringify(expectedIds)
+            && JSON.stringify(observedIds) === JSON.stringify(expectedIds)
+            && payload.recordedBeforeDecision === false
+            && payload.actualAdmissibilityCertified === false;
+          const verified = !readbackError && readback?.event_id === eventId && matchingWindow;
           shadowReceipt = {
             persisted: verified,
             eventId,
-            reason: verified ? null : (readbackError ? 'EVENT_READBACK_FAILED' : 'EVENT_READBACK_NOT_FOUND'),
+            reason: verified ? null : (
+              readbackError ? 'EVENT_READBACK_FAILED' :
+              !readback ? 'EVENT_READBACK_NOT_FOUND' : 'EVENT_READBACK_PAYLOAD_MISMATCH'
+            ),
           };
         }
       }
     } catch {
       shadowReceipt = { persisted: false, eventId: null, reason: 'EVENT_WRITE_EXCEPTION' };
     }
+  } else if (input.persistShadow) {
+    // This is a truthful zero-work receipt, not a persisted observation.
+    shadowReceipt = { persisted: false, eventId: null, reason: 'NO_PROCESSING_WINDOW' };
   }
 
   return {
