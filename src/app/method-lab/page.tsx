@@ -3,7 +3,7 @@ import { MethodLabNativeHub } from '@/components/sfi/MethodLabNativeHub';
 import { PersonalCognitiveLabWorkspace } from '@/components/sfi/PersonalCognitiveLabWorkspace';
 import { MethodLabExperimentWorkbench } from '@/components/sfi/MethodLabExperimentWorkbench';
 import { readMethodLabState } from '@/lib/method-lab/readModel';
-import { readMihmOperationalShadow } from '@/lib/mihm/operationalShadowRead';
+import { readMihmOperationalShadow, readMihmRegistryInventory } from '@/lib/mihm/operationalShadowRead';
 import { readHypothesisConditionalBranches } from '@/lib/world-observatory/hypothesisConditionalBranches';
 import { HypothesisConditionalLab } from '@/components/sfi/HypothesisConditionalLab';
 import { readMethodLabEvidenceOptions } from '@/lib/method-lab/readHubEvidence';
@@ -49,6 +49,9 @@ export default async function MethodLabPage() {
         status: 'SOURCE_UNAVAILABLE' as const,
         observations: [],
       }))
+    : null;
+  const mihmRegistries = observer.isRoot
+    ? await readMihmRegistryInventory().catch(() => null)
     : null;
 
   const [state, sessions, evidence, conditional, inventory] = await Promise.all([
@@ -113,6 +116,19 @@ export default async function MethodLabPage() {
               ))}
             </ul>
           )}
+          {mihmRegistries ? (
+            <div>
+              <h3>Registros institucionales reales</h3>
+              <ul>
+                {mihmRegistries.counts.map((entry) => (
+                  <li key={entry.table}>
+                    {entry.table}: {entry.status === 'OBSERVED' ? entry.count : 'DESCONOCIDO'}
+                  </li>
+                ))}
+              </ul>
+              <p>La existencia de tablas o registros no certifica eficacia, causalidad ni validación empírica.</p>
+            </div>
+          ) : null}
           <p>Alcance: últimas 25 observaciones. No certifica una predicción prospectiva, contrafactual ni resultado independiente.</p>
         </section>
       ) : null}
