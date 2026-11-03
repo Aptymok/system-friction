@@ -3,6 +3,7 @@ import { MethodLabNativeHub } from '@/components/sfi/MethodLabNativeHub';
 import { PersonalCognitiveLabWorkspace } from '@/components/sfi/PersonalCognitiveLabWorkspace';
 import { MethodLabExperimentWorkbench } from '@/components/sfi/MethodLabExperimentWorkbench';
 import { readMethodLabState } from '@/lib/method-lab/readModel';
+import { readMihmOperationalShadow } from '@/lib/mihm/operationalShadowRead';
 import { readHypothesisConditionalBranches } from '@/lib/world-observatory/hypothesisConditionalBranches';
 import { HypothesisConditionalLab } from '@/components/sfi/HypothesisConditionalLab';
 import { readMethodLabEvidenceOptions } from '@/lib/method-lab/readHubEvidence';
@@ -41,7 +42,14 @@ export default async function MethodLabPage() {
     </>
   );
 
-  await requireRootObserverPage('/method-lab');
+  const observer = await requireRootObserverPage('/method-lab');
+  const mihmShadow = observer.isRoot
+    ? await readMihmOperationalShadow().catch(() => ({
+        ok: false as const,
+        status: 'SOURCE_UNAVAILABLE' as const,
+        observations: [],
+      }))
+    : null;
 
   const [state, sessions, evidence, conditional, inventory] = await Promise.all([
     readMethodLabState(),
@@ -81,6 +89,33 @@ export default async function MethodLabPage() {
   return (
     <>
       <PersonalCognitiveLabWorkspace intakeOnly />
+      {mihmShadow ? (
+        <section aria-label="MIHM operational shadow audit" style={{ padding: '1rem', border: '1px solid var(--border, #777)', borderRadius: '0.75rem' }}>
+          <h2>MIHM · Observación operativa real</h2>
+          <p>
+            Estado: <strong>{mihmShadow.status}</strong>. Fuente: registro institucional de eventos.
+            La consulta es de sólo lectura y no dispara propuestas ni predicciones.
+          </p>
+          {mihmShadow.observations.length === 0 ? (
+            <p>{mihmShadow.ok
+              ? 'No existen observaciones de este contrato en el registro consultado. No se declara éxito operativo.'
+              : 'No fue posible consultar el registro institucional; no se infiere ausencia de eventos.'}</p>
+          ) : (
+            <ul>
+              {mihmShadow.observations.map((item) => (
+                <li key={item.eventId}>
+                  <strong>{item.readback}</strong>
+                  {' · '}Evento {item.eventId}
+                  {' · '}Fecha {item.occurredAt ?? 'desconocida'}
+                  {' · '}Procesadas {item.processed ?? 'desconocido'}
+                  {' · '}Etapas {item.stages.map((stage) => stage.stage ?? 'desconocida').join(', ') || 'sin resultado'}
+                </li>
+              ))}
+            </ul>
+          )}
+          <p>Alcance: últimas 25 observaciones. No certifica una predicción prospectiva, contrafactual ni resultado independiente.</p>
+        </section>
+      ) : null}
       <InstitutionalEvidenceInventory inventory={inventory} context="METHOD_LAB" />
       <MethodLabNativeHub
         initialState={state}
