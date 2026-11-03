@@ -97,12 +97,12 @@ jobs:
         run: node --import tsx --test src/lib/mihm/foundationProspectiveScoring.test.ts && node --import tsx scripts/research/mihm-foundation-p4-readiness.ts
 
       - name: MIHM P4 one-time official NYC 311 and MTA source capture (not a prediction)
-        if: ${{ github.event_name == 'pull_request' && github.head_ref == 'research/mihm-p4-one-shot-source-20261030' }}
+        if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' }}
         timeout-minutes: 2
         run: node scripts/research/mihm-manhattan-365d-source.mjs --collect-p4-nyc
 
       - name: Preserve one-time official source snapshot as short-lived audit artifact
-        if: ${{ github.event_name == 'pull_request' && github.head_ref == 'research/mihm-p4-one-shot-source-20261030' }}
+        if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: mihm-p4-official-source-20261030
