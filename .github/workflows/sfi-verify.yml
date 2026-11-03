@@ -80,6 +80,9 @@ jobs:
       - name: Verify MIHM shadow observer isolation
         run: npx tsx --test scripts/qa-sfi-mihm-shadow-observer.test.ts
 
+      - name: Verify MIHM canonical operational audit readback and protected Method Lab access
+        run: npx tsx scripts/qa-sfi-mihm-operational-readback-contract.ts
+
       - name: Verify MIHM method selection
         run: npx tsx scripts/qa-sfi-method-selection.ts
 
