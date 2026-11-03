@@ -156,6 +156,9 @@ async function collectP4Nyc(){
   };
   console.log('MIHM_P4_SOURCE_SNAPSHOT_JSON='+JSON.stringify(receipt));
   if(process.env.RUNNER_TEMP)writeFileSync(process.env.RUNNER_TEMP+'/mihm-p4-nyc-source.json',JSON.stringify(receipt,null,2)+'\n');
+  // Do not report a successful source capture when a source is unavailable.
+  // Artifact upload runs even after this bounded, explicit failure.
+  if(status!=='OBSERVED_SOURCE_SNAPSHOT_CANDIDATE')process.exitCode=1;
 }
 
 if(process.argv.includes('--collect-p4-nyc'))await collectP4Nyc();
