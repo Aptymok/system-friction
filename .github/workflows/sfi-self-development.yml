@@ -234,12 +234,17 @@ jobs:
           pathlib.Path('/tmp/sfi-repair-allowed-paths.json').write_text(json.dumps(paths))
           PY
           python - <<'PY'
-          import json, urllib.request, pathlib
+          import json, pathlib, subprocess, urllib.request
           prompt=pathlib.Path('/tmp/sfi-repair-prompt.txt').read_text()
-          req=urllib.request.Request('http://127.0.0.1:11434/api/generate',data=json.dumps({'model':'qwen2.5-coder:1.5b','prompt':prompt,'stream':False,'options':{'temperature':0}}).encode(),headers={'Content-Type':'application/json'})
-          with urllib.request.urlopen(req,timeout=600) as r: out=json.load(r).get('response','')
-          out=out.replace('```diff','').replace('```','').strip()
-          pathlib.Path('/tmp/sfi-repair.patch').write_text(out+'\n' if out else '')
+          patch=pathlib.Path('/tmp/sfi-repair.patch')
+          for correction in ('', '\nThe previous response was not an applicable git diff. Return only an applicable unified diff for the supplied source, or an empty response if no safe change exists.'):
+              req=urllib.request.Request('http://127.0.0.1:11434/api/generate',data=json.dumps({'model':'qwen2.5-coder:1.5b','prompt':prompt+correction,'stream':False,'options':{'temperature':0}}).encode(),headers={'Content-Type':'application/json'})
+              with urllib.request.urlopen(req,timeout=600) as response:
+                  out=json.load(response).get('response','')
+              out=out.replace('```diff','').replace('```','').strip()
+              patch.write_text(out+'\n' if out else '')
+              if out and subprocess.run(['git','apply','--check','--index',str(patch)],capture_output=True).returncode == 0:
+                  break
           PY
 
       - name: Apply candidate and verify
@@ -250,12 +255,12 @@ jobs:
         run: |
           set -euo pipefail
           test -s /tmp/sfi-repair.patch
-          git apply --check /tmp/sfi-repair.patch
-          git apply /tmp/sfi-repair.patch
+          git apply --check --index /tmp/sfi-repair.patch
+          git apply --index /tmp/sfi-repair.patch
           python - <<'PY'
           import json, subprocess
           allowed=set(json.load(open('/tmp/sfi-repair-allowed-paths.json')))
-          changed={line.strip() for line in subprocess.check_output(['git','diff','--name-only'],text=True).splitlines() if line.strip()}
+          changed={line.strip() for line in subprocess.check_output(['git','diff','--cached','--name-only','--no-renames'],text=True).splitlines() if line.strip()}
           escaped=sorted(changed-allowed)
           if not changed:
               raise SystemExit('Repair produced no working-tree change')
@@ -264,8 +269,9 @@ jobs:
           PY
           npm run typecheck
           node scripts/sfi-self-development.mjs || true
-          git diff --check
-          test -n "$(git status --porcelain)"
+          git diff --cached --check
+          git diff --cached --quiet && exit 1
+          exit 0
 
       - name: Publish verified repair candidate for ROOT ADD review
         id: publish
@@ -281,7 +287,6 @@ jobs:
           git config user.name 'sfi-self-development'
           git config user.email 'sfi-self-development@users.noreply.github.com'
           git checkout -b "$branch"
-          git add -A
           git commit -m "fix(self): verified bounded self-repair [ROOT ADD REVIEW]${PROPOSAL_ID:+ [proposal:${PROPOSAL_ID}]}"
           git push origin "$branch"
           pr_url="$(gh pr create --base main --head "$branch" --title "SFI SELF-DEVELOPMENT · verified mutation candidate" --body-file artifacts/self-development/report.md)"
