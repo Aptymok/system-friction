@@ -99,6 +99,21 @@ test('printable Passport escapes source text and includes readable uncertainty a
  assert(!html.includes('<script>'));assert(html.includes('&lt;script&gt;'));assert.match(html,/T0/);assert.match(html,/T1/);assert.match(html,/Sin certificación/);
 });
 
+test('Passport graph preserves resolved, unresolved, and cross-case references',()=>{
+ const input=fixture();
+ input.objects.push({...obj('hypothesis','HYPOTHESIS',{statement:'Hypothesis to contrast'}),sourceRefs:[{...ref('source'),version:'2'}]});
+ input.objects.push(obj('related','RECORD',{contract:'SFI-CROSS-CASE-SOURCE-REFERENCE-1.0',referencedCaseId:'other-case'}));
+ const chain=buildSfiRealityChain(input);
+ assert.deepEqual(chain.provenance.edges.find(edge=>edge.from.id==='evidence')?.targetRef,ref('source'));
+ assert.equal(chain.provenance.edges.find(edge=>edge.from.id==='hypothesis')?.targetRef,null);
+ const html=renderSfiRealityPassportHtml(chain);
+ assert.match(html,/id="RCH_PSPT_GRAPH"/);
+ assert.match(html,/<path class="resolved"/);
+ assert.match(html,/<path class="missing"/);
+ assert.match(html,/<path class="related"/);
+ assert.match(html,/Hypothesis to contrast/);
+});
+
 test('empty, rejected, and unrelated assessments cannot certify evidence',()=>{
  for(const payload of [{},{determinability:'UNDETERMINED',assessedBy:'operator',assessedAt:t0,rationale:'Insufficient'}, {determinability:'DETERMINED',assessedBy:'operator',assessedAt:t0,rationale:'Rejected',decision:'REJECTED'}]) {
    const input=fixture();input.objects.find(o=>o.kind==='EPISTEMIC_ASSESSMENT')!.payload=payload;
