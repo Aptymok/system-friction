@@ -12,6 +12,7 @@ import {
   listOperationalReports,
   normalizeAndRegisterOperationalCaseSource,
   readOperationalCase,
+  readOperationalRealityChain,
   recordOperationalCaseObject,
   transitionOperationalCase,
 } from '@/lib/sfi/case-platform/repository';
@@ -170,7 +171,12 @@ export async function POST(request: Request) {
 
     if (operation === 'read') {
       const caseId = requireCaseId(body);
-      return NextResponse.json({ ok: true, operation, ...(await readOperationalCase(caseId, userId)) });
+      const result = body.includeRealityChain === true
+        ? await readOperationalRealityChain(caseId, userId)
+        : await readOperationalCase(caseId, userId);
+      return NextResponse.json({ ok: true, operation, ...result }, {
+        headers: { 'Cache-Control': 'private, no-store' },
+      });
     }
 
     if (operation === 'reports') {
