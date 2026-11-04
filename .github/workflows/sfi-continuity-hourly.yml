@@ -217,6 +217,29 @@ jobs:
 
           core = payload.get('coreHeartbeat') or {}
           lane_status = payload.get('laneStatus') or {}
+          advance = payload.get('operationalAutoAdvance')
+          advance = advance if isinstance(advance, dict) else {}
+          shadow = advance.get('shadowReceipt')
+          shadow = shadow if isinstance(shadow, dict) else None
+          mihm_receipt = None
+          if shadow is not None:
+              import re
+              event_id = shadow.get('eventId')
+              exact_id = event_id if isinstance(event_id, str) and re.fullmatch(
+                  r'[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}', event_id
+              ) else None
+              reason = shadow.get('reason')
+              known_reasons = (
+                  'NO_PROCESSING_WINDOW', 'EVENT_RECEIPT_ID_MISSING', 'EVENT_READBACK_FAILED',
+                  'EVENT_READBACK_NOT_FOUND', 'EVENT_READBACK_PAYLOAD_MISMATCH', 'EVENT_WRITE_EXCEPTION',
+              )
+              verified = shadow.get('persisted') is True and exact_id is not None
+              mihm_receipt = {
+                  'persisted': verified,
+                  'eventId': exact_id,
+                  'reason': None if verified else reason if reason in known_reasons else 'SHADOW_PERSISTENCE_UNVERIFIED',
+                  'processed': advance.get('processed') if type(advance.get('processed')) is int else None,
+              }
           primary_probe = payload.get('primaryPhysicalProbe') or {}
           continuity_rest_probe = payload.get('continuityRestProbe') or {}
           primary_storage_probe = payload.get('primaryStorageProbe') or {}
@@ -248,6 +271,7 @@ jobs:
               'primaryStorageProbe': primary_storage_probe,
               'recoveryAttempt': recovery_attempt,
               'laneStatus': lane_status,
+              'mihmShadowReceipt': mihm_receipt,
               'returnPlanUpgradeBefore': {'ok': before.get('ok'), 'processed': before.get('processed'), 'results': before.get('results', [])},
               'universal': {
                   'ok': universal.get('ok'),
