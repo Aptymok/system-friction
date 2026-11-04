@@ -1,3 +1,4 @@
+import { recordProposalOutcomeFromObservedReturn } from '@/lib/governance/proposalOutcome';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
@@ -427,6 +428,7 @@ export async function POST(req: Request) {
         { id: 'pending', effect: 'READ', description: 'Read sovereign pending proposals and founder-rule candidates with next-step boundary.' },
         { id: 'sfi_state', effect: 'READ', description: 'Read one bounded cross-institution control-plane projection: WORLD hypotheses/outcomes/learning, Cases, health, incidents and commercial state.' },
         { id: 'capability_map', effect: 'READ', description: 'Describe the canonical surfaces ROOT can orchestrate without duplicating their authority.' },
+        { id: 'proposals_record_observed_outcome', effect: 'GOVERNED_OUTCOME', description: 'Record one queued proposal outcome using its existing observed RETURN.' },
         { id: 'predictions_list', effect: 'READ', description: 'Read existing canonical prediction entries through sovereign OAuth; no writes.' },
         { id: 'predictions_create_p4', effect: 'GOVERNED_PREDICTION_RECORD', description: 'Persist one P4 T0 precommitted numeric prediction via the existing prediction service with sovereign ROOT auth, explicit confirmation and strict pre-issue guards. Registration is not outcome validation.' },
       ],
@@ -483,6 +485,28 @@ export async function POST(req: Request) {
     return NextResponse.json({ok:true,operation,state:await readRootControlPlane(root.service)},{headers:{'Cache-Control':'no-store'}});
   }
 
+
+  if (operation === 'proposals_record_observed_outcome') {
+    if (body.confirmation !== true || !(root.credential.scopes ?? []).includes('governance:decide')) {
+      return NextResponse.json({ ok: false, error: 'CONFIRMED_GOVERNANCE_DECISION_SCOPE_REQUIRED' }, { status: 403 });
+    }
+    const proposalId = typeof body.proposal_id === 'string' ? body.proposal_id.trim() : '';
+    const returnEventId = typeof body.return_event_id === 'string' ? body.return_event_id.trim() : '';
+    if (!proposalId || !returnEventId) {
+      return NextResponse.json({ ok: false, error: 'PROPOSAL_AND_RETURN_REQUIRED' }, { status: 400 });
+    }
+    const receipt = await root.service.from('epistemic_events').select('payload').eq('event_id', returnEventId).maybeSingle();
+    if (receipt.error) return NextResponse.json({ ok: false, error: 'RETURN_LOOKUP_FAILED' }, { status: 503 });
+    const payload = record(receipt.data?.payload);
+    const evidenceRefs = Array.isArray(payload.evidenceRefs)
+      ? payload.evidenceRefs.filter((ref): ref is string => typeof ref === 'string' && Boolean(ref.trim()))
+      : [];
+    const result = await recordProposalOutcomeFromObservedReturn({
+      proposalId, returnEventId, evidenceRefs, actorId: root.credential.subjectId!,
+      fieldEffect: record(payload.outcome),
+    });
+    return NextResponse.json(result, { status: result.ok ? 200 : 409 });
+  }
 
   if (operation === 'predictions_list') {
     const result=await listPredictionEntries({limit:Math.max(1,Math.min(30,
@@ -655,6 +679,6 @@ export async function POST(req: Request) {
   return NextResponse.json({
     ok: false,
     error: 'unsupported_root_operation',
-    allowed: ['capabilities','capability_map','pending','sfi_state','predictions_list','predictions_create_p4','reports','reports_run_restricted','accounts_list','account_invite','account_recover','data_plane_status','data_plane_emergency','data_plane_copy_verified'],
+    allowed: ['capabilities','capability_map','pending','sfi_state','proposals_record_observed_outcome','predictions_list','predictions_create_p4','reports','reports_run_restricted','accounts_list','account_invite','account_recover','data_plane_status','data_plane_emergency','data_plane_copy_verified'],
   }, { status: 400 });
 }
