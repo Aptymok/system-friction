@@ -81,7 +81,7 @@ export async function POST(req: Request, ctx: RouteContext) {
   });
   if (!decided.ok) return NextResponse.json(decided, { status: 409 });
 
-  if (decision === 'deny') {
+  if (decision === 'deny' || decided.data.status === 'accepted') {
     return NextResponse.json({
       ok: true,
       data: decided.data,
