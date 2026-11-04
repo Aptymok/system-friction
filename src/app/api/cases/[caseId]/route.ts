@@ -87,6 +87,7 @@ export async function GET(request: Request, context: RouteContext) {
     return NextResponse.json({
       ok: true, ...base,
       realityChain: projection.realityChain,
+      inactivity: projection.inactivity,
       temporalProvenance: projection.temporalProvenance,
       authorityEvidence: projection.authorityEvidence,
       trajectoryContrast: projection.trajectoryContrast,
@@ -116,10 +117,11 @@ export async function PATCH(request: Request, context: RouteContext) {
       }, { status: 409 });
     }
 
-    await transitionOperationalCase({ caseId, userId: user.id, status: body.status });
+    const result = await transitionOperationalCase({ caseId, userId: user.id, status: body.status, note: body.note });
     return NextResponse.json({
       ok: true,
       note: body.note ?? null,
+      closureWarning: 'closureWarning' in result ? result.closureWarning : null,
       ...(await envelope(caseId, user.id)),
     });
   } catch (error) {

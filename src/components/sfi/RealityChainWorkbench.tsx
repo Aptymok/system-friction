@@ -10,7 +10,8 @@ type CaseObject={id:string;kind:string;epistemicRole:string;canonicalRef:Ref;sou
 type CaseRecord={id:string;subject:string;scope:string;status:string;projectId?:string|null;createdAt:string;updatedAt:string;tenantId:string;serviceProfileId:string;temporalWindow:{cutoff:string;timezone:string;basis:string}};
 type Project={id:string;name:string;caseCount:number;tenantId:string;description:string};
 type CaseEnvelope={caseRecord:CaseRecord;objects:CaseObject[];readiness?:{missingSources:string[];readyForAnalysis:boolean}};
-type RealityReadReview={caseId:string;inputHash:string;closure:{certified:boolean;disposition:string};temporal:{t0:{cutoff:string|null};t1:{cutoff:string|null}};gaps:string[];gapExplanations:string[];nextObservation:string};
+type CaseInactivity={inactiveCycles:number;threshold:number;verifiedReviewCount:number;action:string};
+type RealityReadReview={caseId:string;inactivity?:CaseInactivity;inputHash:string;closure:{certified:boolean;disposition:string};temporal:{t0:{cutoff:string|null};t1:{cutoff:string|null}};gaps:string[];gapExplanations:string[];nextObservation:string};
 type Fragment={paragraph:number;page:number|null;pageBasis:string;text:string;start:number|null;end:number|null};
 type Extraction={source:{filename:string;mime:string;size:number;sha256:string;modifiedAt:string|null};extraction:{parser:string;pageCount:number|null;fragmentCount:number;returnedFragments:number;complete:boolean;warnings:string[];fragments:Fragment[]}};
 type Profile={id?:string;serviceProfileId?:string;name?:string;label?:string};
@@ -114,11 +115,30 @@ export function RealityChainWorkbench(){
   try {
    const result=await requestJson('/api/cases/'+encodeURIComponent(caseId)+'?includeRealityChain=1');
    if(result.realityChain?.caseId!==caseId)throw new Error('REALITY_CHAIN_CASE_ID_MISMATCH');
-   setChainReview(result.realityChain as RealityReadReview);
+   setChainReview({...result.realityChain,inactivity:result.inactivity} as RealityReadReview);
    setChainAudit({temporalProvenance:result.temporalProvenance,authorityEvidence:result.authorityEvidence,trajectoryContrast:result.trajectoryContrast,returnLearning:result.returnLearning} as RealityChainAuditRead);
    setMessage('Bounded case reconstruction read. Documented gaps are not certified evidence or RETURN.');
   } catch(e){
    setChainReview(null);setChainAudit(null);setError('Reality Chain verification unavailable: '+String((e as Error).message));
+  } finally{setWorking(false);}
+ };
+ const closeAdministrative=async()=>{
+  if(!caseId||working)return;
+  setWorking(true);setError('');
+  try {
+   const response=await requestJson('/api/cases/'+encodeURIComponent(caseId),{
+    method:'PATCH',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({status:'CLOSED',note:'Cierre administrativo desde Reality Chain.'}),
+   });
+   await loadCase(caseId);
+   await refreshCases();
+   const gaps=response.closureWarning?.gapExplanations;
+   setMessage(Array.isArray(gaps)&&gaps.length
+    ? 'Expediente cerrado administrativamente. Brechas conservadas: '+gaps.join(' · ')
+    : 'Expediente cerrado administrativamente.');
+  } catch(e){
+   setError(String((e as Error).message));
   } finally{setWorking(false);}
  };
  const visibleCases=useMemo(()=>cases.filter(c=>projectId==='ALL'||c.projectId===projectId),[cases,projectId]);
@@ -471,7 +491,17 @@ export function RealityChainWorkbench(){
               {chainReview.gapExplanations.slice(0,8).map((gap,index)=><p key={index}>{gap}</p>)}
               {chainReview.gaps.length>8?<p>Additional gaps remain in the complete read model / Passport.</p>:null}
               <p>NEXT OBSERVATION: {chainReview.nextObservation}</p>
+              {chainReview.inactivity?<p>Inactividad: {chainReview.inactivity.inactiveCycles}/{chainReview.inactivity.threshold} ciclos efectivos.
+                {chainReview.inactivity.verifiedReviewCount===0?' Aún no hay revisiones de fuentes registradas para este expediente.':''}
+              </p>:null}
+
             </div>:null}
+            {caseData&&['OPEN','OBSERVING','ANALYZING','AWAITING_GOVERNANCE','AWAITING_RETURN','AWAITING_USER_CLOSE'].includes(caseData.caseRecord.status)?<>
+              <p>{chainReview?.caseId===caseId
+                ? 'El cierre administrativo conserva estas brechas y permite consultar el expediente.'
+                : 'Puedes revisar las brechas antes de cerrar. Si la revisión no está disponible, el cierre registrará ese límite.'}</p>
+              <button type="button" disabled={working} onClick={closeAdministrative}>CERRAR ADMINISTRATIVAMENTE</button>
+            </>:null}
             {chainReview?.caseId===caseId?<><RealityChainAuditPanel audit={chainAudit} section="trajectory" cutoff={cutoff}/><RealityChainAuditPanel audit={chainAudit} section="clocks" cutoff={cutoff}/></>:null}
             <button type="button" disabled={!caseData||working} onClick={makeReport}>EXPORT TRACE · JSON + PRINTABLE HTML</button>
             <button type="button" disabled={!caseData||working} onClick={persistTraceManifest}>PERSIST TRACE MANIFEST AS RECORD</button>

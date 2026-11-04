@@ -31,6 +31,7 @@ import { projectCaseTemporalProvenance } from './temporalProvenance';
 import { projectCaseAuthorityEvidence } from './authorityEvidenceReadModel';
 import { projectCaseTrajectoryContrast } from './trajectoryContrastReadModel';
 import { projectCaseReturnLearning } from './returnLearningReadModel';
+import { evaluateCaseInactivity, type CaseReviewCycle } from '@/core/case-platform/closurePolicy';
 import { computeCaseSourceReadiness } from './sourceProtocolReadiness';
 
 export type SfiTenantRole = 'OWNER' | 'ADMIN' | 'OPERATOR' | 'VIEWER' | 'AUDITOR';
@@ -523,8 +524,18 @@ export async function readOperationalRealityChain(
     throw new Error('SFI_REALITY_CHAIN_CONCURRENT_CASE_MODIFICATION');
   }
   const profile = getSfiServiceProfile(caseRecord.serviceProfileId);
+  const reviews = audits.flatMap((row): CaseReviewCycle[] => {
+    if (row.action !== 'CASE_SOURCE_REVIEW_COMPLETED') return [];
+    const review = record(row.after_state);
+    const cycleId = text(review.cycleId);
+    const result = review.result;
+    return cycleId && (result === 'unchanged' || result === 'progress' || result === 'blocked')
+      ? [{ cycleId, result }]
+      : [];
+  });
   return {
     ...base,
+    inactivity: { ...evaluateCaseInactivity(reviews), verifiedReviewCount: new Set(reviews.map(review => review.cycleId)).size },
     caseRecord,
     objects,
     realityChain,
@@ -542,6 +553,7 @@ export async function transitionOperationalCase(input: {
   caseId: string;
   userId: string;
   status: SfiCaseStatus;
+  note?: string | null;
 }) {
   const row = await caseRow(input.caseId);
   const tenantId = text(row.tenant_id);
@@ -549,11 +561,21 @@ export async function transitionOperationalCase(input: {
   const current = text(row.status) as SfiCaseStatus;
   assertSfiCaseTransition(current, input.status);
   if (current === input.status) return readOperationalCase(input.caseId, input.userId);
+  const projection = input.status === 'CLOSED'
+    ? await readOperationalRealityChain(input.caseId, input.userId).catch(() => null)
+    : null;
+  const closure = input.status === 'CLOSED' ? {
+    mode: 'ADMINISTRATIVE' as const,
+    reason: input.note?.trim() || 'Cierre solicitado por un operador autorizado.',
+    inputHash: projection?.realityChain.inputHash ?? null,
+    gaps: projection?.realityChain.gaps ?? ['RECONSTRUCTION_UNAVAILABLE'],
+    gapExplanations: projection?.realityChain.gapExplanations ?? ['No fue posible consultar las brechas documentales antes del cierre.'],
+  } : null;
   const service = createServiceSupabaseClient();
   const updated = await service.from('sfi_cases').update({
     status: input.status,
     closed_at: input.status === 'CLOSED' || input.status === 'REJECTED' ? new Date().toISOString() : null,
-  }).eq('id', input.caseId).select('*').single();
+  }).eq('id', input.caseId).eq('status', current).select('*').single();
   if (updated.error || !updated.data) throw new Error(`SFI_CASE_TRANSITION_FAILED:${updated.error?.message ?? 'unknown'}`);
   await audit({
     caseId: input.caseId,
@@ -561,9 +583,9 @@ export async function transitionOperationalCase(input: {
     actorId: input.userId,
     action: 'CASE_STATUS_CHANGED',
     beforeState: { status: current },
-    afterState: { status: input.status },
+    afterState: { status: input.status, ...(closure ? { closure } : {}) },
   });
-  return readOperationalCase(input.caseId, input.userId);
+  return { ...(await readOperationalCase(input.caseId, input.userId)), closureWarning: closure };
 }
 
 export async function recordOperationalCaseObject(input: {
