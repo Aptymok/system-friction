@@ -241,7 +241,7 @@ export async function runOperationalAutoAdvance(input: { limit?: number; observe
             && Array.isArray(batch.processingWindowIds)
             && expectedIds.length > 0
             && candidateIds.every((id) => typeof id === 'string')
-            && expectedIds.every((id) => candidateIds.includes(id))
+            && expectedIds.every((id) => typeof id === 'string' && candidateIds.includes(id))
             && new Set(expectedIds).size === expectedIds.length
             && observed.length === expectedIds.length
             && observed.every((value, index) => {
