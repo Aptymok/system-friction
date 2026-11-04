@@ -2,7 +2,7 @@ import 'server-only';
 
 import { readEvidenceReadiness } from '@/lib/evidence/evidenceCandidates';
 import { dispatchQueuedProposal } from '@/lib/execution/governedExecutionRouter';
-import { decideActionProposal } from '@/lib/governance/proposalLifecycle';
+import { decideActionProposal, isReadyForInstitutionalAdoption } from '@/lib/governance/proposalLifecycle';
 import { queueApprovedProposal } from '@/lib/governance/proposalQueue';
 import { classifyProposalDecisionBoundary } from '@/lib/governance/rootDecisionBoundary';
 import { recordValue, stringValue } from '@/lib/operational/common';
@@ -96,6 +96,10 @@ async function advanceOne(row: Row) {
   const proposalId = stringValue(row.id);
   if (!proposalId) return { ok: false as const, stage: 'invalid', error: 'proposal_id_missing' };
   if (proposalType(row) === 'evidence_candidate') return { ok: true as const, stage: 'skipped_evidence_candidate', proposalId };
+
+  if (isReadyForInstitutionalAdoption(row)) {
+    return { ok: true as const, stage: 'institutional_adoption_pending', proposalId, founderApprovalRequired: true };
+  }
 
   const decisionClass = classifyProposalDecisionBoundary(row);
   if (decisionClass !== 'OPERATIONAL_WORK') {
