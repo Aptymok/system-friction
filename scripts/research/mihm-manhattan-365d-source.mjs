@@ -121,23 +121,29 @@ async function collectP4Nyc(){
       if(!bytes.length||bytes.length>70000)throw Error('BOUNDED_RESPONSE_BYTES_INVALID');
       const data=JSON.parse(bytes.toString('utf8'));
       if(!Array.isArray(data)||data.length>20)throw Error('UNEXPECTED_SOURCE_ARRAY');
-      const values={},seen=new Set();
+      const values={},seen=new Set(),missingValues=[];
       for(const row of data){
         const day=String(trial.id==='NYC311'?row.day:row.date).slice(0,10);
         if(day<begin||day>=end||seen.has(day))throw Error('OUT_OF_RANGE_OR_DUPLICATE');
         if(trial.id==='MTA_CBD'&&row.mode!=='CBD Entries')throw Error('MODE_MISMATCH');
-        const value=Number(trial.id==='NYC311'?row.n:row.count);
+        seen.add(day);
+        const rawValue=trial.id==='NYC311'?row.n:row.count;
+        if(rawValue===null||rawValue===undefined||rawValue===''){
+          missingValues.push(day);
+          continue;
+        }
+        const value=Number(rawValue);
         if(!Number.isSafeInteger(value)||value<=0)throw Error('INVALID_AGGREGATE');
-        seen.add(day);values[day]=value;
+        values[day]=value;
       }
-      const missing=need.filter(day=>!seen.has(day));
+      const missing=need.filter(day=>!Object.hasOwn(values,day));
       const capturedAt=new Date().toISOString();
       records.push({
         sourceId:trial.id,queryUrl:u.toString(),sourceBodyUtf8:bytes.toString('utf8'),
         responseSha256:createHash('sha256').update(bytes).digest('hex'),
         bytes:bytes.length,fetchStartedAt,capturedAt,
         httpDateHeader:resp.headers.get('date'),unit:trial.id==='NYC311'?'service_request_records/day':'estimated_vehicle_entries/day',
-        values,missing,
+        values,missing,missingValues,
         clockBoundary:'Available at fetch; not proof of original publication at each event date',
       });
     }catch(e){failures.push({source:trial.id,error:String(e)});}
