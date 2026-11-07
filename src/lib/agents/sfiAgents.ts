@@ -415,7 +415,7 @@ export async function runReportAgent(input: { type: ReportType; subject?: string
     maxTokens: 900,
   });
   return {
-    ok: true,
+    ok: llm.ok,
     type: input.type,
     title: `${input.type.replace(/_/g, ' ')} - ${input.subject ?? input.ifnorm?.entity_name ?? 'SFI'}`,
     body: llm.result,
