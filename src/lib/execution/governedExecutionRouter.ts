@@ -619,6 +619,32 @@ export async function dispatchQueuedProposal(proposalId: string) {
     return { ok: true as const, state: 'ALREADY_ASSIGNED_SCHEDULED_EXECUTOR', proposalId, adapterId: 'sfi_self_development_v1' };
   }
 
+  // An external handoff is not an execution lease. Repeated continuity sweeps
+  // must not silently assign the same external action again or imply progress.
+  if (
+    classification.executionClass === 'EXTERNAL_ACTION'
+    && stringValue(priorAssignment.adapterId) === 'external_connector_handoff_v1'
+    && stringValue(priorAssignment.state) === 'ASSIGNED'
+  ) {
+    const assignedAt = stringValue(priorAssignment.assignedAt);
+    const assignedMs = assignedAt ? Date.parse(assignedAt) : NaN;
+    const ageMinutes = Number.isFinite(assignedMs)
+      ? Math.max(0, Math.floor((Date.now() - assignedMs) / 60000))
+      : null;
+    return {
+      ok: false as const,
+      state: ageMinutes === null || ageMinutes >= 60 ? 'STALLED_EXTERNAL_EXECUTOR' : 'AWAITING_EXTERNAL_EXECUTOR',
+      proposalId,
+      adapterId: 'external_connector_handoff_v1',
+      assignedAt: assignedAt ?? null,
+      ageMinutes,
+      nextAction: 'EXTERNAL_EXECUTOR_PERFORM_AUTHORIZED_ACTION_AND_RECORD_OBSERVED_RETURN',
+      externalExecutionObserved: false,
+      returnRequired: true,
+      authorityExpansionAllowed: false,
+    };
+  }
+
   const routed = await appendOperationalEvent({
     eventName: 'execution.router.routed',
     actorId: SYSTEM_ACTOR,
