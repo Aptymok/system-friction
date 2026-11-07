@@ -441,6 +441,7 @@ export async function POST(req: Request) {
         { id: 'pending', effect: 'READ', description: 'Read sovereign pending proposals and founder-rule candidates with next-step boundary.' },
         { id: 'discovery_observe_bounded', effect: 'BOUNDED_OBSERVATION', description: 'Execute one existing zero-key public Discovery query; persist real retrieval or unavailable state without calling AI or paid providers.' },
         { id: 'discovery_read_runs_bounded', effect: 'READ', description: 'Read back at most eight exact persisted Discovery observation runs and metrics; no writes or inferred measurements.' },
+        { id: 'discovery_reconcile_gap', effect: 'GOVERNED_EVIDENCE_RECONCILIATION', description: 'Attach exact persisted discovery observations to one existing waiting-evidence proposal, without claiming recognition or closing the proposal.' },
         { id: 'discovery_gemini_memory_probe', effect: 'BOUNDED_MODEL_OBSERVATION', description: 'Observe one Gemini API response with fixed public prompt, no web, no cross-provider fallback and explicit original text persistence.' },
         { id: 'reconcile_obsolete_remediation', effect: 'GOVERNED_SUPERSESSION', description: 'Supersede one queued remediation only after canonical evidence that its parent has completed or was itself superseded. Never claim material execution.' },
         { id: 'sfi_state', effect: 'READ', description: 'Read one bounded cross-institution control-plane projection: WORLD hypotheses/outcomes/learning, Cases, health, incidents and commercial state.' },
@@ -593,6 +594,104 @@ export async function POST(req: Request) {
       institutionalReturnVerified:false,
       boundary:'Registration does not verify upstream source truth, outcome, homeostasis, causal propagation or empirical success.',
     },{status:201,headers:{'Cache-Control':'no-store'}});
+  }
+
+  if (operation === 'discovery_reconcile_gap') {
+    if (body.confirmation !== true || !(root.credential.scopes ?? []).includes('governance:decide')) {
+      return NextResponse.json({ ok: false, operation, error: 'governance_scope_and_confirmation_required' }, { status: 403 });
+    }
+    const proposalId = typeof body.proposal_id === 'string' ? body.proposal_id.trim() : '';
+    const runIds = Array.isArray(body.run_ids) ? body.run_ids : [];
+    const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuid.test(proposalId) || runIds.length < 1 || runIds.length > 8
+      || runIds.some((id) => typeof id !== 'string' || !uuid.test(id))) {
+      return NextResponse.json({ ok: false, operation, error: 'valid_proposal_and_one_to_eight_run_ids_required' }, { status: 400 });
+    }
+    const ids = [...new Set(runIds as string[])].sort();
+    const proposalRead = await root.service.from('action_proposals').select('*').eq('id', proposalId).maybeSingle();
+    if (proposalRead.error || !proposalRead.data) {
+      return NextResponse.json({ ok: false, operation, error: 'discovery_proposal_not_found' }, { status: 404 });
+    }
+    const proposal = proposalRead.data;
+    const expected = record(proposal.expected_field_delta);
+    const declared = record(expected.payload);
+    const key = declared.discoveryCandidateKey;
+    const metric = declared.metric;
+    const expectedMetric = key === 'DISCOVERY_UNBRANDED_RETRIEVAL_COVERAGE' ? 'UDR'
+      : key === 'DISCOVERY_AI_RETRIEVAL_COVERAGE' ? 'ACR-R'
+      : key === 'DISCOVERY_ENTITY_RECONSTRUCTION_COVERAGE' ? 'ERR' : null;
+    if (proposal.status !== 'waiting_evidence' || proposal.proposal_type !== 'institutional_mutation_candidate'
+      || declared.sourceOwner !== 'DiscoveryMesh' || metric !== expectedMetric || !expectedMetric) {
+      return NextResponse.json({ ok: false, operation, error: 'not_eligible_discovery_evidence_proposal' }, { status: 409 });
+    }
+    const runRead = await root.service.from('sfi_discovery_query_runs')
+      .select('id,query_id,availability,metrics,provenance,observed_at')
+      .in('id', ids).limit(8);
+    if (runRead.error || (runRead.data ?? []).length !== ids.length) {
+      return NextResponse.json({ ok: false, operation, error: 'exact_discovery_run_readback_required' }, { status: 409 });
+    }
+    const seenQueries = new Set<string>();
+    const evaluated = (runRead.data ?? []).map((run) => {
+      const observations = Array.isArray(run.provenance) ? run.provenance.map(record) : [];
+      const eligible = observations.some((obs) => {
+        const source = record(obs.source);
+        if (obs.status !== 'AVAILABLE' || (obs.retrieved !== true && obs.retrieved !== false)) return false;
+        if (metric === 'UDR') return source.providerClass === 'SEARCH' && obs.unbranded === true;
+        if (metric === 'ACR-R') return source.providerClass === 'AI'
+          && obs.testModality !== 'MODEL_MEMORY_NO_WEB'
+          && typeof obs.providerResponseText === 'string' && obs.providerResponseText.trim().length > 0;
+        return typeof record(obs.reconstructedFields).name === 'string'
+          && typeof record(obs.reconstructedFields).domain === 'string'
+          && typeof record(obs.reconstructedFields).entityId === 'string';
+      });
+      const queryId = String(run.query_id ?? '');
+      const unique = !seenQueries.has(queryId);
+      if (eligible && unique) seenQueries.add(queryId);
+      return { id: String(run.id), availability: run.availability,
+        eligible: eligible && unique, queryId, observedAt: run.observed_at };
+    });
+    const eligibleRunIds = evaluated.filter((run) => run.eligible).map((run) => run.id);
+    const missingEvidence = metric === 'UDR' && eligibleRunIds.length < 2 ? 'NEEDS_MORE_DISTINCT_UNBRANDED_SEARCH_QUERIES'
+      : metric === 'ACR-R' && !eligibleRunIds.length ? 'NEEDS_ELIGIBLE_AI_WEB_RETRIEVAL_OBSERVATION'
+      : metric === 'ERR' && !eligibleRunIds.length ? 'NEEDS_COMPLETE_EXTERNAL_NAME_DOMAIN_ENTITY_ID_RECONSTRUCTION'
+      : null;
+    const previousPatch = record(record(proposal.outcome).payloadPatch);
+    const priorReconciliation = record(previousPatch.discoveryEvidenceReconciliation);
+    const previousIds = Array.isArray(priorReconciliation.reviewedRunIds)
+      ? priorReconciliation.reviewedRunIds.filter((x): x is string => typeof x === 'string').sort() : [];
+    if (JSON.stringify(previousIds) === JSON.stringify(ids)) {
+      return NextResponse.json({ ok: true, operation, state: 'ALREADY_RECONCILED',
+        proposalId, metric, reviewedRuns: ids.length,
+        eligibleRuns: eligibleRunIds.length, missingEvidence,
+        proposalStatus: 'waiting_evidence' }, { headers: { 'Cache-Control': 'no-store' } });
+    }
+    const event = await appendOperationalEvent({
+      eventName: 'discovery.proposal.evidence_reconciled', actorId: root.credential.subjectId!,
+      confidence: 1,
+      payload: { proposalId, metric, reviewedRunIds: ids, eligibleRunIds,
+        missingEvidence, statusUnchanged: true, noRecognizedExternalIdentityClaim: true },
+      lineage: [proposalId, ...ids],
+    });
+    if (!event.ok) return NextResponse.json({ ok: false, operation, error: 'reconciliation_event_write_failed' }, { status: 503 });
+    const assessment = { metric, reviewedRunIds: ids, eligibleRunIds, observations: evaluated,
+      missingEvidence, assessedAt: new Date().toISOString(), evidenceEventId: event.data.id,
+      conclusion: 'EVIDENCE_REVIEWED_NOT_GAP_CLOSED', aiMemoryIsNotWebRetrieval: true,
+      canonicalPromotionAllowed: false };
+    const statusResult = await updateActionProposalStatus({
+      proposalId, status: 'waiting_evidence', actorId: root.credential.subjectId!,
+      isRoot: true, proposalType: 'institutional_mutation_candidate', expectedStatuses: ['waiting_evidence'],
+      eventId: event.data.id, payloadPatch: {
+        ...previousPatch, discoveryEvidenceReconciliation: assessment,
+        executionAllowed: false, institutionalAdoptionRecorded: false, canonicalPromotionAllowed: false,
+      },
+    });
+    return NextResponse.json({ ok: statusResult.ok, operation, proposalId, metric,
+      reviewedRuns: ids.length, eligibleRuns: eligibleRunIds.length,
+      missingEvidence, proposalStatus: statusResult.ok ? 'waiting_evidence' : 'UNCONFIRMED',
+      evidenceEventId: event.data.id,
+      error: statusResult.ok ? null : statusResult.error,
+      boundary: 'Evidence review does not claim recognition, authorize material execution, close the gap or promote canon.' },
+      { status: statusResult.ok ? 200 : 409, headers: { 'Cache-Control': 'no-store' } });
   }
 
   if (operation === 'discovery_gemini_memory_probe') {
