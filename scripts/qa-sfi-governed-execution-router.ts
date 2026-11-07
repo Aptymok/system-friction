@@ -55,6 +55,12 @@ requireText(router, "domain: 'repository_self_development'", 'self-development-d
 requireText(router, "capabilityId: 'external_connector_handoff_v1'", 'external-connector-handoff-adapter');
 requireText(router, "domain: 'external_executor_handoff'", 'external-connector-handoff-domain');
 requireText(router, "state: 'ASSIGNED_EXTERNAL_EXECUTOR'", 'external-assignment-state');
+requireText(router, "'STALLED_EXTERNAL_EXECUTOR'", 'stale-external-handoff-explicit');
+requireText(router, "'AWAITING_EXTERNAL_EXECUTOR'", 'recent-external-handoff-explicit');
+requireText(router, "externalExecutionObserved: false", 'repeated-assignment-not-execution');
+requireText(router, "ageMinutes >= 60", 'stalled-external-handoff-age-gate');
+requireText(router, "returnRequired: true", 'stalled-external-handoff-return-gate');
+requireText(router, "authorityExpansionAllowed: false", 'stalled-external-handoff-no-authority-expansion');
 requireText(router, "eventName: 'execution.router.assigned_external'", 'external-assignment-event');
 requireText(router, "executionStillExternal: true", 'external-execution-boundary');
 requireText(router, "successMayNotBeInferredFromAssignment: true", 'external-assignment-not-success');
