@@ -644,11 +644,26 @@ export async function POST(req: Request) {
           && typeof record(obs.reconstructedFields).domain === 'string'
           && typeof record(obs.reconstructedFields).entityId === 'string';
       });
+      // Legacy Discovery rows retained calculated metrics but not all raw
+      // retrieval flags in provenance. Recover only a canonically persisted,
+      // eligible SEARCH UDR denominator; never infer this from source count.
+      const udr = record(record(run.metrics).UDR);
+      const legacySearch = metric === 'UDR' && run.availability === 'AVAILABLE'
+        && udr.availability === 'AVAILABLE'
+        && typeof udr.denominator === 'number' && udr.denominator > 0
+        && typeof udr.numerator === 'number' && udr.numerator >= 0
+        && udr.numerator <= udr.denominator
+        && observations.some((obs) => obs.status === 'AVAILABLE'
+          && record(obs.source).providerClass === 'SEARCH');
+      const eligibleMeasured = eligible || legacySearch;
       const queryId = String(run.query_id ?? '');
       const unique = !seenQueries.has(queryId);
-      if (eligible && unique) seenQueries.add(queryId);
+      if (eligibleMeasured && unique) seenQueries.add(queryId);
       return { id: String(run.id), availability: run.availability,
-        eligible: eligible && unique, queryId, observedAt: run.observed_at };
+        eligible: eligibleMeasured && unique, legacyMetricReadback: legacySearch && !eligible,
+        metricNumerator: legacySearch ? udr.numerator : null,
+        metricDenominator: legacySearch ? udr.denominator : null,
+        queryId, observedAt: run.observed_at };
     });
     const eligibleRunIds = evaluated.filter((run) => run.eligible).map((run) => run.id);
     const missingEvidence = metric === 'UDR' && eligibleRunIds.length < 2 ? 'NEEDS_MORE_DISTINCT_UNBRANDED_SEARCH_QUERIES'
@@ -659,7 +674,8 @@ export async function POST(req: Request) {
     const priorReconciliation = record(previousPatch.discoveryEvidenceReconciliation);
     const previousIds = Array.isArray(priorReconciliation.reviewedRunIds)
       ? priorReconciliation.reviewedRunIds.filter((x): x is string => typeof x === 'string').sort() : [];
-    if (JSON.stringify(previousIds) === JSON.stringify(ids)) {
+    if (priorReconciliation.algorithmVersion === 'DISCOVERY-EVIDENCE-RECONCILIATION-2'
+      && JSON.stringify(previousIds) === JSON.stringify(ids)) {
       return NextResponse.json({ ok: true, operation, state: 'ALREADY_RECONCILED',
         proposalId, metric, reviewedRuns: ids.length,
         eligibleRuns: eligibleRunIds.length, missingEvidence,
@@ -673,7 +689,7 @@ export async function POST(req: Request) {
       lineage: [proposalId, ...ids],
     });
     if (!event.ok) return NextResponse.json({ ok: false, operation, error: 'reconciliation_event_write_failed' }, { status: 503 });
-    const assessment = { metric, reviewedRunIds: ids, eligibleRunIds, observations: evaluated,
+    const assessment = { algorithmVersion: 'DISCOVERY-EVIDENCE-RECONCILIATION-2', metric, reviewedRunIds: ids, eligibleRunIds, observations: evaluated,
       missingEvidence, assessedAt: new Date().toISOString(), evidenceEventId: event.data.id,
       conclusion: 'EVIDENCE_REVIEWED_NOT_GAP_CLOSED', aiMemoryIsNotWebRetrieval: true,
       canonicalPromotionAllowed: false };
