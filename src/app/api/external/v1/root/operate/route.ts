@@ -5,6 +5,7 @@ import { z } from 'zod';
 
 import { recoverBlockedScheduledWorldReports } from '@/lib/reports/scheduledAgentReports';
 import { probeLlmProviders } from '@/lib/ai/providerRouter';
+import { runAutomaticDiscoveryObservationCycle } from '@/lib/discovery/discoveryRepository';
 import { humanReportText } from '@/lib/reports/humanReport';
 import { readRootReportHealth, readRootReportInbox } from '@/lib/reports/rootReportInbox';
 import { runRestrictedEvidenceReports } from '@/lib/reports/restrictedEvidenceReports';
@@ -438,6 +439,7 @@ export async function POST(req: Request) {
         { id: 'data_plane_emergency', effect: 'GOVERNED_RECOVERY', description: 'Attempt a bounded and conflict-gated recovery now. Never force a primary switch or erase evidence.' },
         { id: 'data_plane_copy_verified', effect: 'GOVERNED_INSERT_ONLY_REPLAY', description: 'Copy at most 20 exact, immutable world source observations via the existing canonical replay RPC; reject divergent inserts, never switch planes.' },
         { id: 'pending', effect: 'READ', description: 'Read sovereign pending proposals and founder-rule candidates with next-step boundary.' },
+        { id: 'discovery_observe_bounded', effect: 'BOUNDED_OBSERVATION', description: 'Execute one existing zero-key public Discovery query; persist real retrieval or unavailable state without calling AI or paid providers.' },
         { id: 'reconcile_obsolete_remediation', effect: 'GOVERNED_SUPERSESSION', description: 'Supersede one queued remediation only after canonical evidence that its parent has completed or was itself superseded. Never claim material execution.' },
         { id: 'sfi_state', effect: 'READ', description: 'Read one bounded cross-institution control-plane projection: WORLD hypotheses/outcomes/learning, Cases, health, incidents and commercial state.' },
         { id: 'capability_map', effect: 'READ', description: 'Describe the canonical surfaces ROOT can orchestrate without duplicating their authority.' },
@@ -589,6 +591,28 @@ export async function POST(req: Request) {
       institutionalReturnVerified:false,
       boundary:'Registration does not verify upstream source truth, outcome, homeostasis, causal propagation or empirical success.',
     },{status:201,headers:{'Cache-Control':'no-store'}});
+  }
+
+  if (operation === 'discovery_observe_bounded') {
+    if (body.confirmation !== true || !(root.credential.scopes ?? []).includes('execute')) {
+      return NextResponse.json({ ok: false, operation, error: 'execute_scope_and_confirmation_required' }, { status: 403 });
+    }
+    const queryIndex = body.query_index;
+    if (typeof queryIndex !== 'number' || !Number.isInteger(queryIndex) || queryIndex < 0 || queryIndex > 3) {
+      return NextResponse.json({ ok: false, operation, error: 'query_index_must_be_0_to_3' }, { status: 400 });
+    }
+    try {
+      const observation = await runAutomaticDiscoveryObservationCycle(new Date(), { zeroKeyOnly: true, queryIndex });
+      return NextResponse.json({ ok: Boolean(observation.runId), operation, observation,
+        providerClass: 'SEARCH', aiRetrievalTested: false, providerSpendExpansion: false,
+        externalPublicationPerformed: false, canonicalPromotionAllowed: false,
+        boundary: 'GDELT source indexing is not generative AI retrieval or external institutional recognition. UNAVAILABLE is not a measured zero.' },
+        { status: observation.runId ? 200 : 503, headers: { 'Cache-Control': 'no-store' } });
+    } catch (error) {
+      return NextResponse.json({ ok: false, operation, error: 'discovery_observation_failed',
+        details: error instanceof Error ? error.message : 'unknown' },
+        { status: 503, headers: { 'Cache-Control': 'no-store' } });
+    }
   }
 
   if (operation === 'reconcile_obsolete_remediation') {
