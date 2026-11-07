@@ -142,13 +142,20 @@ async function readRootPending(service: ReturnType<typeof createServiceSupabaseC
      const outcome=record(r.outcome);
      const payload=record(outcome.payloadPatch);
      const assignment=record(payload.assignment);
+     const assignedAt=typeof assignment.assignedAt==='string'?assignment.assignedAt:null;
+     const assignedMs=assignedAt?Date.parse(assignedAt):NaN;
+     const externalAssigned=assignment.adapterId==='external_connector_handoff_v1' && assignment.state==='ASSIGNED';
+     const minutesAssigned=Number.isFinite(assignedMs)?Math.max(0,Math.floor((Date.now()-assignedMs)/60000)):null;
      return {
        id:r.id,
        proposalType:r.proposal_type,
        title:r.title,
        status:r.status,
-       executionState:payload.executionState??null,
+       executionState:externalAssigned && (minutesAssigned===null || minutesAssigned>=60)?'STALLED_EXTERNAL_EXECUTOR':payload.executionState??null,
        assignedExecutor:assignment.executorId??null,
+       assignedAt,
+       minutesAssigned,
+       nextAction:externalAssigned?'EXTERNAL_EXECUTOR_PERFORM_AUTHORIZED_ACTION_AND_RECORD_OBSERVED_RETURN':payload.systemNextAction??null,
        returnRequired:payload.requiresExecutorReturn??payload.returnRequiredBeforeAdoption??null,
        adoptionRecorded:payload.institutionalAdoptionRecorded??false,
      };
