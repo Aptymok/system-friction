@@ -83,9 +83,10 @@ async function persistScheduledReport(input: {
   title: string;
   output: ReportEnvelope;
   extraInput?: Record<string, unknown>;
+  taskIdOverride?: string;
 }) {
   const db = createServiceSupabaseClient();
-  const id = taskId(input.key, input.dateKey, input.weekKey);
+  const id = input.taskIdOverride ?? taskId(input.key, input.dateKey, input.weekKey);
   const existing = await db.from('sfi_cognitive_twin_runs')
     .select('id,status,created_at')
     .in('role', ['report_agent', 'report_scheduler'])
@@ -331,6 +332,60 @@ async function ensure(input: {
   }
 }
 
+// Recover only failed world reports. Keep the original BLOCKED receipt immutable.
+// A retry is an as-of-now report, never a fabricated historical replay.
+export async function recoverBlockedScheduledWorldReports(input: { limit?: number } = {}) {
+  const db = createServiceSupabaseClient();
+  const today = mexicoDateKey();
+  const limit = Math.max(1, Math.min(2, input.limit ?? 1));
+  const read = await db.from('sfi_cognitive_twin_runs')
+    .select('id,task_id,status,created_at')
+    .eq('role', 'report_agent')
+    .eq('status', 'BLOCKED')
+    .like('task_id', 'scheduled-report:world_%')
+    .order('created_at', { ascending: false }).limit(30);
+  if (read.error) return { ok: false, error: 'blocked_world_report_read_failed', results: [] };
+  const eligible = (read.data ?? []).filter((row) =>
+    /^scheduled-report:world_(daily|weekly):[^:]+$/.test(String(row.task_id ?? ''))).slice(0, limit);
+  const results: Array<{ originalTaskId: string; retryTaskId: string; state: string; reportId: string | null }> = [];
+  for (const original of eligible) {
+    const originalTaskId = String(original.task_id);
+    const retryTaskId = `${originalTaskId}:recovery:${today}`;
+    const previous = await db.from('sfi_cognitive_twin_runs').select('id,status,task_id')
+      .in('role', ['report_agent', 'report_scheduler'])
+      .like('task_id', `${originalTaskId}:recovery:%`).limit(60);
+    if (previous.error) return { ok: false, error: 'world_recovery_lookup_failed', results };
+    const successful = (previous.data ?? []).find((item) => item.status === 'READY');
+    const todayAttempt = (previous.data ?? []).find((item) => item.task_id === retryTaskId);
+    if (successful || todayAttempt) {
+      results.push({ originalTaskId, retryTaskId, state: successful ? 'RECOVERED_PREVIOUSLY' : 'ALREADY_ATTEMPTED_TODAY', reportId: String((successful ?? todayAttempt)?.id ?? '') });
+      continue;
+    }
+    const [, key, period] = originalTaskId.split(':');
+    const scheduleKey = key as ScheduledReportKey;
+    const report = await runReportAgent({ type: 'world_vector_internal',
+      subject: `RECOVERY checked ${today} for ${period}. Use CURRENT available world observations only. Do not backdate any source or claim an original report was generated on ${period}.` });
+    const output: ReportEnvelope = {
+      ...report,
+      ok: report.ok && !report.provider.startsWith('degraded:') && !report.provider.startsWith('blocked:'),
+      type: scheduleKey,
+      title: `Mundo · recuperación observada ${today} · original ${period}`,
+      warnings: unique([...report.warnings, 'AS_OF_NOW_RECOVERY_NOT_HISTORICAL_REPLAY']),
+    };
+    const persisted = await persistScheduledReport({ key: scheduleKey,
+      dateKey: today, weekKey: isoWeekKey(today), taskIdOverride: retryTaskId,
+      title: output.title, output,
+      extraInput: { recoveryOf: originalTaskId, recoveryCheckedAt: new Date().toISOString(),
+        originalPeriod: period, historicalReplayPerformed: false },
+    });
+    results.push({ originalTaskId, retryTaskId,
+      state: persisted.skipped ? 'ALREADY_ATTEMPTED_TODAY' : output.ok ? 'RECOVERED' : 'BLOCKED_RETRY_RECORDED',
+      reportId: persisted.id });
+  }
+  return { ok: true, dateKey: today, results,
+    boundary: 'Original BLOCKED receipts remain unchanged; no synthetic report or historical observations are fabricated.' };
+}
+
 export async function runScheduledAgentReportCycle() {
   const dateKey = mexicoDateKey();
   const weekKey = isoWeekKey(dateKey);
@@ -400,8 +455,11 @@ export async function runScheduledAgentReportCycle() {
     },
   }));
 
+  const recovery = await recoverBlockedScheduledWorldReports({ limit: 1 }).catch((error) => ({
+    ok: false, error: error instanceof Error ? error.message : String(error), results: [] }));
   return {
-    ok: results.every((result) => result.state !== 'FAILED'),
+    recovery,
+    ok: results.every((result) => result.state !== 'FAILED') && recovery.ok,
     dateKey,
     weekKey,
     generated: results.filter((result) => result.state === 'GENERATED').length,
