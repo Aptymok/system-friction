@@ -5,7 +5,7 @@ import { z } from 'zod';
 
 import { recoverBlockedScheduledWorldReports } from '@/lib/reports/scheduledAgentReports';
 import { probeLlmProviders } from '@/lib/ai/providerRouter';
-import { runAutomaticDiscoveryObservationCycle } from '@/lib/discovery/discoveryRepository';
+import { runAutomaticDiscoveryObservationCycle, runBoundedGeminiDiscoveryProbe } from '@/lib/discovery/discoveryRepository';
 import { humanReportText } from '@/lib/reports/humanReport';
 import { readRootReportHealth, readRootReportInbox } from '@/lib/reports/rootReportInbox';
 import { runRestrictedEvidenceReports } from '@/lib/reports/restrictedEvidenceReports';
@@ -441,6 +441,7 @@ export async function POST(req: Request) {
         { id: 'pending', effect: 'READ', description: 'Read sovereign pending proposals and founder-rule candidates with next-step boundary.' },
         { id: 'discovery_observe_bounded', effect: 'BOUNDED_OBSERVATION', description: 'Execute one existing zero-key public Discovery query; persist real retrieval or unavailable state without calling AI or paid providers.' },
         { id: 'discovery_read_runs_bounded', effect: 'READ', description: 'Read back at most eight exact persisted Discovery observation runs and metrics; no writes or inferred measurements.' },
+        { id: 'discovery_gemini_memory_probe', effect: 'BOUNDED_MODEL_OBSERVATION', description: 'Observe one Gemini API response with fixed public prompt, no web, no cross-provider fallback and explicit original text persistence.' },
         { id: 'reconcile_obsolete_remediation', effect: 'GOVERNED_SUPERSESSION', description: 'Supersede one queued remediation only after canonical evidence that its parent has completed or was itself superseded. Never claim material execution.' },
         { id: 'sfi_state', effect: 'READ', description: 'Read one bounded cross-institution control-plane projection: WORLD hypotheses/outcomes/learning, Cases, health, incidents and commercial state.' },
         { id: 'capability_map', effect: 'READ', description: 'Describe the canonical surfaces ROOT can orchestrate without duplicating their authority.' },
@@ -592,6 +593,27 @@ export async function POST(req: Request) {
       institutionalReturnVerified:false,
       boundary:'Registration does not verify upstream source truth, outcome, homeostasis, causal propagation or empirical success.',
     },{status:201,headers:{'Cache-Control':'no-store'}});
+  }
+
+  if (operation === 'discovery_gemini_memory_probe') {
+    if (body.confirmation !== true || !(root.credential.scopes ?? []).includes('execute')) {
+      return NextResponse.json({ ok: false, operation, error: 'execute_scope_and_confirmation_required' }, { status: 403 });
+    }
+    const probeIndex = body.probe_index;
+    if (probeIndex !== 0 && probeIndex !== 1) {
+      return NextResponse.json({ ok: false, operation, error: 'probe_index_must_be_0_or_1' }, { status: 400 });
+    }
+    try {
+      const observed = await runBoundedGeminiDiscoveryProbe(probeIndex);
+      return NextResponse.json({ ...observed, operation, externalActionsPerformed: false,
+        providerFallbackAllowed: false, browserRetrievalTested: false, modelMemoryOnly: true,
+        institutionalAdoptionRecorded: false, canonicalPromotionAllowed: false },
+        { headers: { 'Cache-Control': 'no-store' } });
+    } catch (error) {
+      return NextResponse.json({ ok: false, operation, error: 'gemini_memory_probe_failed',
+        details: error instanceof Error ? error.message : String(error) },
+        { status: 503, headers: { 'Cache-Control': 'no-store' } });
+    }
   }
 
   if (operation === 'discovery_read_runs_bounded') {
