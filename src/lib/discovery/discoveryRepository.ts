@@ -27,6 +27,16 @@ function provenance(observations: readonly SfiDiscoveryRetrievalObservation[]) {
     observedAt: item.observedAt,
     source: item.source,
     status: item.status ?? 'AVAILABLE',
+    query: item.query,
+    providerClass: item.source.providerClass,
+    unbranded: item.unbranded,
+    retrieved: item.retrieved,
+    attributedEntityName: item.attributedEntityName ?? null,
+    attributedDomain: item.attributedDomain ?? null,
+    citedCanonicalUrl: item.citedCanonicalUrl ?? null,
+    reconstructedFields: item.reconstructedFields ?? null,
+    references: (item.references ?? []).slice(0, 200),
+    collisions: (item.collisions ?? []).slice(0, 100),
   }));
 }
 
