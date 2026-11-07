@@ -33,6 +33,10 @@ export interface SfiDiscoveryRetrievalObservation {
   query: string;
   unbranded: boolean;
   retrieved: boolean | null;
+  // Verbatim bounded answer is an observation of model output, never proof of factual truth.
+  providerResponseText?: string | null;
+  modelId?: string | null;
+  testModality?: 'MODEL_MEMORY_NO_WEB' | 'WEB_SEARCH';
   attributedEntityName?: string | null;
   attributedDomain?: string | null;
   citedCanonicalUrl?: string | null;
