@@ -39,9 +39,13 @@ function canonicalSfiUrl(url: string) {
   }
 }
 
-function automaticQueryFor(date = new Date()) {
+function automaticQueryFor(date = new Date(), queryIndex?: number) {
   const dayIndex = Math.floor(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()) / 86_400_000);
-  return AUTO_DISCOVERY_QUERIES[Math.abs(dayIndex) % AUTO_DISCOVERY_QUERIES.length];
+  const index = queryIndex === undefined ? Math.abs(dayIndex) % AUTO_DISCOVERY_QUERIES.length : queryIndex;
+  if (!Number.isInteger(index) || index < 0 || index >= AUTO_DISCOVERY_QUERIES.length) {
+    throw new Error('SFI_DISCOVERY_QUERY_INDEX_OUT_OF_BOUNDS');
+  }
+  return AUTO_DISCOVERY_QUERIES[index];
 }
 
 export async function persistDiscoveryObservation(input: SfiDiscoveryObservationInput, actorId: string | null) {
@@ -111,9 +115,9 @@ export async function persistDiscoveryObservation(input: SfiDiscoveryObservation
 
 export async function runAutomaticDiscoveryObservationCycle(
   now = new Date(),
-  options: { zeroKeyOnly?: boolean } = {},
+  options: { zeroKeyOnly?: boolean; queryIndex?: number } = {},
 ) {
-  const selected = automaticQueryFor(now);
+  const selected = automaticQueryFor(now, options.queryIndex);
   const unbranded = !/\b(system friction institute|systemfriction|\bsfi\b)/i.test(selected.query);
   // Restricted egress never calls a paid search provider or a synthesis model.
   const research = options.zeroKeyOnly
