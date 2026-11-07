@@ -2,6 +2,8 @@ import { recordProposalOutcomeFromObservedReturn } from '@/lib/governance/propos
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
+import { recoverBlockedScheduledWorldReports } from '@/lib/reports/scheduledAgentReports';
+import { probeLlmProviders } from '@/lib/ai/providerRouter';
 import { humanReportText } from '@/lib/reports/humanReport';
 import { readRootReportHealth, readRootReportInbox } from '@/lib/reports/rootReportInbox';
 import { runRestrictedEvidenceReports } from '@/lib/reports/restrictedEvidenceReports';
@@ -425,6 +427,8 @@ export async function POST(req: Request) {
       scope: REQUIRED_SCOPE,
       operations: [
         { id: 'reports', effect: 'READ', description: 'Read normalized ROOT report inbox and report health.' },
+        { id: 'reports_recover_blocked', effect: 'BOUNDED_RECOVERY', description: 'Retry at most two blocked world reports as present-time observations; retain original failed receipts.' },
+        { id: 'gemini_canary', effect: 'BOUNDED_PROVIDER_TEST', description: 'One short Gemini canary with no model provider escalation.' },
         { id: 'reports_run_restricted', effect: 'BOUNDED_SOURCE_REPORT_PERSISTENCE', description: 'Persist source-backed reports with ROOT OAuth, execute scope, separate opt-in and explicit confirmation. No models or external actions.' },
         { id: 'accounts_list', effect: 'READ', description: 'List ROOT-administered institutional account access grants.' },
         { id: 'account_invite', effect: 'EXTERNAL_REVERSIBLE', description: 'Send one institutional account invitation without granting sovereign authority.' },
@@ -613,6 +617,28 @@ export async function POST(req: Request) {
         error: 'root_reports_read_failed',
         details: error instanceof Error ? error.message : String(error),
       }, { status: 503 });
+    }
+  }
+
+  if (operation === 'gemini_canary' || operation === 'reports_recover_blocked') {
+    const scopes = root.credential.scopes ?? [];
+    if (!scopes.includes('execute') || body.confirmation !== true) {
+      return NextResponse.json({ ok: false, operation, error: 'execute_scope_and_confirmation_required' }, { status: 403 });
+    }
+    try {
+      if (operation === 'gemini_canary') {
+        const test = await probeLlmProviders({ provider: 'gemini' });
+        return NextResponse.json({ ok: test.ok, operation, checkedAt: test.checkedAt,
+          results: test.results, noProviderEscalation: true },
+          { status: test.ok ? 200 : 207, headers: { 'Cache-Control': 'no-store' } });
+      }
+      const result = await recoverBlockedScheduledWorldReports({ limit: 2 });
+      return NextResponse.json({ ...result, operation, initiatedBy: 'SOVEREIGN_ROOT_OAUTH',
+        generalEgressAuthorityExpanded: false, externalMaterialActionPerformed: false },
+        { status: result.ok ? 200 : 503, headers: { 'Cache-Control': 'no-store' } });
+    } catch (error) {
+      return NextResponse.json({ ok: false, operation, error: 'bounded_recovery_failed',
+        details: error instanceof Error ? error.message : String(error) }, { status: 503 });
     }
   }
 
