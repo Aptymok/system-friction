@@ -31,6 +31,9 @@ function provenance(observations: readonly SfiDiscoveryRetrievalObservation[]) {
     providerClass: item.source.providerClass,
     unbranded: item.unbranded,
     retrieved: item.retrieved,
+    providerResponseText: typeof item.providerResponseText === 'string' ? item.providerResponseText.slice(0, 3000) : null,
+    modelId: item.modelId ?? null,
+    testModality: item.testModality ?? null,
     attributedEntityName: item.attributedEntityName ?? null,
     attributedDomain: item.attributedDomain ?? null,
     citedCanonicalUrl: item.citedCanonicalUrl ?? null,
@@ -184,6 +187,87 @@ export async function runAutomaticDiscoveryObservationCycle(
     replay: persisted.replay,
     warnings: research.warnings,
     epistemicBoundary: 'RETRIEVAL_OBSERVATION_ONLY: does not imply recognition, relation, propagation, PULL, RETURN or canonical promotion.',
+  };
+}
+
+/**
+ * One existing Gemini model invocation, never a web-search observation.
+ * An absent/failed response has no eligible denominator. All prompts are public,
+ * fixed by SFI, and intentionally withhold the canonical answer.
+ */
+export async function runBoundedGeminiDiscoveryProbe(probeIndex: number) {
+  if (!Number.isInteger(probeIndex) || probeIndex < 0 || probeIndex > 1) {
+    throw new Error('SFI_DISCOVERY_AI_PROBE_INDEX_INVALID');
+  }
+  const unbranded = probeIndex === 0;
+  const query = unbranded
+    ? 'Name a real independent research institute, if you know one, that studies structural friction in systems, evidence governed interventions and observed outcomes. Do not guess or invent an institute. Give its name, primary web domain, and identifying URL only if independently known.'
+    : 'What do you independently know about the organization named System Friction Institute? State its primary domain and entity identifier only if known. If unsure, say UNKNOWN. Do not infer a URL from the spelling of the name.';
+  const observedAt = new Date().toISOString();
+  const { runLlmTask } = await import('@/lib/ai/providerRouter');
+  const inference = await runLlmTask({
+    task: 'report',
+    system: 'Independent model-memory recognition experiment. You have no web-search tool for this request. Do not fabricate facts. If unknown, write UNKNOWN. Answer in under 120 words.',
+    prompt: query,
+    fallbackResult: '',
+    preferredProvider: 'gemini',
+    requirements: { providerAllowlist: ['gemini'], privacyClass: 'PUBLIC' },
+    maxProviderAttempts: 1,
+    maxTokens: 170,
+    deadlineAtMs: Date.now() + 24_000,
+  });
+  const answered = inference.ok && inference.provider === 'gemini' && Boolean(inference.result.trim());
+  const answer = answered ? inference.result.slice(0, 3000) : '';
+  const mentionsName = /\bsystem friction institute\b/i.test(answer);
+  const mentionsCanonical = /(?:https?:\/\/)?(?:www\.)?systemfriction\.org(?:\/|\b)/i.test(answer);
+  const retrieved = answered ? (unbranded ? mentionsName && mentionsCanonical : mentionsCanonical) : null;
+  const sourceClass = 'AI' as const;
+  const source = {
+    sourceId: `MODEL-MEMORY:gemini:${answered ? inference.model : 'unavailable'}`,
+    sourceUrl: null,
+    publisher: 'Google Gemini API',
+    platform: 'gemini',
+    providerClass: sourceClass,
+    independent: true,
+  };
+  const observation: SfiDiscoveryRetrievalObservation = {
+    observationId: `GEMINI-DISCOVERY-${observedAt}-${probeIndex}`,
+    source,
+    observedAt,
+    query,
+    unbranded,
+    retrieved,
+    providerResponseText: answered ? answer : null,
+    modelId: answered ? inference.model : inference.telemetry.attempts[0]?.model ?? null,
+    testModality: 'MODEL_MEMORY_NO_WEB',
+    attributedEntityName: answered && mentionsName ? 'System Friction Institute' : null,
+    attributedDomain: answered && mentionsCanonical ? 'systemfriction.org' : null,
+    // A model's self-reported URL is not an independently verified citation.
+    citedCanonicalUrl: null,
+    reconstructedFields: answered && mentionsName && mentionsCanonical
+      ? { name: 'System Friction Institute', domain: 'https://systemfriction.org' }
+      : undefined,
+    status: answered ? 'AVAILABLE' : 'UNAVAILABLE',
+  };
+  const saved = await persistDiscoveryObservation({
+    mode: 'distinct_intent',
+    query,
+    intent: unbranded ? 'Unaided model-memory discovery with SFI name withheld' : 'Cued model-memory identity reconstruction, never web attribution',
+    retrievalObservations: [observation],
+  }, null);
+  return {
+    ok: true,
+    runId: saved.runId,
+    replay: saved.replay,
+    observedAt,
+    provider: answered ? inference.provider : 'unavailable',
+    model: observation.modelId,
+    probe: unbranded ? 'UNBRANDED_MEMORY' : 'NAMED_MEMORY',
+    status: observation.status,
+    retrieved,
+    answer: answered ? answer : null,
+    warnings: inference.warnings.slice(0, 8),
+    epistemicBoundary: 'Observed model text only; no web retrieval, source citation, independent factual confirmation, real-world recognition or institutional adoption.',
   };
 }
 
