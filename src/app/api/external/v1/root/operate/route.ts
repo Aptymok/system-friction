@@ -440,6 +440,7 @@ export async function POST(req: Request) {
         { id: 'data_plane_copy_verified', effect: 'GOVERNED_INSERT_ONLY_REPLAY', description: 'Copy at most 20 exact, immutable world source observations via the existing canonical replay RPC; reject divergent inserts, never switch planes.' },
         { id: 'pending', effect: 'READ', description: 'Read sovereign pending proposals and founder-rule candidates with next-step boundary.' },
         { id: 'discovery_observe_bounded', effect: 'BOUNDED_OBSERVATION', description: 'Execute one existing zero-key public Discovery query; persist real retrieval or unavailable state without calling AI or paid providers.' },
+        { id: 'discovery_read_runs_bounded', effect: 'READ', description: 'Read back at most eight exact persisted Discovery observation runs and metrics; no writes or inferred measurements.' },
         { id: 'reconcile_obsolete_remediation', effect: 'GOVERNED_SUPERSESSION', description: 'Supersede one queued remediation only after canonical evidence that its parent has completed or was itself superseded. Never claim material execution.' },
         { id: 'sfi_state', effect: 'READ', description: 'Read one bounded cross-institution control-plane projection: WORLD hypotheses/outcomes/learning, Cases, health, incidents and commercial state.' },
         { id: 'capability_map', effect: 'READ', description: 'Describe the canonical surfaces ROOT can orchestrate without duplicating their authority.' },
@@ -591,6 +592,25 @@ export async function POST(req: Request) {
       institutionalReturnVerified:false,
       boundary:'Registration does not verify upstream source truth, outcome, homeostasis, causal propagation or empirical success.',
     },{status:201,headers:{'Cache-Control':'no-store'}});
+  }
+
+  if (operation === 'discovery_read_runs_bounded') {
+    const runIds = Array.isArray(body.run_ids) ? body.run_ids : [];
+    const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (runIds.length < 1 || runIds.length > 8 || runIds.some((id) => typeof id !== 'string' || !uuid.test(id))) {
+      return NextResponse.json({ ok: false, operation, error: 'one_to_eight_valid_run_ids_required' }, { status: 400 });
+    }
+    const uniqueIds = [...new Set(runIds as string[])];
+    const read = await root.service.from('sfi_discovery_query_runs')
+      .select('id,run_id,query_id,availability,metrics,provenance,observed_at,epistemic_boundary,sfi_discovery_queries(query_text,mode,intent,unbranded)')
+      .in('id', uniqueIds).limit(8);
+    if (read.error) return NextResponse.json({ ok: false, operation, error: 'discovery_readback_failed' }, { status: 503 });
+    const byId = new Map((read.data ?? []).map((row) => [String(row.id), row]));
+    return NextResponse.json({ ok: true, operation, requested: uniqueIds.length,
+      found: byId.size, missingRunIds: uniqueIds.filter((id) => !byId.has(id)),
+      runs: uniqueIds.map((id) => byId.get(id)).filter(Boolean),
+      boundary: 'Persisted observations and their original measurements only. No AI retrieval or identity reconstruction inferred from SEARCH class results.' },
+      { headers: { 'Cache-Control': 'no-store' } });
   }
 
   if (operation === 'discovery_observe_bounded') {
