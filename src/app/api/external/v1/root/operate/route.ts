@@ -1,4 +1,5 @@
 import { recordProposalOutcomeFromObservedReturn } from '@/lib/governance/proposalOutcome';
+import { appendOperationalEvent, updateActionProposalStatus } from '@/lib/operational/common';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
@@ -437,6 +438,7 @@ export async function POST(req: Request) {
         { id: 'data_plane_emergency', effect: 'GOVERNED_RECOVERY', description: 'Attempt a bounded and conflict-gated recovery now. Never force a primary switch or erase evidence.' },
         { id: 'data_plane_copy_verified', effect: 'GOVERNED_INSERT_ONLY_REPLAY', description: 'Copy at most 20 exact, immutable world source observations via the existing canonical replay RPC; reject divergent inserts, never switch planes.' },
         { id: 'pending', effect: 'READ', description: 'Read sovereign pending proposals and founder-rule candidates with next-step boundary.' },
+        { id: 'reconcile_obsolete_remediation', effect: 'GOVERNED_SUPERSESSION', description: 'Supersede one queued remediation only after canonical evidence that its parent has completed or was itself superseded. Never claim material execution.' },
         { id: 'sfi_state', effect: 'READ', description: 'Read one bounded cross-institution control-plane projection: WORLD hypotheses/outcomes/learning, Cases, health, incidents and commercial state.' },
         { id: 'capability_map', effect: 'READ', description: 'Describe the canonical surfaces ROOT can orchestrate without duplicating their authority.' },
         { id: 'proposals_record_observed_outcome', effect: 'GOVERNED_OUTCOME', description: 'Record one queued proposal outcome using its existing observed RETURN.' },
@@ -587,6 +589,74 @@ export async function POST(req: Request) {
       institutionalReturnVerified:false,
       boundary:'Registration does not verify upstream source truth, outcome, homeostasis, causal propagation or empirical success.',
     },{status:201,headers:{'Cache-Control':'no-store'}});
+  }
+
+  if (operation === 'reconcile_obsolete_remediation') {
+    if (body.confirmation !== true || !(root.credential.scopes ?? []).includes('governance:decide')) {
+      return NextResponse.json({ ok: false, operation, error: 'governance_scope_and_confirmation_required' }, { status: 403 });
+    }
+    const proposalId = typeof body.proposal_id === 'string' ? body.proposal_id.trim() : '';
+    if (!/^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(proposalId)) {
+      return NextResponse.json({ ok: false, operation, error: 'valid_proposal_id_required' }, { status: 400 });
+    }
+    const childRead = await root.service.from('action_proposals').select('*').eq('id', proposalId).maybeSingle();
+    if (childRead.error || !childRead.data) return NextResponse.json({ ok: false, operation, error: 'remediation_not_found' }, { status: 404 });
+    const child = childRead.data;
+    const expected = record(child.expected_field_delta);
+    const payload = record(expected.payload);
+    const requested = record(payload.requested_action);
+    const parentId = typeof payload.parentProposalId === 'string' ? payload.parentProposalId : '';
+    if (child.status !== 'queued' || child.proposal_type !== 'execution_capability_remediation'
+      || payload.source !== 'self_healing_bootstrap_v1' || requested.type !== 'build_execution_adapter'
+      || !/^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(parentId) || parentId === proposalId) {
+      return NextResponse.json({ ok: false, operation, error: 'not_eligible_remediation' }, { status: 409 });
+    }
+    const parentRead = await root.service.from('action_proposals').select('*').eq('id', parentId).maybeSingle();
+    if (parentRead.error || !parentRead.data) return NextResponse.json({ ok: false, operation, error: 'parent_not_found' }, { status: 409 });
+    const parent = parentRead.data;
+    const parentPatch = record(record(parent.outcome).payloadPatch);
+    const parentReturnId = typeof parentPatch.returnEventId === 'string' ? parentPatch.returnEventId : '';
+    const parentCompleted = parent.status === 'accepted' && parentPatch.outcomeRecorded === true && Boolean(parentReturnId);
+    const parentSuperseded = parent.status === 'superseded'
+      && parentPatch.executionState === 'SUPERSEDED_PARENT_RESOLVED'
+      && typeof parentPatch.resolvedByParentId === 'string';
+    if (!parentCompleted && !parentSuperseded) {
+      return NextResponse.json({ ok: false, operation, error: 'parent_not_proven_resolved', parentStatus: parent.status }, { status: 409 });
+    }
+    if (parentCompleted) {
+      const receipt = await root.service.from('epistemic_events')
+        .select('event_id,event_name,epistemic_class,payload,lineage')
+        .eq('event_id', parentReturnId).maybeSingle();
+      const event = receipt.data;
+      const data = record(event?.payload);
+      const lineage = Array.isArray(event?.lineage) ? event.lineage : [];
+      if (receipt.error || !event || event.epistemic_class !== 'observed'
+        || !String(event.event_name ?? '').endsWith('_RETURN_RECORDED')
+        || (data.proposalId !== parentId && !lineage.includes(parentId))) {
+        return NextResponse.json({ ok: false, operation, error: 'parent_observed_return_unverified' }, { status: 409 });
+      }
+    }
+    const oldPatch = record(record(child.outcome).payloadPatch);
+    const evidenceRefs = [parentId, ...(parentReturnId ? [parentReturnId] : [])];
+    const event = await appendOperationalEvent({
+      eventName: 'execution.remediation.obsolete_superseded', actorId: root.credential.subjectId!, confidence: 1,
+      payload: { proposalId, parentProposalId: parentId, previousStatus: 'queued', nextStatus: 'superseded',
+        resolution: 'PARENT_ALREADY_RESOLVED', externalExecutionObserved: false, canonicalPromotionAllowed: false },
+      lineage: [proposalId, ...evidenceRefs],
+    });
+    if (!event.ok) return NextResponse.json({ ok: false, operation, error: 'supersession_event_failed' }, { status: 503 });
+    const result = await updateActionProposalStatus({ proposalId, status: 'superseded',
+      actorId: root.credential.subjectId!, isRoot: true,
+      proposalType: 'execution_capability_remediation', expectedStatuses: ['queued'], eventId: event.data.id,
+      payloadPatch: { ...oldPatch, executionState: 'SUPERSEDED_PARENT_RESOLVED',
+        resolvedByParentId: parentId, resolutionEvidenceRefs: evidenceRefs, executionAllowed: false,
+        institutionalAdoptionRecorded: false, canonicalPromotionAllowed: false,
+        actualExternalExecutionPerformed: false },
+    });
+    return NextResponse.json({ ok: result.ok, operation,
+      proposalId, parentId, state: result.ok ? 'superseded' : 'UNCONFIRMED',
+      externalExecutionObserved: false, evidenceRefs,
+      error: result.ok ? null : result.error }, { status: result.ok ? 200 : 409 });
   }
 
   if (operation === 'reports') {
