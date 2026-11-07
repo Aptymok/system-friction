@@ -52,6 +52,15 @@ async function main() {
   assert(repository.includes("run_id: result.observationId"), 'deterministic replay identity missing');
   assert(repository.includes("code === '23505'"), 'idempotent replay handling missing');
   assert(repository.includes('runAutomaticDiscoveryObservationCycle'), 'automatic bounded observation cycle missing');
+  assert(repository.includes('runBoundedGeminiDiscoveryProbe'), 'Gemini discovery probe must reuse canonical discovery persistence');
+  assert(repository.includes("providerAllowlist: ['gemini']"), 'model discovery must not silently use a second provider');
+  assert(repository.includes("maxProviderAttempts: 1"), 'bounded model probe must remain single-attempt');
+  assert(repository.includes("testModality: 'MODEL_MEMORY_NO_WEB'"), 'model memory cannot pretend to use web retrieval');
+  assert(repository.includes("providerResponseText: answered ? answer : null"), 'model raw response must be preserved');
+  assert(repository.includes("status: answered ? 'AVAILABLE' : 'UNAVAILABLE'"), 'failed provider cannot enter denominator as observed zero');
+  assert(repository.includes("citedCanonicalUrl: null"), 'model output must not create a verified canonical citation');
+  assert(repository.includes('persistDiscoveryObservation({'), 'model probe must use canonical discovery writer');
+
 
   // Discovery may self-observe and formulate bounded candidates, but it must reuse the
   // canonical proposal writer/lifecycle and may not manufacture a second governance path.
