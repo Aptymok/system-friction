@@ -1,5 +1,6 @@
 import 'server-only';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { runZeroKeyDiscoveryResearch } from '@/lib/agents/publicResearch';
 
 export const SFI_STUDIO_CAMPAIGN_PILOT = 'SFI-STUDIO-CAMPAIGN-PILOT-1.0';
 const PILOT_KEY = 'SFI-SELF-OBSERVATION-2026-11';
@@ -76,6 +77,16 @@ export async function reviewSfiStudioPilotMorning(now = new Date()) {
   if (text(obj(prior?.payload).dayKey) === dayKey) return {
     ok:true,status:'ALREADY_REVIEWED',day,sessionId:session.id,receiptId:prior?.id,writesPerformed:false,
   };
+  // One zero-key daily listening observation. Keep outside sources separate from
+  // the Institute's self-publications; unsuccessful retrieval is NOT absence.
+  const listening = await runZeroKeyDiscoveryResearch('"System Friction Institute"').catch((error) => ({
+    ok:false, provider:'unavailable', sources:[], warnings:[error instanceof Error ? error.message : String(error)],
+  }));
+  const listenSources = listening.sources.slice(0,12).map(source=>({
+    url:source.url,title:source.title,publisher:source.publisher,
+    publishedAt:source.publishedAt,retrievedAt:source.retrievedAt,
+    identity:'CANDIDATE_UNVERIFIED',
+  }));
   const past = list(historical.data).filter(x => text(x.event_type) !== 'SFI_CAMPAIGN_MORNING_REVIEW');
   const objects = list(ownedObjects.data);
   const visuals = objects.filter(x=>text(x.object_type)==='image' || text(x.object_type)==='video');
@@ -94,6 +105,12 @@ export async function reviewSfiStudioPilotMorning(now = new Date()) {
     contract:SFI_STUDIO_CAMPAIGN_PILOT, dayKey, day, horizon, decision,
     epistemicClass:'DERIVED', sourceWorldIds: qualifiedSignals.map(x=>x.id),
     relevantSignals: qualifiedSignals.map(x=>({title:x.title,url:x.source_url,observedAt:x.observed_at})),
+    externalListening: {
+      status:listening.ok?'SEARCH_RESULTS_REPORTED':'UNAVAILABLE',
+      provider:listening.provider,sourceCount:listenSources.length,sources:listenSources,
+      limits:'Result URLs are leads for verification. SFI-authored pages are not independent mentions. No sentiment is inferred.',
+      warnings:listening.warnings.slice(0,5),
+    },
     historicalArchiveCount:historicalEvidence, historicalReconstruction:'DOCUMENTED_ONLY',
     candidateVisualCount:visuals.length, visual,
     candidateVisualObjectIds:visuals.map(x=>x.id),
@@ -106,6 +123,7 @@ export async function reviewSfiStudioPilotMorning(now = new Date()) {
       ...(visuals.length?[]:['VERIFIED_PROJECT_VISUAL']),
       ...(!socialPerformanceObserved?['EXTERNAL_CHANNEL_PERFORMANCE']:[]),
       ...(!qualifiedSignals.length?['RELEVANT_RECENT_WORLD_SIGNAL']:[]),
+      ...(!listening.ok?['BRAND_LISTENING_PROVIDER_UNAVAILABLE']:[]),
     ],
     outboundExecuted:false, publicationExecuted:false, authorityExpanded:false,
     limitations:['World title relevance is lexical screening, not verified causal effect.',
@@ -123,6 +141,7 @@ export async function reviewSfiStudioPilotMorning(now = new Date()) {
   };
   return {ok:true,status:'REVIEW_PERSISTED',sessionId:session.id,receiptId:inserted.data.id,
     day,horizon,decision,visual,signalCount:qualifiedSignals.length,
-    socialPerformanceObserved,missing:receipt.missing,writesPerformed:true,
+    socialPerformanceObserved,brandListeningStatus:receipt.externalListening.status,
+    brandSourceCount:listenSources.length,missing:receipt.missing,writesPerformed:true,
     publicationExecuted:false};
 }
