@@ -25,6 +25,8 @@ async function main() {
     'READBACK_FAILED',
     'MIHM',
   ]) assert(campaign.toLowerCase().includes(key.toLowerCase()),'missing campaign guard '+key);
+  assert(campaign.includes('runZeroKeyDiscoveryResearch'), 'must perform bounded daily public listening');
+  assert(campaign.includes('CANDIDATE_UNVERIFIED'), 'external listening must not presume third-party endorsement');
   assert(root.includes("operation === 'studio_sfi_campaign_bootstrap'"));
   assert(root.includes("operation === 'studio_sfi_campaign_review'"));
   assert(root.includes('root.credential.subjectId!'), 'pilot must be owner-bound');
