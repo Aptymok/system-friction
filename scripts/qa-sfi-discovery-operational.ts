@@ -60,6 +60,13 @@ async function main() {
   assert(rootOperation.includes("persistDiscoveryObservation({"), 'external search must reuse canonical observation owner');
   assert(rootOperation.includes("aiRetrievalTested: false"), 'external web search must not masquerade as AI retrieval');
 
+  assert(repository.includes('runBoundedGeminiGroundedDiscoveryProbe'), 'bounded Gemini grounded observation missing');
+  assert(repository.includes("tools: [{ google_search: {} }]"), 'grounding API tool must be used explicitly');
+  assert(repository.includes('grounding.groundingChunks'), 'grounding citations must be retrieved');
+  assert(repository.includes("testModality: 'WEB_SEARCH'"), 'grounded observation must be distinct from model memory');
+  assert(repository.includes("status = answer && sourceUrls.length && searchQueries.length ? 'AVAILABLE' : 'UNAVAILABLE'"), 'grounding availability must require source readback');
+  assert(rootOperation.includes("operation === 'discovery_gemini_grounded_probe'"), 'manual one-shot root operation missing');
+  assert(rootOperation.includes('approved_one_shot_web_search'), 'explicit grounded search approval missing');
   assert(repository.includes('runBoundedGeminiDiscoveryProbe'), 'Gemini discovery probe must reuse canonical discovery persistence');
   assert(repository.includes("providerAllowlist: ['gemini']"), 'model discovery must not silently use a second provider');
   assert(repository.includes("maxProviderAttempts: 1"), 'bounded model probe must remain single-attempt');
