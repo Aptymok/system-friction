@@ -52,6 +52,14 @@ async function main() {
   assert(repository.includes("run_id: result.observationId"), 'deterministic replay identity missing');
   assert(repository.includes("code === '23505'"), 'idempotent replay handling missing');
   assert(repository.includes('runAutomaticDiscoveryObservationCycle'), 'automatic bounded observation cycle missing');
+  const rootOperation = await text('src/app/api/external/v1/root/operate/route.ts');
+  assert(rootOperation.includes("operation === 'discovery_ingest_external_search'"), 'external search observation adapter missing');
+  assert(rootOperation.includes("providerClass: 'SEARCH', independent: false"), 'external agent must not claim source independence');
+  assert(rootOperation.includes("sourceId: 'EXTERNAL_AGENT_REPORTED:chatgpt_web_search'"), 'external provenance must be explicit');
+  assert(rootOperation.includes("independentlyValidated: false"), 'external search result must not claim server validation');
+  assert(rootOperation.includes("persistDiscoveryObservation({"), 'external search must reuse canonical observation owner');
+  assert(rootOperation.includes("aiRetrievalTested: false"), 'external web search must not masquerade as AI retrieval');
+
   assert(repository.includes('runBoundedGeminiDiscoveryProbe'), 'Gemini discovery probe must reuse canonical discovery persistence');
   assert(repository.includes("providerAllowlist: ['gemini']"), 'model discovery must not silently use a second provider');
   assert(repository.includes("maxProviderAttempts: 1"), 'bounded model probe must remain single-attempt');
