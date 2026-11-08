@@ -77,7 +77,11 @@ export async function reviewSfiStudioPilotMorning(now = new Date()) {
   const failure = [previous,historical,ownedObjects,world,drafts].find(x=>x.error);
   if (failure?.error) return { ok: false,status:'READ_DEGRADED',error: failure.error.message,writesPerformed:false };
   const prior = list(previous.data)[0];
-  if (text(obj(prior?.payload).dayKey) === dayKey) return {
+  const previousPayload = obj(prior?.payload);
+  const alreadyReviewed = text(previousPayload.dayKey) === dayKey;
+  const previouslyMethodAudited = Boolean(obj(previousPayload.methodologicalRouting).primaryMethod)
+    && Boolean(obj(previousPayload.historicalTimeline).projectionInstrument);
+  if (alreadyReviewed && previouslyMethodAudited) return {
     ok:true,status:'ALREADY_REVIEWED',day,sessionId:session.id,receiptId:prior?.id,writesPerformed:false,
   };
   // One zero-key daily listening observation. Keep outside sources separate from
@@ -140,6 +144,7 @@ export async function reviewSfiStudioPilotMorning(now = new Date()) {
   const visual = visuals.length?'CONSIDER_OWNED_ASSETS_VERIFY_RIGHTS':'PROPOSE_ORIGINAL_VISUAL_NO_AUTOGENERATION';
   const receipt = {
     contract:SFI_STUDIO_CAMPAIGN_PILOT, dayKey, day, horizon, decision,
+    supersedesUnaugmentedReviewId: alreadyReviewed && !previouslyMethodAudited ? text(prior?.id) : null,
     epistemicClass:'DERIVED', sourceWorldIds: qualifiedSignals.map(x=>x.id),
     relevantSignals: qualifiedSignals.map(x=>({title:x.title,url:x.source_url,observedAt:x.observed_at})),
     externalListening: {
