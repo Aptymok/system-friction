@@ -5,7 +5,7 @@ import { z } from 'zod';
 
 import { recoverBlockedScheduledWorldReports } from '@/lib/reports/scheduledAgentReports';
 import { probeLlmProviders } from '@/lib/ai/providerRouter';
-import { runAutomaticDiscoveryObservationCycle, runBoundedGeminiDiscoveryProbe } from '@/lib/discovery/discoveryRepository';
+import { persistDiscoveryObservation, runAutomaticDiscoveryObservationCycle, runBoundedGeminiDiscoveryProbe } from '@/lib/discovery/discoveryRepository';
 import { humanReportText } from '@/lib/reports/humanReport';
 import { readRootReportHealth, readRootReportInbox } from '@/lib/reports/rootReportInbox';
 import { runRestrictedEvidenceReports } from '@/lib/reports/restrictedEvidenceReports';
@@ -440,6 +440,7 @@ export async function POST(req: Request) {
         { id: 'data_plane_copy_verified', effect: 'GOVERNED_INSERT_ONLY_REPLAY', description: 'Copy at most 20 exact, immutable world source observations via the existing canonical replay RPC; reject divergent inserts, never switch planes.' },
         { id: 'pending', effect: 'READ', description: 'Read sovereign pending proposals and founder-rule candidates with next-step boundary.' },
         { id: 'discovery_observe_bounded', effect: 'BOUNDED_OBSERVATION', description: 'Execute one existing zero-key public Discovery query; persist real retrieval or unavailable state without calling AI or paid providers.' },
+        { id: 'discovery_ingest_external_search', effect: 'EXTERNAL_TOOL_OBSERVATION', description: 'Persist one attributed external SEARCH-tool result set with bounded fixed queries and source URLs, not server-verified or AI retrieval.' },
         { id: 'discovery_read_runs_bounded', effect: 'READ', description: 'Read back at most eight exact persisted Discovery observation runs and metrics; no writes or inferred measurements.' },
         { id: 'discovery_reconcile_gap', effect: 'GOVERNED_EVIDENCE_RECONCILIATION', description: 'Attach exact persisted discovery observations to one existing waiting-evidence proposal, without claiming recognition or closing the proposal.' },
         { id: 'discovery_gemini_memory_probe', effect: 'BOUNDED_MODEL_OBSERVATION', description: 'Observe one Gemini API response with fixed public prompt, no web, no cross-provider fallback and explicit original text persistence.' },
@@ -594,6 +595,66 @@ export async function POST(req: Request) {
       institutionalReturnVerified:false,
       boundary:'Registration does not verify upstream source truth, outcome, homeostasis, causal propagation or empirical success.',
     },{status:201,headers:{'Cache-Control':'no-store'}});
+  }
+
+  if (operation === 'discovery_ingest_external_search') {
+    if (body.confirmation !== true || !(root.credential.scopes ?? []).includes('execute')) {
+      return NextResponse.json({ ok: false, operation, error: 'execute_scope_and_confirmation_required' }, { status: 403 });
+    }
+    // External observer reports exact top-result URLs from its own tool.
+    // This does not turn user-supplied observations into server-observed search.
+    const fixedQueries = [
+      'research institute evidence authority return AI governance institutions',
+      'friction homeostasis institutional model framework',
+    ] as const;
+    const index = body.query_index;
+    const refs = body.result_urls;
+    if ((index !== 0 && index !== 1) || !Array.isArray(refs) || refs.length < 3 || refs.length > 8
+      || refs.some((x) => typeof x !== 'string' || x.length > 1000)) {
+      return NextResponse.json({ ok: false, operation, error: 'fixed_query_index_and_three_to_eight_result_urls_required' }, { status: 400 });
+    }
+    let urls: URL[];
+    try {
+      urls = refs.map((x: string) => new URL(x));
+      if (urls.some((u) => u.protocol !== 'https:' || Boolean(u.username || u.password)
+        || u.hostname === 'localhost' || u.hostname.endsWith('.local'))) throw new Error('invalid_source_url');
+      if (new Set(urls.map((u) => u.href)).size !== urls.length) throw new Error('duplicate_source_url');
+    } catch {
+      return NextResponse.json({ ok: false, operation, error: 'valid_unique_https_source_urls_required' }, { status: 400 });
+    }
+    const query = fixedQueries[index as 0 | 1];
+    const own = urls.find((u) => u.hostname.replace(/^www\./, '').toLowerCase() === 'systemfriction.org');
+    const retrieved = Boolean(own);
+    const observedAt = new Date().toISOString();
+    const observed = await persistDiscoveryObservation({
+      mode: 'distinct_intent',
+      query,
+      intent: 'Externally reported first-page search sample; provider response not replayed by SFI backend',
+      retrievalObservations: [{
+        observationId: `EXT-SEARCH-${observedAt}-${index}`,
+        source: {
+          sourceId: 'EXTERNAL_AGENT_REPORTED:chatgpt_web_search',
+          sourceUrl: null, publisher: 'ChatGPT external web search', platform: 'chatgpt_web_search',
+          providerClass: 'SEARCH', independent: false,
+        },
+        observedAt,
+        query,
+        unbranded: true,
+        retrieved,
+        attributedEntityName: null,
+        attributedDomain: retrieved ? 'systemfriction.org' : null,
+        citedCanonicalUrl: own?.href ?? null,
+        references: urls.map((url) => ({ url: url.href, independent: false })),
+        status: 'AVAILABLE',
+      }],
+    }, root.credential.subjectId!);
+    return NextResponse.json({ ok: true, operation, runId: observed.runId, replay: observed.replay,
+      query, resultUrls: urls.length, sfiRetrievedInReportedSample: retrieved,
+      provenanceType: 'EXTERNAL_AGENT_REPORTED_SEARCH_NOT_SERVER_REPLAYED',
+      metricScope: 'REPORTED_TOP_RESULT_SAMPLE_ONLY', aiRetrievalTested: false,
+      independentlyValidated: false, canonicalPromotionAllowed: false,
+      boundary: 'The external tool observation is attributable, not independently reproduced by SFI. A reported absent domain is not global absence, AI recognition, validated identity, or RETURN.' },
+      { headers: { 'Cache-Control': 'no-store' } });
   }
 
   if (operation === 'discovery_reconcile_gap') {
