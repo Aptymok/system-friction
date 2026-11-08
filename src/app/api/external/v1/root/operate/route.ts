@@ -11,7 +11,7 @@ import { readRootReportHealth, readRootReportInbox } from '@/lib/reports/rootRep
 import { runRestrictedEvidenceReports } from '@/lib/reports/restrictedEvidenceReports';
 import { authorizeExternalRequest, externalAuthError } from '@/lib/sfi/externalAuth';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
-import { bootstrapSfiStudioPilot, reviewSfiStudioPilotMorning } from '@/lib/studio/campaign/studioCampaignPilot';
+import { bootstrapSfiStudioPilot, importSfiStudioGenealogy, reviewSfiStudioPilotMorning } from '@/lib/studio/campaign/studioCampaignPilot';
 import { deliverInstitutionalInvitation } from '@/lib/auth/institutionalInvitationDelivery';
 import { readDataPlaneReconciliationStatus, attemptBoundedDataPlaneReconciliation } from '@/lib/persistence/dataPlaneReconciliationControl';
 import { replayVerifiedSourceObservations } from '@/lib/persistence/verifiedObservationReplay';
@@ -441,6 +441,7 @@ export async function POST(req: Request) {
         { id: 'data_plane_copy_verified', effect: 'GOVERNED_INSERT_ONLY_REPLAY', description: 'Copy at most 20 exact, immutable world source observations via the existing canonical replay RPC; reject divergent inserts, never switch planes.' },
         { id: 'pending', effect: 'READ', description: 'Read sovereign pending proposals and founder-rule candidates with next-step boundary.' },
         { id: 'studio_sfi_campaign_bootstrap', effect: 'FOUNDER_AUTHORIZED_STUDIO_INTAKE', description: 'Create or reuse SFI as its own Studio pilot project; no outbound, publication or new authority.' },
+        { id: 'studio_sfi_genealogy_import', effect: 'OWNER_SCOPED_HISTORICAL_METADATA', description: 'Import at most 32 attributed historical source references into the existing Studio pilot; no raw archive content or publication.' },
         { id: 'studio_sfi_campaign_review', effect: 'READ_AND_BOUNDED_DAILY_RECEIPT', description: 'Review today source-backed Studio campaign state using existing World and Studio records only.' },
         { id: 'discovery_observe_bounded', effect: 'BOUNDED_OBSERVATION', description: 'Execute one existing zero-key public Discovery query; persist real retrieval or unavailable state without calling AI or paid providers.' },
         { id: 'discovery_ingest_external_search', effect: 'EXTERNAL_TOOL_OBSERVATION', description: 'Persist one attributed external SEARCH-tool result set with bounded fixed queries and source URLs, not server-verified or AI retrieval.' },
@@ -790,6 +791,22 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, operation, error: 'gemini_grounded_probe_failed',
         details: error instanceof Error ? error.message : String(error) },
         { status: 503, headers: { 'Cache-Control': 'no-store' } });
+    }
+  }
+
+  if (operation === 'studio_sfi_genealogy_import') {
+    if (body.confirmation !== true || !(root.credential.scopes ?? []).includes('execute')) {
+      return NextResponse.json({ok:false,operation,error:'execute_scope_and_confirmation_required'},{status:403});
+    }
+    try {
+      const result=await importSfiStudioGenealogy(root.credential.subjectId!,body.entries);
+      return NextResponse.json({ok:result.ok,operation,result,
+        noOriginalFilesUploaded:true,canonicalPromotionAllowed:false,
+        publicationExecuted:false}, {status:result.ok?200:409,
+        headers:{'Cache-Control':'no-store'}});
+    } catch(error) {
+      return NextResponse.json({ok:false,operation,error:'genealogy_import_failed',
+        details:error instanceof Error?error.message:String(error)}, {status:503});
     }
   }
 
