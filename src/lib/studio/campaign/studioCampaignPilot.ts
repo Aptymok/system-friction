@@ -1,4 +1,5 @@
 import 'server-only';
+import { createHash } from 'node:crypto';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { runZeroKeyDiscoveryResearch } from '@/lib/agents/publicResearch';
 
@@ -144,4 +145,59 @@ export async function reviewSfiStudioPilotMorning(now = new Date()) {
     socialPerformanceObserved,brandListeningStatus:receipt.externalListening.status,
     brandSourceCount:listenSources.length,missing:receipt.missing,writesPerformed:true,
     publicationExecuted:false};
+}
+
+/**
+ * Integrates a limited, attributed genealogy into the existing owner-scoped
+ * Studio session. Does not ingest raw file bytes or claim archive/publication
+ * dates prove external operation. One manifest is one historical evidence event.
+ */
+export async function importSfiStudioGenealogy(ownerId: string, input: unknown) {
+  const entries = Array.isArray(input) ? input : [];
+  if (entries.length < 1 || entries.length > 32) throw new Error('GENEALOGY_ENTRY_LIMIT_1_TO_32');
+  const acceptable = new Set(['GITHUB_COMMIT','LOCAL_ARCHIVE_INDEX','PUBLIC_WEB_PAGE']);
+  const clean = entries.map((item) => {
+    const r=obj(item);
+    const kind=text(r.kind);
+    const title=text(r.title);
+    const date=text(r.date);
+    const ref=text(r.sourceRef);
+    const note=text(r.note);
+    if (!acceptable.has(kind) || !title || title.length>170
+      || !/^20\d\d-\d\d-\d\d$/.test(date)
+      || !ref || ref.length>350 || note.length>550) throw new Error('INVALID_GENEALOGY_ENTRY');
+    if(kind==='GITHUB_COMMIT' && !/^https:\/\/github\.com\/Aptymok\//.test(ref)) throw new Error('INVALID_GITHUB_PROVENANCE');
+    if(kind==='PUBLIC_WEB_PAGE' && !/^https:\/\//.test(ref)) throw new Error('INVALID_WEB_PROVENANCE');
+    if(kind==='LOCAL_ARCHIVE_INDEX' && !/^sha256:[0-9a-f]{64}$/.test(ref)) throw new Error('INVALID_ARCHIVE_FINGERPRINT');
+    return {kind,title,date,sourceRef:ref,note,epistemicClass:kind==='LOCAL_ARCHIVE_INDEX'?'USER_SUPPLIED_METADATA':'SOURCE_DOCUMENTED',
+      claimScope:kind==='LOCAL_ARCHIVE_INDEX'?'ARCHIVE_TIMESTAMP_NOT_PUBLISH_DATE':'COMMIT_OR_PAGE_EXISTENCE_NOT_OPERATIONAL_VALIDATION'};
+  });
+  if(new Set(clean.map(x=>x.kind+':'+x.sourceRef+':'+x.title)).size!==clean.length) throw new Error('GENEALOGY_DUPLICATE_ENTRY');
+  const session=await locateSfiStudioPilot();
+  if(!session || text(session.owner_id)!==ownerId) throw new Error('OWNER_BOUND_PILOT_NOT_FOUND');
+  const fingerprint=createHash('sha256').update(JSON.stringify(clean)).digest('hex');
+  const db=createServiceSupabaseClient();
+  const prior=await db.from('studio_archive_events').select('id,payload')
+    .eq('session_id',String(session.id))
+    .eq('event_type','SFI_GENEALOGY_IMPORT')
+    .eq('payload->>fingerprint',fingerprint).limit(1);
+  if(prior.error) throw new Error('GENEALOGY_LOOKUP_FAILED:'+prior.error.message);
+  if(prior.data?.length) return {ok:true,status:'ALREADY_IMPORTED',sessionId:session.id,
+    receiptId:prior.data[0].id,entryCount:clean.length,created:false};
+  const inserted=await db.from('studio_archive_events').insert({
+    session_id:session.id, owner_id:ownerId,event_type:'SFI_GENEALOGY_IMPORT',
+    label:'Attributed SFI history · public commits + private archive index',
+    source:'founder_authorized_archive_review_2026_11',
+    payload:{contract:'SFI-STUDIO-GENEALOGY-1.0',fingerprint,records:clean,
+      archiveBytesPersisted:false, privateSecretsPersisted:false, automaticCanon:false,
+      automaticPublication:false,
+      limitations:['Archive timestamps are not proof of public deployment',
+        'Documents describing a feature do not prove the feature executed',
+        'All local archives remain external to Studio; only bounded metadata is stored']},
+  }).select('id').single();
+  if(inserted.error||!inserted.data?.id)throw new Error('GENEALOGY_PERSIST_FAILED:'+(inserted.error?.message??'no_row'));
+  const check=await db.from('studio_archive_events').select('id,payload').eq('id',inserted.data.id).maybeSingle();
+  if(check.error||text(obj(check.data?.payload).fingerprint)!==fingerprint)return {ok:false,status:'READBACK_UNVERIFIED',receiptId:inserted.data.id};
+  return {ok:true,status:'PERSISTED_AND_READBACK_VERIFIED',sessionId:session.id,
+    receiptId:inserted.data.id,entryCount:clean.length,created:true};
 }
