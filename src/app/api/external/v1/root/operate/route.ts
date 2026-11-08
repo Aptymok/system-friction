@@ -5,7 +5,7 @@ import { z } from 'zod';
 
 import { recoverBlockedScheduledWorldReports } from '@/lib/reports/scheduledAgentReports';
 import { probeLlmProviders } from '@/lib/ai/providerRouter';
-import { persistDiscoveryObservation, runAutomaticDiscoveryObservationCycle, runBoundedGeminiDiscoveryProbe } from '@/lib/discovery/discoveryRepository';
+import { persistDiscoveryObservation, runAutomaticDiscoveryObservationCycle, runBoundedGeminiDiscoveryProbe, runBoundedGeminiGroundedDiscoveryProbe } from '@/lib/discovery/discoveryRepository';
 import { humanReportText } from '@/lib/reports/humanReport';
 import { readRootReportHealth, readRootReportInbox } from '@/lib/reports/rootReportInbox';
 import { runRestrictedEvidenceReports } from '@/lib/reports/restrictedEvidenceReports';
@@ -444,6 +444,7 @@ export async function POST(req: Request) {
         { id: 'discovery_read_runs_bounded', effect: 'READ', description: 'Read back at most eight exact persisted Discovery observation runs and metrics; no writes or inferred measurements.' },
         { id: 'discovery_reconcile_gap', effect: 'GOVERNED_EVIDENCE_RECONCILIATION', description: 'Attach exact persisted discovery observations to one existing waiting-evidence proposal, without claiming recognition or closing the proposal.' },
         { id: 'discovery_gemini_memory_probe', effect: 'BOUNDED_MODEL_OBSERVATION', description: 'Observe one Gemini API response with fixed public prompt, no web, no cross-provider fallback and explicit original text persistence.' },
+        { id: 'discovery_gemini_grounded_probe', effect: 'ONE_SHOT_GROUNDED_OBSERVATION', description: 'One manual Gemini Google Search-grounded identity probe with canonical readback and no schedule; Google may charge per generated query.' },
         { id: 'reconcile_obsolete_remediation', effect: 'GOVERNED_SUPERSESSION', description: 'Supersede one queued remediation only after canonical evidence that its parent has completed or was itself superseded. Never claim material execution.' },
         { id: 'sfi_state', effect: 'READ', description: 'Read one bounded cross-institution control-plane projection: WORLD hypotheses/outcomes/learning, Cases, health, incidents and commercial state.' },
         { id: 'capability_map', effect: 'READ', description: 'Describe the canonical surfaces ROOT can orchestrate without duplicating their authority.' },
@@ -769,6 +770,24 @@ export async function POST(req: Request) {
       error: statusResult.ok ? null : statusResult.error,
       boundary: 'Evidence review does not claim recognition, authorize material execution, close the gap or promote canon.' },
       { status: statusResult.ok ? 200 : 409, headers: { 'Cache-Control': 'no-store' } });
+  }
+
+  if (operation === 'discovery_gemini_grounded_probe') {
+    if (body.confirmation !== true || !(root.credential.scopes ?? []).includes('execute')
+      || body.approved_one_shot_web_search !== true) {
+      return NextResponse.json({ ok: false, operation, error: 'execute_scope_and_explicit_one_shot_grounding_consent_required' }, { status: 403 });
+    }
+    try {
+      const observed = await runBoundedGeminiGroundedDiscoveryProbe();
+      return NextResponse.json({ ...observed, operation, testModality: 'WEB_SEARCH',
+        scheduled: false, providerFallbackAllowed: false,
+        independentlyVerified: false, institutionalAdoptionRecorded: false,
+        canonicalPromotionAllowed: false }, { headers: { 'Cache-Control': 'no-store' } });
+    } catch (error) {
+      return NextResponse.json({ ok: false, operation, error: 'gemini_grounded_probe_failed',
+        details: error instanceof Error ? error.message : String(error) },
+        { status: 503, headers: { 'Cache-Control': 'no-store' } });
+    }
   }
 
   if (operation === 'discovery_gemini_memory_probe') {
