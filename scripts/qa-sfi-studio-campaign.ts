@@ -32,6 +32,14 @@ async function main() {
   assert(root.includes("operation === 'studio_sfi_genealogy_import'"), 'sovereign bounded genealogy endpoint missing');
   assert(campaign.includes('runZeroKeyDiscoveryResearch'), 'must perform bounded daily public listening');
   assert(campaign.includes('CANDIDATE_UNVERIFIED'), 'external listening must not presume third-party endorsement');
+  assert(campaign.includes('resolveMihmMethod({'), 'Studio must invoke canonical MIHM method selector');
+  assert(campaign.includes("subject: 'SFI_SYSTEM'"), 'SFI self-case must route as institution');
+  assert(campaign.includes("temporalScope: 'LONGITUDINAL'"), 'temporal window must be explicit');
+  assert(campaign.includes('projectTimelineClockProfile({'), 'Studio must invoke canonical MIHM-T descriptive clocks');
+  assert(campaign.includes("RECORD: {"), 'dated archive record must map to RECORD only');
+  assert(campaign.includes('validatedTransferModel: false'), 'descriptive timeline cannot claim validated transfer');
+  assert(campaign.includes('historicalTimeline:'), 'MIHM-T clock evidence must be persisted in morning receipt');
+  assert(campaign.includes('methodologicalRouting:'), 'canonical MIHM selection must be persisted in morning receipt');
   assert(root.includes("operation === 'studio_sfi_campaign_bootstrap'"));
   assert(root.includes("operation === 'studio_sfi_campaign_review'"));
   assert(root.includes('root.credential.subjectId!'), 'pilot must be owner-bound');
