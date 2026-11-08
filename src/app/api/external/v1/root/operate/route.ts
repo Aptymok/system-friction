@@ -601,7 +601,7 @@ export async function POST(req: Request) {
     if (body.confirmation !== true || !(root.credential.scopes ?? []).includes('execute')) {
       return NextResponse.json({ ok: false, operation, error: 'execute_scope_and_confirmation_required' }, { status: 403 });
     }
-    // External observer reports exact top-result URLs from its own tool.
+    // External observer reports a bounded selection of returned URLs from its own tool.
     // This does not turn user-supplied observations into server-observed search.
     const fixedQueries = [
       'research institute evidence authority return AI governance institutions',
@@ -629,7 +629,7 @@ export async function POST(req: Request) {
     const observed = await persistDiscoveryObservation({
       mode: 'distinct_intent',
       query,
-      intent: 'Externally reported first-page search sample; provider response not replayed by SFI backend',
+      intent: 'Externally reported bounded URL sample; provider result ranking and complete response not replayed by SFI backend',
       retrievalObservations: [{
         observationId: `EXT-SEARCH-${observedAt}-${index}`,
         source: {
@@ -651,7 +651,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true, operation, runId: observed.runId, replay: observed.replay,
       query, resultUrls: urls.length, sfiRetrievedInReportedSample: retrieved,
       provenanceType: 'EXTERNAL_AGENT_REPORTED_SEARCH_NOT_SERVER_REPLAYED',
-      metricScope: 'REPORTED_TOP_RESULT_SAMPLE_ONLY', aiRetrievalTested: false,
+      metricScope: 'REPORTED_BOUNDED_URL_SUBSET_ONLY', aiRetrievalTested: false,
       independentlyValidated: false, canonicalPromotionAllowed: false,
       boundary: 'The external tool observation is attributable, not independently reproduced by SFI. A reported absent domain is not global absence, AI recognition, validated identity, or RETURN.' },
       { headers: { 'Cache-Control': 'no-store' } });
