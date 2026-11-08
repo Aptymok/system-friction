@@ -11,6 +11,7 @@ import { readRootReportHealth, readRootReportInbox } from '@/lib/reports/rootRep
 import { runRestrictedEvidenceReports } from '@/lib/reports/restrictedEvidenceReports';
 import { authorizeExternalRequest, externalAuthError } from '@/lib/sfi/externalAuth';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { bootstrapSfiStudioPilot, reviewSfiStudioPilotMorning } from '@/lib/studio/campaign/studioCampaignPilot';
 import { deliverInstitutionalInvitation } from '@/lib/auth/institutionalInvitationDelivery';
 import { readDataPlaneReconciliationStatus, attemptBoundedDataPlaneReconciliation } from '@/lib/persistence/dataPlaneReconciliationControl';
 import { replayVerifiedSourceObservations } from '@/lib/persistence/verifiedObservationReplay';
@@ -439,6 +440,8 @@ export async function POST(req: Request) {
         { id: 'data_plane_emergency', effect: 'GOVERNED_RECOVERY', description: 'Attempt a bounded and conflict-gated recovery now. Never force a primary switch or erase evidence.' },
         { id: 'data_plane_copy_verified', effect: 'GOVERNED_INSERT_ONLY_REPLAY', description: 'Copy at most 20 exact, immutable world source observations via the existing canonical replay RPC; reject divergent inserts, never switch planes.' },
         { id: 'pending', effect: 'READ', description: 'Read sovereign pending proposals and founder-rule candidates with next-step boundary.' },
+        { id: 'studio_sfi_campaign_bootstrap', effect: 'FOUNDER_AUTHORIZED_STUDIO_INTAKE', description: 'Create or reuse SFI as its own Studio pilot project; no outbound, publication or new authority.' },
+        { id: 'studio_sfi_campaign_review', effect: 'READ_AND_BOUNDED_DAILY_RECEIPT', description: 'Review today source-backed Studio campaign state using existing World and Studio records only.' },
         { id: 'discovery_observe_bounded', effect: 'BOUNDED_OBSERVATION', description: 'Execute one existing zero-key public Discovery query; persist real retrieval or unavailable state without calling AI or paid providers.' },
         { id: 'discovery_ingest_external_search', effect: 'EXTERNAL_TOOL_OBSERVATION', description: 'Persist one attributed external SEARCH-tool result set with bounded fixed queries and source URLs, not server-verified or AI retrieval.' },
         { id: 'discovery_read_runs_bounded', effect: 'READ', description: 'Read back at most eight exact persisted Discovery observation runs and metrics; no writes or inferred measurements.' },
@@ -787,6 +790,24 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, operation, error: 'gemini_grounded_probe_failed',
         details: error instanceof Error ? error.message : String(error) },
         { status: 503, headers: { 'Cache-Control': 'no-store' } });
+    }
+  }
+
+  if (operation === 'studio_sfi_campaign_bootstrap' || operation === 'studio_sfi_campaign_review') {
+    const scopes = root.credential.scopes ?? [];
+    if (!scopes.includes('execute') || body.confirmation !== true) {
+      return NextResponse.json({ ok: false, operation, error: 'execute_scope_and_confirmation_required' }, { status: 403 });
+    }
+    try {
+      const result = operation === 'studio_sfi_campaign_bootstrap'
+        ? await bootstrapSfiStudioPilot(root.credential.subjectId!)
+        : await reviewSfiStudioPilotMorning();
+      return NextResponse.json({ ok: true, operation, result, publishAllowed: false,
+        outboundExecuted: false, epistemicBoundary: 'Studio project and daily evidence review only; no platform connection, material marketing execution or institutional adoption established.' },
+      { headers: { 'Cache-Control': 'no-store' } });
+    } catch (error) {
+      return NextResponse.json({ ok: false, operation, error: 'studio_campaign_operation_failed',
+        details: error instanceof Error ? error.message : String(error) }, {status:503});
     }
   }
 
