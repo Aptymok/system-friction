@@ -2,6 +2,8 @@ import 'server-only';
 import { createHash } from 'node:crypto';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { runZeroKeyDiscoveryResearch } from '@/lib/agents/publicResearch';
+import { resolveMihmMethod } from '@/lib/mihm/methodSelectionResolver';
+import { projectTimelineClockProfile } from '@/lib/mihm/timelineClocks';
 
 export const SFI_STUDIO_CAMPAIGN_PILOT = 'SFI-STUDIO-CAMPAIGN-PILOT-1.0';
 const PILOT_KEY = 'SFI-SELF-OBSERVATION-2026-11';
@@ -95,6 +97,40 @@ export async function reviewSfiStudioPilotMorning(now = new Date()) {
   const evidence = list(drafts.data).filter(x => /social|campaign|engagement|publication|discovery|external/i.test(text(x.source))).slice(0,10);
   const qualifiedSignals = signals.filter(x=>Boolean(text(x.source_url)));
   const socialPerformanceObserved = evidence.some(x=>obj(x.payload).externalPostId && obj(x.payload).observedMetrics);
+  // Reuse the canonical MIHM method selector: institutional SFI is not a person,
+  // media file or synthetic MIHM-T experimental fixture.
+  const mihmMethod = resolveMihmMethod({
+    subject: 'SFI_SYSTEM',
+    temporalScope: 'LONGITUDINAL',
+    evidenceModalities: ['INSTITUTIONAL_RECORD', ...(objects.length ? ['SOFTWARE' as const] : []), ...(qualifiedSignals.length ? ['TELEMETRY' as const] : [])],
+    subjectId: 'systemfriction.org',
+    ownerId,
+    isSfiInternal: true,
+    worldContextRequested: qualifiedSignals.length > 0,
+    requiresTrajectory: true,
+    requiresRivalHypothesis: true,
+    requiresInterventionTracking: true,
+    observationSpanDays: day,
+    evidenceCount: past.length + qualifiedSignals.length + evidence.length,
+  });
+  // Preserve independently dated archive records as RECORD, not EVENT/KNOWLEDGE
+  // or EXECUTION. One source record cannot be silently used for seven clocks.
+  const temporalProfiles = past.filter(x => dateMs(x.created_at) > 0).slice(0, 12).map(x =>
+    projectTimelineClockProfile({
+      eventId: text(x.id),
+      anchorAt: new Date(dateMs(x.created_at)).toISOString(),
+      anchorMeaning: 'Studio archive record registered; event occurrence is not independently established.',
+      clocks: {
+        RECORD: {
+          at: new Date(dateMs(x.created_at)).toISOString(),
+          sourceRef: 'studio_archive_event:' + text(x.id),
+          meaning: 'The archival record was written at this timestamp; this does not date underlying real-world activity.',
+          basis: 'OBSERVED_TIME',
+          epistemicClass: 'OBSERVED',
+        },
+      },
+    }),
+  );
   const historicalEvidence = past.length;
   const horizon = day<=15?'MICRO_CALIBRATION':day<=90?'STRATEGIC_90D':'REVIEW_DUE';
   // No inferred world causality, no spurious MIHM score, no vanity KPI mistaken for adoption.
@@ -113,6 +149,19 @@ export async function reviewSfiStudioPilotMorning(now = new Date()) {
       warnings:listening.warnings.slice(0,5),
     },
     historicalArchiveCount:historicalEvidence, historicalReconstruction:'DOCUMENTED_ONLY',
+    methodologicalRouting: {
+      version: mihmMethod.version, status: mihmMethod.status,
+      primaryMethod: mihmMethod.primary?.methodId ?? null,
+      supportingMethods: mihmMethod.supporting.map(x => x.methodId),
+      blockers: mihmMethod.blockers.map(x => x.code),
+      limits: 'Method selection is compatibility routing, not execution of a Phi measurement or validation of MIHM.',
+    },
+    historicalTimeline: {
+      projectionInstrument: 'SFI-MIHM-T-TIMELINE-CLOCKS-0.1',
+      sourceRecordProfiles: temporalProfiles,
+      missingTimeRule: 'No inference of EVENT, KNOWLEDGE, AUTHORITY, EXECUTION or RETURN clocks from record date.',
+      validatedTransferModel: false,
+    },
     candidateVisualCount:visuals.length, visual,
     candidateVisualObjectIds:visuals.map(x=>x.id),
     socialPerformanceObserved, socialEvidenceTraceIds:evidence.map(x=>x.id),
@@ -142,7 +191,8 @@ export async function reviewSfiStudioPilotMorning(now = new Date()) {
   };
   return {ok:true,status:'REVIEW_PERSISTED',sessionId:session.id,receiptId:inserted.data.id,
     day,horizon,decision,visual,signalCount:qualifiedSignals.length,
-    socialPerformanceObserved,brandListeningStatus:receipt.externalListening.status,
+    socialPerformanceObserved,mihmMethod:receipt.methodologicalRouting.primaryMethod,
+    mihmTProfiles:temporalProfiles.length,brandListeningStatus:receipt.externalListening.status,
     brandSourceCount:listenSources.length,missing:receipt.missing,writesPerformed:true,
     publicationExecuted:false};
 }
