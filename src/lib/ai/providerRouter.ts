@@ -215,7 +215,7 @@ const GEMINI_PRIMARY_MIGRATION = RAW_GEMINI_MODEL && /^gemini-1\.5(?:-|$)/i.test
 const DEFAULTS = {
   openai: envModel(process.env.OPENAI_MODEL) ?? 'gpt-4o-mini',
   anthropic: ANTHROPIC_PRIMARY_MIGRATION ? 'claude-sonnet-5' : RAW_ANTHROPIC_MODEL ?? 'claude-sonnet-5',
-  gemini: GEMINI_PRIMARY_MIGRATION ? 'gemini-3.8-flash' : RAW_GEMINI_MODEL ?? 'gemini-3.8-flash',
+  gemini: GEMINI_PRIMARY_MIGRATION ? 'gemini-3.5-flash-lite' : RAW_GEMINI_MODEL ?? 'gemini-3.5-flash-lite',
   geminiFast: envModel(process.env.GEMINI_FAST_MODEL) ?? 'gemini-3.5-flash-lite',
   groqFast: envModel(process.env.GROQ_MODEL, process.env.GROQ_FAST_MODEL) ?? 'openai/gpt-oss-20b',
   groqReasoning: envModel(process.env.GROQ_REASONING_MODEL) ?? 'openai/gpt-oss-120b',
