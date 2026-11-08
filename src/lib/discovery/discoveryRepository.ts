@@ -280,3 +280,104 @@ export async function readDiscoveryRun(runId: string) {
   if (collisions.error) throw new Error(`SFI_DISCOVERY_COLLISION_READ_FAILED:${collisions.error.message}`);
   return { run: run.data, collisions: collisions.data ?? [] };
 }
+
+/**
+ * Opt-in single Gemini grounded SEARCH experiment. No scheduler calls this.
+ * A model sentence is not a citation; only returned Google grounding chunks
+ * establish that the web tool supplied references.
+ */
+export async function runBoundedGeminiGroundedDiscoveryProbe() {
+  const query = 'Using Google Search, identify the research organization exactly named System Friction Institute. Report its website and any externally verifiable institutional entity identifier. Differentiate it from similarly named organizations. If identity or entity ID is not independently supported by search results, explicitly write UNKNOWN. Cite web sources.';
+  const observedAt = new Date().toISOString();
+  const model = 'gemini-3.5-flash-lite';
+  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+  if (!apiKey) throw new Error('GEMINI_KEY_NOT_CONFIGURED');
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 35000);
+  let status: SfiDiscoveryRetrievalObservation['status'] = 'UNAVAILABLE';
+  let answer: string | null = null;
+  let searchQueries: string[] = [];
+  let sourceUrls: string[] = [];
+  let reason = 'GROUNDING_RESPONSE_UNAVAILABLE';
+  try {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ role: 'user', parts: [{ text: query }] }],
+        tools: [{ google_search: {} }],
+        generationConfig: { maxOutputTokens: 420 },
+      }),
+      signal: controller.signal,
+      cache: 'no-store',
+    });
+    if (!response.ok) {
+      reason = `GEMINI_GROUNDING_HTTP_${response.status}`;
+    } else {
+      const raw = await response.json() as Record<string, unknown>;
+      const candidates = Array.isArray(raw.candidates) ? raw.candidates : [];
+      const first = candidates[0] && typeof candidates[0] === 'object'
+        ? candidates[0] as Record<string, unknown> : {};
+      const content = first.content && typeof first.content === 'object'
+        ? first.content as Record<string, unknown> : {};
+      const parts = Array.isArray(content.parts) ? content.parts : [];
+      answer = parts.map((part) => part && typeof part === 'object'
+        ? String((part as Record<string, unknown>).text ?? '') : '').join('\n').slice(0, 3000).trim() || null;
+      const grounding = first.groundingMetadata && typeof first.groundingMetadata === 'object'
+        ? first.groundingMetadata as Record<string, unknown> : {};
+      searchQueries = Array.isArray(grounding.webSearchQueries)
+        ? grounding.webSearchQueries.filter((item): item is string => typeof item === 'string').slice(0, 20)
+        : [];
+      const chunks = Array.isArray(grounding.groundingChunks) ? grounding.groundingChunks : [];
+      sourceUrls = [...new Set(chunks.map((chunk) => {
+        if (!chunk || typeof chunk !== 'object') return '';
+        const web = (chunk as Record<string, unknown>).web;
+        return web && typeof web === 'object' && typeof (web as Record<string, unknown>).uri === 'string'
+          ? String((web as Record<string, unknown>).uri) : '';
+      }).filter((url) => {
+        try { return new URL(url).protocol === 'https:'; } catch { return false; }
+      }))].slice(0, 40);
+      status = answer && sourceUrls.length && searchQueries.length ? 'AVAILABLE' : 'UNAVAILABLE';
+      reason = status === 'AVAILABLE' ? 'GROUNDED_RESULT_RETURNED' : 'NO_GROUNDING_CITATIONS_OR_TEXT';
+    }
+  } catch {
+    reason = 'GEMINI_GROUNDING_REQUEST_FAILED_OR_TIMEOUT';
+  } finally {
+    clearTimeout(timeout);
+  }
+  const citedCanonicalUrl = sourceUrls.find((url) => {
+    try { return new URL(url).hostname.replace(/^www\./, '') === 'systemfriction.org'; } catch { return false; }
+  }) ?? null;
+  // The text may mention the institute without genuinely citing the correct domain.
+  const mentionsName = /\bsystem friction institute\b/i.test(answer ?? '');
+  const mentionsDomain = /\bsystemfriction\.org\b/i.test(answer ?? '');
+  const retrieved = status === 'AVAILABLE' ? Boolean(citedCanonicalUrl && mentionsName) : null;
+  const observation: SfiDiscoveryRetrievalObservation = {
+    observationId: `GEMINI-GROUNDED-${observedAt}`,
+    observedAt, query, unbranded: false, retrieved,
+    source: { sourceId: 'GEMINI:GOOGLE_SEARCH_GROUNDING', sourceUrl: null,
+      publisher: 'Google Gemini API', platform: 'gemini-google-search',
+      providerClass: 'AI', independent: false },
+    providerResponseText: answer,
+    modelId: model,
+    testModality: 'WEB_SEARCH',
+    attributedEntityName: retrieved && mentionsName ? 'System Friction Institute' : null,
+    attributedDomain: retrieved && mentionsDomain ? 'systemfriction.org' : null,
+    citedCanonicalUrl: retrieved ? citedCanonicalUrl : null,
+    references: sourceUrls.map((url) => ({ url, independent: false })),
+    status,
+  };
+  const saved = await persistDiscoveryObservation({
+    mode: 'distinct_intent', query,
+    intent: 'Single founder-authorized Gemini Google Search grounded identity probe; not model memory or adoption',
+    retrievalObservations: [observation],
+  }, null);
+  return {
+    ok: true, runId: saved.runId, replay: saved.replay, model,
+    observedAt, status, reason, retrieved, answer, sourceUrls, searchQueries,
+    sourceCount: sourceUrls.length, searchQueryCount: searchQueries.length,
+    citedCanonicalUrl: retrieved ? citedCanonicalUrl : null,
+    estimateNotInvoice: 'Google may bill per actual generated search query; SFI does not verify invoice amounts.',
+    epistemicBoundary: 'Google grounding source URLs are provider-reported; text alone is not independent identification, entityId is not inferred, no automatic recognition/RETURN/canon.',
+  };
+}
