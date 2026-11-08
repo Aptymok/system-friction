@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createDailyContinuityReport } from '@/lib/continuity/runtime';
 import { runDiscoveryAutonomyCycle } from '@/lib/discovery/discoveryAutonomy';
+import { reviewSfiStudioPilotMorning } from '@/lib/studio/campaign/studioCampaignPilot';
 import { runGovernedExecutionRouter } from '@/lib/execution/governedExecutionRouter';
 import { runScheduledAgentReportCycle } from '@/lib/reports/scheduledAgentReports';
 import { runRestrictedEvidenceReports } from '@/lib/reports/restrictedEvidenceReports';
@@ -23,6 +24,12 @@ export async function GET(request: NextRequest) {
   if ((process.env.NODE_ENV === 'production' && !secret) || (secret && bearer(request) !== secret)) {
     return NextResponse.json({ ok: false, error: 'unauthorized_continuity_report' }, { status: 401 });
   }
+  // One source-only, owner-scoped Studio campaign readback on the existing daily schedule.
+  // It never calls external providers, contacts prospects or publishes content.
+  const studioCampaign = await reviewSfiStudioPilotMorning().catch((error) => ({
+    ok:false, status:'CAMPAIGN_REVIEW_FAILED', writesPerformed:false,
+    error:error instanceof Error ? error.message : String(error),
+  }));
   const egressGuard = scheduledEgressGuardResponse();
   if (egressGuard) {
     // Independent opt-in: compute source-backed reports without opening the
@@ -59,6 +66,7 @@ export async function GET(request: NextRequest) {
         observationAvailable: observed,
         generalEgress: 'RESTRICTED',
         discoveryAutonomy,
+        studioCampaign,
         restrictedReports,
         otherLanesExecuted: false,
         boundary: 'General egress remains restricted. Independent source-only reporting is explicitly opt-in; no model, external contact, governance decision or material execution is authorized.',
@@ -105,6 +113,7 @@ export async function GET(request: NextRequest) {
       scheduledReports,
       discoveryObservation: discoveryAutonomy.observation,
       discoveryAutonomy,
+      studioCampaign,
       cognitiveTwinHeartbeat,
       cognitiveTwinMutation,
       governedExecution,
