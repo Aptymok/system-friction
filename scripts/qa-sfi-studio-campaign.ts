@@ -25,6 +25,11 @@ async function main() {
     'READBACK_FAILED',
     'MIHM',
   ]) assert(campaign.toLowerCase().includes(key.toLowerCase()),'missing campaign guard '+key);
+  assert(campaign.includes('importSfiStudioGenealogy'), 'genealogical import must use Studio existing owner');
+  assert(campaign.includes("event_type:'SFI_GENEALOGY_IMPORT'"), 'historic lineage must use canonical Studio archive events');
+  assert(campaign.includes("privateSecretsPersisted:false"), 'no raw secrets allowed in archive payload');
+  assert(campaign.includes('READBACK_UNVERIFIED'), 'genealogy requires exact readback');
+  assert(root.includes("operation === 'studio_sfi_genealogy_import'"), 'sovereign bounded genealogy endpoint missing');
   assert(campaign.includes('runZeroKeyDiscoveryResearch'), 'must perform bounded daily public listening');
   assert(campaign.includes('CANDIDATE_UNVERIFIED'), 'external listening must not presume third-party endorsement');
   assert(root.includes("operation === 'studio_sfi_campaign_bootstrap'"));
