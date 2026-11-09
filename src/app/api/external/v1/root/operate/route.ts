@@ -21,6 +21,9 @@ import {
   normalizeCreatePredictionInput,
 } from '@/lib/sfi/predictions/service';
 import { validateMihmP4IssuePacket } from '@/lib/mihm/foundationProspectiveScoring';
+import { readUniversalCycleHistory } from '@/lib/sfi/universalSignalCycle';
+import { assessUniversalClosure } from '@/lib/sfi/universalClosure';
+import { getCurrentUniversalClosureRecommendation, hasVerifiedLatestUniversalReturnCalibration } from '@/lib/sfi/universalCalibrationState';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -440,6 +443,7 @@ export async function POST(req: Request) {
         { id: 'data_plane_emergency', effect: 'GOVERNED_RECOVERY', description: 'Attempt a bounded and conflict-gated recovery now. Never force a primary switch or erase evidence.' },
         { id: 'data_plane_copy_verified', effect: 'GOVERNED_INSERT_ONLY_REPLAY', description: 'Copy at most 20 exact, immutable world source observations via the existing canonical replay RPC; reject divergent inserts, never switch planes.' },
         { id: 'pending', effect: 'READ', description: 'Read sovereign pending proposals and founder-rule candidates with next-step boundary.' },
+        { id: 'cycles_audit_bounded', effect: 'READ_ONLY_CANONICAL_CYCLE_AUDIT', description: 'Audit up to nine exact existing universal cycles: execution, authority, evidence, return, contrast, empirical closure gaps. No writes or resumed cycles.' },
         { id: 'studio_sfi_campaign_bootstrap', effect: 'FOUNDER_AUTHORIZED_STUDIO_INTAKE', description: 'Create or reuse SFI as its own Studio pilot project; no outbound, publication or new authority.' },
         { id: 'studio_sfi_genealogy_import', effect: 'OWNER_SCOPED_HISTORICAL_METADATA', description: 'Import at most 32 attributed historical source references into the existing Studio pilot; no raw archive content or publication.' },
         { id: 'studio_sfi_campaign_review', effect: 'READ_AND_BOUNDED_DAILY_RECEIPT', description: 'Review today source-backed Studio campaign state using existing World and Studio records only.' },
@@ -503,6 +507,107 @@ export async function POST(req: Request) {
 
   if (operation === 'pending') {
     return NextResponse.json({ok:true,operation,pending:await readRootPending(root.service)},{headers:{'Cache-Control':'no-store'}});
+  }
+
+  if (operation === 'cycles_audit_bounded') {
+    const ids = Array.isArray(body.cycle_ids) ? body.cycle_ids : [];
+    const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (ids.length<1 || ids.length>9 || ids.some(id=>typeof id!=='string'||!uuid.test(id))
+      || new Set(ids).size!==ids.length) {
+      return NextResponse.json({ok:false,operation,error:'REQUIRE_1_TO_9_DISTINCT_EXACT_CYCLE_IDS'},{status:400});
+    }
+    const summarize = (event: Record<string, unknown>|null|undefined) => event ? ({
+      eventId: typeof event.event_id==='string'?event.event_id:null,
+      eventName: typeof event.event_name==='string'?event.event_name:null,
+      occurredAt: typeof event.occurred_at==='string'?event.occurred_at:null,
+      epistemicClass: typeof event.epistemic_class==='string'?event.epistemic_class:null,
+    }) : null;
+    const item = async (cycleId: string) => {
+      const h=await readUniversalCycleHistory(cycleId);
+      if (!h.ok) return {cycleId,ok:false,error:h.error??'CYCLE_HISTORY_READ_FAILED'};
+      const ev=Array.isArray(h.events)?h.events:[];
+      const latest=ev.at(-1)??null;
+      const lastRun=(h.cognitiveRuns??[]).at(-1)??null;
+      const lastSynthesis=(h.aiSyntheses??[]).at(-1)??null;
+      const lastStructured=(h.structuredResults??[]).at(-1)??null;
+      const lastReturn=(h.returns??[]).at(-1)??null;
+      const lastContrast=(h.returnContrasts??[]).at(-1)??null;
+      const returnPayload=record(record(lastReturn).payload);
+      const contrastPayload=record(record(lastContrast).payload);
+      const openedPayload=record(record(h.opened).payload);
+      const sourceRefs=new Set<string>();
+      const knownExternalEvidence=new Set<string>();
+      for (const event of ev) {
+        const er=record(event);
+        const lineage=Array.isArray(er.lineage)?er.lineage:[];
+        for(const ref of lineage){if(typeof ref==='string'&&ref)sourceRefs.add(ref);}
+        const p=record(er.payload);
+        for (const key of ['webEvidenceEventId','hydrationEventId']) {
+          if(typeof p[key]==='string'&&p[key])knownExternalEvidence.add(p[key] as string);
+        }
+      }
+      const empirical=assessUniversalClosure({history:h,requested:{closureClass:'EMPIRICAL_CONTRAST'}});
+      const calibrated=hasVerifiedLatestUniversalReturnCalibration(ev);
+      const closureRecommendation=getCurrentUniversalClosureRecommendation(ev);
+      const returnOutcome=record(returnPayload.outcome);
+      const observationNames=['SFI_UNIVERSAL_CYCLE_OPENED','SFI_UNIVERSAL_CYCLE_RESUMED'];
+      const notEvidenceNames=['SFI_UNIVERSAL_RETURN_RECORDED','SFI_UNIVERSAL_RETURN_CONTRASTED'];
+      const observedEvents=ev.filter(e=> {
+        const r=record(e);
+        return r.epistemic_class==='observed'&&!observationNames.includes(String(r.event_name))&&!notEvidenceNames.includes(String(r.event_name));
+      });
+      const latestInternalObservation=observedEvents.at(-1)??null;
+      return {
+        ok:true,cycleId,state:h.state,eventCount:ev.length,
+        objective:typeof openedPayload.objective==='string'?openedPayload.objective:null,
+        opened:summarize(h.opened),latestEvent:summarize(latest),
+        latestCognitiveCycle:summarize(lastRun),latestAiSynthesis:summarize(lastSynthesis),
+        latestStructuredResult:summarize(lastStructured),
+        cognitiveCycleCount:(h.cognitiveRuns??[]).length,aiSynthesisCount:(h.aiSyntheses??[]).length,
+        evidence:{
+          lineageReferenceCount:sourceRefs.size,externalSourceEventReferenceCount:knownExternalEvidence.size,
+          observedInternalEventCount:observedEvents.length,
+          latestObservedInternalEvent:summarize(latestInternalObservation),
+          provenanceBoundary:'Linked IDs and observed event classifications are not independent validation of their content.',
+        },
+        authorization:{
+          callerAuthorizedForRead:true,
+          callerMayRequestGovernedExecution:(root.credential.scopes??[]).includes('execute'),
+          perAgentCapabilityGrantVerified:false,
+          materialExecutionAuthorityVerified:false,
+          rationale:'Read and execute OAuth scopes do not prove an ACTIVE per-capability grant, material authority or completed action.',
+        },
+        result:{
+          latestReturn:summarize(lastReturn),
+          returnsCount:(h.returns??[]).length,
+          lastReturnClassification:typeof returnPayload.classification==='string'?returnPayload.classification:null,
+          lastReturnEvidenceReferenceCount:Array.isArray(returnPayload.evidenceRefs)?returnPayload.evidenceRefs.length:0,
+          lastReturnOutcomeFields:Object.keys(returnOutcome).slice(0,20),
+          latestContrast:summarize(lastContrast),
+          contrastsCount:(h.returnContrasts??[]).length,
+          latestContrastCalibrationStatus:typeof contrastPayload.calibrationStatus==='string'?contrastPayload.calibrationStatus:null,
+          latestContrastClassification:typeof contrastPayload.classification==='string'?contrastPayload.classification:null,
+          verifiedLatestReturnCalibration:calibrated,
+          canonicalClosureRecommended:Boolean(closureRecommendation),
+          closed:(h.closures??[]).length>0,
+        },
+        empiricalClosureAssessment:{
+          ready:empirical.ready,
+          missing:Array.isArray(empirical.missing)?empirical.missing:[],
+          epistemicBoundary:'Read-only feasibility check using the preexisting empirical closure contract. No closure, calibration, external RETURN or learning promotion performed.',
+        },
+        pendingAction:(h.closures??[]).length?'NONE_CLOSED'
+          :!lastReturn?'OBTAIN_OBSERVED_AND_SUPPORTED_RETURN_BEFORE_CLOSURE'
+          :!calibrated?'RESOLVE_RETURN_EVIDENCE_AND_CALIBRATION_BEFORE_CLOSURE'
+          :empirical.ready?'REVIEW_EMPIRICAL_CLOSURE_WITH_OWNER'
+          :'RESOLVE_EMPIRICAL_CLOSURE_MISSING_FIELDS',
+      };
+    };
+    const cycles=await Promise.all(ids.map(id=>item(id as string)));
+    return NextResponse.json({ok:cycles.every(x=>x.ok),operation,cycles,
+      auditMode:'EXISTING_CYCLE_READ_ONLY_NO_WRITES',executedAgents:0,createdCycles:0,
+      authorityExpanded:false,publicationExecuted:false,
+    },{headers:{'Cache-Control':'no-store'}});
   }
 
   if (operation === 'sfi_state') {
