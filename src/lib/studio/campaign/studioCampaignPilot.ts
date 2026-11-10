@@ -4,6 +4,7 @@ import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { runZeroKeyDiscoveryResearch } from '@/lib/agents/publicResearch';
 import { resolveMihmMethod } from '@/lib/mihm/methodSelectionResolver';
 import { projectTimelineClockProfile } from '@/lib/mihm/timelineClocks';
+import { SFI_STUDIO_P2P3P4_CONTRACT, INSTITUTIONAL_LEADS, SCIENTIFIC_CONTRAST, chooseResearchLead, calibrateStudioCampaign } from './studioAutonomyResearchProgram';
 
 export const SFI_STUDIO_CAMPAIGN_PILOT = 'SFI-STUDIO-CAMPAIGN-PILOT-1.0';
 const PILOT_KEY = 'SFI-SELF-OBSERVATION-2026-11';
@@ -81,7 +82,8 @@ export async function reviewSfiStudioPilotMorning(now = new Date()) {
   const alreadyReviewed = text(previousPayload.dayKey) === dayKey;
   const previouslyMethodAudited = Boolean(obj(previousPayload.methodologicalRouting).primaryMethod)
     && Boolean(obj(previousPayload.historicalTimeline).projectionInstrument);
-  if (alreadyReviewed && previouslyMethodAudited) return {
+  const previousProgramIntegrated = text(obj(previousPayload.autonomyProgram).contract) === SFI_STUDIO_P2P3P4_CONTRACT;
+  if (alreadyReviewed && previouslyMethodAudited && previousProgramIntegrated) return {
     ok:true,status:'ALREADY_REVIEWED',day,sessionId:session.id,receiptId:prior?.id,writesPerformed:false,
   };
   // One zero-key daily listening observation. Keep outside sources separate from
@@ -136,6 +138,19 @@ export async function reviewSfiStudioPilotMorning(now = new Date()) {
     }),
   );
   const historicalEvidence = past.length;
+  const actualPostIds = evidence.filter(x => {
+    const payload = obj(x.payload);
+    return text(payload.externalPostId).length>0 && payload.observedMetrics && /platform_api|authorized_network|verified_social/i.test(text(x.source));
+  }).length;
+  const autonomyDecision = calibrateStudioCampaign({
+    day, relevantWorldSources: qualifiedSignals.length,
+    observedSocialPerformance: socialPerformanceObserved && actualPostIds>0,
+    newCounterEvidence:false,confirmedSourceContradiction:false,
+    actualPublishedPostIds:actualPostIds,
+    empiricalContrastCompleted:false, // No empirical study readback exists; cannot promote from a planned test.
+  });
+  const leadSelection = chooseResearchLead();
+
   const horizon = day<=15?'MICRO_CALIBRATION':day<=90?'STRATEGIC_90D':'REVIEW_DUE';
   // No inferred world causality, no spurious MIHM score, no vanity KPI mistaken for adoption.
   const decision = !qualifiedSignals.length ? 'HOLD_PENDING_WORLD_EVIDENCE'
@@ -152,6 +167,22 @@ export async function reviewSfiStudioPilotMorning(now = new Date()) {
       provider:listening.provider,sourceCount:listenSources.length,sources:listenSources,
       limits:'Result URLs are leads for verification. SFI-authored pages are not independent mentions. No sentiment is inferred.',
       warnings:listening.warnings.slice(0,5),
+    },
+    autonomyProgram: {
+      contract:SFI_STUDIO_P2P3P4_CONTRACT,
+      status:'RESEARCH_SELECTED_PROTOCOL_NOT_EXECUTED',
+      p2:{
+        selected:leadSelection, candidates:INSTITUTIONAL_LEADS,
+        candidateBoundary:'Three publicly documented organizations/roles for study, not qualified leads, clients, correspondence or verified demand.',
+      },
+      p3:SCIENTIFIC_CONTRAST,
+      p4:{
+        ...autonomyDecision,baselineWorldReferences:qualifiedSignals.map(x=>x.id),
+        authenticatedPlatformPostCount:actualPostIds,
+        empiricalResultObserved:false,
+        rule:'Morning recommendation only; no workflow can send messages, publish, promote science or change authority.',
+      },
+      epistemicClass:'DERIVED_SELECTION_WITH_HYPOTHESIZED_PROTOCOL',
     },
     historicalArchiveCount:historicalEvidence, historicalReconstruction:'DOCUMENTED_ONLY',
     methodologicalRouting: {
@@ -196,7 +227,9 @@ export async function reviewSfiStudioPilotMorning(now = new Date()) {
   };
   return {ok:true,status:'REVIEW_PERSISTED',sessionId:session.id,receiptId:inserted.data.id,
     day,horizon,decision,visual,signalCount:qualifiedSignals.length,
-    socialPerformanceObserved,mihmMethod:receipt.methodologicalRouting.primaryMethod,
+    socialPerformanceObserved,p2SelectedLead:leadSelection.selectedLeadId,
+    p3State:SCIENTIFIC_CONTRAST.state,p4Decision:autonomyDecision.decision,
+    mihmMethod:receipt.methodologicalRouting.primaryMethod,
     mihmTProfiles:temporalProfiles.length,brandListeningStatus:receipt.externalListening.status,
     brandSourceCount:listenSources.length,missing:receipt.missing,writesPerformed:true,
     publicationExecuted:false};
