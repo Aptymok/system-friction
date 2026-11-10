@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { INSTITUTIONAL_LEADS, chooseResearchLead, calibrateStudioCampaign, SCIENTIFIC_CONTRAST } from '../src/lib/studio/campaign/studioAutonomyResearchProgram';
 
 async function main() {
   const [campaign, root, continuity, social] = await Promise.all([
@@ -40,6 +41,17 @@ async function main() {
   assert(campaign.includes('validatedTransferModel: false'), 'descriptive timeline cannot claim validated transfer');
   assert(campaign.includes('historicalTimeline:'), 'MIHM-T clock evidence must be persisted in morning receipt');
   assert(campaign.includes('methodologicalRouting:'), 'canonical MIHM selection must be persisted in morning receipt');
+  assert.equal(INSTITUTIONAL_LEADS.length,3,'P2 requires exactly 3 previously sourced public institution leads');
+  assert(INSTITUTIONAL_LEADS.every(x=>x.demonstratedDemand===false && x.contactAuthorized===false));
+  assert.equal(chooseResearchLead().selectedLeadId,'NY_STATE_AUDIT_AI_GOVERNANCE');
+  assert(SCIENTIFIC_CONTRAST.rival && SCIENTIFIC_CONTRAST.contradictionSignals.length>0,'P3 must define rival and falsification');
+  assert.equal(SCIENTIFIC_CONTRAST.state,'PROTOCOL_DECLARED_NO_STUDY_EXECUTED');
+  assert.equal(calibrateStudioCampaign({day:15,relevantWorldSources:0,observedSocialPerformance:false,newCounterEvidence:false,confirmedSourceContradiction:false,actualPublishedPostIds:0,empiricalContrastCompleted:false}).decision,'EVIDENCE_INSUFFICIENT');
+  assert.equal(calibrateStudioCampaign({day:16,relevantWorldSources:1,observedSocialPerformance:false,newCounterEvidence:true,confirmedSourceContradiction:false,actualPublishedPostIds:0,empiricalContrastCompleted:false}).decision,'REVIEW_ADJUSTMENT');
+  assert.equal(calibrateStudioCampaign({day:90,relevantWorldSources:0,observedSocialPerformance:false,newCounterEvidence:false,confirmedSourceContradiction:true,actualPublishedPostIds:0,empiricalContrastCompleted:false}).decision,'HALT_PUBLICATION');
+  assert(campaign.includes('autonomyProgram:'),'P2/P3/P4 must persist in the same Studio morning receipt');
+  assert(campaign.includes('previousProgramIntegrated'),'upgrade existing today receipt only if new program is missing');
+  assert(campaign.includes('empiricalContrastCompleted:false'),'must not invent P3 study results');
   assert(root.includes("operation === 'studio_sfi_campaign_bootstrap'"));
   assert(root.includes("operation === 'studio_sfi_campaign_review'"));
   assert(root.includes('root.credential.subjectId!'), 'pilot must be owner-bound');
