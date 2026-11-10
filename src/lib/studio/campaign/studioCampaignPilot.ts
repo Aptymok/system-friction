@@ -4,9 +4,18 @@ import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { runZeroKeyDiscoveryResearch } from '@/lib/agents/publicResearch';
 import { resolveMihmMethod } from '@/lib/mihm/methodSelectionResolver';
 import { projectTimelineClockProfile } from '@/lib/mihm/timelineClocks';
+import { readUniversalCycleHistory } from '@/lib/sfi/universalSignalCycle';
+import { assessUniversalClosure } from '@/lib/sfi/universalClosure';
+import { hasVerifiedLatestUniversalReturnCalibration } from '@/lib/sfi/universalCalibrationState';
 import { SFI_STUDIO_P2P3P4_CONTRACT, INSTITUTIONAL_LEADS, SCIENTIFIC_CONTRAST, chooseResearchLead, calibrateStudioCampaign } from './studioAutonomyResearchProgram';
 
 export const SFI_STUDIO_CAMPAIGN_PILOT = 'SFI-STUDIO-CAMPAIGN-PILOT-1.0';
+const AUTONOMY_PRIORITY_CYCLES = [
+  '675489e8-c72e-46a5-beb5-abd738fa0468',
+  '9051ebcd-ea7e-460f-8a37-fc831c3e0484',
+] as const;
+const AUTONOMY_CYCLE_RECHECK = 'SFI-STUDIO-AUTONOMY-CYCLE-RECHECK-1.0' as const;
+
 const PILOT_KEY = 'SFI-SELF-OBSERVATION-2026-11';
 const DAY = 86_400_000;
 
@@ -83,7 +92,8 @@ export async function reviewSfiStudioPilotMorning(now = new Date()) {
   const previouslyMethodAudited = Boolean(obj(previousPayload.methodologicalRouting).primaryMethod)
     && Boolean(obj(previousPayload.historicalTimeline).projectionInstrument);
   const previousProgramIntegrated = text(obj(previousPayload.autonomyProgram).contract) === SFI_STUDIO_P2P3P4_CONTRACT;
-  if (alreadyReviewed && previouslyMethodAudited && previousProgramIntegrated) return {
+  const previousCycleRecheckIntegrated = text(obj(previousPayload.priorityCycleContinuity).contract) === AUTONOMY_CYCLE_RECHECK;
+  if (alreadyReviewed && previouslyMethodAudited && previousProgramIntegrated && previousCycleRecheckIntegrated) return {
     ok:true,status:'ALREADY_REVIEWED',day,sessionId:session.id,receiptId:prior?.id,writesPerformed:false,
   };
   // One zero-key daily listening observation. Keep outside sources separate from
@@ -137,6 +147,42 @@ export async function reviewSfiStudioPilotMorning(now = new Date()) {
       },
     }),
   );
+  // Recheck the two PREEXISTING priority cycles during the existing daily
+  // Studio review. This is read-only and never resumes, executes or closes a cycle.
+  const priorityCycles = await Promise.all(AUTONOMY_PRIORITY_CYCLES.map(async (cycleId) => {
+    try {
+      const h=await readUniversalCycleHistory(cycleId);
+      if (!h.ok) return {cycleId,readStatus:'UNAVAILABLE' as const,reason:h.error??'READ_FAILED'};
+      const events=Array.isArray(h.events)?h.events:[];
+      const last=(items:unknown[]|undefined) => Array.isArray(items)&&items.length
+        ? items[items.length-1] as Record<string,unknown> : null;
+      const latestReturn=last(h.returns);
+      const latestContrast=last(h.returnContrasts);
+      const empirical=assessUniversalClosure({history:h,requested:{closureClass:'EMPIRICAL_CONTRAST'}});
+      const calibration=hasVerifiedLatestUniversalReturnCalibration(events);
+      const source=(e:Record<string,unknown>|null) => e ? ({
+        id:text(e.event_id), at:text(e.occurred_at), name:text(e.event_name),
+      }) : null;
+      return {
+        cycleId,readStatus:'OBSERVED_INTERNAL' as const,
+        totalEvents:events.length, latestCognitiveExecution:source(last(h.cognitiveRuns)),
+        latestReturn:source(latestReturn),latestContrast:source(latestContrast),
+        returnCount:(h.returns??[]).length,contrastCount:(h.returnContrasts??[]).length,
+        calibratedReturn:calibration,
+        empiricalClosureReady:empirical.ready,
+        closureMissing:empirical.missing,
+        nextAction:(h.returns??[]).length===0
+          ? 'RECONCILE_AGENT_IDENTITIES_AND_SEEK_GENUINE_OBSERVED_RETURN'
+          : !calibration
+            ? 'VERIFY_RETURN_PROVENANCE_AND_CALIBRATION'
+            : !empirical.ready ? 'REVIEW_MISSING_EMPIRICAL_FIELDS':'REVIEW_GOVERNED_CLOSURE',
+        epistemicBoundary:'Cycle event history is internal evidence of recorded actions, not independent real-world effectiveness.',
+      };
+    } catch(error) {
+      return {cycleId,readStatus:'UNAVAILABLE' as const,
+        reason:error instanceof Error?error.message:'UNEXPECTED_AUDIT_FAILURE'};
+    }
+  }));
   const historicalEvidence = past.length;
   const actualPostIds = evidence.filter(x => {
     const payload = obj(x.payload);
@@ -167,6 +213,16 @@ export async function reviewSfiStudioPilotMorning(now = new Date()) {
       provider:listening.provider,sourceCount:listenSources.length,sources:listenSources,
       limits:'Result URLs are leads for verification. SFI-authored pages are not independent mentions. No sentiment is inferred.',
       warnings:listening.warnings.slice(0,5),
+    },
+    priorityCycleContinuity: {
+      contract:AUTONOMY_CYCLE_RECHECK,
+      reviewedCycleCount:priorityCycles.length,
+      cycles:priorityCycles,
+      runMode:'READ_ONLY_EXISTING_DAILY_SCHEDULE',
+      updatedAutonomyProof:false,
+      noNewCycles:true,noNewExecutionGrants:true,noFabricatedReturn:true,
+      learningState:'NOT_PROMOTED_WITHOUT_EMPIRICAL_CONTRAST',
+      limitations:'A renewed record of missing RETURN or calibration does not itself close a cycle.',
     },
     autonomyProgram: {
       contract:SFI_STUDIO_P2P3P4_CONTRACT,
@@ -227,7 +283,8 @@ export async function reviewSfiStudioPilotMorning(now = new Date()) {
   };
   return {ok:true,status:'REVIEW_PERSISTED',sessionId:session.id,receiptId:inserted.data.id,
     day,horizon,decision,visual,signalCount:qualifiedSignals.length,
-    socialPerformanceObserved,p2SelectedLead:leadSelection.selectedLeadId,
+    socialPerformanceObserved,priorityCycleReadCount:priorityCycles.filter(x=>x.readStatus==='OBSERVED_INTERNAL').length,
+    p2SelectedLead:leadSelection.selectedLeadId,
     p3State:SCIENTIFIC_CONTRAST.state,p4Decision:autonomyDecision.decision,
     mihmMethod:receipt.methodologicalRouting.primaryMethod,
     mihmTProfiles:temporalProfiles.length,brandListeningStatus:receipt.externalListening.status,
