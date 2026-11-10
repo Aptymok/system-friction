@@ -1,5 +1,6 @@
 import 'server-only';
 import { createHash } from 'crypto';
+import { prepareWorldHypothesisPrompt, diagnoseWorldHypothesisResponse } from './hypothesisGenerationBoundary';
 import { runLlmTask } from '@/lib/ai/providerRouter';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { clamp01 } from '@/lib/sfi/math';
@@ -225,34 +226,33 @@ async function inferHypothesis(cluster: ClusterItem[], learningProfile: WorldHyp
       'Trace how hypothesis A could affect observation/system nodes B, F, etc. Every inferred consequence edge must name the evidence ids that motivated it.',
       'If the supplied material is insufficient for a non-trivial falsifiable hypothesis or measurable criteria, return NO_HYPOTHESIS.',
       'Write statements and explanations in Spanish, concise but substantive.',
+      'If the evidence cannot support a falsifiable, horizon-bounded prediction, answer NO_HYPOTHESIS with testContract:null. Do not invent threshold values or attach historical observations to future validation.',
+      'For PROPOSE, include 1 or 2 expected and 1 or 2 contradiction criteria with unique ids; use only data-collectable observables, realistic future horizons and valid source families. Never guess post-T0 evidence.',
       'Return ONLY JSON with this schema: {"decision":"PROPOSE|NO_HYPOTHESIS","statement":string|null,"relationClass":"CAUSAL_CANDIDATE|COUPLING|COMMON_CAUSE|SEQUENCE|CORRELATION|UNKNOWN","mechanism":string|null,"affectedObservationIds":string[],"affectedSystems":string[],"testContract":{"contract":"SFI-HYPOTHESIS-TEST-1.0","horizonHours":number,"horizonBasis":string,"minimumEvidenceCount":number,"minimumSourceFamilies":number,"expectedCriteria":[{"id":string,"signal":string,"metric":string|null,"operator":"GT|GTE|LT|LTE|EQ|DELTA_GTE|DELTA_LTE|COUNT_GTE|PRESENCE|ABSENCE","threshold":number|null,"unit":string|null,"required":boolean,"minimumObservations":number,"sourceFamilies":string[]}],"contradictionCriteria":[{"id":string,"signal":string,"metric":string|null,"operator":"GT|GTE|LT|LTE|EQ|DELTA_GTE|DELTA_LTE|COUNT_GTE|PRESENCE|ABSENCE","threshold":number|null,"unit":string|null,"required":boolean,"minimumObservations":number,"sourceFamilies":string[]}],"passRule":string,"failRule":string,"inconclusiveRule":string},"consequenceChain":[{"from":string,"to":string,"relation":string,"basisEvidenceIds":string[]}],"rivalHypotheses":string[],"uncertainties":string[],"confidence":number,"reason":string}.',
     ].join('\n'),
-    prompt: JSON.stringify({
+    prompt: prepareWorldHypothesisPrompt({
       methodology: WORLD_METHODOLOGY_VERSION,
       testContract: SFI_HYPOTHESIS_TEST_CONTRACT,
-      learningProfile: {
-        sampleSize: learningProfile.sampleSize,
-        classificationCounts: learningProfile.classificationCounts,
-        partialValidationRate: learningProfile.partialValidationRate,
-        decisiveRate: learningProfile.decisiveRate,
-        inconclusiveRate: learningProfile.inconclusiveRate,
-        tightenDiscrimination: learningProfile.tightenDiscrimination,
-        topMissingVariables: learningProfile.topMissingVariables,
-        generationGuidance: learningProfile.generationGuidance,
-        boundaries: learningProfile.boundaries,
-      },
-      observations,
-      derivedRelations,
-      epistemicBoundary: 'OBSERVATIONS are source records; SFI metrics/relations and historical method feedback are DERIVED; model output is INFERENCE only.',
-    }).slice(0, 30000),
+      learningProfile,observations,derivedRelations,
+    }).prompt,
     fallbackResult: '{"decision":"NO_HYPOTHESIS","statement":null,"relationClass":"UNKNOWN","mechanism":null,"affectedObservationIds":[],"affectedSystems":[],"testContract":null,"consequenceChain":[],"rivalHypotheses":[],"uncertainties":["governed_model_unavailable"],"confidence":0,"reason":"No governed model produced a hypothesis."}',
     requirements: { reasoning: true, structuredOutput: true, priority: 'quality' },
     maxTokens: 2600,
   });
 
   if (!llm.ok) return { ok: false as const, proposal: null, warning: llm.warnings.join('; ') || 'governed_model_unavailable', provider: null, model: null, derivedRelations };
+  const diagnosis=diagnoseWorldHypothesisResponse(llm.result);
+  if(diagnosis.code==='VALID_NO_HYPOTHESIS') return {
+    ok:true as const,proposal:parseProposal(llm.result),warning:null,
+    provider:llm.provider,model:llm.model,derivedRelations,
+  };
+  if(diagnosis.code!=='VALID_PROPOSE') return {
+    ok:false as const,proposal:null,
+    warning:`hypothesis_generation_${diagnosis.code.toLowerCase()}`,
+    provider:llm.provider,model:llm.model,derivedRelations,
+  };
   const proposal = parseProposal(llm.result);
-  if (!proposal) return { ok: false as const, proposal: null, warning: 'invalid_or_non_discriminating_ai_hypothesis_schema', provider: llm.provider, model: llm.model, derivedRelations };
+  if (!proposal) return { ok: false as const, proposal: null, warning: 'hypothesis_generation_valid_contract_but_invalid_proposal', provider: llm.provider, model: llm.model, derivedRelations };
   return { ok: true as const, proposal, warning: null, provider: llm.provider, model: llm.model, derivedRelations };
 }
 
@@ -310,7 +310,11 @@ export async function runWorldHypothesisCycle() {
     const inferred = await inferHypothesis(cluster, learningProfile);
     if (!inferred.ok || !inferred.proposal || inferred.proposal.decision !== 'PROPOSE') {
       if (inferred.warning) warnings.push(inferred.warning);
-      results.push({ phenomenonKey, state: 'NO_HYPOTHESIS', warning: inferred.warning ?? null });
+      results.push({
+        phenomenonKey,
+        state: inferred.warning ? 'GENERATION_BLOCKED' : 'NO_HYPOTHESIS',
+        warning: inferred.warning ?? null,
+      });
       continue;
     }
     const proposal = inferred.proposal;
