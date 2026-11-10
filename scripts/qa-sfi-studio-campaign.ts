@@ -52,6 +52,14 @@ async function main() {
   assert(campaign.includes('autonomyProgram:'),'P2/P3/P4 must persist in the same Studio morning receipt');
   assert(campaign.includes('previousProgramIntegrated'),'upgrade existing today receipt only if new program is missing');
   assert(campaign.includes('empiricalContrastCompleted:false'),'must not invent P3 study results');
+  assert(campaign.includes('AUTONOMY_PRIORITY_CYCLES'), 'daily review must recheck existing priority cycle IDs');
+  assert(campaign.includes('readUniversalCycleHistory(cycleId)'), 'actual readback per cycle required');
+  assert(campaign.includes("assessUniversalClosure({history:h,requested:{closureClass:'EMPIRICAL_CONTRAST'}})"), 'reuse canonical empirical closure assessment');
+  assert(campaign.includes('hasVerifiedLatestUniversalReturnCalibration(events)'), 'reuse existing real calibration gate');
+  assert(campaign.includes('priorityCycleContinuity:'), 'daily receipt must retain recheck results');
+  assert(campaign.includes('previousCycleRecheckIntegrated'), 'one-time upgrade of earlier daily review expected');
+  assert(campaign.includes("runMode:'READ_ONLY_EXISTING_DAILY_SCHEDULE'"), 'no extra cron allowed');
+  assert(campaign.includes('noNewCycles:true,noNewExecutionGrants:true,noFabricatedReturn:true'), 'no new authority or invented RETURN');
   assert(root.includes("operation === 'studio_sfi_campaign_bootstrap'"));
   assert(root.includes("operation === 'studio_sfi_campaign_review'"));
   assert(root.includes('root.credential.subjectId!'), 'pilot must be owner-bound');
