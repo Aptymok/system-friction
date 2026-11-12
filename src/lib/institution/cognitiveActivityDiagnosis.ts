@@ -21,16 +21,34 @@ type CognitiveSnapshot = {
 export function assessCognitiveActivity(runtime:CognitiveSnapshot) {
   const bound = runtime.agents.length > 0 && runtime.contract.executorAgents === runtime.agents.length;
   const fullyInactive = bound && runtime.agents.every(a => a.status === 'gated');
-  const provenanceAvailable = runtime.eventGraph.status !== 'degraded'
-    && runtime.eventGraph.warnings.length === 0;
+  // Only a verified operational read allows diagnostic admission.
+  // Unknown/degraded states and malformed event collections fail closed.
+  const eventGraph = runtime.eventGraph;
+  const provenanceAvailable = eventGraph?.status === 'operational'
+    && Array.isArray(eventGraph.warnings) && eventGraph.warnings.length === 0
+    && Array.isArray(eventGraph.recentEvents);
   const asOf = Date.parse(runtime.generatedAt);
-  const signals = provenanceAvailable && Number.isFinite(asOf)
-    ? runtime.eventGraph.recentEvents.filter(event => {
-      if (!DIAGNOSTIC_SIGNALS.has(event.eventName) || !event.eventId || !event.occurredAt) return false;
+  const admitted = provenanceAvailable && Number.isFinite(asOf)
+    ? eventGraph.recentEvents.flatMap(event => {
+      if (!event || !DIAGNOSTIC_SIGNALS.has(event.eventName)) return [];
+      if (typeof event.eventId !== 'string' || !event.eventId.trim()) return [];
+      if (typeof event.occurredAt !== 'string' || !event.occurredAt.trim()) return [];
       const time = Date.parse(event.occurredAt);
-      return Number.isFinite(time) && time <= asOf && asOf - time <= COGNITIVE_DIAGNOSTIC_WINDOW_MS;
-    }).slice(0,12)
+      if (!Number.isFinite(time) || time > asOf || asOf - time > COGNITIVE_DIAGNOSTIC_WINDOW_MS) return [];
+      return [{ event, time }];
+    })
     : [];
+  // Input order and duplicate receipts must not determine which 12 signals are shown.
+  const seen = new Set<string>();
+  const signals = admitted
+    .sort((a,b) => b.time - a.time || a.event.eventId.localeCompare(b.event.eventId))
+    .filter(({event}) => {
+      if (seen.has(event.eventId)) return false;
+      seen.add(event.eventId);
+      return true;
+    })
+    .slice(0,12)
+    .map(({event}) => event);
   const state = !provenanceAvailable || !Number.isFinite(asOf) ? 'EVENT_READ_UNAVAILABLE'
     : !fullyInactive ? 'NO_COLLECTIVE_INACTIVITY'
     : !signals.length ? 'NO_RECENT_DIAGNOSTIC_INPUT'
