@@ -3,7 +3,7 @@ import 'server-only';
 import { runLlmTask } from '@/lib/ai/providerRouter';
 import { appendEpistemicEvent } from '@/lib/events/eventStore';
 import { assessUniversalClosure } from '@/lib/sfi/universalClosure';
-import { returnContrastInputFingerprint, reusableReturnContrast, SFI_RETURN_CONTRAST_IDEMPOTENCY } from '@/lib/sfi/universalReturnContrastIdempotency';
+import { empiricalContrastPrerequisite, returnContrastInputFingerprint, reusableReturnContrast, SFI_RETURN_CONTRAST_IDEMPOTENCY, wasRecordedBeforeReturn } from '@/lib/sfi/universalReturnContrastIdempotency';
 import { getCurrentUniversalClosureRecommendation, hasVerifiedLatestUniversalReturnCalibration } from '@/lib/sfi/universalCalibrationState';
 import {
   recordUniversalLearningCandidate,
@@ -97,18 +97,22 @@ function uniqueStatements(values: unknown[]) {
   return [...map.values()];
 }
 
-function collectRunValues(history: UniversalCycleHistory, key: string) {
+function collectRunValues(history: UniversalCycleHistory, key: string, returnSequence?: number) {
   const values: unknown[] = [];
+  const admissible = (event: unknown) => returnSequence === undefined
+    || wasRecordedBeforeReturn(row(event).sequence, returnSequence);
   for (const event of history.cognitiveRuns ?? []) {
+    if (!admissible(event)) continue;
     const eventPayload = payload(event);
     values.push(...(Array.isArray(eventPayload[key]) ? eventPayload[key] as unknown[] : []));
   }
   for (const event of history.structuredResults ?? []) {
+    if (!admissible(event)) continue;
     const result = row(payload(event).result);
     values.push(...(Array.isArray(result[key]) ? result[key] as unknown[] : []));
   }
   for (const event of history.events ?? []) {
-    if (row(event).event_name !== 'SFI_UNIVERSAL_AI_SYNTHESIS_COMPLETED') continue;
+    if (row(event).event_name !== 'SFI_UNIVERSAL_AI_SYNTHESIS_COMPLETED' || !admissible(event)) continue;
     const synthesis = row(payload(event).synthesis);
     if (key === 'hypotheses') {
       if (synthesis.primaryHypothesis) values.push(synthesis.primaryHypothesis);
@@ -226,10 +230,11 @@ async function classifyReturnWithAi(history: UniversalCycleHistory, cycleId: str
     };
   }
 
-  const hypotheses = uniqueStatements(collectRunValues(history, 'hypotheses'));
-  const predictions = uniqueStatements(collectRunValues(history, 'predictions'));
-  const discriminatingObservations = uniqueStatements(collectRunValues(history, 'discriminatingObservations'));
-  const stoppingConditions = uniqueStatements(collectRunValues(history, 'stoppingCondition'));
+  const cutoff = sequence(returnEvent);
+  const hypotheses = uniqueStatements(collectRunValues(history, 'hypotheses', cutoff));
+  const predictions = uniqueStatements(collectRunValues(history, 'predictions', cutoff));
+  const discriminatingObservations = uniqueStatements(collectRunValues(history, 'discriminatingObservations', cutoff));
+  const stoppingConditions = uniqueStatements(collectRunValues(history, 'stoppingCondition', cutoff));
   const signals = predictionSignals(predictions);
   const llm = await runLlmTask({
     task: 'fast_classification',
@@ -296,13 +301,16 @@ async function classifyReturnWithAi(history: UniversalCycleHistory, cycleId: str
 }
 
 async function contrastLatestReturn(history: UniversalCycleHistory, cycleId: string, tenantId: string) {
-  const predictions = uniqueStatements(collectRunValues(history, 'predictions'));
-  const hypotheses = uniqueStatements(collectRunValues(history, 'hypotheses'));
-  const discriminatingObservations = uniqueStatements(collectRunValues(history, 'discriminatingObservations'));
-  const stoppingConditions = uniqueStatements(collectRunValues(history, 'stoppingCondition'));
-  const signals = predictionSignals(predictions);
   const lastReturn = row(latest(history.returns));
   if (!Object.keys(lastReturn).length) return { ok: false as const, error: 'RETURN_REQUIRED_FOR_CONTRAST' };
+  // Predictions and hypotheses appearing after a RETURN cannot retrospectively
+  // satisfy preregistration, regardless of what the later model said.
+  const cutoff = sequence(lastReturn);
+  const predictions = uniqueStatements(collectRunValues(history, 'predictions', cutoff));
+  const hypotheses = uniqueStatements(collectRunValues(history, 'hypotheses', cutoff));
+  const discriminatingObservations = uniqueStatements(collectRunValues(history, 'discriminatingObservations', cutoff));
+  const stoppingConditions = uniqueStatements(collectRunValues(history, 'stoppingCondition', cutoff));
+  const signals = predictionSignals(predictions);
   const returnPayload = payload(lastReturn);
   const returnEventId = text(lastReturn.event_id) ?? '';
 
@@ -348,26 +356,22 @@ async function contrastLatestReturn(history: UniversalCycleHistory, cycleId: str
   if (existingContrast && reusableReturnContrast(existingContrast, contrastInputs)) {
     return { ok: true as const, reused: true as const, event: existingContrast, data: existingContrast };
   }
-  const classification = await classifyReturnWithAi(history, cycleId, lastReturn);
-  const hasPrediction = predictions.length > 0;
-  const hasDiscriminatingObservation = discriminatingObservations.length > 0;
-  const hasDiscriminatingSignals = signals.expectedSignals.length > 0 && signals.contradictionSignals.length > 0;
-  const traceableReturn = evidenceValidation.verified.length > 0;
-  const calibrationStatus = !hasPrediction
-    ? 'PREDICTION_MISSING'
-    : !hasDiscriminatingObservation
-      ? 'DISCRIMINATING_OBSERVATION_MISSING'
-    : !hasDiscriminatingSignals
-      ? 'DISCRIMINATING_SIGNALS_MISSING'
-      : !evidenceValidation.ok
-        ? 'RETURN_EVIDENCE_VALIDATION_DEGRADED'
-        : !declaredReturnEvidenceRefs.length
-          ? 'RETURN_EVIDENCE_UNLINKED'
-          : !traceableReturn
-            ? 'RETURN_EVIDENCE_UNVERIFIED'
-            : classification.classification === 'INCONCLUSIVE'
-              ? 'REQUIRES_REVIEW'
-              : 'CONTRAST_RECORDED';
+  // No chargeable classification when preregistration, measurable criteria or
+  // admissible evidence are absent. The missing prerequisite is the result.
+  const blockedReason = empiricalContrastPrerequisite(contrastInputs);
+  const classification = blockedReason
+    ? {
+        classification: 'INCONCLUSIVE' as const,
+        source: 'PREREQUISITE_GATE' as const,
+        eventId: null,
+        provider: null,
+        model: null,
+        reason: `Empirical classification was not attempted: ${blockedReason}`,
+        confidence: null,
+      }
+    : await classifyReturnWithAi(history, cycleId, lastReturn);
+  const calibrationStatus = blockedReason
+    ?? (classification.classification === 'INCONCLUSIVE' ? 'REQUIRES_REVIEW' : 'CONTRAST_RECORDED');
   const accepted: Classification = calibrationStatus === 'CONTRAST_RECORDED' ? classification.classification : 'INCONCLUSIVE';
   const priorConfidence = typeof row(hypotheses[0]).confidence === 'number' ? Number(row(hypotheses[0]).confidence) : 0.5;
   const updatedConfidence = accepted === 'CONFIRMED'

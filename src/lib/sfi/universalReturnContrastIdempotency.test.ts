@@ -5,6 +5,8 @@ import {
   reusableReturnContrast,
   SFI_RETURN_CONTRAST_IDEMPOTENCY,
   type ReturnContrastInputs,
+  empiricalContrastPrerequisite,
+  wasRecordedBeforeReturn,
 } from './universalReturnContrastIdempotency';
 
 function inputs(): ReturnContrastInputs {
@@ -102,4 +104,37 @@ test('evidence SQL ordering changes do not produce a second classification',()=>
 });
 test('empty immutable RETURN is rejected as invalid fingerprint input',()=>{
   assert.throws(()=>returnContrastInputFingerprint({...inputs(),returnEventId:''}),/RETURN_EVENT_ID_REQUIRED/);
+});
+
+test('a post-RETURN model proposal is not a preregistered prediction',()=>{
+  assert.equal(wasRecordedBeforeReturn(101,100),false);
+  assert.equal(wasRecordedBeforeReturn(100,100),false);
+  assert.equal(wasRecordedBeforeReturn(99,100),true);
+  assert.equal(wasRecordedBeforeReturn(undefined,100),false);
+  assert.equal(wasRecordedBeforeReturn(99,undefined),false);
+});
+test('missing prediction stops AI classification before any model call',()=>{
+  assert.equal(empiricalContrastPrerequisite({...inputs(),predictions:[]}), 'PREDICTION_MISSING');
+});
+test('missing discriminating observation stops AI classification',()=>{
+  assert.equal(empiricalContrastPrerequisite({...inputs(),discriminatingObservations:[]}), 'DISCRIMINATING_OBSERVATION_MISSING');
+});
+test('missing expected, contradiction or horizon signals stop AI classification',()=>{
+  const valid={...inputs(),returnEvidenceRefs:['e1'],rejectedReturnEvidenceRefs:[]};
+  assert.equal(empiricalContrastPrerequisite({...valid,expectedSignals:[]}), 'DISCRIMINATING_SIGNALS_MISSING');
+  assert.equal(empiricalContrastPrerequisite({...valid,contradictionSignals:[]}), 'DISCRIMINATING_SIGNALS_MISSING');
+  assert.equal(empiricalContrastPrerequisite({...valid,observationWindows:[]}), 'DISCRIMINATING_SIGNALS_MISSING');
+});
+test('unverified evidence stops AI classification even when other criteria exist',()=>{
+  assert.equal(empiricalContrastPrerequisite({...inputs()}), 'RETURN_EVIDENCE_UNVERIFIED');
+});
+test('evidence read degradation is different from evidence not being present',()=>{
+  assert.equal(empiricalContrastPrerequisite({...inputs(),evidenceValidationSucceeded:false}), 'RETURN_EVIDENCE_VALIDATION_DEGRADED');
+});
+test('missing references cannot be replaced by source claims',()=>{
+  assert.equal(empiricalContrastPrerequisite({...inputs(),declaredReturnEvidenceRefs:[]}), 'RETURN_EVIDENCE_UNLINKED');
+});
+test('fully evidence-linked preregistered contract permits bounded classification',()=>{
+  const full={...inputs(),returnEvidenceRefs:['synthetic-source-event'],rejectedReturnEvidenceRefs:[]};
+  assert.equal(empiricalContrastPrerequisite(full),null);
 });

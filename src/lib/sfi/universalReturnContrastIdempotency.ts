@@ -46,6 +46,30 @@ function comparableValue(key: string, value: unknown) {
     : value;
 }
 
+/** Predictions derived after the observed outcome are never preregistration. */
+export function wasRecordedBeforeReturn(sourceSequence: unknown, returnSequence: unknown): boolean {
+  const source = typeof sourceSequence === 'number' ? sourceSequence : Number(sourceSequence);
+  const observedReturn = typeof returnSequence === 'number' ? returnSequence : Number(returnSequence);
+  return Number.isSafeInteger(source) && source > 0
+    && Number.isSafeInteger(observedReturn) && observedReturn > 0
+    && source < observedReturn;
+}
+
+/**
+ * A blocked empirical contrast must not spend tokens on an AI verdict.
+ * This is a prerequisite diagnosis, never an empirical classification.
+ */
+export function empiricalContrastPrerequisite(input: ReturnContrastInputs): string | null {
+  if (input.predictions.length === 0) return 'PREDICTION_MISSING';
+  if (input.discriminatingObservations.length === 0) return 'DISCRIMINATING_OBSERVATION_MISSING';
+  if (input.expectedSignals.length === 0 || input.contradictionSignals.length === 0
+      || input.observationWindows.length === 0) return 'DISCRIMINATING_SIGNALS_MISSING';
+  if (!input.evidenceValidationSucceeded) return 'RETURN_EVIDENCE_VALIDATION_DEGRADED';
+  if (input.declaredReturnEvidenceRefs.length === 0) return 'RETURN_EVIDENCE_UNLINKED';
+  if (input.returnEvidenceRefs.length === 0) return 'RETURN_EVIDENCE_UNVERIFIED';
+  return null;
+}
+
 export const SFI_RETURN_CONTRAST_IDEMPOTENCY = 'SFI-RETURN-CONTRAST-IDEMPOTENCY-1.0' as const;
 
 export type ReturnContrastInputs = {
