@@ -294,6 +294,9 @@ jobs:
       - name: Verify Neon read-plane continuity and deferred effectful lanes
         run: node scripts/qa-sfi-neon-readplane-deferred-lanes.mjs
 
+      - name: Verify bounded public WorldSpect timeline acquisition
+        run: node scripts/qa-sfi-worldspect-timeline-read.mjs
+
       - name: Verify WorldSpect Neon read-plane continuity
         run: node scripts/qa-sfi-worldspect-neon-readplane.mjs
 

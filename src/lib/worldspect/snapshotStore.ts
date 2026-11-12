@@ -331,8 +331,14 @@ async function loadWorldSpectPublicHistoryRead(days: number, ingestMode: RecentW
     .select('observed_at,created_at,source_state,confidence,wsi,nti,ingest_mode,sources,degraded_sources,adapter_error')
     .gte('observed_at', observedSince);
   if (ingestMode !== 'all' && isWorldSpectIngestMode(ingestMode)) query = query.eq('ingest_mode', ingestMode);
+  // This bounded public history read includes at most 180 snapshots with
+  // their source vectors. The generic 1.8s Supabase deadline is too short
+  // for this payload and led to a 503 after an otherwise READY deployment.
+  // Raise only this lane's deadline; do not increase the row cap, retries,
+  // query count, mirror egress, or affect other read-plane owners.
   const { data, error } = await executeAbortableQuery(
     query.order('observed_at', { ascending: false }).limit(limit),
+    9000,
   );
 
   if (!error && Array.isArray(data)) {

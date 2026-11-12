@@ -1,0 +1,17 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+const store=fs.readFileSync('src/lib/worldspect/snapshotStore.ts','utf8');
+const projection=fs.readFileSync('src/lib/observatory/public/worldSnapshotTimeline.ts','utf8');
+const route=fs.readFileSync('src/app/api/observatory/timeline/route.ts','utf8');
+const read=store.match(/async function loadWorldSpectPublicHistoryRead\([\s\S]*?\n}\n/);
+assert.ok(read,'existing read owner not found');
+assert.match(read[0],/\.select\('observed_at,created_at,source_state,confidence,wsi,nti,ingest_mode,sources,degraded_sources,adapter_error'\)/);
+assert.match(read[0],/\.gte\('observed_at', observedSince\)/);
+assert.match(read[0],/\.order\('observed_at', \{ ascending: false \}\)\.limit\(limit\)/);
+assert.match(read[0],/executeAbortableQuery\([\s\S]*?,\s*9000\s*,?\s*\)/);
+assert.doesNotMatch(read[0],/for\s*\(|while\s*\(/,'public history read must not repeat an expensive primary query');
+assert.match(projection,/const MAX_FRAMES = 180/);
+assert.match(projection,/readPlane === 'UNAVAILABLE'/);
+assert.match(route,/status: 503/);
+assert.match(store,/WORLDSPECT_SHARED_CACHE_TTL_SECONDS = 30/);
+console.log(JSON.stringify({ok:true,contract:'SFI-BOUNDED-PUBLIC-WORLDSPECT-HISTORY-1.0',singleQuery:true,framesMax:180,readDeadlineMs:9000,fetchRetries:0,failClosed:true}));
