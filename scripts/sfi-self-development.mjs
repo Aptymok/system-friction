@@ -179,6 +179,30 @@ for (const [cmd, args] of commands) {
   }
 }
 
+// Institutional self-observation must reconcile repository health with the
+// canonical completion matrix. A green typecheck alone cannot mean SFI is done.
+// This is read-only projection of the SAME sweep, not another database query.
+const completionArtifact = path.join(root, 'artifacts/program-completion/completion.json');
+const completionReport = fs.existsSync(completionArtifact)
+  ? JSON.parse(fs.readFileSync(completionArtifact, 'utf8'))
+  : null;
+const programRequirements = Array.isArray(completionReport?.requirements) ? completionReport.requirements : [];
+const unresolvedRequirements = programRequirements.filter(item =>
+  !['SATISFIED', 'EXTERNAL_ACTION', 'SUPERSEDED_BY_AUTHORIZED_DECISION'].includes(item?.status)
+);
+const institutionalProgram = {
+  observed: Boolean(completionReport && programRequirements.length),
+  contract: completionReport?.contract ?? null,
+  sourceHead: completionReport?.head ?? null,
+  requirementCount: programRequirements.length,
+  unresolvedCount: unresolvedRequirements.length,
+  hardDefectCount: Array.isArray(completionReport?.hardDefects) ? completionReport.hardDefects.length : null,
+  nextProgramAction: completionReport?.nextProgramAction ?? null,
+  boundary: 'REPOSITORY_QA_PASS_IS_NOT_PROGRAM_COMPLETION_OR_EMPIRICAL_RETURN',
+};
+const programDegraded = !institutionalProgram.observed
+  || institutionalProgram.unresolvedCount > 0
+  || (institutionalProgram.hardDefectCount ?? 1) > 0;
 const now = new Date().toISOString();
 const mutationCandidates = findings.filter(f => f.addMutation);
 const report = {
@@ -186,16 +210,27 @@ const report = {
   generatedAt: now,
   epistemicState: 'OBSERVED_REPOSITORY_STATE',
   rootGateRule: 'ROOT approval is required only to ADD/PROMOTE a verified institutional mutation; observation, reconstruction, analysis, bounded repair, verification, RETURN and learning-candidate generation do not require ROOT.',
-  health: findings.some(f => f.severity === 'critical') ? 'CRITICAL' : findings.length ? 'DEGRADED' : 'PASS',
+  health: findings.some(f => f.severity === 'critical') ? 'CRITICAL' : findings.length || programDegraded ? 'DEGRADED' : 'PASS',
   findings,
   verification: commandResults,
   agentAudit,
+  institutionalProgram,
   mutationCandidates,
-  nextAction: findings.length ? 'AUTONOMOUS_REPAIR_TRAJECTORY_REQUIRED' : 'CONTINUE_OBSERVATION',
+  nextAction: findings.length ? 'AUTONOMOUS_REPAIR_TRAJECTORY_REQUIRED'
+    : programDegraded ? 'CONTINUE_CANONICAL_COMPLETION_OWNER_DISPATCH'
+    : 'CONTINUE_OBSERVATION',
 };
 fs.writeFileSync(path.join(outDir, 'report.json'), JSON.stringify(report, null, 2));
 
-const md = `# SFI · Institutional Self-Development Report\n\n**Contract:** SFI-SELF-DEVELOPMENT-1.0  \n**Generated:** ${now}  \n**State:** ${report.health}  \n**Epistemic class:** OBSERVED_REPOSITORY_STATE\n\n## OBSERVATION\n${findings.length ? findings.map(f => `- **${f.severity.toUpperCase()} · ${f.kind} · ${f.id}** — ${f.evidence}`).join('\n') : '- No deterministic defect was observed by this run.'}\n\n## AGENT RUNTIME AUDIT\n- Runtime registry owner: ${agentAudit.runtimeRegistryOwner}\n- Runtime execution owner: ${agentAudit.runtimeExecutionOwner}\n- Runtime passport owner: ${agentAudit.runtimePassportOwner}\n- Runtime registered: ${agentAudit.runtimeRegisteredIds.length}\n- Runtime executable: ${agentAudit.runtimeExecutableIds.length}\n- Runtime missing executor: ${agentAudit.runtimeMissingExecutor.length}\n- Runtime modes excluded from agent count: ${agentAudit.runtimeModePlaneExcludedFromAgentCount}\n- Repository operator/development declarations: ${agentAudit.declarationCount}\n- Declaration-only IDs: ${agentAudit.declarationOnlyIds.length}\n\n## EVIDENCE\n${commandResults.map(r => `- ${r.command}: ${r.ok ? 'PASS' : 'FAIL'}`).join('\n')}\n\n## HYPOTHESES / RIVAL / COUNTERFACTUAL\n- HYPOTHESIS: each finding represents a real implementation, wiring, operability, authority or assurance gap.\n- RIVAL: a finding may be a detector limitation; repair must prove the condition against executable state before mutation.\n- COUNTERFACTUAL: if the capability were fully operational, the corresponding deterministic detector and end-to-end assurance should pass without founder intervention.\n\n## ANALYSIS → RETURN → LEARN\n- Findings are candidates, never canon by inference.\n- A repair must be bounded, tested and independently observable.\n- Failed repair attempts remain evidence and must not be silently discarded.\n- Repository operator/development prompt files do not count as runtime implementation evidence.\n- Runtime modes do not count as runtime agents.\n\n## ADD\n${mutationCandidates.length ? mutationCandidates.map(f => `- ROOT REVIEW REQUIRED AFTER VERIFIED REPAIR: ${f.id} — ${f.requiredAction}`).join('\n') : '- No institutional mutation is ready for ROOT.'}\n\n## AUTHORITY\nObservation, reconstruction, analysis, repair attempts, verification and report generation require **no ROOT gate**. Only verified **ADD/PROMOTE** mutations are presented to ROOT for ACCEPT / DENY / REQUIRE MORE EVIDENCE.\n`;
+const md = `# SFI · Institutional Self-Development Report\n\n**Contract:** SFI-SELF-DEVELOPMENT-1.0  \n**Generated:** ${now}  \n**State:** ${report.health}  \n**Epistemic class:** OBSERVED_REPOSITORY_STATE\n\n## OBSERVATION\n${findings.length ? findings.map(f => `- **${f.severity.toUpperCase()} · ${f.kind} · ${f.id}** — ${f.evidence}`).join('\n') : '- No deterministic defect was observed by this run.'}\n\n## PROGRAM COMPLETION (READ-ONLY)
+- Canonical matrix observed: ${institutionalProgram.observed}
+- Program requirements: ${institutionalProgram.requirementCount}
+- Unresolved requirements: ${institutionalProgram.unresolvedCount}
+- Hard defects: ${institutionalProgram.hardDefectCount ?? 'NOT_OBSERVED'}
+- Next action: ${institutionalProgram.nextProgramAction ?? 'NOT_OBSERVED'}
+- Boundary: repository PASS never certifies program or empirical completion
+
+## AGENT RUNTIME AUDIT\n- Runtime registry owner: ${agentAudit.runtimeRegistryOwner}\n- Runtime execution owner: ${agentAudit.runtimeExecutionOwner}\n- Runtime passport owner: ${agentAudit.runtimePassportOwner}\n- Runtime registered: ${agentAudit.runtimeRegisteredIds.length}\n- Runtime executable: ${agentAudit.runtimeExecutableIds.length}\n- Runtime missing executor: ${agentAudit.runtimeMissingExecutor.length}\n- Runtime modes excluded from agent count: ${agentAudit.runtimeModePlaneExcludedFromAgentCount}\n- Repository operator/development declarations: ${agentAudit.declarationCount}\n- Declaration-only IDs: ${agentAudit.declarationOnlyIds.length}\n\n## EVIDENCE\n${commandResults.map(r => `- ${r.command}: ${r.ok ? 'PASS' : 'FAIL'}`).join('\n')}\n\n## HYPOTHESES / RIVAL / COUNTERFACTUAL\n- HYPOTHESIS: each finding represents a real implementation, wiring, operability, authority or assurance gap.\n- RIVAL: a finding may be a detector limitation; repair must prove the condition against executable state before mutation.\n- COUNTERFACTUAL: if the capability were fully operational, the corresponding deterministic detector and end-to-end assurance should pass without founder intervention.\n\n## ANALYSIS → RETURN → LEARN\n- Findings are candidates, never canon by inference.\n- A repair must be bounded, tested and independently observable.\n- Failed repair attempts remain evidence and must not be silently discarded.\n- Repository operator/development prompt files do not count as runtime implementation evidence.\n- Runtime modes do not count as runtime agents.\n\n## ADD\n${mutationCandidates.length ? mutationCandidates.map(f => `- ROOT REVIEW REQUIRED AFTER VERIFIED REPAIR: ${f.id} — ${f.requiredAction}`).join('\n') : '- No institutional mutation is ready for ROOT.'}\n\n## AUTHORITY\nObservation, reconstruction, analysis, repair attempts, verification and report generation require **no ROOT gate**. Only verified **ADD/PROMOTE** mutations are presented to ROOT for ACCEPT / DENY / REQUIRE MORE EVIDENCE.\n`;
 fs.writeFileSync(path.join(outDir, 'report.md'), md);
 console.log(JSON.stringify({ ok: true, health: report.health, findings: findings.length, mutationCandidates: mutationCandidates.length, runtimeRegistered: agentAudit.runtimeRegisteredIds.length, runtimeMissingExecutor: agentAudit.runtimeMissingExecutor.length, report: 'artifacts/self-development/report.json' }));
 process.exitCode = commandResults.some(r => !r.ok) ? 2 : 0;

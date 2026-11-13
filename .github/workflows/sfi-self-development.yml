@@ -84,11 +84,6 @@ jobs:
               handle.write('\n```\n')
           PY
 
-      - name: Observe SFI and generate evidence-backed report
-        id: observe
-        continue-on-error: true
-        run: node scripts/sfi-self-development.mjs
-
       - name: Reconstruct canonical Master Program and completion trajectories
         id: completion
         continue-on-error: true
@@ -96,6 +91,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GITHUB_TOKEN: ${{ github.token }}
         run: node scripts/sfi-program-completion.mjs
+
+      - name: Observe SFI and generate evidence-backed report
+        id: observe
+        continue-on-error: true
+        run: node scripts/sfi-self-development.mjs
 
       - name: Render institutional PDF
         if: ${{ always() }}
