@@ -199,9 +199,11 @@ jobs:
           d=json.load(open('artifacts/self-development/report.json'))
           candidate=os.environ.get('HAS_GOVERNED_CANDIDATE') == 'true'
           completion_failed=os.environ.get('COMPLETION_FAILED') == 'true'
-          # A failing completion certificate is an operational defect, but
-          # never authorizes model-written changes beyond the allowed paths.
-          print('needs_repair=' + ('true' if d.get('findings') or candidate or completion_failed else 'false'))
+          # Failed program receipts are dispatched by the completion controller.
+          # Do not invoke a costly local model when no scoped repair candidate
+          # or self-development finding can be addressed by allowed files.
+          print('needs_repair=' + ('true' if d.get('findings') or candidate else 'false'))
+          print('completion_failed=' + ('true' if completion_failed else 'false'))
           print('health=' + d.get('health','UNKNOWN'))
           PY
 
