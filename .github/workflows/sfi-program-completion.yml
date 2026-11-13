@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   completion-controller:
-    if: ${{ github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.head_branch == 'main' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -38,7 +38,7 @@ jobs:
         run: npm ci
 
       - name: Download exact-head SFI-08 certification RETURN
-        if: ${{ github.event_name == 'workflow_run' }}
+        if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' }}
         uses: actions/download-artifact@v5
         with:
           name: sfi08-completion-certification-${{ github.event.workflow_run.id }}
@@ -56,6 +56,7 @@ jobs:
         run: node scripts/qa-sfi-program-completion-receipts.mjs
 
       - name: Reconcile evidence-backed SATISFIED receipts
+        id: reconcile
         env:
           GH_TOKEN: ${{ github.token }}
           GITHUB_TOKEN: ${{ github.token }}
@@ -73,11 +74,22 @@ jobs:
         run: node scripts/qa-sfi-root-final-visual.mjs
 
       - name: Dispatch unresolved implementable gaps to durable owners
-        if: ${{ github.event_name == 'workflow_run' }}
+        if: ${{ always() && github.event_name == 'workflow_run' && hashFiles('artifacts/program-completion/completion.json') != '' }}
         env:
           GH_TOKEN: ${{ github.token }}
           GITHUB_TOKEN: ${{ github.token }}
         run: node scripts/sfi-program-dispatch.mjs
+
+      - name: Enforce completion controller integrity after durable gap dispatch
+        if: ${{ always() }}
+        shell: bash
+        env:
+          RECONCILE_OUTCOME: ${{ steps.reconcile.outcome }}
+        run: |
+          if [ "$RECONCILE_OUTCOME" != "success" ]; then
+            echo "SFI completion reconciliation failed, unresolved work was dispatched where possible; refusing a green controller."
+            exit 1
+          fi
 
       - name: Upload immutable controller evidence
         if: always()

@@ -9,11 +9,14 @@ const repo = process.env.GITHUB_REPOSITORY || 'Aptymok/system-friction';
 const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || '';
 if (!token) throw new Error('SFI_PROGRAM_DISPATCH_GITHUB_TOKEN_REQUIRED');
 
+// Invalid historical or exact-head completion receipts are actionable defects,
+// not a reason to strand the entire completion queue before owner dispatch.
+const invalidReceiptIds = new Set((report.completionReceiptState?.invalidReceipts || []).map((r) => r.requirementId));
 const dispatchable = (report.requirements || []).filter((r) =>
-  ['MISSING', 'PARTIAL', 'IN_PROGRESS'].includes(r.status)
+  (['MISSING', 'PARTIAL', 'IN_PROGRESS'].includes(r.status) || invalidReceiptIds.has(r.id))
   && r.owner
   && r.owner !== 'SFI-00'
-  && (r.trajectoryRef === '#405' || r.trajectoryKind === 'CONTROL_ROOM_COMPLETION_QUEUE')
+  && (r.trajectoryRef === '#405' || r.trajectoryKind === 'CONTROL_ROOM_COMPLETION_QUEUE' || invalidReceiptIds.has(r.id))
 );
 
 const byOwner = new Map();
@@ -131,7 +134,7 @@ for (const [owner, items] of [...byOwner.entries()].sort(([a], [b]) => a.localeC
     '`DECLARED -> IMPLEMENTED -> WIRED -> EXECUTED -> PERSISTED -> RECONSTRUCTABLE -> RETURN_PASS`',
     '',
     '## Current bounded queue',
-    ...items.slice(0, 120).map((r) => `- [ ] **${r.id} · ${r.status}** — ${r.requirement}\n  - source: ${r.source}\n  - evidence: ${(r.evidence || []).join(', ') || 'none demonstrated'}\n  - next: ${r.nextAction}\n  - RETURN: ${r.returnCondition}`),
+    ...items.slice(0, 120).map((r) => `- [ ] **${r.id} · ${r.status}** — ${r.requirement}\n  - source: ${r.source}\n  - evidence: ${(r.evidence || []).join(', ') || 'none demonstrated'}\n  - completion receipt: ${r.completionReceipt?.state || 'NOT_OBSERVED'} ${r.completionReceipt?.error || ''}\n  - next: ${r.nextAction}\n  - RETURN: ${r.returnCondition}`),
     '',
     '## Closure rule',
     'Do not close from documentation, isolated tests, route existence, or CI green alone. Close only when every queued item is either independently SATISFIED, moved to a more specific active issue/PR, explicitly EXTERNAL_ACTION, or superseded by an authorized decision with lineage.',
