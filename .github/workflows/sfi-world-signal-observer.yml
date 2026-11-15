@@ -7,6 +7,9 @@ on:
       - main
     paths:
       - '.github/sfi-world-signal-observer-trigger'
+      - 'scripts/qa-sfi-world-live-lineage.mjs'
+      - 'src/lib/root/closure/fullCycleVerification.ts'
+      - '.github/workflows/sfi-world-signal-observer.yml'
 
 permissions:
   contents: read
