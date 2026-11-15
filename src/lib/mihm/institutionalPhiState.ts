@@ -24,7 +24,7 @@ export type InstitutionalPhiState = {
 function bounded(value: unknown): number | null {
   if (value === null || value === undefined || value === '') return null;
   const parsed = typeof value === 'number' ? value : Number(value);
-  return Number.isFinite(parsed) ? Math.max(0, Math.min(1, parsed)) : null;
+  return Number.isFinite(parsed) && parsed >= 0 && parsed <= 1 ? parsed : null;
 }
 
 function missingState(warning: string): InstitutionalPhiState {
@@ -81,16 +81,30 @@ export async function readInstitutionalPhiState(): Promise<InstitutionalPhiState
       };
     }
 
-    const xi = 0.03;
-    const metrics = evaluateSfi({ ihg, nti, ldi, xi });
     const sourceWarnings = Array.isArray(data.warnings)
       ? data.warnings.filter((warning): warning is string => typeof warning === 'string')
       : [];
+
+    // A stored numeric field is not an admitted observation when acquisition
+    // itself failed. Preserve the original row, but do not surface a fabricated
+    // institutional Phi or regime. Never silently fall back to an older row.
+    if (['degraded', 'failed'].includes(sourceStatus.toLowerCase())) {
+      return {
+        ...missingState('indicator_snapshot_source_not_admissible'),
+        status: 'DEGRADED',
+        observedAt,
+        sourceStatus,
+        wsv,
+        warnings: [...sourceWarnings, 'source_status_non_admissible_for_phi_sfi'],
+      };
+    }
+
+    const xi = 0.03;
+    const metrics = evaluateSfi({ ihg, nti, ldi, xi });
     const warnings = [...sourceWarnings, 'xi_default_0.03'];
-    const degraded = ['degraded', 'failed'].includes(sourceStatus.toLowerCase());
 
     return {
-      status: degraded ? 'DEGRADED' : 'THIN',
+      status: 'THIN',
       objectId: 'SYSTEM_FRICTION_INSTITUTE',
       symbol: 'PHI_SFI',
       notation: 'Φ_SFI',

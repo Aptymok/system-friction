@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
     paths:
+      - 'src/lib/mihm/institutionalPhiState.ts'
       - 'src/lib/sfi/math.ts'
       - 'src/core/formulas/**'
       - 'services/python/sfi_engine/**'

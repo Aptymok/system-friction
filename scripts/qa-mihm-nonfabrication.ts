@@ -66,6 +66,13 @@ const client = readFileSync('src/lib/sfi-engine/client.ts','utf8');
 assert.ok(client.includes("ok: false,"), 'Transport failure must fail closed');
 assert.ok(client.includes('metrics: null,'), 'Missing model cannot synthesize a measured metric');
 assert.ok(client.includes("'phi_s_derivation_not_empirically_calibrated'"), 'Inferred engine must disclose calibration state');
+const institutional = readFileSync('src/lib/mihm/institutionalPhiState.ts','utf8');
+assert.ok(institutional.includes("['degraded', 'failed'].includes(sourceStatus.toLowerCase())"),
+  'Failed acquisitions must not generate an institutional Phi');
+assert.ok(institutional.includes("source_status_non_admissible_for_phi_sfi"),
+  'Source failure requires explicit status');
+assert.ok(institutional.includes("parsed >= 0 && parsed <= 1 ? parsed : null"),
+  'Out-of-range observed metrics must be missing, not clamped');
 const api=readFileSync('services/python/sfi_engine/main.py','utf8');
 assert.ok(api.includes('MIHM_MISSING_MATERIAL_OBSERVATION'));
 console.log(JSON.stringify({ok:true,parityVectors: numericVectors.length,
