@@ -1,0 +1,51 @@
+name: SFI Cognitive Olympics · 100+ Real Public Cases
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/sfi-real-public-100.yml'
+      - 'scripts/cognitive-olympics/qa-real-public-100.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sfi-real-public-100
+  cancel-in-progress: false
+
+jobs:
+  public-historical-replay:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      SFI_CL_DATA_DIR: .sfi-cl/data/world-bank
+      SFI_CL_RUN_DIR: .sfi-cl/runs/public-real-100
+      SFI_CL_CUTOFF_YEAR: '2018'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install existing application dependencies
+        run: npm ci
+      - name: Retrieve real official World Bank country and indicator observations
+        run: |
+          node --input-type=module -e "import {prepareWorldBankDataset} from './scripts/cognitive-olympics/lib/dataset.mjs'; const result=await prepareWorldBankDataset({outDir:process.env.SFI_CL_DATA_DIR,startYear:2014,endYear:2019}); if(result.records<100 || result.countries<10)process.exit(1); console.log(JSON.stringify(result));"
+      - name: Execute existing SFI Cognitive Olympics on 160 historical cases
+        run: node scripts/cognitive-olympics/runner.mjs --profile quick --start 2018 --end 2019 --problems 160 --engines stats --run-id public-real-100
+      - name: Independently verify source lineage, score, and real registered-agent execution
+        run: node scripts/cognitive-olympics/qa-real-public-100.mjs
+      - name: Upload inspectable source, decisions, score and independent RETURN
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sfi-real-public-100-${{ github.run_id }}
+          path: |
+            .sfi-cl/data/world-bank/manifest.json
+            .sfi-cl/data/world-bank/world-bank.jsonl
+            .sfi-cl/runs/public-real-100/**
+          if-no-files-found: warn
+          retention-days: 90
