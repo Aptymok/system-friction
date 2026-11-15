@@ -68,6 +68,10 @@ const TARGETED_CANONICAL_PROOFS = {
   'WS-03-006': ['scripts/qa-sfi-discovery-integrity.ts','scripts/qa-sfi-discovery-public-live.ts'],
   'WS-03-005': ['scripts/qa-sfi-discovery-public-live.ts'],
   'WS-04-004': ['scripts/qa-sfi-discovery-public-live.ts'],
+  'WS-04-001': ['scripts/qa-sfi-discovery-public-live.ts'],
+  'WS-04-002': ['scripts/qa-sfi-agent-api-hardening.ts','src/lib/mcp/authenticatedGovernedMachineAdapter.test.ts'],
+  'WS-04-008': ['scripts/qa-sfi-public-mcp-readonly.ts'],
+  'MASTER-17': ['src/lib/mcp/authenticatedGovernedMachineAdapter.test.ts','scripts/qa-sfi-agent-api-hardening.ts'],
   'WS-04-005': ['scripts/qa-sfi-public-mcp-readonly.ts'],
   'WS-04-006': ['scripts/qa-sfi-public-mcp-readonly.ts'],
   'WS-04-007': ['scripts/qa-sfi-public-mcp-readonly.ts'],
@@ -275,6 +279,16 @@ for (const id of publicMcpOwnerIds) {
  assert.ok(selected.scopePaths.includes('src/lib/mcp/publicMcpServer.ts'),'actual MCP owner scope missing: '+id);
  assert.equal(selected.scopePaths.includes('src/**'),false,'public scope must remain bounded: '+id);
  assert.equal(selected.productionObservation,null,'read-only code proof cannot assert production observation: '+id);
+}
+const externalMachineProofs = {"WS-04-001":["scripts/qa-sfi-discovery-public-live.ts"],"WS-04-002":["scripts/qa-sfi-agent-api-hardening.ts","src/lib/mcp/authenticatedGovernedMachineAdapter.test.ts"],"WS-04-008":["scripts/qa-sfi-public-mcp-readonly.ts"],"MASTER-17":["src/lib/mcp/authenticatedGovernedMachineAdapter.test.ts","scripts/qa-sfi-agent-api-hardening.ts"]};
+for (const [id,paths] of Object.entries(externalMachineProofs)) {
+  const source=requirementById.get(id);assert.ok(source,'source required: '+id);
+  const receipt=certification.requirements.find(item=>item.id===id);
+  if(source.status==='SATISFIED'&&source.completionReceipt?.state==='VALID'){assert.equal(receipt,undefined);continue;}
+  assert.ok(receipt,'exact-head machine proof must run: '+id);
+  for(const path of paths){assert.ok(receipt.proofPaths.includes(path),'required independent code/live proof missing: '+id+':'+path);assert.ok(receipt.scopePaths.includes(path),'regression scope missing owner QA: '+id+':'+path);}
+  assert.equal(receipt.scopePaths.includes('src/**'),false,'unrelated subsystem must not become scope: '+id);
+  assert.equal(receipt.productionObservation,null,'contract proof does not make external operation claim: '+id);
 }
 assert.ok(!certification.requirements.some((item) => item.canonicalStatus === 'SATISFIED'), 'already satisfied requirement must not be recertified');
 const observedRequirementIds = new Set(['WS-03-008','WS-03-009','WS-03-011']);

@@ -91,6 +91,11 @@ export const TARGETED_CANONICAL_PROOFS = Object.freeze({
   // anonymous access to public institutional objects. No mocked responses.
   'WS-03-005': ['scripts/qa-sfi-discovery-public-live.ts'],
   'WS-04-004': ['scripts/qa-sfi-discovery-public-live.ts'],
+  // Reuse actual public-host manifest and governed OAuth/MCP owner proofs.
+  'WS-04-001': ['scripts/qa-sfi-discovery-public-live.ts'],
+  'WS-04-002': ['scripts/qa-sfi-agent-api-hardening.ts','src/lib/mcp/authenticatedGovernedMachineAdapter.test.ts'],
+  'WS-04-008': ['scripts/qa-sfi-public-mcp-readonly.ts'],
+  'MASTER-17': ['src/lib/mcp/authenticatedGovernedMachineAdapter.test.ts','scripts/qa-sfi-agent-api-hardening.ts'],
   // Public MCP read-only invariants are tested through the existing real owner.
   'WS-04-005': ['scripts/qa-sfi-public-mcp-readonly.ts'],
   'WS-04-006': ['scripts/qa-sfi-public-mcp-readonly.ts'],
@@ -108,6 +113,9 @@ export const TARGETED_CANONICAL_PROOFS = Object.freeze({
 // Owner-based regression scopes are code/dependency paths, NOT test data or
 // claims of outcomes. All other requirements keep the old conservative scope.
 export const SCOPED_REQUIREMENT_OWNERS = Object.freeze({
+  'WS-04-001': ['src/app/api/external/v1/manifest/route.ts','src/lib/public/institutionProfile.ts','src/lib/discovery/canonicalObjectRegistry.ts','scripts/qa-sfi-discovery-public-live.ts','scripts/sfi-program-certification-batch.mjs','scripts/qa-sfi-program-certification-batch.mjs','scripts/sfi-program-completion-reconcile.mjs','.github/workflows/sfi-verify.yml'],
+  'WS-04-008': ['src/lib/mcp/publicMcpServer.ts','src/app/api/mcp/public/route.ts','src/lib/discovery/canonicalObjectRegistry.ts','src/lib/public/institutionProfile.ts','scripts/qa-sfi-public-mcp-readonly.ts','scripts/sfi-program-certification-batch.mjs','scripts/qa-sfi-program-certification-batch.mjs','scripts/sfi-program-completion-reconcile.mjs','.github/workflows/sfi-verify.yml'],
+  ...Object.fromEntries(['WS-04-002','MASTER-17'].map(id => [id, ['src/lib/mcp/authenticatedGovernedMachineAdapter.ts','src/lib/mcp/authenticatedGovernedMachineAdapter.test.ts','src/lib/mcp/authenticatedGatewayProjection.ts','src/app/api/mcp/authenticated/**','src/lib/sfi/oauthConfig.ts','src/lib/sfi/oauthClientRegistry.ts','src/app/api/oauth/**','src/lib/sfi/externalAuth.ts','src/app/api/external/v1/**','scripts/qa-sfi-agent-api-hardening.ts','scripts/merge-openapi-cases.mjs','scripts/sfi-program-certification-batch.mjs','scripts/qa-sfi-program-certification-batch.mjs','scripts/sfi-program-completion-reconcile.mjs','.github/workflows/sfi-verify.yml']])),
   ...Object.fromEntries(["WS-04-005","WS-04-006","WS-04-007","WS-04-009","WS-04-010","WS-04-013","WS-04-017","WS-04-020"].map(id => [id, ['src/lib/mcp/publicMcpServer.ts','src/app/api/mcp/public/route.ts','src/lib/discovery/canonicalObjectRegistry.ts','src/lib/discovery/publicSemanticProjection.ts','src/lib/public/institutionProfile.ts','src/lib/research/researchGraphProjection.ts','scripts/qa-sfi-public-mcp-readonly.ts','scripts/qa-sfi-discovery-public-live.ts','scripts/sfi-program-certification-batch.mjs','scripts/qa-sfi-program-certification-batch.mjs','scripts/sfi-program-completion-reconcile.mjs','.github/workflows/sfi-verify.yml','.github/workflows/sfi-completion-certification-batch.yml']])),
   // Source-lock evidence and broker decision owner; preserve regression invalidation.
   ...Object.fromEntries(["WS-01-027","WS-01-028","WS-01-043","WS-01-044","WS-01-045","WS-01-046","WS-01-047","WS-01-048"].map(id => [id, ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.ts','src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts','src/lib/sfi/cognitive-runtime/convergedRegistry.ts','src/lib/sfi/cognitive-runtime/executionContracts.ts','src/lib/sfi/cognitive-runtime/agentPassports.ts','src/lib/sfi/cognitive-runtime/agentModelRequirements.ts','src/infrastructure/ai/agentLlmClient.ts','scripts/sfi-program-certification-batch.mjs','scripts/qa-sfi-program-certification-batch.mjs','scripts/sfi-program-completion-reconcile.mjs','.github/workflows/sfi-verify.yml','.github/workflows/sfi-completion-certification-batch.yml']])),
