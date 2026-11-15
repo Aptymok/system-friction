@@ -211,7 +211,7 @@ function executeProof(repoPath) {
   const command = commandForProof(repoPath);
   const startedAt = Date.now();
   try {
-    execFileSync(command.bin, command.args, {
+    const output = execFileSync(command.bin, command.args, {
       cwd: root,
       encoding: 'utf8',
       env: process.env,
@@ -219,7 +219,19 @@ function executeProof(repoPath) {
       timeout: 180_000,
       maxBuffer: 16 * 1024 * 1024,
     });
-    return { path: repoPath, ok: true, durationMs: Date.now() - startedAt, command: [command.bin, ...command.args] };
+    // Preserve observed live output under the immutable SFI-08 artifact, not
+    // merely a green exit code. No synthetic success object is generated.
+    const liveAudit = repoPath === 'scripts/qa-sfi-discovery-public-live.ts'
+      ? JSON.parse(output.trim().split('\n').at(-1) || 'null')
+      : null;
+    if (repoPath === 'scripts/qa-sfi-discovery-public-live.ts'
+      && (liveAudit?.contract !== 'SFI-03-LIVE-PUBLIC-BOUNDARY-1.0'
+        || liveAudit.result !== 'PASS'
+        || !Array.isArray(liveAudit.observations)
+        || liveAudit.observations.length < 5)) {
+      throw new Error('REAL_DISCOVERY_OBSERVATION_ARTIFACT_REQUIRED');
+    }
+    return { path: repoPath, ok: true, durationMs: Date.now() - startedAt, command: [command.bin, ...command.args], ...(liveAudit ? { liveAudit } : {}) };
   } catch (error) {
     const stdout = typeof error?.stdout === 'string' ? error.stdout.slice(-4000) : '';
     const stderr = typeof error?.stderr === 'string' ? error.stderr.slice(-4000) : '';
