@@ -73,7 +73,7 @@ export async function makeStudioLocalZip(entries: StudioLocalZipEntry[]): Promis
   put16(ev, 8, entries.length); put16(ev, 10, entries.length);
   put32(ev, 12, centralSize); put32(ev, 16, offset);
   put16(ev, 20, 0);
-  return new Blob([...files, ...central, final], { type: 'application/zip' });
+  // Every part owns a newly allocated ArrayBuffer; cast prevents TS DOM BlobPart\n  // SharedArrayBuffer ambiguity without copying or widening the accepted input.\n  const parts: ArrayBuffer[] = [...files, ...central, final].map(part => part.buffer as ArrayBuffer);\n  return new Blob(parts, { type: 'application/zip' });
 }
 export function downloadStudioLocalZip(blob: Blob, title: string) {
   const safe = title.normalize('NFKD').replace(/[^a-z0-9-]+/gi, '-').replace(/^-+|-+$/g, '').slice(0, 64) || 'studio-project';
