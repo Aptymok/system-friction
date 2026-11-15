@@ -1,5 +1,7 @@
 /// <reference lib="webworker" />
 import { extractDynamicFeatures } from '@/lib/studio/audio/features/dynamicFeatures';
+import { extractSpectralFeatures } from '@/lib/studio/audio/features/spectralFeatures';
+import { extractAdvancedSpectralFeatures } from '@/lib/studio/audio/features/advancedSpectralFeatures';
 import { extractStereoFeatures } from '@/lib/studio/audio/features/stereoFeatures';
 import { extractRhythmFeatures } from '@/lib/studio/audio/features/rhythmFeatures';
 import { extractHarmonyFeatures } from '@/lib/studio/audio/features/harmonyFeatures';
@@ -58,6 +60,9 @@ self.onmessage = (event: MessageEvent<WorkRequest>) => {
       ...extractDynamicFeatures(decoded).map(project),
       ...extractStereoFeatures(decoded).map(project),
     ];
+    progress('Analizando composición espectral y timbre…');
+    features.push(...extractSpectralFeatures(decoded).map(project));
+    features.push(...extractAdvancedSpectralFeatures(decoded).map(project));
     progress('Midiendo sonoridad LUFS (ponderación K y compuertas)…');
     const loudness = calculateIntegratedLoudness(decoded).result;
     features.push({
@@ -77,13 +82,20 @@ self.onmessage = (event: MessageEvent<WorkRequest>) => {
     });
     progress('Analizando ritmo y estimación de tempo…');
     features.push(...extractRhythmFeatures(decoded).map(project));
+    // Existing tempoDrift.absoluteDelta is signed (final - initial), despite its legacy name.
+    // Avoid reporting negative values as an absolute magnitude.
+    const drift = features.find(feature => feature.key === 'tempo_drift_bpm');
+    if (drift) {
+      drift.label = 'Signed Tempo Change';
+      drift.explanation = 'Difference between final and initial tempo-window estimates (signed BPM); ambiguous half/double-time can invalidate musical interpretation.';
+    }
     progress('Analizando armonía, tonalidad y estabilidad…');
     features.push(...extractHarmonyFeatures(decoded).map(project));
     self.postMessage({
       type: 'result',
       report: {
         engine: 'sfi-studio-existing-audio-engines-browser',
-        method: 'Decoded PCM analyzed locally using existing Studio dynamic/stereo/loudness/rhythm/harmony engines',
+        method: 'Decoded PCM analyzed locally with existing dynamic/stereo/spectral/timbre/loudness/rhythm/harmony engines',
         analyzedAt: new Date().toISOString(),
         durationSeconds: decoded.durationSeconds,
         sampleRateHz: decoded.sampleRate,
