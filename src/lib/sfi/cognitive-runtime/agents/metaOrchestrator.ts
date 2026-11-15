@@ -95,10 +95,48 @@ export function MetaOrchestratorAgent(context: KernelContext): KernelContext {
 
   const runtimeLimits = runtimeBoundOverridesFromContext(context);
   const taskGraph = buildTaskGraph(plan, runtimeLimits);
+
+  // A material temporal violation is a real operational reason to request
+  // bounded risk review, even when generic intent selection did not plan it.
+  // The agent requests; the canonical broker alone admits, denies or defers.
+  // The request does NOT authorize execution, promote evidence, or spend.
+  const material = row(context.metadata?.materialMeasurements);
+  const temporalConsistency = rows(material.temporalConsistency);
+  const observedTemporalViolations = temporalConsistency.filter((entry) =>
+    typeof entry.violationShare === 'number'
+    && Number.isFinite(entry.violationShare)
+    && entry.violationShare > 0
+    && typeof entry.violations === 'number'
+    && Number.isFinite(entry.violations)
+    && entry.violations > 0
+  );
+  const riskAlreadyPlanned = executionOrder.includes('risk_agent');
+  const existingRequests = Array.isArray(context.metadata?.capabilityRequests)
+    ? context.metadata.capabilityRequests : [];
+  const rootNode = taskGraph.nodes.find((node) => node.capabilityId === 'meta_orchestrator');
+  const riskReviewRequest = observedTemporalViolations.length > 0
+    && !riskAlreadyPlanned && rootNode
+    ? {
+      requestId: crypto.randomUUID(),
+      trajectoryId: context.cycleId,
+      parentStepId: rootNode.nodeId,
+      requestedByCapabilityId: 'meta_orchestrator',
+      requestedCapabilityId: 'risk_agent',
+      reason: 'Observed material temporal-order violations require bounded risk assessment before drawing operational conclusions.',
+      requiredInputs: [],
+      availableEvidenceRefs: context.evidence.map((item) => item.id).filter(Boolean).slice(0, 24),
+      requestedOutputs: ['RECOMMENDATION'],
+      urgency: 'NORMAL' as const,
+      requestedAt: new Date().toISOString(),
+    } : null;
   context.metadata = {
     ...context.metadata,
     cognitivePlan: plan,
     taskGraph,
+    // Requests are generated from the actual measured anomaly, not from a
+    // test fixture or a forced expected disposition. The broker may reject.
+    capabilityRequests: riskReviewRequest
+      ? [...existingRequests, riskReviewRequest] : existingRequests,
     metaOrchestrator: {
       executed: true,
       executionKind: 'cognitive_automation',
@@ -109,6 +147,8 @@ export function MetaOrchestratorAgent(context: KernelContext): KernelContext {
       missingInputs,
       selectedAutomations: executionOrder.length,
       importedSourceClaimsMaterialized: importedSourceClaims,
+      riskReviewCapabilityRequested: Boolean(riskReviewRequest),
+      observedTemporalViolationKinds: observedTemporalViolations.length,
       taskGraphNodes: taskGraph.nodes.length,
       taskGraphEdges: taskGraph.edges.length,
       runtimeControlsContract: taskGraph.runtimeControls.contract,
