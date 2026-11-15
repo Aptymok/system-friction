@@ -108,8 +108,10 @@ function p4NycWindow(now=new Date()){
   const dayMs=86400000;
   const runDay=Date.parse(todayNy+'T00:00:00Z');
   if(!Number.isFinite(runDay))throw Error('NYC_CALENDAR_DAY_NOT_RESOLVED');
-  // Source extraction bound only, never a learned MIHM coefficient.
-  const lookbackDays=14;
+  // G2B DAY_AHEAD uses lags 2..36 (35 receipts per series).
+  // One extra completed day preserves the complete 36-day source window.
+  // This is a feature-availability requirement, not calibrated model skill.
+  const lookbackDays=36;
   const need=Array.from({length:lookbackDays},(_,i)=>
     new Date(runDay-(lookbackDays-i)*dayMs).toISOString().slice(0,10));
   const begin=need[0],end=todayNy;
@@ -125,11 +127,11 @@ async function collectP4Nyc(){
     {id:'NYC311',endpoint:'https://data.cityofnewyork.us/resource/erm2-nwe9.json',
       query:{$select:'date_trunc_ymd(created_date) as day,count(*) as n',
        $where:"created_date >= '"+begin+"T00:00:00' AND created_date < '"+end+"T00:00:00' AND borough = 'MANHATTAN'",
-       $group:'day',$order:'day ASC',$limit:'20'}},
+       $group:'day',$order:'day ASC',$limit:'50'}},
     {id:'MTA_CBD',endpoint:'https://data.ny.gov/resource/sayj-mze2.json',
       query:{$select:'date,mode,count',
        $where:"date >= '"+begin+"T00:00:00' AND date < '"+end+"T00:00:00' AND mode = 'CBD Entries'",
-       $order:'date ASC',$limit:'20'}}
+       $order:'date ASC',$limit:'50'}}
   ];
   const records=[],failures=[];
   for(const trial of trials){
@@ -142,7 +144,7 @@ async function collectP4Nyc(){
       const bytes=Buffer.from(await resp.arrayBuffer());
       if(!bytes.length||bytes.length>70000)throw Error('BOUNDED_RESPONSE_BYTES_INVALID');
       const data=JSON.parse(bytes.toString('utf8'));
-      if(!Array.isArray(data)||data.length>20)throw Error('UNEXPECTED_SOURCE_ARRAY');
+      if(!Array.isArray(data)||data.length>50)throw Error('UNEXPECTED_SOURCE_ARRAY');
       const values={},seen=new Set(),missingValues=[];
       for(const row of data){
         const day=String(trial.id==='NYC311'?row.day:row.date).slice(0,10);
@@ -181,7 +183,7 @@ async function collectP4Nyc(){
       'BLOCKED_SOURCE_GAPS_OR_PROVIDER_UNAVAILABLE';
   const receipt={
     contract:'SFI-MIHM-P4-OFFICIAL-PUBLIC-SNAPSHOT-0.1',status,
-    extractionPolicy:'LAST_14_COMPLETED_NEW_YORK_CIVIL_DAYS_NOT_A_CALIBRATED_THRESHOLD',
+    extractionPolicy:'LAST_36_COMPLETED_NEW_YORK_CIVIL_DAYS_G2B_LAG2_RECEIPT_BUDGET',
     civilDayTimezone:calendar,lookbackDays,
     studyWindow:{begin,end,requiredDays:need},records,failures,
     observedSourceIds,completeSourceIds,sourceCountExpected:trials.length,
