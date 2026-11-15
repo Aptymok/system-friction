@@ -80,7 +80,7 @@ const MASTER_PROGRAMS = {
   21:['P05','P17'],22:['P09','P17'],23:['P11','P12'],24:['P24','P25'],
 };
 function proposedLinks(r) {
-  if (/^MASTER-\d{2}$/.test(r.id)) return MASTER_PROGRAMS[Number(r.id.slice(7))] ?? [];
+  if (/^MASTER-\d+$/.test(r.id)) return MASTER_PROGRAMS[Number(r.id.slice(7))] ?? [];
   return WS_PROGRAMS[r.owner] ?? [];
 }
 function sourceLocation(r, repo) {
@@ -107,7 +107,6 @@ function readChecklist() {
   if(current)rows.push(current);
   return {rows,issue:rows.length===25 && rows.every(r=>r.deliverables.length===4)?null:'CHECKLIST_SHAPE_INVALID'};
 }
-function escapeMd(value){return String(value??'').replace(/\|/g,'\\|').replace(/\n/g,' ');}
 export function buildTransparency(report) {
   if(!Array.isArray(report.requirements))throw Error('REQUIREMENT_ARRAY_MISSING');
   const checklist=readChecklist();
