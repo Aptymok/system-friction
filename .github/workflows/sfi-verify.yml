@@ -155,6 +155,8 @@ jobs:
 
       - name: Verify SFI-08 completion handoff
         run: node scripts/qa-sfi-program-completion-receipts.mjs
+      - name: Verify P01-P25 and 205 requirement transparency without authority promotion
+        run: node scripts/qa-sfi-requirement-transparency.mjs
 
       - name: Verify AI governance and autonomous runtime
         run: npx tsx scripts/qa-sfi-ai-governance.ts
