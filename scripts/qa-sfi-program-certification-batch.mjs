@@ -35,7 +35,6 @@ const TARGETED_CANONICAL_PROOFS = {
   'ISSUE154-001': ['scripts/qa-sfi-discovery-operational.ts'],
   'MASTER-20': ['scripts/qa-sfi-discovery-operational.ts'],
   'WS-05-003': ['scripts/qa-sfi-research-metadata.mjs'],
-  'WS-05-008': ['scripts/qa-sfi-research-metadata.mjs'],
   'WS-05-015': ['scripts/qa-sfi-research-metadata.mjs'],
   'WS-01-057': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
   'WS-01-030': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
@@ -293,7 +292,7 @@ for (const [id,paths] of Object.entries(externalMachineProofs)) {
   assert.equal(receipt.scopePaths.includes('src/**'),false,'unrelated subsystem must not become scope: '+id);
   assert.equal(receipt.productionObservation,null,'contract proof does not make external operation claim: '+id);
 }
-const citationProofIds=["WS-05-003","WS-05-008","WS-05-015"];
+const citationProofIds=["WS-05-003","WS-05-015"];
 for (const id of citationProofIds){
  const source=requirementById.get(id);assert.ok(source,'citation requirement absent: '+id);
  const item=certification.requirements.find(x=>x.id===id);
@@ -305,6 +304,7 @@ for (const id of citationProofIds){
  assert.equal(item.productionObservation,null,'citation metadata is not external DOI/registry observation: '+id);
 }
 assert.equal(certification.requirements.some(item=>item.id==='WS-05-006'),false,'unverified external ROR must not be certified by internal citation metadata');
+assert.equal(certification.requirements.some(item=>item.id==='WS-05-008'),false,'external-lane citation metadata is not certified before independent classification repair');
 assert.ok(!certification.requirements.some((item) => item.canonicalStatus === 'SATISFIED'), 'already satisfied requirement must not be recertified');
 const observedRequirementIds = new Set(['WS-03-008','WS-03-009','WS-03-011']);
 for (const item of certification.requirements.filter(item => observedRequirementIds.has(item.id))) {
