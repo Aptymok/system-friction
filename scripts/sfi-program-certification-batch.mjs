@@ -91,6 +91,15 @@ export const TARGETED_CANONICAL_PROOFS = Object.freeze({
   // anonymous access to public institutional objects. No mocked responses.
   'WS-03-005': ['scripts/qa-sfi-discovery-public-live.ts'],
   'WS-04-004': ['scripts/qa-sfi-discovery-public-live.ts'],
+  // Public MCP read-only invariants are tested through the existing real owner.
+  'WS-04-005': ['scripts/qa-sfi-public-mcp-readonly.ts'],
+  'WS-04-006': ['scripts/qa-sfi-public-mcp-readonly.ts'],
+  'WS-04-007': ['scripts/qa-sfi-public-mcp-readonly.ts'],
+  'WS-04-009': ['scripts/qa-sfi-public-mcp-readonly.ts'],
+  'WS-04-010': ['scripts/qa-sfi-public-mcp-readonly.ts'],
+  'WS-04-013': ['scripts/qa-sfi-public-mcp-readonly.ts'],
+  'WS-04-017': ['scripts/qa-sfi-public-mcp-readonly.ts'],
+  'WS-04-020': ['scripts/qa-sfi-public-mcp-readonly.ts'],
   'WS-03-008': ['scripts/qa-sfi-temporal-surfaces.ts'],
   'WS-03-009': ['scripts/qa-sfi-temporal-surfaces.ts'],
   'WS-03-011': ['scripts/qa-sfi-temporal-surfaces.ts'],
@@ -99,6 +108,7 @@ export const TARGETED_CANONICAL_PROOFS = Object.freeze({
 // Owner-based regression scopes are code/dependency paths, NOT test data or
 // claims of outcomes. All other requirements keep the old conservative scope.
 export const SCOPED_REQUIREMENT_OWNERS = Object.freeze({
+  ...Object.fromEntries(["WS-04-005","WS-04-006","WS-04-007","WS-04-009","WS-04-010","WS-04-013","WS-04-017","WS-04-020"].map(id => [id, ['src/lib/mcp/publicMcpServer.ts','src/app/api/mcp/public/route.ts','src/lib/discovery/canonicalObjectRegistry.ts','src/lib/discovery/publicSemanticProjection.ts','src/lib/public/institutionProfile.ts','src/lib/research/researchGraphProjection.ts','scripts/qa-sfi-public-mcp-readonly.ts','scripts/qa-sfi-discovery-public-live.ts','scripts/sfi-program-certification-batch.mjs','scripts/qa-sfi-program-certification-batch.mjs','scripts/sfi-program-completion-reconcile.mjs','.github/workflows/sfi-verify.yml','.github/workflows/sfi-completion-certification-batch.yml']])),
   // Source-lock evidence and broker decision owner; preserve regression invalidation.
   ...Object.fromEntries(["WS-01-027","WS-01-028","WS-01-043","WS-01-044","WS-01-045","WS-01-046","WS-01-047","WS-01-048"].map(id => [id, ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.ts','src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts','src/lib/sfi/cognitive-runtime/convergedRegistry.ts','src/lib/sfi/cognitive-runtime/executionContracts.ts','src/lib/sfi/cognitive-runtime/agentPassports.ts','src/lib/sfi/cognitive-runtime/agentModelRequirements.ts','src/infrastructure/ai/agentLlmClient.ts','scripts/sfi-program-certification-batch.mjs','scripts/qa-sfi-program-certification-batch.mjs','scripts/sfi-program-completion-reconcile.mjs','.github/workflows/sfi-verify.yml','.github/workflows/sfi-completion-certification-batch.yml']])),
   'MASTER-04': ['src/lib/sfi/cognitive-runtime/capabilityBroker.ts','src/lib/sfi/cognitive-runtime/capabilityBroker.test.ts','src/lib/sfi/cognitive-runtime/capabilityRuntime.ts','src/lib/sfi/cognitive-runtime/automationSelector.ts','src/lib/sfi/cognitive-runtime/convergedRegistry.ts','src/lib/sfi/cognitive-runtime/executionContracts.ts','scripts/sfi-program-certification-batch.mjs','scripts/qa-sfi-program-certification-batch.mjs','scripts/sfi-program-completion-reconcile.mjs','.github/workflows/sfi-verify.yml','.github/workflows/sfi-completion-certification-batch.yml'],

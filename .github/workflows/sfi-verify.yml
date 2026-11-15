@@ -164,6 +164,9 @@ jobs:
       - name: Verify Field and Observatory temporal surfaces
         run: npx tsx scripts/qa-sfi-temporal-surfaces.ts
 
+      - name: Verify canonical public MCP read-only, identity and private projection boundaries
+        run: npx tsx scripts/qa-sfi-public-mcp-readonly.ts
+
       - name: Verify live public identity, private API and crawler boundaries
         run: npx tsx scripts/qa-sfi-discovery-public-live.ts
 
