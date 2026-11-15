@@ -61,7 +61,7 @@ self.onmessage = (event: MessageEvent<WorkRequest>) => {
       ...extractStereoFeatures(decoded).map(project),
     ];
     progress('Analizando composición espectral y timbre…');
-    features.push(...extractSpectralFeatures(decoded).map(project));
+    features.push(...extractSpectralFeatures(decoded).features.map(project));
     features.push(...extractAdvancedSpectralFeatures(decoded).map(project));
     progress('Midiendo sonoridad LUFS (ponderación K y compuertas)…');
     const loudness = calculateIntegratedLoudness(decoded).result;
