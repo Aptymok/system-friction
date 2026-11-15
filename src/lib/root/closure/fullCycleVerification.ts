@@ -55,10 +55,16 @@ export async function runFullCycleVerification(input:{ ownerId:string; operating
   const operating=await db.from('sfi_operating_cycles').select('*').eq('id',input.operatingCycleId).eq('owner_id',input.ownerId).maybeSingle();
   if(operating.error||!operating.data) throw new Error(`OPERATING_CYCLE_NOT_FOUND:${operating.error?.message??'missing'}`);
 
-  // 1. Real ROOT evidence with a recoverable epistemic event. No row is fabricated.
-  const evidenceRows=await db.from('root_evidence_entries')
-    .select('id,title,epistemic_event_id,created_at').not('epistemic_event_id','is',null)
-    .order('created_at',{ascending:false}).limit(50);
+  // 1. A cycle can use only evidence explicitly attached to its persistent identity.
+  // Searching the owner's latest evidence could falsely close unrelated cycles.
+  const linkedEvidenceIds=Array.isArray(operating.data.evidence_refs)
+    ? operating.data.evidence_refs.map(text).filter(Boolean) : [];
+  const evidenceRows=linkedEvidenceIds.length
+    ? await db.from('root_evidence_entries')
+      .select('id,title,epistemic_event_id,created_at')
+      .in('id',linkedEvidenceIds).not('epistemic_event_id','is',null)
+      .order('created_at',{ascending:false}).limit(50)
+    : {data:[],error:null};
   let evidence:Row|null=null;
   let event:Row|null=null;
   for(const candidate of (evidenceRows.data??[]) as Row[]){
@@ -67,12 +73,18 @@ export async function runFullCycleVerification(input:{ ownerId:string; operating
     if(found.data){evidence=candidate;event=found.data as Row;break;}
   }
   if(evidence&&event) steps.push({id:'evidence',label:'Evidencia + procedencia',status:'PASS',required:true,ref:text(evidence.id),detail:`${text(evidence.title)||'Evidencia'} ↔ ${text(event.event_id)}`});
-  else steps.push({id:'evidence',label:'Evidencia + procedencia',status:'BLOCKED',required:true,ref:null,detail:'No existe evidencia ROOT reciente cuyo evento epistemológico pueda recuperarse por event_id.'});
+  else steps.push({id:'evidence',label:'Evidencia + procedencia',status:'BLOCKED',required:true,ref:null,detail:'El ciclo no tiene evidencia ROOT vinculada y recuperable por event_id; no se admite evidencia ajena.'});
 
   // 2. Studio is a real optional specialized branch. It can enrich a proof, but core SFI closure
   // does not depend on the existence of an Edwing/Studio object.
   let studioRef:string|null=null;
-  const studioRows=await db.from('studio_objects').select('id,title,owner_id,created_at').eq('owner_id',input.ownerId).order('created_at',{ascending:false}).limit(30);
+  const linkedStudioIds=Array.isArray(operating.data.studio_object_refs)
+    ? operating.data.studio_object_refs.map(text).filter(Boolean) : [];
+  const studioRows=linkedStudioIds.length
+    ? await db.from('studio_objects').select('id,title,owner_id,created_at')
+      .eq('owner_id',input.ownerId).in('id',linkedStudioIds)
+      .order('created_at',{ascending:false}).limit(30)
+    : {data:[],error:null};
   let studioResult:any=null;
   if(studioRows.data?.length){
     for(const candidate of studioRows.data as Row[]){
@@ -98,7 +110,14 @@ export async function runFullCycleVerification(input:{ ownerId:string; operating
   // or bypass its temporal window just to make this QA green.
   // The schema has recorded_at, not created_at. A wrong sort used to fail the
   // query and silently hide valid Field outcomes from the institutional proof.
-  const latestOutcome=await db.from('field_outcomes').select('*').eq('owner_id',input.ownerId).order('recorded_at',{ascending:false}).limit(1).maybeSingle();
+  const linkedFieldCaseId=text(operating.data.field_case_ref);
+  const linkedReturnIds=Array.isArray(operating.data.return_refs)
+    ? operating.data.return_refs.map(text).filter(Boolean) : [];
+  const latestOutcome=linkedFieldCaseId&&linkedReturnIds.length
+    ? await db.from('field_outcomes').select('*')
+      .eq('owner_id',input.ownerId).eq('case_id',linkedFieldCaseId)
+      .order('recorded_at',{ascending:false}).limit(1).maybeSingle()
+    : {data:null,error:null};
   let fieldCase:Row|null=null;let fieldReturn:Row|null=null;let intervention:Row|null=null;
   if(latestOutcome.data){
     const candidate=latestOutcome.data as Row;
@@ -106,7 +125,7 @@ export async function runFullCycleVerification(input:{ ownerId:string; operating
     const interventionId=text(candidate.intervention_id);
     const [caseRow,returnRow,interventionRow]=await Promise.all([
       db.from('field_cases').select('*').eq('id',caseId).eq('owner_id',input.ownerId).maybeSingle(),
-      db.from('field_returns').select('*').eq('case_id',caseId).eq('intervention_id',interventionId).eq('owner_id',input.ownerId).order('returned_at',{ascending:false}).limit(1).maybeSingle(),
+      db.from('field_returns').select('*').eq('case_id',caseId).eq('intervention_id',interventionId).eq('owner_id',input.ownerId).in('id',linkedReturnIds).order('returned_at',{ascending:false}).limit(1).maybeSingle(),
       db.from('field_interventions').select('*').eq('id',interventionId).eq('case_id',caseId).eq('owner_id',input.ownerId).maybeSingle(),
     ]);
     fieldCase=caseRow.data as Row|null;fieldReturn=returnRow.data as Row|null;intervention=interventionRow.data as Row|null;
@@ -114,7 +133,7 @@ export async function runFullCycleVerification(input:{ ownerId:string; operating
   const fieldOutcome=latestOutcome.data as Row|null;
   const fieldComplete=latestOutcome.error===null&&hasObservedFieldReturn(fieldCase,fieldReturn,fieldOutcome,intervention);
   if(fieldComplete) steps.push({id:'field',label:'Field + retorno',status:'PASS',required:true,ref:text(fieldCase?.id),detail:`Retorno ${text(fieldReturn?.status)} · outcome ${text(fieldOutcome?.id).slice(0,12)}… · ${fieldOutcome?.verified===true?'VERIFIED':'OBSERVED_NOT_INDEPENDENTLY_VERIFIED'}`});
-  else steps.push({id:'field',label:'Field + retorno',status:'BLOCKED',required:true,ref:null,detail:latestOutcome.error?.message??'Field requires a consented case, matching EXECUTION_RECORDED intervention, accepted time-valid T1 RETURN, shared evidence reference and corresponding outcome; pending/unverified returns do not certify a full cycle.'});
+  else steps.push({id:'field',label:'Field + retorno',status:'BLOCKED',required:true,ref:null,detail:latestOutcome.error?.message??'Field requires a case ID and RETURN IDs explicitly linked to this operating cycle, consent, matching intervention, accepted time-valid T1 and outcome evidence; unrelated recent outcomes do not certify a full cycle.'});
 
   // 5. Preserve the verification replay as candidate memory, not as new observed reality.
   const proofKey=`SFI:FULL_CYCLE_VERIFICATION:${input.operatingCycleId}:${startedAt}`;
