@@ -3,6 +3,8 @@ import {
   makeStudioDocumentPdf,makeStudioDocumentLatex,makeStudioDocumentMarkdown,
 } from '../src/components/studio/localDocumentProduction';
 import { makeStudioLocalZip } from '../src/components/studio/localZipPackage';
+import { buildSourceReviewScript } from '../src/components/studio/localPodcastResearchScript';
+import { podcastFilename, makePodcastManifest, type StudioPodcastAudio } from '../src/components/studio/localPodcastAudio';
 import {
   proposeCampaignVariants, contrastCampaignObservations,
 } from '../src/components/studio/localCampaignContrast';
@@ -70,6 +72,36 @@ const observations=[
 const comparison=contrastCampaignObservations(observations);
 assert.equal(comparison.status,'CONTRASTABLE');
 assert.equal(comparison.winnerCertified,false);
+// Editorial QA fixtures are synthetic. They are NOT research findings or audio observations.
+const indexed = [{
+  title:'QA-only indexed title',url:'https://example.org/test',
+  publisher:'QA publisher',publishedAt:'2026-11-15',
+  retrievedAt:'2026-11-15T00:00:00Z',
+  evidenceStatus:'INDEXED_SOURCE_CANDIDATE_NOT_INDEPENDENTLY_VERIFIED',
+}];
+const script = buildSourceReviewScript('QA-only topic',indexed);
+assert.equal(script.status,'EDITORIAL_DRAFT_SOURCE_INDEX_ONLY');
+assert.equal(script.sourcesUsed,1);
+assert.equal(script.verifiedClaims,0);
+assert.equal(script.articlesRead,0);
+assert.ok(script.body.includes('QA publisher'));
+assert.ok(script.sourceLines.includes('https://example.org/test'));
+assert.equal(buildSourceReviewScript('QA-only topic',[]).sourcesUsed,0);
+const demoAudio: StudioPodcastAudio = {
+  blob:new Blob(['QA_TEST_BYTES'],{type:'audio/webm'}),
+  mimeType:'audio/webm',
+  source:'USER_MICROPHONE_RECORDING',
+  durationSeconds:1,
+  voiceName:null,voiceLanguage:null,localVoice:null,
+  originalUploaded:false,persistence:'MEMORY_ONLY',
+};
+const podcastManifest=makePodcastManifest(demoAudio,'QA Podcast','QA operator',script.body);
+assert.equal(podcastFilename('QA Podcast','audio/webm'),'QA-Podcast.webm');
+assert.equal(podcastManifest.originalStored,false);
+assert.equal(podcastManifest.publication,'NOT_AUTHORIZED');
+assert.equal(podcastManifest.voiceOrigin,'USER_MICROPHONE_RECORDING');
+assert.equal(podcastManifest.scriptCharacters,script.body.length);
+
 console.log('PASS · SFI Studio local deliverables: PDF cross-reference, LaTeX, ZIP container, campaign observations and no empirical certification');
 
 }
