@@ -399,6 +399,9 @@ jobs:
             sleep $((attempt * 10))
           done
 
+      - name: Verify real SFZ PCM render and re-observation on exact main HEAD
+        run: npx tsx scripts/qa-sfi-sfz-real-render.ts && npx tsx scripts/qa-sfi-real-render-observation.ts
+
       - name: Verify Studio epistemic output and real ephemeral cleanup contracts
         run: node --import tsx --test src/lib/studio/audio/audioCapabilityGovernance.test.ts && npx tsx scripts/qa-sfi-audio-ephemeral-asset.ts
 

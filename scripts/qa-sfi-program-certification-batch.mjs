@@ -46,6 +46,8 @@ const TARGETED_CANONICAL_PROOFS = {
   'WS-06-008': ['src/lib/studio/audio/audioCapabilityGovernance.test.ts'],
   'WS-06-013': ['scripts/qa-sfi-audio-ephemeral-asset.ts'],
   'WS-06-015': ['src/lib/studio/audio/audioCapabilityGovernance.test.ts','scripts/qa-sfi-audio-ephemeral-asset.ts'],
+  'WS-06-006': ['scripts/qa-sfi-sfz-real-render.ts'],
+  'WS-06-012': ['scripts/qa-sfi-sfz-real-render.ts'],
   'WS-01-057': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
   'WS-01-030': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
   'WS-01-031': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
@@ -355,6 +357,30 @@ for (const [id,proofs] of Object.entries(studioEpistemicAndCleanupProofs)) {
   assert.equal(selected.scopePaths.includes('src/**'),false,'unrelated ownership scope forbidden:'+id);
   assert.equal(selected.productionObservation,null,'internal audio QA cannot invent public observation:'+id);
 }
+for(const id of ['WS-06-006','WS-06-012']){
+ const canonical=requirementById.get(id);
+ assert.ok(canonical,'real audio requirement missing:'+id);
+ const item=certification.requirements.find(req=>req.id===id);
+ if(canonical.status==='SATISFIED'&&canonical.completionReceipt?.state==='VALID'){assert.equal(item,undefined);continue;}
+ if(certification.independentAudioTestReturn?.state!=='VERIFIED_TEST_RENDER_ONLY'){assert.equal(item,undefined,'unverified audio cannot certify:'+id);continue;}
+ assert.ok(item,'real audio test proof must be selected:'+id);
+ assert.ok(item.proofPaths.includes('scripts/qa-sfi-sfz-real-render.ts'));
+ assert.ok(item.scopePaths.includes('src/lib/studio/audio/acoustic'));
+ assert.equal(item.scopePaths.includes('src/**'),false);
+ const proof=item.audioTestEvidence;
+ assert.equal(proof?.state,'VERIFIED_TEST_RENDER_ONLY');
+ assert.equal(proof?.source,'INDEPENDENT_GITHUB_ACTIONS_WAV_HASH_AND_REOBSERVATION');
+ assert.equal(proof?.certificationHead,actualHead);
+ assert.equal(proof?.outputEpistemicClass,'GENERATED_RENDER');
+ assert.equal(proof?.culturalEvidenceEligible,false);
+ assert.equal(proof?.externalProductionObserved,false);
+ assert.match(String(proof?.sha256||''),/^sha256:[0-9a-f]{64}$/);
+ assert.ok(proof?.wavBytes>1000);
+ assert.ok(proof?.renderedEventCount>=1);
+ assert.equal(proof?.cleanup,'CLEANED');
+ for(const key of ['runId','artifactId']) assert.match(String(proof?.[key]||''),/^\d+$/);
+}
+
 assert.ok(!certification.requirements.some((item) => item.canonicalStatus === 'SATISFIED'), 'already satisfied requirement must not be recertified');
 const observedRequirementIds = new Set(['WS-03-008','WS-03-009','WS-03-011']);
 for (const item of certification.requirements.filter(item => observedRequirementIds.has(item.id))) {
