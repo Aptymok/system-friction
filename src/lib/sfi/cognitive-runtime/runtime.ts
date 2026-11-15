@@ -53,6 +53,8 @@ export function readSfiCognitiveRuntime(): SfiCognitiveRuntimeSnapshot {
     simulationAllowed: agent.simulationAllowed,
     humanApprovalRequired: agent.humanApprovalRequired,
     evidence: {
+      // Contract-only projection has no observed execution receipts.
+      lastExecutedAt: null,
       sourceTables: agent.sourceTables,
       observedTables: [],
       missingTables: [],
