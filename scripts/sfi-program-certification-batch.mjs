@@ -46,6 +46,19 @@ export const TARGETED_CANONICAL_PROOFS = Object.freeze({
   'WS-01-032': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
   'WS-01-033': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
   'WS-01-034': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
+  // Existing exact-head passport and governed-broker proof paths; no asserted external effects.
+  'WS-01-002': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
+  'WS-01-003': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
+  'WS-01-004': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
+  'WS-01-023': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
+  'WS-01-036': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
+  'WS-01-007': ['src/lib/sfi/cognitive-runtime/capabilityBroker.test.ts'],
+  'WS-01-008': ['src/lib/sfi/cognitive-runtime/capabilityBroker.test.ts'],
+  'WS-01-009': ['src/lib/sfi/cognitive-runtime/capabilityBroker.test.ts'],
+  'WS-01-011': ['src/lib/sfi/cognitive-runtime/capabilityBroker.test.ts'],
+  'WS-01-016': ['src/lib/sfi/cognitive-runtime/capabilityBroker.test.ts'],
+  'WS-01-020': ['src/lib/sfi/cognitive-runtime/capabilityBroker.test.ts'],
+  'WS-01-005': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
   'WS-01-052': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
   'WS-01-053': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
   'WS-01-054': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
@@ -69,6 +82,9 @@ export const TARGETED_CANONICAL_PROOFS = Object.freeze({
 // Owner-based regression scopes are code/dependency paths, NOT test data or
 // claims of outcomes. All other requirements keep the old conservative scope.
 export const SCOPED_REQUIREMENT_OWNERS = Object.freeze({
+  // Scope covers actual owners and the independent verifier, not unrelated modules.
+  ...Object.fromEntries(["WS-01-002","WS-01-003","WS-01-004","WS-01-023","WS-01-036","WS-01-005"].map(id => [id, ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.ts','src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts','src/lib/sfi/cognitive-runtime/agentPassports.ts','src/lib/sfi/cognitive-runtime/convergedRegistry.ts','src/lib/sfi/cognitive-runtime/executionContracts.ts','src/lib/sfi/cognitive-runtime/agentModelRequirements.ts','src/infrastructure/ai/agentLlmClient.ts','scripts/sfi-program-certification-batch.mjs','scripts/qa-sfi-program-certification-batch.mjs','scripts/lib/programCompletionReceipts.mjs','scripts/sfi-program-completion-reconcile.mjs','.github/workflows/sfi-verify.yml','.github/workflows/sfi-completion-certification-batch.yml']])),
+  ...Object.fromEntries(["WS-01-007","WS-01-008","WS-01-009","WS-01-011","WS-01-016","WS-01-020"].map(id => [id, ['src/lib/sfi/cognitive-runtime/capabilityBroker.ts','src/lib/sfi/cognitive-runtime/capabilityBroker.test.ts','src/lib/sfi/cognitive-runtime/capabilityRuntime.ts','src/lib/sfi/cognitive-runtime/automationSelector.ts','src/lib/sfi/cognitive-runtime/kernelContext.ts','src/lib/sfi/cognitive-runtime/convergedRegistry.ts','src/lib/sfi/cognitive-runtime/executionContracts.ts','scripts/sfi-program-certification-batch.mjs','scripts/qa-sfi-program-certification-batch.mjs','scripts/lib/programCompletionReceipts.mjs','scripts/sfi-program-completion-reconcile.mjs','.github/workflows/sfi-verify.yml','.github/workflows/sfi-completion-certification-batch.yml']])),
   // Slice-A passport guardrails: changes to the actual passport/runtime owner invalidate a receipt.
   ...Object.fromEntries(['WS-01-030','WS-01-031','WS-01-032','WS-01-033','WS-01-034'].map(id => [id, [
     'src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.ts',
