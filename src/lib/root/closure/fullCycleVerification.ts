@@ -2,6 +2,7 @@ import 'server-only';
 
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { runMethodLabSimulation } from '@/lib/method-lab/simulationRun';
+import { resolveMethodLabEvidence } from '@/lib/method-lab/persistedEvidenceResolver';
 import { runStudioMasterAnalysisLoop } from '@/lib/studio/cognitive/studioMasterAnalysisLoop';
 import { runIntegratedInstitutionalCycle } from '@/core/cognitive-twin/integratedInstitutionalCycle';
 import { recordCognitiveTwinExperience } from '@/core/cognitive-twin/experience';
@@ -55,25 +56,42 @@ export async function runFullCycleVerification(input:{ ownerId:string; operating
   const operating=await db.from('sfi_operating_cycles').select('*').eq('id',input.operatingCycleId).eq('owner_id',input.ownerId).maybeSingle();
   if(operating.error||!operating.data) throw new Error(`OPERATING_CYCLE_NOT_FOUND:${operating.error?.message??'missing'}`);
 
-  // 1. A cycle can use only evidence explicitly attached to its persistent identity.
-  // Searching the owner's latest evidence could falsely close unrelated cycles.
+  // 1. Only evidence IDs attached to THIS operating cycle can contribute.
+  // Reuse Method Lab's canonical resolver: both root_evidence_entries and the
+  // institutional sfi_evidence_ledger are legitimate owners, but neither
+  // "latest owner evidence" nor a missing event is proof.
   const linkedEvidenceIds=Array.isArray(operating.data.evidence_refs)
     ? operating.data.evidence_refs.map(text).filter(Boolean) : [];
-  const evidenceRows=linkedEvidenceIds.length
-    ? await db.from('root_evidence_entries')
-      .select('id,title,epistemic_event_id,created_at')
-      .in('id',linkedEvidenceIds).not('epistemic_event_id','is',null)
-      .order('created_at',{ascending:false}).limit(50)
-    : {data:[],error:null};
   let evidence:Row|null=null;
-  let event:Row|null=null;
-  for(const candidate of (evidenceRows.data??[]) as Row[]){
-    const eventId=text(candidate.epistemic_event_id);if(!eventId)continue;
-    const found=await db.from('epistemic_events').select('id,event_id,event_name,epistemic_class,occurred_at').eq('event_id',eventId).maybeSingle();
-    if(found.data){evidence=candidate;event=found.data as Row;break;}
+  let evidenceError:string|null=null;
+  if(linkedEvidenceIds.length){
+    try{
+      const resolved=await resolveMethodLabEvidence(linkedEvidenceIds);
+      for(const candidate of resolved){
+        const payload=rec(candidate.payload);
+        const source=text(candidate.source);
+        const observedAt=text(payload.observedAt);
+        const observed=Number.isFinite(Date.parse(observedAt));
+        const rootEvent=source.startsWith('root_evidence_entries:')
+          && text(payload.epistemicEventId)
+          && text(payload.epistemicClass).toUpperCase()!=='MISSING';
+        const ledgerHash=source.startsWith('sfi_evidence_ledger:')
+          && /^[0-9a-f]{64}$/i.test(text(payload.evidenceHash));
+        if(observed && (rootEvent||ledgerHash)){
+          evidence={id:candidate.id,title:payload.title,source,observedAt,
+            provenanceRef:rootEvent?text(payload.epistemicEventId):text(payload.evidenceHash)};
+          break;
+        }
+      }
+      if(!evidence)evidenceError='LINKED_EVIDENCE_PROVENANCE_NOT_RECOVERABLE';
+    }catch(error){evidenceError=error instanceof Error?error.message:String(error);}
+  }else{
+    evidenceError='OPERATING_CYCLE_EVIDENCE_REFS_MISSING';
   }
-  if(evidence&&event) steps.push({id:'evidence',label:'Evidencia + procedencia',status:'PASS',required:true,ref:text(evidence.id),detail:`${text(evidence.title)||'Evidencia'} ↔ ${text(event.event_id)}`});
-  else steps.push({id:'evidence',label:'Evidencia + procedencia',status:'BLOCKED',required:true,ref:null,detail:'El ciclo no tiene evidencia ROOT vinculada y recuperable por event_id; no se admite evidencia ajena.'});
+  if(evidence) steps.push({id:'evidence',label:'Evidencia + procedencia',status:'PASS',required:true,
+    ref:text(evidence.id),detail:`${text(evidence.title)||text(evidence.source)} ↔ ${text(evidence.provenanceRef)}`});
+  else steps.push({id:'evidence',label:'Evidencia + procedencia',status:'BLOCKED',required:true,
+    ref:null,detail:evidenceError||'El ciclo no tiene evidencia vinculada y recuperable.'});
 
   // 2. Studio is a real optional specialized branch. It can enrich a proof, but core SFI closure
   // does not depend on the existence of an Edwing/Studio object.
