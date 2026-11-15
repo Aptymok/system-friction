@@ -2,7 +2,7 @@
 
 import { useRef, useState, type FormEvent } from 'react';
 import { exportPcm24Wav, samplePeak } from './localPcmWavExport';
-import { downloadReleaseCover, downloadTextFile, makeReleaseBrief, type ReleaseDirection } from './localReleaseMaterials';
+import { downloadReleaseCover, downloadTextFile, makeReleaseBrief, type ReleaseDirection, type ReleaseDiscoveryEvidence } from './localReleaseMaterials';
 import StudioReleaseResearch from './StudioReleaseResearch';
 
 type MeasuredFeature = {
@@ -98,6 +98,7 @@ export default function StudioFileIntake() {
     title: '', artist: '', sector: '', concept: '', palette: 'nocturnal',
   });
   const [releaseMessage, setReleaseMessage] = useState('');
+  const [releaseEvidence, setReleaseEvidence] = useState<ReleaseDiscoveryEvidence | null>(null);
   const runId = useRef(0);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -176,11 +177,12 @@ export default function StudioFileIntake() {
   };
   function updateRelease<K extends keyof ReleaseDirection>(key: K, value: ReleaseDirection[K]) {
     setRelease(current => ({ ...current, [key]: value }));
+    setReleaseEvidence(null);
     setReleaseMessage('');
   }
   function exportReleaseBrief() {
     if (report?.kind !== 'audio_analysis') return;
-    downloadTextFile(makeReleaseBrief(release, releaseMetrics), (release.title || 'lanzamiento') + '-brief.txt');
+    downloadTextFile(makeReleaseBrief(release, releaseMetrics, releaseEvidence), (release.title || 'lanzamiento') + '-brief.txt');
     setReleaseMessage('Expediente editorial descargado; no se envió ni archivó en SFI.');
   }
   async function exportCover() {
@@ -286,7 +288,7 @@ export default function StudioFileIntake() {
             <option value="paper">Editorial · papel cálido</option>
             <option value="signal">Señal · verde oscuro</option>
           </select>
-          <StudioReleaseResearch direction={release} />
+          <StudioReleaseResearch direction={release} onDiscovery={setReleaseEvidence} />
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <button type="button" onClick={exportCover} style={{
               padding: '10px 14px', color: '#e9fbff', background: '#24516b', border: '1px solid #648ca5', cursor: 'pointer',
