@@ -15,6 +15,8 @@ async function main() {
     && observation.ok
     && observation.observed > 0
     && observation.persisted > 0
+    && observation.derivedPersisted === observation.persisted
+    && observation.derivedFailureCount === 0
     && observation.activeSourceCount > 0;
 
   const receipt = {
