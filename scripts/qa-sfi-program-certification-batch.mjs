@@ -25,6 +25,11 @@ const TARGETED_CANONICAL_PROOFS = {
   'ISSUE154-001': ['scripts/qa-sfi-discovery-operational.ts'],
   'MASTER-20': ['scripts/qa-sfi-discovery-operational.ts'],
   'WS-01-057': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
+  'WS-01-030': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
+  'WS-01-031': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
+  'WS-01-032': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
+  'WS-01-033': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
+  'WS-01-034': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
   'WS-01-052': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
   'WS-01-053': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
   'WS-01-054': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
@@ -61,7 +66,7 @@ assert.equal(certification.canonicalStatusMutation, false);
 assert.equal(certification.autoReceiptWrite, false);
 assert.deepEqual(certification.regressionScope, GLOBAL_REGRESSION_SCOPE);
 assert.deepEqual(certification.targetedCanonicalProofs, TARGETED_CANONICAL_PROOFS);
-assert.deepEqual(Object.keys(certification.targetedCanonicalProofs).sort(), ['ISSUE154-001','MASTER-03','MASTER-20','WS-01-029','WS-01-040','WS-01-057','WS-02-001','WS-03-001','WS-03-004','WS-03-005','WS-03-006','WS-03-008','WS-03-009','WS-03-011','WS-04-004','WS-01-052','WS-01-053','WS-01-054','WS-01-055','WS-01-056'].sort());
+assert.deepEqual(Object.keys(certification.targetedCanonicalProofs).sort(), ['ISSUE154-001','MASTER-03','MASTER-20','WS-01-029','WS-01-040','WS-01-057','WS-02-001','WS-03-001','WS-03-004','WS-03-005','WS-03-006','WS-03-008','WS-03-009','WS-03-011','WS-04-004','WS-01-030','WS-01-031','WS-01-032','WS-01-033','WS-01-034','WS-01-052','WS-01-053','WS-01-054','WS-01-055','WS-01-056'].sort());
 assert.ok(certification.selectedCount <= certification.batchLimit);
 assert.equal(certification.selectedCount, certification.requirements.length);
 assert.equal(certification.failedProofCount, 0);
@@ -148,6 +153,20 @@ for (const rejected of certification.rejectedSemanticLinks || []) {
 for (const execution of certification.proofExecutions || []) {
   assert.equal(execution.ok, true, `executed proof failed: ${execution.path}`);
   assert.ok(certification.proofCatalog.includes(execution.path), `executed proof outside catalog: ${execution.path}`);
+}
+
+for (const id of ['WS-01-030','WS-01-031','WS-01-032','WS-01-033','WS-01-034']) {
+  const item = certification.requirements.find(entry => entry.id === id);
+  const original = requirementById.get(id);
+  if (original?.status === 'SATISFIED' && original?.completionReceipt?.state === 'VALID') {
+    assert.equal(item, undefined, 'do not recertify an already valid receipt: ' + id);
+    continue;
+  }
+  assert.ok(item, 'bounded passport authority invariant requires proof: ' + id);
+  assert.ok(item.proofPaths.includes('src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'), 'real passport QA required: ' + id);
+  assert.ok(item.scopePaths.includes('src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.ts'), 'actual passport owner must be in regression scope: ' + id);
+  assert.equal(item.scopePaths.includes('src/**'), false, 'unrelated system must not invalidate scoped receipt: ' + id);
+  assert.equal(item.productionObservation, null, 'code-only passport contract must not claim production observation: ' + id);
 }
 
 for (const id of ['WS-01-052','WS-01-053','WS-01-054','WS-01-055','WS-01-056']) {

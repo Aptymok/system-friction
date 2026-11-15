@@ -39,6 +39,13 @@ export const TARGETED_CANONICAL_PROOFS = Object.freeze({
   'MASTER-20': ['scripts/qa-sfi-discovery-operational.ts'],
   'WS-01-057': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
   // Reuse the existing exhaustive source-invariant test; no duplicate runtime or synthetic production receipt.
+  // Existing passport QA verifies bounded READ/RECOMMEND ceilings, zero minted tools,
+  // source-derived RETURN/security/orchestration and absence of grant/external execution authority.
+  'WS-01-030': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
+  'WS-01-031': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
+  'WS-01-032': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
+  'WS-01-033': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
+  'WS-01-034': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
   'WS-01-052': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
   'WS-01-053': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
   'WS-01-054': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
@@ -62,6 +69,20 @@ export const TARGETED_CANONICAL_PROOFS = Object.freeze({
 // Owner-based regression scopes are code/dependency paths, NOT test data or
 // claims of outcomes. All other requirements keep the old conservative scope.
 export const SCOPED_REQUIREMENT_OWNERS = Object.freeze({
+  // Slice-A passport guardrails: changes to the actual passport/runtime owner invalidate a receipt.
+  ...Object.fromEntries(['WS-01-030','WS-01-031','WS-01-032','WS-01-033','WS-01-034'].map(id => [id, [
+    'src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.ts',
+    'src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts',
+    'src/lib/sfi/cognitive-runtime/agentPassports.ts',
+    'src/lib/sfi/cognitive-runtime/convergedRegistry.ts',
+    'src/lib/sfi/cognitive-runtime/executionContracts.ts',
+    'scripts/sfi-program-certification-batch.mjs',
+    'scripts/qa-sfi-program-certification-batch.mjs',
+    'scripts/lib/programCompletionReceipts.mjs',
+    'scripts/sfi-program-completion-reconcile.mjs',
+    '.github/workflows/sfi-verify.yml',
+    '.github/workflows/sfi-completion-certification-batch.yml',
+  ]])),
   // Narrow owner scopes for the five already-implemented cognitive passport invariants.
   ...Object.fromEntries(['WS-01-052','WS-01-053','WS-01-054','WS-01-055','WS-01-056'].map(id => [id, [
     'src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.ts',
@@ -367,7 +388,7 @@ function main() {
   const proofCatalog = executedProofCatalog();
   const proofSet = new Set(proofCatalog);
   const independentProduction = independentlyObservedProduction(actualHead);
-  const batchLimit = Math.max(1, Math.min(50, Number.parseInt(process.env.SFI_CERTIFICATION_BATCH_LIMIT || '20', 10) || 20));
+  const batchLimit = Math.max(1, Math.min(100, Number.parseInt(process.env.SFI_CERTIFICATION_BATCH_LIMIT || '60', 10) || 60));
 
   const eligible = [];
   const rejectedSemanticLinks = [];
