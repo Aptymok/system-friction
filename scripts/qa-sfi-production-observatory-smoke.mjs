@@ -252,14 +252,14 @@ async function browserSmoke(url) {
     // runs in an isolated GitHub Actions job with a unique Chrome user profile.
     const port = 9222;
     let target = { ws: null, reason: 'cdp_target_unavailable' };
-    for (let attempt = 0; attempt < 40 && !target.ws; attempt += 1) {
+    for (let attempt = 0; attempt < 100 && !target.ws; attempt += 1) {
       await sleep(200);
       if (proc.exitCode !== null) {
         return { status: 'NOT_OBSERVED', reason: `chrome_exited:${proc.exitCode}`, stderr };
       }
       target = await browserTarget(port, []);
     }
-    if (!target.ws) return { status: 'NOT_OBSERVED', reason: target.reason || 'cdp_target_unavailable', stderr };
+    if (!target.ws) return { status: 'NOT_OBSERVED', reason: target.reason || 'cdp_target_unavailable', browserStartupBudgetMs: 20000, stderr };
 
     const cdp = new CDP(target.ws);
     await cdp.open();
