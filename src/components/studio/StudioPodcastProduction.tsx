@@ -20,6 +20,7 @@ export default function StudioPodcastProduction({document}: {document: StudioDoc
   const [recording, setRecording] = useState(false);
   const [status, setStatus] = useState('');
   const [audio, setAudio] = useState<StudioPodcastAudio | null>(null);
+  const [audioUrl,setAudioUrl] = useState<string | null>(null);
   const [recordedScript, setRecordedScript] = useState('');
   const [recordedTitle, setRecordedTitle] = useState('');
   const [packaging, setPackaging] = useState(false);
@@ -53,6 +54,13 @@ export default function StudioPodcastProduction({document}: {document: StudioDoc
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!audio) {setAudioUrl(null);return;}
+    const url = URL.createObjectURL(audio.blob);
+    setAudioUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [audio]);
 
   const script = document.body.trim();
   const ready = script.length >= 20 && script.length <= 9000 && Boolean(document.title.trim());
@@ -220,7 +228,7 @@ export default function StudioPodcastProduction({document}: {document: StudioDoc
         {Math.round(audio.blob.size/1024)} KB · {audio.durationSeconds.toFixed(1)} s ·
         {audio.source==='LOCAL_SYSTEM_VOICE_TAB_CAPTURE'?'Voz sintetizada local':'Grabación de micrófono'}
       </p>
-      <audio controls src={URL.createObjectURL(audio.blob)} style={{width:'100%'}} />
+      <audio controls src={audioUrl ?? undefined} style={{width:'100%'}} />
       {!matches&&<p style={{color:'#f2c2a0',margin:0,fontSize:11}}>
         Cambió el título o guion desde la grabación. Vuelve a producir el audio antes de descargar el paquete.
       </p>}
