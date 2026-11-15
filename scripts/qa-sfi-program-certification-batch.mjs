@@ -103,6 +103,8 @@ const TARGETED_CANONICAL_PROOFS = {
   'WS-03-009': ['scripts/qa-sfi-temporal-surfaces.ts'],
   'WS-03-011': ['scripts/qa-sfi-temporal-surfaces.ts'],
   'WS-03-010': ['scripts/qa-sfi-temporal-surfaces.ts'],
+  // Discovery/read-plane coalescing proven by owner tests and canonical discovery integrity QA.
+  'WS-03-007': ['scripts/qa-sfi-discovery-integrity.ts','scripts/qa-sfi-readplane-efficiency.ts'],
 };
 
 const root = process.cwd();
@@ -406,6 +408,14 @@ if(ws0310Source.status==='SATISFIED'&&ws0310Source.completionReceipt?.state==='V
  assert.ok(ws0310.proofPaths.includes('scripts/qa-sfi-temporal-surfaces.ts'));
  assert.ok(ws0310.scopePaths.includes('src/components/sfi/ObservatoryConsole.tsx'));
  assert.equal(ws0310.productionObservation,null,'code guard is not production observation');
+}
+const discoveryReadSource=requirementById.get('WS-03-007');assert.ok(discoveryReadSource,'WS-03-007 required');
+const discoveryReadReceipt=certification.requirements.find(x=>x.id==='WS-03-007');
+if(discoveryReadSource.status==='SATISFIED'&&discoveryReadSource.completionReceipt?.state==='VALID'){assert.equal(discoveryReadReceipt,undefined);}else {
+ assert.ok(discoveryReadReceipt,'read-plane evidence must be tested');
+ for(const p of ['scripts/qa-sfi-discovery-integrity.ts','scripts/qa-sfi-readplane-efficiency.ts']){assert.ok(discoveryReadReceipt.proofPaths.includes(p),'read-plane proof absent:'+p);assert.ok(discoveryReadReceipt.scopePaths.includes(p),'read-plane scope absent:'+p);}
+ assert.ok(discoveryReadReceipt.scopePaths.includes('src/lib/sfi/readPlaneCache.ts'));
+ assert.equal(discoveryReadReceipt.productionObservation,null,'read coalescence source test is not itself external observation');
 }
 assert.ok(!certification.requirements.some((item) => item.canonicalStatus === 'SATISFIED'), 'already satisfied requirement must not be recertified');
 const observedRequirementIds = new Set(['WS-03-008','WS-03-009','WS-03-011']);

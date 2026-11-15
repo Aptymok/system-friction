@@ -137,11 +137,14 @@ export const TARGETED_CANONICAL_PROOFS = Object.freeze({
   'WS-03-011': ['scripts/qa-sfi-temporal-surfaces.ts'],
   // Current Observatory has no data timer; the explicit in-flight guard must remain verified.
   'WS-03-010': ['scripts/qa-sfi-temporal-surfaces.ts'],
+  // Discovery/read-plane coalescing proven by owner tests and canonical discovery integrity QA.
+  'WS-03-007': ['scripts/qa-sfi-discovery-integrity.ts','scripts/qa-sfi-readplane-efficiency.ts'],
 });
 
 // Owner-based regression scopes are code/dependency paths, NOT test data or
 // claims of outcomes. All other requirements keep the old conservative scope.
 export const SCOPED_REQUIREMENT_OWNERS = Object.freeze({
+  'WS-03-007': ["src/lib/discovery/discoveryControlPlane.ts","src/lib/sfi/readPlaneCache.ts","src/lib/sfi/readPlaneCache.test.ts","src/lib/worldspect/snapshotStore.ts","src/lib/observatory/public/readPublicObservatoryState.ts","src/lib/observatory/public/worldSnapshotTimeline.ts","scripts/qa-sfi-readplane-efficiency.ts","scripts/qa-sfi-discovery-integrity.ts","scripts/sfi-program-certification-batch.mjs","scripts/qa-sfi-program-certification-batch.mjs","scripts/sfi-program-completion-reconcile.mjs",".github/workflows/sfi-verify.yml"],
   'WS-03-010': ["src/components/sfi/ObservatoryConsole.tsx","src/lib/observatory/public/readAvailability.ts","scripts/qa-sfi-temporal-surfaces.ts","scripts/sfi-program-certification-batch.mjs","scripts/qa-sfi-program-certification-batch.mjs","scripts/sfi-program-completion-reconcile.mjs",".github/workflows/sfi-verify.yml"],
   'MASTER-22': ["src/lib/studio/audio/acoustic/ephemeralWorkspace.ts","src/lib/studio/audio/acoustic/executeSfzRender.ts","src/lib/studio/audio/acoustic/renderPersistence.ts","src/lib/studio/audio/acoustic/acousticPackageContract.ts","scripts/qa-sfi-audio-ephemeral-asset.ts","src/lib/studio/audio/materialRegistryContract.test.ts","supabase/migrations/20260906221500_create_sfi_audio_render_runs.sql","scripts/sfi-program-certification-batch.mjs","scripts/qa-sfi-program-certification-batch.mjs","scripts/sfi-program-completion-reconcile.mjs",".github/workflows/sfi-verify.yml",".github/workflows/sfi-completion-certification-batch.yml"],
   'MASTER-23': ["src/lib/studio/audio/materialRegistry.ts","src/lib/studio/audio/materialRegistryContract.ts","src/lib/studio/audio/materialRegistryContract.test.ts","scripts/qa-sfi-audio-rights-separation.ts","supabase/migrations/20260905143000_create_material_audio_rights_registries.sql","scripts/sfi-program-certification-batch.mjs","scripts/qa-sfi-program-certification-batch.mjs","scripts/sfi-program-completion-reconcile.mjs",".github/workflows/sfi-verify.yml",".github/workflows/sfi-completion-certification-batch.yml"],
