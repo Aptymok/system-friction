@@ -5,11 +5,11 @@ import { writeFile, readFile } from 'node:fs/promises';
 
 const WB = 'https://api.worldbank.org/v2';
 
-async function fetchJson(url, attempts = 4) {
+async function fetchJson(url, attempts = 3) {
   let last;
   for (let i = 0; i < attempts; i += 1) {
     try {
-      const response = await fetch(url, { headers: { 'User-Agent': 'SFI-CL-Cognitive-Olympics/2026.08' } });
+      const response = await fetch(url, { headers: { 'User-Agent': 'SFI-CL-Cognitive-Olympics/2026.08' }, signal: AbortSignal.timeout(12000) });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       return await response.json();
     } catch (error) { last = error; await sleep(500 * (i + 1)); }
@@ -25,13 +25,13 @@ async function countryCatalog() {
   }]));
 }
 
-export async function prepareWorldBankDataset({ outDir, startYear = START_YEAR - 3, endYear = END_YEAR } = {}) {
+export async function prepareWorldBankDataset({ outDir, startYear = START_YEAR - 3, endYear = END_YEAR, indicators = WORLD_BANK_INDICATORS } = {}) {
   if (!outDir) throw new Error('outDir required');
   await ensureDir(outDir);
   const countries = await countryCatalog();
   const records = [];
   const failures = [];
-  for (const [code, label, domain] of WORLD_BANK_INDICATORS) {
+  for (const [code, label, domain] of indicators) {
     try {
       const payload = await fetchJson(`${WB}/country/all/indicator/${encodeURIComponent(code)}?format=json&date=${startYear}:${endYear}&per_page=20000`);
       const rows = Array.isArray(payload?.[1]) ? payload[1] : [];
@@ -53,7 +53,7 @@ export async function prepareWorldBankDataset({ outDir, startYear = START_YEAR -
   }
   const manifest = {
     datasetVersion: `wb-${new Date().toISOString()}`,
-    startYear, endYear, indicatorsRequested: WORLD_BANK_INDICATORS.length,
+    startYear, endYear, indicatorsRequested: indicators.length,
     records: records.length, countries: new Set(records.map((r) => r.country.iso3)).size,
     failures, strictReplayEligible: false,
     boundary: 'Historical replay dataset. Do not describe as strict no-lookahead vintage data unless release/revision vintages are added.',

@@ -6,6 +6,7 @@ on:
     paths:
       - '.github/workflows/sfi-real-public-100.yml'
       - 'scripts/cognitive-olympics/qa-real-public-100.mjs'
+      - 'scripts/cognitive-olympics/lib/dataset.mjs'
   workflow_dispatch:
 
 permissions:
@@ -33,7 +34,7 @@ jobs:
         run: npm ci
       - name: Retrieve real official World Bank country and indicator observations
         run: |
-          node --input-type=module -e "import {prepareWorldBankDataset} from './scripts/cognitive-olympics/lib/dataset.mjs'; const result=await prepareWorldBankDataset({outDir:process.env.SFI_CL_DATA_DIR,startYear:2014,endYear:2019}); if(result.records<100 || result.countries<10)process.exit(1); console.log(JSON.stringify(result));"
+          node --input-type=module -e "import {prepareWorldBankDataset} from './scripts/cognitive-olympics/lib/dataset.mjs'; import {WORLD_BANK_INDICATORS} from './scripts/cognitive-olympics/lib/config.mjs'; const wanted=new Set(['NY.GDP.MKTP.KD.ZG','SL.UEM.TOTL.ZS','SP.POP.GROW','SP.DYN.LE00.IN','EG.ELC.ACCS.ZS','EN.ATM.CO2E.PC','NE.TRD.GNFS.ZS','IT.NET.USER.ZS','NV.IND.MANF.ZS','SG.GEN.PARL.ZS']);const selected=WORLD_BANK_INDICATORS.filter(([code])=>wanted.has(code)); const result=await prepareWorldBankDataset({outDir:process.env.SFI_CL_DATA_DIR,startYear:2014,endYear:2019,indicators:selected});if(result.records<100||result.countries<10||result.failures.length>2)process.exit(1);console.log(JSON.stringify(result));"
       - name: Execute existing SFI Cognitive Olympics on 160 historical cases
         run: node scripts/cognitive-olympics/runner.mjs --profile quick --start 2018 --end 2019 --problems 160 --engines stats --run-id public-real-100
       - name: Independently verify source lineage, score, and real registered-agent execution

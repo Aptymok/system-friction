@@ -45,6 +45,37 @@ assert.equal(sealed.cutoffYear,year);
 assert.ok(!('hiddenOutcome' in sealed.answers[0]),'sealed model responses may not contain future outcomes');
 assert.ok(scores.rows.every(row=>row.evidenceInvalid===0 && row.temporalViolation===0),'no invented evidence or temporal leakage');
 assert.ok(!ledger.some(x=>x.event==='HEAT_FAILED'),'zero failed heats required');
+const uniqueSourceIdentities=new Set();
+const rowBySourceIdentity=new Map();
+for(const row of dataset){
+  const key=row.country.iso3+'|'+row.indicator.code+'|'+row.year;
+  assert.ok(!rowBySourceIdentity.has(key),'duplicate official observation identity: '+key);
+  rowBySourceIdentity.set(key,row);
+  if(row.year===year)uniqueSourceIdentities.add(row.country.iso3+'|'+row.indicator.code);
+}
+const distinctMeasuredSubjects=new Set(scores.rows.map(row=>row.problemId.split(':').at(-1)));
+assert.ok(distinctMeasuredSubjects.size>=100,'100 distinct country-indicator cases required, not merely sequential IDs');
+const digestToSource=new Map();
+for(const row of dataset.filter(row=>row.year===year)){
+  const digest=sha256(row.country.iso3+'|'+row.indicator.code).slice(0,10);
+  assert.ok(!digestToSource.has(digest),'country-indicator digest collision');
+  digestToSource.set(digest,row);
+}
+const cases=[];
+for(const scored of scores.rows){
+ const row=digestToSource.get(scored.problemId.split(':').at(-1));
+ assert.ok(row,'official input row must back scored problem: '+scored.problemId);
+ const outcome=rowBySourceIdentity.get(row.country.iso3+'|'+row.indicator.code+'|'+(year+1));
+ assert.ok(outcome,'real official next-year target is required');
+ cases.push({problemId:scored.problemId,iso3:row.country.iso3,country:row.country.name,
+  indicator:row.indicator.code,domain:row.indicator.domain,sourceUrl:row.sourceUrl,
+  cutoffYear:year,inputValue:row.value,targetYear:year+1,observedTargetValue:outcome.value,
+  temporalIntegrity:'REFERENCE_ONLY',decision:scored.decision,observedDirection:scored.outcome,
+  baselineHit:scored.hit,confidence:scored.confidence,epistemicClass:'HISTORICAL_REPLAY',clientObserved:false});
+}
+assert.equal(cases.length,scores.score.problems);
+await fs.mkdir(path.join(runDir,'assurance'),{recursive:true});
+await fs.writeFile(path.join(runDir,'assurance','source-bound-cases.jsonl'),cases.map(x=>JSON.stringify(x)).join('\n')+'\n');
 const output={
  contract:'SFI-REAL-PUBLIC-HISTORICAL-100-RETURN-1.0',state:'PASS',
  evidenceClass:'REAL_WORLD_BANK_REVISED_HISTORICAL_REPLAY',
@@ -55,7 +86,9 @@ const output={
  provenance:{source:'World Bank API',sourceRows:dataset.length,sourceCountries:manifest.countries,
    indicatorCount:manifest.indicatorsRequested,failedIndicators:manifest.failures,
    datasetSha256:sha256(datasetBytes),cutoffYear:year},
- scoredCases:scores.score.problems,uniqueCases:new Set(scores.rows.map(x=>x.problemId)).size,
+ scoredCases:scores.score.problems,uniqueCases:distinctMeasuredSubjects.size,
+ distinctCountries:new Set(cases.map(x=>x.iso3)).size,distinctIndicators:new Set(cases.map(x=>x.indicator)).size,
+ sourceBoundCaseFile:'assurance/source-bound-cases.jsonl',
  registeredSfiAgentsExecuted:bridge[0].executedAgents,
  baseline:{engine:final[0].engine,accuracy:scores.score.accuracy,coverage:scores.score.coverage,
    temporalIntegrity:scores.score.temporalIntegrity},
