@@ -3,6 +3,7 @@ import { randomUUID } from 'crypto';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { InstitutionalMemoryWriter } from '@/core/memory/InstitutionalMemoryWriter';
 import { SFI_CONVERGED_COGNITIVE_AGENT_REGISTRY } from '@/lib/sfi/cognitive-runtime/convergedRegistry';
+import { readObservedSfiCognitiveRuntime } from '@/lib/sfi/cognitive-runtime/observedRuntime';
 
 /**
  * ROOT Runtime Telemetry Layer.
@@ -563,45 +564,39 @@ export async function readRootFieldAgentRegistry() {
   }));
 
   try {
-    const { data, error } = await createServiceSupabaseClient()
-      .from('root_agents')
-      .select('agent_key,status,lifecycle_state,last_run_at')
-      .order('agent_key', { ascending: true })
-      .limit(120);
-
-    if (error) {
-      return {
-        agents: canonicalAgents,
-        state: 'CANONICAL_ONLY' as const,
-        summary: {
-          canonicalCount: canonicalAgents.length,
-          runtimeRecordCount: 0,
-          runtimeMatchedCount: 0,
-          lastRunObservedCount: 0,
-        },
-      };
+    // Reuse the canonical execution projection, not the separate ROOT catalog
+    // of services, resolvers and pipelines. Read-only: no seeding or writes.
+    const runtime = await readObservedSfiCognitiveRuntime();
+    const runtimeById = new Map(runtime.agents.map((agent) => [agent.id, agent]));
+    const executedAt = new Map<string, string>();
+    for (const event of runtime.eventGraph.recentEvents) {
+      if (event.eventName !== 'SFI_AGENT_EXECUTED' || !event.sourceId || !event.occurredAt) continue;
+      const prior = executedAt.get(event.sourceId);
+      if (!prior || event.occurredAt > prior) executedAt.set(event.sourceId, event.occurredAt);
     }
-
-    const runtimeRows = data ?? [];
-    const runtimeByKey = new Map(runtimeRows.map((row) => [String(row.agent_key), row]));
     const agents = canonicalAgents.map((agent) => {
-      const runtime = runtimeByKey.get(agent.agentKey);
-      return runtime ? {
+      const observed = runtimeById.get(agent.agentKey);
+      if (!observed) return agent;
+      const runtimeObserved = observed.status === 'operational';
+      return {
         ...agent,
-        runtimeObserved: true,
-        runtimeStatus: String(runtime.status ?? 'UNKNOWN'),
-        runtimeLifecycleState: String(runtime.lifecycle_state ?? 'UNKNOWN'),
-        lastRunAt: typeof runtime.last_run_at === 'string' ? runtime.last_run_at : null,
-      } : agent;
+        runtimeObserved,
+        runtimeStatus: observed.status.toUpperCase(),
+        runtimeLifecycleState: runtimeObserved ? 'EXECUTED_RECENTLY' : 'NOT_OBSERVED_RECENTLY',
+        // EventGraph is a bounded recent projection. A missing timestamp must
+        // remain null even if the canonical runtime observed an older receipt.
+        lastRunAt: executedAt.get(agent.agentKey) ?? null,
+      };
     });
-
+    const observedCount = agents.filter((agent) => agent.runtimeObserved).length;
     return {
       agents,
-      state: runtimeRows.length ? 'CANONICAL+RUNTIME' as const : 'CANONICAL+EMPTY_RUNTIME' as const,
+      state: runtime.status === 'degraded' ? 'CANONICAL_ONLY' as const :
+        observedCount > 0 ? 'CANONICAL+RUNTIME' as const : 'CANONICAL+EMPTY_RUNTIME' as const,
       summary: {
         canonicalCount: canonicalAgents.length,
-        runtimeRecordCount: runtimeRows.length,
-        runtimeMatchedCount: agents.filter((agent) => agent.runtimeObserved).length,
+        runtimeRecordCount: observedCount,
+        runtimeMatchedCount: observedCount,
         lastRunObservedCount: agents.filter((agent) => Boolean(agent.lastRunAt)).length,
       },
     };
