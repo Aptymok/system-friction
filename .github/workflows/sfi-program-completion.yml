@@ -55,6 +55,9 @@ jobs:
       - name: Falsify completion receipt promotion
         run: node scripts/qa-sfi-program-completion-receipts.mjs
 
+      - name: Falsify requirement catalog ambiguity and progress inflation
+        run: node scripts/qa-sfi-requirement-transparency.mjs
+
       - name: Reconcile evidence-backed SATISFIED receipts
         id: reconcile
         env:
@@ -100,5 +103,7 @@ jobs:
             artifacts/program-completion/completion.json
             artifacts/program-completion/completion.md
             artifacts/program-completion/dispatch.json
+            artifacts/program-completion/requirement-transparency.json
+            artifacts/program-completion/requirement-transparency.md
           if-no-files-found: warn
           retention-days: 90
