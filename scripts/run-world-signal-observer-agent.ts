@@ -33,6 +33,10 @@ async function main() {
     execution: {
       observed: observation.observed,
       persisted: observation.persisted,
+      derivedPersisted: observation.derivedPersisted,
+      derivedFailureCount: observation.derivedFailureCount,
+      derivedFailures: observation.derivedFailures,
+      sourceLineage: observation.sourceLineage,
       activeSourceCount: observation.activeSourceCount,
       sourceCounts: observation.sourceCounts,
       collectorFailures: observation.failures,
