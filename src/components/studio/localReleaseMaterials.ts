@@ -7,6 +7,12 @@ export type ReleaseMetrics = {
   tempoAmbiguous: boolean;
   keyEstimate: string | null;
 };
+export type ReleaseDiscoveryEvidence = {
+  status: string;
+  provider: string;
+  query: string;
+  sources: Array<{title: string; url: string; publisher: string | null}>;
+};
 export type ReleaseDirection = {
   title: string;
   artist: string;
@@ -18,7 +24,7 @@ function usable(value: number | null): string { return value === null ? 'NO_OBSE
 function safeName(value: string) {
   return (value.normalize('NFKD').replace(/[^a-zA-Z0-9-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 65) || 'studio-release');
 }
-export function makeReleaseBrief(direction: ReleaseDirection, metrics: ReleaseMetrics): string {
+export function makeReleaseBrief(direction: ReleaseDirection, metrics: ReleaseMetrics, discovery: ReleaseDiscoveryEvidence | null = null): string {
   const title = direction.title.trim() || 'Sin título';
   const artist = direction.artist.trim() || 'Artista no especificado';
   const sector = direction.sector.trim();
@@ -61,6 +67,15 @@ export function makeReleaseBrief(direction: ReleaseDirection, metrics: ReleaseMe
     'Investigación de mercado: NO EJECUTADA. Publicación: NO AUTORIZADA.',
     'Proveniencia: mediciones calculadas en navegador; público y concepto provienen de la entrada del usuario.',
     'El original de audio no se transfiere ni persiste durante esta operación.',
+    '',
+    'DESCUBRIMIENTO PÚBLICO · SOLO SI FUE SOLICITADO',
+    discovery ? 'Proveedor: ' + discovery.provider : 'NO EJECUTADO',
+    discovery ? 'Consulta: ' + discovery.query : 'NO EJECUTADA',
+    discovery ? 'Estado: ' + discovery.status : 'NO OBSERVADO',
+    ...((discovery?.sources ?? []).map((source, index) =>
+      String(index + 1) + '. ' + source.title + ' · ' + source.url + ' · ' + (source.publisher ?? 'origen desconocido')
+    )),
+    'Las fuentes indexadas no prueban audiencia, afinidad, intención de escucha ni conversión.',
   ].join('\n');
 }
 export function downloadTextFile(content: string, filename: string, mime = 'text/plain;charset=utf-8') {
