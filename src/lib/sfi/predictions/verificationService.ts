@@ -108,6 +108,9 @@ export async function closeVerification(
         verified_by: input.verified_by ?? null,
       })
       .eq('id', input.id)
+      // The condition is enforced atomically at UPDATE time, not only by a
+      // previous SELECT that another request might race.
+      .in('verification_state', ['OPEN', 'DUE', 'OVERDUE', 'DISPUTED'])
       .select('*')
       .single();
 
@@ -119,25 +122,34 @@ export async function closeVerification(
 }
 
 /**
- * Corrige un cierre existente sin editarlo en silencio: crea una fila nueva
- * y marca la anterior como SUPERSEDED.
+ * Sustitucion atomica: la BD preserva el cierre original, registra el
+ * reemplazo OPEN y liga ambas versiones dentro de una unica transaccion.
+ * No crear primero una fila activa: hay un indice unico por ventana.
  */
 export async function supersedeVerification(
   previousId: string,
   input: CreateSfiPredictionVerificationInput,
 ): Promise<ServiceResult<SfiPredictionVerification>> {
-  const created = await createVerificationRule(input);
-  if (!created.ok) return created;
-
   try {
     const supabase = createServiceSupabaseClient();
-    const { error } = await supabase
-      .from(TABLE)
-      .update({ verification_state: 'SUPERSEDED', superseded_by: created.data.id })
-      .eq('id', previousId);
+    const { data, error } = await supabase
+      .rpc('sfi_supersede_prediction_verification', {
+        p_previous_id: previousId,
+        p_replacement: {
+          prediction_entry_id: input.prediction_entry_id,
+          hypothesis_id: input.hypothesis_id,
+          return_window: input.return_window,
+          verification_rule: input.verification_rule,
+          ground_truth_source_type: input.ground_truth_source_type,
+          ground_truth_source_url: input.ground_truth_source_url ?? null,
+          ground_truth_source_query: input.ground_truth_source_query ?? null,
+          source_quality_tier: input.source_quality_tier,
+        },
+      })
+      .single();
 
-    if (error) return { ok: false, error: error.message };
-    return created;
+    if (error) return { ok: false, error: error.message, status: error.code === '23514' ? 409 : undefined };
+    return { ok: true, data: data as SfiPredictionVerification };
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : 'unknown_verification_supersede_error' };
   }
