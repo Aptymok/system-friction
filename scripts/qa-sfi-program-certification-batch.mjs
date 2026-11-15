@@ -34,6 +34,10 @@ const TARGETED_CANONICAL_PROOFS = {
   'WS-02-001': ['scripts/qa-sfi-ws02-universal-twin-lineage.ts'],
   'ISSUE154-001': ['scripts/qa-sfi-discovery-operational.ts'],
   'MASTER-20': ['scripts/qa-sfi-discovery-operational.ts'],
+  'WS-05-003': ['scripts/qa-sfi-research-metadata.mjs'],
+  'WS-05-006': ['scripts/qa-sfi-research-metadata.mjs'],
+  'WS-05-008': ['scripts/qa-sfi-research-metadata.mjs'],
+  'WS-05-015': ['scripts/qa-sfi-research-metadata.mjs'],
   'WS-01-057': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
   'WS-01-030': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
   'WS-01-031': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
@@ -289,6 +293,17 @@ for (const [id,paths] of Object.entries(externalMachineProofs)) {
   for(const path of paths){assert.ok(receipt.proofPaths.includes(path),'required independent code/live proof missing: '+id+':'+path);assert.ok(receipt.scopePaths.includes(path),'regression scope missing owner QA: '+id+':'+path);}
   assert.equal(receipt.scopePaths.includes('src/**'),false,'unrelated subsystem must not become scope: '+id);
   assert.equal(receipt.productionObservation,null,'contract proof does not make external operation claim: '+id);
+}
+const citationProofIds=["WS-05-003","WS-05-006","WS-05-008","WS-05-015"];
+for (const id of citationProofIds){
+ const source=requirementById.get(id);assert.ok(source,'citation requirement absent: '+id);
+ const item=certification.requirements.find(x=>x.id===id);
+ if(source.status==='SATISFIED'&&source.completionReceipt?.state==='VALID'){assert.equal(item,undefined);continue;}
+ assert.ok(item,'citation proof required: '+id);
+ assert.ok(item.proofPaths.includes('scripts/qa-sfi-research-metadata.mjs'),'repository metadata assertion must run: '+id);
+ for(const owned of ['CITATION.cff','scripts/qa-sfi-research-metadata.mjs'])assert.ok(item.scopePaths.includes(owned),'citation owner missing regression scope: '+id+':'+owned);
+ assert.equal(item.scopePaths.includes('src/**'),false,'research metadata cannot own unrelated sources: '+id);
+ assert.equal(item.productionObservation,null,'citation metadata is not external DOI/registry observation: '+id);
 }
 assert.ok(!certification.requirements.some((item) => item.canonicalStatus === 'SATISFIED'), 'already satisfied requirement must not be recertified');
 const observedRequirementIds = new Set(['WS-03-008','WS-03-009','WS-03-011']);
