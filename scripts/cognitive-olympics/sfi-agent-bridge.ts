@@ -7,6 +7,7 @@ async function readStdin() {
   return text ? JSON.parse(text) : {};
 }
 
+async function main() {
 const input = await readStdin();
 const requested = Array.isArray(input.agents) && input.agents.length
   ? input.agents.filter((id: string) => Boolean(SFI_AGENT_EXECUTION_MAP[id]))
@@ -36,3 +37,10 @@ process.stdout.write(JSON.stringify({
     taskGraph: (metadata as any).taskGraph ?? null,
   },
 }));
+
+}
+
+void main().catch((error: unknown) => {
+  process.stderr.write(String(error instanceof Error ? error.stack || error.message : error)+'\n');
+  process.exitCode = 1;
+});
