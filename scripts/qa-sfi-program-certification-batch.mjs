@@ -43,6 +43,9 @@ const TARGETED_CANONICAL_PROOFS = {
   'WS-06-005': ['src/lib/studio/audio/materialRegistryContract.test.ts','scripts/qa-sfi-audio-rights-separation.ts'],
   'WS-06-010': ['src/lib/studio/audio/materialRegistryContract.test.ts','scripts/qa-sfi-audio-rights-separation.ts'],
   'WS-06-011': ['src/lib/studio/audio/materialRegistryContract.test.ts','scripts/qa-sfi-audio-rights-separation.ts'],
+  'WS-06-008': ['src/lib/studio/audio/audioCapabilityGovernance.test.ts'],
+  'WS-06-013': ['scripts/qa-sfi-audio-ephemeral-asset.ts'],
+  'WS-06-015': ['src/lib/studio/audio/audioCapabilityGovernance.test.ts','scripts/qa-sfi-audio-ephemeral-asset.ts'],
   'WS-01-057': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
   'WS-01-030': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
   'WS-01-031': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
@@ -339,6 +342,18 @@ for (const [id, paths] of Object.entries(twinBarrierProofs)) {
  assert.ok(item.scopePaths.includes('src/core/cognitive-twin/contract.ts')||item.scopePaths.includes('src/lib/mcp/publicMcpServer.ts'),'canonical private owner missing:'+id);
  assert.equal(item.scopePaths.includes('src/**'),false,'global scope forbidden:'+id);
  assert.equal(item.productionObservation,null,'internal negative QA cannot invent empirical observation:'+id);
+}
+const studioEpistemicAndCleanupProofs = {"WS-06-008":["src/lib/studio/audio/audioCapabilityGovernance.test.ts"],"WS-06-013":["scripts/qa-sfi-audio-ephemeral-asset.ts"],"WS-06-015":["src/lib/studio/audio/audioCapabilityGovernance.test.ts","scripts/qa-sfi-audio-ephemeral-asset.ts"]};
+for (const [id,proofs] of Object.entries(studioEpistemicAndCleanupProofs)) {
+  const source=requirementById.get(id);assert.ok(source,'missing Studio contract requirement:'+id);
+  const selected=certification.requirements.find(item=>item.id===id);
+  if(source.status==='SATISFIED'&&source.completionReceipt?.state==='VALID'){assert.equal(selected,undefined);continue;}
+  assert.ok(selected,'Studio right-path proof unexercised:'+id);
+  for(const proof of proofs){assert.ok(selected.proofPaths.includes(proof),'Studio proof missing:'+id+':'+proof);assert.ok(selected.scopePaths.includes(proof),'Studio proof scope missing:'+id+':'+proof);}
+  assert.ok(selected.scopePaths.includes('src/lib/studio/audio/acoustic/executeSfzRender.ts'),'real renderer regression scope must be included:'+id);
+  assert.ok(selected.scopePaths.includes('supabase/migrations/20260906221500_create_sfi_audio_render_runs.sql'),'render receipt persistence regression scope required:'+id);
+  assert.equal(selected.scopePaths.includes('src/**'),false,'unrelated ownership scope forbidden:'+id);
+  assert.equal(selected.productionObservation,null,'internal audio QA cannot invent public observation:'+id);
 }
 assert.ok(!certification.requirements.some((item) => item.canonicalStatus === 'SATISFIED'), 'already satisfied requirement must not be recertified');
 const observedRequirementIds = new Set(['WS-03-008','WS-03-009','WS-03-011']);
