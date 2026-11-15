@@ -66,6 +66,9 @@ jobs:
           rm -f "$SERVER_ONLY_ARCHIVE"
           test -f node_modules/server-only/package.json
 
+      - name: Parse live lineage auditor without evaluating fabricated fixtures
+        run: node --check scripts/qa-sfi-world-live-lineage.mjs
+
       - name: Execute WorldSignalObserverAgent
         id: execute
         run: npx tsx scripts/run-world-signal-observer-agent.ts
