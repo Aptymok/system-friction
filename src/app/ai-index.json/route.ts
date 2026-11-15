@@ -1,4 +1,5 @@
 import { publicAgentSummary } from '@/lib/agents/finalProductAgents';
+import { SFI_CANONICAL_IDENTITY_FINGERPRINT } from '@/lib/public/institutionProfile';
 import { discoveryMachineResources } from '@/lib/discovery/discoveryEmitter';
 import { discoveryExposurePlan } from '@/lib/discovery/exposureProjection';
 import { SFI_DISCOVERY_CRAWLER_POLICY } from '@/lib/discovery/crawlerPolicy';
@@ -13,10 +14,14 @@ import {
 import { SCENES as PUBLIC_JOURNEY_SCENES } from '@/components/sfi/publicSceneManifest';
 
 export async function GET() {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://systemfriction.org';
+  // Public machine canon is source-owned, never deployment-environment-owned.
+  const baseUrl = SFI_CANONICAL_IDENTITY_FINGERPRINT.canonicalUrl;
   const exposure = discoveryExposurePlan();
   return Response.json({
-    name: 'System Friction Institute',
+    name: SFI_CANONICAL_IDENTITY_FINGERPRINT.name,
+    abbreviation: SFI_CANONICAL_IDENTITY_FINGERPRINT.abbreviation,
+    canonical_url: SFI_CANONICAL_IDENTITY_FINGERPRINT.canonicalUrl,
+    entity_id: SFI_CANONICAL_IDENTITY_FINGERPRINT.entityId,
     canonical_hub: baseUrl,
     architecture: 'SFI Institutional Surface Runtime v3',
     purpose: 'Longitudinal observation, evidence handling, falsification, governance and governed action across complex sociotechnical systems.',
