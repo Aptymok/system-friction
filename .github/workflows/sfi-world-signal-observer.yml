@@ -8,6 +8,9 @@ on:
     paths:
       - '.github/sfi-world-signal-observer-trigger'
       - 'scripts/qa-sfi-world-live-lineage.mjs'
+      - 'scripts/run-world-signal-observer-agent.ts'
+      - 'src/lib/world-observatory/worldCycle.ts'
+      - 'src/lib/world-observatory/worldSignalObserverAgent.ts'
       - 'src/lib/root/closure/fullCycleVerification.ts'
       - '.github/workflows/sfi-world-signal-observer.yml'
 
