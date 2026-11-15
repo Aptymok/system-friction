@@ -2,6 +2,7 @@
 
 import { useRef, useState, type FormEvent } from 'react';
 import { exportPcm24Wav, samplePeak } from './localPcmWavExport';
+import { downloadReleaseCover, downloadTextFile, makeReleaseBrief, type ReleaseDirection } from './localReleaseMaterials';
 
 type MeasuredFeature = {
   key: string; label: string; value: number | string | null;
@@ -92,6 +93,10 @@ export default function StudioFileIntake() {
   const [error, setError] = useState('');
   const [exportBusy, setExportBusy] = useState(false);
   const [exportMessage, setExportMessage] = useState('');
+  const [release, setRelease] = useState<ReleaseDirection>({
+    title: '', artist: '', sector: '', concept: '', palette: 'nocturnal',
+  });
+  const [releaseMessage, setReleaseMessage] = useState('');
   const runId = useRef(0);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -99,6 +104,7 @@ export default function StudioFileIntake() {
     if (!file || busy) return;
     const current = ++runId.current;
     setBusy(true); setStatus('Preparando análisis privado…'); setError(''); setReport(null); setExportMessage('');
+    setReleaseMessage('');
     try {
       const result = await inspectLocally(file, (message) => { if (runId.current === current) setStatus(message); });
       if (runId.current === current) { setReport(result); setStatus('Análisis local terminado.'); }
@@ -159,6 +165,33 @@ export default function StudioFileIntake() {
   }
 
   const metric = (key: string) => report?.features?.find(item => item.key === key && item.value !== null);
+  const releaseMetrics = {
+    durationSeconds: report?.durationSeconds ?? null,
+    loudnessLufs: typeof metric('lufs_integrated')?.value === 'number' ? metric('lufs_integrated')!.value as number : null,
+    loudnessRangeLu: typeof metric('loudness_range_lu')?.value === 'number' ? metric('loudness_range_lu')!.value as number : null,
+    tempoBpm: typeof metric('tempo_global_bpm')?.value === 'number' ? metric('tempo_global_bpm')!.value as number : null,
+    tempoAmbiguous: metric('tempo_global_bpm')?.warnings?.includes('TEMPO_HALF_DOUBLE_AMBIGUITY') ?? true,
+    keyEstimate: typeof metric('key_estimate')?.value === 'string' ? metric('key_estimate')!.value as string : null,
+  };
+  function updateRelease<K extends keyof ReleaseDirection>(key: K, value: ReleaseDirection[K]) {
+    setRelease(current => ({ ...current, [key]: value }));
+    setReleaseMessage('');
+  }
+  function exportReleaseBrief() {
+    if (report?.kind !== 'audio_analysis') return;
+    downloadTextFile(makeReleaseBrief(release, releaseMetrics), (release.title || 'lanzamiento') + '-brief.txt');
+    setReleaseMessage('Expediente editorial descargado; no se envió ni archivó en SFI.');
+  }
+  async function exportCover() {
+    if (report?.kind !== 'audio_analysis') return;
+    try {
+      await downloadReleaseCover(release, releaseMetrics);
+      setReleaseMessage('Propuesta visual PNG 3000×3000 descargada. No se guardó en SFI.');
+    } catch (cause) {
+      setReleaseMessage('Portada no generada: ' + (cause instanceof Error ? cause.message : String(cause)));
+    }
+  }
+
   const integrated = metric('lufs_integrated');
   const tempo = metric('tempo_global_bpm');
   const tempoConfidence = metric('tempo_confidence');
@@ -216,6 +249,56 @@ export default function StudioFileIntake() {
             </div>)}
           </div>
         </> : <p>Archivo identificado; la extracción avanzada de documentos sigue sin habilitarse en el navegador.</p>}
+
+        {report.kind === 'audio_analysis' && <div style={{
+          display: 'grid', gap: 10, padding: 14, margin: '14px 0',
+          border: '1px solid rgba(127,200,245,.27)', background: 'rgba(44,86,99,.14)',
+        }}>
+          <strong>Crear materiales del lanzamiento · sin almacenar el original</strong>
+          <p style={{ margin: 0, color: '#9fb4c2', lineHeight: 1.5 }}>
+            Crea una portada PNG real y un expediente editorial preliminar. El sector es una hipótesis aportada por ti:
+            todavía no se ha investigado ni validado como público objetivo.
+          </p>
+          <label htmlFor="release-title">Nombre de la obra</label>
+          <input id="release-title" type="text" maxLength={90} value={release.title}
+            placeholder="Ej. PHOSPHOROS" onChange={event => updateRelease('title', event.target.value)}
+            style={{ padding: 9, color: '#eaf6fb', background: '#162836', border: '1px solid #4c6775' }} />
+          <label htmlFor="release-artist">Artista</label>
+          <input id="release-artist" type="text" maxLength={80} value={release.artist}
+            placeholder="Ej. KXTXR" onChange={event => updateRelease('artist', event.target.value)}
+            style={{ padding: 9, color: '#eaf6fb', background: '#162836', border: '1px solid #4c6775' }} />
+          <label htmlFor="release-concept">Concepto o mensaje de la obra</label>
+          <textarea id="release-concept" rows={2} maxLength={900} value={release.concept}
+            placeholder="Qué quieres comunicar con esta pieza"
+            onChange={event => updateRelease('concept', event.target.value)}
+            style={{ padding: 9, color: '#eaf6fb', background: '#162836', border: '1px solid #4c6775' }} />
+          <label htmlFor="release-sector">Público o sector propuesto (hipótesis, opcional)</label>
+          <input id="release-sector" type="text" maxLength={240} value={release.sector}
+            placeholder="Audiencia que quieres contrastar, no una audiencia ya verificada"
+            onChange={event => updateRelease('sector', event.target.value)}
+            style={{ padding: 9, color: '#eaf6fb', background: '#162836', border: '1px solid #4c6775' }} />
+          <label htmlFor="release-palette">Dirección visual</label>
+          <select id="release-palette" value={release.palette}
+            onChange={event => updateRelease('palette', event.target.value as ReleaseDirection['palette'])}
+            style={{ padding: 9, color: '#eaf6fb', background: '#162836', border: '1px solid #4c6775' }}>
+            <option value="nocturnal">Nocturna · azul grisáceo</option>
+            <option value="paper">Editorial · papel cálido</option>
+            <option value="signal">Señal · verde oscuro</option>
+          </select>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <button type="button" onClick={exportCover} style={{
+              padding: '10px 14px', color: '#e9fbff', background: '#24516b', border: '1px solid #648ca5', cursor: 'pointer',
+            }}>DESCARGAR PORTADA PNG 3000×3000</button>
+            <button type="button" onClick={exportReleaseBrief} style={{
+              padding: '10px 14px', color: '#e9fbff', background: '#23453d', border: '1px solid #4e8174', cursor: 'pointer',
+            }}>DESCARGAR EXPEDIENTE DE LANZAMIENTO</button>
+          </div>
+          {releaseMessage && <p role="status" style={{ margin: 0, color: '#b4dcca' }}>{releaseMessage}</p>}
+          <p style={{ margin: 0, fontSize: 11, color: '#9fb4c2' }}>
+            Portada procedural, no una imagen generada por modelo de IA. Campaña: borrador sin estudio de mercado.
+            No publica, no ejecuta FAD/MIHM y no genera cargos de proveedores.
+          </p>
+        </div>}
         <p style={{ color: '#9ccbb5' }}>Original enviado: NO · Original almacenado: NO · Persistencia: NINGUNA</p>
         {report.notObserved?.length ? <p style={{ color: '#bbad91' }}>No medido: {report.notObserved.join(' · ')}</p> : null}
         {report.kind === 'audio_analysis' && <>
