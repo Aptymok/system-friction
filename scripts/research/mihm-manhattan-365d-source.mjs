@@ -170,13 +170,22 @@ async function collectP4Nyc(){
       });
     }catch(e){failures.push({source:trial.id,error:String(e)});}
   }
-  const status=records.length===2&&failures.length===0&&records.every(r=>r.missing.length===0)?
-    'OBSERVED_SOURCE_SNAPSHOT_CANDIDATE':'BLOCKED_SOURCE_GAPS_OR_PROVIDER_UNAVAILABLE';
+  // A late second publisher must never erase a first publisher's observed
+  // response. Count complete sources separately; publish degradation as data.
+  const completeSourceIds=records.filter(r=>r.missing.length===0&&r.missingValues.length===0)
+    .map(r=>r.sourceId);
+  const status=completeSourceIds.length===trials.length&&failures.length===0?
+    'OBSERVED_SOURCE_SNAPSHOT_CANDIDATE':
+    completeSourceIds.length>0?'PARTIAL_OBSERVED_SOURCE_SNAPSHOT':
+      'BLOCKED_SOURCE_GAPS_OR_PROVIDER_UNAVAILABLE';
   const receipt={
     contract:'SFI-MIHM-P4-OFFICIAL-PUBLIC-SNAPSHOT-0.1',status,
     extractionPolicy:'LAST_14_COMPLETED_NEW_YORK_CIVIL_DAYS_NOT_A_CALIBRATED_THRESHOLD',
     civilDayTimezone:calendar,lookbackDays,
     studyWindow:{begin,end,requiredDays:need},records,failures,
+    completeSourceIds,sourceCountExpected:trials.length,
+    missingSourceIds:trials.map(t=>t.id).filter(id=>!completeSourceIds.includes(id)),
+    prospectiveSourceAdmissibility:'REQUIRES_SEPARATE_T0_PROVIDER_VINTAGE_VERIFICATION',
     sourceOriginalReleaseTimesIndependentlyVerified:false,
     sourceResponsesCapturedAtFetch:true,
     prospectivePredictionIssued:false,
@@ -186,9 +195,10 @@ async function collectP4Nyc(){
   };
   console.log('MIHM_P4_SOURCE_SNAPSHOT_JSON='+JSON.stringify(receipt));
   if(process.env.RUNNER_TEMP)writeFileSync(process.env.RUNNER_TEMP+'/mihm-p4-nyc-source.json',JSON.stringify(receipt,null,2)+'\n');
-  // Do not report a successful source capture when a source is unavailable.
-  // Artifact upload runs even after this bounded, explicit failure.
-  if(status!=='OBSERVED_SOURCE_SNAPSHOT_CANDIDATE')process.exitCode=1;
+  // A complete single-source response is real source evidence, not a
+  // complete paired forecast input. Only zero complete sources is fatal;
+  // all degraded publishers remain visible in the persisted artifact.
+  if(status==='BLOCKED_SOURCE_GAPS_OR_PROVIDER_UNAVAILABLE')process.exitCode=1;
 }
 
 if(process.argv.includes('--collect-p4-nyc'))await collectP4Nyc();
