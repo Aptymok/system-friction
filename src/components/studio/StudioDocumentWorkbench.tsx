@@ -7,6 +7,7 @@ import {
 } from './localDocumentProduction';
 import { makeStudioLocalZip, downloadStudioLocalZip } from './localZipPackage';
 import StudioPodcastProduction from './StudioPodcastProduction';
+import StudioDocumentResearch from './StudioDocumentResearch';
 
 const initial: StudioDocumentInput = {
   kind:'lab_note',
@@ -106,6 +107,8 @@ export default function StudioDocumentWorkbench() {
       onChange={e=>update('kind',e.target.value as StudioDocumentKind)} style={inputStyle}>
       {kinds.map(kind=><option key={kind.value} value={kind.value}>{kind.label}</option>)}
     </select>
+    <StudioDocumentResearch document={data}
+      onUpdate={changes=>{setData(current=>({...current,...changes}));setMessage('');}} />
     <label htmlFor="doc-title">Título</label>
     <input id="doc-title" maxLength={180} value={data.title}
       placeholder="Título de la investigación, nota o documento"
