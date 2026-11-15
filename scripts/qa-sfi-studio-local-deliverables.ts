@@ -8,6 +8,7 @@ import {
 } from '../src/components/studio/localCampaignContrast';
 
 // Synthetic QA material: validates serialization and boundaries, not a scientific result.
+async function main() {
 const doc = {
   kind:'lab_note' as const,
   title:'Nota de laboratorio: fricción y observación',
@@ -70,3 +71,6 @@ const comparison=contrastCampaignObservations(observations);
 assert.equal(comparison.status,'CONTRASTABLE');
 assert.equal(comparison.winnerCertified,false);
 console.log('PASS · SFI Studio local deliverables: PDF cross-reference, LaTeX, ZIP container, campaign observations and no empirical certification');
+
+}
+main().catch(error => { console.error(error); process.exitCode = 1; });
