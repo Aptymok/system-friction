@@ -63,7 +63,7 @@ const MASTER_PROGRAMS = {
   21:['P05','P17'],22:['P09','P17'],23:['P11','P12'],24:['P24','P25'],
 };
 function proposedLinks(r) {
-  if (/^MASTER-\\d{2}$/.test(r.id)) return MASTER_PROGRAMS[Number(r.id.slice(7))] ?? [];
+  if (/^MASTER-\d{2}$/.test(r.id)) return MASTER_PROGRAMS[Number(r.id.slice(7))] ?? [];
   return WS_PROGRAMS[r.owner] ?? [];
 }
 function sourceLocation(r, repo) {
@@ -76,21 +76,21 @@ function sourceLocation(r, repo) {
 function readChecklist() {
   if (!fs.existsSync(auditPath)) return {rows:[],issue:'CHECKLIST_FILE_NOT_FOUND'};
   const src=fs.readFileSync(auditPath,'utf8');
-  const lines=src.split('\\n');
+  const lines=src.split('\n');
   const rows=[];let current=null;
   for (const line of lines) {
-    const header=line.match(/^## (P\\d{2}) · (.+?) — (\\d+)% acreditado$/);
+    const header=line.match(/^## (P\d{2}) · (.+?) — (\d+)% acreditado$/);
     if(header){if(current)rows.push(current);current={id:header[1],name:header[2],declaredPercent:Number(header[3]),deliverables:[],goal:null};continue;}
     if(!current)continue;
-    const goal=line.match(/^\\*\\*100% declarado:\\*\\* (.+)$/);
+    const goal=line.match(/^\*\*100% declarado:\*\* (.+)$/);
     if(goal)current.goal=goal[1];
-    const deliverable=line.match(/^- \\[([ x])\\] \\*\\*(\\d+)% · (E\\d):\\*\\* (.+)$/);
+    const deliverable=line.match(/^- \[([ x])\] \*\*(\d+)% · (E\d):\*\* (.+)$/);
     if(deliverable)current.deliverables.push({id:deliverable[3],checklistChecked:deliverable[1]==='x',description:deliverable[4]});
   }
   if(current)rows.push(current);
   return {rows,issue:rows.length===25 && rows.every(r=>r.deliverables.length===4)?null:'CHECKLIST_SHAPE_INVALID'};
 }
-function escapeMd(value){return String(value??'').replace(/\\|/g,'\\\\|').replace(/\\n/g,' ');}
+function escapeMd(value){return String(value??'').replace(/\|/g,'\\|').replace(/\n/g,' ');}
 export function buildTransparency(report) {
   if(!Array.isArray(report.requirements))throw Error('REQUIREMENT_ARRAY_MISSING');
   const checklist=readChecklist();
@@ -169,12 +169,12 @@ export function buildTransparency(report) {
     '- Mapeo certificado P↔requisito: NO',
     '- Esta proyección no escribe recibos, no modifica decisiones y no concede permisos.',
     ''
-  ].join('\\n');
+  ].join('\n');
   return {json,markdown:md};
 }
 export function writeTransparency(report) {
   const built=buildTransparency(report);fs.mkdirSync(OUTPUT,{recursive:true});
-  fs.writeFileSync(path.join(OUTPUT,'requirement-transparency.json'),JSON.stringify(built.json,null,2)+'\\n');
-  fs.writeFileSync(path.join(OUTPUT,'requirement-transparency.md'),built.markdown+'\\n');
+  fs.writeFileSync(path.join(OUTPUT,'requirement-transparency.json'),JSON.stringify(built.json,null,2)+'\n');
+  fs.writeFileSync(path.join(OUTPUT,'requirement-transparency.md'),built.markdown+'\n');
   return {count:built.json.requirementCount,unmapped:built.json.unmappedRequirementIds.length,programs:Object.keys(built.json.programIndex).length};
 }
