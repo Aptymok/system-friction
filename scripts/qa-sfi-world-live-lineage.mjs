@@ -106,7 +106,8 @@ async function main() {
     state.institutionalFullCycle={result:'BLOCKED',reason:'NO_OPERATING_CYCLE_PERSISTED',checks:{}};
   } else {
     const c=operating[0];
-    const refs = key => Array.isArray(c[key]) ? c[key].filter(value=>typeof value==='string'&&value.trim()) : [];
+    const uuid = value => typeof value==='string' && /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(value);
+    const refs = key => Array.isArray(c[key]) ? c[key].filter(uuid) : [];
     const checks={};
     const evidenceIds=refs('evidence_refs');
     const roots=evidenceIds.length
@@ -118,7 +119,7 @@ async function main() {
       ? await readLive(db.from('sfi_lab_analyses').select('id').in('id',labIds))
       : [];
     checks.linkedLabAnalysis=Boolean(labs?.length);
-    const fieldCase=typeof c.field_case_ref==='string'&&c.field_case_ref
+    const fieldCase=uuid(c.field_case_ref)
       ? await readLive(db.from('field_cases').select('id,status,consent').eq('id',c.field_case_ref).limit(1))
       : [];
     checks.consentedFieldCase=Boolean(fieldCase?.length&&fieldCase[0].consent===true);
