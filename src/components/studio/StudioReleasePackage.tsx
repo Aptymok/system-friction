@@ -54,7 +54,7 @@ async function audioExcerpt(file: File): Promise<{ wav: Blob; startSeconds: numb
 }
 
 export default function StudioReleasePackage({original,analysis,metrics,direction,discovery}:{
-  original: File;
+  original: File | null;
   analysis: LocalAnalysis;
   metrics: ReleaseMetrics;
   direction: ReleaseDirection;
@@ -91,9 +91,12 @@ export default function StudioReleasePackage({original,analysis,metrics,directio
         {name:'04-campaign/draft-A-B.json',data:campaign},
       ];
       if(discovery)files.push({name:'04-campaign/public-discovery.json',data:JSON.stringify(discovery,null,2)});
-      setStatus('Extrayendo un fragmento de audio local, sin copiar el máster al paquete…');
-      const preview=await audioExcerpt(original);
-      files.push({name:'05-audio/short-reference-24bit.wav',data:preview.wav});
+      let preview:Awaited<ReturnType<typeof audioExcerpt>> | null=null;
+      if(original){
+        setStatus('Extrayendo un fragmento local del audio…');
+        preview=await audioExcerpt(original);
+        files.push({name:'05-audio/short-reference-24bit.wav',data:preview.wav});
+      }
       const manifestItems=[];
       setStatus('Calculando huellas SHA-256 de los entregables…');
       for (const item of files) {
@@ -106,15 +109,19 @@ export default function StudioReleasePackage({original,analysis,metrics,directio
       const manifest=JSON.stringify({
         contract:'SFI-STUDIO-LOCAL-RELEASE-PACKAGE-1.0',
         generatedAt:new Date().toISOString(),
-        original:{included:false,transferred:false,stored:false,sourceFilename:original.name},
+        original:{included:false,transferred:false,stored:false,sourceFilename:analysis.name,availableInCurrentSession:original!==null},
         outputs:manifestItems,
-        audioPreview:{
+        audioPreview:preview?{
+          status:'DERIVED_FROM_LOCAL_ORIGINAL',
           provenance:'Browser-decoded PCM, centered excerpt; no mastering or true-peak verification',
           startSeconds:preview.startSeconds,
           durationSeconds:preview.durationSeconds,
           decodedSampleRateHz:preview.sampleRateHz,
           appliedGainDb:preview.gainDb,
           sourceEncodingPreserved:false,
+        }:{
+          status:'NOT_AVAILABLE',
+          reason:'Original media was not provided in this session. No audio excerpt fabricated.',
         },
         evidencePolicy:{
           acousticMetrics:'Local observations from prior analysis, not independently validated',
@@ -131,7 +138,7 @@ export default function StudioReleasePackage({original,analysis,metrics,directio
       const zip=await makeStudioLocalZip(files);
       downloadStudioLocalZip(zip,direction.title);
       setStatus('Paquete ZIP generado y descargado. Contiene '+files.length+
-        ' archivos derivados, huellas SHA-256 y un fragmento WAV. No contiene el original.');
+        ' archivos derivados y huellas SHA-256. '+(preview?'Incluye fragmento WAV. ':'Sin audio: original no disponible. ')+'El original no se incluye.');
     } catch(error) {
       setStatus('No se generó el paquete: '+(error instanceof Error?error.message:String(error)));
     } finally {setBusy(false);}
@@ -143,7 +150,7 @@ export default function StudioReleasePackage({original,analysis,metrics,directio
     <strong>Entrega integral · paquete ZIP privado</strong>
     <p style={{margin:0,fontSize:11,color:'#a9c9bd',lineHeight:1.5}}>
       Incluye informe medido, expediente, portada PNG, campaña A/B,
-      fuentes recuperadas si se consultaron, manifiesto SHA-256 y un WAV breve de referencia.
+      fuentes recuperadas si se consultaron y manifiesto SHA-256. Incluye un fragmento WAV únicamente cuando el original está disponible en esta sesión.
       No incluye el máster original. Los documentos son borradores y no autorizan publicación.
     </p>
     <button type="button" disabled={busy || !direction.title.trim() || !direction.artist.trim()}
