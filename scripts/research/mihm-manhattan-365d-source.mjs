@@ -95,10 +95,18 @@ async function collect(){
 /**
  * One-shot, source-only MIHM P4 T0 snapshot. This REUSES the same official
  * source collector and URLs. It is never a forecast or a source-vintage
- * certificate. No automatic scheduler, no DB writes, no personal records.
+ * certificate. No DB writes, no personal records; the workflow owns scheduling.
  */
 async function collectP4Nyc(){
-  const begin='2026-10-20',end='2026-10-30',need=['2026-10-21','2026-10-23','2026-10-28'];
+  // Select only complete UTC calendar days before this execution. The
+  // window is an extraction budget, not a calibrated scientific parameter.
+  const dayMs=86400000;
+  const runDay=Date.parse(new Date().toISOString().slice(0,10)+'T00:00:00Z');
+  const lookbackDays=14;
+  const begin=new Date(runDay-lookbackDays*dayMs).toISOString().slice(0,10);
+  const end=new Date(runDay).toISOString().slice(0,10);
+  const need=Array.from({length:lookbackDays},(_,i)=>
+    new Date(runDay-(lookbackDays-i)*dayMs).toISOString().slice(0,10));
   const trials=[
     {id:'NYC311',endpoint:'https://data.cityofnewyork.us/resource/erm2-nwe9.json',
       query:{$select:'date_trunc_ymd(created_date) as day,count(*) as n',
@@ -152,6 +160,7 @@ async function collectP4Nyc(){
     'OBSERVED_SOURCE_SNAPSHOT_CANDIDATE':'BLOCKED_SOURCE_GAPS_OR_PROVIDER_UNAVAILABLE';
   const receipt={
     contract:'SFI-MIHM-P4-OFFICIAL-PUBLIC-SNAPSHOT-0.1',status,
+    extractionPolicy:'LAST_14_COMPLETED_UTC_DAYS_NOT_A_CALIBRATED_THRESHOLD',
     studyWindow:{begin,end,requiredDays:need},records,failures,
     sourceOriginalReleaseTimesIndependentlyVerified:false,
     sourceResponsesCapturedAtFetch:true,
