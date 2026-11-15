@@ -12,6 +12,10 @@ on:
       - 'data/sfi/sf_static_dataset.compact.json'
       - 'scripts/qa-mihm-nonfabrication.ts'
       - 'scripts/research/mihm-manhattan-365d-source.mjs'
+      - 'scripts/research/mihm-manhattan-365d-contrast.mjs'
+      - 'docs/research/evidence/MIHM-MANHATTAN-365D-2025-10-2026-09.json'
+      - 'docs/research/evidence/MIHM-MANHATTAN-G2B-LAG2-RETROSPECTIVE-2026-10-28.json'
+      - 'scripts/qa-sfi-mihm-operational-readback-contract.ts'
       - '.github/workflows/mihm-contract-validation.yml'
   pull_request:
     paths:
@@ -145,6 +149,12 @@ jobs:
 
       - name: MIHM P4 existing-registry prospective scoring with strict T0 and T1 gates
         run: node --import tsx --test src/lib/mihm/foundationProspectiveScoring.test.ts && node --import tsx scripts/research/mihm-foundation-p4-readiness.ts
+
+      - name: Preserve adversarial MIHM lag2 study losing to conventional controls
+        run: node scripts/research/mihm-manhattan-365d-contrast.mjs --verify-lag2-receipt
+
+      - name: Verify scheduled official collection and operational readback contracts
+        run: node --import tsx scripts/qa-sfi-mihm-operational-readback-contract.ts
 
       - name: MIHM cultural measurement provenance and missingness
         run: node --import tsx --test src/lib/studio/cultural-lab/agents/mihmAgent.test.ts
