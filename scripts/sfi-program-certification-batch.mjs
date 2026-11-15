@@ -261,7 +261,11 @@ function main() {
 
   const eligible = [];
   const rejectedSemanticLinks = [];
+  // A passing source-code test cannot certify a production-observation requirement.
+  // Independent public observation must arrive as a distinct evidence-bound receipt.
+  const productionObservationRequired = new Set(['WS-03-008']);
   for (const requirement of report.requirements || []) {
+    if (productionObservationRequired.has(requirement.id)) continue;
     const targetedPaths = (TARGETED_CANONICAL_PROOFS[requirement.id] || []).filter((repoPath) => proofSet.has(repoPath));
     const targeted = targetedPaths.length > 0;
     if (requirement?.diagnostic?.state !== 'IMPLEMENTATION_EVIDENCE_PRESENT_UNCERTIFIED' && !targeted) continue;
