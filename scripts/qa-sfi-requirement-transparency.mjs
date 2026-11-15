@@ -28,6 +28,12 @@ assert.equal(output.json.mappingAuthority,'CANDIDATE_NOT_VERIFIED');
 assert.equal(output.json.programIndex.P01.certificationPercent,null);
 assert.equal(output.json.requirements[0].completionReceiptState,'VALID');
 assert.equal(output.json.requirements[0].objectiveLiteral,report.requirements[0].requirement);
+assert.equal(output.json.requirements[0].objectiveMeaningES,null,'source drift must suppress stale Spanish text');
+const matchingReport={...report,requirements:[{...report.requirements[0],requirement:'a systemic question can enter through a domain-neutral signal contract;'}]};
+const translated=buildTransparency(matchingReport);
+assert.ok(translated.json.requirements[0].objectiveMeaningES?.includes('pregunta sistémica'),'exact original must resolve Spanish meaning');
+assert.equal(translated.json.requirements[0].spanishMeaningStatus,'PROPOSED_TRANSLATION_SOURCE_MATCH');
+
 assert.deepEqual(output.json.requirements[0].candidatePrograms,['P05','P17']);
 assert.equal(output.json.requirements[204].candidatePrograms.length,0);
 assert.equal(output.json.unmappedRequirementIds.includes('MASTER-205'),true);
