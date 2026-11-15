@@ -7,6 +7,7 @@ import StudioReleaseResearch from './StudioReleaseResearch';
 import StudioCampaignContrast from './StudioCampaignContrast';
 import StudioReleasePackage from './StudioReleasePackage';
 import { createLocalAudioTeaser } from './localTeaserExport';
+import { parseStudioLocalReport } from './localReportImport';
 
 type MeasuredFeature = {
   key: string; label: string; value: number | string | null;
@@ -94,6 +95,7 @@ export default function StudioFileIntake() {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('');
   const [report, setReport] = useState<Report | null>(null);
+  const [reportImported, setReportImported] = useState(false);
   const [error, setError] = useState('');
   const [exportBusy, setExportBusy] = useState(false);
   const [exportMessage, setExportMessage] = useState('');
@@ -105,11 +107,37 @@ export default function StudioFileIntake() {
   const [teaserBusy, setTeaserBusy] = useState(false);
   const runId = useRef(0);
 
+  async function importReport(source: File | null) {
+    if (!source) return;
+    const current=++runId.current;
+    setError('');setStatus('Leyendo informe en el navegador…');
+    if(source.size===0 || source.size>5*1024*1024 || !/\\.json$/i.test(source.name)){
+      setStatus('');setError('Selecciona un informe JSON local de hasta 5 MB.');
+      return;
+    }
+    try {
+      const candidate=JSON.parse(await source.text()) as unknown;
+      const imported=parseStudioLocalReport(candidate);
+      if(current!==runId.current)return;
+      setFile(null);setReport(imported);setReportImported(true);
+      setRelease(current=>({
+        ...current,
+        title:current.title.trim()||imported.name.replace(/\\.[^.]+$/,'').slice(0,90),
+      }));
+      setStatus('Informe recuperado localmente. No se reconstruyó ni descargó el audio original.');
+      setReleaseEvidence(null);
+    } catch(cause){
+      if(current!==runId.current)return;
+      setStatus('');
+      setError('El informe no se pudo recuperar: '+(cause instanceof Error?cause.message:String(cause)));
+    }
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!file || busy) return;
     const current = ++runId.current;
-    setBusy(true); setStatus('Preparando análisis privado…'); setError(''); setReport(null); setExportMessage('');
+    setBusy(true); setStatus('Preparando análisis privado…'); setError(''); setReport(null); setReportImported(false); setExportMessage('');
     setReleaseMessage('');
     try {
       const result = await inspectLocally(file, (message) => { if (runId.current === current) setStatus(message); });
@@ -249,6 +277,12 @@ export default function StudioFileIntake() {
         onChange={event => { runId.current++; setFile(event.target.files?.[0] ?? null); setReport(null); setError(''); setStatus(''); }}
         style={{ color: '#eaf6fb', width: '100%', fontSize: 12 }}
       />
+      <label htmlFor="studio-report-import" style={{color:'#c7e3ee',fontSize:12}}>
+        Recuperar una sesión anterior sin guardar el máster: importar studio-local-analysis.json
+      </label>
+      <input id="studio-report-import" type="file" accept=".json,application/json"
+        onChange={event=>{void importReport(event.target.files?.[0]??null);event.target.value='';}}
+        style={{color:'#c7d5df',width:'100%',fontSize:12}}/>
       <button type="submit" disabled={busy || !file} style={{
         minHeight: 40, padding: '9px 15px', border: '1px solid rgba(164,213,255,.4)',
         background: busy ? '#24343d' : '#173d53', color: '#f2fbff',
@@ -258,6 +292,7 @@ export default function StudioFileIntake() {
       {error && <p role="alert" style={{ margin: 0, color: '#ffb4a8', fontSize: 12 }}>{error}</p>}
       {report && <section aria-live="polite" style={{ borderTop: '1px solid rgba(127,200,245,.2)', paddingTop: 12, color: '#dcecf4', fontSize: 12 }}>
         <strong>{report.name}</strong>
+        {reportImported && <p style={{color:'#b7cde8',fontSize:11}}>Informe IMPORTADO, no reevaluado. Mediciones históricas sin verificación nueva. Para WAV y video se requiere seleccionar el audio original otra vez.</p>}
         {report.kind === 'audio_analysis' ? <>
           <div style={{ border: '1px solid rgba(127,200,245,.2)', background: 'rgba(127,200,245,.05)', padding: 12, marginBottom: 14 }}>
             <strong>Lectura técnica de la obra</strong>
@@ -310,18 +345,18 @@ export default function StudioFileIntake() {
           </select>
           <StudioReleaseResearch direction={release} onDiscovery={setReleaseEvidence} />
           <StudioCampaignContrast direction={release} />
-          {file && <StudioReleasePackage
+          <StudioReleasePackage
             original={file}
             analysis={report}
             metrics={releaseMetrics}
             direction={release}
             discovery={releaseEvidence}
-          />}
+          />
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <button type="button" onClick={exportCover} style={{
               padding: '10px 14px', color: '#e9fbff', background: '#24516b', border: '1px solid #648ca5', cursor: 'pointer',
             }}>DESCARGAR PORTADA PNG 3000×3000</button>
-            <button type="button" disabled={teaserBusy} onClick={exportTeaser} style={{
+            <button type="button" disabled={teaserBusy || !file} onClick={exportTeaser} style={{
               padding: '10px 14px', color: '#e9fbff', background: '#34264f', border: '1px solid #7467a2',
               cursor: teaserBusy ? 'wait' : 'pointer',
             }}>{teaserBusy ? 'GENERANDO VIDEO…' : 'GENERAR VIDEO VERTICAL WEBM (12 S)'}</button>
@@ -338,7 +373,7 @@ export default function StudioFileIntake() {
         <p style={{ color: '#9ccbb5' }}>Original enviado: NO · Original almacenado: NO · Persistencia: NINGUNA</p>
         {report.notObserved?.length ? <p style={{ color: '#bbad91' }}>No medido: {report.notObserved.join(' · ')}</p> : null}
         {report.kind === 'audio_analysis' && <>
-          <button type="button" disabled={exportBusy} onClick={downloadDerivedWav} style={{ background: '#1a3f4d', color: '#e4f7ff', border: '1px solid #547b92', padding: '8px 12px', cursor: exportBusy ? 'wait' : 'pointer', marginRight: 8 }}>
+          <button type="button" disabled={exportBusy || !file} onClick={downloadDerivedWav} style={{ background: '#1a3f4d', color: '#e4f7ff', border: '1px solid #547b92', padding: '8px 12px', cursor: exportBusy ? 'wait' : 'pointer', marginRight: 8 }}>
             {exportBusy ? 'GENERANDO WAV…' : 'GENERAR WAV TÉCNICO 24-BIT'}
           </button>
           <p style={{ color: '#97aebd', fontSize: 11 }}>
