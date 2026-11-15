@@ -40,9 +40,9 @@ export const TARGETED_CANONICAL_PROOFS = Object.freeze({
   // Original WS-03 receipts were invalidated because they covered the entire
   // repository. Re-certify against the actual canonical owners and their
   // independent discovery QA, never against unrelated audio/agent files.
-  'WS-03-001': ['scripts/qa-sfi-discovery-integrity.ts'],
-  'WS-03-004': ['scripts/qa-sfi-discovery-exposure.ts'],
-  'WS-03-006': ['scripts/qa-sfi-discovery-integrity.ts'],
+  'WS-03-001': ['scripts/qa-sfi-discovery-integrity.ts','scripts/qa-sfi-discovery-public-live.ts'],
+  'WS-03-004': ['scripts/qa-sfi-discovery-exposure.ts','scripts/qa-sfi-discovery-public-live.ts'],
+  'WS-03-006': ['scripts/qa-sfi-discovery-integrity.ts','scripts/qa-sfi-discovery-public-live.ts'],
 });
 
 // Owner-based regression scopes are code/dependency paths, NOT test data or
