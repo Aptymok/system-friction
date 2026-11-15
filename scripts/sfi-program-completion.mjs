@@ -182,7 +182,7 @@ function repositoryEvidence(requirement) {
 }
 
 function looksExternal(text) {
-  return /(external-only|external action|registry submission|directory submission|account ownership|platform acceptance|LinkedIn|Medium|YouTube|Bluesky|Mastodon|Hugging Face|Zenodo|ORCID|ROR|ResearchGate|Postman|OSF)/i.test(text);
+  return /\b(external-only|external action|registry submission|directory submission|account ownership|platform acceptance|LinkedIn|Medium|YouTube|Bluesky|Mastodon|Hugging Face|Zenodo|ORCID|ROR|ResearchGate|Postman|OSF)\b/i.test(text);
 }
 
 function classify(requirement) {

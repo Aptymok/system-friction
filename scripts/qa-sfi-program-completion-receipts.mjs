@@ -60,6 +60,28 @@ assert.equal(evaluateCompletionReceipt(requirement, { receipts: {} }, { currentH
 const controllerWorkflow = fs.readFileSync('.github/workflows/sfi-program-completion.yml', 'utf8');
 const reconcileSource = fs.readFileSync('scripts/sfi-program-completion-reconcile.mjs', 'utf8');
 
+const classifierSource = fs.readFileSync('scripts/sfi-program-completion.mjs', 'utf8');
+const extractExternalRule = (source) => {
+  const line = source.split('\n').find(entry => entry.includes('external-only|external action|') && entry.includes('/i.test('));
+  assert.ok(line, 'external classification rule required');
+  const begin = line.indexOf('return /') + 'return /'.length;
+  const end = line.indexOf('/i.test(', begin);
+  assert.ok(begin >= 'return /'.length && end > begin, 'external rule must be a regex literal');
+  return line.slice(begin, end);
+};
+const classifierRule = extractExternalRule(classifierSource);
+assert.equal(classifierRule, extractExternalRule(reconcileSource), 'external classification must match at classification and reconciliation');
+const externalNameRegex = new RegExp(classifierRule, 'i');
+for (const ordinary of [
+  '`LOADING`, `DEGRADED`, `UNAVAILABLE`, and `ERROR` never map to numeric zero;',
+  'Internal execution error and degraded database response',
+  'The error log records a failed internal pipeline operation',
+]) assert.equal(externalNameRegex.test(ordinary), false, 'ordinary error must not trigger external observation');
+for (const external of ['ROR', 'ORCID', 'external-only registration', 'Zenodo', 'OSF', 'external action']) {
+  assert.equal(externalNameRegex.test(external), true, 'genuine external action remains gated: ' + external);
+}
+
+
 assert.match(controllerWorkflow, /workflows:\s*\n\s*- SFI-08 Completion Certification Batch/, 'controller must be sequenced after SFI-08');
 assert.doesNotMatch(controllerWorkflow, /^\s*pull_request:/m, 'controller must not race SFI-08 on pull requests');
 assert.doesNotMatch(controllerWorkflow, /^\s*push:/m, 'controller must not race SFI-08 on main pushes');
