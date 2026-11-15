@@ -49,7 +49,6 @@ export const TARGETED_CANONICAL_PROOFS = Object.freeze({
   'MASTER-20': ['scripts/qa-sfi-discovery-operational.ts'],
   // Citation data are read from the existing repository; unverified affiliations, ROR, and licenses fail closed.
   'WS-05-003': ['scripts/qa-sfi-research-metadata.mjs'],
-  'WS-05-006': ['scripts/qa-sfi-research-metadata.mjs'],
   'WS-05-008': ['scripts/qa-sfi-research-metadata.mjs'],
   'WS-05-015': ['scripts/qa-sfi-research-metadata.mjs'],
   'WS-01-057': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
@@ -118,7 +117,7 @@ export const TARGETED_CANONICAL_PROOFS = Object.freeze({
 // Owner-based regression scopes are code/dependency paths, NOT test data or
 // claims of outcomes. All other requirements keep the old conservative scope.
 export const SCOPED_REQUIREMENT_OWNERS = Object.freeze({
-  ...Object.fromEntries(["WS-05-003","WS-05-006","WS-05-008","WS-05-015"].map(id=>[id,['scripts/qa-sfi-research-metadata.mjs','CITATION.cff','README.md','package.json','src/lib/research/researchGraphProjection.ts','src/lib/public/institutionProfile.ts','scripts/sfi-program-certification-batch.mjs','scripts/qa-sfi-program-certification-batch.mjs','scripts/sfi-program-completion-reconcile.mjs','.github/workflows/sfi-verify.yml','.github/workflows/sfi-completion-certification-batch.yml']])),
+  ...Object.fromEntries(["WS-05-003","WS-05-008","WS-05-015"].map(id=>[id,['scripts/qa-sfi-research-metadata.mjs','CITATION.cff','README.md','package.json','src/lib/research/researchGraphProjection.ts','src/lib/public/institutionProfile.ts','scripts/sfi-program-certification-batch.mjs','scripts/qa-sfi-program-certification-batch.mjs','scripts/sfi-program-completion-reconcile.mjs','.github/workflows/sfi-verify.yml','.github/workflows/sfi-completion-certification-batch.yml']])),
   'WS-04-001': ['src/app/api/external/v1/manifest/route.ts','src/lib/public/institutionProfile.ts','src/lib/discovery/canonicalObjectRegistry.ts','scripts/qa-sfi-discovery-public-live.ts','scripts/sfi-program-certification-batch.mjs','scripts/qa-sfi-program-certification-batch.mjs','scripts/sfi-program-completion-reconcile.mjs','.github/workflows/sfi-verify.yml'],
   'WS-04-008': ['src/lib/mcp/publicMcpServer.ts','src/app/api/mcp/public/route.ts','src/lib/discovery/canonicalObjectRegistry.ts','src/lib/public/institutionProfile.ts','scripts/qa-sfi-public-mcp-readonly.ts','scripts/sfi-program-certification-batch.mjs','scripts/qa-sfi-program-certification-batch.mjs','scripts/sfi-program-completion-reconcile.mjs','.github/workflows/sfi-verify.yml'],
   ...Object.fromEntries(['WS-04-002','MASTER-17'].map(id => [id, ['src/lib/mcp/authenticatedGovernedMachineAdapter.ts','src/lib/mcp/authenticatedGovernedMachineAdapter.test.ts','src/lib/mcp/authenticatedGatewayProjection.ts','src/app/api/mcp/authenticated/**','src/lib/sfi/oauthConfig.ts','src/lib/sfi/oauthClientRegistry.ts','src/app/api/oauth/**','src/lib/sfi/externalAuth.ts','src/app/api/external/v1/**','scripts/qa-sfi-agent-api-hardening.ts','scripts/merge-openapi-cases.mjs','scripts/sfi-program-certification-batch.mjs','scripts/qa-sfi-program-certification-batch.mjs','scripts/sfi-program-completion-reconcile.mjs','.github/workflows/sfi-verify.yml']])),
