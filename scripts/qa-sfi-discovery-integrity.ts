@@ -54,6 +54,12 @@ const layout = read('src/app/layout.tsx');
 const temporalQa = read('scripts/qa-sfi-temporal-surfaces.ts');
 const observatoryPublication = read('src/lib/observatory/publicationGate.ts');
 const systemContracts = read('src/lib/system/contracts/index.ts');
+const dynamicAiIndexRoute = read('src/app/ai-index.json/route.ts');
+assert(dynamicAiIndexRoute.includes("import { SFI_CANONICAL_IDENTITY_FINGERPRINT } from '@/lib/public/institutionProfile'"), 'dynamic machine index must consume sole canonical identity owner');
+for (const field of ['name','abbreviation','canonicalUrl','entityId']) {
+  assert(dynamicAiIndexRoute.includes(`SFI_CANONICAL_IDENTITY_FINGERPRINT.${field}`), `dynamic machine identity missing canonical ${field}`);
+}
+assert(!dynamicAiIndexRoute.includes("process.env.NEXT_PUBLIC_APP_URL"), 'canonical institution identity cannot vary by deployment environment');
 const aiIndex = JSON.parse(read('public/ai-index.json')) as {
   name?: string;
   abbreviation?: string;
