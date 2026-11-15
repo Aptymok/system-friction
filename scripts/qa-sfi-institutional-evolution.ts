@@ -8,6 +8,8 @@ const integrated = read('src/core/cognitive-twin/integratedInstitutionalCycle.ts
 const fullCycle = read('src/lib/root/closure/fullCycleVerification.ts');
 const proofExporter = read('scripts/db/export-sfi-full-cycle-proof.mjs');
 const institutionalCycle = read('src/lib/institution/institutionalCycle.ts');
+const attractorTrajectory = read('src/lib/institution/institutionalAttractor.ts');
+const attractorDeclaration = read('src/lib/institution/ensureInstitutionalAttractor.ts');
 const assignments = read('src/lib/sfi/cognitive-runtime/institutionalAssignments.ts');
 const outcome = read('src/lib/governance/proposalOutcome.ts');
 const lifecycle = read('src/lib/governance/proposalLifecycle.ts');
@@ -120,3 +122,11 @@ console.log(JSON.stringify({
   founderInterruption: 'SOVEREIGN_BOUNDARY_ONLY',
   newParallelCron: false,
 }, null, 2));
+
+
+// P22 regression: the declared target must be recoverable before more
+// trajectory snapshots are appended. DECLARED is not evidence of attainment.
+assert.ok(attractorTrajectory.includes('ensureInstitutionalAttractorDeclaration()'), 'attractor_refresh_must_recover_declared_target_first');
+assert.ok(attractorTrajectory.includes('institutional_attractor_declaration_unavailable'), 'missing_declaration_must_fail_closed');
+assert.ok(attractorTrajectory.includes('institutional_attractor_desired_state_not_observed'), 'missing_desired_state_must_block_new_snapshot');
+assert.ok(attractorDeclaration.includes('if (existing.data) return { ok: true as const, created: false'), 'attractor_recovery_must_be_idempotent');
