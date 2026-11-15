@@ -38,6 +38,12 @@ export const TARGETED_CANONICAL_PROOFS = Object.freeze({
   'ISSUE154-001': ['scripts/qa-sfi-discovery-operational.ts'],
   'MASTER-20': ['scripts/qa-sfi-discovery-operational.ts'],
   'WS-01-057': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
+  // Reuse the existing exhaustive source-invariant test; no duplicate runtime or synthetic production receipt.
+  'WS-01-052': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
+  'WS-01-053': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
+  'WS-01-054': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
+  'WS-01-055': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
+  'WS-01-056': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
   // Original WS-03 receipts were invalidated because they covered the entire
   // repository. Re-certify against the actual canonical owners and their
   // independent discovery QA, never against unrelated audio/agent files.
@@ -56,6 +62,23 @@ export const TARGETED_CANONICAL_PROOFS = Object.freeze({
 // Owner-based regression scopes are code/dependency paths, NOT test data or
 // claims of outcomes. All other requirements keep the old conservative scope.
 export const SCOPED_REQUIREMENT_OWNERS = Object.freeze({
+  // Narrow owner scopes for the five already-implemented cognitive passport invariants.
+  ...Object.fromEntries(['WS-01-052','WS-01-053','WS-01-054','WS-01-055','WS-01-056'].map(id => [id, [
+    'src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.ts',
+    'src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts',
+    'src/lib/sfi/cognitive-runtime/agentModelRequirements.ts',
+    'src/lib/sfi/cognitive-runtime/agentLlmClient.ts',
+    'src/lib/sfi/cognitive-runtime/agentPassports.ts',
+    'src/lib/sfi/cognitive-runtime/convergedRegistry.ts',
+    'src/lib/sfi/cognitive-runtime/executionContracts.ts',
+    'scripts/sfi-program-certification-batch.mjs',
+    'scripts/qa-sfi-program-certification-batch.mjs',
+    'scripts/lib/programCompletionReceipts.mjs',
+    'scripts/sfi-program-completion-reconcile.mjs',
+    '.github/workflows/sfi-verify.yml',
+    '.github/workflows/sfi-completion-certification-batch.yml',
+  ]])),
+
   'WS-03-001': [
     'src/lib/public/institutionProfile.ts', 'src/app/layout.tsx',
     'src/lib/discovery/**', 'public/ai-index.json',
