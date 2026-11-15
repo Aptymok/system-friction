@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 import { execFileSync } from 'node:child_process';
 import { requirementHash } from './lib/programCompletionReceipts.mjs';
 
@@ -47,6 +48,9 @@ export const TARGETED_CANONICAL_PROOFS = Object.freeze({
   // anonymous access to public institutional objects. No mocked responses.
   'WS-03-005': ['scripts/qa-sfi-discovery-public-live.ts'],
   'WS-04-004': ['scripts/qa-sfi-discovery-public-live.ts'],
+  'WS-03-008': ['scripts/qa-sfi-temporal-surfaces.ts'],
+  'WS-03-009': ['scripts/qa-sfi-temporal-surfaces.ts'],
+  'WS-03-011': ['scripts/qa-sfi-temporal-surfaces.ts'],
 });
 
 // Owner-based regression scopes are code/dependency paths, NOT test data or
@@ -80,6 +84,12 @@ export const SCOPED_REQUIREMENT_OWNERS = Object.freeze({
     'src/lib/public/institutionProfile.ts',
     'src/app/layout.tsx',
   ],
+  ...Object.fromEntries(['WS-03-008','WS-03-009','WS-03-011'].map(id => [id, [
+    'src/lib/observatory/public/**', 'src/components/sfi/ObservatoryConsole.tsx',
+    'src/app/observatory/**', 'src/app/api/observatory/**',
+    'scripts/qa-sfi-temporal-surfaces.ts', 'scripts/qa-sfi-production-observatory-smoke.mjs',
+    '.github/workflows/sfi-production-observatory-smoke.yml',
+  ]])),
 });
 
 export function scopedRegressionPaths(requirementId, proofPaths) {
@@ -263,6 +273,66 @@ function executeProof(repoPath) {
   }
 }
 
+
+const INDEPENDENT_PRODUCTION_IDS = new Set(['WS-03-008','WS-03-009','WS-03-011']);
+const OBSERVATORY_REGRESSION_PATHS = [
+  'src/lib/observatory/public','src/components/sfi/ObservatoryConsole.tsx',
+  'src/app/observatory','src/app/api/observatory',
+  'scripts/qa-sfi-temporal-surfaces.ts','scripts/qa-sfi-production-observatory-smoke.mjs',
+  '.github/workflows/sfi-production-observatory-smoke.yml',
+];
+
+// Read an independent post-deployment GitHub artifact and its real producer.
+// A green workflow label or a local test alone never creates production evidence.
+function independentlyObservedProduction(head) {
+  const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
+  if (!token) return { state:'NOT_OBSERVED', reason:'ACTIONS_TOKEN_UNAVAILABLE' };
+  const repo = process.env.GITHUB_REPOSITORY || 'Aptymok/system-friction';
+  const env = { ...process.env, GH_TOKEN:token, GITHUB_TOKEN:token };
+  const api = uri => JSON.parse(execFileSync('gh',['api',uri],{cwd:root,env,encoding:'utf8',timeout:30000,maxBuffer:10*1024*1024}));
+  let runs;
+  try {
+    runs = api('repos/'+repo+'/actions/workflows/sfi-production-observatory-smoke.yml/runs?branch=main&status=success&per_page=12').workflow_runs || [];
+  } catch (error) { return {state:'NOT_OBSERVED',reason:'ACTIONS_PRODUCTION_READ_FAILED',detail:String(error).slice(0,200)}; }
+  const rejected = [];
+  for (const run of runs) {
+    if (run.status!=='completed'||run.conclusion!=='success'||run.head_branch!=='main')continue;
+    let dir;
+    try {
+      const artifacts=api('repos/'+repo+'/actions/runs/'+run.id+'/artifacts').artifacts||[];
+      const artifact=artifacts.find(a=>!a.expired&&a.name==='sfi-production-observatory-smoke-'+run.id);
+      if(!artifact||!Number.isInteger(artifact.id))throw Error('NO_OBSERVATION_ARTIFACT');
+      dir=fs.mkdtempSync(path.join(os.tmpdir(),'sfi08-observed-'));
+      execFileSync('gh',['run','download',String(run.id),'--repo',repo,'--name',artifact.name,'--dir',dir],{cwd:root,env,encoding:'utf8',timeout:45000,maxBuffer:1024*1024});
+      const obs=JSON.parse(fs.readFileSync(path.join(dir,'production-observatory-smoke.json'),'utf8'));
+      const deployedSha=obs.relatedDeployment?.headSha;
+      const deploymentId=String(obs.relatedDeployment?.runId||'');
+      if(!/^[a-f0-9]{40}$/i.test(deployedSha||'')||!/^\d+$/.test(deploymentId))throw Error('INVALID_DEPLOYMENT_REF');
+      const deployment=api('repos/'+repo+'/actions/runs/'+deploymentId);
+      if(deployment.name!=='SFI Vercel Prebuilt Production'||deployment.status!=='completed'||deployment.conclusion!=='success'||deployment.head_branch!=='main'||deployment.head_sha!==deployedSha||run.head_sha!==deployedSha||obs.relatedDeployment.runUrl!==deployment.html_url)throw Error('DEPLOYMENT_SOURCE_NOT_BOUND');
+      if(obs.contract!=='SFI-PRODUCTION-OBSERVATORY-SMOKE-1.0'||obs.productionReturn!=='PASS'||obs.target!=='https://www.systemfriction.org')throw Error('PRODUCTION_RETURN_NOT_PASS');
+      const time=Date.parse(obs.completedAt||'');
+      if(!Number.isFinite(time)||time>Date.now()+60000||Date.now()-time>48*3600000)throw Error('OBSERVATION_STALE');
+      const gates=obs.gates||{};
+      const required=['canonicalTarget','domain','ssr','apis','browser','falseZero','actualZero','hypothesisAbsence','readPlane'];
+      if(!required.every(k=>gates[k]?.status==='PASS'))throw Error('PRODUCTION_GATE_FAILED');
+      if(gates.actualZero.mode!=='authoritative_empty_filter'||!Array.isArray(gates.actualZero.sample?.metrics)||gates.actualZero.sample.metrics.length===0||gates.actualZero.sample.metrics.some(m=>m.availability!=='AVAILABLE'||String(m.text).trim()!=='0'))throw Error('ZERO_NOT_AUTHENTIC');
+      if(gates.hypothesisAbsence.world!=='AVAILABLE'&&gates.hypothesisAbsence.absenceClaim!==false)throw Error('FALSE_HYPOTHESIS_ABSENCE');
+      execFileSync('git',['merge-base','--is-ancestor',deployedSha,head],{cwd:root,encoding:'utf8',timeout:15000});
+      const changed=execFileSync('git',['diff','--name-only',deployedSha+'..'+head,'--',...OBSERVATORY_REGRESSION_PATHS],{cwd:root,encoding:'utf8',timeout:15000}).trim();
+      if(changed)throw Error('PRODUCTION_SCOPE_CHANGED:'+changed.slice(0,180));
+      return {state:'VERIFIED',source:'INDEPENDENT_PRODUCTION_GITHUB_ACTIONS_ARTIFACT',
+        observedAt:obs.completedAt,smokeRunId:String(run.id),smokeArtifactId:String(artifact.id),
+        deploymentRunId:deploymentId,deployedSha,exactHead:head,
+        productionReturn:obs.productionReturn,canonicalTarget:obs.target,
+        scope:[...OBSERVATORY_REGRESSION_PATHS],
+        gates:Object.fromEntries(required.map(k=>[k,gates[k].status]))};
+    }catch(error){rejected.push({runId:String(run.id),reason:String(error).slice(0,180)})}
+    finally{if(dir)fs.rmSync(dir,{recursive:true,force:true})}
+  }
+  return {state:'NOT_OBSERVED',reason:'NO_FRESH_BOUND_UNCHANGED_PRODUCTION_RETURN',rejected};
+}
+
 function main() {
   if (!fs.existsSync(reportPath)) throw new Error('SFI_PROGRAM_COMPLETION_DIAGNOSTIC_ARTIFACT_MISSING');
   const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
@@ -273,15 +343,15 @@ function main() {
 
   const proofCatalog = executedProofCatalog();
   const proofSet = new Set(proofCatalog);
+  const independentProduction = independentlyObservedProduction(actualHead);
   const batchLimit = Math.max(1, Math.min(50, Number.parseInt(process.env.SFI_CERTIFICATION_BATCH_LIMIT || '20', 10) || 20));
 
   const eligible = [];
   const rejectedSemanticLinks = [];
   // A passing source-code test cannot certify a production-observation requirement.
   // Independent public observation must arrive as a distinct evidence-bound receipt.
-  const productionObservationRequired = new Set(['WS-03-008']);
   for (const requirement of report.requirements || []) {
-    if (productionObservationRequired.has(requirement.id)) continue;
+    if (INDEPENDENT_PRODUCTION_IDS.has(requirement.id) && independentProduction.state !== 'VERIFIED') continue;
     const targetedPaths = (TARGETED_CANONICAL_PROOFS[requirement.id] || []).filter((repoPath) => proofSet.has(repoPath));
     const targeted = targetedPaths.length > 0;
     if (requirement?.diagnostic?.state !== 'IMPLEMENTATION_EVIDENCE_PRESENT_UNCERTIFIED' && !targeted) continue;
@@ -298,7 +368,8 @@ function main() {
       rejectedSemanticLinks.push({ id: requirement.id, requirement: requirement.requirement, previousReceiptState, declaredProofs, support });
       continue;
     }
-    eligible.push({ requirement, proofPaths, support, previousReceiptState, targetedPaths });
+    eligible.push({ requirement, proofPaths, support, previousReceiptState, targetedPaths,
+      productionObservation: INDEPENDENT_PRODUCTION_IDS.has(requirement.id) ? independentProduction : null });
   }
 
   const orderedEligible = [...eligible].sort((a, b) => {
@@ -336,7 +407,8 @@ function main() {
     targetedCanonicalProofs: TARGETED_CANONICAL_PROOFS,
     proofCatalog,
     proofExecutions,
-    requirements: selected.map(({ requirement, proofPaths, support, previousReceiptState, targetedPaths }) => ({
+    independentProductionReturn: independentProduction,
+    requirements: selected.map(({ requirement, proofPaths, support, previousReceiptState, targetedPaths, productionObservation }) => ({
       id: requirement.id,
       owner: requirement.owner,
       source: requirement.source,
@@ -351,6 +423,7 @@ function main() {
       semanticSupport: support.filter((entry) => proofPaths.includes(entry.path)),
       proofPass: proofPaths.every((repoPath) => executionByPath.get(repoPath)?.ok === true),
       targetedProofBinding: targetedPaths.length > 0,
+      productionObservation,
     })),
     returnState: failed.length ? 'RETURN_FAIL' : 'RETURN_PASS',
     failedProofCount: failed.length,
@@ -369,6 +442,7 @@ function main() {
     selectedInvalidReceiptCount: certification.selectedInvalidReceiptCount,
     targetedProofBindings: selected.filter((item) => item.targetedPaths.length > 0).map((item) => item.requirement.id),
     remainingEligibleAfterBatch: certification.remainingEligibleAfterBatch,
+    independentProductionReturn: independentProduction.state,
     uniqueProofCount: uniqueProofPaths.length,
     failedProofCount: failed.length,
     returnState: certification.returnState,

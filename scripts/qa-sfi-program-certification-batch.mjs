@@ -30,6 +30,9 @@ const TARGETED_CANONICAL_PROOFS = {
   'WS-03-006': ['scripts/qa-sfi-discovery-integrity.ts','scripts/qa-sfi-discovery-public-live.ts'],
   'WS-03-005': ['scripts/qa-sfi-discovery-public-live.ts'],
   'WS-04-004': ['scripts/qa-sfi-discovery-public-live.ts'],
+  'WS-03-008': ['scripts/qa-sfi-temporal-surfaces.ts'],
+  'WS-03-009': ['scripts/qa-sfi-temporal-surfaces.ts'],
+  'WS-03-011': ['scripts/qa-sfi-temporal-surfaces.ts'],
 };
 
 const root = process.cwd();
@@ -53,7 +56,7 @@ assert.equal(certification.canonicalStatusMutation, false);
 assert.equal(certification.autoReceiptWrite, false);
 assert.deepEqual(certification.regressionScope, GLOBAL_REGRESSION_SCOPE);
 assert.deepEqual(certification.targetedCanonicalProofs, TARGETED_CANONICAL_PROOFS);
-assert.deepEqual(Object.keys(certification.targetedCanonicalProofs).sort(), ['ISSUE154-001','MASTER-03','MASTER-20','WS-01-029','WS-01-040','WS-01-057','WS-02-001','WS-03-001','WS-03-004','WS-03-005','WS-03-006','WS-04-004']);
+assert.deepEqual(Object.keys(certification.targetedCanonicalProofs).sort(), ['ISSUE154-001','MASTER-03','MASTER-20','WS-01-029','WS-01-040','WS-01-057','WS-02-001','WS-03-001','WS-03-004','WS-03-005','WS-03-006','WS-03-008','WS-03-009','WS-03-011','WS-04-004']);
 assert.ok(certification.selectedCount <= certification.batchLimit);
 assert.equal(certification.selectedCount, certification.requirements.length);
 assert.equal(certification.failedProofCount, 0);
@@ -123,6 +126,9 @@ for (const targetedId of Object.keys(TARGETED_CANONICAL_PROOFS)) {
   const selected = certification.requirements.some((item) => item.id === targetedId && item.targetedProofBinding === true);
   if (source.status === 'SATISFIED' && source.completionReceipt?.state === 'VALID') {
     assert.equal(selected, false, `already valid targeted receipt must not be recertified: ${targetedId}`);
+  } else if (['WS-03-008','WS-03-009','WS-03-011'].includes(targetedId)
+      && certification.independentProductionReturn?.state !== 'VERIFIED') {
+    assert.equal(selected, false, `unobserved production must not be certified: ${targetedId}`);
   } else {
     assert.equal(selected, true, `targeted canonical proof was not exercised: ${targetedId}`);
   }
@@ -140,7 +146,28 @@ for (const execution of certification.proofExecutions || []) {
 }
 
 assert.ok(!certification.requirements.some((item) => item.canonicalStatus === 'SATISFIED'), 'already satisfied requirement must not be recertified');
-assert.ok(!certification.requirements.some((item) => item.diagnosticState === 'PRODUCTION_RETURN_PENDING'), 'production RETURN cannot be certified from repository QA');
+const observedRequirementIds = new Set(['WS-03-008','WS-03-009','WS-03-011']);
+for (const item of certification.requirements.filter(item => observedRequirementIds.has(item.id))) {
+  const proof = item.productionObservation;
+  assert.equal(proof?.state, 'VERIFIED', 'independent production observation required: '+item.id);
+  assert.equal(proof?.source, 'INDEPENDENT_PRODUCTION_GITHUB_ACTIONS_ARTIFACT');
+  assert.equal(proof?.exactHead, actualHead);
+  assert.equal(proof?.productionReturn, 'PASS');
+  assert.equal(proof?.canonicalTarget, 'https://www.systemfriction.org');
+  assert.match(String(proof?.deployedSha || ''), /^[0-9a-f]{40}$/);
+  for (const name of ['deploymentRunId','smokeRunId','smokeArtifactId']) {
+    assert.match(String(proof?.[name] || ''), /^\d+$/, 'source identity required: '+item.id+':'+name);
+  }
+  const requiredGates = item.id === 'WS-03-008' ? ['falseZero','actualZero','ssr','browser']
+    : item.id === 'WS-03-009' ? ['apis','browser'] : ['hypothesisAbsence','browser'];
+  for (const gate of requiredGates) assert.equal(proof.gates?.[gate], 'PASS', item.id+':'+gate+' missing independent PASS');
+  assert.ok(item.proofPaths.includes('scripts/qa-sfi-temporal-surfaces.ts'), 'exact-head functional QA required: '+item.id);
+  assert.ok(item.scopePaths.includes('src/components/sfi/ObservatoryConsole.tsx'), 'observatory owner scope missing: '+item.id);
+  assert.equal(item.scopePaths.includes('src/**'), false, 'observatory evidence must not include unrelated modules: '+item.id);
+}
+assert.ok(!certification.requirements.some(item => item.diagnosticState === 'PRODUCTION_RETURN_PENDING'
+  && (!observedRequirementIds.has(item.id) || item.productionObservation?.state !== 'VERIFIED')),
+  'repository QA without independently observed production RETURN cannot certify production requirements');
 assert.ok(!certification.requirements.some((item) => item.diagnosticState === 'EXTERNAL_ACTION_PENDING'), 'external action cannot be certified from repository QA');
 
 const exercisedTargetedProofs = certification.requirements.filter((item) => item.targetedProofBinding === true).map((item) => item.id);

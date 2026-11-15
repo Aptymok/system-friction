@@ -105,6 +105,9 @@ jobs:
         run: node scripts/sfi-program-completion-diagnostics.mjs
 
       - name: Execute bounded SFI-08 certification proofs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: node scripts/sfi-program-certification-batch.mjs
 
       - name: Falsify certification authority expansion
