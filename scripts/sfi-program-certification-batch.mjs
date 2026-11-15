@@ -546,7 +546,7 @@ function main() {
   const proofSet = new Set(proofCatalog);
   const independentProduction = independentlyObservedProduction(actualHead);
   const independentAudioTest = independentlyVerifiedAudioTestRender(actualHead);
-  const batchLimit = Math.max(1, Math.min(100, Number.parseInt(process.env.SFI_CERTIFICATION_BATCH_LIMIT || '60', 10) || 60));
+  const batchLimit = Math.max(1, Math.min(110, Number.parseInt(process.env.SFI_CERTIFICATION_BATCH_LIMIT || '60', 10) || 60));
 
   const eligible = [];
   const rejectedSemanticLinks = [];
