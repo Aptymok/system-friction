@@ -77,7 +77,10 @@ assert.equal(selfDevelopmentWorkflow.includes('gh pr merge'), false, 'material_e
 assert.ok(selfDevelopmentReport.includes("PRE_RECEIPT_CLASSIFICATION_IS_NOT_CERTIFIED_COMPLETION_STATE"), 'self_development_must_not_misreport_pre_receipt_205_as_unresolved');
 assert.ok(selfDevelopmentReport.includes("preliminaryUnreconciledCount: completionReconciled ? null : unresolvedRequirements.length"), 'raw_classifier_count_must_be_separate');
 assert.ok(selfDevelopmentReport.includes("unresolvedCount: completionReconciled ? unresolvedRequirements.length : null"), 'certified_unresolved_requires_reconciliation');
-assert.ok(selfDevelopmentReport.includes("institutionalProgram.unresolvedCount === null"), 'missing_reconciliation_must_not_be_reported_as_pass');
+assert.ok(selfDevelopmentReport.includes("const programIntegrityUnobserved = institutionalProgram.unresolvedCount === null"), 'missing_reconciliation_requires_explicit_unobserved_state');
+assert.ok(selfDevelopmentReport.includes("programIntegrityDefect || programIntegrityUnobserved ? 'DEGRADED' : 'PASS'"), 'missing_reconciliation_must_not_be_reported_as_pass');
+assert.ok(selfDevelopmentReport.includes("const programBacklogOpen = institutionalProgram.unresolvedCount !== null"), 'backlog_must_not_imply_runtime_failure_without_a_defect');
+assert.ok(!selfDevelopmentReport.includes("institutionalProgram.unresolvedCount > 0\n  ||"), 'historical_debt_alone_must_not_make_runtime_degraded');
 assert.ok(selfDevelopmentRoute.includes('recordProposalOutcomeFromObservedReturn'), 'material_return_must_reuse_canonical_outcome_writer');
 assert.ok(selfDevelopmentRoute.includes("developmentStage: 'READY_FOR_ADOPTION'"), 'material_return_must_expose_ready_for_adoption_only_after_return');
 assert.ok(selfDevelopmentRoute.includes('canonicalPromotionAllowed: false'), 'material_return_must_not_promote_canon');
