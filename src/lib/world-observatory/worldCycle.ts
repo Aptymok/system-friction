@@ -450,7 +450,20 @@ function deriveReading(observation: NormalizedObservation): FrictionReading {
     ...metrics,
     tension: { status: 'UNDETERMINED_PENDING_GOVERNED_AI', sourceRecordOnly: true },
     painMap: { status: 'UNDETERMINED_PENDING_GOVERNED_AI', affectedSystemsRecordedByCollector: observation.affectedSystems, actorsRecordedByCollector: observation.actors },
-    fieldDrivers: { status: 'SOURCE_METADATA_ONLY', observationKind: observation.observationKind, sourceFamily: observation.sourceFamily },
+    fieldDrivers: {
+      status: 'SOURCE_METADATA_ONLY',
+      observationKind: observation.observationKind,
+      sourceFamily: observation.sourceFamily,
+      evaluatedAt: new Date(now).toISOString(),
+      sourceObservedAt: observation.observedAt,
+      ageHoursUsed: ageHours,
+      ageBasis: observation.observedAt && Number.isFinite(Date.parse(observation.observedAt))
+        ? 'SOURCE_REPORTED_OBSERVED_AT'
+        : 'EXECUTION_TIME_FALLBACK_NOT_SOURCE_OBSERVATION',
+      configuredSourceConfidence: observation.confidence,
+      sourceConfidenceBasis: 'COLLECTOR_CONFIGURED_HEURISTIC_NOT_EXTERNAL_MEASUREMENT',
+      temporalMetricBasis: 'EXECUTION_TIME_DYNAMIC_DERIVATION',
+    },
     permissions: { observationAllowed: true, comparisonAllowed: true, independentVerificationAllowed: true, interventionAllowed: false },
     trajectory: { status: 'UNDETERMINED_PENDING_GOVERNED_AI' },
     minimumViablePerturbation: { status: 'NOT_PROPOSED', reason: 'Perturbation requires a traceable hypothesis and governance.' },
