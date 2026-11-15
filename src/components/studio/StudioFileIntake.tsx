@@ -5,6 +5,7 @@ import { exportPcm24Wav, samplePeak } from './localPcmWavExport';
 import { downloadReleaseCover, downloadTextFile, makeReleaseBrief, type ReleaseDirection, type ReleaseDiscoveryEvidence } from './localReleaseMaterials';
 import StudioReleaseResearch from './StudioReleaseResearch';
 import StudioCampaignContrast from './StudioCampaignContrast';
+import StudioReleasePackage from './StudioReleasePackage';
 import { createLocalAudioTeaser } from './localTeaserExport';
 
 type MeasuredFeature = {
@@ -309,6 +310,13 @@ export default function StudioFileIntake() {
           </select>
           <StudioReleaseResearch direction={release} onDiscovery={setReleaseEvidence} />
           <StudioCampaignContrast direction={release} />
+          {file && <StudioReleasePackage
+            original={file}
+            analysis={report}
+            metrics={releaseMetrics}
+            direction={release}
+            discovery={releaseEvidence}
+          />}
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <button type="button" onClick={exportCover} style={{
               padding: '10px 14px', color: '#e9fbff', background: '#24516b', border: '1px solid #648ca5', cursor: 'pointer',
