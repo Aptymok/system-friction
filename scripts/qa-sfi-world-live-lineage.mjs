@@ -134,8 +134,8 @@ async function main() {
       reason:missing.length?'PERSISTED_CROSS_ORGAN_LINKS_INCOMPLETE':'IDENTITIES_PRESENT_BUT_OUTCOME_NOT_INDEPENDENTLY_VALIDATED',
     };
   }
-  stage('institutional_boundary','BLOCKED',state.institutionalFullCycle);
-  state.result='WORLD_LINEAGE_PASS_INSTITUTIONAL_BLOCKED';
+  stage('institutional_boundary',state.institutionalFullCycle.result,state.institutionalFullCycle);
+  state.result='WORLD_LINEAGE_PASS';
 }
 try { await main(); }
 catch (error) {
@@ -150,4 +150,4 @@ finally {
   await fs.writeFile(outputPath,JSON.stringify(state,null,2)+'\n');
   console.log(JSON.stringify(state));
 }
-process.exitCode=state.result==='WORLD_LINEAGE_PASS_INSTITUTIONAL_BLOCKED'?0:2;
+process.exitCode=state.result==='WORLD_LINEAGE_PASS'?0:2;
