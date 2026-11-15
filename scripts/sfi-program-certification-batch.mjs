@@ -43,6 +43,10 @@ export const TARGETED_CANONICAL_PROOFS = Object.freeze({
   'WS-03-001': ['scripts/qa-sfi-discovery-integrity.ts','scripts/qa-sfi-discovery-public-live.ts'],
   'WS-03-004': ['scripts/qa-sfi-discovery-exposure.ts','scripts/qa-sfi-discovery-public-live.ts'],
   'WS-03-006': ['scripts/qa-sfi-discovery-integrity.ts','scripts/qa-sfi-discovery-public-live.ts'],
+  // Independent live HTTP observations: canonical structured identity and
+  // anonymous access to public institutional objects. No mocked responses.
+  'WS-03-005': ['scripts/qa-sfi-discovery-public-live.ts'],
+  'WS-04-004': ['scripts/qa-sfi-discovery-public-live.ts'],
 });
 
 // Owner-based regression scopes are code/dependency paths, NOT test data or
@@ -63,6 +67,18 @@ export const SCOPED_REQUIREMENT_OWNERS = Object.freeze({
     'src/lib/public/institutionProfile.ts', 'src/app/layout.tsx',
     'src/lib/discovery/**', 'src/app/api/external/v1/manifest/route.ts',
     'public/ai-index.json',
+  ],
+  'WS-03-005': [
+    'src/lib/public/institutionProfile.ts', 'src/app/layout.tsx',
+    'src/app/robots.ts', 'src/app/sitemap.ts',
+    'src/app/api/external/v1/manifest/route.ts',
+    'public/ai-index.json',
+  ],
+  'WS-04-004': [
+    'src/app/api/external/**', 'src/app/api/root/**',
+    'src/app/api/pipeline/cycles/**', 'src/lib/mcp/**',
+    'src/lib/public/institutionProfile.ts',
+    'src/app/layout.tsx',
   ],
 });
 
