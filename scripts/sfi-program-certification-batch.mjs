@@ -135,11 +135,14 @@ export const TARGETED_CANONICAL_PROOFS = Object.freeze({
   'WS-03-008': ['scripts/qa-sfi-temporal-surfaces.ts'],
   'WS-03-009': ['scripts/qa-sfi-temporal-surfaces.ts'],
   'WS-03-011': ['scripts/qa-sfi-temporal-surfaces.ts'],
+  // Current Observatory has no data timer; the explicit in-flight guard must remain verified.
+  'WS-03-010': ['scripts/qa-sfi-temporal-surfaces.ts'],
 });
 
 // Owner-based regression scopes are code/dependency paths, NOT test data or
 // claims of outcomes. All other requirements keep the old conservative scope.
 export const SCOPED_REQUIREMENT_OWNERS = Object.freeze({
+  'WS-03-010': ["src/components/sfi/ObservatoryConsole.tsx","src/lib/observatory/public/readAvailability.ts","scripts/qa-sfi-temporal-surfaces.ts","scripts/sfi-program-certification-batch.mjs","scripts/qa-sfi-program-certification-batch.mjs","scripts/sfi-program-completion-reconcile.mjs",".github/workflows/sfi-verify.yml"],
   'MASTER-22': ["src/lib/studio/audio/acoustic/ephemeralWorkspace.ts","src/lib/studio/audio/acoustic/executeSfzRender.ts","src/lib/studio/audio/acoustic/renderPersistence.ts","src/lib/studio/audio/acoustic/acousticPackageContract.ts","scripts/qa-sfi-audio-ephemeral-asset.ts","src/lib/studio/audio/materialRegistryContract.test.ts","supabase/migrations/20260906221500_create_sfi_audio_render_runs.sql","scripts/sfi-program-certification-batch.mjs","scripts/qa-sfi-program-certification-batch.mjs","scripts/sfi-program-completion-reconcile.mjs",".github/workflows/sfi-verify.yml",".github/workflows/sfi-completion-certification-batch.yml"],
   'MASTER-23': ["src/lib/studio/audio/materialRegistry.ts","src/lib/studio/audio/materialRegistryContract.ts","src/lib/studio/audio/materialRegistryContract.test.ts","scripts/qa-sfi-audio-rights-separation.ts","supabase/migrations/20260905143000_create_material_audio_rights_registries.sql","scripts/sfi-program-certification-batch.mjs","scripts/qa-sfi-program-certification-batch.mjs","scripts/sfi-program-completion-reconcile.mjs",".github/workflows/sfi-verify.yml",".github/workflows/sfi-completion-certification-batch.yml"],
   ...Object.fromEntries(["WS-06-006","WS-06-012","WS-06-003","WS-06-007"].map(id=>[id,["src/lib/studio/audio/acoustic","src/lib/studio/material","src/lib/studio/audio/audioCapabilityGovernance.ts","scripts/qa-sfi-sfz-real-render.ts","scripts/qa-sfi-real-render-observation.ts","scripts/qa-sfi-material-production-real.ts","scripts/qa-sfi-material-production-contract.ts","fixtures/audio/sfi-acoustic-instrument-package-1.0",".github/workflows/sfi-audio-material-execution.yml","scripts/sfi-program-certification-batch.mjs","scripts/qa-sfi-program-certification-batch.mjs","scripts/sfi-program-completion-reconcile.mjs",".github/workflows/sfi-verify.yml",".github/workflows/sfi-completion-certification-batch.yml"]])),

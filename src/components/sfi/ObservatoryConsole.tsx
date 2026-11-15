@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { HypothesisClosureDiff } from './HypothesisClosureDiff';
@@ -59,6 +59,8 @@ async function fetchJson(path:string){
 }
 
 export function ObservatoryConsole(){
+  // Serializes primary reads even when refresh is invoked before React commits a disabled state.
+  const primaryReadInFlight=useRef(false);
   const searchParams=useSearchParams();
   const requestedLens=searchParams.get('lens');
   const requestedFocus=searchParams.get('focus');
@@ -79,9 +81,11 @@ export function ObservatoryConsole(){
     setAvailability(snapshot.availability);setWorld(snapshot.world);setObs(snapshot.obs);setWorldVector(snapshot.worldVector);setTimeline(snapshot.timeline);
   },[]);
   const pull=useCallback(async(force=false)=>{
+    if(primaryReadInFlight.current)return;
     if(!force&&observatorySnapshotCache&&Date.now()-observatorySnapshotCache.at<OBSERVATORY_CACHE_TTL_MS){
       applySnapshot(observatorySnapshotCache);return;
     }
+    primaryReadInFlight.current=true;
     setRefreshing(true);
     try{
       // First paint only waits for the primary world and state readers.
@@ -111,7 +115,7 @@ export function ObservatoryConsole(){
         };
         observatorySnapshotCache=complete;applySnapshot(complete);
       });
-    }finally{setRefreshing(false)}
+    }finally{primaryReadInFlight.current=false;setRefreshing(false)}
   },[applySnapshot]);
 
   useEffect(()=>{const tick=()=>{setClock(new Date().toISOString());setObservationNow(Date.now())};tick();const t=setInterval(tick,60_000);return()=>clearInterval(t)},[]);

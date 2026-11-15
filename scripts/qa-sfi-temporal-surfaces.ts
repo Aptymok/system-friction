@@ -229,6 +229,9 @@ assert.match(observatoryUi, /observatorySnapshotCache/, 'observatory_snapshot_re
 assert.match(observatoryUi, /pull\(false\)/, 'observatory_initial_bounded_read_missing');
 assert.match(observatoryUi, /pull\(true\)/, 'observatory_manual_refresh_missing');
 assert.doesNotMatch(observatoryUi, /setInterval\(pull|setInterval\([^\n]*fetchJson/, 'observatory_data_polling_must_not_return');
+assert.match(observatoryUi, /if\(primaryReadInFlight\.current\)return;/, 'observatory_primary_reads_must_not_overlap');
+assert.match(observatoryUi, /primaryReadInFlight\.current=true/, 'observatory_primary_read_guard_must_acquire_before_await');
+assert.match(observatoryUi, /finally\{primaryReadInFlight\.current=false;setRefreshing\(false\)\}/, 'observatory_primary_read_guard_must_release_after_failure');
 const requestTimeout = observatoryUi.match(/const OBSERVATORY_REQUEST_TIMEOUT_MS=(\d+);/);
 assert.ok(requestTimeout && Number(requestTimeout[1]) > 0, 'observatory_request_timeout_missing');
 

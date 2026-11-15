@@ -102,6 +102,7 @@ const TARGETED_CANONICAL_PROOFS = {
   'WS-03-008': ['scripts/qa-sfi-temporal-surfaces.ts'],
   'WS-03-009': ['scripts/qa-sfi-temporal-surfaces.ts'],
   'WS-03-011': ['scripts/qa-sfi-temporal-surfaces.ts'],
+  'WS-03-010': ['scripts/qa-sfi-temporal-surfaces.ts'],
 };
 
 const root = process.cwd();
@@ -396,6 +397,15 @@ for(const [id,proofs] of Object.entries(masterAudioSourceProofs)) {
  for(const p of proofs){assert.ok(item.proofPaths.includes(p),'canonical proof absent: '+id+':'+p);assert.ok(item.scopePaths.includes(p),'canonical regression scope absent: '+id+':'+p);}
  assert.equal(item.scopePaths.includes('src/**'),false,'unbounded regression for '+id);
  assert.equal(item.productionObservation,null,'internal contract is not public production return: '+id);
+}
+const ws0310Source=requirementById.get('WS-03-010');
+assert.ok(ws0310Source,'WS-03-010 requirement must exist');
+const ws0310=certification.requirements.find(r=>r.id==='WS-03-010');
+if(ws0310Source.status==='SATISFIED'&&ws0310Source.completionReceipt?.state==='VALID'){assert.equal(ws0310,undefined);}else {
+ assert.ok(ws0310,'WS-03-010 guard must be certified');
+ assert.ok(ws0310.proofPaths.includes('scripts/qa-sfi-temporal-surfaces.ts'));
+ assert.ok(ws0310.scopePaths.includes('src/components/sfi/ObservatoryConsole.tsx'));
+ assert.equal(ws0310.productionObservation,null,'code guard is not production observation');
 }
 assert.ok(!certification.requirements.some((item) => item.canonicalStatus === 'SATISFIED'), 'already satisfied requirement must not be recertified');
 const observedRequirementIds = new Set(['WS-03-008','WS-03-009','WS-03-011']);
