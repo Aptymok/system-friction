@@ -32,5 +32,6 @@ def evaluate(payload: SfiEngineInput):
         "ldi": mihm["ldi"],
         "xi": mihm["xi"],
         "montecarlo": mc,
-        "warnings": mihm.get("warnings", []),
+        "calibration_status": "NOT_CALIBRATED",
+        "warnings": mihm.get("warnings", []) + mc.get("warnings", []),
     }

@@ -44,11 +44,12 @@ const check = spawnSync('python3',['-c',[
   'from montecarlo import run_montecarlo,phi',
   "v={'ihg':0.7,'nti':0.6,'ldi':0.2,'xi':0.03}",
   'sample=run_montecarlo(v,runs=4,horizon=2)',
-  'assert sample["epistemic_status"]=="SIMULATED"',
+  'assert sample["state"]=="BLOCKED_CALIBRATION_REQUIRED"',
+  'assert sample["epistemic_status"]=="NOT_OBSERVED"',
   'assert sample["calibration_status"]=="NOT_CALIBRATED"',
-  'assert sample["stochastic_parameters_status"]=="UNFITTED_FIXED_EXPLORATORY"',
-  'assert sample["entropic_sample_fraction"]==sample["entropic_probability"]',
-  'assert len(sample["sample_paths"])==4',
+  'assert sample["entropic_sample_fraction"] is None',
+  'assert sample["entropic_probability"] is None',
+  'assert len(sample["sample_paths"])==0',
   'try: run_montecarlo(v,runs=0); assert False',
   'except ValueError: pass',
   'try: phi(float("nan"),0.4,0.3,0.03); assert False',
@@ -83,8 +84,11 @@ assert.ok(snapshotHistory.includes("sourceStatus !== 'observed' && sourceStatus 
   'Failed rows must not become 24h trajectory baselines');
 assert.ok(snapshotHistory.includes("if (ihg === null || nti === null || ldi === null || wsv === null) return null"),
   'Missing numeric inputs must not become zeros');
+const montecarloRoute = readFileSync('src/app/api/sfi-engine/montecarlo/route.ts','utf8');
+assert.ok(montecarloRoute.includes("mc?.calibration_status === 'CALIBRATED_AND_VALIDATED'"),
+ 'Uncalibrated Monte Carlo must never be HTTP 200 success');
 const api=readFileSync('services/python/sfi_engine/main.py','utf8');
 assert.ok(api.includes('MIHM_MISSING_MATERIAL_OBSERVATION'));
 console.log(JSON.stringify({ok:true,parityVectors: numericVectors.length,
   noMocksOrScientificCalibrationClaims:true,formulaPreserved:true,
-  sourceHistoricalIHGNotRewritten:true,pythonSampleStatus:'SIMULATED_NOT_CALIBRATED'}));
+  sourceHistoricalIHGNotRewritten:true,pythonSampleStatus:'BLOCKED_UNTIL_CALIBRATED'}));

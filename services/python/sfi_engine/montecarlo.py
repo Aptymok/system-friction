@@ -1,4 +1,3 @@
-import random
 import math
 
 def clamp01(x):
@@ -20,48 +19,35 @@ def regime(p, ldi, nti, ihg):
     return "CRITICO"
 
 def run_montecarlo(mihm, runs=256, horizon=21):
+    """
+    Numerical simulation needs observed, time-ordered and independently checked
+    transitions to estimate a stochastic kernel. No such calibrated kernel is
+    owned by this service. Consequently NO random paths or apparent probabilities
+    are generated from arbitrary Gaussian noise widths.
+    """
     if type(runs) is not int or type(horizon) is not int or runs <= 0 or horizon <= 0:
         raise ValueError("MIHM_INVALID_SIMULATION_EXTENT")
-    # No observationally estimated noise covariance or calibration cohort is
-    # present in this engine. Output remains a conditional simulation ONLY.
     for key in ("ihg", "nti", "ldi", "xi"):
         if key not in mihm:
             raise ValueError("MIHM_MISSING_INPUT:" + key)
         clamp01(mihm[key])
-    results = []
-    for _ in range(runs):
-        ihg = mihm["ihg"]
-        nti = mihm["nti"]
-        ldi = mihm["ldi"]
-        xi = mihm["xi"]
-        path = []
-        for day in range(horizon):
-            ihg = clamp01(ihg + random.gauss(0, 0.025))
-            nti = clamp01(nti + random.gauss(0, 0.030))
-            ldi = clamp01(ldi + random.gauss(0, 0.025))
-            xi = clamp01(xi + random.gauss(0, 0.005))
-            p = phi(ihg, nti, ldi, xi)
-            path.append({"day": day + 1, "phi": p, "regime": regime(p, ldi, nti, ihg)})
-        results.append(path)
-
-    terminal = [path[-1]["phi"] for path in results]
-    avg_terminal = sum(terminal) / len(terminal)
-    entropic_probability = sum(1 for path in results if path[-1]["regime"] == "ENTROPICO") / len(results)
-    homeostatic_probability = sum(1 for path in results if path[-1]["regime"] == "HOMEOSTATICO") / len(results)
-
     return {
-        "runs": runs,
-        "horizon": horizon,
-        "avg_terminal_phi": avg_terminal,
-        "entropic_probability": entropic_probability,
-        "homeostatic_probability": homeostatic_probability,
-        "entropic_sample_fraction": entropic_probability,
-        "homeostatic_sample_fraction": homeostatic_probability,
-        "epistemic_status": "SIMULATED",
+        "state": "BLOCKED_CALIBRATION_REQUIRED",
+        "epistemic_status": "NOT_OBSERVED",
         "calibration_status": "NOT_CALIBRATED",
-        "probability_interpretation": "MODEL_CONDITIONAL_SAMPLE_FREQUENCY_NOT_EMPIRICAL_RISK",
-        "stochastic_parameters_status": "UNFITTED_FIXED_EXPLORATORY",
-        "warnings": ["simulation_parameters_not_estimated_from_observed_trajectories",
-                     "do_not_use_as_empirical_probability_or_prospective_prediction"],
-        "sample_paths": results[:12],
+        "model_specification": "NO_ESTIMATED_TRANSITION_KERNEL",
+        "runs_requested": runs,
+        "horizon_requested": horizon,
+        "runs_executed": 0,
+        "avg_terminal_phi": None,
+        "entropic_probability": None,
+        "homeostatic_probability": None,
+        "entropic_sample_fraction": None,
+        "homeostatic_sample_fraction": None,
+        "sample_paths": [],
+        "warnings": [
+            "empirical_transition_kernel_missing",
+            "prospective_out_of_sample_calibration_not_observed",
+            "historical_source_vintage_and_t0_t1_evidence_required",
+        ],
     }

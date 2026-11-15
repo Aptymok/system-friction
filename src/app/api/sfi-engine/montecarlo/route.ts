@@ -5,15 +5,21 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
   const input = normalizeInput(body);
   const result = await evaluateWithSfiEngine(input);
+  const mc = result.montecarlo && typeof result.montecarlo === 'object'
+    ? result.montecarlo as Record<string, unknown>
+    : null;
+  const simulationReady = result.ok && mc?.state !== 'BLOCKED_CALIBRATION_REQUIRED'
+    && mc?.calibration_status === 'CALIBRATED_AND_VALIDATED';
 
   return NextResponse.json({
-    ok: result.ok,
+    ok: simulationReady,
     source: result.source,
     metrics: result.metrics,
     montecarlo: result.montecarlo ?? null,
+    calibrationStatus: mc?.calibration_status ?? 'NOT_OBSERVED',
     warnings: result.montecarlo ? result.warnings : [...result.warnings, 'montecarlo_python_result_missing'],
   }, {
-    status: result.ok ? 200 : 502,
+    status: simulationReady ? 200 : 503,
     headers: { 'cache-control': 'no-store' },
   });
 }
