@@ -11,6 +11,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: sfi-real-public-100
@@ -32,11 +33,22 @@ jobs:
           cache: npm
       - name: Install existing application dependencies
         run: npm ci
-      - name: Retrieve real official World Bank country and indicator observations
+      # Read immutable bytes actually returned by the official World Bank API.
+      # The upstream acquisition was PARTIAL (9/10 indicators unavailable); do
+      # NOT claim those missing domains or retry indefinitely.
+      - name: Reuse observed official-source artifact from failed multi-domain acquisition
+        uses: actions/download-artifact@v4
+        with:
+          name: sfi-real-public-100-43728323703
+          run-id: 43728323703
+          repository: Aptymok/system-friction
+          github-token: ${{ github.token }}
+          path: .sfi-cl
+      - name: Check actual source manifest before evaluating any country
         run: |
-          node --input-type=module -e "import {prepareWorldBankDataset} from './scripts/cognitive-olympics/lib/dataset.mjs'; import {WORLD_BANK_INDICATORS} from './scripts/cognitive-olympics/lib/config.mjs'; const wanted=new Set(['NY.GDP.MKTP.KD.ZG','SL.UEM.TOTL.ZS','SP.POP.GROW','SP.DYN.LE00.IN','EG.ELC.ACCS.ZS','EN.ATM.CO2E.PC','NE.TRD.GNFS.ZS','IT.NET.USER.ZS','NV.IND.MANF.ZS','SG.GEN.PARL.ZS']);const selected=WORLD_BANK_INDICATORS.filter(([code])=>wanted.has(code)); const result=await prepareWorldBankDataset({outDir:process.env.SFI_CL_DATA_DIR,startYear:2014,endYear:2019,indicators:selected});if(result.records<100||result.countries<10||result.failures.length>2)process.exit(1);console.log(JSON.stringify(result));"
-      - name: Execute existing SFI Cognitive Olympics on 160 historical cases
-        run: node scripts/cognitive-olympics/runner.mjs --profile quick --start 2018 --end 2019 --problems 160 --engines stats --run-id public-real-100
+          node --input-type=module -e "import fs from 'node:fs';const d=JSON.parse(fs.readFileSync(process.env.SFI_CL_DATA_DIR+'/manifest.json','utf8'));if(d.records<100||d.countries<100||d.strictReplayEligible!==false)process.exit(1);console.log(JSON.stringify({records:d.records,countries:d.countries,requested:d.indicatorsRequested,failed:d.failures,source:'WORLD_BANK_API_PARTIAL_ACTUAL'}));"
+      - name: Execute existing SFI Cognitive Olympics on 220 public historical GDP cases
+        run: node scripts/cognitive-olympics/runner.mjs --profile quick --start 2018 --end 2019 --problems 220 --engines stats --run-id public-real-100
       - name: Independently verify source lineage, score, and real registered-agent execution
         run: node scripts/cognitive-olympics/qa-real-public-100.mjs
       - name: Upload inspectable source, decisions, score and independent RETURN

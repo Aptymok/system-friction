@@ -78,13 +78,14 @@ await fs.mkdir(path.join(runDir,'assurance'),{recursive:true});
 await fs.writeFile(path.join(runDir,'assurance','source-bound-cases.jsonl'),cases.map(x=>JSON.stringify(x)).join('\n')+'\n');
 const output={
  contract:'SFI-REAL-PUBLIC-HISTORICAL-100-RETURN-1.0',state:'PASS',
- evidenceClass:'REAL_WORLD_BANK_REVISED_HISTORICAL_REPLAY',
+ evidenceClass:'REAL_WORLD_BANK_REVISED_HISTORICAL_REPLAY_PARTIAL_SOURCE',
  institutionalCertification:'NOT_EVALUATED',
  clientUse:'NOT_OBSERVED',strictHistoricalVintage:'NOT_ESTABLISHED',
  modelPerformance:'STATISTICAL_CONTROL_ONLY_NOT_SFI_PREDICTIVE_SCORE',
  simulationVsObservation:'HISTORICAL_REPLAY_WITH_REAL_SOURCE_VALUES',
  provenance:{source:'World Bank API',sourceRows:dataset.length,sourceCountries:manifest.countries,
-   indicatorCount:manifest.indicatorsRequested,failedIndicators:manifest.failures,
+   indicatorCount:new Set(dataset.map(row=>row.indicator.code)).size,indicatorsRequested:manifest.indicatorsRequested,
+   failedIndicators:manifest.failures,sourceArchiveRunId:'43728323703',
    datasetSha256:sha256(datasetBytes),cutoffYear:year},
  scoredCases:scores.score.problems,uniqueCases:distinctMeasuredSubjects.size,
  distinctCountries:new Set(cases.map(x=>x.iso3)).size,distinctIndicators:new Set(cases.map(x=>x.indicator)).size,
