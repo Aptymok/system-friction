@@ -6,6 +6,7 @@ import {
   downloadStudioDocumentBlob, type StudioDocumentInput, type StudioDocumentKind,
 } from './localDocumentProduction';
 import { makeStudioLocalZip, downloadStudioLocalZip } from './localZipPackage';
+import StudioPodcastProduction from './StudioPodcastProduction';
 
 const initial: StudioDocumentInput = {
   kind:'lab_note',
@@ -133,6 +134,7 @@ export default function StudioDocumentWorkbench() {
         {busy?'GENERANDO…':'DESCARGAR PAQUETE DOCUMENTAL'}
       </button>
     </div>
+    {data.kind === 'podcast_script' && <StudioPodcastProduction document={data} />}
     {message&&<p role="status" style={{margin:0,color:'#a6d9c7',fontSize:12}}>{message}</p>}
     <p style={{color:'#8fa7b6',fontSize:11,margin:0}}>
       PDF local con tipografía estándar y compatibilidad WinAnsi. Para tipografía Unicode compleja,
