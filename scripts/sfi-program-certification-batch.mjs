@@ -67,7 +67,7 @@ export const SCOPED_REQUIREMENT_OWNERS = Object.freeze({
     'src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.ts',
     'src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts',
     'src/lib/sfi/cognitive-runtime/agentModelRequirements.ts',
-    'src/lib/sfi/cognitive-runtime/agentLlmClient.ts',
+    'src/infrastructure/ai/agentLlmClient.ts',
     'src/lib/sfi/cognitive-runtime/agentPassports.ts',
     'src/lib/sfi/cognitive-runtime/convergedRegistry.ts',
     'src/lib/sfi/cognitive-runtime/executionContracts.ts',
