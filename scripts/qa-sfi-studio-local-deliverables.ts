@@ -1,0 +1,72 @@
+import assert from 'node:assert/strict';
+import {
+  makeStudioDocumentPdf,makeStudioDocumentLatex,makeStudioDocumentMarkdown,
+} from '../src/components/studio/localDocumentProduction';
+import { makeStudioLocalZip } from '../src/components/studio/localZipPackage';
+import {
+  proposeCampaignVariants, contrastCampaignObservations,
+} from '../src/components/studio/localCampaignContrast';
+
+// Synthetic QA material: validates serialization and boundaries, not a scientific result.
+const doc = {
+  kind:'lab_note' as const,
+  title:'Nota de laboratorio: fricción y observación',
+  author:'Equipo de ensayo',
+  body:('# Objetivo\n\nAnalizar la integridad de la salida documental.\n\n'+
+    'Esta oración es material de prueba reproducible y no una observación científica.\n\n').repeat(85),
+  sourceLines:'https://example.org/source\nAutor de referencia, publicación no verificada',
+};
+const pdf=await makeStudioDocumentPdf(doc).text();
+assert.ok(pdf.startsWith('%PDF-1.4\n'));
+assert.ok(pdf.includes('/Type /Pages'));
+assert.ok(pdf.includes('/Count '));
+assert.ok(pdf.endsWith('%%EOF\n'));
+const xrefAt=Number(pdf.match(/startxref\n(\d+)\n%%EOF\n$/)?.[1]);
+assert.ok(Number.isFinite(xrefAt));
+assert.equal(pdf.slice(xrefAt,xrefAt+5),'xref\n');
+const refs=pdf.match(/\n(\d{10}) 00000 n /g)||[];
+assert.ok(refs.length>4,'expected multiple PDF objects');
+for(let index=1;index<=refs.length;index++){
+  const offset=Number(refs[index-1].match(/\d{10}/)?.[0]);
+  assert.ok(pdf.startsWith(index+' 0 obj\n',offset),'PDF xref offset for object '+index);
+}
+const tex=makeStudioDocumentLatex(doc);
+assert.ok(tex.includes('\\documentclass'));
+assert.ok(tex.includes('\\section*{Objetivo}'));
+assert.ok(tex.includes('\\end{document}'));
+const markdown=makeStudioDocumentMarkdown(doc);
+assert.ok(markdown.includes('BORRADOR')||markdown.includes('borrador'));
+assert.ok(markdown.includes('Referencias declaradas'));
+
+const zip=await makeStudioLocalZip([
+  {name:'documento.pdf',data:new Blob([pdf],{type:'application/pdf'})},
+  {name:'fuente.tex',data:tex},
+]);
+const bytes=new DataView(await zip.arrayBuffer());
+assert.equal(bytes.getUint32(0,true),0x04034b50);
+const zipArray=new Uint8Array(bytes.buffer);
+const zipText=new TextDecoder().decode(zipArray);
+assert.ok(zipText.includes('documento.pdf'));
+assert.ok(zipText.includes('fuente.tex'));
+const footer=bytes.byteLength-22;
+assert.equal(bytes.getUint32(footer,true),0x06054b50);
+assert.equal(bytes.getUint16(footer+10,true),2);
+const centralOffset=bytes.getUint32(footer+16,true);
+assert.equal(bytes.getUint32(centralOffset,true),0x02014b50);
+assert.equal(zip.type,'application/zip');
+
+const direction={title:'QA Music',artist:'QA Producer',sector:'unverified',concept:'Declared',
+  palette:'signal' as const};
+const variants=proposeCampaignVariants(direction);
+assert.deepEqual(variants.map(v=>v.id),['A','B']);
+assert.equal(contrastCampaignObservations([]).status,'NOT_OBSERVED');
+const observations=[
+  {variant:'A' as const,url:'https://example.org/post/a',observedAt:'2026-11-15T18:00:00-06:00',
+    impressions:100,saves:8,meaningfulInteractions:2,source:'MANUAL_PLATFORM_READBACK' as const},
+  {variant:'B' as const,url:'https://example.org/post/b',observedAt:'2026-11-15T18:00:00-06:00',
+    impressions:100,saves:5,meaningfulInteractions:1,source:'MANUAL_PLATFORM_READBACK' as const},
+];
+const comparison=contrastCampaignObservations(observations);
+assert.equal(comparison.status,'CONTRASTABLE');
+assert.equal(comparison.winnerCertified,false);
+console.log('PASS · SFI Studio local deliverables: PDF cross-reference, LaTeX, ZIP container, campaign observations and no empirical certification');
