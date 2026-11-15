@@ -89,25 +89,49 @@ async function main() {
   if (fetchedId !== observation.external_id) fail('USGS_OFFICIAL_EVENT_ID_MISMATCH');
   stage('independent_public_source','PASS',{officialApi:sourceEndpoint,officialEventId:fetchedId,observedAt:new Date().toISOString()});
 
-  // The existing real operating-cycle ledger is inspected, not made up.
-  // We explicitly do NOT claim that World data has become a ROOT/Case/Field RETURN.
+  // Institutional closure is a distinct, ROOT-governed contract.
+  // Inspect actual persisted identities; never turn World observation into
+  // Field consent, Method Lab execution, independent RETURN or Twin memory.
   const operating=await readLive(db.from('sfi_operating_cycles')
     .select('id,cycle_code,status,evidence_refs,method_lab_refs,field_case_ref,return_refs,cognitive_twin_refs')
     .order('updated_at',{ascending:false}).limit(1));
   if (!operating?.length) {
-    state.institutionalFullCycle={result:'BLOCKED',reason:'NO_OPERATING_CYCLE_PERSISTED'};
+    state.institutionalFullCycle={result:'BLOCKED',reason:'NO_OPERATING_CYCLE_PERSISTED',checks:{}};
   } else {
     const c=operating[0];
-    const missing=['evidence_refs','method_lab_refs','return_refs','cognitive_twin_refs']
-      .filter(k=>!Array.isArray(c[k]) || !c[k].length);
-    if (!c.field_case_ref) missing.push('field_case_ref');
+    const refs = key => Array.isArray(c[key]) ? c[key].filter(value=>typeof value==='string'&&value.trim()) : [];
+    const checks={};
+    const evidenceIds=refs('evidence_refs');
+    const roots=evidenceIds.length
+      ? await readLive(db.from('root_evidence_entries').select('id,epistemic_event_id').in('id',evidenceIds))
+      : [];
+    checks.linkedRootEvidence=roots?.some(row=>Boolean(row.epistemic_event_id))===true;
+    const labIds=refs('method_lab_refs');
+    const labs=labIds.length
+      ? await readLive(db.from('sfi_lab_analyses').select('id').in('id',labIds))
+      : [];
+    checks.linkedLabAnalysis=Boolean(labs?.length);
+    const fieldCase=typeof c.field_case_ref==='string'&&c.field_case_ref
+      ? await readLive(db.from('field_cases').select('id,status,consent').eq('id',c.field_case_ref).limit(1))
+      : [];
+    checks.consentedFieldCase=Boolean(fieldCase?.length&&fieldCase[0].consent===true);
+    const returnIds=refs('return_refs');
+    const returns=returnIds.length && c.field_case_ref
+      ? await readLive(db.from('field_returns').select('id,case_id,status,intervention_id,returned_at').in('id',returnIds).eq('case_id',c.field_case_ref))
+      : [];
+    checks.linkedAcceptedReturn=Boolean(returns?.some(row=>row.status==='RETURN_ACCEPTED'&&row.intervention_id));
+    checks.twinReferenceRecorded=refs('cognitive_twin_refs').length>0;
+    // Even all reference checks passing does not validate provenance/time or
+    // certify the Field outcome. Only ROOT's real full-cycle verifier may close.
+    const missing=Object.entries(checks).filter(([,observed])=>!observed).map(([key])=>key);
     state.institutionalFullCycle={
-      result:'BLOCKED',
+      result:missing.length?'BLOCKED':'NEEDS_ROOT_FULL_CYCLE_VERIFICATION',
       cycleId:c.id,
       cycleCode:c.cycle_code,
       observedStatus:c.status,
-      reason:missing.length ? 'LINKED_ORGANS_MISSING' : 'INDEPENDENT_FIELD_AND_RETURN_ACCEPTANCE_STILL_REQUIRED',
+      checks,
       missingLinks:missing,
+      reason:missing.length?'PERSISTED_CROSS_ORGAN_LINKS_INCOMPLETE':'IDENTITIES_PRESENT_BUT_OUTCOME_NOT_INDEPENDENTLY_VALIDATED',
     };
   }
   stage('institutional_boundary','BLOCKED',state.institutionalFullCycle);
