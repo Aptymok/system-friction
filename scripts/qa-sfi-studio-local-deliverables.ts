@@ -5,6 +5,7 @@ import {
 import { makeStudioLocalZip } from '../src/components/studio/localZipPackage';
 import { buildSourceReviewScript } from '../src/components/studio/localPodcastResearchScript';
 import { podcastFilename, makePodcastManifest, type StudioPodcastAudio } from '../src/components/studio/localPodcastAudio';
+import { parseStudioLocalReport } from '../src/components/studio/localReportImport';
 import {
   proposeCampaignVariants, contrastCampaignObservations,
 } from '../src/components/studio/localCampaignContrast';
@@ -101,6 +102,26 @@ assert.equal(podcastManifest.originalStored,false);
 assert.equal(podcastManifest.publication,'NOT_AUTHORIZED');
 assert.equal(podcastManifest.voiceOrigin,'USER_MICROPHONE_RECORDING');
 assert.equal(podcastManifest.scriptCharacters,script.body.length);
+
+// Resuming from a private report must not pretend the original is available.
+const reportFixture={
+  kind:'audio_analysis',name:'QA-ONLY.wav',sizeBytes:4096,
+  analyzedAt:'2026-11-15T19:46:18.875Z',
+  sampleRateHz:48000,channels:2,durationSeconds:1,
+  originalStored:false,originalTransferred:false,persistence:'NONE',
+  features:[{
+    key:'lufs_integrated',label:'Integrated LUFS',value:-18.5,unit:'LUFS',
+    status:'OBSERVED',source:'QA synthetic report',formulaVersion:'qa-v1',
+    explanation:'Synthetic fixture - not a scientific observation.',warnings:[],
+  }],
+};
+const recovered=parseStudioLocalReport(reportFixture);
+assert.equal(recovered.name,'QA-ONLY.wav');
+assert.equal(recovered.features[0].value,-18.5);
+assert.equal(recovered.originalStored,false);
+assert.equal(recovered.originalTransferred,false);
+assert.throws(()=>parseStudioLocalReport({...reportFixture,originalStored:true}),/STUDIO_REPORT_PRIVACY_STATE_UNSUPPORTED/);
+assert.throws(()=>parseStudioLocalReport({...reportFixture,features:[{...reportFixture.features[0],value:Infinity}]}),/STUDIO_REPORT_FEATURE_INVALID/);
 
 console.log('PASS · SFI Studio local deliverables: PDF cross-reference, LaTeX, ZIP container, campaign observations and no empirical certification');
 
