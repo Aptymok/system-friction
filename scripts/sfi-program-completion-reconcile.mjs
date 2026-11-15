@@ -105,7 +105,7 @@ function loadSfi08CertificationOverlay() {
 }
 
 function externalRequirement(requirement) {
-  return /\b(external-only|external action|registry submission|directory submission|account ownership|platform acceptance|LinkedIn|Medium|YouTube|Bluesky|Mastodon|Hugging Face|Zenodo|ORCID|ROR|ResearchGate|Postman|OSF)\b/i.test(`${requirement?.source ?? ''} ${requirement?.requirement ?? ''}`);
+  return /\b(external-only|external action|registry submission|directory submission|account ownership|platform acceptance|LinkedIn|Medium|YouTube|Bluesky|Mastodon|Hugging Face|(?<!\.)Zenodo|ORCID|ROR|ResearchGate|Postman|OSF)\b/i.test(`${requirement?.source ?? ''} ${requirement?.requirement ?? ''}`);
 }
 function sha256File(filePath) { return `sha256:${createHash('sha256').update(fs.readFileSync(filePath)).digest('hex')}`; }
 function safeRepositoryPath(value) {

@@ -74,10 +74,11 @@ assert.equal(classifierRule, extractExternalRule(reconcileSource), 'external cla
 const externalNameRegex = new RegExp(classifierRule, 'i');
 for (const ordinary of [
   '`LOADING`, `DEGRADED`, `UNAVAILABLE`, and `ERROR` never map to numeric zero;',
+  'Repository citation file `CITATION.cff` and `.zenodo.json` are not external account events.',
   'Internal execution error and degraded database response',
   'The error log records a failed internal pipeline operation',
 ]) assert.equal(externalNameRegex.test(ordinary), false, 'ordinary error must not trigger external observation');
-for (const external of ['ROR', 'ORCID', 'external-only registration', 'Zenodo', 'OSF', 'external action']) {
+for (const external of ['ROR', 'ORCID', 'external-only registration', 'Zenodo account registration', 'Zenodo deposit', 'OSF', 'external action']) {
   assert.equal(externalNameRegex.test(external), true, 'genuine external action remains gated: ' + external);
 }
 
