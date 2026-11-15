@@ -37,6 +37,12 @@ async function main() {
   if (!(Number(receipt.execution?.sourceCounts?.['usgs-earthquakes']) > 0)) {
     fail('USGS_NOT_OBSERVED_IN_THIS_REAL_EXECUTION');
   }
+  if (!Number.isInteger(receipt.execution?.persisted)
+    || receipt.execution.persisted < 1
+    || receipt.execution.derivedPersisted !== receipt.execution.persisted
+    || receipt.execution.derivedFailureCount !== 0) {
+    fail('SOURCE_AND_DERIVED_PERSISTENCE_NOT_BOTH_CONFIRMED');
+  }
   if (!Number.isFinite(Date.parse(receipt.startedAt)) || !Number.isFinite(Date.parse(receipt.completedAt))) {
     fail('WORLD_AGENT_RECEIPT_TIME_MISSING');
   }
@@ -71,7 +77,7 @@ async function main() {
   stage('source_persisted','PASS',{ id:observation.id, sourceId:observation.source_id, fetchedAt:observation.fetched_at, rawHash:observation.raw_hash });
 
   const reading=await readLive(db.from('world_friction_readings')
-    .select('id,observation_id,methodology_version,systemic_friction,interaction_density,systemic_coherence,created_at')
+    .select('id,observation_id,methodology_version,systemic_friction,interaction_density,systemic_coherence,field_drivers,created_at')
     .eq('id',bound.readingId).eq('observation_id',bound.observationId).single());
   if (!reading || reading.id !== bound.readingId || reading.observation_id !== observation.id) {
     fail('DERIVED_READING_ID_NOT_BOUND_TO_THIS_SOURCE_UPSERT');
@@ -80,8 +86,20 @@ async function main() {
     if (!isFiniteNumber(reading[name])) fail('DERIVED_READING_VALUE_MISSING:'+name);
   }
   if (!reading.methodology_version) fail('DERIVED_READING_METHOD_VERSION_MISSING');
+  const drivers=reading.field_drivers;
+  const derivedAt=Date.parse(drivers?.evaluatedAt||'');
+  const start=Date.parse(receipt.startedAt);
+  const end=Date.parse(receipt.completedAt);
+  if (drivers?.temporalMetricBasis !== 'EXECUTION_TIME_DYNAMIC_DERIVATION'
+    || !Number.isFinite(derivedAt) || derivedAt < start || derivedAt > end
+    || !Number.isFinite(Number(drivers?.ageHoursUsed))
+    || drivers?.sourceConfidenceBasis !== 'COLLECTOR_CONFIGURED_HEURISTIC_NOT_EXTERNAL_MEASUREMENT'
+    || drivers?.ageBasis !== 'SOURCE_REPORTED_OBSERVED_AT'
+    || typeof drivers?.sourceObservedAt !== 'string') {
+    fail('DERIVED_TEMPORAL_OR_CONFIDENCE_PROVENANCE_UNVERIFIED');
+  }
   state.linkedReadingId=reading.id;
-  stage('derived_readback','PASS',{id:reading.id,sourceObservationId:reading.observation_id,methodologyVersion:reading.methodology_version,values:{systemicFriction:reading.systemic_friction,interactionDensity:reading.interaction_density,systemicCoherence:reading.systemic_coherence}});
+  stage('derived_readback','PASS',{id:reading.id,sourceObservationId:reading.observation_id,methodologyVersion:reading.methodology_version,temporalBasis:{evaluatedAt:drivers.evaluatedAt,sourceObservedAt:drivers.sourceObservedAt,ageHoursUsed:drivers.ageHoursUsed,ageBasis:drivers.ageBasis,sourceConfidenceBasis:drivers.sourceConfidenceBasis},values:{systemicFriction:reading.systemic_friction,interactionDensity:reading.interaction_density,systemicCoherence:reading.systemic_coherence}});
   // USGS's live endpoint verifies the externally sourced event id independently.
   // USGS may revise a value; we NEVER substitute the retained observation.
   const sourceEndpoint='https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&eventid='+encodeURIComponent(observation.external_id);
@@ -113,7 +131,14 @@ async function main() {
     const roots=evidenceIds.length
       ? await readLive(db.from('root_evidence_entries').select('id,epistemic_event_id').in('id',evidenceIds))
       : [];
-    checks.linkedRootEvidence=roots?.some(row=>Boolean(row.epistemic_event_id))===true;
+    const ledgerEvidence=evidenceIds.length
+      ? await readLive(db.from('sfi_evidence_ledger').select('id,evidence_hash,observed_at').in('id',evidenceIds))
+      : [];
+    checks.linkedCanonicalEvidence=Boolean(
+      roots?.some(row=>Boolean(row.epistemic_event_id))
+      || ledgerEvidence?.some(row=>isSha256(row.evidence_hash)
+        && Number.isFinite(Date.parse(row.observed_at||'')))
+    );
     const labIds=refs('method_lab_refs');
     const labs=labIds.length
       ? await readLive(db.from('sfi_lab_analyses').select('id').in('id',labIds))
