@@ -119,5 +119,7 @@ jobs:
             artifacts/program-completion/completion.json
             artifacts/program-completion/completion.md
             artifacts/program-completion/certification-return.json
+            artifacts/program-completion/requirement-transparency.json
+            artifacts/program-completion/requirement-transparency.md
           if-no-files-found: error
           retention-days: 90

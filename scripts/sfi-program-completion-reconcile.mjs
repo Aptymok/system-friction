@@ -4,6 +4,7 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { evaluateCompletionReceipt, loadCompletionReceiptLedger, requirementHash } from './lib/programCompletionReceipts.mjs';
+import { writeTransparency } from './lib/programRequirementTransparency.mjs';
 
 const root = process.cwd();
 const artifactPath = path.join(root, 'artifacts/program-completion/completion.json');
@@ -220,6 +221,9 @@ for (const invalid of invalidReceipts) {
 const incomplete = (report.requirements ?? []).some((r) => !['SATISFIED','EXTERNAL_ACTION','SUPERSEDED_BY_AUTHORIZED_DECISION'].includes(r.status));
 report.nextProgramAction = invalidReceipts.length ? 'REPAIR_INVALID_COMPLETION_RECEIPTS' : incomplete ? 'EXECUTE_COMPLETION_TRAJECTORIES' : 'RUN_FINAL_ASSURANCE_AND_RETURN_GATE';
 fs.writeFileSync(artifactPath, `${JSON.stringify(report, null, 2)}\n`);
+// Read-only transparency report; invalid receipts remain invalid and fail the canonical controller.
+const transparencyResult = writeTransparency(report);
+console.log(JSON.stringify({ transparency: transparencyResult, mappingAuthority: 'CANDIDATE_NOT_VERIFIED' }));
 const md = [
   '# SFI · Autonomous Program Completion Controller','',`**Contract:** ${report.contract}  `,`**HEAD:** ${report.head}  `,`**Generated:** ${report.generatedAt}  `,`**Receipt contract:** ${ledger.contract}  `,'',
   '## Classification',...Object.entries(report.counts).map(([key,value]) => `- ${key}: ${value}`),'','## Completion receipt assurance',
