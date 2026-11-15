@@ -49,7 +49,7 @@ on:
       - '.github/workflows/mihm-contract-validation.yml'
   workflow_dispatch:
   schedule:
-    - cron: '15 12 * * *'
+    - cron: '15 21 * * *'
 
 permissions:
   contents: read
@@ -72,10 +72,10 @@ jobs:
         with:
           node-version: 22
 
-      - name: Verify last fourteen completed New York civil days
+      - name: Verify the 36-day New York observation horizon needed for lag2
         run: node scripts/research/mihm-manhattan-365d-source.mjs --p4-window-check
 
-      - name: Capture last fourteen completed New York days, without imputation
+      - name: Capture last 36 completed New York days, without imputation
         run: node scripts/research/mihm-manhattan-365d-source.mjs --collect-p4-nyc
 
       - name: Preserve provider responses and explicit missingness
