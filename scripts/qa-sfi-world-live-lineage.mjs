@@ -37,6 +37,12 @@ async function main() {
   if (!(Number(receipt.execution?.sourceCounts?.['usgs-earthquakes']) > 0)) {
     fail('USGS_NOT_OBSERVED_IN_THIS_REAL_EXECUTION');
   }
+  if (!Number.isInteger(receipt.execution?.persisted)
+    || receipt.execution.persisted < 1
+    || receipt.execution.derivedPersisted !== receipt.execution.persisted
+    || receipt.execution.derivedFailureCount !== 0) {
+    fail('SOURCE_AND_DERIVED_PERSISTENCE_NOT_BOTH_CONFIRMED');
+  }
   if (!Number.isFinite(Date.parse(receipt.startedAt)) || !Number.isFinite(Date.parse(receipt.completedAt))) {
     fail('WORLD_AGENT_RECEIPT_TIME_MISSING');
   }
