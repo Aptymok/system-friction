@@ -18,6 +18,7 @@ async function observe(path: string, accept: string) {
   observations.push({path,status:response.status,finalUrl:response.url,bytes:Buffer.byteLength(body)});
   return {status:response.status,body,response};
 }
+async function main() {
 const home=await observe('/','text/html');
 assert.equal(home.status,200,'PUBLIC_HOME_NOT_ACCESSIBLE');
 const scripts=[...home.body.matchAll(/<script[^>]+type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/gi)].map(m=>{
@@ -65,3 +66,6 @@ console.log(JSON.stringify({
   observations,
   result:'PASS',
 }));
+
+}
+main().catch(error => { console.error(error); process.exitCode=1; });
