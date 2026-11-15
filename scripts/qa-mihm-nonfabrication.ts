@@ -73,6 +73,16 @@ assert.ok(institutional.includes("source_status_non_admissible_for_phi_sfi"),
   'Source failure requires explicit status');
 assert.ok(institutional.includes("parsed >= 0 && parsed <= 1 ? parsed : null"),
   'Out-of-range observed metrics must be missing, not clamped');
+const globalMetrics = readFileSync('src/app/api/global-metrics/route.ts','utf8');
+assert.ok(globalMetrics.includes("const admissibleRows = rows.filter"),
+  'Failed snapshots must not enter global IHG averages');
+assert.ok(globalMetrics.includes('globalAverageIHG: null,'),
+  'Unavailable averages must remain null, never invented zero');
+const snapshotHistory = readFileSync('src/lib/sfi/indicatorSnapshot.ts','utf8');
+assert.ok(snapshotHistory.includes("sourceStatus !== 'observed' && sourceStatus !== 'thin'"),
+  'Failed rows must not become 24h trajectory baselines');
+assert.ok(snapshotHistory.includes("if (ihg === null || nti === null || ldi === null || wsv === null) return null"),
+  'Missing numeric inputs must not become zeros');
 const api=readFileSync('services/python/sfi_engine/main.py','utf8');
 assert.ok(api.includes('MIHM_MISSING_MATERIAL_OBSERVATION'));
 console.log(JSON.stringify({ok:true,parityVectors: numericVectors.length,

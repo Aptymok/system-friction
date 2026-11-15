@@ -22,15 +22,13 @@ export type SfiIndicatorSnapshotRow = {
 
 const TOLERANCE_HOURS = 4
 
-function toNumber(value: unknown) {
+function toNumber(value: unknown): number | null {
+  if (value === null || value === undefined || value === '') return null
   const parsed =
     typeof value === 'number'
       ? value
       : Number(value)
-
-  return Number.isFinite(parsed)
-    ? parsed
-    : 0
+  return Number.isFinite(parsed) && parsed >= 0 && parsed <= 1 ? parsed : null
 }
 
 function resolveSourceStatus(
@@ -215,17 +213,27 @@ export async function readSnapshotNear24hAgo(): Promise<
         unknown
       >
 
+    // Historical failed acquisitions must never become comparison baselines:
+    // no fake 24-hour delta and no missing numeric value coerced to zero.
+    const sourceStatus = row.source_status
+    if (sourceStatus !== 'observed' && sourceStatus !== 'thin') return null
+    const ihg = toNumber(row.ihg)
+    const nti = toNumber(row.nti)
+    const ldi = toNumber(row.ldi)
+    const wsv = toNumber(row.wsv)
+    if (ihg === null || nti === null || ldi === null || wsv === null) return null
+
     return {
       captured_at:
         String(row.captured_at),
       ihg:
-        toNumber(row.ihg),
+        ihg,
       nti:
-        toNumber(row.nti),
+        nti,
       ldi:
-        toNumber(row.ldi),
+        ldi,
       wsv:
-        toNumber(row.wsv),
+        wsv,
       domain_breakdown:
         Array.isArray(
           row.domain_breakdown,

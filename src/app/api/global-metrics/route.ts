@@ -46,7 +46,11 @@ export async function GET() {
   }
 
   const rows = Array.isArray(data) ? data : [];
-  const ihgs = rows
+  // A failed/degraded source can retain numbers for historical audit, but
+  // those rows are NOT admitted measurements for population statistics.
+  const admissibleRows = rows.filter((row) =>
+    ['observed', 'thin'].includes(String(row.source_status ?? '').toLowerCase()));
+  const ihgs = admissibleRows
     .map((row) => finite(row.ihg))
     .filter((value): value is number => value !== null);
 
@@ -56,15 +60,15 @@ export async function GET() {
 
   if (ihgs.length === 0) {
     return NextResponse.json({
-      globalAverageIHG: 0,
-      globalVolatility: 0,
+      globalAverageIHG: null,
+      globalVolatility: null,
       totalAudits: 0,
-      totalReadings: 0,
+      totalReadings: rows.length,
       sampleSize: 0,
       source: 'sfi_indicator_snapshots',
       sourceStatus: latestSourceStatus ?? 'missing',
-      sourceState: 'MISSING',
-      evidenceLevel: 'none',
+      sourceState: aggregateSourceState(rows),
+      evidenceLevel: 'no_admissible_measurements',
       lastUpdated: observedAt,
       generatedAt: new Date().toISOString(),
       windowLimit: WINDOW_LIMIT,
@@ -73,7 +77,7 @@ export async function GET() {
 
   const avgIHG = ihgs.reduce((sum, value) => sum + value, 0) / ihgs.length;
   const variance = ihgs.reduce((sum, value) => sum + Math.pow(value - avgIHG, 2), 0) / ihgs.length;
-  const state = aggregateSourceState(rows);
+  const state = aggregateSourceState(admissibleRows);
 
   return NextResponse.json({
     globalAverageIHG: avgIHG,
