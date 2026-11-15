@@ -25,9 +25,9 @@ const TARGETED_CANONICAL_PROOFS = {
   'ISSUE154-001': ['scripts/qa-sfi-discovery-operational.ts'],
   'MASTER-20': ['scripts/qa-sfi-discovery-operational.ts'],
   'WS-01-057': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
-  'WS-03-001': ['scripts/qa-sfi-discovery-integrity.ts'],
-  'WS-03-004': ['scripts/qa-sfi-discovery-exposure.ts'],
-  'WS-03-006': ['scripts/qa-sfi-discovery-integrity.ts'],
+  'WS-03-001': ['scripts/qa-sfi-discovery-integrity.ts','scripts/qa-sfi-discovery-public-live.ts'],
+  'WS-03-004': ['scripts/qa-sfi-discovery-exposure.ts','scripts/qa-sfi-discovery-public-live.ts'],
+  'WS-03-006': ['scripts/qa-sfi-discovery-integrity.ts','scripts/qa-sfi-discovery-public-live.ts'],
 };
 
 const root = process.cwd();
