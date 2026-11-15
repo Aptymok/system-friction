@@ -153,19 +153,49 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Enforce production RETURN result
+      - name: Enforce production RETURN from observed artifact
         if: always()
         shell: bash
+        env:
+          EXPECTED_DEPLOYMENT_SHA: ${{ steps.receipt.outputs.head_sha }}
+          EXPECTED_DEPLOYMENT_RUN: ${{ steps.receipt.outputs.run_id }}
         run: |
-          code="${{ steps.smoke.outputs.exit_code }}"
-          if [ "$code" = "0" ]; then
-            echo 'SFI_PRODUCTION_RETURN_PASS'
-            exit 0
-          fi
-          if [ "$code" = "2" ]; then
-            echo 'SFI_PRODUCTION_RETURN_NOT_OBSERVED'
-            echo 'No contradiction was observed; durable artifact preserves NOT_OBSERVED for later review.'
-            exit 0
-          fi
-          echo 'SFI_PRODUCTION_RETURN_FAIL'
-          exit 1
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const source = '.sfi-assurance/production-observatory-smoke.json';
+          if (!fs.existsSync(source)) {
+            console.error('SFI_PRODUCTION_RETURN_NOT_OBSERVED: assurance artifact missing');
+            process.exit(2);
+          }
+          let report;
+          try { report = JSON.parse(fs.readFileSync(source, 'utf8')); }
+          catch {
+            console.error('SFI_PRODUCTION_RETURN_NOT_OBSERVED: assurance artifact unreadable');
+            process.exit(2);
+          }
+          const required = [
+            'canonicalTarget', 'domain', 'ssr', 'apis', 'browser',
+            'falseZero', 'actualZero', 'hypothesisAbsence', 'readPlane',
+          ];
+          const receipt = report.relatedDeployment || {};
+          const validReceipt =
+            /^[0-9a-f]{40}$/i.test(process.env.EXPECTED_DEPLOYMENT_SHA || '') &&
+            /^[0-9]+$/.test(process.env.EXPECTED_DEPLOYMENT_RUN || '') &&
+            receipt.headSha === process.env.EXPECTED_DEPLOYMENT_SHA &&
+            receipt.runId === process.env.EXPECTED_DEPLOYMENT_RUN;
+          const verifiedGates = required.every(key => report.gates?.[key]?.status === 'PASS');
+          const verifiedTarget = report.target === 'https://www.systemfriction.org';
+          if (report.productionReturn === 'PASS' && validReceipt && verifiedGates && verifiedTarget) {
+            console.log('SFI_PRODUCTION_RETURN_PASS: all gates and deployment reference observed');
+            process.exit(0);
+          }
+          console.error(JSON.stringify({
+            verdict: report.productionReturn === 'FAIL' ? 'SFI_PRODUCTION_RETURN_FAIL' : 'SFI_PRODUCTION_RETURN_NOT_OBSERVED',
+            reportState: report.productionReturn || 'UNKNOWN',
+            verifiedGates,
+            verifiedTarget,
+            validReceipt,
+            missingOrFailedGates: required.filter(key => report.gates?.[key]?.status !== 'PASS'),
+          }));
+          process.exit(report.productionReturn === 'FAIL' ? 1 : 2);
+          NODE
