@@ -67,8 +67,11 @@ assert.ok(evolution.includes("'src/lib/continuity/operationalAutoAdvance.ts'"), 
 assert.ok(router.includes("capabilityId: 'sfi_self_development_v1'"), 'material_executor_must_be_registered_in_existing_router');
 assert.ok(router.includes("executionClass: 'MATERIAL_INTERNAL'"), 'material_executor_must_remain_distinct_from_external_action');
 assert.ok(router.includes('AWAIT_SCHEDULED_SELF_DEVELOPMENT_EXECUTOR'), 'router_must_assign_not_fake_execute_scheduled_material_work');
-assert.ok(selfDevelopmentWorkflow.includes('auto/sfi-self-repair-'), 'material_executor_must_use_review_branch');
-assert.ok(selfDevelopmentWorkflow.includes('gh pr create'), 'material_executor_must_open_review_pr');
+assert.ok(selfDevelopmentWorkflow.includes('sfi-self-development-patch-'), 'material_executor_must_keep_verified_patch_artifact');
+assert.ok(selfDevelopmentWorkflow.includes('MAIN_ONLY_NO_BRANCH_NO_PR'), 'material_executor_must_record_main_only_blocker');
+assert.equal(selfDevelopmentWorkflow.includes('git checkout -b'), false, 'material_executor_must_not_create_branch');
+assert.equal(selfDevelopmentWorkflow.includes('gh pr create'), false, 'material_executor_must_not_create_pr');
+assert.equal(selfDevelopmentWorkflow.includes('git push origin'), false, 'material_executor_must_not_push_to_repository');
 assert.equal(selfDevelopmentWorkflow.includes('gh pr merge'), false, 'material_executor_must_not_merge_itself');
 assert.ok(selfDevelopmentRoute.includes('recordProposalOutcomeFromObservedReturn'), 'material_return_must_reuse_canonical_outcome_writer');
 assert.ok(selfDevelopmentRoute.includes("developmentStage: 'READY_FOR_ADOPTION'"), 'material_return_must_expose_ready_for_adoption_only_after_return');

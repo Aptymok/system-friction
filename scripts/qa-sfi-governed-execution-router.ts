@@ -122,15 +122,19 @@ requireText(hourlyWorkflow, "cron: '17 * * * *'", 'reuse-existing-guarded-contin
 requireText(hourlyWorkflow, 'workflow_dispatch:', 'existing-hourly-manual-trigger-retained');
 requireText(rootRunner, 'runGovernedExecutionRouter({ limit: 10 })', 'root-full-cycle-router');
 
-// Existing SFI Self-Development becomes the bounded material executor. It may write only a review branch/PR,
+// SFI Self-Development may generate a bounded local patch but cannot write branches, PRs, main or canon,
 // never main/canon, and its live SFI bridge is authenticated by exact-workflow GitHub OIDC.
 requireText(selfDevelopmentWorkflow, 'id-token: write', 'self-development-oidc-permission');
-requireText(selfDevelopmentWorkflow, 'contents: write', 'self-development-branch-write-permission');
-requireText(selfDevelopmentWorkflow, 'pull-requests: write', 'self-development-pr-write-permission');
+requireText(selfDevelopmentWorkflow, 'contents: read', 'self-development-read-only-repository-permission');
+forbid(selfDevelopmentWorkflow, 'contents: write', 'self-development-repository-write-forbidden');
+forbid(selfDevelopmentWorkflow, 'pull-requests: write', 'self-development-pr-write-forbidden');
 requireText(selfDevelopmentWorkflow, 'audience=sfi-self-development', 'self-development-oidc-audience');
 requireText(selfDevelopmentWorkflow, '/api/cron/self-development', 'self-development-live-bridge');
-requireText(selfDevelopmentWorkflow, 'auto/sfi-self-repair-', 'self-development-review-branch');
-requireText(selfDevelopmentWorkflow, 'gh pr create', 'self-development-review-pr');
+requireText(selfDevelopmentWorkflow, 'sfi-self-development-patch-', 'self-development-bounded-artifact');
+requireText(selfDevelopmentWorkflow, 'MAIN_ONLY_NO_BRANCH_NO_PR', 'self-development-return-not-material');
+forbid(selfDevelopmentWorkflow, 'git checkout -b', 'self-development-branch-forbidden');
+forbid(selfDevelopmentWorkflow, 'gh pr create', 'self-development-pr-forbidden');
+forbid(selfDevelopmentWorkflow, 'git push origin', 'self-development-push-forbidden');
 forbid(selfDevelopmentWorkflow, 'gh pr merge', 'self-development-auto-merge-forbidden');
 forbid(selfDevelopmentWorkflow, 'git push origin main', 'self-development-main-push-forbidden');
 requireText(oidcPolicy, "SFI_SELF_DEVELOPMENT_OIDC_AUDIENCE = 'sfi-self-development'", 'self-development-exact-audience');
