@@ -11,6 +11,7 @@ on:
       - 'src/observatory/field/catalog/sfStaticDataset.ts'
       - 'data/sfi/sf_static_dataset.compact.json'
       - 'scripts/qa-mihm-nonfabrication.ts'
+      - 'scripts/research/mihm-manhattan-365d-source.mjs'
       - '.github/workflows/mihm-contract-validation.yml'
   pull_request:
     paths:
@@ -47,12 +48,44 @@ on:
       - 'docs/canon/**'
       - '.github/workflows/mihm-contract-validation.yml'
   workflow_dispatch:
+  schedule:
+    - cron: '15 12 * * *'
 
 permissions:
   contents: read
 
 jobs:
+  # Source-only evidence collection. A scheduled run does not issue a
+  # prediction; unavailable/revised sources stay explicit in its artifact.
+  capture_p4_sources:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact main revision
+        uses: actions/checkout@v4
+
+      - name: Setup Node for official public-source collector
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Capture last fourteen completed UTC days, without imputation
+        run: node scripts/research/mihm-manhattan-365d-source.mjs --collect-p4-nyc
+
+      - name: Preserve provider responses and explicit missingness
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: mihm-p4-official-source-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/mihm-p4-nyc-source.json
+          if-no-files-found: error
+          retention-days: 90
+
   validate:
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -109,20 +142,6 @@ jobs:
 
       - name: MIHM P4 existing-registry prospective scoring with strict T0 and T1 gates
         run: node --import tsx --test src/lib/mihm/foundationProspectiveScoring.test.ts && node --import tsx scripts/research/mihm-foundation-p4-readiness.ts
-
-      - name: MIHM P4 one-time official NYC 311 and MTA source capture (not a prediction)
-        if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' }}
-        timeout-minutes: 2
-        run: node scripts/research/mihm-manhattan-365d-source.mjs --collect-p4-nyc
-
-      - name: Preserve one-time official source snapshot as short-lived audit artifact
-        if: ${{ always() && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: mihm-p4-official-source-20261030
-          path: ${{ runner.temp }}/mihm-p4-nyc-source.json
-          if-no-files-found: error
-          retention-days: 7
 
       - name: MIHM cultural measurement provenance and missingness
         run: node --import tsx --test src/lib/studio/cultural-lab/agents/mihmAgent.test.ts
