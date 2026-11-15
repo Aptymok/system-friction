@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import StudioFileIntake from '@/components/studio/StudioFileIntake';
+import StudioDocumentWorkbench from '@/components/studio/StudioDocumentWorkbench';
 import type { CSSProperties } from 'react';
 import { redirect } from 'next/navigation';
 import { getStudioObjectFeatures, listStudioObjects } from '@/lib/studio/production/studioProductionRepository';
@@ -100,6 +101,7 @@ export default async function StudioPage({ searchParams }: { searchParams?: Prom
             This surface operates only on objects whose ownership belongs to the authenticated identity. Reading, analyzing and producing evidence here grants no canonical promotion, ROOT execution or authority over other nodes.
           </p>
           <StudioFileIntake />
+          <StudioDocumentWorkbench />
         </div>
       </section>
 
