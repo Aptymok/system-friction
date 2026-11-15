@@ -52,7 +52,7 @@ function analyzeInWorker(decoded: AudioBuffer, onProgress: (message: string) => 
       sampleRate: decoded.sampleRate,
       durationSeconds: decoded.duration,
       channels,
-    }, channels.map(channel => channel.buffer));
+    }, channels.map(channel => channel.buffer as ArrayBuffer));
   });
 }
 
