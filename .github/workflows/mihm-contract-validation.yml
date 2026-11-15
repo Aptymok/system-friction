@@ -72,7 +72,10 @@ jobs:
         with:
           node-version: 22
 
-      - name: Capture last fourteen completed UTC days, without imputation
+      - name: Verify last fourteen completed New York civil days
+        run: node scripts/research/mihm-manhattan-365d-source.mjs --p4-window-check
+
+      - name: Capture last fourteen completed New York days, without imputation
         run: node scripts/research/mihm-manhattan-365d-source.mjs --collect-p4-nyc
 
       - name: Preserve provider responses and explicit missingness
