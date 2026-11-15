@@ -180,3 +180,12 @@ test('MIHM P0 never combines incommensurable units, certifies causal propagation
   assert.notEqual(results[0].threshold,results[1].threshold);
   assert(results.every(x=>x.canonicalPhiCalculated===false&&x.viabilityEstablished===false&&x.homeostasisEstablished===false));
 });
+
+
+test('reduced kernel fallback continuity matches its documented 0.35 coefficient', () => {
+  const ihg = 0.8, nti = 0.6, ldi = 0.2;
+  const result = core.qualifyNode({ id: 'parity', type: 'field', vector: { ihg, nti, ldi } });
+  const expected = ihg * (1 - ldi) * (1 - 0.35 * nti);
+  assert.ok(Math.abs(result.vector.continuity! - expected) < 1e-12);
+  assert.equal(result.vector.phi, result.vector.continuity);
+});

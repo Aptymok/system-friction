@@ -311,7 +311,11 @@ export function denseFragment(
     return `MISSING · lectura insuficiente para interpretar IHG/NTI/LDI.${hint ? ` Vector declarado: ${hint}.` : ''}`;
   }
 
-  const phi = explicitPhi ?? (ihg * nti) / (1 + ldi);
+  // Do not invent PHI_SFI from an incomplete legacy expression. An explicit,
+  // in-range metric is necessary for a semantic-pressure assessment.
+  const phi = explicitPhi !== null && explicitPhi >= 0 && explicitPhi <= 1
+    ? explicitPhi
+    : null;
 
   const ldiMark =
     ldi > 1
@@ -329,9 +333,11 @@ export function denseFragment(
       : 'trazabilidad baja';
 
   const pressure =
-    phi < 0.25
-      ? 'presión semántica alta'
-      : 'presión semántica contenida';
+    phi === null
+      ? 'presión semántica no calculada: falta Φ explícito válido'
+      : phi < 0.25
+        ? 'presión semántica alta'
+        : 'presión semántica contenida';
 
   const action =
     hint ||

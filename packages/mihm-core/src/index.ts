@@ -78,7 +78,7 @@ export function clamp01(value: number) {
 }
 
 function continuityValue(vector: MihmVector): number {
-  return clamp01(vector.continuity ?? vector.phi ?? vector.ihg * (1 - vector.ldi) * (1 - vector.nti * 0.5));
+  return clamp01(vector.continuity ?? vector.phi ?? vector.ihg * (1 - vector.ldi) * (1 - vector.nti * 0.35));
 }
 
 export function qualifyNode(node: SFINode, delta = 0): SFINode {
