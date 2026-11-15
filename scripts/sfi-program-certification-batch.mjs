@@ -45,6 +45,10 @@ export const TARGETED_CANONICAL_PROOFS = Object.freeze({
   'WS-01-029': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
   'WS-01-040': ['scripts/qa-sfi-ws01-ownership-boundary.ts'],
   'WS-02-001': ['scripts/qa-sfi-ws02-universal-twin-lineage.ts'],
+  // Proof of negative authority/privacy invariants, not empirical model calibration.
+  'WS-02-010': ["scripts/qa-sfi-ws02-universal-twin-lineage.ts","scripts/qa-sfi-public-mcp-readonly.ts","scripts/qa-sfi-discovery-public-live.ts"],
+  'WS-02-011': ["src/lib/method-lab/researchAssurance.test.ts","src/lib/method-lab/researchPassportPreview.test.ts"],
+  'WS-02-015': ["scripts/qa-sfi-ws02-universal-twin-lineage.ts","src/core/cognitive-twin/contract.test.ts"],
   'ISSUE154-001': ['scripts/qa-sfi-discovery-operational.ts'],
   'MASTER-20': ['scripts/qa-sfi-discovery-operational.ts'],
   // Citation data are read from the existing repository; unverified affiliations, ROR, and licenses fail closed.
@@ -121,6 +125,9 @@ export const TARGETED_CANONICAL_PROOFS = Object.freeze({
 // Owner-based regression scopes are code/dependency paths, NOT test data or
 // claims of outcomes. All other requirements keep the old conservative scope.
 export const SCOPED_REQUIREMENT_OWNERS = Object.freeze({
+  'WS-02-010': ["src/lib/mcp/publicMcpServer.ts","src/app/api/mcp/public/route.ts","src/lib/discovery/canonicalObjectRegistry.ts","src/lib/discovery/publicSemanticProjection.ts","src/lib/institution/cognitiveSpineRuntimeMaterializer.ts","src/lib/institution/cognitiveSpineTwinContextAdapter.ts","scripts/qa-sfi-ws02-universal-twin-lineage.ts","scripts/qa-sfi-public-mcp-readonly.ts","scripts/qa-sfi-discovery-public-live.ts","scripts/sfi-program-certification-batch.mjs","scripts/qa-sfi-program-certification-batch.mjs","scripts/sfi-program-completion-reconcile.mjs",".github/workflows/sfi-verify.yml"],
+  'WS-02-011': ["src/lib/method-lab/researchAssurance.ts","src/lib/method-lab/researchPassportPreview.ts","src/core/cognitive-twin/contract.ts","src/lib/method-lab/researchAssurance.test.ts","src/lib/method-lab/researchPassportPreview.test.ts","scripts/sfi-program-certification-batch.mjs","scripts/qa-sfi-program-certification-batch.mjs","scripts/sfi-program-completion-reconcile.mjs",".github/workflows/sfi-verify.yml"],
+  'WS-02-015': ["src/lib/institution/cognitiveSpineRuntimeMaterializer.ts","src/lib/institution/cognitiveSpineTwinContextAdapter.ts","src/lib/sfi/cognitive-runtime/cognitiveCycle.ts","src/core/cognitive-twin/contract.ts","scripts/qa-sfi-ws02-universal-twin-lineage.ts","src/core/cognitive-twin/contract.test.ts","scripts/sfi-program-certification-batch.mjs","scripts/qa-sfi-program-certification-batch.mjs","scripts/sfi-program-completion-reconcile.mjs",".github/workflows/sfi-verify.yml"],
   // Rights enforcement and lineage: executable contracts plus actual SQL schema.
   ...Object.fromEntries(["WS-06-004","WS-06-005","WS-06-010","WS-06-011"].map(id => [id, ["src/lib/studio/audio/materialRegistryContract.ts","src/lib/studio/audio/materialRegistryContract.test.ts","src/lib/studio/audio/materialRegistry.ts","scripts/qa-sfi-audio-rights-separation.ts","supabase/migrations/20260905143000_create_material_audio_rights_registries.sql","scripts/sfi-program-certification-batch.mjs","scripts/qa-sfi-program-certification-batch.mjs","scripts/sfi-program-completion-reconcile.mjs",".github/workflows/sfi-verify.yml"]])),
   ...Object.fromEntries(["WS-05-003","WS-05-015"].map(id=>[id,['scripts/qa-sfi-research-metadata.mjs','CITATION.cff','README.md','package.json','src/lib/research/researchGraphProjection.ts','src/lib/public/institutionProfile.ts','scripts/sfi-program-certification-batch.mjs','scripts/qa-sfi-program-certification-batch.mjs','scripts/sfi-program-completion-reconcile.mjs','.github/workflows/sfi-verify.yml','.github/workflows/sfi-completion-certification-batch.yml']])),

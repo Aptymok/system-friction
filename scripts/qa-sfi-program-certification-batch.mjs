@@ -32,6 +32,9 @@ const TARGETED_CANONICAL_PROOFS = {
   'WS-01-029': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
   'WS-01-040': ['scripts/qa-sfi-ws01-ownership-boundary.ts'],
   'WS-02-001': ['scripts/qa-sfi-ws02-universal-twin-lineage.ts'],
+  'WS-02-010': ["scripts/qa-sfi-ws02-universal-twin-lineage.ts","scripts/qa-sfi-public-mcp-readonly.ts","scripts/qa-sfi-discovery-public-live.ts"],
+  'WS-02-011': ["src/lib/method-lab/researchAssurance.test.ts","src/lib/method-lab/researchPassportPreview.test.ts"],
+  'WS-02-015': ["scripts/qa-sfi-ws02-universal-twin-lineage.ts","src/core/cognitive-twin/contract.test.ts"],
   'ISSUE154-001': ['scripts/qa-sfi-discovery-operational.ts'],
   'MASTER-20': ['scripts/qa-sfi-discovery-operational.ts'],
   'WS-05-003': ['scripts/qa-sfi-research-metadata.mjs'],
@@ -324,6 +327,18 @@ for (const id of boundedAudioRightsIds) {
   assert.ok(receipt.scopePaths.includes('supabase/migrations/20260905143000_create_material_audio_rights_registries.sql'),'SQL rights guard must invalidate receipt:'+id);
   assert.equal(receipt.scopePaths.includes('src/**'),false,'rights scope may not include unrelated owners:'+id);
   assert.equal(receipt.productionObservation,null,'contract QA is not a real material production RETURN:'+id);
+}
+const twinBarrierProofs = {"WS-02-010":["scripts/qa-sfi-ws02-universal-twin-lineage.ts","scripts/qa-sfi-public-mcp-readonly.ts","scripts/qa-sfi-discovery-public-live.ts"],"WS-02-011":["src/lib/method-lab/researchAssurance.test.ts","src/lib/method-lab/researchPassportPreview.test.ts"],"WS-02-015":["scripts/qa-sfi-ws02-universal-twin-lineage.ts","src/core/cognitive-twin/contract.test.ts"]};
+for (const [id, paths] of Object.entries(twinBarrierProofs)) {
+ const req=requirementById.get(id);
+ assert.ok(req,'canonical WS-02 invariant absent:'+id);
+ const item=certification.requirements.find(x=>x.id===id);
+ if(req.status==='SATISFIED'&&req.completionReceipt?.state==='VALID'){assert.equal(item,undefined);continue;}
+ assert.ok(item,'existing boundary proof not exercised:'+id);
+ for(const p of paths) { assert.ok(item.proofPaths.includes(p),'proof not run:'+id+':'+p); assert.ok(item.scopePaths.includes(p),'proof scope missing:'+id+':'+p); }
+ assert.ok(item.scopePaths.includes('src/core/cognitive-twin/contract.ts')||item.scopePaths.includes('src/lib/mcp/publicMcpServer.ts'),'canonical private owner missing:'+id);
+ assert.equal(item.scopePaths.includes('src/**'),false,'global scope forbidden:'+id);
+ assert.equal(item.productionObservation,null,'internal negative QA cannot invent empirical observation:'+id);
 }
 assert.ok(!certification.requirements.some((item) => item.canonicalStatus === 'SATISFIED'), 'already satisfied requirement must not be recertified');
 const observedRequirementIds = new Set(['WS-03-008','WS-03-009','WS-03-011']);
