@@ -343,7 +343,15 @@ function analyze(browser, expectedMetrics) {
   if (browser.status !== 'PASS') return gate('NOT_OBSERVED', { reason: browser.reason });
 
   const all = browser.samples.filter((sample) => sample.url?.startsWith(`${TARGET}/observatory`));
-  const mounted = all.filter((sample) => [sample.world, sample.state, sample.timeline, sample.interpretive].every((value) => VALID.has(value)));
+  // The interpretive panel is an optional projection, not the Observatory's
+  // authoritative read owner. Its absence must not make an otherwise mounted
+  // and hydrated page appear unobservable.
+  const mounted = all.filter((sample) =>
+    [sample.world, sample.state, sample.timeline].every((value) => VALID.has(value))
+    && sample.metrics.length === 4
+    && sample.metrics.every((metric) => VALID.has(metric.availability))
+    && (sample.interpretive === null || VALID.has(sample.interpretive))
+  );
   if (!mounted.length) return gate('NOT_OBSERVED', { reason: 'mounted_dom_not_observed', preMountSamples: all });
 
   for (const sample of mounted) {
