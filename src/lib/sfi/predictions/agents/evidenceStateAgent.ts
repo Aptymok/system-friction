@@ -1,4 +1,5 @@
 import type { SfiPredictionEntry, SfiPredictionEvidenceAgentResult, SfiPredictionVerification } from '../types';
+import { closedVerificationOutcome } from './closedVerificationOutcome';
 
 function timeValue(value: string | null | undefined) {
   if (!value) return null;
@@ -33,21 +34,21 @@ export function runEvidenceStateAgent(
     registeredAt !== null && (perturbationAt === null || perturbationAt > registeredAt)
   );
 
-  const activeVerifications = verifications.filter((v) => v.verification_state !== 'SUPERSEDED');
-  const closedResult = activeVerifications.find(
-    (v) => v.verification_state === 'CLOSED' && (v.evaluation_result === 'TRUE' || v.evaluation_result === 'FALSE'),
-  );
+  const outcome = closedVerificationOutcome(verifications);
+  // A prediction can have distinct 72h, 7d, 30d and 90d results.
+  // Do not infer an aggregate verdict from whichever database row was read first.
+  const matched = outcome.verdict === null ? null : outcome.verdict === 'TRUE';
+  const failed = outcome.verdict === null ? null : outcome.verdict === 'FALSE';
 
-  const matched = closedResult ? closedResult.evaluation_result === 'TRUE' : null;
-  const failed = closedResult ? closedResult.evaluation_result === 'FALSE' : null;
-
-  const legacyNotePresentUnformalized = Boolean(entry.fallo_hipotesis?.trim()) && !closedResult;
+  const legacyNotePresentUnformalized = Boolean(entry.fallo_hipotesis?.trim()) && outcome.eligible.length === 0;
   const evidenceDegraded = entry.evidence_state === 'DEGRADED' || entry.estado_observacion === 'degraded';
 
   const warnings = [
     !predictionRegisteredBeforePerturbation ? 'retrospective_only_not_predictive_evidence' : null,
     entry.evidence_state === 'VERIFIED' && !hasReturnEvidence(entry) ? 'verified_without_return_evidence' : null,
     legacyNotePresentUnformalized ? 'legacy_fallo_hipotesis_present_requires_formal_verification' : null,
+    outcome.mixedClosedResults ? 'conflicting_closed_verifications_across_windows' : null,
+    outcome.disputed.length > 0 ? 'prediction_has_disputed_verifications' : null,
   ].filter((item): item is string => Boolean(item));
 
   return {

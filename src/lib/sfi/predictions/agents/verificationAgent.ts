@@ -5,6 +5,7 @@ import type {
   SfiPredictionVerificationAgentResult,
 } from '../types';
 import { SFI_PREDICTION_RETURN_WINDOWS } from '../types';
+import { closedVerificationOutcome } from './closedVerificationOutcome';
 
 function parseLegacyFalloHipotesisPresence(entry: SfiPredictionEntry): boolean {
   return typeof entry.fallo_hipotesis === 'string' && entry.fallo_hipotesis.trim().length > 0;
@@ -18,16 +19,15 @@ export function runVerificationAgent(
   entry: SfiPredictionEntry,
   verifications: SfiPredictionVerification[] = [],
 ): SfiPredictionVerificationAgentResult {
-  const active = verifications.filter((v) => v.verification_state !== 'SUPERSEDED');
-  const closed = active.filter((v) => v.verification_state === 'CLOSED');
-  const disputed = active.filter((v) => v.verification_state === 'DISPUTED');
+  const outcome = closedVerificationOutcome(verifications);
+  const { active, closed, disputed } = outcome;
 
   const coveredWindows = new Set(active.map((v) => v.return_window));
   const unformalizedWindows = SFI_PREDICTION_RETURN_WINDOWS.filter(
     (window) => !coveredWindows.has(window),
   ) as SfiPredictionReturnWindow[];
 
-  const eligibleClosure = closed.find((v) => v.evaluation_result === 'TRUE' || v.evaluation_result === 'FALSE');
+  // PFI must not inherit an arbitrary first-window verdict.
 
   const blocked = verifications.length === 0 && parseLegacyFalloHipotesisPresence(entry)
     ? ['legacy_result_present_but_not_formalized_as_verification']
@@ -39,14 +39,17 @@ export function runVerificationAgent(
     ok: true,
     hypothesis_id: entry.hypothesis_id,
     blocked,
-    warnings: disputed.length > 0 ? ['prediction_has_disputed_verifications'] : [],
+    warnings: [
+      ...(disputed.length > 0 ? ['prediction_has_disputed_verifications'] : []),
+      ...(outcome.mixedClosedResults ? ['conflicting_closed_verifications_across_windows'] : []),
+    ],
     root_approval_required: true,
     verifications: active,
     closed_count: closed.length,
     disputed_count: disputed.length,
     unformalized_windows: unformalizedWindows,
-    pfi_eligible: Boolean(eligibleClosure),
-    pfi_contribution: eligibleClosure ? (eligibleClosure.evaluation_result as 'TRUE' | 'FALSE') : null,
-    legacy_fallo_hipotesis_present_unformalized: parseLegacyFalloHipotesisPresence(entry) && !eligibleClosure,
+    pfi_eligible: outcome.verdict !== null,
+    pfi_contribution: outcome.verdict,
+    legacy_fallo_hipotesis_present_unformalized: parseLegacyFalloHipotesisPresence(entry) && outcome.eligible.length === 0,
   };
 }
