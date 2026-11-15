@@ -122,6 +122,10 @@ function iso(value: unknown): string | null {
 }
 
 function finite(value: unknown): number | null {
+  // A missing physical measurement is UNKNOWN, not numerical zero.
+  if (value === null || value === undefined) return null;
+  if (typeof value === 'string' && !value.trim()) return null;
+  if (typeof value !== 'string' && typeof value !== 'number') return null;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
 }
@@ -460,6 +464,11 @@ export async function runWorldObservationCycle() {
   const failures = settled.flatMap((result, index) => result.status === 'rejected' ? [{ collector: collectors[index].name, error: String(result.reason) }] : []);
   const db = createServiceSupabaseClient();
   let persisted = 0;
+  let derivedPersisted = 0;
+  const derivedFailures: Array<{ sourceId: string; observationId: string; error: string }> = [];
+  // Bounded, exact transaction lineage for the existing observer's readback.
+  // IDs are returned by the real upsert, never generated for testing.
+  const sourceLineage: Array<{ sourceId: string; observationId: string; readingId: string; externalId: string; sourceUrl: string | null; rawHash: string }> = [];
   const sourceCounts: Record<string, number> = {};
 
   for (const observation of observations) {
@@ -487,7 +496,7 @@ export async function runWorldObservationCycle() {
     }, { onConflict: 'source_id,external_id,raw_hash' }).select('id').single();
     if (error || !data) continue;
     const reading = deriveReading(observation);
-    await db.from('world_friction_readings').upsert({
+    const { data: persistedReading, error: persistedReadingError } = await db.from('world_friction_readings').upsert({
       observation_id: data.id,
       methodology_version: WORLD_METHODOLOGY_VERSION,
       systemic_friction: reading.fs,
@@ -500,7 +509,26 @@ export async function runWorldObservationCycle() {
       permissions: reading.permissions,
       trajectory: reading.trajectory,
       minimum_viable_perturbation: reading.minimumViablePerturbation,
-    }, { onConflict: 'observation_id,methodology_version' });
+    }, { onConflict: 'observation_id,methodology_version' }).select('id,observation_id,methodology_version').single();
+    if (persistedReadingError || !persistedReading || persistedReading.observation_id !== data.id) {
+      derivedFailures.push({
+        sourceId: observation.sourceId,
+        observationId: data.id,
+        error: persistedReadingError?.message ?? 'DERIVED_READING_READBACK_MISSING',
+      });
+    } else {
+      derivedPersisted += 1;
+      if (observation.sourceId === 'usgs-earthquakes' && sourceLineage.length < 20) {
+        sourceLineage.push({
+          sourceId: observation.sourceId,
+          observationId: data.id,
+          readingId: persistedReading.id,
+          externalId: observation.externalId,
+          sourceUrl: observation.sourceUrl,
+          rawHash,
+        });
+      }
+    }
     sourceCounts[observation.sourceId] = (sourceCounts[observation.sourceId] ?? 0) + 1;
     persisted += 1;
   }
@@ -509,6 +537,10 @@ export async function runWorldObservationCycle() {
     ok: failures.length < collectors.length,
     observed: observations.length,
     persisted,
+    derivedPersisted,
+    derivedFailures: derivedFailures.slice(0, 20),
+    derivedFailureCount: derivedFailures.length,
+    sourceLineage,
     sourceCounts,
     activeSourceCount: Object.keys(sourceCounts).length,
     failures,

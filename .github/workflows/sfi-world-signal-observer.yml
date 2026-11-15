@@ -7,6 +7,12 @@ on:
       - main
     paths:
       - '.github/sfi-world-signal-observer-trigger'
+      - 'scripts/qa-sfi-world-live-lineage.mjs'
+      - 'scripts/run-world-signal-observer-agent.ts'
+      - 'src/lib/world-observatory/worldCycle.ts'
+      - 'src/lib/world-observatory/worldSignalObserverAgent.ts'
+      - 'src/lib/root/closure/fullCycleVerification.ts'
+      - '.github/workflows/sfi-world-signal-observer.yml'
 
 permissions:
   contents: read
@@ -60,9 +66,17 @@ jobs:
           rm -f "$SERVER_ONLY_ARCHIVE"
           test -f node_modules/server-only/package.json
 
+      - name: Parse live lineage auditor without evaluating fabricated fixtures
+        run: node --check scripts/qa-sfi-world-live-lineage.mjs
+
       - name: Execute WorldSignalObserverAgent
         id: execute
         run: npx tsx scripts/run-world-signal-observer-agent.ts
+
+      - name: Verify live USGS observation and canonical World readback
+        # Uses the source IDs actually observed by this execution, official USGS
+        # live API and Supabase readbacks; no fixtures or forced success.
+        run: node scripts/qa-sfi-world-live-lineage.mjs
 
       - name: Upload immutable observation receipt
         if: ${{ always() }}
@@ -70,7 +84,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: sfi-world-signal-observer-${{ github.run_id }}
-          path: /tmp/sfi-world-signal-observer/receipt.json
+          path: |
+            /tmp/sfi-world-signal-observer/receipt.json
+            /tmp/sfi-world-signal-observer/live-lineage.json
           if-no-files-found: error
           retention-days: 90
 
