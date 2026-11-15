@@ -32,6 +32,16 @@ export const GLOBAL_REGRESSION_SCOPE = Object.freeze([
 // in the SFI Verify execution catalog and pass at the exact certification head.
 export const TARGETED_CANONICAL_PROOFS = Object.freeze({
   'MASTER-03': ['src/lib/sfi/cognitive-runtime/capabilityBroker.test.ts'],
+  // Target existing source-invariant tests; no external observation or authority invented.
+  'MASTER-04': ['src/lib/sfi/cognitive-runtime/capabilityBroker.test.ts'],
+  'WS-01-027': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
+  'WS-01-028': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
+  'WS-01-043': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
+  'WS-01-044': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
+  'WS-01-045': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
+  'WS-01-046': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
+  'WS-01-047': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
+  'WS-01-048': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
   'WS-01-029': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
   'WS-01-040': ['scripts/qa-sfi-ws01-ownership-boundary.ts'],
   'WS-02-001': ['scripts/qa-sfi-ws02-universal-twin-lineage.ts'],
@@ -89,6 +99,9 @@ export const TARGETED_CANONICAL_PROOFS = Object.freeze({
 // Owner-based regression scopes are code/dependency paths, NOT test data or
 // claims of outcomes. All other requirements keep the old conservative scope.
 export const SCOPED_REQUIREMENT_OWNERS = Object.freeze({
+  // Source-lock evidence and broker decision owner; preserve regression invalidation.
+  ...Object.fromEntries(["WS-01-027","WS-01-028","WS-01-043","WS-01-044","WS-01-045","WS-01-046","WS-01-047","WS-01-048"].map(id => [id, ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.ts','src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts','src/lib/sfi/cognitive-runtime/convergedRegistry.ts','src/lib/sfi/cognitive-runtime/executionContracts.ts','src/lib/sfi/cognitive-runtime/agentPassports.ts','src/lib/sfi/cognitive-runtime/agentModelRequirements.ts','src/infrastructure/ai/agentLlmClient.ts','scripts/sfi-program-certification-batch.mjs','scripts/qa-sfi-program-certification-batch.mjs','scripts/sfi-program-completion-reconcile.mjs','.github/workflows/sfi-verify.yml','.github/workflows/sfi-completion-certification-batch.yml']])),
+  'MASTER-04': ['src/lib/sfi/cognitive-runtime/capabilityBroker.ts','src/lib/sfi/cognitive-runtime/capabilityBroker.test.ts','src/lib/sfi/cognitive-runtime/capabilityRuntime.ts','src/lib/sfi/cognitive-runtime/automationSelector.ts','src/lib/sfi/cognitive-runtime/convergedRegistry.ts','src/lib/sfi/cognitive-runtime/executionContracts.ts','scripts/sfi-program-certification-batch.mjs','scripts/qa-sfi-program-certification-batch.mjs','scripts/sfi-program-completion-reconcile.mjs','.github/workflows/sfi-verify.yml','.github/workflows/sfi-completion-certification-batch.yml'],
   'WS-01-013': ["src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.ts","src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts","src/lib/sfi/cognitive-runtime/agentPassports.ts","src/lib/sfi/cognitive-runtime/convergedRegistry.ts","src/lib/sfi/cognitive-runtime/executionContracts.ts","scripts/sfi-program-certification-batch.mjs","scripts/qa-sfi-program-certification-batch.mjs","scripts/lib/programCompletionReceipts.mjs","scripts/sfi-program-completion-reconcile.mjs",".github/workflows/sfi-verify.yml",".github/workflows/sfi-completion-certification-batch.yml"],
   'WS-01-014': ["src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.ts","src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts","src/lib/sfi/cognitive-runtime/agentPassports.ts","src/lib/sfi/cognitive-runtime/convergedRegistry.ts","src/lib/sfi/cognitive-runtime/executionContracts.ts","scripts/sfi-program-certification-batch.mjs","scripts/qa-sfi-program-certification-batch.mjs","scripts/lib/programCompletionReceipts.mjs","scripts/sfi-program-completion-reconcile.mjs",".github/workflows/sfi-verify.yml",".github/workflows/sfi-completion-certification-batch.yml"],
   'WS-01-018': ["src/lib/sfi/cognitive-runtime/capabilityBroker.ts","src/lib/sfi/cognitive-runtime/capabilityBroker.test.ts","src/lib/sfi/cognitive-runtime/capabilityRuntime.ts","src/lib/sfi/cognitive-runtime/automationSelector.ts","src/lib/sfi/cognitive-runtime/convergedRegistry.ts","scripts/sfi-program-certification-batch.mjs","scripts/qa-sfi-program-certification-batch.mjs","scripts/lib/programCompletionReceipts.mjs","scripts/sfi-program-completion-reconcile.mjs",".github/workflows/sfi-verify.yml",".github/workflows/sfi-completion-certification-batch.yml"],

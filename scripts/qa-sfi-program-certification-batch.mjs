@@ -19,6 +19,16 @@ const GLOBAL_REGRESSION_SCOPE = [
 ];
 const TARGETED_CANONICAL_PROOFS = {
   'MASTER-03': ['src/lib/sfi/cognitive-runtime/capabilityBroker.test.ts'],
+  // Target existing source-invariant tests; no external observation or authority invented.
+  'MASTER-04': ['src/lib/sfi/cognitive-runtime/capabilityBroker.test.ts'],
+  'WS-01-027': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
+  'WS-01-028': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
+  'WS-01-043': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
+  'WS-01-044': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
+  'WS-01-045': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
+  'WS-01-046': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
+  'WS-01-047': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
+  'WS-01-048': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
   'WS-01-029': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
   'WS-01-040': ['scripts/qa-sfi-ws01-ownership-boundary.ts'],
   'WS-02-001': ['scripts/qa-sfi-ws02-universal-twin-lineage.ts'],
@@ -84,7 +94,7 @@ assert.equal(certification.canonicalStatusMutation, false);
 assert.equal(certification.autoReceiptWrite, false);
 assert.deepEqual(certification.regressionScope, GLOBAL_REGRESSION_SCOPE);
 assert.deepEqual(certification.targetedCanonicalProofs, TARGETED_CANONICAL_PROOFS);
-assert.deepEqual(Object.keys(certification.targetedCanonicalProofs).sort(), ['ISSUE154-001','MASTER-03','MASTER-20','WS-01-002','WS-01-003','WS-01-004','WS-01-005','WS-01-007','WS-01-008','WS-01-009','WS-01-011','WS-01-013','WS-01-014','WS-01-016','WS-01-018','WS-01-019','WS-01-020','WS-01-023','WS-01-029','WS-01-030','WS-01-031','WS-01-032','WS-01-033','WS-01-034','WS-01-035','WS-01-036','WS-01-037','WS-01-040','WS-01-052','WS-01-053','WS-01-054','WS-01-055','WS-01-056','WS-01-057','WS-02-001','WS-03-001','WS-03-004','WS-03-005','WS-03-006','WS-03-008','WS-03-009','WS-03-011','WS-04-004']);
+assert.deepEqual(Object.keys(certification.targetedCanonicalProofs).sort(), ['ISSUE154-001','MASTER-03','MASTER-04','MASTER-20','WS-01-002','WS-01-003','WS-01-004','WS-01-005','WS-01-007','WS-01-008','WS-01-009','WS-01-011','WS-01-013','WS-01-014','WS-01-016','WS-01-018','WS-01-019','WS-01-020','WS-01-023','WS-01-027','WS-01-028','WS-01-029','WS-01-030','WS-01-031','WS-01-032','WS-01-033','WS-01-034','WS-01-035','WS-01-036','WS-01-037','WS-01-040','WS-01-043','WS-01-044','WS-01-045','WS-01-046','WS-01-047','WS-01-048','WS-01-052','WS-01-053','WS-01-054','WS-01-055','WS-01-056','WS-01-057','WS-02-001','WS-03-001','WS-03-004','WS-03-005','WS-03-006','WS-03-008','WS-03-009','WS-03-011','WS-04-004'];
 assert.ok(certification.selectedCount <= certification.batchLimit);
 assert.equal(certification.selectedCount, certification.requirements.length);
 assert.equal(certification.failedProofCount, 0);
@@ -234,6 +244,18 @@ for (const [id, proofPath] of Object.entries({"WS-01-013":"src/lib/sfi/cognitive
   assert.equal(item.productionObservation, null, 'no synthetic production observation for internal code-contract requirement: ' + id);
 }
 
+const sourceInvariantProofs = {"MASTER-04":"src/lib/sfi/cognitive-runtime/capabilityBroker.test.ts","WS-01-027":"src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts","WS-01-028":"src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts","WS-01-043":"src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts","WS-01-044":"src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts","WS-01-045":"src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts","WS-01-046":"src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts","WS-01-047":"src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts","WS-01-048":"src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts"};
+for (const [id, sourceProof] of Object.entries(sourceInvariantProofs)) {
+  const requirement = requirementById.get(id);
+  assert.ok(requirement, 'requirement missing: '+id);
+  const item = certification.requirements.find(x => x.id===id);
+  if (requirement.status==='SATISFIED' && requirement.completionReceipt?.state==='VALID') { assert.equal(item, undefined); continue; }
+  assert.ok(item, 'targeted proof must be selected: '+id);
+  assert.ok(item.proofPaths.includes(sourceProof), 'exact-head executable proof missing: '+id);
+  assert.ok(item.scopePaths.includes(sourceProof), 'proof must be regression-scoped: '+id);
+  assert.equal(item.scopePaths.includes('src/**'),false,'no global code scope: '+id);
+  assert.equal(item.productionObservation,null,'internal contract not independent production event: '+id);
+}
 assert.ok(!certification.requirements.some((item) => item.canonicalStatus === 'SATISFIED'), 'already satisfied requirement must not be recertified');
 const observedRequirementIds = new Set(['WS-03-008','WS-03-009','WS-03-011']);
 for (const item of certification.requirements.filter(item => observedRequirementIds.has(item.id))) {
