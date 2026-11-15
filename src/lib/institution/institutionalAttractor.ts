@@ -131,7 +131,21 @@ export async function readInstitutionalAttractor() {
 }
 
 export async function refreshInstitutionalAttractorTrajectory() {
+  // Do not create more trajectory records without their declared target.
+  // This reuses the existing idempotent declaration writer; no synthetic
+  // success, measurements, or duplicate attractor are produced.
+  const { ensureInstitutionalAttractorDeclaration } = await import('./ensureInstitutionalAttractor');
+  const ensured = await ensureInstitutionalAttractorDeclaration();
+  if (!ensured.ok) throw new Error(`institutional_attractor_declaration_unavailable:${ensured.error}`);
+
   const db = createServiceSupabaseClient();
+  const declaration = await db.from('sfi_attractors')
+    .select('vector')
+    .eq('attractor_key', SFI_INSTITUTIONAL_ATTRACTOR_KEY)
+    .maybeSingle();
+  if (declaration.error || !text(record(declaration.data?.vector).desiredState)) {
+    throw new Error('institutional_attractor_desired_state_not_observed');
+  }
   const [rootEvidence, explicitLinks] = await Promise.all([
     recentRootEvidence(),
     db.from('sfi_attractor_evidence_links')
