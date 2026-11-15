@@ -20,7 +20,6 @@ const state = {
 };
 const stage = (name, result, detail) => state.stages.push({ name, result, detail });
 const fail = (reason) => { throw Error(reason); };
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 const isSha256 = value => typeof value === 'string' && /^[a-f0-9]{64}$/i.test(value);
 const isFiniteNumber = value => value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value));
 
@@ -43,36 +42,44 @@ async function main() {
   }
   stage('canonical_observer', 'PASS', { startedAt: receipt.startedAt, completedAt: receipt.completedAt, observed: receipt.execution.observed, persistedReported: receipt.execution.persisted });
   const db = createClient(supabaseUrl,key,{auth:{persistSession:false,autoRefreshToken:false}});
-  // Scoped by THIS execution's observed timestamps, not a hardcoded event id,
-  // historical fixture, or 'latest record' from an unrelated run.
-  const observations = await readLive(db.from('world_source_observations')
+  // Exact observation and derived IDs are returned by THIS invocation's
+  // canonical DB upserts. A matching time window alone is not provenance.
+  const bound = Array.isArray(receipt.execution?.sourceLineage)
+    ? receipt.execution.sourceLineage.find(ref =>
+        ref.sourceId === 'usgs-earthquakes'
+        && typeof ref.observationId === 'string'
+        && typeof ref.readingId === 'string'
+        && isSha256(ref.rawHash))
+    : null;
+  if (!bound) fail('EXACT_SOURCE_AND_READING_IDS_MISSING_FROM_LIVE_RECEIPT');
+  const observation=await readLive(db.from('world_source_observations')
     .select('id,source_id,external_id,source_url,raw_hash,fetched_at')
-    .eq('source_id','usgs-earthquakes')
-    .gte('fetched_at',receipt.startedAt).lte('fetched_at',receipt.completedAt)
-    .order('fetched_at',{ascending:false}).limit(15));
-  if (!observations?.length) fail('USGS_SOURCE_NOT_READ_BACK_IN_SAME_EXECUTION_WINDOW');
-  const observation=observations.find(o => isSha256(o.raw_hash) && /^https:\/\/earthquake\.usgs\.gov\/earthquakes\/eventpage\/[a-zA-Z0-9]+$/.test(o.source_url || '') && o.source_url.endsWith('/'+o.external_id));
-  if (!observation) fail('USGS_SOURCE_PROVENANCE_INCOMPLETE');
+    .eq('id',bound.observationId).single());
+  if (!observation || observation.id !== bound.observationId
+    || observation.source_id !== bound.sourceId
+    || observation.external_id !== bound.externalId
+    || observation.source_url !== bound.sourceUrl
+    || observation.raw_hash !== bound.rawHash
+    || !/^https:\/\/earthquake\.usgs\.gov\/earthquakes\/eventpage\/[a-zA-Z0-9]+$/.test(observation.source_url || '')
+    || !observation.source_url.endsWith('/'+observation.external_id)) {
+    fail('USGS_CANONICAL_OBSERVATION_DIFFERENT_FROM_ACTUAL_WRITER_RECEIPT');
+  }
   state.linkedObservationId=observation.id;
   state.externalEventId=observation.external_id;
   state.sourceUrl=observation.source_url;
   state.rawHash=observation.raw_hash;
   stage('source_persisted','PASS',{ id:observation.id, sourceId:observation.source_id, fetchedAt:observation.fetched_at, rawHash:observation.raw_hash });
 
-  let reading;
-  for (let attempt=0;attempt<3;attempt++) {
-    const rows=await readLive(db.from('world_friction_readings')
-      .select('id,observation_id,methodology_version,systemic_friction,interaction_density,systemic_coherence,created_at')
-      .eq('observation_id',observation.id).order('created_at',{ascending:false}).limit(1));
-    reading=rows?.[0];
-    if (reading) break;
-    await delay(1000);
+  const reading=await readLive(db.from('world_friction_readings')
+    .select('id,observation_id,methodology_version,systemic_friction,interaction_density,systemic_coherence,created_at')
+    .eq('id',bound.readingId).eq('observation_id',bound.observationId).single());
+  if (!reading || reading.id !== bound.readingId || reading.observation_id !== observation.id) {
+    fail('DERIVED_READING_ID_NOT_BOUND_TO_THIS_SOURCE_UPSERT');
   }
-  if (!reading) fail('DERIVED_READING_NOT_PERSISTED_FOR_SOURCE_ID');
   for (const name of ['systemic_friction','interaction_density','systemic_coherence']) {
     if (!isFiniteNumber(reading[name])) fail('DERIVED_READING_VALUE_MISSING:'+name);
   }
-  if (!reading.methodology_version || reading.observation_id !== observation.id) fail('DERIVED_READING_LINEAGE_MISMATCH');
+  if (!reading.methodology_version) fail('DERIVED_READING_METHOD_VERSION_MISSING');
   state.linkedReadingId=reading.id;
   stage('derived_readback','PASS',{id:reading.id,sourceObservationId:reading.observation_id,methodologyVersion:reading.methodology_version,values:{systemicFriction:reading.systemic_friction,interactionDensity:reading.interaction_density,systemicCoherence:reading.systemic_coherence}});
   // USGS's live endpoint verifies the externally sourced event id independently.
