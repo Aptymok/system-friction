@@ -93,20 +93,34 @@ async function collect(){
   },null,2));
 }
 /**
- * One-shot, source-only MIHM P4 T0 snapshot. This REUSES the same official
+ * Source-only MIHM P4 T0 snapshot. This REUSES the same official
  * source collector and URLs. It is never a forecast or a source-vintage
  * certificate. No DB writes, no personal records; the workflow owns scheduling.
  */
-async function collectP4Nyc(){
-  // Select only complete UTC calendar days before this execution. The
-  // window is an extraction budget, not a calibrated scientific parameter.
+function p4NycWindow(now=new Date()){
+  // The source's created_date is a New York civil-day observation. Select
+  // only days completed in NYC, even when the UTC date is already tomorrow.
+  const nyParts=Object.fromEntries(
+    new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',
+      year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(now)
+      .filter(p=>['year','month','day'].includes(p.type)).map(p=>[p.type,p.value]));
+  const todayNy=`${nyParts.year}-${nyParts.month}-${nyParts.day}`;
   const dayMs=86400000;
-  const runDay=Date.parse(new Date().toISOString().slice(0,10)+'T00:00:00Z');
+  const runDay=Date.parse(todayNy+'T00:00:00Z');
+  if(!Number.isFinite(runDay))throw Error('NYC_CALENDAR_DAY_NOT_RESOLVED');
+  // Source extraction bound only, never a learned MIHM coefficient.
   const lookbackDays=14;
-  const begin=new Date(runDay-lookbackDays*dayMs).toISOString().slice(0,10);
-  const end=new Date(runDay).toISOString().slice(0,10);
   const need=Array.from({length:lookbackDays},(_,i)=>
     new Date(runDay-(lookbackDays-i)*dayMs).toISOString().slice(0,10));
+  const begin=need[0],end=todayNy;
+  if(need.length!==lookbackDays||need.at(-1)>=end||
+    need.some((d,i)=>i>0&&Date.parse(d+'T00:00:00Z')-
+      Date.parse(need[i-1]+'T00:00:00Z')!==dayMs))
+    throw Error('NYC_P4_WINDOW_VALIDATION_FAILED');
+  return {begin,end,need,calendar:'America/New_York',lookbackDays};
+}
+async function collectP4Nyc(){
+  const {begin,end,need,calendar,lookbackDays}=p4NycWindow();
   const trials=[
     {id:'NYC311',endpoint:'https://data.cityofnewyork.us/resource/erm2-nwe9.json',
       query:{$select:'date_trunc_ymd(created_date) as day,count(*) as n',
@@ -160,7 +174,8 @@ async function collectP4Nyc(){
     'OBSERVED_SOURCE_SNAPSHOT_CANDIDATE':'BLOCKED_SOURCE_GAPS_OR_PROVIDER_UNAVAILABLE';
   const receipt={
     contract:'SFI-MIHM-P4-OFFICIAL-PUBLIC-SNAPSHOT-0.1',status,
-    extractionPolicy:'LAST_14_COMPLETED_UTC_DAYS_NOT_A_CALIBRATED_THRESHOLD',
+    extractionPolicy:'LAST_14_COMPLETED_NEW_YORK_CIVIL_DAYS_NOT_A_CALIBRATED_THRESHOLD',
+    civilDayTimezone:calendar,lookbackDays,
     studyWindow:{begin,end,requiredDays:need},records,failures,
     sourceOriginalReleaseTimesIndependentlyVerified:false,
     sourceResponsesCapturedAtFetch:true,
@@ -177,6 +192,9 @@ async function collectP4Nyc(){
 }
 
 if(process.argv.includes('--collect-p4-nyc'))await collectP4Nyc();
+else if(process.argv.includes('--p4-window-check'))
+  console.log(JSON.stringify({contract:'MIHM_P4_LIVE_CALENDAR_PREFLIGHT',
+    window:p4NycWindow(),syntheticData:false,predictionIssued:false}));
 else if(process.argv.includes('--self-test'))trial();
 else if(process.argv.includes('--collect'))await collect();
 else throw Error('Use --self-test or explicit --collect');
