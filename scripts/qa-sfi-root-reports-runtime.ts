@@ -3,6 +3,14 @@ import { readFileSync } from 'node:fs';
 
 function read(path: string) { return readFileSync(path, 'utf8'); }
 
+const observedRuntime = read('src/lib/sfi/cognitive-runtime/observedRuntime.ts');
+const cognitiveTypes = read('src/lib/sfi/cognitive-runtime/types.ts');
+const rootFieldProjection = read('src/lib/root/telemetry/agentRegistry.ts');
+assert.ok(cognitiveTypes.includes('lastExecutedAt: string | null'), 'execution timestamp contract required');
+assert.ok(observedRuntime.includes('lastExecutedAt,'), 'runtime must export its attributed execution timestamp');
+assert.ok(rootFieldProjection.includes('lastRunAt: observed.evidence.lastExecutedAt ?? null'), 'ROOT must reuse canonical execution timestamp');
+assert.equal(rootFieldProjection.includes('runtime.eventGraph.recentEvents'), false, 'ROOT must not use truncated event list as timestamp authority');
+
 const proxy = read('src/proxy.ts');
 assert.match(proxy, /X-Frame-Options', permitsRootInternalFrame\(pathname\) \? 'SAMEORIGIN' : 'DENY'/, 'ROOT-owned framed surfaces must be SAMEORIGIN while all other paths remain DENY');
 assert.match(proxy, /\/root\/reports/, 'Report surface must remain covered by ROOT internal frame policy');

@@ -568,12 +568,6 @@ export async function readRootFieldAgentRegistry() {
     // of services, resolvers and pipelines. Read-only: no seeding or writes.
     const runtime = await readObservedSfiCognitiveRuntime();
     const runtimeById = new Map(runtime.agents.map((agent) => [agent.id, agent]));
-    const executedAt = new Map<string, string>();
-    for (const event of runtime.eventGraph.recentEvents) {
-      if (event.eventName !== 'SFI_AGENT_EXECUTED' || !event.sourceId || !event.occurredAt) continue;
-      const prior = executedAt.get(event.sourceId);
-      if (!prior || event.occurredAt > prior) executedAt.set(event.sourceId, event.occurredAt);
-    }
     const agents = canonicalAgents.map((agent) => {
       const observed = runtimeById.get(agent.agentKey);
       if (!observed) return agent;
@@ -583,9 +577,8 @@ export async function readRootFieldAgentRegistry() {
         runtimeObserved,
         runtimeStatus: observed.status.toUpperCase(),
         runtimeLifecycleState: runtimeObserved ? 'EXECUTED_RECENTLY' : 'NOT_OBSERVED_RECENTLY',
-        // EventGraph is a bounded recent projection. A missing timestamp must
-        // remain null even if the canonical runtime observed an older receipt.
-        lastRunAt: executedAt.get(agent.agentKey) ?? null,
+        // Use the canonical attributed receipt, not the truncated UI events.
+        lastRunAt: observed.evidence.lastExecutedAt ?? null,
       };
     });
     const observedCount = agents.filter((agent) => agent.runtimeObserved).length;

@@ -46,6 +46,8 @@ export type SfiCognitiveAgentState = {
   simulationAllowed: boolean;
   humanApprovalRequired: boolean;
   evidence: {
+    /** Latest attributed execution timestamp; null if no receipt was observed. */
+    lastExecutedAt: string | null;
     sourceTables: string[];
     observedTables: string[];
     missingTables: string[];

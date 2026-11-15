@@ -159,6 +159,7 @@ async function buildObservedSnapshot(): Promise<SfiCognitiveRuntimeSnapshot> {
       simulationAllowed: agent.simulationAllowed,
       humanApprovalRequired: agent.humanApprovalRequired,
       evidence: {
+        lastExecutedAt,
         sourceTables: agent.sourceTables,
         observedTables: agent.sourceTables.includes('epistemic_events') && !executionReadDegraded ? ['epistemic_events'] : [],
         missingTables: [],
