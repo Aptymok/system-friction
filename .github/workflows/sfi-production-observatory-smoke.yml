@@ -12,7 +12,7 @@ on:
     paths:
       - .github/workflows/sfi-production-observatory-smoke.yml
       - scripts/qa-sfi-production-observatory-smoke.mjs
-      - scripts/qa-sfi-production-smoke-browser-isolation.mjs
+      - scripts/qa-sfi-production-smoke-hydration.mjs
       - scripts/qa-sfi-production-oauth-openapi-smoke.mjs
   workflow_dispatch:
 
@@ -93,8 +93,8 @@ jobs:
           SFI_PRODUCTION_SMOKE_TARGET: https://www.systemfriction.org
         run: node scripts/qa-sfi-production-oauth-openapi-smoke.mjs
 
-      - name: Verify browser observation isolation
-        run: node scripts/qa-sfi-production-smoke-browser-isolation.mjs
+      - name: Verify hydrated Observatory observation contracts
+        run: node scripts/qa-sfi-production-smoke-hydration.mjs
 
       - name: Run bounded canonical Observatory production smoke
         id: smoke
