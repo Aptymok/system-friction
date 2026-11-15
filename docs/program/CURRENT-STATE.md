@@ -1,4 +1,19 @@
-# SFI PROGRAM CURRENT STATE
+# CORTE VERIFICADO DE CONTINUIDAD — 2026-11-15 UTC
+
+Este bloque actualiza el estado operativo observado; las secciones históricas siguientes se conservan como antecedentes fechados **2026-09-07** y no deben interpretarse como HEAD, despliegue o deuda vigente sin reconfirmación.
+
+- **GitHub `main` verificado:** `1851e2188cd8a27d46687b64cc389febe6ae27bf` ([commit](https://github.com/Aptymok/system-friction/commit/1851e2188cd8a27d46687b64cc389febe6ae27bf)).
+- **Producción:** [despliegue 43701663416](https://github.com/Aptymok/system-friction/actions/runs/43701663416) exitoso; [observación posterior 43701847075](https://github.com/Aptymok/system-friction/actions/runs/43701847075) con `productionReturn: PASS` y referencia comprobada al mismo SHA. Este retorno certifica los controles específicos de ese smoke, no el cierre del programa completo.
+- **Controlador institucional:** [ejecución 43701998848](https://github.com/Aptymok/system-friction/actions/runs/43701998848), `SUCCESS`, 205 entradas: **42 SATISFIED**, **100 IN_PROGRESS**, **62 PARTIAL**, **1 EXTERNAL_ACTION**, **0 INVALID**. **163 entradas aún sin certificación**. La auditoría contiene criterios, fragmentos y contexto histórico; una entrada no equivale necesariamente a una obligación independiente.
+- **SFI-08:** [lote 43701296807](https://github.com/Aptymok/system-friction/actions/runs/43701296807) ejecutó 35 pruebas distintas en 42 candidatos elegibles, cero fallos, `RETURN_PASS`; no certificó automáticamente las otras entradas.
+- **SFI ROOT / conexión autenticada:** lectura a 2026-11-15 10:58 UTC del runtime persistente: 21 agentes registrados, 14 con ejecución observada en 24 horas, siete sin ejecución reciente, cero degradados. La respuesta autenticada no constituye certificado de autonomía integral.
+- **Norma de cierre:** `DECLARED → IMPLEMENTED → WIRED → EXECUTED → PERSISTED → RECONSTRUCTABLE → RETURN_PASS` cuando corresponda; cada promoción requiere recibo verificable y ámbito de regresión. Prueba de código, disponibilidad de ruta, workflow verde y despliegue no equivalen por sí solos a cumplimiento de cualquier requisito.
+- **Política de integración indicada por el fundador para esta continuación:** realizar correcciones directamente en `main`, sin ramas ni PR nuevos; no crear datos ficticios, recibos sintéticos, mocks ni hardcodeo de resultados. Mantener límites institucionales de autoridad.
+- **Próxima acción concreta:** confrontar las 163 entradas con requisitos verdaderamente normativos y sus propietarios; para cada una, reutilizar ejecución/prueba/observación existente o implementar y verificar sólo el hueco real. No registrar `SATISFIED` sin verificador autorizado, RETURN y alcance comprobables. Actualizar la memoria institucional original de Drive con ejecuciones observadas.
+
+---
+
+# SFI PROGRAM CURRENT STATE — ARCHIVO HISTÓRICO (2026-09-07)
 
 **Updated:** 2026-09-07 UTC  
 **Authority:** SFI-00 · CONTROL ROOM  
