@@ -102,7 +102,7 @@ assert.equal(certification.canonicalStatusMutation, false);
 assert.equal(certification.autoReceiptWrite, false);
 assert.deepEqual(certification.regressionScope, GLOBAL_REGRESSION_SCOPE);
 assert.deepEqual(certification.targetedCanonicalProofs, TARGETED_CANONICAL_PROOFS);
-assert.deepEqual(Object.keys(certification.targetedCanonicalProofs).sort(), ['ISSUE154-001','MASTER-03','MASTER-04','MASTER-20','WS-01-002','WS-01-003','WS-01-004','WS-01-005','WS-01-007','WS-01-008','WS-01-009','WS-01-011','WS-01-013','WS-01-014','WS-01-016','WS-01-018','WS-01-019','WS-01-020','WS-01-023','WS-01-027','WS-01-028','WS-01-029','WS-01-030','WS-01-031','WS-01-032','WS-01-033','WS-01-034','WS-01-035','WS-01-036','WS-01-037','WS-01-040','WS-01-043','WS-01-044','WS-01-045','WS-01-046','WS-01-047','WS-01-048','WS-01-052','WS-01-053','WS-01-054','WS-01-055','WS-01-056','WS-01-057','WS-02-001','WS-03-001','WS-03-004','WS-03-005','WS-03-006','WS-03-008','WS-03-009','WS-03-011','WS-04-004','WS-04-005','WS-04-006','WS-04-007','WS-04-009','WS-04-010','WS-04-013','WS-04-017','WS-04-020'];
+assert.deepEqual(Object.keys(certification.targetedCanonicalProofs).sort(), Object.keys(TARGETED_CANONICAL_PROOFS).sort(), 'canonical proof keyset must match independently declared immutable map');
 assert.ok(certification.selectedCount <= certification.batchLimit);
 assert.equal(certification.selectedCount, certification.requirements.length);
 assert.equal(certification.failedProofCount, 0);
