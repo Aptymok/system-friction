@@ -16,6 +16,7 @@ const lifecycle = read('src/lib/governance/proposalLifecycle.ts');
 const approve = read('src/app/api/acp/proposals/[id]/approve/route.ts');
 const operational = read('src/lib/operational/common.ts');
 const selfDevelopmentWorkflow = read('.github/workflows/sfi-self-development.yml');
+const selfDevelopmentReport = read('scripts/sfi-self-development.mjs');
 const selfDevelopmentRoute = read('src/app/api/cron/self-development/route.ts');
 const router = read('src/lib/execution/governedExecutionRouter.ts');
 const vercel = read('vercel.json');
@@ -73,6 +74,10 @@ assert.equal(selfDevelopmentWorkflow.includes('git checkout -b'), false, 'materi
 assert.equal(selfDevelopmentWorkflow.includes('gh pr create'), false, 'material_executor_must_not_create_pr');
 assert.equal(selfDevelopmentWorkflow.includes('git push origin'), false, 'material_executor_must_not_push_to_repository');
 assert.equal(selfDevelopmentWorkflow.includes('gh pr merge'), false, 'material_executor_must_not_merge_itself');
+assert.ok(selfDevelopmentReport.includes("PRE_RECEIPT_CLASSIFICATION_IS_NOT_CERTIFIED_COMPLETION_STATE"), 'self_development_must_not_misreport_pre_receipt_205_as_unresolved');
+assert.ok(selfDevelopmentReport.includes("preliminaryUnreconciledCount: completionReconciled ? null : unresolvedRequirements.length"), 'raw_classifier_count_must_be_separate');
+assert.ok(selfDevelopmentReport.includes("unresolvedCount: completionReconciled ? unresolvedRequirements.length : null"), 'certified_unresolved_requires_reconciliation');
+assert.ok(selfDevelopmentReport.includes("institutionalProgram.unresolvedCount === null"), 'missing_reconciliation_must_not_be_reported_as_pass');
 assert.ok(selfDevelopmentRoute.includes('recordProposalOutcomeFromObservedReturn'), 'material_return_must_reuse_canonical_outcome_writer');
 assert.ok(selfDevelopmentRoute.includes("developmentStage: 'READY_FOR_ADOPTION'"), 'material_return_must_expose_ready_for_adoption_only_after_return');
 assert.ok(selfDevelopmentRoute.includes('canonicalPromotionAllowed: false'), 'material_return_must_not_promote_canon');

@@ -190,17 +190,28 @@ const programRequirements = Array.isArray(completionReport?.requirements) ? comp
 const unresolvedRequirements = programRequirements.filter(item =>
   !['SATISFIED', 'EXTERNAL_ACTION', 'SUPERSEDED_BY_AUTHORIZED_DECISION'].includes(item?.status)
 );
+// The self-development sweep runs BEFORE the independent SFI-08 receipt handoff.
+// A raw 205-item classifier is not proof that 205 requirements remain unfinished.
+// Claim an authoritative unresolved count only from a receipt-reconciled report.
+const completionReconciled = completionReport?.completionReceiptState
+  && typeof completionReport.completionReceiptState.promotedSatisfiedCount === 'number'
+  && typeof completionReport.completionReceiptState.invalidReceiptCount === 'number';
 const institutionalProgram = {
   observed: Boolean(completionReport && programRequirements.length),
   contract: completionReport?.contract ?? null,
   sourceHead: completionReport?.head ?? null,
   requirementCount: programRequirements.length,
-  unresolvedCount: unresolvedRequirements.length,
+  reconciliationState: completionReconciled ? 'RECEIPT_RECONCILED' : 'PRE_RECEIPT_CLASSIFICATION',
+  unresolvedCount: completionReconciled ? unresolvedRequirements.length : null,
+  preliminaryUnreconciledCount: completionReconciled ? null : unresolvedRequirements.length,
+  certifiedCount: completionReconciled ? completionReport.completionReceiptState.promotedSatisfiedCount : null,
+  invalidReceiptCount: completionReconciled ? completionReport.completionReceiptState.invalidReceiptCount : null,
   hardDefectCount: Array.isArray(completionReport?.hardDefects) ? completionReport.hardDefects.length : null,
   nextProgramAction: completionReport?.nextProgramAction ?? null,
-  boundary: 'REPOSITORY_QA_PASS_IS_NOT_PROGRAM_COMPLETION_OR_EMPIRICAL_RETURN',
+  boundary: 'PRE_RECEIPT_CLASSIFICATION_IS_NOT_CERTIFIED_COMPLETION_STATE',
 };
 const programDegraded = !institutionalProgram.observed
+  || institutionalProgram.unresolvedCount === null
   || institutionalProgram.unresolvedCount > 0
   || (institutionalProgram.hardDefectCount ?? 1) > 0;
 const now = new Date().toISOString();
@@ -225,7 +236,10 @@ fs.writeFileSync(path.join(outDir, 'report.json'), JSON.stringify(report, null, 
 const md = `# SFI · Institutional Self-Development Report\n\n**Contract:** SFI-SELF-DEVELOPMENT-1.0  \n**Generated:** ${now}  \n**State:** ${report.health}  \n**Epistemic class:** OBSERVED_REPOSITORY_STATE\n\n## OBSERVATION\n${findings.length ? findings.map(f => `- **${f.severity.toUpperCase()} · ${f.kind} · ${f.id}** — ${f.evidence}`).join('\n') : '- No deterministic defect was observed by this run.'}\n\n## PROGRAM COMPLETION (READ-ONLY)
 - Canonical matrix observed: ${institutionalProgram.observed}
 - Program requirements: ${institutionalProgram.requirementCount}
-- Unresolved requirements: ${institutionalProgram.unresolvedCount}
+- Reconciliation: ${institutionalProgram.reconciliationState}
+- Certified requirements: ${institutionalProgram.certifiedCount ?? 'NOT_OBSERVED'}
+- Unresolved requirements (receipt reconciled): ${institutionalProgram.unresolvedCount ?? 'NOT_OBSERVED'}
+- Preliminary/unreconciled classified entries: ${institutionalProgram.preliminaryUnreconciledCount ?? 'NOT_APPLICABLE'}
 - Hard defects: ${institutionalProgram.hardDefectCount ?? 'NOT_OBSERVED'}
 - Next action: ${institutionalProgram.nextProgramAction ?? 'NOT_OBSERVED'}
 - Boundary: repository PASS never certifies program or empirical completion
