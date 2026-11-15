@@ -28,6 +28,8 @@ const TARGETED_CANONICAL_PROOFS = {
   'WS-03-001': ['scripts/qa-sfi-discovery-integrity.ts','scripts/qa-sfi-discovery-public-live.ts'],
   'WS-03-004': ['scripts/qa-sfi-discovery-exposure.ts','scripts/qa-sfi-discovery-public-live.ts'],
   'WS-03-006': ['scripts/qa-sfi-discovery-integrity.ts','scripts/qa-sfi-discovery-public-live.ts'],
+  'WS-03-005': ['scripts/qa-sfi-discovery-public-live.ts'],
+  'WS-04-004': ['scripts/qa-sfi-discovery-public-live.ts'],
 };
 
 const root = process.cwd();
@@ -51,7 +53,7 @@ assert.equal(certification.canonicalStatusMutation, false);
 assert.equal(certification.autoReceiptWrite, false);
 assert.deepEqual(certification.regressionScope, GLOBAL_REGRESSION_SCOPE);
 assert.deepEqual(certification.targetedCanonicalProofs, TARGETED_CANONICAL_PROOFS);
-assert.deepEqual(Object.keys(certification.targetedCanonicalProofs).sort(), ['ISSUE154-001','MASTER-03','MASTER-20','WS-01-029','WS-01-040','WS-01-057','WS-02-001','WS-03-001','WS-03-004','WS-03-006']);
+assert.deepEqual(Object.keys(certification.targetedCanonicalProofs).sort(), ['ISSUE154-001','MASTER-03','MASTER-20','WS-01-029','WS-01-040','WS-01-057','WS-02-001','WS-03-001','WS-03-004','WS-03-005','WS-03-006','WS-04-004']);
 assert.ok(certification.selectedCount <= certification.batchLimit);
 assert.equal(certification.selectedCount, certification.requirements.length);
 assert.equal(certification.failedProofCount, 0);
@@ -81,10 +83,19 @@ for (const item of certification.requirements) {
   assert.ok(Array.isArray(item.proofPaths) && item.proofPaths.length > 0, `proof path required: ${item.id}`);
   assert.equal(item.proofPass, true, `proof must pass: ${item.id}`);
   assert.ok(Array.isArray(item.scopePaths) && item.scopePaths.length > 0, `bound regression scope required: ${item.id}`);
-  if (['WS-03-001','WS-03-004','WS-03-006'].includes(item.id)) {
-    for (const proofPath of item.proofPaths) assert.ok(item.scopePaths.includes(proofPath), `WS-03 proof omitted from regression scope: ${item.id}`);
-    assert.equal(item.scopePaths.includes('src/**'), false, `WS-03 scope must not cover unrelated SFI organs: ${item.id}`);
+  if (['WS-03-001','WS-03-004','WS-03-005','WS-03-006','WS-04-004'].includes(item.id)) {
+    for (const proofPath of item.proofPaths) assert.ok(item.scopePaths.includes(proofPath), `independent live proof omitted from regression scope: ${item.id}`);
+    assert.equal(item.scopePaths.includes('src/**'), false, `live public boundary scope must not cover unrelated SFI organs: ${item.id}`);
     assert.ok(item.scopePaths.includes('src/lib/public/institutionProfile.ts'), `WS-03 canonical identity owner missing: ${item.id}`);
+    if (['WS-03-005','WS-04-004'].includes(item.id)) {
+      assert.ok(item.proofPaths.includes('scripts/qa-sfi-discovery-public-live.ts'), `live HTTP proof required: ${item.id}`);
+      const execution = certification.proofExecutions.find((item) => item.path === 'scripts/qa-sfi-discovery-public-live.ts');
+      assert.equal(execution?.liveAudit?.contract, 'SFI-03-LIVE-PUBLIC-BOUNDARY-1.0');
+      assert.equal(execution.liveAudit.result, 'PASS');
+      assert.ok(execution.liveAudit.observations.some((item) => item.path === '/' && item.status === 200), 'public home not observed');
+      assert.ok(execution.liveAudit.observations.some((item) => item.path === '/api/external/v1/manifest' && item.status === 200), 'public manifest not observed');
+      assert.ok(execution.liveAudit.observations.some((item) => item.path === '/api/root/discovery' && [401,403,404].includes(item.status)), 'private ROOT rejection not observed');
+    }
   }
   assert.equal(item.semanticSupport.length, item.proofPaths.length, `semantic support required per proof: ${item.id}`);
   for (const proofPath of item.proofPaths) {
