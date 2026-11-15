@@ -14,7 +14,7 @@ permissions:
 
 concurrency:
   group: sfi-real-public-100
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   public-historical-replay:
