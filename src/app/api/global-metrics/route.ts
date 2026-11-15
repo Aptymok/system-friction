@@ -77,7 +77,7 @@ export async function GET() {
 
   const avgIHG = ihgs.reduce((sum, value) => sum + value, 0) / ihgs.length;
   const variance = ihgs.reduce((sum, value) => sum + Math.pow(value - avgIHG, 2), 0) / ihgs.length;
-  const state = aggregateSourceState(admissibleRows);
+  const state = aggregateSourceState(rows);
 
   return NextResponse.json({
     globalAverageIHG: avgIHG,
