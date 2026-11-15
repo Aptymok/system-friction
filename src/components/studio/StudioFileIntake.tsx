@@ -4,6 +4,7 @@ import { useRef, useState, type FormEvent } from 'react';
 import { exportPcm24Wav, samplePeak } from './localPcmWavExport';
 import { downloadReleaseCover, downloadTextFile, makeReleaseBrief, type ReleaseDirection, type ReleaseDiscoveryEvidence } from './localReleaseMaterials';
 import StudioReleaseResearch from './StudioReleaseResearch';
+import { createLocalAudioTeaser } from './localTeaserExport';
 
 type MeasuredFeature = {
   key: string; label: string; value: number | string | null;
@@ -99,6 +100,7 @@ export default function StudioFileIntake() {
   });
   const [releaseMessage, setReleaseMessage] = useState('');
   const [releaseEvidence, setReleaseEvidence] = useState<ReleaseDiscoveryEvidence | null>(null);
+  const [teaserBusy, setTeaserBusy] = useState(false);
   const runId = useRef(0);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -185,6 +187,22 @@ export default function StudioFileIntake() {
     downloadTextFile(makeReleaseBrief(release, releaseMetrics, releaseEvidence), (release.title || 'lanzamiento') + '-brief.txt');
     setReleaseMessage('Expediente editorial descargado; no se envió ni archivó en SFI.');
   }
+  async function exportTeaser() {
+    if (report?.kind !== 'audio_analysis' || !file || teaserBusy) return;
+    setTeaserBusy(true);
+    setReleaseMessage('');
+    try {
+      const created = await createLocalAudioTeaser(file, release, message => setReleaseMessage(message));
+      setReleaseMessage('Video de ' + created.durationSeconds.toFixed(1) +
+        ' segundos generado en tu dispositivo: ' + created.fileName +
+        '. Es una muestra audiovisual, no una publicación.');
+    } catch (cause) {
+      setReleaseMessage('Video no generado: ' + (cause instanceof Error ? cause.message : String(cause)));
+    } finally {
+      setTeaserBusy(false);
+    }
+  }
+
   async function exportCover() {
     if (report?.kind !== 'audio_analysis') return;
     try {
@@ -293,6 +311,10 @@ export default function StudioFileIntake() {
             <button type="button" onClick={exportCover} style={{
               padding: '10px 14px', color: '#e9fbff', background: '#24516b', border: '1px solid #648ca5', cursor: 'pointer',
             }}>DESCARGAR PORTADA PNG 3000×3000</button>
+            <button type="button" disabled={teaserBusy} onClick={exportTeaser} style={{
+              padding: '10px 14px', color: '#e9fbff', background: '#34264f', border: '1px solid #7467a2',
+              cursor: teaserBusy ? 'wait' : 'pointer',
+            }}>{teaserBusy ? 'GENERANDO VIDEO…' : 'GENERAR VIDEO VERTICAL WEBM (12 S)'}</button>
             <button type="button" onClick={exportReleaseBrief} style={{
               padding: '10px 14px', color: '#e9fbff', background: '#23453d', border: '1px solid #4e8174', cursor: 'pointer',
             }}>DESCARGAR EXPEDIENTE DE LANZAMIENTO</button>
