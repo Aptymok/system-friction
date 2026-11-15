@@ -72,6 +72,19 @@ const extractExternalRule = (source) => {
 const classifierRule = extractExternalRule(classifierSource);
 assert.equal(classifierRule, extractExternalRule(reconcileSource), 'external classification must match at classification and reconciliation');
 const externalNameRegex = new RegExp(classifierRule, 'i');
+
+const diagnosticSource = fs.readFileSync('scripts/lib/programCompletionDiagnostics.mjs', 'utf8');
+const diagnosticPattern = diagnosticSource.match(/^const EXTERNAL_PATTERN = \/(.+)\/i;$/m)?.[1];
+assert.ok(diagnosticPattern, 'diagnostic external evidence rule must remain inspectable');
+const diagnosticExternalRegex = new RegExp(diagnosticPattern, 'i');
+for (const rule of [externalNameRegex, diagnosticExternalRegex]) {
+  assert.equal(rule.test('Repository citation metadata: no CITATION.cff or .zenodo.json existed at the baseline.'), false,
+    'repository filename cannot be interpreted as a real external registration');
+  for (const actualExternal of ['Zenodo account state', 'Zenodo repository deposit', 'ROR registry submission', 'ORCID researcher identity']) {
+    assert.equal(rule.test(actualExternal), true, 'real external identity remains gated: ' + actualExternal);
+  }
+}
+
 for (const ordinary of [
   '`LOADING`, `DEGRADED`, `UNAVAILABLE`, and `ERROR` never map to numeric zero;',
   'Repository citation file `CITATION.cff` and `.zenodo.json` are not external account events.',
