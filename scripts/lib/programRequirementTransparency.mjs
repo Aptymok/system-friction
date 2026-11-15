@@ -5,6 +5,23 @@ import path from 'node:path';
 const ROOT = process.cwd();
 const auditPath = path.join(ROOT, 'docs/audits/SFI-P01-P25-CIERRE-MEDIBLE-2026-11-15.md');
 const OUTPUT = path.join(ROOT, 'artifacts/program-completion');
+const SPANISH_SOURCE = path.join(ROOT, 'docs/audits/SFI-205-REQUISITOS-OBJETIVOS-ES-2026-11-15.md');
+function loadSpanishMeanings() {
+  if (!fs.existsSync(SPANISH_SOURCE)) return new Map();
+  const lines=fs.readFileSync(SPANISH_SOURCE,'utf8').split('\n');
+  const meanings=new Map();
+  let id=null, meaning=null, original=null;
+  const flush=()=>{if(id && meaning && original)meanings.set(id,{meaning,original});};
+  for(const line of lines){
+    const heading=line.match(/^### ((?:MASTER|WS|LEGACY154|ISSUE154|CTRL405)-[0-9-]+) — /);
+    if(heading){flush();id=heading[1];meaning=null;original=null;continue;}
+    if(!id)continue;
+    if(line.startsWith('**Objetivo o significado contextual:** '))meaning=line.slice('**Objetivo o significado contextual:** '.length);
+    if(line.startsWith('**Texto original extraído:** '))original=line.slice('**Texto original extraído:** '.length);
+  }
+  flush();return meanings;
+}
+
 const meanings = {
   P:'Programa institucional de la auditoría P01–P25', E:'Entregable verificable de un programa P', MASTER:'Criterio numerado de la definición de cierre del programa maestro',
   WS:'Workstream: frente operativo definido en docs/program/workstreams/', LEGACY154:'Requisito heredado del expediente GitHub #154 o del documento ROOT_WORLD_CASE_AND_DISCOVERY_ENGINE.md',
@@ -94,11 +111,17 @@ function escapeMd(value){return String(value??'').replace(/\|/g,'\\|').replace(/
 export function buildTransparency(report) {
   if(!Array.isArray(report.requirements))throw Error('REQUIREMENT_ARRAY_MISSING');
   const checklist=readChecklist();
+  const spanish=loadSpanishMeanings();
   const items=report.requirements.map((r)=>{
     const proposals=proposedLinks(r);
+    const translation=spanish.get(r.id);
+    const translationCurrent=translation?.original===String(r.requirement).trim();
     const receipt=r.completionReceipt ?? {state:'NOT_EVALUATED',error:null};
     return {
-      id:r.id, objectiveLiteral:r.requirement, source:r.source,
+      id:r.id, objectiveLiteral:r.requirement,
+      objectiveMeaningES:translationCurrent?translation.meaning:null,
+      spanishMeaningStatus:translationCurrent?'PROPOSED_TRANSLATION_SOURCE_MATCH':'SOURCE_CHANGED_OR_NOT_TRANSLATED',
+      source:r.source,
       sourceUrl:sourceLocation({...r,head:report.head},report.repository),
       canonicalOwner:r.owner, ownerMeaning:'Responsable del frente ' + (r.owner || 'desconocido'),
       class:r.class, classification:r.status,
@@ -153,7 +176,9 @@ export function buildTransparency(report) {
     ...items.flatMap(r=>[
       '### '+r.id+' — '+r.classification,
       '**Identificador:** '+r.id+'. **Tipo:** '+r.class+'. **Responsable:** '+r.canonicalOwner+'.',
+      '**Significado operativo en español:** '+(r.objectiveMeaningES||'REQUIERE_REVISIÓN: fuente nueva, cambiada o sin traducción.'),
       '**Objetivo literal (de la fuente):** '+r.objectiveLiteral,
+      '**Integridad de traducción:** '+r.spanishMeaningStatus,
       '**Fuente verificable:** '+r.source+' — '+r.sourceUrl,
       '**Programas propuestos, NO certificados:** '+(r.candidatePrograms.join(', ')||'SIN_ASIGNAR'),
       '**Recibo:** '+r.completionReceiptState+(r.completionReceiptError?' — '+r.completionReceiptError:''),
@@ -164,6 +189,8 @@ export function buildTransparency(report) {
       ''
     ]),
     '## Integridad del catálogo',
+    '- Traducciones cotejadas contra fuente literal: '+items.filter(x=>x.spanishMeaningStatus==='PROPOSED_TRANSLATION_SOURCE_MATCH').length,
+    '- Traducciones ausentes o desactualizadas: '+items.filter(x=>x.spanishMeaningStatus!=='PROPOSED_TRANSLATION_SOURCE_MATCH').map(x=>x.id).join(', '),
     '- Total: '+items.length,
     '- Sin programa candidato: '+unknown.length+' ('+(unknown.map(x=>x.id).join(', ')||'ninguno')+')',
     '- Mapeo certificado P↔requisito: NO',
