@@ -25,6 +25,9 @@ const TARGETED_CANONICAL_PROOFS = {
   'ISSUE154-001': ['scripts/qa-sfi-discovery-operational.ts'],
   'MASTER-20': ['scripts/qa-sfi-discovery-operational.ts'],
   'WS-01-057': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
+  'WS-03-001': ['scripts/qa-sfi-discovery-integrity.ts','scripts/qa-sfi-discovery-public-live.ts'],
+  'WS-03-004': ['scripts/qa-sfi-discovery-exposure.ts','scripts/qa-sfi-discovery-public-live.ts'],
+  'WS-03-006': ['scripts/qa-sfi-discovery-integrity.ts','scripts/qa-sfi-discovery-public-live.ts'],
 };
 
 const root = process.cwd();
@@ -48,7 +51,7 @@ assert.equal(certification.canonicalStatusMutation, false);
 assert.equal(certification.autoReceiptWrite, false);
 assert.deepEqual(certification.regressionScope, GLOBAL_REGRESSION_SCOPE);
 assert.deepEqual(certification.targetedCanonicalProofs, TARGETED_CANONICAL_PROOFS);
-assert.deepEqual(Object.keys(certification.targetedCanonicalProofs).sort(), ['ISSUE154-001','MASTER-03','MASTER-20','WS-01-029','WS-01-040','WS-01-057','WS-02-001']);
+assert.deepEqual(Object.keys(certification.targetedCanonicalProofs).sort(), ['ISSUE154-001','MASTER-03','MASTER-20','WS-01-029','WS-01-040','WS-01-057','WS-02-001','WS-03-001','WS-03-004','WS-03-006']);
 assert.ok(certification.selectedCount <= certification.batchLimit);
 assert.equal(certification.selectedCount, certification.requirements.length);
 assert.equal(certification.failedProofCount, 0);
@@ -77,6 +80,12 @@ for (const item of certification.requirements) {
   assert.equal(item.targetedProofBinding, targeted);
   assert.ok(Array.isArray(item.proofPaths) && item.proofPaths.length > 0, `proof path required: ${item.id}`);
   assert.equal(item.proofPass, true, `proof must pass: ${item.id}`);
+  assert.ok(Array.isArray(item.scopePaths) && item.scopePaths.length > 0, `bound regression scope required: ${item.id}`);
+  if (['WS-03-001','WS-03-004','WS-03-006'].includes(item.id)) {
+    for (const proofPath of item.proofPaths) assert.ok(item.scopePaths.includes(proofPath), `WS-03 proof omitted from regression scope: ${item.id}`);
+    assert.equal(item.scopePaths.includes('src/**'), false, `WS-03 scope must not cover unrelated SFI organs: ${item.id}`);
+    assert.ok(item.scopePaths.includes('src/lib/public/institutionProfile.ts'), `WS-03 canonical identity owner missing: ${item.id}`);
+  }
   assert.equal(item.semanticSupport.length, item.proofPaths.length, `semantic support required per proof: ${item.id}`);
   for (const proofPath of item.proofPaths) {
     assert.ok(certification.proofCatalog.includes(proofPath), `proof must come from SFI Verify run commands: ${item.id}:${proofPath}`);

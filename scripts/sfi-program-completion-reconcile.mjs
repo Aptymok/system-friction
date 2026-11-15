@@ -64,6 +64,10 @@ function loadSfi08CertificationOverlay() {
     const expectedHash = requirementHash(requirement);
     if (certified.requirementHash !== expectedHash) throw new Error(`SFI08_CERTIFICATION_REQUIREMENT_HASH_MISMATCH:${id}`);
     if (certified.proofPass !== true) throw new Error(`SFI08_CERTIFICATION_PROOF_NOT_PASS:${id}`);
+    if (!Array.isArray(certified.scopePaths) || certified.scopePaths.length === 0
+      || certified.scopePaths.some(value => typeof value !== 'string' || !value.trim())) {
+      throw new Error(`SFI08_CERTIFICATION_SCOPE_REQUIRED:${id}`);
+    }
     if (!Array.isArray(certified.proofPaths) || certified.proofPaths.length === 0) {
       throw new Error(`SFI08_CERTIFICATION_PROOF_PATH_REQUIRED:${id}`);
     }
@@ -71,7 +75,7 @@ function loadSfi08CertificationOverlay() {
       status: 'SATISFIED',
       requirementHash: expectedHash,
       head: certification.head,
-      scopePaths: [...certification.regressionScope],
+      scopePaths: certified.scopePaths?.length ? [...certified.scopePaths] : [...certification.regressionScope],
       evidence: [
         { kind: 'WORKFLOW_RUN', ref: runId },
         { kind: 'GIT_COMMIT', ref: certification.head },

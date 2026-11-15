@@ -164,6 +164,12 @@ jobs:
       - name: Verify Field and Observatory temporal surfaces
         run: npx tsx scripts/qa-sfi-temporal-surfaces.ts
 
+      - name: Verify live public identity, private API and crawler boundaries
+        run: npx tsx scripts/qa-sfi-discovery-public-live.ts
+
+      - name: Verify private discovery exposure and canonical identity boundaries
+        run: npx tsx scripts/qa-sfi-discovery-exposure.ts
+
       - name: Verify canonical discovery object integrity
         run: npx tsx scripts/qa-sfi-discovery-integrity.ts && npx tsx scripts/qa-sfi-discovery-operational.ts && node --import tsx --test src/lib/discovery/canonicalObjectRegistry.test.ts src/lib/discovery/discoveryMesh.test.ts
 
