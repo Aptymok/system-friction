@@ -47,6 +47,8 @@ const TARGETED_CANONICAL_PROOFS = {
   'WS-06-008': ['src/lib/studio/audio/audioCapabilityGovernance.test.ts'],
   'WS-06-013': ['scripts/qa-sfi-audio-ephemeral-asset.ts'],
   'WS-06-015': ['src/lib/studio/audio/audioCapabilityGovernance.test.ts','scripts/qa-sfi-audio-ephemeral-asset.ts'],
+  'MASTER-22': ['scripts/qa-sfi-audio-ephemeral-asset.ts','src/lib/studio/audio/materialRegistryContract.test.ts'],
+  'MASTER-23': ['scripts/qa-sfi-audio-rights-separation.ts','src/lib/studio/audio/materialRegistryContract.test.ts'],
   'WS-06-006': ['scripts/qa-sfi-sfz-real-render.ts'],
   'WS-06-012': ['scripts/qa-sfi-sfz-real-render.ts'],
   'WS-06-003': ['scripts/qa-sfi-sfz-real-render.ts','scripts/qa-sfi-material-production-contract.ts'],
@@ -385,6 +387,16 @@ for(const id of ['WS-06-006','WS-06-012','WS-06-003','WS-06-007']){
  for(const key of ['runId','artifactId']) assert.match(String(proof?.[key]||''),/^\d+$/);
 }
 
+const masterAudioSourceProofs = {"MASTER-22":["scripts/qa-sfi-audio-ephemeral-asset.ts","src/lib/studio/audio/materialRegistryContract.test.ts"],"MASTER-23":["scripts/qa-sfi-audio-rights-separation.ts","src/lib/studio/audio/materialRegistryContract.test.ts"]};
+for(const [id,proofs] of Object.entries(masterAudioSourceProofs)) {
+ const source=requirementById.get(id);assert.ok(source,'master audio requirement missing: '+id);
+ const item=certification.requirements.find(x=>x.id===id);
+ if(source.status==='SATISFIED'&&source.completionReceipt?.state==='VALID'){assert.equal(item,undefined,'already certified must not duplicate');continue;}
+ assert.ok(item,'master source QA not exercised: '+id);
+ for(const p of proofs){assert.ok(item.proofPaths.includes(p),'canonical proof absent: '+id+':'+p);assert.ok(item.scopePaths.includes(p),'canonical regression scope absent: '+id+':'+p);}
+ assert.equal(item.scopePaths.includes('src/**'),false,'unbounded regression for '+id);
+ assert.equal(item.productionObservation,null,'internal contract is not public production return: '+id);
+}
 assert.ok(!certification.requirements.some((item) => item.canonicalStatus === 'SATISFIED'), 'already satisfied requirement must not be recertified');
 const observedRequirementIds = new Set(['WS-03-008','WS-03-009','WS-03-011']);
 for (const item of certification.requirements.filter(item => observedRequirementIds.has(item.id))) {
