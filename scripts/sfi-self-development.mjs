@@ -210,10 +210,18 @@ const institutionalProgram = {
   nextProgramAction: completionReport?.nextProgramAction ?? null,
   boundary: 'PRE_RECEIPT_CLASSIFICATION_IS_NOT_CERTIFIED_COMPLETION_STATE',
 };
-const programDegraded = !institutionalProgram.observed
-  || institutionalProgram.unresolvedCount === null
-  || institutionalProgram.unresolvedCount > 0
-  || (institutionalProgram.hardDefectCount ?? 1) > 0;
+// Completion debt is not an observed runtime failure. A 205-row program includes
+// historical fragments and external obligations; it must never make an otherwise
+// healthy self-observation report DEGRADED merely because receipts are still open.
+// Missing authoritative reconciliation is UNKNOWN, not a failed operational test.
+const programIntegrityDefect = Boolean(institutionalProgram.observed
+  && ((institutionalProgram.hardDefectCount ?? 0) > 0
+    || (institutionalProgram.invalidReceiptCount ?? 0) > 0));
+const programBacklogOpen = institutionalProgram.unresolvedCount !== null
+  ? institutionalProgram.unresolvedCount > 0
+  : null;
+const operationalAssuranceBoundary =
+  'REPOSITORY_SELF_OBSERVATION_ONLY: PASS does not certify 205 requirements, production readiness, scientific validation or external outcomes.';
 const now = new Date().toISOString();
 const mutationCandidates = findings.filter(f => f.addMutation);
 const report = {
@@ -221,14 +229,18 @@ const report = {
   generatedAt: now,
   epistemicState: 'OBSERVED_REPOSITORY_STATE',
   rootGateRule: 'ROOT approval is required only to ADD/PROMOTE a verified institutional mutation; observation, reconstruction, analysis, bounded repair, verification, RETURN and learning-candidate generation do not require ROOT.',
-  health: findings.some(f => f.severity === 'critical') ? 'CRITICAL' : findings.length || programDegraded ? 'DEGRADED' : 'PASS',
+  health: findings.some(f => f.severity === 'critical') ? 'CRITICAL' : findings.length || programIntegrityDefect ? 'DEGRADED' : 'PASS',
+  programBacklogOpen,
+  programIntegrityDefect,
+  operationalAssuranceBoundary,
   findings,
   verification: commandResults,
   agentAudit,
   institutionalProgram,
   mutationCandidates,
   nextAction: findings.length ? 'AUTONOMOUS_REPAIR_TRAJECTORY_REQUIRED'
-    : programDegraded ? 'CONTINUE_CANONICAL_COMPLETION_OWNER_DISPATCH'
+    : programIntegrityDefect ? 'REPAIR_CANONICAL_PROGRAM_INTEGRITY'
+    : programBacklogOpen !== false ? 'CONTINUE_CANONICAL_COMPLETION_OWNER_DISPATCH'
     : 'CONTINUE_OBSERVATION',
 };
 fs.writeFileSync(path.join(outDir, 'report.json'), JSON.stringify(report, null, 2));
@@ -243,6 +255,9 @@ const md = `# SFI · Institutional Self-Development Report\n\n**Contract:** SFI-
 - Hard defects: ${institutionalProgram.hardDefectCount ?? 'NOT_OBSERVED'}
 - Next action: ${institutionalProgram.nextProgramAction ?? 'NOT_OBSERVED'}
 - Boundary: repository PASS never certifies program or empirical completion
+- Program backlog open (only after reconciliation): ${report.programBacklogOpen ?? 'NOT_OBSERVED'}
+- Program integrity defect: ${report.programIntegrityDefect}
+- Repository assurance boundary: ${report.operationalAssuranceBoundary}
 
 ## AGENT RUNTIME AUDIT\n- Runtime registry owner: ${agentAudit.runtimeRegistryOwner}\n- Runtime execution owner: ${agentAudit.runtimeExecutionOwner}\n- Runtime passport owner: ${agentAudit.runtimePassportOwner}\n- Runtime registered: ${agentAudit.runtimeRegisteredIds.length}\n- Runtime executable: ${agentAudit.runtimeExecutableIds.length}\n- Runtime missing executor: ${agentAudit.runtimeMissingExecutor.length}\n- Runtime modes excluded from agent count: ${agentAudit.runtimeModePlaneExcludedFromAgentCount}\n- Repository operator/development declarations: ${agentAudit.declarationCount}\n- Declaration-only IDs: ${agentAudit.declarationOnlyIds.length}\n\n## EVIDENCE\n${commandResults.map(r => `- ${r.command}: ${r.ok ? 'PASS' : 'FAIL'}`).join('\n')}\n\n## HYPOTHESES / RIVAL / COUNTERFACTUAL\n- HYPOTHESIS: each finding represents a real implementation, wiring, operability, authority or assurance gap.\n- RIVAL: a finding may be a detector limitation; repair must prove the condition against executable state before mutation.\n- COUNTERFACTUAL: if the capability were fully operational, the corresponding deterministic detector and end-to-end assurance should pass without founder intervention.\n\n## ANALYSIS → RETURN → LEARN\n- Findings are candidates, never canon by inference.\n- A repair must be bounded, tested and independently observable.\n- Failed repair attempts remain evidence and must not be silently discarded.\n- Repository operator/development prompt files do not count as runtime implementation evidence.\n- Runtime modes do not count as runtime agents.\n\n## ADD\n${mutationCandidates.length ? mutationCandidates.map(f => `- ROOT REVIEW REQUIRED AFTER VERIFIED REPAIR: ${f.id} — ${f.requiredAction}`).join('\n') : '- No institutional mutation is ready for ROOT.'}\n\n## AUTHORITY\nObservation, reconstruction, analysis, repair attempts, verification and report generation require **no ROOT gate**. Only verified **ADD/PROMOTE** mutations are presented to ROOT for ACCEPT / DENY / REQUIRE MORE EVIDENCE.\n`;
 fs.writeFileSync(path.join(outDir, 'report.md'), md);

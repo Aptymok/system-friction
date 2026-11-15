@@ -7,6 +7,16 @@
 **Status:** ACTIVE — CONTROL PLANE BOOTSTRAP  
 **Rule:** repository state overrides conversational assumptions.
 
+## Operating principle — founder clarification, 2026-11-15
+
+This document is a historical and active program baseline, **not a 205-function launch gate**. The 205-item reconstruction mixes 24 Master completion criteria, 147 workstream fragments, and 34 historical/directive records. Their immutable ledger and independent receipts remain auditable, but an unresolved item does not by itself establish operational degradation or prohibit appropriately scoped SFI use.
+
+Three separate statements must always be reported: **operational evidence** (actual owner execution, readback and health); **program assurance** (independent requirement receipts and outstanding conditions); and **real-world validation** (temporally honest predictions, observed RETURN, methodological contrast and external adoption where relevant). No one statement substitutes for the others. An agent execution alone never promotes scientific validity.
+
+SFI observes, reconstructs, forms rival hypotheses, simulates only with disclosed evidence limits, proposes bounded internal improvements and records RETURNS using existing owners. Self-observation may trigger a reversible repair, but substantive canon mutation, publication, identity registration, irreversible action and institutional adoption retain their governing gates. Historical requirements can be superseded **only by an explicit authorized decision with reason, evidence and append-only lineage**; never by renaming, deleting, hiding, or mass-promoting outstanding entries.
+
+The current founder integration directive is **one canonical `main`**, no new feature branches or PRs for this intervention. This supersedes the branch/PR development procedure in §5.1–5.4 for the current execution, while preserving source history and tests. Source health and a verified RETURN remain distinct, even when a production deployment passes.
+
 ## 1. Program objective
 
 Implement the current maximum coherent form of System Friction Institute without reducing SFI to a digital-only product, a collection of LLM agents, a content-marketing system, or an audio generator.
