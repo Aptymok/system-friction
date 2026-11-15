@@ -30,6 +30,12 @@ assert.equal(organization.name,SFI_CANONICAL_IDENTITY_FINGERPRINT.name,'CANONICA
 const expected=verifiedInstitutionSameAs().slice().sort();
 const observed=Array.isArray(organization.sameAs)?organization.sameAs.slice().sort():[];
 assert.deepEqual(observed,expected,'PUBLIC_SAMEAS_DOES_NOT_MATCH_CANONICAL_VERIFIED_INSTITUTION_NODES');
+const publicMachineIndex=await observe('/ai-index.json','application/json');
+assert.equal(publicMachineIndex.status,200,'PUBLIC_MACHINE_INDEX_NOT_ACCESSIBLE');
+const machineIdentity=JSON.parse(publicMachineIndex.body);
+assert.equal(machineIdentity.name,SFI_CANONICAL_IDENTITY_FINGERPRINT.name,'PUBLIC_MACHINE_INDEX_IDENTITY_MISMATCH');
+assert.equal(machineIdentity.abbreviation,SFI_CANONICAL_IDENTITY_FINGERPRINT.abbreviation,'PUBLIC_MACHINE_INDEX_ABBREVIATION_MISMATCH');
+assert.equal(new URL(machineIdentity.canonical_url).origin,canonical.origin,'PUBLIC_MACHINE_INDEX_CANONICAL_URL_MISMATCH');
 for(const node of SFI_EXTERNAL_IDENTITY_NODES) {
   if(node.state!=='VERIFIED'||node.identityClass!=='INSTITUTION_PROFILE'){
     assert.ok(!observed.includes(node.url),'UNVERIFIED_OR_NON_EQUIVALENT_EXTERNAL_IDENTITY_EMITTED');
@@ -54,6 +60,9 @@ const privateCycles=await observe('/api/pipeline/cycles','application/json');
 assert.ok([401,403,404].includes(privateCycles.status),'PRIVATE_OPERATING_CYCLES_ACCESSIBLE_WITHOUT_AUTH:'+privateCycles.status);
 const manifest=await observe('/api/external/v1/manifest','application/json');
 assert.equal(manifest.status,200,'PUBLIC_EXTERNAL_MANIFEST_UNAVAILABLE');
+const publicGatewayManifest=JSON.parse(manifest.body);
+assert.equal(publicGatewayManifest.ok,true,'PUBLIC_GATEWAY_MANIFEST_CONTRACT_INCOMPLETE');
+assert.equal(publicGatewayManifest.discovery?.aiIndex,'/ai-index.json','PUBLIC_MACHINE_INDEX_MANIFEST_POINTER_MISMATCH');
 assert.doesNotMatch(manifest.body,/"(?:SUPABASE_SERVICE_ROLE_KEY|VERCEL_TOKEN|ROOT_ADMIN_SECRET)"\s*:\s*"/i,'PUBLIC_MANIFEST_EXPOSES_PRIVILEGED_SECRETS');
 console.log(JSON.stringify({
   contract:'SFI-03-LIVE-PUBLIC-BOUNDARY-1.0',
@@ -61,6 +70,8 @@ console.log(JSON.stringify({
   startedAt,completedAt:new Date().toISOString(),
   canonicalEntityId:organization['@id'],
   publicSameAsCount:observed.length,
+  machineIdentityVerified:true,
+  publicGatewayManifestVerified:true,
   publicSitemapLocations:exposed.length,
   privateAccessesDenied:2,
   observations,
