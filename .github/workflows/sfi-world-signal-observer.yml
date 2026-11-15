@@ -64,13 +64,20 @@ jobs:
         id: execute
         run: npx tsx scripts/run-world-signal-observer-agent.ts
 
+      - name: Verify live USGS observation and canonical World readback
+        # Uses the source IDs actually observed by this execution, official USGS
+        # live API and Supabase readbacks; no fixtures or forced success.
+        run: node scripts/qa-sfi-world-live-lineage.mjs
+
       - name: Upload immutable observation receipt
         if: ${{ always() }}
         id: evidence
         uses: actions/upload-artifact@v4
         with:
           name: sfi-world-signal-observer-${{ github.run_id }}
-          path: /tmp/sfi-world-signal-observer/receipt.json
+          path: |
+            /tmp/sfi-world-signal-observer/receipt.json
+            /tmp/sfi-world-signal-observer/live-lineage.json
           if-no-files-found: error
           retention-days: 90
 
