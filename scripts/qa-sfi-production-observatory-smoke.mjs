@@ -247,6 +247,9 @@ async function browserSmoke(url) {
   proc.stderr.on('data', (data) => { stderr = (stderr + String(data)).slice(-4000); });
 
   try {
+    // Restore the previously working fixed-port runner behavior after the
+    // ephemeral-port smoke failed to acquire a CDP target in CI. This workflow
+    // runs in an isolated GitHub Actions job with a unique Chrome user profile.
     const port = 9222;
     let target = { ws: null, reason: 'cdp_target_unavailable' };
     for (let attempt = 0; attempt < 40 && !target.ws; attempt += 1) {
@@ -331,7 +334,15 @@ function analyze(browser, expectedMetrics) {
   if (browser.status !== 'PASS') return gate('NOT_OBSERVED', { reason: browser.reason });
 
   const all = browser.samples.filter((sample) => sample.url?.startsWith(`${TARGET}/observatory`));
-  const mounted = all.filter((sample) => [sample.world, sample.state, sample.timeline, sample.interpretive].every((value) => VALID.has(value)));
+  // The interpretive panel is an optional projection, not the Observatory's
+  // authoritative read owner. Its absence must not make an otherwise mounted
+  // and hydrated page appear unobservable.
+  const mounted = all.filter((sample) =>
+    [sample.world, sample.state, sample.timeline].every((value) => VALID.has(value))
+    && sample.metrics.length === 4
+    && sample.metrics.every((metric) => VALID.has(metric.availability))
+    && (sample.interpretive === null || VALID.has(sample.interpretive))
+  );
   if (!mounted.length) return gate('NOT_OBSERVED', { reason: 'mounted_dom_not_observed', preMountSamples: all });
 
   for (const sample of mounted) {

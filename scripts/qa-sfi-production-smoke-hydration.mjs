@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+const smoke = readFileSync('scripts/qa-sfi-production-observatory-smoke.mjs','utf8');
+assert.ok(smoke.includes("sample.metrics.length === 4"),'hydration requires four metrics');
+assert.ok(smoke.includes("sample.interpretive === null || VALID.has(sample.interpretive)"),'optional interpretive panel must not gate authoritative Observatory observation');
+assert.ok(smoke.includes("sample.metrics.every((metric) => VALID.has(metric.availability))"),'availability must be explicit on four metrics');
+assert.ok(smoke.includes("const bad = sample.metrics.filter((metric) => metric.availability !== 'AVAILABLE' && numeric(metric.text))"),'degraded metrics must never emit numeric zero');
+assert.ok(smoke.includes("if (bad.length) return gate('FAIL', { reason: 'hydrated_false_zero'"),'false-zero detection must fail closed');
+assert.ok(smoke.includes("target = await browserTarget(port, [])"),'preserve known working browser probe for independent observation');
+console.log(JSON.stringify({ok:true,contract:'SFI-PRODUCTION-HYDRATION-1.0'}));

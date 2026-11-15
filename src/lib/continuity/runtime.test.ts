@@ -100,7 +100,7 @@ import {readFileSync,mkdtempSync,writeFileSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {spawnSync} from 'node:child_process';
-test('real hourly receipt validator accepts executed, duplicate, closed and expired trial envelopes',async()=>{
+test('real hourly receipt parser requires same-cycle selection and rejects trial-only envelopes',async()=>{
   const workflow=readFileSync('.github/workflows/sfi-continuity-hourly.yml','utf8');
   const marker='python - "$response_file" "$CYCLE_ID" "$TARGET_SOURCE" <<\'PY\'';
   const start=workflow.indexOf(marker);
@@ -109,17 +109,33 @@ test('real hourly receipt validator accepts executed, duplicate, closed and expi
   const end=rest.indexOf('\n          PY');
   assert(end>=0);
   const parser=rest.slice(0,end).split('\n').map(line=>line.startsWith('          ')?line.slice(10):line).join('\n');
-  const f=fixture();const outputs=[await run(f),await run(f)];
-  const closed=fixture();closed.setClosed(true);outputs.push(await run(closed));
-  const expired=fixture();expired.setTime(Date.parse('2026-10-29T07:17:00Z'));outputs.push(await run(expired));
+  const f=fixture();
+  const executed=await run(f);
+  const duplicate=await run(f);
+  const closed=fixture();closed.setClosed(true);
+  const expired=fixture();expired.setTime(Date.parse('2026-10-29T07:17:00Z'));
   const directory=mkdtempSync(join(tmpdir(),'sfi-trial-receipt-'));
   try{
-    for(const output of outputs){
-      const file=join(directory,'receipt.json');
-      // The route attaches the existing canonical readTargetCycleProof result.
-      writeFileSync(file,JSON.stringify({...output,targetCycleState:{ok:true,cycleId:cycle,eventCount:24,state:'AWAITING_RETURN'}}));
+    const cases=[
+      {label:'executed_with_actual_target_selection',output:executed,selected:true,expected:0},
+      {label:'executed_without_target_selection',output:executed,selected:false,expected:1},
+      {label:'duplicate_reservation',output:duplicate,selected:false,expected:1},
+      {label:'already_closed',output:await run(closed),selected:false,expected:1},
+      {label:'expired',output:await run(expired),selected:false,expected:1},
+    ];
+    for(const item of cases){
+      const file=join(directory,item.label+'.json');
+      // The hourly parser accepts actual same-cycle cognitive selection, not an
+      // unrelated trial receipt. A synthetic selection here only verifies the
+      // parser's contract; it is never considered real production evidence.
+      const universal={ok:true,requestedCycleId:cycle,results:item.selected?[{cycleId:cycle,processed:1}]:[]};
+      writeFileSync(file,JSON.stringify({...item.output,
+        coreHeartbeat:{ok:true},ok:true,requestedCycleId:cycle,
+        universalCycleContinuation:universal,
+        targetCycleState:{ok:true,cycleId:cycle,eventCount:24,state:'AWAITING_RETURN'}}));
       const checked=spawnSync('python3',['-',file,cycle,'workflow_dispatch'],{input:parser,encoding:'utf8'});
-      assert.equal(checked.status,0,output.status+': '+checked.stderr);
+      assert.equal(checked.status,item.expected,item.label+': '+checked.stderr);
+      if(item.selected===false)assert.match(checked.stderr,/SFI_TARGETED_CYCLE_NOT_SELECTED/,item.label);
     }
   }finally{rmSync(directory,{recursive:true,force:true});}
 });
