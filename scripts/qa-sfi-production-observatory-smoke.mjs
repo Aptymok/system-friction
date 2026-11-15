@@ -1,5 +1,5 @@
 import { spawn, spawnSync } from 'node:child_process';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -238,7 +238,7 @@ async function browserSmoke(url) {
     '--no-sandbox',
     '--disable-dev-shm-usage',
     '--disable-background-networking',
-    '--remote-debugging-port=0',
+    '--remote-debugging-port=9222',
     `--user-data-dir=${dir}`,
     'about:blank',
   ], { stdio: ['ignore', 'ignore', 'pipe'] });
@@ -247,26 +247,17 @@ async function browserSmoke(url) {
   proc.stderr.on('data', (data) => { stderr = (stderr + String(data)).slice(-4000); });
 
   try {
-    // Chromium selects an isolated ephemeral port for this exact user-data-dir.
-    // A fixed shared port could attach assurance to an unrelated browser process.
+    // Restore the previously working fixed-port runner behavior after the
+    // ephemeral-port smoke failed to acquire a CDP target in CI. This workflow
+    // runs in an isolated GitHub Actions job with a unique Chrome user profile.
+    const port = 9222;
     let target = { ws: null, reason: 'cdp_target_unavailable' };
     for (let attempt = 0; attempt < 40 && !target.ws; attempt += 1) {
       await sleep(200);
       if (proc.exitCode !== null) {
         return { status: 'NOT_OBSERVED', reason: `chrome_exited:${proc.exitCode}`, stderr };
       }
-      let devToolsActiveLines;
-      try {
-        devToolsActiveLines = (await readFile(path.join(dir, 'DevToolsActivePort'), 'utf8')).trim().split('\n');
-      } catch {
-        continue;
-      }
-      const port = Number(devToolsActiveLines[0]);
-      if (!Number.isInteger(port) || port < 1 || port > 65535
-        || !/^\/devtools\/browser\/[a-zA-Z0-9-]+$/.test(devToolsActiveLines[1] || '')) {
-        return { status: 'NOT_OBSERVED', reason: 'cdp_profile_port_invalid' };
-      }
-      target = await browserTarget(port, devToolsActiveLines);
+      target = await browserTarget(port, []);
     }
     if (!target.ws) return { status: 'NOT_OBSERVED', reason: target.reason || 'cdp_target_unavailable', stderr };
 
