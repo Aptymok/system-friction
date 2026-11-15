@@ -37,7 +37,46 @@ export const TARGETED_CANONICAL_PROOFS = Object.freeze({
   'ISSUE154-001': ['scripts/qa-sfi-discovery-operational.ts'],
   'MASTER-20': ['scripts/qa-sfi-discovery-operational.ts'],
   'WS-01-057': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
+  // Original WS-03 receipts were invalidated because they covered the entire
+  // repository. Re-certify against the actual canonical owners and their
+  // independent discovery QA, never against unrelated audio/agent files.
+  'WS-03-001': ['scripts/qa-sfi-discovery-integrity.ts'],
+  'WS-03-004': ['scripts/qa-sfi-discovery-exposure.ts'],
+  'WS-03-006': ['scripts/qa-sfi-discovery-integrity.ts'],
 });
+
+// Owner-based regression scopes are code/dependency paths, NOT test data or
+// claims of outcomes. All other requirements keep the old conservative scope.
+export const SCOPED_REQUIREMENT_OWNERS = Object.freeze({
+  'WS-03-001': [
+    'src/lib/public/institutionProfile.ts', 'src/app/layout.tsx',
+    'src/lib/discovery/**', 'public/ai-index.json',
+    'src/app/api/external/v1/manifest/route.ts',
+  ],
+  'WS-03-004': [
+    'src/lib/discovery/**', 'src/app/robots.ts', 'src/app/sitemap.ts',
+    'src/app/api/external/**', 'src/app/api/root/**',
+    'src/app/root/**', 'src/app/repository/**',
+    'src/lib/public/institutionProfile.ts',
+  ],
+  'WS-03-006': [
+    'src/lib/public/institutionProfile.ts', 'src/app/layout.tsx',
+    'src/lib/discovery/**', 'src/app/api/external/v1/manifest/route.ts',
+    'public/ai-index.json',
+  ],
+});
+
+export function scopedRegressionPaths(requirementId, proofPaths) {
+  const ownerPaths = SCOPED_REQUIREMENT_OWNERS[requirementId];
+  if (!ownerPaths) return [...GLOBAL_REGRESSION_SCOPE];
+  return [...new Set([...ownerPaths, ...proofPaths, 
+    'scripts/sfi-program-certification-batch.mjs',
+    'scripts/lib/programCompletionReceipts.mjs',
+    'scripts/sfi-program-completion-reconcile.mjs',
+    '.github/workflows/sfi-verify.yml',
+    '.github/workflows/sfi-completion-certification-batch.yml',
+  ])].sort();
+}
 
 const GENERIC_PROOF_TERMS = new Set([
   'about','after','again','against','allow','allows','already','always','another','appropriate','architecture','before','being','cannot','canonical','complete','completion','current','demonstrate','evidence','existing','explicit','external','green','implementation','institutional','internal','model','operation','operational','proof','public','required','requires','return','runtime','should','state','system','through','under','where','while','without','would','owner','source','support','supports','verify','verified','verification',
@@ -276,6 +315,7 @@ function main() {
       previousReceiptState,
       evidencePaths: [...new Set([...(requirement.evidence || []), ...targetedPaths])],
       proofPaths,
+      scopePaths: scopedRegressionPaths(requirement.id, proofPaths),
       semanticSupport: support.filter((entry) => proofPaths.includes(entry.path)),
       proofPass: proofPaths.every((repoPath) => executionByPath.get(repoPath)?.ok === true),
       targetedProofBinding: targetedPaths.length > 0,
