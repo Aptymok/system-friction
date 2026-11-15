@@ -47,7 +47,7 @@ export function makeReleaseBrief(direction: ReleaseDirection, metrics: ReleaseMe
     '',
     'PÚBLICO / SECTOR',
     'Hipótesis propuesta por el usuario: ' + (sector || 'NO DEFINIDO'),
-    'OBSERVACIÓN EXTERNA: NO REALIZADA. No se atribuyen tamaños, preferencias, alcance ni conversiones.',
+    discovery ? 'DESCUBRIMIENTO PÚBLICO: FUENTES INDEXADAS RECUPERADAS, NO AUDIENCIA VALIDADA.' : 'OBSERVACIÓN EXTERNA: NO REALIZADA. No se atribuyen tamaños, preferencias, alcance ni conversiones.',
     'Prueba recomendada: publicar variantes autorizadas y medir retención, comentarios pertinentes, guardados y contactos reales.',
     '',
     'RUTA CREATIVA PROPUESTA',
@@ -64,7 +64,7 @@ export function makeReleaseBrief(direction: ReleaseDirection, metrics: ReleaseMe
     'CONTROLES DE PUBLICACIÓN',
     'Mastering: NO VERIFICADO. El WAV técnico opcional no constituye mastering.',
     'FAD: NO OBSERVADO. MIHM: NO OBSERVADO. RAV: NO CALCULADO.',
-    'Investigación de mercado: NO EJECUTADA. Publicación: NO AUTORIZADA.',
+    discovery ? 'Investigación: descubrimiento de fuentes realizado, audiencia NO OBSERVADA. Publicación: NO AUTORIZADA.' : 'Investigación de mercado: NO EJECUTADA. Publicación: NO AUTORIZADA.',
     'Proveniencia: mediciones calculadas en navegador; público y concepto provienen de la entrada del usuario.',
     'El original de audio no se transfiere ni persiste durante esta operación.',
     '',
@@ -86,7 +86,7 @@ export function downloadTextFile(content: string, filename: string, mime = 'text
   anchor.click();
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
-export function downloadReleaseCover(direction: ReleaseDirection, metrics: ReleaseMetrics): Promise<void> {
+export function createReleaseCoverBlob(direction: ReleaseDirection, metrics: ReleaseMetrics): Promise<Blob> {
   const title = (direction.title.trim() || 'UNTITLED').slice(0, 90);
   const artist = (direction.artist.trim() || 'STUDIO').slice(0, 80);
   const canvas = document.createElement('canvas');
@@ -141,14 +141,16 @@ export function downloadReleaseCover(direction: ReleaseDirection, metrics: Relea
   visibleLines.forEach((line, index) => ctx.fillText(line, 1500, 2320 + index * (fontSize + 27), 2500));
   ctx.font = '32px monospace';
   ctx.fillText('SFI STUDIO  /  VISUAL PROPOSAL', 1500, 2860);
-  return new Promise<void>((resolve, reject) => {
-    canvas.toBlob((blob) => {
-      if (!blob) return reject(new Error('COVER_ENCODING_FAILED'));
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = safeName(title) + '-cover-proposal-3000.png'; a.click();
-      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-      resolve();
-    }, 'image/png');
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('COVER_ENCODING_FAILED')), 'image/png');
   });
+}
+export async function downloadReleaseCover(direction: ReleaseDirection, metrics: ReleaseMetrics): Promise<void> {
+  const blob = await createReleaseCoverBlob(direction, metrics);
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = safeName(direction.title.trim() || 'UNTITLED') + '-cover-proposal-3000.png';
+  anchor.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
