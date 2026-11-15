@@ -61,7 +61,7 @@ assert.equal(certification.canonicalStatusMutation, false);
 assert.equal(certification.autoReceiptWrite, false);
 assert.deepEqual(certification.regressionScope, GLOBAL_REGRESSION_SCOPE);
 assert.deepEqual(certification.targetedCanonicalProofs, TARGETED_CANONICAL_PROOFS);
-assert.deepEqual(Object.keys(certification.targetedCanonicalProofs).sort(), ['ISSUE154-001','MASTER-03','MASTER-20','WS-01-029','WS-01-040','WS-01-057','WS-02-001','WS-03-001','WS-03-004','WS-03-005','WS-03-006','WS-03-008','WS-03-009','WS-03-011','WS-04-004','WS-01-052','WS-01-053','WS-01-054','WS-01-055','WS-01-056']);
+assert.deepEqual(Object.keys(certification.targetedCanonicalProofs).sort(), ['ISSUE154-001','MASTER-03','MASTER-20','WS-01-029','WS-01-040','WS-01-057','WS-02-001','WS-03-001','WS-03-004','WS-03-005','WS-03-006','WS-03-008','WS-03-009','WS-03-011','WS-04-004','WS-01-052','WS-01-053','WS-01-054','WS-01-055','WS-01-056'].sort());
 assert.ok(certification.selectedCount <= certification.batchLimit);
 assert.equal(certification.selectedCount, certification.requirements.length);
 assert.equal(certification.failedProofCount, 0);
