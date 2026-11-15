@@ -122,6 +122,10 @@ function iso(value: unknown): string | null {
 }
 
 function finite(value: unknown): number | null {
+  // A missing physical measurement is UNKNOWN, not numerical zero.
+  if (value === null || value === undefined) return null;
+  if (typeof value === 'string' && !value.trim()) return null;
+  if (typeof value !== 'string' && typeof value !== 'number') return null;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
 }
