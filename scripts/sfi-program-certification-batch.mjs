@@ -50,6 +50,11 @@ export const TARGETED_CANONICAL_PROOFS = Object.freeze({
   // Citation data are read from the existing repository; unverified affiliations, ROR, and licenses fail closed.
   'WS-05-003': ['scripts/qa-sfi-research-metadata.mjs'],
   'WS-05-015': ['scripts/qa-sfi-research-metadata.mjs'],
+  // Existing closed-rights material tests (not evidence of a real audio release).
+  'WS-06-004': ['src/lib/studio/audio/materialRegistryContract.test.ts','scripts/qa-sfi-audio-rights-separation.ts'],
+  'WS-06-005': ['src/lib/studio/audio/materialRegistryContract.test.ts','scripts/qa-sfi-audio-rights-separation.ts'],
+  'WS-06-010': ['src/lib/studio/audio/materialRegistryContract.test.ts','scripts/qa-sfi-audio-rights-separation.ts'],
+  'WS-06-011': ['src/lib/studio/audio/materialRegistryContract.test.ts','scripts/qa-sfi-audio-rights-separation.ts'],
   'WS-01-057': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
   // Reuse the existing exhaustive source-invariant test; no duplicate runtime or synthetic production receipt.
   // Existing passport QA verifies bounded READ/RECOMMEND ceilings, zero minted tools,
@@ -116,6 +121,8 @@ export const TARGETED_CANONICAL_PROOFS = Object.freeze({
 // Owner-based regression scopes are code/dependency paths, NOT test data or
 // claims of outcomes. All other requirements keep the old conservative scope.
 export const SCOPED_REQUIREMENT_OWNERS = Object.freeze({
+  // Rights enforcement and lineage: executable contracts plus actual SQL schema.
+  ...Object.fromEntries(["WS-06-004","WS-06-005","WS-06-010","WS-06-011"].map(id => [id, ["src/lib/studio/audio/materialRegistryContract.ts","src/lib/studio/audio/materialRegistryContract.test.ts","src/lib/studio/audio/materialRegistry.ts","scripts/qa-sfi-audio-rights-separation.ts","supabase/migrations/20260905143000_create_material_audio_rights_registries.sql","scripts/sfi-program-certification-batch.mjs","scripts/qa-sfi-program-certification-batch.mjs","scripts/sfi-program-completion-reconcile.mjs",".github/workflows/sfi-verify.yml"]])),
   ...Object.fromEntries(["WS-05-003","WS-05-015"].map(id=>[id,['scripts/qa-sfi-research-metadata.mjs','CITATION.cff','README.md','package.json','src/lib/research/researchGraphProjection.ts','src/lib/public/institutionProfile.ts','scripts/sfi-program-certification-batch.mjs','scripts/qa-sfi-program-certification-batch.mjs','scripts/sfi-program-completion-reconcile.mjs','.github/workflows/sfi-verify.yml','.github/workflows/sfi-completion-certification-batch.yml']])),
   'WS-04-001': ['src/app/api/external/v1/manifest/route.ts','src/lib/public/institutionProfile.ts','src/lib/discovery/canonicalObjectRegistry.ts','scripts/qa-sfi-discovery-public-live.ts','scripts/sfi-program-certification-batch.mjs','scripts/qa-sfi-program-certification-batch.mjs','scripts/sfi-program-completion-reconcile.mjs','.github/workflows/sfi-verify.yml'],
   'WS-04-008': ['src/lib/mcp/publicMcpServer.ts','src/app/api/mcp/public/route.ts','src/lib/discovery/canonicalObjectRegistry.ts','src/lib/public/institutionProfile.ts','scripts/qa-sfi-public-mcp-readonly.ts','scripts/sfi-program-certification-batch.mjs','scripts/qa-sfi-program-certification-batch.mjs','scripts/sfi-program-completion-reconcile.mjs','.github/workflows/sfi-verify.yml'],

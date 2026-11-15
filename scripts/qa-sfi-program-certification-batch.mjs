@@ -36,6 +36,10 @@ const TARGETED_CANONICAL_PROOFS = {
   'MASTER-20': ['scripts/qa-sfi-discovery-operational.ts'],
   'WS-05-003': ['scripts/qa-sfi-research-metadata.mjs'],
   'WS-05-015': ['scripts/qa-sfi-research-metadata.mjs'],
+  'WS-06-004': ['src/lib/studio/audio/materialRegistryContract.test.ts','scripts/qa-sfi-audio-rights-separation.ts'],
+  'WS-06-005': ['src/lib/studio/audio/materialRegistryContract.test.ts','scripts/qa-sfi-audio-rights-separation.ts'],
+  'WS-06-010': ['src/lib/studio/audio/materialRegistryContract.test.ts','scripts/qa-sfi-audio-rights-separation.ts'],
+  'WS-06-011': ['src/lib/studio/audio/materialRegistryContract.test.ts','scripts/qa-sfi-audio-rights-separation.ts'],
   'WS-01-057': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
   'WS-01-030': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
   'WS-01-031': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
@@ -305,6 +309,22 @@ for (const id of citationProofIds){
 }
 assert.equal(certification.requirements.some(item=>item.id==='WS-05-006'),false,'unverified external ROR must not be certified by internal citation metadata');
 assert.equal(certification.requirements.some(item=>item.id==='WS-05-008'),false,'external-lane citation metadata is not certified before independent classification repair');
+const boundedAudioRightsIds = ["WS-06-004","WS-06-005","WS-06-010","WS-06-011"];
+for (const id of boundedAudioRightsIds) {
+  const source=requirementById.get(id);
+  assert.ok(source, 'material rights requirement missing: '+id);
+  const receipt=certification.requirements.find(entry=>entry.id===id);
+  if (source.status==='SATISFIED' && source.completionReceipt?.state==='VALID') { assert.equal(receipt,undefined,'prior rights receipt cannot be duplicated'); continue; }
+  assert.ok(receipt,'existing audio rights proofs must be exercised: '+id);
+  for (const p of ["src/lib/studio/audio/materialRegistryContract.test.ts","scripts/qa-sfi-audio-rights-separation.ts"]) {
+    assert.ok(receipt.proofPaths.includes(p),'real audio rights proof missing:'+id+':'+p);
+    assert.ok(receipt.scopePaths.includes(p),'proof regression scope missing:'+id+':'+p);
+  }
+  assert.ok(receipt.scopePaths.includes('src/lib/studio/audio/materialRegistryContract.ts'),'rights contract owner absent:'+id);
+  assert.ok(receipt.scopePaths.includes('supabase/migrations/20260905143000_create_material_audio_rights_registries.sql'),'SQL rights guard must invalidate receipt:'+id);
+  assert.equal(receipt.scopePaths.includes('src/**'),false,'rights scope may not include unrelated owners:'+id);
+  assert.equal(receipt.productionObservation,null,'contract QA is not a real material production RETURN:'+id);
+}
 assert.ok(!certification.requirements.some((item) => item.canonicalStatus === 'SATISFIED'), 'already satisfied requirement must not be recertified');
 const observedRequirementIds = new Set(['WS-03-008','WS-03-009','WS-03-011']);
 for (const item of certification.requirements.filter(item => observedRequirementIds.has(item.id))) {
