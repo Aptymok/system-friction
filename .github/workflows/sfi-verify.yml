@@ -83,6 +83,9 @@ jobs:
       - name: Verify MIHM canonical operational audit readback and protected Method Lab access
         run: npx tsx scripts/qa-sfi-mihm-operational-readback-contract.ts
 
+      - name: Verify MIHM no fabricated metrics, strict missingness, Python parity and source provenance
+        run: node --import tsx scripts/qa-mihm-nonfabrication.ts
+
       - name: Verify MIHM method selection
         run: npx tsx scripts/qa-sfi-method-selection.ts
 

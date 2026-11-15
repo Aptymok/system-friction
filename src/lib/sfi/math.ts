@@ -29,7 +29,23 @@ export function normalizePositive(value: number, max = 1): number {
   return clamp01(value / max);
 }
 
+/**
+ * Missing/non-finite and out-of-domain indicators are NOT measurements of zero.
+ * Refuse the computation instead of silently producing an entropic diagnosis.
+ * This changes no constitutional formula or calibration coefficient.
+ */
+function requireObservedSfiInputs(input: SfiInput): void {
+  for (const [name, value] of Object.entries({
+    ihg: input.ihg, nti: input.nti, ldi: input.ldi, xi: input.xi ?? 0.03,
+  })) {
+    if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > 1) {
+      throw new RangeError(`sfi_metric_missing_or_out_of_bounds:${name}`);
+    }
+  }
+}
+
 export function calculatePhi(input: SfiInput): number {
+  requireObservedSfiInputs(input);
   return calculatePhiSfi(input.ihg, input.nti, input.ldi, input.xi ?? 0.03);
 }
 
@@ -38,6 +54,7 @@ export function calculateFs(input: SfiInput): number {
 }
 
 export function evaluateSfiRegime(input: SfiInput): SfiRegime {
+  requireObservedSfiInputs(input);
   const ihg = clamp01(input.ihg);
   const nti = clamp01(input.nti);
   const ldi = clamp01(input.ldi);
@@ -49,6 +66,7 @@ export function evaluateSfiRegime(input: SfiInput): SfiRegime {
 }
 
 export function evaluateSfi(input: SfiInput): SfiMetrics {
+  requireObservedSfiInputs(input);
   const ihg = clamp01(input.ihg);
   const nti = clamp01(input.nti);
   const ldi = clamp01(input.ldi);

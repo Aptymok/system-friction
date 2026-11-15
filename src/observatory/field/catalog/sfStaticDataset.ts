@@ -13,7 +13,10 @@ export const sfStaticDataset = {
     "reference_node": "nodo-ags",
     "reference_ihg": -0.62,
     "reference_nti": 0.351,
-    "reference_state": "EMERGENCY_DECISION"
+    "reference_state": "EMERGENCY_DECISION",
+    "reference_ihg_status": "LEGACY_CLAIM_NOT_REPRODUCIBLE",
+    "reference_ihg_epistemic_status": "HISTORICAL_UNRECONCILED_NOT_CANONICAL",
+    "reference_ihg_audit": "docs/research/SFI-MIHM-V2-LEGACY-ARITHMETIC-AUDIT-2026-10-28.md"
   },
   "mihm_v3_engine": {
     "source": "mihm_v3.json",

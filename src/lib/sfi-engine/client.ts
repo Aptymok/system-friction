@@ -13,7 +13,7 @@ export type SfiEngineInput = {
 export type SfiEngineResult = {
   ok: boolean;
   source: 'python' | 'typescript-fallback';
-  metrics: SfiMetrics;
+  metrics: SfiMetrics | null;
   metric: {
     symbol: 'PHI_S';
     objectId: string;
@@ -123,12 +123,13 @@ export async function evaluateWithSfiEngine(input: SfiEngineInput): Promise<SfiE
               symbol: 'PHI_S',
               objectId: input.object_id,
               dimension: 'bounded_system_or_object',
-              epistemicStatus: input.evidence.length > 0 ? 'DERIVED' : 'SIMULATED',
+              epistemicStatus: 'INFERRED',
               formulaVersion: '2026-08-06.phi-s.v2',
             },
             montecarlo: json.montecarlo,
             warnings: [
               ...(Array.isArray(json.warnings) ? json.warnings : []),
+              'phi_s_derivation_not_empirically_calibrated',
               ...(input.evidence.length > 0 ? [] : ['phi_s_without_observed_evidence']),
             ],
           };
@@ -143,29 +144,25 @@ export async function evaluateWithSfiEngine(input: SfiEngineInput): Promise<SfiE
   return fallback(input, 'python_engine_url_missing');
 }
 
+/**
+ * Transport/model unavailability is not permission to synthesize indicators from
+ * preset trust, degradation or arbitrary vector-count factors. Fail closed:
+ * downstream APIs return 502 with no model output masquerading as observation.
+ */
 function fallback(input: SfiEngineInput, warning: string): SfiEngineResult {
-  const evidenceCount = Array.isArray(input.evidence) ? input.evidence.length : 0;
-  const world = input.worldspect && typeof input.worldspect === 'object' ? input.worldspect as Record<string, unknown> : {};
-  const metrics = evaluateCoreSfi({
-    evidenceCount,
-    trust: evidenceCount > 0 ? 0.45 : 0,
-    worldNti: Number(world.nti ?? 0),
-    degradation: evidenceCount > 0 ? 0.35 : 1,
-    vectorDensity: Object.keys(input.vectors ?? {}).length / 10,
-  });
-
   return {
-    ok: true,
+    ok: false,
     source: 'typescript-fallback',
-    metrics,
+    metrics: null,
     metric: {
       symbol: 'PHI_S',
       objectId: input.object_id,
       dimension: 'bounded_system_or_object',
-      epistemicStatus: evidenceCount > 0 ? 'INFERRED' : 'SIMULATED',
+      epistemicStatus: 'SIMULATED',
       formulaVersion: '2026-08-06.phi-s.v2',
     },
-    montecarlo: seededMonteCarlo({ seed: input.object_id, ihg: metrics.ihg, nti: metrics.nti, ldi: metrics.ldi, xi: metrics.xi }),
-    warnings: [warning, evidenceCount > 0 ? 'typescript_phi_s_inferred' : 'typescript_phi_s_simulated_without_evidence'],
+    montecarlo: null,
+    warnings: [warning, 'unavailable_model_is_not_an_observation',
+      'historical_heuristic_fallback_disabled_no_calibrated_inputs'],
   };
 }

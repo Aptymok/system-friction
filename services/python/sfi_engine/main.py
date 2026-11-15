@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import Any, Dict, List, Optional
 from mihm import evaluate_mihm
@@ -19,6 +19,10 @@ def health():
 
 @app.post("/evaluate")
 def evaluate(payload: SfiEngineInput):
+    # A source-less input is NOT an observed MIHM case; never synthesize a
+    # scientific measurement from default coefficients.
+    if not payload.evidence and not payload.vectors:
+        raise HTTPException(status_code=422, detail="MIHM_MISSING_MATERIAL_OBSERVATION")
     mihm = evaluate_mihm(payload.model_dump())
     mc = run_montecarlo(mihm)
     return {
