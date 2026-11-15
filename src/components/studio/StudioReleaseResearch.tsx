@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import type { ReleaseDirection } from './localReleaseMaterials';
+import type { ReleaseDirection, ReleaseDiscoveryEvidence } from './localReleaseMaterials';
 
 type DiscoverySource = {
   title:string; url:string; publisher:string|null; publishedAt:string|null;
@@ -20,13 +20,13 @@ type DiscoveryResult = {
   };
   publication?:{status:string};
 };
-export default function StudioReleaseResearch({direction}:{direction:ReleaseDirection}) {
+export default function StudioReleaseResearch({direction,onDiscovery}:{direction:ReleaseDirection;onDiscovery:(evidence:ReleaseDiscoveryEvidence|null)=>void}) {
   const [busy,setBusy]=useState(false);
   const [result,setResult]=useState<DiscoveryResult|null>(null);
   const [error,setError]=useState('');
   async function research() {
     if(busy)return;
-    setBusy(true);setError('');setResult(null);
+    setBusy(true);setError('');setResult(null);onDiscovery(null);
     try {
       const response=await fetch('/api/studio/release/discovery',{
         method:'POST',headers:{'content-type':'application/json'},
@@ -40,6 +40,7 @@ export default function StudioReleaseResearch({direction}:{direction:ReleaseDire
         throw new Error(payload?.details||payload?.error||'La investigación no pudo ejecutarse.');
       }
       setResult(payload);
+      if(payload.marketEvidence) onDiscovery({ status:payload.marketEvidence.status, provider:payload.marketEvidence.provider, query:payload.marketEvidence.query, sources:payload.marketEvidence.sources.map(source=>({title:source.title,url:source.url,publisher:source.publisher})) });
     }catch(cause){
       setError(cause instanceof Error?cause.message:'La investigación no está disponible.');
     }finally{setBusy(false);}
