@@ -48,6 +48,8 @@ const TARGETED_CANONICAL_PROOFS = {
   'WS-06-015': ['src/lib/studio/audio/audioCapabilityGovernance.test.ts','scripts/qa-sfi-audio-ephemeral-asset.ts'],
   'WS-06-006': ['scripts/qa-sfi-sfz-real-render.ts'],
   'WS-06-012': ['scripts/qa-sfi-sfz-real-render.ts'],
+  'WS-06-003': ['scripts/qa-sfi-sfz-real-render.ts','scripts/qa-sfi-material-production-contract.ts'],
+  'WS-06-007': ['scripts/qa-sfi-sfz-real-render.ts','scripts/qa-sfi-material-production-contract.ts'],
   'WS-01-057': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
   'WS-01-030': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
   'WS-01-031': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
@@ -357,7 +359,7 @@ for (const [id,proofs] of Object.entries(studioEpistemicAndCleanupProofs)) {
   assert.equal(selected.scopePaths.includes('src/**'),false,'unrelated ownership scope forbidden:'+id);
   assert.equal(selected.productionObservation,null,'internal audio QA cannot invent public observation:'+id);
 }
-for(const id of ['WS-06-006','WS-06-012']){
+for(const id of ['WS-06-006','WS-06-012','WS-06-003','WS-06-007']){
  const canonical=requirementById.get(id);
  assert.ok(canonical,'real audio requirement missing:'+id);
  const item=certification.requirements.find(req=>req.id===id);
@@ -365,6 +367,7 @@ for(const id of ['WS-06-006','WS-06-012']){
  if(certification.independentAudioTestReturn?.state!=='VERIFIED_TEST_RENDER_ONLY'){assert.equal(item,undefined,'unverified audio cannot certify:'+id);continue;}
  assert.ok(item,'real audio test proof must be selected:'+id);
  assert.ok(item.proofPaths.includes('scripts/qa-sfi-sfz-real-render.ts'));
+ if(id==='WS-06-003'||id==='WS-06-007')assert.ok(item.proofPaths.includes('scripts/qa-sfi-material-production-contract.ts'),'material lineage contract QA required:'+id);
  assert.ok(item.scopePaths.includes('src/lib/studio/audio/acoustic'));
  assert.equal(item.scopePaths.includes('src/**'),false);
  const proof=item.audioTestEvidence;

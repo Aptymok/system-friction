@@ -399,6 +399,9 @@ jobs:
             sleep $((attempt * 10))
           done
 
+      - name: Verify material score/performance and canonical render lineage contracts
+        run: npx tsx scripts/qa-sfi-material-production-contract.ts
+
       - name: Verify real SFZ PCM render and re-observation on exact main HEAD
         run: npx tsx scripts/qa-sfi-sfz-real-render.ts && npx tsx scripts/qa-sfi-real-render-observation.ts
 

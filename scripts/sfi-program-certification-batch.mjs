@@ -67,6 +67,9 @@ export const TARGETED_CANONICAL_PROOFS = Object.freeze({
   // Executed WAV and independent render-receipt hash are required for these technical claims.
   'WS-06-006': ['scripts/qa-sfi-sfz-real-render.ts'],
   'WS-06-012': ['scripts/qa-sfi-sfz-real-render.ts'],
+  // Technical test-fixture WAV, performance and lineage; no real-world artistic publication implied.
+  'WS-06-003': ['scripts/qa-sfi-sfz-real-render.ts','scripts/qa-sfi-material-production-contract.ts'],
+  'WS-06-007': ['scripts/qa-sfi-sfz-real-render.ts','scripts/qa-sfi-material-production-contract.ts'],
   'WS-01-057': ['src/lib/sfi/cognitive-runtime/cognitivePassportRegistry.test.ts'],
   // Reuse the existing exhaustive source-invariant test; no duplicate runtime or synthetic production receipt.
   // Existing passport QA verifies bounded READ/RECOMMEND ceilings, zero minted tools,
@@ -133,7 +136,7 @@ export const TARGETED_CANONICAL_PROOFS = Object.freeze({
 // Owner-based regression scopes are code/dependency paths, NOT test data or
 // claims of outcomes. All other requirements keep the old conservative scope.
 export const SCOPED_REQUIREMENT_OWNERS = Object.freeze({
-  ...Object.fromEntries(["WS-06-006","WS-06-012"].map(id=>[id,["src/lib/studio/audio/acoustic","src/lib/studio/material","src/lib/studio/audio/audioCapabilityGovernance.ts","scripts/qa-sfi-sfz-real-render.ts","scripts/qa-sfi-real-render-observation.ts","scripts/qa-sfi-material-production-real.ts","scripts/qa-sfi-material-production-contract.ts","fixtures/audio/sfi-acoustic-instrument-package-1.0",".github/workflows/sfi-audio-material-execution.yml","scripts/sfi-program-certification-batch.mjs","scripts/qa-sfi-program-certification-batch.mjs","scripts/sfi-program-completion-reconcile.mjs",".github/workflows/sfi-verify.yml",".github/workflows/sfi-completion-certification-batch.yml"]])),
+  ...Object.fromEntries(["WS-06-006","WS-06-012","WS-06-003","WS-06-007"].map(id=>[id,["src/lib/studio/audio/acoustic","src/lib/studio/material","src/lib/studio/audio/audioCapabilityGovernance.ts","scripts/qa-sfi-sfz-real-render.ts","scripts/qa-sfi-real-render-observation.ts","scripts/qa-sfi-material-production-real.ts","scripts/qa-sfi-material-production-contract.ts","fixtures/audio/sfi-acoustic-instrument-package-1.0",".github/workflows/sfi-audio-material-execution.yml","scripts/sfi-program-certification-batch.mjs","scripts/qa-sfi-program-certification-batch.mjs","scripts/sfi-program-completion-reconcile.mjs",".github/workflows/sfi-verify.yml",".github/workflows/sfi-completion-certification-batch.yml"]])),
   ...Object.fromEntries(["WS-06-008","WS-06-013","WS-06-015"].map(id=>[id,["src/lib/studio/audio/audioCapabilityGovernance.ts","src/lib/studio/audio/audioCapabilityGovernance.test.ts","src/lib/studio/audio/closedLoop.ts","src/lib/studio/audio/acoustic/acousticPackageContract.ts","src/lib/studio/audio/acoustic/executeSfzRender.ts","src/lib/studio/audio/acoustic/ephemeralWorkspace.ts","src/lib/studio/audio/acoustic/renderPersistence.ts","supabase/migrations/20260906221500_create_sfi_audio_render_runs.sql","scripts/qa-sfi-audio-ephemeral-asset.ts","scripts/sfi-program-certification-batch.mjs","scripts/qa-sfi-program-certification-batch.mjs","scripts/sfi-program-completion-reconcile.mjs",".github/workflows/sfi-verify.yml",".github/workflows/sfi-completion-certification-batch.yml"]])),
   'WS-02-010': ["src/lib/mcp/publicMcpServer.ts","src/app/api/mcp/public/route.ts","src/lib/discovery/canonicalObjectRegistry.ts","src/lib/discovery/publicSemanticProjection.ts","src/lib/institution/cognitiveSpineRuntimeMaterializer.ts","src/lib/institution/cognitiveSpineTwinContextAdapter.ts","scripts/qa-sfi-ws02-universal-twin-lineage.ts","scripts/qa-sfi-public-mcp-readonly.ts","scripts/qa-sfi-discovery-public-live.ts","scripts/sfi-program-certification-batch.mjs","scripts/qa-sfi-program-certification-batch.mjs","scripts/sfi-program-completion-reconcile.mjs",".github/workflows/sfi-verify.yml"],
   'WS-02-011': ["src/lib/method-lab/researchAssurance.ts","src/lib/method-lab/researchPassportPreview.ts","src/core/cognitive-twin/contract.ts","src/lib/method-lab/researchAssurance.test.ts","src/lib/method-lab/researchPassportPreview.test.ts","scripts/sfi-program-certification-batch.mjs","scripts/qa-sfi-program-certification-batch.mjs","scripts/sfi-program-completion-reconcile.mjs",".github/workflows/sfi-verify.yml"],
@@ -466,7 +469,7 @@ function independentlyObservedProduction(head) {
 }
 
 
-const INDEPENDENT_REAL_RENDER_REQUIREMENTS = new Set(['WS-06-006','WS-06-012']);
+const INDEPENDENT_REAL_RENDER_REQUIREMENTS = new Set(['WS-06-006','WS-06-012','WS-06-003','WS-06-007']);
 const REAL_RENDER_SOURCE_SCOPE = Object.freeze([
   'src/lib/studio/audio/acoustic',
   'src/lib/studio/material',
@@ -524,6 +527,7 @@ function independentlyVerifiedAudioTestRender(head) {
       const sha='sha256:'+createHash('sha256').update(wav).digest('hex');
       if(wav.byteLength<=1000||wav.toString('ascii',0,4)!=='RIFF'||wav.toString('ascii',8,12)!=='WAVE')throw Error('NOT_REAL_WAV');
       if(receipt.contract!=='SFI-AUDIO-RENDER-RECEIPT-1.0'||receipt.adapter?.id!=='SFI-SFZ-ADAPTER'||receipt.output?.epistemicClass!=='GENERATED_RENDER'||receipt.output?.sha256!==sha||receipt.metrics?.renderedEventCount<1)throw Error('SFZ_RECEIPT_NOT_BOUND_TO_WAV');
+      if(typeof receipt.performanceRef!=='string'||receipt.performanceRef.length<1||!/^sha256:[0-9a-f]{64}$/.test(String(receipt.performanceHash||''))||!Array.isArray(receipt.lineage?.performanceSourceRefs)||receipt.lineage.performanceSourceRefs.length===0)throw Error('REAL_WAV_PERFORMANCE_LINEAGE_NOT_BOUND');
       if(receipt.cleanup?.state!=='CLEANED'||receipt.cleanup?.existsAfterCleanup!==false||receipt.rightsAssertions?.materialRightsEligibility!=='ELIGIBLE'||receipt.rightsAssertions?.institutionalAuthorization?.authorityClass!=='EXECUTE_REVERSIBLE'||receipt.rightsAssertions?.institutionalAuthorization?.authorized!==true||receipt.rightsAssertions?.culturalReferenceUsedAsExecutableMaterial!==false||receipt.rightsAssertions?.publicAccessUsedAsExecutionRightsEvidence!==false)throw Error('RENDER_RIGHTS_OR_CLEANUP_NOT_BOUND');
       if(observed.contract!=='SFI-AUDIO-REAL-REOBSERVATION-QA-1.1'||observed.status!=='PASS'||observed.render?.outputSha256!==sha||observed.render?.runId!==receipt.runId||observed.render?.epistemicClass!=='GENERATED_RENDER'||observed.observation?.sourceSha256!==sha||observed.observation?.sourceEpistemicClass!=='GENERATED_RENDER'||observed.observation?.culturalEvidenceEligible!==false||observed.observation?.acoustic?.featureCount<1)throw Error('REAL_WAV_REOBSERVATION_NOT_BOUND');
       if(observed.governedMetricEvaluation?.state!=='FAIL'||observed.observation?.metricStates?.fad!=='NOT_OBSERVED'||observed.observation?.metricStates?.wsv!=='NOT_OBSERVED'||observed.observation?.metricStates?.mihm!=='NOT_OBSERVED'||observed.observation?.metricStates?.cvf!=='NOT_OBSERVED')throw Error('CULTURAL_METRICS_FALSE_PROMOTION');
