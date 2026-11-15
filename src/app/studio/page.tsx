@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import StudioFileIntake from '@/components/studio/StudioFileIntake';
 import type { CSSProperties } from 'react';
 import { redirect } from 'next/navigation';
 import { getStudioObjectFeatures, listStudioObjects } from '@/lib/studio/production/studioProductionRepository';
@@ -98,6 +99,7 @@ export default async function StudioPage({ searchParams }: { searchParams?: Prom
           <p style={{ maxWidth: 800, margin: '20px 0 0', color: '#a7b0b6', lineHeight: 1.7, fontSize: 14 }}>
             This surface operates only on objects whose ownership belongs to the authenticated identity. Reading, analyzing and producing evidence here grants no canonical promotion, ROOT execution or authority over other nodes.
           </p>
+          <StudioFileIntake />
         </div>
       </section>
 
