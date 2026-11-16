@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, type FormEvent } from 'react';
+import { useCallback, useRef, useState, type FormEvent } from 'react';
 import { exportPcm24Wav, samplePeak } from './localPcmWavExport';
 import { downloadTextFile, makeReleaseBrief, type ReleaseDirection, type ReleaseDiscoveryEvidence } from './localReleaseMaterials';
 import StudioReleaseResearch from './StudioReleaseResearch';
@@ -109,6 +109,10 @@ export default function StudioFileIntake() {
   const [teaserBusy, setTeaserBusy] = useState(false);
   const [photographicCovers,setPhotographicCovers]=useState<StudioPhotographicCover[]>([]);
   const [videoCoverId,setVideoCoverId]=useState('');
+  const handlePhotographicCovers=useCallback((value:StudioPhotographicCover[])=>{
+    setPhotographicCovers(value);
+    setVideoCoverId(current=>value.some(cover=>cover.id===current)?current:(value[0]?.id??''));
+  },[]);
   const runId = useRef(0);
 
   async function importReport(source: File | null) {
@@ -339,10 +343,7 @@ export default function StudioFileIntake() {
             <option value="paper">Editorial · papel cálido</option>
             <option value="signal">Señal · verde oscuro</option>
           </select>
-          <StudioPhotographicProposals direction={release} onCovers={value=>{
-            setPhotographicCovers(value);
-            setVideoCoverId(current=>value.some(cover=>cover.id===current)?current:(value[0]?.id??''));
-          }} />
+          <StudioPhotographicProposals direction={release} onCovers={handlePhotographicCovers} />
           {photographicCovers.length>0&&<label htmlFor="studio-video-cover" style={{display:'grid',gap:6}}>
             Imagen para el video musical (derivada fotográfica local)
             <select id="studio-video-cover" value={videoCoverId||photographicCovers[0].id}
