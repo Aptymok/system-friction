@@ -50,7 +50,7 @@
     "qa:sfi-studio-harmony": "tsx scripts/qa-sfi-studio-harmony.ts",
     "qa:sfi-studio-workspace": "tsx scripts/qa-sfi-studio-workspace.ts",
     "qa:sfi-studio-cognitive": "tsx scripts/qa-sfi-studio-cognitive.ts && npm run qa:fi001-autonomy && npm run qa:fi001-oidc",
-    "qa:sfi-studio-hygiene": "tsx scripts/qa-sfi-studio-hygiene.ts && tsx scripts/qa-sfi-studio-local-deliverables.ts",
+    "qa:sfi-studio-hygiene": "tsx scripts/qa-sfi-studio-hygiene.ts && tsx scripts/qa-sfi-studio-local-deliverables.ts && tsx scripts/qa-sfi-studio-campaign-continuity.ts",
     "qa:fi001-autonomy": "tsx scripts/qa-fi001-autonomy.ts",
     "qa:fi001-oidc": "tsx scripts/qa-fi001-oidc-policy.ts",
     "qa:sfi-root-capability-matrix": "tsx scripts/qa-sfi-root-capability-matrix.ts",
