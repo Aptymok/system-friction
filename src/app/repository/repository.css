@@ -567,3 +567,8 @@ html:has(.repositoryShell),body:has(.repositoryShell){overflow-y:hidden!importan
 .repoLiveV2 .repoSourceDrawer .repoRailScroll button{
   align-self:start;
 }
+
+
+/* Institutional cross-surface navigation: public reading never grants Lab access. */
+.repoLabAccess{display:inline-flex;align-items:center;padding:7px 10px;border:1px solid rgba(120,171,211,.4);border-radius:4px;color:#c6dae8;text-decoration:none;font-size:10px;letter-spacing:.05em;white-space:nowrap}
+.repoLabAccess:hover,.repoLabAccess:focus-visible{border-color:#d4af37;color:#f4e7be}
