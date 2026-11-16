@@ -210,6 +210,16 @@ assert(methodLabPage.includes('evidenceInventory={evidence.options}'), 'Method L
 assert(methodLabPage.includes('Iniciar una nueva investigación · opcional'), 'research browsing must not require form intake');
 assert(researchSource.includes('sourceOfTruth: \'METHOD_LAB_EVENT_LEDGER\''), 'reader must use existing canonical research ledger');
 
+// Studio document reading must reuse transient extraction and never invent MIHM measurements.
+const studioMultiReader = read('src/components/studio/StudioMultiDocumentReader.tsx');
+const studioPage = read('src/app/studio/page.tsx');
+const transientExtractor = read('src/app/api/reality-chain/extract/route.ts');
+assert(studioPage.includes('<StudioMultiDocumentReader />'), 'Studio must expose the multi-document research reader');
+assert(studioMultiReader.includes("fetch('/api/reality-chain/extract'"), 'Studio reader must reuse existing authenticated extraction');
+assert(studioMultiReader.includes('source.sha256'), 'document identity must be source-hash based');
+assert(studioMultiReader.includes('observedValue:null'), 'text mentions must not fabricate MIHM values');
+assert(studioMultiReader.includes('publicationState:\'NOT_AUTHORIZED\''), 'documental reading may not publish itself');
+assert(transientExtractor.includes('rawFilePersisted:false'), 'transient document reading must not claim source persistence');
 console.log('[SFI-RESEARCH-METADATA] PASS');
 console.log(`citation_version=${citation.version}`);
 console.log('verified_doi_count=0');
