@@ -133,7 +133,7 @@ function explicitNarrativeLineage(
   anchorId:string,
 ):CampaignOutput['narrativeLineage'] {
   const references=new Map(graph.nodes.map(node=>[node.id,node]));
-  const relationTypes=new Set(['DERIVED_FROM','INFLUENCES','PROJECTS']);
+  const relationTypes=new Set(['DERIVED_FROM','INFLUENCES','PROJECTS','PRECEDES']);
   const eligible=graph.edges.filter(edge=>relationTypes.has(edge.relation));
   function walk(direction:'predecessors'|'successors'){
     const visited=new Set<string>([anchorId]);
