@@ -572,3 +572,36 @@ html:has(.repositoryShell),body:has(.repositoryShell){overflow-y:hidden!importan
 /* Institutional cross-surface navigation: public reading never grants Lab access. */
 .repoLabAccess{display:inline-flex;align-items:center;padding:7px 10px;border:1px solid rgba(120,171,211,.4);border-radius:4px;color:#c6dae8;text-decoration:none;font-size:10px;letter-spacing:.05em;white-space:nowrap}
 .repoLabAccess:hover,.repoLabAccess:focus-visible{border-color:#d4af37;color:#f4e7be}
+
+
+/* SFI 2026: repository is an institutional vertical reading room, not a 3,000px rail. */
+html:has(.repositoryShell),body:has(.repositoryShell){height:auto!important;min-height:100%!important;overflow-x:clip!important;overflow-y:auto!important}
+.repositoryShell.repoLiveV2{height:auto!important;max-height:none!important;min-height:100svh!important;overflow:visible!important;width:100%!important;scroll-behavior:auto!important}
+.repoLiveV2 .repoToolbar{position:relative!important;inset:auto!important;width:100%!important;height:auto!important;min-height:63px!important;display:flex!important;flex-wrap:wrap!important;align-items:center!important;gap:10px!important;padding:16px clamp(18px,3vw,44px)!important;background:#0e1518!important;border-bottom:1px solid #82704e!important}
+.repoLiveV2 .repoToolbar .repoQuery{flex:1 1 260px!important;max-width:none!important}
+.repoLiveV2 .repoFieldScroll{position:relative!important;inset:auto!important;top:auto!important;bottom:auto!important;left:auto!important;right:auto!important;width:100%!important;height:auto!important;max-height:none!important;overflow-x:clip!important;overflow-y:visible!important;background:#0c1113!important;scroll-snap-type:none!important;background-image:none!important}
+.repoLiveV2 .repoFieldTrack{position:relative!important;display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:18px!important;min-width:0!important;max-width:1420px!important;width:100%!important;height:auto!important;margin:auto!important;padding:clamp(16px,3vw,36px)!important}
+.repoLiveV2 .repoFieldTrack > .repoFloating{position:relative!important;inset:auto!important;left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;display:block!important;transform:none!important;flex:none!important;width:100%!important;min-width:0!important;max-width:100%!important;height:auto!important;max-height:none!important;overflow-x:visible!important;overflow-y:visible!important;padding:clamp(14px,2vw,24px)!important;scroll-snap-align:none!important;background:#121c20!important;border:1px solid #3d4e52!important}
+.repoLiveV2 .repoIdentity{display:block!important}
+.repoLiveV2 .repoNarrowFilters{display:flex!important;flex-wrap:wrap!important;gap:6px!important}
+.repoLiveV2 .repoArchiveRail{display:flex!important;flex-direction:column!important;gap:15px!important;overflow:visible!important}
+.repoLiveV2 .repoArchiveRail .repoGraphWrap{height:auto!important;min-height:330px!important;max-height:none!important;overflow-x:auto!important;overflow-y:visible!important}
+.repoLiveV2 .repoArchiveRail .repoGraphWrap svg{width:100%!important;height:auto!important;max-height:530px!important;min-height:300px!important}
+.repoLiveV2 .repoObjectCards{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(min(100%,245px),1fr))!important;gap:12px!important;max-height:none!important;overflow:visible!important}
+.repoLiveV2 .repoObjectCard{min-height:205px!important;padding:16px!important}
+.repoLiveV2 .repoPassportTiles{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))!important;gap:12px!important;max-height:none!important;overflow:visible!important}
+.repoLiveV2 .repoPassportTile{grid-column:auto!important;grid-row:auto!important}
+.repoLiveV2 .repoSourceDrawer{display:block!important;overflow:visible!important}
+.repoLiveV2 .repoSourceDrawer .repoArchiveLower{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:15px!important;overflow:visible!important;max-height:none!important}
+.repoLiveV2 .repoSourceDrawer .repoRailColumn{height:auto!important;min-height:190px!important;max-height:none!important}
+.repoLiveV2 .repoSourceDrawer .repoRailScroll{max-height:320px!important;overflow-y:auto!important;overflow-x:clip!important}
+.repoLiveV2 .repoProvenance{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:16px!important}
+.repoLiveV2 .repoReader,.repoLiveV2 .repoViewerBody,.repoLiveV2 .repoDiscovery{height:auto!important;min-height:0!important;max-height:none!important;overflow-x:visible!important;overflow-y:visible!important}
+.repoLiveV2 .repoReader{display:block!important}
+.repoLiveV2 .repoDocumentFrame{width:100%!important;min-height:650px!important}
+.repoLiveV2 .repoMihmTimeline.repoTimeline{position:relative!important;inset:auto!important;left:auto!important;right:auto!important;bottom:auto!important;top:auto!important;width:100%!important;height:auto!important;min-height:120px!important;max-height:none!important;margin:0!important;overflow-x:auto!important;overflow-y:visible!important}
+@media(max-width:720px){
+  .repoLiveV2 .repoSourceDrawer .repoArchiveLower{grid-template-columns:minmax(0,1fr)!important}
+  .repoLiveV2 .repoObjectCards{grid-template-columns:minmax(0,1fr)!important}
+  .repoLiveV2 .repoMihmTimeline.repoTimeline{display:block!important}
+}
