@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import './labInstitutional.css';
 import { MethodLabNativeHub } from '@/components/sfi/MethodLabNativeHub';
 import { LabCreateDialog } from '@/components/sfi/LabCreateDialog';
 import { MethodLabResearchReview } from '@/components/sfi/MethodLabResearchReview';
