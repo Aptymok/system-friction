@@ -281,7 +281,13 @@ export async function augmentAgentWithLlm(agentId: string, context: KernelContex
 
   const twin = TWIN_RELEVANT_AGENTS.has(agentId) ? await resolveTwinContextForExecution(context) : null;
   const requestedProvider = providerPreference(context.metadata?.preferredLlmProvider);
-  const requirements = llmRequirementsForAgent(agentId);
+  const configuredRequirements = llmRequirementsForAgent(agentId);
+  const studioAllowlist = context.metadata?.studioLlmProviderAllowlist;
+  const requirements = Array.isArray(studioAllowlist) &&
+    studioAllowlist.length>0 &&
+    studioAllowlist.every(provider=>provider==='gemini'||provider==='groq')
+    ? { ...configuredRequirements, providerAllowlist:studioAllowlist as string[] }
+    : configuredRequirements;
   const existingInsights = record(context.metadata?.agentInsights);
   const material = materialEvidenceView(context);
 
