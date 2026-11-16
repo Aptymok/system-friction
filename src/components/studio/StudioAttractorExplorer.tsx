@@ -50,7 +50,7 @@ export default function StudioAttractorExplorer({objects,sessions}:{objects:Row[
     evidence:Array<{id:string|null;type:string;at:string|null;label:string;source:string;status:string;details:string|null;measurement:{variable:string|null;value:number|string;unit:string|null}|null}>;
     governedLinks?:{
       declaredReferences:{caseIds:string[];agentIds:string[];rootReceiptRefs:string[]};
-      cases:Array<{caseId:string;readStatus:string;inputHash:string|null;gaps:string[];nextObservation:unknown;closureCertified:boolean}>;
+      cases:Array<{caseId:string;readStatus:string;inputHash:string|null;gaps:string[];nextObservation:unknown;closureCertified:boolean;temporal:{t0:string|null;t1:string|null;comparison:string;basis:string}|null}>;
       agents:Array<{id:string;name:string;lifecycle:string;executorBound:boolean;latestExecutionAt:string|null;executionEvidenceRefs:string[];observedForThisStudioObject:boolean}>;
       agentReadStatus:string;
       root:{declaredReceiptRefs:string[];observedAuditRecords:Array<{id:string;at:string|null;action:string|null;target:string|null}>;validatedReceipts:unknown[];readStatus:string;warning:string};
@@ -263,6 +263,10 @@ export default function StudioAttractorExplorer({objects,sessions}:{objects:Row[
               {evidence.governedLinks.cases.map(link=><div key={link.caseId} style={{display:'grid',gap:3}}>
                 <strong style={{fontSize:11}}>Caso: {link.caseId}</strong>
                 <span style={{fontSize:11,color:'#bacbd4'}}>{link.readStatus}</span>
+                {link.temporal&&<span style={{fontSize:11,color:'#d2e4ed'}}>
+                  T0: {link.temporal.t0??'NO OBSERVADO'} · T1: {link.temporal.t1??'NO OBSERVADO'}
+                  {' '} · Comparación: {link.temporal.comparison}
+                </span>}
                 {link.inputHash&&<span style={{fontSize:10,color:'#aecbd7',overflowWrap:'anywhere'}}>
                   Identidad de reconstrucción: {link.inputHash}
                 </span>}
