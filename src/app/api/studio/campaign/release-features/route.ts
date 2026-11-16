@@ -26,7 +26,7 @@ export async function GET(request:Request){
     const ids=(objectRead.data??[]).filter(o=>o.object_type==='music').map(o=>String(o.id));
     if(!ids.length)return NextResponse.json({
       ok:true,features:[],dataStatus:'NO_MUSIC_OBJECTS',source:'studio_audio_features',
-      energyTransform:'CLAMPED_LINEAR_RMS_PROXY_NOT_VALIDATED',notAudienceEvidence:true,
+      energyTransform:'DBFS_TO_LINEAR_MEAN_SQUARE_PROXY_NOT_VALIDATED',notAudienceEvidence:true,
     },{headers:{'Cache-Control':'private, no-store'}});
     const features=await db.from('studio_audio_features')
       .select('object_id,rms,created_at').in('object_id',ids).eq('owner_id',user.id)
@@ -35,16 +35,19 @@ export async function GET(request:Request){
     const byId=new Map<string,{objectId:string;energyProxy:number;observedAt:string|null}>();
     for(const f of features.data??[]){
       const id=String(f.object_id);
-      const rms=typeof f.rms==='number'?f.rms:NaN;
-      if(!byId.has(id)&&Number.isFinite(rms)&&rms>=0&&rms<=1){
+      const rmsDbfs=typeof f.rms==='number'?f.rms:NaN;
+      // Existing audioPersistence stores RMS in dBFS, not a linear 0–1 value.
+      const energyProxy=Number.isFinite(rmsDbfs)&&rmsDbfs<=0&&rmsDbfs>=-120
+        ?Math.pow(10,rmsDbfs/10):NaN; // squared normalized RMS amplitude (mean-square proxy)
+      if(!byId.has(id)&&Number.isFinite(energyProxy)&&energyProxy>=0&&energyProxy<=1){
         // RMS in linear amplitude is used only as a sequencing proxy.
-        byId.set(id,{objectId:id,energyProxy:Number(rms.toFixed(6)),
+        byId.set(id,{objectId:id,energyProxy:Number(energyProxy.toFixed(6)),
           observedAt:typeof f.created_at==='string'?f.created_at:null});
       }
     }
     return NextResponse.json({
       ok:true,features:[...byId.values()],dataStatus:features.data?.length===350?'TRUNCATED':'READ',
-      source:'studio_audio_features',energyTransform:'CLAMPED_LINEAR_RMS_PROXY_NOT_VALIDATED',
+      source:'studio_audio_features',energyTransform:'DBFS_TO_LINEAR_MEAN_SQUARE_PROXY_NOT_VALIDATED',
       notAudienceEvidence:true,notNarrativeJudgment:true,
     },{headers:{'Cache-Control':'private, no-store'}});
   }catch(error){
