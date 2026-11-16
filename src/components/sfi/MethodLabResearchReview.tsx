@@ -105,18 +105,6 @@ function metricPreview(object: MethodLabResearchObjectView) {
   return Object.entries(object.metrics).slice(0, 4);
 }
 
-function objectProgress(object: MethodLabResearchObjectView) {
-  const state = object.state.toUpperCase();
-  if (object.publicationState === 'RELEASED') return 8;
-  if (['HUB_PUBLISHED', 'RELEASE_CANDIDATE'].includes(object.publicationState)) return 8;
-  if (object.publicationState === 'PROMOTION_REQUESTED') return 7;
-  if (object.returnState === 'VERIFIED' || object.returnState === 'OBSERVED') return 7;
-  if (state.includes('INTERVENTION')) return 6;
-  if (state.includes('FINDING')) return 5;
-  if (state.includes('MODEL')) return 3;
-  if (['OBSERVED', 'EMPIRICAL_OBSERVATION_COMPLETE'].includes(state)) return 2;
-  return 1;
-}
 
 export function MethodLabResearchReview({ research, evidenceInventory = [] }: { research: MethodLabResearchStateView; evidenceInventory?: readonly ResearchEvidenceInventoryItem[] }) {
   const router = useRouter();
@@ -185,8 +173,9 @@ export function MethodLabResearchReview({ research, evidenceInventory = [] }: { 
             <div><span>{selected.objectClass} · {selected.objectId}</span><h3>{selected.title}</h3></div>
             <div className="mlr-badges"><b>{selected.epistemicState}</b><b>{selected.publicationState}</b><b>RETURN {selected.returnState}</b></div>
           </header>
+          <p style={{fontSize:11,color:'#94adbc',margin:'14px 0 0'}}>Secuencia metodológica de referencia; ninguna etapa se da por ejecutada o verificada por el nombre del estado.</p>
           <div className="mlr-flow">
-            {FLOW.map((stage, index) => <div key={stage} data-active={index < objectProgress(selected)}><i>{String(index + 1).padStart(2, '0')}</i><span>{stage}</span></div>)}
+            {FLOW.map((stage, index) => <div key={stage} data-active={false}><i>{String(index + 1).padStart(2, '0')}</i><span>{stage}</span></div>)}
           </div>
           <div className="mlr-review-grid">
             <article>
