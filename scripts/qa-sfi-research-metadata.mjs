@@ -195,6 +195,7 @@ assert(researchReader.includes('evidenceInventory.find(item => item.id === evide
 assert(researchReader.includes('no localizada en el inventario parcial'), 'missing research evidence must never be described as nonexistent or verified');
 assert(researchReader.includes('DOI: NO VERIFICADO EN ESTE REGISTRO'), 'research reader must not infer a DOI from publication status');
 assert(researchReader.includes('finding.evidenceRefs'), 'per-finding source identity must be inspectable');
+assert(!researchReader.includes('objectProgress('), 'publication labels must not fabricate completed Reality Chain stages');
 assert(methodLabPage.includes('evidenceInventory={evidence.options}'), 'Method Lab must use its actual governed evidence read projection');
 assert(methodLabPage.includes('Iniciar una nueva investigación · opcional'), 'research browsing must not require form intake');
 assert(researchSource.includes('sourceOfTruth: \'METHOD_LAB_EVENT_LEDGER\''), 'reader must use existing canonical research ledger');
