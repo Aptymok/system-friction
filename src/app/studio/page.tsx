@@ -4,7 +4,7 @@ import StudioDocumentWorkbench from '@/components/studio/StudioDocumentWorkbench
 import StudioAttractorExplorer from '@/components/studio/StudioAttractorExplorer';
 import type { CSSProperties } from 'react';
 import { redirect } from 'next/navigation';
-import { getStudioObjectFeatures, listStudioObjects } from '@/lib/studio/production/studioProductionRepository';
+import { getStudioObjectFeatures, listStudioObjects, listStudioSessions } from '@/lib/studio/production/studioProductionRepository';
 import { requireSfiMemberPage } from '@/lib/system/access/server';
 
 export const dynamic = 'force-dynamic';
@@ -83,8 +83,9 @@ export default async function StudioPage({ searchParams }: { searchParams?: Prom
 
   const params = searchParams ? await searchParams : {};
   const requested = typeof params.objectId === 'string' && params.objectId.trim() ? params.objectId.trim() : null;
-  const objectsResult = await listStudioObjects(user.id);
+  const [objectsResult,sessionsResult] = await Promise.all([listStudioObjects(user.id,{limit:100}),listStudioSessions(user.id)]);
   const objects = objectsResult.ok ? objectsResult.data : [];
+  const sessions = sessionsResult.ok ? sessionsResult.data : [];
   const activeId = requested ?? text(objects[0]?.id, '');
   const activeResult = activeId ? await getStudioObjectFeatures(activeId, user.id) : null;
   const active = activeResult?.ok ? activeResult.data.object : null;
@@ -103,7 +104,7 @@ export default async function StudioPage({ searchParams }: { searchParams?: Prom
           </p>
           <StudioFileIntake />
           <StudioDocumentWorkbench />
-          <StudioAttractorExplorer objects={objects} />
+          <StudioAttractorExplorer objects={objects} sessions={sessions} />
         </div>
       </section>
 
