@@ -33,7 +33,7 @@ export default function StudioFieldEditor({sessions,objects}:{sessions:Row[];obj
   const [parentId,setParentId]=useState('');
   const [sourceId,setSourceId]=useState('');
   const [targetId,setTargetId]=useState('');
-  const [relation,setRelation]=useState<'CONTAINS'|'DERIVED_FROM'|'INFLUENCES'|'PROJECTS'>('DERIVED_FROM');
+  const [relation,setRelation]=useState<'CONTAINS'|'DERIVED_FROM'|'INFLUENCES'|'PROJECTS'|'PRECEDES'>('DERIVED_FROM');
   const [attachedObjectId,setAttachedObjectId]=useState('');
   const [attachedNodeId,setAttachedNodeId]=useState('');
   const [busy,setBusy]=useState(false);
@@ -151,6 +151,7 @@ export default function StudioFieldEditor({sessions,objects}:{sessions:Row[];obj
             <option value="DERIVED_FROM">Deriva de</option>
             <option value="INFLUENCES">Influye en (declarado)</option>
             <option value="PROJECTS">Proyecta</option>
+            <option value="PRECEDES">Precede cronológicamente</option>
           </select>
           <button type="button" disabled={busy||!sourceId||!targetId||sourceId===targetId}
             onClick={()=>void write('link_nodes',{sourceId,targetId,relationType:relation})}
