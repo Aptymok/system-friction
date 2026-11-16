@@ -44,6 +44,16 @@ export type CampaignOutput = {
     sourceObjects:string[];
   };
   phase:CampaignPhase;
+  hypotheses:{
+    h1:'NARRATIVE_IDENTITY';
+    h2:'LISTENING_EXPERIENCE';
+    metric:'save_rate';
+    protocol:'A_B_POSTS_IN_SIMILAR_24_HOUR_READ_WINDOW';
+    preregisteredAt:null;
+    causalIdentification:'NOT_ESTABLISHED';
+    baseline:'NOT_OBSERVED';
+    decisionThreshold:'NO_CALIBRATED_THRESHOLD';
+  };
   timeWindow:{start:string;end:string;weeks:number};
   schedule:Array<{
     date:string;
@@ -193,6 +203,15 @@ export function planStudioContinuityCampaign(
       sourceObjects:unique(sourceObjects),
     },
     phase:constraints.phase,
+    hypotheses:{
+      h1:'NARRATIVE_IDENTITY',h2:'LISTENING_EXPERIENCE',
+      metric:'save_rate',
+      protocol:'A_B_POSTS_IN_SIMILAR_24_HOUR_READ_WINDOW',
+      preregisteredAt:null,
+      causalIdentification:'NOT_ESTABLISHED',
+      baseline:'NOT_OBSERVED',
+      decisionThreshold:'NO_CALIBRATED_THRESHOLD',
+    },
     timeWindow:{start:constraints.startDate,end:isoDay(end),weeks},
     schedule,releaseWindows,
     evidence:{
