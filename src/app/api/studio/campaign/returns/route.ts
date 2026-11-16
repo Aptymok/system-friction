@@ -31,7 +31,7 @@ export async function POST(request:Request){
       ok:false,error:'CONTRAST_NOT_ADMISSIBLE',details:contrast.reason,
     },{status:400});
     const db=createServiceSupabaseClient();
-    const source=await db.from('studio_archive_events').select('id,owner_id,session_id,payload')
+    const source=await db.from('studio_archive_events').select('id,owner_id,session_id,object_id,payload')
       .eq('id',planId).eq('owner_id',user.id).eq('session_id',sessionId)
       .eq('event_type','STUDIO_CAMPAIGN_PLAN_PROPOSED').maybeSingle();
     if(source.error)return NextResponse.json({ok:false,error:'CAMPAIGN_ARCHIVE_READ_FAILED'},{status:503});
@@ -41,12 +41,13 @@ export async function POST(request:Request){
       return NextResponse.json({ok:false,error:'CAMPAIGN_PLAN_CONTRACT_INVALID'},{status:409});
     }
     const recorded=await db.from('studio_archive_events').insert({
-      owner_id:user.id,session_id:sessionId,object_id:null,
+      owner_id:user.id,session_id:sessionId,object_id:source.data.object_id??null,
       event_type:'STUDIO_CAMPAIGN_MANUAL_CONTRAST',
       label:'Contraste manual A/B · '+String(rec(existingPlan.anchor).title||'campaña').slice(0,90),
       source:'studio_campaign_contrast_readback_v1',
       payload:{
         planEventId:planId,
+        fieldAnchorId:rec(source.data.payload).fieldAnchorId??null,
         phase:existingPlan.phase,
         t0:rec(existingPlan.timeWindow).start??null,
         t1:contrast.observations.map(o=>o.observedAt),
