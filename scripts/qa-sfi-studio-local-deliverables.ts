@@ -7,6 +7,7 @@ import { buildSourceReviewScript } from '../src/components/studio/localPodcastRe
 import { podcastFilename, makePodcastManifest, type StudioPodcastAudio } from '../src/components/studio/localPodcastAudio';
 import { parseStudioLocalReport } from '../src/components/studio/localReportImport';
 import { checkStudioPhotographs } from '../src/components/studio/localPhotographicCovers';
+import { studioAttractorProjection } from '../src/components/studio/studioAttractorProjection';
 import {
   proposeCampaignVariants, contrastCampaignObservations,
 } from '../src/components/studio/localCampaignContrast';
@@ -137,6 +138,33 @@ assert.equal(recovered.originalStored,false);
 assert.equal(recovered.originalTransferred,false);
 assert.throws(()=>parseStudioLocalReport({...reportFixture,originalStored:true}),/STUDIO_REPORT_PRIVACY_STATE_UNSUPPORTED/);
 assert.throws(()=>parseStudioLocalReport({...reportFixture,features:[{...reportFixture.features[0],value:Infinity}]}),/STUDIO_REPORT_FEATURE_INVALID/);
+
+// Synthetic read-model QA: explicit relationships only; no invented canonical authority or RETURN.
+const nodeProjection=studioAttractorProjection([
+  {id:'qa-object-1',title:'QUE NO · Publicación',session_id:'qa-session',
+    metadata:{attractorName:'KXTXR',projectName:'QUE NO',passport:{
+      t0:{status:'DECLARED',description:'Synthetic prepublication reference'},
+      hypotheses:[{id:'H1',status:'PROPOSED'},{id:'H2',status:'PROPOSED'}],
+    }}},
+  {id:'qa-object-2',title:'Dorian · Instagram',session_id:'qa-session-2',
+    metadata:{attractorName:'STUDIO115',projectName:'Dorian'}},
+]);
+assert.ok(nodeProjection.nodes.some(n=>n.kind==='attractor'&&n.label==='KXTXR'));
+assert.ok(nodeProjection.nodes.some(n=>n.kind==='attractor'&&n.label==='STUDIO115'));
+assert.ok(nodeProjection.edges.some(e=>e.from==='attractor:kxtxr'&&e.to==='project:kxtxr:que no'));
+assert.ok(nodeProjection.edges.every(e=>e.canonical===false));
+const kx=nodeProjection.nodes.find(n=>n.sourceObjectId==='qa-object-1');
+assert.ok(kx);
+const kxPassport=kx!.passport as Record<string,any>;
+assert.equal(kxPassport.status,'PARTIAL_RECONSTRUCTION');
+assert.equal(kxPassport.stageEvidence.observedReturn,null);
+assert.equal(kxPassport.stageEvidence.authority,null);
+assert.equal(kxPassport.stageEvidence.winningHypothesis,null);
+assert.equal(kxPassport.outcomeVerified,false);
+const unrelated=studioAttractorProjection([{id:'qa-object-3',title:'KXTXR - no explicit relation',
+  session_id:'qa-unrelated',metadata:{}}]);
+assert.equal(unrelated.nodes.some(n=>n.kind==='attractor'&&n.label==='KXTXR'),false);
+assert.equal(unrelated.edges[0]?.relation,'SESSION_GROUPING');
 
 console.log('PASS · SFI Studio local deliverables: PDF cross-reference, LaTeX, ZIP container, campaign observations and no empirical certification');
 
