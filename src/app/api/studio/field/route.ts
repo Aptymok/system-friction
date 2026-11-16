@@ -46,7 +46,13 @@ export async function POST(request: Request) {
     if (!action || !allowed.includes(action)) return NextResponse.json({ ok: false, error: 'INVALID_FIELD_ACTION' }, { status: 400 });
 
     const requestedSessionId = text(body.sessionId, 80);
-    const resolved = await latestOwnedSession(user.id, requestedSessionId);
+    const createNewSession = action==='create_attractor'&&body.createNewSession===true;
+    if(createNewSession&&requestedSessionId)return NextResponse.json({
+      ok:false,error:'NEW_SESSION_CANNOT_TARGET_EXISTING_SESSION'
+    },{status:400});
+    const resolved = createNewSession
+      ?{db:createServiceSupabaseClient(),row:null as Row|null,error:null}
+      :await latestOwnedSession(user.id, requestedSessionId);
     const db = resolved.db;
     let session = resolved.row;
     const now = new Date().toISOString();
@@ -57,28 +63,43 @@ export async function POST(request: Request) {
     if (!session) {
       const label = text(body.label) ?? 'Atractor';
       const field: StudioFieldMetadata = {
-        version: 'STUDIO_FIELD_V1',
-        attractor: { id: randomUUID(), label, method: 'MOP-H', declaredAt: now, description: text(body.description, 1200) },
-        nodes: [],
-        edges: [],
+        version:'STUDIO_FIELD_V1',
+        attractor:{ id:randomUUID(),label,method:'MOP-H',declaredAt:now,
+          description:text(body.description,1200) },
+        nodes:[],edges:[],
       };
-      const created = await db.from('studio_sessions').insert({
-        title: text(body.sessionTitle) ?? `${label} · Studio Field`,
-        status: 'active',
-        owner_id: user.id,
-        metadata: { source: 'studio_field_v1', field },
-      }).select('*').single();
-      if (created.error || !created.data) return NextResponse.json({ ok: false, error: 'FIELD_CREATE_FAILED', details: created.error?.message }, { status: 503 });
-      session = record(created.data);
-      await db.from('studio_archive_events').insert({
-        session_id: String(session.id), owner_id: user.id, event_type: 'ATTRACTOR_CREATED', label, source: 'studio_field_v1', payload: { nodeId: field.attractor?.id, method: 'MOP-H', epistemicClass: 'DECLARED' },
-      });
-      return NextResponse.json({ ok: true, sessionId: String(session.id), field }, { status: 201 });
+      const created=await db.from('studio_sessions').insert({
+        title:text(body.sessionTitle)??(label+' · Studio Field'),
+        status:'active',owner_id:user.id,
+        metadata:{source:'studio_field_v1',field},
+      }).select('id,metadata').single();
+      if(created.error||!created.data)return NextResponse.json({
+        ok:false,error:'FIELD_CREATE_FAILED'
+      },{status:503});
+      const readback=await db.from('studio_sessions').select('id,metadata')
+        .eq('id',String(created.data.id)).eq('owner_id',user.id).maybeSingle();
+      if(readback.error||!readback.data||!studioFieldMetadataFromUnknown(readback.data.metadata).attractor){
+        return NextResponse.json({ok:false,error:'FIELD_CREATION_READBACK_UNVERIFIED'},{status:503});
+      }
+      const logged=await db.from('studio_archive_events').insert({
+        session_id:String(created.data.id),owner_id:user.id,event_type:'ATTRACTOR_CREATED',
+        label,source:'studio_field_v1',
+        payload:{nodeId:field.attractor.id,method:'MOP-H',epistemicClass:'DECLARED'},
+      }).select('id').maybeSingle();
+      return NextResponse.json({
+        ok:true,sessionId:String(created.data.id),field,
+        persistence:'INDEPENDENTLY_REREAD',
+        auditEventStatus:logged.error?'WRITE_FAILED':'RECORDED_NOT_REREAD',
+        publicationAuthorized:false,
+      },{status:201,headers:{'Cache-Control':'private, no-store'}});
     }
 
     const metadata = record(session.metadata);
     const field = studioFieldMetadataFromUnknown(metadata);
 
+    const pendingEvents:Array<{
+      event_type:string;label:string;source:string;payload:Record<string,unknown>;
+    }>=[];
     if (action === 'create_attractor') {
       if (field.attractor) return NextResponse.json({ ok: false, error: 'ATTRACTOR_ALREADY_EXISTS' }, { status: 409 });
       const label = text(body.label) ?? 'Atractor';
@@ -93,7 +114,8 @@ export async function POST(request: Request) {
       const node: StudioPersistedFieldNode = { id: randomUUID(), kind, label, description: text(body.description, 1200), parentId, x: boundedNumber(body.x, -1, 1), y: boundedNumber(body.y, -1, 1), createdAt: now, updatedAt: now, archivedAt: null };
       field.nodes.push(node);
       field.edges.push({ id: randomUUID(), sourceId: parentId, targetId: node.id, relationType: kind === 'project' ? 'CONTAINS' : 'DERIVED_FROM', createdAt: now });
-      await db.from('studio_archive_events').insert({ session_id: String(session.id), owner_id: user.id, event_type: kind === 'project' ? 'PROJECT_CREATED' : 'NODE_CREATED', label, source: 'studio_field_v1', payload: { nodeId: node.id, parentId } });
+      pendingEvents.push({event_type:kind==='project'?'PROJECT_CREATED':'NODE_CREATED',
+        label,source:'studio_field_v1',payload:{nodeId:node.id,parentId}});
     } else if (action === 'update_node') {
       const nodeId = text(body.nodeId, 80);
       const index = field.nodes.findIndex((item) => item.id === nodeId);
@@ -106,7 +128,8 @@ export async function POST(request: Request) {
       if (!nodeId || index < 0) return NextResponse.json({ ok: false, error: 'NODE_NOT_FOUND' }, { status: 404 });
       field.nodes[index] = { ...field.nodes[index], archivedAt: now, updatedAt: now };
       field.edges = field.edges.filter((edge) => edge.sourceId !== nodeId && edge.targetId !== nodeId);
-      await db.from('studio_archive_events').insert({ session_id: String(session.id), owner_id: user.id, event_type: 'NODE_ARCHIVED', label: field.nodes[index].label, source: 'studio_field_v1', payload: { nodeId } });
+      pendingEvents.push({event_type:'NODE_ARCHIVED',label:field.nodes[index].label,
+        source:'studio_field_v1',payload:{nodeId}});
     } else if (action === 'link_nodes') {
       const sourceId = text(body.sourceId, 80);
       const targetId = text(body.targetId, 80);
@@ -131,9 +154,36 @@ export async function POST(request: Request) {
       await db.from('studio_archive_events').insert({ session_id: String(session.id), object_id: objectId, owner_id: user.id, event_type: 'OBJECT_LINKED_TO_NODE', label: objectId, source: 'studio_field_v1', payload: { nodeId } });
     }
 
-    const updated = await db.from('studio_sessions').update({ metadata: { ...metadata, field }, updated_at: now }).eq('id', String(session.id)).eq('owner_id', user.id);
-    if (updated.error) return NextResponse.json({ ok: false, error: 'FIELD_UPDATE_FAILED', details: updated.error.message }, { status: 503 });
-    return NextResponse.json({ ok: true, sessionId: String(session.id), field });
+    // Optimistic concurrency prevents silently overwriting another editor's field.
+    let mutation=db.from('studio_sessions')
+      .update({metadata:{...metadata,field},updated_at:now})
+      .eq('id',String(session.id)).eq('owner_id',user.id);
+    if(typeof session.updated_at==='string')mutation=mutation.eq('updated_at',session.updated_at);
+    const updated=await mutation.select('id').maybeSingle();
+    if(updated.error)return NextResponse.json({ok:false,error:'FIELD_UPDATE_FAILED'},{status:503});
+    if(!updated.data)return NextResponse.json({ok:false,error:'FIELD_EDIT_CONFLICT'},{status:409});
+    const readback=await db.from('studio_sessions').select('id,metadata')
+      .eq('id',String(session.id)).eq('owner_id',user.id).maybeSingle();
+    if(readback.error||!readback.data)return NextResponse.json({
+      ok:false,error:'FIELD_READBACK_UNAVAILABLE'
+    },{status:503});
+    const persisted=studioFieldMetadataFromUnknown(readback.data.metadata);
+    const intended=JSON.stringify(field),observed=JSON.stringify(persisted);
+    if(intended!==observed)return NextResponse.json({
+      ok:false,error:'FIELD_READBACK_MISMATCH'
+    },{status:503});
+    let archiveEventStatus='NOT_APPLICABLE';
+    if(pendingEvents.length){
+      const insert=await db.from('studio_archive_events').insert(pendingEvents.map(event=>({
+        ...event,session_id:String(session.id),owner_id:user.id,
+      }))).select('id');
+      archiveEventStatus=insert.error?'WRITE_FAILED':'RECORDED_NOT_REREAD';
+    }
+    return NextResponse.json({
+      ok:true,sessionId:String(session.id),field:persisted,
+      persistence:'INDEPENDENTLY_REREAD',archiveEventStatus,
+      publicationAuthorized:false,authorityGranted:false,
+    },{headers:{'Cache-Control':'private, no-store'}});
   } catch (error) {
     return NextResponse.json({ ok: false, error: 'STUDIO_FIELD_FAILED', details: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
