@@ -5,6 +5,7 @@ import StudioAttractorExplorer from '@/components/studio/StudioAttractorExplorer
 import StudioCampaignDesk from '@/components/studio/StudioCampaignDesk';
 import StudioReleaseSequencer from '@/components/studio/StudioReleaseSequencer';
 import StudioFieldEditor from '@/components/studio/StudioFieldEditor';
+import StudioLlmStatus from '@/components/studio/StudioLlmStatus';
 import type { CSSProperties } from 'react';
 import { redirect } from 'next/navigation';
 import { getStudioObjectFeatures, listStudioObjects, listStudioSessions } from '@/lib/studio/production/studioProductionRepository';
@@ -112,6 +113,7 @@ export default async function StudioPage({ searchParams }: { searchParams?: Prom
           </p>
           <StudioFileIntake />
           <StudioDocumentWorkbench />
+          <StudioLlmStatus />
           <StudioFieldEditor objects={objects} sessions={sessions} />
           <StudioAttractorExplorer objects={objects} sessions={sessions} />
           <StudioCampaignDesk objects={objects} sessions={sessions} />
