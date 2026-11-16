@@ -85,6 +85,21 @@ export default function StudioMeasuredContext({documentCount}:{documentCount:num
           {context.world.warnings.length>0?<details><summary style={{fontSize:11,cursor:'pointer'}}>Advertencias del vector mundial</summary><p style={{fontSize:10,overflowWrap:'anywhere'}}>{context.world.warnings.join(' · ')}</p></details>:null}
         </article>
       </div>
+      <div role="img" aria-label="Diagrama de procedencia: documentos cargados, estado sistémico derivado y contexto mundial observado, conectados solo para lectura contextual" style={{...panel,display:'flex',alignItems:'stretch',justifyContent:'center',gap:8,flexWrap:'wrap'}}>
+        {[
+          {title:'DOCUMENTOS',detail:documentCount+' archivos · evidencia textual',state:'DERIVED'},
+          {title:'MIHM SISTÉMICO',detail:availableSystem.length+' métricas · ScoreFriction',state:context.system.status},
+          {title:'ESTADO DEL MUNDO',detail:worldEntries.length+' dominios · World Vector',state:context.world.status},
+        ].map((part,index)=><div key={part.title} style={{display:'flex',alignItems:'center',gap:8,flex:'1 1 190px',minWidth:0}}>
+          {index>0?<span aria-hidden="true" style={{fontSize:15,color:'#a6b8c4'}}>⇢</span>:null}
+          <div style={{minWidth:0,flex:1,border:'1px solid #456177',padding:12,background:'#0a1824'}}>
+            <strong style={{fontSize:12,display:'block'}}>{part.title}</strong>
+            <small style={{display:'block',color:'#aec2cf',marginTop:5}}>{part.detail}</small>
+            <small style={{display:'block',color:'#85aac2',marginTop:6,overflowWrap:'anywhere'}}>{part.state}</small>
+          </div>
+        </div>)}
+        <p style={{flexBasis:'100%',margin:'5px 0 0',fontSize:10,color:'#a8bcc9'}}>Las flechas indican relación de consulta y contextualización, no causalidad, calibración conjunta o enlace de evidencia demostrado.</p>
+      </div>
       <aside style={{...panel,borderLeft:'3px solid #b8a36c'}}>
         <strong style={{fontSize:12}}>Relación documental ↔ sistema ↔ mundo</strong>
         <p style={{fontSize:12,color:'#b6c7d1',lineHeight:1.65,marginBottom:0}}>
