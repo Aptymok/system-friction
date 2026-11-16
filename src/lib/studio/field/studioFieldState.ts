@@ -26,7 +26,7 @@ export type StudioPersistedFieldEdge = {
   id: string;
   sourceId: string;
   targetId: string;
-  relationType: 'CONTAINS' | 'DERIVED_FROM' | 'INFLUENCES' | 'PROJECTS';
+  relationType: 'CONTAINS' | 'DERIVED_FROM' | 'INFLUENCES' | 'PROJECTS' | 'PRECEDES';
   createdAt: string;
 };
 
@@ -106,7 +106,7 @@ function fieldFromMetadata(metadata: unknown): StudioFieldMetadata {
       })).filter((node) => node.id && !node.archivedAt)
     : [];
 
-  const allowedRelations = new Set(['CONTAINS', 'DERIVED_FROM', 'INFLUENCES', 'PROJECTS']);
+  const allowedRelations = new Set(['CONTAINS', 'DERIVED_FROM', 'INFLUENCES', 'PROJECTS', 'PRECEDES']);
   const edges: StudioPersistedFieldEdge[] = Array.isArray(field.edges)
     ? field.edges.map((value) => record(value)).map((edge) => ({
         id: text(edge.id) ?? '',
