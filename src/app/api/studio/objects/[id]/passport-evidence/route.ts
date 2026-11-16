@@ -10,22 +10,41 @@ type Context={params:Promise<{id:string}>};
 type Row=Record<string,unknown>;
 const rec=(v:unknown):Row=>v && typeof v==='object'&&!Array.isArray(v)?v as Row:{};
 const string=(v:unknown)=>typeof v==='string'&&v.trim()?v:null;
+function bounded(value:unknown,max=1200):string|null{
+  const result=string(value);
+  return result?result.slice(0,max):null;
+}
 function publicEvent(row:Row,type:string){
   const payload=rec(row.payload);
-  // Only bounded textual and numeric fields. Never expose stored binaries,
-  // raw private payloads, object paths, access tokens or unreviewed documents.
+  const details=type==='HYPOTHESIS'
+    ?bounded(row.statement,1600)
+    :type==='INTERVENTION'
+      ?bounded(payload.operatorNote,1200)??bounded(row.scope,180)
+      :type==='EVIDENCE'
+        ?bounded(payload.text,1600)??bounded(payload.url,900)
+        :type==='ANALYSIS_JOB'
+          ?bounded(row.reason,800)??bounded(payload.engine,120)
+          :bounded(row.label,800);
+  const measurement=rec(payload.measurement);
+  const observedValue=measurement.value;
+  const numeric=typeof observedValue==='number'&&Number.isFinite(observedValue);
   return {
     id:string(row.id),type,at:string(row.created_at),
     label:string(row.label)??string(row.title)??string(row.statement)??string(row.status)??type,
     source:string(row.source)??string(row.origin)??type,
-    status:string(row.status)??'RECORDED_NOT_VERIFIED',
+    status:string(row.state)??string(row.status)??'RECORDED_NOT_VERIFIED',
+    details,
+    measurement:type==='EVIDENCE'&&
+      (numeric||(typeof observedValue==='string'&&observedValue.length<200))
+        ?{variable:bounded(measurement.variable,100),value:observedValue,unit:bounded(measurement.unit,40)}
+        :null,
     references:{
-      hypothesisId:string(payload.hypothesisId)??string(rec(payload.related).hypothesisId),
+      hypothesisId:string(row.hypothesis_id)??string(payload.hypothesisId)??string(rec(payload.related).hypothesisId),
       interventionId:string(payload.interventionId)??string(rec(payload.related).interventionId),
       evidenceId:string(payload.evidenceId),
     },
     sourceTable:type,
-    contentBoundary:'SUMMARY_NOT_INDEPENDENTLY_VERIFIED',
+    contentBoundary:'ROW_CONTENT_NOT_INDEPENDENTLY_VERIFIED',
   };
 }
 export async function GET(_request:Request,context:Context){
