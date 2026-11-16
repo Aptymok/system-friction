@@ -94,7 +94,6 @@ export default async function MethodLabPage() {
 
   return (
     <>
-      <PersonalCognitiveLabWorkspace intakeOnly />
       {mihmShadow ? (
         <section aria-label="MIHM operational shadow audit" className="mlh-section">
           <header className="mlh-section-head">
@@ -137,8 +136,16 @@ export default async function MethodLabPage() {
           <p>Alcance: últimas 25 observaciones. No certifica una predicción prospectiva, contrafactual ni resultado independiente.</p>
         </section>
       ) : null}
-      <InstitutionalEvidenceInventory inventory={inventory} context="METHOD_LAB" />
       <MethodLabResearchReview research={research} />
+      <details id="lab-new-investigation" style={{maxWidth:1180,margin:'18px auto',padding:'14px 20px',border:'1px solid rgba(104,170,230,.26)',borderRadius:12,color:'#e7edf0',background:'#08111a'}}>
+        <summary style={{cursor:'pointer',fontWeight:600}}>Iniciar una nueva investigación · opcional</summary>
+        <p style={{fontSize:13,opacity:.74}}>Este formulario es exclusivamente para formular una investigación nueva. Puedes consultar los trabajos existentes sin completarlo.</p>
+        <PersonalCognitiveLabWorkspace intakeOnly />
+      </details>
+      <details style={{maxWidth:1500,margin:'18px auto',padding:'14px 20px',border:'1px solid rgba(104,170,230,.15)',borderRadius:12,color:'#e7edf0'}}>
+        <summary style={{cursor:'pointer'}}>Inventario operativo de evidencias</summary>
+        <InstitutionalEvidenceInventory inventory={inventory} context="METHOD_LAB" />
+      </details>
       <MethodLabNativeHub
         initialState={state}
         initialSessions={sessionViews}
