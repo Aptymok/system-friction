@@ -94,7 +94,7 @@ export async function POST(request: Request) {
       const logged=await db.from('studio_archive_events').insert({
         session_id:String(created.data.id),owner_id:user.id,event_type:'ATTRACTOR_CREATED',
         label,source:'studio_field_v1',
-        payload:{nodeId:field.attractor.id,method:'MOP-H',epistemicClass:'DECLARED'},
+        payload:{nodeId:field.attractor?.id ?? '',method:'MOP-H',epistemicClass:'DECLARED'},
       }).select('id').maybeSingle();
       return NextResponse.json({
         ok:true,sessionId:String(created.data.id),field,
