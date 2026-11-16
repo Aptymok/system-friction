@@ -59,8 +59,9 @@ function methodContext(objectType: string, attractorPresent: boolean) {
 }
 
 function verificationProvider(previousProvider: string | null): LlmProviderId {
-  const candidates: LlmProviderId[] = ['openai', 'anthropic', 'gemini', 'groq', 'ollama', 'huggingface'];
-  return candidates.find((provider) => provider !== previousProvider) ?? 'groq';
+  // The two existing provider credentials are the first bounded Studio choices.
+  // Cross-provider independence is about epistemic verification, not price.
+  return previousProvider === 'gemini' ? 'groq' : 'gemini';
 }
 
 function parseFinalResult(raw: string, allowedEvidence: Set<string>): FinalResult | null {
@@ -227,7 +228,7 @@ export async function runStudioCognitiveRuntime(input: { ownerId: string; object
   const agents = selectedAgents(input.action, studio);
   const activeHypothesisPayload = session.activeHypothesis ? record(session.activeHypothesis.payload) : null;
   const hypothesisProvider = text(activeHypothesisPayload?.provider, 80);
-  const preferredProvider: LlmProviderId = input.action === 'verify' ? verificationProvider(hypothesisProvider) : 'groq';
+  const preferredProvider: LlmProviderId = input.action === 'verify' ? verificationProvider(hypothesisProvider) : 'gemini';
   const hasAttractor = studio.metricValues.some((metric) => metric.key === 'V_i' && metric.value !== null) || studio.culturalLens !== null;
   const methods = methodContext(studio.activeObject.type, hasAttractor);
 
@@ -253,6 +254,7 @@ export async function runStudioCognitiveRuntime(input: { ownerId: string; object
       requestedAgents: agents,
       llmAugmentation: true,
       preferredLlmProvider: preferredProvider,
+      studioLlmProviderAllowlist: ['gemini','groq'],
       cognitiveTwinContext: twin,
       sfiMethods: methods,
       studio: {
@@ -309,6 +311,7 @@ export async function runStudioCognitiveRuntime(input: { ownerId: string; object
     prompt: synthesisPrompt,
     fallbackResult: '{"status":"LLM_UNAVAILABLE"}',
     preferredProvider,
+    requirements:{providerAllowlist:['gemini','groq']},
     maxTokens: 1800,
   });
   const allowedEvidence = new Set(evidenceRefs.concat(returnedEvidenceAfterHypothesis.map((row) => String(row.id))));
