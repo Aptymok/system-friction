@@ -32,7 +32,7 @@ export default function StudioReleaseSequencer({objects,sessions}:{objects:Row[]
   const validSelected=orderedIds.filter(id=>candidates.some(n=>n.id===id));
   const [earliest,setEarliest]=useState(dateToday);
   const [spacing,setSpacing]=useState(3);
-  const [scenario,setScenario]=useState<'DECLARED'|'ENERGY_RAMP'|'ENERGY_CONTRAST'>('DECLARED');
+  const [scenario,setScenario]=useState<'DECLARED'|'NARRATIVE_DECLARED'|'ENERGY_RAMP'|'ENERGY_CONTRAST'>('DECLARED');
   const [futureEvents,setFutureEvents]=useState<Array<{title:string;date:string;sourceUrl:string}>>([]);
   const [eventTitle,setEventTitle]=useState('');
   const [eventDate,setEventDate]=useState('');
@@ -119,6 +119,8 @@ export default function StudioReleaseSequencer({objects,sessions}:{objects:Row[]
     try{
       const output=sequenceStudioReleases({
         items,earliestDate:earliest,spacingWeeks:spacing,scenarioId:scenario,worldEvidence,
+        narrativePrecedence:graph.edges.filter(edge=>edge.relation==='PRECEDES')
+          .map(edge=>({from:edge.from,to:edge.to})),
       });
       setResult(output);setResultInputs(inputsKey);
       setMessage('Fechas propuestas con regla de distribución documentada. Sin predicción calibrada de éxito.');
@@ -194,8 +196,9 @@ export default function StudioReleaseSequencer({objects,sessions}:{objects:Row[]
         </label>
         <label style={{display:'grid',gap:5}}>Hipótesis de secuencia
           <select style={ctrl} value={scenario} onChange={e=>
-            setScenario(e.target.value as 'DECLARED'|'ENERGY_RAMP'|'ENERGY_CONTRAST')}>
+            setScenario(e.target.value as 'DECLARED'|'NARRATIVE_DECLARED'|'ENERGY_RAMP'|'ENERGY_CONTRAST')}>
             <option value="DECLARED">Orden declarado</option>
+            <option value="NARRATIVE_DECLARED">Orden desde vínculos PRECEDES registrados</option>
             <option value="ENERGY_RAMP">Progresión de energía medida</option>
             <option value="ENERGY_CONTRAST">Contraste de energía medida</option>
           </select>
