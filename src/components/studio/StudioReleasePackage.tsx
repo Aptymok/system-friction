@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { createReleaseCoverBlob, makeReleaseBrief,
+import { makeReleaseBrief,
   type ReleaseMetrics, type ReleaseDirection, type ReleaseDiscoveryEvidence } from './localReleaseMaterials';
 import { exportPcm24Wav, samplePeak } from './localPcmWavExport';
 import { proposeCampaignVariants } from './localCampaignContrast';
+import { createAllStudioCoverVariants, studioCoverVariantFilename, STUDIO_COVER_VARIANTS } from './localCoverVariations';
 import { makeStudioLocalZip, downloadStudioLocalZip, type StudioLocalZipEntry } from './localZipPackage';
 
 type LocalAnalysis = {
@@ -69,8 +70,8 @@ export default function StudioReleasePackage({original,analysis,metrics,directio
       if(!direction.title.trim() || !direction.artist.trim()) {
         throw new Error('Completa el nombre de la obra y el artista para producir el paquete.');
       }
-      setStatus('Preparando portada y archivos de campaña en memoria…');
-      const cover=await createReleaseCoverBlob(direction,metrics);
+      setStatus('Generando seis portadas independientes y archivos de campaña en memoria…');
+      const covers=await createAllStudioCoverVariants(direction,metrics);
       const campaign=JSON.stringify({
         contract:'SFI-STUDIO-LOCAL-CAMPAIGN-CONTRAST-1.0',
         status:'DRAFT_NOT_PUBLISHED',
@@ -87,7 +88,14 @@ export default function StudioReleasePackage({original,analysis,metrics,directio
       const files:StudioLocalZipEntry[]=[
         {name:'01-analysis/studio-local-analysis.json',data:report},
         {name:'02-editorial/release-brief.txt',data:brief},
-        {name:'03-artwork/cover-proposal-3000.png',data:cover},
+        ...covers.map(cover=>({name:'03-artwork/'+studioCoverVariantFilename(cover.id),data:cover.blob})),
+        {name:'03-artwork/variations.json',data:JSON.stringify({
+          designSystem:'SFI_STUDIO_LOCAL_PROCEDURAL',
+          variants:STUDIO_COVER_VARIANTS.map(item=>({
+            ...item,file:studioCoverVariantFilename(item.id),width:3000,height:3000,
+          })),
+          externallyGenerated:false,originalUploaded:false,publicationAuthorized:false,
+        },null,2)},
         {name:'04-campaign/draft-A-B.json',data:campaign},
       ];
       if(discovery)files.push({name:'04-campaign/public-discovery.json',data:JSON.stringify(discovery,null,2)});
@@ -129,6 +137,8 @@ export default function StudioReleasePackage({original,analysis,metrics,directio
           FAD:'NOT_OBSERVED',MIHM:'NOT_OBSERVED',
           releasePublication:'NOT_AUTHORIZED',audienceEffect:'NOT_OBSERVED',
         },
+        visualProduction:{variantCount:covers.length,variantIds:covers.map(item=>item.id),
+          style:'SIX_DISTINCT_PROCEDURAL_COMPOSITIONS',notAIGenerated:true},
         totalProviderApiCalls:0,
         originalIncludedInArchive:false,
         automaticServerPersistence:false,
@@ -149,7 +159,7 @@ export default function StudioReleasePackage({original,analysis,metrics,directio
   }}>
     <strong>Entrega integral · paquete ZIP privado</strong>
     <p style={{margin:0,fontSize:11,color:'#a9c9bd',lineHeight:1.5}}>
-      Incluye informe medido, expediente, portada PNG, campaña A/B,
+      Incluye informe medido, expediente, seis portadas PNG independientes, campaña A/B,
       fuentes recuperadas si se consultaron y manifiesto SHA-256. Incluye un fragmento WAV únicamente cuando el original está disponible en esta sesión.
       No incluye el máster original. Los documentos son borradores y no autorizan publicación.
     </p>
