@@ -76,6 +76,7 @@ export type CampaignOutput = {
     algorithm:'DATE_CONFLICT_SCREEN_ONLY';
     causalCalibration:'NOT_PERFORMED';
   };
+  planningInputs:CampaignConstraints;
   authority:{publication:'NOT_AUTHORIZED';spending:'NOT_AUTHORIZED';assetGeneration:'REQUIRES_PROVIDER_GATE'};
   proof:{campaignExecuted:false;socialPerformanceObserved:false;winningHypothesis:null;method:'PROPOSAL_ONLY'};
 };
@@ -141,6 +142,8 @@ export function planStudioContinuityCampaign(
   graph:{nodes:StudioAttractorNode[];edges:StudioAttractorEdge[]},
   constraints:CampaignConstraints,
 ):CampaignOutput {
+  const phases=new Set(['PRE_RELEASE','RELEASE','POST_RELEASE','REACTIVATION','TRANSITION']);
+  if(!phases.has(constraints.phase))throw new Error('INVALID_CAMPAIGN_PHASE');
   const anchor=graph.nodes.find(node=>node.id===constraints.anchorId);
   if(!anchor)throw new Error('ATTRACTOR_NODE_NOT_FOUND');
   const weeks=constraints.weeks;
@@ -220,6 +223,12 @@ export function planStudioContinuityCampaign(
       observations,
       algorithm:'DATE_CONFLICT_SCREEN_ONLY',
       causalCalibration:'NOT_PERFORMED',
+    },
+    planningInputs:{
+      anchorId:constraints.anchorId,phase:constraints.phase,startDate:constraints.startDate,
+      weeks,channels,assetFormats:formats,
+      releaseCandidates:candidates,
+      externalObservations:observations,
     },
     authority:{publication:'NOT_AUTHORIZED',spending:'NOT_AUTHORIZED',assetGeneration:'REQUIRES_PROVIDER_GATE'},
     proof:{campaignExecuted:false,socialPerformanceObserved:false,winningHypothesis:null,method:'PROPOSAL_ONLY'},
