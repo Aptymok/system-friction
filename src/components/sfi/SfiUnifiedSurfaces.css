@@ -1,7 +1,7 @@
 /* SFI unified surface system · adapted from Method Lab's dark glass, gold/teal tile grammar.
    Scope: only the explicitly mapped operating surfaces; do not touch the canonical data contracts. */
-html:has([data-sfi-unified-nav]),body:has([data-sfi-unified-nav]){overflow:hidden!important;height:100dvh;min-height:0}
-body:has([data-sfi-unified-nav]) .sfiPageContent{height:100dvh!important;min-height:0!important;max-height:100dvh!important;overflow:hidden!important;margin:0!important;padding:0!important}
+html:has([data-sfi-unified-nav]),body:has([data-sfi-unified-nav]){height:auto!important;min-height:100%;overflow-x:clip!important;overflow-y:auto!important;scrollbar-gutter:stable}
+body:has([data-sfi-unified-nav]) .sfiPageContent{height:auto!important;min-height:100svh!important;max-height:none!important;overflow:visible!important;margin:0!important;padding:0!important}
 body:has([data-sfi-unified-nav]) .sfiGlobalHeader,
 body:has([data-sfi-unified-nav]) .sfiPublicChromeSpacer,
 body:has([data-sfi-unified-nav]) .institutionRail,
@@ -333,3 +333,53 @@ body:has([data-sfi-unified-nav]) .rootReferenceCockpit .rootGovernanceConsole .r
 }
 body:has([data-sfi-unified-nav]) .rootReferenceCockpit .rootGovernanceConsole{overscroll-behavior-x:contain!important}
 body:has([data-sfi-unified-nav]) .rootReferenceCockpit .rootGovernanceHead{z-index:4!important}
+
+
+/* 2026 institutional accessibility correction: native vertical reading is the default.
+   Historic horizontal viewports become bounded, optional subvisualizations. */
+body:has([data-sfi-unified-nav]) :is(.sfiOperatingShell.sfiAuthenticatedViewport,.sfiAuthenticatedViewportContent,.mlh-shell,.rootReferenceCockpit.rootFieldMode.neuralGraphShell){
+  height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;
+}
+body:has([data-sfi-unified-nav]) .mlh-shell .mlh-horizontalTrack{
+  display:flex!important;flex-direction:column!important;height:auto!important;max-height:none!important;
+  overflow-x:clip!important;overflow-y:visible!important;scroll-snap-type:none!important;
+}
+body:has([data-sfi-unified-nav]) .mlh-shell .mlh-horizontalTrack > *{
+  position:relative!important;flex:0 0 auto!important;width:100%!important;
+  max-width:100%!important;min-width:0!important;height:auto!important;max-height:none!important;
+  overflow-x:auto!important;overflow-y:visible!important;scroll-snap-align:none!important;
+}
+body:has([data-sfi-unified-nav]) .rootReferenceCockpit[data-root-visual] .rootHorizontalRail{
+  display:flex!important;flex-direction:column!important;gap:16px!important;
+  height:auto!important;max-height:none!important;overflow-x:clip!important;overflow-y:visible!important;
+  scroll-snap-type:none!important;
+}
+body:has([data-sfi-unified-nav]) .rootReferenceCockpit[data-root-visual] :is(.rootReferenceSidebar,.rootHorizontalGraph,.rootGovernanceConsole){
+  position:relative!important;flex:0 0 auto!important;inset:auto!important;
+  width:100%!important;max-width:100%!important;min-width:0!important;
+  height:auto!important;max-height:none!important;overflow-x:auto!important;
+  overflow-y:visible!important;scroll-snap-align:none!important;
+}
+body:has([data-sfi-unified-nav]) .rootReferenceCockpit[data-root-visual] .rootHorizontalGraph{
+  min-height:min(65svh,720px)!important;overflow:hidden!important;
+}
+body:has([data-sfi-unified-nav]) .rootReferenceCockpit[data-root-visual] .rootReferenceSidebar{
+  column-count:1!important;column-width:auto!important;
+}
+body:has([data-sfi-unified-nav]) .rcThreeMode :is(.rcThreeHorizon,.rcThreeHorizonBottom){
+  height:auto!important;max-height:none!important;overflow-y:visible!important;
+  scroll-snap-type:none!important;
+}
+body:has([data-sfi-unified-nav]) .rcThreeMode .rcThreeHorizonBottom{
+  display:grid!important;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr))!important;
+  overflow-x:visible!important;
+}
+body:has([data-sfi-unified-nav]) .sfiUnifiedTimelineTrack .sfiTemporalMain{
+  display:grid!important;grid-template-columns:minmax(0,1fr)!important;overflow-x:visible!important;
+}
+@media(max-width:820px){
+  body:has([data-sfi-unified-nav]) .rootReferenceCockpit[data-root-visual] .rootHorizontalRail{
+    flex-direction:column!important;overflow-x:clip!important;overflow-y:visible!important;
+  }
+  body:has([data-sfi-unified-nav]) .rcThreeMode .rcThreeHorizonBottom{grid-template-columns:minmax(0,1fr)!important}
+}
