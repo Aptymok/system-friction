@@ -56,7 +56,9 @@ export function studioAttractorProjection(objects:Row[], sessions:Row[]=[]):{nod
     const field=rec(rec(session.metadata).field);
     const root=rec(field.attractor);
     const declaredAttractorId=s(root.id);
-    const sessionRootId='field-attractor:'+sessionId;
+    // Share a center only when the same persisted attractor ID is reused across sessions.
+    // Matching names alone never merges distinct authorities or project histories.
+    const sessionRootId=declaredAttractorId?'field-attractor:'+declaredAttractorId:'field-attractor-session:'+sessionId;
     const localNodes=Array.isArray(field.nodes)?field.nodes.filter((x):x is Row=>x!==null&&typeof x==='object'&&!Array.isArray(x)).slice(0,150):[];
     const localEdges=Array.isArray(field.edges)?field.edges.filter((x):x is Row=>x!==null&&typeof x==='object'&&!Array.isArray(x)).slice(0,300):[];
     const scoped=new Map<string,string>();
