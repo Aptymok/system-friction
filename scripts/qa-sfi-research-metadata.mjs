@@ -196,6 +196,16 @@ assert(researchReader.includes('no localizada en el inventario parcial'), 'missi
 assert(researchReader.includes('DOI: NO VERIFICADO EN ESTE REGISTRO'), 'research reader must not infer a DOI from publication status');
 assert(researchReader.includes('finding.evidenceRefs'), 'per-finding source identity must be inspectable');
 assert(!researchReader.includes('objectProgress('), 'publication labels must not fabricate completed Reality Chain stages');
+
+const repositoryPage = read('src/app/repository/page.tsx');
+const repositoryReader = read('src/app/repository/RepositoryConsole.tsx');
+assert(methodLabPage.includes('canonicalPublicationDisposition(record).disposition === \'PUBLISH\''), 'Lab may only resolve public links through the governed canonical allowlist');
+assert(methodLabPage.includes('publicRepositoryObjects={publicRepositoryObjects}'), 'Lab research reader must receive the public allowlist');
+assert(researchReader.includes('record.id === selected.objectId'), 'research-to-repository linking must require exact canonical object identity');
+assert(researchReader.includes('Sin correspondencia pública explícita'), 'unmatched research must not invent public entries');
+assert(repositoryPage.includes("canonicalPublicationDisposition(record).disposition==='PUBLISH'"), 'Repository must remain public-only');
+assert(repositoryReader.includes('LABORATORIO · ACCESO INTERNO'), 'Repository should expose navigational access without public Lab data');
+
 assert(methodLabPage.includes('evidenceInventory={evidence.options}'), 'Method Lab must use its actual governed evidence read projection');
 assert(methodLabPage.includes('Iniciar una nueva investigación · opcional'), 'research browsing must not require form intake');
 assert(researchSource.includes('sourceOfTruth: \'METHOD_LAB_EVENT_LEDGER\''), 'reader must use existing canonical research ledger');
