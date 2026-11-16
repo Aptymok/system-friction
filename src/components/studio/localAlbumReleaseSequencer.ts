@@ -120,9 +120,10 @@ export function sequenceStudioReleases(input:{
   const scenario=scenarios.find(s=>s.id===(input.scenarioId??'DECLARED'));
   if(!scenario||!scenario.available)throw new Error('SELECTED_SEQUENCE_SCENARIO_UNSUPPORTED_BY_MEASUREMENTS');
   const byId=new Map(items.map(item=>[item.id,item]));
-  // Starting at least 7 days after earliest planning date allows a Spotify
-  // artist to prepare an eligible pitch. It does not guarantee editorial placement.
-  const first=nextFriday(begin+7*DAY);
+  // Three-week pre-release phase must not start before the planning date.
+  // This also exceeds the seven-day Spotify pitch lead when planned on time.
+  // Neither Friday nor this gap is a calibrated audience-performance optimum.
+  const first=nextFriday(begin+21*DAY);
   const events=(input.worldEvidence??[]).filter(event=>
     event.observationKind==='DATED_FUTURE_EVENT'&&event.eventDate&&event.sourceUrl.startsWith('https://'));
   const schedule=scenario.order.map((id,index)=>{
