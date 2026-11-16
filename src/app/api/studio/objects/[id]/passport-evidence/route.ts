@@ -50,7 +50,7 @@ function publicEvent(row:Row,type:string){
 export async function GET(_request:Request,context:Context){
   const {id}=await context.params;
   try{
-    const {user}=await requireObjectOwner(id);
+    await requireObjectOwner(id);
     const db=createServiceSupabaseClient();
     const tables=[
       {name:'studio_evidence_traces',kind:'EVIDENCE'},
