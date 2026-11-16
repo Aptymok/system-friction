@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { MethodLabNativeHub } from '@/components/sfi/MethodLabNativeHub';
 import { MethodLabResearchReview } from '@/components/sfi/MethodLabResearchReview';
 import { readMethodLabResearchState } from '@/lib/method-lab/researchObjects';
+import { SFI_CANONICAL_OBJECT_REGISTRY, canonicalPublicationDisposition } from '@/lib/discovery/canonicalObjectRegistry';
 import { PersonalCognitiveLabWorkspace } from '@/components/sfi/PersonalCognitiveLabWorkspace';
 import { MethodLabExperimentWorkbench } from '@/components/sfi/MethodLabExperimentWorkbench';
 import { readMethodLabState } from '@/lib/method-lab/readModel';
@@ -64,6 +65,11 @@ export default async function MethodLabPage() {
     readInstitutionalEvidenceInventory(12),
     readMethodLabResearchState(),
   ]);
+
+  // Link only explicitly public canonical records; never project private Method Lab data into Repository.
+  const publicRepositoryObjects = SFI_CANONICAL_OBJECT_REGISTRY
+    .filter(record => canonicalPublicationDisposition(record).disposition === 'PUBLISH')
+    .map(record => ({ id: record.id, slug: record.slug, title: record.title }));
 
   const sessionViews = await Promise.all((sessions as Row[]).map(async (session) => {
     const id = text(session.id);
@@ -136,7 +142,7 @@ export default async function MethodLabPage() {
           <p>Alcance: últimas 25 observaciones. No certifica una predicción prospectiva, contrafactual ni resultado independiente.</p>
         </section>
       ) : null}
-      <MethodLabResearchReview research={research} evidenceInventory={evidence.options} />
+      <MethodLabResearchReview research={research} evidenceInventory={evidence.options} publicRepositoryObjects={publicRepositoryObjects} />
       <details id="lab-new-investigation" style={{maxWidth:1180,margin:'18px auto',padding:'14px 20px',border:'1px solid rgba(104,170,230,.26)',borderRadius:12,color:'#e7edf0',background:'#08111a'}}>
         <summary style={{cursor:'pointer',fontWeight:600}}>Iniciar una nueva investigación · opcional</summary>
         <p style={{fontSize:13,opacity:.74}}>Este formulario es exclusivamente para formular una investigación nueva. Puedes consultar los trabajos existentes sin completarlo.</p>
