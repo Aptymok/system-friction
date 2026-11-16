@@ -158,9 +158,9 @@ export default function StudioCampaignDesk({objects,sessions}:{objects:Row[];ses
   }
   function build(){
     setPlan(null);setPlanSessionId('');setArchivedPlanId(null);
-    const sources=(world?.observations??[]).slice(0,30).filter(x=>x.observedAt&&x.sourceUrl);
+    const sources=(world?.observations??[]).slice(0,12).filter(x=>x.observedAt&&x.sourceUrl);
     const observations:CampaignEvidenceInput[]=sources.map(source=>({
-      sourceUrl:source.sourceUrl,sourceTitle:source.title||'Fuente sin título',
+      sourceUrl:source.sourceUrl,sourceTitle:(source.title||'Fuente sin título').slice(0,180),
       observedAt:source.observedAt,relevance:'UNKNOWN',
       relevanceRationale:'Indexación pública: relevancia cultural no adjudicada',
       observationKind:'PAST_SIGNAL',
@@ -179,7 +179,7 @@ export default function StudioCampaignDesk({objects,sessions}:{objects:Row[];ses
     }catch(error){setStatus('Plan no generado: '+(error instanceof Error?error.message:String(error)));}
   }
   async function save(){
-    if(!plan||saving||planSessionId!==selectedSessionId)return;
+    if(!plan||saving||planSessionId!==selectedSessionId||planInputsKey!==currentInputsKey||!plan.planningInputs)return;
     setSaving(true);
     try{
       const constraint:CampaignConstraints=plan.planningInputs;
@@ -362,8 +362,22 @@ export default function StudioCampaignDesk({objects,sessions}:{objects:Row[];ses
       {history.length>0&&<div style={{display:'grid',gap:6}}>
         <strong>Expedientes de campaña persistidos</strong>
         {history.map(entry=><button key={entry.id} type="button"
-          onClick={()=>{if(entry.plan){setPlan(entry.plan);setPlanSessionId(selectedSessionId);setPlanInputsKey(currentInputsKey);setArchivedPlanId(entry.id);
-            setStatus('Expediente recuperado de Studio, propuesta histórica sin publicar.');}}}
+          onClick={()=>{
+            if(!entry.plan?.planningInputs){
+              setStatus('Este expediente histórico no incluye el contrato de entradas necesario para restaurarlo.');
+              return;
+            }
+            const h=entry.plan.planningInputs;
+            setAnchorId(h.anchorId);setPhase(h.phase);setStartDate(h.startDate);
+            setWeeks(h.weeks);setChannels(h.channels);setFormats(h.assetFormats);
+            const value=(h.releaseCandidates??[]).join(', ');
+            setCandidates(value);setWorld(null);
+            setPlan(entry.plan);setPlanSessionId(selectedSessionId);
+            setPlanInputsKey(JSON.stringify([selectedSessionId,h.anchorId,h.phase,h.startDate,
+              h.weeks,h.channels,h.assetFormats,value,null]));
+            setArchivedPlanId(entry.id);
+            setStatus('Expediente recuperado de Studio con sus restricciones originales. Sin publicación ejecutada.');
+          }}
           style={{...btn,textAlign:'left'}}>
           {entry.createdAt} · {entry.plan?.anchor.title??'Sin plan legible'} ·
           {' '+(entry.plan?.phase??'desconocida')}
