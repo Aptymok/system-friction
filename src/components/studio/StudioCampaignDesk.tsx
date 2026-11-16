@@ -185,7 +185,7 @@ export default function StudioCampaignDesk({objects,sessions}:{objects:Row[];ses
       const constraint:CampaignConstraints=plan.planningInputs;
       const response=await fetch('/api/studio/campaign/plans',{
         method:'POST',headers:{'content-type':'application/json'},
-        body:JSON.stringify({sessionId:planSessionId,constraints}),
+        body:JSON.stringify({sessionId:planSessionId,constraints:constraint}),
       });
       const result=await response.json() as {ok:boolean;archivedEventId?:string;archiveReadback?:string;error?:string};
       if(!response.ok||!result.ok||result.archiveReadback!=='VERIFIED_PERSISTED'){
