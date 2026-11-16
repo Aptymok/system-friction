@@ -56,12 +56,20 @@ export async function POST(request:Request) {
     let plan:ReturnType<typeof planStudioContinuityCampaign>;
     try{plan=planStudioContinuityCampaign(graph,constraints as unknown as CampaignConstraints);}
     catch(error){return NextResponse.json({ok:false,error:error instanceof Error?error.message:'INVALID_PLAN'},{status:400});}
+    const direct=graph.nodes.find(node=>node.id===plan.anchor.id);
+    const attached=direct?.sourceObjectId?[direct.sourceObjectId]:
+      graph.nodes.filter(node=>node.parentId===plan.anchor.id&&node.sourceObjectId)
+        .map(node=>node.sourceObjectId!);
+    // Bind archive events to an object only when that relationship is unambiguous.
+    const linkedObjectId=attached.length===1?attached[0]:null;
     const archived=await db.from('studio_archive_events').insert({
-      owner_id:user.id,session_id:sessionId,object_id:null,
+      owner_id:user.id,session_id:sessionId,object_id:linkedObjectId,
       event_type:'STUDIO_CAMPAIGN_PLAN_PROPOSED',
       label:'Propuesta de campaña · '+plan.anchor.title.slice(0,90),
       source:'studio_continuity_campaign_v1',
       payload:{plan,
+        fieldAnchorId:plan.anchor.id,
+        linkedObjectId,
         producer:'DETERMINISTIC_CAMPAIGN_PLANNER',
         status:'PROPOSED_NOT_EXECUTED',
         authorityGranted:false,
