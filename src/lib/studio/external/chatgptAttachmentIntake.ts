@@ -181,16 +181,32 @@ export async function ingestAndAnalyzeChatGptAudioAttachment(input: { ownerId: s
   // Validate the target under the OAuth-bound owner BEFORE resolving an
   // attachment identity; no unauthorized cross-session identifier leakage.
   const placement = await verifyAttachmentPlacement(input.ownerId, input.sessionId, input.fieldNodeId);
-  const existing = await resolveExistingIntake(input.ownerId, ref.id);
-  if (existing.state !== 'NONE') await verifyExistingPlacement(input.ownerId, existing, placement);
-  if (existing.state === 'STORED') return analyzeStoredRetry(existing, ref, analysisAuthorization, input.force === true, input.ownerId);
-  if (existing.state === 'PENDING') throw new StudioMultimodalError('OPENAI_FILE_INTAKE_CONFLICT', 'This ChatGPT attachment already has an owner-scoped intake reservation that is still in progress.', 409, { objectId: existing.objectId, openaiFileId: ref.id });
-
   const expectedSha256 = text(input.expectedSha256).toLowerCase();
   if (expectedSha256 && !/^[0-9a-f]{64}$/.test(expectedSha256)) {
     throw new StudioMultimodalError('OPENAI_FILE_EVIDENCE_CONFLICT',
       'The supplied expected SHA-256 is not a complete 64-character digest.', 400);
   }
+  const existing = await resolveExistingIntake(input.ownerId, ref.id);
+  if (existing.state !== 'NONE') await verifyExistingPlacement(input.ownerId, existing, placement);
+  if (existing.state === 'STORED') {
+    if (expectedSha256) {
+      const db = createServiceSupabaseClient();
+      const check = await db.from('studio_objects').select('metadata')
+        .eq('id', existing.objectId).eq('owner_id', input.ownerId).maybeSingle();
+      if (check.error || !check.data) {
+        throw new StudioMultimodalError('PERSISTENCE_FAILED',
+          'Existing file identity could not be independently checked.', 503);
+      }
+      const previouslyObserved = text(row(row(check.data.metadata).externalIntake).checksumSha256);
+      if (!previouslyObserved || previouslyObserved.toLowerCase() !== expectedSha256) {
+        throw new StudioMultimodalError('OPENAI_FILE_EVIDENCE_CONFLICT',
+          'Previously ingested file has no matching verified SHA-256. Cannot reuse it as this source.', 409);
+      }
+    }
+    return analyzeStoredRetry(existing, ref, analysisAuthorization, input.force === true, input.ownerId);
+  }
+  if (existing.state === 'PENDING') throw new StudioMultimodalError('OPENAI_FILE_INTAKE_CONFLICT', 'This ChatGPT attachment already has an owner-scoped intake reservation that is still in progress.', 409, { objectId: existing.objectId, openaiFileId: ref.id });
+
   const bytes = await downloadBoundedAttachment(ref);
   const observedSha256 = createHash('sha256').update(bytes).digest('hex');
   if (expectedSha256 && observedSha256 !== expectedSha256) {
