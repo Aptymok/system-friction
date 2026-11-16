@@ -63,9 +63,12 @@ export async function POST(request:Request){
     const measurements=new Map<string,number>();
     for(const row of acoustic?.data??[]){
       const id=String(row.object_id);
-      const rms=typeof row.rms==='number'?row.rms:NaN;
-      if(!measurements.has(id)&&Number.isFinite(rms)&&rms>=0&&rms<=1){
-        measurements.set(id,Number(rms.toFixed(6)));
+      const rmsDbfs=typeof row.rms==='number'?row.rms:NaN;
+      // Existing audioPersistence stores RMS in dBFS, not a linear 0–1 value.
+      const energyProxy=Number.isFinite(rmsDbfs)&&rmsDbfs<=0&&rmsDbfs>=-120
+        ?Math.pow(10,rmsDbfs/10):NaN; // squared normalized RMS amplitude (mean-square proxy)
+      if(!measurements.has(id)&&Number.isFinite(energyProxy)&&energyProxy>=0&&energyProxy<=1){
+        measurements.set(id,Number(energyProxy.toFixed(6)));
       }
     }
     const unique=new Set<string>();
