@@ -72,9 +72,10 @@ export async function POST(request: Request) {
 
     if (!session) {
       const label = text(body.label) ?? 'Atractor';
+      const attractorId = randomUUID();
       const field: StudioFieldMetadata = {
         version:'STUDIO_FIELD_V1',
-        attractor:{ id:randomUUID(),label,method:'MOP-H',declaredAt:now,
+        attractor:{ id:attractorId,label,method:'MOP-H',declaredAt:now,
           description:text(body.description,1200) },
         nodes:[],edges:[],
       };
@@ -94,7 +95,7 @@ export async function POST(request: Request) {
       const logged=await db.from('studio_archive_events').insert({
         session_id:String(created.data.id),owner_id:user.id,event_type:'ATTRACTOR_CREATED',
         label,source:'studio_field_v1',
-        payload:{nodeId:field.attractor?.id ?? '',method:'MOP-H',epistemicClass:'DECLARED'},
+        payload:{nodeId:attractorId,method:'MOP-H',epistemicClass:'DECLARED'},
       }).select('id').maybeSingle();
       return NextResponse.json({
         ok:true,sessionId:String(created.data.id),field,
