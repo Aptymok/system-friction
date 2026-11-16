@@ -2,6 +2,7 @@
 
 import { useMemo,useState } from 'react';
 import { studioAttractorProjection } from './studioAttractorProjection';
+import StudioCampaignReturnPanel from './StudioCampaignReturnPanel';
 import {
   planStudioContinuityCampaign,
   type CampaignChannel,type CampaignConstraints,type CampaignPhase,type CampaignOutput,
@@ -114,8 +115,11 @@ export default function StudioCampaignDesk({objects,sessions}:{objects:Row[];ses
   const [candidates,setCandidates]=useState('');
   const [world,setWorld]=useState<WorldRead|null>(null);
   const [worldBusy,setWorldBusy]=useState(false);
+  const currentInputsKey=JSON.stringify([selectedSessionId,selectedAnchorId,phase,startDate,weeks,channels,formats,candidates,world?.retrievedAt]);
   const [plan,setPlan]=useState<CampaignOutput|null>(null);
   const [planSessionId,setPlanSessionId]=useState('');
+  const [archivedPlanId,setArchivedPlanId]=useState<string|null>(null);
+  const [planInputsKey,setPlanInputsKey]=useState('');
   const [status,setStatus]=useState('');
   const [saving,setSaving]=useState(false);
   const [history,setHistory]=useState<Array<{id:string;createdAt:string;plan:CampaignOutput|null}>>([]);
@@ -153,7 +157,7 @@ export default function StudioCampaignDesk({objects,sessions}:{objects:Row[];ses
     finally{setWorldBusy(false);}
   }
   function build(){
-    setPlan(null);setPlanSessionId('');
+    setPlan(null);setPlanSessionId('');setArchivedPlanId(null);
     const sources=(world?.observations??[]).slice(0,30).filter(x=>x.observedAt&&x.sourceUrl);
     const observations:CampaignEvidenceInput[]=sources.map(source=>({
       sourceUrl:source.sourceUrl,sourceTitle:source.title||'Fuente sin título',
@@ -170,7 +174,7 @@ export default function StudioCampaignDesk({objects,sessions}:{objects:Row[];ses
       const session=sessions.find(s=>s.id===selectedSessionId);
       const local=studioAttractorProjection(objects.filter(o=>o.session_id===selectedSessionId),session?[session]:[]);
       const result=planStudioContinuityCampaign(local,constraint);
-      setPlan(result);setPlanSessionId(selectedSessionId);
+      setPlan(result);setPlanSessionId(selectedSessionId);setPlanInputsKey(currentInputsKey);
       setStatus(result.schedule.length+' piezas propuestas. Sin ejecución, publicación ni costos de proveedor.');
     }catch(error){setStatus('Plan no generado: '+(error instanceof Error?error.message:String(error)));}
   }
@@ -178,14 +182,7 @@ export default function StudioCampaignDesk({objects,sessions}:{objects:Row[];ses
     if(!plan||saving||planSessionId!==selectedSessionId)return;
     setSaving(true);
     try{
-      const constraint:CampaignConstraints={
-        anchorId:plan.anchor.id,phase:plan.phase,startDate:plan.timeWindow.start,
-        weeks:plan.timeWindow.weeks,
-        channels:[...new Set(plan.schedule.map(s=>s.channel))],
-        assetFormats:[...new Set(plan.schedule.map(s=>s.format))],
-        releaseCandidates:plan.releaseWindows.map(s=>s.date),
-        externalObservations:plan.evidence.observations,
-      };
+      const constraint:CampaignConstraints=plan.planningInputs;
       const response=await fetch('/api/studio/campaign/plans',{
         method:'POST',headers:{'content-type':'application/json'},
         body:JSON.stringify({sessionId:planSessionId,constraints}),
@@ -194,6 +191,7 @@ export default function StudioCampaignDesk({objects,sessions}:{objects:Row[];ses
       if(!response.ok||!result.ok||result.archiveReadback!=='VERIFIED_PERSISTED'){
         throw new Error(result.error??'ARCHIVE_READBACK_UNVERIFIED');
       }
+      setArchivedPlanId(result.archivedEventId??null);
       setStatus('Plan guardado y releído del archivo de Studio: '+result.archivedEventId+'. Sin publicación ejecutada.');
       await loadHistory();
     }catch(error){setStatus('No se verificó persistencia: '+(error instanceof Error?error.message:String(error)));}
@@ -215,7 +213,7 @@ export default function StudioCampaignDesk({objects,sessions}:{objects:Row[];ses
     color:'#e8f6fc',fontSize:12} as const;
   const btn={padding:'10px 12px',background:'#23526a',border:'1px solid #669aba',
     color:'#e8f6fc',cursor:'pointer',fontSize:12} as const;
-  const validPlan=plan!==null&&planSessionId===selectedSessionId;
+  const validPlan=plan!==null&&planSessionId===selectedSessionId&&planInputsKey===currentInputsKey;
   return <section style={{padding:16,border:'1px solid rgba(144,205,233,.34)',
     background:'rgba(15,34,50,.35)',display:'grid',gap:13}}>
     <span style={{fontSize:11,color:'#8bc9e5',letterSpacing:'.15em'}}>
@@ -359,10 +357,12 @@ export default function StudioCampaignDesk({objects,sessions}:{objects:Row[];ses
             disabled={saving} onClick={save}>{saving?'GUARDANDO…':'GUARDAR PLAN EN STUDIO'}</button>
         </div>
       </>}
+      {validPlan&&<StudioCampaignReturnPanel sessionId={selectedSessionId}
+        planEventId={archivedPlanId}/>}
       {history.length>0&&<div style={{display:'grid',gap:6}}>
         <strong>Expedientes de campaña persistidos</strong>
         {history.map(entry=><button key={entry.id} type="button"
-          onClick={()=>{if(entry.plan){setPlan(entry.plan);setPlanSessionId(selectedSessionId);
+          onClick={()=>{if(entry.plan){setPlan(entry.plan);setPlanSessionId(selectedSessionId);setPlanInputsKey(currentInputsKey);setArchivedPlanId(entry.id);
             setStatus('Expediente recuperado de Studio, propuesta histórica sin publicar.');}}}
           style={{...btn,textAlign:'left'}}>
           {entry.createdAt} · {entry.plan?.anchor.title??'Sin plan legible'} ·
