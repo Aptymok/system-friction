@@ -18,9 +18,9 @@ function details(v:unknown):string{
   if(v===null||v===undefined)return 'NO OBSERVADO';
   return typeof v==='string'?v:JSON.stringify(v,null,2)??'NO OBSERVADO';
 }
-export default function StudioAttractorExplorer({objects}:{objects:Row[]}){
-  const graph=useMemo(()=>studioAttractorProjection(objects),[objects]);
-  const roots=graph.nodes.filter(x=>x.kind==='attractor'||(x.kind==='project'&&!x.parentId));
+export default function StudioAttractorExplorer({objects,sessions}:{objects:Row[];sessions:Row[]}){
+  const graph=useMemo(()=>studioAttractorProjection(objects,sessions),[objects,sessions]);
+  const roots=graph.nodes.filter(x=>x.kind==='attractor'||(!x.parentId&&(x.kind==='project'||x.kind==='node'||x.kind==='object')));
   const [rootId,setRootId]=useState('');
   const selectedRoot=roots.some(x=>x.id===rootId)?rootId:roots[0]?.id??'';
   const visible=useMemo(()=>{
@@ -52,7 +52,7 @@ export default function StudioAttractorExplorer({objects}:{objects:Row[]}){
     <div style={{fontSize:11,letterSpacing:'.15em',color:'#86cef3'}}>STUDIO · MAPA DE ATRACTORES Y PASAPORTES</div>
     <h2 style={{margin:0,fontSize:24,fontWeight:450}}>Centro → proyecto → objeto → evidencia</h2>
     <p style={{fontSize:12,color:'#a9becb',margin:0,lineHeight:1.6}}>
-      Visualización de objetos realmente asociados a tu identidad. Las relaciones se muestran sólo cuando
+      Visualización de objetos y campos de sesión realmente asociados a tu identidad. Las relaciones se muestran sólo cuando
       la sesión o los metadatos persistidos identifican su vínculo. La conexión visual no certifica
       causalidad, autoridad, resultados científicos ni un RETURN.
     </p>
