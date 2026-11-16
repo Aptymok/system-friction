@@ -142,16 +142,58 @@ export async function POST(request: Request) {
       if (!edgeId) return NextResponse.json({ ok: false, error: 'EDGE_ID_REQUIRED' }, { status: 400 });
       field.edges = field.edges.filter((edge) => edge.id !== edgeId);
     } else if (action === 'attach_object') {
-      const objectId = text(body.objectId, 80);
-      const nodeId = text(body.nodeId, 80);
-      const known = new Set([field.attractor?.id, ...field.nodes.map((node) => node.id)].filter((item): item is string => Boolean(item)));
-      if (!objectId || !nodeId || !known.has(nodeId)) return NextResponse.json({ ok: false, error: 'INVALID_OBJECT_NODE_LINK' }, { status: 400 });
-      const objectResult = await db.from('studio_objects').select('id,metadata').eq('id', objectId).eq('session_id', String(session.id)).eq('owner_id', user.id).maybeSingle();
-      if (objectResult.error || !objectResult.data) return NextResponse.json({ ok: false, error: 'OBJECT_NOT_FOUND' }, { status: 404 });
-      const objectMetadata = record(objectResult.data.metadata);
-      const objectUpdate = await db.from('studio_objects').update({ metadata: { ...objectMetadata, fieldNodeId: nodeId }, updated_at: now }).eq('id', objectId);
-      if (objectUpdate.error) return NextResponse.json({ ok: false, error: 'OBJECT_LINK_FAILED', details: objectUpdate.error.message }, { status: 503 });
-      await db.from('studio_archive_events').insert({ session_id: String(session.id), object_id: objectId, owner_id: user.id, event_type: 'OBJECT_LINKED_TO_NODE', label: objectId, source: 'studio_field_v1', payload: { nodeId } });
+      const objectId=text(body.objectId,80);
+      const nodeId=text(body.nodeId,80);
+      const known=new Set([field.attractor?.id,
+        ...field.nodes.filter(n=>!n.archivedAt).map(node=>node.id)]
+        .filter((item):item is string=>Boolean(item)));
+      if(!objectId||!nodeId||!known.has(nodeId)){
+        return NextResponse.json({ok:false,error:'INVALID_OBJECT_NODE_LINK'},{status:400});
+      }
+      // An object attachment changes only studio_objects. Do not rewrite an
+      // unrelated session revision or log an event before a successful update.
+      const objectResult=await db.from('studio_objects')
+        .select('id,metadata,updated_at')
+        .eq('id',objectId).eq('session_id',String(session.id))
+        .eq('owner_id',user.id).maybeSingle();
+      if(objectResult.error||!objectResult.data){
+        return NextResponse.json({ok:false,error:'OBJECT_NOT_IN_OWNED_SESSION'},{status:403});
+      }
+      const previous=record(objectResult.data.metadata);
+      const unchanged=previous.fieldNodeId===nodeId;
+      if(!unchanged){
+        let update=db.from('studio_objects')
+          .update({metadata:{...previous,fieldNodeId:nodeId},updated_at:now})
+          .eq('id',objectId).eq('session_id',String(session.id))
+          .eq('owner_id',user.id);
+        if(typeof objectResult.data.updated_at==='string'){
+          update=update.eq('updated_at',objectResult.data.updated_at);
+        }
+        const response=await update.select('id').maybeSingle();
+        if(response.error)return NextResponse.json({ok:false,error:'OBJECT_LINK_FAILED'},{status:503});
+        if(!response.data)return NextResponse.json({ok:false,error:'OBJECT_LINK_CONFLICT'},{status:409});
+      }
+      const readback=await db.from('studio_objects').select('id,metadata')
+        .eq('id',objectId).eq('owner_id',user.id)
+        .eq('session_id',String(session.id)).maybeSingle();
+      if(readback.error||record(readback.data?.metadata).fieldNodeId!==nodeId){
+        return NextResponse.json({ok:false,error:'OBJECT_LINK_READBACK_UNVERIFIED'},{status:503});
+      }
+      let eventStatus='NOT_APPLICABLE';
+      if(!unchanged){
+        const event=await db.from('studio_archive_events').insert({
+          session_id:String(session.id),object_id:objectId,owner_id:user.id,
+          event_type:'OBJECT_LINKED_TO_NODE',label:objectId,source:'studio_field_v1',
+          payload:{nodeId,epistemicClass:'DECLARED',source:'OWNER_SCOPED_FIELD_LINK'},
+        }).select('id').maybeSingle();
+        eventStatus=event.error?'WRITE_FAILED':'RECORDED_NOT_REREAD';
+      }
+      return NextResponse.json({
+        ok:true,sessionId:String(session.id),field,
+        persistence:'INDEPENDENTLY_REREAD',
+        archiveEventStatus:eventStatus,
+        objectLinked:true,publicationAuthorized:false,authorityGranted:false,
+      },{headers:{'Cache-Control':'private, no-store'}});
     }
 
     // Optimistic concurrency prevents silently overwriting another editor's field.
