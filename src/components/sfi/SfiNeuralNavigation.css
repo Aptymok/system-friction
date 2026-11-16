@@ -72,3 +72,23 @@
   .sfiNeuralRadialDetail .sfiNeuralLinks{grid-auto-columns:minmax(132px,1fr);grid-template-rows:repeat(3,minmax(85px,1fr))}
 }
 @media(prefers-reduced-motion:reduce){.sfiNeuralRingLink,.sfiNeuralActiveConnection{animation:none!important}.sfiNeuralOrbitNode{transition:none!important}}
+
+
+/* SFI 2026 navigation revision: readable section links first; network map optional. */
+.sfiNeuralNavigation{left:clamp(10px,2vw,28px)!important;right:clamp(10px,2vw,28px)!important;display:flex;align-items:center;justify-content:space-between;gap:10px;max-width:none!important}
+.sfiInstitutionalQuickNav{display:flex;align-items:center;justify-content:flex-start;flex-wrap:wrap;gap:3px 6px;min-width:0;padding:7px 10px;background:rgba(6,12,15,.97);border:1px solid rgba(194,162,101,.36);box-shadow:0 5px 22px #0008}
+.sfiInstitutionalQuickNav a{color:#dfd6c6;font:600 12px/1.3 var(--sfi-screen,"Noto Sans",sans-serif);padding:8px 9px;text-decoration:none;border-bottom:2px solid transparent;white-space:nowrap}
+.sfiInstitutionalQuickNav a:hover,.sfiInstitutionalQuickNav a:focus-visible,.sfiInstitutionalQuickNav a[aria-current="page"]{color:#f9e3b4;border-bottom-color:#c8a951;background:rgba(215,173,105,.08)}
+.sfiNeuralTrigger{min-width:90px;justify-content:center;min-height:52px;gap:5px!important;padding:5px 10px!important}
+.sfiNeuralTrigger img{width:31px;height:31px}
+.sfiNeuralTriggerLabel{display:inline-block!important;white-space:nowrap;color:#e0c99a;font:600 11px var(--sfi-screen,"Noto Sans",sans-serif)!important}
+.sfiNeuralOverlay{top:59px}
+@media(max-width:760px){
+ .sfiNeuralNavigation{align-items:flex-start;top:4px!important;left:5px!important;right:5px!important}
+ .sfiInstitutionalQuickNav{padding:4px;flex:1;gap:0}
+ .sfiInstitutionalQuickNav a{font-size:10px;padding:7px 6px}
+ .sfiInstitutionalQuickNav a:nth-child(1),.sfiInstitutionalQuickNav a:nth-child(5),.sfiInstitutionalQuickNav a:nth-child(6){display:none}
+ .sfiNeuralTrigger{min-width:52px;min-height:43px;padding:4px!important}
+ .sfiNeuralTriggerLabel{display:none!important}
+ .sfiNeuralOverlay{top:54px}
+}
