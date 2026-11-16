@@ -231,7 +231,8 @@ export default function StudioFileIntake() {
     setReleaseMessage('');
     try {
       const selectedCover=photographicCovers.find(cover=>cover.id===videoCoverId)??photographicCovers[0];
-      const created = await createLocalAudioTeaser(file, release, message => setReleaseMessage(message), selectedCover?.blob);
+      if(!selectedCover)throw new Error('Primero produce una portada fotográfica. No se exportará el visualizador abstracto como video fotográfico.');
+      const created = await createLocalAudioTeaser(file, release, message => setReleaseMessage(message), selectedCover.blob);
       setReleaseMessage('Video de ' + created.durationSeconds.toFixed(1) +
         ' segundos generado en tu dispositivo: ' + created.fileName +
         '. Es una muestra audiovisual, no una publicación.');
@@ -363,7 +364,7 @@ export default function StudioFileIntake() {
             photographicCovers={photographicCovers}
           />
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <button type="button" disabled={teaserBusy || !file} onClick={exportTeaser} style={{
+            <button type="button" disabled={teaserBusy || !file || photographicCovers.length===0} onClick={exportTeaser} style={{
               padding: '10px 14px', color: '#e9fbff', background: '#34264f', border: '1px solid #7467a2',
               cursor: teaserBusy ? 'wait' : 'pointer',
             }}>{teaserBusy ? 'GENERANDO VIDEO…' : 'GENERAR VIDEO VERTICAL CON PORTADA Y AUDIO (12 S)'}</button>
@@ -373,7 +374,7 @@ export default function StudioFileIntake() {
           </div>
           {releaseMessage && <p role="status" style={{ margin: 0, color: '#b4dcca' }}>{releaseMessage}</p>}
           <p style={{ margin: 0, fontSize: 11, color: '#9fb4c2' }}>
-            Las portadas fotográficas producidas pueden incorporarse al video vertical con el audio original. Si no se selecciona una portada, se conserva la visualización abstracta existente. No es generación de imagen o video mediante IA. La generación de fotografías nuevas requiere un proveedor externo autorizado. Campaña: borrador sin estudio de mercado.
+            Primero produce y selecciona una portada fotográfica; solo entonces se habilita el video vertical con audio. No se utiliza un fondo abstracto sustituto. Este proceso transforma fotos aportadas, no genera fotografías nuevas con IA. La generación de fotografías nuevas requiere un proveedor externo autorizado. Campaña: borrador sin estudio de mercado.
             No publica, no ejecuta FAD/MIHM y no genera cargos de proveedores.
           </p>
         </div>}
