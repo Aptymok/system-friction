@@ -21,6 +21,7 @@ export default function StudioPhotographicProposals({direction,onCovers}:{
   const [lastSignature,setLastSignature]=useState('');
   const signature=[direction.title,direction.artist,photos.map(f=>f.name+':'+f.size+':'+f.lastModified).join('|')].join('|');
   useEffect(()=>()=>{urls.current.forEach(url=>URL.revokeObjectURL(url));urls.current=[];},[]);
+  useEffect(()=>{setCovers([]);onCovers([]);setLastSignature('');},[signature,onCovers]);
   function select(files:File[]) {
     setStatus('');
     setPhotos([]);
