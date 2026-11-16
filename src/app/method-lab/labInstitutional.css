@@ -22,3 +22,6 @@
 .sfi-lab-operations>*:not(summary){max-width:100%;min-width:0;overflow-wrap:anywhere}
 .sfi-lab-page-head+.mlr-shell{margin-top:0}
 @media(max-width:700px){.sfi-lab-page-facts span{min-width:0;flex:1 1 135px}.sfi-lab-dialog-head{flex-wrap:wrap}.sfi-lab-create-trigger{width:100%;justify-content:center}}
+
+.sfi-lab-create-row{display:flex;align-items:center;flex-wrap:wrap;gap:12px}
+@media(max-width:700px){.sfi-lab-create-row{display:grid;grid-template-columns:minmax(0,1fr)}}
