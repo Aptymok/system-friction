@@ -39,6 +39,9 @@ export async function POST(request:Request,ctx:Context){
       .eq('id',id).eq('owner_id',user.id).maybeSingle();
     if(existing.error)return NextResponse.json({ok:false,error:'STUDIO_OBJECT_READ_FAILED'},{status:503});
     if(!existing.data)return NextResponse.json({ok:false,error:'OWNER_REQUIRED'},{status:403});
+    if(typeof existing.data.updated_at!=='string'||!existing.data.updated_at){
+      return NextResponse.json({ok:false,error:'STUDIO_OBJECT_REVISION_UNAVAILABLE'},{status:503});
+    }
 
     // A valid identifier is not authorization. Verify each governed source
     // through its own established access contract before writing its reference.
@@ -75,7 +78,7 @@ export async function POST(request:Request,ctx:Context){
     const nextMetadata={...metadata,governedRefs:revised};
     let update=db.from('studio_objects').update({metadata:nextMetadata})
       .eq('id',id).eq('owner_id',user.id);
-    if(existing.data.updated_at)update=update.eq('updated_at',existing.data.updated_at);
+    update=update.eq('updated_at',existing.data.updated_at);
     const changed=await update.select('id,owner_id,metadata').maybeSingle();
     if(changed.error)return NextResponse.json({ok:false,error:'GOVERNED_REF_WRITE_FAILED'},{status:503});
     if(!changed.data)return NextResponse.json({ok:false,error:'OBJECT_CHANGED_DURING_REFERENCE_WRITE'},{status:409});
@@ -90,9 +93,39 @@ export async function POST(request:Request,ctx:Context){
       (!agentId||verified.agentIds.includes(agentId))&&
       (!rootAuditId||verified.rootReceiptRefs.includes(rootAuditId));
     if(!persisted)return NextResponse.json({ok:false,error:'REFERENCE_PERSISTENCE_UNVERIFIED'},{status:503});
+    // Register an attributed, source-scoped timeline event. This is evidence
+    // that the reference was associated, NOT evidence of the referenced action.
+    const newlyLinked=[
+      ...(caseId&&!previous.caseIds.includes(caseId)?[{kind:'CASE',id:caseId}]:[]),
+      ...(agentId&&!previous.agentIds.includes(agentId)?[{kind:'COGNITIVE_AGENT',id:agentId}]:[]),
+      ...(rootAuditId&&!previous.rootReceiptRefs.includes(rootAuditId)?[{kind:'ROOT_AUDIT',id:rootAuditId}]:[]),
+    ];
+    let referenceEventId:string|null=null;
+    let referenceEventStatus='NO_NEW_ASSOCIATION';
+    if(newlyLinked.length){
+      const recorded=await db.from('studio_archive_events').insert({
+        owner_id:user.id,object_id:id,session_id:null,
+        event_type:'governed_reference_linked',
+        label:'Owner linked independently authorized references',
+        source:'studio_governed_reference_link_v1',
+        payload:{
+          refs:newlyLinked,
+          actorId:user.id,
+          authorityGranted:false,executionPerformed:false,returnRecorded:false,
+          provenance:'explicit_owner_reference_binding',
+        },
+      }).select('id').maybeSingle();
+      if(recorded.error||!recorded.data){
+        referenceEventStatus='EVENT_WRITE_FAILED_REFERENCE_STILL_PERSISTED';
+      }else {
+        referenceEventId=String(recorded.data.id);
+        referenceEventStatus='EVENT_WRITE_CONFIRMED';
+      }
+    }
     return NextResponse.json({
       ok:true,objectId:id,links:verified,
       persisted:true,
+      referenceEventId,referenceEventStatus,
       operation:'EXPLICIT_REFERENCE_ASSOCIATION_ONLY',
       authorityGranted:false,caseClosed:false,returnRecorded:false,
       certifiedCrossSurfaceClosure:false,
