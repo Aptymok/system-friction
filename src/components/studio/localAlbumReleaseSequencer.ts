@@ -169,7 +169,7 @@ export function sequenceStudioReleases(input:{
       itemId:id,title:item.title,date,
       spotifyPitchDeadline:isoDay(candidate-7*DAY),
       industryBasis:{
-        releaseDay:'FRIDAY_CONVENTION_NOT_MANDATORY' as const,pitchLeadDays:7,
+        releaseDay:'FRIDAY_CONVENTION_NOT_MANDATORY' as const,pitchLeadDays:7 as const,
         sources:[
           'https://musicbiz.org/news/new-music-fridays-music-industry-faq/',
           'https://support.spotify.com/us/artists/article/pitching-music-and-videos-to-playlist-editors/',
