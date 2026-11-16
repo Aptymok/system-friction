@@ -4,6 +4,14 @@ import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import './MethodLabResearchReview.css';
 
+export type ResearchEvidenceInventoryItem = {
+  id: string;
+  label: string;
+  kind: string;
+  source: string;
+  observedAt: string | null;
+};
+
 export type MethodLabFindingView = {
   id: string;
   title: string;
@@ -65,10 +73,11 @@ function referencedResearchId(ref: string, objects: MethodLabResearchObjectView[
   return objects.some(object => object.objectId === candidate) ? candidate : null;
 }
 
-function ReferenceList({ label, refs, objects, onSelect }: {
+function ReferenceList({ label, refs, objects, evidenceInventory, onSelect }: {
   label: string;
   refs: readonly string[];
   objects: MethodLabResearchObjectView[];
+  evidenceInventory: readonly ResearchEvidenceInventoryItem[];
   onSelect: (id: string) => void;
 }) {
   return <section className="mlr-reference-section">
@@ -77,11 +86,14 @@ function ReferenceList({ label, refs, objects, onSelect }: {
       <ul className="mlr-reference-list">
         {[...new Set(refs)].map(ref => {
           const target = referencedResearchId(ref, objects);
+          const evidenceKey = ref.startsWith('evidence:') ? ref.slice('evidence:'.length) : ref;
+          const inventoryItem = evidenceInventory.find(item => item.id === evidenceKey);
           return <li key={ref}>
             {target ? (
               <button type="button" onClick={() => onSelect(target)} title="Abrir el objeto vinculado en el índice de Method Lab">{ref} · abrir objeto</button>
             ) : <code>{ref}</code>}
-            <small>{target ? 'OBJETO EN ÍNDICE · no verifica evidencia externa' : 'REFERENCIA REGISTRADA · destino no comprobado en este índice'}</small>
+            <small>{target ? 'OBJETO EN ÍNDICE · no verifica evidencia externa' : inventoryItem ? 'EVIDENCIA LOCALIZADA EN INVENTARIO PARCIAL · sin validar su contenido' : 'REFERENCIA REGISTRADA · no localizada en el inventario parcial'}</small>
+            {inventoryItem ? <small>{inventoryItem.label} · {inventoryItem.kind} · {inventoryItem.source} · {inventoryItem.observedAt ?? 'fecha desconocida'}</small> : null}
           </li>;
         })}
       </ul>
@@ -106,7 +118,7 @@ function objectProgress(object: MethodLabResearchObjectView) {
   return 1;
 }
 
-export function MethodLabResearchReview({ research }: { research: MethodLabResearchStateView }) {
+export function MethodLabResearchReview({ research, evidenceInventory = [] }: { research: MethodLabResearchStateView; evidenceInventory?: readonly ResearchEvidenceInventoryItem[] }) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState('');
@@ -212,8 +224,8 @@ export function MethodLabResearchReview({ research }: { research: MethodLabResea
               <span>ÚLTIMO REGISTRO: {selected.updatedAt ?? 'NO CONSTA'}</span>
             </div>
             <div className="mlr-trace-columns">
-              <ReferenceList label="Evidencias citadas por la investigación" refs={selected.evidenceRefs} objects={research.objects} onSelect={setSelectedId} />
-              <ReferenceList label="Genealogía y relaciones declaradas" refs={selected.lineage} objects={research.objects} onSelect={setSelectedId} />
+              <ReferenceList label="Evidencias citadas por la investigación" refs={selected.evidenceRefs} objects={research.objects} evidenceInventory={evidenceInventory} onSelect={setSelectedId} />
+              <ReferenceList label="Genealogía y relaciones declaradas" refs={selected.lineage} objects={research.objects} evidenceInventory={evidenceInventory} onSelect={setSelectedId} />
             </div>
             <h4>Hallazgos y vínculo con su evidencia</h4>
             {selected.findings.length === 0 ? <p>Este registro no contiene hallazgos individualizados. No debe inferirse que no existen en otros expedientes.</p> : (
@@ -221,7 +233,7 @@ export function MethodLabResearchReview({ research }: { research: MethodLabResea
                 <article key={finding.id}>
                   <div><strong>{finding.id} · {finding.title}</strong><span>{finding.state}</span></div>
                   <p>{finding.summary || 'Sin descripción registrada.'}</p>
-                  <ReferenceList label="Fuentes asociadas al hallazgo" refs={finding.evidenceRefs} objects={research.objects} onSelect={setSelectedId} />
+                  <ReferenceList label="Fuentes asociadas al hallazgo" refs={finding.evidenceRefs} objects={research.objects} evidenceInventory={evidenceInventory} onSelect={setSelectedId} />
                 </article>
               ))}</div>
             )}
