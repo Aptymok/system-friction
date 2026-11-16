@@ -8,8 +8,9 @@ export async function createLocalAudioTeaser(
   file: File,
   direction: ReleaseDirection,
   onState: (message: string) => void,
-  cover?: Blob,
+  cover: Blob,
 ): Promise<{fileName: string; durationSeconds: number; mimeType: string}> {
+  if(!cover || !cover.size)throw new Error('PHOTOGRAPHIC_COVER_REQUIRED');
   if (typeof window === 'undefined' || typeof MediaRecorder === 'undefined') {
     throw new Error('MEDIA_RECORDER_UNAVAILABLE');
   }
@@ -41,12 +42,10 @@ export async function createLocalAudioTeaser(
       signal:['#0a1917','#e5faed','#66c9a9'],
     } as const;
     const [bg,fg,accent]=palettes[direction.palette];
-    if(cover){
-      if(!cover.size || !/^image\/(png|jpeg|webp)$/.test(cover.type))throw new Error('INVALID_STUDIO_COVER');
-      onState('Preparando portada visual local para el video…');
-      coverBitmap=await createImageBitmap(cover);
-      if(coverBitmap.width<256||coverBitmap.height<256)throw new Error('STUDIO_COVER_TOO_SMALL');
-    }
+    if(!/^image\/(png|jpeg|webp)$/.test(cover.type))throw new Error('INVALID_STUDIO_COVER');
+    onState('Preparando portada fotográfica local para el video…');
+    coverBitmap=await createImageBitmap(cover);
+    if(coverBitmap.width<256||coverBitmap.height<256)throw new Error('STUDIO_COVER_TOO_SMALL');
     const title=(direction.title.trim()||'UNTITLED').slice(0,90);
     const artist=(direction.artist.trim()||'STUDIO').slice(0,80);
     function paint(progress:number) {
@@ -64,16 +63,7 @@ export async function createLocalAudioTeaser(
         shade.addColorStop(1,'rgba(0,0,0,.70)');
         ctx.fillStyle=shade;ctx.fillRect(0,0,720,1280);
       }
-      ctx.strokeStyle=accent;ctx.lineWidth=2;
-      for(let ring=0;ring<(coverBitmap?5:20);ring++) {
-        const phase=ring*.26+progress*Math.PI*2;
-        const radius=115+ring*11;
-        ctx.globalAlpha=.1+.4*(1-ring/20);
-        ctx.beginPath();
-        ctx.ellipse(360+Math.cos(phase)*12,535+Math.sin(phase)*15,
-          radius,150+radius*.25,phase/5,0,Math.PI*2);
-        ctx.stroke();
-      }
+      // The photographic export has no synthetic rings or abstract fallback.
       ctx.globalAlpha=1;ctx.fillStyle=fg;ctx.textAlign='center';
       ctx.font='400 22px sans-serif';ctx.fillText(artist.toUpperCase(),360,170,620);
       const lines:string[]=[];
@@ -127,7 +117,7 @@ export async function createLocalAudioTeaser(
     const blob=await recording;
     const url=URL.createObjectURL(blob);
     const anchor=document.createElement('a');
-    anchor.href=url;anchor.download=safeStem(title)+'-local-preview.webm';anchor.click();
+    anchor.href=url;anchor.download=safeStem(title)+'-photographic-preview.webm';anchor.click();
     window.setTimeout(()=>URL.revokeObjectURL(url),5000);
     return {fileName:anchor.download,durationSeconds:length,mimeType};
   } finally {
