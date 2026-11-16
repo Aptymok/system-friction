@@ -186,6 +186,19 @@ assert(
   '.zenodo.json is blocked while Zenodo archive readiness lacks a verified deposit/license decision, observed release receipt, and verified external scholarly identifiers. Add it only in a separately reviewed change after those prerequisites exist.',
 );
 
+// The laboratory reader must expose provenance without inventing links, evidence or DOI.
+const researchReader = read('src/components/sfi/MethodLabResearchReview.tsx');
+const methodLabPage = read('src/app/method-lab/page.tsx');
+const researchSource = read('src/lib/method-lab/researchObjects.ts');
+assert(researchReader.includes('referencedResearchId(ref, objects)'), 'research reader must resolve object links against actual registered IDs');
+assert(researchReader.includes('evidenceInventory.find(item => item.id === evidenceKey)'), 'research evidence links must be checked against the bounded live inventory');
+assert(researchReader.includes('no localizada en el inventario parcial'), 'missing research evidence must never be described as nonexistent or verified');
+assert(researchReader.includes('DOI: NO VERIFICADO EN ESTE REGISTRO'), 'research reader must not infer a DOI from publication status');
+assert(researchReader.includes('finding.evidenceRefs'), 'per-finding source identity must be inspectable');
+assert(methodLabPage.includes('evidenceInventory={evidence.options}'), 'Method Lab must use its actual governed evidence read projection');
+assert(methodLabPage.includes('Iniciar una nueva investigación · opcional'), 'research browsing must not require form intake');
+assert(researchSource.includes('sourceOfTruth: \'METHOD_LAB_EVENT_LEDGER\''), 'reader must use existing canonical research ledger');
+
 console.log('[SFI-RESEARCH-METADATA] PASS');
 console.log(`citation_version=${citation.version}`);
 console.log('verified_doi_count=0');
