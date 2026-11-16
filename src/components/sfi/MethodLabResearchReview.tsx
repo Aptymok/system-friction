@@ -4,6 +4,12 @@ import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import './MethodLabResearchReview.css';
 
+export type PublicRepositoryLink = {
+  id: string;
+  slug: string;
+  title: string;
+};
+
 export type ResearchEvidenceInventoryItem = {
   id: string;
   label: string;
@@ -106,7 +112,7 @@ function metricPreview(object: MethodLabResearchObjectView) {
 }
 
 
-export function MethodLabResearchReview({ research, evidenceInventory = [] }: { research: MethodLabResearchStateView; evidenceInventory?: readonly ResearchEvidenceInventoryItem[] }) {
+export function MethodLabResearchReview({ research, evidenceInventory = [], publicRepositoryObjects = [] }: { research: MethodLabResearchStateView; evidenceInventory?: readonly ResearchEvidenceInventoryItem[]; publicRepositoryObjects?: readonly PublicRepositoryLink[] }) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState('');
@@ -130,6 +136,14 @@ export function MethodLabResearchReview({ research, evidenceInventory = [] }: { 
     return (publicationFilter === 'ALL' || (publicationFilter === 'PUBLIC' ? published : !published))
       && (!query || [object.title, object.objectId, object.method, object.objectClass, object.state].join(' ').toLowerCase().includes(query));
   });
+  const publicRepositoryLink = selected
+    ? publicRepositoryObjects.find(record =>
+        record.id === selected.objectId
+        || selected.lineage.includes(record.id)
+        || selected.lineage.includes(`object:${record.id}`)
+        || selected.lineage.includes(`publication:${record.id}`)
+      ) ?? null
+    : null;
   const audits = research.objects.filter((item) => item.objectClass === 'AUDIT').length;
   const ready = research.objects.filter((item) => item.publicationState === 'PUBLIC_DERIVATIVE_READY').length;
   const promotion = research.objects.filter((item) => item.publicationState === 'PROMOTION_REQUESTED').length;
@@ -173,6 +187,12 @@ export function MethodLabResearchReview({ research, evidenceInventory = [] }: { 
             <div><span>{selected.objectClass} · {selected.objectId}</span><h3>{selected.title}</h3></div>
             <div className="mlr-badges"><b>{selected.epistemicState}</b><b>{selected.publicationState}</b><b>RETURN {selected.returnState}</b></div>
           </header>
+          <nav className="mlr-repository-connection" aria-label="Vínculo institucional con Repositorio">
+            <a href="/repository">Abrir Repositorio público</a>
+            {publicRepositoryLink ? (
+              <a href={`/repository?object=${encodeURIComponent(publicRepositoryLink.slug)}`}>Ver registro público relacionado: {publicRepositoryLink.title}</a>
+            ) : <span>Sin correspondencia pública explícita para este objeto. La investigación conserva su estado interno.</span>}
+          </nav>
           <p style={{fontSize:11,color:'#94adbc',margin:'14px 0 0'}}>Secuencia metodológica de referencia; ninguna etapa se da por ejecutada o verificada por el nombre del estado.</p>
           <div className="mlr-flow">
             {FLOW.map((stage, index) => <div key={stage} data-active={false}><i>{String(index + 1).padStart(2, '0')}</i><span>{stage}</span></div>)}
