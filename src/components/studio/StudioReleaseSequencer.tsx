@@ -27,7 +27,10 @@ export default function StudioReleaseSequencer({objects,sessions}:{objects:Row[]
     const session=sessions.find(s=>s.id===sessionId);
     return studioAttractorProjection(objects.filter(o=>o.session_id===sessionId),session?[session]:[]);
   },[objects,sessions,sessionId]);
-  const candidates=graph.nodes.filter(n=>n.kind==='project'||n.kind==='node'||n.kind==='object');
+  // A campaign task or social post is not a release. Limit sequencing to
+  // explicitly declared projects and owned objects typed as music.
+  const candidates=graph.nodes.filter(n=>n.kind==='project'||
+    (n.kind==='object'&&n.passport.objectType==='music'));
   const [orderedIds,setOrderedIds]=useState<string[]>([]);
   const validSelected=orderedIds.filter(id=>candidates.some(n=>n.id===id));
   const [earliest,setEarliest]=useState(dateToday);
