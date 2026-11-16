@@ -135,7 +135,7 @@ export async function GET(_request:Request,context:Context){
       // The ROOT authorization gate has its own independently verified identity.
       // Reject mixed auth contexts to prevent confused-deputy disclosure.
       const rootGate=await requireRootViewer('studio.passport.root.read');
-      if(!rootGate.ok || rootGate.ctx.user.id!==user.id){
+      if(!rootGate.ok || rootGate.ctx.user?.id!==user.id){
         rootReadStatus='BLOCKED_ROOT_AUTHORITY_NOT_GRANTED';
       } else if(!rootAuditRefs.length){
         rootReadStatus='DECLARED_REFS_NOT_ROOT_AUDIT_UUIDS';
