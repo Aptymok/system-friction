@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   contrastCampaignObservations, type CampaignObserved,
 } from './localCampaignContrast';
@@ -22,6 +22,17 @@ export default function StudioCampaignReturnPanel({
   const [proposedChange,setProposedChange]=useState('');
   const [learningBusy,setLearningBusy]=useState(false);
   const [message,setMessage]=useState('');
+  // A contrast is evidence for one specific persisted plan. A plan switch
+  // invalidates the previous form and prevents attributing old T1 data to
+  // another project or campaign.
+  useEffect(()=>{
+    setContrastEventId(null);
+    setData({A:blank(),B:blank()});
+    setDisposition('INCONCLUSIVE');
+    setRationale('');
+    setProposedChange('');
+    setMessage('');
+  },[sessionId,planEventId]);
   const observations:CampaignObserved[]=(['A','B'] as const).map(variant=>({
     variant,url:data[variant].url.trim(),
     // datetime-local is wall time; normalize to a real UTC instant before comparing T1.
@@ -35,6 +46,10 @@ export default function StudioCampaignReturnPanel({
   const result=contrastCampaignObservations(observations);
   function change(variant:'A'|'B',field:keyof Measurement,value:string){
     setData(old=>({...old,[variant]:{...old[variant],[field]:value}}));
+    // Editing measured values invalidates any previously persisted comparison
+    // as the basis for a new learning decision.
+    setContrastEventId(null);
+    setDisposition('INCONCLUSIVE');
     setMessage('');
   }
   async function persist(){
