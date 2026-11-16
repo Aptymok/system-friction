@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo,useState } from 'react';
+import { useEffect,useMemo,useState } from 'react';
 import { studioAttractorProjection,type StudioAttractorNode } from './studioAttractorProjection';
 
 type Row=Record<string,unknown>;
@@ -45,6 +45,29 @@ export default function StudioAttractorExplorer({objects,sessions}:{objects:Row[
   };
   const coords=new Map<string,{x:number;y:number}>(visible.map((node,index):[string,{x:number;y:number}]=>[node.id,{x:110+level(node)*235,y:72+index*94}]));
   const width=940,height=Math.max(260,visible.length*94+110);
+  const [evidence,setEvidence]=useState<{
+    objectId:string;sourceStatus:string;sourceFailures:Array<{source:string;error:string}>;
+    evidence:Array<{id:string|null;type:string;at:string|null;label:string;source:string;status:string}>;
+  }|null>(null);
+  const [evidenceError,setEvidenceError]=useState('');
+  const [evidenceLoading,setEvidenceLoading]=useState(false);
+  const objectId=current?.sourceObjectId??null;
+  useEffect(()=>{
+    setEvidence(null);setEvidenceError('');
+    if(!objectId){setEvidenceLoading(false);return;}
+    const controller=new AbortController();
+    setEvidenceLoading(true);
+    fetch('/api/studio/objects/'+encodeURIComponent(objectId)+'/passport-evidence',{
+      method:'GET',signal:controller.signal,cache:'no-store',
+    }).then(async response=>{
+      const payload=await response.json();
+      if(!response.ok)throw new Error(String(payload.error??'READ_UNAVAILABLE'));
+      return payload;
+    }).then(payload=>{if(!controller.signal.aborted)setEvidence(payload);})
+      .catch(error=>{if(!controller.signal.aborted)setEvidenceError(error instanceof Error?error.message:'READ_UNAVAILABLE');})
+      .finally(()=>{if(!controller.signal.aborted)setEvidenceLoading(false);});
+    return ()=>controller.abort();
+  },[objectId]);
   const pass=current?.passport??{};
   const stages=pass.stageEvidence as Record<string,unknown>|undefined;
   return <section style={{border:'1px solid rgba(138,198,230,.27)',padding:16,
@@ -122,6 +145,35 @@ export default function StudioAttractorExplorer({objects,sessions}:{objects:Row[
             </pre>
           </div>)}
         </div>}
+        {current.sourceObjectId&&<section style={{
+          border:'1px solid rgba(145,210,235,.23)',padding:12,display:'grid',gap:9,
+        }}>
+          <strong style={{fontSize:13}}>Registros persistidos vinculados a este objeto</strong>
+          <p style={{fontSize:11,color:'#a3b6c2',margin:0}}>
+            Evidencia, hipótesis, intervenciones, análisis y archivo de Studio;
+            su existencia no certifica hipótesis, autoridad o RETURN.
+          </p>
+          {evidenceLoading&&<p role="status">Leyendo fuentes autorizadas…</p>}
+          {evidenceError&&<p role="alert" style={{color:'#edbaaa'}}>
+            Fuente no disponible: {evidenceError}
+          </p>}
+          {evidence&&<>
+            <p style={{color:'#9bbcd0',margin:0,fontSize:11}}>
+              Lectura: {evidence.sourceStatus} · {evidence.evidence.length} registros mostrados
+              {evidence.sourceFailures.length>0?' · Algunas fuentes no respondieron':''}
+            </p>
+            {evidence.evidence.map(item=><div key={item.type+':'+item.id}
+              style={{display:'grid',gap:3,borderBottom:'1px solid rgba(255,255,255,.1)',padding:'7px 0'}}>
+              <strong style={{fontSize:11}}>{item.type} · {item.label}</strong>
+              <span style={{fontSize:10,color:'#a0b7c6'}}>
+                {item.at??'Fecha no disponible'} · {item.source} · {item.status}
+              </span>
+            </div>)}
+            {!evidence.evidence.length&&<p style={{fontSize:11,color:'#b3bdc3'}}>
+              Ningún registro recuperado en esta lectura. No implica inexistencia histórica.
+            </p>}
+          </>}
+        </section>}
         <p style={{fontSize:11,color:'#d2bb98',margin:0}}>
           Estado: PASAPORTE PARCIAL. Para declarar T1 y una hipótesis ganadora se requieren
           contraste, autoridad, ejecución y RETURN con evidencia verificable.
