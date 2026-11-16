@@ -18,6 +18,37 @@ studioRequest.properties.key = { type:'string',maxLength:24 };
 studioRequest.properties.culturalProfile = { type:'string',maxLength:80 };
 studioRequest.properties.instrumentIds = { type:'object',description:'Optional explicit production-eligible Instrument Bank IDs. Omit to let SFI resolve eligible instruments by cultural profile.',properties:{harmony:{type:'string'},bass:{type:'string'}},additionalProperties:false };
 studioRequest.properties.title = { type:'string',maxLength:240 };
+studioRequest.properties.sessionId = { type:'string',format:'uuid',description:'Optional owner-owned Studio session. Omit for a new isolated session.' };
+studioRequest.properties.fieldNodeId = { type:'string',format:'uuid',description:'Optional existing active Studio Field node, requiring a matching owned sessionId.' };
+studioRequest.properties.expectedSha256 = { type:'string',pattern:'^[0-9a-fA-F]{64}
+studioRequest.properties.limit = { type:'integer',minimum:1,maximum:100,description:'For context/list, bound the number of owner-scoped records returned per collection.' };
+
+studioPost.summary = 'Read owner context or operate owner-scoped Studio audio';
+studioPost.description = 'User-bound Studio route. context returns persisted owner sessions, objects, evidence traces, archive events and owner-attributed AMV memory without binary content. Other operations inspect, analyze, ingest or produce owner-scoped Studio material.';
+studioPost['x-sfi-operation-scopes'] = { context:'studio:read',list:'studio:read',inspect:'studio:read',features:'studio:read',content:'studio:content',analyze:'studio:run',ingest_analyze:'studio:run',produce:'studio:run' };
+studioPost['x-sfi-authority-boundary'] = { ownerBound:true,ownerContextContract:'SFI-STUDIO-OWNER-CONTEXT-1.0',ownerContextBinaryContentIncluded:false,ownerContextRootEvidenceIncluded:false,ownerContextInstitutionalCanonIncluded:false,rawAttachmentPersistence:'PRIVATE_OWNER_SCOPED_STUDIO_ONLY',intakeIdempotency:'owner_id + openaiFileId',materialExecutionWorkspace:'EPHEMERAL',analysisAuthorizationEpistemicClass:'DECLARED',productionAuthorizationEpistemicClass:'DECLARED',rightsTransfer:false,canonicalPromotionAllowed:false,externalPublicationAllowed:false };
+
+api.info ||= {};
+const versionParts = (value) => String(value ?? '0.0.0').split('.').map((part) => Number.parseInt(part, 10) || 0);
+const versionBelow = (current, floor) => {
+  const a = versionParts(current);
+  const b = versionParts(floor);
+  for (let i = 0; i < Math.max(a.length, b.length); i += 1) {
+    const left = a[i] ?? 0;
+    const right = b[i] ?? 0;
+    if (left !== right) return left < right;
+  }
+  return false;
+};
+if (versionBelow(api.info.version, '1.17.3')) api.info.version = '1.17.3';
+api['x-sfi-governance'] ||= {};
+api['x-sfi-governance'].ownerStudioContext = { contract:'SFI-STUDIO-OWNER-CONTEXT-1.0',operation:'context',scope:'studio:read',tenant:'oauth.subjectId owner only',sources:['studio_sessions','studio_objects','studio_evidence_traces','studio_archive_events','owner-attributed sfi_amv_memory'],studioPredicate:'owner_id = oauth.subjectId',amvPredicate:'memory_delta.raw.ownerId = oauth.subjectId',binaryContentIncluded:false,rootEvidenceIncluded:false,institutionalCanonIncluded:false,metadataRestoreDoesNotImplyBinaryMaterialization:true };
+api['x-sfi-governance'].chatgptStudioAttachmentIntake = { contract:'SFI-CHATGPT-STUDIO-ATTACHMENT-1.1',operation:'ingest_analyze',parameter:'openaiFileIdRefs',count:1,modality:'audio',scope:'studio:run',tenant:'oauth.subjectId owner only',idempotency:'public.studio_objects unique(owner_id, metadata.externalIntake.openaiFileId)',acceptedTemporaryHost:'files.oaiusercontent.com',temporaryUrlPersisted:false,explicitAnalysisAuthorizationRequired:true,rightsTransfer:false,canonicalPromotionAllowed:false };
+api['x-sfi-governance'].materialAudioProduction = { contract:'SFI-MATERIAL-AUDIO-RETURN-1.0',operation:'produce',modes:['VOICE_MUSICALIZE','MASTER_ADJUST'],scope:'studio:run',sourceTenant:'oauth.subjectId owner only',outputTenant:'oauth.subjectId owner only',acousticPackage:'SFI-ACOUSTIC-INSTRUMENT-PACKAGE-1.0',canonicalRenderAdapter:'SFI-SFZ-RENDER-1.0',performanceContract:'SFI-AUDIO-PERFORMANCE-1.0',midiIsSoundSource:false,realSamplePackagesRequiredForMusicalize:true,rightsAwareInstrumentRegistry:'public.sfi_instruments',ephemeralWorkspace:true,finalOutputPersistedToStudio:true,rightsTransfer:false,canonicalPromotionAllowed:false };
+
+fs.writeFileSync(openapiPath, `${JSON.stringify(api,null,2)}\n`);
+console.log(JSON.stringify({ok:true,contract:'SFI-STUDIO-AUDIO-ACTIONS-1.1',operations:['context','ingest_analyze','produce'],ownerContextScope:'studio:read',productionScope:'studio:run',version:api.info?.version??null},null,2));
+,description:'Optional independently verified SHA-256 of original attachment; Studio rejects any mismatch before upload.' };
 studioRequest.properties.limit = { type:'integer',minimum:1,maximum:100,description:'For context/list, bound the number of owner-scoped records returned per collection.' };
 
 studioPost.summary = 'Read owner context or operate owner-scoped Studio audio';
