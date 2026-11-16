@@ -117,6 +117,8 @@ export const SFI_STUDIO_MCP_TOOLS = Object.freeze([
         openaiFileIdRefs: { type: 'array', minItems: 1, maxItems: 1 },
         analysisAuthorization: { type: 'object' },
         title: { type: 'string', maxLength: 240 },
+        sessionId: { type: 'string', format: 'uuid' },
+        fieldNodeId: { type: 'string', format: 'uuid' },
         force: { type: 'boolean' },
       },
       required: ['openaiFileIdRefs', 'analysisAuthorization'],
