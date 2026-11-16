@@ -59,7 +59,7 @@ export async function POST(request:Request,ctx:Context){
     }
     if(rootAuditId){
       const gate=await requireRootViewer('studio.passport.root.read');
-      if(!gate.ok||gate.ctx.user.id!==user.id){
+      if(!gate.ok||gate.ctx.user?.id!==user.id){
         return NextResponse.json({ok:false,error:'ROOT_OBSERVER_AUTHORITY_REQUIRED'},{status:403});
       }
       const receipt=await db.from('root_audit_events').select('id').eq('id',rootAuditId).maybeSingle();
