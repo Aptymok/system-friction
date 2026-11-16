@@ -188,7 +188,7 @@ const persistedField=studioAttractorProjection([
     edges:[{id:'relation-1',sourceId:'release-1',targetId:'asset-1',relationType:'DERIVED_FROM'}],
   }}},
 ]);
-assert.ok(persistedField.nodes.some(node=>node.id==='field-attractor:persisted-session'&&node.label==='KXTXR'));
+assert.ok(persistedField.nodes.some(node=>node.id==='field-attractor:attractor-1'&&node.label==='KXTXR'));
 assert.ok(persistedField.nodes.some(node=>node.id==='field-node:persisted-session:release-1'&&node.label==='QUE NO'));
 assert.ok(persistedField.nodes.some(node=>node.id==='field-node:persisted-session:asset-1'&&node.parentId==='field-node:persisted-session:release-1'));
 assert.ok(persistedField.edges.some(edge=>
@@ -206,6 +206,25 @@ const invalidRelationship=studioAttractorProjection([],[{
   }},
 }]);
 assert.equal(invalidRelationship.edges.length,0);
+const sameIdentity=studioAttractorProjection([],[
+  {id:'session-a',metadata:{field:{
+    attractor:{id:'stable-kxtxr',label:'KXTXR'},
+    nodes:[{id:'release-a',kind:'project',label:'QUE NO',parentId:'stable-kxtxr'}],
+  }}},
+  {id:'session-b',metadata:{field:{
+    attractor:{id:'stable-kxtxr',label:'KXTXR'},
+    nodes:[{id:'release-b',kind:'project',label:'LUGAR LUNAR',parentId:'stable-kxtxr'}],
+  }}},
+]);
+assert.equal(sameIdentity.nodes.filter(node=>node.kind==='attractor'&&node.id==='field-attractor:stable-kxtxr').length,1);
+assert.ok(sameIdentity.nodes.some(node=>node.label==='QUE NO'));
+assert.ok(sameIdentity.nodes.some(node=>node.label==='LUGAR LUNAR'));
+const sameLabelDifferentIdentity=studioAttractorProjection([],[
+  {id:'session-x',metadata:{field:{attractor:{id:'id-1',label:'KXTXR'}}}},
+  {id:'session-y',metadata:{field:{attractor:{id:'id-2',label:'KXTXR'}}}},
+]);
+assert.equal(sameLabelDifferentIdentity.nodes.filter(node=>node.kind==='attractor').length,2);
+
 
 console.log('PASS · SFI Studio local deliverables: PDF cross-reference, LaTeX, ZIP container, campaign observations and no empirical certification');
 
