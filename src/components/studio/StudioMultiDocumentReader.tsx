@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, type ChangeEvent } from 'react';
+import StudioMeasuredContext from './StudioMeasuredContext';
 
 type Fragment = { paragraph: number; page: number | null; text: string; start: number | null; end: number | null };
 type ExtractedDocument = {
@@ -112,6 +113,7 @@ export default function StudioMultiDocumentReader() {
           <span style={{fontSize:11}}>{reading.matches.length} citas</span>
         </button>)}
       </div>
+      <StudioMeasuredContext documentCount={documents.length} />
       <div style={panel}>
         <h4 style={{margin:'0 0 8px'}}>{selectedAxis} · {AXES.find(axis=>axis.id===selectedAxis)?.description}</h4>
         <p style={{fontSize:12,color:'#b1c5d1'}}>Valor medido: <strong>NO OBSERVADO</strong>. La mención textual solo constituye un indicio documental; requiere entradas, método calibrado, ventana y fuente temporal verificables.</p>
