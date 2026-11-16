@@ -2,6 +2,7 @@
 
 import { useMemo,useState } from 'react';
 import { studioAttractorProjection } from './studioAttractorProjection';
+import type { CampaignEvidenceInput } from './localNarrativeCampaignPlanner';
 import {
   sequenceStudioReleases,type ReleaseSequenceItem,type ReleaseSequenceResult,
 } from './localAlbumReleaseSequencer';
@@ -32,6 +33,36 @@ export default function StudioReleaseSequencer({objects,sessions}:{objects:Row[]
   const [earliest,setEarliest]=useState(dateToday);
   const [spacing,setSpacing]=useState(3);
   const [scenario,setScenario]=useState<'DECLARED'|'ENERGY_RAMP'|'ENERGY_CONTRAST'>('DECLARED');
+  const [futureEvents,setFutureEvents]=useState<Array<{title:string;date:string;sourceUrl:string}>>([]);
+  const [eventTitle,setEventTitle]=useState('');
+  const [eventDate,setEventDate]=useState('');
+  const [eventUrl,setEventUrl]=useState('');
+  const [worldStatus,setWorldStatus]=useState('');
+  const [worldCount,setWorldCount]=useState(0);
+  function addFutureEvent(){
+    const title=eventTitle.trim(),url=eventUrl.trim();
+    if(!title||!/^https:\/\/[^\s]+$/.test(url)||!/^\d{4}-\d{2}-\d{2}$/.test(eventDate)){
+      setMessage('El evento requiere nombre, fecha y fuente HTTPS.');return;
+    }
+    if(futureEvents.length>=12){setMessage('Límite de doce eventos.');return;}
+    setFutureEvents(previous=>[...previous,{title:title.slice(0,150),date:eventDate,sourceUrl:url.slice(0,500)}]);
+    setEventTitle('');setEventDate('');setEventUrl('');setResult(null);
+  }
+  const worldEvidence:CampaignEvidenceInput[]=futureEvents.map(item=>({
+    sourceUrl:item.sourceUrl,sourceTitle:item.title,
+    observedAt:new Date().toISOString(),relevance:'UNKNOWN',
+    relevanceRationale:'Operador declara evento; la fuente no está verificada de forma independiente',
+    observationKind:'DATED_FUTURE_EVENT',eventDate:item.date,
+  }));
+  async function readObservedWorld(){
+    try{
+      const response=await fetch('/api/studio/campaign/world-evidence',{cache:'no-store'});
+      const body=await response.json() as {ok:boolean;sourceStatus?:string;observations?:unknown[];error?:string};
+      if(!response.ok||!body.ok)throw new Error(body.error||'WORLD_READ_UNAVAILABLE');
+      setWorldStatus(body.sourceStatus??'UNKNOWN');setWorldCount(body.observations?.length??0);
+      setMessage('World Vector consultado. La observación no determina por sí sola el mejor día.');
+    }catch(error){setWorldStatus('UNAVAILABLE');setMessage(String(error));}
+  }
   const [features,setFeatures]=useState<Measured[]>([]);
   const [measurementStatus,setMeasurementStatus]=useState('');
   const [result,setResult]=useState<ReleaseSequenceResult|null>(null);
@@ -39,7 +70,7 @@ export default function StudioReleaseSequencer({objects,sessions}:{objects:Row[]
   const [message,setMessage]=useState('');
   const [busy,setBusy]=useState(false);
   const [archiveBusy,setArchiveBusy]=useState(false);
-  const inputsKey=JSON.stringify([sessionId,validSelected,earliest,spacing,scenario,features]);
+  const inputsKey=JSON.stringify([sessionId,validSelected,earliest,spacing,scenario,features,futureEvents]);
   const ready=Boolean(result&&resultInputs===inputsKey);
   function toggle(id:string){
     setOrderedIds(ids=>ids.includes(id)?ids.filter(item=>item!==id):[...ids,id]);
@@ -87,7 +118,7 @@ export default function StudioReleaseSequencer({objects,sessions}:{objects:Row[]
   function generate(){
     try{
       const output=sequenceStudioReleases({
-        items,earliestDate:earliest,spacingWeeks:spacing,scenarioId:scenario,
+        items,earliestDate:earliest,spacingWeeks:spacing,scenarioId:scenario,worldEvidence,
       });
       setResult(output);setResultInputs(inputsKey);
       setMessage('Fechas propuestas con regla de distribución documentada. Sin predicción calibrada de éxito.');
@@ -100,7 +131,7 @@ export default function StudioReleaseSequencer({objects,sessions}:{objects:Row[]
       const response=await fetch('/api/studio/campaign/release-sequence',{
         method:'POST',headers:{'content-type':'application/json'},
         body:JSON.stringify({sessionId,selectedNodeIds:validSelected,earliestDate:earliest,
-          spacingWeeks:spacing,scenarioId:scenario}),
+          spacingWeeks:spacing,scenarioId:scenario,worldEvidence}),
       });
       const body=await response.json() as {ok:boolean;error?:string;persisted?:boolean;eventId?:string};
       if(!response.ok||!body.ok||!body.persisted)throw new Error(body.error||'SEQUENCE_PERSISTENCE_UNVERIFIED');
@@ -170,6 +201,33 @@ export default function StudioReleaseSequencer({objects,sessions}:{objects:Row[]
           </select>
         </label>
       </div>
+      <div style={{display:'grid',gap:8,padding:10,
+        border:'1px solid rgba(152,200,224,.18)'}}>
+        <strong style={{fontSize:12}}>Movimiento observado y eventos culturales futuros</strong>
+        <p style={{fontSize:11,color:'#a9c1cf',margin:0}}>
+          Los titulares no acreditan preferencias del público ni indican fechas futuras.
+          Registra un evento con fecha y URL documentada para detectar conflictos.
+        </p>
+        <button type="button" onClick={readObservedWorld} style={{...btn,justifySelf:'start'}}>
+          CONSULTAR WORLD VECTOR
+        </button>
+        {worldStatus&&<span style={{fontSize:11,color:'#b5d7e4'}}>
+          Observación: {worldStatus} · Referencias públicas: {worldCount}
+        </span>}
+        <input style={ctrl} value={eventTitle} onChange={e=>setEventTitle(e.target.value)}
+          placeholder="Nombre del evento cultural"/>
+        <input type="date" style={ctrl} value={eventDate} onChange={e=>setEventDate(e.target.value)}/>
+        <input type="url" style={ctrl} value={eventUrl} onChange={e=>setEventUrl(e.target.value)}
+          placeholder="https://fuente-del-evento"/>
+        <button type="button" onClick={addFutureEvent} disabled={futureEvents.length>=12}
+          style={{...btn,justifySelf:'start'}}>INCORPORAR EVENTO</button>
+        {futureEvents.map((event,index)=><div key={index} style={{display:'flex',gap:8,fontSize:11}}>
+          <span style={{flex:1}}>{event.date} · {event.title} · fecha declarada</span>
+          <button type="button" style={btn} onClick={()=>{
+            setFutureEvents(events=>events.filter((_,i)=>i!==index));setResult(null);
+          }}>RETIRAR</button>
+        </div>)}
+      </div>
       <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
         <button type="button" disabled={busy} onClick={readFeatures} style={btn}>
           {busy?'RECUPERANDO…':'RECUPERAR MEDICIONES REALES'}
@@ -190,6 +248,13 @@ export default function StudioReleaseSequencer({objects,sessions}:{objects:Row[]
             <td style={{padding:8}}>{item.campaign.t1}</td>
           </tr>)}</tbody>
         </table>
+        {result.schedule.some(row=>row.conflicts.length>0)&&<div style={{display:'grid',gap:6}}>
+          <strong style={{fontSize:12}}>Posibles conflictos de fechas</strong>
+          {result.schedule.filter(row=>row.conflicts.length>0).map(row=><div key={row.itemId}
+            style={{fontSize:11,color:'#d5bf9a'}}>
+            {row.title} · {row.date}: {row.conflicts.map(event=>event.event).join(' · ')}
+          </div>)}
+        </div>}
         <p style={{fontSize:11,color:'#d4b99e',margin:0}}>
           Convención industrial de viernes y plazo mínimo de pitch: fuente Spotify for Artists
           y New Music Fridays. Los viernes no garantizan atención, listas editoriales ni rendimiento.
