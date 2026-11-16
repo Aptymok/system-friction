@@ -17,6 +17,9 @@ function text(value: unknown, max = 240): string | null {
   return typeof value === 'string' && value.trim() ? value.trim().slice(0, max) : null;
 }
 function boundedNumber(value: unknown, min: number, max: number): number | null {
+  // Empty input means no coordinate. Number(null) and Number('') would
+  // otherwise silently turn a missing position into a real zero.
+  if (value === null || value === undefined || value === '') return null;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? Math.max(min, Math.min(max, parsed)) : null;
 }
