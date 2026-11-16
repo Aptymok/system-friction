@@ -25,7 +25,7 @@ export default function StudioVisualProposals({direction,metrics}:{
   },[]);
 
   async function generate() {
-    if(busy)return;
+    if(busy || !direction.title.trim() || !direction.artist.trim())return;
     const seq=++serial.current;
     setBusy(true);setStatus('Generando seis propuestas independientes en el navegador…');
     try {
@@ -72,7 +72,8 @@ export default function StudioVisualProposals({direction,metrics}:{
       setStatus('No se produjo el ZIP: '+(error instanceof Error?error.message:String(error)));
     }finally{setBusy(false);}
   }
-  const ready=covers.length===STUDIO_COVER_VARIANTS.length && generatedFor===signature;
+  const metadataReady=Boolean(direction.title.trim() && direction.artist.trim());
+  const ready=metadataReady && covers.length===STUDIO_COVER_VARIANTS.length && generatedFor===signature;
   return <section style={{display:'grid',gap:12,padding:14,border:'1px solid rgba(123,208,208,.33)'}}>
     <strong>Laboratorio visual · seis direcciones diferentes</strong>
     <p style={{fontSize:12,color:'#abc1d1',margin:0,lineHeight:1.5}}>
@@ -80,7 +81,7 @@ export default function StudioVisualProposals({direction,metrics}:{
       Son diseños procedurales locales; no fotografías ni imágenes generadas con modelos externos.
     </p>
     <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-      <button type="button" disabled={busy} onClick={generate}
+      <button type="button" disabled={busy || !metadataReady} onClick={generate}
         style={{padding:'10px 14px',background:'#254d60',color:'#eaf7ff',border:'1px solid #65899d',cursor:busy?'wait':'pointer'}}>
         {busy?'GENERANDO…':'GENERAR SEIS PORTADAS'}
       </button>
@@ -89,6 +90,9 @@ export default function StudioVisualProposals({direction,metrics}:{
         DESCARGAR SEIS PORTADAS EN ZIP
       </button>
     </div>
+    {!metadataReady && <p style={{margin:0,color:'#d8c39c',fontSize:11}}>
+      Escribe el nombre de la obra y del artista antes de generar las propuestas.
+    </p>}
     {covers.length>0&&<div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(185px,1fr))',gap:12}}>
       {covers.map(cover=><div key={cover.id} style={{display:'grid',gap:6,padding:8,
         border:'1px solid rgba(255,255,255,.18)',opacity:ready?1:.65}}>
