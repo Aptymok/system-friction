@@ -207,7 +207,12 @@ assert(repositoryPage.includes("canonicalPublicationDisposition(record).disposit
 assert(repositoryReader.includes('LABORATORIO · ACCESO INTERNO'), 'Repository should expose navigational access without public Lab data');
 
 assert(methodLabPage.includes('evidenceInventory={evidence.options}'), 'Method Lab must use its actual governed evidence read projection');
-assert(methodLabPage.includes('Iniciar una nueva investigación · opcional'), 'research browsing must not require form intake');
+assert(methodLabPage.includes('<LabCreateDialog label="Iniciar una investigación">'), 'new research intake must be inside an explicit popup');
+assert(methodLabPage.indexOf('<MethodLabResearchReview') < methodLabPage.indexOf('<LabCreateDialog label="Iniciar una investigación">'), 'research reading must precede intake');
+assert(read('src/components/sfi/LabCreateDialog.tsx').includes('aria-modal="true"'), 'new experiment form must appear as an accessible modal');
+assert(read('src/components/sfi/SfiUnifiedSurfaces.css').includes('overflow-y:auto!important'), 'unified surfaces must allow natural vertical scrolling');
+assert(read('src/app/repository/repository.css').includes('width:100%!important;height:auto!important'), 'repository must use normal-width vertical reading rather than horizontal-only panorama');
+assert(read('src/components/sfi/SfiNeuralNavigation.tsx').includes('sfiInstitutionalQuickNav'), 'unified pages must expose ordinary section navigation');
 assert(researchSource.includes('sourceOfTruth: \'METHOD_LAB_EVENT_LEDGER\''), 'reader must use existing canonical research ledger');
 
 // Studio document reading must reuse transient extraction and never invent MIHM measurements.
