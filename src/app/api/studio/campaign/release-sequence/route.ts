@@ -3,6 +3,7 @@ import { requireSfiMember, AccessDeniedError } from '@/lib/system/access/server'
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { studioAttractorProjection } from '@/components/studio/studioAttractorProjection';
 import { sequenceStudioReleases, type ReleaseSequenceItem } from '@/components/studio/localAlbumReleaseSequencer';
+import type { CampaignEvidenceInput } from '@/components/studio/localNarrativeCampaignPlanner';
 
 export const runtime='nodejs';
 export const dynamic='force-dynamic';
@@ -21,10 +22,29 @@ export async function POST(request:Request){
     if(typeof sessionId!=='string'||!UUID.test(sessionId)||
       !Array.isArray(selectedNodeIds)||selectedNodeIds.length<1||selectedNodeIds.length>24||
       !selectedNodeIds.every(id=>typeof id==='string'&&id.length<250)||
-      typeof data.earliestDate!=='string'||data.earliestDate.length>10){
+      typeof data.earliestDate!=='string'||data.earliestDate.length>10||
+      (data.worldEvidence!==undefined&&(!Array.isArray(data.worldEvidence)||
+        data.worldEvidence.length>12))){
       return NextResponse.json({ok:false,error:'INVALID_SEQUENCE_REQUEST'},{status:400});
     }
     if(JSON.stringify(body).length>8000)return NextResponse.json({ok:false,error:'INPUT_TOO_LARGE'},{status:413});
+    const futureEvidence:CampaignEvidenceInput[]=Array.isArray(data.worldEvidence)
+      ?data.worldEvidence.map(value=>{
+        const row=rec(value);
+        return {
+          sourceUrl:String(row.sourceUrl??'').slice(0,500),
+          sourceTitle:String(row.sourceTitle??'').slice(0,150),
+          observedAt:typeof row.observedAt==='string'?row.observedAt:'',
+          relevance:'UNKNOWN' as const,
+          relevanceRationale:'User-declared dated event, not independently verified',
+          observationKind:'DATED_FUTURE_EVENT' as const,
+          eventDate:typeof row.eventDate==='string'?row.eventDate:null,
+        };
+      }):[];
+    if(futureEvidence.some(entry=>!entry.sourceUrl.startsWith('https://')||
+      !/^\d{4}-\d{2}-\d{2}$/.test(entry.eventDate??''))){
+      return NextResponse.json({ok:false,error:'FUTURE_EVENT_SOURCE_INVALID'},{status:400});
+    }
     const db=createServiceSupabaseClient();
     const session=await db.from('studio_sessions').select('id,title,metadata')
       .eq('id',sessionId).eq('owner_id',user.id).maybeSingle();
@@ -72,6 +92,7 @@ export async function POST(request:Request){
         items:sequence,earliestDate:data.earliestDate as string,
         spacingWeeks:data.spacingWeeks as number,
         scenarioId:data.scenarioId as 'DECLARED'|'ENERGY_RAMP'|'ENERGY_CONTRAST',
+        worldEvidence:futureEvidence,
       });
     }catch(error){
       return NextResponse.json({ok:false,error:error instanceof Error?error.message:'SEQUENCE_INVALID'},{status:400});
