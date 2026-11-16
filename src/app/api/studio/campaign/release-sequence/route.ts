@@ -91,7 +91,9 @@ export async function POST(request:Request){
       proposed=sequenceStudioReleases({
         items:sequence,earliestDate:data.earliestDate as string,
         spacingWeeks:data.spacingWeeks as number,
-        scenarioId:data.scenarioId as 'DECLARED'|'ENERGY_RAMP'|'ENERGY_CONTRAST',
+        scenarioId:data.scenarioId as 'DECLARED'|'NARRATIVE_DECLARED'|'ENERGY_RAMP'|'ENERGY_CONTRAST',
+        narrativePrecedence:graph.edges.filter(edge=>edge.relation==='PRECEDES')
+          .map(edge=>({from:edge.from,to:edge.to})),
         worldEvidence:futureEvidence,
       });
     }catch(error){
