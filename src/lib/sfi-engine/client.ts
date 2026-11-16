@@ -41,58 +41,6 @@ export function evaluateCoreSfi(input: {
   return { ...metrics, engine: 'TYPESCRIPT_CORE' as const };
 }
 
-function hashToNumber(input: string) {
-  let h = 2166136261;
-  for (let i = 0; i < input.length; i += 1) {
-    h ^= input.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
-}
-
-export function seededMonteCarlo(input: {
-  seed: string;
-  ihg: number;
-  nti: number;
-  ldi: number;
-  xi: number;
-  runs?: number;
-  horizon?: number;
-}) {
-  const runs = input.runs ?? 128;
-  const horizon = input.horizon ?? 21;
-  let seed = hashToNumber(input.seed);
-  function rand() {
-    seed = (seed * 1664525 + 1013904223) % 4294967296;
-    return seed / 4294967296;
-  }
-  const paths = [];
-  for (let r = 0; r < runs; r += 1) {
-    let ihg = input.ihg;
-    let nti = input.nti;
-    let ldi = input.ldi;
-    let xi = input.xi;
-    const path = [];
-    for (let d = 1; d <= horizon; d += 1) {
-      ihg = clamp01(ihg + (rand() - 0.5) * 0.04);
-      nti = clamp01(nti + (rand() - 0.5) * 0.05);
-      ldi = clamp01(ldi + (rand() - 0.5) * 0.04);
-      xi = clamp01(xi + (rand() - 0.5) * 0.01);
-      const metrics = evaluateSfi({ ihg, nti, ldi, xi });
-      path.push({ day: d, ihg, nti, ldi, xi, phiS: metrics.phi, fs: metrics.fs });
-    }
-    paths.push(path);
-  }
-  return {
-    engine: 'TYPESCRIPT_MONTECARLO' as const,
-    metricSymbol: 'PHI_S' as const,
-    epistemicStatus: 'SIMULATED' as const,
-    runs,
-    horizon,
-    paths,
-  };
-}
-
 function finiteMetric(value: unknown): number | null {
   const parsed = typeof value === 'number' ? value : Number(value);
   return Number.isFinite(parsed) ? parsed : null;
