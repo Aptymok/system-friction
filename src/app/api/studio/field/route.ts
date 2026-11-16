@@ -22,7 +22,7 @@ function boundedNumber(value: unknown, min: number, max: number): number | null 
 }
 function relation(value: unknown): StudioPersistedFieldEdge['relationType'] {
   const normalized = String(value ?? '').toUpperCase();
-  return ['CONTAINS', 'DERIVED_FROM', 'INFLUENCES', 'PROJECTS'].includes(normalized)
+  return ['CONTAINS', 'DERIVED_FROM', 'INFLUENCES', 'PROJECTS', 'PRECEDES'].includes(normalized)
     ? normalized as StudioPersistedFieldEdge['relationType']
     : 'DERIVED_FROM';
 }
