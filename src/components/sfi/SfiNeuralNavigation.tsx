@@ -65,6 +65,7 @@ export function SfiNeuralNavigation(){
     <button type="button" className="sfiNeuralTrigger" aria-label={open?'Cerrar conexiones de SFI':'Abrir conexiones de SFI'}
       aria-expanded={open} aria-controls="sfi-neural-graph-nav" onClick={()=>setOpen(v=>!v)}>
       <img src="/assets/sfi/ui/sfi-institute-node-mark.svg" width={48} height={48} alt="Logotipo de SFI" />
+      <span className="sfiNeuralTriggerLabel">Mapa SFI</span>
     </button>
     {open?<div id="sfi-neural-graph-nav" className="sfiNeuralOverlay sfiNeuralRadialOverlay" role="dialog" aria-modal="false" aria-label="Mapa interconectado del instituto">
       <div className="sfiNeuralHeading">
