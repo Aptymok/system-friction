@@ -8,6 +8,7 @@ import { podcastFilename, makePodcastManifest, type StudioPodcastAudio } from '.
 import { parseStudioLocalReport } from '../src/components/studio/localReportImport';
 import { checkStudioPhotographs } from '../src/components/studio/localPhotographicCovers';
 import { studioAttractorProjection } from '../src/components/studio/studioAttractorProjection';
+import { extractStudioGovernedReferences } from '../src/lib/studio/passport/governedReferenceProjection';
 import {
   proposeCampaignVariants, contrastCampaignObservations,
 } from '../src/components/studio/localCampaignContrast';
@@ -226,6 +227,26 @@ const sameLabelDifferentIdentity=studioAttractorProjection([],[
 assert.equal(sameLabelDifferentIdentity.nodes.filter(node=>node.kind==='attractor').length,2);
 
 
+// Governed references are explicit and never generated from matching names.
+const caseIdentifier='58dc8f3e-c405-44f4-a103-91267c72811e';
+const links=extractStudioGovernedReferences({
+  caseId:caseIdentifier,agentId:'cognitive-agent-1',
+  governedRefs:{caseIds:[caseIdentifier,'not-a-case-id'],
+    rootReceiptRefs:['ROOT-RECEIPT-1']},
+  projectName:'KXTXR',
+});
+assert.deepEqual(links.caseIds,[caseIdentifier]);
+assert.deepEqual(links.agentIds,['cognitive-agent-1']);
+assert.deepEqual(links.rootReceiptRefs,['ROOT-RECEIPT-1']);
+assert.equal(links.matchedBy,'EXPLICIT_IDENTIFIER_ONLY');
+const noRelated=extractStudioGovernedReferences({
+  title:'KXTXR cultural influence',description:'CASE 58dc8f3e-c405-44f4-a103-91267c72811e',
+  owner:'cognitive-agent-1',
+});
+assert.deepEqual(noRelated.caseIds,[]);
+assert.deepEqual(noRelated.agentIds,[]);
+assert.deepEqual(noRelated.rootReceiptRefs,[]);
+assert.equal(extractStudioGovernedReferences({caseId:'invalid-case-id'}).caseIds.length,0);
 console.log('PASS · SFI Studio local deliverables: PDF cross-reference, LaTeX, ZIP container, campaign observations and no empirical certification');
 
 }
