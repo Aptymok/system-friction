@@ -36,6 +36,12 @@ export type CampaignOutput = {
   anchor:{id:string;title:string;kind:string};
   ancestry:Array<{id:string;title:string;kind:string}>;
   descendants:Array<{id:string;title:string;kind:string}>;
+  narrativeLineage:{
+    predecessors:Array<{id:string;title:string;relation:string;source:'DECLARED_FIELD_EDGE'}>;
+    successors:Array<{id:string;title:string;relation:string;source:'DECLARED_FIELD_EDGE'}>;
+    edges:Array<{from:string;to:string;relation:string;canonical:false}>;
+    interpretation:'DECLARED_RELATIONSHIPS_NOT_CAUSAL_CERTIFICATION';
+  };
   continuity:{
     relationProvenance:'EXPLICIT_STUDIO_FIELD_EDGES';
     unsupportedInterpretations:string[];
@@ -122,6 +128,39 @@ function neighbors(graph:{nodes:StudioAttractorNode[];edges:StudioAttractorEdge[
   }
   return {parents,children};
 }
+function explicitNarrativeLineage(
+  graph:{nodes:StudioAttractorNode[];edges:StudioAttractorEdge[]},
+  anchorId:string,
+):CampaignOutput['narrativeLineage'] {
+  const references=new Map(graph.nodes.map(node=>[node.id,node]));
+  const relationTypes=new Set(['DERIVED_FROM','INFLUENCES','PROJECTS']);
+  const eligible=graph.edges.filter(edge=>relationTypes.has(edge.relation));
+  function walk(direction:'predecessors'|'successors'){
+    const visited=new Set<string>([anchorId]);
+    const queue=[anchorId];
+    const related:Array<{id:string;title:string;relation:string;source:'DECLARED_FIELD_EDGE'}>=[];
+    for(let step=0;queue.length&&step<32;step++){
+      const nodeId=queue.shift()!;
+      const next=eligible.filter(edge=>direction==='predecessors'?edge.to===nodeId:edge.from===nodeId);
+      for(const edge of next){
+        const otherId=direction==='predecessors'?edge.from:edge.to;
+        const found=references.get(otherId);
+        if(!found||visited.has(otherId))continue;
+        visited.add(otherId);queue.push(otherId);
+        related.push({id:otherId,title:found.label,relation:edge.relation,
+          source:'DECLARED_FIELD_EDGE'});
+      }
+    }
+    return related;
+  }
+  return {
+    predecessors:walk('predecessors'),
+    successors:walk('successors'),
+    edges:eligible.filter(edge=>references.has(edge.from)&&references.has(edge.to))
+      .map(edge=>({from:edge.from,to:edge.to,relation:edge.relation,canonical:false as const})),
+    interpretation:'DECLARED_RELATIONSHIPS_NOT_CAUSAL_CERTIFICATION',
+  };
+}
 function stageAssignment(phase:CampaignPhase,week:number,weeks:number) {
   if(phase==='PRE_RELEASE')return week===weeks-1?
     'Presentar pieza final de anticipación sin afirmar publicación ejecutada':
@@ -157,6 +196,7 @@ export function planStudioContinuityCampaign(
   const permittedFormats=new Set(['PHOTOGRAPH','VIDEO','TEXT','AUDIO']);
   if(channels.some(x=>!permittedChannels.has(x))||formats.some(x=>!permittedFormats.has(x)))throw new Error('UNKNOWN_CAMPAIGN_OUTPUT_TYPE');
   const {parents,children}=neighbors(graph,anchor.id);
+  const narrativeLineage=explicitNarrativeLineage(graph,anchor.id);
   const relatives=new Set([anchor.id,...parents.map(n=>n.id),...children.map(n=>n.id)]);
   const relationCount=graph.edges.filter(edge=>relatives.has(edge.from)&&relatives.has(edge.to)).length;
   const observations=(constraints.externalObservations??[]).slice(0,50).filter(evidenceValid);
@@ -191,13 +231,17 @@ export function planStudioContinuityCampaign(
     }
   }
   const sourceObjects=children.filter(node=>node.sourceObjectId).map(node=>node.sourceObjectId!);
-  const descriptions=[anchor,...parents,...children]
+  const narrativeSources=[...narrativeLineage.predecessors,...narrativeLineage.successors]
+    .map(item=>graph.nodes.find(node=>node.id===item.id))
+    .filter((item):item is StudioAttractorNode=>Boolean(item));
+  const descriptions=[anchor,...parents,...children,...narrativeSources]
     .map(node=>node.passport.description)
     .filter((value):value is string=>typeof value==='string'&&value.trim().length>0)
     .slice(0,24);
   return {
     contract:'SFI-STUDIO-CONTINUITY-CAMPAIGN-1.0',
     anchor:nodeRef(anchor),ancestry:parents.map(nodeRef),descendants:children.map(nodeRef),
+    narrativeLineage,
     continuity:{
       relationProvenance:'EXPLICIT_STUDIO_FIELD_EDGES',
       unsupportedInterpretations:descriptions.length?[]:['No explicit narrative motif description is registered.'],
