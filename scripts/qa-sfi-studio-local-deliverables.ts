@@ -6,7 +6,7 @@ import { makeStudioLocalZip } from '../src/components/studio/localZipPackage';
 import { buildSourceReviewScript } from '../src/components/studio/localPodcastResearchScript';
 import { podcastFilename, makePodcastManifest, type StudioPodcastAudio } from '../src/components/studio/localPodcastAudio';
 import { parseStudioLocalReport } from '../src/components/studio/localReportImport';
-import { STUDIO_COVER_VARIANTS, studioCoverVariantFilename, studioCoverVariantMetadata } from '../src/components/studio/localCoverVariations';
+import { checkStudioPhotographs } from '../src/components/studio/localPhotographicCovers';
 import {
   proposeCampaignVariants, contrastCampaignObservations,
 } from '../src/components/studio/localCampaignContrast';
@@ -104,14 +104,19 @@ assert.equal(podcastManifest.publication,'NOT_AUTHORIZED');
 assert.equal(podcastManifest.voiceOrigin,'USER_MICROPHONE_RECORDING');
 assert.equal(podcastManifest.scriptCharacters,script.body.length);
 
-// Visual QA checks output provenance and independent art directions, not browser canvas fidelity.
-assert.equal(STUDIO_COVER_VARIANTS.length,6);
-assert.equal(new Set(STUDIO_COVER_VARIANTS.map(variant=>variant.id)).size,6);
-assert.equal(new Set(STUDIO_COVER_VARIANTS.map(variant=>variant.description)).size,6);
-assert.equal(new Set(STUDIO_COVER_VARIANTS.map(variant=>variant.label)).size,6);
-assert.deepEqual(studioCoverVariantMetadata().map(item=>item.width),[3000,3000,3000,3000,3000,3000]);
-assert.ok(studioCoverVariantMetadata().every(item=>item.height===3000));
-assert.ok(STUDIO_COVER_VARIANTS.every(item=>studioCoverVariantFilename(item.id).endsWith('-3000.png')));
+// Photography QA validates real source images; no procedural substitute or generated photograph.
+const photos = Array.from({length:6},(_,index)=>({
+  name:'photo-'+index+'.jpg',size:2048,lastModified:1730000000000+index,type:'image/jpeg',
+} as File));
+assert.doesNotThrow(()=>checkStudioPhotographs(photos));
+assert.throws(()=>checkStudioPhotographs([]),/una y seis/);
+assert.throws(()=>checkStudioPhotographs([...photos,photos[0]]),/una y seis|misma fotografía/);
+assert.throws(()=>checkStudioPhotographs([{
+  name:'procedural.svg',size:100,lastModified:1730000000000,type:'image/svg+xml',
+} as File]),/JPEG, PNG o WebP/);
+assert.throws(()=>checkStudioPhotographs([{
+  name:'oversized.jpeg',size:21*1024*1024,lastModified:1730000000000,type:'image/jpeg',
+} as File]),/20 MB/);
 
 // Resuming from a private report must not pretend the original is available.
 const reportFixture={
