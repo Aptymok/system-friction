@@ -7,9 +7,12 @@ type Row=Record<string,unknown>;
 const sections=[
   ['world','World / vector cultural'],['scoreFriction','ScoreFriction'],['mihm','MIHM'],['fad','FAD'],
   ['t0','T0 · estado inicial'],['invariants','Invariantes mínimas'],['observationWindow','Ventana de observación'],
-  ['hypotheses','H1 / H2 y rivales'],['contrast','Contraste'],['authority','Autoridad y autorización'],
+  ['hypotheses','Hipótesis rivales'],['h1','H1 · predicción'],['h2','H2 · predicción'],
+  ['contrast','Contraste'],['agent','Agente / ejecutor'],['rationale','Por qué se decidió'],['authority','Autoridad y autorización'],
   ['action','Acción ejecutada'],['expectedReturn','RETURN esperado'],['observedReturn','RETURN observado'],
-  ['learning','Aprendizaje integrado'],['t1','T1 · estado posterior'],['winningHypothesis','Hipótesis ganadora'],
+  ['learning','Aprendizaje integrado'],['appliedChange','Qué se aplicó / modificó'],
+  ['t1','T1 · estado posterior'],['winningHypothesis','Hipótesis ganadora'],
+  ['targetFulfilled','¿Se cumplió?'],['nextObservation','Siguiente observación necesaria'],
 ] as const;
 function details(v:unknown):string{
   if(v===null||v===undefined)return 'NO OBSERVADO';
@@ -40,7 +43,7 @@ export default function StudioAttractorExplorer({objects}:{objects:Row[]}){
     while(parent && depth<3){depth++;parent=graph.nodes.find(n=>n.id===parent)?.parentId??null;}
     return depth;
   };
-  const coords=new Map(visible.map((node,index)=>[node.id,{x:110+level(node)*235,y:72+index*94}]));
+  const coords=new Map<string,{x:number;y:number}>(visible.map((node,index):[string,{x:number;y:number}]=>[node.id,{x:110+level(node)*235,y:72+index*94}]));
   const width=940,height=Math.max(260,visible.length*94+110);
   const pass=current?.passport??{};
   const stages=pass.stageEvidence as Record<string,unknown>|undefined;
