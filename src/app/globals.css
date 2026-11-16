@@ -155,3 +155,13 @@
   .sfiGlobalInstitutionalFooter{left:8px!important;right:8px!important;bottom:8px!important;justify-content:center!important;padding:7px 10px!important}
   .sfiGlobalInstitutionalFooter>span:first-child,.sfiGlobalInstitutionalFooter>span:nth-of-type(2),.sfiFooterPolicy{display:none}
 }
+
+
+/* SFI institutional navigation baseline: normal document flow and accessible scrolling. */
+html{height:auto!important;min-height:100%!important;overflow-y:auto!important;overflow-x:clip!important}
+body{height:auto!important;min-height:100%!important;overflow-y:auto!important;overflow-x:clip!important}
+.sfiPageContent{height:auto!important;max-height:none!important;min-height:100svh!important;overflow:visible!important}
+.sfiGlobalHeader{position:sticky!important;top:0!important;left:auto!important;right:auto!important;width:100%!important;margin:0!important;background:rgba(8,12,13,.98)!important;border-radius:0!important;border-bottom:1px solid rgba(192,160,98,.55)!important;box-shadow:none!important;backdrop-filter:none!important}
+.sfiGlobalInstitutionalFooter{position:relative!important;left:auto!important;right:auto!important;bottom:auto!important;margin:0!important;width:100%!important;max-width:none!important;min-height:48px!important;border-radius:0!important;border-top:1px solid rgba(192,160,98,.45)!important;background:#0c1112!important;box-shadow:none!important;backdrop-filter:none!important;color:#b0a798!important;z-index:1!important}
+body:has([data-sfi-unified-nav]) .sfiPageContent{padding-top:64px!important}
+@media(max-width:760px){body:has([data-sfi-unified-nav]) .sfiPageContent{padding-top:52px!important}}
