@@ -75,7 +75,10 @@ export async function POST(request:Request){
     const sequence:ReleaseSequenceItem[]=[];
     for(const [index,id] of (selectedNodeIds as string[]).entries()){
       const node=graph.nodes.find(n=>n.id===id&&n.kind!=='attractor');
-      if(!node||unique.has(id))return NextResponse.json({ok:false,error:'NODE_NOT_IN_OWNED_SESSION'},{status:403});
+      if(!node||unique.has(id)||!(node.kind==='project'||
+        (node.kind==='object'&&node.passport.objectType==='music'))){
+        return NextResponse.json({ok:false,error:'RELEASE_NODE_NOT_ELIGIBLE'},{status:403});
+      }
       unique.add(id);
       const audioIds=node.sourceObjectId?[node.sourceObjectId]:
         graph.nodes.filter(n=>n.parentId===node.id&&n.sourceObjectId).map(n=>n.sourceObjectId!);
