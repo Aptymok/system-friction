@@ -84,7 +84,31 @@ export default function StudioAttractorExplorer({objects,sessions}:{objects:Row[
       setReferenceMessage('No se guardó la referencia: '+(error instanceof Error?error.message:String(error)));
     }finally{setReferenceBusy(false);}
   }
+  const [fieldEvidence,setFieldEvidence]=useState<{
+    evidence:Array<{id:string;type:string;at:string|null;label:string;source:string;
+      status:string;details:string|null;references:{objectId:string|null;sourceEventId:string|null}}>;
+    completeness:string;sources:{archiveRead:string;objectsRead:string};
+  }|null>(null);
+  const [fieldReadError,setFieldReadError]=useState('');
   const objectId=current?.sourceObjectId??null;
+  const fieldNodeMatch=current?.id.match(/^field-node:([0-9a-f-]{36}):([0-9a-f-]{36})$/i);
+  const fieldSessionId=fieldNodeMatch?.[1]??null;
+  const fieldNodeId=fieldNodeMatch?.[2]??null;
+  useEffect(()=>{
+    setFieldEvidence(null);setFieldReadError('');
+    if(!fieldSessionId||!fieldNodeId)return;
+    const controller=new AbortController();
+    const query=new URLSearchParams({sessionId:fieldSessionId,nodeId:fieldNodeId});
+    fetch('/api/studio/field/passport-evidence?'+query.toString(),{
+      cache:'no-store',signal:controller.signal,
+    }).then(async response=>{
+      const data=await response.json();
+      if(!response.ok)throw new Error(String(data.error??'FIELD_READ_UNAVAILABLE'));
+      return data;
+    }).then(data=>{if(!controller.signal.aborted)setFieldEvidence(data);})
+      .catch(error=>{if(!controller.signal.aborted)setFieldReadError(String(error));});
+    return ()=>controller.abort();
+  },[fieldSessionId,fieldNodeId]);
   useEffect(()=>{
     setEvidence(null);setEvidenceError('');
     if(!objectId){setEvidenceLoading(false);return;}
@@ -190,6 +214,39 @@ export default function StudioAttractorExplorer({objects,sessions}:{objects:Row[
             </pre>
           </div>)}
         </div>
+        {fieldNodeId&&<section style={{
+          padding:12,border:'1px solid rgba(147,202,230,.27)',display:'grid',gap:8,
+        }}>
+          <strong style={{fontSize:13}}>Historial real del nodo seleccionado</strong>
+          {fieldReadError&&<p role="alert" style={{fontSize:11,color:'#eab6ab'}}>
+            Lectura no disponible: {fieldReadError}
+          </p>}
+          {fieldEvidence&&<>
+            <p style={{fontSize:11,color:'#abc7d3',margin:0}}>
+              {fieldEvidence.evidence.length} asociaciones o eventos leídos ·
+              Estado: {fieldEvidence.completeness}
+            </p>
+            {fieldEvidence.evidence.map(item=><div key={item.id}
+              style={{padding:7,display:'grid',gap:4,
+                borderBottom:'1px solid rgba(255,255,255,.12)'}}>
+              <strong style={{fontSize:11}}>{item.type} · {item.label}</strong>
+              <span style={{fontSize:10,color:'#aec6d1'}}>
+                {item.at??'Sin fecha'} · {item.source} · {item.status}
+              </span>
+              {item.details&&<span style={{fontSize:11,color:'#d4e5eb'}}>
+                {item.details}
+              </span>}
+              {item.references.objectId&&<a style={{fontSize:11,color:'#90d6f1'}}
+                href={'/studio?objectId='+encodeURIComponent(item.references.objectId)}>
+                Abrir objeto vinculado
+              </a>}
+            </div>)}
+          </>}
+          <p style={{fontSize:10,color:'#d4baa2',margin:0}}>
+            El historial documenta propuestas y asociaciones persistidas;
+            no transforma una campaña propuesta en publicación ejecutada.
+          </p>
+        </section>}
         {current.sourceObjectId&&<section style={{
           border:'1px solid rgba(145,210,235,.23)',padding:12,display:'grid',gap:9,
         }}>
