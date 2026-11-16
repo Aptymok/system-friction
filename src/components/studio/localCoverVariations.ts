@@ -35,23 +35,29 @@ function bounded(value:number,fallback:number,minimum:number,maximum:number){
 }
 function writeTitle(ctx:CanvasRenderingContext2D,title:string,x:number,y:number,maxWidth:number,maxLines:number,fontSize:number,lineHeight:number,alignment:CanvasTextAlign='center'){
   ctx.textAlign=alignment;
-  const words=title.toLocaleUpperCase().split(/\s+/).filter(Boolean);
-  const lines:string[]=[];
-  let current='';
-  for(const word of words){
-    const test=current?current+' '+word:word;
-    if(current && ctx.measureText(test).width>maxWidth){lines.push(current);current=word;}
-    else current=test;
+  const words=title.toLocaleUpperCase().split(/\\s+/).filter(Boolean);
+  const layout=(size:number)=>{
+    ctx.font='700 '+size+'px sans-serif';
+    const lines:string[]=[];
+    let current='';
+    for(const word of words){
+      const test=current?current+' '+word:word;
+      if(current && ctx.measureText(test).width>maxWidth){lines.push(current);current=word;}
+      else current=test;
+    }
+    if(current)lines.push(current);
+    return lines;
+  };
+  let size=fontSize;
+  let lines=layout(size);
+  for(let tries=0;tries<12 && lines.length>maxLines;tries++){
+    size=Math.max(32,Math.floor(size*.82));
+    lines=layout(size);
   }
-  if(current)lines.push(current);
-  // Shrink long titles instead of clipping the canvas or silently deleting words.
-  if(lines.length>maxLines){
-    const size=bounded(fontSize*maxLines/lines.length,55,44,fontSize);
-    ctx.font='700 '+Math.floor(size)+'px sans-serif';
-    return writeTitle(ctx,title,x,y,maxWidth,maxLines,size,lineHeight,alignment);
-  }
-  const top=y-(lines.length-1)*lineHeight/2;
-  for(let i=0;i<lines.length;i++)ctx.fillText(lines[i],x,top+i*lineHeight,maxWidth);
+  // Extremely long titles remain readable by increasing lines rather than discarding words.
+  const actualHeight=Math.max(lineHeight,size*1.15);
+  const top=y-(lines.length-1)*actualHeight/2;
+  for(let i=0;i<lines.length;i++)ctx.fillText(lines[i],x,top+i*actualHeight,maxWidth);
 }
 function palette(style:ReleaseDirection['palette']){
   if(style==='paper')return {background:'#e8e4d9',foreground:'#15252f',accent:'#bb6045',soft:'#a9a69a'};
