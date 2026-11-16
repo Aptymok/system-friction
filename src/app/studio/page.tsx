@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import StudioFileIntake from '@/components/studio/StudioFileIntake';
 import StudioDocumentWorkbench from '@/components/studio/StudioDocumentWorkbench';
+import StudioAttractorExplorer from '@/components/studio/StudioAttractorExplorer';
 import type { CSSProperties } from 'react';
 import { redirect } from 'next/navigation';
 import { getStudioObjectFeatures, listStudioObjects } from '@/lib/studio/production/studioProductionRepository';
@@ -102,6 +103,7 @@ export default async function StudioPage({ searchParams }: { searchParams?: Prom
           </p>
           <StudioFileIntake />
           <StudioDocumentWorkbench />
+          <StudioAttractorExplorer objects={objects} />
         </div>
       </section>
 
