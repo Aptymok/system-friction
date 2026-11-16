@@ -20,10 +20,10 @@ export type ReleaseSequenceResult={
   contract:'SFI-STUDIO-RELEASE-SEQUENCING-1.0';
   generatedFrom:'EXPLICIT_SELECTED_RELEASES';
   scenarios:Array<{
-    id:'DECLARED'|'ENERGY_RAMP'|'ENERGY_CONTRAST';
+    id:'DECLARED'|'NARRATIVE_DECLARED'|'ENERGY_RAMP'|'ENERGY_CONTRAST';
     order:string[];
     rationale:string;
-    epistemic:'DECLARED'|'SIMULATED_HEURISTIC';
+    epistemic:'DECLARED'|'DERIVED_HEURISTIC'|'SIMULATED_HEURISTIC';
     available:boolean;
     missingEvidence:string[];
   }>;
@@ -45,6 +45,7 @@ export type ReleaseSequenceResult={
   constraints:{
     earliest:string;spacingWeeks:number;fridayPolicy:'BASELINE_NOT_PROOF_OF_OPTIMALITY';
     scenarioId:string;
+    explicitPrecedenceCount:number;
   };
   determination:{
     optimality:'NOT_CALIBRATED';
@@ -86,7 +87,8 @@ export function sequenceStudioReleases(input:{
   items:ReleaseSequenceItem[];
   earliestDate:string;
   spacingWeeks:number;
-  scenarioId?:'DECLARED'|'ENERGY_RAMP'|'ENERGY_CONTRAST';
+  scenarioId?:'DECLARED'|'NARRATIVE_DECLARED'|'ENERGY_RAMP'|'ENERGY_CONTRAST';
+  narrativePrecedence?:Array<{from:string;to:string}>;
   worldEvidence?:CampaignEvidenceInput[];
 }):ReleaseSequenceResult {
   const items=cleanItems(input.items);
@@ -107,9 +109,37 @@ export function sequenceStudioReleases(input:{
   }
   const missing=items.filter(item=>item.acousticEnergyProxy===null||
     item.proxySource!=='RECORDED_STUDIO_FEATURE').map(item=>item.id);
+  // Only explicit PRECEDES edges can constrain chronological order.
+  // Acyclic topological ordering retains the operator's relative sequence
+  // among releases with no declared precedence.
+  const ids=new Set(items.map(item=>item.id));
+  const edges=[...new Map((input.narrativePrecedence??[])
+    .filter(edge=>ids.has(edge.from)&&ids.has(edge.to)&&edge.from!==edge.to)
+    .map(edge=>[edge.from+'>'+edge.to,edge])).values()].slice(0,200);
+  const inDegree=new Map(items.map(item=>[item.id,0]));
+  const outgoing=new Map(items.map(item=>[item.id,[] as string[]]));
+  for(const edge of edges){
+    inDegree.set(edge.to,(inDegree.get(edge.to)??0)+1);
+    outgoing.get(edge.from)!.push(edge.to);
+  }
+  const remaining=new Set(items.map(item=>item.id));
+  const chronology:string[]=[];
+  while(remaining.size){
+    const eligible=items.find(item=>remaining.has(item.id)&&(inDegree.get(item.id)??0)===0);
+    if(!eligible)break;
+    chronology.push(eligible.id);remaining.delete(eligible.id);
+    for(const next of outgoing.get(eligible.id)??[]){
+      inDegree.set(next,(inDegree.get(next)??1)-1);
+    }
+  }
+  const narrativeValid=edges.length>0&&chronology.length===items.length;
   const scenarios:ReleaseSequenceResult['scenarios']=[
     {id:'DECLARED',order:items.map(item=>item.id),rationale:'Orden de selección preservado; no altera la continuidad histórica.',
       epistemic:'DECLARED',available:true,missingEvidence:[]},
+    {id:'NARRATIVE_DECLARED',order:narrativeValid?chronology:[],
+      rationale:'Orden topológico condicionado únicamente por vínculos PRECEDES declarados; las obras sin vínculo conservan su prioridad original. No hay inferencia cultural de éxito.',
+      epistemic:'DERIVED_HEURISTIC',available:narrativeValid,
+      missingEvidence:narrativeValid?[]:edges.length?['CYCLIC_PRECEDENCE_CONFLICT']:['NO_EXPLICIT_PRECEDES_RELATIONS']},
     {id:'ENERGY_RAMP',order:byEnergy.map(item=>item.id),
       rationale:'Experimento de progresión ascendente de un indicador acústico almacenado; no demuestra preferencia del público.',
       epistemic:'SIMULATED_HEURISTIC',available:fullCoverage,missingEvidence:missing},
@@ -158,7 +188,8 @@ export function sequenceStudioReleases(input:{
     generatedFrom:'EXPLICIT_SELECTED_RELEASES',
     scenarios,schedule,
     constraints:{earliest:input.earliestDate,spacingWeeks:spacing,
-      fridayPolicy:'BASELINE_NOT_PROOF_OF_OPTIMALITY',scenarioId:scenario.id},
+      fridayPolicy:'BASELINE_NOT_PROOF_OF_OPTIMALITY',scenarioId:scenario.id,
+      explicitPrecedenceCount:edges.length},
     determination:{
       optimality:'NOT_CALIBRATED',audienceMetrics:'NOT_OBSERVED',
       worldSignalPredictiveValidation:'NOT_PERFORMED',actionAuthority:'NOT_GRANTED',
