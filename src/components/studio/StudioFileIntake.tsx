@@ -8,6 +8,7 @@ import StudioCampaignContrast from './StudioCampaignContrast';
 import StudioReleasePackage from './StudioReleasePackage';
 import { createLocalAudioTeaser } from './localTeaserExport';
 import { parseStudioLocalReport } from './localReportImport';
+import StudioVisualProposals from './StudioVisualProposals';
 
 type MeasuredFeature = {
   key: string; label: string; value: number | string | null;
@@ -314,7 +315,7 @@ export default function StudioFileIntake() {
         }}>
           <strong>Crear materiales del lanzamiento · sin almacenar el original</strong>
           <p style={{ margin: 0, color: '#9fb4c2', lineHeight: 1.5 }}>
-            Crea una portada PNG real y un expediente editorial preliminar. El sector es una hipótesis aportada por ti:
+            Genera seis direcciones de portada y un expediente editorial preliminar. El sector es una hipótesis aportada por ti:
             todavía no se ha investigado ni validado como público objetivo.
           </p>
           <label htmlFor="release-title">Nombre de la obra</label>
@@ -343,6 +344,7 @@ export default function StudioFileIntake() {
             <option value="paper">Editorial · papel cálido</option>
             <option value="signal">Señal · verde oscuro</option>
           </select>
+          <StudioVisualProposals direction={release} metrics={releaseMetrics} />
           <StudioReleaseResearch direction={release} onDiscovery={setReleaseEvidence} />
           <StudioCampaignContrast direction={release} />
           <StudioReleasePackage
@@ -355,7 +357,7 @@ export default function StudioFileIntake() {
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <button type="button" onClick={exportCover} style={{
               padding: '10px 14px', color: '#e9fbff', background: '#24516b', border: '1px solid #648ca5', cursor: 'pointer',
-            }}>DESCARGAR PORTADA PNG 3000×3000</button>
+            }}>DESCARGAR PORTADA CLÁSICA PNG 3000×3000</button>
             <button type="button" disabled={teaserBusy || !file} onClick={exportTeaser} style={{
               padding: '10px 14px', color: '#e9fbff', background: '#34264f', border: '1px solid #7467a2',
               cursor: teaserBusy ? 'wait' : 'pointer',
@@ -366,7 +368,7 @@ export default function StudioFileIntake() {
           </div>
           {releaseMessage && <p role="status" style={{ margin: 0, color: '#b4dcca' }}>{releaseMessage}</p>}
           <p style={{ margin: 0, fontSize: 11, color: '#9fb4c2' }}>
-            Portada procedural, no una imagen generada por modelo de IA. Campaña: borrador sin estudio de mercado.
+            Seis portadas procedurales independientes y una portada clásica opcional; no son imágenes generadas con modelo de IA. Campaña: borrador sin estudio de mercado.
             No publica, no ejecuta FAD/MIHM y no genera cargos de proveedores.
           </p>
         </div>}
