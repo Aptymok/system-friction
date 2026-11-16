@@ -53,7 +53,7 @@ export default function StudioAttractorExplorer({objects,sessions}:{objects:Row[
       cases:Array<{caseId:string;readStatus:string;inputHash:string|null;gaps:string[];nextObservation:unknown;closureCertified:boolean}>;
       agents:Array<{id:string;name:string;lifecycle:string;executorBound:boolean;latestExecutionAt:string|null;executionEvidenceRefs:string[];observedForThisStudioObject:boolean}>;
       agentReadStatus:string;
-      root:{declaredReceiptRefs:string[];validatedReceipts:unknown[];readStatus:string;warning:string};
+      root:{declaredReceiptRefs:string[];observedAuditRecords:Array<{id:string;at:string|null;action:string|null;target:string|null}>;validatedReceipts:unknown[];readStatus:string;warning:string};
       certifiedCrossSurfaceClosure:boolean;
     };
   }|null>(null);
@@ -228,11 +228,23 @@ export default function StudioAttractorExplorer({objects,sessions}:{objects:Row[
                   Ejecución sobre este objeto: NO ATRIBUIDA
                 </span>
               </div>)}
-              {evidence.governedLinks.declaredReferences.rootReceiptRefs.length>0&&
+              {evidence.governedLinks.declaredReferences.rootReceiptRefs.length>0&&<div style={{
+                display:'grid',gap:6,border:'1px solid rgba(190,175,137,.25)',padding:9,
+              }}>
+                <strong style={{fontSize:11}}>Registros de auditoría ROOT</strong>
                 <p style={{fontSize:11,color:'#e2bea0',margin:0}}>
-                  Referencias ROOT declaradas: {evidence.governedLinks.declaredReferences.rootReceiptRefs.length}.
-                  No certificadas: requieren lectura con autoridad ROOT independiente.
-                </p>}
+                  Referencias declaradas: {evidence.governedLinks.declaredReferences.rootReceiptRefs.length}.
+                  Lectura: {evidence.governedLinks.root.readStatus}.
+                </p>
+                {evidence.governedLinks.root.observedAuditRecords.map(audit=><div key={audit.id}
+                  style={{fontSize:11,color:'#c8d9df',overflowWrap:'anywhere'}}>
+                  {audit.at??'Sin fecha'} · {audit.action??'Acción no identificada'} ·
+                  {' '+(audit.target??'Sin objeto registrado')} · {audit.id}
+                </div>)}
+                <p style={{fontSize:10,color:'#d1b89b',margin:0}}>
+                  Un registro de auditoría no prueba autorización suficiente, ejecución exitosa ni RETURN.
+                </p>
+              </div>}
               {evidence.governedLinks.cases.length===0&&
                 evidence.governedLinks.agents.length===0&&
                 evidence.governedLinks.declaredReferences.rootReceiptRefs.length===0&&
