@@ -23,7 +23,7 @@ export async function GET(request:Request){
     const objectRead=await db.from('studio_objects')
       .select('id,object_type').eq('session_id',sessionId).eq('owner_id',user.id).limit(120);
     if(objectRead.error)return NextResponse.json({ok:false,error:'OBJECTS_READ_UNAVAILABLE'},{status:503});
-    const ids=(objectRead.data??[]).filter(o=>o.object_type==='music').map(o=>String(o.id));
+    const ids=(objectRead.data??[]).filter(o=>['music','audio','song','music_audio'].includes(String(o.object_type??'').toLowerCase())).map(o=>String(o.id));
     if(!ids.length)return NextResponse.json({
       ok:true,features:[],dataStatus:'NO_MUSIC_OBJECTS',source:'studio_audio_features',
       energyTransform:'DBFS_TO_LINEAR_MEAN_SQUARE_PROXY_NOT_VALIDATED',notAudienceEvidence:true,
