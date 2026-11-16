@@ -31,3 +31,44 @@
 .mlr-repository-connection a{padding:8px 10px;color:#c7e2f5;border:1px solid rgba(92,166,223,.42);text-decoration:none;overflow-wrap:anywhere}
 .mlr-repository-connection a:hover,.mlr-repository-connection a:focus-visible{border-color:#d4af37;color:#f5e8bc}
 .mlr-repository-connection span{color:#9fb5c4}
+
+
+/* Method Lab 2026: scientific legibility and evidence before interface decoration. */
+.mlr-shell{max-width:1380px!important;border-color:rgba(197,163,97,.22)!important;background:#0b1113!important;padding:clamp(18px,3vw,40px)!important}
+.mlr-head{display:block!important;margin-bottom:18px}
+.mlr-head h2{font:400 clamp(22px,3vw,35px)/1.2 var(--sfi-display,Georgia,serif)!important;color:#eee8da!important}
+.mlr-head span{color:#c5a66e!important;font-size:11px!important}
+.mlr-head>p{text-align:left!important;max-width:900px!important;color:#b5b5ac!important;font-size:12px!important;margin:12px 0 0}
+.mlr-dashboard{background:#232c2e!important;border-color:#344344!important;grid-template-columns:repeat(4,minmax(0,1fr))!important}
+.mlr-stat{background:#101a1e!important;min-width:0}
+.mlr-stat span,.mlr-stat small{font-size:11px!important;color:#b2b8b5!important}
+.mlr-stat strong{color:#e8dbbd!important;font-family:var(--sfi-display,Georgia,serif)}
+.mlr-object-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,265px),1fr))!important;gap:10px!important}
+.mlr-object-grid button{background:#111a1d!important;border-color:#384648!important;border-radius:4px!important;padding:17px!important;min-height:130px}
+.mlr-object-grid button[data-selected=true]{border-color:#d0ab6a!important;background:#1a2425!important;box-shadow:inset 3px 0 #c6a668!important}
+.mlr-object-grid span,.mlr-object-grid small{font-size:11px!important;color:#a6b8b9!important}
+.mlr-object-grid b{font:600 12px var(--sfi-trace,monospace)!important;color:#d2bf9a!important;overflow-wrap:anywhere}
+.mlr-object-grid p{font:400 18px/1.4 var(--sfi-display,Georgia,serif)!important;color:#f1e9d8!important}
+.mlr-process{background:#0e171a!important;border-color:#4a5452!important;padding:clamp(16px,3vw,30px)!important}
+.mlr-process h3{font:400 clamp(24px,3vw,34px)/1.2 var(--sfi-display,Georgia,serif)!important;color:#f2eee5!important}
+.mlr-review-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:11px!important}
+.mlr-review-grid article{background:#101b20!important;border-color:#34474a!important;min-width:0}
+.mlr-review-grid article>span{color:#c9af77!important;font-size:11px!important}
+.mlr-review-grid p,.mlr-review-grid small{color:#c0cbcb!important;font-size:13px!important;line-height:1.65!important}
+.mlr-review-grid dt,.mlr-review-grid dd,.mlr-findings b,.mlr-findings em,.mlr-findings p{font-size:12px!important}
+.mlr-review-grid dd{overflow-wrap:anywhere;max-width:70%}
+.mlr-findings{max-height:none!important;overflow:visible!important}
+.mlr-flow{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+.mlr-flow span{font-size:10px!important;color:#a7aeb1!important;margin-top:6px!important}
+.mlr-coverage{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;margin:18px 0 12px;background:#33494f;border:1px solid #3d5357}
+.mlr-coverage>div{background:#112024;padding:14px;min-width:0}
+.mlr-coverage span{display:block;color:#d1c3a9;font:600 11px/1.35 var(--sfi-screen,sans-serif)}
+.mlr-coverage strong{display:block;color:#f3e2be;font:400 30px var(--sfi-display,Georgia,serif);margin:6px 0}
+.mlr-coverage small{display:block;color:#b2c1c1;font:400 11px/1.45 var(--sfi-screen,sans-serif)}
+.mlr-actions button{font-size:11px!important;min-height:42px}
+.mlr-reference-list code,.mlr-reference-list button{font-size:12px!important}
+.mlr-reference-list li small{font-size:11px!important;line-height:1.5!important}
+.mlr-trace-panel{background:#10191b!important;border-color:#4b5958!important}
+.mlr-trace-panel>p,.mlr-trace-boundary p{font-size:12px!important}
+@media(max-width:850px){.mlr-dashboard,.mlr-coverage{grid-template-columns:repeat(2,minmax(0,1fr))!important}.mlr-review-grid{grid-template-columns:1fr!important}.mlr-flow{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media(max-width:520px){.mlr-head h2{font-size:25px!important}.mlr-object-grid{grid-template-columns:1fr!important}.mlr-dashboard,.mlr-coverage{grid-template-columns:repeat(2,minmax(0,1fr))!important}.mlr-process header{flex-direction:column!important}.mlr-badges{justify-content:flex-start!important}}
