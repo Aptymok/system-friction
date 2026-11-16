@@ -119,7 +119,12 @@ export async function POST(request:Request,ctx:Context){
         referenceEventStatus='EVENT_WRITE_FAILED_REFERENCE_STILL_PERSISTED';
       }else {
         referenceEventId=String(recorded.data.id);
-        referenceEventStatus='EVENT_WRITE_CONFIRMED';
+        const checked=await db.from('studio_archive_events').select('id,event_type,object_id,owner_id')
+          .eq('id',referenceEventId).eq('object_id',id).eq('owner_id',user.id).maybeSingle();
+        referenceEventStatus=checked.error||!checked.data||
+          checked.data.event_type!=='governed_reference_linked'
+          ?'EVENT_PERSISTENCE_UNVERIFIED'
+          :'EVENT_PERSISTED_READBACK';
       }
     }
     return NextResponse.json({
