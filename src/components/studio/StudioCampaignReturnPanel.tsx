@@ -16,6 +16,11 @@ export default function StudioCampaignReturnPanel({
 }){
   const [data,setData]=useState<Record<'A'|'B',Measurement>>({A:blank(),B:blank()});
   const [busy,setBusy]=useState(false);
+  const [contrastEventId,setContrastEventId]=useState<string|null>(null);
+  const [disposition,setDisposition]=useState('INCONCLUSIVE');
+  const [rationale,setRationale]=useState('');
+  const [proposedChange,setProposedChange]=useState('');
+  const [learningBusy,setLearningBusy]=useState(false);
   const [message,setMessage]=useState('');
   const observations:CampaignObserved[]=(['A','B'] as const).map(variant=>({
     variant,url:data[variant].url.trim(),
@@ -41,11 +46,28 @@ export default function StudioCampaignReturnPanel({
       });
       const out=await response.json() as {ok:boolean;persisted?:boolean;eventId?:string;error?:string;details?:string};
       if(!response.ok||!out.ok||!out.persisted)throw new Error(out.details??out.error??'RETURN_READBACK_UNAVAILABLE');
+      setContrastEventId(out.eventId??null);
       setMessage('Contraste descriptivo almacenado y releído: '+out.eventId+
         '. Los números proceden de lectura manual, no de una API de plataforma.');
     }catch(error){
       setMessage('No se guardó el contraste: '+(error instanceof Error?error.message:String(error)));
     }finally{setBusy(false);}
+  }
+  async function saveLearning(){
+    if(!contrastEventId||learningBusy||!sessionId)return;
+    setLearningBusy(true);
+    try{
+      const response=await fetch('/api/studio/campaign/learning',{
+        method:'POST',headers:{'content-type':'application/json'},
+        body:JSON.stringify({sessionId,contrastEventId,disposition,rationale,proposedChange}),
+      });
+      const data=await response.json() as {ok:boolean;persisted?:boolean;learningEventId?:string;error?:string};
+      if(!response.ok||!data.ok||!data.persisted)throw new Error(data.error??'LEARNING_NOT_PERSISTED');
+      setMessage('Decisión editorial atribuida y persistida: '+data.learningEventId+
+        '. La nueva estrategia aún requiere ejecución y contraste propio.');
+    }catch(error){
+      setMessage('Aprendizaje no registrado: '+(error instanceof Error?error.message:String(error)));
+    }finally{setLearningBusy(false);}
   }
   const ctrl={background:'#142b3a',border:'1px solid #49718a',
     padding:'7px 9px',color:'#eaf7ff',fontSize:12} as const;
@@ -92,6 +114,35 @@ export default function StudioCampaignReturnPanel({
         border:'1px solid #73a28c',color:'#eafff8',cursor:'pointer',justifySelf:'start'}}>
       {busy?'REGISTRANDO…':'REGISTRAR CONTRASTE ASOCIADO A LA CAMPAÑA'}
     </button>
+    {contrastEventId&&<div style={{display:'grid',gap:8,
+      border:'1px solid rgba(140,208,186,.3)',padding:12}}>
+      <strong>Decidir qué aprender y qué modificar</strong>
+      <p style={{margin:0,fontSize:11,color:'#acc7bd'}}>
+        La tasa mayor observada puede informar una decisión editorial.
+        No identifica causalidad ni certifica una hipótesis científica.
+      </p>
+      <select value={disposition} onChange={e=>setDisposition(e.target.value)} style={ctrl}>
+        <option value="INCONCLUSIVE">Sin ganador: contraste inconcluso</option>
+        {result.relativeOutcome==='A_HIGHER_OBSERVED'&&<option value="A_DESCRIPTIVELY_HIGHER">
+          A · mayor tasa observada, no efecto causal
+        </option>}
+        {result.relativeOutcome==='B_HIGHER_OBSERVED'&&<option value="B_DESCRIPTIVELY_HIGHER">
+          B · mayor tasa observada, no efecto causal
+        </option>}
+      </select>
+      <textarea value={rationale} onChange={e=>setRationale(e.target.value)}
+        rows={3} maxLength={1800} style={ctrl}
+        placeholder="Qué aprendimos de lo observado y qué lo limita (mínimo 30 caracteres)"/>
+      <textarea value={proposedChange} onChange={e=>setProposedChange(e.target.value)}
+        rows={3} maxLength={1800} style={ctrl}
+        placeholder="Qué cambiará en la siguiente campaña (mínimo 20 caracteres)"/>
+      <button type="button" disabled={learningBusy||rationale.trim().length<30||
+        proposedChange.trim().length<20}
+        onClick={saveLearning} style={{background:'#265f51',padding:'9px 12px',
+          border:'1px solid #79ad99',color:'#effff8',cursor:'pointer',justifySelf:'start'}}>
+        {learningBusy?'REGISTRANDO…':'REGISTRAR DECISIÓN Y SIGUIENTE CAMBIO'}
+      </button>
+    </div>}
     {!planEventId&&<span style={{fontSize:11,color:'#d6b99b'}}>
       Guarda primero la propuesta en Studio para disponer de un expediente trazable.
     </span>}
