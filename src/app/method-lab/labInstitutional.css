@@ -6,18 +6,18 @@
 .sfi-lab-page-facts{display:flex;flex-wrap:wrap;gap:10px;margin-top:23px;font-size:12px}
 .sfi-lab-page-facts span{border-top:1px solid #b39258;padding:10px 16px 4px 0;color:#d6c5a6;min-width:190px}
 .sfi-lab-create-row{max-width:1380px;margin:14px auto 24px;padding:0 clamp(20px,4vw,56px)}
-.sfi-lab-create-trigger{display:inline-flex;align-items:center;gap:8px;border:1px solid #b49a68;padding:12px 16px;background:#151914;color:#e6d5b7;cursor:pointer;font:600 13px var(--sfi-screen,sans-serif)}
-.sfi-lab-create-trigger:hover,.sfi-lab-create-trigger:focus-visible{background:#26302a;outline:2px solid #b49a68;outline-offset:2px}
-.sfi-lab-dialog-backdrop{position:fixed;inset:0;z-index:30000;background:#050807d9;display:flex;align-items:center;justify-content:center;padding:clamp(12px,3vw,28px)}
-.sfi-lab-dialog{width:min(940px,100%);max-height:calc(100dvh - 28px);overflow-y:auto;overscroll-behavior:contain;background:#0c1519;border:1px solid #b69a63;padding:clamp(17px,3vw,30px);color:#ebe9e0;box-shadow:0 24px 90px #000a}
+.sfi-lab-create-trigger{display:inline-flex;align-items:center;gap:8px;border:1px solid #b49a68;padding:12px 16px;background:#151310;color:#e6d5b7;cursor:pointer;font:600 13px var(--sfi-screen,sans-serif)}
+.sfi-lab-create-trigger:hover,.sfi-lab-create-trigger:focus-visible{background:#2b2419;outline:2px solid #b49a68;outline-offset:2px}
+.sfi-lab-dialog-backdrop{position:fixed;inset:0;z-index:30000;background:#050403d9;display:flex;align-items:center;justify-content:center;padding:clamp(12px,3vw,28px)}
+.sfi-lab-dialog{width:min(940px,100%);max-height:calc(100dvh - 28px);overflow-y:auto;overscroll-behavior:contain;background:#100e0b;border:1px solid #b69a63;padding:clamp(17px,3vw,30px);color:#ebe9e0;box-shadow:0 24px 90px #000a}
 .sfi-lab-dialog-head{display:flex;justify-content:space-between;align-items:start;gap:15px;border-bottom:1px solid #4c4c38;padding-bottom:14px}
 .sfi-lab-dialog-head small{color:#c2a87a;font:600 10px var(--sfi-screen,sans-serif);letter-spacing:.12em}
 .sfi-lab-dialog-head h2{font:400 clamp(22px,3vw,34px) var(--sfi-display,Georgia,serif);margin:8px 0 0}
-.sfi-lab-dialog-head button{border:1px solid #75684b;padding:9px 12px;color:#efe2c8;background:#172021;cursor:pointer}
-.sfi-lab-dialog>p{font-size:13px;line-height:1.65;color:#b8c0be}
+.sfi-lab-dialog-head button{border:1px solid #75684b;padding:9px 12px;color:#efe2c8;background:#201b14;cursor:pointer}
+.sfi-lab-dialog>p{font-size:13px;line-height:1.65;color:#c8bbab}
 .sfi-lab-dialog-body>*{max-width:100%!important;margin:0!important;padding:8px 0!important}
-.sfi-lab-operations{max-width:1380px;margin:15px auto;padding:0 clamp(20px,4vw,56px);color:#d7dad4}
-.sfi-lab-operations>summary{cursor:pointer;padding:15px 17px;background:#0e171b;border:1px solid #3c4e53;color:#e7d5b5;font:600 13px var(--sfi-screen,sans-serif)}
+.sfi-lab-operations{max-width:1380px;margin:15px auto;padding:0 clamp(20px,4vw,56px);color:#d7cdbc}
+.sfi-lab-operations>summary{cursor:pointer;padding:15px 17px;background:#15120e;border:1px solid #655339;color:#e7d5b5;font:600 13px var(--sfi-screen,sans-serif)}
 .sfi-lab-operations[open]>summary{border-bottom:1px solid #b99a60}
 .sfi-lab-operations>*:not(summary){max-width:100%;min-width:0;overflow-wrap:anywhere}
 .sfi-lab-page-head+.mlr-shell{margin-top:0}
