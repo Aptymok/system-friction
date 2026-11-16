@@ -312,6 +312,11 @@ export default function StudioCampaignDesk({objects,sessions}:{objects:Row[];ses
             Antecedentes: {plan.ancestry.map(n=>n.title).join(' / ')||'NINGUNO REGISTRADO'} ·
             Descendientes: {plan.descendants.map(n=>n.title).join(' / ')||'NINGUNO REGISTRADO'}
           </span>
+          <span style={{fontSize:12,color:'#bfe2ef'}}>
+            Continuidad narrativa declarada:
+            {' '+[...plan.narrativeLineage.predecessors.slice().reverse().map(n=>n.title),
+              plan.anchor.title,...plan.narrativeLineage.successors.map(n=>n.title)].join(' → ')}
+          </span>
           <span style={{fontSize:11,color:'#d6ba9d'}}>
             Estado: PROPUESTA. No hay publicación, inversión, hipótesis ganadora ni RETURN ejecutado.
           </span>
