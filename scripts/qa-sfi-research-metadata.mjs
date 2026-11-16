@@ -220,6 +220,17 @@ assert(studioMultiReader.includes('source.sha256'), 'document identity must be s
 assert(studioMultiReader.includes('observedValue:null'), 'text mentions must not fabricate MIHM values');
 assert(studioMultiReader.includes('publicationState:\'NOT_AUTHORIZED\''), 'documental reading may not publish itself');
 assert(transientExtractor.includes('rawFilePersisted:false'), 'transient document reading must not claim source persistence');
+// Studio measured context must be read-only, authenticated and fail closed for missing values.
+const studioContextRoute = read('src/app/api/studio/research-context/route.ts');
+const measuredContextView = read('src/components/studio/StudioMeasuredContext.tsx');
+assert(studioContextRoute.includes('requireSfiMember()'), 'MIHM context endpoint must check institutional membership');
+assert(studioContextRoute.includes("access?.studio !== true"), 'MIHM context endpoint must check Studio module access');
+assert(studioContextRoute.includes('buildDerivedMihmRuntime()') && studioContextRoute.includes('getWorldVectorToday()'), 'Studio measured context must reuse real instruments');
+assert(studioContextRoute.includes('systemUsable ? finite01(system?.ihg) : null'), 'missing systemic data must not default to zero');
+assert(studioContextRoute.includes("contextType: 'INDEPENDENT_INSTRUMENT_READINGS'"), 'instruments must remain independent');
+assert(measuredContextView.includes("fetch('/api/studio/research-context'"), 'Studio must fetch governed live measured context');
+assert(measuredContextView.includes('No se generarán sustitutos simulados'), 'a failed read must not generate mock values');
+assert(studioMultiReader.includes('<StudioMeasuredContext documentCount={documents.length} />'), 'document reader must mount measured context');
 console.log('[SFI-RESEARCH-METADATA] PASS');
 console.log(`citation_version=${citation.version}`);
 console.log('verified_doi_count=0');
