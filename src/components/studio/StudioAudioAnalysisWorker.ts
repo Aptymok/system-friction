@@ -7,6 +7,7 @@ import { extractRhythmFeatures } from '@/lib/studio/audio/features/rhythmFeature
 import { extractHarmonyFeatures } from '@/lib/studio/audio/features/harmonyFeatures';
 import { calculateIntegratedLoudness } from '@/lib/studio/audio/loudness/integratedLoudness';
 import { calculateLoudnessRange } from '@/lib/studio/audio/loudness/loudnessRange';
+import { calculateTruePeak } from '@/lib/studio/audio/loudness/truePeak';
 import type { StudioDecodedAudio, StudioAudioFeature } from '@/lib/studio/audio/audioTypes';
 
 type WorkRequest = {
@@ -80,6 +81,20 @@ self.onmessage = (event: MessageEvent<WorkRequest>) => {
       explanation: 'Rango de sonoridad a partir de ventanas de corto plazo y compuertas.',
       warnings: range.limitations,
     });
+    progress('Midiendo picos entre muestras con reconstrucción 4×…');
+    const peaks = calculateTruePeak(decoded);
+    for (const [metric,label,explanation] of [
+      [peaks.truePeak,'True Peak','Reconstrucción 4× windowed-sinc desde PCM decodificado. Estimación sin calibración por referencia independiente.'],
+      [peaks.samplePeak,'Sample Peak','Máximo de muestras decodificadas; no representa por sí solo los picos entre muestras.'],
+      [peaks.headroom,'True Peak Headroom','Margen derivado de la estimación de pico verdadero.'],
+    ] as const) {
+      features.push({
+        key:metric.metricId,label,value:metric.value,unit:metric.unit,
+        status:metric.status,source:metric.provenance.engine,
+        formulaVersion:metric.implementationVersion,
+        explanation,warnings:metric.limitations,
+      });
+    }
     progress('Analizando ritmo y estimación de tempo…');
     features.push(...extractRhythmFeatures(decoded).map(project));
     // Existing tempoDrift.absoluteDelta is signed (final - initial), despite its legacy name.
@@ -105,8 +120,8 @@ self.onmessage = (event: MessageEvent<WorkRequest>) => {
         originalStored: false,
         persistence: 'NONE',
         features,
-        notObserved: ['True Peak (dBTP)', 'FAD canonical evaluation', 'MIHM authorized measurement', 'Independent cultural impact', 'Mastering performed'],
-        limitations: ['Browser decoding can alter PCM and sample-rate relative to encoded source.', 'Rhythm/key/chord results are estimates, not independently calibrated.', 'No publisher or third-party API was invoked.'],
+        notObserved: ['FAD canonical evaluation', 'MIHM authorized measurement', 'Independent cultural impact', 'Mastering performed'],
+        limitations: ['Browser decoding can alter PCM and sample-rate relative to encoded source.', 'Rhythm/key/chord results are estimates, not independently calibrated.', '4× true peak is a decoded-PCM reconstruction estimate, not a certified standard-reference measurement.', 'No publisher or third-party API was invoked.'],
       },
     });
   } catch (error) {
