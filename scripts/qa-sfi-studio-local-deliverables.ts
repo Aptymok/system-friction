@@ -6,6 +6,7 @@ import { makeStudioLocalZip } from '../src/components/studio/localZipPackage';
 import { buildSourceReviewScript } from '../src/components/studio/localPodcastResearchScript';
 import { podcastFilename, makePodcastManifest, type StudioPodcastAudio } from '../src/components/studio/localPodcastAudio';
 import { parseStudioLocalReport } from '../src/components/studio/localReportImport';
+import { STUDIO_COVER_VARIANTS, studioCoverVariantFilename, studioCoverVariantMetadata } from '../src/components/studio/localCoverVariations';
 import {
   proposeCampaignVariants, contrastCampaignObservations,
 } from '../src/components/studio/localCampaignContrast';
@@ -102,6 +103,15 @@ assert.equal(podcastManifest.originalStored,false);
 assert.equal(podcastManifest.publication,'NOT_AUTHORIZED');
 assert.equal(podcastManifest.voiceOrigin,'USER_MICROPHONE_RECORDING');
 assert.equal(podcastManifest.scriptCharacters,script.body.length);
+
+// Visual QA checks output provenance and independent art directions, not browser canvas fidelity.
+assert.equal(STUDIO_COVER_VARIANTS.length,6);
+assert.equal(new Set(STUDIO_COVER_VARIANTS.map(variant=>variant.id)).size,6);
+assert.equal(new Set(STUDIO_COVER_VARIANTS.map(variant=>variant.description)).size,6);
+assert.equal(new Set(STUDIO_COVER_VARIANTS.map(variant=>variant.label)).size,6);
+assert.deepEqual(studioCoverVariantMetadata().map(item=>item.width),[3000,3000,3000,3000,3000,3000]);
+assert.ok(studioCoverVariantMetadata().every(item=>item.height===3000));
+assert.ok(STUDIO_COVER_VARIANTS.every(item=>studioCoverVariantFilename(item.id).endsWith('-3000.png')));
 
 // Resuming from a private report must not pretend the original is available.
 const reportFixture={
