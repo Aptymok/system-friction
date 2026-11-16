@@ -24,7 +24,8 @@ export default function StudioCampaignReturnPanel({
   const [message,setMessage]=useState('');
   const observations:CampaignObserved[]=(['A','B'] as const).map(variant=>({
     variant,url:data[variant].url.trim(),
-    observedAt:data[variant].observedAt,
+    // datetime-local is wall time; normalize to a real UTC instant before comparing T1.
+    observedAt:data[variant].observedAt && Number.isFinite(Date.parse(data[variant].observedAt)) ? new Date(data[variant].observedAt).toISOString() : '',
     impressions:data[variant].impressions.trim()===''?NaN:Number(data[variant].impressions),
     saves:data[variant].saves.trim()===''?NaN:Number(data[variant].saves),
     meaningfulInteractions:data[variant].meaningfulInteractions.trim()===''?NaN:
