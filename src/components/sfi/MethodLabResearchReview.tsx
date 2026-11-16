@@ -144,6 +144,12 @@ export function MethodLabResearchReview({ research, evidenceInventory = [], publ
         || selected.lineage.includes(`publication:${record.id}`)
       ) ?? null
     : null;
+  const referenceCoverage = selected ? (() => {
+    const references = [...new Set([...selected.evidenceRefs,...selected.findings.flatMap(finding=>finding.evidenceRefs)])];
+    const resolved = references.filter(ref=>evidenceInventory.some(item=>item.id===(ref.startsWith('evidence:')?ref.slice(9):ref))).length;
+    const linksWithEvidence = selected.findings.filter(finding=>finding.evidenceRefs.length>0).length;
+    return {references:references.length,resolved,unresolved:references.length-resolved,findings:selected.findings.length,linksWithEvidence};
+  })() : null;
   const audits = research.objects.filter((item) => item.objectClass === 'AUDIT').length;
   const ready = research.objects.filter((item) => item.publicationState === 'PUBLIC_DERIVATIVE_READY').length;
   const promotion = research.objects.filter((item) => item.publicationState === 'PROMOTION_REQUESTED').length;
@@ -152,8 +158,8 @@ export function MethodLabResearchReview({ research, evidenceInventory = [], publ
     <section className="mlr-shell">
       <div className="mlr-head">
         <div>
-          <span>TOTAL REVIEW LABS REPORTING</span>
-          <h2>Research objects are operated here. The Hub is a governed projection.</h2>
+          <span>ARCHIVO DE INVESTIGACIÓN · LECTURA Y CONTRASTE</span>
+          <h2>Investigaciones y evidencia disponible</h2>
         </div>
         <p>{research.publicationRule}</p>
       </div>
@@ -193,6 +199,12 @@ export function MethodLabResearchReview({ research, evidenceInventory = [], publ
               <a href={`/repository?object=${encodeURIComponent(publicRepositoryLink.slug)}`}>Ver registro público relacionado: {publicRepositoryLink.title}</a>
             ) : <span>Sin correspondencia pública explícita para este objeto. La investigación conserva su estado interno.</span>}
           </nav>
+          {referenceCoverage ? <section className="mlr-coverage" aria-label="Cobertura de evidencia consultada">
+            <div><span>Hallazgos registrados</span><strong>{referenceCoverage.findings}</strong><small>{referenceCoverage.linksWithEvidence} con referencias declaradas</small></div>
+            <div><span>Referencias únicas</span><strong>{referenceCoverage.references}</strong><small>Citadas por el objeto o sus hallazgos</small></div>
+            <div><span>Localizadas en inventario</span><strong>{referenceCoverage.resolved}</strong><small>Identidad reconocida; contenido sin verificar aquí</small></div>
+            <div><span>Sin correspondencia en esta consulta</span><strong>{referenceCoverage.unresolved}</strong><small>Requieren resolución documental; no implica inexistencia</small></div>
+          </section>:null}
           <p style={{fontSize:11,color:'#94adbc',margin:'14px 0 0'}}>Secuencia metodológica de referencia; ninguna etapa se da por ejecutada o verificada por el nombre del estado.</p>
           <div className="mlr-flow">
             {FLOW.map((stage, index) => <div key={stage} data-active={false}><i>{String(index + 1).padStart(2, '0')}</i><span>{stage}</span></div>)}
