@@ -114,6 +114,9 @@ export default async function MethodLabPage() {
         <LabCreateDialog label="Iniciar una investigación">
           <PersonalCognitiveLabWorkspace intakeOnly />
         </LabCreateDialog>
+        <LabCreateDialog label="Dar de alta un experimento">
+          <MethodLabExperimentWorkbench />
+        </LabCreateDialog>
       </div>
       <details style={{maxWidth:1500,margin:'18px auto',padding:'14px 20px',border:'1px solid rgba(104,170,230,.15)',borderRadius:12,color:'#e7edf0'}}>
         <summary style={{cursor:'pointer'}}>Inventario operativo de evidencias</summary>
