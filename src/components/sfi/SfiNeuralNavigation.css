@@ -76,7 +76,7 @@
 
 /* SFI 2026 navigation revision: readable section links first; network map optional. */
 .sfiNeuralNavigation{left:clamp(10px,2vw,28px)!important;right:clamp(10px,2vw,28px)!important;display:flex;align-items:center;justify-content:space-between;gap:10px;max-width:none!important}
-.sfiInstitutionalQuickNav{display:flex;align-items:center;justify-content:flex-start;flex-wrap:wrap;gap:3px 6px;min-width:0;padding:7px 10px;background:rgba(6,12,15,.97);border:1px solid rgba(194,162,101,.36);box-shadow:0 5px 22px #0008}
+.sfiInstitutionalQuickNav{display:flex;align-items:center;justify-content:flex-start;flex-wrap:wrap;gap:3px 6px;min-width:0;padding:7px 10px;background:rgba(15,12,8,.97);border:1px solid rgba(194,162,101,.36);box-shadow:0 5px 22px #0008}
 .sfiInstitutionalQuickNav a{color:#dfd6c6;font:600 12px/1.3 var(--sfi-screen,"Noto Sans",sans-serif);padding:8px 9px;text-decoration:none;border-bottom:2px solid transparent;white-space:nowrap}
 .sfiInstitutionalQuickNav a:hover,.sfiInstitutionalQuickNav a:focus-visible,.sfiInstitutionalQuickNav a[aria-current="page"]{color:#f9e3b4;border-bottom-color:#c8a951;background:rgba(215,173,105,.08)}
 .sfiNeuralTrigger{min-width:90px;justify-content:center;min-height:52px;gap:5px!important;padding:5px 10px!important}
