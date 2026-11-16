@@ -49,14 +49,24 @@ export async function GET(request:Request){
       const payload=rec(entry.payload);
       const plan=rec(payload.plan);
       const contrast=rec(payload.contrast);
+      const rates=Array.isArray(contrast.rates)?contrast.rates:[];
+      const observedRates=rates.filter((row):row is Row=>row!==null&&typeof row==='object'&&!Array.isArray(row))
+        .filter(row=>typeof row.variant==='string'&&typeof row.saveRate==='number'&&Number.isFinite(row.saveRate))
+        .slice(0,2).map(row=>row.variant+': '+(Number(row.saveRate)*100).toFixed(3)+' %');
+      const contrastSummary=typeof contrast.status==='string'
+        ?'Contraste '+contrast.status+
+          (observedRates.length?' · '+observedRates.join(' vs '):'')+
+          ' · ganador causal NO CERTIFICADO':null;
       return {
         id:entry.id,type:text(entry.event_type,100)??'FIELD_EVENT',
         at:entry.created_at,
         label:text(entry.label,200)??'Evento de Studio Field',
         source:text(entry.source,120)??'studio_archive_events',
         status:text(payload.status,120)??'RECORDED_NOT_INDEPENDENTLY_VERIFIED',
-        details:typeof plan.phase==='string'?'Fase propuesta: '+plan.phase:
-          typeof contrast.status==='string'?'Estado del contraste: '+contrast.status:null,
+        details:typeof plan.phase==='string'?
+          'Fase propuesta: '+plan.phase+' · T0: '+String(rec(plan.timeWindow).start??'no registrado')+
+          ' · T1 propuesto: '+String(rec(plan.timeWindow).end??'no registrado'):
+          contrastSummary,
         references:{objectId:entry.object_id??null,sourceEventId:text(payload.planEventId,120)},
       };
     });
