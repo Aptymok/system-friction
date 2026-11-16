@@ -80,7 +80,7 @@ export async function POST(req: Request) {
 
   if (operation === 'ingest_analyze') {
     try {
-      const result = await ingestAndAnalyzeChatGptAudioAttachment({ ownerId, openaiFileIdRefs: body.openaiFileIdRefs, analysisAuthorization: body.analysisAuthorization, title: body.title, force: body.force === true, sessionId: body.sessionId, fieldNodeId: body.fieldNodeId });
+      const result = await ingestAndAnalyzeChatGptAudioAttachment({ ownerId, openaiFileIdRefs: body.openaiFileIdRefs, analysisAuthorization: body.analysisAuthorization, title: body.title, force: body.force === true, sessionId: body.sessionId, fieldNodeId: body.fieldNodeId, expectedSha256: body.expectedSha256 });
       return NextResponse.json({ ok: true, actor, operation, ownershipBoundary: 'oauth.subjectId = studio_objects.owner_id', authorityBoundary: 'DECLARED_ANALYSIS_PERMISSION_DOES_NOT_TRANSFER_RIGHTS_OR_PROMOTE_CANON', result }, { status: 202 });
     } catch (error) { return studioError(error, 'external_studio_attachment_analysis_failed'); }
   }
