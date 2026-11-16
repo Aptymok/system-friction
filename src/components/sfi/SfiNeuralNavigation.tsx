@@ -52,6 +52,16 @@ export function SfiNeuralNavigation(){
   const selected=SFI_NEURAL_SURFACES.find(g=>g.id===branch)??SFI_NEURAL_SURFACES.find(g=>g.nodes.some(n=>n.href.split('?')[0]===pathname))??SFI_NEURAL_SURFACES[0];
   const selectedIndex=SFI_NEURAL_SURFACES.findIndex(g=>g.id===selected.id);
   return <div className="sfiNeuralNavigation" data-sfi-unified-nav="SFI-NEURAL-SURFACE-MAP-2.0">
+    <nav className="sfiInstitutionalQuickNav" aria-label="Secciones institucionales">
+      {[
+        {href:'/',label:'Inicio'},
+        {href:'/repository',label:'Repositorio'},
+        {href:'/method-lab',label:'Investigación'},
+        {href:'/studio',label:'Studio'},
+        {href:'/observatory',label:'Observatorio'},
+        {href:'/root',label:'Gobierno'},
+      ].map(item=><Link key={item.href} href={item.href} aria-current={pathname===item.href?'page':undefined}>{item.label}</Link>)}
+    </nav>
     <button type="button" className="sfiNeuralTrigger" aria-label={open?'Cerrar conexiones de SFI':'Abrir conexiones de SFI'}
       aria-expanded={open} aria-controls="sfi-neural-graph-nav" onClick={()=>setOpen(v=>!v)}>
       <img src="/assets/sfi/ui/sfi-institute-node-mark.svg" width={48} height={48} alt="Logotipo de SFI" />
