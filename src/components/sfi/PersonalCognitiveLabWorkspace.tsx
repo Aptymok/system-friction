@@ -260,7 +260,11 @@ export function PersonalCognitiveLabWorkspace({intakeOnly=false}:{intakeOnly?:bo
           </p>
         </header>
 
-        {intakeForm}
+        <details style={{ ...panel }}>
+          <summary style={{cursor:'pointer',fontWeight:600}}>Iniciar una nueva investigación · opcional</summary>
+          <p style={{opacity:.75,fontSize:13}}>Puedes consultar los casos existentes sin completar este formulario.</p>
+          {intakeForm}
+        </details>
 
         <section style={{ ...panel, display: 'grid', gap: 12 }}>
           <strong>Case</strong>
