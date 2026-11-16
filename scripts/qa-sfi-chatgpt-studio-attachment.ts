@@ -90,6 +90,7 @@ assert.match(manifest, /contract: 'SFI-STUDIO-MCP-1\.0'/);
 assert.match(manifest, /publicCapabilityCatalogPublished: false/);
 assert.match(manifest, /pluginListingClaimed: false/);
 for (const token of ['openaiFileIdRefs','analysisAuthorization','SFI-CHATGPT-STUDIO-ATTACHMENT-1.1']) assert.ok(merge.includes(token));
+for (const token of ['studioRequest.properties.sessionId','studioRequest.properties.fieldNodeId','studioRequest.properties.expectedSha256']) assert.ok(merge.includes(token), `studio_openapi_field_missing:${token}`);
 assert.match(merge, /ingest_analyze\s*:\s*'studio:run'/);
 assert.match(merge, /rightsTransfer\s*:\s*false/);
 assert.match(composedMerge, /import '\.\/merge-openapi-studio-attachments\.mjs'/);
