@@ -9,7 +9,7 @@ export type StudioAttractorNode = {
   source:'STUDIO_OBJECT_METADATA'|'STUDIO_SESSION_GROUPING'|'STUDIO_PERSISTED_OBJECT'|'STUDIO_FIELD_DECLARATION';
   passport:Record<string,unknown>;
 };
-export type StudioAttractorEdge={from:string;to:string;relation:'DECLARED_GROUPING'|'SESSION_GROUPING'|'CONTAINS'|'DERIVED_FROM'|'INFLUENCES'|'PROJECTS';canonical:false};
+export type StudioAttractorEdge={from:string;to:string;relation:'DECLARED_GROUPING'|'SESSION_GROUPING'|'CONTAINS'|'DERIVED_FROM'|'INFLUENCES'|'PROJECTS'|'PRECEDES';canonical:false};
 type Row=Record<string,unknown>;
 const rec=(x:unknown):Row => x && typeof x==='object'&&!Array.isArray(x)?x as Row:{};
 const s=(x:unknown)=>typeof x==='string'&&x.trim()?x.trim():null;
@@ -96,7 +96,7 @@ export function studioAttractorProjection(objects:Row[], sessions:Row[]=[]):{nod
         }
       }
     }
-    const validRelations=new Set(['CONTAINS','DERIVED_FROM','INFLUENCES','PROJECTS']);
+    const validRelations=new Set(['CONTAINS','DERIVED_FROM','INFLUENCES','PROJECTS','PRECEDES']);
     for(const edge of localEdges){
       const from=scoped.get(s(edge.sourceId)??'');
       const to=scoped.get(s(edge.targetId)??'');
