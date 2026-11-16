@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { MethodLabNativeHub } from '@/components/sfi/MethodLabNativeHub';
+import { LabCreateDialog } from '@/components/sfi/LabCreateDialog';
 import { MethodLabResearchReview } from '@/components/sfi/MethodLabResearchReview';
 import { readMethodLabResearchState } from '@/lib/method-lab/researchObjects';
 import { SFI_CANONICAL_OBJECT_REGISTRY, canonicalPublicationDisposition } from '@/lib/discovery/canonicalObjectRegistry';
@@ -40,8 +41,9 @@ export default async function MethodLabPage() {
 
   if (!institutional) return (
     <>
+      <header className="sfi-lab-page-head"><small>METHOD LAB · ESPACIO PERSONAL</small><h1>Investigaciones y expedientes</h1><p>Consulta el trabajo registrado. El alta de experimentos es opcional.</p></header>
       <PersonalCognitiveLabWorkspace />
-      <MethodLabExperimentWorkbench />
+      <div className="sfi-lab-create-row"><LabCreateDialog label="Dar de alta un experimento"><MethodLabExperimentWorkbench /></LabCreateDialog></div>
     </>
   );
 
@@ -100,7 +102,37 @@ export default async function MethodLabPage() {
 
   return (
     <>
-      {mihmShadow ? (
+      <header className="sfi-lab-page-head">
+        <small>METHOD LAB · SFI RESEARCH</small>
+        <h1>Biblioteca de investigaciones</h1>
+        <p>Selecciona una investigación para examinar hallazgos, fuentes, procedencia y límites documentales. La creación de nuevas investigaciones no es necesaria para leer.</p>
+        <div className="sfi-lab-page-facts"><span>{research.objects.length} objetos en registro</span><span>{evidence.options.length} referencias del inventario consultado</span><span>{research.warnings.length} advertencias</span></div>
+      </header>
+      <MethodLabResearchReview research={research} evidenceInventory={evidence.options} publicRepositoryObjects={publicRepositoryObjects} />
+      <div className="sfi-lab-create-row">
+        <LabCreateDialog label="Iniciar una investigación">
+          <PersonalCognitiveLabWorkspace intakeOnly />
+        </LabCreateDialog>
+      </div>
+      <details style={{maxWidth:1500,margin:'18px auto',padding:'14px 20px',border:'1px solid rgba(104,170,230,.15)',borderRadius:12,color:'#e7edf0'}}>
+        <summary style={{cursor:'pointer'}}>Inventario operativo de evidencias</summary>
+        <InstitutionalEvidenceInventory inventory={inventory} context="METHOD_LAB" />
+      </details>
+
+      <details className="sfi-lab-operations">
+        <summary>Operación avanzada · protocolos, sesiones, hipótesis y registros</summary>
+        <MethodLabNativeHub
+        initialState={state}
+        initialSessions={sessionViews}
+        evidenceOptions={evidence.options}
+        evidenceWarnings={evidence.warnings}
+      />
+      {conditional.model ? <HypothesisConditionalLab model={conditional.model} context="METHOD_LAB" />
+        : <section role="status">Hypothesis conditional laboratory unavailable: {conditional.error}. No conditional branches have been inferred.</section>}
+      </details>
+      <details className="sfi-lab-operations">
+        <summary>Diagnóstico MIHM · observación y estado de registros</summary>
+        {mihmShadow ? (
         <section aria-label="MIHM operational shadow audit" className="mlh-section">
           <header className="mlh-section-head">
             <h2>MIHM · Observación operativa real</h2>
@@ -142,24 +174,7 @@ export default async function MethodLabPage() {
           <p>Alcance: últimas 25 observaciones. No certifica una predicción prospectiva, contrafactual ni resultado independiente.</p>
         </section>
       ) : null}
-      <MethodLabResearchReview research={research} evidenceInventory={evidence.options} publicRepositoryObjects={publicRepositoryObjects} />
-      <details id="lab-new-investigation" style={{maxWidth:1180,margin:'18px auto',padding:'14px 20px',border:'1px solid rgba(104,170,230,.26)',borderRadius:12,color:'#e7edf0',background:'#08111a'}}>
-        <summary style={{cursor:'pointer',fontWeight:600}}>Iniciar una nueva investigación · opcional</summary>
-        <p style={{fontSize:13,opacity:.74}}>Este formulario es exclusivamente para formular una investigación nueva. Puedes consultar los trabajos existentes sin completarlo.</p>
-        <PersonalCognitiveLabWorkspace intakeOnly />
       </details>
-      <details style={{maxWidth:1500,margin:'18px auto',padding:'14px 20px',border:'1px solid rgba(104,170,230,.15)',borderRadius:12,color:'#e7edf0'}}>
-        <summary style={{cursor:'pointer'}}>Inventario operativo de evidencias</summary>
-        <InstitutionalEvidenceInventory inventory={inventory} context="METHOD_LAB" />
-      </details>
-      <MethodLabNativeHub
-        initialState={state}
-        initialSessions={sessionViews}
-        evidenceOptions={evidence.options}
-        evidenceWarnings={evidence.warnings}
-      />
-      {conditional.model ? <HypothesisConditionalLab model={conditional.model} context="METHOD_LAB" />
-        : <section role="status">Hypothesis conditional laboratory unavailable: {conditional.error}. No conditional branches have been inferred.</section>}
     </>
   );
 }
