@@ -17,6 +17,53 @@ type IntakeIdentityState =
   | { state: 'FAILED'; objectId: string; sessionId: string; uploadId: string; storagePath: string };
 
 const AUDIO_EXTENSIONS = new Set(['wav', 'wave', 'mp3', 'm4a', 'aac', 'flac', 'ogg', 'oga', 'opus', 'aiff', 'aif']);
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+type AttachmentPlacement = { sessionId: string | null; fieldNodeId: string | null };
+async function verifyAttachmentPlacement(ownerId: string, sessionValue: unknown, nodeValue: unknown): Promise<AttachmentPlacement> {
+  const sessionId = text(sessionValue) || null;
+  const fieldNodeId = text(nodeValue) || null;
+  if ((!sessionId && fieldNodeId) ||
+      (sessionId && !UUID_RE.test(sessionId)) ||
+      (fieldNodeId && !UUID_RE.test(fieldNodeId))) {
+    throw new StudioMultimodalError('STUDIO_FIELD_REFERENCE_INVALID',
+      'A valid owned Studio session is required for a declared Field-node attachment.', 400);
+  }
+  if (!sessionId) return { sessionId: null, fieldNodeId: null };
+  const db = createServiceSupabaseClient();
+  const { data, error } = await db.from('studio_sessions').select('id, metadata')
+    .eq('id', sessionId).eq('owner_id', ownerId).maybeSingle();
+  if (error) throw new StudioMultimodalError('PERSISTENCE_FAILED',
+    'Could not verify the target Studio session.', 503);
+  if (!data) throw new StudioMultimodalError('OWNER_REQUIRED',
+    'The target Studio session does not belong to this principal.', 403);
+  if (fieldNodeId) {
+    const field = row(row(data.metadata).field);
+    const nodes = Array.isArray(field.nodes) ? field.nodes.map(row) : [];
+    const knownNode = nodes.some(node => text(node.id) === fieldNodeId && !text(node.archivedAt));
+    if (!knownNode) throw new StudioMultimodalError('STUDIO_FIELD_NODE_NOT_FOUND',
+      'The target node is not active in the authorized Studio session.', 404);
+  }
+  return { sessionId, fieldNodeId };
+}
+async function verifyExistingPlacement(ownerId: string, existing: Exclude<IntakeIdentityState,{state:'NONE'}>, placement: AttachmentPlacement) {
+  if (!placement.sessionId && !placement.fieldNodeId) return;
+  if (existing.sessionId !== placement.sessionId) {
+    throw new StudioMultimodalError('OPENAI_FILE_INTAKE_CONFLICT',
+      'The attachment was previously reserved in a different Studio session.', 409);
+  }
+  if (!placement.fieldNodeId) return;
+  const db = createServiceSupabaseClient();
+  const { data, error } = await db.from('studio_objects').select('metadata')
+    .eq('id', existing.objectId).eq('owner_id', ownerId).maybeSingle();
+  if (error || !data) throw new StudioMultimodalError('PERSISTENCE_FAILED',
+    'Previous attachment node association could not be verified.', 503);
+  if (text(row(data.metadata).fieldNodeId) !== placement.fieldNodeId) {
+    throw new StudioMultimodalError('OPENAI_FILE_INTAKE_CONFLICT',
+      'The existing attachment has a different declared Field node. No implicit reassignment is allowed.', 409);
+  }
+}
+
 const NON_AUDIO_EXTENSIONS = new Set(['pdf', 'docx', 'txt', 'md', 'json', 'csv', 'tsv', 'png', 'jpg', 'jpeg', 'webp', 'gif', 'mp4', 'mov', 'webm', 'mkv', 'zip']);
 
 function row(value: unknown): Row { return value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {}; }
@@ -126,12 +173,15 @@ async function resumeFailedIntake(existing: Extract<IntakeIdentityState, { state
   await completeStudioSignedUpload(existing.objectId, ownerId);
 }
 
-export async function ingestAndAnalyzeChatGptAudioAttachment(input: { ownerId: string; openaiFileIdRefs: unknown; analysisAuthorization: unknown; title?: unknown; force?: boolean }) {
+export async function ingestAndAnalyzeChatGptAudioAttachment(input: { ownerId: string; openaiFileIdRefs: unknown; analysisAuthorization: unknown; title?: unknown; force?: boolean; sessionId?: unknown; fieldNodeId?: unknown }) {
   const ref = parseSingleChatGptFileRef(input.openaiFileIdRefs);
   const analysisAuthorization = parseAnalysisAuthorization(input.analysisAuthorization);
   assertAudioEvidenceConsistent(ref);
-
+  // Validate the target under the OAuth-bound owner BEFORE resolving an
+  // attachment identity; no unauthorized cross-session identifier leakage.
+  const placement = await verifyAttachmentPlacement(input.ownerId, input.sessionId, input.fieldNodeId);
   const existing = await resolveExistingIntake(input.ownerId, ref.id);
+  if (existing.state !== 'NONE') await verifyExistingPlacement(input.ownerId, existing, placement);
   if (existing.state === 'STORED') return analyzeStoredRetry(existing, ref, analysisAuthorization, input.force === true, input.ownerId);
   if (existing.state === 'PENDING') throw new StudioMultimodalError('OPENAI_FILE_INTAKE_CONFLICT', 'This ChatGPT attachment already has an owner-scoped intake reservation that is still in progress.', 409, { objectId: existing.objectId, openaiFileId: ref.id });
 
@@ -148,7 +198,14 @@ export async function ingestAndAnalyzeChatGptAudioAttachment(input: { ownerId: s
 
   const externalIntake = { contract: 'SFI-CHATGPT-STUDIO-ATTACHMENT-1.1', source: 'chatgpt_action_attachment', openaiFileId: ref.id, originalFileName: ref.name, mimeType: ref.mimeType, receivedAt: new Date().toISOString(), temporaryDownloadUrlPersisted: false, analysisAuthorization: durableAuthorization(analysisAuthorization) };
   let prepared: Awaited<ReturnType<typeof prepareStudioSignedUpload>>;
-  try { prepared = await prepareStudioSignedUpload({ descriptor, ownerId: input.ownerId, metadata: { externalIntake, analysisAuthorizationHistory: [durableAuthorization(analysisAuthorization)] } }); }
+  try { prepared = await prepareStudioSignedUpload({
+    descriptor, ownerId: input.ownerId, sessionId: placement.sessionId,
+    metadata: {
+      externalIntake,
+      ...(placement.fieldNodeId ? { fieldNodeId: placement.fieldNodeId } : {}),
+      analysisAuthorizationHistory: [durableAuthorization(analysisAuthorization)],
+    },
+  }); }
   catch (cause) {
     const raced = await resolveExistingIntake(input.ownerId, ref.id).catch(() => ({ state: 'NONE' as const }));
     if (raced.state === 'STORED') return analyzeStoredRetry(raced, ref, analysisAuthorization, input.force === true, input.ownerId);
