@@ -1,4 +1,5 @@
 import 'server-only';
+import { createHash } from 'node:crypto';
 
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { analyzeStudioAudioObject } from '@/lib/studio/audio/analyzeStudioAudioObject';
@@ -173,7 +174,7 @@ async function resumeFailedIntake(existing: Extract<IntakeIdentityState, { state
   await completeStudioSignedUpload(existing.objectId, ownerId);
 }
 
-export async function ingestAndAnalyzeChatGptAudioAttachment(input: { ownerId: string; openaiFileIdRefs: unknown; analysisAuthorization: unknown; title?: unknown; force?: boolean; sessionId?: unknown; fieldNodeId?: unknown }) {
+export async function ingestAndAnalyzeChatGptAudioAttachment(input: { ownerId: string; openaiFileIdRefs: unknown; analysisAuthorization: unknown; title?: unknown; force?: boolean; sessionId?: unknown; fieldNodeId?: unknown; expectedSha256?: unknown }) {
   const ref = parseSingleChatGptFileRef(input.openaiFileIdRefs);
   const analysisAuthorization = parseAnalysisAuthorization(input.analysisAuthorization);
   assertAudioEvidenceConsistent(ref);
@@ -185,7 +186,19 @@ export async function ingestAndAnalyzeChatGptAudioAttachment(input: { ownerId: s
   if (existing.state === 'STORED') return analyzeStoredRetry(existing, ref, analysisAuthorization, input.force === true, input.ownerId);
   if (existing.state === 'PENDING') throw new StudioMultimodalError('OPENAI_FILE_INTAKE_CONFLICT', 'This ChatGPT attachment already has an owner-scoped intake reservation that is still in progress.', 409, { objectId: existing.objectId, openaiFileId: ref.id });
 
+  const expectedSha256 = text(input.expectedSha256).toLowerCase();
+  if (expectedSha256 && !/^[0-9a-f]{64}$/.test(expectedSha256)) {
+    throw new StudioMultimodalError('OPENAI_FILE_EVIDENCE_CONFLICT',
+      'The supplied expected SHA-256 is not a complete 64-character digest.', 400);
+  }
   const bytes = await downloadBoundedAttachment(ref);
+  const observedSha256 = createHash('sha256').update(bytes).digest('hex');
+  if (expectedSha256 && observedSha256 !== expectedSha256) {
+    throw new StudioMultimodalError('OPENAI_FILE_EVIDENCE_CONFLICT',
+      'The downloaded attachment does not match the independently declared SHA-256.', 409, {
+        fileName: ref.name, observedSha256, expectedSha256,
+      });
+  }
   const descriptor = buildStudioUploadDescriptor({ fileName: ref.name, mimeType: ref.mimeType, sizeBytes: bytes.byteLength, title: input.title });
   if (descriptor.modality !== 'audio') throw new StudioMultimodalError('AUDIO_ATTACHMENT_REQUIRED', 'This Studio operation accepts one audio file only.', 415, { fileName: descriptor.fileName, modality: descriptor.modality, mimeType: descriptor.mimeType });
 
@@ -196,7 +209,7 @@ export async function ingestAndAnalyzeChatGptAudioAttachment(input: { ownerId: s
     return { objectId: existing.objectId, sessionId: existing.sessionId, reused: true, resumedFromFailure: true, file: { name: ref.name, openaiFileId: ref.id, mimeType: ref.mimeType, sizeBytes: bytes.byteLength }, authority: { analysisAuthorization, epistemicClass: 'DECLARED', rightsTransfer: false, canonicalPromotion: false }, observation: analysis };
   }
 
-  const externalIntake = { contract: 'SFI-CHATGPT-STUDIO-ATTACHMENT-1.1', source: 'chatgpt_action_attachment', openaiFileId: ref.id, originalFileName: ref.name, mimeType: ref.mimeType, receivedAt: new Date().toISOString(), temporaryDownloadUrlPersisted: false, analysisAuthorization: durableAuthorization(analysisAuthorization) };
+  const externalIntake = { contract: 'SFI-CHATGPT-STUDIO-ATTACHMENT-1.1', source: 'chatgpt_action_attachment', openaiFileId: ref.id, originalFileName: ref.name, mimeType: ref.mimeType, receivedAt: new Date().toISOString(), temporaryDownloadUrlPersisted: false, checksumSha256: observedSha256, analysisAuthorization: durableAuthorization(analysisAuthorization) };
   let prepared: Awaited<ReturnType<typeof prepareStudioSignedUpload>>;
   try { prepared = await prepareStudioSignedUpload({
     descriptor, ownerId: input.ownerId, sessionId: placement.sessionId,
