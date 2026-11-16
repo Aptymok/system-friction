@@ -95,10 +95,12 @@ const songs:ReleaseSequenceItem[]=[
 ];
 const sequence=sequenceStudioReleases({items:songs,earliestDate:'2026-11-15',spacingWeeks:3});
 assert.equal(sequence.schedule.length,3);
-assert.equal(sequence.schedule[0].date,'2026-11-27');
-assert.equal(sequence.schedule[0].spotifyPitchDeadline,'2026-11-20');
-assert.equal(sequence.schedule[1].date,'2026-12-18');
-assert.equal(sequence.schedule[2].date,'2027-01-08');
+assert.equal(sequence.schedule[0].date,'2026-12-11');
+assert.equal(sequence.schedule[0].spotifyPitchDeadline,'2026-12-04');
+assert.equal(sequence.schedule[0].campaign.preStart,'2026-11-20');
+assert.ok(Date.parse(sequence.schedule[0].campaign.preStart)>=Date.parse('2026-11-15'));
+assert.equal(sequence.schedule[1].date,'2027-01-01');
+assert.equal(sequence.schedule[2].date,'2027-01-22');
 assert.ok(sequence.schedule.every(item=>item.status==='PROPOSED_NOT_APPROVED'));
 assert.equal(sequence.determination.optimality,'NOT_CALIBRATED');
 assert.equal(sequence.scenarios.filter(s=>s.available).length,3);
