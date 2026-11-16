@@ -81,7 +81,9 @@ export function MethodLabResearchReview({ research }: { research: MethodLabResea
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState('');
   const [result, setResult] = useState<JsonRecord | null>(null);
-  const [selectedId, setSelectedId] = useState(research.objects.find((item) => item.objectClass === 'AUDIT')?.objectId ?? research.objects[0]?.objectId ?? '');
+  const [selectedId, setSelectedId] = useState(research.objects.find((item) => item.objectClass === 'RESEARCH')?.objectId ?? research.objects[0]?.objectId ?? '');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [publicationFilter, setPublicationFilter] = useState<'ALL'|'PUBLIC'|'DEVELOPMENT'>('ALL');
   const [draft, setDraft] = useState({ objectId: '', objectClass: 'AUDIT', title: '', method: 'SFI_AUDIT', summary: '' });
 
   const selected = useMemo(() => research.objects.find((item) => item.objectId === selectedId) ?? research.objects[0] ?? null, [research.objects, selectedId]);
@@ -92,6 +94,12 @@ export function MethodLabResearchReview({ research }: { research: MethodLabResea
     finally { setBusy(null); }
   }
 
+  const visibleObjects = research.objects.filter((object) => {
+    const query = searchTerm.trim().toLowerCase();
+    const published = ['HUB_PUBLISHED','RELEASE_CANDIDATE','RELEASED'].includes(object.publicationState);
+    return (publicationFilter === 'ALL' || (publicationFilter === 'PUBLIC' ? published : !published))
+      && (!query || [object.title, object.objectId, object.method, object.objectClass, object.state].join(' ').toLowerCase().includes(query));
+  });
   const audits = research.objects.filter((item) => item.objectClass === 'AUDIT').length;
   const ready = research.objects.filter((item) => item.publicationState === 'PUBLIC_DERIVATIVE_READY').length;
   const promotion = research.objects.filter((item) => item.publicationState === 'PROMOTION_REQUESTED').length;
@@ -111,6 +119,22 @@ export function MethodLabResearchReview({ research }: { research: MethodLabResea
         <div className="mlr-stat"><span>AUDITS</span><strong>{audits}</strong><small>bounded external objects</small></div>
         <div className="mlr-stat"><span>PUBLIC READY</span><strong>{ready}</strong><small>not yet promoted</small></div>
         <div className="mlr-stat"><span>PROMOTION</span><strong>{promotion}</strong><small>ROOT decision required</small></div>
+      </div>
+
+      <div className="mlr-library-controls" style={{display:'flex',flexWrap:'wrap',gap:10,alignItems:'center',margin:'14px 0'}}>
+        <label htmlFor="mlr-search" style={{fontSize:12,color:'#b0cadf'}}>Buscar investigación</label>
+        <input id="mlr-search" value={searchTerm} onChange={event=>setSearchTerm(event.target.value)} placeholder="Título, método, identificador..." style={{flex:'1 1 260px',padding:10,background:'#071019',color:'#e7f2f9',border:'1px solid #35566c'}} />
+        <select aria-label="Filtrar estado de publicación" value={publicationFilter} onChange={event=>setPublicationFilter(event.target.value as typeof publicationFilter)} style={{padding:10,background:'#071019',color:'#e7f2f9',border:'1px solid #35566c'}}>
+          <option value="ALL">Todas</option><option value="PUBLIC">Publicadas</option><option value="DEVELOPMENT">En desarrollo / revisión</option>
+        </select>
+        <small style={{color:'#86a5ba'}}>{visibleObjects.length} investigaciones visibles</small>
+      </div>
+      <div className="mlr-object-grid">
+        {visibleObjects.map((object) => (
+          <button key={object.objectId} data-selected={object.objectId === selected?.objectId} onClick={() => setSelectedId(object.objectId)}>
+            <span>{object.objectClass}</span><b>{object.objectId}</b><p>{object.title}</p><small>{object.state} · {object.publicationState}</small>
+          </button>
+        ))}
       </div>
 
       {selected ? (
@@ -150,14 +174,8 @@ export function MethodLabResearchReview({ research }: { research: MethodLabResea
         </div>
       ) : null}
 
-      <div className="mlr-object-grid">
-        {research.objects.map((object) => (
-          <button key={object.objectId} data-selected={object.objectId === selected?.objectId} onClick={() => setSelectedId(object.objectId)}>
-            <span>{object.objectClass}</span><b>{object.objectId}</b><p>{object.title}</p><small>{object.state} · {object.publicationState}</small>
-          </button>
-        ))}
-      </div>
-
+      <details className="mlr-new-research" style={{marginTop:18}}>
+        <summary style={{cursor:'pointer',padding:'14px 16px',border:'1px solid rgba(105,158,202,.25)',color:'#c5ddec'}}>Administración avanzada · registrar o actualizar una investigación</summary>
       <div className="mlr-agent-grid">
         <form onSubmit={(event) => {
           event.preventDefault();
@@ -205,6 +223,8 @@ export function MethodLabResearchReview({ research }: { research: MethodLabResea
           <p>Use <code>{`{"operation":"report","objectId":"<AUTHORIZED_OBJECT_ID>"}`}</code> to retrieve the current review and publication package.</p>
         </div>
       </div>
+
+      </details>
 
       {research.warnings.length ? <div className="mlr-warnings">{research.warnings.map((warning) => <p key={warning}>{warning}</p>)}</div> : null}
       {message ? <div className="mlr-toast" data-error={!message.endsWith(': OK')}>{message}</div> : null}
