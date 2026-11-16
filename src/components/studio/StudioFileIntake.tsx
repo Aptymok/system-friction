@@ -108,6 +108,7 @@ export default function StudioFileIntake() {
   const [releaseEvidence, setReleaseEvidence] = useState<ReleaseDiscoveryEvidence | null>(null);
   const [teaserBusy, setTeaserBusy] = useState(false);
   const [photographicCovers,setPhotographicCovers]=useState<StudioPhotographicCover[]>([]);
+  const [videoCoverId,setVideoCoverId]=useState('');
   const runId = useRef(0);
 
   async function importReport(source: File | null) {
@@ -225,7 +226,8 @@ export default function StudioFileIntake() {
     setTeaserBusy(true);
     setReleaseMessage('');
     try {
-      const created = await createLocalAudioTeaser(file, release, message => setReleaseMessage(message));
+      const selectedCover=photographicCovers.find(cover=>cover.id===videoCoverId)??photographicCovers[0];
+      const created = await createLocalAudioTeaser(file, release, message => setReleaseMessage(message), selectedCover?.blob);
       setReleaseMessage('Video de ' + created.durationSeconds.toFixed(1) +
         ' segundos generado en tu dispositivo: ' + created.fileName +
         '. Es una muestra audiovisual, no una publicación.');
@@ -337,7 +339,18 @@ export default function StudioFileIntake() {
             <option value="paper">Editorial · papel cálido</option>
             <option value="signal">Señal · verde oscuro</option>
           </select>
-          <StudioPhotographicProposals direction={release} onCovers={setPhotographicCovers} />
+          <StudioPhotographicProposals direction={release} onCovers={value=>{
+            setPhotographicCovers(value);
+            setVideoCoverId(current=>value.some(cover=>cover.id===current)?current:(value[0]?.id??''));
+          }} />
+          {photographicCovers.length>0&&<label htmlFor="studio-video-cover" style={{display:'grid',gap:6}}>
+            Imagen para el video musical (derivada fotográfica local)
+            <select id="studio-video-cover" value={videoCoverId||photographicCovers[0].id}
+              onChange={event=>setVideoCoverId(event.target.value)}
+              style={{padding:9,color:'#eaf6fb',background:'#162836',border:'1px solid #4c6775'}}>
+              {photographicCovers.map(cover=><option key={cover.id} value={cover.id}>{cover.sourceName}</option>)}
+            </select>
+          </label>}
           <StudioReleaseResearch direction={release} onDiscovery={setReleaseEvidence} />
           <StudioCampaignContrast direction={release} />
           <StudioReleasePackage
@@ -352,14 +365,14 @@ export default function StudioFileIntake() {
             <button type="button" disabled={teaserBusy || !file} onClick={exportTeaser} style={{
               padding: '10px 14px', color: '#e9fbff', background: '#34264f', border: '1px solid #7467a2',
               cursor: teaserBusy ? 'wait' : 'pointer',
-            }}>{teaserBusy ? 'GENERANDO VIDEO…' : 'GENERAR VIDEO VERTICAL WEBM (12 S)'}</button>
+            }}>{teaserBusy ? 'GENERANDO VIDEO…' : 'GENERAR VIDEO VERTICAL CON PORTADA Y AUDIO (12 S)'}</button>
             <button type="button" onClick={exportReleaseBrief} style={{
               padding: '10px 14px', color: '#e9fbff', background: '#23453d', border: '1px solid #4e8174', cursor: 'pointer',
             }}>DESCARGAR EXPEDIENTE DE LANZAMIENTO</button>
           </div>
           {releaseMessage && <p role="status" style={{ margin: 0, color: '#b4dcca' }}>{releaseMessage}</p>}
           <p style={{ margin: 0, fontSize: 11, color: '#9fb4c2' }}>
-            Portadas basadas en fotografías reales aportadas, sin ilustraciones geométricas. La generación de fotografías nuevas requiere un proveedor externo autorizado. Campaña: borrador sin estudio de mercado.
+            Las portadas fotográficas producidas pueden incorporarse al video vertical con el audio original. Si no se selecciona una portada, se conserva la visualización abstracta existente. No es generación de imagen o video mediante IA. La generación de fotografías nuevas requiere un proveedor externo autorizado. Campaña: borrador sin estudio de mercado.
             No publica, no ejecuta FAD/MIHM y no genera cargos de proveedores.
           </p>
         </div>}
