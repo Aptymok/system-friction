@@ -79,7 +79,13 @@ export async function POST(request:Request,ctx:Context){
     const changed=await update.select('id,owner_id,metadata').maybeSingle();
     if(changed.error)return NextResponse.json({ok:false,error:'GOVERNED_REF_WRITE_FAILED'},{status:503});
     if(!changed.data)return NextResponse.json({ok:false,error:'OBJECT_CHANGED_DURING_REFERENCE_WRITE'},{status:409});
-    const verified=extractStudioGovernedReferences(changed.data.metadata);
+    // An UPDATE response is not an independent persisted-state read.
+    const persistedRow=await db.from('studio_objects').select('metadata')
+      .eq('id',id).eq('owner_id',user.id).maybeSingle();
+    if(persistedRow.error||!persistedRow.data){
+      return NextResponse.json({ok:false,error:'REFERENCE_READBACK_UNAVAILABLE'},{status:503});
+    }
+    const verified=extractStudioGovernedReferences(persistedRow.data.metadata);
     const persisted=(!caseId||verified.caseIds.includes(caseId))&&
       (!agentId||verified.agentIds.includes(agentId))&&
       (!rootAuditId||verified.rootReceiptRefs.includes(rootAuditId));
