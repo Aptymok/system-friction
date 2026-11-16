@@ -171,6 +171,42 @@ const unrelated=studioAttractorProjection([{id:'qa-object-3',title:'KXTXR - no e
 assert.equal(unrelated.nodes.some(n=>n.kind==='attractor'&&n.label==='KXTXR'),false);
 assert.equal(unrelated.edges[0]?.relation,'SESSION_GROUPING');
 
+// Existing Studio Field metadata is the authoritative UI grouping source, not a new invented graph.
+const persistedField=studioAttractorProjection([
+  {id:'qa-audio-01',title:'Track',session_id:'persisted-session',
+    metadata:{fieldNodeId:'release-1'}},
+  {id:'qa-video-02',title:'Social video',session_id:'persisted-session',
+    metadata:{fieldNodeId:'asset-1'}},
+],[
+  {id:'persisted-session',title:'KXTXR workspace',metadata:{field:{
+    version:'STUDIO_FIELD_V1',
+    attractor:{id:'attractor-1',label:'KXTXR',declaredAt:'2026-11-15T10:00:00Z'},
+    nodes:[
+      {id:'release-1',kind:'project',label:'QUE NO',parentId:'attractor-1'},
+      {id:'asset-1',kind:'node',label:'TikTok',parentId:'release-1'},
+    ],
+    edges:[{id:'relation-1',sourceId:'release-1',targetId:'asset-1',relationType:'DERIVED_FROM'}],
+  }}},
+]);
+assert.ok(persistedField.nodes.some(node=>node.id==='field-attractor:persisted-session'&&node.label==='KXTXR'));
+assert.ok(persistedField.nodes.some(node=>node.id==='field-node:persisted-session:release-1'&&node.label==='QUE NO'));
+assert.ok(persistedField.nodes.some(node=>node.id==='field-node:persisted-session:asset-1'&&node.parentId==='field-node:persisted-session:release-1'));
+assert.ok(persistedField.edges.some(edge=>
+  edge.from==='field-node:persisted-session:release-1'&&edge.to==='field-node:persisted-session:asset-1'&&
+  edge.relation==='DERIVED_FROM'&&edge.canonical===false));
+assert.equal(persistedField.nodes.find(node=>node.sourceObjectId==='qa-audio-01')?.parentId,
+  'field-node:persisted-session:release-1');
+assert.equal(persistedField.nodes.find(node=>node.sourceObjectId==='qa-video-02')?.parentId,
+  'field-node:persisted-session:asset-1');
+assert.ok(persistedField.edges.every(edge=>edge.canonical===false));
+const invalidRelationship=studioAttractorProjection([],[{
+  id:'qa-session-3',metadata:{field:{
+    nodes:[{id:'orphan',kind:'node',label:'orphan'}],
+    edges:[{id:'fake-edge',sourceId:'orphan',targetId:'missing',relationType:'INFLUENCES'}],
+  }},
+}]);
+assert.equal(invalidRelationship.edges.length,0);
+
 console.log('PASS · SFI Studio local deliverables: PDF cross-reference, LaTeX, ZIP container, campaign observations and no empirical certification');
 
 }
