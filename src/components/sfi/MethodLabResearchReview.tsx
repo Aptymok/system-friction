@@ -59,6 +59,36 @@ async function postJson(url: string, body: JsonRecord) {
 
 const FLOW = ['OBJECT', 'OBSERVE', 'MODEL', 'FRICTION', 'GOVERNANCE', 'INTERVENTION', 'RETURN', 'PUBLIC TRACE'];
 
+/** Viewer-only resolution: the presence of a reference does not prove its target exists. */
+function referencedResearchId(ref: string, objects: MethodLabResearchObjectView[]): string | null {
+  const candidate = ref.startsWith('research:') ? ref.slice('research:'.length) : ref.startsWith('object:') ? ref.slice('object:'.length) : ref;
+  return objects.some(object => object.objectId === candidate) ? candidate : null;
+}
+
+function ReferenceList({ label, refs, objects, onSelect }: {
+  label: string;
+  refs: readonly string[];
+  objects: MethodLabResearchObjectView[];
+  onSelect: (id: string) => void;
+}) {
+  return <section className="mlr-reference-section">
+    <h4>{label} <small>{refs.length} registradas</small></h4>
+    {refs.length === 0 ? <p>No hay referencias registradas en este campo.</p> : (
+      <ul className="mlr-reference-list">
+        {[...new Set(refs)].map(ref => {
+          const target = referencedResearchId(ref, objects);
+          return <li key={ref}>
+            {target ? (
+              <button type="button" onClick={() => onSelect(target)} title="Abrir el objeto vinculado en el índice de Method Lab">{ref} · abrir objeto</button>
+            ) : <code>{ref}</code>}
+            <small>{target ? 'OBJETO EN ÍNDICE · no verifica evidencia externa' : 'REFERENCIA REGISTRADA · destino no comprobado en este índice'}</small>
+          </li>;
+        })}
+      </ul>
+    )}
+  </section>;
+}
+
 function metricPreview(object: MethodLabResearchObjectView) {
   return Object.entries(object.metrics).slice(0, 4);
 }
@@ -171,6 +201,36 @@ export function MethodLabResearchReview({ research }: { research: MethodLabResea
               <small>No GitHub or Zenodo mutation occurs from this screen. ROOT authorizes; an external agent transports the exact package.</small>
             </article>
           </div>
+          <details className="mlr-trace-panel" open>
+            <summary>Expediente de trazabilidad · evidencia y vínculos</summary>
+            <p>Vista de solo lectura del registro institucional. Una referencia no demuestra que su fuente exista, sea accesible o respalde una afirmación. No se ejecutan experimentos ni se publica información desde este panel.</p>
+            <div className="mlr-trace-meta">
+              <span>IDENTIDAD: {selected.objectId}</span>
+              <span>VERSIÓN: {selected.version}</span>
+              <span>ESTADO EPISTÉMICO: {selected.epistemicState}</span>
+              <span>RETURN: {selected.returnState}</span>
+              <span>ÚLTIMO REGISTRO: {selected.updatedAt ?? 'NO CONSTA'}</span>
+            </div>
+            <div className="mlr-trace-columns">
+              <ReferenceList label="Evidencias citadas por la investigación" refs={selected.evidenceRefs} objects={research.objects} onSelect={setSelectedId} />
+              <ReferenceList label="Genealogía y relaciones declaradas" refs={selected.lineage} objects={research.objects} onSelect={setSelectedId} />
+            </div>
+            <h4>Hallazgos y vínculo con su evidencia</h4>
+            {selected.findings.length === 0 ? <p>Este registro no contiene hallazgos individualizados. No debe inferirse que no existen en otros expedientes.</p> : (
+              <div className="mlr-finding-traces">{selected.findings.map(finding => (
+                <article key={finding.id}>
+                  <div><strong>{finding.id} · {finding.title}</strong><span>{finding.state}</span></div>
+                  <p>{finding.summary || 'Sin descripción registrada.'}</p>
+                  <ReferenceList label="Fuentes asociadas al hallazgo" refs={finding.evidenceRefs} objects={research.objects} onSelect={setSelectedId} />
+                </article>
+              ))}</div>
+            )}
+            <div className="mlr-trace-boundary">
+              <strong>Pasaporte de Realidad · cobertura documental</strong>
+              <p>T0′, observación, inferencia, autoridad, perturbación, RETURN, contraste, integración y T1′ solo pueden cerrarse con registros temporales y evidencia propios. Este índice muestra el estado disponible; no rellena etapas ausentes.</p>
+              <p>DOI: NO VERIFICADO EN ESTE REGISTRO · Texto completo y anexos: NO VINCULADOS AUTOMÁTICAMENTE · Integridad de archivos: NO VALIDADA AQUÍ.</p>
+            </div>
+          </details>
         </div>
       ) : null}
 
