@@ -2,7 +2,7 @@
 
 import { useRef, useState, type FormEvent } from 'react';
 import { exportPcm24Wav, samplePeak } from './localPcmWavExport';
-import { downloadReleaseCover, downloadTextFile, makeReleaseBrief, type ReleaseDirection, type ReleaseDiscoveryEvidence } from './localReleaseMaterials';
+import { downloadTextFile, makeReleaseBrief, type ReleaseDirection, type ReleaseDiscoveryEvidence } from './localReleaseMaterials';
 import StudioReleaseResearch from './StudioReleaseResearch';
 import StudioCampaignContrast from './StudioCampaignContrast';
 import StudioReleasePackage from './StudioReleasePackage';
@@ -234,15 +234,6 @@ export default function StudioFileIntake() {
     }
   }
 
-  async function exportCover() {
-    if (report?.kind !== 'audio_analysis') return;
-    try {
-      await downloadReleaseCover(release, releaseMetrics);
-      setReleaseMessage('Propuesta visual PNG 3000×3000 descargada. No se guardó en SFI.');
-    } catch (cause) {
-      setReleaseMessage('Portada no generada: ' + (cause instanceof Error ? cause.message : String(cause)));
-    }
-  }
 
   const integrated = metric('lufs_integrated');
   const tempo = metric('tempo_global_bpm');
@@ -355,9 +346,6 @@ export default function StudioFileIntake() {
             discovery={releaseEvidence}
           />
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <button type="button" onClick={exportCover} style={{
-              padding: '10px 14px', color: '#e9fbff', background: '#24516b', border: '1px solid #648ca5', cursor: 'pointer',
-            }}>DESCARGAR PORTADA CLÁSICA PNG 3000×3000</button>
             <button type="button" disabled={teaserBusy || !file} onClick={exportTeaser} style={{
               padding: '10px 14px', color: '#e9fbff', background: '#34264f', border: '1px solid #7467a2',
               cursor: teaserBusy ? 'wait' : 'pointer',
