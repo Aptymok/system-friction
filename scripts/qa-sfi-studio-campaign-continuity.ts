@@ -112,7 +112,19 @@ assert.throws(()=>sequenceStudioReleases({items:unknownAcoustic,
   earliestDate:'2026-11-15',spacingWeeks:2,scenarioId:'ENERGY_RAMP'}),
   /SELECTED_SEQUENCE_SCENARIO_UNSUPPORTED_BY_MEASUREMENTS/);
 assert.equal(sequenceStudioReleases({items:unknownAcoustic,
-  earliestDate:'2026-11-15',spacingWeeks:2}).scenarios[1].available,false);
+  earliestDate:'2026-11-15',spacingWeeks:2}).scenarios.find(s=>s.id==='ENERGY_RAMP')?.available,false);
+const narrative=sequenceStudioReleases({items:songs,earliestDate:'2026-11-15',
+  spacingWeeks:3,scenarioId:'NARRATIVE_DECLARED',
+  narrativePrecedence:[{from:'rem',to:'one'},{from:'one',to:'no'}]});
+assert.deepEqual(narrative.schedule.map(item=>item.itemId),['rem','one','no']);
+assert.equal(narrative.constraints.explicitPrecedenceCount,2);
+assert.throws(()=>sequenceStudioReleases({items:songs,earliestDate:'2026-11-15',
+  spacingWeeks:3,scenarioId:'NARRATIVE_DECLARED',
+  narrativePrecedence:[{from:'rem',to:'one'},{from:'one',to:'rem'}]}),
+  /SELECTED_SEQUENCE_SCENARIO_UNSUPPORTED_BY_MEASUREMENTS/);
+assert.throws(()=>sequenceStudioReleases({items:songs,earliestDate:'2026-11-15',
+  spacingWeeks:3,scenarioId:'NARRATIVE_DECLARED',narrativePrecedence:[]}),
+  /SELECTED_SEQUENCE_SCENARIO_UNSUPPORTED_BY_MEASUREMENTS/);
 assert.throws(()=>sequenceStudioReleases({items:songs,earliestDate:'2026-11-15',
   spacingWeeks:0}),/INVALID_RELEASE_SPACING/);
 
