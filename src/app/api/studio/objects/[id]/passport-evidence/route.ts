@@ -4,6 +4,7 @@ import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { extractStudioGovernedReferences } from '@/lib/studio/passport/governedReferenceProjection';
 import { readOperationalRealityChain } from '@/lib/sfi/case-platform/repository';
 import { readAgentPassports } from '@/lib/sfi/cognitive-runtime/agentPassports';
+import { requireRootViewer } from '@/lib/root/server';
 
 export const runtime='nodejs';
 export const dynamic='force-dynamic';
@@ -126,6 +127,34 @@ export async function GET(_request:Request,context:Context){
         agentReadStatus='REGISTRY_READ_NOT_OBJECT_ATTRIBUTION';
       }catch{agentReadStatus='AGENT_REGISTRY_UNAVAILABLE';}
     }
+    const rootAuditRefs=declaredRefs.rootReceiptRefs.filter(ref=>
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(ref));
+    let rootReadStatus='NO_EXPLICIT_ROOT_REF';
+    let rootAuditRecords:Array<{id:string;at:string|null;action:string|null;target:string|null}>=[];
+    if(declaredRefs.rootReceiptRefs.length>0){
+      // The ROOT authorization gate has its own independently verified identity.
+      // Reject mixed auth contexts to prevent confused-deputy disclosure.
+      const rootGate=await requireRootViewer('studio.passport.root.read');
+      if(!rootGate.ok || rootGate.ctx.user.id!==user.id){
+        rootReadStatus='BLOCKED_ROOT_AUTHORITY_NOT_GRANTED';
+      } else if(!rootAuditRefs.length){
+        rootReadStatus='DECLARED_REFS_NOT_ROOT_AUDIT_UUIDS';
+      } else {
+        try{
+          const rootRows=await db.from('root_audit_events')
+            .select('id,action,target,created_at')
+            .in('id',rootAuditRefs).limit(12);
+          if(rootRows.error)rootReadStatus='ROOT_AUDIT_READ_UNAVAILABLE';
+          else {
+            rootAuditRecords=(rootRows.data??[]).map(row=>({
+              id:String(row.id),at:string(row.created_at),
+              action:string(row.action),target:string(row.target),
+            }));
+            rootReadStatus='ROOT_AUDIT_RECORDS_READ_NOT_EXECUTION_CERTIFICATION';
+          }
+        }catch{rootReadStatus='ROOT_AUDIT_READ_UNAVAILABLE';}
+      }
+    }
     return NextResponse.json({
       ok:failures.length===0,
       governedLinks:{
@@ -133,9 +162,10 @@ export async function GET(_request:Request,context:Context){
         cases,agents,agentReadStatus,
         root:{
           declaredReceiptRefs:declaredRefs.rootReceiptRefs,
+          observedAuditRecords:rootAuditRecords,
           validatedReceipts:[],
-          readStatus:'BLOCKED_ROOT_AUTHORITY_NOT_IMPLICIT_IN_STUDIO_OWNERSHIP',
-          warning:'Existing ROOT readiness and governance routes retain their separate authorization gate.',
+          readStatus:rootReadStatus,
+          warning:'ROOT audit rows are persisted records, not execution, approval or RETURN certificates. A separate ROOT permission is mandatory.',
         },
         certifiedCrossSurfaceClosure:false,
       },
