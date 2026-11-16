@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { AccessDeniedError, requireObjectOwner } from '@/lib/system/access/server';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { extractStudioGovernedReferences } from '@/lib/studio/passport/governedReferenceProjection';
+import { readOperationalRealityChain } from '@/lib/sfi/case-platform/repository';
+import { readAgentPassports } from '@/lib/sfi/cognitive-runtime/agentPassports';
 
 export const runtime='nodejs';
 export const dynamic='force-dynamic';
@@ -50,8 +53,13 @@ function publicEvent(row:Row,type:string){
 export async function GET(_request:Request,context:Context){
   const {id}=await context.params;
   try{
-    await requireObjectOwner(id);
+    const {user}=await requireObjectOwner(id);
     const db=createServiceSupabaseClient();
+    const objectRead=await db.from('studio_objects').select('id,metadata').eq('id',id)
+      .eq('owner_id',user.id).maybeSingle();
+    if(objectRead.error)return NextResponse.json({ok:false,error:'STUDIO_OBJECT_REFERENCE_READ_FAILED'},{status:503});
+    if(!objectRead.data)return NextResponse.json({ok:false,error:'STUDIO_OBJECT_NOT_FOUND'},{status:404});
+    const declaredRefs=extractStudioGovernedReferences(objectRead.data.metadata);
     const tables=[
       {name:'studio_evidence_traces',kind:'EVIDENCE'},
       {name:'studio_hypotheses',kind:'HYPOTHESIS'},
@@ -72,8 +80,65 @@ export async function GET(_request:Request,context:Context){
       (result.rows as unknown[]).filter((value):value is Row=>value!==null&&typeof value==='object'&&!Array.isArray(value))
         .map(row=>publicEvent(row,result.kind)))
       .sort((a,b)=>(b.at??'').localeCompare(a.at??'')).slice(0,150);
+    // Case reads are delegated to the existing tenant-scoped Case Platform
+    // authority. A Studio object owner is NOT automatically a Case tenant member.
+    const cases=await Promise.all(declaredRefs.caseIds.slice(0,2).map(async caseId=>{
+      try{
+        const read=await readOperationalRealityChain(caseId,user.id);
+        const chain=read.realityChain;
+        return {
+          caseId,readStatus:'AUTHORIZED_CASE_READ' as const,
+          inputHash:chain.inputHash,
+          gaps:Array.isArray(chain.gaps)?chain.gaps.slice(0,40):[],
+          nextObservation:chain.nextObservation??null,
+          temporal:chain.temporal??null,
+          closureCertified:false,
+          boundary:'CASE_PROJECTION_NOT_CROSS_PROVIDER_CERTIFIED',
+          provenance:'CASE_PLATFORM_TENANT_SCOPED_RECONSTRUCTION',
+        };
+      }catch{
+        return {
+          caseId,readStatus:'NOT_AUTHORIZED_OR_UNAVAILABLE' as const,
+          inputHash:null,gaps:[],nextObservation:null,temporal:null,
+          closureCertified:false,
+          boundary:'NO_CASE_INFORMATION_EXPOSED_UNLESS_AUTHORIZED',
+          provenance:'CASE_READ_NOT_COMPLETED',
+        };
+      }
+    }));
+    // An agent registry entry proves identity/capability, not execution of
+    // this particular Studio object. Only explicit persisted IDs are joined.
+    let agents:Array<Record<string,unknown>>=[];
+    let agentReadStatus='NO_EXPLICIT_AGENT_REF';
+    if(declaredRefs.agentIds.length){
+      try{
+        const registry=await readAgentPassports();
+        agents=declaredRefs.agentIds.flatMap(agentId=>{
+          const entry=registry.passports.find(agent=>agent.id===agentId);
+          return entry?[{
+            id:entry.id,name:entry.name,lifecycle:entry.lifecycle,
+            executorBound:entry.executorBound,latestExecutionAt:entry.latestExecutionAt,
+            executionEvidenceRefs:entry.executionEvidence.slice(0,20),
+            observedForThisStudioObject:false,
+            epistemicBoundary:'AGENT_REGISTRY_NOT_OBJECT_EXECUTION_PROOF',
+          }]:[];
+        });
+        agentReadStatus='REGISTRY_READ_NOT_OBJECT_ATTRIBUTION';
+      }catch{agentReadStatus='AGENT_REGISTRY_UNAVAILABLE';}
+    }
     return NextResponse.json({
       ok:failures.length===0,
+      governedLinks:{
+        declaredReferences:declaredRefs,
+        cases,agents,agentReadStatus,
+        root:{
+          declaredReceiptRefs:declaredRefs.rootReceiptRefs,
+          validatedReceipts:[],
+          readStatus:'BLOCKED_ROOT_AUTHORITY_NOT_IMPLICIT_IN_STUDIO_OWNERSHIP',
+          warning:'Existing ROOT readiness and governance routes retain their separate authorization gate.',
+        },
+        certifiedCrossSurfaceClosure:false,
+      },
       objectId:id,
       ownerScoped:true,
       observedAt:new Date().toISOString(),
