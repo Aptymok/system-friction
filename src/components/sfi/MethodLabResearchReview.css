@@ -25,3 +25,9 @@
 .mlr-trace-boundary{margin-top:15px;padding:12px;border-left:3px solid #d4af37;background:#14191a}
 .mlr-trace-boundary strong{font-size:12px;color:#e0d2a8}
 @media(max-width:720px){.mlr-trace-columns{grid-template-columns:1fr}}
+
+
+.mlr-repository-connection{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:15px 0 4px;font-family:var(--sfi-screen,"Noto Sans",sans-serif);font-size:11px}
+.mlr-repository-connection a{padding:8px 10px;color:#c7e2f5;border:1px solid rgba(92,166,223,.42);text-decoration:none;overflow-wrap:anywhere}
+.mlr-repository-connection a:hover,.mlr-repository-connection a:focus-visible{border-color:#d4af37;color:#f5e8bc}
+.mlr-repository-connection span{color:#9fb5c4}
