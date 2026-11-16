@@ -30,7 +30,7 @@ export default function StudioReleaseSequencer({objects,sessions}:{objects:Row[]
   // A campaign task or social post is not a release. Limit sequencing to
   // explicitly declared projects and owned objects typed as music.
   const candidates=graph.nodes.filter(n=>n.kind==='project'||
-    (n.kind==='object'&&n.passport.objectType==='music'));
+    (n.kind==='object'&&['music','audio','song','music_audio'].includes(String(n.passport.objectType??'').toLowerCase())));
   const [orderedIds,setOrderedIds]=useState<string[]>([]);
   const validSelected=orderedIds.filter(id=>candidates.some(n=>n.id===id));
   const [earliest,setEarliest]=useState(dateToday);
