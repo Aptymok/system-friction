@@ -8,6 +8,7 @@ export async function createLocalAudioTeaser(
   file: File,
   direction: ReleaseDirection,
   onState: (message: string) => void,
+  cover?: Blob,
 ): Promise<{fileName: string; durationSeconds: number; mimeType: string}> {
   if (typeof window === 'undefined' || typeof MediaRecorder === 'undefined') {
     throw new Error('MEDIA_RECORDER_UNAVAILABLE');
@@ -23,6 +24,7 @@ export async function createLocalAudioTeaser(
   let clock=0;
   let stopped=false;
   let endTimer:ReturnType<typeof setTimeout>|null=null;
+  let coverBitmap:ImageBitmap|null=null;
   try {
     onState('Decodificando audio local…');
     const decoded=await context.decodeAudioData(await file.arrayBuffer());
@@ -39,13 +41,31 @@ export async function createLocalAudioTeaser(
       signal:['#0a1917','#e5faed','#66c9a9'],
     } as const;
     const [bg,fg,accent]=palettes[direction.palette];
+    if(cover){
+      if(!cover.size || !/^image\/(png|jpeg|webp)$/.test(cover.type))throw new Error('INVALID_STUDIO_COVER');
+      onState('Preparando portada visual local para el video…');
+      coverBitmap=await createImageBitmap(cover);
+      if(coverBitmap.width<256||coverBitmap.height<256)throw new Error('STUDIO_COVER_TOO_SMALL');
+    }
     const title=(direction.title.trim()||'UNTITLED').slice(0,90);
     const artist=(direction.artist.trim()||'STUDIO').slice(0,80);
     function paint(progress:number) {
       if(!ctx)return;
       ctx.fillStyle=bg;ctx.fillRect(0,0,720,1280);
+      if(coverBitmap){
+        // The owner-provided photographic derivative is the visible video artwork.
+        // A cover-crop preserves proportions without distorting the source.
+        const scale=Math.max(720/coverBitmap.width,1280/coverBitmap.height);
+        const w=coverBitmap.width*scale,h=coverBitmap.height*scale;
+        ctx.drawImage(coverBitmap,(720-w)/2,(1280-h)/2,w,h);
+        const shade=ctx.createLinearGradient(0,0,0,1280);
+        shade.addColorStop(0,'rgba(0,0,0,.48)');
+        shade.addColorStop(.35,'rgba(0,0,0,.10)');
+        shade.addColorStop(1,'rgba(0,0,0,.70)');
+        ctx.fillStyle=shade;ctx.fillRect(0,0,720,1280);
+      }
       ctx.strokeStyle=accent;ctx.lineWidth=2;
-      for(let ring=0;ring<20;ring++) {
+      for(let ring=0;ring<(coverBitmap?5:20);ring++) {
         const phase=ring*.26+progress*Math.PI*2;
         const radius=115+ring*11;
         ctx.globalAlpha=.1+.4*(1-ring/20);
@@ -115,6 +135,7 @@ export async function createLocalAudioTeaser(
     if(endTimer)clearTimeout(endTimer);
     if(recorder && recorder.state!=='inactive')recorder.stop();
     source?.disconnect();
+    coverBitmap?.close();
     stream?.getTracks().forEach(track=>track.stop());
     await context.close().catch(()=>undefined);
   }
