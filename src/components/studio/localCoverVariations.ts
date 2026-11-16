@@ -159,7 +159,7 @@ export async function createStudioCoverVariant(
     ctx.globalAlpha=.75;ctx.fillStyle=colors.background;
     ctx.beginPath();ctx.moveTo(1500,650);ctx.lineTo(1820,760);ctx.lineTo(1780,2010);ctx.lineTo(1460,2070);ctx.closePath();ctx.fill();
     ctx.globalAlpha=1;ctx.fillStyle=colors.accent;ctx.fillRect(155,2150,710,12);
-  } else {
+  } else if(id==='constellation') {
     const nodes=Array.from({length:90},()=>({
       x:300+rng()*2420,y:370+rng()*1760,size:2+rng()*12,
     }));
