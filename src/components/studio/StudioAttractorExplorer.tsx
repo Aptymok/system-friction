@@ -125,6 +125,18 @@ export default function StudioAttractorExplorer({objects,sessions}:{objects:Row[
         <div style={{color:'#9bb8cc',fontSize:11}}>
           {current.kind} · {current.source} · {current.epistemic}
         </div>
+        {typeof pass.description==='string'&&<p style={{margin:0,fontSize:12,color:'#d0dce4'}}>
+          {pass.description}
+        </p>}
+        <div style={{display:'grid',gap:5,fontSize:11,color:'#b2c5d1'}}>
+          {graph.edges.filter(edge=>edge.from===current.id||edge.to===current.id).map((edge,index)=>{
+            const other=graph.nodes.find(node=>node.id===(edge.from===current.id?edge.to:edge.from));
+            return <div key={index} style={{borderLeft:'2px solid #547993',paddingLeft:9}}>
+              {edge.from===current.id?'Conecta con':'Procede de'}: {other?.label??'Nodo no recuperado'} · {edge.relation}
+              {' '} (relación de Studio, no causalidad certificada)
+            </div>;
+          })}
+        </div>
         {current.sourceObjectId&&<a style={{color:'#90d2f4',fontSize:12}}
           href={'/studio?objectId='+encodeURIComponent(current.sourceObjectId)}>
           Abrir objeto persistido y mediciones
@@ -134,7 +146,7 @@ export default function StudioAttractorExplorer({objects,sessions}:{objects:Row[
             'Reconstrucción parcial: los campos sólo se muestran si están presentes en metadatos asociados al objeto.':
             'Centro de agrupación: no se atribuyen ejecutores, resultados ni fechas por pertenencia.'}
         </div>
-        {current.kind==='object'&&<div style={{display:'grid',
+        <div style={{display:'grid',
           gridTemplateColumns:'repeat(auto-fit,minmax(240px,1fr))',gap:8}}>
           {sections.map(([key,label])=><div key={key} style={{
             border:'1px solid rgba(150,195,220,.14)',padding:10,display:'grid',gap:4}}>
@@ -144,7 +156,7 @@ export default function StudioAttractorExplorer({objects,sessions}:{objects:Row[
               {details(stages?.[key])}
             </pre>
           </div>)}
-        </div>}
+        </div>
         {current.sourceObjectId&&<section style={{
           border:'1px solid rgba(145,210,235,.23)',padding:12,display:'grid',gap:9,
         }}>
