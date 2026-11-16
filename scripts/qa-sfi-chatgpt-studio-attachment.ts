@@ -53,7 +53,14 @@ for (const token of [
   'openaiFileIdRefs','value.length !== 1','files.oaiusercontent.com',"url.protocol !== 'https:'","redirect: 'error'","studioAnalysisLimitBytes('audio')",
   "descriptor.modality !== 'audio'",'assertAudioEvidenceConsistent','OPENAI_FILE_EVIDENCE_CONFLICT','resolveExistingIntake',"metadata->externalIntake->>openaiFileId",
   'OPENAI_FILE_INTAKE_CONFLICT','analysisAuthorizationHistory','SFI-CHATGPT-STUDIO-ATTACHMENT-1.1','completeStudioSignedUpload','analyzeStudioAudioObject',
-  'authorizedForAnalysis !== true','DECLARATION_ONLY_NOT_RIGHTS_TRANSFER','temporaryDownloadUrlPersisted: false','rightsTransfer: false','canonicalPromotion: false',
+  'authorizedForAnalysis !== true','DECLARATION_ONLY_NOT_RIGHTS_TRANSFER',
+  'verifyAttachmentPlacement','verifyExistingPlacement',
+  'STUDIO_FIELD_REFERENCE_INVALID','STUDIO_FIELD_NODE_NOT_FOUND',
+  "eq('owner_id', ownerId).maybeSingle()",
+  "sessionId: placement.sessionId",
+  "fieldNodeId: placement.fieldNodeId",
+  'expectedSha256','observedSha256',"createHash('sha256')",
+  'checksumSha256: observedSha256','temporaryDownloadUrlPersisted: false','rightsTransfer: false','canonicalPromotion: false',
   "state: 'FAILED'",'resumeFailedIntake','assertNoActiveAnalysis',".in('status', ['queued', 'running'])",'persistRetryAuthorization',
 ]) assert.ok(intake.includes(token), `intake_contract_missing:${token}`);
 assert.doesNotMatch(intake, /requestedObjectType:\s*'audio'/);
@@ -70,6 +77,12 @@ const storedUpdateIndex = storage.indexOf(".update({ status: 'stored'");
 assert.ok(objectUpdateIndex >= 0 && storedUpdateIndex > objectUpdateIndex);
 assert.match(storage, /\.eq\('status', 'stored'\)/);
 
+assert.match(route, /sessionId: body.sessionId/);
+assert.match(route, /fieldNodeId: body.fieldNodeId/);
+assert.match(route, /expectedSha256: body.expectedSha256/);
+assert.match(studioMcpServer, /sessionId: \{ type: 'string', format: 'uuid' \}/);
+assert.match(studioMcpServer, /fieldNodeId: \{ type: 'string', format: 'uuid' \}/);
+assert.match(studioMcpServer, /expectedSha256: \{ type: 'string', pattern:/);
 assert.match(manifest, /studio-ingest-analyze|ingest_analyze/);
 assert.match(manifest, /studioAttachmentPersistence|OWNER_SCOPED|owner-scoped/i);
 assert.match(manifest, /studioMcp: '\/api\/mcp\/studio'/);
