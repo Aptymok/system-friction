@@ -85,7 +85,12 @@ export default async function StudioPage({ searchParams }: { searchParams?: Prom
   const requested = typeof params.objectId === 'string' && params.objectId.trim() ? params.objectId.trim() : null;
   const [objectsResult,sessionsResult] = await Promise.all([listStudioObjects(user.id,{limit:100}),listStudioSessions(user.id)]);
   const objects = objectsResult.ok ? objectsResult.data : [];
-  const sessions = sessionsResult.ok ? sessionsResult.data : [];
+  // Client receives only the field declaration needed for navigation; not
+  // arbitrary session metadata, provider credentials or internal runtime state.
+  const sessions = sessionsResult.ok ? sessionsResult.data.map(session => ({
+    id:session.id,title:session.title,
+    metadata:{field:record(session.metadata).field??null},
+  })) : [];
   const activeId = requested ?? text(objects[0]?.id, '');
   const activeResult = activeId ? await getStudioObjectFeatures(activeId, user.id) : null;
   const active = activeResult?.ok ? activeResult.data.object : null;
