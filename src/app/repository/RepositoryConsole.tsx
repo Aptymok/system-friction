@@ -112,7 +112,7 @@ export function RepositoryConsole({objects,initialObject,discovery,publicReading
     const ref=kind==='object'?objects.find(o=>o.id===id):null;
     if(ref&&typeof window!=='undefined')window.history.replaceState({},'', '/repository?object='+encodeURIComponent(ref.slug));
   };
-  const goto=(index:number)=>horizontal.current?.querySelectorAll<HTMLElement>('.repoFloating')[index]?.scrollIntoView({behavior:'smooth',block:'nearest',inline:'start'});
+  const goto=(index:number)=>horizontal.current?.querySelectorAll<HTMLElement>('.repoFloating')[index]?.scrollIntoView({behavior:'smooth',block:'start',inline:'nearest'});
   const jumpReader=()=>{setReaderOpen(true);readerRef.current?.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'})};
   const categories:[string,number|string][]=[['SOURCE RECORDS',sources.length],['EVIDENCE',evidence.length],['PUBLICATIONS',objects.filter(o=>o.objectType==='PUBLICATION').length],['CASE OBJECTS',related.length],['PROVENANCE',sources.length],['VERSIONS',versions.length],['HASHES','NOT MATERIALIZED'],['LINEAGE',related.length],['MANIFESTS',objects.length]];
   const safeDoc=selection.kind==='object'?active?.editorial?.renditions.find(r=>r.publicUrl&&safeURL(r.publicUrl) && (r.mediaType==='application/pdf'||r.filename.toLowerCase().endsWith('.pdf')))||null:null;
@@ -142,7 +142,7 @@ export function RepositoryConsole({objects,initialObject,discovery,publicReading
       <select aria-label="Ordenar" value={order} onChange={e=>setOrder(e.target.value as 'new'|'old'|'name')}><option value="new">Más recientes</option><option value="old">Más antiguos</option><option value="name">Título A–Z</option></select>
       <button type="button" onClick={()=>setView(view==='cards'?'graph':'cards')} aria-pressed={view==='graph'}>{view==='cards'?'VER GRAFO':'VER TARJETAS'}</button>
     </div>
-    <div className="repoFieldScroll" ref={horizontal} aria-label="Campo horizontal del Repository" tabIndex={0}>
+    <div className="repoFieldScroll" ref={horizontal} aria-label="Lectura vertical del Repositorio" tabIndex={0}>
       <div className="repoFieldTrack">
         <aside className="repoIdentity repoFloating">
           <span>EXPLORA</span><p>Selecciona una clase de objeto. El Passport se construye con la información autorizada que exista.</p>
@@ -219,7 +219,7 @@ export function RepositoryConsole({objects,initialObject,discovery,publicReading
       selectedId={selection.kind==='object'?selection.id:null}
       onSelect={onTemporalSelect}
       onBackward={()=>goto(0)}
-      onForward={()=>horizontal.current?.scrollBy({left:640,behavior:'smooth'})}
+      onForward={()=>goto(1)}
     />
   </main>;
 }
