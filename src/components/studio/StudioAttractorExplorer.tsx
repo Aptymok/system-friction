@@ -47,7 +47,7 @@ export default function StudioAttractorExplorer({objects,sessions}:{objects:Row[
   const width=940,height=Math.max(260,visible.length*94+110);
   const [evidence,setEvidence]=useState<{
     objectId:string;sourceStatus:string;sourceFailures:Array<{source:string;error:string}>;
-    evidence:Array<{id:string|null;type:string;at:string|null;label:string;source:string;status:string}>;
+    evidence:Array<{id:string|null;type:string;at:string|null;label:string;source:string;status:string;details:string|null;measurement:{variable:string|null;value:number|string;unit:string|null}|null}>;
   }|null>(null);
   const [evidenceError,setEvidenceError]=useState('');
   const [evidenceLoading,setEvidenceLoading]=useState(false);
@@ -168,6 +168,12 @@ export default function StudioAttractorExplorer({objects,sessions}:{objects:Row[
               <span style={{fontSize:10,color:'#a0b7c6'}}>
                 {item.at??'Fecha no disponible'} · {item.source} · {item.status}
               </span>
+              {item.details&&<p style={{fontSize:11,color:'#d4e0e6',margin:'3px 0',
+                overflowWrap:'anywhere',whiteSpace:'pre-wrap'}}>{item.details}</p>}
+              {item.measurement&&<span style={{fontSize:11,color:'#afdfd1'}}>
+                Medición declarada: {item.measurement.variable??'variable sin identificar'} =
+                {' '+String(item.measurement.value)+' '+(item.measurement.unit??'')}
+              </span>}
             </div>)}
             {!evidence.evidence.length&&<p style={{fontSize:11,color:'#b3bdc3'}}>
               Ningún registro recuperado en esta lectura. No implica inexistencia histórica.
