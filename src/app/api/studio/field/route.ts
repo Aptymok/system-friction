@@ -60,7 +60,14 @@ export async function POST(request: Request) {
     let session = resolved.row;
     const now = new Date().toISOString();
 
-    if (requestedSessionId && (resolved.error || !session)) return NextResponse.json({ ok: false, error: 'STUDIO_SESSION_NOT_FOUND' }, { status: 404 });
+    // Failure to read the current session must never create a duplicate
+    // attractor. Only an authoritative empty read permits first creation.
+    if (resolved.error) return NextResponse.json({
+      ok:false,error:'STUDIO_SESSION_READ_UNAVAILABLE'
+    },{status:503});
+    if (requestedSessionId && !session) return NextResponse.json({
+      ok:false,error:'STUDIO_SESSION_NOT_FOUND'
+    },{status:404});
     if (!session && action !== 'create_attractor') return NextResponse.json({ ok: false, error: 'ATTRACTOR_REQUIRED' }, { status: 409 });
 
     if (!session) {
