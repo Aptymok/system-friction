@@ -210,7 +210,11 @@ export async function POST(request: Request) {
       ok:false,error:'FIELD_READBACK_UNAVAILABLE'
     },{status:503});
     const persisted=studioFieldMetadataFromUnknown(readback.data.metadata);
-    const intended=JSON.stringify(field),observed=JSON.stringify(persisted);
+    // Normalization hides archived nodes by design. Compare equivalent
+    // normalized views, otherwise a successful archive write is reported as
+    // a false readback failure even when its persisted state is correct.
+    const intended=JSON.stringify(studioFieldMetadataFromUnknown({field}));
+    const observed=JSON.stringify(persisted);
     if(intended!==observed)return NextResponse.json({
       ok:false,error:'FIELD_READBACK_MISMATCH'
     },{status:503});
