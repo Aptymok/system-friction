@@ -92,7 +92,12 @@ export async function GET(_request:Request,context:Context){
           inputHash:chain.inputHash,
           gaps:Array.isArray(chain.gaps)?chain.gaps.slice(0,40):[],
           nextObservation:chain.nextObservation??null,
-          temporal:chain.temporal??null,
+          temporal:chain.temporal?{
+            t0:chain.temporal.t0.cutoff,
+            t1:chain.temporal.t1.cutoff,
+            comparison:chain.temporal.comparison,
+            basis:chain.temporal.basis,
+          }:null,
           closureCertified:false,
           boundary:'CASE_PROJECTION_NOT_CROSS_PROVIDER_CERTIFIED',
           provenance:'CASE_PLATFORM_TENANT_SCOPED_RECONSTRUCTION',
