@@ -208,6 +208,7 @@ assert(repositoryReader.includes('LABORATORIO · ACCESO INTERNO'), 'Repository s
 
 assert(methodLabPage.includes('evidenceInventory={evidence.options}'), 'Method Lab must use its actual governed evidence read projection');
 assert(methodLabPage.includes('<LabCreateDialog label="Iniciar una investigación">'), 'new research intake must be inside an explicit popup');
+assert(methodLabPage.includes('<LabCreateDialog label="Dar de alta un experimento">'), 'experiment creation must require an explicit dialog action');
 assert(methodLabPage.indexOf('<MethodLabResearchReview') < methodLabPage.indexOf('<LabCreateDialog label="Iniciar una investigación">'), 'research reading must precede intake');
 assert(read('src/components/sfi/LabCreateDialog.tsx').includes('aria-modal="true"'), 'new experiment form must appear as an accessible modal');
 assert(read('src/components/sfi/SfiUnifiedSurfaces.css').includes('overflow-y:auto!important'), 'unified surfaces must allow natural vertical scrolling');
