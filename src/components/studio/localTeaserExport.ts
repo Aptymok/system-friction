@@ -22,7 +22,6 @@ export async function createLocalAudioTeaser(
   let raf=0;
   let source:AudioBufferSourceNode|null=null;
   let recorder:MediaRecorder|null=null;
-  let clock=0;
   let stopped=false;
   let endTimer:ReturnType<typeof setTimeout>|null=null;
   let coverBitmap:ImageBitmap|null=null;
@@ -41,14 +40,14 @@ export async function createLocalAudioTeaser(
       paper:['#eae4d9','#19222d','#88704f'],
       signal:['#0a1917','#e5faed','#66c9a9'],
     } as const;
-    const [bg,fg,accent]=palettes[direction.palette];
+    const [bg,fg]=palettes[direction.palette];
     if(!/^image\/(png|jpeg|webp)$/.test(cover.type))throw new Error('INVALID_STUDIO_COVER');
     onState('Preparando portada fotográfica local para el video…');
     coverBitmap=await createImageBitmap(cover);
     if(coverBitmap.width<256||coverBitmap.height<256)throw new Error('STUDIO_COVER_TOO_SMALL');
     const title=(direction.title.trim()||'UNTITLED').slice(0,90);
     const artist=(direction.artist.trim()||'STUDIO').slice(0,80);
-    function paint(progress:number) {
+    function paint() {
       if(!ctx)return;
       ctx.fillStyle=bg;ctx.fillRect(0,0,720,1280);
       if(coverBitmap){
@@ -77,7 +76,7 @@ export async function createLocalAudioTeaser(
       lines.slice(0,4).forEach((line,i)=>ctx.fillText(line,360,940+i*63,650));
       ctx.font='17px monospace';ctx.fillText('SFI STUDIO · VIDEO PROPOSAL',360,1195,650);
     }
-    paint(0);
+    paint();
     const videoStream=canvas.captureStream(24);
     stream=new MediaStream(videoStream.getVideoTracks());
     const destination=context.createMediaStreamDestination();
@@ -96,10 +95,9 @@ export async function createLocalAudioTeaser(
     onState('Grabando 12 segundos de video y audio en este dispositivo…');
     await context.resume();
     const start=context.currentTime+.08;
-    clock=performance.now();
     const animate=()=>{
       if(stopped)return;
-      paint(Math.min(1,(performance.now()-clock)/(length*1000)));
+      paint();
       raf=requestAnimationFrame(animate);
     };
     raf=requestAnimationFrame(animate);
