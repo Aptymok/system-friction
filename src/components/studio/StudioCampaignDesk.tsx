@@ -83,13 +83,17 @@ type WorldRead={
   warnings?:string[];
 };
 export default function StudioCampaignDesk({objects,sessions}:{objects:Row[];sessions:Row[]}){
-  const graph=useMemo(()=>studioAttractorProjection(objects,sessions),[objects,sessions]);
-  const knownSessions=useMemo(()=>sessions.filter(s=>
-    graph.nodes.some(n=>n.id==='field-attractor:'+text((s.metadata as Row|undefined)?.field
-      && ((s.metadata as Row).field as Row)?.attractor
-      && (((s.metadata as Row).field as Row).attractor as Row)?.id))
-    || graph.nodes.some(n=>n.id==='session:'+text(s.id))
-  ),[sessions,graph.nodes]);
+
+  const knownSessions=useMemo(()=>sessions.filter(session=>{
+    const metadata=session.metadata;
+    const stored=metadata!==null&&typeof metadata==='object'&&!Array.isArray(metadata)
+      ?metadata as Row:{};
+    const field=stored.field!==null&&typeof stored.field==='object'&&!Array.isArray(stored.field)
+      ?stored.field as Row:{};
+    const attr=field.attractor!==null&&typeof field.attractor==='object'&&!Array.isArray(field.attractor)
+      ?field.attractor as Row:{};
+    return typeof attr.id==='string'&&Boolean(attr.id.trim());
+  }),[sessions]);
   const [sessionId,setSessionId]=useState('');
   const selectedSessionId=knownSessions.some(s=>s.id===sessionId)?sessionId:text(knownSessions[0]?.id);
   const sessionNodes=useMemo(()=>{
