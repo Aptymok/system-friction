@@ -27,20 +27,31 @@ function blackmanWindow(offset: number, radius: number) {
   return 0.42 + 0.5 * Math.cos(Math.PI * x) + 0.08 * Math.cos(2 * Math.PI * x);
 }
 
-function reconstructAt(samples: Float32Array, position: number) {
-  const center = Math.floor(position);
+// Kernels depend only on phase and radius, never on sample index.
+ // Precomputing trig weights avoids recalculating 96 sin/cos operations per
+ // input frame. Boundary normalization is still computed from valid samples.
+const INTERSAMPLE_KERNELS = Array.from({ length: OVERSAMPLE_FACTOR - 1 }, (_, phaseIndex) => {
+  const phase = (phaseIndex + 1) / OVERSAMPLE_FACTOR;
+  return Float64Array.from({ length: 2 * SINC_RADIUS }, (_, tap) => {
+    const offset = tap - SINC_RADIUS + 1;
+    const distance = phase - offset;
+    return sinc(distance) * blackmanWindow(distance, SINC_RADIUS);
+  });
+});
+
+function reconstructAt(samples: Float32Array, frame: number, phaseIndex: number) {
+  const kernel = INTERSAMPLE_KERNELS[phaseIndex];
   let value = 0;
   let weightTotal = 0;
-  for (let index = center - SINC_RADIUS + 1; index <= center + SINC_RADIUS; index += 1) {
+  for (let tap = 0; tap < kernel.length; tap += 1) {
+    const index = frame + tap - SINC_RADIUS + 1;
     if (index < 0 || index >= samples.length) continue;
-    const distance = position - index;
-    const weight = sinc(distance) * blackmanWindow(distance, SINC_RADIUS);
-    value += (samples[index] ?? 0) * weight;
+    const weight = kernel[tap];
+    value += samples[index] * weight;
     weightTotal += weight;
   }
   return weightTotal === 0 ? 0 : value / weightTotal;
 }
-
 export function samplePeakAmplitude(decoded: StudioDecodedAudio) {
   let peak = 0;
   for (const channel of decoded.channelData) {
@@ -128,7 +139,7 @@ export function calculateTruePeak(decoded: StudioDecodedAudio, options: Loudness
     }
     for (let frame = 0; frame < channel.length - 1; frame += 1) {
       for (let phase = 1; phase < OVERSAMPLE_FACTOR; phase += 1) {
-        const reconstructed = reconstructAt(channel, frame + phase / OVERSAMPLE_FACTOR);
+        const reconstructed = reconstructAt(channel, frame, phase - 1);
         const magnitude = Math.abs(reconstructed);
         if (magnitude >= truePeak) {
           truePeak = magnitude;
