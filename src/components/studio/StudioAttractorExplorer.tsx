@@ -48,6 +48,14 @@ export default function StudioAttractorExplorer({objects,sessions}:{objects:Row[
   const [evidence,setEvidence]=useState<{
     objectId:string;sourceStatus:string;sourceFailures:Array<{source:string;error:string}>;
     evidence:Array<{id:string|null;type:string;at:string|null;label:string;source:string;status:string;details:string|null;measurement:{variable:string|null;value:number|string;unit:string|null}|null}>;
+    governedLinks?:{
+      declaredReferences:{caseIds:string[];agentIds:string[];rootReceiptRefs:string[]};
+      cases:Array<{caseId:string;readStatus:string;inputHash:string|null;gaps:string[];nextObservation:unknown;closureCertified:boolean}>;
+      agents:Array<{id:string;name:string;lifecycle:string;executorBound:boolean;latestExecutionAt:string|null;executionEvidenceRefs:string[];observedForThisStudioObject:boolean}>;
+      agentReadStatus:string;
+      root:{declaredReceiptRefs:string[];validatedReceipts:unknown[];readStatus:string;warning:string};
+      certifiedCrossSurfaceClosure:boolean;
+    };
   }|null>(null);
   const [evidenceError,setEvidenceError]=useState('');
   const [evidenceLoading,setEvidenceLoading]=useState(false);
@@ -190,6 +198,51 @@ export default function StudioAttractorExplorer({objects,sessions}:{objects:Row[
             {!evidence.evidence.length&&<p style={{fontSize:11,color:'#b3bdc3'}}>
               Ningún registro recuperado en esta lectura. No implica inexistencia histórica.
             </p>}
+            {evidence.governedLinks&&<div style={{display:'grid',gap:9,padding:10,
+              border:'1px solid rgba(151,206,235,.25)'}}>
+              <strong style={{fontSize:13}}>Vínculos gobernados entre superficies</strong>
+              <p style={{fontSize:11,color:'#a9c1cf',margin:0}}>
+                Sólo referencias explícitas registradas en el objeto. No se infieren conexiones por nombre.
+                La lectura de un caso conserva su autorización de Case Platform.
+              </p>
+              {evidence.governedLinks.cases.map(link=><div key={link.caseId} style={{display:'grid',gap:3}}>
+                <strong style={{fontSize:11}}>Caso: {link.caseId}</strong>
+                <span style={{fontSize:11,color:'#bacbd4'}}>{link.readStatus}</span>
+                {link.inputHash&&<span style={{fontSize:10,color:'#aecbd7',overflowWrap:'anywhere'}}>
+                  Identidad de reconstrucción: {link.inputHash}
+                </span>}
+                {link.gaps.length>0&&<span style={{fontSize:11,color:'#d9bfa2'}}>
+                  Pendientes: {link.gaps.join(' · ')}
+                </span>}
+                {typeof link.nextObservation==='string'&&<span style={{fontSize:11}}>
+                  Siguiente observación: {link.nextObservation}
+                </span>}
+              </div>)}
+              {evidence.governedLinks.agents.map(agent=><div key={agent.id} style={{display:'grid',gap:3}}>
+                <strong style={{fontSize:11}}>Agente: {agent.name} ({agent.id})</strong>
+                <span style={{fontSize:11,color:'#bacbd4'}}>
+                  Estado del registro: {agent.lifecycle} · Última ejecución general:
+                  {' '+(agent.latestExecutionAt??'NO OBSERVADA')}
+                </span>
+                <span style={{fontSize:10,color:'#d9bfa2'}}>
+                  Ejecución sobre este objeto: NO ATRIBUIDA
+                </span>
+              </div>)}
+              {evidence.governedLinks.declaredReferences.rootReceiptRefs.length>0&&
+                <p style={{fontSize:11,color:'#e2bea0',margin:0}}>
+                  Referencias ROOT declaradas: {evidence.governedLinks.declaredReferences.rootReceiptRefs.length}.
+                  No certificadas: requieren lectura con autoridad ROOT independiente.
+                </p>}
+              {evidence.governedLinks.cases.length===0&&
+                evidence.governedLinks.agents.length===0&&
+                evidence.governedLinks.declaredReferences.rootReceiptRefs.length===0&&
+                <p style={{fontSize:11,color:'#acb9c3',margin:0}}>
+                  Sin referencias explícitas a Case Platform, Cognitive o ROOT.
+                </p>}
+              <span style={{fontSize:10,color:'#e2bea0'}}>
+                Cierre transversal certificado: NO. Leer un registro no demuestra RETURN ni autorización.
+              </span>
+            </div>}
           </>}
         </section>}
         <p style={{fontSize:11,color:'#d2bb98',margin:0}}>
