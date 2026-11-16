@@ -136,6 +136,7 @@ export function RepositoryConsole({objects,initialObject,discovery,publicReading
   return <main className="repositoryShell repoLiveV2">
     <div className="repoToolbar">
       <span className="repoToolbarIdentity">REPOSITORY <small>ARCHIVO PÚBLICO · PASSPORT CONTEXTUAL</small></span>
+      <a href="/method-lab" className="repoLabAccess" title="Ingresar al área autenticada de investigaciones; el acceso requiere permisos">LABORATORIO · ACCESO INTERNO</a>
       <label className="repoQuery"><span aria-hidden="true">⌕</span><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar publicaciones, métodos, fuentes y evidencia..." aria-label="Buscar registros"/></label>
       <select aria-label="Filtrar plataforma" value={platform} onChange={e=>setPlatform(e.target.value)}><option value="ALL">Todas las plataformas</option><option value="SFI">SFI</option><option value="MEDIUM">Medium</option></select>
       <select aria-label="Ordenar" value={order} onChange={e=>setOrder(e.target.value as 'new'|'old'|'name')}><option value="new">Más recientes</option><option value="old">Más antiguos</option><option value="name">Título A–Z</option></select>
