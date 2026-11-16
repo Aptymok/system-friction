@@ -234,14 +234,9 @@ assert(studioMultiReader.includes('<StudioMeasuredContext documentCount={documen
 // Guard the existing Studio MCP entrypoint against malformed SHA validators and duplicate module tails.
 const studioMcpSource = read('src/lib/mcp/studioMcpServer.ts');
 const studioMcpEnd = "return { status: 404, body: jsonRpcError(id, -32601, 'MethodNotFound', { method }) };";
-assert(studioMcpSource.includes("pattern: '^[0-9a-fA-F]{64}
-console.log(`citation_version=${citation.version}`);
-console.log('verified_doi_count=0');
-console.log('verified_orcid_count=0');
-console.log('verified_ror_count=0');
-console.log('zenodo_override=absent_blocked');
-"), 'Studio MCP SHA-256 validator must be syntactically complete');
+assert(studioMcpSource.includes("pattern: '^[0-9a-fA-F]{64}$'"), 'Studio MCP SHA-256 validator must be syntactically complete');
 assert(studioMcpSource.split(studioMcpEnd).length === 2, 'Studio MCP server must not contain duplicated source tails');
+
 console.log('[SFI-RESEARCH-METADATA] PASS');
 console.log(`citation_version=${citation.version}`);
 console.log('verified_doi_count=0');
