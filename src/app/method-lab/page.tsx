@@ -1,5 +1,7 @@
 import { redirect } from 'next/navigation';
 import { MethodLabNativeHub } from '@/components/sfi/MethodLabNativeHub';
+import { MethodLabResearchReview } from '@/components/sfi/MethodLabResearchReview';
+import { readMethodLabResearchState } from '@/lib/method-lab/researchObjects';
 import { PersonalCognitiveLabWorkspace } from '@/components/sfi/PersonalCognitiveLabWorkspace';
 import { MethodLabExperimentWorkbench } from '@/components/sfi/MethodLabExperimentWorkbench';
 import { readMethodLabState } from '@/lib/method-lab/readModel';
@@ -54,12 +56,13 @@ export default async function MethodLabPage() {
     ? await readMihmRegistryInventory().catch(() => null)
     : null;
 
-  const [state, sessions, evidence, conditional, inventory] = await Promise.all([
+  const [state, sessions, evidence, conditional, inventory, research] = await Promise.all([
     readMethodLabState(),
     listCognitiveLabSessions(18),
     readMethodLabEvidenceOptions(120),
     readHypothesisConditionalBranches().then(model=>({model,error:null})).catch(error=>({model:null,error:error instanceof Error?error.message:'CONDITIONAL_HYPOTHESIS_READ_FAILED'})),
     readInstitutionalEvidenceInventory(12),
+    readMethodLabResearchState(),
   ]);
 
   const sessionViews = await Promise.all((sessions as Row[]).map(async (session) => {
@@ -135,6 +138,7 @@ export default async function MethodLabPage() {
         </section>
       ) : null}
       <InstitutionalEvidenceInventory inventory={inventory} context="METHOD_LAB" />
+      <MethodLabResearchReview research={research} />
       <MethodLabNativeHub
         initialState={state}
         initialSessions={sessionViews}
