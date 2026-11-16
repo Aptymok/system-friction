@@ -59,6 +59,31 @@ export default function StudioAttractorExplorer({objects,sessions}:{objects:Row[
   }|null>(null);
   const [evidenceError,setEvidenceError]=useState('');
   const [evidenceLoading,setEvidenceLoading]=useState(false);
+  const [referenceType,setReferenceType]=useState<'caseId'|'agentId'|'rootAuditId'>('caseId');
+  const [referenceId,setReferenceId]=useState('');
+  const [referenceBusy,setReferenceBusy]=useState(false);
+  const [referenceMessage,setReferenceMessage]=useState('');
+  const [evidenceRevision,setEvidenceRevision]=useState(0);
+  async function saveReference() {
+    if(!objectId || !referenceId.trim() || referenceBusy)return;
+    setReferenceBusy(true);setReferenceMessage('');
+    try{
+      const response=await fetch('/api/studio/objects/'+encodeURIComponent(objectId)+'/governed-refs',{
+        method:'POST',
+        headers:{'content-type':'application/json'},
+        body:JSON.stringify({[referenceType]:referenceId.trim()}),
+      });
+      const result=await response.json() as {ok:boolean;error?:string;persisted?:boolean};
+      if(!response.ok || !result.ok || result.persisted!==true){
+        throw new Error(result.error??'REFERENCE_NOT_PERSISTED');
+      }
+      setReferenceId('');
+      setReferenceMessage('Referencia autorizada, guardada y releída del estado persistido. No constituye autorización de ejecutar.');
+      setEvidenceRevision(value=>value+1);
+    }catch(error){
+      setReferenceMessage('No se guardó la referencia: '+(error instanceof Error?error.message:String(error)));
+    }finally{setReferenceBusy(false);}
+  }
   const objectId=current?.sourceObjectId??null;
   useEffect(()=>{
     setEvidence(null);setEvidenceError('');
@@ -75,7 +100,7 @@ export default function StudioAttractorExplorer({objects,sessions}:{objects:Row[
       .catch(error=>{if(!controller.signal.aborted)setEvidenceError(error instanceof Error?error.message:'READ_UNAVAILABLE');})
       .finally(()=>{if(!controller.signal.aborted)setEvidenceLoading(false);});
     return ()=>controller.abort();
-  },[objectId]);
+  },[objectId,evidenceRevision]);
   const pass=current?.passport??{};
   const stages=pass.stageEvidence as Record<string,unknown>|undefined;
   return <section style={{border:'1px solid rgba(138,198,230,.27)',padding:16,
@@ -169,6 +194,36 @@ export default function StudioAttractorExplorer({objects,sessions}:{objects:Row[
           border:'1px solid rgba(145,210,235,.23)',padding:12,display:'grid',gap:9,
         }}>
           <strong style={{fontSize:13}}>Registros persistidos vinculados a este objeto</strong>
+          <div style={{display:'grid',gap:8,padding:10,
+            border:'1px solid rgba(140,190,216,.24)',background:'rgba(12,34,48,.2)'}}>
+            <strong style={{fontSize:12}}>Vincular evidencia de otra superficie</strong>
+            <p style={{fontSize:11,color:'#a2bfce',margin:0}}>
+              Identifica una referencia existente. Studio comprobará tus permisos en la superficie
+              correspondiente antes de guardarla; no creará casos, agentes ni autorizaciones.
+            </p>
+            <select value={referenceType} onChange={event=>{
+              setReferenceType(event.target.value as 'caseId'|'agentId'|'rootAuditId');
+              setReferenceId('');setReferenceMessage('');
+            }} style={{padding:8,background:'#162c40',color:'#e6f8ff',
+              border:'1px solid #567589'}}>
+              <option value="caseId">Caso de Case Platform</option>
+              <option value="agentId">Agente de Cognitive</option>
+              <option value="rootAuditId">Registro de auditoría ROOT</option>
+            </select>
+            <input type="text" value={referenceId} maxLength={120}
+              placeholder={referenceType==='agentId'?'Identificador exacto del agente':'Identificador UUID existente'}
+              onChange={event=>setReferenceId(event.target.value)}
+              style={{padding:8,background:'#162c40',color:'#e6f8ff',
+                border:'1px solid #567589'}}/>
+            <button type="button" disabled={!referenceId.trim()||referenceBusy}
+              onClick={saveReference} style={{padding:'8px 12px',justifySelf:'start',
+                background:'#235348',border:'1px solid #679b89',color:'#f1fff9',
+                cursor:referenceBusy?'wait':'pointer'}}>
+              {referenceBusy?'COMPROBANDO PERMISOS…':'VINCULAR REFERENCIA EXISTENTE'}
+            </button>
+            {referenceMessage&&<p role="status" style={{fontSize:11,
+              color:'#bddacb',margin:0}}>{referenceMessage}</p>}
+          </div>
           <p style={{fontSize:11,color:'#a3b6c2',margin:0}}>
             Evidencia, hipótesis, intervenciones, análisis y archivo de Studio;
             su existencia no certifica hipótesis, autoridad o RETURN.
