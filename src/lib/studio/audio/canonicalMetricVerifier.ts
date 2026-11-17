@@ -1,4 +1,5 @@
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+import { verifyFadStructuralReceipt } from './fadStructuralEvaluator';
 import { STUDIO_OBJECT_SYNTHESIS_SOURCE } from '@/lib/studio/production/objectContextSynthesisContract';
 import { evaluateScoreFrictionCase } from '@/lib/scorefriction/store';
 import type { SfiAudioMetricEvidence, SfiAudioMetricKey } from './closedLoop';
@@ -100,7 +101,17 @@ export async function verifyCanonicalAudioMetric(input: {
   if (!evidence.receiptRef.trim() || !evidence.sourceRef.trim() || !evidence.evidenceRefs.length) return false;
 
   try {
-    if (input.metric === 'fad') return false;
+    if (input.metric === 'fad') {
+      if (evidence.owner !== 'FAD' || evidence.epistemicClass !== 'DERIVED') return false;
+      return verifyFadStructuralReceipt({
+        value: input.value,
+        methodRef: evidence.methodRef,
+        receiptRef: evidence.receiptRef,
+        sourceRef: evidence.sourceRef,
+        evidenceRefs: evidence.evidenceRefs,
+        ownerId: input.ownerId?.trim() || '',
+      });
+    }
     if (input.metric === 'mihm') {
       if (evidence.owner !== 'MIHM' || evidence.epistemicClass !== 'DERIVED') return false;
       return await verifyMihm(input.value, evidence, input.ownerId?.trim() || null);
