@@ -1,5 +1,4 @@
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
-import { verifyFadStructuralReceipt } from './fadStructuralEvaluator';
 import { STUDIO_OBJECT_SYNTHESIS_SOURCE } from '@/lib/studio/production/objectContextSynthesisContract';
 import { evaluateScoreFrictionCase } from '@/lib/scorefriction/store';
 import type { SfiAudioMetricEvidence, SfiAudioMetricKey } from './closedLoop';
@@ -103,6 +102,7 @@ export async function verifyCanonicalAudioMetric(input: {
   try {
     if (input.metric === 'fad') {
       if (evidence.owner !== 'FAD' || evidence.epistemicClass !== 'DERIVED') return false;
+      const { verifyFadStructuralReceipt } = await import('./fadStructuralEvaluator');
       return verifyFadStructuralReceipt({
         value: input.value,
         methodRef: evidence.methodRef,
