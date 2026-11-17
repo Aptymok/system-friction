@@ -47,7 +47,7 @@ def evaluate(payload: SfiEngineInput):
 # computation, NOT the Studio object-context synthesis or a heuristic proxy.
 @app.post("/evaluate-audio")
 async def evaluate_audio(request: Request):
-    secret = os.environ.get("SFI_ENGINE_STUDIO_TOKEN")
+    secret = os.environ.get("SFI_ENGINE_STUDIO_TOKEN") or os.environ.get("CRON_SECRET")
     if not secret or request.headers.get("x-sfi-studio-token") != secret:
         raise HTTPException(status_code=403, detail="MIHM_AUDIO_AUTH_NOT_CONFIGURED_OR_DENIED")
     expected = request.headers.get("x-content-sha256", "").lower()
