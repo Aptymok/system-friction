@@ -1,9 +1,8 @@
 import 'server-only';
 
-import { createHash } from 'node:crypto';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
-import { transcodeAudioToFloatWav } from '@/lib/studio/multimodal/mediaRuntime';
 import { loadStudioAudioBytes } from './audioStorage';
+import { STUDIO_AUDIO_BUCKET } from './audioTypes';
 
 export const STUDIO_MIHM_SOURCE = 'studio_mihm_v3_canonical_python' as const;
 const METHOD = 'MIHM_V3_CANONICAL_ACOUSTIC';
@@ -34,21 +33,17 @@ export async function runStudioCanonicalMihm(objectId: string, expectedSourceSha
   if (stored.checksumSha256 !== expectedSourceSha256) {
     return { state: 'BLOCKED' as const, reason: 'MIHM_SOURCE_IDENTITY_CHANGED' };
   }
-  const metadata = (stored.object.metadata ?? {}) as Record<string, unknown>;
-  const name = String(metadata.originalFileName ?? stored.upload.storage_path ?? 'audio.wav');
-  const extension = name.split('.').pop()?.replace(/[^a-z0-9]/gi, '').toLowerCase() || 'bin';
-  const isWav = stored.bytes.subarray(0, 4).toString('ascii') === 'RIFF' &&
-    stored.bytes.subarray(8, 12).toString('ascii') === 'WAVE';
-  const wav = isWav ? stored.bytes : await transcodeAudioToFloatWav(stored.bytes, extension);
-  const wavHash = createHash('sha256').update(wav).digest('hex');
+  const storagePath = stored.upload.storage_path;
+  if (!storagePath) return { state: 'BLOCKED' as const, reason: 'MIHM_ORIGINAL_STORAGE_MISSING' };
+  const originalSha256 = stored.checksumSha256;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 280_000);
   let response: Response;
   try {
-    response = await fetch(url + '/evaluate-audio', {
+    response = await fetch(url + '/evaluate-audio-stored', {
       method: 'POST',
-      headers: { 'content-type': 'audio/wav', 'x-content-sha256': wavHash, 'x-sfi-studio-token': token },
-      body: new Uint8Array(wav),
+      headers: { 'content-type': 'application/json', 'x-sfi-studio-token': token },
+      body: JSON.stringify({ source_sha256: originalSha256, bucket: STUDIO_AUDIO_BUCKET, storage_path: storagePath }),
       signal: controller.signal,
       cache: 'no-store',
     });
@@ -63,7 +58,7 @@ export async function runStudioCanonicalMihm(objectId: string, expectedSourceSha
   const coreValid = vector && CORE.every(key =>
     typeof vector[key] === 'number' && Number.isFinite(vector[key]) &&
     (vector[key] as number) >= 0 && (vector[key] as number) <= 1);
-  if (data.method !== METHOD || data.source_sha256 !== wavHash ||
+  if (data.method !== METHOD || data.source_sha256 !== originalSha256 ||
       data.core_emission_valid !== coreValid ||
       (coreValid && data.state !== 'DERIVED')) {
     return { state: 'BLOCKED' as const, reason: 'MIHM_PYTHON_RESULT_CONTRACT_INVALID' };
@@ -77,7 +72,7 @@ export async function runStudioCanonicalMihm(objectId: string, expectedSourceSha
   }
   const payload = {
     method: METHOD, state: 'DERIVED', epistemicClass: 'DERIVED',
-    sourceSha256: stored.checksumSha256, wavSha256: wavHash,
+    sourceSha256: originalSha256,
     extractor: 'python/scorefriction/audio_features.py',
     mihm_vector: vector, core_emission_valid: true,
     ihg_raw: data.ihg_raw, ihg_final: null, nti: null,
