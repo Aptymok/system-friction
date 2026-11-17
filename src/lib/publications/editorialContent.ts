@@ -52,8 +52,8 @@ export type SfiEditorialPublication = {
   contract: typeof SFI_EDITORIAL_PUBLICATION_CONTENT_CONTRACT;
   canonicalId: string;
   slug: string;
-  editorialKind: 'TEMPORAL_ISSUE' | 'OBSERVATION' | 'FRICTION_BRIEF';
-  collection: 'Notas Temporales' | 'Observaciones' | 'Friction Briefs';
+  editorialKind: 'TEMPORAL_ISSUE' | 'OBSERVATION' | 'FRICTION_BRIEF' | 'RESEARCH_PAPER';
+  collection: 'Notas Temporales' | 'Observaciones' | 'Friction Briefs' | 'Research Papers';
   observationKind: SfiEditorialObservationKind | null;
   language: 'es' | 'en';
   series: string;
@@ -814,7 +814,46 @@ export const SFI_EDITORIAL_OBSERVATIONS: readonly SfiEditorialPublication[] = Ob
   SFI_OBSERVATION_JR_POTENTIAL,
 ]);
 
+export const SFI_REALITY_CHAIN_RESEARCH_V4: SfiEditorialPublication = Object.freeze({
+  contract: SFI_EDITORIAL_PUBLICATION_CONTENT_CONTRACT,
+  canonicalId: 'SFI-RC-2026-METHOD-001',
+  slug: 'institutional-reality-correctible-evidence-chain',
+  editorialKind: 'RESEARCH_PAPER',
+  collection: 'Research Papers',
+  observationKind: 'METHOD',
+  language: 'en',
+  series: 'SFI · Methodological Working Papers',
+  issue: 'Working paper · 0.2.0',
+  title: 'Institutional Reality as a Correctible Evidence Chain',
+  subtitle: 'A methodological specification of temporal claims, witnessed execution and institutional self-observation',
+  motto: '',
+  deck: 'Author-approved methodological working paper defining a correctible provenance-oriented chain, temporal boundaries and four untested hypotheses. It documents bounded illustrations; independent comparison, peer review and external RETURN are not observed.',
+  publishedAt: '2026-11-17T01:09:08Z',
+  mediumUrl: null,
+  coverImage: null,
+  visuals: Object.freeze([]),
+  contentState: 'MATERIALIZED',
+  renditions: Object.freeze([{
+    kind: 'PDF',mediaType: 'application/pdf',
+    filename: 'SFI_Reality_Chain_Editorial_V4_v0.2.0.pdf',
+    byteLength: 130506,
+    sha256: 'f2f5e714efb18c481cdc4187bef889d16e52c5cf26cd1960a3e6553e91390030',
+    publicUrl: 'https://raw.githubusercontent.com/Aptymok/SFI-RESEARCH-HUB/main/05_RESEARCH_OBJECTS/SFI-RC-2026-METHOD-001/SFI_Reality_Chain_Editorial_V4_v0.2.0.pdf',
+    state: 'PUBLIC',
+  }]),
+  sections: Object.freeze([
+    {id:'purpose',title:'Purpose and research question',paragraphs:['Under which observable conditions can an institution reconstruct what was known, inferred, authorized, executed and subsequently observed without rewriting the earlier knowledge state? The PDF specifies a typed reporting grammar and falsifiable future comparison protocol.']},
+    {id:'boundary',title:'Evidence and uncertainty',paragraphs:['NIST AI RMF, W3C PROV-O and the SEC Knight 2012 case are public antecedents or retrospective documentation, not external certifications or validations of SFI. Internal SFI-A/SFI-B metadata is discussed only within bounded limits.']},
+    {id:'publication',title:'Publication status and rights',paragraphs:['Public author-approved working paper, not peer reviewed. H1–H4 remain untested. No DOI, calibrated prediction, general identity threshold or independent external RETURN is claimed. Original article text and editorial diagrams are released under CC BY 4.0; third-party sources and SFI signs are excluded.']},
+  ]),
+  cadence: Object.freeze([]),
+  domains: Object.freeze(['institutional observability','provenance','temporal integrity','human-AI systems']),
+  epistemicBoundary: Object.freeze(['Publication establishes exposure, not validation.','No independent comparative result; no scientific peer review; DOI not assigned.','No private source records included in the public PDF.']),
+  temporalProfile: null,
+});
+
 export const SFI_EDITORIAL_PUBLICATIONS: readonly SfiEditorialPublication[] = Object.freeze([
+  SFI_REALITY_CHAIN_RESEARCH_V4,
   SFI_NOTAS_TEMPORALES_V1,
   ...SFI_EDITORIAL_FRICTION_BRIEFS,
   ...SFI_EDITORIAL_OBSERVATIONS,
