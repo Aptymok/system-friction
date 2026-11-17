@@ -1,6 +1,6 @@
 import type { PublicationStatus } from '../system/contracts';
 import { SFI_PUBLIC_PROFILE } from '../public/institutionProfile';
-import { SFI_EDITORIAL_OBSERVATIONS, SFI_REALITY_CHAIN_BRIEF, SFI_YEARS_THAT_DID_EXIST_LAB_NOTE } from '../publications/editorialContent';
+import { SFI_EDITORIAL_OBSERVATIONS, SFI_REALITY_CHAIN_BRIEF, SFI_REALITY_CHAIN_RESEARCH_V4, SFI_YEARS_THAT_DID_EXIST_LAB_NOTE } from '../publications/editorialContent';
 
 export const SFI_CANONICAL_OBJECT_CONTRACT = 'SFI-CANONICAL-OBJECT-1.0' as const;
 export const SFI_CANONICAL_NAMESPACE_CONTRACT = 'SFI-CANONICAL-NAMESPACE-1.0' as const;
@@ -591,6 +591,44 @@ export const SFI_CANONICAL_OBJECT_REGISTRY: readonly SfiCanonicalObjectRecord[] 
     missing: [],
   },
 
+  {
+    contract: SFI_CANONICAL_OBJECT_CONTRACT,
+    id: SFI_REALITY_CHAIN_RESEARCH_V4.canonicalId,
+    objectKey: canonicalObjectKey('PAPER', SFI_REALITY_CHAIN_RESEARCH_V4.slug),
+    objectType: 'PAPER',
+    slug: SFI_REALITY_CHAIN_RESEARCH_V4.slug,
+    canonicalUrl: canonicalUrlFor('PAPER', SFI_REALITY_CHAIN_RESEARCH_V4.slug),
+    title: SFI_REALITY_CHAIN_RESEARCH_V4.title,
+    summary: SFI_REALITY_CHAIN_RESEARCH_V4.deck,
+    bodyRef: 'https://raw.githubusercontent.com/Aptymok/SFI-RESEARCH-HUB/main/05_RESEARCH_OBJECTS/SFI-RC-2026-METHOD-001/SFI_Reality_Chain_Editorial_V4_v0.2.0.pdf',
+    epistemicState: 'DECLARED',
+    version: '0.2.0',
+    language: 'en',
+    authors: ['Juan Antonio Marín Liera'],
+    methods: ['Typed provenance reporting', 'Temporal knowledge cut-off', 'Independent evaluation protocol proposal'],
+    relatedObjects: [],
+    sourceRefs: ['https://raw.githubusercontent.com/Aptymok/SFI-RESEARCH-HUB/main/05_RESEARCH_OBJECTS/SFI-RC-2026-METHOD-001/SFI_Reality_Chain_Editorial_V4_v0.2.0.pdf', 'https://github.com/Aptymok/SFI-RESEARCH-HUB/blob/main/05_RESEARCH_OBJECTS/SFI-RC-2026-METHOD-001/EDITORIAL_V4_TECHNICAL_RECORD.md', 'https://github.com/Aptymok/SFI-RESEARCH-HUB/tree/main/05_RESEARCH_OBJECTS/SFI-RC-2026-METHOD-001'],
+    publicState: 'PUBLIC',
+    license: 'CC BY 4.0 (original text and editorial diagrams; exclusions apply)',
+    createdAt: '2026-11-17T01:09:08Z',
+    updatedAt: '2026-11-17T01:10:03Z',
+    entity: { entityId: SFI_ENTITY_ID, relation: 'PUBLISHED_BY' },
+    publication: { state: 'PUBLISHED', explicit: true },
+    eligibility: { privacyClass: 'PUBLIC', publicEligible: true, securityEligible: true },
+    rights: { state: 'OPEN' },
+    evidenceIdentity: { state: 'VALID', refs: ['https://raw.githubusercontent.com/Aptymok/SFI-RESEARCH-HUB/main/05_RESEARCH_OBJECTS/SFI-RC-2026-METHOD-001/SFI_Reality_Chain_Editorial_V4_v0.2.0.pdf', 'https://github.com/Aptymok/SFI-RESEARCH-HUB/blob/main/05_RESEARCH_OBJECTS/SFI-RC-2026-METHOD-001/EDITORIAL_V4_TECHNICAL_RECORD.md'] },
+    limitations: [
+      'Author-approved methodological working paper only; not peer reviewed and no DOI assigned.',
+      'H1–H4 remain untested; no independent evaluation or externally observed scientific RETURN.',
+      'Source registration and GitHub transport do not establish scientific validity.',
+      'CC BY 4.0 applies solely to original author prose and diagrams; third-party sources and institutional signs are excluded.',
+    ],
+    missing: [
+      {field:'peer_review',reason:'Independent scholarly review not performed.',sourceRef:'https://github.com/Aptymok/SFI-RESEARCH-HUB/blob/main/05_RESEARCH_OBJECTS/SFI-RC-2026-METHOD-001/EDITORIAL_V4_TECHNICAL_RECORD.md'},
+      {field:'empirical_return',reason:'No external comparative empirical RETURN observed.',sourceRef:'https://github.com/Aptymok/SFI-RESEARCH-HUB/blob/main/05_RESEARCH_OBJECTS/SFI-RC-2026-METHOD-001/EDITORIAL_V4_TECHNICAL_RECORD.md'},
+      {field:'doi',reason:'No DOI has been assigned.',sourceRef:'https://github.com/Aptymok/SFI-RESEARCH-HUB/blob/main/05_RESEARCH_OBJECTS/SFI-RC-2026-METHOD-001/EDITORIAL_V4_TECHNICAL_RECORD.md'},
+    ],
+  },
   ...SFI_EDITORIAL_OBSERVATIONS.map(canonicalObservationPublication),
 ]);
 
