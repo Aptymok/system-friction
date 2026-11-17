@@ -269,26 +269,26 @@ export default function StudioFileIntake() {
 
   return (
     <form onSubmit={submit} style={{ border: '1px solid rgba(127,200,245,.24)', background: 'rgba(25,68,92,.16)', padding: 20, display: 'grid', gap: 12, marginTop: 26 }}>
-      <div style={{ color: '#7fc8f5', fontSize: 11, letterSpacing: '.15em' }}>STUDIO · ANÁLISIS PRIVADO AVANZADO</div>
+      <div style={{ color: '#b4d1e1', fontSize: 12 }}>ANÁLISIS RÁPIDO · PRIVADO</div>
       <label htmlFor="studio-file" style={{ color: '#dae7ed', fontSize: 13 }}>
-        Analiza audio con los motores existentes de Studio. Tu archivo original permanece en este navegador.
+        Selecciona una canción. Escucharás sus características técnicas sin perder ni modificar tu archivo original.
       </label>
       <input id="studio-file" type="file" required disabled={busy}
         accept=".wav,.wave,.mp3,.flac,.m4a,.aac,.ogg,.opus,.aiff,.aif,.pdf,.docx,.txt,.md,.json,.csv,.tsv,.png,.jpg,.jpeg,.webp,.mp4,.mov,.webm,.zip"
         onChange={event => { runId.current++; setFile(event.target.files?.[0] ?? null); setReport(null); setError(''); setStatus(''); }}
         style={{ color: '#eaf6fb', width: '100%', fontSize: 12 }}
       />
-      <label htmlFor="studio-report-import" style={{color:'#c7e3ee',fontSize:12}}>
+      <details style={{padding:'10px 0',color:'#acc6d2'}}><summary style={{cursor:'pointer',fontSize:12}}>Recuperar un análisis anterior</summary><label htmlFor="studio-report-import" style={{color:'#c7e3ee',fontSize:12}}>
         Recuperar una sesión anterior sin guardar el máster: importar studio-local-analysis.json
       </label>
       <input id="studio-report-import" type="file" accept=".json,application/json"
         onChange={event=>{void importReport(event.target.files?.[0]??null);event.target.value='';}}
-        style={{color:'#c7d5df',width:'100%',fontSize:12}}/>
+        style={{color:'#c7d5df',width:'100%',fontSize:12}}/></details>
       <button type="submit" disabled={busy || !file} style={{
         minHeight: 40, padding: '9px 15px', border: '1px solid rgba(164,213,255,.4)',
         background: busy ? '#24343d' : '#173d53', color: '#f2fbff',
         cursor: busy ? 'wait' : 'pointer', justifySelf: 'start',
-      }}>{busy ? 'ANALIZANDO LOCALMENTE…' : 'ANALIZAR AUDIO SIN ALMACENAR ORIGINAL'}</button>
+      }}>{busy ? 'ANALIZANDO…' : 'ANALIZAR MI CANCIÓN'}</button>
       {status && <p role="status" style={{ margin: 0, color: '#a7d7ee', fontSize: 12 }}>{status}</p>}
       {error && <p role="alert" style={{ margin: 0, color: '#ffb4a8', fontSize: 12 }}>{error}</p>}
       {report && <section aria-live="polite" style={{ borderTop: '1px solid rgba(127,200,245,.2)', paddingTop: 12, color: '#dcecf4', fontSize: 12 }}>
@@ -300,20 +300,22 @@ export default function StudioFileIntake() {
             {observations.map((line, index) => <p key={index} style={{ margin: '8px 0', lineHeight: 1.5 }}>{line}</p>)}
           </div>
           <p style={{ color: '#9bc5d7' }}>{report.durationSeconds?.toFixed(2)} s · {report.sampleRateHz} Hz · {report.channels} canal(es)</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8 }}>
+          <details style={{margin:'14px 0'}}><summary style={{cursor:'pointer',color:'#b7dff2'}}>Ver todas las mediciones técnicas ({readings.length})</summary><div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8, marginTop:12 }}>
             {readings.map(feature => <div key={feature.key} title={feature.explanation} style={{ border: '1px solid rgba(255,255,255,.1)', padding: 10, background: 'rgba(255,255,255,.025)' }}>
               <div style={{ color: '#9ab2c1', fontSize: 10 }}>{labelFor(feature.key) || feature.label}</div>
               <div style={{ fontSize: 15, marginTop: 4 }}>{typeof feature.value === 'number' ? Number(feature.value.toFixed(3)) : feature.value} {feature.unit ?? ''}</div>
               <div style={{ fontSize: 9, color: '#78919d' }}>{feature.status}</div>
             </div>)}
-          </div>
+          </div></details>
         </> : <p>Archivo identificado; la extracción avanzada de documentos sigue sin habilitarse en el navegador.</p>}
 
-        {report.kind === 'audio_analysis' && <div style={{
-          display: 'grid', gap: 10, padding: 14, margin: '14px 0',
+        {report.kind === 'audio_analysis' && <details style={{
+          padding: 14, margin: '14px 0',
           border: '1px solid rgba(127,200,245,.27)', background: 'rgba(44,86,99,.14)',
         }}>
-          <strong>Crear materiales del lanzamiento · sin almacenar el original</strong>
+          <summary style={{cursor:'pointer',fontSize:14,fontWeight:600}}>Crear portada, video y materiales de lanzamiento (opcional)</summary>
+          <div style={{display:'grid',gap:10,marginTop:14}}>
+          <strong>Creación editorial · el audio permanece en tu dispositivo</strong>
           <p style={{ margin: 0, color: '#9fb4c2', lineHeight: 1.5 }}>
             Produce portadas con fotografías reales y un expediente editorial preliminar. El sector es una hipótesis aportada por ti:
             todavía no se ha investigado ni validado como público objetivo.
@@ -377,7 +379,7 @@ export default function StudioFileIntake() {
             Primero produce y selecciona una portada fotográfica; solo entonces se habilita el video vertical con audio. No se utiliza un fondo abstracto sustituto. Este proceso transforma fotos aportadas, no genera fotografías nuevas con IA. La generación de fotografías nuevas requiere un proveedor externo autorizado. Campaña: borrador sin estudio de mercado.
             No publica, no ejecuta FAD/MIHM y no genera cargos de proveedores.
           </p>
-        </div>}
+          </div></details>}
         <p style={{ color: '#9ccbb5' }}>Original enviado: NO · Original almacenado: NO · Persistencia: NINGUNA</p>
         {report.notObserved?.length ? <p style={{ color: '#bbad91' }}>No medido: {report.notObserved.join(' · ')}</p> : null}
         {report.kind === 'audio_analysis' && <>
