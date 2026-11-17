@@ -1,6 +1,8 @@
 'use client';
 
 import { useCallback, useRef, useState, type FormEvent } from 'react';
+import { useRouter } from 'next/navigation';
+import { createBrowserSupabaseClient } from '@/runtime/supabase/client';
 import { exportPcm24Wav, samplePeak } from './localPcmWavExport';
 import { downloadTextFile, makeReleaseBrief, type ReleaseDirection, type ReleaseDiscoveryEvidence } from './localReleaseMaterials';
 import StudioReleaseResearch from './StudioReleaseResearch';
@@ -93,6 +95,12 @@ async function inspectLocally(file: File, onProgress: (message: string) => void)
 }
 
 export default function StudioFileIntake() {
+  const router = useRouter();
+  const [authorizeArchive, setAuthorizeArchive] = useState(false);
+  const [archiveBusy, setArchiveBusy] = useState(false);
+  const [archiveMessage, setArchiveMessage] = useState('');
+  const [archiveError, setArchiveError] = useState('');
+  const [archiveResult, setArchiveResult] = useState<{ objectId: string; fad: Record<string, unknown>; mihm: Record<string, unknown> } | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('');
@@ -157,6 +165,64 @@ export default function StudioFileIntake() {
       }
     } finally {
       if (runId.current === current) setBusy(false);
+    }
+  }
+
+  async function archiveAndAnalyze() {
+    if (!file || archiveBusy || !authorizeArchive) return;
+    if (!file.type.startsWith('audio/') && !/\.(wav|wave|mp3|m4a|aac|flac|ogg|opus|aiff|aif)$/i.test(file.name)) {
+      setArchiveError('Para guardar y ejecutar FAD/MIHM selecciona un archivo de audio.');
+      return;
+    }
+    if (file.size === 0 || file.size > 150 * 1024 * 1024) {
+      setArchiveError('El archivo original debe medir entre 1 byte y 150 MB.');
+      return;
+    }
+    setArchiveBusy(true); setArchiveError(''); setArchiveResult(null);
+    try {
+      const client = createBrowserSupabaseClient();
+      if (!client) throw new Error('Almacenamiento privado no disponible en este navegador.');
+      setArchiveMessage('Preparando registro privado de tu obra…');
+      const prepare = await fetch('/api/studio/objects/upload/prepare', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ fileName: file.name, title: file.name.replace(/\.[^.]+$/, ''), mimeType: file.type || null,
+          sizeBytes: file.size, originalPersistenceAuthorized: true, analysisAuthorized: true, rightsBasis: 'operator_owned' }),
+      });
+      const prepared = await prepare.json() as { ok?: boolean; objectId?: string; bucket?: string;
+        storagePath?: string; signedToken?: string; error?: string; details?: string };
+      if (!prepare.ok || !prepared.ok || !prepared.objectId || !prepared.bucket || !prepared.storagePath || !prepared.signedToken) {
+        throw new Error(prepared.details || prepared.error || 'No se autorizó el registro privado.');
+      }
+      setArchiveMessage('Guardando el archivo original en el almacenamiento privado…');
+      const uploaded = await client.storage.from(prepared.bucket).uploadToSignedUrl(
+        prepared.storagePath, prepared.signedToken, file, { contentType: file.type || 'application/octet-stream' });
+      if (uploaded.error) throw new Error('No se guardó el archivo: ' + uploaded.error.message);
+      const completed = await fetch('/api/studio/objects/upload/complete', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ objectId: prepared.objectId }),
+      });
+      const completion = await completed.json() as {ok?:boolean;error?:string;details?:string};
+      if (!completed.ok || !completion.ok) throw new Error(completion.details || completion.error || 'No se comprobó la carga del original.');
+      setArchiveMessage('Archivo guardado. Ejecutando análisis acústico, FAD y MIHM…');
+      const response = await fetch('/api/studio/objects/' + encodeURIComponent(prepared.objectId) + '/analyze/audio', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ integrateMethods: true }),
+      });
+      const data = await response.json() as {ok?:boolean;error?:string;details?:string;
+        methodologicalIntegration?:{fad?:Record<string,unknown>;mihm?:Record<string,unknown>}};
+      if (!response.ok && response.status !== 207) {
+        throw new Error('El original está guardado, pero el análisis falló: ' + (data.details || data.error || response.status));
+      }
+      const fad = data.methodologicalIntegration?.fad ?? {state: 'NOT_OBSERVED'};
+      const mihm = data.methodologicalIntegration?.mihm ?? {state: 'NOT_OBSERVED'};
+      setArchiveResult({ objectId: prepared.objectId, fad, mihm });
+      setArchiveMessage('Análisis concluido. Consulta abajo los resultados independientes de FAD y MIHM.');
+      router.refresh();
+    } catch (error) {
+      setArchiveError(error instanceof Error ? error.message : 'No se completó el registro.');
+      setArchiveMessage('');
+    } finally {
+      setArchiveBusy(false);
     }
   }
 
@@ -275,7 +341,7 @@ export default function StudioFileIntake() {
       </label>
       <input id="studio-file" type="file" required disabled={busy}
         accept=".wav,.wave,.mp3,.flac,.m4a,.aac,.ogg,.opus,.aiff,.aif,.pdf,.docx,.txt,.md,.json,.csv,.tsv,.png,.jpg,.jpeg,.webp,.mp4,.mov,.webm,.zip"
-        onChange={event => { runId.current++; setFile(event.target.files?.[0] ?? null); setReport(null); setError(''); setStatus(''); }}
+        onChange={event => { runId.current++; setFile(event.target.files?.[0] ?? null); setReport(null); setError(''); setStatus(''); setArchiveResult(null); setArchiveError(''); setArchiveMessage(''); setAuthorizeArchive(false); }}
         style={{ color: '#eaf6fb', width: '100%', fontSize: 12 }}
       />
       <details style={{padding:'10px 0',color:'#acc6d2'}}><summary style={{cursor:'pointer',fontSize:12}}>Recuperar un análisis anterior</summary><label htmlFor="studio-report-import" style={{color:'#c7e3ee',fontSize:12}}>
@@ -289,6 +355,30 @@ export default function StudioFileIntake() {
         background: busy ? '#24343d' : '#173d53', color: '#f2fbff',
         cursor: busy ? 'wait' : 'pointer', justifySelf: 'start',
       }}>{busy ? 'ANALIZANDO…' : 'ANALIZAR MI CANCIÓN'}</button>
+      <section style={{padding:14,border:'1px solid rgba(148,202,224,.22)',background:'rgba(17,39,51,.30)',display:'grid',gap:9}}>
+        <strong style={{fontSize:14}}>¿Quieres ejecutar FAD y MIHM con una obra guardada?</strong>
+        <p style={{color:'#b6c9d2',fontSize:12,lineHeight:1.5,margin:0}}>
+          A diferencia del análisis rápido, esto conserva una copia privada del archivo original en SFI para generar mediciones y evidencia recuperable. No cambia el máster ni lo publica.
+        </p>
+        <label style={{display:'flex',alignItems:'flex-start',gap:9,color:'#d7e8ed',fontSize:12,lineHeight:1.5}}>
+          <input type="checkbox" checked={authorizeArchive} onChange={event=>setAuthorizeArchive(event.target.checked)} disabled={archiveBusy} />
+          Soy titular o tengo permiso para analizar esta obra y autorizo expresamente conservar el archivo original en el almacenamiento privado de Studio.
+        </label>
+        <button type="button" disabled={!file || !authorizeArchive || archiveBusy || busy}
+          onClick={()=>void archiveAndAnalyze()}
+          style={{padding:'11px 15px',border:'1px solid #89b7cf',background:'#28566a',color:'#f3fbff',cursor:archiveBusy?'wait':'pointer',fontWeight:600,justifySelf:'start'}}>
+          {archiveBusy?'REGISTRANDO Y ANALIZANDO…':'GUARDAR Y ANALIZAR CON FAD + MIHM'}
+        </button>
+        {archiveMessage && <p role="status" style={{margin:0,color:'#b5ddc9',fontSize:12}}>{archiveMessage}</p>}
+        {archiveError && <p role="alert" style={{margin:0,color:'#ffbdad',fontSize:12}}>{archiveError}</p>}
+        {archiveResult && <div style={{display:'grid',gap:8,padding:12,background:'rgba(255,255,255,.04)',fontSize:13}}>
+          <strong>Resultados de la obra guardada</strong>
+          <div>FAD · {String(archiveResult.fad.state ?? 'NO OBSERVADO')} · {typeof archiveResult.fad.value === 'number' ? 'Contraste acústico: '+archiveResult.fad.value : 'Sin medición verificable'}</div>
+          <div>MIHM · {String(archiveResult.mihm.state ?? 'NO OBSERVADO')} · {typeof (archiveResult.mihm.result as Record<string,unknown> | undefined)?.ihg_raw === 'number' ? 'IHG acústico preliminar: '+String((archiveResult.mihm.result as Record<string,unknown>).ihg_raw) : 'Sin resultado acústico verificable'}</div>
+          <a href={'/studio?objectId='+encodeURIComponent(archiveResult.objectId)} style={{color:'#a9e2ff'}}>Abrir el expediente guardado</a>
+          <span style={{fontSize:11,color:'#adc1ca'}}>FAD estructural no está calibrado como indicador de calidad. MIHM no declara IHG final ni NTI sin mediciones independientes.</span>
+        </div>}
+      </section>
       {status && <p role="status" style={{ margin: 0, color: '#a7d7ee', fontSize: 12 }}>{status}</p>}
       {error && <p role="alert" style={{ margin: 0, color: '#ffb4a8', fontSize: 12 }}>{error}</p>}
       {report && <section aria-live="polite" style={{ borderTop: '1px solid rgba(127,200,245,.2)', paddingTop: 12, color: '#dcecf4', fontSize: 12 }}>
@@ -380,9 +470,9 @@ export default function StudioFileIntake() {
             No publica, no ejecuta FAD/MIHM y no genera cargos de proveedores.
           </p>
           </div></details>}
-        <p style={{ color: '#9ccbb5' }}>Original enviado: NO · Original almacenado: NO · Persistencia: NINGUNA</p>
-        {report.notObserved?.length ? <p style={{ color: '#bbad91' }}>No medido: {report.notObserved.join(' · ')}</p> : null}
-        {report.kind === 'audio_analysis' && <>
+        <details style={{margin:'14px 0',color:'#9ccbb5',fontSize:12}}><summary style={{cursor:'pointer'}}>Privacidad y límites de este análisis</summary><p>Este análisis local no envía ni guarda el original. Para persistir el original y ejecutar los métodos FAD y MIHM utiliza la autorización y el botón «Guardar y analizar con FAD + MIHM» de arriba.</p>{report.notObserved?.length ? <p style={{color:'#bbad91'}}>Todavía fuera del análisis rápido: {report.notObserved.join(' · ')}</p> : null}</details>
+
+        {report.kind === 'audio_analysis' && <details style={{padding:'10px 0'}}><summary style={{cursor:'pointer',fontSize:12,color:'#9dc1d5'}}>Conversión técnica opcional a WAV de 24 bits</summary>
           <button type="button" disabled={exportBusy || !file} onClick={downloadDerivedWav} style={{ background: '#1a3f4d', color: '#e4f7ff', border: '1px solid #547b92', padding: '8px 12px', cursor: exportBusy ? 'wait' : 'pointer', marginRight: 8 }}>
             {exportBusy ? 'GENERANDO WAV…' : 'GENERAR WAV TÉCNICO 24-BIT'}
           </button>
@@ -390,7 +480,7 @@ export default function StudioFileIntake() {
             Esta exportación es opcional. Sólo reduce el nivel si el pico de muestra supera −1 dBFS; no aumenta la sonoridad, no aplica limitación, no mide dBTP y no equivale a masterizar.
           </p>
           {exportMessage && <p role="status" style={{ color: '#b4dcca' }}>{exportMessage}</p>}
-        </>}
+        </details>}
         <button type="button" onClick={downloadReport} style={{ background: 'transparent', color: '#b7e3fb', border: '1px solid #547b92', padding: '8px 12px', cursor: 'pointer' }}>
           DESCARGAR INFORME COMPLETO (JSON)
         </button>
