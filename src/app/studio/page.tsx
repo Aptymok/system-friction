@@ -102,31 +102,48 @@ export default async function StudioPage({ searchParams }: { searchParams?: Prom
   const features = activeResult?.ok ? activeResult.data.features : [];
 
   return (
-    <main style={{ minHeight: '100vh', color: '#f2f5f6', background: 'radial-gradient(circle at 72% 18%, rgba(33,112,164,.16), transparent 34%), radial-gradient(circle at 18% 76%, rgba(77,180,255,.08), transparent 32%), #040505', fontFamily: 'var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace)' }}>
+    <main style={{ minHeight: '100vh', color: '#f2f5f6', background: 'radial-gradient(circle at 72% 18%, rgba(33,112,164,.16), transparent 34%), radial-gradient(circle at 18% 76%, rgba(77,180,255,.08), transparent 32%), #040505', fontFamily: 'Arial, Helvetica, sans-serif' }}>
       <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', opacity: .22, backgroundImage: 'linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px)', backgroundSize: '44px 44px' }} />
 
       <section style={{ position: 'relative', zIndex: 1, padding: 'clamp(38px,6vw,78px) clamp(18px,4vw,58px) 26px', maxWidth: 1540, margin: '0 auto' }}>
         <div style={{ maxWidth: 920 }}>
-          <div style={{ color: '#69bdea', fontSize: 11, letterSpacing: '.2em', marginBottom: 12 }}>AUTHENTICATED · OWNER-SCOPED</div>
-          <h1 style={{ fontSize: 'clamp(34px,6vw,78px)', fontWeight: 300, lineHeight: .94, letterSpacing: '-.055em', margin: 0 }}>Studio remains separate from ROOT.</h1>
-          <p style={{ maxWidth: 800, margin: '20px 0 0', color: '#a7b0b6', lineHeight: 1.7, fontSize: 14 }}>
-            This surface operates only on objects whose ownership belongs to the authenticated identity. Reading, analyzing and producing evidence here grants no canonical promotion, ROOT execution or authority over other nodes.
+          <div style={{ color: '#9caeb9', fontSize: 12, letterSpacing: '.12em', marginBottom: 14 }}>SYSTEM FRICTION INSTITUTE / STUDIO</div>
+          <h1 style={{ fontFamily: 'Arial, Helvetica, sans-serif', fontSize: 'clamp(38px,6vw,68px)', fontWeight: 650, lineHeight: 1.08, letterSpacing: '-.045em', margin: 0 }}>Tu obra. Un lugar para crearla y entenderla.</h1>
+          <p style={{ maxWidth: 720, margin: '18px 0 26px', color: '#b6c6cd', lineHeight: 1.6, fontSize: 16 }}>
+            Empieza con una canción. Analiza el audio, consulta lo que sabemos y trabaja en una versión.
+            Las herramientas avanzadas quedan disponibles cuando las necesites.
           </p>
-          <StudioMultiDocumentReader />
-          <StudioFileIntake />
-          <StudioDocumentWorkbench />
-          <StudioLlmStatus />
-          <StudioFieldEditor objects={objects} sessions={sessions} />
-          <StudioAttractorExplorer objects={objects} sessions={sessions} />
-          <StudioCampaignDesk objects={objects} sessions={sessions} />
-          <StudioReleaseSequencer objects={objects} sessions={sessions} />
+          <div style={{ padding: '18px 20px', border: '1px solid rgba(150,202,224,.25)', background: 'rgba(26,56,72,.27)', borderRadius: 14 }}>
+            <div style={{ fontSize: 12, color: '#b4cbd8', marginBottom: 6 }}>PASO 1 DE 2</div>
+            <h2 style={{ margin: 0, fontWeight: 550, fontSize: 23 }}>Elige una canción</h2>
+            <p style={{ color: '#a7b7c0', fontSize: 13, lineHeight: 1.6, margin: '8px 0 0' }}>
+              El análisis rápido funciona en tu navegador y no sube el audio a SFI.
+              Para usar MIHM en producción y guardar evidencia, la obra debe estar registrada en Studio.
+            </p>
+            <StudioFileIntake />
+          </div>
+          <details style={{ marginTop: 24, border: '1px solid rgba(255,255,255,.13)', background: 'rgba(255,255,255,.025)', borderRadius: 12, padding: '16px 18px' }}>
+            <summary style={{ cursor: 'pointer', fontSize: 16, fontWeight: 600 }}>Herramientas de creación, investigación y publicación</summary>
+            <div style={{ display: 'grid', gap: 16, marginTop: 20 }}>
+              <p style={{ color: '#b6c6cd', fontSize: 13, lineHeight: 1.5, margin: 0 }}>
+                Espacio avanzado: documentos, atractores, campañas, edición y modelos. No necesitas abrirlo para empezar.
+              </p>
+              <StudioMultiDocumentReader />
+              <StudioDocumentWorkbench />
+              <StudioLlmStatus />
+              <StudioFieldEditor objects={objects} sessions={sessions} />
+              <StudioAttractorExplorer objects={objects} sessions={sessions} />
+              <StudioCampaignDesk objects={objects} sessions={sessions} />
+              <StudioReleaseSequencer objects={objects} sessions={sessions} />
+            </div>
+          </details>
         </div>
       </section>
 
       <section style={{ position: 'relative', zIndex: 1, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,320px),1fr))', gap: 18, padding: '18px clamp(18px,4vw,58px) 70px', maxWidth: 1540, margin: '0 auto' }}>
         <aside style={{ ...panel, minHeight: 520 }}>
           <div style={{ padding: '18px 20px', borderBottom: '1px solid rgba(255,255,255,.09)' }}>
-            <div style={{ color: '#7fc8f5', fontSize: 10, letterSpacing: '.19em' }}>OWNED OBJECTS</div>
+            <div style={{ color: '#7fc8f5', fontSize: 10, letterSpacing: '.19em' }}>PASO 2 DE 2 · OBRAS GUARDADAS</div>
             <div style={{ marginTop: 8, color: '#f7fafb', fontSize: 22 }}>{objects.length}</div>
           </div>
 
@@ -144,7 +161,7 @@ export default async function StudioPage({ searchParams }: { searchParams?: Prom
             })}
             {!objects.length && (
               <div style={{ padding: 22, color: '#8e989e', lineHeight: 1.6 }}>
-                No Studio objects are assigned to this identity.
+                Aún no hay obras guardadas. El análisis rápido del primer paso no las registra automáticamente.
               </div>
             )}
           </div>
@@ -160,14 +177,14 @@ export default async function StudioPage({ searchParams }: { searchParams?: Prom
                   <div style={{ color: '#88949b', fontSize: 12 }}>{text(active.object_type)} · {text(active.mime_type)} · {formatBytes(active.size_bytes)} · {text(active.status)}</div>
                 </div>
                 <form action={`/api/studio/objects/${encodeURIComponent(text(active.id, ''))}/analyze`} method="post" target="_blank">
-                  <button type="submit" style={action}>ANALYZE NOW</button>
+                  <button type="submit" style={action}>ANALIZAR OBRA GUARDADA</button>
                 </form>
               </div>
 
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 24 }}>
-                <a href={`/api/studio/objects/${encodeURIComponent(text(active.id, ''))}/content`} target="_blank" rel="noreferrer" style={action}>CONTENT</a>
-                <a href={`/api/studio/objects/${encodeURIComponent(text(active.id, ''))}/features`} target="_blank" rel="noreferrer" style={action}>Features</a>
-                <a href={`/api/studio/objects/${encodeURIComponent(text(active.id, ''))}/cognitive`} target="_blank" rel="noreferrer" style={action}>Cognitive state</a>
+                <a href={`/api/studio/objects/${encodeURIComponent(text(active.id, ''))}/content`} target="_blank" rel="noreferrer" style={action}>Abrir archivo</a>
+                <a href={`/api/studio/objects/${encodeURIComponent(text(active.id, ''))}/features`} target="_blank" rel="noreferrer" style={action}>Mediciones</a>
+                <a href={`/api/studio/objects/${encodeURIComponent(text(active.id, ''))}/cognitive`} target="_blank" rel="noreferrer" style={action}>Estado del análisis</a>
               </div>
 
               <form action={`/api/studio/objects/${encodeURIComponent(text(active.id, ''))}/evidence`} method="post" encType="multipart/form-data" target="_blank" style={{ marginTop: 24, padding: 16, border: '1px solid rgba(127,200,245,.15)', background: 'rgba(27,83,118,.055)' }}>
@@ -184,7 +201,7 @@ export default async function StudioPage({ searchParams }: { searchParams?: Prom
 
               <div style={{ marginTop: 34, paddingTop: 24, borderTop: '1px solid rgba(255,255,255,.09)' }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 14 }}>
-                  <span style={{ color: '#7fc8f5', fontSize: 10, letterSpacing: '.19em' }}>OBSERVED FEATURES</span>
+                  <span style={{ color: '#7fc8f5', fontSize: 10, letterSpacing: '.19em' }}>MEDICIONES REGISTRADAS</span>
                   <span style={{ color: '#768087', fontSize: 11 }}>{features.length} persisted</span>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))', gap: 8 }}>
@@ -194,13 +211,13 @@ export default async function StudioPage({ searchParams }: { searchParams?: Prom
                       <div style={{ marginTop: 6, fontSize: 13 }}>{displayValue(feature.numeric_value, displayValue(feature.text_value, displayValue(feature.value, 'persisted')))} {text(feature.unit, '')}</div>
                     </div>
                   ))}
-                  {!features.length && <div style={{ color: '#7f898f', fontSize: 12 }}>No features are persisted yet. The object remains operable.</div>}
+                  {!features.length && <div style={{ color: '#7f898f', fontSize: 12 }}>Todavía no hay mediciones guardadas de esta obra.</div>}
                 </div>
               </div>
             </>
           ) : (
             <div style={{ color: '#8e989e', lineHeight: 1.7 }}>
-              An owner-scoped object must be selected. Studio does not query `/api/root/cognitive-runtime` and does not convert Studio permissions into ROOT authority.
+              Selecciona una obra guardada para consultar su expediente. El análisis local del primer paso no crea un expediente automáticamente.
             </div>
           )}
         </article>
