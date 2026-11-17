@@ -218,7 +218,9 @@ export default function StudioFileIntake() {
       const fad = data.methodologicalIntegration?.fad ?? {state: 'NOT_OBSERVED'};
       const mihm = data.methodologicalIntegration?.mihm ?? {state: 'NOT_OBSERVED'};
       setArchiveResult({ objectId: prepared.objectId, fad, mihm });
-      setArchiveMessage('Análisis concluido. Consulta abajo los resultados independientes de FAD y MIHM.');
+      setArchiveMessage(fad.state === 'DERIVED' && mihm.state === 'DERIVED'
+        ? 'FAD estructural y MIHM acústico ejecutados. Revisa sus límites y mediciones.'
+        : 'El archivo quedó guardado, pero uno o ambos instrumentos no pudieron completar su medición. Revisa los estados y vuelve a analizar desde el expediente.');
       router.refresh();
     } catch (error) {
       setArchiveError(error instanceof Error ? error.message : 'No se completó el registro.');
