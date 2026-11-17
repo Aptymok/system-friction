@@ -14,7 +14,7 @@ Etiquetas epistémicas usadas en este documento:
 - **[S]** supuesto o valor propuesto, sujeto a fijación antes del congelamiento.
 - **[POR FIJAR]** valor que debe decidirse antes de congelar y no puede cambiarse después.
 
-> **Estado de incorporación a SFI (revisión documental):** candidato aportado por el investigador, **NO CONGELADO / NO EJECUTADO**. En main existen `src/lib/events/eventStore.ts`, `src/lib/events/atomicAppend.ts` y `scripts/qa-sfi-mem002-postgres.ts`; su existencia no certifica la compuerta T1–T7. No se localizó por búsqueda literal el registro `SFI-EXP-C1` o `SFI-COLLAB-005`; las referencias son dependencias declaradas pendientes de reconciliación con sus identidades persistentes. Los criterios [POR FIJAR] y la autoridad ACP permanecen abiertos. No constituye un experimento realizado ni un RETURN.
+> **Estado de incorporación a SFI (revisión documental):** candidato aportado por el investigador, **NO CONGELADO / NO EJECUTADO**. En main existen `src/lib/events/eventStore.ts`, `src/lib/events/atomicAppend.ts` y `scripts/qa-sfi-mem002-postgres.ts`; su existencia no certifica la compuerta T1–T12. No se localizó por búsqueda literal el registro `SFI-EXP-C1` o `SFI-COLLAB-005`; las referencias son dependencias declaradas pendientes de reconciliación con sus identidades persistentes. Los criterios [POR FIJAR] y la autoridad ACP permanecen abiertos. No constituye un experimento realizado ni un RETURN.
 
 ---
 
@@ -131,13 +131,17 @@ Se reportan igualmente: cadenas sin pérdida observable y cadenas con V(k) > 0 (
 Antes de congelar este protocolo debe estar resuelta la prueba de integridad del registro de eventos, por decisión vigente de SFI-COLLAB-005 / MEM-002. El orden es:
 
 ```
-T1–T7 sobre eventStore  →  piloto C-1  →  este protocolo
+T1–T12 sobre registro de eventos  →  piloto C-1  →  este protocolo
 ```
 
 Pruebas críticas para este estudio:
 - **T2:** un fallo de lectura nunca produce una cadena válida.
 - **T5:** más de 500 eventos.
 - **T6:** escrituras concurrentes y bifurcaciones.
+
+**Comprobaciones ampliadas a T1–T12 (pendientes de recibo ejecutado):** T1 cadena y hash; T2 error de lectura; T3 checksum alterado; T4 duplicado; T5 >500 eventos y paginación; T6 concurrencia; T7 predecesor obsoleto; T8 aislamiento entre bitácoras; T9 legado intacto; T10 entradas inválidas; T11 alteración detectada y reversión; T12 permisos y recibos limitados.
+
+La suite está incorporada en `scripts/qa-sfi-mem002-postgres.ts` con ejecución prevista mediante `.github/workflows/mem002-postgres.yml` en `main`. Estas pruebas usan PostgreSQL aislado y RPC real; su éxito **no sustituye** una evaluación adicional del adaptador Supabase en producción. Hasta observar el resultado de CI, las doce se consideran IMPLEMENTADAS, no PASADAS.
 
 Mientras T2, T5 y T6 no estén verificadas con resultados reproducibles, ninguna medición de pérdida es admisible como evidencia.
 
