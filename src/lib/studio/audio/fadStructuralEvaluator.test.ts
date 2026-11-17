@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { calculateFadStructuralContrast } from './fadStructuralEvaluator';
+import { calculateFadStructuralContrast } from './fadStructuralContrast';
 
 // Real 1-second PCM energy frames 22-34 from VETE YA - MELI voces 80bpm.wav.
 // Source SHA-256: 78d3f93e6dea60c7a583b5d5cd86c9f1f1c22fa69846836787c9d5a7e5431113
