@@ -814,7 +814,7 @@ export const SFI_EDITORIAL_OBSERVATIONS: readonly SfiEditorialPublication[] = Ob
   SFI_OBSERVATION_JR_POTENTIAL,
 ]);
 
-export const SFI_REALITY_CHAIN_RESEARCH_V4: SfiEditorialPublication = Object.freeze({
+export const SFI_REALITY_CHAIN_RESEARCH: SfiEditorialPublication = Object.freeze({
   contract: SFI_EDITORIAL_PUBLICATION_CONTENT_CONTRACT,
   canonicalId: 'SFI-RC-2026-METHOD-001',
   slug: 'institutional-reality-correctible-evidence-chain',
@@ -853,7 +853,7 @@ export const SFI_REALITY_CHAIN_RESEARCH_V4: SfiEditorialPublication = Object.fre
 });
 
 export const SFI_EDITORIAL_PUBLICATIONS: readonly SfiEditorialPublication[] = Object.freeze([
-  SFI_REALITY_CHAIN_RESEARCH_V4,
+  SFI_REALITY_CHAIN_RESEARCH,
   SFI_NOTAS_TEMPORALES_V1,
   ...SFI_EDITORIAL_FRICTION_BRIEFS,
   ...SFI_EDITORIAL_OBSERVATIONS,
