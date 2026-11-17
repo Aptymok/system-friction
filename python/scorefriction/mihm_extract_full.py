@@ -18,7 +18,7 @@ def main():
     parser = argparse.ArgumentParser(description="MIHM Full Extractor v3.0 (manual compliant)")
     parser.add_argument("audio", type=str, help="Archivo WAV para análisis")
     parser.add_argument("--text", type=str, help="Texto/letra para R_sem y C_sem")
-    parser.add_argument("--nti", type=float, default=0.5, help="Valor NTI externo (si se conoce)")
+    parser.add_argument("--nti", type=float, default=None, help="Valor NTI externo observado; si falta, IHG final queda sin calcular")
     parser.add_argument("--no-text", action="store_true", help="Marcar si no hay texto disponible (R_sem y C_sem se dejan como None)")
     
     args = parser.parse_args()
