@@ -101,6 +101,7 @@ export default function StudioFileIntake() {
   const [archiveMessage, setArchiveMessage] = useState('');
   const [archiveError, setArchiveError] = useState('');
   const [archiveResult, setArchiveResult] = useState<{ objectId: string; fad: Record<string, unknown>; mihm: Record<string, unknown> } | null>(null);
+  const [storedObjectId, setStoredObjectId] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('');
@@ -178,7 +179,7 @@ export default function StudioFileIntake() {
       setArchiveError('El archivo original debe medir entre 1 byte y 150 MB.');
       return;
     }
-    setArchiveBusy(true); setArchiveError(''); setArchiveResult(null);
+    setArchiveBusy(true); setArchiveError(''); setArchiveResult(null); setStoredObjectId(null);
     try {
       const client = createBrowserSupabaseClient();
       if (!client) throw new Error('Almacenamiento privado no disponible en este navegador.');
@@ -203,6 +204,7 @@ export default function StudioFileIntake() {
       });
       const completion = await completed.json() as {ok?:boolean;error?:string;details?:string};
       if (!completed.ok || !completion.ok) throw new Error(completion.details || completion.error || 'No se comprobó la carga del original.');
+      setStoredObjectId(prepared.objectId);
       setArchiveMessage('Archivo guardado. Ejecutando análisis acústico, FAD y MIHM…');
       const response = await fetch('/api/studio/objects/' + encodeURIComponent(prepared.objectId) + '/analyze/audio', {
         method: 'POST', headers: { 'content-type': 'application/json' },
@@ -341,7 +343,7 @@ export default function StudioFileIntake() {
       </label>
       <input id="studio-file" type="file" required disabled={busy}
         accept=".wav,.wave,.mp3,.flac,.m4a,.aac,.ogg,.opus,.aiff,.aif,.pdf,.docx,.txt,.md,.json,.csv,.tsv,.png,.jpg,.jpeg,.webp,.mp4,.mov,.webm,.zip"
-        onChange={event => { runId.current++; setFile(event.target.files?.[0] ?? null); setReport(null); setError(''); setStatus(''); setArchiveResult(null); setArchiveError(''); setArchiveMessage(''); setAuthorizeArchive(false); }}
+        onChange={event => { runId.current++; setFile(event.target.files?.[0] ?? null); setReport(null); setError(''); setStatus(''); setArchiveResult(null); setStoredObjectId(null); setArchiveError(''); setArchiveMessage(''); setAuthorizeArchive(false); }}
         style={{ color: '#eaf6fb', width: '100%', fontSize: 12 }}
       />
       <details style={{padding:'10px 0',color:'#acc6d2'}}><summary style={{cursor:'pointer',fontSize:12}}>Recuperar un análisis anterior</summary><label htmlFor="studio-report-import" style={{color:'#c7e3ee',fontSize:12}}>
@@ -371,10 +373,11 @@ export default function StudioFileIntake() {
         </button>
         {archiveMessage && <p role="status" style={{margin:0,color:'#b5ddc9',fontSize:12}}>{archiveMessage}</p>}
         {archiveError && <p role="alert" style={{margin:0,color:'#ffbdad',fontSize:12}}>{archiveError}</p>}
+        {storedObjectId && !archiveResult && <a href={'/studio?objectId='+encodeURIComponent(storedObjectId)} style={{color:'#a9e2ff',fontSize:12}}>El original ya está guardado: abrir su expediente aunque el análisis esté pendiente</a>}
         {archiveResult && <div style={{display:'grid',gap:8,padding:12,background:'rgba(255,255,255,.04)',fontSize:13}}>
           <strong>Resultados de la obra guardada</strong>
           <div>FAD · {String(archiveResult.fad.state ?? 'NO OBSERVADO')} · {typeof archiveResult.fad.value === 'number' ? 'Contraste acústico: '+archiveResult.fad.value : 'Sin medición verificable'}</div>
-          <div>MIHM · {String(archiveResult.mihm.state ?? 'NO OBSERVADO')} · {typeof (archiveResult.mihm.result as Record<string,unknown> | undefined)?.ihg_raw === 'number' ? 'IHG acústico preliminar: '+String((archiveResult.mihm.result as Record<string,unknown>).ihg_raw) : 'Sin resultado acústico verificable'}</div>
+          <div>MIHM · {String(archiveResult.mihm.state ?? 'NO OBSERVADO')} · {typeof (archiveResult.mihm.result as Record<string,unknown> | undefined)?.ihg_raw === 'number' ? 'Cálculo acústico parcial: '+String((archiveResult.mihm.result as Record<string,unknown>).ihg_raw) : 'Sin resultado acústico verificable'}</div>
           <a href={'/studio?objectId='+encodeURIComponent(archiveResult.objectId)} style={{color:'#a9e2ff'}}>Abrir el expediente guardado</a>
           <span style={{fontSize:11,color:'#adc1ca'}}>FAD estructural no está calibrado como indicador de calidad. MIHM no declara IHG final ni NTI sin mediciones independientes.</span>
         </div>}
