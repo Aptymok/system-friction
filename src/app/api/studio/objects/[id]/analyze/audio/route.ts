@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { AccessDeniedError, requireObjectOwner } from '@/lib/system/access/server';
 import { analyzeStudioAudioObject } from '@/lib/studio/audio/analyzeStudioAudioObject';
 import { isStudioAudioError, toStudioAudioApiError } from '@/lib/studio/audio/audioErrors';
-import { synthesizeStudioObject, getPersistedStudioObjectSynthesis } from '@/lib/studio/production/objectContextSynthesis';
+import { runStudioCanonicalMihm } from '@/lib/studio/audio/mihmCanonicalRuntime';
 import { evaluateStudioFadStructuralContrast } from '@/lib/studio/audio/fadStructuralEvaluator';
 
 export const runtime = 'nodejs';
@@ -24,37 +24,30 @@ export async function POST(request: Request, ctx: RouteContext) {
     });
     const reused = Boolean((result as Record<string, unknown>).reused);
     if (body.integrateMethods !== false) {
-      // Reuse the existing MIHM synthesis owner after genuine persisted acoustic
-      // extraction. This mode never invents a FAD score or a final IHG.
-      try {
-        const existing = reused ? await getPersistedStudioObjectSynthesis(objectId) : null;
-        const synthesis = existing ?? await synthesizeStudioObject(objectId, { persist: true });
-        const fad = await evaluateStudioFadStructuralContrast(objectId, context.user.id, String(result.checksumSha256));
-        return NextResponse.json({
-          ...result,
-          methodologicalIntegration: {
-            state: 'EXECUTED',
-            mihm: synthesis.mihm,
-            evidenceTraceId: synthesis.persistence.evidenceTraceId,
-            synthesisStatus: synthesis.status,
-            fad,
-            fadScope: 'ACOUSTIC_STRUCTURAL_SUBMETRIC_ONLY',
-            culturalOutcome: 'NOT_OBSERVED',
-          },
-        }, { status: reused ? 200 : 202 });
-      } catch (integrationError) {
-        // Acoustic analysis may already be persisted. Keep that successful
-        // result visible without misrepresenting synthesis as successful.
-        return NextResponse.json({
-          ...result,
-          methodologicalIntegration: {
-            state: 'BLOCKED',
-            mihm: 'NOT_OBSERVED',
-            fad: 'NOT_OBSERVED',
-            reason: integrationError instanceof Error ? integrationError.message : 'INTEGRATION_FAILED',
-          },
-        }, { status: 207 });
-      }
+      // FAD and the original Python MIHM v3 are independent instruments.
+      // Neither can claim success on behalf of the other.
+      const [fadResult, mihmResult] = await Promise.allSettled([
+        evaluateStudioFadStructuralContrast(objectId, context.user.id, String(result.checksumSha256)),
+        runStudioCanonicalMihm(objectId, String(result.checksumSha256)),
+      ]);
+      const fad = fadResult.status === 'fulfilled'
+        ? fadResult.value
+        : { state: 'BLOCKED', reason: 'FAD_EXECUTION_FAILED' };
+      const mihm = mihmResult.status === 'fulfilled'
+        ? mihmResult.value
+        : { state: 'BLOCKED', reason: 'MIHM_EXECUTION_FAILED' };
+      const complete = fad.state === 'DERIVED' && mihm.state === 'DERIVED';
+      return NextResponse.json({
+        ...result,
+        methodologicalIntegration: {
+          state: complete ? 'EXECUTED' : 'PARTIAL_OR_BLOCKED',
+          fad,
+          fadScope: 'ACOUSTIC_STRUCTURAL_SUBMETRIC_ONLY',
+          mihm,
+          mihmScope: 'MIHM_V3_ORIGINAL_PYTHON_EXTRACTOR',
+          culturalOutcome: 'NOT_OBSERVED',
+        },
+      }, { status: complete ? (reused ? 200 : 202) : 207 });
     }
     return NextResponse.json(result, { status: reused ? 200 : 202 });
   } catch (error) {
