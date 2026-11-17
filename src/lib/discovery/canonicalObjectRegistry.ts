@@ -1,6 +1,6 @@
 import type { PublicationStatus } from '../system/contracts';
 import { SFI_PUBLIC_PROFILE } from '../public/institutionProfile';
-import { SFI_EDITORIAL_OBSERVATIONS, SFI_REALITY_CHAIN_BRIEF, SFI_REALITY_CHAIN_RESEARCH_V4, SFI_YEARS_THAT_DID_EXIST_LAB_NOTE } from '../publications/editorialContent';
+import { SFI_EDITORIAL_OBSERVATIONS, SFI_REALITY_CHAIN_BRIEF, SFI_REALITY_CHAIN_RESEARCH, SFI_YEARS_THAT_DID_EXIST_LAB_NOTE } from '../publications/editorialContent';
 
 export const SFI_CANONICAL_OBJECT_CONTRACT = 'SFI-CANONICAL-OBJECT-1.0' as const;
 export const SFI_CANONICAL_NAMESPACE_CONTRACT = 'SFI-CANONICAL-NAMESPACE-1.0' as const;
@@ -593,13 +593,13 @@ export const SFI_CANONICAL_OBJECT_REGISTRY: readonly SfiCanonicalObjectRecord[] 
 
   {
     contract: SFI_CANONICAL_OBJECT_CONTRACT,
-    id: SFI_REALITY_CHAIN_RESEARCH_V4.canonicalId,
-    objectKey: canonicalObjectKey('PAPER', SFI_REALITY_CHAIN_RESEARCH_V4.slug),
+    id: SFI_REALITY_CHAIN_RESEARCH.canonicalId,
+    objectKey: canonicalObjectKey('PAPER', SFI_REALITY_CHAIN_RESEARCH.slug),
     objectType: 'PAPER',
-    slug: SFI_REALITY_CHAIN_RESEARCH_V4.slug,
-    canonicalUrl: canonicalUrlFor('PAPER', SFI_REALITY_CHAIN_RESEARCH_V4.slug),
-    title: SFI_REALITY_CHAIN_RESEARCH_V4.title,
-    summary: SFI_REALITY_CHAIN_RESEARCH_V4.deck,
+    slug: SFI_REALITY_CHAIN_RESEARCH.slug,
+    canonicalUrl: canonicalUrlFor('PAPER', SFI_REALITY_CHAIN_RESEARCH.slug),
+    title: SFI_REALITY_CHAIN_RESEARCH.title,
+    summary: SFI_REALITY_CHAIN_RESEARCH.deck,
     bodyRef: 'https://raw.githubusercontent.com/Aptymok/SFI-RESEARCH-HUB/main/05_RESEARCH_OBJECTS/SFI-RC-2026-METHOD-001/Reality_Chain.pdf',
     epistemicState: 'DECLARED',
     version: 'UNNUMBERED',
