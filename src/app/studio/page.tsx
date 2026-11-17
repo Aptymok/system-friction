@@ -114,7 +114,7 @@ export default async function StudioPage({ searchParams }: { searchParams?: Prom
             Las herramientas avanzadas quedan disponibles cuando las necesites.
           </p>
           <div style={{ padding: '18px 20px', border: '1px solid rgba(150,202,224,.25)', background: 'rgba(26,56,72,.27)', borderRadius: 14 }}>
-            <div style={{ fontSize: 12, color: '#b4cbd8', marginBottom: 6 }}>PASO 1 DE 2</div>
+            <div style={{ fontSize: 12, color: '#b4cbd8', marginBottom: 6 }}>EMPIEZA AQUÍ</div>
             <h2 style={{ margin: 0, fontWeight: 550, fontSize: 23 }}>Elige una canción</h2>
             <p style={{ color: '#a7b7c0', fontSize: 13, lineHeight: 1.6, margin: '8px 0 0' }}>
               El análisis rápido funciona en tu navegador y no sube el audio a SFI.
@@ -143,7 +143,7 @@ export default async function StudioPage({ searchParams }: { searchParams?: Prom
       <section style={{ position: 'relative', zIndex: 1, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,320px),1fr))', gap: 18, padding: '18px clamp(18px,4vw,58px) 70px', maxWidth: 1540, margin: '0 auto' }}>
         <aside style={{ ...panel, minHeight: 520 }}>
           <div style={{ padding: '18px 20px', borderBottom: '1px solid rgba(255,255,255,.09)' }}>
-            <div style={{ color: '#7fc8f5', fontSize: 10, letterSpacing: '.19em' }}>PASO 2 DE 2 · OBRAS GUARDADAS</div>
+            <div style={{ color: '#7fc8f5', fontSize: 10, letterSpacing: '.19em' }}>EXPEDIENTES GUARDADOS</div>
             <div style={{ marginTop: 8, color: '#f7fafb', fontSize: 22 }}>{objects.length}</div>
           </div>
 
