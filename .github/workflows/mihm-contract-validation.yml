@@ -8,6 +8,11 @@ on:
       - 'src/lib/sfi/math.ts'
       - 'src/core/formulas/**'
       - 'services/python/sfi_engine/**'
+      - 'python/scorefriction/**'
+      - 'src/lib/studio/audio/mihmCanonicalRuntime.ts'
+      - 'src/lib/studio/audio/fadStructuralContrast.ts'
+      - 'src/lib/studio/audio/fadStructuralEvaluator.ts'
+      - 'src/app/api/studio/objects/[id]/analyze/audio/route.ts'
       - 'src/observatory/field/catalog/sfStaticDataset.ts'
       - 'data/sfi/sf_static_dataset.compact.json'
       - 'scripts/qa-mihm-nonfabrication.ts'
@@ -116,6 +121,12 @@ jobs:
 
       - name: MIHM strict missingness, Python parity and simulated-risk epistemic guard
         run: node --import tsx scripts/qa-mihm-nonfabrication.ts
+
+      - name: Original MIHM v3 Python acoustic extractor and service syntax
+        run: python3 -m py_compile python/scorefriction/audio_features.py python/scorefriction/mihm_extract_full.py services/python/sfi_engine/main.py
+
+      - name: Real-audio FAD structural regression and missingness tests
+        run: node --import tsx --test src/lib/studio/audio/fadStructuralEvaluator.test.ts
 
       - name: MIHM foundation measurement coverage research tests
         run: node --import tsx --test src/lib/mihm/foundationObservationCoverage.test.ts
