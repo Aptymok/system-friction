@@ -224,7 +224,7 @@ class MIHMAcousticExtractor:
 
     # ------------------- Cálculo IHG según manual -------------------
     @staticmethod
-    def compute_ihg(mihm_vec: Dict[str, float], nti: float = 0.5) -> Dict:
+    def compute_ihg(mihm_vec: Dict[str, float], nti: Optional[float] = None) -> Dict:
         """
         Calcula IHG_raw, penalizaciones e IHG_final según sección 2 y 4.
         mihm_vec debe tener valores (float) o None; los None se ignoran en la suma? La regla de emisión mínima se aplica antes.
@@ -269,11 +269,12 @@ class MIHMAcousticExtractor:
         ihg_raw = weighted_sum - penalty_sum
 
         # Aplicar NTI
-        nti = max(0.0, min(1.0, nti))
-        if nti < 0.4:
-            ihg_final = ihg_raw * (1 - nti)
+        if nti is None:
+            ihg_final = None
         else:
-            ihg_final = ihg_raw
+            if not np.isfinite(nti) or nti < 0.0 or nti > 1.0:
+                raise ValueError("MIHM_NTI_OBSERVATION_OUT_OF_RANGE")
+            ihg_final = ihg_raw * (1 - nti) if nti < 0.4 else ihg_raw
 
         return {
             "ihg_raw": round(ihg_raw, 6),
