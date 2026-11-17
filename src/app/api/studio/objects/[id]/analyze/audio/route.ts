@@ -3,6 +3,7 @@ import { AccessDeniedError, requireObjectOwner } from '@/lib/system/access/serve
 import { analyzeStudioAudioObject } from '@/lib/studio/audio/analyzeStudioAudioObject';
 import { isStudioAudioError, toStudioAudioApiError } from '@/lib/studio/audio/audioErrors';
 import { synthesizeStudioObject, getPersistedStudioObjectSynthesis } from '@/lib/studio/production/objectContextSynthesis';
+import { evaluateStudioFadStructuralContrast } from '@/lib/studio/audio/fadStructuralEvaluator';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -28,6 +29,7 @@ export async function POST(request: Request, ctx: RouteContext) {
       try {
         const existing = reused ? await getPersistedStudioObjectSynthesis(objectId) : null;
         const synthesis = existing ?? await synthesizeStudioObject(objectId, { persist: true });
+        const fad = await evaluateStudioFadStructuralContrast(objectId, context.user.id, String(result.checksumSha256));
         return NextResponse.json({
           ...result,
           methodologicalIntegration: {
@@ -35,8 +37,8 @@ export async function POST(request: Request, ctx: RouteContext) {
             mihm: synthesis.mihm,
             evidenceTraceId: synthesis.persistence.evidenceTraceId,
             synthesisStatus: synthesis.status,
-            fad: 'NOT_OBSERVED',
-            fadReason: 'CANONICAL_FAD_AUDIO_OWNER_NOT_VERIFIED',
+            fad,
+            fadScope: 'ACOUSTIC_STRUCTURAL_SUBMETRIC_ONLY',
             culturalOutcome: 'NOT_OBSERVED',
           },
         }, { status: reused ? 200 : 202 });
