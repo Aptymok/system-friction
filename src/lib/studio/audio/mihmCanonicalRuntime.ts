@@ -11,7 +11,7 @@ const CORE = ['F_s', 'D_i', 'E_r', 'C_s', 'D_cog', 'G_f'] as const;
 
 export async function runStudioCanonicalMihm(objectId: string, expectedSourceSha256: string) {
   const url = process.env.SFI_ENGINE_URL?.replace(/\/$/, '');
-  const token = process.env.SFI_ENGINE_STUDIO_TOKEN;
+  const token = process.env.SFI_ENGINE_STUDIO_TOKEN || process.env.CRON_SECRET;
   if (!url || !token) return { state: 'BLOCKED' as const, reason: 'MIHM_PYTHON_SERVICE_NOT_CONFIGURED' };
   if (!/^https:\/\//.test(url) && !/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(url)) {
     return { state: 'BLOCKED' as const, reason: 'MIHM_SERVICE_REQUIRES_TLS' };
