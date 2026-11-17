@@ -43,5 +43,32 @@
       "path": "/api/cron/notas-temporales",
       "schedule": "15 14 1 * *"
     }
+  ],
+  "services": {
+    "web": {
+      "root": ".",
+      "framework": "nextjs",
+      "bindings": [
+        {
+          "type": "service",
+          "service": "mihm",
+          "format": "url",
+          "env": "SFI_ENGINE_URL"
+        }
+      ]
+    },
+    "mihm": {
+      "root": ".",
+      "framework": "fastapi",
+      "entrypoint": "services/python/sfi_engine/main.py"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": {
+        "service": "web"
+      }
+    }
   ]
 }
