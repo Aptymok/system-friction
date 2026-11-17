@@ -5,6 +5,11 @@ from tempfile import TemporaryDirectory
 import hashlib
 import os
 import sys
+# Vercel imports ASGI entrypoints by absolute file path, not by package cwd.
+# Resolve sibling original modules without altering MIHM formulas.
+SERVICE_DIR = Path(__file__).resolve().parent
+if str(SERVICE_DIR) not in sys.path:
+    sys.path.insert(0, str(SERVICE_DIR))
 from pydantic import BaseModel
 from typing import Any, Dict, List, Optional
 from urllib.parse import quote
