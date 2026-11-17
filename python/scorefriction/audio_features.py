@@ -46,9 +46,11 @@ class MIHMAcousticExtractor:
             onset_density = len(onset_frames) / self.duration if self.duration > 0 else 0
             onset_norm = min(1.0, onset_density / 20.0)
             flatness = librosa.feature.spectral_flatness(y=self.y)
-            spectral_flatness = self._safe_float(np.mean(flatness), 0.5)
+            spectral_flatness = self._safe_float(np.mean(flatness))
             contrast = librosa.feature.spectral_contrast(y=self.y, sr=self.sr)
-            roughness = self._safe_float(np.mean(contrast) / 50.0, 0.5)
+            roughness = self._safe_float(np.mean(contrast) / 50.0)
+            if spectral_flatness is None or roughness is None:
+                return None
             f_s = onset_norm * 0.4 + spectral_flatness * 0.3 + min(1.0, roughness) * 0.3
             return float(np.clip(f_s, 0.0, 1.0))
         except Exception as e:
@@ -132,10 +134,14 @@ class MIHMAcousticExtractor:
             else:
                 tempo_val = result
 
-            tempo_val = self._safe_float(tempo_val, 120)
+            tempo_val = self._safe_float(tempo_val)
+            if tempo_val is None:
+                return None
             e_r = np.clip((tempo_val - 40) / 160.0, 0.0, 1.0)
             onset_env = librosa.onset.onset_strength(y=self.y, sr=self.sr)
-            impulse = self._safe_float(np.mean(onset_env) / 100.0, 0.3)
+            impulse = self._safe_float(np.mean(onset_env) / 100.0)
+            if impulse is None:
+                return None
             e_r = e_r * 0.7 + min(1.0, impulse) * 0.3
             return float(e_r)
         except Exception as e:
@@ -170,7 +176,10 @@ class MIHMAcousticExtractor:
         try:
             rms = librosa.feature.rms(y=self.y)[0]
             if len(rms) > 1:
-                decay_rate = np.mean(np.diff(rms[rms > 0.01])) if np.any(rms > 0.01) else 0
+                active = rms[rms > 0.01]
+                if len(active) < 2:
+                    return None
+                decay_rate = np.mean(np.diff(active))
                 phi = min(1.0, max(0.0, -decay_rate * 10 + 0.5))
             else:
                 phi = None
