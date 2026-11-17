@@ -128,7 +128,7 @@ async def evaluate_audio_stored(payload: StoredAudioInput, request: Request):
     expected = payload.source_sha256.lower()
     if not re.fullmatch(r"[0-9a-f]{64}", expected):
         raise HTTPException(status_code=422, detail="MIHM_SOURCE_HASH_REQUIRED")
-    if payload.bucket != "studio-audio-originals":
+    if payload.bucket != "studio-objects":
         raise HTTPException(status_code=422, detail="MIHM_STORAGE_BUCKET_NOT_ALLOWED")
     if not payload.storage_path or ".." in payload.storage_path.split("/") or len(payload.storage_path) > 1024:
         raise HTTPException(status_code=422, detail="MIHM_STORAGE_PATH_INVALID")
