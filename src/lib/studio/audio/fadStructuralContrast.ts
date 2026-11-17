@@ -1,7 +1,6 @@
 // Pure deterministic acoustic submetric; independent of persistence and provider runtimes.
 type Segment = { i?: unknown; t0?: unknown; t1?: unknown; rms?: unknown };
 const finite = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
-const validHash = (value: unknown): value is string => typeof value === 'string' && /^[a-f0-9]{64}$/i.test(value);
 
 export function calculateFadStructuralContrast(input: unknown): number | null {
   if (!Array.isArray(input) || input.length < 2) return null;
