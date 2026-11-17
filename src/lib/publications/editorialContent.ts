@@ -823,7 +823,7 @@ export const SFI_REALITY_CHAIN_RESEARCH_V4: SfiEditorialPublication = Object.fre
   observationKind: 'METHOD',
   language: 'en',
   series: 'SFI · Methodological Working Papers',
-  issue: 'Working paper · 0.2.0',
+  issue: 'Working paper',
   title: 'Institutional Reality as a Correctible Evidence Chain',
   subtitle: 'A methodological specification of temporal claims, witnessed execution and institutional self-observation',
   motto: '',
@@ -835,10 +835,10 @@ export const SFI_REALITY_CHAIN_RESEARCH_V4: SfiEditorialPublication = Object.fre
   contentState: 'MATERIALIZED',
   renditions: Object.freeze([{
     kind: 'PDF' as const,mediaType: 'application/pdf' as const,
-    filename: 'SFI_Reality_Chain_Editorial_V4_v0.2.0.pdf',
-    byteLength: 130506,
-    sha256: 'f2f5e714efb18c481cdc4187bef889d16e52c5cf26cd1960a3e6553e91390030',
-    publicUrl: 'https://raw.githubusercontent.com/Aptymok/SFI-RESEARCH-HUB/main/05_RESEARCH_OBJECTS/SFI-RC-2026-METHOD-001/SFI_Reality_Chain_Editorial_V4_v0.2.0.pdf',
+    filename: 'Reality_Chain.pdf',
+    byteLength: 176049,
+    sha256: '451de9dc2feceebb8cd554e400f2c120172bb66cb0b1a56eba97a4f63f1da7ae',
+    publicUrl: 'https://raw.githubusercontent.com/Aptymok/SFI-RESEARCH-HUB/main/05_RESEARCH_OBJECTS/SFI-RC-2026-METHOD-001/Reality_Chain.pdf',
     state: 'PUBLIC' as const,
   }]),
   sections: Object.freeze([
