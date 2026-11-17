@@ -22,7 +22,7 @@ export async function POST(request: Request, ctx: RouteContext) {
       requestedByUserId: context.user.id,
     });
     const reused = Boolean((result as Record<string, unknown>).reused);
-    if (body.integrateMethods === true) {
+    if (body.integrateMethods !== false) {
       // Reuse the existing MIHM synthesis owner after genuine persisted acoustic
       // extraction. This mode never invents a FAD score or a final IHG.
       try {
