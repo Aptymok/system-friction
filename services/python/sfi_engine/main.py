@@ -31,7 +31,9 @@ class SfiEngineInput(BaseModel):
 
 @app.get("/health")
 def health():
-    return {"ok": True, "service": "sfi-engine"}
+    extractor = Path(__file__).resolve().parents[3] / "python" / "scorefriction" / "audio_features.py"
+    return {"ok": extractor.is_file(), "service": "sfi-engine",
+            "acoustic_extractor_present": extractor.is_file()}
 
 @app.post("/evaluate")
 def evaluate(payload: SfiEngineInput):
