@@ -2,21 +2,21 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { calculateFadStructuralContrast } from './fadStructuralContrast';
 
-// Real 1-second PCM energy frames 22-34 from VETE YA - MELI voces 80bpm.wav.
+// Real 1-second PCM RMS energy frames 23-35 from VETE YA - MELI voces 80bpm.wav.
 // Source SHA-256: 78d3f93e6dea60c7a583b5d5cd86c9f1f1c22fa69846836787c9d5a7e5431113
 // Local extractor: PCM_24, 44100 Hz, stereo, mean channel/frame-square RMS.
 // QA reference only; the Studio runtime never uses these numbers as defaults.
 const realRms = [
-  0.0, 0.008365, 0.018887, 0.015344, 0.012114, 0.017334,
-  0.015550, 0.013611, 0.015674, 0.008189, 0.011122,
-  0.016843, 0.014001,
+  0.00836538, 0.01888742, 0.01534390, 0.01211382, 0.01733373,
+  0.01555007, 0.01361082, 0.01567380, 0.00818945, 0.01112225,
+  0.01684305, 0.01400060, 0.01291965,
 ];
 function segments(values: number[]) {
   return values.map((rms, i) => ({ i, t0: i, t1: i + 1, rms }));
 }
 
 test('FAD structural contrast reproduces real-audio regression subset', () => {
-  assert.equal(calculateFadStructuralContrast(segments(realRms)), 0.29622);
+  assert.equal(calculateFadStructuralContrast(segments(realRms)), 0.24994617);
 });
 
 test('FAD structural contrast rejects absent and invalid measurements', () => {
