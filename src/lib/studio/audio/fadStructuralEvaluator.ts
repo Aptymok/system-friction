@@ -6,6 +6,7 @@ export const FAD_STRUCTURAL_METHOD = 'FAD:structural_contrast_v1' as const;
 export const FAD_STRUCTURAL_SOURCE = 'studio_fad_structural_contrast_v1' as const;
 
 import { calculateFadStructuralContrast } from './fadStructuralContrast';
+const finite = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
 const validHash = (value: unknown): value is string => typeof value === 'string' && /^[a-f0-9]{64}$/i.test(value);
 
 export async function evaluateStudioFadStructuralContrast(objectId: string, ownerId: string, sourceSha256: string) {
