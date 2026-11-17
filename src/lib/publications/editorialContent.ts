@@ -834,12 +834,12 @@ export const SFI_REALITY_CHAIN_RESEARCH_V4: SfiEditorialPublication = Object.fre
   visuals: Object.freeze([]),
   contentState: 'MATERIALIZED',
   renditions: Object.freeze([{
-    kind: 'PDF',mediaType: 'application/pdf',
+    kind: 'PDF' as const,mediaType: 'application/pdf' as const,
     filename: 'SFI_Reality_Chain_Editorial_V4_v0.2.0.pdf',
     byteLength: 130506,
     sha256: 'f2f5e714efb18c481cdc4187bef889d16e52c5cf26cd1960a3e6553e91390030',
     publicUrl: 'https://raw.githubusercontent.com/Aptymok/SFI-RESEARCH-HUB/main/05_RESEARCH_OBJECTS/SFI-RC-2026-METHOD-001/SFI_Reality_Chain_Editorial_V4_v0.2.0.pdf',
-    state: 'PUBLIC',
+    state: 'PUBLIC' as const,
   }]),
   sections: Object.freeze([
     {id:'purpose',title:'Purpose and research question',paragraphs:['Under which observable conditions can an institution reconstruct what was known, inferred, authorized, executed and subsequently observed without rewriting the earlier knowledge state? The PDF specifies a typed reporting grammar and falsifiable future comparison protocol.']},
