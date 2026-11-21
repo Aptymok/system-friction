@@ -1,4 +1,7 @@
 import { NextResponse } from 'next/server';
+import { requireGovernedActor } from '@/lib/operational/common';
+import { resolveProposalReviewerAuthority } from '@/lib/governance/proposalReviewer';
+import { controllerCanDecideProposal } from '@/lib/governance/proposalDecisionAuthority';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { asRecord, buildAlignmentAssessment, readActiveOperationalAttractor } from '@/lib/sfi/operationalConsole';
 
@@ -12,6 +15,11 @@ async function routeId(ctx: RouteContext) {
 }
 
 export async function POST(req: Request, ctx: RouteContext) {
+  const gate = await requireGovernedActor('acp.proposals.align');
+  if (!gate.ok) return NextResponse.json(gate.body, { status: gate.status });
+  const authority = resolveProposalReviewerAuthority(gate.ctx);
+  if (!authority) return NextResponse.json({ ok: false, error: 'proposal_reviewer_required' }, { status: 403 });
+
   const proposalId = await routeId(ctx);
   if (!proposalId) return NextResponse.json({ ok: false, error: 'missing_proposal_id' }, { status: 400 });
 
@@ -25,6 +33,9 @@ export async function POST(req: Request, ctx: RouteContext) {
     if (proposalError) throw proposalError;
     if (!attractorResult.ok) throw new Error(attractorResult.error || 'attractor_read_failed');
     if (!proposal) return NextResponse.json({ ok: false, error: 'proposal_not_found' }, { status: 404 });
+    if (authority === 'controller' && !controllerCanDecideProposal(proposal)) {
+      return NextResponse.json({ ok: false, error: 'root_decision_required', decisionClass: 'root_only' }, { status: 403 });
+    }
 
     const attractor = attractorResult.data;
     const alignment = buildAlignmentAssessment({ proposal, attractor, body });
