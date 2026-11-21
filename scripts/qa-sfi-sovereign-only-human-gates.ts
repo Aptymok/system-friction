@@ -127,6 +127,23 @@ assert.ok(protectedResourceMetadata.includes("const PUBLIC_ORIGIN = 'https://www
 assert.ok(protectedResourceMetadata.includes("const WORKPLACE_ORIGIN = 'https://system-friction.vercel.app'"), 'protectedResourceMetadata must declare expected WORKPLACE_ORIGIN');
 assert.match(protectedResourceMetadata, /requestedOrigin === WORKPLACE_ORIGIN/, 'MCP resource audience must be bounded to an allowlisted origin');
 
+// Legacy HTTP mutators must not bypass the authenticated governance boundary.
+const amvChat = read('src/app/api/amv/chat/route.ts');
+const paidAi = read('src/app/api/ai/route.ts');
+const proposalAlign = read('src/app/api/sfi/proposals/[id]/align/route.ts');
+assert.match(amvChat, /await requireAuthenticatedUser\(\)/, 'AMV writes require a real server-side session');
+assert.match(amvChat, /sessionId: \`\$\{userId\}:\$\{input\.sessionId\}\`/, 'AMV transient memory must be isolated by authenticated owner');
+assert.match(amvChat, /listAmvMemoryReferences\(\{ module: ownedInput\.module, sessionId: ownedInput\.sessionId/, 'AMV memory reads must use owner-scoped session');
+assert.ok(amvChat.indexOf('await requireAuthenticatedUser()') < amvChat.indexOf('saveAmvMemory(result.memoryDelta)'), 'AMV must authorize before storing memory');
+assert.match(paidAi, /await requireAuthenticatedUser\(\)/, 'legacy AI provider endpoint cannot be public');
+assert.ok(paidAi.indexOf('await requireAuthenticatedUser()') < paidAi.indexOf('runAiTask({'), 'AI must authorize before paying a provider');
+assert.match(paidAi, /checkRateLimit\(rateLimitKey\('legacy-ai-provider', userId\), 6, 60_000\)/, 'legacy provider has bounded per-user request volume');
+assert.match(paidAi, /input\.length > 4_000/, 'AI provider input must be bounded');
+assert.match(proposalAlign, /await requireGovernedActor\('acp\.proposals\.align'\)/, 'proposal alignment must use the governed actor gate');
+assert.match(proposalAlign, /resolveProposalReviewerAuthority\(gate\.ctx\)/, 'proposal alignment must authorize a ROOT or controller reviewer');
+assert.match(proposalAlign, /controllerCanDecideProposal\(proposal\)/, 'controller must not align sovereign-only proposals');
+assert.ok(proposalAlign.indexOf('await requireGovernedActor(') < proposalAlign.indexOf(".from('sfi_proposal_alignment')"), 'proposal alignment must be authorized before writing');
+
 console.log(JSON.stringify({
   ok: true,
   contract: 'SFI-SOVEREIGN-ONLY-HUMAN-GATES-1.6',
