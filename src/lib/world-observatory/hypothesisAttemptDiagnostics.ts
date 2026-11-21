@@ -34,7 +34,18 @@ export function summarizeWorldHypothesisAttempt(value: unknown) {
 
   const event = record(value);
   const payload = record(event.payload);
-  const hypothesis = record(payload.hypothesis);
+  // Use a narrow PostgREST JSONB projection, not the full stored event payload.
+  // Legacy direct payload shape is retained for pure unit tests only.
+  const hypothesis = Object.prototype.hasOwnProperty.call(event, 'stageOk')
+    ? {
+        ok: event.stageOk,
+        created: event.created,
+        considered: event.considered,
+        clusters: event.clusters,
+        warnings: event.warnings,
+        results: event.results,
+      }
+    : record(payload.hypothesis);
   const hasHypothesisStage = typeof hypothesis.ok === 'boolean';
   const results = Array.isArray(hypothesis.results) ? hypothesis.results.slice(0, 12).map(record) : [];
   const counts: Record<string, number> = {};
