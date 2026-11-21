@@ -3,6 +3,7 @@ import { authorizeExternalRequest, externalActor, externalAuthError } from '@/li
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { executeWorldSignalObserverAgent } from '@/lib/world-observatory/worldSignalObserverAgent';
 import { runWorldHypothesisCycle } from '@/lib/world-observatory/hypothesisCycle';
+import { summarizeWorldHypothesisAttempt } from '@/lib/world-observatory/hypothesisAttemptDiagnostics';
 import { runWorldCalibrationCycle } from '@/lib/world-observatory/hypothesisCalibration';
 import { runWorldInstrumentSweep } from '@/lib/world-observatory/instrumentSweep';
 import { persistWorldHypothesisClosureReport } from '@/lib/reports/worldHypothesisClosureReport';
@@ -67,7 +68,31 @@ export async function POST(req: Request) {
   const actorId = externalActor(auth.credential);
 
   if (operation === 'state') {
-    return NextResponse.json({ ...(await readWorldState()), operation, actor: actorId });
+    const state = await readWorldState();
+    if (body.includeHypothesisDiagnostics !== true) {
+      return NextResponse.json({ ...state, operation, actor: actorId });
+    }
+    // Explicit opt-in only: payloads can be large, so ordinary state reads remain lean.
+    const recentAttempt = await createServiceSupabaseClient()
+      .from('epistemic_events')
+      .select('event_id,event_name,occurred_at,payload')
+      .in('event_name', [
+        'external.world.daily_cycle.completed',
+        'external.world.daily_cycle.partial',
+        'external.world.hypothesis_resume.completed',
+        'external.world.hypothesis_resume.partial',
+      ])
+      .order('occurred_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    return NextResponse.json({
+      ...state,
+      operation,
+      actor: actorId,
+      latestHypothesisAttempt: recentAttempt.error
+        ? { state: 'READ_UNAVAILABLE', boundary: 'The persisted attempt receipt could not be read. Do not substitute a zero count.' }
+        : summarizeWorldHypothesisAttempt(recentAttempt.data),
+    });
   }
 
   if (operation === 'measure_worldspect') {
