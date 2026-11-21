@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { AccessDeniedError, requireAuthenticatedUser } from '@/lib/system/access/server'
 import { sanitizeMophSessionPayload } from '@/lib/moph/session-contract'
 import { getMophSession, saveMophSession } from '@/lib/moph/session-store'
 import { mophToInstrumentState } from '@/lib/mihm/adapters/mophInstrumentAdapter'
@@ -20,20 +21,39 @@ function instrumentStateFor(session: {
 }
 
 export async function POST(request: Request) {
+  let ownerId: string
+  try {
+    ownerId = (await requireAuthenticatedUser()).user.id
+  } catch (error) {
+    if (error instanceof AccessDeniedError) return NextResponse.json({ ok: false, error: error.code }, { status: error.status })
+    return NextResponse.json({ ok: false, error: 'authorization_failed' }, { status: 503 })
+  }
   const payload = sanitizeMophSessionPayload(await request.json().catch(() => ({})))
   if (payload.consentState === 'local_only') {
     return NextResponse.json({ ok: false, error: 'consent_required_for_persistence' }, { status: 400 })
   }
 
-  const session = await saveMophSession(payload)
+  if (payload.consentState !== 'account_persisted') {
+    return NextResponse.json({ ok: false, error: 'account_consent_required' }, { status: 400 })
+  }
+  if (payload.sessionKey.length > 128) return NextResponse.json({ ok: false, error: 'session_key_too_long' }, { status: 413 })
+  const session = await saveMophSession(payload, ownerId)
   return NextResponse.json({ ok: true, session, instrumentState: instrumentStateFor(session) })
 }
 
 export async function GET(request: Request) {
+  let ownerId: string
+  try {
+    ownerId = (await requireAuthenticatedUser()).user.id
+  } catch (error) {
+    if (error instanceof AccessDeniedError) return NextResponse.json({ ok: false, error: error.code }, { status: error.status })
+    return NextResponse.json({ ok: false, error: 'authorization_failed' }, { status: 503 })
+  }
   const { searchParams } = new URL(request.url)
   const sessionKey = searchParams.get('id') ?? searchParams.get('sessionKey')
   if (!sessionKey) return NextResponse.json({ ok: false, error: 'session_key_required' }, { status: 400 })
-  const session = await getMophSession(sessionKey)
+  if (sessionKey.length > 128) return NextResponse.json({ ok: false, error: 'session_key_too_long' }, { status: 413 })
+  const session = await getMophSession(sessionKey, ownerId)
   return NextResponse.json(
     { ok: Boolean(session), session, instrumentState: session ? instrumentStateFor(session) : null },
     { status: session ? 200 : 404 },
