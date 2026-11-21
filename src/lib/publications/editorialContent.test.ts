@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   SFI_EDITORIAL_OBSERVATIONS,
+  SFI_EDITORIAL_FRICTION_BRIEFS,
+  SFI_REALITY_CHAIN_RESEARCH,
   SFI_EDITORIAL_PUBLICATION_CONTENT_CONTRACT,
   SFI_EDITORIAL_PUBLICATIONS,
   SFI_NOTAS_TEMPORALES_V1,
@@ -86,7 +88,16 @@ test('editorial bodies cannot collapse publication exposure into Discovery or RE
 });
 
 test('editorial lookup and related navigation are deterministic', () => {
-  assert.equal(SFI_EDITORIAL_PUBLICATIONS.length, 3 + SFI_EDITORIAL_OBSERVATIONS.length);
+  assert.deepEqual(
+    SFI_EDITORIAL_PUBLICATIONS.map((item) => item.canonicalId),
+    [
+      SFI_REALITY_CHAIN_RESEARCH,
+      SFI_NOTAS_TEMPORALES_V1,
+      ...SFI_EDITORIAL_FRICTION_BRIEFS,
+      ...SFI_EDITORIAL_OBSERVATIONS,
+    ].map((item) => item.canonicalId),
+    'editorial_catalog_must_include_approved_research_without_duplicates'
+  );
   assert.equal(editorialPublicationForSlug('notas-temporales-v1')?.title, 'Notas Temporales');
   assert.equal(editorialPublicationForSlug('kavak-estado-autoridad-ejecucion')?.observationKind, 'CASE');
   assert.equal(editorialPublicationForSlug('notas-inexistentes'), null);
