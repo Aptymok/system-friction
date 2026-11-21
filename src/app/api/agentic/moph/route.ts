@@ -11,7 +11,7 @@ const MAX_BODY_BYTES = 8_192;
 export async function POST(request: Request) {
   // The agent reads service-role institutional memory and can invoke a paid LLM.
   // Restrict this legacy endpoint to ROOT until a tenant-isolated public mode exists.
-  const gate = await requireRootActor('root.moph.agent.read');
+  const gate = await requireRootActor('root.moph.agent.run');
   if (!gate.ok) return NextResponse.json(gate.body, { status: gate.status });
 
   const length = Number(request.headers.get('content-length'));
