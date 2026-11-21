@@ -8,6 +8,42 @@ type Row=Record<string,unknown>;
 const record=(v:unknown):Row=>v&&typeof v==='object'&&!Array.isArray(v)?v as Row:{};
 const bounded=(v:unknown,max:number)=>typeof v==='string'?v.slice(0,max):v;
 
+/**
+ * Choose a bounded, source-family-diverse sample of existing observations.
+ * This is coverage selection, NOT an evidence sufficiency or hypothesis gate.
+ * Preserve the original temporal order within each declared source family.
+ */
+export function selectWorldHypothesisSeeds<T extends { observation: { id: string; source_family: string } }>(
+  items: T[], limit = 12,
+): T[] {
+  const boundedLimit = Math.max(0, Math.min(12, Math.floor(limit)));
+  const groups = new Map<string, T[]>();
+  const seen = new Set<string>();
+  for (const item of items) {
+    if (!item.observation.id || seen.has(item.observation.id)) continue;
+    seen.add(item.observation.id);
+    const family = item.observation.source_family || 'UNKNOWN';
+    const bucket = groups.get(family) ?? [];
+    bucket.push(item);
+    groups.set(family, bucket);
+  }
+  const selected: T[] = [];
+  let offset = 0;
+  while (selected.length < boundedLimit) {
+    let added = false;
+    for (const group of groups.values()) {
+      if (selected.length >= boundedLimit) break;
+      const next = group[offset];
+      if (!next) continue;
+      selected.push(next);
+      added = true;
+    }
+    if (!added) break;
+    offset += 1;
+  }
+  return selected;
+}
+
 export function prepareWorldHypothesisPrompt(input:{
  methodology:string; testContract:string;
  learningProfile:unknown; observations:Row[]; derivedRelations:Row[];
