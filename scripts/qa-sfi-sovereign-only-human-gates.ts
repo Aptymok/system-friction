@@ -183,9 +183,24 @@ assert.match(amvThoughtStreamRoute, /requireRootViewer\('root\.amv\.thoughts\.re
 assert.ok(amvThoughtStreamRoute.indexOf("requireRootViewer('root.amv.thoughts.read')") < amvThoughtStreamRoute.indexOf('await readAmvThoughts('), 'AMV thought stream cannot read before authorization');
 assert.match(amvThoughtStreamRoute, /'Cache-Control': 'private, no-store'/, 'AMV private thought stream must not be cached');
 
+
+// Legacy MOPH agent reads service-role AMV memory and invokes paid model providers.
+const mophAgentRoute = read('src/app/api/agentic/moph/route.ts');
+const mophAgentImpl = read('src/lib/agents/sfiAgents.ts');
+assert.match(mophAgentRoute, /requireRootActor\('root\.moph\.agent\.read'\)/, 'MOPH institutional memory requires verified ROOT');
+assert.ok(mophAgentRoute.indexOf("requireRootActor('root.moph.agent.read')") < mophAgentRoute.indexOf('await request.json()'), 'MOPH must authorize before reading input');
+assert.ok(mophAgentRoute.indexOf("requireRootActor('root.moph.agent.read')") < mophAgentRoute.indexOf("rpc('sfi_admit_legacy_ai_request_v1'"), 'MOPH must authorize before counting AI requests');
+assert.ok(mophAgentRoute.indexOf("rpc('sfi_admit_legacy_ai_request_v1'") < mophAgentRoute.indexOf('await runMophAgent('), 'MOPH must pass distributed admission before provider work');
+assert.match(mophAgentRoute, /accountId: gate\.ctx\.user\.id/, 'MOPH account identity comes from verified session, never the request');
+assert.doesNotMatch(mophAgentRoute, /payload\.accountId/, 'MOPH must not trust client-supplied account identity');
+assert.match(mophAgentRoute, /MAX_BODY_BYTES = 8_192/, 'MOPH input size is bounded');
+assert.match(mophAgentRoute, /'Cache-Control': 'private, no-store'/, 'MOPH result is private');
+const mophAgentBlock = mophAgentImpl.split('export async function runMophAgent')[1]?.split('export async function runPredictionAgent')[0] ?? '';
+assert.match(mophAgentBlock, /persistence: 'not_persisted'/, 'MOPH trace must not fabricate persisted state');
+
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-SOVEREIGN-ONLY-HUMAN-GATES-1.8',
+  contract: 'SFI-SOVEREIGN-ONLY-HUMAN-GATES-1.9',
   humanApprovalRequiredForRoutineCaseWork: false,
   humanApprovalRequiredForWorkingSources: false,
   humanApprovalRequiredForRoutineLabRun: false,
