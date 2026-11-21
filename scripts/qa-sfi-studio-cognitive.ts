@@ -96,7 +96,8 @@ assert.ok(masterRoute.includes('runStudioMasterAnalysisLoop'), 'master_analysis_
 // absorbed as parallel scenes; their observability survives in ROOT/GOVERNANCE/TWIN
 // without becoming a permission bridge for Studio.
 assert.equal(studioPage.includes("redirect('/models')"), false, 'studio_entry_must_not_alias_to_models');
-assert.ok(studioPage.includes('listStudioObjects(user.id)'), 'studio_entry_must_preserve_owner_scope');
+assert.ok(studioPage.includes('requireSfiMemberPage'), 'studio_entry_must_keep_member_access_gate');
+assert.match(studioPage, /listStudioObjects\(\s*user\.id\s*(?:,|\))/, 'studio_entry_must_preserve_owner_scope');
 assert.ok(studioPage.includes('getStudioObjectFeatures(activeId, user.id)'), 'studio_entry_must_use_owner_scoped_features');
 assert.ok(scenes.includes("root:{key:'root'"), 'root_scene_missing');
 assert.ok(scenes.includes("governance:{key:'governance'"), 'governance_scene_missing');
