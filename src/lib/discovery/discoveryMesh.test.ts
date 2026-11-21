@@ -24,11 +24,21 @@ const aiSource = {
   independent: true,
 };
 
-test('query mode does not fabricate canonical candidates while the public registry is empty', () => {
+test('query mode projects only source-backed public candidates without fabricating external observations', () => {
   const observed = observeDiscovery({ mode: 'query', query: 'friction evidence governed inference' });
   assert.equal(observed.contract, 'SFI-DISCOVERY-OBSERVATION-1.0');
-  assert.equal(observed.candidates.length, 0);
-  assert.equal(observed.externalRepresentations.length, 0);
+  assert.ok(observed.candidates.length > 0, 'approved_public_research_must_be_discoverable');
+  assert.equal(observed.externalRepresentations.length, observed.candidates.length);
+  for (const candidate of observed.candidates) {
+    assert.equal(candidate.candidateClass, 'CANONICAL_PUBLIC_OBJECT');
+    assert.equal(candidate.canonical, false);
+    assert.equal(candidate.source.independent, false);
+    assert.equal(candidate.availability, 'AVAILABLE');
+    assert.ok(candidate.canonicalUrl?.startsWith('https://systemfriction.org/research/'));
+    assert.ok(candidate.provenance.includes(candidate.canonicalUrl));
+  }
+  assert.equal(observed.metrics.UDR.value, null, 'public_listing_is_not_external_retrieval_evidence');
+  assert.equal(observed.metrics.ACR.R.value, null, 'listing_cannot_claim_ai_retrieval');
   assert.equal(observed.epistemicBoundary.candidatesAreCanonical, false);
   assert.equal(observed.epistemicBoundary.automaticCanon, false);
   assert.equal(observed.epistemicBoundary.automaticPublication, false);
