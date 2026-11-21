@@ -170,9 +170,22 @@ assert.match(mophSessionStore, /function ownedSessionKey\(sessionKey: string, ow
 assert.match(mophSessionStore, /\.eq\('account_id', ownerId\)/, 'MOPH service-role reads must filter account ownership');
 assert.match(mophSessionStore, /fallbackStore\(\)\.get\(storageKey\)/, 'MOPH fallback reads are owner-isolated');
 
+
+// AMV learning was previously a public append into ROOT-visible logbook and an unguarded thought stream.
+// Internal server-to-server library consumers remain unchanged; the external HTTP boundary is ROOT governed.
+const amvLearningAppendRoute = read('src/app/api/amv/learning/append/route.ts');
+const amvThoughtStreamRoute = read('src/app/api/amv/thoughts/live/route.ts');
+assert.match(amvLearningAppendRoute, /requireRootActor\('root\.amv\.learning\.append'\)/, 'AMV learning writes require authenticated ROOT actor');
+assert.ok(amvLearningAppendRoute.indexOf("requireRootActor('root.amv.learning.append')") < amvLearningAppendRoute.indexOf('await request.json()'), 'AMV append authorization must precede body parsing');
+assert.ok(amvLearningAppendRoute.indexOf("requireRootActor('root.amv.learning.append')") < amvLearningAppendRoute.indexOf('await appendAmvLearning('), 'AMV append authorization must precede persistence');
+assert.match(amvLearningAppendRoute, /MAX_BODY_BYTES = 16_384/, 'AMV append payloads must be bounded');
+assert.match(amvThoughtStreamRoute, /requireRootViewer\('root\.amv\.thoughts\.read'\)/, 'AMV private thought stream requires verified ROOT observer');
+assert.ok(amvThoughtStreamRoute.indexOf("requireRootViewer('root.amv.thoughts.read')") < amvThoughtStreamRoute.indexOf('await readAmvThoughts('), 'AMV thought stream cannot read before authorization');
+assert.match(amvThoughtStreamRoute, /'Cache-Control': 'private, no-store'/, 'AMV private thought stream must not be cached');
+
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-SOVEREIGN-ONLY-HUMAN-GATES-1.7',
+  contract: 'SFI-SOVEREIGN-ONLY-HUMAN-GATES-1.8',
   humanApprovalRequiredForRoutineCaseWork: false,
   humanApprovalRequiredForWorkingSources: false,
   humanApprovalRequiredForRoutineLabRun: false,
