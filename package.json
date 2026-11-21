@@ -42,7 +42,7 @@
     "qa:sfi-bilingual-interface": "tsx scripts/qa-sfi-bilingual-interface.ts",
     "qa:sfi-web-source-extraction": "tsx scripts/qa-sfi-web-source-extraction.ts",
     "qa:sfi-research-metadata": "node scripts/qa-sfi-research-metadata.mjs",
-    "qa:sfi-sovereign-only-human-gates": "tsx scripts/qa-sfi-sovereign-only-human-gates.ts && node scripts/qa-sfi-distributed-ai-admission.mjs",
+    "qa:sfi-sovereign-only-human-gates": "tsx scripts/qa-sfi-sovereign-only-human-gates.ts && node scripts/qa-sfi-distributed-ai-admission.mjs && node --import tsx --test src/lib/amv/core/publicAmvStateProjection.test.ts",
     "qa:studio-audio": "node scripts/studio-audio-engine-smoke.cjs",
     "qa:sfi-studio-capability-inventory": "tsx scripts/qa-sfi-studio-capability-inventory.ts",
     "qa:sfi-studio-loudness": "tsx scripts/qa-sfi-studio-loudness.ts",
