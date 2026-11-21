@@ -47,6 +47,25 @@ test('public state preserves aggregate availability without leaking source rows'
   ]) assert.equal(serial.includes(privateValue), false, `public output leaked: ${privateValue}`);
 });
 
+
+test('degraded source stays missing, not an invented observed reading', () => {
+  const source: AmvScopeState = {
+    ...fake,
+    state: 'degraded',
+    latestReading: null,
+    evidenceSummary: { ...fake.evidenceSummary, count: 0, verified: 0, derived: 0, sourceCoverage: 0 },
+    warnings: ['private-connection-detail'],
+  };
+  const result = publicAmvStateProjection(source);
+  assert.equal(result.ok, true);
+  if (!result.ok) return;
+  assert.equal(result.latestReading, null);
+  assert.equal(result.evidenceSummary.count, 0);
+  assert.equal(result.sourceTrust, source.sourceTrust);
+  assert.equal(JSON.stringify(result).includes('private-connection-detail'), false);
+  assert.equal(source.warnings[0], 'private-connection-detail', 'projection must not mutate the internal source');
+});
+
 test('unknown scope errors retain their non-sensitive status', () => {
   const err = publicAmvStateProjection({ ok: false, error: 'unknown_scope', availableScopes: ['scorefriction'] });
   assert.deepEqual(err, { ok: false, error: 'unknown_scope', availableScopes: ['scorefriction'] });
