@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { AccessDeniedError, requireFounder } from '@/lib/system/access/server';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { asRecord, numericValue, textValue } from '@/lib/sfi/operationalConsole';
 
@@ -12,6 +13,12 @@ async function routeId(ctx: RouteContext) {
 }
 
 export async function POST(req: Request, ctx: RouteContext) {
+  try {
+    await requireFounder();
+  } catch (error) {
+    if (error instanceof AccessDeniedError) return NextResponse.json({ ok: false, error: error.code }, { status: error.status });
+    return NextResponse.json({ ok: false, error: 'authorization_failed' }, { status: 503 });
+  }
   const executionId = await routeId(ctx);
   if (!executionId) return NextResponse.json({ ok: false, error: 'missing_execution_id' }, { status: 400 });
 
