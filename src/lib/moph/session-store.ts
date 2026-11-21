@@ -10,6 +10,10 @@ type StoredMophSession = MophSessionPayload & {
 
 const GLOBAL_KEY = '__sfi_moph_session_store__'
 
+function ownedSessionKey(sessionKey: string, ownerId: string) {
+  return `${ownerId}:${sessionKey}`
+}
+
 function fallbackStore() {
   const globalStore = globalThis as typeof globalThis & { [GLOBAL_KEY]?: Map<string, StoredMophSession> }
   if (!globalStore[GLOBAL_KEY]) globalStore[GLOBAL_KEY] = new Map()
@@ -33,14 +37,16 @@ function rowToSession(row: Record<string, unknown>): StoredMophSession {
   }
 }
 
-export async function saveMophSession(payload: MophSessionPayload): Promise<StoredMophSession> {
+export async function saveMophSession(payload: MophSessionPayload, ownerId: string): Promise<StoredMophSession> {
+  const storageKey = ownedSessionKey(payload.sessionKey, ownerId)
   const warnings: string[] = []
   try {
     const service = createServiceSupabaseClient()
     const { data, error } = await service
       .from('sfi_moph_sessions')
       .upsert({
-        session_key: payload.sessionKey,
+        session_key: storageKey,
+        account_id: ownerId,
         consent_state: payload.consentState,
         movement_trace_digest: payload.movementTraceDigest,
         choices: payload.choices,
@@ -56,7 +62,7 @@ export async function saveMophSession(payload: MophSessionPayload): Promise<Stor
     if (error) {
       warnings.push(`moph_sessions_write_failed:${error.message}`)
     } else if (data) {
-      return rowToSession(data as Record<string, unknown>)
+      return { ...rowToSession(data as Record<string, unknown>), sessionKey: payload.sessionKey }
     }
   } catch (error) {
     warnings.push(`moph_sessions_not_ready:${error instanceof Error ? error.message : 'unknown'}`)
@@ -69,23 +75,25 @@ export async function saveMophSession(payload: MophSessionPayload): Promise<Stor
     createdAt: new Date().toISOString(),
     warnings,
   }
-  fallbackStore().set(payload.sessionKey, fallback)
+  fallbackStore().set(storageKey, fallback)
   return fallback
 }
 
-export async function getMophSession(sessionKey: string): Promise<StoredMophSession | null> {
+export async function getMophSession(sessionKey: string, ownerId: string): Promise<StoredMophSession | null> {
+  const storageKey = ownedSessionKey(sessionKey, ownerId)
   try {
     const service = createServiceSupabaseClient()
     const { data, error } = await service
       .from('sfi_moph_sessions')
       .select('id,session_key,consent_state,movement_trace_digest,choices,texts,behavioral_nodes,metrics,public_summary,created_at')
-      .eq('session_key', sessionKey)
+      .eq('session_key', storageKey)
+      .eq('account_id', ownerId)
       .maybeSingle()
 
-    if (!error && data) return rowToSession(data as Record<string, unknown>)
+    if (!error && data) return { ...rowToSession(data as Record<string, unknown>), sessionKey }
   } catch {
     // fallback below
   }
 
-  return fallbackStore().get(sessionKey) ?? null
+  return fallbackStore().get(storageKey) ?? null
 }
