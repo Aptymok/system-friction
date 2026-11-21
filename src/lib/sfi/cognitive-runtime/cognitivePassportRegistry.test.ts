@@ -161,7 +161,9 @@ test('projected model requirements share one tier owner with the LLM execution c
     privacyClass: 'INTERNAL',
     priority: 'speed',
   });
-  assert.match(clientSource, /const requirements = llmRequirementsForAgent\(agentId\);/);
+  assert.match(clientSource, /const configuredRequirements = llmRequirementsForAgent\(agentId\);/);
+  assert.match(clientSource, /: configuredRequirements;/);
+  assert.match(clientSource, /providerAllowlist:studioAllowlist as string\[\]/);
   assert.doesNotMatch(clientSource, /function requirementsForAgent\(/);
   assert.equal(Object.hasOwn(temporal.modelRequirements, 'model'), false);
   assert.equal(Object.hasOwn(temporal.modelRequirements, 'provider'), false);
