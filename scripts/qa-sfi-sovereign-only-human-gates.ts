@@ -157,9 +157,22 @@ const sfiRunGet = sfiRunRoute.split('export async function GET() {')[1]?.split('
 assert.match(sfiRunGet, /status: 405/, 'SFI run GET must reject execution');
 assert.doesNotMatch(sfiRunGet, /await execute\(/, 'GET may not persist pipeline work');
 
+
+// MOPH sessions use server-verified account ownership even with service-role storage.
+const mophSessionRoute = read('src/app/api/moph/session/route.ts');
+const mophSessionIdRoute = read('src/app/api/moph/session/[id]/route.ts');
+const mophSessionStore = read('src/lib/moph/session-store.ts');
+assert.equal((mophSessionRoute.match(/await requireAuthenticatedUser\(\)/g) ?? []).length, 2, 'MOPH writes and query reads require authentication');
+assert.match(mophSessionIdRoute, /await requireAuthenticatedUser\(\)/, 'MOPH direct-id reads require authentication');
+assert.match(mophSessionRoute, /account_consent_required/, 'anonymous persistence cannot silently create a user-owned record');
+assert.match(mophSessionStore, /account_id: ownerId/, 'MOPH writes record verified account ownership');
+assert.match(mophSessionStore, /function ownedSessionKey\(sessionKey: string, ownerId: string\)/, 'MOPH keys are namespaced per owner');
+assert.match(mophSessionStore, /\.eq\('account_id', ownerId\)/, 'MOPH service-role reads must filter account ownership');
+assert.match(mophSessionStore, /fallbackStore\(\)\.get\(storageKey\)/, 'MOPH fallback reads are owner-isolated');
+
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-SOVEREIGN-ONLY-HUMAN-GATES-1.6',
+  contract: 'SFI-SOVEREIGN-ONLY-HUMAN-GATES-1.7',
   humanApprovalRequiredForRoutineCaseWork: false,
   humanApprovalRequiredForWorkingSources: false,
   humanApprovalRequiredForRoutineLabRun: false,
