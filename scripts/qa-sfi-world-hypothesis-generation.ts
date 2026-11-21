@@ -52,4 +52,28 @@ const strict={
 assert.equal(diagnoseWorldHypothesisResponse(JSON.stringify(strict)).code,'VALID_PROPOSE');
 strict.testContract.horizonHours=0;
 assert.equal(diagnoseWorldHypothesisResponse(JSON.stringify(strict)).code,'MISSING_OR_INVALID_TEST_CONTRACT');
+
+import {summarizeWorldHypothesisAttempt} from '../src/lib/world-observatory/hypothesisAttemptDiagnostics';
+assert.equal(summarizeWorldHypothesisAttempt(null).state,'NOT_OBSERVED');
+const diagnostic=summarizeWorldHypothesisAttempt({
+ event_id:'receipt-1',event_name:'external.world.daily_cycle.completed',
+ occurred_at:'2026-11-21T07:00:00Z',
+ payload:{hypothesis:{ok:true,created:0,considered:16,clusters:3,
+ warnings:['hypothesis_generation_malformed_json','governed_model_unavailable'],
+ results:[
+  {state:'NO_HYPOTHESIS',evidenceCount:2,sourceFamilies:['NEWS','SCIENCE'],abstentionReason:'Evidence does not support a falsifiable threshold.'},
+  {state:'GENERATION_BLOCKED',warning:'hypothesis_generation_invalid_decision',evidenceCount:3},
+ ]}}
+});
+assert.equal(diagnostic.state,'RECORDED');
+assert.equal(diagnostic.created,0);
+assert.equal(diagnostic.resultStateCounts.NO_HYPOTHESIS,1);
+assert.equal(diagnostic.resultStateCounts.GENERATION_BLOCKED,1);
+assert.equal(diagnostic.resultsSample[0].abstentionReason,'Evidence does not support a falsifiable threshold.');
+assert.deepEqual(diagnostic.warningClasses,['HYPOTHESIS_GENERATION_MALFORMED_JSON','MODEL_OR_PROVIDER_UNAVAILABLE']);
+assert.equal(summarizeWorldHypothesisAttempt({payload:{}}).state,'STAGE_NOT_RECORDED');
+const exposedRoute=readFileSync('src/app/api/external/v1/world/route.ts','utf8');
+assert(exposedRoute.includes('body.includeHypothesisDiagnostics !== true'), 'Diagnostic payload requires explicit opt-in');
+assert(exposedRoute.includes('summarizeWorldHypothesisAttempt(recentAttempt.data)'), 'Read-only diagnostic owner must be wired');
+
 console.log('PASS · World hypothesis prompt preserves source identity, bounded valid JSON, explicit diagnostic and strict prospective testing');
