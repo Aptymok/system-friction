@@ -187,7 +187,7 @@ assert.match(amvThoughtStreamRoute, /'Cache-Control': 'private, no-store'/, 'AMV
 // Legacy MOPH agent reads service-role AMV memory and invokes paid model providers.
 const mophAgentRoute = read('src/app/api/agentic/moph/route.ts');
 const mophAgentImpl = read('src/lib/agents/sfiAgents.ts');
-assert.match(mophAgentRoute, /requireRootActor\('root\.moph\.agent\.read'\)/, 'MOPH institutional memory requires verified ROOT');
+assert.match(mophAgentRoute, /requireRootActor\('root\.moph\.agent\.run'\)/, 'MOPH institutional memory requires verified ROOT');
 assert.ok(mophAgentRoute.indexOf("requireRootActor('root.moph.agent.run')") < mophAgentRoute.indexOf('await request.json()'), 'MOPH must authorize before reading input');
 assert.ok(mophAgentRoute.indexOf("requireRootActor('root.moph.agent.run')") < mophAgentRoute.indexOf("rpc('sfi_admit_legacy_ai_request_v1'"), 'MOPH must authorize before counting AI requests');
 assert.ok(mophAgentRoute.indexOf("rpc('sfi_admit_legacy_ai_request_v1'") < mophAgentRoute.indexOf('await runMophAgent('), 'MOPH must pass distributed admission before provider work');
