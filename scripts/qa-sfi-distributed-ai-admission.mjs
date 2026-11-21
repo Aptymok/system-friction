@@ -19,11 +19,24 @@ assert.ok(route.indexOf("rpc('sfi_admit_legacy_ai_request_v1'") < route.indexOf(
 assert.match(route, /ai_shared_budget_unavailable/);
 assert.match(route, /ai_shared_quota_exceeded/);
 assert.doesNotMatch(migration, /drop table|truncate table|delete from public\.epistemic_events/i);
+const providerRouter = read('src/observatory/ai/aiProviderRouter.ts');
+assert.match(providerRouter, /max_completion_tokens: 1200/);
+assert.match(providerRouter, /max_tokens: 1200/);
 
 const db = new PGlite();
 try {
   await db.exec('create role anon nologin; create role authenticated nologin; create role service_role nologin;');
   await db.exec(migration);
+  await db.exec('set role anon;');
+  try {
+    await assert.rejects(
+      db.query("select public.sfi_admit_legacy_ai_request_v1('00000001-0000-4000-8000-000000000001'::uuid)"),
+      /permission denied/i,
+      'anonymous role may not consume provider quota',
+    );
+  } finally {
+    await db.exec('reset role;');
+  }
   const admit = async actor => {
     const value = await db.query(
       'select public.sfi_admit_legacy_ai_request_v1($1::uuid) as result',
