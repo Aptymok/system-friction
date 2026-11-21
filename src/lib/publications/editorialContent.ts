@@ -844,11 +844,11 @@ export const SFI_REALITY_CHAIN_RESEARCH: SfiEditorialPublication = Object.freeze
   sections: Object.freeze([
     {id:'purpose',title:'Purpose and research question',paragraphs:['Under which observable conditions can an institution reconstruct what was known, inferred, authorized, executed and subsequently observed without rewriting the earlier knowledge state? The PDF specifies a typed reporting grammar and falsifiable future comparison protocol.']},
     {id:'boundary',title:'Evidence and uncertainty',paragraphs:['NIST AI RMF, W3C PROV-O and the SEC Knight 2012 case are public antecedents or retrospective documentation, not external certifications or validations of SFI. Internal SFI-A/SFI-B metadata is discussed only within bounded limits.']},
-    {id:'publication',title:'Publication status and rights',paragraphs:['Public author-approved working paper, not peer reviewed. H1–H4 remain untested. No DOI, calibrated prediction, general identity threshold or independent external RETURN is claimed. Original article text and editorial diagrams are released under CC BY 4.0; third-party sources and SFI signs are excluded.']},
+    {id:'publication',title:'Publication status and rights',paragraphs:['Public author-approved working paper, not peer reviewed. H1–H4 remain untested. The author supplied DOI 10.5281/zenodo.24298387 (https://doi.org/10.5281/zenodo.24298387), with independent Zenodo/DataCite metadata verification NOT_OBSERVED. No calibrated prediction, general identity threshold or independent external empirical RETURN is claimed. Original article text and editorial diagrams are released under CC BY 4.0; third-party sources and SFI signs are excluded.']},
   ]),
   cadence: Object.freeze([]),
   domains: Object.freeze(['institutional observability','provenance','temporal integrity','human-AI systems']),
-  epistemicBoundary: Object.freeze(['Publication establishes exposure, not validation.','No independent comparative result; no scientific peer review; DOI not assigned.','No private source records included in the public PDF.']),
+  epistemicBoundary: Object.freeze(['Publication establishes exposure, not validation.','No independent comparative result or scientific peer review; author-supplied DOI 10.5281/zenodo.24298387, external resolver metadata NOT_OBSERVED.','No private source records included in the public PDF.']),
   temporalProfile: null,
 });
 
