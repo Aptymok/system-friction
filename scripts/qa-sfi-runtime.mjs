@@ -23,6 +23,8 @@ function timeoutFetch(url, opts = {}) {
 }
 
 function classify(result) {
+  // The institutional ledger is private by design; anonymous 401 is healthy.
+  if (result.route === '/api/sfi/events' && [401, 403].includes(result.status)) return 'SECURITY_GATED'
   if (result.networkError) return 'BLOCKED'
   if (result.status !== 200) return 'BLOCKED'
   if (result.json && typeof result.json.ok === 'boolean') {

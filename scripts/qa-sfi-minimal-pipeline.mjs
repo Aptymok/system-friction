@@ -37,6 +37,8 @@ function hasDeep(value, predicate) {
 }
 
 function classify(result) {
+  // GET /api/sfi/run previously inserted records; 405 is its mandatory safety response.
+  if (result.route === '/api/sfi/run' && result.status === 405) return 'SECURITY_GATED';
   if (!result.ok) return 'BLOCKED';
   if (result.route === '/sfi-console') return 'OK';
   const body = result.body;
@@ -57,6 +59,7 @@ const report = {
   summary: {
     ok: results.filter((item) => item.classification === 'OK').length,
     degraded: results.filter((item) => item.classification === 'DEGRADED').length,
+    securityGated: results.filter((item) => item.classification === 'SECURITY_GATED').length,
     blocked: results.filter((item) => item.classification === 'BLOCKED').length,
   },
 };
@@ -77,6 +80,7 @@ fs.writeFileSync(path.join(process.cwd(), 'docs', 'QA_SFI_MINIMAL_PIPELINE_REPOR
   '',
   `- OK: ${report.summary.ok}`,
   `- DEGRADED: ${report.summary.degraded}`,
+  `- SECURITY_GATED: ${report.summary.securityGated}`,
   `- BLOCKED: ${report.summary.blocked}`,
 ].join('\n'));
 

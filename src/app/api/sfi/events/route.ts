@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server';
+import { requireRootActor, requireRootViewer } from '@/lib/root/server';
 import { appendEpistemicEvent, streamEpistemicEvents } from '@/lib/events/eventStore';
 import { isEpistemicClass } from '../../../../../packages/events/src/schema';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
+  const gate = await requireRootViewer('root.sfi.events.read');
+  if (!gate.ok) return NextResponse.json(gate.body, { status: gate.status });
+
   const events = await streamEpistemicEvents('SFI', 200);
   return NextResponse.json({
     ok: events.ok,
@@ -16,6 +20,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const gate = await requireRootActor('root.sfi.events.append');
+  if (!gate.ok) return NextResponse.json(gate.body, { status: gate.status });
+
   const body = await request.json().catch(() => ({}));
   if (!body || typeof body !== 'object' || Array.isArray(body)) {
     return NextResponse.json({ ok: false, error: 'event_object_required' }, { status: 400 });
@@ -44,6 +51,7 @@ export async function POST(request: Request) {
     lineage: Array.isArray(input.lineage) ? input.lineage.filter((item): item is string => typeof item === 'string') : [],
     uncertainty: typeof input.uncertainty === 'string' ? input.uncertainty : undefined,
     logbookId: 'SFI',
+    actorId: gate.ctx.user.id,
   });
 
   return NextResponse.json(event, { status: event.ok ? 201 : 400 });

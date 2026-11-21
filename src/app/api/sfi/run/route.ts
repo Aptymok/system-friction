@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireRootActor } from '@/lib/root/server';
 import { appendLogbookEntry } from '@/lib/logbook/query';
 import { persistSfiPipelineExecution } from '@/lib/sfi/persistence/sfiExecutionPersistence';
 import { runLowInjectionPipeline } from '@/lib/sfi/runtime/lowInjectionRuntime';
@@ -40,10 +41,16 @@ async function execute(input: Record<string, unknown>) {
 }
 
 export async function GET() {
-  return NextResponse.json(await execute({ case_id: 'SFI-OP-LOCAL', requested_assets: ['text'] }));
+  // GET must never trigger persistent work, even for an authenticated caller.
+  return NextResponse.json({ ok: false, error: 'method_not_allowed' }, {
+    status: 405, headers: { Allow: 'POST' },
+  });
 }
 
 export async function POST(request: NextRequest) {
+  const gate = await requireRootActor('root.sfi.run.execute');
+  if (!gate.ok) return NextResponse.json(gate.body, { status: gate.status });
+
   const input = await request.json().catch(() => ({}));
   try {
     return NextResponse.json(await execute(input && typeof input === 'object' ? input as Record<string, unknown> : {}));
