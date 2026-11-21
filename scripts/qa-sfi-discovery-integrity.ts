@@ -4,6 +4,7 @@ import path from 'node:path';
 import {
   SFI_CANONICAL_OBJECT_TYPES,
   canonicalUrlFor,
+  canonicalPublicationDisposition,
   validateCanonicalObjectRegistry,
   SFI_CANONICAL_OBJECT_REGISTRY,
 } from '../src/lib/discovery/canonicalObjectRegistry';
@@ -77,7 +78,18 @@ assert.equal(canonicalUrlFor('METHOD', 'mihm'), 'https://systemfriction.org/meth
 assert.deepEqual(SFI_PUBLIC_SEMANTIC_OBJECT_TYPES, [
   'CONCEPT', 'METHOD', 'INSTRUMENT', 'REPORT', 'PAPER', 'SOFTWARE', 'RELEASE', 'RETURN',
 ], 'r3_public_semantic_object_taxonomy_drift');
-assert.deepEqual(publicSemanticProjectionsForCanonicalObjects(SFI_CANONICAL_OBJECT_REGISTRY), [], 'empty_registry_must_not_emit_semantic_objects');
+// An empty input emits nothing; registered, explicitly publicable research may emit a bounded projection.
+assert.deepEqual(publicSemanticProjectionsForCanonicalObjects([]), [], 'empty_registry_must_not_emit_semantic_objects');
+const semanticProjections = publicSemanticProjectionsForCanonicalObjects(SFI_CANONICAL_OBJECT_REGISTRY);
+const eligibleSemanticRecords = SFI_CANONICAL_OBJECT_REGISTRY.filter((record) =>
+  SFI_PUBLIC_SEMANTIC_OBJECT_TYPES.some((type) => type === record.objectType)
+  && canonicalPublicationDisposition(record).disposition === 'PUBLISH'
+);
+assert.deepEqual(
+  semanticProjections.map((projection) => projection.object.id),
+  eligibleSemanticRecords.map((record) => record.id),
+  'semantic_objects_must_match_explicitly_publicable_canonical_registry'
+);
 assert.equal(SFI_PUBLIC_SEMANTIC_PROJECTION_CONTRACT, 'SFI-PUBLIC-SEMANTIC-PROJECTION-1.0', 'semantic_projection_contract_drift');
 assert.equal(SFI_EVIDENCE_CAPSULE_CONTRACT, 'SFI-EVIDENCE-CAPSULE-1.0', 'evidence_capsule_contract_drift');
 
