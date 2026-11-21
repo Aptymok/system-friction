@@ -144,6 +144,19 @@ assert.match(proposalAlign, /resolveProposalReviewerAuthority\(gate\.ctx\)/, 'pr
 assert.match(proposalAlign, /controllerCanDecideProposal\(proposal\)/, 'controller must not align sovereign-only proposals');
 assert.ok(proposalAlign.indexOf('await requireGovernedActor(') < proposalAlign.indexOf(".from('sfi_proposal_alignment')"), 'proposal alignment must be authorized before writing');
 
+// Public legacy endpoints must not allow anonymous institutional ledger writes.
+const sfiEventRoute = read('src/app/api/sfi/events/route.ts');
+const sfiRunRoute = read('src/app/api/sfi/run/route.ts');
+assert.match(sfiEventRoute, /requireRootViewer\('root\.sfi\.events\.read'\)/, 'SFI ledger read requires ROOT observer');
+assert.match(sfiEventRoute, /requireRootActor\('root\.sfi\.events\.append'\)/, 'SFI ledger write requires ROOT');
+assert.ok(sfiEventRoute.indexOf("requireRootActor('root.sfi.events.append')") < sfiEventRoute.indexOf('await request.json()'), 'SFI events must authorize before parsing and appending');
+assert.match(sfiEventRoute, /actorId: gate\.ctx\.user\.id/, 'SFI event appends require verified actor attribution');
+assert.match(sfiRunRoute, /requireRootActor\('root\.sfi\.run\.execute'\)/, 'SFI run requires ROOT before executing');
+assert.ok(sfiRunRoute.indexOf("requireRootActor('root.sfi.run.execute')") < sfiRunRoute.indexOf('await execute(input'), 'SFI run must authorize before pipeline side effects');
+const sfiRunGet = sfiRunRoute.split('export async function GET() {')[1]?.split('export async function POST')[0] ?? '';
+assert.match(sfiRunGet, /status: 405/, 'SFI run GET must reject execution');
+assert.doesNotMatch(sfiRunGet, /await execute\(/, 'GET may not persist pipeline work');
+
 console.log(JSON.stringify({
   ok: true,
   contract: 'SFI-SOVEREIGN-ONLY-HUMAN-GATES-1.6',
