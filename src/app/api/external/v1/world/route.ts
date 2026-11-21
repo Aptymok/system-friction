@@ -75,7 +75,7 @@ export async function POST(req: Request) {
     // Explicit opt-in only: payloads can be large, so ordinary state reads remain lean.
     const recentAttempt = await createServiceSupabaseClient()
       .from('epistemic_events')
-      .select('event_id,event_name,occurred_at,payload')
+      .select('event_id,event_name,occurred_at,stageOk:payload->hypothesis->ok,created:payload->hypothesis->created,considered:payload->hypothesis->considered,clusters:payload->hypothesis->clusters,warnings:payload->hypothesis->warnings,results:payload->hypothesis->results')
       .in('event_name', [
         'external.world.daily_cycle.completed',
         'external.world.daily_cycle.partial',
