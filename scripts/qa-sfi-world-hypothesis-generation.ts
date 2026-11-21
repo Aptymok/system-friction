@@ -1,11 +1,28 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {prepareWorldHypothesisPrompt,diagnoseWorldHypothesisResponse} from '../src/lib/world-observatory/hypothesisGenerationBoundary';
+import {prepareWorldHypothesisPrompt,diagnoseWorldHypothesisResponse,selectWorldHypothesisSeeds} from '../src/lib/world-observatory/hypothesisGenerationBoundary';
 const original=readFileSync('src/lib/world-observatory/hypothesisCycle.ts','utf8');
 assert(original.includes('prepareWorldHypothesisPrompt({'));
 assert(!original.includes('}).slice(0, 30000)'), 'The model input must never be truncated into invalid JSON');
 assert(original.includes('diagnoseWorldHypothesisResponse(llm.result)'));
 assert(original.includes("state: inferred.warning ? 'GENERATION_BLOCKED' : 'NO_HYPOTHESIS'"));
+const crowded = [
+ ...Array.from({length:20}, (_,i)=>({observation:{id:'news-'+i,source_family:'NEWS'}})),
+ ...Array.from({length:4}, (_,i)=>({observation:{id:'government-'+i,source_family:'GOVERNMENT'}})),
+ ...Array.from({length:4}, (_,i)=>({observation:{id:'science-'+i,source_family:'SCIENCE'}})),
+];
+const diverseSeeds = selectWorldHypothesisSeeds(crowded, 12);
+assert.equal(diverseSeeds.length, 12);
+assert.deepEqual([...new Set(diverseSeeds.map(x=>x.observation.source_family))], ['NEWS', 'GOVERNMENT', 'SCIENCE']);
+assert.equal(diverseSeeds.filter(x=>x.observation.source_family==='NEWS').length, 4);
+assert.equal(diverseSeeds[0].observation.id, 'news-0', 'original recency order within family preserved');
+assert.equal(selectWorldHypothesisSeeds(crowded, 0).length, 0);
+assert.equal(selectWorldHypothesisSeeds(crowded, 100).length, 12, 'cost cap stays fixed');
+assert.equal(selectWorldHypothesisSeeds(crowded.concat(crowded[0]), 12).length, 12, 'duplicate source observations excluded');
+assert(original.includes('selectWorldHypothesisSeeds(items, 12)'), 'runtime must consume source-diverse seed selection');
+assert(original.includes('abstentionReason:'), 'valid scientific abstentions must retain explanations');
+assert(original.includes('sourceFamilies:'), 'candidate source-family coverage must remain visible');
+
 const evidence=Array.from({length:8},(_,i)=>({
  id:'observed-'+i,sourceFamily:i%2?'NEWS':'GOVERNMENT',
  title:'Short source '+i,summary:'x'.repeat(40000),payload:'y'.repeat(90000),
