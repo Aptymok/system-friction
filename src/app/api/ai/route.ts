@@ -3,6 +3,9 @@ import { runAiTask } from '@/observatory/ai/aiProviderRouter';
 import type { AiTask } from '@/observatory/ai/aiProviderTypes';
 import { AccessDeniedError, requireAuthenticatedUser } from '@/lib/system/access/server';
 import { checkRateLimit, rateLimitKey } from '@/lib/auth/rateLimit';
+import { createServiceSupabaseClient } from '@/runtime/supabase/server';
+
+export const dynamic = 'force-dynamic';
 
 const allowedTasks: AiTask[] = ['summarize', 'audit', 'simulate', 'explain', 'route', 'rewrite_blocked'];
 
@@ -34,6 +37,28 @@ export async function POST(req: NextRequest) {
   // A local per-user throttle is defense-in-depth, not a distributed spend cap.
   const allowance = checkRateLimit(rateLimitKey('legacy-ai-provider', userId), 6, 60_000);
   if (!allowance.allowed) return NextResponse.json({ error: 'ai_rate_limit_exceeded' }, { status: 429 });
+
+  // Atomic admission against PRIMARY Supabase, shared by all Vercel instances.
+  // Fail closed if the migration is missing or its admission state is unknown.
+  // Quota counts request admissions, NOT provider-reported USD billing.
+  let admission: Record<string, unknown> | null = null;
+  try {
+    const receipt = await createServiceSupabaseClient()
+      .rpc('sfi_admit_legacy_ai_request_v1', { p_actor_id: userId });
+    if (receipt.error || !receipt.data || typeof receipt.data !== 'object' || Array.isArray(receipt.data)) {
+      return NextResponse.json({ ok: false, error: 'ai_shared_budget_unavailable' }, { status: 503 });
+    }
+    admission = receipt.data as Record<string, unknown>;
+  } catch {
+    return NextResponse.json({ ok: false, error: 'ai_shared_budget_unavailable' }, { status: 503 });
+  }
+
+  if (admission.admitted !== true) {
+    if (admission.reason === 'GLOBAL_DAILY_QUOTA_REACHED' || admission.reason === 'ACTOR_MINUTE_QUOTA_REACHED') {
+      return NextResponse.json({ ok: false, error: 'ai_shared_quota_exceeded', reason: admission.reason }, { status: 429 });
+    }
+    return NextResponse.json({ ok: false, error: 'ai_shared_budget_unavailable' }, { status: 503 });
+  }
 
   const result = await runAiTask({
     task,

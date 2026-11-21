@@ -67,6 +67,7 @@ async function callOpenAi(request: AiProviderRequest, apiKey: string) {
         { role: 'user', content: request.input },
       ],
       temperature: 0.4,
+      max_completion_tokens: 1200,
     }),
   });
   const payload = await parseJsonResponse(response);
@@ -123,6 +124,7 @@ async function callGroqCompatible(request: AiProviderRequest, apiKey: string, pr
         { role: 'user', content: request.input },
       ],
       temperature: 0.35,
+      max_tokens: 1200,
     }),
   });
   const payload = await parseJsonResponse(response);
