@@ -618,7 +618,7 @@ export const SFI_CANONICAL_OBJECT_REGISTRY: readonly SfiCanonicalObjectRecord[] 
     rights: { state: 'OPEN' },
     evidenceIdentity: { state: 'VALID', refs: ['https://raw.githubusercontent.com/Aptymok/SFI-RESEARCH-HUB/main/05_RESEARCH_OBJECTS/SFI-RC-2026-METHOD-001/Reality_Chain.pdf', 'https://github.com/Aptymok/SFI-RESEARCH-HUB/blob/main/05_RESEARCH_OBJECTS/SFI-RC-2026-METHOD-001/PUBLICATION_RECORD.md'] },
     limitations: [
-      'Author-approved methodological working paper only; not peer reviewed and no DOI assigned.',
+      'Author-approved methodological working paper only; not peer reviewed. Zenodo DOI 10.5281/zenodo.24298387 was supplied by the founder; independent resolver metadata verification is NOT_OBSERVED.',
       'H1–H4 remain untested; no independent evaluation or externally observed scientific RETURN.',
       'Source registration and GitHub transport do not establish scientific validity.',
       'CC BY 4.0 applies solely to original author prose and diagrams; third-party sources and institutional signs are excluded.',
@@ -626,7 +626,7 @@ export const SFI_CANONICAL_OBJECT_REGISTRY: readonly SfiCanonicalObjectRecord[] 
     missing: [
       {field:'peer_review',reason:'Independent scholarly review not performed.',sourceRef:'https://github.com/Aptymok/SFI-RESEARCH-HUB/blob/main/05_RESEARCH_OBJECTS/SFI-RC-2026-METHOD-001/PUBLICATION_RECORD.md'},
       {field:'empirical_return',reason:'No external comparative empirical RETURN observed.',sourceRef:'https://github.com/Aptymok/SFI-RESEARCH-HUB/blob/main/05_RESEARCH_OBJECTS/SFI-RC-2026-METHOD-001/PUBLICATION_RECORD.md'},
-      {field:'doi',reason:'No DOI has been assigned.',sourceRef:'https://github.com/Aptymok/SFI-RESEARCH-HUB/blob/main/05_RESEARCH_OBJECTS/SFI-RC-2026-METHOD-001/PUBLICATION_RECORD.md'},
+      {field:'doi_verification',reason:'Author-provided Zenodo DOI 10.5281/zenodo.24298387 is recorded, but Zenodo/DataCite resolver metadata and deposited-file identity were not independently read.',sourceRef:'https://github.com/Aptymok/SFI-RESEARCH-HUB/blob/main/05_RESEARCH_OBJECTS/SFI-RC-2026-METHOD-001/PUBLICATION_RECORD.md'},
     ],
   },
   ...SFI_EDITORIAL_OBSERVATIONS.map(canonicalObservationPublication),
