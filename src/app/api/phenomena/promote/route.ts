@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { AccessDeniedError, requireFounder } from '@/lib/system/access/server'
 import { promotePhenomenonCandidate, type PhenomenonCandidateInput } from '@/lib/phenomena/phenomenon-engine'
 
 export const dynamic = 'force-dynamic'
@@ -21,6 +22,12 @@ function stringArray(value: unknown) {
 }
 
 export async function POST(request: Request) {
+  try {
+    await requireFounder()
+  } catch (error) {
+    if (error instanceof AccessDeniedError) return NextResponse.json({ ok: false, error: error.code }, { status: error.status })
+    return NextResponse.json({ ok: false, error: 'authorization_failed' }, { status: 503 })
+  }
   const body = record(await request.json().catch(() => ({})))
   const now = new Date().toISOString()
   const candidate: PhenomenonCandidateInput = {
