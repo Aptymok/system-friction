@@ -66,14 +66,21 @@ const diagnostic=summarizeWorldHypothesisAttempt({
  ]}}
 });
 assert.equal(diagnostic.state,'RECORDED');
+if (!('resultStateCounts' in diagnostic)) throw new Error('expected_recorded_diagnostic');
 assert.equal(diagnostic.created,0);
 assert.equal(diagnostic.resultStateCounts.NO_HYPOTHESIS,1);
 assert.equal(diagnostic.resultStateCounts.GENERATION_BLOCKED,1);
 assert.equal(diagnostic.resultsSample[0].abstentionReason,'Evidence does not support a falsifiable threshold.');
 assert.deepEqual(diagnostic.warningClasses,['HYPOTHESIS_GENERATION_MALFORMED_JSON','MODEL_OR_PROVIDER_UNAVAILABLE']);
 assert.equal(summarizeWorldHypothesisAttempt({payload:{}}).state,'STAGE_NOT_RECORDED');
+const projected=summarizeWorldHypothesisAttempt({event_id:'receipt-2',stageOk:true,created:0,considered:4,clusters:1,warnings:[],results:[{state:'NO_HYPOTHESIS',abstentionReason:'Valid scientific abstention'}]});
+if (!('resultStateCounts' in projected)) throw new Error('expected_narrow_projection');
+assert.equal(projected.resultStateCounts.NO_HYPOTHESIS,1);
+assert.equal(projected.created,0);
 const exposedRoute=readFileSync('src/app/api/external/v1/world/route.ts','utf8');
 assert(exposedRoute.includes('body.includeHypothesisDiagnostics !== true'), 'Diagnostic payload requires explicit opt-in');
+assert(exposedRoute.includes('stageOk:payload->hypothesis->ok'), 'Diagnostic query must use narrow JSONB projection');
+assert(!exposedRoute.includes("select('event_id,event_name,occurred_at,payload')"), 'Diagnostic route cannot fetch whole receipt payload');
 assert(exposedRoute.includes('summarizeWorldHypothesisAttempt(recentAttempt.data)'), 'Read-only diagnostic owner must be wired');
 
 console.log('PASS · World hypothesis prompt preserves source identity, bounded valid JSON, explicit diagnostic and strict prospective testing');
