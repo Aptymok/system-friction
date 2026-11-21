@@ -34,8 +34,10 @@ test('query mode projects only source-backed public candidates without fabricati
     assert.equal(candidate.canonical, false);
     assert.equal(candidate.source.independent, false);
     assert.equal(candidate.availability, 'AVAILABLE');
-    assert.ok(candidate.canonicalUrl?.startsWith('https://systemfriction.org/research/'));
-    assert.ok(candidate.provenance.includes(candidate.canonicalUrl));
+    const canonicalUrl = candidate.canonicalUrl;
+    assert.ok(canonicalUrl, 'public_candidate_must_expose_canonical_url');
+    assert.ok(canonicalUrl.startsWith('https://systemfriction.org/research/'));
+    assert.ok(candidate.provenance.includes(canonicalUrl));
   }
   assert.equal(observed.metrics.UDR.value, null, 'public_listing_is_not_external_retrieval_evidence');
   assert.equal(observed.metrics.ACR.R.value, null, 'listing_cannot_claim_ai_retrieval');
