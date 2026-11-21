@@ -19,7 +19,7 @@ assert.ok(studioPage.includes("requireSfiMemberPage('/studio')"), 'studio_instit
 assert.ok(studioPage.includes('moduleAccess.studio !== true'), 'studio_module_gate_missing');
 
 // Studio reads only the authenticated actor's object scope and exposes native Studio operations.
-assert.ok(studioPage.includes('listStudioObjects(user.id)'), 'studio_owner_scoped_object_list_missing');
+assert.match(studioPage, /listStudioObjects\(\s*user\.id\s*(?:,|\))/, 'studio_owner_scoped_object_list_missing');
 assert.ok(studioPage.includes('getStudioObjectFeatures(activeId, user.id)'), 'studio_owner_scoped_features_missing');
 for (const instrument of ['/analyze', '/content', '/features', '/evidence', '/cognitive']) {
   assert.ok(studioPage.includes(instrument), `studio_instrument_missing:${instrument}`);
