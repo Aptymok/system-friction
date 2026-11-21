@@ -147,6 +147,34 @@ test('persist rejects non-string title/content without coercing objects into evi
   }
 });
 
+test('research persist rejects unsupported returnState before writing an event', async () => {
+  const h = harness();
+  const bad = await h.post({
+    operation: 'persist', title: 'SFI Corrigibility Test 001', content: 'Readback regression',
+    metadata: { kind: 'METHOD_LAB_RESEARCH_OBJECT', researchObject: {
+      objectId: 'SFI-CORRIGIBILITY-TEST-001',
+      returnState: 'OCTOBER_NOT_OBSERVED',
+    } },
+  });
+  assert.equal(bad.status, 400);
+  const error = await bad.json();
+  assert.equal(error.error, 'method_lab_research_return_state_invalid');
+  assert.ok(error.acceptedReturnStates.includes('PENDING'));
+  assert.equal(h.events.length, 0, 'invalid return state must not leave a persisted event');
+
+  const good = await h.post({
+    operation: 'persist', title: 'SFI Corrigibility Test 001', content: 'Valid successor event',
+    metadata: { kind: 'METHOD_LAB_RESEARCH_OBJECT', researchObject: {
+      objectId: 'SFI-CORRIGIBILITY-TEST-001',
+      returnState: 'PENDING',
+      state: 'OCTOBER_BLOCKED_DATA_HISTORICAL_REPRODUCED',
+    } },
+  });
+  assert.equal(good.status, 201);
+  assert.equal(h.events.length, 1);
+  assert.equal(h.events[0].payload.metadata.researchObject.returnState, 'PENDING');
+});
+
 test('persist and report(commandId) preserve retrospective provenance with idempotency', async () => {
   const h = harness();
   const body = { operation: 'persist', commandId: 'qa-retrospective', title: 'External research', content: 'Bounded source reconstruction', source: 'outside_sfi_method_lab', confidence: 0, refs: ['pdf:sha256:qa'], metadata: { origin: 'outside_sfi_method_lab', conductedAt: '2026-09-21', registrationType: 'RETROSPECTIVE', state: 'EXPERIMENTAL', canonicalPromotion: false, independentReproducibility: 'PENDING' } };

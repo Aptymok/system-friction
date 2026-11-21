@@ -22,7 +22,8 @@ export function externallyDisclosableResearchState(
 export type MethodLabResearchObjectClass = 'AUDIT' | 'RESEARCH' | 'SPECIFICATION' | 'DERIVATIVE' | 'CASE';
 export type MethodLabResearchEpistemicState = 'OBSERVED' | 'DERIVED' | 'MIXED' | 'NOT_TESTED' | 'FROZEN_CANDIDATE' | 'WITHHELD';
 export type MethodLabResearchPublicationState = 'PRIVATE' | 'WORKING' | 'PUBLIC_DERIVATIVE_READY' | 'PROMOTION_REQUESTED' | 'HUB_PUBLISHED' | 'RELEASE_CANDIDATE' | 'RELEASED';
-export type MethodLabResearchReturnState = 'NOT_APPLICABLE' | 'PENDING' | 'OBSERVED' | 'VERIFIED';
+export const METHOD_LAB_RESEARCH_RETURN_STATES = ['NOT_APPLICABLE', 'PENDING', 'OBSERVED', 'VERIFIED'] as const;
+export type MethodLabResearchReturnState = (typeof METHOD_LAB_RESEARCH_RETURN_STATES)[number];
 
 export type MethodLabFinding = {
   id: string;

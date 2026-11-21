@@ -64,7 +64,13 @@ for (const token of [
   "state: 'FAILED'",'resumeFailedIntake','assertNoActiveAnalysis',".in('status', ['queued', 'running'])",'persistRetryAuthorization',
 ]) assert.ok(intake.includes(token), `intake_contract_missing:${token}`);
 assert.doesNotMatch(intake, /requestedObjectType:\s*'audio'/);
-assert.match(intake, /metadata:\s*\{\s*externalIntake,\s*analysisAuthorizationHistory:/, 'initial_intake_must_persist_authorization_history');
+// The optional Field-node binding can appear between the attachment source and
+// authorization-history fields; preserve both requirements without assuming adjacency.
+const initialMetadataStart = intake.indexOf('metadata: {', intake.indexOf('prepareStudioSignedUpload({'));
+assert.ok(initialMetadataStart >= 0, 'initial_intake_metadata_missing');
+const initialMetadata = intake.slice(initialMetadataStart, intake.indexOf('\n    },', initialMetadataStart));
+assert.match(initialMetadata, /\bexternalIntake,/, 'initial_intake_must_persist_external_intake');
+assert.match(initialMetadata, /analysisAuthorizationHistory:\s*\[durableAuthorization\(analysisAuthorization\)\]/, 'initial_intake_must_persist_authorization_history');
 
 assert.match(idempotencyMigration, /create unique index if not exists studio_objects_owner_external_intake_file_uidx/i);
 assert.match(idempotencyMigration, /owner_id,[\s\S]*metadata #>> '\{externalIntake,openaiFileId\}'/);
