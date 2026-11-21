@@ -1,6 +1,6 @@
 import 'server-only';
 import { createHash } from 'crypto';
-import { prepareWorldHypothesisPrompt, diagnoseWorldHypothesisResponse } from './hypothesisGenerationBoundary';
+import { prepareWorldHypothesisPrompt, diagnoseWorldHypothesisResponse, selectWorldHypothesisSeeds } from './hypothesisGenerationBoundary';
 import { runLlmTask } from '@/lib/ai/providerRouter';
 import { createServiceSupabaseClient } from '@/runtime/supabase/server';
 import { clamp01 } from '@/lib/sfi/math';
@@ -104,7 +104,7 @@ function structuralBasis(a: ObservationRow, b: ObservationRow) {
 function buildClusters(items: ClusterItem[]) {
   const seen = new Set<string>();
   const clusters: ClusterItem[][] = [];
-  for (const seed of items) {
+  for (const seed of selectWorldHypothesisSeeds(items, 12)) {
     const related = items
       .filter((candidate) => candidate.observation.id !== seed.observation.id)
       .map((candidate) => ({ candidate, basis: structuralBasis(seed.observation, candidate.observation) }))
@@ -314,6 +314,13 @@ export async function runWorldHypothesisCycle() {
         phenomenonKey,
         state: inferred.warning ? 'GENERATION_BLOCKED' : 'NO_HYPOTHESIS',
         warning: inferred.warning ?? null,
+        evidenceCount: evidenceIds.length,
+        sourceFamilies: [...new Set(cluster.map((item) => item.observation.source_family || 'UNKNOWN'))].sort(),
+        provider: inferred.provider,
+        model: inferred.model,
+        abstentionReason: inferred.ok && inferred.proposal?.decision === 'NO_HYPOTHESIS'
+          ? inferred.proposal.reason.slice(0, 500)
+          : null,
       });
       continue;
     }

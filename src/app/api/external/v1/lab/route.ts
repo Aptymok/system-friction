@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { readMethodLabState } from '@/lib/method-lab/readModel';
-import { buildMethodLabPublicationPackage, methodLabResearchHubTarget, persistMethodLabResearchObject, readMethodLabResearchState, isResearchDisclosureRestricted, externallyDisclosableResearchState } from '@/lib/method-lab/researchObjects';
+import { buildMethodLabPublicationPackage, methodLabResearchHubTarget, persistMethodLabResearchObject, readMethodLabResearchState, isResearchDisclosureRestricted, externallyDisclosableResearchState, METHOD_LAB_RESEARCH_RETURN_STATES } from '@/lib/method-lab/researchObjects';
 import { assessMethodLabResearchAssurance } from '@/lib/method-lab/researchAssurance';
 import { buildMethodLabIndependentReviewDossier } from '@/lib/method-lab/researchReviewDossier';
 import { runMethodLabSimulation } from '@/lib/method-lab/simulationRun';
@@ -283,6 +283,18 @@ export async function POST(req: Request) {
     const metadata = metadataValue as Record<string, unknown>;
     const researchMeta = recordValue(metadata.researchObject);
     const directObject = recordValue(body.researchObject);
+    // Do not silently reclassify an unsupported RETURN state as NOT_APPLICABLE
+    // when the event-ledger research projection normalizes this metadata.
+    if (metadata.kind === 'METHOD_LAB_RESEARCH_OBJECT' && Object.prototype.hasOwnProperty.call(researchMeta, 'returnState')) {
+      if (!METHOD_LAB_RESEARCH_RETURN_STATES.some((state) => state === researchMeta.returnState)) {
+        return NextResponse.json({
+          ok: false,
+          error: 'method_lab_research_return_state_invalid',
+          acceptedReturnStates: METHOD_LAB_RESEARCH_RETURN_STATES,
+          detail: 'Research returnState must use an allowed value; declare outcome missingness in state, summary, limitations, and the original event.',
+        }, { status: 400 });
+      }
+    }
     if (isResearchDisclosureRestricted(String(researchMeta.objectId ?? directObject.objectId ?? metadata.objectId ?? ''))) {
       return NextResponse.json({ ok: false, error: 'research_disclosure_restricted' }, { status: 403 });
     }
