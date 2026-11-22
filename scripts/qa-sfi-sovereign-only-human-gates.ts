@@ -170,9 +170,37 @@ assert.match(mophSessionStore, /function ownedSessionKey\(sessionKey: string, ow
 assert.match(mophSessionStore, /\.eq\('account_id', ownerId\)/, 'MOPH service-role reads must filter account ownership');
 assert.match(mophSessionStore, /fallbackStore\(\)\.get\(storageKey\)/, 'MOPH fallback reads are owner-isolated');
 
+
+// AMV learning was previously a public append into ROOT-visible logbook and an unguarded thought stream.
+// Internal server-to-server library consumers remain unchanged; the external HTTP boundary is ROOT governed.
+const amvLearningAppendRoute = read('src/app/api/amv/learning/append/route.ts');
+const amvThoughtStreamRoute = read('src/app/api/amv/thoughts/live/route.ts');
+assert.match(amvLearningAppendRoute, /requireRootActor\('root\.amv\.learning\.append'\)/, 'AMV learning writes require authenticated ROOT actor');
+assert.ok(amvLearningAppendRoute.indexOf("requireRootActor('root.amv.learning.append')") < amvLearningAppendRoute.indexOf('await request.json()'), 'AMV append authorization must precede body parsing');
+assert.ok(amvLearningAppendRoute.indexOf("requireRootActor('root.amv.learning.append')") < amvLearningAppendRoute.indexOf('await appendAmvLearning('), 'AMV append authorization must precede persistence');
+assert.match(amvLearningAppendRoute, /MAX_BODY_BYTES = 16_384/, 'AMV append payloads must be bounded');
+assert.match(amvThoughtStreamRoute, /requireRootViewer\('root\.amv\.thoughts\.read'\)/, 'AMV private thought stream requires verified ROOT observer');
+assert.ok(amvThoughtStreamRoute.indexOf("requireRootViewer('root.amv.thoughts.read')") < amvThoughtStreamRoute.indexOf('await readAmvThoughts('), 'AMV thought stream cannot read before authorization');
+assert.match(amvThoughtStreamRoute, /'Cache-Control': 'private, no-store'/, 'AMV private thought stream must not be cached');
+
+
+// Legacy MOPH agent reads service-role AMV memory and invokes paid model providers.
+const mophAgentRoute = read('src/app/api/agentic/moph/route.ts');
+const mophAgentImpl = read('src/lib/agents/sfiAgents.ts');
+assert.match(mophAgentRoute, /requireRootActor\('root\.moph\.agent\.run'\)/, 'MOPH institutional memory requires verified ROOT');
+assert.ok(mophAgentRoute.indexOf("requireRootActor('root.moph.agent.run')") < mophAgentRoute.indexOf('await request.json()'), 'MOPH must authorize before reading input');
+assert.ok(mophAgentRoute.indexOf("requireRootActor('root.moph.agent.run')") < mophAgentRoute.indexOf("rpc('sfi_admit_legacy_ai_request_v1'"), 'MOPH must authorize before counting AI requests');
+assert.ok(mophAgentRoute.indexOf("rpc('sfi_admit_legacy_ai_request_v1'") < mophAgentRoute.indexOf('await runMophAgent('), 'MOPH must pass distributed admission before provider work');
+assert.match(mophAgentRoute, /accountId: gate\.ctx\.user\.id/, 'MOPH account identity comes from verified session, never the request');
+assert.doesNotMatch(mophAgentRoute, /payload\.accountId/, 'MOPH must not trust client-supplied account identity');
+assert.match(mophAgentRoute, /MAX_BODY_BYTES = 8_192/, 'MOPH input size is bounded');
+assert.match(mophAgentRoute, /'Cache-Control': 'private, no-store'/, 'MOPH result is private');
+const mophAgentBlock = mophAgentImpl.split('export async function runMophAgent')[1]?.split('export async function runPredictionAgent')[0] ?? '';
+assert.match(mophAgentBlock, /persistence: 'not_persisted'/, 'MOPH trace must not fabricate persisted state');
+
 console.log(JSON.stringify({
   ok: true,
-  contract: 'SFI-SOVEREIGN-ONLY-HUMAN-GATES-1.7',
+  contract: 'SFI-SOVEREIGN-ONLY-HUMAN-GATES-1.9',
   humanApprovalRequiredForRoutineCaseWork: false,
   humanApprovalRequiredForWorkingSources: false,
   humanApprovalRequiredForRoutineLabRun: false,

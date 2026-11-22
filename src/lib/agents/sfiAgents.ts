@@ -221,7 +221,7 @@ export async function runMophAgent(input: MophAgentInput): Promise<MophAgentOutp
       graphNodesUsed: graph.nodes.map((node) => node.id),
       evidenceUsed: graph.evidence.map((item) => item.id),
       confidence,
-      persistence: input.accountId ? 'persisted' : 'not_persisted',
+      persistence: 'not_persisted', // This agent produces a reading, it does not persist its result.
     }),
   };
 }
